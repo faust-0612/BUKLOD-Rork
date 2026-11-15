@@ -46,7 +46,7 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
     void (supabase as any).rpc('get_my_buklod_bible_quiz_v4_review_details',
      {p_attempt_id:data.attempt_id}).then(({data:detail,error:detailError}:any)=>{
       if(!detailError&&Array.isArray(detail?.review)){
-       setQuiz(current=>current?.attempt_id===data.attempt_id?{...current,review:detail.review}:current);
+       setQuiz(current=>current&&current.attempt_id===data.attempt_id?{...current,review:detail.review}:current);
       }
      }).catch(()=>{});
    }
