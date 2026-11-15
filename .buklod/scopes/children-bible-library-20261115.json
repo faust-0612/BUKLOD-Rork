@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/children-bible-library-20261115.json",
-  "objective": "Extend verified BUKLOD Children's Story World with 132 new original offline bilingual biblical story retellings and full Sunday School lessons, preserving active 1.3.2 staging runtime and all unrelated production functionality.",
+  "objective": "Extend verified BUKLOD Children's Story World with 132 new original offline bilingual biblical story retellings and full Sunday School lessons, preserving active 1.3.2 staging runtime and all unrelated production functionality. Complete a reliable Android-compatible offline native text-to-speech listen experience with verified word-boundary pause/resume, voice selection, race-safe cancellation and actionable error display.",
   "baseRef": "ea9a72c687c0885ea6a3c14a883503204f83dad4",
   "productionBaselineEvidence": "Derived from already verified Android staging-user source ea9a72c687c0885ea6a3c14a883503204f83dad4, update 01a1dfb1-578c-7e47-8547-ff3065c6792a, runtime 1.3.2, package org.mzbministry.buklod.staging, release run 43725915006. No new OTA or production deployment performed by this PR.",
-  "chosenApproach": "Add original Bible narrative data and typed adapters on top of verified staging HEAD, reuse existing Sunday School reader and TTS, add explicit OT/NT browse and reference search. Only child-feature source and tests touched.",
+  "chosenApproach": "Add original Bible narrative data and typed adapters on top of verified staging HEAD, reuse existing Sunday School reader and TTS, add explicit OT/NT browse and reference search. Only child-feature source and tests touched. Replace the reader's inline Speech queue with dependency-injected StoryNarrator, test actual speech API callback sequencing and Android behavior without changing native dependencies.",
   "selectionRationale": "Avoid reimplementing reader or rebasing on stale main; preserve already published Wall/media/ads/LIFE/Connect/Rankings and 12 offline children stories.",
   "riskAreas": [
     "child-safety",
@@ -22,7 +22,8 @@
     "No ads or advertising prewarm within child-directed story routes.",
     "Other areas' aggressive approved ads and video rendering are byte-identical.",
     "No child accounts/PII. Adult-only local story progress persists and remains scoped.",
-    "No production OTA, backend migration, new native build, Play Store submission, branch merge or database writes."
+    "No production OTA, backend migration, new native build, Play Store submission, branch merge or database writes.",
+    "Android speech is kept on the existing Expo SDK 57 installed native speech module without adding any package."
   ],
   "acceptanceChecks": [
     "All 144 story IDs unique, 132 new original bilingual accounts from both testaments, correct Bible book references.",
@@ -30,7 +31,9 @@
     "Existing StoryArt and Expo speech lifecycle unchanged; short and long narratives readable offline.",
     "Tests and exact-source Android TypeScript/Hermes export pass before any staging OTA.",
     "Signed staging app/runtime 1.3.2, EAS staging channel freshness and independent receipt verification mandatory before publication.",
-    "Separate production gates; no automatic promotion."
+    "Separate production gates; no automatic promotion.",
+    "Real TTS speak/stop API callback paths tested for all 132 expanded narratives and both Filipino/English; Android native pause/resume is not called.",
+    "Actual device audible output is not claimed without device test. Stage OTA publication must independently pass exact-source APK, runtime and EAS manifest gates."
   ],
   "allowedPaths": [
     "src/app/children-stories/index.tsx",
@@ -41,10 +44,16 @@
     "src/features/childrenStories/catalog.ts",
     "src/features/childrenStories/sundaySchool.ts",
     "tests/children-bible-expanded-catalog-20261115.test.mjs",
-    ".buklod/scopes/children-bible-library-20261115.json"
+    ".buklod/scopes/children-bible-library-20261115.json",
+    "src/app/children-stories/[id].tsx",
+    "src/features/childrenStories/storyNarration.ts",
+    "tests/children-story-narration-20261115.test.mjs",
+    "tests/children-stories-contract.test.mjs"
   ],
   "regressionTests": [
-    "tests/children-bible-expanded-catalog-20261115.test.mjs"
+    "tests/children-bible-expanded-catalog-20261115.test.mjs",
+    "tests/children-story-narration-20261115.test.mjs",
+    "tests/children-stories-contract.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -56,7 +65,8 @@
         "Other BUKLOD Home, Wall, Connect, Profile, LIFE and AdMob features untouched."
       ],
       "tests": [
-        "tests/children-bible-expanded-catalog-20261115.test.mjs"
+        "tests/children-bible-expanded-catalog-20261115.test.mjs",
+        "tests/children-story-narration-20261115.test.mjs"
       ]
     }
   ],
