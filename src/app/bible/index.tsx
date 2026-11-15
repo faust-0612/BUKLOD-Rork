@@ -375,6 +375,8 @@ function DailyReadingAudioPreview({
   readingDate: string;
   reference: string;
 }) {
+  // Follow the same semantic nightPine/graphite palette as the parent reading card.
+  const { theme } = useBuklodTheme();
 
   const [
     loadingAudio,
@@ -836,7 +838,7 @@ function DailyReadingAudioPreview({
                 0.7,
 
               color:
-                '#275D45',
+                theme.accent,
             }}
           >
             AUDIO READING
@@ -855,7 +857,7 @@ function DailyReadingAudioPreview({
                 '800',
 
               color:
-                '#50645A',
+                theme.textSecondary,
             }}
           >
             Listen to today's Scripture
@@ -873,7 +875,7 @@ function DailyReadingAudioPreview({
               '900',
 
             color:
-              '#718078',
+              theme.textMuted,
           }}
         >
           {audioTranslation}
@@ -893,7 +895,7 @@ function DailyReadingAudioPreview({
               1,
 
             borderColor:
-              '#D8E2DC',
+              theme.border,
 
             borderRadius:
               14,
@@ -905,7 +907,7 @@ function DailyReadingAudioPreview({
               'center',
 
             backgroundColor:
-              '#F7FAF8',
+              theme.surfaceElevated,
           }}
         >
 
@@ -918,7 +920,7 @@ function DailyReadingAudioPreview({
                 '800',
 
               color:
-                '#718078',
+                theme.textMuted,
             }}
           >
             Loading audio reading...
@@ -967,7 +969,7 @@ function DailyReadingAudioPreview({
               12,
 
             backgroundColor:
-              '#F5F6F5',
+              theme.surfaceMuted,
           }}
         >
 
@@ -977,7 +979,7 @@ function DailyReadingAudioPreview({
                 9,
 
               color:
-                '#718078',
+                theme.textMuted,
             }}
           >
             {
@@ -1003,7 +1005,7 @@ function DailyReadingAudioPreview({
             13,
 
           color:
-            '#718078',
+            theme.textMuted,
         }}
       >
         Listening alone does not complete this Daily Reading. Tap READ, answer the questions, then complete it for automatic checking.
