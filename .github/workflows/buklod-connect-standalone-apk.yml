@@ -36,6 +36,33 @@ jobs:
           node --test tests/buklod-connect-standalone.test.mjs
           node --check scripts/connect-native-identity-preflight.cjs
           echo 'CONNECT_SOURCE_CONTRACT_OK'
+      - name: Install dependencies for native JS and TypeScript validation
+        run: npm ci --ignore-scripts
+      - name: Verify compiler and Android JavaScript bundle in isolated Connect mode
+        shell: bash
+        env:
+          BUKLOD_APP_TARGET: connect
+          EXPO_PUBLIC_BUKLOD_APP_TARGET: connect
+          APP_VARIANT: staging
+          EXPO_PUBLIC_APP_ENV: staging
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          node <<'NODE' >> "$GITHUB_ENV"
+          const c = require('./eas.json').build['connect-staging'].env;
+          console.log('EXPO_PUBLIC_SUPABASE_URL='+c.EXPO_PUBLIC_SUPABASE_URL);
+          console.log('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY='+c.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+      - name: Android JS bundle smoke (no EAS credits)
+        env:
+          BUKLOD_APP_TARGET: connect
+          EXPO_PUBLIC_BUKLOD_APP_TARGET: connect
+          APP_VARIANT: staging
+          EXPO_PUBLIC_APP_ENV: staging
+        run: |
+          set -euo pipefail
+          npx expo export --platform android --output-dir /tmp/connect-js-android-export
+          echo 'CONNECT_ANDROID_JS_BUNDLE_OK'
 
   staging-apk:
     needs: source-contract
