@@ -35,7 +35,7 @@ test('live staging must be previous source ancestor; unknown or newer source is 
   assert.match(policy,/verifyPreviousStage/);
   assert.match(policy,/gitCommitHash/);
   assert.match(policy,/compatible\(previousSha,newSha\)/);
-  assert.match(policy,/current live staging update is not the most recent recorded branch update/);
+  assert.match(policy,/current live staging update is not the most recent recorded branch update/i);
   assert.match(workflow,/staging-previous-update-view\.json/);
 });
 
