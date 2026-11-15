@@ -116,6 +116,7 @@ import {
 import {
   BuklodTappableAvatar,
 } from '@/components/BuklodTappableAvatar';
+import { ProfileAvatarNoteChip } from '@/components/ProfileAvatar';
 import BuklodPressable from '@/components/BuklodPressable';
 import {
   BUKLOD_SCOPE_COMMUNITY_REACTIONS,
@@ -3246,6 +3247,7 @@ export default function BuklodExclusiveScopeCommunity({
                   )}
                 </Text>
 
+                <ProfileAvatarNoteChip userId={item.user_id} />
                 <Text
                   style={
                     styles.publicReelMeta
@@ -3559,7 +3561,8 @@ return (
                 )}
               </Text>
 
-              <Text
+              <ProfileAvatarNoteChip userId={item.user_id} />
+                <Text
                 style={
                   styles.meta
                 }

@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/bible-132-complete-storytelling-staging-20261116.json",
+  "objective": "Owner-approved completion of all 132 existing bundled Old/New Testament Children Stories to full original Sunday School storytelling with passage-grounded spoken dialogue in Filipino and English, meaningful reading, paraphrase attribution, moral/spiritual lessons, unique prayer, discussion, four-question checks and continuous device narration. Staging source only.",
+  "baseRef": "release/nov16-complete-conso-staging132-r1",
+  "productionBaselineEvidence": "Independent EAS staging-user Android manifest readback on Nov 15 2026 UTC verified update 01a1e0c8-488e-7474-918d-6c1f0a0f5e8d, app source 131c6d294062ce34ff91f91a7090b9bb0d6ce6f2, runtime 1.3.2, signed staging APK bc4be208-bfb0-42f3-95cb-358353d0600f. Production manifest independently unchanged 01a1dff8-7563-790b-a714-22c316f56590 at that readback; this change does not authorize production mutation.",
+  "chosenApproach": "Apply only three entirely authored bilingual dialogue catalog additions plus one composition change in existing Bible expansion lesson mapper on published staging app source. Two in-story exchange scenes per entry plus a third individualized teacher discussion at the end, retaining 3 original acts, reference, age rules, a fourth existing story-check question, progress, translation, global ads, and TTS. Explicitly mark all speech as paraphrase, never exact verbatim God/Jesus quotation. Use no external content or API.",
+  "selectionRationale": "Keeps every one of 132 historical/teaching summaries on existing offline-first bundled pathway and avoids migrations, native rebuilds, global media or financial regressions. Novel child-friendly context is framed as teaching/didactic rather than invented historical transcripts.",
+  "alternativeApproaches": [
+    "Replace original 132 narratives or invent a remote CMS: rejected because it loses canonical source and offline behavior.",
+    "Generate uniform dialogue from a template without checking passage: rejected because it is repetitive, can misattribute speech and lowers teaching accuracy.",
+    "Change shared audio engine or Bible translation: rejected because narration already reads full lesson and altering engine risks unrelated media."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "child-safety",
+    "narration",
+    "offline-content",
+    "scripture-paraphrase",
+    "faith-cluster",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "All original 132 IDs, Old=57/New=75, unchanged original three-act Bible summaries and reference metadata.",
+    "Original 12 Sunday School lessons and 45 authored scenes remain unchanged.",
+    "All 132 expanded stories remain bundled and readable offline and English/Filipino selectable, no remote content or backend edits.",
+    "Existing long-text Android narration chunking, stop/pause and background lifecycle operate on identical displayed full narrative text.",
+    "Existing choices and answer keys, age-sensitive scenes, private favorites, completed stories and BUKLOD point logic remain unchanged.",
+    "Children area continues ad-free; global AdMob and dashboard performance sources untouched.",
+    "No production, Supabase, Play Store, web, app native runtime, Firebase, Marites/Wall/Connect changes."
+  ],
+  "acceptanceChecks": [
+    "Exactly 132 entries with unique IDs (57 Old Testament, 75 New Testament) with two original dialogue scenes in both languages plus classroom-led recap.",
+    "Each displayed story contains intact three canonical acts in order, two passage-linked exchanges in position, then separate guided teaching conversation.",
+    "Four question items per story, two discussion questions, contextualized moral/spiritual lesson, unique passage-specific prayer and Scripture reference.",
+    "All 132 biblical stories include visible warning that dramatized dialogue is a paraphrase, not verbatim Bible translation.",
+    "Focused Node regression proves all 132 slots, bilingual quality and source identity; TypeScript and preview Android Hermes export plus relevant ad/navigation/release gates must pass before staging OTA.",
+    "Use Android package org.mzbministry.buklod.staging, staging-user channel, Expo runtime 1.3.2, signed staging APK compatible. Physical Android verification skipped at owner's request; never claim device acceptance.",
+    "No actual production publication or live backend change authorized."
+  ],
+  "regressionTests": [
+    "tests/bible-132-complete-storytelling-20261116.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/bible-132-complete-storytelling-staging-20261116.json",
+    "src/features/childrenStories/bibleExpansionDialoguesOld.ts",
+    "src/features/childrenStories/bibleExpansionDialoguesNewA.ts",
+    "src/features/childrenStories/bibleExpansionDialoguesNewB.ts",
+    "src/features/childrenStories/bibleExpansion.ts",
+    "tests/bible-132-complete-storytelling-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Existing bundled Bible expansion TypeScript mapping gains authored content and passage-attributed dialogue without runtime or native modification.",
+      "preservedBehaviors": [
+        "Keep offline reading, full-text narration, completion and quiz answers unchanged while preserving global ads and all unrelated BUKLOD functionality."
+      ],
+      "tests": [
+        "tests/bible-132-complete-storytelling-20261116.test.mjs"
+      ]
+    }
+  ]
+}

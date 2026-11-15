@@ -1,0 +1,101 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-wall-connect-notes-locked-avatar-staging.json",
+  "objective": "Make dark-mode Wall post details readable, increase Connect Notes, show status notes adjacent to Wall author avatars and keep public profile pictures visible even on privacy-locked member pages, without widening access to private information.",
+  "baseRef": "feature/bible-132-dialogue-complete-staging-20261116",
+  "productionBaselineEvidence": "Production main SHA 3b488fa704b804f05c5a289a7e0775daeabb2404; latest preexisting staging story candidate SHA a9e8e74c80bbbdb4496ef8b836cde896434119ac. This PR branches only from staging candidate. No production release, migrations, Ads SDK, or runtime changes.",
+  "chosenApproach": "Use selected global BuklodTheme semantic tokens inside post-detail styles; widen Note bubbles and reserve equal vertical slots; compose one read-only, deduplicated cached profile note chip beside author identities; reuse existing authenticated public-avatar lookup while locked profile details stay hidden.",
+  "selectionRationale": "Directly addresses screenshot issues with isolated UI patches; avoids backend policy widening, duplicate avatar RPC implementations, media player or ad lifecycle changes and native rebuild.",
+  "alternativeApproaches": [
+    "Loosening profile table RLS or disabling profile lock to show avatars: rejected for privacy and security.",
+    "Overhauling all Wall and Connect layouts or global themes: rejected for regression risk to current ads, video rendering and navigation."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-scroll",
+    "navigation-auth",
+    "connect",
+    "cluster-faith",
+    "theme-contrast",
+    "privacy-locked-profile",
+    "avatar-images",
+    "performance",
+    "ads-preservation",
+    "production-isolation"
+  ],
+  "preserveBehaviors": [
+    "All current native AdMob first-view and prewarm behavior, actual SDK impressions and cooldowns stay untouched.",
+    "Community photo and video playback, visible scroll pause, comments/reactions/sharing and navigation behavior remain unchanged.",
+    "Lock hides private profile details and posts; only existing public avatar may display in lock view.",
+    "Current approved 144 Bible stories, Henry translation and runtime 1.3.2 stay inherited unchanged from staging source."
+  ],
+  "acceptanceChecks": [
+    "Focused Node tests on exact PR head for dark-mode contrast, Connect Notes fixed alignment, Wall Notes and locked avatar privacy.",
+    "PR Engineering Accountability objective-scope gate, navigation and ad/media protective regression checks green.",
+    "Expo Android Hermes export and TypeScript validation on combined staging RC, no native or production mutation.",
+    "Owner skipped physical device verification; do not represent that as passed.",
+    "Staging OTA only after existing signed staging APK, runtime/channel and source-SHA gates; production promotion separate."
+  ],
+  "regressionTests": [
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/member/[id].tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    ".buklod/scopes/nov16-wall-connect-notes-locked-avatar-staging.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Scoped Android 1.3.2 Wall and Connect presentation fixes against the existing latest staging story candidate; unchanged navigation destinations, AdMob and media lifecycles.",
+      "preservedBehaviors": [
+        "No native modules, Expo runtime, release workflow, or production channel behavior changes."
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Wall author note chip and post detail colors only; existing media/photo/video and ad components remain unchanged.",
+      "preservedBehaviors": [
+        "Keep sharp media resolution, visibility-based pause, reaction functionality, feed and ad prewarm lifecycle."
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Wall tab author header presentation and locked profile avatar display without navigation or access-policy changes.",
+      "preservedBehaviors": [
+        "Keep tab route transitions, auth context, profile privacy and existing RLS authorization unchanged."
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Scoped Community post header renders the same authored Note chip; scope permissions and faith data untouched.",
+      "preservedBehaviors": [
+        "Do not change scoped post authorization, Cluster/Org memberships, faith reading or video player behavior."
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    }
+  ],
+  "releaseMode": "staging-source-no-ota-until-gates",
+  "releaseStatus": "PR source candidate; not on staging or production OTA; physical device verification skipped by owner.",
+  "otaPublished": false,
+  "productionOtaPublished": false,
+  "actualDeviceVerification": "SKIPPED_BY_OWNER"
+}

@@ -52,12 +52,12 @@ import {
 } from '@/components/connect/ConnectTappableAvatar';
 
 const MAX_NOTE_CHARS = 80;
-const NOTE_LINE_HEIGHT = 12;
-const NOTE_MAX_LINES = 3;
+const NOTE_LINE_HEIGHT = 17;
+const NOTE_MAX_LINES = 5;
 const NOTE_ZONE_HEIGHT =
-  NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 28;
-const AVATAR_SIZE = 48;
-const COLUMN_WIDTH = 82;
+  NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 24;
+const AVATAR_SIZE = 56;
+const COLUMN_WIDTH = 116;
 
 type CurrentUser = {
   user_id: string;
@@ -88,7 +88,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     column: {
       width: COLUMN_WIDTH,
-      minHeight: 168,
+      minHeight: 216,
       marginRight: 8,
       alignItems: 'center',
       paddingVertical: 8,
@@ -105,7 +105,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     bubble: {
       maxWidth: COLUMN_WIDTH,
-      minWidth: 58,
+      minWidth: 76,
       paddingHorizontal: 8,
       paddingVertical: 5,
       borderRadius: 12,
@@ -126,7 +126,7 @@ function createStyles(theme: ConnectThemeRoles) {
       transform: [{ rotate: '45deg' }],
     },
     bubbleText: {
-      fontSize: 9.5,
+      fontSize: 12.5,
       lineHeight: NOTE_LINE_HEIGHT,
       fontWeight: '400',
       color: theme.textPrimary,
@@ -153,7 +153,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     postButton: {
       marginTop: 4,
-      minHeight: 22,
+      minHeight: 30,
       paddingHorizontal: 10,
       paddingVertical: 3,
       borderRadius: 999,
@@ -165,14 +165,14 @@ function createStyles(theme: ConnectThemeRoles) {
       opacity: 0.45,
     },
     postButtonText: {
-      fontSize: 8.5,
+      fontSize: 11.5,
       fontWeight: '900',
       letterSpacing: 0.4,
       color: '#FFFFFF',
     },
     charCount: {
       marginTop: 2,
-      fontSize: 8,
+      fontSize: 10,
       fontWeight: '700',
       color: theme.textMuted,
       textAlign: 'center',
@@ -187,7 +187,7 @@ function createStyles(theme: ConnectThemeRoles) {
       gap: 3,
     },
     addedText: {
-      fontSize: 9,
+      fontSize: 11,
       fontWeight: '900',
       color: theme.accent,
     },
@@ -197,7 +197,7 @@ function createStyles(theme: ConnectThemeRoles) {
       maxHeight: NOTE_LINE_HEIGHT * NOTE_MAX_LINES,
       padding: 0,
       margin: 0,
-      fontSize: 9.5,
+      fontSize: 12.5,
       lineHeight: NOTE_LINE_HEIGHT,
       fontWeight: '400',
       color: theme.textPrimary,
@@ -237,6 +237,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     name: {
       ...connectTypography.quickContactName,
+      fontSize: 12.5,
       marginTop: 5,
       width: COLUMN_WIDTH,
       textAlign: 'center',
@@ -246,8 +247,8 @@ function createStyles(theme: ConnectThemeRoles) {
       marginTop: 1,
       width: COLUMN_WIDTH,
       textAlign: 'center',
-      fontSize: 8,
-      lineHeight: 11,
+      fontSize: 10,
+      lineHeight: 14,
       fontWeight: '700',
       color: theme.textMuted,
     },

@@ -2,6 +2,9 @@ import type { ChildrenStory, StoryLocalized } from './catalog';
 import type { SundaySchoolLesson, SundaySchoolQuestion } from './sundaySchoolTypes';
 import { BIBLE_OLD_RECORDS } from './bibleExpansionOld';
 import { BIBLE_NEW_RECORDS } from './bibleExpansionNew';
+import { BIBLE_EXPANSION_DIALOGUES_OLD } from './bibleExpansionDialoguesOld';
+import { BIBLE_EXPANSION_DIALOGUES_NEW_A } from './bibleExpansionDialoguesNewA';
+import { BIBLE_EXPANSION_DIALOGUES_NEW_B } from './bibleExpansionDialoguesNewB';
 
 /** Original, offline, book-referenced children's adaptations; not verbatim Bible translations.
  * Narratives are not standalone translations. Consult each canonical passage for details.
@@ -13,6 +16,27 @@ type BibleRecord = {
   acts: readonly StoryLocalized[]; moral?: StoryLocalized;
 };
 const RAW_BIBLE_RECORDS: readonly BibleRecord[] = [...BIBLE_OLD_RECORDS, ...BIBLE_NEW_RECORDS];
+const EXPANDED_DIALOGUE: Record<string,readonly [string,string,string,string]> = {
+  ...BIBLE_EXPANSION_DIALOGUES_OLD,
+  ...BIBLE_EXPANSION_DIALOGUES_NEW_A,
+  ...BIBLE_EXPANSION_DIALOGUES_NEW_B,
+};
+/** The on-screen complete narrative and the existing TTS player consume this exact
+ * text; a missing scene fails the build's regression gate, never a user session.
+ * Bible-person speech below is explicitly a pedagogical paraphrase. */
+function expandBibleNarrative(entry: BibleRecord, moral: StoryLocalized, language: 'tl' | 'en'): string {
+  const dialogue = EXPANDED_DIALOGUE[entry.id];
+  const passages: string[] = [];
+  entry.acts.forEach((act, index) => {
+    passages.push(act[language]);
+    if (index < 2 && dialogue) passages.push(dialogue[index * 2 + (language === 'en' ? 1 : 0)]);
+  });
+  passages.push(language === 'tl'
+    ? `Pagkatapos ng kuwento, nagtanong ang guro: “Ano ang mahalagang matututuhan natin sa ${entry.title.tl}?” Sumagot ang klase: “${moral.tl}” Dagdag ng guro: “Aling pangyayari sa ${entry.reference} ang nagpapakita niyan? Pag-usapan natin ito nang may paggalang at isipin ang isang ligtas na paraan upang maisabuhay ang aral ngayong linggo.”`
+    : `After the story, the teacher asked: “What matters most in ${entry.title.en}?” The class answered: “${moral.en}” The teacher continued: “Which event in ${entry.reference} shows us that? Let's discuss the passage respectfully, ask anything we don't understand, and name one safe, practical way to live out this lesson during the week.”`);
+  return passages.filter(Boolean).join('\n\n');
+}
+
 export type BibleStoryMetadata = { testament: BibleTestament; book: string; reference: string };
 export const BIBLE_STORY_METADATA: Record<string,BibleStoryMetadata> = Object.fromEntries(
   RAW_BIBLE_RECORDS.map(entry=>[entry.id,{testament:entry.testament,book:entry.book,reference:entry.reference}])
@@ -356,17 +380,24 @@ function lessonFor(entry:BibleRecord):SundaySchoolLesson{
     local('Gayahin ang anumang mapanganib na pangyayari.','Copy any dangerous event.'),
     local('Gamitin ang aral para manghiya ng iba.','Use the teaching to shame others.'),entry.id.length+2);
   const questions: SundaySchoolQuestion[]=[
-    {prompt:local('Saan mababasa sa Bibliya ang kuwentong ito?','Where in the Bible can we find this story?'),...q1},
-    {prompt:local('Ano ang mahalagang aral ng kuwentong ito?','What is an important lesson from this story?'),...q2},
-    {prompt:local('Paano ligtas na maisasabuhay ang mabuting natutuhan?','How can we safely put a good lesson into practice?'),...q3}
+    {prompt:local(`Saan sa Biblia mababasa ang ${entry.title.tl}?`,`Where in the Bible is ${entry.title.en} recorded?`),...q1},
+    {prompt:local(`Ano ang mahalagang aral ng ${entry.title.tl}?`,`What important lesson does ${entry.title.en} teach?`),...q2},
+    {prompt:local(`Paano ligtas na maisasabuhay ang aral ng ${entry.title.tl}?`,`How can we safely apply the lesson from ${entry.title.en}?`),...q3}
   ];
   return {
-    narrative:local(entry.acts.map(x=>x.tl).join('\n\n'),entry.acts.map(x=>x.en).join('\n\n')),
+    narrative:local(expandBibleNarrative(entry,moral,'tl'),expandBibleNarrative(entry,moral,'en')),
+    retellingNotice:local(
+      `Batay sa ${entry.reference}. Ang mga salitaan ay dramatized na pagpapaliwanag para sa mga bata; hindi ito eksaktong sipi ng isang salin ng Biblia. Basahin ang orihinal na talata para sa buong konteksto.`,
+      `Based on ${entry.reference}. The dialogue is a child-friendly dramatized paraphrase, not a word-for-word Bible quotation. Read the original passage for full context.`
+    ),
     moral,spiritual:faith,reference:entry.reference,
-    prayer:local('Panginoon, salamat sa aral ng kuwentong ito. Turuan Mo kaming maging tapat, mapagmahal, at maingat sa aming mga pagpili. Amen.','Lord, thank You for the lesson of this story. Help us to be honest, loving, and wise in our choices. Amen.'),
+    prayer:local(`Panginoon, salamat sa aming natutuhan sa ${entry.title.tl}. ${moral.tl} Gabayan Mo kaming isabuhay ang aral nang may pag-ibig, katotohanan at pag-iingat. Amen.`,
+      `Lord, thank You for what we learned through ${entry.title.en}. ${moral.en} Help us practice this lesson with love, truth, and wise care for other people. Amen.`),
     discussion:[
-      local('Aling kilos o pangyayari sa kuwentong ito ang pinakamahalagang pag-usapan? Bakit?','Which action or event from the story should we discuss most? Why?'),
-      local('Paano mailalapat ang aral sa tahanan o paaralan nang walang panganib at pamimilit?','How can we apply this lesson at home or school safely and without pressure?')
+      local(`Sa ${entry.title.tl}, aling pangyayari o pagtuturo ang nagbigay sa iyo ng pinakamahalagang tanong? Ano ang sinasabi sa ${entry.reference}?`,
+        `In ${entry.title.en}, which event or teaching raises the most important question for you? What does ${entry.reference} say?`),
+      local(`Paano maisasabuhay ang aral ng ${entry.title.tl} sa tahanan o paaralan nang ligtas, tapat, at walang pamimilit?`,
+        `How can we apply the lesson of ${entry.title.en} at home or school safely, honestly, and without pressure?`)
     ],
     questions
   };

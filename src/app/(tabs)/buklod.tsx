@@ -127,6 +127,7 @@ import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommuni
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
 import { formatSpecificDateTime } from '@/lib/dateTime';
 import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import { ProfileAvatarNoteChip } from '@/components/ProfileAvatar';
 import BuklodTappablePersonName from '@/components/BuklodTappablePersonName';
 import {
   BuklodReactionAction,
@@ -5984,6 +5985,7 @@ const communityFeedRows =
          item.user_id,
        )}
      </BuklodTappablePersonName>
+       <ProfileAvatarNoteChip userId={item.user_id} />
        {/* PATCH_186I_R3_AUTHOR_META_UNDER_NAME */}
        <Text
          style={s.meta}
