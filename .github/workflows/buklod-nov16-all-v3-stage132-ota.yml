@@ -49,13 +49,17 @@ jobs:
             if(pr.state!=='open'||pr.head.ref!=='integration/nov16-all-staging132-translation-v3'||pr.head.sha!==source||pr.base.ref!=='feature/bible-132-dialogue-complete-staging-20261116'||pr.base.sha!==base)
               throw Error('Frozen source PR or staging baseline changed, no OTA');
             const required=['Engineering Accountability','BUKLOD Main - Report Door and Legacy Integration PR QA'];
-            const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:source,per_page:100});
-            for(const name of required){
-              const run=data.workflow_runs.find(x=>x.name===name&&x.head_sha===source&&x.event==='pull_request');
-              if(!run||run.status!=='completed'||run.conclusion!=='success')
-                throw Error('Missing exact-source successful mandatory CI: '+name);
+            for(let attempt=0;attempt<30;attempt++){
+              const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:source,per_page:100});
+              const runs=required.map(name=>data.workflow_runs.find(x=>x.name===name&&x.head_sha===source&&x.event==='pull_request'));
+              if(runs.some(x=>x?.status==='completed'&&x?.conclusion!=='success'))
+                throw Error('Mandatory exact-source CI failed: no OTA');
+              if(runs.every(x=>x?.status==='completed'&&x?.conclusion==='success')){
+                core.info('Frozen source PR #858 and both exact-sha gates verified');return;
+              }
+              await new Promise(done=>setTimeout(done,12000));
             }
-            core.info('Frozen source PR #858 and both exact-sha gates verified');
+            throw Error('Exact-source CI not complete in bounded window: no OTA');
       - name: Locked install, frozen-source verification, complete story and mandatory regression suites
         shell: bash
         run: |
