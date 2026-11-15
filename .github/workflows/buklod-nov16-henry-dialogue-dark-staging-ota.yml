@@ -5,7 +5,7 @@ on:
   push:
     branches: [fix/nov16-henry-children-dialogue-dark]
     paths:
-      - .github/workflows/buklod-nov16-henry-dialogue-dark-staging-only.yml
+      - .github/workflows/buklod-nov16-henry-dialogue-dark-staging-ota.yml
 permissions:
   contents: read
   actions: read

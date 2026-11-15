@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const policy=read('scripts/nov16-henry-dialogue-dark-staging-policy.mjs');
-const workflow=read('.github/workflows/buklod-nov16-henry-dialogue-dark-staging-only.yml');
+const workflow=read('.github/workflows/buklod-nov16-henry-dialogue-dark-staging-ota.yml');
 const scope=JSON.parse(read('.buklod/scopes/nov16-henry-children-dialogue-dark-v2.json'));
 test('scoped staging release fixes source, build and channel without an unreviewed mutation',()=>{
  assert.match(policy,/BASE='0dc4fd0df8198bdbd3f37c93c181a3fae46c6cd2'/);

@@ -42,7 +42,7 @@
     ".buklod/scopes/nov16-henry-children-dialogue-dark-v2.json",
     "scripts/nov16-henry-dialogue-dark-staging-policy.mjs",
     "tests/nov16-henry-dialogue-dark-release.test.mjs",
-    ".github/workflows/buklod-nov16-henry-dialogue-dark-staging-only.yml"
+    ".github/workflows/buklod-nov16-henry-dialogue-dark-staging-ota.yml"
   ],
   "acceptanceChecks": [
     "Twenty-one original bilingual dialogue scenes are woven within twelve original lessons in both language narratives and spoken by existing StoryNarrator.",
