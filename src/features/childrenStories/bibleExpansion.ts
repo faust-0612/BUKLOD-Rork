@@ -342,7 +342,7 @@ function rotated(correct:StoryLocalized, wrongA:StoryLocalized, wrongB:StoryLoca
 function lessonFor(entry:BibleRecord):SundaySchoolLesson{
   const moral=teachingValue(entry);
   const faith= entry.testament==='old'
-    ? local('Sa '+entry.reference+', nakikita natin ang kasaysayan ng pananampalataya ng bayan ng Diyos. Basahin ang orihinal na teksto kasama ang guro at pag-isipan kung paano mamuhay nang tapat at mahabagin.','In '+entry.reference+', we explore the history of God's people. Read the biblical passage with a teacher and consider how to live faithfully and compassionately.')
+    ? local('Sa '+entry.reference+', nakikita natin ang kasaysayan ng pananampalataya ng bayan ng Diyos. Basahin ang orihinal na teksto kasama ang guro at pag-isipan kung paano mamuhay nang tapat at mahabagin.','In '+entry.reference+', we explore the history of God’s people. Read the biblical passage with a teacher and consider how to live faithfully and compassionately.')
     : (entry.book==='Matthew'||entry.book==='Mark'||entry.book==='Luke'||entry.book==='John')
       ? local('Sa salaysay na ito, makikita ang pagtuturo at pagmamalasakit ni Jesus. Maaaring pag-usapan ang pananampalataya nang malaya, may paggalang at walang pamimilit.','This account introduces the teaching and compassion of Jesus. Faith can be discussed freely, respectfully, and without pressure.')
       : local('Sa unang iglesya, ang pag-ibig sa Diyos ay nakikita rin sa pangangalaga sa kapwa at paninindigan sa katotohanan.','In the early church, love for God also appeared through caring for others and standing for truth.');
