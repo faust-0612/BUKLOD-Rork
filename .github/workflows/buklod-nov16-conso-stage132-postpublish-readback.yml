@@ -48,6 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/buklod-nov16-ota-audit
+          npm ci --ignore-scripts --no-audit --no-fund
           npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/buklod-nov16-ota-audit/staging-channel.json
           npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/buklod-nov16-ota-audit/production-channel.json
           npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 10 --json --non-interactive > /tmp/buklod-nov16-ota-audit/staging-updates.json
