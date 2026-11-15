@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -20,10 +22,15 @@ import {
   exportReportCsv,
   exportReportExcel,
   pickAndAnalyzeReportFile,
+  pickReportEvidencePhoto,
   printReportPdf,
+  uploadReportEvidencePhoto,
+  type ReportEvidencePhoto,
+  type ReportPhotoAsset,
   type ReportImportProposal,
 } from '@/lib/buklodReportFiles';
 import { colors } from '@/lib/theme';
+import { supabase } from '@/lib/supabase';
 
 const ACTIVITIES = [
   ['worship', 'Worship'],
@@ -92,7 +99,7 @@ const PEOPLE_FIELDS = [
 type PeopleKey = (typeof PEOPLE_FIELDS)[number][0];
 type PeopleState = Record<PeopleKey, string>;
 
-type Props = { scopeId: string; onSubmitted?: () => void };
+type Props = { scopeId: string; assignmentId?: string | null; onSubmitted?: () => void };
 
 function emptyActivities(): ActivityState {
   return Object.fromEntries(
@@ -147,7 +154,7 @@ function hydratePeople(content: Record<string, any>): PeopleState {
   return next;
 }
 
-export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) {
+export default function BuklodWeeklyReportForm({ scopeId, assignmentId, onSubmitted }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -157,6 +164,9 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
   const [savedLabel, setSavedLabel] = useState('');
   const [context, setContext] = useState<QuickWeeklyReportContext | null>(null);
   const [importProposal, setImportProposal] = useState<ReportImportProposal | null>(null);
+  const [evidencePhotos, setEvidencePhotos] = useState<ReportEvidencePhoto[]>([]);
+  const [pendingEvidencePhoto, setPendingEvidencePhoto] = useState<ReportPhotoAsset | null>(null);
+  const [importMetadata, setImportMetadata] = useState<Record<string, unknown> | null>(null);
   const [reminderComment, setReminderComment] = useState('');
 
   const [overallWeek, setOverallWeek] = useState('Active / Normal');
@@ -205,11 +215,15 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
         assistance_needed: assistanceNeeded,
       },
       additional_note: trimOrNull(additionalNote),
+      evidence_photos: evidencePhotos,
+      import_metadata: importMetadata,
     };
-  }, [activities, additionalNote, assistanceNeeded, concernNote, concernType, mainGoal, overallWeek, people]);
+  }, [activities, additionalNote, assistanceNeeded, concernNote, concernType, evidencePhotos, importMetadata, mainGoal, overallWeek, people]);
 
   const hydrate = useCallback((existing: Record<string, any>) => {
     if (!Object.keys(existing).length) return;
+    setEvidencePhotos(Array.isArray(existing.evidence_photos) ? existing.evidence_photos.slice(0, 10) : []);
+    setImportMetadata(existing.import_metadata && typeof existing.import_metadata === 'object' && !Array.isArray(existing.import_metadata) ? existing.import_metadata : null);
     if (typeof existing.overall_week === 'string' && WEEK_OPTIONS.includes(existing.overall_week as any)) {
       setOverallWeek(existing.overall_week);
     }
@@ -233,7 +247,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
     setLoading(true);
     setError('');
     try {
-      const next = await ensureQuickWeeklyReport(scopeId);
+      const next = await ensureQuickWeeklyReport(scopeId, assignmentId);
       setContext(next);
       hydrate(asObject(next.content));
       requestAnimationFrame(() => { hydratedRef.current = true; });
@@ -242,7 +256,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
     } finally {
       setLoading(false);
     }
-  }, [hydrate, scopeId]);
+  }, [assignmentId, hydrate, scopeId]);
 
   useEffect(() => {
     hydratedRef.current = false;
@@ -294,12 +308,12 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
     }));
   }, []);
 
-  const runImport = useCallback(async () => {
+  const runImport = useCallback(async (selection: 'all' | 'photo' = 'all') => {
     if (readOnly || importing) return;
     setImporting(true);
     setError('');
     try {
-      const proposal = await pickAndAnalyzeReportFile(scopeId);
+      const proposal = await pickAndAnalyzeReportFile(scopeId, selection);
       if (proposal) setImportProposal(proposal);
     } catch (importError: any) {
       setError(importError?.message || 'The file could not be analyzed.');
@@ -308,9 +322,65 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
     }
   }, [importing, readOnly, scopeId]);
 
-  const applyImport = useCallback(() => {
-    if (!importProposal) return;
+  const selectEvidencePhoto = useCallback(async () => {
+    if (readOnly || importing || evidencePhotos.length >= 10) return;
+    setError('');
+    try {
+      setPendingEvidencePhoto(await pickReportEvidencePhoto());
+    } catch (selectionError: any) {
+      setError(selectionError?.message || 'Unable to select photo evidence.');
+    }
+  }, [evidencePhotos.length, importing, readOnly]);
+
+  const confirmEvidencePhoto = useCallback(async () => {
+    if (!pendingEvidencePhoto || importing || !context?.report_assignment_id || readOnly) return;
+    setImporting(true);
+    setError('');
+    try {
+      const photo = await uploadReportEvidencePhoto({
+        scopeId, assignmentId: context.report_assignment_id, asset: pendingEvidencePhoto,
+      });
+      setEvidencePhotos((current) => [...current, photo]);
+      setPendingEvidencePhoto(null);
+      setSavedLabel('Private photo attached. The report draft will autosave.');
+    } catch (attachError: any) {
+      setError(attachError?.message || 'The private photo could not be uploaded.');
+    } finally {
+      setImporting(false);
+    }
+  }, [context?.report_assignment_id, importing, pendingEvidencePhoto, readOnly, scopeId]);
+
+  const applyImport = useCallback(async () => {
+    if (!importProposal || importing) return;
+    if (importProposal.photoAsset) {
+      if (!context?.report_assignment_id) {
+        setError('Cannot attach a photo without an active report assignment.');
+        return;
+      }
+      if (evidencePhotos.length >= 10) {
+        setError('Maximum 10 photos per report.');
+        return;
+      }
+      setImporting(true);
+      setError('');
+      try {
+        const attached = await uploadReportEvidencePhoto({
+          scopeId,
+          assignmentId: context.report_assignment_id,
+          asset: importProposal.photoAsset,
+          confidence: importProposal.confidence,
+          detectedFields: importProposal.detectedFields,
+        });
+        setEvidencePhotos((current) => [...current, attached]);
+      } catch (uploadError: any) {
+        setError(uploadError?.message || 'Photo could not be securely attached.');
+        return;
+      } finally {
+        setImporting(false);
+      }
+    }
     const proposed = asObject(importProposal.content);
+    setImportMetadata({ ...asObject(proposed.import_metadata), source_type: importProposal.sourceType, confirmed_at: new Date().toISOString() });
     if (typeof proposed.overall_week === 'string' && WEEK_OPTIONS.includes(proposed.overall_week as any)) {
       setOverallWeek(proposed.overall_week);
     }
@@ -353,7 +423,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
 
     setSavedLabel(`Imported from ${importProposal.filename}`);
     setImportProposal(null);
-  }, [importProposal]);
+  }, [context?.report_assignment_id, evidencePhotos.length, importProposal, importing, scopeId]);
 
   const reminderAction = useCallback(async (kind: 'ACK' | 'COMMENT' | 'DONE', value?: string) => {
     if (reminderBusy) return;
@@ -404,6 +474,18 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
       setSubmitting(false);
     }
   }, [content, context, onSubmitted, readOnly, scopeId, submitting]);
+
+  const viewEvidencePhoto = useCallback(async (path: string) => {
+    setError('');
+    try {
+      const { data, error: signingError } = await supabase.storage
+        .from('buklod-report-evidence').createSignedUrl(path, 90);
+      if (signingError || !data?.signedUrl) throw signingError ?? new Error('Could not open secured photo.');
+      await Linking.openURL(data.signedUrl);
+    } catch (viewError: any) {
+      setError(viewError?.message || 'This image cannot be opened with your current permissions.');
+    }
+  }, []);
 
   const exportAction = useCallback((kind: 'EXCEL' | 'CSV' | 'PDF') => {
     try {
@@ -525,7 +607,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
           </Text>
           <Pressable
             disabled={importing}
-            onPress={() => void runImport()}
+            onPress={() => void runImport('all')}
             style={({ pressed }) => [styles.importButton, importing && styles.disabled, pressed && !importing && styles.pressed]}
           >
             {importing ? (
@@ -533,8 +615,41 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
             ) : (
               <MaterialCommunityIcons name="file-find-outline" size={20} color="#FFFFFF" />
             )}
-            <Text style={styles.importButtonText}>{importing ? 'ANALYZING…' : 'IMPORT & AUTO-DETECT'}</Text>
+            <Text style={styles.importButtonText}>{importing ? 'PROCESSING…' : 'IMPORT & AUTO-DETECT'}</Text>
           </Pressable>
+          <Pressable
+            disabled={importing || evidencePhotos.length >= 10}
+            onPress={() => void runImport('photo')}
+            style={({ pressed }) => [styles.secondaryAction, importing && styles.disabled, pressed && !importing && styles.pressed]}
+          >
+            <MaterialCommunityIcons name="camera-plus-outline" size={19} color={colors.greenDark} />
+            <Text style={styles.secondaryActionText}>PHOTO SUBMISSION / SCAN DATA</Text>
+          </Pressable>
+          <Pressable
+            disabled={importing || evidencePhotos.length >= 10}
+            onPress={() => void selectEvidencePhoto()}
+            style={({ pressed }) => [styles.secondaryAction, importing && styles.disabled, pressed && !importing && styles.pressed]}
+          >
+            <MaterialCommunityIcons name="image-plus" size={19} color={colors.greenDark} />
+            <Text style={styles.secondaryActionText}>ATTACH PHOTO WITHOUT SCAN</Text>
+          </Pressable>
+          {pendingEvidencePhoto ? (
+            <View style={styles.evidencePending}>
+              <Image source={{ uri: pendingEvidencePhoto.uri }} resizeMode="contain" style={styles.photoPreview} />
+              <Text style={styles.hint}>{pendingEvidencePhoto.filename} · Only upload this image if it belongs to the report period and you have permission to share it.</Text>
+              <View style={styles.twoButtonRow}>
+                <Pressable disabled={importing} onPress={() => setPendingEvidencePhoto(null)} style={styles.secondaryAction}>
+                  <Text style={styles.secondaryActionText}>CANCEL</Text>
+                </Pressable>
+                <Pressable disabled={importing} onPress={() => void confirmEvidencePhoto()} style={styles.primaryAction}>
+                  <Text style={styles.primaryActionText}>{importing ? 'UPLOADING…' : 'CONFIRM PRIVATE UPLOAD'}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+          <Text style={styles.hint}>
+            Only select photos you have permission to share. A photo is analyzed to suggest reporting data; the extracted values require your confirmation. Photos may be processed by the configured external image-analysis provider.
+          </Text>
         </View>
       ) : null}
 
@@ -550,25 +665,50 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
             </View>
             <MaterialCommunityIcons name="shield-check-outline" size={22} color={colors.greenDark} />
           </View>
+          {importProposal.photoAsset ? (
+            <Image source={{ uri: importProposal.photoAsset.uri }} style={styles.photoPreview} resizeMode="contain" />
+          ) : null}
           {importProposal.detectedFields.length ? (
             <Text style={styles.previewText}>Detected: {importProposal.detectedFields.slice(0, 12).join(', ')}</Text>
           ) : null}
           {importProposal.reviewNotes.length ? (
             <Text style={styles.previewWarning}>{importProposal.reviewNotes.slice(0, 4).join(' • ')}</Text>
           ) : null}
-          <Text style={styles.hint}>Review the form after applying. AI extraction is a proposal, not a final truth.</Text>
+          <Text style={styles.hint}>
+            Review the form after applying. Detected numbers remain suggestions until you verify them.
+            {importProposal.photoAsset ? ' Confirming will also attach this photo privately to this exact report period.' : ''}
+          </Text>
           <View style={styles.twoButtonRow}>
             <Pressable onPress={() => setImportProposal(null)} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}>
               <Text style={styles.secondaryActionText}>CANCEL</Text>
             </Pressable>
-            <Pressable onPress={applyImport} style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}>
-              <Text style={styles.primaryActionText}>APPLY TO REPORT</Text>
+            <Pressable disabled={importing} onPress={() => void applyImport()} style={({ pressed }) => [styles.primaryAction, importing && styles.disabled, pressed && !importing && styles.pressed]}>
+              <Text style={styles.primaryActionText}>{importing ? 'SECURING PHOTO…' : 'CONFIRM & APPLY TO REPORT'}</Text>
             </Pressable>
           </View>
         </View>
       ) : null}
 
-      <Section title="Kumusta ang linggo?" eyebrow="1 · OVERALL WEEK">
+      {evidencePhotos.length ? (
+        <View style={styles.sectionCard}>
+          <Text style={styles.eyebrow}>PRIVATE REPORT EVIDENCE</Text>
+          <Text style={styles.sectionTitle}>{evidencePhotos.length} photo{evidencePhotos.length === 1 ? '' : 's'} attached</Text>
+          {evidencePhotos.map((photo) => (
+            <Pressable
+              key={photo.path}
+              onPress={() => void viewEvidencePhoto(photo.path)}
+              style={({ pressed }) => [styles.evidenceRow, pressed && styles.pressed]}
+            >
+              <MaterialCommunityIcons name="image-outline" size={17} color={colors.greenDark} />
+              <Text style={[styles.hint, { flex: 1 }]} numberOfLines={1}>{photo.filename}</Text>
+              <Text style={styles.evidenceOpen}>VIEW SECURELY</Text>
+            </Pressable>
+          ))}
+          <Text style={styles.hint}>Accessible only to the reporter and authorized reviewer. Original images are not placed in public summary exports.</Text>
+        </View>
+      ) : null}
+
+      <Section title="Kumusta ang reporting period?" eyebrow="1 · OVERALL PERIOD">
         <View style={styles.chipWrap}>
           {WEEK_OPTIONS.map((option) => (
             <ChoiceChip key={option} label={option} selected={overallWeek === option} disabled={readOnly} onPress={() => setOverallWeek(option)} />
@@ -674,7 +814,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
           style={({ pressed }) => [styles.submitButton, submitting && styles.disabled, pressed && !submitting && styles.pressed]}
         >
           {submitting ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="send-check-outline" size={21} color="#FFFFFF" />}
-          <Text style={styles.submitText}>{submitting ? 'SUBMITTING…' : 'SUBMIT WEEKLY REPORT'}</Text>
+          <Text style={styles.submitText}>{submitting ? 'SUBMITTING…' : 'SUBMIT REPORT'}</Text>
         </Pressable>
       ) : (
         <View style={styles.submittedCard}>
@@ -756,6 +896,10 @@ const styles = StyleSheet.create({
   form: { gap: 12 },
   loadingCard: { minHeight: 100, borderRadius: 16, borderWidth: 1, borderColor: '#DCE5E0', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 },
   sectionCard: { borderRadius: 16, borderWidth: 1, borderColor: '#DCE5E0', backgroundColor: '#FFFFFF', padding: 14, gap: 10 },
+  evidencePending: { gap: 9, borderRadius: 12, padding: 10, backgroundColor: '#F0F7F2' },
+  photoPreview: { width: 148, height: 150, alignSelf: 'center', borderRadius: 12, backgroundColor: '#EAF4EE' },
+  evidenceRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 8, borderRadius: 9, paddingHorizontal: 9, backgroundColor: '#F3F8F5' },
+  evidenceOpen: { color: colors.greenDark, fontSize: 9, fontWeight: '900' },
   previewCard: { borderRadius: 16, borderWidth: 1.5, borderColor: '#74B68D', backgroundColor: '#F3FBF6', padding: 14, gap: 10 },
   reminderCard: { borderRadius: 16, borderWidth: 1, borderColor: '#F0D7A1', backgroundColor: '#FFFBEB', padding: 14, gap: 10 },
   reminderHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
