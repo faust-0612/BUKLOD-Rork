@@ -1,0 +1,85 @@
+# Scoped source-only Android QA for BUKLOD Children Story audio. No Expo token, no OTA.
+name: BUKLOD Children Bible + Narration Android 1.3.2 QA (NO OTA)
+on:
+  pull_request:
+    branches:
+      - integration/life-human-first-executive-stage-132-20261115
+    paths:
+      - .github/workflows/buklod-children-bible-audio-android-qa-20261115.yml
+      - .buklod/scopes/children-bible-library-20261115.json
+      - src/features/childrenStories/storyNarration.ts
+      - src/app/children-stories/[id].tsx
+      - tests/children-story-narration-20261115.test.mjs
+permissions:
+  contents: read
+concurrency:
+  group: buklod-children-bible-audio-android-qa-20261115
+  cancel-in-progress: false
+jobs:
+  android-hermes-source-qa:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.event.pull_request.head.ref == 'feature/children-bible-library-20261115' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - name: Exact reviewed head checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Enforce staging ancestry and no protected native changes
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          test "$(git merge-base ea9a72c687c0885ea6a3c14a883503204f83dad4 HEAD)" = "ea9a72c687c0885ea6a3c14a883503204f83dad4"
+          node <<'NODE'
+          const assert=require('node:assert/strict'), fs=require('node:fs'), cp=require('node:child_process');
+          const scope=JSON.parse(fs.readFileSync('.buklod/scopes/children-bible-library-20261115.json','utf8'));
+          const paths=cp.execFileSync('git',['diff','--name-only',scope.baseRef,'HEAD'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          const forbidden=paths.filter(p=>!scope.allowedPaths.includes(p));
+          assert.deepEqual(forbidden,[],'Unapproved paths: '+forbidden.join(', '));
+          assert(!paths.some(p=>/^(app\.config\.|eas\.json$|package(-lock)?\.json$|android\/|ios\/)/.test(p)));
+          assert(paths.includes('src/features/childrenStories/storyNarration.ts'));
+          assert(paths.includes('tests/children-story-narration-20261115.test.mjs'));
+          console.log('Scoped and native-compatible change set:',paths.length);
+          NODE
+      - name: Locked dependencies and focused native TTS callback tests
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test \
+            tests/children-bible-expanded-catalog-20261115.test.mjs \
+            tests/children-stories-contract.test.mjs \
+            tests/children-stories-navigation-ad-safety.test.mjs \
+            tests/children-story-narration-20261115.test.mjs
+      - name: TypeScript and verified Android Hermes export
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const eas=require('./eas.json');
+          const app=require('./app.config.js')({config:{}});
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.runtimeVersion,'1.3.2');
+          assert.equal(app.extra.appEnvironment,'staging');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build.production.channel,'production');
+          assert.equal(require('./package.json').dependencies['expo-speech'],'~57.0.1');
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-children-bible-android-qa --clear
+          test -s /tmp/buklod-children-bible-android-qa/metadata.json
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          echo 'SOURCE QA VERIFIED: TTS callback tests, TypeScript and Android Expo export; no physical audio or OTA claimed.' >> "$GITHUB_STEP_SUMMARY"
