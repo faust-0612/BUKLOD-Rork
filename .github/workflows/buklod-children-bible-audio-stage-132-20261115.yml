@@ -158,15 +158,15 @@ jobs:
             if(!pr)throw Error('Cannot attach receipt to exact draft RC');
             const body=[
               '**VERIFIED STAGING ANDROID OTA — Children Bible + Pakinggan**',
-              'Source SHA: \`'+data.sourceSha+'\`',
-              'EAS Android update ID: \`'+data.updateId+'\`',
-              'EAS update group: \`'+data.updateGroup+'\`',
-              'Channel: \`'+data.channel+'\`; Runtime: \`'+data.runtimeVersion+'\`',
-              'Signed staging build: \`'+data.buildId+'\`',
-              'Production unchanged: \`'+data.productionUpdateIdUnchanged+'\`',
+              'Source SHA: `'+data.sourceSha+'`',
+              'EAS Android update ID: `'+data.updateId+'`',
+              'EAS update group: `'+data.updateGroup+'`',
+              'Channel: `'+data.channel+'`; Runtime: `'+data.runtimeVersion+'`',
+              'Signed staging build: `'+data.buildId+'`',
+              'Production unchanged: `'+data.productionUpdateIdUnchanged+'`',
               'Actual handset audio: NOT TESTED; existing owner waiver',
               'Source: '+data.publisherRun
-            ].join('\\n');
+            ].join('\n');
             await github.rest.issues.createComment({
               ...context.repo,issue_number:pr.number,body
             });
