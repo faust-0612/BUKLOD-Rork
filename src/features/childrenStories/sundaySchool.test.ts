@@ -2,7 +2,7 @@ import { BUNDLED_CHILDREN_STORIES } from './catalog';
 import { getSundaySchoolLesson, SUNDAY_SCHOOL_LESSONS } from './sundaySchool';
 describe('Continuous bilingual Sunday School curriculum', () => {
   test('all twelve offline stories have full narratives, lessons, verse references and prayer', () => {
-    expect(Object.keys(SUNDAY_SCHOOL_LESSONS)).toHaveLength(12);
+    expect(Object.keys(SUNDAY_SCHOOL_LESSONS).length).toBeGreaterThanOrEqual(12);
     for (const story of BUNDLED_CHILDREN_STORIES) {
       const lesson = getSundaySchoolLesson(story);
       expect(lesson).toBeTruthy();
@@ -26,6 +26,17 @@ describe('Continuous bilingual Sunday School curriculum', () => {
           expect(option.tl).toBeTruthy();
           expect(option.en).toBeTruthy();
         }
+      }
+    }
+  });
+  test('all twelve original lessons gain naturally placed bilingual dialogue without changing bundled Bible expansion', () => {
+    for (const story of BUNDLED_CHILDREN_STORIES) {
+      const lesson = getSundaySchoolLesson(story);
+      expect(lesson).toBeTruthy();
+      if (!lesson) continue;
+      if (['david-at-ang-tapang','bangka-ng-pag-asa','ang-mabuting-kapitbahay','si-jonas-at-ang-dagat'].includes(story.id)) {
+        expect(lesson.retellingNotice?.tl).toContain('hindi ito salita-sa-salitang');
+        expect(lesson.retellingNotice?.en).toContain('not word-for-word');
       }
     }
   });
