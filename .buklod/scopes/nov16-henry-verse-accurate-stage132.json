@@ -1,0 +1,79 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-henry-verse-accurate-stage132.json",
+  "objective": "Prepare context-accurate Matthew Henry commentary and readable, meaning-first Filipino translations for Android staging-user 1.3.2, without paid APIs or regressions to Children, Bible dark mode, AdMob or navigation.",
+  "baseRef": "fix/nov16-henry-children-dialogue-dark",
+  "productionBaselineEvidence": "Verified prior staging source f340829775c904aecc9162937bc011fb16c5a34e from PR #850; EAS staging update last reported 01a1e08b-6fe8-72d1-9a5c-e6f37e6cf116. Live stage/prod manifests must be rechecked before any OTA.",
+  "chosenApproach": "Preserve the verified latest staging branch; use directly declared Henry verse ranges, then conservative archaic-English idiom normalization before Google ML Kit and limited known Filipino phrase polish after translation. Keep source English unchanged, account-isolated cache v2, original attribution, and offline fallback.",
+  "selectionRationale": "Sentence-grouped source-aware phrase preparation improves common Filipino readability without introducing paid AI inference or pretending machine translation is infallible; limited contextual replacements avoid unbounded paraphrase or doctrinal invention.",
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith",
+    "release-identity",
+    "offline-content"
+  ],
+  "preserveBehaviors": [
+    "Maintain all current staged 144 expanded children's lessons, bilingual dialogues, narrator, quiz and Android dark-mode readability.",
+    "Keep Matthew Henry original English and official Google translation attribution; do not fabricate verse-specific commentary.",
+    "Maintain optional Bible study and Strong's, narration, annotations, account-scoped caches and Daily Bible completion.",
+    "Preserve AdMob prefetch and fast navigation; no changes to production, assets, native modules or backend.",
+    "Meaning-first preparation applies only when target language is Filipino; English original, other languages, Google badge and offline translation behavior remain supported."
+  ],
+  "regressionTests": [
+    "tests/bible-study-sources.test.cjs",
+    "tests/henry-verse-accurate-staging-20261116.test.mjs",
+    "tests/henry-natural-filipino-20261116.test.cjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodBibleStudy.ts",
+    "src/app/bible/read.tsx",
+    "tests/bible-study-sources.test.cjs",
+    "tests/henry-verse-accurate-staging-20261116.test.mjs",
+    "release/nov16-henry-verse-accurate-stage132-prep.json",
+    ".github/workflows/buklod-henry-verse-accurate-stage132-preflight.yml",
+    ".buklod/scopes/nov16-henry-verse-accurate-stage132.json",
+    "src/lib/buklodHenryTranslation.ts",
+    "tests/henry-natural-filipino-20261116.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Tighten optional Bible commentary matching and compact translator buttons without changing runtime or other app features.",
+      "preservedBehaviors": [
+        "Navigation, AdMob, Children Stories voice, dark mode and signed staging runtime remain unchanged."
+      ],
+      "tests": [
+        "tests/henry-verse-accurate-staging-20261116.test.mjs",
+        "tests/henry-natural-filipino-20261116.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Prevent adjacent Matthew Henry commentary from being presented as a direct verse explanation, and disclose literal Google translation.",
+      "preservedBehaviors": [
+        "Bible original English, Strong's links, signed source chapters, narration, annotations and Daily Bible completion remain intact."
+      ],
+      "tests": [
+        "tests/bible-study-sources.test.cjs",
+        "tests/henry-natural-filipino-20261116.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Source-verified passage only for the selected verse",
+    "Machine translation caveat precedes translated Filipino text",
+    "Compact language buttons fit small screens",
+    "Exact baseline diff and no native/backend/revenue changes",
+    "Focused tests, TypeScript and Android export pass",
+    "OTA held until authenticated EAS readback and independent release workflow",
+    "Meaning-first idiom tests preserve Scripture references, speaker, negation and original English; v2 cache prevents stale literal translations."
+  ],
+  "stagingOtaPublished": false,
+  "productionOtaPublished": false,
+  "alternativeApproaches": [
+    "Publish the previous Henry-only branch unchanged; rejected because it would overwrite newer Children dialogue and Bible dark-mode fixes.",
+    "Keep the old context fallback and rely only on the warning label; rejected because the selected verse could still display unrelated previous-verse commentary.",
+    "Add paid remote AI translation for all commentary; rejected because it adds cost, latency, security dependencies and another possible rendering regression.",
+    "Globally rewrite Google ML Kit output with unrestricted rules; rejected because ambiguous phrases could alter doctrine, names, and biblical facts."
+  ]
+}

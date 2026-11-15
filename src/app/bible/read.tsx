@@ -4410,20 +4410,20 @@ setMarking(true);
                   <Text style={{ fontSize: 16, color: '#275D45', fontWeight: '800' }}>✕</Text>
                 </Pressable>
               </View>
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10, alignItems: 'stretch' }}>
                 {henryReaderLanguage !== 'en' && (
                   <Pressable accessibilityRole="button" accessibilityLabel="Translate with Google"
                     onPress={() => setHenryShowOriginal(false)}
-                    style={{ paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: !henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
-                    <Text style={{ color: '#24583C', fontWeight: '700', fontSize: 12 }}>
+                    style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 11, backgroundColor: !henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
+                    <Text style={{ color: '#24583C', fontWeight: '700', fontSize: 12, textAlign: 'center', flexShrink: 1 }}>
                       {henryReaderLanguage === 'tl' ? 'Translate with Google · Filipino' : 'Translate with Google'}
                     </Text>
                   </Pressable>
                 )}
                 <Pressable accessibilityRole="button" accessibilityLabel="Original English commentary"
                   onPress={() => setHenryShowOriginal(true)}
-                  style={{ paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
-                  <Text style={{ color: '#24583C', fontWeight: '700', fontSize: 12 }}>Original English</Text>
+                  style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 11, backgroundColor: henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
+                  <Text style={{ color: '#24583C', fontWeight: '700', fontSize: 12, textAlign: 'center', flexShrink: 1 }}>Original English</Text>
                 </Pressable>
               </View>
               <ScrollView contentContainerStyle={{ paddingBottom: 18 }}>
@@ -4441,7 +4441,14 @@ setMarking(true);
                       : 'Hindi available ang on-device translation sa build o language model na ito. Orihinal na English ang ipinapakita.'}
                   </Text>
                 )}
-                <Text style={{ color: '#33483C', fontSize: 15, lineHeight: 24 }}>
+                {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated' && (
+                  <View style={{ backgroundColor: '#FFF7E8', borderRadius: 10, padding: 10, marginBottom: 12 }}>
+                    <Text style={{ color: '#705223', fontSize: 12, lineHeight: 19 }}>
+                      Malinaw na Filipino (hindi salitang-salita). May ilang lumang pananalitang inayos upang mas madaling maunawaan, ngunit maaari pa ring magkamali ang awtomatikong pagsasalin. Ang Original English ang batayan ni Matthew Henry.
+                    </Text>
+                  </View>
+                )}
+                <Text style={{ color: '#33483C', fontSize: 16, lineHeight: 27 }}>
                   {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated'
                     ? henryTranslation.text : henryPassage?.text ?? ''}
                 </Text>

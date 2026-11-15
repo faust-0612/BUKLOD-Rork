@@ -81,11 +81,12 @@ test('Henry passage coverage is explicit; unlabeled gaps are context only, not f
   assert.equal(p[0].endVerse,3);
   const chapter={henryPassages:p};
   assert.equal(getMatthewHenryPassage(chapter,2).relation,'direct');
-  assert.equal(getMatthewHenryPassage(chapter,4).relation,'context');
-  assert.equal(getMatthewHenryPassage(chapter,4).startVerse,1);
+  assert.equal(getMatthewHenryPassage(chapter,4),null);
+  assert.equal(getMatthewHenryPassage(chapter,4,{allowContext:true}).relation,'context');
+  assert.equal(getMatthewHenryPassage(chapter,4,{allowContext:true}).startVerse,1);
   assert.equal(getMatthewHenryPassage(chapter,12).relation,'direct');
   assert.equal(getMatthewHenryPassage(chapter,7).endVerse,7);
-  assert.equal(getMatthewHenryPassage(chapter,176).relation,'context');
+  assert.equal(getMatthewHenryPassage(chapter,176),null);
   assert.equal(getMatthewHenryPassage({henryPassages:[]},3),null);
 });
 
@@ -119,14 +120,29 @@ test('live Free Use Bible API sparse verse-anchor layout never fabricates covere
   ] } });
   assert.equal(genesis.length, 3);
   assert.equal(genesis[0].endVerse, 1);
-  assert.equal(getMatthewHenryPassage({henryPassages:genesis},2).relation, 'context');
+  assert.equal(getMatthewHenryPassage({henryPassages:genesis},2), null);
   assert.equal(getMatthewHenryPassage({henryPassages:genesis},3).relation, 'direct');
   const john = parseMatthewHenryPassages({chapter:{number:3,content:[
     {type:'verse',number:1,content:['Nicodemus comes to Jesus']},
     {type:'verse',number:22,content:['Into Judea']},
   ]}});
-  assert.equal(getMatthewHenryPassage({henryPassages:john},21).relation, 'context');
+  assert.equal(getMatthewHenryPassage({henryPassages:john},21), null);
   assert.equal(getMatthewHenryPassage({henryPassages:john},22).relation, 'direct');
   const sparse = parseMatthewHenryPassages({chapter:{number:1,content:[{type:'verse',number:9,content:['Late first commentary']}]}});
   assert.equal(getMatthewHenryPassage({henryPassages:sparse},2), null);
+});
+
+
+test('1 Kings 3:6 cannot borrow unrelated high-place commentary anchored at verse 4', () => {
+  const passages = parseMatthewHenryPassages({ chapter: { content: [
+    {type:'verse',number:4,content:['The sacrifice on the high place']},
+    {type:'verse',number:7,content:['Solomon responds with humility']},
+  ] } });
+  const study = {henryPassages:passages};
+  assert.equal(getMatthewHenryPassage(study,6), null);
+  assert.equal(getMatthewHenryPassage(study,4).startVerse, 4);
+  assert.equal(getMatthewHenryPassage(study,7).startVerse, 7);
+  const related = getMatthewHenryPassage(study,6,{allowContext:true});
+  assert.equal(related.relation,'context');
+  assert.equal(related.startVerse,4);
 });
