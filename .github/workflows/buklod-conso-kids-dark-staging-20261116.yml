@@ -1,3 +1,4 @@
+# Owner approved staged 32-story + dark-contrast consolidated OTA source publication attempt.
 # Staging-only JS OTA for the already signed Android 1.3.2 staging-user client.
 # GitHub connector cannot workflow_dispatch; a deliberate exact-prefix push to this file
 # is required after reviewed draft PR and exact-SHA CI pass.
@@ -106,6 +107,7 @@ jobs:
           script: |
             const checks=[
               'Engineering Accountability',
+              'BUKLOD Main - Report Door and Legacy Integration PR QA',
               'BUKLOD Nov16 Kids Dark Consolidated Staging 1.3.2 QA and OTA'
             ];
             for(let attempt=0;attempt<50;attempt++){
