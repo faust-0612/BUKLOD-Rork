@@ -5,7 +5,7 @@ import { BIBLE_NEW_RECORDS } from './bibleExpansionNew';
 import { BIBLE_EXPANSION_DIALOGUES_OLD } from './bibleExpansionDialoguesOld';
 import { BIBLE_EXPANSION_DIALOGUES_NEW_A } from './bibleExpansionDialoguesNewA';
 import { BIBLE_EXPANSION_DIALOGUES_NEW_B } from './bibleExpansionDialoguesNewB';
-import { inStoryOnly, REVISED_BIBLICAL_SCENES } from './inStoryDialogue';
+import { inStoryOnly, REVISED_BIBLICAL_SCENES, BIBLICAL_SCENE_DETAILS } from './inStoryDialogue';
 
 /** Original, offline, book-referenced children's adaptations; not verbatim Bible translations.
  * Narratives are not standalone translations. Consult each canonical passage for details.
@@ -34,6 +34,9 @@ function expandBibleNarrative(entry: BibleRecord, language: 'tl' | 'en'): string
       // Preserve the words spoken in the biblical scene; never insert the
       // teacher/classroom discussion into the full story or its TTS audio.
       passages.push(inStoryOnly(dialogue[index * 2 + (language === 'en' ? 1 : 0)], language));
+    }
+    if (index === 1 && BIBLICAL_SCENE_DETAILS[entry.id]) {
+      passages.push(BIBLICAL_SCENE_DETAILS[entry.id][language]);
     }
   });
   return passages.filter(Boolean).join('\n\n');
