@@ -11,13 +11,18 @@
     "payouts",
     "admin-nav",
     "web-export",
-    "weak-network"
+    "weak-network",
+    "expo-hosting-project-isolation",
+    "standalone-fis-auth-routing"
   ],
   "preserveBehaviors": [
     "No new tables, allocation math, authentication pathways or payout switches",
     "Member QMP/Points remain non-cash without finalized funded settlement",
     "Server-side RLS/RPC authority unchanged; no payout destination export",
-    "No change to BUKLOD Main ads, video, Community, Connect, health, Kingdom or native SDK/runtime"
+    "No change to BUKLOD Main ads, video, Community, Connect, health, Kingdom or native SDK/runtime",
+    "Standalone FIS production must use separate EAS_PROJECT_ID_FIS, never Main or Classroom fallback",
+    "BUKLOD Main landing, login and native runtime remain unchanged unless EXPO_PUBLIC_BUKLOD_FIS=1",
+    "Expo FIS production promotion uses the identical verified immutable preview deployment ID"
   ],
   "acceptanceChecks": [
     "FIS route guarded by system_admin",
@@ -27,7 +32,9 @@
     "Scope allocations only after finalization",
     "Payout queue errors fail closed",
     "Export CSV formula-injection guarded and capped",
-    "TypeScript and Expo web export pass on exact PR SHA before any publish"
+    "TypeScript and Expo web export pass on exact PR SHA before any publish",
+    "FIS hosting identity, explicit project ID and standalone site root/login contract enforced",
+    "Preview and production exact-artifact release checks before declaring published"
   ],
   "regressionTests": [
     "__tests__/buklodFisReadModel.test.ts",
@@ -39,7 +46,11 @@
     "src/app/admin/index.tsx",
     "__tests__/buklodFisReadModel.test.ts",
     ".buklod/scopes/buklod-fis-expo-20261115.json",
-    "tests/buklod-fis-finance-20261115.test.mjs"
+    "tests/buklod-fis-finance-20261115.test.mjs",
+    "app.config.js",
+    "src/app/index.tsx",
+    "src/app/(auth)/login.tsx",
+    ".github/workflows/buklod_fis_expo_standalone_release.yml"
   ],
   "alternativeApproaches": [
     "Parallel FIS database rejected: conflicts with Finance V3 source of truth",
@@ -49,9 +60,11 @@
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Introduce a separately routed canonical finance read-only screen and admin navigation without touching existing app runtime or financial writes.",
+      "reason": "Isolate FIS-only Expo web identity and authenticated routing through a distinct project and build-time flags, while preserving BUKLOD Main default app/runtime/login and canonical Finance V3.",
       "preservedBehaviors": [
-        "System Administrator role gating, single canonical finance snapshot, existing Expo route and all other modules unchanged."
+        "Main project ID, normal boot routing and native runtime unchanged by default",
+        "Standalone FIS project ID required; reject Main/Classroom IDs",
+        "Existing protected finance RPCs, System Administrator authorization and app modules unchanged"
       ],
       "tests": [
         "tests/buklod-fis-finance-20261115.test.mjs"
