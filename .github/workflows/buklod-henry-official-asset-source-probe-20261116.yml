@@ -181,7 +181,7 @@ jobs:
           assert.ok(Array.isArray(items)&&items.length,'No prior staging update list');
           const next=items[0];
           console.log('EAS_STAGE_IDENTITY',JSON.stringify({branch:mapping.name,currentStageId:stage.id,stageUpdateGroup:next.group,stageUpdateMessage:next.message,stageRuntime:stage.runtimeVersion,productionId:production.id,productionRuntime:production.runtimeVersion,stagePackage:stage.extra?.expoClient?.android?.package}));
-          PY
+          NODE
           echo 'READ_ONLY_STAGING_PRODUCTION_MANIFEST_PASS'
       - name: No publication by probe
         run: echo 'PASS OR FAIL source probe. No Expo OTA, no Play build, no DB/web/production mutation.'
