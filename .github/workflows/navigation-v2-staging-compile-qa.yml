@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   staging-android-compile-no-publish:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'dev/nav2-wall-stability-integration-20261113'
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'dev/nav2-wall-stability-integration-20261113' || github.head_ref == 'codex/profile-hero-compact-20261116')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
@@ -60,6 +60,13 @@ jobs:
           node --experimental-strip-types scripts/navigation-v2-route-audit.mjs
           node --experimental-strip-types --test tests/navigation-v2-*.test.mjs tests/marites-wall-scroll-video-navigation-20261113.test.mjs tests/nav2-wall-stability-integration-20261113.test.mjs tests/buklod-comment-menu-android-20261113.test.mjs tests/staging-apk-device-attestation-20261113.test.mjs tests/buklod-keyboard-gif-direct-20261113.test.mjs tests/buklod-keyboard-gif-navigation-20261113.test.mjs tests/buklod-keyboard-gif-scope-20261113.test.mjs
           npx tsc --noEmit
+      - name: Verify Profile hero, navigation and protected AdMob/scroll behavior
+        if: github.head_ref == 'codex/profile-hero-compact-20261116'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/nov16-profile-hero-compact.test.mjs tests/nov16-profile-navigation-actions.test.mjs tests/nov16-profile-staging-android-qa.test.mjs
+          node --test tests/production-ota-ads-regression.test.mjs tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs tests/buklod-shared-dashboard-scroll-20261111.test.mjs
       - name: Actual staging-identity Android JS compile without upload or publish
         shell: bash
         run: |
