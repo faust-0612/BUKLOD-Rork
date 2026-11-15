@@ -36,7 +36,9 @@
     "supabase-rls",
     "navigation",
     "mobile-memory",
-    "speech-lifecycle"
+    "speech-lifecycle",
+    "navigation-scroll",
+    "ads-monetization"
   ],
   "regressionTests": [
     "src/features/childrenStories/catalog.test.ts",
