@@ -1,4 +1,4 @@
-# Owner approved staged 32-story + dark-contrast consolidated OTA source publication attempt.
+# Owner approved 144-story staging preservation + dark-contrast-only Android OTA publication attempt.
 # Reconciled over verified 144-story children Bible + Pakinggan Android staging baseline.
 # Staging-only JS OTA for the already signed Android 1.3.2 staging-user client.
 # GitHub connector cannot workflow_dispatch; a deliberate exact-prefix push to this file
