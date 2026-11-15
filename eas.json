@@ -144,6 +144,43 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "connect-staging": {
+      "distribution": "internal",
+      "channel": "connect-staging",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "BUKLOD_APP_TARGET": "connect",
+        "EXPO_PUBLIC_BUKLOD_APP_TARGET": "connect",
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-connect-staging"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "connect-production": {
+      "channel": "connect-production",
+      "environment": "production",
+      "env": {
+        "BUKLOD_APP_TARGET": "connect",
+        "EXPO_PUBLIC_BUKLOD_APP_TARGET": "connect",
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-connect-production"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "connect-production-apk": {
+      "extends": "connect-production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

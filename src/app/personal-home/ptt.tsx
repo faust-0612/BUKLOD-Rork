@@ -1,3 +1,4 @@
+import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -573,11 +574,11 @@ export default function BuklodPttScreen() {
     Boolean(setup);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#030A10' }}>
+    <View style={{ flex: 1, backgroundColor: isBuklodConnectStandalone ? '#F3F9E9' : '#030A10' }}>
       <View style={[styles.screen, { paddingTop: insets.top }]}>
         <View style={styles.topbar}>
-          <Pressable onPress={() => router.back()} style={styles.back} accessibilityLabel="Go back">
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+          <Pressable onPress={() => isBuklodConnectStandalone ? router.replace("/connect") : router.back()} style={styles.back} accessibilityLabel={isBuklodConnectStandalone ? "Back to Connect" : "Go back"}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color={isBuklodConnectStandalone ? "#285C10" : "#FFFFFF"} />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.brand}>BUKLOD PTT</Text>
@@ -908,7 +909,7 @@ export default function BuklodPttScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#030A10' },
+  screen: { flex: 1, backgroundColor: (isBuklodConnectStandalone ? '#F3F9E9' : '#030A10') },
   topbar: {
     minHeight: 64,
     paddingHorizontal: 14,
@@ -916,12 +917,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#17303C',
-    backgroundColor: '#07131D',
+    borderBottomColor: (isBuklodConnectStandalone ? '#D7E9C7' : '#17303C'),
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#07131D'),
   },
   back: { padding: 8 },
-  brand: { color: '#FFFFFF', fontSize: 20, fontWeight: '900' },
-  subbrand: { color: '#78909C', fontSize: 11, marginTop: 1 },
+  brand: { color: (isBuklodConnectStandalone ? '#1E3814' : '#FFFFFF'), fontSize: 20, fontWeight: '900' },
+  subbrand: { color: (isBuklodConnectStandalone ? '#647E56' : '#78909C'), fontSize: 11, marginTop: 1 },
   setupChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -930,48 +931,48 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#24505A',
-    backgroundColor: '#0A1C26',
+    borderColor: (isBuklodConnectStandalone ? '#D3E8BE' : '#24505A'),
+    backgroundColor: (isBuklodConnectStandalone ? '#F1FAE8' : '#0A1C26'),
   },
-  setupChipText: { color: '#56DCE5', fontSize: 11, fontWeight: '900' },
+  setupChipText: { color: (isBuklodConnectStandalone ? '#3F8711' : '#56DCE5'), fontSize: 11, fontWeight: '900' },
   content: { padding: 14, paddingBottom: 36, gap: 4 },
   statusCard: {
     borderRadius: 16,
     borderWidth: 1,
-    backgroundColor: '#071A27',
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#071A27'),
     padding: 14,
     marginBottom: 8,
   },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusDot: { width: 12, height: 12, borderRadius: 6 },
-  statusTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '900', flexShrink: 1 },
-  statusDetail: { color: '#9BB0B8', fontSize: 12, lineHeight: 17, marginTop: 6 },
+  statusTitle: { color: (isBuklodConnectStandalone ? '#1E3814' : '#FFFFFF'), fontSize: 16, fontWeight: '900', flexShrink: 1 },
+  statusDetail: { color: (isBuklodConnectStandalone ? '#5B7650' : '#9BB0B8'), fontSize: 12, lineHeight: 17, marginTop: 6 },
   setupActions: { gap: 8, marginBottom: 8 },
   setupBtn: {
     minHeight: 46,
     borderRadius: 12,
-    backgroundColor: '#55E0E8',
+    backgroundColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'),
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  setupBtnText: { color: '#071725', fontWeight: '900', letterSpacing: 0.4 },
+  setupBtnText: { color: (isBuklodConnectStandalone ? '#E8F6D8' : '#071725'), fontWeight: '900', letterSpacing: 0.4 },
   setupBtnSecondary: {
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#55E0E8',
-    backgroundColor: '#0A2630',
+    borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'),
+    backgroundColor: (isBuklodConnectStandalone ? '#ECF8E0' : '#0A2630'),
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  setupBtnSecondaryText: { color: '#55E0E8', fontWeight: '900', letterSpacing: 0.4 },
+  setupBtnSecondaryText: { color: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'), fontWeight: '900', letterSpacing: 0.4 },
   setupList: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#1B4555',
-    backgroundColor: '#091722',
+    borderColor: (isBuklodConnectStandalone ? '#D7E9C7' : '#1B4555'),
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#091722'),
     padding: 12,
     marginBottom: 8,
   },
@@ -981,10 +982,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 7,
   },
-  setupItemLabel: { color: '#D9E5E9', fontSize: 13, fontWeight: '700' },
-  setupItemAction: { color: '#56DCE5', fontSize: 11, fontWeight: '900' },
+  setupItemLabel: { color: (isBuklodConnectStandalone ? '#2D4E23' : '#D9E5E9'), fontSize: 13, fontWeight: '700' },
+  setupItemAction: { color: (isBuklodConnectStandalone ? '#3F8711' : '#56DCE5'), fontSize: 11, fontWeight: '900' },
   sectionLabel: {
-    color: '#708893',
+    color: (isBuklodConnectStandalone ? '#5E7B50' : '#708893'),
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1.1,
@@ -997,13 +998,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#29404B',
-    backgroundColor: '#091722',
+    borderColor: (isBuklodConnectStandalone ? '#D3E8BE' : '#29404B'),
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#091722'),
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
-  modeChipOn: { borderColor: '#55E0E8', backgroundColor: '#0A3440' },
+  modeChipOn: { borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'), backgroundColor: '#0A3440' },
   modeChipText: {
     color: '#8FA3AC',
     fontSize: 10,
@@ -1020,8 +1021,8 @@ const styles = StyleSheet.create({
   channelCard: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1B4555',
-    backgroundColor: '#071A27',
+    borderColor: (isBuklodConnectStandalone ? '#D7E9C7' : '#1B4555'),
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#071A27'),
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1032,11 +1033,11 @@ const styles = StyleSheet.create({
   changeChannelBtn: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#55E0E8',
+    borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'),
     paddingHorizontal: 10,
     paddingVertical: 10,
   },
-  changeChannelText: { color: '#55E0E8', fontSize: 10, fontWeight: '900' },
+  changeChannelText: { color: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'), fontSize: 10, fontWeight: '900' },
   channelGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1055,7 +1056,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  channelCellOn: { backgroundColor: '#0B4B58', borderColor: '#55E0E8' },
+  channelCellOn: { backgroundColor: '#0B4B58', borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8') },
   channelCellText: { color: '#91A7B0', fontSize: 14, fontWeight: '900' },
   channelCellTextOn: { color: '#FFFFFF' },
   scopeRow: { flexDirection: 'row', gap: 8, paddingRight: 8 },
@@ -1063,23 +1064,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#23414E',
-    backgroundColor: '#091722',
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#091722'),
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  scopeChipOn: { borderColor: '#50D8E2', backgroundColor: '#0A2630' },
-  scopeName: { color: '#D9E5E9', fontSize: 12, fontWeight: '800' },
+  scopeChipOn: { borderColor: '#50D8E2', backgroundColor: (isBuklodConnectStandalone ? '#ECF8E0' : '#0A2630') },
+  scopeName: { color: (isBuklodConnectStandalone ? '#2D4E23' : '#D9E5E9'), fontSize: 12, fontWeight: '800' },
   scopeTextOn: { color: '#FFFFFF' },
   nearbyCard: {
     marginTop: 14,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#23414E',
-    backgroundColor: '#091722',
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#091722'),
     padding: 12,
   },
   nearbyTitle: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
-  nearbyPeer: { color: '#9BB0B8', fontSize: 12, marginTop: 6 },
+  nearbyPeer: { color: (isBuklodConnectStandalone ? '#5B7650' : '#9BB0B8'), fontSize: 12, marginTop: 6 },
   fallbackCard: {
     marginTop: 12,
     borderRadius: 14,
@@ -1092,18 +1093,18 @@ const styles = StyleSheet.create({
   fallbackText: { color: '#F6E7A5', fontSize: 13, fontWeight: '700', lineHeight: 18 },
   fallbackBtn: {
     alignSelf: 'flex-start',
-    backgroundColor: '#55E0E8',
+    backgroundColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'),
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  fallbackBtnText: { color: '#071725', fontWeight: '900' },
+  fallbackBtnText: { color: (isBuklodConnectStandalone ? '#E8F6D8' : '#071725'), fontWeight: '900' },
   talkCard: {
     marginTop: 16,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#254552',
-    backgroundColor: '#07131D',
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#07131D'),
     padding: 14,
   },
   pttWrap: { alignItems: 'center', marginTop: 4, marginBottom: 8 },
@@ -1119,7 +1120,7 @@ const styles = StyleSheet.create({
   },
   pttPressed: { transform: [{ scale: 0.97 }] },
   pttTx: { backgroundColor: '#B83228', borderColor: '#F06B5E' },
-  pttRx: { backgroundColor: '#0B4B58', borderColor: '#55E0E8' },
+  pttRx: { backgroundColor: '#0B4B58', borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8') },
   pttBusy: { backgroundColor: '#543338', borderColor: '#8A5158' },
   pttSos: { borderColor: '#FF6B57' },
   pttDisabled: { opacity: 0.45 },
@@ -1144,12 +1145,12 @@ const styles = StyleSheet.create({
     minHeight: 40,
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#29404B',
-    backgroundColor: '#091722',
+    borderColor: (isBuklodConnectStandalone ? '#D3E8BE' : '#29404B'),
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#091722'),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  talkModeOn: { borderColor: '#55E0E8', backgroundColor: '#0A3440' },
+  talkModeOn: { borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'), backgroundColor: '#0A3440' },
   talkModePriority: { borderColor: '#F1B953', backgroundColor: '#4C3812' },
   talkModeSos: { borderColor: '#FF6B57', backgroundColor: '#55201B' },
   talkModeText: { color: '#8FA3AC', fontSize: 11, fontWeight: '900' },
@@ -1169,7 +1170,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#0B1822',
     borderWidth: 1,
-    borderColor: '#24505A',
+    borderColor: (isBuklodConnectStandalone ? '#D3E8BE' : '#24505A'),
     padding: 20,
   },
   modalTitle: {
@@ -1178,7 +1179,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginBottom: 14,
   },
-  modalStep: { color: '#D9E5E9', fontSize: 14, fontWeight: '700', marginBottom: 8 },
+  modalStep: { color: (isBuklodConnectStandalone ? '#2D4E23' : '#D9E5E9'), fontSize: 14, fontWeight: '700', marginBottom: 8 },
   modalNote: {
     color: '#8CA2AB',
     fontSize: 12,
@@ -1187,11 +1188,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalBtn: {
-    backgroundColor: '#55E0E8',
+    backgroundColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'),
     borderRadius: 12,
     minHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalBtnText: { color: '#071725', fontWeight: '900' },
+  modalBtnText: { color: (isBuklodConnectStandalone ? '#E8F6D8' : '#071725'), fontWeight: '900' },
 });

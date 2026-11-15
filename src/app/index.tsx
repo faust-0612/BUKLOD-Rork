@@ -3,6 +3,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
@@ -180,7 +181,7 @@ export default function Index() {
 
   return (
     <Redirect
-      href="/(tabs)/buklod"
+      href={isBuklodConnectStandalone ? '/connect' : '/(tabs)/buklod'}
     />
   );
 }

@@ -9,6 +9,7 @@ import type { ColorSchemeName } from 'react-native';
 export type BuklodThemePreferenceId =
   | 'system'
   | 'cloudWhite'
+  | 'appleGreen'
   | 'softMint'
   | 'sage'
   | 'sky'
@@ -22,6 +23,7 @@ export type BuklodThemePreferenceId =
 /** Resolved palette id (concrete theme, never "system"). */
 export type BuklodPaletteId =
   | 'cloudWhite'
+  | 'appleGreen'
   | 'softMint'
   | 'sage'
   | 'sky'
@@ -128,6 +130,26 @@ const PALETTE_SOURCES: Record<
   BuklodPaletteId,
   PaletteSource
 > = {
+  appleGreen: {
+    canvas: '#F3F9E9',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FBFFF6',
+    headerSurface: '#E7F6CF',
+    textPrimary: '#1E3814',
+    textSecondary: '#4E6C3B',
+    textMuted: '#6F8660',
+    accent: '#68B516',
+    accentSoft: '#E4F7C8',
+    border: '#D7E9C7',
+    inputSurface: '#F0F8E7',
+    unreadBadge: '#4E9E0D',
+    danger: '#C43F35',
+    success: '#3D9822',
+    warning: '#B37A12',
+    white: '#FFFFFF',
+    overlay: 'rgba(26, 58, 13, 0.31)',
+    shadow: '#345D20',
+  },
   cloudWhite: {
     canvas: '#F8FAFC',
     surface: '#FFFFFF',
@@ -457,6 +479,13 @@ export const BUKLOD_PALETTE_PRESETS: Record<
     swatch: '#A8926A',
     roles: buildGlobalRoles('sandCream'),
   },
+  appleGreen: {
+    id: 'appleGreen',
+    label: 'Apple Green',
+    description: 'Bright apple green with soft-white surfaces',
+    swatch: '#68B516',
+    roles: buildGlobalRoles('appleGreen'),
+  },
   nightPine: {
     id: 'nightPine',
     label: 'Night Pine',
@@ -503,6 +532,7 @@ export const BUKLOD_PALETTE_PRESETS: Record<
 
 const GLOBAL_PALETTE_ORDER: BuklodPaletteId[] = [
   'cloudWhite',
+  'appleGreen',
   'softMint',
   'sage',
   'sky',

@@ -1,3 +1,5 @@
+import BuklodConnectStandaloneRoot from '@/components/BuklodConnectStandaloneRoot';
+import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
 import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
 import BuklodGlobalEmergencyHost from '@/components/BuklodGlobalEmergencyHost';
 import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
@@ -476,7 +478,7 @@ export default function BuklodRootLayoutWithPttR2() {
   return (
     <>
       <BuklodPttGlobalHost />
-      <RootLayout />
+      {isBuklodConnectStandalone ? <BuklodConnectStandaloneRoot /> : <RootLayout />}
     </>
   );
 }

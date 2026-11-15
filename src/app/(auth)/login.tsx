@@ -1,3 +1,4 @@
+import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -1347,9 +1348,7 @@ const chooseSuggestedLogin =
      * Existing-session app reopen is handled by src/app/index.tsx
      * and remains the Public Community Wall.
      */
-    router.replace(
-      '/(tabs)/buklod'
-    );
+    router.replace(isBuklodConnectStandalone ? '/connect' : '/(tabs)/buklod');
 
 
     /*

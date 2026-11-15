@@ -7,11 +7,17 @@ module.exports = ({ config }) => {
   /* BUKLOD_CLASSROOM_APP_TARGET_R4 — standalone identity without mutating Main defaults */
   const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
   const isClassroom = appTarget === 'classroom';
+  const isConnect = appTarget === 'connect';
+  const connectProjectId = (process.env.CONNECT_EAS_PROJECT_ID || '').trim();
+  const connectGoogleServicesFile = (process.env.CONNECT_GOOGLE_SERVICES_FILE || '').trim();
+  const connectAdMobAppId = (process.env.CONNECT_ADMOB_ANDROID_APP_ID || '').trim();
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
-  const projectId = isClassroom
-    ? classroomProjectId
-    : (process.env.EAS_PROJECT_ID ||
+  const projectId = isConnect
+    ? connectProjectId
+    : isClassroom
+      ? classroomProjectId
+      : (process.env.EAS_PROJECT_ID ||
        process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
        '23dad7d0-389a-406e-8dec-08965dab85d8');
 
@@ -25,26 +31,40 @@ module.exports = ({ config }) => {
     variant === 'preview' ||
     variant === 'development';
 
+  // Reject cross-app credentials before any EAS cloud build can start.
+  if (isConnect && process.env.EAS_BUILD === 'true' && (!connectProjectId || !connectGoogleServicesFile)) {
+    throw new Error('Connect requires its own CONNECT_EAS_PROJECT_ID and CONNECT_GOOGLE_SERVICES_FILE.');
+  }
+  if (isConnect && process.env.EAS_BUILD === 'true' && !isStaging && !connectAdMobAppId) {
+    throw new Error('Connect production requires its own CONNECT_ADMOB_ANDROID_APP_ID.');
+  }
+
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
-  const appName = isClassroom
-    ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
-    : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
+  const appName = isConnect
+    ? (isStaging ? 'BUKLOD Connect Staging' : 'BUKLOD Connect')
+    : isClassroom
+      ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
+      : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
 
-  const packageId = isClassroom
-    ? 'org.mzbministry.buklod.classroom'
-    : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
+  const packageId = isConnect
+    ? (isStaging ? 'org.mzbministry.buklod.connect.staging' : 'org.mzbministry.buklod.connect')
+    : isClassroom
+      ? 'org.mzbministry.buklod.classroom'
+      : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
 
-  const scheme = isClassroom
-    ? 'buklod-classroom'
-    : (isStaging ? 'buklod-staging' : 'buklod');
+  const scheme = isConnect
+    ? (isStaging ? 'buklod-connect-staging' : 'buklod-connect')
+    : isClassroom
+      ? 'buklod-classroom'
+      : (isStaging ? 'buklod-staging' : 'buklod');
 
   return {
     ...config,
 
     name: appName,
-    slug: isClassroom ? 'buklod-classroom' : 'buklod',
-    version: isClassroom ? '1.3.4' : '1.3.6',
+    slug: isConnect ? 'buklod-connect' : (isClassroom ? 'buklod-classroom' : 'buklod'),
+    version: isConnect ? '1.0.0' : (isClassroom ? '1.3.4' : '1.3.6'),
 
     orientation: 'default',
     scheme,
@@ -81,12 +101,14 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : (isClassroom ? 28 : 30),
+      versionCode: isConnect ? 1 : (isStaging ? undefined : (isClassroom ? 28 : 30)),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
-      googleServicesFile: isClassroom
-        ? (classroomGoogleServicesFile || undefined)
-        : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
+      googleServicesFile: isConnect
+        ? (connectGoogleServicesFile || undefined)
+        : isClassroom
+          ? (classroomGoogleServicesFile || undefined)
+          : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
 
       permissions: [
         'android.permission.CAMERA',
@@ -113,7 +135,7 @@ module.exports = ({ config }) => {
           : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),
 
         backgroundColor:
-          '#FFFFFF',
+          isConnect ? '#E9F8D5' : '#FFFFFF',
       },
     },
 
@@ -134,9 +156,11 @@ module.exports = ({ config }) => {
         'react-native-google-mobile-ads',
         {
           androidAppId:
-            isStaging
-              ? 'ca-app-pub-3940256099942544~3347511713'
-              : (
+            isConnect
+              ? (connectAdMobAppId || 'ca-app-pub-3940256099942544~3347511713')
+              : isStaging
+                ? 'ca-app-pub-3940256099942544~3347511713'
+                : (
                   process.env.ADMOB_ANDROID_APP_ID ||
                   ''
                 ).trim(),
@@ -354,7 +378,7 @@ module.exports = ({ config }) => {
 
           dark: {
             backgroundColor:
-              '#0E4F20',
+              isConnect ? '#70B91D' : '#0E4F20',
 
             image: isClassroom
               ? './assets/classroom/splash-icon.png'
@@ -372,12 +396,11 @@ module.exports = ({ config }) => {
         process.env.EXPO_PUBLIC_APP_ENV ||
         variant,
 
-      appTarget: isClassroom ? 'classroom' : 'main',
+      appTarget: isConnect ? 'connect' : (isClassroom ? 'classroom' : 'main'),
 
-      eas:
-        projectId
-          ? { projectId }
-          : config.extra?.eas,
+      eas: isConnect
+        ? (projectId ? { projectId } : undefined)
+        : (projectId ? { projectId } : config.extra?.eas),
     },
 
 
@@ -395,7 +418,7 @@ module.exports = ({ config }) => {
     // Main BUKLOD V30 (versionCode 30) removes unused connectedDevice foreground service
     // permission from the manifest, without adding or changing the native JS module ABI.
     // Keep Expo runtime 1.3.2 for existing V28/V29 production OTA compatibility. Classroom has its independent runtime.
-    runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
+    runtimeVersion: isConnect ? 'connect-1.0.0' : (isClassroom ? '1.3.0' : '1.3.2'),
   };
 };
 

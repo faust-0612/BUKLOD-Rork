@@ -230,6 +230,7 @@ export function buildMessagesThemeRoles(
 
 const MESSAGES_PALETTE_ORDER: MessagesPaletteId[] = [
   'cloudWhite',
+  'appleGreen',
   'softMint',
   'sage',
   'sky',

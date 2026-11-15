@@ -1,3 +1,4 @@
+import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   createContext,
@@ -93,7 +94,7 @@ export function BuklodThemeProvider({
     preference,
     setPreferenceState,
   ] = useState<BuklodThemePreferenceId>(
-    DEFAULT_BUKLOD_THEME_PREFERENCE
+    isBuklodConnectStandalone ? 'appleGreen' : DEFAULT_BUKLOD_THEME_PREFERENCE
   );
   const [ready, setReady] =
     useState(false);
@@ -102,8 +103,9 @@ export function BuklodThemeProvider({
     let active = true;
 
     void (async () => {
-      const stored =
-        await loadStoredGlobalPreference();
+      const stored = isBuklodConnectStandalone
+        ? 'appleGreen' as const
+        : await loadStoredGlobalPreference();
 
       if (active) {
         setPreferenceState(stored);
