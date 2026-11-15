@@ -20,7 +20,7 @@ import {
 
 const IS_QA = Platform.OS === 'android' && process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1';
 type NativeDrive = {
-  authorizeDrive: () => Promise<{ accessToken: string }>;
+  authorizeDrive: (selectAccount: boolean) => Promise<{ accessToken: string }>;
   clearDriveToken: () => Promise<boolean>;
 };
 type UserInfo = { sub?: string; email?: string; email_verified?: boolean };
@@ -59,8 +59,8 @@ async function getBinding(userId: string): Promise<Binding | null> {
   }
   return value as Binding;
 }
-async function requestGoogleIdentity(): Promise<{ subject: string; email: string; accessToken: string }> {
-  const response = await nativeDrive().authorizeDrive();
+async function requestGoogleIdentity(selectAccount = false): Promise<{ subject: string; email: string; accessToken: string }> {
+  const response = await nativeDrive().authorizeDrive(selectAccount);
   const token = response?.accessToken;
   if (!token || typeof token !== 'string') throw new Error('Google Drive did not grant an access token.');
   const abort = new AbortController();
@@ -94,7 +94,7 @@ async function userToken(userId: string): Promise<string> {
 export async function connectNativeDrawerDrive(userId: string) {
   ensureQa(userId);
   const previous = await getBinding(userId);
-  const info = await requestGoogleIdentity();
+  const info = await requestGoogleIdentity(true);
   if (previous && previous.googleSubject !== info.subject) {
     throw new Error('This BUKLOD account is linked to another Google account. Disconnect first.');
   }

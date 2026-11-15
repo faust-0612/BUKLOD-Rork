@@ -9,6 +9,7 @@ const transport=read('src/lib/smartDrawer/googleDriveTransport.ts');
 test('Drive token is short-lived, authorization is native and account identity is checked every action', () => {
   assert.match(service, /requireNativeModule<NativeDrive>\('BuklodNativeDrive'\)/);
   assert.match(service, /www\.googleapis\.com\/oauth2\/v3\/userinfo/);
+  assert.match(service, /requestGoogleIdentity\(true\)/);
   assert.match(service, /googleSubject !== info\.subject/);
   assert.match(service, /googleEmail\.toLowerCase\(\) !== info\.email\.toLowerCase\(\)/);
   assert.match(service, /SecureStore\.getItemAsync/);

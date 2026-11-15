@@ -57,7 +57,7 @@ class BuklodNativeDriveModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("BuklodNativeDrive")
 
-    AsyncFunction("authorizeDrive") { promise: Promise ->
+    AsyncFunction("authorizeDrive") { selectAccount: Boolean, promise: Promise ->
       mainHandler.post {
         if (waiting != null) {
           promise.reject("E_BUKLOD_DRIVE_BUSY", "A Google authorization is already open.", null)
@@ -70,9 +70,10 @@ class BuklodNativeDriveModule : Module() {
         }
         waiting = promise
         mainHandler.postDelayed(timeout, 90000)
-        val request = AuthorizationRequest.builder()
+        val builder = AuthorizationRequest.builder()
           .setRequestedScopes(listOf(Scope(scope), Scope(emailScope), Scope(identityScope)))
-          .build()
+        if (selectAccount) builder.setPrompt(AuthorizationRequest.Prompt.SELECT_ACCOUNT)
+        val request = builder.build()
         try {
           Identity.getAuthorizationClient(activity).authorize(request)
             .addOnSuccessListener(activity) { result ->

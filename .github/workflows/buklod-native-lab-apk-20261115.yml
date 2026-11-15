@@ -65,6 +65,42 @@ jobs:
           assert.equal(e.build.production.channel,'production');
           NODE
 
+  android-hermes-js-bundle-qa:
+    # One-shot, test-only JavaScript export. Does not run Gradle, EAS, or publish
+    # any application. Fake backend URL cannot pass the signed APK preflight.
+    needs: source-identity-qa
+    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' && startsWith(github.event.head_commit.message, 'BUKLOD_NATIVE_LAB_ANDROID_JS_QA_20261115:') }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: native-lab
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_KINGDOM_NATIVE_LAB: '1'
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_SUPABASE_URL: https://native-qa-export-only.invalid
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_offline_js_export_not_runtime
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ github.sha }}"
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: TypeScript and Android-target JS bundle with isolated runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-native-qa-android-js --clear
+          test -s /tmp/buklod-native-qa-android-js/metadata.json
+          echo 'Android-target JS bundle + TypeScript passed. Does NOT verify native Kotlin/Firebase or produce an installable APK.' >> "$GITHUB_STEP_SUMMARY"
+
   signed-native-lab-apk:
     needs: source-identity-qa
     if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' && github.event_name == 'push' && startsWith(github.event.head_commit.message, 'BUKLOD_NATIVE_LAB_SIGNED_APK_20261115:') }}"
