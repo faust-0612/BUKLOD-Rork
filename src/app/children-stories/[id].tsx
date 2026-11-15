@@ -57,7 +57,7 @@ export default function ChildrenStoryReader() {
   function speak(){
     if(!story)return;
     if(speaking){stop();return}
-    const content=quiz?localize(story.question,language):localize(story.pages[page].text,language);
+    const content=quiz?localize(story.question,language):localize(story.pages[Math.min(page,story.pages.length-1)].text,language);
     try {
       Speech.speak(content,{language:language==='tl'?'fil-PH':'en-US',rate: bedtime ? 0.77 : 0.88,pitch:1,
         onStart:()=>setSpeaking(true),onDone:()=>setSpeaking(false),
@@ -77,6 +77,7 @@ export default function ChildrenStoryReader() {
     <Text style={styles.body}>Bumalik sa library at pumili ng isa pang kuwento.</Text>
     <Pressable accessibilityRole="button" onPress={()=>router.replace('/children-stories' as any)} style={styles.mainButton}><Text style={styles.buttonText}>Story Library</Text></Pressable>
   </View>;
+  const safePage=Math.min(page,story.pages.length-1);
   const finishQuiz=choice===story.answer;
   return (
     <ScrollView style={[styles.screen,bedtime&&styles.dark]} contentContainerStyle={styles.content}>
@@ -98,9 +99,9 @@ export default function ChildrenStoryReader() {
           <Text style={[styles.chipText,bedtime&&styles.activeChipText]}>☾ Bedtime</Text>
         </Pressable>
       </View>
-      <StoryArt story={story} page={page} animate={!bedtime&&!quiz}/>
+      <StoryArt story={story} page={safePage} animate={!bedtime&&!quiz}/>
       <View style={[styles.pageCard,bedtime&&styles.darkCard]}>
-        <Text style={[styles.chapter,bedtime&&styles.light]}>{quiz?'STORY CHECK':`PAGE ${page+1} / ${story.pages.length}`}</Text>
+        <Text style={[styles.chapter,bedtime&&styles.light]}>{quiz?'STORY CHECK':`PAGE ${safePage+1} / ${story.pages.length}`}</Text>
         {quiz ? <>
           <Text style={[styles.question,bedtime&&styles.light]}>{localize(story.question,language)}</Text>
           {story.choices.map((answer,index)=>{
@@ -115,7 +116,7 @@ export default function ChildrenStoryReader() {
             ?(language==='tl'?'⭐ Magaling! Natapos mo ang kuwento.':'⭐ Wonderful! Story complete.')
             :(language==='tl'?'Subukan muli. Kaya mo iyan!':'Try again. You can do it!')}</Text>:null}
         </> : <>
-          <Text style={[styles.storyText,bedtime&&styles.light]}>{localize(story.pages[page].text,language)}</Text>
+          <Text style={[styles.storyText,bedtime&&styles.light]}>{localize(story.pages[safePage].text,language)}</Text>
           <Text style={[styles.tip,bedtime&&styles.light]}>👆 {language==='tl'?'Basahin o pakinggan kasama ang nakatatanda.':'Read or listen with a grown-up.'}</Text>
         </>}
         <Pressable accessibilityRole="button" onPress={speak} style={[styles.audioButton,bedtime&&styles.darkAudio]}>
@@ -124,14 +125,14 @@ export default function ChildrenStoryReader() {
         </Pressable>
       </View>
       <View style={styles.footer}>
-        <Pressable accessibilityRole="button" disabled={page===0&&!quiz} onPress={()=>{if(quiz){setQuiz(false);setChoice(null)}else jump(page-1)}} style={[styles.secondaryButton,(page===0&&!quiz)&&styles.disabled]}>
+        <Pressable accessibilityRole="button" disabled={safePage===0&&!quiz} onPress={()=>{if(quiz){setQuiz(false);setChoice(null)}else jump(safePage-1)}} style={[styles.secondaryButton,(safePage===0&&!quiz)&&styles.disabled]}>
           <MaterialCommunityIcons name="chevron-left" size={20} color="#1B6053"/><Text style={styles.secondaryText}>{language==='tl'?'Bumalik':'Previous'}</Text>
         </Pressable>
         {quiz&&finishQuiz ? <Pressable accessibilityRole="button" onPress={()=>{stop();router.replace('/children-stories' as any)}} style={styles.mainButton}>
             <Text style={styles.buttonText}>{language==='tl'?'Tapos na ✓':'Finished ✓'}</Text>
           </Pressable>
-        : <Pressable accessibilityRole="button" onPress={()=>{if(quiz){setChoice(null)}else if(page===story.pages.length-1){setQuiz(true)}else jump(page+1)}} style={styles.mainButton}>
-            <Text style={styles.buttonText}>{quiz?(language==='tl'?'Ulitin ang tanong':'Try question again'):page===story.pages.length-1?(language==='tl'?'Maikling tanong':'Story question'):(language==='tl'?'Susunod':'Next')}</Text>
+        : <Pressable accessibilityRole="button" onPress={()=>{if(quiz){setChoice(null)}else if(safePage===story.pages.length-1){setQuiz(true)}else jump(safePage+1)}} style={styles.mainButton}>
+            <Text style={styles.buttonText}>{quiz?(language==='tl'?'Ulitin ang tanong':'Try question again'):safePage===story.pages.length-1?(language==='tl'?'Maikling tanong':'Story question'):(language==='tl'?'Susunod':'Next')}</Text>
             <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF"/>
           </Pressable>}
       </View>

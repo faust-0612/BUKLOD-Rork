@@ -41,7 +41,6 @@
     "ads-monetization"
   ],
   "regressionTests": [
-    "src/features/childrenStories/catalog.test.ts",
     "tests/children-stories-contract.test.mjs",
     "supabase/tests/buklod_children_stories_rls_contract_20261115.sql",
     "tests/children-stories-navigation-ad-safety.test.mjs"

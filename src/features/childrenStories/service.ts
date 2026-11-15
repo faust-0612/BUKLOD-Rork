@@ -25,12 +25,28 @@ export async function readStoryProgress(uid?: string | null): Promise<StoryProgr
     return output;
   } catch { return {}; }
 }
+const progressWrites = new Map<string, Promise<void>>();
+// Serialize a single adult account's updates; rapid next/favorite/completion actions
+// must not overwrite one another after AsyncStorage read-modify-write races.
 export async function saveStoryProgress(uid: string | null | undefined, storyId: string, patch: Partial<StoryProgress[string]>) {
   if (!uid || !/^[a-z0-9-]{3,70}$/.test(storyId)) return;
-  const current = await readStoryProgress(uid);
-  const prior = current[storyId] ?? { page: 0, completed: false, favorite: false };
-  current[storyId] = { ...prior, ...patch };
-  await AsyncStorage.setItem(key(uid,'progress'), JSON.stringify(current)).catch(() => undefined);
+  const storeKey = key(uid, 'progress');
+  const previous = progressWrites.get(storeKey) ?? Promise.resolve();
+  const next = previous.catch(() => undefined).then(async () => {
+    const current = await readStoryProgress(uid);
+    const prior = current[storyId] ?? { page: 0, completed: false, favorite: false };
+    const merged = { ...prior, ...patch };
+    current[storyId] = {
+      page: Number.isInteger(merged.page) ? Math.max(0, Math.min(15, merged.page)) : prior.page,
+      completed: merged.completed === true,
+      favorite: merged.favorite === true,
+    };
+    await AsyncStorage.setItem(storeKey, JSON.stringify(current));
+  });
+  progressWrites.set(storeKey, next);
+  try { await next; }
+  catch { /* low-storage devices retain session-only progress safely */ }
+  finally { if (progressWrites.get(storeKey) === next) progressWrites.delete(storeKey); }
 }
 function normalizedRemoteRows(data: any[]): ChildrenStory[] {
   return data
