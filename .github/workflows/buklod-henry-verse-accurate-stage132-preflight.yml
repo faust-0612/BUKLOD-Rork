@@ -1,0 +1,123 @@
+# QA and EAS readback only. This workflow has NO publish step, no production writes.
+name: BUKLOD Henry Verse Accuracy Android Staging 1.3.2 Preflight - NO OTA
+on:
+  push:
+    branches: [rc/nov16-henry-verse-accurate-stage132-prep]
+    paths:
+      - '.github/workflows/buklod-henry-verse-accurate-stage132-preflight.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-henry-verse-accurate-stage132-preflight
+  cancel-in-progress: true
+jobs:
+  scope-and-android:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/rc/nov16-henry-verse-accurate-stage132-prep' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify exact ancestry and minimal allowed source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor f340829775c904aecc9162937bc011fb16c5a34e "$GITHUB_SHA"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const m=JSON.parse(readFileSync('release/nov16-henry-verse-accurate-stage132-prep.json','utf8'));
+          const diff=execFileSync('git',['diff','--name-only',m.baseSha,process.env.GITHUB_SHA],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          assert.deepEqual(diff.filter(x=>!m.allowedPaths.includes(x)),[], 'Unexpected path changes; stop release');
+          assert.ok(diff.includes('src/lib/buklodBibleStudy.ts')&&diff.includes('src/app/bible/read.tsx'));
+          assert.ok(!diff.some(x=>/^(?:android\/|ios\/|assets\/|supabase\/|package(?:-lock)?\.json|app\.config)/.test(x)));
+          assert.equal(m.validationState.allowOtaPublish,false);
+          assert.equal(m.target.channel,'staging-user');
+          assert.equal(m.target.androidPackage,'org.mzbministry.buklod.staging');
+          assert.equal(m.target.runtimeVersion,'1.3.2');
+          NODE
+      - name: Locked dependencies and focused non-regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test \
+            tests/bible-study-sources.test.cjs \
+            tests/henry-verse-accurate-staging-20261116.test.mjs \
+            tests/bible-reader-safearea-commentary.test.cjs \
+            tests/bible-henry-attribution-live-schema-20261116.test.cjs \
+            tests/bible-dark-mode-20261116.test.mjs \
+            tests/children-bible-dark-staging-20261116.test.mjs \
+            tests/children-stories-contract.test.mjs \
+            tests/ad-native-lifecycle-retention-20261115.test.mjs \
+            tests/navigation-v2-ads-preservation.test.mjs
+      - name: Confirm signed APK, current stage and production channels without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'Expo readback token unavailable: OTA held'; exit 1; }
+          mkdir -p /tmp/buklod-henry-verse-qa
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > /tmp/buklod-henry-verse-qa/build.json
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/buklod-henry-verse-qa/stage.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/buklod-henry-verse-qa/prod.json
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 5 --json --non-interactive > /tmp/buklod-henry-verse-qa/stage-updates.json
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { verifyBuild, verifyChannels } from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const read=p=>JSON.parse(readFileSync('/tmp/buklod-henry-verse-qa/'+p+'.json','utf8'));
+          verifyBuild(read('build'));
+          verifyChannels(read('stage'),read('prod'));
+          const obj=read('stage-updates');
+          const rows=obj.currentPage??obj;
+          assert.ok(Array.isArray(rows)&&rows.length>0,'Current staging update unavailable');
+          const first=rows[0];
+          const message=String(first.message??'');
+          assert.ok(message.includes('BUKLOD_NOV16_HENRY_CHILDREN_DIALOGUE_DARK_f340829775c904aecc9162937bc011fb16c5a34e'),
+            'Staging has moved since inspected baseline; re-reconcile, no publish');
+          assert.equal(first.runtimeVersion,'1.3.2');
+          NODE
+      - name: Exact Android staging TypeScript and Hermes export - NO OTA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-henry-verse-qa/preview.env --non-interactive
+          set -a
+          . /tmp/buklod-henry-verse-qa/preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > /tmp/buklod-henry-verse-qa/expo-config.json
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const c=JSON.parse(readFileSync('/tmp/buklod-henry-verse-qa/expo-config.json','utf8'));
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.runtimeVersion,'1.3.2');
+          assert.equal(c.extra.appEnvironment,'staging');
+          assert.equal(c.extra.appTarget,'main');
+          NODE
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-henry-verse-qa/export --clear
+          test -s /tmp/buklod-henry-verse-qa/export/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Report QA only (no EAS update or deployment)
+        run: |
+          echo 'Exact-source staging 1.3.2 QA and read-only remote preflight passed.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'NO OTA PUBLISHED; a separate reviewed and exact-source release gate is required.' >> "$GITHUB_STEP_SUMMARY"
