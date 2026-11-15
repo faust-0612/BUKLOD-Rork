@@ -13,7 +13,7 @@ test('Independent identifiers, dedicated EAS project and runtime', () => {
   assert.match(app, /isConnect \? 'connect-1\.0\.0'/);
   assert.match(app, /CONNECT_EAS_PROJECT_ID/);
   assert.match(app, /CONNECT_GOOGLE_SERVICES_FILE/);
-  assert.match(app, /CONNECT_ADMOB_ANDROID_APP_ID/);
+  assert.match(app, /Connect EAS project must differ from Main and Classroom/);
   assert.match(app, /isConnect\s*\? connectProjectId/);
 });
 test('Dedicated profiles do not replace Main staging or production OTA', () => {
@@ -50,7 +50,7 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
   const relevant = [
     'BUKLOD_APP_TARGET', 'APP_VARIANT', 'EAS_PROJECT_ID',
     'CONNECT_EAS_PROJECT_ID', 'CONNECT_GOOGLE_SERVICES_FILE',
-    'CONNECT_ADMOB_ANDROID_APP_ID', 'EAS_BUILD',
+    'CONNECT_ADMOB_ANDROID_APP_ID', 'EXPO_PUBLIC_BUKLOD_APP_TARGET', 'EAS_BUILD',
   ];
   const original = Object.fromEntries(relevant.map(key => [key, process.env[key]]));
   function config(variables) {
@@ -83,20 +83,24 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
     }), /Connect requires its own/);
     assert.throws(() => config({
       BUKLOD_APP_TARGET: 'connect',
-      EAS_BUILD: 'true',
-      CONNECT_EAS_PROJECT_ID: 'connect-eas',
-      CONNECT_GOOGLE_SERVICES_FILE: './connect-firebase.json',
-    }), /CONNECT_ADMOB_ANDROID_APP_ID/);
+      CONNECT_EAS_PROJECT_ID: '23dad7d0-389a-406e-8dec-08965dab85d8',
+    }), /Connect EAS project must differ/);
+    assert.throws(() => config({
+      BUKLOD_APP_TARGET: 'connect',
+      CONNECT_GOOGLE_SERVICES_FILE: './google-services.production.json',
+    }), /Connect cannot use Main/);
     const production = config({
       BUKLOD_APP_TARGET: 'connect',
       EAS_BUILD: 'true',
+      EXPO_PUBLIC_BUKLOD_APP_TARGET: 'connect',
       CONNECT_EAS_PROJECT_ID: 'connect-eas',
       CONNECT_GOOGLE_SERVICES_FILE: './connect-firebase.json',
-      CONNECT_ADMOB_ANDROID_APP_ID: 'connect-test-app-id',
     });
     assert.equal(production.android.package, 'org.mzbministry.buklod.connect');
     assert.equal(production.extra.appTarget, 'connect');
     assert.equal(production.runtimeVersion, 'connect-1.0.0');
+    const ads = production.plugins.find(p => Array.isArray(p) && p[0] === 'react-native-google-mobile-ads');
+    assert.equal(ads[1].androidAppId, 'ca-app-pub-3940256099942544~3347511713');
   } finally {
     for (const [key, value] of Object.entries(original)) {
       if (value === undefined) delete process.env[key];

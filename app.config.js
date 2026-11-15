@@ -10,7 +10,6 @@ module.exports = ({ config }) => {
   const isConnect = appTarget === 'connect';
   const connectProjectId = (process.env.CONNECT_EAS_PROJECT_ID || '').trim();
   const connectGoogleServicesFile = (process.env.CONNECT_GOOGLE_SERVICES_FILE || '').trim();
-  const connectAdMobAppId = (process.env.CONNECT_ADMOB_ANDROID_APP_ID || '').trim();
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
   const projectId = isConnect
@@ -31,12 +30,21 @@ module.exports = ({ config }) => {
     variant === 'preview' ||
     variant === 'development';
 
-  // Reject cross-app credentials before any EAS cloud build can start.
-  if (isConnect && process.env.EAS_BUILD === 'true' && (!connectProjectId || !connectGoogleServicesFile)) {
-    throw new Error('Connect requires its own CONNECT_EAS_PROJECT_ID and CONNECT_GOOGLE_SERVICES_FILE.');
+  // Never reuse Main/Classroom update channels or Firebase app identities.
+  const mainProjectId = '23dad7d0-389a-406e-8dec-08965dab85d8';
+  if (isConnect && [mainProjectId, classroomProjectId].includes(connectProjectId)) {
+    throw new Error('Connect EAS project must differ from Main and Classroom.');
   }
-  if (isConnect && process.env.EAS_BUILD === 'true' && !isStaging && !connectAdMobAppId) {
-    throw new Error('Connect production requires its own CONNECT_ADMOB_ANDROID_APP_ID.');
+  if (isConnect && /google-services\.(?:staging|production|classroom)\.json$/i.test(connectGoogleServicesFile)) {
+    throw new Error('Connect cannot use Main/Classroom Firebase credentials.');
+  }
+  if (process.env.EXPO_PUBLIC_BUKLOD_APP_TARGET === 'connect' && !isConnect) {
+    throw new Error('Connect Javascript target requires BUKLOD_APP_TARGET=connect.');
+  }
+  if (isConnect && process.env.EAS_BUILD === 'true' &&
+      (!connectProjectId || !connectGoogleServicesFile ||
+       process.env.EXPO_PUBLIC_BUKLOD_APP_TARGET !== 'connect')) {
+    throw new Error('Connect requires its own EAS/Firebase and matching standalone JS target.');
   }
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
@@ -157,7 +165,7 @@ module.exports = ({ config }) => {
         {
           androidAppId:
             isConnect
-              ? (connectAdMobAppId || 'ca-app-pub-3940256099942544~3347511713')
+              ? 'ca-app-pub-3940256099942544~3347511713'
               : isStaging
                 ? 'ca-app-pub-3940256099942544~3347511713'
                 : (
