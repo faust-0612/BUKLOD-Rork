@@ -52,17 +52,6 @@
       ]
     },
     {
-      "id": "cluster-faith",
-      "reason": "Bible feedback clarity only; do not modify scripture content, user reading progress or voice playback.",
-      "preservedBehaviors": [
-        "Daily Bible references and Sunday School reading preserved",
-        "All Bible quiz attempts and score responses preserved"
-      ],
-      "tests": [
-        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs"
-      ]
-    },
-    {
       "id": "quiz-classroom",
       "reason": "Only Daily Bible Quiz V4 review presentation changes; classroom Quiz and gradebook remain independent.",
       "preservedBehaviors": [
