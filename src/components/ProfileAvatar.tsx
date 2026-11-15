@@ -16,6 +16,8 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { createBuklodAvatarBatchLookup } from '@/lib/buklodAvatarBatch';
 import {
@@ -61,7 +63,7 @@ async function readQuickNote(viewerId: string, targetId: string): Promise<string
   const task = (async () => {
     const { data, error } = await (supabase as any)
       .from('buklod_profile_status')
-      .select('quick_note')
+      .select('quick_note, quick_note_expires_at')
       .eq('user_id', targetId)
       .maybeSingle();
 
@@ -70,7 +72,9 @@ async function readQuickNote(viewerId: string, targetId: string): Promise<string
       return warm?.note ?? '';
     }
 
-    const note = String(data?.quick_note ?? '').trim();
+    const expiresAt = data?.quick_note_expires_at ? Date.parse(String(data.quick_note_expires_at)) : NaN;
+    const expired = Number.isFinite(expiresAt) && expiresAt <= Date.now();
+    const note = expired ? '' : repairMojibakeText(String(data?.quick_note ?? '')).trim();
     quickNoteCache.delete(key);
     quickNoteCache.set(key, { note, at: Date.now() });
     if (quickNoteCache.size > STATUS_NOTE_MAX) {
@@ -220,6 +224,57 @@ export function ProfileAvatarStatusIndicator({
         }}
       >
         N
+      </Text>
+    </View>
+  );
+}
+
+
+/** Readable avatar-adjacent Connect note in Community Wall post headers. */
+export function ProfileAvatarNoteChip({ userId }: { userId?: string | null }) {
+  const { user } = useAuth();
+  const { theme } = useBuklodTheme();
+  const viewerId = user?.id ?? '';
+  const targetId = String(userId ?? '').trim();
+  const [note, setNote] = useState(() =>
+    viewerId && targetId ? cachedQuickNote(viewerId, targetId) : ''
+  );
+  useEffect(() => {
+    let active = true;
+    if (!viewerId || !targetId) {
+      setNote('');
+      return () => { active = false; };
+    }
+    setNote(cachedQuickNote(viewerId, targetId));
+    void readQuickNote(viewerId, targetId)
+      .then(value => { if (active) setNote(value); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [viewerId, targetId]);
+  if (!note) return null;
+  return (
+    <View
+      accessibilityLabel={`Connect note: ${note}`}
+      style={{
+        alignSelf: 'flex-start',
+        maxWidth: '100%',
+        marginTop: 4,
+        marginBottom: 3,
+        paddingHorizontal: 9,
+        paddingVertical: 5,
+        borderRadius: 11,
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surfaceElevated,
+      }}
+    >
+      <Text numberOfLines={4} style={{
+        color: theme.textPrimary,
+        fontSize: 12.5,
+        lineHeight: 17,
+        fontWeight: '700',
+      }}>
+        {note}
       </Text>
     </View>
   );
