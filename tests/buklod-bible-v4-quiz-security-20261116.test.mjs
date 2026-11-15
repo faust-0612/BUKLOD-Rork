@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
-const migration=read('supabase/migrations/20261116025500_buklod_bible_v4_review_transparency.sql');
+const migration=read('supabase/migrations/20261115192034_buklod_bible_v4_review_transparency.sql');
 const ui=read('src/components/bible/BuklodBibleQuizV4.tsx');
 test('optional review endpoint is owner-only, read-only and never returns drafts',()=>{
  assert.match(migration,/actor uuid:=auth\.uid\(\)/);

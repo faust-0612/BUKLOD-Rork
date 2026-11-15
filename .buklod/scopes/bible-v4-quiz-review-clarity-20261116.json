@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/bible-v4-quiz-review-clarity-20261116.json",
   "objective": "Distinguish the Bible Quiz V4 learner submission from its explanation in every completed answer review without changing existing daily selection, scoring, reward ledger, or runtime.",
   "baseRef": "9221909b98f8faac5930711be6297e52fb2ec8d1",
-  "productionBaselineEvidence": "Based on verified Android 1.3.2 staging candidate fix/conso-144-dark-staging-20261116 SHA 9221909b98f8faac5930711be6297e52fb2ec8d1. Main/production and live backend remain unchanged by this PR.",
+  "productionBaselineEvidence": "Based on verified Android 1.3.2 staging candidate fix/conso-144-dark-staging-20261116 SHA 9221909b98f8faac5930711be6297e52fb2ec8d1. Main/production and live backend remain unchanged by this PR. BUKLOD Connect database has additive migration 20261115192034 applied; no existing quiz, financial or media function changed.",
   "chosenApproach": "Add a read-only, owner-scoped optional RPC for previously submitted answers; render submitted answer, rationale, and accepted answers under distinct labels. Keep the old RPC and grader untouched.",
   "selectionRationale": "The screenshot displays r.rationale instead of the answer. Changing scoring without the user's original submission is not evidence-based. An additive endpoint avoids reverting post-V4 selection hotfixes.",
   "riskAreas": [
@@ -32,11 +32,11 @@
     "Staging-only Android JS bundle export passes for exact candidate SHA, without deploying or requiring an Expo token."
   ],
   "releaseMode": "isolated-staging-review-candidate",
-  "releaseStatus": "DEV PR only; additive SQL migration not applied; no OTA or web publication.",
+  "releaseStatus": "Additive read-only RPC applied and SQL security contract verified on BUKLOD Connect; Supabase migration 20261115192034. Staging OTA candidate, not yet published. Final exact-SHA QA must pass.",
   "allowedPaths": [
     ".buklod/scopes/bible-v4-quiz-review-clarity-20261116.json",
     "src/components/bible/BuklodBibleQuizV4.tsx",
-    "supabase/migrations/20261116025500_buklod_bible_v4_review_transparency.sql",
+    "supabase/migrations/20261115192034_buklod_bible_v4_review_transparency.sql",
     "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
     "supabase/tests/buklod_bible_v4_review_security_20261116.sql",
     ".github/workflows/buklod-bible-v4-review-staging-ota-qa-20261116.yml",
