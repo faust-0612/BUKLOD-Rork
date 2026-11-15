@@ -39,6 +39,7 @@ import {
 import {
   useAuth,
 } from '@/providers/AuthProvider';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 
 export default function BuklodLifeInviteWelcomeScreen() {
@@ -55,6 +56,7 @@ export default function BuklodLifeInviteWelcomeScreen() {
     profile,
   } =
     useAuth();
+  const { activeScope } = useBuklodScope();
 
   const language =
     useMemo(
@@ -338,6 +340,8 @@ export default function BuklodLifeInviteWelcomeScreen() {
         )}
       </View>
 
+      {Boolean(activeScope?.show_faith_content) && (
+        <>
       <Pressable
         onPress={() =>
           void discover()
@@ -409,6 +413,8 @@ export default function BuklodLifeInviteWelcomeScreen() {
         />
       </Pressable>
 
+        </>
+      )}
       <Pressable
         onPress={() =>
           router.replace(

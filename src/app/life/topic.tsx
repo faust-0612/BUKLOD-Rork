@@ -5,6 +5,7 @@ import React, {
 } from 'react';
 
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -87,7 +88,7 @@ export default function BuklodLifeTopicScreen() {
 
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { activeScope } = useBuklodScope();
+  const { activeScope, loading: scopeLoading } = useBuklodScope();
   const showFaithContent = Boolean(activeScope?.show_faith_content);
   const [saveMessage, setSaveMessage] = useState('');
 
@@ -222,6 +223,13 @@ export default function BuklodLifeTopicScreen() {
       });
     };
 
+
+  // Do not flash faith material or misroute while personal preference loads.
+  if (scopeLoading || !activeScope) {
+    return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAF7' }}>
+      <ActivityIndicator color="#2F6946" />
+    </View>;
+  }
 
   // Human-first LIFE remains accessible when Show Faith is OFF.
   // Optional faith paths and theological questions respect personal opt-out.
