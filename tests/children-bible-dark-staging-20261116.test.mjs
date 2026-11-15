@@ -48,7 +48,9 @@ test('Bible narrations distinguish paraphrased biblical speech from direct Scrip
   assert.match(screen, /localize\(lesson\.retellingNotice,language\)/);
   assert.match(screen, /localize\(lesson\.narrative,language\)/);
   assert.match(screen, /const content=quiz\?[\s\S]*?:lesson\?localize\(lesson\.narrative,language\)/);
-  assert.match(screen, /Speech\.speak\(chunks\[index\+\+\]/);
+  assert.match(screen, /StoryNarrator/);
+  assert.match(screen, /narrator\(\)\.play\(content,language,bedtime\)/);
+  assert.match(source, /\.\.\.BIBLE_EXPANSION_LESSONS/);
   assert.match(dialogues['bangka-ng-pag-asa'][0].speech.tl, /sinabi ng Diyos/i);
   assert.match(dialogues['si-jonas-at-ang-dagat'][0].speech.en, /God instructed/);
 });
