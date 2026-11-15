@@ -29,6 +29,8 @@ const EXPANDED_DIALOGUE: Record<string,readonly [string,string,string,string]> =
  * Unlike the old auto-generated classroom appendix, this stays inside the
  * narrated story. Longer authored character exchanges take precedence.
  */
+/** Short parables and apostolic teaching do not have historical student/teacher dialogue. */
+const NON_DIALOGUE_PASSAGES = new Set(['buto-mustasa', 'bunga-espiritu']);
 const EDITORIAL_DEPTH: Record<string,{tl:string;en:string}> = {
   ...BIBLE_EDITORIAL_DEPTH_OLD,
   ...BIBLE_EDITORIAL_DEPTH_NEW_A,
@@ -42,7 +44,7 @@ function expandBibleNarrative(entry: BibleRecord, language: 'tl' | 'en'): string
   const passages: string[] = [];
   entry.acts.forEach((act, index) => {
     passages.push(act[language]);
-    if (index < 2 && dialogue) {
+    if (index < 2 && dialogue && !NON_DIALOGUE_PASSAGES.has(entry.id)) {
       // Preserve the words spoken in the biblical scene; never insert the
       // teacher/classroom discussion into the full story or its TTS audio.
       passages.push(inStoryOnly(dialogue[index * 2 + (language === 'en' ? 1 : 0)], language));
