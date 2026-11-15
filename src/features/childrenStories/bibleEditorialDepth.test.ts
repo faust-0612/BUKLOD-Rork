@@ -31,7 +31,7 @@ describe('All 132 grounded Sunday School Bible narratives', () => {
       for (const language of ['tl','en'] as const) {
         const body = lesson.narrative[language];
         expect(body.length).toBeGreaterThanOrEqual(650);
-        expect(body.split(/\\n\\s*\\n/).length).toBeGreaterThanOrEqual(4);
+        expect(body.split(/\n\s*\n/).length).toBeGreaterThanOrEqual(4);
         expect(body).not.toMatch(/Pagkatapos ng kuwento, nagtanong ang guro|After the story, the teacher asked|tanong ng bata|paliwanag ng guro|sagot ng klase|the teacher asked|a child asks/i);
         const left = (body.match(/“/g) ?? []).length;
         const right = (body.match(/”/g) ?? []).length;
