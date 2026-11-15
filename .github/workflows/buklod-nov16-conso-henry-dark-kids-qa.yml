@@ -7,6 +7,8 @@ on:
       - 'src/lib/buklodBibleStudy.ts'
       - 'src/lib/buklodHenryTranslation.ts'
       - 'tests/bible-*.test.cjs'
+      - 'tests/bible-henry-attribution-live-schema-20261116.test.cjs'
+      - 'assets/brands/google-translate/color-regular.png'
       - 'tests/bible-dark-mode-20261116.test.mjs'
       - 'tests/nov16-conso-henry-dark-kids-132.test.cjs'
       - 'src/app/notifications/index.tsx'
@@ -55,6 +57,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           node --experimental-strip-types --test \
             tests/bible-study-sources.test.cjs \
+            tests/bible-henry-attribution-live-schema-20261116.test.cjs \
             tests/bible-reader-safearea-commentary.test.cjs \
             tests/bible-radio-visual.test.cjs \
             tests/nov16-bible-kids-navigation-safearea.test.mjs \

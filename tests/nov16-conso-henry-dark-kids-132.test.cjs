@@ -34,6 +34,6 @@ test('source-explicit Henry commentary is bundled without native or server chang
  assert.match(src('src/lib/buklodBibleStudy.ts'),/relation: 'direct' \| 'context'/);
  assert.match(src('src/lib/buklodHenryTranslation.ts'),/getSupportedTranslationLanguages/);
  assert.match(src('src/lib/buklodHenryTranslation.ts'),/translateText/);
- assert.equal(manifest.gates.translationBranding.startsWith('HOLD'),true);
- assert.equal(manifest.gates.nativeCompatibility.startsWith('HOLD'),true);
+ assert.match(manifest.gates.translationBranding,/^IMPLEMENTED/);
+ assert.match(manifest.gates.nativeCompatibility,/^(?:PARTIAL|PASS)/);
 });

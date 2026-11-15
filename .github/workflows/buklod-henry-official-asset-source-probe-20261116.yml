@@ -93,5 +93,62 @@ jobs:
           assert str(b.get('runtime',{}).get('version'))=='1.3.2'
           PY
           echo 'EAS_BUILD_VIEW_READ_ONLY_PASS'
+      - name: Inspect signed APK bytecode for native Google ML Kit module (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request,zipfile,os,hashlib
+          b=json.load(open('/tmp/staging-build-readonly.json'))
+          url=(b.get('artifacts') or {}).get('buildUrl')
+          assert isinstance(url,str) and url.startswith('https://'), 'Missing signed APK URL'
+          dest='/tmp/buklod-staging-verified-module.apk'
+          limit=220_000_000
+          with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'BUKLOD-Native-ReadOnly-QA/1.0'}),timeout=120) as response:
+            n=0
+            with open(dest,'wb') as f:
+              while True:
+                part=response.read(1024*1024)
+                if not part: break
+                n+=len(part)
+                assert n<=limit, 'APK download too large; stop'
+                f.write(part)
+          assert zipfile.is_zipfile(dest),'Signed build is not valid APK archive'
+          with zipfile.ZipFile(dest) as z:
+            dex=[x for x in z.namelist() if x.startswith('classes') and x.endswith('.dex')]
+            assert dex,'APK missing DEX bytecode'
+            found=any(b'BuklodMlKitTranslation' in z.read(p) for p in dex)
+          print('SIGNED_APK_NATIVE_MLKIT_MODULE', 'PRESENT' if found else 'NOT_FOUND', 'DEX_COUNT', len(dex),'APK_BYTES',n,'SHA256',hashlib.sha256(open(dest,'rb').read()).hexdigest())
+          assert found, 'Exact existing staging APK lacks native BuklodMlKitTranslation; no OTA'
+          PY
+      - name: Read exact staging and production OTA manifests and channel mapping (no mutation)
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APP_VARIANT: staging
+          EXPO_PUBLIC_APP_ENV: staging
+          BUKLOD_APP_TARGET: main
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/buklod-stage-channel.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/buklod-prod-channel.json
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 3 --json --non-interactive > /tmp/buklod-stage-updates.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {manifest,verifyChannels} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const stageChannel=read('/tmp/buklod-stage-channel.json');
+          const prodChannel=read('/tmp/buklod-prod-channel.json');
+          const mapping=verifyChannels(stageChannel,prodChannel);
+          const stage=await manifest('staging-user'),production=await manifest('production');
+          assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(production.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          const updates=read('/tmp/buklod-stage-updates.json'),items=updates.currentPage||updates;
+          assert.ok(Array.isArray(items)&&items.length,'No prior staging update list');
+          const next=items[0];
+          console.log('EAS_STAGE_IDENTITY',JSON.stringify({branch:mapping.name,currentStageId:stage.id,stageUpdateGroup:next.group,stageUpdateMessage:next.message,stageRuntime:stage.runtimeVersion,productionId:production.id,productionRuntime:production.runtimeVersion,stagePackage:stage.extra?.expoClient?.android?.package}));
+          PY
+          echo 'READ_ONLY_STAGING_PRODUCTION_MANIFEST_PASS'
       - name: No publication by probe
         run: echo 'PASS OR FAIL source probe. No Expo OTA, no Play build, no DB/web/production mutation.'
