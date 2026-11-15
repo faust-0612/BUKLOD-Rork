@@ -28,7 +28,7 @@ test('commentary doors require a directly source-covered verse or explicit range
 });
 
 test('Filipino machine translation has pre-text limitations, source English and official Google attribution', () => {
-  const warning = reader.indexOf('Awtomatikong salin lamang: maaaring literal o mali');
+  const warning = reader.indexOf('Malinaw na Filipino (hindi salitang-salita)');
   const content = reader.indexOf('? henryTranslation.text : henryPassage?.text');
   assert.ok(warning > 0 && content > warning, 'Warning must precede machine translation');
   assert.match(reader, /flex:\s*1, minWidth:\s*0, alignItems:\s*'center'/);
