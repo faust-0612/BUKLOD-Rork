@@ -731,7 +731,7 @@ export const BUNDLED_CHILDREN_STORIES: ChildrenStory[] = [
     "answer": 2,
     "version": 1,
     "source": "bundled"
-  }
+  },
   ...BIBLE_EXPANSION_STORIES,
 ];
 export function localize(value: StoryLocalized, language: StoryLanguage) { return value[language]; }
