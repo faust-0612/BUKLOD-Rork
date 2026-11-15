@@ -2,10 +2,27 @@ import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { encode } from 'base64-arraybuffer';
 import * as XLSX from 'xlsx';
+import * as Crypto from 'expo-crypto';
 
 import { supabase } from '@/lib/supabase';
 
+export type ReportEvidencePhoto = {
+  path: string;
+  filename: string;
+  mime_type: 'image/jpeg' | 'image/png' | 'image/webp';
+  uploaded_at: string;
+  extraction_confidence?: number;
+  detected_fields?: string[];
+};
+
+export type ReportPhotoAsset = {
+  uri: string;
+  filename: string;
+  mimeType: string;
+};
+
 export type ReportImportProposal = {
+  photoAsset?: ReportPhotoAsset;
   filename: string;
   sourceType: 'EXCEL' | 'CSV_TEXT' | 'PDF_PHOTO';
   confidence: number;
@@ -88,9 +105,12 @@ function workbookToText(buffer: ArrayBuffer) {
   return sections.join('\n\n').slice(0, 40000);
 }
 
-export async function pickAndAnalyzeReportFile(scopeId: string): Promise<ReportImportProposal | null> {
+export async function pickAndAnalyzeReportFile(
+  scopeId: string,
+  selection: 'all' | 'photo' = 'all'
+): Promise<ReportImportProposal | null> {
   const picked = await DocumentPicker.getDocumentAsync({
-    type: [
+    type: selection === 'photo' ? ['image/*'] : [
       'application/pdf',
       'image/*',
       'text/csv',
@@ -106,6 +126,9 @@ export async function pickAndAnalyzeReportFile(scopeId: string): Promise<ReportI
   const asset = picked.assets[0];
   const filename = asset.name || 'report-import';
   const mimeType = asset.mimeType || '';
+  if (selection === 'photo' && !mimeType.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(filename)) {
+    throw new Error('Choose a JPG, PNG, or WebP photo.');
+  }
   const response = await fetch(asset.uri);
   if (!response.ok) throw new Error('The selected file could not be opened.');
   const buffer = await response.arrayBuffer();
@@ -127,15 +150,61 @@ export async function pickAndAnalyzeReportFile(scopeId: string): Promise<ReportI
   }
 
   if (mimeType.includes('pdf') || lower.endsWith('.pdf') || mimeType.startsWith('image/')) {
-    return invokeImport({
+    const proposal = await invokeImport({
       scopeId,
       filename,
       mimeType: mimeType || (lower.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
       base64: encode(buffer),
     });
+    if (mimeType.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(lower)) {
+      proposal.photoAsset = { uri: asset.uri, filename, mimeType };
+    }
+    return proposal;
   }
 
   throw new Error('Supported imports: Excel, CSV/TXT, PDF, and photos/images.');
+}
+
+export async function uploadReportEvidencePhoto(args: {
+  scopeId: string;
+  assignmentId: string;
+  asset: ReportPhotoAsset;
+  confidence?: number;
+  detectedFields?: string[];
+}): Promise<ReportEvidencePhoto> {
+  const auth = await supabase.auth.getUser();
+  const user = auth.data.user;
+  if (auth.error || !user) throw new Error('Sign in to add a report photo.');
+  const name = args.asset.filename.toLowerCase();
+  const detectedMime = args.asset.mimeType === 'image/png' || /\.png$/.test(name)
+    ? 'image/png' as const
+    : args.asset.mimeType === 'image/webp' || /\.webp$/.test(name)
+      ? 'image/webp' as const : 'image/jpeg' as const;
+  if (!/\.(jpe?g|png|webp)$/.test(name) && !args.asset.mimeType.startsWith('image/')) {
+    throw new Error('Only JPG, PNG, and WebP evidence photos are supported.');
+  }
+  const response = await fetch(args.asset.uri);
+  if (!response.ok) throw new Error('Could not reopen the selected image.');
+  const buffer = await response.arrayBuffer();
+  if (!buffer.byteLength || buffer.byteLength > 12 * 1024 * 1024) {
+    throw new Error('Photo evidence must be 12 MB or smaller.');
+  }
+  const extension = detectedMime === 'image/png' ? 'png' : detectedMime === 'image/webp' ? 'webp' : 'jpg';
+  const path = `${args.scopeId}/${user.id}/${args.assignmentId}/${Crypto.randomUUID()}.${extension}`;
+  const { error } = await supabase.storage.from('buklod-report-evidence').upload(path, buffer, {
+    contentType: detectedMime,
+    upsert: false,
+    cacheControl: 'private,max-age=0',
+  });
+  if (error) throw error;
+  return {
+    path,
+    filename: args.asset.filename.slice(0, 180),
+    mime_type: detectedMime,
+    uploaded_at: new Date().toISOString(),
+    extraction_confidence: args.confidence,
+    detected_fields: args.detectedFields?.slice(0, 60),
+  };
 }
 
 function contentRows(content: Record<string, any>, scopeName: string, periodTitle: string) {
@@ -143,6 +212,7 @@ function contentRows(content: Record<string, any>, scopeName: string, periodTitl
     ['BUKLOD Report', periodTitle],
     ['Scope', scopeName],
     ['Overall Week', String(content.overall_week ?? '')],
+    ['Private photo evidence (count)', String(Array.isArray(content.evidence_photos) ? content.evidence_photos.length : 0)],
   ];
   const activities = objectValue(content.activities);
   rows.push(['', '']);
