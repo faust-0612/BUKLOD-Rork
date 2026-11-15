@@ -45,7 +45,7 @@ export default function BuklodLifeTabs({
         'my-life':
           'My Life',
         share:
-          'Ibahagi si Jesus',
+          'Ibahagi',
         impact:
           'Impact',
       }
@@ -53,7 +53,7 @@ export default function BuklodLifeTabs({
         'my-life':
           'My Life',
         share:
-          'Share Jesus',
+          'Share',
         impact:
           'Impact',
       };

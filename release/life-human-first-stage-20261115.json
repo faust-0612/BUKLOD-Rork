@@ -1,0 +1,48 @@
+{
+  "objective": "BUKLOD LIFE human-first completion reconciled onto exact latest Executive Density staging-user source; no OTA publish yet",
+  "exactStageParent": "ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0",
+  "verifiedStageUpdateId": "01a1df87-139b-7da4-9e69-4e5ed36024df",
+  "verifiedStageChannel": "staging-user",
+  "verifiedStageRuntime": "1.3.2",
+  "verifiedStagePackage": "org.mzbministry.buklod.staging",
+  "stageDevLifeSource": "666532607f83c7ccaa124437045940e769c5f9c5",
+  "exactLifeContentBlobParityRequired": true,
+  "nativeChanges": false,
+  "backendMigrationApplied": true,
+  "physicalDeviceAcceptance": "not-executed",
+  "status": "STAGING_RC_ANDROID_QA_PASSED_BACKEND_PRIVACY_VERIFIED_OTA_HOLD",
+  "readyForOta": false,
+  "otaPublished": false,
+  "productionMutated": false,
+  "blockingGates": [
+    "Exact candidate PR accountability and LIFE QA on final source",
+    "Independent signed staging APK/channel/current EAS manifest preflight",
+    "Single Android staging-user OTA publish with update:view manifest parity and unchanged production"
+  ],
+  "stagingCandidateContentCommit": "2f60e09c4d03ff3337a097225c772d1b9c213939",
+  "additionalSourceVerification": {
+    "method": "read-only GitHub source-contract assertions",
+    "checked": 16,
+    "passed": 16,
+    "scope": "LIFE only",
+    "notEquivalentTo": "TypeScript, emulator, Android Hermes, staging OTA"
+  },
+  "clientPrivacyMitigation": "New RC disables the old LIFE spiritual milestone RPC client; older APKs require gated backend SQL privacy migration.",
+  "verifiedStageUpdateGroup": "e7d295b8-5045-4307-98e9-72c5b1e7c41a",
+  "verifiedStageRunId": 43721789926,
+  "backendMigrationVersion": "20261115143417",
+  "backendMigrationName": "buklod_life_no_inferred_milestones_v1",
+  "backendPrivacyReadbackVerified": true,
+  "backendPrivacyReadback": {
+    "writerNoop": true,
+    "writerSendsNotification": false,
+    "impactUsesSpiritualDates": false,
+    "anonExecutionAllowed": false,
+    "authenticatedExecutionPreserved": true,
+    "legacyNotifications": 0
+  },
+  "backendMigrationsDeployedOnlyAsPrivacyFix": true,
+  "productionAndroidOtaPublished": false,
+  "sourceGateRecovery": "Declares production-release as staging-only protected scope, and lists isolated PostgreSQL SQL harness as a test in QA workflow, not as a generic Node/TS regression test.",
+  "accountabilityReleaseScopeDeclared": true
+}
