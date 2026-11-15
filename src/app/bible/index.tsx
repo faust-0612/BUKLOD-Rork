@@ -25,7 +25,8 @@ import {
   mapBibleChapterRows,
   type BibleNarrationVerse,
 } from '@/lib/buklodBibleNarration';
-import { Card, SectionTitle, shared } from '@/components/UI';
+import { Card, SectionTitle, shared, useThemedShared } from '@/components/UI';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodClusterMembershipGate from '@/components/BuklodClusterMembershipGate';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 
@@ -374,6 +375,8 @@ function DailyReadingAudioPreview({
   readingDate: string;
   reference: string;
 }) {
+  // Follow the same semantic nightPine/graphite palette as the parent reading card.
+  const { theme } = useBuklodTheme();
 
   const [
     loadingAudio,
@@ -835,7 +838,7 @@ function DailyReadingAudioPreview({
                 0.7,
 
               color:
-                '#275D45',
+                theme.accent,
             }}
           >
             AUDIO READING
@@ -854,7 +857,7 @@ function DailyReadingAudioPreview({
                 '800',
 
               color:
-                '#50645A',
+                theme.textSecondary,
             }}
           >
             Listen to today's Scripture
@@ -872,7 +875,7 @@ function DailyReadingAudioPreview({
               '900',
 
             color:
-              '#718078',
+              theme.textMuted,
           }}
         >
           {audioTranslation}
@@ -892,7 +895,7 @@ function DailyReadingAudioPreview({
               1,
 
             borderColor:
-              '#D8E2DC',
+              theme.border,
 
             borderRadius:
               14,
@@ -904,7 +907,7 @@ function DailyReadingAudioPreview({
               'center',
 
             backgroundColor:
-              '#F7FAF8',
+              theme.surfaceElevated,
           }}
         >
 
@@ -917,7 +920,7 @@ function DailyReadingAudioPreview({
                 '800',
 
               color:
-                '#718078',
+                theme.textMuted,
             }}
           >
             Loading audio reading...
@@ -966,7 +969,7 @@ function DailyReadingAudioPreview({
               12,
 
             backgroundColor:
-              '#F5F6F5',
+              theme.surfaceMuted,
           }}
         >
 
@@ -976,7 +979,7 @@ function DailyReadingAudioPreview({
                 9,
 
               color:
-                '#718078',
+                theme.textMuted,
             }}
           >
             {
@@ -1002,7 +1005,7 @@ function DailyReadingAudioPreview({
             13,
 
           color:
-            '#718078',
+            theme.textMuted,
         }}
       >
         Listening alone does not complete this Daily Reading. Tap READ, answer the questions, then complete it for automatic checking.
@@ -1016,6 +1019,17 @@ function DailyReadingAudioPreview({
 
 
 export default function DailyBibleScreen() {
+  // Card surfaces already follow the global palette. Their contents must do so too.
+  const { theme } = useBuklodTheme();
+  const themedShared = useThemedShared();
+  const foreground = { color: theme.textPrimary };
+  const secondary = { color: theme.textSecondary };
+  const muted = { color: theme.textMuted };
+  const accent = { color: theme.accent };
+  const chipSurface = { backgroundColor: theme.surfaceElevated, borderColor: theme.border };
+  const chipActive = { backgroundColor: theme.buttonPrimary, borderColor: theme.buttonPrimary };
+  const inputSurface = { backgroundColor: theme.inputSurface, borderColor: theme.border, color: theme.textPrimary };
+  const selectedText = { color: theme.onAccent };
 
   const { user } = useAuth();
   const { online } = useNetwork();
@@ -2006,14 +2020,14 @@ export default function DailyBibleScreen() {
     reflectionEvidenceOkay;
 
   if (loading || dataOwner !== accountId) {
-    return <View style={[shared.screen,styles.center]}><ActivityIndicator size="large"/></View>;
+    return <View style={[themedShared.screen,styles.center]}><ActivityIndicator size="large"/></View>;
   }
 
   return (
     <BuklodClusterMembershipGate title="Join a Cluster to use Daily Bible Reading">
     <ScrollView
-      style={shared.screen}
-      contentContainerStyle={[shared.content,styles.content]}
+      style={themedShared.screen}
+      contentContainerStyle={[themedShared.content,styles.content]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -2028,24 +2042,24 @@ export default function DailyBibleScreen() {
     >
       <BuklodOccasionalAd placement="bible" />
       {!!loadError && (
-        <Text style={styles.warning}>
+        <Text style={[styles.warning,{color:theme.warning}]}>
           Saved Daily Reading remains available. Refresh will resume when your connection returns. {loadError}
         </Text>
       )}
       <View style={styles.header}>
         <View style={{flex:1}}>
-          <Text style={shared.h1}>Daily Bible Reading</Text>
-          <Text style={shared.muted}>Read Scripture | Reflect | Complete | Automatic Checking</Text>
+          <Text style={themedShared.h1}>Daily Bible Reading</Text>
+          <Text style={themedShared.muted}>Read Scripture | Reflect | Complete | Automatic Checking</Text>
         </View>
-        <Pressable onPress={()=>{ persistCurrentDraft(); router.back(); }} style={styles.outline}>
-          <Text style={styles.outlineText}>BACK</Text>
+        <Pressable onPress={()=>{ persistCurrentDraft(); router.back(); }} style={[styles.outline,{borderColor:theme.border}]}>
+          <Text style={[styles.outlineText,accent]}>BACK</Text>
         </Pressable>
       </View>
 
       <Card>
-        <Text style={styles.eyebrow}>THIS WEEK</Text>
-        <Text style={styles.big}>{approved}/7 valid</Text>
-        <Text style={styles.meta}>{pending} being checked automatically | Points post automatically after approval</Text>
+        <Text style={[styles.eyebrow,muted]}>THIS WEEK</Text>
+        <Text style={[styles.big,foreground]}>{approved}/7 valid</Text>
+        <Text style={[styles.meta,secondary]}>{pending} being checked automatically | Points post automatically after approval</Text>
         <View style={styles.dots}>
           {days.map(date=>{
             const a=byDate[date];
@@ -2070,13 +2084,13 @@ export default function DailyBibleScreen() {
             <Pressable
               key={date}
               onPress={()=>{ persistCurrentDraft(); setSelectedDate(date); }}
-              style={[styles.day,active&&styles.dayActive]}
+              style={[styles.day,chipSurface,active&&chipActive]}
             >
-              <Text style={[styles.dayName,active&&styles.white]}>
+              <Text style={[styles.dayName,muted,active&&selectedText]}>
                 {fromIso(date).toLocaleDateString(undefined,{weekday:'short'}).toUpperCase()}
               </Text>
-              <Text style={[styles.dayNum,active&&styles.white]}>{fromIso(date).getDate()}</Text>
-              <Text style={[styles.dayState,active&&styles.white]}>
+              <Text style={[styles.dayNum,foreground,active&&selectedText]}>{fromIso(date).getDate()}</Text>
+              <Text style={[styles.dayState,muted,active&&selectedText]}>
                 {!a?'-':s?.status==='approved'?'VALID':s?.status==='pending_admin'?'CHECK':s?.status==='rejected'?'REVISE':'OPEN'}
               </Text>
             </Pressable>
@@ -2088,12 +2102,12 @@ export default function DailyBibleScreen() {
 
       {!selected ? (
         <Card>
-          <Text style={shared.h2}>No reading published for this day yet.</Text>
+          <Text style={themedShared.h2}>No reading published for this day yet.</Text>
         </Card>
       ) : (
         <>
           <Card>
-            <Text style={styles.dateText}>
+            <Text style={[styles.dateText,secondary]}>
               {fromIso(selected.reading_date).toLocaleDateString(undefined,{
                 weekday:'long',month:'long',day:'numeric',year:'numeric'
               })}
@@ -2114,7 +2128,7 @@ export default function DailyBibleScreen() {
                       : 1
               })}
             >
-              <Text style={styles.reference}>
+              <Text style={[styles.reference,foreground]}>
                 {selected.bible_reference}
               </Text>
 
@@ -2123,13 +2137,13 @@ export default function DailyBibleScreen() {
                   marginTop:5,
                   fontSize:11,
                   fontWeight:'900',
-                  color:'#275D45'
+                  color:theme.accent
                 }}
               >
                 OPEN IN BIBLE {'>'}
               </Text>
             </Pressable>
-            {!!selected.instruction_fil && <Text style={styles.body}>{selected.instruction_fil}</Text>}
+            {!!selected.instruction_fil && <Text style={[styles.body,foreground]}>{selected.instruction_fil}</Text>}
 
             {/* PATCH_153H_4A_READ_BUTTON */}
             
@@ -2151,14 +2165,14 @@ export default function DailyBibleScreen() {
 
 {/* CONTINUOUS_USE_STABILITY_R1: duplicate read doorway removed; selected reference OPEN IN BIBLE remains canonical. */}
 
-            <Text style={styles.eyebrow}>
+            <Text style={[styles.eyebrow,muted]}>
               RESPONSE LANGUAGE
             </Text>
 
             <View style={styles.langRow}>
               {(['fil','en'] as const).map(l=>(
-                <Pressable key={l} disabled={locked} onPress={()=>setLanguage(l)} style={[styles.lang,language===l&&styles.langActive]}>
-                  <Text style={[styles.langText,language===l&&styles.white]}>{l==='fil'?'FILIPINO':'ENGLISH'}</Text>
+                <Pressable key={l} disabled={locked} onPress={()=>setLanguage(l)} style={[styles.lang,{backgroundColor:theme.surfaceMuted},language===l&&chipActive]}>
+                  <Text style={[styles.langText,secondary,language===l&&selectedText]}>{l==='fil'?'FILIPINO':'ENGLISH'}</Text>
                 </Pressable>
               ))}
             </View>
@@ -2172,7 +2186,7 @@ export default function DailyBibleScreen() {
               QUESTIONS ABOUT TODAY'S SCRIPTURE *
             </Text>
 
-            <Text style={styles.help}>
+            <Text style={[styles.help,secondary]}>
               Answer all four questions. Completing this reading saves and submits them automatically for BUKLOD checking.
             </Text>
 
@@ -2184,7 +2198,7 @@ export default function DailyBibleScreen() {
                     key={index}
                     style={{marginTop:12}}
                   >
-                    <Text style={styles.question}>
+                    <Text style={[styles.question,foreground]}>
                       {index+1}. {question}
                     </Text>
 
@@ -2214,7 +2228,7 @@ export default function DailyBibleScreen() {
                           ? 'Isulat ang sagot...'
                           : 'Write your answer...'
                       }
-                      placeholderTextColor="#89958E"
+                      placeholderTextColor={theme.textMuted}
                       style={[
                         styles.input,
                         {
@@ -2224,7 +2238,7 @@ export default function DailyBibleScreen() {
                       ]}
                     />
 
-                    <Text style={styles.meta}>
+                    <Text style={[styles.meta,secondary]}>
                       {
                         String(
                           questionAnswers[index] ??
@@ -2238,8 +2252,8 @@ export default function DailyBibleScreen() {
 
           </Card>
           <Card>
-            <Text style={styles.eyebrow}>PERSONAL REFLECTION *</Text>
-            <Text style={styles.help}>
+            <Text style={[styles.eyebrow,muted]}>PERSONAL REFLECTION *</Text>
+            <Text style={[styles.help,secondary]}>
               Answer the question in the app. A written answer of at least 20 characters is required. A photo is optional supporting evidence only.
             </Text>
 
@@ -2250,10 +2264,10 @@ export default function DailyBibleScreen() {
               textAlignVertical="top"
               editable={!locked}
               placeholder="Write your personal reflection and application..."
-              placeholderTextColor="#89958E"
-              style={styles.input}
+              placeholderTextColor={theme.textMuted}
+              style={[styles.input,inputSurface]}
             />
-            <Text style={styles.meta}>{answer.trim().length} typed characters | minimum 20 required</Text>
+            <Text style={[styles.meta,secondary]}>{answer.trim().length} typed characters | minimum 20 required</Text>
 
             <EvidencePhoto
               title="OPTIONAL REFLECTION PHOTO"
@@ -2265,11 +2279,11 @@ export default function DailyBibleScreen() {
               onRemove={()=>{setReflectionDraft(null);setReflectionPhotoPath(null);}}
             />
 
-            {selectedDate>today && <Text style={styles.warning}>This reading is not open yet.</Text>}
-            {submission?.status==='pending_admin' && <Text style={styles.warning}>AUTOMATIC CHECKING IN PROGRESS | No manual Pastor/Admin approval is required.</Text>}
-            {submission?.status==='approved' && <Text style={styles.valid}>VALIDATED | +{points} BUKLOD Points</Text>}
+            {selectedDate>today && <Text style={[styles.warning,{color:theme.warning}]}>This reading is not open yet.</Text>}
+            {submission?.status==='pending_admin' && <Text style={[styles.warning,{color:theme.warning}]}>AUTOMATIC CHECKING IN PROGRESS | No manual Pastor/Admin approval is required.</Text>}
+            {submission?.status==='approved' && <Text style={[styles.valid,accent]}>VALIDATED | +{points} BUKLOD Points</Text>}
             {submission?.status==='rejected' && (
-              <Text style={styles.reject}>
+              <Text style={[styles.reject,{color:theme.danger}]}>
                 Revision requested{submission.admin_note?`: ${submission.admin_note}`:''}
               </Text>
             )}
