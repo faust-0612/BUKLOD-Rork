@@ -23,7 +23,7 @@ test('financial amounts are not promoted from non-finalized estimates', () => {
 });
 test('private payout details are not exported and CSV fields are sanitized', () => {
   assert.match(model, /createFisCsv/);
-  assert.match(model, /replace\(\/\\r\\n/);
+  assert.ok(model.includes('replace(/[\\r\\n]+/g'));
   assert.match(model, /replace\(\/"\/g, '""'\)/);
   assert.doesNotMatch(model, /payout_destination|account_name|destination_masked/);
   assert.match(model, /slice\(0, 2000\)/);
