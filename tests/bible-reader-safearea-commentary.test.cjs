@@ -17,7 +17,7 @@ test('Bible reader gets top status-bar safe area and independent bottom scroll c
 test('Matthew Henry doors are only shown for actual source verse entries, no invented commentary',()=>{
   const bible=read('src/app/bible/read.tsx');
   const provider=read('src/lib/buklodBibleStudy.ts');
-  assert.match(bible, /!!bibleStudy.commentary\[Number\(verse.verse_no\)\]/);
+  assert.match(bible, /getMatthewHenryPassage\(bibleStudy, Number\(verse.verse_no\)\)/);
   assert.match(bible, /setHenryVerse\(Number\(verse.verse_no\)\)/);
   assert.match(bible, /MATTHEW HENRY • COMMENTARY/);
   assert.match(bible, /modal|Modal/);
@@ -44,4 +44,18 @@ test('Bible study is additive and never touches daily completion or narration',(
   assert.match(bible, /if \(source === 'daily_plan'\)/);
   assert.match(bible, /<BuklodBibleNarrationBar/);
   assert.match(bible, /bibleAnnotations/);
+});
+
+test('Matthew Henry language follows translation with labeled original and graceful fallback',()=>{
+  const bible=read('src/app/bible/read.tsx');
+  const translate=read('src/lib/buklodHenryTranslation.ts');
+  assert.match(bible, /normalizeHenryLanguage\(currentTranslation\?\.language_code, translation\)/);
+  assert.match(bible, /Original English/);
+  assert.match(bible, /Machine translation/);
+  assert.match(bible, /Kaugnay na komentaryo/);
+  assert.match(translate, /translateText\(part, 'en', targetLanguage, true\)/);
+  assert.match(translate, /getOfflineCache/);
+  assert.match(translate, /eng: 'en'/);
+  assert.match(translate, /fil: 'tl'/);
+  assert.match(bible, /setHenryShowOriginal\(false\)/);
 });

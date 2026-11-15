@@ -1,0 +1,86 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-conso-henry-dark-kids-20261116.json",
+  "objective": "Consolidate already-staged 144 Children stories/narration, dark mode and header-safe Bible/Kids staging lineage with new Matthew Henry verse context and optional language-sensitive commentary, preserving current staging media/ads/Profile/Connect and native runtime.",
+  "baseRef": "fda52bb743f59a064983dfb17534b1a8cae7bc9f",
+  "productionBaselineEvidence": "Production main 69ff92b22b13e26490a93f685ebc89d28e3d6cbf as inspected; source baseline is newer stage lineage #845 not an unsafe replacement from main. #844 dark QA source 9221909b98f8faac5930711be6297e52fb2ec8d1; #845 safe-area QA source fda52bb743f59a064983dfb17534b1a8cae7bc9f; Matthew Henry exact verified Android QA source adb77f999fca667f4918673fe144c49e2c27aa61.",
+  "chosenApproach": "Linear stage-only RC extending PR #845 exact source, preserving all inherited features without recopying published 144 stories/LIFE/Executive density. Overlay six verified and main-identical-origin Matthew Henry source/tests paths by immutable Git blobs; no new native code. Prepare exact Android no-publish QA and fail-closed release manifest. No Expo update until branding, source, installed APK module and authenticated readback passes.",
+  "selectionRationale": "Avoid a broad cherry-pick of hundreds of diverged production/staging paths. New Henry changes do not collide with #844 Bible index/Notifications or #845 safe-area shell. Avoid duplication and loss of stage-only fixes.",
+  "alternativeApproaches": [
+    "Overwrite staging with production main: rejected; staging contains descendant source and unique tested improvements",
+    "Republish earlier children stories or dark mode as separate OTA: rejected; use one consolidated release",
+    "Deploy missing Google attribution and native translator sight-unseen: rejected; stay in release hold"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith",
+    "Bible commentary",
+    "Android staging OTA compatibility",
+    "translation branding",
+    "source lineage integrity"
+  ],
+  "preserveBehaviors": [
+    "144 Bible/Values/Filipino/Bedtime Children stories and Pakinggan audio preserved via ancestry",
+    "LIFE and executive Home/Cluster/Profile, Connect green, Wall/media, ads and Kingdom source preserved via ancestry",
+    "Notifications dark contrast and Daily Bible Reader dark contrast preserved",
+    "Bible/Children safe-area title legibility preserved",
+    "Exact verse versus related passage attribution kept explicit",
+    "No Health Center, SALIKSIK, FIS, Supabase migration, Play, new native build, production OTA, or web deployment"
+  ],
+  "allowedPaths": [
+    "src/app/bible/read.tsx",
+    "src/lib/buklodBibleStudy.ts",
+    "src/lib/buklodHenryTranslation.ts",
+    "tests/bible-study-sources.test.cjs",
+    "tests/bible-reader-safearea-commentary.test.cjs",
+    "tests/bible-radio-visual.test.cjs",
+    ".buklod/scopes/nov16-conso-henry-dark-kids-20261116.json",
+    "release/nov16-conso-henry-dark-kids-stage-132.json",
+    "tests/nov16-conso-henry-dark-kids-132.test.cjs",
+    ".github/workflows/buklod-nov16-conso-henry-dark-kids-qa.yml"
+  ],
+  "regressionTests": [
+    "tests/bible-study-sources.test.cjs",
+    "tests/bible-reader-safearea-commentary.test.cjs",
+    "tests/bible-radio-visual.test.cjs",
+    "tests/nov16-bible-kids-navigation-safearea.test.mjs",
+    "tests/bible-dark-mode-20261116.test.mjs",
+    "tests/children-bible-expanded-catalog-20261115.test.mjs",
+    "tests/children-story-narration-20261115.test.mjs",
+    "tests/nov16-conso-henry-dark-kids-132.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Only My Bible commentary and optional translated view changed; staging app remains runtime 1.3.2 and no native changes",
+      "preservedBehaviors": [
+        "App navigation, Wall/video/ads, Connect/PTT, Profile, Kingdom, dark theme and offline availability unchanged"
+      ],
+      "tests": [
+        "tests/nov16-conso-henry-dark-kids-132.test.cjs",
+        "tests/bible-reader-safearea-commentary.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Matthew Henry commentary door and translation added to existing My Bible reader without changing text/progress",
+      "preservedBehaviors": [
+        "Bible chapter text, Strong's alignment, Daily Plan, reading and Children narration unchanged"
+      ],
+      "tests": [
+        "tests/bible-study-sources.test.cjs",
+        "tests/nov16-conso-henry-dark-kids-132.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Exact source/blobs and stage ancestry verified",
+    "Focused Node and protected regression PASS",
+    "TypeScript PASS and Android Hermes export PASS on new head",
+    "Google approved branding/disclaimer/help attribution implemented before publication",
+    "Native translator APK compatibility and live commentary payload demonstrated or safe feature gate implemented",
+    "Staging-user Expo/production manifest independent pre/post checks and exact signed APK identity verified",
+    "No physical device sign-off claimed; owner waived that separate gate",
+    "No OTA publication in this scoped PR"
+  ]
+}
