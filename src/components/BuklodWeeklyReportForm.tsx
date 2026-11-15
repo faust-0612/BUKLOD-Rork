@@ -99,7 +99,7 @@ const PEOPLE_FIELDS = [
 type PeopleKey = (typeof PEOPLE_FIELDS)[number][0];
 type PeopleState = Record<PeopleKey, string>;
 
-type Props = { scopeId: string; onSubmitted?: () => void };
+type Props = { scopeId: string; assignmentId?: string | null; onSubmitted?: () => void };
 
 function emptyActivities(): ActivityState {
   return Object.fromEntries(
@@ -154,7 +154,7 @@ function hydratePeople(content: Record<string, any>): PeopleState {
   return next;
 }
 
-export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) {
+export default function BuklodWeeklyReportForm({ scopeId, assignmentId, onSubmitted }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -247,7 +247,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
     setLoading(true);
     setError('');
     try {
-      const next = await ensureQuickWeeklyReport(scopeId);
+      const next = await ensureQuickWeeklyReport(scopeId, assignmentId);
       setContext(next);
       hydrate(asObject(next.content));
       requestAnimationFrame(() => { hydratedRef.current = true; });
@@ -256,7 +256,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
     } finally {
       setLoading(false);
     }
-  }, [hydrate, scopeId]);
+  }, [assignmentId, hydrate, scopeId]);
 
   useEffect(() => {
     hydratedRef.current = false;
