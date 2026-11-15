@@ -48,9 +48,9 @@
   "gates": {
     "exactSourceQa": "PENDING",
     "androidHermes": "PENDING",
-    "sourceAttestation": "HOLD: source samples not sampled live",
-    "translationBranding": "HOLD: official adjacent Google Translate attribution badge, explicit Translate with Google action, disclaimer/help info",
-    "nativeCompatibility": "HOLD: target signed staging APK ML Kit module compatibility not verified",
+    "sourceAttestation": "PASS: live Free Use Bible API official GEN 1 (10 verse anchors), JHN 3 (2), 3JN 1 (4), sampled via no-publish GitHub audit job 132898153503; gap commentary remains contextual",
+    "translationBranding": "IMPLEMENTED / QA PENDING: unmodified Google official ZIP png/color-regular.png 176x16, user action Translate with Google, adjacent attributed result, in-app Help and mandatory disclaimer/link",
+    "nativeCompatibility": "PARTIAL: authenticated EAS build:view staging signed build bc4be208... package org.mzbministry.buklod.staging/runtime 1.3.2 verified, original build source includes native MLKit module; APK binary inventory not directly inspected",
     "expoPrepublish": "HOLD: authenticated EAS staging/production channel and manifest readback missing",
     "releaseIdentity": "HOLD: pending EAS exact-app OTA manifest proof",
     "notificationContrast": "PENDING: WCAG AA 12 palette and notification owner-scoped actions tests"
@@ -61,7 +61,10 @@
     "safeareaOriginalQaRun": 43738934869,
     "safeareaOriginalResult": "FAILED export output-dir typo; later branch has corrected script; verify new HEAD",
     "darkQaRun": 43737833860,
-    "darkQaResult": "SUCCESS for source, separate publish job skipped"
+    "darkQaResult": "SUCCESS for source, separate publish job skipped",
+    "liveSourceAuditJob": 132898153503,
+    "signedApkMetadataAudit": "PASSED on read-only EAS build:view during no-publish audit",
+    "officialBadgeSha256": "1ce4cf9db4cd6c8ae6f6d49542264f5334f40ac79139d51c145a4e039d26323d"
   },
   "publicationPolicy": {
     "safeToPushGitHubDev": true,

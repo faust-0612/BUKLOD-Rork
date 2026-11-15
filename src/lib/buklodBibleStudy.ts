@@ -144,7 +144,7 @@ export function getMatthewHenryPassage(study: BibleStudyChapter, verseNo: number
   const direct = passages.find(p => p.startVerse <= verseNo && verseNo <= p.endVerse);
   if (direct) return { ...direct, relation: 'direct' };
   const anchors = passages.filter(p => p.startVerse <= verseNo);
-  const context = anchors.length ? anchors[anchors.length - 1] : passages[0];
+  const context = anchors.length ? anchors[anchors.length - 1] : null;
   return context ? { ...context, relation: 'context' } : null;
 }
 

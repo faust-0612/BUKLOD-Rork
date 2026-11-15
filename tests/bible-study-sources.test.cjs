@@ -110,3 +110,23 @@ test('language metadata aliases and bounded commentary chunks preserve text orde
   assert.ok(chunks.every(piece => piece.length <= 16));
   assert.deepEqual(Array.from(splitHenryTranslation('  ')), []);
 });
+
+test('live Free Use Bible API sparse verse-anchor layout never fabricates covered verse ranges', () => {
+  const genesis = parseMatthewHenryPassages({ chapter: { number: 1, content: [
+    { type: 'verse', number: 1, content: ['In these verses we have the work of creation.'] },
+    { type: 'verse', number: 3, content: ['An account of the first day.'] },
+    { type: 'verse', number: 6, content: ['The second day work.'] },
+  ] } });
+  assert.equal(genesis.length, 3);
+  assert.equal(genesis[0].endVerse, 1);
+  assert.equal(getMatthewHenryPassage({henryPassages:genesis},2).relation, 'context');
+  assert.equal(getMatthewHenryPassage({henryPassages:genesis},3).relation, 'direct');
+  const john = parseMatthewHenryPassages({chapter:{number:3,content:[
+    {type:'verse',number:1,content:['Nicodemus comes to Jesus']},
+    {type:'verse',number:22,content:['Into Judea']},
+  ]}});
+  assert.equal(getMatthewHenryPassage({henryPassages:john},21).relation, 'context');
+  assert.equal(getMatthewHenryPassage({henryPassages:john},22).relation, 'direct');
+  const sparse = parseMatthewHenryPassages({chapter:{number:1,content:[{type:'verse',number:9,content:['Late first commentary']}]}});
+  assert.equal(getMatthewHenryPassage({henryPassages:sparse},2), null);
+});

@@ -38,6 +38,8 @@ import {
   ActivityIndicator,
   Alert,
   Share,
+  Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -414,12 +416,14 @@ const [showChapters, setShowChapters] =
     online,
   });
   const [henryVerse, setHenryVerse] = useState<number | null>(null);
-  const [henryShowOriginal, setHenryShowOriginal] = useState(false);
+  const [henryShowOriginal, setHenryShowOriginal] = useState(true);
+  const [henryAttributionOpen, setHenryAttributionOpen] = useState(false);
   const readerScrollBottom = useBuklodScrollBottomInset({ extra: 38 });
 
   useEffect(() => {
     setHenryVerse(null);
-    setHenryShowOriginal(false);
+    setHenryShowOriginal(true);
+    setHenryAttributionOpen(false);
   }, [bookNo, chapterNo, translation]);
 
 
@@ -3909,7 +3913,7 @@ setMarking(true);
                   }},
                 {key:'henry',icon:'book-open-outline',title:'Komento',action:() => {
                   const first = bibleStudy.henryPassages[0]?.startVerse;
-                  if (first) setHenryVerse(first);
+                  if (first) { setHenryShowOriginal(true); setHenryAttributionOpen(false); setHenryVerse(first); }
                   else Alert.alert('Matthew Henry', 'Walang available na na-verify na commentary sa kabanatang ito.');
                 }},
                 {key:'strong',icon:'link-variant',title:"Strong’s",action:() => {
@@ -3934,7 +3938,7 @@ setMarking(true);
               <Pressable accessibilityRole="button" accessibilityLabel="Komento sa Kabanata"
                 onPress={() => {
                   const first = bibleStudy.henryPassages[0]?.startVerse;
-                  if (first) setHenryVerse(first);
+                  if (first) { setHenryShowOriginal(true); setHenryAttributionOpen(false); setHenryVerse(first); }
                   else Alert.alert('Matthew Henry', 'Walang na-verify na chapter commentary sa source. Hindi tayo magpapakita ng inimbentong buod.');
                 }}
                 style={{flex:1,minHeight:46,borderRadius:19,backgroundColor:'#EEF7DF',flexDirection:'row',alignItems:'center',justifyContent:'center',padding:7,gap:5}}>
@@ -4289,7 +4293,9 @@ setMarking(true);
                           accessibilityLabel={`Buksan ang Matthew Henry commentary sa talata ${verse.verse_no}`}
                           onPress={(event) => {
                             event.stopPropagation();
-                            setHenryVerse(Number(verse.verse_no));
+                            setHenryShowOriginal(true);
+                             setHenryAttributionOpen(false);
+                             setHenryVerse(Number(verse.verse_no));
                           }}
                           style={{
                             marginTop: 8,
@@ -4406,13 +4412,15 @@ setMarking(true);
                 </Pressable>
               </View>
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-                <Pressable accessibilityRole="button" accessibilityLabel="Commentary in Bible language"
-                  onPress={() => setHenryShowOriginal(false)}
-                  style={{ paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: !henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
-                  <Text style={{ color: '#24583C', fontWeight: '700', fontSize: 12 }}>
-                    {henryReaderLanguage === 'tl' ? 'Filipino' : 'Wika ng Biblia'}
-                  </Text>
-                </Pressable>
+                {henryReaderLanguage !== 'en' && (
+                  <Pressable accessibilityRole="button" accessibilityLabel="Translate with Google"
+                    onPress={() => setHenryShowOriginal(false)}
+                    style={{ paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: !henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
+                    <Text style={{ color: '#24583C', fontWeight: '700', fontSize: 12 }}>
+                      {henryReaderLanguage === 'tl' ? 'Translate with Google · Filipino' : 'Translate with Google'}
+                    </Text>
+                  </Pressable>
+                )}
                 <Pressable accessibilityRole="button" accessibilityLabel="Original English commentary"
                   onPress={() => setHenryShowOriginal(true)}
                   style={{ paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
@@ -4439,11 +4447,55 @@ setMarking(true);
                     ? henryTranslation.text : henryPassage?.text ?? ''}
                 </Text>
                 {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated' && (
-                  <Text style={{ color: '#607269', fontSize: 11, lineHeight: 18, marginTop: 12 }}
-                    onPress={() => setHenryShowOriginal(true)}>
-                    Machine translation · Powered by Google Translate. Maaaring may mali sa salin;
-                    pindutin ang Original English upang suriin ang kahulugan.
+                  <View style={{ marginTop: 12, gap: 8 }}>
+                    <Pressable accessibilityRole="link"
+                      accessibilityLabel="Powered by Google Translate. Open Google Translate."
+                      onPress={() => { void Linking.openURL('https://translate.google.com/').catch(() => undefined); }}
+                      style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}>
+                      <Image
+                        source={require('../../../assets/brands/google-translate/color-regular.png')}
+                        resizeMode="contain"
+                        style={{ width: 176, height: 16 }}
+                        accessibilityLabel="Powered by Google Translate"
+                      />
+                    </Pressable>
+                    <Text style={{ color: '#607269', fontSize: 11, lineHeight: 18 }}>
+                      Machine translation. Maaaring magkamali ang awtomatikong salin.
+                      Pindutin ang Original English para sa orihinal ni Matthew Henry.
+                    </Text>
+                  </View>
+                )}
+                <Pressable accessibilityRole="button"
+                  accessibilityLabel="Tungkol sa Google Translate at disclaimer"
+                  onPress={() => setHenryAttributionOpen(value => !value)}
+                  style={{ paddingVertical: 10, alignSelf: 'flex-start' }}>
+                  <Text style={{ color: '#275D45', fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' }}>
+                    Tungkol sa pagsasalin at disclaimer
                   </Text>
+                </Pressable>
+                {henryAttributionOpen && (
+                  <View style={{ backgroundColor: '#F3F7F4', borderRadius: 10, padding: 12, gap: 8 }}>
+                    <Text style={{ color: '#40584B', fontSize: 12, lineHeight: 19 }}>
+                      BUKLOD uses Google Translate to power optional on-device translations
+                      of the public-domain Matthew Henry Bible Commentary. Ang awtomatikong
+                      salin ay hindi orihinal na akda ni Matthew Henry; ang English ang batayan.
+                    </Text>
+                    <Text style={{ color: '#40584B', fontSize: 11, lineHeight: 18 }}>
+                      THIS SERVICE MAY CONTAIN TRANSLATIONS POWERED BY GOOGLE.
+                      GOOGLE DISCLAIMS ALL WARRANTIES RELATED TO THE TRANSLATIONS,
+                      EXPRESS OR IMPLIED, INCLUDING ANY WARRANTIES OF ACCURACY,
+                      RELIABILITY, AND ANY IMPLIED WARRANTIES OF MERCHANTABILITY,
+                      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+                    </Text>
+                    <Pressable accessibilityRole="link"
+                      accessibilityLabel="Bisitahin ang Google Translate"
+                      onPress={() => { void Linking.openURL('https://translate.google.com/').catch(() => undefined); }}
+                      style={{ paddingVertical: 8 }}>
+                      <Text style={{ color: '#275D45', fontSize: 12, textDecorationLine: 'underline' }}>
+                        Google Translate — https://translate.google.com/
+                      </Text>
+                    </Pressable>
+                  </View>
                 )}
                 <Text style={{ color: '#718078', fontSize: 11, marginTop: 16 }}>
                   Orihinal: Matthew Henry Bible Commentary (public domain) via Free Use Bible API.

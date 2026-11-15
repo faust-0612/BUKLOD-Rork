@@ -4,7 +4,7 @@
   "objective": "Consolidate already-staged 144 Children stories/narration, dark mode and header-safe Bible/Kids staging lineage with new Matthew Henry verse context and optional language-sensitive commentary, preserving current staging media/ads/Profile/Connect and native runtime.",
   "baseRef": "fda52bb743f59a064983dfb17534b1a8cae7bc9f",
   "productionBaselineEvidence": "Production main 69ff92b22b13e26490a93f685ebc89d28e3d6cbf as inspected; source baseline is newer stage lineage #845 not an unsafe replacement from main. #844 dark QA source 9221909b98f8faac5930711be6297e52fb2ec8d1; #845 safe-area QA source fda52bb743f59a064983dfb17534b1a8cae7bc9f; Matthew Henry exact verified Android QA source adb77f999fca667f4918673fe144c49e2c27aa61.",
-  "chosenApproach": "Linear stage-only RC extending PR #845 exact source, preserving all inherited features without recopying published 144 stories/LIFE/Executive density. Overlay six verified and main-identical-origin Matthew Henry source/tests paths by immutable Git blobs; no new native code. Prepare exact Android no-publish QA and fail-closed release manifest. No Expo update until branding, source, installed APK module and authenticated readback passes. Include previously held PR #838 complete theme-aware Notifications + Cluster action controls, correcting invalid Expo StatusBar backgroundColor that failed source TypeScript QA; new focused WCAG 12 palette and privacy routing tests. Offline verification probe uses GitHub Actions ephemeral network to inspect Google-origin unmodified badge ZIP, live API shape, signed native staging APK identity; never publishes.",
+  "chosenApproach": "Linear stage-only RC extending PR #845 exact source, preserving all inherited features without recopying published 144 stories/LIFE/Executive density. Overlay six verified and main-identical-origin Matthew Henry source/tests paths by immutable Git blobs; no new native code. Prepare exact Android no-publish QA and fail-closed release manifest. No Expo update until branding, source, installed APK module and authenticated readback passes. Include previously held PR #838 complete theme-aware Notifications + Cluster action controls, correcting invalid Expo StatusBar backgroundColor that failed source TypeScript QA; new focused WCAG 12 palette and privacy routing tests. Offline verification probe uses GitHub Actions ephemeral network to inspect Google-origin unmodified badge ZIP, live API shape, signed native staging APK identity; never publishes. Implemented Google's unmodified official 176x16 full-color badge (downloaded from official ZIP), user-triggered translation action, in-app disclaimer/help, and live GEN/JHN/3JN verse-anchor source schema test; no native/DB/backends touched.",
   "selectionRationale": "Avoid a broad cherry-pick of hundreds of diverged production/staging paths. New Henry changes do not collide with #844 Bible index/Notifications or #845 safe-area shell. Avoid duplication and loss of stage-only fixes.",
   "alternativeApproaches": [
     "Overwrite staging with production main: rejected; staging contains descendant source and unique tested improvements",
@@ -29,7 +29,8 @@
     "Bible/Children safe-area title legibility preserved",
     "Exact verse versus related passage attribution kept explicit",
     "No Health Center, SALIKSIK, FIS, Supabase migration, Play, new native build, production OTA, or web deployment",
-    "Notifications owner-scoped read/write, PTT exclusion, deep links and Cluster approval remain unchanged; compact executive dark-mode rendering added from PR #838 with invalid Expo StatusBar prop removed."
+    "Notifications owner-scoped read/write, PTT exclusion, deep links and Cluster approval remain unchanged; compact executive dark-mode rendering added from PR #838 with invalid Expo StatusBar prop removed.",
+    "English original renders first and whenever ML Kit is unavailable; user-initiated only translation, official adjacent badge link and disclaimer shown for translation."
   ],
   "allowedPaths": [
     "src/app/bible/read.tsx",
@@ -48,7 +49,10 @@
     "tests/notifications-read-actions-regression-20261115.test.mjs",
     "tests/bible-dark-mode-20261116.test.mjs",
     ".github/workflows/buklod-henry-official-asset-source-probe-20261116.yml",
-    "tests/henry-official-probe-20261116.test.cjs"
+    "tests/henry-official-probe-20261116.test.cjs",
+    "assets/brands/google-translate/color-regular.png",
+    "docs/bible/matthew-henry-translation-attribution-20261116.md",
+    "tests/bible-henry-attribution-live-schema-20261116.test.cjs"
   ],
   "regressionTests": [
     "tests/bible-study-sources.test.cjs",
@@ -58,7 +62,8 @@
     "tests/notifications-dark-contrast-executive-20261115.test.mjs",
     "tests/notifications-read-actions-regression-20261115.test.mjs",
     "tests/bible-dark-mode-20261116.test.mjs",
-    "tests/henry-official-probe-20261116.test.cjs"
+    "tests/henry-official-probe-20261116.test.cjs",
+    "tests/bible-henry-attribution-live-schema-20261116.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
