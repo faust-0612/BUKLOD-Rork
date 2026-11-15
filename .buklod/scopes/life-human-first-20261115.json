@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/life-human-first-20261115.json",
   "objective": "Complete LIFE as a human-first, calm, voluntary route from real-life needs to transparent Christian Gospel. Fix inferred spiritual milestones and privacy, complete support/questions/scripture, consent-first guide, private continuation and invited welcome.",
-  "baseRef": "6b9981e200e4dfa9faa43f5d2691bc858a3f56f1",
-  "chosenApproach": "Port LIFE and only its 19 scoped paths byte-identically from reviewed DEV onto latest *published* staging source (Children's Stories). All eight preexisting LIFE/register source blobs verified identical in main versus staging before port. No blanket DEV/main merge; preserve children stories, Wall videos, ads, Profile and Connect.",
+  "baseRef": "ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0",
+  "chosenApproach": "Reconcile reviewed 20 LIFE-specific paths using exact Git blobs onto latest EAS-verified Executive Density staging Android OTA source ab3ed7c3. Baseline ancestry verified as 16 commits ahead of earlier Children Stories and no overlap with LIFE files.",
   "selectionRationale": "The staging source is ahead of main with verified Children's Stories; integrating via base-tree plus exact LIFE path blobs prevents a stage regression from an older dev/main merge.",
   "riskAreas": [
     "cluster-faith",
@@ -47,12 +47,15 @@
     "tests/life-human-first-auth-security-20261115.test.mjs",
     "supabase/tests/20261115_life_privacy.sql",
     "src/components/BuklodLifeTabs.tsx",
-    "release/life-human-first-stage-20261115.json"
+    "release/life-human-first-stage-20261115.json",
+    "tests/life-isolated-privacy-20261115.sql",
+    ".github/workflows/buklod-life-staging-qa-20261115.yml"
   ],
   "regressionTests": [
     "tests/life-human-first-20261115.test.js",
     "tests/life-human-first-auth-security-20261115.test.mjs",
-    "supabase/tests/20261115_life_privacy.sql"
+    "supabase/tests/20261115_life_privacy.sql",
+    "tests/life-isolated-privacy-20261115.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -107,9 +110,11 @@
     "isolated SQL function/RLS regression",
     "staging receipt/manifest readback",
     "release runtime/channel identity",
-    "production separate RC and readback"
+    "production separate RC and readback",
+    "Disposable PostgreSQL 17 execution of exact privacy migration",
+    "Exact latest published staging source guard"
   ],
-  "productionBaselineEvidence": "Authoritative latest independently verified Android staging-user OTA is Children's Stories source 6b9981e200e4dfa9faa43f5d2691bc858a3f56f1, EAS update 01a1dd05-6cb1-74b6-8f0a-4430c22fa5ba, runtime 1.3.2, package org.mzbministry.buklod.staging, run 43667101817. Production manifest unchanged at that verification. Main DEV LIFE source a3bf0fb39ff9c260f82441d55c8253a8df6e991a passed Engineering and Performance; stage source must independently pass exact SHA gates.",
+  "productionBaselineEvidence": "Latest verified Android staging-user source ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0, EAS update 01a1df87-139b-7da4-9e69-4e5ed36024df, group e7d295b8-5045-4307-98e9-72c5b1e7c41a, run 43721789926, runtime 1.3.2, signed package org.mzbministry.buklod.staging. Prior staging production update id 01a1da5c-0179-79fc-85c9-591cdb782190 verified unchanged by prior run. Fresh EAS proof required again before any LIFE publish.",
   "acceptanceChecks": [
     "Main Human-first LIFE first paint remains fast, Wall LIFE and KL remain direct cards",
     "12 concern options connect to practical guidance with optional opt-in Gospel",
