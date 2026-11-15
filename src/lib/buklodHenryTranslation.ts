@@ -48,6 +48,26 @@ export function splitHenryTranslation(text: string, maxLength = 1600): string[] 
  */
 export function prepareHenryEnglishForFilipino(source: string): string {
   const rules: Array<[RegExp, string]> = [
+    // Sentence-level meaning before ML Kit: "paid a visit" is NOT a payment,
+    // "account" is a narrative, "communion" is fellowship, and "owned"
+    // signifies God's acknowledgement, not possession. Retain all claims.
+    [/\bWe have here an account of a gracious visit which God paid to Solomon, and the communion he had with God in it, which put a greater honour upon Solomon than all the wealth and power of his kingdom did\b/gi,
+      'This is a description of God’s gracious visit to Solomon and the close fellowship Solomon had with God during that visit. This brought Solomon greater honor than all the wealth and power of his kingdom'],
+    [/\ban account of a gracious visit which God paid to Solomon\b/gi,
+      'a description of God’s gracious visit to Solomon'],
+    [/\bthe communion he had with God in it\b/gi,
+      'the close fellowship Solomon had with God during that visit'],
+    [/\bthat was the great high place, and should have been the only one\b/gi,
+      'that was the principal high place for worship, and it should have been the only high place used for worship'],
+    [/\bthe tabernacle and the brazen altar were\b/gi,
+      'the tabernacle and the bronze altar were located'],
+    [/\bThere Solomon offered his great sacrifices\b/gi,
+      'There Solomon presented his great sacrificial offerings to God'],
+    [/\band there God owned him more than in any other of the high places\b/gi,
+      'and there God showed greater acceptance of Solomon than at any of the other high places'],
+    [/\bThe nearer we come to the rule in our worship\b/gi,
+      'The more closely we follow God’s instructions in our worship'],
+    [/\bthe circumstances of this visit\b/gi, 'the details of this visit'],
     [/\btokens of God[’']s presence\b/gi, 'signs that God is present'],
     [/\btokens of (?:his|the divine) presence\b/gi, 'signs of his presence'],
     [/\bthe more we abound in God[’']s work,? the more comfort we may expect in him\b/gi,
@@ -159,6 +179,22 @@ export function paragraphizeHenryEnglish(text: string): string[] {
  */
 export function polishHenryFilipinoTranslation(translated: string): string {
   const rules: Array<[RegExp, string]> = [
+    // Narrow repairs for the actual Google ML Kit output; do not apply generic
+    // dictionary swaps (e.g. "account" may genuinely mean a bank account).
+    [/\bNarito kami ng isang account ng isang mabait na pagdalaw na binayaran ng Diyos kay Solomon\b/gi,
+      'Narito ang salaysay ng mapagpalang pagdalaw ng Diyos kay Solomon'],
+    [/\bpakikipag-isa na kasama niya sa Diyos dito\b/gi,
+      'pakikipag-ugnayan ni Solomon sa Diyos sa pagdalaw na iyon'],
+    [/\bna naglagay ng higit na karangalan kay Solomon\b/gi,
+      'na nagbigay kay Solomon ng higit na karangalan'],
+    [/\bAng mga kalagayan ng pagbisita na ito\b/gi,
+      'Ang mga pangyayari sa pagdalaw na ito'],
+    [/\bIyan ang dakilang mataas na lugar, at dapat lamang ang isa\b/gi,
+      'iyon ang pangunahing mataas na lugar ng pagsamba, at dapat sana ay iyon lamang ang lugar na ginagamit para sa pagsamba'],
+    [/\bsapagkat doon ang tabernakulo at ang altar ng tanso ay\b/gi,
+      'sapagkat naroon ang tabernakulo at ang tansong altar'],
+    [/\bDoon ay inalok ni Solomon ang kanyang mga dakilang sakripisyo\b/gi,
+      'Doon naghandog si Solomon ng kanyang mga dakilang hain sa Diyos'],
     [/\bmga token ng presensya ng Diyos\b/gi, 'mga tanda ng presensya ng Diyos'],
     [/\btoken ng presensya ng Diyos\b/gi, 'tanda ng presensya ng Diyos'],
     [/\bpanuntunan sa ating pagsamba\b/gi, 'tamang paraan ng pagsamba'],
@@ -182,6 +218,38 @@ export function polishHenryFilipinoTranslation(translated: string): string {
   return clean.replace(/\s+([,;:.!?])/g, '$1').replace(/[ \t]{2,}/g, ' ').trim();
 }
 
+/**
+ * Fails closed on demonstrably wrong religious idioms and dropped Scripture
+ * citations. A general-purpose model cannot certify doctrinal accuracy;
+ * failed checks show the authoritative English rather than misleading Filipino.
+ */
+export function isHenryFilipinoTranslationReliable(english: string, filipino: string): boolean {
+  if (!filipino.trim()) return false;
+  const hazards: Array<[RegExp, RegExp]> = [
+    [/\b(?:paid (?:a|the) (?:gracious )?visit|visit which God paid to)\b/i, /\b(?:binayaran|pagbabayad)\b/i],
+    [/\baccount of a gracious visit\b/i, /\bisang account\b/i],
+    [/\bcommunion he had with God\b/i, /\bpakikipag-isa na kasama niya sa Diyos\b/i],
+    [/\bGod owned him\b/i, /\b(?:pag-aari|pagmamay-ari)\b/i],
+    [/\bSolomon offered his (?:great )?sacrifices\b/i, /\binalok ni Solomon\b/i],
+  ];
+  if (hazards.some(([sourcePattern, badTranslation]) =>
+    sourcePattern.test(english) && badTranslation.test(filipino))) return false;
+
+  // All explicit citations in the passage must survive the translation.
+  // Normalize source and result with the SAME book table used for rendering.
+  const source = formatHenryBibleReferences(english, 'en');
+  const result = formatHenryBibleReferences(filipino, 'tl').toLowerCase();
+  for (const [, englishBook, filipinoBook] of HENRY_REFERENCE_BOOKS) {
+    const cite = new RegExp('(?:^|[^A-Za-z0-9])' + englishBook +
+      '\\s+(\\d{1,3})\\s*:\\s*(\\d{1,3})', 'gi');
+    for (const match of source.matchAll(cite)) {
+      const target = filipinoBook.toLowerCase() + ' ' + Number(match[1]) + ':' + Number(match[2]);
+      if (!result.includes(target)) return false;
+    }
+  }
+  return true;
+}
+
 function textFingerprint(text: string): string {
   let hash = 2166136261;
   for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
@@ -199,7 +267,7 @@ export function useMatthewHenryTranslation(input: {
   targetLanguage: string;
 }): TranslationState {
   const { enabled, accountId, bookNo, chapterNo, startVerse, endVerse, text, targetLanguage } = input;
-  const key = `henry-translation-v3:${bookNo}:${chapterNo}:${startVerse}-${endVerse}:${targetLanguage}:${textFingerprint(text)}`;
+  const key = `henry-translation-v4:${bookNo}:${chapterNo}:${startVerse}-${endVerse}:${targetLanguage}:${textFingerprint(text)}`;
   const [state, setState] = useState<TranslationState>({ key: '', status: 'unavailable', text: '' });
   useEffect(() => {
     if (!enabled || !accountId || !text || targetLanguage === 'en') {
@@ -241,6 +309,9 @@ export function useMatthewHenryTranslation(input: {
         const rawOutput = translatedParagraphs.join('\n\n').trim();
         const output = targetLanguage === 'tl' ? polishHenryFilipinoTranslation(rawOutput) : rawOutput;
         if (!output) throw new Error('No translation produced');
+        if (targetLanguage === 'tl' && !isHenryFilipinoTranslationReliable(text, output)) {
+          throw new Error('Commentary translation failed semantic/citation safeguards');
+        }
         setState({ key, status: 'translated', text: output });
         void setOfflineCache(key, {text: output}, {
           userId: accountId, ttlMs: 90 * 24 * 60 * 60 * 1000,
