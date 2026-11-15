@@ -3,17 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('Home utilities no longer force giant square cards while remaining content-resizable', () => {
-  const s = read('src/components/home/BuklodHomeUtilityCards.tsx');
-  assert.match(s, /width: '48\.5%', minHeight: 180, flexGrow: 1/);
-  assert.doesNotMatch(s, /aspectRatio: 1, minHeight: 216/);
-  assert.match(s, /borderRadius: 14, borderWidth: 1/);
-  assert.match(s, /const stacked = fontScale >= 1\.5 \|\| width < 370/);
-  assert.match(s, /singleColumn: \{ width: '100%', flexGrow: 0 \}/);
-  assert.match(s, /primaryDoor: \{[^\n]+minHeight: 48/);
-  assert.match(s, /secondaryDoor: \{[^\n]+minHeight: 48/);
-  assert.match(s, /router\.push\('\/personal-home' as any\)/);
-  assert.match(s, /router\.push\('\/profile\/buklod-health' as any\)/);
+test('Home stays dense and removes personal and Health Center launchers', () => {
+  const home=read('src/components/home/BuklodHomeUtilityCards.tsx');
+  const family=read('src/app/profile/buklod-family.tsx');
+  const health=read('src/app/profile/buklod-health.tsx');
+  assert.ok(home.includes("Children's Story World") && home.includes('minHeight: 88'));
+  assert.ok(!home.includes('My BUKLOD Home') && !home.includes('Online Consultation'));
+  assert.ok(family.includes("router.push('/personal-home'"));
+  assert.ok(health.includes('Online Consultation') && health.includes('Full Health Center'));
 });
 test('Profile Quick Actions are all visible without offscreen carousel and preserve direct routes', () => {
   const s = read('src/app/(tabs)/me.tsx');
