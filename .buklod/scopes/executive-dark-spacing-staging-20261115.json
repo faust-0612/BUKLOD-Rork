@@ -1,0 +1,121 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/executive-dark-spacing-staging-20261115.json",
+  "objective": "Complete compact executive visual adjustments to Home, Profile, Connect and Kingdom; protect legible text in dark-mode themes, consistent margins and accessible actions with owner-skipped physical device verification.",
+  "baseRef": "feature/sunday-school-continuous-stories-20261115",
+  "productionBaselineEvidence": "Published staging-user source ab864a2b17e6078252be8ff8c7ce067043c7ce1c, runtime 1.3.2, Android package org.mzbministry.buklod.staging, verified in run 43682542706; production unchanged. New scope only for isolated staging changes.",
+  "chosenApproach": "Apply semantic accessibility colors and compact shared layout tokens to targeted visible screens; retain all existing backend, navigation, advertising, video and account operations. Use CI and exact-source staging proof, waive only physical handset acceptance.",
+  "selectionRationale": "A narrow visual-only patch minimizes regression and bundle size and removes wasted space without introducing native code, data migrations, new services or altered business rules.",
+  "alternativeApproaches": [
+    "Replace all app layouts with a new CSS styling/runtime engine (rejected as unbounded risk and native rebuild).",
+    "Shrink typography and tap targets to fit more content (rejected as inaccessible).",
+    "Tighten app-wide semantic color and selected layout tokens while preserving 48px touch actions (selected)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "kingdom-character"
+  ],
+  "preserveBehaviors": [
+    "Keep original Home section order and lazy load gates, contribution data isolation, estimated earnings disclaimers and existing ads.",
+    "Keep scope-specific Cluster navigation, message privacy, HIBLA Connect, keyboard/PPT/call functionality and right-to-left system layout unaffected.",
+    "Keep original Kingdom entry route, 13 character centers, rewards/gameplay/ads and graphics; only compact promo card.",
+    "Keep Wall/Marites scroll-stop, NativeAd prefetch, media quality and safe IGPAT retirement unchanged.",
+    "Keep existing native package, Expo 1.3.2 runtime, staging and production channel isolation; on-device visual check explicitly skipped by owner."
+  ],
+  "acceptanceChecks": [
+    "All 12 palettes >=4.5:1 for text-muted against common surfaces with contrast-aware action text.",
+    "Home contribution and Kingdom cards compact without truncation/forced fixed-height text or changed protected business logic.",
+    "Connect inline surfaces use palette semantics in dark mode and retain critical messaging behaviors.",
+    "Automated scope and focused test gates and TypeScript/Android compilation must pass before staging OTA.",
+    "Exact-source staging update and unchanged production are independently verified; physical on-device check waived."
+  ],
+  "regressionTests": [
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "tests/executive-home-navigation-20261115.test.mjs",
+    "tests/executive-connect-messages-20261115.test.mjs",
+    "tests/executive-qmp-ads-revenue-20261115.test.mjs",
+    "tests/executive-kingdom-character-20261115.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/executive-dark-spacing-staging-20261115.json",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/settings/index.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodContentOverflowMenu.tsx",
+    "src/components/BuklodContentOverflowMenu.web.tsx",
+    "src/components/BuklodContentReportSheet.tsx",
+    "src/components/BuklodProfilePostCards.tsx",
+    "src/components/BuklodScopedDashboardHeader.tsx",
+    "src/components/UI.tsx",
+    "src/components/home/BuklodKingdomHubCard.tsx",
+    "src/components/points/BuklodClaimRewardCard.tsx",
+    "src/components/points/BuklodPointsStage.tsx",
+    "src/lib/buklodTheme.ts",
+    "src/lib/buklodThemePresentation.ts",
+    "src/lib/buklodVisual.ts",
+    "src/lib/messagesTheme.ts",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "tests/executive-connect-messages-20261115.test.mjs",
+    "tests/executive-home-navigation-20261115.test.mjs",
+    "tests/executive-kingdom-character-20261115.test.mjs",
+    "tests/executive-qmp-ads-revenue-20261115.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared 12-palette typography and layout semantics affect rendering throughout the React Native app.",
+      "preservedBehaviors": [
+        "No new native module, React provider or core runtime changes; readable surfaces preserve semantics."
+      ],
+      "tests": [
+        "tests/buklod-dark-contrast-spacing-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Changes Home and Profile visible layout and touch handling without modifying auth or route destinations.",
+      "preservedBehaviors": [
+        "Five-tab navigation, signed-in user privacy, profile posts and programmatic Home lazy loading stay available."
+      ],
+      "tests": [
+        "tests/executive-home-navigation-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Connect conversation bubble foreground and picker surface colors change for dark theme readability.",
+      "preservedBehaviors": [
+        "Call/PTT, message sending and read receipts, room/account authorization and HIBLA styling stay intact."
+      ],
+      "tests": [
+        "tests/executive-connect-messages-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Contribution/QMP amount layout becomes compact while preserving private financial and ad semantics.",
+      "preservedBehaviors": [
+        "No server balances, estimates, withdrawal statuses, AdMob consent or revenue methods are modified."
+      ],
+      "tests": [
+        "tests/executive-qmp-ads-revenue-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Kingdom promotional card height and padding are tightened without modifying game mechanics.",
+      "preservedBehaviors": [
+        "Existing /games entry, character stations, points and ad rewards remain unchanged."
+      ],
+      "tests": [
+        "tests/executive-kingdom-character-20261115.test.mjs"
+      ]
+    }
+  ]
+}
