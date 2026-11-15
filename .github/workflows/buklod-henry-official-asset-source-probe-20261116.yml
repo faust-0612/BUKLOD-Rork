@@ -1,0 +1,96 @@
+name: BUKLOD Henry official asset and live source audit - NO PUBLISH
+on:
+  pull_request:
+    branches: [fix/nov16-bible-kids-system-safearea]
+    paths:
+      - '.github/workflows/buklod-henry-official-asset-source-probe-20261116.yml'
+permissions:
+  contents: read
+jobs:
+  audit-only:
+    if: ${{ github.head_ref == 'integration/nov16-conso-henry-dark-kids-132' && github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Read official Google badge directly from documented origin, never modify artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --max-time 45 --retry 1 \
+            'https://docs.cloud.google.com/static/translate/images/google-translate-attribution.zip' -o /tmp/official-google-translation.zip
+          python3 - <<'PY'
+          import zipfile,io,base64,hashlib
+          data=open('/tmp/official-google-translation.zip','rb').read()
+          assert len(data)<2000000 and zipfile.is_zipfile(io.BytesIO(data)), 'Bad official badge ZIP'
+          archive=zipfile.ZipFile(io.BytesIO(data))
+          candidates=[]
+          for inf in archive.infolist():
+            if inf.is_dir(): continue
+            print('BADGE_ZIP_ENTRY',inf.filename,inf.file_size)
+            name=inf.filename.lower()
+            if name.endswith('.png') and inf.file_size<25000 and ('powered' in name or 'translate' in name):
+              candidates.append(inf)
+          if not candidates:
+            print('NO_SMALL_OFFICIAL_PNG_FOUND')
+          else:
+            inf=min(candidates,key=lambda i:i.file_size)
+            raw=archive.read(inf)
+            assert raw[:8]==b'\x89PNG\r\n\x1a\n'
+            print('BADGE_SELECTED',inf.filename,'SHA256',hashlib.sha256(raw).hexdigest(),'BYTES',len(raw))
+            print('BEGIN_OFFICIAL_GOOGLE_BADGE_BASE64')
+            print(base64.b64encode(raw).decode('ascii'))
+            print('END_OFFICIAL_GOOGLE_BADGE_BASE64')
+          PY
+      - name: Probe actual Matthew Henry chapter shapes and ranges
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request
+          base='https://bible.helloao.org/api/c/matthew-henry/'
+          for chapter in ['GEN/1','JHN/3','3JN/1']:
+            req=urllib.request.Request(base+chapter+'.json',headers={'User-Agent':'BUKLOD-Source-Audit/1.0'})
+            try:
+              with urllib.request.urlopen(req,timeout=35) as response:
+                raw=response.read(3500000)
+                d=json.loads(raw)
+              print('CHAPTER',chapter,'ROOT_KEYS',list(d)[:15])
+              print('CHAPTER_FIELDS',list(d.get('chapter',{})) if isinstance(d.get('chapter'),dict) else type(d.get('chapter')).__name__)
+              rows=d.get('chapter',{}).get('content',[]) if isinstance(d.get('chapter'),dict) else d.get('content',[])
+              print('CHAPTER_CONTENT',chapter,'COUNT',len(rows),'FIRST_BLOCKS')
+              for row in rows[:5]:
+                if not isinstance(row,dict):continue
+                print('BLOCK',json.dumps({key:row.get(key) for key in ['type','number','verse','startVerse','endVerse','heading','content','text'] if key in row},ensure_ascii=False)[:1600])
+              sample=[dict(type=x.get('type'),number=x.get('number'),endVerse=x.get('endVerse'),contentType=type(x.get('content')).__name__) for x in rows[:200] if isinstance(x,dict)]
+              print('CHAPTER_TYPE_COUNTS',chapter,dict((k,sum(t['type']==k for t in sample)) for k in set(t['type'] for t in sample)))
+            except Exception as e:
+              print('SOURCE_PROBE_ERROR',chapter,type(e).__name__,str(e)[:250])
+              raise
+          PY
+      - name: Identify current staging runtime and signed native build (read only)
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo 'EXPO_SECRET_MISSING; staging release must remain HOLD'
+            exit 1
+          fi
+          APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > /tmp/staging-build-readonly.json
+          python3 - <<'PY'
+          import json
+          b=json.load(open('/tmp/staging-build-readonly.json'))
+          fields=['id','status','platform','gitCommitHash','buildProfile','appIdentifier','appVersion','appBuildVersion','runtime','updateChannel','app']
+          print('SIGNED_STAGING_BUILD_PUBLIC_IDENTITY',json.dumps({k:b.get(k) for k in fields},default=str)[:2500])
+          assert b['id']=='bc4be208-bfb0-42f3-95cb-358353d0600f'
+          assert b.get('appIdentifier')=='org.mzbministry.buklod.staging'
+          assert str(b.get('runtime',{}).get('version'))=='1.3.2'
+          PY
+          echo 'EAS_BUILD_VIEW_READ_ONLY_PASS'
+      - name: No publication by probe
+        run: echo 'PASS OR FAIL source probe. No Expo OTA, no Play build, no DB/web/production mutation.'
