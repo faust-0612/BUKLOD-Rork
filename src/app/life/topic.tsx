@@ -98,6 +98,8 @@ export default function BuklodLifeTopicScreen() {
       topic?: string;
       lang?: string;
       question?: string;
+      questionIndex?: string;
+      resume?: string;
     }>();
 
   const topic =
@@ -155,24 +157,19 @@ export default function BuklodLifeTopicScreen() {
 
   useEffect(() => {
 
-    setStage(0);
-    setGospelResponseOpen(false);
-    setGospelYesOpen(false);
-
-    if (
-      params.question
-    ) {
-      setSelectedQuestion(
-        String(
-          params.question
-        )
-      );
-    }
-
-  }, [
-    topic,
-    params.question,
-  ]);
+    // Resume only a checkpoint intentionally saved on the user's secure device.
+    const restoringNextStep = params.resume === 'next-steps';
+    setStage(restoringNextStep && topic !== 'jesus' ? 2 : 0);
+    setGospelResponseOpen(restoringNextStep && topic === 'jesus');
+    setGospelYesOpen(false); // Never infer or pre-select a personal faith response.
+    setQuestionSearch('');
+    setSaveMessage('');
+    const index = Number(params.questionIndex);
+    const selectedIndex = params.questionIndex !== undefined && Number.isInteger(index) && index >= 0 && index < copy.questions.length
+      ? index : null;
+    setSelectedQuestion(selectedIndex !== null ? copy.questions[selectedIndex] :
+      (copy.questions.includes(String(params.question ?? '')) ? String(params.question) : ''));
+  }, [topic, params.question, params.questionIndex, params.resume, copy]);
 
 
   // Answer order is kept aligned with the ten canonical questions in LIFE content.
@@ -409,9 +406,26 @@ export default function BuklodLifeTopicScreen() {
             }
           </Text>
           <Text style={{ color: '#627366', fontSize: 12, marginTop: 10 }}>
-            {BUKLOD_LIFE_QUESTION_REFERENCES[selectedQuestion ? selectedQuestionIndex : 0]}
+            {visibleQuestions.length ? BUKLOD_LIFE_QUESTION_REFERENCES[selectedQuestionIndex] : ''}
           </Text>
         </View>
+
+        <Pressable
+          disabled={!visibleQuestions.length}
+          accessibilityRole="button"
+          style={[styles.secondaryButton, !visibleQuestions.length && { opacity: 0.5 }]}
+          onPress={async () => {
+            if (!visibleQuestions.length) return;
+            const ok = await saveBuklodLifePrivateProgress(user?.id, {
+              topic: 'questions', language, step: 'questions', questionIndex: selectedQuestionIndex,
+            });
+            setSaveMessage(ok
+              ? (language === 'fil' ? 'Na-save ang tanong nang pribado sa device na ito.' : 'Question saved privately on this device.')
+              : (language === 'fil' ? 'Hindi na-save. Kailangan ang sign-in at secure storage.' : 'Could not save. Sign-in and secure storage are required.'));
+          }}>
+          <Text style={styles.secondaryButtonText}>{language === 'fil' ? 'I-save ang tanong na ito' : 'Save this question privately'}</Text>
+        </Pressable>
+        {!!saveMessage && <Text style={{ color: '#42664D', fontSize: 12, lineHeight: 19 }}>{saveMessage}</Text>}
 
         <Pressable
           onPress={() =>
