@@ -1,8 +1,8 @@
 import { BUNDLED_CHILDREN_STORIES } from './catalog';
 import { getSundaySchoolLesson, SUNDAY_SCHOOL_LESSONS } from './sundaySchool';
 describe('Continuous bilingual Sunday School curriculum', () => {
-  test('all twelve offline stories have full narratives, lessons, verse references and prayer', () => {
-    expect(Object.keys(SUNDAY_SCHOOL_LESSONS)).toHaveLength(12);
+  test('all 32 offline stories have full narratives, lessons, verse references and prayer', () => {
+    expect(Object.keys(SUNDAY_SCHOOL_LESSONS)).toHaveLength(32);
     for (const story of BUNDLED_CHILDREN_STORIES) {
       const lesson = getSundaySchoolLesson(story);
       expect(lesson).toBeTruthy();
