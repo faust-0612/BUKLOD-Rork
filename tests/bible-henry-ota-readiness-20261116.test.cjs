@@ -3,7 +3,21 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const manifest = JSON.parse(fs.readFileSync('release/bible-matthew-henry-staging-132-20261116.json', 'utf8'));
+// Evaluate the staging identity explicitly. Other CI jobs may default to
+// production; those environments must not create false staging QA failures.
+const savedVariant = process.env.APP_VARIANT;
+const savedEnv = process.env.EXPO_PUBLIC_APP_ENV;
+const savedTarget = process.env.BUKLOD_APP_TARGET;
+process.env.APP_VARIANT = 'staging';
+process.env.EXPO_PUBLIC_APP_ENV = 'staging';
+process.env.BUKLOD_APP_TARGET = 'main';
 const app = require('../app.config.js')({config:{}});
+if (savedVariant === undefined) delete process.env.APP_VARIANT;
+else process.env.APP_VARIANT = savedVariant;
+if (savedEnv === undefined) delete process.env.EXPO_PUBLIC_APP_ENV;
+else process.env.EXPO_PUBLIC_APP_ENV = savedEnv;
+if (savedTarget === undefined) delete process.env.BUKLOD_APP_TARGET;
+else process.env.BUKLOD_APP_TARGET = savedTarget;
 const eas = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
 const reader = fs.readFileSync('src/app/bible/read.tsx', 'utf8');
 const provider = fs.readFileSync('src/lib/buklodBibleStudy.ts', 'utf8');
