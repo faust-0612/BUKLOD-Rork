@@ -188,6 +188,14 @@ export async function pickReportEvidencePhoto(): Promise<ReportPhotoAsset | null
   return { uri: asset.uri, filename, mimeType };
 }
 
+function sniffPhotoMime(buffer: ArrayBuffer): 'image/jpeg' | 'image/png' | 'image/webp' | null {
+  const b = new Uint8Array(buffer);
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b.length >= 8 && [0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a].every((v,i) => b[i] === v)) return 'image/png';
+  if (b.length >= 12 && String.fromCharCode(...b.subarray(0,4)) === 'RIFF' && String.fromCharCode(...b.subarray(8,12)) === 'WEBP') return 'image/webp';
+  return null;
+}
+
 export async function uploadReportEvidencePhoto(args: {
   scopeId: string;
   assignmentId: string;
@@ -211,6 +219,9 @@ export async function uploadReportEvidencePhoto(args: {
   const buffer = await response.arrayBuffer();
   if (!buffer.byteLength || buffer.byteLength > 12 * 1024 * 1024) {
     throw new Error('Photo evidence must be 12 MB or smaller.');
+  }
+  if (sniffPhotoMime(buffer) !== detectedMime) {
+    throw new Error('Photo content does not match the selected JPG, PNG, or WebP format.');
   }
   const extension = detectedMime === 'image/png' ? 'png' : detectedMime === 'image/webp' ? 'webp' : 'jpg';
   const path = `${args.scopeId}/${user.id}/${args.assignmentId}/${Crypto.randomUUID()}.${extension}`;
