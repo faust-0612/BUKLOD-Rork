@@ -48,6 +48,7 @@ test('reader shows one continuous story, moral/spiritual teaching and four-quest
   assert.match(reader,/speechToken\.current/);
   assert.match(reader,/compact=\{Boolean\(lesson\)\}/);
   assert.match(reader,/getSundaySchoolLesson\(story\)/);
+  assert.match(reader,/else if\(lesson\)\{stop\(\);router\.back\(\);\}/);
 });
 test('Sunday School source does not change child account data, live content DB or native runtime',()=>{
   const path=read('src/features/childrenStories/sundaySchoolTypes.ts');

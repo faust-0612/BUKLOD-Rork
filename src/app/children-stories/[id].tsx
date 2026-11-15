@@ -69,7 +69,16 @@ export default function ChildrenStoryReader() {
     // Android text-to-speech has an input size limit. Read a continuous narrative in
     // bounded paragraphs, without fragmenting the visual story into artificial pages.
     const chunks=content.split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean).flatMap(p=>{
-      const out:string[]=[];for(let i=0;i<p.length;i+=700)out.push(p.slice(i,i+700));return out;
+      const out:string[]=[];
+      let remaining=p;
+      while(remaining.length>700){
+        const boundary=remaining.lastIndexOf(' ',700);
+        const cut=boundary>400?boundary:700;
+        out.push(remaining.slice(0,cut).trim());
+        remaining=remaining.slice(cut).trim();
+      }
+      if(remaining)out.push(remaining);
+      return out;
     });
     if(!chunks.length)return;
     const token=++speechToken.current;
@@ -175,10 +184,10 @@ export default function ChildrenStoryReader() {
       </View>
       <View style={styles.footer}>
         <Pressable accessibilityRole="button" disabled={!quiz&&!lesson&&safePage===0}
-          onPress={()=>{if(quiz){setQuiz(false);setQuestionIndex(0);setChoice(null);}else if(!lesson)jump(safePage-1);}}
+          onPress={()=>{if(quiz){setQuiz(false);setQuestionIndex(0);setChoice(null);}else if(lesson){stop();router.back();}else jump(safePage-1);}}
           style={[styles.secondaryButton,!quiz&&!lesson&&safePage===0&&styles.disabled]}>
           <MaterialCommunityIcons name="chevron-left" size={20} color="#1B6053"/>
-          <Text style={styles.secondaryText}>{quiz?(language==='tl'?'Balik sa kuwento':'Back to story'):(language==='tl'?'Bumalik':'Previous')}</Text>
+          <Text style={styles.secondaryText}>{quiz?(language==='tl'?'Balik sa kuwento':'Back to story'):lesson?(language==='tl'?'Mga kuwento':'Story library'):(language==='tl'?'Bumalik':'Previous')}</Text>
         </Pressable>
         {quiz&&finishQuiz&&lastQuestion ?
           <Pressable accessibilityRole="button" onPress={()=>{stop();router.replace('/children-stories' as any)}} style={styles.mainButton}>
