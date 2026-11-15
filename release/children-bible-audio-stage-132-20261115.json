@@ -1,0 +1,26 @@
+{
+  "target": "BUKLOD Children Bible stories + Pakinggan (Android staging-user)",
+  "releaseMode": "isolated-android-staging-ota",
+  "exactPreviousSource": "ea9a72c687c0885ea6a3c14a883503204f83dad4",
+  "previousUpdateId": "01a1dfb1-578c-7e47-8547-ff3065c6792a",
+  "previousUpdateGroup": "f2da9206-4fb6-478b-bc6e-adb47e4030cd",
+  "originalFeatureCommit": "9310f5b20c50ae7bbbc488cb573294d2d211714f",
+  "targetChannel": "staging-user",
+  "targetPlatform": "android",
+  "targetPackage": "org.mzbministry.buklod.staging",
+  "targetRuntime": "1.3.2",
+  "signedStagingBuild": "bc4be208-bfb0-42f3-95cb-358353d0600f",
+  "sourceProof": {
+    "engineeringRun": 43733191765,
+    "integrationRun": 43733191761,
+    "androidHermesAudioQaRun": 43733191755,
+    "status": "success"
+  },
+  "content": "144 bundled stories including 132 new bilingual biblical retellings; 136 Bible category",
+  "narration": "Existing Expo Speech native module, language-aware installed voice selection, bounded chunks, Android pause/resume, cancellation, visible failure",
+  "readyForStaging": true,
+  "publicationRequested": false,
+  "productionPublished": false,
+  "physicalAudioAcceptance": "NOT VERIFIED ON DEVICE (OWNER PREVIOUSLY WAIVED)",
+  "productionPolicy": "Always remain untouched; preflight and independent readback mandatory"
+}
