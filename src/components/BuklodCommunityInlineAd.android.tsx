@@ -95,6 +95,18 @@ export default function BuklodCommunityInlineAd({
   const { ready, canRequestAds } = useAds();
   const { isConnected, isInternetReachable } = useNetwork();
   const adNetworkAvailable = isConnected && isInternetReachable !== false;
+  // A frozen prior dashboard must not start NativeAd SDK work after tab blur.
+  // Keep already loaded SDK inventory in memory for a fast, compliant re-entry.
+  const [screenFocused, setScreenFocused] = useState(false);
+  const screenFocusRef = useRef(false);
+  useFocusEffect(useCallback(() => {
+    screenFocusRef.current = true;
+    setScreenFocused(true);
+    return () => {
+      screenFocusRef.current = false;
+      setScreenFocused(false);
+    };
+  }, []));
   const { ref, eligible } = useBuklodAdViewportGate();
   const currentListVisibility = useBuklodCommunityInlineVisibility(slotId);
   // Feed rows use the list's live viewability state. First-view and other
@@ -107,7 +119,7 @@ export default function BuklodCommunityInlineAd({
   // 400ms probe plus the shared 1200ms poll creates avoidable blank ads.
   // First-view and non-Wall surfaces still use their measured viewport gate.
   const canShowNativeCreative =
-    eligible || (surface === 'wall' && !firstView && Boolean(slotId) && currentListVisibility);
+    screenFocused && (eligible || (surface === 'wall' && !firstView && Boolean(slotId) && currentListVisibility));
 
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(null);
   const [nativeFailed, setNativeFailed] = useState(false);
@@ -219,6 +231,7 @@ export default function BuklodCommunityInlineAd({
   const hasLoadedCreative = Boolean(nativeAd || bannerLoaded);
   const canAttempt =
     active &&
+    screenFocused &&
     routeSafe &&
     (eligible || hasLoadedCreative) &&
     sdkReady &&
@@ -235,7 +248,7 @@ export default function BuklodCommunityInlineAd({
   // until the viewport gate is satisfied. Existing consent, cooldown, and
   // interaction safety locks remain mandatory for every request.
   const canPrefetchNative =
-    active && routeSafe && sdkReady && adNetworkAvailable &&
+    active && screenFocused && routeSafe && sdkReady && adNetworkAvailable &&
     (firstView || (eligible || prefetch || nativeRequestStarted.current));
   const keepNativeLifecycle =
     canAttempt || canPrefetchNative ||
@@ -269,7 +282,7 @@ export default function BuklodCommunityInlineAd({
   useEffect(() => {
     // The request may remain alive after a transient lock, but no NEW native
     // request may start while the normal consent/route/interaction gate fails.
-    if (!keepNativeLifecycle || !canStartNativeRef.current ||
+    if (!screenFocusRef.current || !keepNativeLifecycle || !canStartNativeRef.current ||
         nativeRequestStarted.current || nativeFailed) return;
 
     if (!nativeUnitId) {
@@ -475,7 +488,7 @@ export default function BuklodCommunityInlineAd({
 
 
   const recoverFailedSlot = useCallback(() => {
-    if (!bannerFailed || !adNetworkAvailable || !currentlyVisible) return;
+    if (!screenFocused || !bannerFailed || !adNetworkAvailable || !currentlyVisible) return;
     if (
       Date.now() - bannerFailedAt.current < AD_SLOT_REMOUNT_COOLDOWN_MS ||
       getBuklodPassiveAdRequestWaitMs(placementId, requestKey) > 0
@@ -491,21 +504,23 @@ export default function BuklodCommunityInlineAd({
     setBannerFailed(false);
     setBannerRequestReady(false);
     setReservationTick(value => value + 1);
-  }, [bannerFailed, adNetworkAvailable, currentlyVisible, placementId, requestKey]);
+  }, [screenFocused, bannerFailed, adNetworkAvailable, currentlyVisible, placementId, requestKey]);
 
   useFocusEffect(useCallback(() => {
     recoverFailedSlot();
   }, [recoverFailedSlot]));
 
   useEffect(() => {
+    // No per-slot AppState listener for a healthy/focused feed row.
+    if (!screenFocused || !bannerFailed) return;
     const sub = AppState.addEventListener('change', state => {
       if (state === 'active') recoverFailedSlot();
     });
     return () => sub.remove();
-  }, [recoverFailedSlot]);
+  }, [screenFocused, bannerFailed, recoverFailedSlot]);
 
   useEffect(() => {
-    if (!bannerFailed || !adNetworkAvailable) return;
+    if (!screenFocused || !bannerFailed || !adNetworkAvailable) return;
     const elapsed = Date.now() - bannerFailedAt.current;
     const waitMs = Math.max(
       Math.max(0, AD_SLOT_REMOUNT_COOLDOWN_MS - elapsed),
@@ -513,7 +528,7 @@ export default function BuklodCommunityInlineAd({
     );
     const timer = setTimeout(recoverFailedSlot, waitMs + 25);
     return () => clearTimeout(timer);
-  }, [bannerFailed, adNetworkAvailable, placementId, requestKey, recoverFailedSlot]);
+  }, [screenFocused, bannerFailed, adNetworkAvailable, placementId, requestKey, recoverFailedSlot]);
 
   useEffect(() => {
     if (!bannerLoaded || bannerRendered.current) return;
