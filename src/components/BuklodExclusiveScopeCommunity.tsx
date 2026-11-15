@@ -26,6 +26,7 @@ import {
 } from '@/components/BuklodContentReportSheet';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodMentionField from '@/components/BuklodMentionField';
 import {
   mentionsStillInText,
@@ -473,6 +474,7 @@ export default function BuklodExclusiveScopeCommunity({
   focusComments = false,
   focusCommentId,
 }: Props) {
+  const { theme } = useBuklodTheme();
   const activeSharePath = usePathname();
   const incomingShare = useBuklodIncomingShare();
   const incomingGifSignature = useRef('');
@@ -3546,9 +3548,7 @@ return (
               }
             >
               <Text
-                style={
-                  styles.author
-                }
+                style={[styles.author, { color: theme.textPrimary }]}
                 numberOfLines={
                   1
                 }
@@ -3560,9 +3560,7 @@ return (
               </Text>
 
               <Text
-                style={
-                  styles.meta
-                }
+                style={[styles.meta, { color: theme.textMuted }]}
               >
                 {formatTime(
                   item.created_at
@@ -3582,7 +3580,7 @@ return (
             <BuklodExpandableWallCaption
               key={String(item.id)}
               text={repairMojibakeText(item.body)}
-              style={styles.body}
+              style={[styles.body, { color: theme.textPrimary }]}
               hasMedia={Boolean(
                 item.media_path ||
                 item.media_url ||
@@ -3719,14 +3717,10 @@ return (
             )}
 
           <View
-            style={
-              styles.summaryRow
-            }
+            style={[styles.summaryRow, { borderBottomColor: theme.border }]}
           >
             <Text
-              style={
-                styles.summaryText
-              }
+              style={[styles.summaryText, { color: theme.textMuted }]}
             >
               {total
                 ? `${total} reaction${
@@ -3747,9 +3741,7 @@ return (
               }
             >
               <Text
-                style={
-                  styles.summaryText
-                }
+                style={[styles.summaryText, { color: theme.textMuted }]}
               >
                 {Number(
                   item.comment_count ??

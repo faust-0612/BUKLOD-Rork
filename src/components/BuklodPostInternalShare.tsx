@@ -33,6 +33,8 @@ import {
 import {
   colors,
 } from '@/lib/theme';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { readableAccentOnSurface } from '@/lib/buklodTheme';
 
 /*
  * PATCH_173E_R4_SHARE_SEARCH_SUCCESS
@@ -148,6 +150,8 @@ BuklodPostInternalShare({
   iconOnly = false,
   social = false,
 }: Props) {
+  const { theme } = useBuklodTheme();
+  const accentTextColor = readableAccentOnSurface(theme);
   const [
     open,
     setOpen,
@@ -586,15 +590,11 @@ BuklodPostInternalShare({
               ? 17
               : 18
           }
-          color={
-            colors.greenDark
-          }
+          color={social ? accentTextColor : colors.greenDark}
         />
 
         <Text
-          style={
-            styles.buttonText
-          }
+          style={[styles.buttonText, social && { color: accentTextColor }]}
         >
           {social ? 'Share' : iconOnly ? count : `Share ${count}`}
         </Text>

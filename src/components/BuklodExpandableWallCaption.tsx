@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BuklodMentionText } from '@/components/BuklodMentionText';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { readableAccentOnSurface } from '@/lib/buklodTheme';
 
 type Props = React.ComponentProps<typeof BuklodMentionText> & {
   /** Media captions stay on one line; short text-only posts use larger type. */
@@ -19,7 +21,11 @@ export function BuklodExpandableWallCaption({
   hasMedia = false,
   ...mentionProps
 }: Props) {
+  const { theme } = useBuklodTheme();
+  const accentTextColor = readableAccentOnSurface(theme);
   const [expanded, setExpanded] = useState(false);
+  // Feed surface and accent must resolve from the same active theme.
+  const mentionStyle = mentionProps.mentionStyle ?? { color: accentTextColor, fontWeight: '800' as const };
   const fullText = String(mentionProps.text ?? '');
   const charCount = Array.from(fullText.trim()).length;
   const largeText = !hasMedia && charCount > 0 && charCount <= LARGE_TEXT_LIMIT;
@@ -37,6 +43,7 @@ export function BuklodExpandableWallCaption({
     return (
       <BuklodMentionText
         {...mentionProps}
+        mentionStyle={mentionStyle}
         text={fullText}
         numberOfLines={undefined}
         style={[mentionProps.style, styles.largeText]}
@@ -49,6 +56,7 @@ export function BuklodExpandableWallCaption({
       <View>
         <BuklodMentionText
           {...mentionProps}
+          mentionStyle={mentionStyle}
           text={fullText}
           numberOfLines={undefined}
         />
@@ -59,7 +67,7 @@ export function BuklodExpandableWallCaption({
           onPress={() => setExpanded(false)}
           style={styles.toggle}
         >
-          <Text style={styles.toggleText}>See less</Text>
+          <Text style={[styles.toggleText, { color: accentTextColor }]}>See less</Text>
         </Pressable>
       </View>
     );
@@ -70,6 +78,7 @@ export function BuklodExpandableWallCaption({
       <View style={styles.preview}>
         <BuklodMentionText
           {...mentionProps}
+          mentionStyle={mentionStyle}
           text={fullText.replace(/\s*[\r\n]+\s*/g, ' ').trim()}
           numberOfLines={1}
         />
@@ -82,7 +91,7 @@ export function BuklodExpandableWallCaption({
           onPress={() => setExpanded(true)}
           style={styles.inlineToggle}
         >
-          <Text style={styles.toggleText}>See more</Text>
+          <Text style={[styles.toggleText, { color: accentTextColor }]}>See more</Text>
         </Pressable>
       ) : null}
     </View>
