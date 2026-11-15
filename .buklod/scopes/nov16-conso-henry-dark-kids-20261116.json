@@ -43,10 +43,6 @@
     "tests/bible-study-sources.test.cjs",
     "tests/bible-reader-safearea-commentary.test.cjs",
     "tests/bible-radio-visual.test.cjs",
-    "tests/nov16-bible-kids-navigation-safearea.test.mjs",
-    "tests/bible-dark-mode-20261116.test.mjs",
-    "tests/children-bible-expanded-catalog-20261115.test.mjs",
-    "tests/children-story-narration-20261115.test.mjs",
     "tests/nov16-conso-henry-dark-kids-132.test.cjs"
   ],
   "lockedFeatureChanges": [

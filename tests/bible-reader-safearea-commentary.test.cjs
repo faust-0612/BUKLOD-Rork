@@ -6,7 +6,7 @@ const read=p=>fs.readFileSync(p,'utf8');
 test('Bible reader gets top status-bar safe area and independent bottom scroll clearance',()=>{
   const shell=read('src/components/BuklodNavSafeShell.tsx');
   const bible=read('src/app/bible/read.tsx');
-  assert.match(shell, /normalizeBuklodPathname\(pathname\) === '\/bible\/read'/);
+  assert.match(shell, /normalizedPath === '\/bible\/read'/);
   assert.match(shell, /paddingTop: contentTopInset/);
   assert.match(shell, /paddingBottom: contentBottomInset/);
   assert.match(bible, /useBuklodScrollBottomInset\(\{ extra: 38 \}\)/);

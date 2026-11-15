@@ -37,7 +37,7 @@ test('DZAS retains supplied images, real ad, radio behavior, and native/web shar
  const deck=read('src/components/dzas/DzasSignalDeck.tsx');
  const images=read('src/assets/dzasImages.ts');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
- assert.ok(shell.includes("normalizeBuklodPathname(pathname) === '/personal-home/radio'"));
+ assert.ok(shell.includes("normalizedPath === '/personal-home/radio'"));
  assert.ok(source.includes('<DzasSignalDeck'));
  assert.ok(web.includes('<DzasSignalDeck'));
  assert.ok(deck.includes('source={DZAS_LOGO_IMAGE}'));
