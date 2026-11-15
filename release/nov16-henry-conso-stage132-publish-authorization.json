@@ -1,0 +1,64 @@
+{
+  "contractVersion": 1,
+  "release": "BUKLOD Nov16 Matthew Henry + 144 Kids + Dark Mode + Notifications — staging-user Android OTA",
+  "source": {
+    "verifiedHead": "029b010cbb30341b8d09c4f7b9a1f85e2975591a",
+    "frozenRC": "rc/nov16-henry-conso-stage132-verified-20261116",
+    "parentStageSource": "fda52bb743f59a064983dfb17534b1a8cae7bc9f",
+    "draftPR": 846,
+    "productionMainObserved": "69ff92b22b13e26490a93f685ebc89d28e3d6cbf"
+  },
+  "status": "APPROVED_FOR_FAIL_CLOSED_STAGING_PUBLISH_ONLY",
+  "stagingReady": true,
+  "stagingOtaPublished": false,
+  "productionOtaPublished": false,
+  "publicationPolicy": {
+    "allowOtaPublish": true,
+    "allowProductionPromotion": false,
+    "allowNewNativeBuild": false,
+    "allowBackendWrites": false,
+    "allowWebPublish": false,
+    "physicalDeviceAcceptance": "SKIPPED BY OWNER, NOT A PASS"
+  },
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "environment": "preview",
+    "packageId": "org.mzbministry.buklod.staging",
+    "runtimeVersion": "1.3.2",
+    "projectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "signedApkBuildId": "bc4be208-bfb0-42f3-95cb-358353d0600f"
+  },
+  "expectedPrior": {
+    "stageId": "01a1e032-6233-7640-95a5-587ede9afaac",
+    "stageGroup": "ea66ca47-9a5a-4111-b739-31a99ce69eed",
+    "productionId": "01a1dff8-7563-790b-a714-22c316f56590"
+  },
+  "verifiedGates": [
+    "source-and-android-qa SUCCESS 132901445608, focused regressions, TypeScript, Hermes export",
+    "objective-scope-gate SUCCESS 132901369018, no off-scope protected feature mutations",
+    "main-report-integration-qa SUCCESS 132901368948, TS and web compatibility",
+    "audit-only SUCCESS 132901368862, official Google badge, live GEN/1 JHN/3 3JN/1 sparse API, signed actual APK DEX ML Kit module, Expo channel/manifest readback",
+    "Official unmodified Google color-regular.png SHA256 1ce4cf9db4cd6c8ae6f6d49542264f5334f40ac79139d51c145a4e039d26323d and translated content disclaimer/help",
+    "Current staging and production baseline read back before release, must recheck fresh immediately before publish"
+  ],
+  "finalRequiredGates": [
+    "Exact source/PR/CI must still match at dispatch",
+    "Fresh EAS build/channel and current stage/production manifest must match expected previous IDs",
+    "Export Android-only staging Hermes with preview env, runtime 1.3.2 and test",
+    "Recheck staging/production identity at exact publish moment",
+    "Publish exactly one Android OTA to staging-user ONLY",
+    "Read back EAS update:view, latest staging Android manifest and unchanged production ID; publish not complete until verified"
+  ],
+  "exclusions": [
+    "production",
+    "Play AAB",
+    "native APK rebuild",
+    "web",
+    "Supabase migration",
+    "FIS",
+    "Health Center",
+    "SALIKSIK"
+  ],
+  "receipt": "PENDING_OTA_PUBLISH_AND_POSTPUBLISH_VERIFICATION"
+}
