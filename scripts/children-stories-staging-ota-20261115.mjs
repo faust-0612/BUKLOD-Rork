@@ -19,6 +19,8 @@ export const TARGET_PACKAGE = 'org.mzbministry.buklod.staging';
 export const TARGET_RUNTIME = '1.3.2';
 export const SCOPE_PATH = '.buklod/scopes/children-story-staging-20261115.json';
 export const PREVIOUS_MARKER = 'BUKLOD_NOV15_CONSO_STAGING_OTA_' + STAGING_BASE;
+export const PREVIOUS_STAGING_UPDATE_ID = '01a1dc49-05e7-73ec-9a61-c7eae9d1bdd9';
+export const PREVIOUS_STAGING_GROUP_ID = 'f58acdd7-d800-4ae5-b9de-7d29640e04bb';
 export const RELEASE_MARKER = 'BUKLOD_CHILD_STORY_STAGING_132_20261115_';
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
@@ -58,10 +60,10 @@ export function validateExistingRelease(previousUpdates, originalStageManifest) 
   assert.equal(rows[0].message,PREVIOUS_MARKER,'Staging channel advanced past inspected baseline; abort to avoid regression');
   assert.equal(rows[0].runtimeVersion,TARGET_RUNTIME,'Previous staging runtime changed');
   const previousId = originalStageManifest.id?.toLowerCase();
-  assert.ok(previousId,'Missing previous manifest id');
-  // The most recent published batch must include the currently served Android update.
-  assert.ok(rows.some(row=>row.id?.toLowerCase()===previousId && row.message===PREVIOUS_MARKER),
+  assert.equal(previousId,PREVIOUS_STAGING_UPDATE_ID,
     'Current staging manifest is not the inspected baseline');
+  assert.equal(rows[0].group,PREVIOUS_STAGING_GROUP_ID,
+    'Current staging group differs from last independently verified release');
   return { id: previousId, group: rows[0].group, message: PREVIOUS_MARKER };
 }
 
