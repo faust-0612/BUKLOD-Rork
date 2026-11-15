@@ -23,8 +23,7 @@
     "No new OTA without exact-source tests and EAS post-publish manifest verification."
   ],
   "regressionTests": [
-    "tests/children-bible-dark-staging-20261116.test.mjs",
-    "src/features/childrenStories/sundaySchool.test.ts"
+    "tests/children-bible-dark-staging-20261116.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/children-story-bible-dark-staging-20261116.json",
@@ -67,5 +66,10 @@
         "tests/children-bible-dark-staging-20261116.test.mjs"
       ]
     }
+  ],
+  "alternativeApproaches": [
+    "Force all Bible/cards to white despite user dark-mode selection (rejected: inconsistent global theme and accessibility)",
+    "Replace twelve original lessons or use an AI voice/backend at runtime (rejected: offline reliability, costs, translation ambiguity and narrative regressions)",
+    "Publish directly to production or change native build to fix JS styles (rejected: unsafe release scope and unnecessary native changes)"
   ]
 }
