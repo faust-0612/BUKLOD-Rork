@@ -23,10 +23,15 @@ test('Android, not only generic component, requests one near-future native creat
 
 test('Android prefetch never displays NativeAdView or records rendered before visibility', () => {
   const android = read('src/components/BuklodCommunityInlineAd.android.tsx');
-  const guardedRender = android.indexOf('if (nativeAd && !nativeFailed && eligible)');
+  const guardedRender = android.indexOf('if (nativeAd && !nativeFailed && canShowNativeCreative)');
   const mountedView = android.indexOf('<NativeAdView nativeAd=', guardedRender);
   assert.ok(guardedRender >= 0 && mountedView > guardedRender);
-  assert.ok(android.includes('if (!nativeAd || nativeRendered.current || !eligible) return;'));
+  assert.ok(android.includes('if (!nativeAd || nativeRendered.current || !canShowNativeCreative) return;'));
+  // The fast path uses the actual FlatList viewability callback, not a
+  // hardcoded timer or invisible placeholder. The first-view gate stays intact.
+  assert.ok(android.includes("surface === 'wall' && !firstView && Boolean(slotId) && currentListVisibility"));
+  assert.ok(android.includes('firstView || (eligible || prefetch || nativeRequestStarted.current)'));
+  assert.ok(android.includes('if ((!eligible && !hasLoadedCreative) ||'));
   assert.ok(android.includes('!canAttempt ||'));
   assert.ok(android.includes('const { ref, eligible } = useBuklodAdViewportGate()'));
 });
