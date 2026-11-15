@@ -1081,8 +1081,8 @@ export const BIBLE_NEW_RECORDS = [
     "reference": "Luke 17:11–19",
     "emoji": "🙏",
     "title": {
-      "tl": "Ang Sampung Nagpasalamat",
-      "en": "The Ten People Healed"
+      "tl": "Sampung Pinagaling, Isang Nagpasalamat",
+      "en": "Ten Healed, One Thankful"
     },
     "acts": [
       {
