@@ -16,7 +16,13 @@ type TranslationState = {
 export function normalizeHenryLanguage(languageCode: string | null | undefined, translation: string): string {
   const source = (languageCode || (translation === 'ASD' ? 'fil' : 'en')).trim().toLowerCase();
   const code = source.split(/[-_]/)[0];
-  return code === 'fil' ? 'tl' : (/^[a-z]{2,3}$/.test(code) ? code : 'en');
+  // Bible translation metadata may use ISO-639-3 rather than the ML Kit
+  // BCP-47 language tags. Never attempt to download an "eng" model.
+  const aliases: Record<string, string> = {
+    fil: 'tl', tgl: 'tl', eng: 'en', spa: 'es', fra: 'fr',
+    deu: 'de', por: 'pt', ita: 'it', ind: 'id', hin: 'hi',
+  };
+  return aliases[code] ?? (/^[a-z]{2}$/.test(code) ? code : 'en');
 }
 
 export function splitHenryTranslation(text: string, maxLength = 1600): string[] {
