@@ -108,6 +108,18 @@ function BuklodAdMobBanner({
   // captive/offline states remain blocked and the SDK handles request errors.
   const adNetworkAvailable = isConnected && isInternetReachable !== false;
   const pathname = usePathname();
+  // Background/frozen routes retain existing creatives but may not enqueue
+  // fresh AdMob requests or retries while another dashboard is active.
+  const [screenFocused, setScreenFocused] = useState(false);
+  const screenFocusRef = useRef(false);
+  useFocusEffect(useCallback(() => {
+    screenFocusRef.current = true;
+    setScreenFocused(true);
+    return () => {
+      screenFocusRef.current = false;
+      setScreenFocused(false);
+    };
+  }, []));
   const stablePlacementId = placementId ?? `${placement}_generic`;
   // Video companion inventory must not leave a blank post-sized panel while pending.
   // Keep an 8px measurement probe so viewport eligibility still works.
@@ -141,13 +153,20 @@ function BuklodAdMobBanner({
   const unitId = getBuklodBannerUnitId(placement);
   const sdkReady = ready && canRequestAds;
   const shouldRequest =
-    routeSafe && !!unitId && sdkReady && viewportReady && adNetworkAvailable && !failed;
+    screenFocused && routeSafe && !!unitId && sdkReady && viewportReady && adNetworkAvailable && !failed;
   // Never mount native BannerAd until the shared cooldown accepts this slot.
   // Previous code mounted it *before* the reservation effect could reject it.
   const mountBanner =
     routeSafe && reservationReady &&
     (shouldRequest || loaded) && !!unitId && !failed;
   const requestKey = `${pathname}:${stablePlacementId}`;
+  useEffect(() => {
+    // A pending banner is unmounted on blur; don't reuse its old reservation
+    // for a new native request before the shared cooldown has expired.
+    if (screenFocused || loaded || !reservationReady) return;
+    requestedAttempt.current = -1;
+    setReservationReady(false);
+  }, [screenFocused, loaded, reservationReady]);
 
   // A banner callback that never arrives must not leave a reserved blank slot.
   // Bound each SDK attempt, then collapse and recover only after the cooldown.
@@ -173,7 +192,7 @@ function BuklodAdMobBanner({
 
 
   const recoverAfterQuietPeriod = useCallback(() => {
-    if (!failed || !adNetworkAvailable ||
+    if (!screenFocused || !failed || !adNetworkAvailable ||
       Date.now() - failedAt.current < AD_SLOT_REMOUNT_COOLDOWN_MS ||
       getBuklodPassiveAdRequestWaitMs(stablePlacementId, requestKey) > 0
     ) return;
@@ -185,7 +204,7 @@ function BuklodAdMobBanner({
     setAttempt(0);
     setLoaded(false);
     setFailed(false);
-  }, [failed, adNetworkAvailable, opacity, requestKey, stablePlacementId]);
+  }, [screenFocused, failed, adNetworkAvailable, opacity, requestKey, stablePlacementId]);
 
   // Failed slots retry only after the shared quiet period, on focus/resume
   // or through the single bounded timer below; never in a fast no-fill loop.
@@ -196,7 +215,7 @@ function BuklodAdMobBanner({
   // One bounded retry after the shared quiet period, even if the user stays
   // on this screen. No-fill cannot leave a dead slot until manual navigation.
   useEffect(() => {
-    if (!failed || !adNetworkAvailable) return;
+    if (!screenFocused || !failed || !adNetworkAvailable) return;
     const elapsed = Date.now() - failedAt.current;
     const waitMs = Math.max(
       Math.max(0, AD_SLOT_REMOUNT_COOLDOWN_MS - elapsed),
@@ -204,15 +223,17 @@ function BuklodAdMobBanner({
     );
     const timer = setTimeout(recoverAfterQuietPeriod, waitMs + 25);
     return () => clearTimeout(timer);
-  }, [failed, adNetworkAvailable, requestKey, stablePlacementId, recoverAfterQuietPeriod]);
+  }, [screenFocused, failed, adNetworkAvailable, requestKey, stablePlacementId, recoverAfterQuietPeriod]);
 
 
   useEffect(() => {
+    // In healthy feed cards this was one AppState listener per banner slot.
+    if (!screenFocused || !failed) return;
     const sub = AppState.addEventListener('change', state => {
       if (state === 'active') recoverAfterQuietPeriod();
     });
     return () => sub.remove();
-  }, [recoverAfterQuietPeriod]);
+  }, [screenFocused, failed, recoverAfterQuietPeriod]);
 
   useEffect(() => {
     return () => {
@@ -244,7 +265,7 @@ function BuklodAdMobBanner({
   }, [adNetworkAvailable, failed]);
 
   useEffect(() => {
-    if (!shouldRequest || reservationReady) return;
+    if (!screenFocusRef.current || !shouldRequest || reservationReady) return;
     if (reserveBuklodPassiveAdRequest(stablePlacementId, requestKey)) {
       setReservationReady(true);
       return;

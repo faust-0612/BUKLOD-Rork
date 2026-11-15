@@ -1,0 +1,69 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/ad-dashboard-focused-request-guard-20261116.json",
+  "objective": "Prevent background/frozen dashboard screens from initiating AdMob SDK requests during navigation, reduce redundant per-slot AppState listeners, and preserve already loaded creatives and existing ad safety/cooldown rules.",
+  "baseRef": "69ff92b22b13e26490a93f685ebc89d28e3d6cbf",
+  "productionBaselineEvidence": "GitHub main 69ff92b22b13e26490a93f685ebc89d28e3d6cbf checked Nov16 2026. Latest Supabase native app operational events over last 60min (1.3.6 build30 runtime1.3.2) show 14 NativeAd requests, 4 native failures incl NATIVE_AD_LOAD_TIMEOUT, 6 banner requests and 1 banner no-fill; callbacks for certain placement IDs appear on different routes. This telemetry cannot prove the exact served production OTA fingerprint or on-device navigation latency. Last documented served Expo production update 01a1da5c-0179-79fc-85c9-591cdb782190; later production publish outcome not independently verified. No RC or production release claimed.",
+  "chosenApproach": "Apply focus-aware request gates to existing Android NativeAd and banner slots while retaining loaded SDK media; drop success-path resume listeners, guard cooldown state after blur, and key only the wide header ad by its actual placement.",
+  "selectionRationale": "Preserves first-view prefetch and filled creatives, prevents offscreen requests and repeated native remounts, and isolates changes to three ad components; does not alter global AdMob IDs, consent, frequency, auth, network, or routing.",
+  "alternativeApproaches": [
+    "Unconditionally unmount all ads on each dashboard switch (rejected: refill latency, cooldown starvation, possible duplicate SDK requests)",
+    "Decrease banner/native ad exposure or disable prefetch (rejected: reduced fill and contradicts approved first-view monetization)"
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "navigation-scroll",
+    "ads-finance-points",
+    "app-runtime"
+  ],
+  "preserveBehaviors": [
+    "Native Android Expo runtime 1.3.2, production channel, build identity and all configured AdMob units unchanged.",
+    "Existing genuine SDK impression reporting, UMP consent, live no-fill handling and shared request cooldown unchanged.",
+    "Existing Android first-view prefetch allowed only on the focused screen; already loaded SDK creative retained across blur.",
+    "Existing no-hidden NativeAdView before real visibility, video quality and scroll-stop, Connect/PTT, Wall, Profile, Finance/QMP and privacy unchanged."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ad-dashboard-focused-request-guard-20261116.json",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodHeaderSponsor.tsx",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Native and banner may start SDK requests on focused screens only; frozen dashboards cannot start new requests.",
+    "Native prefetch still supports near-visible assets and never mounts SDK creative before viewability.",
+    "Already-loaded creatives remain available after re-entry without forced reload; expired cooldown recovers failed inventory.",
+    "Healthy ad slots do not register per-card AppState resume handlers.",
+    "Focused Node tests and all existing protected-feature/CI gates pass before an RC or production OTA is considered.",
+    "Mandatory existing appwide ad contract exercised in PR, compiled RC and production OTA prevents future loss of dashboard focus guards."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Focus-sensitive lifecycle gates affect Android advertising component render work.",
+      "preservedBehaviors": [
+        "No native runtime, package, auth, media, or backend changes."
+      ],
+      "tests": [
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "AdMob NativeAd/banner startup and recovery constrained by the actual focused dashboard.",
+      "preservedBehaviors": [
+        "Same ad units, consent, telemetry, cooldown and separate Finance/QMP rules."
+      ],
+      "tests": [
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+      ]
+    }
+  ]
+}

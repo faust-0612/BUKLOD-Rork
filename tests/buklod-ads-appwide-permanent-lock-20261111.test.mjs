@@ -217,3 +217,24 @@ test('Unknown fill blockers are classified without synthetic impressions or PII'
  for(const name of ['NO_FILL','NATIVE_AD_LOAD_TIMEOUT','BANNER_AD_LOAD_TIMEOUT','NETWORK_ERROR']) assert.ok(diagnostics.includes(name));
  assert.match(diagnostics,/only fixed non-PII failure categories/);
 });
+
+test('Mandatory RC/production ad lock prevents frozen dashboards from triggering new native requests', () => {
+  const native = read('src/components/BuklodCommunityInlineAd.android.tsx');
+  const banner = read('src/components/BuklodAdMobBanner.tsx');
+  const header = read('src/components/BuklodHeaderSponsor.tsx');
+  // This test is invoked unconditionally by both compiled RC and production
+  // OTA: future ads/UI changes must preserve focus isolation or fail release.
+  assert.match(native, /const canPrefetchNative\s*=\s*active && screenFocused && routeSafe/);
+  assert.match(native, /const canShowNativeCreative\s*=\s*screenFocused &&/);
+  assert.match(native, /if \(!screenFocusRef\.current \|\| !keepNativeLifecycle/);
+  assert.match(native, /if \(!screenFocused \|\| !bannerFailed\) return;\s*const sub = AppState\.addEventListener/);
+  assert.match(banner, /const shouldRequest\s*=\s*screenFocused && routeSafe/);
+  assert.match(banner, /if \(!screenFocusRef\.current \|\| !shouldRequest \|\| reservationReady\) return/);
+  assert.match(banner, /const mountBanner\s*=\s*routeSafe && reservationReady &&\s*\(shouldRequest \|\| loaded\)/);
+  assert.match(banner, /if \(!screenFocused \|\| !failed\) return;\s*const sub = AppState\.addEventListener/);
+  assert.match(header, /key=\{\`header:\$\{placement\}\`\}/);
+  assert.match(read('src/app/(tabs)/_layout.tsx'), /freezeOnBlur: true/);
+  // Ad safety and revenue rules remain separately locked by prior tests.
+  assert.match(native, /NativeAdEventType\.IMPRESSION/);
+  assert.match(banner, /onAdImpression:/);
+});
