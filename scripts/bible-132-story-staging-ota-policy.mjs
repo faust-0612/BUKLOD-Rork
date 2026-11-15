@@ -49,7 +49,7 @@ function config(){
 export function proveFrozenRelease(sha){
   assert.match(sha,/^[a-f0-9]{40}$/);
   assert.equal(git('rev-parse','HEAD'),sha);
-  assert.equal(git('rev-parse',BRANCH),sha,'Release branch changed');
+  assert.equal(git('rev-parse','refs/remotes/origin/'+BRANCH),sha,'Release branch changed');
   assert.equal(git('merge-base',FROZEN_SOURCE,sha),FROZEN_SOURCE);
   const changed=git('diff','--name-only',FROZEN_SOURCE,sha).split('\n').filter(Boolean).sort();
   assert.deepEqual(changed,RELEASE_PATHS.slice().sort(),'Post-reviewed app source changed');
