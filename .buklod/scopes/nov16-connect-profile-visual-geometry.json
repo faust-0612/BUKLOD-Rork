@@ -28,11 +28,13 @@
     "src/components/points/BuklodProfileCharacterCard.tsx",
     "src/app/(tabs)/me.tsx",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
-    "tests/nov16-connect-profile-geometry.test.mjs"
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-profile-navigation-character-guard.test.mjs"
   ],
   "regressionTests": [
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
-    "tests/nov16-connect-profile-geometry.test.mjs"
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-profile-navigation-character-guard.test.mjs"
   ],
   "acceptanceChecks": [
     "Search bar renders below the complete green hero and unread status, including dark mode.",
@@ -44,5 +46,37 @@
   ],
   "releaseMode": "dev-source-only",
   "readyForOta": false,
-  "otaPublished": false
+  "otaPublished": false,
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Source-only Connect/Profile screen geometry adjustment; no Expo runtime, native modules, app config or OTA identity changes.",
+      "preservedBehaviors": [
+        "Preserve exact current Expo runtime and native Ads/PTT feature wiring, with existing first-view ad and reward placements."
+      ],
+      "tests": [
+        "tests/nov16-connect-profile-geometry.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Connect search/header positioning and Profile identity/cover styling are changed without altering route handlers or auth access.",
+      "preservedBehaviors": [
+        "Keep Connect tabs, search, requests, personal and community routing, and signed-in account-scoped profile actions."
+      ],
+      "tests": [
+        "tests/nov16-profile-navigation-character-guard.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Remove only the duplicate All-Time Top Ten display and extra RPC from the Character panel, preserving character state and rewards.",
+      "preservedBehaviors": [
+        "Keep live Character art and level, Circle Rank, point claims, studio customization and reward advertisement behavior."
+      ],
+      "tests": [
+        "tests/nov16-profile-navigation-character-guard.test.mjs"
+      ]
+    }
+  ]
 }
