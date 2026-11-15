@@ -1,0 +1,105 @@
+# Read-only postpublication acceptance. DOES NOT run eas update or touch production.
+name: BUKLOD Nov16 Consolidated OTA Server Readback ONLY
+on:
+  push:
+    branches: [audit/nov16-conso-staging132-postpublish-readback]
+    paths:
+      - '.github/workflows/buklod-nov16-conso-stage132-postpublish-readback.yml'
+permissions:
+  contents: read
+jobs:
+  prove-server-update:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/audit/nov16-conso-staging132-postpublish-readback' && startsWith(github.event.head_commit.message, 'BUKLOD_NOV16_STAGING_READBACK:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require read-only audit and authenticated Expo identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          test "$GITHUB_REF" = 'refs/heads/audit/nov16-conso-staging132-postpublish-readback'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD:scripts/buklod-nov16-complete-conso-staging132-release-policy.mjs)" = "$(git rev-parse 076cb901928adebdf92c1a98cece6b87437354dd:scripts/buklod-nov16-complete-conso-staging132-release-policy.mjs)"
+          node - <<'NODE'
+          const a=require('node:assert/strict'),app=require('./app.config.js')({config:{}}),eas=require('./eas.json');
+          a.equal(app.runtimeVersion,'1.3.2');
+          a.equal(app.android.package,'org.mzbministry.buklod.staging');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.equal(eas.build.production.channel,'production');
+          a.notEqual(eas.build.production.channel,eas.build['staging-user'].channel);
+          NODE
+      - name: Query latest signed EAS staging and production without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/buklod-nov16-ota-audit
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/buklod-nov16-ota-audit/staging-channel.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/buklod-nov16-ota-audit/production-channel.json
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 10 --json --non-interactive > /tmp/buklod-nov16-ota-audit/staging-updates.json
+          node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict');
+          const p='/tmp/buklod-nov16-ota-audit/';
+          const v=JSON.parse(fs.readFileSync(p+'staging-updates.json','utf8'));
+          const u=(v.currentPage??v)[0];
+          a.ok(u?.group, 'Live EAS staging list has no latest update group');
+          a.match(String(u.group), /^[0-9a-f-]{36}$/i);
+          const raw=String(u.message??'');
+          const msg=/^"([^"]+)" \([^()]+\)$/.exec(raw)?.[1]??raw;
+          a.equal(msg,'BUKLOD_NOV16_COMPLETE_CONSO_STAGE132_5c5e528a89b293efaf7874fd9512640e054b3e59','Latest update is not the just-published exact source');
+          a.equal(u.runtimeVersion,'1.3.2');
+          fs.writeFileSync(p+'latest-group.txt',u.group);
+          NODE
+          npx --yes eas-cli@27.9.0 update:view "$(cat /tmp/buklod-nov16-ota-audit/latest-group.txt)" --json > /tmp/buklod-nov16-ota-audit/update-view.json
+      - name: Independently verify Expo manifest, source, update group and unchanged production
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {manifest,verifyChannels,verifyUpdate,PROJECT,BUILD_ID} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const root='/tmp/buklod-nov16-ota-audit/';
+          const read=p=>JSON.parse(fs.readFileSync(root+p,'utf8'));
+          const expectedSource='5c5e528a89b293efaf7874fd9512640e054b3e59';
+          const expectedId='01a1e0c8-488e-7474-918d-6c1f0a0f5e8d';
+          const branch=verifyChannels(read('staging-channel.json'),read('production-channel.json'));
+          assert.equal(branch.name,'staging-user');
+          const view=read('update-view.json');
+          const item=verifyUpdate(view,expectedSource,'staging-user');
+          const latest=(read('staging-updates.json').currentPage??read('staging-updates.json'))[0];
+          assert.equal(item.group,latest.group);
+          assert.equal(item.id.toLowerCase(),expectedId);
+          const staging=await manifest('staging-user');
+          assert.equal(staging.id.toLowerCase(),expectedId);
+          assert.equal(staging.runtimeVersion,'1.3.2');
+          assert.equal(staging.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(staging.extra?.expoClient?.extra?.appEnvironment,'staging');
+          const prod=await manifest('production');
+          assert.equal(prod.id,'01a1dff8-7563-790b-a714-22c316f56590','Production manifest moved');
+          assert.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          const receipt={status:'VERIFIED SERVER-SIDE STAGING ANDROID OTA',updateId:item.id,groupId:item.group,sourceSha:expectedSource,appSourceSha:'131c6d294062ce34ff91f91a7090b9bb0d6ce6f2',channel:'staging-user',environment:'preview',projectId:PROJECT,package:'org.mzbministry.buklod.staging',runtimeVersion:item.runtimeVersion,platform:item.platform,signedStagingBuildId:BUILD_ID,productionManifestIdUnchanged:prod.id,physicalDeviceVerification:'SKIPPED BY OWNER',qa:[43754461596,43754461541],publishRun:43754850662};
+          fs.writeFileSync(root+'verification.json',JSON.stringify(receipt,null,2)+'\n');
+          console.log(JSON.stringify(receipt,null,2));
+          NODE
+      - name: Preserve nonsensitive server readback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov16-stage132-verified-server-receipt
+          path: /tmp/buklod-nov16-ota-audit/verification.json
+          retention-days: 14
+          if-no-files-found: ignore
