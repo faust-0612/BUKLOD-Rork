@@ -3,7 +3,8 @@
 do $bible_v4_review_contract$
 declare
  f text;
- p record;
+ v_is_definer boolean;
+ v_configs text[];
 begin
  if to_regprocedure('public.get_my_buklod_bible_quiz_v4_review_details(uuid)') is null then
   raise exception 'Bible V4 review detail RPC missing';
@@ -11,17 +12,17 @@ begin
  select pg_get_functiondef('public.get_my_buklod_bible_quiz_v4_review_details(uuid)'::regprocedure),
         x.prosecdef,
         x.proconfig
- into f,p
+ into f,v_is_definer,v_configs
  from pg_proc x
  where x.oid='public.get_my_buklod_bible_quiz_v4_review_details(uuid)'::regprocedure;
  if f is null then raise exception 'No review RPC definition';end if;
- if not p.prosecdef or not ('search_path='=any(p.proconfig)) then
+ if not coalesce(v_is_definer,false) or not ('search_path='=any(coalesce(v_configs,array[]::text[]))) then
   raise exception 'Review RPC search_path or security definer guard missing';
  end if;
  if position('x.user_id=actor' in regexp_replace(lower(f),'[[:space:]]+','','g'))=0 then
   raise exception 'Review RPC user ownership check missing';
  end if;
- if position('if a.state=''started'' then return jsonb_build_object(''review'',null)' in regexp_replace(lower(f),'[[:space:]]+','','g'))=0 then
+ if position('ifa.state=''started''thenreturnjsonb_build_object(''review'',null)' in regexp_replace(lower(f),'[[:space:]]+','','g'))=0 then
   raise exception 'Pre-submission answer access guard missing';
  end if;
  if position('submitted_answers' in f)=0 then
