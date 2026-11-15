@@ -491,7 +491,7 @@ export async function suggestReferralTargets(
   return items
     .map((row) => {
       const item = row as Record<string, unknown>;
-      const code = String(item.referral_code ?? '').trim();
+      const code = String(item.canonical_referral_code ?? item.referral_code ?? '').trim();
       const label = String(item.label ?? item.username ?? '').trim();
       if (!code || !label) return null;
       return {
@@ -557,11 +557,15 @@ export async function recordReferral(
   if (!resolved.found) throw new Error(resolved.message || 'Referral not found.');
   const legacyCode = String(resolved.referral_code ?? '').trim();
   const canonicalCode = String(resolved.canonical_referral_code ?? '').trim();
-  if (!legacyCode) throw new Error('Referral identity unavailable.');
-  const { error } = await (supabase as any).rpc(
-    'buklod_record_referral_v1', { p_referrer_code: legacyCode },
+  if (!legacyCode || !canonicalCode) {
+    throw new Error('Referral identity is not ready. Select a confirmed BUKLOD account or invite code.');
+  }
+  // The server verifies that a retry belongs to the SAME referrer.
+  const { data, error } = await (supabase as any).rpc(
+    'buklod_record_referral_verified_v2', { p_referrer_code: legacyCode },
   );
-  if (error && !/already recorded/i.test(String(error.message ?? ''))) throw error;
+  if (error) throw error;
+  if (data?.ok !== true) throw new Error('Referral attribution could not be verified.');
 
   if (canonicalCode) {
     // Durable pending attribution: if the edge function or network fails,
