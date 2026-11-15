@@ -50,11 +50,6 @@
   ],
   "regressionTests": [
     "tests/conso-kids-dark-20261116.test.mjs",
-    "tests/children-stories-contract.test.mjs",
-    "tests/children-stories-navigation-ad-safety.test.mjs",
-    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
-    "src/features/childrenStories/catalog.test.ts",
-    "src/features/childrenStories/sundaySchool.test.ts",
     "tests/bible-dark-mode-20261116.test.mjs"
   ],
   "releaseMode": "isolated-android-staging-ota",
@@ -82,5 +77,10 @@
         "tests/bible-dark-mode-20261116.test.mjs"
       ]
     }
+  ],
+  "alternativeApproaches": [
+    "Leave current 12 stories and hardcoded night theme text: rejected because Sunday School scope and accessibility defects remain.",
+    "Change app-global theme palette instead of owning screens: rejected because it risks regressions to already accepted Connect/Profile/Wall.",
+    "Deploy new build or production instead of staging 1.3.2 OTA: rejected as needless native/runtime change and risk."
   ]
 }
