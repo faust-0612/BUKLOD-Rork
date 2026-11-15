@@ -14,7 +14,8 @@
     "ads-monetization",
     "app-runtime",
     "navigation-scroll",
-    "ads-finance-points"
+    "ads-finance-points",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Staging approved children's stories narration, dark mode, Henry commentary, navigation, Kingdom, media rendering, Profile Top Ten, and previously verified staging features remain unchanged.",
@@ -29,11 +30,14 @@
     "src/components/BuklodAdMobBanner.tsx",
     "src/components/BuklodHeaderSponsor.tsx",
     "tests/ad-dashboard-focus-performance-20261116.test.mjs",
-    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    ".github/workflows/buklod-nov16-ad-dashboard-ota-rc-no-publish.yml",
+    "tests/nov16-ad-dashboard-ota-rc-preflight.test.mjs"
   ],
   "regressionTests": [
     "tests/ad-dashboard-focus-performance-20261116.test.mjs",
-    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/nov16-ad-dashboard-ota-rc-preflight.test.mjs"
   ],
   "acceptanceChecks": [
     "The three patched runtime source files and both mandatory tests exactly match canonical main 51b9b35af1302ce1f6d1a20ba12c2dc8068a80f2.",
@@ -41,7 +45,8 @@
     "Focused ad-dashboard focus test and permanent ad-lock suite pass on exact candidate SHA.",
     "Engineering Accountability and Main Integration QA complete successfully on exact candidate SHA.",
     "Before any later staging OTA: independent native/runtime and EAS preview env check, Expo Android Hermes export, frozen RC fingerprint, exact staging-user channel and update ID readback. User device execution is SKIPPED, not treated as PASS.",
-    "Before production OTA: stage RC reconciled to updated main, no unrelated staging merge, production native/runtime/source freeze, independent production manifest verification."
+    "Before production OTA: stage RC reconciled to updated main, no unrelated staging merge, production native/runtime/source freeze, independent production manifest verification.",
+    "Dedicated NO-PUBLISH GitHub Actions workflow on exact candidate SHA runs Android Hermes export, TSC, focused ad safety, native runtime/Expo channel preflight and archives a three-day frozen Android source RC artifact."
   ],
   "lockedFeatureChanges": [
     {
@@ -63,6 +68,16 @@
       "tests": [
         "tests/ad-dashboard-focus-performance-20261116.test.mjs",
         "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Added a strictly no-publish OTA preparation/Android compiler workflow scoped to staging-user without loosening existing release verification.",
+      "preservedBehaviors": [
+        "No automatic update to staging-user or production; existing native package identity and release gating unchanged."
+      ],
+      "tests": [
+        "tests/nov16-ad-dashboard-ota-rc-preflight.test.mjs"
       ]
     }
   ],
