@@ -15,7 +15,8 @@ test('FIS release workflow stays on isolated feature branch, never Main project 
 
 test('FIS release gates immutable preview before aliasing exact artifact to production', () => {
   assert.match(workflow, /npx tsc --noEmit/);
-  assert.match(workflow, /npx jest __tests__\/buklodFisReadModel.test.ts/);
+  assert.match(workflow, /node --test tests\/buklod-fis-finance-20261115.test.mjs/);
+  assert.match(workflow, /tests\/buklod-fis-read-model-runtime-20261115.test.mjs/);
   assert.match(workflow, /--dev-domain buklod-fis/);
   assert.match(workflow, /deploy:alias --prod --id/);
   assert.match(workflow, /cmp \/tmp\/fis-preview.html \/tmp\/fis-production.html/);

@@ -46,7 +46,8 @@
     "tests/buklod-fis-finance-20261115.test.mjs",
     "tests/buklod-fis-auth-route-20261115.test.mjs",
     "tests/buklod-fis-deploy-identity-20261115.test.mjs",
-    "tests/buklod-fis-router-boot-20261115.test.mjs"
+    "tests/buklod-fis-router-boot-20261115.test.mjs",
+    "tests/buklod-fis-read-model-runtime-20261115.test.mjs"
   ],
   "allowedPaths": [
     "src/app/admin/fis.tsx",
@@ -61,7 +62,8 @@
     ".github/workflows/buklod_fis_expo_standalone_release.yml",
     "tests/buklod-fis-auth-route-20261115.test.mjs",
     "tests/buklod-fis-deploy-identity-20261115.test.mjs",
-    "tests/buklod-fis-router-boot-20261115.test.mjs"
+    "tests/buklod-fis-router-boot-20261115.test.mjs",
+    "tests/buklod-fis-read-model-runtime-20261115.test.mjs"
   ],
   "alternativeApproaches": [
     "Parallel FIS database rejected: conflicts with Finance V3 source of truth",
