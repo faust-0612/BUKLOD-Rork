@@ -1,0 +1,130 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-complete-conso-staging132.json",
+  "objective": "Single-source Android staging OTA: preserve all latest 144 bilingual Sunday School/Bible and Henry accurate Filipino; add 45 spoken dialogue scenes; reconcile Connect/Profile screen geometry, secure Bible Quiz review, AdMob dashboard first-view and navigation focus performance.",
+  "baseRef": "rc/nov16-henry-verse-accurate-stage132-prep",
+  "productionBaselineEvidence": "Latest independently reported staging-user Android update 01a1e08b-6fe8-72d1-9a5c-e6f37e6cf116 from f340829775c904aecc9162937bc011fb16c5a34e; latest independently QA-verified Henry source 81ace5141f4d676ce708ad103c9849eddc01b30d. Must reread actual EAS manifests before staging publish. No production mutation.",
+  "chosenApproach": "Copy only preverified, nonoverlapping JS source blobs from PR #851 (ads), #853 (Connect/Profile), #848 (quiz) and PR #854's 45-scene dialogue map, over source #852 Henry 1.3.2. Retain new 144 story corpus, StoryNarrator and new Bible reader byte-identical. Include already-applied quiz migration as canonical source only.",
+  "selectionRationale": "Latest staging source and patch sources have identical prechange blobs for shared routes; isolated overlays avoid replacing all of main with old staging or rolling back newer Bible functionality.",
+  "alternativeApproaches": [
+    "Whole main merge rejected: staging and main histories diverge with newer Bible content.",
+    "Older 12-story reader transplant rejected: breaks expanded 144-story library and narrated audio.",
+    "Untested Expo publish rejected: mandatory native/runtime, ads and security checks required."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-monetization",
+    "ads-finance-points",
+    "navigation-scroll",
+    "navigation-auth",
+    "kingdom-character",
+    "child-safety",
+    "scripture-accuracy",
+    "offline-progress",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "144 complete Bible and children's stories, moral/spiritual lessons, progress, four questions, new StoryNarrator and optional Google ML Kit translation.",
+    "Existing AdMob IDs, genuine impressions, consent, cooldowns, NativeAd retention, first-view prefetch and Wall video quality.",
+    "Cluster/PTT/calls, Home/Wall/LIFE, retired IGPAT navigation, canonical Profile overall/monthly rank and rewards.",
+    "Bible quiz read-only own-submitted-attempt review; no grade, score, answer or point mutation, existing live migration reused.",
+    "No native ABI, dependencies, Expo runtime/app identities, package, production, store, web, or new Supabase mutation; actual-device check skipped by owner."
+  ],
+  "allowedPaths": [
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodHeaderSponsor.tsx",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/points/BuklodProfileCharacterCard.tsx",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-profile-navigation-character-guard.test.mjs",
+    "src/components/bible/BuklodBibleQuizV4.tsx",
+    "supabase/migrations/20261115192034_buklod_bible_v4_review_transparency.sql",
+    "supabase/tests/buklod_bible_v4_review_security_20261116.sql",
+    "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
+    "tests/buklod-bible-v4-review-ota-20261116.test.mjs",
+    "src/features/childrenStories/sundaySchoolDialogues.ts",
+    "tests/children-stories-dialogue-staging-20261116.test.mjs",
+    ".buklod/scopes/nov16-complete-conso-staging132.json"
+  ],
+  "regressionTests": [
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-profile-navigation-character-guard.test.mjs",
+    "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
+    "tests/buklod-bible-v4-review-ota-20261116.test.mjs",
+    "tests/children-stories-dialogue-staging-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Staging-only JavaScript UX/reading update with unchanged 1.3.2 ABI.",
+      "preservedBehaviors": [
+        "Signed staging APK/runtime remains compatible."
+      ],
+      "tests": [
+        "tests/children-stories-dialogue-staging-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Android AdMob request and screen-focus performance protections.",
+      "preservedBehaviors": [
+        "Do not change IDs, consent, SDK impressions, pacing, QMP or payouts."
+      ],
+      "tests": [
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Connect search and avatar layout and Profile cover/rank layout.",
+      "preservedBehaviors": [
+        "Preserve call/PTT, Connect navigation, owner identity and ads."
+      ],
+      "tests": [
+        "tests/nov16-connect-profile-geometry.test.mjs",
+        "tests/nov16-profile-navigation-character-guard.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Remove only duplicate Character All-Time leaderboard RPC.",
+      "preservedBehaviors": [
+        "Keep canonical monthly/all-time ranking and Kingdom rewards."
+      ],
+      "tests": [
+        "tests/nov16-profile-navigation-character-guard.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Consolidated staging QA-only source, production isolation.",
+      "preservedBehaviors": [
+        "Never mutate production OTA or Play."
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Exact SHA QA for merged code plus regressions: ads, Connect/Profile, Stories, Henry translation and Bible Quiz security.",
+    "Production and staging channel manifest identity before and after, signed APK native runtime and Android Hermes export.",
+    "No duplicate publication and latest staging baseline source checked before release.",
+    "Actual-device verification SKIPPED BY OWNER, not passed."
+  ],
+  "releaseMode": "staging-source-only-until-gates",
+  "releaseTarget": "Android staging-user runtime 1.3.2 preview",
+  "otaPublished": false,
+  "productionOtaPublished": false,
+  "actualDeviceVerification": "SKIPPED_BY_OWNER"
+}

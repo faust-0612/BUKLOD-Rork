@@ -91,6 +91,7 @@ BuklodHeaderSponsor({
             }
           >
             <BuklodAdMobBanner
+              key={`header:${placement}`}
               placement={
                 admobPlacement(
                   placement,
