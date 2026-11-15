@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/children-bible-library-20261115.json",
+  "objective": "Extend verified BUKLOD Children's Story World with 132 new original offline bilingual biblical story retellings and full Sunday School lessons, preserving active 1.3.2 staging runtime and all unrelated production functionality.",
+  "baseRef": "ea9a72c687c0885ea6a3c14a883503204f83dad4",
+  "productionBaselineEvidence": "Derived from already verified Android staging-user source ea9a72c687c0885ea6a3c14a883503204f83dad4, update 01a1dfb1-578c-7e47-8547-ff3065c6792a, runtime 1.3.2, package org.mzbministry.buklod.staging, release run 43725915006. No new OTA or production deployment performed by this PR.",
+  "chosenApproach": "Add original Bible narrative data and typed adapters on top of verified staging HEAD, reuse existing Sunday School reader and TTS, add explicit OT/NT browse and reference search. Only child-feature source and tests touched.",
+  "selectionRationale": "Avoid reimplementing reader or rebasing on stale main; preserve already published Wall/media/ads/LIFE/Connect/Rankings and 12 offline children stories.",
+  "riskAreas": [
+    "child-safety",
+    "biblical-content-quality",
+    "copyright",
+    "accessibility",
+    "offline",
+    "localization",
+    "performance",
+    "ad-safety",
+    "release-isolation"
+  ],
+  "preserveBehaviors": [
+    "Existing 12 bundled stories and full lesson narration remain unchanged.",
+    "No ads or advertising prewarm within child-directed story routes.",
+    "Other areas' aggressive approved ads and video rendering are byte-identical.",
+    "No child accounts/PII. Adult-only local story progress persists and remains scoped.",
+    "No production OTA, backend migration, new native build, Play Store submission, branch merge or database writes."
+  ],
+  "acceptanceChecks": [
+    "All 144 story IDs unique, 132 new original bilingual accounts from both testaments, correct Bible book references.",
+    "Expanded Sunday School lesson schema, 3 narrative sections, prayers, morals and spiritual reflections, quiz and discussion supported without network.",
+    "Existing StoryArt and Expo speech lifecycle unchanged; short and long narratives readable offline.",
+    "Tests and exact-source Android TypeScript/Hermes export pass before any staging OTA.",
+    "Signed staging app/runtime 1.3.2, EAS staging channel freshness and independent receipt verification mandatory before publication.",
+    "Separate production gates; no automatic promotion."
+  ],
+  "allowedPaths": [
+    "src/app/children-stories/index.tsx",
+    "src/features/childrenStories/bibleExpansion.ts",
+    "src/features/childrenStories/bibleExpansionNew.ts",
+    "src/features/childrenStories/bibleExpansionOld.ts",
+    "src/features/childrenStories/catalog.test.ts",
+    "src/features/childrenStories/catalog.ts",
+    "src/features/childrenStories/sundaySchool.ts",
+    "tests/children-bible-expanded-catalog-20261115.test.mjs",
+    ".buklod/scopes/children-bible-library-20261115.json"
+  ],
+  "regressionTests": [
+    "tests/children-bible-expanded-catalog-20261115.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Only additive JavaScript and TypeScript child story data, filter UI and lesson mapping are added to the already verified Expo runtime 1.3.2 staging baseline.",
+      "preservedBehaviors": [
+        "Stable staging runtime, package and channel; no new native dependencies.",
+        "Existing child-friendly story reader, narration, local adult progress and child-directed ad safety preserved.",
+        "Other BUKLOD Home, Wall, Connect, Profile, LIFE and AdMob features untouched."
+      ],
+      "tests": [
+        "tests/children-bible-expanded-catalog-20261115.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Regenerate or replace the entire story screen: rejected to preserve UI, TTS and children-friendly behavior.",
+    "Remote paid AI generation for every story: rejected due cost, offline limitations and safety.",
+    "Publish older main branch directly: rejected as it may undo verified staging functionality."
+  ],
+  "readyForStaging": false,
+  "productionPublished": false,
+  "releaseStatus": "DEV SOURCE ONLY. CI/TypeScript/Android Hermes/editorial checks required; no OTA."
+}
