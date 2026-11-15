@@ -10,6 +10,12 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import BuklodWeeklyReportForm from '@/components/BuklodWeeklyReportForm';
+import {
+  pickReportEvidencePhoto,
+  uploadReportEvidencePhoto,
+  type ReportEvidencePhoto,
+  type ReportPhotoAsset,
+} from '@/lib/buklodReportFiles';
 import { setPreferredReportAssignment } from '@/lib/buklodReportDomain';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
@@ -124,6 +130,9 @@ export default function BuklodReportAssignmentForm({
   const [context, setContext] = useState<ReportContext | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [savedLabel, setSavedLabel] = useState('');
+  const [pendingPhoto, setPendingPhoto] = useState<ReportPhotoAsset | null>(null);
+  const [evidencePhotos, setEvidencePhotos] = useState<ReportEvidencePhoto[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const load = useCallback(async () => {
     if (!scopeId) return;
@@ -148,6 +157,7 @@ export default function BuklodReportAssignmentForm({
         flat[key] = value == null ? '' : String(value);
       }
       setAnswers(flat);
+      setEvidencePhotos(Array.isArray(next.content?.evidence_photos) ? next.content.evidence_photos.slice(0, 10) : []);
     } catch (loadError: any) {
       const message = String(loadError?.message ?? 'Unable to open report.');
       if (message.includes('no_report_assignment') || message.includes('404')) {
@@ -176,7 +186,7 @@ export default function BuklodReportAssignmentForm({
   );
 
   const save = useCallback(async (submit: boolean) => {
-    if (!context || saving || readOnly || fields.length === 0) return;
+    if (!context || saving || readOnly || uploadingPhoto || pendingPhoto || fields.length === 0) return;
 
     if (submit) {
       const missing = fields.find((field) => field.required && !String(answers[field.id] ?? '').trim());
@@ -192,6 +202,7 @@ export default function BuklodReportAssignmentForm({
       const content = {
         schema: context.form_schema || 'BUKLOD_DYNAMIC_FORM_V1',
         answers,
+        evidence_photos: evidencePhotos,
       };
       const { data, error: invokeError } = await supabase.functions.invoke('buklod-report-api-v1', {
         body: {
@@ -222,7 +233,37 @@ export default function BuklodReportAssignmentForm({
     } finally {
       setSaving(false);
     }
-  }, [answers, context, fields, onSubmitted, readOnly, saving, scopeId]);
+  }, [answers, context, evidencePhotos, fields, onSubmitted, pendingPhoto, readOnly, saving, scopeId, uploadingPhoto]);
+
+  const selectEvidencePhoto = useCallback(async () => {
+    if (readOnly || uploadingPhoto) return;
+    setError('');
+    try {
+      setPendingPhoto(await pickReportEvidencePhoto());
+    } catch (pickError: any) {
+      setError(pickError?.message || 'Could not select a photo.');
+    }
+  }, [readOnly, uploadingPhoto]);
+
+  const attachEvidencePhoto = useCallback(async () => {
+    if (!pendingPhoto || !context?.report_assignment_id || uploadingPhoto || evidencePhotos.length >= 10) return;
+    setUploadingPhoto(true);
+    setError('');
+    try {
+      const saved = await uploadReportEvidencePhoto({
+        scopeId,
+        assignmentId: context.report_assignment_id,
+        asset: pendingPhoto,
+      });
+      setEvidencePhotos((current) => [...current, saved]);
+      setPendingPhoto(null);
+      setSavedLabel('Private photo attached. Save the draft or submit the report.');
+    } catch (attachError: any) {
+      setError(attachError?.message || 'Could not attach photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }, [context?.report_assignment_id, evidencePhotos.length, pendingPhoto, scopeId, uploadingPhoto]);
 
   if (loading) {
     return (
@@ -351,16 +392,42 @@ export default function BuklodReportAssignmentForm({
         );
       })}
 
+      <View style={styles.evidencePanel}>
+        <Text style={styles.fieldLabel}>PHOTO EVIDENCE · {evidencePhotos.length}/10</Text>
+        <Text style={styles.fieldHelp}>Attach photos from this reporting period. Only you and an authorized report reviewer can access these images.</Text>
+        {evidencePhotos.map((photo) => (
+          <Text key={photo.path} style={styles.fieldHelp}>✓ {photo.filename}</Text>
+        ))}
+        {pendingPhoto && !readOnly ? (
+          <View style={styles.photoPending}>
+            <Text style={styles.fieldHelp}>Selected: {pendingPhoto.filename}. This photo is not uploaded until you confirm.</Text>
+            <View style={styles.choiceRow}>
+              <Pressable disabled={uploadingPhoto} onPress={() => setPendingPhoto(null)} style={styles.secondaryButton}>
+                <Text style={styles.secondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable disabled={uploadingPhoto} onPress={() => void attachEvidencePhoto()} style={styles.primaryButton}>
+                <Text style={styles.primaryText}>{uploadingPhoto ? 'Uploading…' : 'Confirm attachment'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : !readOnly && evidencePhotos.length < 10 ? (
+          <Pressable disabled={uploadingPhoto} onPress={() => void selectEvidencePhoto()} style={styles.secondaryButton}>
+            <MaterialCommunityIcons name="camera-plus-outline" size={19} color={colors.greenDark} />
+            <Text style={styles.secondaryText}>Add photo evidence</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {savedLabel ? <Text style={styles.savedText}>{savedLabel}</Text> : null}
 
       <View style={styles.actions}>
         {!readOnly ? (
           <>
-            <Pressable disabled={saving} onPress={() => void save(false)} style={[styles.secondaryButton, saving && styles.disabled]}>
+            <Pressable disabled={saving || uploadingPhoto || !!pendingPhoto} onPress={() => void save(false)} style={[styles.secondaryButton, saving && styles.disabled]}>
               <Text style={styles.secondaryText}>{saving ? 'Saving…' : 'Save draft'}</Text>
             </Pressable>
-            <Pressable disabled={saving} onPress={() => void save(true)} style={[styles.primaryButton, saving && styles.disabled]}>
+            <Pressable disabled={saving || uploadingPhoto || !!pendingPhoto} onPress={() => void save(true)} style={[styles.primaryButton, saving && styles.disabled]}>
               <Text style={styles.primaryText}>Submit report</Text>
             </Pressable>
           </>
@@ -394,6 +461,8 @@ const styles = StyleSheet.create({
   instructions: { color: '#37483F', fontSize: 11, lineHeight: 16 },
   deadlineRow: { borderRadius: 11, backgroundColor: '#FFFBEB', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
   deadlineText: { color: '#7A5A10', fontSize: 10, fontWeight: '800' },
+  evidencePanel: { gap: 9, borderRadius: 12, borderWidth: 1, borderColor: '#CFE3D8', padding: 12, backgroundColor: '#F7FAF8' },
+  photoPending: { gap: 9 },
   fieldWrap: { gap: 5 },
   fieldLabel: { color: '#173B2F', fontSize: 10, fontWeight: '900' },
   fieldHelp: { color: '#6C7B73', fontSize: 9, lineHeight: 13 },
