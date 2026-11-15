@@ -141,3 +141,5 @@ jobs:
             /tmp/buklod-executive-ui-staging-132/verification.json
           retention-days: 14
           if-no-files-found: ignore
+
+# Release marker: owner waived only physical device visual acceptance. Automated source/type/Android export and live EAS identity gates remain mandatory.
