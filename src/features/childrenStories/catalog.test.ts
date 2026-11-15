@@ -4,7 +4,7 @@ import { BIBLE_STORY_METADATA, BIBLE_EXPANSION_LESSONS, BIBLE_EXPANSION_STORIES 
 describe('BUKLOD Children Story World offline catalog', () => {
   test('144 unique original stories are bundled across the four categories', () => {
     expect(BUNDLED_CHILDREN_STORIES).toHaveLength(144);
-    expect(new Set(BUNDLED_CHILDREN_STORIES.map(item => item.id)).size).toBe(12);
+    expect(new Set(BUNDLED_CHILDREN_STORIES.map(item => item.id)).size).toBe(144);
     expect(new Set(BUNDLED_CHILDREN_STORIES.map(item => item.category))).toEqual(new Set(STORY_CATEGORIES));
   });
   test.each(BUNDLED_CHILDREN_STORIES.map(s => [s.id,s] as const))('%s is age-safe, bilingual, complete and usable offline', (_id,story) => {
@@ -27,7 +27,7 @@ describe('BUKLOD Children Story World offline catalog', () => {
       expect(lesson.reference).toBe(BIBLE_STORY_METADATA[story.id].reference);
       expect(lesson.narrative.tl.length).toBeGreaterThan(130);
       expect(lesson.narrative.en.length).toBeGreaterThan(130);
-      expect(lesson.narrative.tl.split('\\n\\n')).toHaveLength(3);
+      expect(lesson.narrative.tl.split('\n\n')).toHaveLength(3);
       expect(lesson.discussion.length).toBeGreaterThanOrEqual(2);
       expect(lesson.questions.length).toBeGreaterThanOrEqual(3);
       expect(story.category).toBe('Bible');
