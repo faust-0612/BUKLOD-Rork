@@ -19,7 +19,8 @@
     "backend-security",
     "ads-monetization",
     "navigation-scroll",
-    "revenue-protection"
+    "revenue-protection",
+    "kingdom-character"
   ],
   "preserveBehaviors": [
     "App source tree exactly equals the QA-reviewed complete staging app source including 132 story narration, v3 translations, Bible Quiz review, safe areas, dark mode, Connect/Profile refinements.",
@@ -149,6 +150,16 @@
       "tests": [
         "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
         "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Source parity includes the Profile character ranking presentation, so the Kingdom character progression and reward integrity must not regress.",
+      "preservedBehaviors": [
+        "Preserve canonical character points/rank, spendable Kingdom shards, rank progression and separate monthly/all-time rankings."
+      ],
+      "tests": [
+        "tests/nov16-profile-navigation-character-guard.test.mjs"
       ]
     }
   ],
