@@ -22,7 +22,8 @@
     "No change to BUKLOD Main ads, video, Community, Connect, health, Kingdom or native SDK/runtime",
     "Standalone FIS production must use separate EAS_PROJECT_ID_FIS, never Main or Classroom fallback",
     "BUKLOD Main landing, login and native runtime remain unchanged unless EXPO_PUBLIC_BUKLOD_FIS=1",
-    "Expo FIS production promotion uses the identical verified immutable preview deployment ID"
+    "Expo FIS production promotion uses the identical verified immutable preview deployment ID",
+    "BUKLOD FIS is pinned to newly created EAS project de578117-37fb-4c4d-8fec-d472e08b117f; any other project fails before build"
   ],
   "acceptanceChecks": [
     "FIS route guarded by system_admin",
@@ -34,7 +35,8 @@
     "Export CSV formula-injection guarded and capped",
     "TypeScript and Expo web export pass on exact PR SHA before any publish",
     "FIS hosting identity, explicit project ID and standalone site root/login contract enforced",
-    "Preview and production exact-artifact release checks before declaring published"
+    "Preview and production exact-artifact release checks before declaring published",
+    "Dedicated FIS Expo project registered under @faust_0612; exact UUID enforced in app config, CI and focused regression tests"
   ],
   "regressionTests": [
     "__tests__/buklodFisReadModel.test.ts",

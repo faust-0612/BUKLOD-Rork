@@ -10,15 +10,9 @@ module.exports = ({ config }) => {
   // Standalone FIS release must never silently inherit BUKLOD Main's EAS project.
   const isFis = appTarget === 'fis';
   const fisProjectId = (process.env.EAS_PROJECT_ID_FIS || '').trim();
-  // CI-only new-project bootstrap; never silently link Main, Classroom or Report.
-  const fisBootstrap = isFis &&
-    process.env.BUKLOD_FIS_PROJECT_BOOTSTRAP === '1' &&
-    process.env.EXPO_PUBLIC_BUKLOD_FIS === '1' &&
-    process.env.CI === '1';
-  if (isFis && ((fisProjectId && (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(fisProjectId) ||
-    ['23dad7d0-389a-406e-8dec-08965dab85d8', '14100ed1-7f25-4551-9627-09d280498241', 'cc69b3c0-a5df-4b69-a84c-887c36242fdd'].includes(fisProjectId))) ||
-    (!fisProjectId && !fisBootstrap))) {
-    throw new Error('BUKLOD FIS requires a separate, valid EAS_PROJECT_ID_FIS; refusing Main/Classroom fallback');
+  // Verified dedicated @faust_0612/buklod-fis Expo project; fail on any other project ID.
+  if (isFis && fisProjectId !== 'de578117-37fb-4c4d-8fec-d472e08b117f') {
+    throw new Error('BUKLOD FIS is pinned to Expo project de578117-37fb-4c4d-8fec-d472e08b117f; refusing any other project');
   }
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();

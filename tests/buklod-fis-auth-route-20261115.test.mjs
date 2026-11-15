@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 const index = readFileSync('src/app/index.tsx', 'utf8');
 const login = readFileSync('src/app/(auth)/login.tsx', 'utf8');
 const fis = readFileSync('src/app/admin/fis.tsx', 'utf8');
-const DUMMY = '123e4567-e89b-42d3-a456-426614174000';
+const DUMMY = 'de578117-37fb-4c4d-8fec-d472e08b117f';
 
 function config(overrides) {
   const code = "process.stdout.write(JSON.stringify(require('./app.config.js')({config:{extra:{}}})))";
@@ -39,12 +39,11 @@ test('FIS configuration is isolated and defaults to deny when ID is absent', () 
   assert.throws(() => config({ EAS_PROJECT_ID_FIS: 'cc69b3c0-a5df-4b69-a84c-887c36242fdd' }));
 });
 
-test('FIS one-time CI bootstrap never reuses Main EAS project identity', () => {
-  const bootstrap = config({ EAS_PROJECT_ID_FIS: '', BUKLOD_FIS_PROJECT_BOOTSTRAP: '1', CI: '1' });
-  assert.equal(bootstrap.slug, 'buklod-fis');
-  assert.equal(bootstrap.extra.appTarget, 'fis');
-  assert.equal(bootstrap.extra.eas, undefined);
-  assert.throws(() => config({ EAS_PROJECT_ID_FIS: '', BUKLOD_FIS_PROJECT_BOOTSTRAP: '0' }));
+test('FIS hosting is pinned to the newly created dedicated Expo project', () => {
+  assert.equal(config({}).extra.eas.projectId, DUMMY);
+  assert.throws(() => config({ EAS_PROJECT_ID_FIS: '' }));
+  assert.throws(() => config({ EAS_PROJECT_ID_FIS: '123e4567-e89b-42d3-a456-426614174000' }));
+  assert.throws(() => config({ EAS_PROJECT_ID_FIS: '', BUKLOD_FIS_PROJECT_BOOTSTRAP: '1', CI: '1' }));
 });
 
 test('FIS login and landing route are conditional, protected and do not replace Main flow', () => {

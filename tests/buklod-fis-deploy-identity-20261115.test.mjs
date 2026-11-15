@@ -8,7 +8,8 @@ test('FIS release workflow stays on isolated feature branch, never Main project 
   assert.ok(workflow.includes("BUKLOD_APP_TARGET: fis"));
   assert.ok(workflow.includes("EXPO_PUBLIC_BUKLOD_FIS: '1'"));
   assert.ok(workflow.includes('EAS_PROJECT_ID_FIS'));
-  assert.ok(workflow.includes('--account faust_0612 --no-icon --json --non-interactive'));
+  assert.ok(workflow.includes('EAS_PROJECT_ID_FIS: de578117-37fb-4c4d-8fec-d472e08b117f'));
+  assert.doesNotMatch(workflow, /eas-cli@latest init/);
   assert.doesNotMatch(workflow, /eas update|buklod\.expo\.app|refs\/heads\/main/);
 });
 
