@@ -222,9 +222,22 @@ function submissionValues(definition: ReportDefinitionRow | ScopeManagementDefin
     for (const [fieldId, answer] of Object.entries(answers)) {
       row[`Response · ${labels.get(fieldId) ?? fieldId}`] = Array.isArray(answer) ? answer.join(' | ') : answer ?? '';
     }
+    row['Photo evidence count'] = Array.isArray(content.evidence_photos) ? content.evidence_photos.length : 0;
     return row;
   }
-  return flattenObject(content);
+  // Never expose private storage paths in a report export; counts and confirmed metrics only.
+  const sanitized = { ...content };
+  const photoCount = Array.isArray(sanitized.evidence_photos) ? sanitized.evidence_photos.length : 0;
+  delete sanitized.evidence_photos;
+  if (sanitized.import_metadata) {
+    const m = objectValue(sanitized.import_metadata);
+    sanitized.import_metadata = {
+      source_type: m.source_type ?? null,
+      confidence: m.confidence ?? null,
+      confirmed_at: m.confirmed_at ?? null,
+    };
+  }
+  return { ...flattenObject(sanitized), 'Photo evidence count': photoCount };
 }
 
 export function managementRangeForPreset(preset: ManagementRangePreset, now = new Date()) {
@@ -438,6 +451,8 @@ export async function exportConsolidatedReportXlsx(data: ConsolidatedReportData)
     { Item: 'Category', Value: String(requirements.category ?? '') },
     { Item: 'Periods included', Value: data.periods.length },
     { Item: 'Submitted reports included', Value: data.submissions.length },
+    { Item: 'Reports with private photo evidence', Value: data.submissions.filter(x => Array.isArray(x.content?.evidence_photos) && x.content.evidence_photos.length > 0).length },
+    { Item: 'Private photos attached (count only)', Value: data.submissions.reduce((n, x) => n + (Array.isArray(x.content?.evidence_photos) ? x.content.evidence_photos.length : 0), 0) },
     { Item: 'Generated at', Value: new Date().toISOString() },
   ]), 'Summary');
 
