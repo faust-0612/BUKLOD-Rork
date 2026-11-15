@@ -26,6 +26,8 @@ import { readReportScopeId } from '@/lib/buklodReportRoutes';
 import { verifyOrganizationManageAccess } from '@/lib/buklodOrganization';
 import { colors } from '@/lib/theme';
 
+type ReportCadence = 'ONE_TIME' | 'WEEKLY' | 'MONTHLY';
+
 const EMPTY_DEADLINE = {
   opensAt: '',
   deadlineAt: '',
@@ -63,6 +65,7 @@ export default function BuklodReportDeadlineManagerScreen() {
   const [audiencePreview, setAudiencePreview] = useState<ReportDeadlineAudiencePreview | null>(null);
   const [publishConfirmed, setPublishConfirmed] = useState(false);
   const [deadline, setDeadline] = useState(EMPTY_DEADLINE);
+  const [cadence, setCadence] = useState<ReportCadence>('WEEKLY');
 
   const load = useCallback(async () => {
     if (!scopeId) {
@@ -95,13 +98,19 @@ export default function BuklodReportDeadlineManagerScreen() {
     setAudiencePreview(null);
     setPublishConfirmed(false);
     setDeadline(EMPTY_DEADLINE);
+    setCadence('WEEKLY');
   };
 
   const startPublish = async (row: ReportDefinitionRow) => {
     setPublishTarget(row);
     setAudiencePreview(null);
     setPublishConfirmed(false);
-    setDeadline({ opensAt: formatManilaInput(), deadlineAt: '', closesAt: '' });
+    setCadence(row.recurrence_kind === 'MONTHLY' ? 'MONTHLY' : 'WEEKLY');
+    setDeadline({
+      opensAt: formatManilaInput(),
+      deadlineAt: formatManilaInput(new Date(Date.now() + 7 * 86400000)),
+      closesAt: '',
+    });
     setPreviewing(true);
     try {
       setAudiencePreview(await previewReportDeadlineAudience(row.id));
@@ -126,14 +135,28 @@ export default function BuklodReportDeadlineManagerScreen() {
       return;
     }
 
+    let dueAt: string, opensAt: string | null, closesAt: string | null;
+    try {
+      dueAt = parseManilaDateTime(deadline.deadlineAt);
+      opensAt = deadline.opensAt.trim() ? parseManilaDateTime(deadline.opensAt) : null;
+      closesAt = deadline.closesAt.trim() ? parseManilaDateTime(deadline.closesAt) : null;
+      if (Date.parse(dueAt) <= Date.now()) throw new Error('Deadline must be in the future.');
+      if (opensAt && Date.parse(opensAt) > Date.parse(dueAt)) throw new Error('Opening cannot be after the deadline.');
+      if (closesAt && Date.parse(closesAt) < Date.parse(dueAt)) throw new Error('Closing cannot be earlier than the deadline.');
+    } catch (validationError: any) {
+      Alert.alert('Check collection dates', validationError?.message || 'Correct the reporting dates.');
+      return;
+    }
+
     setPublishing(true);
     try {
       const result = await publishReportDeadline({
         definitionId: publishTarget.id,
         title: displayTitle(publishTarget),
-        opensAt: deadline.opensAt.trim() ? parseManilaDateTime(deadline.opensAt) : null,
-        dueAt: parseManilaDateTime(deadline.deadlineAt),
-        closesAt: deadline.closesAt.trim() ? parseManilaDateTime(deadline.closesAt) : null,
+        opensAt,
+        dueAt,
+        closesAt,
+        cadence,
       });
 
       if (result.alreadyPublished) {
@@ -144,7 +167,7 @@ export default function BuklodReportDeadlineManagerScreen() {
       } else {
         Alert.alert(
           'Deadline published',
-          `${result.assignedCount} assignment${result.assignedCount === 1 ? '' : 's'} created and ${result.notificationCount} notification${result.notificationCount === 1 ? '' : 's'} queued.`
+          `${result.assignedCount} assignment${result.assignedCount === 1 ? '' : 's'} created. ${cadence === 'ONE_TIME' ? 'One-time collection.' : `${cadence === 'WEEKLY' ? 'Weekly' : 'Monthly'} collection and reminders will repeat automatically.`}`
         );
       }
       closePublisher();
@@ -161,7 +184,17 @@ export default function BuklodReportDeadlineManagerScreen() {
       audiencePreview &&
       audiencePreview.eligibleMemberCount > 0 &&
       publishConfirmed &&
-      deadline.deadlineAt.trim()
+      deadline.deadlineAt.trim() &&
+      (() => {
+        try {
+          const due = parseManilaDateTime(deadline.deadlineAt);
+          const open = deadline.opensAt.trim() ? parseManilaDateTime(deadline.opensAt) : null;
+          const close = deadline.closesAt.trim() ? parseManilaDateTime(deadline.closesAt) : null;
+          return Date.parse(due) > Date.now()
+            && (!open || Date.parse(open) <= Date.parse(due))
+            && (!close || Date.parse(close) >= Date.parse(due));
+        } catch { return false; }
+      })()
   );
 
   return (
@@ -197,7 +230,7 @@ export default function BuklodReportDeadlineManagerScreen() {
                 <Text style={styles.cardTitle}>PUBLISH REAL DEADLINE</Text>
                 <Text style={styles.publishTitle}>{displayTitle(publishTarget)}</Text>
                 <Text style={styles.note}>
-                  Publishing creates one assignment for every active member currently in this Organization/Cluster. The recipient snapshot is frozen for this deadline.
+                  Publishing snapshots eligible members for each collection period. Later collections take a new current-members snapshot; earlier periods are never changed.
                 </Text>
 
                 {previewing ? (
@@ -217,8 +250,37 @@ export default function BuklodReportDeadlineManagerScreen() {
                   <View style={styles.previewBox}><Text style={styles.note}>Recipients could not be resolved. Publishing is disabled.</Text></View>
                 )}
 
+                <View style={styles.frequencyPanel}>
+                  <Text style={styles.fieldLabel}>COLLECTION FREQUENCY</Text>
+                  <View style={styles.frequencyChoices}>
+                    {([
+                      ['WEEKLY', 'Weekly'],
+                      ['MONTHLY', 'Monthly'],
+                      ['ONE_TIME', 'One time'],
+                    ] as const).map(([value, label]) => (
+                      <Pressable
+                        key={value}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: cadence === value }}
+                        onPress={() => setCadence(value)}
+                        style={[styles.frequencyButton, cadence === value && styles.frequencyButtonOn]}
+                      >
+                        <Text style={[styles.frequencyLabel, cadence === value && styles.frequencyLabelOn]}>{label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Text style={styles.note}>
+                    {cadence === 'WEEKLY'
+                      ? 'After the first deadline, BUKLOD opens a new collection every 7 days on the same weekday and Manila time.'
+                      : cadence === 'MONTHLY'
+                      ? 'After the first deadline, BUKLOD collects on the same calendar day each month (last day stays last day).'
+                      : 'This deadline is published once. No subsequent collections are generated.'}
+                    {' '}24-hour, 3-hour, and overdue reminders apply only to unfinished assignments.
+                  </Text>
+                </View>
+
                 <Field label="OPENS — MANILA TIME (YYYY-MM-DD HH:mm)" value={deadline.opensAt} onChangeText={(opensAt) => setDeadline((current) => ({ ...current, opensAt }))} />
-                <Field label="DEADLINE — MANILA TIME (YYYY-MM-DD HH:mm)" value={deadline.deadlineAt} onChangeText={(deadlineAt) => setDeadline((current) => ({ ...current, deadlineAt }))} placeholder="2026-09-19 21:00" />
+                <Field label="DEADLINE — MANILA TIME (YYYY-MM-DD HH:mm)" value={deadline.deadlineAt} onChangeText={(deadlineAt) => setDeadline((current) => ({ ...current, deadlineAt }))} placeholder="Choose a future Manila date and time" />
                 <Field label="CLOSES — OPTIONAL" value={deadline.closesAt} onChangeText={(closesAt) => setDeadline((current) => ({ ...current, closesAt }))} placeholder="Leave blank to allow late submission" />
 
                 <View style={styles.confirmBox}>
@@ -291,6 +353,12 @@ const styles = StyleSheet.create({
   previewBox: { borderRadius: 12, borderWidth: 1, borderColor: colors.line, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 },
   previewCount: { minWidth: 35, color: colors.greenDark, fontSize: 23, fontWeight: '900', textAlign: 'center' },
   previewTitle: { color: colors.text, fontSize: 11, fontWeight: '900' },
+  frequencyPanel: { gap: 8, padding: 11, borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: '#F7FAF8' },
+  frequencyChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  frequencyButton: { minHeight: 39, minWidth: 75, flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 9, borderRadius: 9, borderWidth: 1, borderColor: colors.line, backgroundColor: '#FFFFFF' },
+  frequencyButtonOn: { backgroundColor: colors.greenDark, borderColor: colors.greenDark },
+  frequencyLabel: { color: colors.text, fontSize: 11, fontWeight: '800' },
+  frequencyLabelOn: { color: '#FFFFFF' },
   fieldWrap: { gap: 5 },
   fieldLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
   input: { minHeight: 43, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: '#FFFFFF', paddingHorizontal: 11, color: colors.text },
