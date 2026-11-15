@@ -13,7 +13,8 @@
     "quiz-review-clarity",
     "backend-schema-parity",
     "staging-only",
-    "classroom-quiz"
+    "classroom-quiz",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Only authenticated attempt owner can read their own saved answers after submitting.",
@@ -27,7 +28,8 @@
     "Verify API returns only user's submitted answers for completed/pending attempts and returns no review while started.",
     "Confirm cross-user attempt_id cannot retrieve the submission.",
     "Review question, actual answer, rationale and accepted aliases display correctly.",
-    "Confirm no change to existing scoring/daily question-selection RPC and no mutation to production."
+    "Confirm no change to existing scoring/daily question-selection RPC and no mutation to production.",
+    "Staging-only Android JS bundle export passes for exact candidate SHA, without deploying or requiring an Expo token."
   ],
   "releaseMode": "isolated-staging-review-candidate",
   "releaseStatus": "DEV PR only; additive SQL migration not applied; no OTA or web publication.",
@@ -36,11 +38,14 @@
     "src/components/bible/BuklodBibleQuizV4.tsx",
     "supabase/migrations/20261116025500_buklod_bible_v4_review_transparency.sql",
     "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
-    "supabase/tests/buklod_bible_v4_review_security_20261116.sql"
+    "supabase/tests/buklod_bible_v4_review_security_20261116.sql",
+    ".github/workflows/buklod-bible-v4-review-staging-qa-20261116.yml",
+    "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
   ],
   "regressionTests": [
     "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
-    "supabase/tests/buklod_bible_v4_review_security_20261116.sql"
+    "supabase/tests/buklod_bible_v4_review_security_20261116.sql",
+    "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -75,6 +80,17 @@
       "tests": [
         "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
         "supabase/tests/buklod_bible_v4_review_security_20261116.sql"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "A no-publish Android staging OTA preflight asserts runtime/package, exact source paths and AdMob/navigation protections.",
+      "preservedBehaviors": [
+        "Production OTA channel and signed native package remain untouched.",
+        "Only Android staging runtime 1.3.2 is compiled; no Expo or Supabase deploy is triggered."
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
       ]
     }
   ],
