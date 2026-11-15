@@ -15,7 +15,9 @@
     "localization",
     "performance",
     "ad-safety",
-    "release-isolation"
+    "release-isolation",
+    "release-identity",
+    "production-release"
   ],
   "preserveBehaviors": [
     "Existing 12 bundled stories and full lesson narration remain unchanged.",
@@ -34,7 +36,8 @@
     "Separate production gates; no automatic promotion.",
     "Real TTS speak/stop API callback paths tested for all 132 expanded narratives and both Filipino/English; Android native pause/resume is not called.",
     "Actual device audible output is not claimed without device test. Stage OTA publication must independently pass exact-source APK, runtime and EAS manifest gates.",
-    "Exact-source Android QA action must pass Node narrator tests, TypeScript and Expo Android export, with no OTA or live data change."
+    "Exact-source Android QA action must pass Node narrator tests, TypeScript and Expo Android export, with no OTA or live data change.",
+    "Staging publisher rechecks active Android EAS update ID and group immediately before publishing, then independently verifies signed build/runtime, published update, and unchanged production."
   ],
   "allowedPaths": [
     "src/app/children-stories/index.tsx",
@@ -50,12 +53,17 @@
     "src/features/childrenStories/storyNarration.ts",
     "tests/children-story-narration-20261115.test.mjs",
     "tests/children-stories-contract.test.mjs",
-    ".github/workflows/buklod-children-bible-audio-android-qa-20261115.yml"
+    ".github/workflows/buklod-children-bible-audio-android-qa-20261115.yml",
+    "scripts/children-bible-audio-staging-release-20261115.mjs",
+    "tests/children-bible-audio-stage-release-20261115.test.mjs",
+    ".github/workflows/buklod-children-bible-audio-stage-132-20261115.yml",
+    "release/children-bible-audio-stage-132-20261115.json"
   ],
   "regressionTests": [
     "tests/children-bible-expanded-catalog-20261115.test.mjs",
     "tests/children-story-narration-20261115.test.mjs",
-    "tests/children-stories-contract.test.mjs"
+    "tests/children-stories-contract.test.mjs",
+    "tests/children-bible-audio-stage-release-20261115.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -70,6 +78,18 @@
         "tests/children-bible-expanded-catalog-20261115.test.mjs",
         "tests/children-story-narration-20261115.test.mjs"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Isolated one-shot Android staging-user OTA with exact signed runtime and mandatory EAS staging and unchanged-production manifest verification.",
+      "preservedBehaviors": [
+        "No production OTA, Play Store submission, native rebuild, backend migrations, or web deployment.",
+        "Previously verified staging candidate must remain the exact current live Android manifest before publishing.",
+        "Do not publish on failed QA, wrong branch/source, release concurrency, or stale EAS channel."
+      ],
+      "tests": [
+        "tests/children-bible-audio-stage-release-20261115.test.mjs"
+      ]
     }
   ],
   "alternativeApproaches": [
@@ -77,7 +97,8 @@
     "Remote paid AI generation for every story: rejected due cost, offline limitations and safety.",
     "Publish older main branch directly: rejected as it may undo verified staging functionality."
   ],
-  "readyForStaging": false,
+  "readyForStaging": true,
   "productionPublished": false,
-  "releaseStatus": "DEV SOURCE ONLY. CI/TypeScript/Android Hermes/editorial checks required; no OTA."
+  "releaseStatus": "REVIEWED STAGING CANDIDATE. Trigger is gated on exact PR CI, Android QA, signed package/runtime, EAS preflight and readback; production blocked.",
+  "releaseMode": "isolated-android-staging-ota"
 }
