@@ -35,6 +35,8 @@ test('staging release fails closed for concurrent newer update',()=>{
   const id='01a1dc49-05e7-73ec-9a61-c7eae9d1bdd9';
   const rows=[{message:PREVIOUS_MARKER,runtimeVersion:'1.3.2',group:'f58acdd7-d800-4ae5-b9de-7d29640e04bb'}];
   assert.equal(validateExistingRelease({currentPage:rows},{id}).id,id);
+  assert.equal(validateExistingRelease({currentPage:[{...rows[0],message:'"'+PREVIOUS_MARKER+'" (3 hours ago by faust_0612)'}]},{id}).id,id);
+  assert.throws(()=>validateExistingRelease({currentPage:[{...rows[0],message:'"'+PREVIOUS_MARKER+'extra" (3 hours ago by faust_0612)'}]},{id}),/advanced/);
   assert.throws(()=>validateExistingRelease({currentPage:[{...rows[0],message:'newer'}]},{id}),/advanced/);
   assert.throws(()=>validateExistingRelease({currentPage:rows},{id:'missing'}),/not the inspected baseline/);
   assert.throws(()=>validateExistingRelease({currentPage:[{...rows[0],group:'changed'}]},{id}),/group differs/);

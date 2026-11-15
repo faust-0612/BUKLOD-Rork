@@ -56,8 +56,13 @@ export function validateSourcePaths(changed, allowed) {
 export function validateExistingRelease(previousUpdates, originalStageManifest) {
   const rows = previousUpdates.currentPage ?? previousUpdates;
   assert.ok(Array.isArray(rows)&&rows.length>0,'Cannot resolve prior EAS updates');
-  // A later/parallel staging OTA means this source must be reconciled first.
-  assert.equal(rows[0].message,PREVIOUS_MARKER,'Staging channel advanced past inspected baseline; abort to avoid regression');
+  // EAS update:list renders the message as: "message" (3 hours ago by author).
+  // Compare the *whole quoted message* only; never accept partial SHA matches.
+  const displayedMessage=String(rows[0].message??'');
+  const parsed=/^"([^"]+)" \([^()]+\)$/.exec(displayedMessage);
+  const actualMessage=parsed?parsed[1]:displayedMessage;
+  assert.equal(actualMessage,PREVIOUS_MARKER,
+    'Staging channel advanced past inspected baseline; abort to avoid regression');
   assert.equal(rows[0].runtimeVersion,TARGET_RUNTIME,'Previous staging runtime changed');
   const previousId = originalStageManifest.id?.toLowerCase();
   assert.equal(previousId,PREVIOUS_STAGING_UPDATE_ID,
