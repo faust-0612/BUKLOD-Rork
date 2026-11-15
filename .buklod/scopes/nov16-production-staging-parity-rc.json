@@ -20,7 +20,9 @@
     "ads-monetization",
     "navigation-scroll",
     "revenue-protection",
-    "kingdom-character"
+    "kingdom-character",
+    "release-identity",
+    "production-release"
   ],
   "preserveBehaviors": [
     "App source tree exactly equals the QA-reviewed complete staging app source including 132 story narration, v3 translations, Bible Quiz review, safe areas, dark mode, Connect/Profile refinements.",
@@ -31,6 +33,7 @@
   ],
   "allowedPaths": [
     ".buklod/scopes/nov16-production-staging-parity-rc.json",
+    ".github/workflows/buklod-nov16-production-v3-source-qa.yml",
     "assets/brands/google-translate/color-regular.png",
     "src/app/(tabs)/me.tsx",
     "src/app/(tabs)/messages.tsx",
@@ -78,12 +81,16 @@
     "tests/notifications-read-actions-regression-20261115.test.mjs",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-production-v3-source-release-gate.test.mjs",
     "tests/nov16-profile-navigation-character-guard.test.mjs"
   ],
   "regressionTests": [
     "tests/bible-132-complete-storytelling-20261116.test.mjs",
     "tests/bible-dark-mode-20261116.test.mjs",
     "tests/bible-henry-attribution-live-schema-20261116.test.cjs",
+    "tests/bible-radio-visual.test.cjs",
+    "tests/bible-reader-safearea-commentary.test.cjs",
+    "tests/bible-study-sources.test.cjs",
     "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
     "tests/buklod-bible-v4-review-ota-20261116.test.mjs",
     "tests/children-bible-expanded-catalog-20261115.test.mjs",
@@ -93,12 +100,10 @@
     "tests/henry-verse-accurate-staging-20261116.test.mjs",
     "tests/notifications-dark-contrast-executive-20261115.test.mjs",
     "tests/notifications-read-actions-regression-20261115.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
-    "tests/nov16-profile-navigation-character-guard.test.mjs",
-    "tests/bible-study-sources.test.cjs",
-    "tests/bible-reader-safearea-commentary.test.cjs",
-    "tests/bible-radio-visual.test.cjs",
-    "tests/nov14-connect-green-profile-posts-ota.test.mjs"
+    "tests/nov16-production-v3-source-release-gate.test.mjs",
+    "tests/nov16-profile-navigation-character-guard.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -160,6 +165,16 @@
       ],
       "tests": [
         "tests/nov16-profile-navigation-character-guard.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "New production-identity source-only CI workflow checks staging/prod runtime, AdMob protection, app source and Android compile without OTA or web publication.",
+      "preservedBehaviors": [
+        "No automatic production publish, no native/Play/web release, no mutation to live EAS manifests or Supabase while preflighting."
+      ],
+      "tests": [
+        "tests/nov16-production-v3-source-release-gate.test.mjs"
       ]
     }
   ],
