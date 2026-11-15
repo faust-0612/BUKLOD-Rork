@@ -21,6 +21,7 @@
     "connect-ptt-calls",
     "cluster-faith",
     "kingdom-character",
+    "release-identity",
     "release-identity"
   ],
   "preserveBehaviors": [
@@ -29,16 +30,20 @@
     "Rewarded Ad-Light pass remains an optional earned reward; never change ad unit IDs, impressions, consent or load frequency.",
     "Home existing QMP, Map, Help, PTT, Today, Children Stories, native ad placements and Kingdom route are retained.",
     "Dark theme messaging respects per-user Connect theme overrides, without changing message/RLS/read-sync or calls.",
-    "No native plugins, Expo runtime, Android package, Play Store, production, Supabase or Vercel write."
+    "No native plugins, Expo runtime, Android package, Play Store, production, Supabase or Vercel write.",
+    "Publishing is permitted only to staging-user Android runtime 1.3.2 after exact frozen staging and signed APK verification."
   ],
   "regressionTests": [
     "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
     "tests/executive-navigation-cluster-kingdom-20261115.test.mjs",
     "tests/executive-connect-dark-20261115.test.mjs",
-    "tests/executive-qmp-ad-reward-20261115.test.mjs"
+    "tests/executive-qmp-ad-reward-20261115.test.mjs",
+    "tests/executive-density-staging-release-20261115.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/executive-density-staging-20261115.json",
+    ".github/workflows/buklod-executive-density-staging-132-ota-20261115.yml",
+    "scripts/executive-density-staging-132-policy.mjs",
     "src/app/(tabs)/hub.tsx",
     "src/app/(tabs)/me.tsx",
     "src/app/clusters/index.tsx",
@@ -66,6 +71,7 @@
     "src/lib/messagesTheme.ts",
     "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
     "tests/executive-connect-dark-20261115.test.mjs",
+    "tests/executive-density-staging-release-20261115.test.mjs",
     "tests/executive-navigation-cluster-kingdom-20261115.test.mjs",
     "tests/executive-qmp-ad-reward-20261115.test.mjs"
   ],
@@ -76,7 +82,8 @@
     "Cluster tabs are one horizontally scrollable row; cards show title/category/status/Open/Manage without dropped operations.",
     "Profile keeps recent posts, Top 10, overall/monthly positions, rewarded ad and focus panels without copying another user data.",
     "Dark Connect contrast, native and web compile, layout sizing at 360dp and 1.4x font scaling, no media/ads regression.",
-    "Staging-specific source/identity/CI/EAS current update readback required before any OTA; production remains unchanged."
+    "Staging-specific source/identity/CI/EAS current update readback required before any OTA; production remains unchanged.",
+    "Verified current Android staging EAS update, exact PR 830 CI and production update unchanged through OTA."
   ],
   "lockedFeatureChanges": [
     {
@@ -139,6 +146,16 @@
       ],
       "tests": [
         "tests/executive-navigation-cluster-kingdom-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add a source-isolated staging-only Expo OTA publisher; verifies CI, signed binary and unchanged production.",
+      "preservedBehaviors": [
+        "No production OTA, package change, native rebuild, database migration or Play Store submission."
+      ],
+      "tests": [
+        "tests/executive-density-staging-release-20261115.test.mjs"
       ]
     }
   ]
