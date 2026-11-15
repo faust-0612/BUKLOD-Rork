@@ -16,7 +16,8 @@
     "Existing monthly/all-time ranking cards, Circle Rank/character, personal posts, settings, notifications, Connect and Wall remain unchanged.",
     "Existing AdMob inventory, ad lifecycle and dashboard navigation files remain unchanged; no new network calls or third-party dependencies.",
     "Default/no-cover cases retain menu visibility and original non-cover top offset; dark/light theme surfaces remain contrast-safe.",
-    "The existing Navigation V2 staging compile job remains restricted to its original approved branch or this exact Profile candidate; compile and test only, with no Expo credentials or publication commands."
+    "The existing Navigation V2 staging compile job remains restricted to its original approved branch or this exact Profile candidate; compile and test only, with no Expo credentials or publication commands.",
+    "No shared mobile header runtime code or dashboard lifecycle edited; updated outdated test to assert the current exact compact height and safe-area formula, not to relax coverage."
   ],
   "acceptanceChecks": [
     "Focused Profile hero source contract test and Profile navigation/privacy regression test must pass on exact head.",
@@ -25,7 +26,8 @@
     "Confirm cover image, avatar camera, notes, roles, rank and all three actions in dark/light mode without blank space.",
     "Compare current 15/30/60-minute ad/nav telemetry for exact runtime/source before any production promotion; no production OTA in this PR.",
     "New Profile-specific staging Android compile must pass exact-source Expo Android export, canonical staging package/runtime validation, profile assertions and AdMob/dashboard regression checks.",
-    "Original Navigation V2 full test suite remains intact for its original branch. Profile branch runs Profile/AdMob/dashboard/rank/nav-focused tests because the unchanged current main HomeUtilityCards already differs from the historical fixed-width assertion in tests/navigation-v2-compact-home-profile.test.mjs. Do not patch unrelated Home feature."
+    "Original Navigation V2 full test suite remains intact for its original branch. Profile branch runs Profile/AdMob/dashboard/rank/nav-focused tests because the unchanged current main HomeUtilityCards already differs from the historical fixed-width assertion in tests/navigation-v2-compact-home-profile.test.mjs. Do not patch unrelated Home feature.",
+    "Update only the legacy shared-header regression expectation to the existing (scrollCompact ? 48 : 56) + status-bar inset geometry; verify logo/notification/sponsor presence and scroll compact behavior remain asserted."
   ],
   "riskAreas": [
     "app-runtime",
@@ -43,7 +45,8 @@
   "regressionTests": [
     "tests/nov16-profile-hero-compact.test.mjs",
     "tests/nov16-profile-navigation-actions.test.mjs",
-    "tests/nov16-profile-staging-android-qa.test.mjs"
+    "tests/nov16-profile-staging-android-qa.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
   ],
   "allowedPaths": [
     "src/app/(tabs)/me.tsx",
@@ -51,7 +54,8 @@
     "tests/nov16-profile-navigation-actions.test.mjs",
     ".buklod/scopes/profile-hero-compact-20261116.json",
     ".github/workflows/navigation-v2-staging-compile-qa.yml",
-    "tests/nov16-profile-staging-android-qa.test.mjs"
+    "tests/nov16-profile-staging-android-qa.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -77,5 +81,5 @@
     }
   ],
   "releaseMode": "dev-staging-candidate-no-ota",
-  "releaseStatus": "STAGING QA blocked by unrelated legacy Home square-card assertion in original nav2 full suite (76/77 passed); branch-scoped Profile gate now runs focused profile, ad, dashboard, rank/navigation, route audit, TypeScript and Expo Android export. No OTA published. Await exact-SHA QA rerun and APK/preview evidence."
+  "releaseStatus": "Profile staging compile QA: latest run failed on pre-existing header test expecting historical 42/52 compact height. Existing source uses 48/56 + safe-area inset; only matching focused test assertion changed, rerun pending. No staging OTA published."
 }
