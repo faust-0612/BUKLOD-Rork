@@ -12,7 +12,7 @@ test('notification title, body, time meet WCAG AA on every active card palette',
  for(const id of ids){
   const block=palette.match(new RegExp('  '+id+': \\{([\\s\\S]*?)\\n  \\},'))?.[1];
   assert.ok(block,id+' preset exists');
-  const get=k=>block.match(new RegExp(k+': \\'(#[0-9a-fA-F]{6})\\''))?.[1];
+  const get=k=>block.match(new RegExp(k + ": '(#[0-9a-fA-F]{6})'"))?.[1];
   const surface=get('surface');
   for(const role of ['textPrimary','textSecondary','textMuted']){
    const fg=get(role);
