@@ -7,6 +7,13 @@ on:
     paths:
       - '.github/workflows/buklod-connect-standalone-apk.yml'
       - 'src/components/BuklodConnectStandaloneHome.tsx'
+      - 'src/components/BuklodConnectStandaloneRoot.tsx'
+      - 'src/app/(tabs)/messages.tsx'
+      - 'src/app/personal-home/ptt.tsx'
+      - 'src/lib/buklodConnectStandalone.ts'
+      - 'tests/buklod-connect-standalone.test.mjs'
+      - 'assets/connect/**'
+      - 'app.config.js'
   workflow_dispatch:
 
 permissions:
