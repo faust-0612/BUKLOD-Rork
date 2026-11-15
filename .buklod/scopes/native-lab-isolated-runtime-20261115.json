@@ -55,7 +55,8 @@
     "tests/nov15-android-native-prefetch-gate.test.mjs",
     "tests/scope-video-scroll-autoplay-20261114.test.mjs",
     "tests/smart-drawer-cloud-backup.test.mjs",
-    "tests/smart-drawer-google-drive-transport.test.mjs"
+    "tests/smart-drawer-google-drive-transport.test.mjs",
+    "tests/native-lab-ads-visibility-20261115.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/native-lab-isolated-runtime-20261115.json",
@@ -122,7 +123,8 @@
     "tests/nov15-android-native-prefetch-gate.test.mjs",
     "tests/scope-video-scroll-autoplay-20261114.test.mjs",
     "tests/smart-drawer-cloud-backup.test.mjs",
-    "tests/smart-drawer-google-drive-transport.test.mjs"
+    "tests/smart-drawer-google-drive-transport.test.mjs",
+    "tests/native-lab-ads-visibility-20261115.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
