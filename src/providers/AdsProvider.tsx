@@ -34,8 +34,11 @@ const AdsContext =
 
 export function AdsProvider({
   children,
+  disabled = false,
 }: {
   children: ReactNode;
+  /** Disable all ad requests for a native app with no verified dedicated AdMob inventory. */
+  disabled?: boolean;
 }) {
   const [
     ready,
@@ -51,6 +54,7 @@ export function AdsProvider({
 
   useEffect(
     () => {
+      if (disabled) return;
       let mounted = true;
 
       // Kick off the native SDK immediately after the provider commits.
@@ -79,10 +83,11 @@ export function AdsProvider({
         mounted = false;
       };
     },
-    []
+    [disabled]
   );
 
   useEffect(() => {
+    if (disabled) return;
     const subscription = AppState.addEventListener(
       'change',
       (nextState) => {
@@ -107,10 +112,11 @@ export function AdsProvider({
       subscription.remove();
       void flushBuklodAdOperationalTelemetry();
     };
-  }, [ready]);
+  }, [ready, disabled]);
 
   const refreshConsent =
     async () => {
+      if (disabled) return;
 
       const result =
         await refreshBuklodAdConsent();

@@ -75,7 +75,7 @@ export default function BuklodConnectStandaloneRoot() {
                   <BuklodFeedbackProvider>
                     <ComplianceProvider>
                       <RuntimeConfigProvider>
-                        <AdsProvider>
+                        <AdsProvider disabled>
                           <NotificationProvider>
                             <StreamVideoProvider>
                               <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>

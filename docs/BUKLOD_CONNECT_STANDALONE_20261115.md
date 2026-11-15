@@ -15,7 +15,7 @@ Both build profiles set BUKLOD_APP_TARGET=connect and EXPO_PUBLIC_BUKLOD_APP_TAR
 ## Build prerequisites — fail closed, no guessing
 - Create a dedicated Expo/EAS project ID and set CONNECT_EAS_PROJECT_ID in the relevant build environment. DO NOT reuse Main's EAS_PROJECT_ID.
 - Register the two Connect Android package IDs separately in Firebase (and configure Stream's connect-specific push providers), save the appropriate config JSON as CONNECT_GOOGLE_SERVICES_FILE for each profile. DO NOT reuse BUKLOD's production/staging google-services file.
-- Register Connect in AdMob and supply CONNECT_ADMOB_ANDROID_APP_ID before any production build. When absent during local/dev, only the Google test app ID is used. Ads and push delivery require their own full end-to-end verification.
+- Register Connect in AdMob and supply CONNECT_ADMOB_ANDROID_APP_ID before any production build. When absent during local/dev, only the Google test app ID is used. **Ad requests are disabled in the standalone client until separate AdMob placements and consent are verified**; preserving Main ad-unit IDs here would mix inventories and is prohibited. Push delivery also requires its own full end-to-end verification.
 - Configure Android signing for the new package without reusing Main application signing by default.
 - Verify routing back to Connect from auth, message/call/PTT channel state and hard end-to-end security on actual Android hardware. A source test cannot certify microphone or incoming call behavior.
 
