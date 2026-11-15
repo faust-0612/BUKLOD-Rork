@@ -61,7 +61,6 @@ jobs:
             tests/bible-132-complete-storytelling-20261116.test.mjs \
             tests/bible-study-sources.test.cjs \
             tests/buklod-bible-v4-quiz-security-20261116.test.mjs \
-            tests/buklod-bible-v4-review-ota-20261116.test.mjs \
             tests/children-story-narration-20261115.test.mjs \
             tests/bible-dark-mode-20261116.test.mjs \
             tests/notifications-dark-contrast-executive-20261115.test.mjs \

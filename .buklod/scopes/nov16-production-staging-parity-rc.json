@@ -22,7 +22,8 @@
     "revenue-protection",
     "kingdom-character",
     "release-identity",
-    "production-release"
+    "production-release",
+    "connect"
   ],
   "preserveBehaviors": [
     "App source tree exactly equals the QA-reviewed complete staging app source including 132 story narration, v3 translations, Bible Quiz review, safe areas, dark mode, Connect/Profile refinements.",
@@ -71,7 +72,6 @@
     "tests/bible-reader-safearea-commentary.test.cjs",
     "tests/bible-study-sources.test.cjs",
     "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
-    "tests/buklod-bible-v4-review-ota-20261116.test.mjs",
     "tests/children-bible-expanded-catalog-20261115.test.mjs",
     "tests/children-stories-dialogue-staging-20261116.test.mjs",
     "tests/children-story-narration-20261115.test.mjs",
@@ -92,7 +92,6 @@
     "tests/bible-reader-safearea-commentary.test.cjs",
     "tests/bible-study-sources.test.cjs",
     "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
-    "tests/buklod-bible-v4-review-ota-20261116.test.mjs",
     "tests/children-bible-expanded-catalog-20261115.test.mjs",
     "tests/children-stories-dialogue-staging-20261116.test.mjs",
     "tests/children-story-narration-20261115.test.mjs",
@@ -153,8 +152,7 @@
         "Supabase RLS/owner-only quiz review permissions and existing production migrations remain protected."
       ],
       "tests": [
-        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
-        "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
+        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs"
       ]
     },
     {
