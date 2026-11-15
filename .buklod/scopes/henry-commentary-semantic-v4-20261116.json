@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "objective": "Prepare the Matthew Henry semantic Filipino v4 correction for the Nov16 consolidated staging-user Android 1.3.2 OTA candidate, layered on the 132-story bilingual/dialogue and natural Henry v3 source without duplicating or overwriting other staging features.",
+  "baseRef": "bf8e82019297dc6642b92748bf8f3498cf15ae67",
+  "productionBaselineEvidence": "Independent server-side staging OTA proof in PR #855 established staging-user Android runtime 1.3.2 update 01a1e0c8-488e-7474-918d-6c1f0a0f5e8d (at that time); PR #858 pending consolidated v3 stage source bf8e82019297dc6642b92748bf8f3498cf15ae67 is a candidate, not proof of a published update. Exact current staging and production manifests were not re-read for this work. No production or staging publication is asserted.",
+  "chosenApproach": "Apply the exact already-tested v4 six-file source delta onto PR #858's consolidated staging v3 branch at pinned source bf8e8201; keep all other files and features untouched. Original Matthew Henry English, on-device ML Kit, target attribution, Bible citations, semantic fail-closed English fallback, account-scoped v4 cache and release isolation retained. Do not publish staging or production.",
+  "selectionRationale": "The staging integration branch already has identical v3 translation source files and a broader story/UI/ads lineage; transplant only the v4 delta rather than merge diverged production-main changes or rebuild all 240 unrelated staging commits.",
+  "alternativeApproaches": [
+    "Blindly rewrite all translated prose with dictionary word substitutions: rejected because it can corrupt theology and ordinary financial phrases.",
+    "Automatically claim all machine output is fully accurate: rejected because general-purpose ML Kit translation cannot certify doctrinal equivalence.",
+    "Publish current PR directly to production without exact runtime and ad/navigation gates: rejected."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith"
+  ],
+  "preserveBehaviors": [
+    "Matthew Henry public-domain original English is retained byte-for-byte and is always accessible.",
+    "Only the optional on-device commentary translation receives English idiom clarification; Scripture text, Strong's and daily reading remain unchanged.",
+    "Retain verse-specific source provenance and citations; no invented commentary or missing references accepted as Filipino.",
+    "Keep explicit user action, official Google Translate badge and link, English fallback on unavailable models and account-scoped cache.",
+    "AdMob fill and display, app-wide navigation, dashboard performance, finance, production Supabase and native runtime remain unchanged.",
+    "No staging or production OTA, EAS build, signed package, environment, or backend mutation in this source PR."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/henry-commentary-semantic-v4-20261116.json",
+    "src/lib/buklodHenryTranslation.ts",
+    "src/app/bible/read.tsx",
+    "tests/henry-natural-filipino-20261116.test.cjs",
+    "tests/bible-henry-semantic-safety-20261116.test.cjs",
+    "docs/bible/matthew-henry-translation-attribution-20261116.md"
+  ],
+  "regressionTests": [
+    "tests/henry-natural-filipino-20261116.test.cjs",
+    "tests/bible-henry-semantic-safety-20261116.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Optional commentary translator source and its account-scoped cache are updated with v4 grammar and semantic safeguards.",
+      "preservedBehaviors": [
+        "Keep existing offline account-scoped ML Kit translation, English source fallback, and all unrelated app runtime behavior."
+      ],
+      "tests": [
+        "tests/henry-natural-filipino-20261116.test.cjs",
+        "tests/bible-henry-semantic-safety-20261116.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Bible reader commentary disclosure is corrected to avoid overstating machine translation accuracy while preserving Bible reading.",
+      "preservedBehaviors": [
+        "Preserve Bible reader, verse anchors, original Matthew Henry English, citations, offline Scripture and Strong's links."
+      ],
+      "tests": [
+        "tests/bible-henry-semantic-safety-20261116.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Exact 132-story+v3 consolidated branch is an ancestor; source diff against pinned staging base contains only the six explicitly permitted Matthew Henry v4 paths.",
+    "Engineering Accountability protected-feature lock, Node focused semantic/natural Filipino tests, TypeScript and configured integration unit tests pass at exact candidate SHA.",
+    "No React Native native dependency/EAS runtime modifications; staging target is org.mzbministry.buklod.staging / staging-user / runtime 1.3.2 / preview, subject to actual manifest verification.",
+    "Original Matthew Henry English, source citations, offline fallback, Google attribution, Ads/NativeAd, immediate dashboard nav, Connect/Profile/Wall, and 132 Sunday School stories must remain unaffected.",
+    "Frozen staging candidate only; do not run the publish workflow or claim that it is live until EAS publish ID and independent current-manifest readback can be verified.",
+    "Production remains untouched and must be rechecked independently prior to any later production promotion."
+  ]
+}
