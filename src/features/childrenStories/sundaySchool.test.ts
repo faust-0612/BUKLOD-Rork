@@ -29,6 +29,24 @@ describe('Continuous bilingual Sunday School curriculum', () => {
       }
     }
   });
+  test('all lessons include dramatic bilingual conversations without altering original Sunday School questions', () => {
+    const bibleStories = new Set(['david-at-ang-tapang','bangka-ng-pag-asa','ang-mabuting-kapitbahay','si-jonas-at-ang-dagat']);
+    for (const story of BUNDLED_CHILDREN_STORIES) {
+      const lesson = getSundaySchoolLesson(story);
+      expect(lesson).toBeTruthy();
+      if (!lesson) continue;
+      for (const lang of ['tl','en'] as const) {
+        expect(lesson.narrative[lang]).toMatch(/[“][^”]+[”]/);
+        expect(lesson.narrative[lang].length).toBeGreaterThan(900);
+      }
+      if (bibleStories.has(story.id)) {
+        expect(lesson.retellingNotice?.tl).toContain('hindi ito salita-sa-salitang');
+        expect(lesson.retellingNotice?.en).toContain('not word-for-word');
+      } else {
+        expect(lesson.retellingNotice).toBeUndefined();
+      }
+    }
+  });
   test('bundled lessons cannot silently attach to different published editorial revisions', () => {
     const story=BUNDLED_CHILDREN_STORIES[0];
     expect(getSundaySchoolLesson({...story,source:'published'})).toBeNull();
