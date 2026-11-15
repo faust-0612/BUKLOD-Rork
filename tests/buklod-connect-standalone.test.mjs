@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { createRequire } from 'node:module';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const app = read('app.config.js');
@@ -42,4 +43,64 @@ test('Apple green is isolated to Connect default and Main home route remains int
   assert.match(read('src/providers/BuklodThemeProvider.tsx'), /isBuklodConnectStandalone \? 'appleGreen' : DEFAULT_BUKLOD_THEME_PREFERENCE/);
   assert.match(read('src/app/index.tsx'), /isBuklodConnectStandalone \? '\/connect' : '\/\(tabs\)\/buklod'/);
   assert.match(read('src/app/(auth)/login.tsx'), /isBuklodConnectStandalone \? '\/connect'/);
+});
+
+test('Actual Expo config resolves independent Connect IDs and fails closed without its credentials', () => {
+  const build = createRequire(import.meta.url)('../app.config.js');
+  const relevant = [
+    'BUKLOD_APP_TARGET', 'APP_VARIANT', 'EAS_PROJECT_ID',
+    'CONNECT_EAS_PROJECT_ID', 'CONNECT_GOOGLE_SERVICES_FILE',
+    'CONNECT_ADMOB_ANDROID_APP_ID', 'EAS_BUILD',
+  ];
+  const original = Object.fromEntries(relevant.map(key => [key, process.env[key]]));
+  function config(variables) {
+    for (const key of relevant) delete process.env[key];
+    Object.assign(process.env, variables);
+    return build({ config: { extra: { eas: { projectId: 'main-placeholder' } } } });
+  }
+  try {
+    const main = config({ EAS_PROJECT_ID: 'main-eas' });
+    assert.equal(main.android.package, 'org.mzbministry.buklod');
+    assert.equal(main.runtimeVersion, '1.3.2');
+    const staging = config({
+      BUKLOD_APP_TARGET: 'connect',
+      APP_VARIANT: 'staging',
+      CONNECT_EAS_PROJECT_ID: 'connect-eas',
+      CONNECT_GOOGLE_SERVICES_FILE: './connect-staging-firebase.json',
+      EAS_BUILD: 'true',
+    });
+    assert.equal(staging.android.package, 'org.mzbministry.buklod.connect.staging');
+    assert.equal(staging.runtimeVersion, 'connect-1.0.0');
+    assert.equal(staging.extra.eas.projectId, 'connect-eas');
+    assert.equal(staging.scheme, 'buklod-connect-staging');
+    const standalone = config({ BUKLOD_APP_TARGET: 'connect', EAS_PROJECT_ID: 'main-eas' });
+    assert.equal(standalone.extra.eas, undefined);
+    assert.equal(standalone.updates, undefined);
+    assert.throws(() => config({
+      BUKLOD_APP_TARGET: 'connect',
+      EAS_BUILD: 'true',
+      EAS_PROJECT_ID: 'main-eas',
+    }), /Connect requires its own/);
+    assert.throws(() => config({
+      BUKLOD_APP_TARGET: 'connect',
+      EAS_BUILD: 'true',
+      CONNECT_EAS_PROJECT_ID: 'connect-eas',
+      CONNECT_GOOGLE_SERVICES_FILE: './connect-firebase.json',
+    }), /CONNECT_ADMOB_ANDROID_APP_ID/);
+    const production = config({
+      BUKLOD_APP_TARGET: 'connect',
+      EAS_BUILD: 'true',
+      CONNECT_EAS_PROJECT_ID: 'connect-eas',
+      CONNECT_GOOGLE_SERVICES_FILE: './connect-firebase.json',
+      CONNECT_ADMOB_ANDROID_APP_ID: 'connect-test-app-id',
+    });
+    assert.equal(production.android.package, 'org.mzbministry.buklod.connect');
+    assert.equal(production.extra.appTarget, 'connect');
+    assert.equal(production.runtimeVersion, 'connect-1.0.0');
+  } finally {
+    for (const [key, value] of Object.entries(original)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 });
