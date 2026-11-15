@@ -45,6 +45,17 @@ export function inspectNativeLabBuild({config, eas, gate, firebase, env = {}}) {
   const matches = clients.filter(c => c?.client_info?.android_client_info?.package_name === NATIVE_LAB.packageId);
   fail(matches.length === 1 && typeof matches[0]?.client_info?.mobilesdk_app_id === 'string',
     'Firebase configuration must contain exactly one real registered native-lab Android client');
+  // A package-matched Firebase app alone does not establish Android Google
+  // Identity consent. The signed APK must have an OAuth client bound to its
+  // exact package and SHA-1 signing certificate; never accept a web client.
+  const oauthClients = Array.isArray(matches[0]?.oauth_client) ? matches[0].oauth_client : [];
+  const androidOAuth = oauthClients.filter(o =>
+    o?.client_type === 1 &&
+    o?.android_info?.package_name === NATIVE_LAB.packageId &&
+    /^[a-f0-9]{40}$/i.test(String(o?.android_info?.certificate_hash ?? ''))
+  );
+  fail(androidOAuth.length > 0,
+    'Native QA Android Google OAuth client with registered SHA-1 certificate missing');
   const url = String(env.EXPO_PUBLIC_SUPABASE_URL ?? '').trim().toLowerCase();
   const match = /^https:\/\/([a-z0-9-]+)\.supabase\.co$/.exec(url);
   fail(Boolean(match), 'Preview Supabase URL missing or malformed');

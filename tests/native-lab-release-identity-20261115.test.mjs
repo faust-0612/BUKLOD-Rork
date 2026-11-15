@@ -23,7 +23,7 @@ const fixture = {
   gate: { ...gate, readyForBuild:true, nativeGifCommitContentVerified:true, googleDriveOAuthNativeVerified:true,
     videoScrollAdPrefetchConsolidated:true, firebaseClientRegistered:true },
   firebase: {client:[{client_info:{android_client_info:{package_name:'org.mzbministry.buklod.nativeqa'},
-    mobilesdk_app_id:'1:1234567890:android:fixture'}}]},
+    mobilesdk_app_id:'1:1234567890:android:fixture'},oauth_client:[{client_type:1,android_info:{package_name:'org.mzbministry.buklod.nativeqa',certificate_hash:'a'.repeat(40)}}]}]},
   env:{EXPO_TOKEN:'fixture-not-a-real-token',EXPO_PUBLIC_SUPABASE_URL:'https://isolatedqa.supabase.co',
     BUKLOD_STAGING_PROJECT_REF:'isolatedqa',EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_fixture'},
 };
@@ -48,6 +48,18 @@ test('rejects reused Firebase staging client, missing package and wrong runtime'
   assert.equal(inspect({firebase:null}).ready,false);
   assert.equal(inspect({config:{...config,runtimeVersion:'1.3.2'}}).ready,false);
   assert.equal(inspect({eas:{...eas,build:{...eas.build,'native-lab':{...eas.build['native-lab'],channel:'staging-user'}}}}).ready,false);
+});
+
+test('rejects Firebase-only Android registration without a signed Android OAuth client', () => {
+  const noOAuth = {client:[{client_info:{android_client_info:{package_name:'org.mzbministry.buklod.nativeqa'},mobilesdk_app_id:'fixture'}}]};
+  assert.equal(inspect({firebase:noOAuth}).ready,false);
+  assert.ok(inspect({firebase:noOAuth}).failures.some(x=>x.includes('Android Google OAuth')));
+  const wrongPackage = {client:[{...fixture.firebase.client[0],oauth_client:[{client_type:1,android_info:{
+    package_name:'org.mzbministry.buklod.staging',certificate_hash:'a'.repeat(40)}}]}]};
+  assert.equal(inspect({firebase:wrongPackage}).ready,false);
+  const webOnly = {client:[{...fixture.firebase.client[0],oauth_client:[{client_type:3,android_info:{
+    package_name:'org.mzbministry.buklod.nativeqa',certificate_hash:'a'.repeat(40)}}]}]};
+  assert.equal(inspect({firebase:webOnly}).ready,false);
 });
 
 test('rejects production Supabase, wrong staging project and missing token', () => {
