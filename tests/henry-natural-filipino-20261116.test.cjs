@@ -142,6 +142,7 @@ test('screenshot output is conservatively corrected without changing unrelated f
     'nagbigay kay Solomon ng higit na karangalan',
     'Ang mga pangyayari sa pagdalaw na ito',
     'dapat sana ay iyon lamang ang lugar na ginagamit para sa pagsamba',
+    'sapagkat naroon ang tabernakulo at ang tansong altar',
     'Doon naghandog si Solomon ng kanyang mga dakilang hain sa Diyos',
     '1 Hari 3:5',
     '2 Cronica 1:3',
