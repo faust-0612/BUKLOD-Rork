@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/cluster-community-dark-contrast-20261116.json",
+  "objective": "Make author names, post captions, mentions, metadata, reaction totals, comment preview media labels and sharing controls readable in Cluster/Organization Community Wall on dark and light palettes.",
+  "baseRef": "3b488fa704b804f05c5a289a7e0775daeabb2404",
+  "productionBaselineEvidence": "GitHub main 3b488fa704b804f05c5a289a7e0775daeabb2404 was inspected as source baseline. The screenshot reproduces unreadable dark-on-dark author and caption text on an installed Android screen. Exact live OTA source, staging RC and production deployed fingerprint are not verified; this PR makes no production claim.",
+  "chosenApproach": "Use the existing global BuklodThemeProvider semantic card foreground and border roles in the scoped Community post renderer, and use a WCAG AA readableAccentOnSurface helper for mention, See more, comment media and social-share labels. Avoid network/backend/media lifecycle modifications.",
+  "selectionRationale": "The card shell already uses theme.surface; the scoped child text still uses hardcoded light-theme colors. Binding to the same semantic palette fixes the root cause without changing data access, UI structure, playback or ads. The helper handles subdued accent colors in five light palettes.",
+  "alternativeApproaches": [
+    "Force a white post-card background in dark mode: rejected because it would bypass the selected global theme and create a mismatched experience.",
+    "Change the static global colors.text value: rejected because it could invert unrelated light-mode views and regress dozens of screens."
+  ],
+  "preserveBehaviors": [
+    "Existing Cluster and Organization post author identity/permissions, owner actions, comment/reaction mutation, Supabase reads and account isolation remain untouched.",
+    "Community image resolution/collage, video autoplay and scroll lifecycle, AdMob placement/prefetch and app navigation remain unchanged.",
+    "Light-mode palettes remain supported; accents that fail a 4.5:1 contrast threshold fall back to primary text, without recoloring card backgrounds.",
+    "No new dependencies, backend migration, Expo runtime/native configuration, staging or production OTA release."
+  ],
+  "acceptanceChecks": [
+    "Verify dark card name, timestamp, caption and comment/reaction count use theme.textPrimary/theme.textMuted and border uses theme.border.",
+    "Ensure mention links, See more/less, media preview labels and Share labels use WCAG AA readable text colors.",
+    "Focused Node regression covers all 12 themes and asserts rendered contrast >=4.5:1 plus scoped post semantic roles.",
+    "Check no ads, auth, navigation, image, video or network source paths are changed.",
+    "Run CI/compiled Android tests and visible staging acceptance before any release; no staging/production OTA from this scope."
+  ],
+  "riskAreas": [
+    "cluster-faith",
+    "accessibility",
+    "community-wall",
+    "dark-mode",
+    "theme-consistency",
+    "wall-media",
+    "ads-performance-preservation"
+  ],
+  "regressionTests": [
+    "tests/cluster-community-dark-contrast-20261116.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodExpandableWallCaption.tsx",
+    "src/components/BuklodCommunityCommentPreview.tsx",
+    "src/components/BuklodPostInternalShare.tsx",
+    "src/lib/buklodTheme.ts",
+    "tests/cluster-community-dark-contrast-20261116.test.mjs",
+    ".buklod/scopes/cluster-community-dark-contrast-20261116.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Theme-aware scoped social UI text and WCAG AA accent fallback correct unreadable Android dark-mode Community cards.",
+      "preservedBehaviors": [
+        "AdMob and video lifecycle, navigation, permissions and data queries are unchanged; light-mode semantics and native runtime stay intact."
+      ],
+      "tests": [
+        "tests/cluster-community-dark-contrast-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cluster Community scoped author, caption and counts have static light-only colors against dark-theme cards.",
+      "preservedBehaviors": [
+        "Cluster membership authorization, scoped posts, comments, reactions and notifications retain their existing APIs and interactions."
+      ],
+      "tests": [
+        "tests/cluster-community-dark-contrast-20261116.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseStatus": "DEV PR only. Focused static source assertions and palette contrast calculations pass; full Android compile, installed-client visual QA and staged release not verified. No OTA published."
+}
