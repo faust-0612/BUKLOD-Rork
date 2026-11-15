@@ -12,6 +12,8 @@ test('FIS stays behind existing system-admin gate with canonical finance RPCs', 
   assert.match(screen, /loadCanonicalAdminEconomy/);
   assert.match(screen, /adminListBuklodR38Withdrawals/);
   assert.match(nav, /path="\/admin\/fis"/);
+  assert.match(screen, /path="\/organizations"/);
+  assert.doesNotMatch(screen, /path="\/scope-fund"/);
   assert.doesNotMatch(screen, /adminRecordBuklodPfFinancialEntryV3|adminFinalizeBuklodPfMonthV3|adminMarkBuklodR38WithdrawalPaid/);
 });
 test('financial amounts are not promoted from non-finalized estimates', () => {

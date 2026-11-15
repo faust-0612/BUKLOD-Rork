@@ -243,7 +243,9 @@ export default function BuklodFisScreen() {
                   <Text style={styles.amount}>{formatFisMoney(item.allocation_php)}</Text>
                 </View>)}
             </View>
-            <NavLink label="Scope Fund Workspace" detail="Use active Organization or Cluster context for collection reports and verified GCash records" path="/scope-fund" icon="account-group-outline"/>
+            <NavLink label="Cluster / Organization Fund" detail="Select the precise scope before viewing its separately held GCash collections and verified funds" path="/organizations" icon="account-group-outline"/>
+            <NavLink label="Church Giving Accounts" detail="Manage verified church receiving account settings; do not confuse receipt records with Finance V3 allocation" path="/admin/giving" icon="hand-heart-outline"/>
+            <NavLink label="Faith Payment Review" detail="Review pending faith-related transactions in the existing protected payment console" path="/admin/faith-payments" icon="receipt-text-check-outline"/>
             <NavLink label="Bayanihan & Shares" detail="View canonical contribution eligibility and monthly allocation policy" path="/admin/bayanihan" icon="chart-arc"/>
           </>}
           {section === 'payouts' && <>
