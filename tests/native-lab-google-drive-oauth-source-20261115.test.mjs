@@ -11,6 +11,7 @@ test('Google Drive native authorization is separate from BUKLOD login and scoped
   assert.match(code, /https:\/\/www\.googleapis\.com\/auth\/drive\.file/);
   assert.match(code, /https:\/\/www\.googleapis\.com\/auth\/userinfo\.email/);
   assert.match(code, /OnActivityResult/);
+  assert.match(code, /identityScope = "openid"/);
   assert.match(code, /getAuthorizationResultFromIntent/);
   assert.match(code, /mainHandler\.postDelayed\(timeout, 90000\)/);
   assert.match(code, /clearToken/);

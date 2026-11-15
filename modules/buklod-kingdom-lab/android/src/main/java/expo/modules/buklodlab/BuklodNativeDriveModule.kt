@@ -25,6 +25,7 @@ class BuklodNativeDriveModule : Module() {
   private val requestCode = 0x4B21
   private val scope = "https://www.googleapis.com/auth/drive.file"
   private val emailScope = "https://www.googleapis.com/auth/userinfo.email"
+  private val identityScope = "openid"
   private var waiting: Promise? = null
   private var lastToken: String? = null
   private val timeout = Runnable {
@@ -42,7 +43,8 @@ class BuklodNativeDriveModule : Module() {
     val callback = waiting ?: return
     val token = result.accessToken
     if (token.isNullOrEmpty() || !result.grantedScopes.contains(scope) ||
-      !result.grantedScopes.contains(emailScope)) {
+      !result.grantedScopes.contains(emailScope) ||
+      !result.grantedScopes.contains(identityScope)) {
       fail("Drive and account identity permissions were not granted.")
       return
     }
@@ -69,7 +71,7 @@ class BuklodNativeDriveModule : Module() {
         waiting = promise
         mainHandler.postDelayed(timeout, 90000)
         val request = AuthorizationRequest.builder()
-          .setRequestedScopes(listOf(Scope(scope), Scope(emailScope)))
+          .setRequestedScopes(listOf(Scope(scope), Scope(emailScope), Scope(identityScope)))
           .build()
         try {
           Identity.getAuthorizationClient(activity).authorize(request)

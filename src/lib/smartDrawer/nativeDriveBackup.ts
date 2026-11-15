@@ -33,6 +33,15 @@ function ensureQa(userId: string) {
 function nativeDrive(): NativeDrive {
   return requireNativeModule<NativeDrive>('BuklodNativeDrive');
 }
+const activeAccountOperations = new Set<string>();
+async function withAccountLock<T>(userId: string, action: () => Promise<T>): Promise<T> {
+  if (activeAccountOperations.has(userId)) {
+    throw new Error('Another Google Drive operation for this account is in progress.');
+  }
+  activeAccountOperations.add(userId);
+  try { return await action(); }
+  finally { activeAccountOperations.delete(userId); }
+}
 async function keys(userId: string) {
   const idHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, userId);
   return { idHash, storeKey: 'buklod.qa.drive.' + idHash.slice(0, 40) };
@@ -100,10 +109,12 @@ export async function getNativeDrawerDriveConnection(userId: string) {
 }
 export async function disconnectNativeDrawerDrive(userId: string) {
   ensureQa(userId);
-  const { storeKey } = await keys(userId);
-  await SecureStore.deleteItemAsync(storeKey);
-  // Local disconnect, not global Google account consent revocation.
-  await nativeDrive().clearDriveToken();
+  return withAccountLock(userId, async () => {
+    const { storeKey } = await keys(userId);
+    await SecureStore.deleteItemAsync(storeKey);
+    // Local disconnect, not global Google account consent revocation.
+    await nativeDrive().clearDriveToken();
+  });
 }
 async function ownBackups(userId: string) {
   const { idHash } = await keys(userId);
@@ -119,18 +130,22 @@ async function ownBackups(userId: string) {
 export async function backupNativeDrawerToDrive(userId: string, recoveryKey: string) {
   ensureQa(userId);
   if (!/^[a-fA-F0-9]{64}$/.test(recoveryKey.trim())) throw new Error('Provide the 64-character recovery key.');
-  // Serialize before Drive API calls; a failed upload leaves local data intact.
-  const { count, encrypted } = await buildEncryptedSmartDrawerBackup(userId, recoveryKey);
-  const { getToken, own, idHash } = await ownBackups(userId);
-  const file = await uploadEncryptedSmartDrawerBackup(getToken, encrypted, own[0]?.id, fetch, idHash);
-  return { count, fileId: file.id };
+  return withAccountLock(userId, async () => {
+    // Serialize before Drive API calls; a failed upload leaves local data intact.
+    const { count, encrypted } = await buildEncryptedSmartDrawerBackup(userId, recoveryKey);
+    const { getToken, own, idHash } = await ownBackups(userId);
+    const file = await uploadEncryptedSmartDrawerBackup(getToken, encrypted, own[0]?.id, fetch, idHash);
+    return { count, fileId: file.id };
+  });
 }
 export async function restoreNativeDrawerFromDrive(userId: string, recoveryKey: string) {
   ensureQa(userId);
   if (!/^[a-fA-F0-9]{64}$/.test(recoveryKey.trim())) throw new Error('Provide the original 64-character recovery key.');
-  const { getToken, own } = await ownBackups(userId);
-  if (!own[0]?.id) throw new Error('No encrypted backup for this BUKLOD account was found in this Drive.');
-  const encrypted = await downloadEncryptedSmartDrawerBackup(getToken, own[0].id);
-  // Decryption validates original BUKLOD user ID, SHA-256, duplicate IDs.
-  return restoreSmartDrawerBackupFromEncryptedText(userId, recoveryKey, encrypted);
+  return withAccountLock(userId, async () => {
+    const { getToken, own } = await ownBackups(userId);
+    if (!own[0]?.id) throw new Error('No encrypted backup for this BUKLOD account was found in this Drive.');
+    const encrypted = await downloadEncryptedSmartDrawerBackup(getToken, own[0].id);
+    // Decryption validates original BUKLOD user ID, SHA-256, duplicate IDs.
+    return restoreSmartDrawerBackupFromEncryptedText(userId, recoveryKey, encrypted);
+  });
 }

@@ -42,7 +42,8 @@
     "Physical Android install and real Google Drive/GIF/video/ad behavior remains unverified until separately performed.",
     "Native GIF, Android SAF picker and Godot sources compile and pass functional Android QA before claiming the new APK works.",
     "NativeAd prefetch limited to one future creative and only visible media is permitted to play after scroll idle; no offscreen impressions.",
-    "Drawer import, classification, AES-GCM backup and Drive OAuth transport undergo source/type checks and account isolation; OAuth sign-in cannot be claimed before registration and device verification."
+    "Drawer import, classification, AES-GCM backup and Drive OAuth transport undergo source/type checks and account isolation; OAuth sign-in cannot be claimed before registration and device verification.",
+    "Google user identity uses OpenID and verified email; manual Drive actions serialize per BUKLOD user to prevent concurrent restore/disconnect."
   ],
   "regressionTests": [
     "tests/buklod-native-lab-expo-isolation-20261115.test.cjs",

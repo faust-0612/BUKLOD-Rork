@@ -13,6 +13,8 @@ test('Drive token is short-lived, authorization is native and account identity i
   assert.match(service, /googleEmail\.toLowerCase\(\) !== info\.email\.toLowerCase\(\)/);
   assert.match(service, /SecureStore\.getItemAsync/);
   assert.match(service, /SecureStore\.deleteItemAsync/);
+  assert.match(service, /const activeAccountOperations = new Set<string>/);
+  assert.match(service, /withAccountLock\(userId, async \(\) =>/);
   assert.doesNotMatch(service, /setItemAsync\([^\n]*accessToken/);
   assert.doesNotMatch(service, /setInterval/);
 });
