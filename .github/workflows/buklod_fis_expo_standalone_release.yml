@@ -13,6 +13,8 @@ on:
       - 'src/lib/buklodFisReadModel.ts'
       - '__tests__/buklodFisReadModel.test.ts'
       - 'tests/buklod-fis-finance-20261115.test.mjs'
+      - 'tests/buklod-fis-auth-route-20261115.test.mjs'
+      - 'tests/buklod-fis-deploy-identity-20261115.test.mjs'
       - '.github/workflows/buklod_fis_expo_standalone_release.yml'
   workflow_dispatch:
 
@@ -119,7 +121,7 @@ jobs:
         run: |
           npx tsc --noEmit
           npx jest __tests__/buklodFisReadModel.test.ts --runInBand
-          node --test tests/buklod-fis-finance-20261115.test.mjs
+          node --test tests/buklod-fis-finance-20261115.test.mjs tests/buklod-fis-auth-route-20261115.test.mjs tests/buklod-fis-deploy-identity-20261115.test.mjs
 
       - name: Verify Expo credentials on isolated FIS project
         run: npx eas-cli@latest whoami --non-interactive
