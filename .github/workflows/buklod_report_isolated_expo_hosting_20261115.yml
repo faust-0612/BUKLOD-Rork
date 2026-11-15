@@ -26,7 +26,7 @@ env:
 
 jobs:
   qa-preview-promote:
-    name: Isolated Report: source gate, preview, exact release
+    name: "Isolated Report: source gate, preview, exact release"
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
