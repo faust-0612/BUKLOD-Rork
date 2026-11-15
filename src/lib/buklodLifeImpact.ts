@@ -462,14 +462,12 @@ Promise<BuklodLifeImpactSummary> {
       typeof data ===
         'object'
     ) {
-      const summary =
-        normalizeImpact(
-          data as Record<
-            string,
-            unknown
-          >,
-          false,
-        );
+      // Do not expose legacy third-party spiritual milestones from servers
+      // that have not yet received the privacy migration.
+      const summary = normalizeImpact(
+        { people_reached: (data as any).people_reached, identity_private: true },
+        true,
+      );
 
       await writeImpactCache(
         summary
@@ -522,7 +520,11 @@ Promise<BuklodLifeImpactSummary> {
     await readImpactCache();
 
   if (cached) {
-    return cached;
+    // Older client caches may hold inferred third-party faith milestones.
+    return normalizeImpact(
+      { people_reached: cached.people_reached, identity_private: true },
+      true,
+    );
   }
 
   return normalizeImpact(

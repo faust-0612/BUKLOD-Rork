@@ -33,7 +33,6 @@ import {
 } from '@/lib/buklodLifeContent';
 
 import {
-  markMyBuklodLifeStage,
   recordBuklodLifeReferralFunnel,
 } from '@/lib/buklodLifeImpact';
 
@@ -126,10 +125,6 @@ export default function BuklodLifeInviteWelcomeScreen() {
 
   const discover =
     async () => {
-
-      await markMyBuklodLifeStage(
-        'JESUS_SHARED'
-      );
 
       router.replace({
         pathname:
@@ -364,7 +359,7 @@ export default function BuklodLifeInviteWelcomeScreen() {
           ]}
         >
           <MaterialCommunityIcons
-            name="cross"
+            name="sprout"
             size={30}
             color="#E69123"
           />

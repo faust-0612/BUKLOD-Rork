@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -22,6 +23,7 @@ import {
 
 import {
   router,
+  useFocusEffect,
 } from 'expo-router';
 
 import {
@@ -43,6 +45,12 @@ import {
 } from '@/lib/buklodLifeContent';
 
 import BuklodLifeTabs from '@/components/BuklodLifeTabs';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { BUKLOD_LIFE_CONCERNS } from '@/lib/buklodLifeGuide';
+import {
+  loadBuklodLifePrivateProgress,
+  type BuklodLifePrivateProgress,
+} from '@/lib/buklodLifePrivateProgress';
 
 import {
   useAuth,
@@ -53,6 +61,9 @@ export default function BuklodLifeScreen() {
 
   const insets =
     useSafeAreaInsets();
+  const { activeScope } = useBuklodScope();
+  const showFaithContent = Boolean(activeScope?.show_faith_content);
+  const [savedJourney, setSavedJourney] = useState<BuklodLifePrivateProgress | null>(null);
 
   const {
     user,
@@ -154,6 +165,17 @@ export default function BuklodLifeScreen() {
         language,
       ]
     );
+
+
+  // Read only an explicitly saved, encrypted device checkpoint, never a
+  // server-inferred faith status or another person's spiritual response.
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    void loadBuklodLifePrivateProgress(user?.id).then(value => {
+      if (active) setSavedJourney(value);
+    });
+    return () => { active = false; };
+  }, [user?.id]));
 
 
   const openTopic =
@@ -279,6 +301,23 @@ export default function BuklodLifeScreen() {
         active="my-life"
         language={language}
       />
+
+      {savedJourney && (
+        <Pressable
+          onPress={() => router.push({
+            pathname: '/life/topic' as any,
+            params: { topic: savedJourney.topic, lang: savedJourney.language },
+          })}
+          accessibilityRole="button"
+          style={styles.continueCard}>
+          <MaterialCommunityIcons name="bookmark-outline" size={22} color="#2F6946" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.continueTitle}>{language === 'fil' ? 'Balikan ang iyong sinave' : 'Continue where you left off'}</Text>
+            <Text style={styles.continueSub}>{language === 'fil' ? 'Pribadong naka-save sa device na ito' : 'Saved privately on this device'}</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={21} color="#2F6946" />
+        </Pressable>
+      )}
 
 
       <LinearGradient
@@ -555,16 +594,17 @@ export default function BuklodLifeScreen() {
         }
       >
         {
-          copy.commonStruggles.map(
+          BUKLOD_LIFE_CONCERNS.map(
             item => (
               <Pressable
                 key={
-                  item.label
+                  item.key
                 }
                 onPress={() =>
-                  openTopic(
-                    item.target
-                  )
+                  router.push({
+                    pathname: '/life/support' as any,
+                    params: { concern: item.key },
+                  })
                 }
                 style={({ pressed }) => [
                   styles.struggleCard,
@@ -579,7 +619,7 @@ export default function BuklodLifeScreen() {
                 >
                   <MaterialCommunityIcons
                     name={
-                      item.icon
+                      'heart-outline'
                     }
                     size={23}
                     color="#335C3D"
@@ -591,7 +631,7 @@ export default function BuklodLifeScreen() {
                     styles.struggleText
                   }
                 >
-                  {item.label}
+                  {item.label[language]}
                 </Text>
               </Pressable>
             )
@@ -705,6 +745,8 @@ export default function BuklodLifeScreen() {
       </ScrollView>
 
 
+      {showFaithContent && (
+        <>
       <Text
         style={
           styles.sectionTitle
@@ -803,11 +845,7 @@ export default function BuklodLifeScreen() {
       </Text>
 
       <Pressable
-        onPress={() =>
-          openTopic(
-            'help'
-          )
-        }
+        onPress={() => router.push('/life/guide' as any)}
         style={({ pressed }) => [
           styles.bigCard,
           pressed &&
@@ -899,6 +937,9 @@ export default function BuklodLifeScreen() {
       </Pressable>
 
 
+        </>
+      )}
+
       <Text
         style={
           styles.footer
@@ -918,6 +959,9 @@ export default function BuklodLifeScreen() {
 
 const styles =
   StyleSheet.create({
+    continueCard: { backgroundColor: '#EDF5EB', borderRadius: 15, borderWidth: 1, borderColor: '#D1E2CE', flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginTop: 12 },
+    continueTitle: { color: '#24472F', fontWeight: '800', fontSize: 14 },
+    continueSub: { color: '#637666', fontSize: 12, marginTop: 3 },
 
     screen: {
       flex:

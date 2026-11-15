@@ -1,0 +1,65 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/life-human-first-20261115.json",
+  "objective": "Complete LIFE as a human-first, calm, voluntary route from real-life needs to transparent Christian Gospel. Fix inferred spiritual milestones and privacy, complete support/questions/scripture, consent-first guide, private continuation and invited welcome.",
+  "baseRef": "66b3eefaeae7f9f136a98fdef08e1cba2ecfb742",
+  "chosenApproach": "Single scoped DEV commit with original/bundled curated references, no new native modules, opt-in encrypted checkpoint and privacy migration pending separate isolated DBA verification.",
+  "selectionRationale": "Preserve production Wall/ads/video/Connect/Kingdom while deepening LIFE without forcing religious visuals or exposure of recipients.",
+  "riskAreas": [
+    "cluster-faith",
+    "navigation-auth",
+    "privacy",
+    "backend-security",
+    "registration",
+    "offline",
+    "localization",
+    "accessibility",
+    "release-identity",
+    "staging-isolation"
+  ],
+  "preserveBehaviors": [
+    "LIFE and KL direct independent cards on Wall",
+    "Show Faith OFF overrides any organization",
+    "No app-wide mandatory religion",
+    "Production Android runtime 1.3.2 unchanged",
+    "No finance/referral reward calculations modified",
+    "Retired IGPAT remains hidden",
+    "Ads/video/Connect/Kingdom source untouched"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/life-human-first-20261115.json",
+    "src/app/life/index.tsx",
+    "src/app/life/topic.tsx",
+    "src/app/life/invite.tsx",
+    "src/app/life/impact.tsx",
+    "src/app/life/guide.tsx",
+    "src/app/life/support.tsx",
+    "src/app/(auth)/register.tsx",
+    "src/lib/buklodLifeContent.ts",
+    "src/lib/buklodLifeImpact.ts",
+    "src/lib/buklodLifeGuide.ts",
+    "src/lib/buklodLifeScripture.ts",
+    "src/lib/buklodLifePrivateProgress.ts",
+    "supabase/migrations/20261115125000_buklod_life_no_inferred_milestones.sql",
+    "tests/life-human-first-20261115.test.js",
+    "docs/life/human-first-20261115.md"
+  ],
+  "regressionTests": [
+    "tests/life-human-first-20261115.test.js",
+    "tests/show-faith-opt-out.test.js",
+    "tests/wall-life-kl-navigation-20261114.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "readyForStaging": false,
+  "productionPublished": false,
+  "backendMigrationApplied": false,
+  "gates": [
+    "Jest+source contracts",
+    "TypeScript",
+    "Expo Hermes Android export",
+    "isolated SQL function/RLS regression",
+    "staging receipt/manifest readback",
+    "release runtime/channel identity",
+    "production separate RC and readback"
+  ]
+}
