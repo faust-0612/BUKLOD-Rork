@@ -7,6 +7,7 @@ export type SundaySchoolQuestion = {
 };
 export type SundaySchoolLesson = {
   narrative: StoryLocalized;
+  retellingNotice?: StoryLocalized;
   moral: StoryLocalized;
   spiritual: StoryLocalized;
   reference: string;

@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-henry-children-dialogue-dark-v2.json",
+  "objective": "Complete the original twelve bilingual Sunday School lessons with 21 character dialogues including faithful paraphrased God speech while preserving the newly published expanded Bible catalog and reliable StoryNarrator; restore the remaining unreadable dark-mode verses in Daily Bible / My Bible without changing canonical Scripture. Staging Android only.",
+  "baseRef": "release/nov16-henry-conso-stage132-publish",
+  "productionBaselineEvidence": "Exact verified Nov16 staging source marker 0dc4fd0df8198bdbd3f37c93c181a3fae46c6cd2 (published source 029b010cbb30341b8d09c4f7b9a1f85e2975591a), EAS id 01a1e061-1ae9-7126-8e10-7936e2b72fb4, group cb13d5d1-4f71-42aa-b65f-721a75cd0625, runtime 1.3.2, signed staging APK bc4be208-bfb0-42f3-95cb-358353d0600f. Production unchanged id 01a1dff8-7563-790b-a714-22c316f56590.",
+  "chosenApproach": "Start from latest verified Henry consolidated staging, retain all BIBLE_EXPANSION_LESSONS, Android storyNarration engine, notifications theme fix and Matthew Henry study; inject existing reviewed bilingual dialogue into only matching original lessons and apply semantic light/dark verse text to actual reader components, guarded by focused regression tests.",
+  "selectionRationale": "Reusing the current published staging ancestor avoids erasing sixty-four concurrent commits. No native, DB, asset, Play, ad, production or financial modifications. No invented literal Scripture quotations.",
+  "alternativeApproaches": [
+    "Publish earlier Nov15 dialogue branch and erase current Henry and expanded Bible features (rejected: regression).",
+    "Rewrite expanded stories or voice engine wholesale (rejected: high functional regression and unnecessary cost).",
+    "Apply CSS-only contrast instead of React Native foreground roles (rejected: native app is not HTML)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith",
+    "child-safety",
+    "offline-content",
+    "voice-narration",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Preserve complete expanded Bible story catalog and original teaching content, quiz, prayer, moral, spiritual lessons and offline caching.",
+    "Preserve newer StoryNarrator pause/resume/voice-validation, reading progress, and no child-route ads.",
+    "Preserve new Matthew Henry commentary and translation, original Bible wording, verse annotations, navigation, and user highlights.",
+    "Preserve existing theme-aware notifications and Daily Reading dashboard; fix only unthemed verse screen.",
+    "No production, native runtime, APK, store, database, finance, ads or media mutation. Production stays 01a1dff8."
+  ],
+  "regressionTests": [
+    "tests/children-bible-dark-staging-20261116.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/bible/read.tsx",
+    "src/features/childrenStories/sundaySchool.ts",
+    "src/features/childrenStories/sundaySchoolTypes.ts",
+    "src/app/children-stories/[id].tsx",
+    "src/features/childrenStories/sundaySchool.test.ts",
+    "src/features/childrenStories/sundaySchoolDialogues.ts",
+    "tests/children-bible-dark-staging-20261116.test.mjs",
+    ".buklod/scopes/nov16-henry-children-dialogue-dark-v2.json"
+  ],
+  "acceptanceChecks": [
+    "Twenty-one original bilingual dialogue scenes are woven within twelve original lessons in both language narratives and spoken by existing StoryNarrator.",
+    "All newly expanded Bible lessons remain accessible with their original exact reference and quiz content.",
+    "Biblical paraphrased speech has visible notice; never represent an invented line as canonical Bible translation.",
+    "Daily Bible and My Bible verses, numbers and chapter headings remain clearly legible on dark cards.",
+    "Source-specific regression and native Expo TypeScript/Android export pass before new staging-user OTA; production left unchanged."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add original bilingual character speech and dynamic theme text styles to existing Expo JavaScript source without changing native libraries or packages.",
+      "preservedBehaviors": [
+        "Preserve offline narration, app navigation, signed runtime compatibility and all existing expanded stories."
+      ],
+      "tests": [
+        "tests/children-bible-dark-staging-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Repair dark-green verse foregrounds on scoped Bible readers while preserving actual Scripture content and existing commentary.",
+      "preservedBehaviors": [
+        "No change to assigned Bible verses, reading completion/points, highlights or authentication."
+      ],
+      "tests": [
+        "tests/children-bible-dark-staging-20261116.test.mjs"
+      ]
+    }
+  ]
+}
