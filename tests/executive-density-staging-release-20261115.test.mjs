@@ -23,6 +23,6 @@ test('a newer EAS staging publication blocks this release',()=>{
 });
 test('publisher enforces CI, recheck, production identity and postpublish readback',()=>{
  const policy=read('scripts/executive-density-staging-132-policy.mjs');
- for(const required of ['ancestor(APK_SOURCE,sha)','verifyBuild(read(dir+\\'/build.json\\'))','staging-updates-recheck.json','pre.productionId','verifyUpdate(read(dir+\\'/update-view.json\\')','SKIPPED BY OWNER']) assert.ok(policy.includes(required),required);
+ for(const required of ["ancestor(APK_SOURCE,sha)","verifyBuild(read(dir+'/build.json'))","staging-updates-recheck.json","pre.productionId","verifyUpdate(read(dir+'/update-view.json')","SKIPPED BY OWNER"]) assert.ok(policy.includes(required),required);
  for(const required of ['Engineering Accountability','BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD Live Motion R1 QA','--skip-bundler --input-dir','Independently verify staging manifest']) assert.ok(flow.includes(required),required);
 });
