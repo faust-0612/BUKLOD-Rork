@@ -68,7 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf dist-report-rc
-          npx --yes eas-cli@latest env:exec --environment production 'node scripts/report-management-preflight.mjs && node scripts/report-web-preflight.mjs && npx tsc -p tsconfig.report.json --noEmit && npx expo export --platform web --output-dir dist-report-rc --clear'
+          npx --yes eas-cli@latest env:exec production 'node scripts/report-management-preflight.mjs && node scripts/report-web-preflight.mjs && npx tsc -p tsconfig.report.json --noEmit && npx expo export --platform web --output-dir dist-report-rc --clear'
           test -s dist-report-rc/index.html
           grep -R -F 'REPORT COLLECTION FREQUENCY' dist-report-rc/_expo/static/js/web >/dev/null
           grep -R -F 'PHOTO SUBMISSION / SCAN DATA' dist-report-rc/_expo/static/js/web >/dev/null
