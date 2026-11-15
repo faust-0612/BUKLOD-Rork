@@ -15,7 +15,7 @@ test('canonical overall/monthly Profile ranks revalidate on each tab focus with 
  assert.match(slice,/if \(active\)/);
  assert.match(slice,/return \(\) => \{ active = false; \}/);
  assert.doesNotMatch(slice,/useEffect\(/);
- assert.match(me,/AdMob payouts finalize separately/);
+ assert.match(me,/Points standings, not payout amounts\. Monthly ranks follow the calendar month\./);
 });
 test('only authenticated owner recent posts refresh when Profile regains focus',()=>{
  const posts=read('src/components/BuklodProfilePostCards.tsx');
@@ -37,7 +37,7 @@ test('all-time and monthly ranks appear on official and ordinary Profile ahead o
  assert.ok(me.includes("['MONTHLY',rankPositions?.monthly]"));
  assert.equal(me.split('MY OVERALL & MONTHLY RANK').length-1,1,'no duplicated rank card');
  assert.ok(!me.includes('!isBuklodOfficial && <View style={{marginHorizontal:12,padding:12'),'official account must not be gated out');
- assert.match(me,/AdMob payouts finalize separately/);
+ assert.match(me,/Points standings, not payout amounts\. Monthly ranks follow the calendar month\./);
 });
 
 test('Profile shows canonical 1-10 Monthly and All-Time rankings, not only a hash rank badge',()=>{
