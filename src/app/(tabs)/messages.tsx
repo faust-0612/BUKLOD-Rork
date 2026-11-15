@@ -446,7 +446,8 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       fontWeight: '800',
     },
     searchDock: {
-      marginTop: -12,
+      // Leave the entire unread-status pill visible; no overlap with the hero.
+      marginTop: 8,
       marginHorizontal: 8,
       paddingTop: 4,
       paddingBottom: 5,
