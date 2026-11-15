@@ -25,7 +25,7 @@ test('all palettes have WCAG AA readable muted labels on screen/card/chips/input
  for(const [name,backgrounds] of Object.entries(defaults)) {
   const palette = theme.match(new RegExp('  '+name+': \\{([\\s\\S]*?)\\n  \\},'))?.[1];
   assert.ok(palette,'Missing palette '+name);
-  const muted = palette.match(/textMuted:\\s*'(#[0-9A-Fa-f]{6})'/)?.[1];
+  const muted = palette.match(/textMuted:\s*'(#[0-9A-Fa-f]{6})'/)?.[1];
   assert.ok(muted,'Missing muted label '+name);
   for(const background of backgrounds.slice(0,4)) assert.ok(ratio(muted,background)>=4.5,name+' muted contrast '+ratio(muted,background).toFixed(2)+' on '+background);
   const accent = backgrounds[4];
@@ -34,14 +34,14 @@ test('all palettes have WCAG AA readable muted labels on screen/card/chips/input
  }
 });
 test('global control and messages use contrast-safe foreground', () => {
- assert.match(theme, /onAccent: accessibleTextOn\\(p\\.accent\\)/);
- assert.match(messaging, /const onSent = accessibleTextOn\\(p\\.accent\\)/);
- assert.match(messaging, /unreadBadgeText: accessibleTextOn\\(p\\.unreadBadge\\)/);
- for(const path of ['src/lib/buklodThemePresentation.ts','src/components/BuklodContentReportSheet.tsx','src/components/BuklodCommunityCommentBubble.tsx','src/components/BuklodContentOverflowMenu.tsx','src/components/BuklodContentOverflowMenu.web.tsx','src/components/points/BuklodClaimRewardCard.tsx','src/components/points/BuklodPointsStage.tsx']) assert.match(read(path),/theme\\.onAccent/,path);
+ assert.match(theme, /onAccent: accessibleTextOn\(p\.accent\)/);
+ assert.match(messaging, /const onSent = accessibleTextOn\(p\.accent\)/);
+ assert.match(messaging, /unreadBadgeText: accessibleTextOn\(p\.unreadBadge\)/);
+ for(const path of ['src/lib/buklodThemePresentation.ts','src/components/BuklodContentReportSheet.tsx','src/components/BuklodCommunityCommentBubble.tsx','src/components/BuklodContentOverflowMenu.tsx','src/components/BuklodContentOverflowMenu.web.tsx','src/components/points/BuklodClaimRewardCard.tsx','src/components/points/BuklodPointsStage.tsx']) assert.match(read(path),/theme\.onAccent/,path);
 });
 test('screen margins and accessible touch-size share approved spacing tokens', () => {
- assert.match(visual,/space:\\s*\\{ screen: 16, section: 12, card: 12, inline: 8, tight: 4 \\}/);
- assert.match(visual,/touch:\\s*48/);
- assert.match(read('src/app/settings/index.tsx'),/paddingHorizontal: buklodVisual\\.space\\.screen/);
- assert.match(read('src/components/BuklodProfilePostCards.tsx'),/marginHorizontal:buklodVisual\\.space\\.screen/);
+ assert.match(visual,/space:\s*\{ screen: 16, section: 12, card: 12, inline: 8, tight: 4 \}/);
+ assert.match(visual,/touch:\s*48/);
+ assert.match(read('src/app/settings/index.tsx'),/paddingHorizontal: buklodVisual\.space\.screen/);
+ assert.match(read('src/components/BuklodProfilePostCards.tsx'),/marginHorizontal:buklodVisual\.space\.screen/);
 });
