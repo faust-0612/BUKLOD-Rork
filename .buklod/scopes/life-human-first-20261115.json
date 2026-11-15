@@ -1,0 +1,129 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/life-human-first-20261115.json",
+  "objective": "Complete LIFE as a human-first, calm, voluntary route from real-life needs to transparent Christian Gospel. Fix inferred spiritual milestones and privacy, complete support/questions/scripture, consent-first guide, private continuation and invited welcome.",
+  "baseRef": "66b3eefaeae7f9f136a98fdef08e1cba2ecfb742",
+  "chosenApproach": "Single scoped DEV commit with original/bundled curated references, no new native modules, opt-in encrypted checkpoint and privacy migration pending separate isolated DBA verification.",
+  "selectionRationale": "Preserve production Wall/ads/video/Connect/Kingdom while deepening LIFE without forcing religious visuals or exposure of recipients.",
+  "riskAreas": [
+    "cluster-faith",
+    "navigation-auth",
+    "privacy",
+    "backend-security",
+    "registration",
+    "offline",
+    "localization",
+    "accessibility",
+    "release-identity",
+    "staging-isolation",
+    "auth-privacy"
+  ],
+  "preserveBehaviors": [
+    "LIFE and KL direct independent cards on Wall",
+    "Show Faith OFF overrides any organization",
+    "No app-wide mandatory religion",
+    "Production Android runtime 1.3.2 unchanged",
+    "No finance/referral reward calculations modified",
+    "Retired IGPAT remains hidden",
+    "Ads/video/Connect/Kingdom source untouched"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/life-human-first-20261115.json",
+    "src/app/life/index.tsx",
+    "src/app/life/topic.tsx",
+    "src/app/life/invite.tsx",
+    "src/app/life/impact.tsx",
+    "src/app/life/guide.tsx",
+    "src/app/life/support.tsx",
+    "src/app/(auth)/register.tsx",
+    "src/lib/buklodLifeContent.ts",
+    "src/lib/buklodLifeImpact.ts",
+    "src/lib/buklodLifeGuide.ts",
+    "src/lib/buklodLifeScripture.ts",
+    "src/lib/buklodLifePrivateProgress.ts",
+    "supabase/migrations/20261115125000_buklod_life_no_inferred_milestones.sql",
+    "tests/life-human-first-20261115.test.js",
+    "docs/life/human-first-20261115.md",
+    "tests/life-human-first-auth-security-20261115.test.mjs",
+    "supabase/tests/20261115_life_privacy.sql",
+    "src/components/BuklodLifeTabs.tsx"
+  ],
+  "regressionTests": [
+    "tests/life-human-first-20261115.test.js",
+    "tests/life-human-first-auth-security-20261115.test.mjs",
+    "supabase/tests/20261115_life_privacy.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Implement LIFE support, private continuation, guided Gospel routes and impact without changing shared native runtime.",
+      "preservedBehaviors": [
+        "Protected Wall and video ads continue unchanged on main",
+        "Faith OFF users retain practical LIFE while faith topics are gated",
+        "Signed-in registration still defaults to Public Community Wall",
+        "Legacy third-party spiritual milestones must never be exposed"
+      ],
+      "tests": [
+        "tests/life-human-first-auth-security-20261115.test.mjs",
+        "supabase/tests/20261115_life_privacy.sql"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "After authenticated optional referral registration preserve normal Wall route while allowing LIFE invitation welcome only for explicit life=1.",
+      "preservedBehaviors": [
+        "Protected Wall and video ads continue unchanged on main",
+        "Faith OFF users retain practical LIFE while faith topics are gated",
+        "Signed-in registration still defaults to Public Community Wall",
+        "Legacy third-party spiritual milestones must never be exposed"
+      ],
+      "tests": [
+        "tests/life-human-first-auth-security-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Neutralize legacy implicitly tracked spiritual milestones and inviter aggregate exposure with a source-only gated SQL privacy migration.",
+      "preservedBehaviors": [
+        "Protected Wall and video ads continue unchanged on main",
+        "Faith OFF users retain practical LIFE while faith topics are gated",
+        "Signed-in registration still defaults to Public Community Wall",
+        "Legacy third-party spiritual milestones must never be exposed"
+      ],
+      "tests": [
+        "tests/life-human-first-auth-security-20261115.test.mjs",
+        "supabase/tests/20261115_life_privacy.sql"
+      ]
+    }
+  ],
+  "readyForStaging": false,
+  "productionPublished": false,
+  "backendMigrationApplied": false,
+  "gates": [
+    "Jest+source contracts",
+    "TypeScript",
+    "Expo Hermes Android export",
+    "isolated SQL function/RLS regression",
+    "staging receipt/manifest readback",
+    "release runtime/channel identity",
+    "production separate RC and readback"
+  ],
+  "productionBaselineEvidence": "Read-only GitHub main commit 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742 at implementation start; known staging LIFE/KL preserved by PR #808, production runtime 1.3.2; current staging and OTA manifests must be re-attested before staging promotion. No live backend write.",
+  "acceptanceChecks": [
+    "Main Human-first LIFE first paint remains fast, Wall LIFE and KL remain direct cards",
+    "12 concern options connect to practical guidance with optional opt-in Gospel",
+    "10 authored answers and 6 reference-based Gospel stages in Filipino and English",
+    "Show Faith OFF never routes to theological content or gospel by mistake",
+    "Invite link preserves life=1 and referral continuity without duplicate signup",
+    "Legacy faith stage taps create no remote writes; Life Impact never exposes recipients' spiritual response",
+    "Secure device-only checkpoint save, read, remove, and offline fallback",
+    "TypeScript/Jest/Node and Android Hermes checks on exact reviewed commit",
+    "Isolated SQL security verification before backend migration; never apply production directly",
+    "Verified signed staging runtime/channel and EAS manifest readback before release"
+  ],
+  "alternativeApproaches": [
+    "Keep existing implicit stage tracking and anonymized referral counts (rejected: identifiable spiritual behavior from small referral sets).",
+    "Change entire Wall, signup and native runtime while redesigning LIFE (rejected: high regression and extra build cost).",
+    "Replace authored Gospel with free-form AI generation (rejected: theological drift and offline unreliability)."
+  ]
+}

@@ -33,13 +33,13 @@ import {
 } from '@/lib/buklodLifeContent';
 
 import {
-  markMyBuklodLifeStage,
   recordBuklodLifeReferralFunnel,
 } from '@/lib/buklodLifeImpact';
 
 import {
   useAuth,
 } from '@/providers/AuthProvider';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 
 export default function BuklodLifeInviteWelcomeScreen() {
@@ -56,6 +56,7 @@ export default function BuklodLifeInviteWelcomeScreen() {
     profile,
   } =
     useAuth();
+  const { activeScope } = useBuklodScope();
 
   const language =
     useMemo(
@@ -126,10 +127,6 @@ export default function BuklodLifeInviteWelcomeScreen() {
 
   const discover =
     async () => {
-
-      await markMyBuklodLifeStage(
-        'JESUS_SHARED'
-      );
 
       router.replace({
         pathname:
@@ -343,6 +340,8 @@ export default function BuklodLifeInviteWelcomeScreen() {
         )}
       </View>
 
+      {Boolean(activeScope?.show_faith_content) && (
+        <>
       <Pressable
         onPress={() =>
           void discover()
@@ -364,7 +363,7 @@ export default function BuklodLifeInviteWelcomeScreen() {
           ]}
         >
           <MaterialCommunityIcons
-            name="cross"
+            name="sprout"
             size={30}
             color="#E69123"
           />
@@ -414,6 +413,8 @@ export default function BuklodLifeInviteWelcomeScreen() {
         />
       </Pressable>
 
+        </>
+      )}
       <Pressable
         onPress={() =>
           router.replace(
