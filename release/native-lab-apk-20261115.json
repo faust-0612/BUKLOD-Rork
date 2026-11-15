@@ -30,7 +30,38 @@
     "Reconcile Nov14 video scroll-stop and NativeAd prewarm PR #813 with current consolidated staging and production fixes",
     "Exact-source TypeScript, Android Hermes export, behavior regression, and native ABI checks",
     "Verify preview backend is non-production and environment secrets available",
-    "Build one Expo EAS Android APK under native-lab channel with new runtime, then verify finished build ID, package and APK bytes"
+    "Build one Expo EAS Android APK under native-lab channel with new runtime, then verify finished build ID, package and APK bytes",
+    "Obtain a genuinely isolated staging backend or explicitly approved no-cost safe test environment; do not silently point full QA to production or dedicated Quiz project",
+    "Configure BUKLOD_STAGING_PROJECT_REF with exact independently verified non-production project ref",
+    "Register Android Firebase app and Google OAuth certificate for org.mzbministry.buklod.nativeqa and provision only its protected NATIVE_LAB_FIREBASE_JSON_B64",
+    "Run actual Android Kotlin/Gradle native compile and verify Google Identity consent and account-bound encrypted Drive restore before signed EAS APK"
   ],
-  "note": "Source-only lab identity setup. No EAS APK started. No false assertion of native support. Existing staging-user runtime 1.3.2 and production runtime 1.3.2 are untouched."
+  "note": "Source-only lab identity setup. No EAS APK started. No false assertion of native support. Existing staging-user runtime 1.3.2 and production runtime 1.3.2 are untouched.",
+  "sourceIntegration": {
+    "androidImeGifRichContent": "implemented_in_native_lab_source_not_android_compiled",
+    "godotEngineAndroid": "implemented_in_native_lab_source_not_device_verified",
+    "googleDriveNativeAuthorization": "implemented_google_identity_openid_consent_and_account_binding_not_device_verified",
+    "googleDriveEncryptedBackupRestore": "implemented_manual_opt_in_account_bound_preserving_recovery_key_and_local_fallback",
+    "androidVideoAndNativeAd": "source_reconciled_and_ci_tested_no_live_fill_or_physical_scroll_validation"
+  },
+  "verifiedSourceQA": {
+    "sourceSha": "5aea538e9983eac27f8966c3bfc9adb7c3c49180",
+    "sourceIdentityTestRun": 43665272544,
+    "androidHermesExport": "success_4771_modules_20mb_hbc",
+    "typescript": "success",
+    "engineeringAccountabilityRun": 43665275755,
+    "mainIntegrationQaRun": 43665275780,
+    "note": "This was Android JS/Hermes export, not Android native Gradle compilation or EAS signed APK. A warning noted missing google-services.native-lab.json as expected."
+  },
+  "credentialPreflight": {
+    "sourceSha": "b5a94ccdb086c596e7e62248d7d90aabefc25273",
+    "githubActionsRun": 43665595580,
+    "result": "blocked_before_any_eas_build",
+    "expoTokenPresent": true,
+    "nativeLabFirebaseJsonConfigured": false,
+    "stagingSupabaseProjectRefConfigured": false,
+    "googleOAuthRegistered": "unverified_without_firebase_json",
+    "supabaseProjectInventory": "No dedicated active staging project; production BUKLOD Connect and Quiz are active and Attendance is inactive. None is authorized as a QA substitute.",
+    "stagingAndProductionModified": false
+  }
 }
