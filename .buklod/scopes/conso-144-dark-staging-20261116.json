@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/conso-144-dark-staging-20261116.json",
+  "objective": "Consolidated Android staging-user 1.3.2: preserve verified 144-story Children Bible + Pakinggan release and all prior Wall/Connect/Profile/LIFE/Kingdom/AdMob fixes; fix dark-on-dark Daily Bible Reading, nested audio and Notifications only.",
+  "baseRef": "4d1ac6986405b3f2f9715422a69fa7a04b07fc22",
+  "productionBaselineEvidence": "Verified latest staging-user Android OTA 01a1dfff-098e-71b1-b91a-63c0602ce512 group 4c456fda-cd0c-4864-bb6b-27c7fddc6377 source 4d1ac6986405b3f2f9715422a69fa7a04b07fc22 in run 43733954271, runtime 1.3.2, package org.mzbministry.buklod.staging. Production 01a1dff8-7563-790b-a714-22c316f56590 verified unchanged.",
+  "chosenApproach": "Rebase only semantic foreground/surfaces for Daily Bible and Notifications onto latest live 144-story exact Android staging source, retaining all new Old/New Testament library metadata, playback pause/resume, offline questions, no new native or backend changes; exact stage/prod manifest guards.",
+  "selectionRationale": "The earlier 32-story PR was superseded by a successfully published 144-story plus audio version; copying 32-story content would regress. Theme screen edits have zero overlap with newest story/audio source, so merge only two screen files and independent regression contracts.",
+  "riskAreas": [
+    "offline-children",
+    "bilingual-TTS",
+    "theme-contrast",
+    "notification-deeplinks",
+    "staging-release",
+    "ads-preservation",
+    "production-isolation",
+    "runtime-identity"
+  ],
+  "preserveBehaviors": [
+    "All 144 stories (136 Bible), existing IDs, four legacy categories, testament filters, latest narration voice selection, pause/resume, favorites and adult progress remain unchanged.",
+    "No changes to BUKLOD 1.3.2 runtime, Expo project, package, native APK, dependencies, secrets, backend, production or Play Store.",
+    "Preserve Wall/Marites, AdMob video prewarm, Connect green design, Profile activity and ranks, Kingdom, LIFE/KL, and retired IGPAT state.",
+    "Production EAS manifest unchanged; stage publish requires signed APK, latest group, same-SHA CI and readback."
+  ],
+  "acceptanceChecks": [
+    "Exactly same 144-story bundle and audio source from latest staging; no cherry-pick of superseded 32-story PR changes.",
+    "Daily Bible and nested Audio Reading and Notifications use global theme semantic foreground for nightPine and graphite.",
+    "No changes to daily quiz, reading validation, photo proof, reflection, points, notifications taps and unread counts.",
+    "Focused source/theme/node regression plus TypeScript and actual Expo Android Hermes export green.",
+    "Exact-source signed APK + EAS latest stage/prod manifest and exactly-once publication identity readback."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/conso-144-dark-staging-20261116.json",
+    "src/app/bible/index.tsx",
+    "src/app/notifications/index.tsx",
+    "tests/bible-dark-mode-20261116.test.mjs",
+    "tests/conso-144-dark-staging-20261116.test.mjs",
+    "scripts/conso-144-dark-staging-20261116-policy.mjs",
+    ".github/workflows/buklod-conso-144-dark-staging-20261116.yml"
+  ],
+  "regressionTests": [
+    "tests/bible-dark-mode-20261116.test.mjs",
+    "tests/conso-144-dark-staging-20261116.test.mjs"
+  ],
+  "releaseMode": "isolated-android-staging-ota",
+  "releaseStatus": "RC source only; publish gated by latest EAS stage 144-story manifest, exact SHA CI, signed Android build and production nonmutation.",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Only Daily Bible and Notifications JSX colors change; staging signed native 1.3.2 remains compatible.",
+      "preservedBehaviors": [
+        "Expo runtime 1.3.2, package org.mzbministry.buklod.staging",
+        "No native dependency changes, no Play or production release"
+      ],
+      "tests": [
+        "tests/conso-144-dark-staging-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Daily Bible presentation only: preserve submission, quiz, offline chapters, points and audio.",
+      "preservedBehaviors": [
+        "Daily Reading automatic validation and points still work",
+        "Bible offline reading, questions, audio and photos preserved"
+      ],
+      "tests": [
+        "tests/bible-dark-mode-20261116.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Publish prior 32-story staging branch: rejected because it would overwrite the newer 144 stories and narration fixes.",
+    "Change shared theme palette: rejected to protect Connect, Profile, Wall and existing validated dark themes.",
+    "Rebuild native or publish production: rejected because changes are JS only and owner requires isolated staging runtime 1.3.2."
+  ]
+}
