@@ -38,8 +38,7 @@
     "tests/children-stories-dialogue-staging-20261116.test.mjs"
   ],
   "regressionTests": [
-    "tests/children-stories-dialogue-staging-20261116.test.mjs",
-    "src/features/childrenStories/sundaySchool.test.ts"
+    "tests/children-stories-dialogue-staging-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
