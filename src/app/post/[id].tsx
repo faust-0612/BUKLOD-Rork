@@ -29,6 +29,9 @@ import {getClusterLabels,formatClusterName} from '@/lib/clusterLabels'; // PATCH
 import {Button,Card,SectionTitle,shared} from '@/components/UI';
 import {colors} from '@/lib/theme';
 import {useAuth} from '@/providers/AuthProvider';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import type { BuklodThemeRoles } from '@/lib/buklodTheme';
+import { ProfileAvatarNoteChip } from '@/components/ProfileAvatar';
 import {recordConfirmedCommunityComment} from '@/lib/buklodCommunityCommentAdCadence';
 import {warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 
@@ -70,6 +73,8 @@ export default function PostDetail(){
 
  const {id,focusCommentId,openComments}=useLocalSearchParams<{id:string;focusCommentId?:string;openComments?:string}>();
  const {user}=useAuth();
+ const {theme}=useBuklodTheme();
+ const s=useMemo(()=>createPostDetailStyles(theme),[theme]);
  const detailScrollRef=useRef<ScrollView|null>(null);
  const commentsStartYRef=useRef(0);
  const lastFocusedComment=useRef<string|null>(null);
@@ -432,7 +437,7 @@ export default function PostDetail(){
       title="Your post"
       body={String(post.body ?? '')}
       authorOnly={!!post.author_only}
-      iconColor={colors.muted}
+      iconColor={theme.textMuted}
       allowPhotoEdit={!communityPostIsVideo(post)}
       maxPhotos={COMMUNITY_MAX_PHOTOS}
       photos={communityPostEditPhotos(post)}
@@ -473,7 +478,7 @@ export default function PostDetail(){
    ) : (
      <BuklodContentOverflowMenu
       title="Post"
-      iconColor={colors.muted}
+      iconColor={theme.textMuted}
       onReport={() =>
        openReport('post', String(post.id))
       }
@@ -481,7 +486,8 @@ export default function PostDetail(){
    )}
   </View>
 
-  {!!post.author_rank_name&&
+  <ProfileAvatarNoteChip userId={post.user_id} />
+   {!!post.author_rank_name&&
    <Text style={s.meta}>
     {post.author_rank_name}
    </Text>
@@ -556,7 +562,7 @@ export default function PostDetail(){
    </View>
    {!comments.length ? (
     <View style={s.emptyComments}>
-     <MaterialCommunityIcons name="comment-text-outline" size={25} color={colors.muted}/>
+     <MaterialCommunityIcons name="comment-text-outline" size={25} color={theme.textMuted}/>
      <Text style={s.emptyTitle}>No comments yet</Text>
      <Text style={s.emptySubtitle}>Start the conversation.</Text>
     </View>
@@ -586,7 +592,7 @@ export default function PostDetail(){
        <BuklodMentionText
         text={String(c.body??'')}
         style={s.commentBody}
-        mentionStyle={{fontWeight:'800',color:colors.greenDark}}
+        mentionStyle={{fontWeight:'800',color:theme.accent}}
        />
       </View>
       <View style={s.commentActions}>
@@ -645,7 +651,7 @@ export default function PostDetail(){
     editable={!busy}
     multiline
     placeholder={replyTo?'Write a reply...':'Write a comment...'}
-    placeholderTextColor={colors.muted}
+    placeholderTextColor={theme.textMuted}
     accessibilityLabel="Write a comment"
     style={s.composerInput}
    />
@@ -671,40 +677,42 @@ export default function PostDetail(){
  </>;
 }
 
-const s=StyleSheet.create({
+function createPostDetailStyles(theme: BuklodThemeRoles) {
+return StyleSheet.create({
  content:{paddingHorizontal:12,paddingTop:12,paddingBottom:24},
- eyebrow:{fontSize:10,fontWeight:'900',color:colors.greenDark,letterSpacing:.8,marginBottom:6},
- author:{fontSize:17,fontWeight:'900',color:colors.text},
- meta:{marginTop:3,fontSize:10,color:colors.muted},
- body:{marginTop:12,fontSize:15,lineHeight:22,color:colors.text},
- mentions:{marginTop:8,fontSize:12,fontWeight:'800',color:colors.greenDark},
+ eyebrow:{fontSize:10,fontWeight:'900',color:theme.accent,letterSpacing:.8,marginBottom:6},
+ author:{fontSize:17,fontWeight:'900',color:theme.textPrimary},
+ meta:{marginTop:3,fontSize:10,color:theme.textMuted},
+ body:{marginTop:12,fontSize:15,lineHeight:22,color:theme.textPrimary},
+ mentions:{marginTop:8,fontSize:12,fontWeight:'800',color:theme.accent},
  image:{width:'100%',height:280,borderRadius:13,marginTop:12},
  stats:{marginTop:10,marginBottom:4,flexDirection:'row',justifyContent:'space-between'},
- stat:{fontSize:10.5,color:colors.muted},
+ stat:{fontSize:10.5,color:theme.textMuted},
  review:{flexDirection:'row',gap:8,marginTop:8},
  commentsSection:{marginTop:16,paddingHorizontal:4,paddingBottom:24},
  commentsHeading:{flexDirection:'row',alignItems:'center',gap:8,marginBottom:14},
- commentsTitle:{fontSize:18,fontWeight:'900',color:colors.text},
- commentsCount:{fontSize:12,fontWeight:'800',color:colors.greenDark,backgroundColor:colors.greenSoft,overflow:'hidden',borderRadius:999,paddingHorizontal:9,paddingVertical:3},
+ commentsTitle:{fontSize:18,fontWeight:'900',color:theme.textPrimary},
+ commentsCount:{fontSize:12,fontWeight:'800',color:theme.accent,backgroundColor:theme.accentSoft,overflow:'hidden',borderRadius:999,paddingHorizontal:9,paddingVertical:3},
  emptyComments:{alignItems:'center',paddingVertical:25,gap:5},
- emptyTitle:{fontSize:14,fontWeight:'800',color:colors.text},
- emptySubtitle:{fontSize:12,color:colors.muted},
+ emptyTitle:{fontSize:14,fontWeight:'800',color:theme.textPrimary},
+ emptySubtitle:{fontSize:12,color:theme.textMuted},
  commentRow:{flexDirection:'row',alignItems:'flex-start',gap:8,marginBottom:13},
  replyRow:{marginLeft:20},
- focusedComment:{backgroundColor:colors.greenSoft,borderRadius:12,padding:5},
+ focusedComment:{backgroundColor:theme.accentSoft,borderRadius:12,padding:5},
  commentColumn:{flex:1,minWidth:0},
- commentBubble:{alignSelf:'stretch',paddingVertical:9,paddingHorizontal:12,borderRadius:15,backgroundColor:'#F1F4F2'},
- commentName:{fontSize:13,fontWeight:'900',color:colors.text},
- commentCluster:{fontSize:11,fontWeight:'500',color:colors.muted},
- commentMeta:{fontSize:10,color:colors.muted},
- commentBody:{marginTop:5,fontSize:13.5,lineHeight:19,color:colors.text},
+ commentBubble:{alignSelf:'stretch',paddingVertical:9,paddingHorizontal:12,borderRadius:15,backgroundColor:theme.surfaceElevated},
+ commentName:{fontSize:13,fontWeight:'900',color:theme.textPrimary},
+ commentCluster:{fontSize:11,fontWeight:'500',color:theme.textMuted},
+ commentMeta:{fontSize:10,color:theme.textMuted},
+ commentBody:{marginTop:5,fontSize:13.5,lineHeight:19,color:theme.textPrimary},
  commentActions:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:16,marginTop:6,paddingHorizontal:6},
- commentActionText:{fontSize:11,fontWeight:'800',color:colors.muted},
- composer:{backgroundColor:colors.white,borderTopWidth:1,borderTopColor:colors.line,paddingHorizontal:12,paddingTop:9,paddingBottom:10},
+ commentActionText:{fontSize:11,fontWeight:'800',color:theme.textMuted},
+ composer:{backgroundColor:theme.surface,borderTopWidth:1,borderTopColor:theme.border,paddingHorizontal:12,paddingTop:9,paddingBottom:10},
  composerRow:{flexDirection:'row',alignItems:'flex-end',gap:9},
- composerInput:{flex:1,minHeight:42,maxHeight:96,backgroundColor:'#F4F6F4',borderRadius:22,paddingHorizontal:15,paddingVertical:10,fontSize:14,color:colors.text,textAlignVertical:'center'},
+ composerInput:{flex:1,minHeight:42,maxHeight:96,backgroundColor:theme.inputSurface,borderRadius:22,paddingHorizontal:15,paddingVertical:10,fontSize:14,color:theme.textPrimary,textAlignVertical:'center'},
  sendButton:{width:42,height:42,borderRadius:21,backgroundColor:colors.green,alignItems:'center',justifyContent:'center'},
  sendButtonDisabled:{opacity:.38},
- replyBanner:{flexDirection:'row',gap:8,alignItems:'center',backgroundColor:colors.greenSoft,borderRadius:10,paddingVertical:7,paddingHorizontal:10,marginBottom:8},
- replyBannerText:{flex:1,fontSize:12,fontWeight:'800',color:colors.greenDark},
+ replyBanner:{flexDirection:'row',gap:8,alignItems:'center',backgroundColor:theme.accentSoft,borderRadius:10,paddingVertical:7,paddingHorizontal:10,marginBottom:8},
+ replyBannerText:{flex:1,fontSize:12,fontWeight:'800',color:theme.accent},
 });
+}
