@@ -6,6 +6,7 @@ on:
       - feature/buklod-connect-standalone-apple-green-20261115
     paths:
       - '.github/workflows/buklod-connect-standalone-apk.yml'
+      - 'src/components/BuklodConnectStandaloneHome.tsx'
   workflow_dispatch:
 
 permissions:

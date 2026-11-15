@@ -72,7 +72,7 @@ export default function BuklodConnectStandaloneHome() {
           <Text style={styles.navActiveLabel}>Connect</Text>
         </View>
         <Pressable style={styles.navAction} accessibilityRole="button" accessibilityLabel="Open Push-to-Talk" onPress={() => router.push('/personal-home/ptt')}>
-          <MaterialCommunityIcons name="walkie-talkie" size={25} color={GREEN} />
+          <MaterialCommunityIcons name="microphone" size={25} color={GREEN} />
           <Text style={styles.navLabel}>PTT Radio</Text>
         </Pressable>
         <Pressable style={styles.navAction} accessibilityRole="button" accessibilityLabel="Open notifications" onPress={() => router.push('/notifications')}>
