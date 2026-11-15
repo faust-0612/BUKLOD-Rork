@@ -57,7 +57,9 @@ export default function BuklodAdSafetyRouteBridge() {
       } else if (remoteFeaturesReady.current) {
         // A resumed app can recover a failed/cancelled preload only after
         // remote flags were received; kill switches remain authoritative.
-        warmBuklodInterstitial('interstitial_generic');
+        if (!isBuklodAdRouteSensitive()) {
+          warmBuklodInterstitial('interstitial_generic');
+        }
       }
     });
     return () => sub.remove();

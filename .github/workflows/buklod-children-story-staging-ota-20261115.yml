@@ -1,0 +1,150 @@
+# BUKLOD Children's Story World: exact-source, Android staging-user OTA only.
+# Owner explicitly waived physical-device visual acceptance, NOT CI/runtime/channel verification.
+# This workflow never promotes production, builds native APK, deploys web, or migrates databases.
+name: BUKLOD Children Stories Android Staging 1.3.2 OTA - NO PROD
+on:
+  push:
+    branches: [integration/children-story-staging-132-20261115]
+    paths:
+      - .github/workflows/buklod-children-story-staging-ota-20261115.yml
+      - scripts/children-stories-staging-ota-20261115.mjs
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+concurrency:
+  group: buklod-children-stories-132-staging-only
+  cancel-in-progress: false
+jobs:
+  publish-exact-android-staging:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/integration/children-story-staging-132-20261115' && startsWith(github.event.head_commit.message, 'BUKLOD_CHILD_STORY_STAGING_132_20261115:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EVIDENCE_DIR: /tmp/buklod-children-story-132-ota
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Gate exact source against active scoped draft PR and required CI checks
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch='integration/children-story-staging-132-20261115';
+            const baseline='integration/nov15-conso-staging-video-ads-20261115';
+            const baseSha='ec1ae3e729990928bfe97c0b01fbdf4ddef11ced';
+            const required=[
+              'Engineering Accountability',
+              'BUKLOD Main - Report Door and Legacy Integration PR QA'
+            ];
+            for(let i=0;i<65;i++){
+              const {data:prList}=await github.rest.pulls.list({...context.repo,
+                head:'faust-0612:'+branch, base:baseline,state:'open',per_page:10});
+              const pr=prList.find(p=>p.draft && p.head.sha===context.sha &&
+                p.base.sha===baseSha && p.head.ref===branch);
+              if(!pr){
+                if(i<6){await new Promise(resolve=>setTimeout(resolve,10000));continue;}
+                throw Error('Exact-source draft PR against frozen last-verified staging baseline missing');
+              }
+              const {data}=await github.rest.actions.listWorkflowRunsForRepo({
+                ...context.repo,head_sha:context.sha,per_page:100});
+              const checks=required.map(name=>data.workflow_runs.find(r=>
+                r.name===name && r.head_sha===context.sha &&
+                r.event==='pull_request'));
+              if(checks.some(r=>r?.status==='completed'&&r.conclusion!=='success'))
+                throw Error('Required CI failure; no staging publish');
+              if(checks.every(r=>r?.status==='completed'&&r.conclusion==='success')){
+                core.info('Exact source and both PR CI gates verified (Android export gate remains next): '+context.sha);
+                return;
+              }
+              await new Promise(resolve=>setTimeout(resolve,10000));
+            }
+            throw Error('Exact-source CI timeout; no OTA');
+      - name: Enforce no native or unrelated deployed-feature changes
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/children-stories-staging-ota-20261115.mjs verify-source "$GITHUB_SHA" "$EVIDENCE_DIR"
+          node --experimental-strip-types --test \
+            tests/children-stories-contract.test.mjs \
+            tests/children-stories-navigation-ad-safety.test.mjs \
+            tests/children-stories-staging-ota-20261115.test.mjs
+      - name: Signed staging APK and separate production channel preflight
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'Expo release credential missing; no OTA'; exit 1; }
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel.json"
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 20 --json --non-interactive > "$EVIDENCE_DIR/previous-updates.json"
+          node scripts/children-stories-staging-ota-20261115.mjs preflight "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Export EXACT preview Android bundle under Expo runtime 1.3.2
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-children-story-preview.env --non-interactive
+          set -a
+          . /tmp/buklod-children-story-preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > "$EVIDENCE_DIR/expo-config.json"
+          node <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const c=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/expo-config.json','utf8'));
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.runtimeVersion,'1.3.2');
+          assert.equal(c.extra.appEnvironment,'staging');
+          assert.equal(c.extra.appTarget,'main');
+          assert.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.match(process.env.EXPO_PUBLIC_SUPABASE_URL||'',/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-children-story-132-android-export --clear
+          test -s /tmp/buklod-children-story-132-android-export/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Exactly once publish to Android staging-user ONLY
+        run: |
+          set -euo pipefail
+          # Preflight blocks release if any other OTA superseded the inspected Nov15 staging source.
+          npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview \
+            --skip-bundler --input-dir /tmp/buklod-children-story-132-android-export \
+            --non-interactive --json --message "BUKLOD_CHILD_STORY_STAGING_132_20261115_${GITHUB_SHA}" \
+            > "$EVIDENCE_DIR/publish.json"
+          node <<'NODE'
+          const fs=require('fs');
+          const updates=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/publish.json','utf8'));
+          if(!Array.isArray(updates)||updates.length!==1||!updates[0].group)
+            throw Error('Unexpected EAS receipt. Do not retry publication automatically.');
+          fs.writeFileSync('/tmp/buklod-children-story-published-group',updates[0].group);
+          NODE
+          npx --yes eas-cli@27.9.0 update:view "$(cat /tmp/buklod-children-story-published-group)" --json > "$EVIDENCE_DIR/update-view.json"
+      - name: Verify actual EAS Android update and production non-mutation
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel-after.json"
+          node scripts/children-stories-staging-ota-20261115.mjs postpublish "$GITHUB_SHA" "$EVIDENCE_DIR"
+          cat "$EVIDENCE_DIR/verification.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve exact Android staging-only release receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-children-story-132-staging-${{ github.sha }}
+          path: /tmp/buklod-children-story-132-ota/*.json
+          retention-days: 14
+          if-no-files-found: ignore

@@ -53,6 +53,7 @@ const SENSITIVE_PREFIXES = [
   '/igpat',
   '/reels',
   '/games',
+  '/children-stories',
   '/personal-home',
   '/profile/buklod-health',
   '/health',

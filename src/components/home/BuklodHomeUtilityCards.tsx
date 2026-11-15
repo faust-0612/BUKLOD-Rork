@@ -92,11 +92,31 @@ export default function BuklodHomeUtilityCards() {
           <MaterialCommunityIcons name="open-in-new" size={16} color="#155743" />
         </Pressable>
       </View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open Children's Story World"
+        onPress={() => router.push('/children-stories' as any)}
+        style={({ pressed }) => [s.storyLauncher, pressed && s.pressed]}>
+        <LinearGradient colors={['#203C75', '#567DB5', '#B18AB9']} start={{x:0,y:0}} end={{x:1,y:1}}
+          style={s.storyGradient}>
+          <View style={{flex:1,minWidth:0,gap:5}}>
+            <Text style={s.storyKicker}>FAMILY READING · OFFLINE STORIES</Text>
+            <Text style={s.storyTitle}>Children's Story World</Text>
+            <Text style={s.storySubtitle}>12 illustrated stories · Filipino & English · Listen & learn</Text>
+          </View>
+          <View style={s.storyIcon}><MaterialCommunityIcons name="book-open-page-variant" size={34} color="#FFFFFF" /></View>
+        </LinearGradient>
+      </Pressable>
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  storyLauncher: { width: '100%', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: '#7C9DD1', shadowColor: '#32528D', shadowOpacity: 0.12, shadowRadius: 7, elevation: 2 },
+  storyGradient: { minHeight: 115, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  storyKicker: { fontSize: 10, color: '#DDF5FC', fontWeight: '900', letterSpacing: 1.1 },
+  storyTitle: { fontSize: 20, lineHeight: 25, fontWeight: '900', color: '#FFFFFF' },
+  storySubtitle: { fontSize: 12, lineHeight: 18, color: '#EBF6FF' },
+  storyIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: 'rgba(255,255,255,.18)', justifyContent: 'center', alignItems: 'center' },
+
   grid: {
     width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8,
     marginHorizontal: 0, paddingHorizontal: 0,

@@ -11,6 +11,7 @@ export const BUKLOD_FEATURE_LINKS: readonly BuklodFeatureLink[] = [
   { id: 'cluster', title: 'My Cluster', route: '/clusters', aliases: ['grupo', 'members', 'kasapi', 'how to join cluster', 'paano sumali sa cluster'] },
   { id: 'profile', title: 'Profile', route: '/me', aliases: ['account', 'ako', 'personal'] },
   { id: 'settings', title: 'Settings', route: '/settings', aliases: ['gear', 'ayos', 'configure', 'setting'] },
+  { id: 'stories', title: "Children's Stories", route: '/children-stories', aliases: ['children', 'kids', 'storybook', 'story', 'stories', 'bedtime', 'children story', 'kwento', 'kuwento', 'pambata', 'bata', 'pabula', 'alamat', 'Sunday School', 'read to me', 'pakinggan', 'magbasa'] },
   { id: 'bible', title: 'Bible & Reading', route: '/bible', aliases: ['bible', 'basa', 'pagbasa', 'daily reading', 'salita ng dios', 'verses'] },
   { id: 'prayer', title: 'Prayer', route: '/prayer', aliases: ['panalangin', 'prayer', 'dasal', 'pray'] },
   { id: 'kingdom', title: 'BUKLOD Kingdom', route: '/games', aliases: ['kingdom', 'game', 'laro', 'map', 'reward'] },
