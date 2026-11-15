@@ -5,7 +5,9 @@ name: BUKLOD Children Stories Android Staging 1.3.2 OTA - NO PROD
 on:
   push:
     branches: [integration/children-story-staging-132-20261115]
-    paths: [.github/workflows/buklod-children-story-staging-ota-20261115.yml]
+    paths:
+      - .github/workflows/buklod-children-story-staging-ota-20261115.yml
+      - scripts/children-stories-staging-ota-20261115.mjs
 permissions:
   contents: read
   actions: read
