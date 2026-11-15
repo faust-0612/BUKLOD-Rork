@@ -106,7 +106,12 @@ function LifeImpactContent() {
               : 'Your chosen checkpoint is encrypted on this device and is not shared with inviters, admins, or other members.'}</Text>
             <Text style={styles.savedTitle}>{topicLabel}</Text>
             <Pressable style={styles.primary} onPress={() => router.push({
-              pathname: '/life/topic' as any, params: { topic: saved.topic, lang: saved.language },
+              pathname: '/life/topic' as any,
+              params: {
+                topic: saved.topic, lang: saved.language, resume: saved.step,
+                ...(saved.topic === 'questions' && saved.questionIndex !== undefined
+                  ? { questionIndex: String(saved.questionIndex) } : {}),
+              },
             })}>
               <Text style={styles.primaryText}>{fil ? 'Ipagpatuloy' : 'Continue'}</Text>
             </Pressable>
