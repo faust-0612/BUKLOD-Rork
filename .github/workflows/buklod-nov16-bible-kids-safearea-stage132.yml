@@ -3,20 +3,20 @@
 # Staging-only JS OTA for the already signed Android 1.3.2 staging-user client.
 # A deliberate exact-prefix push to this file
 # is required after reviewed draft PR and exact-SHA CI pass.
+# Release marker: safe-area-only source, 144-story + dark-mode baseline preserved.
 name: BUKLOD Nov16 Bible Kids Safearea Staging 1.3.2 QA and OTA
 on:
   pull_request:
-    branches: [fix/nov16-bible-kids-system-safearea]
+    branches: [fix/conso-144-dark-staging-20261116]
     paths:
       - 'src/components/BuklodNavSafeShell.tsx'
       - 'tests/nov16-bible-kids-navigation-safearea.test.mjs'
       - 'tests/nov16-bible-kids-safearea-stage132-policy.test.mjs'
-      - 'tests/nov16-bible-kids-navigation-safearea.test.mjs'
       - 'scripts/buklod-nov16-bible-kids-safearea-stage132-policy.mjs'
       - '.github/workflows/buklod-nov16-bible-kids-safearea-stage132.yml'
   push:
     branches: [fix/nov16-bible-kids-system-safearea]
-    paths: [.github/workflows/buklod-bible-kids-safearea-staging-20261116.yml]
+    paths: [.github/workflows/buklod-nov16-bible-kids-safearea-stage132.yml]
 permissions:
   contents: read
   actions: read

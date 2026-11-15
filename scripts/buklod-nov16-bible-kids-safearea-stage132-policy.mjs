@@ -9,6 +9,7 @@ import { resolve } from 'node:path';
 import { APK_SOURCE, BUILD_ID, PROJECT, verifyBuild, verifyChannels, verifyUpdate, manifest } from './navigation-v2-owner-staging-policy.mjs';
 
 export const BASE='9221909b98f8faac5930711be6297e52fb2ec8d1';
+export const PRODUCTION_BASELINE_ID='01a1dff8-7563-790b-a714-22c316f56590';
 export const PREVIOUS_ID='01a1e025-7779-70ed-9035-37f24fd4ecd6';
 export const PREVIOUS_GROUP='4b90866f-4969-4583-a7d2-75b6f9a6230c';
 export const PREVIOUS_MESSAGE='BUKLOD_CONSO_144_DARK_STAGING_132_'+BASE;
@@ -66,6 +67,7 @@ export async function preflight(sha,dir){
   const stage=await manifest(CHANNEL),production=await manifest('production');
   assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
   assert.equal(production.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+  assert.equal(production.id,PRODUCTION_BASELINE_ID,'Production baseline changed before staging release: STOP');
   const prior=verifyPrior(read(dir+'/stage-updates-before.json'),stage.id,sha);
   write(dir+'/preflight.json',{sha,branch,prior,buildId:BUILD_ID,
    stageUpdateId:stage.id,productionUpdateId:production.id,
