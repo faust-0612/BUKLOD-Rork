@@ -1,0 +1,33 @@
+{
+  "objective": "BUKLOD LIFE human-first verified-staging-source integration, NOT OTA publication",
+  "exactStageParent": "6b9981e200e4dfa9faa43f5d2691bc858a3f56f1",
+  "verifiedStageUpdateId": "01a1dd05-6cb1-74b6-8f0a-4430c22fa5ba",
+  "verifiedStageChannel": "staging-user",
+  "verifiedStageRuntime": "1.3.2",
+  "verifiedStagePackage": "org.mzbministry.buklod.staging",
+  "stageDevLifeSource": "666532607f83c7ccaa124437045940e769c5f9c5",
+  "exactLifeContentBlobParityRequired": true,
+  "nativeChanges": false,
+  "backendMigrationApplied": false,
+  "physicalDeviceAcceptance": "not-executed",
+  "status": "STAGING_SOURCE_RC_DRAFT",
+  "readyForOta": false,
+  "otaPublished": false,
+  "productionMutated": false,
+  "blockingGates": [
+    "Stage exact SHA accountability, TypeScript, focused regressions, Android Hermes export",
+    "Isolated DB security verification of new source-only privacy migration, before any backend promotion",
+    "Signed staging APK runtime/package/channel attestation",
+    "Independent Expo staging publish receipt + remote update:view/manifest parity",
+    "Production separate RC and unchanged stage/Play/main baseline reconciliation"
+  ],
+  "stagingCandidateContentCommit": "4b37ce79262d03c7d6e4c7264d56ac9e8fc7dd9a",
+  "additionalSourceVerification": {
+    "method": "read-only GitHub source-contract assertions",
+    "checked": 16,
+    "passed": 16,
+    "scope": "LIFE only",
+    "notEquivalentTo": "TypeScript, emulator, Android Hermes, staging OTA"
+  },
+  "clientPrivacyMitigation": "New RC disables the old LIFE spiritual milestone RPC client; older APKs require gated backend SQL privacy migration."
+}

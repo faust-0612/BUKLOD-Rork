@@ -137,8 +137,19 @@ async function isBuklodRegistrationDefinitelyOffline(): Promise<boolean> {
 }
 
 export default function RegisterScreen() {
-  const params = useLocalSearchParams<{ ref?: string; referral?: string }>();
+  const params = useLocalSearchParams<{ ref?: string; referral?: string; life?: string }>();
   const drawerBottomInset = useBuklodDrawerBottomInset();
+  const isLifeInvitation = params.life === '1' && Boolean(params.ref || params.referral);
+  const navigateAfterRegistration = () => {
+    if (isLifeInvitation) {
+      router.replace({
+        pathname: '/life/invite' as any,
+        params: { ref: String(params.ref ?? params.referral ?? '').slice(0, 64) },
+      });
+      return;
+    }
+    router.replace('/(tabs)/buklod');
+  };
 
   const [churches, setChurches] =
     useState<Church[]>([]);
@@ -456,7 +467,7 @@ export default function RegisterScreen() {
           ? `Your BUKLOD account exists and you are signed in. Your local setup is pending; you can continue in the Public Community.${referralLinkNote}`
           : `Your BUKLOD account exists and you are signed in. You can continue in the Public Community.${referralLinkNote}`,
       );
-      router.replace('/(tabs)/buklod');
+      navigateAfterRegistration();
     } catch {
       Alert.alert(
         'Connection still unavailable',
@@ -999,7 +1010,7 @@ useEffect(() => {
       );
 
       /* PATCH_156A_V2_COMMUNITY_SUCCESS */
-      router.replace('/(tabs)/buklod');
+      navigateAfterRegistration();
       } catch (error) {
         finishCreateAccount();
         if (authSessionConfirmed) {

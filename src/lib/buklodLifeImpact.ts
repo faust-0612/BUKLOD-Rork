@@ -203,43 +203,16 @@ export async function recordBuklodLifeReferralFunnel(
   }
 }
 
+/**
+ * @deprecated Preserved only for source compatibility with older callers.
+ * Faith is a private personal choice, never inferred or uploaded from UI taps.
+ * The legacy server RPC will also be neutralized by the gated privacy migration.
+ */
 export async function markMyBuklodLifeStage(
-  stage:
-    | 'JESUS_SHARED'
-    | 'SEEKING'
-    | 'NEW_BEGINNING'
-    | 'WALKING_TOGETHER',
-) {
-
-  try {
-    const {
-      data,
-      error,
-    } =
-      await (
-        supabase as any
-      ).rpc(
-        'buklod_life_mark_my_stage_v1',
-        {
-          p_stage:
-            stage,
-        }
-      );
-
-    if (
-      error
-    ) {
-      throw error;
-    }
-
-    return (
-      data ??
-      null
-    );
-  } catch {
-    // LIFE remains usable before the additive migration is released.
-    return null;
-  }
+  stage: 'JESUS_SHARED' | 'SEEKING' | 'NEW_BEGINNING' | 'WALKING_TOGETHER',
+): Promise<null> {
+  void stage;
+  return null;
 }
 
 export async function loadMyBuklodLifeJourney():
@@ -462,14 +435,12 @@ Promise<BuklodLifeImpactSummary> {
       typeof data ===
         'object'
     ) {
-      const summary =
-        normalizeImpact(
-          data as Record<
-            string,
-            unknown
-          >,
-          false,
-        );
+      // Do not expose legacy third-party spiritual milestones from servers
+      // that have not yet received the privacy migration.
+      const summary = normalizeImpact(
+        { people_reached: (data as any).people_reached, identity_private: true },
+        true,
+      );
 
       await writeImpactCache(
         summary
@@ -522,7 +493,11 @@ Promise<BuklodLifeImpactSummary> {
     await readImpactCache();
 
   if (cached) {
-    return cached;
+    // Older client caches may hold inferred third-party faith milestones.
+    return normalizeImpact(
+      { people_reached: cached.people_reached, identity_private: true },
+      true,
+    );
   }
 
   return normalizeImpact(
