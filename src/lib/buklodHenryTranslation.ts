@@ -224,7 +224,7 @@ export function polishHenryFilipinoTranslation(translated: string): string {
 export function isHenryFilipinoTranslationReliable(english: string, filipino: string): boolean {
   if (!filipino.trim()) return false;
   const hazards: Array<[RegExp, RegExp]> = [
-    [/\bpaid (?:a|the) (?:gracious )?visit\b/i, /\b(?:binayaran|pagbabayad)\b/i],
+    [/\b(?:paid (?:a|the) (?:gracious )?visit|visit which God paid to)\b/i, /\b(?:binayaran|pagbabayad)\b/i],
     [/\baccount of a gracious visit\b/i, /\bisang account\b/i],
     [/\bcommunion he had with God\b/i, /\bpakikipag-isa na kasama niya sa Diyos\b/i],
     [/\bGod owned him\b/i, /\b(?:pag-aari|pagmamay-ari)\b/i],
