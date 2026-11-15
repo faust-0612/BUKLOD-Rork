@@ -166,7 +166,7 @@ export default function BuklodClaimRewardCard({
       fontSize: 11,
       fontWeight: '900',
       letterSpacing: 0.8,
-      color: theme.white,
+      color: theme.onAccent,
     },
     buttonTextMuted: {
       color: theme.textMuted,
@@ -273,7 +273,7 @@ export default function BuklodClaimRewardCard({
               <MaterialCommunityIcons
                 name="star-four-points"
                 size={14}
-                color={theme.white}
+                color={theme.onAccent}
               />
             )}
 

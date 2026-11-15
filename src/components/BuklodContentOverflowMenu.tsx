@@ -466,7 +466,7 @@ export function BuklodContentOverflowMenu({
               >
                 {editBusy ? (
                   <ActivityIndicator
-                    color={theme.white}
+                    color={theme.onAccent}
                   />
                 ) : (
                   <Text
@@ -590,7 +590,7 @@ function createStyles(theme: BuklodThemeRoles) {
       color: theme.textPrimary,
     },
     buttonTextPrimary: {
-      color: theme.white,
+      color: theme.onAccent,
     },
     editScroll: {
       maxHeight: 360,

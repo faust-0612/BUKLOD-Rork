@@ -280,7 +280,7 @@ const styles =
     blueTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     blueTitle: { flexShrink: 1, color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
     blueActive: { backgroundColor: '#19B780', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-    blueActiveText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900' },
+    blueActiveText: { color: '#062B21', fontSize: 11, fontWeight: '900' },
     blueSubtitle: { marginTop: 3, fontSize: 10, color: '#D9EAFF' },
     blueCustomizer: { minWidth: 42, alignItems: 'center', justifyContent: 'center' },
     encouragementText: {

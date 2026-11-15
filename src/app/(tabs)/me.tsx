@@ -2010,7 +2010,7 @@ function createMeStyles(
       gap: 10,
     },
     sectionPad: {
-      paddingHorizontal: 12,
+      paddingHorizontal: buklodVisual.space.screen,
     },
     eyebrow: {
       marginBottom: 8,

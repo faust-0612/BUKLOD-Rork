@@ -65,7 +65,7 @@ export default function BuklodLightHome() {
         onScroll={event => {reportBuklodDashboardScroll('home',event.nativeEvent.contentOffset.y);noteBuklodVideoScroll();}}
         scrollEventThrottle={16}
         style={{ flex: 1, backgroundColor: theme.surface }}
-        contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
+        contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={{ minHeight: 112, borderRadius: buklodVisual.radius.card, padding: 20, justifyContent: 'center' }}>
