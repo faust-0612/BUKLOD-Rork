@@ -12,7 +12,8 @@
     "scripture-answer-leak",
     "quiz-review-clarity",
     "backend-schema-parity",
-    "staging-only"
+    "staging-only",
+    "classroom-quiz"
   ],
   "preserveBehaviors": [
     "Only authenticated attempt owner can read their own saved answers after submitting.",
@@ -34,10 +35,12 @@
     ".buklod/scopes/bible-v4-quiz-review-clarity-20261116.json",
     "src/components/bible/BuklodBibleQuizV4.tsx",
     "supabase/migrations/20261116025500_buklod_bible_v4_review_transparency.sql",
-    "tests/buklod-bible-v4-quiz-security-20261116.test.mjs"
+    "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
+    "supabase/tests/buklod_bible_v4_review_security_20261116.sql"
   ],
   "regressionTests": [
-    "tests/buklod-bible-v4-quiz-security-20261116.test.mjs"
+    "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
+    "supabase/tests/buklod_bible_v4_review_security_20261116.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -70,8 +73,13 @@
         "Different users cannot read another user's attempts"
       ],
       "tests": [
-        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs"
+        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
+        "supabase/tests/buklod_bible_v4_review_security_20261116.sql"
       ]
     }
+  ],
+  "alternativeApproaches": [
+    "Modify the existing V4 get/grade function: rejected because newer anti-repeat changes could be rolled back and scoring evidence is missing.",
+    "Store submissions solely in the browser: rejected because refresh and multi-device review would be incomplete."
   ]
 }
