@@ -1,4 +1,5 @@
 # Owner approved staged 32-story + dark-contrast consolidated OTA source publication attempt.
+# Final audio-preview semantic foreground fix included; verify exact candidate and stage only.
 # Staging-only JS OTA for the already signed Android 1.3.2 staging-user client.
 # GitHub connector cannot workflow_dispatch; a deliberate exact-prefix push to this file
 # is required after reviewed draft PR and exact-SHA CI pass.
