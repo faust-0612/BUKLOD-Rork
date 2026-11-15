@@ -1,0 +1,95 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-ad-dashboard-staging-ota-candidate.json",
+  "objective": "Prepare the previously verified 2026-11-16 dashboard-focus AdMob regression fix for the latest BUKLOD 1.3.2 Android staging OTA without disturbing the already published children's-story/dark-mode staging source or publishing any new OTA.",
+  "baseRef": "f340829775c904aecc9162937bc011fb16c5a34e",
+  "productionBaselineEvidence": "GitHub main 51b9b35af1302ce1f6d1a20ba12c2dc8068a80f2 merged PR #849 (focused Android NativeAd/banner, header, 2 regression tests). Exact PR head 9e7657d8 passed Engineering Accountability, Performance R1 QA, Main Integration QA; main merge OTA job 43748153998 skipped by design. Independent staging branch f340829775c904aecc9162937bc011fb16c5a34e successfully published through Nov16 staging workflow run 43748353231 (server-side manifest checked). Inspection found its three ad source components still at pre-#849 blob SHAs, and the new regression guard absent. This cherry-pick copies exactly the approved three component blobs plus two tests, preserving other staging files. Production client runtime and live installed device behavior not verified; physical device verification explicitly skipped by owner.",
+  "chosenApproach": "Forward-port only exact source and regression test content from canonical main 51b9b35af1302ce1f6d1a20ba12c2dc8068a80f2 into a new isolated candidate branch based on current staging f340829775c904aecc9162937bc011fb16c5a34e, with a draft PR targeting the staging branch; no merge, no OTA publish, no production mutation.",
+  "selectionRationale": "Staging and main diverged substantially (211 staging commits vs 17 main-only), so replacing staging with main or merging all of main risks deleting newer approved staging content. Exactly matched prepatch component blobs allow isolated source parity with approved main fix without modifying unrelated staging UI, packages, Supabase or native ABI.",
+  "alternativeApproaches": [
+    "Merge whole canonical main into the existing frozen staging branch (rejected: unrelated source and 211/17 diverged feature changes and high regression risk).",
+    "Publish production OTA directly from PR or skip source/CI tests (rejected: RC identity and release safeguards unmet)."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "app-runtime",
+    "navigation-scroll",
+    "ads-finance-points",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Staging approved children's stories narration, dark mode, Henry commentary, navigation, Kingdom, media rendering, Profile Top Ten, and previously verified staging features remain unchanged.",
+    "Preserve existing AdMob unit IDs, genuine SDK impression events, UMP consent, request cooldowns, loaded ad re-entry and native first-view prefetch.",
+    "Keep runtime 1.3.2, staging package org.mzbministry.buklod.staging, Expo project 23dad7d0-389a-406e-8dec-08965dab85d8, Android only; no new native build.",
+    "No modifications to production OTA channel, web, database, QMP, payout, auth, or security controls.",
+    "Owner explicitly waives actual on-device verification only; automated source/CI/runtime and EAS pre-publication checks remain mandatory."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov16-ad-dashboard-staging-ota-candidate.json",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodHeaderSponsor.tsx",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    ".github/workflows/buklod-nov16-ad-dashboard-ota-rc-no-publish.yml",
+    "tests/nov16-ad-dashboard-ota-rc-preflight.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/nov16-ad-dashboard-ota-rc-preflight.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "The three patched runtime source files and both mandatory tests exactly match canonical main 51b9b35af1302ce1f6d1a20ba12c2dc8068a80f2.",
+    "No other runtime or staging source file is modified; GitHub PR diff matches declared allowlist.",
+    "Focused ad-dashboard focus test and permanent ad-lock suite pass on exact candidate SHA.",
+    "Engineering Accountability and Main Integration QA complete successfully on exact candidate SHA.",
+    "Before any later staging OTA: independent native/runtime and EAS preview env check, Expo Android Hermes export, frozen RC fingerprint, exact staging-user channel and update ID readback. User device execution is SKIPPED, not treated as PASS.",
+    "Before production OTA: stage RC reconciled to updated main, no unrelated staging merge, production native/runtime/source freeze, independent production manifest verification.",
+    "Dedicated NO-PUBLISH GitHub Actions workflow on exact candidate SHA runs Android Hermes export, TSC, focused ad safety, native runtime/Expo channel preflight and archives a three-day frozen Android source RC artifact."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Android AdMob focus guard and listener lifecycle are restored to staging source.",
+      "preservedBehaviors": [
+        "No native runtime, identity, or runtime dependency changes."
+      ],
+      "tests": [
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Background dashboard ads no longer launch SDK requests; loaded creative and AdMob policy are preserved.",
+      "preservedBehaviors": [
+        "Ad IDs, consent, real impressions, no-fill, retry and Finance/QMP separation unchanged."
+      ],
+      "tests": [
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Added a strictly no-publish OTA preparation/Android compiler workflow scoped to staging-user without loosening existing release verification.",
+      "preservedBehaviors": [
+        "No automatic update to staging-user or production; existing native package identity and release gating unchanged."
+      ],
+      "tests": [
+        "tests/nov16-ad-dashboard-ota-rc-preflight.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "source-only-staging-ota-candidate",
+  "releaseTarget": "staging-user",
+  "intendedPlatform": "android",
+  "intendedExpoRuntime": "1.3.2",
+  "expectedNativePackage": "org.mzbministry.buklod.staging",
+  "latestPublishedStagingSource": "f340829775c904aecc9162937bc011fb16c5a34e",
+  "sourceParityMainCommit": "51b9b35af1302ce1f6d1a20ba12c2dc8068a80f2",
+  "actualDeviceVerification": "SKIPPED_BY_OWNER",
+  "readyForOta": false,
+  "otaPublished": false,
+  "publicationAuthorized": false
+}

@@ -1,0 +1,114 @@
+# Android staging-user RC compilation ONLY. No OTA, production, web, APK, Play, or DB writes.
+name: BUKLOD Nov16 Ads Dashboard Android OTA RC Compile - NO PUBLISH
+on:
+  push:
+    branches: [fix/nov16-ads-dashboard-staging-ota-candidate]
+    paths:
+      - '.github/workflows/buklod-nov16-ad-dashboard-ota-rc-no-publish.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-ad-dashboard-staging-rc-source
+  cancel-in-progress: false
+jobs:
+  android-hermes-no-publish:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/fix/nov16-ads-dashboard-staging-ota-candidate' && startsWith(github.event.head_commit.message, 'BUKLOD_AD_DASHBOARD_RC_PREP_20261116:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      RC_DIR: /tmp/buklod-ad-dashboard-staging-android-rc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Lock candidate SHA and canonical main AdMob parity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git hash-object src/components/BuklodCommunityInlineAd.android.tsx)" = '2a4b989449d7e4e2a52593f7f21ce029d706c48c'
+          test "$(git hash-object src/components/BuklodAdMobBanner.tsx)" = '74dceef9598e57d0ed7db80109bd11346cc76ad4'
+          test "$(git hash-object src/components/BuklodHeaderSponsor.tsx)" = '840c2bf50ea782b3a059675f5b4905f195b2dde3'
+          test "$(git hash-object tests/ad-dashboard-focus-performance-20261116.test.mjs)" = '954a0f1c2a31844bb847eef631ffa728a960cbaa'
+          test "$(git hash-object tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs)" = '12cd71bab97f370936e54a82aef1f74a05bd4d03'
+      - name: Install immutable dependencies without build scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run AdMob focus, appwide safety and OTA-preflight regression
+        run: |
+          node --experimental-strip-types --test \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/nov16-ad-dashboard-ota-rc-preflight.test.mjs \
+            tests/ad-native-lifecycle-retention-20261115.test.mjs \
+            tests/nov15-android-native-prefetch-gate.test.mjs
+      - name: Verify signed staging-user 1.3.2 environment
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'No Expo token; cannot make compatible RC'; exit 1; }
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > /tmp/buklod-ad-dashboard-apk.json
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/buklod-ad-dashboard-channel.json
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-ad-dashboard-preview.env --non-interactive
+          set -a
+          . /tmp/buklod-ad-dashboard-preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > /tmp/buklod-ad-dashboard-expo-config.json
+          node <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const c=JSON.parse(fs.readFileSync('/tmp/buklod-ad-dashboard-expo-config.json','utf8'));
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.runtimeVersion,'1.3.2');
+          assert.equal(c.extra.appEnvironment,'staging');
+          assert.equal(c.extra.appTarget,'main');
+          assert.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_URL?.startsWith('https://'));
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+      - name: TypeScript and Android Hermes RC export without publishing
+        run: |
+          set -euo pipefail
+          set -a
+          . /tmp/buklod-ad-dashboard-preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir "$RC_DIR" --clear
+          test -s "$RC_DIR/metadata.json"
+          git diff --exit-code
+          node <<'NODE'
+          const fs=require('node:fs'),crypto=require('node:crypto');
+          const root=process.env.RC_DIR;
+          const file=root+'/metadata.json';
+          const result={
+            status:'ANDROID_RC_COMPILED_NO_PUBLISH',
+            sha:process.env.GITHUB_SHA,
+            platform:'android',
+            channel:'staging-user',
+            runtime:'1.3.2',
+            package:'org.mzbministry.buklod.staging',
+            deviceVerification:'SKIPPED_BY_OWNER',
+            metadataSha256:crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
+            otaPublished:false
+          };
+          fs.writeFileSync(root+'/rc-evidence.json',JSON.stringify(result,null,2)+'\n');
+          console.log(JSON.stringify(result));
+          NODE
+      - name: Archive pre-publish Android RC export and evidence (three-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-ad-dashboard-staging-android-rc-${{ github.sha }}
+          path: /tmp/buklod-ad-dashboard-staging-android-rc/
+          retention-days: 3
+          if-no-files-found: error
