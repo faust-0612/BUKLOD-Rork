@@ -331,7 +331,7 @@ const LOW: [string,string] = ['#275F74','#8AD0BB'];
 const HIGH: [string,string] = ['#315B51','#D8A66F'];
 const local=(tl:string,en:string):StoryLocalized=>({tl,en});
 function teachingValue(entry:BibleRecord):StoryLocalized {
-  return 'moral' in entry ? entry.moral : NEW_MORALS[entry.id] ?? local('Maging maingat at makatao sa araw-araw.','Act wisely and compassionately each day.');
+  return entry.moral ?? NEW_MORALS[entry.id] ?? local('Maging maingat at makatao sa araw-araw.','Act wisely and compassionately each day.');
 }
 function rotated(correct:StoryLocalized, wrongA:StoryLocalized, wrongB:StoryLocalized, shift:number){
   const choices: [StoryLocalized,StoryLocalized,StoryLocalized] = [wrongA,wrongB,correct];
