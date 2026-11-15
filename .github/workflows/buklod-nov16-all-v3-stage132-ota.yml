@@ -1,6 +1,6 @@
 # Strict one-shot owner-authorized BUKLOD 132 Bible Stories Android staging OTA.
-# Armed only after PR #857 exact-SHA mandatory CI and release metadata-only diff verified.
-# Source is the CI-verified PR #857 app tree; no native, production, backend or web write.
+# Armed only after PR #858 exact-SHA mandatory CI and release metadata-only diff verified.
+# Source is the CI-verified PR #858 app tree; no native, production, backend or web write.
 name: BUKLOD Nov16 Complete Consolidated V3 Staging Android 1.3.2 OTA
 on:
   push:

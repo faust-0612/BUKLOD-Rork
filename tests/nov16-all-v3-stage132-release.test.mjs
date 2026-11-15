@@ -25,7 +25,7 @@ test('staging-only release source is anchored to exact verified content and matc
  assert.match(policy,/Native, app, assets, DB or dependency release mutation forbidden/);
 });
 test('no production or web publication; signed stage APK and EAS freshness rechecked before publish',()=>{
- assert.match(yaml,/branches: \[release\/bible-132-dialogue-staging132-once-20261116\]/);
+ assert.match(yaml,/branches: \[release\/nov16-conso-all-v3-stage132-once\]/);
  assert.match(yaml,/startsWith\(github\.event\.head_commit\.message, 'BUKLOD_NOV16_ALL_V3_STAGING_PUBLISH:'\)/);
  assert.match(yaml,/pull_number:858/);
  assert.match(yaml,/Engineering Accountability/);
