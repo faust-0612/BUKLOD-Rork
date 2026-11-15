@@ -15,6 +15,7 @@ on:
       - 'tests/buklod-fis-finance-20261115.test.mjs'
       - 'tests/buklod-fis-auth-route-20261115.test.mjs'
       - 'tests/buklod-fis-deploy-identity-20261115.test.mjs'
+      - 'tests/buklod-fis-router-boot-20261115.test.mjs'
       - '.github/workflows/buklod_fis_expo_standalone_release.yml'
   workflow_dispatch:
 
@@ -50,6 +51,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -87,11 +89,19 @@ jobs:
           console.log('FIS-only identity and admin-route source checks passed');
           NODE
 
+      - name: Verify source scope and protected feature release gates
+        env:
+          BUKLOD_BASE_REF: main
+          BUKLOD_SCOPE_MANIFEST: .buklod/scopes/buklod-fis-expo-20261115.json
+        run: |
+          node scripts/protected-feature-lock.mjs
+          node scripts/engineering-regression-gate.mjs --run-focused-node-tests
+
       - name: Verify TypeScript and focused FIS regression tests
         run: |
           npx tsc --noEmit
           npx jest __tests__/buklodFisReadModel.test.ts --runInBand
-          node --test tests/buklod-fis-finance-20261115.test.mjs tests/buklod-fis-auth-route-20261115.test.mjs tests/buklod-fis-deploy-identity-20261115.test.mjs
+          node --test tests/buklod-fis-finance-20261115.test.mjs tests/buklod-fis-auth-route-20261115.test.mjs tests/buklod-fis-deploy-identity-20261115.test.mjs tests/buklod-fis-router-boot-20261115.test.mjs
 
       - name: Verify Expo credentials on isolated FIS project
         run: npx eas-cli@latest whoami --non-interactive
