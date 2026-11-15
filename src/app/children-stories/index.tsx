@@ -56,7 +56,7 @@ export default function ChildrenStoriesLibrary() {
             <Text style={styles.heroTitle}>Children's Story World</Text>
             <Text style={styles.heroDescription}>{language==='tl'?'Mga kuwento, aral, at pangarap — sama-samang basahin.':'Stories, lessons and dreams — read together.'}</Text>
             <View style={styles.heroFooter}>
-              <Text style={styles.heroMeta}>{finished}/{stories.length} finished · 12 offline stories</Text>
+              <Text style={styles.heroMeta}>{finished}/{stories.length} finished · {BUNDLED_CHILDREN_STORIES.length} offline stories</Text>
               <View style={styles.switcher}>
                 {(['tl','en'] as const).map(v=><Pressable key={v} onPress={()=>setLanguage(v)}
                   accessibilityRole="button" accessibilityState={{selected:language===v}}
@@ -105,7 +105,7 @@ export default function ChildrenStoriesLibrary() {
           </View>
         </Pressable>}
         ListEmptyComponent={<Text style={styles.empty}>Walang kuwentong tumugma. Baguhin ang filter.</Text>}
-        ListFooterComponent={<Text style={styles.footer}>Gamitin kasama ang magulang o guardian. Walang chats, ads, o child accounts dito. Ang 12 pangunahing kuwento ay naka-bundle para sa offline reading.</Text>}
+        ListFooterComponent={<Text style={styles.footer}>Gamitin kasama ang magulang o guardian. Walang chats, ads, o child accounts dito. Lahat ng {BUNDLED_CHILDREN_STORIES.length} pangunahing kuwento ay naka-bundle para sa offline reading.</Text>}
       />
     </View>
   );
