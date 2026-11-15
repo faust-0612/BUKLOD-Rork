@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/henry-natural-filipino-v3-20261116.json",
+  "objective": "Improve Matthew Henry commentary's optional Filipino translation readability and exact Bible citation formatting on staging without replacing its authoritative English text.",
+  "baseRef": "audit/nov16-conso-staging132-postpublish-readback",
+  "productionBaselineEvidence": "Main observed at 51b9b35af1302ce1f6d1a20ba12c2dc8068a80f2 (ad navigation protection) differs from staging audit lineage aac35de5fffd9822eb2adfa5f8a8aacef1717ff6. Existing optional Google ML Kit v2 translation source verified on that staging branch; no claim of production equivalence or live OTA.",
+  "chosenApproach": "Extend existing on-device Google ML Kit translation pipeline: conservative archaic idiom preparation, known 66-book citation normalization, section-aware paragraph translation, bounded existing request chunks, conservative Filipino polish and cache v3. No new native dependencies or external translation services. Keep English/source attribution, permissions, offline handling, and Google branding intact.",
+  "selectionRationale": "Incremental code-only correction preserves Google terms, verified source passages, existing study features, staged native runtime and all unrelated ads/navigation while improving screenshot-reported text without fabricated commentary.",
+  "alternativeApproaches": [
+    "Ship only fixed text for 1 Kings 3:1: rejected because it would not scale to other verified commentary passages.",
+    "Replace translation with a remote paid generative service: rejected due to added recurring cost, privacy risks and unavailable vetted quality safeguards."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "Bible commentary",
+    "source provenance",
+    "offline translation cache"
+  ],
+  "preserveBehaviors": [
+    "Authoritative English Matthew Henry text remains unmodified and visible by default.",
+    "Optional translation stays explicit, branded with official Google Translate badge and disclaimers.",
+    "Verse-accurate source selection, KJV Strong's references, offline Bible reading, narration and all other app features unchanged.",
+    "No Supabase, AdMob, Connect, Wall, production release, Play, native build or runtime identity changes."
+  ],
+  "allowedPaths": [
+    "src/lib/buklodHenryTranslation.ts",
+    "tests/henry-natural-filipino-20261116.test.cjs",
+    ".buklod/scopes/henry-natural-filipino-v3-20261116.json"
+  ],
+  "regressionTests": [
+    "tests/henry-natural-filipino-20261116.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "The optional Matthew Henry translation helper is changed within the existing staging app source only.",
+      "preservedBehaviors": [
+        "Unchanged native build/runtime, full reader functionality, offline original-English fallback and Google attribution."
+      ],
+      "tests": [
+        "tests/henry-natural-filipino-20261116.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "New Filipino source/reference/paragraph/cache regression tests PASS.",
+    "Existing Bible Henry study source, verse attribution, dark mode and audio regression tests PASS.",
+    "TypeScript and focused Android JS export compile succeed.",
+    "QA/CI confirms ads and navigation protected feature locks; no staging or production OTA without release gates.",
+    "Verify real Filipino translation on target signed staging APK when available; owner device signoff waiver does not waive runtime compatibility."
+  ]
+}
