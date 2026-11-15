@@ -55,4 +55,7 @@ test('Matthew Henry language follows translation with labeled original and grace
   assert.match(bible, /Kaugnay na komentaryo/);
   assert.match(translate, /translateText\(part, 'en', targetLanguage, true\)/);
   assert.match(translate, /getOfflineCache/);
+  assert.match(translate, /eng: 'en'/);
+  assert.match(translate, /fil: 'tl'/);
+  assert.match(bible, /setHenryShowOriginal\(false\)/);
 });
