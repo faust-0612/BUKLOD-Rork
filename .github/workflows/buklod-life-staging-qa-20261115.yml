@@ -1,0 +1,97 @@
+# BUKLOD LIFE scoped source QA. Disposable PostgreSQL only, no Supabase writes or EAS OTA.
+name: BUKLOD LIFE Human-First Staging 1.3.2 Android + Isolated SQL QA
+on:
+  push:
+    branches:
+      - integration/life-human-first-executive-stage-132-20261115
+    paths:
+      - .github/workflows/buklod-life-staging-qa-20261115.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: buklod-life-human-first-exec-132-qa
+  cancel-in-progress: false
+jobs:
+  verify-life-staging-source:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/integration/life-human-first-executive-stage-132-20261115' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: life_fixture
+          POSTGRES_PASSWORD: life_fixture
+          POSTGRES_DB: life_fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U life_fixture"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - name: Exact staged-source checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Confirm source ancestry, allowed paths and runtime isolation
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git merge-base ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0 HEAD)" = "ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0"
+          node <<'NODE'
+          const fs=require('node:fs'),cp=require('node:child_process'),assert=require('node:assert/strict');
+          const scope=JSON.parse(fs.readFileSync('.buklod/scopes/life-human-first-20261115.json','utf8'));
+          assert.equal(scope.baseRef,'ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0');
+          const changes=cp.execFileSync('git',['diff','--name-only',scope.baseRef,'HEAD'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          const extra=changes.filter(p=>!scope.allowedPaths.includes(p));
+          assert.deepEqual(extra,[],'Unapproved changes: '+extra.join(','));
+          assert(changes.includes('src/app/life/topic.tsx'));
+          assert(!changes.some(p=>/^(app.config.js|eas.json|package(-lock)?\.json)$/.test(p)));
+          const eas=require('./eas.json');
+          const app=require('./app.config.js')({config:{}});
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.runtimeVersion,'1.3.2');
+          assert.equal(app.extra.appEnvironment,'staging');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build.production.channel,'production');
+          console.log('Exact isolated LIFE scope: '+changes.length+' files');
+          NODE
+      - name: Locked npm dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: LIFE functional and privacy source regressions
+        run: |
+          set -euo pipefail
+          node --test tests/life-human-first-auth-security-20261115.test.mjs
+          npx jest --runInBand --runTestsByPath tests/life-human-first-20261115.test.js
+          node --test tests/wall-life-kl-navigation-20261114.test.mjs tests/auth-registration-offline-recovery.test.cjs
+      - name: Execute exact migration in disposable PostgreSQL 17 (never live Supabase)
+        run: |
+          set -euo pipefail
+          docker run --rm --network host -v "$PWD":/workspace:ro -w /workspace -e PGPASSWORD=life_fixture postgres:17 \
+            psql -h 127.0.0.1 -p 5432 -U life_fixture -d life_fixture \
+            -v ON_ERROR_STOP=1 -f tests/life-isolated-privacy-20261115.sql
+      - name: Exact candidate TypeScript and Android Hermes export
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-life-executive-132-android --clear
+          test -s /tmp/buklod-life-executive-132-android/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo 'LIFE isolated security + Android export passed; NO backend, OTA or production mutated.' >> "$GITHUB_STEP_SUMMARY"
