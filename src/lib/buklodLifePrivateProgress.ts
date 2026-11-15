@@ -11,6 +11,8 @@ export type BuklodLifePrivateProgress = {
   language: BuklodLifeLanguage;
   step: 'exploring' | 'questions' | 'next-steps';
   savedAt: string;
+  /** Optional canonical question index, stored only in secure device storage. */
+  questionIndex?: number;
 };
 
 const allowedTopics = new Set<BuklodLifeTopicKey>([
@@ -30,6 +32,8 @@ export async function saveBuklodLifePrivateProgress(
 ): Promise<boolean> {
   const key = keyFor(userId);
   if (!key || !allowedTopics.has(input.topic) || !allowedSteps.has(input.step)) return false;
+  if (input.questionIndex !== undefined &&
+      (input.topic !== 'questions' || !Number.isInteger(input.questionIndex) || input.questionIndex < 0 || input.questionIndex >= 10)) return false;
   try {
     await SecureStore.setItemAsync(key, JSON.stringify({
       ...input,
@@ -60,6 +64,9 @@ export async function loadBuklodLifePrivateProgress(
       step: p.step,
       language: p.language === 'en' ? 'en' : 'fil',
       savedAt: typeof p.savedAt === 'string' ? p.savedAt : '',
+      ...(p.topic === 'questions' && typeof p.questionIndex === 'number' &&
+        Number.isInteger(p.questionIndex) && p.questionIndex >= 0 && p.questionIndex < 10
+        ? { questionIndex: p.questionIndex } : {}),
     };
   } catch {
     return null;
