@@ -1,8 +1,8 @@
 /** Keep the Sunday School narrative inside the biblical scene.
  * Earlier dialogue packs sometimes contained a teacher–class Q&A which should
  * appear only in the separate discussion section, never in the story/TTS.
- * Cut before the FIRST classroom exchange while preserving the biblical
- * character dialogue that precedes it.
+ * Remove classroom exchanges sentence-by-sentence while retaining the
+ * biblical scene before and after the interruption.
  */
 export function inStoryOnly(scene: string, language: 'tl' | 'en'): string {
   const classroomCue = language === 'tl'
