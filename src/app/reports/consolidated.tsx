@@ -73,13 +73,22 @@ function filterConsolidationRange(data: ConsolidatedReportData, kind: RangeKind)
     if (firstMonth < 1) { firstMonth += 12; firstYear -= 1; }
   }
   let beginning = `${firstYear}-${String(firstMonth).padStart(2, '0')}-01`;
+  let ending = `${year}-12-31`;
   if (kind === 'WEEK') {
     const monday = new Date(`${now}T12:00:00Z`);
     monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7);
     beginning = monday.toISOString().slice(0, 10);
+    monday.setUTCDate(monday.getUTCDate() + 6);
+    ending = monday.toISOString().slice(0, 10);
+  } else if (kind === 'MONTH' || kind === 'SIX_MONTHS') {
+    ending = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  } else if (kind === 'QUARTER') {
+    const quarterLastMonth = Math.floor((month - 1) / 3) * 3 + 3;
+    ending = new Date(Date.UTC(year, quarterLastMonth, 0)).toISOString().slice(0, 10);
   }
+  // Open periods with deadlines later this week/month must still be visible now.
   const periods = data.periods.filter((period) =>
-    period.due_at && manilaDay(period.due_at) >= beginning && manilaDay(period.due_at) <= now
+    period.due_at && manilaDay(period.due_at) >= beginning && manilaDay(period.due_at) <= ending
   );
   const included = new Set(periods.map((period) => period.id));
   return {
