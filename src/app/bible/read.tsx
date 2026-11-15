@@ -419,7 +419,8 @@ const [showChapters, setShowChapters] =
 
   useEffect(() => {
     setHenryVerse(null);
-  }, [bookNo, chapterNo]);
+    setHenryShowOriginal(false);
+  }, [bookNo, chapterNo, translation]);
 
 
   const isDailyReadingMode =
