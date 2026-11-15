@@ -410,7 +410,7 @@ module.exports = ({ config }) => {
     // Main BUKLOD V30 (versionCode 30) removes unused connectedDevice foreground service
     // permission from the manifest, without adding or changing the native JS module ABI.
     // Keep Expo runtime 1.3.2 for existing V28/V29 production OTA compatibility. Classroom has its independent runtime.
-    runtimeVersion: isFis ? 'fis-web-1.0.0' : (isClassroom ? '1.3.0' : '1.3.2'),
+    runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
   };
 };
 
