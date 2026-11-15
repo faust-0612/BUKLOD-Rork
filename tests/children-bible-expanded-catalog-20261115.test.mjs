@@ -68,7 +68,10 @@ test('existing reader, progress, classroom lessons and ad exclusion are preserve
   assert.match(library,/Bagong Tipan/);
   assert.doesNotMatch(library,/12 offline stories/);
   assert.match(reader,/getSundaySchoolLesson/);
-  assert.match(reader,/Speech\.stop/);
+  const audio=source('src/features/childrenStories/storyNarration.ts');
+  assert.match(reader,/StoryNarrator/);
+  assert.match(reader,/narratorRef\.current\?\.dispose\(\)/);
+  assert.match(audio,/this\.speech\.stop\(\)/);
   assert.match(reader,/saveStoryProgress/);
   assert.match(adController,/SENSITIVE_PREFIXES[\s\S]*'\/children-stories'/);
 });
