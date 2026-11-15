@@ -13,8 +13,9 @@ const standalone = stripTypeScriptTypes(
 ).replace(/^export /gm, '');
 const {
   studyBookCode, strongLexiconUrl, parseMatthewHenryChapter,
+  parseMatthewHenryPassages, getMatthewHenryPassage,
   parseTaggedKjvChapter, alignKjvStrongWords,
-} = vm.runInNewContext(standalone + '\n({ studyBookCode, strongLexiconUrl, parseMatthewHenryChapter, parseTaggedKjvChapter, alignKjvStrongWords })', {
+} = vm.runInNewContext(standalone + '\n({ studyBookCode, strongLexiconUrl, parseMatthewHenryChapter, parseMatthewHenryPassages, getMatthewHenryPassage, parseTaggedKjvChapter, alignKjvStrongWords })', {
   useEffect: () => {},
   useState: () => [],
   getOfflineCache: () => {},
@@ -67,4 +68,23 @@ test('Strong lexicon URLs are direct exact entries, not arbitrary user-provided 
   assert.equal(strongLexiconUrl('G0025'), 'https://biblehub.com/greek/25.htm');
   assert.equal(strongLexiconUrl('javascript:alert(1)'), null);
   assert.equal(strongLexiconUrl('H0'), null);
+});
+
+test('Henry passage coverage is explicit; unlabeled gaps are context only, not fabricated verse commentary',()=>{
+  const p = parseMatthewHenryPassages({chapter:{content:[
+    {type:'heading',content:['Verses 1-3']},
+    {type:'verse',number:1,content:['Shared source passage']},
+    {type:'verse',number:7,content:['Verse seven']},
+    {type:'verse',number:11,endVerse:13,content:['Explicit section']},
+  ]}});
+  assert.equal(p.length,3);
+  assert.equal(p[0].endVerse,3);
+  const chapter={henryPassages:p};
+  assert.equal(getMatthewHenryPassage(chapter,2).relation,'direct');
+  assert.equal(getMatthewHenryPassage(chapter,4).relation,'context');
+  assert.equal(getMatthewHenryPassage(chapter,4).startVerse,1);
+  assert.equal(getMatthewHenryPassage(chapter,12).relation,'direct');
+  assert.equal(getMatthewHenryPassage(chapter,7).endVerse,7);
+  assert.equal(getMatthewHenryPassage(chapter,176).relation,'context');
+  assert.equal(getMatthewHenryPassage({henryPassages:[]},3),null);
 });
