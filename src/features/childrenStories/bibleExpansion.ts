@@ -43,7 +43,7 @@ function expandBibleNarrative(entry: BibleRecord, language: 'tl' | 'en'): string
   const dialogue = REVISED_BIBLICAL_SCENES[entry.id] ?? EXPANDED_DIALOGUE[entry.id];
   const passages: string[] = [];
   entry.acts.forEach((act, index) => {
-    passages.push(act[language]);
+    if (!(REVISED_BIBLICAL_SCENES[entry.id] && index === 1)) passages.push(act[language]);
     if (index < 2 && dialogue && !NON_DIALOGUE_PASSAGES.has(entry.id)) {
       // Preserve the words spoken in the biblical scene; never insert the
       // teacher/classroom discussion into the full story or its TTS audio.
