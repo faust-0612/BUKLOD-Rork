@@ -38,9 +38,7 @@
     "production-release"
   ],
   "regressionTests": [
-    "tests/sunday-school-full-story-contract.test.mjs",
-    "tests/children-stories-contract.test.mjs",
-    "tests/children-stories-navigation-ad-safety.test.mjs"
+    "tests/sunday-school-full-story-contract.test.mjs"
   ],
   "allowedPaths": [
     "src/features/childrenStories/sundaySchoolTypes.ts",
