@@ -87,6 +87,7 @@ import {
 } from '@/components/connect/ConnectThemeSelector';
 import { ConnectPressable } from '@/components/connect/ConnectPressable';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
 import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import {
   ConnectThreadBackground,
@@ -446,8 +447,22 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       fontSize: 11,
       fontWeight: '800',
     },
+    standaloneUnread: {
+      marginTop: 8,
+      marginHorizontal: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      backgroundColor: '#EAF8D6',
+      borderRadius: 12,
+      alignSelf: 'flex-start',
+    },
+    standaloneUnreadText: {
+      color: '#467C13',
+      fontSize: 12,
+      fontWeight: '800',
+    },
     searchDock: {
-      marginTop: -12,
+      marginTop: isBuklodConnectStandalone ? 2 : -12,
       marginHorizontal: 8,
       paddingTop: 4,
       paddingBottom: 5,
@@ -1241,6 +1256,15 @@ function ConnectScreenInner({
 
   const renderHiblaHeader = (community: boolean) => (
     <>
+      {isBuklodConnectStandalone ? (
+        <View style={styles.standaloneUnread}>
+          <Text style={styles.standaloneUnreadText}>
+            {unreadTotal > 0
+              ? `${unreadTotal > 99 ? '99+' : unreadTotal} bagong mensahe`
+              : 'Walang bagong mensahe'}
+          </Text>
+        </View>
+      ) : (
       <View style={styles.hero}>
         <View pointerEvents="none" style={styles.heroArc} />
         <Text style={styles.heroEyebrow}>BUKLOD • CONNECT</Text>
@@ -1254,6 +1278,7 @@ function ConnectScreenInner({
           </Text>
         </View>
       </View>
+      )}
       <View style={styles.searchDock}>
         <View style={styles.inboxHeader}>
           <ConnectInboxSearch
