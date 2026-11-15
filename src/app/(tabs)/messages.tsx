@@ -87,7 +87,6 @@ import {
 } from '@/components/connect/ConnectThemeSelector';
 import { ConnectPressable } from '@/components/connect/ConnectPressable';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
-import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
 import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import {
   ConnectThreadBackground,
