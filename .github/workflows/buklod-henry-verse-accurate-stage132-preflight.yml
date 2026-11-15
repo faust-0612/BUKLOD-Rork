@@ -1,9 +1,15 @@
 # QA and EAS readback only. This workflow has NO publish step, no production writes.
 name: BUKLOD Henry Verse Accuracy Android Staging 1.3.2 Preflight - NO OTA
 on:
-  push:
-    branches: [rc/nov16-henry-verse-accurate-stage132-prep]
+  pull_request:
+    branches: [fix/nov16-henry-children-dialogue-dark]
     paths:
+      - 'src/lib/buklodBibleStudy.ts'
+      - 'src/app/bible/read.tsx'
+      - 'tests/bible-study-sources.test.cjs'
+      - 'tests/henry-verse-accurate-staging-20261116.test.mjs'
+      - '.buklod/scopes/nov16-henry-verse-accurate-stage132.json'
+      - 'release/nov16-henry-verse-accurate-stage132-prep.json'
       - '.github/workflows/buklod-henry-verse-accurate-stage132-preflight.yml'
 permissions:
   contents: read
@@ -12,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   scope-and-android:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/rc/nov16-henry-verse-accurate-stage132-prep' }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'rc/nov16-henry-verse-accurate-stage132-prep' && github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -23,10 +29,11 @@ jobs:
       BUKLOD_APP_TARGET: main
       EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -37,14 +44,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          git merge-base --is-ancestor f340829775c904aecc9162937bc011fb16c5a34e "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git merge-base --is-ancestor f340829775c904aecc9162937bc011fb16c5a34e "$SOURCE_SHA"
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { readFileSync } from 'node:fs';
           import { execFileSync } from 'node:child_process';
           const m=JSON.parse(readFileSync('release/nov16-henry-verse-accurate-stage132-prep.json','utf8'));
-          const diff=execFileSync('git',['diff','--name-only',m.baseSha,process.env.GITHUB_SHA],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          const diff=execFileSync('git',['diff','--name-only',m.baseSha,process.env.SOURCE_SHA],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
           assert.deepEqual(diff.filter(x=>!m.allowedPaths.includes(x)),[], 'Unexpected path changes; stop release');
           assert.ok(diff.includes('src/lib/buklodBibleStudy.ts')&&diff.includes('src/app/bible/read.tsx'));
           assert.ok(!diff.some(x=>/^(?:android\/|ios\/|assets\/|supabase\/|package(?:-lock)?\.json|app\.config)/.test(x)));
@@ -116,7 +123,7 @@ jobs:
           npx tsc --noEmit
           EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-henry-verse-qa/export --clear
           test -s /tmp/buklod-henry-verse-qa/export/metadata.json
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
       - name: Report QA only (no EAS update or deployment)
         run: |
           echo 'Exact-source staging 1.3.2 QA and read-only remote preflight passed.' >> "$GITHUB_STEP_SUMMARY"
