@@ -93,6 +93,7 @@ export async function uploadEncryptedSmartDrawerBackup(
   encryptedArchive: string,
   getExistingFileId?: string,
   fetcher: Fetcher = fetch,
+  ownerHash?: string,
 ): Promise<{ id: string }> {
   if (!encryptedArchive || encryptedArchive.length > 28 * 1024 * 1024) {
     throw new Error('Invalid or oversized encrypted archive.');
@@ -103,10 +104,16 @@ export async function uploadEncryptedSmartDrawerBackup(
   if (parsed.format !== 'buklod.drawer.encrypted.v1') {
     throw new Error('Refusing to upload unencrypted Drawer contents.');
   }
+  if (ownerHash !== undefined && !/^[a-f0-9]{64}$/.test(ownerHash)) {
+    throw new Error('Invalid BUKLOD account binding for encrypted backup.');
+  }
   const metadata = {
     name: SMART_DRAWER_BACKUP_NAME,
     mimeType: SMART_DRAWER_BACKUP_MIME,
-    appProperties: { buklodDrawer: 'encrypted-v1' },
+    appProperties: {
+      buklodDrawer: 'encrypted-v1',
+      ...(ownerHash ? { buklodOwnerHash: ownerHash } : {}),
+    },
   };
   const boundary = 'buklod_' + Math.random().toString(36).slice(2);
   const body = [

@@ -127,7 +127,7 @@ function assertPayload(value: unknown): asserts value is Payload {
  * never receive the archive or recovery key.
  * An oversized backup fails closed rather than silently dropping attachments.
  */
-export async function shareSmartDrawerBackup(userId: string, recoveryKey: string) {
+export async function buildEncryptedSmartDrawerBackup(userId: string, recoveryKey: string) {
   requireMobile();
   validateRecoveryKey(recoveryKey);
   if (!userId) throw new Error('Sign in to back up your Drawer.');
@@ -180,13 +180,19 @@ export async function shareSmartDrawerBackup(userId: string, recoveryKey: string
   if (raw.length > MAX_ARCHIVE_BYTES) throw new Error('Backup exceeds 20 MB. No incomplete archive was shared.');
   const sha256 = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, raw);
   const envelope: Envelope = { format: FORMAT, sha256, payload };
-  const uri = FileSystem.cacheDirectory + 'buklod-drawer-' + Date.now() + '.buklodbackup';
   const encrypted = await encryptBackup(envelope, recoveryKey);
   if (encrypted.length > MAX_ENCRYPTED_BYTES) throw new Error('Encrypted backup exceeds 28 MB. Nothing was shared.');
+  return { count: items.length, encrypted };
+}
+
+/** Existing manual export remains available on all mobile clients. */
+export async function shareSmartDrawerBackup(userId: string, recoveryKey: string) {
+  const { count, encrypted } = await buildEncryptedSmartDrawerBackup(userId, recoveryKey);
+  const uri = FileSystem.cacheDirectory + 'buklod-drawer-' + Date.now() + '.buklodbackup';
   await FileSystem.writeAsStringAsync(uri, encrypted, { encoding: FileSystem.EncodingType.UTF8 });
   if (!await Sharing.isAvailableAsync()) throw new Error('No compatible app is available to save your backup.');
   await Sharing.shareAsync(uri, { mimeType: 'application/octet-stream', dialogTitle: 'Save encrypted backup to your personal cloud' });
-  return { count: items.length, uri };
+  return { count, uri };
 }
 
 /**
@@ -207,6 +213,14 @@ export async function restoreSmartDrawerBackup(userId: string, recoveryKey: stri
     throw new Error('Encrypted backup file exceeds the 28 MB import limit.');
   }
   const raw = await FileSystem.readAsStringAsync(uri);
+  return restoreSmartDrawerBackupFromEncryptedText(userId, recoveryKey, raw);
+}
+
+/** Same validation, checksum and idempotent restore for user-selected Drive files. */
+export async function restoreSmartDrawerBackupFromEncryptedText(userId: string, recoveryKey: string, raw: string) {
+  requireMobile();
+  validateRecoveryKey(recoveryKey);
+  if (!userId) throw new Error('Sign in to restore your Drawer.');
   if (raw.length > MAX_ENCRYPTED_BYTES) throw new Error('Backup is too large.');
   const envelope = await decryptBackup(raw, recoveryKey);
   if (envelope?.format !== FORMAT || typeof envelope.sha256 !== 'string') {
