@@ -50,7 +50,7 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
-type RangeKind = 'MONTH' | 'QUARTER' | 'SIX_MONTHS' | 'YEAR';
+type RangeKind = 'WEEK' | 'MONTH' | 'QUARTER' | 'SIX_MONTHS' | 'YEAR';
 
 function manilaDay(iso: string) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -72,7 +72,12 @@ function filterConsolidationRange(data: ConsolidatedReportData, kind: RangeKind)
     firstMonth = month - 5;
     if (firstMonth < 1) { firstMonth += 12; firstYear -= 1; }
   }
-  const beginning = `${firstYear}-${String(firstMonth).padStart(2, '0')}-01`;
+  let beginning = `${firstYear}-${String(firstMonth).padStart(2, '0')}-01`;
+  if (kind === 'WEEK') {
+    const monday = new Date(`${now}T12:00:00Z`);
+    monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7);
+    beginning = monday.toISOString().slice(0, 10);
+  }
   const periods = data.periods.filter((period) =>
     period.due_at && manilaDay(period.due_at) >= beginning && manilaDay(period.due_at) <= now
   );
@@ -240,6 +245,7 @@ export default function BuklodReportConsolidatedScreen() {
               <View style={styles.chips}>
                 <Chip label="All periods" selected={!selectedPeriodId} onPress={() => void selectPeriod('')} />
                 {([
+                  ['RANGE_WEEK', 'This week'],
                   ['RANGE_MONTH', 'This month'],
                   ['RANGE_QUARTER', 'This quarter'],
                   ['RANGE_SIX_MONTHS', 'Last 6 months'],
