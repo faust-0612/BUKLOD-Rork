@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov15-prod-ota-video-ad-contract-20261115.json",
+  "objective": "Fix outdated source assertions that block already-reviewed Main video/autoplay and native-ad behavior; do not change runtime or relax release gates.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Latest production Android update 01a1da5c-0179-79fc-85c9-591cdb782190; current Main 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742; failed run 43651384134 stale video source expectation; verified stage source ea9a72c687c0885ea6a3c14a883503204f83dad4.",
+  "chosenApproach": "Change only the focused test source contract, reflecting 1% video detection, no dwell, and bounded next-clip lookahead +5 while retaining independent 60% / 400ms AdMob gating.",
+  "selectionRationale": "Production source already implements the correct intended video/ad behavior; source-contract assertions alone are stale and prevented mandatory post-RC checks.",
+  "alternativeApproaches": [
+    "Revert source to 25% threshold (rejected: worsens user playback)",
+    "Bypass failing test or release gate (rejected: unsafe)",
+    "Rebuild the native app (rejected: unnecessary)"
+  ],
+  "riskAreas": [
+    "ads-finance-points",
+    "media-upload-playback",
+    "production-release"
+  ],
+  "preserveBehaviors": [
+    "No actual playback, AdMob unit/consent/threshold, finance, RLS, native runtime or package change.",
+    "Keep independent conservative NativeAd impressions at 60% and 400ms.",
+    "Scroll-start pauses any visible video immediately and keeps only one video playing.",
+    "No production publication from this PR; preserve production release gates."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov15-prod-ota-video-ad-contract-20261115.json",
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
+    "tests/nov14-scroll-pauses-all-videos.test.mjs",
+    "tests/admob-native-video-prefetch-20261114.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Exact scope test diff only, no source or production credential change.",
+    "Source contract checks video 1%/0ms and ads 60%/400ms, prewarm +5.",
+    "Focused test and independent Engineering Accountability/Performance pass.",
+    "Android production frozen RC, manifest and release receipt verified separately before any live claim."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "ads-finance-points",
+      "reason": "Prevent an obsolete source assertion from falsely failing the independent AdMob/video gating test.",
+      "preservedBehaviors": [
+        "Ad activation threshold remains 60% and minimum 400ms; no impressions for offscreen prewarm."
+      ],
+      "tests": [
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "media-upload-playback",
+      "reason": "Align test expectations with reviewed early visible-edge start and bounded upcoming video prefetch.",
+      "preservedBehaviors": [
+        "1% early eligible viewport, 0ms dwell, scroll pause and uncropped original media remain intact."
+      ],
+      "tests": [
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Unblock necessary QA, no release marker committed.",
+      "preservedBehaviors": [
+        "Fail-closed production RC test gates stay unchanged."
+      ],
+      "tests": [
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+      ]
+    }
+  ]
+}
