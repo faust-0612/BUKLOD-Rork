@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/sunday-school-full-stories-20261115.json",
+  "objective": "Expand all twelve already published BUKLOD Children Stories into full original bilingual Sunday School stories with continuous reader, moral and spiritual applications, Bible references, prayers, teaching questions, and safe sequential narration; isolated DEV change based on exact published staging 1.3.2 source.",
+  "baseRef": "6b9981e200e4dfa9faa43f5d2691bc858a3f56f1",
+  "productionBaselineEvidence": "Verified server-side staging-user Android OTA #43667101817 source 6b9981e200e4dfa9faa43f5d2691bc858a3f56f1, EAS update 01a1dd05-6cb1-74b6-8f0a-4430c22fa5ba. No production operations authorized. Existing source may not remain the latest staging manifest; recheck before subsequent staging OTA.",
+  "chosenApproach": "Add bundled bilingual full-length curriculum content via three small content modules plus typed index; leave legacy 3-page records intact for remote editorial compatibility, display uninterrupted story for bundled entries, retain existing TTS, category navigation, offline progress/favorites and ad safety, complete four checks before awarding progress. Do not change native or shared backend.",
+  "selectionRationale": "Existing published 3-page stories are too abbreviated for Sunday School. Offline local content avoids costs, new services, child identity collection and production RLS changes.",
+  "alternativeApproaches": [
+    "One continuous short concatenation of three old pages: rejected because too brief.",
+    "Multiple matching art panels and native image/media downloads: rejected, not requested and increases data use.",
+    "Deploy unverified staging/production OTA immediately: rejected, requires exact current EAS stage source and gates."
+  ],
+  "preserveBehaviors": [
+    "Preserve 12 original story slugs and metadata, age bands, Bible/Values/Filipino/Bedtime categories, search and Home door, ad-free kids surface.",
+    "No separate child accounts, no child personal data or financial rewards.",
+    "Retain legacy published editorial 3-page compatibility and CMS schema unchanged.",
+    "Keep language, favorites, account-scoped progress, bedtime mode, voice cleanup, and safe adult accompaniment prompts.",
+    "Do not alter unrelated accepted Nov15 staging Connect/Profile/Wall/Kingdom/media/ads or Expo runtime 1.3.2.",
+    "No live EAS, Supabase, Play Store, web, main or production deployment by this DEV branch."
+  ],
+  "acceptanceChecks": [
+    "All twelve bundled slugs have complete original Filipino and English narratives, moral/spiritual lessons, appropriate scripture reference, closing prayer, two discussion prompts and 3 additional questions.",
+    "Continuous full story on one scrollable page, with cover-only art and no page-by-page click through.",
+    "Four sequential questions including existing one, completion persisted only after all correct, recovery/favorite unchanged.",
+    "Narration bounded to safe TTS chunks and cancelled on background, exit, language/story/quiz changes.",
+    "Jest catalog + new Sunday School curriculum tests, Node source contract, TypeScript and Expo web/android compatibility CI pass.",
+    "No changes to app config, native packages, protected ads, Supabase schema, or production runtime.",
+    "Stage update requires separate safe preflight against live staging baseline; owner has waived physical-device verification only."
+  ],
+  "riskAreas": [
+    "child-safety",
+    "offline-content",
+    "narration",
+    "native-compatibility",
+    "navigation-scroll",
+    "ads-monetization",
+    "production-release"
+  ],
+  "regressionTests": [
+    "tests/sunday-school-full-story-contract.test.mjs",
+    "tests/children-stories-contract.test.mjs",
+    "tests/children-stories-navigation-ad-safety.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/features/childrenStories/sundaySchoolTypes.ts",
+    "src/features/childrenStories/sundaySchoolA.ts",
+    "src/features/childrenStories/sundaySchoolB.ts",
+    "src/features/childrenStories/sundaySchoolC.ts",
+    "src/features/childrenStories/sundaySchool.ts",
+    "src/features/childrenStories/sundaySchool.test.ts",
+    "src/app/children-stories/[id].tsx",
+    "tests/sunday-school-full-story-contract.test.mjs",
+    ".buklod/scopes/sunday-school-full-stories-20261115.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Only existing React Native story UI and bundled static text data change; identical native runtime and dependencies.",
+      "preservedBehaviors": [
+        "Expo native runtime 1.3.2 and signed staging APK remain compatible.",
+        "No other route, media, ad, PTT or login files touched."
+      ],
+      "tests": [
+        "tests/sunday-school-full-story-contract.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "isolated-dev-ready-for-staging-only",
+  "releaseStatus": "DEV implementation pending CI. No OTA, live DB migration or production claim."
+}
