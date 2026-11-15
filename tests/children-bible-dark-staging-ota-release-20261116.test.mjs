@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const policy=read('scripts/children-bible-dark-staging-ota-policy-20261116.mjs');
+const workflow=read('.github/workflows/buklod-children-bible-dark-conso-staging-ota-20261116.yml');
+const scope=JSON.parse(read('.buklod/scopes/children-story-bible-dark-staging-20261116.json'));
+test('scoped staging release fixes source, build and channel without an unreviewed mutation',()=>{
+ assert.match(policy,/BASE='ea9a72c687c0885ea6a3c14a883503204f83dad4'/);
+ assert.match(policy,/PREVIOUS_UPDATE='01a1dfb1-578c-7e47-8547-ff3065c6792a'/);
+ assert.match(policy,/PREVIOUS_GROUP='f2da9206-4fb6-478b-bc6e-adb47e4030cd'/);
+ assert.match(policy,/git\('merge-base',BASE,sha\)/);
+ assert.match(policy,/verifyBuild\(read\(dir\+'\/build.json'\)\)/);
+ assert.match(workflow,/bc4be208-bfb0-42f3-95cb-358353d0600f/);
+ assert.match(workflow,/1\.3\.2/);
+ assert.match(workflow,/org\.mzbministry\.buklod\.staging/);
+ assert.equal(scope.baseRef,'integration/life-human-first-executive-stage-132-20261115');
+});
+test('exact SHA CI guards staging Android OTA and verifies production nonmutation',()=>{
+ assert.match(workflow,/pull_number:847/);
+ assert.match(workflow,/Engineering Accountability/);
+ assert.match(workflow,/BUKLOD Main - Report Door and Legacy Integration PR QA/);
+ assert.match(workflow,/--channel staging-user --platform android --environment preview/);
+ assert.match(workflow,/update:view/);
+ assert.match(workflow,/postpublish "\$GITHUB_SHA"/);
+ assert.doesNotMatch(workflow,/update --channel production|deploy --prod|play-store/);
+ assert.match(policy,/Production OTA changed/);
+ assert.match(policy,/Unexpected staging update; no overwrite/);
+ assert.match(policy,/alreadyPublished/);
+});
