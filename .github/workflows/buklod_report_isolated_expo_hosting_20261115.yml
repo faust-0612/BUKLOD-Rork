@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: buklod-report-standalone-hosting-20261115
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   CI: '1'
@@ -37,6 +37,16 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Enforce canonical repository deployment boundary
+        run: |
+          node scripts/verify-buklod-app-boundaries.cjs
+          node - <<'JS'
+          const registry=require('./.buklod/app-boundaries.json');
+          const app=registry.standaloneFocusApps.find(x=>x.appId==='buklod-report');
+          if (!app?.dedicatedRepository || app.dedicatedRepository !== process.env.GITHUB_REPOSITORY ||
+              app.deploymentState === 'UNASSIGNED_BLOCK_PRODUCTION_DEPLOYMENT')
+            throw Error('Standalone BUKLOD Report dedicated GitHub repository not registered. Deployment blocked.');
+          JS
       - name: Validate exact project config and source
         run: |
           node - <<'JS'
