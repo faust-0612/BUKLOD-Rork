@@ -39,6 +39,9 @@ jobs:
       EXPO_PUBLIC_APP_ENV: production
       EAS_PROJECT_ID_FIS: ${{ secrets.EAS_PROJECT_ID_FIS }}
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Browser publishable key; no Supabase secret/service-role key is bundled.
+      EXPO_PUBLIC_SUPABASE_URL: https://yhanxndaqbmuzbdqlblu.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS
 
     steps:
       - name: Checkout exact FIS DEV SHA, never Main
@@ -54,6 +57,36 @@ jobs:
 
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
+
+      - name: Create/link FIS EAS project under authorized Expo owner when missing
+        shell: bash
+        run: |
+          test -n "$EXPO_TOKEN" || { echo "::error::EXPO_TOKEN is not configured"; exit 1; }
+          if [ -z "$EAS_PROJECT_ID_FIS" ]; then
+            echo "Bootstrapping only @faust_0612/buklod-fis"
+            BUKLOD_FIS_PROJECT_BOOTSTRAP=1 npx eas-cli@latest init \
+              --account faust_0612 --no-icon --json --non-interactive > /tmp/fis-eas-init.json
+            node - <<'NODE'
+          const fs = require('node:fs');
+          const obj = JSON.parse(fs.readFileSync('/tmp/fis-eas-init.json','utf8'));
+          const p = obj.project || obj.projectInfo || obj;
+          const id = p.projectId || p.id;
+          const full = p.fullName || obj.fullName || '';
+          const owner = typeof p.owner === 'string' ? p.owner : p.owner?.name;
+          const forbidden = [
+            '23dad7d0-389a-406e-8dec-08965dab85d8',
+            '14100ed1-7f25-4551-9627-09d280498241',
+            'cc69b3c0-a5df-4b69-a84c-887c36242fdd'
+          ];
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(id)) ||
+              forbidden.includes(id) || (full && full !== '@faust_0612/buklod-fis') ||
+              (owner && owner !== 'faust_0612') || (p.slug && p.slug !== 'buklod-fis')) {
+            throw new Error('FIS bootstrap returned unexpected Expo project identity');
+          }
+          fs.appendFileSync(process.env.GITHUB_ENV, 'EAS_PROJECT_ID_FIS=' + id + '\\n');
+          console.log('Dedicated FIS Expo project linked: ' + id);
+          NODE
+          fi
 
       - name: Fail closed on missing or shared Expo project identity
         shell: bash
@@ -91,12 +124,12 @@ jobs:
       - name: Verify Expo credentials on isolated FIS project
         run: npx eas-cli@latest whoami --non-interactive
 
-      - name: Export FIS web bundle using FIS Expo production environment
+      - name: Export FIS bundle using canonical Supabase public browser connection
         shell: bash
         run: |
-          npx eas-cli@latest env:exec --environment production \
-            'test -n "$EXPO_PUBLIC_SUPABASE_URL" && (test -n "$EXPO_PUBLIC_SUPABASE_ANON_KEY" || test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY") && npx expo export --platform web --output-dir dist --clear' \
-            --non-interactive
+          test -n "$EXPO_PUBLIC_SUPABASE_URL"
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          npx expo export --platform web --output-dir dist --clear
 
       - name: Verify web assets and protected FIS route
         shell: bash
