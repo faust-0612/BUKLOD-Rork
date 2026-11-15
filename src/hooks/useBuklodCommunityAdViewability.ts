@@ -5,6 +5,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import {Dimensions,type View} from 'react-native';
+import {buklodVisibleVideoArea} from '@/lib/buklodVideoFrameVisibility';
+import {subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 
 import {
   isCommunityFeedInlineAdRow,
@@ -68,6 +71,51 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
   );
 
   const [preloadVideoPostId, setPreloadVideoPostId] = useState<string | null>(null);
+  const [preloadAdId,setPreloadAdId]=useState<string|null>(null);
+  const frameRefs=useRef(new Map<string,View>());
+  const possibleVideoIds=useRef<string[]>([]);
+  const scrollingRef=useRef(false);
+  const measureEpoch=useRef(0);
+  const rafRef=useRef<number|null>(null);
+  const checkRef=useRef<()=>void>(()=>{});
+  const scheduleRef=useRef<()=>void>(()=>{});
+  const checkFrames=useCallback(()=>{
+    const generation=++measureEpoch.current;
+    if(scrollingRef.current){setVisibleVideoPostId(null);return;}
+    const frames=possibleVideoIds.current.map(id=>({id,node:frameRefs.current.get(id)}))
+      .filter((row):row is {id:string;node:View}=>Boolean(row.node));
+    if(!frames.length){setVisibleVideoPostId(null);return;}
+    const screen=Dimensions.get('window');
+    let remaining=frames.length,bestId:string|null=null,bestArea=0;
+    frames.forEach(({id,node})=>node.measureInWindow((x,y,width,height)=>{
+      if(measureEpoch.current!==generation||scrollingRef.current)return;
+      const area=buklodVisibleVideoArea({x,y,width,height},screen);
+      if(area>bestArea){bestArea=area;bestId=id;}
+      if(--remaining===0)setVisibleVideoPostId(current=>current===bestId?current:bestId);
+    }));
+  },[]);
+  checkRef.current=checkFrames;
+  const scheduleVideoFrameCheck=useCallback(()=>{
+    if(rafRef.current!==null)return;
+    rafRef.current=requestAnimationFrame(()=>{
+      rafRef.current=null;
+      checkRef.current();
+    });
+  },[]);
+  scheduleRef.current=scheduleVideoFrameCheck;
+  const registerVideoFrame=useCallback((postId:string,node:View|null)=>{
+    if(node){
+      if(frameRefs.current.get(postId)===node)return;
+      frameRefs.current.set(postId,node);
+    }else if(!frameRefs.current.delete(postId))return;
+    scheduleRef.current();
+  },[]);
+  useEffect(()=>subscribeBuklodVideoScroll(scrolling=>{
+    scrollingRef.current=scrolling;
+    if(scrolling){++measureEpoch.current;setVisibleVideoPostId(null);}
+    else scheduleRef.current();
+  }),[]);
+  useEffect(()=>()=>{++measureEpoch.current;if(rafRef.current!==null)cancelAnimationFrame(rafRef.current);},[]);
 
   // Native ads retain the original conservative visibility requirement.
   const onViewableItemsChanged = useRef(
@@ -104,23 +152,25 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
   // Video becomes eligible as its post enters the viewport, independently
   // of ad request visibility. Keep only one autoplay video at a time.
   const onVideoViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: Array<{ item?: unknown }> }) => {
-      let nextVideoId: string | null = null;
-      for (const token of viewableItems) {
-        nextVideoId = communityVideoPostId(token.item);
-        if (nextVideoId) break;
+    ({viewableItems}:{viewableItems:Array<{item?:unknown;index?:number|null}>})=>{
+      const ids=viewableItems.map(token=>communityVideoPostId(token.item))
+        .filter((id):id is string=>Boolean(id));
+      possibleVideoIds.current=ids;
+      scheduleRef.current();
+      const rows=feedRowsRef.current;
+      const indices=viewableItems.map(token=>token.index)
+        .filter((i):i is number=>typeof i==='number'&&i>=0);
+      const index=indices.length?Math.max(...indices):
+        (ids.length?rows.findIndex(item=>communityVideoPostId(item)===ids[0]):-1);
+      let upcomingAd:string|null=null;
+      if(index>=0)for(let i=index+1;i<Math.min(rows.length,index+9);i++){
+        if(isCommunityFeedInlineAdRow(rows[i])){upcomingAd=(rows[i] as {id:string}).id;break;}
       }
-      setVisibleVideoPostId(current => current === nextVideoId ? current : nextVideoId);
-
-      // Prebuffer only the next video within three feed rows. This bounds
-      // concurrent downloads, decoder usage and needless mobile-data costs.
-      const rows = feedRowsRef.current;
-      const index = nextVideoId
-        ? rows.findIndex(item => communityVideoPostId(item) === nextVideoId)
-        : -1;
+      setPreloadAdId(current=>current===upcomingAd?current:upcomingAd);
+      // Prepare only one near-future video player; it must not play offscreen.
       let nextPreloadId: string | null = null;
       if (index >= 0) {
-        for (let i = index + 1; i < Math.min(rows.length, index + 4); i += 1) {
+        for (let i = index + 1; i < Math.min(rows.length, index + 5); i += 1) {
           nextPreloadId = communityVideoPostId(rows[i]);
           if (nextPreloadId) break;
         }
@@ -138,14 +188,14 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
   // Start the already-prebuffered next clip as soon as it enters the viewport.
   // Independent from the stricter AdMob visibility/impression threshold.
   const videoViewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 25,
+    itemVisiblePercentThreshold: 1,
     minimumViewTime: 0,
   }).current;
 
   const extraData = useMemo(
     () =>
-      `${[...activatedAdIds].sort().join('|')}:${visibleVideoPostId ?? ''}:${preloadVideoPostId ?? ''}`,
-    [activatedAdIds, visibleVideoPostId, preloadVideoPostId],
+      `${[...activatedAdIds].sort().join('|')}:${visibleVideoPostId ?? ''}:${preloadVideoPostId ?? ''}:${preloadAdId ?? ''}`,
+    [activatedAdIds, visibleVideoPostId, preloadVideoPostId, preloadAdId],
   );
 
   const isAdActive = useCallback(
@@ -159,6 +209,9 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
     videoViewabilityConfig,
     onVideoViewableItemsChanged,
     preloadVideoPostId,
+    preloadAdId,
+    registerVideoFrame,
+    onVideoFrameLayout:scheduleVideoFrameCheck,
     extraData,
     isAdActive,
     visibleVideoPostId,

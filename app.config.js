@@ -20,7 +20,10 @@ module.exports = ({ config }) => {
     process.env.EXPO_PUBLIC_APP_ENV ||
     'production';
 
+  const isNativeLab = variant === 'native-lab';
+
   const isStaging =
+    isNativeLab ||
     variant === 'staging' ||
     variant === 'preview' ||
     variant === 'development';
@@ -29,15 +32,15 @@ module.exports = ({ config }) => {
 
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
-    : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
+    : (isNativeLab ? 'BUKLOD Native QA' : (isStaging ? 'BUKLOD Staging' : 'BUKLOD'));
 
   const packageId = isClassroom
     ? 'org.mzbministry.buklod.classroom'
-    : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
+    : (isNativeLab ? 'org.mzbministry.buklod.nativeqa' : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod'));
 
   const scheme = isClassroom
     ? 'buklod-classroom'
-    : (isStaging ? 'buklod-staging' : 'buklod');
+    : (isNativeLab ? 'buklod-nativeqa' : (isStaging ? 'buklod-staging' : 'buklod'));
 
   return {
     ...config,
@@ -86,7 +89,7 @@ module.exports = ({ config }) => {
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
         ? (classroomGoogleServicesFile || undefined)
-        : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
+        : (isNativeLab ? './google-services.native-lab.json' : (isStaging ? './google-services.staging.json' : './google-services.production.json')),
 
       permissions: [
         'android.permission.CAMERA',
@@ -182,6 +185,7 @@ module.exports = ({ config }) => {
 
       './plugins/withBuklodWebRTC.js',
       './plugins/withBuklodPttHardwareFoundation.js',
+      ...(isNativeLab ? ['./plugins/withBuklodKingdomNativeLab.js'] : []),
 
 
       'expo-router',
@@ -371,8 +375,10 @@ module.exports = ({ config }) => {
       appEnvironment:
         process.env.EXPO_PUBLIC_APP_ENV ||
         variant,
+      ...(isNativeLab ? { smartDrawerGoogleDriveAndroidClientId: (process.env.EXPO_PUBLIC_NATIVE_LAB_GOOGLE_DRIVE_ANDROID_CLIENT_ID || '').trim() || null } : {}),
 
       appTarget: isClassroom ? 'classroom' : 'main',
+      nativeLab: isNativeLab,
 
       eas:
         projectId
@@ -395,7 +401,11 @@ module.exports = ({ config }) => {
     // Main BUKLOD V30 (versionCode 30) removes unused connectedDevice foreground service
     // permission from the manifest, without adding or changing the native JS module ABI.
     // Keep Expo runtime 1.3.2 for existing V28/V29 production OTA compatibility. Classroom has its independent runtime.
+    // Preserve the canonical Classroom/Main runtime declaration used by the existing
+    // production/staging compatibility contract. Override ONLY for the isolated
+    // separately installable Android native-lab application.
     runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
+    ...(isNativeLab ? { runtimeVersion: '1.4.0-nativeqa.1' } : {}),
   };
 };
 

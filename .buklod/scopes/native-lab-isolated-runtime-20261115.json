@@ -1,0 +1,213 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/native-lab-isolated-runtime-20261115.json",
+  "objective": "Create a truly separately installable Expo Android native QA staging app with a unique Android package, runtime and OTA channel, while keeping the previous staging-user APK/runtime 1.3.2, production app/runtime 1.3.2, and both published OTA channels unchanged. Build only after real native GIF, Google Drive OAuth, video/AdMob reconciliation, separately registered Firebase client and preview backend gates are satisfied. User-authorized Native Drive transport must not leak unencrypted notes or modify other account backups; source QA covers encrypted sync and on-screen consent.",
+  "baseRef": "2e7dc3aa69d2362b7b360013ccaac9917c353e2b",
+  "productionBaselineEvidence": "GitHub main current production-source baseline 7ebbbd504df2f84355888cc64a8c5317319d6d65 verified by connector on 2026-11-15; branch forked at Nov14 scoped staging OTA source SHA 2e7dc3aa69d2362b7b360013ccaac9917c353e2b. Published staging-user OTA run 43596652659; main release and real device acceptance not modified or inferred. Production runtime 1.3.2, package org.mzbministry.buklod. New Firebase org.mzbministry.buklod.nativeqa does not exist in repository registered-client list. PR #638 native Google Drive was held and PR #813 video/ad optimization is draft/unmerged. Native lab branch now contains the PR #813 code port as independent staging-only source; the original PR remains unmerged/unpublished.",
+  "chosenApproach": "A distinct APP_VARIANT native-lab in existing dynamic Expo config, unique org.mzbministry.buklod.nativeqa Android package, 1.4.0-nativeqa.1 runtime, native-lab channel and new Firebase configuration file path; internal EAS APK profile and fail-closed CI gates. Keep all old profiles and output unchanged; no EAS build until real registration and native integration are proven. Scope changes limited to new release identity/preflight and tests. Incremental source port incorporated existing isolated Godot native module, Android IME GIF through actual comment field, native Android Storage Access Framework image import from Drive provider, and strict-hunk reconciliation of all 56 PR #813 video pause/AdMob NativeAd prewarm hunks. Source-only release; no Android/EAS native runtime compilation or Google OAuth verification has been inferred. Native-lab-only Smart Drawer source port adds local AES-GCM encrypted manual archive and Drive-provider share/import via Android SAF. OAuth Drive API transport is source-available but deliberately not connected until a separately registered Android OAuth client and secure account-scoped token provider exist.",
+  "selectionRationale": "Separate installed app and runtime prevent side-by-side lab testing from replacing the existing staging app or consuming production/staging-user OTA updates. Use a new Firebase client rather than editing or mislabeling credentials. EAS shared project uses a private distinct update channel with no production promotion.",
+  "alternativeApproaches": [
+    "Reuse org.mzbministry.buklod.staging with a new runtime: rejected because Android would replace the owner's existing staging installation.",
+    "Copy the existing staging Firebase client under a new package string: rejected because that is not a genuine registered native Firebase/OAuth identity.",
+    "Publish experimental native features as Expo OTA to runtime 1.3.2: rejected because Java/Kotlin IME and native OAuth capabilities cannot be delivered by JS-only update."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "staging-release",
+    "native-credentials",
+    "firebase-registration",
+    "oauth",
+    "ads-monetization",
+    "regression-isolation",
+    "runtime-compatibility",
+    "app-runtime",
+    "wall-media",
+    "navigation-scroll",
+    "faith-cluster"
+  ],
+  "preserveBehaviors": [
+    "Existing org.mzbministry.buklod staging-user and production package names, runtime 1.3.2, project identity and channels remain byte-identical.",
+    "Old staging app remains installed and continues to receive only staging-user OTA; new lab channel never publishes over it.",
+    "Production sign-in/notifications/AdMob credentials and Supabase finances, points, RLS, video/media, and uploads are not mutated.",
+    "The native-lab Firebase client must be truly registered for the exact new package; no fabrication or misuse of older registered package data.",
+    "Unfinished native GIF/Google Drive/AdMob integration stays explicitly blocked from issuing an installable QA artifact.",
+    "New Drawer default remains local-only. Backup export requires explicit user action and a 64-character recovery key; restore rejects cross-account archives, tampering and duplicates."
+  ],
+  "acceptanceChecks": [
+    "Native QA package is org.mzbministry.buklod.nativeqa, distinct from production, staging and Classroom.",
+    "Native QA runtime is 1.4.0-nativeqa.1, distinct from existing runtime 1.3.2; independent channel is native-lab.",
+    "EAS native-lab profile yields internal Android APK and staging preview app data, not production or old staging channel.",
+    "Unregistered Firebase client, missing native bridge, missing Google Drive OAuth, unfrozen scroll/ad source or production Supabase all block before EAS credits.",
+    "After incorporation, exact SHA typecheck, Android Hermes export, EAS signed APK and downloaded APK package/SHA256 checks are required.",
+    "Physical Android install and real Google Drive/GIF/video/ad behavior remains unverified until separately performed.",
+    "Native GIF, Android SAF picker and Godot sources compile and pass functional Android QA before claiming the new APK works.",
+    "NativeAd prefetch limited to one future creative and only visible media is permitted to play after scroll idle; no offscreen impressions.",
+    "Drawer import, classification, AES-GCM backup and Drive OAuth transport undergo source/type checks and account isolation; OAuth sign-in cannot be claimed before registration and device verification.",
+    "Google user identity uses OpenID and verified email; manual Drive actions serialize per BUKLOD user to prevent concurrent restore/disconnect.",
+    "Before signed APK, one-shot exact-source Android JS export must pass without production credentials; native Kotlin and OAuth still need real Firebase/Gradle acceptance.",
+    "Credential presence check must verify new Firebase package, Android OAuth signing-certificate hash and Expo token without exposing values or consuming EAS credits."
+  ],
+  "regressionTests": [
+    "tests/buklod-native-lab-expo-isolation-20261115.test.cjs",
+    "tests/native-lab-release-identity-20261115.test.mjs",
+    "tests/native-lab-native-bridge-wiring-20261115.test.cjs",
+    "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/navigation-video-scroll-stop-20261114.test.mjs",
+    "tests/nov14-scroll-pauses-all-videos.test.mjs",
+    "tests/nov14-video-scroll-stop-native-prefetch.test.mjs",
+    "tests/nov15-android-native-prefetch-gate.test.mjs",
+    "tests/scope-video-scroll-autoplay-20261114.test.mjs",
+    "tests/smart-drawer-cloud-backup.test.mjs",
+    "tests/smart-drawer-google-drive-transport.test.mjs",
+    "tests/native-lab-ads-visibility-20261115.test.mjs",
+    "tests/native-lab-google-drive-oauth-source-20261115.test.mjs",
+    "tests/native-lab-drive-encrypted-sync-20261115.test.mjs",
+    "tests/native-lab-drive-settings-20261115.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/native-lab-isolated-runtime-20261115.json",
+    ".github/workflows/buklod-native-lab-apk-20261115.yml",
+    "app.config.js",
+    "eas.json",
+    "godot/kingdom-zero-assets/README.md",
+    "godot/kingdom-zero-assets/project.godot",
+    "godot/kingdom-zero-assets/scenes/Main.tscn",
+    "godot/kingdom-zero-assets/scripts/kingdom_data.gd",
+    "godot/kingdom-zero-assets/scripts/world.gd",
+    "modules/buklod-kingdom-lab/KeyboardGifInput.tsx",
+    "modules/buklod-kingdom-lab/android/build.gradle",
+    "modules/buklod-kingdom-lab/android/src/main/AndroidManifest.xml",
+    "modules/buklod-kingdom-lab/android/src/main/java/expo/modules/buklodlab/BuklodLabNativeModule.kt",
+    "modules/buklod-kingdom-lab/android/src/main/java/expo/modules/buklodlab/GodotLabActivity.java",
+    "modules/buklod-kingdom-lab/expo-module.config.json",
+    "modules/buklod-kingdom-lab/package.json",
+    "plugins/withBuklodKingdomNativeLab.js",
+    "release/native-lab-apk-20261115.json",
+    "scripts/kingdom-lab/godotZip.cjs",
+    "scripts/native-lab-build-preflight.mjs",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/drawer/import.tsx",
+    "src/app/drawer/index.tsx",
+    "src/app/drawer/item/[id].tsx",
+    "src/app/drawer/quick-note.tsx",
+    "src/app/drawer/settings.tsx",
+    "src/app/kingdom-native-lab.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodCommunityInlineAd.tsx",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodMentionField.tsx",
+    "src/components/BuklodNativeSponsoredCard.android.tsx",
+    "src/components/BuklodNativeSponsoredCard.tsx",
+    "src/features/games/elesur/KingdomVillageDiorama.native.tsx",
+    "src/features/games/elesur/KingdomVillageDiorama.tsx",
+    "src/features/games/kingdom/BuklodGodotLabLauncher.tsx",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/features/games/kingdom/KingdomLivingWorldPaths.ts",
+    "src/hooks/useBuklodCommunityAdViewability.ts",
+    "src/lib/buklodLabDrivePicker.ts",
+    "src/lib/buklodMaritesPlayback.ts",
+    "src/lib/buklodVideoFrameVisibility.ts",
+    "src/lib/buklodVideoScrollSignal.ts",
+    "src/lib/smartDrawer/__tests__/classify.test.ts",
+    "src/lib/smartDrawer/classify.ts",
+    "src/lib/smartDrawer/googleDriveTransport.ts",
+    "src/lib/smartDrawer/localStore.ts",
+    "src/lib/smartDrawer/portableBackup.ts",
+    "src/lib/smartDrawer/types.ts",
+    "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/buklod-native-lab-expo-isolation-20261115.test.cjs",
+    "tests/native-lab-native-bridge-wiring-20261115.test.cjs",
+    "tests/native-lab-release-identity-20261115.test.mjs",
+    "tests/navigation-video-scroll-stop-20261114.test.mjs",
+    "tests/nov14-scroll-pauses-all-videos.test.mjs",
+    "tests/nov14-video-scroll-stop-native-prefetch.test.mjs",
+    "tests/nov15-android-native-prefetch-gate.test.mjs",
+    "tests/scope-video-scroll-autoplay-20261114.test.mjs",
+    "tests/smart-drawer-cloud-backup.test.mjs",
+    "tests/smart-drawer-google-drive-transport.test.mjs",
+    "tests/native-lab-ads-visibility-20261115.test.mjs",
+    "modules/buklod-kingdom-lab/android/src/main/java/expo/modules/buklodlab/BuklodNativeDriveModule.kt",
+    "tests/native-lab-google-drive-oauth-source-20261115.test.mjs",
+    "src/lib/smartDrawer/nativeDriveBackup.ts",
+    "tests/native-lab-drive-encrypted-sync-20261115.test.mjs",
+    "tests/native-lab-drive-settings-20261115.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Isolated lab app adds Godot Android module and IME GIF editor while preserving baseline Wall, Profile, Connect, auth and privacy. Native QA Drawer additionally introduces opt-in encrypted backup/restore and explicit smart-note classification without changing old builds.",
+      "preservedBehaviors": [
+        "All native changes remain on new org.mzbministry.buklod.nativeqa; existing staging-user and production binary/runtime and OTA are untouched.",
+        "GIF remains a preview until member taps manual Send, preserving scope and account protections.",
+        "No automatic cloud upload, cross-account note restore or server storage of backup recovery keys; app remains local-only by default."
+      ],
+      "tests": [
+        "tests/native-lab-native-bridge-wiring-20261115.test.cjs",
+        "tests/smart-drawer-cloud-backup.test.mjs",
+        "tests/smart-drawer-google-drive-transport.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Port PR813 early pause and near-frame preparation without lowering original video/photo fidelity or restoring retired IGPAT.",
+      "preservedBehaviors": [
+        "Scrolling immediately pauses current playback; original-quality caches are retained and no duplicate player is mounted after scroll.",
+        "Existing scoped/public media upload, comment GIF fallback and IGPAT retirement remain unchanged."
+      ],
+      "tests": [
+        "tests/nov14-scroll-pauses-all-videos.test.mjs",
+        "tests/nov14-video-scroll-stop-native-prefetch.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Wire early scroll signals from Home, Wall and Connect without changing bottom-navigation, session, account-scope or sign-in destinations.",
+      "preservedBehaviors": [
+        "Existing one-tap Home/Wall/Connect navigation, active authentication and exact notification destinations stay intact.",
+        "Scoped comment drafts and mention navigation retain existing ownership safeguards."
+      ],
+      "tests": [
+        "tests/navigation-video-scroll-stop-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Port only bounded Android NativeAd next-slot prefetch; defer rendered impressions until visible and retain AdMob request/consent throttling.",
+      "preservedBehaviors": [
+        "No hidden NativeAdView render, offscreen impression or change to ad unit IDs, banners, frequency caps, consent or finance/points calculations.",
+        "One upcoming native creative can be prepared without blocking transitions or video playback."
+      ],
+      "tests": [
+        "tests/admob-native-video-prefetch-20261114.test.mjs",
+        "tests/nov15-android-native-prefetch-gate.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Apply the same frame-based video scroll pause and bounded NativeAd prefetch to Cluster/Organization scoped Community only.",
+      "preservedBehaviors": [
+        "Existing Cluster and Organization membership, author permissions, scoped media and comment posting remain protected.",
+        "No scope feed observes ads before viewability or starts offscreen playback."
+      ],
+      "tests": [
+        "tests/scope-video-scroll-autoplay-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Preserve fail-closed new runtime/package and new Firebase identity EAS release gate while compiling native-only components in an isolated branch.",
+      "preservedBehaviors": [
+        "Production and staging-user Android package IDs, Expo runtime 1.3.2, published OTA channel and update remain unchanged.",
+        "Signed EAS build is skipped until real native OAuth and Firebase client gates pass; no old app can receive native-lab OTA."
+      ],
+      "tests": [
+        "tests/native-lab-release-identity-20261115.test.mjs"
+      ]
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import {useFocusEffect} from 'expo-router';
 import {requestBuklodAudioFocus, subscribeBuklodAudioFocus} from '@/lib/buklodAudioFocus';
 import {supabase} from '@/lib/supabase';
 import {sponsoredVideoViewport, SPONSORED_VIDEO_CHECK_MS} from '@/lib/advertise/sponsoredVideoViewport';
+import {subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {
@@ -91,6 +92,8 @@ export default function BuklodCommunitySponsoredAd({
   const [atMs, setAtMs] = useState(() => Date.now());
   const [videoVisible, setVideoVisible] = useState(false);
   const [videoNear, setVideoNear] = useState(false);
+  const [scrollPaused,setScrollPaused]=useState(false);
+  useEffect(()=>subscribeBuklodVideoScroll(setScrollPaused),[]);
   const [screenFocused, setScreenFocused] = useState(false);
   useFocusEffect(useCallback(() => {
     setScreenFocused(true);
@@ -184,11 +187,11 @@ export default function BuklodCommunitySponsoredAd({
   useEffect(() => {
     if (eligible.length <= 1) return;
     // Video creative must not be cut short at the photo rotation interval.
-    const ms = screenFocused && videoVisible && campaign?.creative_type === 'video'
+    const ms = screenFocused && videoVisible && !scrollPaused && campaign?.creative_type === 'video'
       ? 30_000 : ROTATE_MS;
     const timer = setTimeout(() => setIndex(current => current + 1), ms);
     return () => clearTimeout(timer);
-  }, [eligible.length, campaign?.id, campaign?.creative_type, screenFocused, videoVisible]);
+  }, [eligible.length, campaign?.id, campaign?.creative_type, screenFocused, videoVisible, scrollPaused]);
   // A one-screen lookahead prepares only the upcoming ad before it reaches
   // the viewport. Check immediately after layout and at a bounded 120 ms cadence
   // rather than waiting 350-900 ms for first visible playback.
@@ -277,7 +280,7 @@ export default function BuklodCommunitySponsoredAd({
     <View ref={mediaRef} collapsable={false} onLayout={() => remeasureVideoRef.current()}>
     {campaign.creative_type === 'video' && campaign.video_url
       ? videoNear && screenFocused
-        ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible}/>
+        ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible&&!scrollPaused}/>
         : <View style={s.media}/>
       : campaign.image_url
         ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="contain"/>

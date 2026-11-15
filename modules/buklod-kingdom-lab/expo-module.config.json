@@ -1,0 +1,11 @@
+{
+  "platforms": [
+    "android"
+  ],
+  "android": {
+    "modules": [
+      "expo.modules.buklodlab.BuklodLabNativeModule",
+      "expo.modules.buklodlab.BuklodNativeDriveModule"
+    ]
+  }
+}

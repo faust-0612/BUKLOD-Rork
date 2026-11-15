@@ -4,10 +4,13 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,6 +28,15 @@ import {
   type SmartDrawerSettings,
 } from '@/lib/smartDrawer/settings';
 import { useAuth } from '@/providers/AuthProvider';
+import { generateSmartDrawerRecoveryKey, shareSmartDrawerBackup, restoreSmartDrawerBackup } from '@/lib/smartDrawer/portableBackup';
+import * as Clipboard from 'expo-clipboard';
+import {
+  backupNativeDrawerToDrive,
+  connectNativeDrawerDrive,
+  disconnectNativeDrawerDrive,
+  getNativeDrawerDriveConnection,
+  restoreNativeDrawerFromDrive,
+} from '@/lib/smartDrawer/nativeDriveBackup';
 
 const STYLES: Array<{
   key: SmartDrawerReminderStyle;
@@ -86,6 +98,129 @@ export default function SmartDrawerSettingsScreen() {
       };
     }, [user?.id]),
   );
+
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupNotice, setBackupNotice] = useState('');
+  const [recoveryKey, setRecoveryKey] = useState('');
+  const [connectedDriveEmail, setConnectedDriveEmail] = useState<string | null>(null);
+  // The normal staging-user and Play apps retain their original manual picker.
+  const nativeDriveAvailable = Platform.OS === 'android' &&
+    process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1';
+
+  useFocusEffect(useCallback(() => {
+    if (!nativeDriveAvailable || !user?.id) {
+      setConnectedDriveEmail(null);
+      return;
+    }
+    let active = true;
+    void getNativeDrawerDriveConnection(user.id)
+      .then(connection => { if (active) setConnectedDriveEmail(connection?.email ?? null); })
+      .catch(error => { if (active) setBackupNotice(error instanceof Error ? error.message : 'Drive connection unavailable.'); });
+    return () => { active = false; };
+  }, [nativeDriveAvailable, user?.id]));
+
+  const runNativeDrive = async (action: 'connect' | 'disconnect' | 'backup' | 'restore') => {
+    if (!nativeDriveAvailable || !user?.id || backupBusy) return;
+    if ((action === 'backup' || action === 'restore') && !/^[a-fA-F0-9]{64}$/.test(recoveryKey.trim())) {
+      setBackupNotice('Provide the 64-character recovery key first. BUKLOD cannot recover a lost key.');
+      return;
+    }
+    const owner = user.id;
+    setBackupBusy(true);
+    setBackupNotice('');
+    try {
+      if (action === 'connect') {
+        const connection = await connectNativeDrawerDrive(owner);
+        setConnectedDriveEmail(connection.email);
+        setBackupNotice('Google Drive connected for this BUKLOD account. Nothing was uploaded.');
+      } else if (action === 'disconnect') {
+        // A local disconnect is not a global Google permission revocation.
+        setConnectedDriveEmail(null);
+        await disconnectNativeDrawerDrive(owner);
+        setBackupNotice('Google Drive disconnected from this app. Revoke access in your Google Account to remove the grant entirely.');
+      } else if (action === 'backup') {
+        const result = await backupNativeDrawerToDrive(owner, recoveryKey.trim());
+        setBackupNotice(result.count + ' encrypted notes saved to your selected Google Drive. Keep the recovery key separately.');
+      } else {
+        const result = await restoreNativeDrawerFromDrive(owner, recoveryKey.trim());
+        setBackupNotice('Restored ' + result.restored + ' notes; skipped ' + result.skipped + ' existing notes.');
+      }
+    } catch (error) {
+      setBackupNotice(error instanceof Error ? error.message : 'Google Drive operation failed. Local data remains available.');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+  const confirmNativeDriveRestore = () => {
+    Alert.alert(
+      'Restore encrypted notes from Google Drive?',
+      'Only a backup from this same BUKLOD account will be restored. Existing notes are preserved. Your recovery key is needed.',
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Restore', onPress: () => { void runNativeDrive('restore'); } }],
+    );
+  };
+
+  const prepareKey = async () => {
+    if (backupBusy) return;
+    setBackupBusy(true);
+    setBackupNotice('');
+    try {
+      const key = await generateSmartDrawerRecoveryKey();
+      setRecoveryKey(key);
+      setBackupNotice('New recovery key generated. Copy it and store it separately from your cloud backup. Losing this key means the archive cannot be restored.');
+    } catch (error) {
+      setBackupNotice(error instanceof Error ? error.message : 'Could not generate a recovery key.');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const exportBackup = () => {
+    if (!user?.id || backupBusy) return;
+    if (!/^[a-fA-F0-9]{64}$/.test(recoveryKey.trim())) {
+      setBackupNotice('Generate and safely copy a 64-character recovery key before exporting.');
+      return;
+    }
+    Alert.alert(
+      'Export encrypted backup?',
+      'Your archive is encrypted with AES-GCM and the key shown on this screen. BUKLOD cannot recover a lost key. Save the key somewhere different from your cloud backup. Only export to your private cloud storage.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Export', onPress: () => {
+          setBackupBusy(true);
+          setBackupNotice('');
+          void shareSmartDrawerBackup(user.id, recoveryKey.trim())
+            .then(({ count }) => setBackupNotice(`${count} encrypted notes prepared for sharing. Confirm in your cloud app that upload completed. Keep your recovery key safely.`))
+            .catch(error => setBackupNotice(error instanceof Error ? error.message : 'Backup failed. Your notes remain on this phone.'))
+            .finally(() => setBackupBusy(false));
+        } },
+      ],
+    );
+  };
+
+  const importBackup = () => {
+    if (!user?.id || backupBusy) return;
+    if (!/^[a-fA-F0-9]{64}$/.test(recoveryKey.trim())) {
+      setBackupNotice('Paste the original 64-character recovery key before restoring.');
+      return;
+    }
+    Alert.alert(
+      'Restore encrypted backup?',
+      'Select the backup file from your cloud provider using the file picker. This must belong to the same BUKLOD account. Existing notes are preserved.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Choose Backup', onPress: () => {
+          setBackupBusy(true);
+          setBackupNotice('');
+          void restoreSmartDrawerBackup(user.id, recoveryKey.trim())
+            .then(result => {
+              if (!result.canceled) setBackupNotice(`Restored ${result.restored} notes. Skipped ${result.skipped} existing notes.`);
+            })
+            .catch(error => setBackupNotice(error instanceof Error ? error.message : 'Restore failed.'))
+            .finally(() => setBackupBusy(false));
+        } },
+      ],
+    );
+  };
 
   const save = async () => {
     if (!user?.id || busy) return;
@@ -158,6 +293,96 @@ export default function SmartDrawerSettingsScreen() {
             },
           ]}
         >
+          <Text style={styles.sectionTitle}>My Storage & Backup</Text>
+          <Text style={styles.sectionHint}>
+            Local Only is always free. Your files stay on this device. Optional backup uses your own Google Drive, OneDrive, Dropbox or other file provider through the phone share sheet — BUKLOD does not host these files.
+          </Text>
+          <View style={styles.privacy}>
+            <MaterialCommunityIcons name="cellphone" size={24} color="#0A6EBD" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.privacyTitle}>Local Only (default)</Text>
+              <Text style={styles.privacyText}>
+                Works offline. Uninstalling or clearing app data can erase local notes. Portable backups are manual, not real-time sync.
+              </Text>
+            </View>
+          </View>
+          {Platform.OS === 'web' ? (
+            <Text style={styles.sectionHint}>Portable backup and restore require the Android/iOS app.</Text>
+          ) : (
+            <>
+              <Pressable onPress={() => void prepareKey()} disabled={backupBusy} style={styles.option}>
+                <MaterialCommunityIcons name="key-variant" size={24} color="#0A6EBD" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionTitle}>Generate New Recovery Key</Text>
+                  <Text style={styles.optionText}>Needed to encrypt a new backup. Copy and keep it securely outside the backup folder.</Text>
+                </View>
+              </Pressable>
+              <TextInput
+                value={recoveryKey}
+                onChangeText={setRecoveryKey}
+                placeholder="Paste 64-character backup recovery key"
+                placeholderTextColor="#7D94A6"
+                autoCapitalize="none"
+                autoCorrect={false}
+                multiline
+                selectTextOnFocus
+                style={[styles.option, { minHeight: 68, color: '#173B63', fontSize: 12 }]}
+              />
+              {!!recoveryKey && <Pressable onPress={() => void Clipboard.setStringAsync(recoveryKey)} style={styles.option}>
+                <MaterialCommunityIcons name="content-copy" size={21} color="#0A6EBD" />
+                <Text style={styles.optionTitle}>Copy Recovery Key</Text>
+              </Pressable>}
+              <Pressable onPress={exportBackup} disabled={backupBusy} style={styles.option}>
+                <MaterialCommunityIcons name="cloud-upload-outline" size={24} color="#0A6EBD" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionTitle}>Back Up to My Own Cloud</Text>
+                  <Text style={styles.optionText}>Exports up to 20 MB including files. Select your personal cloud app. AES-GCM encrypted file. Back up to your private folder and store the recovery key separately.</Text>
+                </View>
+              </Pressable>
+              <Pressable onPress={importBackup} disabled={backupBusy} style={styles.option}>
+                <MaterialCommunityIcons name="cloud-download-outline" size={24} color="#0A6EBD" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionTitle}>Restore My Backup</Text>
+                  <Text style={styles.optionText}>Select a previously exported BUKLOD backup file. Additive restore; existing notes are preserved.</Text>
+                </View>
+              </Pressable>
+              {nativeDriveAvailable && (
+                <View style={styles.privacy}>
+                  <MaterialCommunityIcons name="google-drive" size={24} color="#0A6EBD" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.privacyTitle}>My Google Drive · Native QA</Text>
+                    <Text style={styles.privacyText}>
+                      {connectedDriveEmail
+                        ? 'Connected: ' + connectedDriveEmail + '. Manual AES-GCM backup only. No background sync or BUKLOD cloud upload.'
+                        : 'Optional Google account authorization for encrypted backup. Your local notes stay private until you choose Back Up.'}
+                    </Text>
+                    <Pressable disabled={backupBusy} onPress={() => { void runNativeDrive(connectedDriveEmail ? 'disconnect' : 'connect'); }}
+                      accessibilityLabel={connectedDriveEmail ? 'Disconnect Google Drive' : 'Connect personal Google Drive'} style={styles.option}>
+                      <MaterialCommunityIcons name={connectedDriveEmail ? 'link-off' : 'link-variant'} size={22} color="#0A6EBD" />
+                      <Text style={styles.optionTitle}>{connectedDriveEmail ? 'Disconnect Google Drive' : 'Connect Google Drive'}</Text>
+                    </Pressable>
+                    {!!connectedDriveEmail && (
+                      <>
+                        <Pressable disabled={backupBusy} onPress={() => { void runNativeDrive('backup'); }} style={styles.option}
+                          accessibilityLabel="Back up encrypted Drawer to Google Drive">
+                          <MaterialCommunityIcons name="cloud-upload-outline" size={22} color="#0A6EBD" />
+                          <Text style={styles.optionTitle}>Back Up Encrypted Notes to Drive</Text>
+                        </Pressable>
+                        <Pressable disabled={backupBusy} onPress={confirmNativeDriveRestore} style={styles.option}
+                          accessibilityLabel="Restore encrypted Drawer from Google Drive">
+                          <MaterialCommunityIcons name="cloud-download-outline" size={22} color="#0A6EBD" />
+                          <Text style={styles.optionTitle}>Restore Encrypted Notes from Drive</Text>
+                        </Pressable>
+                      </>
+                    )}
+                  </View>
+                </View>
+              )}
+              {backupBusy && <ActivityIndicator color="#0A6EBD" />}
+              {!!backupNotice && <Text style={styles.notice}>{backupNotice}</Text>}
+            </>
+          )}
+
           <Text style={styles.sectionTitle}>
             Reminder Style
           </Text>
