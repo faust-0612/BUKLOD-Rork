@@ -6,8 +6,8 @@
  */
 export function inStoryOnly(scene: string, language: 'tl' | 'en'): string {
   const cue = language === 'tl'
-    ? /(?:tanong|sagot|tugon|paliwanag|dagdag|usisa|sabi|wika|itinuro|ipinaliwanag|paalala|tinanong|sumagot)\\s+(?:(?:ng|ni|nina)\\s+)?(?:mga\\s+)?(?:batang(?:\\s+nakikinig(?:\\s+sa\\s+guro)?)?|bata|klase|guro|Liza)(?=\\W|$)|(?:nagtanong|sumagot)\\s+ang\\s+(?:bata|klase)/i
-    : /(?:a|the|a listening) (?:child|teacher|class|student)s?\\s+(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\\b|(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\\s+(?:a|the)\\s+(?:child|teacher|class|student)s?\\b/i;
+    ? /(?:tanong|sagot|tugon|paliwanag|dagdag|usisa|sabi|wika|itinuro|ipinaliwanag|paalala|tinanong|sumagot)\s+(?:(?:ng|ni|nina)\s+)?(?:mga\s+)?(?:batang(?:\s+nakikinig(?:\s+sa\s+guro)?)?|bata|klase|guro|Liza)(?=\W|$)|(?:nagtanong|sumagot)\s+ang\s+(?:bata|klase)/i
+    : /(?:a|the|a listening) (?:child|teacher|class|student)s?\s+(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\b|(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\s+(?:a|the)\s+(?:child|teacher|class|student)s?\b/i;
   const marker = cue.exec(scene);
   if (!marker) return scene.trim();
   const openingQuote = scene.lastIndexOf('“', marker.index);
