@@ -455,7 +455,7 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       backgroundColor: theme.surface,
     },
     contactsTitle: {
-      color: HIBLA.pineDeep,
+      color: theme.textPrimary,
       fontSize: 17,
       fontWeight: '800',
       paddingHorizontal: 18,
@@ -463,7 +463,7 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       paddingBottom: 8,
     },
     sectionTitle: {
-      color: HIBLA.pineDeep,
+      color: theme.textPrimary,
       fontSize: 18,
       fontWeight: '900',
       paddingHorizontal: 18,

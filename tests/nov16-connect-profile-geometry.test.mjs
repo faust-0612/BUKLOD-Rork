@@ -14,6 +14,9 @@ test('Connect hero and unread pill stay fully visible above search dock', () => 
   assert.doesNotMatch(dock, /marginTop:\s*-/);
   assert.ok(connect.indexOf('<View style={styles.hero}>') < connect.indexOf('<View style={styles.searchDock}>'));
   assert.match(connect, /<View style=\{styles.heroCount\}>/);
+  // On the dark canvas the headings must remain legible after removing opaque tiles.
+  assert.match(connect, /contactsTitle: \{\s*color: theme\.textPrimary/);
+  assert.match(connect, /sectionTitle: \{\s*color: theme\.textPrimary/);
 });
 
 test('Connect avatars are unobstructed, equal-positioned and notes stay editable', () => {
