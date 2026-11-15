@@ -48,14 +48,14 @@ export function splitHenryTranslation(text: string, maxLength = 1600): string[] 
  */
 export function prepareHenryEnglishForFilipino(source: string): string {
   const rules: Array<[RegExp, string]> = [
-    [/\\btokens of God[’']s presence\\b/gi, 'signs that God is present'],
-    [/\\btokens of (?:his|the divine) presence\\b/gi, 'signs of his presence'],
-    [/\\bthe more we abound in God[’']s work,? the more comfort we may expect in him\\b/gi,
+    [/\btokens of God[’']s presence\b/gi, 'signs that God is present'],
+    [/\btokens of (?:his|the divine) presence\b/gi, 'signs of his presence'],
+    [/\bthe more we abound in God[’']s work,? the more comfort we may expect in him\b/gi,
       'The more we devote ourselves to God’s work, the more comfort we can expect from him'],
-    [/\\bSilence and retirement befriend our communion with God\\b/gi,
+    [/\bSilence and retirement befriend our communion with God\b/gi,
       'Quiet moments alone help us grow closer to God'],
-    [/\\bhis senses locked up\\b/gi, 'his senses at rest while he slept'],
-    [/\\bGod[’']s access to his mind might be the more free and immediate\\b/gi,
+    [/\bhis senses locked up\b/gi, 'his senses at rest while he slept'],
+    [/\bGod[’']s access to his mind might be the more free and immediate\b/gi,
       'God could communicate with his mind more directly'],
   ];
   return rules.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), source);
@@ -68,18 +68,18 @@ export function prepareHenryEnglishForFilipino(source: string): string {
  */
 export function polishHenryFilipinoTranslation(translated: string): string {
   const rules: Array<[RegExp, string]> = [
-    [/\\bmga token ng presensya ng Diyos\\b/gi, 'mga tanda ng presensya ng Diyos'],
-    [/\\btoken ng presensya ng Diyos\\b/gi, 'tanda ng presensya ng Diyos'],
-    [/\\bpanuntunan sa ating pagsamba\\b/gi, 'tamang paraan ng pagsamba'],
-    [/\\bmapagbigay na sakripisyo\\b/gi, 'masaganang handog'],
-    [/\\bkatahimikan at pagreretiro\\b/gi, 'katahimikan at pag-iisa'],
-    [/\\bang (?:kanyang|kaniyang) mga pandama ay naka-lock\\b/gi,
+    [/\bmga token ng presensya ng Diyos\b/gi, 'mga tanda ng presensya ng Diyos'],
+    [/\btoken ng presensya ng Diyos\b/gi, 'tanda ng presensya ng Diyos'],
+    [/\bpanuntunan sa ating pagsamba\b/gi, 'tamang paraan ng pagsamba'],
+    [/\bmapagbigay na sakripisyo\b/gi, 'masaganang handog'],
+    [/\bkatahimikan at pagreretiro\b/gi, 'katahimikan at pag-iisa'],
+    [/\bang (?:kanyang|kaniyang) mga pandama ay naka-lock\b/gi,
       'hindi niya namamalayan ang paligid habang natutulog'],
-    [/\\bpag-access ng Diyos sa (?:kanyang|kaniyang) isip\\b/gi,
+    [/\bpag-access ng Diyos sa (?:kanyang|kaniyang) isip\b/gi,
       'pakikipag-ugnayan ng Diyos sa kanyang isip'],
   ];
   const output = rules.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), translated);
-  return output.replace(/\\s+([,;:.!?])/g, '$1').replace(/[ \\t]{2,}/g, ' ').trim();
+  return output.replace(/\s+([,;:.!?])/g, '$1').replace(/[ \t]{2,}/g, ' ').trim();
 }
 
 function textFingerprint(text: string): string {
