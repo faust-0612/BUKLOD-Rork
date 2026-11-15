@@ -69,3 +69,20 @@ test('LIFE includes authored question and scripture references', () => {
   assert.match(screen, /BUKLOD_LIFE_GOSPEL_REFERENCES\[index\]/);
   assert.match(screen, /BUKLOD_LIFE_QUESTION_REFERENCES\[/);
 });
+
+test('Private LIFE continuation restores an explicit saved step and selected question', () => {
+  const progress = source('src/lib/buklodLifePrivateProgress.ts');
+  const impact = source('src/app/life/impact.tsx');
+  const topic = source('src/app/life/topic.tsx');
+  assert.match(progress, /questionIndex\?: number/);
+  assert.match(progress, /Number\.isInteger\(input\.questionIndex\)/);
+  assert.match(progress, /input\.topic !== 'questions'/);
+  assert.match(progress, /p\.topic === 'questions'/);
+  assert.match(impact, /resume: saved\.step/);
+  assert.match(impact, /questionIndex: String\(saved\.questionIndex\)/);
+  assert.match(topic, /params\.resume === 'next-steps'/);
+  assert.match(topic, /setGospelYesOpen\(false\)/);
+  assert.match(topic, /params\.questionIndex !== undefined/);
+  assert.match(topic, /step: 'questions', questionIndex: selectedQuestionIndex/);
+  assert.match(topic, /'I-save ang tanong na ito'/);
+});
