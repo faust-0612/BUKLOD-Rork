@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Build an Expo Router BUKLOD FIS finance information workspace without a second ledger, duplicated money logic or unapproved cash activation",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Inspected GitHub main 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742 on 2026-11-15. This is source identity, not proof of live Expo Hosting or Android production runtime. No production deployment performed.",
+  "chosenApproach": "System-admin-only Expo web/native route; read-only view over canonical Finance V3 and existing withdrawal RPC. Navigate to existing authority for mutations.",
+  "riskAreas": [
+    "finances",
+    "authentication",
+    "month-finalization",
+    "payouts",
+    "admin-nav",
+    "web-export",
+    "weak-network"
+  ],
+  "preserveBehaviors": [
+    "No new tables, allocation math, authentication pathways or payout switches",
+    "Member QMP/Points remain non-cash without finalized funded settlement",
+    "Server-side RLS/RPC authority unchanged; no payout destination export",
+    "No change to BUKLOD Main ads, video, Community, Connect, health, Kingdom or native SDK/runtime"
+  ],
+  "acceptanceChecks": [
+    "FIS route guarded by system_admin",
+    "Manila month selection and refresh reject stale RPC results",
+    "Ledger reconciled vs provisional separated",
+    "No unfinalized cash values shown",
+    "Scope allocations only after finalization",
+    "Payout queue errors fail closed",
+    "Export CSV formula-injection guarded and capped",
+    "TypeScript and Expo web export pass on exact PR SHA before any publish"
+  ],
+  "regressionTests": [
+    "__tests__/buklodFisReadModel.test.ts"
+  ],
+  "allowedPaths": [
+    "src/app/admin/fis.tsx",
+    "src/lib/buklodFisReadModel.ts",
+    "src/app/admin/index.tsx",
+    "__tests__/buklodFisReadModel.test.ts",
+    ".buklod/scopes/buklod-fis-expo-20261115.json"
+  ],
+  "alternativeApproaches": [
+    "Parallel FIS database rejected: conflicts with Finance V3 source of truth",
+    "Separate Expo app with duplicate Supabase auth rejected due to cost, repeated login and account isolation",
+    "Auto-finalization/withdrawal activation rejected without evidence and independent server gates"
+  ]
+}
