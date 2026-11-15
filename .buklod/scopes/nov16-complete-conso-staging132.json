@@ -21,7 +21,9 @@
     "child-safety",
     "scripture-accuracy",
     "offline-progress",
-    "release-identity"
+    "release-identity",
+    "connect",
+    "classroom-quiz"
   ],
   "preserveBehaviors": [
     "144 complete Bible and children's stories, moral/spiritual lessons, progress, four questions, new StoryNarrator and optional Google ML Kit translation.",
