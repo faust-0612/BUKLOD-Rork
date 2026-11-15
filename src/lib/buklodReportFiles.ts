@@ -126,7 +126,7 @@ export async function pickAndAnalyzeReportFile(
   const asset = picked.assets[0];
   const filename = asset.name || 'report-import';
   const mimeType = asset.mimeType || '';
-  if (selection === 'photo' && !mimeType.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(filename)) {
+  if (selection === 'photo' && !['image/jpeg','image/png','image/webp'].includes(mimeType) && !/\.(jpe?g|png|webp)$/i.test(filename)) {
     throw new Error('Choose a JPG, PNG, or WebP photo.');
   }
   const response = await fetch(asset.uri);
@@ -149,6 +149,10 @@ export async function pickAndAnalyzeReportFile(
     return invokeImport({ scopeId, filename, mimeType, extractedText: text });
   }
 
+  if (mimeType.startsWith('image/') && !['image/jpeg','image/png','image/webp'].includes(mimeType)
+      && !/\.(jpe?g|png|webp)$/i.test(lower)) {
+    throw new Error('Only JPG, PNG, and WebP photos are supported.');
+  }
   if (mimeType.includes('pdf') || lower.endsWith('.pdf') || mimeType.startsWith('image/')) {
     const proposal = await invokeImport({
       scopeId,
@@ -175,7 +179,7 @@ export async function pickReportEvidencePhoto(): Promise<ReportPhotoAsset | null
   const asset = picked.assets[0];
   const filename = asset.name || 'report-photo.jpg';
   const mimeType = asset.mimeType || '';
-  if (!mimeType.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(filename)) {
+  if (!['image/jpeg','image/png','image/webp'].includes(mimeType) && !/\.(jpe?g|png|webp)$/i.test(filename)) {
     throw new Error('Select a JPG, PNG or WebP photo.');
   }
   if (typeof asset.size === 'number' && asset.size > 12 * 1024 * 1024) {
@@ -199,7 +203,7 @@ export async function uploadReportEvidencePhoto(args: {
     ? 'image/png' as const
     : args.asset.mimeType === 'image/webp' || /\.webp$/.test(name)
       ? 'image/webp' as const : 'image/jpeg' as const;
-  if (!/\.(jpe?g|png|webp)$/.test(name) && !args.asset.mimeType.startsWith('image/')) {
+  if (!/\.(jpe?g|png|webp)$/.test(name) && !['image/jpeg','image/png','image/webp'].includes(args.asset.mimeType)) {
     throw new Error('Only JPG, PNG, and WebP evidence photos are supported.');
   }
   const response = await fetch(args.asset.uri);
@@ -213,7 +217,7 @@ export async function uploadReportEvidencePhoto(args: {
   const { error } = await supabase.storage.from('buklod-report-evidence').upload(path, buffer, {
     contentType: detectedMime,
     upsert: false,
-    cacheControl: 'private,max-age=0',
+    cacheControl: '0',
   });
   if (error) throw error;
   return {
