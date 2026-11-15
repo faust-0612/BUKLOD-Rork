@@ -17,7 +17,10 @@
     "cluster-faith",
     "Bible reader commentary",
     "language fallback",
-    "native-ota-compatibility"
+    "native-ota-compatibility",
+    "android-export",
+    "translation-branding",
+    "release-hold"
   ],
   "preserveBehaviors": [
     "My Bible verse text, chapter selection and original English Henry remain accurate",
@@ -33,12 +36,16 @@
     "tests/bible-reader-safearea-commentary.test.cjs",
     "tests/bible-study-sources.test.cjs",
     "tests/bible-radio-visual.test.cjs",
-    ".buklod/scopes/matthew-henry-verse-language-20261116.json"
+    ".buklod/scopes/matthew-henry-verse-language-20261116.json",
+    ".github/workflows/buklod-henry-preflight-20261116.yml",
+    "tests/bible-henry-ota-readiness-20261116.test.cjs",
+    "release/bible-matthew-henry-staging-132-20261116.json"
   ],
   "regressionTests": [
     "tests/bible-reader-safearea-commentary.test.cjs",
     "tests/bible-study-sources.test.cjs",
-    "tests/bible-radio-visual.test.cjs"
+    "tests/bible-radio-visual.test.cjs",
+    "tests/bible-henry-ota-readiness-20261116.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -49,7 +56,8 @@
       ],
       "tests": [
         "tests/bible-study-sources.test.cjs",
-        "tests/bible-reader-safearea-commentary.test.cjs"
+        "tests/bible-reader-safearea-commentary.test.cjs",
+        "tests/bible-henry-ota-readiness-20261116.test.cjs"
       ]
     },
     {
@@ -60,7 +68,8 @@
       ],
       "tests": [
         "tests/bible-reader-safearea-commentary.test.cjs",
-        "tests/bible-radio-visual.test.cjs"
+        "tests/bible-radio-visual.test.cjs",
+        "tests/bible-henry-ota-readiness-20261116.test.cjs"
       ]
     }
   ],
@@ -71,6 +80,7 @@
     "No incorrect direct verse attribution in contextual gaps",
     "Google Translate official attribution and branding approved for translated displays",
     "Source availability and native module verified in actual staging APK, else English fallback",
-    "No OTA publication in this draft PR"
+    "No OTA publication in this draft PR",
+    "Release manifest stays fail-closed until exact Android target source and native translation credentials/branding verified"
   ]
 }

@@ -1,0 +1,70 @@
+{
+  "contractVersion": 1,
+  "objective": "Stage the Matthew Henry source-accurate passage + language-sensitive commentary update for a guarded Android-only staging-user OTA. Preparation does NOT publish.",
+  "status": "PREPARED_QA_HOLD",
+  "sourceBranch": "dev/matthew-henry-verse-language-20261116",
+  "originalDevCommit": "7da86e73f5acf88e2b5e497504132c0b2ad2b58c",
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "environment": "preview",
+    "packageId": "org.mzbministry.buklod.staging",
+    "runtimeVersion": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8"
+  },
+  "exclude": [
+    "production",
+    "web",
+    "Play Store",
+    "native build",
+    "database migrations"
+  ],
+  "sourceFiles": [
+    "src/app/bible/read.tsx",
+    "src/lib/buklodBibleStudy.ts",
+    "src/lib/buklodHenryTranslation.ts"
+  ],
+  "focusedTests": [
+    "tests/bible-study-sources.test.cjs",
+    "tests/bible-reader-safearea-commentary.test.cjs",
+    "tests/bible-radio-visual.test.cjs",
+    "tests/bible-henry-ota-readiness-20261116.test.cjs"
+  ],
+  "mandatoryGates": {
+    "sourceCoverage": "passage mapping direct vs context + exact verse IDs must pass",
+    "translationBranding": "HOLD: official Google attribution badge alongside machine translation + explicit Translate with Google action absent in current UI",
+    "translationDisclaimer": "HOLD: Google translation warranty disclaimer and application help metadata required",
+    "androidCompile": "NO-PUBLISH QA workflow must compile exact branch head",
+    "installedNative": "HOLD: signed staging APK module inventory or real device proof absent; English fallback proven in source only",
+    "expoIdentity": "HOLD: prepublish Expo channel/update manifest and production nonmutation verification require authenticated Expo reads",
+    "frozenRC": "HOLD: source SHA freeze only after all mandatory gates pass"
+  },
+  "releaseRules": {
+    "readyForOta": false,
+    "otaPublished": false,
+    "allowPromotionToProduction": false,
+    "allowNativeRebuild": false,
+    "skipPhysicalDeviceVerification": true
+  },
+  "existingEvidence": [
+    {
+      "name": "Engineering Accountability",
+      "runId": 43735509218,
+      "result": "success",
+      "sourceSha": "7da86e73f5acf88e2b5e497504132c0b2ad2b58c"
+    },
+    {
+      "name": "BUKLOD Performance R1 QA",
+      "runId": 43735509088,
+      "result": "success",
+      "sourceSha": "7da86e73f5acf88e2b5e497504132c0b2ad2b58c"
+    },
+    {
+      "name": "BUKLOD Main - Report Door and Legacy Integration PR QA",
+      "runId": 43735509174,
+      "result": "success",
+      "sourceSha": "7da86e73f5acf88e2b5e497504132c0b2ad2b58c"
+    }
+  ],
+  "goNoGo": "NO-GO until source compliance, native compatibility, exact Android compile and Expo preflight are verified."
+}
