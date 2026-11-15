@@ -2,7 +2,7 @@
 
 Based on main SHA 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742; DEV only pending RC and OTA gates.
 
-- Referral suggestions expose one canonical 10-character code; old 8-character codes remain input aliases. Authenticated sign-up attribution refuses another already locked referrer and requires a confirmed optional referral before signup.
+- Referral suggestions expose the canonical 10-character code for Finance-linked accounts. Older accounts without Finance identity retain discoverable 8-character legacy aliases, clearly marked financially pending. Old aliases remain accepted input and cannot be treated as paid referrals. Authenticated sign-up attribution refuses another already locked referrer and requires a confirmed optional referral before signup.
 - Historical referrals with trustworthy source attribution and BOTH valid identities are copied as PENDING only, never qualified or paid. The existing BUKLOD Official ban is enforced; it must not be bypassed.
 - Organization My Cluster is scoped; other Organizations' Cluster memberships remain visible as a separate count. Functional roles are distinct from administrator permission.
 - Eligible members can voluntarily choose active Organization/Cluster Community destinations. Server checks their membership, serializes updates, and honors configured switch locks. This never creates cash.

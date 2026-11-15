@@ -10,11 +10,12 @@ BEGIN
  IF length(v_q)<2 OR length(v_q)>80 THEN RETURN jsonb_build_object('ok',true,'query',v_q,'items','[]'::jsonb); END IF;
  SELECT coalesce(jsonb_agg(jsonb_build_object('username',q.username,'label',q.label,
    'referral_code',q.referral_code,'canonical_referral_code',q.referral_code,
-   'match_kind',q.match_kind) ORDER BY q.score,q.label),'[]'::jsonb)
+   'match_kind',q.match_kind,'identity_ready',q.identity_ready) ORDER BY q.score,q.label),'[]'::jsonb)
  INTO v_items FROM (
   SELECT p.username,
    coalesce(nullif(trim(p.username),''),nullif(trim(p.full_name),''),'BUKLOD member') label,
-   c.referral_code,
+   coalesce(c.referral_code,l.referral_code) referral_code,
+   (c.referral_code IS NOT NULL) identity_ready,
    CASE WHEN upper(c.referral_code)=v_code OR upper(coalesce(l.referral_code,''))=v_code THEN 'code'
      WHEN lower(coalesce(p.username,''))=v_q THEN 'username_exact'
      WHEN left(lower(coalesce(p.username,'')),length(v_q))=v_q THEN 'username_prefix'
@@ -23,11 +24,12 @@ BEGIN
      WHEN lower(coalesce(p.username,''))=v_q THEN 1
      WHEN left(lower(coalesce(p.username,'')),length(v_q))=v_q THEN 2 ELSE 3 END score
   FROM public.profiles p
-  JOIN private.buklod_pf_persons f ON f.current_user_id=p.id
-  JOIN public.buklod_referral_codes_v2 c ON c.person_id=f.person_id AND c.is_active
+  LEFT JOIN private.buklod_pf_persons f ON f.current_user_id=p.id
+  LEFT JOIN public.buklod_referral_codes_v2 c ON c.person_id=f.person_id AND c.is_active
   LEFT JOIN public.buklod_user_referral_codes l ON l.user_id=p.id
-  WHERE p.is_active=true AND p.user_deactivated_at IS NULL AND
-    (upper(c.referral_code)=v_code OR upper(coalesce(l.referral_code,''))=v_code
+  WHERE p.is_active=true AND p.user_deactivated_at IS NULL
+    AND (c.referral_code IS NOT NULL OR l.referral_code IS NOT NULL)
+    AND (upper(c.referral_code)=v_code OR upper(coalesce(l.referral_code,''))=v_code
       OR lower(coalesce(p.username,''))=v_q
       OR left(lower(coalesce(p.username,'')),length(v_q))=v_q
       OR position(v_q IN lower(coalesce(p.full_name,'')))>0)

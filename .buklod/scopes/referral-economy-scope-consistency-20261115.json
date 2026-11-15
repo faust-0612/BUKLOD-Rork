@@ -23,7 +23,8 @@
     "Official member referral financial restrictions remain enforced on client and backend.",
     "30% QMP user-pool points unchanged, no AdMob source or cash ledger mutation.",
     "Cluster membership remains scope-specific, not silently transferred between Organizations.",
-    "System Admin, data permissions, unrelated ads/media/PTT and runtime 1.3.2 unchanged."
+    "System Admin, data permissions, unrelated ads/media/PTT and runtime 1.3.2 unchanged.",
+    "Legacy-only active profiles without Finance mapping remain discoverable, but historical attribution alone is never withdrawable."
   ],
   "allowedPaths": [
     "src/lib/buklodRewards.ts",
@@ -54,7 +55,8 @@
     "Organization shows zero in-scope Cluster while permitting access to five existing Clusters elsewhere.",
     "No Community designation selected unless user explicitly chooses eligible membership; switch lock enforced.",
     "SQL contract plus auth/finance/scope JS tests and Engineering Accountability pass.",
-    "All payouts/finance flags stay OFF, staging before any production release."
+    "All payouts/finance flags stay OFF, staging before any production release.",
+    "Unlinked older accounts remain discoverable with an explicit pending-identity message and can record a historical-only attribution without making up money."
   ],
   "lockedFeatureChanges": [
     {

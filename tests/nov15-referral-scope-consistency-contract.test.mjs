@@ -10,6 +10,8 @@ test('canonical referral suggestion supports historical aliases', () => {
   assert.match(migration, /c\.referral_code/);
   assert.match(migration, /upper\(coalesce\(l\.referral_code/);
   assert.match(src('src/lib/buklodRewards.ts'), /item\.canonical_referral_code \?\? item\.referral_code/);
+  assert.match(migration, /coalesce\(c\.referral_code,l\.referral_code\)/);
+  assert.match(migration, /identity_ready/);
 });
 
 test('signup locks only verified referrer and rejects ambiguous selection', () => {

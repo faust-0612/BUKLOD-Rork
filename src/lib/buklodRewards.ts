@@ -428,6 +428,7 @@ export type ReferralSuggestItem = {
   label: string;
   referral_code: string;
   match_kind: string;
+  identity_ready?: boolean;
 };
 
 export type ReferralResolveResult = {
@@ -499,6 +500,7 @@ export async function suggestReferralTargets(
         label,
         referral_code: code,
         match_kind: String(item.match_kind ?? ''),
+        identity_ready: item.identity_ready !== false,
       } satisfies ReferralSuggestItem;
     })
     .filter(Boolean) as ReferralSuggestItem[];
@@ -557,7 +559,7 @@ export async function recordReferral(
   if (!resolved.found) throw new Error(resolved.message || 'Referral not found.');
   const legacyCode = String(resolved.referral_code ?? '').trim();
   const canonicalCode = String(resolved.canonical_referral_code ?? '').trim();
-  if (!legacyCode || !canonicalCode) {
+  if (!legacyCode) {
     throw new Error('Referral identity is not ready. Select a confirmed BUKLOD account or invite code.');
   }
   // The server verifies that a retry belongs to the SAME referrer.
@@ -566,6 +568,11 @@ export async function recordReferral(
   );
   if (error) throw error;
   if (data?.ok !== true) throw new Error('Referral attribution could not be verified.');
+  if (!canonicalCode) {
+    // Preserve a genuine historical invitation when an older member has not yet
+    // completed Finance identity linking. Never invent a monetary entitlement.
+    throw new Error('Invitation recorded for historical tracking. Financial linking is pending until the inviter verifies their account.');
+  }
 
   if (canonicalCode) {
     // Durable pending attribution: if the edge function or network fails,

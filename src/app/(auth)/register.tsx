@@ -397,7 +397,9 @@ export default function RegisterScreen() {
             .catch(() => undefined);
         }
         referralLinkNote =
-          /already recorded/i.test(message)
+          /historical tracking/i.test(message)
+            ? ' Your invitation was saved as historical. Financial qualification is pending until the inviter verifies their account.'
+            : /already recorded/i.test(message)
             ? ' A referral is already recorded for this account.'
             : /not authenticated|jwt|session/i.test(message)
               ? ' Your account was created, but referral linking is pending because your login session was not ready.'
@@ -1464,7 +1466,7 @@ useEffect(() => {
                     {title}
                   </Text>
                   <Text style={styles.referralSuggestMeta}>
-                    Invite code {item.referral_code}
+                    Invite code {item.referral_code}{item.identity_ready === false ? ' · financial linking pending' : ''}
                   </Text>
                 </Pressable>
               );
