@@ -1,4 +1,5 @@
 /** Original BUKLOD children's stories, bundled for immediate offline access. No child PII. */
+import { EXTRA_BIBLE_STORIES } from './bibleCurriculum';
 export type StoryLanguage = 'tl' | 'en';
 export type StoryCategory = 'Bible' | 'Values' | 'Filipino' | 'Bedtime';
 export type StoryLocalized = { tl: string; en: string };
@@ -731,6 +732,7 @@ export const BUNDLED_CHILDREN_STORIES: ChildrenStory[] = [
     "version": 1,
     "source": "bundled"
   }
+  ...EXTRA_BIBLE_STORIES,
 ];
 export function localize(value: StoryLocalized, language: StoryLanguage) { return value[language]; }
 export function findBundledStory(id: string) { return BUNDLED_CHILDREN_STORIES.find(story=>story.id===id); }
