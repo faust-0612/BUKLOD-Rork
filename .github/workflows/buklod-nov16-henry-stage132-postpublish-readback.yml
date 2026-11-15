@@ -1,0 +1,114 @@
+# Read-only independent verification of the ALREADY PUBLISHED staging Android OTA.
+# Never rerun the release publisher or issue any update/build command.
+name: BUKLOD Nov16 Henry Staging Android Readback ONLY
+on:
+  push:
+    branches: [audit/nov16-henry-conso-stage132-postpublish-readback]
+    paths:
+      - '.github/workflows/buklod-nov16-henry-stage132-postpublish-readback.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-nov16-henry-conso-postpublish-readback
+  cancel-in-progress: true
+jobs:
+  independent-eas-readback:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/audit/nov16-henry-conso-stage132-postpublish-readback' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Prepare read-only Expo CLI; parent must equal published release SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "0dc4fd0df8198bdbd3f37c93c181a3fae46c6cd2"
+          test -n "$EXPO_TOKEN"
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Fetch current stage, production channel and last staging Android group - READ ONLY
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/buklod-henry-stage132-readback
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/buklod-henry-stage132-readback/stage-channel.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/buklod-henry-stage132-readback/prod-channel.json
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 12 --json --non-interactive > /tmp/buklod-henry-stage132-readback/stage-updates.json
+          node <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const path='/tmp/buklod-henry-stage132-readback/stage-updates.json';
+          const j=JSON.parse(fs.readFileSync(path,'utf8'));
+          const list=j.currentPage??j;
+          assert.ok(Array.isArray(list)&&list[0]?.group,'No current staging update group');
+          const latest=list[0],msg=String(latest.message??'');
+          assert.ok(msg.includes('BUKLOD_NOV16_HENRY_CONSO_STAGE132_0dc4fd0df8198bdbd3f37c93c181a3fae46c6cd2'),'Latest staging update is NOT the new consolidated OTA');
+          assert.equal(latest.runtimeVersion,'1.3.2');
+          fs.writeFileSync('/tmp/buklod-henry-stage132-readback/group',latest.group);
+          NODE
+          GROUP="$(cat /tmp/buklod-henry-stage132-readback/group)"
+          # eas-cli 27.9.0 update:view does NOT accept --non-interactive; --json is sufficient.
+          npx --yes eas-cli@27.9.0 update:view "$GROUP" --json > /tmp/buklod-henry-stage132-readback/update-view.json
+      - name: Verify exact Android update:view, two live manifests, production nonmutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {manifest,verifyChannels,verifyUpdate} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const prefix='/tmp/buklod-henry-stage132-readback/';
+          const read=name=>JSON.parse(fs.readFileSync(prefix+name,'utf8'));
+          const releaseSha='0dc4fd0df8198bdbd3f37c93c181a3fae46c6cd2';
+          const mapping=verifyChannels(read('stage-channel.json'),read('prod-channel.json'));
+          const update=verifyUpdate(read('update-view.json'),releaseSha,mapping.name);
+          const stage=await manifest('staging-user'),prod=await manifest('production');
+          assert.equal(stage.id.toLowerCase(),update.id.toLowerCase(),'Live staging manifest must match exact published update');
+          assert.equal(stage.runtimeVersion,'1.3.2');
+          assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(stage.extra?.expoClient?.extra?.appEnvironment,'staging');
+          assert.equal(prod.id,'01a1dff8-7563-790b-a714-22c316f56590','Production changed during staging publication');
+          assert.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          assert.equal(prod.runtimeVersion,'1.3.2');
+          const result={
+            status:'VERIFIED_COMPLETE_STAGING_ANDROID_OTA',
+            publishedSource:'029b010cbb30341b8d09c4f7b9a1f85e2975591a',
+            releaseMarker:releaseSha,
+            updateId:update.id,
+            groupId:update.group,
+            channel:'staging-user',
+            branch:update.branch,
+            platform:'android',
+            runtimeVersion:'1.3.2',
+            package:'org.mzbministry.buklod.staging',
+            verifiedSignedApkBuild:'bc4be208-bfb0-42f3-95cb-358353d0600f',
+            productionUnchangedId:prod.id,
+            physicalDeviceAcceptance:'SKIPPED BY OWNER',
+            stagingAndroidManifestVerified:true,
+            noProductionPublication:true
+          };
+          fs.writeFileSync(prefix+'verified-receipt.json',JSON.stringify(result,null,2)+'\n');
+          console.log('BUKLOD_POSTPUBLISH_READBACK_VERIFIED',JSON.stringify(result));
+          NODE
+      - name: Retain only verified nonsensitive readback receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov16-henry-conso-stage132-independent-readback
+          path: /tmp/buklod-henry-stage132-readback/verified-receipt.json
+          retention-days: 30
+          if-no-files-found: ignore
