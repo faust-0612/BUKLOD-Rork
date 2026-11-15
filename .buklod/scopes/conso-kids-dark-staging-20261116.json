@@ -1,0 +1,57 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/conso-kids-dark-staging-20261116.json",
+  "objective": "Consolidated staging OTA: extend continuous offline bilingual Sunday School to 32 stories while correcting Daily Reading and Notifications dark mode text; preserve verified Nov15 staged Wall/Connect/Profile/LIFE/Kingdom/AdMob and all native 1.3.2 behavior.",
+  "baseRef": "ea9a72c687c0885ea6a3c14a883503204f83dad4",
+  "productionBaselineEvidence": "Staging-user Android OTA verified in GitHub Actions 43725915006 source ea9a72c687c0885ea6a3c14a883503204f83dad4, EAS 01a1dfb1-578c-7e47-8547-ff3065c6792a, runtime 1.3.2, package org.mzbministry.buklod.staging. Production 69ff92b22b13e26490a93f685ebc89d28e3d6cbf is independent and unchanged.",
+  "chosenApproach": "Edit only story content, screen-level semantic colors and safe gated staging workflow from latest verified staging source; retain existing narrative playback and backend, no native rebuild; run exact SHA CI/Android export before EAS publish.",
+  "selectionRationale": "Dark backgrounds became unreadable because legacy text colors remained static; fix at owning screens instead of changing already contrast-tested global palettes. Expand offline stories without AI/network/child account services.",
+  "riskAreas": [
+    "offline-children",
+    "bilingual-TTS",
+    "theme-contrast",
+    "notification-deeplinks",
+    "staging-release",
+    "ads-preservation",
+    "production-isolation",
+    "runtime-identity"
+  ],
+  "preserveBehaviors": [
+    "All original twelve story IDs, existing progress, favorites and continuous voice playback remain unchanged.",
+    "No ads, child accounts or child identifiers in Children Story World.",
+    "No native package, build, Expo runtime, EAS project, channel, backend, finance or authentication modifications.",
+    "Preserve Show Faith, retired IGPAT, Wall/Marites, AdMob impression policy, HIBLA Connect, Profile rank/personal posts, Kingdom, LIFE and KL.",
+    "Production and Play untouched; staging OTA requires exact approved RC and independently verified EAS manifest readback."
+  ],
+  "acceptanceChecks": [
+    "32 distinct bundled offline bilingual stories with 3 coherent narrative paragraphs per language, references, moral, spiritual lesson, prayer, questions and discussion.",
+    "No static dark foreground on nightPine Card in Daily Reading or Notification Center.",
+    "Narration still completes each full story and cancels when leaving/backgrounded; no child ads.",
+    "Tests conso-kids-dark-20261116, Jest story catalog and SundaySchool, Android tsc and expo export pass.",
+    "Exact source based on latest Nov15 staging, no native diffs; EAS signed APK/channel and unchanged production checked."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/conso-kids-dark-staging-20261116.json",
+    "src/app/bible/index.tsx",
+    "src/app/notifications/index.tsx",
+    "src/app/children-stories/index.tsx",
+    "src/features/childrenStories/catalog.ts",
+    "src/features/childrenStories/sundaySchool.ts",
+    "src/features/childrenStories/catalog.test.ts",
+    "src/features/childrenStories/sundaySchool.test.ts",
+    "src/features/childrenStories/bibleCurriculum.ts",
+    "src/features/childrenStories/bibleCurriculumFactory.ts",
+    "src/features/childrenStories/bibleCurriculumOld.ts",
+    "src/features/childrenStories/bibleCurriculumNew.ts",
+    "tests/conso-kids-dark-20261116.test.mjs",
+    ".github/workflows/buklod-conso-kids-dark-staging-20261116.yml"
+  ],
+  "regressionTests": [
+    "tests/conso-kids-dark-20261116.test.mjs",
+    "tests/children-stories-contract.test.mjs",
+    "tests/children-stories-navigation-ad-safety.test.mjs",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs"
+  ],
+  "releaseMode": "isolated-android-staging-ota",
+  "releaseStatus": "DEV changes. Stage publish only after exact SHA checks, Android export, signed APK, EAS channel/current manifest guards and independent receipt readback."
+}
