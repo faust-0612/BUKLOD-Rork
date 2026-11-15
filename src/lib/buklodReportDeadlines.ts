@@ -12,6 +12,7 @@ export type PublishReportDeadlineInput = {
   opensAt?: string | null;
   closesAt?: string | null;
   title?: string | null;
+  cadence?: 'ONE_TIME' | 'WEEKLY' | 'MONTHLY';
 };
 
 export type PublishReportDeadlineResult = {
@@ -29,6 +30,8 @@ export type PublishReportDeadlineResult = {
   assignedCount: number;
   notificationCount: number;
   membershipSnapshot: boolean;
+  cadence: 'ONE_TIME' | 'WEEKLY' | 'MONTHLY';
+  recurringEnabled: boolean;
 };
 
 export type ReportDeadlineAudiencePreview = {
@@ -80,13 +83,14 @@ export async function publishReportDeadline(
   input: PublishReportDeadlineInput
 ): Promise<PublishReportDeadlineResult> {
   const { data, error } = await (supabase as any).rpc(
-    'buklod_report_publish_deadline_v1',
+    'buklod_report_publish_collection_v2',
     {
       p_definition_id: input.definitionId,
       p_due_at: input.dueAt,
       p_opens_at: input.opensAt ?? null,
       p_closes_at: input.closesAt ?? null,
       p_title: input.title ?? null,
+      p_cadence: input.cadence ?? 'ONE_TIME',
     }
   );
 
@@ -111,6 +115,8 @@ export async function publishReportDeadline(
     assignedCount: Number(raw.assigned_count ?? 0),
     notificationCount: Number(raw.notification_count ?? 0),
     membershipSnapshot: Boolean(raw.membership_snapshot),
+    cadence: (raw.cadence ?? input.cadence ?? 'ONE_TIME') as 'ONE_TIME' | 'WEEKLY' | 'MONTHLY',
+    recurringEnabled: Boolean(raw.auto_collection_enabled),
   };
 }
 
@@ -175,6 +181,13 @@ export function parseManilaDateTime(value: string): string {
   if (Number.isNaN(parsed.getTime())) {
     throw new Error('Enter a valid Manila date and time.');
   }
+  const roundTrip = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(parsed);
+  const part = (name: string) => roundTrip.find((row) => row.type === name)?.value ?? '';
+  const stable = `${part('year')}-${part('month')}-${part('day')} ${part('hour')}:${part('minute')}`;
+  if (stable !== normalized) throw new Error('The Manila date or time is not valid.');
   return parsed.toISOString();
 }
 

@@ -50,6 +50,64 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
+type RangeKind = 'WEEK' | 'MONTH' | 'QUARTER' | 'SIX_MONTHS' | 'YEAR';
+
+function manilaDay(iso: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date(iso));
+  const part = (key: string) => parts.find((row) => row.type === key)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function filterConsolidationRange(data: ConsolidatedReportData, kind: RangeKind): ConsolidatedReportData {
+  const now = manilaDay(new Date().toISOString());
+  const year = Number(now.slice(0, 4));
+  const month = Number(now.slice(5, 7));
+  let firstMonth = 1;
+  if (kind === 'MONTH') firstMonth = month;
+  if (kind === 'QUARTER') firstMonth = Math.floor((month - 1) / 3) * 3 + 1;
+  let firstYear = year;
+  if (kind === 'SIX_MONTHS') {
+    firstMonth = month - 5;
+    if (firstMonth < 1) { firstMonth += 12; firstYear -= 1; }
+  }
+  let beginning = `${firstYear}-${String(firstMonth).padStart(2, '0')}-01`;
+  let ending = `${year}-12-31`;
+  if (kind === 'WEEK') {
+    const monday = new Date(`${now}T12:00:00Z`);
+    monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7);
+    beginning = monday.toISOString().slice(0, 10);
+    monday.setUTCDate(monday.getUTCDate() + 6);
+    ending = monday.toISOString().slice(0, 10);
+  } else if (kind === 'MONTH' || kind === 'SIX_MONTHS') {
+    ending = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  } else if (kind === 'QUARTER') {
+    const quarterLastMonth = Math.floor((month - 1) / 3) * 3 + 3;
+    ending = new Date(Date.UTC(year, quarterLastMonth, 0)).toISOString().slice(0, 10);
+  }
+  // Open periods with deadlines later this week/month must still be visible now.
+  const periods = data.periods.filter((period) =>
+    period.due_at && manilaDay(period.due_at) >= beginning && manilaDay(period.due_at) <= ending
+  );
+  const included = new Set(periods.map((period) => period.id));
+  return {
+    definition: data.definition,
+    periods,
+    submissions: data.submissions.filter((submission) => included.has(submission.period_id)),
+  };
+}
+
+const PEOPLE_SUMMARY_FIELDS = [
+  ['worship_total', 'Worship attendance'],
+  ['adults', 'Adults'],
+  ['youth', 'Youth'],
+  ['children', 'Children'],
+  ['workers_present', 'Workers present'],
+  ['visitors', 'Visitors / First timers'],
+  ['bible_study_participants', 'Bible study participants'],
+] as const;
+
 export default function BuklodReportConsolidatedScreen() {
   const params = useLocalSearchParams();
   const scopeId = firstParam(params.scopeId ?? params.scope_id ?? params.organization);
@@ -91,6 +149,10 @@ export default function BuklodReportConsolidatedScreen() {
   const selectPeriod = async (periodId: string) => {
     if (!definitionId || periodId === selectedPeriodId) return;
     setSelectedPeriodId(periodId);
+    if (periodId.startsWith('RANGE_') && allData) {
+      setViewData(filterConsolidationRange(allData, periodId.slice(6) as RangeKind));
+      return;
+    }
     if (!periodId) {
       setViewData(allData);
       return;
@@ -115,6 +177,35 @@ export default function BuklodReportConsolidatedScreen() {
       { assigned: 0, submitted: 0 }
     );
   }, [viewData?.periods]);
+
+  const photoSummary = useMemo(() => {
+    const submissions = viewData?.submissions ?? [];
+    const photos = submissions.reduce((sum, item) => {
+      const images = objectValue(item.content).evidence_photos;
+      return sum + (Array.isArray(images) ? images.length : 0);
+    }, 0);
+    const reportsWithPhotos = submissions.filter((item) => {
+      const images = objectValue(item.content).evidence_photos;
+      return Array.isArray(images) && images.length > 0;
+    }).length;
+    const photoScansConfirmed = submissions.filter((item) => {
+      const metadata = objectValue(objectValue(item.content).import_metadata);
+      return metadata.source_type === 'PDF_PHOTO' && !!metadata.confirmed_at;
+    }).length;
+    const peopleTotals = PEOPLE_SUMMARY_FIELDS.map(([key, label]) => {
+      let total = 0, samples = 0;
+      for (const submission of submissions) {
+        const raw = objectValue(objectValue(submission.content).people)[key];
+        const str = String(raw ?? '').trim();
+        if (/^\d{1,9}$/.test(str)) {
+          total += Number(str);
+          samples++;
+        }
+      }
+      return { key, label, total: samples ? total : null, samples };
+    });
+    return { photos, reportsWithPhotos, photoScansConfirmed, peopleTotals };
+  }, [viewData?.submissions]);
 
   const doExport = async () => {
     if (!viewData || exporting) return;
@@ -155,12 +246,22 @@ export default function BuklodReportConsolidatedScreen() {
               <Metric label="Submitted" value={totals.submitted} />
               <Metric label="Pending" value={Math.max(0, totals.assigned - totals.submitted)} />
               <Metric label="Rows" value={viewData.submissions.length} />
+              <Metric label="Photos" value={photoSummary.photos} />
             </View>
 
             <View style={styles.card}>
               <Text style={styles.cardTitle}>REPORTING PERIOD</Text>
               <View style={styles.chips}>
                 <Chip label="All periods" selected={!selectedPeriodId} onPress={() => void selectPeriod('')} />
+                {([
+                  ['RANGE_WEEK', 'This week'],
+                  ['RANGE_MONTH', 'This month'],
+                  ['RANGE_QUARTER', 'This quarter'],
+                  ['RANGE_SIX_MONTHS', 'Last 6 months'],
+                  ['RANGE_YEAR', 'This year'],
+                ] as const).map(([value, label]) => (
+                  <Chip key={value} label={label} selected={selectedPeriodId === value} onPress={() => void selectPeriod(value)} />
+                ))}
                 {(allData?.periods ?? []).map((period) => (
                   <Chip
                     key={period.id}
@@ -191,6 +292,28 @@ export default function BuklodReportConsolidatedScreen() {
                   <Text style={styles.periodCount}>{period.submitted_count}/{period.assigned_count}</Text>
                 </View>
               ))}
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>REPORT DATA SUMMARY</Text>
+              <Text style={styles.note}>
+                Figures come only from verified, submitted fields—not guessed from a photo.
+                Missing values stay unknown and are excluded from totals.
+              </Text>
+              <Text style={styles.periodMeta}>
+                {photoSummary.reportsWithPhotos} submitted report(s) with private photos · {photoSummary.photoScansConfirmed} confirmed photo scan(s)
+              </Text>
+              {photoSummary.peopleTotals.filter((row) => row.samples > 0).length ? (
+                photoSummary.peopleTotals.filter((row) => row.samples > 0).map((row) => (
+                  <View key={row.key} style={styles.periodRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.periodTitle}>{row.label}</Text>
+                      <Text style={styles.periodMeta}>Reported by {row.samples} report(s); not unique individuals</Text>
+                    </View>
+                    <Text style={styles.periodCount}>{row.total}</Text>
+                  </View>
+                ))
+              ) : <Text style={styles.note}>No comparable submitted attendance counts in this selection.</Text>}
             </View>
 
             <View style={styles.card}>
