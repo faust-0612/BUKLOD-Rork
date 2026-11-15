@@ -76,9 +76,11 @@ export class StoryNarrator {
 
   private readonly speech: StorySpeechPort;
   private readonly onState: (state: StoryAudioState) => void;
-  constructor(speech: StorySpeechPort, onState: (state: StoryAudioState) => void) {
+  private readonly voiceTimeoutMs: number;
+  constructor(speech: StorySpeechPort, onState: (state: StoryAudioState) => void, voiceTimeoutMs = 7500) {
     this.speech = speech;
     this.onState = onState;
+    this.voiceTimeoutMs = voiceTimeoutMs;
   }
 
   private publish(state: StoryAudioState) {
@@ -91,6 +93,19 @@ export class StoryNarrator {
     // stop/start transition to prevent stale stops from killing new playback.
     this.stopChain = this.stopChain.catch(() => undefined).then(() => this.speech.stop()).catch(() => undefined);
     return this.stopChain;
+  }
+  private async readVoices(): Promise<DeviceVoice[]> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        this.speech.getAvailableVoicesAsync(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Text-to-speech voice lookup timed out')), this.voiceTimeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
   }
   stop(): void {
     ++this.epoch;
@@ -117,7 +132,7 @@ export class StoryNarrator {
 
     let voices: DeviceVoice[];
     try {
-      voices = await this.speech.getAvailableVoicesAsync();
+      voices = await this.readVoices();
     } catch {
       if (this.isCurrent(ticket)) this.publish({ status: 'error', problem: 'engine-unavailable' });
       return;
