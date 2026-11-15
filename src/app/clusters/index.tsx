@@ -255,7 +255,6 @@ let clusterMemory = emptyClusterMemory('');
 
 export default function ClustersScreen() {
   const { user } = useAuth();
-  const { theme } = useBuklodTheme();
   const owner = user?.id ?? '';
   // Do not reset same-user data on token refresh or repeated SIGNED_IN.
   // Account change remounts screen and immediately discards prior-user cache.
@@ -266,6 +265,7 @@ export default function ClustersScreen() {
 }
 
 function ClusterDirectory({ owner }: { owner: string }) {
+  const { theme } = useBuklodTheme();
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
