@@ -11,6 +11,10 @@ test('LIFE remains human-first and includes twelve distinct practical concerns',
   const home = source('src/app/life/index.tsx');
   assert.match(home, /BUKLOD_LIFE_CONCERNS\.map/);
   assert.match(home, /showFaithContent &&/);
+  const tabs = source('src/components/BuklodLifeTabs.tsx');
+  assert.match(tabs, /share:\s*'Ibahagi'/);
+  assert.match(tabs, /share:\s*'Share'/);
+  assert.doesNotMatch(tabs, /Ibahagi si Jesus|Share Jesus/);
   const support = source('src/app/life/support.tsx');
   assert.match(support, /topic\.practical\[lang\]/);
   assert.match(support, /setRequested\(true\)/);

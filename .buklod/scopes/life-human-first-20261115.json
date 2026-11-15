@@ -45,7 +45,8 @@
     "tests/life-human-first-20261115.test.js",
     "docs/life/human-first-20261115.md",
     "tests/life-human-first-auth-security-20261115.test.mjs",
-    "supabase/tests/20261115_life_privacy.sql"
+    "supabase/tests/20261115_life_privacy.sql",
+    "src/components/BuklodLifeTabs.tsx"
   ],
   "regressionTests": [
     "tests/life-human-first-20261115.test.js",

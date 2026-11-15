@@ -21,6 +21,9 @@ describe('BUKLOD LIFE human-first completion privacy contract', () => {
     const topic = source('src/app/life/topic.tsx');
     const guide = source('src/app/life/guide.tsx');
     expect(home).toContain('showFaithContent && (');
+    const tabs = source('src/components/BuklodLifeTabs.tsx');
+    expect(tabs).toContain("'Share'");
+    expect(tabs).not.toContain("'Share Jesus'");
     expect(topic).toContain('showFaithContent && stage >= 1');
     expect(topic).toContain('<Redirect href="/life" />');
     expect(guide).toContain('<BuklodFaithRouteBoundary>');
