@@ -33,6 +33,7 @@ import {
 import {
   colors,
 } from '@/lib/theme';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 /*
  * PATCH_173E_R4_SHARE_SEARCH_SUCCESS
@@ -148,6 +149,7 @@ BuklodPostInternalShare({
   iconOnly = false,
   social = false,
 }: Props) {
+  const { theme } = useBuklodTheme();
   const [
     open,
     setOpen,
@@ -586,15 +588,11 @@ BuklodPostInternalShare({
               ? 17
               : 18
           }
-          color={
-            colors.greenDark
-          }
+          color={social ? theme.accent : colors.greenDark}
         />
 
         <Text
-          style={
-            styles.buttonText
-          }
+          style={[styles.buttonText, social && { color: theme.accent }]}
         >
           {social ? 'Share' : iconOnly ? count : `Share ${count}`}
         </Text>
