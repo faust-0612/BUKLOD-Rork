@@ -10,7 +10,22 @@ export function inStoryOnly(scene: string, language: 'tl' | 'en'): string {
     : /(?:a|the|a listening) (?:child|teacher|class|student)s?\s+(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\b|(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\s+(?:a|the)\s+(?:child|teacher|class|student)s?\b/i;
   // Remove only classroom remarks, retaining later biblical events. The
   // closing quote is part of the sentence, not the whitespace separator.
-  const sentences = scene.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ“])|(?<=[.!?]”)\s+(?=[A-ZÁÉÍÓÚÑ“])/u);
+  // Walk punctuation boundaries without RegExp lookbehind (Android Hermes
+  // compatibility). Keep quoted dialogue intact, including closing marks.
+  const sentences: string[] = [];
+  let start = 0;
+  for (let i = 1; i < scene.length - 1; i++) {
+    if (!/\s/.test(scene[i])) continue;
+    const before = scene[i - 1] === '”' ? scene[i - 2] : scene[i - 1];
+    if (!before || !'.!?'.includes(before)) continue;
+    let next = i + 1;
+    while (next < scene.length && /\s/.test(scene[next])) next++;
+    if (!/[A-ZÁÉÍÓÚÑ“]/u.test(scene[next] ?? '')) continue;
+    sentences.push(scene.slice(start, i).trim());
+    start = next;
+    i = next - 1;
+  }
+  sentences.push(scene.slice(start).trim());
   let result = sentences.filter(sentence => !classroomCue.test(sentence)).join(' ').trim();
   // A two-line exchange can leave an orphaned quotation mark when just the
   // teacher's sentence was removed. Do not expose malformed speech.
