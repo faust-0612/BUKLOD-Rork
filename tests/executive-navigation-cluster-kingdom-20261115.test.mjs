@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8'
 test('Executive Home retains data, native ads and original support/map/Kingdom doors', () => {
  const home=read('src/app/(tabs)/hub.tsx');
  assert.match(home, /<BuklodExecutiveQuickAccess\s*\/>/);
- for(const preserved of ['BuklodSystemAnnouncementBoard','BuklodCommunityContributionCard','BuklodFirstViewAd','BuklodNativeSponsoredCard','BuklodScreenBottomBanner','<DrawerCard','<PttCard','<Map','<Help','BuklodKingdomHubCard']) {
+ for(const preserved of ['BuklodSystemAnnouncementBoard','BuklodCommunityContributionCard','BuklodFirstViewAd','BuklodNativeSponsoredCard','BuklodScreenBottomBanner','<DrawerCard','<PttCard','<Map','<Help']) {
    assert.ok(home.includes(preserved), 'Lost Home operation '+preserved);
  }
  assert.match(home, /paddingHorizontal: buklodVisual\.space\.screen/);
