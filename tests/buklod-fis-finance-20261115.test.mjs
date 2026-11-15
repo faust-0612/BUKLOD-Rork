@@ -5,6 +5,10 @@ import { readFileSync } from 'node:fs';
 const screen = readFileSync('src/app/admin/fis.tsx', 'utf8');
 const model = readFileSync('src/lib/buklodFisReadModel.ts', 'utf8');
 const nav = readFileSync('src/app/admin/index.tsx', 'utf8');
+const appConfig = readFileSync('app.config.js', 'utf8');
+const index = readFileSync('src/app/index.tsx', 'utf8');
+const login = readFileSync('src/app/(auth)/login.tsx', 'utf8');
+const deployWorkflow = readFileSync('.github/workflows/buklod_fis_expo_standalone_release.yml', 'utf8');
 const manifest = JSON.parse(readFileSync('.buklod/scopes/buklod-fis-expo-20261115.json', 'utf8'));
 
 test('FIS stays behind existing system-admin gate with canonical finance RPCs', () => {
@@ -34,4 +38,18 @@ test('change scope explicitly preserves finance policy and app runtime', () => {
   assert.equal(manifest.contractVersion, 2);
   assert.ok(manifest.lockedFeatureChanges.some(group => group.id === 'app-runtime'));
   assert.ok(manifest.regressionTests.includes('tests/buklod-fis-finance-20261115.test.mjs'));
+});
+
+test('FIS Expo deployment refuses Main identity and redirects only the FIS website', () => {
+  assert.match(appConfig, /const isFis = appTarget === 'fis'/);
+  assert.match(appConfig, /EAS_PROJECT_ID_FIS/);
+  assert.match(appConfig, /23dad7d0-389a-406e-8dec-08965dab85d8/);
+  assert.match(appConfig, /slug: isFis \? 'buklod-fis'/);
+  assert.match(index, /EXPO_PUBLIC_BUKLOD_FIS === '1'/);
+  assert.match(index, /<Redirect href="\/admin\/fis" \/>/);
+  assert.match(login, /EXPO_PUBLIC_BUKLOD_FIS === '1' \? '\/admin\/fis'/);
+  assert.match(deployWorkflow, /--dev-domain buklod-fis/);
+  assert.match(deployWorkflow, /deploy:alias --prod --id/);
+  assert.match(deployWorkflow, /cmp \/tmp\/fis-preview.html \/tmp\/fis-production.html/);
+  assert.doesNotMatch(deployWorkflow, /deploy --prod/);
 });
