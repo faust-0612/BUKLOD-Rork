@@ -5,7 +5,10 @@ import { BIBLE_NEW_RECORDS } from './bibleExpansionNew';
 import { BIBLE_EXPANSION_DIALOGUES_OLD } from './bibleExpansionDialoguesOld';
 import { BIBLE_EXPANSION_DIALOGUES_NEW_A } from './bibleExpansionDialoguesNewA';
 import { BIBLE_EXPANSION_DIALOGUES_NEW_B } from './bibleExpansionDialoguesNewB';
-import { inStoryOnly, REVISED_BIBLICAL_SCENES, BIBLICAL_SCENE_DETAILS } from './inStoryDialogue';
+import { inStoryOnly, REVISED_BIBLICAL_SCENES } from './inStoryDialogue';
+import { BIBLE_EDITORIAL_DEPTH_OLD } from './bibleEditorialDepthOld';
+import { BIBLE_EDITORIAL_DEPTH_NEW_A } from './bibleEditorialDepthNewA';
+import { BIBLE_EDITORIAL_DEPTH_NEW_B } from './bibleEditorialDepthNewB';
 
 /** Original, offline, book-referenced children's adaptations; not verbatim Bible translations.
  * Narratives are not standalone translations. Consult each canonical passage for details.
@@ -22,6 +25,15 @@ const EXPANDED_DIALOGUE: Record<string,readonly [string,string,string,string]> =
   ...BIBLE_EXPANSION_DIALOGUES_NEW_A,
   ...BIBLE_EXPANSION_DIALOGUES_NEW_B,
 };
+/** Editor-reviewed, scripture-specific scene detail for all 132 episodes.
+ * Unlike the old auto-generated classroom appendix, this stays inside the
+ * narrated story. Longer authored character exchanges take precedence.
+ */
+const EDITORIAL_DEPTH: Record<string,{tl:string;en:string}> = {
+  ...BIBLE_EDITORIAL_DEPTH_OLD,
+  ...BIBLE_EDITORIAL_DEPTH_NEW_A,
+  ...BIBLE_EDITORIAL_DEPTH_NEW_B,
+};
 /** The on-screen complete narrative and the existing TTS player consume this exact
  * text; a missing scene fails the build's regression gate, never a user session.
  * Bible-person speech below is explicitly a pedagogical paraphrase. */
@@ -35,8 +47,8 @@ function expandBibleNarrative(entry: BibleRecord, language: 'tl' | 'en'): string
       // teacher/classroom discussion into the full story or its TTS audio.
       passages.push(inStoryOnly(dialogue[index * 2 + (language === 'en' ? 1 : 0)], language));
     }
-    if (index === 1 && BIBLICAL_SCENE_DETAILS[entry.id]) {
-      passages.push(BIBLICAL_SCENE_DETAILS[entry.id][language]);
+    if (index === 1 && !REVISED_BIBLICAL_SCENES[entry.id] && EDITORIAL_DEPTH[entry.id]) {
+      passages.push(EDITORIAL_DEPTH[entry.id][language]);
     }
   });
   return passages.filter(Boolean).join('\n\n');
