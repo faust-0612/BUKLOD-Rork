@@ -12,12 +12,12 @@ function withStorytellingDialogue(id: string, lesson: SundaySchoolLesson): Sunda
   const scenes = SUNDAY_SCHOOL_DIALOGUES[id] ?? [];
   if (!scenes.length) return lesson;
   const expand = (language: 'tl' | 'en') => lesson.narrative[language]
-    .split(/\\n\\s*\\n/)
+    .split(/\n\s*\n/)
     .map((paragraph, index) => [
       paragraph.trim(),
       ...scenes.filter(scene => scene.afterParagraph === index).map(scene => scene.speech[language]),
-    ].filter(Boolean).join('\\n\\n'))
-    .join('\\n\\n');
+    ].filter(Boolean).join('\n\n'))
+    .join('\n\n');
   const biblicalStory = ['david-at-ang-tapang', 'bangka-ng-pag-asa',
     'ang-mabuting-kapitbahay', 'si-jonas-at-ang-dagat'].includes(id);
   return {
