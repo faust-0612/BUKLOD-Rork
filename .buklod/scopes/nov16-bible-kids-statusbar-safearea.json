@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-bible-kids-statusbar-safearea.json",
+  "objective": "On exact 144-story/dark-mode staging source, prevent Android status-bar overlap on headerless Daily Bible and Children Stories routes without altering any content, accounts or app releases.",
+  "baseRef": "9221909b98f8faac5930711be6297e52fb2ec8d1",
+  "productionBaselineEvidence": "Production OTA 01a1dff8-7563-790b-a714-22c316f56590, runtime 1.3.2. Stage 144-story source 4d1ac6986405b3f2f9715422a69fa7a04b07fc22 EAS update 01a1dfff-098e-71b1-b91a-63c0602ce512. Follow-up dark-mode staging RC #844 publication must be independently verified before release.",
+  "chosenApproach": "Apply root shell's existing top safe inset to headerless Bible and Children Stories routes. No redundant per-screen top padding, no changes to notifications/media/bottom nav.",
+  "selectionRationale": "Root shell already protects /bible/read and account/radio routes. Extend the same tested invariant to the screenshot affected /bible and children-stories paths with no global inset regression.",
+  "riskAreas": [
+    "navigation-auth",
+    "app-runtime",
+    "statusbar-insets",
+    "staging-release",
+    "dark-mode-contrast",
+    "offline-children",
+    "production-isolation"
+  ],
+  "preserveBehaviors": [
+    "Existing Bible read and personal-home/radio statusbar treatment unchanged.",
+    "No double safe area in Notifications (its own top inset).",
+    "All 144 offline stories, bilingual TTS, search, progress, Sunday School quiz and prayers unchanged.",
+    "Bottom nav, immersive video, PTT, audio focus, AdMob and keyboard unchanged.",
+    "No native, package, runtime, backend, database, finance, production or Play changes."
+  ],
+  "acceptanceChecks": [
+    "Bible and Children Stories headerless routes receive top safe-area protection.",
+    "Existing notifications and bottom nav contracts preserved.",
+    "Regression suite, TypeScript and Android preview export required before future staging-only release.",
+    "No production mutation; source-only PR pending staged RC approval."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov16-bible-kids-statusbar-safearea.json",
+    "src/components/BuklodNavSafeShell.tsx",
+    "tests/nov16-bible-kids-navigation-safearea.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/nov16-bible-kids-navigation-safearea.test.mjs"
+  ],
+  "releaseMode": "source-only-pending-staging-ota",
+  "releaseStatus": "DEV/QA only, not published.",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Route-specific status-bar protection only; Expo runtime and native modules remain unchanged.",
+      "preservedBehaviors": [
+        "Expo runtime 1.3.2 and staging signed Android package unchanged",
+        "No Android native or store release"
+      ],
+      "tests": [
+        "tests/nov16-bible-kids-navigation-safearea.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Root navigation shell safe-area route list changed narrowly without modifying navigation behavior.",
+      "preservedBehaviors": [
+        "Existing authenticated navigation and persistent bottom navigation preserved",
+        "Already inset notifications and immersive reels remain unchanged"
+      ],
+      "tests": [
+        "tests/nov16-bible-kids-navigation-safearea.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Global safe-area inset: rejected due double padding and immersive regressions.",
+    "Per-screen independent padding: rejected due inconsistent central navigation policy.",
+    "Native build or production OTA: not authorized for this source-only patch."
+  ]
+}
