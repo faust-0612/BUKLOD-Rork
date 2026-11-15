@@ -1,0 +1,85 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/profile-hero-compact-20261116.json",
+  "objective": "Owner-requested BUKLOD Profile cover/identity layout: one-line larger display name; replace tap-photo hint with existing rank; remove default Member label; extend cover; compact and preserve actions, notes, rank and existing ads.",
+  "baseRef": "3b488fa704b804f05c5a289a7e0775daeabb2404",
+  "productionBaselineEvidence": "Verified GitHub main source SHA 3b488fa704b804f05c5a289a7e0775daeabb2404 at branch creation on 2026-11-16. This is source-only, not production OTA/installed version evidence. No device, exact production manifest, or current live ad-runtime acceptance verified. Main and production OTA untouched.",
+  "chosenApproach": "Edit only the existing Profile screen's hero geometry and text/layout, reuse current canonical Circle Rank and Points standings data and native photo-change control; retain existing routes, authorization, ad placements and server calls. Add accessible, responsive button geometry and focused source regression tests. Extend the existing nonpublishing staging Android QA job to this exact PR branch, not the old hardcoded publication workflow.",
+  "selectionRationale": "Reusing the already-fetched Circle Rank and all-time rank prevents a second backend, bandwidth overhead, and stale independent state; the issue is presentational, not a finance/rank permission defect.",
+  "alternativeApproaches": [
+    "Create a new Profile card and rank backend: rejected because it adds duplicate queries, auth surface and regression risk.",
+    "Hide the original avatar/photo editor or move profile actions into a drawer: rejected because it removes discoverability and changes the user's existing controls."
+  ],
+  "preserveBehaviors": [
+    "Existing camera badge edits avatar, background menu edits cover, note shows up to two lines, and Edit Profile/My Note retain original routes.",
+    "Share stays prohibited for locked or unavailable profiles; default Member chip hidden without changing actual roles or privileges.",
+    "Existing monthly/all-time ranking cards, Circle Rank/character, personal posts, settings, notifications, Connect and Wall remain unchanged.",
+    "Existing AdMob inventory, ad lifecycle and dashboard navigation files remain unchanged; no new network calls or third-party dependencies.",
+    "Default/no-cover cases retain menu visibility and original non-cover top offset; dark/light theme surfaces remain contrast-safe.",
+    "The existing Navigation V2 staging compile job remains restricted to its original approved branch or this exact Profile candidate; compile and test only, with no Expo credentials or publication commands.",
+    "No shared mobile header runtime code or dashboard lifecycle edited; updated outdated test to assert the current exact compact height and safe-area formula, not to relax coverage."
+  ],
+  "acceptanceChecks": [
+    "Focused Profile hero source contract test and Profile navigation/privacy regression test must pass on exact head.",
+    "Engineering Accountability, protected-feature lock and Performance QA must pass before merge.",
+    "Compile current Profile TypeScript; verify one-line name on short/long display names, font scaling and button tap targets in Android staging.",
+    "Confirm cover image, avatar camera, notes, roles, rank and all three actions in dark/light mode without blank space.",
+    "Compare current 15/30/60-minute ad/nav telemetry for exact runtime/source before any production promotion; no production OTA in this PR.",
+    "New Profile-specific staging Android compile must pass exact-source Expo Android export, canonical staging package/runtime validation, profile assertions and AdMob/dashboard regression checks.",
+    "Original Navigation V2 full test suite remains intact for its original branch. Profile branch runs Profile/AdMob/dashboard/rank/nav-focused tests because the unchanged current main HomeUtilityCards already differs from the historical fixed-width assertion in tests/navigation-v2-compact-home-profile.test.mjs. Do not patch unrelated Home feature.",
+    "Update only the legacy shared-header regression expectation to the existing (scrollCompact ? 48 : 56) + status-bar inset geometry; verify logo/notification/sponsor presence and scroll compact behavior remain asserted."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "profile-user-data",
+    "dark-mode-contrast",
+    "accessibility",
+    "ranking-source",
+    "ads-monetization",
+    "navigation-scroll",
+    "staging-android-compile",
+    "release-identity",
+    "preexisting-home-test-drift"
+  ],
+  "regressionTests": [
+    "tests/nov16-profile-hero-compact.test.mjs",
+    "tests/nov16-profile-navigation-actions.test.mjs",
+    "tests/nov16-profile-staging-android-qa.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/me.tsx",
+    "tests/nov16-profile-hero-compact.test.mjs",
+    "tests/nov16-profile-navigation-actions.test.mjs",
+    ".buklod/scopes/profile-hero-compact-20261116.json",
+    ".github/workflows/navigation-v2-staging-compile-qa.yml",
+    "tests/nov16-profile-staging-android-qa.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Scoped visual adjustments to existing Profile hero (single-line display name, canonical rank label, cover size and button geometry) without lifecycle or data mutations.",
+      "preservedBehaviors": [
+        "Existing Profile routes, avatar/cover editor, personal note, ranking cards, character, ads and account isolation remain unchanged."
+      ],
+      "tests": [
+        "tests/nov16-profile-hero-compact.test.mjs",
+        "tests/nov16-profile-navigation-actions.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "A changed existing tab screen preserves role-based badges, locked-profile share guard, existing action destinations and the canonical Profile tab navigation.",
+      "preservedBehaviors": [
+        "No new permissions or destinations; photo editing, settings, member data and share privacy guard retain original behavior."
+      ],
+      "tests": [
+        "tests/nov16-profile-navigation-actions.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseStatus": "Profile staging compile QA: latest run failed on pre-existing header test expecting historical 42/52 compact height. Existing source uses 48/56 + safe-area inset; only matching focused test assertion changed, rerun pending. No staging OTA published."
+}
