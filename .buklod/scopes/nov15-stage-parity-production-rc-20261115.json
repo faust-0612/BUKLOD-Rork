@@ -26,7 +26,12 @@
     "child-safety",
     "privacy",
     "backend-security",
-    "production-release"
+    "production-release",
+    "connect",
+    "faith-cluster",
+    "auth-privacy",
+    "ads-monetization",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Android runtime 1.3.2 and exact existing signed production binary, package, OTA channel and production AdMob live IDs unchanged.",
