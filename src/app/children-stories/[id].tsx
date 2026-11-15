@@ -154,6 +154,7 @@ export default function ChildrenStoryReader() {
             ?(lastQuestion?(language==='tl'?'⭐ Magaling! Natapos mo ang lahat ng tanong.':'⭐ Wonderful! All questions complete.'):(language==='tl'?'⭐ Tama! Susunod na tanong.':'⭐ Correct! Next question.'))
             :(language==='tl'?'Subukan muli. Kaya mo iyan!':'Try again. You can do it!')}</Text>:null}
         </> : lesson ? <>
+          {!!lesson.retellingNotice && <Text style={[styles.tip,bedtime&&styles.light]}>{localize(lesson.retellingNotice,language)}</Text>}
           <Text style={[styles.storyText,styles.longStoryText,bedtime&&styles.light]}>{localize(lesson.narrative,language).trim().replace(/\n\s*\n/g,'\n\n')}</Text>
           <Text style={[styles.tip,bedtime&&styles.light]}>{language==='tl'?'Basahin o pakinggan ang buong kuwento kasama ang guro o nakatatanda.':'Read or listen to the full story with a teacher or grown-up.'}</Text>
           <View style={[styles.lessonPanel,bedtime&&styles.darkLesson]}>
