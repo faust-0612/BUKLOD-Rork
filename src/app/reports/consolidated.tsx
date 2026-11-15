@@ -99,6 +99,22 @@ export default function BuklodReportConsolidatedScreen() {
   useEffect(() => { void load(); }, [load]);
 
   const analytics = useMemo(() => data ? buildManagementAnalytics(data) : null, [data]);
+  const evidenceSummary = useMemo(() => {
+    const submissions = data?.submissions ?? [];
+    let photos = 0, reportsWithPhotos = 0, confirmedPhotoScans = 0, reportedCounts = 0;
+    for (const submission of submissions) {
+      const content = submission.content && typeof submission.content === 'object' ? submission.content as Record<string, any> : {};
+      const attachments = Array.isArray(content.evidence_photos) ? content.evidence_photos : [];
+      if (attachments.length) { reportsWithPhotos++; photos += attachments.length; }
+      const metadata = content.import_metadata && typeof content.import_metadata === 'object' ? content.import_metadata : {};
+      if (metadata.source_type === 'PDF_PHOTO' && metadata.confirmed_at) confirmedPhotoScans++;
+      const people = content.people && typeof content.people === 'object' ? content.people : {};
+      for (const v of Object.values(people)) {
+        if (/^\d{1,9}$/.test(String(v ?? '').trim())) reportedCounts++;
+      }
+    }
+    return { photos, reportsWithPhotos, confirmedPhotoScans, reportedCounts };
+  }, [data?.submissions]);
   const rangeLabel = managementRangeForPreset(preset).label;
 
   const createSuggestion = async (suggestion: ManagementSuggestion) => {
@@ -210,6 +226,7 @@ export default function BuklodReportConsolidatedScreen() {
               <Metric label="Pending" value={String(analytics.pending)} icon="clock-outline" attention={analytics.pending > 0} />
               <Metric label="Overdue" value={String(analytics.overdue)} icon="alert-circle-outline" attention={analytics.overdue > 0} />
               <Metric label="Open actions" value={String(analytics.activeActions)} icon="clipboard-check-outline" attention={analytics.activeActions > 0} />
+              <Metric label="Photo evidence" value={String(evidenceSummary.photos)} icon="image-multiple-outline" />
             </View>
 
             <View style={styles.card}>
@@ -218,6 +235,7 @@ export default function BuklodReportConsolidatedScreen() {
                 <View style={styles.overallPill}><Text style={styles.overallLabel}>OVERALL</Text><Text style={styles.overallText}>{overallStatus(analytics)}</Text></View>
               </View>
               <Text style={styles.note}>This summary is derived from actual assignments, submissions, review states and recorded management actions in the selected range.</Text>
+              <Text style={styles.note}>Private photo evidence: {evidenceSummary.photos} photo(s) across {evidenceSummary.reportsWithPhotos} report(s). {evidenceSummary.confirmedPhotoScans} photo scan(s) explicitly confirmed by reporters. Missing figures remain unknown, never treated as zero. Only confirmed report data contributes to statistics.</Text>
             </View>
 
             <View style={styles.card}>
