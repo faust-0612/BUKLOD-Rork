@@ -6,6 +6,7 @@ on:
       - dev/buklod-fis-expo-20261115
     paths:
       - 'app.config.js'
+      - '.buklod/scopes/buklod-fis-expo-20261115.json'
       - 'src/app/index.tsx'
       - 'src/app/(auth)/login.tsx'
       - 'src/app/admin/fis.tsx'
