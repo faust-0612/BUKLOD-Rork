@@ -62,5 +62,10 @@
     "OTA held until authenticated EAS readback and independent release workflow"
   ],
   "stagingOtaPublished": false,
-  "productionOtaPublished": false
+  "productionOtaPublished": false,
+  "alternativeApproaches": [
+    "Publish the previous Henry-only branch unchanged; rejected because it would overwrite newer Children dialogue and Bible dark-mode fixes.",
+    "Keep the old context fallback and rely only on the warning label; rejected because the selected verse could still display unrelated previous-verse commentary.",
+    "Add paid remote AI translation for all commentary; rejected because it adds cost, latency, security dependencies and another possible rendering regression."
+  ]
 }
