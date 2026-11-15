@@ -72,7 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-bible-kids-safearea-qa-export --clear
-          test -s /tmp/buklod-kids-dark-pr-export/metadata.json
+          test -s /tmp/buklod-bible-kids-safearea-qa-export/metadata.json
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           echo 'QA ONLY — production untouched, no OTA, no new native build.'
 
