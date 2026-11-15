@@ -74,8 +74,12 @@ export class StoryNarrator {
   private voice: string | undefined;
   private rate = 0.88;
 
-  constructor(private readonly speech: StorySpeechPort,
-    private readonly onState: (state: StoryAudioState) => void) {}
+  private readonly speech: StorySpeechPort;
+  private readonly onState: (state: StoryAudioState) => void;
+  constructor(speech: StorySpeechPort, onState: (state: StoryAudioState) => void) {
+    this.speech = speech;
+    this.onState = onState;
+  }
 
   private publish(state: StoryAudioState) {
     this.state = state;
