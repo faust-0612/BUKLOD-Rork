@@ -39,7 +39,7 @@
     "supabase/migrations/20261116025500_buklod_bible_v4_review_transparency.sql",
     "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
     "supabase/tests/buklod_bible_v4_review_security_20261116.sql",
-    ".github/workflows/buklod-bible-v4-review-staging-qa-20261116.yml",
+    ".github/workflows/buklod-bible-v4-review-staging-ota-qa-20261116.yml",
     "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
   ],
   "regressionTests": [

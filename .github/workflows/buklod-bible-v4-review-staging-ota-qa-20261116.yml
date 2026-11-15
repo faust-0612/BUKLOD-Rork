@@ -3,7 +3,7 @@ name: BUKLOD Bible V4 Review Staging Android 1.3.2 OTA Preflight
 on:
   push:
     branches: [fix/bible-v4-review-clarity-20261116]
-    paths: [.github/workflows/buklod-bible-v4-review-staging-qa-20261116.yml]
+    paths: [.github/workflows/buklod-bible-v4-review-staging-ota-qa-20261116.yml]
 permissions:
   contents: read
 concurrency:
@@ -48,7 +48,7 @@ jobs:
           assert.equal(eas.build['staging-user'].environment,'preview');
           NODE
           git diff --name-only 9221909b98f8faac5930711be6297e52fb2ec8d1 HEAD | sort > /tmp/buklod-v4-changed.txt
-          printf '%s\n' '.buklod/scopes/bible-v4-quiz-review-clarity-20261116.json' '.github/workflows/buklod-bible-v4-review-staging-qa-20261116.yml' 'src/components/bible/BuklodBibleQuizV4.tsx' 'supabase/migrations/20261116025500_buklod_bible_v4_review_transparency.sql' 'supabase/tests/buklod_bible_v4_review_security_20261116.sql' 'tests/buklod-bible-v4-quiz-security-20261116.test.mjs' 'tests/buklod-bible-v4-review-ota-20261116.test.mjs' | sort > /tmp/buklod-v4-allowed.txt
+          printf '%s\n' '.buklod/scopes/bible-v4-quiz-review-clarity-20261116.json' '.github/workflows/buklod-bible-v4-review-staging-ota-qa-20261116.yml' 'src/components/bible/BuklodBibleQuizV4.tsx' 'supabase/migrations/20261116025500_buklod_bible_v4_review_transparency.sql' 'supabase/tests/buklod_bible_v4_review_security_20261116.sql' 'tests/buklod-bible-v4-quiz-security-20261116.test.mjs' 'tests/buklod-bible-v4-review-ota-20261116.test.mjs' | sort > /tmp/buklod-v4-allowed.txt
           diff -u /tmp/buklod-v4-allowed.txt /tmp/buklod-v4-changed.txt
       - name: Install locked dependencies and run focused safety regressions
         run: |
