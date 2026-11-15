@@ -58,7 +58,8 @@
     "tests/smart-drawer-google-drive-transport.test.mjs",
     "tests/native-lab-ads-visibility-20261115.test.mjs",
     "tests/native-lab-google-drive-oauth-source-20261115.test.mjs",
-    "tests/native-lab-drive-encrypted-sync-20261115.test.mjs"
+    "tests/native-lab-drive-encrypted-sync-20261115.test.mjs",
+    "tests/native-lab-drive-settings-20261115.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/native-lab-isolated-runtime-20261115.json",
@@ -130,7 +131,8 @@
     "modules/buklod-kingdom-lab/android/src/main/java/expo/modules/buklodlab/BuklodNativeDriveModule.kt",
     "tests/native-lab-google-drive-oauth-source-20261115.test.mjs",
     "src/lib/smartDrawer/nativeDriveBackup.ts",
-    "tests/native-lab-drive-encrypted-sync-20261115.test.mjs"
+    "tests/native-lab-drive-encrypted-sync-20261115.test.mjs",
+    "tests/native-lab-drive-settings-20261115.test.mjs"
   ],
   "lockedFeatureChanges": [
     {

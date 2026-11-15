@@ -30,6 +30,13 @@ import {
 import { useAuth } from '@/providers/AuthProvider';
 import { generateSmartDrawerRecoveryKey, shareSmartDrawerBackup, restoreSmartDrawerBackup } from '@/lib/smartDrawer/portableBackup';
 import * as Clipboard from 'expo-clipboard';
+import {
+  backupNativeDrawerToDrive,
+  connectNativeDrawerDrive,
+  disconnectNativeDrawerDrive,
+  getNativeDrawerDriveConnection,
+  restoreNativeDrawerFromDrive,
+} from '@/lib/smartDrawer/nativeDriveBackup';
 
 const STYLES: Array<{
   key: SmartDrawerReminderStyle;
@@ -95,6 +102,62 @@ export default function SmartDrawerSettingsScreen() {
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupNotice, setBackupNotice] = useState('');
   const [recoveryKey, setRecoveryKey] = useState('');
+  const [connectedDriveEmail, setConnectedDriveEmail] = useState<string | null>(null);
+  // The normal staging-user and Play apps retain their original manual picker.
+  const nativeDriveAvailable = Platform.OS === 'android' &&
+    process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1';
+
+  useFocusEffect(useCallback(() => {
+    if (!nativeDriveAvailable || !user?.id) {
+      setConnectedDriveEmail(null);
+      return;
+    }
+    let active = true;
+    void getNativeDrawerDriveConnection(user.id)
+      .then(connection => { if (active) setConnectedDriveEmail(connection?.email ?? null); })
+      .catch(error => { if (active) setBackupNotice(error instanceof Error ? error.message : 'Drive connection unavailable.'); });
+    return () => { active = false; };
+  }, [nativeDriveAvailable, user?.id]));
+
+  const runNativeDrive = async (action: 'connect' | 'disconnect' | 'backup' | 'restore') => {
+    if (!nativeDriveAvailable || !user?.id || backupBusy) return;
+    if ((action === 'backup' || action === 'restore') && !/^[a-fA-F0-9]{64}$/.test(recoveryKey.trim())) {
+      setBackupNotice('Provide the 64-character recovery key first. BUKLOD cannot recover a lost key.');
+      return;
+    }
+    const owner = user.id;
+    setBackupBusy(true);
+    setBackupNotice('');
+    try {
+      if (action === 'connect') {
+        const connection = await connectNativeDrawerDrive(owner);
+        setConnectedDriveEmail(connection.email);
+        setBackupNotice('Google Drive connected for this BUKLOD account. Nothing was uploaded.');
+      } else if (action === 'disconnect') {
+        // A local disconnect is not a global Google permission revocation.
+        setConnectedDriveEmail(null);
+        await disconnectNativeDrawerDrive(owner);
+        setBackupNotice('Google Drive disconnected from this app. Revoke access in your Google Account to remove the grant entirely.');
+      } else if (action === 'backup') {
+        const result = await backupNativeDrawerToDrive(owner, recoveryKey.trim());
+        setBackupNotice(result.count + ' encrypted notes saved to your selected Google Drive. Keep the recovery key separately.');
+      } else {
+        const result = await restoreNativeDrawerFromDrive(owner, recoveryKey.trim());
+        setBackupNotice('Restored ' + result.restored + ' notes; skipped ' + result.skipped + ' existing notes.');
+      }
+    } catch (error) {
+      setBackupNotice(error instanceof Error ? error.message : 'Google Drive operation failed. Local data remains available.');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+  const confirmNativeDriveRestore = () => {
+    Alert.alert(
+      'Restore encrypted notes from Google Drive?',
+      'Only a backup from this same BUKLOD account will be restored. Existing notes are preserved. Your recovery key is needed.',
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Restore', onPress: () => { void runNativeDrive('restore'); } }],
+    );
+  };
 
   const prepareKey = async () => {
     if (backupBusy) return;
@@ -283,6 +346,38 @@ export default function SmartDrawerSettingsScreen() {
                   <Text style={styles.optionText}>Select a previously exported BUKLOD backup file. Additive restore; existing notes are preserved.</Text>
                 </View>
               </Pressable>
+              {nativeDriveAvailable && (
+                <View style={styles.privacy}>
+                  <MaterialCommunityIcons name="google-drive" size={24} color="#0A6EBD" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.privacyTitle}>My Google Drive · Native QA</Text>
+                    <Text style={styles.privacyText}>
+                      {connectedDriveEmail
+                        ? 'Connected: ' + connectedDriveEmail + '. Manual AES-GCM backup only. No background sync or BUKLOD cloud upload.'
+                        : 'Optional Google account authorization for encrypted backup. Your local notes stay private until you choose Back Up.'}
+                    </Text>
+                    <Pressable disabled={backupBusy} onPress={() => { void runNativeDrive(connectedDriveEmail ? 'disconnect' : 'connect'); }}
+                      accessibilityLabel={connectedDriveEmail ? 'Disconnect Google Drive' : 'Connect personal Google Drive'} style={styles.option}>
+                      <MaterialCommunityIcons name={connectedDriveEmail ? 'link-off' : 'link-variant'} size={22} color="#0A6EBD" />
+                      <Text style={styles.optionTitle}>{connectedDriveEmail ? 'Disconnect Google Drive' : 'Connect Google Drive'}</Text>
+                    </Pressable>
+                    {!!connectedDriveEmail && (
+                      <>
+                        <Pressable disabled={backupBusy} onPress={() => { void runNativeDrive('backup'); }} style={styles.option}
+                          accessibilityLabel="Back up encrypted Drawer to Google Drive">
+                          <MaterialCommunityIcons name="cloud-upload-outline" size={22} color="#0A6EBD" />
+                          <Text style={styles.optionTitle}>Back Up Encrypted Notes to Drive</Text>
+                        </Pressable>
+                        <Pressable disabled={backupBusy} onPress={confirmNativeDriveRestore} style={styles.option}
+                          accessibilityLabel="Restore encrypted Drawer from Google Drive">
+                          <MaterialCommunityIcons name="cloud-download-outline" size={22} color="#0A6EBD" />
+                          <Text style={styles.optionTitle}>Restore Encrypted Notes from Drive</Text>
+                        </Pressable>
+                      </>
+                    )}
+                  </View>
+                </View>
+              )}
               {backupBusy && <ActivityIndicator color="#0A6EBD" />}
               {!!backupNotice && <Text style={styles.notice}>{backupNotice}</Text>}
             </>
