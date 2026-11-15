@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const read = p => readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('safearea stage inherits verified 144-story dark mode and never production channel',()=>{
+ const s=read('scripts/buklod-nov16-bible-kids-safearea-stage132-policy.mjs');
+ assert.match(s,/9221909b98f8faac5930711be6297e52fb2ec8d1/);
+ assert.match(s,/01a1e025-7779-70ed-9035-37f24fd4ecd6/);
+ assert.match(s,/01a1dff8/);
+ assert.match(s,/production\.id,pre\.productionUpdateId/);
+ assert.match(s,/BUKLOD_BIBLE_KIDS_SAFEAREA_STAGE_132_/);
+ assert.match(s,/verifyBuild/);
+ assert.match(s,/verifyChannels/);
+ assert.match(s,/verifyUpdate/);
+ const workflow=read('.github/workflows/buklod-nov16-bible-kids-safearea-stage132.yml');
+ assert.match(workflow,/channel staging-user/);
+ assert.match(workflow,/--platform android/);
+ assert.match(workflow,/--environment preview/);
+ assert.match(workflow,/postpublish/);
+ assert.match(workflow,/pull_number:845/);
+ assert.doesNotMatch(workflow,/update --channel production/);
+});
