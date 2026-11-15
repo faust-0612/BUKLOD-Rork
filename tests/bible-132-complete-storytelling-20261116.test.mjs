@@ -62,9 +62,13 @@ test('complete Bible reader includes story-specific teaching scene, passage-attr
  assert.match(entry,/BIBLE_EXPANSION_DIALOGUES_NEW_B/);
  assert.match(entry,/function expandBibleNarrative/);
  assert.match(entry,/index < 2 && dialogue/);
+ assert.match(entry,/REVISED_BIBLICAL_SCENES/);
+ assert.match(entry,/BIBLICAL_SCENE_DETAILS/);
+ assert.match(entry,/inStoryOnly\(/);
+ assert.doesNotMatch(entry,/Pagkatapos ng kuwento, nagtanong ang guro/);
  assert.match(entry,/index \* 2 \+ \(language === 'en' \? 1 : 0\)/);
  assert.match(entry,/passages\.filter\(Boolean\)\.join\('\\n\\n'\)/);
- assert.match(entry,/narrative:local\(expandBibleNarrative\(entry,moral,'tl'\),expandBibleNarrative\(entry,moral,'en'\)\)/);
+ assert.match(entry,/narrative:local\(expandBibleNarrative\(entry,'tl'\),expandBibleNarrative\(entry,'en'\)\)/);
  assert.match(entry,/retellingNotice:local/);
  assert.match(entry,/not a word-for-word Bible quotation/);
  assert.match(entry,/prayer:local/);
