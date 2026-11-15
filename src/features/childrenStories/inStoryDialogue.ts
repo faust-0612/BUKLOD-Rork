@@ -8,6 +8,10 @@ export function inStoryOnly(scene: string, language: 'tl' | 'en'): string {
   const classroomCue = language === 'tl'
     ? /(?:tanong|sagot|tugon|paliwanag|dagdag|usisa|sabi|wika|itinuro|ipinaliwanag|paalala|tinanong|sumagot)\s+(?:(?:ng|ni|nina)\s+)?(?:mga\s+)?(?:batang(?:\s+nakikinig(?:\s+sa\s+guro)?)?|bata|klase|guro|Liza)(?=\W|$)|(?:nagtanong|sumagot)\s+ang\s+(?:bata|klase)/i
     : /(?:a|the|a listening) (?:child|teacher|class|student)s?\s+(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\b|(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\s+(?:a|the)\s+(?:child|teacher|class|student)s?\b/i;
+  // Exclude incidental classroom-narrator language not caught by attributions.
+  const classroomLanguage = language === 'tl'
+    ? /\b(?:guro(?: rin)?|klase|batang nakikinig|mga batang nakikinig)\b/i
+    : /\b(?:the teacher|a teacher|the class|students? listening|teacher reminds?|teacher explains?|teacher smiles?)\b/i;
   // Remove only classroom remarks, retaining later biblical events. The
   // closing quote is part of the sentence, not the whitespace separator.
   // Walk punctuation boundaries without RegExp lookbehind (Android Hermes
@@ -26,7 +30,7 @@ export function inStoryOnly(scene: string, language: 'tl' | 'en'): string {
     i = next - 1;
   }
   sentences.push(scene.slice(start).trim());
-  let result = sentences.filter(sentence => !classroomCue.test(sentence)).join(' ').trim();
+  let result = sentences.filter(sentence => !classroomCue.test(sentence) && !classroomLanguage.test(sentence)).join(' ').trim();
   // A two-line exchange can leave an orphaned quotation mark when just the
   // teacher's sentence was removed. Do not expose malformed speech.
   const count = (char: string) => result.split(char).length - 1;
