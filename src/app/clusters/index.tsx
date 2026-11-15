@@ -553,7 +553,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
         />
       }
     >
-      <View style={[styles.hero, { backgroundColor: theme.cardSurface, borderColor: theme.border }]}
+      <View style={[styles.hero, { backgroundColor: theme.cardSurface, borderColor: theme.border }]}>
         <View style={styles.heroHeading}>
           <View style={styles.heroCopy}>
             <Text style={[styles.eyebrow, {color:theme.accent}]}>BUKLOD · COMMUNITY</Text>
