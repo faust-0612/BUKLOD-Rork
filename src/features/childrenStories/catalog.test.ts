@@ -1,8 +1,8 @@
 import { BUNDLED_CHILDREN_STORIES, STORY_CATEGORIES, findBundledStory, isValidChildrenStory, localize } from './catalog';
 
 describe('BUKLOD Children Story World offline catalog', () => {
-  test('12 unique original stories are bundled across the four categories', () => {
-    expect(BUNDLED_CHILDREN_STORIES).toHaveLength(12);
+  test('32 unique original stories are bundled across the four categories', () => {
+    expect(BUNDLED_CHILDREN_STORIES).toHaveLength(32);
     expect(new Set(BUNDLED_CHILDREN_STORIES.map(item => item.id)).size).toBe(12);
     expect(new Set(BUNDLED_CHILDREN_STORIES.map(item => item.category))).toEqual(new Set(STORY_CATEGORIES));
   });
