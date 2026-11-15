@@ -152,10 +152,10 @@ test('screenshot output is conservatively corrected without changing unrelated f
 
 test('semantic and Bible-reference checks fail closed rather than caching misleading Filipino', () => {
   const reliable=functions.isHenryFilipinoTranslationReliable;
-  const source="We have here an account of a gracious visit which God paid to Solomon. There Solomon offered his great sacrifices, and there God owned him. 1 Kings 3:5; 2 Chronicles 1:3.";
-  assert.equal(reliable(source,'Narito ang isang account na binayaran ng Diyos. Inalok ni Solomon. 1 Hari 3:5; 2 Cronica 1:3.'),false);
-  assert.equal(reliable(source,'Mapagpalang pagdalaw ng Diyos kay Solomon. Naghandog si Solomon. 1 Hari 3:5.'),false);
-  assert.equal(reliable(source,'Mapagpalang pagdalaw ng Diyos kay Solomon. Naghandog si Solomon, at tinanggap siya ng Diyos. 1 Hari 3:5; 2 Cronica 1:3.'),true);
+  const passage="We have here an account of a gracious visit which God paid to Solomon. There Solomon offered his great sacrifices, and there God owned him. 1 Kings 3:5; 2 Chronicles 1:3.";
+  assert.equal(reliable(passage,'Narito ang isang account na binayaran ng Diyos. Inalok ni Solomon. 1 Hari 3:5; 2 Cronica 1:3.'),false);
+  assert.equal(reliable(passage,'Mapagpalang pagdalaw ng Diyos kay Solomon. Naghandog si Solomon. 1 Hari 3:5.'),false);
+  assert.equal(reliable(passage,'Mapagpalang pagdalaw ng Diyos kay Solomon. Naghandog si Solomon, at tinanggap siya ng Diyos. 1 Hari 3:5; 2 Cronica 1:3.'),true);
   assert.equal(reliable('An unrelated account of a financial transaction.', 'Isang account ng transaksiyon.'),true);
   assert.equal(reliable('1 Kings 3:5', ''),false);
   assert.match(source, /if \(targetLanguage === 'tl' && !isHenryFilipinoTranslationReliable\(text, output\)\)/);
