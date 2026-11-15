@@ -1,0 +1,65 @@
+# QA-only OTA-ready source contract. No Expo credentials and no publish action.
+name: BUKLOD Bible V4 Review Staging Android 1.3.2 OTA Preflight
+on:
+  push:
+    branches: [fix/bible-v4-review-clarity-20261116]
+    paths: [.github/workflows/buklod-bible-v4-review-staging-ota-qa-20261116.yml]
+permissions:
+  contents: read
+concurrency:
+  group: buklod-v4-review-staging-preflight
+  cancel-in-progress: false
+jobs:
+  verify-staging-android-132:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Frozen staged ancestry and Android runtime identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 9221909b98f8faac5930711be6297e52fb2ec8d1 HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const config=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          assert.equal(config.runtimeVersion,'1.3.2');
+          assert.equal(config.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(config.extra.appEnvironment,'staging');
+          assert.equal(config.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build['staging-user'].environment,'preview');
+          NODE
+          git diff --name-only 9221909b98f8faac5930711be6297e52fb2ec8d1 HEAD | sort > /tmp/buklod-v4-changed.txt
+          printf '%s\n' '.buklod/scopes/bible-v4-quiz-review-clarity-20261116.json' '.github/workflows/buklod-bible-v4-review-staging-ota-qa-20261116.yml' 'src/components/bible/BuklodBibleQuizV4.tsx' 'supabase/migrations/20261115192034_buklod_bible_v4_review_transparency.sql' 'supabase/tests/buklod_bible_v4_review_security_20261116.sql' 'tests/buklod-bible-v4-quiz-security-20261116.test.mjs' 'tests/buklod-bible-v4-review-ota-20261116.test.mjs' | sort > /tmp/buklod-v4-allowed.txt
+          diff -u /tmp/buklod-v4-allowed.txt /tmp/buklod-v4-changed.txt
+      - name: Install locked dependencies and run focused safety regressions
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/buklod-bible-v4-quiz-security-20261116.test.mjs tests/buklod-bible-v4-review-ota-20261116.test.mjs tests/buklod-bible-v4-events-kingdom-20261109.test.mjs tests/bible-v4-quiz-compat-20261109.test.mjs tests/ad-native-lifecycle-retention-20261115.test.mjs tests/nov14-connect-green-profile-posts-ota.test.mjs
+          npx tsc --noEmit
+      - name: Compile staging Android OTA bundle with NO PUBLISH
+        run: |
+          set -euo pipefail
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-v4-review-staging-export --clear
+          test -s /tmp/buklod-v4-review-staging-export/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "Staging Android bundle compiled; database migration and OTA publication remain separate release gates."

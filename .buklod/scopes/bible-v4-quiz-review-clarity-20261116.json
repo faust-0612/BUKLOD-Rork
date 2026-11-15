@@ -1,0 +1,101 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/bible-v4-quiz-review-clarity-20261116.json",
+  "objective": "Distinguish the Bible Quiz V4 learner submission from its explanation in every completed answer review without changing existing daily selection, scoring, reward ledger, or runtime.",
+  "baseRef": "9221909b98f8faac5930711be6297e52fb2ec8d1",
+  "productionBaselineEvidence": "Based on verified Android 1.3.2 staging candidate fix/conso-144-dark-staging-20261116 SHA 9221909b98f8faac5930711be6297e52fb2ec8d1. Main/production and live backend remain unchanged by this PR. BUKLOD Connect database has additive migration 20261115192034 applied; no existing quiz, financial or media function changed.",
+  "chosenApproach": "Add a read-only, owner-scoped optional RPC for previously submitted answers; render submitted answer, rationale, and accepted answers under distinct labels. Keep the old RPC and grader untouched.",
+  "selectionRationale": "The screenshot displays r.rationale instead of the answer. Changing scoring without the user's original submission is not evidence-based. An additive endpoint avoids reverting post-V4 selection hotfixes.",
+  "riskAreas": [
+    "submitted-answer-privacy",
+    "cross-account-isolation",
+    "scripture-answer-leak",
+    "quiz-review-clarity",
+    "backend-schema-parity",
+    "staging-only",
+    "classroom-quiz",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Only authenticated attempt owner can read their own saved answers after submitting.",
+    "No correct keys or submitted answers for started attempts.",
+    "One daily Bible Quiz attempt; same questions and existing grading algorithm.",
+    "No modification to BP ledger, QMP/finance, native runtime, production or Play Store.",
+    "Existing web/Android clients continue functioning without the optional endpoint."
+  ],
+  "acceptanceChecks": [
+    "Run scoped structural and security review tests.",
+    "Verify API returns only user's submitted answers for completed/pending attempts and returns no review while started.",
+    "Confirm cross-user attempt_id cannot retrieve the submission.",
+    "Review question, actual answer, rationale and accepted aliases display correctly.",
+    "Confirm no change to existing scoring/daily question-selection RPC and no mutation to production.",
+    "Staging-only Android JS bundle export passes for exact candidate SHA, without deploying or requiring an Expo token."
+  ],
+  "releaseMode": "isolated-staging-review-candidate",
+  "releaseStatus": "Additive read-only RPC applied and SQL security contract verified on BUKLOD Connect; Supabase migration 20261115192034. Staging OTA candidate, not yet published. Final exact-SHA QA must pass.",
+  "allowedPaths": [
+    ".buklod/scopes/bible-v4-quiz-review-clarity-20261116.json",
+    "src/components/bible/BuklodBibleQuizV4.tsx",
+    "supabase/migrations/20261115192034_buklod_bible_v4_review_transparency.sql",
+    "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
+    "supabase/tests/buklod_bible_v4_review_security_20261116.sql",
+    ".github/workflows/buklod-bible-v4-review-staging-ota-qa-20261116.yml",
+    "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
+    "supabase/tests/buklod_bible_v4_review_security_20261116.sql",
+    "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "JS-only quiz review presentation and optional RPC call do not alter runtime or native modules.",
+      "preservedBehaviors": [
+        "App runtime 1.3.2 and current native build unchanged",
+        "Existing quiz flow works when optional RPC is missing"
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "Only Daily Bible Quiz V4 review presentation changes; classroom Quiz and gradebook remain independent.",
+      "preservedBehaviors": [
+        "Existing daily quiz completion/points remains server-scored",
+        "Classroom gradebook and user data unchanged"
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "New authenticated owner-scoped read-only RPC never exposes answers before submission.",
+      "preservedBehaviors": [
+        "Private schema remains protected and original quiz RPCs untouched",
+        "Different users cannot read another user's attempts"
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
+        "supabase/tests/buklod_bible_v4_review_security_20261116.sql"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "A no-publish Android staging OTA preflight asserts runtime/package, exact source paths and AdMob/navigation protections.",
+      "preservedBehaviors": [
+        "Production OTA channel and signed native package remain untouched.",
+        "Only Android staging runtime 1.3.2 is compiled; no Expo or Supabase deploy is triggered."
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Modify the existing V4 get/grade function: rejected because newer anti-repeat changes could be rolled back and scoring evidence is missing.",
+    "Store submissions solely in the browser: rejected because refresh and multi-device review would be incomplete."
+  ]
+}
