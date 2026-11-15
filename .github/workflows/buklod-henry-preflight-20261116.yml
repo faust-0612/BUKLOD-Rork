@@ -1,0 +1,66 @@
+name: BUKLOD Matthew Henry Android Staging Preflight - NO PUBLISH
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/app/bible/read.tsx'
+      - 'src/lib/buklodBibleStudy.ts'
+      - 'src/lib/buklodHenryTranslation.ts'
+      - 'tests/bible-*.test.cjs'
+      - '.buklod/scopes/matthew-henry-verse-language-20261116.json'
+      - 'release/bible-matthew-henry-staging-132-20261116.json'
+      - '.github/workflows/buklod-henry-preflight-20261116.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-henry-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  android-hermes-source-preflight:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.event.pull_request.head.ref == 'dev/matthew-henry-verse-language-20261116' && github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify exact source and fail-closed prepublish boundary
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node --test tests/bible-henry-ota-readiness-20261116.test.cjs
+      - name: Frozen dependencies and focused commentary tests
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test \
+            tests/bible-study-sources.test.cjs \
+            tests/bible-reader-safearea-commentary.test.cjs \
+            tests/bible-radio-visual.test.cjs \
+            tests/bible-henry-ota-readiness-20261116.test.cjs
+      - name: Exact Android TypeScript and Hermes export - NEVER OTA
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-henry-android-preflight --clear
+          test -s /tmp/buklod-henry-android-preflight/metadata.json
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          echo 'SOURCE QA ONLY: No staging OTA, production OTA, EAS build or Play upload.'
+      - name: Report release hold
+        run: |
+          echo "### Matthew Henry staging readiness" >> "$GITHUB_STEP_SUMMARY"
+          echo "Source QA passed for \`${{ github.event.pull_request.head.sha }}\`." >> "$GITHUB_STEP_SUMMARY"
+          echo "RELEASE HOLD: official Google Translate branding/disclaimer, installed ML Kit module, authenticated Expo manifest readback and exact frozen RC remain unverified." >> "$GITHUB_STEP_SUMMARY"
+          echo "NO OTA PUBLISHED." >> "$GITHUB_STEP_SUMMARY"
