@@ -117,6 +117,16 @@ test('missing Filipino voice fails visibly instead of silently using an English 
   assert.deepEqual(events.at(-1),{status:'error',problem:'voice-unavailable'});
   narrator.dispose();
 });
+test('a stalled Android voice engine has a bounded wait and a visible error',async()=>{
+  events.length=0;
+  const port=mockSpeech();
+  port.getAvailableVoicesAsync=()=>new Promise(()=>undefined);
+  const narrator=new StoryNarrator(port,state=>events.push(state),15);
+  await narrator.play('Subukan ang boses','tl');
+  assert.deepEqual(events.at(-1),{status:'error',problem:'engine-unavailable'});
+  assert.equal(port.calls.length,0);
+  narrator.dispose();
+});
 test('TTS native playback failure displays a retryable error; no invisible playing state',async()=>{
   events.length=0;
   const port=mockSpeech();
