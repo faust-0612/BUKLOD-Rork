@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -26,6 +28,7 @@ import {
   type ReportImportProposal,
 } from '@/lib/buklodReportFiles';
 import { colors } from '@/lib/theme';
+import { supabase } from '@/lib/supabase';
 
 const ACTIVITIES = [
   ['worship', 'Worship'],
@@ -160,6 +163,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
   const [context, setContext] = useState<QuickWeeklyReportContext | null>(null);
   const [importProposal, setImportProposal] = useState<ReportImportProposal | null>(null);
   const [evidencePhotos, setEvidencePhotos] = useState<ReportEvidencePhoto[]>([]);
+  const [importMetadata, setImportMetadata] = useState<Record<string, unknown> | null>(null);
   const [reminderComment, setReminderComment] = useState('');
 
   const [overallWeek, setOverallWeek] = useState('Active / Normal');
@@ -209,12 +213,14 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
       },
       additional_note: trimOrNull(additionalNote),
       evidence_photos: evidencePhotos,
+      import_metadata: importMetadata,
     };
-  }, [activities, additionalNote, assistanceNeeded, concernNote, concernType, evidencePhotos, mainGoal, overallWeek, people]);
+  }, [activities, additionalNote, assistanceNeeded, concernNote, concernType, evidencePhotos, importMetadata, mainGoal, overallWeek, people]);
 
   const hydrate = useCallback((existing: Record<string, any>) => {
     if (!Object.keys(existing).length) return;
     setEvidencePhotos(Array.isArray(existing.evidence_photos) ? existing.evidence_photos.slice(0, 10) : []);
+    setImportMetadata(existing.import_metadata && typeof existing.import_metadata === 'object' && !Array.isArray(existing.import_metadata) ? existing.import_metadata : null);
     if (typeof existing.overall_week === 'string' && WEEK_OPTIONS.includes(existing.overall_week as any)) {
       setOverallWeek(existing.overall_week);
     }
@@ -343,6 +349,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
       }
     }
     const proposed = asObject(importProposal.content);
+    setImportMetadata({ ...asObject(proposed.import_metadata), source_type: importProposal.sourceType, confirmed_at: new Date().toISOString() });
     if (typeof proposed.overall_week === 'string' && WEEK_OPTIONS.includes(proposed.overall_week as any)) {
       setOverallWeek(proposed.overall_week);
     }
@@ -436,6 +443,18 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
       setSubmitting(false);
     }
   }, [content, context, onSubmitted, readOnly, scopeId, submitting]);
+
+  const viewEvidencePhoto = useCallback(async (path: string) => {
+    setError('');
+    try {
+      const { data, error: signingError } = await supabase.storage
+        .from('buklod-report-evidence').createSignedUrl(path, 90);
+      if (signingError || !data?.signedUrl) throw signingError ?? new Error('Could not open secured photo.');
+      await Linking.openURL(data.signedUrl);
+    } catch (viewError: any) {
+      setError(viewError?.message || 'This image cannot be opened with your current permissions.');
+    }
+  }, []);
 
   const exportAction = useCallback((kind: 'EXCEL' | 'CSV' | 'PDF') => {
     try {
@@ -593,6 +612,9 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
             </View>
             <MaterialCommunityIcons name="shield-check-outline" size={22} color={colors.greenDark} />
           </View>
+          {importProposal.photoAsset ? (
+            <Image source={{ uri: importProposal.photoAsset.uri }} style={styles.photoPreview} resizeMode="contain" />
+          ) : null}
           {importProposal.detectedFields.length ? (
             <Text style={styles.previewText}>Detected: {importProposal.detectedFields.slice(0, 12).join(', ')}</Text>
           ) : null}
@@ -619,7 +641,15 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
           <Text style={styles.eyebrow}>PRIVATE REPORT EVIDENCE</Text>
           <Text style={styles.sectionTitle}>{evidencePhotos.length} photo{evidencePhotos.length === 1 ? '' : 's'} attached</Text>
           {evidencePhotos.map((photo) => (
-            <Text key={photo.path} style={styles.hint}>✓ {photo.filename}</Text>
+            <Pressable
+              key={photo.path}
+              onPress={() => void viewEvidencePhoto(photo.path)}
+              style={({ pressed }) => [styles.evidenceRow, pressed && styles.pressed]}
+            >
+              <MaterialCommunityIcons name="image-lock-outline" size={17} color={colors.greenDark} />
+              <Text style={[styles.hint, { flex: 1 }]} numberOfLines={1}>{photo.filename}</Text>
+              <Text style={styles.evidenceOpen}>VIEW SECURELY</Text>
+            </Pressable>
           ))}
           <Text style={styles.hint}>Accessible only to the reporter and authorized reviewer. Original images are not placed in public summary exports.</Text>
         </View>
@@ -813,6 +843,9 @@ const styles = StyleSheet.create({
   form: { gap: 12 },
   loadingCard: { minHeight: 100, borderRadius: 16, borderWidth: 1, borderColor: '#DCE5E0', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 },
   sectionCard: { borderRadius: 16, borderWidth: 1, borderColor: '#DCE5E0', backgroundColor: '#FFFFFF', padding: 14, gap: 10 },
+  photoPreview: { width: 148, height: 150, alignSelf: 'center', borderRadius: 12, backgroundColor: '#EAF4EE' },
+  evidenceRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 8, borderRadius: 9, paddingHorizontal: 9, backgroundColor: '#F3F8F5' },
+  evidenceOpen: { color: colors.greenDark, fontSize: 9, fontWeight: '900' },
   previewCard: { borderRadius: 16, borderWidth: 1.5, borderColor: '#74B68D', backgroundColor: '#F3FBF6', padding: 14, gap: 10 },
   reminderCard: { borderRadius: 16, borderWidth: 1, borderColor: '#F0D7A1', backgroundColor: '#FFFBEB', padding: 14, gap: 10 },
   reminderHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
