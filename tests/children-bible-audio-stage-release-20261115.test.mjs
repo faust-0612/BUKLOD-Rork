@@ -50,6 +50,8 @@ test('staging publisher cannot build APK or deploy to production',()=>{
  assert.match(wf,/--skip-bundler --input-dir/);
  assert.match(wf,/stage-updates-recheck\.json/);
  assert.match(wf,/postpublish/);
+ assert.match(wf,/issues\.createComment/);
+ assert.match(wf,/pull-requests: write/);
  assert.match(wf,/Android staged source/);
  assert.doesNotMatch(wf,/update --channel production|eas submit|eas build --platform|supabase db push/);
 });
