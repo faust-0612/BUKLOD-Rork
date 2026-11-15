@@ -20,7 +20,7 @@ export type BibleCurriculumSeed = {
 const loc = (tl: string, en: string): StoryLocalized => ({ tl, en });
 const question = (prompt: StoryLocalized, correct: StoryLocalized, wrong: [StoryLocalized, StoryLocalized], position: 0|1|2): SundaySchoolQuestion => ({
   prompt,
-  choices: position === 0 ? [correct, ...wrong] : position === 1 ? [wrong[0], correct, wrong[1]] : [...wrong, correct],
+  choices: position === 0 ? [correct, wrong[0], wrong[1]] : position === 1 ? [wrong[0], correct, wrong[1]] : [wrong[0], wrong[1], correct],
   answer: position,
 });
 
