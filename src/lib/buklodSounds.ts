@@ -222,8 +222,29 @@ export async function playBuklodCue(cue: BuklodSoundCue, options?:{preview?:bool
     const gain=VOLUME_LEVEL[settings.volumeLevel]*PROFILE_GAIN[settings.soundProfile];
     player.volume=cue==='alert'?Math.min(0.6,gain+0.1):Math.min(0.55,gain);
     player.setPlaybackRate(PROFILE_RATE[settings.soundProfile]);
-    // A newly constructed player may still be loading; seeking before it
-    // becomes ready can reject and swallow the very first feedback sound.
+    // A new local asset can decode asynchronously. Do not lose its first
+    // sound, but never replay it late on another screen or during a call.
+    if (fresh && !player.isLoaded) {
+      const readyPlayer = player;
+      const queuedAt = Date.now();
+      let fired = false;
+      let subscription: { remove(): void } | null = null;
+      const playWhenReady = () => {
+        if (fired || !readyPlayer.isLoaded) return;
+        fired = true;
+        subscription?.remove();
+        if (players.get(cue) !== readyPlayer ||
+            AppState.currentState !== 'active' || activeCall ||
+            Date.now() - queuedAt > 1000 ||
+            (!options?.preview && (!settings[category] || isQuietHours()))) return;
+        try { readyPlayer.play(); } catch { /* optional feedback */ }
+      };
+      subscription = readyPlayer.addListener('playbackStatusUpdate', status => {
+        if (status.isLoaded) playWhenReady();
+      });
+      playWhenReady();
+      return;
+    }
     if (!fresh) await player.seekTo(0);
     player.play();
   } catch (error) {

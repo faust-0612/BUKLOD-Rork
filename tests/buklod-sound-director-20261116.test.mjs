@@ -12,6 +12,8 @@ test('all gameplay fallbacks are licensed local CC0, bounded and quiet-hour cont
  for (const old of ['buklod_message_sent','buklod_community','buklod_error','buklod-points-claim'])
    assert.ok(!native.includes(old), 'old notification sound should not be game fallback: '+old);
  assert.match(native,/MAX_ACTIVE_FALLBACK_PLAYERS = 6/);
+ assert.match(native,/playbackStatusUpdate/);
+ assert.match(native,/state !== 'active'/);
  assert.match(native,/isBuklodGameSoundEnabled/);
  assert.match(native,/tryPlayRorkGameFeedback/);
  assert.match(native,/Haptics\.notificationAsync/);
@@ -30,6 +32,7 @@ test('verified BP, Character and Circle Rank cues use known bundled sounds', () 
  assert.ok(sounds.includes('kingdom-premium/collect-crystal.wav'));
  assert.ok(sounds.includes('quietHours'));
  assert.ok(sounds.includes('activeCall'));
+ assert.ok(sounds.includes('Date.now() - queuedAt > 1000'));
  assert.ok(points.includes('kingdom-premium/coins.wav'));
  assert.ok(points.includes('if(soundOn)playAudio(claimSound)'));
  assert.ok(level.includes('level > previous'));
