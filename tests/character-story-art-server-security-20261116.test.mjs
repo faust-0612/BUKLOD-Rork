@@ -76,3 +76,23 @@ test('Cross-feature task alternatives count only signed server-claimed BP credit
  assert.match(sql,/v_reactions>=c\.target or v_quiz>=c\.target/);
  assert.match(sql,/v_shares>=c\.target or \(v_attendance\+v_prayer\)>=c\.target/);
 });
+
+test('publisher checks byte-level remote integrity before writing readiness marker',async()=>{
+ const {verifyRemoteCounts}=await import('../scripts/publish-character-collectible-art.mjs');
+ const {expectedEntries}=await import('../scripts/validate-character-collectible-art.mjs');
+ const {createHash}=await import('node:crypto');
+ const payload=Buffer.from('known verified artwork payload');
+ const hash=createHash('sha256').update(payload).digest('hex');
+ const items=expectedEntries().map(x=>({...x,sha256:hash}));
+ let corrupt=false;
+ const client={storage:{from:()=>({
+  list:async prefix=>({data:items.filter(x=>x.path.startsWith(prefix+'/')).map(x=>({name:x.path.split('/').at(-1)})),error:null}),
+  download:async name=>({data:{arrayBuffer:async()=>corrupt&&name===items[0].path?Buffer.from('corrupted'):payload},error:null}),
+ })}};
+ await verifyRemoteCounts(client,items);
+ corrupt=true;
+ await assert.rejects(()=>verifyRemoteCounts(client,items),/Remote asset hash mismatch: phan:L01:I01/);
+ assert.match(publisher,/BUKLOD_ART_EXPECTED_PROJECT_REF/);
+ assert.match(publisher,/BUKLOD_ART_EXPECTED_MANIFEST_SHA256/);
+ assert.match(publisher,/verifyRemoteCounts\\(client,manifest\\.items\\)/);
+});

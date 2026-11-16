@@ -5,6 +5,7 @@
  *
  * node scripts/publish-character-collectible-art.mjs DIR
  * BUKLOD_ART_PUBLISH_APPROVED=1 SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=...
+ * BUKLOD_ART_EXPECTED_PROJECT_REF=... BUKLOD_ART_EXPECTED_MANIFEST_SHA256=...
  *   node scripts/publish-character-collectible-art.mjs DIR --publish
  */
 import fs from 'node:fs/promises';
@@ -83,16 +84,45 @@ async function uploadAll(client,root,items){
   }
  }));
 }
-async function verifyRemoteCounts(client){
+// Verify every remote object's bytes, not just that a same-named file exists.
+// The marker must never describe a fully checked catalogue when CDN/storage
+// returned truncated or unexpected content. Three workers bound request load.
+export async function verifyRemoteCounts(client,items){
  const expected=expectedEntries();
+ if(!Array.isArray(items)||items.length!==expected.length)
+  throw new Error('Expected exact 1300 remote image receipts');
+ const byKey=new Map(items.map(item=>[item.key,item]));
+ for(const candidate of expected){
+  const item=byKey.get(candidate.key);
+  if(!item||item.path!==candidate.path||!/^[0-9a-f]{64}$/i.test(item.sha256))
+   throw new Error('Missing expected remote image: '+candidate.key);
+ }
  for(const character of [...new Set(expected.map(x=>x.key.split(':')[0]))]){
   const prefix='character-collectibles/'+character;
-  const {data,error}=await client.storage.from(BUCKET).list(prefix,{limit:1000});
-  if(error)throw error;
+  const {data,error}=await withRetries(async()=>{
+   const response=await client.storage.from(BUCKET).list(prefix,{limit:1000});
+   if(response.error)throw response.error;
+   return response;
+  },'list '+character);
   const expectedNames=expected.filter(x=>x.key.startsWith(character+':')).map(x=>path.basename(x.path));
   const actualNames=new Set((data||[]).map(row=>row.name));
-  if(expectedNames.some(x=>!actualNames.has(x)))throw new Error('Remote item missing for '+character);
+  if(actualNames.size!==expectedNames.length||expectedNames.some(x=>!actualNames.has(x)))
+   throw new Error('Remote image inventory mismatch for '+character);
  }
+ const queues=Array.from({length:3},()=>[]);
+ items.forEach((item,i)=>queues[i%3].push(item));
+ await Promise.all(queues.map(async queue=>{
+  for(const item of queue){
+   const response=await withRetries(async()=>{
+    const result=await client.storage.from(BUCKET).download(item.path);
+    if(result.error||!result.data)throw result.error||new Error('Missing remote asset');
+    return result;
+   },'download '+item.key);
+   const digest=sha256(Buffer.from(await response.data.arrayBuffer()));
+   if(digest!==item.sha256.toLowerCase())
+    throw new Error('Remote asset hash mismatch: '+item.key);
+  }
+ }));
 }
 
 async function main(){
@@ -109,11 +139,17 @@ async function main(){
  const url=process.env.SUPABASE_URL||'',key=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
  if(!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(url)||!key)
   throw new Error('Trusted SUPABASE_URL and service role key required');
+ const expectedRef=(process.env.BUKLOD_ART_EXPECTED_PROJECT_REF||'').trim();
+ const expectedManifest=(process.env.BUKLOD_ART_EXPECTED_MANIFEST_SHA256||'').toLowerCase().trim();
+ if(!/^[a-z0-9]{20}$/.test(expectedRef)||new URL(url).hostname!==expectedRef+'.supabase.co')
+  throw new Error('Target Supabase project must match BUKLOD_ART_EXPECTED_PROJECT_REF');
+ if(expectedManifest!==marker.manifest_sha256)
+  throw new Error('Pinned BUKLOD_ART_EXPECTED_MANIFEST_SHA256 does not match local art');
  const client=createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}});
  const {data:bucket,error}=await client.storage.getBucket(BUCKET);
  if(error||!bucket?.public)throw new Error('Public artwork bucket migration not present');
  await uploadAll(client,root,manifest.items);
- await verifyRemoteCounts(client);
+ await verifyRemoteCounts(client,manifest.items);
  // Publishing marker is an atomic readiness gate; never do this before full
  // asset count and per-file hash confirmation. The app checks this marker.
  const {error:markerError}=await client.storage.from(BUCKET).upload(
