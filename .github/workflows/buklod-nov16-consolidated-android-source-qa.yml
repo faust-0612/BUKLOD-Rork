@@ -1,0 +1,82 @@
+name: BUKLOD Nov16 Consolidated Android Bundle QA (No OTA)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod-nov16-consolidated-android-source-qa.yml'
+      - '.buklod/scopes/nov16-all-recent-wall-character-ads-rc.json'
+      - 'src/**'
+      - 'scripts/character-release-contract.mjs'
+      - 'package.json'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-nov16-android-qa-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  android-staging-source-compile:
+    if: github.head_ref == 'integration/nov16-current-wall-ads-zoom-rc-safe'
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_MAX_WORKERS: '2'
+    steps:
+      - name: Read exact PR commit, no credentials persisted
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Check unchanged native release input and 1.3.2 staging identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code origin/main...HEAD -- app.config.js eas.json package-lock.json android/ ios/ plugins/ babel.config.js
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const app=require('./app.config.js')({config:{}}),eas=require('./eas.json');
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.runtimeVersion,'1.3.2');
+          assert.equal(app.extra.appEnvironment,'staging');
+          assert.equal(app.extra.appTarget,'main');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build['staging-user'].environment,'preview');
+          assert.notEqual(eas.build.production.channel,'staging-user');
+          NODE
+      - name: Install pinned JS dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify source, Character lock, AdMob, Wall and navigation contracts
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          npm run character:contract
+          npm run compact:contract
+          node --experimental-strip-types --test \\
+            tests/buklod-character-collectible-parity-20261116.test.mjs \\
+            tests/buklod-character-release-lock-20261116.test.mjs \\
+            tests/character-android-zoom-full-source-20261116.test.mjs \\
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \\
+            tests/wall-real-recent-comment-preview-20261116.test.mjs \\
+            tests/nov16-wall-author-date-avatar-privacy.test.cjs \\
+            tests/buklod-connect-composer-contrast-20261116.test.mjs
+      - name: Compile exact Android staging source bundle without publishing OTA
+        run: |
+          set -euo pipefail
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov16-consolidated-android --clear
+          test -s /tmp/buklod-nov16-consolidated-android/metadata.json
+          sha256sum /tmp/buklod-nov16-consolidated-android/metadata.json
+          {
+            echo "Android source compile: PASS (NO OTA publication)"
+            echo "GitHub SHA: $GITHUB_SHA"
+            echo "Runtime: 1.3.2, staging-user, org.mzbministry.buklod.staging"
+            echo "Physical-device test: SKIPPED PER OWNER"
+            echo "Requires separate authenticated EAS preview environment verification and manifest readback before staging OTA."
+          } >> "$GITHUB_STEP_SUMMARY"

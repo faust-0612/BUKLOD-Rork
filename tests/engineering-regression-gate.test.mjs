@@ -224,7 +224,7 @@ test('Nov16 cumulative source reconciles exactly declared component manifests an
  assert.equal(scope.componentScopePaths.length,8);
  assert.ok(scope.componentScopePaths.every(p=>scope.allowedPaths.includes(p)));
  const files=[rc,...scope.componentScopePaths,'src/components/BuklodCachedMediaImage.tsx','tests/community-wall-behavior.test.mjs'];
- const manifest={...scope,allowedPaths:[...scope.allowedPaths,...files]};
+ const manifest={...scope,allowedPaths:[...scope.allowedPaths,...files],regressionTests:['tests/community-wall-behavior.test.mjs']};
  assert.deepEqual(assessChanges(files,manifest,{consolidatedRc:true}).failures,[]);
  assert.match(assessChanges([...files,'.buklod/scopes/undeclared.json'],manifest,{consolidatedRc:true}).failures.join(' '),/enumerate every changed component scope/);
  assert.ok(fs.readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8').includes("'integration/nov16-current-wall-ads-zoom-rc-safe'"));
