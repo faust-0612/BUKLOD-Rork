@@ -95,8 +95,8 @@ export default function BuklodReferralInviteCard({
       borderColor: theme.border,
       borderRadius: 16,
       backgroundColor: theme.surface,
-      padding: 14,
-      gap: 8,
+      padding: 10,
+      gap: 6,
     },
     eyebrow: {
       fontSize: 10,
@@ -120,8 +120,8 @@ export default function BuklodReferralInviteCard({
       borderColor: withAlpha(theme.accent, 0.28),
       backgroundColor: withAlpha(theme.accentSoft, 0.5),
       borderRadius: 12,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
       gap: 2,
     },
     identityLabel: {
@@ -136,7 +136,7 @@ export default function BuklodReferralInviteCard({
       color: theme.accent,
     },
     codeRow: {
-      marginTop: 4,
+      marginTop: 2,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
@@ -160,8 +160,8 @@ export default function BuklodReferralInviteCard({
     },
     actionRow: {
       flexDirection: 'row',
-      gap: 8,
-      marginTop: 4,
+      gap: 6,
+      marginTop: 2,
     },
     actionBtn: {
       flex: 1,
