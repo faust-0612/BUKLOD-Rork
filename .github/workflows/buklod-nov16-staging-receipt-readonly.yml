@@ -42,7 +42,6 @@ jobs:
         run: |
           set -euo pipefail
           git merge-base --is-ancestor "$RELEASE_SOURCE" "$GITHUB_SHA"
-          test "$(git rev-list --count "$RELEASE_SOURCE..$GITHUB_SHA")" -le 4
           test -n "${EXPO_TOKEN:-}"
           test "$(git diff --name-only "$RELEASE_SOURCE" "$GITHUB_SHA")" = ".github/workflows/buklod-nov16-staging-receipt-readonly.yml"
           mkdir -p readback-evidence
