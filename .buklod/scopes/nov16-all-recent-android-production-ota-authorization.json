@@ -48,5 +48,6 @@
   ],
   "releaseTarget": "production Android only",
   "runtimeVersion": "1.3.2",
-  "publicationStatus": "AUTHORIZATION_ONLY_PENDING_MERGE_AND_PUBLISH"
+  "publicationStatus": "AUTHORIZATION_ONLY_PENDING_MERGE_AND_PUBLISH",
+  "selectionRationale": "Release-only authorization preserves the exact proven source and existing protected Android production publisher, unlike a direct unreviewed ref push or one-off bypass publisher. PR checks remain required before the publish-trigger merge."
 }
