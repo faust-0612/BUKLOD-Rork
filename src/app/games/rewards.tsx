@@ -15,6 +15,7 @@ import {
   buyMyKingdomItem, getMyKingdomShards, emptyKingdomShards, KINGDOM_SHARD_ITEMS,
   type KingdomShardItemKey, type KingdomShardsSnapshot,
 } from '@/lib/buklodKingdomShards';
+import { buildKingdomTreasuryJourney } from '@/lib/buklodKingdomTreasuryJourney';
 
 const COLORS={dark:'#092739',gold:'#efcd86',muted:'#bed6d8',white:'#fdf1d6'};
 const icons: Record<KingdomShardItemKey, 'lightbulb-on-outline' | 'shield-star-outline' | 'compass-rose' | 'creation'> = {
@@ -22,6 +23,10 @@ const icons: Record<KingdomShardItemKey, 'lightbulb-on-outline' | 'shield-star-o
   guardian_shield:'shield-star-outline',
   explorer_compass:'compass-rose',
   aura_emerald:'creation',
+};
+const journeyLabels: Record<KingdomShardItemKey,string> = {
+  wisdom_lens:'WISDOM', guardian_shield:'GUARDIAN',
+  explorer_compass:'EXPLORER', aura_emerald:'EMERALD',
 };
 export default function KingdomRewardsScreen() {
   const insets=useSafeAreaInsets();
@@ -75,6 +80,8 @@ export default function KingdomRewardsScreen() {
       }
     }
   };
+  // Display-only model: no new permissions, grants, rewards or offline spending.
+  const journey=buildKingdomTreasuryJourney(snapshot,KINGDOM_SHARD_ITEMS);
   return <View style={s.root}>
     <LinearGradient colors={['#071e31','#164451','#082435']} style={StyleSheet.absoluteFill}/>
     <ScrollView contentContainerStyle={[s.content,{
@@ -108,6 +115,58 @@ export default function KingdomRewardsScreen() {
               :'Server balance not available yet. No purchase can be made.'}
         </Text>
       </LinearGradient>
+
+      <View style={s.journey}>
+        <View style={s.journeyHead}>
+          <View style={{flex:1,gap:3}}>
+            <Text style={s.journeyEyebrow}>RELIC JOURNEY</Text>
+            <Text style={s.journeyTitle}>Awaken your Kingdom collection</Text>
+          </View>
+          <Text style={s.journeyCount}>{journey.ownedCount}/{journey.totalCount}</Text>
+        </View>
+        <View accessibilityRole="progressbar" accessibilityValue={{min:0,max:100,now:journey.completionPercent}}
+          style={s.journeyTrack}>
+          <View style={[s.journeyFill,{width:journey.completionPercent+'%'}]} />
+        </View>
+        <View style={s.journeySteps}>
+          {journey.steps.map(step=>{
+            const key=step.key as KingdomShardItemKey;
+            return <View key={step.key} style={s.journeyStep}>
+              <View style={[s.journeyOrb,step.owned&&s.journeyOrbOwned]}>
+                <MaterialCommunityIcons name={step.owned?'check-decagram':icons[key]}
+                  size={23} color={step.owned?'#10372c':'#d3dfd8'} />
+              </View>
+              <Text numberOfLines={1} style={s.journeyStepTitle}>{journeyLabels[key]}</Text>
+              <Text style={s.journeyStepMeta}>{step.owned?'OWNED':step.price+' SHARDS'}</Text>
+            </View>;
+          })}
+        </View>
+        <View style={s.journeyGoal}>
+          <MaterialCommunityIcons name={journey.next?'compass-rose':'trophy-award'}
+            size={22} color="#b8f4ce" />
+          <Text style={s.journeyGoalText}>
+            {journey.source==='unavailable'
+              ? 'Connect to verify your Kingdom collection.'
+              : journey.next
+                ? journey.source==='cached'
+                  ? 'Last synced collection. Reconnect to unlock '+journey.next.name+'.'
+                  : journey.shardsAway>0
+                    ? 'Next: '+journey.next.name+' • '+journey.shardsAway+' more Shards needed'
+                    : 'Ready to unlock: '+journey.next.name
+                : 'All current Treasury powers collected! Explore your existing badges.'}
+          </Text>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Explore existing badge trials"
+          onPress={()=>router.push('/games/legacy' as any)} style={s.journeyBadgeButton}>
+          <MaterialCommunityIcons name="shield-star-outline" size={19} color="#e9ffdc" />
+          <Text style={s.journeyBadgeLabel}>EXPLORE BADGES & TRIALS</Text>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#e9ffdc" />
+        </Pressable>
+        <Text style={s.journeyDisclaimer}>
+          Collection progress reflects verified owned practice powers only.
+          Badge trials remain separate local practice; no additional Points or cash rewards.
+        </Text>
+      </View>
       <View style={s.info}>
         <MaterialCommunityIcons name="shield-check-outline" size={22} color="#9ce0c2"/>
         <Text style={s.infoText}>1 Shard per first verified game Mastery; 2 per first claimed Character collectible. Replays never award more. Existing eligible achievements count when the wallet syncs.</Text>
@@ -159,6 +218,27 @@ const s=StyleSheet.create({
   balance:{fontSize:42,fontWeight:'900',color:COLORS.white},
   meta:{fontSize:12,fontWeight:'800',color:COLORS.gold},
   helper:{color:COLORS.muted,fontSize:11,lineHeight:18},
+  journey:{backgroundColor:'#123f3c',borderColor:'#69cda0',borderWidth:1,borderRadius:19,padding:15,gap:13},
+  journeyHead:{flexDirection:'row',alignItems:'center',gap:10},
+  journeyEyebrow:{color:'#b6edc4',fontSize:10,fontWeight:'900',letterSpacing:1.5},
+  journeyTitle:{color:'#f4fff4',fontSize:17,lineHeight:22,fontWeight:'900'},
+  journeyCount:{fontSize:23,color:'#d5f2bc',fontWeight:'900'},
+  journeyTrack:{height:8,backgroundColor:'#315e54',borderRadius:20,overflow:'hidden'},
+  journeyFill:{height:'100%',backgroundColor:'#b6f18b',borderRadius:20},
+  journeySteps:{flexDirection:'row',justifyContent:'space-between',gap:6},
+  journeyStep:{flex:1,minWidth:0,alignItems:'center',gap:4},
+  journeyOrb:{width:51,height:51,borderRadius:26,alignItems:'center',justifyContent:'center',
+    backgroundColor:'#254f51',borderWidth:1,borderColor:'#668b82'},
+  journeyOrbOwned:{backgroundColor:'#baf39c',borderColor:'#eeffc6'},
+  journeyStepTitle:{fontSize:9,fontWeight:'900',letterSpacing:.2,color:'#f0fff2'},
+  journeyStepMeta:{fontSize:8.5,fontWeight:'800',color:'#cce2d1'},
+  journeyGoal:{flexDirection:'row',alignItems:'center',gap:8,padding:11,
+    backgroundColor:'#205e4d',borderRadius:12},
+  journeyGoalText:{flex:1,fontSize:12,fontWeight:'700',lineHeight:18,color:'#f1fff3'},
+  journeyBadgeButton:{minHeight:42,flexDirection:'row',alignItems:'center',justifyContent:'center',
+    gap:8,backgroundColor:'#207f4c',borderRadius:12,paddingHorizontal:12},
+  journeyBadgeLabel:{fontSize:11,fontWeight:'900',color:'#f4fff0',flex:1,textAlign:'center'},
+  journeyDisclaimer:{color:'#c1d9c8',fontSize:10,lineHeight:15},
   info:{flexDirection:'row',gap:10,padding:13,borderRadius:13,backgroundColor:'#184644'},
   infoText:{flex:1,color:'#dcf3e9',fontSize:12,lineHeight:18},
   sectionTitle:{color:COLORS.gold,fontWeight:'900',fontSize:14,letterSpacing:.8},

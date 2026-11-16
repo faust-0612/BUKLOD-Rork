@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kingdom-item-badge-journey-20261116.json",
+  "objective": "Introduce an exciting, truthful, read-only Kingdom Treasury relic journey while documenting a safe future badge mastery architecture; do not change server awards, live points, character levels, map, ads, or production.",
+  "baseRef": "1aebc901e77089c7f3e926c76dfff4a4a8e34972",
+  "productionBaselineEvidence": "Main source SHA verified via GitHub; installed production OTA and RC artifact fingerprints not independently verified. This DEV branch is not production evidence.",
+  "chosenApproach": "Derive item journey from current server-provided Shard snapshot and catalog; render a themed four-item path with next unlock, keeping purchases under existing server RPC and offline denial.",
+  "selectionRationale": "Provides visible game progression with no speculative migration or new grant logic. Avoids regressions to existing bank, character switching or advertising.",
+  "alternativeApproaches": [
+    "Create new server badge tiers immediately: rejected without verified authoritative activity receipt and RLS rollout.",
+    "Offer client-minted random rewards: rejected as insecure and financially confusing.",
+    "Read-only Treasury item journey and source-authored evolution blueprint: selected."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-item-badge-journey-20261116.json",
+    "docs/BUKLOD_KINGDOM_ITEMS_BADGES_EVOLUTION_20261116.md",
+    "src/lib/buklodKingdomTreasuryJourney.ts",
+    "src/app/games/rewards.tsx",
+    "tests/kingdom-treasury-journey-20261116.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/kingdom-treasury-journey-20261116.test.mjs"
+  ],
+  "riskAreas": [
+    "server-backed ownership display",
+    "offline cached state",
+    "Treasury navigation",
+    "app runtime",
+    "Kingdom"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add only safe visual guided progression to the existing Kingdom Treasury screen.",
+      "preservedBehaviors": [
+        "Keep existing purchasing, server wallet, offline spending block, ads, route, authentication and runtime unchanged."
+      ],
+      "tests": [
+        "tests/kingdom-treasury-journey-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "New read-only Kingdom Treasury journey is computed strictly from existing verified item ownership.",
+      "preservedBehaviors": [
+        "All item IDs, prices, character-level persistence, map centers, Shard accounting and Legacy Hall links remain unchanged."
+      ],
+      "tests": [
+        "tests/kingdom-treasury-journey-20261116.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No client-created awards, no additional Shards, BP, QMP or cash effects.",
+    "Offline last-verified wallet may display but cannot buy.",
+    "Every character retains independent saved progress; no switching logic changed.",
+    "No change to global ads or existing Kingdom placements."
+  ],
+  "acceptanceChecks": [
+    "Focused behavioral test passes on Node 22.",
+    "Exact source readback and review of isolated DEV commit.",
+    "Full TypeScript/web/native visual QA required before RC.",
+    "No staging or production publication authorized by this change."
+  ],
+  "releaseMode": "DEV_ONLY",
+  "releaseStatus": "UNRELEASED - source-only until independent QA and gated release"
+}
