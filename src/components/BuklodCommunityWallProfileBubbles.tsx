@@ -31,9 +31,9 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { ConnectThemeProvider } from '@/providers/ConnectThemeProvider';
 
 const MAX_BUBBLES = 14;
-const AVATAR_SIZE = 50;
-const COLUMN_WIDTH = 78;
-const NOTE_MAX_LINES = 2;
+const AVATAR_SIZE = 56;
+const COLUMN_WIDTH = 118;
+const NOTE_MAX_LINES = 5;
 const NOTE_MAX_CHARS = 80;
 const NOTE_REFRESH_MS = 30_000;
 
@@ -108,6 +108,7 @@ function hoursLeftLabel(
 function NoteBubble({
   note,
   textColor,
+  secondaryColor = textColor,
   editable = false,
   mine = false,
   expiresAt = null,
@@ -117,6 +118,7 @@ function NoteBubble({
 }: {
   note?: string | null;
   textColor: string;
+  secondaryColor?: string;
   editable?: boolean;
   mine?: boolean;
   expiresAt?: string | null;
@@ -178,7 +180,7 @@ function NoteBubble({
   }
 
   if (!value && !editable) {
-    return null;
+    return <View style={styles.noteZone} />;
   }
 
   if (!value && editable) {
@@ -189,7 +191,7 @@ function NoteBubble({
         onPress={() => setEditing(true)}
         style={styles.noteAddWrap}
       >
-        <Text style={[styles.noteAddText, { color: textColor }]}>
+        <Text style={[styles.noteAddText, { color: secondaryColor }]}>
           Add note
         </Text>
       </Pressable>
@@ -213,7 +215,7 @@ function NoteBubble({
         </Text>
       </View>
       {timeLabel ? (
-        <Text style={[styles.noteTime, { color: textColor }]}>
+        <Text style={[styles.noteTime, { color: secondaryColor }]}>
           {timeLabel}
         </Text>
       ) : null}
@@ -468,7 +470,8 @@ function BuklodCommunityConnectRail() {
           <View style={styles.person}>
             <NoteBubble
               note={selfContact.quick_note}
-              textColor={theme.textPrimary}
+              textColor="#173626"
+              secondaryColor={theme.textSecondary}
               editable
               mine
               expiresAt={selfNote?.expires_at}
@@ -499,7 +502,8 @@ function BuklodCommunityConnectRail() {
           <View key={contact.user_id} style={styles.person}>
             <NoteBubble
               note={contact.quick_note}
-              textColor={theme.textPrimary}
+              textColor="#173626"
+              secondaryColor={theme.textSecondary}
             />
 
             <View style={styles.avatarWrap}>
@@ -581,18 +585,22 @@ const styles = StyleSheet.create({
   },
   noteZone: {
     width: COLUMN_WIDTH,
+    height: 108,
     alignItems: 'center',
     justifyContent: 'flex-end',
     marginBottom: 6,
   },
   noteZoneEditing: {
     width: COLUMN_WIDTH,
+    height: 108,
     alignItems: 'center',
     justifyContent: 'flex-end',
     marginBottom: 6,
   },
   noteAddWrap: {
     width: COLUMN_WIDTH,
+    height: 108,
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 6,
     paddingVertical: 2,
@@ -606,10 +614,13 @@ const styles = StyleSheet.create({
   },
   noteBubble: {
     maxWidth: COLUMN_WIDTH,
+    minWidth: 82,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F1FFF6',
+    borderColor: '#9ECFAF',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#173626',
@@ -622,9 +633,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F6EE',
   },
   noteText: {
-    fontSize: 12,
-    lineHeight: 15,
-    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
     textAlign: 'center',
   },
   noteTime: {
@@ -636,14 +647,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   noteInput: {
-    width: 62,
-    minHeight: 32,
-    maxHeight: 46,
+    width: COLUMN_WIDTH - 26,
+    minHeight: 36,
+    maxHeight: 82,
     padding: 0,
     margin: 0,
-    fontSize: 12,
-    lineHeight: 15,
-    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
     textAlign: 'center',
   },
   noteCount: {
@@ -690,15 +701,15 @@ const styles = StyleSheet.create({
     marginTop: 5,
     width: '100%',
     textAlign: 'center',
-    fontSize: 11,
+    fontSize: 12.5,
     fontWeight: '800',
   },
   rank: {
     marginTop: 1,
     width: '100%',
     textAlign: 'center',
-    fontSize: 8,
-    lineHeight: 11,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '700',
   },
 });
