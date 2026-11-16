@@ -21,6 +21,8 @@ type Props = {
   children: React.ReactNode;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
+  adjustsFontSizeToFit?: boolean;
+  minimumFontScale?: number;
   disabled?: boolean;
 };
 
@@ -31,6 +33,8 @@ export default function BuklodTappablePersonName({
   children,
   style,
   numberOfLines,
+  adjustsFontSizeToFit,
+  minimumFontScale,
   disabled = false,
 }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -65,6 +69,8 @@ export default function BuklodTappablePersonName({
         <Text
           style={style}
           numberOfLines={numberOfLines}
+          adjustsFontSizeToFit={adjustsFontSizeToFit}
+          minimumFontScale={minimumFontScale}
         >
           {children}
         </Text>

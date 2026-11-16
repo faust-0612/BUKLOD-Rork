@@ -58,7 +58,7 @@ const MAX_NOTE_CHARS = 80;
 const NOTE_LINE_HEIGHT = 17;
 const NOTE_MAX_LINES = 5;
 const AVATAR_SIZE = 56;
-const COLUMN_WIDTH = 116;
+const COLUMN_WIDTH = 104;
 
 type CurrentUser = {
   user_id: string;
@@ -90,7 +90,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     column: {
       width: COLUMN_WIDTH,
-      marginRight: 8,
+      marginRight: 6,
       alignItems: 'center',
       paddingVertical: 4,
       paddingHorizontal: 4,
@@ -234,7 +234,7 @@ function createStyles(theme: ConnectThemeRoles) {
     name: {
       ...connectTypography.quickContactName,
       fontSize: 12.5,
-      marginTop: 5,
+      marginTop: 3,
       width: COLUMN_WIDTH,
       textAlign: 'center',
       color: theme.textSecondary,
