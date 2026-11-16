@@ -82,7 +82,8 @@
     "tests/navigation-scroll-density-20261116.test.mjs",
     "tests/cluster-bible-density-20261116.test.mjs",
     "tests/character-density-20261116.test.mjs",
-    "tests/compact-ota-release-20261116.test.mjs"
+    "tests/compact-ota-release-20261116.test.mjs",
+    ".buklod/scopes/appwide-compact-density-20261116.json"
   ],
   "lockedFeatureChanges": [
     {
