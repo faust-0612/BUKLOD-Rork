@@ -5,10 +5,10 @@
   "componentScopePaths": [
     ".buklod/scopes/appwide-compact-density-20261116.json",
     ".buklod/scopes/character-1300-art-motion-staging-20261116.json",
-    ".buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json",
-    ".buklod/scopes/nov16-conso-lesson-progression-20261116.json"
+    ".buklod/scopes/nov16-conso-lesson-progression-20261116.json",
+    ".buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json"
   ],
-  "objective": "Consolidate and source-verify app-wide compact spacing, Character 13x20x5 collectible art and accessible motion, Android zoom, Kingdom item class art, SFX, and protected UI regressions for isolated Android staging-user OTA; do not publish unverified remote art. Includes safe member-owned CCP/Formation Quick Check retry and verified unique active Cluster entry for generic Learn.",
+  "objective": "Consolidate and source-verify app-wide compact spacing, Character 13x20x5 collectible art and accessible motion, Android zoom, Kingdom item class art, SFX, and protected UI regressions for isolated Android staging-user OTA; do not publish unverified remote art. Includes safe member-owned CCP/Formation Quick Check retry and verified unique active Cluster entry for generic Learn. Include reviewed Reniel Troyo Formation/lesson submission recovery with no bypass of server-verified validations.",
   "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
   "productionBaselineEvidence": "Exact GitHub main commit 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 rechecked before isolated tree union. No live Android staging/production OTA, live DB migration or storage artwork publication from this branch. Pre-existing production runtime 1.3.2 unmodified; live manifest must still be independently re-verified.",
   "chosenApproach": "Atomic disjoint-Git-blob union of reviewed PRs #885, #888, #887 (140+33+14 paths) under an isolated DEV branch, exact reviewed Character hash rebaseline, standard compact spacing, cumulative manifest and fail-closed live artwork verification before OTA. Add disjoint Formation component patch and focused regressions without altering the original 187-file union.",
@@ -88,7 +88,8 @@
     "Retain exact reviewed Character visual hashes and locked Special identity masking.",
     "Maintain first-view/onscreen genuine AdMob placements, navigation/dashboard latency and full Wall media.",
     "No staging OTA until 1300 public remote art WebP bytes and published manifest SHA-256 verify, Android Hermes compiled export, and EAS manifest receipt are green.",
-    "Only member-owned, enrollment-scoped lesson drafts are persisted before Gemini checking; no skipped lesson, fake approved status, or extra points. All five checks remain authoritative."
+    "Only member-owned, enrollment-scoped lesson drafts are persisted before Gemini checking; no skipped lesson, fake approved status, or extra points. All five checks remain authoritative.",
+    "Lesson answers remain enrollment/account-scoped; validated drafts persist across individual failed AI checks; award only on server approval, with no duplicate ad."
   ],
   "acceptanceChecks": [
     "All listed changed screens use new compact rules with content-driven heights and no fake padding to compensate for wrappers.",
@@ -151,7 +152,8 @@
     "Public-read 1300 WebP objects exactly match Library processed manifest and marker.",
     "Android staging-user runtime 1.3.2 update id, APK provenance and production manifest no-change verified after OTA.",
     "Physical-device verification explicitly skipped per owner; no device success claim.",
-    "CCP/Formation lesson progress fixes are present, source tests pass, and main+stage runtime provenance remains gate-blocked until exact CI/asset verification."
+    "CCP/Formation lesson progress fixes are present, source tests pass, and main+stage runtime provenance remains gate-blocked until exact CI/asset verification.",
+    "New lesson quickcheck focused test passes with app-wide Character, AdMob, navigation and spacing regressions."
   ],
   "regressionTests": [
     "supabase/tests/character_story_art_security_20261116.sql",
@@ -181,18 +183,19 @@
     "tests/kingdom-reward-sound-release-20261110.test.mjs",
     "tests/kingdom-treasury-journey-20261116.test.mjs",
     "tests/kingdom-visual-class-catalog-20261116.test.mjs",
+    "tests/lesson-quickcheck-regression-20261116.test.mjs",
     "tests/navigation-scroll-density-20261116.test.mjs",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
     "tests/nov16-spacing-graphics-consolidated-contract.test.mjs",
     "tests/nov16-unified-staging-ota-release-gate.test.mjs",
     "tests/protected-feature-lock.test.mjs",
-    "tests/wall-media-density-20261116.test.mjs",
-    "tests/lesson-quickcheck-regression-20261116.test.mjs"
+    "tests/wall-media-density-20261116.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/appwide-compact-density-20261116.json",
     ".buklod/scopes/character-1300-art-motion-staging-20261116.json",
+    ".buklod/scopes/nov16-conso-lesson-progression-20261116.json",
     ".buklod/scopes/nov16-spacing-graphics-character-consolidated-rc.json",
     ".buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json",
     ".github/workflows/buklod-character-no-staging-sql-qa.yml",
@@ -306,9 +309,11 @@
     "src/app/points/progression.tsx",
     "src/components/BuklodCommunityWallPostCard.tsx",
     "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodFormationEntryScopeTracker.tsx",
     "src/components/BuklodMentionText.tsx",
     "src/components/BuklodProfileGlassCard.tsx",
     "src/components/BuklodReferralInviteCard.tsx",
+    "src/components/LearningQuestionResponse.tsx",
     "src/components/UI.tsx",
     "src/components/character/BuklodCharacterEventProvider.tsx",
     "src/components/connect/ConnectComposer.tsx",
@@ -374,22 +379,19 @@
     "tests/kingdom-reward-sound-release-20261110.test.mjs",
     "tests/kingdom-treasury-journey-20261116.test.mjs",
     "tests/kingdom-visual-class-catalog-20261116.test.mjs",
+    "tests/lesson-quickcheck-regression-20261116.test.mjs",
     "tests/navigation-scroll-density-20261116.test.mjs",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
     "tests/nov16-spacing-graphics-consolidated-contract.test.mjs",
     "tests/nov16-unified-staging-ota-release-gate.test.mjs",
     "tests/protected-feature-lock.test.mjs",
-    "tests/wall-media-density-20261116.test.mjs",
-    ".buklod/scopes/nov16-conso-lesson-progression-20261116.json",
-    "src/components/BuklodFormationEntryScopeTracker.tsx",
-    "src/components/LearningQuestionResponse.tsx",
-    "tests/lesson-quickcheck-regression-20261116.test.mjs"
+    "tests/wall-media-density-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Tighten Expo application presentation metrics and shared cards without changing native binaries or permissions. | Add existing-art collectible previews and subtle accessible motion on Character screens only; preserve native identity and app behavior. | New purely additive screens and static assets for Kingdom with deliberate Hall entry, preserving other app runtime paths. | New Android-specific Character image renderer changes the native decoded bitmap path only for enlarged previews. | Add isolated Character collections UI, React Native zoom and art resolver without modifying Expo runtime, native dependencies, production identity, or default navigation. | Update only the foreground nonauthoritative sound catalogue, first-ready loading and audio preference behavior for existing UI feedback. | Constrain the shared direct/scope Connect composer to readable foreground colors on its fixed light background without altering message/keyboard transport.",
+      "reason": "Tighten Expo application presentation metrics and shared cards without changing native binaries or permissions. | Add existing-art collectible previews and subtle accessible motion on Character screens only; preserve native identity and app behavior. | New purely additive screens and static assets for Kingdom with deliberate Hall entry, preserving other app runtime paths. | New Android-specific Character image renderer changes the native decoded bitmap path only for enlarged previews. | Add isolated Character collections UI, React Native zoom and art resolver without modifying Expo runtime, native dependencies, production identity, or default navigation. | Update only the foreground nonauthoritative sound catalogue, first-ready loading and audio preference behavior for existing UI feedback. | Constrain the shared direct/scope Connect composer to readable foreground colors on its fixed light background without altering message/keyboard transport. Include two reviewed Formation/lesson component fixes from concurrent integration with account/scope control retained.",
       "preservedBehaviors": [
         "Existing click targets at least 44dp and Android 1.3.2 native runtime remain unchanged.",
         "Server-side login, auth, app runtime, AdMob and navigation unchanged.",
@@ -407,7 +409,8 @@
       ],
       "tests": [
         "tests/appwide-compact-density-20261116.test.mjs",
-        "tests/buklod-character-art-release-contract-20261116.test.mjs"
+        "tests/buklod-character-art-release-contract-20261116.test.mjs",
+        "tests/lesson-quickcheck-regression-20261116.test.mjs"
       ]
     },
     {
@@ -527,7 +530,7 @@
       ]
     }
   ],
-  "publicationStatus": "DEV_RC_QA_HOLD_NO_OTA",
+  "publicationStatus": "DEV_RC_QA_HOLD_NO_OTA_ARTWORK_NOT_HOSTED",
   "physicalDeviceVerification": "SKIPPED_PER_OWNER",
   "targetChannel": "staging-user",
   "runtimeVersion": "1.3.2",
