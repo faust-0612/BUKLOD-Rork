@@ -170,7 +170,11 @@ export default function CharacterCollectionsScreen(){
  const earned=badges.filter(b=>b.earned&&b.collectible_id).length;
 
  return <ScrollView style={s.root} contentContainerStyle={s.page}
-   refreshControl={<RefreshControl refreshing={busy} onRefresh={()=>void load()} tintColor={C.green}/>}>
+   refreshControl={<RefreshControl refreshing={busy} onRefresh={()=>{
+    setFailedArt(new Set());
+    void load();
+    void loadCharacterArtPublication(true).then(pub=>setArtReady(pub.available));
+   }} tintColor={C.green}/>}>
   <View style={s.head}>
    <Pressable accessibilityRole="button" onPress={()=>router.back()} style={s.back}>
     <MaterialCommunityIcons name="arrow-left" size={23} color={C.green}/>
