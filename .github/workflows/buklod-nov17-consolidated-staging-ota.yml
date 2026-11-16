@@ -240,6 +240,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: buklod-nov17-staging-${{ github.sha }}
-          path: /tmp/buklod-compact-art-staging132/*.json
+          path: /tmp/buklod-nov17-all-recent-rc132/*.json
           retention-days: 14
           if-no-files-found: ignore

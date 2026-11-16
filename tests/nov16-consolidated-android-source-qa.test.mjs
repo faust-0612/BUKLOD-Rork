@@ -12,6 +12,9 @@ test('exact Nov16 cumulative Android staging source compiles with native parity 
   assert.match(workflow,/runtimeVersion,'1\.3\.2'/);
   assert.match(workflow,/expo export --platform android/);
   assert.match(workflow,/test -s \/tmp\/buklod-nov16-consolidated-android\/metadata\.json/);
+  assert.match(workflow,/wall-gallery-navigation-recovery-20261117/);
+  assert.match(workflow,/nov17-marites-swipe-video-tap/);
+  assert.match(workflow,/nov17-consolidated-staging-release-gate/);
   assert.doesNotMatch(workflow,/\beas (?:update|build|submit)\b/);
   assert.doesNotMatch(workflow,/\bexpo publish\b/);
 });
