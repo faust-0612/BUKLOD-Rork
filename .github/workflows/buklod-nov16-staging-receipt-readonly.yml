@@ -20,6 +20,10 @@ jobs:
     env:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       RELEASE_SOURCE: be6d2f34b01a0f181aff7e02b2982b5c3e748d7d
       RELEASE_MESSAGE: BUKLOD_NOV16_UNIFIED_STAGING_be6d2f34b01a0f181aff7e02b2982b5c3e748d7d
@@ -42,6 +46,8 @@ jobs:
           test -n "${EXPO_TOKEN:-}"
           test "$(git diff --name-only "$RELEASE_SOURCE" "$GITHUB_SHA")" = ".github/workflows/buklod-nov16-staging-receipt-readonly.yml"
           mkdir -p readback-evidence
+      - name: Restore locked dependencies for Expo config resolution
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Read EAS update list and channels without publishing
         shell: bash
         run: |
