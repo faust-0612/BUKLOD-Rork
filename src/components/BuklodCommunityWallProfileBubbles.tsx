@@ -34,7 +34,7 @@ import { ConnectThemeProvider } from '@/providers/ConnectThemeProvider';
 
 const MAX_BUBBLES = 14;
 const AVATAR_SIZE = 56;
-const COLUMN_WIDTH = 118;
+const COLUMN_WIDTH = 104;
 const NOTE_MAX_LINES = 5;
 const NOTE_MAX_CHARS = 80;
 const NOTE_REFRESH_MS = 30_000;
@@ -583,9 +583,9 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
   },
   row: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingBottom: 4,
-    gap: 8,
+    gap: 6,
     // Natural note height + bottom alignment keeps all avatars level.
     alignItems: 'flex-end',
   },
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   name: {
-    marginTop: 5,
+    marginTop: 3,
     width: '100%',
     textAlign: 'center',
     fontSize: 12.5,
