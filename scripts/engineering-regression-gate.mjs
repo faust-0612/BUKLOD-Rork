@@ -106,7 +106,7 @@ function runCli() {
   const cumulativeRc =
     process.env.BUKLOD_CONSOLIDATED_RC_GATE === 'true' &&
     base === 'main' &&
-    ['integration/buklod-nov10-single-source-ota', 'integration/buklod-nov11-postprod-conso-ota', 'integration/buklod-nov11-complete-source-hold-20261111', 'integration/buklod-nov11-reconciled-ota-candidate', 'integration/buklod-nov11-igpat-marites-wonder-qmp-kingdommap-rc', 'release/buklod-prod-rc-staging-20261114'].includes(process.env.GITHUB_HEAD_REF);
+    ['integration/buklod-nov10-single-source-ota', 'integration/buklod-nov11-postprod-conso-ota', 'integration/buklod-nov11-complete-source-hold-20261111', 'integration/buklod-nov11-reconciled-ota-candidate', 'integration/buklod-nov11-igpat-marites-wonder-qmp-kingdommap-rc', 'release/buklod-prod-rc-staging-20261114', 'integration/nov16-current-wall-ads-zoom-rc-safe'].includes(process.env.GITHUB_HEAD_REF);
   const manifestPath = process.env.BUKLOD_SCOPE_MANIFEST;
   if (changedScope.length === 1 || (cumulativeRc && changedScope.includes(manifestPath))) {
     const selected = changedScope.length === 1 ? changedScope[0] : manifestPath;
