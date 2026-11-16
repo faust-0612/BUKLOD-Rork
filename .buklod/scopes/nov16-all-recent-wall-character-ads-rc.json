@@ -1,0 +1,295 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-all-recent-wall-character-ads-rc.json",
+  "objective": "Cumulative source-only Android staging RC: merge recent compact Wall/Connect navigation, AdMob prewarm, 1300 Character art/zoom and cross-surface collectibles, real latest Wall comments, private member avatar and one-line Wall identity, referral copy, Connect contrast and dark mentions. No new production OTA.",
+  "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
+  "productionBaselineEvidence": "Checked GitHub main at 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61. Prior staging source verified under 01a1e498-a8f0-7fc8-93fe-7662526d086d at Android runtime 1.3.2, but this new exact combined source is NOT staged or runtime verified. Do not treat individually passing PR CI or a previous OTA as combined-commit evidence.",
+  "chosenApproach": "Reconcile #898 exact compact/ads/Notes staging source, then apply #895 Android decode, #897 identity/privacy, #899 real comment, #890 referral, #896 real collectible visual in preserving three-way source patches, plus #883 input contrast and #875 dark mentions. Preserve 1300 art + idle animation, ad/native lifecycle and immutable server reward authority. No production publish.",
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character",
+    "production-release-contract",
+    "character-unlock-privacy",
+    "release-identity",
+    "wall-media",
+    "navigation-scroll",
+    "connect",
+    "faith-cluster",
+    "auth-privacy",
+    "production-release",
+    "AdMob viewability",
+    "accessibility",
+    "navigation-auth",
+    "cluster-faith",
+    "ads-monetization",
+    "privacy-rls",
+    "wall-latest-comment",
+    "connect-input-contrast",
+    "profile-public-avatar",
+    "referral-ledger-integrity",
+    "database-migration-parity",
+    "android-art-decoding"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/character-1300-art-motion-staging-20261116.json",
+    ".buklod/scopes/character-collectible-art-parity-20261116.json",
+    ".buklod/scopes/connect-composer-contrast-20261116.json",
+    ".buklod/scopes/nov16-all-recent-wall-character-ads-rc.json",
+    ".buklod/scopes/nov16-android-zoom-source-decode-20261116.json",
+    ".buklod/scopes/nov16-note-ads-consolidated-staging-20261116.json",
+    ".buklod/scopes/nov16-wall-author-date-avatar-privacy.json",
+    ".buklod/scopes/wall-connect-note-rail-density-20261116.json",
+    ".buklod/scopes/wall-real-latest-comment-20261116.json",
+    ".github/workflows/buklod-compact-layout-qa.yml",
+    ".github/workflows/buklod-nov16-compact-art-staging-release.yml",
+    ".github/workflows/buklod-nov16-current-staging-ota.yml",
+    ".github/workflows/buklod-wall-real-comment-qa-20261116.yml",
+    ".github/workflows/character_recovery_pr_qa.yml",
+    ".github/workflows/engineering-accountability.yml",
+    "docs/APPWIDE_COMPACT_LAYOUT_STANDARD.md",
+    "docs/BUKLOD_CHARACTER_ART_STAGING_20261116.md",
+    "package.json",
+    "scripts/character-active-renderer-gate.mjs",
+    "scripts/character-release-contract.mjs",
+    "scripts/compact-layout-gate.mjs",
+    "scripts/verify-publish-character-art.mjs",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/home.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/bible/index.tsx",
+    "src/app/bible/read.tsx",
+    "src/app/clusters/index.tsx",
+    "src/app/community-contribution.tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodCommunityPostEngagement.tsx",
+    "src/components/BuklodCommunityPostEngagement.web.tsx",
+    "src/components/BuklodCommunityWallPostCard.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodDashboardAdWarmup.android.tsx",
+    "src/components/BuklodDashboardAdWarmup.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMentionText.tsx",
+    "src/components/BuklodProfileGlassCard.tsx",
+    "src/components/BuklodReferralInviteCard.tsx",
+    "src/components/UI.tsx",
+    "src/components/connect/ConnectComposer.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "src/components/points/BuklodActiveCharacterArt.tsx",
+    "src/components/points/BuklodCharacterCollectibleVisual.tsx",
+    "src/components/points/BuklodCharacterCustomizeSheet.tsx",
+    "src/components/points/BuklodCharacterIdleMotion.tsx",
+    "src/components/points/BuklodCollectibleArt.tsx",
+    "src/components/points/BuklodEconomyDashboard.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/components/points/BuklodProfileCharacterCard.tsx",
+    "src/components/points/BuklodProgressiveCharacterArt.android.tsx",
+    "src/components/points/BuklodProgressiveCharacterSelector.tsx",
+    "src/components/points/BuklodSpecialCharacterSeries.tsx",
+    "src/lib/buklodCharacterCollectibles.ts",
+    "src/lib/buklodCollectibleArtwork.ts",
+    "src/lib/buklodMentionCompose.ts",
+    "src/lib/buklodPostCommentPreviews.ts",
+    "src/lib/buklodThemePresentation.ts",
+    "src/lib/buklodVisual.ts",
+    "src/lib/communityWallHydration.ts",
+    "src/lib/dateTime.ts",
+    "supabase/migrations/20261116130306_buklod_verified_referral_circle_rank_20bp_v2.sql",
+    "supabase/migrations/20261116130815_buklod_referral_rank_single_claim_compat_v3.sql",
+    "supabase/migrations/20261116221100_wall_avatar_privacy_display.sql",
+    "supabase/tests/wall_avatar_privacy_database_20261116.sql",
+    "tests/appwide-compact-density-20261116.test.mjs",
+    "tests/buklod-character-art-contract-20261116.test.mjs",
+    "tests/buklod-character-art-release-contract-20261116.test.mjs",
+    "tests/buklod-character-collectible-parity-20261116.test.mjs",
+    "tests/buklod-character-release-lock-20261116.test.mjs",
+    "tests/buklod-connect-composer-contrast-20261116.test.mjs",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "tests/character-android-zoom-full-source-20261116.test.mjs",
+    "tests/character-density-20261116.test.mjs",
+    "tests/cluster-bible-density-20261116.test.mjs",
+    "tests/community-dark-mentions-apple-green-20261116.test.mjs",
+    "tests/community-fullscreen-video-ota-20261111.test.mjs",
+    "tests/compact-ota-release-20261116.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+    "tests/navigation-scroll-density-20261116.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-wall-author-date-avatar-privacy.test.cjs",
+    "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
+    "tests/nov16-wall-identity-navigation.test.cjs",
+    "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs",
+    "tests/referral-verified-circle-rank-20261116.test.mjs",
+    "tests/scoped-wall-comment-access-20261116.test.mjs",
+    "tests/wall-comment-navigation-update-20261116.test.mjs",
+    "tests/wall-media-density-20261116.test.mjs",
+    "tests/wall-real-recent-comment-preview-20261116.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Server-owned per-character level and XP, Circle Rank, item claims and rewards unchanged.",
+    "Core/Special identities and masked locked special previews preserved.",
+    "All existing AdMob, Wall, Connect, auth, navigation and production OTA functionality left intact.",
+    "Missing art displays safe fallback; never grants collectible ownership.",
+    "Character level art still uses existing approved sprite sheets.",
+    "Preserve real AdMob impressions, fill/viewability, consent and first-view navigation performance.",
+    "Preserve Wall/Connect media interaction, user privacy, Bible reading and safe-area clearance.",
+    "Only staging defaults to verified public image URL; production not implicitly enabled."
+  ],
+  "acceptanceChecks": [
+    "Verify all 1300 exact WebP objects plus 2 public JSON markers in bucket; marker uploaded LAST.",
+    "Pass combined exact-head regression CI (TypeScript, Character lock, compact density, AdMob, Wall, Connect, nav, Bible, release identity).",
+    "Check staging-only asset base URL, production remains opt-in and no service key is exposed.",
+    "Compile Android Hermes preview with Expo runtime 1.3.2 and staging package org.mzbministry.buklod.staging; verify signed APK/native parity.",
+    "Freeze exact staging RC; publish Android only after release gates, then verify stage update manifest and production unchanged.",
+    "Skip physical-device test per owner; do not present that as automated/mobile verification."
+  ],
+  "regressionTests": [
+    "tests/appwide-compact-density-20261116.test.mjs",
+    "tests/buklod-character-art-contract-20261116.test.mjs",
+    "tests/buklod-character-art-release-contract-20261116.test.mjs",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "tests/character-density-20261116.test.mjs",
+    "tests/cluster-bible-density-20261116.test.mjs",
+    "tests/compact-ota-release-20261116.test.mjs",
+    "tests/navigation-scroll-density-20261116.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/wall-media-density-20261116.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs",
+    "tests/buklod-character-collectible-parity-20261116.test.mjs",
+    "tests/buklod-character-release-lock-20261116.test.mjs",
+    "tests/buklod-connect-composer-contrast-20261116.test.mjs",
+    "tests/character-android-zoom-full-source-20261116.test.mjs",
+    "tests/community-dark-mentions-apple-green-20261116.test.mjs",
+    "tests/community-fullscreen-video-ota-20261111.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+    "tests/nov16-wall-author-date-avatar-privacy.test.cjs",
+    "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
+    "tests/nov16-wall-identity-navigation.test.cjs",
+    "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs",
+    "tests/referral-verified-circle-rank-20261116.test.mjs",
+    "tests/scoped-wall-comment-access-20261116.test.mjs",
+    "tests/wall-comment-navigation-update-20261116.test.mjs",
+    "tests/wall-real-recent-comment-preview-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add verified public art preview with fail-closed fallback and compact shared presentation in staging source only.",
+      "preservedBehaviors": [
+        "Native runtime, installed package, Android permissions and existing account sessions do not change."
+      ],
+      "tests": [
+        "tests/buklod-character-art-contract-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Compact Community Wall card spacing without changing media pipeline or paid AdMob visibility.",
+      "preservedBehaviors": [
+        "Posts, photos, videos, comments, genuine ad placements, and scroll performance remain usable."
+      ],
+      "tests": [
+        "tests/wall-media-density-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Compact Home, Connect, Profile and navigation UI without editing session, auth or route resolution.",
+      "preservedBehaviors": [
+        "Bottom tab navigation, back routes, safe area, keyboard and authentication protections remain intact."
+      ],
+      "tests": [
+        "tests/navigation-scroll-density-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Tighten Cluster and Bible page layout without changing Scripture or Cluster authorization.",
+      "preservedBehaviors": [
+        "Bible reading, notes, daily plans, offline and membership access remain unchanged."
+      ],
+      "tests": [
+        "tests/cluster-bible-density-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Map approved 1300 image objects into the existing server-owned Character collectible UI.",
+      "preservedBehaviors": [
+        "No local minting of XP, collectible ownership, Circle Rank or hidden Special Characters."
+      ],
+      "tests": [
+        "tests/buklod-character-art-release-contract-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Preserve exact native/runtime staging OTA gates while adding only source QA and compact presentation contracts.",
+      "preservedBehaviors": [
+        "Production channel and release identity remain unchanged; no OTA can publish from a PR."
+      ],
+      "tests": [
+        "tests/compact-ota-release-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-monetization",
+      "reason": "NativeAd first-view prewarm while preserving genuine impressions, consent and ad lifecycle",
+      "preservedBehaviors": [
+        "No fake fill, offscreen impressions or duplicate ads; keep existing cooldown and fallback"
+      ],
+      "tests": [
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+        "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs"
+      ]
+    },
+    {
+      "id": "auth-privacy",
+      "reason": "Show authorized member avatar while retaining authenticated account scoping and locked profile detail",
+      "preservedBehaviors": [
+        "No exposure of private member details, hidden posts or RLS-bypassing data"
+      ],
+      "tests": [
+        "tests/nov16-wall-author-date-avatar-privacy.test.cjs",
+        "tests/scoped-wall-comment-access-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "connect",
+      "reason": "Improve note avatar compact geometry and message input contrast in both themes",
+      "preservedBehaviors": [
+        "Keep all Connect messaging, calls, media and keyboard navigation functional"
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
+        "tests/buklod-connect-composer-contrast-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "referral-economy",
+      "reason": "Expose approved referrer +10 BP plus one-time qualified Circle Rank +10 BP without cash payout changes",
+      "preservedBehaviors": [
+        "Backend remains canonical; no client-side reward awards or duplicated triggers"
+      ],
+      "tests": [
+        "tests/referral-verified-circle-rank-20261116.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "Android staging-user runtime 1.3.2; QA-only until exact current commit qualifies",
+  "physicalDeviceVerification": "SKIPPED_PER_OWNER",
+  "publicationStatus": "SOURCE_ONLY_QA_PENDING",
+  "selectionRationale": "Use one explicit, source-verified cumulative RC rather than publishing independent staging branches that can replace one another. Keep account permission and migration changes separate until verified database RLS checks.",
+  "alternativeApproaches": [
+    "Publish newest individual PR directly (rejected: loses other recently requested UI/ads/zoom improvements).",
+    "Copy entire conflicting Character/Wall files from an older branch (rejected: overwrites newer motion, spacing, privacy and nav fixes).",
+    "Push production OTA before exact combined source tests or DB validation (rejected: violates release gates)."
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota"
+}
