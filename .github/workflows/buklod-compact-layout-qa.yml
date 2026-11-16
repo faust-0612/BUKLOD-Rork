@@ -36,6 +36,8 @@ jobs:
             tests/buklod-dark-contrast-spacing-20261115.test.mjs \
             tests/nov16-connect-profile-geometry.test.mjs \
             tests/nov16-wall-connect-dynamic-note-rail.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/nov16-wall-nav-ads-prewarm-integration.test.mjs \
             tests/nov14-connect-green-profile-posts-ota.test.mjs \
             tests/bible-henry-edge-to-edge-20261116.test.cjs \
             tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
