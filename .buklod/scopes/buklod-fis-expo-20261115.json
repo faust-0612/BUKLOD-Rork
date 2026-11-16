@@ -1,0 +1,112 @@
+{
+  "contractVersion": 2,
+  "objective": "Build an Expo Router BUKLOD FIS finance information workspace without a second ledger, duplicated money logic or unapproved cash activation",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Inspected exact GitHub main source SHA 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742 on 2026-11-15 as the DEV comparison baseline. This is NOT verification of the current Expo Hosting live artifact, Android production runtime, or deployed source. No production deployment performed.",
+  "chosenApproach": "System-admin-only Expo web/native route; read-only view over canonical Finance V3 and existing withdrawal RPC. Navigate to existing authority for mutations.",
+  "riskAreas": [
+    "finances",
+    "authentication",
+    "month-finalization",
+    "payouts",
+    "admin-nav",
+    "web-export",
+    "weak-network",
+    "expo-hosting-project-isolation",
+    "standalone-fis-auth-routing",
+    "navigation-scroll",
+    "auth-privacy",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "No new tables, allocation math, authentication pathways or payout switches",
+    "Member QMP/Points remain non-cash without finalized funded settlement",
+    "Server-side RLS/RPC authority unchanged; no payout destination export",
+    "No change to BUKLOD Main ads, video, Community, Connect, health, Kingdom or native SDK/runtime",
+    "Standalone FIS production must use separate EAS_PROJECT_ID_FIS, never Main or Classroom fallback",
+    "BUKLOD Main landing, login and native runtime remain unchanged unless EXPO_PUBLIC_BUKLOD_FIS=1",
+    "Expo FIS production promotion uses the identical verified immutable preview deployment ID",
+    "BUKLOD FIS is pinned to newly created EAS project de578117-37fb-4c4d-8fec-d472e08b117f; any other project fails before build"
+  ],
+  "acceptanceChecks": [
+    "FIS route guarded by system_admin",
+    "Manila month selection and refresh reject stale RPC results",
+    "Ledger reconciled vs provisional separated",
+    "No unfinalized cash values shown",
+    "Scope allocations only after finalization",
+    "Payout queue errors fail closed",
+    "Export CSV formula-injection guarded and capped",
+    "TypeScript and Expo web export pass on exact PR SHA before any publish",
+    "FIS hosting identity, explicit project ID and standalone site root/login contract enforced",
+    "Preview and production exact-artifact release checks before declaring published",
+    "Dedicated FIS Expo project registered under @faust_0612; exact UUID enforced in app config, CI and focused regression tests"
+  ],
+  "regressionTests": [
+    "__tests__/buklodFisReadModel.test.ts",
+    "tests/buklod-fis-finance-20261115.test.mjs",
+    "tests/buklod-fis-auth-route-20261115.test.mjs",
+    "tests/buklod-fis-deploy-identity-20261115.test.mjs",
+    "tests/buklod-fis-router-boot-20261115.test.mjs",
+    "tests/buklod-fis-read-model-runtime-20261115.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/admin/fis.tsx",
+    "src/lib/buklodFisReadModel.ts",
+    "src/app/admin/index.tsx",
+    "__tests__/buklodFisReadModel.test.ts",
+    ".buklod/scopes/buklod-fis-expo-20261115.json",
+    "tests/buklod-fis-finance-20261115.test.mjs",
+    "app.config.js",
+    "src/app/index.tsx",
+    "src/app/(auth)/login.tsx",
+    ".github/workflows/buklod_fis_expo_standalone_release.yml",
+    "tests/buklod-fis-auth-route-20261115.test.mjs",
+    "tests/buklod-fis-deploy-identity-20261115.test.mjs",
+    "tests/buklod-fis-router-boot-20261115.test.mjs",
+    "tests/buklod-fis-read-model-runtime-20261115.test.mjs"
+  ],
+  "alternativeApproaches": [
+    "Parallel FIS database rejected: conflicts with Finance V3 source of truth",
+    "Separate Expo app with duplicate Supabase auth rejected due to cost, repeated login and account isolation",
+    "Auto-finalization/withdrawal activation rejected without evidence and independent server gates"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Isolate FIS-only Expo web identity and authenticated routing through a distinct project and build-time flags, while preserving BUKLOD Main default app/runtime/login and canonical Finance V3.",
+      "preservedBehaviors": [
+        "Main project ID, normal boot routing and native runtime unchanged by default",
+        "Standalone FIS project ID required; reject Main/Classroom IDs",
+        "Existing protected finance RPCs, System Administrator authorization and app modules unchanged"
+      ],
+      "tests": [
+        "tests/buklod-fis-finance-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "FIS hosting alone routes login and index into a protected finance workspace while Main authentication, Public Home and session flows keep their original behavior.",
+      "preservedBehaviors": [
+        "BUKLOD Main login still directs to the existing Public Home",
+        "Existing authenticated Supabase session and system-admin-only authorization protect FIS",
+        "FIS root does not leak sensitive finance data to anonymous or non-admin sessions"
+      ],
+      "tests": [
+        "tests/buklod-fis-auth-route-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add isolated FIS Expo project bootstrap, CI verification, preview hosting and exact immutable artifact promotion without triggering BUKLOD Main workflows.",
+      "preservedBehaviors": [
+        "BUKLOD Main EAS project ID and Expo OTA channel never used for FIS hosting",
+        "No production promotion before focused QA and FIS preview HTTP verification",
+        "Expo FIS public runtime uses only Supabase publishable key, never financial service-role credentials"
+      ],
+      "tests": [
+        "tests/buklod-fis-deploy-identity-20261115.test.mjs"
+      ]
+    }
+  ],
+  "selectionRationale": "Existing Finance V3 authoritative RPC already provides reconciled bookkeeping, monthly close controls and payouts; a read-only Expo admin module is cheaper and safer than a new backend, app or ledger. The new route reuses current protected auth and does not create any monetary write permissions."
+}

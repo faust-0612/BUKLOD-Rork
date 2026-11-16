@@ -439,6 +439,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="finance"
+                title="Financial Information System"
+                subtitle="Canonical reports, ledger, allocations, withdrawals and month-close controls"
+                path="/admin/fis"
+              />
+
+              <AdminRow
                 icon="cash-sync"
                 title="Economy Operations"
                 subtitle="Reconcile AdMob user revenue separately from other app income and costs"
