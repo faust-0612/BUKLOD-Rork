@@ -1,0 +1,66 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/android-character-zoom-sharp-20261116.json",
+  "objective": "Fix blurred Android fullscreen BUKLOD Character progression images (Christian Level 3 example) while maintaining the approved clear web rendering, image framing, levels, and performant thumbnails.",
+  "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
+  "productionBaselineEvidence": "Main at 63ccd4b contained approved R31 .tsx sprite renderer with react-native Image resizeMethod=scale for all sizes, a 4940px-wide sprite sheet of 20 character levels, and immutable character UI visual hash locks. User-provided 2026-11-16 screenshots show Android zoom visibly blurrier than web. This PR does not claim live production OTA or physical-device verification.",
+  "chosenApproach": "Use Metro's platform-specific .android.tsx companion to decode the original 4940px sprite at full quality only for enlarged Android views, keep React Native's inexpensive downscaled path for small avatars/cards, preserve the base web implementation and character server rules, and fall back to the original image component on decode errors.",
+  "selectionRationale": "The Android-only companion fixes decode/resampling independently without rewriting approved R31 web/selector visual blobs, changing asset hashes or causing a full-quality bitmap decode in every small card. Expo-image is already a dependency.",
+  "alternativeApproaches": [
+    "Replace the existing shared R31 renderer with expo-image everywhere: rejected because it touches locked web visuals and adds memory/cross-platform regression risk.",
+    "Generate new high-resolution artwork for each of the 100 core levels: not part of this quality/decoder defect and assets are not yet approved.",
+    "Upscale decoded Android preview via CSS/native transform: rejected because interpolating thumbnail pixels does not restore quality."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character"
+  ],
+  "allowedPaths": [
+    "src/components/points/BuklodProgressiveCharacterArt.android.tsx",
+    "scripts/character-active-renderer-gate.mjs",
+    "tests/character-android-zoom-full-source-20261116.test.mjs",
+    ".buklod/scopes/android-character-zoom-sharp-20261116.json"
+  ],
+  "preserveBehaviors": [
+    "Current Android preview size, crop, and 20-level row alignment for Phan, Quin, Van, Christian and Lhen.",
+    "Web/iOS approved R31 renderer, R40 specials, Character customization, and Circle Rank remain unchanged.",
+    "No changes to point/level backend authority, per-character persistence, identity, profile data, or collectible ownership.",
+    "Normal small thumbnails stay memory-efficient; Expo image decode failure returns to existing renderer.",
+    "Ads, navigation, performance, audio, PTT, and production runtime/version identity are untouched."
+  ],
+  "acceptanceChecks": [
+    "Android enlarged Character view resolves the .android.tsx component and decodes full source without upscaling a previously downsampled bitmap.",
+    "Small Android preview/roster/card images retain existing lightweight path and identical R31 cropping.",
+    "Every 1-20 level remains mapped to its correct sprite cell for all five core characters.",
+    "Node regression contract, character release gate, TypeScript/Expo build and staging Android image review pass before production OTA.",
+    "Full-source sprite decode stays below device bitmap safety thresholds; no mass prefetch or 20-image batch decode.",
+    "Physical-device verification is not claimed; production remains unchanged until verified staging RC."
+  ],
+  "regressionTests": [
+    "tests/character-android-zoom-full-source-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New Android-specific Character image renderer changes the native decoded bitmap path only for enlarged previews.",
+      "preservedBehaviors": [
+        "No new native dependencies, runtime changes, production OTA, or unrelated screen changes."
+      ],
+      "tests": [
+        "tests/character-android-zoom-full-source-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Improve five core characters' Android zoom fidelity without altering Character authority, source artwork, 20-level crop, or unlock rules.",
+      "preservedBehaviors": [
+        "Preserve per-character XP, level and Circle Rank continuity and existing R31/R40 presentation contracts."
+      ],
+      "tests": [
+        "tests/character-android-zoom-full-source-20261116.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "Staging Android runtime 1.3.2; promote only after verified RC and mandatory gates.",
+  "publicationStatus": "DEV_PR_OPEN_NOT_STAGING_OR_PRODUCTION"
+}
