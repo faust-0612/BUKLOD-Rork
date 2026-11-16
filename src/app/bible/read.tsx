@@ -5,7 +5,7 @@ import MyBibleQuickNavigator from '@/components/bible/MyBibleQuickNavigator';
 import BuklodBibleScenicHeader from '@/components/bible/BuklodBibleScenicHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BuklodKjvStrongText from '@/components/bible/BuklodKjvStrongText';
-import { useBuklodBibleChapterStudy, getMatthewHenryPassage } from '@/lib/buklodBibleStudy';
+import { useBuklodBibleChapterStudy, getMatthewHenryPassage, chooseMatthewHenryVerse, getMatthewHenryReaderSelection } from '@/lib/buklodBibleStudy';
 import { useMatthewHenryTranslation, normalizeHenryLanguage } from '@/lib/buklodHenryTranslation';
 import { useBuklodScrollBottomInset } from '@/lib/buklodSafeArea';
 /**
@@ -406,7 +406,7 @@ const [showChapters, setShowChapters] =
 
 
   const isMyBibleMode =
-    bibleReaderSource === 'my_bible' || bibleReaderSource === 'search';
+    bibleReaderSource === 'my_bible' || bibleReaderSource === 'search' || bibleReaderSource === '';
 
   // Separate, non-blocking public-domain study data. The source cannot
   // affect daily assignment, narration, verses, notes or completion.
@@ -1357,7 +1357,7 @@ const [showChapters, setShowChapters] =
     );
 
 
-  const henryPassage = henryVerse === null ? null : getMatthewHenryPassage(bibleStudy, henryVerse);
+  const henryPassage = henryVerse === null ? null : getMatthewHenryReaderSelection(bibleStudy, henryVerse);
   const henryReaderLanguage = normalizeHenryLanguage(currentTranslation?.language_code, translation);
   const henryRequestedLanguage = henryShowOriginal ? 'en' : henryReaderLanguage;
   const henryTranslation = useMatthewHenryTranslation({
@@ -1368,6 +1368,24 @@ const [showChapters, setShowChapters] =
     text: henryPassage?.text ?? '',
     targetLanguage: henryRequestedLanguage,
   });
+
+  // Never claim a sparse Henry note covers an unrelated verse. The chapter
+  // button selects a verified passage, labeled related context or introduction.
+  const openMatthewHenry = (requestedVerse: number | null = null) => {
+    const verse = chooseMatthewHenryVerse(bibleStudy, requestedVerse);
+    if (verse === null) {
+      Alert.alert(
+        'Matthew Henry Commentary',
+        online
+          ? 'Wala pang na-load na na-verify na komentaryo para sa kabanatang ito. Subukan muli kapag available ang source.'
+          : 'Kailangan muna ng internet upang makuha ang komentaryo. Ang na-download na komentaryo ay maaari nang basahin offline.',
+      );
+      return;
+    }
+    setHenryShowOriginal(true);
+    setHenryAttributionOpen(false);
+    setHenryVerse(verse);
+  };
 
   // ==========================================================
   // INITIALIZE
@@ -2960,10 +2978,9 @@ setMarking(true);
 
 
   return (
+    <View style={shared.screen}>
     <ScrollView
-      style={
-        shared.screen
-      }
+      style={{ flex: 1 }}
       contentContainerStyle={[
         shared.content,
         styles.content,
@@ -2978,8 +2995,8 @@ setMarking(true);
           // Keep a slightly wider gutter in landscape for comfortable scanning.
           paddingHorizontal:
             bibleLandscape
-              ? 14
-              : 6,
+              ? 8
+              : 4,
           paddingBottom: readerScrollBottom,
         },
       ]}
@@ -3824,7 +3841,7 @@ setMarking(true);
       {!isMyBibleMode && <SectionTitle>READING</SectionTitle>}
 
 
-      <Card>
+      <Card style={styles.verseReaderCard}>
         <View
           style={
             styles.readingHeader
@@ -3909,11 +3926,7 @@ setMarking(true);
                       startVerseNo: passageVerseNo, books, continueNextBook: true,
                     }).catch(() => Alert.alert('Pakinggan', 'Hindi masimulan ang audio. Subukan muli.'));
                   }},
-                {key:'henry',icon:'book-open-outline',title:'Komento',action:() => {
-                  const first = bibleStudy.henryPassages[0]?.startVerse;
-                  if (first) { setHenryShowOriginal(true); setHenryAttributionOpen(false); setHenryVerse(first); }
-                  else Alert.alert('Matthew Henry', 'Walang available na na-verify na commentary sa kabanatang ito.');
-                }},
+                {key:'henry',icon:'book-open-outline',title:'Henry',action:() => openMatthewHenry(passageVerseNo)},
                 {key:'strong',icon:'link-variant',title:"Strong’s",action:() => {
                   if (translation !== 'KJV') changeTranslation('KJV');
                   else if (!Object.keys(bibleStudy.kjvStrong).length) Alert.alert("Strong’s Concordance", 'Wala pang available na tagged Strong’s references para sa kabanatang ito.');
@@ -3934,14 +3947,10 @@ setMarking(true);
             </View>
             <View style={{flexDirection:'row',gap:9,marginBottom:8}}>
               <Pressable accessibilityRole="button" accessibilityLabel="Komento sa Kabanata"
-                onPress={() => {
-                  const first = bibleStudy.henryPassages[0]?.startVerse;
-                  if (first) { setHenryShowOriginal(true); setHenryAttributionOpen(false); setHenryVerse(first); }
-                  else Alert.alert('Matthew Henry', 'Walang na-verify na chapter commentary sa source. Hindi tayo magpapakita ng inimbentong buod.');
-                }}
+                onPress={() => openMatthewHenry(passageVerseNo)}
                 style={{flex:1,minHeight:46,borderRadius:19,backgroundColor:'#EEF7DF',flexDirection:'row',alignItems:'center',justifyContent:'center',padding:7,gap:5}}>
                 <MaterialCommunityIcons name="play" size={17} color="#24583C" />
-                <Text style={{fontSize:11,fontWeight:'800',color:'#24583C'}}>Komento sa Kabanata</Text>
+                <Text style={{fontSize:11,fontWeight:'800',color:'#24583C'}}>Matthew Henry</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel="Mga Aral at Aplikasyon"
                 onPress={() => {
@@ -4398,7 +4407,7 @@ setMarking(true);
                     MATTHEW HENRY • COMMENTARY
                   </Text>
                   <Text style={{ color: '#20362B', fontSize: 18, fontWeight: '900' }}>
-                    {currentBook?.book_name ?? 'Bible'} {chapterNo}:{henryVerse}
+                    {currentBook?.book_name ?? 'Bible'} {chapterNo}{henryPassage?.startVerse === 0 ? ' · Panimula' : `:${henryVerse}`}
                   </Text>
                 </View>
                 <Pressable
@@ -4428,7 +4437,9 @@ setMarking(true);
               </View>
               <ScrollView contentContainerStyle={{ paddingBottom: 18 }}>
                 <Text style={{ color: '#56705E', fontSize: 12, lineHeight: 19, marginBottom: 10 }}>
-                  {henryPassage?.relation === 'context'
+                  {henryPassage?.startVerse === 0
+                    ? 'Panimula ni Matthew Henry sa kabanata. Hindi ito komentaryo sa isang partikular na talata.'
+                    : henryPassage?.relation === 'context'
                     ? `Kaugnay na komentaryo na nagsisimula sa talata ${henryPassage.startVerse}. Hindi kumpirmadong direktang paliwanag sa talata ${henryVerse}.`
                     : henryPassage?.endVerse !== henryPassage?.startVerse
                       ? `Orihinal na komentaryo para sa talata ${henryPassage?.startVerse}–${henryPassage?.endVerse}.`
@@ -5242,6 +5253,19 @@ setMarking(true);
         </>
       )}
     </ScrollView>
+    {isMyBibleMode && verses.length > 0 && (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Buksan ang Matthew Henry Commentary"
+        accessibilityHint="Buksan ang orihinal na komentaryo o panimula ng kabanata. Kailangan ng internet sa unang pag-load."
+        onPress={() => openMatthewHenry(passageVerseNo)}
+        style={styles.henryFloatingAction}
+      >
+        <MaterialCommunityIcons name="book-open-page-variant" size={19} color="#FFFFFF" />
+        <Text style={styles.henryFloatingLabel}>Matthew Henry</Text>
+      </Pressable>
+    )}
+    </View>
   );
 }
 
@@ -5328,7 +5352,7 @@ const styles =
     },
     content: {
       paddingBottom: 50,
-      gap: 14,
+      gap: 10,
     },
 
 
@@ -5599,17 +5623,48 @@ const styles =
     },
 
 
+    verseReaderCard: {
+      paddingHorizontal: 2,
+      paddingVertical: 5,
+      marginHorizontal: 0,
+      borderWidth: 0,
+      borderRadius: 0,
+    },
+
+    henryFloatingAction: {
+      position: 'absolute',
+      bottom: 12,
+      right: 10,
+      minHeight: 44,
+      paddingHorizontal: 13,
+      paddingVertical: 9,
+      borderRadius: 24,
+      backgroundColor: '#255F46',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      elevation: 5,
+      shadowColor: '#000000',
+      shadowOpacity: 0.16,
+      shadowRadius: 6,
+    },
+    henryFloatingLabel: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+
     verseList: {
-      paddingTop: 4,
+      paddingTop: 2,
     },
 
 
     verseRow: {
       flexDirection: 'row',
-      gap: 7,
-      paddingVertical: 7,
-      paddingHorizontal: 2,
-      borderRadius: 10,
+      gap: 5,
+      paddingVertical: 5,
+      paddingHorizontal: 0,
+      borderRadius: 4,
     },
 
 
