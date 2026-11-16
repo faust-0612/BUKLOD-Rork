@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   staging-android-only:
-    if: \${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/nov16-compact-art-staging132' }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/nov16-compact-art-staging132' }}
     runs-on: ubuntu-latest
     timeout-minutes: 65
     env:
@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -36,7 +36,7 @@ jobs:
           cache: npm
       - name: Require exact reviewed PR head and successful source CI
         env:
-          ACCESS_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -125,7 +125,7 @@ jobs:
           NODE
       - name: Verify existing signed staging APK and production baseline
         env:
-          EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -146,7 +146,7 @@ jobs:
           NODE
       - name: Expo Android Hermes preview export (exact release commit)
         env:
-          EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -165,7 +165,7 @@ jobs:
           test -s /tmp/buklod-compact-art-android/metadata.json
       - name: Idempotent publish to staging-user Android only
         env:
-          EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -189,7 +189,7 @@ jobs:
           npx --yes eas-cli@27.9.0 update:view "$(cat "$EVIDENCE_DIR/existing-group")" --json > "$EVIDENCE_DIR/update-view.json"
       - name: Verify staging manifest ID, exact runtime, and production unchanged
         env:
-          EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -217,7 +217,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: buklod-compact-art-staging-\${{ github.sha }}
+          name: buklod-compact-art-staging-${{ github.sha }}
           path: /tmp/buklod-compact-art-staging132/*.json
           retention-days: 14
           if-no-files-found: ignore
