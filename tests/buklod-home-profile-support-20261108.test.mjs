@@ -43,21 +43,23 @@ test('Sound styles and volume choices have actual local cue assets',()=>{
  for(const key of ['Preview selected style','Gentle','Celebration','Balanced','Quiet hours'])
    assert.ok(screen.includes(key),key);
 });
-test('Canonical Home uses square Bahay and Health Center cards, mobile and desktop',()=>{
- const hub=read('src/app/(tabs)/hub.tsx');
- const cards=read('src/components/home/BuklodHomeUtilityCards.tsx');
- assert.equal(hub.split('<BuklodHomeUtilityCards />').length-1,2);
- for(const key of ['paddingHorizontal: 0','/personal-home','/profile/buklod-health'])
-   assert.ok((hub+cards).includes(key),key);
- assert.match(cards,/minHeight: 180/,'cards remain usable and responsive');
- assert.match(hub,/borderRadius: buklodVisual.radius.card/,'public Hub uses standard rounded design tokens');
+test('Canonical Home retains Today and ads but moves house to Family and consultation to Health',()=>{
+  const hub=read('src/app/(tabs)/hub.tsx');
+  const cards=read('src/components/home/BuklodHomeUtilityCards.tsx');
+  const family=read('src/app/profile/buklod-family.tsx');
+  const health=read('src/app/profile/buklod-health.tsx');
+  assert.equal(hub.split('<BuklodHomeUtilityCards />').length-1,2);
+  assert.ok(cards.includes("Children's Story World"));
+  assert.ok(family.includes('/personal-home') && health.includes('Online Consultation'));
+  assert.ok(!cards.includes('My BUKLOD Home') && !cards.includes('Online Consultation'));
+  assert.ok(!hub.includes('BuklodKingdomHubCard'));
 });
 test('BUKLOD Today shows public Dugtong in-card with private and history controls',()=>{
  const screen=read('src/components/BuklodTodayCard.tsx');
  for(const key of ['get_buklod_today_tip_v2','react_to_buklod_today_tip_v2',
   'get_my_buklod_today_dugtong_history_v2','set_buklod_today_dugtong_visibility_v2',
-  'Continue reading','Save Dugtong','awarded_points','Claim your pending reward',
-  'Mga Dugtong ng Komunidad','Private · ikaw lang','Public · lahat',
+  'Basahin pa','I-save ang Dugtong','awarded_points','Claim your pending reward',
+  'Mga Dugtong','Private','Public',
   'list_buklod_today_dugtongs_v2','Tingnan pa ang mga Dugtong'])
   assert.ok(screen.includes(key),key);
  assert.ok(!screen.includes('Share to Wall'),'Dugtong must be published on this card, not Wall');

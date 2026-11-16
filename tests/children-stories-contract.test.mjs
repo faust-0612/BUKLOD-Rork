@@ -4,17 +4,18 @@ import { readFileSync } from 'node:fs';
 
 const file = path => readFileSync(new URL('../'+path, import.meta.url),'utf8');
 
-test('children story routes and discoverability integrate with existing BUKLOD Home without replacing other doors',()=>{
+test('children stories remain on Home and Family without duplicate household and Health cards',()=>{
   const home=file('src/components/home/BuklodHomeUtilityCards.tsx');
+  const family=file('src/app/profile/buklod-family.tsx');
+  const health=file('src/app/profile/buklod-health.tsx');
   const layout=file('src/app/_layout.tsx');
   const nav=file('src/lib/buklodNavigationV2.ts');
-  assert.match(home,/Children's Story World/);
-  assert.match(home,/router\.push\('\/children-stories'/);
-  assert.match(home,/Online Consultation/);
-  assert.match(home,/My BUKLOD Home/);
-  assert.match(layout,/children-stories\/index/);
-  assert.match(layout,/children-stories\/\[id\]/);
-  assert.match(nav,/id: 'stories'.*route: '\/children-stories'/);
+  assert.ok(home.includes("router.push('/children-stories'"));
+  assert.ok(family.includes("router.push('/personal-home'"));
+  assert.ok(health.includes('Online Consultation'));
+  assert.ok(!home.includes('Online Consultation') && !home.includes('My BUKLOD Home'));
+  assert.ok(layout.includes('children-stories/[id]'));
+  assert.ok(nav.includes("id: 'stories'"));
 });
 test('child-directed screens block all generic ads without disturbing unrelated ad rules',()=>{
   const source=file('src/lib/buklodGlobalAdController.ts');
