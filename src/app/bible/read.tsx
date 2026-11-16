@@ -2993,10 +2993,7 @@ setMarking(true);
 
           // Give Bible text and reader controls more usable width on phones.
           // Keep a slightly wider gutter in landscape for comfortable scanning.
-          paddingHorizontal:
-            bibleLandscape
-              ? 8
-              : 4,
+          paddingHorizontal: 0, // BIBLE_EDGE_TO_EDGE_R1
           paddingBottom: readerScrollBottom,
         },
       ]}
@@ -5624,16 +5621,17 @@ const styles =
 
 
     verseReaderCard: {
-      paddingHorizontal: 2,
-      paddingVertical: 5,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
       marginHorizontal: 0,
+      marginVertical: 0,
       borderWidth: 0,
       borderRadius: 0,
     },
 
     henryFloatingAction: {
       position: 'absolute',
-      bottom: 12,
+      bottom: 76, // BIBLE_HENRY_VISIBLE_R1: clear persistent bottom navigation
       right: 10,
       minHeight: 44,
       paddingHorizontal: 13,
@@ -5661,8 +5659,8 @@ const styles =
 
     verseRow: {
       flexDirection: 'row',
-      gap: 5,
-      paddingVertical: 5,
+      gap: 4,
+      paddingVertical: 2,
       paddingHorizontal: 0,
       borderRadius: 4,
     },
@@ -5675,7 +5673,7 @@ const styles =
 
 
     verseNumber: {
-      width: 25,
+      width: 21,
       paddingTop: 2,
       textAlign: 'right',
       fontSize: 9.5,
