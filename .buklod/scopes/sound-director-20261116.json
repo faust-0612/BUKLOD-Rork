@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "objective": "Audit Library sound effects and replace generic gameplay fallback across BP, Character, Circle Rank and Kingdom with already-pinned CC0 assets.",
-  "baseRef": "main",
+  "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
   "baselineSha": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
   "chosenApproach": "Surgical DEV routing using already-shipped licensed offline SFX; quarantine unlicensed source MP3.",
   "releaseState": "DEV_ONLY_NO_STAGING_OR_PRODUCTION_OTA",
@@ -91,7 +91,7 @@
     "character-recognition",
     "release-identity"
   ],
-  "productionBaselineEvidence": "Inspected GitHub production main exact SHA 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 (2026-11-16): existing CC0 Kingdom audio module, original notification-sounding game fallback, BP claim screen and Character/Circle Rank recognition. This is verified repository source evidence, not an assertion that a specific Android client currently has the new audio.",
+  "productionBaselineEvidence": "verified: GitHub main exact inspected source SHA 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 on 2026-11-16; the existing Kenney CC0 local asset map, fallback native gameplay sound, BP claim route, Character rank recognition, and exact pinned runtime 1.3.2 are documented at that SHA. This is a repository-source baseline only; current live Android OTA identity still requires independent production telemetry/manifest verification.",
   "selectionRationale": "Use existing locally vendored, SHA-pinned Kenney CC0 effects to deliver distinct short game and reward audio without paid synthesis, copyright exposure, asset streaming, native dependencies or economy changes. Keep users' settings and canonical server confirmations.",
   "acceptanceChecks": [
     "Library MP3 inventory and rights concerns documented; unlicensed audio and duplicate not shipped.",
