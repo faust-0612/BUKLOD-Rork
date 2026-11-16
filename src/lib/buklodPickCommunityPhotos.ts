@@ -1,5 +1,6 @@
 import { Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
@@ -13,6 +14,67 @@ export type PickedCommunityPhoto = {
   width?: number;
   height?: number;
 };
+
+
+/**
+ * Android Photo Picker can fail to launch on some devices. Retain the native
+ * picker first (photo/video metadata intact); try its legacy path on failure,
+ * then use Android's grant-scoped Files picker for photos.
+ *
+ * Files offers no verified video duration, so it must never be used to bypass
+ * the Community Wall video-duration contract. Web/iOS are unchanged.
+ */
+async function recoverAndroidCommunityLibrary(
+  originalError: unknown,
+  pickerOptions: ImagePicker.ImagePickerOptions,
+  remainingPhotos: number,
+): Promise<ImagePicker.ImagePickerResult> {
+  if (Platform.OS !== 'android') throw originalError;
+
+  try {
+    return await ImagePicker.launchImageLibraryAsync({
+      ...pickerOptions,
+      legacy: true,
+    });
+  } catch (legacyError) {
+    if (remainingPhotos <= 0) throw legacyError;
+
+    const documents = await DocumentPicker.getDocumentAsync({
+      type: 'image/*',
+      multiple: true,
+      copyToCacheDirectory: true,
+    });
+
+    if (documents.canceled || !documents.assets?.length) {
+      return { canceled: true, assets: null };
+    }
+
+    const photos: ImagePicker.ImagePickerAsset[] = documents.assets
+      .filter(asset => {
+        const mime = String(asset.mimeType ?? '').toLowerCase();
+        const name = String(asset.name ?? '').toLowerCase();
+        // Accept supported images only; never treat arbitrary file/video as photo.
+        return mime
+          ? /^image\/(jpeg|png|gif|webp|heic|heif|avif|bmp)$/.test(mime)
+          : /\.(jpe?g|png|gif|webp|heic|heif|avif|bmp)$/.test(name);
+      })
+      .filter(asset => Boolean(String(asset.uri ?? '').trim()))
+      .slice(0, remainingPhotos)
+      .map(asset => ({
+        uri: asset.uri,
+        width: 0,
+        height: 0,
+        type: 'image' as const,
+        fileName: asset.name,
+        mimeType: asset.mimeType ?? undefined,
+        fileSize: asset.size ?? undefined,
+      }));
+
+    return photos.length
+      ? { canceled: false, assets: photos }
+      : { canceled: true, assets: null };
+  }
+}
 
 export async function pickCommunityPhotos(options: {
   remaining: number;
@@ -43,14 +105,16 @@ export async function pickCommunityPhotos(options: {
     }
   }
 
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'] as any,
+  const pickerOptions: ImagePicker.ImagePickerOptions = {
+    mediaTypes: ['images'],
     allowsEditing: false,
     allowsMultipleSelection: true,
     selectionLimit: remaining,
     quality: 1, // Avoid a second lossy picker encode; encode once at publish.
     legacy: false,
-  });
+  };
+  const result = await ImagePicker.launchImageLibraryAsync(pickerOptions)
+    .catch(error => recoverAndroidCommunityLibrary(error, pickerOptions, remaining));
 
   if (result.canceled || !result.assets?.length) {
     return [];
@@ -106,8 +170,8 @@ export async function pickCommunityGallery(options: {
     }
   }
 
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images', 'videos'] as any,
+  const pickerOptions: ImagePicker.ImagePickerOptions = {
+    mediaTypes: ['images', 'videos'],
     allowsEditing: false,
     allowsMultipleSelection: true,
     selectionLimit: Math.max(
@@ -117,7 +181,9 @@ export async function pickCommunityGallery(options: {
     quality: 1, // Local preview first; resize/compress once at publish.
     videoMaxDuration: 30 * 60,
     legacy: false,
-  });
+  };
+  const result = await ImagePicker.launchImageLibraryAsync(pickerOptions)
+    .catch(error => recoverAndroidCommunityLibrary(error, pickerOptions, photoRemaining));
 
   if (result.canceled || !result.assets?.length) {
     return null;
