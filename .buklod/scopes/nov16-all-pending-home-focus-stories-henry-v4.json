@@ -38,7 +38,8 @@
     "All focused Node/Jest tests pass including ads/dashboard, Family role guard, Profile and Chapter stories.",
     "Staging-user Android 1.3.2 publish and independent update:view succeeds before production.",
     "Production publish requires distinct authorization, current live AdMob/nav regression evidence and independent manifest verification.",
-    "New combined Wall/Connect Notes and locked-avatar tests run at exact source SHA with existing 132-story, Henry, Profile and AdMob safeguards."
+    "New combined Wall/Connect Notes and locked-avatar tests run at exact source SHA with existing 132-story, Henry, Profile and AdMob safeguards.",
+    "Nonpublishing exact-SHA Android Expo JS export in existing Navigation V2 staging compile QA with all Nov16 focused coverage; skipped is not accepted as passed."
   ],
   "regressionTests": [
     "tests/bible-132-complete-storytelling-20261116.test.mjs",
@@ -128,7 +129,8 @@
     "src/components/ProfileAvatar.tsx",
     "src/components/connect/ConnectQuickContacts.tsx",
     "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
-    "tests/nov16-recent-completeness-staging132-r2.test.cjs"
+    "tests/nov16-recent-completeness-staging132-r2.test.cjs",
+    ".github/workflows/navigation-v2-staging-compile-qa.yml"
   ],
   "releaseTarget": "staging-user first; Android production only after verified staging RC",
   "runtimeVersion": "1.3.2",
