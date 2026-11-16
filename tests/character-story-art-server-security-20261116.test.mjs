@@ -10,7 +10,8 @@ const rubric=read('src/lib/buklodCharacterCollectionLogic.ts');
 
 test('public static-art bucket has no authenticated upload write grants',()=>{
  assert.match(sql,/buklod-character-art-v1/);
- assert.match(sql,/public=true/);
+ assert.match(sql,/values\('buklod-character-art-v1','buklod-character-art-v1',true,1048576/);
+ assert.match(sql,/on conflict\(id\) do nothing/);
  assert.match(sql,/1048576/);
  assert.doesNotMatch(sql,/create policy[\s\S]{0,140}for insert\s+to authenticated/i);
  assert.match(publisher,/SUPABASE_SERVICE_ROLE_KEY/);
@@ -29,6 +30,11 @@ test('server task ledger locks accounts and snapshots active character at event 
  assert.match(sql,/revoke all on private\.buklod_character_story_awards_v1 from public,anon,authenticated/i);
  assert.match(sql,/private\.buklod_character_selection_v2/);
  assert.match(sql,/after insert on private\.buklod_character_public_events_v3/i);
+ assert.match(sql,/after insert or update of claim_state on public\.buklod_points_ledger/i);
+ assert.match(sql,/private\.buklod_capture_verified_ledger_task_v1/);
+ assert.match(sql,/on conflict\(user_id,metric_key,source_table,source_id\) do update/i);
+ assert.match(sql,/verified=private\.buklod_character_task_events_v1\.verified or excluded\.verified/i);
+ assert.match(sql,/and verified=true/i);
  assert.match(sql,/on conflict do nothing/i);
 });
 test('Special inventory RPC cannot read another account or expose locked Special identity',()=>{
@@ -49,4 +55,20 @@ test('five independent per-character task slots, stage gate and verifiable owner
  assert.match(rubric,/storyItemTaskTarget/);
  assert.match(hub,/storyStageProgress/);
  assert.match(hub,/item\.owned&&Boolean\(item\.earned_at\)/);
+});
+
+test('Cross-feature task alternatives count only signed server-claimed BP credits',()=>{
+ assert.match(sql,/lower\(coalesce\(new\.direction,''\)\) <> 'credit'/);
+ assert.match(sql,/new\.points,0\)<=0/);
+ assert.match(sql,/new\.claim_state,''\)\)='claimed'/);
+ for(const name of ['daily_bible','devotional','abc_growth_lesson','learning_progress_verification',
+  'bible_quiz_easy','bible_quiz_medium','bible_quiz_hard','scope_attendance','prayer_response'])
+  assert.ok(sql.includes(name),'verified task signal missing: '+name);
+ for(const key of ['character_bible_reading','character_devotional','character_formation',
+  'character_quiz','character_attendance','character_prayer'])
+  assert.ok(sql.includes(key),'metric missing: '+key);
+ assert.match(sql,/v_posts>=c\.target or v_bible>=c\.target/);
+ assert.match(sql,/v_comments>=c\.target or \(v_formation\+v_devotional\)>=c\.target/);
+ assert.match(sql,/v_reactions>=c\.target or v_quiz>=c\.target/);
+ assert.match(sql,/v_shares>=c\.target or \(v_attendance\+v_prayer\)>=c\.target/);
 });
