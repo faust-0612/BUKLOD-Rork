@@ -468,6 +468,12 @@ export default function MeScreen() {
   const [profileLocked, setProfileLockedState] =
     useState(false);
   const [profileNote,setProfileNote] = useState('');
+  const profileNoteOwnerRef = useProfileScrollRef<string | null>(null);
+
+  useEffect(() => {
+    profileNoteOwnerRef.current = null;
+    setProfileNote('');
+  }, [profile?.id]);
 
   const [profileLockBusy, setProfileLockBusy] =
     useState(false);
@@ -476,13 +482,16 @@ export default function MeScreen() {
     useState(false);
 
   useProfileFocusEffect(useProfileFocusCallback(()=>{
-    let active=true;setProfileNote('');
+    let active=true;
     if(profile?.id){
       void (async()=>{
         try {
           const {data,error}=await (supabase as any).from('buklod_profile_status')
             .select('quick_note').eq('user_id',profile.id).maybeSingle();
-          if(active&&!error)setProfileNote(String(data?.quick_note??'').trim().slice(0,160));
+          if(active&&!error){
+            profileNoteOwnerRef.current=profile.id;
+            setProfileNote(String(data?.quick_note??'').trim().slice(0,160));
+          }
         } catch { /* Unknown/offline/private: do not invent note. */ }
       })();
     }
@@ -1133,17 +1142,31 @@ export default function MeScreen() {
 
   const [circleRank, setCircleRank] = useState<string | null>(null);
   const [rankPositions,setRankPositions] = useState<{overall:number|null;monthly:number|null}|null>(null);
+  const rankOwnerRef = useProfileScrollRef<string | null>(null);
+  const rankFetchedRef = useProfileScrollRef<{ owner: string; at: number }>({owner:'',at:0});
+  useEffect(() => {
+    rankOwnerRef.current = null;
+    rankFetchedRef.current = {owner:'',at:0};
+    setRankPositions(null);
+  }, [profile?.id]);
   // Reload canonical server Points standings whenever Profile becomes active.
   // A mounted tab is not necessarily a fresh tab: account changes, Points
   // claims and returning from a post can otherwise show the previous rank.
   useProfileFocusEffect(
     useProfileFocusCallback(() => {
       let active = true;
-      setRankPositions(null);
       if (profile?.id) {
+        const last = rankFetchedRef.current;
+        // Rapid tab switching should reuse the warm rank. Point changes
+        // revalidate on the next eligible focus without blanking the label.
+        if (last.owner === profile.id && Date.now() - last.at < 5_000) {
+          return;
+        }
         void loadBuklodPointsDashboard()
           .then(value => {
             if (active) {
+              rankOwnerRef.current = profile.id;
+              rankFetchedRef.current = {owner:profile.id,at:Date.now()};
               setRankPositions(value ? {
                 overall: value.all_time_rank,
                 monthly: value.monthly_rank,
@@ -1151,7 +1174,7 @@ export default function MeScreen() {
             }
           })
           .catch(() => {
-            if (active) setRankPositions(null);
+            // Keep the last authorized rank through a temporary outage.
           });
       }
       return () => { active = false; };
@@ -1767,7 +1790,7 @@ export default function MeScreen() {
                 >
                   {circleRank
                     ? `Circle Rank: ${circleRank}`
-                    : rankPositions?.overall != null && rankPositions.overall > 0
+                    : rankOwnerRef.current === profile?.id && rankPositions?.overall != null && rankPositions.overall > 0
                       ? `All-time Rank #${rankPositions.overall}`
                       : 'Rank not yet available'}
                 </Text>
@@ -1784,7 +1807,7 @@ export default function MeScreen() {
                 @{username}
               </Text>
             )}
-            {!!profileNote && (
+            {!!profileNote && profileNoteOwnerRef.current === profile?.id && (
               <Text allowFontScaling numberOfLines={2} style={styles.profileStatusText}>
                 {profileNote}
               </Text>

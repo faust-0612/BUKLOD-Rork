@@ -1,0 +1,112 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-staging-warm-notes-consolidated-20261116.json",
+  "objective": "Consolidate all latest canonical main BUKLOD app fixes with account-safe warm Notes and instant Connect/Profile/Wall navigation. Keep character Phan/Van saved XP (already merged into main), edge-to-edge Bible and visible Henry, stories, ads, notifications, and no regression. Release staging-user Android 1.3.2 first; production only after verified staging RC.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: historical production Android OTA update 01a1e10a-f043-7113-9a6c-673e91a58517, runtime 1.3.2, main SHA 3b488fa704b804f05c5a289a7e0775daeabb2404, run 43761675074. Current reviewed main 1c065cd4a1f575795f6fd0c12e1aa328f694ca4f contains both Nov16 Bible margin/Henry shortcut and Character persistence already; this manifest is source-only and requires independent current channel verification before any new staging/production publication.",
+  "chosenApproach": "Port only 8 warm navigation source files plus one focused test onto the canonical latest main that already includes approved Bible, Character, UI, Wall, Connect and ads. Do not cherry-pick Character SQL again; live Supabase migration was independently applied. Treat this PR as immutable staging RC proposal, verify exact source and stage first.",
+  "selectionRationale": "Blindly merging older staging branches would overwrite recent changes or cause duplication. The notes branch is non-overlapping with recent Character fix; the exact nine-file port retains canonical main as the single source of truth.",
+  "alternativeApproaches": [
+    "Publish older staging branches - rejected because versions diverge",
+    "Restart all previous changes - rejected due to duplicate fixes",
+    "Publish production first - rejected because release contract requires verified staging"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "release-identity",
+    "navigation-scroll",
+    "connect",
+    "auth-privacy",
+    "ads-monetization",
+    "wall-media",
+    "character-progression",
+    "data-integrity",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Android runtime 1.3.2, staging package org.mzbministry.buklod.staging, staging-user Expo channel and preview environment preserved; no native package or plugin changes.",
+    "Preserve previously verified production baseline and do not touch the production OTA or web until staging RC is independently verified and separately authorized.",
+    "No modifications of AdMob, ad consent, first-view/sponsored fill/prefetch, offscreen ad lifecycle, dashboard nav infrastructure or media player behavior.",
+    "Keep retired IGPAT absent from viewing/creation; preserve Wall/Marites, note expiry, private account/cache isolation and realtime unread counts.",
+    "Preserve all canonical main fixes: Matthew Henry visible reader/edge-to-edge Bible, 132 story dialogue, dark-mode contrast, contemporary Home/Profile/Connect UI, per-character Phan/Van saved XP.",
+    "Do not change deployed Supabase schema or reapply the Character migration; the private checkpoint source was already merged into main.",
+    "Owner skipped physical-device verification; do not represent it as completed.",
+    "Existing production signed client/runtime remains unchanged; any production OTA must use the exact staging-verified JS source."
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/profile/status.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodProfileActivityCards.tsx",
+    "src/components/BuklodProfilePostCards.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/lib/buklodMessagesStatusNote.ts",
+    "tests/nov16-warm-navigation-notes-contract.test.mjs",
+    ".buklod/scopes/nov16-staging-warm-notes-consolidated-20261116.json",
+    "tests/nov16-wall-connect-notes-warm-navigation.test.mjs",
+    ".github/workflows/buklod-nov16-current-staging-ota.yml",
+    "tests/nov16-current-staging-ota-release-identity.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Reconcile exact current main source and all current fixes without reverting existing Bible/Character/AdMob files.",
+    "Focused Notes navigation regressions, profile display and account-bound cache/privacy checks PASS.",
+    "Existing Character permanence, Bible/Henry, 132 children stories, Wall, scoped notes, dark mode, AdMob and dashboard regression tests PASS.",
+    "TypeScript noEmit and Android Hermes Expo export PASS from exact immutable source.",
+    "Build config verifies app package, installed staging APK version/runtime, Expo preview environment, and distinct staging-user vs production EAS branches.",
+    "Publish exactly once to staging-user and independently verify channel/update:view, runtime, Android manifest, source and production unchanged.",
+    "Only then promote exact stage-verified source to production through reviewed main with separate production gating and postpublish verification.",
+    "Staging release workflow must run only from reviewed main merge commit, immutable exact source and verified separate EAS channels."
+  ],
+  "regressionTests": [
+    "tests/nov16-warm-navigation-notes-contract.test.mjs",
+    "tests/nov16-wall-connect-notes-warm-navigation.test.mjs",
+    "tests/nov16-current-staging-ota-release-identity.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Scoped React Native warm caches prevent repeated content loads after tab switches",
+      "preservedBehaviors": [
+        "Native runtime and existing local account isolation are unchanged"
+      ],
+      "tests": [
+        "tests/nov16-warm-navigation-notes-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Wall Notes rail reuses visible avatars while moving between tabs",
+      "preservedBehaviors": [
+        "Community Wall images and video autoplay logic and ad lifecycles remain unchanged"
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Focus-only Connect refresh preserves the established navigation and user session",
+      "preservedBehaviors": [
+        "Realtime unread notifications and user-specific access boundaries remain unchanged"
+      ],
+      "tests": [
+        "tests/nov16-warm-navigation-notes-contract.test.mjs",
+        "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add staging-only publication with trusted main marker, exact RC source, runtime checks and independent EAS receipt",
+      "preservedBehaviors": [
+        "Only staging-user Expo channel can be updated; production and web stay untouched by this workflow"
+      ],
+      "tests": [
+        "tests/nov16-current-staging-ota-release-identity.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "Android staging-user 1.3.2, then separately gated production",
+  "runtimeVersion": "1.3.2",
+  "publicationStatus": "SOURCE_ONLY_UNTIL_CI_AND_OTA"
+}

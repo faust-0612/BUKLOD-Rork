@@ -1,4 +1,4 @@
-import React,{useCallback,useState} from 'react';
+import React,{useCallback,useRef,useState} from 'react';
 import {ActivityIndicator,Pressable,Text,View} from 'react-native';
 import {router,useFocusEffect} from 'expo-router';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
@@ -22,38 +22,65 @@ export default function BuklodProfileActivityCards({userId}:{userId:string}){
  const {user}=useAuth();const viewerId=user?.id??null;const {theme}=useBuklodTheme();
  const [activities,setActivities]=useState<Activity[]>([]);
  const [status,setStatus]=useState<'loading'|'ready'|'error'>('loading');
+ const ownerRef=useRef('');
+ const lastSyncedRef=useRef(0);
+
  useFocusEffect(useCallback(()=>{
-  let active=true;setActivities([]);
-  if(!viewerId||viewerId!==userId){setStatus('ready');return ()=>{active=false;};}
-  setStatus('loading');
+  let active=true;
+  if(!viewerId||viewerId!==userId){
+   ownerRef.current='';
+   lastSyncedRef.current=0;
+   setActivities([]);
+   setStatus('ready');
+   return ()=>{active=false;};
+  }
+  if(ownerRef.current!==viewerId){
+   ownerRef.current=viewerId;
+   lastSyncedRef.current=0;
+   setActivities([]);
+   setStatus('loading');
+  }
+  // Focus changes are not new activity. Keep the authorized rows painted
+  // and revalidate silently after this short freshness window.
+  if(lastSyncedRef.current && Date.now()-lastSyncedRef.current<12_000){
+   return ()=>{active=false;};
+  }
   void Promise.resolve(supabase.from('buklod_points_ledger')
    .select('id,description,activity_type,points,created_at')
    .eq('user_id',viewerId).eq('direction','credit')
    .order('created_at',{ascending:false}).limit(4))
    .then(({data,error})=>{
-    if(!active)return;
-    if(error){setStatus('error');return;}
+    if(!active||ownerRef.current!==viewerId)return;
+    if(error){
+      if(!lastSyncedRef.current)setStatus('error');
+      return;
+    }
     setActivities(Array.isArray(data)?data as Activity[]:[]);
+    lastSyncedRef.current=Date.now();
     setStatus('ready');
-   }).catch(()=>{if(active)setStatus('error');});
+   }).catch(()=>{
+    if(active&&ownerRef.current===viewerId&&!lastSyncedRef.current)setStatus('error');
+   });
   return ()=>{active=false;};
  },[viewerId,userId]));
+ const visibleActivities=ownerRef.current===viewerId?activities:[];
+ const visibleStatus=ownerRef.current===viewerId?status:'loading';
  if(!viewerId||viewerId!==userId)return null;
  return <View style={{marginHorizontal:12,marginTop:12,gap:9}}>
   <Text allowFontScaling style={{color:theme.textPrimary,fontSize:16,fontWeight:'900'}}>MY ACTIVITY & REPORTS</Text>
   <View style={{borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,borderRadius:16,padding:12,gap:9}}>
-   {(status!=='ready'||activities.length>0)?<Text allowFontScaling style={{color:theme.textPrimary,fontSize:14,fontWeight:'800'}}>Recent recorded activity</Text>:null}
-   {status==='loading'?<ActivityIndicator color={theme.accent}/>:null}
-   {status==='error'?<Text allowFontScaling style={{color:theme.textMuted,fontSize:13}}>Activity could not be loaded. Your records were not changed.</Text>:null}
+   {(visibleStatus!=='ready'||visibleActivities.length>0)?<Text allowFontScaling style={{color:theme.textPrimary,fontSize:14,fontWeight:'800'}}>Recent recorded activity</Text>:null}
+   {visibleStatus==='loading'?<ActivityIndicator color={theme.accent}/>:null}
+   {visibleStatus==='error'?<Text allowFontScaling style={{color:theme.textMuted,fontSize:13}}>Activity could not be loaded. Your records were not changed.</Text>:null}
    {/* No fabricated activity or empty-state placeholder. */}
-   {status==='ready'&&activities.map(row=><View key={row.id} style={{borderTopWidth:1,borderTopColor:theme.border,minHeight:44,paddingTop:8,flexDirection:'row',gap:8,alignItems:'center'}}>
+   {visibleStatus==='ready'&&visibleActivities.map(row=><View key={row.id} style={{borderTopWidth:1,borderTopColor:theme.border,minHeight:44,paddingTop:8,flexDirection:'row',gap:8,alignItems:'center'}}>
     <View style={{flex:1,minWidth:0}}>
      <Text allowFontScaling numberOfLines={2} style={{color:theme.textPrimary,fontWeight:'700',fontSize:13.5}}>{titleFor(row)}</Text>
      <Text allowFontScaling style={{color:theme.textMuted,fontSize:12}}>{dateFor(row.created_at)}</Text>
     </View>
     {Number.isFinite(Number(row.points))&&Number(row.points)>0?<Text allowFontScaling style={{color:theme.accent,fontWeight:'800',fontSize:13}}>+{Math.trunc(Number(row.points))} pts</Text>:null}
    </View>)}
-   {activities.length>0?<Pressable accessibilityRole="button" accessibilityLabel="See full personal Points record" onPress={()=>router.push('/points' as any)} style={{minHeight:44,justifyContent:'center'}}>
+   {visibleActivities.length>0?<Pressable accessibilityRole="button" accessibilityLabel="See full personal Points record" onPress={()=>router.push('/points' as any)} style={{minHeight:44,justifyContent:'center'}}>
     <Text allowFontScaling style={{color:theme.accent,fontWeight:'800',fontSize:13}}>See full Points record</Text>
    </Pressable>:null}
   </View>

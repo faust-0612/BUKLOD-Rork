@@ -1,4 +1,4 @@
-import React,{useCallback,useState} from 'react';
+import React,{useCallback,useRef,useState} from 'react';
 import {ActivityIndicator,Image,Pressable,Text,View} from 'react-native';
 import {router,useFocusEffect} from 'expo-router';
 import {useBuklodTheme} from '@/providers/BuklodThemeProvider';
@@ -10,14 +10,38 @@ export default function BuklodProfilePostCards({userId}:{userId:string}) {
  const {theme}=useBuklodTheme();
  const [posts,setPosts]=useState<MemberPublicPost[]>([]);
  const [loading,setLoading]=useState(true);
- // Refresh only while the owner is viewing Profile. Never resurrect a result
- // from a blurred tab or a previously signed-in account.
+ const ownerRef=useRef('');
+ const lastSyncRef=useRef(0);
+
+ // Focus is not a reason to erase an already painted post preview.
+ // Keep previous content during a silent refresh; a different account
+ // must never see a cached preview belonging to the prior account.
  useFocusEffect(useCallback(()=>{
-   let active=true;setPosts([]);setLoading(true);
-   void loadMemberCommunityPosts(userId,userId,3).then(rows=>{if(active)setPosts(rows);})
-     .catch(()=>{if(active)setPosts([]);}).finally(()=>{if(active)setLoading(false);});
+   let active=true;
+   if(ownerRef.current!==userId){
+     ownerRef.current=userId;
+     lastSyncRef.current=0;
+     setPosts([]);
+     setLoading(true);
+   }
+   if(lastSyncRef.current>0 && Date.now()-lastSyncRef.current<12_000){
+     return ()=>{active=false;};
+   }
+   void loadMemberCommunityPosts(userId,userId,3)
+     .then(rows=>{
+       if(active && ownerRef.current===userId){
+         setPosts(rows);
+         lastSyncRef.current=Date.now();
+       }
+     })
+     .catch(()=>{
+       // On a temporary failure retain the last authorized preview.
+     })
+     .finally(()=>{if(active && ownerRef.current===userId)setLoading(false);});
    return ()=>{active=false;};
  },[userId]));
+ const visiblePosts=ownerRef.current===userId?posts:[];
+ const initialLoading=ownerRef.current!==userId || (loading && lastSyncRef.current===0);
  return <View style={{marginHorizontal:buklodVisual.space.screen,marginTop:8,gap:7}}>
    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8}}>
      <Text allowFontScaling style={{color:theme.textPrimary,fontWeight:'900',fontSize:16}}>MY RECENT POSTS</Text>
@@ -27,9 +51,9 @@ export default function BuklodProfilePostCards({userId}:{userId:string}) {
        <Text allowFontScaling style={{color:theme.accent,fontWeight:'800'}}>See all →</Text>
      </Pressable>
    </View>
-   {loading?<ActivityIndicator color={theme.accent}/>:posts.length===0?
+   {initialLoading?<ActivityIndicator color={theme.accent}/>:visiblePosts.length===0?
      <Text allowFontScaling style={{color:theme.textMuted,fontSize:13}}>No recent posts to preview.</Text>:
-     posts.map(post=><Pressable key={post.id} accessibilityRole="button" accessibilityLabel="Open exact post card"
+     visiblePosts.map(post=><Pressable key={post.id} accessibilityRole="button" accessibilityLabel="Open exact post card"
        onPress={()=>router.push(('/post/'+encodeURIComponent(post.id)) as any)}
        style={{padding:10,borderRadius:13,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:6}}>
        {!!post.body&&<Text allowFontScaling numberOfLines={5}
