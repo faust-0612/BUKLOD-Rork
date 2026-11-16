@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-gallery-android-recovery-20261117.json",
+  "objective": "Recover Android Community Wall gallery launch failures without broad storage permissions and without mislabeling selected-video preparation failures as picker-launch failures.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Observed source baseline main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61, Expo runtime 1.3.2 from app.config.js. Source baseline is NOT production deployment evidence. No published OTA or device verification is claimed.",
+  "chosenApproach": "On Android only, try existing system ImagePicker first, then its legacy SAF-compatible picker; if both throw, use already installed DocumentPicker for supported photos only. Keep web user gesture and iOS permission behavior unchanged. Distinguish video prep from gallery-launch error while preserving selected photos.",
+  "selectionRationale": "Narrow shared Wall picker fix covers photo and mixed gallery callers, avoids requesting blocked READ_MEDIA_* permissions, and does not accept unverified-duration video files from the emergency Files fallback.",
+  "alternativeApproaches": [
+    "Request broad Android media permissions (rejected: unnecessary and harms privacy).",
+    "Use Files picker for videos without duration metadata (rejected: bypasses 30-minute Wall contract).",
+    "Replace image picker globally (rejected: cross-feature regression risk)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "community-wall-media",
+    "android-photo-selection",
+    "web-user-activation",
+    "selected-media-draft"
+  ],
+  "preserveBehaviors": [
+    "Android native Photo Picker remains primary and mixed photo/video mode remains available.",
+    "Android Files recovery uses grant-scoped image selection and existing upload conversion, with no new broad media permissions.",
+    "Web gallery still opens synchronously from a tap; iOS permission prompts remain unchanged.",
+    "Photo cap, 1-video Wall limit and 30-minute video duration contract remain unchanged.",
+    "Existing Community/Connect/ad/navigation interfaces and runtime 1.3.2 remain unchanged."
+  ],
+  "acceptanceChecks": [
+    "Review exact three source/test changes and this declaration only.",
+    "Run regression tests for web tap activation, Android fallback, MIME and video handling.",
+    "TypeScript check and applicable Wall/Navigation CI must pass on exact PR head.",
+    "Verify a staging Android OTA on existing runtime 1.3.2 before production release; owner actual-device check skipped by previous instruction.",
+    "No production OTA, Play/AAB, native build or Supabase changes from this PR."
+  ],
+  "allowedPaths": [
+    "src/lib/buklodPickCommunityPhotos.ts",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/wall-gallery-navigation-recovery-20261117.test.mjs",
+    ".buklod/scopes/wall-gallery-android-recovery-20261117.json"
+  ],
+  "regressionTests": [
+    "tests/wall-gallery-navigation-recovery-20261117.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Isolated Android Community Wall gallery recovery and accurate UI error categorization without changing runtime/native dependencies.",
+      "preservedBehaviors": [
+        "Existing Expo runtime 1.3.2, app tabs, AdMob and media publishing paths remain unchanged.",
+        "Android permissions remain restricted; photo/video selection limits and web picker flow preserved."
+      ],
+      "tests": [
+        "tests/wall-gallery-navigation-recovery-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "The Community Wall tab composer catches only its own video preparation failures while retaining existing navigation and login behavior.",
+      "preservedBehaviors": [
+        "Five-tab navigation, auth/session state and user-specific post composer remain unchanged.",
+        "No new route, login/permission bypass, external API, or background navigation work."
+      ],
+      "tests": [
+        "tests/wall-gallery-navigation-recovery-20261117.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_FIX__RC_NOT_VERIFIED__NO_OTA",
+  "releaseStatus": "PR source only. Mandatory CI, exact staging RC verification and release gates pending."
+}
