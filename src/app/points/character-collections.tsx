@@ -5,7 +5,7 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ActivityIndicator,Pressable,RefreshControl,ScrollView,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {router} from 'expo-router';
+import {router,useFocusEffect} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 import {
  CORE_CHARACTER_ORDER,SPECIAL_CHARACTER_ORDER,SPECIAL_REQUIRED_RANK_ORDER,
@@ -57,7 +57,12 @@ export default function CharacterCollectionsScreen(){
     setError(e instanceof Error?e.message:'Could not load Character progress.');}
   }finally{if(epoch===req.current)setBusy(false);}
  },[]);
- useEffect(()=>{void load();return()=>{req.current++;detailReq.current++;};},[load]);
+ /* Revalidate when returning from a real task, without blocking navigation or
+  * polling on unrelated tabs. The existing snapshot stays visible during refresh. */
+ useFocusEffect(useCallback(()=>{
+  void load();
+  return()=>{req.current++;detailReq.current++;};
+ },[load]));
  /* Auth state is not a collection entitlement: remove old-account data immediately
   * instead of waiting for another navigation/focus or a pending RPC to resolve. */
  useEffect(()=>{
