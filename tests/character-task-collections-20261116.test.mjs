@@ -44,7 +44,7 @@ test('Character saved levels and verified ownership remain separate from task ba
  assert.match(hub,/savedCharacterLevel\(selection.character_levels/);
  assert.match(logic,/item.redeemedAt/);
  assert.match(logic,/item.collectibleId/);
- assert.match(hub,/STORY OBJECT • NOT A VERIFIED AWARD/);
+ assert.match(hub,/AWARD STATUS UNAVAILABLE/);
  assert.match(hub,/get_my_buklod_special_collectibles_v2/);
  assert.match(special,/get_my_buklod_special_collectibles_v2/);
  assert.match(owned,/redeem_my_buklod_character_collectible_v1/);
@@ -63,4 +63,23 @@ test('Character hub is read-only, preserving BP, Shards and QMP separation',()=>
  assert.match(logic,/storyStageProgress/);
  assert.match(logic,/verifiedStoryKeys/);
  assert.match(logic,/describeCharacterTaskRequirement/);
+});
+
+test('Special Character story ownership is independently fetched and never inferred from badge count',()=>{
+ assert.match(hub,/get_my_buklod_character_story_tasks_v1/);
+ assert.match(hub,/Promise\.allSettled/);
+ assert.match(hub,/item\.owned&&Boolean\(item\.earned_at\)/);
+ assert.match(hub,/storyItemTaskTarget/);
+});
+test('Image publication and zoom are gated; no accidental heavy asset bundle or direct storage write',()=>{
+ const art=read('src/lib/buklodCharacterArt.ts');
+ const zoom=read('src/components/points/BuklodCharacterCollectibleZoom.tsx');
+ assert.match(art,/published-v1\.json/);
+ assert.match(art,/EXPECTED_COUNT = 1300/);
+ assert.match(art,/loadCharacterArtPublication/);
+ assert.match(zoom,/Gesture\.Pinch/);
+ assert.match(zoom,/Gesture\.Pan/);
+ assert.match(zoom,/cachePolicy="memory-disk"/);
+ assert.match(hub,/verifiedCharacterArtUrl/);
+ assert.match(zoom,/Source resolution limits detail|original collection-sheet resolution/);
 });
