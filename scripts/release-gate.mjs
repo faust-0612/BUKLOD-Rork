@@ -60,9 +60,9 @@ for (const file of requiredDocs) {
 
 /* BUKLOD_CHARACTER_CANONICAL_V2_RELEASE_LOCK
  * R31/R40 art may be recovered, but legacy progression authority must never be
- * recovered with it. Selection/reset authority remains server-backed V2:
- *   - selecting/changing Character starts the newly selected Character at L1
- *   - Character levels do not transfer
+ * recovered with it. Selection/persistence authority remains server-backed V2 RPCs:
+ *   - a never-used Character starts at Level 1, a returning Character resumes
+ *   - Character levels do not transfer and never reset on selection
  *   - Circle Points / Circle Rank remain intact
  *   - locked Special Characters remain hidden
  *   - Profile and the floating Character navigator render the V2 selection
@@ -79,8 +79,15 @@ const activeCharacterArt = read('src/components/points/BuklodActiveCharacterArt.
 const profileCharacterCard = read('src/components/points/BuklodProfileCharacterCard.tsx');
 const characterNavigator = read('src/components/points/BuklodCharacterNavigator.tsx');
 
-if (!characterSelection.includes('ATOMIC_RESET_LEVEL_1_V2')) {
-  failures.push('Character V2 atomic Level-1 reset contract is missing.');
+if (!characterSelection.includes('PER_CHARACTER_PERSISTED_V3') ||
+    !characterSelection.includes('character_levels')) {
+  failures.push('Persistent per-character server-level contract is missing.');
+}
+const characterProgressMigration = read('supabase/migrations/20261116044202_buklod_character_per_character_progress_v3.sql');
+if (!characterProgressMigration.includes('buklod_character_progress_v3') ||
+    !characterProgressMigration.includes('v_previous = v_character') ||
+    !characterProgressMigration.includes('earned_points')) {
+  failures.push('Server-side character-switch persistence migration is missing.');
 }
 if (!characterSelection.includes('CANONICAL_CIRCLE_RANK_PLUS_2_STEPS')) {
   failures.push('Canonical Circle Rank Special Character gate contract is missing.');
@@ -94,14 +101,11 @@ if (!progressiveCharacter.includes('setMyBuklodCharacterActiveV2')) {
 if (/levelForPoints\s*\(\s*lifetimePoints\s*\)/.test(progressiveSelector)) {
   failures.push('Legacy transferable lifetime-points Character leveling returned in R31 selector.');
 }
-// Canonical visual copy uses either phrasing; both visibly tell users that
-// switching Characters starts the selected Character at Level 1. The V2
-// server-level atomic reset contract above remains mandatory and unchanged.
-if (
-  !progressiveSelector.includes('starts at Level 1') &&
-  !progressiveSelector.includes('They start at Level 1.')
-) {
-  failures.push('R31 selector is missing the visible Level-1 reset rule.');
+// Preserve shipped R31/R40 visuals while backend returns the restored level
+// to the currently selected Character, already read from authoritative V2 state.
+if (!progressiveSelector.includes('state.character_level') ||
+    !progressiveSelector.includes('setMyBuklodCharacterActiveV2')) {
+  failures.push('R31 selector must render server-authoritative active character level.');
 }
 if (!specialSeries.includes('setMyBuklodCharacterActiveV2')) {
   failures.push('R40 Special Character activation is not delegated to V2/server authority.');

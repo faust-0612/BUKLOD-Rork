@@ -26,6 +26,7 @@ export type BuklodCharacterId =
 export type BuklodCharacterSelectionV2State = {
   active_character_id: BuklodCharacterId;
   character_level: number;
+  character_levels: Partial<Record<BuklodCharacterId, number>>;
   character_points_since_selection: number;
   baseline_lifetime_points: number;
   lifetime_points: number;
@@ -54,6 +55,7 @@ type ServerSelectionState = {
   circle_rank_name?: unknown;
   character_points_since_selection?: unknown;
   character_level?: unknown;
+  character_levels?: unknown;
   next_character_level_points?: unknown;
   base_character_ids?: unknown;
   special_characters?: unknown;
@@ -120,6 +122,8 @@ const ALL_CHARACTER_IDS = new Set<string>([
 
 const cache = new Map<string, BuklodCharacterSelectionV2State>();
 const inflight = new Map<string, Promise<BuklodCharacterSelectionV2State>>();
+// Invalidates a delayed read so it cannot repaint the previous character after a switch.
+const mutationEpoch = new Map<string, number>();
 const listeners = new Set<(
   userId: string,
   state: BuklodCharacterSelectionV2State,
@@ -221,6 +225,19 @@ function normalizeVisibleSpecials(row: ServerSelectionState) {
     .filter((id): id is BuklodSpecialCharacterId => Boolean(id));
 }
 
+function normalizeCharacterLevels(value: unknown): Partial<Record<BuklodCharacterId, number>> {
+  const levels: Partial<Record<BuklodCharacterId, number>> = {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return levels;
+  for (const [key, rawLevel] of Object.entries(value as Record<string, unknown>)) {
+    if (ALL_CHARACTER_IDS.has(key)) {
+      levels[key as BuklodCharacterId] = Math.max(
+        1, Math.min(20, Math.floor(Number(rawLevel) || 1)),
+      );
+    }
+  }
+  return levels;
+}
+
 function normalizeState(value: unknown): BuklodCharacterSelectionV2State {
   const row = (value ?? {}) as ServerSelectionState;
   const rawId = String(row.active_character_id ?? 'phan').toLowerCase();
@@ -228,12 +245,14 @@ function normalizeState(value: unknown): BuklodCharacterSelectionV2State {
     ALL_CHARACTER_IDS.has(rawId) ? rawId : 'phan'
   ) as BuklodCharacterId;
 
+  const level = Math.max(1, Math.min(20, Number(row.character_level ?? 1) || 1));
+  const levels = normalizeCharacterLevels(row.character_levels);
+  levels[active] = level;
+
   return {
     active_character_id: active,
-    character_level: Math.max(
-      1,
-      Math.min(20, Number(row.character_level ?? 1) || 1),
-    ),
+    character_level: level,
+    character_levels: levels,
     character_points_since_selection: Math.max(
       0,
       Number(row.character_points_since_selection ?? 0) || 0,
@@ -256,7 +275,7 @@ function normalizeState(value: unknown): BuklodCharacterSelectionV2State {
     ),
     visible_special_character_ids: normalizeVisibleSpecials(row),
     selection_model: String(
-      row.selection_model ?? 'ATOMIC_RESET_LEVEL_1_V2',
+      row.selection_model ?? 'PER_CHARACTER_PERSISTED_V3',
     ),
     special_gate_model: String(
       row.special_gate_model ?? 'CANONICAL_CIRCLE_RANK_PLUS_2_STEPS',
@@ -317,6 +336,7 @@ export async function getMyBuklodCharacterSelectionV2(
     if (cached) return cached;
   }
 
+  const requestEpoch = mutationEpoch.get(userId) ?? 0;
   const request = (async () => {
     const { data, error } = await (supabase as any).rpc(
       'get_my_buklod_character_selection_v2',
@@ -329,6 +349,9 @@ export async function getMyBuklodCharacterSelectionV2(
     }
 
     const state = normalizeState(data);
+    if ((mutationEpoch.get(userId) ?? 0) !== requestEpoch) {
+      return cache.get(userId) ?? state;
+    }
     publish(userId, state);
     return state;
   })();
@@ -350,6 +373,7 @@ export async function setMyBuklodCharacterActiveV2(
   }
 
   await ensureCharacterSession(userId);
+  mutationEpoch.set(userId, (mutationEpoch.get(userId) ?? 0) + 1);
   const { data, error } = await (supabase as any).rpc(
     'set_my_buklod_character_active_v2',
     { p_character_id: characterId },
@@ -360,6 +384,7 @@ export async function setMyBuklodCharacterActiveV2(
   }
 
   const state = normalizeState(data);
+  mutationEpoch.set(userId, (mutationEpoch.get(userId) ?? 0) + 1);
   publish(userId, state);
   return state;
 }

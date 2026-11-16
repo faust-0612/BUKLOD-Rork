@@ -1,5 +1,5 @@
-// A scoped non-visual client recovery may only use the *unchanged* Character
-// sources already successfully shipped in Android Production OTA #173.
+// A scoped non-visual client recovery preserves byte-identical Character art
+// and layout from Production OTA #173, while server selection logic may evolve.
 // This is not approval of drift from original R31/R40: dedicated Character
 // releases continue through the unmodified full canonical contract.
 const assert = require('node:assert/strict');
@@ -25,6 +25,7 @@ console.log('R31/R40 original-layout debt stays recorded in Character PR #277 an
 const selector = fs.readFileSync('src/components/points/BuklodProgressiveCharacterSelector.tsx','utf8');
 assert.match(selector,/They start at Level 1\./);
 const baseGate = fs.readFileSync('scripts/release-gate.mjs','utf8');
-assert.match(baseGate,/ATOMIC_RESET_LEVEL_1_V2/);
-assert.match(baseGate,/They start at Level 1\./);
-console.log('PASS: visible Level-1 explanation and atomic V2 reset assertions remain required.');
+assert.match(baseGate,/PER_CHARACTER_PERSISTED_V3/);
+assert.match(baseGate,/character_levels/);
+assert.doesNotMatch(baseGate,/Character V2 atomic Level-1 reset contract is missing/);
+console.log('PASS: shipped R31/R40 art intact; server-backed per-character XP restoration now replaces atomic V2 reset.');
