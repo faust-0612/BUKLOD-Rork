@@ -15,6 +15,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
+import BuklodCharacterMotion from '@/components/points/BuklodCharacterMotion';
 import BuklodProgressiveCharacterSelector from '@/components/points/BuklodProgressiveCharacterSelector';
 import BuklodSpecialCharacterSeries from '@/components/points/BuklodSpecialCharacterSeries';
 import { type BuklodCharacterState } from '@/lib/buklodCharacter';
@@ -141,6 +142,8 @@ export default function BuklodCharacterCustomizeSheet({
     [displayId],
   );
   const artKey = `${displayId ?? 'none'}-${displayLevel}`;
+  // The draft preview is intentionally not the saved active character.
+  const previewing = Boolean(state && (displayId !== state.active_character_id || displayLevel !== state.character_level));
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={closeSheet}>
@@ -178,10 +181,12 @@ export default function BuklodCharacterCustomizeSheet({
               </View>
             ) : null}
 
-            {state ? (
+            {visible && state ? (
               <>
                 <View style={styles.banner}>
                   <View style={styles.heroArt}>
+                    <BuklodCharacterMotion key={artKey} interactive mode="home"
+                      accessibilityLabel={`Greet ${activeName}. Tap to wave or double tap to celebrate.`}>
                     {showingCore ? (
                       <BuklodProgressiveCharacterArt
                         key={artKey}
@@ -202,14 +207,15 @@ export default function BuklodCharacterCustomizeSheet({
                         style={{ width: 88, height: 92 }}
                       />
                     ) : null}
+                    </BuklodCharacterMotion>
                   </View>
                   <View style={styles.heroMeta}>
-                    <Text style={styles.bannerKicker}>SHOWING NOW</Text>
+                    <Text style={styles.bannerKicker}>{previewing ? 'PREVIEWING' : 'SHOWING NOW'}</Text>
                     <Text style={styles.bannerTitle}>
-                      {showingCore ? 'FIVE' : showingSpecial ? 'EIGHT' : 'CHARACTER'}
+                      {activeName.toUpperCase()}
                     </Text>
                     <Text style={styles.bannerLine}>
-                      Same look on Profile and Home. Tap Use to keep this character.
+                      {previewing ? 'Preview only. Tap Use This Character to keep it; closing restores your saved look.' : 'Your active look on Home and Profile. Tap the character to wave.'}
                     </Text>
                     <Text style={styles.bannerName}>
                       {activeName} · Level {displayLevel}
@@ -311,9 +317,9 @@ const styles = StyleSheet.create({
   loadingBox: { minHeight: 120, alignItems: 'center', justifyContent: 'center', gap: 8 },
   loadingText: { fontSize: 11, fontWeight: '700', color: '#9AA6BD' },
   banner: {
-    marginTop: 12,
+    marginTop: 8,
     marginHorizontal: 14,
-    minHeight: 118,
+    minHeight: 128,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -326,8 +332,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroArt: {
-    width: 88,
-    height: 96,
+    width: 100,
+    height: 102,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -335,8 +341,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   heroMeta: { flex: 1, minWidth: 0 },
-  bannerKicker: { color: '#E8C56B', fontSize: 16, fontWeight: '900', letterSpacing: 0.4 },
-  bannerTitle: { marginTop: 2, color: '#F7F1DE', fontSize: 13, fontWeight: '800' },
+  bannerKicker: { color: '#E8C56B', fontSize: 13, fontWeight: '900', letterSpacing: 0.4 },
+  bannerTitle: { marginTop: 2, color: '#F7F1DE', fontSize: 19, fontWeight: '900' },
   bannerLine: { marginTop: 4, color: '#C9D2E3', fontSize: 11, fontWeight: '700' },
   bannerName: { marginTop: 6, color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   bannerRank: { marginTop: 2, color: '#9AA6BD', fontSize: 10, fontWeight: '700' },
