@@ -1,0 +1,160 @@
+# Exact-source Android staging RC QA only. This workflow MUST NOT publish an OTA.
+name: BUKLOD Nov16 Bible Fullwidth Android Staging RC QA R7 - NO PUBLISH
+on:
+  push:
+    branches: [release/nov16-bible-fullwidth-staging-qa-r7]
+    paths:
+      - '.github/workflows/buklod-nov16-bible-fullwidth-staging-qa-r7.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-nov16-bible-fullwidth-stage132-qa-r7
+  cancel-in-progress: false
+jobs:
+  validate-android-staging-rc:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/nov16-bible-fullwidth-staging-qa-r7' && startsWith(github.event.head_commit.message, 'BUKLOD_NOV16_BIBLE_FULLWIDTH_STAGE132_R7_QA:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      SOURCE_SHA: eb6766d961791d73acefff11717dde1dfe2692d1
+      BASE_SHA: 0f8e8a6a3747e882870d1accada9c136c8f35548
+      STAGE_PREVIOUS: 01a1e29a-e0ce-7b99-b215-ae5bf4035835
+      PROD_PREVIOUS: 01a1e10a-f043-7113-9a6c-673e91a58517
+      EVIDENCE_DIR: /tmp/buklod-nov16-bible-fullwidth-r7-evidence
+      EXPORT_DIR: /tmp/buklod-nov16-bible-fullwidth-r7-export
+    steps:
+      - name: Checkout exact tested source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Require unchanged reviewed R7 candidate and safe native configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$SOURCE_SHA"
+          test "$(git rev-parse HEAD:src)" = 'c4e8f4230913dc67579bcfc12a6662e1cbddc9e1'
+          test "$(git rev-parse HEAD:assets)" = '25b99bad7b12fea25ac73ec3be703e8cdd7c5b9b'
+          test "$(git rev-parse HEAD:app.config.js)" = "$(git rev-parse "$BASE_SHA:app.config.js")"
+          test "$(git rev-parse HEAD:eas.json)" = "$(git rev-parse "$BASE_SHA:eas.json")"
+          test "$(git rev-parse HEAD:package-lock.json)" = "$(git rev-parse "$BASE_SHA:package-lock.json")"
+          test "$(git diff --name-only "$SOURCE_SHA" HEAD | wc -l)" -eq 1
+          test "$(git diff --name-only "$SOURCE_SHA" HEAD)" = '.github/workflows/buklod-nov16-bible-fullwidth-staging-qa-r7.yml'
+          node - <<'NODE'
+          const a=require('node:assert/strict');
+          const c=require('./app.config.js')({config:{}}),e=require('./eas.json');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.equal(e.build['staging-user'].channel,'staging-user');
+          a.equal(e.build.production.channel,'production');
+          NODE
+      - name: Revalidate Bible, AdMob, scroll, source attribution and compilation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test \
+            tests/nov16-bible-henry-edge-to-edge-r1.test.mjs \
+            tests/bible-henry-edge-to-edge-20261116.test.cjs \
+            tests/bible-reader-safearea-commentary.test.cjs \
+            tests/bible-study-sources.test.cjs \
+            tests/bible-henry-semantic-safety-20261116.test.cjs \
+            tests/henry-natural-filipino-20261116.test.cjs \
+            tests/bible-dark-mode-20261116.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/buklod-ads-production-release-contract-20261111.test.mjs \
+            tests/buklod-admob-fill-finance-release-20261111.test.mjs \
+            tests/navigation-video-scroll-stop-20261114.test.mjs
+          npx tsc --noEmit
+          node scripts/buklod-ad-surface-audit.mjs --summary
+      - name: Read-only authenticated signed APK and current Expo staging-production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/stage-channel.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/prod-channel.json"
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict';import fs from 'node:fs';
+          import {manifest,verifyBuild,verifyChannels} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const dir=process.env.EVIDENCE_DIR;
+          verifyBuild(JSON.parse(fs.readFileSync(dir+'/build.json','utf8')));
+          verifyChannels(JSON.parse(fs.readFileSync(dir+'/stage-channel.json','utf8')),JSON.parse(fs.readFileSync(dir+'/prod-channel.json','utf8')));
+          const [stage,prod]=await Promise.all([manifest('staging-user'),manifest('production')]);
+          a.equal(stage.id,process.env.STAGE_PREVIOUS,'Staging advanced: reconcile before any OTA');
+          a.equal(prod.id,process.env.PROD_PREVIOUS,'Production advanced: reconcile before any OTA');
+          a.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          a.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          console.log('READ_ONLY_PREVIEW_RELEASE_BASELINE',JSON.stringify({stage:stage.id,production:prod.id,runtime:'1.3.2'}));
+          NODE
+      - name: Build exact Android Hermes preview RC without uploading or publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path "$EVIDENCE_DIR/preview.env" --non-interactive >/dev/null
+          test -s "$EVIDENCE_DIR/preview.env"
+          set -a
+          . "$EVIDENCE_DIR/preview.env"
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > "$EVIDENCE_DIR/app-config.json"
+          node - <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const c=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/app-config.json','utf8'));
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.match(process.env.EXPO_PUBLIC_SUPABASE_URL||'',/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          a.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir "$EXPORT_DIR" --clear
+          test -s "$EXPORT_DIR/metadata.json"
+          node - <<'NODE'
+          const fs=require('node:fs'),crypto=require('node:crypto'),path=require('node:path');
+          const meta=JSON.parse(fs.readFileSync(process.env.EXPORT_DIR+'/metadata.json','utf8'));
+          const rel=meta.fileMetadata?.android?.bundle;
+          if(!rel)throw Error('No Android Hermes bundle in frozen RC');
+          const buf=fs.readFileSync(path.join(process.env.EXPORT_DIR,rel));
+          const receipt={status:'STAGING_RC_QA_PASS_NO_PUBLISH',source:process.env.SOURCE_SHA,release:process.env.GITHUB_SHA,runtime:'1.3.2',channel:'staging-user',platform:'android',bundleSha256:crypto.createHash('sha256').update(buf).digest('hex'),previousStagingUpdate:process.env.STAGE_PREVIOUS,previousProductionUpdate:process.env.PROD_PREVIOUS,deviceAcceptance:'SKIPPED_BY_OWNER'};
+          fs.writeFileSync(process.env.EVIDENCE_DIR+'/rc-receipt.json',JSON.stringify(receipt,null,2)+'\n');
+          console.log('FROZEN_ANDROID_RC_QA',JSON.stringify(receipt));
+          NODE
+      - name: Confirm neither staging nor production was modified by this QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict';
+          import {manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const [stage,prod]=await Promise.all([manifest('staging-user'),manifest('production')]);
+          a.equal(stage.id,process.env.STAGE_PREVIOUS);
+          a.equal(prod.id,process.env.PROD_PREVIOUS);
+          console.log('NO_OTA_PUBLISHED_STAGING_PRODUCTION_UNCHANGED');
+          NODE
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Keep only non-sensitive frozen RC identity receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov16-bible-r7-staging-rc-qa-only
+          path: /tmp/buklod-nov16-bible-fullwidth-r7-evidence/rc-receipt.json
+          retention-days: 14
+          if-no-files-found: ignore
