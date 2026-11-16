@@ -30,7 +30,8 @@
     "Do not restore retired IGPAT or duplicate Kingdom on Home.",
     "Keep personal Family Home separate from role-gated Family workspace.",
     "Never publish production before verified exact-sha staged OTA RC, focused tests, Android bundle and published manifest readback.",
-    "Preserve existing locked-profile private-data restrictions, 24-hour note expiration, avatar batching and Theme dark contrast in Wall, scoped Community and post details."
+    "Preserve existing locked-profile private-data restrictions, 24-hour note expiration, avatar batching and Theme dark contrast in Wall, scoped Community and post details.",
+    "Keep Wall media and AdMob source unchanged outside the exact reviewed new note and avatar placement files."
   ],
   "acceptanceChecks": [
     "Reconcile all changed source against main; no deleted or changed protected backend/native files.",
@@ -121,7 +122,6 @@
     "tests/public-hub-kingdom-card-20261110.test.mjs",
     "tests/wall-media-navigation-polish-20261108.test.mjs",
     ".buklod/scopes/nov16-all-pending-home-focus-stories-henry-v4.json",
-    ".buklod/scopes/nov16-all-recent-fixes-wall-notes-868-r2.json",
     "src/app/(tabs)/buklod.tsx",
     "src/app/member/[id].tsx",
     "src/app/post/[id].tsx",
@@ -204,6 +204,17 @@
       ],
       "tests": [
         "tests/kingdom-native-cinematic-ota-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Backport the missing reviewed Wall and Connect note rendering, themed post details and privacy-locked public avatar without touching media playback or ad lifecycle.",
+      "preservedBehaviors": [
+        "Keep existing video playback lifecycle, photo/media rendering, public and scoped Wall permissions, 24-hour note expiry and all installed ad placement guards unchanged."
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+        "tests/nov16-recent-completeness-staging132-r2.test.cjs"
       ]
     }
   ]

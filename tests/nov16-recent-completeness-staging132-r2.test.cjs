@@ -46,8 +46,9 @@ test('Locked avatar remains visible without disabling the private member content
 });
 
 test('No changes to production channels, AdMob controller or navigation policies in this scoped release',()=>{
-  const release=JSON.parse(read('.buklod/scopes/nov16-all-recent-fixes-wall-notes-868-r2.json'));
-  assert.match(release.baseRef,/^e1e85137/);
+  const release=JSON.parse(read('.buklod/scopes/nov16-all-pending-home-focus-stories-henry-v4.json'));
+  assert.equal(release.baseRef,'main');
+  assert.ok(release.lockedFeatureChanges.some(x=>x.id==='wall-media'));
   for(const changed of release.allowedPaths) {
     assert.doesNotMatch(changed,/adController|AdMob|app\.config|android\//i);
   }
