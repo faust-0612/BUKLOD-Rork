@@ -96,6 +96,8 @@
     "cluster-scope-authorization",
     "comment-list-late-hydration",
     "media-and-navigation-performance",
-    "regression-governance"
+    "regression-governance",
+    "wall-media",
+    "navigation-scroll"
   ]
 }
