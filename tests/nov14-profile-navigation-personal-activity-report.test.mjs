@@ -18,7 +18,9 @@ test('private activity remains account-owned and bounded; no public or admin byp
  assert.match(activity,/\.eq\('user_id',viewerId\)/);
  assert.match(activity,/\.eq\('direction','credit'\)/);
  assert.match(activity,/\.limit\(4\)/);
- assert.match(activity,/if\(!active\)return/);
+ assert.match(activity,/if\(!active\|\|ownerRef\.current!==viewerId\)return/);
+ assert.match(activity,/const visibleActivities=ownerRef\.current===viewerId\?activities:\[\]/);
+ assert.match(activity,/if\(ownerRef\.current!==viewerId\)/);
  assert.match(activity,/return \(\)=>\{active=false;\}/);
  assert.doesNotMatch(activity,/service_role|SUPABASE_SERVICE_ROLE/);
 });
