@@ -1018,12 +1018,20 @@ export default function BuklodExclusiveScopeCommunity({
           void previewPromise
             .then(previews => {
               if (scopeMediaLoadSeqRef.current !== loadSeq) return;
-              setPosts(previous => previous.map(post => {
-                const id = String(post.id);
-                const latest = requestedCommentIds.has(id) ? previews[id] : null;
-                if (!latest || post.comment_preview?.comment_id === latest.comment_id) return post;
-                return { ...post, comment_preview: latest };
-              }));
+              setPosts(previous => {
+                let changed = false;
+                const updated = previous.map(post => {
+                  const id = String(post.id);
+                  const latest = requestedCommentIds.has(id) ? previews[id] : null;
+                  const old = post.comment_preview;
+                  if (!latest || (old?.comment_id === latest.comment_id &&
+                    old?.body === latest.body && old?.author_name === latest.author_name &&
+                    old?.created_at === latest.created_at)) return post;
+                  changed = true;
+                  return { ...post, comment_preview: latest };
+                });
+                return changed ? updated : previous;
+              });
             })
             .catch(error => console.warn('Scoped comment hydration:', error?.message ?? error));
         }
@@ -2704,9 +2712,11 @@ export default function BuklodExclusiveScopeCommunity({
       // Refresh only this post's visible preview after a confirmed comment.
       void fetchBuklodPostCommentPreviews([postId], [postId])
         .then(previews => {
-          if (commentActivePostRef.current !== postId || !previews[postId]) return;
+          if (!previews[postId]) return;
           setPosts(current => current.map(post =>
-            post.id === postId ? { ...post, comment_preview: previews[postId] } : post
+            post.id === postId && post.scope_id === scope.scope_id
+              ? { ...post, comment_preview: previews[postId] }
+              : post
           ));
         })
         .catch(error => console.warn('Scoped new comment preview:', error?.message ?? error));
