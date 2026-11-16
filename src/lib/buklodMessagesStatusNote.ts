@@ -26,6 +26,7 @@ function isMissingRpcError(message: string) {
 // Notes are cached per signed-in user, never globally, to prevent account bleed
 // when a user switches accounts without restarting the native process.
 const NOTE_WARM_MS = 30_000;
+const MAX_WARM_NOTE_USERS = 8;
 const noteMemory = new Map<string, { value: MessagesStatusNote | null; at: number }>();
 const noteInFlight = new Map<string, Promise<MessagesStatusNote | null>>();
 const noteVersions = new Map<string, number>();
@@ -39,7 +40,14 @@ export function subscribeMessagesStatusNote(
 }
 
 function publishNote(userId: string, note: MessagesStatusNote | null) {
+  // LRU-bound the small memory cache; it must not grow with account changes.
+  noteMemory.delete(userId);
   noteMemory.set(userId, { value: note, at: Date.now() });
+  while (noteMemory.size > MAX_WARM_NOTE_USERS) {
+    const oldest = noteMemory.keys().next().value;
+    if (!oldest) break;
+    noteMemory.delete(oldest);
+  }
   for (const listener of noteListeners) listener(userId, note);
 }
 
