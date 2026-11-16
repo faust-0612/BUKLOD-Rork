@@ -20,6 +20,9 @@ test('public static-art bucket has no authenticated upload write grants',()=>{
  assert.ok(publisher.includes('verifyRemoteCounts(client,manifest.items)'));
  assert.match(publisher,/MARKER,new TextEncoder/);
  assert.match(art,/published-v1\.json/);
+ assert.match(art,/EXPECTED_MANIFEST_SHA256/);
+ assert.ok(art.includes('2ebe18177a1a0ec38718de5ca3bb0042f6b9b36374b4b1264946c12abf8704da'));
+ assert.ok(art.includes('x.manifest_sha256===EXPECTED_MANIFEST_SHA256'));
 });
 test('server task ledger locks accounts and snapshots active character at event arrival',()=>{
  assert.match(sql,/primary key\(user_id,metric_key,source_table,source_id\)/i);

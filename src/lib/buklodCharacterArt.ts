@@ -11,6 +11,8 @@ export const CHARACTER_ART_BUCKET = 'buklod-character-art-v1';
 export const CHARACTER_ART_PUBLICATION_MARKER = 'published-v1.json';
 const EXPECTED_CATALOGUE = 'BUKLOD_CHARACTER_R31_R40_1300';
 const EXPECTED_COUNT = 1300;
+// Owner-approved manifest digest; reject other 1,300-item marker versions.
+const EXPECTED_MANIFEST_SHA256 = '2ebe18177a1a0ec38718de5ca3bb0042f6b9b36374b4b1264946c12abf8704da';
 const REFRESH_AFTER_MS = 10 * 60 * 1000;
 const RETRY_AFTER_FAILURE_MS = 60 * 1000;
 const OFFLINE_ART_KEY='buklod:verified-character-art:v1';
@@ -28,7 +30,7 @@ function isValidMarker(input:unknown):boolean {
  if(!input||typeof input!=='object'||Array.isArray(input))return false;
  const x=input as Record<string,unknown>;
  return x.version===1 && x.total===EXPECTED_COUNT && x.catalogue_version===EXPECTED_CATALOGUE
-  && typeof x.manifest_sha256==='string' && /^[a-f0-9]{64}$/i.test(x.manifest_sha256)
+  && x.manifest_sha256===EXPECTED_MANIFEST_SHA256
   && x.ready===true;
 }
 export function getCachedCharacterArtPublication() {return latest;}
