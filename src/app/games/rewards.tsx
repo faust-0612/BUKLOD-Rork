@@ -171,10 +171,20 @@ export default function KingdomRewardsScreen() {
         <MaterialCommunityIcons name="shield-check-outline" size={22} color="#9ce0c2"/>
         <Text style={s.infoText}>1 Shard per first verified game Mastery; 2 per first claimed Character collectible. Replays never award more. Existing eligible achievements count when the wallet syncs.</Text>
       </View>
+      <View style={s.howToEarn}>
+        <Text style={s.howTitle}>HOW TO EARN • 100% GAME-ONLY</Text>
+        <Text style={s.howBody}>+1 Shard for the first server-verified Mastery of each eligible game. +2 Shards for each newly claimed, server-confirmed Character relic. Replays and repeat claims do not pay again.</Text>
+        <Text style={s.howCaution}>These four powers belong to your account forever. They cannot be transferred or traded. Future trades will involve separate, verified duplicate cosmetic materials only.</Text>
+      </View>
       <Text style={s.sectionTitle}>PERMANENT GAME UNLOCKS</Text>
       {KINGDOM_SHARD_ITEMS.map(item=>{
         const owned=snapshot.ownedItems.includes(item.key);
         const canBuy=uid&&snapshot.source==='server'&&!busy&&!owned&&snapshot.balance>=item.price;
+        const requirement=owned?'Unlocked permanently'
+          :snapshot.source==='cached'?'Reconnect for verified purchase'
+          :snapshot.source==='unavailable'?'Verify your wallet online'
+          :snapshot.balance>=item.price?'Ready to unlock • '+item.price+' Shards'
+          :'Earn '+(item.price-snapshot.balance)+' more verified Shards';
         return <View key={item.key} style={s.item}>
           <View style={s.iconHolder}>
             <MaterialCommunityIcons name={icons[item.key]} size={30} color={COLORS.gold}/>
@@ -182,7 +192,9 @@ export default function KingdomRewardsScreen() {
           <View style={{flex:1,minWidth:0,gap:5}}>
             <Text style={s.itemTitle}>{item.name}</Text>
             <Text style={s.desc}>{item.description}</Text>
-            <Text style={s.small}>Permanent • Offline practice only • No BP advantage</Text>
+            <Text style={s.small}>USE • {item.key==='aura_emerald'?'Kingdom hero card': 'Free Kingdom practice challenges'}</Text>
+            <Text style={s.itemRequirement}>REQUIREMENT • {requirement}</Text>
+            <Text style={s.itemTrade}>ACCOUNT-BOUND • NOT TRADEABLE • NO BP ADVANTAGE</Text>
           </View>
           <View style={s.right}>
             <Text style={s.price}>{item.price} <MaterialCommunityIcons name="diamond-stone" size={13}/></Text>
@@ -239,6 +251,12 @@ const s=StyleSheet.create({
     gap:8,backgroundColor:'#207f4c',borderRadius:12,paddingHorizontal:12},
   journeyBadgeLabel:{fontSize:11,fontWeight:'900',color:'#f4fff0',flex:1,textAlign:'center'},
   journeyDisclaimer:{color:'#c1d9c8',fontSize:10,lineHeight:15},
+  howToEarn:{gap:7,padding:13,backgroundColor:'#19443f',borderRadius:15,borderWidth:1,borderColor:'#4b9d7a'},
+  howTitle:{fontSize:12,fontWeight:'900',letterSpacing:.6,color:'#e8e4a9'},
+  howBody:{fontSize:11,lineHeight:17,color:'#f2fff5'},
+  howCaution:{fontSize:10,lineHeight:16,color:'#c4e5d5'},
+  itemRequirement:{fontSize:10,lineHeight:15,fontWeight:'800',color:'#b6efc7'},
+  itemTrade:{fontSize:9,lineHeight:14,fontWeight:'800',color:'#d0e7db'},
   info:{flexDirection:'row',gap:10,padding:13,borderRadius:13,backgroundColor:'#184644'},
   infoText:{flex:1,color:'#dcf3e9',fontSize:12,lineHeight:18},
   sectionTitle:{color:COLORS.gold,fontWeight:'900',fontSize:14,letterSpacing:.8},

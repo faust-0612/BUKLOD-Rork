@@ -14,6 +14,7 @@ import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 import { maybeShowBuklodInterstitial, warmBuklodInterstitial } from '@/lib/buklodAds';
 import KingdomRelicEmblem, { kingdomFinishLabel } from '@/features/games/kingdom/KingdomRelicEmblem';
 import KingdomBadgeTrials from '@/features/games/kingdom/KingdomBadgeTrials';
+import { characterRelicRequirement, getKingdomRelicGuide } from '@/lib/buklodKingdomRewardGuide';
 import { emptyKingdomShards, getMyKingdomShards, hasKingdomPower, type KingdomShardsSnapshot } from '@/lib/buklodKingdomShards';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
@@ -380,7 +381,12 @@ export default function KingdomLegacyScreen() {
             <Text style={s.sectionHint}>{collection ? acquired.length + ' claimed' : 'Server-verified items'}</Text>
           </View>
           {core ? <>
-            <Text style={s.description}>Each item belongs to your current hero. Claim and show it to add its existing visual, profile or character effect. Other equipment types do not alter BP or rank.</Text>
+            <View style={s.guidePanel}>
+              <Text style={s.guideTitle}>HOW TO EARN YOUR LEGACY</Text>
+              <Text style={s.guideCopy}>1. Grow this hero's own verified level. 2. Claim one of five story relics from a reached level. 3. Equip it here to display its collectible effect. A first verified claim can earn 2 game-only Shards in the server wallet.</Text>
+              <Text style={s.guideCopy}>CLAIMED RELIC → unlocks an optional 3/3 skill trial. Passing the trial is practice mastery saved on this device, not another credit or verified lifetime badge.</Text>
+              <Text style={s.guideBound}>PERSONAL LEGACY • Rank badges and these level relics cannot be traded or transferred.</Text>
+            </View>
             <View style={s.collection}>
               {itemNames.map((name, i) => {
                 const index = i + 1;
@@ -388,6 +394,13 @@ export default function KingdomLegacyScreen() {
                 const unlocked = isCollectibleLevelOpen(collection, level);
                 const equipped = Boolean(item && isCollectibleShown(item, collection));
                 const disabled = !collection || !unlocked || Boolean(busyKey);
+                const guide = getKingdomRelicGuide(item?.rewardKind, index);
+                const required = characterRelicRequirement({
+                  requiredLevel:level, currentLevel:collection?.characterLevel ?? level,
+                  characterName:CHARACTER_DISPLAY_NAME[core],
+                  serverVerifiedActive:collection ? collection.isActiveCharacter : null,
+                });
+                const claimed = Boolean(item?.redeemedAt);
                 return <View key={core + ':' + level + ':' + index} style={s.itemRow}>
                   <View style={s.itemIcon}>
                     <KingdomRelicEmblem index={index} level={level}
@@ -395,7 +408,10 @@ export default function KingdomLegacyScreen() {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text numberOfLines={2} style={s.itemName}>{name}</Text>
-                    <Text style={s.itemDescription}>{equipped ? 'EQUIPPED' : !collection ? 'CHECKING REWARD' : unlocked ? kingdomFinishLabel(level).toUpperCase() + ' FINISH · READY TO CLAIM' : 'LOCKED'}</Text>
+                    <Text style={s.itemDescription}>{equipped ? 'EQUIPPED' : claimed ? 'OWNED • READY TO EQUIP' : !collection ? 'CHECKING REWARD' : unlocked ? kingdomFinishLabel(level).toUpperCase() + ' FINISH · READY TO CLAIM' : 'LOCKED'}</Text>
+                    <Text style={s.itemRequirement} numberOfLines={2}>REQUIREMENT • {required}</Text>
+                    <Text style={s.itemBenefit} numberOfLines={2}>REWARD • {guide.name} · {guide.where}</Text>
+                    <Text style={s.itemTrade}>PERSONAL • NOT TRADEABLE</Text>
                   </View>
                   <Pressable accessibilityRole="button"
                     accessibilityLabel={(equipped ? 'Remove ' : 'Claim and equip ') + name}
@@ -403,7 +419,7 @@ export default function KingdomLegacyScreen() {
                     onPress={() => void changeItem(level, index, equipped)}
                     style={[s.itemAction, disabled && s.disabled, equipped && s.equippedAction]}>
                     {busyKey === level + ':' + index ? <ActivityIndicator color={C.deep} size="small"/> :
-                      <Text style={s.itemActionText}>{equipped ? 'REMOVE' : unlocked ? 'CLAIM' : 'LOCKED'}</Text>}
+                      <Text style={s.itemActionText}>{equipped ? 'REMOVE' : claimed ? 'EQUIP' : unlocked ? 'CLAIM' : 'LOCKED'}</Text>}
                   </Pressable>
                 </View>;
               })}
@@ -413,7 +429,7 @@ export default function KingdomLegacyScreen() {
                 <Text style={s.sectionTitle}>LEGACY COLLECTION</Text>
                 <Text style={s.sectionHint}>Previously claimed • {acquired.length} total</Text>
               </View>
-              <Text style={s.description}>Every claimed badge can be equipped again or used to unlock an extra skill challenge. Trials are non-credit and recorded locally.</Text>
+              <Text style={s.description}>Your claimed story relics stay with this hero. EQUIP shows the collectible; TRIAL opens an optional 3/3 practice challenge, saved locally without extra BP or Shards.</Text>
               <View style={s.armoryGrid}>
                 {treasured.map(item => {
                   const equipped = isCollectibleShown(item, collection);
@@ -423,6 +439,8 @@ export default function KingdomLegacyScreen() {
                       rewardKind={item.rewardKind} size={72}/>
                     <Text numberOfLines={2} style={s.trophyName}>{collectibleNames(core, item.level)[item.itemIndex - 1] ?? 'Legacy Item'}</Text>
                     <Text style={s.trophyLevel}>LEVEL {item.level} • {kingdomFinishLabel(item.level)}</Text>
+                    <Text style={s.trophyUse} numberOfLines={2}>{getKingdomRelicGuide(item.rewardKind,item.itemIndex).name} · Equipped on this character</Text>
+                    <Text style={s.trophyBound}>BOUND • NO TRADE</Text>
                     <View style={s.trophyButtons}>
                       <Pressable accessibilityRole="button" disabled={busy}
                         accessibilityLabel={(equipped ? 'Remove ' : 'Equip ') + 'level ' + item.level + ' item'}
@@ -454,7 +472,7 @@ export default function KingdomLegacyScreen() {
           {notice ? <Text accessibilityLiveRegion="polite" style={s.notice}>{notice}</Text> : null}
           <View style={s.footerNote}>
             <MaterialCommunityIcons name="information-outline" size={18} color={C.muted}/>
-            <Text style={s.footerText}>Kingdom map clears are local gameplay records, separate from lifetime BP and server-confirmed collectible rewards. New relics and Shards are not yet spendable or claimable.</Text>
+            <Text style={s.footerText}>Practice game clears are separate from verified BP. Story relics belong to their earned character; server-confirmed Shards may unlock Kingdom practice powers. Trading is not available for badges, story items or Shards.</Text>
           </View>
         </> : uid && !loading ? <View style={s.emptyPanel}>
           <Text style={s.emptyTitle}>No verified Character data yet.</Text>
@@ -485,7 +503,7 @@ export default function KingdomLegacyScreen() {
             </View>
             <Text style={s.modalTitle}>ITEM EQUIPPED!</Text>
             <Text style={s.modalName}>{reveal?.name ?? ''}</Text>
-            <Text style={s.modalDescription}>Server-confirmed character collectible • {reveal ? kingdomFinishLabel(reveal.level) : ''} visual finish. No additional BP or currency awarded.</Text>
+            <Text style={s.modalDescription}>Server-confirmed character collectible • {reveal ? kingdomFinishLabel(reveal.level) : ''} finish. {reveal ? getKingdomRelicGuide(reveal.kind ?? null,reveal.index).name : ''} is ready to display. Your first verified claim may award 2 game-only Shards when synced; no additional BP or cash.</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Close reward celebration"
               onPress={dismissRewardReveal} style={s.goldButton}>
               <Text style={s.goldButtonText}>CONTINUE MY KINGDOM</Text>
@@ -563,6 +581,16 @@ const s = StyleSheet.create({
   modalDescription: { color:C.muted, fontSize:12, lineHeight:19, textAlign:'center', marginBottom:13 },
   itemName: { fontSize: 12, fontWeight: '900', color: C.white },
   itemDescription: { marginTop: 5, fontSize: 9, letterSpacing: .5, fontWeight: '900', color: C.emerald },
+  itemRequirement: { marginTop:4, color:'#f0d9a3',fontSize:10,lineHeight:14,fontWeight:'700' },
+  itemBenefit: { marginTop:3,color:'#e2f6e9',fontSize:10,lineHeight:14,fontWeight:'700' },
+  itemTrade: { marginTop:4,color:'#a5c6c0',fontSize:9,fontWeight:'900',letterSpacing:.3 },
+  guidePanel: { padding:14,backgroundColor:'#17483e',borderWidth:1,borderColor:'#63b795',
+    borderRadius:15,gap:8 },
+  guideTitle: { fontSize:13,fontWeight:'900',color:'#f5e4ae',letterSpacing:.5 },
+  guideCopy: { fontSize:11,lineHeight:17,color:'#f0fff4' },
+  guideBound: { fontSize:10,fontWeight:'800',lineHeight:16,color:'#bfebd7' },
+  trophyUse: { color:'#e0f4e9',fontSize:9,lineHeight:13,textAlign:'center' },
+  trophyBound: { color:'#a9e3c5',fontSize:8,fontWeight:'900' },
   itemAction: { minWidth: 64, paddingHorizontal: 8, height: 38, backgroundColor: C.gold, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   itemActionText: { fontSize: 10, fontWeight: '900', color: '#2d3136' },
   equippedAction: { backgroundColor: '#abccb9' },
