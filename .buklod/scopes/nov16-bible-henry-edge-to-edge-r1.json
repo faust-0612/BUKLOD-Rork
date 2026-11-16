@@ -1,0 +1,62 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-bible-henry-edge-to-edge-r1.json",
+  "objective": "Make the Bible reader genuinely edge-to-edge with zero horizontal card/scroll gutter and keep the existing Matthew Henry commentary shortcut visible above persistent bottom navigation.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Canonical main 0f8e8a6a3747e882870d1accada9c136c8f35548 at branch start. Nov16 staging OTA 01a1e27b-0009-7e15-a0fd-e2207701a55e and existing Henry source. User screenshot shows 1 Kings 4 verses with broad left/right gutters and no visible Henry shortcut.",
+  "chosenApproach": "Keep the existing My Bible commentary provider, verse-level source gating, modal and toolbar unchanged. Remove only outer scroll and verse-card horizontal padding and tighten verse rows; lift the existing floating Henry button above persistent bottom nav without changing its source/translation behavior.",
+  "selectionRationale": "The source already has a real Matthew Henry action; creating another provider or replacing chapter data would duplicate logic. CSS-only layout corrections fix the photographed issue with minimum regression risk.",
+  "alternativeApproaches": [
+    "Remove bottom navigation in Bible: rejected, breaks canonical five-tab shell.",
+    "Always show invented Henry per-verse commentary: rejected, source coverage is sparse and must remain truthful.",
+    "Increase reader font/zoom: rejected, does not address wasted horizontal gutter."
+  ],
+  "riskAreas": [
+    "bible-reading",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Existing commentary exact-source gating and Original English/Google translation remain unchanged",
+    "Daily-plan reading, TTS, Strong's, notes and verse selection remain functional",
+    "Persistent bottom nav remains visible and clickable",
+    "Maintain bottom scroll inset to prevent last verse clipping",
+    "Do not touch AdMob or other app modules"
+  ],
+  "acceptanceChecks": [
+    "Reader scroll horizontal padding is 0",
+    "Verse card has zero padding and margin",
+    "Henry shortcut is rendered above persistent navigation",
+    "Existing chapter commentary and verse-level buttons remain source-gated",
+    "Focused source contract test passes; Android device rendering is not claimed verified"
+  ],
+  "regressionTests": [
+    "tests/nov16-bible-henry-edge-to-edge-r1.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/bible/read.tsx",
+    ".buklod/scopes/nov16-bible-henry-edge-to-edge-r1.json",
+    "tests/nov16-bible-henry-edge-to-edge-r1.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "bible-reading",
+      "reason": "Edge-to-edge verse layout without altering Scripture or commentary data",
+      "preservedBehaviors": [
+        "Keep chapter selection, commentary, notes, audio and translations"
+      ],
+      "tests": [
+        "tests/nov16-bible-henry-edge-to-edge-r1.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-scroll",
+      "reason": "Keep Henry action visible above bottom tab bar",
+      "preservedBehaviors": [
+        "Bottom tab shell and safe-area inset remain unchanged"
+      ],
+      "tests": [
+        "tests/nov16-bible-henry-edge-to-edge-r1.test.mjs"
+      ]
+    }
+  ]
+}
