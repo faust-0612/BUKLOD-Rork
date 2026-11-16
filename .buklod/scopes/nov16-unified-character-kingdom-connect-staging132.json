@@ -158,7 +158,9 @@
     "tests/community-dark-mentions-apple-green-20261116.test.mjs",
     ".github/workflows/engineering-accountability.yml",
     ".buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/protected-feature-lock.test.mjs",
+    ".github/workflows/buklod-nov16-unified-character-staging-ota.yml",
+    "tests/nov16-unified-staging-ota-release-gate.test.mjs"
   ],
   "preserveBehaviors": [
     "Badge/Story Relic/official rewards cannot be minted from client art, local scores or saved data.",
@@ -231,7 +233,8 @@
     "Exact-source TypeScript, Expo Android build, security, Character/Kingdom/Connect/mentions/audio, AdMob and navigation QA are required before staging OTA.",
     "Staging only org.mzbministry.buklod.staging runtime 1.3.2, EAS update readback, unchanged production manifest.",
     "Only the single consolidated contractVersion=2 scope manifest is retained; all original DEV PR source paths, tests and security declarations are reconciled into it.",
-    "Keep four existing AdMob/dashboard/Wall navigation regression suites in the final staging publisher; not claimed as changed PR regression proofs."
+    "Keep four existing AdMob/dashboard/Wall navigation regression suites in the final staging publisher; not claimed as changed PR regression proofs.",
+    "Publisher is gated by green frozen-source CI, exact source/native identity, Android 1.3.2 export and AdMob/navigation regressions; staging-user publication must have EAS manifest readback and no production mutation."
   ],
   "regressionTests": [
     "tests/kingdom-adventure-premium-presentation-20261116.test.mjs",
@@ -251,7 +254,8 @@
     "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
     "tests/buklod-connect-composer-contrast-20261116.test.mjs",
     "tests/community-dark-mentions-apple-green-20261116.test.mjs",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/protected-feature-lock.test.mjs",
+    "tests/nov16-unified-staging-ota-release-gate.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -331,7 +335,8 @@
         "Neither a production OTA nor Expo web nor Google Play publication is being attempted."
       ],
       "tests": [
-        "tests/kingdom-reward-sound-release-20261110.test.mjs"
+        "tests/kingdom-reward-sound-release-20261110.test.mjs",
+        "tests/nov16-unified-staging-ota-release-gate.test.mjs"
       ]
     },
     {
