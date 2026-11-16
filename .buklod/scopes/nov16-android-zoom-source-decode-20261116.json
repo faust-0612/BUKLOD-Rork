@@ -36,12 +36,11 @@
     "Current exact branch must pass TypeScript, Android/Hermes, character and ad/navigation CI",
     "Freeze exact RC and verify stage runtime/OTA id before any staging publication",
     "No production promotion without staged verification; physical device test remains skipped",
-    "Do not describe 73-85px original item art as HD; higher-resolution originals are required for genuinely crisp zoom"
+    "Do not describe 73-85px original item art as HD; higher-resolution originals are required for genuinely crisp zoom",
+    "Run existing broader Character and AdMob navigation tests in required CI without misdeclaring unchanged test files as modified."
   ],
   "regressionTests": [
-    "tests/character-android-zoom-full-source-20261116.test.mjs",
-    "tests/buklod-character-art-contract-20261116.test.mjs",
-    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
+    "tests/character-android-zoom-full-source-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
