@@ -6,11 +6,13 @@ const m=JSON.parse(read('.buklod/scopes/nov16-spacing-graphics-character-consoli
 test('exact Nov16 cumulative scope declares all component proofs without security bypass',()=>{
  assert.equal(m.contractVersion,2);
  assert.equal(m.releaseMode,'consolidated-main-rc');
- assert.deepEqual([...m.componentScopePaths].sort(),['.buklod/scopes/appwide-compact-density-20261116.json','.buklod/scopes/character-1300-art-motion-staging-20261116.json','.buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json'].sort());
+ assert.deepEqual([...m.componentScopePaths].sort(),['.buklod/scopes/appwide-compact-density-20261116.json','.buklod/scopes/character-1300-art-motion-staging-20261116.json','.buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json','.buklod/scopes/nov16-conso-lesson-progression-20261116.json'].sort());
  for(const p of m.componentScopePaths){assert.ok(m.allowedPaths.includes(p));assert.equal(JSON.parse(read(p)).contractVersion,2)}
  assert.ok(m.lockedFeatureChanges.some(x=>x.id==='backend-security' && x.tests.some(t=>t.startsWith('supabase/tests/'))));
  assert.ok(m.lockedFeatureChanges.some(x=>x.id==='governance-lock'));
  assert.ok(m.regressionTests.includes('tests/protected-feature-lock.test.mjs'));
+ assert.ok(m.regressionTests.includes('tests/lesson-quickcheck-regression-20261116.test.mjs'));
+ for(const p of ['src/components/LearningQuestionResponse.tsx','src/components/BuklodFormationEntryScopeTracker.tsx','tests/lesson-quickcheck-regression-20261116.test.mjs'])assert.ok(m.allowedPaths.includes(p));
 });
 test('protected cumulative CI is still exclusive to this branch and main',()=>{
  const w=read('.github/workflows/engineering-accountability.yml');
