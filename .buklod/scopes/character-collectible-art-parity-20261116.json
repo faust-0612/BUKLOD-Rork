@@ -16,7 +16,8 @@
     "read-only Supabase public art",
     "react-native-bounded-layout",
     "character-equipment-observers",
-    "release-contract"
+    "release-contract",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Per-character 20-level server progression, authenticated ownership, Circle Rank and existing task rewards remain server-authoritative.",
