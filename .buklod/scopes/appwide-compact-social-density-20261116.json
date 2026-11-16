@@ -24,7 +24,8 @@
     "Expo/Android visual acceptance, performance and full regression must pass before any OTA. Not verified yet.",
     "Cluster AdMob first-view slot remains after first cluster, other sponsor and viewability contracts remain.",
     "QMP data, referral code, Bible audio, per-character progress, art dimensions and safe areas preserved.",
-    "Visual/compiled Android RC verification still mandatory; source-only tests are not an OTA release."
+    "Visual/compiled Android RC verification still mandatory; source-only tests are not an OTA release.",
+    "Existing dark contrast test follows approved compact spacing tokens while preserving WCAG contrast and 48dp touch assertions."
   ],
   "riskAreas": [
     "navigation-scroll",
@@ -39,7 +40,8 @@
     "tests/compact-layout-density-rule.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
-    "tests/compact-cluster-bible-character-qmp-density.test.mjs"
+    "tests/compact-cluster-bible-character-qmp-density.test.mjs",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs"
   ],
   "allowedPaths": [
     "src/lib/buklodVisual.ts",
@@ -65,7 +67,8 @@
     "src/components/BuklodReferralInviteCard.tsx",
     "src/components/points/BuklodCharacterCustomizeSheet.tsx",
     "src/components/points/BuklodProgressiveCharacterSelector.tsx",
-    "tests/compact-cluster-bible-character-qmp-density.test.mjs"
+    "tests/compact-cluster-bible-character-qmp-density.test.mjs",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
