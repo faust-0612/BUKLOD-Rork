@@ -20,7 +20,8 @@
     "ads-monetization",
     "wall-media",
     "character-progression",
-    "data-integrity"
+    "data-integrity",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Android runtime 1.3.2, staging package org.mzbministry.buklod.staging, staging-user Expo channel and preview environment preserved; no native package or plugin changes.",
@@ -43,7 +44,9 @@
     "src/lib/buklodMessagesStatusNote.ts",
     "tests/nov16-warm-navigation-notes-contract.test.mjs",
     ".buklod/scopes/nov16-staging-warm-notes-consolidated-20261116.json",
-    "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
+    "tests/nov16-wall-connect-notes-warm-navigation.test.mjs",
+    ".github/workflows/buklod-nov16-current-staging-ota.yml",
+    "tests/nov16-current-staging-ota-release-identity.test.mjs"
   ],
   "acceptanceChecks": [
     "Reconcile exact current main source and all current fixes without reverting existing Bible/Character/AdMob files.",
@@ -52,11 +55,13 @@
     "TypeScript noEmit and Android Hermes Expo export PASS from exact immutable source.",
     "Build config verifies app package, installed staging APK version/runtime, Expo preview environment, and distinct staging-user vs production EAS branches.",
     "Publish exactly once to staging-user and independently verify channel/update:view, runtime, Android manifest, source and production unchanged.",
-    "Only then promote exact stage-verified source to production through reviewed main with separate production gating and postpublish verification."
+    "Only then promote exact stage-verified source to production through reviewed main with separate production gating and postpublish verification.",
+    "Staging release workflow must run only from reviewed main merge commit, immutable exact source and verified separate EAS channels."
   ],
   "regressionTests": [
     "tests/nov16-warm-navigation-notes-contract.test.mjs",
-    "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
+    "tests/nov16-wall-connect-notes-warm-navigation.test.mjs",
+    "tests/nov16-current-staging-ota-release-identity.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -88,6 +93,16 @@
       "tests": [
         "tests/nov16-warm-navigation-notes-contract.test.mjs",
         "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add staging-only publication with trusted main marker, exact RC source, runtime checks and independent EAS receipt",
+      "preservedBehaviors": [
+        "Only staging-user Expo channel can be updated; production and web stay untouched by this workflow"
+      ],
+      "tests": [
+        "tests/nov16-current-staging-ota-release-identity.test.mjs"
       ]
     }
   ],
