@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/wall-gallery-android-recovery-20261117.json",
   "objective": "Recover Android Community Wall gallery launch failures without broad storage permissions and without mislabeling selected-video preparation failures as picker-launch failures.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Observed source baseline main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61, Expo runtime 1.3.2 from app.config.js. Source baseline is NOT production deployment evidence. No published OTA or device verification is claimed.",
+  "productionBaselineEvidence": "verified: GitHub main branch source SHA 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 was read via the connected repository branch API on 2026-11-17; app.config.js on that source pins Main Expo runtime 1.3.2. This verifies SOURCE ONLY, not the current installed binary, active channel, or production OTA. Live production baseline and exact RC runtime acceptance remain UNVERIFIED here; no release authorized.",
   "chosenApproach": "On Android only, try existing system ImagePicker first, then its legacy SAF-compatible picker; if both throw, use already installed DocumentPicker for supported photos only. Keep web user gesture and iOS permission behavior unchanged. Distinguish video prep from gallery-launch error while preserving selected photos.",
   "selectionRationale": "Narrow shared Wall picker fix covers photo and mixed gallery callers, avoids requesting blocked READ_MEDIA_* permissions, and does not accept unverified-duration video files from the emergency Files fallback.",
   "alternativeApproaches": [
