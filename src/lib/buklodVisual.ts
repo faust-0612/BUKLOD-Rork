@@ -1,6 +1,6 @@
 /** Shared presentation metrics. Never constrain scaled text to fixed heights. */
 export const buklodVisual = {
-  space: { screen: 16, section: 12, card: 12, inline: 8, tight: 4 },
+  space: { screen: 12, section: 8, card: 10, inline: 8, tight: 4 },
   radius: { card: 18, control: 12, sheet: 24, pill: 999 },
   size: { touch: 48, row: 56, icon: 40, avatar: 72, storyWidth: 132, storyHeight: 178 },
   type: { title: 22, section: 16, body: 15, label: 13, caption: 12 },
