@@ -162,7 +162,8 @@
     "src/lib/buklodMentionCompose.ts",
     "tests/community-dark-mentions-apple-green-20261116.test.mjs",
     ".github/workflows/engineering-accountability.yml",
-    ".buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json"
+    ".buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json",
+    "tests/protected-feature-lock.test.mjs"
   ],
   "preserveBehaviors": [
     "Badge/Story Relic/official rewards cannot be minted from client art, local scores or saved data.",
