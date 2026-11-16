@@ -57,20 +57,32 @@ jobs:
           const oldRuns=(await get('/actions/runs?head_sha='+sourceRC+'&per_page=100')).workflow_runs;
           const oldRequired=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Character R31-R40 Recovery QA','BUKLOD Performance R1 QA','BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD R38 Economy QA'];
           for(const name of oldRequired) assert.ok(oldRuns.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===historical.head.ref&&r.conclusion==='success'),'Previous frozen RC check absent: '+name);
-          // Only the reviewed Note-rail patch can advance this staging branch.
-          const pr=await get('/pulls/894');
-          assert.equal(pr.base.ref,'release/nov16-compact-art-staging132');
-          assert.equal(pr.head.ref,'fix/wall-connect-dynamic-note-rail-20261116');
-          assert.equal(pr.head.sha,sha,'Staging push must equal exact checked PR #894 head');
+          // Only the union of the verified compact Notes and prewarmed Ads may advance staging.
+          const notesRC='a7a1eac6efd838cf280a95b4b6b71f9714a0d0bb';
+          const notesPr=await get('/pulls/894');
+          assert.equal(notesPr.head.ref,'fix/wall-connect-dynamic-note-rail-20261116');
+          assert.equal(notesPr.head.sha,notesRC,'Previously verified Notes source changed');
+          const required=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Main - Report Door and Legacy Integration PR QA'];
+          const notesRuns=(await get('/actions/runs?head_sha='+notesRC+'&per_page=100')).workflow_runs;
+          for(const name of required) assert.ok(notesRuns.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===notesPr.head.ref&&r.conclusion==='success'),'Notes RC QA missing: '+name);
+          const candidates=await get('/pulls?state=all&head='+encodeURIComponent('faust-0612:integration/nov16-notes-ads-prewarm-staging132')+'&per_page=100');
+          const matches=candidates.filter(row=>row.base.ref==='release/nov16-compact-art-staging132'&&row.head.ref==='integration/nov16-notes-ads-prewarm-staging132');
+          assert.equal(matches.length,1,'Require exactly one reviewed combined PR');
+          const pr=matches[0];
+          assert.equal(pr.head.sha,sha,'Staging push must equal exact checked PR source');
           const {execFileSync}=await import('node:child_process');
           const {readFileSync}=await import('node:fs');
-          const manifest=JSON.parse(readFileSync('.buklod/scopes/wall-connect-note-rail-density-20261116.json','utf8'));
-          const changed=execFileSync('git',['diff','--name-only',sourceRC,sha],{encoding:'utf8'}).trim().split(String.fromCharCode(10)).sort();
-          assert.deepEqual(changed,manifest.allowedPaths.slice().sort(),'Staging patch must contain only governed PR #894 paths');
+          const manifest=JSON.parse(readFileSync('.buklod/scopes/nov16-note-ads-consolidated-staging-20261116.json','utf8'));
+          const changed=execFileSync('git',['diff','--name-only',notesRC,sha],{encoding:'utf8'}).trim().split(String.fromCharCode(10)).sort();
+          assert.deepEqual(changed,manifest.allowedPaths.slice().sort(),'Combined source differs from protected scope');
+          const adsRC='aa01218a55e88b9b9f40936086fdf7068981c6fa';
+          for(const path of ['src/app/(tabs)/_layout.tsx','src/components/BuklodCommunityInlineAd.android.tsx','src/components/BuklodDashboardAdWarmup.android.tsx','src/components/BuklodDashboardAdWarmup.tsx']) {
+            const blob=ref=>execFileSync('git',['rev-parse',ref+':'+path],{encoding:'utf8'}).trim();
+            assert.equal(blob(sha),blob(adsRC),'Approved prewarm source mismatch: '+path);
+          }
           const runs=(await get('/actions/runs?head_sha='+sha+'&per_page=100')).workflow_runs;
-          const required=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Main - Report Door and Legacy Integration PR QA'];
-          for(const name of required) assert.ok(runs.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===pr.head.ref&&r.conclusion==='success'),'New Note-rail CI not green: '+name);
-          console.log('Previous RC plus exact new source governance PASS',sha);
+          for(const name of required) assert.ok(runs.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===pr.head.ref&&r.conclusion==='success'),'Combined source QA missing: '+name);
+          console.log('Old RC, compact Notes, AdMob and reviewed unified source PASS',sha);
           NODE
       - name: Verify unchanged signed native baseline, Android staging identity and compact/Character QA
         shell: bash
@@ -103,6 +115,8 @@ jobs:
             tests/buklod-character-art-release-contract-20261116.test.mjs \
             tests/appwide-compact-density-20261116.test.mjs \
             tests/nov16-wall-connect-dynamic-note-rail.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/nov16-wall-nav-ads-prewarm-integration.test.mjs \
             tests/wall-media-density-20261116.test.mjs \
             tests/character-density-20261116.test.mjs \
             tests/compact-ota-release-20261116.test.mjs \
