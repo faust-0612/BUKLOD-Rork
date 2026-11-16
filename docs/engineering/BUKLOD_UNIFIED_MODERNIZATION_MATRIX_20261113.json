@@ -1,0 +1,503 @@
+{
+  "schema": "buklod-unified-modernization-matrix-v1",
+  "date": "2026-11-13",
+  "referenceImageCount": 30,
+  "baselineMain": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
+  "doc": "docs/engineering/BUKLOD_UNIFIED_MODERNIZATION_BLUEPRINT_20261113.md",
+  "documentationOnly": true,
+  "canonicalNavigationChecklist": "docs/navigation-v2-completion.json on PR #783",
+  "navigationRequirements": [
+    {
+      "id": "staging-parity",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "feature-inventory",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "technical-guard",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "profile-settings",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "home-finder",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "compact-home",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "compact-profile",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "naming",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "contextual-menus",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "gesture-shortcuts",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "motion",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "responsive-font",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "ime-media",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "back-state",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "action-feedback",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "offline-recovery",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "favorites",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "first-use-help",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "scope-accessibility",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "regression-suite",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    },
+    {
+      "id": "verified-staging-release",
+      "proofStatus": "NOT_VERIFIED",
+      "canonical": true
+    }
+  ],
+  "images": [
+    {
+      "image": 1,
+      "concept": "Tokens & streaming",
+      "sourceStatus": "partial",
+      "actionOrReason": "Gemini JSON tasks; use visible status/stream only if beneficial",
+      "priority": "P2"
+    },
+    {
+      "image": 2,
+      "concept": "Embeddings",
+      "sourceStatus": "missing-general",
+      "actionOrReason": "Only introduce indexed approved sources if text retrieval misses synonyms/Taglish",
+      "priority": "P2"
+    },
+    {
+      "image": 3,
+      "concept": "RAG",
+      "sourceStatus": "partial",
+      "actionOrReason": "Lesson/quiz authoritative sources exist; need versioned indexed approved-doc retrieval",
+      "priority": "P1"
+    },
+    {
+      "image": 4,
+      "concept": "KV cache",
+      "sourceStatus": "not-needed",
+      "actionOrReason": "Provider-owned inference optimization; not Android video RAM solution",
+      "priority": "NONE"
+    },
+    {
+      "image": 5,
+      "concept": "Stale policy quick quiz",
+      "sourceStatus": "partial",
+      "actionOrReason": "KL source hash exists; general retrieval needs revision invalidation",
+      "priority": "P1"
+    },
+    {
+      "image": 6,
+      "concept": "GPU batching",
+      "sourceStatus": "not-needed",
+      "actionOrReason": "Avatar/media batching exists; no custom GPU servers",
+      "priority": "NONE"
+    },
+    {
+      "image": 7,
+      "concept": "Model routing",
+      "sourceStatus": "partial",
+      "actionOrReason": "Existing Gemini fallback; classify by task/quality/budget and bound retries",
+      "priority": "P2"
+    },
+    {
+      "image": 8,
+      "concept": "Semantic caching",
+      "sourceStatus": "not-needed-general",
+      "actionOrReason": "Cache only immutable public reviewed derived content, never private/finance/grade",
+      "priority": "NONE"
+    },
+    {
+      "image": 9,
+      "concept": "Agents and tools",
+      "sourceStatus": "partial",
+      "actionOrReason": "Server-validated processes exist; typed bounded audited tools, never blanket admin role",
+      "priority": "P3"
+    },
+    {
+      "image": 10,
+      "concept": "Dashboard cover",
+      "sourceStatus": "reference",
+      "actionOrReason": "Design checklist only",
+      "priority": "NONE"
+    },
+    {
+      "image": 11,
+      "concept": "KPI cards",
+      "sourceStatus": "existing",
+      "actionOrReason": "Admin stats present; add build/time/source freshness",
+      "priority": "P2"
+    },
+    {
+      "image": 12,
+      "concept": "Graphs and charts",
+      "sourceStatus": "partial",
+      "actionOrReason": "Use actionable trends only, not decorative statistics",
+      "priority": "P2"
+    },
+    {
+      "image": 13,
+      "concept": "Filters",
+      "sourceStatus": "partial",
+      "actionOrReason": "Priority requests filtered; add version/window/scope/status",
+      "priority": "P2"
+    },
+    {
+      "image": 14,
+      "concept": "Quick actions",
+      "sourceStatus": "existing",
+      "actionOrReason": "Keep only frequent safe actions and case-resolution links",
+      "priority": "P2"
+    },
+    {
+      "image": 15,
+      "concept": "Navigation bar",
+      "sourceStatus": "existing",
+      "actionOrReason": "Five tabs; finish existing Navigation V2 checklist and accessibility",
+      "priority": "P0"
+    },
+    {
+      "image": 16,
+      "concept": "Tables and recent activity",
+      "sourceStatus": "partial",
+      "actionOrReason": "Admin/BSOC lists exist; add unified case provenance and status",
+      "priority": "P2"
+    },
+    {
+      "image": 17,
+      "concept": "Five UI libraries cover",
+      "sourceStatus": "reference",
+      "actionOrReason": "Library comparison only",
+      "priority": "NONE"
+    },
+    {
+      "image": 18,
+      "concept": "UIverse",
+      "sourceStatus": "not-needed-native",
+      "actionOrReason": "Web visual inspiration not native dependency",
+      "priority": "NONE"
+    },
+    {
+      "image": 19,
+      "concept": "Anime.js",
+      "sourceStatus": "not-needed",
+      "actionOrReason": "Existing native Reanimated and Lottie motion stack",
+      "priority": "NONE"
+    },
+    {
+      "image": 20,
+      "concept": "shadcn/ui",
+      "sourceStatus": "web-optional",
+      "actionOrReason": "Possible web-only admin kit; not replace RN controls",
+      "priority": "NONE"
+    },
+    {
+      "image": 21,
+      "concept": "Magic UI",
+      "sourceStatus": "not-needed",
+      "actionOrReason": "Avoid heavy animated native backgrounds",
+      "priority": "NONE"
+    },
+    {
+      "image": 22,
+      "concept": "React Bits",
+      "sourceStatus": "not-needed",
+      "actionOrReason": "Native-compatible static inspiration only",
+      "priority": "NONE"
+    },
+    {
+      "image": 23,
+      "concept": "Message queues",
+      "sourceStatus": "partial",
+      "actionOrReason": "Offline replay + DB notification dispatch exist; durable async job contract for new work",
+      "priority": "P1"
+    },
+    {
+      "image": 24,
+      "concept": "Millions of users cover",
+      "sourceStatus": "reference",
+      "actionOrReason": "Scale goal requires capacity proof, not multiple new servers",
+      "priority": "NONE"
+    },
+    {
+      "image": 25,
+      "concept": "Load balancing",
+      "sourceStatus": "managed",
+      "actionOrReason": "Existing providers manage entry; no custom LB without saturation",
+      "priority": "NONE"
+    },
+    {
+      "image": 26,
+      "concept": "Multiple servers",
+      "sourceStatus": "not-needed",
+      "actionOrReason": "No standalone fleet without workload need",
+      "priority": "NONE"
+    },
+    {
+      "image": 27,
+      "concept": "Caching",
+      "sourceStatus": "existing",
+      "actionOrReason": "Offline/media/permission caches; improve scoped invalidation and freshness",
+      "priority": "P1"
+    },
+    {
+      "image": 28,
+      "concept": "Database scaling",
+      "sourceStatus": "partial",
+      "actionOrReason": "Indexes and capacity screens exist; optimize measured queries/load",
+      "priority": "P2"
+    },
+    {
+      "image": 29,
+      "concept": "CDN",
+      "sourceStatus": "managed",
+      "actionOrReason": "Supabase Storage CDN; verify private media and plan behavior",
+      "priority": "P2"
+    },
+    {
+      "image": 30,
+      "concept": "Autoscaling",
+      "sourceStatus": "not-needed-now",
+      "actionOrReason": "Use observed provider capacity and budget gate before upgrades",
+      "priority": "NONE"
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "W0",
+      "title": "Current live identity, all PR reconciliation, staging baseline",
+      "state": "unverified",
+      "priority": "P0",
+      "pr": [
+        783
+      ],
+      "dependencies": [],
+      "stop": "No verified installed live/staging APK source + channel/runtime/OTA identity"
+    },
+    {
+      "id": "W1",
+      "title": "Navigation 2.0 existing 21 canonical work items",
+      "state": "dev-in-progress-0-of-21-verified",
+      "priority": "P0",
+      "pr": [
+        783
+      ],
+      "dependencies": [
+        "W0"
+      ],
+      "stop": "Every nav requirement needs verifiable QA evidence; final stage item is post-publish"
+    },
+    {
+      "id": "W1B",
+      "title": "Wall+Marites memory and native-ad safe source delta",
+      "state": "dev-ci-green-not-device-verified",
+      "priority": "P0",
+      "pr": [
+        784
+      ],
+      "dependencies": [
+        "W0"
+      ],
+      "stop": "Must preserve active video, ad fill, autoplay and physical memory behavior"
+    },
+    {
+      "id": "W2",
+      "title": "Durable backend jobs and notification integration",
+      "state": "planned",
+      "priority": "P1",
+      "pr": [],
+      "dependencies": [
+        "W0"
+      ],
+      "stop": "No parallel queue without existing dispatcher inventory; require nonprod RLS, idempotency and tests"
+    },
+    {
+      "id": "W3",
+      "title": "Versioned approved document retrieval + SALIKSIK",
+      "state": "saliksik-dev-only-rag-planned",
+      "priority": "P1",
+      "pr": [
+        780
+      ],
+      "dependencies": [
+        "W2"
+      ],
+      "stop": "Private original, admin review, source integrity, +205 max, rollout OFF until authorized"
+    },
+    {
+      "id": "W4",
+      "title": "Cost-bounded AI routing and safe immutable caching",
+      "state": "planned",
+      "priority": "P2",
+      "pr": [],
+      "dependencies": [
+        "W3"
+      ],
+      "stop": "Provider failures, injection and stale sources must fail closed"
+    },
+    {
+      "id": "W5",
+      "title": "Actionable build-aware Admin dashboard",
+      "state": "partial",
+      "priority": "P2",
+      "pr": [],
+      "dependencies": [
+        "W0"
+      ],
+      "stop": "15/30/60 minute release segmentation, role isolation, no AdMob gross public display"
+    },
+    {
+      "id": "W6",
+      "title": "Measured query/cache/capacity tests",
+      "state": "planned",
+      "priority": "P3",
+      "pr": [],
+      "dependencies": [
+        "W5"
+      ],
+      "stop": "No new infrastructure, production load testing or paid upgrades without measurements"
+    },
+    {
+      "id": "RC-STAGE",
+      "title": "Immutable RC and staging-user-only release",
+      "state": "blocked-not-ready",
+      "priority": "P0",
+      "pr": [
+        783
+      ],
+      "dependencies": [
+        "W1",
+        "W1B"
+      ],
+      "stop": "No 21/21, actual signed staging APK, compiled RC, runtime, postpublish installed verification"
+    },
+    {
+      "id": "WEB-PROD",
+      "title": "Separately owner-approved web and production Android",
+      "state": "not-authorized",
+      "priority": "P0",
+      "pr": [],
+      "dependencies": [
+        "RC-STAGE"
+      ],
+      "stop": "Explicit owner approval, new exact production readback and release verification"
+    }
+  ],
+  "existingPrs": [
+    780,
+    783,
+    784
+  ],
+  "ownerApprovalRequiredFor": [
+    "web",
+    "production Android"
+  ],
+  "releaseIdentity": {
+    "publisherSideAndroidSource": "a43e1813d62a151e8294a52989a80fe21b36057c",
+    "publishedOtaUpdate": "01a1d2d6-bae3-74df-bbf4-2bdd9df35215",
+    "runtime": "1.3.2",
+    "channel": "production",
+    "publicationWorkflow": 43355306642,
+    "installedClientVerified": false,
+    "stagingInstalledVerified": false,
+    "stagingSignedApkArtifact": {
+      "publisherRunId": 43378875900,
+      "artifactId": 14016812505,
+      "easBuildId": "9c0eb308-9a8e-4f34-a5f4-798ae556b7b0",
+      "sourceSha": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
+      "mirroredLiveRuntimeSourceSha": "a43e1813d62a151e8294a52989a80fe21b36057c",
+      "stagingVersionCode": 9,
+      "package": "org.mzbministry.buklod.staging",
+      "channel": "staging-user",
+      "environment": "preview",
+      "runtime": "1.3.2",
+      "signedApkDownloadedAndZipValidated": true,
+      "installedOnDeviceVerified": false,
+      "stagingBackendBehaviorVerified": false
+    }
+  },
+  "mustPreserve": [
+    "five public tabs Home Cluster Wall Connect Profile",
+    "scoped Home Community Connect and RLS",
+    "current live data and release",
+    "video/player/ads/PTT/GIF/notifications",
+    "KL/Bible/offline/quiz/classroom",
+    "SALIKSIK rubric and ledger and rollout OFF",
+    "Admin Official points exclusion",
+    "AdMob QMP only, not unrelated app revenue",
+    "retired IGPAT absent"
+  ],
+  "prohibitedWithoutNewEvidence": [
+    "mass-merge stale branches",
+    "native IME via OTA-only without new APK",
+    "custom server fleet/GPU KV cache/paid CDN",
+    "semantic response cache for private/current policies",
+    "automatic AI financial or religious agreement rewards",
+    "unrestricted service-role agents",
+    "false CI/production equivalence",
+    "automatic staging/web/production publishing"
+  ]
+}
