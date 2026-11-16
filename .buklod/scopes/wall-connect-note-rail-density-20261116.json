@@ -11,7 +11,8 @@
     "connect",
     "accessibility",
     "navigation-scroll",
-    "AdMob viewability"
+    "AdMob viewability",
+    "production-release"
   ],
   "allowedPaths": [
     "src/components/connect/ConnectQuickContacts.tsx",
@@ -23,7 +24,9 @@
     "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
     ".github/workflows/buklod-compact-layout-qa.yml",
     "tests/wall-media-density-20261116.test.mjs",
-    ".buklod/scopes/wall-connect-note-rail-density-20261116.json"
+    ".buklod/scopes/wall-connect-note-rail-density-20261116.json",
+    ".github/workflows/buklod-nov16-compact-art-staging-release.yml",
+    "tests/nov16-compact-art-staging-release.test.mjs"
   ],
   "preserveBehaviors": [
     "Both screens retain avatars at 56dp, profile tap navigation, readable max-five-line notes, current user note editing, ranks and existing theme colors.",
@@ -36,13 +39,15 @@
     "Dynamic-height source test verifies empty one-line notes no longer reserve a five-line slot and all avatars remain aligned.",
     "Wall media density test and Connect geometry test pass with intact ad surfaces, tap targets and editing.",
     "PR CI TypeScript passes; perform staged Android Hermes OTA via separately verified exact source and channel, then verify runtime/update receipt.",
-    "Physical device verification skipped only at owner's request, not represented as successful."
+    "Physical device verification skipped only at owner's request, not represented as successful.",
+    "New staging publish requires both previous frozen six-check RC provenance and all three new exact-PR CI checks, with strict changed-path allowlist."
   ],
   "regressionTests": [
     "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
     "tests/wall-media-density-20261116.test.mjs",
     "tests/appwide-compact-density-20261116.test.mjs",
-    "tests/nov16-connect-profile-geometry.test.mjs"
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -63,6 +68,16 @@
       ],
       "tests": [
         "tests/wall-media-density-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Extend the existing guarded staging-only release workflow to verify old RC provenance and the exact new profile-note spacing PR without weakening production isolation.",
+      "preservedBehaviors": [
+        "Staging channel only, verified runtime 1.3.2, APK/native baseline parity and production unchanged readback remain mandatory."
+      ],
+      "tests": [
+        "tests/nov16-compact-art-staging-release.test.mjs"
       ]
     }
   ],

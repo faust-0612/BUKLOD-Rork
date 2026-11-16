@@ -7,6 +7,10 @@ test('release is only a named, gated Android staging-user push',()=>{
   assert.match(workflow,/github\.ref == 'refs\/heads\/release\/nov16-compact-art-staging132'/);
   assert.match(workflow,/BUKLOD Compact Layout Source QA/);
   assert.match(workflow,/BUKLOD Character R31-R40 Recovery QA/);
+  assert.match(workflow,/pulls\/894/);
+  assert.match(workflow,/pulls\/892/);
+  assert.match(workflow,/Staging push must equal exact checked PR/);
+  assert.match(workflow,/tests\/nov16-wall-connect-dynamic-note-rail\.test\.mjs/);
   assert.match(workflow,/npx tsc --noEmit/);
   assert.match(workflow,/npm run character:contract/);
   assert.match(workflow,/npm run compact:contract/);

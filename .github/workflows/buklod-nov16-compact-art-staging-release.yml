@@ -49,14 +49,28 @@ jobs:
             assert.equal(res.status,200,'GitHub governance request failed: '+path);
             return res.json();
           };
-          const pr=await get('/pulls/892');
-          assert.equal(pr.base.ref,'main');
-          assert.equal(pr.head.ref,'codex/nov16-compact-1300-art-staging-rc');
-          assert.equal(pr.head.sha,sha,'Release source must match independently checked candidate exactly');
+          // Preserve the independently passed source RC and its previous six gates.
+          const sourceRC='8b152c571a923e85b8812a55120d2e3a72c2301a';
+          const historical=await get('/pulls/892');
+          assert.equal(historical.base.ref,'main');
+          assert.equal(historical.head.sha,sourceRC,'Published staging source must be the exact previously reviewed RC');
+          const oldRuns=(await get('/actions/runs?head_sha='+sourceRC+'&per_page=100')).workflow_runs;
+          const oldRequired=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Character R31-R40 Recovery QA','BUKLOD Performance R1 QA','BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD R38 Economy QA'];
+          for(const name of oldRequired) assert.ok(oldRuns.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===historical.head.ref&&r.conclusion==='success'),'Previous frozen RC check absent: '+name);
+          // Only the reviewed Note-rail patch can advance this staging branch.
+          const pr=await get('/pulls/894');
+          assert.equal(pr.base.ref,'release/nov16-compact-art-staging132');
+          assert.equal(pr.head.ref,'fix/wall-connect-dynamic-note-rail-20261116');
+          assert.equal(pr.head.sha,sha,'Staging push must equal exact checked PR #894 head');
+          const {execFileSync}=await import('node:child_process');
+          const {readFileSync}=await import('node:fs');
+          const manifest=JSON.parse(readFileSync('.buklod/scopes/wall-connect-note-rail-density-20261116.json','utf8'));
+          const changed=execFileSync('git',['diff','--name-only',sourceRC,sha],{encoding:'utf8'}).trim().split('\\n').sort();
+          assert.deepEqual(changed,manifest.allowedPaths.slice().sort(),'Staging patch must contain only governed PR #894 paths');
           const runs=(await get('/actions/runs?head_sha='+sha+'&per_page=100')).workflow_runs;
-          const required=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Character R31-R40 Recovery QA','BUKLOD Performance R1 QA','BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD R38 Economy QA'];
-          for(const name of required) assert.ok(runs.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===pr.head.ref&&r.conclusion==='success'),'Required CI not green: '+name);
-          console.log('Reviewed SHA and all required source CI PASS',sha);
+          const required=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Main - Report Door and Legacy Integration PR QA'];
+          for(const name of required) assert.ok(runs.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===pr.head.ref&&r.conclusion==='success'),'New Note-rail CI not green: '+name);
+          console.log('Previous RC plus exact new source governance PASS',sha);
           NODE
       - name: Verify unchanged signed native baseline, Android staging identity and compact/Character QA
         shell: bash
@@ -88,6 +102,8 @@ jobs:
             tests/buklod-character-art-contract-20261116.test.mjs \
             tests/buklod-character-art-release-contract-20261116.test.mjs \
             tests/appwide-compact-density-20261116.test.mjs \
+            tests/nov16-wall-connect-dynamic-note-rail.test.mjs \
+            tests/wall-media-density-20261116.test.mjs \
             tests/character-density-20261116.test.mjs \
             tests/compact-ota-release-20261116.test.mjs \
             tests/nov16-compact-art-staging-release.test.mjs \
