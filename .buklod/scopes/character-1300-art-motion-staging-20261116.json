@@ -213,14 +213,15 @@
       ]
     }
   ],
-  "releaseTarget": {
-    "platform": "android",
-    "channel": "staging-user",
-    "environment": "preview",
-    "runtime": "1.3.2",
-    "androidPackage": "org.mzbministry.buklod.staging",
-    "production": "preserved"
-  },
+  "releaseTarget": "staging-user Android runtime 1.3.2 only",
   "physicalDeviceVerification": "SKIPPED by owner, explicitly unverified",
-  "publicationStatus": "UNPUBLISHED until exact combined gates and EAS readback"
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releasePlan": {
+    "status": "PUBLISH_GATE_HOLD_UNTIL_QA",
+    "nextChannel": "staging-user",
+    "runtime": "1.3.2",
+    "currentVerifiedStageUpdateId": "01a1e498-a8f0-7fc8-93fe-7662526d086d",
+    "productionMustRemainUnchanged": true,
+    "physicalDeviceVerified": false
+  }
 }
