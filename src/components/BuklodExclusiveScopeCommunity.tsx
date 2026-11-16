@@ -995,23 +995,6 @@ export default function BuklodExclusiveScopeCommunity({
             rows.map(row => row.id),
             rows.filter(row => Number(row.comment_count ?? 0)>0).map(row => row.id),
           );
-          const namedRows = await withBuklodTimeout(
-            hydratePersonNamesOnRows(rows, 'user_id', 'author_name'),
-            4000,
-            'Scoped names'
-          ).catch(() => rows);
-          if (scopeMediaLoadSeqRef.current !== loadSeq) return;
-          const namesById = new Map(namedRows.map(row => [String(row.id), row]));
-          setPosts(previous => previous.map(post => {
-            if (scopeMediaLoadSeqRef.current !== loadSeq) return post;
-            const enriched = namesById.get(String(post.id));
-            if (!enriched) return post;
-            return {
-              ...post,
-              author_name: enriched.author_name ?? post.author_name,
-              comment_preview: post.comment_preview ?? null,
-            };
-          }));
           // Only update exact in-scope posts; do not reset already-hydrated
           // photos, reactions or a newer preview on a slow connection.
           const requestedCommentIds = new Set(rows.map(row => String(row.id)));
@@ -1034,6 +1017,23 @@ export default function BuklodExclusiveScopeCommunity({
               });
             })
             .catch(error => console.warn('Scoped comment hydration:', error?.message ?? error));
+          const namedRows = await withBuklodTimeout(
+            hydratePersonNamesOnRows(rows, 'user_id', 'author_name'),
+            4000,
+            'Scoped names'
+          ).catch(() => rows);
+          if (scopeMediaLoadSeqRef.current !== loadSeq) return;
+          const namesById = new Map(namedRows.map(row => [String(row.id), row]));
+          setPosts(previous => previous.map(post => {
+            if (scopeMediaLoadSeqRef.current !== loadSeq) return post;
+            const enriched = namesById.get(String(post.id));
+            if (!enriched) return post;
+            return {
+              ...post,
+              author_name: enriched.author_name ?? post.author_name,
+              comment_preview: post.comment_preview ?? null,
+            };
+          }));
         }
         catch (
           error: any
