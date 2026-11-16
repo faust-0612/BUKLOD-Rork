@@ -29,3 +29,16 @@ test('reversed or rejected BP credit ceases to qualify for future cosmetic award
  assert.match(task,/and verified=true/);
  assert.match(task,/on conflict do nothing/);
 });
+
+test('new-award recognition uses only newly inserted server award rows',()=>{
+ assert.match(task,/get diagnostics v_step = row_count/);
+ assert.match(task,/v_awarded:=v_awarded\+v_step/);
+ assert.match(task,/v_new:=private\.buklod_evaluate_character_story_tasks_v1/);
+ assert.match(task,/'newly_awarded',v_new/);
+ assert.match(hub,/setNewRewards/);
+});
+test('Kingdom Legacy links back to the primary Character task hub',()=>{
+ const legacy=read('src/app/games/legacy.tsx');
+ assert.match(legacy,/\/points\/character-collections/);
+ assert.match(legacy,/CHARACTER TASKS & COLLECTIONS/);
+});

@@ -161,7 +161,7 @@ declare
  v_shares integer:=0;v_weeks integer:=0;
  v_bible integer:=0;v_devotional integer:=0;v_formation integer:=0;
  v_quiz integer:=0;v_attendance integer:=0;v_prayer integer:=0;
- v_awarded integer:=0;
+ v_awarded integer:=0;v_step integer:=0;
 begin
  if p_uid is null or p_character not in
  ('phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
@@ -223,6 +223,8 @@ begin
     when 3 then 'character_quiz'
     when 4 then 'character_attendance_or_prayer' end)
  from earned e on conflict do nothing;
+ get diagnostics v_step = row_count;
+ v_awarded:=v_awarded+v_step;
 
  -- All four other items AND distinct verified active weeks are mandatory.
  insert into private.buklod_character_story_awards_v1
@@ -237,9 +239,8 @@ begin
     where a.user_id=p_uid and a.character_id=p_character
       and a.level_no=s.level_no and a.item_index between 1 and 4)=4
  on conflict do nothing;
-
- select count(*) into v_awarded from private.buklod_character_story_awards_v1 a
- where a.user_id=p_uid and a.character_id=p_character;
+ get diagnostics v_step = row_count;
+ v_awarded:=v_awarded+v_step;
  return v_awarded;
 end;
 $fn$;
@@ -259,6 +260,7 @@ declare
  v_items jsonb:='[]'::jsonb;
  v_metrics jsonb:='{}'::jsonb;
  v_total integer:=0;
+ v_new integer:=0;
 begin
  if v_uid is null then raise exception 'Authentication required';end if;
  if v_character not in
@@ -273,7 +275,7 @@ begin
  v_level:=greatest(1,least(20,
    coalesce((v_state->'character_levels'->>v_character)::integer,1)));
 
- perform private.buklod_evaluate_character_story_tasks_v1(v_uid,v_character,v_level);
+ v_new:=private.buklod_evaluate_character_story_tasks_v1(v_uid,v_character,v_level);
 
  select jsonb_build_object(
   'character_public_post',count(*) filter(where metric_key='character_public_post'),
@@ -311,7 +313,7 @@ begin
  where a.user_id=v_uid and a.character_id=v_character;
  return jsonb_build_object('character_id',v_character,
   'current_level',v_level,'task_scope','PER_CHARACTER_SERVER_VERIFIED_BUKLOD_TASKS',
-  'items',v_items,'metrics',v_metrics,'owned_total',v_total);
+  'items',v_items,'metrics',v_metrics,'owned_total',v_total,'newly_awarded',v_new);
 end;
 $fn$;
 revoke all on function private.buklod_capture_character_task_event_v1() from public,anon,authenticated;

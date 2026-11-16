@@ -36,7 +36,8 @@
     "tests/character-task-collections-20261116.test.mjs",
     ".buklod/scopes/character-task-collections-20261116.json",
     "supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql",
-    "tests/character-core-v3-compat-20261116.test.mjs"
+    "tests/character-core-v3-compat-20261116.test.mjs",
+    "src/app/games/legacy.tsx"
   ],
   "preserveBehaviors": [
     "Existing R31/R40 character art/selector hash locks are byte-for-byte unchanged; saved per-character V3 checkpoint persists and Circle Rank stays independent.",
@@ -57,7 +58,9 @@
     "Run local SQL validation, TypeScript, new focused tests, existing AdMob/points/navigation release gates before moving beyond isolated DEV.",
     "Do not run production migration, install native packages, build AAB, publish OTA or merge to production without verified RC gates.",
     "Core redeemed-item progress helper must equal restored V3 saved XP plus active BP delta after multiple Character switches; other accounts cannot invoke the private helper.",
-    "Rejected/reversed ledger credits cannot count for future task awards; previously issued cosmetics require audit rather than automatic confiscation."
+    "Rejected/reversed ledger credits cannot count for future task awards; previously issued cosmetics require audit rather than automatic confiscation.",
+    "Kingdom Legacy directly opens Character Tasks without touching game or AdMob lifecycle.",
+    "New-award celebrations use the transaction's insert-row counts and cannot replay on subsequent reads."
   ],
   "regressionTests": [
     "tests/character-task-collections-20261116.test.mjs",

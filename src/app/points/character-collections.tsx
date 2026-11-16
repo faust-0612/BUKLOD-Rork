@@ -25,7 +25,7 @@ import type {BuklodCharacterWorldId} from '@/lib/buklodCharacterWorldCatalog';
 type BadgeResult={collectibles?:TaskBadge[]};
 type SpecialStoryPayload={
  items?:{key:string;level:number;item_index:number;owned:boolean;earned_at:string|null}[];
- metrics?:Record<string,number>;owned_total?:number;current_level?:number;
+ metrics?:Record<string,number>;owned_total?:number;current_level?:number;newly_awarded?:number;
 };
 const C={bg:'#071823',panel:'#112C3A',text:'#FAFFF6',muted:'#C7D8DA',green:'#AFF079',gold:'#F4D18B'};
 const CORE=new Set<string>(CORE_CHARACTER_ORDER);
@@ -45,6 +45,7 @@ export default function CharacterCollectionsScreen(){
  const [error,setError]=useState('');
  const [detailError,setDetailError]=useState('');
  const [storyError,setStoryError]=useState('');
+ const [newRewards,setNewRewards]=useState(0);
  const [showBadges,setShowBadges]=useState(false);
  const [artReady,setArtReady]=useState(false);
  const [failedArt,setFailedArt]=useState<Set<string>>(()=>new Set());
@@ -86,7 +87,7 @@ export default function CharacterCollectionsScreen(){
    if(next===accountRef.current)return;
    req.current++;detailReq.current++;
    accountRef.current=null;setUid(null);setSelection(null);setItems(null);
-   initialChoiceSet.current=false;setSelected('phan');setInspect(null);setBadgeResult(null);setSpecialStory(null);setDetailError('');setStoryError('');
+   initialChoiceSet.current=false;setSelected('phan');setInspect(null);setBadgeResult(null);setSpecialStory(null);setNewRewards(0);setDetailError('');setStoryError('');
    // Defer getSession/RPC until the auth callback releases its internal lock.
    if(next)setTimeout(()=>{if(accountRef.current===null)void load();},0);
   });
@@ -108,7 +109,7 @@ export default function CharacterCollectionsScreen(){
  useEffect(()=>{
   if(!uid||!selection||!unlocked){setItems(null);setBadgeResult(null);setSpecialStory(null);return;}
   const epoch=++detailReq.current;
-  setItems(null);setBadgeResult(null);setSpecialStory(null);setDetailError('');setStoryError('');setDetailsBusy(true);
+  setItems(null);setBadgeResult(null);setSpecialStory(null);setNewRewards(0);setDetailError('');setStoryError('');setDetailsBusy(true);
   const run=async()=>{
    if(core){
     // Legacy Core inventory is read independently from newer verified task awards.
@@ -120,8 +121,11 @@ export default function CharacterCollectionsScreen(){
     if(epoch!==detailReq.current)return;
     if(legacy.status==='fulfilled')setItems(legacy.value);
     else setDetailError('Core item claims could not be refreshed.');
-    if(task.status==='fulfilled'&&!task.value.error)
-     setSpecialStory((task.value.data??{}) as SpecialStoryPayload);
+    if(task.status==='fulfilled'&&!task.value.error){
+     const verified=(task.value.data??{}) as SpecialStoryPayload;
+     setSpecialStory(verified);
+     setNewRewards(Math.max(0,Math.floor(Number(verified.newly_awarded)||0)));
+    }
     else setStoryError('Task milestones require the verified Character server migration.');
    }else if(special){
     // Existing badge records and special story-item awards are separate.
@@ -134,8 +138,11 @@ export default function CharacterCollectionsScreen(){
     if(badges.status==='fulfilled'&&!badges.value.error)
      setBadgeResult((badges.value.data??{}) as BadgeResult);
     else setDetailError('Unable to load verified task badges. Retry to refresh.');
-    if(story.status==='fulfilled'&&!story.value.error)
-     setSpecialStory((story.value.data??{}) as SpecialStoryPayload);
+    if(story.status==='fulfilled'&&!story.value.error){
+     const verified=(story.value.data??{}) as SpecialStoryPayload;
+     setSpecialStory(verified);
+     setNewRewards(Math.max(0,Math.floor(Number(verified.newly_awarded)||0)));
+    }
     else setStoryError('Character-specific story awards require the verified server migration.');
    }
   };
@@ -195,6 +202,10 @@ export default function CharacterCollectionsScreen(){
     <Pressable onPress={()=>void load()} accessibilityRole="button"><Text style={s.actionText}>RETRY</Text></Pressable>
   </View>:null}
   {selection?<>
+   {newRewards>0?<View style={s.banner} accessibilityLiveRegion="polite">
+    <Text style={s.h2}>✨ {newRewards} bagong Character collectibles!</Text>
+    <Text style={s.body}>Server-confirmed task rewards. Walang nadagdag na BP o Kingdom Shards.</Text>
+   </View>:null}
    <Text style={s.section}>CHARACTERS</Text>
    <View style={s.rail}>
     {visible.map(id=>{
