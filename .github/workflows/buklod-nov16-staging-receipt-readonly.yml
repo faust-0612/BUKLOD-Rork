@@ -1,0 +1,98 @@
+# Read-only audit after the Nov16 staging OTA succeeded.
+# This workflow cannot publish, build, migrate, or write remote data.
+name: BUKLOD Nov16 Staging OTA Receipt Read-only Recovery
+on:
+  push:
+    branches:
+      - audit/nov16-staging-ota-receipt-be6d2f
+    paths:
+      - '.github/workflows/buklod-nov16-staging-receipt-readonly.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-nov16-readonly-eas-receipt
+  cancel-in-progress: false
+jobs:
+  recovery-readback:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/audit/nov16-staging-ota-receipt-be6d2f' && startsWith(github.event.head_commit.message, 'BUKLOD_NOV16_STAGING_RECEIPT_READONLY:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      RELEASE_SOURCE: be6d2f34b01a0f181aff7e02b2982b5c3e748d7d
+      RELEASE_MESSAGE: BUKLOD_NOV16_UNIFIED_STAGING_be6d2f34b01a0f181aff7e02b2982b5c3e748d7d
+      PROD_EXPECTED: 01a1e2e2-cb65-7733-bcb6-3519230c9cf4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify read-only source and existing Expo token
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$RELEASE_SOURCE"
+          test -n "${EXPO_TOKEN:-}"
+          test "$(git diff --name-only "$RELEASE_SOURCE" "$GITHUB_SHA")" = ".github/workflows/buklod-nov16-staging-receipt-readonly.yml"
+          mkdir -p readback-evidence
+      - name: Read EAS update list and channels without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > readback-evidence/staging-list.json
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > readback-evidence/staging-channel.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > readback-evidence/production-channel.json
+          node <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const data=JSON.parse(fs.readFileSync('readback-evidence/staging-list.json','utf8'));
+          const rows=data.currentPage??data;
+          assert.ok(Array.isArray(rows),'Read-only EAS update list is not an array');
+          const matches=rows.filter(x=>x.message===process.env.RELEASE_MESSAGE);
+          assert.equal(matches.length,1,'Exactly one matching release message must exist');
+          assert.ok(matches[0].group,'Missing EAS update group');
+          fs.writeFileSync('readback-evidence/group-id.txt',matches[0].group);
+          NODE
+          npx --yes eas-cli@27.9.0 update:view "$(cat readback-evidence/group-id.txt)" --json > readback-evidence/update-view.json
+      - name: Independently verify exact update, runtime and production nonmutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {verifyChannels,verifyUpdate,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d='readback-evidence';
+          const read=p=>JSON.parse(fs.readFileSync(d+'/'+p,'utf8'));
+          const channel=verifyChannels(read('staging-channel.json'),read('production-channel.json'));
+          const update=verifyUpdate(read('update-view.json'),process.env.RELEASE_SOURCE,channel.name);
+          const staged=await manifest('staging-user');
+          const production=await manifest('production');
+          assert.equal(staged.id.toLowerCase(),update.id.toLowerCase(),'Published stage is not the latest staging manifest');
+          assert.equal(staged.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(staged.extra?.expoClient?.extra?.appEnvironment,'staging');
+          assert.equal(production.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          assert.equal(production.id.toLowerCase(),process.env.PROD_EXPECTED.toLowerCase(),'Production OTA differs from prior verified source');
+          const receipt={
+            status:'VERIFIED STAGING OTA READBACK',channel:'staging-user',runtime:'1.3.2',
+            package:'org.mzbministry.buklod.staging',sourceSha:process.env.RELEASE_SOURCE,
+            updateId:update.id,groupId:update.group,stagingBranch:channel.name,
+            productionUnchanged:production.id,physicalDeviceVerified:false,
+          };
+          fs.writeFileSync(d+'/verification.json',JSON.stringify(receipt,null,2)+'\n');
+          console.log('VERIFIED STAGING OTA READBACK '+JSON.stringify(receipt));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(receipt,null,2)+'\n');
+          NODE
+      - name: Archive read-only verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov16-stage-readonly-evidence-${{ github.sha }}
+          path: readback-evidence/*.json
+          retention-days: 14
+          if-no-files-found: error
