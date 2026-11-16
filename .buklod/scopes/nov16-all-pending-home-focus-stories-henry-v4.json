@@ -1,11 +1,11 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/nov16-all-pending-home-focus-stories-henry-v4.json",
-  "objective": "Consolidate latest owner-approved OTA-safe BUKLOD Home/Family/Health/Kingdom/Today layout, 132 in-story Bible dialogues, Profile executive hero, Cluster dark contrast and Matthew Henry v4 semantic Filipino onto verified Android production main 1.3.2 without rewriting existing AdMob or navigation foundations.",
+  "objective": "Consolidate latest owner-approved OTA-safe BUKLOD Home/Family/Health/Kingdom/Today layout, 132 in-story Bible dialogues, Profile executive hero, Cluster dark contrast and Matthew Henry v4 semantic Filipino onto verified Android production main 1.3.2 without rewriting existing AdMob or navigation foundations. Complete omitted Nov16 Wall/Connect note visibility, dark post detail and locked-profile public avatar without reviving duplicate Home cards.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: GitHub Actions production Android OTA run 43761675074 on 2026-11-15 21:05 UTC, final publish step SUCCESS; readback log records VERIFIED ANDROID PRODUCTION OTA update 01a1e10a-f043-7113-9a6c-673e91a58517, runtime 1.3.2, exact main SHA 3b488fa704b804f05c5a289a7e0775daeabb2404. Historical production evidence; independent fresh EAS channel/update readback is required again before any new publication.",
-  "chosenApproach": "Source-only forward-port five independent current-main descendants into a single immutable review candidate. Preserve unchanged main files by Git tree base; select exact source blobs and focused regression tests, never merge the divergent legacy staging tree or mutate backend/native.",
-  "selectionRationale": "Each source branch is a direct descendant of main; isolated file changes overlap minimally; choosing current main as base protects live ad/dashboard and authentication behavior.",
+  "chosenApproach": "Source-only forward-port five independent current-main descendants into a single immutable review candidate. Preserve unchanged main files by Git tree base; select exact source blobs and focused regression tests, never merge the divergent legacy staging tree or mutate backend/native. Reconcile seven #865 source blobs by exact identity and minimally merge two note-chip placements into the theme-aware scoped Community source; preserve all other #868 changes.",
+  "selectionRationale": "Each source branch is a direct descendant of main; isolated file changes overlap minimally; choosing current main as base protects live ad/dashboard and authentication behavior. #865's scoped Wall/Connect source was not present in the original #868; exact reconciliation fills this omission while preserving the #868 contrast patch.",
   "alternativeApproaches": [
     "Blind merge divergent Nov16 staging history, rejected because earlier branches diverge from released production behavior.",
     "Force production OTA directly from an unverified DEV branch, rejected because it bypasses staging and exact runtime/manifest gates."
@@ -17,7 +17,11 @@
     "auth-privacy",
     "connect",
     "cluster-faith",
-    "production-release"
+    "production-release",
+    "wall-media",
+    "privacy-locked-profile",
+    "avatar-images",
+    "theme-contrast"
   ],
   "preserveBehaviors": [
     "Preserve Android runtime 1.3.2 and signed app variants and OTA channels.",
@@ -25,14 +29,16 @@
     "Keep all live Home QMP, announcements, map, PTT, SOS and existing children stories; do not touch auth, tokens, RLS, Supabase migrations or finances.",
     "Do not restore retired IGPAT or duplicate Kingdom on Home.",
     "Keep personal Family Home separate from role-gated Family workspace.",
-    "Never publish production before verified exact-sha staged OTA RC, focused tests, Android bundle and published manifest readback."
+    "Never publish production before verified exact-sha staged OTA RC, focused tests, Android bundle and published manifest readback.",
+    "Preserve existing locked-profile private-data restrictions, 24-hour note expiration, avatar batching and Theme dark contrast in Wall, scoped Community and post details."
   ],
   "acceptanceChecks": [
     "Reconcile all changed source against main; no deleted or changed protected backend/native files.",
     "TypeScript and Android Hermes export succeed against exact source SHA.",
     "All focused Node/Jest tests pass including ads/dashboard, Family role guard, Profile and Chapter stories.",
     "Staging-user Android 1.3.2 publish and independent update:view succeeds before production.",
-    "Production publish requires distinct authorization, current live AdMob/nav regression evidence and independent manifest verification."
+    "Production publish requires distinct authorization, current live AdMob/nav regression evidence and independent manifest verification.",
+    "New combined Wall/Connect Notes and locked-avatar tests run at exact source SHA with existing 132-story, Henry, Profile and AdMob safeguards."
   ],
   "regressionTests": [
     "tests/bible-132-complete-storytelling-20261116.test.mjs",
@@ -57,7 +63,9 @@
     "tests/nov16-profile-navigation-actions.test.mjs",
     "tests/nov16-profile-staging-android-qa.test.mjs",
     "tests/public-hub-kingdom-card-20261110.test.mjs",
-    "tests/wall-media-navigation-polish-20261108.test.mjs"
+    "tests/wall-media-navigation-polish-20261108.test.mjs",
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    "tests/nov16-recent-completeness-staging132-r2.test.cjs"
   ],
   "allowedPaths": [
     "docs/bible/matthew-henry-translation-attribution-20261116.md",
@@ -111,7 +119,16 @@
     "tests/nov16-profile-staging-android-qa.test.mjs",
     "tests/public-hub-kingdom-card-20261110.test.mjs",
     "tests/wall-media-navigation-polish-20261108.test.mjs",
-    ".buklod/scopes/nov16-all-pending-home-focus-stories-henry-v4.json"
+    ".buklod/scopes/nov16-all-pending-home-focus-stories-henry-v4.json",
+    ".buklod/scopes/nov16-all-recent-fixes-wall-notes-868-r2.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/member/[id].tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    "tests/nov16-recent-completeness-staging132-r2.test.cjs"
   ],
   "releaseTarget": "staging-user first; Android production only after verified staging RC",
   "runtimeVersion": "1.3.2",
