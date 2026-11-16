@@ -59,13 +59,13 @@ jobs:
           npx tsc --noEmit
           npm run character:contract
           npm run compact:contract
-          node --experimental-strip-types --test \\
-            tests/buklod-character-collectible-parity-20261116.test.mjs \\
-            tests/buklod-character-release-lock-20261116.test.mjs \\
-            tests/character-android-zoom-full-source-20261116.test.mjs \\
-            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \\
-            tests/wall-real-recent-comment-preview-20261116.test.mjs \\
-            tests/nov16-wall-author-date-avatar-privacy.test.cjs \\
+          node --experimental-strip-types --test \
+            tests/buklod-character-collectible-parity-20261116.test.mjs \
+            tests/buklod-character-release-lock-20261116.test.mjs \
+            tests/character-android-zoom-full-source-20261116.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/wall-real-recent-comment-preview-20261116.test.mjs \
+            tests/nov16-wall-author-date-avatar-privacy.test.cjs \
             tests/buklod-connect-composer-contrast-20261116.test.mjs
       - name: Compile exact Android staging source bundle without publishing OTA
         run: |
