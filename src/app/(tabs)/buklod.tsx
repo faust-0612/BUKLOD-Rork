@@ -6930,7 +6930,7 @@ const communityFeedRows =
        </View>
       )}
       {commentLoading&&!comments.length?(
-       <View style={{paddingVertical:36,alignItems:'center',gap:12}}>
+       <View style={{paddingVertical:20,alignItems:'center',gap:8}}>
         <ActivityIndicator size="small" color={colors.green}/>
         <Text style={{color:colors.muted}}>Loading comments…</Text>
        </View>
@@ -7001,7 +7001,7 @@ const communityFeedRows =
       />
 
       ):!commentLoadError?(
-       <View style={{paddingVertical:48,alignItems:'center',gap:10}}>
+       <View style={{paddingVertical:24,alignItems:'center',gap:8}}>
         <MaterialCommunityIcons name="comment-outline" size={34} color={colors.green}/>
         <Text style={{color:colors.muted,textAlign:'center',fontSize:13}}>
          No comments yet. Be the first to respond.

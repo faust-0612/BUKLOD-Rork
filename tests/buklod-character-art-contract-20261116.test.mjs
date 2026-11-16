@@ -22,7 +22,9 @@ test('invalid path rejected; unconfigured art is safely absent', () => {
   assert.equal(collectibleArtworkPath('phan',21,1),null);
   assert.equal(collectibleArtworkPath('phan',1,6),null);
   assert.equal(collectibleArtworkPath('phan',1.5,1),null);
-  const base=process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL;
+  const configuredBase=process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL;
+  const base=(typeof configuredBase==='string' && configuredBase.trim()) ||
+    (process.env.EXPO_PUBLIC_APP_ENV==='staging' ? 'https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/buklod-character-art-v1' : null);
   assert.equal(collectibleArtworkUri('phan',1,1),typeof base==='string' && /^https:\/\/[^?#\s]+$/i.test(base)
     ? base.replace(/\/$/,'')+'/character-collectibles/phan/l01-i01.webp' : null);
 });
@@ -43,4 +45,19 @@ test('animation, profile display and collectible preview are present', () => {
   assert.match(motion,/useNativeDriver: true/);
   assert.match(selector,/state\.character_levels\[draft\]/);
   assert.match(special,/state\.character_levels\[selected\.id\]/);
+});
+
+test('staging-only published art default never auto-enables on production', () => {
+  const beforeEnv=process.env.EXPO_PUBLIC_APP_ENV;
+  const beforeBase=process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL;
+  try {
+    delete process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL;
+    process.env.EXPO_PUBLIC_APP_ENV='staging';
+    assert.equal(collectibleArtworkUri('phan',1,1),'https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/buklod-character-art-v1/character-collectibles/phan/l01-i01.webp');
+    process.env.EXPO_PUBLIC_APP_ENV='production';
+    assert.equal(collectibleArtworkUri('phan',1,1),null);
+  } finally {
+    if(beforeEnv===undefined) delete process.env.EXPO_PUBLIC_APP_ENV; else process.env.EXPO_PUBLIC_APP_ENV=beforeEnv;
+    if(beforeBase===undefined) delete process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL; else process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL=beforeBase;
+  }
 });

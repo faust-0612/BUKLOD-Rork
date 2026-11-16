@@ -583,8 +583,8 @@ const styles = StyleSheet.create({
   },
   row: {
     paddingHorizontal: 12,
-    paddingBottom: 8,
-    gap: 10,
+    paddingBottom: 4,
+    gap: 6,
     alignItems: 'flex-start',
   },
   person: {
@@ -593,21 +593,21 @@ const styles = StyleSheet.create({
   },
   noteZone: {
     width: COLUMN_WIDTH,
-    height: 108,
+    height: 100,
     alignItems: 'center',
     justifyContent: 'flex-end',
     marginBottom: 6,
   },
   noteZoneEditing: {
     width: COLUMN_WIDTH,
-    height: 108,
+    height: 100,
     alignItems: 'center',
     justifyContent: 'flex-end',
     marginBottom: 6,
   },
   noteAddWrap: {
     width: COLUMN_WIDTH,
-    height: 108,
+    height: 100,
     justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 6,

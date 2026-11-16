@@ -3484,7 +3484,7 @@ function HomeImportantReminder() {
                   width: '100%',
                   aspectRatio: 16 / 9,
                   borderRadius: 14,
-                  marginBottom: 14,
+                  marginBottom: 8,
                 }}
                 contentFit="cover"
                 transition={180}

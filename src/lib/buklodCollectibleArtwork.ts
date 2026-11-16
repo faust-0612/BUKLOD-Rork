@@ -21,7 +21,12 @@ export function collectibleArtworkPath(characterId: BuklodCharacterWorldId, leve
 
 export function collectibleArtworkUri(characterId: BuklodCharacterWorldId, level: number, itemIndex: number): string | null {
   const path = collectibleArtworkPath(characterId, level, itemIndex);
-  const base = process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL;
+  // Production remains opt-in; verified public Storage art defaults on for staging only.
+  const configuredBase = process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL;
+  const base = (typeof configuredBase === 'string' && configuredBase.trim()) ||
+    (process.env.EXPO_PUBLIC_APP_ENV === 'staging'
+      ? 'https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/buklod-character-art-v1'
+      : null);
   if (!path || typeof base !== 'string' || !/^https:\/\/[^?#\s]+$/i.test(base)) return null;
   return base.replace(/\/$/, '') + '/' + path;
 }
