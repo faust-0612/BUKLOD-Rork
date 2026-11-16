@@ -5,7 +5,7 @@
   "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
   "productionBaselineEvidence": "GitHub main source SHA 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 compared before editing; no independent live production Android/web build, installed-client source or current OTA fingerprint verified. DEV source-only; production remains unchanged.",
   "chosenApproach": "Change shared spacing tokens and scoped screen-specific unnecessary gaps, preserving safe bottom clearance, text sizes, media aspect ratios, accessibility, real AdMob request/viewability, and navigation focus lifecycle; add source and regression QA with an isolated draft PR.",
-  "selectionRationale": "A uniform global numeric replacement risks double gutters and broken ads, keyboard and accessibility. Shared semantic tokens with targeted existing screen edits produce the intended compactness while minimizing disruption.",
+  "selectionRationale": "A uniform global numeric replacement risks double gutters and broken ads, keyboard and accessibility. Shared semantic tokens with targeted existing screen edits produce the intended compactness while minimizing disruption. The Character selector's historical production parity contract explicitly forbids any unverified visual rebaseline; this branch keeps it byte-identical.",
   "alternativeApproaches": [
     "Use blanket string replacement of every margin/padding (rejected: would remove justified safe-area and media/AdMob geometry).",
     "Replace existing screens with Facebook-like component tree (rejected: duplicates business and navigation logic and risks regressions)."
@@ -15,13 +15,15 @@
     "Bottom-navigation/safe-area clearance, profile/Connect avatars, Bible text and character art remain legible and reachable.",
     "AdMob viewability, first view slots, scoped comments, keyboard composer and dashboard focus remain unchanged.",
     "Pass changed focused regression tests, npm TypeScript and required Engineering Accountability lock.",
-    "Owner skips physical-device verification; keep as explicitly unverified rather than passed. Stage only after exact reviewed RC and immutable staging identity/runtimes; never auto-publish from this PR."
+    "Owner skips physical-device verification; keep as explicitly unverified rather than passed. Stage only after exact reviewed RC and immutable staging identity/runtimes; never auto-publish from this PR.",
+    "Character selector is SHA-locked R31/R40 and intentionally not locally tightened. Separate reviewed rebaseline requires exact approved historical parity and non-skipped live acceptance."
   ],
   "preserveBehaviors": [
     "Current account permissions, finance payouts and QMP calculations untouched; presentation only.",
     "Preserve genuine ad impressions, ad consent, first-view and inline ad lifecycle and smooth tab navigation.",
     "Preserve full-width Bible text, chapter navigation, commentary, notes, audio, story images and character zoom.",
-    "Native runtime identity and all Supabase schemas unchanged; new CI workflow is source QA only."
+    "Native runtime identity and all Supabase schemas unchanged; new CI workflow is source QA only.",
+    "Character selector source is byte-identical to frozen R31/R40 baseline, rather than silently re-baselining visual assets."
   ],
   "riskAreas": [
     "app-runtime",
@@ -124,16 +126,6 @@
       ],
       "tests": [
         "tests/cluster-bible-density-20261116.test.mjs"
-      ]
-    },
-    {
-      "id": "kingdom-character",
-      "reason": "Compact Character System selection and collectible views while retaining readable art, levels, and zoom.",
-      "preservedBehaviors": [
-        "Character-level persistence, badges, collectibles and Kingdom authority separation unchanged."
-      ],
-      "tests": [
-        "tests/character-density-20261116.test.mjs"
       ]
     },
     {

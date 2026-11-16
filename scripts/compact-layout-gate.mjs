@@ -24,7 +24,7 @@ const rules = [
   ['src/components/BuklodCommunityWallProfileBubbles.tsx', /noteZone:\s*\{[\s\S]{0,70}height:\s*100\b/],
   ['src/app/clusters/index.tsx', /directorySection:\s*\{\s*gap:\s*5\s*\}/],
   ['src/app/bible/read.tsx', /readingHeader:\s*\{[\s\S]{0,170}paddingBottom:\s*8\b/],
-  ['src/components/points/BuklodProgressiveCharacterSelector.tsx', /roster:\s*\{\s*marginTop:\s*8,\s*marginHorizontal:\s*12/],
+  // Character selector is a SHA-locked R31/R40 visual. Its independent visual gate preserves this baseline.
   ['src/app/community-contribution.tsx', /content:\s*\{padding:12,paddingBottom:80,gap:8\}/],
 ];
 for (const [file, pattern] of rules) assert.match(read(file), pattern, 'Compact spacing regression: ' + file);
