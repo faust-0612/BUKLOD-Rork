@@ -57,3 +57,26 @@ export function selectNearbyMaritesVideo(input:{
  });
  return next>=0?next:visible;
 }
+
+/**
+ * Select a story step without stealing a zoom gesture or horizontal photo paging.
+ * A single deliberate horizontal swipe switches stories only at a gallery edge.
+ */
+export function maritesStorySwipeStep(input: {
+  startX: number; startY: number; endX: number; endY: number;
+  elapsedMs: number; photoCount: number; photoPage: number;
+  zoomed: boolean; reacting: boolean; hasMultipleStories: boolean;
+}): -1 | 0 | 1 {
+  const {startX, startY, endX, endY, elapsedMs, photoCount, photoPage,
+    zoomed, reacting, hasMultipleStories} = input;
+  if (zoomed || reacting || !hasMultipleStories || ![startX, startY, endX, endY, elapsedMs].every(Number.isFinite)) return 0;
+  if (elapsedMs < 0 || elapsedMs > 800) return 0;
+  const dx = endX - startX;
+  const dy = endY - startY;
+  if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.35) return 0;
+  if (photoCount > 1) {
+    const page = Math.max(0, Math.min(photoCount - 1, Math.round(photoPage)));
+    if ((dx < 0 && page < photoCount - 1) || (dx > 0 && page > 0)) return 0;
+  }
+  return dx < 0 ? 1 : -1;
+}
