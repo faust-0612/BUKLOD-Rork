@@ -4,7 +4,7 @@
   "objective": "Integrate exact 1,300 existing Character System collectible graphics and authenticated task evidence into the existing per-character progression UI; preserve separate Kingdom economy, existing points and AdMob without production changes.",
   "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
   "productionBaselineEvidence": "verified: GitHub main at 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 on November 16, 2026 before this isolated DEV task; live Supabase preinspection found existing authenticated character V3 checkpoint, core item state RPC, special badge awards and no special story-item RPC or public art bucket. No new changes applied to production.",
-  "chosenApproach": "Use current canonical 13x20x5 World catalog and read-only Character System view; extract 10 Library contact sheets into 1,300 reproducible WebP items with SHA manifest, publish gated art from trusted operator, and keep new special task awards private and idempotent in a staged additive migration.",
+  "chosenApproach": "Canonical all-13 Character task ledger, independent V3-saved Core XP, preserved legacy Core redeemed items, and vetted 1300-item art. Kingdom remains read-only consumer; do not edit economy.",
   "selectionRationale": "Alternative client-side XP or invented collectible ownership risks resets, fraud and cross-account leaks. Server-backed independent character checkpoints, validated task events, and distinct badges/story items prevent that.",
   "alternativeApproaches": [
     "Bundle 1,300 full-size PNG sheets in Expo OTA: rejected due to runtime, size and performance.",
@@ -34,7 +34,9 @@
     "tests/character-points-ads-regression-20261116.test.mjs",
     "tests/character-story-art-server-security-20261116.test.mjs",
     "tests/character-task-collections-20261116.test.mjs",
-    ".buklod/scopes/character-task-collections-20261116.json"
+    ".buklod/scopes/character-task-collections-20261116.json",
+    "supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql",
+    "tests/character-core-v3-compat-20261116.test.mjs"
   ],
   "preserveBehaviors": [
     "Existing R31/R40 character art/selector hash locks are byte-for-byte unchanged; saved per-character V3 checkpoint persists and Circle Rank stays independent.",
@@ -53,13 +55,17 @@
     "Existing Circle Rank and Character V3 levels resume unchanged on switching characters or accounts; no points or revenue mutation.",
     "Art publication marker is served only after 1,300 verified remote objects, using a secret-free app and a guarded operator upload.",
     "Run local SQL validation, TypeScript, new focused tests, existing AdMob/points/navigation release gates before moving beyond isolated DEV.",
-    "Do not run production migration, install native packages, build AAB, publish OTA or merge to production without verified RC gates."
+    "Do not run production migration, install native packages, build AAB, publish OTA or merge to production without verified RC gates.",
+    "Core redeemed-item progress helper must equal restored V3 saved XP plus active BP delta after multiple Character switches; other accounts cannot invoke the private helper.",
+    "Rejected/reversed ledger credits cannot count for future task awards; previously issued cosmetics require audit rather than automatic confiscation."
   ],
   "regressionTests": [
     "tests/character-task-collections-20261116.test.mjs",
     "tests/character-story-art-server-security-20261116.test.mjs",
     "tests/character-points-ads-regression-20261116.test.mjs",
-    "supabase/tests/character_story_art_security_20261116.sql"
+    "supabase/tests/character_story_art_security_20261116.sql",
+    "supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql",
+    "tests/character-core-v3-compat-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
