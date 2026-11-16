@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Replace Marites fullscreen arrow navigation with deliberate left/right swipes while preserving gallery paging, zoom, reactions and playback controls; open regular Android/web Wall videos fullscreen on video tap instead of a dedicated square.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Verified GitHub main source SHA 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 and isolated branch ancestry only. No claim of active production OTA, Android build, runtime or on-device verification.",
+  "productionBaselineEvidence": "verified: GitHub main SOURCE commit 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 and isolated branch ancestry were read through GitHub; this is not evidence of live production OTA, installed Android build, runtime or device behavior. Promotion remains blocked until exact RC and live fingerprint verification.",
   "chosenApproach": "Track bubbled single-touch swipe start/end on the Marites modal, reject small/vertical/slow/multitouch gestures, and defer to photo carousel until an edge. Use one testable pure decision helper. Reuse existing CommunityVideo fullscreen callbacks and saved playback position on native, keyboard accessible HTML5 video click on web. Keep IMA ad player controls unchanged to preserve ad clicks.",
   "selectionRationale": "No dependency or backend changes, no new player lifecycle and no extra decoder allocations. Guarded gesture detection preserves multi-photo image interactions and user reaction picker while removing floating arrows.",
   "alternativeApproaches": [
