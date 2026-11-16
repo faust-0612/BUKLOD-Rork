@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 
 import {
   connectSpacing,
@@ -575,28 +576,36 @@ export function ConnectSuggestedContacts({
     useState<MessagesStatusNote | null>(null);
   const [selfSaving, setSelfSaving] = useState(false);
 
-  // A new props object is passed during routine Connect rerenders. Watch the
-  // account ID only, so notes are not fetched again for every inbox repaint.
+  // Subscribe only when the signed-in account changes, not on every
+  // parent inbox repaint. A cached note is available without an RPC.
   useEffect(() => {
     const userId = currentUser?.user_id;
     setSelfNote(userId ? peekCachedMessagesStatusNote(userId) : null);
     if (!userId) return;
-
     let active = true;
     const unsubscribe = subscribeMessagesStatusNote((ownerId, next) => {
       if (active && ownerId === userId) setSelfNote(next);
     });
-    void loadMessagesStatusNote()
-      .then(next => { if (active) setSelfNote(next); })
-      .catch(error => {
-        // Keep a previously painted note during a weak-network failure.
-        console.warn('Messages status note:', String((error as Error)?.message ?? error));
-      });
     return () => {
       active = false;
       unsubscribe();
     };
   }, [currentUser?.user_id]);
+
+  // If status was edited in another screen, a return to Connect revalidates
+  // it. The 30s cache keeps rapid tab changes network-free.
+  useFocusEffect(useCallback(() => {
+    const userId = currentUser?.user_id;
+    if (!userId) return;
+    let active = true;
+    void loadMessagesStatusNote()
+      .then(next => { if (active) setSelfNote(next); })
+      .catch(error => {
+        // Never replace a warm note with a blank after a network error.
+        console.warn('Messages status note:', String((error as Error)?.message ?? error));
+      });
+    return () => { active = false; };
+  }, [currentUser?.user_id]));
 
   const persistSelfNote = useCallback(async (value: string) => {
     setSelfSaving(true);
