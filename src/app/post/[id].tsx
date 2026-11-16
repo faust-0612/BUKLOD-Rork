@@ -1,6 +1,6 @@
 /* PATCH_161A_COMMENT_REPLIES */
 /* PATCH_160_POST_AVATARS_TIME */
-import { formatSpecificDateTime } from '@/lib/dateTime';
+import { formatSpecificDateTime, formatCompactWallDateTime } from '@/lib/dateTime';
 import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
 import {
   BuklodReactionAction,
@@ -417,20 +417,11 @@ export default function PostDetail(){
    />
 
    <Text
-     style={[
-       s.author,
-       {
-         flex: 1,
-       },
-     ]}
+     style={[s.author,{flex:1,minWidth:0}]}
+     numberOfLines={1}
+     ellipsizeMode="tail"
    >
      {post.author_name}
-     {' | '}
-     {
-       formatClusterName(
-         post.cluster_name
-       )
-     }
    </Text>
    {user?.id===post.user_id ? (
      <BuklodContentOverflowMenu
@@ -491,7 +482,7 @@ export default function PostDetail(){
    <Text style={s.meta}>
     {post.author_rank_name}
    </Text>
-  }<Text style={s.meta}>{String(post.audience).toUpperCase()} | {formatSpecificDateTime(post.created_at)}</Text>
+  }<Text style={s.meta} numberOfLines={1}>{String(post.audience).toUpperCase()} | {formatCompactWallDateTime(post.created_at)}</Text>
    <Text style={s.body}>{post.body}</Text>{!!mentions.length&&<Text style={s.mentions}>{mentions.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}{/* PATCH_155C_POST_VIDEO */}
   {!!(post.media_url || post.media_path || (Array.isArray(post.media_items) && post.media_items.length)) &&
    !String(post.media_mime_type||'').startsWith('video/') &&

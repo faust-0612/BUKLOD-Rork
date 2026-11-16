@@ -64,3 +64,10 @@
 
   return `${datePart} • ${timePart}`;
 }
+
+/** Feed identity compact date; keeps both date and local time on one line. */
+export function formatCompactWallDateTime(
+  value: Parameters<typeof formatSpecificDateTime>[0]
+): string {
+  return formatSpecificDateTime(value).replace(/^[A-Za-z]{3},\s*/, '');
+}
