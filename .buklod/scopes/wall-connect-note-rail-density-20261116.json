@@ -68,5 +68,11 @@
   ],
   "releaseTarget": "DEV PR -> verified staging-user Android runtime 1.3.2 only",
   "physicalDeviceVerification": "SKIPPED_PER_OWNER",
-  "publicationStatus": "DEV_ONLY_NO_OTA"
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "selectionRationale": "Screenshot and live staging source both demonstrate that the fixed five-line Notes container is the direct cause of wasted vertical space; data-dependent sizing preserves readability while fixing the actual root cause in only two display components.",
+  "alternativeApproaches": [
+    "Reduce top-level margins but leave fixed 100dp Notes slot (rejected: only masks the source of the wasted space).",
+    "Delete Notes or shrink note font (rejected: breaks approved readable five-line notes).",
+    "Move avatars into an overlay over ads or search header (rejected: causes viewability and navigation overlap)."
+  ]
 }
