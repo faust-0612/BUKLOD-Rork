@@ -89,12 +89,11 @@ test('game sounds are offline native and browser sounds with an explicit prefere
  assert.match(settings,/games: true/);
  assert.match(settings,/isBuklodGameSoundEnabled/);
  assert.match(controls,/category: 'games'/);
- for(const name of ['buklod_reaction','buklod_community','buklod_achievement','buklod_error','buklod_message_sent']){
-  if(name==='buklod_reaction')continue;
-  assert.match(native,new RegExp(name));
+ for(const name of ['collect-crystal','impact-wood','unlock','failure','ui-soft']) {
+  assert.match(native,new RegExp('kingdom-premium/'+name+'\\.wav'));
  }
- // Verified Kingdom success audio uses points-claim, while unlock uses achievement.
- assert.match(native,/buklod-points-claim\.wav/);
+ // Native Kingdom fallback uses offline CC0 victory; unlock uses distinct CC0 unlock.
+ assert.match(native,/kingdom-premium\/victory\.wav/);
  assert.match(native,/event === 'unlock' \? unlockSound : rewardSound/);
  assert.match(native,/MAX_ACTIVE_FALLBACK_PLAYERS = 6/);
  assert.match(native,/isBuklodGameSoundEnabled\(\)/);
