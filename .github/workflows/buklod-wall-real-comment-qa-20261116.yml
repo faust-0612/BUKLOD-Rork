@@ -40,5 +40,7 @@ jobs:
         run: |
           node --experimental-strip-types --test \
             tests/wall-real-recent-comment-preview-20261116.test.mjs \
+            tests/wall-comment-navigation-update-20261116.test.mjs \
+            tests/scoped-wall-comment-access-20261116.test.mjs \
             tests/community-wall-media-hydration-state.test.mjs \
             tests/community-fullscreen-video-ota-20261111.test.mjs
