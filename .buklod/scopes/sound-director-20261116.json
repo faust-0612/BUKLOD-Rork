@@ -35,15 +35,53 @@
   ],
   "lockedFeatureChanges": [
     {
-      "id": "kingdom-character",
-      "reason": "Licensed offline sound replacement and verified reward audio wiring.",
+      "id": "app-runtime",
+      "reason": "Update only the foreground nonauthoritative sound catalogue, first-ready loading and audio preference behavior for existing UI feedback.",
       "preservedBehaviors": [
-        "No economy changes",
-        "No remote sound host",
-        "No new sound player service"
+        "Unrelated app runtime paths and native dependencies remain unchanged.",
+        "All sound failures are decorative and never interrupt the underlying action.",
+        "Existing per-user sound opt-outs, quiet hours and active-call suppression persist."
       ],
       "tests": [
         "tests/buklod-sound-director-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Change the sound clips played on an already server-confirmed BP claim and Circle Rank presentation, without affecting financial or ads processing.",
+      "preservedBehaviors": [
+        "Server-only balance and claim decisions, idempotency and points ledger remain authoritative.",
+        "AdMob monetization, ad preload and dashboard navigation paths have zero code changes.",
+        "Claim success audio continues to respect the existing Points-screen sound switch."
+      ],
+      "tests": [
+        "tests/buklod-sound-director-20261116.test.mjs",
+        "tests/kingdom-reward-sound-release-20261110.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Replace generic notification-style Kingdom fallback sounds with licensed local game cues and add Character achievement sounds after confirmed events.",
+      "preservedBehaviors": [
+        "Kingdom navigation focus, local pool, game haptics and gameplay result semantics are preserved.",
+        "Individual Character levels and cosmetics remain governed by canonical server and account state.",
+        "Changes do not award, transfer or reset any Character XP, Circle Rank or Kingdom resources."
+      ],
+      "tests": [
+        "tests/kingdom-reward-sound-release-20261110.test.mjs",
+        "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Update the mandatory Kingdom release-contract assertions to match the actual newly selected and bundled CC0 sound files; do not weaken or skip validation.",
+      "preservedBehaviors": [
+        "Production release workflow, staging RC freeze, native runtime pinning and release QA requirements are intact.",
+        "Source contract still checks that real gameplay success and collectible sound assets are present.",
+        "Neither a production OTA nor Expo web nor Google Play publication is being attempted."
+      ],
+      "tests": [
+        "tests/kingdom-reward-sound-release-20261110.test.mjs"
       ]
     }
   ],
