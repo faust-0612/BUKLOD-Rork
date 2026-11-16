@@ -1,0 +1,46 @@
+{
+  "releaseContract": 2,
+  "objective": "Publish one Android staging-user OTA containing all owner-approved Nov16 recent BUKLOD fixes, strictly after exact SHA CI and EAS preflight; production untouched.",
+  "stagingReady": true,
+  "sourcePr": 868,
+  "sourceBranch": "integration/nov16-consolidated-ota-home-family-health-stories-v4",
+  "sourceSha": "6111ff370eff9ed97fdc027b64a7c02158ab7e7f",
+  "productionSourceBaseline": "3b488fa704b804f05c5a289a7e0775daeabb2404",
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "environment": "preview",
+    "packageId": "org.mzbministry.buklod.staging",
+    "runtimeVersion": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8"
+  },
+  "knownPriorStagingUpdateId": "01a1e0fe-45da-7be9-a6f5-107d43bad4b3",
+  "knownPriorProductionUpdateId": "01a1e10a-f043-7113-9a6c-673e91a58517",
+  "publicationPolicy": {
+    "allowOtaPublish": true,
+    "allowProductionPromotion": false,
+    "allowWebDeploy": false,
+    "allowPlayStore": false,
+    "allowBackendMigrations": false,
+    "requireFiveExactShaCIGreen": true,
+    "requireSignedBuildCompatibility": true,
+    "requireFreshStagingAndProductionReadback": true,
+    "doNotRepeatPreviousUpdate": true
+  },
+  "productionOtaPublished": false,
+  "physicalDeviceVerification": "SKIPPED_BY_OWNER",
+  "included": [
+    "Home/Family/Health relocation and BUKLOD Today density",
+    "132 bilingual story in-story dialogue",
+    "Matthew Henry Filipino semantic v4",
+    "Profile hero and Cluster dark contrast",
+    "post detail dark mode and comments",
+    "Connect Notes visible on Wall and Connect",
+    "locked-profile public avatar",
+    "existing AdMob and dashboard protections"
+  ],
+  "notes": "R4 run 43799843421 halted before EAS publication because staging advanced. Reconciled immutable current update ID/group from Expo preflight and Nov16 production v3 source QA; that staging source's src/assets trees equal production main baseline. R5 pins both, verifies production unchanged, and fails closed on concurrent drift. R3 run 43799620087 stopped during EAS preflight due a stale literal evidence-directory prefix; all 109 regression tests passed and no EAS publish executed. R4 corrects only the release script evidence-directory validation; same source SHA and five green CI. R2 publisher run 43798776978 stopped before EAS preflight after two old Connect/Profile geometry tests failed; source RC regenerated with correct 5-line Note and 256px Profile cover assertions. R3 only if fresh five CI checks all pass. Safety: fail closed on any unverified CI, native package/runtime mismatch, Expo staging/prod branch drift or already-published group. No production mutation.",
+  "knownPriorStagingUpdateGroup": "662f220d-a373-420e-87ba-70a7e49ec26e",
+  "knownStagingSourceSha": "bf8e82019297dc6642b92748bf8f3498cf15ae67",
+  "knownStagingSourceTree": "4f5359021732b39e3771a1ac2f25b1f8c1a898b0"
+}
