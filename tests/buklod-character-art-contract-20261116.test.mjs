@@ -41,4 +41,6 @@ test('animation, profile display and collectible preview are present', () => {
   assert.match(motion,/isReduceMotionEnabled/);
   assert.match(motion,/AppState\.addEventListener/);
   assert.match(motion,/useNativeDriver: true/);
+  assert.match(selector,/state\.character_levels\[draft\]/);
+  assert.match(special,/state\.character_levels\[selected\.id\]/);
 });

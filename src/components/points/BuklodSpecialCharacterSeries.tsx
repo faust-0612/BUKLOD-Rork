@@ -294,7 +294,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const selected = PROFILES[effectiveSelectedId];
   const selectedUnlocked = isUnlocked(selected.id);
   const active = state.active_character_id === selected.id;
-  const currentLevel = active ? Math.max(1, Math.min(20, state.character_level)) : 1;
+  const currentLevel = Math.max(1, Math.min(20, Number(state.character_levels[selected.id] ?? (active ? state.character_level : 1)) || 1));
   const requiredRank = SPECIAL_REQUIRED_RANK_ORDER[selected.id];
   const progress = Math.max(0, Math.min(1, state.circle_rank_order / Math.max(1, requiredRank)));
   const badgeLevel = selectedUnlocked
@@ -588,7 +588,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             </View>
             <View style={styles.collectibleGrid}>
               {catalogLevelItems.map((itemName, index) => {
-                const owned = selectedUnlocked && previewLevel <= currentLevel && active;
+                const owned = selectedUnlocked && previewLevel <= Math.max(currentLevel, badgeLevel);
                 return (
                   <View key={`${selected.id}-${previewLevel}-${index + 1}`} style={styles.collectibleCard}>
                     <View style={styles.collectibleCardInner}>
@@ -673,7 +673,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             <View pointerEvents="none" style={{ width: "92%", maxWidth: 370, padding: 16, alignItems: "center", borderRadius: 18, backgroundColor: "#121A2B" }}>
               <Text style={{ color: "#F7F1DE", fontSize: 15, fontWeight: "900", marginBottom: 12 }}>{itemZoom.name}</Text>
               <BuklodCollectibleArt characterId={itemZoom.id} level={itemZoom.level} itemIndex={itemZoom.index} size={256}
-                locked={!selectedUnlocked || !active || itemZoom.level > currentLevel} />
+                locked={!selectedUnlocked || itemZoom.level > Math.max(currentLevel, badgeLevel)} />
             </View>
           ) : null}
         </Pressable>

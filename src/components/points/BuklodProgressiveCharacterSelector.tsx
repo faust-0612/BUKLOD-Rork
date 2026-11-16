@@ -87,7 +87,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const profile = PROGRESSIVE_CHARACTERS[draft];
-  const availableLevel = draft === activeCore ? clampLevel(state.character_level) : 1;
+  const availableLevel = clampLevel(state.character_levels[draft] ?? (draft === activeCore ? state.character_level : 1));
   const currentCollectibles = useMemo(
     () => collectibleNames(draft, collectionLevel),
     [draft, collectionLevel],
@@ -423,9 +423,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     zoomStage: { marginTop: 3, marginBottom: 8, fontSize: 12, fontWeight: '800', color: '#335B41', textAlign: 'center' },
   }), [theme]);
 
-  const earnedLevel = draft === activeCore
-    ? clampLevel(collectibleState?.characterLevel ?? availableLevel)
-    : 1;
+  const earnedLevel = availableLevel;
   const previewLevel = clampLevel(collectionLevel);
   const featuredIndex = PROGRESSIVE_CHARACTER_ORDER.indexOf(draft) + 1;
   const levelFill = `${Math.round((earnedLevel / 20) * 100)}%` as const;
@@ -486,7 +484,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           const item = PROGRESSIVE_CHARACTERS[id];
           const selected = draft === id;
           const active = state.active_character_id === id;
-          const level = active ? clampLevel(state.character_level) : 1;
+          const level = clampLevel(state.character_levels[id] ?? (active ? state.character_level : 1));
           const accent = ROW_ACCENT[id];
           return (
             <Pressable
@@ -619,7 +617,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
             );
             const equipped = saved ? isCollectibleShown(saved, collectibleState) : false;
             const levelOpen = isCollectibleLevelOpen(collectibleState, collectionLevel);
-            const owned = Boolean(saved?.redeemedAt) || levelOpen;
+            const owned = Boolean(saved?.redeemedAt) || collectionLevel <= availableLevel;
             const action = !levelOpen ? null : equipped ? 'remove' : 'use';
             const label = action === 'use' ? 'Show' : action === 'remove' ? 'Shown' : owned ? 'Owned' : 'Locked';
             const busyKey = itemBusy === `${collectionLevel}:${itemIndex}`;
@@ -630,10 +628,10 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
                 style={[styles.collectibleRow, pulseKey === rowKey ? { transform: [{ scale: itemPulse }] } : null]}
               >
                 <Pressable accessibilityRole="button" accessibilityLabel={"Inspect artwork: " + item}
-                  onPress={() => setItemZoom({ id: draft, level: collectionLevel, itemIndex, name: item, locked: !levelOpen })}
+                  onPress={() => setItemZoom({ id: draft, level: collectionLevel, itemIndex, name: item, locked: !owned })}
                   style={styles.tokenIcon}>
                   <BuklodCollectibleArt characterId={draft} level={collectionLevel} itemIndex={itemIndex}
-                    size={34} fallbackIcon={characterTokenIcon(draft, itemIndex)} locked={!levelOpen} />
+                    size={34} fallbackIcon={characterTokenIcon(draft, itemIndex)} locked={!owned} />
                 </Pressable>
                 <View style={styles.collectibleCopy}>
                   <Text style={styles.collectibleName} numberOfLines={2}>{item}</Text>
