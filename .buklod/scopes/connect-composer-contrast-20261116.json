@@ -37,5 +37,19 @@
     ".buklod/scopes/connect-composer-contrast-20261116.json",
     "src/components/connect/ConnectComposer.tsx",
     "tests/buklod-connect-composer-contrast-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Constrain the shared direct/scope Connect composer to readable foreground colors on its fixed light background without altering message/keyboard transport.",
+      "preservedBehaviors": [
+        "Typed drafts remain editable and sent through the existing canonical message transport.",
+        "Native Android keyboard behavior, attachment buttons and reactions are preserved.",
+        "No media, AdMob, dashboard, notification, backend or runtime changes."
+      ],
+      "tests": [
+        "tests/buklod-connect-composer-contrast-20261116.test.mjs"
+      ]
+    }
   ]
 }
