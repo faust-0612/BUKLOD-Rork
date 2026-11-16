@@ -27,3 +27,11 @@ Profile, light/dark, normal/large text, no-note/five-line/editing note,
 keyboard, image/video/ad first-view and bottom navigation. Verify device
 render, ads, insets and navigation **before** DEV → RC → production OTA.
 Source checks alone never qualify as device/production proof.
+
+## Consolidated OTA candidate: additional photographed screens
+- Cluster directory: tighter hero, list and headings, without moving the first-view AdMob host after the first cluster.
+- Community Contribution: tighter QMP metrics and report cards; no financial logic, settlement, authorization or amount changes.
+- Daily Bible Reading: tighter cards and day selector, preserving date selection, narration, offline cache and submission.
+- Referral: tighter invite card and 44dp action targets; invite identifiers and sharing logic remain untouched.
+- Character Progression: tighter modal, roster and collectibles, maintaining visual art dimensions, user-owned inventory and per-character levels.
+- This forward-only CI rule cannot certify that every legacy screen is compact. Android visual and compiled QA remain required before OTA publication.

@@ -205,9 +205,9 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
   };
 
   const styles = useMemo(() => StyleSheet.create({
-    wrap: { marginTop: 8, paddingBottom: 8, maxWidth: '100%' },
+    wrap: { marginTop: 4, paddingBottom: 4, maxWidth: '100%' },
     featured: {
-      marginHorizontal: 14,
+      marginHorizontal: 10,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
@@ -240,7 +240,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
       borderWidth: 1,
       borderColor: '#E8C56B',
     },
-    roster: { marginTop: 10, marginHorizontal: 14, gap: 8 },
+    roster: { marginTop: 8, marginHorizontal: 10, gap: 6 },
     rosterRow: {
       minHeight: 64,
       flexDirection: 'row',
@@ -322,9 +322,9 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     progressionPreview: { marginTop: 4, fontSize: 8, fontWeight: '900', letterSpacing: 0.3, color: theme.accent },
     nextUpgrade: { marginTop: 6, marginHorizontal: 14, fontSize: 10, lineHeight: 15, fontWeight: '800', color: theme.textSecondary },
     collectibles: {
-      marginTop: 10,
-      marginHorizontal: 14,
-      padding: 12,
+      marginTop: 8,
+      marginHorizontal: 10,
+      padding: 10,
       borderRadius: 18,
       borderWidth: 1,
       borderColor: '#243044',
@@ -404,8 +404,8 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     collectibleActionTextQuiet: { color: theme.textPrimary },
     actionMessage: { marginTop: 8, marginHorizontal: 14, fontSize: 10, lineHeight: 14, fontWeight: '800', color: '#C9D2E3' },
     save: {
-      marginTop: 10,
-      marginHorizontal: 14,
+      marginTop: 8,
+      marginHorizontal: 10,
       minHeight: 44,
       borderRadius: 14,
       alignItems: 'center',
