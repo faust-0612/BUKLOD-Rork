@@ -12,8 +12,12 @@ const inviteCard = fs.readFileSync(
 );
 const verified = migration.split('create or replace function private.buklod_award_verified_referral_points_v2')[1]
   .split('-- All helpers are internal trigger/admin-only entry points')[0];
-const rank = migration.split('create or replace function private.buklod_award_referral_rank_bonus_v2')[1]
-  .split('create or replace function private.buklod_award_verified_referral_points_v2')[0];
+const rankPatch = fs.readFileSync(
+  new URL('../supabase/migrations/20261116130815_buklod_referral_rank_single_claim_compat_v3.sql', import.meta.url),
+  'utf8',
+);
+const rank = rankPatch.split('create or replace function private.buklod_award_referral_rank_bonus_v2')[1]
+  .split('create or replace function private.buklod_verified_referral_rank_event_v2')[0];
 const manual = migration.split('create or replace function public.buklod_qualify_referral_v1')[1];
 
 test('verification awards configured referral and welcome BP, not cash', () => {
@@ -32,7 +36,7 @@ test('verification awards configured referral and welcome BP, not cash', () => {
 test('rank bonus needs new claimed Circle Rank with post-invite activity', () => {
   assert.match(migration, /'referral_rank_bonus','Referral Circle Rank advancement',10,10,true/);
   assert.match(rank, /v_ref\.status not in \('qualified','rewarded'\)/);
-  assert.match(rank, /h\.achievement_source='ledger_crossing'/);
+  assert.match(rank, /h\.achievement_source in \('ledger_crossing','claimed_crossing'\)/);
   assert.match(rank, /h\.achieved_at>v_ref\.created_at/);
   assert.match(rank, /h\.rank_order>coalesce/);
   assert.match(rank, /h\.trigger_ledger_id is not null/);
@@ -56,6 +60,7 @@ test('verification, referral attach and rank crossing server triggers', () => {
   assert.match(migration, /after insert or update of is_verified,is_active,user_deactivated_at/);
   assert.match(migration, /after insert on public\.buklod_referrals/);
   assert.match(migration, /after insert on public\.buklod_rank_history/);
+  assert.match(rankPatch, /new\.achievement_source in \('ledger_crossing','claimed_crossing'\)/);
   assert.match(migration, /new\.achievement_source='ledger_crossing'/);
   assert.match(migration, /revoke all on function private\.buklod_award_referral_rank_bonus_v2\(uuid\)/);
   assert.match(migration, /revoke all on function private\.buklod_award_verified_referral_points_v2\(uuid\)/);
