@@ -10,6 +10,7 @@ type WallPost = {
   cluster_name?: string | null;
   author_rank_name?: string | null;
   comment_preview?: unknown;
+  comment_count?: number | string | null;
 };
 
 export function applyCommunityWallMediaHydration<T extends WallPost>(
@@ -45,7 +46,11 @@ export function applyCommunityWallMetadata<T extends WallPost>(
       ...post,
       cluster_name: next.cluster_name ?? null,
       author_rank_name: next.author_rank_name ?? null,
-      comment_preview: next.comment_preview ?? null,
+      // A timed-out background preview must never erase a valid snippet.
+      // Clear it only when the latest feed explicitly reports zero comments.
+      comment_preview: next.comment_count != null && Number(next.comment_count) === 0
+        ? null
+        : next.comment_preview ?? post.comment_preview ?? null,
     };
   });
 }
