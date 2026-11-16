@@ -25,7 +25,6 @@
     "governance-lock"
   ],
   "allowedPaths": [
-    ".buklod/scopes/kingdom-character-visual-class-dev-20261116.json",
     "assets/images/kingdom-classes/badge-1.webp",
     "assets/images/kingdom-classes/badge-2.webp",
     "assets/images/kingdom-classes/badge-3.webp",
@@ -126,7 +125,6 @@
     "src/components/points/BuklodProgressiveCharacterArt.android.tsx",
     "scripts/character-active-renderer-gate.mjs",
     "tests/character-android-zoom-full-source-20261116.test.mjs",
-    ".buklod/scopes/android-character-zoom-sharp-20261116.json",
     "docs/character-system/COLLECTIBLES_ASSET_STATUS_20261116.md",
     "docs/character-system/TASK_COLLECTION_INTEGRATION_20261116.md",
     "scripts/publish-character-collectible-art.mjs",
@@ -141,7 +139,6 @@
     "tests/character-points-ads-regression-20261116.test.mjs",
     "tests/character-story-art-server-security-20261116.test.mjs",
     "tests/character-task-collections-20261116.test.mjs",
-    ".buklod/scopes/character-task-collections-20261116.json",
     "supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql",
     "tests/character-core-v3-compat-20261116.test.mjs",
     "src/lib/buklodSounds.ts",
@@ -154,8 +151,6 @@
     "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
     "tests/buklod-sound-director-20261116.test.mjs",
     "docs/BUKLOD_SOUND_EFFECTS_INTEGRATION_20261116.md",
-    ".buklod/scopes/sound-director-20261116.json",
-    ".buklod/scopes/connect-composer-contrast-20261116.json",
     "src/components/connect/ConnectComposer.tsx",
     "tests/buklod-connect-composer-contrast-20261116.test.mjs",
     "src/components/BuklodMentionText.tsx",
@@ -234,7 +229,8 @@
     "Keep isolated DEV change until cumulative staging RC/release workflow verifies exact source and AdMob/navigation protected gates",
     "All 6 reviewed source PRs present and both overlap files retain all deltas without clobbering.",
     "Exact-source TypeScript, Expo Android build, security, Character/Kingdom/Connect/mentions/audio, AdMob and navigation QA are required before staging OTA.",
-    "Staging only org.mzbministry.buklod.staging runtime 1.3.2, EAS update readback, unchanged production manifest."
+    "Staging only org.mzbministry.buklod.staging runtime 1.3.2, EAS update readback, unchanged production manifest.",
+    "Only the single consolidated contractVersion=2 scope manifest is retained; all original DEV PR source paths, tests and security declarations are reconciled into it."
   ],
   "regressionTests": [
     "tests/kingdom-adventure-premium-presentation-20261116.test.mjs",
