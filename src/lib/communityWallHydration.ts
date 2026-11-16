@@ -13,6 +13,22 @@ type WallPost = {
   comment_count?: number | string | null;
 };
 
+/** A slow response may finish after the member sends a newer comment. */
+export function shouldApplyCommunityRecentComment(
+  current: { comment_id?: string; body?: string; author_name?: string; created_at?: string } | null | undefined,
+  incoming: { comment_id?: string; body?: string; author_name?: string; created_at?: string } | null | undefined,
+): boolean {
+  if (!incoming) return false;
+  if (!current) return true;
+  const existingTime = Date.parse(String(current.created_at ?? ''));
+  const arrivingTime = Date.parse(String(incoming.created_at ?? ''));
+  if (Number.isFinite(existingTime) && Number.isFinite(arrivingTime) && arrivingTime < existingTime) return false;
+  return current.comment_id !== incoming.comment_id ||
+    current.body !== incoming.body ||
+    current.author_name !== incoming.author_name ||
+    current.created_at !== incoming.created_at;
+}
+
 export function applyCommunityWallMediaHydration<T extends WallPost>(
   current: T[],
   mediaByPost: Record<string, any[]>,
