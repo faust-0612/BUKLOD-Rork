@@ -21,7 +21,7 @@ Applies to every new and modified screen, modal, card, feed, profile, cluster, B
 5. A fixed header/encouragement bar/bottom tabs must not obscure scroll content. Handle keyboard, insets, landscape, and short screens.
 6. AdMob placements retain actual dimensions, consent, viewability and lifecycle. Never fake or collapse an ad slot while an ad is rendered.
 7. Dark/light themes and native/web must share density intent without assuming identical pixel sizes.
-8. Profile: compact rank, actions and referral panels. Cluster: compact list cards and search. Wall: edge-to-edge media, short metadata rows. Connect: avoid large empty gaps above avatars. Reading: compact headings while keeping text readable. Character: scrollable modal, compact level grid and collectibles.
+8. Profile: compact rank, actions and referral panels. Cluster: compact list cards and search. Wall: edge-to-edge media, short metadata rows. Wall and Connect: note rails must use content-driven height (44dp minimum touch area), bottom-align avatar columns, and never reserve a five-line blank Note slot. Editing may use its own temporary expanded area. Reading: compact headings while keeping text readable. Character: scrollable modal, compact level grid and collectibles.
 9. Any spacing exception above 24dp must include an inline reason (safe-area, image ratio, ad slot, keyboard, accessibility, or intentional visual grouping).
 
 ## Mandatory PR / OTA review gate

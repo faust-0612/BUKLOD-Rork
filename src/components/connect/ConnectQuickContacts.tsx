@@ -85,7 +85,8 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     scroll: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      // Bottom-align variable-length notes so every avatar stays level.
+      alignItems: 'flex-end',
       paddingHorizontal: connectSpacing.screenHorizontal,
       paddingBottom: 4,
     },
@@ -101,7 +102,8 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     noteZone: {
       width: COLUMN_WIDTH,
-      height: NOTE_ZONE_HEIGHT,
+      // Never reserve five lines when the note is empty or short.
+      minHeight: 44,
       alignItems: 'center',
       justifyContent: 'flex-end',
       marginBottom: 4,

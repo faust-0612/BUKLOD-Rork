@@ -25,7 +25,9 @@ test('Connect avatars are unobstructed, equal-positioned and notes stay editable
   const editing = contacts.match(/noteZoneEditing:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
   assert.match(column, /backgroundColor:\s*'transparent'/);
   assert.match(column, /minHeight:\s*0/);
-  assert.match(zone, /height:\s*NOTE_ZONE_HEIGHT/);
+  assert.match(zone, /minHeight:\s*44/);
+  assert.doesNotMatch(zone, /^\s*height\s*:/m);
+  assert.match(contacts, /scroll:\s*\{[\s\S]{0,150}alignItems:\s*'flex-end'/);
   assert.match(editing, /height:\s*NOTE_ZONE_HEIGHT/);
   assert.match(contacts, /editingPopover: \{/);
   assert.match(contacts, /onSave=\{onSaveSelfNote\}/);

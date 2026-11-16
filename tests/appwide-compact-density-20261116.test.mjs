@@ -15,8 +15,10 @@ test('Connect and Wall leave room for notes and genuine ads',()=>{
   const wall=read('src/app/(tabs)/buklod.tsx');
   const avatar=read('src/components/BuklodCommunityWallProfileBubbles.tsx');
   assert.match(connect,/searchDock:\s*\{[\s\S]{0,220}marginTop:\s*4/);
-  assert.match(quick,/NOTE_LINE_HEIGHT\s*\*\s*NOTE_MAX_LINES\s*\+\s*12/);
-  assert.match(avatar,/noteZone:\s*\{[\s\S]{0,80}height:\s*100/);
+  assert.match(quick,/scroll:\s*\{[\s\S]{0,150}alignItems:\s*'flex-end'/);
+  assert.match(quick,/noteZone:\s*\{[\s\S]{0,160}minHeight:\s*44/);
+  assert.match(avatar,/row:\s*\{[\s\S]{0,180}alignItems:\s*'flex-end'/);
+  assert.match(avatar,/noteZone:\s*\{[\s\S]{0,180}minHeight:\s*44/);
   assert.ok(connect.includes('BuklodFirstViewAd'));
   assert.ok(wall.includes('BuklodAdMobBanner'));
 });

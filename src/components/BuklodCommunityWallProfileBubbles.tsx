@@ -503,6 +503,9 @@ function BuklodCommunityConnectRail() {
             >
               {firstName(selfContact.full_name)}
             </Text>
+            <Text numberOfLines={1} style={[styles.rank, { color: theme.textMuted }]}>
+              My note
+            </Text>
           </View>
         ) : null}
 
@@ -585,7 +588,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 4,
     gap: 6,
-    alignItems: 'flex-start',
+    // Keep avatars aligned while notes grow only for their actual text.
+    alignItems: 'flex-end',
   },
   person: {
     width: COLUMN_WIDTH,
@@ -593,7 +597,8 @@ const styles = StyleSheet.create({
   },
   noteZone: {
     width: COLUMN_WIDTH,
-    height: 100,
+    // Short/no Notes must not create a large blank rail.
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'flex-end',
     marginBottom: 6,
@@ -607,7 +612,8 @@ const styles = StyleSheet.create({
   },
   noteAddWrap: {
     width: COLUMN_WIDTH,
-    height: 100,
+    // Retain the note's minimum touch area without reserving five lines.
+    minHeight: 44,
     justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 6,

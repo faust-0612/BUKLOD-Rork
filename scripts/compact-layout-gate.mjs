@@ -20,14 +20,20 @@ const rules = [
   ['src/lib/buklodThemePresentation.ts', /paddingHorizontal:\s*buklodVisual\.space\.card/],
   ['src/app/(tabs)/me.tsx', /sectionPad:\s*\{\s*paddingHorizontal:\s*buklodVisual\.space\.screen/],
   ['src/app/(tabs)/messages.tsx', /searchDock:\s*\{[\s\S]{0,220}marginTop:\s*4\b/],
-  ['src/components/connect/ConnectQuickContacts.tsx', /NOTE_LINE_HEIGHT\s*\*\s*NOTE_MAX_LINES\s*\+\s*12/],
-  ['src/components/BuklodCommunityWallProfileBubbles.tsx', /noteZone:\s*\{[\s\S]{0,70}height:\s*100\b/],
+  ['src/components/connect/ConnectQuickContacts.tsx', /noteZone:\s*\{[\s\S]{0,160}minHeight:\s*44\b/],
+  ['src/components/BuklodCommunityWallProfileBubbles.tsx', /noteZone:\s*\{[\s\S]{0,180}minHeight:\s*44\b/],
   ['src/app/clusters/index.tsx', /directorySection:\s*\{\s*gap:\s*5\s*\}/],
   ['src/app/bible/read.tsx', /readingHeader:\s*\{[\s\S]{0,170}paddingBottom:\s*8\b/],
   // Character selector is a SHA-locked R31/R40 visual. Its independent visual gate preserves this baseline.
   ['src/app/community-contribution.tsx', /content:\s*\{padding:12,paddingBottom:80,gap:8\}/],
 ];
 for (const [file, pattern] of rules) assert.match(read(file), pattern, 'Compact spacing regression: ' + file);
+for (const file of ['src/components/connect/ConnectQuickContacts.tsx', 'src/components/BuklodCommunityWallProfileBubbles.tsx']) {
+  const source = read(file);
+  const zone = source.match(/noteZone:\s*\{([\s\S]*?)\n\s*\},/)?.[1] || '';
+  assert.doesNotMatch(zone, /^\s*height\s*:/m, 'Do not reserve empty Notes height: ' + file);
+  assert.match(source, /alignItems:\s*'flex-end'/, 'Avatar rail must bottom-align variable Notes: ' + file);
+}
 for (const [file, keyword] of [
   ['src/app/(tabs)/messages.tsx','BuklodFirstViewAd'],
   ['src/app/(tabs)/buklod.tsx','BuklodAdMobBanner'],
