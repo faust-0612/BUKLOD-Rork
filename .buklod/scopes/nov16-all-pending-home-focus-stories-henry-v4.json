@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/nov16-all-pending-home-focus-stories-henry-v4.json",
   "objective": "Consolidate latest owner-approved OTA-safe BUKLOD Home/Family/Health/Kingdom/Today layout, 132 in-story Bible dialogues, Profile executive hero, Cluster dark contrast and Matthew Henry v4 semantic Filipino onto verified Android production main 1.3.2 without rewriting existing AdMob or navigation foundations.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Verified production code baseline 3b488fa704b804f05c5a289a7e0775daeabb2404 (Nov16 Android production runtime 1.3.2); exact staging and live production EAS manifest readback required independently before release.",
+  "productionBaselineEvidence": "verified: GitHub Actions production Android OTA run 43761675074 on 2026-11-15 21:05 UTC, final publish step SUCCESS; readback log records VERIFIED ANDROID PRODUCTION OTA update 01a1e10a-f043-7113-9a6c-673e91a58517, runtime 1.3.2, exact main SHA 3b488fa704b804f05c5a289a7e0775daeabb2404. Historical production evidence; independent fresh EAS channel/update readback is required again before any new publication.",
   "chosenApproach": "Source-only forward-port five independent current-main descendants into a single immutable review candidate. Preserve unchanged main files by Git tree base; select exact source blobs and focused regression tests, never merge the divergent legacy staging tree or mutate backend/native.",
   "selectionRationale": "Each source branch is a direct descendant of main; isolated file changes overlap minimally; choosing current main as base protects live ad/dashboard and authentication behavior.",
   "alternativeApproaches": [
