@@ -181,7 +181,7 @@ export default function CharacterCollectionsScreen(){
         <Text style={s.name}>{item.name}</Text>
         <Text style={s.caption}>{item.slot}</Text>
         <Text style={s.caption}>{isOwned?'OWNED • SERVER VERIFIED':
-         level>saved?'FUTURE STAGE':core?'NOT VERIFIED AS CLAIMED':'STORY OBJECT • NOT A VERIFIED AWARD'}</Text>
+         level>saved?'FUTURE STAGE':core?(!items?'AWARD STATUS UNAVAILABLE':'NOT VERIFIED AS CLAIMED'):'STORY OBJECT • NOT A VERIFIED AWARD'}</Text>
        </View>
       </View>;
      })}
@@ -196,7 +196,7 @@ export default function CharacterCollectionsScreen(){
      <Text style={s.body}>Stage badge: {title?.badge}. Badges and the five story items are different rewards.</Text>
      {detailError?<Text style={s.error}>{detailError}</Text>:null}
      {special?<>
-      <Text style={s.kicker}>{earned} VERIFIED TASK BADGES</Text>
+      <Text style={s.kicker}>{!badgeResult ? 'TASK BADGE STATUS UNAVAILABLE' : earned+' VERIFIED TASK BADGES'}</Text>
       {(showBadges?badges:badges.slice(0,5)).map(b=>
        <View key={b.collectible_id} style={s.itemRow}>
         <MaterialCommunityIcons name={b.earned?'medal':'lock-outline'} size={22}
