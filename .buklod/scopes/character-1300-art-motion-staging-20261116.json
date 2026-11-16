@@ -1,0 +1,87 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/character-1300-art-motion-staging-20261116.json",
+  "objective": "Map and display the owner's 1300 character story collectible artworks (13 characters × 20 levels × 5), preserve server-owned levels and item ownership, and add accessible motion and staging validation.",
+  "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
+  "productionBaselineEvidence": "Compared with main commit 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61. No production OTA, native package, database migrations, AdMob, navigation or server-auth changes.",
+  "chosenApproach": "Canonical deterministic item paths verified by supplied art ZIP and SHA256 manifest. HTTPS public art URLs remain disabled until all 1300 objects verified. Keep masked locked specials; use whole-illustration idle only with reduced-motion awareness.",
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character",
+    "production-release-contract",
+    "character-unlock-privacy"
+  ],
+  "allowedPaths": [
+    "docs/BUKLOD_CHARACTER_ART_STAGING_20261116.md",
+    "scripts/verify-publish-character-art.mjs",
+    "src/components/points/BuklodCharacterCustomizeSheet.tsx",
+    "src/components/points/BuklodCharacterIdleMotion.tsx",
+    "src/components/points/BuklodCollectibleArt.tsx",
+    "src/components/points/BuklodProgressiveCharacterSelector.tsx",
+    "src/components/points/BuklodSpecialCharacterSeries.tsx",
+    "src/lib/buklodCharacterCollectibles.ts",
+    "src/lib/buklodCollectibleArtwork.ts",
+    "tests/buklod-character-art-contract-20261116.test.mjs",
+    "scripts/character-release-contract.mjs",
+    ".github/workflows/character_recovery_pr_qa.yml",
+    "tests/buklod-character-art-release-contract-20261116.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Server-owned per-character level and XP, Circle Rank, item claims and rewards unchanged.",
+    "Core/Special identities and masked locked special previews preserved.",
+    "All existing AdMob, Wall, Connect, auth, navigation and production OTA functionality left intact.",
+    "Missing art displays safe fallback; never grants collectible ownership.",
+    "Character level art still uses existing approved sprite sheets."
+  ],
+  "acceptanceChecks": [
+    "Exactly 1300 unique art paths, no traversal or duplicates.",
+    "Core/Special item preview, unlocked art and reduced-motion/bkg pause present.",
+    "Git visual lock rebaselined against reviewed changed visual files and all existing Character release invariants maintained.",
+    "CI: TypeScript, Character and appwide regression gates before staging OTA.",
+    "Stage only after all WebP objects publicly verify SHA256 and preview EAS URL is configured.",
+    "Skip actual-device test only per user, retain CI gates."
+  ],
+  "regressionTests": [
+    "tests/buklod-character-art-contract-20261116.test.mjs",
+    "tests/buklod-character-art-release-contract-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add existing-art collectible previews and subtle accessible motion on Character screens only; preserve native identity and app behavior.",
+      "preservedBehaviors": [
+        "Server-side login, auth, app runtime, AdMob and navigation unchanged.",
+        "All animations pause in background and honor reduce-motion setting."
+      ],
+      "tests": [
+        "tests/buklod-character-art-release-contract-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Map each of 1300 story collectibles to canonical character, own level and slot, keeping Special identity locks and canonical server-owned progression.",
+      "preservedBehaviors": [
+        "No reallocation of points, rewards, XP, Circle Rank or collectible entitlement.",
+        "Special identity remains hidden until rank unlock, using existing visibleSpecialRail gate."
+      ],
+      "tests": [
+        "tests/buklod-character-art-contract-20261116.test.mjs",
+        "tests/buklod-character-art-release-contract-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Rebaseline exact reviewed protected R31/R40 Character source blob SHA values while retaining fail-closed source and compiled-bundle release gates.",
+      "preservedBehaviors": [
+        "No OTA workflow or production release action introduced.",
+        "SHA lock remains enforced on every modified protected Character surface."
+      ],
+      "tests": [
+        "tests/buklod-character-art-release-contract-20261116.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "staging-user Android runtime 1.3.2 only",
+  "physicalDeviceVerification": "SKIPPED_PER_OWNER",
+  "publicationStatus": "DEV_ONLY_NO_OTA"
+}
