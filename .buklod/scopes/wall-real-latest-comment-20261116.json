@@ -84,5 +84,18 @@
     }
   ],
   "releaseTarget": "DEV review only; not a production release",
-  "publicationStatus": "SOURCE_ONLY_NO_OTA"
+  "publicationStatus": "SOURCE_ONLY_NO_OTA",
+  "selectionRationale": "Restore the actual comment using the already deployed, scope-authorized comment preview RPC and existing UI component. Keep data asynchronous so Wall photos, ads and navigation remain responsive; correct only the visible preview/late metadata regression instead of rewriting the feed.",
+  "alternativeApproaches": [
+    "Leave the fake comment-count box: rejected because it hides the real discussion and does not meet the owner intent.",
+    "Block first paint until all comments load: rejected due to mobile network, navigation and media performance regressions.",
+    "Add per-post privileged or service-role comment fetching: rejected to preserve privacy/RLS and avoid extra calls."
+  ],
+  "riskAreas": [
+    "wall-comment-visibility",
+    "cluster-scope-authorization",
+    "comment-list-late-hydration",
+    "media-and-navigation-performance",
+    "regression-governance"
+  ]
 }
