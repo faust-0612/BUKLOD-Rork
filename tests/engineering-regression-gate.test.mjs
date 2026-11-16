@@ -221,7 +221,7 @@ test('Nov16 cumulative source reconciles exactly declared component manifests an
  assert.equal(scope.releaseMode,'consolidated-main-rc');
  assert.equal(scope.contractVersion,2);
  assert.equal(new Set(scope.componentScopePaths).size,scope.componentScopePaths.length);
- assert.equal(scope.componentScopePaths.length,8);
+ assert.equal(scope.componentScopePaths.length,10); // eight original scopes + Android gallery + Marites/video gesture
  assert.ok(scope.componentScopePaths.every(p=>scope.allowedPaths.includes(p)));
  const files=[rc,...scope.componentScopePaths,'src/components/BuklodCachedMediaImage.tsx','tests/community-wall-behavior.test.mjs'];
  const manifest={...scope,allowedPaths:[...scope.allowedPaths,...files],regressionTests:['tests/community-wall-behavior.test.mjs']};
