@@ -30,12 +30,10 @@
     "src/components/BuklodDashboardAdWarmup.tsx",
     "src/components/BuklodCommunityInlineAd.android.tsx",
     "src/app/(tabs)/_layout.tsx",
-    "tests/dashboard-ad-warm-pool-20261116.test.mjs"
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
   ],
   "regressionTests": [
-    "tests/dashboard-ad-warm-pool-20261116.test.mjs",
-    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
-    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
   ],
   "acceptanceChecks": [
     "Genuine already-filled Android NativeAd appears on focused first-view without a second SDK request.",
@@ -52,7 +50,7 @@
         "Consent, impressions, finance and point awards unchanged."
       ],
       "tests": [
-        "tests/dashboard-ad-warm-pool-20261116.test.mjs"
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
       ]
     },
     {
@@ -62,7 +60,7 @@
         "Expo native SDK, runtime and web implementation unchanged."
       ],
       "tests": [
-        "tests/dashboard-ad-warm-pool-20261116.test.mjs"
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
       ]
     },
     {
@@ -73,7 +71,7 @@
         "No changes to login, account, permission, route guards or navigation history."
       ],
       "tests": [
-        "tests/dashboard-ad-warm-pool-20261116.test.mjs"
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
       ]
     }
   ]
