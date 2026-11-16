@@ -157,6 +157,8 @@ export default function CharacterCollectionsScreen(){
   const keys=new Set(coreOwned);
   for(const item of specialStory?.items??[]){
    if(!item.owned||!item.earned_at)continue;
+   if(!Number.isInteger(item.level)||item.level<1||item.level>20||
+      !Number.isInteger(item.item_index)||item.item_index<1||item.item_index>5)continue;
    // Exact canonical key matching prevents corrupted or cross-Character rows.
    if(item.key===storyItemKey(worldId,item.level,item.item_index))keys.add(item.key);
   }
