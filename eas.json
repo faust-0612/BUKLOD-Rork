@@ -173,7 +173,6 @@
       "distribution": "internal",
       "channel": "connect-qa",
       "environment": "preview",
-      "autoIncrement": true,
       "env": {
         "BUKLOD_APP_TARGET": "connect",
         "EXPO_PUBLIC_BUKLOD_APP_TARGET": "connect",

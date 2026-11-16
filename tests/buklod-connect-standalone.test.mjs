@@ -28,6 +28,7 @@ test('Dedicated profiles do not replace Main staging or production OTA', () => {
   assert.equal(eas.build.production.env.EXPO_PUBLIC_BUKLOD_APP_TARGET, undefined);
   assert.equal(eas.build['staging-user'].env.EXPO_PUBLIC_BUKLOD_APP_TARGET, undefined);
   assert.equal(eas.build['connect-qa-apk'].android.buildType, 'apk');
+  assert.equal(eas.build['connect-qa-apk'].autoIncrement, undefined, 'Dynamic app.config.js cannot use EAS autoIncrement');
   assert.equal(eas.build['connect-production'].android.buildType, 'app-bundle');
   assert.equal(eas.build['connect-staging'], undefined);
 });
