@@ -18,7 +18,7 @@ import {
 import {getMyCharacterCollectibles,type CharacterCollectibleState} from '@/lib/buklodCharacterCollectibles';
 import {
  storyStageItems,verifiedStoryKeys,storyStageProgress,savedCharacterLevel,
- characterStageLabels,describeCharacterTaskRequirement,type TaskBadge,
+ characterStageLabels,describeCharacterTaskRequirement,storyItemTaskTarget,type TaskBadge,
 } from '@/lib/buklodCharacterCollectionLogic';
 import type {BuklodCharacterWorldId} from '@/lib/buklodCharacterWorldCatalog';
 
@@ -210,6 +210,8 @@ export default function CharacterCollectionsScreen(){
      {story.map(item=>{
       const isOwned=owned.has(item.key);
       const artUrl=verifiedCharacterArtUrl(worldId,level,item.index,artReady);
+      const taskGoal=special&&specialStory?.metrics
+       ?storyItemTaskTarget(level,item.index,specialStory.metrics):null;
       return <Pressable key={item.key} accessibilityRole="button"
        accessibilityLabel={'View and zoom '+item.name+' illustration'}
        onPress={()=>setInspect({name:item.name,slot:item.slot,level,index:item.index,id:selected})}
@@ -224,6 +226,7 @@ export default function CharacterCollectionsScreen(){
        <View style={{flex:1}}>
         <Text style={s.name}>{item.name}</Text>
         <Text style={s.caption}>{item.slot} • TAP TO ZOOM</Text>
+        {taskGoal?<Text style={s.caption}>Verified task progress: {taskGoal.current}/{taskGoal.target} {taskGoal.label}</Text>:null}
         <Text style={s.caption}>{isOwned?'OWNED • SERVER VERIFIED':
          level>saved?'FUTURE STAGE':core?(!items?'AWARD STATUS UNAVAILABLE':'NOT VERIFIED AS CLAIMED'):(specialStory?'NOT YET EARNED':'AWARD STATUS UNAVAILABLE')}</Text>
        </View>
