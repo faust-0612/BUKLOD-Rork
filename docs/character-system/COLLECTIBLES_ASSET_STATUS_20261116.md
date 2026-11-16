@@ -57,9 +57,24 @@ The existing 20 task badges per Special Character are NOT converted into five
 physical items; they remain separately verified. Existing Core items, Circle
 Rank, BP, finance/QMP, Kingdom Shards and Kingdom game scores are untouched.
 
-Other verified BUKLOD tasks (Bible reading, quiz, Formation, attendance,
-mentoring) need source-specific backend validation before becoming award events;
-they cannot be credited merely because a client reported completion.
+The DEV backend now includes a separately audited cross-feature task adapter
+for existing server-CLAIMED BUKLOD Points events: daily Bible reading,
+devotional, Formation/learning, Bible quiz, scope attendance and eligible
+prayer responses. The existing BP ledger has a member SELECT RLS policy and
+no member INSERT/UPDATE policy, so these credits cannot be fabricated by a
+normal app client. Unclaimed or pending credits do NOT count.
+
+The Character is snapshotted when the corresponding Points ledger event is
+first written, before a delayed claim; subsequent claim-state updates flip
+verified=true without transferring it to a newly selected Character. Future
+records accrue only after this migration (historical credits are intentionally
+not backfilled against the wrong Character). Task items 1–4 can be earned via
+Wall activity OR eligible cross-feature tasks, with stage 5 requiring distinct
+verified activity weeks plus the previous four verified items.
+
+Mentoring and any remaining task families still need source-specific
+backend verification before being awarded; clients cannot self-report
+completion for Character credit.
 
 ## Deployment gate
 
