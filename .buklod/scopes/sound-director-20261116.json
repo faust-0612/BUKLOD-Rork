@@ -1,0 +1,56 @@
+{
+  "contractVersion": 2,
+  "objective": "Audit Library sound effects and replace generic gameplay fallback across BP, Character, Circle Rank and Kingdom with already-pinned CC0 assets.",
+  "baseRef": "main",
+  "baselineSha": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
+  "chosenApproach": "Surgical DEV routing using already-shipped licensed offline SFX; quarantine unlicensed source MP3.",
+  "releaseState": "DEV_ONLY_NO_STAGING_OR_PRODUCTION_OTA",
+  "scopeManifestPath": ".buklod/scopes/sound-director-20261116.json",
+  "allowedPaths": [
+    "src/lib/buklodSounds.ts",
+    "src/components/character/BuklodCharacterEventProvider.tsx",
+    "src/components/points/BuklodCharacterLevelRecognition.tsx",
+    "src/app/points/progression.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/features/games/runtime/BuklodGameFeedback.native.ts",
+    "scripts/game-kingdom-release-contract.mjs",
+    "tests/kingdom-reward-sound-release-20261110.test.mjs",
+    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
+    "tests/buklod-sound-director-20261116.test.mjs",
+    "docs/BUKLOD_SOUND_EFFECTS_INTEGRATION_20261116.md",
+    ".buklod/scopes/sound-director-20261116.json"
+  ],
+  "preserveBehaviors": [
+    "Expo runtime 1.3.2",
+    "Server-owned BP, Character Level, Circle Rank and Shards",
+    "Ads, Wall, PTT, calls and media playback",
+    "Game haptics, capped players, volume controls and quiet hours",
+    "No dependencies or native API changes"
+  ],
+  "regressionTests": [
+    "tests/buklod-sound-director-20261116.test.mjs",
+    "tests/kingdom-reward-sound-release-20261110.test.mjs",
+    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
+    "tests/kingdom-premium-audio-staging-20261114.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "kingdom-character",
+      "reason": "Licensed offline sound replacement and verified reward audio wiring.",
+      "preservedBehaviors": [
+        "No economy changes",
+        "No remote sound host",
+        "No new sound player service"
+      ],
+      "tests": [
+        "tests/buklod-sound-director-20261116.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "audio-lifecycle",
+    "sound-settings",
+    "gameplay-feedback",
+    "character-recognition"
+  ]
+}
