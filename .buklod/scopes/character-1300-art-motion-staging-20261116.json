@@ -25,7 +25,8 @@
     "tests/buklod-character-art-contract-20261116.test.mjs",
     "scripts/character-release-contract.mjs",
     ".github/workflows/character_recovery_pr_qa.yml",
-    "tests/buklod-character-art-release-contract-20261116.test.mjs"
+    "tests/buklod-character-art-release-contract-20261116.test.mjs",
+    ".buklod/scopes/character-1300-art-motion-staging-20261116.json"
   ],
   "preserveBehaviors": [
     "Server-owned per-character level and XP, Circle Rank, item claims and rewards unchanged.",
