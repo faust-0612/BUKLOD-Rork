@@ -14,7 +14,11 @@ test('one Android-only dashboard warmup, max two with TTL and consent/route gate
     'canRequestAds', 'isInternetReachable', 'safetyRevision',
   ]) assert.ok(warm.includes(token), token);
   assert.doesNotMatch(warm, /<NativeAdView|<BannerAd|['"]ad_impression['"]|['"]ad_rendered['"]/);
-  assert.match(read('src/components/BuklodDashboardAdWarmup.tsx'), /return null/);
+  const fallback = read('src/components/BuklodDashboardAdWarmup.tsx');
+  assert.match(fallback, /return null/);
+  for (const method of ['getBuklodDashboardAdPreloadState', 'takeBuklodDashboardAdPreload',
+    'subscribeBuklodDashboardAdPreload', 'noteBuklodDashboardNativeAdOwned',
+    'releaseBuklodDashboardNativeAdOwned']) assert.ok(fallback.includes('function ' + method));
 });
 test('first-view only consumes loaded native creative after focused viewport gate', () => {
   const src = read('src/components/BuklodCommunityInlineAd.android.tsx');
