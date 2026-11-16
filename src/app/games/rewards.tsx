@@ -142,6 +142,10 @@ export default function KingdomRewardsScreen() {
         <MaterialCommunityIcons name="information-outline" size={19} color={COLORS.muted}/>
         <Text style={s.footerText}>Shards are not BP, earnings, currency, or withdrawable value. Game powers work in free practice after one verified purchase, including offline after syncing. They do not apply to server-scored Mastery examinations.</Text>
       </View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Explore all 120 Kingdom item designs"
+        onPress={()=>router.push('/games/item-atlas' as any)} style={s.backToHall}>
+        <Text style={s.backToHallText}>EXPLORE 120 KINGDOM ITEM DESIGNS</Text>
+      </Pressable>
       <Pressable accessibilityRole="button" onPress={()=>router.push('/games/legacy' as any)}
         style={s.backToHall}><Text style={s.backToHallText}>HALL OF LEGACY & BADGES</Text></Pressable>
     </ScrollView>

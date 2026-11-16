@@ -1,0 +1,191 @@
+# Nov 16 2026 owner staging-only 1.3.2; no production, live SQL, Play or web.
+name: BUKLOD Nov16 All Character Staging OTA - NO PROD
+on:
+  push:
+    branches: [rc/nov16-all-character-collectibles-staging132]
+    paths: [.github/workflows/buklod-nov16-all-character-staging-ota.yml]
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+concurrency:
+  group: buklod-staging-user-android-ota
+  cancel-in-progress: false
+jobs:
+  exact-source-staging-only:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/rc/nov16-all-character-collectibles-staging132' && startsWith(github.event.head_commit.message, 'BUKLOD_OWNER_ALL_STAGING_20261116:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      BUKLOD_SCOPE_MANIFEST: .buklod/scopes/nov16-all-character-staging132.json
+      BUKLOD_BASE_REF: main
+      BASE_SHA: 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61
+      PROD_ID: 01a1e2e2-cb65-7733-bcb6-3519230c9cf4
+      PROOF: /tmp/buklod-nov16-all-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Exact source / unmodified production main / native-package lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/rc/nov16-all-character-collectibles-staging132"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$BASE_SHA" || { echo 'Main moved: reconcile first'; exit 1; }
+          git merge-base --is-ancestor "$BASE_SHA" "$GITHUB_SHA"
+          git branch -f main "$BASE_SHA"
+          git diff --exit-code "$BASE_SHA" "$GITHUB_SHA" -- app.config.js eas.json package.json package-lock.json android/ ios/ plugins/ babel.config.js metro.config.js google-services.staging.json google-services.production.json src/providers/AuthProvider.tsx src/providers/AdsProvider.tsx src/lib/supabase.ts
+          test -z "$(git status --porcelain --untracked-files=no)"
+          node <<'NODE'
+          const a=require('node:assert/strict'),e=require('./eas.json'),c=require('./app.config.js')({config:{}});
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.appTarget,'main');
+          a.equal(e.build['staging-user'].channel,'staging-user');
+          a.equal(e.build['staging-user'].environment,'preview');
+          a.notEqual(e.build.production.channel,'staging-user');
+          NODE
+      - name: Independent exact-source PR CI required
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const target='rc/nov16-all-character-collectibles-staging132';
+            const {data:prs}=await github.rest.pulls.list({...context.repo,state:'open',head:'faust-0612:'+target,per_page:30});
+            if(!prs.some(p=>p.draft&&p.base.ref==='main'&&p.head.sha===context.sha))throw Error('Exact-source draft staging PR missing');
+            const required=['Engineering Accountability','BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD Performance R1 QA'];
+            for(let i=0;i<25;i++){
+              const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:context.sha,per_page:100});
+              const checks=required.map(name=>data.workflow_runs.find(r=>r.name===name&&r.event==='pull_request'&&r.head_sha===context.sha));
+              if(checks.some(r=>r?.status==='completed'&&r.conclusion!=='success'))throw Error('Exact-head CI failed/skipped');
+              if(checks.every(r=>r?.conclusion==='success'))return;
+              await new Promise(resolve=>setTimeout(resolve,12000));
+            }
+            throw Error('Exact-head CI not verified: no OTA');
+      - name: Full TypeScript, per-feature coverage, ads/nav and release-contract QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/engineering-accountability-gate.mjs
+          node scripts/protected-feature-lock.mjs
+          node scripts/engineering-regression-gate.mjs --run-focused-node-tests
+          node --experimental-strip-types --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs tests/buklod-ads-production-release-contract-20261111.test.mjs tests/buklod-shared-dashboard-scroll-20261111.test.mjs tests/nov16-warm-navigation-notes-contract.test.mjs tests/nov16-wall-connect-notes-warm-navigation.test.mjs tests/marites-wall-scroll-video-navigation-20261113.test.mjs tests/character-level-persistence-release-20261116.test.cjs tests/kingdom-reward-sound-release-20261110.test.mjs tests/buklod-bible-v4-events-kingdom-20261109.test.mjs
+          npx tsc --noEmit
+          npm run character:contract
+          npm run release:base-gate
+          node scripts/game-kingdom-release-contract.mjs
+      - name: Signed staging APK, live separate EAS channels and unchanged production preflight
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          mkdir -p "$PROOF"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$PROOF/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$PROOF/stage-before.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$PROOF/prod-before.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import a from 'node:assert/strict';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.PROOF,j=s=>JSON.parse(fs.readFileSync(d+'/'+s,'utf8'));
+          verifyBuild(j('build.json'));
+          const branch=verifyChannels(j('stage-before.json'),j('prod-before.json'));
+          const p=await manifest('production');
+          a.equal(p.id.toLowerCase(),process.env.PROD_ID.toLowerCase());
+          a.equal(p.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          fs.writeFileSync(d+'/preflight.json',JSON.stringify({sha:process.env.GITHUB_SHA,branch,prodId:p.id,runtime:'1.3.2',physicalDeviceVerified:false,databaseChanged:false},null,2));
+          NODE
+      - name: Export exact Android staging preview without modifying native app
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-nov16-all-preview.env --non-interactive > /dev/null
+          set -a; . /tmp/buklod-nov16-all-preview.env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > "$PROOF/app-config.json"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs'),c=JSON.parse(fs.readFileSync(process.env.PROOF+'/app-config.json','utf8'));
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.appTarget,'main');
+          a.ok((process.env.EXPO_PUBLIC_SUPABASE_URL||'').startsWith('https://'));
+          a.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov16-all-staging-rc --clear
+          test -s /tmp/buklod-nov16-all-staging-rc/metadata.json
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$BASE_SHA"
+          test "$(git ls-remote origin refs/heads/rc/nov16-all-character-collectibles-staging132 | cut -f1)" = "$GITHUB_SHA"
+      - name: Idempotent publish to staging-user Android only
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$PROOF/prior.json"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs'),d=process.env.PROOF;
+          const data=JSON.parse(fs.readFileSync(d+'/prior.json','utf8'));
+          const rows=data.currentPage??data;
+          a.ok(Array.isArray(rows),'Cannot determine prior OTA: refuse duplicate');
+          const match=rows.find(x=>x.message==='BUKLOD_NOV16_ALL_CHARACTER_STAGING_'+process.env.GITHUB_SHA);
+          fs.writeFileSync(d+'/group.txt',match?.group||'');
+          NODE
+          if [ ! -s "$PROOF/group.txt" ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir /tmp/buklod-nov16-all-staging-rc --non-interactive --json --message "BUKLOD_NOV16_ALL_CHARACTER_STAGING_$GITHUB_SHA" > "$PROOF/published.json"
+            node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs'),d=process.env.PROOF;
+          const v=JSON.parse(fs.readFileSync(d+'/published.json','utf8'));
+          a.ok(Array.isArray(v)&&v.length===1&&v[0].group,'Exactly one Android group required');
+          fs.writeFileSync(d+'/group.txt',v[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$PROOF/group.txt")" --json > "$PROOF/update.json"
+      - name: Verify staging manifest and no-change production after OTA
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$PROOF/stage-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$PROOF/prod-after.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import a from 'node:assert/strict';
+          import {verifyChannels,verifyUpdate,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.PROOF,j=s=>JSON.parse(fs.readFileSync(d+'/'+s,'utf8'));
+          const pre=j('preflight.json'),u=verifyUpdate(j('update.json'),process.env.GITHUB_SHA,pre.branch.name);
+          a.equal(verifyChannels(j('stage-after.json'),j('prod-after.json')).id,pre.branch.id);
+          const s=await manifest('staging-user');
+          a.equal(s.id.toLowerCase(),u.id.toLowerCase());
+          a.equal(s.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          a.equal(s.extra?.expoClient?.extra?.appEnvironment,'staging');
+          const p=await manifest('production');
+          a.equal(p.id.toLowerCase(),pre.prodId.toLowerCase(),'Production changed during staging OTA');
+          const x={status:'VERIFIED STAGING OTA',source:process.env.GITHUB_SHA,runtime:'1.3.2',channel:'staging-user',package:'org.mzbministry.buklod.staging',updateId:u.id,groupId:u.group,productionUnchanged:p.id,physicalDeviceVerified:false,taskSchemaApplied:false,artObjectsPublished:false};
+          fs.writeFileSync(d+'/verified.json',JSON.stringify(x,null,2)+'\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(x,null,2)+'\n');
+          NODE
+      - name: Preserve exact staging receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov16-all-character-staging
+          path: /tmp/buklod-nov16-all-staging/*.json
+          retention-days: 14
+          if-no-files-found: ignore
