@@ -451,13 +451,15 @@
     },
     {
       "id": "cluster-faith",
-      "reason": "Compact Cluster and Bible components without changing Scripture, audio, historical data, or safe scroll/navigation.",
+      "reason": "Compact Cluster and Bible components without changing Scripture, audio, historical data, or safe scroll/navigation. | Automatic general Learn/CCP entry for a member with one verified active Cluster plus durable failed Quick Check draft and clear retry guidance.",
       "preservedBehaviors": [
         "Bible reading, highlighting, daily plan and Cluster membership permissions remain unchanged.",
-        "No production or staging update without exact-source QA and independently verified public artwork."
+        "No production or staging update without exact-source QA and independently verified public artwork.",
+        "Enrollment-bound drafts and source-grounded Gemini auto completion continue to enforce existing RLS, scope context, and points authorization."
       ],
       "tests": [
-        "tests/cluster-bible-density-20261116.test.mjs"
+        "tests/cluster-bible-density-20261116.test.mjs",
+        "tests/lesson-quickcheck-regression-20261116.test.mjs"
       ]
     },
     {
@@ -517,16 +519,6 @@
       "tests": [
         "tests/protected-feature-lock.test.mjs",
         "tests/nov16-spacing-graphics-consolidated-contract.test.mjs"
-      ]
-    },
-    {
-      "id": "cluster-faith",
-      "reason": "Automatic general Learn/CCP entry for a member with one verified active Cluster plus durable failed Quick Check draft and clear retry guidance.",
-      "preservedBehaviors": [
-        "Enrollment-bound drafts and source-grounded Gemini auto completion continue to enforce existing RLS, scope context, and points authorization."
-      ],
-      "tests": [
-        "tests/lesson-quickcheck-regression-20261116.test.mjs"
       ]
     }
   ],
