@@ -1,0 +1,128 @@
+name: BUKLOD AdMob Web Read-only Inspection
+on:
+  push:
+    branches: [fix/admob-app-ads-txt-20261021]
+    paths: ['.github/workflows/admob_web_inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Inspect live HTTP responses and baseline hashes
+        shell: python
+        run: |
+          import os
+          import urllib.request, urllib.error, urllib.parse, hashlib, re, json
+          print("PROXY_VARIABLE_NAMES", [key for key in os.environ if "proxy" in key.lower()])
+          expected = b"google.com, pub-3448515158880100, DIRECT, f08c47fec0942fa0"
+          for url in ["http://buklod.expo.app/app-ads.txt", "https://buklod.expo.app/app-ads.txt", "https://buklod.expo.app/", "https://buklod--zpvvpw9hif.expo.app/"]:
+              try:
+                  req = urllib.request.Request(url, headers={"Cache-Control": "no-cache", "User-Agent": "Mozilla/5.0", "Accept": "*/*"})
+                  with urllib.request.urlopen(req, timeout=45) as response:
+                      body = response.read()
+                      print(json.dumps({"requested": url, "final_url": response.url, "status": response.status, "headers": dict(response.headers), "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(), "admob_record_matches": body.rstrip(b"\n") == expected}))
+                      if url.endswith("app-ads.txt"):
+                          print("BODY_PREFIX", repr(body[:300]))
+                      else:
+                          refs = sorted(set(re.findall(rb'(?:src|href)=["\x27]([^"\x27]+(?:\.js|\.css))["\x27]', body)))
+                          for ref in refs:
+                              asset_url = urllib.parse.urljoin(url, ref.decode())
+                              with urllib.request.urlopen(urllib.request.Request(asset_url, headers={"User-Agent": "Mozilla/5.0"}), timeout=45) as asset:
+                                  data = asset.read()
+                                  print(json.dumps({"asset": asset_url, "status": asset.status, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}))
+              except Exception as error:
+                  print(json.dumps({"url": url, "error": str(error)}))
+                  if isinstance(error, urllib.error.HTTPError):
+                      print("ERROR_HEADERS", dict(error.headers))
+                      print("ERROR_BODY", repr(error.read(1500)))
+                  continue
+      - name: Read authoritative Expo hosting aliases and deployment identities
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: python
+        run: |
+          import os, json, urllib.request
+          query = """query InspectHosting($appId: String!) {
+            app { byId(appId: $appId) {
+              id
+              workerDeploymentAliases(first: 50) {
+                edges { node { id aliasName url workerDeployment { id deploymentIdentifier createdAt } } }
+              }
+              workerDeployments(first: 10) {
+                edges { node { id deploymentIdentifier createdAt } }
+              }
+            } }
+          }"""
+          token = os.environ.get("EXPO_TOKEN", "")
+          if not token:
+              raise RuntimeError("EXPO_TOKEN is missing")
+          request = urllib.request.Request("https://api.expo.dev/graphql", data=json.dumps({"query": query, "variables": {"appId": "23dad7d0-389a-406e-8dec-08965dab85d8"}}).encode(), headers={"Content-Type": "application/json", "Authorization": "Bearer " + token, "User-Agent": "eas-cli"})
+          with urllib.request.urlopen(request, timeout=60) as response:
+              result = json.load(response)
+          print(json.dumps(result, indent=2))
+          if result.get("errors"):
+              raise RuntimeError("Expo hosting identity query failed")
+      - name: Inspect available deployment metadata for artifact recovery
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: python
+        run: |
+          import os, json, urllib.request
+          query = '{ __type(name: "WorkerDeployment") { name fields { name type { kind name ofType { kind name } } } } }'
+          request = urllib.request.Request("https://api.expo.dev/graphql", data=json.dumps({"query": query}).encode(), headers={"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["EXPO_TOKEN"], "User-Agent": "eas-cli"})
+          with urllib.request.urlopen(request, timeout=60) as response:
+              print(json.dumps(json.load(response), indent=2))
+      - name: Inspect exact live artifact recovery endpoints without publishing
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: python
+        run: |
+          import os, json, urllib.request, urllib.error, urllib.parse, hashlib, tarfile, zipfile, io
+          query = '{ app { byId(appId: "23dad7d0-389a-406e-8dec-08965dab85d8") { workerDeployments(first: 1) { edges { node { deploymentIdentifier signedAssetsURL signedDeploymentURL } } } } } }'
+          req = urllib.request.Request("https://api.expo.dev/graphql", data=json.dumps({"query": query}).encode(), headers={"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["EXPO_TOKEN"], "User-Agent": "eas-cli"})
+          with urllib.request.urlopen(req, timeout=60) as response:
+              result = json.load(response)
+          if result.get("errors"):
+              print("ARTIFACT_RECOVERY_QUERY_FAILED")
+              raise RuntimeError("Cannot obtain artifact recovery metadata")
+          dep = result["data"]["app"]["byId"]["workerDeployments"]["edges"][0]["node"]
+          assert dep["deploymentIdentifier"] == "zpvvpw9hif", "Production identity changed; stop"
+          for field in ["signedAssetsURL", "signedDeploymentURL"]:
+              url = dep[field]
+              print("RECOVERY_ENDPOINT", field, urllib.parse.urlsplit(url).hostname)
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "eas-cli"}), timeout=60) as response:
+                      data = response.read(100000001)
+                      print("RECOVERY_RESPONSE", field, response.status, response.headers.get("Content-Type"), len(data), hashlib.sha256(data).hexdigest())
+                  assert len(data) <= 100000000, "Recovery metadata exceeds inspection limit"
+                  if zipfile.is_zipfile(io.BytesIO(data)):
+                      with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                          print("ZIP_ENTRIES", archive.namelist()[:100], "TOTAL", len(archive.namelist()))
+                  else:
+                      try:
+                          with tarfile.open(fileobj=io.BytesIO(data), mode="r:*") as archive:
+                              print("TAR_ENTRIES", archive.getnames()[:100], "TOTAL", len(archive.getnames()))
+                      except tarfile.ReadError:
+                          try:
+                              parsed = json.loads(data)
+                              print("JSON_STRUCTURE", list(parsed)[:50] if isinstance(parsed, dict) else type(parsed).__name__)
+                              def sanitize(value):
+                                  if isinstance(value, dict):
+                                      return {k: sanitize(v) for k, v in value.items()}
+                                  if isinstance(value, list):
+                                      return [sanitize(v) for v in value[:3]]
+                                  if isinstance(value, str) and value.startswith("http"):
+                                      parts = urllib.parse.urlsplit(value)
+                                      return parts.scheme + "://" + parts.netloc + parts.path
+                                  return value
+                              print("RECOVERY_SAMPLE", json.dumps(sanitize(parsed)))
+                              if field == "signedDeploymentURL":
+                                  print("WORKER_FILE_CONTENT_AVAILABILITY", [{"name": item.get("name"), "keys": list(item), "contents_bytes": len(item.get("contents", ""))} for item in parsed.get("files", [])])
+                              else:
+                                  print("ASSET_COUNT", len(parsed.get("assets", [])))
+                          except ValueError:
+                              print("RECOVERY_FORMAT", data[:40].hex())
+              except urllib.error.HTTPError as error:
+                  print("RECOVERY_HTTP_ERROR", field, error.code)
