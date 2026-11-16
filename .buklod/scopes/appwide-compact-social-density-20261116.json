@@ -1,0 +1,90 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/appwide-compact-social-density-20261116.json",
+  "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
+  "objective": "Compact all shared screen metrics and high-traffic Home/Wall/Connect/Profile sections; eliminate fixed empty status-note area and prevent future oversized margins in required engineering CI.",
+  "productionBaselineEvidence": "GitHub main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 read as latest canonical base; this is source evidence only, not verified installed client or live production.",
+  "chosenApproach": "Use compact shared visual/DB defaults and targeted high-traffic component changes; natural note height plus bottom-aligned avatars; forward-only diff guard in existing Engineering Regression Gate.",
+  "selectionRationale": "Blanket global zero padding would break touch and system safe areas. Content-intrinsic note rails and shared tokens reduce whitespace while minimizing regression risk.",
+  "alternativeApproaches": [
+    "Zero every padding/margin universally: unsafe for touch, ads, keyboard, zoom, media and safe areas.",
+    "Patch only screenshots: leaves future screens without repeatable standards.",
+    "Change shared tokens, targeted note rails and use CI guard (selected)."
+  ],
+  "preserveBehaviors": [
+    "Maintain all five tabs, links, dark/light text scaling, live calls, ads, media, caching and bottom insets.",
+    "Preserve five-line status notes and note editing/read/seen state.",
+    "Do not modify DB/RLS/auth/financial/points data or production app."
+  ],
+  "acceptanceChecks": [
+    "New shared defaults are coherent while button/input minimum heights remain unchanged.",
+    "Wall/Connect note rails are content-sized, bottom-aligned and 5-line compatible.",
+    "Home/Profile/Wall/Connect dense changes retain sponsor and first-view AdMob inventory.",
+    "Changed focused tests and legacy test expectations pass in PR CI.",
+    "Expo/Android visual acceptance, performance and full regression must pass before any OTA. Not verified yet."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "connect",
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/compact-appwide-layout-navigation-wall-connect.test.mjs",
+    "tests/compact-layout-density-rule.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodVisual.ts",
+    "src/lib/buklodDesignTokens.ts",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/(tabs)/home.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/buklodCommunityStyles.ts",
+    "src/components/BuklodProfilePostCards.tsx",
+    "scripts/engineering-regression-gate.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "scripts/compact-layout-density-gate.mjs",
+    "tests/compact-appwide-layout-navigation-wall-connect.test.mjs",
+    "tests/compact-layout-density-rule.test.mjs",
+    "docs/design/compact-social-density.md"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "App-wide shared density tokens affect runtime presentation.",
+      "preservedBehaviors": [
+        "Preserve five-line readable notes, normal avatar tap and editing behavior, and authenticated account isolation.",
+        "Keep app navigation, keyboard and bottom system safe areas, AdMob placement, and existing scroll/caching behavior."
+      ],
+      "tests": [
+        "tests/compact-appwide-layout-navigation-wall-connect.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Wall note-avatar rail spacing adjusts without changing wall video/ads.",
+      "preservedBehaviors": [
+        "Preserve five-line readable notes, normal avatar tap and editing behavior, and authenticated account isolation.",
+        "Keep app navigation, keyboard and bottom system safe areas, AdMob placement, and existing scroll/caching behavior."
+      ],
+      "tests": [
+        "tests/compact-appwide-layout-navigation-wall-connect.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Tab screen styles are compacted while login and navigation paths remain intact.",
+      "preservedBehaviors": [
+        "Preserve five-line readable notes, normal avatar tap and editing behavior, and authenticated account isolation.",
+        "Keep app navigation, keyboard and bottom system safe areas, AdMob placement, and existing scroll/caching behavior."
+      ],
+      "tests": [
+        "tests/compact-appwide-layout-navigation-wall-connect.test.mjs"
+      ]
+    }
+  ]
+}

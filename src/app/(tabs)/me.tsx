@@ -2049,11 +2049,11 @@ function createMeStyles(
 ) {
   return StyleSheet.create({
     content: {
-      paddingTop: 8,
-      paddingBottom: 16,
+      paddingTop: 4,
+      paddingBottom: 12,
       paddingHorizontal: 0,
       marginHorizontal: 0,
-      gap: 8,
+      gap: 6,
     },
     sectionPad: {
       paddingHorizontal: buklodVisual.space.screen,

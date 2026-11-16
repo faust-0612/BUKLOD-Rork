@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { scanAddedSpacingDiff } from './compact-layout-density-gate.mjs';
 
 const areas = [
   { id: 'wall-media', source: /^(?:src\/components\/(?:BuklodCachedMediaImage|BuklodCommunityPhotoCollage|BuklodMarites|BuklodCommunityPost|BuklodCachedMedia|Buklod.*Video)|src\/lib\/(?:buklodMediaUrl|communityWall|buklodMarites|buklod.*Media))/i, proof: /(?:wall|photo|media|marites|video)/i },
@@ -99,6 +100,14 @@ function runCli() {
   const base = process.env.BUKLOD_BASE_REF || process.env.GITHUB_BASE_REF || 'main';
   let paths;
   try { paths = changedPathsSince(base); } catch (err) { console.error('REGRESSION BLOCK: cannot compare verified baseline:', err.message); process.exitCode = 1; return; }
+  // Forward-only density review: large new decorative gaps need an explanation.
+  const spacingDiff = execFileSync('git', ['diff','--no-ext-diff','--unified=0',base+'...HEAD','--','src/'],{encoding:'utf8'});
+  const spacingFailures = scanAddedSpacingDiff(spacingDiff);
+  if (spacingFailures.length) {
+    for (const failure of spacingFailures) console.error('LAYOUT DENSITY BLOCK:', failure);
+    process.exitCode = 1;
+    return;
+  }
   let manifest = null;
   const changedScope = paths.filter(p => /^\.buklod\/scopes\/[^/]+\.json$/.test(p));
   // Production main remains protected. This opt-in is only for the named

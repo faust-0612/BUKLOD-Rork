@@ -42,7 +42,7 @@ export default function BuklodProfilePostCards({userId}:{userId:string}) {
  },[userId]));
  const visiblePosts=ownerRef.current===userId?posts:[];
  const initialLoading=ownerRef.current!==userId || (loading && lastSyncRef.current===0);
- return <View style={{marginHorizontal:buklodVisual.space.screen,marginTop:8,gap:7}}>
+ return <View style={{marginHorizontal:buklodVisual.space.screen,marginTop:buklodVisual.space.tight,gap:6}}>
    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8}}>
      <Text allowFontScaling style={{color:theme.textPrimary,fontWeight:'900',fontSize:16}}>MY RECENT POSTS</Text>
      <Pressable accessibilityRole="button" accessibilityLabel="Open all my posts"

@@ -6,7 +6,7 @@ export function createCommunityStyles(c: LegacyThemeColors) {
   return StyleSheet.create({
 content:{
  paddingHorizontal:0,
- paddingTop:8,
+ paddingTop:4,
  paddingBottom:50
 },eyebrow:{fontSize:12,fontWeight:'900',color:c.greenDark,letterSpacing:.8},label:{fontSize:12,fontWeight:'900',color:c.muted,marginBottom:7},
 wrap:{flexDirection:'row',flexWrap:'wrap',gap:7},

@@ -57,8 +57,6 @@ import {
 const MAX_NOTE_CHARS = 80;
 const NOTE_LINE_HEIGHT = 17;
 const NOTE_MAX_LINES = 5;
-const NOTE_ZONE_HEIGHT =
-  NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 24;
 const AVATAR_SIZE = 56;
 const COLUMN_WIDTH = 116;
 
@@ -85,23 +83,22 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     scroll: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      // Bottom-aligned avatars: notes size naturally rather than reserving empty air.
+      alignItems: 'flex-end',
       paddingHorizontal: connectSpacing.screenHorizontal,
-      paddingBottom: 8,
+      paddingBottom: 4,
     },
     column: {
       width: COLUMN_WIDTH,
-      minHeight: 216,
       marginRight: 8,
       alignItems: 'center',
-      paddingVertical: 8,
+      paddingVertical: 4,
       paddingHorizontal: 4,
       // Show the Connect backdrop instead of opaque mint/white tiles.
       backgroundColor: 'transparent',
     },
     noteZone: {
       width: COLUMN_WIDTH,
-      height: NOTE_ZONE_HEIGHT,
       alignItems: 'center',
       justifyContent: 'flex-end',
       marginBottom: 4,
@@ -141,17 +138,13 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     noteZoneEditing: {
       width: COLUMN_WIDTH,
-      height: NOTE_ZONE_HEIGHT,
       alignItems: 'center',
       justifyContent: 'flex-end',
       marginBottom: 4,
       zIndex: 2,
     },
     editingPopover: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
+      width: '100%',
       alignItems: 'center',
     },
     postButton: {
