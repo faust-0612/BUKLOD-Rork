@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-all-recent-android-production-ota-authorization.json",
+  "objective": "Release authorization only; no runtime/UI source modifications. Preserve exact staged source and all production safeguards.",
+  "baseRef": "81c0e78518f05518fa9ad4036756fd0ca2f014f6",
+  "productionBaselineEvidence": "Production OTA 01a1e10a-f043-7113-9a6c-673e91a58517; staging OTA 01a1e27b-0009-7e15-a0fd-e2207701a55e; production QA run 43800923352.",
+  "chosenApproach": "Use a distinct reviewed release-marker PR targeting canonical main and existing production Android OTA pipeline; no source changes or bespoke publishing shortcut.",
+  "alternativeApproaches": [
+    "Direct unreviewed push to main rejected because canonical main requires PR and protected release gates.",
+    "Fresh one-off Expo publisher rejected because existing production OTA already hashes frozen RC and independently verifies live publication."
+  ],
+  "allowedPaths": [
+    "release/nov16-all-recent-android-production-ota-authorization-20261116.json",
+    ".buklod/scopes/nov16-all-recent-android-production-ota-authorization.json",
+    "tests/nov16-prod-ota-authorization-20261116.test.mjs"
+  ],
+  "riskAreas": [
+    "production-release",
+    "ads-monetization",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "No src/assets/config/native/backend changes",
+    "No background workflow or direct bypass of existing OTA gates",
+    "Do not reintroduce retired IGPAT",
+    "No production publish unless same staged source and runtime remains compatible"
+  ],
+  "acceptanceChecks": [
+    "Exact staged src/assets git trees are unchanged",
+    "Authorization JSON matches validated staging and live prior production baseline",
+    "Only release metadata and one focused test changed",
+    "All existing production OTA gates must succeed and publication readback must be inspected"
+  ],
+  "regressionTests": [
+    "tests/nov16-prod-ota-authorization-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Explicitly authorize reviewed exact-source Android production OTA from canonical main",
+      "preservedBehaviors": [
+        "Existing signed Android runtime and OTA safeguards remain unchanged"
+      ],
+      "tests": [
+        "tests/nov16-prod-ota-authorization-20261116.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "production Android only",
+  "runtimeVersion": "1.3.2",
+  "publicationStatus": "AUTHORIZATION_ONLY_PENDING_MERGE_AND_PUBLISH"
+}
