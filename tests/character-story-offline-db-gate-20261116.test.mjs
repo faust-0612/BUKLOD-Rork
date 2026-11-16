@@ -12,11 +12,11 @@ test('no staging SQL QA never connects to live project, publishes OTA or uses se
  assert.match(workflow,/github\.event\.pull_request\.head\.sha/);
  assert.match(workflow,/persist-credentials: false/);
  const isolatedSqlJob=workflow.split('\n  production-android-source-qa:')[0];
- assert.doesNotMatch(isolatedSqlJob,/EXPO_TOKEN|SUPABASE_SERVICE_ROLE_KEY|supabase\\.co|eas-cli/);
+ assert.doesNotMatch(isolatedSqlJob,/EXPO_TOKEN|SUPABASE_SERVICE_ROLE_KEY|supabase[.]co|eas-cli/);
  assert.doesNotMatch(workflow,/eas update|--channel production|apply_migration|workflow_dispatch/);
  assert.match(workflow,/needs: ephemeral-postgres/);
  assert.match(workflow,/expo export --platform android/);
- assert.match(workflow,/config\\.runtimeVersion,'1\\.3\\.2'/);
+ assert.ok(workflow.includes("assert.equal(config.runtimeVersion,'1.3.2')"));
  assert.match(workflow,/character_story_art_security_20261116\.sql/);
  assert.match(workflow,/character_story_offline_behavior_20261116\.sql/);
 });
