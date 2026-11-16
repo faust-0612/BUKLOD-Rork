@@ -46,9 +46,11 @@ test('Commentary remains accessible midscroll in My Bible, search, default and n
 
 test('Bible text is near edge-to-edge without dropping safe-bottom, highlighted verses or notes',()=>{
   assert.match(reader,/<Card style=\{styles\.verseReaderCard\}>/);
-  assert.match(reader,/verseReaderCard: \{\s*paddingHorizontal: 2,\s*paddingVertical: 5,\s*marginHorizontal: 0,\s*borderWidth: 0/);
-  assert.match(reader,/verseRow: \{\s*flexDirection: 'row',\s*gap: 5,\s*paddingVertical: 5,\s*paddingHorizontal: 0/);
+  assert.match(reader,/verseReaderCard: \{\s*paddingHorizontal: 0,\s*paddingVertical: 0,\s*marginHorizontal: 0,\s*marginVertical: 0,\s*borderWidth: 0/);
+  assert.match(reader,/verseRow: \{\s*flexDirection: 'row',\s*gap: 4,\s*paddingVertical: 2,\s*paddingHorizontal: 0/);
   assert.match(reader,/paddingBottom: readerScrollBottom/);
+  assert.match(reader,/paddingHorizontal: 0, \/\/ BIBLE_EDGE_TO_EDGE_R1/);
+  assert.match(reader,/henryFloatingAction: \{\s*position: 'absolute',\s*bottom: 76/);
   assert.match(reader,/openBibleAnnotation\(Number\(verse\.verse_no\), cleanText\)/);
   assert.match(reader,/backgroundColor:theme\.accentSoft/);
   assert.match(scenic,/marginHorizontal:-4,marginTop:-10/);
