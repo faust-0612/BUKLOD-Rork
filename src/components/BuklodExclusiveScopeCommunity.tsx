@@ -96,7 +96,7 @@ import {
   type CommunityPhotoCollageLayout,
 } from '@/components/BuklodCommunityPhotoCollage';
 import { peekCommunityMediaUrl, resignCommunityMediaUrl, isLocalMediaUri } from '@/lib/buklodMediaUrl';
-import { applyCommunityWallMediaHydration, preservePendingCommunityWallMedia } from '@/lib/communityWallHydration';
+import { applyCommunityWallMediaHydration, preservePendingCommunityWallMedia, shouldApplyCommunityRecentComment } from '@/lib/communityWallHydration';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -1007,9 +1007,7 @@ export default function BuklodExclusiveScopeCommunity({
                   const id = String(post.id);
                   const latest = requestedCommentIds.has(id) ? previews[id] : null;
                   const old = post.comment_preview;
-                  if (!latest || (old?.comment_id === latest.comment_id &&
-                    old?.body === latest.body && old?.author_name === latest.author_name &&
-                    old?.created_at === latest.created_at)) return post;
+                  if (!shouldApplyCommunityRecentComment(old, latest)) return post;
                   changed = true;
                   return { ...post, comment_preview: latest };
                 });
