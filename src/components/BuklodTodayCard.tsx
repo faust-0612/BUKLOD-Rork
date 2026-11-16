@@ -17,7 +17,7 @@ type Tip={
 };
 const REACTIONS:{id:Reaction;label:string;icon:React.ComponentProps<typeof MaterialCommunityIcons>['name']}[]=[
  {id:'helpful',label:'Helpful',icon:'lightbulb-on-outline'},
- {id:'heart',label:'Love this',icon:'heart-outline'},
+ {id:'heart',label:'Love',icon:'heart-outline'},
  {id:'relate',label:'Relate',icon:'hand-heart-outline'},
 ];
 
@@ -33,6 +33,7 @@ export default function BuklodTodayCard(){
  const [draft,setDraft]=useState('');
  const [visibility,setVisibility]=useState<Visibility>('public');
  const [editing,setEditing]=useState(false);
+ const [showComposer,setShowComposer]=useState(false);
  const [notice,setNotice]=useState('');
  const [error,setError]=useState('');
  const [showHistory,setShowHistory]=useState(false);
@@ -59,6 +60,7 @@ export default function BuklodTodayCard(){
     setDraft(typeof parsed.my_dugtong==='string'?parsed.my_dugtong:'');
     setVisibility(parsed.my_visibility==='private'?'private':'public');
     setEditing(false);
+    setShowComposer(false);
    }
    setUnavailable(false);
   }catch{setUnavailable(true);}
@@ -96,7 +98,7 @@ export default function BuklodTodayCard(){
     my_dugtong:dugtong??current.my_dugtong,
     my_visibility:dugtong!==null?visibility:current.my_visibility,
    }:current);
-   if(dugtong!==null)setEditing(false);
+   if(dugtong!==null){setEditing(false);setShowComposer(false);}
    const credited=Math.max(0,Math.trunc(Number(data.awarded_points)||0));
    setNotice(credited>0
     ?'+'+credited+' BP recorded. Claim your pending reward in BUKLOD Points.'
@@ -147,9 +149,9 @@ export default function BuklodTodayCard(){
  };
  if(loading)return <View style={s.shell}><ActivityIndicator color="#17644B"/></View>;
  if(!tip)return <View style={s.shell}>
-  <Text style={s.eyebrow}>BUKLOD TODAY • COMMUNITY TIPS</Text>
+  <Text style={s.eyebrow}>BUKLOD TODAY</Text>
   <Text style={s.title}>Helpful tips</Text>
-  <Text style={s.body}>Hindi available ang tips ngayon. Hindi apektado ang Wall at Points.</Text>
+  <Text style={s.body}>Hindi ma-load ang tip ngayon.</Text>
   {unavailable&&<Pressable onPress={()=>{setLoading(true);void load();}}>
    <Text style={s.link}>Retry loading tips</Text></Pressable>}
  </View>;
@@ -159,10 +161,10 @@ export default function BuklodTodayCard(){
  return <View style={s.shell}>
   <View style={s.head}>
    <View style={{flex:1}}>
-    <Text style={s.eyebrow}>BUKLOD TODAY • COMMUNITY TIPS</Text>
+    <Text style={s.eyebrow}>BUKLOD TODAY</Text>
     <Text style={s.sub}>{tip.category.replace(/_/g,' ')}</Text>
    </View>
-   <MaterialCommunityIcons name="heart-pulse" size={23} color="#17644B"/>
+   <MaterialCommunityIcons name="lightbulb-on-outline" size={25} color="#17644B"/>
   </View>
   <Text style={s.title}>{tip.title}</Text>
   <Text style={s.body}>{tip.lead}</Text>
@@ -173,7 +175,7 @@ export default function BuklodTodayCard(){
   </View>}
   <Pressable accessibilityRole="button" accessibilityState={{expanded:open}}
    onPress={()=>setOpen(v=>!v)} style={s.read}>
-   <Text style={s.link}>{open?'Show less':'Continue reading'}</Text>
+   <Text style={s.link}>{open?'Mas kaunti':'Basahin pa'}</Text>
    <MaterialCommunityIcons name={open?'chevron-up':'chevron-down'} size={18} color="#17644B"/>
   </Pressable>
   {hasSavedDugtong&&<View style={s.savedDugtong} accessibilityLabel="Ang iyong na-save na Dugtong">
@@ -192,12 +194,11 @@ export default function BuklodTodayCard(){
      <MaterialCommunityIcons name={value==='public'?'earth':'lock-outline'} size={15} color="#17644B"/>
      <Text style={s.privacyText}>{value==='public'?'Public':'Private'}</Text>
     </Pressable>)}
-    {!editing&&<Pressable accessibilityRole="button" onPress={()=>{setDraft(tip.my_dugtong??'');setEditing(true);}}>
+    {!editing&&<Pressable accessibilityRole="button" onPress={()=>{setDraft(tip.my_dugtong??'');setEditing(true);setShowComposer(true);}}>
      <Text style={s.link}>I-edit</Text>
     </Pressable>}
    </View>
   </View>}
-  <Text style={s.section}>React to this tip</Text>
   <View style={s.reactions}>
    {REACTIONS.map(item=><Pressable key={item.id} accessibilityRole="button"
     accessibilityState={{selected:tip.my_reaction===item.id}}
@@ -208,35 +209,41 @@ export default function BuklodTodayCard(){
     <Text style={s.reactionText}>{item.label}</Text>
    </Pressable>)}
   </View>
-  {(!hasSavedDugtong||editing)&&<>
-   <Text style={s.section}>{hasSavedDugtong?'Baguhin ang Dugtong':'Dugtong: Ano ang natutuhan mo?'}</Text>
+  {(!hasSavedDugtong&&!showComposer)&&<Pressable accessibilityRole="button"
+    onPress={()=>setShowComposer(true)} style={s.addDugtong}>
+    <MaterialCommunityIcons name="plus-circle-outline" size={21} color="#17644B"/>
+    <Text style={s.addDugtongText}>Magbahagi ng Dugtong</Text>
+    <MaterialCommunityIcons name="chevron-right" size={19} color="#17644B"/>
+   </Pressable>}
+   {((!hasSavedDugtong&&showComposer)||editing)&&<View style={s.composer}>
+    <Text style={s.section}>{hasSavedDugtong?'I-edit ang Dugtong':'Ano ang natutuhan mo?'}</Text>
    <TextInput value={draft} onChangeText={setDraft} multiline accessibilityLabel="BUKLOD Today Dugtong"
-    placeholder="Ibahagi ang isang konkretong hakbang o insight (30 characters minimum)."
+    placeholder="Isulat ang Dugtong (minimum 30 characters)"
     placeholderTextColor="#87998D" maxLength={1200} style={s.input}/>
-   <Text style={s.privacyTitle}>Sino ang makakakita?</Text>
+   <Text style={s.privacyTitle}>Privacy</Text>
    <View style={s.privacyRow}>
     {(['public','private'] as Visibility[]).map(value=><Pressable key={value}
      accessibilityRole="button" accessibilityState={{selected:visibility===value}}
      onPress={()=>setVisibility(value)} style={[s.privacyChip,visibility===value&&s.selected]}>
      <MaterialCommunityIcons name={value==='public'?'earth':'lock-outline'} size={15} color="#17644B"/>
-     <Text style={s.privacyText}>{value==='public'?'Public · lahat':'Private · ikaw lang'}</Text>
+     <Text style={s.privacyText}>{value==='public'?'Public':'Private'}</Text>
     </Pressable>)}
    </View>
-   <Text style={s.help}>Public ang default: makikita ang Dugtong at pangalan mo dito sa Buklod Today, hindi sa Wall.</Text>
+   <Text style={s.help}>Public: makikita rito ang pangalan at Dugtong mo, hindi sa Wall.</Text>
    <View style={s.actions}>
     <Pressable disabled={busy||!tip.authenticated||draft.trim().length<30||unchangedDugtong}
      accessibilityRole="button" onPress={()=>void submit(null,draft.trim())}
      style={[s.primary,(busy||!tip.authenticated||draft.trim().length<30||unchangedDugtong)&&s.disabled]}>
-     <Text style={s.primaryText}>{busy?'Saving…':hasSavedDugtong?'I-update ang Dugtong':'Save Dugtong'}</Text>
+     <Text style={s.primaryText}>{busy?'Saving…':hasSavedDugtong?'I-update':'I-save ang Dugtong'}</Text>
     </Pressable>
-    {hasSavedDugtong&&editing&&<Pressable accessibilityRole="button" disabled={busy}
-     onPress={()=>{setDraft(tip.my_dugtong??'');setVisibility(tip.my_visibility);setEditing(false);}} style={s.secondary}>
+    <Pressable accessibilityRole="button" disabled={busy}
+     onPress={()=>{setDraft(tip.my_dugtong??'');setVisibility(tip.my_visibility);setEditing(false);setShowComposer(false);}} style={s.secondary}>
      <Text style={s.link}>Kanselahin</Text>
-    </Pressable>}
-   </View>
-  </>}
-  <View style={s.communityHead}>
-   <Text style={s.section}>Mga Dugtong ng Komunidad ({tip.dugtong_total||0})</Text>
+    </Pressable>
+    </View>
+   </View>}
+   <View style={s.communityHead}>
+   <Text style={s.section}>Mga Dugtong ({tip.dugtong_total||0})</Text>
    <MaterialCommunityIcons name="account-group-outline" size={18} color="#17644B"/>
   </View>
   {feed.length?feed.map((item,index)=><View key={String(item.created_at)+index} style={s.communityEntry}>
@@ -269,7 +276,7 @@ export default function BuklodTodayCard(){
     </View>):<Text style={s.help}>Wala pang dating Dugtong.</Text>}
   </View>}
   {!tip.authenticated&&<Text style={s.help}>Sign in to react or save your Dugtong.</Text>}
-  {tip.points_enabled&&<Text style={s.help}>Verified Points: unang reaction +1 BP at unang makabuluhang Dugtong +2 BP bawat linggo. Walang dagdag sa repeat edits.</Text>}
+  {tip.points_enabled&&<Text style={s.help}>Points: +1 BP reaction, +2 BP unang Dugtong kada linggo. Walang doble sa edit.</Text>}
   {!!notice&&<Pressable onPress={()=>router.push('/points' as any)}><Text style={s.notice}>{notice}</Text></Pressable>}
   {!!error&&<Text accessibilityRole="alert" style={s.error}>{error}</Text>}
   {unavailable&&<Pressable accessibilityRole="button" onPress={()=>void load(true)}>
@@ -277,48 +284,47 @@ export default function BuklodTodayCard(){
  </View>;
 }
 const s=StyleSheet.create({
- shell:{width:'100%',backgroundColor:'#FDF8FF',borderWidth:2,borderColor:'#AD65FF',
-  borderRadius:12,padding:14,gap:10,marginHorizontal:0,marginBottom:4,
-  shadowColor:'#A020F0',shadowOffset:{width:0,height:0},shadowOpacity:.22,shadowRadius:10,elevation:5},
- head:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},
- eyebrow:{fontSize:12,fontWeight:'900',letterSpacing:.7,color:'#17644B'},
- sub:{fontSize:11,color:'#64796A',marginTop:3},
- title:{fontSize:18,fontWeight:'900',color:'#183D2C',lineHeight:24},
- body:{color:'#45594B',fontSize:13,lineHeight:20},
- continuation:{gap:8,padding:12,backgroundColor:'#F4FAF6',borderRadius:4},
- action:{color:'#1F6C48',fontWeight:'800',fontSize:12,lineHeight:19},
- disclaimer:{color:'#6E7D73',fontSize:10,lineHeight:16},
- read:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:4,paddingVertical:4},
- link:{color:'#17644B',fontWeight:'800',fontSize:12},
- section:{fontSize:12,fontWeight:'900',color:'#204C34'},
- savedDugtong:{padding:12,borderWidth:1,borderColor:'#CFE1D4',borderRadius:6,backgroundColor:'#EFF8F1',gap:8},
- savedHead:{flexDirection:'row',alignItems:'center',gap:6,flexWrap:'wrap'},
- savedTitle:{fontSize:14,fontWeight:'900',color:'#17644B',flexGrow:1},
- privateLabel:{fontSize:11,color:'#66766C',fontWeight:'700'},
- savedBody:{fontSize:14,lineHeight:21,color:'#183D2C'},
- privacyRow:{flexDirection:'row',flexWrap:'wrap',gap:6,alignItems:'center'},
- privacyTitle:{fontSize:12,fontWeight:'800',color:'#204C34'},
- privacyChip:{flexDirection:'row',alignItems:'center',gap:4,borderWidth:1,borderColor:'#CFE1D4',
-  borderRadius:5,paddingHorizontal:10,paddingVertical:8},
- privacyText:{fontSize:11,fontWeight:'700',color:'#17644B'},
- reactions:{flexDirection:'row',flexWrap:'wrap',gap:7},
- reaction:{flexDirection:'row',alignItems:'center',gap:5,borderWidth:1,borderColor:'#CFE1D4',
-  borderRadius:4,paddingVertical:8,paddingHorizontal:10},
- selected:{backgroundColor:'#E2F4E9',borderColor:'#17644B'},
- reactionText:{fontSize:11,fontWeight:'800',color:'#17644B'},
- input:{minHeight:73,borderWidth:1,borderColor:'#CFE1D4',borderRadius:4,
-  textAlignVertical:'top',padding:10,fontSize:12,color:'#183D2C'},
+ shell:{width:'100%',backgroundColor:'#FBFFFC',borderWidth:1,borderColor:'#D5E8DC',
+   borderRadius:18,padding:15,gap:8,marginBottom:4,shadowColor:'#092E22',shadowOffset:{width:0,height:3},shadowOpacity:.09,shadowRadius:11,elevation:2},
+ head:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},
+ eyebrow:{fontSize:14,fontWeight:'900',letterSpacing:.5,color:'#146847'},
+ sub:{fontSize:12,fontWeight:'700',color:'#315C4B',marginTop:4,textTransform:'capitalize'},
+ title:{fontSize:23,fontWeight:'900',color:'#123F2C',lineHeight:29},
+ body:{color:'#294D3C',fontSize:16,lineHeight:24},
+ continuation:{gap:8,padding:11,backgroundColor:'#F0F8F3',borderRadius:12},
+ action:{color:'#17644B',fontWeight:'800',fontSize:15,lineHeight:23},
+ disclaimer:{color:'#61766B',fontSize:12,lineHeight:17},
+ read:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:5,minHeight:40,paddingVertical:5},
+ link:{color:'#146847',fontWeight:'800',fontSize:14},
+ section:{fontSize:15,fontWeight:'900',color:'#194D37'},
+ savedDugtong:{padding:12,borderWidth:1,borderColor:'#CCE3D4',borderRadius:12,backgroundColor:'#EFF8F1',gap:8},
+ savedHead:{flexDirection:'row',alignItems:'center',gap:7,flexWrap:'wrap'},
+ savedTitle:{fontSize:15,fontWeight:'900',color:'#17644B',flexGrow:1},
+ privateLabel:{fontSize:13,color:'#526D5C',fontWeight:'700'},
+ savedBody:{fontSize:16,lineHeight:24,color:'#183D2C'},
+ privacyRow:{flexDirection:'row',flexWrap:'wrap',gap:8,alignItems:'center'},
+ privacyTitle:{fontSize:14,fontWeight:'800',color:'#204C34'},
+ privacyChip:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6,borderWidth:1,borderColor:'#BEDAC8',borderRadius:10,paddingHorizontal:13,paddingVertical:9},
+ privacyText:{fontSize:14,fontWeight:'800',color:'#17644B'},
+ reactions:{flexDirection:'row',flexWrap:'wrap',gap:7,marginTop:2},
+ reaction:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6,borderWidth:1,borderColor:'#C9E2D3',borderRadius:12,paddingVertical:9,paddingHorizontal:11,flexGrow:1,justifyContent:'center'},
+ selected:{backgroundColor:'#DBF4E6',borderColor:'#17644B'},
+ reactionText:{fontSize:14,fontWeight:'800',color:'#17644B'},
+ composer:{gap:9,backgroundColor:'#F3FAF6',borderRadius:14,padding:11,borderWidth:1,borderColor:'#DBEADF'},
+ addDugtong:{minHeight:48,flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:12,borderRadius:12,backgroundColor:'#ECF7EF',borderWidth:1,borderColor:'#CBE5D2'},
+ addDugtongText:{flex:1,fontSize:15,fontWeight:'800',color:'#17644B'},
+ input:{minHeight:104,borderWidth:1,borderColor:'#B9D8C7',borderRadius:11,backgroundColor:'#FFFFFF',textAlignVertical:'top',padding:12,fontSize:16,lineHeight:24,color:'#183D2C'},
  actions:{flexDirection:'row',flexWrap:'wrap',gap:8,alignItems:'center'},
- primary:{paddingHorizontal:16,paddingVertical:11,borderRadius:4,backgroundColor:'#17644B'},
- primaryText:{color:'#FFFFFF',fontWeight:'900',fontSize:12},
- secondary:{padding:10},disabled:{opacity:.45},
- communityHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:3},
- communityEntry:{borderTopWidth:1,borderTopColor:'#E0E7E1',paddingTop:9,gap:4},
- communityAuthor:{fontSize:12,fontWeight:'900',color:'#17644B'},
- communityBody:{fontSize:13,lineHeight:19,color:'#344A3A'},
- history:{padding:8,borderWidth:1,borderColor:'#E0E7E1',borderRadius:6,gap:10},
- historyEntry:{borderBottomWidth:1,borderBottomColor:'#E0E7E1',paddingBottom:9,gap:5},
- help:{fontSize:11,color:'#65786B',lineHeight:17},
- notice:{backgroundColor:'#E5F7E8',color:'#17644B',fontWeight:'800',padding:10,fontSize:12},
- error:{backgroundColor:'#FDE8E8',color:'#9B2226',padding:10,fontSize:12},
+ primary:{minHeight:46,paddingHorizontal:16,paddingVertical:11,borderRadius:11,backgroundColor:'#17644B',justifyContent:'center'},
+ primaryText:{color:'#FFFFFF',fontWeight:'900',fontSize:15},
+ secondary:{minHeight:44,paddingHorizontal:12,justifyContent:'center'},disabled:{opacity:.45},
+ communityHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:5},
+ communityEntry:{borderTopWidth:1,borderTopColor:'#DDE8DF',paddingTop:10,gap:4},
+ communityAuthor:{fontSize:14,fontWeight:'900',color:'#17644B'},
+ communityBody:{fontSize:15,lineHeight:23,color:'#344A3A'},
+ history:{padding:10,borderWidth:1,borderColor:'#DDE8DF',borderRadius:12,gap:10},
+ historyEntry:{borderBottomWidth:1,borderBottomColor:'#DDE8DF',paddingBottom:9,gap:5},
+ help:{fontSize:12,color:'#5B7064',lineHeight:18},
+ notice:{backgroundColor:'#E5F7E8',color:'#17644B',fontWeight:'800',padding:11,fontSize:13,borderRadius:9},
+ error:{backgroundColor:'#FDE8E8',color:'#9B2226',padding:11,fontSize:13,borderRadius:9},
 });

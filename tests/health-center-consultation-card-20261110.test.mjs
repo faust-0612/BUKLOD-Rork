@@ -31,17 +31,14 @@ test('Three Health Center doors use fixed same-origin HTTPS paths with no creden
   assert.doesNotMatch(source, /access_token|refresh_token|session=|user_id=|symptom=|concern=/);
 });
 
-test('Home square Health card has distinct online consultation and full standalone doors', () => {
-  const home = read('src/components/home/BuklodHomeUtilityCards.tsx');
-  const hub = read('src/app/(tabs)/hub.tsx');
-  assert.match(home, /id:'health'/);
-  assert.match(home, /Online Consultation/);
-  assert.match(home, /Full Health Center/);
-  assert.match(home, /router\.push\('\/profile\/buklod-health'/);
-  assert.match(home, /launchBuklodHealthCenter/);
-  assert.match(home, /aspectRatio: 1/);
+test('Health Center retains both doors in Health, not in Home', () => {
+  const home=read('src/components/home/BuklodHomeUtilityCards.tsx');
+  const hub=read('src/app/(tabs)/hub.tsx');
+  const health=read('src/app/profile/buklod-health.tsx');
+  assert.ok(!home.includes('Online Consultation') && !home.includes('Full Health Center'));
+  assert.ok(health.includes('Online Consultation') && health.includes('Full Health Center') && health.includes('launchBuklodHealthCenter'));
   assert.equal(hub.split('<BuklodHomeUtilityCards />').length-1, 2);
-  assert.doesNotMatch(home, /getUser\(|supabase\.auth|getSession\(/);
+  assert.doesNotMatch(home,/getUser\(|supabase\.auth|getSession\(/);
 });
 
 test('Online consultation is gated by explicit urgent check; urgent mode has emergency guidance and no ad', () => {

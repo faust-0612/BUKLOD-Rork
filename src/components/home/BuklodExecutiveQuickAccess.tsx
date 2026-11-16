@@ -9,7 +9,6 @@ const shortcuts = [
   {label:'KL', icon:'school-outline', route:'/kabihasnang-ligaw'},
   {label:'Quiz', icon:'trophy-outline', route:'/faith/bible-quiz'},
   {label:'Music', icon:'headphones', route:'/faith/hymns'},
-  {label:'Health', icon:'heart-pulse', route:'/profile/buklod-health'},
   {label:'More', icon:'view-grid-outline', route:'/feature-search'},
 ] as const;
 

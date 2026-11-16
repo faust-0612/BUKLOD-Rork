@@ -5,6 +5,10 @@ import { BIBLE_NEW_RECORDS } from './bibleExpansionNew';
 import { BIBLE_EXPANSION_DIALOGUES_OLD } from './bibleExpansionDialoguesOld';
 import { BIBLE_EXPANSION_DIALOGUES_NEW_A } from './bibleExpansionDialoguesNewA';
 import { BIBLE_EXPANSION_DIALOGUES_NEW_B } from './bibleExpansionDialoguesNewB';
+import { inStoryOnly, REVISED_BIBLICAL_SCENES } from './inStoryDialogue';
+import { BIBLE_EDITORIAL_DEPTH_OLD } from './bibleEditorialDepthOld';
+import { BIBLE_EDITORIAL_DEPTH_NEW_A } from './bibleEditorialDepthNewA';
+import { BIBLE_EDITORIAL_DEPTH_NEW_B } from './bibleEditorialDepthNewB';
 
 /** Original, offline, book-referenced children's adaptations; not verbatim Bible translations.
  * Narratives are not standalone translations. Consult each canonical passage for details.
@@ -21,19 +25,34 @@ const EXPANDED_DIALOGUE: Record<string,readonly [string,string,string,string]> =
   ...BIBLE_EXPANSION_DIALOGUES_NEW_A,
   ...BIBLE_EXPANSION_DIALOGUES_NEW_B,
 };
+/** Editor-reviewed, scripture-specific scene detail for all 132 episodes.
+ * Unlike the old auto-generated classroom appendix, this stays inside the
+ * narrated story. Longer authored character exchanges take precedence.
+ */
+/** Short parables and apostolic teaching do not have historical student/teacher dialogue. */
+const NON_DIALOGUE_PASSAGES = new Set(['buto-mustasa', 'bunga-espiritu']);
+const EDITORIAL_DEPTH: Record<string,{tl:string;en:string}> = {
+  ...BIBLE_EDITORIAL_DEPTH_OLD,
+  ...BIBLE_EDITORIAL_DEPTH_NEW_A,
+  ...BIBLE_EDITORIAL_DEPTH_NEW_B,
+};
 /** The on-screen complete narrative and the existing TTS player consume this exact
  * text; a missing scene fails the build's regression gate, never a user session.
  * Bible-person speech below is explicitly a pedagogical paraphrase. */
-function expandBibleNarrative(entry: BibleRecord, moral: StoryLocalized, language: 'tl' | 'en'): string {
-  const dialogue = EXPANDED_DIALOGUE[entry.id];
+function expandBibleNarrative(entry: BibleRecord, language: 'tl' | 'en'): string {
+  const dialogue = REVISED_BIBLICAL_SCENES[entry.id] ?? EXPANDED_DIALOGUE[entry.id];
   const passages: string[] = [];
   entry.acts.forEach((act, index) => {
-    passages.push(act[language]);
-    if (index < 2 && dialogue) passages.push(dialogue[index * 2 + (language === 'en' ? 1 : 0)]);
+    if (!(REVISED_BIBLICAL_SCENES[entry.id] && index === 1)) passages.push(act[language]);
+    if (index < 2 && dialogue && !NON_DIALOGUE_PASSAGES.has(entry.id)) {
+      // Preserve the words spoken in the biblical scene; never insert the
+      // teacher/classroom discussion into the full story or its TTS audio.
+      passages.push(inStoryOnly(dialogue[index * 2 + (language === 'en' ? 1 : 0)], language));
+    }
+    if (index === 1 && !REVISED_BIBLICAL_SCENES[entry.id] && EDITORIAL_DEPTH[entry.id]) {
+      passages.push(EDITORIAL_DEPTH[entry.id][language]);
+    }
   });
-  passages.push(language === 'tl'
-    ? `Pagkatapos ng kuwento, nagtanong ang guro: “Ano ang mahalagang matututuhan natin sa ${entry.title.tl}?” Sumagot ang klase: “${moral.tl}” Dagdag ng guro: “Aling pangyayari sa ${entry.reference} ang nagpapakita niyan? Pag-usapan natin ito nang may paggalang at isipin ang isang ligtas na paraan upang maisabuhay ang aral ngayong linggo.”`
-    : `After the story, the teacher asked: “What matters most in ${entry.title.en}?” The class answered: “${moral.en}” The teacher continued: “Which event in ${entry.reference} shows us that? Let's discuss the passage respectfully, ask anything we don't understand, and name one safe, practical way to live out this lesson during the week.”`);
   return passages.filter(Boolean).join('\n\n');
 }
 
@@ -385,7 +404,7 @@ function lessonFor(entry:BibleRecord):SundaySchoolLesson{
     {prompt:local(`Paano ligtas na maisasabuhay ang aral ng ${entry.title.tl}?`,`How can we safely apply the lesson from ${entry.title.en}?`),...q3}
   ];
   return {
-    narrative:local(expandBibleNarrative(entry,moral,'tl'),expandBibleNarrative(entry,moral,'en')),
+    narrative:local(expandBibleNarrative(entry,'tl'),expandBibleNarrative(entry,'en')),
     retellingNotice:local(
       `Batay sa ${entry.reference}. Ang mga salitaan ay dramatized na pagpapaliwanag para sa mga bata; hindi ito eksaktong sipi ng isang salin ng Biblia. Basahin ang orihinal na talata para sa buong konteksto.`,
       `Based on ${entry.reference}. The dialogue is a child-friendly dramatized paraphrase, not a word-for-word Bible quotation. Read the original passage for full context.`

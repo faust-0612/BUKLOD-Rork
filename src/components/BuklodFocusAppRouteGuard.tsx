@@ -10,9 +10,8 @@ export default function BuklodFocusAppRouteGuard() {
   const checkingRef = useRef('');
 
   useEffect(() => {
-    // The patient-facing Health Center is an external website doorway,
-    // not a privileged Health Worker workspace. Do not role-gate it.
-    if (pathname === '/profile/buklod-health') {
+    // Patient Health and personal Family doors are public; their privileged workspaces remain gated.
+    if (pathname === '/profile/buklod-health' || pathname === '/profile/buklod-family') {
       checkingRef.current = '';
       return;
     }

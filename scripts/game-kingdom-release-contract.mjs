@@ -86,17 +86,15 @@ if (homeShortcut.includes('BUKLOD_KINGDOM_HOME_DOOR_R1')) {
 if (homeShortcut.includes('BUKLOD KINGDOM') || homeShortcut.includes("router.push('/games'")) {
   failures.push('Obsolete Kingdom word shortcut returned; use the dedicated Home Hub Kingdom invitation instead.');
 }
-// Owner removed duplicate Profile Kingdom doors. The Home Hub invitation
-// is now the canonical entry, while all 13 /games routes remain unchanged.
+// Owner removed duplicate Profile Kingdom doors. Kingdom is in the hamburger menu; all 13 /games routes stay unchanged.
 requireTokens('src/components/home/BuklodKingdomHubCard.tsx', [
   'accessibilityLabel="Buksan ang BUKLOD Kingdom"',
   "router.push('/games' as any)",
   'Pasukin ang Kingdom',
 ]);
-requireTokens('src/app/(tabs)/hub.tsx', [
-  'BuklodKingdomHubCard',
-  '<BuklodKingdomHubCard />',
-]);
+const homeHub = read('src/app/(tabs)/hub.tsx');
+if (homeHub.includes('BuklodKingdomHubCard')) failures.push('Duplicate Kingdom card returned to Home.');
+requireTokens('src/components/BuklodNavigationSideMenu.tsx', ['BUKLOD Kingdom', "route: '/games'"]);
 const profileNav = read('src/components/BuklodFoundationWorkspaceNav.tsx');
 if (profileNav.includes('title="BUKLOD Kingdom"')) {
   failures.push('Duplicate Kingdom Profile door resurrected despite owner-approved Home Hub relocation.');
