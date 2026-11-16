@@ -140,7 +140,12 @@ export default function CharacterCollectionsScreen(){
  const visible=next?[...known,next]:known;
  const worldId=selected as BuklodCharacterWorldId;
  const story=unlocked?storyStageItems(worldId,level):[];
- const owned=useMemo(()=>verifiedStoryKeys(items?.items??[],worldId),[items,worldId]);
+ const coreOwned=useMemo(()=>verifiedStoryKeys(items?.items??[],worldId),[items,worldId]);
+ const owned=useMemo(()=>{
+  if(core)return coreOwned;
+  return new Set((specialStory?.items??[]).filter(item=>
+   item.owned&&Boolean(item.earned_at)).map(item=>item.key));
+ },[core,coreOwned,specialStory]);
  const stage=unlocked?storyStageProgress(worldId,level,owned):null;
  const title=unlocked?characterStageLabels(worldId,level):null;
  const badges=badgeResult?.collectibles??[];
@@ -200,10 +205,10 @@ export default function CharacterCollectionsScreen(){
     </View>
     <View style={s.card}>
      <View style={s.rowBetween}><Text style={s.section}>STAGE {level} • OBJECTS</Text>
-      <Text style={s.kicker}>{core&&items?stage?.owned+'/5 VERIFIED':'AWARD STATUS UNKNOWN'}</Text></View>
+      <Text style={s.kicker}>{(core?Boolean(items):Boolean(specialStory))?stage?.owned+'/5 VERIFIED':'AWARD STATUS UNKNOWN'}</Text></View>
      {detailsBusy?<ActivityIndicator color={C.green}/>:null}
      {story.map(item=>{
-      const isOwned=core&&owned.has(item.key);
+      const isOwned=owned.has(item.key);
       const artUrl=verifiedCharacterArtUrl(worldId,level,item.index,artReady);
       return <Pressable key={item.key} accessibilityRole="button"
        accessibilityLabel={'View and zoom '+item.name+' illustration'}
@@ -220,12 +225,12 @@ export default function CharacterCollectionsScreen(){
         <Text style={s.name}>{item.name}</Text>
         <Text style={s.caption}>{item.slot} • TAP TO ZOOM</Text>
         <Text style={s.caption}>{isOwned?'OWNED • SERVER VERIFIED':
-         level>saved?'FUTURE STAGE':core?(!items?'AWARD STATUS UNAVAILABLE':'NOT VERIFIED AS CLAIMED'):'STORY OBJECT • NOT A VERIFIED AWARD'}</Text>
+         level>saved?'FUTURE STAGE':core?(!items?'AWARD STATUS UNAVAILABLE':'NOT VERIFIED AS CLAIMED'):(specialStory?'NOT YET EARNED':'AWARD STATUS UNAVAILABLE')}</Text>
        </View>
        <MaterialCommunityIcons name="magnify-plus-outline" size={23} color={C.green}/>
       </Pressable>;
      })}
-     {core&&stage?.mastered?<Text style={s.success}>All five server-owned objects verified: collection stage mastered.</Text>:null}
+     {stage?.mastered?<Text style={s.success}>All five server-awarded objects verified: stage collection mastered.</Text>:null}
      {core?<Pressable accessibilityRole="button" onPress={()=>router.push('/games/legacy' as any)} style={s.action}>
       <Text style={s.actionText}>OPEN OFFICIAL ITEM CLAIMS</Text>
      </Pressable>:null}
@@ -235,8 +240,15 @@ export default function CharacterCollectionsScreen(){
      <Text style={s.name}>{title?.signature}</Text>
      <Text style={s.body}>Stage badge: {title?.badge}. Badges and the five story items are different rewards.</Text>
      {detailError?<Text style={s.error}>{detailError}</Text>:null}
+     {storyError?<Text style={s.caption}>{storyError}</Text>:null}
      {special?<>
       <Text style={s.kicker}>{!badgeResult ? 'TASK BADGE STATUS UNAVAILABLE' : earned+' VERIFIED TASK BADGES'}</Text>
+      {specialStory?.metrics?<Text style={s.caption}>Verified tasks on this Character: {
+       Object.entries(specialStory.metrics)
+        .filter(([,value])=>Number(value)>0)
+        .map(([key,value])=>key.replace('character_public_','').replace(/_/g,' ')+': '+value).join(' • ')
+         ||'No qualifying tasks recorded yet'
+      }</Text>:null}
       {(showBadges?badges:badges.slice(0,5)).map(b=>
        <View key={b.collectible_id} style={s.itemRow}>
         <MaterialCommunityIcons name={b.earned?'medal':'lock-outline'} size={22}
