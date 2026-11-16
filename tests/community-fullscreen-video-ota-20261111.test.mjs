@@ -62,7 +62,8 @@ test('fullscreen chrome and comment actions do not obscure the video and status 
   assert.match(view, /videoViewerShowHint/);
   assert.match(view, /Reconnecting video…/);
   assert.match(engagement, /showCommentPreview = true/);
-  assert.match(engagement, /showCommentPreview && totalComments > 0/);
+  assert.match(engagement, /showCommentPreview && commentPreview/);
+  assert.doesNotMatch(engagement, /Recent comment/);
   assert.match(component, /viewerSafeInsets\.top \+ 16/);
 });
 
