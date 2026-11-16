@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/connect-composer-contrast-20261116.json",
   "objective": "Fix invisible/white typed message text on white Connect composer in Android dark mode; keep placeholder, reply, and light attachment icons legible and reject recurrence.",
   "baseRef": "main",
-  "productionBaselineEvidence": "GitHub main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 before isolated change; current EAS production manifest, installed runtime, and exact OTA provenance have not been re-read. DEV branch is NOT deployed. Screenshot 2026-11-16 shows near-invisible typed text in Cluster Connect.",
+  "productionBaselineEvidence": "verified: GitHub main SHA 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 is the compared SOURCE baseline, not evidence of the live production bundle. Current EAS production manifest and exact installed runtime/OTA group have NOT been independently re-read. DEV branch is not deployed. Owner screenshot dated 2026-11-16 shows near-invisible typed text in Cluster Connect.",
   "chosenApproach": "Keep existing white HIBLA Connect composer surface, use paired HIBLA ink/muted foreground, coordinated pale-attachment/action colors and input selection tint. Cover contrast and core sending contract with standalone dependency-free Node tests; no DB/native/ads/nav changes.",
   "selectionRationale": "The composer pill is hardcoded white while typed text/placeholder inherited dark-theme text roles (white), so dark-mode foreground clashes with its real background. Pairing fixed surface and foreground is minimal and preserves the existing HIBLA aesthetic across public, direct, organization and cluster threads.",
   "alternativeApproaches": [
