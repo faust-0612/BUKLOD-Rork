@@ -21,6 +21,7 @@ import {
 } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { invalidateMessagesStatusNoteCache } from '@/lib/buklodMessagesStatusNote';
 import { colors } from '@/lib/theme';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
@@ -223,6 +224,10 @@ export default function ProfileStatusScreen() {
         if (error) {
           throw error;
         }
+
+        // A confirmed write must be visible on the next Connect/Wall focus,
+        // not hidden behind a warm snapshot from before editing.
+        invalidateMessagesStatusNoteCache(userId);
 
         // The profile-note upsert has succeeded; show only at the exit
         // transition, never on typing, toggling or failed saves.
