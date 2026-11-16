@@ -54,19 +54,21 @@ jobs:
           };
           const pr=await get('/pulls/900');
           assert.equal(pr.base.ref,'main');
+          assert.equal(pr.base.sha,'ac48fcee3236470162d5284ece7bca9aed84faf3','Main source baseline moved during staging review');
           assert.equal(pr.head.ref,'integration/nov16-current-wall-ads-zoom-rc-safe');
           assert.equal(pr.head.sha,sha,'Frozen staging source must match reviewed PR head');
           assert.equal(pr.state,'open');
           const manifest=JSON.parse(readFileSync('.buklod/scopes/nov16-all-recent-wall-character-ads-rc.json','utf8'));
           assert.equal(manifest.releaseMode,'consolidated-main-rc');
-          assert.equal(manifest.baseRef,'63ccd4b58ff02ff3c1535a1e05d3097fa8323c61');
+          assert.equal(manifest.baseRef,'ac48fcee3236470162d5284ece7bca9aed84faf3');
           const changed=execFileSync('git',['diff','--name-only',manifest.baseRef,sha],{encoding:'utf8'}).trim().split('\n').filter(Boolean).sort();
           assert.deepEqual(changed,manifest.allowedPaths.slice().sort(),'Unreviewed file delta in cumulative Android RC');
           const declared=manifest.componentScopePaths.slice().sort();
           const scopes=changed.filter(p=>p.startsWith('.buklod/scopes/')&&p!==manifest.scopeManifestPath).sort();
           assert.deepEqual(scopes,declared,'Component scope has changed');
           assert.ok(changed.includes('tests/wall-gallery-navigation-recovery-20261117.test.mjs'));
-          assert.ok(changed.includes('tests/nov17-marites-swipe-video-tap.test.mjs'));
+          assert.ok(!changed.includes('src/components/BuklodMaritesBoard.tsx'),'Main-owned Marites source must not be duplicated');
+          assert.ok(!changed.includes('src/components/CommunityVideo.tsx'),'Main-owned video source must not be duplicated');
           const runs=(await get('/actions/runs?head_sha='+sha+'&per_page=100')).workflow_runs;
           const required=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Character R31-R40 Recovery QA','BUKLOD Performance R1 QA','BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD R38 Economy QA','BUKLOD Real Recent Comment QA','BUKLOD Nov16 Consolidated Android Bundle QA (No OTA)'];
           for(const name of required) assert.ok(runs.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===pr.head.ref&&r.head_sha===sha&&r.conclusion==='success'),'Exact source PR gate not passing: '+name);
@@ -106,7 +108,7 @@ jobs:
             tests/nov16-wall-connect-dynamic-note-rail.test.mjs \
             tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
             tests/wall-gallery-navigation-recovery-20261117.test.mjs \
-            tests/nov17-marites-swipe-video-tap.test.mjs \
+            tests/marites-swipe-video-fullscreen.test.mjs \
             tests/nov17-consolidated-staging-release-gate.test.mjs \
             tests/nov16-wall-nav-ads-prewarm-integration.test.mjs \
             tests/wall-media-density-20261116.test.mjs \

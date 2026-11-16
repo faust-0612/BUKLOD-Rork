@@ -292,11 +292,11 @@ function InactiveCommunityVideo({
         accessibilityLabel="Play video"
         disabled={!onRequestPlay && !onOpenFullscreen}
         onPress={() => {
-          if (onOpenFullscreen && !fullscreen) {
-            onOpenFullscreen();
+          if (onRequestPlay) {
+            onRequestPlay();
             return;
           }
-          onRequestPlay?.();
+          onOpenFullscreen?.();
         }}
         style={styles.tapLayer}
       />
@@ -964,6 +964,21 @@ function ExpoCommunityVideo({
     }, 2_650);
   }
 
+  function openInlineFullscreen() {
+    // Preserve seamless playback from the inline player when the viewer mounts.
+    if (!onOpenFullscreen || fullscreen) return;
+    try {
+      playbackTimeByUri.set(
+        playbackIdentity,
+        Number(player.currentTime || currentTime || 0),
+      );
+      player.pause();
+    } catch {
+      // The fullscreen viewer can still open and retry this same URI.
+    }
+    onOpenFullscreen();
+  }
+
   function togglePlayback() {
     if (playing) {
       userPausedRef.current = true;
@@ -1011,18 +1026,6 @@ function ExpoCommunityVideo({
       ? Math.min(1, Math.max(0, currentTime / knownDuration))
       : 0;
   // Do not confuse automatic initialization with a manual Play state.
-  function openFullscreenFromTap() {
-    if (!onOpenFullscreen || fullscreen) return;
-    try {
-      // Preserve progress and stop the inline decoder before opening the viewer.
-      playbackTimeByUri.set(playbackIdentity, Number(player.currentTime || currentTime || 0));
-      player.pause();
-    } catch {
-      // The full-screen route can recover even if this feed cell was recycled.
-    }
-    onOpenFullscreen();
-  }
-
   const centerVisible = playerStatus !== 'error' &&
     (showCenter || (!playing && (!autoPlay || userPausedRef.current)));
   const chromeVisible = !fullscreen || !playing || showCenter;
@@ -1082,9 +1085,10 @@ function ExpoCommunityVideo({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
-          onOpenFullscreen && !fullscreen ? 'Open video full screen' : (playing ? 'Pause video' : 'Play video')
+          onOpenFullscreen && !fullscreen ? 'Open video full screen'
+            : playing ? 'Pause video' : 'Play video'
         }
-        onPress={onOpenFullscreen && !fullscreen ? openFullscreenFromTap : togglePlayback}
+        onPress={onOpenFullscreen && !fullscreen ? openInlineFullscreen : togglePlayback}
         style={styles.tapLayer}
       />
 

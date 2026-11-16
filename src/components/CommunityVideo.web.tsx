@@ -96,7 +96,24 @@ export function CommunityVideo({
       src: active ? uri : undefined,
       poster: posterUri || undefined,
       crossOrigin: 'anonymous',
-      controls: true,
+      // Inline taps open fullscreen; browser playback controls stay in the fullscreen viewer.
+      controls: fullscreen || !onOpenFullscreen,
+      role: onOpenFullscreen && !fullscreen ? 'button' : undefined,
+      tabIndex: onOpenFullscreen && !fullscreen ? 0 : undefined,
+      'aria-label': onOpenFullscreen && !fullscreen ? 'Open video full screen' : undefined,
+      onClick: () => {
+        if (!fullscreen && onOpenFullscreen) {
+          videoRef.current?.pause();
+          onOpenFullscreen();
+        }
+      },
+      onKeyDown: (event: any) => {
+        if (!fullscreen && onOpenFullscreen && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          videoRef.current?.pause();
+          onOpenFullscreen();
+        }
+      },
       preload: active ? 'metadata' : 'none',
       playsInline: true,
       autoPlay: autoPlay && active,
@@ -142,6 +159,7 @@ export function CommunityVideo({
         height: '100%',
         objectFit: fullscreen || fitFrame ? 'contain' : 'cover',
         background: '#111',
+        cursor: onOpenFullscreen && !fullscreen ? 'pointer' : 'auto',
       },
     }),
     active && !ready
@@ -161,37 +179,6 @@ export function CommunityVideo({
             },
           },
           'Ihahanda ang video…',
-        )
-      : null,
-    onOpenFullscreen && !fullscreen
-      ? React.createElement(
-          'button',
-          {
-            type: 'button',
-            'aria-label': 'Open video full screen',
-            onClick: (event: any) => {
-              event.stopPropagation();
-              videoRef.current?.pause();
-              onOpenFullscreen();
-            },
-            style: {
-              position: 'absolute',
-              right: 10,
-              bottom: 10,
-              width: 42,
-              height: 42,
-              border: 0,
-              borderRadius: 21,
-              background: 'rgba(0,0,0,.62)',
-              color: '#fff',
-              fontSize: 24,
-              lineHeight: '42px',
-              textAlign: 'center',
-              cursor: 'pointer',
-              zIndex: 3,
-            },
-          },
-          '⛶',
         )
       : null,
     !fullscreen

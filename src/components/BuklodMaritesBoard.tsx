@@ -95,10 +95,9 @@ import {
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from 'expo-router';
-import { selectVisibleMaritesVideo, selectNearbyMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
+import { selectVisibleMaritesVideo, selectNearbyMaritesVideo, quickVideoDurationSeconds, maritesStorySwipeStep } from '@/lib/buklodMaritesPlayback';
 import {noteBuklodVideoScroll, subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import { createMaritesVisibilityScheduler } from '@/lib/buklodMaritesViewportMeasure';
-import { resolveMaritesStorySwipe } from '@/lib/buklodMaritesSwipe';
 import { useAuth } from '@/providers/AuthProvider';
 import { subscribeBuklodPublicPostChanges } from '@/lib/buklodPublicCommunityRealtime';
 import {
@@ -532,26 +531,6 @@ function createStyles(
       justifyContent: 'center',
       backgroundColor: 'rgba(0,0,0,0.42)',
     },
-    fullscreenStoryNav: {
-      position: 'absolute',
-      left: 10,
-      right: 10,
-      top: '46%',
-      zIndex: 24,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    fullscreenStoryNavBtn: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.48)',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
-    },
     fullscreenReactionDock: {
       position: 'absolute',
       left: 16,
@@ -958,6 +937,8 @@ export default function BuklodMaritesBoard({
   const [reactionPickerOpen, setReactionPickerOpen] =
     useState(false);
   const longPressHandledRef = useRef(false);
+  const storyTouchRef = useRef<{x: number; y: number; startedAt: number; photoPage: number} | null>(null);
+  const photoPageIndexRef = useRef(0);
   const [draft, setDraft] = useState('');
   const [photos, setPhotos] = useState<MaritesComposerPhoto[]>(
     []
@@ -1177,11 +1158,9 @@ export default function BuklodMaritesBoard({
     });
   }, [cacheKey, stories, user?.id]);
 
-  // Gesture start is kept in a ref: no render during horizontal story navigation.
-  const viewerTouchStartRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const viewerPhotoPageRef = useRef(0);
-
   const closeStoryViewer = useCallback(() => {
+    storyTouchRef.current = null;
+    photoPageIndexRef.current = 0;
     onViewerVisibilityChange?.(false);
     setStoryZoomed(false);
     setViewStory(null);
@@ -1189,10 +1168,11 @@ export default function BuklodMaritesBoard({
   }, [onViewerVisibilityChange]);
 
   const openStoryViewer = useCallback((story: MaritesStory) => {
+    storyTouchRef.current = null;
+    photoPageIndexRef.current = 0;
     // Batch the Wall-player pause with native modal opening.
     onViewerVisibilityChange?.(true);
     setStoryZoomed(false);
-    viewerPhotoPageRef.current = 0;
     setReactionPickerOpen(false);
     setViewStory(story);
   }, [onViewerVisibilityChange]);
@@ -1231,8 +1211,9 @@ export default function BuklodMaritesBoard({
           activeStories.length
         ) % activeStories.length;
 
+      storyTouchRef.current = null;
+      photoPageIndexRef.current = 0;
       setStoryZoomed(false);
-      viewerPhotoPageRef.current = 0;
       setReactionPickerOpen(false);
       setViewStory(
         activeStories[nextIndex]
@@ -1843,6 +1824,37 @@ export default function BuklodMaritesBoard({
   const { height: windowHeight, width: windowWidth } =
     useWindowDimensions();
 
+  const onStoryTouchStart = useCallback((event: import('react-native').GestureResponderEvent) => {
+    const {touches, pageX, pageY} = event.nativeEvent;
+    // Do not consume controls, footer actions or multi-touch photo zoom.
+    if (touches?.length !== 1 || pageY < insets.top + 106 ||
+        pageY > windowHeight - drawerBottomInset - 142) {
+      storyTouchRef.current = null;
+      return;
+    }
+    storyTouchRef.current = {
+      x: pageX, y: pageY, startedAt: Date.now(),
+      photoPage: photoPageIndexRef.current,
+    };
+  }, [drawerBottomInset, insets.top, windowHeight]);
+
+  const onStoryTouchEnd = useCallback((event: import('react-native').GestureResponderEvent) => {
+    const start = storyTouchRef.current;
+    storyTouchRef.current = null;
+    if (!start || !viewStory) return;
+    const direction = maritesStorySwipeStep({
+      startX: start.x, startY: start.y,
+      endX: event.nativeEvent.pageX, endY: event.nativeEvent.pageY,
+      elapsedMs: Date.now() - start.startedAt,
+      photoCount: getMaritesStoryPhotos(viewStory).length,
+      photoPage: start.photoPage,
+      zoomed: storyZoomed,
+      reacting: reactionPickerOpen,
+      hasMultipleStories: activeStories.length > 1,
+    });
+    if (direction !== 0) stepStoryViewer(direction);
+  }, [activeStories.length, reactionPickerOpen, stepStoryViewer, storyZoomed, viewStory]);
+
   const canPrepareInline=playbackActive&&!playbackBlocked&&!viewStory&&!composerOpen;
   const canPlayInline=canPrepareInline&&!scrollPaused;
   const visibilityGeneration = useRef(0);
@@ -2205,35 +2217,12 @@ export default function BuklodMaritesBoard({
         {viewStory && (
           <GestureHandlerRootView
             style={styles.fullscreen}
-            onTouchStart={event => {
-              if (event.nativeEvent.touches?.length !== 1) {
-                viewerTouchStartRef.current = null;
-                return;
-              }
-              viewerTouchStartRef.current = {
-                x: event.nativeEvent.pageX,
-                y: event.nativeEvent.pageY,
-                at: Date.now(),
-              };
-            }}
+            onTouchStart={onStoryTouchStart}
             onTouchMove={event => {
-              if ((event.nativeEvent.touches?.length ?? 0) > 1) viewerTouchStartRef.current = null;
+              if (event.nativeEvent.touches?.length !== 1) storyTouchRef.current = null;
             }}
-            onTouchCancel={() => { viewerTouchStartRef.current = null; }}
-            onTouchEnd={event => {
-              const start = viewerTouchStartRef.current;
-              viewerTouchStartRef.current = null;
-              const direction = resolveMaritesStorySwipe(start, {
-                x: event.nativeEvent.pageX,
-                y: event.nativeEvent.pageY,
-              }, {
-                enabled: Boolean(viewStory) && activeStories.length > 1 && !storyZoomed && !reactionPickerOpen,
-                photoCount: viewStory ? getMaritesStoryPhotos(viewStory).length : 0,
-                photoIndex: viewerPhotoPageRef.current,
-                elapsedMs: start ? Date.now() - start.at : Number.POSITIVE_INFINITY,
-              });
-              if (direction) stepStoryViewer(direction);
-            }}
+            onTouchEnd={onStoryTouchEnd}
+            onTouchCancel={() => { storyTouchRef.current = null; }}
           >
             <BuklodMaritesStoryAudio
               track={viewerMusic?.storyId === viewStory.id ? viewerMusic.track : null}
@@ -2274,12 +2263,14 @@ export default function BuklodMaritesBoard({
 
                   return (
                     <GestureScrollView
+                      key={viewStory.id}
                       horizontal
+                      onMomentumScrollEnd={event => {
+                        photoPageIndexRef.current = Math.max(0, Math.min(photoUris.length - 1,
+                          Math.round(event.nativeEvent.contentOffset.x / Math.max(windowWidth, 1))));
+                      }}
                       pagingEnabled={!storyZoomed}
                       scrollEnabled={!storyZoomed}
-                      onMomentumScrollEnd={event => {
-                        viewerPhotoPageRef.current = Math.max(0, Math.round(event.nativeEvent.contentOffset.x / Math.max(windowWidth, 1)));
-                      }}
                       showsHorizontalScrollIndicator={
                         false
                       }
@@ -2433,9 +2424,11 @@ export default function BuklodMaritesBoard({
                 pointerEvents="none"
               >
                 <Text style={styles.fullscreenHintText}>
-                  {getMaritesStoryPhotos(viewStory).length
-                    ? 'Pinch to zoom · Swipe at photo edges for next story · Long press to react'
-                    : 'Swipe left/right for stories · Long press for reactions'}
+                  {getMaritesStoryPhotos(viewStory).length > 1
+                    ? 'Swipe photos · Swipe past the ends for stories · Pinch to zoom'
+                    : getMaritesStoryPhotos(viewStory).length
+                      ? 'Swipe stories · Pinch to zoom · Hold to react'
+                      : 'Swipe left/right for stories · Hold to react'}
                 </Text>
               </View>
             ) : null}

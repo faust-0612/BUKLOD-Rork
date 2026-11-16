@@ -68,7 +68,7 @@ jobs:
             tests/nov16-wall-author-date-avatar-privacy.test.cjs \
             tests/buklod-connect-composer-contrast-20261116.test.mjs \
             tests/wall-gallery-navigation-recovery-20261117.test.mjs \
-            tests/nov17-marites-swipe-video-tap.test.mjs \
+            tests/marites-swipe-video-fullscreen.test.mjs \
             tests/nov17-consolidated-staging-release-gate.test.mjs
       - name: Compile exact Android staging source bundle without publishing OTA
         run: |
