@@ -85,7 +85,7 @@ export default function BuklodProgressiveCharacterArt({
             source={SHEETS[characterId]}
             contentFit="fill"
             allowDownscaling={false}
-            cachePolicy="memory"
+            cachePolicy="memory-disk"
             priority="high"
             transition={0}
             onError={() => setFullSourceFailed(true)}

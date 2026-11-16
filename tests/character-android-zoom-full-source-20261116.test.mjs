@@ -31,7 +31,7 @@ test('enlarged view uses full-source decode; small views keep cheap path with fa
   assert.match(native, /contentFit="fill"/);
   assert.match(native, /allowDownscaling=\{false\}/);
   assert.match(native, /priority="high"/);
-  assert.match(native, /cachePolicy="memory"/);
+  assert.match(native, /cachePolicy="memory-disk"/);
   assert.match(native, /<NativeImage/);
   assert.match(native, /resizeMethod="scale"/);
   assert.match(native, /onError=\{\(\) => setFullSourceFailed\(true\)\}/);

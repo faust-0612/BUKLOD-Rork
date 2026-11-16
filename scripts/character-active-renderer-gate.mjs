@@ -30,6 +30,7 @@ for (const required of [
   '<ExpoImage',
   'contentFit="fill"',
   'allowDownscaling={false}',
+  'cachePolicy="memory-disk"',
   'priority="high"',
   '<NativeImage',
   'resizeMethod="scale"',
