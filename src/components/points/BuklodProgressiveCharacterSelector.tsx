@@ -12,6 +12,12 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
+import { router } from 'expo-router';
+import BuklodCharacterMotion from '@/components/points/BuklodCharacterMotion';
+import BuklodCharacterCollectibleZoom from '@/components/points/BuklodCharacterCollectibleZoom';
+import { loadCharacterArtPublication, verifiedCharacterArtUrl } from '@/lib/buklodCharacterArt';
+import { savedCharacterLevel } from '@/lib/buklodCharacterCollectionLogic';
 import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 
@@ -82,9 +88,25 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
   const [collectibleLoading, setCollectibleLoading] = useState(false);
   const [itemBusy, setItemBusy] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [artReady, setArtReady] = useState(false);
+  const [failedArt, setFailedArt] = useState<Set<string>>(() => new Set());
+  const [inspect, setInspect] = useState<{ name: string; index: number; level: number; id: ProgressiveCharacterId } | null>(null);
+
+  // A single marker check per sheet, never an image-existence query per item.
+  // Artwork is cosmetic and cannot grant ownership, Character XP, BP or Shards.
+  useEffect(() => {
+    let mounted = true;
+    void loadCharacterArtPublication().then((status) => {
+      if (mounted) setArtReady(status.available);
+    }).catch(() => undefined);
+    return () => { mounted = false; };
+  }, []);
 
   const profile = PROGRESSIVE_CHARACTERS[draft];
-  const availableLevel = draft === activeCore ? clampLevel(state.character_level) : 1;
+  // V3 server checkpoints must survive switching characters and closing this sheet.
+  const availableLevel = savedCharacterLevel(
+    state.character_levels, draft, state.active_character_id, state.character_level,
+  );
   const currentCollectibles = useMemo(
     () => collectibleNames(draft, collectionLevel),
     [draft, collectionLevel],
@@ -228,7 +250,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     levelTrack: { marginTop: 6, height: 8, borderRadius: 999, backgroundColor: '#2A3548', overflow: 'hidden' },
     levelFill: { height: 8, borderRadius: 999, backgroundColor: '#E8C56B' },
     featuredQuote: { marginTop: 8, color: '#9AA6BD', fontSize: 10, fontStyle: 'italic', lineHeight: 14 },
-    featuredArt: { width: 108, height: 148, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
+    featuredArt: { width: 112, height: 164, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
     besideStack: { position: 'absolute', left: 0, top: 8, gap: 4 },
     besidePin: {
       width: 26,
@@ -348,14 +370,20 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
       borderColor: theme.accent,
     },
     tokenIcon: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
+      width: 54,
+      height: 54,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.accentSoft,
     },
-    collectionNote: { marginTop: 3, fontSize: 9, lineHeight: 14, color: '#9AA6BD' },
+    collectionNote: { marginTop: 5, fontSize: 10, lineHeight: 16, color: '#C9D2E3' },
+    artThumb: { width: 50, height: 50, borderRadius: 8 },
+    artOpen: { minWidth: 54, minHeight: 54, alignItems: 'center', justifyContent: 'center' },
+    galleryButton: { marginTop: 9, borderRadius: 11, paddingVertical: 10, paddingHorizontal: 12,
+      minHeight: 44, backgroundColor: '#244735', borderWidth: 1, borderColor: '#64866C',
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    galleryText: { color: '#F7F1DE', fontSize: 11, fontWeight: '900', flex: 1 },
     collectionTabs: { marginTop: 9, flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
     collectionChip: {
       minWidth: 52,
@@ -420,9 +448,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     zoomStage: { marginTop: 3, marginBottom: 8, fontSize: 12, fontWeight: '800', color: '#335B41', textAlign: 'center' },
   }), [theme]);
 
-  const earnedLevel = draft === activeCore
-    ? clampLevel(collectibleState?.characterLevel ?? availableLevel)
-    : 1;
+  const earnedLevel = availableLevel;
   const previewLevel = clampLevel(collectionLevel);
   const featuredIndex = PROGRESSIVE_CHARACTER_ORDER.indexOf(draft) + 1;
   const levelFill = `${Math.round((earnedLevel / 20) * 100)}%` as const;
@@ -443,12 +469,12 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           <Text style={styles.featuredNote}>
             {showingNow
               ? `Showing on your profile at Level ${earnedLevel}. Tap a level chip below to preview another look.`
-              : 'Not on your profile yet. Tap Use This Character. They start at Level 1. Circle Points and Circle Rank stay.'}
+              : `Not currently active. Tap Use This Character to resume its saved Level ${earnedLevel}; Circle Rank stays.`}
           </Text>
           <View style={styles.levelHead}>
             <Text style={styles.levelLabel}>PREVIEW L{previewLevel}</Text>
             <Text style={styles.levelPoints}>
-              {showingNow ? `LIVE L${earnedLevel}` : `${state.character_points_since_selection.toLocaleString()} PTS`}
+              {showingNow ? `LIVE L${earnedLevel}` : `SAVED L${earnedLevel}`}
             </Text>
           </View>
           <View style={styles.levelTrack}>
@@ -457,13 +483,14 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           <Text style={styles.featuredQuote}>"{profile.stages[previewLevel - 1]}"</Text>
         </View>
         <View style={styles.featuredArt}>
-          <BuklodProgressiveCharacterArt
-            key={`${draft}-${previewLevel}-featured`}
-            characterId={draft}
-            level={previewLevel}
-            height={132}
-            viewportWidth={96}
-          />
+          <BuklodCharacterMotion key={`${draft}-${previewLevel}-motion`} mode="home">
+            <BuklodProgressiveCharacterArt
+              characterId={draft}
+              level={previewLevel}
+              height={155}
+              viewportWidth={108}
+            />
+          </BuklodCharacterMotion>
           {besidePins.length ? (
             <View style={styles.besideStack}>
               {besidePins.map((pin) => (
@@ -481,7 +508,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           const item = PROGRESSIVE_CHARACTERS[id];
           const selected = draft === id;
           const active = state.active_character_id === id;
-          const level = active ? clampLevel(state.character_level) : 1;
+          const level = savedCharacterLevel(state.character_levels, id, state.active_character_id, state.character_level);
           const accent = ROW_ACCENT[id];
           return (
             <Pressable
@@ -531,6 +558,16 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
         
         <View style={styles.collectibles}>
         <Text style={styles.collectiblesTitle}>ITEMS FOR {profile.name.toUpperCase()}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open all Character Tasks and Collections"
+          style={styles.galleryButton}
+          onPress={() => router.push('/points/character-collections' as any)}>
+          <MaterialCommunityIcons name="image-multiple-outline" size={20} color="#E8C56B" />
+          <Text style={styles.galleryText}>FULL ART GALLERY · 13 CHARACTERS · 1,300 ITEMS</Text>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#E8C56B" />
+        </Pressable>
+        {!artReady ? <Text style={styles.collectionNote}>
+          Individual item images appear once the verified art collection is published. Existing rewards remain available.
+        </Text> : null}
         <View style={styles.giverRow}>
           <View style={styles.giverArt}>
             <BuklodProgressiveCharacterArt
@@ -619,14 +656,26 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
             const label = action === 'use' ? 'Show' : action === 'remove' ? 'Shown' : owned ? 'Owned' : 'Locked';
             const busyKey = itemBusy === `${collectionLevel}:${itemIndex}`;
             const rowKey = `${collectionLevel}:${itemIndex}`;
+            const assetKey = `${draft}:${rowKey}`;
+            const imageUri = verifiedCharacterArtUrl(draft, collectionLevel, itemIndex, artReady);
+            const showArt = Boolean(imageUri && !failedArt.has(assetKey));
             return (
               <Animated.View
                 key={`${draft}-${collectionLevel}-${itemIndex}`}
                 style={[styles.collectibleRow, pulseKey === rowKey ? { transform: [{ scale: itemPulse }] } : null]}
               >
-                <View style={styles.tokenIcon}>
-                  <MaterialCommunityIcons name={characterTokenIcon(draft, itemIndex) as never} size={18} color={theme.accent} />
-                </View>
+                <Pressable style={styles.tokenIcon} accessibilityRole="button"
+                  accessibilityLabel={`Inspect and zoom ${item} illustration`}
+                  onPress={() => setInspect({ name: item, index: itemIndex, level: collectionLevel, id: draft })}>
+                  {showArt ? (
+                    <ExpoImage source={{ uri: imageUri as string }} style={styles.artThumb}
+                      contentFit="contain" cachePolicy="memory-disk" transition={0}
+                      onError={() => setFailedArt((prev) => new Set(prev).add(assetKey))} />
+                  ) : (
+                    <MaterialCommunityIcons name={characterTokenIcon(draft, itemIndex) as never}
+                      size={27} color={theme.accent} />
+                  )}
+                </Pressable>
                 <View style={styles.collectibleCopy}>
                   <Text style={styles.collectibleName} numberOfLines={2}>{item}</Text>
                   <Text style={styles.collectibleKind}>
@@ -673,6 +722,16 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
       </Pressable>
       {actionMessage ? <Text style={styles.actionMessage}>{actionMessage}</Text> : null}
 
+      <BuklodCharacterCollectibleZoom
+        visible={Boolean(inspect)}
+        onClose={() => setInspect(null)}
+        title={inspect?.name ?? ''}
+        description="Character collectible artwork preview. Ownership and equipment are verified separately by the Character System."
+        imageUri={inspect ? verifiedCharacterArtUrl(inspect.id, inspect.level, inspect.index, artReady) : null}
+        characterName={inspect ? PROGRESSIVE_CHARACTERS[inspect.id].name : ''}
+        level={inspect?.level ?? 1}
+        itemIndex={inspect?.index ?? 1}
+      />
       <Modal visible={zoom != null} transparent animationType="fade" onRequestClose={() => setZoom(null)}>
         <Pressable style={styles.zoomBackdrop} onPress={() => setZoom(null)} accessibilityRole="button" accessibilityLabel="Close full screen character">
           <View style={styles.zoomCard} pointerEvents="none">
