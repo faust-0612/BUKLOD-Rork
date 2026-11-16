@@ -964,6 +964,21 @@ function ExpoCommunityVideo({
     }, 2_650);
   }
 
+  function openInlineFullscreen() {
+    // Preserve seamless playback from the inline player when the viewer mounts.
+    if (!onOpenFullscreen || fullscreen) return;
+    try {
+      playbackTimeByUri.set(
+        playbackIdentity,
+        Number(player.currentTime || currentTime || 0),
+      );
+      player.pause();
+    } catch {
+      // The fullscreen viewer can still open and retry this same URI.
+    }
+    onOpenFullscreen();
+  }
+
   function togglePlayback() {
     if (playing) {
       userPausedRef.current = true;
@@ -1070,9 +1085,10 @@ function ExpoCommunityVideo({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
-          playing ? 'Pause video' : 'Play video'
+          onOpenFullscreen && !fullscreen ? 'Open video full screen'
+            : playing ? 'Pause video' : 'Play video'
         }
-        onPress={togglePlayback}
+        onPress={onOpenFullscreen && !fullscreen ? openInlineFullscreen : togglePlayback}
         style={styles.tapLayer}
       />
 
@@ -1146,33 +1162,7 @@ function ExpoCommunityVideo({
       >
         {chromeVisible ? (
           <View style={styles.cornerRow}>
-            {onOpenFullscreen && !fullscreen ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open video full screen"
-                onPress={() => {
-                  try {
-                    playbackTimeByUri.set(
-                      playbackIdentity,
-                      Number(player.currentTime || currentTime || 0),
-                    );
-                    player.pause();
-                  } catch {
-                    // Opening fullscreen still continues from the saved time.
-                  }
-                  onOpenFullscreen();
-                }}
-                style={styles.roundButton}
-              >
-                <MaterialCommunityIcons
-                  name="fullscreen"
-                  size={22}
-                  color="#FFFFFF"
-                />
-              </Pressable>
-            ) : (
-              <View />
-            )}
+            <View />
 
             <Pressable
               accessibilityRole="button"
