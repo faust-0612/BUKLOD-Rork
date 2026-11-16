@@ -228,7 +228,12 @@ export default function CharacterCollectionsScreen(){
        <View style={{flex:1}}>
         <Text style={s.name}>{item.name}</Text>
         <Text style={s.caption}>{item.slot} • TAP TO ZOOM</Text>
-        {taskGoal?<Text style={s.caption}>Verified task progress: {taskGoal.current}/{taskGoal.target} {taskGoal.label}</Text>:null}
+        {taskGoal?<Text style={s.caption}>
+         Verified task: {taskGoal.current}/{taskGoal.target} {taskGoal.label}
+         {taskGoal.alternative
+          ?' OR '+taskGoal.alternative.current+'/'+taskGoal.alternative.target+' '+taskGoal.alternative.label
+          :''}
+        </Text>:null}
         <Text style={s.caption}>{isOwned?'OWNED • SERVER VERIFIED':
          level>saved?'FUTURE STAGE':core?(!items?'AWARD STATUS UNAVAILABLE':'NOT VERIFIED AS CLAIMED'):(specialStory?'NOT YET EARNED':'AWARD STATUS UNAVAILABLE')}</Text>
        </View>
@@ -270,7 +275,7 @@ export default function CharacterCollectionsScreen(){
       <Pressable accessibilityRole="button" onPress={()=>router.push('/(tabs)/buklod' as any)} style={s.action}>
        <Text style={s.actionText}>OPEN PUBLIC WALL TASKS</Text>
       </Pressable>
-      <Text style={s.caption}>Only qualifying, server-counted activities count. Bible, lessons, mentoring and other task sources await verified backend wiring.</Text>
+      <Text style={s.caption}>Verified claimed Bible reading, devotional, Formation, quiz and attendance task evidence also counts after the server task migration. Claims and awards remain separate.</Text>
      </>:<Text style={s.caption}>Core item awards are verified by the existing Character collection RPC. This page creates no awards or economy credits.</Text>}
     </View>
     <Pressable accessibilityRole="button" onPress={()=>router.push('/games/legacy' as any)} style={s.secondary}>
