@@ -204,7 +204,7 @@ export default function CharacterExperienceScreen(){
             style={s.scenePreview}>
             <Text style={s.sceneEyebrow}>LIVING COLLECTION SCENE</Text>
             <View style={s.sceneSymbols}>
-              {ADVENTURE_RELICS.map((relic,i)=><View key={relic} style={[s.sceneGem,profile.relics[relic]&&s.sceneGemOwned]}>
+              {ADVENTURE_RELICS.map((relic,i)=><View key={relic} style={[s.sceneGem,profile.relics[relic] ? s.sceneGemOwned : null]}>
                 <MaterialCommunityIcons name={profile.relics[relic]?'diamond-stone':'diamond-outline'}
                   size={i===2?36:24} color={profile.relics[relic]?C.emerald:C.muted}/>
               </View>)}

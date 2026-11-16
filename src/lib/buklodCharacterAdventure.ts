@@ -62,7 +62,7 @@ export type AdventureState = {
 };
 export type AdventureOutcome = { state:AdventureState; changed:boolean; message:string;
   earned:{xp:number;hibla:number;bond:number;fragment:AdventureRelic|null}; };
-const NO_REWARD = {xp:0,hibla:0,bond:0,fragment:null};
+const NO_REWARD:AdventureOutcome['earned'] = {xp:0,hibla:0,bond:0,fragment:null};
 const zeroRelics=():Record<AdventureRelic,number>=>({origin:0,wisdom:0,service:0,courage:0,legacy:0});
 export function initialAdventure(character:AdventureCharacter):AdventureState {
   if (!Object.hasOwn(ADVENTURE_STORIES,character)) throw new Error('Unknown Character');

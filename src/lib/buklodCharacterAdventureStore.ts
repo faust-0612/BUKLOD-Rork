@@ -31,7 +31,9 @@ function parse(raw:string|null,character:AdventureCharacter):AdventureState {
     }
     const chapters:AdventureState['chapters']={};
     for(const id of ['0','1','2'])if(['heart','courage'].includes(data.chapters?.[id]))chapters[id]=data.chapters[id];
-    const gates=Array.isArray(data.gates)?[...new Set(data.gates.filter((n:unknown)=>[4,8,12,16].includes(n)))]:[];
+    const gates:number[]=Array.isArray(data.gates)
+      ? [...new Set((data.gates as unknown[]).filter((n):n is number =>
+        typeof n==='number' && [4,8,12,16].includes(n)))] : [];
     const level=Math.max(1,Math.min(20,bounded(data.level,20)));
     return {version:1,character,fragments,relics,gates,
       xp:bounded(data.xp,1e8),level,ascensions:bounded(data.ascensions,100),
