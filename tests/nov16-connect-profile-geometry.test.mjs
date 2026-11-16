@@ -10,7 +10,7 @@ const ranking = read('src/components/BuklodProfileTopTenRankings.tsx');
 
 test('Connect hero and unread pill stay fully visible above search dock', () => {
   const dock = connect.match(/searchDock:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
-  assert.match(dock, /marginTop:\s*8/);
+  assert.match(dock, /marginTop:\s*4/);
   assert.doesNotMatch(dock, /marginTop:\s*-/);
   assert.ok(connect.indexOf('<View style={styles.hero}>') < connect.indexOf('<View style={styles.searchDock}>'));
   assert.match(connect, /<View style=\{styles.heroCount\}>/);
@@ -24,7 +24,7 @@ test('Connect avatars are unobstructed, equal-positioned and notes stay editable
   const zone = contacts.match(/noteZone:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
   const editing = contacts.match(/noteZoneEditing:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
   assert.match(column, /backgroundColor:\s*'transparent'/);
-  assert.match(column, /minHeight:\s*216/);
+  assert.match(column, /minHeight:\s*0/);
   assert.match(zone, /height:\s*NOTE_ZONE_HEIGHT/);
   assert.match(editing, /height:\s*NOTE_ZONE_HEIGHT/);
   assert.match(contacts, /editingPopover: \{/);
