@@ -15,7 +15,7 @@ test('exact Nov16 cumulative scope declares all component proofs without securit
 test('protected cumulative CI is still exclusive to this branch and main',()=>{
  const w=read('.github/workflows/engineering-accountability.yml');
  const g=read('scripts/engineering-regression-gate.mjs');
- assert.match(w,/integration\\/nov16-spacing-graphics-character-rc/);
+ assert.ok(w.includes('integration/nov16-spacing-graphics-character-rc'));
  assert.ok(w.includes('BUKLOD_CONSOLIDATED_RC_GATE=true'));
  assert.ok(w.includes('.buklod/scopes/nov16-spacing-graphics-character-consolidated-rc.json'));
  assert.ok(g.includes('base === \'main\''));
