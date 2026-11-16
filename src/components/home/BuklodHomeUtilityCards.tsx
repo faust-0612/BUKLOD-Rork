@@ -24,7 +24,7 @@ export default function BuklodHomeUtilityCards() {
 }
 const styles = StyleSheet.create({
   launcher: { width: '100%', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#7C9DD1' },
-  gradient: { minHeight: 88, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  gradient: { minHeight: 76, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 12 },
   copy: { flex: 1, minWidth: 0, gap: 3 },
   kicker: { fontSize: 12, color: '#E4F6FC', fontWeight: '800', letterSpacing: 0.5 },
   title: { fontSize: 19, lineHeight: 25, fontWeight: '900', color: '#FFFFFF' },
