@@ -308,7 +308,8 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     replyPreview: {
       marginTop: 2,
-      color: HIBLA.muted,
+      // This mint banner needs stronger text than the white input placeholder.
+      color: HIBLA.ink,
       fontSize: 12,
     },
   });
