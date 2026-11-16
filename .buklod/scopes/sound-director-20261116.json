@@ -30,8 +30,7 @@
   "regressionTests": [
     "tests/buklod-sound-director-20261116.test.mjs",
     "tests/kingdom-reward-sound-release-20261110.test.mjs",
-    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
-    "tests/kingdom-premium-audio-staging-20261114.test.mjs"
+    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -89,6 +88,22 @@
     "audio-lifecycle",
     "sound-settings",
     "gameplay-feedback",
-    "character-recognition"
+    "character-recognition",
+    "release-identity"
+  ],
+  "productionBaselineEvidence": "Inspected GitHub production main exact SHA 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 (2026-11-16): existing CC0 Kingdom audio module, original notification-sounding game fallback, BP claim screen and Character/Circle Rank recognition. This is verified repository source evidence, not an assertion that a specific Android client currently has the new audio.",
+  "selectionRationale": "Use existing locally vendored, SHA-pinned Kenney CC0 effects to deliver distinct short game and reward audio without paid synthesis, copyright exposure, asset streaming, native dependencies or economy changes. Keep users' settings and canonical server confirmations.",
+  "acceptanceChecks": [
+    "Library MP3 inventory and rights concerns documented; unlicensed audio and duplicate not shipped.",
+    "All six native game fallback events source existing bundled CC0 WAVs and keep game sound preferences and bounded native players.",
+    "Server-confirmed BP claims, Character Level Up, Circle Rank, and Character item events use distinct sounds without granting currency or items.",
+    "Impacted changed Node tests and TypeScript/app integration QA pass; the mandatory engineering and protected-feature gates remain active.",
+    "Android staging first-load audio, focus/blur, quiet hours, rapid taps, PTT call coexistence, AdMob/dashboard protection are verified before any RC/OTA."
+  ],
+  "alternativeApproaches": [
+    "Reuse generic BUKLOD messages/notifications as gameplay rewards: rejected because poor event meaning and sound quality.",
+    "Bundle user-provided Library MP3 immediately: rejected until upload license grants distribution and adaptation to a commercial mobile game; montage also too long.",
+    "License-vetted original audio or new synthesis later: permissible once source, mastering and QA are verified; not needed for this initial implementation.",
+    "Reuse already-pinned CC0 Kingdom assets offline, with explicit event routing and regressions: selected."
   ]
 }
