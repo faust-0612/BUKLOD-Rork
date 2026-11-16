@@ -1,0 +1,43 @@
+{
+  "releaseContract": 2,
+  "objective": "Publish one Android staging-user OTA containing all owner-approved Nov16 recent BUKLOD fixes, strictly after exact SHA CI and EAS preflight; production untouched.",
+  "stagingReady": true,
+  "sourcePr": 868,
+  "sourceBranch": "integration/nov16-consolidated-ota-home-family-health-stories-v4",
+  "sourceSha": "6ec6c5026a50d846b49c9706990f0bc60a6402d3",
+  "productionSourceBaseline": "3b488fa704b804f05c5a289a7e0775daeabb2404",
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "environment": "preview",
+    "packageId": "org.mzbministry.buklod.staging",
+    "runtimeVersion": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8"
+  },
+  "knownPriorStagingUpdateId": "01a1e0c8-488e-7474-918d-6c1f0a0f5e8d",
+  "knownPriorProductionUpdateId": "01a1e10a-f043-7113-9a6c-673e91a58517",
+  "publicationPolicy": {
+    "allowOtaPublish": true,
+    "allowProductionPromotion": false,
+    "allowWebDeploy": false,
+    "allowPlayStore": false,
+    "allowBackendMigrations": false,
+    "requireFiveExactShaCIGreen": true,
+    "requireSignedBuildCompatibility": true,
+    "requireFreshStagingAndProductionReadback": true,
+    "doNotRepeatPreviousUpdate": true
+  },
+  "productionOtaPublished": false,
+  "physicalDeviceVerification": "SKIPPED_BY_OWNER",
+  "included": [
+    "Home/Family/Health relocation and BUKLOD Today density",
+    "132 bilingual story in-story dialogue",
+    "Matthew Henry Filipino semantic v4",
+    "Profile hero and Cluster dark contrast",
+    "post detail dark mode and comments",
+    "Connect Notes visible on Wall and Connect",
+    "locked-profile public avatar",
+    "existing AdMob and dashboard protections"
+  ],
+  "notes": "Safety: fail closed on any unverified CI, native package/runtime mismatch, Expo staging/prod branch drift or already-published group. No production mutation."
+}
