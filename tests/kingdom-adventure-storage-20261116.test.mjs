@@ -1,30 +1,29 @@
-import test from 'node:test';
+import test,{after} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
-import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url);
-const ts=require('typescript');
-const files=new Map();
-const storage={
-  async getItem(k){return files.get(k)??null;},
-  async setItem(k,v){await new Promise(r=>setImmediate(r));files.set(k,v);},
-};
-function load(relative,imports={}) {
-  const file=new URL('../'+relative,import.meta.url);
-  const js=ts.transpileModule(fs.readFileSync(file,'utf8'),{
-    compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true},
-    fileName:relative,
-  }).outputText;
-  const m={exports:{}};
-  vm.runInNewContext(js,{module:m,exports:m.exports,
-    require(id){if(id==='@react-native-async-storage/async-storage')return {__esModule:true,default:storage};if(imports[id])return imports[id];throw Error('Unmocked '+id);},
-    Map,Set,Promise,Date,JSON,Math,Number,Object,String,Array,RegExp,Error,Boolean,setImmediate,
-  },{filename:relative});
-  return m.exports;
-}
-const engine=load('src/lib/buklodCharacterAdventure.ts');
-const store=load('src/lib/buklodCharacterAdventureStore.ts',{'./buklodCharacterAdventure':engine});
+import os from 'node:os';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {stripTypeScriptTypes} from 'node:module';
+// Full behavior test without external TypeScript dependency on the small GitHub scope gate.
+const work=fs.mkdtempSync(path.join(os.tmpdir(),'buklod-adventure-test-'));
+const src=relative=>fs.readFileSync(new URL('../'+relative,import.meta.url),'utf8');
+fs.writeFileSync(path.join(work,'buklodCharacterAdventure.mjs'),stripTypeScriptTypes(
+  src('src/lib/buklodCharacterAdventure.ts'),{mode:'transform'}));
+fs.writeFileSync(path.join(work,'memory-storage.mjs'),`export const files=new Map();
+export default {
+ async getItem(k){return files.get(k)??null},
+ async setItem(k,v){await new Promise(r=>setImmediate(r));files.set(k,v)}
+};`);
+let storeCode=stripTypeScriptTypes(src('src/lib/buklodCharacterAdventureStore.ts'),{mode:'transform'});
+storeCode=storeCode.replace("'@react-native-async-storage/async-storage'","'./memory-storage.mjs'")
+ .replace("'./buklodCharacterAdventure'","'./buklodCharacterAdventure.mjs'");
+fs.writeFileSync(path.join(work,'buklodCharacterAdventureStore.mjs'),storeCode);
+const url=file=>pathToFileURL(path.join(work,file)).href;
+const [{default:storage,files},store]=await Promise.all([
+ import(url('memory-storage.mjs')),import(url('buklodCharacterAdventureStore.mjs')),
+]);
+after(()=>fs.rmSync(work,{recursive:true,force:true}));
 const u1='11111111-1111-4111-8111-111111111111';const u2='22222222-2222-4222-8222-222222222222';
 test('account and character isolation; no global progress leakage',async()=>{
   files.clear();
