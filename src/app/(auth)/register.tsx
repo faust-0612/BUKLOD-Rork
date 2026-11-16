@@ -408,7 +408,9 @@ export default function RegisterScreen() {
             .catch(() => undefined);
         }
         referralLinkNote =
-          /already recorded/i.test(message)
+          /historical tracking/i.test(message)
+            ? ' Your invitation was saved as historical. Financial qualification is pending until the inviter verifies their account.'
+            : /already recorded/i.test(message)
             ? ' A referral is already recorded for this account.'
             : /not authenticated|jwt|session/i.test(message)
               ? ' Your account was created, but referral linking is pending because your login session was not ready.'
@@ -548,7 +550,7 @@ export default function RegisterScreen() {
         const resolved = await resolveReferralTarget(trimmed);
         if (lookupVersion !== referralLookupVersion.current) return;
         if (resolved.found && resolved.referral_code) {
-          setSelectedReferralCode(resolved.referral_code);
+          setSelectedReferralCode(resolved.canonical_referral_code || resolved.referral_code);
           setReferralMatchLabel(
             resolved.username || resolved.label || 'BUKLOD member',
           );
@@ -714,10 +716,18 @@ useEffect(() => {
         );
       }
 
-      if (password.length < 6) {
+      if (password.length < 10 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
         return Alert.alert(
           'BUKLOD',
-          'Use a password with at least 6 characters.'
+          'Use at least 10 characters, including a letter and a number.'
+        );
+      }
+
+      // Avoid creating an account with an unconfirmed optional referral.
+      if (referralQuery.trim() && !selectedReferralCode.trim()) {
+        return Alert.alert(
+          'Confirm your referral',
+          'Select a matching BUKLOD account or enter a valid invite code, then confirm the match. Clear the field if you have no referrer.'
         );
       }
 
@@ -1365,7 +1375,7 @@ useEffect(() => {
         </Text>
 
         <Text style={styles.help}>
-          At least 6 characters. No OTP, SMS, or email confirmation.
+          At least 10 characters, including letters and numbers. No OTP is required.
         </Text>
 
         <View
@@ -1414,7 +1424,7 @@ useEffect(() => {
         </Text>
 
         <Text style={styles.help}>
-          Type a friend&apos;s BUKLOD account name or invite code. Matching accounts appear as you type.
+          Type a BUKLOD account name or invite code, then tap the correct match to confirm your referrer.
         </Text>
 
         <TextInput allowFontScaling
@@ -1467,7 +1477,7 @@ useEffect(() => {
                     {title}
                   </Text>
                   <Text style={styles.referralSuggestMeta}>
-                    Invite code {item.referral_code}
+                    Invite code {item.referral_code}{item.identity_ready === false ? ' · financial linking pending' : ''}
                   </Text>
                 </Pressable>
               );

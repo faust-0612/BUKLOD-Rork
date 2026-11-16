@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -14,6 +15,9 @@ import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { shared } from '@/components/UI';
 import {
   loadMyBuklodFinancialSummaryV3,
+  loadMyBuklodCommunityDestinationsV1,
+  selectMyBuklodCommunityDestinationV1,
+  type BuklodCommunityDestinationOptionV1,
   type BuklodFinancialSummaryV3,
 } from '@/lib/buklodEconomyV3';
 import {
@@ -92,6 +96,10 @@ export default function BayanihanScreen() {
   const [summary, setSummary] =
     useState<BuklodFinancialSummaryV3 | null>(null);
   const [referralAudit, setReferralAudit] = useState<BuklodReferralReconciliationV1 | null>(null);
+  const [destinations, setDestinations] = useState<BuklodCommunityDestinationOptionV1[]>([]);
+  const [destinationError, setDestinationError] = useState('');
+  const [destinationSaving, setDestinationSaving] = useState(false);
+  const [destinationPickerOpen, setDestinationPickerOpen] = useState(false);
   const [contribution, setContribution] = useState<CommunityContributionDashboard | null>(null);
   const [monthly, setMonthly] = useState<BuklodMonthlyEarnings | null>(null);
   const [qmpError, setQmpError] = useState('');
@@ -109,6 +117,9 @@ export default function BayanihanScreen() {
     if (!userId) {
       setSummary(null);
       setReferralAudit(null);
+      setDestinations([]);
+      setDestinationError('');
+      setDestinationPickerOpen(false);
       setContribution(null);
       setMonthly(null);
       setError('Sign in to view your personal Economy summary.');
@@ -122,16 +133,20 @@ export default function BayanihanScreen() {
       setError('');
       setQmpError('');
       setSupportCode(null);
-      const [financialResult, communityResult, referralResult, monthlyResult] = await Promise.allSettled([
+      const [financialResult, communityResult, referralResult, monthlyResult, destinationResult] = await Promise.allSettled([
         loadMyBuklodFinancialSummaryV3(),
         withBuklodTimeout(loadMyCommunityContribution(), 8000, 'Community QMP'),
         loadMyBuklodReferralReconciliationV1(),
         withBuklodTimeout(loadMyBuklodMonthlyEarnings(), 8000, 'Monthly Earnings'),
+        withBuklodTimeout(loadMyBuklodCommunityDestinationsV1(), 8000, 'Community Destinations'),
       ]);
       if (request !== requestRef.current) return;
 
       setReferralAudit(referralResult.status === 'fulfilled' ? referralResult.value : null);
       setMonthly(monthlyResult.status === 'fulfilled' ? monthlyResult.value : null);
+      setDestinations(destinationResult.status === 'fulfilled' ? destinationResult.value : []);
+      setDestinationError(destinationResult.status === 'rejected'
+        ? 'Eligible destination list unavailable. Pull down to retry.' : '');
       const financialReady = financialResult.status === 'fulfilled'
         && financialResult.value.identity_ready === true;
       if (financialReady && financialResult.status === 'fulfilled') {
@@ -185,6 +200,9 @@ export default function BayanihanScreen() {
       lastSyncedRef.current = 0;
       setSummary(null);
       setReferralAudit(null);
+      setDestinations([]);
+      setDestinationError('');
+      setDestinationPickerOpen(false);
       setContribution(null);
       setMonthly(null);
       setQmpError('');
@@ -203,6 +221,36 @@ export default function BayanihanScreen() {
       setRefreshing(false);
     }
   }, [load]);
+
+  const confirmDestination = useCallback((choice: BuklodCommunityDestinationOptionV1) => {
+    if (destinationSaving) return;
+    Alert.alert(
+      'Set Community Destination',
+      `Use ${choice.name} for future eligible Community Fund allocations? The policy may temporarily lock this selection. No cash is created by selecting a destination.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Select',
+          onPress: () => {
+            void (async () => {
+              setDestinationSaving(true);
+              try {
+                await selectMyBuklodCommunityDestinationV1(choice.scope_id);
+                setDestinationPickerOpen(false);
+                lastSyncedRef.current = 0;
+                await load(true);
+              } catch (error) {
+                Alert.alert('Destination not saved', error instanceof Error
+                  ? error.message : 'Could not save the destination. Please retry.');
+              } finally {
+                setDestinationSaving(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  }, [destinationSaving, load]);
 
   const progress = summary?.progress ?? {};
   const earnings = summary?.earnings ?? {};
@@ -516,6 +564,38 @@ export default function BayanihanScreen() {
                 <Text style={styles.emptyText}>{t('economy.noCommunity')}</Text>
               </View>
             )}
+            {community.selected && (!community.locked_until
+              || new Date(String(community.locked_until)).getTime() <= Date.now()) ? (
+              <Pressable style={styles.destinationToggle}
+                onPress={() => setDestinationPickerOpen(value => !value)}>
+                <Text style={styles.destinationToggleText}>
+                  {destinationPickerOpen ? 'CLOSE DESTINATIONS' : 'CHANGE COMMUNITY DESTINATION'}
+                </Text>
+              </Pressable>
+            ) : null}
+            {(!community.selected || destinationPickerOpen) ? (
+              <View style={styles.destinationList}>
+                <Text style={styles.explainer}>
+                  Choose an Organization or Cluster where you are an active member.
+                  This affects future funded allocations only, not personal earnings.
+                </Text>
+                {destinationError ? <Text style={styles.destinationError}>{destinationError}</Text> : null}
+                {destinations.map(choice => (
+                  <Pressable key={choice.scope_id}
+                    disabled={destinationSaving}
+                    onPress={() => confirmDestination(choice)}
+                    style={[styles.destinationChoice, destinationSaving && styles.destinationDisabled]}>
+                    <Text style={styles.destinationName}>{choice.name}</Text>
+                    <Text style={styles.destinationType}>{choice.scope_type === 'CLUSTER' ? 'Cluster' : 'Organization'} · SELECT</Text>
+                  </Pressable>
+                ))}
+                {!destinationError && destinations.length === 0 ? (
+                  <Text style={styles.emptyText}>
+                    No eligible active Organization or Cluster found. Join a Community first.
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             <Text style={styles.explainer}>{t('economy.communityNotPersonal')}</Text>
           </Section>
 
@@ -636,6 +716,16 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 9, fontWeight: '900', color: '#275D45' },
   emptyCard: { padding: 15, borderWidth: 1, borderColor: '#E1E8E4', backgroundColor: '#FFFFFF' },
   emptyText: { fontSize: 11, lineHeight: 17, color: '#6F7C75' },
+  destinationList: { gap: 7, paddingHorizontal: 2 },
+  destinationToggle: { alignSelf: 'flex-start', minHeight: 42, paddingHorizontal: 12,
+    borderRadius: 9, backgroundColor: '#EAF4EE', justifyContent: 'center' },
+  destinationToggleText: { fontSize: 10, fontWeight: '900', color: '#275D45' },
+  destinationChoice: { padding: 12, gap: 4, minHeight: 48, borderRadius: 12,
+    borderWidth: 1, borderColor: '#CEE0D5', backgroundColor: '#FFFFFF' },
+  destinationDisabled: { opacity: 0.55 },
+  destinationName: { color: '#1F3328', fontWeight: '800', fontSize: 12 },
+  destinationType: { color: '#668074', fontWeight: '700', fontSize: 10 },
+  destinationError: { padding: 10, color: '#93511B', fontSize: 11 },
   safetyCard: { marginTop: 8, padding: 14, gap: 6, backgroundColor: '#FFF8E9', borderWidth: 1, borderColor: '#F0DFAE' },
   safetyText: { fontSize: 10.5, lineHeight: 16, color: '#715D2F' },
 });
