@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/connect-composer-contrast-20261116.json",
+  "objective": "Fix invisible/white typed message text on white Connect composer in Android dark mode; keep placeholder, reply, and light attachment icons legible and reject recurrence.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "GitHub main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 before isolated change; current EAS production manifest, installed runtime, and exact OTA provenance have not been re-read. DEV branch is NOT deployed. Screenshot 2026-11-16 shows near-invisible typed text in Cluster Connect.",
+  "chosenApproach": "Keep existing white HIBLA Connect composer surface, use paired HIBLA ink/muted foreground, coordinated pale-attachment/action colors and input selection tint. Cover contrast and core sending contract with standalone dependency-free Node tests; no DB/native/ads/nav changes.",
+  "selectionRationale": "The composer pill is hardcoded white while typed text/placeholder inherited dark-theme text roles (white), so dark-mode foreground clashes with its real background. Pairing fixed surface and foreground is minimal and preserves the existing HIBLA aesthetic across public, direct, organization and cluster threads.",
+  "alternativeApproaches": [
+    "Pair fixed HIBLA white/light surfaces with corresponding high-contrast HIBLA foreground colors (selected).",
+    "Make all composer backgrounds dynamic theme surfaces; broader design/layout change not needed for this isolated defect.",
+    "Override global night-mode text colors; rejected because it would regress dark cards and chat bubbles."
+  ],
+  "riskAreas": [
+    "connect"
+  ],
+  "preserveBehaviors": [
+    "Personal/direct, Cluster/Organization scope threads share the same composer",
+    "Draft text, emoji, send and quick-reaction behavior unchanged",
+    "Photo/file upload and previews unchanged",
+    "Android keyboard position/multiline and web Enter-send guards unchanged",
+    "No change to AdMob/dashboard rendering, Wall, PTT, database or native dependencies",
+    "No automatic staging/production publish without exact-source QA and release attestation"
+  ],
+  "acceptanceChecks": [
+    "No theme.textPrimary on fixed white TextInput",
+    "Ink on white at least 7:1; placeholder muted on white at least 4.5:1",
+    "Reply and icon color contrast on mint/pale green >=4.5:1",
+    "Focused Node regression tests and existing Connect keyboard tests pass",
+    "Android light/dark and direct/scope visual/device check when test device is available; user can waive actual device check, not CI/release gates",
+    "Keep isolated DEV change until cumulative staging RC/release workflow verifies exact source and AdMob/navigation protected gates"
+  ],
+  "regressionTests": [
+    "tests/buklod-connect-composer-contrast-20261116.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/connect-composer-contrast-20261116.json",
+    "src/components/connect/ConnectComposer.tsx",
+    "tests/buklod-connect-composer-contrast-20261116.test.mjs"
+  ]
+}
