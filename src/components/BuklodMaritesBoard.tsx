@@ -98,6 +98,7 @@ import { useFocusEffect } from 'expo-router';
 import { selectVisibleMaritesVideo, selectNearbyMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
 import {noteBuklodVideoScroll, subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import { createMaritesVisibilityScheduler } from '@/lib/buklodMaritesViewportMeasure';
+import { resolveMaritesStorySwipe } from '@/lib/buklodMaritesSwipe';
 import { useAuth } from '@/providers/AuthProvider';
 import { subscribeBuklodPublicPostChanges } from '@/lib/buklodPublicCommunityRealtime';
 import {
@@ -1176,6 +1177,10 @@ export default function BuklodMaritesBoard({
     });
   }, [cacheKey, stories, user?.id]);
 
+  // Gesture start is kept in a ref: no render during horizontal story navigation.
+  const viewerTouchStartRef = useRef<{ x: number; y: number; at: number } | null>(null);
+  const viewerPhotoPageRef = useRef(0);
+
   const closeStoryViewer = useCallback(() => {
     onViewerVisibilityChange?.(false);
     setStoryZoomed(false);
@@ -1187,6 +1192,7 @@ export default function BuklodMaritesBoard({
     // Batch the Wall-player pause with native modal opening.
     onViewerVisibilityChange?.(true);
     setStoryZoomed(false);
+    viewerPhotoPageRef.current = 0;
     setReactionPickerOpen(false);
     setViewStory(story);
   }, [onViewerVisibilityChange]);
@@ -1226,6 +1232,7 @@ export default function BuklodMaritesBoard({
         ) % activeStories.length;
 
       setStoryZoomed(false);
+      viewerPhotoPageRef.current = 0;
       setReactionPickerOpen(false);
       setViewStory(
         activeStories[nextIndex]
@@ -2196,7 +2203,38 @@ export default function BuklodMaritesBoard({
         onRequestClose={closeStoryViewer}
       >
         {viewStory && (
-          <GestureHandlerRootView style={styles.fullscreen}>
+          <GestureHandlerRootView
+            style={styles.fullscreen}
+            onTouchStart={event => {
+              if (event.nativeEvent.touches?.length !== 1) {
+                viewerTouchStartRef.current = null;
+                return;
+              }
+              viewerTouchStartRef.current = {
+                x: event.nativeEvent.pageX,
+                y: event.nativeEvent.pageY,
+                at: Date.now(),
+              };
+            }}
+            onTouchMove={event => {
+              if ((event.nativeEvent.touches?.length ?? 0) > 1) viewerTouchStartRef.current = null;
+            }}
+            onTouchCancel={() => { viewerTouchStartRef.current = null; }}
+            onTouchEnd={event => {
+              const start = viewerTouchStartRef.current;
+              viewerTouchStartRef.current = null;
+              const direction = resolveMaritesStorySwipe(start, {
+                x: event.nativeEvent.pageX,
+                y: event.nativeEvent.pageY,
+              }, {
+                enabled: Boolean(viewStory) && activeStories.length > 1 && !storyZoomed && !reactionPickerOpen,
+                photoCount: viewStory ? getMaritesStoryPhotos(viewStory).length : 0,
+                photoIndex: viewerPhotoPageRef.current,
+                elapsedMs: start ? Date.now() - start.at : Number.POSITIVE_INFINITY,
+              });
+              if (direction) stepStoryViewer(direction);
+            }}
+          >
             <BuklodMaritesStoryAudio
               track={viewerMusic?.storyId === viewStory.id ? viewerMusic.track : null}
               startSeconds={viewerMusic?.start ?? 0}
@@ -2239,6 +2277,9 @@ export default function BuklodMaritesBoard({
                       horizontal
                       pagingEnabled={!storyZoomed}
                       scrollEnabled={!storyZoomed}
+                      onMomentumScrollEnd={event => {
+                        viewerPhotoPageRef.current = Math.max(0, Math.round(event.nativeEvent.contentOffset.x / Math.max(windowWidth, 1)));
+                      }}
                       showsHorizontalScrollIndicator={
                         false
                       }
@@ -2378,53 +2419,6 @@ export default function BuklodMaritesBoard({
               )}
             </View>
 
-            {activeStories.length > 1 &&
-            !storyZoomed &&
-            !reactionPickerOpen ? (
-              <View
-                style={
-                  styles.fullscreenStoryNav
-                }
-                pointerEvents="box-none"
-              >
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Previous Marites story"
-                  style={
-                    styles.fullscreenStoryNavBtn
-                  }
-                  onPress={() =>
-                    stepStoryViewer(-1)
-                  }
-                  hitSlop={BUKLOD_HIT_SLOP}
-                >
-                  <MaterialCommunityIcons
-                    name="chevron-left"
-                    size={31}
-                    color="#FFFFFF"
-                  />
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Next Marites story"
-                  style={
-                    styles.fullscreenStoryNavBtn
-                  }
-                  onPress={() =>
-                    stepStoryViewer(1)
-                  }
-                  hitSlop={BUKLOD_HIT_SLOP}
-                >
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={31}
-                    color="#FFFFFF"
-                  />
-                </Pressable>
-              </View>
-            ) : null}
-
             {!reactionPickerOpen ? (
               <View
                 style={[
@@ -2440,8 +2434,8 @@ export default function BuklodMaritesBoard({
               >
                 <Text style={styles.fullscreenHintText}>
                   {getMaritesStoryPhotos(viewStory).length
-                    ? 'Pinch to zoom · Drag to move · Long press for reactions · Use arrows for next story'
-                    : 'Long press for reactions · Use arrows for previous/next story'}
+                    ? 'Pinch to zoom · Swipe at photo edges for next story · Long press to react'
+                    : 'Swipe left/right for stories · Long press for reactions'}
                 </Text>
               </View>
             ) : null}

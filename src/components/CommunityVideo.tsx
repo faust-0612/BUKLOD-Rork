@@ -292,11 +292,11 @@ function InactiveCommunityVideo({
         accessibilityLabel="Play video"
         disabled={!onRequestPlay && !onOpenFullscreen}
         onPress={() => {
-          if (onRequestPlay) {
-            onRequestPlay();
+          if (onOpenFullscreen && !fullscreen) {
+            onOpenFullscreen();
             return;
           }
-          onOpenFullscreen?.();
+          onRequestPlay?.();
         }}
         style={styles.tapLayer}
       />
@@ -1011,6 +1011,18 @@ function ExpoCommunityVideo({
       ? Math.min(1, Math.max(0, currentTime / knownDuration))
       : 0;
   // Do not confuse automatic initialization with a manual Play state.
+  function openFullscreenFromTap() {
+    if (!onOpenFullscreen || fullscreen) return;
+    try {
+      // Preserve progress and stop the inline decoder before opening the viewer.
+      playbackTimeByUri.set(playbackIdentity, Number(player.currentTime || currentTime || 0));
+      player.pause();
+    } catch {
+      // The full-screen route can recover even if this feed cell was recycled.
+    }
+    onOpenFullscreen();
+  }
+
   const centerVisible = playerStatus !== 'error' &&
     (showCenter || (!playing && (!autoPlay || userPausedRef.current)));
   const chromeVisible = !fullscreen || !playing || showCenter;
@@ -1070,9 +1082,9 @@ function ExpoCommunityVideo({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
-          playing ? 'Pause video' : 'Play video'
+          onOpenFullscreen && !fullscreen ? 'Open video full screen' : (playing ? 'Pause video' : 'Play video')
         }
-        onPress={togglePlayback}
+        onPress={onOpenFullscreen && !fullscreen ? openFullscreenFromTap : togglePlayback}
         style={styles.tapLayer}
       />
 
@@ -1146,33 +1158,7 @@ function ExpoCommunityVideo({
       >
         {chromeVisible ? (
           <View style={styles.cornerRow}>
-            {onOpenFullscreen && !fullscreen ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open video full screen"
-                onPress={() => {
-                  try {
-                    playbackTimeByUri.set(
-                      playbackIdentity,
-                      Number(player.currentTime || currentTime || 0),
-                    );
-                    player.pause();
-                  } catch {
-                    // Opening fullscreen still continues from the saved time.
-                  }
-                  onOpenFullscreen();
-                }}
-                style={styles.roundButton}
-              >
-                <MaterialCommunityIcons
-                  name="fullscreen"
-                  size={22}
-                  color="#FFFFFF"
-                />
-              </Pressable>
-            ) : (
-              <View />
-            )}
+            <View />
 
             <Pressable
               accessibilityRole="button"
