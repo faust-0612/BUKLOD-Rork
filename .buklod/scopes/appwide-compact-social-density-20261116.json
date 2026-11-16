@@ -33,7 +33,8 @@
     "wall-media",
     "cluster-faith",
     "kingdom-character",
-    "ads-finance-points"
+    "ads-finance-points",
+    "faith-cluster"
   ],
   "regressionTests": [
     "tests/compact-appwide-layout-navigation-wall-connect.test.mjs",
