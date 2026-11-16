@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-android-only-production-trigger-correction.json",
+  "objective": "Correct an unintended shared main release trigger before web publication: promote stage-verified Android-only source using the already supported BUKLOD_ANDROID_ONLY_PROD_20261114 marker; no application modifications.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: staging Android OTA 01a1e2c9-3ec3-76be-b931-84f5e0ebafc2, source 1aebc901e77089c7f3e926c76dfff4a4a8e34972, runtime 1.3.2. Current main release marker c4a540342c0d4a08727e0f5dc35411b28418d59b started web and Android workflows due historical shared prefix; web not yet deployed at correction initiation.",
+  "chosenApproach": "Merge release metadata-only exact-source tested followup using Android-only marker already accepted by production Android workflow and excluded by web. Previous runners' current-main SHA checks abort on movement.",
+  "selectionRationale": "Workflow cancellation action is unavailable through connected GitHub. A protected main PR is the only auditable path to advance source and trigger correctly scoped Android-only OTA without changing the app or web workflow.",
+  "alternativeApproaches": [
+    "Allow unintended web deploy — rejected.",
+    "Rewrite web or android workflow during running release — rejected as risky and slower."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "production-release",
+    "ads-monetization",
+    "app-runtime"
+  ],
+  "preserveBehaviors": [
+    "Android production remains runtime 1.3.2 and the same staged JS/native code; changes only release metadata and tests.",
+    "Old concurrent web and Android workflows must stop before publish if main changes; no Expo Hosting web publication authorized.",
+    "Keep all AdMob, Wall, navigation, Supabase and Character data/source unchanged.",
+    "Continue existing production ad/nav/media tests, RC freeze and manifest verification.",
+    "Do not claim success until independent Android production EAS receipt and no unintended web publication confirmed."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov16-android-only-production-trigger-correction.json",
+    "release/nov16-android-only-trigger-correction.json",
+    "tests/nov16-android-only-production-trigger-correction.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Source code and native/runtime paths unchanged from verified staging.",
+    "Production Android workflow supports the Android-only marker while production Web excludes it.",
+    "Required protected PR CI passes.",
+    "Corrected merge advances main before old web deploy and triggers Android-only production publication; verify old run aborts or remains skipped.",
+    "Production Android publish is confirmed by exact update ID, frozen hash, runtime and production channel live manifest."
+  ],
+  "regressionTests": [
+    "tests/nov16-android-only-production-trigger-correction.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "runtimeVersion": "1.3.2",
+  "releaseTarget": "Android production channel only, no web",
+  "publicationStatus": "SOURCE_ONLY_PROTECTED_PR"
+}
