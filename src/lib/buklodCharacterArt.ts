@@ -3,6 +3,7 @@
  * Until then clients use a local icon, never broken/guessed asset URLs.
  */
 import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storyItemAssetPath } from '@/lib/buklodCharacterCollectionLogic';
 import type { BuklodCharacterWorldId } from '@/lib/buklodCharacterWorldCatalog';
 
@@ -12,6 +13,8 @@ const EXPECTED_CATALOGUE = 'BUKLOD_CHARACTER_R31_R40_1300';
 const EXPECTED_COUNT = 1300;
 const REFRESH_AFTER_MS = 10 * 60 * 1000;
 const RETRY_AFTER_FAILURE_MS = 60 * 1000;
+const OFFLINE_ART_KEY='buklod:verified-character-art:v1';
+const OFFLINE_TTL_MS=30*24*60*60*1000;
 
 export type CharacterArtPublication = Readonly<{
   available:boolean; reason:'ready'|'missing'|'invalid'|'offline';
@@ -29,6 +32,21 @@ function isValidMarker(input:unknown):boolean {
   && x.ready===true;
 }
 export function getCachedCharacterArtPublication() {return latest;}
+
+/** Offline art reuses only a previously online-validated public marker.
+ * This never grants inventory, badge, XP or economy entitlements.
+ */
+async function offlinePublication():Promise<CharacterArtPublication> {
+ try{
+  const raw=await AsyncStorage.getItem(OFFLINE_ART_KEY);
+  if(!raw)return {available:false,reason:'offline'};
+  const saved=JSON.parse(raw) as {checkedAt:number;marker:unknown};
+  if(!Number.isFinite(saved.checkedAt)||saved.checkedAt>Date.now()||
+     Date.now()-saved.checkedAt>OFFLINE_TTL_MS||!isValidMarker(saved.marker))
+   return {available:false,reason:'offline'};
+  return {available:true,reason:'ready'};
+ }catch{return {available:false,reason:'offline'};}
+}
 
 /** One bounded network check per 10 minutes, failures retry after 60 sec.
  * No per-card existence queries, polling or required auth token.
@@ -52,8 +70,9 @@ export async function loadCharacterArtPublication(force=false):Promise<Character
    if(!response.ok)return {available:false,reason:'missing'} as CharacterArtPublication;
    const payload=await response.json();
    if(!isValidMarker(payload))return {available:false,reason:'invalid'} as CharacterArtPublication;
+   void AsyncStorage.setItem(OFFLINE_ART_KEY,JSON.stringify({checkedAt:Date.now(),marker:payload})).catch(()=>{});
    return {available:true,reason:'ready'} as CharacterArtPublication;
-  }catch {return {available:false,reason:'offline'} as CharacterArtPublication;}
+  }catch {return offlinePublication();}
  })();
  pending=task;
  try{latest=await task;return latest;}finally{if(pending===task)pending=null;}
