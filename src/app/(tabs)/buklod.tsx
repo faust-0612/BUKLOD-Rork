@@ -125,7 +125,7 @@ import {
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
-import { formatSpecificDateTime } from '@/lib/dateTime';
+import { formatSpecificDateTime, formatCompactWallDateTime } from '@/lib/dateTime';
 import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
 import { ProfileAvatarNoteChip } from '@/components/ProfileAvatar';
 import BuklodTappablePersonName from '@/components/BuklodTappablePersonName';
@@ -5933,81 +5933,39 @@ const communityFeedRows =
     return (
       <BuklodFocusVisibleRow index={index}>
     <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
-   <View
-     style={{
-       flexDirection:
-         'row',
-       alignItems:
-         'center',
-       gap: 9,
-     }}
-   >
-   {/* PATCH_185A_R2_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
-   <View
-    style={{
-     flexDirection:'row',
-     alignItems:'center',
-     gap:10,
-     marginBottom:0
-    }}
-   >
-    <View style={{flex:1}}>
-   {/* PATCH_185A_R5_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
-   <View
-    style={{
-     flexDirection:'row',
-     alignItems:'center',
-     gap:10,
-     marginBottom:0
-    }}
-   >
-    <BuklodTappableAvatar
-     userId={item.user_id}
-     name={resolvePersonDisplayName(item.author_name, item.user_id)}
-     size={42}
-    />
-    <View style={{flex:1}}>
-     <BuklodTappablePersonName
+   {/* BUKLOD_WALL_SINGLE_LINE_IDENTITY_20261116: actions live below identity so names and timestamps retain full width. */}
+   <View style={{flexDirection:'row',alignItems:'flex-start',gap:10}}>
+     <BuklodTappableAvatar
        userId={item.user_id}
-       displayName={resolvePersonDisplayName(
-         item.author_name,
-         item.user_id,
-       )}
-       style={[
-         s.author,
-         {
-           flex: 1,
-         },
-       ]}
-     >
-       {resolvePersonDisplayName(
-         item.author_name,
-         item.user_id,
-       )}
-     </BuklodTappablePersonName>
+       name={resolvePersonDisplayName(item.author_name,item.user_id)}
+       size={42}
+     />
+     <View style={{flex:1,minWidth:0}}>
+       <BuklodTappablePersonName
+         userId={item.user_id}
+         displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
+         numberOfLines={1}
+         style={s.author}
+       >
+         {resolvePersonDisplayName(item.author_name,item.user_id)}
+       </BuklodTappablePersonName>
        <ProfileAvatarNoteChip userId={item.user_id} />
-       {/* PATCH_186I_R3_AUTHOR_META_UNDER_NAME */}
+       <Text style={s.meta} numberOfLines={1}>
+         {item.author_rank_name||'Circle Starter V'}
+         {item.cluster_name ? ` | ${item.cluster_name}` : ''}
+         {' | '}
+         {String(item.audience||'group').toUpperCase()}
+         {item.author_only ? ' | AKO LANG' : ''}
+       </Text>
        <Text
          style={s.meta}
          numberOfLines={1}
+         adjustsFontSizeToFit
+         minimumFontScale={0.75}
        >
-         {item.author_rank_name||'Circle Starter V'}
-         {item.cluster_name
-           ? ` | ${item.cluster_name}`
-           : ''}
+         {formatCompactWallDateTime(item.created_at)}
        </Text>
-       <Text style={s.meta}>{String(
-     item.audience ||
-     'group'
-    ).toUpperCase()}
-    {item.author_only
-      ? ' | AKO LANG'
-      : ''}
-    {' | '}
-    {formatSpecificDateTime(
-     item.created_at
-    )}</Text>
-</View>
+       <View style={{flexDirection:'row',justifyContent:'flex-end',alignItems:'center',marginTop:3,gap:6}}> 
     {item.user_id===user?.id ? (
      <BuklodContentOverflowMenu
       title="Your post"
@@ -6126,9 +6084,8 @@ const communityFeedRows =
       />
      </View>
     )}
-   </View>
-    </View>
-   </View>
+       </View>
+     </View>
    </View>
    <BuklodPostMotion preset={postCreatives[String(item.id)]?.motion_preset??'none'}
     active={wallScreenFocused&&visibleCreativePostIds.includes(String(item.id))}>
