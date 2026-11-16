@@ -61,7 +61,7 @@ jobs:
           const data=JSON.parse(fs.readFileSync('readback-evidence/staging-list.json','utf8'));
           const rows=data.currentPage??data;
           assert.ok(Array.isArray(rows),'Read-only EAS update list is not an array');
-          const matches=rows.filter(x=>x.message===process.env.RELEASE_MESSAGE);
+          const matches=rows.filter(x=>String(x.message).startsWith('"'+process.env.RELEASE_MESSAGE+'"'));
           assert.equal(matches.length,1,'Exactly one matching release message must exist');
           assert.ok(matches[0].group,'Missing EAS update group');
           fs.writeFileSync('readback-evidence/group-id.txt',matches[0].group);
