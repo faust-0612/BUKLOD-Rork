@@ -68,7 +68,9 @@ test('Character hub is read-only, preserving BP, Shards and QMP separation',()=>
 test('Special Character story ownership is independently fetched and never inferred from badge count',()=>{
  assert.match(hub,/get_my_buklod_character_story_tasks_v1/);
  assert.match(hub,/Promise\.allSettled/);
- assert.match(hub,/item\.owned&&Boolean\(item\.earned_at\)/);
+ assert.match(hub,/!item\.owned\|\|!item\.earned_at/);
+ assert.match(hub,/getMyCharacterCollectibles\(selected as typeof CORE_CHARACTER_ORDER\[number\]\)/);
+ assert.match(hub,/storyItemKey\(worldId,item\.level,item\.item_index\)/);
  assert.match(hub,/storyItemTaskTarget/);
 });
 test('Image publication and zoom are gated; no accidental heavy asset bundle or direct storage write',()=>{
