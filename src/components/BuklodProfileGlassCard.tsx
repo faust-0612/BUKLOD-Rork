@@ -50,8 +50,8 @@ function createGlassStyles(
     },
     row: {
       minHeight: buklodVisual.size.row,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
