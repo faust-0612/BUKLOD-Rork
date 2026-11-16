@@ -65,7 +65,7 @@ jobs:
           const {execFileSync}=await import('node:child_process');
           const {readFileSync}=await import('node:fs');
           const manifest=JSON.parse(readFileSync('.buklod/scopes/wall-connect-note-rail-density-20261116.json','utf8'));
-          const changed=execFileSync('git',['diff','--name-only',sourceRC,sha],{encoding:'utf8'}).trim().split('\\n').sort();
+          const changed=execFileSync('git',['diff','--name-only',sourceRC,sha],{encoding:'utf8'}).trim().split(String.fromCharCode(10)).sort();
           assert.deepEqual(changed,manifest.allowedPaths.slice().sort(),'Staging patch must contain only governed PR #894 paths');
           const runs=(await get('/actions/runs?head_sha='+sha+'&per_page=100')).workflow_runs;
           const required=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Main - Report Door and Legacy Integration PR QA'];
