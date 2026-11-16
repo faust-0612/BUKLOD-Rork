@@ -22,10 +22,15 @@ const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist
  * 2026-11-08 source review: modern R31/R40 full 20-level item controls, high-resolution sprite crop and masked next-Special preview intentionally supersede stale 2026-09-14 UI literals. Exact current blobs are frozen, rank/ownership authority unchanged.\n * Git blob identity is checked instead of hashing working-tree text so Windows
  * CRLF conversion cannot create false failures.
  */
+/* 2026-11-16 owner-authorized controlled rebaseline: 13×20×5 art mapping,
+ * item previews and safe whole-illustration idle motion. No unlock changes,
+ * no segmented rig claims and no production publication. Source SHA remains
+ * immutable and independently checked by dedicated release tests.
+ */
 const LOCKED_VISUAL_BLOBS = {
-  'src/components/points/BuklodProgressiveCharacterSelector.tsx': '1debd5659a96c97f83f32eeebb37c309a527d4ae',
-  'src/components/points/BuklodSpecialCharacterSeries.tsx': '4cf837d453c4c33c867e2b0ae714e6f81f1ffeb6',
-  'src/components/points/BuklodCharacterCustomizeSheet.tsx': '33fdfd5d1c599183f80eb4d7a4e99e7511c3bbc0',
+  'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'a298732870bef208ec6bb13500ff804d7d723d48',
+  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'b31976fd0e2591aaa2ed0175370a667259b7ba9a',
+  'src/components/points/BuklodCharacterCustomizeSheet.tsx': 'ed52076cc63952f4ef654018ad2d1b3f1e3ee73e',
   'src/components/points/BuklodProgressiveCharacterArt.tsx': '3000d9e03b77fc48f345c093fd5bd2a88bfad26d',
 };
 

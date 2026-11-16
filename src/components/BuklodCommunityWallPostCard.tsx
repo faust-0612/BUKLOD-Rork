@@ -242,15 +242,15 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: buklodVisual.radius.card,
     padding: buklodVisual.space.card,
-    marginBottom: 10,
-    gap: 6,
+    marginBottom: 6,
+    gap: 4,
     overflow: 'visible', // Keep reaction picker outside the card clipping boundary.
   },
   card: {
     width: '100%',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 6,
+    paddingBottom: 6,
   },
   header: {
     paddingHorizontal: 8,
@@ -299,8 +299,8 @@ const styles = StyleSheet.create({
   },
   body: {
     paddingHorizontal: 8,
-    paddingTop: 6,
-    paddingBottom: 7,
+    paddingTop: 4,
+    paddingBottom: 5,
     fontSize: 16,
     lineHeight: 23,
   },

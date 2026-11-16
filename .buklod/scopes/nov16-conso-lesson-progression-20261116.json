@@ -1,0 +1,101 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-conso-lesson-progression-20261116.json",
+  "objective": "Include Reniel Troyo BUKLOD CCP/Formation topic progression retry repair in the existing Nov16 consolidated staging Android 1.3.2 candidate without dropping spacing, Character, Kingdom, Wall, AdMob or other integrated fixes.",
+  "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
+  "productionBaselineEvidence": "GitHub main at 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61; this source-only work has not been independently verified against a live staging/production EAS manifest. Production or staging publication is not claimed.",
+  "chosenApproach": "Integrate only two disjoint, reviewed app component patches and a focused three-test regression suite into integration/nov16-spacing-graphics-character-rc (PR #889), and extend its existing PR QA without widening runtime/native/backend changes.",
+  "selectionRationale": "On Nov16 the 187-file staging candidate did not modify either Formation component. Patching only those untouched files preserves combined app-wide layout and Character/Kingdom source. Draft responses remain account/enrollment-scoped and still require five source-grounded Gemini checks for approval and points.",
+  "alternativeApproaches": [
+    "Publish the standalone lesson branch as a separate OTA (rejected; not consolidated)",
+    "Overwrite the 187-file staging RC with an older branch (rejected; feature regression)",
+    "Force-complete Reniel or bypass the AI checker (rejected; invalid awards)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "cluster-faith",
+    "auth-privacy",
+    "ads-monetization",
+    "data-integrity",
+    "production-release",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Keep existing exact authorized Cluster membership checks and server-issued scope, with no arbitrary admin or cross-user scope grants.",
+    "Retain all four generated questions and personal reflection; validated answers and points remain server-authoritative, source-grounded, and no manual approval or automatic false success.",
+    "Keep duplicate-submit guard, account/enrollment isolation, existing ad warmup and placement, and no ad blocking of committed lesson.",
+    "Maintain unchanged Expo Android runtime 1.3.2, package IDs and staging-user release channel. No native dependency, migrations, Edge Functions, financial ledger or production OTA changed.",
+    "Keep all PR #889 app-wide spacing, Character/Kingdom graphics, audio, Wall/Connect/Profile/AdMob source changes and its earlier QA hold.",
+    "Owner waived actual physical device verification; source/CI/RC and signed client provenance checks still mandatory."
+  ],
+  "allowedPaths": [
+    "src/components/LearningQuestionResponse.tsx",
+    "src/components/BuklodFormationEntryScopeTracker.tsx",
+    "tests/lesson-quickcheck-regression-20261116.test.mjs",
+    ".github/workflows/buklod-compact-layout-qa.yml",
+    ".buklod/scopes/nov16-conso-lesson-progression-20261116.json"
+  ],
+  "regressionTests": [
+    "tests/lesson-quickcheck-regression-20261116.test.mjs",
+    "tests/formation-ai-only-reflections-and-points-20261109.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/character-density-20261116.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Server draft is saved before Gemini validation; failed individual answers preserve the other responses and give exact question guidance.",
+    "Only a single active Cluster can be inferred for generic Learn entry and server validates membership and scope; multiple clusters or inactive accounts never guess.",
+    "No points/lesson approval unless all four question checks and personal reflection are valid and server returns approved.",
+    "Focused new lesson and existing Formation, AdMob, navigation, Character/Kingdom QA pass on exact combined head; TypeScript and Android Hermes export pass.",
+    "Consolidated source SHA and release identity are independently verified against trusted signed staging APK runtime 1.3.2, with unchanged production channel before/after publication.",
+    "Do not publish from this dev integration alone; stage under immutable RC only after consolidated QA and external 1,300-art requirements."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "cluster-faith",
+      "reason": "Unblock generic Learn entry with exact server-verified unique active Cluster and no cross-scope override.",
+      "preservedBehaviors": [
+        "Server enforces member scope eligibility, no direct privilege grants."
+      ],
+      "tests": [
+        "tests/lesson-quickcheck-regression-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "auth-privacy",
+      "reason": "Keep answer drafts owned by authenticated enrollment and survive rejected AI checks.",
+      "preservedBehaviors": [
+        "No cross-user answer retrieval or client-only completion."
+      ],
+      "tests": [
+        "tests/lesson-quickcheck-regression-20261116.test.mjs",
+        "tests/formation-ai-only-reflections-and-points-20261109.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-monetization",
+      "reason": "Preserve existing ad lifecycle after successful committed completion.",
+      "preservedBehaviors": [
+        "No ad triggered before genuine success or placed over questions."
+      ],
+      "tests": [
+        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add lesson tests to PR QA only; current consolidated release remains held.",
+      "preservedBehaviors": [
+        "No OTA without signed staging identity and all QA gates."
+      ],
+      "tests": [
+        "tests/lesson-quickcheck-regression-20261116.test.mjs"
+      ]
+    }
+  ],
+  "runtimeVersion": "1.3.2",
+  "intendedChannel": "staging-user",
+  "releaseMode": "CONSOLIDATED_STAGING_RC_QA_HOLD",
+  "publicationStatus": "DEV_INTEGRATED_NO_OTA"
+}

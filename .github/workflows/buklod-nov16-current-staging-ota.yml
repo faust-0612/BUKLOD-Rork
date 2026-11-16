@@ -80,6 +80,7 @@ jobs:
             tests/marites-wall-scroll-video-navigation-20261113.test.mjs
           npx tsc --noEmit
           npm run character:contract
+          npm run compact:contract
           npm run release:base-gate
       - name: Inspect approved signed staging APK and independent production baseline
         env:

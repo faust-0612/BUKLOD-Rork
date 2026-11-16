@@ -15,6 +15,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
+import BuklodCharacterIdleMotion from '@/components/points/BuklodCharacterIdleMotion';
 import BuklodProgressiveCharacterSelector from '@/components/points/BuklodProgressiveCharacterSelector';
 import BuklodSpecialCharacterSeries from '@/components/points/BuklodSpecialCharacterSeries';
 import { type BuklodCharacterState } from '@/lib/buklodCharacter';
@@ -182,6 +183,7 @@ export default function BuklodCharacterCustomizeSheet({
               <>
                 <View style={styles.banner}>
                   <View style={styles.heroArt}>
+                    <BuklodCharacterIdleMotion active={visible}>
                     {showingCore ? (
                       <BuklodProgressiveCharacterArt
                         key={artKey}
@@ -202,11 +204,12 @@ export default function BuklodCharacterCustomizeSheet({
                         style={{ width: 88, height: 92 }}
                       />
                     ) : null}
+                    </BuklodCharacterIdleMotion>
                   </View>
                   <View style={styles.heroMeta}>
                     <Text style={styles.bannerKicker}>SHOWING NOW</Text>
                     <Text style={styles.bannerTitle}>
-                      {showingCore ? 'FIVE' : showingSpecial ? 'EIGHT' : 'CHARACTER'}
+                      {activeName.toUpperCase()}
                     </Text>
                     <Text style={styles.bannerLine}>
                       Same look on Profile and Home. Tap Use to keep this character.

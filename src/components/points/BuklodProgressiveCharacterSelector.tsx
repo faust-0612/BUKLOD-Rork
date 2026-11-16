@@ -16,6 +16,8 @@ import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
+import BuklodCharacterIdleMotion from '@/components/points/BuklodCharacterIdleMotion';
+import BuklodCollectibleArt from '@/components/points/BuklodCollectibleArt';
 import BuklodCharacterLevelGuide from '@/components/points/BuklodCharacterLevelGuide';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { withAlpha } from '@/lib/buklodContrast';
@@ -75,6 +77,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
   const [draft, setDraft] = useState<ProgressiveCharacterId>(activeCore ?? 'phan');
   const [collectionLevel, setCollectionLevel] = useState(activeCore ? clampLevel(state.character_level) : 1);
   const [zoom, setZoom] = useState<{ id: ProgressiveCharacterId; level: number } | null>(null);
+  const [itemZoom, setItemZoom] = useState<{ id: ProgressiveCharacterId; level: number; itemIndex: number; name: string; locked: boolean } | null>(null);
   const window = useWindowDimensions();
   const zoomHeight = Math.max(1, Math.min(500, window.height * 0.86 - 110, (window.width - 64) * 508 / 247));
   const [busy, setBusy] = useState(false);
@@ -84,7 +87,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const profile = PROGRESSIVE_CHARACTERS[draft];
-  const availableLevel = draft === activeCore ? clampLevel(state.character_level) : 1;
+  const availableLevel = clampLevel(state.character_levels[draft] ?? (draft === activeCore ? state.character_level : 1));
   const currentCollectibles = useMemo(
     () => collectibleNames(draft, collectionLevel),
     [draft, collectionLevel],
@@ -420,9 +423,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     zoomStage: { marginTop: 3, marginBottom: 8, fontSize: 12, fontWeight: '800', color: '#335B41', textAlign: 'center' },
   }), [theme]);
 
-  const earnedLevel = draft === activeCore
-    ? clampLevel(collectibleState?.characterLevel ?? availableLevel)
-    : 1;
+  const earnedLevel = availableLevel;
   const previewLevel = clampLevel(collectionLevel);
   const featuredIndex = PROGRESSIVE_CHARACTER_ORDER.indexOf(draft) + 1;
   const levelFill = `${Math.round((earnedLevel / 20) * 100)}%` as const;
@@ -457,18 +458,20 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           <Text style={styles.featuredQuote}>"{profile.stages[previewLevel - 1]}"</Text>
         </View>
         <View style={styles.featuredArt}>
-          <BuklodProgressiveCharacterArt
+          <BuklodCharacterIdleMotion active={showingNow}>
+<BuklodProgressiveCharacterArt
             key={`${draft}-${previewLevel}-featured`}
             characterId={draft}
             level={previewLevel}
             height={132}
             viewportWidth={96}
           />
+</BuklodCharacterIdleMotion>
           {besidePins.length ? (
             <View style={styles.besideStack}>
               {besidePins.map((pin) => (
                 <View key={pin.key} style={styles.besidePin}>
-                  <MaterialCommunityIcons name={characterTokenIcon(pin.characterId, pin.itemIndex) as never} size={14} color="#E8C56B" />
+                  <BuklodCollectibleArt characterId={pin.characterId} level={pin.level} itemIndex={pin.itemIndex} size={24} fallbackIcon={characterTokenIcon(pin.characterId, pin.itemIndex)} />
                 </View>
               ))}
             </View>
@@ -481,7 +484,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           const item = PROGRESSIVE_CHARACTERS[id];
           const selected = draft === id;
           const active = state.active_character_id === id;
-          const level = active ? clampLevel(state.character_level) : 1;
+          const level = clampLevel(state.character_levels[id] ?? (active ? state.character_level : 1));
           const accent = ROW_ACCENT[id];
           return (
             <Pressable
@@ -549,7 +552,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
             <View style={styles.pinRow}>
               {besidePins.length ? besidePins.map((pin) => (
                 <View key={pin.key} style={styles.pin}>
-                  <MaterialCommunityIcons name={characterTokenIcon(pin.characterId, pin.itemIndex) as never} size={18} color="#E8C56B" />
+                  <BuklodCollectibleArt characterId={pin.characterId} level={pin.level} itemIndex={pin.itemIndex} size={29} fallbackIcon={characterTokenIcon(pin.characterId, pin.itemIndex)} />
                 </View>
               )) : (
                 <Text style={styles.giverNote}>Nothing is beside {profile.name} yet.</Text>
@@ -614,7 +617,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
             );
             const equipped = saved ? isCollectibleShown(saved, collectibleState) : false;
             const levelOpen = isCollectibleLevelOpen(collectibleState, collectionLevel);
-            const owned = Boolean(saved?.redeemedAt) || levelOpen;
+            const owned = Boolean(saved?.redeemedAt) || collectionLevel <= availableLevel;
             const action = !levelOpen ? null : equipped ? 'remove' : 'use';
             const label = action === 'use' ? 'Show' : action === 'remove' ? 'Shown' : owned ? 'Owned' : 'Locked';
             const busyKey = itemBusy === `${collectionLevel}:${itemIndex}`;
@@ -624,9 +627,12 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
                 key={`${draft}-${collectionLevel}-${itemIndex}`}
                 style={[styles.collectibleRow, pulseKey === rowKey ? { transform: [{ scale: itemPulse }] } : null]}
               >
-                <View style={styles.tokenIcon}>
-                  <MaterialCommunityIcons name={characterTokenIcon(draft, itemIndex) as never} size={18} color={theme.accent} />
-                </View>
+                <Pressable accessibilityRole="button" accessibilityLabel={"Inspect artwork: " + item}
+                  onPress={() => setItemZoom({ id: draft, level: collectionLevel, itemIndex, name: item, locked: !owned })}
+                  style={styles.tokenIcon}>
+                  <BuklodCollectibleArt characterId={draft} level={collectionLevel} itemIndex={itemIndex}
+                    size={34} fallbackIcon={characterTokenIcon(draft, itemIndex)} locked={!owned} />
+                </Pressable>
                 <View style={styles.collectibleCopy}>
                   <Text style={styles.collectibleName} numberOfLines={2}>{item}</Text>
                   <Text style={styles.collectibleKind}>
@@ -673,6 +679,18 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
       </Pressable>
       {actionMessage ? <Text style={styles.actionMessage}>{actionMessage}</Text> : null}
 
+      <Modal visible={itemZoom != null} transparent animationType="fade" onRequestClose={() => setItemZoom(null)}>
+        <Pressable style={styles.zoomBackdrop} onPress={() => setItemZoom(null)} accessibilityRole="button" accessibilityLabel="Close collectible artwork">
+          {itemZoom ? (
+            <View style={styles.zoomCard} pointerEvents="none">
+              <Text style={styles.zoomTitle}>{itemZoom.name}</Text>
+              <Text style={styles.zoomStage}>{PROGRESSIVE_CHARACTERS[itemZoom.id].name} · Level {itemZoom.level}</Text>
+              <BuklodCollectibleArt characterId={itemZoom.id} level={itemZoom.level} itemIndex={itemZoom.itemIndex}
+                size={256} fallbackIcon={characterTokenIcon(itemZoom.id, itemZoom.itemIndex)} locked={itemZoom.locked} />
+            </View>
+          ) : null}
+        </Pressable>
+      </Modal>
       <Modal visible={zoom != null} transparent animationType="fade" onRequestClose={() => setZoom(null)}>
         <Pressable style={styles.zoomBackdrop} onPress={() => setZoom(null)} accessibilityRole="button" accessibilityLabel="Close full screen character">
           <View style={styles.zoomCard} pointerEvents="none">

@@ -141,6 +141,7 @@ export function shownCollectiblePins(
       characterId: pin.characterId,
       rewardKind: pin.rewardKind,
       itemIndex: owned?.itemIndex ?? 1,
+      level: owned?.level ?? 1,
     }];
   });
 }

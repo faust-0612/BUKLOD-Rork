@@ -31,7 +31,7 @@ test('dark HIBLA header stays visible with transparent, aligned contact avatars'
  assert.ok(connect.includes('color: HIBLA.gold'));
  assert.ok(connect.includes("color: '#FFFFFF',\n      fontSize: buklodVisual.type.title"));
  assert.ok(connect.includes('borderBottomLeftRadius: 25'));
- assert.ok(connect.includes('marginTop: 8'));
+ assert.match(connect, /searchDock:\s*\{[\s\S]*?marginTop:\s*4/);
  assert.ok(!connect.includes('marginTop: -12'));
  assert.ok(contacts.includes("backgroundColor: 'transparent'"));
  assert.ok(contacts.includes('height: NOTE_ZONE_HEIGHT'));
