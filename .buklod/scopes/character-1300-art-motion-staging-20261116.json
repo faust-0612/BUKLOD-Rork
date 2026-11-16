@@ -1,10 +1,18 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/character-1300-art-motion-staging-20261116.json",
-  "objective": "Consolidated staging RC: compact BUKLOD Home/Wall/Connect/Profile/Cluster/Bible/QMP spacing while rendering 1,300 exact Character artworks and preserving native/AdMob/Character progression protections.",
+  "releaseMode": "consolidated-main-rc",
+  "componentScopePaths": [],
+  "objective": "Combine exact independently verified November 16 compact/1300-Character Android staging source with bounded consent-gated predictive first-view NativeAd prewarming.",
   "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
-  "productionBaselineEvidence": "Main source 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61, native package and Expo runtime unchanged. Public Storage contains 1300 expected WebP paths plus manifest and ready marker (live SQL 2026-11-16); no new production OTA or backend reward mutation.",
-  "chosenApproach": "Exact source composition of independently reviewed PR #887 Character art and PR #888 spacing on main 63ccd4b; verified 1300 public WebP objects plus signed publication marker; staging-only public artwork URL fallback, no production automatic art enablement.",
+  "productionBaselineEvidence": "Verified #892 staging workflow 43877787518; source 8b152c571a923e85b8812a55120d2e3a72c2301a, update 01a1e498-a8f0-7fc8-93fe-7662526d086d, runtime 1.3.2, org.mzbministry.buklod.staging; production unchanged ID 01a1e2e2-cb65-7733-bcb6-3519230c9cf4. DEV ad #891 head 019c0844e33f57a181542dec6837277888c86fdb passed 3 source CI jobs. New staging branch must still equal expected OTA before publication. Integrated candidate has one strict V2 manifest for precisely the changed stage+Ad code, not an engineering gate bypass. Original #891 DEV Ad contract remains on PR #891.",
+  "chosenApproach": "Graft disjoint and reviewed AdMob source/test/manifest over the exact verified 1300-art and compact staging source, add consolidated scope and new source-locked staging-only Android release workflow, then verify EAS runtime/build/channel and exact immutable readbacks.",
+  "selectionRationale": "Avoid regression or rollback of current staging art and spacing. Reuse true Google ads with consent and full source QA rather than synthetic impressions or hidden ad views.",
+  "alternativeApproaches": [
+    "Publish isolated ad fix from older main (would roll back current staging art).",
+    "Republish current #892 OTA unchanged (would omit new ads).",
+    "Merge unverified competing large RC (violates release provenance and regression constraints)."
+  ],
   "riskAreas": [
     "app-runtime",
     "kingdom-character",
@@ -20,11 +28,15 @@
     "AdMob viewability",
     "accessibility",
     "navigation-auth",
-    "cluster-faith"
+    "cluster-faith",
+    "ads-monetization",
+    "ads-finance-points"
   ],
   "allowedPaths": [
     ".buklod/scopes/character-1300-art-motion-staging-20261116.json",
     ".github/workflows/buklod-compact-layout-qa.yml",
+    ".github/workflows/buklod-nov16-compact-art-ads-staging-release.yml",
+    ".github/workflows/buklod-nov16-compact-art-staging-release.yml",
     ".github/workflows/buklod-nov16-current-staging-ota.yml",
     ".github/workflows/character_recovery_pr_qa.yml",
     "docs/APPWIDE_COMPACT_LAYOUT_STANDARD.md",
@@ -33,6 +45,7 @@
     "scripts/character-release-contract.mjs",
     "scripts/compact-layout-gate.mjs",
     "scripts/verify-publish-character-art.mjs",
+    "src/app/(tabs)/_layout.tsx",
     "src/app/(tabs)/buklod.tsx",
     "src/app/(tabs)/home.tsx",
     "src/app/(tabs)/me.tsx",
@@ -41,8 +54,11 @@
     "src/app/bible/read.tsx",
     "src/app/clusters/index.tsx",
     "src/app/community-contribution.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
     "src/components/BuklodCommunityWallPostCard.tsx",
     "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodDashboardAdWarmup.android.tsx",
+    "src/components/BuklodDashboardAdWarmup.tsx",
     "src/components/BuklodProfileGlassCard.tsx",
     "src/components/BuklodReferralInviteCard.tsx",
     "src/components/UI.tsx",
@@ -65,12 +81,13 @@
     "tests/character-density-20261116.test.mjs",
     "tests/cluster-bible-density-20261116.test.mjs",
     "tests/compact-ota-release-20261116.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
     "tests/navigation-scroll-density-20261116.test.mjs",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/nov16-compact-art-ads-staging-release.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
-    "tests/wall-media-density-20261116.test.mjs",
-    ".github/workflows/buklod-nov16-compact-art-staging-release.yml",
-    "tests/nov16-compact-art-staging-release.test.mjs"
+    "tests/wall-media-density-20261116.test.mjs"
   ],
   "preserveBehaviors": [
     "Server-owned per-character level and XP, Circle Rank, item claims and rewards unchanged.",
@@ -80,7 +97,13 @@
     "Character level art still uses existing approved sprite sheets.",
     "Preserve real AdMob impressions, fill/viewability, consent and first-view navigation performance.",
     "Preserve Wall/Connect media interaction, user privacy, Bible reading and safe-area clearance.",
-    "Only staging defaults to verified public image URL; production not implicitly enabled."
+    "Only staging defaults to verified public image URL; production not implicitly enabled.",
+    "Android Expo runtime 1.3.2, installed AdMob native SDK and all ad IDs unchanged.",
+    "Genuine impression callbacks; no prewarm render, click, points or finance credits.",
+    "Existing consent, remote flags, safety locks, no-fill and two-minute passive request cooldown.",
+    "Current first-view Native-first plus sequential Banner fallback, retained offscreen SDK objects and scroll-stop.",
+    "Exact already-verified 8b152c5 stage source preserved bit-for-bit except reviewed ad additions.",
+    "No hidden NativeAdView, synthetic impressions, AdMob frequency overrides, new native dependencies, finance changes, backend mutations or production app changes."
   ],
   "acceptanceChecks": [
     "Verify all 1300 exact WebP objects plus 2 public JSON markers in bucket; marker uploaded LAST.",
@@ -88,7 +111,14 @@
     "Check staging-only asset base URL, production remains opt-in and no service key is exposed.",
     "Compile Android Hermes preview with Expo runtime 1.3.2 and staging package org.mzbministry.buklod.staging; verify signed APK/native parity.",
     "Freeze exact staging RC; publish Android only after release gates, then verify stage update manifest and production unchanged.",
-    "Skip physical-device test per owner; do not present that as automated/mobile verification."
+    "Skip physical-device test per owner; do not present that as automated/mobile verification.",
+    "Genuine already-filled Android NativeAd appears on focused first-view without a second SDK request.",
+    "No provider view or impression on non-visible tab.",
+    "No preload while unconsented, network offline, remotely disabled, locked, in background or on sensitive route.",
+    "Two creative cap, 30-min TTL and failed-slot cooldown preserved.",
+    "Tests, TypeScript and exact-source CI required before Android RC/OTA.",
+    "Mandatory exact-source CI and Android Hermes compiled export with matching signed staging APK/runtime 1.3.2.",
+    "Fail closed if staging update ID is not 01a1e498-a8f0-7fc8-93fe-7662526d086d before publishing or production manifest changes afterward."
   ],
   "regressionTests": [
     "tests/appwide-compact-density-20261116.test.mjs",
@@ -98,21 +128,25 @@
     "tests/character-density-20261116.test.mjs",
     "tests/cluster-bible-density-20261116.test.mjs",
     "tests/compact-ota-release-20261116.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
     "tests/navigation-scroll-density-20261116.test.mjs",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/nov16-compact-art-ads-staging-release.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
-    "tests/wall-media-density-20261116.test.mjs",
-    "tests/nov16-compact-art-staging-release.test.mjs"
+    "tests/wall-media-density-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Add verified public art preview with fail-closed fallback and compact shared presentation in staging source only.",
+      "reason": "Add verified public art preview with fail-closed fallback and compact shared presentation in staging source only.; Android-only prewarm in shared tab layout.",
       "preservedBehaviors": [
-        "Native runtime, installed package, Android permissions and existing account sessions do not change."
+        "Native runtime, installed package, Android permissions and existing account sessions do not change.",
+        "Expo native SDK, runtime and web implementation unchanged."
       ],
       "tests": [
-        "tests/buklod-character-art-contract-20261116.test.mjs"
+        "tests/buklod-character-art-contract-20261116.test.mjs",
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
       ]
     },
     {
@@ -127,12 +161,15 @@
     },
     {
       "id": "navigation-auth",
-      "reason": "Compact Home, Connect, Profile and navigation UI without editing session, auth or route resolution.",
+      "reason": "Compact Home, Connect, Profile and navigation UI without editing session, auth or route resolution.; Mount a no-UI Android ad preload coordinator inside the existing authenticated tab shell.",
       "preservedBehaviors": [
-        "Bottom tab navigation, back routes, safe area, keyboard and authentication protections remain intact."
+        "Bottom tab navigation, back routes, safe area, keyboard and authentication protections remain intact.",
+        "Original authorization and navigation redirects remain prior to any preload coordinator mount.",
+        "No changes to login, account, permission, route guards or navigation history."
       ],
       "tests": [
-        "tests/navigation-scroll-density-20261116.test.mjs"
+        "tests/navigation-scroll-density-20261116.test.mjs",
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
       ]
     },
     {
@@ -164,16 +201,26 @@
       "tests": [
         "tests/compact-ota-release-20261116.test.mjs"
       ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "AdMob request scheduling changes; earnings remain provider-owned.",
+      "preservedBehaviors": [
+        "Consent, impressions, finance and point awards unchanged."
+      ],
+      "tests": [
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
+      ]
     }
   ],
-  "releaseTarget": "staging-user Android runtime 1.3.2 only",
-  "physicalDeviceVerification": "SKIPPED_PER_OWNER",
-  "publicationStatus": "DEV_ONLY_NO_OTA",
-  "selectionRationale": "The two DEV PRs have disjoint source paths and independently passed focused QA. A single reviewed cumulative manifest is required to preserve strict governance for the combined 46-path diff.",
-  "alternativeApproaches": [
-    "Merge two draft PRs directly to production main (rejected: bypasses frozen staging RC, app compile and exact OTA verification).",
-    "Ship only Character art and defer spacing (rejected: user requests consolidated staging).",
-    "Bundle 1300 tiny WebPs into APK/OTA bundle (rejected: inefficient; verified public storage is already available)."
-  ],
-  "releaseMode": "dev-staging-candidate-no-ota"
+  "releaseTarget": {
+    "platform": "android",
+    "channel": "staging-user",
+    "environment": "preview",
+    "runtime": "1.3.2",
+    "androidPackage": "org.mzbministry.buklod.staging",
+    "production": "preserved"
+  },
+  "physicalDeviceVerification": "SKIPPED by owner, explicitly unverified",
+  "publicationStatus": "UNPUBLISHED until exact combined gates and EAS readback"
 }
