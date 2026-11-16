@@ -240,7 +240,8 @@
     "Keep four existing AdMob/dashboard/Wall navigation regression suites in the final staging publisher; not claimed as changed PR regression proofs.",
     "Publisher is gated by green frozen-source CI, exact source/native identity, Android 1.3.2 export and AdMob/navigation regressions; staging-user publication must have EAS manifest readback and no production mutation.",
     "Owner Nov16 update: SKIP Supabase staging entirely; use ephemeral PostgreSQL 17 CI for migration syntax, RLS, account isolation, event attribution, duplicate awards and claim-state reversal. This fixture is NOT proof of live Supabase compatibility.",
-    "Production OTA and production DB migration remain blocked until exact-source Android export, protected AdMob/navigation QA, asset upload and production preflight pass. No paid staging branch or staging OTA."
+    "Production OTA and production DB migration remain blocked until exact-source Android export, protected AdMob/navigation QA, asset upload and production preflight pass. No paid staging branch or staging OTA.",
+    "No-staging production Android source QA only after disposable Postgres succeeds: pinned production EAS public env, runtime 1.3.2/package, Character/AdMob/navigation unit contracts, TypeScript and Android export; this job must never call EAS update."
   ],
   "regressionTests": [
     "tests/kingdom-adventure-premium-presentation-20261116.test.mjs",
