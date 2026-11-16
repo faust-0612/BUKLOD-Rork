@@ -28,24 +28,24 @@ function contrast(a, b) {
 
 test('scope/direct message text never inherits light-on-dark colors inside fixed white pill', () => {
   assert.match(styleBlock('inputWrap'), /backgroundColor: '#FFFFFF'/);
-  assert.match(styleBlock('input'), /color: HIBLA\\.ink/);
-  assert.doesNotMatch(styleBlock('input'), /color: theme\\.textPrimary/);
-  assert.match(composer, /placeholderTextColor=\\{HIBLA\\.muted\\}/);
-  assert.match(composer, /selectionColor=\\{HIBLA\\.jade\\}/);
-  assert.match(composer, /mode === 'direct' \\? 'Mag-type ng mensahe/);
+  assert.match(styleBlock('input'), /color: HIBLA\.ink/);
+  assert.doesNotMatch(styleBlock('input'), /color: theme\.textPrimary/);
+  assert.match(composer, /placeholderTextColor=\{HIBLA\.muted\}/);
+  assert.match(composer, /selectionColor=\{HIBLA\.jade\}/);
+  assert.match(composer, /mode === 'direct' \? 'Mag-type ng mensahe/);
   assert.match(composer, /: 'Mensahe sa grupo/);
   assert.ok(contrast(palette('ink'), '#FFFFFF') >= 7, 'typed text must pass AAA');
   assert.ok(contrast(palette('muted'), '#FFFFFF') >= 4.5, 'placeholder must pass AA');
 });
 
 test('light HIBLA reply and attachment surfaces remain readable under night themes', () => {
-  assert.match(styleBlock('replyBanner'), /backgroundColor: HIBLA\\.mint/);
-  assert.match(styleBlock('replyLabel'), /color: HIBLA\\.pine/);
-  assert.match(styleBlock('replyName'), /color: HIBLA\\.ink/);
-  assert.match(styleBlock('replyPreview'), /color: HIBLA\\.muted/);
+  assert.match(styleBlock('replyBanner'), /backgroundColor: HIBLA\.mint/);
+  assert.match(styleBlock('replyLabel'), /color: HIBLA\.pine/);
+  assert.match(styleBlock('replyName'), /color: HIBLA\.ink/);
+  assert.match(styleBlock('replyPreview'), /color: HIBLA\.muted/);
   assert.match(styleBlock('iconCircle'), /backgroundColor: '#E6F3E9'/);
-  assert.match(composer, /name="paperclip"[\\s\\S]*?color=\\{HIBLA\\.pine\\}/);
-  assert.match(composer, /name="image-outline"[\\s\\S]*?color=\\{HIBLA\\.pine\\}/);
+  assert.match(composer, /name="paperclip"[\s\S]*?color=\{HIBLA\.pine\}/);
+  assert.match(composer, /name="image-outline"[\s\S]*?color=\{HIBLA\.pine\}/);
   for (const [fg, bg] of [
     ['ink', 'mint'],
     ['pine', 'mint'],
@@ -59,12 +59,12 @@ test('light HIBLA reply and attachment surfaces remain readable under night them
 });
 
 test('contrast-only repair preserves send, native keyboard, media and user draft plumbing', () => {
-  assert.match(composer, /value=\\{draft\\}/);
-  assert.match(composer, /onChangeText=\\{onChangeDraft\\}/);
-  assert.match(composer, /onPress=\\{hasMessagePayload \\? onSend/);
+  assert.match(composer, /value=\{draft\}/);
+  assert.match(composer, /onChangeText=\{onChangeDraft\}/);
+  assert.match(composer, /onPress=\{hasMessagePayload \? onSend/);
   assert.match(composer, /onAttachPress/);
   assert.match(composer, /onChoosePhoto/);
   assert.match(composer, /multiline/);
-  assert.match(composer, /blurOnSubmit=\\{false\\}/);
-  assert.match(composer, /Platform.OS !== 'web' \\|\\| !hasMessagePayload/);
+  assert.match(composer, /blurOnSubmit=\{false\}/);
+  assert.match(composer, /Platform.OS !== 'web' \|\| !hasMessagePayload/);
 });
