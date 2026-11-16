@@ -79,6 +79,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
   const [previouslySubmitted, setPreviouslySubmitted] = useState(false);
   // Guards the entire validation + submit RPC cycle against double tapping.
   const submissionLock = useRef(false);
+  const validationIssue = useRef('');
 
   useEffect(() => {
     warmBuklodAdOpportunity('formation_lesson_success');
@@ -94,6 +95,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         .from('learning_lesson_responses')
         .select('question_answers,reflection_text,submitted_at')
         .eq('lesson_id', lesson.id)
+        .eq('enrollment_id', enrollmentId)
         .maybeSingle();
 
       if (!active || error) return;
@@ -130,6 +132,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
   };
 
   const validateAllFields = async (normalized: string[], reflectionText: string): Promise<boolean> => {
+    validationIssue.current = '';
     setValidating(true);
 
     try {
@@ -152,6 +155,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
 
         nextAnswerValidations[index] = result;
         if (!isValidationAcceptable(result)) {
+          validationIssue.current = `Tanong ${index + 1}: ${result.feedback?.headline ?? 'Kailangan pang linawin ang sagot.'}\n${result.feedback?.guidance?.[0] ?? 'Dagdagan ng maikling paliwanag batay sa aralin.'}`;
           setAnswerValidations(nextAnswerValidations);
           setReflectionValidation(null);
           return false;
@@ -173,7 +177,11 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
 
       setAnswerValidations(nextAnswerValidations);
       setReflectionValidation(reflectionResult);
-      return isValidationAcceptable(reflectionResult);
+      if (!isValidationAcceptable(reflectionResult)) {
+        validationIssue.current = `Pagninilay: ${reflectionResult.feedback?.headline ?? 'Kailangan pang linawin ang sagot.'}\n${reflectionResult.feedback?.guidance?.[0] ?? 'Ipaliwanag ang natutuhan mo at kung paano mo ito isasabuhay.'}`;
+        return false;
+      }
+      return true;
     } finally {
       setValidating(false);
     }
@@ -206,11 +214,23 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
     setBusy(true);
 
     try {
+      // Save the member-owned draft BEFORE AI checking. Revisions survive a
+      // rejected answer, interrupted network request, or screen navigation.
+      // This RPC does not mark a lesson complete or award participation points.
+      const { error: draftError } = await (supabase as any).rpc('submit_learning_lesson_response_v1', {
+        p_enrollment_id: enrollmentId,
+        p_lesson_id: lesson.id,
+        p_question_answers: normalized,
+        p_reflection: reflectionText,
+      });
+      if (draftError) throw draftError;
+      setPreviouslySubmitted(true);
+
       const validated = await validateAllFields(normalized, reflectionText);
       if (!validated) {
         Alert.alert(
-          'Review your answers',
-          'Please improve the flagged answers using the AI guidance, then try again.',
+          'Na-save ang iyong draft',
+          `${validationIssue.current || 'May sagot na kailangan pang linawin.'}\n\nHindi na kailangang ulitin ang iba mong sagot. Ayusin ang na-flag at pindutin muli ang COMPLETE LESSON.`,
         );
         return;
       }
