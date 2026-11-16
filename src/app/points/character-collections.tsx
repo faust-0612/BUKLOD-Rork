@@ -3,10 +3,13 @@
  * Kingdom gameplay cannot mint awards through this surface.
  */
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {ActivityIndicator,Pressable,RefreshControl,ScrollView,StyleSheet,Text,View} from 'react-native';
+import {ActivityIndicator,Image,Pressable,RefreshControl,ScrollView,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {Image as ExpoImage} from 'expo-image';
 import BuklodCharacterCollectibleZoom from '@/components/points/BuklodCharacterCollectibleZoom';
+import BuklodCharacterMotion from '@/components/points/BuklodCharacterMotion';
+import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
+import { getBuklodSpecialLevelAsset } from '@/lib/buklodSpecialCharacterAssets';
 import {loadCharacterArtPublication,verifiedCharacterArtUrl} from '@/lib/buklodCharacterArt';
 import {router,useFocusEffect} from 'expo-router';
 import {supabase} from '@/lib/supabase';
@@ -225,6 +228,24 @@ export default function CharacterCollectionsScreen(){
     <Text style={s.body}>Unlock at Circle Rank {SPECIAL_REQUIRED_RANK_ORDER[selected as typeof SPECIAL_CHARACTER_ORDER[number]]}. Future identities stay hidden.</Text>
    </View>:<>
     <View style={s.card}>
+     <View style={s.previewHero}>
+      <View style={s.previewArt}>
+       <BuklodCharacterMotion key={selected+':'+level} interactive mode="home"
+        accessibilityLabel={'Greet '+CHARACTER_DISPLAY_NAME[selected]+'. Tap to wave, double tap to celebrate.'}>
+        {core
+         ? <BuklodProgressiveCharacterArt characterId={selected as typeof CORE_CHARACTER_ORDER[number]}
+             level={level} height={182} viewportWidth={120}/>
+         : <Image source={getBuklodSpecialLevelAsset(selected as typeof SPECIAL_CHARACTER_ORDER[number],level)}
+             resizeMode="contain" style={s.specialArt}/>}
+       </BuklodCharacterMotion>
+      </View>
+      <View style={s.previewCopy}>
+       <Text style={s.kicker}>CHARACTER EVOLUTION</Text>
+       <Text style={s.h2}>{CHARACTER_DISPLAY_NAME[selected]}</Text>
+       <Text style={s.body}>Stage {level} of 20 • {level<=saved?'Reached':'Future preview'}</Text>
+       <Text style={s.caption}>Tap character to move. Stage previews do not change your saved level, ownership or Circle Rank.</Text>
+      </View>
+     </View>
      <Text style={s.kicker}>{CHARACTER_DISPLAY_NAME[selected].toUpperCase()} • SAVED LEVEL {saved}</Text>
      <Text style={s.h2}>{title?.title}</Text>
      <Text style={s.body}>Select any stage below to inspect its five story objects. Reaching a level does not automatically mean owning its items.</Text>
@@ -336,6 +357,10 @@ const s=StyleSheet.create({
  chosen:{backgroundColor:'#245E47',borderColor:C.green,borderWidth:1},chosenText:{color:C.text},
  chipText:{fontSize:12,fontWeight:'800',color:C.muted},
  card:{backgroundColor:C.panel,borderRadius:15,padding:15,gap:11},
+ previewHero:{flexDirection:'row',alignItems:'center',gap:12,minHeight:190},
+ previewArt:{width:128,height:190,alignItems:'center',justifyContent:'flex-end',overflow:'visible'},
+ specialArt:{width:120,height:182,borderRadius:13},
+ previewCopy:{flex:1,minWidth:0,gap:6},
  stage:{minWidth:46,alignItems:'center',paddingHorizontal:9,paddingVertical:11,backgroundColor:'#194154',borderRadius:9},
  rowBetween:{flexDirection:'row',justifyContent:'space-between',flexWrap:'wrap',alignItems:'center',gap:8},
  itemRow:{flexDirection:'row',gap:11,paddingVertical:10,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#335462'},
