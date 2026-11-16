@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', gap: 12, padding: 12, borderRadius: 16,
     backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDE6DA',
   },
-  userArt: { width: 72, height: 96, alignItems: 'center', justifyContent: 'flex-end' },
+  userArt: { width: 96, height: 96, alignItems: 'center', justifyContent: 'flex-end' },
   userName: { fontSize: 16, fontWeight: '900', color: '#1F2A24' },
   userMeta: { marginTop: 3, fontSize: 11, color: '#5E6C62' },
   sectionRail: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
