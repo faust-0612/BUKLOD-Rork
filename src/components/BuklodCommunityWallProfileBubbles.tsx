@@ -1,5 +1,5 @@
 /* BUKLOD_WEB_COMMUNITY_CONNECT_SCROLL_HEADER_R2_NOTES_24H */
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
@@ -21,7 +21,9 @@ import {
 import { markConnectStatusNoteSeen } from '@/lib/buklodConnectStatusNoteSeen';
 import {
   loadMessagesStatusNote,
+  peekCachedMessagesStatusNote,
   saveMessagesStatusNote,
+  subscribeMessagesStatusNote,
   type MessagesStatusNote,
 } from '@/lib/buklodMessagesStatusNote';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
@@ -284,30 +286,36 @@ function BuklodCommunityConnectRail() {
     if (viewerRef.current === viewerId) setNow(Date.now());
   }, [viewerId]);
 
+  // Hydrate per-user notes and avatars without a blank/loading flash.
   useEffect(() => {
     let active = true;
     setContacts([]);
-    if (!viewerId) {
-      setSelfNote(null);
-      return () => { active = false; };
-    }
+    setSelfNote(viewerId ? peekCachedMessagesStatusNote(viewerId) : null);
+    if (!viewerId) return () => { active = false; };
+
+    const unsubscribe = subscribeMessagesStatusNote((ownerId, next) => {
+      if (active && ownerId === viewerId) setSelfNote(next);
+    });
     void readCachedConnectSuggestedContacts(viewerId, MAX_BUBBLES)
       .then(rows => {
         if (active && viewerRef.current === viewerId && rows.length) {
           setContacts(previous => previous.length ? previous : rows);
         }
       }).catch(() => undefined);
-    void refreshRail();
-
-    const interval = setInterval(() => {
-      void refreshRail();
-    }, NOTE_REFRESH_MS);
-
     return () => {
       active = false;
-      clearInterval(interval);
+      unsubscribe();
     };
-  }, [refreshRail, viewerId]);
+  }, [viewerId]);
+
+  // A frozen Wall must not keep polling notes in the background. A return to
+  // the Wall uses the warm snapshot, then quietly revalidates if it is stale.
+  useFocusEffect(useCallback(() => {
+    if (!viewerId) return;
+    void refreshRail();
+    const interval = setInterval(() => { void refreshRail(); }, NOTE_REFRESH_MS);
+    return () => { clearInterval(interval); };
+  }, [viewerId, refreshRail]));
 
   useEffect(() => {
     if (selfNote && isExpired(selfNote.expires_at, now)) {
