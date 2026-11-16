@@ -21,7 +21,8 @@
     "audio-lifecycle",
     "connect",
     "production-release",
-    "release-identity"
+    "release-identity",
+    "governance-lock"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-character-visual-class-dev-20261116.json",
@@ -255,7 +256,8 @@
     "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
     "tests/buklod-ads-production-release-contract-20261111.test.mjs",
     "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
-    "tests/marites-wall-scroll-video-navigation-20261113.test.mjs"
+    "tests/marites-wall-scroll-video-navigation-20261113.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -336,6 +338,16 @@
       ],
       "tests": [
         "tests/kingdom-reward-sound-release-20261110.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Bind this integration-only branch to its exact consolidated scope manifest in the existing fail-closed Engineering Accountability PR workflow, without weakening protected source checks or publishing.",
+      "preservedBehaviors": [
+        "Original protected-feature-source checker, CI coverage and existing main workflow remain unchanged; no production/main mutation."
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
       ]
     }
   ],
