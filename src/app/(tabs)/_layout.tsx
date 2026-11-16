@@ -1,5 +1,6 @@
 import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
+import BuklodDashboardAdWarmup from '@/components/BuklodDashboardAdWarmup';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import BuklodNavigationSideMenu from '@/components/BuklodNavigationSideMenu';
 import {
@@ -457,6 +458,7 @@ export default function TabsLayout() {
               minWidth: 0,
             }}
           >
+            <BuklodDashboardAdWarmup />
             <BuklodDashboardContextBar />
             {workspaceStack}
           </View>
