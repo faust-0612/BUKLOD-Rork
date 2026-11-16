@@ -33,13 +33,13 @@ test('referral invite keeps copy and share hit targets and identity',()=>{
  assert.ok(s.includes('onPress={() => void shareInvite()}'));
  assert.ok(s.includes('summary?.qualified_count'));
 });
-test('character panel and roster keep art and state while becoming denser',()=>{
+test('protected Character visual layout remains at its approved baseline',()=>{
  const sheet=read('src/components/points/BuklodCharacterCustomizeSheet.tsx');
  const selector=read('src/components/points/BuklodProgressiveCharacterSelector.tsx');
- assert.ok(sheet.includes('bodyContent: { paddingBottom: 12 }'));
+ assert.ok(sheet.includes('bodyContent: { paddingBottom: 28 }'));
  assert.ok(sheet.includes('paddingBottom: drawerBottomInset'));
  assert.ok(sheet.includes('BuklodProgressiveCharacterSelector'));
- assert.ok(selector.includes('roster: { marginTop: 8, marginHorizontal: 10, gap: 6 }'));
+ assert.ok(selector.includes('roster: { marginTop: 10, marginHorizontal: 14, gap: 8 }'));
  assert.ok(selector.includes('shownCollectiblePins'));
  assert.ok(selector.includes('characterLevel'));
 });

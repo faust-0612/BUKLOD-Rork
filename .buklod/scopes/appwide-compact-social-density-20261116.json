@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/appwide-compact-social-density-20261116.json",
   "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
-  "objective": "Compact shared app density, Home/Wall/Connect/Profile, plus photographed Cluster/QMP/Bible/Referral/Character screens for consolidated staging OTA QA.",
+  "objective": "Compact shared app density, Home/Wall/Connect/Profile plus photographed Cluster, QMP, Bible and Referral screens for consolidated staging OTA QA; protect unchanged Character visual lock.",
   "productionBaselineEvidence": "GitHub main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 read as latest canonical base; this is source evidence only, not verified installed client or live production.",
   "chosenApproach": "Use compact shared visual/DB defaults and targeted high-traffic component changes; natural note height plus bottom-aligned avatars; forward-only diff guard in existing Engineering Regression Gate.",
   "selectionRationale": "Blanket global zero padding would break touch and system safe areas. Content-intrinsic note rails and shared tokens reduce whitespace while minimizing regression risk.",
@@ -25,14 +25,14 @@
     "Cluster AdMob first-view slot remains after first cluster, other sponsor and viewability contracts remain.",
     "QMP data, referral code, Bible audio, per-character progress, art dimensions and safe areas preserved.",
     "Visual/compiled Android RC verification still mandatory; source-only tests are not an OTA release.",
-    "Existing dark contrast test follows approved compact spacing tokens while preserving WCAG contrast and 48dp touch assertions."
+    "Existing dark contrast test follows approved compact spacing tokens while preserving WCAG contrast and 48dp touch assertions.",
+    "Character CustomizeSheet and ProgressiveSelector restored byte-for-byte to approved visual locks; no Character visual change is claimed here."
   ],
   "riskAreas": [
     "navigation-scroll",
     "connect",
     "wall-media",
     "cluster-faith",
-    "kingdom-character",
     "ads-finance-points",
     "faith-cluster"
   ],
@@ -66,8 +66,6 @@
     "src/app/community-contribution.tsx",
     "src/app/bible/index.tsx",
     "src/components/BuklodReferralInviteCard.tsx",
-    "src/components/points/BuklodCharacterCustomizeSheet.tsx",
-    "src/components/points/BuklodProgressiveCharacterSelector.tsx",
     "tests/compact-cluster-bible-character-qmp-density.test.mjs",
     "tests/buklod-dark-contrast-spacing-20261115.test.mjs"
   ],
@@ -108,17 +106,6 @@
     {
       "id": "cluster-faith",
       "reason": "Cluster directory and Bible spacing only; preserve ad placement, reading, audio and privacy.",
-      "preservedBehaviors": [
-        "No changes to user scope, points, ownership or private contributions.",
-        "Keep full keyboard/safe-area insets, ad viewability, audio, art sizes, and 44dp+ hit targets."
-      ],
-      "tests": [
-        "tests/compact-cluster-bible-character-qmp-density.test.mjs"
-      ]
-    },
-    {
-      "id": "kingdom-character",
-      "reason": "Character sheet and collectible selector density only; keep art and per-character state.",
       "preservedBehaviors": [
         "No changes to user scope, points, ownership or private contributions.",
         "Keep full keyboard/safe-area insets, ad viewability, audio, art sizes, and 44dp+ hit targets."
