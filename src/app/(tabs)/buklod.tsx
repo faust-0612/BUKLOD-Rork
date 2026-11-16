@@ -2536,13 +2536,21 @@ const load=useCallback(async(options?:{
   void pendingCommentPreviews
     .then(previews => {
       if (communityLoadSeq !== communityLoadSeqRef.current) return;
-      setPosts(current => current.map(post => {
-        const id = String(post.id ?? '');
-        if (!requestedCommentIds.has(id)) return post;
-        const latest = previews[id];
-        if (!latest || post.comment_preview?.comment_id === latest.comment_id) return post;
-        return { ...post, comment_preview: latest };
-      }));
+      setPosts(current => {
+        let changed = false;
+        const updated = current.map(post => {
+          const id = String(post.id ?? '');
+          if (!requestedCommentIds.has(id)) return post;
+          const latest = previews[id];
+          const old = post.comment_preview;
+          if (!latest || (old?.comment_id === latest.comment_id &&
+            old?.body === latest.body && old?.author_name === latest.author_name &&
+            old?.created_at === latest.created_at)) return post;
+          changed = true;
+          return { ...post, comment_preview: latest };
+        });
+        return changed ? updated : current;
+      });
     })
     .catch(error => console.warn('Community comment hydration:', error?.message ?? error));
 
