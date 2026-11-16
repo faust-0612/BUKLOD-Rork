@@ -42,14 +42,13 @@ test('light HIBLA reply and attachment surfaces remain readable under night them
   assert.match(styleBlock('replyBanner'), /backgroundColor: HIBLA\.mint/);
   assert.match(styleBlock('replyLabel'), /color: HIBLA\.pine/);
   assert.match(styleBlock('replyName'), /color: HIBLA\.ink/);
-  assert.match(styleBlock('replyPreview'), /color: HIBLA\.muted/);
+  assert.match(styleBlock('replyPreview'), /color: HIBLA\.ink/);
   assert.match(styleBlock('iconCircle'), /backgroundColor: '#E6F3E9'/);
   assert.match(composer, /name="paperclip"[\s\S]*?color=\{HIBLA\.pine\}/);
   assert.match(composer, /name="image-outline"[\s\S]*?color=\{HIBLA\.pine\}/);
   for (const [fg, bg] of [
     ['ink', 'mint'],
     ['pine', 'mint'],
-    ['muted', 'mint'],
   ]) {
     assert.ok(contrast(palette(fg), palette(bg)) >= 4.5,
       `${fg} on mint must pass AA`);
