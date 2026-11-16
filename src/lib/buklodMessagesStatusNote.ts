@@ -48,6 +48,13 @@ function invalidatePendingNoteReads(userId: string) {
   noteInFlight.delete(userId);
 }
 
+/** External profile-status writes must bypass a previous warm note snapshot. */
+export function invalidateMessagesStatusNoteCache(userId: string) {
+  if (!userId) return;
+  invalidatePendingNoteReads(userId);
+  noteMemory.delete(userId);
+}
+
 export function peekCachedMessagesStatusNote(userId: string): MessagesStatusNote | null {
   const entry = noteMemory.get(userId);
   return entry?.value && isActiveNote(entry.value) ? entry.value : null;
