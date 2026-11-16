@@ -12,13 +12,13 @@ Ten PNG collection boards (batch 01 through batch 10), 1055×1491 pixels each. E
 All originals were preserved. The processed deliverables were saved to:
   /Buklod Character System Assets/Collectibles/Processed
 
-The stored ZIP is BUKLOD_Character_1300_Collectibles_Ready.zip and contains
-1,300 256×256 WebP crops (approximately 9.2 MB in total), a SHA256 source/crop
+The visually cleaned stored ZIP is 8.06 MB: BUKLOD_Character_1300_Collectibles_Ready.zip and contains
+1,300 256×256 WebP crops (approximately 7.8 MB in total), a SHA256 source/crop
 manifest, published-v1.json, README and an offline zoomable index.html gallery.
 No ambiguous filenames were assigned to stage/character based on order of upload:
 batch numbers were inspected on the original image headings before extraction.
 
-Native icon source resolution is roughly 79–91 px wide by 46–49 px tall. Upscaling
+Native icon source resolution is roughly 73–85 px wide by 28–45 px tall after trimming embedded caption fragments. Upscaling
 cannot genuinely increase source detail. Render approved item titles from the
 canonical Character World catalogue as normal high-contrast UI text.
 
@@ -73,3 +73,5 @@ the full remote file count before publishing the readiness marker.
 Required prior to release: native Android zoom test, Node/TypeScript quality
 checks, local SQL security and idempotency tests, UI performance/AdMob/navigation
 regressions, then the DEV -> frozen RC -> production OTA workflow.
+
+The initial crop sheet included parts of embedded captions for shorter character rows. A second crop pass removed most captions and narrow adjacent-column edges; the original sheets remain unaltered. The ZIP and matching manifest were replaced in the same Processed Library folder and passed a complete CRC check for 1,304 archive entries (1,300 WebP + four metadata/gallery files). The final marker SHA256 is 2ebe18177a1a0ec38718de5ca3bb0042f6b9b36374b4b1264946c12abf8704da.
