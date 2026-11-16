@@ -68,5 +68,5 @@ test('historical OTA Character visual parity guard must protect unchanged art wi
   assert.match(parity, /1debd5659a96c97f83f32eeebb37c309a527d4ae/);
   assert.match(parity, /4cf837d453c4c33c867e2b0ae714e6f81f1ffeb6/);
   assert.match(parity, /PER_CHARACTER_PERSISTED_V3/);
-  assert.doesNotMatch(parity, /assert\\.match\\(baseGate,\\/ATOMIC_RESET_LEVEL_1_V2\\//);
+  assert.doesNotMatch(parity, /ATOMIC_RESET_LEVEL_1_V2/);
 });
