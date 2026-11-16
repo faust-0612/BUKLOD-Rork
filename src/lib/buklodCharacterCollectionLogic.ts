@@ -91,21 +91,44 @@ export function describeCharacterTaskRequirement(value:unknown,secret=false):str
 }
 export const STORY_COLLECTION_TOTAL=1300;
 
-export type CharacterTaskTarget = {
- metric:string; label:string; target:number; current:number; complete:boolean;
+export type CharacterTaskAlternative = {
+ label:string;current:number;target:number;complete:boolean;
 };
-/** Stable preview of server-backed Special item tasks. Never mints awards. */
-export function storyItemTaskTarget(level:number,itemIndex:number,metrics:Readonly<Record<string,number>>):CharacterTaskTarget{
+export type CharacterTaskTarget = {
+ metric:string;label:string;target:number;current:number;complete:boolean;
+ alternative:CharacterTaskAlternative|null;
+};
+/** Read-only task display. Server confirmation and original Character ownership
+ * are essential; these counts are NEVER used for client-side awards.
+ */
+export function storyItemTaskTarget(
+ level:number,itemIndex:number,metrics:Readonly<Record<string,number>>,
+):CharacterTaskTarget{
  if(!Number.isInteger(level)||level<1||level>20||!Number.isInteger(itemIndex)||itemIndex<1||itemIndex>5)
   throw new Error('Invalid task milestone');
  const config=[
-  {metric:'character_public_post',label:'meaningful public posts',target:Math.max(1,Math.floor((level+1)/2))},
-  {metric:'character_public_comment',label:'eligible public comments',target:Math.max(1,level)},
-  {metric:'character_public_reaction',label:'eligible reactions',target:Math.max(2,2*level)},
-  {metric:'character_public_share',label:'eligible shares',target:Math.max(1,Math.floor((level+1)/2))},
-  {metric:'character_public_active_week',label:'active weeks (plus the four previous items)',target:Math.max(1,Math.floor((level+3)/4))},
+  {metric:'character_public_post',label:'meaningful public Wall posts',target:Math.max(1,Math.floor((level+1)/2))},
+  {metric:'character_public_comment',label:'eligible public Wall comments',target:Math.max(1,level)},
+  {metric:'character_public_reaction',label:'eligible Wall reactions',target:Math.max(2,2*level)},
+  {metric:'character_public_share',label:'eligible public Wall shares',target:Math.max(1,Math.floor((level+1)/2))},
+  {metric:'character_public_active_week',label:'distinct verified active weeks + items 1–4',target:Math.max(1,Math.floor((level+3)/4))},
  ][itemIndex-1];
- const raw=Number(metrics[config.metric]??0);
- const current=Number.isFinite(raw)&&raw>=0?Math.floor(raw):0;
- return {...config,current,complete:current>=config.target};
+ const count=(key:string)=>{
+  const raw=Number(metrics[key]??0);
+  return Number.isFinite(raw)&&raw>=0?Math.floor(raw):0;
+ };
+ const secondary=[
+  {label:'claimed Bible readings',keys:['character_bible_reading']},
+  {label:'claimed Formation lessons or devotions',keys:['character_formation','character_devotional']},
+  {label:'claimed Bible quizzes',keys:['character_quiz']},
+  {label:'verified attendance or prayer responses',keys:['character_attendance','character_prayer']},
+  null,
+ ][itemIndex-1];
+ const current=count(config.metric);
+ const altCurrent=secondary?secondary.keys.reduce((sum,key)=>sum+count(key),0):0;
+ const alternative=secondary?{
+  label:secondary.label,current:altCurrent,target:config.target,
+  complete:altCurrent>=config.target,
+ }:null;
+ return {...config,current,complete:current>=config.target||Boolean(alternative?.complete),alternative};
 }
