@@ -35,3 +35,12 @@ test('prewarm IDs match live Home, Wall, Profile, and Connect first-view placeme
     ['src/app/(tabs)/messages.tsx','connect_personal_first_view'],
   ]) { assert.ok(read(path).includes(id)); assert.ok(warm.includes(id)); }
 });
+
+test('navigation and authentication redirects remain before any ad prewarm', () => {
+  const shell = read('src/app/(tabs)/_layout.tsx');
+  const gate = shell.indexOf('if (!session)');
+  const onboarding = shell.indexOf('if (!profile)');
+  const ad = shell.indexOf('<BuklodDashboardAdWarmup />');
+  assert.ok(gate >= 0 && onboarding > gate && ad > onboarding);
+  assert.match(shell, /freezeOnBlur: true/);
+});

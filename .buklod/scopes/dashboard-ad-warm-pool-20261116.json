@@ -15,7 +15,8 @@
     "ads-monetization",
     "ads-finance-points",
     "app-runtime",
-    "navigation-scroll"
+    "navigation-scroll",
+    "navigation-auth"
   ],
   "preserveBehaviors": [
     "Android Expo runtime 1.3.2, installed AdMob native SDK and all ad IDs unchanged.",
@@ -51,8 +52,7 @@
         "Consent, impressions, finance and point awards unchanged."
       ],
       "tests": [
-        "tests/dashboard-ad-warm-pool-20261116.test.mjs",
-        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+        "tests/dashboard-ad-warm-pool-20261116.test.mjs"
       ]
     },
     {
@@ -62,8 +62,18 @@
         "Expo native SDK, runtime and web implementation unchanged."
       ],
       "tests": [
-        "tests/dashboard-ad-warm-pool-20261116.test.mjs",
-        "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+        "tests/dashboard-ad-warm-pool-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Mount a no-UI Android ad preload coordinator inside the existing authenticated tab shell.",
+      "preservedBehaviors": [
+        "Original authorization and navigation redirects remain prior to any preload coordinator mount.",
+        "No changes to login, account, permission, route guards or navigation history."
+      ],
+      "tests": [
+        "tests/dashboard-ad-warm-pool-20261116.test.mjs"
       ]
     }
   ]
