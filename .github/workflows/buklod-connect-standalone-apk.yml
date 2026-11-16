@@ -82,6 +82,8 @@ jobs:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       CONNECT_EAS_PROJECT_ID: fbc71093-6abb-43e6-9493-14b2c8117df8
       CONNECT_FIREBASE_JSON_B64: ${{ secrets.CONNECT_FIREBASE_JSON_B64 }}
+      # The preflight writes this ignored file; Expo config runs before EAS reads profile.env.
+      CONNECT_GOOGLE_SERVICES_FILE: ./google-services.connect.json
       BUKLOD_APP_TARGET: connect
       EXPO_PUBLIC_BUKLOD_APP_TARGET: connect
       APP_VARIANT: staging
@@ -101,6 +103,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/connect-native-identity-preflight.cjs
+          test -s ./google-services.connect.json
       - name: Install once after prerequisite gate
         run: npm ci
       - name: Compile and verify standalone Expo config

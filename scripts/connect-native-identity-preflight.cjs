@@ -40,7 +40,7 @@ if (missing.length) {
   const packages = (firebase.client || [])
     .map(c => c?.client_info?.android_client_info?.package_name)
     .filter(Boolean);
-  assert.ok(packages.includes(target), 'Firebase missing standalone staging Android package');
+  assert.ok(packages.includes(target), 'Firebase JSON does not match standalone Connect Android package');
   assert.equal(firebase.project_info?.project_id, 'buklod-efa4a',
     'Existing Stream FCM push provider requires BUKLOD Firebase project');
   fs.writeFileSync(path.resolve('google-services.connect.json'), decoded, { mode: 0o600 });

@@ -153,3 +153,13 @@ test('Independent Connect APK does not inherit Main version cutoff or Main updat
   assert.match(boundary, /BUKLOD Connect update required/);
   assert.match(home, /shouldRequireBuklodNativeUpdate\(config\)/);
 });
+
+test('QA workflow exports the Firebase config path to local Expo config and gates APK build', () => {
+  const workflow = read('.github/workflows/buklod-connect-standalone-apk.yml');
+  assert.match(workflow, /CONNECT_FIREBASE_JSON_B64: \$\{\{ secrets\.CONNECT_FIREBASE_JSON_B64 \}\}/);
+  assert.match(workflow, /CONNECT_GOOGLE_SERVICES_FILE: \.\/google-services\.connect\.json/);
+  assert.match(workflow, /test -s \.\/google-services\.connect\.json/);
+  assert.match(workflow, /profile connect-qa-apk/);
+  assert.match(workflow, /assert\.equal\(c\.android\.package, 'org\.mzbministry\.buklod\.connect'\)/);
+  assert.equal(eas.build['connect-qa-apk'].channel, 'connect-qa');
+});
