@@ -40,7 +40,7 @@ test('global control and messages use contrast-safe foreground', () => {
  for(const path of ['src/lib/buklodThemePresentation.ts','src/components/BuklodContentReportSheet.tsx','src/components/BuklodCommunityCommentBubble.tsx','src/components/BuklodContentOverflowMenu.tsx','src/components/BuklodContentOverflowMenu.web.tsx','src/components/points/BuklodClaimRewardCard.tsx','src/components/points/BuklodPointsStage.tsx']) assert.match(read(path),/theme\.onAccent/,path);
 });
 test('screen margins and accessible touch-size share approved spacing tokens', () => {
- assert.match(visual,/space:\s*\{ screen: 16, section: 12, card: 12, inline: 8, tight: 4 \}/);
+ assert.match(visual,/space:\s*\{ screen: 10, section: 8, card: 10, inline: 6, tight: 4 \}/);
  assert.match(visual,/touch:\s*48/);
  assert.match(read('src/app/settings/index.tsx'),/paddingHorizontal: buklodVisual\.space\.screen/);
  assert.match(read('src/components/BuklodProfilePostCards.tsx'),/marginHorizontal:buklodVisual\.space\.screen/);

@@ -34,7 +34,7 @@ import { ConnectThemeProvider } from '@/providers/ConnectThemeProvider';
 
 const MAX_BUBBLES = 14;
 const AVATAR_SIZE = 56;
-const COLUMN_WIDTH = 118;
+const COLUMN_WIDTH = 104;
 const NOTE_MAX_LINES = 5;
 const NOTE_MAX_CHARS = 80;
 const NOTE_REFRESH_MS = 30_000;
@@ -503,6 +503,7 @@ function BuklodCommunityConnectRail() {
             >
               {firstName(selfContact.full_name)}
             </Text>
+            <Text numberOfLines={1} style={[styles.rank, { color: theme.textMuted }]}>My note</Text>
           </View>
         ) : null}
 
@@ -582,10 +583,11 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
   },
   row: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    gap: 10,
-    alignItems: 'flex-start',
+    paddingHorizontal: 8,
+    paddingBottom: 4,
+    gap: 6,
+    // Natural note height + bottom alignment keeps all avatars level.
+    alignItems: 'flex-end',
   },
   person: {
     width: COLUMN_WIDTH,
@@ -593,21 +595,18 @@ const styles = StyleSheet.create({
   },
   noteZone: {
     width: COLUMN_WIDTH,
-    height: 108,
     alignItems: 'center',
     justifyContent: 'flex-end',
     marginBottom: 6,
   },
   noteZoneEditing: {
     width: COLUMN_WIDTH,
-    height: 108,
     alignItems: 'center',
     justifyContent: 'flex-end',
     marginBottom: 6,
   },
   noteAddWrap: {
     width: COLUMN_WIDTH,
-    height: 108,
     justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 6,
@@ -706,7 +705,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   name: {
-    marginTop: 5,
+    marginTop: 3,
     width: '100%',
     textAlign: 'center',
     fontSize: 12.5,

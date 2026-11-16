@@ -1,0 +1,118 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/appwide-compact-social-density-20261116.json",
+  "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
+  "objective": "Compact shared app density, Home/Wall/Connect/Profile plus photographed Cluster, QMP, Bible and Referral screens for consolidated staging OTA QA; protect unchanged Character visual lock.",
+  "productionBaselineEvidence": "GitHub main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 read as latest canonical base; this is source evidence only, not verified installed client or live production.",
+  "chosenApproach": "Use compact shared visual/DB defaults and targeted high-traffic component changes; natural note height plus bottom-aligned avatars; forward-only diff guard in existing Engineering Regression Gate.",
+  "selectionRationale": "Blanket global zero padding would break touch and system safe areas. Content-intrinsic note rails and shared tokens reduce whitespace while minimizing regression risk.",
+  "alternativeApproaches": [
+    "Zero every padding/margin universally: unsafe for touch, ads, keyboard, zoom, media and safe areas.",
+    "Patch only screenshots: leaves future screens without repeatable standards.",
+    "Change shared tokens, targeted note rails and use CI guard (selected)."
+  ],
+  "preserveBehaviors": [
+    "Maintain all five tabs, links, dark/light text scaling, live calls, ads, media, caching and bottom insets.",
+    "Preserve five-line status notes and note editing/read/seen state.",
+    "Do not modify DB/RLS/auth/financial/points data or production app."
+  ],
+  "acceptanceChecks": [
+    "New shared defaults are coherent while button/input minimum heights remain unchanged.",
+    "Wall/Connect note rails are content-sized, bottom-aligned and 5-line compatible.",
+    "Home/Profile/Wall/Connect dense changes retain sponsor and first-view AdMob inventory.",
+    "Changed focused tests and legacy test expectations pass in PR CI.",
+    "Expo/Android visual acceptance, performance and full regression must pass before any OTA. Not verified yet.",
+    "Cluster AdMob first-view slot remains after first cluster, other sponsor and viewability contracts remain.",
+    "QMP data, referral code, Bible audio, per-character progress, art dimensions and safe areas preserved.",
+    "Visual/compiled Android RC verification still mandatory; source-only tests are not an OTA release.",
+    "Existing dark contrast test follows approved compact spacing tokens while preserving WCAG contrast and 48dp touch assertions.",
+    "Character CustomizeSheet and ProgressiveSelector restored byte-for-byte to approved visual locks; no Character visual change is claimed here."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "connect",
+    "wall-media",
+    "cluster-faith",
+    "ads-finance-points",
+    "faith-cluster"
+  ],
+  "regressionTests": [
+    "tests/compact-appwide-layout-navigation-wall-connect.test.mjs",
+    "tests/compact-layout-density-rule.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/compact-cluster-bible-character-qmp-density.test.mjs",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodVisual.ts",
+    "src/lib/buklodDesignTokens.ts",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/(tabs)/home.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/buklodCommunityStyles.ts",
+    "src/components/BuklodProfilePostCards.tsx",
+    "scripts/engineering-regression-gate.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "scripts/compact-layout-density-gate.mjs",
+    "tests/compact-appwide-layout-navigation-wall-connect.test.mjs",
+    "tests/compact-layout-density-rule.test.mjs",
+    "docs/design/compact-social-density.md",
+    ".buklod/scopes/appwide-compact-social-density-20261116.json",
+    "src/app/clusters/index.tsx",
+    "src/app/community-contribution.tsx",
+    "src/app/bible/index.tsx",
+    "src/components/BuklodReferralInviteCard.tsx",
+    "tests/compact-cluster-bible-character-qmp-density.test.mjs",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "App-wide shared density tokens affect runtime presentation.",
+      "preservedBehaviors": [
+        "Preserve five-line readable notes, normal avatar tap and editing behavior, and authenticated account isolation.",
+        "Keep app navigation, keyboard and bottom system safe areas, AdMob placement, and existing scroll/caching behavior."
+      ],
+      "tests": [
+        "tests/compact-appwide-layout-navigation-wall-connect.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Wall note-avatar rail spacing adjusts without changing wall video/ads.",
+      "preservedBehaviors": [
+        "Preserve five-line readable notes, normal avatar tap and editing behavior, and authenticated account isolation.",
+        "Keep app navigation, keyboard and bottom system safe areas, AdMob placement, and existing scroll/caching behavior."
+      ],
+      "tests": [
+        "tests/compact-appwide-layout-navigation-wall-connect.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Tab screen styles are compacted while login and navigation paths remain intact.",
+      "preservedBehaviors": [
+        "Preserve five-line readable notes, normal avatar tap and editing behavior, and authenticated account isolation.",
+        "Keep app navigation, keyboard and bottom system safe areas, AdMob placement, and existing scroll/caching behavior."
+      ],
+      "tests": [
+        "tests/compact-appwide-layout-navigation-wall-connect.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cluster directory and Bible spacing only; preserve ad placement, reading, audio and privacy.",
+      "preservedBehaviors": [
+        "No changes to user scope, points, ownership or private contributions.",
+        "Keep full keyboard/safe-area insets, ad viewability, audio, art sizes, and 44dp+ hit targets."
+      ],
+      "tests": [
+        "tests/compact-cluster-bible-character-qmp-density.test.mjs"
+      ]
+    }
+  ]
+}

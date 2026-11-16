@@ -34,7 +34,8 @@ test('dark HIBLA header stays visible with transparent, aligned contact avatars'
  assert.ok(connect.includes('marginTop: 8'));
  assert.ok(!connect.includes('marginTop: -12'));
  assert.ok(contacts.includes("backgroundColor: 'transparent'"));
- assert.ok(contacts.includes('height: NOTE_ZONE_HEIGHT'));
+ assert.ok(!contacts.includes('height: NOTE_ZONE_HEIGHT'));
+ assert.ok(contacts.includes("alignItems: 'flex-end'"));
  assert.ok(contacts.includes('style={styles.editingPopover}'));
  assert.ok(!contacts.includes('minHeight: NOTE_ZONE_EDIT_HEIGHT'));
  assert.ok(contacts.includes('markConnectStatusNoteSeen'));

@@ -5973,6 +5973,9 @@ const communityFeedRows =
          item.author_name,
          item.user_id,
        )}
+       numberOfLines={1}
+       adjustsFontSizeToFit
+       minimumFontScale={0.78}
        style={[
          s.author,
          {

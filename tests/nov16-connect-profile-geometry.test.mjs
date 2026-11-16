@@ -24,9 +24,12 @@ test('Connect avatars are unobstructed, equal-positioned and notes stay editable
   const zone = contacts.match(/noteZone:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
   const editing = contacts.match(/noteZoneEditing:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
   assert.match(column, /backgroundColor:\s*'transparent'/);
-  assert.match(column, /minHeight:\s*216/);
-  assert.match(zone, /height:\s*NOTE_ZONE_HEIGHT/);
-  assert.match(editing, /height:\s*NOTE_ZONE_HEIGHT/);
+  // Natural note content grows up, while the last avatar/rank lines stay aligned.
+  assert.doesNotMatch(column, /minHeight:\s*216/);
+  assert.doesNotMatch(zone, /height:\s*NOTE_ZONE_HEIGHT|height:\s*108/);
+  assert.doesNotMatch(editing, /height:\s*NOTE_ZONE_HEIGHT|height:\s*108/);
+  assert.match(contacts, /alignItems:\s*'flex-end'/);
+  assert.match(contacts, /const NOTE_MAX_LINES = 5/);
   assert.match(contacts, /editingPopover: \{/);
   assert.match(contacts, /onSave=\{onSaveSelfNote\}/);
   assert.match(contacts, /markConnectStatusNoteSeen/);

@@ -842,10 +842,10 @@ function ClusterDirectory({ owner }: { owner: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F5F7F6' },
-  content: { paddingHorizontal: buklodVisual.space.screen, paddingTop: 10, paddingBottom: 16, gap: 8 },
+  content: { paddingHorizontal: buklodVisual.space.screen, paddingTop: 6, paddingBottom: 16, gap: 6 },
   hero: {
     borderRadius: buklodVisual.radius.card, borderWidth: 1, borderColor: '#DCE9E1',
-    backgroundColor: '#FFFFFF', padding: 10, gap: 7,
+    backgroundColor: '#FFFFFF', padding: 10, gap: 6,
   },
   heroHeading: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
@@ -890,18 +890,18 @@ const styles = StyleSheet.create({
   },
   tabCountPillSelected: { backgroundColor: 'rgba(255,255,255,0.17)' },
   tabCountText: { fontSize: 10, fontWeight: '900', color: '#236042' },
-  directorySection: { gap: 7 },
+  directorySection: { gap: 6 },
   sectionHeading: {
     paddingHorizontal: 2, paddingTop: 1, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'space-between', gap: 10,
   },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: '#193C2D' },
-  sectionNote: { fontSize: 11, lineHeight: 16, color: '#7C8B82', marginTop: 3 },
+  sectionNote: { fontSize: 11, lineHeight: 16, color: '#7C8B82', marginTop: 2 },
   sectionCount: { fontSize: 11, fontWeight: '800', color: '#2D7751' },
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 14, overflow: 'hidden',
     borderWidth: 1, borderColor: '#E1E8E3',
-    paddingHorizontal: 10, paddingVertical: 8, gap: 4,
+    paddingHorizontal: 10, paddingVertical: 7, gap: 4,
   },
   cardColorLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 14, borderWidth: 1 },
   cardAccentBar: { position: 'absolute', top: 7, bottom: 7, left: 0, width: 3, borderRadius: 3 },
