@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-production-wall-note-avatar-current-contract.json",
+  "objective": "Correct obsolete 50px Wall avatar source test to guard approved 56px, five-line readable Connect Notes during existing production Android OTA; preserve exact verified staging source and all other behavior.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: staging Android runtime 1.3.2 source 1aebc901e77089c7f3e926c76dfff4a4a8e34972 EAS 01a1e2c9-3ec3-76be-b931-84f5e0ebafc2. Production Android run 43811192132 blocked before publication at previous test asserting 50px, while current main Wall/Connect notes intentionally 56px and media 36/37 tests passed. No new Android production OTA has been published.",
+  "chosenApproach": "Update only the stale source contract assertion in the existing focused test to match 56px approved UI and 5-line Notes; do not alter live source code or protected release workflow.",
+  "selectionRationale": "User requested larger Connect Notes and aligned avatars; reinstating 50px or bypassing test would regress intended design. Correct test proves current 56px accessibility contract.",
+  "alternativeApproaches": [
+    "Shrink production avatar to 50px (rejected UI regression).",
+    "Skip/disable media suite (rejected release safety bypass)."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "wall-media",
+    "app-runtime",
+    "ads-monetization"
+  ],
+  "preserveBehaviors": [
+    "Exact staged app, AdMob, video, audio, notification, native/runtime/ABI, Supabase and profile source unchanged.",
+    "Wall search and tappable avatars remain available and note text stays five lines.",
+    "No web, Play Store, new APK, schema or production service changes in PR.",
+    "Existing Android-only production workflow still runs all mandatory tests and live EAS manifest hash verification.",
+    "Owner skipped device test; no device verification claimed."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov16-production-wall-note-avatar-current-contract.json",
+    "tests/compact-public-wall-header-20261104.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Changed test passes on current main 56px approved Wall rail and five-line notes.",
+    "PR Engineering Accountability and Performance and Main integration checks pass.",
+    "Source code/native/plugins/AdMob match staging verified source exactly.",
+    "Trigger only Android production OTA with gated release marker; no web deploy.",
+    "Do not label production verified without EAS update ID and manifest readback."
+  ],
+  "regressionTests": [
+    "tests/compact-public-wall-header-20261104.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "releaseTarget": "Android production OTA 1.3.2 only",
+  "runtimeVersion": "1.3.2",
+  "publicationStatus": "TEST_CORRECTION_ONLY_NO_OTA"
+}
