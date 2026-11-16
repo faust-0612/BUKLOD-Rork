@@ -23,7 +23,7 @@ const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist
  * CRLF conversion cannot create false failures.
  */
 const LOCKED_VISUAL_BLOBS = {
-  'src/components/points/BuklodProgressiveCharacterSelector.tsx': '1debd5659a96c97f83f32eeebb37c309a527d4ae',
+  'src/components/points/BuklodProgressiveCharacterSelector.tsx': '9c2f632b9d2461a0f812f09f4d692afea962a797',
   'src/components/points/BuklodSpecialCharacterSeries.tsx': '4cf837d453c4c33c867e2b0ae714e6f81f1ffeb6',
   'src/components/points/BuklodCharacterCustomizeSheet.tsx': '33fdfd5d1c599183f80eb4d7a4e99e7511c3bbc0',
   'src/components/points/BuklodProgressiveCharacterArt.tsx': '3000d9e03b77fc48f345c093fd5bd2a88bfad26d',

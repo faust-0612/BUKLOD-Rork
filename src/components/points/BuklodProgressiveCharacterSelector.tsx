@@ -16,11 +16,15 @@ import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
+import {
+  BuklodCharacterCollectibleArtwork,
+  BuklodEquippedCollectibleRail,
+  getBuklodEquipRailWidth,
+} from '@/components/points/BuklodCharacterCollectibleVisual';
 import BuklodCharacterLevelGuide from '@/components/points/BuklodCharacterLevelGuide';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { withAlpha } from '@/lib/buklodContrast';
 import {
-  characterTokenIcon,
   clearMyCharacterCollectible,
   getMyCharacterCollectibles,
   isCollectibleLevelOpen,
@@ -228,18 +232,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     levelTrack: { marginTop: 6, height: 8, borderRadius: 999, backgroundColor: '#2A3548', overflow: 'hidden' },
     levelFill: { height: 8, borderRadius: 999, backgroundColor: '#E8C56B' },
     featuredQuote: { marginTop: 8, color: '#9AA6BD', fontSize: 10, fontStyle: 'italic', lineHeight: 14 },
-    featuredArt: { width: 108, height: 148, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
-    besideStack: { position: 'absolute', left: 0, top: 8, gap: 4 },
-    besidePin: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#1A1406',
-      borderWidth: 1,
-      borderColor: '#E8C56B',
-    },
+    featuredArt: { width: 124, height: 148, alignItems: 'flex-start', justifyContent: 'flex-end', overflow: 'hidden' },
     roster: { marginTop: 10, marginHorizontal: 14, gap: 8 },
     rosterRow: {
       minHeight: 64,
@@ -337,24 +330,6 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     giverName: { fontSize: 16, fontWeight: '900', color: '#F7F1DE' },
     giverNote: { marginTop: 3, fontSize: 10, lineHeight: 14, color: '#9AA6BD' },
     pinRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-    pin: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: theme.accentSoft,
-      borderWidth: 1,
-      borderColor: theme.accent,
-    },
-    tokenIcon: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: theme.accentSoft,
-    },
     collectionNote: { marginTop: 3, fontSize: 9, lineHeight: 14, color: '#9AA6BD' },
     collectionTabs: { marginTop: 9, flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
     collectionChip: {
@@ -457,22 +432,16 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           <Text style={styles.featuredQuote}>"{profile.stages[previewLevel - 1]}"</Text>
         </View>
         <View style={styles.featuredArt}>
-          <BuklodProgressiveCharacterArt
-            key={`${draft}-${previewLevel}-featured`}
-            characterId={draft}
-            level={previewLevel}
-            height={132}
-            viewportWidth={96}
-          />
-          {besidePins.length ? (
-            <View style={styles.besideStack}>
-              {besidePins.map((pin) => (
-                <View key={pin.key} style={styles.besidePin}>
-                  <MaterialCommunityIcons name={characterTokenIcon(pin.characterId, pin.itemIndex) as never} size={14} color="#E8C56B" />
-                </View>
-              ))}
-            </View>
-          ) : null}
+          <BuklodEquippedCollectibleRail pins={besidePins} height={148} />
+          <View style={{ marginLeft: getBuklodEquipRailWidth(148), width: 96, height: 132 }}>
+            <BuklodProgressiveCharacterArt
+              key={`${draft}-${previewLevel}-featured`}
+              characterId={draft}
+              level={previewLevel}
+              height={132}
+              viewportWidth={96}
+            />
+          </View>
         </View>
       </Pressable>
 
@@ -548,9 +517,13 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
             </Text>
             <View style={styles.pinRow}>
               {besidePins.length ? besidePins.map((pin) => (
-                <View key={pin.key} style={styles.pin}>
-                  <MaterialCommunityIcons name={characterTokenIcon(pin.characterId, pin.itemIndex) as never} size={18} color="#E8C56B" />
-                </View>
+                <BuklodCharacterCollectibleArtwork
+                  key={pin.key}
+                  characterId={pin.characterId}
+                  level={pin.level}
+                  itemIndex={pin.itemIndex}
+                  size={32}
+                />
               )) : (
                 <Text style={styles.giverNote}>Nothing is beside {profile.name} yet.</Text>
               )}
@@ -624,9 +597,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
                 key={`${draft}-${collectionLevel}-${itemIndex}`}
                 style={[styles.collectibleRow, pulseKey === rowKey ? { transform: [{ scale: itemPulse }] } : null]}
               >
-                <View style={styles.tokenIcon}>
-                  <MaterialCommunityIcons name={characterTokenIcon(draft, itemIndex) as never} size={18} color={theme.accent} />
-                </View>
+                <BuklodCharacterCollectibleArtwork characterId={draft} level={collectionLevel} itemIndex={itemIndex} size={34} />
                 <View style={styles.collectibleCopy}>
                   <Text style={styles.collectibleName} numberOfLines={2}>{item}</Text>
                   <Text style={styles.collectibleKind}>
