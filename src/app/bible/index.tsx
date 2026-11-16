@@ -2348,6 +2348,7 @@ function EvidencePhoto({
 }
 
 const styles=StyleSheet.create({
+  // layout-density-exception: reserve bottom scroll clearance for reading and keyboard controls
   content:{paddingBottom:40,gap:8},
   center:{flex:1,alignItems:'center',justifyContent:'center'},
   header:{flexDirection:'row',gap:8,alignItems:'flex-start'},
