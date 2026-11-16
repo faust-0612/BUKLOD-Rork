@@ -35,7 +35,9 @@ import {
 } from '@/lib/buklodConnectStatusNoteSeen';
 import {
   loadMessagesStatusNote,
+  peekCachedMessagesStatusNote,
   saveMessagesStatusNote,
+  subscribeMessagesStatusNote,
   type MessagesStatusNote,
 } from '@/lib/buklodMessagesStatusNote';
 import {
@@ -573,24 +575,28 @@ export function ConnectSuggestedContacts({
     useState<MessagesStatusNote | null>(null);
   const [selfSaving, setSelfSaving] = useState(false);
 
-  const loadSelfNote = useCallback(async () => {
-    try {
-      const active = await loadMessagesStatusNote();
-      setSelfNote(active);
-    } catch (error) {
-      console.warn(
-        'Messages status note:',
-        String((error as Error)?.message ?? error)
-      );
-      setSelfNote(null);
-    }
-  }, []);
-
+  // A new props object is passed during routine Connect rerenders. Watch the
+  // account ID only, so notes are not fetched again for every inbox repaint.
   useEffect(() => {
-    if (currentUser) {
-      void loadSelfNote();
-    }
-  }, [currentUser, loadSelfNote]);
+    const userId = currentUser?.user_id;
+    setSelfNote(userId ? peekCachedMessagesStatusNote(userId) : null);
+    if (!userId) return;
+
+    let active = true;
+    const unsubscribe = subscribeMessagesStatusNote((ownerId, next) => {
+      if (active && ownerId === userId) setSelfNote(next);
+    });
+    void loadMessagesStatusNote()
+      .then(next => { if (active) setSelfNote(next); })
+      .catch(error => {
+        // Keep a previously painted note during a weak-network failure.
+        console.warn('Messages status note:', String((error as Error)?.message ?? error));
+      });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [currentUser?.user_id]);
 
   const persistSelfNote = useCallback(async (value: string) => {
     setSelfSaving(true);
