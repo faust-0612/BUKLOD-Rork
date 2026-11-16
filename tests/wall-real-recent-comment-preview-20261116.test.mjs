@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { applyCommunityWallMetadata } from '../src/lib/communityWallHydration.ts';
+import { applyCommunityWallMetadata, shouldApplyCommunityRecentComment } from '../src/lib/communityWallHydration.ts';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const publicWall = read('src/app/(tabs)/buklod.tsx');
@@ -63,4 +63,14 @@ test('a successful new comment refreshes only its own preview without reloading 
   assert.match(publicWall, /fetchBuklodPostCommentPreviews\(\[postId\],\[postId\]\)/);
   assert.match(scopedWall, /Scoped new comment preview:/);
   assert.match(scopedWall, /fetchBuklodPostCommentPreviews\(\[postId\], \[postId\]\)/);
+});
+
+test('newest comment wins when an older background batch arrives later, but edited text refreshes', () => {
+  const newest = { comment_id:'new', created_at:'2026-11-16T14:08:00Z', body:'Latest message', author_name:'Member' };
+  const slowOld = { comment_id:'old', created_at:'2026-11-16T14:05:00Z', body:'Old message', author_name:'Member' };
+  assert.equal(shouldApplyCommunityRecentComment(newest, slowOld), false);
+  assert.equal(shouldApplyCommunityRecentComment(slowOld, newest), true);
+  assert.equal(shouldApplyCommunityRecentComment(newest, { ...newest, body:'Edited message' }), true);
+  assert.equal(shouldApplyCommunityRecentComment(newest, { ...newest }), false);
+  assert.equal(shouldApplyCommunityRecentComment(newest, null), false);
 });
