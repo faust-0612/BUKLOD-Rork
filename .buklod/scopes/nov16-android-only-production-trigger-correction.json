@@ -26,17 +26,22 @@
   "allowedPaths": [
     ".buklod/scopes/nov16-android-only-production-trigger-correction.json",
     "release/nov16-android-only-trigger-correction.json",
-    "tests/nov16-android-only-production-trigger-correction.test.mjs"
+    "tests/nov16-android-only-production-trigger-correction.test.mjs",
+    "tests/nov14-profile-navigation-personal-activity-report.test.mjs",
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs"
   ],
   "acceptanceChecks": [
     "Source code and native/runtime paths unchanged from verified staging.",
     "Production Android workflow supports the Android-only marker while production Web excludes it.",
     "Required protected PR CI passes.",
     "Corrected merge advances main before old web deploy and triggers Android-only production publication; verify old run aborts or remains skipped.",
-    "Production Android publish is confirmed by exact update ID, frozen hash, runtime and production channel live manifest."
+    "Production Android publish is confirmed by exact update ID, frozen hash, runtime and production channel live manifest.",
+    "Previously frozen Nov14 Profile tests must validate the replacement warm-cache behavior and account-scoped async race guards, instead of asserting the retired blank-on-focus implementation."
   ],
   "regressionTests": [
-    "tests/nov16-android-only-production-trigger-correction.test.mjs"
+    "tests/nov16-android-only-production-trigger-correction.test.mjs",
+    "tests/nov14-profile-navigation-personal-activity-report.test.mjs",
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs"
   ],
   "lockedFeatureChanges": [],
   "runtimeVersion": "1.3.2",
