@@ -17,7 +17,8 @@
     "community-wall-media",
     "android-photo-selection",
     "web-user-activation",
-    "selected-media-draft"
+    "selected-media-draft",
+    "navigation-scroll"
   ],
   "preserveBehaviors": [
     "Android native Photo Picker remains primary and mixed photo/video mode remains available.",
