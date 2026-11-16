@@ -153,6 +153,7 @@ import {
   applyCommunityWallMetadata,
   applyCommunityWallMediaHydration,
   preservePendingCommunityWallMedia,
+  shouldApplyCommunityRecentComment,
 } from '@/lib/communityWallHydration';
 import {
   classifyNetworkQuality,
@@ -2543,9 +2544,7 @@ const load=useCallback(async(options?:{
           if (!requestedCommentIds.has(id)) return post;
           const latest = previews[id];
           const old = post.comment_preview;
-          if (!latest || (old?.comment_id === latest.comment_id &&
-            old?.body === latest.body && old?.author_name === latest.author_name &&
-            old?.created_at === latest.created_at)) return post;
+          if (!shouldApplyCommunityRecentComment(old, latest)) return post;
           changed = true;
           return { ...post, comment_preview: latest };
         });
