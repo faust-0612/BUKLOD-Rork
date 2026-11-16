@@ -52,6 +52,7 @@ export default function CharacterCollectionsScreen(){
  const [revision,setRevision]=useState(0);
  const req=useRef(0),detailReq=useRef(0);
  const accountRef=useRef<string|null>(null);
+ const initialChoiceSet=useRef(false);
 
  const load=useCallback(async()=>{
   const epoch=++req.current;setBusy(true);setError('');
@@ -62,7 +63,8 @@ export default function CharacterCollectionsScreen(){
    if(!userId)throw new Error('Sign in to view your Character journey.');
    const state=await getMyBuklodCharacterSelectionV2(userId,true);
    if(epoch!==req.current)return;
-   accountRef.current=userId;setUid(userId);setSelection(state);setSelected(old=>old==='phan'?state.active_character_id:old);
+   accountRef.current=userId;setUid(userId);setSelection(state);
+   if(!initialChoiceSet.current){initialChoiceSet.current=true;setSelected(state.active_character_id);}
    setRevision(x=>x+1);
   }catch(e){
    if(epoch===req.current){accountRef.current=null;setUid(null);setSelection(null);
@@ -84,7 +86,7 @@ export default function CharacterCollectionsScreen(){
    if(next===accountRef.current)return;
    req.current++;detailReq.current++;
    accountRef.current=null;setUid(null);setSelection(null);setItems(null);
-   setSelected('phan');setInspect(null);setBadgeResult(null);setSpecialStory(null);setDetailError('');setStoryError('');
+   initialChoiceSet.current=false;setSelected('phan');setInspect(null);setBadgeResult(null);setSpecialStory(null);setDetailError('');setStoryError('');
    // Defer getSession/RPC until the auth callback releases its internal lock.
    if(next)setTimeout(()=>{if(accountRef.current===null)void load();},0);
   });
