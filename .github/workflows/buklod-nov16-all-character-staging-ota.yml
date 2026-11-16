@@ -1,4 +1,5 @@
 # Nov 16 2026 owner staging-only 1.3.2; no production, live SQL, Play or web.
+# APPROVED STAGING TRIGGER: independently green PR #884, exact branch; 1300 art/backend remain source-only.
 name: BUKLOD Nov16 All Character Staging OTA - NO PROD
 on:
   push:
