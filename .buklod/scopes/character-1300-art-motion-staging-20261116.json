@@ -1,20 +1,54 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/character-1300-art-motion-staging-20261116.json",
-  "objective": "Map and display the owner's 1300 character story collectible artworks (13 characters × 20 levels × 5), preserve server-owned levels and item ownership, and add accessible motion and staging validation.",
+  "objective": "Consolidated staging RC: compact BUKLOD Home/Wall/Connect/Profile/Cluster/Bible/QMP spacing while rendering 1,300 exact Character artworks and preserving native/AdMob/Character progression protections.",
   "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
-  "productionBaselineEvidence": "Compared with main commit 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61. No production OTA, native package, database migrations, AdMob, navigation or server-auth changes.",
-  "chosenApproach": "Canonical deterministic item paths verified by supplied art ZIP and SHA256 manifest. HTTPS public art URLs remain disabled until all 1300 objects verified. Keep masked locked specials; use whole-illustration idle only with reduced-motion awareness.",
+  "productionBaselineEvidence": "Main source 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61, native package and Expo runtime unchanged. Public Storage contains 1300 expected WebP paths plus manifest and ready marker (live SQL 2026-11-16); no new production OTA or backend reward mutation.",
+  "chosenApproach": "Exact source composition of independently reviewed PR #887 Character art and PR #888 spacing on main 63ccd4b; verified 1300 public WebP objects plus signed publication marker; staging-only public artwork URL fallback, no production automatic art enablement.",
   "riskAreas": [
     "app-runtime",
     "kingdom-character",
     "production-release-contract",
     "character-unlock-privacy",
-    "release-identity"
+    "release-identity",
+    "wall-media",
+    "navigation-scroll",
+    "connect",
+    "faith-cluster",
+    "auth-privacy",
+    "production-release",
+    "AdMob viewability",
+    "accessibility",
+    "navigation-auth",
+    "cluster-faith"
   ],
   "allowedPaths": [
+    ".buklod/scopes/character-1300-art-motion-staging-20261116.json",
+    ".github/workflows/buklod-compact-layout-qa.yml",
+    ".github/workflows/buklod-nov16-current-staging-ota.yml",
+    ".github/workflows/character_recovery_pr_qa.yml",
+    "docs/APPWIDE_COMPACT_LAYOUT_STANDARD.md",
     "docs/BUKLOD_CHARACTER_ART_STAGING_20261116.md",
+    "package.json",
+    "scripts/character-release-contract.mjs",
+    "scripts/compact-layout-gate.mjs",
     "scripts/verify-publish-character-art.mjs",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/home.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/bible/index.tsx",
+    "src/app/bible/read.tsx",
+    "src/app/clusters/index.tsx",
+    "src/app/community-contribution.tsx",
+    "src/components/BuklodCommunityWallPostCard.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodProfileGlassCard.tsx",
+    "src/components/BuklodReferralInviteCard.tsx",
+    "src/components/UI.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
     "src/components/points/BuklodCharacterCustomizeSheet.tsx",
     "src/components/points/BuklodCharacterIdleMotion.tsx",
     "src/components/points/BuklodCollectibleArt.tsx",
@@ -22,74 +56,121 @@
     "src/components/points/BuklodSpecialCharacterSeries.tsx",
     "src/lib/buklodCharacterCollectibles.ts",
     "src/lib/buklodCollectibleArtwork.ts",
+    "src/lib/buklodThemePresentation.ts",
+    "src/lib/buklodVisual.ts",
+    "tests/appwide-compact-density-20261116.test.mjs",
     "tests/buklod-character-art-contract-20261116.test.mjs",
-    "scripts/character-release-contract.mjs",
-    ".github/workflows/character_recovery_pr_qa.yml",
     "tests/buklod-character-art-release-contract-20261116.test.mjs",
-    ".buklod/scopes/character-1300-art-motion-staging-20261116.json"
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "tests/character-density-20261116.test.mjs",
+    "tests/cluster-bible-density-20261116.test.mjs",
+    "tests/compact-ota-release-20261116.test.mjs",
+    "tests/navigation-scroll-density-20261116.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/wall-media-density-20261116.test.mjs"
   ],
   "preserveBehaviors": [
     "Server-owned per-character level and XP, Circle Rank, item claims and rewards unchanged.",
     "Core/Special identities and masked locked special previews preserved.",
     "All existing AdMob, Wall, Connect, auth, navigation and production OTA functionality left intact.",
     "Missing art displays safe fallback; never grants collectible ownership.",
-    "Character level art still uses existing approved sprite sheets."
+    "Character level art still uses existing approved sprite sheets.",
+    "Preserve real AdMob impressions, fill/viewability, consent and first-view navigation performance.",
+    "Preserve Wall/Connect media interaction, user privacy, Bible reading and safe-area clearance.",
+    "Only staging defaults to verified public image URL; production not implicitly enabled."
   ],
   "acceptanceChecks": [
-    "Exactly 1300 unique art paths, no traversal or duplicates.",
-    "Core/Special item preview, unlocked art and reduced-motion/bkg pause present.",
-    "Git visual lock rebaselined against reviewed changed visual files and all existing Character release invariants maintained.",
-    "CI: TypeScript, Character and appwide regression gates before staging OTA.",
-    "Stage only after all WebP objects publicly verify SHA256 and preview EAS URL is configured.",
-    "Skip actual-device test only per user, retain CI gates."
+    "Verify all 1300 exact WebP objects plus 2 public JSON markers in bucket; marker uploaded LAST.",
+    "Pass combined exact-head regression CI (TypeScript, Character lock, compact density, AdMob, Wall, Connect, nav, Bible, release identity).",
+    "Check staging-only asset base URL, production remains opt-in and no service key is exposed.",
+    "Compile Android Hermes preview with Expo runtime 1.3.2 and staging package org.mzbministry.buklod.staging; verify signed APK/native parity.",
+    "Freeze exact staging RC; publish Android only after release gates, then verify stage update manifest and production unchanged.",
+    "Skip physical-device test per owner; do not present that as automated/mobile verification."
   ],
   "regressionTests": [
+    "tests/appwide-compact-density-20261116.test.mjs",
     "tests/buklod-character-art-contract-20261116.test.mjs",
-    "tests/buklod-character-art-release-contract-20261116.test.mjs"
+    "tests/buklod-character-art-release-contract-20261116.test.mjs",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "tests/character-density-20261116.test.mjs",
+    "tests/cluster-bible-density-20261116.test.mjs",
+    "tests/compact-ota-release-20261116.test.mjs",
+    "tests/navigation-scroll-density-20261116.test.mjs",
+    "tests/nov14-connect-green-profile-posts-ota.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/wall-media-density-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Add existing-art collectible previews and subtle accessible motion on Character screens only; preserve native identity and app behavior.",
+      "reason": "Add verified public art preview with fail-closed fallback and compact shared presentation in staging source only.",
       "preservedBehaviors": [
-        "Server-side login, auth, app runtime, AdMob and navigation unchanged.",
-        "All animations pause in background and honor reduce-motion setting."
+        "Native runtime, installed package, Android permissions and existing account sessions do not change."
       ],
       "tests": [
-        "tests/buklod-character-art-release-contract-20261116.test.mjs"
+        "tests/buklod-character-art-contract-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Compact Community Wall card spacing without changing media pipeline or paid AdMob visibility.",
+      "preservedBehaviors": [
+        "Posts, photos, videos, comments, genuine ad placements, and scroll performance remain usable."
+      ],
+      "tests": [
+        "tests/wall-media-density-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Compact Home, Connect, Profile and navigation UI without editing session, auth or route resolution.",
+      "preservedBehaviors": [
+        "Bottom tab navigation, back routes, safe area, keyboard and authentication protections remain intact."
+      ],
+      "tests": [
+        "tests/navigation-scroll-density-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Tighten Cluster and Bible page layout without changing Scripture or Cluster authorization.",
+      "preservedBehaviors": [
+        "Bible reading, notes, daily plans, offline and membership access remain unchanged."
+      ],
+      "tests": [
+        "tests/cluster-bible-density-20261116.test.mjs"
       ]
     },
     {
       "id": "kingdom-character",
-      "reason": "Map each of 1300 story collectibles to canonical character, own level and slot, keeping Special identity locks and canonical server-owned progression.",
+      "reason": "Map approved 1300 image objects into the existing server-owned Character collectible UI.",
       "preservedBehaviors": [
-        "No reallocation of points, rewards, XP, Circle Rank or collectible entitlement.",
-        "Special identity remains hidden until rank unlock, using existing visibleSpecialRail gate."
+        "No local minting of XP, collectible ownership, Circle Rank or hidden Special Characters."
       ],
       "tests": [
-        "tests/buklod-character-art-contract-20261116.test.mjs",
         "tests/buklod-character-art-release-contract-20261116.test.mjs"
       ]
     },
     {
       "id": "production-release",
-      "reason": "Rebaseline exact reviewed protected R31/R40 Character source blob SHA values while retaining fail-closed source and compiled-bundle release gates.",
+      "reason": "Preserve exact native/runtime staging OTA gates while adding only source QA and compact presentation contracts.",
       "preservedBehaviors": [
-        "No OTA workflow or production release action introduced.",
-        "SHA lock remains enforced on every modified protected Character surface."
+        "Production channel and release identity remain unchanged; no OTA can publish from a PR."
       ],
       "tests": [
-        "tests/buklod-character-art-release-contract-20261116.test.mjs"
+        "tests/compact-ota-release-20261116.test.mjs"
       ]
     }
   ],
   "releaseTarget": "staging-user Android runtime 1.3.2 only",
   "physicalDeviceVerification": "SKIPPED_PER_OWNER",
   "publicationStatus": "DEV_ONLY_NO_OTA",
-  "selectionRationale": "Existing BUKLOD Character V2/R31/R40 and verified 1,300-item Library artwork already define the visual identity. Implement deterministic mapping and preview in those clients rather than creating a parallel character inventory, while preserving server-level and rank authority.",
+  "selectionRationale": "The two DEV PRs have disjoint source paths and independently passed focused QA. A single reviewed cumulative manifest is required to preserve strict governance for the combined 46-path diff.",
   "alternativeApproaches": [
-    "Bundle all 1,300 images in every Android OTA (rejected: bloat, slower installs and unnecessary asset updates).",
-    "Reuse generic icons without rendering the uploaded artwork (rejected: user explicitly requires actual visually mapped items).",
-    "Animate separate head, eyes and limbs using flat JPG/PNG art (rejected: invalid rigging without segmented, reviewed pivots)."
-  ]
+    "Merge two draft PRs directly to production main (rejected: bypasses frozen staging RC, app compile and exact OTA verification).",
+    "Ship only Character art and defer spacing (rejected: user requests consolidated staging).",
+    "Bundle 1300 tiny WebPs into APK/OTA bundle (rejected: inefficient; verified public storage is already available)."
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota"
 }
