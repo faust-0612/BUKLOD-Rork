@@ -67,8 +67,9 @@ export default function CharacterCollectionsScreen(){
    if(next===accountRef.current)return;
    req.current++;detailReq.current++;
    accountRef.current=null;setUid(null);setSelection(null);setItems(null);
-   setBadgeResult(null);setDetailError('');
-   if(next)void load();
+   setSelected('phan');setBadgeResult(null);setDetailError('');
+   // Defer getSession/RPC until the auth callback releases its internal lock.
+   if(next)setTimeout(()=>{if(accountRef.current===null)void load();},0);
   });
   return()=>data.subscription.unsubscribe();
  },[load]);
