@@ -50,7 +50,8 @@
     "scripts/compact-layout-density-gate.mjs",
     "tests/compact-appwide-layout-navigation-wall-connect.test.mjs",
     "tests/compact-layout-density-rule.test.mjs",
-    "docs/design/compact-social-density.md"
+    "docs/design/compact-social-density.md",
+    ".buklod/scopes/appwide-compact-social-density-20261116.json"
   ],
   "lockedFeatureChanges": [
     {
