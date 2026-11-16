@@ -24,7 +24,9 @@ test('fullscreen player opens using existing permitted URL, without immediately 
 
 test('swipe changes playback on viewport entry and makes near-next video warm', () => {
   assert.match(wall, /videoViewerOnViewableItemsChanged=useRef/);
-  assert.match(wall, /itemVisiblePercentThreshold:60/);
+  // The current instant-swipe player activates at 10% visibility (not the retired 60% threshold).
+  assert.match(wall, /itemVisiblePercentThreshold:10/);
+  assert.match(wall, /minimumViewTime:0/);
   assert.match(view, /onViewableItemsChanged=\{videoViewerOnViewableItemsChanged\}/);
   assert.match(view, /viewabilityConfig=\{videoViewerViewabilityConfig\}/);
   assert.match(view, /extraData=\{videoViewerIndex\}/);
