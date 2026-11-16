@@ -153,6 +153,7 @@ import {
   applyCommunityWallMetadata,
   applyCommunityWallMediaHydration,
   preservePendingCommunityWallMedia,
+  shouldApplyCommunityRecentComment,
 } from '@/lib/communityWallHydration';
 import {
   classifyNetworkQuality,
@@ -1975,6 +1976,16 @@ const load=useCallback(async(options?:{
       .map((p:any)=>p.id)
       .filter(Boolean);
 
+  // Comment content is a nonblocking, batched enrichment. Do not throw away
+  // the actual latest comment because a fixed 4s metadata budget expired.
+  const pendingCommentPreviews: Promise<Record<string, BuklodPostCommentPreview>> =
+    postIds.length
+      ? fetchBuklodPostCommentPreviews(
+          postIds,
+          feedRows.filter((p:any)=>Number(p.comment_count ?? 0)>0).map((p:any)=>String(p.id))
+        )
+      : Promise.resolve({});
+
   /*
    * PERF_MAIN_COMMUNITY_R1
    *
@@ -2418,7 +2429,6 @@ const load=useCallback(async(options?:{
   const [
     rankResult,
     clusterMap,
-    commentPreviewMap,
   ] = await Promise.all([
     authorIds.length
       ? withBuklodTimeout<{data:any}>(
@@ -2444,15 +2454,6 @@ const load=useCallback(async(options?:{
       'Community clusters'
     ).catch(() => (
       {} as Record<string, string>
-    )),
-    withBuklodTimeout(
-      fetchBuklodPostCommentPreviews(
-        postIds
-      ),
-      4000,
-      'Community comments'
-    ).catch(() => (
-      {} as Record<string, unknown>
     )),
   ]);
 
@@ -2485,8 +2486,7 @@ const load=useCallback(async(options?:{
         rankMap.get(p.user_id) ??
         'Circle Starter V',
       comment_preview:
-        commentPreviewMap[p.id] ??
-        null,
+        p.comment_preview ?? null,
     }));
 
   if(appendPage186L){
@@ -2529,6 +2529,29 @@ const load=useCallback(async(options?:{
       return merged;
     });
   }
+
+  // Hydrate real author + comment content independently from ranks and
+  // media. A late result updates only its own posts; stale loads/account
+  // switches cannot overwrite another feed's rows or comments.
+  const requestedCommentIds = new Set(postIds.map(String));
+  void pendingCommentPreviews
+    .then(previews => {
+      if (communityLoadSeq !== communityLoadSeqRef.current) return;
+      setPosts(current => {
+        let changed = false;
+        const updated = current.map(post => {
+          const id = String(post.id ?? '');
+          if (!requestedCommentIds.has(id)) return post;
+          const latest = previews[id];
+          const old = post.comment_preview;
+          if (!shouldApplyCommunityRecentComment(old, latest)) return post;
+          changed = true;
+          return { ...post, comment_preview: latest };
+        });
+        return changed ? updated : current;
+      });
+    })
+    .catch(error => console.warn('Community comment hydration:', error?.message ?? error));
 
   // Preserve the older-page media RPC after the fast first-paint budget.
   if (appendPage186L && (!Array.isArray(mediaResult?.data) || mediaResult.data.length === 0)) {
@@ -3855,6 +3878,17 @@ const load=useCallback(async(options?:{
        ? {...post,comment_count:Number(post.comment_count??0)+1}
        : post
      ));
+     // Show the newly submitted actual comment without reloading the feed.
+     void fetchBuklodPostCommentPreviews([postId],[postId])
+       .then(previews=>{
+         if(commentAccountIdRef.current!==authorId || !previews[postId]) return;
+         setPosts(current=>current.map(post=>
+           String(post.id)===postId
+             ? {...post,comment_preview:previews[postId]}
+             : post
+         ));
+       })
+       .catch(error=>console.warn('Community new comment preview:',error?.message??error));
     }
     commentDraftsRef.current.delete(authorId+':'+postId);
     if(authorId)void clearWallCommentTextDraft(authorId,postId).catch(()=>undefined);

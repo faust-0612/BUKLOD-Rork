@@ -162,41 +162,6 @@ export function BuklodCommunityPostEngagement({
           preview={commentPreview}
           onPress={onOpenComments}
         />
-      ) : showCommentPreview && totalComments > 0 ? (
-        <BuklodPressable
-          accessibilityRole="button"
-          accessibilityLabel="Open recent comments"
-          nested
-          onPress={onOpenComments}
-          style={[
-            styles.fallbackPreview,
-            {
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.fallbackTitle,
-              { color: theme.textPrimary },
-            ]}
-          >
-            Recent comment
-          </Text>
-          <Text
-            style={[
-              styles.fallbackBody,
-              { color: theme.textMuted },
-            ]}
-          >
-            {totalComments}{' '}
-            {totalComments === 1
-              ? 'comment'
-              : 'comments'}{' '}
-            — tap to view
-          </Text>
-        </BuklodPressable>
       ) : null}
     </View>
   );
@@ -256,22 +221,6 @@ const styles = StyleSheet.create({
   reportText: {
     fontSize: 13,
     fontWeight: '800',
-  },
-  fallbackPreview: {
-    marginTop: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  fallbackTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  fallbackBody: {
-    marginTop: 2,
-    fontSize: 13,
-    fontWeight: '600',
   },
 });
 

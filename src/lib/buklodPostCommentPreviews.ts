@@ -14,14 +14,6 @@ export type BuklodPostCommentPreview = {
   created_at: string;
 };
 
-function isMissingRpcError(
-  message: string
-) {
-  return /could not find the function|function.*does not exist|schema cache/i.test(
-    message
-  );
-}
-
 async function fetchCommentPreviewsDirect(
   postIds: string[]
 ): Promise<Record<string, BuklodPostCommentPreview>> {
@@ -32,6 +24,7 @@ async function fetchCommentPreviewsDirect(
     )
     .in('post_id', postIds)
     .eq('is_hidden', false)
+    .is('deleted_at', null)
     .order('created_at', {
       ascending: false,
     });
@@ -84,9 +77,10 @@ async function fetchCommentPreviewsDirect(
 }
 
 export async function fetchBuklodPostCommentPreviews(
-  postIds: string[]
+  postIds: string[],
+  commentedPostIds: string[] = [],
 ): Promise<Record<string, BuklodPostCommentPreview>> {
-  const ids = postIds.filter(Boolean);
+  const ids = Array.from(new Set(postIds.filter(Boolean)));
 
   if (!ids.length) {
     return {};
@@ -143,6 +137,18 @@ export async function fetchBuklodPostCommentPreviews(
       };
     }
 
+    // Only check gaps known to contain comments. Normal batches stay one RPC,
+    // while an incomplete RPC result can safely recover via RLS-filtered rows.
+    const missing = Array.from(new Set(
+      commentedPostIds.filter(id => ids.includes(id) && !map[id])
+    ));
+    if (missing.length) {
+      try {
+        return { ...map, ...await fetchCommentPreviewsDirect(missing) };
+      } catch (fallbackError: any) {
+        console.warn('BUKLOD comment preview gap:', fallbackError?.message ?? fallbackError);
+      }
+    }
     return map;
   }
 
@@ -153,20 +159,17 @@ export async function fetchBuklodPostCommentPreviews(
     message
   );
 
-  if (isMissingRpcError(message)) {
-    try {
-      return await fetchCommentPreviewsDirect(ids);
-    } catch (fallbackError: any) {
-      console.warn(
-        'BUKLOD comment preview fallback:',
-        fallbackError?.message ??
-          fallbackError
-      );
-      return {};
-    }
+  // Retry through the existing comments SELECT under the viewer's RLS.
+  // No service-role key, privileged access or per-card network requests.
+  try {
+    return await fetchCommentPreviewsDirect(ids);
+  } catch (fallbackError: any) {
+    console.warn(
+      'BUKLOD comment preview fallback:',
+      fallbackError?.message ?? fallbackError
+    );
+    return {};
   }
-
-  return {};
 }
 
 export function toCommunityCommentPreview(

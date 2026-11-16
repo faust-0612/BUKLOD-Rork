@@ -10,7 +10,24 @@ type WallPost = {
   cluster_name?: string | null;
   author_rank_name?: string | null;
   comment_preview?: unknown;
+  comment_count?: number | string | null;
 };
+
+/** A slow response may finish after the member sends a newer comment. */
+export function shouldApplyCommunityRecentComment(
+  current: { comment_id?: string; body?: string; author_name?: string; created_at?: string } | null | undefined,
+  incoming: { comment_id?: string; body?: string; author_name?: string; created_at?: string } | null | undefined,
+): boolean {
+  if (!incoming) return false;
+  if (!current) return true;
+  const existingTime = Date.parse(String(current.created_at ?? ''));
+  const arrivingTime = Date.parse(String(incoming.created_at ?? ''));
+  if (Number.isFinite(existingTime) && Number.isFinite(arrivingTime) && arrivingTime < existingTime) return false;
+  return current.comment_id !== incoming.comment_id ||
+    current.body !== incoming.body ||
+    current.author_name !== incoming.author_name ||
+    current.created_at !== incoming.created_at;
+}
 
 export function applyCommunityWallMediaHydration<T extends WallPost>(
   current: T[],
@@ -45,7 +62,11 @@ export function applyCommunityWallMetadata<T extends WallPost>(
       ...post,
       cluster_name: next.cluster_name ?? null,
       author_rank_name: next.author_rank_name ?? null,
-      comment_preview: next.comment_preview ?? null,
+      // A timed-out background preview must never erase a valid snippet.
+      // Clear it only when the latest feed explicitly reports zero comments.
+      comment_preview: next.comment_count != null && Number(next.comment_count) === 0
+        ? null
+        : next.comment_preview ?? post.comment_preview ?? null,
     };
   });
 }
