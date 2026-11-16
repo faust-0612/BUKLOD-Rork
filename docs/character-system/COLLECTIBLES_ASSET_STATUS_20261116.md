@@ -12,7 +12,7 @@ Ten PNG collection boards (batch 01 through batch 10), 1055×1491 pixels each. E
 All originals were preserved. The processed deliverables were saved to:
   /Buklod Character System Assets/Collectibles/Processed
 
-The visually cleaned stored ZIP is 8.06 MB: BUKLOD_Character_1300_Collectibles_Ready.zip and contains
+The legacy atlas-derived stored ZIP is 8.06 MB: BUKLOD_Character_1300_Collectibles_Ready.zip and contains
 1,300 256×256 WebP crops (approximately 7.8 MB in total), a SHA256 source/crop
 manifest, published-v1.json, README and an offline zoomable index.html gallery.
 No ambiguous filenames were assigned to stage/character based on order of upload:
@@ -29,7 +29,7 @@ canonical Character World catalogue as normal high-contrast UI text.
 - All five story objects per stage retain a stable id (character:LNN:INN).
 - Original core inventory remains from the existing core redeemed item RPC.
 - Special task badges remain from the existing special badges RPC.
-- Special tangible story items use a distinct, new, authenticated task RPC only
+- All 13 Characters use a distinct, new, authenticated task RPC only
   when its additive migration is live; previous badges survive if that RPC fails.
 - Server evidence is required for OWNED. Uploaded artwork never grants ownership.
 - Image publication gated by public bucket buklod-character-art-v1 and a verified
@@ -40,13 +40,14 @@ canonical Character World catalogue as normal high-contrast UI text.
 
 ## DEV backend logic (not applied)
 
-The new additive migration is
+The new additive migrations are
   supabase/migrations/20261116120000_character_task_story_art_v1.sql
+  supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql
 
 It creates a public static-art bucket with no client upload grants; private
 per-user and per-character server-event and story-award tables with RLS; a trigger
 that snapshots the active character from already-validated public Wall events;
-and a separate authenticated Special story-item read RPC. Item grants are unique
+and a separate authenticated 13-Character story-item read RPC. Item grants are unique
 on (user_id,character_id,level_no,item_index). Replaying existing events and
 repeated reads cannot mint duplicate rewards. Current five evidence tasks per
 level are meaningful posts, meaningful comments, eligible reactions, eligible
@@ -90,3 +91,13 @@ checks, local SQL security and idempotency tests, UI performance/AdMob/navigatio
 regressions, then the DEV -> frozen RC -> production OTA workflow.
 
 The initial crop sheet included parts of embedded captions for shorter character rows. A second crop pass removed most captions and narrow adjacent-column edges; the original sheets remain unaltered. The ZIP and matching manifest were replaced in the same Processed Library folder and passed a complete CRC check for 1,304 archive entries (1,300 WebP + four metadata/gallery files). The final marker SHA256 is 2ebe18177a1a0ec38718de5ca3bb0042f6b9b36374b4b1264946c12abf8704da.
+
+## November 16 audited compatibility update
+
+The existing production Core collectible helper was verified to still derive levels from a single V2-only baseline, despite independent V3 checkpoints. The second staged migration reconciles inactive and active Core XP using the saved V3 per-Character points plus current active window, without altering original entitlement rows or credited BP.
+
+All 13 now have additive task-based story-item definitions. Core legacy redeemed items and verified new task awards merge by canonical character/stage/slot key, while Special badge ownership remains a separate server record. Reversed/rejected BP claims cease to be eligible evidence for future awards; pending credits never qualify.
+
+The original 1,300 atlas crops are a **low-resolution legacy art pack**: native icon widths are often only 73–85 pixels. A trial crop expansion introduced stage-heading fragments, so that unapproved replacement was rejected and no original Library assets were overwritten. Full high-fidelity zoom requires newly rendered native high-resolution item art; 4× zoom and crisp accessibility labels alone cannot invent lost detail. Clients may display available legacy art with truthful resolution limits and offline cache/fallback.
+
+The production BUKLOD Connect Supabase project does not currently contain the task tables or public art bucket. There is no direct connector action to transfer ChatGPT Library ZIP bytes into Supabase Storage; the trusted operator publisher remains necessary. No release was performed in this DEV increment.
