@@ -33,6 +33,6 @@ test('Daily Bible keeps scroll clearance and text size while reducing card gaps'
 test('Profile, Cluster, Character and QMP retain compact content layout',()=>{
   assert.match(read('src/components/BuklodReferralInviteCard.tsx'),/padding: 10,\s*gap: 6/);
   assert.match(read('src/app/clusters/index.tsx'),/directorySection:\s*\{ gap: 5 \}/);
-  assert.match(read('scripts/character-release-contract.mjs'), /a298732870bef208ec6bb13500ff804d7d723d48/);
+  assert.match(read('scripts/character-release-contract.mjs'), /d3a15dba63be9cd84e7b9c0972d7b6f19156ce23/);
   assert.match(read('src/app/community-contribution.tsx'),/content:\{padding:12,paddingBottom:80,gap:8\}/);
 });

@@ -23,7 +23,7 @@ test('post detail has single-line author and no removed actions', () => {
  assert.match(source,/BuklodContentOverflowMenu/);
 });
 test('avatar SQL exposes ONLY active profile photo to signed-in viewers irrespective of lock and verification', () => {
- const migration = read('supabase/migrations/20261116221100_wall_avatar_privacy_display.sql');
+ const migration = read('supabase/migrations/20261116141954_wall_avatar_privacy_display_20261116.sql');
  assert.match(migration,/select p\.id, p\.avatar_url/);
  assert.match(migration,/auth\.uid\(\)\) is not null/);
  assert.match(migration,/p\.is_active = true/);

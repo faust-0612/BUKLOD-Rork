@@ -35,7 +35,7 @@ test('animation, profile display and collectible preview are present', () => {
   const motion=fs.readFileSync('src/components/points/BuklodCharacterIdleMotion.tsx','utf8');
   assert.match(sheet,/<BuklodCharacterIdleMotion active=\{visible\}>/);
   assert.match(sheet,/\{activeName\.toUpperCase\(\)\}/);
-  assert.match(selector,/<BuklodCollectibleArt characterId=\{draft\}/);
+  assert.match(selector,/<BuklodCharacterCollectibleArtwork characterId=\{draft\}/);
   assert.match(selector,/setItemZoom\(\{/);
   const special=fs.readFileSync('src/components/points/BuklodSpecialCharacterSeries.tsx','utf8');
   assert.match(special,/<BuklodCollectibleArt characterId=\{selected\.id\}/);

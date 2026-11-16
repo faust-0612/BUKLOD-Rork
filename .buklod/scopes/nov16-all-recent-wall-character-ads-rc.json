@@ -3,8 +3,8 @@
   "scopeManifestPath": ".buklod/scopes/nov16-all-recent-wall-character-ads-rc.json",
   "objective": "Cumulative source-only Android staging RC: merge recent compact Wall/Connect navigation, AdMob prewarm, 1300 Character art/zoom and cross-surface collectibles, real latest Wall comments, private member avatar and one-line Wall identity, referral copy, Connect contrast and dark mentions. No new production OTA.",
   "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
-  "productionBaselineEvidence": "Checked GitHub main at 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61. Prior staging source verified under 01a1e498-a8f0-7fc8-93fe-7662526d086d at Android runtime 1.3.2, but this new exact combined source is NOT staged or runtime verified. Do not treat individually passing PR CI or a previous OTA as combined-commit evidence.",
-  "chosenApproach": "Reconcile #898 exact compact/ads/Notes staging source, then apply #895 Android decode, #897 identity/privacy, #899 real comment, #890 referral, #896 real collectible visual in preserving three-way source patches, plus #883 input contrast and #875 dark mentions. Preserve 1300 art + idle animation, ad/native lifecycle and immutable server reward authority. No production publish.",
+  "productionBaselineEvidence": "Checked GitHub main at 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61. Prior staging source verified under 01a1e498-a8f0-7fc8-93fe-7662526d086d at Android runtime 1.3.2, but this new exact combined source is NOT staged or runtime verified. Do not treat individually passing PR CI or a previous OTA as combined-commit evidence. Live migration history lists avatar function as 20261116141954 (not 20261116221100); source reconciled to exact version without reapplying DB changes.",
+  "chosenApproach": "Reconcile #898 exact compact/ads/Notes staging source, then apply #895 Android decode, #897 identity/privacy, #899 real comment, #890 referral, #896 real collectible visual in preserving three-way source patches, plus #883 input contrast and #875 dark mentions. Preserve 1300 art + idle animation, ad/native lifecycle and immutable server reward authority. No production publish. Reconcile avatar migration filename to existing live migration ledger rather than duplicate DDL.",
   "riskAreas": [
     "app-runtime",
     "kingdom-character",
@@ -100,7 +100,7 @@
     "src/lib/dateTime.ts",
     "supabase/migrations/20261116130306_buklod_verified_referral_circle_rank_20bp_v2.sql",
     "supabase/migrations/20261116130815_buklod_referral_rank_single_claim_compat_v3.sql",
-    "supabase/migrations/20261116221100_wall_avatar_privacy_display.sql",
+    "supabase/migrations/20261116141954_wall_avatar_privacy_display_20261116.sql",
     "supabase/tests/wall_avatar_privacy_database_20261116.sql",
     "tests/appwide-compact-density-20261116.test.mjs",
     "tests/buklod-character-art-contract-20261116.test.mjs",
@@ -124,6 +124,7 @@
     "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
     "tests/nov16-wall-identity-navigation.test.cjs",
     "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
     "tests/referral-verified-circle-rank-20261116.test.mjs",
     "tests/scoped-wall-comment-access-20261116.test.mjs",
     "tests/wall-comment-navigation-update-20261116.test.mjs",
@@ -175,7 +176,8 @@
     "tests/referral-verified-circle-rank-20261116.test.mjs",
     "tests/scoped-wall-comment-access-20261116.test.mjs",
     "tests/wall-comment-navigation-update-20261116.test.mjs",
-    "tests/wall-real-recent-comment-preview-20261116.test.mjs"
+    "tests/wall-real-recent-comment-preview-20261116.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -239,46 +241,35 @@
       ]
     },
     {
-      "id": "ads-monetization",
-      "reason": "NativeAd first-view prewarm while preserving genuine impressions, consent and ad lifecycle",
-      "preservedBehaviors": [
-        "No fake fill, offscreen impressions or duplicate ads; keep existing cooldown and fallback"
-      ],
-      "tests": [
-        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
-        "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs"
-      ]
-    },
-    {
-      "id": "auth-privacy",
-      "reason": "Show authorized member avatar while retaining authenticated account scoping and locked profile detail",
+      "id": "backend-security",
+      "reason": "Restore active signed-in only avatar URL through live verified database function without exposing locked member private details",
       "preservedBehaviors": [
         "No exposure of private member details, hidden posts or RLS-bypassing data"
       ],
       "tests": [
-        "tests/nov16-wall-author-date-avatar-privacy.test.cjs",
-        "tests/scoped-wall-comment-access-20261116.test.mjs"
+        "supabase/tests/wall_avatar_privacy_database_20261116.sql",
+        "tests/nov16-wall-author-date-avatar-privacy.test.cjs"
       ]
     },
     {
-      "id": "connect",
-      "reason": "Improve note avatar compact geometry and message input contrast in both themes",
+      "id": "ads-finance-points",
+      "reason": "First-view NativeAd prewarm and referral UI update preserving server-owned qualified reward and Ads consent/cooldown",
       "preservedBehaviors": [
-        "Keep all Connect messaging, calls, media and keyboard navigation functional"
+        "No duplicate qualified-referral credit and no fake/off-screen AdMob impressions, maintain genuine SDK fill, consent and cooldown"
       ],
       "tests": [
-        "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
-        "tests/buklod-connect-composer-contrast-20261116.test.mjs"
-      ]
-    },
-    {
-      "id": "referral-economy",
-      "reason": "Expose approved referrer +10 BP plus one-time qualified Circle Rank +10 BP without cash payout changes",
-      "preservedBehaviors": [
-        "Backend remains canonical; no client-side reward awards or duplicated triggers"
-      ],
-      "tests": [
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
         "tests/referral-verified-circle-rank-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Select single cumulative Nov16 release manifest in existing protected-feature CI without bypassing baseline or immutable source checks",
+      "preservedBehaviors": [
+        "Keep protected source guard fail-closed for all edited APIs and release flows"
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
       ]
     }
   ],
