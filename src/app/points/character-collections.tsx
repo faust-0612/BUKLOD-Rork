@@ -39,6 +39,7 @@ export default function CharacterCollectionsScreen(){
  const [showBadges,setShowBadges]=useState(false);
  const [revision,setRevision]=useState(0);
  const req=useRef(0),detailReq=useRef(0);
+ const accountRef=useRef<string|null>(null);
 
  const load=useCallback(async()=>{
   const epoch=++req.current;setBusy(true);setError('');
@@ -49,14 +50,28 @@ export default function CharacterCollectionsScreen(){
    if(!userId)throw new Error('Sign in to view your Character journey.');
    const state=await getMyBuklodCharacterSelectionV2(userId,true);
    if(epoch!==req.current)return;
-   setUid(userId);setSelection(state);setSelected(old=>old==='phan'?state.active_character_id:old);
+   accountRef.current=userId;setUid(userId);setSelection(state);setSelected(old=>old==='phan'?state.active_character_id:old);
    setRevision(x=>x+1);
   }catch(e){
-   if(epoch===req.current){setUid(null);setSelection(null);
+   if(epoch===req.current){accountRef.current=null;setUid(null);setSelection(null);
     setError(e instanceof Error?e.message:'Could not load Character progress.');}
   }finally{if(epoch===req.current)setBusy(false);}
  },[]);
  useEffect(()=>{void load();return()=>{req.current++;detailReq.current++;};},[load]);
+ /* Auth state is not a collection entitlement: remove old-account data immediately
+  * instead of waiting for another navigation/focus or a pending RPC to resolve. */
+ useEffect(()=>{
+  const {data}=supabase.auth.onAuthStateChange((event,session)=>{
+   if(event!=='SIGNED_IN'&&event!=='SIGNED_OUT')return;
+   const next=session?.user.id??null;
+   if(next===accountRef.current)return;
+   req.current++;detailReq.current++;
+   accountRef.current=null;setUid(null);setSelection(null);setItems(null);
+   setBadgeResult(null);setDetailError('');
+   if(next)void load();
+  });
+  return()=>data.subscription.unsubscribe();
+ },[load]);
 
  const core=CORE.has(selected),special=SPECIAL.has(selected);
  const unlocked=Boolean(selection && (!special ||
