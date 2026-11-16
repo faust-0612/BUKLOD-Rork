@@ -2904,9 +2904,19 @@ const load=useCallback(async(options?:{
     }
 
     if(picked.videoAsset){
-     await acceptWallVideo186O(
-      picked.videoAsset
-     );
+     try{
+      await acceptWallVideo186O(
+       picked.videoAsset
+      );
+     }
+     catch(videoError:any){
+      reportCommunityFailure(
+       videoError,
+       'Video not prepared',
+       "BUKLOD couldn't prepare this video. Your selected photos are still here.",
+       'gallery_video_prepare_failed',
+      );
+     }
     }
    }
    catch(error:any){
