@@ -211,7 +211,9 @@ function createStyles(theme: ConnectThemeRoles) {
       borderWidth: 0,
       borderRadius: 24,
       backgroundColor: 'transparent',
-      color: theme.textPrimary,
+      // The pill is permanently white even when Messages/BUKLOD use dark mode.
+      // Couple its foreground to that *actual* surface, never to theme.textPrimary.
+      color: HIBLA.ink,
       ...connectTypography.composerInput,
       textAlignVertical: 'center',
     },
@@ -292,7 +294,7 @@ function createStyles(theme: ConnectThemeRoles) {
       gap: 10,
     },
     replyLabel: {
-      color: theme.accent,
+      color: HIBLA.pine,
       fontSize: 10,
       fontWeight: '900',
       letterSpacing: 0.5,
@@ -300,13 +302,13 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     replyName: {
       marginTop: 2,
-      color: theme.textPrimary,
+      color: HIBLA.ink,
       fontSize: 12.5,
       fontWeight: '800',
     },
     replyPreview: {
       marginTop: 2,
-      color: theme.textMuted,
+      color: HIBLA.muted,
       fontSize: 12,
     },
   });
@@ -516,7 +518,7 @@ export function ConnectComposer({
               <MaterialCommunityIcons
                 name="close"
                 size={20}
-                color={theme.textMuted}
+                color={HIBLA.muted}
               />
             </Pressable>
           ) : null}
@@ -533,7 +535,7 @@ export function ConnectComposer({
             <MaterialCommunityIcons
               name="paperclip"
               size={20}
-              color={theme.accent}
+              color={HIBLA.pine}
             />
           </View>
         </ConnectPressable>
@@ -547,7 +549,7 @@ export function ConnectComposer({
             <MaterialCommunityIcons
               name="image-outline"
               size={20}
-              color={theme.accent}
+              color={HIBLA.pine}
             />
           </View>
         </ConnectPressable>
@@ -559,7 +561,8 @@ export function ConnectComposer({
             value={draft}
             onChangeText={onChangeDraft}
             placeholder={mode === 'direct' ? 'Mag-type ng mensahe…' : 'Mensahe sa grupo…'}
-            placeholderTextColor={theme.textMuted}
+            placeholderTextColor={HIBLA.muted}
+            selectionColor={HIBLA.jade}
             multiline
             blurOnSubmit={false}
             returnKeyType={Platform.OS === 'web' ? 'send' : undefined}
