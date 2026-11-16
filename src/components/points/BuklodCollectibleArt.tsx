@@ -10,6 +10,9 @@ type Props = { characterId: BuklodCharacterWorldId; level: number; itemIndex: nu
 
 export default function BuklodCollectibleArt({ characterId, level, itemIndex, size, fallbackIcon = 'star-circle-outline', locked = false }: Props) {
   const uri = collectibleArtworkUri(characterId, level, itemIndex);
+  // Full-screen zoom must decode original bytes; small cards remain inexpensive.
+  // This does not create detail absent from the original low-resolution art.
+  const expanded = size >= 200;
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [uri]);
   const frame = { width: size, height: size, alignItems: 'center' as const, justifyContent: 'center' as const };
@@ -20,7 +23,8 @@ export default function BuklodCollectibleArt({ characterId, level, itemIndex, si
   );
   return (
     <View style={frame}>
-      <ExpoImage source={{ uri }} contentFit="contain" cachePolicy="memory-disk" transition={100}
+      <ExpoImage source={{ uri }} contentFit="contain" cachePolicy="memory-disk" transition={expanded ? 0 : 100}
+        allowDownscaling={!expanded} priority={expanded ? 'high' : 'normal'}
         style={{ width: size, height: size }} onError={() => setFailed(true)}
         accessibilityLabel={'Collectible artwork ' + characterId + ' level ' + level + ' item ' + itemIndex} />
     </View>
