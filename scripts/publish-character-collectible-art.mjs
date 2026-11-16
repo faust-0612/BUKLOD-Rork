@@ -11,7 +11,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import {createClient} from '@supabase/supabase-js';
 import {validateArtManifest,expectedEntries} from './validate-character-collectible-art.mjs';
 
 const BUCKET='buklod-character-art-v1';
@@ -145,6 +144,7 @@ async function main(){
   throw new Error('Target Supabase project must match BUKLOD_ART_EXPECTED_PROJECT_REF');
  if(expectedManifest!==marker.manifest_sha256)
   throw new Error('Pinned BUKLOD_ART_EXPECTED_MANIFEST_SHA256 does not match local art');
+ const {createClient}=await import('@supabase/supabase-js');
  const client=createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}});
  const {data:bucket,error}=await client.storage.getBucket(BUCKET);
  if(error||!bucket?.public)throw new Error('Public artwork bucket migration not present');
