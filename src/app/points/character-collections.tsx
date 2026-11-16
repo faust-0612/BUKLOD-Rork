@@ -18,7 +18,7 @@ import {
 import {getMyCharacterCollectibles,type CharacterCollectibleState} from '@/lib/buklodCharacterCollectibles';
 import {
  storyStageItems,verifiedStoryKeys,storyStageProgress,savedCharacterLevel,
- characterStageLabels,describeCharacterTaskRequirement,storyItemTaskTarget,type TaskBadge,
+ characterStageLabels,describeCharacterTaskRequirement,storyItemTaskTarget,storyItemKey,type TaskBadge,
 } from '@/lib/buklodCharacterCollectionLogic';
 import type {BuklodCharacterWorldId} from '@/lib/buklodCharacterWorldCatalog';
 
@@ -111,8 +111,18 @@ export default function CharacterCollectionsScreen(){
   setItems(null);setBadgeResult(null);setSpecialStory(null);setDetailError('');setStoryError('');setDetailsBusy(true);
   const run=async()=>{
    if(core){
-    const data=await getMyCharacterCollectibles(selected as typeof CORE_CHARACTER_ORDER[number]);
-    if(epoch===detailReq.current)setItems(data);
+    // Legacy Core inventory is read independently from newer verified task awards.
+    // Neither an absent migration nor a transient error erases legacy ownership.
+    const [legacy,task]=await Promise.allSettled([
+     getMyCharacterCollectibles(selected as typeof CORE_CHARACTER_ORDER[number]),
+     (supabase as any).rpc('get_my_buklod_character_story_tasks_v1',{p_character_id:selected}),
+    ]);
+    if(epoch!==detailReq.current)return;
+    if(legacy.status==='fulfilled')setItems(legacy.value);
+    else setDetailError('Core item claims could not be refreshed.');
+    if(task.status==='fulfilled'&&!task.value.error)
+     setSpecialStory((task.value.data??{}) as SpecialStoryPayload);
+    else setStoryError('Task milestones require the verified Character server migration.');
    }else if(special){
     // Existing badge records and special story-item awards are separate.
     // An unapplied new migration must never erase older earned badges.
@@ -144,10 +154,14 @@ export default function CharacterCollectionsScreen(){
  const story=unlocked?storyStageItems(worldId,level):[];
  const coreOwned=useMemo(()=>verifiedStoryKeys(items?.items??[],worldId),[items,worldId]);
  const owned=useMemo(()=>{
-  if(core)return coreOwned;
-  return new Set((specialStory?.items??[]).filter(item=>
-   item.owned&&Boolean(item.earned_at)).map(item=>item.key));
- },[core,coreOwned,specialStory]);
+  const keys=new Set(coreOwned);
+  for(const item of specialStory?.items??[]){
+   if(!item.owned||!item.earned_at)continue;
+   // Exact canonical key matching prevents corrupted or cross-Character rows.
+   if(item.key===storyItemKey(worldId,item.level,item.item_index))keys.add(item.key);
+  }
+  return keys;
+ },[coreOwned,specialStory,worldId]);
  const stage=unlocked?storyStageProgress(worldId,level,owned):null;
  const title=unlocked?characterStageLabels(worldId,level):null;
  const badges=badgeResult?.collectibles??[];
@@ -207,12 +221,12 @@ export default function CharacterCollectionsScreen(){
     </View>
     <View style={s.card}>
      <View style={s.rowBetween}><Text style={s.section}>STAGE {level} • OBJECTS</Text>
-      <Text style={s.kicker}>{(core?Boolean(items):Boolean(specialStory))?stage?.owned+'/5 VERIFIED':'AWARD STATUS UNKNOWN'}</Text></View>
+      <Text style={s.kicker}>{(Boolean(items)||Boolean(specialStory))?stage?.owned+'/5 VERIFIED':'AWARD STATUS UNKNOWN'}</Text></View>
      {detailsBusy?<ActivityIndicator color={C.green}/>:null}
      {story.map(item=>{
       const isOwned=owned.has(item.key);
       const artUrl=verifiedCharacterArtUrl(worldId,level,item.index,artReady);
-      const taskGoal=special&&specialStory?.metrics
+      const taskGoal=specialStory?.metrics
        ?storyItemTaskTarget(level,item.index,specialStory.metrics):null;
       return <Pressable key={item.key} accessibilityRole="button"
        accessibilityLabel={'View and zoom '+item.name+' illustration'}
@@ -235,7 +249,7 @@ export default function CharacterCollectionsScreen(){
           :''}
         </Text>:null}
         <Text style={s.caption}>{isOwned?'OWNED • SERVER VERIFIED':
-         level>saved?'FUTURE STAGE':core?(!items?'AWARD STATUS UNAVAILABLE':'NOT VERIFIED AS CLAIMED'):(specialStory?'NOT YET EARNED':'AWARD STATUS UNAVAILABLE')}</Text>
+         level>saved?'FUTURE STAGE':(items||specialStory)?'NOT YET EARNED':'AWARD STATUS UNAVAILABLE'}</Text>
        </View>
        <MaterialCommunityIcons name="magnify-plus-outline" size={23} color={C.green}/>
       </Pressable>;
@@ -248,7 +262,7 @@ export default function CharacterCollectionsScreen(){
     <View style={s.card}>
      <Text style={s.section}>BADGES & TASKS</Text>
      <Text style={s.name}>{title?.signature}</Text>
-     <Text style={s.body}>Stage badge: {title?.badge}. Badges and the five story items are different rewards.</Text>
+     <Text style={s.body}>Stage badge: {title?.badge} • {stage?.mastered?'COLLECTION MASTERED (5/5)':'NOT YET MASTERED'}. Badges and the five story items are different rewards.</Text>
      {detailError?<Text style={s.error}>{detailError}</Text>:null}
      {storyError?<Text style={s.caption}>{storyError}</Text>:null}
      {special?<>
@@ -276,7 +290,7 @@ export default function CharacterCollectionsScreen(){
        <Text style={s.actionText}>OPEN PUBLIC WALL TASKS</Text>
       </Pressable>
       <Text style={s.caption}>Verified claimed Bible reading, devotional, Formation, quiz and attendance task evidence also counts after the server task migration. Claims and awards remain separate.</Text>
-     </>:<Text style={s.caption}>Core item awards are verified by the existing Character collection RPC. This page creates no awards or economy credits.</Text>}
+     </>:<Text style={s.caption}>Core legacy rewards and Character task milestones are joined by one collectible slot. No duplicate BP or Kingdom Shards.</Text>}
     </View>
     <Pressable accessibilityRole="button" onPress={()=>router.push('/games/legacy' as any)} style={s.secondary}>
      <Text style={s.name}>VIEW CONNECTED KINGDOM LEGACY</Text>
