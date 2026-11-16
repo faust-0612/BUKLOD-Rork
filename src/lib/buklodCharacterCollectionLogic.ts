@@ -90,3 +90,22 @@ export function describeCharacterTaskRequirement(value:unknown,secret=false):str
  return sections.join(' | ')||'Awaiting verified task requirements.';
 }
 export const STORY_COLLECTION_TOTAL=1300;
+
+export type CharacterTaskTarget = {
+ metric:string; label:string; target:number; current:number; complete:boolean;
+};
+/** Stable preview of server-backed Special item tasks. Never mints awards. */
+export function storyItemTaskTarget(level:number,itemIndex:number,metrics:Readonly<Record<string,number>>):CharacterTaskTarget{
+ if(!Number.isInteger(level)||level<1||level>20||!Number.isInteger(itemIndex)||itemIndex<1||itemIndex>5)
+  throw new Error('Invalid task milestone');
+ const config=[
+  {metric:'character_public_post',label:'meaningful public posts',target:Math.max(1,Math.floor((level+1)/2))},
+  {metric:'character_public_comment',label:'eligible public comments',target:Math.max(1,level)},
+  {metric:'character_public_reaction',label:'eligible reactions',target:Math.max(2,2*level)},
+  {metric:'character_public_share',label:'eligible shares',target:Math.max(1,Math.floor((level+1)/2))},
+  {metric:'character_public_active_week',label:'active weeks (plus the four previous items)',target:Math.max(1,Math.floor((level+3)/4))},
+ ][itemIndex-1];
+ const raw=Number(metrics[config.metric]??0);
+ const current=Number.isFinite(raw)&&raw>=0?Math.floor(raw):0;
+ return {...config,current,complete:current>=config.target};
+}
