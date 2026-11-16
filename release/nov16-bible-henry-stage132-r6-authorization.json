@@ -1,0 +1,40 @@
+{
+  "releaseContract": 2,
+  "objective": "Publish one Android-only staging-user OTA combining previous Nov16 verified recent fixes with Bible Matthew Henry visible shortcut and compact edge-to-edge verse reader.",
+  "stagingReady": true,
+  "sourcePr": 871,
+  "sourceBranch": "fix/bible-henry-edge-to-edge-20261116",
+  "sourceSha": "ae602856db15db6a34ee246e4edcf18022e4e2b0",
+  "productionSourceBaseline": "81c0e78518f05518fa9ad4036756fd0ca2f014f6",
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "environment": "preview",
+    "packageId": "org.mzbministry.buklod.staging",
+    "runtimeVersion": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8"
+  },
+  "knownPriorStagingUpdateId": "01a1e27b-0009-7e15-a0fd-e2207701a55e",
+  "knownPriorStagingUpdateGroup": "96c44ef8-2588-4dba-89f6-9921fcff49a5",
+  "knownPriorProductionUpdateId": "01a1e10a-f043-7113-9a6c-673e91a58517",
+  "publicationPolicy": {
+    "allowOtaPublish": true,
+    "allowProductionPromotion": false,
+    "allowWebDeploy": false,
+    "allowPlayStore": false,
+    "allowBackendMigrations": false,
+    "requireExactShaCIGreen": true,
+    "requireSignedBuildCompatibility": true,
+    "requireFreshStagingAndProductionReadback": true,
+    "doNotRepeatPreviousUpdate": true
+  },
+  "productionOtaPublished": false,
+  "physicalDeviceVerification": "SKIPPED_BY_OWNER",
+  "included": [
+    "All Nov16 previous consolidated UI/132-story/Wall/Connect/AdMob protections at source baseline",
+    "Bible edge-to-edge compact verse Card and scenic header",
+    "Always-visible Matthew Henry reader action on free Bible route",
+    "Source-labeled chapter introduction and related verse context"
+  ],
+  "notes": "R6 is additive after verified R5 Android staging OTA, does not mutate production. Fail closed if source SHA, staging manifest/group, production manifest, Expo runtime/channel/app ID or required CI drifts."
+}
