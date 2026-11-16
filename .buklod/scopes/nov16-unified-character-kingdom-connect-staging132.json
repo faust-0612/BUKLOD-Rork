@@ -5,7 +5,7 @@
   "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
   "productionBaselineEvidence": "Exact production main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61, successful Android production EAS OTA 01a1e2e2-cb65-7733-bcb6-3519230c9cf4 runtime 1.3.2, November 16 2026. Main and production must not change. New collectible SQL, art bucket and ownership ledger remain unapplied until isolated backend validation.",
   "chosenApproach": "Reconcile all six PRs against the same exact main tree. Merge two overlapping TSX files with individually verified three-way-context hunks; preserve existing AdMob/dashboard, PTT, authorization, finance, character V3 and native ABI. Stage-only source and optional fail-closed UI; never apply production SQL or publish before exact-source RC.",
-  "selectionRationale": "Avoid blind merges into production, preserve all six reviewed scopes, and keep noncredit Kingdom preview separate from official Character award ownership.",
+  "selectionRationale": "Avoid blind merges into production, preserve all six reviewed scopes, and keep noncredit Kingdom preview separate from official Character award ownership. Owner later explicitly waived staging and paid Supabase branch; add disposable local-Postgres CI without weakening mandatory production release gates.",
   "alternativeApproaches": [
     "Direct main merge or production OTA: rejected",
     "Unverified art upload or client-issued character reward minting: rejected",
@@ -160,7 +160,11 @@
     ".buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json",
     "tests/protected-feature-lock.test.mjs",
     ".github/workflows/buklod-nov16-unified-character-staging-ota.yml",
-    "tests/nov16-unified-staging-ota-release-gate.test.mjs"
+    "tests/nov16-unified-staging-ota-release-gate.test.mjs",
+    ".github/workflows/buklod-character-no-staging-sql-qa.yml",
+    "supabase/tests/character_story_offline_fixture_20261116.sql",
+    "supabase/tests/character_story_offline_behavior_20261116.sql",
+    "tests/character-story-offline-db-gate-20261116.test.mjs"
   ],
   "preserveBehaviors": [
     "Badge/Story Relic/official rewards cannot be minted from client art, local scores or saved data.",
@@ -234,7 +238,9 @@
     "Staging only org.mzbministry.buklod.staging runtime 1.3.2, EAS update readback, unchanged production manifest.",
     "Only the single consolidated contractVersion=2 scope manifest is retained; all original DEV PR source paths, tests and security declarations are reconciled into it.",
     "Keep four existing AdMob/dashboard/Wall navigation regression suites in the final staging publisher; not claimed as changed PR regression proofs.",
-    "Publisher is gated by green frozen-source CI, exact source/native identity, Android 1.3.2 export and AdMob/navigation regressions; staging-user publication must have EAS manifest readback and no production mutation."
+    "Publisher is gated by green frozen-source CI, exact source/native identity, Android 1.3.2 export and AdMob/navigation regressions; staging-user publication must have EAS manifest readback and no production mutation.",
+    "Owner Nov16 update: SKIP Supabase staging entirely; use ephemeral PostgreSQL 17 CI for migration syntax, RLS, account isolation, event attribution, duplicate awards and claim-state reversal. This fixture is NOT proof of live Supabase compatibility.",
+    "Production OTA and production DB migration remain blocked until exact-source Android export, protected AdMob/navigation QA, asset upload and production preflight pass. No paid staging branch or staging OTA."
   ],
   "regressionTests": [
     "tests/kingdom-adventure-premium-presentation-20261116.test.mjs",
@@ -255,7 +261,8 @@
     "tests/buklod-connect-composer-contrast-20261116.test.mjs",
     "tests/community-dark-mentions-apple-green-20261116.test.mjs",
     "tests/protected-feature-lock.test.mjs",
-    "tests/nov16-unified-staging-ota-release-gate.test.mjs"
+    "tests/nov16-unified-staging-ota-release-gate.test.mjs",
+    "tests/character-story-offline-db-gate-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -297,7 +304,8 @@
         "tests/character-android-zoom-full-source-20261116.test.mjs",
         "tests/character-task-collections-20261116.test.mjs",
         "tests/kingdom-reward-sound-release-20261110.test.mjs",
-        "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs"
+        "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
+        "tests/character-story-offline-db-gate-20261116.test.mjs"
       ]
     },
     {
@@ -323,7 +331,8 @@
       ],
       "tests": [
         "tests/character-story-art-server-security-20261116.test.mjs",
-        "supabase/tests/character_story_art_security_20261116.sql"
+        "supabase/tests/character_story_art_security_20261116.sql",
+        "tests/character-story-offline-db-gate-20261116.test.mjs"
       ]
     },
     {
@@ -346,7 +355,8 @@
         "Original protected-feature-source checker, CI coverage and existing main workflow remain unchanged; no production/main mutation."
       ],
       "tests": [
-        "tests/protected-feature-lock.test.mjs"
+        "tests/protected-feature-lock.test.mjs",
+        "tests/character-story-offline-db-gate-20261116.test.mjs"
       ]
     }
   ],

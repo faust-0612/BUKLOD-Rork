@@ -1,0 +1,58 @@
+# Read-only to production. Ephemeral PostgreSQL 17 is NOT Supabase staging.
+name: BUKLOD Character No-Staging SQL Isolation QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod-character-no-staging-sql-qa.yml'
+      - 'supabase/migrations/20261116120000_character_task_story_art_v1.sql'
+      - 'supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql'
+      - 'supabase/tests/character_story_art_security_20261116.sql'
+      - 'supabase/tests/character_story_offline_*.sql'
+      - 'tests/character-story-offline-db-gate-20261116.test.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-character-offline-sql-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  ephemeral-postgres:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'integration/nov16-unified-character-kingdom-connect-staging132' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: offline_test_only
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Prove no-staging workflow isolation
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node --test tests/character-story-offline-db-gate-20261116.test.mjs
+      - name: Apply minimal schema fixture and migration to disposable local PostgreSQL
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          test -n "$POSTGRES_CONTAINER"
+          for file in \
+            supabase/tests/character_story_offline_fixture_20261116.sql \
+            supabase/migrations/20261116120000_character_task_story_art_v1.sql \
+            supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql \
+            supabase/tests/character_story_art_security_20261116.sql \
+            supabase/tests/character_story_offline_behavior_20261116.sql; do
+              echo "Disposable Postgres test: $file"
+              docker exec -i "$POSTGRES_CONTAINER" psql --set=ON_ERROR_STOP=1 -U postgres -d postgres < "$file"
+          done
+          echo "PASS: ephemeral PostgreSQL 17 contracts and account/replay tests. No Supabase project touched."
