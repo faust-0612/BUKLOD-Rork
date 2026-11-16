@@ -91,7 +91,7 @@ test('Nov16 isolated staging consolidation retains protected feature CI gate', (
   const scope=JSON.parse(readFileSync(new URL('../.buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json',import.meta.url),'utf8'));
   assert.ok(workflow.includes('integration/nov16-unified-character-kingdom-connect-staging132)'));
   assert.ok(workflow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json'));
-  assert.match(workflow,/node scripts\\/protected-feature-lock\\.mjs/);
+  assert.ok(workflow.includes('node scripts/protected-feature-lock.mjs'));
   assert.ok(scope.allowedPaths.includes('.github/workflows/engineering-accountability.yml'));
   assert.ok(scope.lockedFeatureChanges.some(x => x.id==='governance-lock' && x.tests.includes('tests/protected-feature-lock.test.mjs')));
 });
