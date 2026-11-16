@@ -1,0 +1,223 @@
+name: BUKLOD Nov16 Compact + Character Android Staging OTA
+on:
+  push:
+    branches:
+      - release/nov16-compact-art-staging132
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-compact-art-staging132
+  cancel-in-progress: false
+jobs:
+  staging-android-only:
+    if: \${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/nov16-compact-art-staging132' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      APK_SOURCE: c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd
+      ART_BASE: https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/buklod-character-art-v1
+      EVIDENCE_DIR: /tmp/buklod-compact-art-staging132
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: \${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Require exact reviewed PR head and successful source CI
+        env:
+          ACCESS_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const repo=process.env.GITHUB_REPOSITORY,sha=process.env.GITHUB_SHA;
+          const get=async path=>{
+            const res=await fetch('https://api.github.com/repos/'+repo+path,{headers:{authorization:'Bearer '+process.env.ACCESS_TOKEN,accept:'application/vnd.github+json'},signal:AbortSignal.timeout(20000)});
+            assert.equal(res.status,200,'GitHub governance request failed: '+path);
+            return res.json();
+          };
+          const pr=await get('/pulls/892');
+          assert.equal(pr.base.ref,'main');
+          assert.equal(pr.head.ref,'codex/nov16-compact-1300-art-staging-rc');
+          assert.equal(pr.head.sha,sha,'Release source must match independently checked candidate exactly');
+          const runs=(await get('/actions/runs?head_sha='+sha+'&per_page=100')).workflow_runs;
+          const required=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Character R31-R40 Recovery QA','BUKLOD Performance R1 QA','BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD R38 Economy QA'];
+          for(const name of required) assert.ok(runs.some(r=>r.name===name&&r.event==='pull_request'&&r.head_branch===pr.head.ref&&r.conclusion==='success'),'Required CI not green: '+name);
+          console.log('Reviewed SHA and all required source CI PASS',sha);
+          NODE
+      - name: Verify unchanged signed native baseline, Android staging identity and compact/Character QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code "$APK_SOURCE" "$GITHUB_SHA" -- app.config.js eas.json package-lock.json android/ ios/ plugins/ google-services.staging.json babel.config.js
+          node <<'NODE'
+          const a=require('node:assert/strict'),cp=require('node:child_process');
+          const prior=JSON.parse(cp.execFileSync('git',['show',process.env.APK_SOURCE+':package.json'],{encoding:'utf8'}));
+          const current=require('./package.json');
+          a.deepEqual(current.dependencies,prior.dependencies,'No unverified native deps in OTA');
+          a.deepEqual(current.devDependencies,prior.devDependencies,'Lockfile/deps parity required');
+          const app=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          a.equal(app.android.package,'org.mzbministry.buklod.staging');
+          a.equal(app.runtimeVersion,'1.3.2');
+          a.equal(app.extra.appEnvironment,'staging');
+          a.equal(app.extra.appTarget,'main');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.equal(eas.build['staging-user'].environment,'preview');
+          a.notEqual(eas.build.production.channel,eas.build['staging-user'].channel);
+          NODE
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+          npm run character:contract
+          npm run compact:contract
+          npm run release:base-gate
+          node --experimental-strip-types --test \
+            tests/buklod-character-art-contract-20261116.test.mjs \
+            tests/buklod-character-art-release-contract-20261116.test.mjs \
+            tests/appwide-compact-density-20261116.test.mjs \
+            tests/character-density-20261116.test.mjs \
+            tests/compact-ota-release-20261116.test.mjs \
+            tests/nov16-compact-art-staging-release.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/navigation-scroll-density-20261116.test.mjs
+      - name: Verify public artwork manifest and publication marker before bundling
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
+          const base=process.env.ART_BASE,sha=b=>createHash('sha256').update(b).digest('hex');
+          async function file(path) {
+            const res=await fetch(base+'/'+path,{headers:{'cache-control':'no-cache'},signal:AbortSignal.timeout(20000)});
+            assert.equal(res.status,200,'Art unavailable: '+path);
+            return Buffer.from(await res.arrayBuffer());
+          }
+          const m=await file('collectible-art-manifest.json');
+          const marker=JSON.parse((await file('published-v1.json')).toString('utf8'));
+          const manifest=JSON.parse(m.toString('utf8'));
+          assert.equal(marker.ready,true);assert.equal(marker.total,1300);
+          assert.equal(marker.manifest_sha256,sha(m));
+          assert.equal(manifest.catalogue_version,'BUKLOD_CHARACTER_R31_R40_1300');
+          assert.equal(manifest.items.length,1300);
+          const seen=new Set();
+          for (const item of manifest.items) {
+            assert.match(item.path,/^character-collectibles\/(phan|quin|van|christian|lhen|ace|ellusur|jawo|mitch|niel|angel|vhen|trudice)\/l(0[1-9]|1[0-9]|20)-i0[1-5]\.webp$/);
+            assert.ok(!seen.has(item.path));seen.add(item.path);
+          }
+          for(let i=0;i<manifest.items.length;i+=100){
+            const item=manifest.items[i];assert.equal(sha(await file(item.path)),item.sha256,'Public art mismatch: '+item.path);
+          }
+          console.log('Public readback/marker SHA and 13 deterministic character samples PASS');
+          NODE
+      - name: Verify existing signed staging APK and production baseline
+        env:
+          EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.EVIDENCE_DIR,read=f=>JSON.parse(fs.readFileSync(d+'/'+f,'utf8'));
+          verifyBuild(read('build.json'));
+          const stage=verifyChannels(read('staging-channel.json'),read('production-channel.json'));
+          const prod=await manifest('production');
+          assert.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          fs.writeFileSync(d+'/preflight.json',JSON.stringify({sourceSha:process.env.GITHUB_SHA,stagingBranch:stage,productionUpdateId:prod.id,physicalDeviceVerified:false},null,2));
+          NODE
+      - name: Expo Android Hermes preview export (exact release commit)
+        env:
+          EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-compact-art-preview.env --non-interactive > /dev/null
+          set -a; . /tmp/buklod-compact-art-preview.env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          export EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL="$ART_BASE"
+          npx expo config --json > /tmp/buklod-compact-art-config.json
+          node <<'NODE'
+          const a=require('node:assert/strict'),c=require('/tmp/buklod-compact-art-config.json');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appEnvironment,'staging');
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-compact-art-android --clear
+          test -s /tmp/buklod-compact-art-android/metadata.json
+      - name: Idempotent publish to staging-user Android only
+        env:
+          EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$EVIDENCE_DIR/prior.json"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs'),d=process.env.EVIDENCE_DIR;
+          const raw=JSON.parse(fs.readFileSync(d+'/prior.json','utf8')),rows=raw.currentPage??raw;
+          a.ok(Array.isArray(rows));
+          const prior=rows.find(x=>x.message==='BUKLOD_NOV16_COMPACT_ART_'+process.env.GITHUB_SHA);
+          fs.writeFileSync(d+'/existing-group',prior?.group||'');
+          NODE
+          if [ ! -s "$EVIDENCE_DIR/existing-group" ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir /tmp/buklod-compact-art-android --non-interactive --json --message "BUKLOD_NOV16_COMPACT_ART_$GITHUB_SHA" > "$EVIDENCE_DIR/publish.json"
+            node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs'),d=process.env.EVIDENCE_DIR;
+          const updates=JSON.parse(fs.readFileSync(d+'/publish.json','utf8'));
+          a.ok(Array.isArray(updates)&&updates.length===1&&updates[0].group);
+          fs.writeFileSync(d+'/existing-group',updates[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$EVIDENCE_DIR/existing-group")" --json > "$EVIDENCE_DIR/update-view.json"
+      - name: Verify staging manifest ID, exact runtime, and production unchanged
+        env:
+          EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel-after.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          import {verifyChannels,verifyUpdate,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.EVIDENCE_DIR,read=f=>JSON.parse(fs.readFileSync(d+'/'+f,'utf8'));
+          const pre=read('preflight.json');
+          const u=verifyUpdate(read('update-view.json'),pre.sourceSha,pre.stagingBranch.name);
+          const stage=verifyChannels(read('staging-channel-after.json'),read('production-channel-after.json'));
+          assert.equal(stage.id,pre.stagingBranch.id);
+          const liveStage=await manifest('staging-user');
+          assert.equal(liveStage.id.toLowerCase(),u.id.toLowerCase());
+          assert.equal(liveStage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(liveStage.extra?.expoClient?.extra?.appEnvironment,'staging');
+          const production=await manifest('production');
+          assert.equal(production.id,pre.productionUpdateId,'Production changed during staging OTA');
+          const proof={status:'VERIFIED STAGING OTA',commit:pre.sourceSha,channel:'staging-user',runtime:'1.3.2',androidPackage:'org.mzbministry.buklod.staging',stagingUpdateId:u.id,groupId:u.group,productionUnchanged:production.id,physicalDeviceVerified:false};
+          fs.writeFileSync(d+'/verification.json',JSON.stringify(proof,null,2)+'\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(proof,null,2)+'\n');
+          NODE
+      - name: Archive evidence without exposing secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-compact-art-staging-\${{ github.sha }}
+          path: /tmp/buklod-compact-art-staging132/*.json
+          retention-days: 14
+          if-no-files-found: ignore

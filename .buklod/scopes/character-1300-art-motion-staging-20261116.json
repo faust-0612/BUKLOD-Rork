@@ -68,7 +68,9 @@
     "tests/navigation-scroll-density-20261116.test.mjs",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
-    "tests/wall-media-density-20261116.test.mjs"
+    "tests/wall-media-density-20261116.test.mjs",
+    ".github/workflows/buklod-nov16-compact-art-staging-release.yml",
+    "tests/nov16-compact-art-staging-release.test.mjs"
   ],
   "preserveBehaviors": [
     "Server-owned per-character level and XP, Circle Rank, item claims and rewards unchanged.",
@@ -99,7 +101,8 @@
     "tests/navigation-scroll-density-20261116.test.mjs",
     "tests/nov14-connect-green-profile-posts-ota.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
-    "tests/wall-media-density-20261116.test.mjs"
+    "tests/wall-media-density-20261116.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
