@@ -50,19 +50,19 @@ module.exports = ({ config }) => {
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
   const appName = isConnect
-    ? (isStaging ? 'BUKLOD Connect Staging' : 'BUKLOD Connect')
+    ? 'BUKLOD Connect'
     : isClassroom
       ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
       : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
 
   const packageId = isConnect
-    ? (isStaging ? 'org.mzbministry.buklod.connect.staging' : 'org.mzbministry.buklod.connect')
+    ? 'org.mzbministry.buklod.connect'
     : isClassroom
       ? 'org.mzbministry.buklod.classroom'
       : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
 
   const scheme = isConnect
-    ? (isStaging ? 'buklod-connect-staging' : 'buklod-connect')
+    ? 'buklod-connect'
     : isClassroom
       ? 'buklod-classroom'
       : (isStaging ? 'buklod-staging' : 'buklod');

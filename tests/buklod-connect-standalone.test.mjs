@@ -9,7 +9,7 @@ const eas = JSON.parse(read('eas.json'));
 
 test('Independent identifiers, dedicated EAS project and runtime', () => {
   assert.match(app, /org\.mzbministry\.buklod\.connect/);
-  assert.match(app, /org\.mzbministry\.buklod\.connect\.staging/);
+  assert.doesNotMatch(app, /org\.mzbministry\.buklod\.connect\.staging/);
   assert.match(app, /isConnect \? 'connect-1\.0\.0'/);
   assert.match(app, /CONNECT_EAS_PROJECT_ID/);
   assert.match(app, /CONNECT_GOOGLE_SERVICES_FILE/);
@@ -17,16 +17,19 @@ test('Independent identifiers, dedicated EAS project and runtime', () => {
   assert.match(app, /isConnect\s*\? connectProjectId/);
 });
 test('Dedicated profiles do not replace Main staging or production OTA', () => {
-  for (const name of ['connect-staging','connect-production']) {
+  for (const name of ['connect-qa-apk','connect-production']) {
     const p = eas.build[name];
     assert.equal(p.env.BUKLOD_APP_TARGET, 'connect');
     assert.equal(p.env.EXPO_PUBLIC_BUKLOD_APP_TARGET, 'connect');
-    assert.equal(p.channel, name);
+    assert.equal(p.channel, name === 'connect-qa-apk' ? 'connect-qa' : name);
     assert.notEqual(p.channel, eas.build.production.channel);
     assert.notEqual(p.channel, eas.build['staging-user'].channel);
   }
   assert.equal(eas.build.production.env.EXPO_PUBLIC_BUKLOD_APP_TARGET, undefined);
   assert.equal(eas.build['staging-user'].env.EXPO_PUBLIC_BUKLOD_APP_TARGET, undefined);
+  assert.equal(eas.build['connect-qa-apk'].android.buildType, 'apk');
+  assert.equal(eas.build['connect-production'].android.buildType, 'app-bundle');
+  assert.equal(eas.build['connect-staging'], undefined);
 });
 test('Standalone shell reuses original Connect/Stream/PTT rather than copying them', () => {
   const root = read('src/app/_layout.tsx');
@@ -70,10 +73,11 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
       EXPO_PUBLIC_BUKLOD_APP_TARGET: 'connect',
       EAS_BUILD: 'true',
     });
-    assert.equal(staging.android.package, 'org.mzbministry.buklod.connect.staging');
+    assert.equal(staging.android.package, 'org.mzbministry.buklod.connect');
+    assert.equal(staging.name, 'BUKLOD Connect');
     assert.equal(staging.runtimeVersion, 'connect-1.0.0');
     assert.equal(staging.extra.eas.projectId, 'fbc71093-6abb-43e6-9493-14b2c8117df8');
-    assert.equal(staging.scheme, 'buklod-connect-staging');
+    assert.equal(staging.scheme, 'buklod-connect');
     const standalone = config({ BUKLOD_APP_TARGET: 'connect', EAS_PROJECT_ID: 'main-eas' });
     assert.equal(standalone.extra.eas.projectId, 'fbc71093-6abb-43e6-9493-14b2c8117df8');
     assert.equal(standalone.updates.url, 'https://u.expo.dev/fbc71093-6abb-43e6-9493-14b2c8117df8');
@@ -98,6 +102,7 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
       CONNECT_GOOGLE_SERVICES_FILE: './connect-firebase.json',
     });
     assert.equal(production.android.package, 'org.mzbministry.buklod.connect');
+    assert.equal(production.name, 'BUKLOD Connect');
     assert.equal(production.extra.appTarget, 'connect');
     assert.equal(production.runtimeVersion, 'connect-1.0.0');
     const ads = production.plugins.find(p => Array.isArray(p) && p[0] === 'react-native-google-mobile-ads');

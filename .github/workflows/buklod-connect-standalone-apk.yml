@@ -1,4 +1,4 @@
-name: BUKLOD Connect — Isolated Staging APK
+name: BUKLOD Connect — Production-Package QA APK
 
 on:
   push:
@@ -14,13 +14,15 @@ on:
       - 'tests/buklod-connect-standalone.test.mjs'
       - 'assets/connect/**'
       - 'app.config.js'
+      - 'eas.json'
+      - 'scripts/connect-native-identity-preflight.cjs'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: buklod-connect-staging-apk-only
+  group: buklod-connect-qa-apk-only
   cancel-in-progress: false
 
 jobs:
@@ -57,7 +59,7 @@ jobs:
           set -euo pipefail
           npx tsc --noEmit
           node <<'NODE' >> "$GITHUB_ENV"
-          const c = require('./eas.json').build['connect-staging'].env;
+          const c = require('./eas.json').build['connect-qa-apk'].env;
           console.log('EXPO_PUBLIC_SUPABASE_URL='+c.EXPO_PUBLIC_SUPABASE_URL);
           console.log('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY='+c.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
           NODE
@@ -72,14 +74,14 @@ jobs:
           npx expo export --platform android --output-dir /tmp/connect-js-android-export
           echo 'CONNECT_ANDROID_JS_BUNDLE_OK'
 
-  staging-apk:
+  qa-apk:
     needs: source-contract
     runs-on: ubuntu-latest
     timeout-minutes: 75
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       CONNECT_EAS_PROJECT_ID: fbc71093-6abb-43e6-9493-14b2c8117df8
-      CONNECT_STAGING_FIREBASE_JSON_B64: ${{ secrets.CONNECT_STAGING_FIREBASE_JSON_B64 }}
+      CONNECT_FIREBASE_JSON_B64: ${{ secrets.CONNECT_FIREBASE_JSON_B64 }}
       BUKLOD_APP_TARGET: connect
       EXPO_PUBLIC_BUKLOD_APP_TARGET: connect
       APP_VARIANT: staging
@@ -106,17 +108,19 @@ jobs:
         run: |
           set -euo pipefail
           npx tsc --noEmit
-          npx expo config --json > /tmp/connect-staging-expo-config.json
+          npx expo config --json > /tmp/connect-qa-apk-expo-config.json
           node <<'NODE'
           const fs = require('node:fs');
           const assert = require('node:assert/strict');
-          const c = JSON.parse(fs.readFileSync('/tmp/connect-staging-expo-config.json','utf8'));
-          assert.equal(c.android.package, 'org.mzbministry.buklod.connect.staging');
-          assert.equal(c.name, 'BUKLOD Connect Staging');
+          const c = JSON.parse(fs.readFileSync('/tmp/connect-qa-apk-expo-config.json','utf8'));
+          assert.equal(c.android.package, 'org.mzbministry.buklod.connect');
+          assert.equal(c.name, 'BUKLOD Connect');
           assert.equal(c.runtimeVersion, 'connect-1.0.0');
           assert.equal(c.extra?.appTarget, 'connect');
           assert.equal(c.extra?.eas?.projectId, 'fbc71093-6abb-43e6-9493-14b2c8117df8');
-          assert.equal(c.android.googleServicesFile, './google-services.connect.staging.json');
+          assert.equal(c.android.googleServicesFile, './google-services.connect.json');
+          assert.equal(c.scheme, 'buklod-connect');
+          assert.equal(c.updates.url, 'https://u.expo.dev/fbc71093-6abb-43e6-9493-14b2c8117df8');
           console.log('CONNECT_NATIVE_IDENTITY_OK');
           NODE
       - name: Build signed independent APK - never publish main OTA
@@ -124,5 +128,5 @@ jobs:
         run: |
           set -euo pipefail
           npx eas-cli@latest whoami --non-interactive > /dev/null
-          npx eas-cli@latest build --platform android --profile connect-staging --non-interactive --wait
+          npx eas-cli@latest build --platform android --profile connect-qa-apk --non-interactive --wait
           echo 'CONNECT_APK_EAS_FINISHED'

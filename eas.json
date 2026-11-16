@@ -145,25 +145,6 @@
         "buildType": "apk"
       }
     },
-    "connect-staging": {
-      "distribution": "internal",
-      "channel": "connect-staging",
-      "environment": "preview",
-      "autoIncrement": true,
-      "env": {
-        "BUKLOD_APP_TARGET": "connect",
-        "EXPO_PUBLIC_BUKLOD_APP_TARGET": "connect",
-        "APP_VARIANT": "staging",
-        "EXPO_PUBLIC_APP_ENV": "staging",
-        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS",
-        "CONNECT_EAS_PROJECT_ID": "fbc71093-6abb-43e6-9493-14b2c8117df8"
-      },
-      "android": {
-        "buildType": "apk"
-      }
-    },
     "connect-production": {
       "channel": "connect-production",
       "environment": "production",
@@ -184,6 +165,25 @@
     "connect-production-apk": {
       "extends": "connect-production",
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "connect-qa-apk": {
+      "distribution": "internal",
+      "channel": "connect-qa",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "BUKLOD_APP_TARGET": "connect",
+        "EXPO_PUBLIC_BUKLOD_APP_TARGET": "connect",
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS",
+        "CONNECT_EAS_PROJECT_ID": "fbc71093-6abb-43e6-9493-14b2c8117df8"
+      },
       "android": {
         "buildType": "apk"
       }
