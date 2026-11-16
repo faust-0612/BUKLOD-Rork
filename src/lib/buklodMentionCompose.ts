@@ -6,6 +6,8 @@ export type BuklodMention = {
 };
 
 export const BUKLOD_MENTION_COLOR = '#176B2C';
+// High-contrast apple green for @mentions on dark Wall and comment surfaces.
+export const BUKLOD_DARK_MENTION_COLOR = '#A3D943';
 
 export function mentionToken(name: string) {
   return `@${String(name ?? '').trim()}`;

@@ -1,0 +1,126 @@
+# Read-only to production. Ephemeral PostgreSQL 17 is NOT Supabase staging.
+name: BUKLOD Character No-Staging SQL Isolation QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod-character-no-staging-sql-qa.yml'
+      - 'supabase/migrations/20261116120000_character_task_story_art_v1.sql'
+      - 'supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql'
+      - 'supabase/tests/character_story_art_security_20261116.sql'
+      - 'supabase/tests/character_story_offline_*.sql'
+      - 'tests/character-story-offline-db-gate-20261116.test.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-character-offline-sql-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  ephemeral-postgres:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'integration/nov16-unified-character-kingdom-connect-staging132' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: offline_test_only
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Prove no-staging workflow isolation
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node --test tests/character-story-offline-db-gate-20261116.test.mjs
+      - name: Apply minimal schema fixture and migration to disposable local PostgreSQL
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          test -n "$POSTGRES_CONTAINER"
+          for file in \
+            supabase/tests/character_story_offline_fixture_20261116.sql \
+            supabase/migrations/20261116120000_character_task_story_art_v1.sql \
+            supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql \
+            supabase/tests/character_story_art_security_20261116.sql \
+            supabase/tests/character_story_offline_behavior_20261116.sql; do
+              echo "Disposable Postgres test: $file"
+              docker exec -i "$POSTGRES_CONTAINER" psql --set=ON_ERROR_STOP=1 -U postgres -d postgres < "$file"
+          done
+          echo "PASS: ephemeral PostgreSQL 17 contracts and account/replay tests. No Supabase project touched."
+
+  production-android-source-qa:
+    name: android-production-source-no-publish
+    needs: ephemeral-postgres
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'integration/nov16-unified-character-kingdom-connect-staging132' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+    steps:
+      - name: Checkout frozen PR source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify Character, Kingdom, AdMob, nav and security contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node --experimental-strip-types --test \
+            tests/character-core-v3-compat-20261116.test.mjs \
+            tests/character-task-collections-20261116.test.mjs \
+            tests/character-story-art-server-security-20261116.test.mjs \
+            tests/character-points-ads-regression-20261116.test.mjs \
+            tests/character-android-zoom-full-source-20261116.test.mjs \
+            tests/buklod-sound-director-20261116.test.mjs \
+            tests/kingdom-adventure-storage-20261116.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/buklod-ads-production-release-contract-20261111.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/production-ota-ads-regression.test.mjs
+          npx tsc --noEmit
+          node scripts/buklod-ad-surface-audit.mjs --summary
+      - name: Read only production EAS env and verify exact runtime identity
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo "No Expo token: production Android source QA blocked"; exit 1; }
+          npx --yes eas-cli@27.9.0 env:pull --environment production --path /tmp/buklod-character-prod-qa.env --non-interactive > /dev/null
+          set -a; . /tmp/buklod-character-prod-qa.env; set +a
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const config=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          assert.equal(config.runtimeVersion,'1.3.2');
+          assert.equal(config.android.package,'org.mzbministry.buklod');
+          assert.equal(config.extra?.appEnvironment,'production');
+          assert.equal(config.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.equal(eas.build.production.channel,'production');
+          assert.equal(process.env.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,'Missing production publishable key');
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-character-android-qa --clear
+          test -d /tmp/buklod-character-android-qa
+          test "$(find /tmp/buklod-character-android-qa -type f | wc -l)" -gt 4
+          echo "PASS: exact source Android export for production runtime 1.3.2 (no OTA, no staging)"

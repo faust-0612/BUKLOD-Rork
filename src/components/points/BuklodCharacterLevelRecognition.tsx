@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { playBuklodCue } from '@/lib/buklodSounds';
 import {
   CHARACTER_DISPLAY_NAME,
   type BuklodCharacterSelectionV2State,
@@ -50,6 +51,10 @@ export default function BuklodCharacterLevelRecognition({ userId, selection }: P
     })();
     return () => { revision.current += 1; };
   }, [userId, characterId, baseline, rawLevel]);
+
+  useEffect(() => {
+    if (unlocked) void playBuklodCue('character_level');
+  }, [unlocked]);
 
   return (
     <Modal visible={Boolean(unlocked)} transparent animationType="fade"

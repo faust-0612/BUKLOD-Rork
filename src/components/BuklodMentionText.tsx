@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { Text, type StyleProp, type TextStyle } from 'react-native';
 
-import { BUKLOD_MENTION_COLOR } from '@/lib/buklodMentionCompose';
+import { BUKLOD_DARK_MENTION_COLOR, BUKLOD_MENTION_COLOR } from '@/lib/buklodMentionCompose';
+import { isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 type Props = {
   text: string;
@@ -18,6 +20,8 @@ const DEFAULT_MENTION_STYLE: TextStyle = {
   color: BUKLOD_MENTION_COLOR,
   fontWeight: '800',
 };
+
+const DARK_MENTION_STYLE: TextStyle = { color: BUKLOD_DARK_MENTION_COLOR };
 
 function rangesOverlap(
   ranges: { start: number; end: number }[],
@@ -118,6 +122,10 @@ export function BuklodMentionText({
   knownNames,
   numberOfLines,
 }: Props) {
+  const { paletteId } = useBuklodTheme();
+  const darkMentionStyle = isBuklodDarkPaletteId(paletteId)
+    ? DARK_MENTION_STYLE
+    : undefined;
   const parts = useMemo(
     () => splitMentionParts(text, knownNames),
     [knownNames, text],
@@ -129,7 +137,7 @@ export function BuklodMentionText({
         part.mention ? (
           <Text
             key={`${index}-${part.value}`}
-            style={mentionStyle ?? DEFAULT_MENTION_STYLE}
+            style={[mentionStyle ?? DEFAULT_MENTION_STYLE, darkMentionStyle]}
           >
             {part.value}
           </Text>
