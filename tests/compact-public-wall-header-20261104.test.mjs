@@ -28,9 +28,10 @@ test('public Wall controls stay compact and accessible after extraction', () => 
   assert.match(wall, /BuklodCommunityWallProfileBubbles/);
 });
 
-test('profile rail saves vertical space without removing search or profile bubbles', () => {
+test('profile rail retains readable Notes and larger 56px avatars without losing search or bubbles', () => {
   const source = read('src/components/BuklodCommunityWallProfileBubbles.tsx');
-  assert.match(source, /const AVATAR_SIZE = 50/);
+  assert.match(source, /const AVATAR_SIZE = 56/);
+  assert.match(source, /const NOTE_MAX_LINES = 5/);
   assert.match(source, /placeholder="Search messages or people"/);
   assert.match(source, /<ConnectTappableAvatar/);
   assert.match(source, /Add note/);
