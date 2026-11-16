@@ -5,6 +5,9 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ActivityIndicator,Pressable,RefreshControl,ScrollView,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {Image as ExpoImage} from 'expo-image';
+import BuklodCharacterCollectibleZoom from '@/components/points/BuklodCharacterCollectibleZoom';
+import {loadCharacterArtPublication,verifiedCharacterArtUrl} from '@/lib/buklodCharacterArt';
 import {router,useFocusEffect} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 import {
@@ -37,6 +40,9 @@ export default function CharacterCollectionsScreen(){
  const [error,setError]=useState('');
  const [detailError,setDetailError]=useState('');
  const [showBadges,setShowBadges]=useState(false);
+ const [artReady,setArtReady]=useState(false);
+ const [failedArt,setFailedArt]=useState<Set<string>>(()=>new Set());
+ const [inspect,setInspect]=useState<{name:string;slot:string;level:number;index:number;id:BuklodCharacterId}|null>(null);
  const [revision,setRevision]=useState(0);
  const req=useRef(0),detailReq=useRef(0);
  const accountRef=useRef<string|null>(null);
@@ -72,7 +78,7 @@ export default function CharacterCollectionsScreen(){
    if(next===accountRef.current)return;
    req.current++;detailReq.current++;
    accountRef.current=null;setUid(null);setSelection(null);setItems(null);
-   setSelected('phan');setBadgeResult(null);setDetailError('');
+   setSelected('phan');setInspect(null);setBadgeResult(null);setDetailError('');
    // Defer getSession/RPC until the auth callback releases its internal lock.
    if(next)setTimeout(()=>{if(accountRef.current===null)void load();},0);
   });
@@ -85,7 +91,12 @@ export default function CharacterCollectionsScreen(){
     selection.circle_rank_order>=SPECIAL_REQUIRED_RANK_ORDER[selected as typeof SPECIAL_CHARACTER_ORDER[number]]));
  const saved=selection?savedCharacterLevel(selection.character_levels,selected,
     selection.active_character_id,selection.character_level):1;
- useEffect(()=>{setLevel(saved);setShowBadges(false);},[selected,saved]);
+ useEffect(()=>{setLevel(saved);setShowBadges(false);setInspect(null);},[selected,saved]);
+ useFocusEffect(useCallback(()=>{
+  let alive=true;
+  void loadCharacterArtPublication().then(pub=>{if(alive)setArtReady(pub.available);});
+  return()=>{alive=false;};
+ },[]));
  useEffect(()=>{
   if(!uid||!selection||!unlocked){setItems(null);setBadgeResult(null);return;}
   const epoch=++detailReq.current;
@@ -178,17 +189,26 @@ export default function CharacterCollectionsScreen(){
      {detailsBusy?<ActivityIndicator color={C.green}/>:null}
      {story.map(item=>{
       const isOwned=core&&owned.has(item.key);
-      return <View key={item.key} style={s.itemRow}>
-       <View style={s.iconBox}><MaterialCommunityIcons
-        name={isOwned?'check-decagram':'package-variant-closed'} size={24}
-        color={isOwned?C.green:C.gold}/></View>
+      const artUrl=verifiedCharacterArtUrl(worldId,level,item.index,artReady);
+      return <Pressable key={item.key} accessibilityRole="button"
+       accessibilityLabel={'View and zoom '+item.name+' illustration'}
+       onPress={()=>setInspect({name:item.name,slot:item.slot,level,index:item.index,id:selected})}
+       style={s.itemRow}>
+       <View style={s.iconBox}>
+        {artUrl&&!failedArt.has(item.key)?
+         <ExpoImage source={{uri:artUrl}} style={s.thumb} contentFit="contain" cachePolicy="memory-disk"
+          transition={0} onError={()=>setFailedArt(prev=>new Set(prev).add(item.key))}/>:
+         <MaterialCommunityIcons name={isOwned?'check-decagram':'package-variant-closed'} size={24}
+          color={isOwned?C.green:C.gold}/>}
+       </View>
        <View style={{flex:1}}>
         <Text style={s.name}>{item.name}</Text>
-        <Text style={s.caption}>{item.slot}</Text>
+        <Text style={s.caption}>{item.slot} • TAP TO ZOOM</Text>
         <Text style={s.caption}>{isOwned?'OWNED • SERVER VERIFIED':
          level>saved?'FUTURE STAGE':core?(!items?'AWARD STATUS UNAVAILABLE':'NOT VERIFIED AS CLAIMED'):'STORY OBJECT • NOT A VERIFIED AWARD'}</Text>
        </View>
-      </View>;
+       <MaterialCommunityIcons name="magnify-plus-outline" size={23} color={C.green}/>
+      </Pressable>;
      })}
      {core&&stage?.mastered?<Text style={s.success}>All five server-owned objects verified: collection stage mastered.</Text>:null}
      {core?<Pressable accessibilityRole="button" onPress={()=>router.push('/games/legacy' as any)} style={s.action}>
@@ -226,7 +246,14 @@ export default function CharacterCollectionsScreen(){
     </Pressable>
    </>}
   </>:null}
-  <Text style={s.caption}>Previewing, scrolling and refreshing never grants BP, character XP, badges, collectibles or Shards. Missing artwork uses a lightweight fallback until the 1,300 images are mapped.</Text>
+  <Text style={s.caption}>{artReady?
+   'Published artwork is cached in zoomable cards. Labels remain legible even when the original icon has limited pixels.':
+   'The 1,300 artwork objects are prepared from the Collectibles Library. Illustrations appear after the validated image pack is published to trusted app storage.'}</Text>
+  <Text style={s.caption}>Previewing, scrolling and refreshing never grants BP, character XP, badges, collectibles or Shards.</Text>
+  {inspect?<BuklodCharacterCollectibleZoom visible onClose={()=>setInspect(null)}
+   title={inspect.name} description={inspect.slot} characterName={CHARACTER_DISPLAY_NAME[inspect.id]}
+   level={inspect.level} itemIndex={inspect.index}
+   imageUri={verifiedCharacterArtUrl(inspect.id,inspect.level,inspect.index,artReady)}/>:null}
  </ScrollView>;
 }
 
@@ -244,7 +271,8 @@ const s=StyleSheet.create({
  stage:{minWidth:46,alignItems:'center',paddingHorizontal:9,paddingVertical:11,backgroundColor:'#194154',borderRadius:9},
  rowBetween:{flexDirection:'row',justifyContent:'space-between',flexWrap:'wrap',alignItems:'center',gap:8},
  itemRow:{flexDirection:'row',gap:11,paddingVertical:10,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#335462'},
- iconBox:{width:44,height:44,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:'#1B4654'},
+ iconBox:{width:54,height:54,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:'#1B4654'},
+ thumb:{width:50,height:50,borderRadius:9},
  name:{fontSize:14,fontWeight:'800',color:C.text},caption:{color:C.muted,fontSize:12,lineHeight:18},
  error:{fontSize:13,color:'#FFBBAF'},success:{color:C.green,fontSize:13,fontWeight:'800'},
  action:{backgroundColor:C.green,borderRadius:11,alignItems:'center',padding:13,marginTop:7},
