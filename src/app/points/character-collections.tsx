@@ -23,6 +23,10 @@ import {
 import type {BuklodCharacterWorldId} from '@/lib/buklodCharacterWorldCatalog';
 
 type BadgeResult={collectibles?:TaskBadge[]};
+type SpecialStoryPayload={
+ items?:{key:string;level:number;item_index:number;owned:boolean;earned_at:string|null}[];
+ metrics?:Record<string,number>;owned_total?:number;current_level?:number;
+};
 const C={bg:'#071823',panel:'#112C3A',text:'#FAFFF6',muted:'#C7D8DA',green:'#AFF079',gold:'#F4D18B'};
 const CORE=new Set<string>(CORE_CHARACTER_ORDER);
 const SPECIAL=new Set<string>(SPECIAL_CHARACTER_ORDER);
@@ -35,10 +39,12 @@ export default function CharacterCollectionsScreen(){
  const [level,setLevel]=useState(1);
  const [items,setItems]=useState<CharacterCollectibleState|null>(null);
  const [badgeResult,setBadgeResult]=useState<BadgeResult|null>(null);
+ const [specialStory,setSpecialStory]=useState<SpecialStoryPayload|null>(null);
  const [busy,setBusy]=useState(true);
  const [detailsBusy,setDetailsBusy]=useState(false);
  const [error,setError]=useState('');
  const [detailError,setDetailError]=useState('');
+ const [storyError,setStoryError]=useState('');
  const [showBadges,setShowBadges]=useState(false);
  const [artReady,setArtReady]=useState(false);
  const [failedArt,setFailedArt]=useState<Set<string>>(()=>new Set());
@@ -78,7 +84,7 @@ export default function CharacterCollectionsScreen(){
    if(next===accountRef.current)return;
    req.current++;detailReq.current++;
    accountRef.current=null;setUid(null);setSelection(null);setItems(null);
-   setSelected('phan');setInspect(null);setBadgeResult(null);setDetailError('');
+   setSelected('phan');setInspect(null);setBadgeResult(null);setSpecialStory(null);setDetailError('');setStoryError('');
    // Defer getSession/RPC until the auth callback releases its internal lock.
    if(next)setTimeout(()=>{if(accountRef.current===null)void load();},0);
   });
@@ -98,18 +104,27 @@ export default function CharacterCollectionsScreen(){
   return()=>{alive=false;};
  },[]));
  useEffect(()=>{
-  if(!uid||!selection||!unlocked){setItems(null);setBadgeResult(null);return;}
+  if(!uid||!selection||!unlocked){setItems(null);setBadgeResult(null);setSpecialStory(null);return;}
   const epoch=++detailReq.current;
-  setItems(null);setBadgeResult(null);setDetailError('');setDetailsBusy(true);
+  setItems(null);setBadgeResult(null);setSpecialStory(null);setDetailError('');setStoryError('');setDetailsBusy(true);
   const run=async()=>{
    if(core){
     const data=await getMyCharacterCollectibles(selected as typeof CORE_CHARACTER_ORDER[number]);
     if(epoch===detailReq.current)setItems(data);
    }else if(special){
-    const {data,error:err}=await (supabase as any).rpc('get_my_buklod_special_collectibles_v2',
-     {p_character_id:selected});
-    if(err)throw err;
-    if(epoch===detailReq.current)setBadgeResult((data??{}) as BadgeResult);
+    // Existing badge records and special story-item awards are separate.
+    // An unapplied new migration must never erase older earned badges.
+    const [badges,story]=await Promise.allSettled([
+     (supabase as any).rpc('get_my_buklod_special_collectibles_v2',{p_character_id:selected}),
+     (supabase as any).rpc('get_my_buklod_character_story_tasks_v1',{p_character_id:selected}),
+    ]);
+    if(epoch!==detailReq.current)return;
+    if(badges.status==='fulfilled'&&!badges.value.error)
+     setBadgeResult((badges.value.data??{}) as BadgeResult);
+    else setDetailError('Unable to load verified task badges. Retry to refresh.');
+    if(story.status==='fulfilled'&&!story.value.error)
+     setSpecialStory((story.value.data??{}) as SpecialStoryPayload);
+    else setStoryError('Character-specific story awards require the verified server migration.');
    }
   };
   void run().catch(e=>{if(epoch===detailReq.current)
