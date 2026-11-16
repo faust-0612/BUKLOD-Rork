@@ -33,15 +33,18 @@ test('server task ledger locks accounts and snapshots active character at event 
  assert.match(sql,/after insert or update of claim_state on public\.buklod_points_ledger/i);
  assert.match(sql,/private\.buklod_capture_verified_ledger_task_v1/);
  assert.match(sql,/on conflict\(user_id,metric_key,source_table,source_id\) do update/i);
- assert.match(sql,/verified=private\.buklod_character_task_events_v1\.verified or excluded\.verified/i);
+ assert.match(sql,/verified=excluded\.verified/i);
+ assert.match(sql,/set verified=false/i);
  assert.match(sql,/and verified=true/i);
  assert.match(sql,/on conflict do nothing/i);
 });
-test('Special inventory RPC cannot read another account or expose locked Special identity',()=>{
+test('13-Character inventory RPC cannot read another account or expose locked Special identity',()=>{
  assert.match(sql,/v_uid uuid:=\(select auth\.uid\(\)\)/);
  assert.match(sql,/get_my_buklod_character_selection_v2\(\)/);
  assert.match(sql,/visible_special_character_ids/);
  assert.match(sql,/Special Character is not unlocked/);
+ assert.match(sql,/if v_character in \('ace','ellusur'/i);
+ assert.match(sql,/character_id text not null check\(character_id in\s*\('phan','quin','van','christian','lhen'/i);
  assert.match(sql,/grant execute on function public\.get_my_buklod_character_story_tasks_v1\(text\) to authenticated/i);
  assert.match(sql,/revoke all on function private\.buklod_evaluate_character_story_tasks_v1\(uuid,text,integer\) from public,anon,authenticated/i);
  assert.doesNotMatch(sql,/insert into public\.buklod_points_ledger|update [^;]*buklod_kingdom_shards|update [^;]*qmp/i);
@@ -54,7 +57,8 @@ test('five independent per-character task slots, stage gate and verifiable owner
  assert.match(sql,/s\.level_no,5,/i);
  assert.match(rubric,/storyItemTaskTarget/);
  assert.match(hub,/storyStageProgress/);
- assert.match(hub,/item\.owned&&Boolean\(item\.earned_at\)/);
+ assert.match(hub,/item\.owned\|\|!item\.earned_at/);
+ assert.match(hub,/storyItemKey\(worldId,item\.level,item\.item_index\)/);
 });
 
 test('Cross-feature task alternatives count only signed server-claimed BP credits',()=>{
