@@ -17,7 +17,7 @@ test('public static-art bucket has no authenticated upload write grants',()=>{
  assert.match(publisher,/SUPABASE_SERVICE_ROLE_KEY/);
  assert.match(publisher,/BUKLOD_ART_PUBLISH_APPROVED/);
  assert.match(publisher,/--publish/);
- assert.match(publisher,/verifyRemoteCounts/);
+ assert.ok(publisher.includes('verifyRemoteCounts(client,manifest.items)'));
  assert.match(publisher,/MARKER,new TextEncoder/);
  assert.match(art,/published-v1\.json/);
 });
