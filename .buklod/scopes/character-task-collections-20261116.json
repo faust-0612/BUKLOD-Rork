@@ -64,7 +64,6 @@
     "tests/character-story-art-server-security-20261116.test.mjs",
     "tests/character-points-ads-regression-20261116.test.mjs",
     "supabase/tests/character_story_art_security_20261116.sql",
-    "supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql",
     "tests/character-core-v3-compat-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
