@@ -26,6 +26,22 @@ assert.equal(select({...bounds, y: 700}), 0);
 assert.equal(select({...bounds, y: 716}), -1);
 assert.equal(select({...bounds, width: 0}), -1);
 assert.equal(select({...bounds, x: NaN}), -1);
+const swipe = compile('src/lib/buklodMaritesPlayback.ts').maritesStorySwipeStep;
+const gesture = {startX: 310, startY: 400, endX: 100, endY: 420,
+  elapsedMs: 250, photoCount: 0, photoPage: 0, zoomed: false,
+  reacting: false, hasMultipleStories: true};
+assert.equal(swipe(gesture), 1, 'left swipe advances story');
+assert.equal(swipe({...gesture, startX: 90, endX: 310}), -1, 'right swipe goes back');
+assert.equal(swipe({...gesture, endX: 285}), 0, 'tap is not a swipe');
+assert.equal(swipe({...gesture, endY: 680}), 0, 'vertical scroll is not story navigation');
+assert.equal(swipe({...gesture, zoomed: true}), 0, 'pinch/zoom state blocks navigation');
+assert.equal(swipe({...gesture, reacting: true}), 0, 'reaction picker blocks navigation');
+assert.equal(swipe({...gesture, hasMultipleStories: false}), 0);
+assert.equal(swipe({...gesture, photoCount: 3, photoPage: 0}), 0, 'first gallery photo swipes to next photo');
+assert.equal(swipe({...gesture, photoCount: 3, photoPage: 2}), 1, 'last gallery photo swipes to next story');
+assert.equal(swipe({...gesture, photoCount: 3, photoPage: 1, startX: 90, endX: 310}), 0, 'gallery swipes within photos');
+assert.equal(swipe({...gesture, photoCount: 3, photoPage: 0, startX: 90, endX: 310}), -1, 'gallery left edge navigates to previous story');
+assert.equal(swipe({...gesture, elapsedMs: 1000}), 0, 'slow drags are ignored');
 assert.equal(duration(500), 0.5);
 assert.equal(duration(1000), 1);
 assert.equal(duration(30000), 30);
