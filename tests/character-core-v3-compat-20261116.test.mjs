@@ -42,3 +42,9 @@ test('Kingdom Legacy links back to the primary Character task hub',()=>{
  assert.match(legacy,/\/points\/character-collections/);
  assert.match(legacy,/CHARACTER TASKS & COLLECTIONS/);
 });
+
+test('verified event attribution and Character switches share one account-scoped lock',()=>{
+ const guards=task.match(/pg_catalog\.hashtext\('buklod_character_switch_v3'\)/g)??[];
+ assert.equal(guards.length,2,'both Wall and claimed-BP event adapters must serialize with switches');
+ assert.match(task,/pg_catalog\.hashtext\(new\.user_id::text\)/);
+});

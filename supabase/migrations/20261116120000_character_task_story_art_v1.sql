@@ -60,6 +60,12 @@ begin
   'character_public_share','character_public_active_week')
  then return new; end if;
 
+ -- Serialize with the V3 Character switch RPC: an event is attributed to
+ -- exactly the Character active when its server transaction acquires the lock.
+ perform pg_catalog.pg_advisory_xact_lock(
+  pg_catalog.hashtext('buklod_character_switch_v3'),
+  pg_catalog.hashtext(new.user_id::text)
+ );
  select s.character_id into v_character
  from private.buklod_character_selection_v2 s
  where s.user_id=new.user_id;
@@ -123,6 +129,12 @@ begin
 
  -- In normal use this row was created on INSERT, before a delayed claim.
  -- On UPDATE we never replace its original Character or activity timestamp.
+ -- Serialize with the V3 Character switch RPC: an event is attributed to
+ -- exactly the Character active when its server transaction acquires the lock.
+ perform pg_catalog.pg_advisory_xact_lock(
+  pg_catalog.hashtext('buklod_character_switch_v3'),
+  pg_catalog.hashtext(new.user_id::text)
+ );
  select s.character_id into v_character
  from private.buklod_character_selection_v2 s where s.user_id=new.user_id;
  v_character:=coalesce(v_character,'phan');
