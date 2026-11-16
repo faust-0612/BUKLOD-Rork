@@ -54,7 +54,8 @@ test('paid sponsored videos play audibly only in-view and pause when hidden, whi
  assert.match(ad,/player\.play\(\)/);
  assert.match(ad,/requestBuklodAudioFocus\('sponsor-ad'\)/);
  assert.match(ad,/measureInWindow/);
- assert.match(ad,/visible=\{screenFocused&&videoVisible\}/);
+ assert.match(ad,/visible=\{screenFocused&&videoVisible&&!scrollPaused\}/);
+ assert.match(ad,/if \(!visible\) \{ try \{player\.pause\(\);\}/);
  assert.match(ad,/try \{player\.pause\(\);\}/);
  assert.match(ad,/useFocusEffect\(useCallback/);
  assert.match(ad,/paidSponsorshipCanDisplay/);

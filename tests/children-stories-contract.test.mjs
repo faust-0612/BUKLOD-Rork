@@ -35,7 +35,9 @@ test('story reader has narrated playback cleanup, quiz and adult-account local p
   const reader=file('src/app/children-stories/[id].tsx');
   const service=file('src/features/childrenStories/service.ts');
   assert.match(reader,/AppState\.addEventListener/);
-  assert.match(reader,/Speech\.stop/);
+  assert.match(reader,/new StoryNarrator\(Speech,setAudioState\)/);
+  assert.match(reader,/narratorRef\.current\?\.stop\(\)/);
+  assert.ok(reader.includes('useFocusEffect(useCallback(()=>()=>stop(),[stop]))'));
   assert.match(reader,/StoryArt/);
   assert.match(reader,/saveStoryProgress/);
   assert.match(service,/children-stories\/v1\/\$\{uid\}/);
