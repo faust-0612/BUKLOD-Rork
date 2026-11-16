@@ -18,7 +18,8 @@
     "production-release",
     "wall-media",
     "connect",
-    "accessibility"
+    "accessibility",
+    "ads-monetization"
   ],
   "allowedPaths": [
     "src/app/(tabs)/_layout.tsx",
