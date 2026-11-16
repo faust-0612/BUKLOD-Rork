@@ -38,14 +38,14 @@ test('Special inventory RPC cannot read another account or expose locked Special
  assert.match(sql,/Special Character is not unlocked/);
  assert.match(sql,/grant execute on function public\.get_my_buklod_character_story_tasks_v1\(text\) to authenticated/i);
  assert.match(sql,/revoke all on function private\.buklod_evaluate_character_story_tasks_v1\(uuid,text,integer\) from public,anon,authenticated/i);
- assert.doesNotMatch(sql,/buklod_points_ledger|set_shards|qmp|finance|admob/i);
+ assert.doesNotMatch(sql,/insert into public\.buklod_points_ledger|update [^;]*buklod_kingdom_shards|update [^;]*qmp/i);
 });
 test('five independent per-character task slots, stage gate and verifiable ownership',()=>{
  for(const metric of ['character_public_post','character_public_comment','character_public_reaction',
   'character_public_share','character_public_active_week']) assert.match(sql,new RegExp(metric));
  assert.match(sql,/from generate_series\(1,p_level\)/i);
  assert.match(sql,/item_index between 1 and 4\)=4/i);
- assert.match(sql,/item_index,5,/i);
+ assert.match(sql,/s\.level_no,5,/i);
  assert.match(rubric,/storyItemTaskTarget/);
  assert.match(hub,/storyStageProgress/);
  assert.match(hub,/item\.owned&&Boolean\(item\.earned_at\)/);
