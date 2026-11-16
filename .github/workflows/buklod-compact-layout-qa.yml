@@ -10,6 +10,7 @@ on:
       - 'scripts/compact-layout-gate.mjs'
       - 'tests/appwide-compact-density-20261116.test.mjs'
       - 'tests/buklod-dark-contrast-spacing-20261115.test.mjs'
+      - 'tests/lesson-quickcheck-regression-20261116.test.mjs'
       - '.github/workflows/buklod-compact-layout-qa.yml'
 permissions:
   contents: read
@@ -43,7 +44,9 @@ jobs:
             tests/navigation-scroll-density-20261116.test.mjs \
             tests/cluster-bible-density-20261116.test.mjs \
             tests/character-density-20261116.test.mjs \
-            tests/compact-ota-release-20261116.test.mjs
+            tests/compact-ota-release-20261116.test.mjs \
+            tests/lesson-quickcheck-regression-20261116.test.mjs \
+            tests/formation-ai-only-reflections-and-points-20261109.test.mjs
       - name: Locked packages and TypeScript (no OTA)
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
