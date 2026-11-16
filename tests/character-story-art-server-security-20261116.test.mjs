@@ -94,5 +94,5 @@ test('publisher checks byte-level remote integrity before writing readiness mark
  await assert.rejects(()=>verifyRemoteCounts(client,items),/Remote asset hash mismatch: phan:L01:I01/);
  assert.match(publisher,/BUKLOD_ART_EXPECTED_PROJECT_REF/);
  assert.match(publisher,/BUKLOD_ART_EXPECTED_MANIFEST_SHA256/);
- assert.match(publisher,/verifyRemoteCounts\\(client,manifest\\.items\\)/);
+ assert.ok(publisher.includes('await verifyRemoteCounts(client,manifest.items);'));
 });
