@@ -1,0 +1,85 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix Wall composer media preparation latency, interactive 30-second music scrub selection, obstructed music and ambiance controls, and lightweight photo effects without touching video playback.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main at 6e18a3101e8d0f18066e46dd1abdb02b190baa98 was compared with isolated DEV branch on 2026-11-12; production OTA/runtime and device baseline are NOT verified by this PR. Requires the consolidated RC publish gate.",
+  "chosenApproach": "Carry picker-provided image dimensions/MIME forward to the existing private JPEG upload; avoid unnecessary picker recompression; skip optional preview when original <=320KiB; preserve tagged photo preview pair and signed upload for larger photos. Capture timeline drag, expose 5-second nudges, constrain music list and make ambiance preset rows horizontally scrollable. Vary effects with fewer inexpensive particles, native driver and accessibility/app-state guards.",
+  "selectionRationale": "Preserves photos' authenticated Storage and all existing post metadata. Chooses limited changes in established modules instead of new native libraries, bypassing photo privacy rules, unbounded concurrent uploads, or replacing stable video components.",
+  "alternativeApproaches": [
+    "Promise remote Google Photos cloud selections are instantaneous: rejected because cloud downloads are controlled by Google Photos and the device network.",
+    "Replace existing private thumbnail schema or signed upload contract: rejected because it can regress Wall and media authorization.",
+    "Replace Community video rendering or increase particles without bounds: rejected to avoid Android memory crashes."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-auth",
+    "app-runtime",
+    "weak-network",
+    "memory",
+    "accessibility",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Existing video playback, video poster generation, comments, Reels and Marites rendering and their media access paths are unchanged.",
+    "Existing Community post audience authorization, private Storage, original preview fallback, retries and draft recovery are preserved.",
+    "Existing Home/Cluster/Wall/Connect/Profile navigation, screenshot interactions and large sponsored ad placement remain unchanged.",
+    "Music library selection, 30-second stored duration, signed music access and on-visible playback remain unchanged.",
+    "Offscreen/pause, reduce-motion setting, and low-memory performance controls remain honored.",
+    "No backend migrations, OTA, npm dependency changes, finance, points, or release configuration changes."
+  ],
+  "acceptanceChecks": [
+    "Selected local photos show in composer as soon as the native picker returns, with metadata propagated and no duplicate lossy encode.",
+    "Small prepared JPEG does not upload redundant preview; larger photos preserve private preview-tagged original with fallback.",
+    "Music slider drag moves the selected clip window; 5-second adjustment buttons work; song list scrolls with Remove accessible and safe-area respected.",
+    "Ambiance groups are compact horizontal rows; styled effects render within a bounded particle count, honor reduce-motion and pause on background.",
+    "Run focused media/navigation Node tests, broader engineering lock, TypeScript compile and on-device Android acceptance before RC; no production claim from source inspection alone."
+  ],
+  "regressionTests": [
+    "tests/wall-media-music-ambience-fastpath-20261112.test.mjs",
+    "tests/wall-media-navigation-fastpath-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodMusicClipTimeline.tsx",
+    "src/components/BuklodPostMotion.tsx",
+    "src/components/BuklodPostMusicPicker.tsx",
+    "src/lib/buklodPickCommunityPhotos.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "tests/wall-media-music-ambience-fastpath-20261112.test.mjs",
+    "tests/wall-media-navigation-fastpath-20261112.test.mjs",
+    ".buklod/scopes/wall-media-music-ambience-20261112.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Scoped photo processing, music scrub and animation changes must preserve runtime and existing feature behavior.",
+      "preservedBehaviors": [
+        "Existing Expo Android, web, user session and uploaded post contracts remain intact."
+      ],
+      "tests": [
+        "tests/wall-media-music-ambience-fastpath-20261112.test.mjs",
+        "tests/wall-media-navigation-fastpath-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Targeted Wall preview optimization and music picker drag/layout changes require media regression protection.",
+      "preservedBehaviors": [
+        "Video playback and private image original/preview fallback behavior remain unchanged."
+      ],
+      "tests": [
+        "tests/wall-media-music-ambience-fastpath-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "The canonical Wall tab composer is changed only to pass photo dimensions and compact controls, without modifying routing.",
+      "preservedBehaviors": [
+        "Home Cluster Wall Connect Profile navigation and authenticated audience routing remain unchanged."
+      ],
+      "tests": [
+        "tests/wall-media-navigation-fastpath-20261112.test.mjs"
+      ]
+    }
+  ]
+}
