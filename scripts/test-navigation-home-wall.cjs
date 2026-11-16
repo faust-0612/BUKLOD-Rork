@@ -55,9 +55,12 @@ function handler({ type = 'CLUSTER', publicAvailable = true, fail = false, wait 
   assert(!home.includes('Open Updates & Bulletins') && !home.includes('Announcements & Bulletins'), 'Home must not show bulletin drawer CTA');
   assert(home.includes('<BuklodSystemAnnouncementBoard slot="public_home" />'), 'important public Home announcements remain visible');
   const utilityCards = fs.readFileSync('src/components/home/BuklodHomeUtilityCards.tsx', 'utf8');
-  assert(utilityCards.includes('<LinearGradient') && utilityCards.includes('home-heart'), 'premium personal Home launcher remains rendered');
-  assert(utilityCards.includes("router.push('/personal-home' as any)"), 'personal Home destination stays wired');
-  assert(utilityCards.includes('Online Consultation') && utilityCards.includes('Full Health Center'), 'Health Center actions are preserved');
+  const family = fs.readFileSync('src/app/profile/buklod-family.tsx', 'utf8');
+   const health = fs.readFileSync('src/app/profile/buklod-health.tsx', 'utf8');
+   assert(utilityCards.includes("router.push('/children-stories' as any)"), 'children stories remain on Home');
+   assert(!home.includes('BuklodKingdomHubCard'), 'Kingdom is in hamburger only');
+   assert(family.includes("router.push('/personal-home' as any)"), 'household moves to Family');
+   assert(health.includes('Full Health Center') && health.includes('Online Consultation'), 'Health doors remain available in Health');
   assert(merged.includes('<BuklodSystemAnnouncementBoard slot="public_home" />'), 'announcement and Quiz are merged');
   assert(merged.includes('<BuklodHomeScopeBulletins />'), 'bulletins are merged');
   assert(primary.includes("home: '/hub'"), 'primary Home must target canonical hub');

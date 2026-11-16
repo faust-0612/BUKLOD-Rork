@@ -23,7 +23,7 @@ test('Home retains meaningful widgets, removes duplicate feature finder, shortcu
   assert.doesNotMatch(hub, /Return to Community Wall|<Text[^>]*>Quick Actions<\/Text>/);
   assert.match(hub, /<Contribution \//);
   assert.match(hub, /<BuklodFirstViewAd/);
-  assert.match(hub, /<BuklodKingdomHubCard/);
+  assert.doesNotMatch(hub, /<BuklodKingdomHubCard/);
   assert.match(header, /router\.push\('\/feature-search'/);
   assert.match(root, /<Stack\.Screen name="feature-search"\s*\/>/);
   assert.match(search, /<BuklodFeatureFinder autoFocus showSuggestions\s*\/>/);

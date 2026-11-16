@@ -14,7 +14,6 @@ import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnounce
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
-import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
 import BuklodExecutiveQuickAccess from '@/components/home/BuklodExecutiveQuickAccess';
 
 // Factories execute only after the user opens a tool.
@@ -120,7 +119,6 @@ export default function BuklodLightHome() {
           </ToolBoundary>
         ) : null}
         <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
-        <BuklodKingdomHubCard />
       <BuklodScreenBottomBanner placement="home" variant="large" />
       </ScrollView>
     );
@@ -177,7 +175,6 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
-      <BuklodKingdomHubCard />
       <BuklodScreenBottomBanner placement="home" variant="large" />
     </ScrollView>
   );

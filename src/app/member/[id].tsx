@@ -350,6 +350,7 @@ export default function MemberPublicProfileScreen() {
           </>
         ) : profile?.is_locked || !profile?.can_view_details ? (
           <View style={[styles.card, styles.lockedCard]}>
+            {profile ? <ProfileAvatar userId={profile.user_id} name={profile.display_name} size={82} /> : null}
             <MaterialCommunityIcons
               name="lock-outline"
               size={34}

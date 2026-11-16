@@ -54,7 +54,8 @@ test('paid sponsored videos play audibly only in-view and pause when hidden, whi
  assert.match(ad,/player\.play\(\)/);
  assert.match(ad,/requestBuklodAudioFocus\('sponsor-ad'\)/);
  assert.match(ad,/measureInWindow/);
- assert.match(ad,/visible=\{screenFocused&&videoVisible\}/);
+ assert.match(ad,/visible=\{screenFocused&&videoVisible&&!scrollPaused\}/);
+ assert.match(ad,/if \(!visible\) \{ try \{player\.pause\(\);\}/);
  assert.match(ad,/try \{player\.pause\(\);\}/);
  assert.match(ad,/useFocusEffect\(useCallback/);
  assert.match(ad,/paidSponsorshipCanDisplay/);
@@ -68,12 +69,11 @@ test('primary dashboard navigation reuses mounted route state instead of replace
  assert.doesNotMatch(nav,/buklodInstantReplace\(/);
  assert.match(home,/\{foreground \? \(/);
 });
-test('all three Home cards have accessible neon borders without adding native dependencies',()=>{
- assert.match(today,/borderColor:'#AD65FF'/);
- assert.match(today,/shadowColor:'#A020F0'/);
- assert.match(cards,/#00E6B5/);
- assert.match(cards,/#F14AE0/);
- assert.match(cards,/accessibilityRole="button"/);
- assert.match(motion,/const count=preset==='storm'\?24/);
- assert.match(motion,/reduceMotion/);
+test('Home and Today use accessible high-contrast cards without native dependencies',()=>{
+  assert.ok(today.includes("backgroundColor:'#FBFFFC'"));
+  assert.ok(today.includes("borderColor:'#D5E8DC'"));
+  assert.ok(today.includes('fontSize:23') && today.includes('fontSize:16'));
+  assert.ok(cards.includes('accessibilityRole="button"'));
+  assert.ok(motion.includes("const count=preset==='storm'?24"));
+  assert.ok(motion.includes('reduceMotion'));
 });

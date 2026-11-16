@@ -256,8 +256,9 @@ export default function BuklodFoundationWorkspaceNav() {
       }
 
       const route =
-        item?.workspace?.route ||
-        BUKLOD_FOCUS_APP_CATALOG[app].routes[0];
+        (app === 'family' || app === 'health')
+          ? BUKLOD_FOCUS_APP_CATALOG[app].routes[0]
+          : item?.workspace?.route || BUKLOD_FOCUS_APP_CATALOG[app].routes[0];
       if (!route) return;
 
       setOpeningKey(app);
@@ -352,7 +353,11 @@ export default function BuklodFoundationWorkspaceNav() {
                     subtitle={
                       row.app === 'organization'
                         ? 'Setup Organization, Sub-organization, Cluster and structure'
-                        : row.access?.canSee
+                        : row.app === 'family'
+                          ? 'Personal home · Family workspace'
+                          : row.app === 'health'
+                            ? 'Consultation · Health Center'
+                            : row.access?.canSee
                           ? 'Open portal'
                           : 'Workspace role required'
                     }

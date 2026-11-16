@@ -209,7 +209,7 @@ export function focusAppForPathname(
     return 'government';
   }
 
-  if (path === '/profile/buklod-family') {
+  if (path === '/profile/buklod-family-workspace') {
     return 'family';
   }
 

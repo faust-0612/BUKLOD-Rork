@@ -363,6 +363,7 @@ function MenuRow({
 
 export default function MeScreen() {
   const { theme, shared } = useBuklodPresentation();
+  const { fontScale: profileFontScale } = useWindowDimensions();
   const params =
     useLocalSearchParams<{
       returnScopeId?:
@@ -1280,7 +1281,8 @@ export default function MeScreen() {
       ? personalDashboardTheme.accentColor
       : theme.accent;
 
-  const visibleRoles = (roles ?? []).filter(Boolean);
+  // Member is the implicit baseline role, not a profile credential badge.
+  const visibleRoles = (roles ?? []).filter(role => !!role && role !== 'member');
   const username = String(profile?.username ?? '').trim();
   const shareMyProfile=async()=>{
     if(!profile?.id || profileLocked){
@@ -1637,7 +1639,7 @@ export default function MeScreen() {
           styles.profileCard,
           {
             backgroundColor: theme.cardSurface,
-            paddingTop: coverUrl ? 154 : 56,
+            paddingTop: coverUrl ? 195 : 56,
             borderColor: withAlpha(theme.border, 0.7),
           },
         ]}
@@ -1684,7 +1686,7 @@ export default function MeScreen() {
 
         <View style={[styles.identityRow, {
           // The cover remains visible behind the identity strip on both palettes.
-          backgroundColor: withAlpha(theme.cardSurface, coverUrl ? 0.74 : 0.9),
+          backgroundColor: withAlpha(theme.cardSurface, coverUrl ? 0.86 : 0.94),
           borderColor: withAlpha(theme.border, coverUrl ? 0.55 : 0.8),
         }]}>
         <ProfileMotionAvatar>
@@ -1742,41 +1744,51 @@ export default function MeScreen() {
           </View>
         </ProfileMotionAvatar>
           <View style={styles.identityCopy}>
+            <ProfileMotionFadeUp delay={50} duration={230} fromY={8} fromOpacity={0}>
+              <Text
+                testID="profile-primary-display-name"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.66}
+                style={[styles.name, identityShadow]}
+              >
+                {resolvePersonDisplayName(profile, profile?.id)}
+              </Text>
+            </ProfileMotionFadeUp>
 
+            <ProfileMotionFadeUp delay={80}>
+              <View style={styles.rankIdentityLine}>
+                <MaterialCommunityIcons name="medal-outline" size={16} color={theme.accent} />
+                <Text
+                  testID="profile-identity-rank"
+                  allowFontScaling
+                  numberOfLines={1}
+                  style={styles.rankIdentityText}
+                >
+                  {circleRank
+                    ? `Circle Rank: ${circleRank}`
+                    : rankPositions?.overall != null && rankPositions.overall > 0
+                      ? `All-time Rank #${rankPositions.overall}`
+                      : 'Rank not yet available'}
+                </Text>
+              </View>
+            </ProfileMotionFadeUp>
 
-        <ProfileMotionFadeUp delay={40}>
-          <Text
-            style={[
-              styles.avatarHint,
-              identityShadow,
-            ]}
-          >
-            {avatarBusy
-              ? 'UPLOADING...'
-              : 'Tap photo to change'}
-          </Text>
-        </ProfileMotionFadeUp>
-
-        <ProfileMotionFadeUp delay={70} duration={240} fromY={10} fromOpacity={0}>
-          <Text style={[styles.name, identityShadow]}>
-            {resolvePersonDisplayName(profile, profile?.id)}
-          </Text>
-        </ProfileMotionFadeUp>
-
-        {!!username && (
-          <ProfileMotionFadeUp delay={110}>
-            <Text
-              style={[
-                styles.meta,
-                identityShadow,
-              ]}
-            >
-              @{username}
-            </Text>
-          </ProfileMotionFadeUp>
-        )}
-        {!!profileNote && <Text allowFontScaling numberOfLines={2}
-          style={{color:theme.textSecondary,fontSize:13,lineHeight:19,marginTop:5}}>{profileNote}</Text>}
+            {avatarBusy && (
+              <Text style={styles.avatarHint} accessibilityLiveRegion="polite">
+                Uploading photo...
+              </Text>
+            )}
+            {!!username && (
+              <Text allowFontScaling numberOfLines={1} style={[styles.meta, identityShadow]}>
+                @{username}
+              </Text>
+            )}
+            {!!profileNote && (
+              <Text allowFontScaling numberOfLines={2} style={styles.profileStatusText}>
+                {profileNote}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -1813,25 +1825,32 @@ export default function MeScreen() {
             </View>
           </ProfileMotionFadeUp>
         )}
-        <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:9}}>
+        <View style={styles.profilePrimaryActions}>
           {([
-            ['Edit Profile','/account/personal-information','pencil-outline'],
-            ['My Note','/profile/status','text-box-edit-outline']
-          ] as const).map(([label,path,icon])=>(
-            <Pressable key={label} accessibilityRole="button" accessibilityLabel={label}
-              onPress={()=>router.push(path as any)}
-              style={{minHeight:44,flexGrow:1,flexDirection:'row',gap:6,alignItems:'center',justifyContent:'center',
-                paddingHorizontal:10,borderRadius:12,backgroundColor:theme.accentSoft}}>
-              <MaterialCommunityIcons name={icon} size={18} color={theme.accent}/>
-              <Text allowFontScaling style={{color:theme.textPrimary,fontSize:13,fontWeight:'800'}}>{label}</Text>
+            ['Edit Profile', '/account/personal-information', 'pencil-outline'],
+            ['My Note', '/profile/status', 'text-box-edit-outline'],
+          ] as const).map(([label, path, icon]) => (
+            <Pressable
+              key={label}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              onPress={() => router.push(path as any)}
+              style={[styles.profilePrimaryAction, profileFontScale >= 1.45 && styles.profilePrimaryActionLargeText]}
+            >
+              <MaterialCommunityIcons name={icon} size={17} color={theme.accent} />
+              <Text allowFontScaling adjustsFontSizeToFit minimumFontScale={0.75}
+                numberOfLines={1} style={styles.profilePrimaryActionText}>{label}</Text>
             </Pressable>
           ))}
-          <Pressable accessibilityRole="button" accessibilityLabel="Share my public profile information"
-            onPress={()=>{void shareMyProfile();}}
-            style={{minHeight:44,flexGrow:1,flexDirection:'row',gap:6,alignItems:'center',justifyContent:'center',
-              paddingHorizontal:10,borderRadius:12,backgroundColor:theme.accentSoft}}>
-            <MaterialCommunityIcons name="share-variant-outline" size={18} color={theme.accent}/>
-            <Text allowFontScaling style={{color:theme.textPrimary,fontSize:13,fontWeight:'800'}}>Share</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Share my public profile information"
+            onPress={() => { void shareMyProfile(); }}
+            style={[styles.profilePrimaryAction, profileFontScale >= 1.45 && styles.profilePrimaryActionLargeText]}
+          >
+            <MaterialCommunityIcons name="share-variant-outline" size={17} color={theme.accent} />
+            <Text allowFontScaling adjustsFontSizeToFit minimumFontScale={0.75}
+              numberOfLines={1} style={styles.profilePrimaryActionText}>Share</Text>
           </Pressable>
         </View>
       </View>
@@ -2052,10 +2071,19 @@ function createMeStyles(
       textAlign: 'center',
       color: theme.textPrimary,
     },
-    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
+    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 10,
       marginTop: -10, borderRadius: 15, borderWidth: StyleSheet.hairlineWidth,
-      paddingHorizontal: 10, paddingVertical: 10, zIndex: 2 },
-    identityCopy: { flex: 1, minWidth: 0 },
+      paddingHorizontal: 9, paddingVertical: 8, zIndex: 2 },
+    identityCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
+    rankIdentityLine: { marginTop: 3, flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 0 },
+    rankIdentityText: { flexShrink: 1, color: theme.textPrimary, fontSize: 12, lineHeight: 17, fontWeight: '800' },
+    profileStatusText: { marginTop: 3, color: theme.textSecondary, fontSize: 12.5, lineHeight: 17 },
+    profilePrimaryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 7 },
+    profilePrimaryAction: { flexGrow: 1, flexShrink: 1, flexBasis: '28%', minWidth: 0, minHeight: 44,
+      flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: 6, borderRadius: 11, backgroundColor: theme.accentSoft },
+    profilePrimaryActionLargeText: { flexBasis: '46%' },
+    profilePrimaryActionText: { color: theme.textPrimary, fontSize: 12.5, fontWeight: '800' },
     profileCard: {
       minHeight: 70,
       position: 'relative',
@@ -2071,7 +2099,7 @@ function createMeStyles(
     },
     profileCardCover: {
       position: 'absolute', top: 0, left: 0, right: 0,
-      height: 190, overflow: 'hidden',
+      height: 256, overflow: 'hidden',
     },
     profileCardBackground: {
       ...StyleSheet.absoluteFill,
@@ -2167,10 +2195,10 @@ function createMeStyles(
     name: {
       marginTop: 3,
       paddingHorizontal: 0,
-      fontSize: 18,
-      lineHeight: 24,
+      fontSize: 25,
+      lineHeight: 31,
       fontWeight: '900',
-      letterSpacing: -0.4,
+      letterSpacing: -0.7,
       textAlign: 'left',
     },
     meta: {
@@ -2181,12 +2209,12 @@ function createMeStyles(
       textAlign: 'left',
     },
     rolesWrap: {
-      marginTop: 8,
+      marginTop: 6,
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
       gap: 6,
-      paddingHorizontal: 9,
+      paddingHorizontal: 2,
     },
     roleBadge: {
       minHeight: 29,

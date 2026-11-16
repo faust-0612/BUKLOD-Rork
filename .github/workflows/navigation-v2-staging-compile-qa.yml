@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   staging-android-compile-no-publish:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'dev/nav2-wall-stability-integration-20261113'
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'dev/nav2-wall-stability-integration-20261113' || github.head_ref == 'integration/nov16-consolidated-ota-home-family-health-stories-v4')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
@@ -59,6 +59,7 @@ jobs:
           set -euo pipefail
           node --experimental-strip-types scripts/navigation-v2-route-audit.mjs
           node --experimental-strip-types --test tests/navigation-v2-*.test.mjs tests/marites-wall-scroll-video-navigation-20261113.test.mjs tests/nav2-wall-stability-integration-20261113.test.mjs tests/buklod-comment-menu-android-20261113.test.mjs tests/staging-apk-device-attestation-20261113.test.mjs tests/buklod-keyboard-gif-direct-20261113.test.mjs tests/buklod-keyboard-gif-navigation-20261113.test.mjs tests/buklod-keyboard-gif-scope-20261113.test.mjs
+          node --experimental-strip-types --test tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs tests/nov16-recent-completeness-staging132-r2.test.cjs tests/bible-132-complete-storytelling-20261116.test.mjs tests/bible-132-editorial-integrity-20261116.test.mjs tests/bible-henry-semantic-safety-20261116.test.cjs tests/cluster-community-dark-contrast-20261116.test.mjs tests/nov16-profile-hero-compact.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs tests/buklod-shared-dashboard-scroll-20261111.test.mjs
           npx tsc --noEmit
       - name: Actual staging-identity Android JS compile without upload or publish
         shell: bash

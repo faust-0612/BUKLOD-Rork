@@ -5,6 +5,7 @@ import { LESSONS_B } from './sundaySchoolB';
 import { LESSONS_C } from './sundaySchoolC';
 import { BIBLE_EXPANSION_LESSONS } from './bibleExpansion';
 import { SUNDAY_SCHOOL_DIALOGUES } from './sundaySchoolDialogues';
+import { inStoryOnly } from './inStoryDialogue';
 
 /** Complete bilingual Sunday School lessons for original and expanded narratives. The three original short pages
  * remain as a fallback for published/legacy stories; these are read continuously. */
@@ -15,7 +16,7 @@ function withStorytellingDialogue(id: string, lesson: SundaySchoolLesson): Sunda
     .split(/\n\s*\n/)
     .map((paragraph, index) => [
       paragraph.trim(),
-      ...scenes.filter(scene => scene.afterParagraph === index).map(scene => scene.speech[language]),
+      ...scenes.filter(scene => scene.afterParagraph === index).map(scene => biblical ? inStoryOnly(scene.speech[language], language) : scene.speech[language]),
     ].filter(Boolean).join('\n\n'))
     .join('\n\n');
   const biblical = ['david-at-ang-tapang','bangka-ng-pag-asa','ang-mabuting-kapitbahay','si-jonas-at-ang-dagat'].includes(id);

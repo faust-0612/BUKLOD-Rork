@@ -15,21 +15,18 @@ test('owner-retired bulletin drawer is absent in mobile and desktop Home', () =>
   assert.match(merged, /<BuklodHomeScopeBulletins \/>/, 'original bulletin component is not deleted or modified');
 });
 
-test('new compact personal Home launcher is real and routes to existing household app', () => {
-  assert.match(cards, /<LinearGradient[\s\S]*colors=\{\['#102D41', '#115A58', '#168A70'\]\}/);
-  assert.match(cards, /name="home-heart"/);
-  assert.match(cards, /accessibilityLabel="Open My BUKLOD Home"/);
-  assert.match(cards, /router\.push\('\/personal-home' as any\)/);
-  assert.ok(!cards.includes('miniHouse') && !cards.includes('s.homeCard'), 'outdated miniature floorplan retired');
-  assert.match(cards, /fontScale >= 1\.5 \|\| width < 370/, 'stacked layout must protect system font scale');
+test('personal Home launcher moves to Family with the original household route', () => {
+  const family=fs.readFileSync('src/app/profile/buklod-family.tsx','utf8');
+  assert.ok(family.includes('My BUKLOD Home') && family.includes("router.push('/personal-home'"));
+  assert.ok(family.includes("colors={['#102D41', '#115A58', '#168A70']}"));
+  assert.ok(!cards.includes('My BUKLOD Home') && !cards.includes('Online Consultation'));
 });
 
-test('Home health doors, ads, map, SOS and QMP remain mounted and wired', () => {
-  assert.match(cards, /router\.push\('\/profile\/buklod-health' as any\)/);
-  assert.match(cards, /launchBuklodHealthCenter/);
-  assert.match(cards, /Online Consultation/);
-  assert.match(cards, /Full Health Center/);
-  for (const preserved of ['<Contribution />', '<BuklodFirstViewAd', '<BuklodNativeSponsoredCard', '<PttCard />', '<Today />', '<Map />', '<Help />', '<BuklodKingdomHubCard />']) {
-    assert.ok(hub.includes(preserved), `Missing Home feature: ${preserved}`);
+test('Health Center stays under Health while Home ads, map, Today, SOS and QMP remain', () => {
+  const health=fs.readFileSync('src/app/profile/buklod-health.tsx','utf8');
+  assert.ok(health.includes('launchBuklodHealthCenter') && health.includes('Online Consultation') && health.includes('Full Health Center'));
+  for (const preserved of ['<Contribution />','<BuklodFirstViewAd','<BuklodNativeSponsoredCard','<PttCard />','<Today />','<Map />','<Help />']) {
+    assert.ok(hub.includes(preserved), 'Missing Home feature: '+preserved);
   }
+  assert.ok(!hub.includes('BuklodKingdomHubCard'));
 });

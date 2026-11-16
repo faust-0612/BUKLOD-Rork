@@ -24,7 +24,7 @@ test('Connect avatars are unobstructed, equal-positioned and notes stay editable
   const zone = contacts.match(/noteZone:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
   const editing = contacts.match(/noteZoneEditing:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
   assert.match(column, /backgroundColor:\s*'transparent'/);
-  assert.match(column, /minHeight:\s*168/);
+  assert.match(column, /minHeight:\s*216/);
   assert.match(zone, /height:\s*NOTE_ZONE_HEIGHT/);
   assert.match(editing, /height:\s*NOTE_ZONE_HEIGHT/);
   assert.match(contacts, /editingPopover: \{/);
@@ -34,9 +34,9 @@ test('Connect avatars are unobstructed, equal-positioned and notes stay editable
 });
 
 test('Profile identity strip is translucent and cover extends behind it', () => {
-  assert.match(profile, /paddingTop: coverUrl \? 154 : 56/);
-  assert.match(profile, /height: 190, overflow: 'hidden'/);
-  assert.match(profile, /backgroundColor: withAlpha\(theme\.cardSurface, coverUrl \? 0\.74 : 0\.9\)/);
+  assert.match(profile, /paddingTop: coverUrl \? 195 : 56/);
+  assert.match(profile, /height: 256, overflow: 'hidden'/);
+  assert.match(profile, /backgroundColor: withAlpha\(theme\.cardSurface, coverUrl \? 0\.86 : 0\.94\)/);
   assert.match(profile, /style=\{\[styles\.identityRow,/);
 });
 

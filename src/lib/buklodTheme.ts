@@ -383,6 +383,29 @@ export function accessibleTextOn(background: string): string {
   return 1.05 / (luminance + 0.05) >= 4.5 ? '#FFFFFF' : '#000000';
 }
 
+/** Choose an accessible text accent against a feed/card surface.
+ * Some subdued light palettes intentionally use decorative accent colors
+ * that are too faint for small text; use primary text as the safe fallback.
+ */
+export function readableAccentOnSurface(
+  theme: Pick<BuklodThemeRoles, 'surface' | 'accent' | 'textPrimary'>,
+): string {
+  const luminance = (hex: string): number | null => {
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return null;
+    const channels = [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16) / 255);
+    const linear = channels.map(value =>
+      value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
+    );
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+  };
+  const surface = luminance(theme.surface);
+  const accent = luminance(theme.accent);
+  if (surface === null || accent === null) return theme.textPrimary;
+  const contrast =
+    (Math.max(surface, accent) + 0.05) / (Math.min(surface, accent) + 0.05);
+  return contrast >= 4.5 ? theme.accent : theme.textPrimary;
+}
+
 function buildGlobalRoles(
   paletteId: BuklodPaletteId
 ): BuklodThemeRoles {

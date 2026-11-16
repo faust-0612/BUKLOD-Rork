@@ -18,8 +18,10 @@ test('both scoped Homes keep members-only BP and external GCash fund as separate
 
 test('the single-source candidate preserves approved Home, offline and privacy fixes', () => {
   const hub=read('src/app/(tabs)/hub.tsx');
-  assert.match(hub,/BuklodKingdomHubCard/);
-  assert.match(hub,/path: '\/bible', action: \(\) => router.push\('\/bible'/);
+  assert.doesNotMatch(hub,/BuklodKingdomHubCard/);
+  const quick=read('src/components/home/BuklodExecutiveQuickAccess.tsx');
+  assert.match(quick,/route:'\/bible'/);
+  assert.match(quick,/router\.push\(item\.route/);
   assert.match(read('src/components/BuklodTodayCard.tsx'),/my_dugtong/);
   assert.match(read('src/app/learn/[id].tsx'),/selectAuthorizedOfflineLessonIds/);
   assert.match(read('src/app/learn/[id].tsx'),/AI Approved/);
