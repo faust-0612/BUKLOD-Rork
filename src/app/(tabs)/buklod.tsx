@@ -1745,7 +1745,7 @@ useEffect(()=>{
 const [
   communityFeedMode,
   setCommunityFeedMode,
-] = useState<CommunityFeedMode>('for_you');
+] = useState<CommunityFeedMode>('latest');
 
 /* PATCH_186L_R3_TRUE_PAGED_STRICT_PUBLIC */
 const load=useCallback(async(options?:{
@@ -3307,7 +3307,21 @@ const load=useCallback(async(options?:{
    }
 
    // A feed refresh error must not roll back a successfully published post.
-   void load().catch(()=>undefined);
+   // A confirmed public post should be shown in chronological Latest, not
+   // buried by the For You rank. The new mode triggers its own fresh fetch.
+   if(snapshot.audience==='public' && communityFeedMode!=='latest'){
+    communityLoadSeqRef.current+=1;
+    const latestKey=communityFeedCacheKey(snapshot.userId,publicLocationScopeId)+':mode:latest';
+    setPosts(communityWarmFeedMemory.get(latestKey)??[]);
+    setCommunityFeedMode('latest');
+   }else{
+    void load().catch(()=>undefined);
+   }
+   if(snapshot.audience==='public'){
+    communityFeedRefBackR2.current?.scrollToOffset?.({
+     offset:0,animated:true,
+    });
+   }
    setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.' : 'Posted to Community');
   }
   catch(e:any){
