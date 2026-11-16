@@ -1,0 +1,856 @@
+{
+  "schemaVersion": 1,
+  "status": "proposal-not-live",
+  "source": "User-supplied BUKLOD Kingdom 20-class 120-item reference atlas, 2026-11-16",
+  "rules": {
+    "noAutomaticGrants": true,
+    "serverAuthoritativeInventory": true,
+    "noCashOrRedeemableConversion": true,
+    "characterProgressIndependent": true,
+    "cosmeticTradingOnlyAfterServerVerification": true,
+    "existingKingdomMapUnchanged": true,
+    "adsUnaffected": true
+  },
+  "classes": [
+    {
+      "id": "weapons",
+      "label": "Weapon",
+      "items": [
+        {
+          "id": "weapons-01",
+          "name": "Faith Sword",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "weapons-02",
+          "name": "Light Spear",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "weapons-03",
+          "name": "Ranger Bow",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "weapons-04",
+          "name": "Justice Hammer",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "weapons-05",
+          "name": "Wisdom Staff",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "weapons-06",
+          "name": "Covenant Dagger",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "relic",
+      "label": "Relic",
+      "items": [
+        {
+          "id": "relic-01",
+          "name": "Covenant Chalice",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "relic-02",
+          "name": "Ark Relic",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "relic-03",
+          "name": "Scripture Tome",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "relic-04",
+          "name": "Prophet's Horn",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "relic-05",
+          "name": "Anointing Oil",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "relic-06",
+          "name": "Altar Stone",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "treasure",
+      "label": "Treasure",
+      "items": [
+        {
+          "id": "treasure-01",
+          "name": "Emerald Chest",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "treasure-02",
+          "name": "Gold Chest",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "treasure-03",
+          "name": "Royal Chest",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "treasure-04",
+          "name": "Mission Chest",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "treasure-05",
+          "name": "Covenant Chest",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "treasure-06",
+          "name": "Ascension Chest",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "resource",
+      "label": "Resource",
+      "items": [
+        {
+          "id": "resource-01",
+          "name": "Wood Log",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "resource-02",
+          "name": "Stone",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "resource-03",
+          "name": "Iron Ore",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "resource-04",
+          "name": "Silver Ore",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "resource-05",
+          "name": "Gold Ore",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "resource-06",
+          "name": "Emerald Crystal",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "consumable",
+      "label": "Consumable",
+      "items": [
+        {
+          "id": "consumable-01",
+          "name": "Healing Potion",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "consumable-02",
+          "name": "Stamina Drink",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "consumable-03",
+          "name": "Focus Elixir",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "consumable-04",
+          "name": "XP Tonic",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "consumable-05",
+          "name": "Blessing Oil",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "consumable-06",
+          "name": "Revival Elixir",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "utility",
+      "label": "Utility",
+      "items": [
+        {
+          "id": "utility-01",
+          "name": "Travel Scroll",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "utility-02",
+          "name": "Return Stone",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "utility-03",
+          "name": "Storage Bag",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "utility-04",
+          "name": "Expansion Box",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "utility-05",
+          "name": "Crafting Kit",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "utility-06",
+          "name": "Repair Kit",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "collection",
+      "label": "Collection",
+      "items": [
+        {
+          "id": "collection-01",
+          "name": "Hero Insignia",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "collection-02",
+          "name": "Event Token",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "collection-03",
+          "name": "Memory Shard",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "collection-04",
+          "name": "Story Relic",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "collection-05",
+          "name": "Region Seal",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "collection-06",
+          "name": "Legacy Piece",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "emblem",
+      "label": "Emblem",
+      "items": [
+        {
+          "id": "emblem-01",
+          "name": "Unity Emblem",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "emblem-02",
+          "name": "Faith Emblem",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "emblem-03",
+          "name": "Service Emblem",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "emblem-04",
+          "name": "Mission Emblem",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "emblem-05",
+          "name": "Leadership Emblem",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "emblem-06",
+          "name": "Kingdom Emblem",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "armor",
+      "label": "Armor",
+      "items": [
+        {
+          "id": "armor-01",
+          "name": "Guardian Armor",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "armor-02",
+          "name": "Covenant Robe",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "armor-03",
+          "name": "Wisdom Cloak",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "armor-04",
+          "name": "Pilgrim Boots",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "armor-05",
+          "name": "Royal Helmet",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "armor-06",
+          "name": "Faith Shield",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "accessory",
+      "label": "Accessory",
+      "items": [
+        {
+          "id": "accessory-01",
+          "name": "Emerald Ring",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "accessory-02",
+          "name": "Unity Necklace",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "accessory-03",
+          "name": "Blessing Bracelet",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "accessory-04",
+          "name": "Guardian Pendant",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "accessory-05",
+          "name": "Wisdom Crown",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "accessory-06",
+          "name": "Ascension Wings",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "character-evolution",
+      "label": "Character Evolution",
+      "items": [
+        {
+          "id": "character-evolution-01",
+          "name": "Awakening Form",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "character-evolution-02",
+          "name": "Guardian Form",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "character-evolution-03",
+          "name": "Radiant Form",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "character-evolution-04",
+          "name": "Ascended Form",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "character-evolution-05",
+          "name": "Celestial Form",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "character-evolution-06",
+          "name": "Eternal Form",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "companion",
+      "label": "Companion",
+      "items": [
+        {
+          "id": "companion-01",
+          "name": "Forest Fox",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "companion-02",
+          "name": "Guardian Lion",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "companion-03",
+          "name": "Messenger Dove",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "companion-04",
+          "name": "Emerald Deer",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "companion-05",
+          "name": "Wisdom Owl",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "companion-06",
+          "name": "Radiant Eagle",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "skill",
+      "label": "Skill",
+      "items": [
+        {
+          "id": "skill-01",
+          "name": "Healing Aura",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "skill-02",
+          "name": "Guardian Shield",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "skill-03",
+          "name": "Unity Boost",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "skill-04",
+          "name": "Wisdom Light",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "skill-05",
+          "name": "Renewal Pulse",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "skill-06",
+          "name": "Harmony Field",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "crafting",
+      "label": "Crafting",
+      "items": [
+        {
+          "id": "crafting-01",
+          "name": "Ancient Wood",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "crafting-02",
+          "name": "Sacred Ore",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "crafting-03",
+          "name": "Silver Dust",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "crafting-04",
+          "name": "Gold Essence",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "crafting-05",
+          "name": "Emerald Fragment",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "crafting-06",
+          "name": "Master Forge",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "kingdom-building",
+      "label": "Kingdom Building",
+      "items": [
+        {
+          "id": "kingdom-building-01",
+          "name": "Village Hall",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "kingdom-building-02",
+          "name": "Learning Tower",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "kingdom-building-03",
+          "name": "Unity Garden",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "kingdom-building-04",
+          "name": "Treasury",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "kingdom-building-05",
+          "name": "Guardian Gate",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "kingdom-building-06",
+          "name": "Royal Sanctuary",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "exploration",
+      "label": "Exploration",
+      "items": [
+        {
+          "id": "exploration-01",
+          "name": "Forest Map",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "exploration-02",
+          "name": "Ancient Ruins",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "exploration-03",
+          "name": "Crystal Cave",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "exploration-04",
+          "name": "Hidden Valley",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "exploration-05",
+          "name": "Celestial Path",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "exploration-06",
+          "name": "Kingdom Portal",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "quest",
+      "label": "Quest",
+      "items": [
+        {
+          "id": "quest-01",
+          "name": "Daily Quest Seal",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "quest-02",
+          "name": "Story Mission",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "quest-03",
+          "name": "Exploration Scroll",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "quest-04",
+          "name": "Team Challenge",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "quest-05",
+          "name": "Mastery Trial",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "quest-06",
+          "name": "Final Challenge",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "season",
+      "label": "Season",
+      "items": [
+        {
+          "id": "season-01",
+          "name": "Season Banner",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "season-02",
+          "name": "Mission Pass",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "season-03",
+          "name": "Seasonal Crown",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "season-04",
+          "name": "Celebration Medal",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "season-05",
+          "name": "Event Trophy",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "season-06",
+          "name": "Season Champion Crest",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "prestige",
+      "label": "Prestige",
+      "items": [
+        {
+          "id": "prestige-01",
+          "name": "Ascension Crown",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "prestige-02",
+          "name": "Eternal Crest",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "prestige-03",
+          "name": "Radiant Wings",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "prestige-04",
+          "name": "Mastery Halo",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "prestige-05",
+          "name": "Royal Mantle",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "prestige-06",
+          "name": "Legacy Monument",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    },
+    {
+      "id": "profile-cosmetics",
+      "label": "Profile Cosmetics",
+      "items": [
+        {
+          "id": "profile-cosmetics-01",
+          "name": "Avatar Frame",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "profile-cosmetics-02",
+          "name": "Animated Border",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "profile-cosmetics-03",
+          "name": "Nameplate",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "profile-cosmetics-04",
+          "name": "Profile Aura",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "profile-cosmetics-05",
+          "name": "Victory Pose",
+          "availability": "planned",
+          "ownership": "not-granted"
+        },
+        {
+          "id": "profile-cosmetics-06",
+          "name": "Character Trail",
+          "availability": "planned",
+          "ownership": "not-granted"
+        }
+      ]
+    }
+  ]
+}
