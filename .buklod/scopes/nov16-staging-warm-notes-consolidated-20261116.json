@@ -42,7 +42,8 @@
     "src/components/connect/ConnectQuickContacts.tsx",
     "src/lib/buklodMessagesStatusNote.ts",
     "tests/nov16-warm-navigation-notes-contract.test.mjs",
-    ".buklod/scopes/nov16-staging-warm-notes-consolidated-20261116.json"
+    ".buklod/scopes/nov16-staging-warm-notes-consolidated-20261116.json",
+    "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
   ],
   "acceptanceChecks": [
     "Reconcile exact current main source and all current fixes without reverting existing Bible/Character/AdMob files.",
@@ -55,54 +56,38 @@
   ],
   "regressionTests": [
     "tests/nov16-warm-navigation-notes-contract.test.mjs",
-    "tests/nov16-recent-completeness-staging132-r2.test.cjs",
-    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
-    "tests/nov16-connect-profile-geometry.test.mjs",
-    "tests/character-level-persistence-release-20261116.test.cjs",
-    "tests/bible-henry-edge-to-edge-20261116.test.cjs",
-    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
-    "tests/buklod-ads-production-release-contract-20261111.test.mjs",
-    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
+    "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
-      "id": "navigation-scroll",
-      "reason": "Warm Notes/Inbox/Profile during frequent tab switching",
+      "id": "app-runtime",
+      "reason": "Scoped React Native warm caches prevent repeated content loads after tab switches",
       "preservedBehaviors": [
-        "All canonical routing remains unchanged, realtime unread still active"
+        "Native runtime and existing local account isolation are unchanged"
       ],
       "tests": [
         "tests/nov16-warm-navigation-notes-contract.test.mjs"
       ]
     },
     {
-      "id": "auth-privacy",
-      "reason": "Scope per-user cached Notes and protect account switches",
+      "id": "wall-media",
+      "reason": "Wall Notes rail reuses visible avatars while moving between tabs",
       "preservedBehaviors": [
-        "Do not leak prior user Notes, posts or ranks between accounts"
+        "Community Wall images and video autoplay logic and ad lifecycles remain unchanged"
       ],
       "tests": [
-        "tests/nov16-warm-navigation-notes-contract.test.mjs"
+        "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
       ]
     },
     {
-      "id": "ads-monetization",
-      "reason": "Preserve high-priority AdMob lifecycle and dashboard performance",
+      "id": "navigation-auth",
+      "reason": "Focus-only Connect refresh preserves the established navigation and user session",
       "preservedBehaviors": [
-        "No ad or video module changes"
+        "Realtime unread notifications and user-specific access boundaries remain unchanged"
       ],
       "tests": [
-        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
-      ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Staging first and approved source promotion",
-      "preservedBehaviors": [
-        "Exact runtime/channel, approved gates, no direct production OTA by this PR"
-      ],
-      "tests": [
-        "tests/buklod-ads-production-release-contract-20261111.test.mjs"
+        "tests/nov16-warm-navigation-notes-contract.test.mjs",
+        "tests/nov16-wall-connect-notes-warm-navigation.test.mjs"
       ]
     }
   ],
