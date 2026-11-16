@@ -1,14 +1,15 @@
 /* BUKLOD_CHARACTER_VISIBLE_SYNC_R31_R40_V2 */
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
+import { BuklodEquippedCollectibleRail, getBuklodEquipRailWidth } from '@/components/points/BuklodCharacterCollectibleVisual';
 import { useAuth } from '@/providers/AuthProvider';
 import {
-  characterTokenIcon,
   getMyCharacterCollectibles,
   shownCollectiblePins,
+  subscribeBuklodCharacterCollectibles,
+  type CharacterCollectiblePin,
 } from '@/lib/buklodCharacterCollectibles';
 import {
   CORE_CHARACTER_ORDER,
@@ -34,12 +35,6 @@ type Props = {
   showEffects?: boolean;
 };
 
-type Pin = {
-  key: string;
-  characterId: ProgressiveCharacterId;
-  itemIndex: number;
-};
-
 export default function BuklodActiveCharacterArt({
   height,
   viewportWidth,
@@ -50,7 +45,8 @@ export default function BuklodActiveCharacterArt({
     getCachedBuklodCharacterSelectionV2(userId),
   );
   const [tick, setTick] = useState(0);
-  const [pins, setPins] = useState<Pin[]>([]);
+  const [pins, setPins] = useState<CharacterCollectiblePin[]>([]);
+  const [pinRevision, setPinRevision] = useState(0);
 
   useEffect(() => {
     if (!userId) {
@@ -94,6 +90,10 @@ export default function BuklodActiveCharacterArt({
   const artKey = `${activeId ?? 'none'}-${level}-${display?.revision ?? 0}-${tick}`;
   const isCore = Boolean(activeId && CORE_CHARACTER_ORDER.includes(activeId as BuklodCoreCharacterId));
 
+  useEffect(() => subscribeBuklodCharacterCollectibles((changedId) => {
+    if (changedId === activeId) setPinRevision((value) => value + 1);
+  }), [activeId]);
+
   useEffect(() => {
     if (!userId || !isCore || !activeId) {
       setPins([]);
@@ -111,31 +111,24 @@ export default function BuklodActiveCharacterArt({
     return () => {
       alive = false;
     };
-  }, [userId, isCore, activeId, tick]);
+  }, [userId, isCore, activeId, tick, pinRevision]);
 
   if (activeId && CORE_CHARACTER_ORDER.includes(activeId as BuklodCoreCharacterId)) {
+    const portraitWidth = typeof viewportWidth === 'number' && viewportWidth > 0
+      ? viewportWidth : Math.round(height * 0.72);
+    const railWidth = getBuklodEquipRailWidth(height);
     return (
-      <View pointerEvents="none" style={[styles.frame, viewportWidth ? { width: viewportWidth } : null, { height }]}>
-        <BuklodProgressiveCharacterArt
-          key={artKey}
-          characterId={activeId as BuklodCoreCharacterId}
-          level={level}
-          height={height}
-          viewportWidth={viewportWidth}
-        />
-        {pins.length ? (
-          <View style={styles.besideStack}>
-            {pins.map((pin) => (
-              <View key={pin.key} style={styles.besidePin}>
-                <MaterialCommunityIcons
-                  name={characterTokenIcon(pin.characterId, pin.itemIndex) as never}
-                  size={12}
-                  color="#E8C56B"
-                />
-              </View>
-            ))}
-          </View>
-        ) : null}
+      <View pointerEvents="none" style={[styles.frame, { width: portraitWidth + railWidth, height }]}>
+        <BuklodEquippedCollectibleRail pins={pins} height={height} />
+        <View style={{ width: portraitWidth, height, marginLeft: railWidth }}>
+          <BuklodProgressiveCharacterArt
+            key={artKey}
+            characterId={activeId as BuklodCoreCharacterId}
+            level={level}
+            height={height}
+            viewportWidth={portraitWidth}
+          />
+        </View>
       </View>
     );
   }
@@ -168,22 +161,6 @@ const styles = StyleSheet.create({
   frame: {
     alignItems: 'center',
     justifyContent: 'flex-end',
-    overflow: 'visible',
-  },
-  besideStack: {
-    position: 'absolute',
-    left: 0,
-    top: 4,
-    gap: 3,
-  },
-  besidePin: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A1406',
-    borderWidth: 1,
-    borderColor: '#E8C56B',
+    overflow: 'hidden',
   },
 });

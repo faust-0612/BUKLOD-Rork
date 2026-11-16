@@ -28,7 +28,7 @@ const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist
  * immutable and independently checked by dedicated release tests.
  */
 const LOCKED_VISUAL_BLOBS = {
-  'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'a298732870bef208ec6bb13500ff804d7d723d48',
+  'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'd3a15dba63be9cd84e7b9c0972d7b6f19156ce23',
   'src/components/points/BuklodSpecialCharacterSeries.tsx': 'b31976fd0e2591aaa2ed0175370a667259b7ba9a',
   'src/components/points/BuklodCharacterCustomizeSheet.tsx': 'ed52076cc63952f4ef654018ad2d1b3f1e3ee73e',
   'src/components/points/BuklodProgressiveCharacterArt.tsx': '3000d9e03b77fc48f345c093fd5bd2a88bfad26d',

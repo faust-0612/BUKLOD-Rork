@@ -1573,7 +1573,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   economyDoorArt: {
-    width: 72,
+    width: 104,
     height: 96,
     alignItems: 'center',
     justifyContent: 'flex-end',

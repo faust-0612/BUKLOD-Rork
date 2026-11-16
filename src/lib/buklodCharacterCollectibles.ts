@@ -40,6 +40,22 @@ export type CharacterCollectibleLoadout = {
   collectibleId: string;
 };
 
+export type CharacterCollectiblePin = {
+  key: string;
+  characterId: ProgressiveCharacterId;
+  rewardKind: CharacterCollectibleRewardKind;
+  level: number;
+  itemIndex: number;
+};
+const collectibleSubscribers = new Set<(characterId: ProgressiveCharacterId) => void>();
+export function subscribeBuklodCharacterCollectibles(listener: (characterId: ProgressiveCharacterId) => void): () => void {
+  collectibleSubscribers.add(listener);
+  return () => { collectibleSubscribers.delete(listener); };
+}
+function notifyCollectibleChange(characterId: ProgressiveCharacterId): void {
+  for (const listener of collectibleSubscribers) listener(characterId);
+}
+
 export type CharacterCollectibleState = {
   lifetimePoints: number;
   pointsOnCharacter: number;
@@ -124,7 +140,7 @@ function normalizeState(value: unknown): CharacterCollectibleState {
 export function shownCollectiblePins(
   state: CharacterCollectibleState | null,
   characterId?: ProgressiveCharacterId | null,
-) {
+): CharacterCollectiblePin[] {
   if (!state) return [];
   return state.loadout.flatMap((pin) => {
     if (characterId && pin.characterId !== characterId) return [];
@@ -134,14 +150,16 @@ export function shownCollectiblePins(
       : state.items.find((row) =>
         row.redeemedAt
         && row.rewardKind === pin.rewardKind
-        && (!characterId || row.characterId === characterId));
+        && row.characterId === pin.characterId);
     const owned = byId ?? byKind;
+    // Reject stale or unredeemed pins rather than displaying fabricated level-one artwork.
+    if (!owned || !owned.redeemedAt || owned.characterId !== pin.characterId) return [];
     return [{
       key: pin.collectibleId || `${pin.characterId}:${pin.rewardKind}`,
       characterId: pin.characterId,
       rewardKind: pin.rewardKind,
-      itemIndex: owned?.itemIndex ?? 1,
-      level: owned?.level ?? 1,
+      itemIndex: owned.itemIndex,
+      level: owned.level,
     }];
   });
 }
@@ -210,6 +228,7 @@ export async function useMyCharacterCollectible(
     p_item_index: itemIndex,
   });
   if (error) fail(error, 'Could not use this item.');
+  notifyCollectibleChange(characterId);
 }
 
 export async function clearMyCharacterCollectible(
@@ -221,4 +240,5 @@ export async function clearMyCharacterCollectible(
     p_reward_kind: rewardKind,
   });
   if (error) fail(error, 'Could not remove this item.');
+  notifyCollectibleChange(characterId);
 }
