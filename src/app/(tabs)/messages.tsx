@@ -1283,7 +1283,8 @@ function ConnectScreenInner({
             } : null}
             contacts={suggestedContacts}
             onOpenContact={openSuggestedContact}
-            onStatusNoteSaved={() => void loadRef.current()}
+            // Saved Notes update the live status-note cache directly. Do not
+            // refetch every thread/room/request merely to repaint a note.
           />
         </>
       )}
