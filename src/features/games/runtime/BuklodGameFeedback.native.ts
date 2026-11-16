@@ -8,12 +8,12 @@ import { tryPlayRorkGameFeedback } from './rorkAudio';
 import { emitBuklodGameCharacterMotion } from './characterMotionBus';
 import { createBuklodGameFeedbackLimiter } from './feedbackThrottle';
 
-const reactionSound = require('../../../../assets/sounds/buklod-reaction.wav');
-const impactSound = require('../../../../assets/sounds/buklod_community.wav');
-const rewardSound = require('../../../../assets/sounds/buklod-points-claim.wav');
-const unlockSound = require('../../../../assets/sounds/buklod_achievement.wav');
-const failSound = require('../../../../assets/sounds/buklod_error.wav');
-const tapSound = require('../../../../assets/sounds/buklod_message_sent.wav');
+const reactionSound = require('../../../../assets/sounds/kingdom-premium/collect-crystal.wav');
+const impactSound = require('../../../../assets/sounds/kingdom-premium/impact-wood.wav');
+const rewardSound = require('../../../../assets/sounds/kingdom-premium/victory.wav');
+const unlockSound = require('../../../../assets/sounds/kingdom-premium/unlock.wav');
+const failSound = require('../../../../assets/sounds/kingdom-premium/failure.wav');
+const tapSound = require('../../../../assets/sounds/kingdom-premium/ui-soft.wav');
 void getBuklodSoundSettings();
 
 const allowFeedback = createBuklodGameFeedbackLimiter();
