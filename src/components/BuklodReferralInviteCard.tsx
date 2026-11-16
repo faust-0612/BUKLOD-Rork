@@ -356,6 +356,12 @@ export default function BuklodReferralInviteCard({
         <Text style={styles.actionText}>SHARE INVITE</Text>
       </Pressable>
 
+      <Text style={styles.economyNote}>
+        Earn +10 BUKLOD Points when your invited member is verified, then a
+        one-time +10 bonus when they advance a Circle Rank through claimed
+        activities while active in a Cluster. Maximum +20 BP per referral.
+        Points are separate from cash earnings.
+      </Text>
       <Text style={styles.stats}>
         Invited {summary?.invited_count ?? 0} · Qualified{' '}
         {summary?.qualified_count ?? 0}
