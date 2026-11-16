@@ -45,8 +45,8 @@ function createStyles(theme: ConnectThemeRoles) {
       justifyContent: 'space-between',
       gap: 5,
       paddingHorizontal: 12,
-      paddingVertical: 6,
-      marginBottom: 2,
+      paddingVertical: 4,
+      marginBottom: 0,
       backgroundColor: 'transparent',
     },
     tab: {

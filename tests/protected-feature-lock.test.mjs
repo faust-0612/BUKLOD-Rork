@@ -85,3 +85,13 @@ test('Android-only production promotion is tied to an explicit RC scope, never a
   const release=readFileSync(new URL('../.github/workflows/production_android_ota.yml',import.meta.url),'utf8');
   assert.match(release,/BUKLOD_ANDROID_ONLY_PROD_20261114:/);
 });
+
+test('Nov16 isolated staging consolidation retains protected feature CI gate', () => {
+  const workflow=readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+  const scope=JSON.parse(readFileSync(new URL('../.buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json',import.meta.url),'utf8'));
+  assert.ok(workflow.includes('integration/nov16-unified-character-kingdom-connect-staging132)'));
+  assert.ok(workflow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov16-unified-character-kingdom-connect-staging132.json'));
+  assert.ok(workflow.includes('node scripts/protected-feature-lock.mjs'));
+  assert.ok(scope.allowedPaths.includes('.github/workflows/engineering-accountability.yml'));
+  assert.ok(scope.lockedFeatureChanges.some(x => x.id==='governance-lock' && x.tests.includes('tests/protected-feature-lock.test.mjs')));
+});

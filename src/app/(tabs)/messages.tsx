@@ -379,10 +379,10 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       backgroundColor: theme.canvas,
     },
     listContent: {
-      paddingBottom: connectSpacing.sectionGap + 12,
+      paddingBottom: connectSpacing.sectionGap + 8,
     },
     communityListContent: {
-      paddingBottom: connectSpacing.sectionGap + 8,
+      paddingBottom: connectSpacing.sectionGap + 6,
     },
     inboxHeader: {
       flexDirection: 'row',
@@ -447,10 +447,10 @@ function createInboxStyles(theme: ConnectThemeRoles) {
     },
     searchDock: {
       // Leave the entire unread-status pill visible; no overlap with the hero.
-      marginTop: 8,
+      marginTop: 4,
       marginHorizontal: 8,
-      paddingTop: 4,
-      paddingBottom: 5,
+      paddingTop: 2,
+      paddingBottom: 3,
       borderRadius: 22,
       backgroundColor: theme.surface,
     },
@@ -458,17 +458,17 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       color: theme.textPrimary,
       fontSize: 17,
       fontWeight: '800',
-      paddingHorizontal: 18,
-      paddingTop: 8,
-      paddingBottom: 8,
+      paddingHorizontal: 12,
+      paddingTop: 4,
+      paddingBottom: 4,
     },
     sectionTitle: {
       color: theme.textPrimary,
       fontSize: 18,
       fontWeight: '900',
-      paddingHorizontal: 18,
-      paddingTop: 12,
-      paddingBottom: 8,
+      paddingHorizontal: 12,
+      paddingTop: 6,
+      paddingBottom: 4,
     },
     priorityCard: {
       marginHorizontal: 10,
@@ -502,8 +502,8 @@ function createInboxStyles(theme: ConnectThemeRoles) {
     },
     empty: {
       alignItems: 'center',
-      paddingVertical: 28,
-      paddingHorizontal: 28,
+      paddingVertical: 16,
+      paddingHorizontal: 12,
     },
     emptyTitle: {
       color: theme.textPrimary,

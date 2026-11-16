@@ -5271,11 +5271,11 @@ const styles =
   StyleSheet.create({
 
     reportLaunch: {
-      minHeight: 92,
+      minHeight: 72,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
-      padding: 15,
+      gap: 8,
+      padding: 10,
       borderRadius: 18,
       borderWidth: 1,
       borderColor: '#D9E0DC',
@@ -5310,11 +5310,11 @@ const styles =
     },
 
     searchLaunch: {
-      minHeight: 92,
+      minHeight: 72,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
-      padding: 15,
+      gap: 8,
+      padding: 10,
       borderRadius: 18,
       borderWidth: 1,
       borderColor: '#D1E0D7',
@@ -5348,8 +5348,8 @@ const styles =
       color: '#275D45',
     },
     content: {
-      paddingBottom: 50,
-      gap: 10,
+      paddingBottom: 50, // Preserve clearance above fixed bottom tabs.
+      gap: 6,
     },
 
 
@@ -5394,7 +5394,7 @@ const styles =
 
 
     translationRow: {
-      marginTop: 10,
+      marginTop: 6,
       flexDirection: 'row',
       gap: 8,
     },
@@ -5532,7 +5532,7 @@ const styles =
 
 
     chapterGrid: {
-      marginTop: 12,
+      marginTop: 8,
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 6,
@@ -5573,8 +5573,8 @@ const styles =
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
-      paddingBottom: 13,
-      marginBottom: 5,
+      paddingBottom: 8,
+      marginBottom: 2,
       borderBottomWidth: 1,
       borderBottomColor:
         '#EDF1EE',

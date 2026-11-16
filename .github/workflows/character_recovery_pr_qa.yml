@@ -39,6 +39,10 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
+      - name: Verify Character art and exact reviewed source signatures
+        if: hashFiles('tests/buklod-character-art-contract-20261116.test.mjs') != ''
+        run: node --experimental-strip-types --test tests/buklod-character-art-contract-20261116.test.mjs tests/buklod-character-art-release-contract-20261116.test.mjs
+
       - name: Character source contract
         if: github.head_ref != 'fix/pending-client-reconciliation-20261027-r1'
         run: npm run character:contract
