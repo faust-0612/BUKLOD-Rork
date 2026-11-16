@@ -38,7 +38,7 @@ revoke all on private.buklod_character_task_events_v1 from public,anon,authentic
 create table if not exists private.buklod_character_story_awards_v1(
  user_id uuid not null references auth.users(id) on delete cascade,
  character_id text not null check(character_id in
- ('ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')),
+ ('phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')),
  level_no integer not null check(level_no between 1 and 20),
  item_index integer not null check(item_index between 1 and 5),
  source_key text not null default 'verified_character_task_v1',
@@ -112,7 +112,14 @@ begin
 
  v_verified:=lower(coalesce(new.claim_state,''))='claimed';
  -- Only pending or claimed events are eligible for an immutable attribution.
- if not v_verified and lower(coalesce(new.claim_state,''))<>'pending' then return new;end if;
+ if not v_verified and lower(coalesce(new.claim_state,''))<>'pending' then
+  -- A rejected/reversed claim cannot qualify as future task evidence.
+  -- Already-issued cosmetic items require separate audited dispute handling.
+  update private.buklod_character_task_events_v1 set verified=false
+  where user_id=new.user_id and source_table='buklod_points_ledger'
+    and source_id=new.id::text;
+  return new;
+ end if;
 
  -- In normal use this row was created on INSERT, before a delayed claim.
  -- On UPDATE we never replace its original Character or activity timestamp.
@@ -125,7 +132,7 @@ begin
  values(new.user_id,v_character,v_metric,'buklod_points_ledger',
    new.id::text,coalesce(new.created_at,now()),v_verified)
  on conflict(user_id,metric_key,source_table,source_id) do update
-  set verified=private.buklod_character_task_events_v1.verified or excluded.verified;
+  set verified=excluded.verified;
  return new;
 end;
 $fn$;
@@ -157,7 +164,7 @@ declare
  v_awarded integer:=0;
 begin
  if p_uid is null or p_character not in
- ('ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
+ ('phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
  or p_level<1 or p_level>20 then return 0; end if;
 
  perform pg_catalog.pg_advisory_xact_lock(
@@ -237,8 +244,8 @@ begin
 end;
 $fn$;
 
--- One authoritative snapshot for the 800 SPECIAL story objects. Core 500
--- remain governed by existing core collectible RPC and official claim rules.
+-- Task evidence now covers all 1,300 objects. Core legacy claims stay intact.
+-- Verified task awards merge by canonical slot; existing BP and Shards unchanged.
 create or replace function public.get_my_buklod_character_story_tasks_v1(
  p_character_id text
 )returns jsonb
@@ -255,11 +262,12 @@ declare
 begin
  if v_uid is null then raise exception 'Authentication required';end if;
  if v_character not in
- ('ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
- then raise exception 'Unsupported Special Character';end if;
+ ('phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
+ then raise exception 'Unsupported Character';end if;
 
  v_state:=public.get_my_buklod_character_selection_v2();
- if not coalesce(v_state->'visible_special_character_ids','[]'::jsonb) ? v_character
+ if v_character in ('ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
+ and not (coalesce(v_state->'visible_special_character_ids','[]'::jsonb) ? v_character)
  then raise exception 'Special Character is not unlocked'; end if;
 
  v_level:=greatest(1,least(20,
