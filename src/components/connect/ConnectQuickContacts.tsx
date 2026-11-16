@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 
 import {
   connectSpacing,
@@ -35,7 +36,9 @@ import {
 } from '@/lib/buklodConnectStatusNoteSeen';
 import {
   loadMessagesStatusNote,
+  peekCachedMessagesStatusNote,
   saveMessagesStatusNote,
+  subscribeMessagesStatusNote,
   type MessagesStatusNote,
 } from '@/lib/buklodMessagesStatusNote';
 import {
@@ -573,24 +576,36 @@ export function ConnectSuggestedContacts({
     useState<MessagesStatusNote | null>(null);
   const [selfSaving, setSelfSaving] = useState(false);
 
-  const loadSelfNote = useCallback(async () => {
-    try {
-      const active = await loadMessagesStatusNote();
-      setSelfNote(active);
-    } catch (error) {
-      console.warn(
-        'Messages status note:',
-        String((error as Error)?.message ?? error)
-      );
-      setSelfNote(null);
-    }
-  }, []);
-
+  // Subscribe only when the signed-in account changes, not on every
+  // parent inbox repaint. A cached note is available without an RPC.
   useEffect(() => {
-    if (currentUser) {
-      void loadSelfNote();
-    }
-  }, [currentUser, loadSelfNote]);
+    const userId = currentUser?.user_id;
+    setSelfNote(userId ? peekCachedMessagesStatusNote(userId) : null);
+    if (!userId) return;
+    let active = true;
+    const unsubscribe = subscribeMessagesStatusNote((ownerId, next) => {
+      if (active && ownerId === userId) setSelfNote(next);
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [currentUser?.user_id]);
+
+  // If status was edited in another screen, a return to Connect revalidates
+  // it. The 30s cache keeps rapid tab changes network-free.
+  useFocusEffect(useCallback(() => {
+    const userId = currentUser?.user_id;
+    if (!userId) return;
+    let active = true;
+    void loadMessagesStatusNote()
+      .then(next => { if (active) setSelfNote(next); })
+      .catch(error => {
+        // Never replace a warm note with a blank after a network error.
+        console.warn('Messages status note:', String((error as Error)?.message ?? error));
+      });
+    return () => { active = false; };
+  }, [currentUser?.user_id]));
 
   const persistSelfNote = useCallback(async (value: string) => {
     setSelfSaving(true);
