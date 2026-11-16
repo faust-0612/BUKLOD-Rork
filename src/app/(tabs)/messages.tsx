@@ -875,21 +875,17 @@ function ConnectScreenInner({
     }
   }, [profileId, connectContext, connectOnline]));
 
-  useEffect(() => {
-    const pollTimer =
-      setInterval(
-        () => {
-          void load();
-        },
-        SCALE_LIMITS.messagesInboxPollMs
-      );
-
-    return () => {
-      clearInterval(
-        pollTimer
-      );
-    };
-  }, [load]);
+  // Inbox polling is only useful while Connect is visible. Background
+  // badges still arrive through the existing realtime/notification paths.
+  // An inactive tab must not keep issuing four expensive inbox reads.
+  useFocusEffect(useCallback(() => {
+    if (!profileId || !connectOnline) return;
+    const pollTimer = setInterval(
+      () => { void loadRef.current(); },
+      SCALE_LIMITS.messagesInboxPollMs
+    );
+    return () => { clearInterval(pollTimer); };
+  }, [profileId, connectOnline]));
 
   useEffect(() => {
     if (!profileId) {
