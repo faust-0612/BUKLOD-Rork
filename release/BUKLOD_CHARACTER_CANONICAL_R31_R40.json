@@ -16,7 +16,7 @@
       "20 independent character levels",
       "Browse all 20 levels",
       "Use This Character",
-      "character switch starts the selected character from Level 1 without resetting Circle Rank",
+      "new characters start at Level 1, returning characters resume their saved independent level without resetting Circle Rank",
       "collectibles and per-character progression preserved"
     ],
     "exact_assets": {

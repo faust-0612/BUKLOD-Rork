@@ -22,7 +22,7 @@ export type ProgressiveCharacterProfile = {
 
 /* Preserved R31 visual milestones only. These values MUST NOT be used to infer
  * the active Character level from lifetime points. Current V2/server state is
- * authoritative and selecting another Character starts that selection at L1.
+ * authoritative: first use starts at L1, reselecting resumes that Character's saved XP.
  */
 export const PROGRESSIVE_LEVEL_THRESHOLDS = [
   0, 50, 100, 250, 500,
