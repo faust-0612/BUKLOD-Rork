@@ -77,7 +77,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
   const [draft, setDraft] = useState<ProgressiveCharacterId>(activeCore ?? 'phan');
   const [collectionLevel, setCollectionLevel] = useState(activeCore ? clampLevel(state.character_level) : 1);
   const [zoom, setZoom] = useState<{ id: ProgressiveCharacterId; level: number } | null>(null);
-  const [itemZoom, setItemZoom] = useState<{ id: ProgressiveCharacterId; level: number; itemIndex: number; name: string } | null>(null);
+  const [itemZoom, setItemZoom] = useState<{ id: ProgressiveCharacterId; level: number; itemIndex: number; name: string; locked: boolean } | null>(null);
   const window = useWindowDimensions();
   const zoomHeight = Math.max(1, Math.min(500, window.height * 0.86 - 110, (window.width - 64) * 508 / 247));
   const [busy, setBusy] = useState(false);
@@ -630,10 +630,10 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
                 style={[styles.collectibleRow, pulseKey === rowKey ? { transform: [{ scale: itemPulse }] } : null]}
               >
                 <Pressable accessibilityRole="button" accessibilityLabel={"Inspect artwork: " + item}
-                  onPress={() => setItemZoom({ id: draft, level: collectionLevel, itemIndex, name: item })}
+                  onPress={() => setItemZoom({ id: draft, level: collectionLevel, itemIndex, name: item, locked: !levelOpen })}
                   style={styles.tokenIcon}>
                   <BuklodCollectibleArt characterId={draft} level={collectionLevel} itemIndex={itemIndex}
-                    size={34} fallbackIcon={characterTokenIcon(draft, itemIndex)} />
+                    size={34} fallbackIcon={characterTokenIcon(draft, itemIndex)} locked={!levelOpen} />
                 </Pressable>
                 <View style={styles.collectibleCopy}>
                   <Text style={styles.collectibleName} numberOfLines={2}>{item}</Text>
@@ -688,7 +688,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
               <Text style={styles.zoomTitle}>{itemZoom.name}</Text>
               <Text style={styles.zoomStage}>{PROGRESSIVE_CHARACTERS[itemZoom.id].name} · Level {itemZoom.level}</Text>
               <BuklodCollectibleArt characterId={itemZoom.id} level={itemZoom.level} itemIndex={itemZoom.itemIndex}
-                size={256} fallbackIcon={characterTokenIcon(itemZoom.id, itemZoom.itemIndex)} />
+                size={256} fallbackIcon={characterTokenIcon(itemZoom.id, itemZoom.itemIndex)} locked={itemZoom.locked} />
             </View>
           ) : null}
         </Pressable>

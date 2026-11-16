@@ -23,7 +23,7 @@ test('invalid path rejected; unconfigured art is safely absent', () => {
   assert.equal(collectibleArtworkPath('phan',1,6),null);
   assert.equal(collectibleArtworkPath('phan',1.5,1),null);
   const base=process.env.EXPO_PUBLIC_BUKLOD_CHARACTER_ART_BASE_URL;
-  assert.equal(collectibleArtworkUri('phan',1,1),base && /^https:\/\/[^?#\s]+$/i.test(base)
+  assert.equal(collectibleArtworkUri('phan',1,1),typeof base==='string' && /^https:\/\/[^?#\s]+$/i.test(base)
     ? base.replace(/\/$/,'')+'/character-collectibles/phan/l01-i01.webp' : null);
 });
 
@@ -35,6 +35,9 @@ test('animation, profile display and collectible preview are present', () => {
   assert.match(sheet,/\{activeName\.toUpperCase\(\)\}/);
   assert.match(selector,/<BuklodCollectibleArt characterId=\{draft\}/);
   assert.match(selector,/setItemZoom\(\{/);
+  const special=fs.readFileSync('src/components/points/BuklodSpecialCharacterSeries.tsx','utf8');
+  assert.match(special,/<BuklodCollectibleArt characterId=\{selected\.id\}/);
+  assert.match(special,/<BuklodCharacterIdleMotion active=\{selectedUnlocked && active\}>/);
   assert.match(motion,/isReduceMotionEnabled/);
   assert.match(motion,/AppState\.addEventListener/);
   assert.match(motion,/useNativeDriver: true/);

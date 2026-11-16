@@ -6,6 +6,7 @@ import { Image as ExpoImage } from 'expo-image';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -17,6 +18,8 @@ import {
 } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import BuklodCollectibleArt from '@/components/points/BuklodCollectibleArt';
+import BuklodCharacterIdleMotion from '@/components/points/BuklodCharacterIdleMotion';
 import {
   SPECIAL_CHARACTER_ORDER,
   SPECIAL_REQUIRED_RANK_ORDER,
@@ -218,6 +221,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const [nativeDetailsOpen, setNativeDetailsOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [previewLevel, setPreviewLevel] = useState(1);
+  const [itemZoom, setItemZoom] = useState<{ id: BuklodSpecialCharacterId; level: number; index: number; name: string } | null>(null);
 
   useEffect(() => {
     const urls = SPECIAL_ORDER
@@ -397,11 +401,13 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         {compact ? (
           <View style={styles.largeArtFrameCompact}>
             {selectedUnlocked ? (
-              <CharacterPhoto
+              <BuklodCharacterIdleMotion active={selectedUnlocked && active}>
+<CharacterPhoto
                 key={`${selected.id}-${previewLevel}-compact`}
                 source={getBuklodSpecialLevelAsset(selected.id, previewLevel) as number}
                 style={styles.heroPhoto}
               />
+</BuklodCharacterIdleMotion>
             ) : (
               <View style={styles.characterImageHidden}>
                 <MaterialCommunityIcons name="lock" size={36} color="#8B95A8" />
@@ -449,11 +455,13 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         {compact ? null : (
           <View style={styles.largeArtFrame}>
             {selectedUnlocked ? (
-              <CharacterPhoto
+              <BuklodCharacterIdleMotion active={selectedUnlocked && active}>
+<CharacterPhoto
                 key={`${selected.id}-${previewLevel}-wide`}
                 source={getBuklodSpecialLevelAsset(selected.id, previewLevel) as number}
                 style={styles.heroPhoto}
               />
+</BuklodCharacterIdleMotion>
             ) : (
               <View style={styles.characterImageHidden}>
                 <MaterialCommunityIcons name="lock" size={36} color="#8B95A8" />
@@ -584,13 +592,12 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
                 return (
                   <View key={`${selected.id}-${previewLevel}-${index + 1}`} style={styles.collectibleCard}>
                     <View style={styles.collectibleCardInner}>
-                      <View style={[styles.collectibleIcon, !owned && styles.collectibleIconSecret]}>
-                        <MaterialCommunityIcons
-                          name={owned ? 'package-variant-closed' : 'lock-outline'}
-                          size={18}
-                          color={owned ? '#16813E' : '#627069'}
-                        />
-                      </View>
+                      <Pressable style={[styles.collectibleIcon, !owned && styles.collectibleIconSecret]}
+                        accessibilityRole="button" accessibilityLabel={"Inspect " + itemName}
+                        onPress={() => setItemZoom({ id: selected.id, level: previewLevel, index: index + 1, name: itemName })}>
+                        <BuklodCollectibleArt characterId={selected.id} level={previewLevel} itemIndex={index + 1}
+                          size={40} fallbackIcon="package-variant-closed" locked={!owned} />
+                      </Pressable>
                       <Text style={styles.collectibleName} numberOfLines={2}>{itemName}</Text>
                       <Text style={styles.badgeName} numberOfLines={1}>{BUKLOD_COLLECTIBLE_SLOT_LABELS[index]}</Text>
                       <Text style={owned ? styles.collectibleEarned : styles.collectibleTier}>
@@ -659,6 +666,18 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         </>
       ) : null}
 
+      <Modal visible={itemZoom != null} transparent animationType="fade" onRequestClose={() => setItemZoom(null)}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close special collectible preview"
+          onPress={() => setItemZoom(null)} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.90)", alignItems: "center", justifyContent: "center" }}>
+          {itemZoom ? (
+            <View pointerEvents="none" style={{ width: "92%", maxWidth: 370, padding: 16, alignItems: "center", borderRadius: 18, backgroundColor: "#121A2B" }}>
+              <Text style={{ color: "#F7F1DE", fontSize: 15, fontWeight: "900", marginBottom: 12 }}>{itemZoom.name}</Text>
+              <BuklodCollectibleArt characterId={itemZoom.id} level={itemZoom.level} itemIndex={itemZoom.index} size={256}
+                locked={!selectedUnlocked || !active || itemZoom.level > currentLevel} />
+            </View>
+          ) : null}
+        </Pressable>
+      </Modal>
       {message ? <Text style={styles.message}>{message}</Text> : null}
     </View>
   );

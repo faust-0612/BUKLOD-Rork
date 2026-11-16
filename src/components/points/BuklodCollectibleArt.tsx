@@ -6,16 +6,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collectibleArtworkUri } from '@/lib/buklodCollectibleArtwork';
 import type { BuklodCharacterWorldId } from '@/lib/buklodCharacterWorldCatalog';
 
-type Props = { characterId: BuklodCharacterWorldId; level: number; itemIndex: number; size: number; fallbackIcon?: string };
+type Props = { characterId: BuklodCharacterWorldId; level: number; itemIndex: number; size: number; fallbackIcon?: string; locked?: boolean };
 
-export default function BuklodCollectibleArt({ characterId, level, itemIndex, size, fallbackIcon = 'star-circle-outline' }: Props) {
+export default function BuklodCollectibleArt({ characterId, level, itemIndex, size, fallbackIcon = 'star-circle-outline', locked = false }: Props) {
   const uri = collectibleArtworkUri(characterId, level, itemIndex);
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [uri]);
   const frame = { width: size, height: size, alignItems: 'center' as const, justifyContent: 'center' as const };
-  if (!uri || failed) return (
+  if (locked || !uri || failed) return (
     <View style={frame}>
-      <MaterialCommunityIcons name={fallbackIcon as never} color="#E8C56B" size={Math.min(34, Math.round(size * 0.58))} />
+      <MaterialCommunityIcons name={(locked ? 'lock-outline' : fallbackIcon) as never} color="#E8C56B" size={Math.min(34, Math.round(size * 0.58))} />
     </View>
   );
   return (
