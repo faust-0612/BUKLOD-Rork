@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 
 import { useAuth } from '@/providers/AuthProvider';
+import { playBuklodCue } from '@/lib/buklodSounds';
 import {
   type ActiveCharacterPresentation,
   type CharacterEventPayload,
@@ -180,6 +181,12 @@ export function BuklodCharacterEventProvider({
         }
 
         applyPresentation(resolved);
+        // Sound follows explicit successful item actions; never awards items or points.
+        if (event.success === true &&
+            (event.type === CharacterEventType.ITEM_UNLOCKED ||
+             event.type === CharacterEventType.ITEM_EQUIPPED)) {
+          void playBuklodCue('character_item');
+        }
 
         if (shouldSpeak && spoken) {
           speakCharacterLine(spoken, voiceEnabled);

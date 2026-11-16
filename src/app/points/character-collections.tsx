@@ -1,0 +1,349 @@
+/* Character System Tasks & Collections (read-only).
+ * Character XP, rank, badges and items are from authenticated server snapshots.
+ * Kingdom gameplay cannot mint awards through this surface.
+ */
+import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {ActivityIndicator,Pressable,RefreshControl,ScrollView,StyleSheet,Text,View} from 'react-native';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {Image as ExpoImage} from 'expo-image';
+import BuklodCharacterCollectibleZoom from '@/components/points/BuklodCharacterCollectibleZoom';
+import {loadCharacterArtPublication,verifiedCharacterArtUrl} from '@/lib/buklodCharacterArt';
+import {router,useFocusEffect} from 'expo-router';
+import {supabase} from '@/lib/supabase';
+import {
+ CORE_CHARACTER_ORDER,SPECIAL_CHARACTER_ORDER,SPECIAL_REQUIRED_RANK_ORDER,
+ CHARACTER_DISPLAY_NAME,getMyBuklodCharacterSelectionV2,
+ type BuklodCharacterId,type BuklodCharacterSelectionV2State,
+} from '@/lib/buklodCharacterSelectionV2';
+import {getMyCharacterCollectibles,type CharacterCollectibleState} from '@/lib/buklodCharacterCollectibles';
+import {
+ storyStageItems,verifiedStoryKeys,storyStageProgress,savedCharacterLevel,
+ characterStageLabels,describeCharacterTaskRequirement,storyItemTaskTarget,storyItemKey,type TaskBadge,
+} from '@/lib/buklodCharacterCollectionLogic';
+import type {BuklodCharacterWorldId} from '@/lib/buklodCharacterWorldCatalog';
+
+type BadgeResult={collectibles?:TaskBadge[]};
+type SpecialStoryPayload={
+ items?:{key:string;level:number;item_index:number;owned:boolean;earned_at:string|null}[];
+ metrics?:Record<string,number>;owned_total?:number;current_level?:number;newly_awarded?:number;
+};
+const C={bg:'#071823',panel:'#112C3A',text:'#FAFFF6',muted:'#C7D8DA',green:'#AFF079',gold:'#F4D18B'};
+const CORE=new Set<string>(CORE_CHARACTER_ORDER);
+const SPECIAL=new Set<string>(SPECIAL_CHARACTER_ORDER);
+const MAX_STAGE=20;
+
+export default function CharacterCollectionsScreen(){
+ const [uid,setUid]=useState<string|null>(null);
+ const [selection,setSelection]=useState<BuklodCharacterSelectionV2State|null>(null);
+ const [selected,setSelected]=useState<BuklodCharacterId>('phan');
+ const [level,setLevel]=useState(1);
+ const [items,setItems]=useState<CharacterCollectibleState|null>(null);
+ const [badgeResult,setBadgeResult]=useState<BadgeResult|null>(null);
+ const [specialStory,setSpecialStory]=useState<SpecialStoryPayload|null>(null);
+ const [busy,setBusy]=useState(true);
+ const [detailsBusy,setDetailsBusy]=useState(false);
+ const [error,setError]=useState('');
+ const [detailError,setDetailError]=useState('');
+ const [storyError,setStoryError]=useState('');
+ const [newRewards,setNewRewards]=useState(0);
+ const [showBadges,setShowBadges]=useState(false);
+ const [artReady,setArtReady]=useState(false);
+ const [failedArt,setFailedArt]=useState<Set<string>>(()=>new Set());
+ const [inspect,setInspect]=useState<{name:string;slot:string;level:number;index:number;id:BuklodCharacterId}|null>(null);
+ const [revision,setRevision]=useState(0);
+ const req=useRef(0),detailReq=useRef(0);
+ const accountRef=useRef<string|null>(null);
+ const initialChoiceSet=useRef(false);
+
+ const load=useCallback(async()=>{
+  const epoch=++req.current;setBusy(true);setError('');
+  try{
+   const auth=await supabase.auth.getSession();
+   if(auth.error)throw auth.error;
+   const userId=auth.data.session?.user?.id;
+   if(!userId)throw new Error('Sign in to view your Character journey.');
+   const state=await getMyBuklodCharacterSelectionV2(userId,true);
+   if(epoch!==req.current)return;
+   accountRef.current=userId;setUid(userId);setSelection(state);
+   if(!initialChoiceSet.current){initialChoiceSet.current=true;setSelected(state.active_character_id);}
+   setRevision(x=>x+1);
+  }catch(e){
+   if(epoch===req.current){accountRef.current=null;setUid(null);setSelection(null);
+    setError(e instanceof Error?e.message:'Could not load Character progress.');}
+  }finally{if(epoch===req.current)setBusy(false);}
+ },[]);
+ /* Revalidate when returning from a real task, without blocking navigation or
+  * polling on unrelated tabs. The existing snapshot stays visible during refresh. */
+ useFocusEffect(useCallback(()=>{
+  void load();
+  return()=>{req.current++;detailReq.current++;};
+ },[load]));
+ /* Auth state is not a collection entitlement: remove old-account data immediately
+  * instead of waiting for another navigation/focus or a pending RPC to resolve. */
+ useEffect(()=>{
+  const {data}=supabase.auth.onAuthStateChange((event,session)=>{
+   if(event!=='SIGNED_IN'&&event!=='SIGNED_OUT')return;
+   const next=session?.user.id??null;
+   if(next===accountRef.current)return;
+   req.current++;detailReq.current++;
+   accountRef.current=null;setUid(null);setSelection(null);setItems(null);
+   initialChoiceSet.current=false;setSelected('phan');setInspect(null);setBadgeResult(null);setSpecialStory(null);setNewRewards(0);setDetailError('');setStoryError('');
+   // Defer getSession/RPC until the auth callback releases its internal lock.
+   if(next)setTimeout(()=>{if(accountRef.current===null)void load();},0);
+  });
+  return()=>data.subscription.unsubscribe();
+ },[load]);
+
+ const core=CORE.has(selected),special=SPECIAL.has(selected);
+ const unlocked=Boolean(selection && (!special ||
+    selection.visible_special_character_ids.includes(selected as typeof SPECIAL_CHARACTER_ORDER[number]) ||
+    selection.circle_rank_order>=SPECIAL_REQUIRED_RANK_ORDER[selected as typeof SPECIAL_CHARACTER_ORDER[number]]));
+ const saved=selection?savedCharacterLevel(selection.character_levels,selected,
+    selection.active_character_id,selection.character_level):1;
+ useEffect(()=>{setLevel(saved);setShowBadges(false);setInspect(null);},[selected,saved]);
+ useFocusEffect(useCallback(()=>{
+  let alive=true;
+  void loadCharacterArtPublication().then(pub=>{if(alive)setArtReady(pub.available);});
+  return()=>{alive=false;};
+ },[]));
+ useEffect(()=>{
+  if(!uid||!selection||!unlocked){setItems(null);setBadgeResult(null);setSpecialStory(null);return;}
+  const epoch=++detailReq.current;
+  setItems(null);setBadgeResult(null);setSpecialStory(null);setNewRewards(0);setDetailError('');setStoryError('');setDetailsBusy(true);
+  const run=async()=>{
+   if(core){
+    // Legacy Core inventory is read independently from newer verified task awards.
+    // Neither an absent migration nor a transient error erases legacy ownership.
+    const [legacy,task]=await Promise.allSettled([
+     getMyCharacterCollectibles(selected as typeof CORE_CHARACTER_ORDER[number]),
+     (supabase as any).rpc('get_my_buklod_character_story_tasks_v1',{p_character_id:selected}),
+    ]);
+    if(epoch!==detailReq.current)return;
+    if(legacy.status==='fulfilled')setItems(legacy.value);
+    else setDetailError('Core item claims could not be refreshed.');
+    if(task.status==='fulfilled'&&!task.value.error){
+     const verified=(task.value.data??{}) as SpecialStoryPayload;
+     setSpecialStory(verified);
+     setNewRewards(Math.max(0,Math.floor(Number(verified.newly_awarded)||0)));
+    }
+    else setStoryError('Task milestones require the verified Character server migration.');
+   }else if(special){
+    // Existing badge records and special story-item awards are separate.
+    // An unapplied new migration must never erase older earned badges.
+    const [badges,story]=await Promise.allSettled([
+     (supabase as any).rpc('get_my_buklod_special_collectibles_v2',{p_character_id:selected}),
+     (supabase as any).rpc('get_my_buklod_character_story_tasks_v1',{p_character_id:selected}),
+    ]);
+    if(epoch!==detailReq.current)return;
+    if(badges.status==='fulfilled'&&!badges.value.error)
+     setBadgeResult((badges.value.data??{}) as BadgeResult);
+    else setDetailError('Unable to load verified task badges. Retry to refresh.');
+    if(story.status==='fulfilled'&&!story.value.error){
+     const verified=(story.value.data??{}) as SpecialStoryPayload;
+     setSpecialStory(verified);
+     setNewRewards(Math.max(0,Math.floor(Number(verified.newly_awarded)||0)));
+    }
+    else setStoryError('Character-specific story awards require the verified server migration.');
+   }
+  };
+  void run().catch(e=>{if(epoch===detailReq.current)
+   setDetailError(e instanceof Error?e.message:'Task records unavailable.');})
+   .finally(()=>{if(epoch===detailReq.current)setDetailsBusy(false);});
+  return ()=>{detailReq.current++;};
+ },[uid,selection?.active_character_id,selection?.circle_rank_order,unlocked,selected,core,special,revision]);
+ 
+ const known=selection?[...CORE_CHARACTER_ORDER,...SPECIAL_CHARACTER_ORDER.filter(id=>
+    selection.visible_special_character_ids.includes(id)||
+    selection.circle_rank_order>=SPECIAL_REQUIRED_RANK_ORDER[id])]:[];
+ const next=selection?SPECIAL_CHARACTER_ORDER.find(id=>!known.includes(id)):undefined;
+ const visible=next?[...known,next]:known;
+ const worldId=selected as BuklodCharacterWorldId;
+ const story=unlocked?storyStageItems(worldId,level):[];
+ const coreOwned=useMemo(()=>verifiedStoryKeys(items?.items??[],worldId),[items,worldId]);
+ const owned=useMemo(()=>{
+  const keys=new Set(coreOwned);
+  for(const item of specialStory?.items??[]){
+   if(!item.owned||!item.earned_at)continue;
+   if(!Number.isInteger(item.level)||item.level<1||item.level>20||
+      !Number.isInteger(item.item_index)||item.item_index<1||item.item_index>5)continue;
+   // Exact canonical key matching prevents corrupted or cross-Character rows.
+   if(item.key===storyItemKey(worldId,item.level,item.item_index))keys.add(item.key);
+  }
+  return keys;
+ },[coreOwned,specialStory,worldId]);
+ const stage=unlocked?storyStageProgress(worldId,level,owned):null;
+ const title=unlocked?characterStageLabels(worldId,level):null;
+ const badges=badgeResult?.collectibles??[];
+ const earned=badges.filter(b=>b.earned&&b.collectible_id).length;
+
+ return <ScrollView style={s.root} contentContainerStyle={s.page}
+   refreshControl={<RefreshControl refreshing={busy} onRefresh={()=>{
+    setFailedArt(new Set());
+    void load();
+    void loadCharacterArtPublication(true).then(pub=>setArtReady(pub.available));
+   }} tintColor={C.green}/>}>
+  <View style={s.head}>
+   <Pressable accessibilityRole="button" onPress={()=>router.back()} style={s.back}>
+    <MaterialCommunityIcons name="arrow-left" size={23} color={C.green}/>
+   </Pressable>
+   <View style={{flex:1}}>
+    <Text style={s.kicker}>MY BUKLOD • CHARACTER SYSTEM</Text>
+    <Text style={s.h1}>Tasks & Collections</Text>
+    <Text style={s.body}>Character stories, task badges and permanent collections, connected to Kingdom.</Text>
+   </View>
+  </View>
+  <View style={s.banner}>
+   <Text style={s.kicker}>13 CHARACTERS • 20 STAGES EACH</Text>
+   <Text style={s.h2}>1,300 Story Collectibles</Text>
+   <Text style={s.body}>Each character saves its own level. Badges prove tasks; story items require separate verified ownership.</Text>
+  </View>
+  {busy&&!selection?<ActivityIndicator color={C.green}/>:null}
+  {error?<View style={s.card}><Text style={s.error}>{error}</Text>
+    <Pressable onPress={()=>void load()} accessibilityRole="button"><Text style={s.actionText}>RETRY</Text></Pressable>
+  </View>:null}
+  {selection?<>
+   {newRewards>0?<View style={s.banner} accessibilityLiveRegion="polite">
+    <Text style={s.h2}>✨ {newRewards} bagong Character collectibles!</Text>
+    <Text style={s.body}>Server-confirmed task rewards. Walang nadagdag na BP o Kingdom Shards.</Text>
+   </View>:null}
+   <Text style={s.section}>CHARACTERS</Text>
+   <View style={s.rail}>
+    {visible.map(id=>{
+     const available=known.includes(id),chosen=id===selected;
+     const current=savedCharacterLevel(selection.character_levels,id,selection.active_character_id,selection.character_level);
+     return <Pressable key={id} accessibilityRole="button"
+       accessibilityLabel={available?'Open '+CHARACTER_DISPLAY_NAME[id]:'Next locked Special Character'}
+       onPress={()=>setSelected(id)} style={[s.chip,chosen&&s.chosen]}>
+      <Text style={[s.chipText,chosen&&s.chosenText]}>
+       {available?CHARACTER_DISPLAY_NAME[id]+(selection.active_character_id===id?' • Active':' • L'+current):'🔒 NEXT SPECIAL'}
+      </Text>
+     </Pressable>;
+    })}
+   </View>
+   {!unlocked?<View style={s.card}>
+    <Text style={s.h2}>Next Special Character</Text>
+    <Text style={s.body}>Unlock at Circle Rank {SPECIAL_REQUIRED_RANK_ORDER[selected as typeof SPECIAL_CHARACTER_ORDER[number]]}. Future identities stay hidden.</Text>
+   </View>:<>
+    <View style={s.card}>
+     <Text style={s.kicker}>{CHARACTER_DISPLAY_NAME[selected].toUpperCase()} • SAVED LEVEL {saved}</Text>
+     <Text style={s.h2}>{title?.title}</Text>
+     <Text style={s.body}>Select any stage below to inspect its five story objects. Reaching a level does not automatically mean owning its items.</Text>
+     <View style={s.rail}>
+      {Array.from({length:MAX_STAGE},(_,i)=>i+1).map(n=>
+       <Pressable key={n} accessibilityRole="button" accessibilityLabel={'Level '+n+(n<=saved?', reached':', future')}
+         onPress={()=>setLevel(n)} style={[s.stage,n===level&&s.chosen]}>
+        <Text style={[s.chipText,n===level&&s.chosenText]}>{n}{n<=saved?' ✓':''}</Text>
+       </Pressable>)}
+     </View>
+    </View>
+    <View style={s.card}>
+     <View style={s.rowBetween}><Text style={s.section}>STAGE {level} • OBJECTS</Text>
+      <Text style={s.kicker}>{(Boolean(items)||Boolean(specialStory))?stage?.owned+'/5 VERIFIED':'AWARD STATUS UNKNOWN'}</Text></View>
+     {detailsBusy?<ActivityIndicator color={C.green}/>:null}
+     {story.map(item=>{
+      const isOwned=owned.has(item.key);
+      const artUrl=verifiedCharacterArtUrl(worldId,level,item.index,artReady);
+      const taskGoal=specialStory?.metrics
+       ?storyItemTaskTarget(level,item.index,specialStory.metrics):null;
+      return <Pressable key={item.key} accessibilityRole="button"
+       accessibilityLabel={'View and zoom '+item.name+' illustration'}
+       onPress={()=>setInspect({name:item.name,slot:item.slot,level,index:item.index,id:selected})}
+       style={s.itemRow}>
+       <View style={s.iconBox}>
+        {artUrl&&!failedArt.has(item.key)?
+         <ExpoImage source={{uri:artUrl}} style={s.thumb} contentFit="contain" cachePolicy="memory-disk"
+          transition={0} onError={()=>setFailedArt(prev=>new Set(prev).add(item.key))}/>:
+         <MaterialCommunityIcons name={isOwned?'check-decagram':'package-variant-closed'} size={24}
+          color={isOwned?C.green:C.gold}/>}
+       </View>
+       <View style={{flex:1}}>
+        <Text style={s.name}>{item.name}</Text>
+        <Text style={s.caption}>{item.slot} • TAP TO ZOOM</Text>
+        {taskGoal?<Text style={s.caption}>
+         Verified task: {taskGoal.current}/{taskGoal.target} {taskGoal.label}
+         {taskGoal.alternative
+          ?' OR '+taskGoal.alternative.current+'/'+taskGoal.alternative.target+' '+taskGoal.alternative.label
+          :''}
+        </Text>:null}
+        <Text style={s.caption}>{isOwned?'OWNED • SERVER VERIFIED':
+         level>saved?'FUTURE STAGE':(items||specialStory)?'NOT YET EARNED':'AWARD STATUS UNAVAILABLE'}</Text>
+       </View>
+       <MaterialCommunityIcons name="magnify-plus-outline" size={23} color={C.green}/>
+      </Pressable>;
+     })}
+     {stage?.mastered?<Text style={s.success}>All five server-awarded objects verified: stage collection mastered.</Text>:null}
+     {core?<Pressable accessibilityRole="button" onPress={()=>router.push('/games/legacy' as any)} style={s.action}>
+      <Text style={s.actionText}>OPEN OFFICIAL ITEM CLAIMS</Text>
+     </Pressable>:null}
+    </View>
+    <View style={s.card}>
+     <Text style={s.section}>BADGES & TASKS</Text>
+     <Text style={s.name}>{title?.signature}</Text>
+     <Text style={s.body}>Stage badge: {title?.badge} • {stage?.mastered?'COLLECTION MASTERED (5/5)':'NOT YET MASTERED'}. Badges and the five story items are different rewards.</Text>
+     {detailError?<Text style={s.error}>{detailError}</Text>:null}
+     {storyError?<Text style={s.caption}>{storyError}</Text>:null}
+     {special?<>
+      <Text style={s.kicker}>{!badgeResult ? 'TASK BADGE STATUS UNAVAILABLE' : earned+' VERIFIED TASK BADGES'}</Text>
+      {specialStory?.metrics?<Text style={s.caption}>Verified tasks on this Character: {
+       Object.entries(specialStory.metrics)
+        .filter(([,value])=>Number(value)>0)
+        .map(([key,value])=>key.replace('character_public_','').replace(/_/g,' ')+': '+value).join(' • ')
+         ||'No qualifying tasks recorded yet'
+      }</Text>:null}
+      {(showBadges?badges:badges.slice(0,5)).map(b=>
+       <View key={b.collectible_id} style={s.itemRow}>
+        <MaterialCommunityIcons name={b.earned?'medal':'lock-outline'} size={22}
+         color={b.earned?C.gold:C.muted}/>
+        <View style={{flex:1}}>
+         <Text style={s.name}>{b.secret&&!b.earned?'Secret task':b.badge_name}</Text>
+         <Text style={s.caption}>{b.earned?'EARNED • SERVER VERIFIED':
+          describeCharacterTaskRequirement(b.requirement,b.secret)}</Text>
+        </View>
+       </View>)}
+      {badges.length>5?<Pressable accessibilityRole="button" onPress={()=>setShowBadges(!showBadges)}>
+       <Text style={s.actionText}>{showBadges?'SHOW LESS':'VIEW ALL TASK BADGES'}</Text>
+      </Pressable>:null}
+      <Pressable accessibilityRole="button" onPress={()=>router.push('/(tabs)/buklod' as any)} style={s.action}>
+       <Text style={s.actionText}>OPEN PUBLIC WALL TASKS</Text>
+      </Pressable>
+      <Text style={s.caption}>Verified claimed Bible reading, devotional, Formation, quiz and attendance task evidence also counts after the server task migration. Claims and awards remain separate.</Text>
+     </>:<Text style={s.caption}>Core legacy rewards and Character task milestones are joined by one collectible slot. No duplicate BP or Kingdom Shards.</Text>}
+    </View>
+    <Pressable accessibilityRole="button" onPress={()=>router.push('/games/legacy' as any)} style={s.secondary}>
+     <Text style={s.name}>VIEW CONNECTED KINGDOM LEGACY</Text>
+    </Pressable>
+   </>}
+  </>:null}
+  <Text style={s.caption}>{artReady?
+   'Published artwork is cached in zoomable cards. Labels remain legible even when the original icon has limited pixels.':
+   'The 1,300 artwork objects are prepared from the Collectibles Library. Illustrations appear after the validated image pack is published to trusted app storage.'}</Text>
+  <Text style={s.caption}>Previewing, scrolling and refreshing never grants BP, character XP, badges, collectibles or Shards.</Text>
+  {inspect?<BuklodCharacterCollectibleZoom visible onClose={()=>setInspect(null)}
+   title={inspect.name} description={inspect.slot} characterName={CHARACTER_DISPLAY_NAME[inspect.id]}
+   level={inspect.level} itemIndex={inspect.index}
+   imageUri={verifiedCharacterArtUrl(inspect.id,inspect.level,inspect.index,artReady)}/>:null}
+ </ScrollView>;
+}
+
+const s=StyleSheet.create({
+ root:{flex:1,backgroundColor:C.bg},page:{padding:15,paddingBottom:40,gap:13},
+ head:{flexDirection:'row',gap:10,alignItems:'flex-start'},back:{padding:8,backgroundColor:C.panel,borderRadius:10},
+ kicker:{color:C.green,fontWeight:'800',fontSize:11,letterSpacing:.5},
+ h1:{color:C.text,fontSize:25,fontWeight:'900'},h2:{color:C.text,fontSize:19,fontWeight:'900'},
+ body:{color:C.muted,fontSize:13,lineHeight:20},banner:{backgroundColor:'#194154',padding:17,borderRadius:16,gap:7},
+ section:{color:C.gold,fontSize:12,fontWeight:'900',letterSpacing:.8},
+ rail:{flexDirection:'row',flexWrap:'wrap',gap:7},chip:{padding:11,backgroundColor:C.panel,borderRadius:12},
+ chosen:{backgroundColor:'#245E47',borderColor:C.green,borderWidth:1},chosenText:{color:C.text},
+ chipText:{fontSize:12,fontWeight:'800',color:C.muted},
+ card:{backgroundColor:C.panel,borderRadius:15,padding:15,gap:11},
+ stage:{minWidth:46,alignItems:'center',paddingHorizontal:9,paddingVertical:11,backgroundColor:'#194154',borderRadius:9},
+ rowBetween:{flexDirection:'row',justifyContent:'space-between',flexWrap:'wrap',alignItems:'center',gap:8},
+ itemRow:{flexDirection:'row',gap:11,paddingVertical:10,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#335462'},
+ iconBox:{width:54,height:54,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:'#1B4654'},
+ thumb:{width:50,height:50,borderRadius:9},
+ name:{fontSize:14,fontWeight:'800',color:C.text},caption:{color:C.muted,fontSize:12,lineHeight:18},
+ error:{fontSize:13,color:'#FFBBAF'},success:{color:C.green,fontSize:13,fontWeight:'800'},
+ action:{backgroundColor:C.green,borderRadius:11,alignItems:'center',padding:13,marginTop:7},
+ actionText:{fontSize:12,fontWeight:'900',color:'#123A28',paddingVertical:4},
+ secondary:{backgroundColor:'#1D534E',alignItems:'center',padding:14,borderRadius:12},
+});
