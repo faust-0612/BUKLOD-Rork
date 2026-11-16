@@ -153,6 +153,20 @@ export function getMatthewHenryPassage(study: BibleStudyChapter, verseNo: number
   return context ? { ...context, relation: 'context' } : null;
 }
 
+/** Pick a source-backed Henry record, explicit related passage or chapter introduction. */
+export function chooseMatthewHenryVerse(study: BibleStudyChapter, preferredVerse: number | null): number | null {
+  if (preferredVerse !== null && getMatthewHenryPassage(study, preferredVerse, { allowContext: true })) return preferredVerse;
+  return study.henryPassages[0]?.startVerse ?? (study.chapterIntroduction.trim() ? 1 : null);
+}
+
+/** An introduction is chapter background, never verse-specific commentary. */
+export function getMatthewHenryReaderSelection(study: BibleStudyChapter, verseNo: number): MatthewHenrySelection | null {
+  const passage = getMatthewHenryPassage(study, verseNo, { allowContext: true });
+  if (passage) return passage;
+  const introduction = study.chapterIntroduction.trim();
+  return introduction ? { startVerse: 0, endVerse: 0, text: introduction, relation: 'context' } : null;
+}
+
 export function parseTaggedKjvChapter(value: unknown): Record<number, TaggedKjvWord[]> {
   const result: Record<number, TaggedKjvWord[]> = {};
   if (!value || typeof value !== 'object') return result;

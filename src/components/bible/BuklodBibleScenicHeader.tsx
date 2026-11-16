@@ -64,7 +64,7 @@ export default function BuklodBibleScenicHeader({
   );
 }
 const styles=StyleSheet.create({
-  frame:{height:174,marginHorizontal:-16,marginTop:-16,marginBottom:12,overflow:'hidden',backgroundColor:'#204A35'},
+  frame:{height:174,marginHorizontal:-4,marginTop:-10,marginBottom:12,overflow:'hidden',backgroundColor:'#204A35'},
   headerRow:{flexDirection:'row',alignItems:'center',paddingTop:15,paddingHorizontal:9,gap:3},
   iconButton:{minWidth:38,minHeight:42,alignItems:'center',justifyContent:'center'},
   headline:{flex:1,minWidth:0,marginLeft:2},

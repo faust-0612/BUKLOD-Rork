@@ -1,0 +1,75 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-bible-henry-edge-to-edge-20261116.json",
+  "objective": "Restore visible Matthew Henry while scrolling Bible and remove oversized nested horizontal verse padding shown on Android; avoid daily reading, AdMob and navigation regressions.",
+  "baseRef": "81c0e78518f05518fa9ad4036756fd0ca2f014f6",
+  "productionBaselineEvidence": "Main after Nov16 staging PR #868 merge 81c0e78518f05518fa9ad4036756fd0ca2f014f6; published staging-user Android 1.3.2 update 01a1e27b-0009-7e15-a0fd-e2207701a55e; production previously update 01a1e10a-f043-7113-9a6c-673e91a58517. This DEV must be staged and server-verified before subsequent production publication.",
+  "chosenApproach": "Add compact persistent Matthew Henry access in free Bible, select only verified commentary/context/introduction, and reduce padding of Bible-specific verse container without changing global cards.",
+  "selectionRationale": "Current per-verse Henry links disappear when source lacks direct verse records and chapter controls scroll away. Global style changes would break unrelated screens; a scoped floating action with truthfully labeled chapter content solves the screenshot issue.",
+  "alternativeApproaches": [
+    "Show a large commentary link after every verse (rejected: overwhelming repeated controls and false direct coverage).",
+    "Remove global UI Card padding everywhere (rejected: breaks layouts outside Bible)."
+  ],
+  "riskAreas": [
+    "cluster-faith",
+    "navigation-scroll",
+    "theme-contrast"
+  ],
+  "allowedPaths": [
+    "src/app/bible/read.tsx",
+    "src/lib/buklodBibleStudy.ts",
+    "src/components/bible/BuklodBibleScenicHeader.tsx",
+    "tests/bible-henry-edge-to-edge-20261116.test.cjs",
+    ".buklod/scopes/nov16-bible-henry-edge-to-edge-20261116.json"
+  ],
+  "preserveBehaviors": [
+    "Bible content, source fidelity, personal notes, highlight and completion unchanged.",
+    "Daily Plan separate from full Bible, narration and audio settings unaffected.",
+    "Matthew Henry not fabricated for uncovered verse; context and introductions clearly labeled.",
+    "No AdMob, native/runtime, Supabase, auth or bottom-navigation modifications."
+  ],
+  "acceptanceChecks": [
+    "Bible reader shows persistent Matthew Henry entry during scroll with accessible label.",
+    "Direct commentary, related context and introductions are distinct and testable.",
+    "Bible verse reading becomes nearly edge-to-edge but safe-bottom, zoom and tap actions remain.",
+    "Verify focused tests, TypeScript and Android compilation before separate staging OTA; owner physical-device verification skipped."
+  ],
+  "regressionTests": [
+    "tests/bible-henry-edge-to-edge-20261116.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "cluster-faith",
+      "reason": "Restore accessible and accurately labeled Bible commentary",
+      "preservedBehaviors": [
+        "Scripture source, annotations and daily flow unchanged"
+      ],
+      "tests": [
+        "tests/bible-henry-edge-to-edge-20261116.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-scroll",
+      "reason": "Persistent small reader action while scrolling",
+      "preservedBehaviors": [
+        "Global nav and safe area unchanged"
+      ],
+      "tests": [
+        "tests/bible-henry-edge-to-edge-20261116.test.cjs"
+      ]
+    },
+    {
+      "id": "theme-contrast",
+      "reason": "Compact reader layout with readable action",
+      "preservedBehaviors": [
+        "Theme-bound scripture colors unchanged"
+      ],
+      "tests": [
+        "tests/bible-henry-edge-to-edge-20261116.test.cjs"
+      ]
+    }
+  ],
+  "releaseTarget": "Android staging-user first",
+  "runtimeVersion": "1.3.2",
+  "publicationStatus": "DEV_ONLY_NO_OTA"
+}
