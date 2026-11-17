@@ -1,0 +1,91 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/messenger-inbox-density-20261117.json",
+  "objective": "Pattern BUKLOD Wall and Connect mobile layout after Messenger: search-first, compact avatar Notes rails, contiguous conversations, retained ads.",
+  "baseRef": "66614852ea3163b6cb9eafdad2db3c02a8f7558a",
+  "productionBaselineEvidence": "Protected GitHub main 66614852ea3163b6cb9eafdad2db3c02a8f7558a inspected on 2026-11-17. No OTA publication in this change.",
+  "chosenApproach": "Keep encouragement on Home/Profile; remove duplicated public feed banners from Wall/Connect; put Wall search rail first and remove empty avatar gaps, hero and priority duplicate.",
+  "riskAreas": [
+    "app-runtime",
+    "connect",
+    "wall-media",
+    "navigation-scroll",
+    "accessibility",
+    "AdMob viewability",
+    "production-release"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodDashboardContextBar.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/connect/ConnectInboxRow.tsx",
+    "src/components/connect/ConnectCommunityRow.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/messenger-inbox-density-20261117.test.mjs",
+    ".buklod/scopes/messenger-inbox-density-20261117.json",
+    "tests/messenger-wall-nav-density-20261117.test.mjs",
+    ".github/workflows/buklod-compact-layout-qa.yml",
+    "tests/messenger-navigation-scroll-20261117.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "First-view genuine ad slots, sponsored cards and consent guard remain unchanged.",
+    "All four Connect tabs, note editing, 56dp avatars, five-line notes, unread counters, original chronological messages and privacy remain.",
+    "Home/Profile encouragement and other screens are unchanged; no native or backend writes."
+  ],
+  "acceptanceChecks": [
+    "TypeScript, existing compact geometry and ad regression tests, new density contract pass on exact PR head.",
+    "Protected main not changed without gated PR; staging/production OTA require runtime/channel and receipt verification.",
+    "Physical device validation skipped per owner but not represented as passed."
+  ],
+  "regressionTests": [
+    "tests/messenger-inbox-density-20261117.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/messenger-wall-nav-density-20261117.test.mjs",
+    "tests/messenger-navigation-scroll-20261117.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared feed layout removes redundant fixed context chrome while retaining functional navigation, notes, and live ad surfaces.",
+      "preservedBehaviors": [
+        "Home/Profile daily encouragement remains available, and the authenticated session and native runtime remain unchanged."
+      ],
+      "tests": [
+        "tests/messenger-inbox-density-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Wall's search and Notes rail appear before shortcuts without blank note placeholders or any change to media and sponsorship.",
+      "preservedBehaviors": [
+        "Wall video, photo, Marites, genuine AdMob and approved sponsor behavior remain wired."
+      ],
+      "tests": [
+        "tests/messenger-wall-nav-density-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Connect's dense chronological inbox and Wall header changes remain scoped to the authenticated tab surfaces.",
+      "preservedBehaviors": [
+        "Personal and room chat routing, unread count updates, bottom navigation, login and protected access remain available."
+      ],
+      "tests": [
+        "tests/messenger-wall-nav-density-20261117.test.mjs",
+        "tests/messenger-navigation-scroll-20261117.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV PR first, guarded staging OTA only after exact checks",
+  "physicalDeviceVerification": "SKIPPED_PER_OWNER",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "selectionRationale": "The user-provided side-by-side Messenger and BUKLOD screenshots, plus current source markup, show oversized redundant header/encouragement and empty Notes rails delaying conversation display. A search-first layout removes the actual root cause while retaining monetization and existing routing.",
+  "alternativeApproaches": [
+    "Reduce only margins and keep the large hero banner (rejected because an extra UI block would still displace chat and Wall content).",
+    "Remove Notes or ads entirely (rejected because this breaks established social/monetization features).",
+    "Use one compact search-first surface with dynamic Notes and existing advertising integration (selected)."
+  ]
+}

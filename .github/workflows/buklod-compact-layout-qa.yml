@@ -35,6 +35,9 @@ jobs:
             tests/appwide-compact-density-20261116.test.mjs \
             tests/buklod-dark-contrast-spacing-20261115.test.mjs \
             tests/nov16-connect-profile-geometry.test.mjs \
+            tests/messenger-inbox-density-20261117.test.mjs \
+            tests/messenger-wall-nav-density-20261117.test.mjs \
+            tests/messenger-navigation-scroll-20261117.test.mjs \
             tests/nov16-wall-connect-dynamic-note-rail.test.mjs \
             tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
             tests/nov16-wall-nav-ads-prewarm-integration.test.mjs \

@@ -5505,13 +5505,13 @@ const communityFeedRows =
    </Text>
   )}
 {/* PATCH_161A_COMMUNITY_COMPACT */}
+    {Platform.OS !== 'web' ? (
+      <BuklodCommunityWallProfileBubbles />
+    ) : null}
+
    <BuklodWallQuickLinks
      onCommunityPress={() => communityFeedRefBackR2.current?.scrollToOffset({offset:0,animated:true})}
    />
-
-    {Platform.OS !== 'web' ? (
-    <BuklodCommunityWallProfileBubbles />
-   ) : null}
 
    <BuklodFirstViewAd
     placement="community_entry"
@@ -5543,9 +5543,6 @@ const communityFeedRows =
     }
    />
 
-   <Text style={shared.muted}>
-    Encourage, connect and grow together.
-   </Text>
       {/* PATCH_173H_R4_PUBLIC_LOCATION_CHIPS_MOUNT */}
       <BuklodPublicLocationChips
         selectedScopeId={
