@@ -57,7 +57,7 @@ export default function CommunityContributionScreen() {
     setBusy(true);
     ++requestId.current;
     void load();
-    const timer=setInterval(()=>{if(AppState.currentState==='active')void load(true);},240_000+Math.floor(Math.random()*90_000));
+    const timer=setInterval(()=>{if(AppState.currentState==='active')void load(true);},180_000+Math.floor(Math.random()*30_000));
     return()=>{clearInterval(timer);++requestId.current;};
   },[load]));
   const refresh=useCallback(async()=>{setRefreshing(true);await load();setRefreshing(false);},[load]);
@@ -102,9 +102,17 @@ export default function CommunityContributionScreen() {
               ?formatMinorPhp(monthly.last_month.finalized_share_minor):'Awaiting finalization'}/>
           <Row label={`${monthly.current_month_key} · This month (estimate)`}
             value={projected?formatMinorPhp(projected.currentEstimateMinor):'No fresh estimate'}/>
+          <Row label="Today · AdMob estimate" value={data.estimate_status==='PROVISIONAL_ADMOB'
+            && data.today_estimated_share_minor!=null
+            ? data.today_estimate_below_cent?'Below ₱0.01':formatMinorPhp(data.today_estimated_share_minor)
+            : 'No current daily report'}/>
+          {data.today_report_date?<Row label="AdMob report date"
+            value={`${data.today_report_date} · ${data.today_report_timezone??'account time'}`}/>:null}
           <Row label="Projected total · not withdrawable"
             value={projected?formatMinorPhp(projected.projectedTotalMinor):'Current estimate unavailable'}/>
           <Row label="Available finalized cash" value={formatMinorPhp(monthly.available_finalized_minor)}/>
+          <Row label="Reserved for payout" value={formatMinorPhp(monthly.reserved_for_payout_minor)}/>
+          <Row label="Already withdrawn · paid" value={formatMinorPhp(monthly.already_paid_minor)}/>
           <Row label="Withdrawal minimum" value={formatMinorPhp(monthly.minimum_withdrawal_minor)}/>
           <Text style={s.note}>Last month's earnings are fixed only after funded settlement. Older finalized earnings carry forward even if your new QMP is zero. The projected total changes with this month's estimate, and cannot be withdrawn.</Text>
           <Text style={s.warn}>{monthly.withdrawal_enabled&&monthly.meets_amount_threshold
@@ -114,8 +122,9 @@ export default function CommunityContributionScreen() {
       ) : <Text style={s.note}>Finalized monthly history unavailable. No cash amount has been assumed.</Text>}
     </Card>
     <Card title="YOUR EARNINGS">
-      <Row label="Estimated share" value={data.estimated_share_minor===null?'Not available':data.estimate_below_cent?'Below ₱0.01':formatMinorPhp(data.estimated_share_minor)}/>
+      <Row label="Estimated share" value={data.estimate_status!=='PROVISIONAL_ADMOB'||data.estimated_share_minor===null?'Not available':data.estimate_below_cent?'Below ₱0.01':formatMinorPhp(data.estimated_share_minor)}/>
       <Text style={s.warn}>Estimate only · not yet withdrawable. Your amount may change until finalized.</Text>
+      {data.estimate_status==='STALE'?<Text style={s.warn}>Official AdMob sync is stale; no preliminary peso estimate is displayed.</Text>:null}
       {data.estimate_updated_at?<Row label="Last updated" value={new Date(data.estimate_updated_at).toLocaleString()}/>:null}
       <Row label="Finalized share" value={data.finalized_share?`${formatMinorPhp(data.finalized_share.amount_minor)} · ${data.finalized_share.status}`:'Not finalized'}/>
       <Text style={s.note}>Estimated earnings are not finalized, funded, or withdrawable. Referral rewards and Community Fund remain separate.</Text>

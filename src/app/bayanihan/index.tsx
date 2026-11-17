@@ -360,6 +360,16 @@ export default function BayanihanScreen() {
                 note="Changes with qualified monthly contribution"
               />
               <Metric
+                label="TODAY · ADMOB REPORT ESTIMATE"
+                value={contribution?.estimate_status === 'PROVISIONAL_ADMOB'
+                  && contribution.today_estimated_share_minor != null
+                  ? formatPhp(contribution.today_estimated_share_minor / 100)
+                  : 'No current daily report'}
+                note={contribution?.today_report_date
+                  ? `${contribution.today_report_date} · ${contribution.today_report_timezone ?? 'account time'}`
+                  : 'AdMob reporting day'}
+              />
+              <Metric
                 label="PROJECTED TOTAL · NOT WITHDRAWABLE"
                 value={projected ? formatPhp(projected.projectedTotalMinor / 100) : 'Estimate unavailable'}
                 note="Available finalized balance + this month's preliminary estimate"
