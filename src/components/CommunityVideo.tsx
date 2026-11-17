@@ -22,7 +22,12 @@ import {
   setVideoCacheSizeAsync,
   VideoView,
   useVideoPlayer,
+  type VideoPlayer,
 } from 'expo-video';
+import {
+  getCommunityVideoHandoffPlayer,
+  retainCommunityVideoHandoffPlayer,
+} from '@/lib/communityVideoHandoff';
 
 import BuklodImaVideo, {
   isBuklodImaNativeAvailable,
@@ -72,6 +77,12 @@ type Props = {
   active?: boolean;
   /** Only the next near-viewport clip is prebuffered without autoplay. */
   preload?: boolean;
+  /** Native Wall-to-fullscreen player transfer; never used by IMA ad playback. */
+  handoffEnabled?: boolean;
+  /** Reuse the Wall network subscription instead of allocating one per player. */
+  degradedNetwork?: boolean;
+  /** Detach the Wall's VideoView before Android fullscreen mounts the same player. */
+  suspendedForFullscreen?: boolean;
   controlsBottomInset?: number;
   onOpenFullscreen?: () => void;
   onPlaybackError?: () => void;
@@ -205,7 +216,7 @@ export function CommunityVideo(props: Props) {
     props.onRequestPlay?.();
   };
 
-  if (!mountPlayer) {
+  if (!mountPlayer || props.suspendedForFullscreen) {
     return (
       <InactiveCommunityVideo
         {...props}
@@ -228,6 +239,7 @@ export function CommunityVideo(props: Props) {
   return (
     <ExpoCommunityVideo
       {...props}
+      degradedNetwork={degraded}
       posterSource={poster}
     />
   );
@@ -521,7 +533,52 @@ function useSessionSound() {
   return on;
 }
 
-function ExpoCommunityVideo({
+function configureCommunityPlayer(instance: VideoPlayer, fullscreen: boolean) {
+  instance.loop = !fullscreen;
+  instance.muted = fullscreen ? false : !sessionSoundOn;
+  instance.timeUpdateEventInterval = 0.25;
+  if (Platform.OS === 'android') {
+    instance.bufferOptions = {
+      minBufferForPlayback: 1.25,
+      preferredForwardBufferDuration: 18,
+      prioritizeTimeOverSizeThreshold: true,
+    };
+  }
+  // Preserve audio coexistence with PTT and other sounds.
+  instance.audioMixingMode = 'mixWithOthers';
+}
+
+function StandardExpoCommunityVideo(props: Props) {
+  const source = useMemo(() => communityVideoSource(props.uri), [props.uri]);
+  const player = useVideoPlayer(source, instance => {
+    configureCommunityPlayer(instance, Boolean(props.fullscreen));
+  });
+  return <ExpoCommunityVideoPlayback {...props} player={player} />;
+}
+
+function HandoffExpoCommunityVideo(props: Props) {
+  const identity = `post:${props.playbackKey}`;
+  const source = useMemo(() => communityVideoSource(props.uri), [props.uri]);
+  const player = useMemo(
+    () => getCommunityVideoHandoffPlayer(identity, props.uri, source),
+    [identity, props.uri, source],
+  );
+  useEffect(
+    () => retainCommunityVideoHandoffPlayer(identity, props.uri, player),
+    [identity, props.uri, player],
+  );
+  return <ExpoCommunityVideoPlayback {...props} player={player} />;
+}
+
+function ExpoCommunityVideo(props: Props) {
+  if (Platform.OS === 'android' && props.handoffEnabled && props.playbackKey) {
+    return <HandoffExpoCommunityVideo {...props} />;
+  }
+  return <StandardExpoCommunityVideo {...props} />;
+}
+
+function ExpoCommunityVideoPlayback({
+  player,
   uri,
   playbackKey,
   height = 380,
@@ -537,8 +594,9 @@ function ExpoCommunityVideo({
   fitFrame = false,
   posterUri,
   posterSource,
+  degradedNetwork = false,
   onPosterGenerated,
-}: Props) {
+}: Props & { player: VideoPlayer }) {
   const soundOn = useSessionSound();
   const viewerSafeInsets = useSafeAreaInsets();
   const playbackIdentity = playbackKey ? `post:${playbackKey}` : uri;
@@ -551,7 +609,11 @@ function ExpoCommunityVideo({
   const [videoAspectRatio, setVideoAspectRatio] = useState<number | null>(null);
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
+  const [hasStartedPlayback, setHasStartedPlayback] = useState(() =>
+    Number(player.currentTime || 0) > 0.1,
+  );
+  // Only a decoded frame displayed by this particular VideoView clears its poster.
+  const [firstFrameRendered, setFirstFrameRendered] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(
     Number(expectedDurationSeconds ?? 0) || 0,
@@ -591,6 +653,7 @@ function ExpoCommunityVideo({
     }
     setVideoAspectRatio(null);
     setHasStartedPlayback(false);
+    setFirstFrameRendered(false);
     setAutoRecovering(false);
     setPlayerStatus('idle');
     playerStatusRef.current = 'idle';
@@ -631,30 +694,28 @@ function ExpoCommunityVideo({
     return () => clearTimeout(timer);
   }, [active, playerStatus, autoRecovering]);
 
-  const source = useMemo(
-    () => communityVideoSource(uri),
-    [uri],
-  );
+  // Native player ownership lives above this view. On fullscreen handoff this
+  // reuses the same paused player (and its already-buffered bytes), not a download.
+  useEffect(() => {
+    configureCommunityPlayer(player, fullscreen);
+  }, [player, fullscreen]);
 
-  const player = useVideoPlayer(
-    source,
-    (instance) => {
-      // AAB v28 full screen viewer plays the video once, with sound.
-      instance.loop = !fullscreen;
-      instance.muted = fullscreen ? false : !sessionSoundOn;
-      instance.timeUpdateEventInterval = 0.25;
-      if (Platform.OS === 'android') {
-        instance.bufferOptions = {
-          minBufferForPlayback: 1,
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    // Never pre-download whole videos. Require a little more safety margin on
+    // degraded connections while keeping the forward buffer time bounded.
+    player.bufferOptions = degradedNetwork
+      ? {
+          minBufferForPlayback: 2.5,
+          preferredForwardBufferDuration: 20,
+          prioritizeTimeOverSizeThreshold: true,
+        }
+      : {
+          minBufferForPlayback: 1.25,
           preferredForwardBufferDuration: 18,
           prioritizeTimeOverSizeThreshold: true,
         };
-      }
-      // PTT voice and currently playing video should coexist; never seize
-      // exclusive device audio focus just because this clip is audible.
-      instance.audioMixingMode = 'mixWithOthers';
-    },
-  );
+  }, [player, degradedNetwork]);
 
   useEffect(() => {
     const muted = fullscreen ? false : !soundOn;
@@ -1062,10 +1123,14 @@ function ExpoCommunityVideo({
         nativeControls={false}
         surfaceType="textureView"
         contentFit={fullscreen || (preserveAspectRatio && !fillFrame) ? 'contain' : 'cover'}
+        onFirstFrameRender={() => {
+          setFirstFrameRendered(true);
+          setHasStartedPlayback(true);
+        }}
         allowsPictureInPicture={false}
       />
 
-      {(posterSource || posterUri) && !hasStartedPlayback ? (
+      {(posterSource || posterUri) && !firstFrameRendered ? (
         <ExpoImage
           source={posterSource || { uri: posterUri! }}
           style={StyleSheet.absoluteFillObject}

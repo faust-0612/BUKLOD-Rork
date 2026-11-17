@@ -1,0 +1,104 @@
+{
+  "contractVersion": 2,
+  "objective": "Deliver lightweight Android Wall video first-frame poster, same-URI player handoff into fullscreen, adaptive buffering and Connect initial-scroll stabilization; preserve native advertisements and signed media permissions.",
+  "baseRef": "0ee57887c991d23472cdf1f9b849bce945792910",
+  "productionBaselineEvidence": "Inspected GitHub main source commit 0ee57887c991d23472cdf1f9b849bce945792910 (2026-11-17). Did not independently verify production OTA fingerprint, installed Android runtime, actual network rebuffer counts or RC device performance. DEV-only branch until full release QA.",
+  "chosenApproach": "Use Expo SDK 57 onFirstFrameRender instead of playingChange to remove the poster, retain Android Expo player across a single committed inline-to-modal surface detach with a short bounded lease, adapt modest buffer thresholds using the existing network subscription; replace timed double scroll anchoring with a post-layout frame plus the content-size event as fallback.",
+  "alternativeApproaches": [
+    "Download entire video before fullscreen (rejected: high data, memory, startup cost)",
+    "Render same Android player into two VideoViews simultaneously (rejected: Expo/Media3 limitation)",
+    "Replace native IMA ad player with generic ExpoVideo (rejected: breaks monetization)",
+    "Run repeated delayed scrollToEnd calls (rejected: causes Connect rebound)"
+  ],
+  "selectionRationale": "Native SDK-supported first-frame display signal and bounded player handoff reduce restart cost without background full-video fetches, extra retained decoders or broad infrastructure changes. Connected scroll and read receipt branches remain intact.",
+  "preserveBehaviors": [
+    "Signed URL rotation never shares cached private media under a new URL",
+    "Google IMA in-stream ads and existing Wall companion/Reels placements remain live",
+    "Weak-network playback retry, zoom/Fill/Fit and same session audio controls remain available",
+    "Connect personal and scope messages, older paging, offline cache, read receipts and PTT/calls preserved",
+    "Screen navigation, Wall list, scoped feed and existing OTA identity unchanged"
+  ],
+  "acceptanceChecks": [
+    "Wall poster remains until onFirstFrameRender on native VideoView",
+    "Android fullscreen opens after inline VideoView detach; same URI reuses same player, avoiding second player allocation",
+    "Pausing, closing, fast swiping and signed URL renewal release players safely; cache stays 256 MB LRU",
+    "On limited network preserve user playback with a modest additional safety buffer; do not pre-download full videos",
+    "Connect opening stays at latest without two timer-driven scroll jumps; older and sender scrolling preserved",
+    "No unexpected IMA/ad interaction; run regression, TypeScript/build gates and native staging QA before RC/OTA"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "navigation-scroll",
+    "connect"
+  ],
+  "regressionTests": [
+    "tests/video-handoff-connect-stability-20261117.test.mjs",
+    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/CommunityVideo.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/lib/communityVideoHandoff.ts",
+    "tests/video-handoff-connect-stability-20261117.test.mjs",
+    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
+    ".buklod/scopes/video-handoff-connect-stability-20261117.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Android Expo video player lifecycle and Connect UI initial scroll are deliberately limited to JS/TS; no native runtime binary changes.",
+      "preservedBehaviors": [
+        "Auth, tabs, boot, PTT, media, cached network and current Expo runtime remain available."
+      ],
+      "tests": [
+        "tests/video-handoff-connect-stability-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Protect fullscreen video player continuity with bounded same-URI caching, decoded first frame and pause/resume behavior.",
+      "preservedBehaviors": [
+        "Inline video, swipe preview, signed storage and retry controls retain their previous behavior."
+      ],
+      "tests": [
+        "tests/video-handoff-connect-stability-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Stage fullscreen viewer only after inline detach has committed; preserve authenticated URL resolver and close/back navigation.",
+      "preservedBehaviors": [
+        "Wall route, full-screen swipe, signed URL renewal and explicit close/back remain functional."
+      ],
+      "tests": [
+        "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Avoid duplicate Connect scroll corrections while preserving user gestures, older-history anchors and read cursor semantics.",
+      "preservedBehaviors": [
+        "Personal/scope chat, read receipts, composer, attachments, notifications, voice and calls unchanged."
+      ],
+      "tests": [
+        "tests/video-handoff-connect-stability-20261117.test.mjs",
+        "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Protected ConnectThread filename intersects ad lock; explicitly preserve IMA in-stream, native companion/Reels ads, finance and BP while fixing video render.",
+      "preservedBehaviors": [
+        "No AdMob changes, native IMA events remain, no financial rewards, QMP, points or referral changes."
+      ],
+      "tests": [
+        "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+      ]
+    }
+  ]
+}

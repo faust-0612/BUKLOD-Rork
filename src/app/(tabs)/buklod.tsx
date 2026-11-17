@@ -1590,6 +1590,19 @@ function LegacyPublicBuklodScreen(){
  // Only small metadata pages are read; actual video URLs are resolved when
  // entering the viewer / approaching playback. No offscreen downloads.
  const [videoViewerPosts,setVideoViewerPosts]=useState<any[]>([]);
+ // Detach the inline Android surface a frame before attaching fullscreen.
+ const [videoViewerHandoffPostId,setVideoViewerHandoffPostId]=useState<string|null>(null);
+ const videoViewerOpenPendingRef=useRef(false);
+ useEffect(()=>{
+  // A committed inline detach must precede a new Android VideoView mount.
+  if(Platform.OS!=='android' || !videoViewerHandoffPostId || !videoViewerOpenPendingRef.current)return;
+  const frame=requestAnimationFrame(()=>{
+   if(!videoViewerOpenPendingRef.current)return;
+   videoViewerOpenPendingRef.current=false;
+   setVideoViewerOpen(true);
+  });
+  return()=>cancelAnimationFrame(frame);
+ },[videoViewerHandoffPostId]);
  // Freeze consent/format at opening so ad slots do not shift scroll positions
  // if the consent bootstrap resolves halfway through a swipe session.
  const [videoViewerAdsEnabled,setVideoViewerAdsEnabled]=useState(false);
@@ -1666,7 +1679,9 @@ function LegacyPublicBuklodScreen(){
     videoViewerScanBusyRef.current=false;
     setVideoViewerLoadingMore(false);
     setVideoViewerResolvingPostId(null);
+    videoViewerOpenPendingRef.current=false;
     setVideoViewerOpen(false);
+    requestAnimationFrame(() => setVideoViewerHandoffPostId(null));
   },[]);
 
  useEffect(()=>{
@@ -4834,8 +4849,16 @@ const load=useCallback(async(options?:{
     videoViewerUrlRetryAfterRef.current.clear();
     setVideoViewerShowHint(true);
     setVideoViewerSession(current=>current+1);
-   setVideoViewerOpen(true);
-   enableCommunityVideoSound();
+    // Avoid simultaneous native VideoViews sharing one Android player.
+    if(Platform.OS==='android'){
+     videoViewerOpenPendingRef.current=true;
+     setVideoViewerHandoffPostId(postId);
+    }else{
+     // Web uses its existing viewer navigation and must not wait for an
+     // Android-only native VideoView detach.
+     setVideoViewerOpen(true);
+    }
+    enableCommunityVideoSound();
 
    // Reuse the existing authorized URL and cached media from the Wall.
    // Renew access only after a genuine playback error, not on every open.
@@ -4905,6 +4928,8 @@ const load=useCallback(async(options?:{
               )}
               edgeToEdge
               fitFrame
+              handoffEnabled
+              suspendedForFullscreen={Boolean(videoViewerHandoffPostId) || videoViewerOpen}
               autoPlay
               active={
                 visibleVideoPostId===postId &&
@@ -6268,7 +6293,8 @@ const communityFeedRows =
 {/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_SWIPE_R4 */}
  <Modal
   visible={videoViewerOpen}
-  animationType="fade"
+  // No overlapping Android surfaces on dismiss; web retains its fade.
+  animationType={Platform.OS==='android'?'none':'fade'}
   onRequestClose={
    closeVideoViewer
   }
@@ -6486,6 +6512,7 @@ const communityFeedRows =
          }}
          height={videoViewerPageHeight}
          fullscreen
+         handoffEnabled
          active={index===videoViewerIndex && !videoViewerScrollPaused}
          preload={index===videoViewerNextVideoIndex}
          autoPlay={index===videoViewerIndex && !videoViewerScrollPaused}
