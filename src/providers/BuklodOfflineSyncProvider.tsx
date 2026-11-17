@@ -10,6 +10,7 @@ import React, {
 import {
   countUnsyncedPendingActions,
   flushPendingActions,
+  hasReplayablePendingActions,
   listPendingActions,
   registerPendingActionHandler,
   subscribePendingActions,
@@ -107,7 +108,7 @@ export function BuklodOfflineSyncProvider({
   }, []);
 
   const flushNow = useCallback(async (options?: { maxItems?: number }) => {
-    if (!online) {
+    if (!online || !(await hasReplayablePendingActions())) {
       return;
     }
 

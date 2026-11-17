@@ -266,6 +266,23 @@ async function processOne(item: OfflineQueueItem): Promise<void> {
   }
 }
 
+/**
+ * Do not start a visible sync for an empty, delayed, exhausted, unknown-kind,
+ * or different-account queue. This is only a preflight: drain still rechecks.
+ */
+export async function hasReplayableOfflineQueueItems(
+  userId?: string | null,
+): Promise<boolean> {
+  const { items } = await getOfflineQueueSnapshot();
+  const now = Date.now();
+  return items.some(item =>
+    item.nextAttemptAt <= now &&
+    item.attempts < item.maxAttempts &&
+    handlers.has(item.kind) &&
+    (userId === undefined || item.userId === null || item.userId === userId)
+  );
+}
+
 export async function drainOfflineQueue(options?: {
   concurrency?: number;
   /** Max eligible actions to replay in this wave; omitted preserves manual full drain. */

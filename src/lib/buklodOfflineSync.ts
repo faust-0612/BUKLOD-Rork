@@ -430,6 +430,20 @@ export async function removePendingAction(id: string) {
   });
 }
 
+/**
+ * A permanently failed action remains saved for the user, but automatic
+ * reconnect/periodic work must not replay or rewrite it indefinitely.
+ */
+export async function hasReplayablePendingActions(): Promise<boolean> {
+  const actions = await readPendingActions();
+  return actions.some(action =>
+    action.status !== 'synced' &&
+    action.status !== 'syncing' &&
+    action.retryCount < SCALE_LIMITS.offlineSyncMaxRetries &&
+    pendingHandlers.has(action.type)
+  );
+}
+
 export async function flushPendingActions(options?: {
   onlyType?: BuklodPendingActionType;
   /** Limit automatic reconnect replay without dropping later saved actions. */
@@ -473,9 +487,12 @@ export async function flushPendingActions(options?: {
         action.retryCount >=
         SCALE_LIMITS.offlineSyncMaxRetries
       ) {
-        await updatePendingAction(action.id, {
-          status: 'failed_to_sync',
-        });
+        // Never emit an unchanged failed action every two minutes.
+        if (action.status !== 'failed_to_sync') {
+          await updatePendingAction(action.id, {
+            status: 'failed_to_sync',
+          });
+        }
         failed += 1;
         continue;
       }
