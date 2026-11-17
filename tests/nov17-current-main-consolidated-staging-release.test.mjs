@@ -8,6 +8,7 @@ const source='47eefd0c685f0c639227e9a887b1e1dda29b05e7';
 
 test('staging OTA requires exact canonical source, no feature change and frozen branch',()=>{
   assert.equal(scope.baseRef,source);
+  assert.match(w,/^      - name: Require exact canonical main and merged review proofs/m);
   assert.match(w,/RELEASE_MAIN_SHA: 47eefd0c685f0c639227e9a887b1e1dda29b05e7/);
   assert.match(w,/release\/nov17-main-verified-consolidated-rc132/);
   assert.match(w,/git merge-base --is-ancestor "\$RELEASE_MAIN_SHA" "\$GITHUB_SHA"/);
