@@ -1731,7 +1731,7 @@ function LegacyPublicBuklodScreen(){
 // Prevent revoked posts from returning via stale cached or in-flight feed rows.
 const privacyRevokedPostIdsRef=useRef(new Set<string>());
 useEffect(()=>{ privacyRevokedPostIdsRef.current.clear(); },[user?.id]);
- const postReactBusyRef=useRef(false);
+ const postReactBusyRef=useRef(new Set<string>());
  const commentReactBusyRef=useRef(false);
 /* PATCH_173H_R4_PUBLIC_LOCATION_STATE */
 const [
@@ -3512,11 +3512,11 @@ const load=useCallback(async(options?:{
   postId:string,
   reaction:Reaction
 )=>{
-  if(postReactBusyRef.current){
+  if(postReactBusyRef.current.has(postId)){
     return;
   }
 
-  postReactBusyRef.current=true;
+  postReactBusyRef.current.add(postId);
 
   /* PATCH_154N_OPTIMISTIC_COMMUNITY_REACTION */
 
@@ -3622,7 +3622,8 @@ const load=useCallback(async(options?:{
       : currentPost
   );
 
-  const {error}=
+  // Server toggles the selected key; reconcile with the persisted value.
+  const {data:confirmed,error}=
     await communityRpc('set_buklod_post_reaction_v3',
       {
         p_post_id:
@@ -3630,7 +3631,7 @@ const load=useCallback(async(options?:{
         p_reaction:
           reaction
       }
-    );
+    ).catch((cause:any)=>({data:null,error:cause}));
 
   if(error){
     /* DB rejected: restore count */
@@ -3661,7 +3662,12 @@ const load=useCallback(async(options?:{
     );
   }
 
-  postReactBusyRef.current=false;
+  if(!error && (confirmed??null)!==nextReaction){
+    const applied=(confirmed??null) as Reaction|null;
+    setPosts(rows=>rows.map(p=>p.id===postId?changeReaction(p,nextReaction,applied):p));
+    setFocusedPost((p:any)=>p?.id===postId?changeReaction(p,nextReaction,applied):p);
+  }
+  postReactBusyRef.current.delete(postId);
 };
 
 
