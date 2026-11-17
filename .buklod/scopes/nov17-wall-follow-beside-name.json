@@ -10,7 +10,8 @@
     "app-runtime",
     "navigation-auth",
     "wall-layout",
-    "accessibility"
+    "accessibility",
+    "navigation-scroll"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -57,7 +58,8 @@
     "Updated compact-layout source contract checks the new right-side vertical action rail rather than the old date/action band.",
     "Updated Wall header regression and existing identity/privacy checks must pass.",
     "Required engineering accountability scope gate must pass before merge.",
-    "Android runtime test, exact frozen RC and staging OTA verification are separate release gates."
+    "Android runtime test, exact frozen RC and staging OTA verification are separate release gates.",
+    "Navigation-scroll impact has focused Wall header navigation regression coverage; no scroll mechanics are changed."
   ],
   "alternativeApproaches": [
     "Retain a standalone action row: rejected because it wastes post-header height.",
