@@ -14,7 +14,7 @@ test('scope attendance identity is server-bound, not client-supplied',()=>{
   assert.match(primary,/on conflict\(event_id,user_id\) do nothing/);
 });
 test('database security keeps QR challenges and reward tables non-public',()=>{
-  for (const table of ['buklod_attendance_event_qr_v2','buklod_attendance_event_review_v2','buklod_attendance_reward_caps_v2']) {
+  for (const table of ['buklod_attendance_event_qr_v2','buklod_attendance_scan_receipts_v2','buklod_attendance_event_review_v2','buklod_attendance_reward_caps_v2']) {
     assert.match(primary,new RegExp('alter table public\\.'+table+' enable row level security'));
     assert.match(primary,new RegExp('revoke all on public\\.'+table+' from public,anon,authenticated'));
   }
@@ -30,4 +30,9 @@ test('scope reporting and legacy points do not circumvent independent review',()
   assert.match(bridge,/can_operate_attendance_scope\(p_scope_id,actor\)/);
   assert.match(permissions,/cluster_admin/);
   assert.match(home,/buklod_attendance_home_report_v2/);
+});
+
+test('duplicate legacy event credit cannot be minted with changed timestamps',()=>{
+  assert.match(bridge,/prev\.user_id=NEW\.user_id and prev\.source_id=NEW\.source_id/);
+  assert.match(bridge,/prev\.activity_type='event_attendance' and prev\.direction='credit'/);
 });

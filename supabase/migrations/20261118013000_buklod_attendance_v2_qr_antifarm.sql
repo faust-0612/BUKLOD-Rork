@@ -12,6 +12,17 @@ create index if not exists attendance_event_qr_v2_lookup_idx
 alter table public.buklod_attendance_event_qr_v2 enable row level security;
 revoke all on public.buklod_attendance_event_qr_v2 from public,anon,authenticated;
 
+-- Only the SECURITY DEFINER QR scan RPC can create trusted scan evidence.
+-- Client-supplied attendance metadata is never proof of a real QR scan.
+create table if not exists public.buklod_attendance_scan_receipts_v2 (
+ event_id uuid not null references public.attendance_events(id) on delete cascade,
+ user_id uuid not null references auth.users(id) on delete cascade,
+ verified_at timestamptz not null default now(),
+ primary key(event_id,user_id)
+);
+alter table public.buklod_attendance_scan_receipts_v2 enable row level security;
+revoke all on public.buklod_attendance_scan_receipts_v2 from public,anon,authenticated;
+
 create table if not exists public.buklod_attendance_event_review_v2 (
  event_id uuid primary key references public.attendance_events(id) on delete cascade,
  status text not null default 'pending' check(status in ('pending','approved','rejected')),
@@ -80,6 +91,8 @@ begin
    where q.event_id=event_id and q.token_hash=encode(extensions.digest(challenge::text,'sha256'),'hex')
    and q.expires_at>=now())
    then raise exception 'Event QR expired. Scan the latest QR.'; end if;
+ insert into public.buklod_attendance_scan_receipts_v2(event_id,user_id,verified_at)
+ values(event_id,actor,now()) on conflict(event_id,user_id) do nothing;
  insert into public.attendance_records(event_id,user_id,status,method,operator_id,metadata)
  values(event_id,actor,case when e.late_after is not null and now()>e.late_after then 'late' else 'present' end,
    'qr',actor,jsonb_build_object('source','event_qr_v2','verified_at',now()))
@@ -129,8 +142,12 @@ begin
  end if;
  -- Device-only biometric is not reliable server proof of physical presence.
  if record_method='device_biometric' then return; end if;
- if record_operator=p_user_id and coalesce(record_meta->>'source','')<>'event_qr_v2'
-    then return; end if;
+ if record_operator=p_user_id and not exists (
+    select 1 from public.buklod_attendance_scan_receipts_v2 q
+    where q.event_id=p_event_id and q.user_id=p_user_id
+      and q.verified_at between e.starts_at-interval '15 minutes'
+                            and coalesce(e.attendance_close_at,e.ends_at)
+ ) then return; end if;
  if record_at<greatest(coalesce(e.attendance_open_at,e.starts_at-interval '15 minutes'),e.starts_at-interval '15 minutes')
  or record_at>coalesce(e.attendance_close_at,e.ends_at) then return; end if;
  select * into cfg from public.buklod_attendance_reward_caps_v2 where singleton=true;
@@ -175,6 +192,7 @@ begin
  if not found then raise exception 'Event not found'; end if;
  if not (public.is_system_admin() or public.buklod_is_scope_admin(e.scope_id))
    then raise exception 'Independent scope admin required' using errcode='42501'; end if;
+ if e.created_by is null then raise exception 'Event creator must be identified before BP approval'; end if;
  if e.created_by=actor then raise exception 'Event creator cannot approve their own event rewards' using errcode='42501'; end if;
  if length(btrim(coalesce(p_reason,'')))<10 then raise exception 'Reason must contain at least 10 characters'; end if;
  if p_approve and
@@ -219,7 +237,7 @@ begin
  then raise exception 'Event unavailable' using errcode='42501'; end if;
  select status,reason,reviewed_at into r from public.buklod_attendance_event_review_v2 where event_id=p_event_id;
  return jsonb_build_object('status',coalesce(r.status,'pending'),
- 'can_review',((public.is_system_admin() or public.buklod_is_scope_admin(e.scope_id)) and e.created_by is distinct from actor),
+ 'can_review',((public.is_system_admin() or public.buklod_is_scope_admin(e.scope_id)) and e.created_by is not null and e.created_by <> actor),
  'reviewed_at',r.reviewed_at);
 end;
 $$;

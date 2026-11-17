@@ -40,3 +40,10 @@ test('legacy points are capped and old home check-in cannot credit directly',()=
   assert.match(bridge,/can_manage_buklod_attendance_event\(p_event_id,actor\)/);
   assert.match(bridge,/buklod_attendance_home_report_v2/);
 });
+
+test('self-check-in rewards use server-owned scan receipts instead of spoofable client metadata',()=>{
+  assert.match(db,/create table if not exists public\.buklod_attendance_scan_receipts_v2/);
+  assert.match(db,/insert into public\.buklod_attendance_scan_receipts_v2/);
+  assert.match(db,/record_operator=p_user_id and not exists/);
+  assert.doesNotMatch(db,/coalesce\(record_meta->>'source',''\)<>'event_qr_v2'/);
+});

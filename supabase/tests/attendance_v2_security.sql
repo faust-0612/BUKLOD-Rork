@@ -18,9 +18,9 @@ begin
  select count(*) into v_count
  from pg_class c join pg_namespace n on n.oid=c.relnamespace
  where n.nspname='public' and c.relname in
- ('buklod_attendance_event_qr_v2','buklod_attendance_event_review_v2','buklod_attendance_reward_caps_v2','buklod_attendance_review_audit_v2')
+ ('buklod_attendance_event_qr_v2','buklod_attendance_scan_receipts_v2','buklod_attendance_event_review_v2','buklod_attendance_reward_caps_v2','buklod_attendance_review_audit_v2')
  and c.relrowsecurity=true;
- if v_count<>4 then raise exception 'Attendance V2 private tables require RLS'; end if;
+ if v_count<>5 then raise exception 'Attendance V2 private tables require RLS'; end if;
  if not exists(select 1 from pg_indexes
    where schemaname='public' and tablename='attendance_records'
     and indexdef ilike '%unique%' and indexdef ilike '%event_id%' and indexdef ilike '%user_id%')

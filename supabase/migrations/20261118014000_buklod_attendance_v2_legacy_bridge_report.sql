@@ -172,6 +172,13 @@ begin
  from public.church_events ev where ev.id=NEW.source_id;
  if event_stamp is null then event_stamp:=coalesce(NEW.created_at,now()); end if;
  perform 1 from public.profiles where id=NEW.user_id for update;
+ -- Legacy source_key includes a mutable timestamp. Block repeat credits for
+ -- the same user+event independently of that stamp, including after correction.
+ if exists (
+   select 1 from public.buklod_points_ledger prev
+   where prev.user_id=NEW.user_id and prev.source_id=NEW.source_id
+     and prev.activity_type='event_attendance' and prev.direction='credit'
+ ) then return null; end if;
  day_start:=(event_stamp at time zone 'Asia/Manila')::date;
  week_start:=date_trunc('week',event_stamp at time zone 'Asia/Manila')::date;
  select coalesce(sum(case when l.direction='credit' then l.points else -l.points end),0)::integer
