@@ -9,6 +9,7 @@
 // BUKLOD_ADMOB_APP_ID. No client-side AdMob revenue can fund an estimate.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { hasGatewayVerifiedServiceRoleClaims } from './gateway-service-role.mjs';
+import { summarizeDatedAdmobReport } from './report-totals.mjs';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -21,9 +22,9 @@ const requireEnv = (key: string) => {
   if (!value) throw new Error(`Missing server configuration: ${key}`);
   return value;
 };
-function manilaParts(at: Date) {
+function dateParts(at: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
   }).formatToParts(at);
   const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
   return { year: get('year'), month: get('month'), day: get('day') };
@@ -67,69 +68,53 @@ Deno.serve(async (req: Request) => {
     }, 12_000);
     if (!oauth?.access_token) throw new Error('AdMob OAuth access token was not returned');
 
-    const date = manilaParts(new Date());
+    const account = await fetchJson(
+      `https://admob.googleapis.com/v1/accounts/${publisherId}`,
+      { headers: { Authorization: `Bearer ${oauth.access_token}` } }, 12_000,
+    );
+    const timeZone = String(account?.reportingTimeZone || '');
+    if (!timeZone || timeZone.length > 64) throw new Error('AdMob reporting timezone unavailable');
+    const date = dateParts(new Date(), timeZone);
+    const manila = dateParts(new Date(), 'Asia/Manila');
+    if (date.year !== manila.year || date.month !== manila.month)
+      throw new Error('Provider and Manila QMP months disagree');
     const periodKey = `${date.year}-${String(date.month).padStart(2, '0')}`;
+    const reportDate = `${periodKey}-${String(date.day).padStart(2, '0')}`;
+    const reportDay = reportDate.replace(/-/g, '');
     const report = await fetchJson(
       `https://admob.googleapis.com/v1/accounts/${publisherId}/networkReport:generate`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${oauth.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reportSpec: {
-            dateRange: {
-              startDate: { year: date.year, month: date.month, day: 1 },
-              endDate: date,
-            },
-            dimensions: ['APP'],
-            dimensionFilters: [{
-              dimension: 'APP', matchesAny: { values: [appId] },
-            }],
-            metrics: ['ESTIMATED_EARNINGS'],
-            localizationSettings: { currencyCode: 'PHP', languageCode: 'en-US' },
-          },
-        }),
-      },
-      20_000,
+      { method: 'POST',
+        headers: { Authorization: `Bearer ${oauth.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportSpec: {
+          dateRange: { startDate: { year: date.year, month: date.month, day: 1 }, endDate: date },
+          dimensions: ['DATE', 'APP'],
+          dimensionFilters: [{ dimension: 'APP', matchesAny: { values: [appId] } }],
+          metrics: ['ESTIMATED_EARNINGS'],
+          localizationSettings: { currencyCode: 'PHP', languageCode: 'en-US' },
+        } }),
+      }, 20_000,
     );
-    if (!Array.isArray(report)) throw new Error('Unexpected AdMob report response');
-    const header = report.find((item) => item?.header)?.header;
-    if (header?.localizationSettings?.currencyCode !== 'PHP')
-      throw new Error('AdMob did not confirm PHP report currency');
-    // Google terminates a complete report with a footer. Do not store a
-    // partial stream or silently treat a truncated response as zero earnings.
-    if (!report.some((item) => item?.footer))
-      throw new Error('AdMob network report footer missing');
-
-    let totalMicros = 0n;
-    for (const entry of report) {
-      if (!entry?.row) continue;
-      if (entry.row.dimensionValues?.APP?.value !== appId)
-        throw new Error('AdMob report included an unexpected app');
-      const micros = String(entry.row.metricValues?.ESTIMATED_EARNINGS?.microsValue ?? '');
-      if (!/^\d+$/.test(micros)) throw new Error('AdMob report earnings format invalid');
-      totalMicros += BigInt(micros);
-    }
-    if (totalMicros < 0n || totalMicros > 1_000_000_000_000_000n)
-      throw new Error('AdMob report amount outside the configured noncash estimate bound');
+    const { totalMicros, dayMicros } = summarizeDatedAdmobReport(report, appId, reportDay);
     const amountPhp = Number(totalMicros) / 1_000_000;
-    // Only this server-only RPC records a provisional estimate. It does not
-    // insert into Finance V3, settle referrals, or affect withdrawable balances.
+    const todayPhp = Number(dayMicros) / 1_000_000;
+    // Atomic, service-only write. No cash allocation or payout.
     const admin = createClient(url, serviceRole, { auth: { persistSession: false } });
-    const { error } = await admin.rpc('admin_set_buklod_community_admob_estimate_v1', {
-      p_period_key: periodKey,
-      p_amount_php: amountPhp,
+    const { data: result, error } = await admin.rpc('buklod_write_admob_daily_preview_v2', {
+      p_period_key: periodKey, p_month_php: amountPhp, p_report_date: reportDate,
+      p_today_php: todayPhp,
       p_source_reference: `OFFICIAL_ADMOB_NETWORK:${publisherId}:${appId}:${periodKey}:PHP`,
-      p_source_mode: 'OFFICIAL_ADMOB_API',
-      p_observed_at: new Date().toISOString(),
+      p_reporting_time_zone: timeZone, p_observed_at: new Date().toISOString(),
     });
-    if (error) throw new Error('Estimate snapshot storage failed');
+    if (error || !['PRELIMINARY_ONLY', 'OLDER_REPORT_IGNORED'].includes(result?.status))
+      throw new Error('Estimate snapshot storage failed');
     return json({
       status: 'PRELIMINARY_ONLY',
       period_key: periodKey,
       amount_php: amountPhp,
+      today_amount_php: todayPhp,
+      report_date: reportDate,
+      reporting_time_zone: timeZone,
+      result_status: result.status,
       source: 'OFFICIAL_ADMOB_API',
       finalized: false, cash_credited: false, withdrawable: false,
     });

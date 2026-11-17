@@ -34,6 +34,6 @@ test('production source depends on enforced Supabase JWT signature validation', 
   assert.match(importer, /hasGatewayVerifiedServiceRoleClaims\(token\)/);
   assert.doesNotMatch(importer, /^\s*verify_jwt\s*=\s*false/m);
   assert.doesNotMatch(importer, /token !== serviceRole/);
-  assert.match(importer, /admin_set_buklod_community_admob_estimate_v1/);
+  assert.match(importer, /buklod_write_admob_daily_preview_v2/);
   assert.doesNotMatch(importer, /payout_processing|credit_wallet|process_withdrawal/i);
 });
