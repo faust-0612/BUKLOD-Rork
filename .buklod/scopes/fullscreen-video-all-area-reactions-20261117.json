@@ -58,5 +58,19 @@
         "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
       ]
     }
+  ],
+  "productionBaselineEvidence": "GitHub main source commit 0ee57887c991d23472cdf1f9b849bce945792910 and integrated Nov17 DEV video handoff source 2f0f684e068b794a552c33cf53cde0138907d294 were inspected. This does not verify installed Android production/staging OTA, exact runtime, network performance or ad fill; no live release authorized.",
+  "selectionRationale": "A child vertical Pan recognizer on the existing tap surface handles drags without making an extra screen-wide touch layer that would block close, reactions, IMA ads or navigation. A separate footer pan and pointer-event pass-through cover the metadata obstruction. No native dependency, backend load or new player.",
+  "acceptanceChecks": [
+    "Swipe up/down from the top, center, video play/pause area and over the lower post details to adjacent video with one page per deliberate swipe.",
+    "Short, diagonal, horizontal and normal tap gestures must not navigate; play/pause, reaction picker, comment, share and close remain responsive.",
+    "A genuine new reaction creates three transient flying emojis, maximum four bursts, with native-driver animation and no extra network calls.",
+    "Native in-stream IMA and Reels ads keep their original click targets, load events, first-view ad behavior and prefetch contract.",
+    "Run exact-head TypeScript, focused tests, AdMob/nav protected gate, native Android Hermes and staging runtime verification before OTA."
+  ],
+  "alternativeApproaches": [
+    "Wrap the entire modal with a transparent PanResponder (rejected: could intercept sponsored ad clicks, close and gesture buttons).",
+    "Disable the video tap layer completely (rejected: breaks play/pause and first-frame interaction).",
+    "Download or pre-decode videos to change the swipe behavior (rejected: unrelated, heavier on weak networks)."
   ]
 }
