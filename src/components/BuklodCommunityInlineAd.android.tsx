@@ -69,6 +69,33 @@ const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 16_000;
 const FEED_AD_CARD_HEIGHT = 392;
 const AD_PENDING_SLOT_HEIGHT = 8;
 
+// A run of genuine SDK failures is a poor time to keep making every Wall
+// slot wait for NativeAd before trying its existing banner inventory.
+// Temporarily prefer a SINGLE banner request per visible slot instead.
+// This is local, bounded and never overrides consent, focus or cooldown.
+const NATIVE_FAILURE_THRESHOLD = 2;
+const NATIVE_BANNER_PREFERENCE_MS = 5 * 60 * 1000;
+const nativeFailureState = new Map<string, { failures: number; retryNativeAfter: number }>();
+
+function preferBannerAfterNativeFailures(placementId: string, now = Date.now()) {
+  return (nativeFailureState.get(placementId)?.retryNativeAfter ?? 0) > now;
+}
+
+function noteNativeRequestFailed(placementId: string, now = Date.now()) {
+  const previous = nativeFailureState.get(placementId);
+  const failures = Math.min(NATIVE_FAILURE_THRESHOLD, (previous?.failures ?? 0) + 1);
+  nativeFailureState.set(placementId, {
+    failures,
+    retryNativeAfter: failures >= NATIVE_FAILURE_THRESHOLD
+      ? now + NATIVE_BANNER_PREFERENCE_MS
+      : 0,
+  });
+}
+
+function noteNativeRequestSucceeded(placementId: string) {
+  nativeFailureState.delete(placementId);
+}
+
 function clean(value: string | undefined) {
   return String(value ?? '').trim();
 }
@@ -285,8 +312,9 @@ export default function BuklodCommunityInlineAd({
     if (!screenFocusRef.current || !keepNativeLifecycle || !canStartNativeRef.current ||
         nativeRequestStarted.current || nativeFailed) return;
 
-    if (!nativeUnitId) {
-      // No Native ad unit configured: fall back to the existing banner.
+    if (!nativeUnitId || preferBannerAfterNativeFailures(placementId)) {
+      // Missing or recently unhealthy Native inventory: try the existing
+      // banner without first waiting through another NativeAd timeout.
       setNativeFailed(true);
       return;
     }
@@ -321,6 +349,7 @@ export default function BuklodCommunityInlineAd({
     nativeTimeoutRef.current = setTimeout(() => {
       if (!cancelled) {
         timedOut = true;
+        noteNativeRequestFailed(placementId);
         recordBuklodAdEvent(
           diagnosticPlacement,
           'ad_failed',
@@ -360,6 +389,7 @@ export default function BuklodCommunityInlineAd({
           },
         );
 
+        noteNativeRequestSucceeded(placementId);
         recordBuklodAdEvent(
           diagnosticPlacement,
           'ad_loaded',
@@ -375,6 +405,7 @@ export default function BuklodCommunityInlineAd({
         }
 
         if (!cancelled && !timedOut) {
+          noteNativeRequestFailed(placementId);
           recordBuklodAdEvent(
             diagnosticPlacement,
             'ad_failed',
@@ -600,7 +631,21 @@ export default function BuklodCommunityInlineAd({
     );
   }
 
-  if (!bannerUnitId || bannerFailed) return null;
+  if (!bannerUnitId) return null;
+  if (bannerFailed) {
+    // The 2-minute quiet-period retry depends on actual list visibility.
+    // Returning null makes the row zero-height and can prevent FlatList from
+    // reporting it as visible ever again. Keep only an 8px invisible probe,
+    // not a blank 392px sponsored card or a hidden SDK ad.
+    return (
+      <View
+        ref={ref}
+        collapsable={false}
+        pointerEvents="none"
+        style={styles.viewportProbe}
+      />
+    );
+  }
 
   if (!bannerRequestReady) {
     // A shared cooldown may defer the sequential BannerAd fallback.
