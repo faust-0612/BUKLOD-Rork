@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov17-connection-feedback.json",
+  "objective": "Show accurate small BUKLOD connectivity notices for offline, weak signal and delayed Wall comments instead of NET-408 red alarms.",
+  "baseRef": "main",
+  "chosenApproach": "Reuse NetInfo OfflineBanner on confirmed offline/degraded connection and non-alarming temporary info for other network/timeout failures; do not hide genuine application errors.",
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "wall-comments",
+    "governance-lock"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/lib/buklodUserFeedback.ts",
+    ".github/workflows/engineering-accountability.yml",
+    "tests/protected-feature-lock.test.mjs",
+    "tests/wall-network-feedback-20261117.test.mjs",
+    ".buklod/scopes/nov17-connection-feedback.json"
+  ],
+  "regressionTests": [
+    "tests/wall-network-feedback-20261117.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Fix network-state user feedback while preserving Wall comments, ads, cache and post publishing.",
+      "preservedBehaviors": [
+        "Existing user-visible comment data, ads, media and drafts are not cleared."
+      ],
+      "tests": [
+        "tests/wall-network-feedback-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Update request feedback within the existing public Wall without changing account authorization or navigation.",
+      "preservedBehaviors": [
+        "Existing account authorization, scoped visibility and navigation are unchanged."
+      ],
+      "tests": [
+        "tests/wall-network-feedback-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Add exact mandatory feature-scope selector and proof for the isolated network notice patch.",
+      "preservedBehaviors": [
+        "Protected tests and workstream gates remain mandatory."
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Comment load failures preserve previous data and permit Retry.",
+    "Real authorization/server errors still offer support.",
+    "Ad rendering and placement are unchanged."
+  ],
+  "acceptanceChecks": [
+    "Run network notice regression tests and protected scope checks.",
+    "No OTA release without verified RC and staging gates."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseTarget": "staging-user Android runtime 1.3.2 after RC",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
