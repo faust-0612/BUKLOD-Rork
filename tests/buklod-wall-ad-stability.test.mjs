@@ -50,7 +50,7 @@ test('AdMob init never waits on perpetually active interactions', () => {
 
 test('Small banners keep the SDK surface visible during initial load and no-fill', () => {
  const banner=read('src/components/BuklodAdMobBanner.tsx');
- assert.match(banner, /<View style=\{\[styles.shell, compact && styles.compactShell\]\}>/);
+ assert.match(banner, /<View style=\{\[styles.shell, compact && styles.compactShell,/);
  assert.match(banner, /<Animated.View style=\{\[styles.labelRow, \{ opacity \}\]\}>/);
  assert.doesNotMatch(banner, /opacity: compact \? opacity : 1/);
 });
