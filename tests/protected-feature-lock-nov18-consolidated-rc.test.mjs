@@ -57,7 +57,7 @@ test('current source wires fair video, stable playback, scope video, dashboard t
 });
 
 test('all touched protected areas have changed, declared Node regression proof',()=>{
- const impacted=['app-runtime','wall-media','navigation-auth','connect-ptt-calls','cluster-faith','governance-lock'];
+ const impacted=['app-runtime','wall-media','navigation-auth','connect-ptt-calls','cluster-faith','ads-finance-points','governance-lock'];
  assert.deepEqual(manifest.lockedFeatureChanges.map(x=>x.id).sort(),impacted.sort());
  assert.ok(manifest.regressionTests.some(p=>p.includes('protected-feature-lock-nov18')));
  for(const x of manifest.lockedFeatureChanges) {
