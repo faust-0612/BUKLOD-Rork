@@ -58,5 +58,25 @@
         "tests/fullscreen-video-session-navigation-20261118.test.mjs"
       ]
     }
+  ],
+  "productionBaselineEvidence": "Inspected canonical main 0ee57887c991d23472cdf1f9b849bce945792910 and latest stacked DEV fullscreen swipe/reaction source 0c461c451ce58b5d8211da46b511f6f9e43df016. GitHub source, not verified installed Android APK, RC OTA, runtime, ad fill or production.",
+  "chosenApproach": "Rank only each freshly authorized 15-video metadata batch in memory by 30% fresh, 30% low-engagement and 40% general discovery lanes, rotating deterministically per viewing session and avoiding recent creators; then append without moving existing rows.",
+  "selectionRationale": "Does not require view tracking, backend queries, schema, permissions or extra media downloads. Ranking before ad insertion preserves consent/first-view ad behavior, stable swipe index and signed media recovery. Account/session guards reject late results.",
+  "preserveBehaviors": [
+    "Currently viewed video remains at its index and original tapped video starts fullscreen",
+    "Chronological keyset cursor and 50-entry cap unchanged; Latest and Following Wall feeds unchanged",
+    "IMA and AdMob consent and revenue placements remain untouched",
+    "Source authorization, video prefetch, playback retries, signed URLs and account isolation remain unchanged"
+  ],
+  "acceptanceChecks": [
+    "Node tests cover complete unique videos, fresh/low-engagement opportunity, creator cooldown, deterministic viewer/session variation and stable existing playlist",
+    "Integrated source tests verify original tapped video, keyset cursor, append-only playlist and unchanged ad insertion",
+    "No new RPC, point transaction, downloaded media, sensitive analytics or permission change",
+    "Release requires exact-head full TypeScript, native Android playback, ad fill, dashboard and signed media checks and validated staging RC"
+  ],
+  "alternativeApproaches": [
+    "Randomize entire existing fullscreen list on every swipe (rejected: would jump current player, ads and scroll index)",
+    "Use global lifetime view counts immediately (deferred: no verified privacy-safe authenticated impression store and would add backend/write load)",
+    "Re-fetch and re-sign many historical videos to compute ranks (rejected: expensive, slow and increased bandwidth risk)"
   ]
 }
