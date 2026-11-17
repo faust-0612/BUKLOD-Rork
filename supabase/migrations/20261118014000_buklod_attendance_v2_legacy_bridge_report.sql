@@ -1,0 +1,141 @@
+-- Attendance V2 bridge: historical check-ins remain intact, new paths use one reward gate.
+create table if not exists public.buklod_attendance_review_audit_v2 (
+ id bigint generated always as identity primary key,
+ event_id uuid not null references public.attendance_events(id),
+ status text not null,
+ reviewer_id uuid not null references auth.users(id),
+ reason text not null,
+ occurred_at timestamptz not null default now()
+);
+alter table public.buklod_attendance_review_audit_v2 enable row level security;
+revoke all on public.buklod_attendance_review_audit_v2 from public,anon,authenticated;
+
+create or replace function public.buklod_attendance_review_audit_trigger_v2()
+returns trigger language plpgsql security definer set search_path=''
+as $$
+begin
+ if NEW.reviewed_by is not null then
+   insert into public.buklod_attendance_review_audit_v2(event_id,status,reviewer_id,reason)
+   values(NEW.event_id,NEW.status,NEW.reviewed_by,coalesce(NEW.reason,''));
+ end if;
+ return NEW;
+end;
+$$;
+drop trigger if exists trg_buklod_attendance_review_audit_v2 on public.buklod_attendance_event_review_v2;
+create trigger trg_buklod_attendance_review_audit_v2
+after insert or update on public.buklod_attendance_event_review_v2
+for each row execute function public.buklod_attendance_review_audit_trigger_v2();
+revoke all on function public.buklod_attendance_review_audit_trigger_v2() from public,anon,authenticated;
+
+-- Close the old Cluster Home reward bypass; admin approval records attendance,
+-- while BP stays behind the independent event approval/cap gate.
+create or replace function public.admin_review_buklod_home_checkin_r3(
+ p_checkin_id uuid,p_approve boolean,p_reason text
+) returns jsonb language plpgsql security definer set search_path=''
+as $$
+declare actor uuid:=auth.uid(); checkin record;
+begin
+ if actor is null or not public.is_system_admin()
+ then raise exception 'System Admin required' using errcode='42501'; end if;
+ if length(btrim(coalesce(p_reason,'')))<8 then raise exception 'Review note required'; end if;
+ select c.*,e.title,e.location into checkin
+ from public.buklod_home_event_checkins_r3 c
+ join public.attendance_events e on e.id=c.event_id
+ where c.id=p_checkin_id for update of c;
+ if not found or checkin.status<>'pending' then raise exception 'Pending check-in not found'; end if;
+ if p_approve then
+  if nullif(btrim(checkin.location),'') is null then raise exception 'Event venue required'; end if;
+  if not exists(select 1 from public.buklod_scope_memberships m where m.scope_id=checkin.scope_id
+     and m.user_id=checkin.user_id and m.membership_status='ACTIVE' and m.left_at is null)
+  then raise exception 'Active Cluster membership required'; end if;
+  insert into public.attendance_records(event_id,user_id,status,method,operator_id,metadata)
+  values(checkin.event_id,checkin.user_id,'present','manual',actor,
+    jsonb_build_object('source','reviewed_cluster_home_checkin','checkin_id',checkin.id))
+  on conflict(event_id,user_id) do nothing;
+ end if;
+ update public.buklod_home_event_checkins_r3
+ set status=case when p_approve then 'approved' else 'rejected' end,
+ reviewed_at=now(),reviewed_by=actor,review_note=btrim(p_reason),ledger_id=null
+ where id=p_checkin_id;
+ return jsonb_build_object('status',case when p_approve then 'approved' else 'rejected' end,
+  'credited',false,'points',0,'reward_status','independent_event_review_required');
+end;
+$$;
+revoke all on function public.admin_review_buklod_home_checkin_r3(uuid,boolean,text) from public,anon;
+grant execute on function public.admin_review_buklod_home_checkin_r3(uuid,boolean,text) to authenticated;
+
+-- Fix event-report PII exposure: only a scope event operator/admin may read full roster.
+create or replace function public.get_buklod_attendance_event_report(p_event_id uuid)
+returns table(user_id uuid,full_name text,status text,method text,checked_in_at timestamptz)
+language plpgsql stable security definer set search_path=''
+as $$
+declare actor uuid:=auth.uid();
+begin
+ if actor is null or not public.can_manage_buklod_attendance_event(p_event_id,actor)
+ then raise exception 'Event report requires attendance operator access' using errcode='42501'; end if;
+ return query
+ with all_rows as (
+  select r.user_id as logical_id, 'buklod:'||r.user_id::text as logical_key,
+    coalesce(p.full_name,'BUKLOD Member')::text as name,
+    r.status::text as state,r.method::text as recorded_method,r.checked_in_at as recorded_at
+  from public.attendance_records r left join public.profiles p on p.id=r.user_id
+  where r.event_id=p_event_id
+  union all
+  select coalesce(ap.buklod_user_id,pr.person_id),
+     case when ap.buklod_user_id is not null then 'buklod:'||ap.buklod_user_id::text
+       else 'person:'||pr.person_id::text end,
+     ap.full_name::text,pr.status::text,pr.method::text,pr.checked_in_at
+  from public.attendance_person_records pr
+    join public.attendance_people ap on ap.id=pr.person_id
+  where pr.event_id=p_event_id
+ )
+ select ranked.logical_id,ranked.name,ranked.state,ranked.recorded_method,ranked.recorded_at
+ from (
+   select a.*,row_number() over(partition by logical_key order by recorded_at asc) rn from all_rows a
+ ) ranked
+ where rn=1 order by recorded_at asc;
+end;
+$$;
+revoke all on function public.get_buklod_attendance_event_report(uuid) from public,anon;
+grant execute on function public.get_buklod_attendance_event_report(uuid) to authenticated;
+
+-- Cross-organization home-scope reporting: one record for each real event+user.
+-- A scope's operators can see its members' attendance elsewhere; no extra BP is minted.
+create or replace function public.buklod_attendance_home_report_v2(
+ p_scope_id uuid,p_from date default null,p_to date default null
+) returns table(member_id uuid,member_name text,event_id uuid,event_title text,
+ host_scope_id uuid,host_scope_name text,checked_in_at timestamptz,attendance_status text)
+language plpgsql stable security definer set search_path=''
+as $$
+declare actor uuid:=auth.uid();
+begin
+ if actor is null or not public.can_operate_attendance_scope(p_scope_id,actor)
+ then raise exception 'Home attendance report requires scope operator access' using errcode='42501'; end if;
+ return query
+ with raw as (
+   select r.user_id as person,r.event_id,r.checked_in_at as stamp,r.status::text as state
+   from public.attendance_records r
+   union all
+   select ap.buklod_user_id,pr.event_id,pr.checked_in_at,pr.status::text
+   from public.attendance_person_records pr
+   join public.attendance_people ap on ap.id=pr.person_id
+   where ap.buklod_user_id is not null
+ ), canonical as (
+   select distinct on(person,event_id) person,event_id,stamp,state from raw
+   order by person,event_id,stamp asc
+ )
+ select c.person,p.full_name::text,c.event_id,e.title::text,
+    e.scope_id,s.name::text,c.stamp,c.state
+ from canonical c
+ join public.buklod_scope_memberships m on m.user_id=c.person
+   and m.scope_id=p_scope_id and m.membership_status='ACTIVE' and m.left_at is null
+ join public.attendance_events e on e.id=c.event_id
+ join public.buklod_scopes s on s.id=e.scope_id
+ join public.profiles p on p.id=c.person
+ where (p_from is null or (c.stamp at time zone 'Asia/Manila')::date>=p_from)
+  and (p_to is null or (c.stamp at time zone 'Asia/Manila')::date<=p_to)
+ order by c.stamp desc limit 1000;
+end;
+$$;
+revoke all on function public.buklod_attendance_home_report_v2(uuid,date,date) from public,anon;
+grant execute on function public.buklod_attendance_home_report_v2(uuid,date,date) to authenticated;

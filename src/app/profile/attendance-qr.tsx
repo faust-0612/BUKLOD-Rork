@@ -4,10 +4,12 @@ import {
   StyleSheet,
   Text,
   View,
+  Pressable,
 } from 'react-native';
 
 import {
   Stack,
+  router,
 } from 'expo-router';
 
 import {
@@ -68,6 +70,10 @@ AttendanceQrScreen() {
         </View>
 
         <BuklodAttendanceQrCard />
+        <Pressable onPress={() => router.push('/scope/attendance/scan' as any)}
+          style={{ padding: 14, borderRadius: 12, backgroundColor: colors.greenDark, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>SCAN ORGANIZER EVENT QR</Text>
+        </Pressable>
 
         <View
           style={
