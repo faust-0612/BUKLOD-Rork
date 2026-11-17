@@ -6293,7 +6293,8 @@ const communityFeedRows =
 {/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_SWIPE_R4 */}
  <Modal
   visible={videoViewerOpen}
-  animationType="fade"
+  // No overlapping Android surfaces on dismiss; web retains its fade.
+  animationType={Platform.OS==='android'?'none':'fade'}
   onRequestClose={
    closeVideoViewer
   }
