@@ -122,11 +122,11 @@ jobs:
             ['src/app/(tabs)/buklod.tsx', '890c3ce7a656288069410c2db6f33c3a1d2f35ea'],
             ['src/lib/buklodUserFeedback.ts', '0ac28979e20fed44078f62f22ba2212f278dc99e'],
             ['tests/protected-feature-lock.test.mjs', 'eeeecaab9ca38f52d293ddd56f47ac71fc823b04'],
-            ['tests/wall-network-feedback-20261117.test.mjs', '1156011814457fe717fd4f2e09eba78fea5761b3'],
+            ['tests/wall-network-feedback-20261117.test.mjs', 'dbbbf6934765d07b4c497284d53050d915c3e90d'],
             ['tests/wall-network-navigation-20261117.test.mjs', '303b3a8a19509c2ce349e90675753589aaf58cd8'],
           ]) {
             const found=execFileSync('git',['rev-parse',sha+':'+path],{encoding:'utf8'}).trim();
-            assert.equal(found,blob,'Reviewed network feedback blob changed: '+path);
+            assert.equal(found,blob,'Reviewed network integration blob changed: '+path);
           }
           assert.ok(readFileSync('src/components/OfflineBanner.tsx','utf8').includes('background work indicator'),'Canonical main quiet sync fix missing');
           assert.ok(!readFileSync('src/app/(tabs)/buklod.tsx','utf8').includes('NET-408'),'Wall transient NET-408 alarm still present');

@@ -13,7 +13,9 @@ const timeout=feedback.slice(feedback.indexOf("if (category === 'TIMEOUT_ERROR')
 const network=feedback.slice(feedback.indexOf("if (category === 'NETWORK_ERROR')",builder),feedback.indexOf("if (category === 'AUTH_ERROR'",builder));
 test('offline/degraded uses only the compact banner on Wall request failure',()=>{
  assert.match(banner,/status === 'offline'/);
- assert.match(banner,/status === 'degraded'/);
+ assert.match(banner,/status !== 'offline' && status !== 'degraded'/);
+ assert.match(banner,/Limited connection/);
+ assert.doesNotMatch(banner,/Syncing/);
  assert.match(reporter,/wallNetworkStatus==='offline'\|\|wallNetworkStatus==='degraded'\)return/);
  assert.match(reporter,/base.category==='NETWORK_ERROR'/);
  assert.match(reporter,/base.category==='TIMEOUT_ERROR'/);
