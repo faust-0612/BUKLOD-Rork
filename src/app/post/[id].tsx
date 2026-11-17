@@ -77,6 +77,7 @@ export default function PostDetail(){
  const s=useMemo(()=>createPostDetailStyles(theme),[theme]);
  const detailScrollRef=useRef<ScrollView|null>(null);
  const commentsStartYRef=useRef(0);
+ const postReactionPendingRef=useRef(false);
  const lastFocusedComment=useRef<string|null>(null);
  const lastAutoOpenedComments=useRef<string|null>(null);
  const composerInputRef=useRef<TextInput|null>(null);
@@ -242,7 +243,8 @@ export default function PostDetail(){
  const react=async(
   r:Reaction
 )=>{
-  if(!post)return;
+  if(!post || postReactionPendingRef.current)return;
+  postReactionPendingRef.current=true;
 
   /* PATCH_154N_OPTIMISTIC_POST_REACTION */
 
@@ -333,7 +335,7 @@ export default function PostDetail(){
         : current
   );
 
-  const {error}=
+  const {data:confirmed,error}=
     await(
       supabase as any
     ).rpc(
@@ -342,7 +344,7 @@ export default function PostDetail(){
         p_post_id:id,
         p_reaction:r
       }
-    );
+    ).catch((cause:any)=>({data:null,error:cause}));
 
   if(error){
     setMyReaction(
@@ -362,9 +364,14 @@ export default function PostDetail(){
 
     Alert.alert(
       'Reaction',
-      error.message
+      String(error.message ?? error)
     );
+  } else if ((confirmed??null)!==nextReaction) {
+    const applied=(confirmed??null) as Reaction|null;
+    setMyReaction(applied);
+    setPost((current:any)=>current?mutate(current,nextReaction,applied):current);
   }
+  postReactionPendingRef.current=false;
 };
 
 
