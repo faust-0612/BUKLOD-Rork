@@ -8,7 +8,8 @@
     "app-runtime",
     "navigation-auth",
     "wall-comments",
-    "governance-lock"
+    "governance-lock",
+    "navigation-scroll"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -68,5 +69,12 @@
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "releaseMode": "dev-staging-candidate-no-ota",
   "releaseTarget": "staging-user Android runtime 1.3.2 after RC",
-  "physicalDeviceVerification": "NOT_PERFORMED"
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "productionBaselineEvidence": "Source baseline: main commit 9eecfd2a833d30f4168baeeccb26f021176b7b95 inspected on 2026-11-17. Live installed OTA state was not inspected and is not asserted here.",
+  "selectionRationale": "The screenshot shows NET-408 with a red Comments unavailable overlay while the user may have weak/limited connectivity. Existing NetInfo and OfflineBanner already represent such transport states, so the Wall reporter must not force a critical error.",
+  "alternativeApproaches": [
+    "Convert all failures to generic offline notices (rejected: hides real authorization and server faults).",
+    "Keep existing red support-code popup for timeouts (rejected: misleading and intrusive under poor reception).",
+    "Add a new network monitoring service (rejected: unnecessary because existing NetworkProvider already tracks reachability)."
+  ]
 }
