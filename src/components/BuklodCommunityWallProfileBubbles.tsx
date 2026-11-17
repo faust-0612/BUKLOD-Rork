@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 
 import { ConnectInboxSearch } from '@/components/connect/ConnectInboxSearch';
+import { BuklodNoteReactionChip } from '@/components/connect/BuklodNoteReactionChip';
+import { useBuklodConnectNoteReactions, type ConnectNoteReaction } from '@/lib/buklodConnectNoteReactions';
 import { ConnectTappableAvatar } from '@/components/connect/ConnectTappableAvatar';
 import {
   enrichConnectSuggestedContactsWithNotes,
@@ -117,6 +119,8 @@ function NoteBubble({
   now = Date.now(),
   saving = false,
   onSave,
+  reaction,
+  onReact,
 }: {
   note?: string | null;
   textColor: string;
@@ -127,6 +131,8 @@ function NoteBubble({
   now?: number;
   saving?: boolean;
   onSave?: (value: string) => Promise<boolean>;
+  reaction?: ConnectNoteReaction;
+  onReact?: () => void;
 }) {
   const value = repairMojibakeText(String(note ?? '')).trim();
   const [editing, setEditing] = useState(false);
@@ -215,6 +221,7 @@ function NoteBubble({
         >
           {value}
         </Text>
+        <BuklodNoteReactionChip reaction={reaction} onPress={onReact} />
       </View>
       {timeLabel ? (
         <Text style={[styles.noteTime, { color: secondaryColor }]}>
@@ -386,6 +393,13 @@ function BuklodCommunityConnectRail() {
     [sourceContacts, currentUser?.user_id],
   );
 
+  const reactionNotes = useMemo(() => [
+    ...visibleContacts,
+    { user_id: viewerId, quick_note: selfNote?.quick_note ?? null },
+  ], [visibleContacts, viewerId, selfNote?.quick_note]);
+  const { reactions, toggleLove, refresh: refreshReactions } = useBuklodConnectNoteReactions(viewerId, reactionNotes);
+  useFocusEffect(useCallback(() => { void refreshReactions(); }, [refreshReactions]));
+
   useEffect(() => {
     for (const contact of visibleContacts) {
       if (String(contact.quick_note ?? '').trim()) {
@@ -486,6 +500,7 @@ function BuklodCommunityConnectRail() {
               now={now}
               saving={selfSaving}
               onSave={persistSelfNote}
+              reaction={reactions[selfContact.user_id]}
             />
 
             <ConnectTappableAvatar
@@ -515,6 +530,8 @@ function BuklodCommunityConnectRail() {
               note={contact.quick_note}
               textColor="#173626"
               secondaryColor={theme.textSecondary}
+              reaction={reactions[contact.user_id]}
+              onReact={contact.quick_note ? () => void toggleLove(contact.user_id) : undefined}
             />
 
             <View style={styles.avatarWrap}>
