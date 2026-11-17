@@ -5,14 +5,14 @@ const path = require('node:path');
 const root = path.resolve(__dirname,'..');
 const read = file => readFileSync(path.join(root,file),'utf8');
 
-test('public Wall post author uses one full-width line with actions below and compact one-line datetime', () => {
+test('public Wall post author shares first row with Follow and keeps actions compact', () => {
  const source = read('src/app/(tabs)/buklod.tsx');
- const block = source.split('BUKLOD_WALL_SINGLE_LINE_IDENTITY_20261116')[1].split('<BuklodPostMotion')[0];
+ const block = source.split('BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117')[1].split('<BuklodPostMotion')[0];
  assert.match(block, /<BuklodTappableAvatar[\s\S]*?<BuklodTappablePersonName/);
  assert.match(block, /style=\{\{flex:1,minWidth:0\}\}/);
  assert.match(block, /numberOfLines=\{1\}/);
  assert.match(block, /formatCompactWallDateTime\(item\.created_at\)/);
- assert.ok(block.indexOf('formatCompactWallDateTime') < block.indexOf('toggleAuthorFollow'), 'follow control must not steal name/date width');
+ assert.ok(block.indexOf('formatCompactWallDateTime') < block.indexOf('toggleAuthorFollow'), 'author and date remain accessible in the left identity column');
  assert.match(block, /<ProfileAvatarNoteChip userId=\{item\.user_id\}/);
  assert.match(block, /BuklodContentOverflowMenu/);
 });
