@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Consolidate the verified Nov17 Android staging fixes with the newer Connect latest-scroll and recoverable Wall ads changes, and publish exactly one source-identical Android staging-user OTA while keeping production unchanged.",
+  "baseRef": "47eefd0c685f0c639227e9a887b1e1dda29b05e7",
+  "productionBaselineEvidence": "Verified GitHub canonical main source 47eefd0c685f0c639227e9a887b1e1dda29b05e7 includes PR #900 staging fixes and newer PRs #905/#906. Prior verified Android staging-user 1.3.2 RC source 730c811cda97d106339f14fae04fb4b8890b0ed2, update 01a1e6c4-e877-7036-8573-58c1424e392c (past conversation evidence); installed device and current production fingerprint require independent EAS check. No production publish authorized.",
+  "chosenApproach": "Use one tightly scoped, push-triggered release branch from exactly the current canonical main source; add only release workflow, manifest and focused test; compare all app/native files against that main SHA, run preserved source/asset/Expo gates, then publish Android staging-user 1.3.2 idempotently with EAS manifest readback.",
+  "alternativeApproaches": [
+    "Republish older 730c staging RC (rejected: omits new Connect scroll and Wall ad recovery fixes)",
+    "Auto-merge older duplicate feature branches one-by-one (rejected: risk regressing the already verified cumulative RC)"
+  ],
+  "selectionRationale": "Reconciled 730c ancestor into canonical main 47eefd0c with GitHub PR #900; source-only merge preserved main's later ad failure circuit and Connect scroll. Staging release branch has no source/runtime changes, and a publish transaction is allowed only after exact-source regression and production-channel isolation verification.",
+  "preserveBehaviors": [
+    "Canonical main content including all 1300 collectibles, character parity, gallery recovery, latest comment, identity/avatars, compact layout and ads prewarm",
+    "Connect scroll latest/older/history/read receipts and newer Wall ads recoverable slots",
+    "No native dependency changes, no database mutation, no billing or Play Console publish",
+    "staging-user Android channel, preview env, org.mzbministry.buklod.staging package and Expo runtime 1.3.2; production channel unchanged"
+  ],
+  "acceptanceChecks": [
+    "Current canonical main unchanged and an exact ancestor of release branch",
+    "No src/assets/native/manifest/runtime changes in branch compared with canonical main",
+    "Eight prior cumulative RC checks plus newer Connect/ads PR verification and current source tests pass",
+    "Android Hermes export, public character artwork readback and staging build compatibility pass",
+    "Exactly one new or existing EAS staging-user Android update linked to exact immutable release commit",
+    "Production EAS manifest ID unchanged; device verification explicitly unverified if skipped"
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/nov17-current-main-consolidated-staging-release.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov17-current-main-consolidated-staging-release.json",
+    "tests/nov17-current-main-consolidated-staging-release.test.mjs",
+    ".github/workflows/buklod-nov17-current-main-consolidated-staging-ota.yml"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Add a one-time Android staging-user OTA release workflow that cannot publish to production.",
+      "preservedBehaviors": [
+        "Production runtime, EAS channel, releases, Play Store and web deployments unchanged.",
+        "Only approved staging APK and preview environment can receive the Android update."
+      ],
+      "tests": [
+        "tests/nov17-current-main-consolidated-staging-release.test.mjs"
+      ]
+    }
+  ]
+}
