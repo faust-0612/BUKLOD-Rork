@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "objective": "Publish the exact reviewed BUKLOD main (Nov17 fullscreen, connectivity, ads, gallery, Character and Connect fixes plus PRs #913/#914 Follow-right-rail and Messenger-style compact Connect/Wall) to Android staging-user only after a frozen source/RC verification.",
+  "baseRef": "d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6",
+  "productionBaselineEvidence": "verified: GitHub main source d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6 read after #914 and #913 squash merges. This is source-only evidence; authenticated EAS live staging and production manifests must be checked before and after any OTA.",
+  "chosenApproach": "Freeze combined source from main, publish a release-only three-file staging RC with reviewed PR proof heads, exact SHA-parity, signed native APK/runtime checks, source/layout/ad/connect regression and Android Hermes export, then EAS staging-user update with production-id unchanged proof.",
+  "alternativeApproaches": [
+    "Reuse stale Nov17 frozen staging branch, rejected because it predates latest connectivity and fullscreen fixes",
+    "Merge every historical draft PR, rejected due to duplicate or conflicting older work and missing review gates"
+  ],
+  "selectionRationale": "The newest Follow and Messenger-style UI fixes were absent from the prior Nov17 staging source. A new pinned release-only candidate avoids rebasing an already triggered publisher or silently omitting the latest changes.",
+  "preserveBehaviors": [
+    "All canonical Nov16 compact density, Character graphics and collectibles, Connect scrolling, Wall gallery and recent comments",
+    "Verified AdMob prewarm, consent, in-stream ad clicks and recovery",
+    "Latest offline syncing, benign connectivity feedback and fullscreen video touch handling",
+    "EAS preview/staging-user channel only, runtime 1.3.2 and package org.mzbministry.buklod.staging; no database writes, native APK rebuild, production OTA or web promotion",
+    "PR #913 Follow beside name and Report beneath, owner Edit/Delete preserved; PR #914 Messenger-style compact Wall/Connect with dynamic Notes and live ads protected."
+  ],
+  "acceptanceChecks": [
+    "Current main unchanged at frozen SHA and release branch changes exactly three authorized release files",
+    "All merged PR source-head approvals and relevant exact-source CI checks pass",
+    "TypeScript, compact, Character, ad, Connect, Wall/video, offline/network and other source regressions pass",
+    "Signed staging APK identity, app runtime, native parity, public artwork SHA and Android Hermes bundle valid",
+    "Idempotent update published to Android staging-user with EAS update ID and manifest readback",
+    "Production manifest ID unchanged; actual device smoke verification not claimed",
+    "PR #913/#914 exact merged-source and CI proofs must pass; new density, Wall author/header, navigation and scroll regressions must pass on the consolidated exact-source Android export."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/nov17-follow-connect-staging-release.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov17-follow-connect-staging-release.json",
+    "tests/nov17-follow-connect-staging-release.test.mjs",
+    ".github/workflows/buklod-nov17-follow-connect-staging-ota.yml"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Create exact-source one-time Android staging OTA workflow with strict EAS package/runtime and unchanged production fingerprint.",
+      "preservedBehaviors": [
+        "Production channel/Play Store/web/billing unchanged.",
+        "Android staging-user package and runtime verified, source-identical to reviewed main."
+      ],
+      "tests": [
+        "tests/nov17-follow-connect-staging-release.test.mjs"
+      ]
+    }
+  ]
+}
