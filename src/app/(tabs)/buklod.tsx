@@ -5999,7 +5999,7 @@ const communityFeedRows =
     return (
       <BuklodFocusVisibleRow index={index}>
     <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
-   {/* BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117: avatar | details, with timestamp + Follow/Report on one compact row. */}
+   {/* BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117: name + Follow on first row, Edit/Report directly below the right-hand control. */}
    <View style={{flexDirection:'row',alignItems:'flex-start',gap:8}}>
      <BuklodTappableAvatar
        userId={item.user_id}
@@ -6007,33 +6007,34 @@ const communityFeedRows =
        size={42}
      />
      <View style={{flex:1,minWidth:0}}>
-       <BuklodTappablePersonName
-         userId={item.user_id}
-         displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
-         numberOfLines={1}
-         style={s.author}
-       >
-         {resolvePersonDisplayName(item.author_name,item.user_id)}
-       </BuklodTappablePersonName>
-       <ProfileAvatarNoteChip userId={item.user_id} />
-       <Text style={s.meta} numberOfLines={1}>
-         {item.author_rank_name||'Circle Starter V'}
-         {item.cluster_name ? ` | ${item.cluster_name}` : ''}
-         {' | '}
-         {String(item.audience||'group').toUpperCase()}
-         {item.author_only ? ' | AKO LANG' : ''}
-       </Text>
-       {/* Timestamp and existing author actions share one compact row; avatar is the first column. */}
-       <View style={{flexDirection:'row',alignItems:'center',gap:6,marginTop:3,minWidth:0}}>
-         <Text
-           style={[s.meta,{flex:1,minWidth:0,marginTop:0}]}
-           numberOfLines={1}
-           adjustsFontSizeToFit
-           minimumFontScale={0.75}
-         >
-           {formatCompactWallDateTime(item.created_at)}
-         </Text>
-         <View style={{flexDirection:'row',alignItems:'center',gap:4,flexShrink:0}}>
+       <View style={{flexDirection:'row',alignItems:'flex-start',gap:5}}>
+         <View style={{flex:1,minWidth:0}}>
+           <BuklodTappablePersonName
+             userId={item.user_id}
+             displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
+             numberOfLines={1}
+             style={s.author}
+           >
+             {resolvePersonDisplayName(item.author_name,item.user_id)}
+           </BuklodTappablePersonName>
+           <ProfileAvatarNoteChip userId={item.user_id} />
+           <Text style={s.meta} numberOfLines={1}>
+             {item.author_rank_name||'Circle Starter V'}
+             {item.cluster_name ? ` | ${item.cluster_name}` : ''}
+             {' | '}
+             {String(item.audience||'group').toUpperCase()}
+             {item.author_only ? ' | AKO LANG' : ''}
+           </Text>
+           <Text
+             style={[s.meta,{marginTop:2}]}
+             numberOfLines={1}
+             adjustsFontSizeToFit
+             minimumFontScale={0.75}
+           >
+             {formatCompactWallDateTime(item.created_at)}
+           </Text>
+         </View>
+         <View style={{alignItems:'flex-end',flexShrink:0,gap:2}}>
     {item.user_id===user?.id ? (
      <BuklodContentOverflowMenu
       title="Your post"
@@ -6043,7 +6044,7 @@ const communityFeedRows =
       )}
       authorOnly={!!item.author_only}
       iconColor={colors.muted}
-      style={{minWidth:32,minHeight:34,alignItems:'center',justifyContent:'center'}}
+      style={{minWidth:32,minHeight:30,alignItems:'center',justifyContent:'center'}}
       allowPhotoEdit={!communityPostIsVideo(item)}
       maxPhotos={COMMUNITY_MAX_PHOTOS}
       photos={communityPostEditPhotos(item)}
@@ -6090,9 +6091,9 @@ const communityFeedRows =
     ) : (
      <View
       style={{
-       flexDirection:'row',
-       alignItems:'center',
-       gap:6,
+       flexDirection:'column',
+       alignItems:'flex-end',
+       gap:2,
       }}
      >
       {!!item.user_id&&(
@@ -6112,8 +6113,8 @@ const communityFeedRows =
          )
         }
         style={({pressed})=>({
-         minHeight:34,
-         paddingHorizontal:8,
+         minHeight:29,
+         paddingHorizontal:7,
          borderRadius:999,
          borderWidth:1,
          borderColor:colors.green,
@@ -6128,7 +6129,7 @@ const communityFeedRows =
        >
         <Text
          style={{
-          fontSize:12,
+          fontSize:10.5,
           fontWeight:'900',
           color:
            item.is_following_author
@@ -6147,7 +6148,7 @@ const communityFeedRows =
       <BuklodContentOverflowMenu
        title="Post"
        iconColor={colors.muted}
-       style={{minWidth:32,minHeight:34,alignItems:'center',justifyContent:'center'}}
+       style={{minWidth:32,minHeight:30,alignItems:'center',justifyContent:'center'}}
        onReport={() =>
         openReport('post', item.id)
        }
