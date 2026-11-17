@@ -1,0 +1,268 @@
+name: BUKLOD Nov18 Scoped Community Video Consolidated Android Staging OTA
+on:
+  push:
+    branches:
+      - release/nov18-consolidated-scoped-video-staging132
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+concurrency:
+  group: buklod-staging-user-android-ota
+  cancel-in-progress: false
+jobs:
+  guarded-staging-android-ota:
+    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/nov18-consolidated-scoped-video-staging132' }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      RC_SOURCE: 543c36245717cf77d4c8bc614609fc2fe91b3ef4
+      APK_SOURCE: c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd
+      STAGING_BRANCH: release/nov18-consolidated-scoped-video-staging132
+      EVIDENCE_DIR: /tmp/buklod-nov18-scoped-video-ota
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ github.sha }}"
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify exact immutable reviewed RC source and authorized release-only metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/$STAGING_BRANCH | cut -f1)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$RC_SOURCE" "$GITHUB_SHA"
+          test "$(git merge-base "$RC_SOURCE" "$GITHUB_SHA")" = "$RC_SOURCE"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const rc=process.env.RC_SOURCE,head=process.env.GITHUB_SHA;
+          const changed=execFileSync('git',['diff','--name-only',rc,head],{encoding:'utf8'}).trim().split('\n').filter(Boolean).sort();
+          const expected=[
+            '.buklod/scopes/nov18-scoped-video-staging-ota-release.json',
+            '.github/workflows/buklod-nov18-scoped-video-staging-ota.yml',
+            'tests/nov18-scoped-video-staging-ota-release.test.mjs'
+          ].sort();
+          assert.deepEqual(changed,expected,'Only three release metadata paths may differ from frozen RC');
+          const scope=JSON.parse(fs.readFileSync('.buklod/scopes/nov18-scoped-video-staging-ota-release.json','utf8'));
+          assert.equal(scope.releaseAuthorized,true,'Stage not authorized');
+          assert.equal(scope.frozenRcSourceSha,rc,'Exact RC head changed');
+          assert.deepEqual(scope.allowedPaths.slice().sort(),expected);
+          assert.equal(scope.target.package,'org.mzbministry.buklod.staging');
+          assert.equal(scope.target.channel,'staging-user');
+          assert.equal(scope.target.runtime,'1.3.2');
+          NODE
+      - name: Verify PR 930 frozen source and five required exact-head GitHub RC checks
+        env:
+          ACCESS_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const repo=process.env.GITHUB_REPOSITORY,source=process.env.RC_SOURCE;
+          const request=async path=>{
+            const res=await fetch('https://api.github.com/repos/'+repo+path,{
+              headers:{authorization:'Bearer '+process.env.ACCESS_TOKEN,accept:'application/vnd.github+json'},
+              signal:AbortSignal.timeout(20000)
+            });
+            assert.equal(res.status,200,'Required GitHub review evidence unavailable: '+path);
+            return res.json();
+          };
+          const pr=await request('/pulls/930');
+          assert.equal(pr.base.ref,'main');
+          assert.equal(pr.head.ref,'rc/nov18-consolidated-current-fixes-android132');
+          assert.equal(pr.head.sha,source,'Exact RC head changed');
+          const runs=(await request('/actions/runs?head_sha='+source+'&per_page=100')).workflow_runs;
+          const required=[
+            'Engineering Accountability',
+            'BUKLOD Performance R1 QA',
+            'BUKLOD Main - Report Door and Legacy Integration PR QA',
+            'BUKLOD Compact Layout Source QA (No OTA)',
+            'BUKLOD Real Recent Comment QA'
+          ];
+          for(const name of required) assert.ok(runs.some(r=>
+            r.name===name && r.event==='pull_request' && r.head_sha===source &&
+            r.head_branch==='rc/nov18-consolidated-current-fixes-android132' &&
+            r.conclusion==='success'
+          ),'Required RC CI not successful: '+name);
+          console.log('Frozen RC reviewed and five exact source CI checks passed',source);
+          NODE
+      - name: Validate identical native baseline, locked dependencies, AdMob and Community player source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code "$APK_SOURCE" "$GITHUB_SHA" -- app.config.js eas.json package-lock.json android/ ios/ plugins/ google-services.staging.json babel.config.js
+          node <<'NODE'
+          const a=require('node:assert/strict'),cp=require('node:child_process');
+          const original=JSON.parse(cp.execFileSync('git',['show',process.env.APK_SOURCE+':package.json'],{encoding:'utf8'}));
+          const current=require('./package.json');
+          a.deepEqual(current.dependencies,original.dependencies,'Native dependencies changed since staging APK');
+          a.deepEqual(current.devDependencies,original.devDependencies,'Locked dev dependencies changed');
+          const c=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appTarget,'main');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.equal(eas.build['staging-user'].environment,'preview');
+          a.notEqual(eas.build.production.channel,eas.build['staging-user'].channel);
+          NODE
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test \
+            tests/nov18-scoped-video-staging-ota-release.test.mjs \
+            tests/scoped-community-video-sidecar-recovery.test.mjs \
+            tests/fullscreen-video-fair-exposure-20261118.test.cjs \
+            tests/fullscreen-video-navigation-reactions-20261117.test.mjs \
+            tests/fullscreen-video-session-navigation-20261118.test.mjs \
+            tests/video-handoff-connect-stability-20261117.test.mjs \
+            tests/video-handoff-connect-navigation-ads-20261117.test.mjs \
+            tests/dashboard-instant-tabs-20261117.test.mjs \
+            tests/dashboard-navigation-auth-20261117.test.mjs \
+            tests/bible-henry-translation-recovery-20261117.test.cjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/appwide-compact-density-20261116.test.mjs
+          npx tsc --noEmit
+          npm run character:contract
+          npm run game:contract
+          npm run compact:contract
+          npm run release:base-gate
+      - name: Independently inspect approved signed staging APK, current EAS branches and production state
+        env:
+          EXPO_TOKEN: "${{ secrets.EXPO_TOKEN }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN" || { echo 'Missing Expo authentication — no staging update'; exit 1; }
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';import fs from 'node:fs';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const dir=process.env.EVIDENCE_DIR,read=f=>JSON.parse(fs.readFileSync(dir+'/'+f,'utf8'));
+          const build=read('build.json');
+          verifyBuild(build);
+          const stage=verifyChannels(read('staging-channel.json'),read('production-channel.json'));
+          const liveStage=await manifest('staging-user');
+          const production=await manifest('production');
+          assert.equal(production.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          assert.equal(liveStage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          fs.writeFileSync(dir+'/preflight.json',JSON.stringify({
+            sourceSha:process.env.GITHUB_SHA,reviewedRcSourceSha:process.env.RC_SOURCE,
+            buildId:build.id,package:'org.mzbministry.buklod.staging',runtime:'1.3.2',
+            stagingBranch:stage,previousStageId:liveStage.id,productionUpdateId:production.id,
+            physicalDeviceVerified:false,nativeMlKitFunctionalityVerified:false,
+            verifiedAt:new Date().toISOString()
+          },null,2)+'\n');
+          NODE
+      - name: Compile frozen Android Hermes bundle using EAS preview environment
+        env:
+          EXPO_TOKEN: "${{ secrets.EXPO_TOKEN }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-nov18-preview.env --non-interactive > /dev/null
+          set -a; . /tmp/buklod-nov18-preview.env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          export EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > "$EVIDENCE_DIR/expo-config.json"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const c=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/expo-config.json','utf8'));
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.appTarget,'main');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.ok((process.env.EXPO_PUBLIC_SUPABASE_URL||'').startsWith('https://'));
+          a.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov18-scoped-video-android --clear
+          test -s /tmp/buklod-nov18-scoped-video-android/metadata.json
+          test "$(git ls-remote origin refs/heads/$STAGING_BRANCH | cut -f1)" = "$GITHUB_SHA"
+      - name: Idempotent Android staging-user OTA publication (never production)
+        env:
+          EXPO_TOKEN: "${{ secrets.EXPO_TOKEN }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$EVIDENCE_DIR/prior.json"
+          node <<'NODE'
+          import assert from 'node:assert/strict';import fs from 'node:fs';
+          const dir=process.env.EVIDENCE_DIR,raw=JSON.parse(fs.readFileSync(dir+'/prior.json','utf8'));
+          const rows=raw.currentPage??raw;
+          assert.ok(Array.isArray(rows),'Cannot verify staging update history safely');
+          const match=rows.find(u=>u.message==='BUKLOD_NOV18_CONSO_STAGING_'+process.env.GITHUB_SHA);
+          fs.writeFileSync(dir+'/existing-group',match?.group??'');
+          NODE
+          if [ ! -s "$EVIDENCE_DIR/existing-group" ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir /tmp/buklod-nov18-scoped-video-android --non-interactive --json --message "BUKLOD_NOV18_CONSO_STAGING_$GITHUB_SHA" > "$EVIDENCE_DIR/publish.json"
+            node <<'NODE'
+          import assert from 'node:assert/strict';import fs from 'node:fs';
+          const dir=process.env.EVIDENCE_DIR,updates=JSON.parse(fs.readFileSync(dir+'/publish.json','utf8'));
+          assert.ok(Array.isArray(updates)&&updates.length===1&&updates[0].group,'Expected exactly one Android EAS update');
+          fs.writeFileSync(dir+'/existing-group',updates[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$EVIDENCE_DIR/existing-group")" --json > "$EVIDENCE_DIR/update-view.json"
+      - name: Independently verify exact staged update, channel, runtime and unchanged production
+        env:
+          EXPO_TOKEN: "${{ secrets.EXPO_TOKEN }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel-after.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';import fs from 'node:fs';
+          import {verifyUpdate,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const dir=process.env.EVIDENCE_DIR,read=f=>JSON.parse(fs.readFileSync(dir+'/'+f,'utf8'));
+          const pre=read('preflight.json');
+          assert.equal(pre.reviewedRcSourceSha,process.env.RC_SOURCE);
+          const staged=verifyUpdate(read('update-view.json'),pre.sourceSha,pre.stagingBranch.name);
+          const channels=verifyChannels(read('staging-channel-after.json'),read('production-channel-after.json'));
+          assert.equal(channels.id,pre.stagingBranch.id);
+          const live=await manifest('staging-user');
+          assert.equal(live.id.toLowerCase(),staged.id.toLowerCase(),'Staging served manifest differs from published update');
+          assert.equal(live.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(live.extra?.expoClient?.extra?.appEnvironment,'staging');
+          const production=await manifest('production');
+          assert.equal(production.id,pre.productionUpdateId,'Production changed during staging OTA');
+          const receipt={
+            status:'VERIFIED SERVER-SIDE STAGING OTA',
+            sourceSha:pre.sourceSha,reviewedRcSourceSha:pre.reviewedRcSourceSha,
+            updateId:staged.id,groupId:staged.group,channel:'staging-user',
+            package:'org.mzbministry.buklod.staging',runtime:'1.3.2',environment:'preview',
+            stagingBranch:channels.name,signedBuildId:pre.buildId,
+            productionUnchanged:production.id,
+            physicalDeviceVerified:false,nativeMlKitFunctionalityVerified:false,
+            at:new Date().toISOString()
+          };
+          fs.writeFileSync(dir+'/verification.json',JSON.stringify(receipt,null,2)+'\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(receipt,null,2)+'\n');
+          NODE
+      - name: Archive release preflight and immutable receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov18-scoped-video-staging-evidence
+          path: /tmp/buklod-nov18-scoped-video-ota/*.json
+          retention-days: 21
+          if-no-files-found: ignore
