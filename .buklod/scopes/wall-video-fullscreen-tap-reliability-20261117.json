@@ -25,7 +25,8 @@
   "riskAreas": [
     "app-runtime",
     "wall-media",
-    "navigation-auth"
+    "navigation-auth",
+    "navigation-scroll"
   ],
   "allowedPaths": [
     "src/components/CommunityVideo.tsx",
