@@ -1,0 +1,41 @@
+name: Attendance V2 Isolated Database QA
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261118013000_buklod_attendance_v2_qr_antifarm.sql'
+      - 'supabase/migrations/20261118014000_buklod_attendance_v2_legacy_bridge_report.sql'
+      - 'supabase/tests/attendance_v2_*.sql'
+      - '.github/workflows/attendance-v2-db-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-postgres:
+    name: Migrated QR + anti-farming behavior
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 4s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations and execute isolated behavior/security tests
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          DB="psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 5432 -U postgres -d postgres"
+          $DB -f supabase/tests/attendance_v2_fixture.sql
+          $DB -f supabase/migrations/20261118013000_buklod_attendance_v2_qr_antifarm.sql
+          $DB -f supabase/migrations/20261118014000_buklod_attendance_v2_legacy_bridge_report.sql
+          $DB -f supabase/tests/attendance_v2_security.sql
+          $DB -f supabase/tests/attendance_v2_integration.sql

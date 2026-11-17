@@ -19,12 +19,16 @@
     "src/app/profile/attendance-qr.tsx",
     "src/components/BuklodHomeCheckinToday.tsx",
     "src/hooks/useAttendancePermissions.ts",
-    ".buklod/scopes/attendance-v2-qr-antifarming-20261118.json"
+    ".buklod/scopes/attendance-v2-qr-antifarming-20261118.json",
+    "supabase/tests/attendance_v2_fixture.sql",
+    "supabase/tests/attendance_v2_integration.sql",
+    ".github/workflows/attendance-v2-db-qa.yml"
   ],
   "regressionTests": [
     "tests/attendance-v2-contract.test.mjs",
     "tests/scope-attendance-v2-security.test.mjs",
-    "supabase/tests/attendance_v2_security.sql"
+    "supabase/tests/attendance_v2_security.sql",
+    "supabase/tests/attendance_v2_integration.sql"
   ],
   "riskAreas": [
     "faith-cluster",
@@ -73,7 +77,8 @@
       ],
       "tests": [
         "tests/scope-attendance-v2-security.test.mjs",
-        "supabase/tests/attendance_v2_security.sql"
+        "supabase/tests/attendance_v2_security.sql",
+        "supabase/tests/attendance_v2_integration.sql"
       ]
     }
   ],
@@ -89,7 +94,8 @@
     "Event author cannot self-approve, approval cannot occur before completed event, high-frequency events require System Admin, and no BP is awarded before approval.",
     "Reward ledger respects 10 BP per verified event, 20 per Manila day and 50 per Manila week across scoped/legacy event attendance.",
     "Cross-organization home report has no cross-account exposure or duplicate rewards.",
-    "No manual device verification per owner request; DEV changes stay out of production OTA until automated gates and verified RC are ready."
+    "No manual device verification per owner request; DEV changes stay out of production OTA until automated gates and verified RC are ready.",
+    "GitHub Actions isolated PostgreSQL 17 service applies both attendance migrations then runs RLS, QR replay, forged-metadata, independent approval, ledger dedup, partial reversal, and private cross-scope reporting assertions."
   ],
   "alternativeApproaches": [
     "Let event creators automatically award rewards to scanned members (rejected: farming and self-approval abuse).",

@@ -121,8 +121,8 @@ begin
    join public.attendance_people ap on ap.id=pr.person_id
    where ap.buklod_user_id is not null
  ), canonical as (
-   select distinct on(person,event_id) person,event_id,stamp,state from raw
-   order by person,event_id,stamp asc
+   select distinct on(raw.person,raw.event_id) raw.person,raw.event_id,raw.stamp,raw.state from raw
+   order by raw.person,raw.event_id,raw.stamp asc
  )
  select c.person,p.full_name::text,c.event_id,
     case when public.buklod_can_view_scope(e.scope_id) then e.title else 'External attendance' end::text,
