@@ -17,11 +17,13 @@
     "supabase/migrations/20261117143800_formation_multi_scope_reporting_dedup_v2.sql",
     "tests/formation-all-active-scope-reporting.test.cjs",
     "tests/formation-database-security-reporting.test.cjs",
-    ".buklod/scopes/formation-all-active-scope-reporting-20261117.json"
+    ".buklod/scopes/formation-all-active-scope-reporting-20261117.json",
+    "supabase/tests/formation_multi_scope_reporting_v1.sql"
   ],
   "regressionTests": [
     "tests/formation-all-active-scope-reporting.test.cjs",
-    "tests/formation-database-security-reporting.test.cjs"
+    "tests/formation-database-security-reporting.test.cjs",
+    "supabase/tests/formation_multi_scope_reporting_v1.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -41,7 +43,8 @@
         "Only authorized scope leaders can view scoped reports; no data deletion, audit loss, extra points, or public internal RPC access."
       ],
       "tests": [
-        "tests/formation-database-security-reporting.test.cjs"
+        "tests/formation-database-security-reporting.test.cjs",
+        "supabase/tests/formation_multi_scope_reporting_v1.sql"
       ]
     }
   ],
@@ -56,5 +59,10 @@
     "V2 protected-feature gate, focused Node tests and CI must pass before merging source; no Android OTA."
   ],
   "releaseMode": "DATABASE_ONLY_PRODUCTION_APPLIED_SOURCE_PR_PENDING_CI",
-  "physicalDeviceVerification": "NOT_PERFORMED"
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "alternativeApproaches": [
+    "Duplicate each original activity and approval under every membership scope (rejected: risks duplicate reward/points and corrupts source-of-truth records).",
+    "Keep reports limited to originating Cluster while requiring the user to change workspaces (rejected: still hides verified Formation from other current memberships).",
+    "Relax all cross-scope report permissions (rejected: violates least-privilege and exposes other member information)."
+  ]
 }
