@@ -87,7 +87,7 @@ jobs:
             tests/attendance-v2-contract.test.mjs \
             tests/scope-attendance-v2-security.test.mjs \
             tests/ad-dashboard-focus-performance-20261116.test.mjs \
-            tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs
+            tests/buklod-shared-dashboard-scroll-20261111.test.mjs
       - name: Compile Android staging source only
         shell: bash
         run: |
