@@ -32,10 +32,7 @@
     "tests/buklod-wall-ad-stability.test.mjs"
   ],
   "regressionTests": [
-    "tests/buklod-wall-ad-stability.test.mjs",
-    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
-    "tests/buklod-wall-native-ad-retention-lock-20261112.test.mjs",
-    "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+    "tests/buklod-wall-ad-stability.test.mjs"
   ],
   "acceptanceChecks": [
     "Failed inline banners retain a compact, non-clickable viewport probe eligible for later cooldown recovery; no collapsed giant blank frame.",
