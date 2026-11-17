@@ -9,8 +9,8 @@ import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpp
 import {playBuklodGameFeedback} from '@/features/games/runtime/BuklodGameFeedback';
 
 type Level='easy'|'medium'|'hard';
-type Question={id:string;kind:'mcq'|'identification'|'enumeration'|'essay';question:string;options?:Record<string,string>;reference?:string};
-type Review={id:string;kind:string;earned_units:number|null;reference:string;rationale:string;correct_answer?:any;question?:string;submitted_answer?:string|string[]};
+type Question={id:string;kind:'mcq'|'identification'|'enumeration'|'essay';question:string;options?:Record<string,string>;reference?:string;rubric_guidance?:{min_chars:number;min_sentences:number;max_sentences:number;criteria:string[]}|null};
+type Review={id:string;kind:string;earned_units:number|null;reference:string;rationale:string;correct_answer?:any;question?:string;submitted_answer?:string|string[];rubric_feedback?:{message:string;requirements_met:boolean;criteria_matched:number;criteria_total:number;character_count:number;sentence_count:number;criteria:{id:string;label:string;met:boolean}[]}|null};
 type Quiz={attempt_id?:string;date:string;selection_required?:boolean;legacy_attempt?:boolean;difficulty?:Level;state?:string;score_units?:number|null;awarded_points?:number;questions?:Question[];review?:Review[];review_note?:string};
 const levels=[{id:'easy' as const,points:3,desc:'Stories and identification'},
 {id:'medium' as const,points:6,desc:'Understanding and enumeration'},
@@ -72,7 +72,15 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
  const valid=(q:Question)=>{
   const a=answers[q.id];
   if(q.kind==='enumeration')return Array.isArray(a)&&a.length===2&&a.every(x=>x.trim().length>0);
-  if(q.kind==='essay')return typeof a==='string'&&a.trim().length>=30;
+  if(q.kind==='essay'){
+   if(typeof a!=='string')return false;
+   const rubric=q.rubric_guidance;
+   if(!rubric)return a.trim().length>=30;
+   const text=a.trim();
+   const sentences=1+(text.replace(/[.!?]+\s*$/,'').match(/[.!?]+\s+/g)||[]).length;
+   return text.length>=rubric.min_chars&&text.length<=2400&&sentences>=rubric.min_sentences&&
+    (rubric.max_sentences===0||sentences<=rubric.max_sentences);
+  }
   return typeof a==='string'&&a.trim().length>0;
  };
  const submit=async()=>{
@@ -87,8 +95,9 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
      })):old?.review}));
    if(key)await AsyncStorage.removeItem(key);
    setMessage(data.status==='pending_review'
-     ?'Essay received. Final score and BP await a rubric review.'
-     :data.points>0?'+'+String(data.points)+' BP verified. Claim on Points.':'Quiz completed — see the rationale below.');
+     ?'Naka-save ang sagot. I-refresh para makita ang awtomatikong resulta.'
+     :data.points>0?'Awtomatikong nasuri. +'+String(data.points)+' BP; i-claim sa Points. Tingnan ang rubric sa ibaba.'
+     :'Awtomatikong nasuri ang quiz. Tingnan ang score at rubric feedback sa ibaba.');
    void playBuklodGameFeedback(data.status==='completed'?'success':'collect');
    if(data.status==='completed')void showBuklodAdOpportunity('points_submission_success');
   }catch{setMessage('Submit failed. Your draft remains saved. Try again.');}
@@ -113,9 +122,9 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
    </Pressable>)}
   </View>:null}
   {quiz?.state==='completed'||quiz?.state==='pending_review'?<View style={s.card}>
-   <Text style={s.heading}>{quiz.state==='pending_review'?'Essay review pending':'Quiz completed'}</Text>
+   <Text style={s.heading}>{quiz.state==='pending_review'?'Kinukuha ang awtomatikong resulta':'Quiz completed · auto-graded'}</Text>
    <Text style={s.score}>{quiz.score_units==null?'Pending':String(quiz.score_units/2)+'/5'}</Text>
-   <Text style={s.dark}>{quiz.state==='pending_review'?'BP will be decided after review':'+'+String(quiz.awarded_points||0)+' BUKLOD Points'}</Text>
+   <Text style={s.dark}>{quiz.state==='pending_review'?'I-refresh ang resulta':'+'+String(quiz.awarded_points||0)+' BUKLOD Points'}</Text>
    {quiz.review_note?<Text style={s.muted}>{quiz.review_note}</Text>:null}
    <Pressable style={s.link} onPress={()=>void load()}><Text style={s.dark}>Refresh assessment</Text></Pressable>
   </View>:null}
@@ -133,7 +142,14 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
     value={Array.isArray(answers[q.id])?(answers[q.id] as string[])[pos]||'':''}
     onChangeText={v=>setEnum(q.id,pos,v)}/>):null}
    {q.kind==='essay'?<View>
-    <Text style={s.muted}>3–5 sentences. Manual rubric review is required for fair scoring.</Text>
+    <Text style={s.muted}>Awtomatikong sinusuri at fina-finalize ang essay; makikita agad ang marka, dahilan, at BP.</Text>
+    {q.rubric_guidance?<View style={s.reviewSection}>
+     <Text style={s.reviewLabel}>Mga kailangang matugunan</Text>
+     <Text style={s.muted}>Hindi bababa sa {q.rubric_guidance.min_chars} characters · {q.rubric_guidance.min_sentences}
+      {q.rubric_guidance.max_sentences>0?'–'+q.rubric_guidance.max_sentences:'+'} pangungusap</Text>
+     {q.rubric_guidance.criteria?.map((criterion,index)=><Text key={index} style={s.muted}>• {criterion}</Text>)}
+     <Text style={s.muted}>2/2 kung natugunan ang format at 3 o higit pang rubric criteria; 1/2 kung may sapat na bahagyang tugon.</Text>
+    </View>:null}
     <TextInput multiline maxLength={2400} style={[s.input,s.essay]}
      value={typeof answers[q.id]==='string'?answers[q.id] as string:''}
      onChangeText={v=>setAnswer(q.id,v)} placeholder="Explain your analysis..."/>
@@ -149,6 +165,13 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
    {ownAnswer(r.submitted_answer)?<View style={s.reviewSection}>
     <Text style={s.reviewLabel}>Iyong isinagot</Text>
     <Text style={s.submitted}>{ownAnswer(r.submitted_answer)}</Text>
+   </View>:null}
+   {r.kind==='essay'&&r.rubric_feedback?<View style={s.reviewSection}>
+    <Text style={s.reviewLabel}>Awtomatikong rubric assessment</Text>
+    <Text style={s.dark}>{r.rubric_feedback.message}</Text>
+    <Text style={s.muted}>{r.rubric_feedback.criteria_matched}/{r.rubric_feedback.criteria_total} criteria · {r.rubric_feedback.sentence_count} pangungusap · {r.rubric_feedback.character_count} characters</Text>
+    {r.rubric_feedback.criteria?.map(c=><Text key={c.id} style={s.muted}>{c.met?'✓':'○'} {c.label}</Text>)}
+    {!r.rubric_feedback.requirements_met?<Text style={s.muted}>Hindi ganap na natugunan ang format/length requirement.</Text>:null}
    </View>:null}
    <View style={s.reviewSection}>
     <Text style={s.reviewLabel}>Paliwanag sa talata</Text>
