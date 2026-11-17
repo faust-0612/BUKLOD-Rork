@@ -13,6 +13,8 @@ test('navigation: fullscreen handoff still honors same signed URL and modal clos
   assert.match(wall,/videoViewerFreshUrls\[/);
   assert.match(wall,/onRequestClose=\{\s*closeVideoViewer\s*\}/);
   assert.match(wall,/videoViewerOpenPendingRef\.current=false;/);
+  assert.match(wall,/if\(Platform\.OS==='android'\)\{[\s\S]*?videoViewerOpenPendingRef\.current=true;/);
+  assert.match(wall,/Web uses its existing viewer navigation[\s\S]*?setVideoViewerOpen\(true\)/);
   assert.match(wall,/setVideoViewerHandoffPostId\(null\)/);
   assert.match(wall,/videoViewerScanSeqRef\.current\+=1/);
   assert.match(wall,/onPlaybackError=\{\(\)=>\{\s*void refreshVideoViewerUrl\(item,fullscreenUri\)/);
