@@ -15,6 +15,8 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { resolveFullscreenVideoSwipe, type FullscreenVideoSwipeDirection } from '@/lib/buklodFullscreenVideoSwipe';
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -85,6 +87,7 @@ type Props = {
   suspendedForFullscreen?: boolean;
   controlsBottomInset?: number;
   onOpenFullscreen?: () => void;
+  onFullscreenSwipe?: (direction: FullscreenVideoSwipeDirection) => void;
   onPlaybackError?: () => void;
   onRequestPlay?: () => void;
   preserveAspectRatio?: boolean;
@@ -245,6 +248,39 @@ export function CommunityVideo(props: Props) {
   );
 }
 
+
+/** Pan-to-page without sacrificing play/pause taps or native IMA ad click paths. */
+function VideoTapSurface({
+  fullscreen,onFullscreenSwipe,accessibilityLabel,onPress,disabled=false,
+}:{
+  fullscreen:boolean;
+  onFullscreenSwipe?: (direction:FullscreenVideoSwipeDirection)=>void;
+  accessibilityLabel:string;
+  onPress:()=>void;
+  disabled?:boolean;
+}) {
+  const gesture=useMemo(()=>Gesture.Pan()
+    .enabled(fullscreen && Boolean(onFullscreenSwipe))
+    .maxPointers(1)
+    .activeOffsetY([-16,16])
+    .failOffsetX([-44,44])
+    .runOnJS(true)
+    .onEnd(event=>{
+      const direction=resolveFullscreenVideoSwipe(event.translationX,event.translationY);
+      if(direction)onFullscreenSwipe?.(direction);
+    }),[fullscreen,onFullscreenSwipe]);
+  const tap=<Pressable
+    accessibilityRole="button"
+    accessibilityLabel={accessibilityLabel}
+    disabled={disabled}
+    onPress={onPress}
+    style={styles.tapLayer}
+  />;
+  return fullscreen&&onFullscreenSwipe
+    ? <GestureDetector gesture={gesture}>{tap}</GestureDetector>
+    : tap;
+}
+
 function InactiveCommunityVideo({
   height = 380,
   poster,
@@ -254,6 +290,7 @@ function InactiveCommunityVideo({
   preserveAspectRatio = true,
   controlsBottomInset = 0,
   onOpenFullscreen,
+  onFullscreenSwipe,
   onRequestPlay,
 }: Props & { poster?: any }) {
   const knownDuration =
@@ -299,20 +336,15 @@ function InactiveCommunityVideo({
         ) : null}
       </View>
 
-      <Pressable
-        accessibilityRole="button"
+      <VideoTapSurface
+        fullscreen={fullscreen}
+        onFullscreenSwipe={onFullscreenSwipe}
         accessibilityLabel={onOpenFullscreen ? 'Open video full screen' : 'Play video'}
         disabled={!onRequestPlay && !onOpenFullscreen}
         onPress={() => {
-          // Tapping a recycled/offscreen preview must honor the Wall viewer
-          // instead of silently starting an inline player.
-          if (onOpenFullscreen) {
-            onOpenFullscreen();
-            return;
-          }
+          if (onOpenFullscreen) { onOpenFullscreen(); return; }
           onRequestPlay?.();
         }}
-        style={styles.tapLayer}
       />
 
       {knownDuration > 0 ? (
@@ -589,6 +621,7 @@ function ExpoCommunityVideoPlayback({
   active = true,
   controlsBottomInset = 0,
   onOpenFullscreen,
+  onFullscreenSwipe,
   onPlaybackError,
   preserveAspectRatio = true,
   fitFrame = false,
@@ -1152,14 +1185,14 @@ function ExpoCommunityVideoPlayback({
         </View>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
+      <VideoTapSurface
+        fullscreen={fullscreen}
+        onFullscreenSwipe={onFullscreenSwipe}
         accessibilityLabel={
           onOpenFullscreen && !fullscreen ? 'Open video full screen'
             : playing ? 'Pause video' : 'Play video'
         }
         onPress={onOpenFullscreen && !fullscreen ? openInlineFullscreen : togglePlayback}
-        style={styles.tapLayer}
       />
 
       {playerStatus === 'error' && !autoRecovering ? (
