@@ -14,7 +14,7 @@ test('Android first-view uses native inventory first and preserves the first-vie
  assert.doesNotMatch(bannerFirst, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
  assert.match(banner, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
  assert.match(banner, /if \(noFill && adNetworkAvailable\) \{[\s\S]*?setFailed\(true\)/);
- assert.match(banner, /BANNER_LOAD_TIMEOUT_MS = 8_000/);
+ assert.match(banner, /BANNER_LOAD_TIMEOUT_MS = 14_000/);
  assert.match(banner, /BANNER_AD_LOAD_TIMEOUT/);
  assert.match(banner,/reserveBuklodPassiveAdRequest\(stablePlacementId, requestKey\)/);
 });
@@ -35,7 +35,7 @@ test('Native creative keeps its full frame but pending banner and viewport slots
  assert.match(s, /usePostRectangle/);
  assert.match(s, /height: 250/);
  assert.match(s, /bannerFailedAt.current = Date.now\(\)/);
- assert.ok(s.includes('if (!bannerUnitId || bannerFailed) return null;'));
+ assert.match(s, /if \(bannerFailed\) \{[\s\S]*?styles\.viewportProbe/);
  assert.match(s, /NativeAdEventType.IMPRESSION/);
  assert.match(s, /getBuklodPassiveAdRequestWaitMs/);
 });
@@ -50,16 +50,16 @@ test('AdMob init never waits on perpetually active interactions', () => {
 
 test('Small banners keep the SDK surface visible during initial load and no-fill', () => {
  const banner=read('src/components/BuklodAdMobBanner.tsx');
- assert.match(banner, /<View style=\{\[styles.shell, compact && styles.compactShell\]\}>/);
+ assert.match(banner, /<View style=\{\[styles.shell, compact && styles.compactShell,/);
  assert.match(banner, /<Animated.View style=\{\[styles.labelRow, \{ opacity \}\]\}>/);
  assert.doesNotMatch(banner, /opacity: compact \? opacity : 1/);
 });
 
 test('First-view native timeout is bounded and failed banner fallbacks collapse instead of leaving a full-height blank', () => {
  const s=read('src/components/BuklodCommunityInlineAd.android.tsx');
- assert.match(s, /const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 8_000/);
+ assert.match(s, /const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 16_000/);
  assert.match(s, /firstView \? FIRST_VIEW_AD_LOAD_TIMEOUT_MS : AD_LOAD_TIMEOUT_MS/);
- assert.match(s, /if \(!bannerUnitId \|\| bannerFailed\) return null/);
+ assert.match(s, /if \(!bannerUnitId\) return null;[\s\S]*?if \(bannerFailed\) \{[\s\S]*?styles\.viewportProbe/);
 });
 
 
@@ -73,4 +73,20 @@ test('Public Wall first-view uses its dedicated community-entry BannerAd fallbac
   assert.match(shared, /bannerPlacementOverride\?: BuklodAdPlacement/);
   assert.match(inline, /const bannerPlacement = bannerPlacementOverride \?\?/);
   assert.match(units, /case 'community_entry':[\s\S]*?EXPO_PUBLIC_ADMOB_COMMUNITY_ENTRY_BANNER_UNIT_ID/);
+});
+
+test('Wall NativeAd repeated timeouts use a bounded banner-first recovery without request spam', () => {
+ const native=read('src/components/BuklodCommunityInlineAd.android.tsx');
+ assert.match(native, /const NATIVE_FAILURE_THRESHOLD = 2/);
+ assert.match(native, /const NATIVE_BANNER_PREFERENCE_MS = 5 \* 60 \* 1000/);
+ assert.match(native, /preferBannerAfterNativeFailures\(placementId\)/);
+ assert.match(native, /noteNativeRequestFailed\(placementId\)/);
+ assert.match(native, /noteNativeRequestSucceeded\(placementId\)/);
+ assert.match(native, /if \(!nativeUnitId \|\| preferBannerAfterNativeFailures\(placementId\)\)/);
+ assert.match(native, /if \(!nativeRequestStarted\.current &&[\s\S]*?reserveBuklodPassiveAdRequest\(placementId, requestKey\)/);
+ assert.match(native, /if \(!screenFocusRef\.current \|\| !keepNativeLifecycle \|\| !canStartNativeRef\.current/);
+ assert.match(native, /!currentlyVisible \|\|[\s\S]*?!bannerUnitId/);
+ assert.match(native, /Date\.now\(\) - bannerFailedAt\.current < AD_SLOT_REMOUNT_COOLDOWN_MS/);
+ assert.match(native, /if \(bannerFailed\) \{[\s\S]*?style=\{styles\.viewportProbe\}/);
+ assert.doesNotMatch(native, /fakeImpression|syntheticImpression/);
 });
