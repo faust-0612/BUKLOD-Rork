@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/nov17-wall-follow-beside-name.json",
   "objective": "Make the BUKLOD Public Wall header compact by placing FOLLOW/FOLLOWING alongside the author name and Edit/Report overflow directly beneath it, without losing profile identity or ad/media behavior.",
   "baseRef": "main",
-  "productionBaselineEvidence": "GitHub main source commit 66614852ea3163b6cb9eafdad2db3c02a8f7558a was inspected on 2026-11-17. This is source-only evidence and does not establish the live installed Android OTA fingerprint.",
+  "productionBaselineEvidence": "verified: GitHub main source commit 66614852ea3163b6cb9eafdad2db3c02a8f7558a was inspected on 2026-11-17. This establishes the PR source baseline only; it does not establish the installed Android binary, runtime OTA or production deployment fingerprint.",
   "chosenApproach": "Keep avatar and identity column with a one-line author, quick note, rank/audience and compact date; use a right-side action rail with Follow first and Report beneath; keep own-post Edit/Delete menu and existing callback authorization unchanged.",
   "selectionRationale": "The preceding layout grouped Follow, Report and the timestamp horizontally in a lower row, creating an unnecessarily tall/empty band on mobile.",
   "riskAreas": [
