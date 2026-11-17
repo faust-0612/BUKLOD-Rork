@@ -1,0 +1,183 @@
+{
+  "contractVersion": 2,
+  "objective": "Reconcile all current Nov17/Nov18 owner-requested BUKLOD Android fixes into one staging-only, source-verified, fail-closed RC without overwriting current main, ads, media or formation reporting.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Inspected canonical GitHub main d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 (includes merges #901-#915 and Formation #920/#921). Nov17 previously verified staging PR #900 published source 730c811cda97d106339f14fae04fb4b8890b0ed2 on runtime 1.3.2; this is historical evidence only. Current device/build/OTA/runtime not physically reverified by owner request.",
+  "chosenApproach": "Create a single RC integration branch from latest main; merge source stacks #916-#917-#923 together, #918 Android instant tabs, #922 forward-port of #919 Henry translation, and #924 scoped video rendering, each against the same RC. Preserve component scope manifests and run consolidated exact-source CI, without automatic release.",
+  "selectionRationale": "Dedicated RC branch avoids rewriting production/main, preserves formation migrations and source provenance, and isolates overlapping video/player changes. No new native dependencies, ads policy or backend writes. OTA promotion remains gated on immutable artifact and runtime compatibility.",
+  "preserveBehaviors": [
+    "Current main/staging approved Wall and Connect compact spacing, avatar/full names, real recent comments, Marites swipe, privacy and photo recovery remain untouched",
+    "AdMob/IMA fill, consent, prewarming, first-view placement and offscreen lifecycle remain protected release blockers",
+    "Fullscreen clicked video, signed URL retry, low bandwidth cache and player handoff remain stable; new videos are append-only fair ranked",
+    "Cluster/Organization video posts respect RLS and private media permissions; reports and existing points/formation SQL not mutated",
+    "Bible's English Matthew Henry fallback remains available; ML Kit native support still requires a compatible APK, not just OTA"
+  ],
+  "releaseMode": "consolidated-main-rc",
+  "scopeManifestPath": ".buklod/scopes/nov18-consolidated-current-fixes-android132.json",
+  "componentScopePaths": [
+    ".buklod/scopes/android-instant-dashboard-tabs-20261117.json",
+    ".buklod/scopes/fullscreen-video-all-area-reactions-20261117.json",
+    ".buklod/scopes/fullscreen-video-fair-exposure-20261118.json",
+    ".buklod/scopes/nov18-staging-apk-henry-mlkit.json",
+    ".buklod/scopes/scoped-community-sidecar-video-render-20261118.json",
+    ".buklod/scopes/video-handoff-connect-stability-20261117.json"
+  ],
+  "sourceBranch": "rc/nov18-consolidated-current-fixes-android132",
+  "sourcePRs": [
+    916,
+    917,
+    923,
+    918,
+    919,
+    922,
+    924
+  ],
+  "priorMergedPRs": [
+    900,
+    901,
+    903,
+    905,
+    906,
+    908,
+    910,
+    911,
+    912,
+    913,
+    914,
+    915,
+    920,
+    921
+  ],
+  "actualDeviceVerificationSkipped": true,
+  "releaseAuthorized": false,
+  "channel": "staging-user",
+  "targetPlatform": "android",
+  "runtime": "1.3.2",
+  "packageName": "org.mzbministry.buklod.staging",
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "connect"
+  ],
+  "regressionTests": [
+    "tests/bible-henry-translation-recovery-20261117.test.cjs",
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "tests/dashboard-navigation-auth-20261117.test.mjs",
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    "tests/fullscreen-video-navigation-reactions-20261117.test.mjs",
+    "tests/fullscreen-video-session-navigation-20261118.test.mjs",
+    "tests/protected-feature-lock-nov18-consolidated-rc.test.mjs",
+    "tests/scoped-community-video-sidecar-recovery.test.mjs",
+    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
+    "tests/video-handoff-connect-stability-20261117.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/android-instant-dashboard-tabs-20261117.json",
+    ".buklod/scopes/fullscreen-video-all-area-reactions-20261117.json",
+    ".buklod/scopes/fullscreen-video-fair-exposure-20261118.json",
+    ".buklod/scopes/nov18-consolidated-current-fixes-android132.json",
+    ".buklod/scopes/nov18-staging-apk-henry-mlkit.json",
+    ".buklod/scopes/scoped-community-sidecar-video-render-20261118.json",
+    ".buklod/scopes/video-handoff-connect-stability-20261117.json",
+    ".github/workflows/engineering-accountability.yml",
+    "scripts/engineering-regression-gate.mjs",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/bible/read.tsx",
+    "src/components/BuklodAndroidDashboardTabs.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodFlyingVideoReactions.tsx",
+    "src/components/CommunityVideo.tsx",
+    "src/lib/buklodFullscreenVideoSwipe.ts",
+    "src/lib/buklodHenryTranslation.ts",
+    "src/lib/buklodVideoDiscovery.ts",
+    "src/lib/communityVideoHandoff.ts",
+    "tests/bible-henry-translation-recovery-20261117.test.cjs",
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "tests/dashboard-navigation-auth-20261117.test.mjs",
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    "tests/fullscreen-video-navigation-reactions-20261117.test.mjs",
+    "tests/fullscreen-video-session-navigation-20261118.test.mjs",
+    "tests/protected-feature-lock-nov18-consolidated-rc.test.mjs",
+    "tests/scoped-community-video-sidecar-recovery.test.mjs",
+    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
+    "tests/video-handoff-connect-stability-20261117.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Compare exact RC branch to main: only declared 31 paths; no dropped legacy fixes or formation migrations; include all six component scope manifests",
+    "Run changed focused tests and native-independent AdMob/nav/media source regression gates, TypeScript, web compatibility export and protected source tests",
+    "Preserve Android Hermes 1.3.2 compatibility and separate native ML Kit APK requirement; no native dependency/source changes",
+    "Do not publish staging/production until exact artifact & manifest verified through approved release path; actual device testing intentionally not claimed",
+    "Any failing ad load/fill, offscreen lifecycle, first-view ad warmup or navigation gate blocks OTA"
+  ],
+  "alternativeApproaches": [
+    "Merge each feature directly into production main (rejected because it risks unrelated incomplete DEV changes reaching production source)",
+    "Publish source without a reproducible RC and mandatory CI (rejected because ad/navigation/video regressions previously occurred)",
+    "Copy entire stale branch over latest main (rejected because this can drop Formation SQL, Wall edits and current media fixes)"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Consolidated RC integrates existing authorized app JS for dashboard navigation, video and translation while holding native runtime and staging package fixed.",
+      "preservedBehaviors": [
+        "No native dependency or runtime change; preserve startup and actual playback lifecycle"
+      ],
+      "tests": [
+        "tests/fullscreen-video-fair-exposure-20261118.test.cjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Public fullscreen and scoped Community video renderers gain tested fair selection, gesture reactions, frame handoff and signed sidecar retries.",
+      "preservedBehaviors": [
+        "Protected AdMob/IMA slots, private signed URL cache, media prefetch, existing Wall photos and full-screen interactions"
+      ],
+      "tests": [
+        "tests/fullscreen-video-navigation-reactions-20261117.test.mjs",
+        "tests/scoped-community-video-sidecar-recovery.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Android persistent lazy dashboard tabs and video modal paging modify navigation behavior while preserving Public/Cluster auth/scope boundaries.",
+      "preservedBehaviors": [
+        "Public routing, Back/close, login and scope isolation, no offscreen ad/video work"
+      ],
+      "tests": [
+        "tests/dashboard-navigation-auth-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Connect chat scroll anchor is corrected within the video handoff DEV stack without changing PTT, calling or user message history.",
+      "preservedBehaviors": [
+        "Chat history pagination, PTT audio isolation and read cursor are preserved"
+      ],
+      "tests": [
+        "tests/video-handoff-connect-stability-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Scoped Cluster and Organization Community video rendering is restored through already-authorized post sidecar media records.",
+      "preservedBehaviors": [
+        "Existing RLS membership access, companion ads, legacy video fallback and comments preserved"
+      ],
+      "tests": [
+        "tests/scoped-community-video-sidecar-recovery.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Extend existing fail-closed engineering accountability and regression gates to the explicitly named Nov18 cumulative RC branch without disabling any release protections.",
+      "preservedBehaviors": [
+        "All existing source scope and protected-feature checks still execute; unrelated branch changes still fail"
+      ],
+      "tests": [
+        "tests/protected-feature-lock-nov18-consolidated-rc.test.mjs"
+      ]
+    }
+  ],
+  "status": "Source integration candidate only: CI must still pass; no new EAS staging or production update has been published."
+}
