@@ -16,15 +16,19 @@ test('Wall avatar column and full-width one-line author identity are preserved',
   assert.match(header, /<ProfileAvatarNoteChip userId=\{item.user_id\}/);
 });
 
-test('Wall date remains one line, Following and Report share an adjacent row', () => {
-  assert.match(header, /flexDirection:'row',alignItems:'center',gap:6,marginTop:3,minWidth:0/);
-  assert.match(header, /style=\{\[s.meta,\{flex:1,minWidth:0,marginTop:0\}\]\}/);
+test('Follow is beside the author and Report is beneath it in the right rail', () => {
+  assert.match(header, /flexDirection:'row',alignItems:'flex-start',gap:5/);
+  assert.match(header, /<View style=\{\{alignItems:'flex-end',flexShrink:0,gap:2\}\}>/);
+  assert.match(header, /<BuklodTappablePersonName[\s\S]*?numberOfLines=\{1\}/);
   assert.match(header, /formatCompactWallDateTime\(item.created_at\)/);
-  assert.match(header, /flexDirection:'row',alignItems:'center',gap:4,flexShrink:0/);
+  assert.match(header, /flexDirection:'column',\s*alignItems:'flex-end',\s*gap:2/);
+  assert.match(header, /minHeight:29/);
   assert.match(header, /toggleAuthorFollow\(/);
   assert.match(header, /openReport\('post', item.id\)/);
-  assert.doesNotMatch(header, /justifyContent:'flex-end',alignItems:'center',marginTop:3,gap:6/);
-  assert.ok(header.indexOf('formatCompactWallDateTime(item.created_at)') < header.indexOf('toggleAuthorFollow('));
+  assert.match(header, /onEdit=\{async/);
+  assert.match(header, /onDelete=\{async/);
+  assert.ok(header.indexOf('BuklodTappablePersonName') < header.indexOf("alignItems:'flex-end',flexShrink:0,gap:2"));
+  assert.ok(header.indexOf('toggleAuthorFollow(') < header.indexOf("openReport('post', item.id)"));
 });
 
 test('Post media, reaction, comment and AdMob placement contracts remain', () => {
