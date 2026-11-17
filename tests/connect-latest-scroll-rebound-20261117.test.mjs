@@ -71,6 +71,12 @@ test('older history offsets preserve the visible message without two controllers
   assert.match(thread, /pendingOlderAnchorRef\.current = \{/);
   assert.match(thread, /const offset = connectOlderPrependScrollOffset\(/);
   assert.match(thread, /pendingOlderAnchorRef\.current = null;/);
+  // A zero-height prepend must consume its anchor instead of making a later
+  // attachment/keyboard resize unexpectedly shift the reader's viewport.
+  assert.match(
+    thread,
+    /pendingOlderAnchorRef\.current = null;[\s\S]*?const offset = connectOlderPrependScrollOffset\(anchor, height\);[\s\S]*?if \(offset !== null\)/
+  );
   assert.doesNotMatch(thread, /maintainVisibleContentPosition=/);
   assert.match(thread, /bounces=\{false\}/);
   assert.match(thread, /overScrollMode="never"/);
