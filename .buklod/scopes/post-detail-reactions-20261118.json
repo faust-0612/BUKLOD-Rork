@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/post-detail-reactions-20261118.json",
   "objective": "Fix clipped reaction-count badges in the Android individual BUKLOD Post view, keep every per-reaction numeric total readable and match total to the available breakdown.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Inspected GitHub main source d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 and user-supplied Android individual-post screenshot from Nov 18, 2026. Main is a source reference only; no production OTA, device validation or live release identity was verified.",
+  "productionBaselineEvidence": "verified: GitHub main source at d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 was fetched and inspected for the individual post renderer and reaction component; the user-supplied Android screenshot shows visual truncation. This verifies a SOURCE baseline only, not a live Android binary, production OTA, runtime fingerprint, or publication.",
   "chosenApproach": "Add opt-in layout='detail' to the existing reaction component with a 34dp action, a full-width wrapping non-shrinking count summary and numeric chips. Use the backend breakdown sum for the visible detail total when supplied, retaining the backend total fallback. Do not change RPC, data schema, Wall feed, media or ads.",
   "selectionRationale": "The individual post was using default single-row nonwrapping action/summary geometry, allowing the numeric reaction chips to be clipped while a redundant total was separated below it; an isolated display layout is the smallest fix.",
   "alternativeApproaches": [
