@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov17-henry-translation-recovery.json",
+  "objective": "Explain and safely recover Matthew Henry Filipino translation failures from the 1 Kings 4:20 Android screenshot without showing unreliable machine output or modifying original English.",
+  "baseRef": "0ee57887c991d23472cdf1f9b849bce945792910",
+  "productionBaselineEvidence": "Verified GitHub main source at 0ee57887c991d23472cdf1f9b849bce945792910. Exact installed APK native-module presence and live Android production/staging OTA identity were NOT verified from the screenshot; this fix is source-only and must not be described as released.",
+  "chosenApproach": "Classify on-device ML Kit failures and expose a retry only for recoverable model/translation errors, preserving the Wi-Fi-only model policy, language normalization, original-English fallback, semantic/citation safeguards, account-specific cache, source attribution, and all AdMob/navigation/media behavior. Explicitly explain that missing native code requires a new Android APK, not a JS OTA.",
+  "selectionRationale": "The existing hook discards every native/accuracy error into one unavailable state, so users cannot distinguish an outdated APK from an interrupted Wi-Fi download or quality rejection. An isolated hook/UI improvement provides actionable diagnosis without new service credentials, privacy risks, native changes, or duplicate translation providers.",
+  "alternativeApproaches": [
+    "Automatically send the commentary to an external online translation API (rejected: introduces unapproved service, attribution/privacy requirements, billing and unverifiable doctrinal accuracy).",
+    "Bypass the semantic/citation safety gate and show any returned Filipino (rejected: risks misleading religious material).",
+    "Force cellular model downloads silently (rejected: potentially costly unexpected data usage)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith"
+  ],
+  "preserveBehaviors": [
+    "No changes to Bible Scripture, chapter selection, Daily Reading completion, Strong's lexicon, audio, notes, or cached original commentary.",
+    "Only successfully validated Filipino commentary is shown and cached within the current account; all other cases show authoritative English.",
+    "First model download requires Wi-Fi; no automatic cellular download or background retry loop.",
+    "No changes to AdMob loading/fill/navigation, native dependencies, Supabase, production or staging OTA release."
+  ],
+  "allowedPaths": [
+    "src/lib/buklodHenryTranslation.ts",
+    "src/app/bible/read.tsx",
+    "tests/bible-henry-translation-recovery-20261117.test.cjs",
+    ".buklod/scopes/nov17-henry-translation-recovery.json"
+  ],
+  "regressionTests": [
+    "tests/bible-henry-translation-recovery-20261117.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Translation hook and error UI are runtime-facing in the Bible reader.",
+      "preservedBehaviors": [
+        "Prior cached translations, original text, network permission policy, and screen/navigation lifecycle unchanged.",
+        "No background retry, native, backend, AdMob or global state changes."
+      ],
+      "tests": [
+        "tests/bible-henry-translation-recovery-20261117.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Correct misleading failure feedback in the verse-specific Matthew Henry Bible study panel.",
+      "preservedBehaviors": [
+        "Bible passage provenance and semantic/citation safeguard remain authoritative.",
+        "Daily Reading, annotations, Strong's lexicon, chapter navigation, and translation attribution remain unchanged."
+      ],
+      "tests": [
+        "tests/bible-henry-translation-recovery-20261117.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Focused Node test covers classifying missing native APK, Wi-Fi model failure, unsafe translations, and retry wiring.",
+    "Run existing Matthew Henry, compact layout, source-scope and TypeScript checks.",
+    "On installed Android build verify real native module availability and 1 Kings 4:20 successful Filipino output; otherwise hold release.",
+    "Release remains DEV_ONLY_NO_OTA until staging RC and mandatory AdMob/navigation/spacing gates pass."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseTarget": "staging-user Android runtime 1.3.2 after native-module and RC verification",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
