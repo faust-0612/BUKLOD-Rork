@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/scoped-community-sidecar-video-render-20261118.json",
+  "objective": "Restore legacy and newly attached video cards in Cluster/Organization/Sub-organization Community scope feeds, with safe signed URL recovery and no changes to ad/video lifecycles.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: main is only the DEV source baseline, NOT automatically live production. A read-only query against BUKLOD project on 2026-11-18 found both screenshot video posts from 2026-11-17 02:25:02 and 02:25:33 Manila time with matching community_post_media rows and existing private community-media Storage objects. No exact current production OTA fingerprint or runtime telemetry verified in this PR. No production publish authorized.",
+  "chosenApproach": "Use the existing authorized hydrated community_post_media row for media URL, poster and player rather than requiring the legacy top-level media_url. Preserve top-level fallback for old posts; show an on-demand retry tile when signing fails; rotate authorized signed URLs with bounded attempts and stale scope guards.",
+  "selectionRationale": "The scoped Media loader already securely hydrates the attachments and the viewability hook already detects them; the card and its URL recovery handler were the mismatched consumers. A scoped UI fix avoids backend changes, duplicate video players, offscreen downloads and new dependencies.",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Scope video rendering path must accept hydrated sidecar media while retaining existing video/autoplay and app navigation contracts.",
+      "preservedBehaviors": [
+        "Existing Expo video player, poster, buffered playback and offscreen memory limits stay unchanged",
+        "No ad or navigation logic changes, no native dependencies or production release"
+      ],
+      "tests": [
+        "tests/scoped-community-video-sidecar-recovery.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cluster and other exact-scope Community feeds silently omitted playable video if media_url is populated only in community_post_media.",
+      "preservedBehaviors": [
+        "Exact-scope membership and private media RLS are unchanged",
+        "All text/photos/reactions/comments, Cluster Home, faith content and Connect remain unchanged"
+      ],
+      "tests": [
+        "tests/scoped-community-video-sidecar-recovery.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "scope-media",
+    "video-playback",
+    "signed-url",
+    "weak-network",
+    "cross-scope-privacy",
+    "ad-regression"
+  ],
+  "regressionTests": [
+    "tests/scoped-community-video-sidecar-recovery.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Do not alter public Wall, Marites, Reels, native video decoder, ad lifecycle or placement",
+    "Do not make community-media public or bypass RLS",
+    "Do not mutate backend, use exact authorized fetch, only active feed post row",
+    "Do not publish OTA before CI, RC and AdMob/navigation release gates"
+  ],
+  "acceptanceChecks": [
+    "Source runtime helper checks pass for new and legacy video, photos, retry and stale race",
+    "Protected-feature Engineering Accountability and TypeScript pass at exact head",
+    "Staging Android Hermes build and runtime compatibility pass",
+    "Staging user confirms inline video and fullscreen playback for both screenshot posts",
+    "Review recent version-segmented AdMob/nav traces before production OTA"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "tests/scoped-community-video-sidecar-recovery.test.mjs",
+    ".buklod/scopes/scoped-community-sidecar-video-render-20261118.json"
+  ],
+  "releaseStatus": "DEV draft PR only; no staging or production OTA",
+  "alternativeApproaches": [
+    "Copy media_items URL into top-level post fields during hydration: rejected because it would conflate legacy and sidecar identity and could overwrite stale signed URLs.",
+    "Modify Supabase social feed RPC to sign every video eagerly: rejected due database/backend risk, slower initial paint and needless signing for offscreen feed rows.",
+    "Selected: resolve the existing authorized sidecar row in the scoped renderer, preserving legacy fallback, viewability and on-demand URL refresh."
+  ]
+}
