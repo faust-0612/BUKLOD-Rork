@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/bible-v4-automatic-rubric-20261118.json",
+  "objective": "Correct Filipino Bible Quiz enumeration equivalences and fully retire the human essay-approval queue: all Bible Quiz answers receive instant server-only rubric grading, feedback and limited daily BP; previously pending essays are finalized and users notified without duplicating credits.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Read-only Supabase main inspection on 2026-11-18: existing quiz grader still requires manual essay review and original Nehemiah answer aliases reject Mga lupa/Mga bahay. 9 pending essays. Current main SHA must be revalidated at release. Preview migration transaction and all data writes were rolled back; not production-deployed.",
+  "chosenApproach": "Only additive question-specific rubric metadata and private SQL scorer; preserve V4 security-definer owner-scoped RPC and idempotent finalize/points ledger. Retire authenticated manual grading RPC, update learner/admin screens, regrade verified historical Nehemiah answers, auto-finalize pending essays and deliver optional result notifications. No unrelated runtime, finance, AdMob or navigation changes.",
+  "preservedBehaviors": [
+    "One Manila-day quiz attempt per user; server-only marks, strict owner isolation, private answers and essay rubrics, and source-key anti-duplicate reward logic.",
+    "Existing daily BP caps, QMP and finance isolation, and ledger triggers are unchanged.",
+    "No ad serving, prefetch, consent, dashboard navigation, native modules, or package/runtime/channel changes.",
+    "Historical answers are preserved and previously completed essays are not rescored; only corroborated enum corrections and pending essay completions are changed."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/bible-v4-automatic-rubric-20261118.json",
+    "supabase/migrations/20261118002500_buklod_bible_v4_enumeration_equivalence_fairness.sql",
+    "supabase/migrations/20261118002600_buklod_bible_v4_verified_historical_regrade.sql",
+    "supabase/migrations/20261118002700_buklod_bible_v4_automatic_essay_rubrics.sql",
+    "supabase/migrations/20261118002800_buklod_bible_v4_finalize_pending_essays.sql",
+    "supabase/tests/buklod_bible_v4_enumeration_equivalence_20261118.sql",
+    "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql",
+    "tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs",
+    "tests/buklod-bible-v4-historical-regrade-20261118.test.mjs",
+    "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
+    "src/components/bible/BuklodBibleQuizV4.tsx",
+    "src/app/admin/bible-v4-events.tsx"
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_bible_v4_enumeration_equivalence_20261118.sql",
+    "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql",
+    "tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs",
+    "tests/buklod-bible-v4-historical-regrade-20261118.test.mjs",
+    "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "The Bible Quiz learner and admin screens replace delayed human approvals with transparent instant rubric feedback without touching shared navigation or AdMob.",
+      "preservedBehaviors": [
+        "Keep fast nonblocking quiz load, offline saved drafts, ad opportunity lifecycle and existing R3 fallback."
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "V4 quiz essay submissions and historical pending attempts move to server-authoritative automatic criteria instead of admin manual scores.",
+      "preservedBehaviors": [
+        "Preserve frozen questions, protected attempts, per-day limits, score/rubric transparency and classroom Quiz dedicated project isolation."
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Private essay scoring, restricted RPC privileges, historical correction, and owner notifications modify protected database grading and rewards.",
+      "preservedBehaviors": [
+        "All authorized users remain scoped to their own quiz attempts, private answer keys stay inaccessible, historical BP ledger remains idempotent and QMP untouched."
+      ],
+      "tests": [
+        "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Rollback-only SQL rehearsal with migrations 025+026+027+028 must result in zero pending essays and then zero persisted changes after rollback.",
+    "Regression SQL validates correct Filipino enumeration equivalents, instant 0/1/2 rubric logic, human review RPC denied to authenticated, and all pending essays grade without errors.",
+    "Run focused Node regression and TypeScript/Android source checks; verify staged RC before client OTA, preserving mandatory AdMob and tab-performance gates.",
+    "No production claim until exact migrations, audit receipt, staged client build and authenticated user review/notification path are verified."
+  ]
+}
