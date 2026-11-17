@@ -1,6 +1,7 @@
 import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodDashboardAdWarmup from '@/components/BuklodDashboardAdWarmup';
+import BuklodAndroidDashboardTabs from '@/components/BuklodAndroidDashboardTabs';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import BuklodNavigationSideMenu from '@/components/BuklodNavigationSideMenu';
 import {
@@ -396,7 +397,13 @@ export default function TabsLayout() {
       width,
     );
 
-  const workspaceStack = (
+  // Android's five persistent dashboards must not behave like a popping
+  // stack: returning to a previously visited tab should reuse its frozen
+  // screen instance rather than remount Wall/Connect and restart media work.
+  // Web/iOS retain their verified Stack until separately regression-tested.
+  const workspaceStack = Platform.OS === 'android' ? (
+    <BuklodAndroidDashboardTabs showPrayer={showPrayer} sceneStyle={tabSceneStyle} />
+  ) : (
     <Stack
       screenOptions={{
         headerShown: false,
