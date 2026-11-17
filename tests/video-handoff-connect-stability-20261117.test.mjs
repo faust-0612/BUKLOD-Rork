@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL('../'+path, import.meta.url),'utf8');
 test('Wall detach precedes fullscreen mount; expo player reuse excludes IMA',()=>{
   const wall=read('src/app/(tabs)/buklod.tsx');
   const video=read('src/components/CommunityVideo.tsx');
-  assert.match(wall,/suspendedForFullscreen=\{videoViewerHandoffPostId===postId\}/);
+  assert.match(wall,/suspendedForFullscreen=\{Boolean\(videoViewerHandoffPostId\) \|\| videoViewerOpen\}/);
   assert.match(wall,/videoViewerOpenPendingRef\.current=true;[\s\S]*?setVideoViewerHandoffPostId\(postId\)/);
   assert.match(wall,/useEffect\(\(\)=>\{[\s\S]*?setVideoViewerOpen\(true\)/);
   assert.match(video,/if \(!mountPlayer \|\| props\.suspendedForFullscreen\)/);
