@@ -1,0 +1,81 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/messenger-inbox-density-20261117.json",
+  "objective": "Pattern BUKLOD Wall and Connect mobile layout after Messenger: search-first, compact avatar Notes rails, contiguous conversations, retained ads.",
+  "baseRef": "66614852ea3163b6cb9eafdad2db3c02a8f7558a",
+  "productionBaselineEvidence": "Protected GitHub main 66614852ea3163b6cb9eafdad2db3c02a8f7558a inspected on 2026-11-17. No OTA publication in this change.",
+  "chosenApproach": "Keep encouragement on Home/Profile; remove duplicated public feed banners from Wall/Connect; put Wall search rail first and remove empty avatar gaps, hero and priority duplicate.",
+  "riskAreas": [
+    "app-runtime",
+    "connect",
+    "wall-media",
+    "navigation-scroll",
+    "accessibility",
+    "AdMob viewability",
+    "production-release"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodDashboardContextBar.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/connect/ConnectInboxRow.tsx",
+    "src/components/connect/ConnectCommunityRow.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/messenger-inbox-density-20261117.test.mjs",
+    ".buklod/scopes/messenger-inbox-density-20261117.json"
+  ],
+  "preserveBehaviors": [
+    "First-view genuine ad slots, sponsored cards and consent guard remain unchanged.",
+    "All four Connect tabs, note editing, 56dp avatars, five-line notes, unread counters, original chronological messages and privacy remain.",
+    "Home/Profile encouragement and other screens are unchanged; no native or backend writes."
+  ],
+  "acceptanceChecks": [
+    "TypeScript, existing compact geometry and ad regression tests, new density contract pass on exact PR head.",
+    "Protected main not changed without gated PR; staging/production OTA require runtime/channel and receipt verification.",
+    "Physical device validation skipped per owner but not represented as passed."
+  ],
+  "regressionTests": [
+    "tests/messenger-inbox-density-20261117.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
+    "tests/appwide-compact-density-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "connect",
+      "reason": "Search-first inbox, flat rows and genuine unread data",
+      "preservedBehaviors": [
+        "All chat filters, preview navigation, ads, note editing"
+      ],
+      "tests": [
+        "tests/messenger-inbox-density-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Bring searchable avatars to Wall top and remove empty note slots",
+      "preservedBehaviors": [
+        "Actual media and ad placements"
+      ],
+      "tests": [
+        "tests/messenger-inbox-density-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Route-specific banner density",
+      "preservedBehaviors": [
+        "Encouragement retained in Home/Profile"
+      ],
+      "tests": [
+        "tests/messenger-inbox-density-20261117.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV PR first, guarded staging OTA only after exact checks",
+  "physicalDeviceVerification": "SKIPPED_PER_OWNER",
+  "publicationStatus": "DEV_ONLY_NO_OTA"
+}

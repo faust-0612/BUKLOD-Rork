@@ -8,14 +8,13 @@ const profile = read('src/app/(tabs)/me.tsx');
 const character = read('src/components/points/BuklodProfileCharacterCard.tsx');
 const ranking = read('src/components/BuklodProfileTopTenRankings.tsx');
 
-test('Connect hero and unread pill stay fully visible above search dock', () => {
+test('Connect search comes first without a redundant hero or priority card', () => {
   const dock = connect.match(/searchDock:\s*\{([\s\S]*?)\},/)?.[1] ?? '';
   assert.match(dock, /marginTop:\s*4/);
   assert.doesNotMatch(dock, /marginTop:\s*-/);
-  assert.ok(connect.indexOf('<View style={styles.hero}>') < connect.indexOf('<View style={styles.searchDock}>'));
-  assert.match(connect, /<View style=\{styles.heroCount\}>/);
-  // On the dark canvas the headings must remain legible after removing opaque tiles.
-  assert.match(connect, /contactsTitle: \{\s*color: theme\.textPrimary/);
+  assert.doesNotMatch(connect, /<View style=\{styles\.hero\}>|<View style=\{styles\.heroCount\}>/);
+  assert.doesNotMatch(connect, /style=\{styles\.priorityCard\}/);
+  assert.ok(connect.indexOf('<View style={styles.searchDock}>') < connect.indexOf('<ConnectInboxTabs'));
   assert.match(connect, /sectionTitle: \{\s*color: theme\.textPrimary/);
 });
 

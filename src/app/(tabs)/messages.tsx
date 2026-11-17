@@ -448,10 +448,10 @@ function createInboxStyles(theme: ConnectThemeRoles) {
     searchDock: {
       // Leave the entire unread-status pill visible; no overlap with the hero.
       marginTop: 4,
-      marginHorizontal: 8,
-      paddingTop: 2,
-      paddingBottom: 3,
-      borderRadius: 22,
+      marginHorizontal: 6,
+      paddingTop: 0,
+      paddingBottom: 2,
+      borderRadius: 12,
       backgroundColor: theme.surface,
     },
     contactsTitle: {
@@ -1213,15 +1213,13 @@ function ConnectScreenInner({
   const isSearching = query.trim().length >= 2;
   const { requests: requestThreads, personal: regularThreads } =
     partitionConnectInboxThreads(personal, requestThreadIds);
-  const priorityThread = tab === 'personal' && !isSearching
-    ? regularThreads.find(item => n(item.unread_count) > 0) ?? null
-    : null;
+  // A single chronological inbox avoids the duplicated unread priority card.
   const personalListData = (
     isSearching
       ? people
       : tab === 'requests'
         ? requestThreads
-        : regularThreads.filter(item => item.thread_id !== priorityThread?.thread_id)
+        : regularThreads
   ) as any[];
 
   const { cluster: clusterUnread, org: orgUnread } =
@@ -1229,27 +1227,9 @@ function ConnectScreenInner({
 
   const sectionLabel =
     communitySectionLabel(communityFilter);
-  const unreadTotal = tab === 'requests'
-    ? requestThreads.reduce((total, item) => total + n(item.unread_count), 0)
-    : tab === 'personal'
-      ? regularThreads.reduce((total, item) => total + n(item.unread_count), 0)
-      : visibleRooms.reduce((total, item) => total + n(item.unread_count), 0);
-
   const renderHiblaHeader = (community: boolean) => (
     <>
-      <View style={styles.hero}>
-        <View pointerEvents="none" style={styles.heroArc} />
-        <Text style={styles.heroEyebrow}>BUKLOD • CONNECT</Text>
-        <Text style={styles.heroTitle}>Mga Ugnayan</Text>
-        <Text style={styles.heroSubtitle}>Mas malapit ang bawat isa.</Text>
-        <View style={styles.heroCount}>
-          <Text style={styles.heroCountText}>
-            {unreadTotal > 0
-              ? `${unreadTotal > 99 ? '99+' : unreadTotal} bagong mensahe`
-              : 'Walang bagong mensahe'}
-          </Text>
-        </View>
-      </View>
+      {/* Search first, with quick contacts and the real conversation list below. */}
       <View style={styles.searchDock}>
         <View style={styles.inboxHeader}>
           <ConnectInboxSearch
@@ -1274,7 +1254,6 @@ function ConnectScreenInner({
       />
       {tab === 'personal' && !community && !isSearching && (
         <>
-          <Text style={styles.contactsTitle}>Mga kasama</Text>
           <ConnectSuggestedContacts
             currentUser={profileId ? {
               user_id: profileId,
@@ -1306,22 +1285,11 @@ function ConnectScreenInner({
           Mga unang mensahe mula sa hindi mo pa nakakausap. Kapag sumagot ka, lilipat sa Personal.
         </Text>
       )}
-      {!community && priorityThread && (
-        <ConnectPressable
-          accessibilityLabel={`Open priority conversation with ${priorityThread.other_user_name}`}
-          onPress={() => openPersonalThread(priorityThread.thread_id, priorityThread)}
-          style={styles.priorityCard}
-        >
-          <Text style={styles.priorityLabel}>⚑ Unahin</Text>
-          <Text numberOfLines={1} style={styles.priorityName}>{priorityThread.other_user_name}</Text>
-          <Text numberOfLines={1} style={styles.priorityPreview}>
-            {connectMessagePreview(priorityThread.last_message)}
-          </Text>
-        </ConnectPressable>
+      {(isSearching || tab === 'requests') && (
+        <Text style={styles.sectionTitle}>
+          {isSearching ? 'Mga resulta' : 'Message Requests'}
+        </Text>
       )}
-      <Text style={styles.sectionTitle}>
-        {community ? 'Mga grupong usapan' : isSearching ? 'Mga resulta' : tab === 'requests' ? 'Message Requests' : 'Mga usapan'}
-      </Text>
     </>
   );
 
@@ -1353,7 +1321,7 @@ function ConnectScreenInner({
           }
           contentContainerStyle={tab === 'community' ? styles.communityListContent : styles.listContent}
           keyboardShouldPersistTaps="always"
-          ListEmptyComponent={tab === 'personal' && priorityThread && !isSearching ? null : (
+          ListEmptyComponent={(
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
                 {tab === 'community'

@@ -66,6 +66,10 @@ export default function BuklodDashboardContextBar() {
     return null;
   }
 
+  // The encouragement remains in Home/Profile. It should not add a large
+  // above-the-fold card to either social or messaging feed.
+  if (messagesRoute || communityRoute) return null;
+
   if (profileRoute) {
     /* PATCH_186F_ENCOURAGEMENT_THROUGH_PROFILE */
     return (

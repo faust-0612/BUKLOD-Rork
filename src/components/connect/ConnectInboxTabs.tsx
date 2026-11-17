@@ -1,4 +1,3 @@
-import { buklodVisual } from '@/lib/buklodVisual';
 import React, {
   useMemo,
 } from 'react';
@@ -44,8 +43,8 @@ function createStyles(theme: ConnectThemeRoles) {
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 5,
-      paddingHorizontal: 12,
-      paddingVertical: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
       marginBottom: 0,
       backgroundColor: 'transparent',
     },
@@ -56,13 +55,13 @@ function createStyles(theme: ConnectThemeRoles) {
       justifyContent: 'center',
       gap: 3,
       minHeight: 44,
-      paddingVertical: 8,
+      paddingVertical: 5,
       paddingHorizontal: 5,
-      borderRadius: buklodVisual.radius.control,
-      backgroundColor: theme.inputSurface,
+      borderRadius: 999,
+      backgroundColor: theme.surface,
     },
     tabActive: {
-      backgroundColor: theme.accent,
+      backgroundColor: theme.accentSoft,
     },
     label: {
       ...connectTypography.tabLabel,
@@ -70,7 +69,7 @@ function createStyles(theme: ConnectThemeRoles) {
       fontSize: 12,
     },
     labelActive: {
-      color: '#FFFFFF',
+      color: theme.accent,
     },
     unreadBadge: {
       position: 'absolute',
@@ -154,7 +153,7 @@ export function ConnectInboxTabs({
           size={15}
           color={
             tab === 'personal'
-              ? '#FFFFFF'
+              ? theme.accent
               : theme.textMuted
           }
         />
@@ -188,7 +187,7 @@ export function ConnectInboxTabs({
           size={15}
           color={
             clusterSelected
-              ? '#FFFFFF'
+              ? theme.accent
               : theme.textMuted
           }
         />
@@ -215,7 +214,7 @@ export function ConnectInboxTabs({
         <MaterialCommunityIcons
           name="account-multiple-outline"
           size={15}
-          color={orgSelected ? '#FFFFFF' : theme.textMuted}
+          color={orgSelected ? theme.accent : theme.textMuted}
         />
         <Text style={[styles.label, orgSelected && styles.labelActive]}>Org</Text>
         {unreadBadge(orgUnread)}

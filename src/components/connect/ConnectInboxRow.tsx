@@ -43,22 +43,22 @@ function createStyles(theme: ConnectThemeRoles) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: connectSpacing.rowGap,
-      marginHorizontal: 9,
-      marginBottom: 5,
+      marginHorizontal: 0,
+      marginBottom: 0,
       paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingVertical: 7,
       minHeight: 72,
-      borderRadius: 18,
+      borderRadius: 0,
       backgroundColor: theme.surface,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: theme.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.border,
     },
     unreadRow: {
       backgroundColor: theme.accentSoft,
     },
     threadNode: {
       position: 'absolute',
-      left: -10,
+      right: 3,
       top: '50%',
       width: 10,
       height: 10,
@@ -152,7 +152,7 @@ export function ConnectInboxRow({
         uri={avatarUri}
         name={name}
         size={52}
-        shape="rounded"
+        shape="circle"
         onPress={onPressRow}
       />
 

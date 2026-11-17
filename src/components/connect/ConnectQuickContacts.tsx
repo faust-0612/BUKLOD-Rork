@@ -60,7 +60,7 @@ const NOTE_MAX_LINES = 5;
 const NOTE_ZONE_HEIGHT =
   NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 12;
 const AVATAR_SIZE = 56;
-const COLUMN_WIDTH = 116;
+const COLUMN_WIDTH = 96;
 
 type CurrentUser = {
   user_id: string;
@@ -80,23 +80,23 @@ type Props = {
 function createStyles(theme: ConnectThemeRoles) {
   return StyleSheet.create({
     wrap: {
-      marginBottom: 4,
-      paddingTop: 2,
+      marginBottom: 0,
+      paddingTop: 0,
     },
     scroll: {
       flexDirection: 'row',
       // Bottom-align variable-length notes so every avatar stays level.
       alignItems: 'flex-end',
       paddingHorizontal: connectSpacing.screenHorizontal,
-      paddingBottom: 4,
+      paddingBottom: 2,
     },
     column: {
       width: COLUMN_WIDTH,
       minHeight: 0,
-      marginRight: 6,
+      marginRight: 4,
       alignItems: 'center',
-      paddingVertical: 4,
-      paddingHorizontal: 4,
+      paddingVertical: 2,
+      paddingHorizontal: 2,
       // Show the Connect backdrop instead of opaque mint/white tiles.
       backgroundColor: 'transparent',
     },
@@ -107,6 +107,13 @@ function createStyles(theme: ConnectThemeRoles) {
       alignItems: 'center',
       justifyContent: 'flex-end',
       marginBottom: 4,
+    },
+    noteZoneEmpty: {
+      // Avoid an invisible 44dp bubble above avatars with no status Note.
+      width: COLUMN_WIDTH,
+      minHeight: 0,
+      height: 0,
+      marginBottom: 0,
     },
     bubble: {
       maxWidth: COLUMN_WIDTH,
@@ -338,7 +345,7 @@ function NoteBubble({
   };
 
   if (!editable && !trimmed) {
-    return <View style={styles.noteZone} />;
+    return <View style={styles.noteZoneEmpty} />;
   }
 
   if (justAdded) {
