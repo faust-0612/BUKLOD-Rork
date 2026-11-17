@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Release the exact approved BUKLOD main including Nov16 consolidated fixes and newest Nov17 connectivity and fullscreen corrections through one guarded Android staging-user OTA only",
+  "baseRef": "66614852ea3163b6cb9eafdad2db3c02a8f7558a",
+  "productionBaselineEvidence": "verified: GitHub main source 66614852ea3163b6cb9eafdad2db3c02a8f7558a read after PRs #910 and #912 merged. Previous published staging was on Android runtime 1.3.2; actual live manifests must be checked by authenticated EAS before and after this release. Source inspection alone is not live production verification.",
+  "chosenApproach": "Create isolated release-only branch at exact main SHA, three release files, validate all five merged PR proof heads, source-diff parity, signed native dependency baseline, focused Node tests, TypeScript, public 1300 artwork, Hermes export, Expo preview package and EAS channel/production fingerprint before and after idempotent Android staging OTA.",
+  "alternativeApproaches": [
+    "Reuse stale Nov17 frozen staging branch, rejected because it predates latest connectivity and fullscreen fixes",
+    "Merge every historical draft PR, rejected due to duplicate or conflicting older work and missing review gates"
+  ],
+  "selectionRationale": "Current main already contains verified cumulative code, with final two follow-up patches merged. Isolate release orchestration to avoid deleting or duplicating any features or touching production OTA.",
+  "preserveBehaviors": [
+    "All canonical Nov16 compact density, Character graphics and collectibles, Connect scrolling, Wall gallery and recent comments",
+    "Verified AdMob prewarm, consent, in-stream ad clicks and recovery",
+    "Latest offline syncing, benign connectivity feedback and fullscreen video touch handling",
+    "EAS preview/staging-user channel only, runtime 1.3.2 and package org.mzbministry.buklod.staging; no database writes, native APK rebuild, production OTA or web promotion"
+  ],
+  "acceptanceChecks": [
+    "Current main unchanged at frozen SHA and release branch changes exactly three authorized release files",
+    "All merged PR source-head approvals and relevant exact-source CI checks pass",
+    "TypeScript, compact, Character, ad, Connect, Wall/video, offline/network and other source regressions pass",
+    "Signed staging APK identity, app runtime, native parity, public artwork SHA and Android Hermes bundle valid",
+    "Idempotent update published to Android staging-user with EAS update ID and manifest readback",
+    "Production manifest ID unchanged; actual device smoke verification not claimed"
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/nov17-remaining-fixes-staging-release.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov17-remaining-fixes-staging-release.json",
+    "tests/nov17-remaining-fixes-staging-release.test.mjs",
+    ".github/workflows/buklod-nov17-remaining-fixes-staging-ota.yml"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Create exact-source one-time Android staging OTA workflow with strict EAS package/runtime and unchanged production fingerprint.",
+      "preservedBehaviors": [
+        "Production channel/Play Store/web/billing unchanged.",
+        "Android staging-user package and runtime verified, source-identical to reviewed main."
+      ],
+      "tests": [
+        "tests/nov17-remaining-fixes-staging-release.test.mjs"
+      ]
+    }
+  ]
+}
