@@ -1592,6 +1592,17 @@ function LegacyPublicBuklodScreen(){
  const [videoViewerPosts,setVideoViewerPosts]=useState<any[]>([]);
  // Detach the inline Android surface a frame before attaching fullscreen.
  const [videoViewerHandoffPostId,setVideoViewerHandoffPostId]=useState<string|null>(null);
+ const videoViewerOpenPendingRef=useRef(false);
+ useEffect(()=>{
+  // A committed inline detach must precede a new Android VideoView mount.
+  if(!videoViewerHandoffPostId || !videoViewerOpenPendingRef.current)return;
+  const frame=requestAnimationFrame(()=>{
+   if(!videoViewerOpenPendingRef.current)return;
+   videoViewerOpenPendingRef.current=false;
+   setVideoViewerOpen(true);
+  });
+  return()=>cancelAnimationFrame(frame);
+ },[videoViewerHandoffPostId]);
  // Freeze consent/format at opening so ad slots do not shift scroll positions
  // if the consent bootstrap resolves halfway through a swipe session.
  const [videoViewerAdsEnabled,setVideoViewerAdsEnabled]=useState(false);
@@ -1668,6 +1679,7 @@ function LegacyPublicBuklodScreen(){
     videoViewerScanBusyRef.current=false;
     setVideoViewerLoadingMore(false);
     setVideoViewerResolvingPostId(null);
+    videoViewerOpenPendingRef.current=false;
     setVideoViewerOpen(false);
     requestAnimationFrame(() => setVideoViewerHandoffPostId(null));
   },[]);
@@ -4838,8 +4850,8 @@ const load=useCallback(async(options?:{
     setVideoViewerShowHint(true);
     setVideoViewerSession(current=>current+1);
     // Avoid simultaneous native VideoViews sharing one Android player.
+    videoViewerOpenPendingRef.current=true;
     setVideoViewerHandoffPostId(postId);
-    requestAnimationFrame(() => setVideoViewerOpen(true));
     enableCommunityVideoSound();
 
    // Reuse the existing authorized URL and cached media from the Wall.
