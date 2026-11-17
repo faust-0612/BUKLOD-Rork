@@ -1590,6 +1590,8 @@ function LegacyPublicBuklodScreen(){
  // Only small metadata pages are read; actual video URLs are resolved when
  // entering the viewer / approaching playback. No offscreen downloads.
  const [videoViewerPosts,setVideoViewerPosts]=useState<any[]>([]);
+ // Detach the inline Android surface a frame before attaching fullscreen.
+ const [videoViewerHandoffPostId,setVideoViewerHandoffPostId]=useState<string|null>(null);
  // Freeze consent/format at opening so ad slots do not shift scroll positions
  // if the consent bootstrap resolves halfway through a swipe session.
  const [videoViewerAdsEnabled,setVideoViewerAdsEnabled]=useState(false);
@@ -1667,6 +1669,7 @@ function LegacyPublicBuklodScreen(){
     setVideoViewerLoadingMore(false);
     setVideoViewerResolvingPostId(null);
     setVideoViewerOpen(false);
+    requestAnimationFrame(() => setVideoViewerHandoffPostId(null));
   },[]);
 
  useEffect(()=>{
@@ -4834,8 +4837,10 @@ const load=useCallback(async(options?:{
     videoViewerUrlRetryAfterRef.current.clear();
     setVideoViewerShowHint(true);
     setVideoViewerSession(current=>current+1);
-   setVideoViewerOpen(true);
-   enableCommunityVideoSound();
+    // Avoid simultaneous native VideoViews sharing one Android player.
+    setVideoViewerHandoffPostId(postId);
+    requestAnimationFrame(() => setVideoViewerOpen(true));
+    enableCommunityVideoSound();
 
    // Reuse the existing authorized URL and cached media from the Wall.
    // Renew access only after a genuine playback error, not on every open.
@@ -4905,6 +4910,8 @@ const load=useCallback(async(options?:{
               )}
               edgeToEdge
               fitFrame
+              handoffEnabled
+              suspendedForFullscreen={videoViewerHandoffPostId===postId}
               autoPlay
               active={
                 visibleVideoPostId===postId &&
@@ -6486,6 +6493,7 @@ const communityFeedRows =
          }}
          height={videoViewerPageHeight}
          fullscreen
+         handoffEnabled
          active={index===videoViewerIndex && !videoViewerScrollPaused}
          preload={index===videoViewerNextVideoIndex}
          autoPlay={index===videoViewerIndex && !videoViewerScrollPaused}
