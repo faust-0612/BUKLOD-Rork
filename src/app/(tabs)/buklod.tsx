@@ -5977,8 +5977,8 @@ const communityFeedRows =
     return (
       <BuklodFocusVisibleRow index={index}>
     <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
-   {/* BUKLOD_WALL_SINGLE_LINE_IDENTITY_20261116: actions live below identity so names and timestamps retain full width. */}
-   <View style={{flexDirection:'row',alignItems:'flex-start',gap:10}}>
+   {/* BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117: avatar | details, with timestamp + Follow/Report on one compact row. */}
+   <View style={{flexDirection:'row',alignItems:'flex-start',gap:8}}>
      <BuklodTappableAvatar
        userId={item.user_id}
        name={resolvePersonDisplayName(item.author_name,item.user_id)}
@@ -6001,15 +6001,17 @@ const communityFeedRows =
          {String(item.audience||'group').toUpperCase()}
          {item.author_only ? ' | AKO LANG' : ''}
        </Text>
-       <Text
-         style={s.meta}
-         numberOfLines={1}
-         adjustsFontSizeToFit
-         minimumFontScale={0.75}
-       >
-         {formatCompactWallDateTime(item.created_at)}
-       </Text>
-       <View style={{flexDirection:'row',justifyContent:'flex-end',alignItems:'center',marginTop:3,gap:6}}> 
+       {/* Timestamp and existing author actions share one compact row; avatar is the first column. */}
+       <View style={{flexDirection:'row',alignItems:'center',gap:6,marginTop:3,minWidth:0}}>
+         <Text
+           style={[s.meta,{flex:1,minWidth:0,marginTop:0}]}
+           numberOfLines={1}
+           adjustsFontSizeToFit
+           minimumFontScale={0.75}
+         >
+           {formatCompactWallDateTime(item.created_at)}
+         </Text>
+         <View style={{flexDirection:'row',alignItems:'center',gap:4,flexShrink:0}}>
     {item.user_id===user?.id ? (
      <BuklodContentOverflowMenu
       title="Your post"
@@ -6019,6 +6021,7 @@ const communityFeedRows =
       )}
       authorOnly={!!item.author_only}
       iconColor={colors.muted}
+      style={{minWidth:32,minHeight:34,alignItems:'center',justifyContent:'center'}}
       allowPhotoEdit={!communityPostIsVideo(item)}
       maxPhotos={COMMUNITY_MAX_PHOTOS}
       photos={communityPostEditPhotos(item)}
@@ -6087,8 +6090,8 @@ const communityFeedRows =
          )
         }
         style={({pressed})=>({
-         minHeight:32,
-         paddingHorizontal:10,
+         minHeight:34,
+         paddingHorizontal:8,
          borderRadius:999,
          borderWidth:1,
          borderColor:colors.green,
@@ -6122,12 +6125,14 @@ const communityFeedRows =
       <BuklodContentOverflowMenu
        title="Post"
        iconColor={colors.muted}
+       style={{minWidth:32,minHeight:34,alignItems:'center',justifyContent:'center'}}
        onReport={() =>
         openReport('post', item.id)
        }
       />
      </View>
     )}
+         </View>
        </View>
      </View>
    </View>

@@ -39,4 +39,21 @@ for (const [file, keyword] of [
   ['src/app/(tabs)/buklod.tsx','BuklodAdMobBanner'],
   ['src/app/bible/read.tsx','paddingBottom: 50'],
 ]) assert.ok(read(file).includes(keyword), 'Critical ad or scroll clearance was removed: ' + file);
+
+const wallHeaderSource = read('src/app/(tabs)/buklod.tsx');
+const wallHeaderStart = wallHeaderSource.indexOf('BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117');
+const wallHeaderEnd = wallHeaderSource.indexOf('<BuklodPostMotion preset=', wallHeaderStart);
+assert.ok(wallHeaderStart >= 0 && wallHeaderEnd > wallHeaderStart, 'Wall post header regression: missing compact author layout');
+const wallHeader = wallHeaderSource.slice(wallHeaderStart, wallHeaderEnd);
+assert.match(wallHeader, /flexDirection:'row',alignItems:'flex-start',gap:8/, 'Wall author header must retain avatar and details columns');
+assert.match(wallHeader, /flexDirection:'row',alignItems:'center',gap:6,marginTop:3,minWidth:0/, 'Wall timestamp must share its row with the actions');
+assert.match(wallHeader, /style=\{\[s\.meta,\{flex:1,minWidth:0,marginTop:0\}\]\}/, 'Wall date must flex rather than push the Follow/Report controls below');
+assert.match(wallHeader, /flexDirection:'row',alignItems:'center',gap:4,flexShrink:0/, 'Follow and Report must stay adjacent');
+assert.match(wallHeader, /formatCompactWallDateTime\(item\.created_at\)/, 'Compact wall date lost');
+assert.match(wallHeader, /numberOfLines=\{1\}/, 'Full author name must stay on one line');
+assert.match(wallHeader, /openReport\('post', item\.id\)/, 'Post report action lost');
+assert.match(wallHeader, /toggleAuthorFollow\(/, 'Follow action lost');
+assert.ok(wallHeader.indexOf('formatCompactWallDateTime(item.created_at)') < wallHeader.indexOf('toggleAuthorFollow('), 'Follow should be placed beside the date, not in a separate header band');
+assert.doesNotMatch(wallHeader, /justifyContent:'flex-end',alignItems:'center',marginTop:3,gap:6/, 'Do not restore the separate trailing action row');
+
 console.log('Compact layout source contract PASS (physical-device and OTA verification are separate).');
