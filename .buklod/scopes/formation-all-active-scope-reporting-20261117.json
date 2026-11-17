@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/formation-all-active-scope-reporting-20261117.json",
   "objective": "Project every validated Formation activity into each active member Cluster and Organization report, independent of the submission origin, without duplicate credits or unauthorized viewing.",
   "baseRef": "main",
-  "productionBaselineEvidence": "GitHub main source baseline 0ee57887c991d23472cdf1f9b849bce945792910; Supabase BUKLOD active project migrations applied and read-only verified on Nov 17 2026. No Android OTA, staging RC, or physical-device validation performed.",
+  "productionBaselineEvidence": "verified: GitHub main source SHA 0ee57887c991d23472cdf1f9b849bce945792910 was inspected as the repository comparison baseline; current live BUKLOD Supabase project migrations and read-only report behavior were verified on November 17, 2026. GitHub main is NOT claimed as the actual on-device production runtime or OTA fingerprint. No Android OTA, staging RC, or physical device validation has been performed.",
   "chosenApproach": "Leave canonical submission/point data untouched; deterministically resolve an active Cluster only as the validation processing anchor, report via current membership and de-duplicate status rows per learner/kind/item.",
   "selectionRationale": "Prevents three-active-Cluster ambiguity while retaining exact-scope report guards, historical approval evidence, and one award per activity.",
   "riskAreas": [
