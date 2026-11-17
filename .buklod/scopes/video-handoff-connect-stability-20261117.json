@@ -31,7 +31,9 @@
     "wall-media",
     "navigation-auth",
     "connect-ptt-calls",
-    "ads-finance-points"
+    "ads-finance-points",
+    "navigation-scroll",
+    "connect"
   ],
   "regressionTests": [
     "tests/video-handoff-connect-stability-20261117.test.mjs",
