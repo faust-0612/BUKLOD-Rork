@@ -39,3 +39,59 @@ jobs:
           $DB -f supabase/migrations/20261118014000_buklod_attendance_v2_legacy_bridge_report.sql
           $DB -f supabase/tests/attendance_v2_security.sql
           $DB -f supabase/tests/attendance_v2_integration.sql
+
+  staging-android-bundle:
+    name: Android staging bundle QA (no OTA)
+    needs: isolated-postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_MAX_WORKERS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify staging identity and source isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const app = require('./app.config.js')({config:{}});
+          const eas = require('./eas.json');
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.runtimeVersion,'1.3.2');
+          assert.equal(app.extra.appEnvironment,'staging');
+          assert.equal(app.extra.appTarget,'main');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build.production.channel,'production');
+          NODE
+          git diff --exit-code origin/main...HEAD -- app.config.js eas.json package-lock.json android/ ios/ plugins/
+      - name: Locked install, TypeScript, AdMob and navigation regression
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+          node --test \
+            tests/attendance-v2-contract.test.mjs \
+            tests/scope-attendance-v2-security.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs
+      - name: Compile Android staging source only
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo export --platform android --output-dir /tmp/buklod-attendance-v2-android --clear
+          test -s /tmp/buklod-attendance-v2-android/metadata.json
+          sha256sum /tmp/buklod-attendance-v2-android/metadata.json
+          echo "Android staging source compiled; no OTA, APK, production release or backend deployment." >> "$GITHUB_STEP_SUMMARY"

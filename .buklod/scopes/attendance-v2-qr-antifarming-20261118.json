@@ -95,7 +95,8 @@
     "Reward ledger respects 10 BP per verified event, 20 per Manila day and 50 per Manila week across scoped/legacy event attendance.",
     "Cross-organization home report has no cross-account exposure or duplicate rewards.",
     "No manual device verification per owner request; DEV changes stay out of production OTA until automated gates and verified RC are ready.",
-    "GitHub Actions isolated PostgreSQL 17 service applies both attendance migrations then runs RLS, QR replay, forged-metadata, independent approval, ledger dedup, partial reversal, and private cross-scope reporting assertions."
+    "GitHub Actions isolated PostgreSQL 17 service applies both attendance migrations then runs RLS, QR replay, forged-metadata, independent approval, ledger dedup, partial reversal, and private cross-scope reporting assertions.",
+    "Nonpublishing Android staging bundle compilation under exact staging package/runtime, with AdMob and navigation tests, after isolated PostgreSQL behavior tests pass."
   ],
   "alternativeApproaches": [
     "Let event creators automatically award rewards to scanned members (rejected: farming and self-approval abuse).",
