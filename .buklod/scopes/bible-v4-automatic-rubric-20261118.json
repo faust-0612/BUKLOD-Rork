@@ -5,12 +5,6 @@
   "baseRef": "main",
   "productionBaselineEvidence": "Read-only Supabase main inspection on 2026-11-18: existing quiz grader still requires manual essay review and original Nehemiah answer aliases reject Mga lupa/Mga bahay. 9 pending essays. Current main SHA must be revalidated at release. Preview migration transaction and all data writes were rolled back; not production-deployed.",
   "chosenApproach": "Only additive question-specific rubric metadata and private SQL scorer; preserve V4 security-definer owner-scoped RPC and idempotent finalize/points ledger. Retire authenticated manual grading RPC, update learner/admin screens, regrade verified historical Nehemiah answers, auto-finalize pending essays and deliver optional result notifications. No unrelated runtime, finance, AdMob or navigation changes.",
-  "preservedBehaviors": [
-    "One Manila-day quiz attempt per user; server-only marks, strict owner isolation, private answers and essay rubrics, and source-key anti-duplicate reward logic.",
-    "Existing daily BP caps, QMP and finance isolation, and ledger triggers are unchanged.",
-    "No ad serving, prefetch, consent, dashboard navigation, native modules, or package/runtime/channel changes.",
-    "Historical answers are preserved and previously completed essays are not rescored; only corroborated enum corrections and pending essay completions are changed."
-  ],
   "allowedPaths": [
     ".buklod/scopes/bible-v4-automatic-rubric-20261118.json",
     "supabase/migrations/20261118002500_buklod_bible_v4_enumeration_equivalence_fairness.sql",
@@ -71,5 +65,22 @@
     "Regression SQL validates correct Filipino enumeration equivalents, instant 0/1/2 rubric logic, human review RPC denied to authenticated, and all pending essays grade without errors.",
     "Run focused Node regression and TypeScript/Android source checks; verify staged RC before client OTA, preserving mandatory AdMob and tab-performance gates.",
     "No production claim until exact migrations, audit receipt, staged client build and authenticated user review/notification path are verified."
+  ],
+  "selectionRationale": "A small private, deterministic rubric is fast, auditable, low-cost and user-explainable for the three reviewed essay questions; no external model credentials, network or unpredictable grader availability. Backfill is transactional, BP source-keyed, and preserves original answers.",
+  "alternativeApproaches": [
+    "Leave essays pending for System Admin: rejected because users receive neither final score nor points promptly, contrary to the no-human-review policy.",
+    "Remote LLM grading on every submission: rejected for cost, external data transfer, variable latency, potentially inconsistent scoring, and lack of configured secure grading infrastructure.",
+    "Remove essays entirely: rejected because the Bible Quiz hard tier should retain reasoning rather than only recognition questions."
+  ],
+  "riskAreas": [
+    "classroom-quiz",
+    "backend-security",
+    "app-runtime"
+  ],
+  "preserveBehaviors": [
+    "One Manila-day quiz attempt per user; server-only marks, strict owner isolation, private answers and essay rubrics, and source-key anti-duplicate reward logic.",
+    "Existing daily BP caps, QMP and finance isolation, and ledger triggers are unchanged.",
+    "No ad serving, prefetch, consent, dashboard navigation, native modules, or package/runtime/channel changes.",
+    "Historical answers are preserved and previously completed essays are not rescored; only corroborated enum corrections and pending essay completions are changed."
   ]
 }
