@@ -72,39 +72,39 @@ $$;
 create or replace function public.buklod_scan_event_qr_v2(p_payload text)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
-declare actor uuid:=auth.uid(); parts text[]; event_id uuid; challenge uuid;
+declare actor uuid:=auth.uid(); parts text[]; v_event_id uuid; challenge uuid;
  e public.attendance_events%rowtype; inserted_id uuid; existing_id uuid; existing_at timestamptz;
 begin
  if actor is null then raise exception 'Login required' using errcode='42501'; end if;
  if length(coalesce(p_payload,''))>160 or p_payload !~* '^BUKLOD:EVENT:V2:[0-9a-f-]{36}:[0-9a-f-]{36}$'
     then raise exception 'Invalid event QR'; end if;
- parts:=string_to_array(p_payload,':'); event_id:=parts[4]::uuid; challenge:=parts[5]::uuid;
+ parts:=string_to_array(p_payload,':'); v_event_id:=parts[4]::uuid; challenge:=parts[5]::uuid;
  if not exists(select 1 from public.profiles p where p.id=actor and coalesce(p.is_active,true))
     then raise exception 'Active BUKLOD account required'; end if;
- select * into e from public.attendance_events where id=event_id for share;
+ select * into e from public.attendance_events where id=v_event_id for share;
  if not found or not e.is_active or not ('qr'=any(e.allowed_methods)) then raise exception 'Event QR is not active'; end if;
  if now()<greatest(coalesce(e.attendance_open_at,e.starts_at-interval '15 minutes'),e.starts_at-interval '15 minutes')
    or now()>coalesce(e.attendance_close_at,e.ends_at,e.starts_at+interval '4 hours')
    then raise exception 'Outside the attendance window'; end if;
  if not exists(
    select 1 from public.buklod_attendance_event_qr_v2 q
-   where q.event_id=event_id and q.token_hash=encode(extensions.digest(challenge::text,'sha256'),'hex')
+   where q.event_id=v_event_id and q.token_hash=encode(extensions.digest(challenge::text,'sha256'),'hex')
    and q.expires_at>=now())
    then raise exception 'Event QR expired. Scan the latest QR.'; end if;
  insert into public.buklod_attendance_scan_receipts_v2(event_id,user_id,verified_at)
- values(event_id,actor,now()) on conflict(event_id,user_id) do nothing;
+ values(v_event_id,actor,now()) on conflict(event_id,user_id) do nothing;
  insert into public.attendance_records(event_id,user_id,status,method,operator_id,metadata)
- values(event_id,actor,case when e.late_after is not null and now()>e.late_after then 'late' else 'present' end,
+ values(v_event_id,actor,case when e.late_after is not null and now()>e.late_after then 'late' else 'present' end,
    'qr',actor,jsonb_build_object('source','event_qr_v2','verified_at',now()))
  on conflict(event_id,user_id) do nothing returning id into inserted_id;
  if inserted_id is null then
    select id,checked_in_at into existing_id,existing_at from public.attendance_records
-   where attendance_records.event_id=event_id and attendance_records.user_id=actor;
+   where attendance_records.event_id=v_event_id and attendance_records.user_id=actor;
  else
    existing_id:=inserted_id;
    select checked_in_at into existing_at from public.attendance_records where id=inserted_id;
  end if;
- return jsonb_build_object('event_id',event_id,'record_id',existing_id,
+ return jsonb_build_object('event_id',v_event_id,'record_id',existing_id,
   'status',case when inserted_id is null then 'already_recorded' else 'recorded' end,
   'checked_in_at',existing_at,'reward_status','pending_verification');
 end;
