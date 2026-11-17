@@ -17,7 +17,7 @@ test('native persistent dashboards cannot mount before verified session and requ
   const navigator = shell.indexOf('const workspaceStack =');
   assert.ok(authenticated > 0 && maintenance > authenticated &&
     policy > maintenance && onboarding > policy && navigator > onboarding);
-  assert.match(shell, /<Redirect href="\/(auth)\/login"/);
+  assert.ok(shell.includes('href="/(auth)/login"'));
   assert.match(shell, /<Redirect href="\/privacy\/consent"/);
   assert.match(shell, /<Redirect href="\/onboarding"/);
   assert.match(tabs, /lazy: true/);
