@@ -173,7 +173,7 @@ begin
   raise exception 'Five answers required';end if;
  select * into a from private.buklod_bible_v4_attempts where id=p_attempt_id and user_id=actor for update;
  if not found then raise exception 'Attempt unavailable';end if;
- if a.state<>'started' then return jsonb_build_object('status',a.state,'score_units',a.score_units,'points',a.points_awarded);end if;
+ if a.state<>'started' then return jsonb_build_object('status',a.state,'score_units',a.score_units,'points',a.points_awarded,'review',a.review_items,'notice',coalesce(a.review_note,''));end if;
  if a.local_date<>(now() at time zone 'Asia/Manila')::date then raise exception 'Daily quiz expired';end if;
  if coalesce(array_length(a.question_keys,1),0)<>5 then raise exception 'Invalid frozen questions';end if;
  if (select count(*) from jsonb_object_keys(p_answers))<>5 then raise exception 'Exactly five answers required';end if;
