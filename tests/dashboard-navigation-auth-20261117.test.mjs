@@ -31,7 +31,7 @@ test('global nav still exits managed Cluster/Organization using authorized Publi
   assert.ok(selection > 0 && navigation > selection);
   assert.match(nav, /if \(!publicScope\) throw new Error/);
   assert.match(guard, /scopedWorkspacePathForGlobalRoute/);
-  assert.match(guard, /if \(loading \|\|\s*!activeScope/);
+  assert.match(guard, /if \(\s*loading \|\|\s*!activeScope/);
   assert.match(scope, /activeScopeRef\.current = target;\s*setActiveScope\(target\)/);
   assert.match(scope, /void setBuklodActiveScope\(/);
 });
