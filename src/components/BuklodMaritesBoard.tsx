@@ -1605,7 +1605,7 @@ export default function BuklodMaritesBoard({
                 'Could not save reaction.'
             )
           );
-        });
+        }).finally(() => pendingStoryReactions.current.delete(storyId));
 
         return;
       }
