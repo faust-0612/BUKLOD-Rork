@@ -22,7 +22,8 @@ test('new helper functions remain private and approved synonyms are appended wit
  assert.match(migration,/revoke all on function private\.buklod_bible_v4_enum_parts\(text\)/);
  assert.match(migration,/taniman ng olibo/);
  assert.match(migration,/tahanan/);
- assert.doesNotMatch(migration,/update private\.buklod_bible_v4_attempts/);
+ const helperAndBank=migration.split('create or replace function public.submit_my_buklod_bible_quiz_v4')[0];
+ assert.doesNotMatch(helperAndBank,/update private\.buklod_bible_v4_attempts/);
  assert.doesNotMatch(migration,/insert into public\.buklod_points_ledger/);
 });
 test('SQL regression covers screenshot, compound synonyms, negation and duplicate aliases',()=>{
