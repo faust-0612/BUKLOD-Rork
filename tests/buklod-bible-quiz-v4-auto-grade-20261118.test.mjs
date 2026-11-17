@@ -11,6 +11,7 @@ test('Bible Quiz V4 fully automatic rubric path has no manual approval state',()
  assert.match(migration,/private\.buklod_bible_v4_grade_essay\(q\.id,p_answers->>q\.id\)/);
  assert.match(migration,/item_units:=\(v_essay_feedback->>'units'\)::integer/);
  assert.match(migration,/state='started'/);
+ assert.match(migration,/if a\.state<>'started' then return jsonb_build_object\('status',a\.state,[^\n]*'review',a\.review_items/);
  assert.match(migration,/out_result:=private\.buklod_bible_v4_finalize\(a\.id,units\)/);
  assert.match(migration,/revoke all on function public\.admin_review_buklod_bible_v4_essay/);
  assert.doesNotMatch(admin,/admin_review_buklod_bible_v4_essay|admin_list_buklod_bible_v4_pending/);
