@@ -14,6 +14,7 @@ begin
    (jsonb_build_array('Mga lupa ', 'Mga bahay'),2),
    (jsonb_build_array('Bukirin at ubasan','Taniman ng olibo at tahanan'),2),
    (jsonb_build_array('LUPA!', 'BAHAY.'),2),
+   (jsonb_build_array('BUKIRIN AT UBASAN', 'TANIMAN NG OLIBO AT TAHANAN'),2),
    (jsonb_build_array('Salapi', 'Bukirin'),1),
    (jsonb_build_array('Hindi lupa','Hindi bahay'),0),
    (jsonb_build_array('lupa','mga lupa'),1)
