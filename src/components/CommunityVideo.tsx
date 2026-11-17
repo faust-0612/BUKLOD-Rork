@@ -79,6 +79,8 @@ type Props = {
   preload?: boolean;
   /** Native Wall-to-fullscreen player transfer; never used by IMA ad playback. */
   handoffEnabled?: boolean;
+  /** Reuse the Wall network subscription instead of allocating one per player. */
+  degradedNetwork?: boolean;
   /** Detach the Wall's VideoView before Android fullscreen mounts the same player. */
   suspendedForFullscreen?: boolean;
   controlsBottomInset?: number;
@@ -237,6 +239,7 @@ export function CommunityVideo(props: Props) {
   return (
     <ExpoCommunityVideo
       {...props}
+      degradedNetwork={degraded}
       posterSource={poster}
     />
   );
@@ -591,11 +594,11 @@ function ExpoCommunityVideoPlayback({
   fitFrame = false,
   posterUri,
   posterSource,
+  degradedNetwork = false,
   onPosterGenerated,
 }: Props & { player: VideoPlayer }) {
   const soundOn = useSessionSound();
   const viewerSafeInsets = useSafeAreaInsets();
-  const degraded = useCommunityNetworkDegraded();
   const playbackIdentity = playbackKey ? `post:${playbackKey}` : uri;
   const userPausedRef = useRef(false);
   const activeRef = useRef(active);
@@ -701,7 +704,7 @@ function ExpoCommunityVideoPlayback({
     if (Platform.OS !== 'android') return;
     // Never pre-download whole videos. Require a little more safety margin on
     // degraded connections while keeping the forward buffer time bounded.
-    player.bufferOptions = degraded
+    player.bufferOptions = degradedNetwork
       ? {
           minBufferForPlayback: 2.5,
           preferredForwardBufferDuration: 20,
@@ -712,7 +715,7 @@ function ExpoCommunityVideoPlayback({
           preferredForwardBufferDuration: 18,
           prioritizeTimeOverSizeThreshold: true,
         };
-  }, [player, degraded]);
+  }, [player, degradedNetwork]);
 
   useEffect(() => {
     const muted = fullscreen ? false : !soundOn;
