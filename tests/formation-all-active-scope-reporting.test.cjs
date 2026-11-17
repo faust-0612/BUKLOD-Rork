@@ -12,6 +12,11 @@ const acl = fs.readFileSync(
   'utf8',
 );
 
+const dedup = fs.readFileSync(
+  path.resolve(__dirname, '../supabase/migrations/20261117143800_formation_multi_scope_reporting_dedup_v2.sql'),
+  'utf8',
+);
+
 test('one canonical activity is projected into every ACTIVE member scope', () => {
   assert.match(migration, /create or replace function public\.buklod_formation_reports_member_v1/i);
   assert.match(migration, /m\.membership_status='ACTIVE'/);
@@ -43,4 +48,17 @@ test('do not credit points or expose the scope resolver and private projection',
   assert.doesNotMatch(migration, /insert\s+into\s+public\.buklod_points_ledger\b/i);
   assert.match(migration, /revoke all on function public\.buklod_formation_reports_member_v1\(uuid,uuid\) from public,anon,authenticated/i);
   assert.match(acl, /revoke all on function public\.buklod_resolve_auto_submission_scope_v1\(text,uuid\)/i);
+});
+
+test('scope projection deduplicates approval history without dropping audit records', () => {
+  assert.match(dedup, /distinct on \(ra\.learner_id,ra\.item_kind,ra\.item_id\)/);
+  assert.match(dedup, /when 'APPROVED' then 0/);
+  for (const name of [
+    'buklod_scope_formation_submission_history_v1',
+    'buklod_scope_faith_monitoring_summary_v3',
+    'buklod_scope_faith_monitoring_metric_details_v1',
+    'buklod_scope_faith_monitoring_period_v1',
+  ]) assert.ok(dedup.includes('CREATE OR REPLACE FUNCTION public.' + name), name);
+  assert.doesNotMatch(dedup, /delete\s+from\s+public\.buklod_scope_formation_approvals_v2/i);
+  assert.doesNotMatch(dedup, /insert\s+into\s+public\.buklod_points_ledger/i);
 });
