@@ -1,0 +1,60 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/formation-all-active-scope-reporting-20261117.json",
+  "objective": "Project every validated Formation activity into each active member Cluster and Organization report, independent of the submission origin, without duplicate credits or unauthorized viewing.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "GitHub main source baseline 0ee57887c991d23472cdf1f9b849bce945792910; Supabase BUKLOD active project migrations applied and read-only verified on Nov 17 2026. No Android OTA, staging RC, or physical-device validation performed.",
+  "chosenApproach": "Leave canonical submission/point data untouched; deterministically resolve an active Cluster only as the validation processing anchor, report via current membership and de-duplicate status rows per learner/kind/item.",
+  "selectionRationale": "Prevents three-active-Cluster ambiguity while retaining exact-scope report guards, historical approval evidence, and one award per activity.",
+  "riskAreas": [
+    "app-runtime",
+    "backend-security",
+    "formation-reports"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261117140200_formation_all_active_scope_reporting_v1.sql",
+    "supabase/migrations/20261117142500_formation_scope_resolver_privilege_lock_v1.sql",
+    "supabase/migrations/20261117143800_formation_multi_scope_reporting_dedup_v2.sql",
+    "tests/formation-all-active-scope-reporting.test.cjs",
+    "tests/formation-database-security-reporting.test.cjs",
+    ".buklod/scopes/formation-all-active-scope-reporting-20261117.json"
+  ],
+  "regressionTests": [
+    "tests/formation-all-active-scope-reporting.test.cjs",
+    "tests/formation-database-security-reporting.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "A backend-owned Formation reporting contract applies to the daily Bible, devotion, and lesson app entry workflows.",
+      "preservedBehaviors": [
+        "All Android/Expo UI, video, Wall, Connect, AdMob, offline and points code remain untouched."
+      ],
+      "tests": [
+        "tests/formation-all-active-scope-reporting.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Change only Membership-scoped Supabase RPC projections, approval reporting deduplication, and resolver EXECUTE privileges.",
+      "preservedBehaviors": [
+        "Only authorized scope leaders can view scoped reports; no data deletion, audit loss, extra points, or public internal RPC access."
+      ],
+      "tests": [
+        "tests/formation-database-security-reporting.test.cjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Current user+assignment submission uniqueness and authenticated validation.",
+    "App and AdMob navigation performance unchanged; no OTA or code changes.",
+    "Historical Formation approvals and points ledger unchanged."
+  ],
+  "acceptanceChecks": [
+    "Live Supabase SQL report returns one record per canonical activity and all active scope memberships.",
+    "Authorized scope-admin reports succeed; helper and resolver EXECUTE are unavailable to authenticated and anon roles.",
+    "V2 protected-feature gate, focused Node tests and CI must pass before merging source; no Android OTA."
+  ],
+  "releaseMode": "DATABASE_ONLY_PRODUCTION_APPLIED_SOURCE_PR_PENDING_CI",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
