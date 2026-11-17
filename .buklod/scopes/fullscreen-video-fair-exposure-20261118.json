@@ -4,12 +4,6 @@
   "baseRef": "0c461c451ce58b5d8211da46b511f6f9e43df016",
   "sourceBranch": "feat/fullscreen-video-fair-exposure-20261118",
   "status": "DEV source only, not a staging or production release",
-  "paths": [
-    "src/lib/buklodVideoDiscovery.ts",
-    "src/app/(tabs)/buklod.tsx",
-    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
-    ".buklod/scopes/fullscreen-video-fair-exposure-20261118.json"
-  ],
   "protections": [
     "Only already-authorized public video metadata is re-ordered inside newly loaded 15-row pages; no extra RPC, network calls, schema, RLS or impressions writes",
     "Original clicked video, existing playlist rows and ad slot positions remain stable after append",
@@ -25,5 +19,44 @@
     "Full TypeScript and protected ad/nav/media/spacing CI gates",
     "Android Hermes native ad/playback and gesture smoke on exact staging APK/OTA",
     "Explicit DEV to RC to production promotion after exact update/runtime evidence; no release by this change alone"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodVideoDiscovery.ts",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    ".buklod/scopes/fullscreen-video-fair-exposure-20261118.json",
+    "tests/fullscreen-video-session-navigation-20261118.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    "tests/fullscreen-video-session-navigation-20261118.test.mjs"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "wall-media",
+    "ads-finance-points"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Fullscreen playlist now locally ranks authorized metadata before appending new rows; preserve startup, Android video lifetime and preload.",
+      "preservedBehaviors": [
+        "Expo Video playback, Android native dependencies, private media and network retry remain unchanged"
+      ],
+      "tests": [
+        "tests/fullscreen-video-fair-exposure-20261118.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Fair video ordering operates within the authenticated Public Wall modal and must not override account/location transitions or close/reopen session cancellation.",
+      "preservedBehaviors": [
+        "Current clicked video first, session guard, account/location isolation, ads and modal close/back navigation"
+      ],
+      "tests": [
+        "tests/fullscreen-video-session-navigation-20261118.test.mjs"
+      ]
+    }
   ]
 }
