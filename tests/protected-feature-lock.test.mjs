@@ -116,7 +116,7 @@ test('Nov17 Wall header navigation correction is isolated and has governance pro
 
 test('Nov17 quiet connection feedback has exact protected scope',()=>{
  const scope=JSON.parse(readFileSync(new URL('../.buklod/scopes/nov17-connection-feedback.json',import.meta.url),'utf8'));
- const paths=["src/app/(tabs)/buklod.tsx","src/lib/buklodUserFeedback.ts",".github/workflows/engineering-accountability.yml","tests/protected-feature-lock.test.mjs","tests/wall-network-feedback-20261117.test.mjs",".buklod/scopes/nov17-connection-feedback.json"];
+ const paths=["src/app/(tabs)/buklod.tsx","src/lib/buklodUserFeedback.ts",".github/workflows/engineering-accountability.yml","tests/protected-feature-lock.test.mjs","tests/wall-network-feedback-20261117.test.mjs",".buklod/scopes/nov17-connection-feedback.json","tests/wall-network-navigation-20261117.test.mjs"];
  const result=assessProtectedFeatureLock(paths.map(path=>({status:'M',path})),scope);
  assert.deepEqual(result.failures,[]);
  assert.deepEqual(result.impacted,['app-runtime','navigation-auth','governance-lock']);
