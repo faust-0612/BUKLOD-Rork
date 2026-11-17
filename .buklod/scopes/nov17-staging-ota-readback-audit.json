@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Independently verify the already-triggered Nov17 consolidated staging-user Android OTA release and production isolation without writing any staging or production data.",
+  "baseRef": "47eefd0c685f0c639227e9a887b1e1dda29b05e7",
+  "productionBaselineEvidence": "Canonical main pinned to 47eefd0c; immutable release-branch publication candidate 2cdb53bbe5aec18ad2c44a653b2e4bcfde4135d1. EAS publication evidence is unverified until audit reads GitHub run artifact and live Expo Android manifests. No device verification claimed.",
+  "chosenApproach": "Trigger a read-only PR QA workflow on an isolated audit branch. Read the known release SHA's GitHub Actions push run and verification.json artifact, then compare update ID and package with the currently served staging-user 1.3.2 Expo manifest and production ID with the preflight receipt. Do not run EAS update or any deploy.",
+  "alternativeApproaches": [
+    "Assume branch push means a successful OTA (rejected: no publication proof).",
+    "Modify/re-push the original OTA branch to add a reporting callback (rejected: may trigger duplicate OTA)."
+  ],
+  "selectionRationale": "A separate read-only audit avoids touching the frozen release source and uses independently fetchable public manifest plus authenticated Actions artifact to verify release completion.",
+  "preserveBehaviors": [
+    "Never alter canonical main, Android staging release commit, existing OTA channel or production.",
+    "No database, assets, runtime, native, AdMob, Connect or user-account changes."
+  ],
+  "acceptanceChecks": [
+    "GitHub release push-run found for exact SHA, completed with success.",
+    "Actions artifact includes exact immutable staging publish verification.json.",
+    "Live staging-user Android Expo runtime 1.3.2 manifest ID matches receipt and staging package.",
+    "Live production Expo manifest ID matches productionUnchanged receipt and production package.",
+    "Audit makes no EAS update/build/submit requests, does not change project/remote data."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/nov17-staging-ota-readback-contract.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov17-staging-ota-readback-audit.json",
+    "tests/nov17-staging-ota-readback-contract.test.mjs",
+    ".github/workflows/buklod-nov17-staging-ota-readback-audit.yml"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Add a read-only CI audit to verify exact Android staging OTA publication and unchanged production identity.",
+      "preservedBehaviors": [
+        "No ability to publish staging or production; contents and actions API limited to read.",
+        "No application/runtime or production release behavior changed."
+      ],
+      "tests": [
+        "tests/nov17-staging-ota-readback-contract.test.mjs"
+      ]
+    }
+  ]
+}
