@@ -39,13 +39,15 @@
     "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql",
     "tests/admob-gateway-service-role.test.mjs",
     "tests/buklod-admob-daily-qmp-20261118.test.mjs",
-    "tests/community-admob-preview-contract.test.cjs"
+    "tests/community-admob-preview-contract.test.cjs",
+    ".github/workflows/r38_economy_pr_qa.yml"
   ],
   "regressionTests": [
     "tests/buklod-admob-daily-qmp-20261118.test.mjs",
     "tests/community-admob-preview-contract.test.cjs",
     "tests/admob-gateway-service-role.test.mjs",
-    "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql"
+    "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql",
+    "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs"
   ],
   "acceptanceChecks": [
     "Official report APP+DATE+PHP validation, footer and micros completeness confirmed with negative tests",
@@ -56,7 +58,8 @@
     "30% pool is not withdrawable until reconciled and authorized financial close",
     "Focused Node contracts plus SQL rolled-back compile/pass; full source and ad/nav regression CI before any release",
     "Scheduler needs confirmed opt-in, endpoint, OAuth and runtime response before live status",
-    "No production OTA or database migration applied by this DEV candidate"
+    "No production OTA or database migration applied by this DEV candidate",
+    "R38 Economy CI must execute focused daily AdMob/QMP noncash, auth and monthly carryforward contracts plus Android staging JavaScript export without publishing an OTA."
   ],
   "lockedFeatureChanges": [
     {
