@@ -4328,13 +4328,14 @@ const [
           contentHeightRef.current = height;
 
           if (pendingOlderAnchorRef.current) {
-            const offset = connectOlderPrependScrollOffset(
-              pendingOlderAnchorRef.current,
-              height
-            );
+            const anchor = pendingOlderAnchorRef.current;
+            // Consume the prepend anchor even if the measured height did not
+            // change (hidden/zero-height rows). Never leak it into a later
+            // keyboard, media, or incoming-message resize.
+            pendingOlderAnchorRef.current = null;
+            suppressStickRef.current = false;
+            const offset = connectOlderPrependScrollOffset(anchor, height);
             if (offset !== null) {
-              pendingOlderAnchorRef.current = null;
-              suppressStickRef.current = false;
               listRef.current?.scrollToOffset({
                 offset,
                 animated: false,
