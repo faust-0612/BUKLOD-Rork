@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov18-staging-apk-henry-mlkit.json",
+  "objective": "Prepare next regular staging-user Android APK from current canonical main with PR #919 Matthew Henry Filipino translation error diagnosis, safe retry and present native ML Kit module, without claiming a signed APK was built.",
+  "baseRef": "de11a7ece0dbdbedd93e3af01598ffa27c55db31",
+  "productionBaselineEvidence": "Main exact source commit de11a7ece0dbdbedd93e3af01598ffa27c55db31 inspected on 2026-11-18; live production OTA APK fingerprints and current next staging APK EAS build status have not been independently verified. This branch is a staging build source candidate only.",
+  "chosenApproach": "Forward-port the two source files and focused behavioral/source tests from reviewed PR #919 onto latest canonical main. Keep the existing Expo native ML Kit module, staging-user signed APK profile/package, runtime 1.3.2, existing Google translation attribution, original English reliability fallbacks, Wi-Fi-only first language-model download and protected staging/production isolation. Do not replace the Native QA APK package or build from stale staging branches.",
+  "selectionRationale": "The existing signed staging-user source contains the ML Kit native source, while PR #919 solves missing error distinctions and retry. A fresh main-anchored staging-user source candidate avoids overwriting newer production/formation improvements or reusing the unrelated native-lab runtime. Only the signed binary can prove autolinking and real on-device translation.",
+  "alternativeApproaches": [
+    "Overwrite older staging APK branch or a completed signed APK (rejected: stale source and signed APKs cannot accept source patch without a rebuild).",
+    "Merge directly to production main and trigger production OTA (rejected: no staging build proof, and production release was not requested).",
+    "Target independent org.mzbministry.buklod.nativeqa from PR #814 (rejected: separate package/runtime with held prerequisites, and its older code does not contain current Matthew Henry translation)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith",
+    "staging-user-apk",
+    "native-module-compatibility"
+  ],
+  "preserveBehaviors": [
+    "Source and history from canonical main de11a7e unchanged except the scoped Bible translation files; prior Formation reporting and Supabase migrations preserved.",
+    "Original English and verse/citation provenance always available; no translation accepted when semantic checks fail.",
+    "Successful per-account offline translation cache, Google attribution, first-download Wi-Fi constraint, and no automatic roaming/cellular downloads preserved.",
+    "No changes to AdMob, dashboard navigation, native module implementation, character art, Wall/Connect, production OTA, production package, or Supabase."
+  ],
+  "allowedPaths": [
+    "src/lib/buklodHenryTranslation.ts",
+    "src/app/bible/read.tsx",
+    "tests/bible-henry-translation-recovery-20261117.test.cjs",
+    ".buklod/scopes/nov18-staging-apk-henry-mlkit.json"
+  ],
+  "regressionTests": [
+    "tests/bible-henry-translation-recovery-20261117.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add diagnostic and bounded manual retry to Bible-only on-device translation hook, with no runtime/native changes.",
+      "preservedBehaviors": [
+        "No changes to authentication or global navigation, video and ads; original English remains fallback.",
+        "Signed APK requirement for missing native code is explicitly disclosed instead of hiding error."
+      ],
+      "tests": [
+        "tests/bible-henry-translation-recovery-20261117.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Fix Matthew Henry Filipino translation failure in 1 Kings 4:20 reader.",
+      "preservedBehaviors": [
+        "Bible comments are source-backed; no text alteration or fabricated commentary.",
+        "Daily Reading, Strong's, TTS, notes, completion and selected verse unchanged."
+      ],
+      "tests": [
+        "tests/bible-henry-translation-recovery-20261117.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Code/test file hashes for two translation files match PR #919 exact upstream source.",
+    "Staging-user EAS APK profile and Android ML Kit module registration source check passes.",
+    "TypeScript and focused tests, protected feature scope, compact UI, and mandatory ad/nav regression tests pass.",
+    "Freeze exact current source SHA and verify EAS signed APK buildId, source SHA, package, runtime 1.3.2, staging-user channel and APK content/hash.",
+    "On Android device verify ML Kit available and reliable 1 Kings 4:20 Filipino translation on Wi-Fi, with Original English fallback for unsafe translations.",
+    "Do not replace existing signed staging APK or promote to production before signed build, staging RC, security/Ads/navigation acceptance."
+  ],
+  "releaseMode": "STAGING_USER_APK_SOURCE_ONLY_NO_BUILD",
+  "releaseTarget": "org.mzbministry.buklod.staging / staging-user / runtime 1.3.2 / EAS APK profile staging-user",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
