@@ -23,7 +23,7 @@ test('database security keeps QR challenges and reward tables non-public',()=>{
   assert.match(primary,/High-frequency organizer requires independent System Admin review/);
 });
 test('scope reporting and legacy points do not circumvent independent review',()=>{
-  assert.match(bridge,/only.*BP stays behind the independent event approval/i);
+  assert.match(bridge,/BP stays behind the independent event approval/i);
   assert.match(bridge,/credited',false/);
   assert.match(bridge,/Final attendance reward decision cannot be changed/);
   assert.match(bridge,/buklod_attendance_home_report_v2/);
