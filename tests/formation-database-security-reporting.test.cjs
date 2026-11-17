@@ -4,11 +4,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const migration = fs.readFileSync(path.join(__dirname,
-  '../supabase/migrations/20261117140200_formation_all_active_scope_reporting_v1.sql'), 'utf8');
+  '../supabase/migrations/20261117142009_formation_all_active_scope_reporting_v1_20261117.sql'), 'utf8');
 const acl = fs.readFileSync(path.join(__dirname,
-  '../supabase/migrations/20261117142500_formation_scope_resolver_privilege_lock_v1.sql'), 'utf8');
+  '../supabase/migrations/20261117142308_formation_scope_resolver_privilege_lock_v1_20261117.sql'), 'utf8');
 const dedup = fs.readFileSync(path.join(__dirname,
-  '../supabase/migrations/20261117143800_formation_multi_scope_reporting_dedup_v2.sql'), 'utf8');
+  '../supabase/migrations/20261117142548_formation_multi_scope_reporting_dedup_v2_20261117.sql'), 'utf8');
 
 test('database scope helper requires ACTIVE membership and excludes deleted scopes', () => {
   assert.match(migration, /m\.membership_status='ACTIVE'/);
