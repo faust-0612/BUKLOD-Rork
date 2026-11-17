@@ -7,7 +7,8 @@ test('Wall detach precedes fullscreen mount; expo player reuse excludes IMA',()=
   const wall=read('src/app/(tabs)/buklod.tsx');
   const video=read('src/components/CommunityVideo.tsx');
   assert.match(wall,/suspendedForFullscreen=\{videoViewerHandoffPostId===postId\}/);
-  assert.match(wall,/setVideoViewerHandoffPostId\(postId\);[\s\S]*?requestAnimationFrame\(\(\) => setVideoViewerOpen\(true\)\)/);
+  assert.match(wall,/videoViewerOpenPendingRef\.current=true;[\s\S]*?setVideoViewerHandoffPostId\(postId\)/);
+  assert.match(wall,/useEffect\(\(\)=>\{[\s\S]*?setVideoViewerOpen\(true\)/);
   assert.match(video,/if \(!mountPlayer \|\| props\.suspendedForFullscreen\)/);
   assert.match(video,/if \(imaEligible && active\)/);
   assert.match(video,/Platform\.OS === 'android' && props\.handoffEnabled && props\.playbackKey/);
@@ -20,6 +21,7 @@ test('video poster remains until a decoded frame, without removing ads or bounde
   assert.match(video,/COMMUNITY_VIDEO_CACHE_BUDGET_BYTES/);
   assert.match(video,/minBufferForPlayback: 2\.5/);
   assert.match(video,/preferredForwardBufferDuration: 20/);
+  assert.match(video,/degradedNetwork=\{degraded\}/);
   assert.match(video,/BuklodImaVideo/);
 });
 
