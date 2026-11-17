@@ -82,6 +82,7 @@ import {
  COMMUNITY_VIDEO_MAX_SCANS_PER_REQUEST,
  lastCommunityVideoCursor,
  appendUniqueCommunityVideos,
+ arrangeCommunityVideosForFairExposure,
  type CommunityVideoCursor,
 } from '@/lib/buklodVideoDiscovery';
 
@@ -4830,8 +4831,17 @@ const load=useCallback(async(options?:{
        setVideoViewerHasMore(false);
       }
       if(prepared.length){
+       // Never reshuffle a video already visible or shift existing ad slots.
+       // Author diversity and discovery exposure apply only to the incoming
+       // authorized metadata page, before normal ad insertion.
+       const fairSeed=String(user.id)+':'+String(videoViewerSessionRef.current);
+       const fairNow=Date.now();
        setVideoViewerPosts(current=>{
-        return appendUniqueCommunityVideos(current,prepared);
+        if(requestSeq!==videoViewerScanSeqRef.current)return current;
+        const ranked=arrangeCommunityVideosForFairExposure(
+         current,prepared,fairSeed,fairNow
+        );
+        return appendUniqueCommunityVideos(current,ranked);
        });
        break;
       }
