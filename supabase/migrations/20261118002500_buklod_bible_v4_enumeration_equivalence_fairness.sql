@@ -19,7 +19,7 @@ returns setof text language sql immutable strict set search_path='' as $$
  from (
    select p_value as piece
    union all
-   select regexp_split_to_table(p_value,'[[:space:]]+(at|and)[[:space:]]+|[,;/]') as piece
+   select regexp_split_to_table(p_value,'[[:space:]]+(at|and)[[:space:]]+|[,;/]','i') as piece
  ) parts
  where private.buklod_bible_v4_enum_normalize(piece)<>'';
 $$;
