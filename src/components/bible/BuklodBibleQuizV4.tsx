@@ -93,14 +93,14 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
      awarded_points:Number(data.points||0),review:Array.isArray(data.review)?data.review.map((r:Review)=>({
       ...r,question:old?.questions?.find(q=>q.id===r.id)?.question,submitted_answer:answers[r.id]
      })):old?.review}));
-   if(key)await AsyncStorage.removeItem(key);
+   if(key)void AsyncStorage.removeItem(key).catch(()=>{});
    setMessage(data.status==='pending_review'
      ?'Naka-save ang sagot. I-refresh para makita ang awtomatikong resulta.'
      :data.points>0?'Awtomatikong nasuri. +'+String(data.points)+' BP; i-claim sa Points. Tingnan ang rubric sa ibaba.'
      :'Awtomatikong nasuri ang quiz. Tingnan ang score at rubric feedback sa ibaba.');
    void playBuklodGameFeedback(data.status==='completed'?'success':'collect');
    if(data.status==='completed')void showBuklodAdOpportunity('points_submission_success');
-  }catch{setMessage('Submit failed. Your draft remains saved. Try again.');}
+  }catch{setMessage('Hindi nakumpirma ang submission. I-refresh para tingnan kung naitala na ang marka; naka-save pa rin ang draft.');}
   finally{setBusy(false);}
  };
  return <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
