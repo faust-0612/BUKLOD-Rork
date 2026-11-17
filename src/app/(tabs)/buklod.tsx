@@ -1595,7 +1595,7 @@ function LegacyPublicBuklodScreen(){
  const videoViewerOpenPendingRef=useRef(false);
  useEffect(()=>{
   // A committed inline detach must precede a new Android VideoView mount.
-  if(!videoViewerHandoffPostId || !videoViewerOpenPendingRef.current)return;
+  if(Platform.OS!=='android' || !videoViewerHandoffPostId || !videoViewerOpenPendingRef.current)return;
   const frame=requestAnimationFrame(()=>{
    if(!videoViewerOpenPendingRef.current)return;
    videoViewerOpenPendingRef.current=false;
@@ -4850,8 +4850,14 @@ const load=useCallback(async(options?:{
     setVideoViewerShowHint(true);
     setVideoViewerSession(current=>current+1);
     // Avoid simultaneous native VideoViews sharing one Android player.
-    videoViewerOpenPendingRef.current=true;
-    setVideoViewerHandoffPostId(postId);
+    if(Platform.OS==='android'){
+     videoViewerOpenPendingRef.current=true;
+     setVideoViewerHandoffPostId(postId);
+    }else{
+     // Web uses its existing viewer navigation and must not wait for an
+     // Android-only native VideoView detach.
+     setVideoViewerOpen(true);
+    }
     enableCommunityVideoSound();
 
    // Reuse the existing authorized URL and cached media from the Wall.
