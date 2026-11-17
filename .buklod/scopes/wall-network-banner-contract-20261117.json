@@ -1,0 +1,33 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-network-banner-contract-20261117.json",
+  "objective": "Correct the Public Wall weak-network regression test to validate the existing offline/degraded banner guard and proper styles without modifying application behavior.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Github main source d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6 inspected on 2026-11-17; source commit only, not a verified production deployment.",
+  "chosenApproach": "Replace a stale source-text regex expecting status === 'degraded' with explicit assertions that the banner is rendered only for offline/degraded and uses degraded styling for limited connection; retain all other network/feedback and comment assertions.",
+  "selectionRationale": "Android staging QA's only focused-test failure comes from an outdated static literal match. The existing banner correctly uses status !== 'offline' && status !== 'degraded' to exclude healthy connection; no application changes are warranted.",
+  "riskAreas": [],
+  "allowedPaths": [
+    ".buklod/scopes/wall-network-banner-contract-20261117.json",
+    "tests/wall-network-feedback-20261117.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/wall-network-feedback-20261117.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "No application, offline-sync, ad, media, auth, or runtime files changed.",
+    "Network banner still only appears for confirmed offline or degraded connectivity.",
+    "Comment retry/error and feedback protections remain covered by the same test file."
+  ],
+  "acceptanceChecks": [
+    "Node focused test passes on the authoritative main source.",
+    "Engineering-accountability scope gate and protected feature contract checks pass.",
+    "Follow/Connect frozen staging RC must be repinned and reverified before any Android-only staging OTA; production unchanged."
+  ],
+  "alternativeApproaches": [
+    "Add redundant status === degraded expression to application source solely to satisfy a string matcher (rejected: unnecessary functional code change).",
+    "Skip the failing connectivity test in staging CI (rejected: weakens a meaningful release gate)."
+  ],
+  "publicationStatus": "DEV_TEST_CORRECTION_ONLY_NO_OTA"
+}
