@@ -18,7 +18,10 @@
     "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
     "src/components/bible/BuklodBibleQuizV4.tsx",
     "src/app/admin/bible-v4-events.tsx",
-    "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs"
+    "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
+    "supabase/migrations/20261118002900_buklod_bible_v4_essay_antifarming_gate.sql",
+    "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql",
+    "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs"
   ],
   "regressionTests": [
     "supabase/tests/buklod_bible_v4_enumeration_equivalence_20261118.sql",
@@ -26,7 +29,9 @@
     "tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs",
     "tests/buklod-bible-v4-historical-regrade-20261118.test.mjs",
     "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
-    "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs"
+    "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
+    "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql",
+    "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -36,7 +41,8 @@
         "Keep fast nonblocking quiz load, offline saved drafts, ad opportunity lifecycle and existing R3 fallback."
       ],
       "tests": [
-        "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs"
+        "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
+        "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs"
       ]
     },
     {
@@ -46,7 +52,8 @@
         "Preserve frozen questions, protected attempts, per-day limits, score/rubric transparency and classroom Quiz dedicated project isolation."
       ],
       "tests": [
-        "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs"
+        "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
+        "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs"
       ]
     },
     {
@@ -56,7 +63,8 @@
         "All authorized users remain scoped to their own quiz attempts, private answer keys stay inaccessible, historical BP ledger remains idempotent and QMP untouched."
       ],
       "tests": [
-        "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql"
+        "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql",
+        "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql"
       ]
     }
   ],
@@ -64,7 +72,8 @@
     "Rollback-only SQL rehearsal with migrations 025+026+027+028 must result in zero pending essays and then zero persisted changes after rollback.",
     "Regression SQL validates correct Filipino enumeration equivalents, instant 0/1/2 rubric logic, human review RPC denied to authenticated, and all pending essays grade without errors.",
     "Run focused Node regression and TypeScript/Android source checks; verify staged RC before client OTA, preserving mandatory AdMob and tab-performance gates.",
-    "No production claim until exact migrations, audit receipt, staged client build and authenticated user review/notification path are verified."
+    "No production claim until exact migrations, audit receipt, staged client build and authenticated user review/notification path are verified.",
+    "Read-only live antifarming tests reject keywords/repetition, preserve all nine legitimate finalized essays, and verify private scorer permissions."
   ],
   "selectionRationale": "A small private, deterministic rubric is fast, auditable, low-cost and user-explainable for the three reviewed essay questions; no external model credentials, network or unpredictable grader availability. Backfill is transactional, BP source-keyed, and preserves original answers.",
   "alternativeApproaches": [
@@ -81,6 +90,7 @@
     "One Manila-day quiz attempt per user; server-only marks, strict owner isolation, private answers and essay rubrics, and source-key anti-duplicate reward logic.",
     "Existing daily BP caps, QMP and finance isolation, and ledger triggers are unchanged.",
     "No ad serving, prefetch, consent, dashboard navigation, native modules, or package/runtime/channel changes.",
-    "Historical answers are preserved and previously completed essays are not rescored; only corroborated enum corrections and pending essay completions are changed."
+    "Historical answers are preserved and previously completed essays are not rescored; only corroborated enum corrections and pending essay completions are changed.",
+    "Reject repeated, keyword-only essay responses before granting BP, without retroactively deleting legitimate completed rewards."
   ]
 }
