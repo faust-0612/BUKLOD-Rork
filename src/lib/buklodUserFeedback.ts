@@ -154,29 +154,27 @@ export function buildBuklodUserFeedback(
 
   if (category === 'TIMEOUT_ERROR') {
     return {
-      tone: 'warning',
+      tone: 'info',
       category,
-      title: 'This is taking longer than expected',
-      message:
-        "BUKLOD couldn't finish the request in time. Your information is safe.",
-      nextStep: 'Try again. If it repeats, open Need Help.',
-      supportCode,
+      title: 'Loading is taking longer',
+      message: 'Your connection or the service may be slow. Please try again.',
+      nextStep: null,
+      supportCode: null,
       retryable: true,
-      needsSupport: true,
+      needsSupport: false,
     };
   }
 
   if (category === 'NETWORK_ERROR') {
     return {
-      tone: 'warning',
+      tone: 'info',
       category,
-      title: 'Connection problem',
-      message:
-        "BUKLOD couldn't reach the service right now.",
-      nextStep: 'Check your connection, then try again.',
-      supportCode,
+      title: 'Connection interrupted',
+      message: 'Check your signal or Wi-Fi, then try again.',
+      nextStep: null,
+      supportCode: null,
       retryable: true,
-      needsSupport: true,
+      needsSupport: false,
     };
   }
 

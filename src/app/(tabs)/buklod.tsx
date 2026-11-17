@@ -529,6 +529,7 @@ function LegacyPublicBuklodScreen(){
  const wallComposerTone = getBuklodCardTone('peach', isBuklodDarkPaletteId(paletteId));
  const wallGalleryTone = getBuklodCardTone('sky', isBuklodDarkPaletteId(paletteId));
  const { showFeedback }=useBuklodFeedback();
+ const {isConnected,isInternetReachable,status:wallNetworkStatus}=useNetwork();
  const {
   unreadCount: connectUnread,
   personalUnread: connectPersonalUnread,
@@ -550,6 +551,21 @@ function LegacyPublicBuklodScreen(){
    fallbackTitle:title,
    fallbackMessage:message,
   });
+  // A confirmed offline/limited state already has the compact global
+  // banner; never turn weak reception or request timeout into a red alarm.
+  const connectionIssue=
+   base.category==='NETWORK_ERROR' ||
+   base.category==='TIMEOUT_ERROR';
+  if(connectionIssue){
+   if(wallNetworkStatus==='offline'||wallNetworkStatus==='degraded')return;
+   showFeedback({
+    ...base,
+    tone:'info',
+    supportCode:null,
+    needsSupport:false,
+   },{autoHideMs:4500});
+   return;
+  }
   const feedback={
    ...base,
    tone:'error' as const,
@@ -577,7 +593,7 @@ function LegacyPublicBuklodScreen(){
    feature:'Community Wall',
    outcome,
   });
- },[showFeedback]);
+ },[showFeedback,wallNetworkStatus]);
  const {
   openReport,
   reportSheet,
@@ -611,7 +627,6 @@ function LegacyPublicBuklodScreen(){
   useRef<Record<string,{url:string;at:number}>>({});
 
  const {featureEnabled}=useRuntimeConfig(); const {user,profile}=useAuth();
- const {isConnected,isInternetReachable}=useNetwork();
  const communityOnline=
   isConnected && isInternetReachable!==false;
  const communityOnlineRef=useRef(communityOnline);
@@ -3707,8 +3722,17 @@ const load=useCallback(async(options?:{
      }));
     }catch(error:any){
      if(!isCurrent())return;
+     const category=buildBuklodUserFeedback(error).category;
      setCommentLoadError(
-      "Comments couldn't load. Check your connection and tap Retry."
+      wallNetworkStatus==='offline'
+       ? 'No internet connection. Check your signal and tap Retry.'
+       : wallNetworkStatus==='degraded'
+        ? 'Limited connection. Tap Retry when your signal improves.'
+        : category==='TIMEOUT_ERROR'
+         ? 'Comments are taking longer than usual. Tap Retry.'
+         : category==='NETWORK_ERROR'
+          ? 'Connection interrupted. Tap Retry to load comments.'
+          : "Comments couldn't load. Tap Retry."
      );
      reportCommunityFailure(
       error,
@@ -3720,7 +3744,7 @@ const load=useCallback(async(options?:{
      if(isCurrent()&&!options?.silent)setCommentLoading(false);
     }
    },
-   [user?.id]
+   [user?.id,wallNetworkStatus,reportCommunityFailure]
   );
 
  const openComments=
