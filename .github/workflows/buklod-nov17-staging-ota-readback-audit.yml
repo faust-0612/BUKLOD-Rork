@@ -1,0 +1,103 @@
+name: BUKLOD Nov17 Staging OTA Receipt Audit - READ ONLY
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/buklod-nov17-staging-ota-readback-audit.yml
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-nov17-staging-ota-receipt-audit
+  cancel-in-progress: false
+jobs:
+  audit-live-expo-staging:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'audit/nov17-staging-ota-readback-20261117' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_RELEASE_SHA: 2cdb53bbe5aec18ad2c44a653b2e4bcfde4135d1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Independently verify staging update receipt, live manifest and unchanged production
+        env:
+          GH_READ_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          import {manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const repo=process.env.GITHUB_REPOSITORY;
+          const sha=process.env.TARGET_RELEASE_SHA;
+          assert.match(sha,/^[a-f0-9]{40}$/);
+          const auth='Bearer '+process.env.GH_READ_TOKEN;
+          const get=async path=>{
+            const res=await fetch('https://api.github.com/repos/'+repo+path,{
+              headers:{authorization:auth,accept:'application/vnd.github+json'},
+              signal:AbortSignal.timeout(30000)
+            });
+            assert.equal(res.status,200,'GitHub read failed for '+path+': '+res.status);
+            return res.json();
+          };
+          let run=null;
+          for(let attempt=0;attempt<24;attempt++){
+            const data=await get('/actions/runs?head_sha='+sha+'&per_page=100');
+            run=(data.workflow_runs??[]).find(r=>
+              r.name==='BUKLOD Nov17 Current Main Consolidated Android Staging OTA' &&
+              r.head_sha===sha && r.event==='push' &&
+              r.head_branch==='release/nov17-main-verified-consolidated-rc132'
+            )??null;
+            if(run?.status==='completed')break;
+            console.log('Staging publish QA still pending:',run?.id??'missing',run?.status??'not-started');
+            await new Promise(resolve=>setTimeout(resolve,20000));
+          }
+          assert.ok(run,'Exact release push run not found; publication not verified');
+          assert.equal(run.status,'completed','Staging release workflow not complete');
+          assert.equal(run.conclusion,'success','Staging release workflow failed: '+run.html_url);
+          const artifacts=await get('/actions/runs/'+run.id+'/artifacts?per_page=100');
+          const archive=(artifacts.artifacts??[]).find(a=>a.name==='buklod-nov17-staging-'+sha&&!a.expired);
+          assert.ok(archive,'Missing exact-source staging verification artifact');
+          const url='https://api.github.com/repos/'+repo+'/actions/artifacts/'+archive.id+'/zip';
+          const zip=await fetch(url,{
+            headers:{authorization:auth,accept:'application/vnd.github+json'},
+            signal:AbortSignal.timeout(30000)
+          });
+          assert.equal(zip.status,200,'Cannot download publication artifact');
+          const zipPath='/tmp/buklod-staging-verified-receipt.zip';
+          fs.writeFileSync(zipPath,Buffer.from(await zip.arrayBuffer()));
+          const entries=execFileSync('unzip',['-Z','-1',zipPath],{encoding:'utf8'}).split('\n').filter(Boolean);
+          const readReceipt=name=>{
+            const entry=entries.find(p=>p.endsWith(name));
+            assert.ok(entry,'Missing archived '+name);
+            return JSON.parse(execFileSync('unzip',['-p',zipPath,entry],{encoding:'utf8'}));
+          };
+          const receipt=readReceipt('verification.json');
+          const preflight=readReceipt('preflight.json');
+          assert.equal(receipt.status,'VERIFIED STAGING OTA');
+          assert.equal(receipt.commit,sha);
+          assert.equal(receipt.channel,'staging-user');
+          assert.equal(receipt.runtime,'1.3.2');
+          assert.equal(receipt.androidPackage,'org.mzbministry.buklod.staging');
+          assert.equal(receipt.productionUnchanged,preflight.productionUpdateId);
+          assert.equal(receipt.physicalDeviceVerified,false);
+          const liveStage=await manifest('staging-user');
+          const liveProd=await manifest('production');
+          assert.equal(liveStage.id.toLowerCase(),receipt.stagingUpdateId.toLowerCase(),'Live staging manifest does not match release receipt');
+          assert.equal(liveStage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(liveStage.extra?.expoClient?.extra?.appEnvironment,'staging');
+          assert.equal(liveProd.id,receipt.productionUnchanged,'Production manifest changed');
+          assert.equal(liveProd.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          const summary={status:'VERIFIED STAGING OTA',sourceSha:sha,runId:run.id,
+            runUrl:run.html_url,stagingUpdateId:receipt.stagingUpdateId,
+            groupId:receipt.groupId,channel:'staging-user',runtime:'1.3.2',
+            stagingPackage:'org.mzbministry.buklod.staging',
+            productionUnchanged:liveProd.id,physicalDeviceVerified:false,
+            verifiedAt:new Date().toISOString()};
+          console.log('INDEPENDENT STAGING READBACK',JSON.stringify(summary));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(summary,null,2));
+          NODE
