@@ -12,6 +12,8 @@ const EMPTY: ConnectNoteReaction = { total_reactions: 0, my_reaction: null };
 const cache = new Map<string, { at: number; values: Record<string, ConnectNoteReaction> }>();
 const CACHE_MS = 30_000;
 const MAX_CACHE_KEYS = 12;
+// A Wall/Connect tab focus and mount can coincide: share one read, not two.
+const noteReadsInFlight = new Map<string, Promise<{data:any; error:any}>>();
 
 function mutate(
   row: ConnectNoteReaction,
@@ -46,6 +48,8 @@ export function useBuklodConnectNoteReactions(
   const [reactions, setReactions] = useState<Record<string, ConnectNoteReaction>>({});
   const requestSequence = useRef(0);
   const pending = useRef(new Set<string>());
+  const viewerRef = useRef(viewerId);
+  viewerRef.current = viewerId;
 
   const refresh = useCallback(async (force = false) => {
     const sequence = ++requestSequence.current;
@@ -61,12 +65,20 @@ export function useBuklodConnectNoteReactions(
     }
 
     try {
-      const { data, error } = await (supabase as any).rpc(
-        'get_buklod_connect_note_reactions_v1',
-        { p_owner_ids: ownerKey.split(',') },
-      );
+      let request = noteReadsInFlight.get(key);
+      if (!request) {
+        request = Promise.resolve((supabase as any).rpc(
+          'get_buklod_connect_note_reactions_v1',
+          { p_owner_ids: ownerKey.split(',') },
+        ));
+        noteReadsInFlight.set(key, request);
+        void request.finally(() => {
+          if (noteReadsInFlight.get(key) === request) noteReadsInFlight.delete(key);
+        }).catch(() => undefined);
+      }
+      const { data, error } = await request;
       if (error) throw error;
-      if (sequence !== requestSequence.current) return;
+      if (viewerRef.current !== viewerId || sequence !== requestSequence.current) return;
       const next: Record<string, ConnectNoteReaction> = {};
       for (const row of data ?? []) {
         const id = String(row.owner_id ?? '');
@@ -96,6 +108,8 @@ export function useBuklodConnectNoteReactions(
   const toggleLove = useCallback(async (ownerId: string) => {
     if (!viewerId || !ownerId || ownerId === viewerId || pending.current.has(ownerId)) return;
     pending.current.add(ownerId);
+    // An older list refresh must never overwrite an optimistically updated note.
+    ++requestSequence.current;
     const previous = reactions[ownerId] ?? EMPTY;
     const nextKey = previous.my_reaction === 'love' ? null : 'love';
     setReactions(rows => ({
@@ -110,6 +124,7 @@ export function useBuklodConnectNoteReactions(
       );
       if (error) throw error;
       const persisted = data == null ? null : String(data);
+      if (viewerRef.current !== viewerId) return;
       if (persisted !== nextKey) {
         setReactions(rows => ({
           ...rows,
@@ -121,6 +136,7 @@ export function useBuklodConnectNoteReactions(
         if (key.startsWith(`${viewerId}|`)) cache.delete(key);
       }
     } catch (error) {
+      if (viewerRef.current !== viewerId) return;
       setReactions(rows => ({
         ...rows,
         [ownerId]: mutate(rows[ownerId] ?? EMPTY, nextKey, previous.my_reaction),
