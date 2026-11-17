@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { summarizeDatedAdmobReport } from '../supabase/functions/buklod-admob-revenue-preview-sync/report-totals.mjs';
 const read=path=>readFileSync(path,'utf8');
-const sql=read('supabase/migrations/20261118004200_buklod_admob_daily_qmp_preview_v2.sql');
+const sql=read('supabase/migrations/20261117180753_buklod_admob_daily_qmp_preview_v2_20261118.sql');
 const worker=read('supabase/functions/buklod-admob-revenue-preview-sync/index.ts');
 const schedule=read('.github/workflows/buklod_admob_provisional_sync.yml');
 const home=read('src/components/BuklodUnifiedEarningsHomeCard.tsx');

@@ -35,7 +35,7 @@
     "src/lib/buklodCommunityContributionEconomy.ts",
     "supabase/functions/buklod-admob-revenue-preview-sync/index.ts",
     "supabase/functions/buklod-admob-revenue-preview-sync/report-totals.mjs",
-    "supabase/migrations/20261118004200_buklod_admob_daily_qmp_preview_v2.sql",
+    "supabase/migrations/20261117180753_buklod_admob_daily_qmp_preview_v2_20261118.sql",
     "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql",
     "tests/admob-gateway-service-role.test.mjs",
     "tests/buklod-admob-daily-qmp-20261118.test.mjs",
@@ -59,7 +59,8 @@
     "Focused Node contracts plus SQL rolled-back compile/pass; full source and ad/nav regression CI before any release",
     "Scheduler needs confirmed opt-in, endpoint, OAuth and runtime response before live status",
     "No production OTA or database migration applied by this DEV candidate",
-    "R38 Economy CI must execute focused daily AdMob/QMP noncash, auth and monthly carryforward contracts plus Android staging JavaScript export without publishing an OTA."
+    "R38 Economy CI must execute focused daily AdMob/QMP noncash, auth and monthly carryforward contracts plus Android staging JavaScript export without publishing an OTA.",
+    "GitHub SQL migration filename must equal the exact Supabase production migration-history version 20261117180753; never apply the same DDL twice."
   ],
   "lockedFeatureChanges": [
     {

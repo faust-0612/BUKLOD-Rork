@@ -13,3 +13,5 @@ Status: DEV source only. No production backend deployment, live scheduler activa
 - No Finance V3 settlement, withdrawal, RLS access scope or provider ad-fill path is modified.
 - Deploy order after CI: additive migration + DB security contract, Edge Function + confirmed provider response, staging OTA + ad/nav regression gates, verified RC, production only when separately approved.
 - Live scheduler config is not verified. Prior official snapshot was November 9 (Manila); no observed Nov 17 invocation. Neither cash nor availability is backfilled without verified reconciliation.
+
+- Live apply_migration assigned version `20261117180753`, so the source migration is named `20261117180753_buklod_admob_daily_qmp_preview_v2_20261118.sql` for future db push parity. Do not reapply. The add-on table and RPCs have been verified live; source report scheduler remains unverified.
