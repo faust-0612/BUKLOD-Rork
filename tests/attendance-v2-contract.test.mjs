@@ -31,3 +31,12 @@ test('event display rotates, independent approval rejects creator',()=>{
   assert.match(panel,/buklod_issue_event_qr_v2/);
   assert.match(panel,/buklod_review_event_rewards_v2/);
 });
+test('legacy points are capped and old home check-in cannot credit directly',()=>{
+  const bridge=readFileSync(new URL('../supabase/migrations/20261118014000_buklod_attendance_v2_legacy_bridge_report.sql',import.meta.url),'utf8');
+  assert.match(bridge,/NEW\.activity_type<>'event_attendance'/);
+  assert.match(bridge,/cfg\.per_day-greatest\(0,used_day\)/);
+  assert.match(bridge,/checked_in_at\)\s+values\(checkin\.event_id/);
+  assert.match(bridge,/credited',false/);
+  assert.match(bridge,/can_manage_buklod_attendance_event\(p_event_id,actor\)/);
+  assert.match(bridge,/buklod_attendance_home_report_v2/);
+});

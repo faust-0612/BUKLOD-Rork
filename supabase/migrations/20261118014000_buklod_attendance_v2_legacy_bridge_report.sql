@@ -48,9 +48,9 @@ begin
   if not exists(select 1 from public.buklod_scope_memberships m where m.scope_id=checkin.scope_id
      and m.user_id=checkin.user_id and m.membership_status='ACTIVE' and m.left_at is null)
   then raise exception 'Active Cluster membership required'; end if;
-  insert into public.attendance_records(event_id,user_id,status,method,operator_id,metadata)
+  insert into public.attendance_records(event_id,user_id,status,method,operator_id,metadata,checked_in_at)
   values(checkin.event_id,checkin.user_id,'present','manual',actor,
-    jsonb_build_object('source','reviewed_cluster_home_checkin','checkin_id',checkin.id))
+    jsonb_build_object('source','reviewed_cluster_home_checkin','checkin_id',checkin.id),checkin.checked_in_at)
   on conflict(event_id,user_id) do nothing;
  end if;
  update public.buklod_home_event_checkins_r3
@@ -139,3 +139,62 @@ end;
 $$;
 revoke all on function public.buklod_attendance_home_report_v2(uuid,date,date) from public,anon;
 grant execute on function public.buklod_attendance_home_report_v2(uuid,date,date) to authenticated;
+
+-- Final review decisions are immutable; correcting a completed decision requires a new auditable workflow.
+create or replace function public.buklod_guard_final_attendance_review_v2()
+returns trigger language plpgsql security definer set search_path=''
+as $$
+begin
+ if OLD.status in ('approved','rejected') and NEW.status<>OLD.status then
+   raise exception 'Final attendance reward decision cannot be changed without formal reversal';
+ end if;
+ return NEW;
+end;
+$$;
+drop trigger if exists trg_guard_final_attendance_review_v2 on public.buklod_attendance_event_review_v2;
+create trigger trg_guard_final_attendance_review_v2
+before update on public.buklod_attendance_event_review_v2
+for each row execute function public.buklod_guard_final_attendance_review_v2();
+revoke all on function public.buklod_guard_final_attendance_review_v2() from public,anon,authenticated;
+
+-- Legacy church_events rewards share the same daily/weekly anti-farming ceiling.
+-- This changes BP credit only; never changes an attendance record.
+create or replace function public.buklod_legacy_event_attendance_cap_v2()
+returns trigger language plpgsql security definer set search_path=''
+as $$
+declare cfg record; event_stamp timestamptz; day_start date; week_start date;
+ used_day integer; used_week integer;
+begin
+ if NEW.activity_type<>'event_attendance' or NEW.direction<>'credit' then return NEW; end if;
+ select * into cfg from public.buklod_attendance_reward_caps_v2 where singleton=true;
+ if not found then return null; end if;
+ select coalesce(ev.starts_at,NEW.created_at,now()) into event_stamp
+ from public.church_events ev where ev.id=NEW.source_id;
+ if event_stamp is null then event_stamp:=coalesce(NEW.created_at,now()); end if;
+ perform 1 from public.profiles where id=NEW.user_id for update;
+ day_start:=(event_stamp at time zone 'Asia/Manila')::date;
+ week_start:=date_trunc('week',event_stamp at time zone 'Asia/Manila')::date;
+ select coalesce(sum(case when l.direction='credit' then l.points else -l.points end),0)::integer
+ into used_day from public.buklod_points_ledger l
+ left join public.attendance_events ae on ae.id=l.source_id
+ left join public.church_events ce on ce.id=l.source_id
+ where l.user_id=NEW.user_id and l.activity_type in ('scope_attendance','event_attendance')
+ and (coalesce(ae.starts_at,ce.starts_at,l.created_at) at time zone 'Asia/Manila')::date=day_start;
+ select coalesce(sum(case when l.direction='credit' then l.points else -l.points end),0)::integer
+ into used_week from public.buklod_points_ledger l
+ left join public.attendance_events ae on ae.id=l.source_id
+ left join public.church_events ce on ce.id=l.source_id
+ where l.user_id=NEW.user_id and l.activity_type in ('scope_attendance','event_attendance')
+ and (coalesce(ae.starts_at,ce.starts_at,l.created_at) at time zone 'Asia/Manila')::date>=week_start
+ and (coalesce(ae.starts_at,ce.starts_at,l.created_at) at time zone 'Asia/Manila')::date<week_start+7;
+ NEW.points:=greatest(0,least(NEW.points,cfg.per_event,
+ cfg.per_day-greatest(0,used_day),cfg.per_week-greatest(0,used_week)));
+ if NEW.points<=0 then return null; end if;
+ return NEW;
+end;
+$$;
+drop trigger if exists trg_buklod_legacy_event_attendance_cap_v2 on public.buklod_points_ledger;
+create trigger trg_buklod_legacy_event_attendance_cap_v2
+before insert on public.buklod_points_ledger
+for each row execute function public.buklod_legacy_event_attendance_cap_v2();
+revoke all on function public.buklod_legacy_event_attendance_cap_v2() from public,anon,authenticated;

@@ -1038,7 +1038,7 @@ export default function ScopeAttendanceScreen() {
       )}
 
       {selected && canManageSelected && (
-        <BuklodAttendanceEventQrPanel eventId={selected.id} canManage={canManageSelected} eventOpen={selected.is_active} />
+        <BuklodAttendanceEventQrPanel eventId={selected.id} canManage={canManageSelected} eventOpen={selected.is_active && (!selected.ends_at || new Date(selected.ends_at).getTime() > Date.now())} />
       )}
 
       {selected && canManageSelected && (

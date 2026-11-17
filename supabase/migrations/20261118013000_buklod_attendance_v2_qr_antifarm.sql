@@ -178,9 +178,14 @@ begin
  if e.created_by=actor then raise exception 'Event creator cannot approve their own event rewards' using errcode='42501'; end if;
  if length(btrim(coalesce(p_reason,'')))<10 then raise exception 'Reason must contain at least 10 characters'; end if;
  if p_approve and
-   (e.ends_at is null or e.ends_at>now() or e.starts_at>=e.ends_at
+   (e.created_at>e.ends_at or e.ends_at is null or e.ends_at>now() or e.starts_at>=e.ends_at
      or e.ends_at-e.starts_at<interval '15 minutes' or nullif(btrim(e.location),'') is null)
    then raise exception 'Event must be completed with a valid duration and venue'; end if;
+ if p_approve and not public.is_system_admin() and (
+   select count(*) from public.attendance_events ev
+   where ev.created_by=e.created_by
+    and (ev.starts_at at time zone 'Asia/Manila')::date=(e.starts_at at time zone 'Asia/Manila')::date
+ )>2 then raise exception 'High-frequency organizer requires independent System Admin review'; end if;
  insert into public.buklod_attendance_event_review_v2(event_id,status,reviewed_by,reviewed_at,reason)
  values(p_event_id,case when p_approve then 'approved' else 'rejected' end,actor,now(),btrim(p_reason))
  on conflict(event_id) do update set status=excluded.status,reviewed_by=excluded.reviewed_by,
