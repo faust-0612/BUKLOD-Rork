@@ -32,7 +32,7 @@ test('unreviewed product changes and missing exact-head RC checks block publicat
   assert.match(wf,/BUKLOD Real Recent Comment QA/);
   assert.match(wf,/BUKLOD Main - Report Door and Legacy Integration PR QA/);
   assert.match(wf,/git diff --exit-code "\$APK_SOURCE" "\$GITHUB_SHA" -- app\.config\.js eas\.json package-lock\.json/);
-  assert.match(wf,/a\.deepEqual\(current\.dependencies,prior\.dependencies/);
+  assert.match(wf,/a\.deepEqual\(current\.dependencies,original\.dependencies/);
   assert.match(wf,/npx tsc --noEmit/);
   assert.match(wf,/npm run character:contract/);
   assert.match(wf,/npm run compact:contract/);
@@ -52,7 +52,7 @@ test('preview environment, native APK fingerprint and production nonmutation mus
   assert.match(wf,/BUKLOD_NOV18_CONSO_STAGING_/);
   assert.match(wf,/update:view/);
   assert.match(wf,/manifest\('staging-user'\)/);
-  assert.match(wf,/physicalDeviceVerified: false/);
+  assert.match(wf,/physicalDeviceVerified:\s*false/);
   assert.match(wf,/actions\/upload-artifact@v4/);
 });
 
