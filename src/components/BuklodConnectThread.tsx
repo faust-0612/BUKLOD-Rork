@@ -138,6 +138,7 @@ import {
   connectBubbleGrouping,
   connectPhotoSlots,
   connectScrollAction,
+  connectOlderPrependScrollOffset,
   connectSignedUrlNeedsRefresh,
   connectThreadSessionKey,
   connectComposerDockBottom,
@@ -1406,6 +1407,13 @@ const [
   const suppressStickRef =
     useRef(false);
 
+  // A touch/kinetic scroll owns the viewport; content reflow cannot steal it.
+  const userDraggingRef = useRef(false);
+  const userMomentumRef = useRef(false);
+  // Only history prepends may adjust a prior visible message's offset.
+  const pendingOlderAnchorRef =
+    useRef<{ offset: number; height: number } | null>(null);
+
   const initialLoadSettledRef =
     useRef(false);
 
@@ -1476,6 +1484,9 @@ const [
     pinLatestOnOpenRef.current = true;
     followOwnSendRef.current = false;
     suppressStickRef.current = false;
+    userDraggingRef.current = false;
+    userMomentumRef.current = false;
+    pendingOlderAnchorRef.current = null;
     initialLoadSettledRef.current = false;
     olderPagesLoadedRef.current = false;
     loadingOlderRef.current = false;
@@ -2550,11 +2561,21 @@ const [
           page.messages.length > 0 &&
           cursorMoved
       );
+      const before = messagesRef.current;
       const next = mergeConnectServerMessages(
         page.messages,
-        messagesRef.current,
+        before,
         'retain-older'
       );
+      if (
+        next.length > before.length &&
+        next[0]?.id !== before[0]?.id
+      ) {
+        pendingOlderAnchorRef.current = {
+          offset: Math.max(0, connectScrollOffsetRef.current),
+          height: contentHeightRef.current,
+        };
+      }
       messagesRef.current = next;
       messagesLengthRef.current = next.length;
       setMessages(next);
@@ -4306,6 +4327,24 @@ const [
           const delta = previous > 0 ? height - previous : 0;
           contentHeightRef.current = height;
 
+          if (pendingOlderAnchorRef.current) {
+            const anchor = pendingOlderAnchorRef.current;
+            // Consume the prepend anchor even if the measured height did not
+            // change (hidden/zero-height rows). Never leak it into a later
+            // keyboard, media, or incoming-message resize.
+            pendingOlderAnchorRef.current = null;
+            suppressStickRef.current = false;
+            const offset = connectOlderPrependScrollOffset(anchor, height);
+            if (offset !== null) {
+              listRef.current?.scrollToOffset({
+                offset,
+                animated: false,
+              });
+            }
+            // Never also stick to latest after a history prepend.
+            return;
+          }
+
           if (suppressStickRef.current) {
             suppressStickRef.current = false;
             return;
@@ -4354,6 +4393,8 @@ const [
             intent: 'content',
             nearBottom: nearBottomRef.current,
             initialSettled: initialLoadSettledRef.current,
+            userInteracting:
+              userDraggingRef.current || userMomentumRef.current,
           });
 
           if (action === 'stick-end' && delta > 1) {
@@ -4478,9 +4519,14 @@ const [
           }
         }}
         scrollEventThrottle={16}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-        }}
+        onScrollBeginDrag={() => { userDraggingRef.current = true; }}
+        onScrollEndDrag={() => { userDraggingRef.current = false; }}
+        onMomentumScrollBegin={() => { userMomentumRef.current = true; }}
+        onMomentumScrollEnd={() => { userMomentumRef.current = false; }}
+        bounces={false}
+        overScrollMode="never"
+        // Never let native row anchoring fight our explicit latest scroll.
+        // Prepending history preserves the visible offset once above.
         renderItem={({
           item,
           index,

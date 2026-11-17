@@ -310,6 +310,8 @@ export function connectScrollAction(args: {
   intent: ConnectScrollIntent;
   nearBottom: boolean;
   initialSettled: boolean;
+  /** Never seize a gesture in progress just because a bubble resized. */
+  userInteracting?: boolean;
 }) {
   if (args.intent === 'open') {
     return args.initialSettled ? ('anchor-end' as const) : ('wait' as const);
@@ -323,11 +325,38 @@ export function connectScrollAction(args: {
     return 'preserve' as const;
   }
 
+  if (args.intent === 'content' && args.userInteracting) {
+    return 'none' as const;
+  }
+
   if (args.nearBottom) {
     return 'stick-end' as const;
   }
 
   return 'none' as const;
+}
+
+/**
+ * With native maintainVisibleContentPosition disabled, compensate for the
+ * measured height inserted before the visible history. Do this ONCE for a
+ * history prepend; ordinary media/layout updates must never adjust the list.
+ */
+export function connectOlderPrependScrollOffset(
+  anchor: { offset: number; height: number } | null,
+  currentHeight: number
+): number | null {
+  if (
+    !anchor ||
+    !Number.isFinite(anchor.offset) ||
+    !Number.isFinite(anchor.height) ||
+    !Number.isFinite(currentHeight)
+  ) {
+    return null;
+  }
+  const delta = currentHeight - anchor.height;
+  return Math.abs(delta) < 1
+    ? null
+    : Math.max(0, anchor.offset + delta);
 }
 
 export function connectThreadSessionKey(args: {
