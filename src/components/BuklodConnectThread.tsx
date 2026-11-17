@@ -4347,6 +4347,7 @@ const [
             nearBottomRef.current = true;
             listAnchoredRef.current = true;
             setListAnchored(true);
+            markVisibleRoomRead('open');
             return;
           }
 
