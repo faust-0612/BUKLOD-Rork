@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-- name: Require exact canonical main and merged review proofs without altered app source
+      - name: Require exact canonical main and merged review proofs without altered app source
         env:
           ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
