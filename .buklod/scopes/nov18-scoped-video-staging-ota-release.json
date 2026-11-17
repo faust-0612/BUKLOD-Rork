@@ -1,0 +1,62 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov18-scoped-video-staging-ota-release.json",
+  "objective": "Publish exactly one Android staging-user 1.3.2 OTA from the frozen Nov18 cumulative RC #930 including scoped Community sidecar video repair, after independent Android Hermes and EAS signed-client checks, while keeping production unchanged.",
+  "baseRef": "543c36245717cf77d4c8bc614609fc2fe91b3ef4",
+  "productionBaselineEvidence": "verified: Source-only RC #930 head 543c36245717cf77d4c8bc614609fc2fe91b3ef4 has five successful exact-head GitHub PR CI workflows. Historical signed Android staging-user APK build bc4be208-bfb0-42f3-95cb-358353d0600f was confirmed by previous staging release checks, NOT independently reconfirmed at this writing. App config, EAS config and package lock file blobs match source c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd. Live EAS manifest/production must be independently fetched before and after publish by guarded job.",
+  "chosenApproach": "Add one isolated staging-only push workflow to a release branch whose parent is the frozen reviewed RC source; verify exactly one release-workflow/contract/test metadata delta, rerun Android Hermes, native/signed build identity, all protected tests and EAS channel/production readback, publish idempotently only when all checks pass.",
+  "selectionRationale": "Publishing from an immutable RC-derived branch keeps main and production unchanged, preserves all prior source fixes, and provides a trustworthy exactly-once server receipt without re-running a paid APK build for JS-only changes.",
+  "alternativeApproaches": [
+    "Direct production channel update rejected: violates stage-first release policy and ad/nav runtime gates.",
+    "Old Nov17 staging workflow reused rejected: pinned to a different source and PR #900; could roll back new video fixes.",
+    "New APK build for JS-only fix rejected unless existing signed binary is incompatible; preserve credits and require build identity check instead."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/nov18-scoped-video-staging-ota-release.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov18-scoped-video-staging-ota-release.json",
+    ".github/workflows/buklod-nov18-scoped-video-staging-ota.yml",
+    "tests/nov18-scoped-video-staging-ota-release.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Add a tightly scoped staging-only Android Expo OTA publisher that cannot touch production and rejects unverified APK/runtime/source.",
+      "preservedBehaviors": [
+        "Production channel, app identity, APK build and Play Store remain untouched; all existing release gates must pass before staging publish"
+      ],
+      "tests": [
+        "tests/nov18-scoped-video-staging-ota-release.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No changes to application source, native dependencies, Supabase schema, package/identity, native build or AdMob source",
+    "No publication to production, web, Classroom, Play or development channels",
+    "Prior staging source remains available and production manifest is independently verified unchanged",
+    "Native ML Kit translation unavailable in older APK degrades to verified English fallback; no claim of ML Kit functionality",
+    "Physical device checks are skipped by owner but Android Hermes native-independent compilation and tests are required"
+  ],
+  "acceptanceChecks": [
+    "GitHub ref and release branch source contain only exact reviewed RC plus release metadata; trusted PR #930 exact-head five CI successful",
+    "Previous signed staging APK build, unchanged EAS package/runtime/channel/native dependencies and non-production state independently verified",
+    "Locked npm install, TypeScript, protected media/nav/AdMob/spacing/character tests and Android Hermes Expo export succeed",
+    "Use exactly-once Android staging-user update with preview environment, matching immutable EAS update and served manifest, production manifest unchanged",
+    "Archive readback evidence and clearly label any unavailable device playback or native ML Kit as not verified"
+  ],
+  "releaseAuthorized": true,
+  "releaseMode": "staging-only-android-ota",
+  "frozenRcSourceSha": "543c36245717cf77d4c8bc614609fc2fe91b3ef4",
+  "target": {
+    "package": "org.mzbministry.buklod.staging",
+    "channel": "staging-user",
+    "environment": "preview",
+    "runtime": "1.3.2"
+  },
+  "actualDeviceVerificationSkipped": true,
+  "status": "Staging-only approval from owner message Proceed; release workflow must gate publishing and independently verify exact server receipt"
+}
