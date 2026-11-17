@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "objective": "Full-area vertical swipe on video and lower post details, plus bounded flying reaction animation in fullscreen Wall videos.",
+  "baseRef": "2f0f684e068b794a552c33cf53cde0138907d294",
+  "sourceBranch": "fix/fullscreen-video-swipe-flying-reactions-20261117",
+  "deployment": "DEV source only; release requires exact-head CI, ad/nav/media gate and same-runtime staging verification.",
+  "chosenApproach": "Gesture-handler Pan attached to existing tap layer and metadata; gestures page existing FlatList. Bounded UI-only native-driver emoji bursts on own reaction.",
+  "preserveBehaviors": [
+    "tap play/pause, reaction picker, comments, share, signed URL and Android player handoff",
+    "Google IMA and Reels ads, first-view banners, companion placement",
+    "Connect, navigation, auth, no native dependency or database changes"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "app-runtime",
+    "navigation-scroll",
+    "ads-finance-points"
+  ],
+  "regressionTests": [
+    "tests/fullscreen-video-all-area-reactions-20261117.test.mjs",
+    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/CommunityVideo.tsx",
+    "src/components/BuklodFlyingVideoReactions.tsx",
+    "src/lib/buklodFullscreenVideoSwipe.ts",
+    "tests/fullscreen-video-all-area-reactions-20261117.test.mjs",
+    ".buklod/scopes/fullscreen-video-all-area-reactions-20261117.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "wall-media",
+      "reason": "Video gesture and local reactions",
+      "preservedBehaviors": [
+        "player handoff, signed media and URL retry"
+      ],
+      "tests": [
+        "tests/fullscreen-video-all-area-reactions-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Ad-sensitive fullscreen overlay",
+      "preservedBehaviors": [
+        "native IMA, Reels, companion ads, points and payouts"
+      ],
+      "tests": [
+        "tests/fullscreen-video-all-area-reactions-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-scroll",
+      "reason": "Details and video sharing a page action",
+      "preservedBehaviors": [
+        "snapping, close, back and ordinary taps"
+      ],
+      "tests": [
+        "tests/fullscreen-video-all-area-reactions-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "JS-only patch",
+      "preservedBehaviors": [
+        "Existing Android runtime, auth and boot"
+      ],
+      "tests": [
+        "tests/fullscreen-video-all-area-reactions-20261117.test.mjs"
+      ]
+    }
+  ]
+}

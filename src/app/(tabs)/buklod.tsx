@@ -59,6 +59,8 @@ import {
   BUKLOD_LONG_PRESS_MS,
 } from '@/lib/buklodTouch';
 import { CommunityVideo, enableCommunityVideoSound } from '@/components/CommunityVideo';
+import { BuklodFlyingVideoReactions, type BuklodVideoReactionBurst } from '@/components/BuklodFlyingVideoReactions';
+import { resolveFullscreenVideoSwipe, type FullscreenVideoSwipeDirection } from '@/lib/buklodFullscreenVideoSwipe';
 import {
   BuklodCommunityPhotoCollage,
   communityPhotoCollageItems,
@@ -207,6 +209,8 @@ import {
 
 import {
  GestureHandlerRootView,
+ Gesture,
+ GestureDetector,
  FlatList as GestureFlatList,
 } from 'react-native-gesture-handler';
 import {supabase} from '@/lib/supabase';
@@ -1530,6 +1534,17 @@ function LegacyPublicBuklodScreen(){
   const [videoViewerScrollPaused,setVideoViewerScrollPaused]=useState(false);
   useEffect(()=>subscribeBuklodVideoScroll(setVideoViewerScrollPaused),[]);
  const [videoViewerShowHint,setVideoViewerShowHint]=useState(true);
+ // Bounded UI-only reaction effects; the existing react() mutation persists data.
+ const [videoViewerFlyingReactions,setVideoViewerFlyingReactions]=useState<BuklodVideoReactionBurst[]>([]);
+ const videoViewerFlyingReactionSeq=useRef(0);
+ const showVideoViewerFlyingReaction=useCallback((postId:string,key:string)=>{
+  const option=BUKLOD_PUBLIC_COMMUNITY_REACTIONS.find(reaction=>reaction.key===key);
+  if(!option)return;
+  setVideoViewerFlyingReactions(current=>[
+   ...current.slice(-3),
+   {id:++videoViewerFlyingReactionSeq.current,postId,emoji:option.emoji},
+  ]);
+ },[]);
  // Advance playback as the next page becomes visible, not after momentum ends.
  const videoViewerViewabilityConfig=useRef({
   itemVisiblePercentThreshold:10,
@@ -1617,6 +1632,30 @@ function LegacyPublicBuklodScreen(){
  },[videoViewerPosts,videoViewerAdsEnabled]);
  const videoViewerActiveRow=videoViewerFeedRows[videoViewerIndex];
  const videoViewerActiveIsAd=isReelsFeedInlineAdRow(videoViewerActiveRow);
+ // Native player tap area and metadata footer must both page the same list.
+ const swipeVideoViewer=useCallback((direction:FullscreenVideoSwipeDirection)=>{
+  if(!videoViewerOpen || videoViewerActiveIsAd)return;
+  const next=Math.max(0,Math.min(
+   videoViewerIndex+(direction==='up'?1:-1),videoViewerFeedRows.length-1
+  ));
+  if(next===videoViewerIndex)return;
+  try{
+   videoViewerListRef.current?.scrollToIndex({index:next,animated:true});
+   setVideoViewerIndex(next);
+   setVideoViewerShowHint(false);
+  }catch{
+   // A recycled list can be closing; leave playback/buttons usable.
+  }
+ },[videoViewerOpen,videoViewerActiveIsAd,videoViewerIndex,videoViewerFeedRows.length]);
+ const videoViewerDetailsPan=useMemo(()=>Gesture.Pan()
+  .maxPointers(1)
+  .activeOffsetY([-16,16])
+  .failOffsetX([-44,44])
+  .runOnJS(true)
+  .onEnd(event=>{
+   const direction=resolveFullscreenVideoSwipe(event.translationX,event.translationY);
+   if(direction)swipeVideoViewer(direction);
+  }),[swipeVideoViewer]);
  const videoViewerNextVideoIndex=videoViewerFeedRows.findIndex((row,index)=>
    index>videoViewerIndex && !isReelsFeedInlineAdRow(row));
  const videoViewerContentPosition=videoViewerFeedRows
@@ -1679,6 +1718,7 @@ function LegacyPublicBuklodScreen(){
     videoViewerScanBusyRef.current=false;
     setVideoViewerLoadingMore(false);
     setVideoViewerResolvingPostId(null);
+    setVideoViewerFlyingReactions([]);
     videoViewerOpenPendingRef.current=false;
     setVideoViewerOpen(false);
     requestAnimationFrame(() => setVideoViewerHandoffPostId(null));
@@ -4842,6 +4882,7 @@ const load=useCallback(async(options?:{
     setVideoViewerIndex(0);
     setVideoViewerAdsEnabled(Platform.OS==='android' && reelAdsReady && reelAdConsent);
     setVideoViewerAdStates({});
+    setVideoViewerFlyingReactions([]);
     setVideoViewerFreshUrls({});
     setVideoViewerResolvingPostId(null);
     videoViewerUrlInflightRef.current.clear();
@@ -6512,6 +6553,7 @@ const communityFeedRows =
          }}
          height={videoViewerPageHeight}
          fullscreen
+         onFullscreenSwipe={swipeVideoViewer}
          handoffEnabled
          active={index===videoViewerIndex && !videoViewerScrollPaused}
          preload={index===videoViewerNextVideoIndex}
@@ -6599,7 +6641,9 @@ const communityFeedRows =
       {};
 
      return (
-      <View
+      <GestureDetector gesture={videoViewerDetailsPan}>
+       <View
+       pointerEvents="box-none"
        style={{
         position:'absolute',
         left:8,
@@ -6615,6 +6659,7 @@ const communityFeedRows =
        }}
       >
        <Text
+        pointerEvents="none"
         numberOfLines={1}
         style={{
          marginBottom:2,
@@ -6637,6 +6682,7 @@ const communityFeedRows =
         )??''
        ).trim()&&(
         <Text
+         pointerEvents="none"
          numberOfLines={2}
          style={{
           marginBottom:4,
@@ -6676,6 +6722,7 @@ const communityFeedRows =
          )
         }
         onReact={key=>{
+         if(activePost.my_reaction!==key)showVideoViewerFlyingReaction(String(activePost.id),key);
          void react(
           activePost.id,
           key as Reaction
@@ -6697,9 +6744,18 @@ const communityFeedRows =
          />
         }
        />
-      </View>
+       </View>
+      </GestureDetector>
      );
     })()}
+
+    {!videoViewerActiveIsAd&&!!videoViewerActiveRow&&(
+     <BuklodFlyingVideoReactions
+      bursts={videoViewerFlyingReactions.filter(burst=>burst.postId===String(videoViewerActiveRow.id))}
+      bottom={Math.max(communityInsets.bottom+185,205)}
+      onComplete={id=>setVideoViewerFlyingReactions(current=>current.filter(burst=>burst.id!==id))}
+     />
+    )}
 
     {videoViewerPosts.length>1&&!videoViewerActiveIsAd&&videoViewerShowHint&&(
      <View pointerEvents="none" style={{
