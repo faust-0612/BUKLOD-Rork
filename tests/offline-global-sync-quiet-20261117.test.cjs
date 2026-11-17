@@ -7,8 +7,8 @@ const { stripTypeScriptTypes } = require('node:module');
 const root = process.env.BUKLOD_TEST_ROOT || path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const stripModule = source => stripTypeScriptTypes(source)
-  .replace(/^import[\\s\\S]*?from\\s+['"][^'"]+['"];\\s*$/gm, '')
-  .replace(/^export\\s+/gm, '');
+  .replace(/^import[\s\S]*?from\s+['"][^'"]+['"];\s*$/gm, '')
+  .replace(/^export\s+/gm, '');
 
 function storage() {
   const data = new Map();
@@ -22,14 +22,14 @@ function storage() {
 
 function genericQueue(db) {
   return new Function('AsyncStorage', stripModule(read('src/lib/offlineSyncQueue.ts')) +
-    '\\nreturn { hasReplayableOfflineQueueItems, enqueueOfflineAction, registerOfflineQueueHandler, drainOfflineQueue, getOfflineQueueSnapshot };'
+    '\nreturn { hasReplayableOfflineQueueItems, enqueueOfflineAction, registerOfflineQueueHandler, drainOfflineQueue, getOfflineQueueSnapshot };'
   )(db);
 }
 
 function featureQueue(db) {
   return new Function('AsyncStorage', 'SCALE_LIMITS', 'peekCommunityMediaUrl',
     stripModule(read('src/lib/buklodOfflineSync.ts')) +
-    '\\nreturn { hasReplayablePendingActions, enqueuePendingAction, registerPendingActionHandler, flushPendingActions };'
+    '\nreturn { hasReplayablePendingActions, enqueuePendingAction, registerPendingActionHandler, flushPendingActions };'
   )(db, { offlineCommunityCachePosts: 50, offlineSyncMaxRetries: 5 }, () => null);
 }
 
@@ -38,14 +38,14 @@ test('global banner reports only offline or limited connection, never background
   assert.match(banner, /status !== 'offline' && status !== 'degraded'/);
   assert.match(banner, /return null;/);
   assert.doesNotMatch(banner, /Syncing •|syncing: featureSyncing|status === 'syncing'/);
-  assert.match(banner, /pendingCount = queuePendingCount \\+ featurePendingCount/);
+  assert.match(banner, /pendingCount = queuePendingCount \+ featurePendingCount/);
 });
 
 test('providers do not show a busy state before finding replayable actions', () => {
   const network = read('src/providers/NetworkProvider.tsx');
   const feature = read('src/providers/BuklodOfflineSyncProvider.tsx');
-  assert.match(network, /if \\(!\\(await hasReplayableOfflineQueueItems\\(options\\?\\.userId\\)\\)\\) return;[\\s\\S]*setSyncing\\(true\\)/);
-  assert.match(feature, /if \\(!online \\|\\| !\\(await hasReplayablePendingActions\\(\\)\\)\\) \\{[\\s\\S]*setSyncing\\(true\\)/);
+  assert.match(network, /if \(!\(await hasReplayableOfflineQueueItems\(options\?\.userId\)\)\) return;[\s\S]*setSyncing\(true\)/);
+  assert.match(feature, /if \(!online \|\| !\(await hasReplayablePendingActions\(\)\)\) \{[\s\S]*setSyncing\(true\)/);
 });
 
 test('generic queue replay eligibility honors current account, due time and handler registration', async () => {
