@@ -27,7 +27,8 @@
     "tests/messenger-inbox-density-20261117.test.mjs",
     ".buklod/scopes/messenger-inbox-density-20261117.json",
     "tests/messenger-wall-nav-density-20261117.test.mjs",
-    ".github/workflows/buklod-compact-layout-qa.yml"
+    ".github/workflows/buklod-compact-layout-qa.yml",
+    "tests/messenger-navigation-scroll-20261117.test.mjs"
   ],
   "preserveBehaviors": [
     "First-view genuine ad slots, sponsored cards and consent guard remain unchanged.",
@@ -42,9 +43,8 @@
   "regressionTests": [
     "tests/messenger-inbox-density-20261117.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
-    "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
-    "tests/appwide-compact-density-20261116.test.mjs",
-    "tests/messenger-wall-nav-density-20261117.test.mjs"
+    "tests/messenger-wall-nav-density-20261117.test.mjs",
+    "tests/messenger-navigation-scroll-20261117.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -74,11 +74,18 @@
         "Personal and room chat routing, unread count updates, bottom navigation, login and protected access remain available."
       ],
       "tests": [
-        "tests/messenger-wall-nav-density-20261117.test.mjs"
+        "tests/messenger-wall-nav-density-20261117.test.mjs",
+        "tests/messenger-navigation-scroll-20261117.test.mjs"
       ]
     }
   ],
   "releaseTarget": "DEV PR first, guarded staging OTA only after exact checks",
   "physicalDeviceVerification": "SKIPPED_PER_OWNER",
-  "publicationStatus": "DEV_ONLY_NO_OTA"
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "selectionRationale": "The user-provided side-by-side Messenger and BUKLOD screenshots, plus current source markup, show oversized redundant header/encouragement and empty Notes rails delaying conversation display. A search-first layout removes the actual root cause while retaining monetization and existing routing.",
+  "alternativeApproaches": [
+    "Reduce only margins and keep the large hero banner (rejected because an extra UI block would still displace chat and Wall content).",
+    "Remove Notes or ads entirely (rejected because this breaks established social/monetization features).",
+    "Use one compact search-first surface with dynamic Notes and existing advertising integration (selected)."
+  ]
 }
