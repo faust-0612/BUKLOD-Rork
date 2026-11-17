@@ -233,7 +233,22 @@ begin
   review_note='Awtomatikong nasuri ayon sa nakasaad na rubric at requirements.'
  where id=a.id;
  out_result:=private.buklod_bible_v4_finalize(a.id,units);
- return out_result||jsonb_build_object('review',results);
+ -- Result notification is best-effort; a push-service issue must not undo a
+ -- completed quiz or duplicate BP. Review remains owner-visible in-app.
+ begin
+  insert into public.notifications(user_id,title,body,kind,data)
+  values(actor,'Bible Quiz: awtomatikong resulta',
+    'Final score: '||units::text||'/10 units; +'||
+     coalesce(out_result->>'points','0')||' BP. Tingnan ang rubric feedback sa Bible Quiz.',
+    'bible_quiz_result',
+    jsonb_build_object('attempt_id',a.id,'score_units',units,
+      'points',coalesce((out_result->>'points')::int,0),
+      'route','/faith/bible-quiz'));
+ exception when others then
+  raise warning 'Optional quiz result notification failed: %',sqlstate;
+ end;
+ return out_result||jsonb_build_object('review',results,
+  'notice','Awtomatikong natapos ang pagmamarka ayon sa rubric.');
 end;
 $$;
 revoke all on function public.submit_my_buklod_bible_quiz_v4(uuid,jsonb) from public,anon;
