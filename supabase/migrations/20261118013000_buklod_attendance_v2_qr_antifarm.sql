@@ -156,19 +156,21 @@ begin
  if cfg is null or coalesce(rule_points,0)<=0 then return; end if;
  -- Serialize even across distinct events. Profile row lock is transaction-scoped.
  perform 1 from public.profiles where id=p_user_id for update;
- day_start:=(record_at at time zone 'Asia/Manila')::date;
- week_start:=date_trunc('week',record_at at time zone 'Asia/Manila')::date;
+ day_start:=(e.starts_at at time zone 'Asia/Manila')::date;
+ week_start:=date_trunc('week',e.starts_at at time zone 'Asia/Manila')::date;
  select coalesce(sum(case when l.direction='credit' then l.points else -l.points end),0)::integer
  into used_day
  from public.buklod_points_ledger l left join public.attendance_events ev on ev.id=l.source_id
+ left join public.church_events church on church.id=l.source_id
  where l.user_id=p_user_id and l.activity_type in ('scope_attendance','event_attendance')
-  and (coalesce(ev.starts_at,l.created_at) at time zone 'Asia/Manila')::date=day_start;
+  and (coalesce(ev.starts_at,church.starts_at,l.created_at) at time zone 'Asia/Manila')::date=day_start;
  select coalesce(sum(case when l.direction='credit' then l.points else -l.points end),0)::integer
  into used_week
  from public.buklod_points_ledger l left join public.attendance_events ev on ev.id=l.source_id
+ left join public.church_events church on church.id=l.source_id
  where l.user_id=p_user_id and l.activity_type in ('scope_attendance','event_attendance')
-  and (coalesce(ev.starts_at,l.created_at) at time zone 'Asia/Manila')::date>=week_start
-  and (coalesce(ev.starts_at,l.created_at) at time zone 'Asia/Manila')::date<week_start+7;
+  and (coalesce(ev.starts_at,church.starts_at,l.created_at) at time zone 'Asia/Manila')::date>=week_start
+  and (coalesce(ev.starts_at,church.starts_at,l.created_at) at time zone 'Asia/Manila')::date<week_start+7;
  award:=greatest(0,least(rule_points,cfg.per_event,cfg.per_day-greatest(0,used_day),
    cfg.per_week-greatest(0,used_week)));
  if award=0 then return; end if;

@@ -12,6 +12,7 @@ begin
  or has_function_privilege('anon','public.buklod_scan_event_qr_v2(text)','EXECUTE')
  or has_function_privilege('anon','public.buklod_review_event_rewards_v2(uuid,boolean,text)','EXECUTE')
  or has_function_privilege('authenticated','public.buklod_award_scope_attendance_points_v1(uuid,uuid,uuid,text,uuid)','EXECUTE')
+ or has_function_privilege('authenticated','public.buklod_reverse_scope_attendance_points_v1(uuid,uuid,timestamptz,uuid)','EXECUTE')
  then raise exception 'Sensitive attendance RPC exposed to client'; end if;
  if not has_function_privilege('authenticated','public.buklod_scan_event_qr_v2(text)','EXECUTE')
  then raise exception 'Authenticated QR scanner lacks RPC access'; end if;

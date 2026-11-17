@@ -36,3 +36,11 @@ test('duplicate legacy event credit cannot be minted with changed timestamps',()
   assert.match(bridge,/prev\.user_id=NEW\.user_id and prev\.source_id=NEW\.source_id/);
   assert.match(bridge,/prev\.activity_type='event_attendance' and prev\.direction='credit'/);
 });
+
+test('partial rewards reverse only actual credited BP once',()=>{
+ assert.match(bridge,/create or replace function public\.buklod_reverse_scope_attendance_points_v1/);
+ assert.match(bridge,/select l\.points into v_points/);
+ assert.match(bridge,/if coalesce\(v_points,0\)<=0 then return/);
+ assert.match(bridge,/scope_attendance_reversal:v2:/);
+ assert.match(bridge,/External attendance/);
+});

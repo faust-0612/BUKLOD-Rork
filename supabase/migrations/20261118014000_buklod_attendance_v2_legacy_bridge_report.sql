@@ -124,8 +124,11 @@ begin
    select distinct on(person,event_id) person,event_id,stamp,state from raw
    order by person,event_id,stamp asc
  )
- select c.person,p.full_name::text,c.event_id,e.title::text,
-    e.scope_id,s.name::text,c.stamp,c.state
+ select c.person,p.full_name::text,c.event_id,
+    case when public.buklod_can_view_scope(e.scope_id) then e.title else 'External attendance' end::text,
+    e.scope_id,
+    case when public.buklod_can_view_scope(e.scope_id) then s.name else 'External organization' end::text,
+    c.stamp,c.state
  from canonical c
  join public.buklod_scope_memberships m on m.user_id=c.person
    and m.scope_id=p_scope_id and m.membership_status='ACTIVE' and m.left_at is null
@@ -205,3 +208,34 @@ create trigger trg_buklod_legacy_event_attendance_cap_v2
 before insert on public.buklod_points_ledger
 for each row execute function public.buklod_legacy_event_attendance_cap_v2();
 revoke all on function public.buklod_legacy_event_attendance_cap_v2() from public,anon,authenticated;
+
+
+-- Cap-safe reversals: debit only the actual original credited BP, once.
+create or replace function public.buklod_reverse_scope_attendance_points_v1(
+ p_user_id uuid,p_event_id uuid,p_checked_in_at timestamptz,p_operator_id uuid default null
+) returns void language plpgsql security definer set search_path=''
+as $$
+declare v_points integer;
+begin
+ if p_user_id is null or p_event_id is null then return; end if;
+ perform 1 from public.profiles where id=p_user_id for update;
+ select l.points into v_points from public.buklod_points_ledger l
+ where l.user_id=p_user_id and l.source_key='scope_attendance:'||p_event_id::text||':'||p_user_id::text
+ and l.activity_type='scope_attendance' and l.direction='credit' limit 1;
+ if coalesce(v_points,0)<=0 then return; end if;
+ if exists (
+   select 1 from public.buklod_points_ledger l
+   where l.user_id=p_user_id and l.source_id=p_event_id
+     and l.activity_type='scope_attendance' and l.direction='debit'
+     and l.source_key like 'scope_attendance_reversal:%'
+ ) then return; end if;
+ insert into public.buklod_points_ledger
+  (user_id,direction,points,activity_type,source_key,source_id,description,awarded_by)
+ values(p_user_id,'debit',v_points,'scope_attendance',
+  'scope_attendance_reversal:v2:'||p_event_id::text||':'||p_user_id::text,
+  p_event_id,'Reversed exact credited attendance BP',p_operator_id)
+ on conflict(user_id,source_key) do nothing;
+end;
+$$;
+revoke all on function public.buklod_reverse_scope_attendance_points_v1(uuid,uuid,timestamptz,uuid)
+ from public,anon,authenticated;

@@ -47,3 +47,8 @@ test('self-check-in rewards use server-owned scan receipts instead of spoofable 
   assert.match(db,/record_operator=p_user_id and not exists/);
   assert.doesNotMatch(db,/coalesce\(record_meta->>'source',''\)<>'event_qr_v2'/);
 });
+
+test('caps align on event date and include church event credits',()=>{
+ assert.match(db,/day_start:=\(e\.starts_at at time zone 'Asia\/Manila'\)/);
+ assert.match(db,/left join public\.church_events church on church\.id=l\.source_id/);
+});
