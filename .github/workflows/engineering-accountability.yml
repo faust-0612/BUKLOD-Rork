@@ -71,6 +71,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/referral-economy-cors-20261109.json" >> "$GITHUB_ENV";;
             fix/the-word-safe-area-20261106)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/the-word-safe-area-20261106.json" >> "$GITHUB_ENV";;
+            fix/nov17-wall-header-actions-two-column)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov17-wall-header-actions-compact.json" >> "$GITHUB_ENV";;
             ui/compact-public-wall-header-20261104)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/compact-public-wall-header-20261104.json" >> "$GITHUB_ENV";;
             dev/community-media-aspect-ratio-20261103)
