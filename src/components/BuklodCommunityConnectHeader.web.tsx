@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 
 import { ConnectInboxSearch } from '@/components/connect/ConnectInboxSearch';
+import { BuklodNoteReactionChip } from '@/components/connect/BuklodNoteReactionChip';
+import { useBuklodConnectNoteReactions, type ConnectNoteReaction } from '@/lib/buklodConnectNoteReactions';
 import { ConnectTappableAvatar } from '@/components/connect/ConnectTappableAvatar';
 import {
   enrichConnectSuggestedContactsWithNotes,
@@ -100,12 +102,16 @@ function NoteBubble({
   editable = false,
   saving = false,
   onSave,
+  reaction,
+  onReact,
 }: {
   note?: string | null;
   textColor: string;
   editable?: boolean;
   saving?: boolean;
   onSave?: (value: string) => Promise<boolean>;
+  reaction?: ConnectNoteReaction;
+  onReact?: () => void;
 }) {
   const value = repairMojibakeText(String(note ?? '')).trim();
   const [editing, setEditing] = useState(false);
@@ -183,6 +189,7 @@ function NoteBubble({
         >
           {value || 'Add note'}
         </Text>
+        {value ? <BuklodNoteReactionChip reaction={reaction} onPress={onReact} /> : null}
       </View>
       <View style={styles.noteTail} />
     </Pressable>
@@ -343,6 +350,11 @@ function BuklodCommunityConnectRail() {
     () => sourceContacts.filter(contact => contact.user_id !== currentUser?.user_id),
     [sourceContacts, currentUser?.user_id],
   );
+  const reactionNotes = useMemo(() => [
+    ...visibleContacts,
+    { user_id: viewerId, quick_note: selfNote?.quick_note ?? null },
+  ], [visibleContacts, viewerId, selfNote?.quick_note]);
+  const { reactions, toggleLove } = useBuklodConnectNoteReactions(viewerId, reactionNotes);
 
   useEffect(() => {
     for (const contact of visibleContacts) {
@@ -440,6 +452,7 @@ function BuklodCommunityConnectRail() {
               editable
               saving={selfSaving}
               onSave={persistSelfNote}
+              reaction={reactions[selfContact.user_id]}
             />
 
             <ConnectTappableAvatar
@@ -465,6 +478,8 @@ function BuklodCommunityConnectRail() {
             <NoteBubble
               note={contact.quick_note}
               textColor={theme.textPrimary}
+              reaction={reactions[contact.user_id]}
+              onReact={contact.quick_note ? () => void toggleLove(contact.user_id) : undefined}
             />
 
             <View style={styles.avatarWrap}>
