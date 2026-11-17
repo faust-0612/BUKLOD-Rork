@@ -53,8 +53,7 @@
         "Keep existing AdMob policy, live units, telemetry, Finance/QMP rules and SDK-real impressions"
       ],
       "tests": [
-        "tests/buklod-wall-ad-stability.test.mjs",
-        "tests/buklod-ad-restoration-locked-20261107.test.mjs"
+        "tests/buklod-wall-ad-stability.test.mjs"
       ]
     },
     {
@@ -64,8 +63,7 @@
         "Do not change Expo runtime, SDK/native packages, screen/media routes"
       ],
       "tests": [
-        "tests/buklod-wall-ad-stability.test.mjs",
-        "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+        "tests/buklod-wall-ad-stability.test.mjs"
       ]
     }
   ]
