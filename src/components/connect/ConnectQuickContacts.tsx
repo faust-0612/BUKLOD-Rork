@@ -469,7 +469,7 @@ function NoteBubble({
     >
       <View style={styles.bubble}>
         {content}
-        {!editable && trimmed ? <BuklodNoteReactionChip reaction={reaction} onPress={onReact} /> : null}
+        {trimmed ? <BuklodNoteReactionChip reaction={reaction} onPress={onReact} /> : null}
       </View>
       <View style={styles.bubbleTail} />
     </Pressable>
