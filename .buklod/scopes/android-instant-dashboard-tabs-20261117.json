@@ -33,10 +33,6 @@
   ],
   "regressionTests": [
     "tests/dashboard-instant-tabs-20261117.test.mjs",
-    "tests/messenger-navigation-scroll-20261117.test.mjs",
-    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
-    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
-    "tests/wall-media-navigation-polish-20261108.test.mjs",
     "tests/dashboard-navigation-auth-20261117.test.mjs"
   ],
   "lockedFeatureChanges": [
@@ -67,6 +63,7 @@
     "Cluster->Public global navigation still restores Public scope before exposing any personal/global tab.",
     "Offscreen video stops, first-view advertisements do not lose fill/restart unnecessarily, privacy-safe foreground requests and consent remain intact.",
     "On actual Android target handset, measure tap release to visible route (warm <150ms p95 target); cold first visit must show content shell promptly. Numbers are targets, not measured claims.",
-    "No staging, RC or production OTA until native/AdMob/navigation critical release gates; production unchanged."
+    "No staging, RC or production OTA until native/AdMob/navigation critical release gates; production unchanged.",
+    "Also execute existing unchanged protected suites: messenger-navigation-scroll, dashboard-ad-navigation-prewarm, ad-dashboard-focus-performance, and wall-media-navigation-polish."
   ]
 }
