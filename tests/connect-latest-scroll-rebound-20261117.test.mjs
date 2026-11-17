@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import test from 'node:test';
-import ts from 'typescript';
 
 const read = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const windowSource = read('src/lib/connectChatWindow.ts');
@@ -13,13 +12,21 @@ function loadScrollFunction(name) {
   assert.ok(start >= 0, name + ' must be exported by the live chat helper');
   const end = windowSource.indexOf('\nexport function ', start + 1);
   assert.ok(end > start, name + ' must have a next export boundary');
-  const source = windowSource.slice(start, end).replace(/^export /, '');
-  const js = ts.transpileModule(source, {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
-    reportDiagnostics: true,
-  });
-  assert.deepEqual(js.diagnostics ?? [], [], name + ' must transpile');
-  return runInNewContext(js.outputText + '\n' + name + ';');
+  // CI's fast scope gate intentionally installs no node_modules.
+  // Both isolated functions have JS bodies; strip their known TS signatures
+  // and execute the REAL source to test behavior without extra dependencies.
+  const source = windowSource.slice(start, end);
+  const js = name === 'connectScrollAction'
+    ? source.replace(
+        /export function connectScrollAction\(args: \{[\s\S]*?\}\) \{/,
+        'function connectScrollAction(args) {'
+      ).replace(/ as const/g, '')
+    : source.replace(
+        /export function connectOlderPrependScrollOffset\([\s\S]*?\): number \| null \{/,
+        'function connectOlderPrependScrollOffset(anchor, currentHeight) {'
+      );
+  assert.ok(js.startsWith('function ' + name + '('), name + ' TS signature must be removed');
+  return runInNewContext(js + '\n' + name + ';');
 }
 
 const scrollAction = loadScrollFunction('connectScrollAction');
