@@ -57,5 +57,41 @@
     "Focused Node contracts plus SQL rolled-back compile/pass; full source and ad/nav regression CI before any release",
     "Scheduler needs confirmed opt-in, endpoint, OAuth and runtime response before live status",
     "No production OTA or database migration applied by this DEV candidate"
-  ]
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Private Home and Community contribution earnings cards gain official reporting-day figures and active refresh without changing cash authorization, feeds, navigation, or ad delivery.",
+      "preservedBehaviors": [
+        "User auth-scoped Finance and Community QMP reads remain independent, and unavailable sources cannot display fabricated balances.",
+        "App remains responsive on tab transitions and refreshes only while active, without altering ad impression rendering."
+      ],
+      "tests": [
+        "tests/buklod-admob-daily-qmp-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "AdMob day/month reporting exposes noncash 30-percent QMP estimates beside immutable canonical finalized, available, reserved and already paid values.",
+      "preservedBehaviors": [
+        "Only reconciled, authorized, finalized Finance V3 earnings can become withdrawal balances.",
+        "AdMob ad rendering and ad loading SDK, consent, revenue separation, and existing points reward logic are unchanged."
+      ],
+      "tests": [
+        "tests/buklod-admob-daily-qmp-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "New private provider day snapshot and service-only writer require strict grants, authentication, concurrency control and RLS regression verification.",
+      "preservedBehaviors": [
+        "Authenticated users can only read their own QMP earnings; clients cannot read private AdMob source tables or write estimates.",
+        "Protected canonical finance cash ledger, reconciliation rules, member isolation, and payout finalization remain unchanged."
+      ],
+      "tests": [
+        "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA"
 }
