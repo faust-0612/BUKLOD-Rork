@@ -1,0 +1,78 @@
+{
+  "contractVersion": 2,
+  "objective": "Publish canonical main c66d2c5 (quiet global syncing, compact Wall header) plus exact CI-reviewed PR #910 Wall connection feedback to Android staging-user 1.3.2 only.",
+  "baseRef": "c66d2c5cc7c65a75e63eaabc91a5438cb5af97cd",
+  "productionBaselineEvidence": "Canonical main source c66d2c5 includes merged PR #908 and PR #911. Prior independently verified staging source 47eefd0. Production deployed fingerprint requires authenticated EAS pre/post check.",
+  "chosenApproach": "Freeze one release branch from c66d2c5 with exact seven approved PR #910 blob hashes and three release-only files; validate main ancestry, source QA, signed APK/native input match, TS, replay tests, assets, Android Hermes export, one idempotent staging publish and independently read-back manifest.",
+  "alternativeApproaches": [
+    "Republish older 730c staging RC (rejected: omits new Connect scroll and Wall ad recovery fixes)",
+    "Auto-merge older duplicate feature branches one-by-one (rejected: risk regressing the already verified cumulative RC)"
+  ],
+  "selectionRationale": "Reconciled 730c ancestor into canonical main 47eefd0c with GitHub PR #900; source-only merge preserved main's later ad failure circuit and Connect scroll. Staging release branch has no source/runtime changes, and a publish transaction is allowed only after exact-source regression and production-channel isolation verification.",
+  "preserveBehaviors": [
+    "Canonical main content including all 1300 collectibles, character parity, gallery recovery, latest comment, identity/avatars, compact layout and ads prewarm",
+    "Connect scroll latest/older/history/read receipts and newer Wall ads recoverable slots",
+    "No native dependency changes, no database mutation, no billing or Play Console publish",
+    "staging-user Android channel, preview env, org.mzbministry.buklod.staging package and Expo runtime 1.3.2; production channel unchanged",
+    "Canonical quiet syncing and Wall two-column action layout remain intact",
+    "Real app errors keep Help; transient comment transport timeouts show informational feedback and contextual retry"
+  ],
+  "acceptanceChecks": [
+    "Current canonical main unchanged and an exact ancestor of release branch",
+    "No src/assets/native/manifest/runtime changes in branch compared with canonical main",
+    "Eight prior cumulative RC checks plus newer Connect/ads PR verification and current source tests pass",
+    "Android Hermes export, public character artwork readback and staging build compatibility pass",
+    "Exactly one new or existing EAS staging-user Android update linked to exact immutable release commit",
+    "Production EAS manifest ID unchanged; device verification explicitly unverified if skipped"
+  ],
+  "riskAreas": [
+    "release-identity",
+    "wall-comments",
+    "offline-network",
+    "sync-queue"
+  ],
+  "regressionTests": [
+    "tests/nov17-c66-connection-staging-release.test.mjs",
+    "tests/offline-global-sync-quiet-20261117.test.cjs",
+    "tests/wall-header-navigation-20261117.test.mjs",
+    "tests/wall-network-feedback-20261117.test.mjs",
+    "tests/wall-network-navigation-20261117.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov17-c66-connection-staging-release.json",
+    ".buklod/scopes/nov17-connection-feedback.json",
+    ".github/workflows/buklod-nov17-c66-connection-staging-ota.yml",
+    ".github/workflows/engineering-accountability.yml",
+    "src/app/(tabs)/buklod.tsx",
+    "src/lib/buklodUserFeedback.ts",
+    "tests/nov17-c66-connection-staging-release.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    "tests/wall-network-feedback-20261117.test.mjs",
+    "tests/wall-network-navigation-20261117.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Add a one-time Android staging-user OTA release workflow that cannot publish to production.",
+      "preservedBehaviors": [
+        "Production runtime, EAS channel, releases, Play Store and web deployments unchanged.",
+        "Only approved staging APK and preview environment can receive the Android update."
+      ],
+      "tests": [
+        "tests/nov17-current-main-consolidated-staging-release.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-comments",
+      "reason": "Replace alarming timeout/support-code messaging during temporary Wall connectivity loss without hiding app errors.",
+      "preservedBehaviors": [
+        "Cached comments, video/media and ads remain available.",
+        "No production database or authorization mutation."
+      ],
+      "tests": [
+        "tests/wall-network-feedback-20261117.test.mjs"
+      ]
+    }
+  ]
+}
