@@ -17,6 +17,8 @@ import {
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BuklodNoteReactionChip } from '@/components/connect/BuklodNoteReactionChip';
+import { useBuklodConnectNoteReactions, type ConnectNoteReaction } from '@/lib/buklodConnectNoteReactions';
 import { useFocusEffect } from 'expo-router';
 
 import {
@@ -274,6 +276,8 @@ function NoteBubble({
   saving,
   onSave,
   ownerId,
+  reaction,
+  onReact,
   styles,
   theme,
 }: {
@@ -283,6 +287,8 @@ function NoteBubble({
   saving?: boolean;
   onSave?: (value: string) => Promise<boolean> | boolean | void;
   ownerId?: string | null;
+  reaction?: ConnectNoteReaction;
+  onReact?: () => void;
   styles: ReturnType<typeof createStyles>;
   theme: ConnectThemeRoles;
 }) {
@@ -461,7 +467,10 @@ function NoteBubble({
         }
       }}
     >
-      <View style={styles.bubble}>{content}</View>
+      <View style={styles.bubble}>
+        {content}
+        {!editable && trimmed ? <BuklodNoteReactionChip reaction={reaction} onPress={onReact} /> : null}
+      </View>
       <View style={styles.bubbleTail} />
     </Pressable>
   );
@@ -475,6 +484,8 @@ function ContactColumn({
   selfNote,
   selfSaving,
   onSaveSelfNote,
+  reaction,
+  onReact,
 }: {
   contact: ConnectSuggestedContact | null;
   styles: ReturnType<typeof createStyles>;
@@ -483,6 +494,8 @@ function ContactColumn({
   selfNote?: MessagesStatusNote | null;
   selfSaving?: boolean;
   onSaveSelfNote?: (value: string) => Promise<boolean> | boolean | void;
+  reaction?: ConnectNoteReaction;
+  onReact?: () => void;
 }) {
   if (!contact) {
     return null;
@@ -504,6 +517,7 @@ function ContactColumn({
           editable
           saving={selfSaving}
           onSave={onSaveSelfNote}
+          reaction={reaction}
           styles={styles}
           theme={theme}
         />
@@ -513,6 +527,8 @@ function ContactColumn({
           note={contact.quick_note ?? ''}
           placeholder=""
           ownerId={contact.user_id}
+          reaction={reaction}
+          onReact={onReact}
           styles={styles}
           theme={theme}
         />
@@ -645,6 +661,15 @@ export function ConnectSuggestedContacts({
     return deduped;
   }, [contacts, currentUser?.user_id]);
 
+  const reactionNotes = useMemo(() => [
+    ...visibleContacts,
+    { user_id: currentUser?.user_id ?? '', quick_note: selfNote?.quick_note ?? null },
+  ], [visibleContacts, currentUser?.user_id, selfNote?.quick_note]);
+  const { reactions, toggleLove, refresh } = useBuklodConnectNoteReactions(
+    currentUser?.user_id ?? '', reactionNotes,
+  );
+  useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
+
   if (!currentUser && visibleContacts.length === 0) {
     return null;
   }
@@ -688,6 +713,7 @@ export function ConnectSuggestedContacts({
             selfNote={selfNote}
             selfSaving={selfSaving}
             onSaveSelfNote={persistSelfNote}
+            reaction={reactions[selfContact.user_id]}
           />
         )}
 
@@ -698,6 +724,8 @@ export function ConnectSuggestedContacts({
             styles={styles}
             theme={theme}
             onOpenContact={onOpenContact}
+            reaction={reactions[contact.user_id]}
+            onReact={contact.quick_note ? () => void toggleLove(contact.user_id) : undefined}
           />
         ))}
       </ScrollView>
