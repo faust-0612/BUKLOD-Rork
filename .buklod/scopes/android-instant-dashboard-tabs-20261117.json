@@ -28,14 +28,16 @@
     "src/app/(tabs)/_layout.tsx",
     "src/components/BuklodAndroidDashboardTabs.tsx",
     "tests/dashboard-instant-tabs-20261117.test.mjs",
-    ".buklod/scopes/android-instant-dashboard-tabs-20261117.json"
+    ".buklod/scopes/android-instant-dashboard-tabs-20261117.json",
+    "tests/dashboard-navigation-auth-20261117.test.mjs"
   ],
   "regressionTests": [
     "tests/dashboard-instant-tabs-20261117.test.mjs",
     "tests/messenger-navigation-scroll-20261117.test.mjs",
     "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
     "tests/ad-dashboard-focus-performance-20261116.test.mjs",
-    "tests/wall-media-navigation-polish-20261108.test.mjs"
+    "tests/wall-media-navigation-polish-20261108.test.mjs",
+    "tests/dashboard-navigation-auth-20261117.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -55,7 +57,7 @@
         "Current auth, privacy/consent, Cluster-to-Public scope isolation and all dashboard route destinations remain enforced."
       ],
       "tests": [
-        "tests/dashboard-instant-tabs-20261117.test.mjs"
+        "tests/dashboard-navigation-auth-20261117.test.mjs"
       ]
     }
   ],
