@@ -145,7 +145,7 @@ begin
       'min_sentences',(q.answer_spec#>>'{auto_rubric,min_sentences}')::int,
       'max_sentences',(q.answer_spec#>>'{auto_rubric,max_sentences}')::int,
       'criteria',(select coalesce(jsonb_agg(c.value->>'label'),'[]'::jsonb)
-        from jsonb_array_elements(coalesce(q.answer_spec#>'{auto_rubric,criteria}','[]'::jsonb)) c(value))
+        from jsonb_array_elements(coalesce(q.answer_spec#>'{auto_rubric,criteria}','[]'::jsonb)) c(value)))
     else null end)
   order by array_position(a.question_keys,q.id)),'[]'::jsonb)
  into question_data
