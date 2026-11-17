@@ -25,7 +25,9 @@
     "src/app/(tabs)/buklod.tsx",
     "tests/nov16-connect-profile-geometry.test.mjs",
     "tests/messenger-inbox-density-20261117.test.mjs",
-    ".buklod/scopes/messenger-inbox-density-20261117.json"
+    ".buklod/scopes/messenger-inbox-density-20261117.json",
+    "tests/messenger-wall-nav-density-20261117.test.mjs",
+    ".github/workflows/buklod-compact-layout-qa.yml"
   ],
   "preserveBehaviors": [
     "First-view genuine ad slots, sponsored cards and consent guard remain unchanged.",
@@ -41,14 +43,15 @@
     "tests/messenger-inbox-density-20261117.test.mjs",
     "tests/nov16-connect-profile-geometry.test.mjs",
     "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
-    "tests/appwide-compact-density-20261116.test.mjs"
+    "tests/appwide-compact-density-20261116.test.mjs",
+    "tests/messenger-wall-nav-density-20261117.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
-      "id": "connect",
-      "reason": "Search-first inbox, flat rows and genuine unread data",
+      "id": "app-runtime",
+      "reason": "Shared feed layout removes redundant fixed context chrome while retaining functional navigation, notes, and live ad surfaces.",
       "preservedBehaviors": [
-        "All chat filters, preview navigation, ads, note editing"
+        "Home/Profile daily encouragement remains available, and the authenticated session and native runtime remain unchanged."
       ],
       "tests": [
         "tests/messenger-inbox-density-20261117.test.mjs"
@@ -56,22 +59,22 @@
     },
     {
       "id": "wall-media",
-      "reason": "Bring searchable avatars to Wall top and remove empty note slots",
+      "reason": "Wall's search and Notes rail appear before shortcuts without blank note placeholders or any change to media and sponsorship.",
       "preservedBehaviors": [
-        "Actual media and ad placements"
+        "Wall video, photo, Marites, genuine AdMob and approved sponsor behavior remain wired."
       ],
       "tests": [
-        "tests/messenger-inbox-density-20261117.test.mjs"
+        "tests/messenger-wall-nav-density-20261117.test.mjs"
       ]
     },
     {
-      "id": "app-runtime",
-      "reason": "Route-specific banner density",
+      "id": "navigation-auth",
+      "reason": "Connect's dense chronological inbox and Wall header changes remain scoped to the authenticated tab surfaces.",
       "preservedBehaviors": [
-        "Encouragement retained in Home/Profile"
+        "Personal and room chat routing, unread count updates, bottom navigation, login and protected access remain available."
       ],
       "tests": [
-        "tests/messenger-inbox-density-20261117.test.mjs"
+        "tests/messenger-wall-nav-density-20261117.test.mjs"
       ]
     }
   ],
