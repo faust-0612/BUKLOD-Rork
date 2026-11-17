@@ -6,7 +6,7 @@ const scope=JSON.parse(readFileSync('.buklod/scopes/nov17-c66-connection-staging
 test('frozen exact main and seven reviewed connectivity patches',()=>{
  assert.equal(scope.baseRef,'c66d2c5cc7c65a75e63eaabc91a5438cb5af97cd');
  assert.equal(scope.allowedPaths.length,10);
- for(const token of ['RELEASE_MAIN_SHA: c66d2c5cc7c65a75e63eaabc91a5438cb5af97cd','release/nov17-c66-connection-staging132','Reviewed network feedback blob changed: ','number:908','number:911','networkPr.head.sha']) assert.ok(w.includes(token),token);
+ for(const token of ['RELEASE_MAIN_SHA: c66d2c5cc7c65a75e63eaabc91a5438cb5af97cd','release/nov17-c66-connection-staging132','Reviewed network integration blob changed: ','number:908','number:911','networkPr.head.sha']) assert.ok(w.includes(token),token);
  assert.ok(w.includes('git diff --exit-code "$RELEASE_MAIN_SHA" "$GITHUB_SHA" -- assets/'));
 });
 test('staging-only Android runtime and production pre-post manifest isolation',()=>{
