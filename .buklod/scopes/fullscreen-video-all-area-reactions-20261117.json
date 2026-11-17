@@ -17,56 +17,45 @@
     "ads-finance-points"
   ],
   "regressionTests": [
-    "tests/fullscreen-video-all-area-reactions-20261117.test.mjs",
-    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+    "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
     "src/components/CommunityVideo.tsx",
     "src/components/BuklodFlyingVideoReactions.tsx",
     "src/lib/buklodFullscreenVideoSwipe.ts",
-    "tests/fullscreen-video-all-area-reactions-20261117.test.mjs",
-    ".buklod/scopes/fullscreen-video-all-area-reactions-20261117.json"
+    ".buklod/scopes/fullscreen-video-all-area-reactions-20261117.json",
+    "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
-      "id": "wall-media",
-      "reason": "Video gesture and local reactions",
-      "preservedBehaviors": [
-        "player handoff, signed media and URL retry"
-      ],
-      "tests": [
-        "tests/fullscreen-video-all-area-reactions-20261117.test.mjs"
-      ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "Ad-sensitive fullscreen overlay",
-      "preservedBehaviors": [
-        "native IMA, Reels, companion ads, points and payouts"
-      ],
-      "tests": [
-        "tests/fullscreen-video-all-area-reactions-20261117.test.mjs"
-      ]
-    },
-    {
-      "id": "navigation-scroll",
-      "reason": "Details and video sharing a page action",
-      "preservedBehaviors": [
-        "snapping, close, back and ordinary taps"
-      ],
-      "tests": [
-        "tests/fullscreen-video-all-area-reactions-20261117.test.mjs"
-      ]
-    },
-    {
       "id": "app-runtime",
-      "reason": "JS-only patch",
+      "reason": "Fullscreen JS gesture handling uses existing native gesture module and must preserve Android runtime and playback integration.",
       "preservedBehaviors": [
-        "Existing Android runtime, auth and boot"
+        "Unchanged Android native dependencies, signed video, application boot and media lifecycle"
       ],
       "tests": [
-        "tests/fullscreen-video-all-area-reactions-20261117.test.mjs"
+        "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Change Wall video touch surfaces and local reaction rendering without changing playback or monetization behavior.",
+      "preservedBehaviors": [
+        "Existing fullscreen player handoff, poster, retry and bounded signed-media access"
+      ],
+      "tests": [
+        "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Fullscreen gestures page the Wall viewer's virtual list and must retain authenticated navigation and close/back actions.",
+      "preservedBehaviors": [
+        "Existing Wall route, modal back/close, session guard and standard reaction/comment/share taps"
+      ],
+      "tests": [
+        "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
       ]
     }
   ]

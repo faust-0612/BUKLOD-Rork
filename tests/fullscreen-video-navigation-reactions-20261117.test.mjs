@@ -35,3 +35,10 @@ test('flying reactions are local, bounded, and never block buttons or ads',()=>{
  assert.match(effects,/animation\.stop\(\)/);
  assert.doesNotMatch(effects,/supabase|fetch\(|setInterval\(/);
 });
+
+test('fullscreen navigation retains close/back and Wall media URL reuse',()=>{
+ assert.match(wall,/onRequestClose=\{\s*closeVideoViewer\s*\}/);
+ assert.match(wall,/videoViewerOpenPendingRef\.current=false/);
+ assert.match(wall,/wallVideoFreshUrls\[postId\]/);
+ assert.match(wall,/onPlaybackError=\{\(\)=>\{\s*void refreshVideoViewerUrl\(item,fullscreenUri\)/);
+});
