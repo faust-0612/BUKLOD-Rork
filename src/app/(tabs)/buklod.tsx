@@ -4929,7 +4929,7 @@ const load=useCallback(async(options?:{
               edgeToEdge
               fitFrame
               handoffEnabled
-              suspendedForFullscreen={videoViewerHandoffPostId===postId}
+              suspendedForFullscreen={Boolean(videoViewerHandoffPostId) || videoViewerOpen}
               autoPlay
               active={
                 visibleVideoPostId===postId &&
