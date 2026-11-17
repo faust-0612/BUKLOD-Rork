@@ -46,8 +46,7 @@
     "tests/buklod-admob-daily-qmp-20261118.test.mjs",
     "tests/community-admob-preview-contract.test.cjs",
     "tests/admob-gateway-service-role.test.mjs",
-    "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql",
-    "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs"
+    "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql"
   ],
   "acceptanceChecks": [
     "Official report APP+DATE+PHP validation, footer and micros completeness confirmed with negative tests",
@@ -97,5 +96,17 @@
       ]
     }
   ],
-  "publicationStatus": "DEV_ONLY_NO_OTA"
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "backendDeployment": {
+    "project": "yhanxndaqbmuzbdqlblu",
+    "migrationVersion": "20261117180753",
+    "migrationName": "buklod_admob_daily_qmp_preview_v2_20261118",
+    "admobEdgeSlug": "buklod-admob-revenue-preview-sync",
+    "edgeVersion": 12,
+    "jwtVerified": true,
+    "verification": "SQL permissions and source parity passed; source-backed noncash member QMP response and rollback checked; actual official provider sync still blocked by scheduler config",
+    "cashLedgerRowsAfter": 0,
+    "financeControls": "OFF",
+    "androidOta": "NOT_PUBLISHED"
+  }
 }
