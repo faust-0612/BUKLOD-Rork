@@ -289,14 +289,16 @@ function InactiveCommunityVideo({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Play video"
+        accessibilityLabel={onOpenFullscreen ? 'Open video full screen' : 'Play video'}
         disabled={!onRequestPlay && !onOpenFullscreen}
         onPress={() => {
-          if (onRequestPlay) {
-            onRequestPlay();
+          // Tapping a recycled/offscreen preview must honor the Wall viewer
+          // instead of silently starting an inline player.
+          if (onOpenFullscreen) {
+            onOpenFullscreen();
             return;
           }
-          onOpenFullscreen?.();
+          onRequestPlay?.();
         }}
         style={styles.tapLayer}
       />
@@ -1052,6 +1054,9 @@ function ExpoCommunityVideo({
       }}
     >
       <VideoView
+        // Native playback controls are disabled. Route the Android touch to
+        // our overlay so the video surface cannot swallow fullscreen taps.
+        pointerEvents="none"
         player={player}
         style={styles.video}
         nativeControls={false}
@@ -1106,15 +1111,30 @@ function ExpoCommunityVideo({
         </Pressable>
       ) : null}
 
-      {!fullscreen && preserveAspectRatio ? (
-        <Pressable accessibilityRole="button"
-          accessibilityLabel={fillFrame ? 'Fit full video inside frame' : 'Fill video frame, cropping edges'}
-          onPress={() => setFillFrame(current => !current)}
-          style={styles.fitChoice}
-        >
-          <MaterialCommunityIcons name={fillFrame ? 'arrow-collapse' : 'arrow-expand'} size={15} color="#FFFFFF" />
-          <Text style={styles.fitChoiceText}>{fillFrame ? 'Fit' : 'Fill'}</Text>
-        </Pressable>
+      {!fullscreen && (onOpenFullscreen || preserveAspectRatio) ? (
+        <View pointerEvents="box-none" style={styles.videoFrameActions}>
+          {preserveAspectRatio ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={fillFrame ? 'Fit full video inside frame' : 'Fill video frame, cropping edges'}
+              onPress={() => setFillFrame(current => !current)}
+              style={styles.fitChoice}
+            >
+              <MaterialCommunityIcons name={fillFrame ? 'arrow-collapse' : 'arrow-expand'} size={15} color="#FFFFFF" />
+              <Text style={styles.fitChoiceText}>{fillFrame ? 'Fit' : 'Fill'}</Text>
+            </Pressable>
+          ) : null}
+          {onOpenFullscreen ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open video full screen"
+              onPress={openInlineFullscreen}
+              style={styles.fitChoice}
+            >
+              <Text style={styles.fitChoiceText}>Full screen</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
 
       {centerVisible ? (
@@ -1256,11 +1276,17 @@ const styles =
       height: '100%',
     },
 
-    fitChoice: {
+    videoFrameActions: {
       position: 'absolute',
       top: 10,
       right: 10,
-      minHeight: 34,
+      zIndex: 3,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    fitChoice: {
+      minHeight: 42,
       paddingHorizontal: 9,
       flexDirection: 'row',
       gap: 5,
@@ -1314,6 +1340,7 @@ const styles =
 
     tapLayer: {
       ...StyleSheet.absoluteFillObject,
+      zIndex: 1,
     },
 
     centerButton: {

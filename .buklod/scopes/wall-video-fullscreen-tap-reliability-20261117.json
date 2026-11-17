@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "objective": "Repair public Wall Android video fullscreen no-response on tap while preserving inline autoplay, clip Fill/Fit, playback resume and ad click behavior",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Current GitHub main source inspected on 2026-11-17; native CommunityVideo includes ExpoVideo tap overlay and Public Wall has playlist lookup that can silently return for a just-visible post. This source evidence does not establish the installed Infinix X6852 build, staging OTA, production OTA or Android touch behavior.",
+  "chosenApproach": "Prioritize fullscreen callback for offscreen previews, route Expo native touches through a single top overlay, show a discoverable fullscreen text target next to Fill, and use the already-visible post as fallback if the memoized video playlist has not included it yet.",
+  "selectionRationale": "Small JS-only changes restore a reliable tap path and user-visible fallback without a native module rebuild, additional decoder, media signing, or intercepting IMA ad clicks.",
+  "alternativeApproaches": [
+    "Use only a dedicated square fullscreen icon: rejected because tap-to-open remains a user requirement",
+    "Intercept IMA video ad touch: rejected because it would interfere with paid-ad clicks"
+  ],
+  "acceptanceChecks": [
+    "Regular Android Wall video opens fullscreen from a frame tap or the Full screen text action",
+    "Inactive/offscreen preview opens fullscreen instead of silently starting the inline player",
+    "Viewer targets visible clicked video even if memoized playlist is stale, then closes with Back/Close",
+    "Fill/Fit remains a separate crop control, sound and playback position remain unchanged",
+    "IMA ad clicks, private media authorization, preload and audio mixing remain untouched",
+    "Focused Node tests, engineering gates, TypeScript, staging Android QA and source fingerprint required before OTA; no production release is claimed"
+  ],
+  "preserveBehaviors": [
+    "Wall clips retain visible autoplay, duration, cache, signed URLs, poster, mute/unmute, retry and viewport budget",
+    "Fullscreen scroll and ad inventory; native IMA ad player remains individually clickable",
+    "Main app navigation, bottom tabs, profile and PTT audio isolation"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "navigation-scroll"
+  ],
+  "allowedPaths": [
+    "src/components/CommunityVideo.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/marites-swipe-video-fullscreen.test.mjs",
+    "tests/wall-video-fullscreen-navigation-20261117.test.mjs",
+    ".buklod/scopes/wall-video-fullscreen-tap-reliability-20261117.json"
+  ],
+  "regressionTests": [
+    "tests/marites-swipe-video-fullscreen.test.mjs",
+    "tests/wall-video-fullscreen-navigation-20261117.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Change ExpoVideo touch routing and offscreen video preview tap behavior on Android, without native dependency or runtime changes",
+      "preservedBehaviors": [
+        "Native fullscreen media playback, existing media cache, ad lifecycle and touch safe areas remain unchanged"
+      ],
+      "tests": [
+        "tests/marites-swipe-video-fullscreen.test.mjs",
+        "tests/wall-video-fullscreen-navigation-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Prevent no-op fullscreen taps and preserve clip playback and crop controls when video playlist membership lags",
+      "preservedBehaviors": [
+        "Current media signing, poster caching, retry, autoplay, comment feed and Google IMA ad click-through remain operational"
+      ],
+      "tests": [
+        "tests/marites-swipe-video-fullscreen.test.mjs",
+        "tests/wall-video-fullscreen-navigation-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Keep Public Wall video fullscreen viewer navigation reversible and backed by clicked post when viewer opens",
+      "preservedBehaviors": [
+        "Public Wall navigation, back/close behavior, authenticated post access and session isolation remain unchanged"
+      ],
+      "tests": [
+        "tests/wall-video-fullscreen-navigation-20261117.test.mjs"
+      ]
+    }
+  ]
+}

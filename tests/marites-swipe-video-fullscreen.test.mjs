@@ -71,3 +71,21 @@ test('web video opens fullscreen on click or keyboard, retaining controls in vie
   assert.match(webVideo, /soundOn \? 'Turn sound off' : 'Turn sound on'/);
   assert.doesNotMatch(webVideo, /'⛶'/);
 });
+
+const publicWall = read('src/app/(tabs)/buklod.tsx');
+
+test('tap-to-fullscreen remains usable on inactive/offscreen Android video previews', () => {
+  assert.match(androidVideo, /if \(onOpenFullscreen\) \{\s*onOpenFullscreen\(\);\s*return;\s*\}\s*onRequestPlay\?\.\(\);/);
+  assert.match(androidVideo, /pointerEvents="none"\s*player=\{player\}/);
+  assert.match(androidVideo, /tapLayer: \{\s*\.\.\.StyleSheet\.absoluteFillObject,\s*zIndex: 1,/);
+  assert.match(androidVideo, /accessibilityLabel="Open video full screen"\s*onPress=\{openInlineFullscreen\}/);
+  assert.match(androidVideo, /<Text style=\{styles\.fitChoiceText\}>Full screen<\/Text>/);
+  assert.match(androidVideo, /onPress=\{\(\) => setFillFrame\(current => !current\)\}/);
+});
+
+test('Wall viewer uses the tapped video when async playlist membership lags', () => {
+  assert.match(publicWall, /const target=index>=0\?wallVideoPosts\[index\]:tappedPost;/);
+  assert.match(publicWall, /if\(!target \|\| !communityWallVideoDescriptor\(target\)\)return;/);
+  assert.match(publicWall, /openVideoViewer\(\s*String\(item\.id\),item\s*\)/);
+  assert.match(publicWall, /setVideoViewerPosts\(\[target\]\)/);
+});

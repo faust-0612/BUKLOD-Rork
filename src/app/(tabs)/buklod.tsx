@@ -4803,7 +4803,7 @@ const load=useCallback(async(options?:{
   },[videoViewerOpen,loadMoreVideoViewer]);
 
  const openVideoViewer=
-  (postId:string)=>{
+  (postId:string,tappedPost?:any)=>{
    const index=
      wallVideoPosts.findIndex(
      (post:any)=>
@@ -4811,12 +4811,10 @@ const load=useCallback(async(options?:{
       String(postId)
     );
 
-   if(index<0){
-    return;
-   }
-
-   const target=
-     wallVideoPosts[index];
+   // The visible post can be newer than the memoized video playlist or
+   // absent from its filtered discovery window. Never silently ignore tap.
+   const target=index>=0?wallVideoPosts[index]:tappedPost;
+   if(!target || !communityWallVideoDescriptor(target))return;
 
     videoViewerScanSeqRef.current+=1;
     videoViewerScanBusyRef.current=false;
@@ -4927,7 +4925,7 @@ const load=useCallback(async(options?:{
               }}
               onOpenFullscreen={()=>
                 openVideoViewer(
-                  String(item.id)
+                  String(item.id),item
                 )
               }
             />
