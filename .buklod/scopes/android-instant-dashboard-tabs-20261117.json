@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/android-instant-dashboard-tabs-20261117.json",
+  "objective": "Make Android Home, Wall, Connect and Profile returns near-instant by retaining previously opened dashboard screens instead of popping/remounting them on every global tab switch. Preserve Cluster as root workspace and scope/ads/media security gates.",
+  "baseRef": "0ee57887c991d23472cdf1f9b849bce945792910",
+  "productionBaselineEvidence": "As of Nov 17 2026, GitHub main source SHA 0ee57887 inspected. PR #900 documents Android staging-user runtime 1.3.2 OTA 01a1e6c4-e877-7036-8573-58c1424e392c; production remains separately controlled and no current device timings or live production fingerprint were verified. This work is DEV only.",
+  "chosenApproach": "Use Expo Router SDK 57 persistent lazy Tabs exclusively for Android within existing authenticated (tabs) layout, suppress internal tab bar because root BuklodNavSafeShell owns it, keep blurred tabs frozen/native detached, retain web/iOS Stack fallback, no offscreen prefetch that could start AdMob/video work.",
+  "selectionRationale": "React Navigation Stack navigate can pop intermediate screens and cold-mount them again on later visits, while bottom tabs retain their state and make repeat switching cheaper. No native dependency, backend, routing destination or ad policy changes.",
+  "alternativeApproaches": [
+    "Eagerly mount all five dashboards on boot (rejected: high startup memory, CPU, media and ad lifecycle risk).",
+    "Use router.prefetch for every tab (rejected for this change: offscreen rendering might start network/media/ad work, subject to additional safeguards).",
+    "Fire navigation on touch-down (rejected: breaks drag/scroll cancellation)."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "app-runtime",
+    "ads-monetization",
+    "media-playback",
+    "ads-finance-points"
+  ],
+  "preserveBehaviors": [
+    "Signed Android package/runtime and all OTA channels, auth/consent/managed scope gates, profile and onboarding unchanged.",
+    "Original Home, Wall, Connect, Profile and Cluster canonical URLs and global bottom nav preserved.",
+    "On first visit an unvisited dashboard is lazy-mounted; subsequent visits reuse state. Offline and slow-network content remains asynchronous.",
+    "AdMob genuine SDK fill/impression/viewability/consent/cooldown, first-view prewarm and blurred-screen request guard untouched.",
+    "Offscreen Wall videos and Connect reactions remain subject to existing focus/scroll lifecycle; no new prefetch network requests."
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/_layout.tsx",
+    "src/components/BuklodAndroidDashboardTabs.tsx",
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    ".buklod/scopes/android-instant-dashboard-tabs-20261117.json"
+  ],
+  "regressionTests": [
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "tests/messenger-navigation-scroll-20261117.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/wall-media-navigation-polish-20261108.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Android dashboard navigation topology changes from stack to persistent tab navigator",
+      "preservedBehaviors": [
+        "Authenticated route guards, scope isolation, bottom tab overlay, and previous screen state remain valid"
+      ],
+      "tests": [
+        "tests/dashboard-instant-tabs-20261117.test.mjs",
+        "tests/messenger-navigation-scroll-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "A previously visited screen stays mounted while inactive",
+      "preservedBehaviors": [
+        "Offscreen AdMob SDK requests remain focus gated; real impressions only, prewarming remains bounded and consented"
+      ],
+      "tests": [
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Exact-source static test and TypeScript compilation pass.",
+    "Android EAS Hermes preview smoke verifies Home->Wall->Connect->Profile->Home->Wall remains state-preserving, no blank screen or nonfocusing tab.",
+    "Cluster->Public global navigation still restores Public scope before exposing any personal/global tab.",
+    "Offscreen video stops, first-view advertisements do not lose fill/restart unnecessarily, privacy-safe foreground requests and consent remain intact.",
+    "On actual Android target handset, measure tap release to visible route (warm <150ms p95 target); cold first visit must show content shell promptly. Numbers are targets, not measured claims.",
+    "No staging, RC or production OTA until native/AdMob/navigation critical release gates; production unchanged."
+  ]
+}
