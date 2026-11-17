@@ -95,8 +95,8 @@ export default function BuklodReferralInviteCard({
       borderColor: theme.border,
       borderRadius: 16,
       backgroundColor: theme.surface,
-      padding: 14,
-      gap: 8,
+      padding: 10,
+      gap: 6,
     },
     eyebrow: {
       fontSize: 10,
@@ -120,8 +120,8 @@ export default function BuklodReferralInviteCard({
       borderColor: withAlpha(theme.accent, 0.28),
       backgroundColor: withAlpha(theme.accentSoft, 0.5),
       borderRadius: 12,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
       gap: 2,
     },
     identityLabel: {
@@ -136,7 +136,7 @@ export default function BuklodReferralInviteCard({
       color: theme.accent,
     },
     codeRow: {
-      marginTop: 4,
+      marginTop: 2,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
@@ -160,8 +160,8 @@ export default function BuklodReferralInviteCard({
     },
     actionRow: {
       flexDirection: 'row',
-      gap: 8,
-      marginTop: 4,
+      gap: 6,
+      marginTop: 2,
     },
     actionBtn: {
       flex: 1,
@@ -356,6 +356,12 @@ export default function BuklodReferralInviteCard({
         <Text style={styles.actionText}>SHARE INVITE</Text>
       </Pressable>
 
+      <Text style={styles.economyNote}>
+        Earn +10 BUKLOD Points when your invited member is verified, then a
+        one-time +10 bonus when they advance a Circle Rank through claimed
+        activities while active in a Cluster. Maximum +20 BP per referral.
+        Points are separate from cash earnings.
+      </Text>
       <Text style={styles.stats}>
         Invited {summary?.invited_count ?? 0} · Qualified{' '}
         {summary?.qualified_count ?? 0}

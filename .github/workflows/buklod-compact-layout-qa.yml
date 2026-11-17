@@ -1,0 +1,55 @@
+name: BUKLOD Compact Layout Source QA (No OTA)
+on:
+  pull_request:
+    branches: [main, release/nov16-compact-art-staging132]
+    paths:
+      - 'src/lib/buklodVisual.ts'
+      - 'src/lib/buklodThemePresentation.ts'
+      - 'src/components/**'
+      - 'src/app/**'
+      - 'scripts/compact-layout-gate.mjs'
+      - 'tests/appwide-compact-density-20261116.test.mjs'
+      - 'tests/buklod-dark-contrast-spacing-20261115.test.mjs'
+      - '.github/workflows/buklod-compact-layout-qa.yml'
+permissions:
+  contents: read
+concurrency:
+  group: compact-layout-qa-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  source-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Compact layout and critical smoke tests (no device)
+        run: |
+          node scripts/compact-layout-gate.mjs
+          node --experimental-strip-types --test \
+            tests/appwide-compact-density-20261116.test.mjs \
+            tests/buklod-dark-contrast-spacing-20261115.test.mjs \
+            tests/nov16-connect-profile-geometry.test.mjs \
+            tests/nov16-wall-connect-dynamic-note-rail.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/nov16-wall-nav-ads-prewarm-integration.test.mjs \
+            tests/nov14-connect-green-profile-posts-ota.test.mjs \
+            tests/bible-henry-edge-to-edge-20261116.test.cjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/wall-media-density-20261116.test.mjs \
+            tests/navigation-scroll-density-20261116.test.mjs \
+            tests/cluster-bible-density-20261116.test.mjs \
+            tests/character-density-20261116.test.mjs \
+            tests/compact-ota-release-20261116.test.mjs
+      - name: Locked packages and TypeScript (no OTA)
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+      - name: Source QA only, no OTA publication
+        run: echo "No OTA was published. Requires verified staging RC before release."

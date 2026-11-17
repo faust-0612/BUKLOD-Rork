@@ -1,0 +1,93 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-connect-note-rail-density-20261116.json",
+  "objective": "Remove persistent empty 100dp Wall and 97dp Connect Notes rails above profile avatars in the Android UI; make note height follow visible text while preserving five-line Notes, avatar alignment and AdMob functionality.",
+  "baseRef": "release/nov16-compact-art-staging132",
+  "productionBaselineEvidence": "Existing main 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 and published staging head 8b152c571a923e85b8812a55120d2e3a72c2301a; no native, backend, production or AdMob modifications proposed.",
+  "chosenApproach": "Replace fixed display-note height with a 44dp minimum touch zone and natural height; align horizontal avatar rows at the bottom, reserve the editing panel height only while the composer is open, retain matching name/rank baselines.",
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "connect",
+    "accessibility",
+    "navigation-scroll",
+    "AdMob viewability",
+    "production-release"
+  ],
+  "allowedPaths": [
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "tests/appwide-compact-density-20261116.test.mjs",
+    "scripts/compact-layout-gate.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "docs/APPWIDE_COMPACT_LAYOUT_STANDARD.md",
+    "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
+    ".github/workflows/buklod-compact-layout-qa.yml",
+    "tests/wall-media-density-20261116.test.mjs",
+    ".buklod/scopes/wall-connect-note-rail-density-20261116.json",
+    ".github/workflows/buklod-nov16-compact-art-staging-release.yml",
+    "tests/nov16-compact-art-staging-release.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Both screens retain avatars at 56dp, profile tap navigation, readable max-five-line notes, current user note editing, ranks and existing theme colors.",
+    "No changes to auth/session, source of Notes, privacy checks, note expiry, unread counts or rendering cache.",
+    "Keep first-view genuine AdMob placements, media feed, dashboard tab navigation and Android installed binary unchanged.",
+    "Current staging/production channels are not modified by the source PR."
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability V2 scope gate and mandatory appwide compact gate pass.",
+    "Dynamic-height source test verifies empty one-line notes no longer reserve a five-line slot and all avatars remain aligned.",
+    "Wall media density test and Connect geometry test pass with intact ad surfaces, tap targets and editing.",
+    "PR CI TypeScript passes; perform staged Android Hermes OTA via separately verified exact source and channel, then verify runtime/update receipt.",
+    "Physical device verification skipped only at owner's request, not represented as successful.",
+    "New staging publish requires both previous frozen six-check RC provenance and all three new exact-PR CI checks, with strict changed-path allowlist."
+  ],
+  "regressionTests": [
+    "tests/nov16-wall-connect-dynamic-note-rail.test.mjs",
+    "tests/wall-media-density-20261116.test.mjs",
+    "tests/appwide-compact-density-20261116.test.mjs",
+    "tests/nov16-connect-profile-geometry.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Two shared UI rails now derive display height from note text to avoid Android screen dead space.",
+      "preservedBehaviors": [
+        "Installed runtime, device identity, session, navigation and genuine ads stay unchanged."
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-dynamic-note-rail.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Reduce empty profile-note rail height before Wall sponsored and media content without altering media or advertisements.",
+      "preservedBehaviors": [
+        "Feed images, videos, comments, Wall banners, AdMob and note visibility remain intact."
+      ],
+      "tests": [
+        "tests/wall-media-density-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Extend the existing guarded staging-only release workflow to verify old RC provenance and the exact new profile-note spacing PR without weakening production isolation.",
+      "preservedBehaviors": [
+        "Staging channel only, verified runtime 1.3.2, APK/native baseline parity and production unchanged readback remain mandatory."
+      ],
+      "tests": [
+        "tests/nov16-compact-art-staging-release.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV PR -> verified staging-user Android runtime 1.3.2 only",
+  "physicalDeviceVerification": "SKIPPED_PER_OWNER",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "selectionRationale": "Screenshot and live staging source both demonstrate that the fixed five-line Notes container is the direct cause of wasted vertical space; data-dependent sizing preserves readability while fixing the actual root cause in only two display components.",
+  "alternativeApproaches": [
+    "Reduce top-level margins but leave fixed 100dp Notes slot (rejected: only masks the source of the wasted space).",
+    "Delete Notes or shrink note font (rejected: breaks approved readable five-line notes).",
+    "Move avatars into an overlay over ads or search header (rejected: causes viewability and navigation overlap)."
+  ]
+}

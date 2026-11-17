@@ -291,7 +291,7 @@ export default function BuklodProfileCharacterCard({
       gap: 14,
     },
     artPress: {
-      width: 82,
+      width: 112,
       height: 130,
       flexShrink: 0,
       alignItems: 'center',

@@ -85,3 +85,13 @@ test('Android-only production promotion is tied to an explicit RC scope, never a
   const release=readFileSync(new URL('../.github/workflows/production_android_ota.yml',import.meta.url),'utf8');
   assert.match(release,/BUKLOD_ANDROID_ONLY_PROD_20261114:/);
 });
+
+
+test('the consolidated Nov16 RC cannot omit finance, database or governance protections', () => {
+  const scope=JSON.parse(readFileSync(new URL('../.buklod/scopes/nov16-all-recent-wall-character-ads-rc.json',import.meta.url),'utf8'));
+  const ids=new Set(scope.lockedFeatureChanges.map(x=>x.id));
+  for (const id of ['ads-finance-points','backend-security','governance-lock','kingdom-character','wall-media']) assert.ok(ids.has(id),id);
+  assert.ok(scope.regressionTests.includes('tests/protected-feature-lock.test.mjs'));
+  const flow=readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+  assert.ok(flow.includes('integration/nov16-current-wall-ads-zoom-rc-safe)'));
+});

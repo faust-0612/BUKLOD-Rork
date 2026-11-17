@@ -1,0 +1,97 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-note-ads-consolidated-staging-20261116.json",
+  "baseRef": "a7a1eac6efd838cf280a95b4b6b71f9714a0d0bb",
+  "objective": "Release one verified Android staging bundle that preserves both dynamic-height Wall/Connect Notes rail and native first-view dashboard AdMob prewarming without overwriting either source.",
+  "productionBaselineEvidence": "Old reviewed staging art RC 8b152c5, approved compact Notes RC a7a1eac6, and separately stage-verified ad prewarm RC aa01218a (GitHub run 43882730654). No new production OTA, DB mutation, APK or native dependency.",
+  "chosenApproach": "Overlay the exact four reviewed Android prewarm source Git blobs on the verified Notes RC; force staging workflow to verify provenance and exact constrained path list before publishing.",
+  "selectionRationale": "Both previous release branches target the same staging-user EAS channel; composing source is necessary to prevent last-writer-wins regression to AdMob or Wall/Connect spacing.",
+  "alternativeApproaches": [
+    "Publish spacing-only OTA and silently remove prewarm (rejected: AdMob regression).",
+    "Publish ads-only and leave profile gaps (rejected: UI regression).",
+    "Push directly to production (rejected: no combined RC)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "ads-finance-points",
+    "production-release",
+    "wall-media",
+    "connect",
+    "accessibility",
+    "ads-monetization"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/_layout.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodDashboardAdWarmup.android.tsx",
+    "src/components/BuklodDashboardAdWarmup.tsx",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+    "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs",
+    ".github/workflows/buklod-compact-layout-qa.yml",
+    ".github/workflows/buklod-nov16-compact-art-staging-release.yml",
+    ".buklod/scopes/nov16-note-ads-consolidated-staging-20261116.json"
+  ],
+  "preserveBehaviors": [
+    "Approved AdMob request timing, route, consent, 2-item bounded creative pool, native lifecycle and real impression rules unchanged.",
+    "Wall and Connect retain five-line Notes, 56dp avatars, dynamic 44dp min Notes rail, existing privacy and visibility.",
+    "App binary/runtime 1.3.2, artwork mapping, XP, authentication, real media, dashboard navigation and production channel unchanged."
+  ],
+  "acceptanceChecks": [
+    "Three required exact PR CI checks green before staging branch fast-forward.",
+    "Staging workflow verifies prior RC/Notes QA and ad source Git blobs equal approved ad staging RC, and exact path allowlist.",
+    "Android Hermes bundle + npm TypeScript and Character + compact + AdMob tests pass.",
+    "Staging-only Android OTA EAS verification confirms exact ID, package, runtime and unchanged production."
+  ],
+  "regressionTests": [
+    "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+    "tests/nov16-compact-art-staging-release.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Consolidate already reviewed Android JS updates without adding native code or dependencies.",
+      "preservedBehaviors": [
+        "Application runtime, installed package and session boundaries preserved."
+      ],
+      "tests": [
+        "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Use previously reviewed single global ad-warmup mount after existing session/profile gates.",
+      "preservedBehaviors": [
+        "Login, profile routing, tab responsiveness and authorization checks remain unchanged."
+      ],
+      "tests": [
+        "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Preserve verified first-view AdMob native inventory warming without extra synthetic impressions.",
+      "preservedBehaviors": [
+        "Ad request pacing, consent, real impressions, offscreen lifecycle and cooldowns remain protected."
+      ],
+      "tests": [
+        "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Change only guarded staging workflow to require both exact source approvals and artifact checks.",
+      "preservedBehaviors": [
+        "Production branch, OTA channel, binary, secrets and native baseline are untouched."
+      ],
+      "tests": [
+        "tests/nov16-compact-art-staging-release.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "Android staging-user preview runtime 1.3.2 only",
+  "physicalDeviceVerification": "SKIPPED_PER_OWNER",
+  "publicationStatus": "DEV_ONLY_NO_OTA"
+}

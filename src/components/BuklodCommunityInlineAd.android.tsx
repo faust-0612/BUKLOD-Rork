@@ -38,6 +38,11 @@ import { useBuklodCommunityInlineVisibility } from '@/hooks/useBuklodCommunityAd
 import { useAds } from '@/providers/AdsProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { AD_SLOT_REMOUNT_COOLDOWN_MS } from '@/lib/buklodAdMonetizationPolicy';
+import {
+  getBuklodDashboardAdPreloadState, takeBuklodDashboardAdPreload,
+  subscribeBuklodDashboardAdPreload, noteBuklodDashboardNativeAdOwned,
+  releaseBuklodDashboardNativeAdOwned,
+} from '@/components/BuklodDashboardAdWarmup';
 
 type CommunityAdInventory = 'public' | 'org' | 'cluster';
 
@@ -319,6 +324,38 @@ export default function BuklodCommunityInlineAd({
       return;
     }
 
+    // Reuse a native SDK object warmed on the previous dashboard.
+    // Never create a duplicate request while that prewarm is still loading.
+    if (firstView) {
+      const preload = getBuklodDashboardAdPreloadState(placementId, nativeUnitId);
+      if (preload === 'loading') {
+        const unsub = subscribeBuklodDashboardAdPreload(placementId, () => setReservationTick(v => v + 1));
+        if (getBuklodDashboardAdPreloadState(placementId, nativeUnitId) !== 'loading')
+          setReservationTick(v => v + 1);
+        return unsub;
+      }
+      if (preload === 'failed') {
+        nativeRequestStarted.current = true; // shared reservation already used
+        setNativeFailed(true); // sequential banner fallback after real no-fill
+        return;
+      }
+      if (preload === 'ready') {
+        const ad = takeBuklodDashboardAdPreload(placementId, nativeUnitId);
+        if (ad) {
+          nativeRequestStarted.current = true;
+          const listener = ad.addAdEventListener(NativeAdEventType.IMPRESSION, () => {
+            recordBuklodAdEvent(diagnosticPlacement, 'ad_impression', undefined,
+              { route: pathname, placementId, adFormat: 'native' });
+          });
+          setNativeAd(ad);
+          return () => {
+            listener.remove();
+            releaseBuklodDashboardNativeAdOwned(placementId);
+            ad.destroy();
+          };
+        }
+      }
+    }
     if (!reserveBuklodPassiveAdRequest(placementId, requestKey)) {
       // Recycled feed rows may remount within the shared cooldown. Preserve
       // the probe; never turn that normal rejection into a permanent failure.
@@ -344,6 +381,7 @@ export default function BuklodCommunityInlineAd({
     let cancelled = false;
     let timedOut = false;
     let createdAd: NativeAd | null = null;
+    let registeredFirstViewOwner = false;
     let impressionSubscription: { remove: () => void } | null = null;
 
     nativeTimeoutRef.current = setTimeout(() => {
@@ -396,6 +434,10 @@ export default function BuklodCommunityInlineAd({
           undefined,
           { route: pathname, placementId, adFormat: 'native' },
         );
+        if (firstView) {
+          noteBuklodDashboardNativeAdOwned(placementId);
+          registeredFirstViewOwner = true;
+        }
         setNativeAd(ad);
       })
       .catch(error => {
@@ -423,6 +465,7 @@ export default function BuklodCommunityInlineAd({
         nativeTimeoutRef.current = null;
       }
       impressionSubscription?.remove();
+      if (registeredFirstViewOwner) releaseBuklodDashboardNativeAdOwned(placementId);
       createdAd?.destroy();
     };
   }, [
@@ -430,6 +473,7 @@ export default function BuklodCommunityInlineAd({
     diagnosticPlacement,
     nativeFailed,
     nativeUnitId,
+    firstView,
     // Route transitions between two allowed surfaces must not tear down a
     // successfully loaded SDK creative. keepNativeLifecycle already tracks
     // route safety and disposes on a genuinely forbidden destination.

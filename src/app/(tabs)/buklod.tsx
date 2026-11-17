@@ -125,7 +125,7 @@ import {
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
-import { formatSpecificDateTime } from '@/lib/dateTime';
+import { formatSpecificDateTime, formatCompactWallDateTime } from '@/lib/dateTime';
 import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
 import { ProfileAvatarNoteChip } from '@/components/ProfileAvatar';
 import BuklodTappablePersonName from '@/components/BuklodTappablePersonName';
@@ -153,6 +153,7 @@ import {
   applyCommunityWallMetadata,
   applyCommunityWallMediaHydration,
   preservePendingCommunityWallMedia,
+  shouldApplyCommunityRecentComment,
 } from '@/lib/communityWallHydration';
 import {
   classifyNetworkQuality,
@@ -1975,6 +1976,16 @@ const load=useCallback(async(options?:{
       .map((p:any)=>p.id)
       .filter(Boolean);
 
+  // Comment content is a nonblocking, batched enrichment. Do not throw away
+  // the actual latest comment because a fixed 4s metadata budget expired.
+  const pendingCommentPreviews: Promise<Record<string, BuklodPostCommentPreview>> =
+    postIds.length
+      ? fetchBuklodPostCommentPreviews(
+          postIds,
+          feedRows.filter((p:any)=>Number(p.comment_count ?? 0)>0).map((p:any)=>String(p.id))
+        )
+      : Promise.resolve({});
+
   /*
    * PERF_MAIN_COMMUNITY_R1
    *
@@ -2418,7 +2429,6 @@ const load=useCallback(async(options?:{
   const [
     rankResult,
     clusterMap,
-    commentPreviewMap,
   ] = await Promise.all([
     authorIds.length
       ? withBuklodTimeout<{data:any}>(
@@ -2444,15 +2454,6 @@ const load=useCallback(async(options?:{
       'Community clusters'
     ).catch(() => (
       {} as Record<string, string>
-    )),
-    withBuklodTimeout(
-      fetchBuklodPostCommentPreviews(
-        postIds
-      ),
-      4000,
-      'Community comments'
-    ).catch(() => (
-      {} as Record<string, unknown>
     )),
   ]);
 
@@ -2485,8 +2486,7 @@ const load=useCallback(async(options?:{
         rankMap.get(p.user_id) ??
         'Circle Starter V',
       comment_preview:
-        commentPreviewMap[p.id] ??
-        null,
+        p.comment_preview ?? null,
     }));
 
   if(appendPage186L){
@@ -2529,6 +2529,29 @@ const load=useCallback(async(options?:{
       return merged;
     });
   }
+
+  // Hydrate real author + comment content independently from ranks and
+  // media. A late result updates only its own posts; stale loads/account
+  // switches cannot overwrite another feed's rows or comments.
+  const requestedCommentIds = new Set(postIds.map(String));
+  void pendingCommentPreviews
+    .then(previews => {
+      if (communityLoadSeq !== communityLoadSeqRef.current) return;
+      setPosts(current => {
+        let changed = false;
+        const updated = current.map(post => {
+          const id = String(post.id ?? '');
+          if (!requestedCommentIds.has(id)) return post;
+          const latest = previews[id];
+          const old = post.comment_preview;
+          if (!shouldApplyCommunityRecentComment(old, latest)) return post;
+          changed = true;
+          return { ...post, comment_preview: latest };
+        });
+        return changed ? updated : current;
+      });
+    })
+    .catch(error => console.warn('Community comment hydration:', error?.message ?? error));
 
   // Preserve the older-page media RPC after the fast first-paint budget.
   if (appendPage186L && (!Array.isArray(mediaResult?.data) || mediaResult.data.length === 0)) {
@@ -2881,9 +2904,19 @@ const load=useCallback(async(options?:{
     }
 
     if(picked.videoAsset){
-     await acceptWallVideo186O(
-      picked.videoAsset
-     );
+     try{
+      await acceptWallVideo186O(
+       picked.videoAsset
+      );
+     }
+     catch(videoError:any){
+      reportCommunityFailure(
+       videoError,
+       'Video not prepared',
+       "BUKLOD couldn't prepare this video. Your selected photos are still here.",
+       'gallery_video_prepare_failed',
+      );
+     }
     }
    }
    catch(error:any){
@@ -3855,6 +3888,17 @@ const load=useCallback(async(options?:{
        ? {...post,comment_count:Number(post.comment_count??0)+1}
        : post
      ));
+     // Show the newly submitted actual comment without reloading the feed.
+     void fetchBuklodPostCommentPreviews([postId],[postId])
+       .then(previews=>{
+         if(commentAccountIdRef.current!==authorId || !previews[postId]) return;
+         setPosts(current=>current.map(post=>
+           String(post.id)===postId
+             ? {...post,comment_preview:previews[postId]}
+             : post
+         ));
+       })
+       .catch(error=>console.warn('Community new comment preview:',error?.message??error));
     }
     commentDraftsRef.current.delete(authorId+':'+postId);
     if(authorId)void clearWallCommentTextDraft(authorId,postId).catch(()=>undefined);
@@ -5933,81 +5977,39 @@ const communityFeedRows =
     return (
       <BuklodFocusVisibleRow index={index}>
     <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
-   <View
-     style={{
-       flexDirection:
-         'row',
-       alignItems:
-         'center',
-       gap: 9,
-     }}
-   >
-   {/* PATCH_185A_R2_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
-   <View
-    style={{
-     flexDirection:'row',
-     alignItems:'center',
-     gap:10,
-     marginBottom:0
-    }}
-   >
-    <View style={{flex:1}}>
-   {/* PATCH_185A_R5_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
-   <View
-    style={{
-     flexDirection:'row',
-     alignItems:'center',
-     gap:10,
-     marginBottom:0
-    }}
-   >
-    <BuklodTappableAvatar
-     userId={item.user_id}
-     name={resolvePersonDisplayName(item.author_name, item.user_id)}
-     size={42}
-    />
-    <View style={{flex:1}}>
-     <BuklodTappablePersonName
+   {/* BUKLOD_WALL_SINGLE_LINE_IDENTITY_20261116: actions live below identity so names and timestamps retain full width. */}
+   <View style={{flexDirection:'row',alignItems:'flex-start',gap:10}}>
+     <BuklodTappableAvatar
        userId={item.user_id}
-       displayName={resolvePersonDisplayName(
-         item.author_name,
-         item.user_id,
-       )}
-       style={[
-         s.author,
-         {
-           flex: 1,
-         },
-       ]}
-     >
-       {resolvePersonDisplayName(
-         item.author_name,
-         item.user_id,
-       )}
-     </BuklodTappablePersonName>
+       name={resolvePersonDisplayName(item.author_name,item.user_id)}
+       size={42}
+     />
+     <View style={{flex:1,minWidth:0}}>
+       <BuklodTappablePersonName
+         userId={item.user_id}
+         displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
+         numberOfLines={1}
+         style={s.author}
+       >
+         {resolvePersonDisplayName(item.author_name,item.user_id)}
+       </BuklodTappablePersonName>
        <ProfileAvatarNoteChip userId={item.user_id} />
-       {/* PATCH_186I_R3_AUTHOR_META_UNDER_NAME */}
+       <Text style={s.meta} numberOfLines={1}>
+         {item.author_rank_name||'Circle Starter V'}
+         {item.cluster_name ? ` | ${item.cluster_name}` : ''}
+         {' | '}
+         {String(item.audience||'group').toUpperCase()}
+         {item.author_only ? ' | AKO LANG' : ''}
+       </Text>
        <Text
          style={s.meta}
          numberOfLines={1}
+         adjustsFontSizeToFit
+         minimumFontScale={0.75}
        >
-         {item.author_rank_name||'Circle Starter V'}
-         {item.cluster_name
-           ? ` | ${item.cluster_name}`
-           : ''}
+         {formatCompactWallDateTime(item.created_at)}
        </Text>
-       <Text style={s.meta}>{String(
-     item.audience ||
-     'group'
-    ).toUpperCase()}
-    {item.author_only
-      ? ' | AKO LANG'
-      : ''}
-    {' | '}
-    {formatSpecificDateTime(
-     item.created_at
-    )}</Text>
-</View>
+       <View style={{flexDirection:'row',justifyContent:'flex-end',alignItems:'center',marginTop:3,gap:6}}> 
     {item.user_id===user?.id ? (
      <BuklodContentOverflowMenu
       title="Your post"
@@ -6126,9 +6128,8 @@ const communityFeedRows =
       />
      </View>
     )}
-   </View>
-    </View>
-   </View>
+       </View>
+     </View>
    </View>
    <BuklodPostMotion preset={postCreatives[String(item.id)]?.motion_preset??'none'}
     active={wallScreenFocused&&visibleCreativePostIds.includes(String(item.id))}>
@@ -6930,7 +6931,7 @@ const communityFeedRows =
        </View>
       )}
       {commentLoading&&!comments.length?(
-       <View style={{paddingVertical:36,alignItems:'center',gap:12}}>
+       <View style={{paddingVertical:20,alignItems:'center',gap:8}}>
         <ActivityIndicator size="small" color={colors.green}/>
         <Text style={{color:colors.muted}}>Loading comments…</Text>
        </View>
@@ -7001,7 +7002,7 @@ const communityFeedRows =
       />
 
       ):!commentLoadError?(
-       <View style={{paddingVertical:48,alignItems:'center',gap:10}}>
+       <View style={{paddingVertical:24,alignItems:'center',gap:8}}>
         <MaterialCommunityIcons name="comment-outline" size={34} color={colors.green}/>
         <Text style={{color:colors.muted,textAlign:'center',fontSize:13}}>
          No comments yet. Be the first to respond.

@@ -108,9 +108,9 @@ export const shared = StyleSheet.create({
   },
   content: {
     paddingHorizontal: buklodVisual.space.screen,
-    paddingTop: 10,
-    paddingBottom: 18,
-    gap: 8,
+    paddingTop: 6,
+    paddingBottom: 12,
+    gap: 6,
   },
   h1: {
     fontSize: 25,
@@ -158,8 +158,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderRadius: 13,
-    paddingHorizontal: 11,
-    paddingVertical: 10,
+    paddingHorizontal: buklodVisual.space.card,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.line,
   },
@@ -188,8 +188,8 @@ const styles = StyleSheet.create({
     color: colors.green,
   },
   section: {
-    marginTop: 7,
-    marginBottom: 4,
+    marginTop: 4,
+    marginBottom: 2,
     color: colors.muted,
     fontSize: 14,
     lineHeight: 19,

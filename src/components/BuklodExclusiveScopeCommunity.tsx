@@ -96,7 +96,7 @@ import {
   type CommunityPhotoCollageLayout,
 } from '@/components/BuklodCommunityPhotoCollage';
 import { peekCommunityMediaUrl, resignCommunityMediaUrl, isLocalMediaUri } from '@/lib/buklodMediaUrl';
-import { applyCommunityWallMediaHydration, preservePendingCommunityWallMedia } from '@/lib/communityWallHydration';
+import { applyCommunityWallMediaHydration, preservePendingCommunityWallMedia, shouldApplyCommunityRecentComment } from '@/lib/communityWallHydration';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -989,20 +989,37 @@ export default function BuklodExclusiveScopeCommunity({
             console.warn('Scoped community media:', error?.message ?? error);
           });
 
-          // Enrichment updates metadata only. Never replace already painted
-          // photos with stale media_items from a slow author/comment request.
-          const [namedRows, previewMap] = await Promise.all([
-            withBuklodTimeout(
-              hydratePersonNamesOnRows(rows, 'user_id', 'author_name'),
-              4000,
-              'Scoped names'
-            ).catch(() => rows),
-            withBuklodTimeout(
-              fetchBuklodPostCommentPreviews(rows.map(row => row.id)),
-              4000,
-              'Scoped comments'
-            ).catch(() => ({} as Record<string, SocialPost['comment_preview']>)),
-          ]);
+          // Start a single RLS-aware batch preview before name hydration,
+          // without permanently discarding the comment after 4 seconds.
+          const previewPromise = fetchBuklodPostCommentPreviews(
+            rows.map(row => row.id),
+            rows.filter(row => Number(row.comment_count ?? 0)>0).map(row => row.id),
+          );
+          // Only update exact in-scope posts; do not reset already-hydrated
+          // photos, reactions or a newer preview on a slow connection.
+          const requestedCommentIds = new Set(rows.map(row => String(row.id)));
+          void previewPromise
+            .then(previews => {
+              if (scopeMediaLoadSeqRef.current !== loadSeq) return;
+              setPosts(previous => {
+                let changed = false;
+                const updated = previous.map(post => {
+                  const id = String(post.id);
+                  const latest = requestedCommentIds.has(id) ? previews[id] : null;
+                  const old = post.comment_preview;
+                  if (!shouldApplyCommunityRecentComment(old, latest)) return post;
+                  changed = true;
+                  return { ...post, comment_preview: latest };
+                });
+                return changed ? updated : previous;
+              });
+            })
+            .catch(error => console.warn('Scoped comment hydration:', error?.message ?? error));
+          const namedRows = await withBuklodTimeout(
+            hydratePersonNamesOnRows(rows, 'user_id', 'author_name'),
+            4000,
+            'Scoped names'
+          ).catch(() => rows);
           if (scopeMediaLoadSeqRef.current !== loadSeq) return;
           const namesById = new Map(namedRows.map(row => [String(row.id), row]));
           setPosts(previous => previous.map(post => {
@@ -1012,7 +1029,7 @@ export default function BuklodExclusiveScopeCommunity({
             return {
               ...post,
               author_name: enriched.author_name ?? post.author_name,
-              comment_preview: previewMap[post.id] ?? post.comment_preview ?? null,
+              comment_preview: post.comment_preview ?? null,
             };
           }));
         }
@@ -2690,6 +2707,17 @@ export default function BuklodExclusiveScopeCommunity({
           ? { ...post, comment_count: Number(post.comment_count ?? 0) + 1 }
           : post,
       ));
+      // Refresh only this post's visible preview after a confirmed comment.
+      void fetchBuklodPostCommentPreviews([postId], [postId])
+        .then(previews => {
+          if (!previews[postId]) return;
+          setPosts(current => current.map(post =>
+            post.id === postId && post.scope_id === scope.scope_id
+              ? { ...post, comment_preview: previews[postId] }
+              : post
+          ));
+        })
+        .catch(error => console.warn('Scoped new comment preview:', error?.message ?? error));
       setCommentPost(current => current?.id === postId
         ? { ...current, comment_count: Number(current.comment_count ?? 0) + 1 }
         : current,

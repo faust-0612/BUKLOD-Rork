@@ -30,6 +30,11 @@ jobs:
           PR_BASE: ${{ github.base_ref || 'main' }}
         run: |
           case "$PR_HEAD" in
+            integration/nov16-current-wall-ads-zoom-rc-safe)
+              if [ "$PR_BASE" = "main" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov16-all-recent-wall-character-ads-rc.json" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
+              fi;;
             release/buklod-prod-rc-staging-20261114)
               if [ "$PR_BASE" = "main" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov14-prod-android-rc-promotion.json" >> "$GITHUB_ENV"

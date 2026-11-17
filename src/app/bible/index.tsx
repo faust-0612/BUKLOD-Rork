@@ -2348,7 +2348,7 @@ function EvidencePhoto({
 }
 
 const styles=StyleSheet.create({
-  content:{paddingBottom:40,gap:14},
+  content:{paddingBottom:40,gap:8},
   center:{flex:1,alignItems:'center',justifyContent:'center'},
   header:{flexDirection:'row',gap:12,alignItems:'flex-start'},
   outline:{paddingHorizontal:12,paddingVertical:9,borderWidth:1,borderColor:'#D7DFDA',borderRadius:12},
@@ -2356,7 +2356,7 @@ const styles=StyleSheet.create({
   eyebrow:{marginTop:4,fontSize:10.5,fontWeight:'900',color:'#6D7B73'},
   big:{marginTop:5,fontSize:22,fontWeight:'900',color:'#20352A'},
   meta:{marginTop:6,fontSize:11,color:'#718078'},
-  dots:{flexDirection:'row',gap:7,marginTop:12},
+  dots:{flexDirection:'row',gap:7,marginTop:6},
   dot:{width:18,height:8,borderRadius:99,backgroundColor:'#E0E6E2'},
   dotApproved:{backgroundColor:'#275D45'},
   dotPending:{backgroundColor:'#D4A84F'},
@@ -2373,11 +2373,11 @@ const styles=StyleSheet.create({
 
   readBibleButton:{
     marginTop: 6,
-    minHeight:84,
+    minHeight:72,
     flexDirection:'row',
     alignItems:'center',
     gap: 6,
-    padding:14,
+    padding:10,
     borderRadius:16,
     borderWidth:1,
     borderColor:'#C8DDD1',
@@ -2416,13 +2416,13 @@ const styles=StyleSheet.create({
   },
   body:{marginTop:10,fontSize:15,lineHeight:22,color:'#44534B'},
   question:{marginTop:7,fontSize:18,lineHeight:27,fontWeight:'700',color:'#24382E'},
-  langRow:{flexDirection:'row',gap:8,marginTop:14},
+  langRow:{flexDirection:'row',gap:8,marginTop:8},
   lang:{paddingHorizontal:12,paddingVertical:8,borderRadius:999,backgroundColor:'#EEF2F0'},
   langActive:{backgroundColor:'#275D45'},
   langText:{fontSize:10,fontWeight:'900',color:'#607068'},
   help:{marginTop:6,fontSize:12.5,lineHeight:19,color:'#65736B'},
   input:{marginTop:10,minHeight:135,borderWidth:1,borderColor:'#D8E0DB',borderRadius:16,padding:14,fontSize:15.5,lineHeight:23,color:'#23372D',backgroundColor:'#FBFCFB'},
-  photoBox:{marginTop:12,padding:12,borderRadius:14,borderWidth:1,borderColor:'#DDE4E0',backgroundColor:'#F7F9F8'},
+  photoBox:{marginTop:8,padding:10,borderRadius:14,borderWidth:1,borderColor:'#DDE4E0',backgroundColor:'#F7F9F8'},
   photoTop:{flexDirection:'row',gap:10,alignItems:'center'},
   photoTitle:{fontSize:10,fontWeight:'900',color:'#536159'},
   photoMeta:{marginTop:3,fontSize:10.5,color:'#7A8780'},
@@ -2433,7 +2433,7 @@ const styles=StyleSheet.create({
   warning:{marginTop:12,fontSize:12.5,fontWeight:'800',color:'#7B632A'},
   valid:{marginTop:12,fontSize:13,fontWeight:'900',color:'#275D45'},
   reject:{marginTop:12,fontSize:12.5,lineHeight:19,fontWeight:'800',color:'#8A3F3F'},
-  submit:{marginTop:15,minHeight:50,borderRadius:15,backgroundColor:'#275D45',alignItems:'center',justifyContent:'center'},
+  submit:{marginTop:8,minHeight:50,borderRadius:15,backgroundColor:'#275D45',alignItems:'center',justifyContent:'center'},
   submitOff:{opacity:.38},
   submitText:{fontSize:12,fontWeight:'900',color:'#FFF'},
 });
