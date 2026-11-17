@@ -159,6 +159,16 @@
       ]
     },
     {
+      "id": "ads-finance-points",
+      "reason": "Android dashboard component and fullscreen viewer integration are within protected ad-affecting components; maintain sponsored row placement, ad consent, fill safeguards and revenue separation.",
+      "preservedBehaviors": [
+        "Existing first-view AdMob warmup, NativeAd and IMA fill/retry, offscreen unfocus, consent, cooldown and payout separation must remain unchanged"
+      ],
+      "tests": [
+        "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+      ]
+    },
+    {
       "id": "cluster-faith",
       "reason": "Scoped Cluster and Organization Community video rendering is restored through already-authorized post sidecar media records.",
       "preservedBehaviors": [
