@@ -65,7 +65,7 @@ jobs:
             return res.json();
           };
           const reviews=[
-            {number:900,head:'730c811cda97d106339f14fae04fb4b8890b0ed2',merge:main,required:[
+            {number:900,head:'730c811cda97d106339f14fae04fb4b8890b0ed2',merge:'47eefd0c685f0c639227e9a887b1e1dda29b05e7',required:[
               'Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)',
               'BUKLOD Character R31-R40 Recovery QA','BUKLOD Performance R1 QA',
               'BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD R38 Economy QA',
@@ -78,7 +78,7 @@ jobs:
             {number:906,head:'dcf3e16908a826f8be4b77fc6d1d8c4ef1a40d8d',merge:'59f896612e4c4cd60ea85763252cc96db5f0dc35',required:[
               'Engineering Accountability','BUKLOD Performance R1 QA',
               'BUKLOD Main - Report Door and Legacy Integration PR QA'
-            ]}
+            ]},
             {number:908,head:'d69e8f73f13b7a23b4a8f5f1423ee36681b6075b',merge:'9eecfd2a833d30f4168baeeccb26f021176b7b95',required:[
               'Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)',
               'BUKLOD Performance R1 QA','BUKLOD Main - Report Door and Legacy Integration PR QA'
