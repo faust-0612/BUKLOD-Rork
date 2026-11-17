@@ -19,9 +19,9 @@ begin
  insert into public.attendance_events(id,scope_id,title,location,starts_at,ends_at,is_active,
    created_by,created_at,allowed_methods,attendance_open_at,attendance_close_at,late_after)
  values(v_event_id,host_scope,'Verified Workshop','Main Hall',
-   now()-interval '10 minutes',now()+interval '10 minutes',true,
+   now()-interval '35 minutes',now()+interval '10 minutes',true,
    creator,now()-interval '90 minutes',array['qr','manual'],
-   now()-interval '20 minutes',now()+interval '10 minutes',now()+interval '2 minutes');
+   now()-interval '40 minutes',now()+interval '10 minutes',now()+interval '2 minutes');
 
  perform set_config('request.jwt.claim.sub',creator::text,true);
  result:=public.buklod_issue_event_qr_v2(v_event_id);

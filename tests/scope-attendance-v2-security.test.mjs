@@ -9,7 +9,7 @@ const home = readFileSync(new URL('../src/app/scope/attendance/home-report.tsx',
 
 test('scope attendance identity is server-bound, not client-supplied',()=>{
   assert.match(primary,/actor uuid:=auth\.uid\(\)/);
-  assert.match(primary,/values\(event_id,actor,/);
+  assert.match(primary,/values\(v_event_id,actor,/);
   assert.match(primary,/attendance_records\(event_id,user_id,status,method,operator_id,metadata\)/);
   assert.match(primary,/on conflict\(event_id,user_id\) do nothing/);
 });
