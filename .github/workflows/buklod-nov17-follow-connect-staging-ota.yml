@@ -22,7 +22,7 @@ jobs:
       BUKLOD_APP_TARGET: main
       EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
       APK_SOURCE: c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd
-      RELEASE_MAIN_SHA: d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6
+      RELEASE_MAIN_SHA: 0ee57887c991d23472cdf1f9b849bce945792910
       ART_BASE: https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/buklod-character-art-v1
       EVIDENCE_DIR: /tmp/buklod-nov17-follow-connect-rc132
     steps:

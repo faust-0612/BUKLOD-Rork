@@ -8,8 +8,8 @@ const read=p=>readFileSync(path.join(root,p),'utf8');
 const release=read('.github/workflows/buklod-nov17-follow-connect-staging-ota.yml');
 const manifest=JSON.parse(read('.buklod/scopes/nov17-follow-connect-staging-release.json'));
 test('pin latest approved source and seven merged PRs',()=>{
-  assert.equal(manifest.baseRef,'d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6');
-  assert.ok(release.includes('RELEASE_MAIN_SHA: d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6'));
+  assert.equal(manifest.baseRef,'0ee57887c991d23472cdf1f9b849bce945792910');
+  assert.ok(release.includes('RELEASE_MAIN_SHA: 0ee57887c991d23472cdf1f9b849bce945792910'));
   assert.ok(release.includes('refs/heads/main | cut -f1'));
   for(const number of [900,905,906,910,912,913,914])assert.ok(release.includes('number:'+number+',head:'),String(number));
   assert.ok(release.includes('const target=index>=0?wallVideoPosts[index]:tappedPost;'));
@@ -48,5 +48,5 @@ test('both latest Wall/Connect fixes appear in the final source and frozen stagi
 test('release ancestry pins the actual PR #912 merge commit, not the final main head',()=>{
   assert.ok(release.includes("number:912,head:'e5d6facd6fc58d2d1e8d97f1b757b41900f46851',merge:'66614852ea3163b6cb9eafdad2db3c02a8f7558a'"));
   assert.ok(release.includes("number:913,head:'ef1e3d8187a1158694c1def3bb6d655d43ccc599',merge:'d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6'"));
-  assert.ok(release.includes('RELEASE_MAIN_SHA: d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6'));
+  assert.ok(release.includes('RELEASE_MAIN_SHA: 0ee57887c991d23472cdf1f9b849bce945792910'));
 });
