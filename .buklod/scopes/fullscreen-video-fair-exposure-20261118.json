@@ -1,0 +1,29 @@
+{
+  "contractVersion": 2,
+  "objective": "Add session-rotated fair exposure and creator diversity to fullscreen Public Wall videos while retaining immediate tapped playback, ad slots, pagination and signed-media protections.",
+  "baseRef": "0c461c451ce58b5d8211da46b511f6f9e43df016",
+  "sourceBranch": "feat/fullscreen-video-fair-exposure-20261118",
+  "status": "DEV source only, not a staging or production release",
+  "paths": [
+    "src/lib/buklodVideoDiscovery.ts",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    ".buklod/scopes/fullscreen-video-fair-exposure-20261118.json"
+  ],
+  "protections": [
+    "Only already-authorized public video metadata is re-ordered inside newly loaded 15-row pages; no extra RPC, network calls, schema, RLS or impressions writes",
+    "Original clicked video, existing playlist rows and ad slot positions remain stable after append",
+    "Newest-only keyset cursor remains based on server order; Latest/Following Wall presentation and existing For You remain unchanged",
+    "No changes to AdMob fill, consent, cooldown, native IMA, player lifecycle, prefetch, swipe, gestures, reactions or signed URLs"
+  ],
+  "limitations": [
+    "Low engagement is only a proxy for underexposure; exact equal view counts are not guaranteed without authenticated privacy-safe view analytics",
+    "Fair opportunity is within the fetched 50-video window, not the entire historical archive"
+  ],
+  "requiredGates": [
+    "Node pure ranking and fullscreen source contract tests",
+    "Full TypeScript and protected ad/nav/media/spacing CI gates",
+    "Android Hermes native ad/playback and gesture smoke on exact staging APK/OTA",
+    "Explicit DEV to RC to production promotion after exact update/runtime evidence; no release by this change alone"
+  ]
+}
