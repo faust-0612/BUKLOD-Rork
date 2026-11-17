@@ -44,3 +44,9 @@ test('both latest Wall/Connect fixes appear in the final source and frozen stagi
   assert.ok(release.includes("number:913,head:'ef1e3d8187a1158694c1def3bb6d655d43ccc599'"));
   assert.ok(release.includes("number:914,head:'264a6632ba6cf68eb67780b569a6ec2053829b08'"));
 });
+
+test('release ancestry pins the actual PR #912 merge commit, not the final main head',()=>{
+  assert.ok(release.includes("number:912,head:'e5d6facd6fc58d2d1e8d97f1b757b41900f46851',merge:'66614852ea3163b6cb9eafdad2db3c02a8f7558a'"));
+  assert.ok(release.includes("number:913,head:'ef1e3d8187a1158694c1def3bb6d655d43ccc599',merge:'d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6'"));
+  assert.ok(release.includes('RELEASE_MAIN_SHA: d9b6a5ba57a7fbc8b3b05b3bc37c5385425546d6'));
+});
