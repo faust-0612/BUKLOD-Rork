@@ -13,6 +13,7 @@ import { noteNetInfoHint } from '@/lib/buklodNetworkQuality';
 import {
   drainOfflineQueue,
   getOfflineQueueSnapshot,
+  hasReplayableOfflineQueueItems,
   subscribeOfflineQueue,
 } from '@/lib/offlineSyncQueue';
 import { pruneOfflineCache } from '@/lib/offlineCache';
@@ -123,6 +124,11 @@ export function NetworkProvider({
     userId?: string | null;
   }) => {
     if (!online) return;
+
+    // Periodic/foreground wakeups with no eligible actions must be invisible.
+    // Check handler registration, retry deadlines and signed-in account first.
+    if (!(await hasReplayableOfflineQueueItems(options?.userId))) return;
+    if (!mountedRef.current) return;
 
     setSyncing(true);
     try {

@@ -4,37 +4,26 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useBuklodOfflineSync } from '@/providers/BuklodOfflineSyncProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
+/**
+ * A global banner is a connectivity warning, not a background work indicator.
+ * Normal queue replays remain silent; per-feature pending status stays available.
+ */
 export function OfflineBanner() {
-  const {
-    status,
-    pendingCount: queuePendingCount,
-  } = useNetwork();
-  const {
-    pendingCount: featurePendingCount,
-    syncing: featureSyncing,
-  } = useBuklodOfflineSync();
+  const { status, pendingCount: queuePendingCount } = useNetwork();
+  const { pendingCount: featurePendingCount } = useBuklodOfflineSync();
 
-  const pendingCount =
-    queuePendingCount + featurePendingCount;
-  const syncing =
-    status === 'syncing' || featureSyncing;
-
-  if (status === 'unknown' || (status === 'online' && pendingCount === 0)) {
+  if (status !== 'offline' && status !== 'degraded') {
     return null;
   }
 
-  const text =
-    status === 'offline'
-      ? pendingCount > 0
-        ? `Offline • ${pendingCount} pending • saved data remains available`
-        : 'Offline • saved data remains available'
-      : status === 'degraded'
-        ? pendingCount > 0
-          ? `Limited connection • ${pendingCount} pending • using saved data`
-          : 'Limited connection • using saved data'
-        : syncing
-          ? `Syncing • ${pendingCount} pending`
-          : `${pendingCount} pending • waiting to sync`;
+  const pendingCount = queuePendingCount + featurePendingCount;
+  const text = status === 'offline'
+    ? pendingCount > 0
+      ? `Offline • ${pendingCount} pending • saved data remains available`
+      : 'Offline • saved data remains available'
+    : pendingCount > 0
+      ? `Limited connection • ${pendingCount} pending • using saved data`
+      : 'Limited connection • using saved data';
 
   return (
     <View
@@ -43,7 +32,7 @@ export function OfflineBanner() {
       accessibilityLabel={text}
       style={[
         styles.banner,
-        status === 'offline' ? styles.offline : styles.syncing,
+        status === 'offline' ? styles.offline : styles.degraded,
       ]}
     >
       <Text numberOfLines={1} style={styles.text}>
@@ -66,7 +55,7 @@ const styles = StyleSheet.create({
   offline: {
     backgroundColor: '#6b4f1d',
   },
-  syncing: {
+  degraded: {
     backgroundColor: '#315b43',
   },
   text: {
