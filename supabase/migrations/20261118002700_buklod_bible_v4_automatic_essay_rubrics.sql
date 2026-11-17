@@ -1,13 +1,13 @@
 -- Bible Quiz V4: automatic, transparent, server-only essay assessment.
 -- Deployed only after 20261118002500 and 20261118002600.
 update private.buklod_bible_v4_questions
-set answer_spec=answer_spec - 'manual_review' || jsonb_build_object('auto_rubric', '{"version":1,"min_chars":80,"min_sentences":3,"max_sentences":5,"criteria":[{"id":"gentiles","label":"Pagtanggap sa mga Hentil","patterns":["hentil","gentil","non.?jew","hindi.{0,12}hudyo"]},{"id":"law","label":"Kundisyon, Kautusan, o hadlang sa pagtanggap","patterns":["kundis","kondis","tuli","kautusan","batas","kultur","tradisyon","pasanin","diskrimin"]},{"id":"grace","label":"Biyaya, pananampalataya, o makatarungang pagtanggap","patterns":["biyaya","pananampalataya","patas","makatarungan","pagkakaisa","pagmamahal","malasakit","pagkakapantay"]},{"id":"leadership","label":"Pananagutan o tamang kilos ng mga lider ngayon","patterns":["lider","pinuno","namumuno","responsib","pananagutan","makinig","gumagabay","gabay","pagpapasya"]}]}'::jsonb)
+set answer_spec=(answer_spec - 'manual_review') || jsonb_build_object('auto_rubric', '{"version":1,"min_chars":80,"min_sentences":3,"max_sentences":5,"criteria":[{"id":"gentiles","label":"Pagtanggap sa mga Hentil","patterns":["hentil","gentil","non.?jew","hindi.{0,12}hudyo"]},{"id":"law","label":"Kundisyon, Kautusan, o hadlang sa pagtanggap","patterns":["kundis","kondis","tuli","kautusan","batas","kultur","tradisyon","pasanin","diskrimin"]},{"id":"grace","label":"Biyaya, pananampalataya, o makatarungang pagtanggap","patterns":["biyaya","pananampalataya","patas","makatarungan","pagkakaisa","pagmamahal","malasakit","pagkakapantay"]},{"id":"leadership","label":"Pananagutan o tamang kilos ng mga lider ngayon","patterns":["lider","pinuno","namumuno","responsib","pananagutan","makinig","gumagabay","gabay","pagpapasya"]}]}'::jsonb)
 where id='v4_h_x01' and kind='essay' and reviewed;
 update private.buklod_bible_v4_questions
-set answer_spec=answer_spec - 'manual_review' || jsonb_build_object('auto_rubric', '{"version":1,"min_chars":80,"min_sentences":2,"max_sentences":0,"criteria":[{"id":"need","label":"Pangangailangan ng mga napapabayaan at paglilingkod","patterns":["balo","reklamo","pagkain","pangangailangan","panganga.ilangan","pamamahagi","rasyon","mapaglingkuran","paglingkod","napapabayaan","pabayaan","praktikal"]},{"id":"delegate","label":"Pagtatalaga at paghahati ng tungkulin","patterns":["tagapangasiwa","taga.?pangasiwa","nagtalaga","pagtatalaga","naglagay","hinati","hinahati","paghahati","tungkulin","deleg"]},{"id":"word","label":"Panalangin, pagtuturo, o Salita ng Diyos","patterns":["panalangin","nanalangin","pagtuturo","nagtuturo","salita","pangangaral","pagngangaral","ministeryo","apostol"]},{"id":"application","label":"Paglalapat sa isang grupo o organisasyon","patterns":["grupo","ministry","simbahan","samahan","organisasyon","halimbawa","miyembro","myembro","bawat isa","kanya.?kanya","lider"]}]}'::jsonb)
+set answer_spec=(answer_spec - 'manual_review') || jsonb_build_object('auto_rubric', '{"version":1,"min_chars":80,"min_sentences":2,"max_sentences":0,"criteria":[{"id":"need","label":"Pangangailangan ng mga napapabayaan at paglilingkod","patterns":["balo","reklamo","pagkain","pangangailangan","panganga.ilangan","pamamahagi","rasyon","mapaglingkuran","paglingkod","napapabayaan","pabayaan","praktikal"]},{"id":"delegate","label":"Pagtatalaga at paghahati ng tungkulin","patterns":["tagapangasiwa","taga.?pangasiwa","nagtalaga","pagtatalaga","naglagay","hinati","hinahati","paghahati","tungkulin","deleg"]},{"id":"word","label":"Panalangin, pagtuturo, o Salita ng Diyos","patterns":["panalangin","nanalangin","pagtuturo","nagtuturo","salita","pangangaral","pagngangaral","ministeryo","apostol"]},{"id":"application","label":"Paglalapat sa isang grupo o organisasyon","patterns":["grupo","ministry","simbahan","samahan","organisasyon","halimbawa","miyembro","myembro","bawat isa","kanya.?kanya","lider"]}]}'::jsonb)
 where id='v4_h_x02' and kind='essay' and reviewed;
 update private.buklod_bible_v4_questions
-set answer_spec=answer_spec - 'manual_review' || jsonb_build_object('auto_rubric', '{"version":1,"min_chars":80,"min_sentences":2,"max_sentences":0,"criteria":[{"id":"knowledge_love","label":"Kaalaman at pagmamahal o malasakit","patterns":["kaalaman","knowledge","tama ang sarili","sariling kaalaman","malasakit","pagmamahal","konsiderasyon","pag.?ibig","mararamdaman"]},{"id":"weak_conscience","label":"Mahinang budhi o kalagayan ng kapatid","patterns":["mahina","budhi","konsens","pananampalataya","kapatid","damdamin","conscience"]},{"id":"stumble","label":"Pag-iwas sa pagkatisod o pananakit sa iba","patterns":["tisod","madapa","kasalanan","magkasala","masaktan","ikapahamak","makapahamak","panganib","umiwas","iiwas","maitulak","pagkadapa","manghina"]},{"id":"application","label":"Kongkretong halimbawa ng maingat na kalayaan","patterns":["halimbawa","pagkain","kumakain","kain","pipili","piliin","kung","kalayaan","malaya","paggawa","gawin"]}]}'::jsonb)
+set answer_spec=(answer_spec - 'manual_review') || jsonb_build_object('auto_rubric', '{"version":1,"min_chars":80,"min_sentences":2,"max_sentences":0,"criteria":[{"id":"knowledge_love","label":"Kaalaman at pagmamahal o malasakit","patterns":["kaalaman","knowledge","tama ang sarili","sariling kaalaman","malasakit","pagmamahal","konsiderasyon","pag.?ibig","mararamdaman"]},{"id":"weak_conscience","label":"Mahinang budhi o kalagayan ng kapatid","patterns":["mahina","budhi","konsens","pananampalataya","kapatid","damdamin","conscience"]},{"id":"stumble","label":"Pag-iwas sa pagkatisod o pananakit sa iba","patterns":["tisod","madapa","kasalanan","magkasala","masaktan","ikapahamak","makapahamak","panganib","umiwas","iiwas","maitulak","pagkadapa","manghina"]},{"id":"application","label":"Kongkretong halimbawa ng maingat na kalayaan","patterns":["halimbawa","pagkain","kumakain","kain","pipili","piliin","kung","kalayaan","malaya","paggawa","gawin"]}]}'::jsonb)
 where id='v4_h_x03' and kind='essay' and reviewed;
 
 -- Rubrics are deterministic and question-specific. No essay or answer key is sent
@@ -17,7 +17,7 @@ returns jsonb language plpgsql stable security invoker set search_path='' as $gr
 declare
  rubric jsonb; criterion jsonb; pattern text;
  criteria_result jsonb:='[]'::jsonb;
- normalized_answer text:=pg_catalog.lower(pg_catalog.coalesce(p_answer,''));
+ normalized_answer text:=pg_catalog.lower(coalesce(p_answer,''));
  question_count int:=0; matched_count int:=0;
  sentence_count int; char_count int;
  needs_min int; needs_sentences int; max_sentences int;
@@ -30,7 +30,7 @@ begin
     jsonb_typeof(rubric->'criteria')<>'array' then
   raise exception 'Essay rubric is unavailable; no score or BP was changed';
  end if;
- char_count:=pg_catalog.char_length(pg_catalog.btrim(pg_catalog.coalesce(p_answer,'')));
+ char_count:=pg_catalog.char_length(pg_catalog.btrim(coalesce(p_answer,'')));
  if char_count<30 or char_count>2400 then
   raise exception 'Essay length must be 30–2400 characters';
  end if;
@@ -144,8 +144,8 @@ begin
       'min_chars',(q.answer_spec#>>'{auto_rubric,min_chars}')::int,
       'min_sentences',(q.answer_spec#>>'{auto_rubric,min_sentences}')::int,
       'max_sentences',(q.answer_spec#>>'{auto_rubric,max_sentences}')::int,
-      'criteria',(select coalesce(jsonb_agg(c->>'label'),'[]'::jsonb)
-        from jsonb_array_elements(coalesce(q.answer_spec#>'{auto_rubric,criteria}','[]'::jsonb)) c))
+      'criteria',(select coalesce(jsonb_agg(c.value->>'label'),'[]'::jsonb)
+        from jsonb_array_elements(coalesce(q.answer_spec#>'{auto_rubric,criteria}','[]'::jsonb)) c(value))
     else null end)
   order by array_position(a.question_keys,q.id)),'[]'::jsonb)
  into question_data
