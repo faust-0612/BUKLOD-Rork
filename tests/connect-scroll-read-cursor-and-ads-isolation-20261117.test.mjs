@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import test from 'node:test';
-import ts from 'typescript';
 
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const windowSource = read('src/lib/connectChatWindow.ts');
@@ -11,10 +10,11 @@ const thread = read('src/components/BuklodConnectThread.tsx');
 const start = windowSource.indexOf('export function shouldAdvanceConnectReadCursor(');
 const end = windowSource.indexOf('\nexport function roomCursorCoversMessage(', start);
 assert.ok(start >= 0 && end > start, 'actual shared read cursor helper exists');
-const js = ts.transpileModule(
-  windowSource.slice(start, end).replace(/^export /, ''),
-  { compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2022 } }
-).outputText;
+const js = windowSource.slice(start, end).replace(
+  /export function shouldAdvanceConnectReadCursor\(args: \{[\s\S]*?\}\) \{/,
+  'function shouldAdvanceConnectReadCursor(args) {'
+);
+assert.ok(js.startsWith('function shouldAdvanceConnectReadCursor(args) {'));
 const shouldAdvance = runInNewContext(js + '\nshouldAdvanceConnectReadCursor;');
 
 test('manual history viewing does not mark an unread room as read', () => {
