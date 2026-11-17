@@ -95,3 +95,21 @@ test('the consolidated Nov16 RC cannot omit finance, database or governance prot
   const flow=readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
   assert.ok(flow.includes('integration/nov16-current-wall-ads-zoom-rc-safe)'));
 });
+
+test('Nov17 Wall header navigation correction is isolated and has governance proof', () => {
+  const scope = JSON.parse(readFileSync(new URL('../.buklod/scopes/nov17-wall-header-actions-compact.json', import.meta.url), 'utf8'));
+  const touched = [
+    'src/app/(tabs)/buklod.tsx',
+    'scripts/compact-layout-gate.mjs',
+    '.github/workflows/engineering-accountability.yml',
+    'tests/wall-header-navigation-20261117.test.mjs',
+    'tests/protected-feature-lock.test.mjs',
+    '.buklod/scopes/nov17-wall-header-actions-compact.json',
+  ];
+  const entries = touched.map(path => ({ status: 'M', path }));
+  const evaluated = assessProtectedFeatureLock(entries, scope);
+  assert.deepEqual(evaluated.failures, []);
+  assert.deepEqual(evaluated.impacted, ['app-runtime', 'navigation-auth', 'governance-lock']);
+  assert.equal(scope.baseRef, 'main');
+  assert.equal(scope.publicationStatus, 'DEV_ONLY_NO_OTA');
+});

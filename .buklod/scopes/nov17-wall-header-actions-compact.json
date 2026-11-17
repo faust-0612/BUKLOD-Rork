@@ -1,0 +1,82 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov17-wall-header-actions-compact.json",
+  "objective": "Fix BUKLOD public Wall Android post header spacing by preserving a one-line author identity and aligning Following and Report beside the timestamp in the same right-hand column.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source 47eefd0c685f0c639227e9a887b1e1dda29b05e7 was read as the base on 2026-11-17; this is source-only and does not assert a live production OTA.",
+  "chosenApproach": "Leave avatar in first column, identity metadata in second full-width column; render timestamp as flexing one-line text with a non-shrinking Following/Report action row alongside. Keep callbacks unchanged and add focused compact-layout and scope-lock coverage.",
+  "selectionRationale": "Screenshot showed a right-aligned action row under full-width identity, creating a large empty band and separating author actions from the date.",
+  "riskAreas": [
+    "navigation-scroll",
+    "app-runtime",
+    "navigation-auth",
+    "governance-lock",
+    "wall-layout",
+    "accessibility"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "scripts/compact-layout-gate.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    "tests/wall-header-navigation-20261117.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    ".buklod/scopes/nov17-wall-header-actions-compact.json"
+  ],
+  "preserveBehaviors": [
+    "Follow and Report callbacks and access control are unchanged.",
+    "Full display name remains one line and avatar note still displays.",
+    "Photo, video, reactions, comments, AdMob inventory and feed data remain unchanged.",
+    "Existing production and staging OTA channels, package names and Expo runtime remain untouched."
+  ],
+  "acceptanceChecks": [
+    "Focused header-navigation tests check name, avatar, date, actions, media and ad markers.",
+    "Run compact-layout gate and TypeScript in CI, with no physical-device validation claimed.",
+    "Engineering accountability gate must pass with explicit manifest and no blanket bypass.",
+    "Only publish a staging RC under separate exact-head verified OTA gates; do not auto-release production."
+  ],
+  "regressionTests": [
+    "tests/wall-header-navigation-20261117.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Replace the unnecessary extra Wall post-header action band without modifying runtime, media or application startup behavior.",
+      "preservedBehaviors": [
+        "Application runtime, active sessions, media and first-view ads remain unchanged."
+      ],
+      "tests": [
+        "tests/wall-header-navigation-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Compact Wall author header placement on the tabbed public Wall without modifying navigation or identity data handling.",
+      "preservedBehaviors": [
+        "Author profile navigation and private account access rules remain intact."
+      ],
+      "tests": [
+        "tests/wall-header-navigation-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Register the exact Wall header workstream in the protected engineering accountability selector with an explicit scope manifest.",
+      "preservedBehaviors": [
+        "All protected lock checks remain mandatory, with no bypass and no broadening of allowed edits."
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Move action buttons above the username (rejected because long full names would truncate).",
+    "Keep a standalone full-width action row (rejected because screenshot demonstrates excessive vertical spacing).",
+    "Hide Report in an inaccessible overflow affordance (rejected; report entrypoint remains visible)."
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseTarget": "staging-user Android runtime 1.3.2, separate gated publication",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
