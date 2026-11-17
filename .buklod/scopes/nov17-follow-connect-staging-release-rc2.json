@@ -1,0 +1,54 @@
+{
+  "contractVersion": 2,
+  "objective": "Publish the exact reviewed BUKLOD main (Nov17 fullscreen, connectivity, ads, gallery, Character and Connect fixes plus PRs #913/#914 Follow-right-rail and Messenger-style compact Connect/Wall) to Android staging-user only after a frozen source/RC verification. Includes the merged #915 network banner regression correction, without changing runtime code.",
+  "baseRef": "0ee57887c991d23472cdf1f9b849bce945792910",
+  "productionBaselineEvidence": "verified: GitHub main source 0ee57887c991d23472cdf1f9b849bce945792910 inspected on 2026-11-17 after #915 merged; source-only and not a claim of live OTA or installed Android version.",
+  "chosenApproach": "Freeze combined source from main, publish a release-only three-file staging RC with reviewed PR proof heads, exact SHA-parity, signed native APK/runtime checks, source/layout/ad/connect regression and Android Hermes export, then EAS staging-user update with production-id unchanged proof. RC2 pins the test-only source correction and adds its exact CI and merge proof.",
+  "alternativeApproaches": [
+    "Reuse stale Nov17 frozen staging branch, rejected because it predates latest connectivity and fullscreen fixes",
+    "Merge every historical draft PR, rejected due to duplicate or conflicting older work and missing review gates"
+  ],
+  "selectionRationale": "The newest Follow and Messenger-style UI fixes were absent from the prior Nov17 staging source. A new pinned release-only candidate avoids rebasing an already triggered publisher or silently omitting the latest changes.",
+  "preserveBehaviors": [
+    "All canonical Nov16 compact density, Character graphics and collectibles, Connect scrolling, Wall gallery and recent comments",
+    "Verified AdMob prewarm, consent, in-stream ad clicks and recovery",
+    "Latest offline syncing, benign connectivity feedback and fullscreen video touch handling",
+    "EAS preview/staging-user channel only, runtime 1.3.2 and package org.mzbministry.buklod.staging; no database writes, native APK rebuild, production OTA or web promotion",
+    "PR #913 Follow beside name and Report beneath, owner Edit/Delete preserved; PR #914 Messenger-style compact Wall/Connect with dynamic Notes and live ads protected.",
+    "PR #915 changes only the stale network banner regression test, not the live network banner or offline-sync logic."
+  ],
+  "acceptanceChecks": [
+    "Current main unchanged at frozen SHA and release branch changes exactly three authorized release files",
+    "All merged PR source-head approvals and relevant exact-source CI checks pass",
+    "TypeScript, compact, Character, ad, Connect, Wall/video, offline/network and other source regressions pass",
+    "Signed staging APK identity, app runtime, native parity, public artwork SHA and Android Hermes bundle valid",
+    "Idempotent update published to Android staging-user with EAS update ID and manifest readback",
+    "Production manifest ID unchanged; actual device smoke verification not claimed",
+    "PR #913/#914 exact merged-source and CI proofs must pass; new density, Wall author/header, navigation and scroll regressions must pass on the consolidated exact-source Android export.",
+    "PR #915 source and required CI are verified and updated offline/degraded banner test passes."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/nov17-follow-connect-staging-release-rc2.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov17-follow-connect-staging-release-rc2.json",
+    ".github/workflows/buklod-nov17-follow-connect-staging-ota-rc2.yml",
+    "tests/nov17-follow-connect-staging-release-rc2.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Create exact-source one-time Android staging OTA workflow with strict EAS package/runtime and unchanged production fingerprint.",
+      "preservedBehaviors": [
+        "Production channel/Play Store/web/billing unchanged.",
+        "Android staging-user package and runtime verified, source-identical to reviewed main."
+      ],
+      "tests": [
+        "tests/nov17-follow-connect-staging-release-rc2.test.mjs"
+      ]
+    }
+  ]
+}
