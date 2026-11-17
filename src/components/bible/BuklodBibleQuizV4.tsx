@@ -10,7 +10,7 @@ import {playBuklodGameFeedback} from '@/features/games/runtime/BuklodGameFeedbac
 
 type Level='easy'|'medium'|'hard';
 type Question={id:string;kind:'mcq'|'identification'|'enumeration'|'essay';question:string;options?:Record<string,string>;reference?:string;rubric_guidance?:{min_chars:number;min_sentences:number;max_sentences:number;criteria:string[]}|null};
-type Review={id:string;kind:string;earned_units:number|null;reference:string;rationale:string;correct_answer?:any;question?:string;submitted_answer?:string|string[];rubric_feedback?:{message:string;requirements_met:boolean;criteria_matched:number;criteria_total:number;character_count:number;sentence_count:number;criteria:{id:string;label:string;met:boolean}[]}|null};
+type Review={id:string;kind:string;earned_units:number|null;reference:string;rationale:string;correct_answer?:any;question?:string;submitted_answer?:string|string[];rubric_feedback?:{message:string;requirements_met:boolean;criteria_matched:number;criteria_total:number;character_count:number;sentence_count:number;distinct_content_words?:number;substantive_sentences?:number;reasoning_present?:boolean;criteria:{id:string;label:string;met:boolean}[]}|null};
 type Quiz={attempt_id?:string;date:string;selection_required?:boolean;legacy_attempt?:boolean;difficulty?:Level;state?:string;score_units?:number|null;awarded_points?:number;questions?:Question[];review?:Review[];review_note?:string};
 const levels=[{id:'easy' as const,points:3,desc:'Stories and identification'},
 {id:'medium' as const,points:6,desc:'Understanding and enumeration'},
@@ -148,7 +148,7 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
      <Text style={s.muted}>Hindi bababa sa {q.rubric_guidance.min_chars} characters · {q.rubric_guidance.min_sentences}
       {q.rubric_guidance.max_sentences>0?'–'+q.rubric_guidance.max_sentences:'+'} pangungusap</Text>
      {q.rubric_guidance.criteria?.map((criterion,index)=><Text key={index} style={s.muted}>• {criterion}</Text>)}
-     <Text style={s.muted}>2/2 kung natugunan ang format at 3 o higit pang rubric criteria; 1/2 kung may sapat na bahagyang tugon.</Text>
+     <Text style={s.muted}>2/2 kung natugunan ang format, 3+ rubric criteria, at may orihinal na paliwanag (16+ magkakaibang content words at mahahabang, magkakaibang pangungusap). Hindi sapat ang paulit-ulit na keywords; kailangan ng dahilan o halimbawa. Maaaring 1/2 kung bahagyang natugunan ang requirements.</Text>
     </View>:null}
     <TextInput multiline maxLength={2400} style={[s.input,s.essay]}
      value={typeof answers[q.id]==='string'?answers[q.id] as string:''}
@@ -170,8 +170,9 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
     <Text style={s.reviewLabel}>Awtomatikong rubric assessment</Text>
     <Text style={s.dark}>{r.rubric_feedback.message}</Text>
     <Text style={s.muted}>{r.rubric_feedback.criteria_matched}/{r.rubric_feedback.criteria_total} criteria · {r.rubric_feedback.sentence_count} pangungusap · {r.rubric_feedback.character_count} characters</Text>
+    {typeof r.rubric_feedback.distinct_content_words==='number'?<Text style={s.muted}>Original content words: {r.rubric_feedback.distinct_content_words} · Mahahabang magkakaibang pangungusap: {r.rubric_feedback.substantive_sentences??0} · May paliwanag: {r.rubric_feedback.reasoning_present?'Oo':'Kulang'}</Text>:null}
     {r.rubric_feedback.criteria?.map(c=><Text key={c.id} style={s.muted}>{c.met?'✓':'○'} {c.label}</Text>)}
-    {!r.rubric_feedback.requirements_met?<Text style={s.muted}>Hindi ganap na natugunan ang format/length requirement.</Text>:null}
+    {!r.rubric_feedback.requirements_met?<Text style={s.muted}>Hindi pa natugunan ang lahat ng format, haba, orihinal na nilalaman, o paliwanag na requirements.</Text>:null}
    </View>:null}
    <View style={s.reviewSection}>
     <Text style={s.reviewLabel}>Paliwanag sa talata</Text>
