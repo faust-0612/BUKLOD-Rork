@@ -1,0 +1,61 @@
+{
+  "contractVersion": 2,
+  "objective": "Implement source-backed AdMob daily and month-to-date QMP 30% provisional sharing in authenticated user dashboards while preserving immutable last-month earnings, available/paid/reserved cash and release safety.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: read-only BUKLOD Connect live finance inspection 2026-11-18 Manila: policy user_pool_bps=3000, November 29 qualified contributors /3319 QMP, official noncash AdMob PHP 8.64 last observed Nov 9 local, no recorded sync invocation Nov 17, Finance V3 economics/settlement/withdrawals/payouts all false. GitHub main d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 inspected; GitHub main is not necessarily the current Android production OTA source. No production provider credentials, payment balances, or OTA changed.",
+  "chosenApproach": "Use official AdMob Network report DATE+APP with account default reporting timezone, atomic monotonic service-only preliminary month/day snapshots, and existing QMP-weighted member-only RPC. Add Today and withdrawal history to three existing user displays. Schedule opt-in hourly but do not activate without verified secrets.",
+  "selectionRationale": "Reuse the existing 30% monthly Finance/QMP authority without multiplying preliminary estimates into cash, and expose changes after official provider computation without individual-ad money attribution.",
+  "alternativeApproaches": [
+    "Convert QMP directly to PHP or ad-impression-based earning: rejected as unverified cash creation",
+    "Recalculate already finalized last-month shares on new QMP: rejected as historical corruption",
+    "Introduce an independent payout balance from preliminary reports: rejected as duplicate credit risk"
+  ],
+  "riskAreas": [
+    "official-admob-oauth-scheduler",
+    "finances-noncash-vs-finalized",
+    "member-own-account-privacy",
+    "month-timezone-boundary",
+    "admob-api-quotas",
+    "ads-nav-performance-regressions"
+  ],
+  "preserveBehaviors": [
+    "Native AdMob ads and fill, preload, dashboard transition and consent lifecycle remain unchanged",
+    "Immutable Finance V3 last-month settlement and cash-available/paid/reserved ledgers remain authoritative",
+    "No sponsor revenue participates in the 30% AdMob user pool",
+    "Current month QMP weight changes but Lifetime Points and monthly finalized history do not reset",
+    "No production OTA, new native module, or financial activation in the DEV PR"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/admob-qmp-daily-live-20261118.json",
+    ".github/workflows/buklod_admob_provisional_sync.yml",
+    "docs/buklod-admob-daily-qmp-preview-20261118.md",
+    "src/app/bayanihan/index.tsx",
+    "src/app/community-contribution.tsx",
+    "src/components/BuklodUnifiedEarningsHomeCard.tsx",
+    "src/lib/buklodCommunityContributionEconomy.ts",
+    "supabase/functions/buklod-admob-revenue-preview-sync/index.ts",
+    "supabase/functions/buklod-admob-revenue-preview-sync/report-totals.mjs",
+    "supabase/migrations/20261118004200_buklod_admob_daily_qmp_preview_v2.sql",
+    "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql",
+    "tests/admob-gateway-service-role.test.mjs",
+    "tests/buklod-admob-daily-qmp-20261118.test.mjs",
+    "tests/community-admob-preview-contract.test.cjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-admob-daily-qmp-20261118.test.mjs",
+    "tests/community-admob-preview-contract.test.cjs",
+    "tests/admob-gateway-service-role.test.mjs",
+    "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql"
+  ],
+  "acceptanceChecks": [
+    "Official report APP+DATE+PHP validation, footer and micros completeness confirmed with negative tests",
+    "Only service role writes source snapshots; authenticated readers see only their own QMP share",
+    "Latest month and provider day are matched in one atomic snapshot and stale reports fail closed",
+    "Today is included within This Month, never summed twice into Projected Overall",
+    "Last Month remains finalized only when Finance V3 actually settles; available, reserved and paid unchanged",
+    "30% pool is not withdrawable until reconciled and authorized financial close",
+    "Focused Node contracts plus SQL rolled-back compile/pass; full source and ad/nav regression CI before any release",
+    "Scheduler needs confirmed opt-in, endpoint, OAuth and runtime response before live status",
+    "No production OTA or database migration applied by this DEV candidate"
+  ]
+}
