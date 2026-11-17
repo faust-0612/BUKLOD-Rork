@@ -1509,9 +1509,12 @@ export default function BuklodMaritesBoard({
     setComposerOpen(false);
   }, []);
 
+  // A single story must not send overlapping toggle requests.
+  const pendingStoryReactions = useRef(new Set<string>());
+
   const reactToStory = useCallback(
     (storyId: string, reactionKey: string) => {
-      if (!user?.id) {
+      if (!user?.id || pendingStoryReactions.current.has(storyId)) {
         return;
       }
 
@@ -1527,6 +1530,7 @@ export default function BuklodMaritesBoard({
       const nextReaction =
         previous === reactionKey ? null : reactionKey;
 
+      pendingStoryReactions.current.add(storyId);
       rememberCommunityReaction(
         nextReaction ?? reactionKey
       );
@@ -1582,12 +1586,18 @@ export default function BuklodMaritesBoard({
       if (isCommunityMaritesStory(current)) {
         syncStories(applyReaction);
 
+        // The community RPC toggles by *selected key*. Passing null when
+        // removing an existing reaction makes the server reject the request.
         void setMaritesStoryReaction(
           storyId,
           user.id,
-          nextReaction
+          reactionKey
         ).catch((error) => {
-          syncStories(() => current);
+          syncStories(story => ({
+            ...story,
+            reaction_counts: current.reaction_counts,
+            my_reaction: previous,
+          }));
           Alert.alert(
             'Reaction',
             String(
@@ -1633,7 +1643,9 @@ export default function BuklodMaritesBoard({
             ) ?? open
           );
         });
-      });
+      }).catch((error) => {
+        Alert.alert('Reaction', String((error as Error)?.message ?? 'Could not save reaction.'));
+      }).finally(() => pendingStoryReactions.current.delete(storyId));
     },
     [stories, user?.id]
   );
