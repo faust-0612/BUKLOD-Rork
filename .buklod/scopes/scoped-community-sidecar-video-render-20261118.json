@@ -59,5 +59,10 @@
     "tests/scoped-community-video-sidecar-recovery.test.mjs",
     ".buklod/scopes/scoped-community-sidecar-video-render-20261118.json"
   ],
-  "releaseStatus": "DEV draft PR only; no staging or production OTA"
+  "releaseStatus": "DEV draft PR only; no staging or production OTA",
+  "alternativeApproaches": [
+    "Copy media_items URL into top-level post fields during hydration: rejected because it would conflate legacy and sidecar identity and could overwrite stale signed URLs.",
+    "Modify Supabase social feed RPC to sign every video eagerly: rejected due database/backend risk, slower initial paint and needless signing for offscreen feed rows.",
+    "Selected: resolve the existing authorized sidecar row in the scoped renderer, preserving legacy fallback, viewability and on-demand URL refresh."
+  ]
 }
