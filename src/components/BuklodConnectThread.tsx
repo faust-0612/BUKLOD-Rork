@@ -1894,41 +1894,28 @@ const [
       return;
     }
 
-    setTimeout(() => {
-      if (!pinLatestOnOpenRef.current) {
-        return;
-      }
-
+    // One post-layout anchor, not two timed jumps that look like an animation.
+    // onContentSizeChange also pins while first layout is still incomplete.
+    requestAnimationFrame(() => {
+      if (!pinLatestOnOpenRef.current) return;
       if (messagesLengthRef.current < 1) {
         pinLatestOnOpenRef.current = false;
         nearBottomRef.current = true;
         listAnchoredRef.current = true;
         setListAnchored(true);
-        if (markOnReveal) {
-          markVisibleRoomRead('open');
-        }
+        if (markOnReveal) markVisibleRoomRead('open');
         return;
       }
-
-      listRef.current?.scrollToEnd({
-        animated: false,
-      });
-
-      setTimeout(() => {
-        listRef.current?.scrollToEnd({
-          animated: false,
-        });
-        pinLatestOnOpenRef.current = false;
-        nearBottomRef.current = true;
-        listAnchoredRef.current = true;
-        setAwayFromLatest(false);
-        setNewWhileAway(0);
-        setListAnchored(true);
-        if (markOnReveal) {
-          markVisibleRoomRead('open');
-        }
-      }, 32);
-    }, 48);
+      if (contentHeightRef.current <= 0) return; // content callback owns the first anchor
+      listRef.current?.scrollToEnd({ animated: false });
+      pinLatestOnOpenRef.current = false;
+      nearBottomRef.current = true;
+      listAnchoredRef.current = true;
+      setAwayFromLatest(false);
+      setNewWhileAway(0);
+      setListAnchored(true);
+      if (markOnReveal) markVisibleRoomRead('open');
+    });
   };
 
   const applyHistoryPage = (
@@ -4355,9 +4342,12 @@ const [
             initialLoadSettledRef.current &&
             messagesLengthRef.current > 0
           ) {
-            listRef.current?.scrollToEnd({
-              animated: false,
-            });
+            listRef.current?.scrollToEnd({ animated: false });
+            pinLatestOnOpenRef.current = false;
+            nearBottomRef.current = true;
+            listAnchoredRef.current = true;
+            setListAnchored(true);
+            markVisibleRoomRead('open');
             return;
           }
 

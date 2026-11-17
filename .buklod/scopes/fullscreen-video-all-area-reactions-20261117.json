@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "objective": "Full-area vertical swipe on video and lower post details, plus bounded flying reaction animation in fullscreen Wall videos.",
+  "baseRef": "2f0f684e068b794a552c33cf53cde0138907d294",
+  "sourceBranch": "fix/fullscreen-video-swipe-flying-reactions-20261117",
+  "deployment": "DEV source only; release requires exact-head CI, ad/nav/media gate and same-runtime staging verification.",
+  "chosenApproach": "Gesture-handler Pan attached to existing tap layer and metadata; gestures page existing FlatList. Bounded UI-only native-driver emoji bursts on own reaction.",
+  "preserveBehaviors": [
+    "tap play/pause, reaction picker, comments, share, signed URL and Android player handoff",
+    "Google IMA and Reels ads, first-view banners, companion placement",
+    "Connect, navigation, auth, no native dependency or database changes"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "app-runtime",
+    "navigation-scroll",
+    "ads-finance-points"
+  ],
+  "regressionTests": [
+    "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/CommunityVideo.tsx",
+    "src/components/BuklodFlyingVideoReactions.tsx",
+    "src/lib/buklodFullscreenVideoSwipe.ts",
+    ".buklod/scopes/fullscreen-video-all-area-reactions-20261117.json",
+    "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Fullscreen JS gesture handling uses existing native gesture module and must preserve Android runtime and playback integration.",
+      "preservedBehaviors": [
+        "Unchanged Android native dependencies, signed video, application boot and media lifecycle"
+      ],
+      "tests": [
+        "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Change Wall video touch surfaces and local reaction rendering without changing playback or monetization behavior.",
+      "preservedBehaviors": [
+        "Existing fullscreen player handoff, poster, retry and bounded signed-media access"
+      ],
+      "tests": [
+        "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Fullscreen gestures page the Wall viewer's virtual list and must retain authenticated navigation and close/back actions.",
+      "preservedBehaviors": [
+        "Existing Wall route, modal back/close, session guard and standard reaction/comment/share taps"
+      ],
+      "tests": [
+        "tests/fullscreen-video-navigation-reactions-20261117.test.mjs"
+      ]
+    }
+  ],
+  "productionBaselineEvidence": "GitHub main source commit 0ee57887c991d23472cdf1f9b849bce945792910 and integrated Nov17 DEV video handoff source 2f0f684e068b794a552c33cf53cde0138907d294 were inspected. This does not verify installed Android production/staging OTA, exact runtime, network performance or ad fill; no live release authorized.",
+  "selectionRationale": "A child vertical Pan recognizer on the existing tap surface handles drags without making an extra screen-wide touch layer that would block close, reactions, IMA ads or navigation. A separate footer pan and pointer-event pass-through cover the metadata obstruction. No native dependency, backend load or new player.",
+  "acceptanceChecks": [
+    "Swipe up/down from the top, center, video play/pause area and over the lower post details to adjacent video with one page per deliberate swipe.",
+    "Short, diagonal, horizontal and normal tap gestures must not navigate; play/pause, reaction picker, comment, share and close remain responsive.",
+    "A genuine new reaction creates three transient flying emojis, maximum four bursts, with native-driver animation and no extra network calls.",
+    "Native in-stream IMA and Reels ads keep their original click targets, load events, first-view ad behavior and prefetch contract.",
+    "Run exact-head TypeScript, focused tests, AdMob/nav protected gate, native Android Hermes and staging runtime verification before OTA."
+  ],
+  "alternativeApproaches": [
+    "Wrap the entire modal with a transparent PanResponder (rejected: could intercept sponsored ad clicks, close and gesture buttons).",
+    "Disable the video tap layer completely (rejected: breaks play/pause and first-frame interaction).",
+    "Download or pre-decode videos to change the swipe behavior (rejected: unrelated, heavier on weak networks)."
+  ]
+}
