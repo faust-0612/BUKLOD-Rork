@@ -23,14 +23,16 @@
     "tests/buklod-bible-v4-historical-regrade-20261118.test.mjs",
     "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
     "src/components/bible/BuklodBibleQuizV4.tsx",
-    "src/app/admin/bible-v4-events.tsx"
+    "src/app/admin/bible-v4-events.tsx",
+    "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs"
   ],
   "regressionTests": [
     "supabase/tests/buklod_bible_v4_enumeration_equivalence_20261118.sql",
     "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql",
     "tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs",
     "tests/buklod-bible-v4-historical-regrade-20261118.test.mjs",
-    "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs"
+    "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
+    "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -50,7 +52,7 @@
         "Preserve frozen questions, protected attempts, per-day limits, score/rubric transparency and classroom Quiz dedicated project isolation."
       ],
       "tests": [
-        "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs"
+        "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs"
       ]
     },
     {
