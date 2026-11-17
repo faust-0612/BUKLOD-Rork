@@ -16,11 +16,13 @@
     ".github/workflows/engineering-accountability.yml",
     "tests/protected-feature-lock.test.mjs",
     "tests/wall-network-feedback-20261117.test.mjs",
-    ".buklod/scopes/nov17-connection-feedback.json"
+    ".buklod/scopes/nov17-connection-feedback.json",
+    "tests/wall-network-navigation-20261117.test.mjs"
   ],
   "regressionTests": [
     "tests/wall-network-feedback-20261117.test.mjs",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/protected-feature-lock.test.mjs",
+    "tests/wall-network-navigation-20261117.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -40,7 +42,7 @@
         "Existing account authorization, scoped visibility and navigation are unchanged."
       ],
       "tests": [
-        "tests/wall-network-feedback-20261117.test.mjs"
+        "tests/wall-network-navigation-20261117.test.mjs"
       ]
     },
     {
