@@ -350,7 +350,7 @@ export default function TabsLayout() {
       return (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.canvas, padding: 16, gap: 10 }}>
           {profileLoadState === 'loading' ? <ActivityIndicator color={theme.accent} /> : null}
-          <Text style={{ color: theme.text, textAlign: 'center', fontWeight: '700' }}>
+          <Text style={{ color: theme.textMuted, textAlign: 'center', fontWeight: '700' }}>
             {profileLoadState === 'loading'
               ? 'Opening your BUKLOD profile…'
               : 'Your account is signed in. A stable connection is needed to load your profile.'}
