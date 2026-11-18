@@ -48,7 +48,7 @@ export function enqueueS2Evidence(
      (x.userId===draft.userId&&x.sourceKind===draft.sourceKind&&
       x.sourceId===draft.sourceId));
   if(old){
-    if(old.operationId!==draft.operationId &&
+    if(old.operationId===draft.operationId &&
        (old.userId!==draft.userId||old.sourceKind!==draft.sourceKind||
         old.sourceId!==draft.sourceId))
       throw Error('OUTBOX_OPERATION_ID_COLLISION');
@@ -127,7 +127,9 @@ export function recoverS2InterruptedSends(
 ):readonly S2OutboxEntry[]{
   if(!validTime(nowMs))throw Error('INVALID_CLOCK');
   return prior.map(x=>x.status==='SENDING'
-   ?{...x,status:'RETRY_WAIT',nextRetryAtMs:nowMs,serverReason:'App interrupted; verify server'}
+   ?(x.attempts>=S2_OUTBOX_LIMITS.maxAttempts
+      ?{...x,status:'MANUAL_RECONCILE',nextRetryAtMs:0,serverReason:'Retry budget reached; reconcile server'}
+      :{...x,status:'RETRY_WAIT',nextRetryAtMs:nowMs,serverReason:'App interrupted; verify server'})
    :x);
 }
 export function getS2RewardDisplay(entry:S2OutboxEntry):
@@ -136,4 +138,13 @@ export function getS2RewardDisplay(entry:S2OutboxEntry):
   if(entry.status==='REJECTED')return 'NOT_ELIGIBLE';
   if(entry.status==='MANUAL_RECONCILE')return 'NEEDS_RECONCILIATION';
   return 'PENDING_VERIFICATION';
+}
+
+/** Purge confirmed queue rows ONLY when their server receipts have already
+ * been durably merged into the canonical server-sourced wallet/history view. */
+export function compactS2ConfirmedOutbox(
+  prior:readonly S2OutboxEntry[],durablyAcknowledgedServerReceiptIds:ReadonlySet<string>
+):readonly S2OutboxEntry[]{
+  return prior.filter(x=>!(x.status==='CONFIRMED'&&x.serverReceiptId!==null&&
+    durablyAcknowledgedServerReceiptIds.has(x.serverReceiptId)));
 }
