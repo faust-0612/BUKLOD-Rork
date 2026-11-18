@@ -3819,6 +3819,16 @@ const load=useCallback(async(options?:{
   });
  },[user?.id,loadComments]);
 
+ const previousCommentNetworkRef=useRef(wallNetworkStatus);
+ useEffect(()=>{
+  const previous=previousCommentNetworkRef.current;
+  previousCommentNetworkRef.current=wallNetworkStatus;
+  if(!commentOpen || !commentPost?.id || !online ||
+     (previous!=='offline' && previous!=='degraded'))return;
+  // Reconnect silently restores the actual thread without requiring a tap.
+  void loadComments(String(commentPost.id),{silent:true});
+ },[wallNetworkStatus,online,commentOpen,commentPost?.id,loadComments]);
+
  const openComments=
   async(post:any)=>{
    const postId=String(post.id);
@@ -6988,20 +6998,24 @@ const communityFeedRows =
      >
       {!!commentLoadError&&(
        <View style={{
-        padding:12,borderRadius:12,backgroundColor:'#FFF1E5',
-        flexDirection:'row',alignItems:'center',gap:10,
+        padding:10,borderRadius:10,
+        backgroundColor:(wallNetworkStatus==='offline'||wallNetworkStatus==='degraded')
+         ? '#EAF1E9' : '#FFF1E5',
+        flexDirection:'row',alignItems:'center',gap:8,
        }}>
-        <Text style={{flex:1,color:'#8E4A1E',fontSize:12}}>
+        <Text style={{flex:1,color:'#405448',fontSize:12}}>
          {commentLoadError}
         </Text>
-        <Pressable
-         accessibilityRole="button"
-         accessibilityLabel="Retry loading comments"
-         onPress={()=>commentPost?.id&&void loadComments(String(commentPost.id))}
-         style={{paddingHorizontal:12,paddingVertical:8,borderRadius:10,backgroundColor:'#FFFFFF'}}
-        >
-         <Text style={{fontWeight:'800',color:'#8E4A1E'}}>Retry</Text>
-        </Pressable>
+        {online&&(
+         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading comments"
+          onPress={()=>commentPost?.id&&void loadComments(String(commentPost.id))}
+          style={{paddingHorizontal:10,paddingVertical:7,borderRadius:9,backgroundColor:'#FFFFFF'}}
+         >
+          <Text style={{fontWeight:'800',color:'#215739'}}>Retry</Text>
+         </Pressable>
+        )}
        </View>
       )}
       {!!commentPost && pendingWallComments.filter(item=>
