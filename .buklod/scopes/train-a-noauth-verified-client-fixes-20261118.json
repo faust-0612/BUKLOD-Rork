@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/train-a-noauth-verified-client-fixes-20261118.json",
-  "objective": "Train A safe repair RC FROM CURRENT MAIN, forward-port only reviewed Nov17–18 Wall/video/Connect/Android instant-tab/Matthew Henry client fixes from consolidated #930; EXCLUDE weak-signal Login/AuthProvider/profile-hydration fix as owner requested. No backend schema, changes, Season2 rewards, prod OTA or native runtime changes.",
+  "objective": "Train A safe repair RC FROM CURRENT MAIN, forward-port only reviewed Nov17–18 Wall/video/Connect/Android instant-tab/Matthew Henry client fixes from consolidated #930; EXCLUDE weak-signal Login/AuthProvider/profile-hydration fix as owner requested. No backend schema, changes, Season2 rewards, prod OTA or native runtime changes. Add owner-authorized, staging-only, strict EAS publish workflow; production explicitly forbidden.",
   "baseRef": "d23cd882f7d34c4bca3a110dadd04ee4cb2240a9",
   "productionBaselineEvidence": "Canonical GitHub main source SHA d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 confirmed Nov 18, 2026; reviewed consolidated PR #930 head 8bb4a0cba749c4c33897eb5fad892e2784c633d0. Main App (auth)/login.tsx and AuthProvider.tsx retained exact baseline blobs; only Android persistent tab switch selectively added to baseline (tabs)/_layout.tsx. Actual installed production OTA/update group/runtime, source fingerprint, AdMob fill and installed Android evidence NOT VERIFIED; no claim of stage/prod publish.",
   "chosenApproach": "New standalone Train A RC fork from unchanged main; overlay exact nonauth product blobs from #930 and focused regressions, preserving baseline login/Auth provider code and restoring original no-profile routing. Selectively reconstruct only Android tab import+conditional without bringing #930's profileLoadState UI. Do not overlay #930 workflow or its weak-signal PR manifest.",
@@ -20,7 +20,8 @@
     "faith-cluster",
     "admob-navigation",
     "staging-runtime",
-    "production-no-publish"
+    "production-no-publish",
+    "release-identity"
   ],
   "allowedPaths": [
     ".buklod/scopes/train-a-noauth-verified-client-fixes-20261118.json",
@@ -45,7 +46,9 @@
     "tests/scoped-community-video-sidecar-recovery.test.mjs",
     "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
     "tests/video-handoff-connect-stability-20261117.test.mjs",
-    "tests/train-a-noauth-navigation-ads-20261118.test.mjs"
+    "tests/train-a-noauth-navigation-ads-20261118.test.mjs",
+    ".github/workflows/buklod-train-a-staging-ota-20261118.yml",
+    "tests/train-a-staging-release-contract-20261118.test.mjs"
   ],
   "preserveBehaviors": [
     "Original main AuthProvider.tsx and (auth)/login.tsx are unchanged. No new backend auth, no changes to lifecycle/consent or RLS; old weak-network onboarding limitation remains disclosed.",
@@ -54,7 +57,8 @@
     "Wall posts/reels order, private scoped Community sidecar media RLS, Connect cursor/PTT/calls and post author rights remain intact.",
     "Matthew Henry English fallback remains; native ML Kit requires compatible binary, never implicitly delivered via OTA.",
     "Existing QMP 30% pool, BP, Character, Kingdom, Account Delete, referrals, Season1 history and financial/payout controls unchanged.",
-    "No additional phone permissions, native package, backend migrations, stage/prod update or secrets."
+    "No additional phone permissions, native package, backend migrations, stage/prod update or secrets.",
+    "Never publish production OTA from this workflow; isolated staging only, with idempotent group and verified server-served manifest."
   ],
   "acceptanceChecks": [
     "All 12 product blobs come from exact #930 audited release source except (tabs)/_layout which retains main auth routing with only Android tabs source added.",
@@ -62,7 +66,8 @@
     "Video first-frame/signed URL/player handoff, fair discoverability, public/scoped media, Connect scroll, dashboard focus, AdMob routes tested.",
     "TypeScript, targeted focused Node, Expo web compatibility/export, Android/native 1.3.2 compatible checks complete on same candidate SHA.",
     "Stage only after exact EAS staging identity, backend environment, update group/runtime and downloaded served manifest validated.",
-    "Production OTA strictly separate release with Android device ad fill, nav latency, offscreen video and registration/auth smoke; physical device skip recorded, never counted as passed."
+    "Production OTA strictly separate release with Android device ad fill, nav latency, offscreen video and registration/auth smoke; physical device skip recorded, never counted as passed.",
+    "Only publish staging after exact reviewed CI success, no auth/source change, EAS signed build/channel/runtime preflight, and unchanged production post-manifest."
   ],
   "regressionTests": [
     "tests/bible-henry-translation-recovery-20261117.test.cjs",
@@ -74,7 +79,8 @@
     "tests/scoped-community-video-sidecar-recovery.test.mjs",
     "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
     "tests/video-handoff-connect-stability-20261117.test.mjs",
-    "tests/train-a-noauth-navigation-ads-20261118.test.mjs"
+    "tests/train-a-noauth-navigation-ads-20261118.test.mjs",
+    "tests/train-a-staging-release-contract-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -140,6 +146,16 @@
       "tests": [
         "tests/train-a-noauth-navigation-ads-20261118.test.mjs",
         "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Staging-only EAS OTA with signed preflight, verified source and production isolation; owner explicitly requested Train A release.",
+      "preservedBehaviors": [
+        "No production OTA, unverified native dependencies, or new login/auth patch; ad and dashboard gates remain mandatory."
+      ],
+      "tests": [
+        "tests/train-a-staging-release-contract-20261118.test.mjs"
       ]
     }
   ],
