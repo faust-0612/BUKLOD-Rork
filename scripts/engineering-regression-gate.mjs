@@ -103,10 +103,19 @@ function runCli() {
   const changedScope = paths.filter(p => /^\.buklod\/scopes\/[^/]+\.json$/.test(p));
   // Production main remains protected. This opt-in is only for the named
   // cumulative RC pull request; all ordinary PRs keep one-scope isolation.
-  const cumulativeRc =
-    process.env.BUKLOD_CONSOLIDATED_RC_GATE === 'true' &&
+  const productionCumulativeRc =
     base === 'main' &&
     ['integration/buklod-nov10-single-source-ota', 'integration/buklod-nov11-postprod-conso-ota', 'integration/buklod-nov11-complete-source-hold-20261111', 'integration/buklod-nov11-reconciled-ota-candidate', 'integration/buklod-nov11-igpat-marites-wonder-qmp-kingdommap-rc', 'release/buklod-prod-rc-staging-20261114', 'integration/nov16-current-wall-ads-zoom-rc-safe'].includes(process.env.GITHUB_HEAD_REF);
+  // One isolated staging-only cumulative candidate; no production/main override.
+  // Requires exact head/base and the reviewed cumulative scope, as well as
+  // the regular closed-by-default RC switch. Never broad-match staging branches.
+  const season2StagingCumulative =
+    base === 'staging/season2-verified-production-base-20261118' &&
+    process.env.GITHUB_HEAD_REF === 'staging/season2-rise-together-20261118' &&
+    process.env.BUKLOD_SCOPE_MANIFEST === '.buklod/scopes/season2-consolidated-staging-20261119.json';
+  const cumulativeRc =
+    process.env.BUKLOD_CONSOLIDATED_RC_GATE === 'true' &&
+    (productionCumulativeRc || season2StagingCumulative);
   const manifestPath = process.env.BUKLOD_SCOPE_MANIFEST;
   if (changedScope.length === 1 || (cumulativeRc && changedScope.includes(manifestPath))) {
     const selected = changedScope.length === 1 ? changedScope[0] : manifestPath;

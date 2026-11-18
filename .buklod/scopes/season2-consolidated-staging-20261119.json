@@ -50,6 +50,7 @@
     "docs/BUKLOD_SEASON2_RISE_TOGETHER_MASTER_20261118.md",
     "docs/BUKLOD_SEASON_V2_PREPARATION_EXPERIENCE_20261118.md",
     "scripts/buklod-season2-staging-release-order.cjs",
+    "scripts/engineering-regression-gate.mjs",
     "src/app/(tabs)/buklod.tsx",
     "src/app/(tabs)/me.tsx",
     "src/app/admin/bible-v4-events.tsx",
@@ -79,6 +80,7 @@
     "tests/buklod-season2-circle-rank-artwork-20261119.test.mjs",
     "tests/buklod-season2-staging-release-contract-20261118.test.mjs",
     "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
     "tests/post-detail-reaction-count-20261118.test.mjs",
     "tests/protected-feature-lock.test.mjs",
     "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs",
@@ -128,13 +130,14 @@
     "tests/buklod-season-v2-experience-20261118.test.mjs",
     "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs",
     "tests/buklod-season2-campaign-r1-20261118.test.mjs",
-    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
-    "tests/post-detail-reaction-count-20261118.test.mjs",
-    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
-    "tests/buklod-season2-staging-release-contract-20261118.test.mjs",
     "tests/buklod-season2-circle-rank-artwork-20261119.test.mjs",
+    "tests/buklod-season2-staging-release-contract-20261118.test.mjs",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
     "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -189,7 +192,7 @@
     },
     {
       "id": "governance-lock",
-      "reason": "Use consolidated V2 scope and exact release branch mapping; maintain all preexisting fail-closed protected-feature checks.",
+      "reason": "Use consolidated V2 scope and exact release branch mapping; maintain all preexisting fail-closed protected-feature checks. Strict staging composite recognition is permitted only for one exact head/base/scope tuple; all other branches retain one-scope fail-closed behavior.",
       "preservedBehaviors": [
         "All prior protected feature definitions, source gating, and fail-closed checks remain effective."
       ],

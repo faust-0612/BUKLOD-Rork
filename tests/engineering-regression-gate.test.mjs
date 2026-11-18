@@ -229,3 +229,20 @@ test('Nov16 cumulative source reconciles exactly declared component manifests an
  assert.match(assessChanges([...files,'.buklod/scopes/undeclared.json'],manifest,{consolidatedRc:true}).failures.join(' '),/enumerate every changed component scope/);
  assert.ok(fs.readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8').includes("'integration/nov16-current-wall-ads-zoom-rc-safe'"));
 });
+
+test('Season 2 cumulative scope is guarded by the exact staging branch/base and cannot become a production bypass', () => {
+  const script=fs.readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8');
+  const source=fs.readFileSync(new URL('../.buklod/scopes/season2-consolidated-staging-20261119.json',import.meta.url),'utf8');
+  const manifest=JSON.parse(source);
+  assert.equal(manifest.releaseMode,'consolidated-main-rc');
+  assert.equal(manifest.componentScopePaths.length,2);
+  assert.equal(manifest.productionChange,false);
+  assert.equal(manifest.releaseAuthorized,false);
+  assert.ok(script.includes("base === 'staging/season2-verified-production-base-20261118'"));
+  assert.ok(script.includes("process.env.GITHUB_HEAD_REF === 'staging/season2-rise-together-20261118'"));
+  assert.ok(script.includes("process.env.BUKLOD_SCOPE_MANIFEST === '.buklod/scopes/season2-consolidated-staging-20261119.json'"));
+  assert.ok(script.includes("process.env.BUKLOD_CONSOLIDATED_RC_GATE === 'true'"));
+  assert.ok(script.includes('productionCumulativeRc || season2StagingCumulative'));
+  assert.deepEqual(assessChanges(manifest.allowedPaths,manifest,{consolidatedRc:true}).failures,[]);
+  assert.match(assessChanges(manifest.allowedPaths,manifest,{consolidatedRc:false}).failures.join(' '),/Only one new scope manifest/);
+});
