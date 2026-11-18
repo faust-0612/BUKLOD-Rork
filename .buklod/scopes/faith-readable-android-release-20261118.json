@@ -1,0 +1,32 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/faith-readable-android-release-20261118.json",
+  "objective": "Create an isolated authorized Android production OTA release request for the previously tested PR #949 Faith/Word contrast correction; no gameplay, finance, ad code or backend changes.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: current main source d074a9d853719eb0468cfbe7df4c18bd0a7a3e61 includes reviewed and merged PR #949 from verified Train A runtime. New OTA publication is NOT yet confirmed; this doc is a gated release request.",
+  "chosenApproach": "Add a reviewable machine-readable non-Season2 release request and a static preflight regression test. Use only existing production Android OTA workflow with frozen RC, AdMob and served-manifest checks.",
+  "selectionRationale": "Production OTA does not run for ordinary code merges; only owner-reviewed release-marker merge commits trigger the production workflow. This request preserves existing source while explicitly recording physical-device waiver.",
+  "allowedPaths": [
+    ".buklod/releases/faith-readable-android-production-20261118.json",
+    "tests/faith-readable-android-production-20261118.test.mjs",
+    ".buklod/scopes/faith-readable-android-release-20261118.json"
+  ],
+  "preserveBehaviors": [
+    "AdMob, near-instant navigation, signup, login, points, QMP, server RLS and all Season 1 production logic remain unchanged.",
+    "Season 2 production embargo stays active until December 6 or later with separate authorization.",
+    "No proof of live production is implied by release marker alone."
+  ],
+  "acceptanceChecks": [
+    "PR CI and focused static check pass for exact release marker.",
+    "Merge title must use existing explicit owner production release prefix, not automatic main push.",
+    "Production workflow must complete exact native/runtime/AdMob regression and server manifest verification.",
+    "Any missing Expo authorization, changed live manifest or gate failure must stop release without false success."
+  ],
+  "regressionTests": [
+    "tests/faith-readable-android-production-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "releaseMode": "owner-requested-production-android-ota-gated",
+  "physicalDeviceVerification": "OWNER_WAIVED_NOT_PERFORMED",
+  "publicationStatus": "NOT_PUBLISHED_PENDING_PRODUCTION_WORKFLOW"
+}
