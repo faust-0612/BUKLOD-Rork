@@ -16,7 +16,8 @@
     "member-own-account-privacy",
     "month-timezone-boundary",
     "admob-api-quotas",
-    "ads-nav-performance-regressions"
+    "ads-nav-performance-regressions",
+    "encrypted-vault-database-cron-custom-auth-proxy"
   ],
   "preserveBehaviors": [
     "Native AdMob ads and fill, preload, dashboard transition and consent lifecycle remain unchanged",
@@ -40,13 +41,19 @@
     "tests/admob-gateway-service-role.test.mjs",
     "tests/buklod-admob-daily-qmp-20261118.test.mjs",
     "tests/community-admob-preview-contract.test.cjs",
-    ".github/workflows/r38_economy_pr_qa.yml"
+    ".github/workflows/r38_economy_pr_qa.yml",
+    "supabase/migrations/20261118094700_buklod_admob_internal_cron_bridge_20261118.sql",
+    "supabase/functions/buklod-admob-cron-bridge-v1/index.ts",
+    "supabase/tests/buklod_admob_internal_cron_bridge_contract_20261118.sql",
+    "tests/buklod-admob-cron-bridge-20261118.test.mjs"
   ],
   "regressionTests": [
     "tests/buklod-admob-daily-qmp-20261118.test.mjs",
     "tests/community-admob-preview-contract.test.cjs",
     "tests/admob-gateway-service-role.test.mjs",
-    "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql"
+    "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql",
+    "tests/buklod-admob-cron-bridge-20261118.test.mjs",
+    "supabase/tests/buklod_admob_internal_cron_bridge_contract_20261118.sql"
   ],
   "acceptanceChecks": [
     "Official report APP+DATE+PHP validation, footer and micros completeness confirmed with negative tests",
@@ -59,7 +66,10 @@
     "Scheduler needs confirmed opt-in, endpoint, OAuth and runtime response before live status",
     "No production OTA or database migration applied by this DEV candidate",
     "R38 Economy CI must execute focused daily AdMob/QMP noncash, auth and monthly carryforward contracts plus Android staging JavaScript export without publishing an OTA.",
-    "GitHub SQL migration filename must equal the exact Supabase production migration-history version 20261117180753; never apply the same DDL twice."
+    "GitHub SQL migration filename must equal the exact Supabase production migration-history version 20261117180753; never apply the same DDL twice.",
+    "Internal Vault-generated scheduler bearer never leaves trusted DB-to-edge channel, and verifies before service JWT forwarding.",
+    "Provider importer remains JWT-gated; the dedicated 256-bit cron bridge has strict auth and cannot settle cash.",
+    "Only the internal Postgres scheduler is automatic; GitHub is manual-only recovery to prevent duplicate provider polling."
   ],
   "lockedFeatureChanges": [
     {
@@ -70,7 +80,8 @@
         "App remains responsive on tab transitions and refreshes only while active, without altering ad impression rendering."
       ],
       "tests": [
-        "tests/buklod-admob-daily-qmp-20261118.test.mjs"
+        "tests/buklod-admob-daily-qmp-20261118.test.mjs",
+        "tests/buklod-admob-cron-bridge-20261118.test.mjs"
       ]
     },
     {
@@ -92,11 +103,12 @@
         "Protected canonical finance cash ledger, reconciliation rules, member isolation, and payout finalization remain unchanged."
       ],
       "tests": [
-        "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql"
+        "supabase/tests/buklod_admob_daily_qmp_preview_20261118.sql",
+        "supabase/tests/buklod_admob_internal_cron_bridge_contract_20261118.sql"
       ]
     }
   ],
-  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "publicationStatus": "DEV_BACKEND_SCHEDULER_PROPOSAL_NO_OTA",
   "backendDeployment": {
     "project": "yhanxndaqbmuzbdqlblu",
     "migrationVersion": "20261117180753",

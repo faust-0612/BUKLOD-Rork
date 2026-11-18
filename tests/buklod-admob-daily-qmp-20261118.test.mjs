@@ -58,6 +58,6 @@ test('Today, month, last month, available and withdrawn are separate user balanc
   assert.match(home,/PROJECTED TOTAL · NOT WITHDRAWABLE/);
   assert.match(detail,/Already withdrawn/);
   assert.match(detail,/No current daily report/);
-  assert.match(schedule,/cron: '17 \* \* \* \*'/);
+  assert.doesNotMatch(schedule,/^\s*schedule:\s*$/m);
   assert.match(schedule,/BUKLOD_ADMOB_SYNC_ENABLED == 'true'/);
 });
