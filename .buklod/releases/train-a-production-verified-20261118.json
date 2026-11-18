@@ -1,0 +1,31 @@
+{
+  "contractVersion": 1,
+  "status": "VERIFIED_PRODUCTION_SERVER_SIDE",
+  "releaseName": "Train A current non-Season2 fixes",
+  "sourceSha": "404c87e55c62a88c95c7389ac8665f237149702a",
+  "updateId": "01a1ee79-b1f1-7295-9d48-0238ffe0202a",
+  "groupId": "5a9265e1-64d1-4a71-905c-cdc60b8191ea",
+  "runtimeVersion": "1.3.2",
+  "channel": "production",
+  "package": "org.mzbministry.buklod",
+  "projectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+  "releaseRunUrl": "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/44296995482",
+  "artifacts": [
+    {
+      "name": "android-publication-404c87e55c62a88c95c7389ac8665f237149702a",
+      "id": 14424970633
+    },
+    {
+      "name": "android-rc-404c87e55c62a88c95c7389ac8665f237149702a",
+      "id": 14425130226
+    }
+  ],
+  "publishedAt": "2026-11-18T11:45:15.249Z",
+  "serverManifestVerifiedAt": "2026-11-18T11:45:16.353Z",
+  "servedLaunchAssetHash": "a1GAHWNOFebVZwjWvRA74eb5cZ0y2KztRek2gXdnjP4",
+  "frozenAndroidBundleSha256": "6b51801d634e15e6d56708d6bd103be1e6f9719d32d8aced45e9368177678cfe",
+  "season2Included": false,
+  "manualDeviceVerificationWaivedByOwner": true,
+  "physicalAdMobFillVerified": false,
+  "physicalInstantNavigationVerified": false
+}
