@@ -118,6 +118,21 @@ create table if not exists buklod_s2.badge_grant (
     or (revoked_at is not null and length(trim(revoked_case_id))>=8)
   )
 );
+-- A receipt may satisfy only ONE weekly foundation claim; separate weekly
+-- bonus cannot be farmed from replaying a KL chapter or social reply.
+create table if not exists buklod_s2.weekly_claim (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  week_start date not null,
+  learning_receipt_id bigint not null references buklod_s2.source_receipt(id),
+  community_receipt_id bigint not null references buklod_s2.source_receipt(id),
+  claimed_at timestamptz not null default now(),
+  badge_key text not null default 's2_weekly_foundation',
+  primary key(user_id,week_start),
+  unique(user_id,learning_receipt_id),
+  unique(user_id,community_receipt_id),
+  constraint separate_s2_foundation_receipts check(
+     learning_receipt_id<>community_receipt_id)
+);
 create table if not exists buklod_s2.flex_allocation (
   user_id uuid not null references auth.users(id) on delete cascade,
   week_start date not null,
@@ -154,6 +169,7 @@ alter table buklod_s2.purchases enable row level security;
 alter table buklod_s2.inventory enable row level security;
 alter table buklod_s2.badge_grant enable row level security;
 alter table buklod_s2.flex_allocation enable row level security;
+alter table buklod_s2.weekly_claim enable row level security;
 alter table buklod_s2.opt_in enable row level security;
 alter table buklod_s2.momentum_ledger enable row level security;
 revoke all on all tables in schema buklod_s2 from public,anon,authenticated;
@@ -293,7 +309,8 @@ begin
    raise exception 'SOURCE_OUTSIDE_SEASON2' using errcode='22023';
  end if;
  v_day:=(v_at at time zone 'Asia/Manila')::date;
- v_week:=date_trunc('week',v_at at time zone 'Asia/Manila')::date;
+ v_week:=(c.starts_at at time zone 'Asia/Manila')::date
+   + (floor((v_day-(c.starts_at at time zone 'Asia/Manila')::date)::numeric/7)::int*7);
  v_rate:=case p_kind when 'kl_verified_chapter' then 3
      when 'wall_meaningful_comment' then 1 else 2 end;
  v_cap:=case p_kind when 'wall_meaningful_comment' then 2 else 1 end;
@@ -339,24 +356,13 @@ begin
        balance_after,receipt_id)
    values(p_user,'source:'||c.rule_version||':'||v_id,'earn',v_amount,v_wallet,v_id);
  end if;
- -- A completed learning+community foundation grants a nonspendable badge
- -- ONCE, with server-confirmed evidence only. No BP/QMP, no cash.
- select
-   bool_or(r.source_kind='kl_verified_chapter'),
-   bool_or(r.source_kind in ('today_dugtong','wall_original_post',
-                             'wall_meaningful_comment'))
- into v_learn,v_community from buklod_s2.source_receipt r
- where r.user_id=p_user and r.week_start=v_week and r.token_amount>0;
- if coalesce(v_learn,false) and coalesce(v_community,false) then
-   insert into buklod_s2.badge_grant(user_id,badge_key,week_start)
-   values(p_user,'s2_weekly_foundation',v_week)
-   on conflict(user_id,badge_key,week_start) do nothing;
- end if;
+ -- P0 weekly foundation is claimed through a separate, evidence-bound
+ -- step so a source cannot be counted in two weeks across grace/flex days.
+ -- Minted tokens are separate from any Season 2 mission bonus.
  return jsonb_build_object('status',case when v_amount>0 then 'EARNED'
                          else 'DAILY_CAP' end,'minted',v_amount,
                          'balance',v_wallet,'week_start',v_week,
-                         'receipt_id',v_id,'foundation_badge_eligible',
-                         coalesce(v_learn,false) and coalesce(v_community,false));
+                         'receipt_id',v_id,'foundation_badge_eligible',false);
 end;
 $fn$;
 revoke all on function buklod_s2.credit_main_source(uuid,text,uuid)
@@ -413,6 +419,81 @@ revoke all on function buklod_s2.buy_cosmetic(uuid,text,uuid)
 grant execute on function buklod_s2.buy_cosmetic(uuid,text,uuid)
  to service_role;
 
+
+-- Weekly P0 badge is never granted by a self-reported timer or client boolean.
+-- The service may claim only a real reading/mastery + separate community source.
+-- Grace = 3 days; flex = 0/7/14 opt-in days. Source receipts are globally
+-- single-use across weekly claims. No BP, QMP, cash, Shards or permanent debits.
+create or replace function buklod_s2.claim_weekly_foundation(
+  p_user uuid,p_week date
+) returns jsonb language plpgsql security invoker set search_path=''
+as $fn$
+declare c buklod_s2.control;v_flex int;v_end date;
+  v_learning bigint;v_community bigint;v_claimed date;
+begin
+ c:=buklod_s2.assert_active();
+ if p_user is null or p_week is null
+  or p_week<(c.starts_at at time zone 'Asia/Manila')::date
+  or mod(p_week-(c.starts_at at time zone 'Asia/Manila')::date,7)<>0
+  or p_week>(c.ends_at at time zone 'Asia/Manila')::date
+ then raise exception 'INVALID_SEASON2_WEEK' using errcode='22023';end if;
+ insert into buklod_s2.wallet(user_id) values(p_user)
+ on conflict(user_id) do nothing;
+ perform 1 from buklod_s2.wallet where user_id=p_user for update;
+ if exists(select 1 from buklod_s2.weekly_claim
+           where user_id=p_user and week_start=p_week) then
+   return jsonb_build_object('status','ALREADY_CLAIMED','week_start',p_week);
+ end if;
+ select coalesce(sum(credit_count),0)::int into v_flex
+   from buklod_s2.flex_allocation
+   where user_id=p_user and week_start=p_week and
+         opted_at<(p_week+7)::timestamp at time zone 'Asia/Manila';
+ v_end:=p_week+6+3+least(v_flex,2)*7;
+ v_claimed:=(now() at time zone 'Asia/Manila')::date;
+ if v_claimed>v_end then
+   return jsonb_build_object('status','EXPIRED_UNEARNED_BONUS',
+       'week_start',p_week,'deadline',v_end);
+ end if;
+ -- Both receipts must be inside assigned week + valid late catch-up.
+ -- Later attempts are checked against actual server source timestamp.
+ select r.id into v_learning from buklod_s2.source_receipt r
+ where r.user_id=p_user and r.source_kind='kl_verified_chapter'
+   and r.source_at >= (p_week::timestamp at time zone 'Asia/Manila')
+   and r.source_at < ((v_end+1)::timestamp at time zone 'Asia/Manila')
+   and r.token_amount>0 and r.rule_version=c.rule_version
+   and not exists(select 1 from buklod_s2.weekly_claim prior
+     where prior.user_id=p_user and prior.learning_receipt_id=r.id)
+ order by r.source_at limit 1;
+ select r.id into v_community from buklod_s2.source_receipt r
+ where r.user_id=p_user and r.source_kind in
+   ('today_dugtong','wall_original_post','wall_meaningful_comment')
+   and r.source_at >= (p_week::timestamp at time zone 'Asia/Manila')
+   and r.source_at < ((v_end+1)::timestamp at time zone 'Asia/Manila')
+   and r.token_amount>0 and r.rule_version=c.rule_version
+   and not exists(select 1 from buklod_s2.weekly_claim prior
+      where prior.user_id=p_user and prior.community_receipt_id=r.id)
+ order by r.source_at limit 1;
+ if v_learning is null or v_community is null then
+   return jsonb_build_object('status','PENDING_FOUNDATION','week_start',p_week,
+       'needs_learning',v_learning is null,
+       'needs_community',v_community is null,'deadline',v_end);
+ end if;
+ insert into buklod_s2.weekly_claim(
+   user_id,week_start,learning_receipt_id,community_receipt_id)
+ values(p_user,p_week,v_learning,v_community);
+ insert into buklod_s2.badge_grant(user_id,badge_key,week_start)
+ values(p_user,'s2_weekly_foundation',p_week)
+ on conflict(user_id,badge_key,week_start) do nothing;
+ return jsonb_build_object('status','CLAIMED','week_start',p_week,
+   'badge','s2_weekly_foundation','deadline',v_end,
+   'spent_tokens',0,'bp_changed',false,'qmp_changed',false);
+end;
+$fn$;
+revoke all on function buklod_s2.claim_weekly_foundation(uuid,date)
+ from public,anon,authenticated;
+grant execute on function buklod_s2.claim_weekly_foundation(uuid,date)
+ to service_role;
+
 -- Flex enrollment must happen before the normal deadline. Each credit is
 -- seven days and only TWO credits per Season2, split or combined.
 create or replace function buklod_s2.allocate_flex(
@@ -423,7 +504,8 @@ declare c buklod_s2.control;v_spent integer;v_existing smallint;
 begin
  c:=buklod_s2.assert_active();
  if p_user is null or p_nonce is null or p_week is null
- or p_credits not between 1 and 2 or extract(isodow from p_week)<>1
+ or p_credits not between 1 and 2 or p_week<(c.starts_at at time zone 'Asia/Manila')::date
+ or mod((p_week-(c.starts_at at time zone 'Asia/Manila')::date),7)<>0
  then raise exception 'INVALID_FLEX_REQUEST' using errcode='22023';end if;
  if ((now() at time zone 'Asia/Manila')::date > p_week+6)
  then raise exception 'FLEX_MUST_BE_OPTED_IN_BEFORE_WEEK_END';end if;
