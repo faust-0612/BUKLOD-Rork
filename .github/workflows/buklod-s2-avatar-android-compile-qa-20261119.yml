@@ -1,4 +1,6 @@
 name: BUKLOD S2 Avatar Android Compile QA - NO PUBLISH
+# Contract-only rerun: persisted per-character levels and current ranking navigation.
+# This workflow never publishes EAS OTA and never changes production.
 on:
   push:
     branches: [staging/season2-consolidated-avatar-20261119]
