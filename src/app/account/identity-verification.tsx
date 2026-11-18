@@ -21,6 +21,7 @@ export default function BuklodIdentityVerificationScreen(){
  const [suffix,setSuffix]=useState(profile?.suffix||'');
  const [type,setType]=useState<BuklodLegalIdType>('PHILSYS');
  const [photo,setPhoto]=useState<ImagePicker.ImagePickerAsset|null>(null);
+ const [privacyConsent,setPrivacyConsent]=useState(false);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const refresh=useCallback(async()=>{try{
@@ -28,7 +29,7 @@ export default function BuklodIdentityVerificationScreen(){
  }catch(e){setError(e instanceof Error?e.message:'Unable to read verification status.');}},[]);
  useEffect(()=>{void refresh();},[refresh]);
  const submit=async()=>{
-  if(busy||!photo)return;
+  if(busy||!photo||!privacyConsent||status?.status==='PENDING')return;
   if(!first.trim()||!surname.trim()){
    Alert.alert('Legal name','First name and surname are required.');return;
   }
@@ -72,8 +73,14 @@ export default function BuklodIdentityVerificationScreen(){
     .catch(e=>Alert.alert('Photo',e instanceof Error?e.message:'Cannot select ID image.'));
   }}><Text style={styles.link}>{photo?'CHANGE ID PHOTO':'SELECT ID PHOTO'}</Text></Pressable>
   <Text style={styles.note}>{photo?'ID photo selected (hidden for privacy).':'No ID photo selected.'}</Text>
-  <Pressable disabled={busy||!photo} onPress={()=>void submit()}
-    style={[styles.primary,(busy||!photo)&&{opacity:0.5}]}>
+  <Pressable style={styles.choice} onPress={()=>setPrivacyConsent(v=>!v)}>
+   <Text style={styles.note}>{privacyConsent?'☑':'☐'} I agree to the secure processing of my ID photo for legal-name and withdrawal verification. It will not appear publicly.</Text>
+  </Pressable>
+  <Pressable onPress={()=>router.push('/privacy/index' as any)}>
+   <Text style={styles.link}>READ BUKLOD PRIVACY POLICY</Text>
+  </Pressable>
+  <Pressable disabled={busy||!photo||!privacyConsent||status?.status==='PENDING'} onPress={()=>void submit()}
+    style={[styles.primary,(busy||!photo||!privacyConsent||status?.status==='PENDING')&&{opacity:0.5}]}>
    {busy?<ActivityIndicator color="#fff"/>:<Text style={styles.white}>SUBMIT FOR VERIFICATION</Text>}
   </Pressable>
   <Text style={styles.note}>Only authorized reviewers can inspect this private ID. Any new legal-name submission suspends previous withdrawal verification until approved.</Text>
