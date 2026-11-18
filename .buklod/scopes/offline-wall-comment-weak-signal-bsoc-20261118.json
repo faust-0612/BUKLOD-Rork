@@ -20,7 +20,9 @@
     "sync-and-points",
     "AdMob-cadence",
     "BSOC-false-escalation",
-    "offline-privacy"
+    "offline-privacy",
+    "navigation-scroll",
+    "auth-privacy"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -35,12 +37,16 @@
     "tests/offline-wall-comments-bsoc-20261118.test.mjs",
     "tests/offline-comment-auth-security-20261118.test.mjs",
     "tests/wall-real-recent-comment-preview-20261116.test.mjs",
-    ".buklod/scopes/offline-wall-comment-weak-signal-bsoc-20261118.json"
+    ".buklod/scopes/offline-wall-comment-weak-signal-bsoc-20261118.json",
+    "supabase/tests/20261118_offline_comment_idempotency_bsoc_security.sql",
+    "tests/offline-wall-comments-navigation-scroll-20261118.test.mjs"
   ],
   "regressionTests": [
     "tests/offline-wall-comments-bsoc-20261118.test.mjs",
     "tests/offline-comment-auth-security-20261118.test.mjs",
-    "tests/wall-real-recent-comment-preview-20261116.test.mjs"
+    "tests/wall-real-recent-comment-preview-20261116.test.mjs",
+    "supabase/tests/20261118_offline_comment_idempotency_bsoc_security.sql",
+    "tests/offline-wall-comments-navigation-scroll-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -52,7 +58,8 @@
       ],
       "tests": [
         "tests/offline-wall-comments-bsoc-20261118.test.mjs",
-        "tests/wall-real-recent-comment-preview-20261116.test.mjs"
+        "tests/wall-real-recent-comment-preview-20261116.test.mjs",
+        "tests/offline-wall-comments-navigation-scroll-20261118.test.mjs"
       ]
     },
     {
@@ -72,7 +79,8 @@
         "Existing v4 RPC and authorization, privacy protections, anti-farming points and critical security incident reporting are preserved; no live writes from this branch."
       ],
       "tests": [
-        "tests/offline-comment-auth-security-20261118.test.mjs"
+        "tests/offline-comment-auth-security-20261118.test.mjs",
+        "supabase/tests/20261118_offline_comment_idempotency_bsoc_security.sql"
       ]
     }
   ],
@@ -82,6 +90,7 @@
     "Local photo/GIF files are not falsely accepted as durable offline uploads; media draft remains until network upload."
   ],
   "acceptanceChecks": [
+    "Verify the focused node --test navigation-scroll and auth-security probes and staging-only database RLS/idempotency SQL test.",
     "Run all 3 changed Node tests and existing 2026-11-16 real comment preview tests in CI.",
     "Check exactly-once comment+points for lost acknowledgement using isolated staging DB and original auth context; validate SQL migration gates.",
     "Verify offline Android 2G/3G, app kill+restart, multi-account isolation, queued retry and ad/navigation regressions on supported native runtime.",
