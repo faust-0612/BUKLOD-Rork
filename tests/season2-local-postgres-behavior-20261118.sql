@@ -144,4 +144,20 @@ begin
 end;
 $test$;
 reset role;
+-- Null SQL CHECK semantics must NEVER permit un-audited badge revocation.
+do $test$
+declare rejected boolean:=false;
+begin
+  begin
+    insert into buklod_s2.badge_grant(
+      user_id,badge_key,week_start,revoked_at,revoked_case_id)
+    values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      's2_invalid_revocation',current_date,now(),null);
+  exception when check_violation then rejected:=true;
+  end;
+  if not rejected then
+    raise exception 'FAIL: badge revocation with NULL case ID passed';
+  end if;
+end;
+$test$;
 select 'S2 LOCAL POSTGRES BEHAVIOR TESTS PASSED; NOT SUPABASE OR PROD' as evidence;
