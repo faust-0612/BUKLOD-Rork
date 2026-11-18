@@ -28,5 +28,19 @@
   "lockedFeatureChanges": [],
   "releaseMode": "owner-requested-production-android-ota-gated",
   "physicalDeviceVerification": "OWNER_WAIVED_NOT_PERFORMED",
-  "publicationStatus": "NOT_PUBLISHED_PENDING_PRODUCTION_WORKFLOW"
+  "publicationStatus": "NOT_PUBLISHED_PENDING_PRODUCTION_WORKFLOW",
+  "riskAreas": [
+    "production-release",
+    "android-ota-runtime",
+    "ads-finance-points",
+    "navigation-auth",
+    "faith-learning-visual-contrast",
+    "season2-production-embargo"
+  ],
+  "alternativeApproaches": [
+    "Direct unguarded EAS update rejected: bypasses existing exact-source AdMob and served-manifest release gates.",
+    "Apply Season 2 preview to main rejected: prohibited before December 6 and unrelated to this readability fix.",
+    "Use new Android native build rejected: the UI-only change requires no new native dependencies or runtime.",
+    "Treat physical waiver as a passing device test rejected: recorded waiver must remain an unverified physical test."
+  ]
 }
