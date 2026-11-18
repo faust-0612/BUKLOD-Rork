@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-reward-rule-version-replay-guard-20261119.json",
+  "objective": "Prepare Season 2 reward SQL safely for disposable/staging tests: prevent the same verified Main event minting twice after a Season 2 rule version change; keep verified weekly foundation evidence valid across an in-season rule upgrade. Never activate rewards or touch Season1 production.",
+  "baseRef": "243247b59592ebadf64d67e1cd9c7fa3906417f5",
+  "productionBaselineEvidence": "Existing staging-only #963 consolidated source descendant of published Season2 staging source a1118ec69079dad757222a23798bde59b6a5b002. Season 1 main remains production; the SQL is in docs/season2/sql and not a migration. Existing disposable Postgres reward CI passed on #953 at a252a0fed48939eca935d1dee806ec1a83bc940f; this change requires fresh exact-head CI.",
+  "chosenApproach": "Keep the unexposed private buklod_s2 draft and all existing disabled controls; enforce unique immutable source IDs independent of mutable audit rule_version, preserve historical weekly proof, and run real disposable PostgreSQL RLS/race/rollover regression scenarios in GitHub Actions.",
+  "selectionRationale": "A rule_version in the uniqueness key allows the same verified post/quiz to be paid again after rules change. Enforcing one receipt per actual source is less risky than version-specific dedupe and does not alter any existing production schema.",
+  "riskAreas": [
+    "season2-rewards",
+    "backend-security",
+    "finance",
+    "idempotency",
+    "staging-only",
+    "database"
+  ],
+  "allowedPaths": [
+    "docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+    "tests/season2-local-postgres-behavior-20261118.sql",
+    ".github/workflows/buklod-season2-sql-dev-only-20261118.yml",
+    ".buklod/scopes/season2-reward-rule-version-replay-guard-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Season 1 BP/QMP/30% AdMob, cash, rank, withdrawals and referral logic stay unchanged in production and staging source.",
+    "Season 2 schema remains private, disabled, unexposed and source-only: no service keys in clients, no actual Supabase migration or reward activation.",
+    "A previously verified Season 2 receipt can satisfy weekly foundation after a rule_version change; it cannot ever mint again from the same source ID.",
+    "Preserve all successful existing disposable Postgres SQL concurrency, idempotent purchase, wallet ledger, RLS, Official exclusion and offline contracts."
+  ],
+  "acceptanceChecks": [
+    "GitHub Engineering Accountability gate must pass on this exact PR head with exactly one changed scope manifest.",
+    "GitHub Season 2 Isolated SQL Contract workflow runs against local PostgreSQL 17 only when PR base is approved Season2 staging branch.",
+    "Behavior test verifies duplicate-source replay after rules revision returns DUPLICATE without modifying balance or receipt count.",
+    "Behavior test verifies legacy verified learning+community receipts still produce an eligible weekly foundation after a rule revision.",
+    "No production or Supabase project write, no EAS OTA, no native package change, and no user earnings claimed.",
+    "Actual independent staging Supabase project plus signed gating and Android testing is required before making live rewards available to testers."
+  ],
+  "alternativeApproaches": [
+    "Leave duplicate source keys tied to rule_version and rely on the caller to never replay (rejected: replays unavoidable with offline retries and future rules).",
+    "Delete rule_version from historical receipts (rejected: destroys audit evidence).",
+    "Make verified event identity immutable while retaining an auditable rule_version field (chosen)."
+  ],
+  "lockedFeatureChanges": [],
+  "releaseMode": "STAGING_REWARD_SQL_SOURCE_ONLY_NO_OTA",
+  "productionChanges": false,
+  "realAwardChanges": false,
+  "activation": false
+}
