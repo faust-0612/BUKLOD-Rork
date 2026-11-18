@@ -208,6 +208,32 @@ export async function removeOfflineQueueItem(itemId: string): Promise<void> {
   });
 }
 
+/**
+ * Explicit user retry resumes the SAME mutation ID. Generating a fresh ID
+ * could duplicate a server-side write whose acknowledgement was lost.
+ */
+export async function retryOfflineQueueItem(
+  itemId: string,
+  userId: string,
+): Promise<boolean> {
+  return queueMutation(async () => {
+    const items = await readQueue();
+    const index = items.findIndex(
+      item => item.id === itemId && item.userId === userId,
+    );
+    if (index < 0) return false;
+    items[index] = {
+      ...items[index],
+      attempts: 0,
+      updatedAt: Date.now(),
+      nextAttemptAt: Date.now(),
+      lastError: null,
+    };
+    await writeQueue(items);
+    return true;
+  });
+}
+
 export async function clearOfflineQueueForUser(
   userId: string,
 ): Promise<void> {
