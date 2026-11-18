@@ -36,6 +36,9 @@ jobs:
           node-version: '22'
           cache: npm
 
+      - name: Check Season 2 production embargo before build
+        run: node scripts/buklod-season2-production-embargo.cjs --production
+
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
@@ -250,6 +253,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA" || { echo 'STOP: main advanced after RC'; exit 1; }
+          node scripts/buklod-season2-production-embargo.cjs --production
           node scripts/android-ota-rc.cjs verify
           npx eas-cli@latest update --channel production --platform android --environment production --input-dir rc --skip-bundler --message "BUKLOD verified Android RC ${GITHUB_SHA}: cumulative main production update" --json --non-interactive > ota-evidence/published.json
           node scripts/android-ota-rc.cjs published

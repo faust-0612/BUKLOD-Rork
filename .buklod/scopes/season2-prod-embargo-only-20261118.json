@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-prod-embargo-only-20261118.json",
+  "objective": "Protect Main production-only Android OTA and Web from Season2 package before 2026-12-06 PHT, while preserving unrelated production repairs and separately staged Season2 after verified Train A production.",
+  "baseRef": "d23cd882f7d34c4bca3a110dadd04ee4cb2240a9",
+  "productionBaselineEvidence": "Main d23cd882f7d34c4bca3a110dadd04ee4cb2240a9; TrainA staging-user server-verified 6a33d05e85121d3d8a0a6760ef6b2e84c6c6721e; production promotion and physical device AdMob/navigation not verified.",
+  "chosenApproach": "Add fail-closed source guard before build and immediately before Android/Web production publishing; staging remains unaffected; after Dec6 a SHA-bound audited owner authorization remains mandatory.",
+  "selectionRationale": "Content-based prod guard prevents accidental mixed packages while still permitting independently verified nonseason repair releases and later Season2 staging.",
+  "alternativeApproaches": [
+    "Disable all production fixes before Dec6 (rejected)",
+    "Block Season2 staging (rejected)",
+    "Commit a label only without actual release checks (rejected)"
+  ],
+  "riskAreas": [
+    "production-release",
+    "app-runtime",
+    "ads-finance-points"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-prod-embargo-only-20261118.json",
+    "scripts/buklod-season2-production-embargo.cjs",
+    "tests/buklod-season2-production-embargo-20261118.test.mjs",
+    "docs/BUKLOD_SEASON2_PRODUCTION_EMBARGO_20261118.md",
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/production_web_deploy.yml"
+  ],
+  "preserveBehaviors": [
+    "No src or app runtime, database, secrets, native config, Season1 or reward code changes.",
+    "Production Android and Web retain existing QA and EAS release requirements.",
+    "Nonseason repairs remain eligible for original release gates.",
+    "Staging unaffected by this production-only guard and requires previous TrainA production verification before Season2 publication.",
+    "No direct EAS CLI permission revocation claimed."
+  ],
+  "acceptanceChecks": [
+    "Season2 production source before Dec6 blocked regardless of consent/feature flags.",
+    "After Dec6 missing exact SHA owner approval and evidence still blocks.",
+    "Unrelated fixes pass this specific guard without waiving AdMob/navigation/device requirements.",
+    "Android/Web check early and again immediately before EAS publish.",
+    "Tests verify staging untouched, aliases/shared UI caught."
+  ],
+  "regressionTests": [
+    "tests/buklod-season2-production-embargo-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Protect canonical production Android/Web publishing from Season2 package, even when OFF, until Dec6 and independent approval.",
+      "preservedBehaviors": [
+        "All existing AdMob, Android RC, navigation/performance and production environment gates retained; staging unaffected."
+      ],
+      "tests": [
+        "tests/buklod-season2-production-embargo-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Only CI workflow/scripts changed; no runtime or finance changes.",
+      "preservedBehaviors": [
+        "No production/source application behavior changed."
+      ],
+      "tests": [
+        "tests/buklod-season2-production-embargo-20261118.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "merge to main after CI; never publish any OTA from lock PR",
+  "prodSeason2Authorization": false,
+  "season2EarliestManilaDay": "2026-12-06",
+  "stagingAllowedAfterVerifiedTrainAProduction": true
+}
