@@ -48,6 +48,35 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql
       - name: Verify real SQL behavior without real accounts, services or production
         run: psql -v ON_ERROR_STOP=1 -f tests/season2-local-postgres-behavior-20261118.sql
+      - name: Simulate two devices racing to claim the same token source
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          insert into auth.users(id)
+            values('cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+          insert into public.community_posts(id,user_id,category,body,created_at)
+            values('99999999-9999-4999-8999-999999999999',
+              'cccccccc-cccc-4ccc-8ccc-cccccccccccc','discussion',
+              'A concurrent source with a unique body for real row-lock and ledger verification.',
+              now()-interval '1 minute');
+          SQL
+          psql -v ON_ERROR_STOP=1 -c "set role service_role; select buklod_s2.credit_main_source('cccccccc-cccc-4ccc-8ccc-cccccccccccc','wall_original_post','99999999-9999-4999-8999-999999999999')" >/tmp/s2-double-a.log &
+          first=$!
+          psql -v ON_ERROR_STOP=1 -c "set role service_role; select buklod_s2.credit_main_source('cccccccc-cccc-4ccc-8ccc-cccccccccccc','wall_original_post','99999999-9999-4999-8999-999999999999')" >/tmp/s2-double-b.log &
+          second=$!
+          wait "$first"
+          wait "$second"
+          psql -v ON_ERROR_STOP=1 -Atc "select case when (select count(*) from buklod_s2.source_receipt where user_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc')=1 and (select balance from buklod_s2.wallet where user_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc')=2 and (select coalesce(sum(amount),0) from buklod_s2.token_ledger where user_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc')=2 then 1 else 0 end" | grep -qx 1
+      - name: Deny authenticated account direct table access
+        shell: bash
+        run: |
+          set -euo pipefail
+          if psql -v ON_ERROR_STOP=1 -c "set role authenticated; select * from buklod_s2.wallet limit 1" >/tmp/s2-rls-attempt.log 2>&1; then
+            echo "S2 security failure: authenticated could read S2 wallet."
+            exit 1
+          fi
+          grep -Eiq 'permission denied|schema.*does not exist' /tmp/s2-rls-attempt.log
       - name: Final invariant - no public/client grants and no Season1 financial tables
         run: |
           psql -v ON_ERROR_STOP=1 -Atc "select case when has_schema_privilege('anon','buklod_s2','USAGE') or has_schema_privilege('authenticated','buklod_s2','USAGE') then 1 else 0 end" | grep -qx 0
