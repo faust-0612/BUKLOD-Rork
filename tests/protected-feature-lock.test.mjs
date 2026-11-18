@@ -154,5 +154,5 @@ test('Season 2 consolidated staging enumerates two protected scopes and keeps pr
   assert.equal(manifest.releaseAuthorized,false);
   const assessed=assessProtectedFeatureLock(manifest.allowedPaths.map(path=>({status:'M',path})),manifest);
   assert.deepEqual(assessed.failures,[]);
-  assert.deepEqual(assessed.impacted,['app-runtime','wall-media','navigation-auth','quiz-classroom','production-release','governance-lock']);
+  assert.deepEqual(assessed.impacted,['app-runtime','wall-media','navigation-auth','ads-finance-points','quiz-classroom','production-release','governance-lock']);
 });

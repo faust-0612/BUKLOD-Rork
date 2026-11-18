@@ -86,6 +86,7 @@
     "tests/engineering-regression-gate.test.mjs",
     "tests/post-detail-reaction-count-20261118.test.mjs",
     "tests/protected-feature-lock.test.mjs",
+    "tests/season2-avatar-ads-preservation-20261119.test.mjs",
     "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs",
     "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
   ],
@@ -141,7 +142,8 @@
     "tests/post-detail-reaction-count-20261118.test.mjs",
     "tests/protected-feature-lock.test.mjs",
     "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs",
-    "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    "tests/season2-avatar-ads-preservation-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -202,6 +204,16 @@
       ],
       "tests": [
         "tests/protected-feature-lock.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Web Connect header badge prop is presentation-only but matches the protected Ad name classifier; preserve existing first-view AdMob rendering and Points/QMP without modifying ad units or economy.",
+      "preservedBehaviors": [
+        "Existing Android first-view AdMob and rewards remain unchanged; no new placements or payout calculations."
+      ],
+      "tests": [
+        "tests/season2-avatar-ads-preservation-20261119.test.mjs"
       ]
     }
   ],
