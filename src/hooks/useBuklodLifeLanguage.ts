@@ -13,7 +13,8 @@ export function useBuklodLifeLanguage() {
   const scoped = useContext(BuklodLifeLanguageContext);
   const { preference } = useBuklodI18n();
   const { profile, user } = useAuth();
-  const [savedChoice, setSavedChoice] = useState<BuklodLifeLanguage | null>(null);
+  const storageKey = '@buklod/life-language-v1:' + (user?.id ?? 'guest');
+  const [savedChoice, setSavedChoice] = useState<{ storageKey: string; language: BuklodLifeLanguage | null } | null>(null);
   const preferredLanguage = (profile as any)?.preferred_language;
   const country = (profile as any)?.country;
   const province = (profile as any)?.province;
@@ -29,15 +30,15 @@ export function useBuklodLifeLanguage() {
   useFocusEffect(useCallback(() => {
     if (scoped) return;
     let active = true;
-    void AsyncStorage.getItem('@buklod/life-language-v1:' + (user?.id ?? 'guest'))
+    void AsyncStorage.getItem(storageKey)
       .then(value => {
-        if (active) setSavedChoice(value === 'fil' || value === 'en' ? value : null);
+        if (active) setSavedChoice({ storageKey, language: value === 'fil' || value === 'en' ? value : null });
       })
-      .catch(() => { if (active) setSavedChoice(null); });
+      .catch(() => { if (active) setSavedChoice({ storageKey, language: null }); });
     return () => { active = false; };
-  }, [scoped, user?.id]));
+  }, [scoped, storageKey]));
 
-  return scoped?.language ?? savedChoice ?? inferred;
+  return scoped?.language ?? (savedChoice?.storageKey === storageKey ? savedChoice.language : null) ?? inferred;
 }
 
 export function useBuklodLifeLanguageSettings() {
