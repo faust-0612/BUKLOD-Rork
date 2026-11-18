@@ -15,7 +15,8 @@
     "navigation-auth",
     "bsoc",
     "app-runtime",
-    "privacy"
+    "privacy",
+    "navigation-scroll"
   ],
   "preserveBehaviors": [
     "Authenticated health-event RPC signature, idempotent reporting and dedupe remain unchanged.",
@@ -29,10 +30,12 @@
     "src/lib/buklodRouteDiagnostics.ts",
     "src/app/_layout.tsx",
     "src/app/admin/bsoc-conversations.tsx",
-    "tests/buklod-route-diagnostics.test.mjs"
+    "tests/buklod-route-diagnostics.test.mjs",
+    "tests/buklod-render-navigation-forensics-20261118.test.mjs"
   ],
   "regressionTests": [
-    "tests/buklod-route-diagnostics.test.mjs"
+    "tests/buklod-route-diagnostics.test.mjs",
+    "tests/buklod-render-navigation-forensics-20261118.test.mjs"
   ],
   "acceptanceChecks": [
     "Prove fixed taxonomy for missing data, type error, React hook/render loops and unknown cause without copying raw messages or stacks.",
