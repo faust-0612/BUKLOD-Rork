@@ -28,7 +28,9 @@ test('S2 revokes client DML and privileged function access, and cannot activate 
 });
 test('No free client mint, fixed amounts, wallet lock and unique receipts',()=>{
   assert.match(sql,/for update;/);
-  assert.match(sql,/unique\(user_id,source_kind,source_id,rule_version\)/);
+  assert.match(sql,/unique\(user_id,source_kind,source_id\)/);
+  assert.doesNotMatch(sql,/unique\(user_id,source_kind,source_id,rule_version\)/);
+  assert.doesNotMatch(sql,/and r\.rule_version=c\.rule_version/);
   assert.match(sql,/unique\(user_id,entry_key\)/);
   assert.match(sql,/verified_at is not null/);
   assert.match(sql,/moderation_state='approved'/);

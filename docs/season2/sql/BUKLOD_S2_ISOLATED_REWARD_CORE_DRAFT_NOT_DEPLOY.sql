@@ -52,7 +52,9 @@ create table if not exists buklod_s2.source_receipt (
   rule_version text not null,
   token_amount smallint not null check(token_amount between 0 and 3),
   created_at timestamptz not null default now(),
-  unique(user_id,source_kind,source_id,rule_version)
+  -- Source identity is immutable across any Season 2 rule revisions; the
+  -- original rule_version remains stored for audit, never re-mints a source.
+  unique(user_id,source_kind,source_id)
 );
 create index if not exists s2_receipt_day_idx
  on buklod_s2.source_receipt(user_id,manila_day,source_kind);
@@ -342,7 +344,7 @@ begin
  -- Lock acquired BEFORE duplicate, daily and same-thread checks.
  if exists(select 1 from buklod_s2.source_receipt r
    where r.user_id=p_user and r.source_kind=p_kind
-     and r.source_id=p_source and r.rule_version=c.rule_version) then
+     and r.source_id=p_source) then
    return jsonb_build_object('status','DUPLICATE','minted',0,'balance',v_wallet);
  end if;
  if p_kind='kl_verified_chapter' and exists(
@@ -490,7 +492,7 @@ begin
  where r.user_id=p_user and r.source_kind='kl_verified_chapter'
    and r.source_at >= (p_week::timestamp at time zone 'Asia/Manila')
    and r.source_at < ((v_end+1)::timestamp at time zone 'Asia/Manila')
-   and r.rule_version=c.rule_version
+  
    and not exists(select 1 from buklod_s2.weekly_claim prior
      where prior.user_id=p_user and prior.learning_receipt_id=r.id)
  order by r.source_at limit 1;
@@ -499,7 +501,7 @@ begin
    ('today_dugtong','wall_original_post','wall_meaningful_comment')
    and r.source_at >= (p_week::timestamp at time zone 'Asia/Manila')
    and r.source_at < ((v_end+1)::timestamp at time zone 'Asia/Manila')
-   and r.rule_version=c.rule_version
+  
    and not exists(select 1 from buklod_s2.weekly_claim prior
       where prior.user_id=p_user and prior.community_receipt_id=r.id)
  order by r.source_at limit 1;
