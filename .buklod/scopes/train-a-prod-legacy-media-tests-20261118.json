@@ -43,13 +43,16 @@
   ],
   "regressionTests": [
     "tests/community-video-playback-recovery.test.mjs",
-    "tests/unified-social-media-rendering.test.mjs",
-    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
-    "tests/scoped-community-video-sidecar-recovery.test.mjs"
+    "tests/unified-social-media-rendering.test.mjs"
   ],
   "lockedFeatureChanges": [],
   "sourceOnly": true,
   "productionStatus": "NO_OTA_AFTER_INITIAL_FAILURE",
   "releaseAuthorized": false,
-  "season2Included": false
+  "season2Included": false,
+  "existingUnchangedRegressionChecks": [
+    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
+    "tests/scoped-community-video-sidecar-recovery.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+  ]
 }
