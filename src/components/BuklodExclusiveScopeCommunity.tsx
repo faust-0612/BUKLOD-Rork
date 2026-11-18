@@ -256,9 +256,63 @@ type SocialPost = {
     media_url?: string | null;
     preview_path?: string | null;
     preview_url?: string | null;
+    storage_provider?: string | null;
+    external_object_key?: string | null;
   }>;
   comment_preview?: BuklodPostCommentPreview | null;
 };
+
+/**
+ * Scoped Wall videos are now stored in community_post_media, not necessarily
+ * in the legacy community_posts.media_url/media_mime_type columns.
+ * A video with a missing/expired URL must still occupy a visible retry tile.
+ */
+function scopedCommunityVideoMedia(post: SocialPost) {
+  const attached = post.media_items?.find(media =>
+    String(media.media_mime_type ?? '').trim().toLowerCase().startsWith('video/')
+  );
+  if (attached) return attached;
+  if (String(post.media_mime_type ?? '').trim().toLowerCase().startsWith('video/')) {
+    return {
+      media_path: post.media_path,
+      media_mime_type: post.media_mime_type,
+      media_url: post.media_url,
+      preview_url: null,
+      media_position: 0,
+      storage_provider: 'SUPABASE',
+      external_object_key: null,
+    };
+  }
+  return null;
+}
+
+function replaceScopedCommunityVideoUrl(
+  post: SocialPost,
+  failed: NonNullable<ReturnType<typeof scopedCommunityVideoMedia>>,
+  nextUrl: string,
+): SocialPost {
+  const current = scopedCommunityVideoMedia(post);
+  if (!current ||
+    String(current.media_path ?? '') !== String(failed.media_path ?? '') ||
+    String(current.media_url ?? '') !== String(failed.media_url ?? '')) return post;
+
+  const updatedItems = post.media_items?.map(media =>
+    String(media.media_path ?? '') === String(failed.media_path ?? '') &&
+    String(media.media_mime_type ?? '').toLowerCase().startsWith('video/') &&
+    String(media.media_url ?? '') === String(failed.media_url ?? '')
+      ? { ...media, media_url: nextUrl }
+      : media
+  );
+  return {
+    ...post,
+    // Old single-media posts still rely on the top-level playable URL.
+    media_url: String(post.media_path ?? '') === String(failed.media_path ?? '') &&
+      String(post.media_url ?? '') === String(failed.media_url ?? '')
+      ? nextUrl
+      : post.media_url,
+    media_items: updatedItems ?? post.media_items,
+  };
+}
 
 function isScopedReelPost(post: SocialPost) {
   if (post.is_reel) {
@@ -532,26 +586,49 @@ export default function BuklodExclusiveScopeCommunity({
   const videoRefreshAttemptsRef = useRef(new Map<string, number>());
   const videoRefreshInFlightRef = useRef(new Set<string>());
 
-  const recoverScopedWallVideo = async (post: SocialPost) => {
+  const recoverScopedWallVideo = async (post: SocialPost, manual = false) => {
     const postId = String(post.id ?? '').trim();
-    const failedUri = String(post.media_url ?? '').trim();
-    const mediaPath = String(post.media_path ?? '').trim();
-    if (!postId || !failedUri || !mediaPath) return;
-    // At most two signed-URL rotations per post for this mounted scope.
-    // Playback itself retries the same URI once before calling this handler.
-    const attempts = videoRefreshAttemptsRef.current.get(postId) ?? 0;
-    if (attempts >= 2 || videoRefreshInFlightRef.current.has(postId)) return;
+    if (!postId || videoRefreshInFlightRef.current.has(postId)) return;
+    const failed = scopedCommunityVideoMedia(post);
+    const failedUri = String(failed?.media_url ?? '').trim();
+    const mediaPath = String(failed?.media_path ?? '').trim();
+    const attempts = manual ? 0 : (videoRefreshAttemptsRef.current.get(postId) ?? 0);
+    if (attempts >= 2) return;
     videoRefreshAttemptsRef.current.set(postId, attempts + 1);
     videoRefreshInFlightRef.current.add(postId);
+    const loadSeq = scopeMediaLoadSeqRef.current;
     try {
-      const next = mediaPath.startsWith('aws:')
-        ? await getAwsWallVideoViewUrl(postId, mediaPath.slice(4), true).catch(() => null)
-        : await resignCommunityMediaUrl(mediaPath).catch(() => null);
-      if (!next || next === failedUri) return;
+      // Refresh the failed source, including the sidecar AWS object key.
+      // A missing initial URL falls back to the RLS-scoped media RPC below.
+      const awsKey = String(failed?.external_object_key ?? '').trim() ||
+        (mediaPath.startsWith('aws:') ? mediaPath.slice(4) : '');
+      const next = failed && failedUri && awsKey
+        ? await getAwsWallVideoViewUrl(postId, awsKey, true).catch(() => null)
+        : failed && failedUri && mediaPath && !mediaPath.startsWith('aws:')
+          ? await resignCommunityMediaUrl(mediaPath).catch(() => null)
+          : null;
+      if (scopeMediaLoadSeqRef.current !== loadSeq) return;
+      if (next && next !== failedUri && failed) {
+        setPosts(current => current.map(row =>
+          String(row.id) === postId
+            ? replaceScopedCommunityVideoUrl(row, failed, next)
+            : row
+        ));
+        return;
+      }
+      // Missing initial URL or old/unauthorized/stale media metadata:
+      // reread only this post, never create new rows or bypass scope RLS.
+      const refreshed = await loadCommunityPostMediaByPostIds(
+        [postId], { forceFreshVideoUrls: true }
+      ).catch(() => null);
+      if (scopeMediaLoadSeqRef.current !== loadSeq) return;
+      const items = refreshed?.[postId];
+      if (!items?.length) return;
       setPosts(current => current.map(row =>
-        String(row.id) === postId && String(row.media_url ?? '') === failedUri
-          ? { ...row, media_url: next }
-          : row,
+        String(row.id) === postId &&
+        (!failed || String(scopedCommunityVideoMedia(row)?.media_path ?? '') === mediaPath)
+          ? { ...row, media_items: items }
+          : row
       ));
     } finally {
       videoRefreshInFlightRef.current.delete(postId);
@@ -3219,16 +3296,12 @@ export default function BuklodExclusiveScopeCommunity({
             item.my_reaction
         );
 
-      const isVideo =
-        String(
-          item
-            .media_mime_type ??
-            ''
-        )
-          .toLowerCase()
-          .startsWith(
-            'video/'
-          );
+      const videoMedia = scopedCommunityVideoMedia(item);
+      const isVideo = Boolean(videoMedia) ||
+        // Older scope uploads use this exact generated caption while the
+        // sidecar RPC is pending; show a retry tile instead of blank space.
+        (!item.media_path && !item.media_items?.length &&
+          String(item.body ?? '').trim() === 'Shared a video.');
 
             /*
        * PATCH_173F_R2_REEL_CARD
@@ -3657,7 +3730,7 @@ return (
               </View>
             )}
 
-          {!!item.media_url &&
+          {!!videoMedia?.media_url &&
             isVideo && (
               <>
                 <View
@@ -3670,12 +3743,10 @@ return (
                 >
                   <CommunityVideo
                     uri={
-                      item.media_url
+                      videoMedia.media_url
                     }
                     playbackKey={String(item.id)}
-                    posterUri={item.media_items?.find((media:any) =>
-                      String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
-                    )?.preview_url ?? null}
+                    posterUri={videoMedia.preview_url ?? null}
                     onPosterGenerated={thumbnail => {
                       const videoMedia = item.media_items?.find((media:any) =>
                         String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
@@ -3748,6 +3819,24 @@ return (
                 ) : null}
               </>
             )}
+
+          {isVideo && !videoMedia?.media_url && (
+            <BuklodPressable
+              nested
+              onPress={() => void recoverScopedWallVideo(item, true)}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading Community video"
+              style={[
+                styles.videoWrap,
+                { minHeight: 176, justifyContent: 'center', alignItems: 'center', backgroundColor: '#13231D' },
+              ]}
+            >
+              <MaterialCommunityIcons name="video-off-outline" size={28} color={theme.textMuted} />
+              <Text style={{ color: theme.textMuted, marginTop: 8 }}>
+                Video unavailable. Tap to retry.
+              </Text>
+            </BuklodPressable>
+          )}
 
           <View
             style={[styles.summaryRow, { borderBottomColor: theme.border }]}
