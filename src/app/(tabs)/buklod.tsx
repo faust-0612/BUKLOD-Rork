@@ -571,7 +571,7 @@ function LegacyPublicBuklodScreen(){
    base.category==='NETWORK_ERROR' ||
    base.category==='TIMEOUT_ERROR';
   if(connectionIssue){
-   if(wallNetworkStatus==='offline'||wallNetworkStatus==='degraded')return;
+   if(!online||wallNetworkStatus==='degraded')return;
    showFeedback({
     ...base,
     tone:'info',
@@ -607,7 +607,7 @@ function LegacyPublicBuklodScreen(){
    feature:'Community Wall',
    outcome,
   });
- },[showFeedback,wallNetworkStatus]);
+ },[showFeedback,wallNetworkStatus,online]);
  const {
   openReport,
   reportSheet,
@@ -3704,7 +3704,7 @@ const load=useCallback(async(options?:{
     );
     if(!options?.silent)setCommentLoading(true);
     setCommentLoadError(null);
-    if(wallNetworkStatus==='offline'){
+    if(!online){
      if(isCurrent()){
       setCommentLoadError('Offline. Previously loaded comments remain available. You can save a new comment for sync.');
       if(!options?.silent)setCommentLoading(false);
@@ -3756,7 +3756,7 @@ const load=useCallback(async(options?:{
      if(!isCurrent())return;
      const category=buildBuklodUserFeedback(error).category;
      setCommentLoadError(
-      wallNetworkStatus==='offline'
+      !online
        ? 'No internet connection. Check your signal and tap Retry.'
        : wallNetworkStatus==='degraded'
         ? 'Limited connection. Tap Retry when your signal improves.'
@@ -3776,7 +3776,7 @@ const load=useCallback(async(options?:{
      if(isCurrent()&&!options?.silent)setCommentLoading(false);
     }
    },
-   [user?.id,wallNetworkStatus,reportCommunityFailure]
+   [user?.id,wallNetworkStatus,online,reportCommunityFailure]
   );
 
  // Pending state is a durable local record, not a pretend server reply.
@@ -3824,7 +3824,7 @@ const load=useCallback(async(options?:{
   const previous=previousCommentNetworkRef.current;
   previousCommentNetworkRef.current=wallNetworkStatus;
   if(!commentOpen || !commentPost?.id || !online ||
-     (previous!=='offline' && previous!=='degraded'))return;
+     (previous!=='unknown' && previous!=='degraded'))return;
   // Reconnect silently restores the actual thread without requiring a tap.
   void loadComments(String(commentPost.id),{silent:true});
  },[wallNetworkStatus,online,commentOpen,commentPost?.id,loadComments]);
@@ -6999,7 +6999,7 @@ const communityFeedRows =
       {!!commentLoadError&&(
        <View style={{
         padding:10,borderRadius:10,
-        backgroundColor:(wallNetworkStatus==='offline'||wallNetworkStatus==='degraded')
+        backgroundColor:(!online||wallNetworkStatus==='degraded')
          ? '#EAF1E9' : '#FFF1E5',
         flexDirection:'row',alignItems:'center',gap:8,
        }}>
