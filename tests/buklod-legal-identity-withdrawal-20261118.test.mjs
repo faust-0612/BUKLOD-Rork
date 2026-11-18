@@ -39,6 +39,14 @@ test('identity document bucket is private, owner scoped, non-overwriteable', () 
  assert.match(client, /createSignedUrl\(path,60\)/);
 });
 
+test('member explicitly consents before any ID processing', () => {
+ assert.match(migration, /p_privacy_consent boolean/);
+ assert.match(migration, /consented_at timestamptz/);
+ assert.match(client, /p_privacy_consent:true/);
+ assert.match(userView, /privacyConsent/);
+ assert.match(userView, /READ BUKLOD PRIVACY POLICY/);
+});
+
 test('approval is reviewer-only, revision-locked, and checks observed ID name', () => {
  assert.match(migration, /OFFICIAL_SYSTEM_ADMIN/);
  assert.match(migration, /if p_user_id=\(select auth\.uid\(\)\)/);
