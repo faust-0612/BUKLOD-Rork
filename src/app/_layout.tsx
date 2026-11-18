@@ -45,7 +45,7 @@ import BuklodCenteredBrandMark, {
   BUKLOD_BRAND_LOGO_WEB,
 } from '@/components/BuklodCenteredBrandMark';
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
-import { diagnoseBuklodRenderError, resolveBuklodCrashRoute } from '@/lib/buklodRouteDiagnostics';
+import { buildBuklodRenderCorrelationKey, diagnoseBuklodRenderError, resolveBuklodCrashRoute } from '@/lib/buklodRouteDiagnostics';
 import { getBuklodRenderReleaseIdentity } from '@/lib/buklodRenderReleaseIdentity';
 
 function renderErrorSignature(error: Error): string {
@@ -65,6 +65,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const errorSignature = renderErrorSignature(error);
   const renderEvidence = diagnoseBuklodRenderError(error);
   const renderRelease = getBuklodRenderReleaseIdentity();
+  const correlationKey = buildBuklodRenderCorrelationKey(renderEvidence, renderRelease.otaUpdateId, routeModule);
 
   useEffect(() => {
     void reportBuklodMainHealthIssue({
@@ -72,7 +73,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       severity: 'ERROR',
       safeErrorCode: 'SYS-500',
       errorSignature,
-      correlationKey: renderEvidence.correlationKey,
+      correlationKey,
       routeModule,
       renderForensics: {
         causeCode: renderEvidence.causeCode,
@@ -96,7 +97,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       localSelfHealResult: 'NOT_ATTEMPTED',
       privacyClassification: 'OPERATIONAL',
     }).catch(() => undefined);
-  }, [error, errorSignature, renderEvidence.correlationKey, routeModule]);
+  }, [error, errorSignature, correlationKey, routeModule]);
 
   return (
     <View style={styles.error}>
