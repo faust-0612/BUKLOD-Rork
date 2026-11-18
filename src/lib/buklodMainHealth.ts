@@ -89,7 +89,7 @@ const DEVICE_REF_KEY = '@buklod/main-health-v1/device-ref';
 const SESSION_REF_PREFIX = '@buklod/main-health-v1/session-ref/';
 const MAX_QUEUE = 20;
 const DEDUPE_WINDOW_MS = 5 * 60_000;
-const MAX_QUEUE_AGE_MS = 30 * 60_000;
+const MAX_QUEUE_AGE_MS = 23 * 60 * 60_000; // server accepts events up to 24h
 const CODE_RE = /^[A-Z0-9_.:-]{2,160}$/;
 const ROUTE_RE = /^[A-Za-z0-9_./:-]{1,160}$/;
 const STATE_RE = /^[A-Z0-9_.:-]{2,64}$/;
@@ -235,7 +235,7 @@ async function readQueue(userId: string): Promise<QueuedHealthIssue[]> {
     const cutoff = Date.now() - MAX_QUEUE_AGE_MS;
     return parsed
       .filter(item => {
-        const at = Date.parse(String(item?.lastQueuedAt ?? ''));
+        const at = Date.parse(String(item?.detectedAt ?? ''));
         return Number.isFinite(at) && at >= cutoff;
       })
       .slice(-MAX_QUEUE);
