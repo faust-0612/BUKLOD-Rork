@@ -148,6 +148,10 @@ test('Wall sends to queue first; server only confirms comments; feed/ads are not
   assert.match(wall, /Saved on device/);
   assert.match(wall, /Retry loading comments/);
   assert.match(wall, /comment_preview:previews\[event\.postId\]/);
+  const healthAgent = read('src/components/BuklodMainHealthAgent.tsx');
+  assert.match(healthAgent, /classifyNetworkQuality\(\) !== 'normal'/);
+  const auth = read('src/lib/buklodAuthResilience.ts');
+  assert.match(auth, /!isBuklodInvalidCredentialsError\(result\.error\)/);
   const coordinator = read('src/components/BuklodSyncCoordinator.tsx');
   assert.match(coordinator, /registerOfflineQueueHandler\(WALL_COMMENT_QUEUE_KIND/);
   assert.match(coordinator, /p_request_key: item\.id/);
