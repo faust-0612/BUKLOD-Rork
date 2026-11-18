@@ -131,7 +131,7 @@ Deno.serve(async (req: Request) => {
       : 'SOURCE_UNAVAILABLE';
     // No OAuth response body, API key, publisher ID or refresh token is exposed.
     const statusText = error instanceof Error
-      ? error.message.match(/^AdMob API request failed: HTTP (\\d{3})$/)?.[1] : null;
+      ? error.message.match(/^AdMob API request failed: HTTP ([0-9]{3})$/)?.[1] : null;
     const providerHttpStatus = statusText ? Number(statusText) : null;
     return json({
       error: kind,
