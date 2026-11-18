@@ -423,10 +423,22 @@ export function AuthProvider({
       );
 
       if (sessionUserIdRef.current !== userId) return;
+
+      // A confirmed missing profile invalidates any previously saved UI-only snapshot.
+      // Network failures keep the last same-user snapshot for offline display.
+      if (String(error?.code ?? '') === 'PGRST116') {
+        await clearAuthSnapshot(userId);
+        if (sessionUserIdRef.current !== userId) return;
+        setProfile(null);
+        setRoles([]);
+        setMembershipState('none');
+        setProfileLoadState('missing');
+        return;
+      }
       if (cachedSnapshot) return;
 
-      // Only a confirmed absent row belongs in onboarding; weak networks do not.
-      setProfileLoadState(String(error?.code ?? '') === 'PGRST116' ? 'missing' : 'unavailable');
+      // Only an unavailable network/profile read is recoverable without onboarding.
+      setProfileLoadState('unavailable');
       setMembershipState((current) =>
         current === 'loading' ? 'pending' : current
       );

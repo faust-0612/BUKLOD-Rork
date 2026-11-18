@@ -29,14 +29,16 @@
     "No staging/production OTA without compatibility, artifact, served manifest and mandatory ads/navigation gates."
   ],
   "regressionTests": [
-    "tests/weak-signal-login-profile-recovery-20261118.test.mjs"
+    "tests/weak-signal-login-profile-recovery-20261118.test.mjs",
+    "tests/weak-signal-auth-security-profile-recovery-20261118.test.mjs"
   ],
   "allowedPaths": [
     "src/providers/AuthProvider.tsx",
     "src/app/(auth)/login.tsx",
     "src/app/(tabs)/_layout.tsx",
     "tests/weak-signal-login-profile-recovery-20261118.test.mjs",
-    ".buklod/scopes/weak-signal-login-profile-recovery-20261118.json"
+    ".buklod/scopes/weak-signal-login-profile-recovery-20261118.json",
+    "tests/weak-signal-auth-security-profile-recovery-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -66,7 +68,7 @@
         "RLS, current-user session, lifecycle server verification and fail-closed authentication remain intact."
       ],
       "tests": [
-        "tests/weak-signal-login-profile-recovery-20261118.test.mjs"
+        "tests/weak-signal-auth-security-profile-recovery-20261118.test.mjs"
       ]
     }
   ],
