@@ -61,11 +61,26 @@ export type BuklodRenderEvidence = {
   originArea: string;
   causeLabel: string;
   correlationKey: string;
+  /** Sanitized first-party source location; never a raw error.stack. */
+  sourcePath: string | null;
+  sourceLine: number | null;
+  sourceColumn: number | null;
+  /** Minified Hermes frame coordinate, for server-side symbolication with the exact OTA map. */
+  bundleLine: number | null;
+  bundleColumn: number | null;
 };
+
+function safeFrameNumber(value: string | undefined): number | null {
+  if (!value || !/^\d{1,9}$/.test(value)) return null;
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number > 0 && number <= 100_000_000 ? number : null;
+}
 
 export function diagnoseBuklodRenderError(
   error: Pick<Error, 'name' | 'message' | 'stack'> | null | undefined,
 ): BuklodRenderEvidence {
+  // Inspect the error locally. Only taxonomy codes + safe first-party frame
+  // coordinates ever enter the reporting payload.
   const name = typeof error?.name === 'string' ? error.name : '';
   const message = typeof error?.message === 'string'
     ? error.message.slice(0, 1500)
@@ -100,26 +115,43 @@ export function diagnoseBuklodRenderError(
     causeCode = 'REFERENCE_ERROR';
     causeLabel = 'JavaScript reference failure';
   }
-  // Only accept a static first-party source-path pattern from the JS stack.
-  // Discard the entire path after matching; it may contain sensitive values.
-  const stack = typeof error?.stack === 'string' ? error.stack.slice(0, 6000) : '';
-  const frame = stack.match(/(?:^|[/\\])src[/\\](app|components|providers|lib)[/\\]([A-Za-z0-9_./\\-]{1,140})/i);
-  const root = (frame?.[1] || '').toLowerCase();
-  const path = (frame?.[2] || '').toLowerCase().replace(/\\/g, '/');
+
+  const stack = typeof error?.stack === 'string' ? error.stack.slice(0, 7000) : '';
+  // First-party path matching is strictly on-device. Reject URLs, dynamic values
+  // and traversals. Never send the full stack or the original exception text.
+  const sourceFrame = stack.match(/(?:^|[/\\])src[/\\](app|components|providers|lib)[/\\]([A-Za-z0-9_./\\[\]()\-]{1,140}\.(?:tsx?|jsx?)):(\d{1,9}):(\d{1,9})/i);
+  const root = (sourceFrame?.[1] ?? '').toLowerCase();
+  const candidate = (sourceFrame?.[2] ?? '').replace(/\\/g, '/');
+  const safeSource = candidate &&
+    !candidate.includes('..') &&
+    candidate.split('/').every(segment=>/^[A-Za-z0-9_\-[\]()]+(?:\.(?:tsx?|jsx?))?$/.test(segment))
+      ? 'src/' + root + '/' + candidate
+      : null;
+  const path = safeSource ? candidate.toLowerCase() : '';
   let originArea = 'UNKNOWN';
-  if (root === 'providers') originArea = 'PROVIDER';
-  else if (/^(?:scope|clusters|organizations|community)(?:\/|$)/.test(path)) originArea = 'SCOPE';
-  else if (/^(?:connect|messages)(?:\/|$)/.test(path) || /connect/.test(path)) originArea = 'CONNECT';
-  else if (/^(?:character|kingdom)(?:\/|$)/.test(path) || /character/.test(path)) originArea = 'CHARACTER';
-  else if (/^(?:wall|post|reels|marites|media|video)(?:\/|$)/.test(path)) originArea = 'MEDIA';
-  else if (/^(?:auth|session)(?:\/|$)/.test(path)) originArea = 'AUTH';
-  else if (root === 'app') originArea = 'ROUTE';
-  else if (root === 'components') originArea = 'COMPONENT';
-  else if (root === 'lib') originArea = 'LIB';
+  if (safeSource) {
+    if (root === 'providers') originArea = 'PROVIDER';
+    else if (/^(?:scope|clusters|organizations|community)(?:\/|$)/.test(path)) originArea = 'SCOPE';
+    else if (/^(?:connect|messages)(?:\/|$)/.test(path) || /connect/.test(path)) originArea = 'CONNECT';
+    else if (/^(?:character|kingdom)(?:\/|$)/.test(path) || /character/.test(path)) originArea = 'CHARACTER';
+    else if (/^(?:wall|post|reels|marites|media|video)(?:\/|$)/.test(path)) originArea = 'MEDIA';
+    else if (/^(?:auth|session)(?:\/|$)/.test(path)) originArea = 'AUTH';
+    else if (root === 'app') originArea = 'ROUTE';
+    else if (root === 'components') originArea = 'COMPONENT';
+    else if (root === 'lib') originArea = 'LIB';
+  }
+  // Hermes release errors generally have an unmapped bytecode/JS bundle
+  // coordinate. Capture only numbers, never URLs or exception stack content.
+  const bundleFrame = stack.match(/(?:index\.(?:android|ios)\.bundle|main\.jsbundle):(\d{1,9}):(\d{1,9})/i);
   return {
     causeCode,
     originArea,
     causeLabel,
     correlationKey: 'BUKLOD_SCREEN_RENDER_EXCEPTION.' + causeCode + '.' + originArea,
+    sourcePath: safeSource,
+    sourceLine: safeSource ? safeFrameNumber(sourceFrame?.[3]) : null,
+    sourceColumn: safeSource ? safeFrameNumber(sourceFrame?.[4]) : null,
+    bundleLine: safeFrameNumber(bundleFrame?.[1]),
+    bundleColumn: safeFrameNumber(bundleFrame?.[2]),
   };
 }
