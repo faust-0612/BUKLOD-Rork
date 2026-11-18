@@ -129,6 +129,18 @@
         "tests/bible-henry-translation-recovery-20261117.test.cjs",
         "tests/scoped-community-video-sidecar-recovery.test.mjs"
       ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Android dashboard tab implementation has an Ad-affected protected component name; preserve existing first-view AdMob warmup, consent, fill, offscreen suspend and monetary BP/QMP boundaries while keeping the auth fix excluded.",
+      "preservedBehaviors": [
+        "Existing first-view AdMob placement and NativeAd/IMA lifecycle must remain unchanged, no new provider request or change to ad consent/cooldown.",
+        "No BP/QMP, payouts, token or character credits are minted or deducted in the Train A repair source."
+      ],
+      "tests": [
+        "tests/train-a-noauth-navigation-ads-20261118.test.mjs",
+        "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+      ]
     }
   ],
   "releaseMode": "train-a-source-rc",
