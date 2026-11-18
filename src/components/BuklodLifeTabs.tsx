@@ -43,11 +43,11 @@ export default function BuklodLifeTabs({
     language === 'fil'
       ? {
         'my-life':
-          'My Life',
+          'Buhay Ko',
         share:
           'Ibahagi',
         impact:
-          'Impact',
+          'Epekto',
       }
       : {
         'my-life':

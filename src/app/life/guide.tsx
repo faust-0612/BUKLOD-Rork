@@ -3,9 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '@/providers/AuthProvider';
 import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
-import { normalizeBuklodLifeLanguage } from '@/lib/buklodLifeContent';
+import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
 import {
   BUKLOD_LIFE_CONCERNS,
   BUKLOD_LIFE_GOSPEL_MODES,
@@ -18,8 +17,7 @@ const DARK = '#20362A';
 
 function GuideContent() {
   const inset = useSafeAreaInsets();
-  const { profile } = useAuth();
-  const lang = normalizeBuklodLifeLanguage((profile as any)?.preferred_language);
+  const lang = useBuklodLifeLanguage();
   const isFil = lang === 'fil';
   const [concernKey, setConcernKey] = useState<BuklodLifeConcernKey>('worry');
   const [allowed, setAllowed] = useState(false);

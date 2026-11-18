@@ -1,0 +1,96 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/life-language-consistency-20261119.json",
+  "objective": "Honor chosen Filipino or English before LIFE renders and consistently across all LIFE content, navigation, invite, support, impact and Wall preview; preserve private faith data.",
+  "baseRef": "integration/season2-conso-staging-20261119",
+  "productionBaselineEvidence": "DEV branch derived from active Season 2 consolidation integration source. No claim of a production OTA baseline or runtime verification; production untouched.",
+  "chosenApproach": "Use a LIFE-only locale provider backed by existing curated bilingual content and per-account offline preference; add preferred_language to existing authentication profile fetch.",
+  "selectionRationale": "Different LIFE pages independently inferred or defaulted English, while AuthProvider excluded preferred_language; route params were stale, causing mixed-language screens.",
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "faith-content-localization",
+    "profile-preferences",
+    "account-isolation",
+    "backend-security",
+    "auth-privacy"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodLifeLanguage.ts",
+    "src/hooks/useBuklodLifeLanguage.ts",
+    "src/providers/BuklodLifeLanguageProvider.tsx",
+    "src/app/life/_layout.tsx",
+    "src/lib/__tests__/buklodLifeLanguage.test.ts",
+    "src/app/life/index.tsx",
+    "src/app/life/topic.tsx",
+    "src/app/life/guide.tsx",
+    "src/app/life/support.tsx",
+    "src/app/life/invite.tsx",
+    "src/app/life/share.tsx",
+    "src/app/life/impact.tsx",
+    "src/components/BuklodLifeWallCard.tsx",
+    "src/providers/AuthProvider.tsx",
+    "src/components/BuklodLifeTabs.tsx",
+    "tests/life-language-auth-navigation-20261119.test.mjs",
+    ".buklod/scopes/life-language-consistency-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/life-language-auth-navigation-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Reconcile all BUKLOD LIFE screen language sources without touching shared navigation, media, economy or backend behavior.",
+      "preservedBehaviors": [
+        "Community Wall feed rendering, ads, live tabs and existing normal life navigation remain unchanged.",
+        "Personal spiritual choices remain in secure device storage, not server-derived milestones."
+      ],
+      "tests": [
+        "tests/life-language-auth-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Include previously missing preferred_language in the existing profile SELECT and isolate LIFE navigation language behavior.",
+      "preservedBehaviors": [
+        "Existing profile authorization, session recovery, role validation and sign-out logic are unchanged.",
+        "All existing LIFE deep-link routes and private checkpoint/resume identities remain usable."
+      ],
+      "tests": [
+        "tests/life-language-auth-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add language metadata to the existing authorized profile query, without changing data grants, RLS or authentication/session policy.",
+      "preservedBehaviors": [
+        "Existing Supabase profile RLS and role-based access remain unchanged.",
+        "Authentication failures and account isolation must retain the same behavior; only preferred_language is selected."
+      ],
+      "tests": [
+        "tests/life-language-auth-navigation-20261119.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No Supabase migrations, RLS, or back-end writes added.",
+    "No AdMob SDK or ad placement changes; no global app translation pack activated.",
+    "Faith content remains authored Filipino/English; no network translation or AI spiritual event inference.",
+    "Season 1 production and Season 2 embargo remain unmodified."
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability and exact source manifest gate pass.",
+    "Node and Jest localization tests plus TypeScript compile pass.",
+    "LIFE initial locale hydration, language toggle, saved question links, Wall return and cross-account behavior verified.",
+    "No staging OTA before exact-head RC; no production OTA before December 6 Season 2 approval and ad/navigation runtime gates."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "season2-staging-candidate-no-ota",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "releaseTarget": "Season 2 consolidated staging Android only after separate mandatory RC and release gates",
+  "alternativeApproaches": [
+    "Continue relying on each page's own profile-only language selection (rejected: renders mismatched languages).",
+    "Enable unfinished app-wide Filipino translation pack (rejected: violates reviewed pack release gate).",
+    "Fetch on-demand AI translation (rejected: insecure/unnecessary and can distort curated faith content)."
+  ]
+}

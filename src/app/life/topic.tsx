@@ -34,11 +34,11 @@ import {
 
 import {
   getBuklodLifeCopy,
-  type BuklodLifeLanguage,
   type BuklodLifeTopicKey,
 } from '@/lib/buklodLifeContent';
 
 import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { saveBuklodLifePrivateProgress } from '@/lib/buklodLifePrivateProgress';
 import { BUKLOD_LIFE_GOSPEL_REFERENCES, BUKLOD_LIFE_QUESTION_REFERENCES } from '@/lib/buklodLifeScripture';
@@ -74,17 +74,6 @@ function safeTopic(
 }
 
 
-function safeLanguage(
-  value: unknown,
-): BuklodLifeLanguage {
-  return String(
-    value ?? ''
-  ).toLowerCase() === 'en'
-    ? 'en'
-    : 'fil';
-}
-
-
 export default function BuklodLifeTopicScreen() {
 
   const insets = useSafeAreaInsets();
@@ -107,10 +96,8 @@ export default function BuklodLifeTopicScreen() {
       params.topic
     );
 
-  const language =
-    safeLanguage(
-      params.lang
-    );
+  // Ignore stale lang route parameters: the current preference is authoritative.
+  const language = useBuklodLifeLanguage();
 
   const copy =
     useMemo(
@@ -165,10 +152,13 @@ export default function BuklodLifeTopicScreen() {
     setQuestionSearch('');
     setSaveMessage('');
     const index = Number(params.questionIndex);
+    const rawQuestion = String(params.question ?? '');
+    const translatedQuestions = getBuklodLifeCopy(language === 'fil' ? 'en' : 'fil').questions;
+    const activeIndex = copy.questions.indexOf(rawQuestion);
+    const translatedIndex = translatedQuestions.indexOf(rawQuestion);
     const selectedIndex = params.questionIndex !== undefined && Number.isInteger(index) && index >= 0 && index < copy.questions.length
-      ? index : null;
-    setSelectedQuestion(selectedIndex !== null ? copy.questions[selectedIndex] :
-      (copy.questions.includes(String(params.question ?? '')) ? String(params.question) : ''));
+      ? index : activeIndex >= 0 ? activeIndex : translatedIndex;
+    setSelectedQuestion(selectedIndex >= 0 ? copy.questions[selectedIndex] : '');
   }, [topic, params.question, params.questionIndex, params.resume, copy]);
 
 

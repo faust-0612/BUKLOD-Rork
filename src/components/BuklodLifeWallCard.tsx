@@ -20,45 +20,15 @@ import {
 } from 'expo-router';
 
 import {
-  detectBuklodPublicLanguage,
-} from '@/lib/buklodPublicDailyContent';
-
-import {
   getBuklodLifeWallCopy,
-  normalizeBuklodLifeLanguage,
 } from '@/lib/buklodLifeContent';
 
-import {
-  useAuth,
-} from '@/providers/AuthProvider';
+import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
 
 
 export default function BuklodLifeWallCard() {
 
-  const {
-    profile,
-  } = useAuth();
-
-  const language =
-    useMemo(
-      () =>
-        normalizeBuklodLifeLanguage(
-          detectBuklodPublicLanguage(
-            (
-              profile as any
-            )?.preferred_language,
-            (
-              profile as any
-            )?.country,
-            (
-              profile as any
-            )?.province,
-          )
-        ),
-      [
-        profile,
-      ]
-    );
+  const language = useBuklodLifeLanguage();
 
   const copy =
     useMemo(
