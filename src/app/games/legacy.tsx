@@ -282,6 +282,18 @@ export default function KingdomLegacyScreen() {
           </Pressable>
         </View>
 
+        <View style={s.discoveryRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel="View Kingdom Item Atlas"
+            onPress={()=>router.push('/games/item-atlas' as any)} style={s.discoveryButton}>
+            <MaterialCommunityIcons name="diamond-stone" size={21} color={C.gold}/>
+            <Text style={s.discoveryButtonText}>ITEM ATLAS</Text>
+          </Pressable>
+          {uid ? <Pressable accessibilityRole="button" accessibilityLabel="Play Living Character Adventure"
+            onPress={()=>router.push('/games/character-experience' as any)} style={s.discoveryButton}>
+            <MaterialCommunityIcons name="compass-rose" size={21} color={C.gold}/>
+            <Text style={s.discoveryButtonText}>CHARACTER ADVENTURE</Text>
+          </Pressable> : null}
+        </View>
         {!uid ? (
           <View style={s.emptyPanel}><Text style={s.emptyTitle}>Sign in to view your Kingdom Legacy.</Text>
             <Text style={s.hint}>Your badges and Character items are private to your BUKLOD account.</Text></View>
@@ -499,6 +511,11 @@ export default function KingdomLegacyScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.sky },
+  discoveryRow:{flexDirection:'row',gap:8,marginBottom:3},
+  discoveryButton:{flex:1,flexDirection:'row',minHeight:48,alignItems:'center',
+    justifyContent:'center',gap:6,paddingHorizontal:7,borderWidth:1,borderColor:'#88ad95',
+    borderRadius:11,backgroundColor:'#143c3c'},
+  discoveryButtonText:{color:C.white,fontSize:10,fontWeight:'900',flexShrink:1,textAlign:'center'},
   sunGlow: { position: 'absolute', width: 340, height: 340, borderRadius: 170, backgroundColor: 'rgba(198,157,73,0.08)', top: -145, right: -125 },
   scroll: { width: '100%', maxWidth: 770, alignSelf: 'center', paddingHorizontal: 14, gap: 14 },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
