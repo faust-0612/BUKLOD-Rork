@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { shared } from '@/components/UI';
 import { formatPhp } from '@/lib/buklodR38Economy';
+import { getMyBuklodLegalIdentityStatus, type BuklodLegalIdentityStatus } from '@/lib/buklodLegalIdentity';
 import {
   cancelMyBuklodWithdrawalV3,
   loadMyBuklodFinancialSummaryV3,
@@ -46,6 +47,7 @@ export default function BuklodR38PayoutProfileScreen() {
     useState<BuklodFinancialSummaryV3 | null>(null);
   const [history, setHistory] =
     useState<BuklodWithdrawalHistoryV3 | null>(null);
+  const [legalIdentity, setLegalIdentity] = useState<BuklodLegalIdentityStatus | null>(null);
   const [accountName, setAccountName] = useState('');
   const [gcashMobile, setGcashMobile] = useState('');
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,12 @@ export default function BuklodR38PayoutProfileScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const nextSummary = await loadMyBuklodFinancialSummaryV3();
+      // Fresh backend state: a cached membership flag never grants withdrawal.
+      const [nextSummary, nextIdentity] = await Promise.all([
+        loadMyBuklodFinancialSummaryV3(),
+        getMyBuklodLegalIdentityStatus(),
+      ]);
+      setLegalIdentity(nextIdentity);
 
       const [nextProfile, nextHistory] = await Promise.all([
         loadMyBuklodPayoutProfileV3(),
@@ -109,6 +116,7 @@ export default function BuklodR38PayoutProfileScreen() {
     availableCash >= minimum;
 
   const canRequest =
+    legalIdentity?.status === 'VERIFIED' &&
     withdrawalEnabled &&
     !!profile &&
     meetsMinimum &&
@@ -116,12 +124,15 @@ export default function BuklodR38PayoutProfileScreen() {
     !requesting;
 
   const gateText = useMemo(() => {
+    if (legalIdentity?.status !== 'VERIFIED') {
+      return 'Government ID verification is required for withdrawals. Please verify your real name.';
+    }
     if (!withdrawalEnabled) return 'Withdrawal activation is currently OFF.';
     if (!profile) return 'Save an active payout profile first.';
     if (hasOpenRequest) return 'A withdrawal is already in progress.';
     if (!meetsMinimum) return `Available finalized cash must reach ${formatPhp(minimum)}.`;
     return `Eligible full-withdrawable-balance request: ${formatPhp(availableCash)}.`;
-  }, [withdrawalEnabled, profile, hasOpenRequest, meetsMinimum, minimum, availableCash]);
+  }, [legalIdentity?.status, withdrawalEnabled, profile, hasOpenRequest, meetsMinimum, minimum, availableCash]);
 
   const saveProfile = async () => {
     if (!accountName.trim() || !gcashMobile.trim()) {
@@ -315,6 +326,17 @@ export default function BuklodR38PayoutProfileScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Withdrawal eligibility</Text>
+              <Pressable
+                onPress={() => router.push('/account/identity-verification' as any)}
+                style={{ backgroundColor: '#EDF7F0', padding: 12, borderRadius: 9, gap: 4 }}
+              >
+                <Text style={{ color: '#255C3C', fontSize: 12, fontWeight: '900' }}>
+                  Government ID: {legalIdentity?.status ?? 'NOT VERIFIED'}
+                </Text>
+                <Text style={{ color: '#53705D', fontSize: 11 }}>
+                  Only approved real-name identities can withdraw. Tap to verify or check your ID review.
+                </Text>
+              </Pressable>
             <View style={styles.metricRow}>
               <View style={styles.metric}>
                 <Text style={styles.metricValue}>{formatPhp(availableCash)}</Text>
