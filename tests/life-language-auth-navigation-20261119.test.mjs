@@ -29,6 +29,7 @@ test('LIFE route hydrates saved language before rendering any nested screen', ()
   assert.match(layout, /<BuklodLifeLanguageProvider>/);
   assert.match(provider, /AsyncStorage\.getItem\(storageKey\)/);
   assert.match(provider, /loadedKey !== storageKey/);
+  assert.match(provider, /authLoading \|\| !appReady/);
   assert.match(provider, /@buklod\/life-language-v1:/);
   assert.match(provider, /AsyncStorage\.setItem\(storageKey, next\)/);
   assert.doesNotMatch(provider, /from\('profiles'\)|\.rpc\(/);
