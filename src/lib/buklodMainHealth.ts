@@ -94,6 +94,17 @@ const CODE_RE = /^[A-Z0-9_.:-]{2,160}$/;
 const ROUTE_RE = /^[A-Za-z0-9_./:-]{1,160}$/;
 const STATE_RE = /^[A-Z0-9_.:-]{2,64}$/;
 
+// Serialize only short AsyncStorage read-modify-write transactions. Never hold
+// this lock during RPC/network operations or block new error reports.
+let healthQueueIo: Promise<void> = Promise.resolve();
+const healthFlushUsers = new Set<string>();
+function withHealthQueueIO<T>(work: () => Promise<T>): Promise<T> {
+  const result = healthQueueIo.then(work, work);
+  healthQueueIo = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+
 function queueKey(userId: string) {
   return QUEUE_PREFIX + userId;
 }
@@ -249,6 +260,7 @@ export async function enqueueBuklodMainHealthIssue(
 ) {
   if (!userId) return;
 
+  return withHealthQueueIO(async () => {
   const issue = normalizeIssue(input);
   const now = new Date().toISOString();
   const rows = await readQueue(userId);
@@ -305,26 +317,36 @@ export async function enqueueBuklodMainHealthIssue(
   }
 
   await writeQueue(userId, rows);
+  });
 }
 
 export async function flushBuklodMainHealthQueue(
   userId: string,
 ) {
   if (!userId) return { sent: 0, pending: 0 };
-
-  const rows = await readQueue(userId);
-  if (!rows.length) return { sent: 0, pending: 0 };
-
-  const [deviceRef, sessionRef] = await Promise.all([
-    getOrCreateDeviceRef(),
-    getOrCreateSessionRef(userId),
-  ]);
-
-  const remaining: QueuedHealthIssue[] = [];
+  // Concurrent flush triggers share the same account queue. A second trigger
+  // leaves the first as owner, rather than racing its snapshot or callbacks.
+  if (healthFlushUsers.has(userId)) {
+    const pending = await withHealthQueueIO(async () => (await readQueue(userId)).length);
+    return { sent: 0, pending };
+  }
+  healthFlushUsers.add(userId);
   let sent = 0;
-
-  for (const row of rows) {
-    try {
+  try {
+    const rows = await withHealthQueueIO(() => readQueue(userId));
+    if (!rows.length) return { sent, pending: 0 };
+    const [deviceRef, sessionRef] = await Promise.all([
+      getOrCreateDeviceRef(),
+      getOrCreateSessionRef(userId),
+    ]);
+    for (const row of rows) {
+      // Do not submit queued events under a different account after sign-out,
+      // account switch or an in-flight refresh of auth state.
+      try {
+        const {data: currentSession} = await withBuklodTimeout(
+          supabase.auth.getSession(), 1_500, 'Health queue account binding',
+        );
+        if (currentSession.session?.user?.id !== userId) break;
       const { data: receipt, error } = await withBuklodTimeout<{
         data: {event_id?: string} | null;
         error: unknown | null;
@@ -403,13 +425,33 @@ export async function flushBuklodMainHealthQueue(
         }
       }
       sent += 1;
-    } catch {
-      remaining.push(row);
+        await withHealthQueueIO(async () => {
+          const current = await readQueue(userId);
+          const stored = current.find(item => item.clientEventId === row.clientEventId);
+          if (!stored) return;
+          if (stored.lastQueuedAt !== row.lastQueuedAt || stored.repeatCount !== row.repeatCount) {
+            // Another report arrived while the network request was in flight.
+            // Rotate the client ID to preserve that newer occurrence for later
+            // server dedupe and never drop it by overwriting with stale rows.
+            stored.clientEventId = randomOpaqueRef('health');
+            stored.detectedAt = stored.lastQueuedAt;
+            stored.firstQueuedAt = stored.lastQueuedAt;
+            stored.repeatCount = 1;
+            await writeQueue(userId, current);
+          } else {
+            await writeQueue(userId, current.filter(item => item.clientEventId !== row.clientEventId));
+          }
+        });
+      } catch {
+        // Network or add-on RPC failed: leave the original row intact for a
+        // bounded retry. The authenticated health event itself is idempotent.
+      }
     }
+    const pending = await withHealthQueueIO(async () => (await readQueue(userId)).length);
+    return { sent, pending };
+  } finally {
+    healthFlushUsers.delete(userId);
   }
-
-  await writeQueue(userId, remaining);
-  return { sent, pending: remaining.length };
 }
 
 export async function reportBuklodMainHealthIssue(
