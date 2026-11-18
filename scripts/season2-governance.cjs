@@ -116,8 +116,8 @@ function health(s,p){
     note:'Classified supplied snapshot only; no real production polling'};
 }
 function auditPaths(files){
-  const re=/^(?:src\/lib\/buklodSeason|src\/lib\/buklodEngagementPolicy|src\/components\/points\/BuklodSeason|supabase\/.*(?:season|rank|point|reward)|scripts\/buklod-season2-|\.github\/workflows\/buklod-season2-)/i;
-  const feature=/^(?:src\/lib\/buklodSeason|src\/lib\/buklodEngagementPolicy|src\/components\/points\/BuklodSeason|supabase\/.*(?:season|rank|point|reward))/i;
+  const re=/^(?:src\/lib\/season2\/|src\/app\/admin\/season2-readiness\.tsx|src\/lib\/buklodSeason|src\/lib\/buklodEngagementPolicy|src\/components\/points\/BuklodSeason|supabase\/.*(?:season|rank|point|reward)|scripts\/buklod-season2-|\.github\/workflows\/buklod-season2-)/i;
+  const feature=/^(?:src\/lib\/season2\/|src\/app\/admin\/season2-readiness\.tsx|src\/lib\/buklodSeason|src\/lib\/buklodEngagementPolicy|src\/components\/points\/BuklodSeason|supabase\/.*(?:season|rank|point|reward))/i;
   const affected=files.filter(x=>re.test(x));
   const behaviorChanges=affected.filter(x=>feature.test(x));
   const proposalPaths=files.filter(x=>/^contracts\/season2-proposals\/[^/]+\.json$/.test(x));

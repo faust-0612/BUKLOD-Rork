@@ -19,12 +19,13 @@ const EXPECTED=Object.freeze({
   productionPackage:'org.mzbministry.buklod',
   stagingPackage:'org.mzbministry.buklod.staging',
   stagingBranch:'staging/season2-rise-together-preview-20261118',
+  consolidationBranch:'integration/season2-conso-staging-20261119',
   physicalDeviceVerification:'WAIVED_BY_OWNER_FOR_TRAIN_A_ONLY'
 });
 function evaluateOrder({manifest,release,variant,environment,ref,campaign}){
   const errors=[];
   if(variant!=='staging'||environment!=='staging')errors.push('TARGET_NOT_STAGING');
-  if(ref!=='refs/heads/'+EXPECTED.stagingBranch)errors.push('WRONG_SOURCE_BRANCH');
+  if(!['refs/heads/'+EXPECTED.stagingBranch,'refs/heads/'+EXPECTED.consolidationBranch].includes(ref))errors.push('WRONG_SOURCE_BRANCH');
   if(manifest?.id!==EXPECTED.productionUpdateId||
      manifest?.runtimeVersion!==EXPECTED.runtimeVersion||
      manifest?.extra?.expoClient?.android?.package!==EXPECTED.productionPackage)

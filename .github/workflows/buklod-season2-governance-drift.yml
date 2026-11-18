@@ -6,6 +6,9 @@ on:
       - 'contracts/season2-proposals/**'
       - 'scripts/season2-governance.cjs'
       - 'src/lib/buklodSeason*.ts'
+      - 'src/lib/season2/**'
+      - 'src/app/admin/season2-readiness.tsx'
+      - 'scripts/seasonal-constitution*.cjs'
       - 'src/components/points/BuklodSeason*.tsx'
       - 'supabase/**'
       - 'tests/season2-governance-contract.test.mjs'
@@ -44,7 +47,8 @@ jobs:
           BUKLOD_CI_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/main' }}
         run: |
           node scripts/season2-governance.cjs validate
-          node --test tests/season2-governance-contract.test.mjs tests/season2-governance-production-release-gate.test.mjs
+          node scripts/seasonal-constitution.test.cjs
+          node --experimental-strip-types --test tests/season2-governance-contract.test.mjs tests/season2-governance-production-release-gate.test.mjs tests/buklod-season2-carryover-contract-20261119.test.mjs
           if [ "${{ github.event_name }}" = 'pull_request' ]; then
             node scripts/season2-governance.cjs ci
           fi
