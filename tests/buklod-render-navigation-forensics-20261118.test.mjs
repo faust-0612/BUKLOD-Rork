@@ -10,7 +10,8 @@ test('root render boundary preserves old failure signature but reports classifie
   assert.match(root,/const errorSignature = renderErrorSignature\(error\)/);
   assert.match(root,/const renderEvidence = diagnoseBuklodRenderError\(error\)/);
   assert.match(root,/errorSignature,/);
-  assert.match(root,/correlationKey: renderEvidence\.correlationKey/);
+  assert.match(root,/const correlationKey = buildBuklodRenderCorrelationKey/);
+  assert.match(root,/correlationKey,/);
   assert.match(root,/routeModule,/);
   assert.match(root,/Preliminary cause:/);
   assert.doesNotMatch(root,/rawStack|errorStack|p_error_message|p_stack_trace/);
@@ -50,7 +51,10 @@ test('only render errors attach safe cause, frame and exact crash-time OTA to th
   assert.match(health,/\.rpc\('buklod_attach_render_forensics_v1'/);
   assert.match(health,/p_health_event_id: receipt\.event_id/);
   assert.match(health,/if \(attachError\) throw attachError/);
-  assert.match(health,/remaining\.push\(row\)/);
+  assert.match(health,/healthFlushUsers\.has\(userId\)/);
+  assert.match(health,/withHealthQueueIO/);
+  assert.match(health,/currentSession\.session\?\.user\?\.id !== userId/);
+  assert.match(health,/await writeQueue\(userId, current\.filter/);
   assert.match(native,/Updates\.updateId/);
   assert.match(native,/Updates\.runtimeVersion/);
   assert.match(native,/Updates\.channel/);
@@ -77,4 +81,24 @@ test('new diagnostics are additive and preserve release/AdMob/main navigator imp
   assert.match(root,/import \{ AdsProvider \} from/);
   assert.match(root,/<BuklodMainHealthAgent \/>/);
   assert.match(root,/<BuklodMandatoryUpdateBoundary>/);
+});
+
+
+test('old health event remains compatible while two bundled OTAs never share a forensic row',()=>{
+  const health=readFileSync('src/lib/buklodMainHealth.ts','utf8');
+  assert.match(helper,/\.OTA_.*\.R_/);
+  assert.match(health,/row\.renderForensics/);
+  assert.match(health,/\.rpc\('buklod_record_health_event_v1'/);
+  assert.match(health,/\.rpc\('buklod_attach_render_forensics_v1'/);
+  assert.match(health,/stored\.clientEventId = randomOpaqueRef\('health'\)/);
+  assert.match(health,/if \(currentSession\.session\?\.user\?\.id !== userId\) break/);
+});
+
+test('migration rejects invalid hash and contains exactly one complete function definition',()=>{
+  const sql=readFileSync('supabase/migrations/20261118152000_bsoc_render_forensics_v1.sql','utf8');
+  assert.equal((sql.match(/create or replace function public\.buklod_attach_render_forensics_v1\(/g)||[]).length,1);
+  assert.equal((sql.match(/comment on table public\.bsoc_render_forensics_v1/g)||[]).length,1);
+  assert.match(sql,/recorded\.error_signature !~ '\^RENDER_\[0-9A-F\]\{1,8\}\$' then/);
+  assert.match(sql,/get diagnostics inserted_count = row_count;/);
+  assert.ok(sql.trimEnd().endsWith(" 'RLS-protected allowlisted code/position/OTA evidence only. Never store raw exception messages or stacks.';"));
 });
