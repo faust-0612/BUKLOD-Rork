@@ -90,6 +90,7 @@ jobs:
             tests/buklod-season-v2-experience-20261118.test.mjs \
             tests/buklod-season2-campaign-r1-20261118.test.mjs \
             tests/buklod-season2-staging-order-gate-20261118.test.mjs \
+            tests/buklod-season2-staging-release-contract-20261118.test.mjs \
             tests/dashboard-instant-tabs-20261117.test.mjs \
             tests/dashboard-navigation-auth-20261117.test.mjs \
             tests/fullscreen-video-fair-exposure-20261118.test.cjs \
