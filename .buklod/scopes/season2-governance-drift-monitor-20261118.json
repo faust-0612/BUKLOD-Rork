@@ -1,0 +1,69 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-governance-drift-monitor-20261118.json",
+  "objective": "Executable Season2 rules, owner conflict warning and overrides, plan-vs-implementation ledger, build-segmented read-only error triage and CI drift checker. Integrate read-only readiness check into existing production embargo after approval, and validate proposal files against authenticated owner PR reviews.",
+  "baseRef": "af95563fab1d053c82963df65da5f6d55348d811",
+  "productionBaselineEvidence": "Main Train A production source 404c87e55c62a88c95c7389ac8665f237149702a; production update 01a1ee79-b1f1-7295-9d48-0238ffe0202a reported in PR948. Staging Season2 preview update 01a1eef0-50d1-7f01-9619-ee774d78b9ac. Physical Android AdMob fill unverified.",
+  "chosenApproach": "Isolated new DEV branch forked from latest served Season2 staging preview with pure Node and data configuration only; no edits to existing game, server, release scripts.",
+  "selectionRationale": "Machine tested policy prevents instruction drift and separates plans from deployed behavior while preserving Season1 and avoiding a costly new live telemetry cron.",
+  "alternativeApproaches": [
+    "Documentation only: rejected as unenforceable",
+    "Modify production or current Stage2 source directly: rejected as unsafe",
+    "Duplicate scheduled telemetry/promo cron: rejected"
+  ],
+  "riskAreas": [
+    "governance",
+    "release-identity",
+    "privacy",
+    "finance",
+    "ads-monetization",
+    "production-release"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-governance-drift-monitor-20261118.json",
+    "contracts/season2-governance.json",
+    "contracts/season2-implementation-ledger.json",
+    "scripts/season2-governance.cjs",
+    "tests/season2-governance-contract.test.mjs",
+    "docs/BUKLOD_SEASON_GOVERNANCE_R1_20261118.md",
+    ".github/workflows/buklod-season2-governance-drift.yml",
+    "scripts/buklod-season2-production-embargo.cjs",
+    "tests/season2-governance-production-release-gate.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Season1 production unchanged",
+    "Season2 preview remains read-only and unchanged",
+    "Dec6 production embargo unmodified",
+    "No finance, ranks, XP, inventory, AdMob or backend mutation",
+    "No duplicate announcements or automatic fixes"
+  ],
+  "acceptanceChecks": [
+    "Owner conflict warning and explicit exception tests",
+    "Hard boundary refusal despite approval",
+    "Truthful incomplete readiness hold",
+    "15/30/60 health classifier and adversarial mixed build tests",
+    "Season source changes require ledger updates"
+  ],
+  "regressionTests": [
+    "tests/season2-governance-contract.test.mjs",
+    "tests/season2-governance-production-release-gate.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Add an extra fail-closed Season2 launch-readiness condition after existing calendar/exact SHA owner guards; leave unrelated prod fixes untouched.",
+      "preservedBehaviors": [
+        "Dec6 production-only embargo remains first",
+        "Independent non-Season2 production hotfixes retain normal release path",
+        "Existing exact source SHA approval, AdMob, Android RC and device gates remain required",
+        "No new EAS or backend calls"
+      ],
+      "tests": [
+        "tests/season2-governance-production-release-gate.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV ONLY / DRAFT PR",
+  "releaseAuthorized": false,
+  "productionChange": false
+}

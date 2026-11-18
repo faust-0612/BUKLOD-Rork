@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "season": 2,
+  "environment": "DEV_GOVERNANCE_ONLY",
+  "productionAuthorized": false,
+  "workstreams": [
+    {
+      "id": "story_preview",
+      "status": "STAGING_SERVER_VERIFIED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "PR-948",
+        "EAS-staging-update:01a1eef0-50d1-7f01-9619-ee774d78b9ac"
+      ],
+      "limitations": [
+        "No server rewards or device AdMob proof"
+      ]
+    },
+    {
+      "id": "season1_signed_reconciliation",
+      "status": "BLOCKED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": [
+        "Expired status and pending historic credits require reconciliation"
+      ]
+    },
+    {
+      "id": "server_rules_rls",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "per_character_items_badges_preservation",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "season_rank_archive_reset_hall_of_fame",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "faith_nonfaith_creative_community_quests",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "seasonal_token_and_expiry_policy",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "offline_parallel_retry_antifarm",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "live_telemetry_alert_ingestion",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": [
+        "Offline metrics classifier is NOT a live monitor"
+      ]
+    },
+    {
+      "id": "admob_navigation_android_rc",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "owner_production_release",
+      "status": "BLOCKED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": [
+        "Embargo until Dec6 and separate exact SHA owner approval"
+      ]
+    }
+  ],
+  "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
+}

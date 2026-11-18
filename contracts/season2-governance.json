@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "policyId": "BUKLOD_SEASON_GOVERNANCE_R1",
+  "season": 2,
+  "ownerGitHubLogin": "faust-0612",
+  "productionEmbargoUntilManila": "2026-12-06T00:00:00+08:00",
+  "mode": "DEV_ONLY_NOT_PRODUCTION_AUTHORIZATION",
+  "decisions": {
+    "season1.production_logic": {
+      "value": "untouched",
+      "severity": "HARD_BOUNDARY",
+      "reason": "Season1 is independent and must not be altered from Season2"
+    },
+    "overall_circle_rank.rollover": {
+      "value": "retain",
+      "severity": "OWNER_REVIEW",
+      "reason": "Lifetime Circle Rank is permanent"
+    },
+    "character_levels.rollover": {
+      "value": "retain_per_character",
+      "severity": "OWNER_REVIEW",
+      "reason": "Each Character keeps XP and level on switch and rollover"
+    },
+    "inventory.owned_items_rollover": {
+      "value": "retain",
+      "severity": "OWNER_REVIEW",
+      "reason": "Earned owned items remain durable"
+    },
+    "badges.permanent_rollover": {
+      "value": "retain",
+      "severity": "OWNER_REVIEW",
+      "reason": "Permanent earned badges survive rollover"
+    },
+    "seasonal_rank.rollover": {
+      "value": "archive_then_reset",
+      "severity": "OWNER_REVIEW",
+      "reason": "Archive signed results then fresh season score"
+    },
+    "monthly_rank.cadence": {
+      "value": "monthly_independent",
+      "severity": "OWNER_REVIEW",
+      "reason": "Monthly rank separate from seasons"
+    },
+    "season_missions.rollover": {
+      "value": "new_campaign",
+      "severity": "OWNER_REVIEW",
+      "reason": "New quests, story, catch up and finale each season"
+    },
+    "seasonal_tokens.expiry": {
+      "value": "only_disclosed_event_tokens",
+      "severity": "OWNER_REVIEW",
+      "reason": "Never silently expire wallet assets"
+    },
+    "reward_authority.canonical": {
+      "value": "character_server_receipts",
+      "severity": "HARD_BOUNDARY",
+      "reason": "Character is canonical, Kingdom consumes verified receipts"
+    },
+    "qmp_finance.season_rollover": {
+      "value": "independent_never_reset",
+      "severity": "HARD_BOUNDARY",
+      "reason": "QMP/AdMob revenue, settlements and withdrawals separate"
+    },
+    "show_faith.requirement": {
+      "value": "voluntary_fair_alternatives",
+      "severity": "HARD_BOUNDARY",
+      "reason": "Faith and nonfaith accessible without coercion"
+    },
+    "mission_awards.validation": {
+      "value": "server_verified_idempotent_antifarm",
+      "severity": "HARD_BOUNDARY",
+      "reason": "No local client grants or repeat farming"
+    },
+    "season_promotion.delivery": {
+      "value": "existing_approved_scheduler_only",
+      "severity": "HARD_BOUNDARY",
+      "reason": "No duplicate scheduler or push"
+    },
+    "season2.production_launch": {
+      "value": "embargo_plus_exact_sha_owner_rc",
+      "severity": "HARD_BOUNDARY",
+      "reason": "No Season2 production before Dec6 with owner/RC and live checks"
+    }
+  },
+  "experience": [
+    "new_story_and_twelve_week_campaign",
+    "fair_solo_cooperative_and_faith_nonfaith_tracks",
+    "repeatable_new_season_competition",
+    "server_owned_earned_rewards",
+    "catch_up_and_antifarm",
+    "immutable_hall_of_fame"
+  ],
+  "releaseGates": [
+    "season1_signed_reconciliation",
+    "server_rules_rls",
+    "atomic_idempotent_rollover",
+    "character_inventory_preservation",
+    "finance_admob_qmp_isolation",
+    "staging_android_rc",
+    "real_first_view_ad_fill_and_instant_nav",
+    "offline_retry_security_telemetry",
+    "owner_exact_sha_authorization",
+    "existing_production_embargo"
+  ],
+  "telemetry": {
+    "windowsMinutes": [
+      15,
+      30,
+      60
+    ],
+    "minSessions": 100,
+    "navWarningMs": 450,
+    "navRedMs": 1000,
+    "crashWarningRate": 0.01,
+    "crashRedRate": 0.02,
+    "adReadyWarningRate": 0.7,
+    "adReadyRedRate": 0.5,
+    "adFillDropWarning": 0.2,
+    "adFillDropRed": 0.35
+  },
+  "warning": "Design conflicts require an explicit owner-reviewed scoped change. Hard safety boundaries cannot be waived by a proposal file; release gates stay independent."
+}
