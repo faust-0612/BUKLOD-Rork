@@ -375,6 +375,10 @@ export default function KingdomLegacyScreen() {
             </View>
             <MaterialCommunityIcons name="chevron-right" size={25} color={C.gold}/>
           </Pressable> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel="Open Character Tasks and Collectibles"
+            onPress={() => router.push('/points/character-collections' as any)} style={s.outlineButton}>
+            <Text style={s.outlineText}>CHARACTER TASKS & COLLECTIONS</Text>
+          </Pressable>
           <View style={s.sectionHead}>
             <Text style={s.sectionTitle}>YOUR EQUIPMENT & REWARDS</Text>
             <Text style={s.sectionHint}>{collection ? acquired.length + ' claimed' : 'Server-verified items'}</Text>
