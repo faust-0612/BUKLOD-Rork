@@ -81,3 +81,22 @@ Never penalize a non-creator simply for not posting, nor reward spam designed on
 The prototype requires **contiguous authoritative day attestations**: scope and Show Faith state at that day, enrolled before due time, actual assigned and accessible task, server-verified completion or missed status, a closed day **after grace period**, and confirmed absence of outstanding submissions. Missing evidence, still-open day, pending sync, invalid mode, and unverified status produce NO deduction. Each day is processed exactly once; replays do not double-deduct; up to 31 days of contiguous attestations may be preview-reconciled. The server must produce these attestations; client-side booleans are NOT a trusted grant/debit interface.
 
 **Release status:** The module is not imported by any runtime UI and all feature flags remain OFF. This extension adds a pure preview plus behavioral regression tests, not a real server deduction function. Before ever enabling: owner must approve amounts, rest-day/appeal rules and accessibility, inspect true assigned formation source and qualified-post validators, implement per-account opt-in/enrollment ledger, server-only day-closure and idempotent seasonal ledger, RLS/concurrent cases, offline recovery, and both-scope parity. The underlying QMP/AdMob 30% finance rules remain immutable.
+
+
+## R1 zero-Momentum account safety and notices (pure disabled preview)
+
+**No account deletion for a zero game score.** The user account, posts, chat, progress, Circle Rank, QMP, finalized/withdrawable balance, and earned items are independent of optional Seasonal Momentum. The existing BUKLOD public delete-account contract describes a *user-initiated*, signed-in DELETE confirmation (Profile → Delete Account), with a separate contact-assisted process when back-end deletion is blocked. It does NOT represent an automated deletion-by-inactivity service. Source: src/lib/buklodPublicAccountDeletion.ts and src/app/account/delete.tsx. Public URL: https://buklod.expo.app/delete-account.
+
+Proposed seasonal notifications (all OFF; requires server-authoritative score, zero-start day, season opt-in and idempotent delivery):
+- <=20 nonzero Momentum: one private in-app warning per season.
+- Zero Momentum: instant Recovery Mode notice; no suspension or deletion, optional comeback quest.
+- Zero for 3 days: optional recovery reminder.
+- Zero for 7 days: friendly comeback help.
+- Zero for 30 days: only optional seasonal-challenge archive suggestion; **NOT** account deactivation/deletion.
+- Recovered score >20: recovery notices stop; never infer an account problem.
+
+No notification if season is closed/unjoined, backend evidence absent, score inconsistent or offline operations still pending. Each notice has per-season stable dedupe key, and push is opt-in, quiet-hour aware and uses generic text without exposing faith/children/private details. The pure helper **never sends a notification**. Notification persistence, server generation, user preferences, opt-out, quiet-hours and E2E tests must be implemented before activation.
+
+Any hypothetical *separate* dormant-account cleanup policy must be written into public privacy/retention documents, with meaningful extended inactivity (not score), multiple verifiable notices, export/access recovery, financial/legal/school/ministry records audit, opt-outs and approval. **Not authorized or implemented in this PR.** Do not silently add a deletion cron or call the existing destructive user-requested delete-account endpoint from seasonal logic. A user-initiated deletion request should keep its separate normal workflow regardless of Momentum score.
+
+The present public deletion policy explicitly warns that owned storage cleanup may succeed while auth-user deletion later fails due to foreign keys. That is a separate existing reliability issue to address before any general deletion automation; never describe a partially failed deletion as a completed deletion.

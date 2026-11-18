@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/premium-social-game-policy-r1-20261118.json",
-  "objective": "Pure disabled R1 engagement preview plus additional committed daily reading/post minus within seasonal-only Momentum; no production reward or penalty mutation",
+  "objective": "R1 disabled gamification foundation, optional daily commitment consequences and non-destructive zero-Momentum notices; protect account deletion and financial rights",
   "baseRef": "d23cd882f7d34c4bca3a110dadd04ee4cb2240a9",
   "productionBaselineEvidence": "Read-only GitHub main and BUKLOD Connect Supabase schema/rules/function inspection 2026-11-18. Installed Android OTA/runtime NOT verified. No production writes or release.",
   "chosenApproach": "Extend the isolated, runtime-unimported policy with server-attestation-only daily reading/creator challenge deduction previews (-2/-2), safely combined with general inactivity preview; all flags OFF.",
@@ -25,29 +25,36 @@
     "tests/buklod-engagement-policy-r1-20261118.test.mjs",
     "docs/BUKLOD_PREMIUM_SOCIAL_GAME_ECONOMY_R1_20261118.md",
     ".buklod/scopes/premium-social-game-policy-r1-20261118.json",
-    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs"
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+    "src/lib/buklodZeroMomentumNoticePolicyR1.ts",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs"
   ],
   "preserveBehaviors": [
     "No existing BP/QMP/cash/AdMob/points/Kingdom/Character mutations",
     "No real rewards granted, no migrations or runtime import, flags all OFF",
     "Core communication, prayer, education, safety and attendance never token-gated",
     "Seasonal missed-day penalty cannot affect lifetime points/QMP/payouts or rights",
-    "Missed reading/creator challenges only affect separately opted-in, backend-verified seasonal Momentum; existing BP/QMP and normal posting remain untouched."
+    "Missed reading/creator challenges only affect separately opted-in, backend-verified seasonal Momentum; existing BP/QMP and normal posting remain untouched.",
+    "Preserve user-initiated Profile > Delete Account and public deletion policy without modifying or invoking any destructive process",
+    "No new backend push, cron, account lifecycle side effects or exposure of private prayer/child content"
   ],
   "acceptanceChecks": [
     "Run 17 focused Node behavior tests for policy and commitment consequences",
     "Missing reading -2 and missed enrolled creator challenge -2 only when enrolled, assigned and server-attested; max total minus 9/day",
     "Scope/faith alternative, 31-day contiguous attestation, day closure after grace, idempotence, pending/offline/excused/no-task fail closed",
-    "No changes to permanent BP, monthly QMP, finance, Character V3, Ads or posting access; preserve staging/production hold"
+    "No changes to permanent BP, monthly QMP, finance, Character V3, Ads or posting access; preserve staging/production hold",
+    "Zero seasonal Momentum never deletes, deactivates or locks a BUKLOD account; notices remain pure and disabled",
+    "One notice per season-stage, server-attested zero history, offline deferral, quiet-hours and explicit push opt-in"
   ],
   "regressionTests": [
     "tests/buklod-engagement-policy-r1-20261118.test.mjs",
-    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs"
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Extend only unimported, all-flags-OFF pure preview policy with opt-in daily commitment minus and new risk-based tests; no runtime or backend side effects.",
+      "reason": "Extend only unimported, all-flags-OFF pure preview policy with opt-in daily commitment minus and new risk-based tests; no runtime or backend side effects. Adds a separate pure unimported zero-Momentum notice preview; never touches account deletion.",
       "preservedBehaviors": [
         "Existing app registration, sign-in, Wall, Connect, Character, Kingdom, BP, QMP, AdMob and navigation codepaths remain untouched.",
         "No user-visible reward grant, spending, inactivity debit, new feature gate or source-trigger mutation.",
@@ -56,7 +63,8 @@
       ],
       "tests": [
         "tests/buklod-engagement-policy-r1-20261118.test.mjs",
-        "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs"
+        "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+        "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs"
       ]
     }
   ],
