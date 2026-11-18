@@ -7186,13 +7186,13 @@ const communityFeedRows =
        accessibilityLiveRegion="polite"
        style={{
         paddingHorizontal:14,paddingVertical:7,
-        backgroundColor:commentNotice.startsWith('Comment not posted')
+        backgroundColor:/^(Comment not posted|Could not|Photo\/GIF needs|Upload interrupted|Sign in)/.test(commentNotice)
          ? '#FFF1E5' : '#E8F5EE',
        }}
       >
        <Text style={{
         fontSize:12,fontWeight:'700',
-        color:commentNotice.startsWith('Comment not posted')
+        color:/^(Comment not posted|Could not|Photo\/GIF needs|Upload interrupted|Sign in)/.test(commentNotice)
          ? '#8E4A1E' : colors.greenDark,
        }}>
         {commentNotice}
