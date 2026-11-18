@@ -46,7 +46,7 @@
     "src/components/bible/BuklodBibleQuizV4.tsx",
     "src/lib/buklodSeason2CampaignR1.ts",
     "tests/buklod-season2-campaign-r1-20261118.test.mjs",
-    "tests/buklod-season2-bible-client-and-rc-contract-20261118.test.mjs",
+    "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs",
     "docs/BUKLOD_SEASON2_RISE_TOGETHER_MASTER_20261118.md"
   ],
   "preserveBehaviors": [
@@ -77,7 +77,7 @@
     "tests/post-detail-reaction-count-20261118.test.mjs",
     "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
     "tests/buklod-season2-campaign-r1-20261118.test.mjs",
-    "tests/buklod-season2-bible-client-and-rc-contract-20261118.test.mjs"
+    "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -90,7 +90,7 @@
       ],
       "tests": [
         "tests/buklod-season2-campaign-r1-20261118.test.mjs",
-        "tests/buklod-season2-bible-client-and-rc-contract-20261118.test.mjs"
+        "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs"
       ]
     },
     {
@@ -112,7 +112,7 @@
         "Authenticated grading, stored score, source identity, partial feedback and legacy fallback preserved"
       ],
       "tests": [
-        "tests/buklod-season2-bible-client-and-rc-contract-20261118.test.mjs"
+        "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs"
       ]
     }
   ],
