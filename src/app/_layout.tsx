@@ -45,7 +45,7 @@ import BuklodCenteredBrandMark, {
   BUKLOD_BRAND_LOGO_WEB,
 } from '@/components/BuklodCenteredBrandMark';
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
-import { resolveBuklodCrashRoute } from '@/lib/buklodRouteDiagnostics';
+import { diagnoseBuklodRenderError, resolveBuklodCrashRoute } from '@/lib/buklodRouteDiagnostics';
 
 function renderErrorSignature(error: Error): string {
   // Keep diagnostic payloads free of private error messages and stack traces.
@@ -62,6 +62,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const segments = useSegments();
   const routeModule = resolveBuklodCrashRoute(pathname, segments);
   const errorSignature = renderErrorSignature(error);
+  const renderEvidence = diagnoseBuklodRenderError(error);
 
   useEffect(() => {
     void reportBuklodMainHealthIssue({
@@ -69,7 +70,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       severity: 'ERROR',
       safeErrorCode: 'SYS-500',
       errorSignature,
-      correlationKey: 'BUKLOD_SCREEN_RENDER_EXCEPTION',
+      correlationKey: renderEvidence.correlationKey,
       routeModule,
       networkState: 'UNKNOWN',
       authState: 'UNKNOWN',
@@ -81,7 +82,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       localSelfHealResult: 'NOT_ATTEMPTED',
       privacyClassification: 'OPERATIONAL',
     }).catch(() => undefined);
-  }, [error, errorSignature, routeModule]);
+  }, [error, errorSignature, renderEvidence.correlationKey, routeModule]);
 
   return (
     <View style={styles.error}>
@@ -91,6 +92,10 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       </Text>
       <Text style={styles.errorCode}>Support code: SYS-500 · {errorSignature}</Text>
       <Text style={styles.errorCode}>Module: {routeModule}</Text>
+      <Text style={styles.errorCode}>Preliminary cause: {renderEvidence.causeLabel}</Text>
+      {renderEvidence.originArea !== 'UNKNOWN' && (
+        <Text style={styles.errorCode}>Possible source area: {renderEvidence.originArea}</Text>
+      )}
       <View style={styles.errorActions}>
         <Pressable onPress={retry} style={styles.retry}>
           <Text style={styles.retryText}>TRY AGAIN</Text>
