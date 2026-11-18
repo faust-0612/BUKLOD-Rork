@@ -3953,7 +3953,7 @@ const load=useCallback(async(options?:{
    // Preserve local media drafts until upload succeeds, rather than queueing
    // an unusable path and falsely claiming it will sync.
    const localPhoto=initialMedia?.kind==='image' &&
-    !!initialMedia.ref && !initialMedia.ref.startsWith('http');
+    !!initialMedia.ref && isLocalMediaUri(initialMedia.ref);
    const localGif=initialMedia?.kind==='gif' &&
     !!initialMedia.ref && isLocalMediaUri(initialMedia.ref);
    if(!online && (localPhoto || localGif)){
