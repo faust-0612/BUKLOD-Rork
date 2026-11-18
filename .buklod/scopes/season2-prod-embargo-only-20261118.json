@@ -13,7 +13,8 @@
   ],
   "riskAreas": [
     "production-release",
-    "ads-finance-points"
+    "ads-finance-points",
+    "release-identity"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-prod-embargo-only-20261118.json",
@@ -36,7 +37,8 @@
     "After Dec6 missing exact SHA owner approval and evidence still blocks.",
     "Unrelated fixes pass this specific guard without waiving AdMob/navigation/device requirements.",
     "Android/Web check early and again immediately before EAS publish.",
-    "Tests verify staging untouched, aliases/shared UI caught."
+    "Tests verify staging untouched, aliases/shared UI caught.",
+    "Release identity risk explicitly evaluated: only canonical GitHub Android/Web production workflow sources changed, exact-source SHA binding preserved; no production channel update."
   ],
   "regressionTests": [
     "tests/buklod-season2-production-embargo-20261118.test.mjs"
