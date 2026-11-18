@@ -1,4 +1,7 @@
-import { useContext, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useContext, useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import type { BuklodLifeLanguage } from '@/lib/buklodLifeContent';
 import { detectBuklodDeviceLocale } from '@/i18n/catalog';
 import { resolveBuklodLifeLanguage } from '@/lib/buklodLifeLanguage';
 import { useAuth } from '@/providers/AuthProvider';
@@ -9,7 +12,8 @@ import { BuklodLifeLanguageContext } from '@/providers/BuklodLifeLanguageProvide
 export function useBuklodLifeLanguage() {
   const scoped = useContext(BuklodLifeLanguageContext);
   const { preference } = useBuklodI18n();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const [savedChoice, setSavedChoice] = useState<BuklodLifeLanguage | null>(null);
   const preferredLanguage = (profile as any)?.preferred_language;
   const country = (profile as any)?.country;
   const province = (profile as any)?.province;
@@ -20,7 +24,20 @@ export function useBuklodLifeLanguage() {
     country,
     province,
   }), [preference, preferredLanguage, country, province]);
-  return scoped?.language ?? inferred;
+  // Community Wall renders outside the LIFE route provider. Re-read the same
+  // per-account setting when Wall regains focus, without network requests.
+  useFocusEffect(useCallback(() => {
+    if (scoped) return;
+    let active = true;
+    void AsyncStorage.getItem('@buklod/life-language-v1:' + (user?.id ?? 'guest'))
+      .then(value => {
+        if (active) setSavedChoice(value === 'fil' || value === 'en' ? value : null);
+      })
+      .catch(() => { if (active) setSavedChoice(null); });
+    return () => { active = false; };
+  }, [scoped, user?.id]));
+
+  return scoped?.language ?? savedChoice ?? inferred;
 }
 
 export function useBuklodLifeLanguageSettings() {
