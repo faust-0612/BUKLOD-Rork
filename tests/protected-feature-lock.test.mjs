@@ -137,3 +137,22 @@ test('Season 2 rank-avatar visual patch is staging-only and exactly scoped', () 
   assert.deepEqual(r.failures, []);
   assert.deepEqual(r.impacted, ['app-runtime','navigation-auth','governance-lock']);
 });
+
+test('Season 2 consolidated staging enumerates two protected scopes and keeps production embargo', () => {
+  const f = readFileSync(new URL('../.buklod/scopes/season2-consolidated-staging-20261119.json',import.meta.url),'utf8');
+  const manifest = JSON.parse(f);
+  const flow = readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+  assert.equal(manifest.releaseMode,'consolidated-main-rc');
+  assert.deepEqual(manifest.componentScopePaths,[
+    '.buklod/scopes/season2-circle-rank-avatar-20261119.json',
+    '.buklod/scopes/season2-post-train-a-staging-20261118.json',
+  ]);
+  assert.ok(flow.includes('staging/season2-rise-together-20261118)'));
+  assert.ok(flow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/season2-consolidated-staging-20261119.json'));
+  assert.ok(flow.includes('BUKLOD_CONSOLIDATED_RC_GATE=true'));
+  assert.equal(manifest.productionChange,false);
+  assert.equal(manifest.releaseAuthorized,false);
+  const assessed=assessProtectedFeatureLock(manifest.allowedPaths.map(path=>({status:'M',path})),manifest);
+  assert.deepEqual(assessed.failures,[]);
+  assert.deepEqual(assessed.impacted,['app-runtime','wall-media','navigation-auth','quiz-classroom','production-release','governance-lock']);
+});

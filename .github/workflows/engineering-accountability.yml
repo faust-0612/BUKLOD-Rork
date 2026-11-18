@@ -30,6 +30,11 @@ jobs:
           PR_BASE: ${{ github.base_ref || 'main' }}
         run: |
           case "$PR_HEAD" in
+            staging/season2-rise-together-20261118)
+              if [ "$PR_BASE" = "staging/season2-verified-production-base-20261118" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/season2-consolidated-staging-20261119.json" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
+              fi;;
             dev/season2-circle-rank-avatar-20261119)
               if [ "$PR_BASE" = "staging/season2-rise-together-20261118" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/season2-circle-rank-avatar-20261119.json" >> "$GITHUB_ENV"
