@@ -24,22 +24,22 @@ export type S2Source =
 export type S2Priority = 'learning' | 'community' | 'optional';
 export type S2Rule = Readonly<{
   mode: S2Path | 'both'; priority: S2Priority;
-  tokens: number; dailyLimit: number; backendIntegrated: boolean;
+  tokens: number; dailyLimit: number; candidateServerVerifier: boolean;
 }>;
 /** Faith-only sources do not mint spendable tokens until genuinely equal
  * nonfaith sources are live and parity-tested. Prayer never mints tokens. */
 export const S2_RULES: Readonly<Record<S2Source, S2Rule>> = Object.freeze({
-  today_dugtong: {mode:'both',priority:'community',tokens:2,dailyLimit:1,backendIntegrated:false},
-  kl_verified_chapter: {mode:'both',priority:'learning',tokens:3,dailyLimit:1,backendIntegrated:false},
-  wall_original_post: {mode:'both',priority:'community',tokens:2,dailyLimit:1,backendIntegrated:false},
-  wall_meaningful_comment: {mode:'both',priority:'community',tokens:1,dailyLimit:2,backendIntegrated:false},
-  formation_verified_unit: {mode:'show_faith',priority:'learning',tokens:0,dailyLimit:1,backendIntegrated:false},
-  main_bible_qualified_quiz: {mode:'show_faith',priority:'learning',tokens:0,dailyLimit:1,backendIntegrated:false},
-  general_learning_verified_unit: {mode:'non_show_faith',priority:'learning',tokens:0,dailyLimit:1,backendIntegrated:false},
-  community_verified_challenge: {mode:'non_show_faith',priority:'community',tokens:0,dailyLimit:1,backendIntegrated:false},
-  kingdom_verified_mastery: {mode:'both',priority:'optional',tokens:0,dailyLimit:1,backendIntegrated:false},
-  children_story_milestone: {mode:'both',priority:'optional',tokens:0,dailyLimit:1,backendIntegrated:false},
-  private_prayer: {mode:'show_faith',priority:'optional',tokens:0,dailyLimit:1,backendIntegrated:false},
+  today_dugtong: {mode:'both',priority:'community',tokens:2,dailyLimit:1,candidateServerVerifier:true},
+  kl_verified_chapter: {mode:'both',priority:'learning',tokens:3,dailyLimit:1,candidateServerVerifier:true},
+  wall_original_post: {mode:'both',priority:'community',tokens:2,dailyLimit:1,candidateServerVerifier:true},
+  wall_meaningful_comment: {mode:'both',priority:'community',tokens:1,dailyLimit:2,candidateServerVerifier:true},
+  formation_verified_unit: {mode:'show_faith',priority:'learning',tokens:0,dailyLimit:1,candidateServerVerifier:false},
+  main_bible_qualified_quiz: {mode:'show_faith',priority:'learning',tokens:0,dailyLimit:1,candidateServerVerifier:false},
+  general_learning_verified_unit: {mode:'non_show_faith',priority:'learning',tokens:0,dailyLimit:1,candidateServerVerifier:false},
+  community_verified_challenge: {mode:'non_show_faith',priority:'community',tokens:0,dailyLimit:1,candidateServerVerifier:false},
+  kingdom_verified_mastery: {mode:'both',priority:'optional',tokens:0,dailyLimit:1,candidateServerVerifier:false},
+  children_story_milestone: {mode:'both',priority:'optional',tokens:0,dailyLimit:1,candidateServerVerifier:false},
+  private_prayer: {mode:'show_faith',priority:'optional',tokens:0,dailyLimit:1,candidateServerVerifier:false},
 });
 export const S2_WEEKLY_POLICY=Object.freeze({
   normalDays:7, automaticGraceDays:3, flexCreditsPerSeason:2,
@@ -95,7 +95,7 @@ export function simulateS2TokenReceipts(
     else if(seen.has(key)) reason='DUPLICATE_SOURCE';
     else if(rule.tokens===0) reason='NO_TOKEN_RULE';
     else if((counts.get(receipt.source)||0)>=rule.dailyLimit) reason='SOURCE_CAP';
-    else if(!backendAdapterReady||!rule.backendIntegrated) reason='BACKEND_NOT_LIVE';
+    else if(!backendAdapterReady||!rule.candidateServerVerifier) reason='BACKEND_NOT_LIVE';
     let tokens=0;
     if(reason==='ELIGIBLE_PREVIEW'){
       tokens=Math.min(rule.tokens,Math.max(0,S2_WEEKLY_POLICY.dailyTokenCeiling-potential));
@@ -138,7 +138,7 @@ export function evaluateS2WeeklyPriority(input:S2WeeklyEvidence):S2WeeklyDecisio
   for(const r of input.receipts){
     const rule=S2_RULES[r.source];
     if(!rule)throw Error('Unknown source');
-    if(!r.backendVerified||!r.accepted||!r.mainApp||!rule.backendIntegrated)continue;
+    if(!r.backendVerified||!r.accepted||!r.mainApp||!rule.candidateServerVerifier)continue;
     if(rule.mode!=='both'&&rule.mode!==input.path)continue;
     if(rule.priority==='learning')learning=true;
     if(rule.priority==='community')community=true;
