@@ -136,8 +136,8 @@ requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
 ]);
 requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
   'createAudioPlayer',
-  'buklod-reaction.wav',
-  'buklod-points-claim.wav',
+  'kingdom-premium/collect-crystal.wav',
+  'kingdom-premium/victory.wav',
   'expo-haptics',
 ]);
 requireTokens('src/features/games/kingdom/progress.ts', [

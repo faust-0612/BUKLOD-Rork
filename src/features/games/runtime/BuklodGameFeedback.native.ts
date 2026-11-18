@@ -8,12 +8,12 @@ import { tryPlayRorkGameFeedback } from './rorkAudio';
 import { emitBuklodGameCharacterMotion } from './characterMotionBus';
 import { createBuklodGameFeedbackLimiter } from './feedbackThrottle';
 
-const reactionSound = require('../../../../assets/sounds/buklod-reaction.wav');
-const impactSound = require('../../../../assets/sounds/buklod_community.wav');
-const rewardSound = require('../../../../assets/sounds/buklod-points-claim.wav');
-const unlockSound = require('../../../../assets/sounds/buklod_achievement.wav');
-const failSound = require('../../../../assets/sounds/buklod_error.wav');
-const tapSound = require('../../../../assets/sounds/buklod_message_sent.wav');
+const reactionSound = require('../../../../assets/sounds/kingdom-premium/collect-crystal.wav');
+const impactSound = require('../../../../assets/sounds/kingdom-premium/impact-wood.wav');
+const rewardSound = require('../../../../assets/sounds/kingdom-premium/victory.wav');
+const unlockSound = require('../../../../assets/sounds/kingdom-premium/unlock.wav');
+const failSound = require('../../../../assets/sounds/kingdom-premium/failure.wav');
+const tapSound = require('../../../../assets/sounds/kingdom-premium/ui-soft.wav');
 void getBuklodSoundSettings();
 
 const allowFeedback = createBuklodGameFeedbackLimiter();
@@ -26,29 +26,45 @@ function playNativeSound(
   volume: number,
   cleanupDelay = 1100,
 ) {
-  // Fast puzzle taps must never spawn an unbounded number of native players.
+  // At most six short-lived voices, no player allocation if feedback is off.
   if (activeFallbackPlayers >= MAX_ACTIVE_FALLBACK_PLAYERS) return;
   activeFallbackPlayers += 1;
   let player: ReturnType<typeof createAudioPlayer> | null = null;
+  let readySub: { remove(): void } | null = null;
+  let stateSub: { remove(): void } | null = null;
   let released = false;
+  let started = false;
   const cleanup = () => {
     if (released) return;
     released = true;
-    try { player?.remove(); } catch { /* sound must never block gameplay */ }
+    readySub?.remove();
+    stateSub?.remove();
+    try { player?.pause(); } catch { /* already disposed */ }
+    try { player?.remove(); } catch { /* enhancement only */ }
     activeFallbackPlayers = Math.max(0, activeFallbackPlayers - 1);
   };
   try {
-    player = createAudioPlayer(source);
+    player = createAudioPlayer(source, { updateInterval: 200 });
     player.volume = volume;
     player.playbackRate = playbackRate;
-    void player.seekTo(0).then(() => {
-      if (!released) player?.play();
-    }).catch(() => {
-      if (!released) {
-        try { player?.play(); } catch { /* optional feedback */ }
+    const readyPlayer = player;
+    const startWhenReady = () => {
+      if (released || started || !readyPlayer.isLoaded) return;
+      if (AppState.currentState !== 'active' || !isBuklodGameSoundEnabled()) {
+        cleanup();
+        return;
       }
+      started = true;
+      try { readyPlayer.play(); } catch { cleanup(); }
+    };
+    readySub = readyPlayer.addListener('playbackStatusUpdate', status => {
+      if (status.isLoaded) startWhenReady();
     });
-    setTimeout(cleanup, cleanupDelay);
+    stateSub = AppState.addEventListener('change', state => {
+      if (state !== 'active') cleanup();
+    });
+    startWhenReady();
+    setTimeout(cleanup, cleanupDelay + 500);
   } catch {
     cleanup();
   }

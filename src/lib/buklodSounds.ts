@@ -20,7 +20,11 @@ export type BuklodSoundCue =
   | 'error'
   | 'community'
   | 'achievement'
-  | 'alert';
+  | 'alert'
+  | 'bp_claimed'
+  | 'character_level'
+  | 'character_item'
+  | 'circle_rank';
 
 export type BuklodSoundProfile='classic'|'gentle'|'celebration';
 export type BuklodSoundVolume='low'|'balanced'|'high';
@@ -35,7 +39,7 @@ export const DEFAULT_BUKLOD_SOUND_SETTINGS: BuklodSoundSettings = {
   calls: true,
   submissions: true,
   community: true,
-  achievements: false,
+  achievements: true,
   buttons: false,
   games: true,
   quietHours: false,
@@ -54,6 +58,11 @@ const sounds: Record<BuklodSoundCue, number> = {
   community: require('../../assets/sounds/buklod_community.wav'),
   achievement: require('../../assets/sounds/buklod_achievement.wav'),
   alert: require('../../assets/sounds/buklod_alert.wav'),
+  // Licensed offline CC0 files already bundled for Kingdom.
+  bp_claimed: require('../../assets/sounds/kingdom-premium/coins.wav'),
+  character_level: require('../../assets/sounds/kingdom-premium/unlock.wav'),
+  character_item: require('../../assets/sounds/kingdom-premium/collect-crystal.wav'),
+  circle_rank: require('../../assets/sounds/kingdom-premium/victory-alt.wav'),
 };
 
 const categories: Record<BuklodSoundCue, BuklodSoundCategory> = {
@@ -66,6 +75,10 @@ const categories: Record<BuklodSoundCue, BuklodSoundCategory> = {
   community: 'community',
   achievement: 'achievements',
   alert: 'community',
+  bp_claimed: 'achievements',
+  character_level: 'achievements',
+  character_item: 'achievements',
+  circle_rank: 'achievements',
 };
 
 const categoriesByPreference:Record<BuklodSoundCategory,true>={
@@ -91,7 +104,7 @@ const PROFILE_EARCONS:Record<BuklodSoundProfile,Record<BuklodSoundIdentity,numbe
   },
 };
 function getSoundSource(cue:BuklodSoundCue):number {
-  if(cue==='alert'||cue==='error')return sounds[cue];
+  if(cue==='alert'||cue==='error'||cue==='bp_claimed'||cue==='character_level'||cue==='character_item'||cue==='circle_rank')return sounds[cue];
   const identity:BuklodSoundIdentity =
     cue==='message'||cue==='message_sent'||cue==='button'?'message':
     cue==='achievement'?'achievement':'community';
@@ -111,6 +124,10 @@ const cooldownMs: Record<BuklodSoundCue, number> = {
   community: 5000,
   achievement: 1500,
   alert: 4000,
+  bp_claimed: 1200,
+  character_level: 3000,
+  character_item: 500,
+  circle_rank: 6000,
 };
 
 let settings = { ...DEFAULT_BUKLOD_SOUND_SETTINGS };
@@ -205,8 +222,29 @@ export async function playBuklodCue(cue: BuklodSoundCue, options?:{preview?:bool
     const gain=VOLUME_LEVEL[settings.volumeLevel]*PROFILE_GAIN[settings.soundProfile];
     player.volume=cue==='alert'?Math.min(0.6,gain+0.1):Math.min(0.55,gain);
     player.setPlaybackRate(PROFILE_RATE[settings.soundProfile]);
-    // A newly constructed player may still be loading; seeking before it
-    // becomes ready can reject and swallow the very first feedback sound.
+    // A new local asset can decode asynchronously. Do not lose its first
+    // sound, but never replay it late on another screen or during a call.
+    if (fresh && !player.isLoaded) {
+      const readyPlayer = player;
+      const queuedAt = Date.now();
+      let fired = false;
+      let subscription: { remove(): void } | null = null;
+      const playWhenReady = () => {
+        if (fired || !readyPlayer.isLoaded) return;
+        fired = true;
+        subscription?.remove();
+        if (players.get(cue) !== readyPlayer ||
+            AppState.currentState !== 'active' || activeCall ||
+            Date.now() - queuedAt > 1000 ||
+            (!options?.preview && (!settings[category] || isQuietHours()))) return;
+        try { readyPlayer.play(); } catch { /* optional feedback */ }
+      };
+      subscription = readyPlayer.addListener('playbackStatusUpdate', status => {
+        if (status.isLoaded) playWhenReady();
+      });
+      playWhenReady();
+      return;
+    }
     if (!fresh) await player.seekTo(0);
     player.play();
   } catch (error) {

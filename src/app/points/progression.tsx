@@ -1,3 +1,4 @@
+import { playBuklodCue } from '@/lib/buklodSounds';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -59,6 +60,7 @@ export default function CircleRankProgressionScreen() {
 
   useEffect(() => {
     if (!rankUp) return;
+    void playBuklodCue('circle_rank');
     medalScale.setValue(0.84);
     const animation = Animated.spring(medalScale, {
       toValue: 1, friction: 5, tension: 78, useNativeDriver: true,
