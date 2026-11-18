@@ -55,6 +55,7 @@
     "tests/buklod-season2-durable-outbox-r1-20261118.test.mjs",
     "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
     "tests/buklod-season2-offline-outbox-r1-20261118.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
     "tests/season2-governance-contract.test.mjs",
     "tests/season2-governance-production-release-gate.test.mjs",
     "tests/season2-local-postgres-behavior-20261118.sql",
@@ -64,7 +65,8 @@
     "tests/buklod-season2-carryover-contract-20261119.test.mjs",
     "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
     "tests/season2-governance-production-release-gate.test.mjs",
-    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs"
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -88,6 +90,16 @@
       ],
       "tests": [
         "tests/season2-governance-production-release-gate.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Add explicit branch-to-manifest routing without weakening the existing protected-feature lock or production release protections.",
+      "preservedBehaviors": [
+        "Every impacted protected feature still requires changed regression tests and an exact path allowlist"
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
       ]
     }
   ]

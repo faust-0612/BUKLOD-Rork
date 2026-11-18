@@ -122,3 +122,20 @@ test('Nov17 quiet connection feedback has exact protected scope',()=>{
  assert.deepEqual(result.impacted,['app-runtime','navigation-auth','governance-lock']);
  assert.equal(scope.publicationStatus,'DEV_ONLY_NO_OTA');
 });
+
+test('Season2 consolidation declares every impacted feature and exact protected scope',()=>{
+ const s=JSON.parse(readFileSync(new URL('../.buklod/scopes/season2-conso-staging-20261119.json',import.meta.url),'utf8'));
+ const paths=[
+   '.github/workflows/engineering-accountability.yml',
+   '.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml',
+   'src/app/admin/season2-readiness.tsx',
+   'tests/buklod-season2-carryover-contract-20261119.test.mjs',
+   'tests/season2-governance-production-release-gate.test.mjs',
+   'tests/protected-feature-lock.test.mjs'
+ ];
+ const r=assessProtectedFeatureLock(paths.map(path=>({status:'M',path})),s);
+ assert.deepEqual(r.failures,[]);
+ assert.deepEqual(r.impacted,['app-runtime','production-release','governance-lock']);
+ assert.equal(s.releaseTarget,'STAGING_ONLY');
+ assert.equal(s.productionChange,false);
+});
