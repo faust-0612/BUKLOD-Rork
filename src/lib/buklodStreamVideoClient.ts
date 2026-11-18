@@ -7,9 +7,7 @@ import {
   supabase,
 } from '@/lib/supabase';
 import { loadBuklodCanonicalDisplayName } from '@/lib/buklodCanonicalName';
-import {
-  resolvePersonDisplayName,
-} from '@/lib/buklodPersonDisplay';
+
 import {
   getBuildStreamApiKey,
   readCachedStreamApiKey,
