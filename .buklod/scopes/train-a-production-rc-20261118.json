@@ -19,7 +19,10 @@
     "connect-ptt-calls",
     "cluster-faith",
     "ads-finance-points",
-    "season2-embargo"
+    "season2-embargo",
+    "navigation-scroll",
+    "connect",
+    "release-identity"
   ],
   "allowedPaths": [
     ".buklod/scopes/train-a-production-rc-20261118.json",
