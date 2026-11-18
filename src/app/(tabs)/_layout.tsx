@@ -1,6 +1,7 @@
 import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodDashboardAdWarmup from '@/components/BuklodDashboardAdWarmup';
+import BuklodAndroidDashboardTabs from '@/components/BuklodAndroidDashboardTabs';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import BuklodNavigationSideMenu from '@/components/BuklodNavigationSideMenu';
 import {
@@ -27,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useNotifications } from '@/providers/NotificationProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
@@ -284,7 +286,10 @@ export default function TabsLayout() {
     session,
     loading,
     profile,
+    profileLoadState,
+    refreshProfile,
   } = useAuth();
+  const { online } = useNetwork();
   const {
     requiresAcceptance,
   } = useCompliance();
@@ -341,6 +346,24 @@ export default function TabsLayout() {
    * actionable onboarding/profile-completion flow below.
    */
   if (!profile) {
+    if (profileLoadState !== 'missing') {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.canvas, padding: 16, gap: 10 }}>
+          {profileLoadState === 'loading' ? <ActivityIndicator color={theme.accent} /> : null}
+          <Text style={{ color: theme.textMuted, textAlign: 'center', fontWeight: '700' }}>
+            {profileLoadState === 'loading'
+              ? 'Opening your BUKLOD profile…'
+              : 'Your account is signed in. A stable connection is needed to load your profile.'}
+          </Text>
+          {profileLoadState === 'unavailable' && online ? (
+            <Pressable accessibilityRole="button" onPress={() => void refreshProfile()}
+              style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 9, backgroundColor: theme.accent }}>
+              <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>RETRY PROFILE</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      );
+    }
     return <Redirect href="/onboarding" />;
   }
 
@@ -396,7 +419,13 @@ export default function TabsLayout() {
       width,
     );
 
-  const workspaceStack = (
+  // Android's five persistent dashboards must not behave like a popping
+  // stack: returning to a previously visited tab should reuse its frozen
+  // screen instance rather than remount Wall/Connect and restart media work.
+  // Web/iOS retain their verified Stack until separately regression-tested.
+  const workspaceStack = Platform.OS === 'android' ? (
+    <BuklodAndroidDashboardTabs showPrayer={showPrayer} sceneStyle={tabSceneStyle} />
+  ) : (
     <Stack
       screenOptions={{
         headerShown: false,

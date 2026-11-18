@@ -1,0 +1,82 @@
+{
+  "contractVersion": 2,
+  "objective": "Add session-rotated fair exposure and creator diversity to fullscreen Public Wall videos while retaining immediate tapped playback, ad slots, pagination and signed-media protections.",
+  "baseRef": "0c461c451ce58b5d8211da46b511f6f9e43df016",
+  "sourceBranch": "feat/fullscreen-video-fair-exposure-20261118",
+  "status": "DEV source only, not a staging or production release",
+  "protections": [
+    "Only already-authorized public video metadata is re-ordered inside newly loaded 15-row pages; no extra RPC, network calls, schema, RLS or impressions writes",
+    "Original clicked video, existing playlist rows and ad slot positions remain stable after append",
+    "Newest-only keyset cursor remains based on server order; Latest/Following Wall presentation and existing For You remain unchanged",
+    "No changes to AdMob fill, consent, cooldown, native IMA, player lifecycle, prefetch, swipe, gestures, reactions or signed URLs"
+  ],
+  "limitations": [
+    "Low engagement is only a proxy for underexposure; exact equal view counts are not guaranteed without authenticated privacy-safe view analytics",
+    "Fair opportunity is within the fetched 50-video window, not the entire historical archive"
+  ],
+  "requiredGates": [
+    "Node pure ranking and fullscreen source contract tests",
+    "Full TypeScript and protected ad/nav/media/spacing CI gates",
+    "Android Hermes native ad/playback and gesture smoke on exact staging APK/OTA",
+    "Explicit DEV to RC to production promotion after exact update/runtime evidence; no release by this change alone"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodVideoDiscovery.ts",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    ".buklod/scopes/fullscreen-video-fair-exposure-20261118.json",
+    "tests/fullscreen-video-session-navigation-20261118.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    "tests/fullscreen-video-session-navigation-20261118.test.mjs"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "wall-media",
+    "ads-finance-points"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Fullscreen playlist now locally ranks authorized metadata before appending new rows; preserve startup, Android video lifetime and preload.",
+      "preservedBehaviors": [
+        "Expo Video playback, Android native dependencies, private media and network retry remain unchanged"
+      ],
+      "tests": [
+        "tests/fullscreen-video-fair-exposure-20261118.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Fair video ordering operates within the authenticated Public Wall modal and must not override account/location transitions or close/reopen session cancellation.",
+      "preservedBehaviors": [
+        "Current clicked video first, session guard, account/location isolation, ads and modal close/back navigation"
+      ],
+      "tests": [
+        "tests/fullscreen-video-session-navigation-20261118.test.mjs"
+      ]
+    }
+  ],
+  "productionBaselineEvidence": "Inspected canonical main 0ee57887c991d23472cdf1f9b849bce945792910 and latest stacked DEV fullscreen swipe/reaction source 0c461c451ce58b5d8211da46b511f6f9e43df016. GitHub source, not verified installed Android APK, RC OTA, runtime, ad fill or production.",
+  "chosenApproach": "Rank only each freshly authorized 15-video metadata batch in memory by 30% fresh, 30% low-engagement and 40% general discovery lanes, rotating deterministically per viewing session and avoiding recent creators; then append without moving existing rows.",
+  "selectionRationale": "Does not require view tracking, backend queries, schema, permissions or extra media downloads. Ranking before ad insertion preserves consent/first-view ad behavior, stable swipe index and signed media recovery. Account/session guards reject late results.",
+  "preserveBehaviors": [
+    "Currently viewed video remains at its index and original tapped video starts fullscreen",
+    "Chronological keyset cursor and 50-entry cap unchanged; Latest and Following Wall feeds unchanged",
+    "IMA and AdMob consent and revenue placements remain untouched",
+    "Source authorization, video prefetch, playback retries, signed URLs and account isolation remain unchanged"
+  ],
+  "acceptanceChecks": [
+    "Node tests cover complete unique videos, fresh/low-engagement opportunity, creator cooldown, deterministic viewer/session variation and stable existing playlist",
+    "Integrated source tests verify original tapped video, keyset cursor, append-only playlist and unchanged ad insertion",
+    "No new RPC, point transaction, downloaded media, sensitive analytics or permission change",
+    "Release requires exact-head full TypeScript, native Android playback, ad fill, dashboard and signed media checks and validated staging RC"
+  ],
+  "alternativeApproaches": [
+    "Randomize entire existing fullscreen list on every swipe (rejected: would jump current player, ads and scroll index)",
+    "Use global lifetime view counts immediately (deferred: no verified privacy-safe authenticated impression store and would add backend/write load)",
+    "Re-fetch and re-sign many historical videos to compute ranks (rejected: expensive, slow and increased bandwidth risk)"
+  ]
+}

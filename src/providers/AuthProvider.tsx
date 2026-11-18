@@ -60,10 +60,13 @@ export type Profile = {
   is_active: boolean;
 };
 
+type BuklodProfileLoadState = 'loading' | 'ready' | 'missing' | 'unavailable';
+
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  profileLoadState: BuklodProfileLoadState;
 
   // Active simultaneous BUKLOD roles.
   roles: AppRole[];
@@ -127,6 +130,7 @@ export function AuthProvider({
 
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoadState, setProfileLoadState] = useState<BuklodProfileLoadState>('loading');
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -181,6 +185,9 @@ export function AuthProvider({
         String(error?.message ?? error ?? 'Role request failed.')
       );
     }
+
+    // Slow results for a previous account must not replace the new account's roles.
+    if (sessionUserIdRef.current !== userId) return [];
 
     if (!data) {
       const fallback: AppRole[] =
@@ -268,11 +275,12 @@ export function AuthProvider({
           'Verification load failed:',
           String(error?.message ?? error ?? 'Verification request failed.')
         );
-        setMembershipState('pending');
+        if (sessionUserIdRef.current === userId) setMembershipState('pending');
         return;
       }
     }
 
+    if (sessionUserIdRef.current !== userId) return;
     if (isVerified === true) {
       setMembershipState('ready');
       return;
@@ -307,6 +315,7 @@ export function AuthProvider({
         },
       );
 
+      if (sessionUserIdRef.current !== userId) return;
       if (status === 'rejected') {
         setMembershipState('rejected');
         return;
@@ -318,9 +327,11 @@ export function AuthProvider({
         'Membership load failed:',
         String(error?.message ?? error ?? 'Membership request failed.')
       );
-      setMembershipState((current) =>
-        current === 'loading' ? 'pending' : current
-      );
+      if (sessionUserIdRef.current === userId) {
+        setMembershipState((current) =>
+          current === 'loading' ? 'pending' : current
+        );
+      }
     }
   };
 
@@ -333,11 +344,19 @@ export function AuthProvider({
       setProfile(null);
       setRoles([]);
       setMembershipState('none');
+      setProfileLoadState('missing');
       return;
     }
 
-    const cachedSnapshot = await readAuthSnapshot(userId);
+    if (sessionUserIdRef.current !== userId) return;
+    setProfileLoadState('loading');
+
+    // A profile snapshot is presentation data only; never reuse it across accounts.
+    const snapshot = await readAuthSnapshot(userId);
+    if (sessionUserIdRef.current !== userId) return;
+    const cachedSnapshot = snapshot?.profile?.id === userId ? snapshot : null;
     if (cachedSnapshot) {
+      setProfileLoadState('ready');
       setProfile(cachedSnapshot.profile as Profile);
       setRoles(
         (cachedSnapshot.roles as AppRole[]).filter((role) =>
@@ -357,6 +376,8 @@ export function AuthProvider({
      */
     if (!allowRemote) {
       if (!cachedSnapshot) {
+        // Unknown/degraded connectivity is not proof of a missing profile.
+        setProfileLoadState('unavailable');
         setMembershipState((current) =>
           current === 'loading' ? 'pending' : current
         );
@@ -382,10 +403,9 @@ export function AuthProvider({
             'BUKLOD profile'
           );
 
-          if (result.error || !result.data) {
-            throw new Error(
-              result.error?.message ?? 'Profile not available.'
-            );
+          if (result.error) throw result.error;
+          if (!result.data) {
+            throw Object.assign(new Error('Profile not available.'), { code: 'PGRST116' });
           }
 
           return result.data as Profile;
@@ -402,17 +422,32 @@ export function AuthProvider({
         String(error?.message ?? error ?? 'Profile request failed.')
       );
 
-      if (cachedSnapshot) {
+      if (sessionUserIdRef.current !== userId) return;
+
+      // A confirmed missing profile invalidates any previously saved UI-only snapshot.
+      // Network failures keep the last same-user snapshot for offline display.
+      if (String(error?.code ?? '') === 'PGRST116') {
+        await clearAuthSnapshot(userId);
+        if (sessionUserIdRef.current !== userId) return;
+        setProfile(null);
+        setRoles([]);
+        setMembershipState('none');
+        setProfileLoadState('missing');
         return;
       }
+      if (cachedSnapshot) return;
 
+      // Only an unavailable network/profile read is recoverable without onboarding.
+      setProfileLoadState('unavailable');
       setMembershipState((current) =>
         current === 'loading' ? 'pending' : current
       );
       return;
     }
 
+    if (!nextProfile || sessionUserIdRef.current !== userId) return;
     setProfile(nextProfile);
+    setProfileLoadState('ready');
 
     /*
      * Roles and membership are independent after the profile row
@@ -433,6 +468,7 @@ export function AuthProvider({
       ),
     ]);
 
+    if (sessionUserIdRef.current !== userId) return;
     await writeAuthSnapshot(userId, {
       profile: nextProfile,
       roles: nextRoles,
@@ -493,6 +529,7 @@ export function AuthProvider({
          */
         if (!userId) {
           setMembershipState('none');
+          setProfileLoadState('missing');
           finishBootstrap();
           return;
         }
@@ -579,6 +616,7 @@ export function AuthProvider({
             setProfile(null);
             setRoles([]);
             setMembershipState('none');
+            setProfileLoadState('missing');
             finishBootstrap();
             return;
           }
@@ -599,6 +637,11 @@ export function AuthProvider({
             _event === 'SIGNED_IN' &&
             !sameUser
           ) {
+            // Old profile and roles must not flash during account switches.
+            setProfile(null);
+            setRoles([]);
+            setMembershipState('loading');
+            setProfileLoadState('loading');
             setLoading(true);
           }
 
@@ -768,6 +811,7 @@ export function AuthProvider({
       session,
       user: session?.user ?? null,
       profile,
+      profileLoadState,
       roles,
       loading,
       membershipState,
@@ -826,6 +870,7 @@ export function AuthProvider({
         setProfile(null);
         setRoles([]);
         setMembershipState('none');
+        setProfileLoadState('missing');
         setLoading(false);
 
         await clearAuthSnapshot(
@@ -850,6 +895,7 @@ export function AuthProvider({
   }, [
     session,
     profile,
+    profileLoadState,
     roles,
     loading,
     membershipState,

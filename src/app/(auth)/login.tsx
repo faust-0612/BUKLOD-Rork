@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
 import {
   isBuklodInvalidCredentialsError,
   isBuklodTransientAuthError,
@@ -633,6 +634,18 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loginStatus, setLoginStatus] = useState('');
+  const [slowLogin, setSlowLogin] = useState(false);
+  const { status: networkStatus } = useNetwork();
+
+  useEffect(() => {
+    if (!busy) {
+      setSlowLogin(false);
+      return;
+    }
+    // Feedback only. Never repeat a password grant or cut off its security checks.
+    const timer = setTimeout(() => setSlowLogin(true), 4_000);
+    return () => clearTimeout(timer);
+  }, [busy]);
   const [passwordRecoveryNotice, setPasswordRecoveryNotice] =
     useState(false);
   // HIGH_CONCURRENCY_LOGIN_R1: React state alone cannot stop same-tick double taps.
@@ -1222,6 +1235,7 @@ const chooseSuggestedLogin =
      * A voluntarily deactivated account may authenticate only far enough to
      * choose whether to reactivate. Normal app navigation remains blocked.
      */
+    setLoginStatus('Password accepted. Checking account status securely…');
     const {
       data: accountLifecycle,
       error: accountLifecycleError,
@@ -1697,6 +1711,13 @@ const chooseSuggestedLogin =
               style={styles.loginStatus}
             >
               {loginStatus}
+            </Text>
+          ) : null}
+          {busy && slowLogin ? (
+            <Text accessibilityLiveRegion="polite" style={styles.loginStatus}>
+              {networkStatus === 'online'
+                ? 'Sign-in is taking longer than usual. BUKLOD is checking safely without sending duplicate requests.'
+                : 'The connection is weak or unavailable. BUKLOD will not send duplicate login requests.'}
             </Text>
           ) : null}
 

@@ -7,10 +7,18 @@ import { useEffect, useState } from 'react';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { getSupportedTranslationLanguages, translateText } from '@/lib/nativeTranslation';
 
+export type HenryTranslationFailure =
+  | 'native-unavailable'
+  | 'model-unavailable'
+  | 'unsupported-language'
+  | 'quality-rejected'
+  | 'translation-failed';
+
 type TranslationState = {
   key: string;
   status: 'loading' | 'translated' | 'unavailable';
   text: string;
+  failure?: HenryTranslationFailure;
 };
 
 export function normalizeHenryLanguage(languageCode: string | null | undefined, translation: string): string {
@@ -250,6 +258,29 @@ export function isHenryFilipinoTranslationReliable(english: string, filipino: st
   return true;
 }
 
+/**
+ * Classify failures without logging commentary, user IDs, or device details.
+ * Keep missing native code distinct from recoverable model/network failures:
+ * a JavaScript OTA cannot add an absent Android ML Kit module.
+ */
+export function classifyHenryTranslationError(error: unknown): HenryTranslationFailure {
+  const detail = typeof error === 'object' && error !== null
+    ? error as { code?: unknown; message?: unknown } : null;
+  const code = typeof detail?.code === 'string' ? detail.code : '';
+  const message = typeof detail?.message === 'string' ? detail.message : '';
+  if (/not available in this native build|Cannot find native module|Native module cannot be null/i.test(message)) {
+    return 'native-unavailable';
+  }
+  if (/E_MLKIT_(?:SOURCE|TARGET)_LANGUAGE/.test(code) || /Unsupported on-device commentary language/.test(message)) {
+    return 'unsupported-language';
+  }
+  if (/semantic\/citation safeguards/.test(message)) return 'quality-rejected';
+  if (/E_MLKIT_MODEL|E_MLKIT_MODEL_DOWNLOAD/.test(code) || /model download failed/i.test(message)) {
+    return 'model-unavailable';
+  }
+  return 'translation-failed';
+}
+
 function textFingerprint(text: string): string {
   let hash = 2166136261;
   for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
@@ -265,8 +296,9 @@ export function useMatthewHenryTranslation(input: {
   endVerse: number;
   text: string;
   targetLanguage: string;
+  retryToken?: number;
 }): TranslationState {
-  const { enabled, accountId, bookNo, chapterNo, startVerse, endVerse, text, targetLanguage } = input;
+  const { enabled, accountId, bookNo, chapterNo, startVerse, endVerse, text, targetLanguage, retryToken = 0 } = input;
   const key = `henry-translation-v4:${bookNo}:${chapterNo}:${startVerse}-${endVerse}:${targetLanguage}:${textFingerprint(text)}`;
   const [state, setState] = useState<TranslationState>({ key: '', status: 'unavailable', text: '' });
   useEffect(() => {
@@ -316,11 +348,11 @@ export function useMatthewHenryTranslation(input: {
         void setOfflineCache(key, {text: output}, {
           userId: accountId, ttlMs: 90 * 24 * 60 * 60 * 1000,
         }).catch(() => undefined);
-      } catch {
-        if (active) setState({ key, status: 'unavailable', text: '' });
+      } catch (error) {
+        if (active) setState({ key, status: 'unavailable', text: '', failure: classifyHenryTranslationError(error) });
       }
     })();
     return () => { active = false; };
-  }, [enabled, accountId, key, text, targetLanguage]);
+  }, [enabled, accountId, key, text, targetLanguage, retryToken]);
   return state.key === key ? state : { key, status: 'loading', text: '' };
 }
