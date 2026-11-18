@@ -130,6 +130,7 @@ test('Season2 consolidation declares every impacted feature and exact protected 
    '.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml',
    'src/app/admin/season2-readiness.tsx',
    'tests/buklod-season2-carryover-contract-20261119.test.mjs',
+   'tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs',
    'tests/season2-governance-production-release-gate.test.mjs',
    'tests/protected-feature-lock.test.mjs'
  ];
