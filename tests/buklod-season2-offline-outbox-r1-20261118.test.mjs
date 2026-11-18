@@ -61,7 +61,7 @@ test('Only trusted matching server receipt confirms earned reward, no false cred
  assert.equal(correct[0].serverReceiptId,'s2-source-001');
  assert.equal(correct[0].serverTokens,2);
  assert.equal(getS2RewardDisplay(correct[0]),'EARNED');
- assert.equal(confirmS2ServerResult(correct,verified(),1400),correct.length && correct);
+ assert.deepEqual(confirmS2ServerResult(correct,verified(),1400),correct);
 });
 test('Server denial is not earned; retry response remains pending',()=>{
  const sending=reserveS2Next(enqueueS2Evidence([],draft()).queue,USER,true,1000).queue;
