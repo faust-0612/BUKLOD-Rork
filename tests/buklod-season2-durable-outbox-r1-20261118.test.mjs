@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {S2DurableOutboxR1,S2_DURABLE_OUTBOX_ROLLOUT}
-from '../src/lib/season2/buklodSeason2DurableOutboxR1.ts';
+import {registerHooks} from 'node:module';
+// Test-only Node ESM resolution: keep production/Metro TypeScript imports
+// extensionless; Node --experimental-strip-types needs explicit .ts.
+registerHooks({
+  resolve(specifier,context,nextResolve){
+    if(specifier.endsWith('/buklodSeason2OfflineOutboxR1'))
+      return nextResolve(specifier+'.ts',context);
+    return nextResolve(specifier,context);
+  }
+});
+const {S2DurableOutboxR1,S2_DURABLE_OUTBOX_ROLLOUT} =
+ await import('../src/lib/season2/buklodSeason2DurableOutboxR1.ts');
 const user='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const other='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const id='11111111-1111-4111-8111-111111111111';

@@ -8,7 +8,7 @@ import {
  markS2TransportUnknown,recoverS2InterruptedSends,
  compactS2ConfirmedOutbox,S2_OUTBOX_LIMITS,
  type S2DraftOperation,type S2OutboxEntry,type S2ServerResult
-} from './buklodSeason2OfflineOutboxR1.ts';
+} from './buklodSeason2OfflineOutboxR1';
 
 export const S2_DURABLE_OUTBOX_ROLLOUT=Object.freeze({
  installedRuntime:false,backendSubmission:false,optimisticCredit:false
