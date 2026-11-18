@@ -11,6 +11,7 @@ import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import {
   WALL_COMMENT_QUEUE_KIND,
   parsePendingWallComment,
+  emitConfirmedWallComment,
 } from '@/lib/buklodCommunityOfflineComment';
 import { notifyBuklodCommunityMentions } from '@/lib/buklodNotifyMentions';
 import { recordConfirmedCommunityComment } from '@/lib/buklodCommunityCommentAdCadence';
@@ -149,8 +150,17 @@ export default function BuklodSyncCoordinator() {
       }
 
       // Only server-confirmed comments enter the existing ad cadence.
-      const adCount = recordConfirmedCommunityComment(item.userId);
-      if (adCount.shouldWarm) warmBuklodAdOpportunity('community_comment_overage');
+      try {
+        const adCount = recordConfirmedCommunityComment(item.userId);
+        if (adCount.shouldWarm) warmBuklodAdOpportunity('community_comment_overage');
+      } catch {
+        // Ad telemetry must never convert an acknowledged write into a retry.
+      }
+      emitConfirmedWallComment({
+        itemId: item.id,
+        userId: item.userId,
+        postId: payload.postId,
+      });
       if (payload.mentionIds.length) {
         void notifyBuklodCommunityMentions({
           postId: payload.postId,
