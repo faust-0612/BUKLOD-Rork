@@ -117,6 +117,7 @@ export default function BuklodR38PayoutProfileScreen() {
 
   const canRequest =
     legalIdentity?.status === 'VERIFIED' &&
+    legalIdentity?.membership_verified === true &&
     withdrawalEnabled &&
     !!profile &&
     meetsMinimum &&
@@ -127,12 +128,15 @@ export default function BuklodR38PayoutProfileScreen() {
     if (legalIdentity?.status !== 'VERIFIED') {
       return 'Government ID verification is required for withdrawals. Please verify your real name.';
     }
+    if (legalIdentity.membership_verified !== true) {
+      return 'Your BUKLOD membership must also be approved before you can withdraw.';
+    }
     if (!withdrawalEnabled) return 'Withdrawal activation is currently OFF.';
     if (!profile) return 'Save an active payout profile first.';
     if (hasOpenRequest) return 'A withdrawal is already in progress.';
     if (!meetsMinimum) return `Available finalized cash must reach ${formatPhp(minimum)}.`;
     return `Eligible full-withdrawable-balance request: ${formatPhp(availableCash)}.`;
-  }, [legalIdentity?.status, withdrawalEnabled, profile, hasOpenRequest, meetsMinimum, minimum, availableCash]);
+  }, [legalIdentity?.status, legalIdentity?.membership_verified, withdrawalEnabled, profile, hasOpenRequest, meetsMinimum, minimum, availableCash]);
 
   const saveProfile = async () => {
     if (!accountName.trim() || !gcashMobile.trim()) {
