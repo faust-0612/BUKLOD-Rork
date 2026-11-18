@@ -44,7 +44,8 @@ export function getBuklodCircleRankArt(value?: string | null): BuklodCircleRankA
     const prefix = family.toLowerCase() + ' ';
     if (!normalized.startsWith(prefix)) continue;
     const levelIndex = BUKLOD_CIRCLE_RANK_LEVELS.findIndex(level => level.toLowerCase() === normalized.slice(prefix.length));
-    if (levelIndex < 0) return null;
+    // Prime Elite shares the Prime prefix: keep checking the longer family.
+    if (levelIndex < 0) continue;
     return {
       name: family + ' ' + BUKLOD_CIRCLE_RANK_LEVELS[levelIndex],
       order: familyIndex * 5 + levelIndex + 1,
