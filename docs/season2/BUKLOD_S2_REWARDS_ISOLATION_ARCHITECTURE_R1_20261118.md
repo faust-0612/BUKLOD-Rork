@@ -36,6 +36,12 @@ Read-only live Supabase introspection on 2026-11-18 confirmed:
   (user_id,character_id) progression; public.buklod_character_collectible_state
   stores discovered/redeemed items, separate from catalog artwork.
 - public.buklod_scope_memberships uses ACTIVE / PENDING / LEFT etc.
+- public.buklod_should_show_faith_content is an auth.uid-based existing UI
+  authorization function. For actual Show Faith checks its precedence includes
+  CHURCH scope, CLUSTER admin, ORGANIZATION faith_content_mandatory metadata,
+  then per-user preference. An internal service-only Season2 validator MUST
+  not call this with a null auth.uid and mistake false for nonfaith. It must
+  verify actual user, scope, membership and event-time policy independently.
 No live private records were modified or exported.
 
 ## System ownership and invariants
@@ -197,7 +203,11 @@ production embargo guard pass and full acceptance evidence.
   staging receipt; GitHub source write to DEV isolated branch. Backend S1 table
   and source column introspection was read-only.
 - Written but **not executed on Postgres**: isolated S2 SQL DRAFT.
-- Source tests: awaiting GitHub automated execution/verification.
+- Source tests: GitHub Engineering Accountability objective-scope gate passed
+  after first test-assertion correction, and disposable PostgreSQL functional
+  CI run #44331742746 passed. The latest expanded concurrent-token and
+  badge-null-audit tests are verified only when their exact subsequent run
+  succeeds; never infer a pass from earlier SHA.
 - Not live: token mint/spend, badge claim, weekly Foundation, Flex, Momentum,
   registration, Character inventory linkage, announcements based on grants,
   Season2 full launch.
