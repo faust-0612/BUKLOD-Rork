@@ -55,12 +55,15 @@
     "src/app/(tabs)/me.tsx",
     "src/app/admin/bible-v4-events.tsx",
     "src/app/post/[id].tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
     "src/components/BuklodReactionAction.tsx",
     "src/components/BuklodTappableAvatar.tsx",
     "src/components/ProfileAvatar.tsx",
     "src/components/bible/BuklodBibleQuizV4.tsx",
     "src/components/connect/ConnectQuickContacts.tsx",
     "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
     "src/components/points/BuklodCircleRankBadge.tsx",
     "src/components/points/BuklodPointsRewardsScreen.tsx",
     "src/components/points/BuklodSeason2RankArtwork.tsx",
@@ -122,7 +125,8 @@
     "2 component scope paths and all 44 changed files plus this consolidated manifest exactly accounted for",
     "Protected-feature lock and focused regression suite pass against staging source base with no omitted tests",
     "Native staging APK WebP transparency, online/offline/Notes overlap, AdMob fill and first-view/instant-tab QA remain release gates; no claim of actual device success",
-    "Staging-only signed EAS served update readback before declaring deployed"
+    "Staging-only signed EAS served update readback before declaring deployed",
+    "Web Connect avatar bounds do not clip the 10-o-clock badge; Wall bubbles, Web Connect search and Post detail receive verified rank immediately"
   ],
   "regressionTests": [
     "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",

@@ -23,3 +23,16 @@ test('Do not alter existing navigation tabs, user sessions or ads in the avatar 
   assert.match(read('src/lib/buklodCircleRankBatch.ts'), /get_member_circle_ranks_v1/);
   assert.doesNotMatch(avatar, /navigate\(/);
 });
+
+test('Web Connect, Wall people rail and Post detail keep rank overlays visible', () => {
+ const web=read('src/components/connect/ConnectTappableAvatar.web.tsx');
+ const bubbles=read('src/components/BuklodCommunityWallProfileBubbles.tsx');
+ const header=read('src/components/BuklodCommunityConnectHeader.web.tsx');
+ const post=read('src/app/post/[id].tsx');
+ assert.match(web,/rankName=\{rankName\}/);
+ assert.match(web,/overflow: 'visible'/);
+ assert.match(bubbles,/rankName=\{contact.rank_name\}/);
+ assert.match(header,/rankName=\{contact.rank_name\}/);
+ assert.match(post,/rankName=\{post.author_rank_name\}/);
+ assert.match(web,/<ProfileAvatar/);
+});

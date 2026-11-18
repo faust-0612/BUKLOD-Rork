@@ -19,6 +19,7 @@ type Props = {
   name?: string | null;
   size?: number;
   shape?: 'circle' | 'rounded';
+  rankName?: string | null;
   fallbackSource?: number | { uri: string } | null;
   onPress?: (() => void) | null;
   enableLongPressSheet?: boolean;
@@ -40,6 +41,7 @@ export function ConnectTappableAvatar({
   name,
   size = 48,
   shape = 'circle',
+  rankName,
   fallbackSource,
   onPress,
   enableLongPressSheet,
@@ -86,6 +88,7 @@ export function ConnectTappableAvatar({
       name={name}
       size={size}
       shape={shape}
+      rankName={rankName}
       fallbackSource={fallbackSource}
     />
   );
@@ -121,7 +124,7 @@ export function ConnectTappableAvatar({
           width: size,
           height: size,
           borderRadius: shape === 'rounded' ? Math.round(size * 0.2) : size / 2,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {avatar}
