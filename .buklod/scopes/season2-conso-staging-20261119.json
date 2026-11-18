@@ -54,6 +54,7 @@
     "tests/buklod-season2-durable-outbox-r1-20261118.test.mjs",
     "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
     "tests/buklod-season2-offline-outbox-r1-20261118.test.mjs",
+    "tests/buklod-season2-staging-order-gate-20261118.test.mjs",
     "tests/protected-feature-lock.test.mjs",
     "tests/season2-governance-contract.test.mjs",
     "tests/season2-governance-production-release-gate.test.mjs",
@@ -65,7 +66,8 @@
     "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
     "tests/season2-governance-production-release-gate.test.mjs",
     "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/protected-feature-lock.test.mjs",
+    "tests/buklod-season2-staging-order-gate-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -103,7 +105,7 @@
     }
   ],
   "chosenApproach": "Preserve the already verified visual staging preview as base; reconcile dev governance and isolated disabled rewards source into one scoped staging candidate. Add read-only carryover policy, admin visibility and strict EAS stage-only workflow without production writes.",
-  "selectionRationale": "The combined source reduces feature omission while keeping backend rewards disabled and production season1 isolated; exact-scope regression and release gates prevent silent drift.",
+  "selectionRationale": "The combined source reduces feature omission while keeping backend rewards disabled and production season1 isolated; exact-scope regression and release gates prevent silent drift. Historical production update IDs are evidence of publish ordering, not an eternal head pin; a later legitimate production OTA must not block staging when the current served production manifest is reverified unchanged after publication.",
   "alternativeApproaches": [
     "Apply SQL to existing production database: rejected because it could mutate Season1 and lacks isolated staging backend",
     "Build a parallel non-integrated standalone preview: rejected because duplicate feature definitions would drift"

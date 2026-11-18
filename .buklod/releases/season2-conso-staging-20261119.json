@@ -20,6 +20,7 @@
     "actual-served-staging-manifest",
     "unchanged-production"
   ],
-  "sourceStatus": "SOURCE_QA_PASSED_PREPUBLISH_STAGING_VERIFICATION_PENDING",
-  "note": "Stage only. Does not activate Server2 reward SQL or authorize production."
+  "sourceStatus": "86+ source tests and TypeScript verified; staging gate updated to verify current served production rather than stale historical ID",
+  "note": "Stage only. Historical Train A order proof retained; production head is checked immediately before and after publish. No rewards/production activation.",
+  "attempt": 2
 }
