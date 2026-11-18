@@ -1,6 +1,5 @@
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -31,18 +30,11 @@ import {
 } from 'react-native-safe-area-context';
 
 import {
-  supabase,
-} from '@/lib/supabase';
-
-import {
-  detectBuklodPublicLanguage,
-} from '@/lib/buklodPublicDailyContent';
-
-import {
   getBuklodLifeCopy,
-  normalizeBuklodLifeLanguage,
   type BuklodLifeTopicKey,
 } from '@/lib/buklodLifeContent';
+
+import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
 
 import BuklodLifeTabs from '@/components/BuklodLifeTabs';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -65,95 +57,10 @@ export default function BuklodLifeScreen() {
   const showFaithContent = Boolean(activeScope?.show_faith_content);
   const [savedJourney, setSavedJourney] = useState<BuklodLifePrivateProgress | null>(null);
 
-  const {
-    user,
-    profile,
-  } =
-    useAuth();
+  const { user } = useAuth();
 
-  const [
-    address,
-    setAddress,
-  ] =
-    useState<{
-      country?: string | null;
-      province?: string | null;
-    }>({});
-
-
-  useEffect(() => {
-
-    let alive = true;
-
-    const load =
-      async () => {
-
-        if (!user?.id) {
-          return;
-        }
-
-        const {
-          data,
-        } =
-          await supabase
-            .from(
-              'buklod_user_addresses'
-            )
-            .select(
-              'country,province'
-            )
-            .eq(
-              'user_id',
-              user.id
-            )
-            .maybeSingle();
-
-        if (
-          alive &&
-          data
-        ) {
-          setAddress(
-            data
-          );
-        }
-      };
-
-    void load();
-
-    return () => {
-      alive = false;
-    };
-
-  }, [
-    user?.id,
-  ]);
-
-
-  const language =
-    useMemo(
-      () =>
-        normalizeBuklodLifeLanguage(
-          detectBuklodPublicLanguage(
-            (
-              profile as any
-            )?.preferred_language,
-            address.country ??
-              (
-                profile as any
-              )?.country,
-            address.province ??
-              (
-                profile as any
-              )?.province,
-          )
-        ),
-      [
-        profile,
-        address.country,
-        address.province,
-      ]
-    );
-
+  // One locale source for LIFE entry, deep links and resumptions.
+  const language = useBuklodLifeLanguage();
 
   const copy =
     useMemo(
@@ -306,7 +213,7 @@ export default function BuklodLifeScreen() {
         <Pressable
           onPress={() => router.push({
             pathname: '/life/topic' as any,
-            params: { topic: savedJourney.topic, lang: savedJourney.language },
+            params: { topic: savedJourney.topic, lang: language },
           })}
           accessibilityRole="button"
           style={styles.continueCard}>
