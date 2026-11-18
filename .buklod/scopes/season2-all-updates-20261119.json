@@ -104,13 +104,15 @@
       "preservedBehaviors": [
         "Existing Wall and Connect clickable avatar navigation, Notes, reaction and unread indicators remain functional.",
         "Weak-signal rendering and first-view AdMob do not wait for rank or online state.",
-        "Existing Circle Rank server authority, account isolation, and all Season 1 production behavior remain unchanged."
+        "Existing Circle Rank server authority, account isolation, and all Season 1 production behavior remain unchanged.",
+        "LIFE Filipino/English initial locale hydration and route consistency are source-reviewed; existing AuthProvider/session and Season1 production remain unchanged."
       ],
       "tests": [
         "tests/season2-avatar-badges-20261119.test.mjs",
         "tests/season2-connect-avatar-badges-20261119.test.mjs",
         "tests/season2-wall-avatar-navigation-20261119.test.mjs",
-        "tests/season2-avatar-admob-guard-20261119.test.mjs"
+        "tests/season2-avatar-admob-guard-20261119.test.mjs",
+        "tests/life-language-auth-navigation-20261119.test.mjs"
       ]
     },
     {
@@ -118,10 +120,12 @@
       "reason": "Show server-confirmed rank art instantly in the existing Wall author avatar without adding navigation controls or changing auth and route permissions.",
       "preservedBehaviors": [
         "Avatar tap continues to enter author profile, long-press actions and Community feed navigation are unchanged.",
-        "Community Wall first-view ads, comment rendering and feed race protection remain unchanged."
+        "Community Wall first-view ads, comment rendering and feed race protection remain unchanged.",
+        "LIFE Filipino/English initial locale hydration and route consistency are source-reviewed; existing AuthProvider/session and Season1 production remain unchanged."
       ],
       "tests": [
-        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+        "tests/life-language-auth-navigation-20261119.test.mjs"
       ]
     },
     {
@@ -143,18 +147,6 @@
       "tests": [
         "tests/season2-avatar-admob-guard-20261119.test.mjs"
       ]
-    },
-    {
-      "id": "faith-content-localization",
-      "reason": "LIFE uses the same bilingual preference from entry through all routes and Community preview without overriding app global language or changing spiritual checkpoints.",
-      "preservedBehaviors": [
-        "No modification of deferred production AuthProvider query, auth/session guards, or Supabase schema.",
-        "Language stays per-account and offline, and the entire LIFE subtree hydrates saved preferences before rendering.",
-        "Community Wall initial content, AdMob, and tab navigation remain non-blocking."
-      ],
-      "tests": [
-        "tests/life-language-auth-navigation-20261119.test.mjs"
-      ]
     }
   ],
   "preserveBehaviors": [
@@ -174,7 +166,8 @@
     "Wall and Connect author/contact rank props render instantly using existing verified feed data; background rank refresh preserves server authority.",
     "Android staging-only export job validates runtime package, asset checksum, TypeScript, focused avatar/rank/Ads regression tests, and never publishes OTA or production.",
     "The 2026-11-09 regression assertions verify the current persisted per-character level contract and both Circle Rank and Points navigation; never restore level-one switching resets to satisfy stale literals.",
-    "New staging-only Android compile/AdMob/instant-navigation/LIFE/badge source gates pass before OTA marker; then physical-device QA and EAS served-manifest receipt. No production changes."
+    "New staging-only Android compile/AdMob/instant-navigation/LIFE/badge source gates pass before OTA marker; then physical-device QA and EAS served-manifest receipt. No production changes.",
+    "Protected risk IDs remain the existing approved vocabulary; LIFE screen changes are covered by app-runtime/navigation-auth regression tests instead of registering an unknown protected ID."
   ],
   "alternativeApproaches": [
     "Draw generic shields (rejected: not approved artwork)",

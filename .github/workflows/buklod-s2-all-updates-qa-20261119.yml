@@ -1,4 +1,5 @@
 name: BUKLOD S2 Combined LIFE + Rank Avatar Android QA — NO PUBLISH
+# Scope reconciliation: LIFE route risk governed by app-runtime/navigation-auth declarations.
 on:
   push:
     branches: [staging/season2-all-updates-20261119]
