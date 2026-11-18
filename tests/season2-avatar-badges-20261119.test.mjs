@@ -18,6 +18,10 @@ test('40 owner-approved badges map exactly 8 canonical families × V through I',
     }
   }
   assert.deepEqual(orders, Array.from({length:40},(_,i)=>i+1));
+  for (const family of BUKLOD_CIRCLE_RANK_FAMILIES) {
+    const fiveColors = BUKLOD_CIRCLE_RANK_LEVELS.map(level => getBuklodCircleRankArt(family + ' ' + level)?.borderColor);
+    assert.equal(new Set(fiveColors).size, 5, 'Border must evolve at every level: ' + family);
+  }
   assert.equal(getBuklodCircleRankArt('Circle Unknown V'), null);
   assert.equal(getBuklodCircleRankArt(null), null);
   assert.equal(getBuklodCircleRankArt('Circle Starter VI'), null);

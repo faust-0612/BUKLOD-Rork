@@ -17,14 +17,14 @@ export const BUKLOD_CIRCLE_RANK_FAMILIES = [
 export const BUKLOD_CIRCLE_RANK_LEVELS = ['V', 'IV', 'III', 'II', 'I'] as const;
 
 const RANK_BORDER_COLORS = [
-  '#48DE74', // Starter
-  '#36BFFF', // Active
-  '#B68CFF', // Steady
-  '#F4B844', // Builder
-  '#22DECF', // Impact
-  '#EF6B46', // Vanguard
-  '#5B9EFF', // BUKLOD Prime
-  '#F2CF63', // Prime Elite
+  ['#B47F42', '#C2D3D7', '#7CCB82', '#BAE75C', '#F5DA61'], // Starter: bronze to radiant
+  ['#397CBB', '#72B7EA', '#30B6FF', '#66CAFF', '#F0CD6A'], // Active: steel to sapphire gold
+  ['#8B62B4', '#9D77D2', '#B476E8', '#CC91FF', '#EDD3FF'], // Steady: violet to crystalline
+  ['#B77724', '#D79231', '#EDAD36', '#FFD16E', '#FFE8A8'], // Builder: bronze to gilded
+  ['#1D958A', '#5AB4AC', '#4ED4BF', '#91E1D6', '#F3CE63'], // Impact: sea green to aurora
+  ['#B74444', '#D26049', '#F08145', '#F0AF60', '#FFE49A'], // Vanguard: ember to golden
+  ['#365BB2', '#577ECD', '#56A9E6', '#83CAFF', '#FAD77A'], // Prime: cobalt to royal
+  ['#76509D', '#A18BCB', '#C79AE9', '#E8B0F6', '#FFE69C'], // Prime Elite: amethyst to celestial
 ] as const;
 
 export type BuklodCircleRankArt = {
@@ -51,7 +51,7 @@ export function getBuklodCircleRankArt(value?: string | null): BuklodCircleRankA
       order: familyIndex * 5 + levelIndex + 1,
       familyIndex,
       levelIndex,
-      borderColor: RANK_BORDER_COLORS[familyIndex],
+      borderColor: RANK_BORDER_COLORS[familyIndex][levelIndex],
     };
   }
   return null;
