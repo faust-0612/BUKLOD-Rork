@@ -175,7 +175,7 @@ export default function BuklodSeasonJourneyPreview({
           </View>
           <Text style={s.sectionTitle}>FOUR STORY ARCS · PREVIEW</Text>
           {BUKLOD_SEASON2_ACTS.map((chapter,index)=>(
-            <View style={s.chapter} key={chapter.code}>
+            <View style={s.chapter} key={chapter.id}>
               <View style={s.chapterDot}>
                 <Text style={s.chapterNum}>{index+1}</Text>
               </View>
