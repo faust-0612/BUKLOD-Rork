@@ -208,6 +208,12 @@ export function polishHenryFilipinoTranslation(translated: string): string {
     [/\bpinakamaliwanag na encomium\b/gi, 'pinakamataas na papuri'],
     [/\bencomium\b/gi, 'papuri'],
     [/\bimitated\b/gi, 'tularan'],
+    // Correct only verified literal mistranslations, preserving source meaning.
+    [/\bmabait na pagdalaw na binayaran ng Diyos kay Solomon\b/gi, 'mapagpalang pagdalaw ng Diyos kay Solomon'],
+    [/\bmabait na pagdalaw na binayaran ng Diyos\b/gi, 'mapagpalang pagdalaw ng Diyos'],
+    [/\bpakikipag-isa na kasama niya sa Diyos dito\b/gi, 'pakikipag-ugnayan niya sa Diyos sa pagkakataong iyon'],
+    [/\bdapat lamang ang isa\b/gi, 'dapat sana ay iyon lamang ang lugar'],
+    [/\binalok ni Solomon ang (?:kanyang|kaniyang) mga dakilang sakripisyo\b/gi, 'naghandog si Solomon ng maraming hain'],
     [/\bsa Solomon\b/gi, 'kay Solomon'],
     [/\bmga ordinansa ng Diyos\b/gi, 'mga tuntunin ng Diyos'],
     [/\bsa kung ano ang ginawa niya para sa karangalan ng Diyos\b/gi,
