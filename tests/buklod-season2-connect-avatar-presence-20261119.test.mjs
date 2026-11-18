@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('Connect inbox, suggestions and chat messages inherit the same transparent rank art and presence indicator',()=>{
+ const avatar=read('src/components/ProfileAvatar.tsx');
+ const native=read('src/components/connect/ConnectTappableAvatar.tsx');
+ const web=read('src/components/connect/ConnectTappableAvatar.web.tsx');
+ const inbox=read('src/components/connect/ConnectInboxRow.tsx');
+ const message=read('src/components/connect/ConnectMessageBubble.tsx');
+ const suggestions=read('src/components/connect/ConnectQuickContacts.tsx');
+ assert.match(avatar,/BuklodCircleRankBadge/);
+ assert.match(avatar,/subscribeAvatarOnline/);
+ assert.match(native,/<ProfileAvatar/);
+ assert.match(native,/overflow: 'visible'/);
+ assert.match(web,/<ProfileAvatar/);
+ assert.match(web,/overflow: 'visible'/);
+ assert.match(inbox,/<ConnectTappableAvatar/);
+ assert.match(message,/<ConnectTappableAvatar/);
+ assert.match(suggestions,/rankName=\{contact.rank_name\}/);
+});
+test('Connect member notes and unread markers remain separate from offline/online state',()=>{
+ const suggestions=read('src/components/connect/ConnectQuickContacts.tsx');
+ const avatar=read('src/components/ProfileAvatar.tsx');
+ const online=read('src/lib/buklodAvatarPresence.ts');
+ assert.match(suggestions,/NoteBubble/);
+ assert.match(suggestions,/styles.unreadDot/);
+ assert.match(avatar,/ProfileAvatarStatusIndicator/);
+ assert.match(avatar,/bottom:-dotSize\*0\.26/);
+ assert.match(online,/AppState.currentState/);
+ assert.match(online,/connected.track/);
+ assert.match(online,/close\(\)/);
+});
