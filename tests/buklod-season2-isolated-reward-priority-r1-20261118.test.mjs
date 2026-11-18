@@ -86,7 +86,7 @@ test('Seven regular days + three grace days are inclusive; flex is opt-in and ca
     flexCreditsUsed:1,flexCreditsForThisWeek:1,flexOptedBeforeDeadline:true};
   assert.equal(evaluateS2WeeklyPriority(flex).gate,'FLEX');
   assert.equal(evaluateS2WeeklyPriority({...flex,flexOptedBeforeDeadline:false}).gate,'CLOSED');
-  assert.equal(evaluateS2WeeklyPriority({...flex,flexCreditsUsed:3}).gate,'CLOSED');
+  assert.throws(()=>evaluateS2WeeklyPriority({...flex,flexCreditsUsed:3}));
 });
 test('Offline and unavailable server evidence postpones deadline without fake bonus',()=>{
   assert.equal(evaluateS2WeeklyPriority(weekly({
