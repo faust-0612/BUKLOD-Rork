@@ -251,3 +251,7 @@ production embargo guard pass and full acceptance evidence.
 - Competing independent cosmetic buy nonces against one account must debit
   only once. Local SQL now targets disposable PostgreSQL 17, matching current
   BUKLOD Connect project major version; no Supabase DB write.
+
+## Durable offline storage bridge (DEV only)
+New pure injected-storage wrapper src/lib/season2/buklodSeason2DurableOutboxR1.ts serializes writes per user, persists accepted source operation IDs before any eventual network send, reloads interrupted SENDING state, denies cross-account operations, fails closed on corrupted storage and does not remove a confirmed receipt until the server wallet has acknowledged it.
+All three rollout switches remain OFF. No app imports this wrapper, no AsyncStorage or platform integration, no backend transport or Supabase stage RPC is installed. A durable memory-store test is not Android on-device testing.
