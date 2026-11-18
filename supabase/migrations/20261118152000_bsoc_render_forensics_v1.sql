@@ -76,6 +76,7 @@ declare
   normalized_runtime text := nullif(btrim(p_runtime_version),'');
   normalized_channel text := nullif(lower(btrim(p_update_channel)),'');
   created boolean := false;
+  inserted_count bigint := 0;
 begin
   if actor is null then
     raise exception 'Authenticated BUKLOD member required' using errcode='42501';
@@ -131,7 +132,8 @@ begin
     normalized_source,p_source_line,p_source_column,p_bundle_line,p_bundle_column,
     normalized_runtime,p_ota_update_id,normalized_channel
   ) on conflict(health_event_id) do nothing;
-  get diagnostics created = row_count;
+  get diagnostics inserted_count = row_count;
+  created := inserted_count > 0;
   return jsonb_build_object('recorded', true, 'inserted', created,
                             'event_id', recorded.id);
 end;
