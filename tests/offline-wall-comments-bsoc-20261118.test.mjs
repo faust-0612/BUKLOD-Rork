@@ -163,7 +163,7 @@ test('BSOC keeps single weak-signal auth warnings diagnostic without hiding real
   assert.match(sql, /he\.repeat_count < 3/);
   assert.match(sql, /he\.severity in \('INFO','WARNING'\)/);
   assert.match(sql, /he\.local_self_heal_attempted = false/);
-  assert.match(sql, /e\.severity='CRITICAL'/);
+  assert.match(sql, /when 'CRITICAL' then 1/);
   assert.match(sql, /e\.privacy_classification='SECURITY_REVIEW_REQUIRED'/);
   assert.match(sql, /REMOTE_RECOVERY_RUNNING/);
   const triage = loadTs('src/lib/bsocCaseTriage.ts');
