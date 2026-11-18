@@ -444,6 +444,25 @@ PersonalInformationScreen() {
         postalCode.trim(), 'true',
       ]);
       const profileChanged = profileValues !== profileSnapshot.current;
+      // Legal names are ID-bound. Mobile, birthday, address and faith edits
+      // remain available without a new ID when the legal name is unchanged.
+      const savedName = profileSnapshot.current
+        ? JSON.parse(profileSnapshot.current).slice(0, 4)
+        : null;
+      const enteredName = [first, middleName.trim(), last, suffix.trim()];
+      const nameChanged = !savedName ||
+        JSON.stringify(enteredName) !== JSON.stringify(savedName);
+      if (nameChanged) {
+        Alert.alert(
+          'Government ID required',
+          'Changing your real name requires a government ID review. Aliases are not allowed. Your current profile name will stay until approval.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'VERIFY NAME', onPress: () => router.push('/account/identity-verification' as any) },
+          ],
+        );
+        return;
+      }
       const addressChanged = addressValues !== addressSnapshot.current;
       const faithChanged = showFaithContent !== null &&
         showFaithContent !== faithSnapshot.current;
@@ -769,6 +788,18 @@ PersonalInformationScreen() {
           onChangeText={setSuffix}
           placeholder="Jr., Sr., III"
         />
+
+        <Pressable
+          onPress={() => router.push('/account/identity-verification' as any)}
+          style={{ paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#E8F4EC', borderRadius: 9 }}
+        >
+          <Text style={{ color: '#1E6C42', fontWeight: '800', fontSize: 12 }}>
+            VERIFY REAL NAME WITH GOVERNMENT ID
+          </Text>
+          <Text style={{ color: '#4E6757', fontSize: 11 }}>
+            Legal-name changes take effect only after a secure ID review.
+          </Text>
+        </Pressable>
 
         <Field
           label="Mobile Number"
