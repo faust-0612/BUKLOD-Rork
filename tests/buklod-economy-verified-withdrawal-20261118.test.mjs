@@ -8,6 +8,7 @@ test('withdrawal economy requires real government-ID approval in both UI and bac
  const e=read('src/lib/buklodEconomyV3.ts');
  const screen=read('src/app/bayanihan/payout-profile.tsx');
  assert.match(screen,/legalIdentity\?\.status === 'VERIFIED'/);
+ assert.match(screen,/legalIdentity\?\.membership_verified === true/);
  assert.match(e,/getMyBuklodLegalIdentityStatus/);
  assert.match(migration,/p\.is_verified=true/);
  assert.match(migration,/i\.status='VERIFIED' and i\.verified_at is not null/);
