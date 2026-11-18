@@ -5,7 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
 import BuklodLifeTabs from '@/components/BuklodLifeTabs';
-import { normalizeBuklodLifeLanguage } from '@/lib/buklodLifeContent';
+import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
 import { loadBuklodLifeImpact } from '@/lib/buklodLifeImpact';
 import {
   loadBuklodLifePrivateProgress,
@@ -16,8 +16,8 @@ import { useAuth } from '@/providers/AuthProvider';
 
 function LifeImpactContent() {
   const insets = useSafeAreaInsets();
-  const { user, profile } = useAuth();
-  const lang = normalizeBuklodLifeLanguage((profile as any)?.preferred_language);
+  const { user } = useAuth();
+  const lang = useBuklodLifeLanguage();
   const fil = lang === 'fil';
   const [reached, setReached] = useState<number | null>(null);
   const [saved, setSaved] = useState<BuklodLifePrivateProgress | null>(null);
