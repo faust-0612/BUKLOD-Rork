@@ -12,6 +12,19 @@ export const CIRCLE_RANK_BORDERS = [
   '#24CFC5', '#D74748', '#488FFF', '#B858F5',
 ] as const;
 
+// Within each family, a rank-up also brightens the avatar's enamel border.
+const BORDER_STRENGTH = [0.52, 0.64, 0.77, 0.89, 1] as const;
+function tierBorder(hex: string, strength: number): string {
+  const base = Number.parseInt(hex.slice(1), 16);
+  const shadow = 0x24352F;
+  const channel = (shift: number) => {
+    const high = (base >> shift) & 255;
+    const low = (shadow >> shift) & 255;
+    return Math.round(low + (high - low) * strength).toString(16).padStart(2, '0');
+  };
+  return '#' + channel(16) + channel(8) + channel(0);
+}
+
 export type CircleRankArtwork = {
   rankName: string;
   family: string;
@@ -42,6 +55,6 @@ export function resolveCircleRankArtwork(value?: string | null): CircleRankArtwo
     order: row * 5 + column + 1,
     row,
     column,
-    borderColor: CIRCLE_RANK_BORDERS[row],
+    borderColor: tierBorder(CIRCLE_RANK_BORDERS[row], BORDER_STRENGTH[column]),
   };
 }

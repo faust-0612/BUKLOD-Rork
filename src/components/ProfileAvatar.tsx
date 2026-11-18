@@ -320,7 +320,7 @@ export function ProfileAvatar({
   const { user } = useAuth();
   const viewerId = user?.id ?? '';
   const pathname = usePathname();
-  const rankTargetId = String(userId || viewerId).toLowerCase();
+  const rankTargetId = String(userId ?? '').trim().toLowerCase();
   const [resolvedRank, setResolvedRank] = useState<string | null>(
     rankName ?? (peekBuklodCircleRank(viewerId, rankTargetId) ?? null),
   );

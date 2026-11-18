@@ -18,6 +18,7 @@ test('40 canonical rank names have one transparent 5x8 cell each; atlas is valid
   }
   for (const level of ['V','IV','III','II','I']) assert.ok(art.includes("'" + level + "'"));
   assert.match(art, /row \* 5 \+ column \+ 1/);
+  assert.match(art, /tierBorder\(CIRCLE_RANK_BORDERS\[row\], BORDER_STRENGTH\[column\]\)/);
   assert.match(component, /CIRCLE_RANK_ATLAS_COLUMNS = 5/);
   assert.match(component, /CIRCLE_RANK_ATLAS_ROWS = 8/);
   assert.match(component, /overflow: 'hidden'/);
