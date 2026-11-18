@@ -68,3 +68,23 @@ export async function queueWallComment(
     maxAttempts: 12,
   });
 }
+
+/** Foreground UI observes confirmed writes; removals alone are not proof. */
+type Confirmation = { itemId: string; userId: string; postId: string };
+const confirmedListeners = new Set<(event: Confirmation) => void>();
+const confirmedIds = new Set<string>();
+
+export function subscribeConfirmedWallComment(listener: (event: Confirmation) => void) {
+  confirmedListeners.add(listener);
+  return () => { confirmedListeners.delete(listener); };
+}
+
+export function emitConfirmedWallComment(event: Confirmation) {
+  if (confirmedIds.has(event.itemId)) return;
+  confirmedIds.add(event.itemId);
+  // Cap in-memory deduplication without changing persisted queue semantics.
+  if (confirmedIds.size > 500) confirmedIds.delete(confirmedIds.values().next().value!);
+  confirmedListeners.forEach(listener => {
+    try { listener(event); } catch { /* a listener cannot fail a confirmed write */ }
+  });
+}
