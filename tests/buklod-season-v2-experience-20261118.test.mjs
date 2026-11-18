@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {SEASON_V2_ROLLOUT,SEASON_CHAPTER_PREVIEWS,SEASON_JOURNEY_TRACKS,
   deriveBuklodSeasonState,manilaCalendarDay,previewSeasonNotice,
+  SEASON2_OPENING_TARGET,previewSeasonPreparationDates,
   canClientFinalizeOrDeleteSeason} from '../src/lib/buklodSeasonJourneyR2.ts';
 const S={id:'season-1',number:1,title:'BUKLOD Season 1',
   starts_on:'2026-08-01',ends_on:'2026-10-31',points:120};
@@ -98,4 +99,28 @@ test('read-only Points integration retains existing RPC and ad placement',()=>{
   assert.match(card,/Preview only — not enrolled/);
   assert.match(card,/Notifications are not enabled by this preview/);
   assert.doesNotMatch(card,/supabase|\.rpc\(|\.insert\(|\.update\(|\.delete\(|setInterval/i);
+});
+
+test('user-selected December 6, 2026 is a planning target, not a live Season',()=>{
+  assert.equal(SEASON2_OPENING_TARGET.manilaDay,'2026-12-06');
+  assert.equal(SEASON2_OPENING_TARGET.publicationState,'TARGET_ONLY_NOT_PUBLISHED');
+  const milestones=previewSeasonPreparationDates(SEASON2_OPENING_TARGET.manilaDay);
+  assert.deepEqual(milestones.map(x=>[x.stage,x.manilaDay]),[
+    ['REVEAL_14D','2026-11-22'],['CHOOSE_7D','2026-11-29'],
+    ['PREPARE_3D','2026-12-03'],['COUNTDOWN_1D','2026-12-05'],
+    ['OPENING','2026-12-06'],
+  ]);
+  assert.ok(milestones.every(x=>x.published===false));
+});
+test('December 6 planning preview cannot misstate active/closed Season 1 or send notices',()=>{
+  const policy=readFileSync('src/lib/buklodSeasonJourneyR2.ts','utf8');
+  const ui=readFileSync('src/components/points/BuklodSeasonJourneyPreview.tsx','utf8');
+  assert.match(ui,/SEASON 2 TARGET · DEC 6 · NOT PUBLISHED/);
+  assert.match(ui,/Target opening only/);
+  assert.match(ui,/previewSeasonPreparationDates\(SEASON2_OPENING_TARGET.manilaDay\)/);
+  assert.equal(deriveBuklodSeasonState(S,'2026-12-06',true).phase,'ENDED_AWAITING_CLOSE');
+  assert.equal(previewSeasonNotice({season:null,manilaDay:'2026-11-22',
+    serverSnapshotVerified:true,voluntaryOptIn:true,pushAllowed:true,
+    quietHours:false,pendingOfflineOperations:false,deliveredKeys:[]}),null);
+  assert.match(policy,/notificationDelivery:false/);
 });

@@ -2,7 +2,8 @@ import React,{useMemo,useState} from 'react';
 import {Pressable,StyleSheet,Text,View,type DimensionValue} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {SEASON_CHAPTER_PREVIEWS,SEASON_JOURNEY_TRACKS,
-  deriveBuklodSeasonState,manilaCalendarDay,type SeasonSummary}
+  deriveBuklodSeasonState,manilaCalendarDay,SEASON2_OPENING_TARGET,
+  previewSeasonPreparationDates,type SeasonSummary}
   from '@/lib/buklodSeasonJourneyR2';
 
 const C={green:'#0A663B',ink:'#17382A',muted:'#587769',
@@ -43,6 +44,7 @@ export default function BuklodSeasonJourneyPreview({
             {state.season?.title??'A new BUKLOD adventure'}
           </Text>
           <Text style={s.subheading} numberOfLines={2}>{state.label}</Text>
+          <Text style={s.targetLabel}>SEASON 2 TARGET · DEC 6 · NOT PUBLISHED</Text>
         </View>
         <MaterialCommunityIcons name={open?'chevron-up':'chevron-down'}
           color={C.green} size={24}/>
@@ -50,6 +52,16 @@ export default function BuklodSeasonJourneyPreview({
       {open?(
         <View style={s.content}>
           <Text style={s.description}>{subtitle}</Text>
+          <View style={s.planBox}>
+            <Text style={s.planTitle}>SEASON 2 PREPARATION · DECEMBER 6, 2026</Text>
+            <Text style={s.planDesc}>Target opening only. Season 1 results and official publication must be verified before these become real announcements.</Text>
+            {previewSeasonPreparationDates(SEASON2_OPENING_TARGET.manilaDay).map(item=>(
+              <View key={item.stage} style={s.planRow}>
+                <Text style={s.planDay}>{item.manilaDay}</Text>
+                <Text style={s.planStage}>{item.stage.replace(/_\d+D$/,'').replaceAll('_',' ')}</Text>
+              </View>
+            ))}
+          </View>
           {preparing||inProgress?(
             <View style={{gap:5}}>
               <View style={s.between}>
@@ -129,6 +141,13 @@ const s=StyleSheet.create({
   subheading:{fontSize:10.5,color:C.muted,marginTop:1},
   content:{borderTopWidth:1,borderTopColor:C.line,padding:11,gap:9},
   description:{fontSize:11,lineHeight:16,color:C.muted},
+  targetLabel:{fontSize:9,lineHeight:14,color:C.green,fontWeight:'800',marginTop:2},
+  planBox:{borderRadius:10,backgroundColor:'#E6F5EC',padding:9,gap:5},
+  planTitle:{fontSize:10,fontWeight:'900',color:C.green},
+  planDesc:{fontSize:10,lineHeight:15,color:C.muted},
+  planRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},
+  planDay:{fontSize:10,color:C.ink,fontWeight:'800'},
+  planStage:{fontSize:10,color:C.muted,fontWeight:'700'},
   between:{flexDirection:'row',justifyContent:'space-between',gap:7},
   label:{fontSize:10,color:C.green,fontWeight:'700'},
   progressBg:{height:7,borderRadius:7,overflow:'hidden',backgroundColor:'#DCEFE2'},

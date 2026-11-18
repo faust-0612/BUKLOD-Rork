@@ -11,7 +11,7 @@ GitHub main d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 and read-only connected Sup
 - Character V3 per-character level, immutable item ownership, badges, Kingdom shards and 1,300 artwork catalog must not be reset.
 
 ### Critical backend HOLD
-Before an actual rollover, freeze and reconcile Season 1 with an approved BP event/claim cutoff, Manila time-zone verification, all qualified pending/offline activities, cross-account RLS, audit of official/nonmember exclusion, eligibility, exact result snapshots and immutable publishing. Verify current database snapshots and backups; do not introduce retroactive reward changes or simply change status to 'closed' while result_count=0. No Season 2 start date is verified or announced in this DEV preview.
+Before an actual rollover, freeze and reconcile Season 1 with an approved BP event/claim cutoff, Manila time-zone verification, all qualified pending/offline activities, cross-account RLS, audit of official/nonmember exclusion, eligibility, exact result snapshots and immutable publishing. Verify current database snapshots and backups; do not introduce retroactive reward changes or simply change status to 'closed' while result_count=0. User selected **December 6, 2026** as the target Season 2 opening in this conversation. This is a **planning target only**: no actual Season 2 row, published schedule, live countdown, final rewards or notifications have been verified or activated.
 
 ## What users can actually see in DEV
 The existing Points screen fetches get_my_buklod_rank_dashboard already. Immediately after the 40-rank progression link, a lightweight *collapsed by default* Season Journey teaser reuses that existing response, with **no additional request, automatic page navigation, native dependencies, timers, ad changes, or extra media loading**.
@@ -61,3 +61,19 @@ planned -> preparation -> active -> closing -> finalized -> archived.
 This PR touches only a read-only Points journey UI, pure presentation logic, docs and focused behavior tests. GitHub CI and TypeScript/Expo, profile/Points regression, AdMob first-view, dashboard instantaneous navigation, weak-network/loading, accessible overflow, and account privacy must pass before an RC. No production migration, Expo OTA, android artifact, offline reward synchronization, notification dispatch or new user reward is part of this PR. Record exact SHA/runtime/installed-client evidence before any release claim. Related disabled policy draft: PR #937.
 
 **Status: DEV preview only. Backend rollover, story chapter publishing, notices, league settlement, new payouts and Season 2 remain BLOCKED until separately verified.**
+
+## Owner-selected Season 2 opening target — December 6, 2026
+
+The BUKLOD owner selected **December 6, 2026 (Asia/Manila)** as the opening target. This is not an instruction to force an unsafe Season 1 close, fabricate a live row, start a cron, grant rewards or send push today.
+
+| Milestone | Manila date | Preview intent |
+|---|---|---|
+| Season reveal T-14 | 2026-11-22 | Theme, story, proposed rewards |
+| Adventure paths T-7 | 2026-11-29 | Explorer / Creator / Together optional previews |
+| Preparation T-3 | 2026-12-03 | Rules, season consent, readiness |
+| Final countdown T-1 | 2026-12-05 | One opt-in generic reminder |
+| Target opening T=0 | 2026-12-06 | Publish only if Season1 settled and new authoritative season approved |
+
+**End date and season length are not specified by owner.** Do not invent a 90-day closing date or finale notification. Real notification jobs and countdown require a signed, published server schedule and delivery consent, and must be deduplicated across devices. The read-only Points preview now displays these owner-selected **unpublished** target milestones with explicit non-live labels.
+
+**Release gate:** audit & reconcile 869 claimed/legacy vs 609 pending Season 1 credit entries (counts captured 2026-11-18) across 326 accounts, verify historic claims and cutoff, atomic unique results, backups and approved closing report, then separate planned/live transition with server-trusted dates. Keep QMP/AdMob 30%, BP, Character V3 and existing inventories untouched.

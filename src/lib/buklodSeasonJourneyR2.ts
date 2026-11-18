@@ -2,6 +2,25 @@
  * Season V2: read-only, official-date preview. Never settles a season,
  * sends push, grants a reward or trusts the device clock for accounting.
  */
+
+/** Owner-selected opening TARGET; not a server-published Season, grant or notice. */
+export const SEASON2_OPENING_TARGET=Object.freeze({
+  seasonNumber:2,
+  manilaDay:'2026-12-06',
+  publicationState:'TARGET_ONLY_NOT_PUBLISHED',
+});
+/** Build milestone planning dates only. Does not schedule/send any notice. */
+export function previewSeasonPreparationDates(openingManilaDay:string){
+  const start=ordinal(openingManilaDay);
+  return ([
+    ['REVEAL_14D',14],['CHOOSE_7D',7],['PREPARE_3D',3],
+    ['COUNTDOWN_1D',1],['OPENING',0],
+  ] as const).map(([stage,daysBefore])=>({
+    stage,daysBefore,manilaDay:new Date((start-daysBefore)*86400000).toISOString().slice(0,10),
+    published:false as const,
+  }));
+}
+
 export const SEASON_V2_ROLLOUT = Object.freeze({
   readOnlyJourneyPreview:true,seasonRollover:false,chapterUnlocks:false,
   seasonRewardGrants:false,seasonMomentum:false,notificationDelivery:false,
