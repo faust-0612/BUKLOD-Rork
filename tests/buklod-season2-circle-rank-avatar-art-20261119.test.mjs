@@ -40,6 +40,8 @@ test('All shared Wall/Connect/Profile avatars have top-left badge, rank border a
  const avatar=read('src/components/ProfileAvatar.tsx');
  const wall=read('src/components/BuklodTappableAvatar.tsx');
  const connect=read('src/components/connect/ConnectTappableAvatar.tsx');
+ const connectWeb=read('src/components/connect/ConnectTappableAvatar.web.tsx');
+ const wallBubbles=read('src/components/BuklodCommunityWallProfileBubbles.tsx');
  const wallScreen=read('src/app/(tabs)/buklod.tsx');
  const quick=read('src/components/connect/ConnectQuickContacts.tsx');
  const post=read('src/app/post/[id].tsx');
@@ -52,6 +54,8 @@ test('All shared Wall/Connect/Profile avatars have top-left badge, rank border a
  assert.match(avatar,/<ProfileAvatarStatusIndicator userId=\{userId\}/);
  assert.match(wall,/overflow: 'visible'/);
  assert.match(connect,/overflow: 'visible'/);
+ assert.match(connectWeb,/overflow: 'visible'/);
+ assert.match(wallBubbles,/rankName=\{contact.rank_name\}/);
  assert.match(wallScreen,/rankName=\{item.author_rank_name\}/);
  assert.match(post,/rankName=\{post.author_rank_name\}/);
  assert.match(me,/rankName=\{circleRank\}/);
