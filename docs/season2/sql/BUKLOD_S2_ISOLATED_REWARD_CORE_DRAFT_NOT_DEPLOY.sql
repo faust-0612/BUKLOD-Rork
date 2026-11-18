@@ -159,6 +159,8 @@ alter table buklod_s2.momentum_ledger enable row level security;
 revoke all on all tables in schema buklod_s2 from public,anon,authenticated;
 revoke all on all sequences in schema buklod_s2 from public,anon,authenticated;
 grant select,insert,update on all tables in schema buklod_s2 to service_role;
+-- Even internal service credentials must NOT flip the production rollout switch.
+revoke update on buklod_s2.control from service_role;
 grant usage,select on all sequences in schema buklod_s2 to service_role;
 
 -- Fail closed if ever accidentally installed. No silent crossover from S1.
@@ -172,9 +174,17 @@ begin
      or now()<c.starts_at or now()>c.ends_at then
     raise exception 'SEASON2_DISABLED' using errcode='55000';
   end if;
-  -- An explicitly approved and audited Season1 close-out is a separate gate.
-  -- A production-enabling migration MUST also add proof of signed S1 results
-  -- before it is allowed to set this disabled flag to TRUE.
+  -- READ-ONLY dependency check: never mutate the live Season1 history.
+  if c.require_s1_reconciled and (
+    exists(select 1 from public.buklod_rank_seasons
+           where season_number=1 and status='active')
+    or not exists(select 1 from public.buklod_rank_season_results r
+      join public.buklod_rank_seasons s on s.id=r.season_id
+      where s.season_number=1)
+  ) then raise exception 'S1_AWAITING_SIGNED_RECONCILIATION' using errcode='55000';
+  end if;
+  -- A separate signed closeout/owner authorization still must be verified
+  -- by the release gate; row existence alone is NOT a legal audit signature.
   return c;
 end;
 $fn$;
