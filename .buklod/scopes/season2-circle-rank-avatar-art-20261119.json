@@ -34,7 +34,8 @@
     "src/components/BuklodCommunityConnectHeader.web.tsx",
     "tests/buklod-season2-circle-rank-avatar-art-20261119.test.mjs",
     "docs/BUKLOD_SEASON2_CIRCLE_RANK_AVATAR_ART_20261119.md",
-    ".buklod/scopes/season2-circle-rank-avatar-art-20261119.json"
+    ".buklod/scopes/season2-circle-rank-avatar-art-20261119.json",
+    "tests/buklod-season2-avatar-wall-navigation-ads-20261119.test.mjs"
   ],
   "preserveBehaviors": [
     "Season1 permanent rank thresholds and QMP/points unchanged",
@@ -57,27 +58,48 @@
     "tests/circle-rank-badges-recognition-20261109.test.mjs",
     "tests/profile-avatar-batch.test.cjs",
     "tests/dashboard-instant-tabs-20261117.test.mjs",
-    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/buklod-season2-avatar-wall-navigation-ads-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Shared avatar and badge art visual-only staging integration",
+      "reason": "A single shared rank art renderer modifies all visible member avatar visual surfaces for Season2 only.",
       "preservedBehaviors": [
-        "No native dependency or backend migration"
+        "Existing authenticated server rank, member media and all business logic remain unchanged."
       ],
       "tests": [
         "tests/buklod-season2-circle-rank-avatar-art-20261119.test.mjs"
       ]
     },
     {
-      "id": "points-rank",
-      "reason": "Read-only rank artwork for server-authored 40-rank ladder",
+      "id": "wall-media",
+      "reason": "The shared BUKLOD tappable Wall avatar may show larger tier emblems, without changing photo/video playback or feed loading.",
       "preservedBehaviors": [
-        "No BP/QMP/server rank change"
+        "Public Wall author and comment data load, video lifecycle, offline photos, and media gestures remain unchanged."
       ],
       "tests": [
-        "tests/circle-rank-badges-recognition-20261109.test.mjs"
+        "tests/buklod-season2-avatar-wall-navigation-ads-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Profile and Wall/Connect tab avatars now display non-interactive decorations while retaining native press hit-tests and routes.",
+      "preservedBehaviors": [
+        "No login/session mutations, global tab architecture, route changes or delayed navigator taps."
+      ],
+      "tests": [
+        "tests/buklod-season2-avatar-wall-navigation-ads-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Community header and rank artwork are presentation-only; maintain all AdMob placements and points/QMP backend values.",
+      "preservedBehaviors": [
+        "First-view AdMob rendering, Points NativeAd, QMP earnings, reward claims and income remain independent and unchanged."
+      ],
+      "tests": [
+        "tests/buklod-season2-avatar-wall-navigation-ads-20261119.test.mjs"
       ]
     }
   ],
