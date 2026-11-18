@@ -115,7 +115,8 @@ create table if not exists buklod_s2.badge_grant (
   primary key(user_id,badge_key,week_start),
   constraint s2_revocation_requires_case check (
     (revoked_at is null and revoked_case_id is null)
-    or (revoked_at is not null and length(trim(revoked_case_id))>=8)
+    or (revoked_at is not null and revoked_case_id is not null
+       and length(trim(revoked_case_id))>=8)
   )
 );
 -- A receipt may satisfy only ONE weekly foundation claim; separate weekly
