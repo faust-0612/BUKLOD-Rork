@@ -364,7 +364,7 @@ export function ProfileAvatar({
 
   const rankArt = getBuklodCircleRankArt(verifiedRankName || rankName);
   const rankBorder = rankArt?.borderColor ?? colors.line;
-  const badgeSize = Math.max(18, Math.round(size * 0.52));
+  const badgeSize = size < 32 ? Math.max(11, Math.round(size * 0.52)) : Math.max(18, Math.round(size * 0.52));
   const onlineSize = Math.min(16, Math.max(8, Math.round(size * 0.18)));
   const [remoteUrl, setRemoteUrl] = useState<string | null>(
     getBuklodLiveAvatar(userId) ?? normalizeAvatarUrl(uri)

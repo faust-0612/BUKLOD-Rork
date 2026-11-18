@@ -37,6 +37,7 @@ test('Connect online status must not reuse unread markers or Profile Notes', () 
   assert.match(inbox, /An unread marker, never an unverified online-presence badge/);
   assert.match(presence, /connected\.presenceState\(\)/);
   assert.match(presence, /ready && AppState\.currentState === 'active'/);
-  assert.match(presence, /listeners\.size === 0/);
+  assert.match(presence, /auth\.onAuthStateChange/);
+  assert.match(presence, /listeners\.delete\(listener\)/);
   assert.doesNotMatch(avatar, /supabase\.channel\(/, 'Each avatar must not own a channel');
 });

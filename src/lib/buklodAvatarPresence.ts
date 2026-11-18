@@ -14,6 +14,7 @@ let viewer = '';
 let channel: ReturnType<typeof supabase.channel> | null = null;
 let appListener: { remove: () => void } | null = null;
 let ready = false;
+let authSubscription: { unsubscribe: () => void } | null = null;
 
 const normalizeId = (id?: string | null) => String(id ?? '').trim().toLowerCase();
 function notify() {
@@ -52,7 +53,20 @@ function syncPresence(connected: ReturnType<typeof supabase.channel>) {
   notify();
 }
 
+function keepAccountIsolation() {
+  if (authSubscription) return;
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const authenticatedId = normalizeId(session?.user?.id);
+    if (viewer && authenticatedId !== viewer) {
+      disconnect();
+      viewer = '';
+    }
+  });
+  authSubscription = data.subscription;
+}
+
 function connect(nextViewer: string) {
+  keepAccountIsolation();
   if (viewer !== nextViewer) {
     disconnect();
     viewer = nextViewer;
@@ -102,9 +116,8 @@ export function subscribeBuklodAvatarPresence(viewerId: string, listener: Listen
   listener();
   return () => {
     listeners.delete(listener);
-    if (listeners.size === 0) {
-      disconnect();
-      viewer = '';
-    }
+    // Keep the single app-session presence alive through screens with no
+    // visible avatars; otherwise active members falsely appear offline.
+    // The auth watcher, AppState and socket lifecycle own disconnect.
   };
 }
