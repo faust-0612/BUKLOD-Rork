@@ -221,6 +221,10 @@ begin
  if p_user is null or p_source is null then
    raise exception 'INVALID_SOURCE' using errcode='22023';
  end if;
+ -- Existing authoritative Official identity; no hardcoded user ID/email.
+ if public.buklod_is_official_system_admin(p_user) then
+   raise exception 'OFFICIAL_SYSTEM_ADMIN_EXCLUDED' using errcode='42501';
+ end if;
  if p_kind='wall_original_post' then
    select p.created_at,p.scope_id,p.id::text
    into v_at,v_scope,v_semantic
@@ -381,6 +385,9 @@ declare c buklod_s2.control;v_balance bigint;v_price smallint;
         v_item text;v_nonce uuid;
 begin
  c:=buklod_s2.assert_active();
+ if public.buklod_is_official_system_admin(p_user) then
+   raise exception 'OFFICIAL_SYSTEM_ADMIN_EXCLUDED' using errcode='42501';
+ end if;
  if p_user is null or p_nonce is null or p_item is null
  then raise exception 'INVALID_PURCHASE' using errcode='22023';end if;
  insert into buklod_s2.wallet(user_id) values(p_user)
@@ -433,6 +440,9 @@ declare c buklod_s2.control;v_flex int;v_end date;
   v_learning bigint;v_community bigint;v_claimed date;
 begin
  c:=buklod_s2.assert_active();
+ if public.buklod_is_official_system_admin(p_user) then
+   raise exception 'OFFICIAL_SYSTEM_ADMIN_EXCLUDED' using errcode='42501';
+ end if;
  if p_user is null or p_week is null
   or p_week<(c.starts_at at time zone 'Asia/Manila')::date
   or mod(p_week-(c.starts_at at time zone 'Asia/Manila')::date,7)<>0
@@ -504,6 +514,9 @@ as $fn$
 declare c buklod_s2.control;v_spent integer;v_existing smallint;
 begin
  c:=buklod_s2.assert_active();
+ if public.buklod_is_official_system_admin(p_user) then
+   raise exception 'OFFICIAL_SYSTEM_ADMIN_EXCLUDED' using errcode='42501';
+ end if;
  if p_user is null or p_nonce is null or p_week is null
  or p_credits not between 1 and 2 or p_week<(c.starts_at at time zone 'Asia/Manila')::date
  or mod((p_week-(c.starts_at at time zone 'Asia/Manila')::date),7)<>0
