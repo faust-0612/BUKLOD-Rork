@@ -45,6 +45,8 @@ export type Profile = {
   mobile: string | null;
   sex?: 'male' | 'female' | null;
   username?: string | null;
+  /** Current user language, included in the same profile fetch for instant LIFE localization. */
+  preferred_language?: string | null;
   login_method?: string | null;
   login_identifier?: string | null;
   avatar_url: string | null;
@@ -374,7 +376,7 @@ export function AuthProvider({
             supabase
               .from('profiles')
               .select(
-                'id,full_name,first_name,middle_name,surname,suffix,mobile,sex,username,login_method,login_identifier,avatar_url,church_id,connection_type,trust_level,is_verified,role,is_active'
+                'id,full_name,first_name,middle_name,surname,suffix,mobile,sex,username,preferred_language,login_method,login_identifier,avatar_url,church_id,connection_type,trust_level,is_verified,role,is_active'
               )
               .eq('id', userId)
               .single(),
