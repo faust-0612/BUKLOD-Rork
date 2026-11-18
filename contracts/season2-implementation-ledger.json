@@ -92,5 +92,6 @@
         "Embargo until Dec6 and separate exact SHA owner approval"
       ]
     }
-  ]
+  ],
+  "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
 }

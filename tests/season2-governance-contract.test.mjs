@@ -74,7 +74,10 @@ test('missing telemetry or low sample is yellow, never false green',()=>{
 test('implementation ledger changes required for season runtime changes',()=>{
  assert.equal(g.auditPaths(['src/lib/buklodSeason2CampaignR1.ts']).allowed,false);
  assert.equal(g.auditPaths(['src/lib/buklodSeason2CampaignR1.ts',
-  'contracts/season2-implementation-ledger.json']).allowed,true);
+  'contracts/season2-implementation-ledger.json']).allowed,false);
+ assert.equal(g.auditPaths(['src/lib/buklodSeason2CampaignR1.ts',
+  'contracts/season2-implementation-ledger.json',
+  'contracts/season2-proposals/season2-rank.json']).allowed,true);
 });
 test('pure audit leaves previews and production embargo intact',()=>{
  const code=fs.readFileSync('scripts/season2-governance.cjs','utf8');

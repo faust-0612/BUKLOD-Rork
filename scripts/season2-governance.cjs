@@ -117,11 +117,16 @@ function health(s,p){
 }
 function auditPaths(files){
   const re=/^(?:src\/lib\/buklodSeason|src\/lib\/buklodEngagementPolicy|src\/components\/points\/BuklodSeason|supabase\/.*(?:season|rank|point|reward)|scripts\/buklod-season2-|\.github\/workflows\/buklod-season2-)/i;
+  const feature=/^(?:src\/lib\/buklodSeason|src\/lib\/buklodEngagementPolicy|src\/components\/points\/BuklodSeason|supabase\/.*(?:season|rank|point|reward))/i;
   const affected=files.filter(x=>re.test(x));
-  return {affected,allowed:!affected.length||
-    files.includes('contracts/season2-implementation-ledger.json'),
-    errors:affected.length&&!files.includes('contracts/season2-implementation-ledger.json')?
-      ['SEASON_FEATURE_CHANGE_WITHOUT_LEDGER_UPDATE']:[]};
+  const behaviorChanges=affected.filter(x=>feature.test(x));
+  const proposalPaths=files.filter(x=>/^contracts\/season2-proposals\/[^/]+\.json$/.test(x));
+  const errors=[];
+  if(affected.length&&!files.includes('contracts/season2-implementation-ledger.json'))
+    errors.push('SEASON_FEATURE_CHANGE_WITHOUT_LEDGER_UPDATE');
+  if(behaviorChanges.length&&!proposalPaths.length)
+    errors.push('SEASON_FEATURE_CHANGE_WITHOUT_REVIEWABLE_PROPOSAL');
+  return {affected,behaviorChanges,proposalPaths,allowed:errors.length===0,errors};
 }
 function main(argv=process.argv.slice(2)){
   const p=POLICY(),l=LEDGER(),v=validatePolicy(p),r=readiness(l);
@@ -140,13 +145,20 @@ function main(argv=process.argv.slice(2)){
     const base=process.env.BUKLOD_CI_BASE||'origin/main';
     const files=execFileSync('git',['diff','--name-only',base+'...HEAD'],
       {cwd:root,encoding:'utf8',timeout:10000}).trim().split('\n').filter(Boolean);
-    out={policy:v,readiness:r,scope:auditPaths(files)};
+    const scope=auditPaths(files);
+    const proposals=scope.proposalPaths.map(file=>{
+      const result=proposalReview(load(path.join(root,file)),p,
+        {ownerReviewed:process.env.BUKLOD_OWNER_REVIEW_VERIFIED==='true'});
+      return {file,...result};
+    });
+    out={policy:v,readiness:r,scope,proposals};
   }else throw Error('Use: validate | proposal FILE | health FILE | launch | ci');
   console.log(JSON.stringify(out,null,2));
   if((argv[0]==='proposal'&&!out.allowedForDesign)||
      (argv[0]==='launch'&&!out.readyForLaunch)||
      (argv[0]==='health'&&out.color==='RED')||
-     (argv[0]==='ci'&&!out.scope.allowed))process.exitCode=1;
+     (argv[0]==='ci'&&(!out.scope.allowed||
+       out.proposals.some(x=>!x.allowedForDesign))))process.exitCode=1;
 }
 if(require.main===module){try{main();}catch(e){console.error('SEASON2 FAIL CLOSED',e.message);process.exitCode=1;}}
 module.exports={digest,validatePolicy,proposalReview,readiness,health,auditPaths,main};
