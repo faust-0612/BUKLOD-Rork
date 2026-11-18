@@ -5,6 +5,7 @@ import {
   rememberBuklodRoute,
   resolveBuklodCrashRoute,
   diagnoseBuklodRenderError,
+  buildBuklodRenderCorrelationKey,
 } from '../src/lib/buklodRouteDiagnostics.ts';
 
 test('retains known route names and masks dynamic identifiers', () => {
@@ -97,4 +98,23 @@ test('never trusts dynamic or traversal source path as a first-party module',()=
   });
   assert.equal(evidence.sourcePath,null);
   assert.equal(evidence.originArea,'UNKNOWN');
+});
+
+
+test('render correlation isolates OTA and route without exposing route parameters',()=>{
+  const evidence = diagnoseBuklodRenderError({
+    name:'TypeError',message:"Cannot read properties of undefined",stack:'',
+  });
+  const ota1='123e4567-e89b-42d3-a456-426614174000';
+  const ota2='123e4567-e89b-42d3-a456-426614174001';
+  const a=buildBuklodRenderCorrelationKey(evidence,ota1,'/scope/members/secret-user-1');
+  const b=buildBuklodRenderCorrelationKey(evidence,ota2,'/scope/members/secret-user-1');
+  const c=buildBuklodRenderCorrelationKey(evidence,ota1,'/connect/messages/secret-user-1');
+  const sameTemplate=buildBuklodRenderCorrelationKey(evidence,ota1,'/scope/members/secret-user-2');
+  assert.notEqual(a,b);
+  assert.notEqual(a,c);
+  assert.equal(a,sameTemplate);
+  assert.match(a,/^BUKLOD_SCREEN_RENDER_EXCEPTION\./);
+  assert.match(a,/^[A-Z0-9_.:-]{2,160}$/);
+  assert.doesNotMatch(a,/secret-user|123e4567-e89b/);
 });
