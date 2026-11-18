@@ -38,12 +38,26 @@ export type BuklodLocalHealResult =
   | 'INELIGIBLE'
   | 'UNKNOWN';
 
+export type BuklodRenderForensics = {
+  causeCode: string;
+  originArea: string;
+  sourcePath?: string | null;
+  sourceLine?: number | null;
+  sourceColumn?: number | null;
+  bundleLine?: number | null;
+  bundleColumn?: number | null;
+  runtimeVersion?: string | null;
+  otaUpdateId?: string | null;
+  updateChannel?: string | null;
+};
+
 export type BuklodHealthIssue = {
   category: BuklodHealthCategory;
   severity: BuklodHealthSeverity;
   safeErrorCode: string;
   errorSignature: string;
   correlationKey: string;
+  renderForensics?: BuklodRenderForensics | null;
   routeModule?: string | null;
   networkState?: string | null;
   authState?: string | null;
@@ -105,6 +119,42 @@ function cleanRoute(value: string | null | undefined) {
   return ROUTE_RE.test(candidate) ? candidate : 'unknown';
 }
 
+const FORENSIC_CAUSES = new Set([
+  'UNKNOWN','HOOK_ORDER','RENDER_LOOP','INVALID_ELEMENT','INVALID_CHILD',
+  'NULLISH_ACCESS','INVALID_CALL','MISSING_PROVIDER','TYPE_ERROR','REFERENCE_ERROR',
+]);
+const FORENSIC_AREAS = new Set([
+  'UNKNOWN','PROVIDER','SCOPE','CONNECT','CHARACTER','MEDIA',
+  'AUTH','ROUTE','COMPONENT','LIB',
+]);
+const OTA_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function safePositiveFrame(input: unknown): number | null {
+  const value = typeof input === 'number' ? input : NaN;
+  return Number.isSafeInteger(value) && value > 0 && value <= 100_000_000 ? value : null;
+}
+function normalizeRenderForensics(input: BuklodRenderForensics | null | undefined): BuklodRenderForensics | null {
+  if (!input || !FORENSIC_CAUSES.has(input.causeCode) || !FORENSIC_AREAS.has(input.originArea)) return null;
+  const path = String(input.sourcePath ?? '');
+  const safePath = path.length <= 180 &&
+    /^src\/(app|components|providers|lib)\/[A-Za-z0-9_./\[\]()\-]+\.(?:tsx?|jsx?)$/.test(path) &&
+    !path.includes('..') ? path : null;
+  const runtime = String(input.runtimeVersion ?? '');
+  const channel = String(input.updateChannel ?? '').toLowerCase();
+  return {
+    causeCode: input.causeCode,
+    originArea: input.originArea,
+    sourcePath: safePath,
+    sourceLine: safePath ? safePositiveFrame(input.sourceLine) : null,
+    sourceColumn: safePath ? safePositiveFrame(input.sourceColumn) : null,
+    bundleLine: safePositiveFrame(input.bundleLine),
+    bundleColumn: safePositiveFrame(input.bundleColumn),
+    runtimeVersion: /^[A-Za-z0-9_.-]{1,60}$/.test(runtime) ? runtime : null,
+    otaUpdateId: OTA_UUID_RE.test(String(input.otaUpdateId ?? '')) ? String(input.otaUpdateId) : null,
+    updateChannel: /^(production|staging|preview|development)$/.test(channel) ? channel : null,
+  };
+}
+
 function boundedCount(value: number | undefined) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(1_000_000, Math.floor(value ?? 0)));
@@ -148,6 +198,7 @@ function normalizeIssue(input: BuklodHealthIssue): BuklodHealthIssue {
       'BUKLOD_MAIN_UNKNOWN',
       160,
     ),
+    renderForensics: normalizeRenderForensics(input.renderForensics),
     routeModule: cleanRoute(input.routeModule),
     networkState: cleanState(input.networkState),
     authState: cleanState(input.authState),
@@ -274,8 +325,8 @@ export async function flushBuklodMainHealthQueue(
 
   for (const row of rows) {
     try {
-      const { error } = await withBuklodTimeout<{
-        data: unknown;
+      const { data: receipt, error } = await withBuklodTimeout<{
+        data: {event_id?: string} | null;
         error: unknown | null;
       }>(
         (supabase as any).rpc('buklod_record_health_event_v1', {
@@ -320,6 +371,37 @@ export async function flushBuklodMainHealthQueue(
       );
 
       if (error) throw error;
+      // Separate additive RPC: original health event remains backward compatible.
+      // A failed forensic attachment leaves this row queued; replay is safe because
+      // health events dedupe by clientEventId and forensics by health_event_id.
+      // Non-render incidents use exactly the existing one-request path.
+      if (row.renderForensics) {
+        if (!receipt?.event_id || !/^[0-9a-f-]{36}$/i.test(receipt.event_id))
+          throw new Error('Missing health receipt for render forensics');
+        const forensic = normalizeRenderForensics(row.renderForensics);
+        if (forensic) {
+          const {error: attachError} = await withBuklodTimeout<{
+            data: unknown; error: unknown | null;
+          }>(
+            (supabase as any).rpc('buklod_attach_render_forensics_v1', {
+              p_health_event_id: receipt.event_id,
+              p_cause_code: forensic.causeCode,
+              p_origin_area: forensic.originArea,
+              p_source_path: forensic.sourcePath,
+              p_source_line: forensic.sourceLine,
+              p_source_column: forensic.sourceColumn,
+              p_bundle_line: forensic.bundleLine,
+              p_bundle_column: forensic.bundleColumn,
+              p_runtime_version: forensic.runtimeVersion,
+              p_ota_update_id: forensic.otaUpdateId,
+              p_update_channel: forensic.updateChannel,
+            }),
+            5_000,
+            'BUKLOD render diagnostics',
+          );
+          if (attachError) throw attachError;
+        }
+      }
       sent += 1;
     } catch {
       remaining.push(row);
