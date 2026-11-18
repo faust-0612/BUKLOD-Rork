@@ -26,6 +26,7 @@ type Props = {
   userId?: string | null;
   uri?: string | null;
   name?: string | null;
+  rankName?: string | null;
   size?: number;
   fallbackSource?:
     | number
@@ -96,6 +97,7 @@ export function BuklodTappableAvatar({
   userId,
   uri,
   name,
+  rankName,
   size = 48,
   fallbackSource,
   onPress,
@@ -155,6 +157,7 @@ export function BuklodTappableAvatar({
       userId={userId}
       uri={uri}
       name={name}
+      rankName={rankName}
       size={size}
       fallbackSource={fallbackSource}
     />
