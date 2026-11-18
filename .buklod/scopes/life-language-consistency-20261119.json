@@ -12,7 +12,8 @@
     "faith-content-localization",
     "profile-preferences",
     "account-isolation",
-    "backend-security"
+    "backend-security",
+    "auth-privacy"
   ],
   "allowedPaths": [
     "src/lib/buklodLifeLanguage.ts",
@@ -34,8 +35,7 @@
     ".buklod/scopes/life-language-consistency-20261119.json"
   ],
   "regressionTests": [
-    "tests/life-language-auth-navigation-20261119.test.mjs",
-    "src/lib/__tests__/buklodLifeLanguage.test.ts"
+    "tests/life-language-auth-navigation-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -87,5 +87,10 @@
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "releaseMode": "season2-staging-candidate-no-ota",
   "physicalDeviceVerification": "NOT_PERFORMED",
-  "releaseTarget": "Season 2 consolidated staging Android only after separate mandatory RC and release gates"
+  "releaseTarget": "Season 2 consolidated staging Android only after separate mandatory RC and release gates",
+  "alternativeApproaches": [
+    "Continue relying on each page's own profile-only language selection (rejected: renders mismatched languages).",
+    "Enable unfinished app-wide Filipino translation pack (rejected: violates reviewed pack release gate).",
+    "Fetch on-demand AI translation (rejected: insecure/unnecessary and can distort curated faith content)."
+  ]
 }
