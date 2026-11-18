@@ -1,6 +1,5 @@
 import React, {
   useEffect,
-  useMemo,
 } from 'react';
 
 import {
@@ -28,17 +27,12 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import {
-  normalizeBuklodLifeLanguage,
-} from '@/lib/buklodLifeContent';
+import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
 
 import {
   recordBuklodLifeReferralFunnel,
 } from '@/lib/buklodLifeImpact';
 
-import {
-  useAuth,
-} from '@/providers/AuthProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 
@@ -52,24 +46,8 @@ export default function BuklodLifeInviteWelcomeScreen() {
       ref?: string;
     }>();
 
-  const {
-    profile,
-  } =
-    useAuth();
   const { activeScope } = useBuklodScope();
-
-  const language =
-    useMemo(
-      () =>
-        normalizeBuklodLifeLanguage(
-          (
-            profile as any
-          )?.preferred_language
-        ),
-      [
-        profile,
-      ]
-    );
+  const language = useBuklodLifeLanguage();
 
   const copy =
     language === 'fil'
