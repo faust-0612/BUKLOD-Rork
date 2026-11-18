@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "objective": "Season 2 rank-specific 40 art badges, 10-o'clock avatar placement, colored borders, blue verified online presence across shared Wall/Connect/Profile avatar views.",
+  "baseRef": "af95563fab1d053c82963df65da5f6d55348d811",
+  "branch": "dev/season2-40-rank-avatar-badges-20261119",
+  "environment": "DEV ONLY",
+  "sourceAssets": "User Library /Buklod rank badges",
+  "assetAtlasSha256": "db2a7604e5657263336c8a358e0ef2d800cc6b6a3a7fc6b9c5a5a19174373887",
+  "rankFamilies": 8,
+  "rankLevels": 5,
+  "badges": 40,
+  "allowedPaths": [
+    "src/components/ProfileAvatar.tsx",
+    "src/components/BuklodTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
+    "src/lib/buklodCircleRankArt.ts",
+    "src/lib/buklodAvatarPresence.ts",
+    "src/components/points/BuklodCircleRankBadge.tsx",
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "docs/BUKLOD_SEASON2_40_AVATAR_BADGES_20261119.md",
+    "assets/season2/rank-badges/buklod-circle-ranks-atlas.webp",
+    ".buklod/scopes/season2-40-badge-avatars-20261119.json"
+  ],
+  "productionSeason2Embargo": "2026-12-06",
+  "productionChanges": false,
+  "realAwardChanges": false,
+  "safeReleaseGates": [
+    "TypeScript",
+    "42 rank art mappings",
+    "Wall and Connect badge placement",
+    "offline absence of false online",
+    "AdMob first-view",
+    "instant navigation",
+    "Android staging runtime",
+    "served manifest",
+    "production unchanged"
+  ]
+}

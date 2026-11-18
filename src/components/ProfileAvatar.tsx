@@ -20,6 +20,8 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { createBuklodAvatarBatchLookup } from '@/lib/buklodAvatarBatch';
+import { getBuklodCircleRankArt } from '@/lib/buklodCircleRankArt';
+import { isBuklodAvatarOnline, subscribeBuklodAvatarPresence } from '@/lib/buklodAvatarPresence';
 import {
   getBuklodLiveAvatar,
   subscribeBuklodLiveAvatar,
@@ -38,6 +40,20 @@ const avatarLookup = createBuklodAvatarBatchLookup(async (_viewerId, userIds) =>
   if (error) throw error;
   return Array.isArray(data) ? data : [];
 });
+
+// Rank and profile avatars share the bounded, deduplicated 32-user batcher.
+// This does NOT invent ranks from a null RPC response or write to user points.
+const rankLookup = createBuklodAvatarBatchLookup(async (_viewerId, userIds) => {
+  const { data, error } = await withBuklodTimeout<any>(
+    (supabase as any).rpc('get_member_circle_ranks_v1', { p_user_ids: userIds }),
+    6_000,
+    'Circle rank badge batch',
+  );
+  if (error) throw error;
+  return (Array.isArray(data) ? data : []).map((row: any) => ({
+    user_id: row.user_id, avatar_url: row.rank_name,
+  }));
+}, { positiveTtlMs: 45_000, negativeTtlMs: 20_000 });
 
 // Navigation should not issue one status RPC per mounted avatar. The result
 // is presentation-only, scoped to the viewer, bounded, and refreshed quietly.
@@ -108,6 +124,8 @@ type ProfileAvatarProps = {
 
   size?: number;
   shape?: 'circle' | 'rounded';
+  /** Optional already verified rank from Wall/Connect, display until batch catches up. */
+  rankName?: string | null;
 
   fallbackSource?:
     | number
@@ -168,7 +186,7 @@ export function ProfileAvatarStatusIndicator({
         right:
           -4,
 
-        bottom:
+        top:
           -4,
 
         zIndex:
@@ -310,9 +328,44 @@ export function ProfileAvatar({
   size = 38,
   shape = 'circle',
   fallbackSource,
+  rankName,
 }: ProfileAvatarProps) {
   const { user } = useAuth();
   const viewerId = user?.id ?? '';
+  const rankTargetId = userId || viewerId;
+  const [verifiedRankName, setVerifiedRankName] = useState<string | null>(null);
+  const [online, setOnline] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!viewerId || !rankTargetId) {
+      setVerifiedRankName(null);
+      return () => { active = false; };
+    }
+    const warm = rankLookup.peek(viewerId, rankTargetId);
+    setVerifiedRankName(warm.found && getBuklodCircleRankArt(warm.value) ? warm.value : null);
+    void rankLookup.resolve(viewerId, rankTargetId).then(value => {
+      if (active && value !== undefined) {
+        setVerifiedRankName(getBuklodCircleRankArt(value) ? value : null);
+      }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [viewerId, rankTargetId]);
+
+  useEffect(() => {
+    if (!viewerId || !rankTargetId) {
+      setOnline(false);
+      return;
+    }
+    return subscribeBuklodAvatarPresence(viewerId, () => {
+      setOnline(isBuklodAvatarOnline(viewerId, rankTargetId));
+    });
+  }, [viewerId, rankTargetId]);
+
+  const rankArt = getBuklodCircleRankArt(verifiedRankName || rankName);
+  const rankBorder = rankArt?.borderColor ?? colors.line;
+  const badgeSize = Math.max(18, Math.round(size * 0.52));
+  const onlineSize = Math.min(16, Math.max(8, Math.round(size * 0.18)));
   const [remoteUrl, setRemoteUrl] = useState<string | null>(
     getBuklodLiveAvatar(userId) ?? normalizeAvatarUrl(uri)
   );
@@ -381,8 +434,8 @@ export function ProfileAvatar({
     width: size,
     height: size,
     borderRadius: shape === 'rounded' ? Math.round(size * 0.2) : size / 2,
-    borderWidth: 1,
-    borderColor: colors.line,
+    borderWidth: rankArt ? (rankArt.levelIndex === 4 ? 2.8 : 2.1) : 1,
+    borderColor: rankBorder,
     backgroundColor: colors.greenSoft,
   };
 
@@ -498,9 +551,47 @@ export function ProfileAvatar({
       ) : null}
 
       <ProfileAvatarStatusIndicator
-        userId={userId}
+        userId={rankTargetId}
         size={size}
       />
+      {rankArt ? (
+        <View pointerEvents="none" accessible={false} style={{
+          position: 'absolute',
+          zIndex: 60,
+          elevation: 4,
+          left: -badgeSize * 0.25,
+          top: -badgeSize * 0.10,
+          width: badgeSize,
+          height: badgeSize,
+          overflow: 'hidden',
+        }}>
+          <ExpoImage
+            source={require('../../assets/season2/rank-badges/buklod-circle-ranks-atlas.webp')}
+            contentFit="fill"
+            style={{
+              position: 'absolute',
+              width: badgeSize * 5,
+              height: badgeSize * 8,
+              left: -(rankArt.levelIndex * badgeSize),
+              top: -(rankArt.familyIndex * badgeSize),
+            }}
+          />
+        </View>
+      ) : null}
+      {online ? (
+        <View pointerEvents="none" accessible accessibilityLabel="Online" style={{
+          position: 'absolute',
+          zIndex: 70,
+          bottom: -onlineSize * 0.30,
+          left: (size - onlineSize) / 2,
+          width: onlineSize,
+          height: onlineSize,
+          borderRadius: onlineSize / 2,
+          borderWidth: Math.max(1.5, onlineSize * 0.16),
+          borderColor: '#FFFFFF',
+          backgroundColor: '#00AAFF',
+        }} />
+      ) : null}
     </View>
   );
 }

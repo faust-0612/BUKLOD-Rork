@@ -121,7 +121,7 @@ export function ConnectTappableAvatar({
           width: size,
           height: size,
           borderRadius: shape === 'rounded' ? Math.round(size * 0.2) : size / 2,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {avatar}
