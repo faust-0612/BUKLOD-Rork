@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import ts from 'typescript';
+import { stripTypeScriptTypes } from 'node:module';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const UUID_A = '11111111-1111-4111-8111-111111111111';
@@ -10,13 +10,23 @@ const UUID_B = '22222222-2222-4222-8222-222222222222';
 const UUID_C = '33333333-3333-4333-8333-333333333333';
 
 function loadTs(path, dependencies = {}) {
-  const js = ts.transpileModule(read(path), {
-    fileName: path,
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
+  // Node 22 built-in TS stripping: no npm install or live backend required.
+  let js = stripTypeScriptTypes(read(path));
+  const exported = [...js.matchAll(
+    /^\s*export\s+(?:async\s+)?(?:function|const|class|let|var)\s+([A-Za-z_]\w*)/gm,
+  )].map(match => match[1]);
+  js = js.replace(
+    /^\s*import\s+([\s\S]*?)\s+from\s+(['"])(.*?)\2\s*;?/gm,
+    (_full, clause, _quote, specifier) =>
+      'const ' + clause.trim() + " = require('" + specifier + "');",
+  );
+  js = js.replace(
+    /\bexport\s+(?=(?:async\s+)?(?:function|const|class|let|var)\b)/g,
+    '',
+  );
+  js += '\nObject.assign(module.exports, {' + exported.join(',') + '});';
   const module = { exports: {} };
   vm.runInNewContext(js, {
-    exports: module.exports,
     module,
     require: id => {
       if (Object.prototype.hasOwnProperty.call(dependencies, id)) return dependencies[id];
