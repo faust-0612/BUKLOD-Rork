@@ -29,6 +29,19 @@ create table public.kl_reading_sessions(
 create table public.buklod_scope_memberships(
   user_id uuid not null,scope_id uuid not null,
   membership_status text,joined_at timestamptz,left_at timestamptz);
+create table public.buklod_foundation_protected_principals(
+  user_id uuid not null,principal_key text not null,protected boolean not null);
+-- Synthetic role resolver replicates the existing protected-principal contract.
+-- Never hardcode a production user ID or email into Season2 logic.
+create or replace function public.buklod_is_official_system_admin(p_user_id uuid)
+returns boolean language sql stable security invoker set search_path=''
+as $mock$
+  select exists(select 1 from public.buklod_foundation_protected_principals p
+    where p.user_id=p_user_id and p.principal_key='OFFICIAL_SYSTEM_ADMIN'
+      and p.protected=true);
+$mock$;
+revoke all on function public.buklod_is_official_system_admin(uuid) from public,anon,authenticated;
+grant execute on function public.buklod_is_official_system_admin(uuid) to service_role;
 grant select on all tables in schema public to service_role;
 insert into auth.users(id)values
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),

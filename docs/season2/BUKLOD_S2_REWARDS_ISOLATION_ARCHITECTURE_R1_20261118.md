@@ -36,6 +36,10 @@ Read-only live Supabase introspection on 2026-11-18 confirmed:
   (user_id,character_id) progression; public.buklod_character_collectible_state
   stores discovered/redeemed items, separate from catalog artwork.
 - public.buklod_scope_memberships uses ACTIVE / PENDING / LEFT etc.
+- Existing authoritative `public.buklod_is_official_system_admin(uuid)`
+  is verified callable by service_role; new S2 source, purchase, weekly claim
+  and flex procedures reject the protected Official before any wallet mutation.
+  Synthetic local PostgreSQL tests use only a made-up Official account.
 - public.buklod_should_show_faith_content is an auth.uid-based existing UI
   authorization function. For actual Show Faith checks its precedence includes
   CHURCH scope, CLUSTER admin, ORGANIZATION faith_content_mandatory metadata,

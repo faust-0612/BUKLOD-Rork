@@ -20,6 +20,8 @@ test('S2 revokes client DML and privileged function access, and cannot activate 
     assert.match(sql,new RegExp('revoke all on function buklod_s2\\.'+fn));
   }
   assert.match(sql,/S1_AWAITING_SIGNED_RECONCILIATION/);
+  assert.match(sql,/public\.buklod_is_official_system_admin\(p_user\)/);
+  assert.match(sql,/OFFICIAL_SYSTEM_ADMIN_EXCLUDED/);
 });
 test('No free client mint, fixed amounts, wallet lock and unique receipts',()=>{
   assert.match(sql,/for update;/);

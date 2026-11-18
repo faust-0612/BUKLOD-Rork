@@ -52,6 +52,37 @@ values('77777777-7777-4777-8777-777777777777',
  '66666666-6666-4666-8666-666666666666',
  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',now()-interval '10 minutes');
 
+-- Protected platform Official is permanently excluded from S2 reward writes.
+insert into auth.users(id) values('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+insert into public.buklod_foundation_protected_principals
+ (user_id,principal_key,protected)
+values('dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+ 'OFFICIAL_SYSTEM_ADMIN',true);
+insert into public.community_posts(id,user_id,category,body,created_at)
+values('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+ 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+ 'discussion',
+ 'A substantial synthetic official-only post which must never earn tokens.',
+ now()-interval '2 minutes');
+set role service_role;
+do $test$
+declare refused boolean:=false;
+begin
+  begin
+    perform buklod_s2.credit_main_source(
+      'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      'wall_original_post',
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+  exception when sqlstate '42501' then refused:=true;
+  end;
+  if not refused then raise exception 'FAIL: protected Official earned a Season2 token';end if;
+  if exists(select 1 from buklod_s2.wallet
+    where user_id='dddddddd-dddd-4ddd-8ddd-dddddddddddd') then
+    raise exception 'FAIL: Official wallet was created';end if;
+end;
+$test$;
+reset role;
+
 -- The production client roles cannot read or invoke the new schema.
 do $test$
 begin
