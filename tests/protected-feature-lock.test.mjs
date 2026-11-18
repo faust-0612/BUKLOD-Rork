@@ -122,3 +122,18 @@ test('Nov17 quiet connection feedback has exact protected scope',()=>{
  assert.deepEqual(result.impacted,['app-runtime','navigation-auth','governance-lock']);
  assert.equal(scope.publicationStatus,'DEV_ONLY_NO_OTA');
 });
+
+
+test('Season 2 rank-avatar visual patch is staging-only and exactly scoped', () => {
+  const flow = readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+  const manifest = JSON.parse(readFileSync(new URL('../.buklod/scopes/season2-circle-rank-avatar-20261119.json',import.meta.url),'utf8'));
+  assert.match(flow, /dev\/season2-circle-rank-avatar-20261119/);
+  assert.match(flow, /BUKLOD_SCOPE_MANIFEST=\.buklod\/scopes\/season2-circle-rank-avatar-20261119\.json/);
+  assert.equal(manifest.productionChange, false);
+  assert.equal(manifest.releaseAuthorized, false);
+  assert.equal(manifest.targetEnvironment, 'staging-user');
+  const changes = manifest.allowedPaths.map(path => ({ status: 'M', path }));
+  const r = assessProtectedFeatureLock(changes, manifest);
+  assert.deepEqual(r.failures, []);
+  assert.deepEqual(r.impacted, ['app-runtime','navigation-auth','governance-lock']);
+});

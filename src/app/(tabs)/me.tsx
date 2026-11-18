@@ -1732,6 +1732,7 @@ export default function MeScreen() {
               userId={profile?.id}
               uri={profile?.avatar_url}
               name={profile?.full_name}
+              rankName={circleRank}
               size={buklodVisual.size.avatar}
               fallbackSource={fallbackPortrait}
               enableLongPressSheet={false}
