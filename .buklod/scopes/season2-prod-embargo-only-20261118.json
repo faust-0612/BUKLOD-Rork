@@ -13,7 +13,6 @@
   ],
   "riskAreas": [
     "production-release",
-    "app-runtime",
     "ads-finance-points"
   ],
   "allowedPaths": [
@@ -29,7 +28,8 @@
     "Production Android and Web retain existing QA and EAS release requirements.",
     "Nonseason repairs remain eligible for original release gates.",
     "Staging unaffected by this production-only guard and requires previous TrainA production verification before Season2 publication.",
-    "No direct EAS CLI permission revocation claimed."
+    "No direct EAS CLI permission revocation claimed.",
+    "Scope declares only production-release, because no src/runtime files are changed; runtime feature-change declarations must never be fabricated."
   ],
   "acceptanceChecks": [
     "Season2 production source before Dec6 blocked regardless of consent/feature flags.",
@@ -47,16 +47,6 @@
       "reason": "Protect canonical production Android/Web publishing from Season2 package, even when OFF, until Dec6 and independent approval.",
       "preservedBehaviors": [
         "All existing AdMob, Android RC, navigation/performance and production environment gates retained; staging unaffected."
-      ],
-      "tests": [
-        "tests/buklod-season2-production-embargo-20261118.test.mjs"
-      ]
-    },
-    {
-      "id": "app-runtime",
-      "reason": "Only CI workflow/scripts changed; no runtime or finance changes.",
-      "preservedBehaviors": [
-        "No production/source application behavior changed."
       ],
       "tests": [
         "tests/buklod-season2-production-embargo-20261118.test.mjs"
