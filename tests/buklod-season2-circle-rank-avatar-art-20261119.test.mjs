@@ -61,7 +61,7 @@ test('All shared Wall/Connect/Profile avatars have top-left badge, rank border a
  assert.match(me,/rankName=\{circleRank\}/);
  assert.match(quick,/rankName=\{contact.rank_name\}/);
  assert.match(status,/AppState.addEventListener/);
- assert.match(status,/channel.track/);
+ assert.match(status,/connected.track/);
  assert.match(ranks,/get_member_circle_ranks_v1/);
  assert.match(ranks,/p_user_ids:group/);
  assert.match(ranks,/session.session\?\.user\?\.id!==viewer/);
