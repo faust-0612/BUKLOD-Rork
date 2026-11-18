@@ -21,7 +21,8 @@
     ".buklod/scopes/train-a-prod-raw-native-rc-20261118.json",
     ".github/workflows/buklod-train-a-prod-raw-native-rc-qa-20261118.yml",
     "scripts/android-ota-rc.cjs",
-    "tests/buklod-native-package-script-gate-20261118.test.mjs"
+    "tests/buklod-native-package-script-gate-20261118.test.mjs",
+    "tests/buklod-production-ota-raw-git-baseline-20261118.test.mjs"
   ],
   "preserveBehaviors": [
     "Production runtime sources, login/auth, native plugins, dependencies, lockfile unchanged",
@@ -29,17 +30,20 @@
     "Only exact already approved compact npm script addition allowed",
     "No app UI/AdMob/Finance/Kingdom code or data touched",
     "No Season2 code in production or bypass of Dec6 embargo",
-    "No EAS update during PR preflight; production publish only through canonical frozen RC pipeline"
+    "No EAS update during PR preflight; production publish only through canonical frozen RC pipeline",
+    "Production-release named regression proof asserts raw signed Git V28 baseline, EAS frozen RC and no-publish CI boundary."
   ],
   "acceptanceChecks": [
     "Raw pinned package Git source with newline is byte-exact and digest verified in unit tests",
     "Trimming source is rejected, negative tamper tests remain passing",
     "Native Kingdom/ABI/Expo config source tests remain passing",
     "Read-only `scripts/android-ota-rc.cjs baseline` passes with actual production manifest and exact source SHA",
-    "Engineering Accountability and Main/performance CI pass before merge; canonical production pipeline must reach frozen RC and EAS publish/readback after merge"
+    "Engineering Accountability and Main/performance CI pass before merge; canonical production pipeline must reach frozen RC and EAS publish/readback after merge",
+    "Read-only production baseline QA compares exact checked-out PR HEAD to its own runtime-generated receipt and checks remote branch head, never synthetic pull_request merge SHA."
   ],
   "regressionTests": [
-    "tests/buklod-native-package-script-gate-20261118.test.mjs"
+    "tests/buklod-native-package-script-gate-20261118.test.mjs",
+    "tests/buklod-production-ota-raw-git-baseline-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -50,7 +54,8 @@
         "Native config compatibility, source SHA, project/channel, Season2 embargo and EAS frozen bundle verification remain release blockers"
       ],
       "tests": [
-        "tests/buklod-native-package-script-gate-20261118.test.mjs"
+        "tests/buklod-native-package-script-gate-20261118.test.mjs",
+        "tests/buklod-production-ota-raw-git-baseline-20261118.test.mjs"
       ]
     }
   ],

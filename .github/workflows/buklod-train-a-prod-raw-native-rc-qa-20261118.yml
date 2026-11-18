@@ -37,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/buklod-native-package-script-gate-20261118.test.mjs
+          node --test tests/buklod-production-ota-raw-git-baseline-20261118.test.mjs
           node --test tests/native-expo-config-compat.test.cjs
           node --experimental-strip-types --test tests/kingdom-native-cinematic-ota-20261114.test.mjs tests/kingdom-premium-gameplay-staging-20261114.test.mjs tests/kingdom-production-ota-r12.test.mjs tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs
           GITHUB_REF=refs/heads/main GITHUB_SHA="$(git rev-parse HEAD)" node scripts/buklod-season2-production-embargo.cjs --production
@@ -46,11 +47,12 @@ jobs:
         run: |
           set -euo pipefail
           GITHUB_REF=refs/heads/main GITHUB_SHA="$(git rev-parse HEAD)" node scripts/android-ota-rc.cjs baseline
+          test "$(git ls-remote origin refs/heads/fix/train-a-prod-raw-v28-blob-20261118 | cut -f1)" = "$(git rev-parse HEAD)"
           test -f ota-evidence/baseline.json
           node - <<'NODE'
           const fs=require('node:fs'),a=require('node:assert/strict');
           const d=JSON.parse(fs.readFileSync('ota-evidence/baseline.json','utf8'));
-          a.equal(d.source,process.env.GITHUB_SHA || require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim());
+          a.equal(d.source,require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim());
           a.equal(d.runtime,'1.3.2');
           a.match(d.id,/^[0-9a-f-]{36}$/i);
           NODE
