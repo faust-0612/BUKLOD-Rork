@@ -3,7 +3,9 @@ name: BUKLOD S2 Combined LIFE + Rank Avatar Android QA — NO PUBLISH
 on:
   push:
     branches: [staging/season2-all-updates-20261119]
-    paths: ['.github/workflows/buklod-s2-all-updates-qa-20261119.yml']
+    paths:
+      - '.github/workflows/buklod-s2-all-updates-qa-20261119.yml'
+      - '.buklod/scopes/season2-all-updates-20261119.json'
 permissions:
   contents: read
 concurrency:
