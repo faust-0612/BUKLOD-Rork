@@ -71,7 +71,9 @@ begin
  if v_uid is null then raise exception 'Login required' using errcode='28000'; end if;
  select * into v_row from private.buklod_legal_identity_v1 where user_id=v_uid;
  return jsonb_build_object(
-  'status',coalesce(v_row.status,'UNVERIFIED'),'submitted_at',v_row.submitted_at,
+  'status',coalesce(v_row.status,'UNVERIFIED'),
+  'membership_verified',(select coalesce(p.is_verified,false) and p.is_active from public.profiles p where p.id=v_uid),
+  'submitted_at',v_row.submitted_at,
   'verified_at',v_row.verified_at,'rejected_reason',v_row.rejected_reason,
   'legal_full_name',case when v_row.status='VERIFIED' then v_row.legal_full_name else null end
  );
