@@ -42,20 +42,12 @@
   ],
   "lockedFeatureChanges": [
     {
-      "id": "kingdom-character",
-      "reason": "Pure no-write future Character reward model only; retain per-character progression and game-only Shards",
+      "id": "app-runtime",
+      "reason": "Adds an unimported, OFF-by-default pure preview policy module; no existing runtime route, UI, BP, QMP, AdMob or financial behavior is changed.",
       "preservedBehaviors": [
-        "Existing Character V3 and Kingdom inventories untouched"
-      ],
-      "tests": [
-        "tests/buklod-engagement-policy-r1-20261118.test.mjs"
-      ]
-    },
-    {
-      "id": "points-economy",
-      "reason": "Preview BP/QMP and noncash token separation without affecting any live finance or points ledger",
-      "preservedBehaviors": [
-        "No new BP, QMP, revenue or financial grants/reversals"
+        "Existing app registration, sign-in, Wall, Connect, Character, Kingdom, BP, QMP, AdMob and navigation codepaths remain untouched.",
+        "No user-visible reward grant, spending, inactivity debit, new feature gate or source-trigger mutation.",
+        "Core posting, comments, safety, prayer, children's content, education and accessibility remain unrestricted."
       ],
       "tests": [
         "tests/buklod-engagement-policy-r1-20261118.test.mjs"
