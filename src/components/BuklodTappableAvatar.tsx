@@ -215,7 +215,7 @@ export function BuklodTappableAvatar({
           width: size,
           height: size,
           borderRadius: size / 2,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {avatar}
