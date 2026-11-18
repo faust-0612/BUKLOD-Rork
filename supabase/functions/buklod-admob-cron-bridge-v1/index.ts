@@ -39,8 +39,18 @@ Deno.serve(async (request: Request) => {
       body: '{}',
       signal: AbortSignal.timeout(75000),
     });
-    if (!response.ok)
-      return json({ error: 'Official AdMob report unavailable', provider_status: response.status }, 503);
+    if (!response.ok) {
+      // Only authenticated Vault-backed callers reach this point. Relay
+      // whitelisted failure categories, never provider bodies or OAuth data.
+      const fault = await response.json().catch(() => null);
+      const sourceError = fault?.error === 'SOURCE_NOT_CONFIGURED'
+        ? 'SOURCE_NOT_CONFIGURED' : 'SOURCE_UNAVAILABLE';
+      return json({
+        error: 'Official AdMob report unavailable',
+        source_error: sourceError,
+        provider_status: response.status,
+      }, 503);
+    }
     const report = await response.json();
     if (report?.status !== 'PRELIMINARY_ONLY'
       || report?.finalized !== false
