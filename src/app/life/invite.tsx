@@ -53,7 +53,7 @@ export default function BuklodLifeInviteWelcomeScreen() {
     language === 'fil'
       ? {
         welcome:
-          'Welcome sa BUKLOD!',
+          'Maligayang pagdating sa BUKLOD!',
         invited:
           'Inimbitahan ka ng isang BUKLOD member.',
         discover:
@@ -63,7 +63,7 @@ export default function BuklodLifeInviteWelcomeScreen() {
         explore:
           'Tuklasin ang BUKLOD',
         exploreSub:
-          'Sumali sa community, matuto, makipag-connect, at gamitin ang normal na BUKLOD features.',
+          'Makilahok sa komunidad, matuto, makipag-ugnayan, at gamitin ang mga tampok ng BUKLOD.',
         later:
           'Baka Mamaya',
         laterSub:
