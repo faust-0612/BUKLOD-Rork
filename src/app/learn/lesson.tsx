@@ -20,7 +20,8 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, removeOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
-import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import { Button, shared } from '@/components/UI';
+import { ReadableFaithCard as Card, ReadableFaithSectionTitle as SectionTitle } from '@/components/education/ReadableFaithSurface';
 import { VoiceReader } from '@/components/VoiceReader';
 import { colors } from '@/lib/theme';
 import {

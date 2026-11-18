@@ -11,10 +11,9 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import {
   Button,
-  Card,
-  SectionTitle,
   shared,
 } from '@/components/UI';
+import { ReadableFaithCard as Card, ReadableFaithSectionTitle as SectionTitle } from '@/components/education/ReadableFaithSurface';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { colors } from '@/lib/theme';
@@ -1281,7 +1280,7 @@ const styles = StyleSheet.create({
   statusPending: {
     fontSize: 11,
     fontWeight: '900',
-    color: colors.amber,
+    color: '#8F5400',
     marginTop: 10,
   },
 
@@ -1331,7 +1330,7 @@ const styles = StyleSheet.create({
   requirementPending: {
     fontSize: 11,
     lineHeight: 16,
-    color: colors.amber,
+    color: '#8F5400',
     marginTop: 5,
   },
 

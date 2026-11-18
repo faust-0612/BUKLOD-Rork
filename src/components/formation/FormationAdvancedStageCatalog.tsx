@@ -11,7 +11,8 @@ import {
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { Button, Card, shared } from '@/components/UI';
+import { Button, shared } from '@/components/UI';
+import { ReadableFaithCard as Card } from '@/components/education/ReadableFaithSurface';
 import {
   formationCopy,
   friendlyLessonBlockingReason,
@@ -562,7 +563,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   lessonRowMuted: {
-    opacity: 0.72,
+    opacity: 1,
   },
   lessonSequence: {
     fontSize: 11,
