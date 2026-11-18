@@ -180,7 +180,7 @@ export default function PostDetail(){
    cluster_name:
     clusterMap[row.user_id]??null,
    author_rank_name:
-    authorRank??'Circle Starter V'
+    authorRank??null
   });
   setComments(commentRows.map((x:any)=>({...x,cluster_name:clusterMap[x.user_id]??null})));
   if(user?.id===row.user_id){const {data:r}=await (supabase as any).rpc('get_post_share_requests_for_author_v2',{p_post_id:id});setRequests(r??[])}else setRequests([]);
