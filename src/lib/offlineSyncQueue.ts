@@ -85,14 +85,20 @@ function cleanError(error: unknown): string {
 }
 
 async function readQueue(): Promise<OfflineQueueItem[]> {
+  // Fail closed on corrupted/unavailable storage. Returning [] here lets the
+  // next enqueue overwrite unsent user work as an "empty" queue.
+  const raw = await AsyncStorage.getItem(QUEUE_KEY);
+  if (!raw) return [];
+  let parsed: unknown;
   try {
-    const raw = await AsyncStorage.getItem(QUEUE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    parsed = JSON.parse(raw);
   } catch {
-    return [];
+    throw new Error('Pending offline work could not be read. Do not clear app data.');
   }
+  if (!Array.isArray(parsed)) {
+    throw new Error('Pending offline work is not in a valid format. Do not clear app data.');
+  }
+  return parsed as OfflineQueueItem[];
 }
 
 async function writeQueue(items: OfflineQueueItem[]): Promise<void> {
