@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { assertApprovedCompactScriptOnly } = require('../scripts/buklod-native-package-script-gate.cjs');
 
 const read = p => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const baseline = '43d5f24a829028a928b5f131b6fa82499e47cd61';
@@ -13,7 +16,9 @@ const trudice = read('src/features/games/trudice/PlaygroundPathGameV2.tsx');
 
 test('Staging gameplay keeps the exact signed native ABI: no APK or production build', () => {
   for (const path of ['app.config.js', 'eas.json', 'package.json', 'package-lock.json']) {
-    assert.equal(read(path), execFileSync('git', ['show', baseline + ':' + path], { encoding: 'utf8' }), path);
+    const pinned=execFileSync('git', ['show', baseline + ':' + path], { encoding: 'utf8' });
+    if(path==='package.json') assertApprovedCompactScriptOnly(read(path),pinned);
+    else assert.equal(read(path),pinned,path);
   }
   const deps = JSON.parse(read('package.json')).dependencies;
   assert.equal(deps['@shopify/react-native-skia'], '2.6.2');

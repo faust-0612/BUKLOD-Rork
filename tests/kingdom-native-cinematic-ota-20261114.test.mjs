@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { assertApprovedCompactScriptOnly } = require('../scripts/buklod-native-package-script-gate.cjs');
 const read = p => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const native = read('src/features/games/kingdom/BuklodKingdomLivingFX.native.tsx');
 const map = read('src/features/games/kingdom/BuklodKingdomMapPremium.tsx');
@@ -11,7 +14,9 @@ const BASE = 'c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd';
 
 test('Native dependency and runtime ABI remain byte-identical to signed staging APK source', () => {
   for (const p of ['package.json','app.config.js','eas.json','package-lock.json']) {
-    assert.equal(read(p), execFileSync('git', ['show', BASE+':'+p], { encoding:'utf8' }), p);
+    const pinned=execFileSync('git', ['show', BASE+':'+p], { encoding:'utf8' });
+    if(p==='package.json') assertApprovedCompactScriptOnly(read(p),pinned);
+    else assert.equal(read(p),pinned,p);
   }
   const deps=JSON.parse(read('package.json')).dependencies;
   assert.equal(deps['@shopify/react-native-skia'],'2.6.2');

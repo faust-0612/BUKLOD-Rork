@@ -15,9 +15,15 @@ test('compact Wall header leaves feed scroll, pagination and refresh semantics u
 });
 
 test('all compact Wall controls remain inside the scrollable header', () => {
-  const start = wall.indexOf('/* PATCH_161A_COMMUNITY_COMPACT */');
-  const end = wall.indexOf("{Platform.OS !== 'web' ?", start);
+  // The Platform.OS conditional now directly follows the marker, so slice the
+  // actual FlashList ListHeaderComponent boundaries to verify scroll containment.
+  const start = wall.indexOf('ListHeaderComponent={<BuklodFocusFadeUp');
+  const end = wall.indexOf('</BuklodFocusFadeUp>}', start);
+  assert.ok(start > 0 && end > start, 'Wall controls must remain in the scrollable FlashList header');
   const header = wall.slice(start, end);
+  assert.match(header, /<BuklodCommunityWallProfileBubbles/);
+  assert.match(header, /<BuklodFirstViewAd/);
+  assert.ok(header.indexOf('<BuklodWallQuickLinks') < header.indexOf('<BuklodFirstViewAd'), 'QuickLinks precede first-view ad without removing it');
   const shortcuts = readFileSync('src/components/BuklodWallQuickLinks.tsx','utf8');
   assert.match(header, /<BuklodWallQuickLinks/);
   assert.match(shortcuts, /Open My Bible/);

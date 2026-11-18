@@ -35,7 +35,8 @@ test('Community Wall videos use the Marites full-frame presentation without chan
   const web = read('src/components/CommunityVideo.web.tsx');
   const marites = read('src/components/BuklodMaritesBoard.tsx');
   assert.match(marites, /contentFit="contain"/);
-  assert.match(publicWall, /edgeToEdge\s+fitFrame\s+autoPlay/);
+  // Android fullscreen handoff must suspend the inline VideoView between fitFrame and autoplay.
+  assert.match(publicWall, /edgeToEdge\s+fitFrame\s+handoffEnabled\s+suspendedForFullscreen=\{Boolean\(videoViewerHandoffPostId\) \|\| videoViewerOpen\}\s+autoPlay/);
   assert.match(scopedWall, /height=\{\s*470\s*\}\s*fitFrame\s*autoPlay/);
   assert.match(video, /!fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio/);
   assert.match(video, /contentFit=\{preserveAspectRatio \? 'contain' : 'cover'\}/);
@@ -66,10 +67,14 @@ test('viewport autoplay is independent from ad visibility, and one next video pr
 test('retry is tappable above the overlay only after recovery; progress is not reset on every buffer', () => {
   const native = read('src/components/CommunityVideo.tsx');
   const body = native.slice(native.indexOf('function ExpoCommunityVideo('));
-  const tap = body.indexOf('style={styles.tapLayer}');
-  // Retry now carries an optional fullscreen-position override; keep it after the tap layer.
+  // The tap layer now lives in VideoTapSurface (shared press/swipe handler); 
+  // the retry Pressable must render after it at higher z-index.
+  const tapSurface = native.slice(native.indexOf('function VideoTapSurface('), native.indexOf('function InactiveCommunityVideo('));
+  assert.match(tapSurface, /style=\{styles\.tapLayer\}/);
+  assert.match(tapSurface, /<GestureDetector gesture=\{gesture\}>\{tap\}<\/GestureDetector>/);
+  const tap = body.indexOf('<VideoTapSurface');
   const retry = body.indexOf('styles.retryButton,');
-  assert.ok(tap >= 0 && retry > tap, 'Retry must receive touch priority');
+  assert.ok(tap >= 0 && retry > tap, 'Retry must receive touch priority after tap/swipe surface');
   assert.match(body, /style=\{\[\s*styles\.retryButton,/);
   assert.match(native, /retryButton:\s*\{[\s\S]*?zIndex:\s*4/);
   assert.match(body, /playerStatus === 'error' && !autoRecovering/);
