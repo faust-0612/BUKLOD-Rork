@@ -1,0 +1,58 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/train-a-prod-complete-legacy-rc-20261118.json",
+  "objective": "Update 3 stale source-pattern assertions in two existing protected media/nav tests after Train A stage-verified video handoff and consolidated Wall ListHeader layout changes. Run full original media/nav/ad and later native/Kingdom source regressions in no-OTA CI before final production retry. No production app code modifications, no test removal or skip.",
+  "baseRef": "c9d3f55f6858392c28287a555aec6824557c5f42",
+  "productionBaselineEvidence": "Production main c9d3f55f6858392c28287a555aec6824557c5f42 is source-only Train A main. Production Android run 44293096063 failed before EAS publication in second Social media/navigation tests: 34/37 pass, three old source anchor assertions. Original failures in 33-test group fixed by PR944. Real runtime code retains touch-first VideoTapSurface, zIndex4 retry, and scrollable FlashList header with QuickLinks/first-view AdMob.",
+  "chosenApproach": "Revise only two tests to validate actual stronger runtime contract: public Wall fullscreen handoff suspended player, tap/swipe overlay + higher priority Retry Pressable, and true FlashList ListHeaderComponent containing profile bubbles, QuickLinks and first-view ad. Add full no-publish regression CI to catch later production test failures before another release marker.",
+  "selectionRationale": "Fix obsolete selectors, preserve all functional and ads tests; no downgrade of video/Wall/UI app source and no bypass of automated release gates.",
+  "alternativeApproaches": [
+    "Restore obsolete rendering to make brittle tests pass (would regress fullscreen handoff and ad-player safety)",
+    "Skip entire Social media/navigation test suite (rejected)",
+    "Keep triggering full production OTA to discover failures piecemeal (rejected; added full nonpublishing source QA)"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "app-runtime",
+    "ads-finance-points",
+    "production-release",
+    "release-identity"
+  ],
+  "allowedPaths": [
+    "tests/community-video-navigation-scroll.test.mjs",
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    ".github/workflows/train-a-prod-complete-legacy-rc-no-publish-20261118.yml",
+    ".buklod/scopes/train-a-prod-complete-legacy-rc-20261118.json"
+  ],
+  "preserveBehaviors": [
+    "All src runtime/Android/native AdMob source stays byte-identical to staging-verified Train A",
+    "Fullscreen inline video suspends before fullscreen player handoff and stops offscreen",
+    "Visible Retry button rendered after tap/swipe overlay, with zIndex4 and only after auto recovery fails",
+    "All compact Wall UI remains under scrollable FlashList header, including first-view AdMob",
+    "No Season2 runtime/UI and production embargo unchanged before Dec6",
+    "No auth, QMP, BP, cash, user inventory, native ABI or backend modifications",
+    "This CI workflow cannot publish OTA"
+  ],
+  "acceptanceChecks": [
+    "Exactly 37 second-group Social photo/video tests pass under source-contract QA",
+    "All first-group video/media and ad/finance/nav tests pass in no-publish QA",
+    "Native expo config, Kingdom release regression and existing user scope tests pass",
+    "Engineering Accountability validates exact changed test files and no protected source code modifications",
+    "Only after all source CI passing may canonical GitHub production workflow be retriggered; it must verify production RC bundle hash and EAS served update",
+    "Manual Android verification waived by owner, but cannot be falsely reported as passed"
+  ],
+  "regressionTests": [
+    "tests/community-video-navigation-scroll.test.mjs",
+    "tests/navigation-scroll-compact-public-wall.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "sourceOnly": true,
+  "season2Included": false,
+  "productionStatus": "PUBLISH_NOT_YET_VERIFIED",
+  "existingUnchangedRegressionChecks": [
+    "tests/unified-social-media-rendering.test.mjs",
+    "tests/community-video-playback-recovery.test.mjs",
+    "tests/production-ota-ads-regression.test.mjs"
+  ]
+}
