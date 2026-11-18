@@ -240,3 +240,14 @@ production embargo guard pass and full acceptance evidence.
   registration, Character inventory linkage, announcements based on grants,
   Season2 full launch.
 - No production rules or data were edited, and no new OTA issued here.
+
+## Additional risk gates (local only)
+- Official System Admin token/cosmetic grants excluded by the existing public
+  protected-identity function (synthetic mocked-in account in local CI).
+- A verified source counts toward the weekly P0 badge even when daily token
+  ceiling reached. Separate P0 achievement from noncash currency balance.
+- Both separate Flex allocation days and duplicate nonces must be checked
+  against two-credit maximum, with exact `smallint` RPC arguments.
+- Competing independent cosmetic buy nonces against one account must debit
+  only once. Local SQL now targets disposable PostgreSQL 17, matching current
+  BUKLOD Connect project major version; no Supabase DB write.

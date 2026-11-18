@@ -284,17 +284,17 @@ declare b uuid:='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 begin
  select (starts_at at time zone 'Asia/Manila')::date into w
  from buklod_s2.control;
- r:=buklod_s2.allocate_flex(b,w,1,'a1111111-1111-4111-8111-111111111111');
+ r:=buklod_s2.allocate_flex(b,w,1::smallint,'a1111111-1111-4111-8111-111111111111');
  if r->>'status'<>'ALLOCATED' or (r->>'remaining')::int<>1 then
    raise exception 'FAIL: first flex %',r;end if;
- r:=buklod_s2.allocate_flex(b,w,1,'a1111111-1111-4111-8111-111111111111');
+ r:=buklod_s2.allocate_flex(b,w,1::smallint,'a1111111-1111-4111-8111-111111111111');
  if r->>'status'<>'ALREADY_ALLOCATED' then
    raise exception 'FAIL: flex replay %',r;end if;
- r:=buklod_s2.allocate_flex(b,w+7,1,'a2222222-2222-4222-8222-222222222222');
+ r:=buklod_s2.allocate_flex(b,w+7,1::smallint,'a2222222-2222-4222-8222-222222222222');
  if r->>'status'<>'ALLOCATED' or (r->>'remaining')::int<>0 then
    raise exception 'FAIL: second flex %',r;end if;
  begin
-   perform buklod_s2.allocate_flex(b,w+14,1,
+   perform buklod_s2.allocate_flex(b,w+14,1::smallint,
     'a3333333-3333-4333-8333-333333333333');
  exception when others then refused:=true;
  end;
