@@ -1,0 +1,172 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-master-on-nov18-rc-20261118.json",
+  "objective": "Integrate source-verified BUKLOD Main Nov18 RC #930 with disjoint #937/#938/#933 policy/Season UX/post reactions and client-only #925 Bible V4 automatic grading. Deliver comprehensive 13-character 12-week Season2 story design and read-only interactive Points preview, all release-affecting new economy/push OFF.",
+  "baseRef": "8bb4a0cba749c4c33897eb5fad892e2784c633d0",
+  "productionBaselineEvidence": "GitHub canonical main d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 and PR #930 RC head 8bb4a0cba749c4c33897eb5fad892e2784c633d0 were inspected. All five forwarded existing app files were verified identical in RC and main before selective import. Supabase live has Season1 Aug1-Oct31 status ACTIVE with zero results, 869 claimed and 609 pending credits across 326 accounts. Main Bible V4 migrations 20261118002500 through 20261118002900 verified live. Actual production installed runtime/channel/update group and AdMob first-view fill unavailable; source/CI is NOT proof of production.",
+  "chosenApproach": "Branch directly from reviewed #930 RC commit, selectively reuse unchanged Git blobs for disjoint PR #933 reaction, #925 safe client UI (live backend verified), #937 pure policy and #938 Points Season teaser. Enhance #938 locally to display original Season2 13-guide/4-act/12-week editorial previews; preserve #930 all source and no backend migrations. Keep only one newly changed scope manifest vs this branch base.",
+  "selectionRationale": "The client files forwarded from other heads were identical in #930 and main before editing; avoids overwriting RC Wall/nav/media fixes. Exclude backend-dependent or conflicting PRs until staging schema/AdMob provider verified. Provides user-visible Season excitement without unsafe cash, BP, token or account actions.",
+  "alternativeApproaches": [
+    "Whole merge all ~60 open PRs and publish immediately (rejected due overlapping Wall/auth files, unverified backend migrations and release regressions)",
+    "Auto-close Season1 and create Season2 live before 609 pending BP events reconciled (rejected; would corrupt rankings and reward eligibility)",
+    "Ship merely a proposal document without code (rejected: user requires complete design and implementation progress)",
+    "Use #930 as controlled RC baseline + selective safe source and default-OFF Season gameplay preview (chosen)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "classroom-quiz",
+    "ads-monetization",
+    "offline",
+    "finance",
+    "season-expiry",
+    "privacy",
+    "character-progression",
+    "native-runtime",
+    "production-release"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-master-on-nov18-rc-20261118.json",
+    "src/lib/buklodEngagementPolicyR1.ts",
+    "src/lib/buklodZeroMomentumNoticePolicyR1.ts",
+    "docs/BUKLOD_PREMIUM_SOCIAL_GAME_ECONOMY_R1_20261118.md",
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+    "tests/buklod-engagement-policy-r1-20261118.test.mjs",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
+    "src/lib/buklodSeasonJourneyR2.ts",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "docs/BUKLOD_SEASON_V2_PREPARATION_EXPERIENCE_20261118.md",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodReactionAction.tsx",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    "src/app/admin/bible-v4-events.tsx",
+    "src/components/bible/BuklodBibleQuizV4.tsx",
+    "src/lib/buklodSeason2CampaignR1.ts",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "tests/buklod-season2-bible-client-and-rc-contract-20261118.test.mjs",
+    "docs/BUKLOD_SEASON2_RISE_TOGETHER_MASTER_20261118.md"
+  ],
+  "preserveBehaviors": [
+    "PR #930 exact source remains full ancestor/baseline: retain Android lazy tabs, AdMob first-view, fair video, swipe, poster/handoff, scope video, Auth weak signal recovery, Connect scroll and Henry fallback",
+    "No existing BP claim, QMP, 30% AdMob pool finance, payout, referral, official account, Character V3 level, inventory, Kingdom Shard or attendance modification",
+    "Zero account deletion or suspension for zero score, no mandatory public post/prayer/child completion, ungranted concept items always locked",
+    "No new server RPC on Points; Season UI only uses existing rank dashboard snapshot, starts collapsed with local exploration",
+    "No added Supabase migration, Edge secret, cron, server push, notification delivery, production workflow or runtime/package dependency",
+    "Bible V4 UI uses live existing authenticated backend and preserves legacy fallback; do not alter already-live SQL or historic grades",
+    "Source imported from #933 does not touch public Wall stream or ad placement; new tests cover reaction count parity",
+    "Season1 remains unchanged in DB; no invented finalized standings or Season2 opening",
+    "Strong QA before any staging/production OTA; no claim of device testing or current EAS fingerprints"
+  ],
+  "acceptanceChecks": [
+    "Verify exact source ancestry of PR #930 and disjoint source file SHA comparison to current main",
+    "Run changed behavioral tests for 13 guides, four acts/twelve weekly chapters, anti-coercion alternatives, authoritatively locked awards, Season1 hold and nine launch gates",
+    "Run Bible V4 client and post reaction focus tests, prior 27 Momentum/notice and 14 Season lifecycle tests",
+    "Strict protected-feature lock: app-runtime, wall-media, quiz-classroom evidence and scope manifest",
+    "TypeScript native/Web compatibility and existing AdMob nav/weak-network/Zoom regression tests in exact candidate CI",
+    "No new Source/Expo RPC, no new cold-start media/ad work, no historical Season SQL write",
+    "Real production release remains BLOCKED until exact RC, Google AdMob/provider and Season1 reward reconciliation, RLS backend, device/ad/nav smoke and served runtime/update group verified"
+  ],
+  "regressionTests": [
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+    "tests/buklod-engagement-policy-r1-20261118.test.mjs",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "tests/buklod-season2-bible-client-and-rc-contract-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Selectively combine previously tested and disjoint Main app source with a local-only Season 2 editorial/gameplay preview; preserve existing exact RC runtime.",
+      "preservedBehaviors": [
+        "No new RPC on Points tab; AdMob prewarm, native runtime and instant Android dashboard unchanged",
+        "Existing Wall/Connect/Profile/Character/Kingdom untouched except isolated reaction/Bible client and collapsed preview",
+        "No account or season deletion, currency effects, or server-side push"
+      ],
+      "tests": [
+        "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+        "tests/buklod-season2-bible-client-and-rc-contract-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Forward-port only the isolated per-reaction count view from PR #933 without changing Wall video, user post permissions or media lifecycle.",
+      "preservedBehaviors": [
+        "Post-detail reactions are counted and visible without affecting Wall stream or ad play, feeds, videos and comments"
+      ],
+      "tests": [
+        "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+        "tests/post-detail-reaction-count-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "Forward-port Main Bible V4 learner/admin automatic rubric feedback UI from PR #925 after read-only verification that all five required SQL migrations are applied live.",
+      "preservedBehaviors": [
+        "Manual essay approval retired only for Main Bible V4, not standalone Focus Quiz",
+        "Authenticated grading, stored score, source identity, partial feedback and legacy fallback preserved"
+      ],
+      "tests": [
+        "tests/buklod-season2-bible-client-and-rc-contract-20261118.test.mjs"
+      ]
+    }
+  ],
+  "sourceReferences": [
+    {
+      "pr": 930,
+      "head": "8bb4a0cba749c4c33897eb5fad892e2784c633d0",
+      "decision": "release baseline"
+    },
+    {
+      "pr": 937,
+      "head": "4ec81ad5e75b618cd0493a582bd205c5fe9e9a22",
+      "decision": "pure default-off reward policy"
+    },
+    {
+      "pr": 938,
+      "head": "d1c7215aff34eef4a9253841283d83237c8f2bb1",
+      "decision": "Season preview plus 13-guide enhancement"
+    },
+    {
+      "pr": 933,
+      "head": "fcac6ece50cc4f06ef9460de3c38e37568d7da03",
+      "decision": "isolated post reaction counts"
+    },
+    {
+      "pr": 925,
+      "head": "d66aa633651f87434356dbeca6cd8d8422ec52bf",
+      "decision": "client-only Main Bible V4"
+    }
+  ],
+  "deferredPRs": [
+    {
+      "pr": 935,
+      "blocker": "overlapping Wall/Auth files and unverified v5/BSOC SQL staging"
+    },
+    {
+      "pr": 932,
+      "blocker": "Attendance V2 backend not staged; RLS and QR receipt QA"
+    },
+    {
+      "pr": 931,
+      "blocker": "AdMob Google OAuth invalid_grant; official daily report stale, cron disabled"
+    },
+    {
+      "pr": 879,
+      "blocker": "Character/Kingdom art and local gameplay not runtime/ownership verified"
+    },
+    {
+      "pr": 890,
+      "blocker": "older +10 referral conflicts with owner-approved conditional +20 logic"
+    }
+  ],
+  "releaseTarget": "DEV integration on #930; NOT an independent OTA or published Season",
+  "releaseAuthorized": false,
+  "runtimeVersion": "No changes; #930 staging target 1.3.2 not proof of installed production",
+  "productionChange": false
+}
