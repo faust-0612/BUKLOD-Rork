@@ -10,6 +10,13 @@ import {isValidBdocCaseId} from '@/lib/buklodAdminPriorityPolicy';
 type Case={feedback_id:string;reference:string;title:string;status:string;user_name:string|null;category?:string|null;message?:string|null;route?:string|null;platform?:string|null;app_version?:string|null;created_at?:string|null;updated_at?:string|null;resolution?:string|null};
 type Msg={id:string;body:string;sender_kind:string;sender_id:string;created_at:string};
 type FileRow={id:string;object_path:string;mime_type:string;created_at:string};
+type HealthEvidence={id:string;occurred_at:string;route_module:string|null;safe_error_code:string;error_signature:string;correlation_key:string|null;last_successful_action:string|null;app_version:string|null;platform:string|null;network_state:string|null};
+type RenderEvidenceRecord={
+ health_event_id:string;cause_code:string;origin_area:string;
+ source_path:string|null;source_line:number|null;source_column:number|null;
+ bundle_line:number|null;bundle_column:number|null;
+ runtime_version:string|null;ota_update_id:string|null;update_channel:string|null;
+};
 const BUCKET='bsoc-support-evidence';
 
 export default function BsocInbox(){
@@ -31,6 +38,8 @@ export default function BsocInbox(){
  const [caseId,setCaseId]=useState('');
  const [messages,setMessages]=useState<Msg[]>([]);
  const [files,setFiles]=useState<(FileRow&{url:string|null})[]>([]);
+ const [healthEvidence,setHealthEvidence]=useState<HealthEvidence[]>([]);
+ const [renderDetails,setRenderDetails]=useState<Record<string,RenderEvidenceRecord>>({});
  const [draft,setDraft]=useState('');
  const [gptBusy,setGptBusy]=useState(false);
  const [gptAdvice,setGptAdvice]=useState('');
@@ -109,7 +118,7 @@ export default function BsocInbox(){
    currentCase.current=id;
    setLinkedCase(null);
    retryMessage.current=null;
-   setMessages([]);setFiles([]);setDraft('');setError('');
+   setMessages([]);setFiles([]);setHealthEvidence([]);setRenderDetails({});setDraft('');setError('');
    setGptAdvice('');setGptError('');setCaseId(id);
  },[]);
  // Strictly Admin-only direct lookup supports older priority cases not present
@@ -139,6 +148,32 @@ export default function BsocInbox(){
      });
    return ()=>{active=false;};
  },[canRead,cases,openCase,queueLoaded,requestedCaseId,isSystemAdmin,routeCaseId]);
+ // RLS guards both tables. health_event_id is the only join; never fetch
+ // cross-member incidents or expose raw exceptions to AI assistance.
+ useEffect(()=>{
+   let active=true;
+   setHealthEvidence([]);
+   setRenderDetails({});
+   if(!caseId||!canRead)return;
+   void (async()=>{
+     const {data,error}=await supabase.from('bsoc_health_events')
+       .select('id,occurred_at,route_module,safe_error_code,error_signature,correlation_key,last_successful_action,app_version,platform,network_state')
+       .eq('support_case_id',caseId)
+       .order('occurred_at',{ascending:false}).limit(5);
+     if(!active||currentCase.current!==caseId||error)return;
+     const events=(data||[]) as HealthEvidence[];
+     setHealthEvidence(events);
+     if(!events.length)return;
+     // Older backends lacking the additive forensics table degrade cleanly.
+     const {data:detail,error:detailError}=await supabase.from('bsoc_render_forensics_v1')
+       .select('health_event_id,cause_code,origin_area,source_path,source_line,source_column,bundle_line,bundle_column,runtime_version,ota_update_id,update_channel')
+       .in('health_event_id',events.map(e=>e.id)).limit(5);
+     if(!active||currentCase.current!==caseId||detailError)return;
+     setRenderDetails(Object.fromEntries(((detail||[]) as RenderEvidenceRecord[])
+       .map(item=>[item.health_event_id,item])));
+   })().catch(()=>undefined);
+   return ()=>{active=false;};
+ },[caseId,canRead]);
  const previousUserRef=useRef(user?.id);
  useEffect(()=>{
    // Do not clear initial deep link on first mount; only clear on a real
@@ -152,7 +187,7 @@ export default function BsocInbox(){
    setCanRead(null);setCanManage(false);setUid(null);
    setCases([]);setMoreAvailable(false);setQueueLoaded(false);setLoadingOlder(false);
    retryMessage.current=null;
-   setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);setDraft('');
+   setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);setHealthEvidence([]);setRenderDetails({});setDraft('');
  },[user?.id]);
  useEffect(()=>{
    if(!caseId)return;
@@ -230,10 +265,27 @@ export default function BsocInbox(){
      <View style={styles.origin}>
        <Text style={styles.h2}>Original report & origin</Text>
        <Text style={styles.body}>{selected.message||'No original description was returned. Review the support record before diagnosing.'}</Text>
-       <Text style={styles.muted}>Route: {selected.route||'Not captured'} · Platform: {selected.platform||'Unknown'} · App: {selected.app_version||'Unknown'}</Text>
+       <Text style={styles.muted}>Route: {selected.route||healthEvidence[0]?.route_module||'Not captured'} · Platform: {selected.platform||healthEvidence[0]?.platform||'Unknown'} · App: {selected.app_version||healthEvidence[0]?.app_version||'Unknown'}</Text>
        <Text style={styles.muted}>Reported: {selected.created_at?new Date(selected.created_at).toLocaleString():'Unknown'} · Last change: {selected.updated_at?new Date(selected.updated_at).toLocaleString():'Unknown'}</Text>
        {!!selected.resolution&&<Text style={styles.body}>Recorded resolution notes: {selected.resolution}</Text>}
      </View>
+     {!!healthEvidence.length&&<View style={styles.origin}>
+       <Text style={styles.h2}>Recorded client health evidence · NOT a confirmed root cause</Text>
+       {healthEvidence.map(h=><View key={h.id}>
+         <Text style={styles.bold}>{h.safe_error_code} · {h.error_signature}</Text>
+         <Text style={styles.muted}>Occurred: {new Date(h.occurred_at).toLocaleString()} · Route: {h.route_module||'Unknown'} · App: {h.app_version||'Unknown'} · {h.platform||'Unknown'}</Text>
+         <Text style={styles.muted}>Safe cause/source code: {h.correlation_key||'Unavailable'} · Last confirmed action: {h.last_successful_action||'Not captured'}</Text>
+         <Text style={styles.muted}>Network: {h.network_state||'Unknown'}. A cause/source code is a preliminary category, not a stack trace or verified fix.</Text>
+         {renderDetails[h.id]&&<View style={styles.origin}>
+           <Text style={styles.bold}>Render cause: {renderDetails[h.id].cause_code} · Possible origin: {renderDetails[h.id].origin_area}</Text>
+           <Text style={styles.muted}>Runtime: {renderDetails[h.id].runtime_version||'Not reported'} · OTA: {renderDetails[h.id].ota_update_id||'Not reported'} · Channel: {renderDetails[h.id].update_channel||'Unknown'}</Text>
+           {!!renderDetails[h.id].source_path&&<Text style={styles.body}>Source frame (client reported): {renderDetails[h.id].source_path}:{renderDetails[h.id].source_line||'?'}:{renderDetails[h.id].source_column||'?'}</Text>}
+           {!!renderDetails[h.id].bundle_line&&<Text style={styles.body}>Compiled bundle position: {renderDetails[h.id].bundle_line}:{renderDetails[h.id].bundle_column||'?'}</Text>}
+           <Text style={styles.muted}>Source frame and OTA are client-reported. For a minified bundle, exact file/line needs the matching private release source map. Neither indicates a verified root cause by itself.</Text>
+         </View>}
+       </View>)}
+       <Text style={styles.muted}>Legacy cases may not have crash-time OTA evidence; compare authorized release records before attributing to any OTA. Never mark an incident fixed from a hash alone.</Text>
+     </View>}
      <View style={styles.origin}>
        <Text style={styles.h2}>Preliminary technical triage · NOT verified</Text>
        <Text style={styles.bold}>Signal: {triage.signal}</Text>
