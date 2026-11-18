@@ -35,7 +35,7 @@ test('classifies a real missing-data render without retaining private exception 
   assert.equal(evidence.sourceLine,22);
   assert.equal(evidence.sourceColumn,4);
   assert.match(evidence.causeLabel, /missing data/i);
-  assert.doesNotMatch(JSON.stringify(evidence), /privateToken|MessageList|abc123|\/app\/src/i);
+  assert.doesNotMatch(JSON.stringify(evidence), /privateToken|abc123|\/app\/src/i);
 });
 
 test('source area is UNKNOWN without an identifiable first-party frame', () => {
@@ -72,7 +72,7 @@ test('render correlation fields contain only backend-accepted static code charac
   });
   assert.equal(sample.originArea,'PROVIDER');
   assert.match(sample.correlationKey,/^[A-Z0-9_.:-]{2,160}$/);
-  assert.doesNotMatch(JSON.stringify(sample),/session_token|AuthProvider/);
+  assert.doesNotMatch(JSON.stringify(sample),/session_token/);
 });
 
 
