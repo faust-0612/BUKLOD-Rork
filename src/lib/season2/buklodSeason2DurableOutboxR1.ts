@@ -38,7 +38,8 @@ function validEntry(x:unknown,uid:string):x is S2OutboxEntry{
 }
 export class S2DurableOutboxR1 {
  private readonly locks=new Map<string,Promise<void>>();
- constructor(private readonly storage:S2KeyValueStore){}
+ private readonly storage:S2KeyValueStore;
+ constructor(storage:S2KeyValueStore){this.storage=storage;}
  private key(uid:string):string{
   if(!uuid.test(uid))throw Error('S2_ACCOUNT_REQUIRED');
   return 'buklod:s2:outbox:r1:'+uid.toLowerCase();
