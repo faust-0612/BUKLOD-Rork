@@ -27,6 +27,7 @@
     "supabase/migrations/20261118143054_buklod_rank_sync_permanent_notes_hotfix_20261118.sql",
     "tests/nov16-recent-completeness-staging132-r2.test.cjs",
     "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    "tests/nov18-rank-notes-admob-preservation.test.mjs",
     "tests/nov18-rank-notes-database-security.test.mjs",
     "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs"
   ],
@@ -34,7 +35,8 @@
     "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs",
     "tests/nov18-rank-notes-database-security.test.mjs",
     "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
-    "tests/nov16-recent-completeness-staging132-r2.test.cjs"
+    "tests/nov16-recent-completeness-staging132-r2.test.cjs",
+    "tests/nov18-rank-notes-admob-preservation.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -86,6 +88,16 @@
       ],
       "tests": [
         "tests/nov18-rank-notes-database-security.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Protected-feature classifier also matches the Connect Header filename; the change is Note presentation only and cannot affect monetization or navigation-critical ad mounts",
+      "preservedBehaviors": [
+        "Wall first-view AdMob, sponsored-card rendering, consent, cooldown and off-screen ad lifecycle are untouched; no points, QMP, finance or revenue sharing functions are changed"
+      ],
+      "tests": [
+        "tests/nov18-rank-notes-admob-preservation.test.mjs"
       ]
     }
   ],
