@@ -5,7 +5,7 @@
   "baseRef": "404c87e55c62a88c95c7389ac8665f237149702a",
   "productionBaselineEvidence": "Train A production OTA VERIFIED on Android production runtime 1.3.2 source 404c87e55c62a88c95c7389ac8665f237149702a; EAS update ID 01a1ee79-b1f1-7295-9d48-0238ffe0202a, group 5a9265e1-64d1-4a71-905c-cdc60b8191ea, official GitHub release run 44296995482, publication receipt archived in artifact 14424970633 and verified production served manifest. Manual physical device AdMob/nav test waived by owner, not claimed to pass.",
   "chosenApproach": "New isolated S2 staging preview branch directly from verified current production main. Add only three read-only source modules from PR#939 and insert collapsed Season card in existing Points screen at an exact 2-line anchor (no entire-file replacement). Include two behavioral tests and a scope manifest. Does not reuse older #930 full branch, auth, reaction/Bible changes or create any server award.",
-  "selectionRationale": "Staging after verified Train A prod; minimal diff to avoid stomping production-only embargo/AdMob/nav/auth. Original Season2 branch includes other DEV changes and backend-sensitive integrations that do not belong in a visual preview.",
+  "selectionRationale": "Staging after verified Train A prod; minimal diff to avoid stomping production-only embargo/AdMob/nav/auth. Original Season2 branch includes other DEV changes and backend-sensitive integrations that do not belong in a visual preview. The protected-feature contract detects only app-runtime changes for this read-only Points preview; ads/production boundary remains documented in riskAreas and preserved behaviors, not falsely declared as changed locked features.",
   "alternativeApproaches": [
     "Whole merge PR#939 (rejected: outdated base and unrelated Auth/Bible/reaction changes)",
     "Publish Season2 production immediately (rejected: Dec6 embargo)",
@@ -61,27 +61,6 @@
       ],
       "tests": [
         "tests/buklod-season-v2-experience-20261118.test.mjs",
-        "tests/buklod-season2-campaign-r1-20261118.test.mjs"
-      ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "Points view already owns first-view AdMob slot and real account balances; visual Season2 preview must have no financial effects",
-      "preservedBehaviors": [
-        "Keep points_redeem_transition_native and original redemption/QMP/claims; no new ad stacking or user earnings changes"
-      ],
-      "tests": [
-        "tests/buklod-season2-campaign-r1-20261118.test.mjs",
-        "tests/buklod-season-v2-experience-20261118.test.mjs"
-      ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Season2 production embargo stays; user specifically authorized staging after Train A production",
-      "preservedBehaviors": [
-        "No EAS production update, no served production change, no fake device verification"
-      ],
-      "tests": [
         "tests/buklod-season2-campaign-r1-20261118.test.mjs"
       ]
     }
