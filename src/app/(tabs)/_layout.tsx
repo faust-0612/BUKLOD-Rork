@@ -1,6 +1,7 @@
 import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodDashboardAdWarmup from '@/components/BuklodDashboardAdWarmup';
+import BuklodAndroidDashboardTabs from '@/components/BuklodAndroidDashboardTabs';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import BuklodNavigationSideMenu from '@/components/BuklodNavigationSideMenu';
 import {
@@ -396,7 +397,11 @@ export default function TabsLayout() {
       width,
     );
 
-  const workspaceStack = (
+  // Non-auth Train A: Android reuses frozen dashboard instances; Web/iOS keep Stack.
+  // Session, compliance and existing profile checks above remain exactly as main.
+  const workspaceStack = Platform.OS === 'android' ? (
+    <BuklodAndroidDashboardTabs showPrayer={showPrayer} sceneStyle={tabSceneStyle} />
+  ) : (
     <Stack
       screenOptions={{
         headerShown: false,

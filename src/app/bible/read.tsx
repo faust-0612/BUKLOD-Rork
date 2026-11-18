@@ -421,6 +421,7 @@ const [showChapters, setShowChapters] =
   const [henryVerse, setHenryVerse] = useState<number | null>(null);
   const [henryShowOriginal, setHenryShowOriginal] = useState(true);
   const [henryAttributionOpen, setHenryAttributionOpen] = useState(false);
+  const [henryRetryToken, setHenryRetryToken] = useState(0);
   const readerScrollBottom = useBuklodScrollBottomInset({ extra: 38 });
 
   useEffect(() => {
@@ -1367,6 +1368,7 @@ const [showChapters, setShowChapters] =
     endVerse: henryPassage?.endVerse ?? 0,
     text: henryPassage?.text ?? '',
     targetLanguage: henryRequestedLanguage,
+    retryToken: henryRetryToken,
   });
 
   // Never claim a sparse Henry note covers an unrelated verse. The chapter
@@ -4443,11 +4445,31 @@ setMarking(true);
                       : `Orihinal na komentaryo para sa talata ${henryPassage?.startVerse}.`}
                 </Text>
                 {henryRequestedLanguage !== 'en' && henryTranslation.status !== 'translated' && (
-                  <Text style={{ color: '#765C26', fontSize: 12, lineHeight: 19, marginBottom: 9 }}>
-                    {henryTranslation.status === 'loading'
-                      ? 'Isinasalin sa napiling wika. Pansamantalang ipinapakita ang orihinal na English.'
-                      : 'Hindi nakabuo ng maaasahang salin o hindi available ang on-device translation. Orihinal na English ang ipinapakita upang hindi maipakita ang posibleng maling kahulugan.'}
-                  </Text>
+                  <View style={{ marginBottom: 9, gap: 6 }}>
+                    <Text style={{ color: '#765C26', fontSize: 12, lineHeight: 19 }}>
+                      {henryTranslation.status === 'loading'
+                        ? 'Isinasalin sa napiling wika. Pansamantalang ipinapakita ang orihinal na English.'
+                        : henryTranslation.failure === 'native-unavailable'
+                        ? 'Hindi available ang Google on-device translation sa naka-install na Android build. Kailangan ng APK update na may ML Kit; hindi ito maaayos ng OTA lamang.'
+                        : henryTranslation.failure === 'model-unavailable'
+                        ? 'Hindi ma-download ang Filipino language model. Kumonekta sa Wi-Fi at subukan muli. Orihinal na English muna ang ipinapakita.'
+                        : henryTranslation.failure === 'unsupported-language'
+                        ? 'Hindi suportado ng translator ang napiling wika. Piliin ang Original English habang inaayos ito.'
+                        : henryTranslation.failure === 'quality-rejected'
+                        ? 'Hindi nakabuo ng maaasahang salin para sa bahaging ito. Orihinal na English ang ipinapakita upang maiwasan ang maling kahulugan.'
+                        : 'Hindi natapos ang pagsasalin. Orihinal na English muna ang ipinapakita; maaaring subukan muli.'}
+                    </Text>
+                    {henryTranslation.status === 'unavailable' &&
+                      (henryTranslation.failure === 'model-unavailable' ||
+                       henryTranslation.failure === 'translation-failed') && (
+                      <Pressable accessibilityRole="button"
+                        accessibilityLabel="Subukan muling isalin sa Filipino"
+                        onPress={() => setHenryRetryToken(value => value + 1)}
+                        style={{ alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#E7F2E8' }}>
+                        <Text style={{ color: '#24583C', fontSize: 12, fontWeight: '800' }}>Subukan muli</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 )}
                 {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated' && (
                   <View style={{ backgroundColor: '#FFF7E8', borderRadius: 10, padding: 10, marginBottom: 12 }}>
