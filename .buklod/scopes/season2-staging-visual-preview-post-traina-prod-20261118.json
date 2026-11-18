@@ -29,7 +29,11 @@
     "src/lib/buklodSeason2CampaignR1.ts",
     "tests/buklod-season-v2-experience-20261118.test.mjs",
     "tests/buklod-season2-campaign-r1-20261118.test.mjs",
-    "docs/BUKLOD_SEASON2_STAGING_VISUAL_PREVIEW_POST_TRAIN_A_20261118.md"
+    "docs/BUKLOD_SEASON2_STAGING_VISUAL_PREVIEW_POST_TRAIN_A_20261118.md",
+    ".github/workflows/buklod-season2-preview-staging-ota-20261118.yml",
+    "scripts/buklod-season2-staging-order-gate.cjs",
+    "tests/buklod-season2-staging-order-gate-20261118.test.mjs",
+    ".buklod/releases/season2-staging-preview-20261118.json"
   ],
   "preserveBehaviors": [
     "Train A Wall/media/Connect/instant tabs remain the exact verified production main source",
@@ -46,11 +50,13 @@
     "TypeScript, Expo Android export, first-view AdMob/source navigation and weak-network app regressions on exact staging SHA",
     "Production EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a is verified served before staging publisher runs",
     "Publish only to staging-user with package org.mzbministry.buklod.staging and signed ABI 1.3.2, not production",
-    "After publication exact update/group/source and served staging manifest verified; production must remain unchanged"
+    "After publication exact update/group/source and served staging manifest verified; production must remain unchanged",
+    "Verify exact production TrainA release run 44296995482 and currently served Expo update ID before publishing staging; staging-only workflow verifies production unchanged afterward."
   ],
   "regressionTests": [
     "tests/buklod-season-v2-experience-20261118.test.mjs",
-    "tests/buklod-season2-campaign-r1-20261118.test.mjs"
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "tests/buklod-season2-staging-order-gate-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -63,9 +69,19 @@
         "tests/buklod-season-v2-experience-20261118.test.mjs",
         "tests/buklod-season2-campaign-r1-20261118.test.mjs"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Owner authorized Stage2 preview only after verified production TrainA, with pinned exact served production update and irreversible production exclusion in a new guarded EAS staging workflow.",
+      "preservedBehaviors": [
+        "No production update or branch change, live Season2 gameplay or rewards, or fabricated Android device QA"
+      ],
+      "tests": [
+        "tests/buklod-season2-staging-order-gate-20261118.test.mjs"
+      ]
     }
   ],
-  "releaseMode": "STAGING_PREVIEW_PENDING_QA",
+  "releaseMode": "STAGING_PREVIEW_AWAITING_APPROVED_MARKER",
   "releaseAuthorized": false,
   "productionStatus": "UNCHANGED_SEASON2_EMBARGO",
   "previewOnly": true,
