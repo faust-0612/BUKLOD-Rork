@@ -11,7 +11,8 @@
     "navigation-auth",
     "faith-content-localization",
     "profile-preferences",
-    "account-isolation"
+    "account-isolation",
+    "backend-security"
   ],
   "allowedPaths": [
     "src/lib/buklodLifeLanguage.ts",
@@ -54,6 +55,17 @@
       "preservedBehaviors": [
         "Existing profile authorization, session recovery, role validation and sign-out logic are unchanged.",
         "All existing LIFE deep-link routes and private checkpoint/resume identities remain usable."
+      ],
+      "tests": [
+        "tests/life-language-auth-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add language metadata to the existing authorized profile query, without changing data grants, RLS or authentication/session policy.",
+      "preservedBehaviors": [
+        "Existing Supabase profile RLS and role-based access remain unchanged.",
+        "Authentication failures and account isolation must retain the same behavior; only preferred_language is selected."
       ],
       "tests": [
         "tests/life-language-auth-navigation-20261119.test.mjs"
