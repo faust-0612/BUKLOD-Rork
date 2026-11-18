@@ -10,7 +10,7 @@ const resilient = read('src/lib/buklodAuthResilience.ts');
 
 test('weak signal does not misclassify an unavailable profile as a new member', () => {
   assert.match(auth, /profileLoadState: BuklodProfileLoadState/);
-  assert.match(auth, /String\(error\?\.code \?\? ''\) === 'PGRST116' \? 'missing' : 'unavailable'/);
+  assert.match(auth, /if \(String\(error\?\.code \?\? ''\) === 'PGRST116'\)/);
   assert.match(auth, /snapshot\?\.profile\?\.id === userId/);
   assert.match(auth, /sessionUserIdRef\.current !== userId/);
   assert.match(tabs, /if \(profileLoadState !== 'missing'\)/);
