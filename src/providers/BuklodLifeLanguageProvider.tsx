@@ -19,7 +19,7 @@ export const BuklodLifeLanguageContext = createContext<LifeLanguageContextValue 
  * unapproved app-wide language pack or modify any spiritual progress data.
  */
 export function BuklodLifeLanguageProvider({ children }: { children: React.ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { preference, ready: appReady } = useBuklodI18n();
   const storageKey = '@buklod/life-language-v1:' + (user?.id ?? 'guest');
   const preferredLanguage = (profile as any)?.preferred_language;
@@ -78,7 +78,7 @@ export function BuklodLifeLanguageProvider({ children }: { children: React.React
     setLifeLanguage,
   }), [chosen, inferred, setLifeLanguage]);
 
-  if (!appReady || loadedKey !== storageKey) {
+  if (authLoading || !appReady || loadedKey !== storageKey) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAF7' }}>
         <ActivityIndicator color="#2F6946" accessibilityLabel="Loading LIFE language" />
