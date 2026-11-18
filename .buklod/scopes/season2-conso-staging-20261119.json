@@ -22,11 +22,9 @@
     "No isolated staging database connected",
     "AdMob device/production RC not verified"
   ],
-  "productionBaselineEvidence": "Verified Train A source 404c87e55c62a88c95c7389ac8665f237149702a, EAS Android production update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2; verified staging Season2 visual preview SHA af95563fab1d053c82963df65da5f6d55348d811; physical device AdMob not claimed. No production delivery in this PR.",
+  "productionBaselineEvidence": "Verified Train A source 404c87e55c62a88c95c7389ac8665f237149702a, EAS Android production update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2; verified staging Season2 preview SHA af95563fab1d053c82963df65da5f6d55348d811; physical device AdMob not verified. No production release.",
   "allowedPaths": [
     ".buklod/scopes/season2-conso-staging-20261119.json",
-    ".buklod/scopes/season2-governance-drift-monitor-20261118.json",
-    ".buklod/scopes/season2-isolated-rewards-core-20261118.json",
     ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
     ".github/workflows/buklod-season2-governance-drift.yml",
     ".github/workflows/buklod-season2-sql-dev-only-20261118.yml",
@@ -102,5 +100,20 @@
         "tests/protected-feature-lock.test.mjs"
       ]
     }
+  ],
+  "chosenApproach": "Preserve the already verified visual staging preview as base; reconcile dev governance and isolated disabled rewards source into one scoped staging candidate. Add read-only carryover policy, admin visibility and strict EAS stage-only workflow without production writes.",
+  "selectionRationale": "The combined source reduces feature omission while keeping backend rewards disabled and production season1 isolated; exact-scope regression and release gates prevent silent drift.",
+  "alternativeApproaches": [
+    "Apply SQL to existing production database: rejected because it could mutate Season1 and lacks isolated staging backend",
+    "Build a parallel non-integrated standalone preview: rejected because duplicate feature definitions would drift"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "release-identity",
+    "season1-protection",
+    "admin-ui",
+    "governance",
+    "backend-security",
+    "finance-and-ads"
   ]
 }
