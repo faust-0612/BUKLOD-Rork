@@ -12,6 +12,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 export type BuklodLegalIdType = 'PHILSYS' | 'PASSPORT' | 'DRIVERS_LICENSE' | 'UMID' | 'POSTAL_ID' | 'OTHER_GOV_ID';
 export type BuklodLegalIdentityStatus = {
  status: 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+ membership_verified: boolean | null;
  submitted_at: string | null;
  verified_at: string | null;
  legal_full_name: string | null;
