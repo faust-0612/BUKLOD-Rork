@@ -110,6 +110,13 @@ begin
   then raise exception 'Recent private ID photo not found'; end if;
  v_name:=private.buklod_legal_full_name_v1(v_first,v_middle,v_last,v_suffix);
  perform 1 from public.profiles where id=v_uid for update;
+ -- A verified member can replace an ID, but repeated pending uploads are bounded.
+ if exists(select 1 from private.buklod_legal_identity_v1 i
+  where i.user_id=v_uid and i.status='PENDING'
+   and i.submitted_at>now()-interval '10 minutes') then
+   raise exception 'A verification is already pending; wait before resubmitting'
+   using errcode='42501';
+ end if;
  insert into private.buklod_legal_identity_v1
  (user_id,status,first_name,middle_name,surname,suffix,legal_full_name,
   id_type,document_path,submitted_at,reviewed_at,reviewed_by,verified_at,rejected_reason,revision)
@@ -282,10 +289,18 @@ create function public.request_my_buklod_r38_referral_withdrawal_v1(
  p_payout_method text,p_payout_profile_ref text,p_destination_masked text,p_request_key text)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
-declare v_uid uuid:=(select auth.uid());
+declare v_uid uuid:=(select auth.uid()); v_approved_name text; v_payout_name text;
 begin
  perform 1 from public.profiles where id=v_uid for update;
  perform private.buklod_require_legal_identity_for_withdrawal_v1(v_uid);
+ select legal_full_name into v_approved_name from private.buklod_legal_identity_v1 where user_id=v_uid;
+ select account_name into v_payout_name from private.buklod_r38_payout_profiles
+   where user_id=v_uid and status='ACTIVE' for update;
+ if v_payout_name is null or
+  lower(regexp_replace(btrim(v_payout_name),'[[:space:]]+',' ','g')) <>
+  lower(regexp_replace(btrim(v_approved_name),'[[:space:]]+',' ','g')) then
+   raise exception 'GCash name must match verified legal name' using errcode='42501';
+ end if;
  return public.request_my_buklod_r38_referral_withdrawal_v1_unverified_legacy(
   p_payout_method,p_payout_profile_ref,p_destination_masked,p_request_key);
 end;$$;
@@ -304,13 +319,21 @@ from public,anon,authenticated;
 create function public.admin_get_buklod_pf_withdrawal_payout_details_v2(p_withdrawal_id uuid)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
-declare v_result jsonb;v_uid uuid;
+declare v_result jsonb;v_uid uuid;v_name text;
 begin
  if not public.buklod_identity_is_reviewer_v1()
   then raise exception 'Admin required' using errcode='42501'; end if;
  v_result:=public.admin_get_buklod_pf_withdrawal_payout_details_v2_unverified_legacy(p_withdrawal_id);
  v_uid:=(v_result->>'user_id')::uuid;
  perform private.buklod_require_legal_identity_for_withdrawal_v1(v_uid);
+ select legal_full_name into v_name from private.buklod_legal_identity_v1 where user_id=v_uid;
+ -- Check original frozen payout snapshot as well as current verified identity.
+ if v_result->>'account_name' is null or
+    lower(regexp_replace(btrim(v_result->>'account_name'),'[[:space:]]+',' ','g')) <>
+    lower(regexp_replace(btrim(v_name),'[[:space:]]+',' ','g')) then
+   raise exception 'Frozen payout beneficiary does not match verified ID'
+     using errcode='42501';
+ end if;
  return v_result;
 end;$$;
 revoke all on function public.admin_get_buklod_pf_withdrawal_payout_details_v2(uuid) from public,anon;
@@ -336,13 +359,20 @@ create function public.admin_mark_buklod_r38_referral_withdrawal_paid_v1(
  p_withdrawal_id uuid,p_transaction_ref text)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
-declare v_uid uuid;
+declare v_uid uuid;v_snapshot text;v_name text;
 begin
  if not public.buklod_identity_is_reviewer_v1()
   then raise exception 'Admin required' using errcode='42501'; end if;
- select user_id into v_uid from private.buklod_r38_referral_withdrawals
-  where id=p_withdrawal_id for update;
+ select user_id,payout_account_name_snapshot into v_uid,v_snapshot
+ from private.buklod_r38_referral_withdrawals
+ where id=p_withdrawal_id for update;
  perform private.buklod_require_legal_identity_for_withdrawal_v1(v_uid);
+ select legal_full_name into v_name from private.buklod_legal_identity_v1 where user_id=v_uid;
+ if v_snapshot is null or lower(regexp_replace(btrim(v_snapshot),'[[:space:]]+',' ','g')) <>
+    lower(regexp_replace(btrim(v_name),'[[:space:]]+',' ','g')) then
+   raise exception 'Frozen payout account name does not match government ID'
+     using errcode='42501';
+ end if;
  return public.admin_mark_buklod_r38_referral_withdrawal_paid_v1_unverified_legacy(
   p_withdrawal_id,p_transaction_ref);
 end;$$;
