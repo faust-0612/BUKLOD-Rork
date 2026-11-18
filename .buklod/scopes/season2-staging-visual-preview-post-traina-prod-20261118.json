@@ -1,0 +1,97 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-staging-visual-preview-post-traina-prod-20261118.json",
+  "objective": "Reconcile Season 2 visual/read-only story preview with exact verified Train A production main; stage only after published production Train A, no Season2 production before Dec6. Preview 13 guides, 4 acts, 12 chapter board and branching prologue with zero real awards.",
+  "baseRef": "404c87e55c62a88c95c7389ac8665f237149702a",
+  "productionBaselineEvidence": "Train A production OTA VERIFIED on Android production runtime 1.3.2 source 404c87e55c62a88c95c7389ac8665f237149702a; EAS update ID 01a1ee79-b1f1-7295-9d48-0238ffe0202a, group 5a9265e1-64d1-4a71-905c-cdc60b8191ea, official GitHub release run 44296995482, publication receipt archived in artifact 14424970633 and verified production served manifest. Manual physical device AdMob/nav test waived by owner, not claimed to pass.",
+  "chosenApproach": "New isolated S2 staging preview branch directly from verified current production main. Add only three read-only source modules from PR#939 and insert collapsed Season card in existing Points screen at an exact 2-line anchor (no entire-file replacement). Include two behavioral tests and a scope manifest. Does not reuse older #930 full branch, auth, reaction/Bible changes or create any server award.",
+  "selectionRationale": "Staging after verified Train A prod; minimal diff to avoid stomping production-only embargo/AdMob/nav/auth. Original Season2 branch includes other DEV changes and backend-sensitive integrations that do not belong in a visual preview.",
+  "alternativeApproaches": [
+    "Whole merge PR#939 (rejected: outdated base and unrelated Auth/Bible/reaction changes)",
+    "Publish Season2 production immediately (rejected: Dec6 embargo)",
+    "Use separate web-only preview without Android staging (insufficient for owner Android visual validation)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-finance-points",
+    "season-expiry",
+    "character-progression",
+    "points-rank",
+    "navigation-scroll",
+    "production-release",
+    "release-identity"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-staging-visual-preview-post-traina-prod-20261118.json",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "src/lib/buklodSeasonJourneyR2.ts",
+    "src/lib/buklodSeason2CampaignR1.ts",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "docs/BUKLOD_SEASON2_STAGING_VISUAL_PREVIEW_POST_TRAIN_A_20261118.md"
+  ],
+  "preserveBehaviors": [
+    "Train A Wall/media/Connect/instant tabs remain the exact verified production main source",
+    "No new auth provider, login, native packages, backend migrations, plugin, production OTA or secrets",
+    "Existing Points read RPC only; new Season Journey panel collapsed, no additional Supabase request or first-view AdMob ad",
+    "Season1 expired remains historical and unclosed; no phantom next Season end date or new status",
+    "No BP, QMP, currency, cash, referral, redemption, Character inventory/level, attendance or notification writes",
+    "Registered user permissions and account isolation untouched; reward concepts explicitly unowned/locked and no real mission enrollment",
+    "Production Season2 embargo remains active; stage only package org.mzbministry.buklod.staging, runtime 1.3.2"
+  ],
+  "acceptanceChecks": [
+    "Four-act 12-week 13-guide story and branching local prologue pass current read-only Season tests",
+    "All new narrative and rewards flags remain false, no network, no new Points RPC or balance mutation",
+    "TypeScript, Expo Android export, first-view AdMob/source navigation and weak-network app regressions on exact staging SHA",
+    "Production EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a is verified served before staging publisher runs",
+    "Publish only to staging-user with package org.mzbministry.buklod.staging and signed ABI 1.3.2, not production",
+    "After publication exact update/group/source and served staging manifest verified; production must remain unchanged"
+  ],
+  "regressionTests": [
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New collapsed read-only Season Journey nested inside existing Points, no native dependency changes",
+      "preservedBehaviors": [
+        "No hot-path network requests, app routes, tab state or native changes"
+      ],
+      "tests": [
+        "tests/buklod-season-v2-experience-20261118.test.mjs",
+        "tests/buklod-season2-campaign-r1-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Points view already owns first-view AdMob slot and real account balances; visual Season2 preview must have no financial effects",
+      "preservedBehaviors": [
+        "Keep points_redeem_transition_native and original redemption/QMP/claims; no new ad stacking or user earnings changes"
+      ],
+      "tests": [
+        "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+        "tests/buklod-season-v2-experience-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Season2 production embargo stays; user specifically authorized staging after Train A production",
+      "preservedBehaviors": [
+        "No EAS production update, no served production change, no fake device verification"
+      ],
+      "tests": [
+        "tests/buklod-season2-campaign-r1-20261118.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "STAGING_PREVIEW_PENDING_QA",
+  "releaseAuthorized": false,
+  "productionStatus": "UNCHANGED_SEASON2_EMBARGO",
+  "previewOnly": true,
+  "productionTrainAUpdate": "01a1ee79-b1f1-7295-9d48-0238ffe0202a",
+  "productionSourceSha": "404c87e55c62a88c95c7389ac8665f237149702a",
+  "stagePackage": "org.mzbministry.buklod.staging",
+  "runtime": "1.3.2"
+}
