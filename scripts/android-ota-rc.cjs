@@ -67,7 +67,9 @@ async function run() {
       'Unapproved native/dependency drift since V28');
     assertApprovedCompactScriptOnly(
       fs.readFileSync('package.json','utf8'),
-      git('show',pinnedV28+':package.json')
+      // Use byte-exact git show: the shared git() helper calls .trim(),
+      // which strips the pinned blob's trailing newline and falsely blocks RC.
+      execFileSync('git',['show',pinnedV28+':package.json'],{encoding:'utf8'})
     );
     const oldPlugin = git('show', pinnedV28 + ':plugins/withBuklodPttHardwareFoundation.js');
     const currentPlugin = fs.readFileSync('plugins/withBuklodPttHardwareFoundation.js', 'utf8').trimEnd();
