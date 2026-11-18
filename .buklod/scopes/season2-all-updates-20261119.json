@@ -91,11 +91,7 @@
     "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
     "tests/circle-rank-badges-recognition-20261109.test.mjs",
     "tests/circle-rank-progression-20261109.test.mjs",
-    "tests/life-language-auth-navigation-20261119.test.mjs",
-    "tests/season2-governance-contract.test.mjs",
-    "tests/buklod-season2-carryover-contract-20261119.test.mjs",
-    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
-    "tests/dashboard-instant-tabs-20261117.test.mjs"
+    "tests/life-language-auth-navigation-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -167,7 +163,8 @@
     "Android staging-only export job validates runtime package, asset checksum, TypeScript, focused avatar/rank/Ads regression tests, and never publishes OTA or production.",
     "The 2026-11-09 regression assertions verify the current persisted per-character level contract and both Circle Rank and Points navigation; never restore level-one switching resets to satisfy stale literals.",
     "New staging-only Android compile/AdMob/instant-navigation/LIFE/badge source gates pass before OTA marker; then physical-device QA and EAS served-manifest receipt. No production changes.",
-    "Protected risk IDs remain the existing approved vocabulary; LIFE screen changes are covered by app-runtime/navigation-auth regression tests instead of registering an unknown protected ID."
+    "Protected risk IDs remain the existing approved vocabulary; LIFE screen changes are covered by app-runtime/navigation-auth regression tests instead of registering an unknown protected ID.",
+    "The four inherited governance/carryover/AdMob/instant-dashboard tests remain mandatory in the exact-head QA workflow and are not claimed as modified tests; source regressionTests lists only tests changed in this PR."
   ],
   "alternativeApproaches": [
     "Draw generic shields (rejected: not approved artwork)",
