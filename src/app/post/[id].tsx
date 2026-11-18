@@ -414,6 +414,7 @@ export default function PostDetail(){
      userId={
        post.user_id
      }
+     rankName={post.author_rank_name}
      name={
        post.author_name
      }

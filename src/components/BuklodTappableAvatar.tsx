@@ -27,6 +27,7 @@ type Props = {
   uri?: string | null;
   name?: string | null;
   size?: number;
+  rankName?: string | null;
   fallbackSource?:
     | number
     | { uri: string }
@@ -97,6 +98,7 @@ export function BuklodTappableAvatar({
   uri,
   name,
   size = 48,
+  rankName,
   fallbackSource,
   onPress,
   enableLongPressSheet,
@@ -156,6 +158,7 @@ export function BuklodTappableAvatar({
       uri={uri}
       name={name}
       size={size}
+      rankName={rankName}
       fallbackSource={fallbackSource}
     />
   );
@@ -215,7 +218,7 @@ export function BuklodTappableAvatar({
           width: size,
           height: size,
           borderRadius: size / 2,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {avatar}

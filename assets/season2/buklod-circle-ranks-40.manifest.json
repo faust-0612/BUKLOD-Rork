@@ -1,0 +1,297 @@
+{
+  "version": "season2-approved-40-rank-art-v1",
+  "approval": "owner-approved BUKLOD Circle Rank badge design 2026-11-18",
+  "atlas": "assets/season2/buklod-circle-ranks-40.webp",
+  "sha256": "db2a7604e5657263336c8a358e0ef2d800cc6b6a3a7fc6b9c5a5a19174373887",
+  "width": 800,
+  "height": 1280,
+  "cellSize": 160,
+  "columns": 5,
+  "rows": 8,
+  "count": 40,
+  "transparent": true,
+  "noNeighborOverlap": true,
+  "sourceFolder": "Buklod rank badges",
+  "slots": [
+    {
+      "index": 1,
+      "name": "Circle Starter V",
+      "row": 0,
+      "col": 0,
+      "file": "circle_starter_v.png"
+    },
+    {
+      "index": 2,
+      "name": "Circle Starter IV",
+      "row": 0,
+      "col": 1,
+      "file": "circle_starter_iv.png"
+    },
+    {
+      "index": 3,
+      "name": "Circle Starter III",
+      "row": 0,
+      "col": 2,
+      "file": "circle_starter_iii.png"
+    },
+    {
+      "index": 4,
+      "name": "Circle Starter II",
+      "row": 0,
+      "col": 3,
+      "file": "circle_starter_ii.png"
+    },
+    {
+      "index": 5,
+      "name": "Circle Starter I",
+      "row": 0,
+      "col": 4,
+      "file": "circle_starter_i.png"
+    },
+    {
+      "index": 6,
+      "name": "Circle Active V",
+      "row": 1,
+      "col": 0,
+      "file": "circle_active_v.png"
+    },
+    {
+      "index": 7,
+      "name": "Circle Active IV",
+      "row": 1,
+      "col": 1,
+      "file": "circle_active_iv.png"
+    },
+    {
+      "index": 8,
+      "name": "Circle Active III",
+      "row": 1,
+      "col": 2,
+      "file": "circle_active_iii.png"
+    },
+    {
+      "index": 9,
+      "name": "Circle Active II",
+      "row": 1,
+      "col": 3,
+      "file": "circle_active_ii.png"
+    },
+    {
+      "index": 10,
+      "name": "Circle Active I",
+      "row": 1,
+      "col": 4,
+      "file": "circle_active_i.png"
+    },
+    {
+      "index": 11,
+      "name": "Circle Steady V",
+      "row": 2,
+      "col": 0,
+      "file": "circle_steady_v.png"
+    },
+    {
+      "index": 12,
+      "name": "Circle Steady IV",
+      "row": 2,
+      "col": 1,
+      "file": "circle_steady_iv.png"
+    },
+    {
+      "index": 13,
+      "name": "Circle Steady III",
+      "row": 2,
+      "col": 2,
+      "file": "circle_steady_iii.png"
+    },
+    {
+      "index": 14,
+      "name": "Circle Steady II",
+      "row": 2,
+      "col": 3,
+      "file": "circle_steady_ii.png"
+    },
+    {
+      "index": 15,
+      "name": "Circle Steady I",
+      "row": 2,
+      "col": 4,
+      "file": "circle_steady_i.png"
+    },
+    {
+      "index": 16,
+      "name": "Circle Builder V",
+      "row": 3,
+      "col": 0,
+      "file": "circle_builder_v.png"
+    },
+    {
+      "index": 17,
+      "name": "Circle Builder IV",
+      "row": 3,
+      "col": 1,
+      "file": "circle_builder_iv.png"
+    },
+    {
+      "index": 18,
+      "name": "Circle Builder III",
+      "row": 3,
+      "col": 2,
+      "file": "circle_builder_iii.png"
+    },
+    {
+      "index": 19,
+      "name": "Circle Builder II",
+      "row": 3,
+      "col": 3,
+      "file": "circle_builder_ii.png"
+    },
+    {
+      "index": 20,
+      "name": "Circle Builder I",
+      "row": 3,
+      "col": 4,
+      "file": "circle_builder_i.png"
+    },
+    {
+      "index": 21,
+      "name": "Circle Impact V",
+      "row": 4,
+      "col": 0,
+      "file": "circle_impact_v.png"
+    },
+    {
+      "index": 22,
+      "name": "Circle Impact IV",
+      "row": 4,
+      "col": 1,
+      "file": "circle_impact_iv.png"
+    },
+    {
+      "index": 23,
+      "name": "Circle Impact III",
+      "row": 4,
+      "col": 2,
+      "file": "circle_impact_iii.png"
+    },
+    {
+      "index": 24,
+      "name": "Circle Impact II",
+      "row": 4,
+      "col": 3,
+      "file": "circle_impact_ii.png"
+    },
+    {
+      "index": 25,
+      "name": "Circle Impact I",
+      "row": 4,
+      "col": 4,
+      "file": "circle_impact_i.png"
+    },
+    {
+      "index": 26,
+      "name": "Circle Vanguard V",
+      "row": 5,
+      "col": 0,
+      "file": "circle_vanguard_v.png"
+    },
+    {
+      "index": 27,
+      "name": "Circle Vanguard IV",
+      "row": 5,
+      "col": 1,
+      "file": "circle_vanguard_iv.png"
+    },
+    {
+      "index": 28,
+      "name": "Circle Vanguard III",
+      "row": 5,
+      "col": 2,
+      "file": "circle_vanguard_iii.png"
+    },
+    {
+      "index": 29,
+      "name": "Circle Vanguard II",
+      "row": 5,
+      "col": 3,
+      "file": "circle_vanguard_ii.png"
+    },
+    {
+      "index": 30,
+      "name": "Circle Vanguard I",
+      "row": 5,
+      "col": 4,
+      "file": "circle_vanguard_i.png"
+    },
+    {
+      "index": 31,
+      "name": "BUKLOD Prime V",
+      "row": 6,
+      "col": 0,
+      "file": "buklod_prime_v.png"
+    },
+    {
+      "index": 32,
+      "name": "BUKLOD Prime IV",
+      "row": 6,
+      "col": 1,
+      "file": "buklod_prime_iv.png"
+    },
+    {
+      "index": 33,
+      "name": "BUKLOD Prime III",
+      "row": 6,
+      "col": 2,
+      "file": "buklod_prime_iii.png"
+    },
+    {
+      "index": 34,
+      "name": "BUKLOD Prime II",
+      "row": 6,
+      "col": 3,
+      "file": "buklod_prime_ii.png"
+    },
+    {
+      "index": 35,
+      "name": "BUKLOD Prime I",
+      "row": 6,
+      "col": 4,
+      "file": "buklod_prime_i.png"
+    },
+    {
+      "index": 36,
+      "name": "BUKLOD Prime Elite V",
+      "row": 7,
+      "col": 0,
+      "file": "buklod_prime_elite_v.png"
+    },
+    {
+      "index": 37,
+      "name": "BUKLOD Prime Elite IV",
+      "row": 7,
+      "col": 1,
+      "file": "buklod_prime_elite_iv.png"
+    },
+    {
+      "index": 38,
+      "name": "BUKLOD Prime Elite III",
+      "row": 7,
+      "col": 2,
+      "file": "buklod_prime_elite_iii.png"
+    },
+    {
+      "index": 39,
+      "name": "BUKLOD Prime Elite II",
+      "row": 7,
+      "col": 3,
+      "file": "buklod_prime_elite_ii.png"
+    },
+    {
+      "index": 40,
+      "name": "BUKLOD Prime Elite I",
+      "row": 7,
+      "col": 4,
+      "file": "buklod_prime_elite_i.png"
+    }
+  ]
+}

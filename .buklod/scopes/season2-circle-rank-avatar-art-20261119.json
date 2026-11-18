@@ -1,0 +1,87 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-circle-rank-avatar-art-20261119.json",
+  "objective": "Owner-approved 40 transparent badge artworks across Circle Rank Progression and every common avatar in Wall, Connect, comments and profile; 10-o'clock larger badge, rank border, 6-o'clock live blue dot, Notes preserved",
+  "baseRef": "6a3d0f7e85806e6c972e0e128c6d027e18cc27d7",
+  "productionBaselineEvidence": "Train A source 404c87e55c62a88c95c7389ac8665f237149702a9, EAS Android production update 01a1ee79-b1f1-7295-9d48-0238ffe0202a; Season2 production embargo until at least December 6, 2026.",
+  "chosenApproach": "Staging-parent DEV branch, asset atlas local bundled from precisely cropped approved images, central avatar render, batched authenticated rank RPC, one Realtime presence channel; no backend write or points rule modifications.",
+  "riskAreas": [
+    "app-runtime",
+    "points-rank",
+    "season-expiry",
+    "navigation-scroll",
+    "wall-media",
+    "privacy",
+    "ads-monetization",
+    "production-release"
+  ],
+  "allowedPaths": [
+    "assets/season2/buklod-circle-ranks-40.webp",
+    "assets/season2/buklod-circle-ranks-40.manifest.json",
+    "src/lib/buklodSeason2RankArt.ts",
+    "src/lib/buklodAvatarRankLookup.ts",
+    "src/lib/buklodAvatarPresence.ts",
+    "src/components/points/BuklodCircleRankBadge.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/BuklodTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "tests/buklod-season2-circle-rank-avatar-art-20261119.test.mjs",
+    "docs/BUKLOD_SEASON2_CIRCLE_RANK_AVATAR_ART_20261119.md",
+    ".buklod/scopes/season2-circle-rank-avatar-art-20261119.json"
+  ],
+  "preserveBehaviors": [
+    "Season1 permanent rank thresholds and QMP/points unchanged",
+    "AdMob, Android tabs, Wall media remain unmodified",
+    "Saved Notes remain at existing position; online blue dot is separate from note and unread markers",
+    "No claim of online unless active authenticated Realtime presence",
+    "No unverified rank guessed when server unavailable",
+    "Season2 production embargo; target DEV then staging-user runtime 1.3.2"
+  ],
+  "acceptanceChecks": [
+    "Exactly 40 unique transparent slots from approved artwork atlas; no missing rank/cross-cell bleeding",
+    "All Wall and Connect avatar wrappers preserve badge visibility beyond clipped photo bounds",
+    "Actual Android Expo bundled asset and typecheck",
+    "Real Realtime online/offline and AppState behavior verified on staging device",
+    "AdMob first-view and tabs performance remain unaffected",
+    "Staging served EAS update ID/source/group verified before claiming release"
+  ],
+  "regressionTests": [
+    "tests/buklod-season2-circle-rank-avatar-art-20261119.test.mjs",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/profile-avatar-batch.test.cjs",
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared avatar and badge art visual-only staging integration",
+      "preservedBehaviors": [
+        "No native dependency or backend migration"
+      ],
+      "tests": [
+        "tests/buklod-season2-circle-rank-avatar-art-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "points-rank",
+      "reason": "Read-only rank artwork for server-authored 40-rank ladder",
+      "preservedBehaviors": [
+        "No BP/QMP/server rank change"
+      ],
+      "tests": [
+        "tests/circle-rank-badges-recognition-20261109.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_ONLY_AWAITING_STAGING_QA",
+  "releaseAuthorized": false,
+  "productionStatus": "UNCHANGED_PRODUCTION_EMBARGO",
+  "stagePackage": "org.mzbministry.buklod.staging",
+  "runtime": "1.3.2"
+}

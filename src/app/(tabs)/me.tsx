@@ -1730,6 +1730,7 @@ export default function MeScreen() {
           >
             <BuklodTappableAvatar
               userId={profile?.id}
+              rankName={circleRank}
               uri={profile?.avatar_url}
               name={profile?.full_name}
               size={buklodVisual.size.avatar}
