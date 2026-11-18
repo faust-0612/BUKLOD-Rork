@@ -60,3 +60,24 @@ P2: full 7-day story chapters, cooperative quests, social follow-ups, opt-in lea
 **Release:** DEV isolated branch and V2 scope contract -> focused Node + SQL security/behavior tests -> TypeScript/Expo and actual Android low-network validation -> exact staging RC and AdMob/instant navigation regression -> verified production OTA. No new DB table, credits or client wiring in this R1 commit. All switches stay OFF. No RC/OTA claimed.
 
 Sources: GitHub main AGENTS.md; src/lib/buklodCharacterWorldCatalog.ts, src/lib/buklodCharacterSelectionV2.ts, src/lib/buklodCharacterEventAdapters.ts, src/features/games/kingdom/KingdomBadgeTrials.tsx, src/lib/buklodMonthlyEarnings.ts, supabase/migrations/20261111082405_buklod_qmp_automatic_qualification_v2.sql and 20261111085702_kl_verified_reading_10_series_50.sql; production Supabase read-only information_schema and QMP policy/functions. This source review does NOT verify every installed-client flow.
+
+
+### Daily commitment deductions (DEV R1 extension; STILL OFF)
+
+Owner requested an ADDITIONAL daily minus when a committed reader misses daily formation reading or a committed creator misses their posting challenge.
+
+**Only optional Seasonal Momentum Points, not permanent BP, qualified QMP, lifetime Circle Rank, Character V3 progress, existing item/badge ownership, finalized earnings, withdrawals or cash.** Source-confirmed inactivity already costs 5 seasonal points per missed day AFTER the existing two-day general inactivity grace. Add the following **per scheduled Manila-calendar day**:
+
+| Source-confirmed missed commitment | Seasonal Momentum minus | Who is eligible |
+|---|---:|---|
+| Missing an assigned, accessible daily formation/reading task | -2 | User opted in BEFORE the day and a real reading/formation task was due; Show Faith = formation, non-Show Faith = equivalent general reading, or optional KL in either |
+| Not posting a qualified original contribution | -2 | User explicitly opted into the Creator Daily Challenge BEFORE the day; a creator challenge was actually scheduled |
+| General inactivity beyond two missed-day grace | -5 | Existing opt-in seasonal momentum inactivity policy |
+
+**Maximum combined minus: 9 seasonal Momentum Points/day** (-5 -2 -2), never below 0. For example: no activity beyond grace + missed scheduled reading + missed Creator commitment = -9. If the member completed another verified action (+5 Momentum) but missed both commitments, their net score change can be +1 (+5 -2 -2), subject to the 300-point seasonal cap. The general inactivity grace does not automatically excuse distinct, voluntarily enrolled due commitments; commitments can be independently marked EXCUSED or NOT_DUE.
+
+Never penalize a non-creator simply for not posting, nor reward spam designed only to satisfy the challenge. No daily assigned lesson => no reading minus. Do not penalize private prayer, children, illness, an unavailable lesson/posting function, a user not authorized for the scope, unaccepted moderation, poor internet, or an offline queued event awaiting reconciliation.
+
+The prototype requires **contiguous authoritative day attestations**: scope and Show Faith state at that day, enrolled before due time, actual assigned and accessible task, server-verified completion or missed status, a closed day **after grace period**, and confirmed absence of outstanding submissions. Missing evidence, still-open day, pending sync, invalid mode, and unverified status produce NO deduction. Each day is processed exactly once; replays do not double-deduct; up to 31 days of contiguous attestations may be preview-reconciled. The server must produce these attestations; client-side booleans are NOT a trusted grant/debit interface.
+
+**Release status:** The module is not imported by any runtime UI and all feature flags remain OFF. This extension adds a pure preview plus behavioral regression tests, not a real server deduction function. Before ever enabling: owner must approve amounts, rest-day/appeal rules and accessibility, inspect true assigned formation source and qualified-post validators, implement per-account opt-in/enrollment ledger, server-only day-closure and idempotent seasonal ledger, RLS/concurrent cases, offline recovery, and both-scope parity. The underlying QMP/AdMob 30% finance rules remain immutable.

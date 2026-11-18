@@ -1,15 +1,16 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/premium-social-game-policy-r1-20261118.json",
-  "objective": "Pure disabled preview policy + source-backed review for BUKLOD #936, no production reward mint",
+  "objective": "Pure disabled R1 engagement preview plus additional committed daily reading/post minus within seasonal-only Momentum; no production reward or penalty mutation",
   "baseRef": "d23cd882f7d34c4bca3a110dadd04ee4cb2240a9",
   "productionBaselineEvidence": "Read-only GitHub main and BUKLOD Connect Supabase schema/rules/function inspection 2026-11-18. Installed Android OTA/runtime NOT verified. No production writes or release.",
-  "chosenApproach": "Add pure isolated preview model, behavioral tests, architecture and gap roadmap. All flags false.",
+  "chosenApproach": "Extend the isolated, runtime-unimported policy with server-attestation-only daily reading/creator challenge deduction previews (-2/-2), safely combined with general inactivity preview; all flags OFF.",
   "selectionRationale": "Existing BP/QMP and BP-derived Character V3 must not be overwritten. Inactivity may affect optional seasonal-only Momentum rather than permanent credits/cash.",
   "alternativeApproaches": [
     "Deduct BP for missing activity (rejected: monetary/Character integrity and offline fairness)",
     "Mint client-side token on post tap (rejected: spoofing)",
-    "Implement isolated disabled pure model and later backend receipt validation (chosen)"
+    "Implement isolated disabled pure model and later backend receipt validation (chosen)",
+    "Require everyone to post or complete religious study daily, deduct BP/QMP for noncompliance (rejected: coercive, spam-prone, financial harm)."
   ],
   "riskAreas": [
     "points-qmp-contract",
@@ -23,34 +24,39 @@
     "src/lib/buklodEngagementPolicyR1.ts",
     "tests/buklod-engagement-policy-r1-20261118.test.mjs",
     "docs/BUKLOD_PREMIUM_SOCIAL_GAME_ECONOMY_R1_20261118.md",
-    ".buklod/scopes/premium-social-game-policy-r1-20261118.json"
+    ".buklod/scopes/premium-social-game-policy-r1-20261118.json",
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs"
   ],
   "preserveBehaviors": [
     "No existing BP/QMP/cash/AdMob/points/Kingdom/Character mutations",
     "No real rewards granted, no migrations or runtime import, flags all OFF",
     "Core communication, prayer, education, safety and attendance never token-gated",
-    "Seasonal missed-day penalty cannot affect lifetime points/QMP/payouts or rights"
+    "Seasonal missed-day penalty cannot affect lifetime points/QMP/payouts or rights",
+    "Missed reading/creator challenges only affect separately opted-in, backend-verified seasonal Momentum; existing BP/QMP and normal posting remain untouched."
   ],
   "acceptanceChecks": [
-    "Run 9 focused Node behavioral tests with type stripping",
-    "Illustrative equal daily capacity 16 raw /12 capped in both scope modes, actual feature availability still unverified",
-    "Offline and duplicate protection in simulation, no persistent inactivity reversal",
-    "Keep RC/production OTA on HOLD"
+    "Run 17 focused Node behavior tests for policy and commitment consequences",
+    "Missing reading -2 and missed enrolled creator challenge -2 only when enrolled, assigned and server-attested; max total minus 9/day",
+    "Scope/faith alternative, 31-day contiguous attestation, day closure after grace, idempotence, pending/offline/excused/no-task fail closed",
+    "No changes to permanent BP, monthly QMP, finance, Character V3, Ads or posting access; preserve staging/production hold"
   ],
   "regressionTests": [
-    "tests/buklod-engagement-policy-r1-20261118.test.mjs"
+    "tests/buklod-engagement-policy-r1-20261118.test.mjs",
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Adds an unimported, OFF-by-default pure preview policy module; no existing runtime route, UI, BP, QMP, AdMob or financial behavior is changed.",
+      "reason": "Extend only unimported, all-flags-OFF pure preview policy with opt-in daily commitment minus and new risk-based tests; no runtime or backend side effects.",
       "preservedBehaviors": [
         "Existing app registration, sign-in, Wall, Connect, Character, Kingdom, BP, QMP, AdMob and navigation codepaths remain untouched.",
         "No user-visible reward grant, spending, inactivity debit, new feature gate or source-trigger mutation.",
-        "Core posting, comments, safety, prayer, children's content, education and accessibility remain unrestricted."
+        "Core posting, comments, safety, prayer, children's content, education and accessibility remain unrestricted.",
+        "A non-creator who does not post and a non-Show-Faith member without an eligible learning assignment incur no mandatory penalty."
       ],
       "tests": [
-        "tests/buklod-engagement-policy-r1-20261118.test.mjs"
+        "tests/buklod-engagement-policy-r1-20261118.test.mjs",
+        "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs"
       ]
     }
   ],

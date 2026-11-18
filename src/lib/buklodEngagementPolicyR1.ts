@@ -135,3 +135,104 @@ export function isAllowablePersistentRewardReversal(
   return Boolean(evidenceId&&evidenceId.trim())&&
     (reason==='VERIFIED_FRAUD'||reason==='SOURCE_REVOKED');
 }
+
+/**
+ * Optional daily-commitment consequences, entirely inside Seasonal Momentum.
+ * Server-owned, day-specific attestations are mandatory; this PURE preview
+ * never deducts BP, QMP, character progress, balances, owned items or cash.
+ */
+export const DAILY_COMMITMENT_PREVIEW_RULE = Object.freeze({
+  missedScheduledReadingMinus: 2,
+  missedCreatorPostMinus: 2,
+  maximumCombinedDailyMinus: 9, // inactivity 5 + reading 2 + creator 2
+  maximumReconciledDays: 31,
+});
+export type DailyCommitmentStatus = 'COMPLETED' | 'MISSED' | 'EXCUSED' | 'PENDING' | 'NOT_DUE';
+export type DailyCommitmentLane = Readonly<{
+  enrolledBeforeDay: boolean;
+  assignedAndAccessible: boolean;
+  status: DailyCommitmentStatus;
+  sourceVerifiedByServer: boolean;
+}>;
+export type DailyCommitmentAttestation = Readonly<{
+  manilaDay: string;
+  verifiedByBackend: boolean;
+  finalizedAfterGrace: boolean;
+  verifiedAnyActivity: boolean;
+  scopeModeAtDay: FaithMode;
+  readingKind: 'formation_reading' | 'general_reading' | 'kl_reading' | 'none';
+  dailyReading: DailyCommitmentLane;
+  dailyCreatorPost: DailyCommitmentLane;
+}>;
+export type CommitmentDailyMinus = Readonly<{
+  manilaDay: string;
+  inactivity: number;
+  reading: number;
+  creatorPost: number;
+}>;
+export type CommitmentSettlementPreview = Readonly<{
+  live: false;
+  state: MomentumSnapshot;
+  outcome: 'SETTLED' | 'UNCHANGED' | 'DEFERRED_OFFLINE' | 'INCOMPLETE_SERVER_EVIDENCE';
+  lost: number;
+  daily: readonly CommitmentDailyMinus[];
+}>;
+/**
+ * An absent record is NOT evidence of noncompliance. An exact contiguous set of
+ * backend-authorized day attestations is required. No client-controlled amount,
+ * faith status, assignment, excusal, or post acceptance is authoritative here.
+ */
+export function previewDailyCommitmentSettlement(
+  previous: MomentumSnapshot,
+  serverManilaDay: string,
+  attestations: readonly DailyCommitmentAttestation[],
+  pendingOfflineOperations: boolean,
+): CommitmentSettlementPreview {
+  const finish = ordinal(serverManilaDay);
+  const unchanged = (outcome: CommitmentSettlementPreview['outcome']): CommitmentSettlementPreview => ({
+    live: false, state: previous, outcome, lost: 0, daily: [],
+  });
+  if (pendingOfflineOperations) return unchanged('DEFERRED_OFFLINE');
+  const start = previous.lastSettledManilaDay === null
+    ? finish - 1 : ordinal(previous.lastSettledManilaDay);
+  if (finish < start) throw new Error('Cannot settle an earlier Manila day');
+  if (finish === start) return unchanged('UNCHANGED');
+  const dayCount = finish - start;
+  if (dayCount > DAILY_COMMITMENT_PREVIEW_RULE.maximumReconciledDays ||
+      attestations.length !== dayCount) return unchanged('INCOMPLETE_SERVER_EVIDENCE');
+  let state = previous;
+  let lost = 0;
+  const daily: CommitmentDailyMinus[] = [];
+  for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
+    const item = attestations[dayIndex];
+    const day = new Date((start + dayIndex + 1) * 86400000).toISOString().slice(0, 10);
+    if (item.manilaDay !== day || !item.verifiedByBackend || !item.finalizedAfterGrace) return unchanged('INCOMPLETE_SERVER_EVIDENCE');
+    const allowedReading = item.readingKind === 'kl_reading' ||
+      (item.scopeModeAtDay === 'show_faith' && item.readingKind === 'formation_reading') ||
+      (item.scopeModeAtDay === 'non_show_faith' && item.readingKind === 'general_reading') ||
+      (item.readingKind === 'none' && !item.dailyReading.enrolledBeforeDay);
+    if (!allowedReading || (item.scopeModeAtDay !== 'show_faith' &&
+        item.scopeModeAtDay !== 'non_show_faith')) return unchanged('INCOMPLETE_SERVER_EVIDENCE');
+    for (const lane of [item.dailyReading, item.dailyCreatorPost]) {
+      if (lane.status === 'PENDING') return unchanged('DEFERRED_OFFLINE');
+      if (!lane.sourceVerifiedByServer) return unchanged('INCOMPLETE_SERVER_EVIDENCE');
+    }
+    const base = previewMomentumSettlement(state, day, item.verifiedAnyActivity, false);
+    let score = base.state.seasonalMomentumPoints;
+    const penaltyFor = (lane: DailyCommitmentLane, amount: number): number => {
+      if (!lane.enrolledBeforeDay || !lane.assignedAndAccessible || lane.status !== 'MISSED') return 0;
+      const applied = Math.min(score, amount);
+      score -= applied;
+      return applied;
+    };
+    const reading = penaltyFor(item.dailyReading, DAILY_COMMITMENT_PREVIEW_RULE.missedScheduledReadingMinus);
+    const creatorPost = penaltyFor(item.dailyCreatorPost, DAILY_COMMITMENT_PREVIEW_RULE.missedCreatorPostMinus);
+    if (base.lost + reading + creatorPost > DAILY_COMMITMENT_PREVIEW_RULE.maximumCombinedDailyMinus) {
+      throw new Error('Daily preview minus exceeds bounded rule');
+    }
+    state = { ...base.state, seasonalMomentumPoints: score };
+    lost += base.lost + reading + creatorPost;
+    daily.push({ manilaDay: day, inactivity: base.lost, reading, creatorPost });
+  }
+  return { live: false, state, outcome: 'SETTLED', lost, daily };
+}
