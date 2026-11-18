@@ -34,7 +34,7 @@ import {
   type BuklodLifeTopicKey,
 } from '@/lib/buklodLifeContent';
 
-import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
+import { useBuklodLifeLanguage, useBuklodLifeLanguageSettings } from '@/hooks/useBuklodLifeLanguage';
 
 import BuklodLifeTabs from '@/components/BuklodLifeTabs';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -61,6 +61,7 @@ export default function BuklodLifeScreen() {
 
   // One locale source for LIFE entry, deep links and resumptions.
   const language = useBuklodLifeLanguage();
+  const setLifeLanguage = useBuklodLifeLanguageSettings();
 
   const copy =
     useMemo(
@@ -189,19 +190,18 @@ export default function BuklodLifeScreen() {
           </Text>
         </View>
 
-        <View
-          style={
-            styles.languageBadge
-          }
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={language === 'fil' ? 'Wika: Filipino. Palitan sa English' : 'Language: English. Switch to Filipino'}
+          accessibilityHint={language === 'fil' ? 'I-tap upang gawing English ang buong LIFE' : 'Tap to use Filipino throughout LIFE'}
+          onPress={() => void setLifeLanguage(language === 'fil' ? 'en' : 'fil').catch(error =>
+            console.warn('LIFE language preference could not be saved', error))}
+          style={styles.languageBadge}
         >
-          <Text
-            style={
-              styles.languageText
-            }
-          >
-            {copy.languageLabel}
-          </Text>
-        </View>
+          <MaterialCommunityIcons name="translate" size={15} color="#365D3E" />
+          <Text style={styles.languageText}>{copy.languageLabel}</Text>
+          <MaterialCommunityIcons name="swap-horizontal" size={13} color="#365D3E" />
+        </Pressable>
       </View>
 
       <BuklodLifeTabs
