@@ -1,0 +1,38 @@
+name: Season 2 Governance Drift
+on:
+  pull_request:
+    paths:
+      - 'contracts/season2-*.json'
+      - 'scripts/season2-governance.cjs'
+      - 'src/lib/buklodSeason*.ts'
+      - 'src/components/points/BuklodSeason*.tsx'
+      - 'supabase/**'
+      - 'tests/season2-governance-contract.test.mjs'
+      - '.github/workflows/buklod-season2-*.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  season2-policy-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate contract and actual behavior
+        env:
+          BUKLOD_CI_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/main' }}
+        run: |
+          node scripts/season2-governance.cjs validate
+          node --test tests/season2-governance-contract.test.mjs
+          if [ "${{ github.event_name }}" = 'pull_request' ]; then
+            node scripts/season2-governance.cjs ci
+          fi
+      - name: Evidence disclaimer
+        if: always()
+        run: echo "Pure DEV/source check only; no live telemetry, Android device QA, server rewards or production deployment" >> "$GITHUB_STEP_SUMMARY"
