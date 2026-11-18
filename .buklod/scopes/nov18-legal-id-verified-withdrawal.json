@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "scopeId": "buklod-main-legal-id-verified-withdrawal-20261118",
+  "objective": "Require government ID for legal-name edits and separately verify legal identity before any cash withdrawal.",
+  "baseRef": "main",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "productionProtected": true,
+  "releaseApproved": false,
+  "seasonPolicy": "No Season 1 or Season 2 rule edits",
+  "changedAreas": [
+    "member legal identity",
+    "private ID storage",
+    "withdrawal gating",
+    "canonical display identity"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add member and admin identity verification routes while preserving normal account, call and payout behavior.",
+      "preservedBehaviors": [
+        "User login, normal profile editing, navigation, and existing payouts remain governed by backend authorization"
+      ],
+      "tests": [
+        "tests/buklod-legal-identity-withdrawal-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Register explicit secure ID review routes and block unapproved profile legal-name mutations.",
+      "preservedBehaviors": [
+        "Existing root stack screens, role checks, password recovery, and private information settings remain accessible"
+      ],
+      "tests": [
+        "tests/buklod-identity-privacy-navigation-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Keep all cash payouts denied unless membership, legal-ID and payout beneficiary identity are verified.",
+      "preservedBehaviors": [
+        "Existing AdMob first-view behavior, financial ledgers, earning balances, QMP and cash activation switches remain unchanged"
+      ],
+      "tests": [
+        "tests/buklod-economy-verified-withdrawal-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Enforce private government-ID storage policies and fail-closed backend payout and legal-name access checks.",
+      "preservedBehaviors": [
+        "Existing database RLS, protected official identity, payout idempotency, finance journal and old Android client guards remain intact"
+      ],
+      "tests": [
+        "supabase/tests/buklod_legal_identity_withdrawal_20261118.sql"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/buklod-legal-identity-withdrawal-20261118.test.mjs",
+    "tests/buklod-identity-privacy-navigation-20261118.test.mjs",
+    "tests/buklod-economy-verified-withdrawal-20261118.test.mjs",
+    "supabase/tests/buklod_legal_identity_withdrawal_20261118.sql"
+  ],
+  "allowedPaths": [
+    "docs/BUKLOD_REAL_NAME_ID_WITHDRAWAL_RELEASE_GATES_20261118.md",
+    "src/app/_layout.tsx",
+    "src/app/account/identity-verification.tsx",
+    "src/app/account/personal-information.tsx",
+    "src/app/admin/economy-operations.tsx",
+    "src/app/admin/identity-verification.tsx",
+    "src/app/bayanihan/payout-profile.tsx",
+    "src/lib/buklodCanonicalName.ts",
+    "src/lib/buklodEconomyV3.ts",
+    "src/lib/buklodLegalIdentity.ts",
+    "src/lib/buklodStreamVideoClient.ts",
+    "src/lib/buklodStreamVideoClient.web.ts",
+    "src/providers/StreamVideoProvider.tsx",
+    "src/ptt/buklodPttCore.ts",
+    "src/ptt/buklodPttCore.web.ts",
+    "src/utils/setPushConfig.ts",
+    "supabase/functions/buklod-ptt-access/index.ts",
+    "supabase/migrations/20261118235500_buklod_legal_identity_name_withdrawal_v1.sql",
+    "supabase/tests/buklod_legal_identity_withdrawal_20261118.sql",
+    "tests/buklod-economy-verified-withdrawal-20261118.test.mjs",
+    "tests/buklod-identity-privacy-navigation-20261118.test.mjs",
+    "tests/buklod-legal-identity-withdrawal-20261118.test.mjs"
+  ],
+  "mandatoryGates": [
+    "Main staging Supabase migration and DB tests",
+    "Private-ID retention and erasure automation",
+    "Real device RC verified no AdMob/navigation regression",
+    "Production release separately approved"
+  ]
+}
