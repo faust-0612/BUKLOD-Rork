@@ -102,7 +102,9 @@ P0 Foundation weekly requirements:
   contribution source. Available alternatives must exist in both scopes.
 P1 Growth: Character, Kingdom, creative, educational and social milestones.
 P2 optional celebration/cosmetic bonus challenges.
-No Foundation completion? Ordinary posting, lessons, prayer, Connect,
+Daily Journey Token ceiling reached? A verified P0 learning/social receipt
+still counts for Foundation (without minting another token). No Foundation
+completion? Ordinary posting, lessons, prayer, Connect,
 BP, legitimate QMP, cash and free game routes continue working normally.
 Only additional Season 2 OPTIONAL mission bonus stays Pending Foundation.
 No source is allowed to satisfy both evidence roles; no fake views,

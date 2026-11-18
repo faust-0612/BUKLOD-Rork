@@ -50,6 +50,8 @@ test('Weekly single-use evidence, owner grace/flex and season-specific badges',(
   assert.match(sql,/unique\(user_id,learning_receipt_id\)/);
   assert.match(sql,/unique\(user_id,community_receipt_id\)/);
   assert.match(sql,/v_end:=p_week\+6\+3\+least\(v_flex,2\)\*7/);
+  const weekly=sql.slice(sql.indexOf('create or replace function buklod_s2.claim_weekly_foundation'),sql.indexOf('create or replace function buklod_s2.equip_cosmetic'));
+  assert.doesNotMatch(weekly,/r\.token_amount>0/);
   assert.match(sql,/badge_key.*'s2_weekly_foundation'/s);
   assert.match(sql,/if v_spent\+p_credits>2 then raise exception 'FLEX_CREDITS_EXCEEDED'/);
   assert.ok(!policy.includes('supabase.from('));

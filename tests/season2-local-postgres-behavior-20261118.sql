@@ -236,4 +236,71 @@ begin
   end if;
 end;
 $test$;
+-- P0 is achievement-based: a verified source with ZERO spendable tokens
+-- (because of the day cap) must still satisfy learning+community foundation.
+insert into auth.users(id)values('ffffffff-ffff-4fff-8fff-ffffffffffff');
+insert into public.community_posts(id,user_id,category,body,created_at)
+values('f2222222-2222-4222-8222-222222222222',
+  'ffffffff-ffff-4fff-8fff-ffffffffffff','reflection',
+  'An independently verified synthetic post that earns no currency due to cap.',
+  now()-interval '3 minutes');
+insert into public.kl_reading_sessions(user_id,episode_id,completed_at)
+values('ffffffff-ffff-4fff-8fff-ffffffffffff',
+ 'f6666666-6666-4666-8666-666666666666',now()-interval '18 minutes');
+insert into public.kl_quiz_attempts(id,episode_id,user_id,verified_at)
+values('f7777777-7777-4777-8777-777777777777',
+ 'f6666666-6666-4666-8666-666666666666',
+ 'ffffffff-ffff-4fff-8fff-ffffffffffff',now()-interval '12 minutes');
+update buklod_s2.control set daily_token_cap=0;
+set role service_role;
+do $test$
+declare f uuid:='ffffffff-ffff-4fff-8fff-ffffffffffff';
+        w date; a jsonb;b jsonb;claim jsonb;
+begin
+ select (starts_at at time zone 'Asia/Manila')::date into w
+ from buklod_s2.control;
+ a:=buklod_s2.credit_main_source(f,'kl_verified_chapter',
+   'f7777777-7777-4777-8777-777777777777');
+ b:=buklod_s2.credit_main_source(f,'wall_original_post',
+   'f2222222-2222-4222-8222-222222222222');
+ if (a->>'minted')::int<>0 or (b->>'minted')::int<>0 then
+   raise exception 'FAIL: token ceiling 0 still minted';end if;
+ claim:=buklod_s2.claim_weekly_foundation(f,w);
+ if claim->>'status'<>'CLAIMED' then
+   raise exception 'FAIL: P0 ignored valid zero-token evidence %',claim;end if;
+ if (select balance from buklod_s2.wallet where user_id=f)<>0 then
+   raise exception 'FAIL: fake spendable token minted for P0';end if;
+end;
+$test$;
+reset role;
+update buklod_s2.control set daily_token_cap=12;
+
+-- Two 7-day flex credits (split across two weeks) are replay-safe,
+-- opt-in and cannot silently be granted a third time.
+set role service_role;
+do $test$
+declare b uuid:='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+        w date; r jsonb; refused boolean:=false;
+begin
+ select (starts_at at time zone 'Asia/Manila')::date into w
+ from buklod_s2.control;
+ r:=buklod_s2.allocate_flex(b,w,1,'a1111111-1111-4111-8111-111111111111');
+ if r->>'status'<>'ALLOCATED' or (r->>'remaining')::int<>1 then
+   raise exception 'FAIL: first flex %',r;end if;
+ r:=buklod_s2.allocate_flex(b,w,1,'a1111111-1111-4111-8111-111111111111');
+ if r->>'status'<>'ALREADY_ALLOCATED' then
+   raise exception 'FAIL: flex replay %',r;end if;
+ r:=buklod_s2.allocate_flex(b,w+7,1,'a2222222-2222-4222-8222-222222222222');
+ if r->>'status'<>'ALLOCATED' or (r->>'remaining')::int<>0 then
+   raise exception 'FAIL: second flex %',r;end if;
+ begin
+   perform buklod_s2.allocate_flex(b,w+14,1,
+    'a3333333-3333-4333-8333-333333333333');
+ exception when others then refused:=true;
+ end;
+ if not refused then raise exception 'FAIL: accepted a third Flex credit';end if;
+end;
+$test$;
+reset role;
+
 select 'S2 LOCAL POSTGRES BEHAVIOR TESTS PASSED; NOT SUPABASE OR PROD' as evidence;

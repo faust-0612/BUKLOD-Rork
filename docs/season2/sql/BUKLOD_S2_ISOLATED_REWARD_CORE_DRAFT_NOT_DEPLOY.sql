@@ -481,13 +481,16 @@ begin
    return jsonb_build_object('status','EXPIRED_UNEARNED_BONUS',
        'week_start',p_week,'deadline',v_end);
  end if;
+ -- A real verified receipt satisfies P0 even if the 12-token daily limit
+ -- reduced its spendable token reward to ZERO. Foundation is about meaningful
+ -- participation, not maximizing a cash-like or spendable points balance.
  -- Both receipts must be inside assigned week + valid late catch-up.
  -- Later attempts are checked against actual server source timestamp.
  select r.id into v_learning from buklod_s2.source_receipt r
  where r.user_id=p_user and r.source_kind='kl_verified_chapter'
    and r.source_at >= (p_week::timestamp at time zone 'Asia/Manila')
    and r.source_at < ((v_end+1)::timestamp at time zone 'Asia/Manila')
-   and r.token_amount>0 and r.rule_version=c.rule_version
+   and r.rule_version=c.rule_version
    and not exists(select 1 from buklod_s2.weekly_claim prior
      where prior.user_id=p_user and prior.learning_receipt_id=r.id)
  order by r.source_at limit 1;
@@ -496,7 +499,7 @@ begin
    ('today_dugtong','wall_original_post','wall_meaningful_comment')
    and r.source_at >= (p_week::timestamp at time zone 'Asia/Manila')
    and r.source_at < ((v_end+1)::timestamp at time zone 'Asia/Manila')
-   and r.token_amount>0 and r.rule_version=c.rule_version
+   and r.rule_version=c.rule_version
    and not exists(select 1 from buklod_s2.weekly_claim prior
       where prior.user_id=p_user and prior.community_receipt_id=r.id)
  order by r.source_at limit 1;
