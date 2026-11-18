@@ -8,6 +8,7 @@ import type {BuklodRenderReleaseIdentity} from './buklodRenderReleaseIdentity';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export function getBuklodRenderReleaseIdentity(): BuklodRenderReleaseIdentity {
+  try {
   const ota = Updates.isEnabled && typeof Updates.updateId === 'string' && uuid.test(Updates.updateId)
     ? Updates.updateId : null;
   const runtime = typeof Updates.runtimeVersion === 'string' &&
@@ -17,4 +18,8 @@ export function getBuklodRenderReleaseIdentity(): BuklodRenderReleaseIdentity {
     /^(production|staging|preview|development)$/i.test(Updates.channel)
     ? Updates.channel.toLowerCase() : null;
   return {runtimeVersion:runtime,otaUpdateId:ota,updateChannel:channel};
+  } catch {
+    // Crash reporting must never itself crash a screen or interrupt navigation.
+    return {runtimeVersion:null,otaUpdateId:null,updateChannel:null};
+  }
 }
