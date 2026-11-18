@@ -21,5 +21,74 @@
   "knownBlockers": [
     "No isolated staging database connected",
     "AdMob device/production RC not verified"
+  ],
+  "productionBaselineEvidence": "Verified Train A source 404c87e55c62a88c95c7389ac8665f237149702a, EAS Android production update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2; verified staging Season2 visual preview SHA af95563fab1d053c82963df65da5f6d55348d811; physical device AdMob not claimed. No production delivery in this PR.",
+  "allowedPaths": [
+    ".buklod/scopes/season2-conso-staging-20261119.json",
+    ".buklod/scopes/season2-governance-drift-monitor-20261118.json",
+    ".buklod/scopes/season2-isolated-rewards-core-20261118.json",
+    ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
+    ".github/workflows/buklod-season2-governance-drift.yml",
+    ".github/workflows/buklod-season2-sql-dev-only-20261118.yml",
+    ".github/workflows/engineering-accountability.yml",
+    "contracts/season2-governance.json",
+    "contracts/season2-implementation-ledger.json",
+    "contracts/season2-proposals/conso-staging-20261119.json",
+    "docs/BUKLOD_SEASONAL_CONSTITUTION_20261118.md",
+    "docs/BUKLOD_SEASON_GOVERNANCE_R1_20261118.md",
+    "docs/season2/BUKLOD_S2_REWARDS_ISOLATION_ARCHITECTURE_R1_20261118.md",
+    "docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql",
+    "scripts/buklod-season2-production-embargo.cjs",
+    "scripts/buklod-season2-staging-order-gate.cjs",
+    "scripts/season2-governance.cjs",
+    "scripts/seasonal-constitution.cjs",
+    "scripts/seasonal-constitution.test.cjs",
+    "src/app/admin/index.tsx",
+    "src/app/admin/season2-readiness.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "src/lib/season2/buklodSeason2CarryoverContractR1.ts",
+    "src/lib/season2/buklodSeason2DurableOutboxR1.ts",
+    "src/lib/season2/buklodSeason2OfflineOutboxR1.ts",
+    "src/lib/season2/buklodSeason2RewardContractR1.ts",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+    "tests/buklod-season2-carryover-contract-20261119.test.mjs",
+    "tests/buklod-season2-durable-outbox-r1-20261118.test.mjs",
+    "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+    "tests/buklod-season2-offline-outbox-r1-20261118.test.mjs",
+    "tests/season2-governance-contract.test.mjs",
+    "tests/season2-governance-production-release-gate.test.mjs",
+    "tests/season2-local-postgres-behavior-20261118.sql",
+    "tests/season2-local-postgres-fixture-20261118.sql"
+  ],
+  "regressionTests": [
+    "tests/buklod-season2-carryover-contract-20261119.test.mjs",
+    "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+    "tests/season2-governance-production-release-gate.test.mjs",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add only a staging admin Season2 readiness route and non-writing seasonal carryover model while preserving existing Main gameplay/finance.",
+      "preservedBehaviors": [
+        "Season1 production behavior and earned per-character assets remain untouched",
+        "Season2 backend rewards remain entirely disabled"
+      ],
+      "tests": [
+        "tests/buklod-season2-carryover-contract-20261119.test.mjs",
+        "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Extend fail-closed source embargo and add staging-only workflow without enabling a production Season2 release.",
+      "preservedBehaviors": [
+        "December 6 production embargo and SHA-bound owner/device verification remain enforced",
+        "AdMob and instant-navigation permanent release gates remain required"
+      ],
+      "tests": [
+        "tests/season2-governance-production-release-gate.test.mjs"
+      ]
+    }
   ]
 }
