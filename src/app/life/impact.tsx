@@ -79,7 +79,7 @@ function LifeImpactContent() {
         <View style={styles.treeSymbol}>
           <MaterialCommunityIcons name="tree" size={100} color="#518D58"/>
         </View>
-        <Text style={styles.treeTitle}>{fil ? 'Life Tree' : 'Life Tree'}</Text>
+        <Text style={styles.treeTitle}>{fil ? 'Puno ng Buhay' : 'Life Tree'}</Text>
         <Text style={styles.treeSub}>{fil
           ? 'Simbolo ng mga imbitasyong naibahagi mo, hindi ng conversion o spiritual status ng iba.'
           : 'A symbol of invitations you have shared, not conversions or anyone else’s spiritual status.'}</Text>
