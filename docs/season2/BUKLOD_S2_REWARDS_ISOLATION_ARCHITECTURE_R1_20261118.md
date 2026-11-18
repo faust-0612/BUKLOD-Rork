@@ -200,6 +200,13 @@ They DO NOT replace Postgres, authenticated-user SQL, device or staging tests.
 Phase A [DEV PARTIAL]: exact audited baseline, disabled TS policy and behavior
 test suite, isolated server schema/verification + purchase/weekly claim SQL
 candidate, source contract guards. All source-only.
+Equipment implementation extension: a new isolated `buklod_s2.equipped_cosmetics`
+per-character loadout table and service-only equip RPC reference the existing
+active canonical Character, without writing to its XP, ownership or per-
+character progression. Synthetic PostgreSQL validation must prove cosmetic
+ownership, character switching persistence, unequip and access denial. This
+is **not** a live Character item bridge or the 1,300 earned collectible store.
+
 Phase B [OPEN]: apply candidate ONLY to an isolated staging Supabase database
 after drift/security review (a branch project may cost money), run SQL/RLS,
 parallel-source and wallet concurrency/integrity tests. Do not use live prod.

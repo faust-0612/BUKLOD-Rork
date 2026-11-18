@@ -22,6 +22,7 @@ test('S2 revokes client DML and privileged function access, and cannot activate 
   assert.match(sql,/S1_AWAITING_SIGNED_RECONCILIATION/);
   assert.match(sql,/public\.buklod_is_official_system_admin\(p_user\)/);
   assert.match(sql,/OFFICIAL_SYSTEM_ADMIN_EXCLUDED/);
+  assert.match(sql,/revoke all on function buklod_s2\.equip_cosmetic/);
 });
 test('No free client mint, fixed amounts, wallet lock and unique receipts',()=>{
   assert.match(sql,/for update;/);
@@ -38,6 +39,8 @@ test('All paid items nonessential; purchase nonce and inventory unique, no lotte
   assert.match(sql,/is_paid_collectible boolean not null default false check\(not is_paid_collectible\)/);
   assert.match(sql,/primary key\(user_id,request_nonce\)/);
   assert.match(sql,/primary key\(user_id,item_key\)/);
+  assert.match(sql,/create table if not exists buklod_s2\.equipped_cosmetics/);
+  assert.match(sql,/foreign key\(user_id,item_key\) references buklod_s2\.inventory/);
   assert.doesNotMatch(sql,/buklod_pf_monthly_points_v3|admob_revenue|buklod_points_ledger\s+set/i);
 });
 test('Weekly single-use evidence, owner grace/flex and season-specific badges',()=>{

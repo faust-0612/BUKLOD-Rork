@@ -3,6 +3,8 @@ create role anon;
 create role authenticated;
 create role service_role bypassrls;
 create schema auth;
+create schema private;
+grant usage on schema private to service_role;
 grant usage on schema auth to service_role;
 create table auth.users(id uuid primary key);
 create table public.buklod_rank_seasons(
@@ -42,9 +44,17 @@ as $mock$
 $mock$;
 revoke all on function public.buklod_is_official_system_admin(uuid) from public,anon,authenticated;
 grant execute on function public.buklod_is_official_system_admin(uuid) to service_role;
+create table private.buklod_character_world_v3(
+  user_id uuid primary key,
+  active_character_id text not null
+);
+grant select on private.buklod_character_world_v3 to service_role;
 grant select on all tables in schema public to service_role;
 insert into auth.users(id)values
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+insert into private.buklod_character_world_v3(user_id,active_character_id)
+values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','phan'),
+      ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','phan');
 insert into public.buklod_rank_seasons(id,season_number,status)
  values('11111111-1111-4111-8111-111111111111',1,'active');

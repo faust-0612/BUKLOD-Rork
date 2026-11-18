@@ -174,6 +174,51 @@ begin
  then raise exception 'FAIL: duplicate purchased item';end if;
 end;
 $test$;
+-- S2 cosmetic equipment must bind to the canonical currently active
+-- character and preserve previous Character loadout across switches.
+do $test$
+declare a uuid:='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+        blocked boolean:=false;
+begin
+ begin
+   perform buklod_s2.equip_cosmetic(a,'accessory_finish','accessory_finish_emerald');
+ exception when sqlstate '42501' then blocked:=true; end;
+ if not blocked then raise exception 'FAIL: non-owner equipped cosmetic';end if;
+end;
+$test$;
+set role service_role;
+do $test$
+declare b uuid:='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+        result jsonb;
+begin
+ result:=buklod_s2.equip_cosmetic(b,'accessory_finish','accessory_finish_emerald');
+ if result->>'status'<>'EQUIPPED' or result->>'character_id'<>'phan' then
+   raise exception 'FAIL: first character equip %',result;end if;
+end;
+$test$;
+reset role;
+-- Synthetic canonical Character switch; never mutate actual Character data.
+update private.buklod_character_world_v3 set active_character_id='van'
+ where user_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+set role service_role;
+do $test$
+declare b uuid:='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+        result jsonb;
+begin
+ result:=buklod_s2.equip_cosmetic(b,'accessory_finish','accessory_finish_emerald');
+ if result->>'status'<>'EQUIPPED' or result->>'character_id'<>'van' then
+   raise exception 'FAIL: second character equip %',result;end if;
+ if (select count(*) from buklod_s2.equipped_cosmetics where user_id=b)<>2
+ then raise exception 'FAIL: switching discarded character loadout';end if;
+ result:=buklod_s2.equip_cosmetic(b,'accessory_finish',null);
+ if result->>'status'<>'UNEQUIPPED' then
+   raise exception 'FAIL: unequip %',result;end if;
+ if (select count(*) from buklod_s2.equipped_cosmetics where user_id=b)<>1
+   or not exists(select 1 from buklod_s2.equipped_cosmetics
+     where user_id=b and character_id='phan' and item_key='accessory_finish_emerald')
+ then raise exception 'FAIL: unequip affected prior Character';end if;
+end;
+$test$;
 reset role;
 -- Null SQL CHECK semantics must NEVER permit un-audited badge revocation.
 do $test$

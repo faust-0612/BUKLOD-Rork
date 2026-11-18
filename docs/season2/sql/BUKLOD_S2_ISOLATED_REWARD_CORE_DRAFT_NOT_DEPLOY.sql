@@ -105,6 +105,18 @@ create table if not exists buklod_s2.inventory (
   equipped_at timestamptz,
   primary key(user_id,item_key)
 );
+-- Per-character cosmetic loadouts are independent of legacy Character
+-- collectible inventory and survive a switch away/back to each character.
+create table if not exists buklod_s2.equipped_cosmetics (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  character_id text not null check(length(character_id) between 2 and 80),
+  item_kind text not null check(item_kind in
+    ('accessory_finish','gallery_theme','skin_variant','premium_visual_effect')),
+  item_key text not null,
+  equipped_at timestamptz not null default now(),
+  primary key(user_id,character_id,item_kind),
+  foreign key(user_id,item_key) references buklod_s2.inventory(user_id,item_key)
+);
 create table if not exists buklod_s2.badge_grant (
   user_id uuid not null references auth.users(id) on delete cascade,
   badge_key text not null check(length(badge_key) between 4 and 100),
@@ -168,6 +180,7 @@ alter table buklod_s2.token_ledger enable row level security;
 alter table buklod_s2.cosmetic_catalog enable row level security;
 alter table buklod_s2.purchases enable row level security;
 alter table buklod_s2.inventory enable row level security;
+alter table buklod_s2.equipped_cosmetics enable row level security;
 alter table buklod_s2.badge_grant enable row level security;
 alter table buklod_s2.flex_allocation enable row level security;
 alter table buklod_s2.weekly_claim enable row level security;
@@ -503,6 +516,59 @@ $fn$;
 revoke all on function buklod_s2.claim_weekly_foundation(uuid,date)
  from public,anon,authenticated;
 grant execute on function buklod_s2.claim_weekly_foundation(uuid,date)
+ to service_role;
+
+-- Equipment is limited to owned S2 OPTIONAL cosmetics and the current
+-- canonical Character identity. Prior characters' loadout remains durable
+-- (one equipped item per character+slot), without changing Character XP.
+create or replace function buklod_s2.equip_cosmetic(
+ p_user uuid,p_slot text,p_item text default null
+) returns jsonb language plpgsql security invoker set search_path=''
+as $fn$
+declare c buklod_s2.control;v_character text;v_item_kind text;
+begin
+ c:=buklod_s2.assert_active();
+ if p_user is null or public.buklod_is_official_system_admin(p_user) then
+   raise exception 'ACCOUNT_NOT_ELIGIBLE' using errcode='42501';
+ end if;
+ if p_slot not in
+  ('accessory_finish','gallery_theme','skin_variant','premium_visual_effect')
+ then raise exception 'INVALID_COSMETIC_SLOT' using errcode='22023';end if;
+ select w.active_character_id into v_character
+ from private.buklod_character_world_v3 w where w.user_id=p_user;
+ if v_character is null or length(trim(v_character))=0 then
+   raise exception 'NO_ACTIVE_CANONICAL_CHARACTER' using errcode='22023';
+ end if;
+ -- A prior character's equipment must not be changed by this call.
+ if p_item is null then
+   delete from buklod_s2.equipped_cosmetics
+   where user_id=p_user and character_id=v_character and item_kind=p_slot;
+   return jsonb_build_object('status','UNEQUIPPED','character_id',v_character,
+       'slot',p_slot);
+ end if;
+ select catalog.item_kind into v_item_kind
+ from buklod_s2.inventory owned
+ join buklod_s2.cosmetic_catalog catalog on catalog.item_key=owned.item_key
+ where owned.user_id=p_user and owned.item_key=p_item
+   and catalog.nonessential and not catalog.is_paid_collectible;
+ if v_item_kind is null then
+   raise exception 'COSMETIC_NOT_OWNED' using errcode='42501';
+ end if;
+ if v_item_kind<>p_slot then
+   raise exception 'COSMETIC_SLOT_MISMATCH' using errcode='22023';
+ end if;
+ insert into buklod_s2.equipped_cosmetics(
+   user_id,character_id,item_kind,item_key)
+ values(p_user,v_character,p_slot,p_item)
+ on conflict(user_id,character_id,item_kind)
+ do update set item_key=excluded.item_key,equipped_at=now();
+ return jsonb_build_object('status','EQUIPPED','character_id',v_character,
+   'item_key',p_item,'slot',p_slot);
+end;
+$fn$;
+revoke all on function buklod_s2.equip_cosmetic(uuid,text,text)
+ from public,anon,authenticated;
+grant execute on function buklod_s2.equip_cosmetic(uuid,text,text)
  to service_role;
 
 -- Flex enrollment must happen before the normal deadline. Each credit is
