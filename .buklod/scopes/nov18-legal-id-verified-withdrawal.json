@@ -90,5 +90,32 @@
     "Private-ID retention and erasure automation",
     "Real device RC verified no AdMob/navigation regression",
     "Production release separately approved"
-  ]
+  ],
+  "scopeManifestPath": ".buklod/scopes/nov18-legal-id-verified-withdrawal.json",
+  "productionBaselineEvidence": "verified: GitHub main source commit 7a3c706d44ab05389a4aa9c4a1bba82ad22f6395 was inspected for canonical profile edits and payout RPCs on 2026-11-18. Production OTA and Main Supabase live schema were not verified; DEV only.",
+  "chosenApproach": "Introduce a private government-ID review table and storage bucket plus a DB name-change trigger; wrap existing canonical and legacy withdrawal RPCs to retain their money logic while checking fresh independent legal-ID and membership status.",
+  "selectionRationale": "Direct client profile updates allowed unsupervised legal-name edits and membership is_verified did not demonstrate government-ID identity. The finance request and payout endpoints require server-controlled identity and beneficiary matching without reimplementing the journal or activating finance switches.",
+  "preserveBehaviors": [
+    "Normal BUKLOD profile mobile, address, faith and other non-name edits remain available without new ID review.",
+    "Canonical and old R38 finance balances, minimums, payout idempotency and official System Admin isolation remain unchanged.",
+    "AdMob rendering, instant dashboard tabs and existing Expo production runtime are not touched.",
+    "The new legal-name verification routes are additive and protected by BUKLOD auth and role checks."
+  ],
+  "acceptanceChecks": [
+    "Review or direct name edit must fail closed without approved government ID.",
+    "Valid private ID submission requires explicit consent and human review; ordinary users cannot view another member ID.",
+    "Withdrawal request and final paid RPC refuse pending, rejected, inactive or unapproved membership and unmatched GCash beneficiary names.",
+    "Run focused legal ID/economy/navigation Node contract tests and separate Supabase staging DB security tests.",
+    "Verify AdMob first-view and dashboard speed before any staging candidate; no production OTA until separate release approval."
+  ],
+  "alternativeApproaches": [
+    "Use only profiles.is_verified as a payout flag (rejected: it verifies membership, not government-ID legal name).",
+    "Apply a client-only name/withdrawal check (rejected: older Android builds and direct RPC calls bypass it).",
+    "Replace the financial engine entirely (rejected: risks existing balances, idempotency and AdMob/QMP behavior)."
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "physicalDeviceVerification": "NOT_PERFORMED"
 }
