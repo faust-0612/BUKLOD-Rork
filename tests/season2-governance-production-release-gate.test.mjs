@@ -35,7 +35,7 @@ test('existing Dec6 owner exact-SHA embargo is still first and independent',()=>
 });
 test('exact checkout invokes readiness only for season package, after the older release guard',()=>{
  const s=fs.readFileSync('scripts/buklod-season2-production-embargo.cjs','utf8');
- assert.match(s,/if\\(files.length\\)enforceSeason2Readiness\\(root\\)/);
+ assert.match(s,/if\(files.length\)enforceSeason2Readiness\(root\)/);
  assert.ok(s.indexOf('if(!r.allowed)throw Error')<s.indexOf('if(files.length)enforceSeason2Readiness(root)'));
- assert.doesNotMatch(s,/supabase\\.from|\\.rpc\\(|eas update/);
+ assert.doesNotMatch(s,/supabase\.from|\.rpc\(|eas update/);
 });
