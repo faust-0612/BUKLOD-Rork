@@ -20,6 +20,10 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { createBuklodAvatarBatchLookup } from '@/lib/buklodAvatarBatch';
+import BuklodSeason2RankArtwork from '@/components/points/BuklodSeason2RankArtwork';
+import { resolveCircleRankArtwork } from '@/lib/buklodCircleRankArtwork';
+import { peekBuklodCircleRank, resolveBuklodCircleRank } from '@/lib/buklodCircleRankBatch';
+import { isBuklodUserOnline, subscribeBuklodOnlinePresence } from '@/lib/buklodOnlinePresence';
 import {
   getBuklodLiveAvatar,
   subscribeBuklodLiveAvatar,
@@ -108,6 +112,7 @@ type ProfileAvatarProps = {
 
   size?: number;
   shape?: 'circle' | 'rounded';
+  rankName?: string | null;
 
   fallbackSource?:
     | number
@@ -309,10 +314,43 @@ export function ProfileAvatar({
   name,
   size = 38,
   shape = 'circle',
+  rankName,
   fallbackSource,
 }: ProfileAvatarProps) {
   const { user } = useAuth();
   const viewerId = user?.id ?? '';
+  const pathname = usePathname();
+  const rankTargetId = String(userId ?? '').trim().toLowerCase();
+  const [resolvedRank, setResolvedRank] = useState<string | null>(
+    rankName ?? (peekBuklodCircleRank(viewerId, rankTargetId) ?? null),
+  );
+  const [online, setOnline] = useState(() => isBuklodUserOnline(rankTargetId));
+
+  // One batched, authenticated canonical rank lookup shared by all avatars.
+  // Caller-provided Wall/Connect rank paints immediately, then server truth wins.
+  useEffect(() => {
+    let active = true;
+    const cached = peekBuklodCircleRank(viewerId, rankTargetId);
+    setResolvedRank(rankName ?? cached ?? null);
+    if (viewerId && rankTargetId) {
+      void resolveBuklodCircleRank(viewerId, rankTargetId).then(value => {
+        if (!active) return;
+        if (value !== undefined) setResolvedRank(value);
+      }).catch(() => undefined);
+    }
+    return () => { active = false; };
+  }, [viewerId, rankTargetId, rankName, pathname]);
+
+  useEffect(() => {
+    if (!viewerId || !rankTargetId) { setOnline(false); return; }
+    const update = () => setOnline(isBuklodUserOnline(rankTargetId));
+    const unsubscribe = subscribeBuklodOnlinePresence(viewerId, update);
+    return unsubscribe;
+  }, [viewerId, rankTargetId]);
+
+  const badge = resolveCircleRankArtwork(resolvedRank);
+  const badgeSize = Math.max(22, size * 0.68);
+  const dotSize = Math.max(10, size * 0.23);
   const [remoteUrl, setRemoteUrl] = useState<string | null>(
     getBuklodLiveAvatar(userId) ?? normalizeAvatarUrl(uri)
   );
@@ -381,8 +419,8 @@ export function ProfileAvatar({
     width: size,
     height: size,
     borderRadius: shape === 'rounded' ? Math.round(size * 0.2) : size / 2,
-    borderWidth: 1,
-    borderColor: colors.line,
+    borderWidth: badge ? Math.max(2, size * 0.04) : 1,
+    borderColor: badge?.borderColor ?? colors.line,
     backgroundColor: colors.greenSoft,
   };
 
@@ -497,6 +535,36 @@ export function ProfileAvatar({
         />
       ) : null}
 
+      {badge ? (
+        <BuklodSeason2RankArtwork
+          rankName={badge.rankName}
+          size={badgeSize}
+          style={{
+            position: 'absolute',
+            left: -size * 0.27,
+            top: -size * 0.08,
+            zIndex: 55,
+          }}
+        />
+      ) : null}
+      {online ? (
+        <View
+          pointerEvents="none"
+          accessibilityLabel="Online"
+          style={{
+            position: 'absolute',
+            left: (size - dotSize) / 2,
+            bottom: -size * 0.08,
+            width: dotSize,
+            height: dotSize,
+            borderRadius: dotSize / 2,
+            borderWidth: Math.max(1.5, dotSize * 0.14),
+            borderColor: '#FFFFFF',
+            backgroundColor: '#139DFF',
+            zIndex: 70,
+          }}
+        />
+      ) : null}
       <ProfileAvatarStatusIndicator
         userId={userId}
         size={size}

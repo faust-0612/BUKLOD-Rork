@@ -1,0 +1,227 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-consolidated-staging-20261119.json",
+  "releaseMode": "consolidated-main-rc",
+  "componentScopePaths": [
+    ".buklod/scopes/season2-circle-rank-avatar-20261119.json",
+    ".buklod/scopes/season2-post-train-a-staging-20261118.json"
+  ],
+  "objective": "Reconcile the full existing Season 2 staging-only preview, source-authenticated 40 Circle Rank badge artwork on all avatars and roadmap, and the verified Train A production baseline in one fail-closed staging candidate. No Season 2 production publication.",
+  "baseRef": "staging/season2-verified-production-base-20261118",
+  "productionBaselineEvidence": "Verified November 18 Train A Android production source 404c87e55c62a88c95c7389ac8665f237149702a, EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2. Staging-only changes in component PR #947 and merged PR #962. Physical-device first-view AdMob and navigation QA not claimed. Production embargo until December 6 or later.",
+  "chosenApproach": "Combine exactly two vetted V2 component scopes with one accountable cumulative scope, naming all changed source/test/assets and tested regressions. Preserve original narrative, Main Bible quiz, post-detail and rank/avatars without changing backend/points/rewards/production.",
+  "selectionRationale": "Strict consolidated staging manifest required for both source changes to co-exist. Preserve fail-closed governance; avoid a synthetic bypass or merging into main.",
+  "alternativeApproaches": [
+    "Bypass scope gate (rejected: removes protection)",
+    "Publish only badge branch and discard Season 2 preview (rejected: loses features)",
+    "Release directly to production (rejected: embargo)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "classroom-quiz",
+    "ads-monetization",
+    "offline",
+    "finance",
+    "season-expiry",
+    "privacy",
+    "character-progression",
+    "production-release",
+    "release-identity",
+    "staging-runtime",
+    "navigation-auth",
+    "connect-presence",
+    "ads-first-view",
+    "wall-readability",
+    "rank-canonical-mapping",
+    "protected-governance",
+    "navigation-scroll",
+    "connect"
+  ],
+  "allowedPaths": [
+    ".buklod/releases/train-a-production-verified-20261118.json",
+    ".buklod/scopes/season2-circle-rank-avatar-20261119.json",
+    ".buklod/scopes/season2-consolidated-staging-20261119.json",
+    ".buklod/scopes/season2-post-train-a-staging-20261118.json",
+    ".github/workflows/engineering-accountability.yml",
+    "assets/season2/circle-rank-atlas.webp",
+    "docs/BUKLOD_PREMIUM_SOCIAL_GAME_ECONOMY_R1_20261118.md",
+    "docs/BUKLOD_SEASON2_CIRCLE_RANK_AVATAR_20261119.md",
+    "docs/BUKLOD_SEASON2_RISE_TOGETHER_MASTER_20261118.md",
+    "docs/BUKLOD_SEASON_V2_PREPARATION_EXPERIENCE_20261118.md",
+    "scripts/buklod-season2-staging-release-order.cjs",
+    "scripts/engineering-regression-gate.mjs",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/admin/bible-v4-events.tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodReactionAction.tsx",
+    "src/components/BuklodTappableAvatar.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/bible/BuklodBibleQuizV4.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
+    "src/components/points/BuklodCircleRankBadge.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/components/points/BuklodSeason2RankArtwork.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "src/lib/buklodCircleRankArtwork.ts",
+    "src/lib/buklodCircleRankBatch.ts",
+    "src/lib/buklodEngagementPolicyR1.ts",
+    "src/lib/buklodOnlinePresence.ts",
+    "src/lib/buklodSeason2CampaignR1.ts",
+    "src/lib/buklodSeasonJourneyR2.ts",
+    "src/lib/buklodZeroMomentumNoticePolicyR1.ts",
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+    "tests/buklod-engagement-policy-r1-20261118.test.mjs",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "tests/buklod-season2-circle-rank-artwork-20261119.test.mjs",
+    "tests/buklod-season2-staging-release-contract-20261118.test.mjs",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    "tests/season2-avatar-ads-preservation-20261119.test.mjs",
+    "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Entire verified TrainA production source remains baseline, including instant Android dashboard, first-view AdMob, video fair handoff, Connect scroll, weak-network existing auth, existing PTT, Kingdom and Matthew Henry",
+    "No production OTA, no Season2 credits or deductions, no live Season2 notification dispatch, no entitlement claims",
+    "Existing production Season2 embargo and exact EAS production update remains unchanged",
+    "Five existing client paths from previous Stage2 branch verified original base equals current production before selective overlay",
+    "Owner-skipped manual device QA recorded as waiver, not device PASS; production origin verified by served EAS manifest",
+    "No changes to native ABI/runtime, package, plugin, dependencies, backend/RLS, finance or AdMob production units",
+    "Season1 historical active/claims unchanged, official opening remains target unpublished; only read-only UX and local preview options added",
+    "No extra Points RPC; collapsed Season card protects first-view ads; Text-first and weak-network compatibility",
+    "Production source and OTA remain unchanged",
+    "Season 1 Circle Rank point thresholds and balances remain unchanged",
+    "No backend migration, QMP, rewards, account permissions, official Admin point grants or production release",
+    "Wall comments and Connect navigation, Notes and unread indicators keep their existing behavior",
+    "Native AdMob first-view and instant dashboard navigation remain protected",
+    "All existing AdMob first-view, Wall and Connect navigation, signed media, offline notes, privacy and session functionality retained",
+    "Season 1 points, QMP finance, monthly withdrawal, historical rewards and profile account isolation unchanged",
+    "Dynamic transparent badge decoration never changes canonical lifetime rank or grants any award",
+    "Staging target remains org.mzbministry.buklod.staging runtime 1.3.2; no production OTA"
+  ],
+  "acceptanceChecks": [
+    "Run 60+ Season2 policy/story/prologue/quiz/post-detail tests and no live mission/grant assertions",
+    "First-view ad placement, Android dashboard navigation, Wall media and auth/session unchanged from production source",
+    "Staging signed APK build ID bc4be208-bfb0-42f3-95cb-358353d0600f has correct Android staging app package, runtime1.3.2, and distinct update channel",
+    "Exact current production server manifest and release proof match before and after staging publish",
+    "TypeScript/Expo Android export and target EAS preview env valid with no new native dependencies",
+    "Staging OTA update ID/source exact and served staging manifest verified after publishing; production channel unchanged",
+    "Never publish Season2 gameplay or points to production before December 6, and require separate real backend reward authorization then",
+    "40 distinct source crops map to all 40 canonical rank names with 5x8 atlas",
+    "TypeScript and Android bundle decode",
+    "Shared avatar in Wall/Connect/Profile/replies with 10-o'clock badge, family color border and bottom blue online indicator",
+    "Online network failure hides status instead of inventing online presence",
+    "Protected feature/account isolation/AdMob nav regression tests",
+    "Staging OTA requires separate signed EAS receipt, runtime and unchanged production proof",
+    "2 component scope paths and all 44 changed files plus this consolidated manifest exactly accounted for",
+    "Protected-feature lock and focused regression suite pass against staging source base with no omitted tests",
+    "Native staging APK WebP transparency, online/offline/Notes overlap, AdMob fill and first-view/instant-tab QA remain release gates; no claim of actual device success",
+    "Staging-only signed EAS served update readback before declaring deployed",
+    "Web Connect avatar bounds do not clip the 10-o-clock badge; Wall bubbles, Web Connect search and Post detail receive verified rank immediately"
+  ],
+  "regressionTests": [
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+    "tests/buklod-engagement-policy-r1-20261118.test.mjs",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "tests/buklod-season2-circle-rank-artwork-20261119.test.mjs",
+    "tests/buklod-season2-staging-release-contract-20261118.test.mjs",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    "tests/season2-avatar-ads-preservation-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Merge original Season 2 read-only narrative, points UI and exact 40 transparent rank badge artwork into the same staging client while keeping no live grants.",
+      "preservedBehaviors": [
+        "Legacy reward/rank thresholds, Story Journey preview locks, all profiles and audio/video remain functional."
+      ],
+      "tests": [
+        "tests/buklod-season2-circle-rank-artwork-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Preserve Wall post detail reaction parity and avatar appearance without modifying videos, photo loading, or media permissions.",
+      "preservedBehaviors": [
+        "Reaction counts, author visibility, media loading and scrolling retain prior behavior."
+      ],
+      "tests": [
+        "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Preserve production-native dashboard and signed-in account navigation while adding rank decals to Wall, Profile, and Connect avatars.",
+      "preservedBehaviors": [
+        "Wall profile taps, Connect message taps and Android instant dashboard navigation retain existing routes."
+      ],
+      "tests": [
+        "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "Keep Stage 2 Main Bible learner/admin quiz rubric UI guarded by prior verified backend, unchanged Focus Quiz semantics.",
+      "preservedBehaviors": [
+        "Automatic Bible quiz rubric and legacy quiz routes retain their boundaries."
+      ],
+      "tests": [
+        "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Retain exact Train A production proof and guard staging-only release order; never promote Season 2 to production before release embargo.",
+      "preservedBehaviors": [
+        "Production Android update and app package remain untouched; only staging may later receive guarded OTA."
+      ],
+      "tests": [
+        "tests/buklod-season2-staging-release-contract-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Use consolidated V2 scope and exact release branch mapping; maintain all preexisting fail-closed protected-feature checks. Strict staging composite recognition is permitted only for one exact head/base/scope tuple; all other branches retain one-scope fail-closed behavior.",
+      "preservedBehaviors": [
+        "All prior protected feature definitions, source gating, and fail-closed checks remain effective."
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Web Connect header badge prop is presentation-only but matches the protected Ad name classifier; preserve existing first-view AdMob rendering and Points/QMP without modifying ad units or economy.",
+      "preservedBehaviors": [
+        "Existing Android first-view AdMob and rewards remain unchanged; no new placements or payout calculations."
+      ],
+      "tests": [
+        "tests/season2-avatar-ads-preservation-20261119.test.mjs"
+      ]
+    }
+  ],
+  "targetEnvironment": "staging-user",
+  "targetPackage": "org.mzbministry.buklod.staging",
+  "targetRuntime": "1.3.2",
+  "productionChange": false,
+  "releaseAuthorized": false,
+  "stagingStatus": "CONSOLIDATED_SOURCE_CANDIDATE_NOT_PUBLISHED",
+  "productionSeason2EmbargoUntilManilaDay": "2026-12-06"
+}

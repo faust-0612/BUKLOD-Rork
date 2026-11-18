@@ -31,6 +31,7 @@ import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodPointsClaimCelebration from '@/components/points/BuklodPointsClaimCelebration';
 import BuklodRedeemCatalogSection from '@/components/points/BuklodRedeemCatalogSection';
 import BuklodPointsR2Guide from '@/components/points/BuklodPointsR2Guide';
+import BuklodSeasonJourneyPreview from '@/components/points/BuklodSeasonJourneyPreview';
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
@@ -1210,6 +1211,9 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
           </Text>
           <MaterialCommunityIcons name="arrow-right" size={17} color={COLORS.green} />
         </Pressable>
+
+        <BuklodSeasonJourneyPreview season={rankDashboard?.season ?? null}
+          verified={rankDashboard !== null}/>
 
         {leaderboardOpen ? (
           <View style={styles.leaderboardCard}>

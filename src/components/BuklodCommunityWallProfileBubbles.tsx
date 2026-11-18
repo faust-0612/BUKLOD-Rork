@@ -492,6 +492,7 @@ function BuklodCommunityConnectRail() {
               userId={selfContact.user_id}
               name={selfContact.full_name}
               uri={selfContact.avatar_url}
+              rankName={selfContact.rank_name}
               size={AVATAR_SIZE}
               onPress={null}
               enableLongPressSheet={false}
@@ -522,6 +523,7 @@ function BuklodCommunityConnectRail() {
                 userId={contact.user_id}
                 name={contact.full_name}
                 uri={contact.avatar_url}
+                rankName={contact.rank_name}
                 size={AVATAR_SIZE}
                 onPress={() => openConversation(contact)}
                 enableLongPressSheet

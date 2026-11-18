@@ -1,0 +1,145 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-post-train-a-staging-20261118.json",
+  "objective": "Reconcile the verified November18 Train A production Android app source with DEV Season2 Rise Together UX and default-off pure policies, Stage Season2 Android preview AFTER exact verified TrainA production OTA, never on production before Dec6. No server game grants, economy changes or notifications.",
+  "baseRef": "404c87e55c62a88c95c7389ac8665f237149702a",
+  "productionBaselineEvidence": "Verified Train A production Git SHA 404c87e55c62a88c95c7389ac8665f237149702a. Official Android EAS production update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, group 5a9265e1-64d1-4a71-905c-cdc60b8191ea, runtime1.3.2, served manifest verified at 2026-11-18T11:45:16.353Z, frozen bundle SHA256 6b51801d634e15e6d56708d6bd103be1e6f9719d32d8aced45e9368177678cfe. Actual Android device verification explicitly waived by owner, NOT passed. Current production contains no Season2 gameplay.",
+  "chosenApproach": "Create independent staging-only branch from latest published production source and reapply exact previously tested 10 Season2/points/reaction/Bible client files from dev/season2-master-candidate-20261118 plus existing tests/docs. Check five previously existing modified client paths were byte-for-byte identical between previous RC base and currently verified main before overlay, preventing TrainA regression. Add immutable audited production release proof and live production manifest source-order gate; source and subsequent workflow publish to EAS staging-user only.",
+  "selectionRationale": "Avoids importing old weak-signal AuthProvider patch or overwriting production Wall/Connect/video/AdMob. Season2 user can inspect actual Android preview safely before Dec6 without minting Momentum, BP/QMP, badges, cash or dispatching notices.",
+  "alternativeApproaches": [
+    "Merge full older RC including auth fix into Season2 staging (rejected user deferred and potentially stale)",
+    "Publish Season2 to production before Dec6 (rejected explicit embargo)",
+    "Treat design-only rewards and missions as unlocked now (rejected fairness/data integrity)",
+    "Start Season2 staging before TrainA was verified live (rejected release sequence)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "classroom-quiz",
+    "ads-monetization",
+    "offline",
+    "finance",
+    "season-expiry",
+    "privacy",
+    "character-progression",
+    "production-release",
+    "release-identity",
+    "staging-runtime"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-post-train-a-staging-20261118.json",
+    ".buklod/releases/train-a-production-verified-20261118.json",
+    "scripts/buklod-season2-staging-release-order.cjs",
+    "tests/buklod-season2-staging-release-contract-20261118.test.mjs",
+    ".github/workflows/buklod-season2-staging-only-ota-20261118.yml",
+    "src/app/admin/bible-v4-events.tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodReactionAction.tsx",
+    "src/components/bible/BuklodBibleQuizV4.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "src/lib/buklodEngagementPolicyR1.ts",
+    "src/lib/buklodSeason2CampaignR1.ts",
+    "src/lib/buklodSeasonJourneyR2.ts",
+    "src/lib/buklodZeroMomentumNoticePolicyR1.ts",
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+    "tests/buklod-engagement-policy-r1-20261118.test.mjs",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    "docs/BUKLOD_PREMIUM_SOCIAL_GAME_ECONOMY_R1_20261118.md",
+    "docs/BUKLOD_SEASON2_RISE_TOGETHER_MASTER_20261118.md",
+    "docs/BUKLOD_SEASON_V2_PREPARATION_EXPERIENCE_20261118.md"
+  ],
+  "preserveBehaviors": [
+    "Entire verified TrainA production source remains baseline, including instant Android dashboard, first-view AdMob, video fair handoff, Connect scroll, weak-network existing auth, existing PTT, Kingdom and Matthew Henry",
+    "No production OTA, no Season2 credits or deductions, no live Season2 notification dispatch, no entitlement claims",
+    "Existing production Season2 embargo and exact EAS production update remains unchanged",
+    "Five existing client paths from previous Stage2 branch verified original base equals current production before selective overlay",
+    "Owner-skipped manual device QA recorded as waiver, not device PASS; production origin verified by served EAS manifest",
+    "No changes to native ABI/runtime, package, plugin, dependencies, backend/RLS, finance or AdMob production units",
+    "Season1 historical active/claims unchanged, official opening remains target unpublished; only read-only UX and local preview options added",
+    "No extra Points RPC; collapsed Season card protects first-view ads; Text-first and weak-network compatibility"
+  ],
+  "acceptanceChecks": [
+    "Run 60+ Season2 policy/story/prologue/quiz/post-detail tests and no live mission/grant assertions",
+    "First-view ad placement, Android dashboard navigation, Wall media and auth/session unchanged from production source",
+    "Staging signed APK build ID bc4be208-bfb0-42f3-95cb-358353d0600f has correct Android staging app package, runtime1.3.2, and distinct update channel",
+    "Exact current production server manifest and release proof match before and after staging publish",
+    "TypeScript/Expo Android export and target EAS preview env valid with no new native dependencies",
+    "Staging OTA update ID/source exact and served staging manifest verified after publishing; production channel unchanged",
+    "Never publish Season2 gameplay or points to production before December 6, and require separate real backend reward authorization then"
+  ],
+  "regressionTests": [
+    "tests/buklod-daily-commitment-policy-r1-20261118.test.mjs",
+    "tests/buklod-engagement-policy-r1-20261118.test.mjs",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "tests/buklod-zero-momentum-notice-policy-r1-20261118.test.mjs",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    "tests/buklod-season2-staging-release-contract-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Port optional local Season2 Journey preview and Main Bible/Post view improvements onto verified production RC, default-off reward authority.",
+      "preservedBehaviors": [
+        "No new Points data fetches, app native or Android tab changes; preserve first-view AdMob and stable signed video source, current auth and user balances."
+      ],
+      "tests": [
+        "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+        "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Port isolated post-detail reaction parity from previously reviewed #933; do not touch actual Wall video/player/feed lifecycle.",
+      "preservedBehaviors": [
+        "Post detail reactions and author menu while preserving scoped media and ads."
+      ],
+      "tests": [
+        "tests/post-detail-reaction-count-20261118.test.mjs",
+        "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "Port Main Bible V4 learner/admin rubric feedback UI on already independently verified live backend migrations; no Focus Quiz or manual review change.",
+      "preservedBehaviors": [
+        "Main Bible automatic rubric feedback, authenticated previous attempts and legacy safe fallback retained."
+      ],
+      "tests": [
+        "tests/buklod-season2-bible-quiz-client-and-rc-contract-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Staging-only release-order script and signed production receipt proof ensure current fixes were verified live first and Season2 never enters production.",
+      "preservedBehaviors": [
+        "No production channel write, original runtime and session/AdMob behavior untouched, first-view ads protected."
+      ],
+      "tests": [
+        "tests/buklod-season2-staging-release-contract-20261118.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "season2-staging-preview-default-off",
+  "sourceSeason2PR": 939,
+  "sourceSeason2Head": "5de540a64759476a24b12c2ca78c096060bb0cb7",
+  "verifiedTrainAProductionSource": "404c87e55c62a88c95c7389ac8665f237149702a",
+  "previewOnly": true,
+  "liveSeason2Rewards": false,
+  "liveSeason2Game": false,
+  "officialOpeningPublished": false,
+  "physicalAndroidQaSkippedByOwner": true,
+  "physicalAdMobDeviceFillMeasured": false,
+  "targetEnvironment": "staging-user",
+  "targetRuntime": "1.3.2",
+  "productionChange": false,
+  "releaseAuthorized": false
+}
