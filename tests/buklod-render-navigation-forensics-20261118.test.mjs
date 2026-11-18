@@ -63,7 +63,7 @@ test('only render errors attach safe cause, frame and exact crash-time OTA to th
 });
 
 test('migration provides owner-bound idempotent forensic RPC with strict RLS and no raw payload',()=>{
-  const sql=readFileSync('supabase/migrations/20261118152000_bsoc_render_forensics_v1.sql','utf8');
+  const sql=readFileSync('supabase/migrations/20261118152620_bsoc_render_forensics_v1_20261118.sql','utf8');
   const testSql=readFileSync('supabase/tests/bsoc_render_forensics_v1.sql','utf8');
   assert.match(sql,/enable row level security/);
   assert.match(sql,/revoke all on table public\.bsoc_render_forensics_v1/);
@@ -95,7 +95,7 @@ test('old health event remains compatible while two bundled OTAs never share a f
 });
 
 test('migration rejects invalid hash and contains exactly one complete function definition',()=>{
-  const sql=readFileSync('supabase/migrations/20261118152000_bsoc_render_forensics_v1.sql','utf8');
+  const sql=readFileSync('supabase/migrations/20261118152620_bsoc_render_forensics_v1_20261118.sql','utf8');
   assert.equal((sql.match(/create or replace function public\.buklod_attach_render_forensics_v1\(/g)||[]).length,1);
   assert.equal((sql.match(/comment on table public\.bsoc_render_forensics_v1/g)||[]).length,1);
   assert.match(sql,/recorded\.error_signature !~ '\^RENDER_\[0-9A-F\]\{1,8\}\$' then/);
