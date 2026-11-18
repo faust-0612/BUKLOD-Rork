@@ -26,6 +26,7 @@ test('all currently approved Nov17/18 source workstreams are present without dup
   '.buklod/scopes/nov18-staging-apk-henry-mlkit.json',
   '.buklod/scopes/scoped-community-sidecar-video-render-20261118.json',
   '.buklod/scopes/video-handoff-connect-stability-20261117.json',
+  '.buklod/scopes/weak-signal-login-profile-recovery-20261118.json',
  ].sort();
  assert.deepEqual([...manifest.componentScopePaths].sort(),expected);
  assert.equal(new Set(manifest.allowedPaths).size,manifest.allowedPaths.length);
@@ -57,7 +58,7 @@ test('current source wires fair video, stable playback, scope video, dashboard t
 });
 
 test('all touched protected areas have changed, declared Node regression proof',()=>{
- const impacted=['app-runtime','wall-media','navigation-auth','connect-ptt-calls','cluster-faith','ads-finance-points','governance-lock'];
+ const impacted=['app-runtime','wall-media','navigation-auth','connect-ptt-calls','cluster-faith','ads-finance-points','governance-lock','backend-security'];
  assert.deepEqual(manifest.lockedFeatureChanges.map(x=>x.id).sort(),impacted.sort());
  assert.ok(manifest.regressionTests.some(p=>p.includes('protected-feature-lock-nov18')));
  for(const x of manifest.lockedFeatureChanges) {
@@ -70,4 +71,23 @@ test('all touched protected areas have changed, declared Node regression proof',
  }
  assert.ok(!manifest.releaseAuthorized);
  assert.equal(manifest.actualDeviceVerificationSkipped,true);
+});
+
+test('consolidated RC includes verified weak-signal login without weakening privacy, roles or AdMob',()=>{
+ assert.ok(manifest.sourcePRs.includes(934));
+ assert.ok(manifest.riskAreas.includes('auth-privacy'));
+ for(const p of ['src/app/(auth)/login.tsx','src/providers/AuthProvider.tsx',
+   'tests/weak-signal-login-profile-recovery-20261118.test.mjs',
+   'tests/weak-signal-auth-security-profile-recovery-20261118.test.mjs']){
+   assert.ok(manifest.allowedPaths.includes(p),p);
+   assert.ok(existsSync(p),p);
+ }
+ const auth=readFileSync('src/providers/AuthProvider.tsx','utf8');
+ const login=readFileSync('src/app/(auth)/login.tsx','utf8');
+ const layout=readFileSync('src/app/(tabs)/_layout.tsx','utf8');
+ assert.match(auth,/profileLoadState: BuklodProfileLoadState/);
+ assert.match(auth,/clearAuthSnapshot\(userId\)/);
+ assert.match(login,/resolveBuklodAccountLifecycleAfterLogin/);
+ assert.match(layout,/BuklodDashboardAdWarmup/);
+ assert.match(layout,/if \(requiresAcceptance\)/);
 });
