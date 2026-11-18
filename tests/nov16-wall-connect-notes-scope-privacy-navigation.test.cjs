@@ -29,7 +29,7 @@ test('Wall post headers expose Connect note text without touching feed or ad lif
   const scoped = read('src/components/BuklodExclusiveScopeCommunity.tsx');
   const detail = read('src/app/post/[id].tsx');
   assert.match(avatar, /export function ProfileAvatarNoteChip/);
-  assert.match(avatar, /quick_note_expires_at/);
+  assert.doesNotMatch(avatar, /quick_note_expires_at/);
   for (const src of [wall, scoped, detail]) assert.match(src, /<ProfileAvatarNoteChip userId=/);
 });
 test('Locked profile retains private content while showing standard authenticated avatar', () => {
