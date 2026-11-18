@@ -968,6 +968,10 @@ const styles =
     },
 
     languageBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      minHeight: 32,
       paddingHorizontal:
         8,
 
@@ -983,7 +987,7 @@ const styles =
 
     languageText: {
       fontSize:
-        7,
+        10,
 
       letterSpacing:
         0.7,
