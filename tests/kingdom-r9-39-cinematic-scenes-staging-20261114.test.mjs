@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { assertApprovedCompactScriptOnly } = require('../scripts/buklod-native-package-script-gate.cjs');
 import { KINGDOM_CHARACTER_MOTION, KINGDOM_CINEMATIC_SCENES, getKingdomCinematicScene }
   from '../src/features/games/kingdom/platform/KingdomCinematicScenes.ts';
 
@@ -110,7 +113,9 @@ test('Game center selects exactly one scene with correct active game and unchang
 
 test('R9 changes stay on isolated staging app source: native ABI, production and schema untouched', () => {
   for (const p of ['package.json','package-lock.json','app.config.js','eas.json']) {
-    assert.equal(read(p),execFileSync('git',['show',base+':'+p],{encoding:'utf8'}),p);
+    const pinned=execFileSync('git',['show',base+':'+p],{encoding:'utf8'});
+    if(p==='package.json') assertApprovedCompactScriptOnly(read(p),pinned);
+    else assert.equal(read(p),pinned,p);
   }
   // The reviewed R9 PR is protected by its scoped Engineering Accountability
   // gate. After merging into ongoing staging, unrelated later feature commits

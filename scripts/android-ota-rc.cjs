@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const {execFileSync} = require('node:child_process');
 const {resolveExpoConfigFromSource, assertNativeRuntimeCompatible} = require('./native-expo-config-compat.cjs');
+const {assertApprovedCompactScriptOnly} = require('./buklod-native-package-script-gate.cjs');
 const pinnedV28 = '2f26645e50e8e079ebf09f3999aacfc506ae7651';
 const project = '23dad7d0-389a-406e-8dec-08965dab85d8';
 const runtime = '1.3.2';
@@ -59,7 +60,15 @@ async function run() {
     // permission. The plugin is compared byte-for-byte against a single removal;
     // every other native/dependency drift remains a hard stop for V28 OTA clients.
     const changedNative = git('diff', '--name-only', pinnedV28, sha, '--', 'package.json', 'package-lock.json', 'android', 'plugins').split(/\r?\n/).filter(Boolean);
-    assert.deepEqual(changedNative, ['plugins/withBuklodPttHardwareFoundation.js'], 'Unexpected native/dependency drift since V28');
+    // Only the known compact source-QA script addition in package.json and
+    // approved connectedDevice manifest-plugin deletion can differ from V28.
+    // Every other package key, lockfile, plugin and native path remains pinned.
+    assert.deepEqual(changedNative, ['package.json','plugins/withBuklodPttHardwareFoundation.js'],
+      'Unapproved native/dependency drift since V28');
+    assertApprovedCompactScriptOnly(
+      fs.readFileSync('package.json','utf8'),
+      git('show',pinnedV28+':package.json')
+    );
     const oldPlugin = git('show', pinnedV28 + ':plugins/withBuklodPttHardwareFoundation.js');
     const currentPlugin = fs.readFileSync('plugins/withBuklodPttHardwareFoundation.js', 'utf8').trimEnd();
     const expectedPlugin = oldPlugin.replace("  ['android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE', null],", "  // No connectedDevice foreground service: PTT uses Stream VoIP transport.").trimEnd();

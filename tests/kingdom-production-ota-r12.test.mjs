@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { canonicalPinnedNativePackageText } = require('../scripts/buklod-native-package-script-gate.cjs');
 const read = p => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const android = read('.github/workflows/production_android_ota.yml');
 const web = read('.github/workflows/production_web_deploy.yml');
@@ -12,8 +15,10 @@ const pinnedLockBlob = '7a5e29f9a87861143422cd227940e53fb4beb46b';
 const blobSha = data => createHash('sha1').update('blob ' + Buffer.byteLength(data) + '\0').update(data).digest('hex');
 
 test('Kingdom R12 native V28 OTA package manifest remains byte-identical', () => {
-  assert.equal(blobSha(read('package.json')), pinnedPackageBlob,
-    'any package.json edit blocks pinned native V28 OTA');
+  // Only the exact already-reviewed compact QA npm script delta is allowed.
+  // Normalize it back and require the original Git blob fingerprint.
+  assert.equal(blobSha(canonicalPinnedNativePackageText(read('package.json'))), pinnedPackageBlob,
+    'package.json native identity must remain pinned except approved compact source scripts');
   assert.equal(blobSha(read('package-lock.json')), pinnedLockBlob,
     'native V28 lockfile identity must also stay unchanged');
   const app = read('app.config.js');
