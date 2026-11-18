@@ -32,7 +32,23 @@ function dateParts(at: Date, timeZone: string) {
 async function fetchJson(url: string, init: RequestInit, timeoutMs: number) {
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   // Never surface OAuth or report response bodies to callers or logs.
-  if (!response.ok) throw new Error(`AdMob API request failed: HTTP ${response.status}`);
+  if (!response.ok) {
+    // Extract only standard non-sensitive OAuth error codes from the token
+    // endpoint. NEVER log or relay descriptions, credentials or raw bodies.
+    let oauthErrorCode: string | null = null;
+    if (url === 'https://oauth2.googleapis.com/token') {
+      const oauthFault = await response.json().catch(() => null);
+      if (['invalid_grant', 'invalid_client', 'invalid_request',
+        'unauthorized_client', 'temporarily_unavailable']
+        .includes(String(oauthFault?.error))) {
+        oauthErrorCode = String(oauthFault.error);
+      }
+    }
+    throw Object.assign(
+      new Error(`AdMob API request failed: HTTP ${response.status}`),
+      { oauthErrorCode },
+    );
+  }
   return response.json();
 }
 
@@ -133,10 +149,15 @@ Deno.serve(async (req: Request) => {
     const statusText = error instanceof Error
       ? error.message.match(/^AdMob API request failed: HTTP ([0-9]{3})$/)?.[1] : null;
     const providerHttpStatus = statusText ? Number(statusText) : null;
+    const maybeOauthCode = (error as { oauthErrorCode?: unknown } | null)?.oauthErrorCode;
+    const safeOauthCode = ['invalid_grant', 'invalid_client', 'invalid_request',
+      'unauthorized_client', 'temporarily_unavailable']
+      .includes(String(maybeOauthCode)) ? maybeOauthCode : null;
     return json({
       error: kind,
       stage: reportStage,
       provider_http_status: providerHttpStatus,
+      oauth_error_code: safeOauthCode,
     }, 503);
   }
 });

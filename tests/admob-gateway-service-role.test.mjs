@@ -59,3 +59,11 @@ test('verified server importer emits bounded internal stage labels and provider 
   assert.match(importer,/provider_http_status: providerHttpStatus/);
   assert.doesNotMatch(importer,/return json\(\{ error: kind, details:/);
 });
+
+test('only allowed OAuth error code categories are reported, never error descriptions or secrets',()=>{
+  const importer=readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/index.ts','utf8');
+  assert.match(importer,/oauthFault\?\.error/);
+  assert.match(importer,/invalid_grant/);
+  assert.match(importer,/oauth_error_code: safeOauthCode/);
+  assert.doesNotMatch(importer,/error_description|console\.log\(oauthFault\)/);
+});

@@ -41,3 +41,10 @@ test('trusted scheduler exposes only safe AdMob failure stage/status and never O
   assert.match(edge,/fault\?\.stage/);
   assert.doesNotMatch(edge,/JSON\.stringify\(fault\)/);
 });
+
+test('only authenticated cron caller receives allowlisted OAuth failure class',()=>{
+  assert.match(edge,/oauth_error_code:/);
+  assert.match(edge,/invalid_grant/);
+  assert.match(edge,/fault\?\.oauth_error_code/);
+  assert.doesNotMatch(edge,/error_description|JSON\.stringify\(fault\)/);
+});

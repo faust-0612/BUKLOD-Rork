@@ -52,6 +52,9 @@ Deno.serve(async (request: Request) => {
           .includes(String(fault?.stage)) ? fault.stage : null,
         source_http_status: [400, 401, 403, 404, 409, 422, 429, 500, 502, 503]
           .includes(Number(fault?.provider_http_status)) ? Number(fault.provider_http_status) : null,
+        oauth_error_code: ['invalid_grant', 'invalid_client', 'invalid_request',
+          'unauthorized_client', 'temporarily_unavailable']
+          .includes(String(fault?.oauth_error_code)) ? fault.oauth_error_code : null,
         provider_status: response.status,
       }, 503);
     }
