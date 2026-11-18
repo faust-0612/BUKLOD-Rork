@@ -26,7 +26,8 @@
     "src/app/(tabs)/buklod.tsx",
     "src/components/connect/ConnectQuickContacts.tsx",
     "src/components/BuklodCommunityWallProfileBubbles.tsx",
-    "src/components/BuklodCommunityConnectHeader.web.tsx"
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs"
   ],
   "productionSeason2Embargo": "2026-12-06",
   "productionChanges": false,
@@ -56,12 +57,14 @@
     "navigation",
     "ads",
     "connect",
-    "navigation-scroll"
+    "navigation-scroll",
+    "ads-monetization"
   ],
   "regressionTests": [
     "tests/season2-avatar-badges-20261119.test.mjs",
     "tests/season2-connect-avatar-badges-20261119.test.mjs",
-    "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -75,7 +78,8 @@
       "tests": [
         "tests/season2-avatar-badges-20261119.test.mjs",
         "tests/season2-connect-avatar-badges-20261119.test.mjs",
-        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+        "tests/season2-avatar-admob-guard-20261119.test.mjs"
       ]
     },
     {
@@ -87,6 +91,26 @@
       ],
       "tests": [
         "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Inject rank artwork only into existing tappable Wall avatar and self/contact bubbles without touching the video/media pipeline, photo render or scroll lifecycle.",
+      "preservedBehaviors": [
+        "Existing Community post media, video playback, comments, author navigation, and ad placements remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The Circle Rank Badge asset component path overlaps the permanent AdMob protected-feature regex, but this update contains no advertising or finance logic changes and must preserve ad rendering.",
+      "preservedBehaviors": [
+        "First-view AdMob placements, ad load and fill behavior, QMP, Points, withdrawals and finance authorization remain untouched."
+      ],
+      "tests": [
+        "tests/season2-avatar-admob-guard-20261119.test.mjs"
       ]
     }
   ],
