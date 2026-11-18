@@ -1,0 +1,79 @@
+{
+  "contractVersion": 2,
+  "objective": "Keep Main BUKLOD login responsive and accurately recover an authenticated profile under weak/intermittent signal without reducing authentication or onboarding security.",
+  "baseRef": "rc/nov18-consolidated-current-fixes-android132",
+  "productionBaselineEvidence": "Source-only: exact frozen cumulative RC head 543c36245717cf77d4c8bc614609fc2fe91b3ef4 and main d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 inspected on 2026-11-18; no live device, Supabase runtime, staged OTA or AdMob fill verified.",
+  "chosenApproach": "Preserve Supabase password grant and server account-status RPC; identify confirmed profile-not-found separately from transient/offline remote lookup, show safe cached same-user profile or an actionable connection state, and show progress while waiting without any new network calls.",
+  "selectionRationale": "Login already has bounded 24-second single-flight password transport, local session restore and lifecycle verification. Removing those checks creates auth risks. Source inspection found profile read errors indistinguishable from first-time onboarding, so repair that behavior with account-scoped state and clear progress.",
+  "alternativeApproaches": [
+    "Skip lifecycle/RLS checks to render dashboard immediately (rejected: security regression and deactivated-account access).",
+    "Repeat password logins in the background under weak signal (rejected: duplicate grants, rate limits and refresh-token races).",
+    "Replace Supabase auth with an unverified cached JWT online (rejected: expired/invalid session reuse)."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Account status RPC, self-deactivation, Supabase auth and mandatory consent gating remain authoritative.",
+    "Offline identity only uses existing restricted policy; never unlock unauthenticated online API access.",
+    "Switching accounts cannot render prior account profile or roles from late network callbacks.",
+    "No changes to ad placements, ad prefetch, dashboard navigation animation, Wall, Connect, points, backend schema, EAS package or native runtime."
+  ],
+  "acceptanceChecks": [
+    "Profile timeout/offline/degraded is distinguishable from confirmed PGRST116 absent profile.",
+    "A true newly registered profile-missing case still opens normal onboarding.",
+    "Cached profile belongs to the current authenticated user; old account network results cannot replace a new account.",
+    "Long network wait shows a progress message; does not duplicate password grants or cancel account-status verification.",
+    "Run TS typecheck, focused Node test, existing auth/consent/navigation/AdMob regression tests and exact-head Engineering Accountability.",
+    "No staging/production OTA without compatibility, artifact, served manifest and mandatory ads/navigation gates."
+  ],
+  "regressionTests": [
+    "tests/weak-signal-login-profile-recovery-20261118.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/providers/AuthProvider.tsx",
+    "src/app/(auth)/login.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "tests/weak-signal-login-profile-recovery-20261118.test.mjs",
+    ".buklod/scopes/weak-signal-login-profile-recovery-20261118.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Targeted React Native login and profile hydration correction on existing runtime only.",
+      "preservedBehaviors": [
+        "No native runtime update, authenticated identity spoofing or unrelated UI changes."
+      ],
+      "tests": [
+        "tests/weak-signal-login-profile-recovery-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Distinguish session profile fetch failure from true first-time onboarding and show login progress.",
+      "preservedBehaviors": [
+        "Existing navigation, mandatory privacy consent and explicit current-user login remain gated."
+      ],
+      "tests": [
+        "tests/weak-signal-login-profile-recovery-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Stop transient Supabase profile lookup errors from being treated as missing rows and isolate cached identity by current user.",
+      "preservedBehaviors": [
+        "RLS, current-user session, lifecycle server verification and fail-closed authentication remain intact."
+      ],
+      "tests": [
+        "tests/weak-signal-login-profile-recovery-20261118.test.mjs"
+      ]
+    }
+  ],
+  "releaseAuthorized": false,
+  "releaseMode": "isolated-dev",
+  "targetPlatform": "android",
+  "runtime": "1.3.2",
+  "channel": "staging-user",
+  "status": "Isolated DEV PR into frozen cumulative RC only; not released."
+}
