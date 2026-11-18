@@ -31,7 +31,50 @@ test('BSOC selects only current case health rows through server RLS and never br
   assert.match(bsoc,/\.limit\(5\)/);
   assert.match(bsoc,/currentCase\.current===caseId/);
   assert.match(bsoc,/setHealthEvidence\(\[\]\)/);
-  assert.match(bsoc,/No.*OTA update ID|does not carry an exact OTA update ID/);
+  assert.match(bsoc,/\.from\('bsoc_render_forensics_v1'\)/);
+  assert.match(bsoc,/\.in\('health_event_id',events\.map\(e=>e\.id\)\)/);
+  assert.match(bsoc,/renderDetails\[h\.id\]\.ota_update_id/);
+  assert.match(bsoc,/Legacy cases may not have crash-time OTA evidence/);
   assert.doesNotMatch(bsoc,/healthEvidence[^;]*supabase\.functions\.invoke/);
   assert.doesNotMatch(bsoc,/\.from\('bsoc_health_events'\)[\s\S]{0,240}\.(?:insert|update|delete)\(/);
+});
+
+
+test('only render errors attach safe cause, frame and exact crash-time OTA to the existing health event receipt',()=>{
+  const health=readFileSync('src/lib/buklodMainHealth.ts','utf8');
+  const native=readFileSync('src/lib/buklodRenderReleaseIdentity.native.ts','utf8');
+  const web=readFileSync('src/lib/buklodRenderReleaseIdentity.web.ts','utf8');
+  assert.match(root,/getBuklodRenderReleaseIdentity\(\)/);
+  assert.match(root,/renderForensics:\s*\{/);
+  assert.match(health,/normalizeRenderForensics\(input\.renderForensics\)/);
+  assert.match(health,/\.rpc\('buklod_attach_render_forensics_v1'/);
+  assert.match(health,/p_health_event_id: receipt\.event_id/);
+  assert.match(health,/if \(attachError\) throw attachError/);
+  assert.match(health,/remaining\.push\(row\)/);
+  assert.match(native,/Updates\.updateId/);
+  assert.match(native,/Updates\.runtimeVersion/);
+  assert.match(native,/Updates\.channel/);
+  assert.doesNotMatch(native,/userId|deviceId|hardwareId|rawStack|errorMessage/);
+  assert.match(web,/otaUpdateId:null/);
+});
+
+test('migration provides owner-bound idempotent forensic RPC with strict RLS and no raw payload',()=>{
+  const sql=readFileSync('supabase/migrations/20261118152000_bsoc_render_forensics_v1.sql','utf8');
+  const testSql=readFileSync('supabase/tests/bsoc_render_forensics_v1.sql','utf8');
+  assert.match(sql,/enable row level security/);
+  assert.match(sql,/revoke all on table public\.bsoc_render_forensics_v1/);
+  assert.match(sql,/revoke all on function public\.buklod_attach_render_forensics_v1/);
+  assert.match(sql,/e\.id=p_health_event_id and e\.user_id=actor/);
+  assert.match(sql,/on conflict\(health_event_id\) do nothing/);
+  assert.match(sql,/recorded\.error_signature !~ '\^RENDER_/);
+  assert.match(testSql,/has_function_privilege\('anon'/);
+  assert.doesNotMatch(sql,/p_raw_stack|p_error_message|service_role/);
+});
+
+test('new diagnostics are additive and preserve release/AdMob/main navigator implementations',()=>{
+  const identity=readFileSync('src/lib/buklodRenderReleaseIdentity.ts','utf8');
+  assert.match(identity,/otaUpdateId: string \| null/);
+  assert.match(root,/import \{ AdsProvider \} from/);
+  assert.match(root,/<BuklodMainHealthAgent \/>/);
+  assert.match(root,/<BuklodMandatoryUpdateBoundary>/);
 });
