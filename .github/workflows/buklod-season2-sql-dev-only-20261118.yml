@@ -1,0 +1,54 @@
+name: Season 2 Isolated SQL Contract - DEV Only
+on:
+  pull_request:
+    paths:
+      - 'docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql'
+      - 'tests/season2-local-postgres-*.sql'
+      - 'tests/buklod-season2-*.test.mjs'
+      - '.github/workflows/buklod-season2-sql-dev-only-20261118.yml'
+permissions:
+  contents: read
+jobs:
+  season2-database-isolation:
+    if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'staging/season2-rise-together-preview-20261118'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure this is never connected to live Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PGHOST" = "127.0.0.1"
+          test "$PGDATABASE" = "postgres"
+          test -z "$(printenv SUPABASE_DB_URL || true)"
+          psql --version
+      - name: Create synthetic local Main source tables and roles
+        run: psql -v ON_ERROR_STOP=1 -f tests/season2-local-postgres-fixture-20261118.sql
+      - name: Compile and transactionally install dormant S2 candidate in disposable Postgres
+        run: psql -v ON_ERROR_STOP=1 -f docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql
+      - name: Verify real SQL behavior without real accounts, services or production
+        run: psql -v ON_ERROR_STOP=1 -f tests/season2-local-postgres-behavior-20261118.sql
+      - name: Final invariant - no public/client grants and no Season1 financial tables
+        run: |
+          psql -v ON_ERROR_STOP=1 -Atc "select case when has_schema_privilege('anon','buklod_s2','USAGE') or has_schema_privilege('authenticated','buklod_s2','USAGE') then 1 else 0 end" | grep -qx 0
+          psql -v ON_ERROR_STOP=1 -Atc "select case when to_regclass('public.buklod_points_ledger') is not null or to_regclass('public.buklod_pf_monthly_points_v3') is not null then 1 else 0 end" | grep -qx 0
