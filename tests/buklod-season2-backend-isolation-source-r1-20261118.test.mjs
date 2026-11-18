@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const sql=readFileSync(new URL('../docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql',import.meta.url),'utf8');
 const policy=readFileSync(new URL('../src/lib/season2/buklodSeason2RewardContractR1.ts',import.meta.url),'utf8');
 test('S2 SQL candidate is inert and NOT a production migration',()=>{
-  assert.match(sql,/NOT AUTO-APPLY/);
+  assert.match(sql,/(?:NEVER|NOT) AUTO-APPLY/);
   assert.match(sql,/DO NOT APPLY TO PRODUCTION/);
   assert.match(sql,/create schema if not exists buklod_s2;/);
   assert.match(sql,/enabled boolean not null default false/);
