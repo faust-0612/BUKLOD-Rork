@@ -1,6 +1,6 @@
 {
   "contractVersion": 2,
-  "objective": "Season2 complete safe source-stage preview: governed rewards-OFF journey, 40 canonical avatar rank badges and LIFE language-sensitive routes. NO production, no active backend rewards, no deferred auth.",
+  "objective": "Season2 safe staging integration: governed rewards-OFF journey, 40 canonical Circle Rank avatar badges, LIFE language-sensitive routes, and version-independent reward evidence replay protection verified in disposable PostgreSQL. No production or live rewards.",
   "baseRef": "a1118ec69079dad757222a23798bde59b6a5b002",
   "branch": "staging/season2-all-updates-20261119",
   "environment": "DEV ONLY",
@@ -47,7 +47,12 @@
     "src/providers/BuklodLifeLanguageProvider.tsx",
     "tests/life-language-auth-navigation-20261119.test.mjs",
     ".buklod/scopes/season2-all-updates-20261119.json",
-    ".github/workflows/buklod-s2-all-updates-qa-20261119.yml"
+    ".github/workflows/buklod-s2-all-updates-qa-20261119.yml",
+    ".github/workflows/buklod-season2-sql-dev-only-20261118.yml",
+    "docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+    "tests/season2-local-postgres-behavior-20261118.sql",
+    "contracts/season2-implementation-ledger.json"
   ],
   "productionSeason2Embargo": "2026-12-06",
   "productionChanges": false,
@@ -61,12 +66,13 @@
     "instant navigation",
     "Android staging runtime",
     "served manifest",
-    "production unchanged"
+    "production unchanged",
+    "Season 2 exact-source local PostgreSQL 17 idempotency, role/RLS, concurrent-claim and version-upgrade tests"
   ],
   "scopeManifestPath": ".buklod/scopes/season2-all-updates-20261119.json",
   "productionBaselineEvidence": "Based on verified staging-only Season2 conso source a1118ec69079dad757222a23798bde59b6a5b002; unchanged Season1 production login/auth and QMP, no database schema migrations or reward activation.",
-  "chosenApproach": "Layer tested read-only avatar artwork and LIFE-only locale hydration onto existing verified Season2 conso stage source. Keep AuthProvider production-equivalent; do not introduce unverified preferred_language SQL into deferred auth path.",
-  "selectionRationale": "Avoid merging independent conflicting staging branches or accidental production/auth changes. Run exact merged source QA in staging-only isolated branch before any publisher.",
+  "chosenApproach": "Layer tested read-only avatar artwork and LIFE-only locale hydration onto existing verified Season2 conso stage source. Keep AuthProvider production-equivalent; do not introduce unverified preferred_language SQL into deferred auth path. Include the separately reviewed #964 inert SQL replay guard and rule-upgrade weekly-proof compatibility, with one cumulative scope manifest; keep private schema disabled and NOT migrated.",
+  "selectionRationale": "Avoid merging independent conflicting staging branches or accidental production/auth changes. Run exact merged source QA in staging-only isolated branch before any publisher. New Season2 reward receipts must remain uniquely bound to their verified Main source even if reward rule_version changes; do not re-pay historical achievements.",
   "riskAreas": [
     "app-runtime",
     "wall-avatar",
@@ -91,7 +97,8 @@
     "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
     "tests/circle-rank-badges-recognition-20261109.test.mjs",
     "tests/circle-rank-progression-20261109.test.mjs",
-    "tests/life-language-auth-navigation-20261119.test.mjs"
+    "tests/life-language-auth-navigation-20261119.test.mjs",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -151,7 +158,8 @@
     "Note chip at upper right, blue presence at bottom, badge upper-left with transparent background.",
     "No production or staging OTA without independent signed Android source/runtime/AdMob/nav verification.",
     "Android compile QA is source-only: no EAS OTA, production deployment, or backend mutations.",
-    "No AuthProvider.tsx change; preferred_language DB selection remains deferred pending isolated auth verification."
+    "No AuthProvider.tsx change; preferred_language DB selection remains deferred pending isolated auth verification.",
+    "Same verified Season2 post/quiz cannot mint again when rule_version changes; historical verified receipt remains valid for weekly foundation, without changing Season1 or real cash."
   ],
   "acceptanceChecks": [
     "40 ranks in 8 families map one-to-one to authoritative public.buklod_rank_levels and asset atlas without missing or duplicate keys.",
@@ -164,7 +172,9 @@
     "The 2026-11-09 regression assertions verify the current persisted per-character level contract and both Circle Rank and Points navigation; never restore level-one switching resets to satisfy stale literals.",
     "New staging-only Android compile/AdMob/instant-navigation/LIFE/badge source gates pass before OTA marker; then physical-device QA and EAS served-manifest receipt. No production changes.",
     "Protected risk IDs remain the existing approved vocabulary; LIFE screen changes are covered by app-runtime/navigation-auth regression tests instead of registering an unknown protected ID.",
-    "The four inherited governance/carryover/AdMob/instant-dashboard tests remain mandatory in the exact-head QA workflow and are not claimed as modified tests; source regressionTests lists only tests changed in this PR."
+    "The four inherited governance/carryover/AdMob/instant-dashboard tests remain mandatory in the exact-head QA workflow and are not claimed as modified tests; source regressionTests lists only tests changed in this PR.",
+    "Inherited #964 Season2 SQL draft and rule upgrade tests passed isolated local PostgreSQL, governance and engineering CI on SHA 09f54fe88fd96ad6b1a583918e52e25482535e7a; exact consolidated PR #963 must rerun all required gates.",
+    "Do NOT deploy the SQL draft to any Supabase project until an independent staging database is verified, schema/RLS checked and release authority is present. Real user credits remain disabled."
   ],
   "alternativeApproaches": [
     "Draw generic shields (rejected: not approved artwork)",
