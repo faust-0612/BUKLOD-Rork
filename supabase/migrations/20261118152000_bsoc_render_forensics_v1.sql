@@ -89,7 +89,65 @@ begin
     for share;
   if not found or recorded.health_category <> 'ROUTE'
      or recorded.safe_error_code <> 'SYS-500'
-     or recorded.error_signature !~ '^RENDER_[0-9A-F]{6,8}$' then
+     or recorded.error_signature !~ '^RENDER_[0-9A-F]{1,8} then
+    raise exception 'Render health event not found or not eligible' using errcode='42501';
+  end if;
+  if recorded.occurred_at < now()-interval '1 hour' then
+    raise exception 'Render evidence upload window expired' using errcode='22023';
+  end if;
+  if p_cause_code not in (
+    'UNKNOWN','HOOK_ORDER','RENDER_LOOP','INVALID_ELEMENT','INVALID_CHILD',
+    'NULLISH_ACCESS','INVALID_CALL','MISSING_PROVIDER','TYPE_ERROR','REFERENCE_ERROR'
+  ) or p_origin_area not in (
+    'UNKNOWN','PROVIDER','SCOPE','CONNECT','CHARACTER','MEDIA','AUTH',
+    'ROUTE','COMPONENT','LIB'
+  ) then
+    raise exception 'Unsupported render classification' using errcode='22023';
+  end if;
+  if normalized_source is not null and (
+    length(normalized_source)>180 or
+    normalized_source !~ '^src/(app|components|providers|lib)/[A-Za-z0-9_/\[\]().-]+\.(tsx?|jsx?)$'
+    or position('..' in normalized_source)>0
+  ) then
+    raise exception 'Unsafe source frame' using errcode='22023';
+  end if;
+  if (p_source_line is not null and (normalized_source is null or p_source_line not between 1 and 100000000))
+     or (p_source_column is not null and (normalized_source is null or p_source_column not between 1 and 100000000))
+     or (p_bundle_line is not null and p_bundle_line not between 1 and 100000000)
+     or (p_bundle_column is not null and p_bundle_column not between 1 and 100000000)
+     or (normalized_runtime is not null and normalized_runtime !~ '^[A-Za-z0-9_.-]{1,60}$')
+     or (normalized_channel is not null and normalized_channel not in
+         ('production','staging','preview','development')) then
+    raise exception 'Unsafe render position or release identity' using errcode='22023';
+  end if;
+
+  -- First write wins. Replays cannot overwrite a previous incident with a
+  -- different OTA identity or claim a different location retroactively.
+  insert into public.bsoc_render_forensics_v1 (
+    health_event_id,user_id,cause_code,origin_area,
+    source_path,source_line,source_column,bundle_line,bundle_column,
+    runtime_version,ota_update_id,update_channel
+  ) values (
+    recorded.id,actor,p_cause_code,p_origin_area,
+    normalized_source,p_source_line,p_source_column,p_bundle_line,p_bundle_column,
+    normalized_runtime,p_ota_update_id,normalized_channel
+  ) on conflict(health_event_id) do nothing;
+  get diagnostics inserted_count = row_count;
+  created := inserted_count > 0;
+  return jsonb_build_object('recorded', true, 'inserted', created,
+                            'event_id', recorded.id);
+end;
+$$;
+revoke all on function public.buklod_attach_render_forensics_v1(
+  uuid,text,text,text,integer,integer,integer,integer,text,uuid,text
+) from public,anon;
+grant execute on function public.buklod_attach_render_forensics_v1(
+  uuid,text,text,text,integer,integer,integer,integer,text,uuid,text
+) to authenticated;
+
+comment on table public.bsoc_render_forensics_v1 is
+ 'RLS-protected allowlisted code/position/OTA evidence only. Never store raw exception messages or stacks.';
+ then
     raise exception 'Render health event not found or not eligible' using errcode='42501';
   end if;
   if recorded.occurred_at < now()-interval '1 hour' then
