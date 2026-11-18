@@ -18,9 +18,9 @@ test('Connect notes use readable sizes and keep every avatar aligned', () => {
   const wall = read('src/components/BuklodCommunityWallProfileBubbles.tsx');
   assert.match(connect, /const NOTE_LINE_HEIGHT = 17/);
   assert.match(connect, /const NOTE_MAX_LINES = 5/);
-  assert.match(connect, /const COLUMN_WIDTH = 116/);
+  assert.match(connect, /const COLUMN_WIDTH = 96/);
   assert.match(wall, /const NOTE_MAX_LINES = 5/);
-  assert.match(wall, /return <View style=\{styles\.noteZone\} \/>;/);
+  assert.match(wall, /return <View style=\{styles\.noteZoneEmpty\} \/>;/);
   assert.match(wall, /textColor="#173626"/);
 });
 test('Wall post headers expose Connect note text without touching feed or ad lifecycle', () => {

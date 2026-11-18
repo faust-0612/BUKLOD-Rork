@@ -12,7 +12,7 @@ test('rank is canonical and missing RPC does not invent Starter V',()=>{
   assert.ok(wall.includes("item.author_rank_name || 'Rank updating'"));
 });
 test('Notes never expire on server or in warm client caches',()=>{
-  const sql=read('supabase/migrations/20261118223000_buklod_rank_sync_permanent_notes_hotfix.sql');
+  const sql=read('supabase/migrations/20261118143054_buklod_rank_sync_permanent_notes_hotfix_20261118.sql');
   assert.ok(sql.includes('create trigger buklod_profile_note_permanent_v1'));
   assert.ok(sql.includes('new.quick_note_expires_at := null'));
   assert.ok(!sql.includes("interval '24 hours'"));
