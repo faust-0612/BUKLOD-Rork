@@ -1,0 +1,92 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/offline-wall-comment-weak-signal-bsoc-20261118.json",
+  "objective": "Implement exactly-once offline-first public Wall comments, account-bound queued sync and quiet network/BSOC diagnosis without masking security incidents or releasing an unverified OTA.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main commit d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 was retrieved before creating this branch. Read-only live Supabase SQL inspection established v4 public comment RPC without a retry key, health closed-loop two-minute escalation rules and existing client queuing support. No live Android artifact, staging RC, production database migration, AdMob fill or runtime version is claimed verified.",
+  "chosenApproach": "Use existing durable account-aware AsyncStorage action queue and coordinator, add separate idempotent backend comment RPC v5, preserve old v4 for old devices, and narrow deferred low-signal BSOC warning escalation. App-side retries use fixed queue IDs.",
+  "selectionRationale": "Network errors must never discard already composed comments; retrying ordinary v4 RPC risks duplicate posts/points after lost acknowledgement. New v5 and per-account queue preserve compatibility while normal service features remain unmodified.",
+  "alternativeApproaches": [
+    "Call v4 whenever phone reconnects without a server idempotency key (rejected: duplicate posts/points on lost acknowledgment).",
+    "Report every unclassified network timeout as backend outage (rejected: BSOC case storm).",
+    "Apply changes to live production now (rejected: RC and security gates not verified)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "backend-security",
+    "network-timeouts",
+    "wall-comments",
+    "sync-and-points",
+    "AdMob-cadence",
+    "BSOC-false-escalation",
+    "offline-privacy"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodMainHealthAgent.tsx",
+    "src/components/BuklodSyncCoordinator.tsx",
+    "src/lib/bsocCaseTriage.ts",
+    "src/lib/buklodAuthResilience.ts",
+    "src/lib/buklodCommunityOfflineComment.ts",
+    "src/lib/offlineSyncQueue.ts",
+    "supabase/migrations/20261118014500_community_wall_comment_idempotency_v5.sql",
+    "supabase/migrations/20261118015500_bsoc_low_signal_escalation_threshold_v1.sql",
+    "tests/offline-wall-comments-bsoc-20261118.test.mjs",
+    "tests/offline-comment-auth-security-20261118.test.mjs",
+    "tests/wall-real-recent-comment-preview-20261116.test.mjs",
+    ".buklod/scopes/offline-wall-comment-weak-signal-bsoc-20261118.json"
+  ],
+  "regressionTests": [
+    "tests/offline-wall-comments-bsoc-20261118.test.mjs",
+    "tests/offline-comment-auth-security-20261118.test.mjs",
+    "tests/wall-real-recent-comment-preview-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add account-scoped Wall comment offline queue and confirmed-only UI/AdMob updates while the app's existing offline and navigation loops stay functioning.",
+      "preservedBehaviors": [
+        "Posts and media paint immediately using existing Wall renderer; offline queued comments do not falsely increase visible server count or award points.",
+        "Other queued actions, prefetch, player lifecycle and AdMob placements remain untouched."
+      ],
+      "tests": [
+        "tests/offline-wall-comments-bsoc-20261118.test.mjs",
+        "tests/wall-real-recent-comment-preview-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Guard active login session, weak-network auth health classification and comment compose navigation so reconnects cannot impersonate another member.",
+      "preservedBehaviors": [
+        "New work remains tied to original auth identity; no automatic sign-out or token deletion from a weak signal and the navigation shell is unchanged."
+      ],
+      "tests": [
+        "tests/offline-comment-auth-security-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add separate authenticated v5 comment RPC with visibility checks and unique request key plus a narrowly gated BSOC health warning rule to avoid false auto cases.",
+      "preservedBehaviors": [
+        "Existing v4 RPC and authorization, privacy protections, anti-farming points and critical security incident reporting are preserved; no live writes from this branch."
+      ],
+      "tests": [
+        "tests/offline-comment-auth-security-20261118.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "BUKLOD AdMob first-view, fill, offscreen lifecycle, tab instant response and old v4 client compatibility remain release blockers.",
+    "No production database or OTA changes occur before fully verified DEV/RC promotion.",
+    "Local photo/GIF files are not falsely accepted as durable offline uploads; media draft remains until network upload."
+  ],
+  "acceptanceChecks": [
+    "Run all 3 changed Node tests and existing 2026-11-16 real comment preview tests in CI.",
+    "Check exactly-once comment+points for lost acknowledgement using isolated staging DB and original auth context; validate SQL migration gates.",
+    "Verify offline Android 2G/3G, app kill+restart, multi-account isolation, queued retry and ad/navigation regressions on supported native runtime.",
+    "Release only from consolidated staging verified RC; preserve production until explicit release gate."
+  ],
+  "releaseMode": "DEV_SOURCE_ONLY_DRAFT_PR_NO_OTA_NO_LIVE_DB",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
