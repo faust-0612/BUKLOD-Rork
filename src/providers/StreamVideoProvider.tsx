@@ -5,7 +5,7 @@ import {
   subscribeBuklodStreamVideoClient,
 } from '@/lib/buklodStreamVideoClient';
 import { installBuklodCallLifecycle } from '@/lib/buklodCallLifecycle';
-import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import { loadBuklodCanonicalDisplayName } from '@/lib/buklodCanonicalName';
 import {
   rememberStreamPushUser,
 } from '@/utils/setPushConfig';
@@ -59,18 +59,8 @@ export function StreamVideoProvider({
         return;
       }
 
-      void rememberStreamPushUser(
-        user.id,
-        resolvePersonDisplayName(
-          {
-            full_name:
-              user.user_metadata?.full_name ??
-              user.user_metadata?.name,
-            username: user.email,
-          },
-          user.id,
-        ),
-      )
+      void loadBuklodCanonicalDisplayName(user.id)
+        .then(name => rememberStreamPushUser(user.id, name))
         .catch(error => {
           console.warn(
             'BUKLOD Stream push identity cache:',
