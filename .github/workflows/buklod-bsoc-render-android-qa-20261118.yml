@@ -9,7 +9,7 @@ on:
       - 'src/lib/buklodRenderReleaseIdentity*.ts'
       - 'src/app/_layout.tsx'
       - 'src/app/admin/bsoc-conversations.tsx'
-      - 'supabase/migrations/20261118152000_bsoc_render_forensics_v1.sql'
+      - 'supabase/migrations/20261118152620_bsoc_render_forensics_v1_20261118.sql'
       - 'supabase/tests/bsoc_render_forensics*.sql'
       - 'tests/buklod-render-navigation-forensics-20261118.test.mjs'
       - 'tests/buklod-route-diagnostics.test.mjs'
@@ -53,7 +53,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           psql -v ON_ERROR_STOP=1 \
             -f supabase/tests/bsoc_render_forensics_fixture_v1.sql \
-            -f supabase/migrations/20261118152000_bsoc_render_forensics_v1.sql \
+            -f supabase/migrations/20261118152620_bsoc_render_forensics_v1_20261118.sql \
             -f supabase/tests/bsoc_render_forensics_v1.sql \
             -f supabase/tests/bsoc_render_forensics_runtime_v1.sql
           echo 'PASS: disposable PostgreSQL 17 RLS/RPC and replay. No live DB changed.' >> "$GITHUB_STEP_SUMMARY"
