@@ -1,0 +1,88 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-isolated-rewards-core-20261118.json",
+  "objective": "Season 2-only implementation foundation: disabled source-owned token and item economy, weekly P0 gates, Manila 7+3 grace, 2x7 Flex, safe Show Faith/nonfaith parity, dormant SQL candidate and regression guards. Preserve all Season1 live production architecture and data. Add pure disabled weak-network pending receipt state machine to prevent false client earned balances and loss after app restart. Add DEV-only persisted outbox wrapper with no app mount or real network traffic.",
+  "baseRef": "af95563fab1d053c82963df65da5f6d55348d811",
+  "productionBaselineEvidence": "Verified Nov 18 Train A production source 404c87e55c62a88c95c7389ac8665f237149702a, EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, Android runtime 1.3.2; Season2 native staging preview af95563fab1d053c82963df65da5f6d55348d811 update 01a1eef0-50d1-7f01-9619-ee774d78b9ac; physical AdMob/nav device checks not claimed. This change is DEV-only, no OTA or DB writes.",
+  "chosenApproach": "Fork exact Season2 visual preview SHA, add new unimported TS R1 candidate, tests, and dormant SQL outside supabase/migrations. New schema buklod_s2 is specified as isolated future backend only; no production rule edits or live grants. Add a PR-only disposable PostgreSQL 16 CI service (localhost, synthetic users, no live connection) to catch SQL errors before any staging database.",
+  "selectionRationale": "Owner expressly prohibits editing live production Season1 rules. Reusing old PR#937 directly would assume speculative faith/nonfaith alternatives are live; this reworks fair shared-source candidate logic, fail-closed and busy-member grace without changing Main runtime.",
+  "alternativeApproaches": [
+    "Modify existing public.buklod_points_ledger and point-rule triggers (REJECTED production season1 mutation)",
+    "Deploy migration to production disabled (REJECTED, user expressly protects prod architecture)",
+    "Directly merge old Season2 master PR #939 (REJECTED, stale mixed base and unrelated changes)",
+    "Isolated staging-preview based DEV source and reviewed dormant SQL (CHOSEN)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "season1-protection",
+    "rewards",
+    "character-inventory",
+    "show-faith-parity",
+    "backend-security",
+    "offline",
+    "finance-and-ads",
+    "production-embargo"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-isolated-rewards-core-20261118.json",
+    "src/lib/season2/buklodSeason2RewardContractR1.ts",
+    "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+    "docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql",
+    "docs/season2/BUKLOD_S2_REWARDS_ISOLATION_ARCHITECTURE_R1_20261118.md",
+    "tests/season2-local-postgres-fixture-20261118.sql",
+    "tests/season2-local-postgres-behavior-20261118.sql",
+    ".github/workflows/buklod-season2-sql-dev-only-20261118.yml",
+    "src/lib/season2/buklodSeason2OfflineOutboxR1.ts",
+    "tests/buklod-season2-offline-outbox-r1-20261118.test.mjs",
+    "src/lib/season2/buklodSeason2DurableOutboxR1.ts",
+    "tests/buklod-season2-durable-outbox-r1-20261118.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "No production Season1 BP, QMP, cash, AdMob, rank, reward triggers, DDL, ledger records or release controls changed",
+    "No migration under supabase/migrations, no live Supabase writes, no release branch or OTA updates",
+    "New TS model is not imported into runtime and all rollout booleans default false",
+    "Previous Season2 visual staging remains unchanged and all Season2 production packages remain embargoed until Dec 6 with fresh owner approval",
+    "Character per-character XP, 1300 existing collectible catalog, ownership and Kingdom Shards remain separate and untouched",
+    "Posting, comments, Connect, prayer, educational core, safety, accessibility, attendance never token gated",
+    "Seasonal Momentum minus, if ever activated, is optional/seasonal only and deferred on offline, outage or unverified evidence"
+  ],
+  "acceptanceChecks": [
+    "Behavioral tests: disabled gate, shared faith/nonfaith parity, duplicate/spam, cap, wallet/character separation, 7+3 and 2x7 flex, offline and optional Momentum-only reductions",
+    "Backend source-only safety guard: new isolated schema, no writes to public/private, deny client grants, unique wallet/receipt/purchase nonce and no public RPC",
+    "No live migration, no production OTA, no claim of staging SQL/Android tests before separately executed",
+    "Before any release, independently run SQL RLS/concurrency tests in staging DB, actual Android and AdMob/nav tests, owner economics and Season1 final reconciliation",
+    "Ephemeral GitHub Actions PostgreSQL 16 fixture compiles candidate DDL and exercises actual wallets, user spoof, duplicate, KL, P0 badge, purchase nonce and RLS, with local-only database host and no production variables.",
+    "Pure offline receipt outbox: stable operation ID, duplicate tap, user isolation, single-flight, queued != earned, unknown network retry, app-kill recovery, bounded attempts, manual reconciliation and compact only after wallet ack.",
+    "Durable per-user injected-storage queue: atomic serial writes on device, failed write no false submission, cold-start recovery with same operation ID, strict account partition, no optimistic credits and server wallet acknowledgement before deleting confirmed queue."
+  ],
+  "regressionTests": [
+    "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+    "tests/buklod-season2-offline-outbox-r1-20261118.test.mjs",
+    "tests/buklod-season2-durable-outbox-r1-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New isolated src/lib/season2 pure unimported reward/priority/flex preview contract with no application call sites or backend mutations.",
+      "preservedBehaviors": [
+        "No changes to loaded points/auth/ads/Wall/Connect/Character, season1 user flows or financial rights",
+        "All new rollout flags OFF; backend draft outside production migration directory"
+      ],
+      "tests": [
+        "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+        "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+        "tests/buklod-season2-offline-outbox-r1-20261118.test.mjs",
+        "tests/buklod-season2-durable-outbox-r1-20261118.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_SOURCE_ONLY",
+  "releaseAuthorized": false,
+  "stagingReleaseAuthorized": false,
+  "productionReleaseAuthorized": false,
+  "noProductionDatabaseChanges": true,
+  "season2ProductionEmbargo": "BEFORE_2026_12_06_AND_THEREAFTER_EXPLICIT_APPROVAL",
+  "sourceShaAtBranchCreation": "af95563fab1d053c82963df65da5f6d55348d811"
+}
