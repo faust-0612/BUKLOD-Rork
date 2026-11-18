@@ -23,7 +23,9 @@ test('active Community video preserves cached first-frame poster until playback 
   const source = read('src/components/CommunityVideo.tsx');
   assert.match(source, /posterSource=\{poster\}/);
   assert.match(source, /posterSource\?: any/);
-  assert.match(source, /\(posterSource \|\| posterUri\) && !hasStartedPlayback/);
+  // Keep the poster until the *actual decoded frame* displays, not merely player time.
+  assert.match(source, /\(posterSource \|\| posterUri\) && !firstFrameRendered/);
+  assert.match(source, /onFirstFrameRender=\{\(\) => \{\s*setFirstFrameRendered\(true\);\s*setHasStartedPlayback\(true\);/);
   assert.match(source, /source=\{posterSource \|\| \{ uri: posterUri! \}\}/);
 });
 
@@ -46,13 +48,15 @@ test('Community Wall video uses Marites-style full-frame contain rendering with 
   assert.match(marites, /contentFit="contain"/);
   assert.match(native, /fitFrame\?: boolean/);
   assert.match(native, /!fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio/);
-  assert.match(native, /contentFit=\{fullscreen \|\| preserveAspectRatio \? 'contain' : 'cover'\}/);
+  // A user's explicit Fill toggle may crop, while default/fullscreen preserve aspect.
+  assert.match(native, /contentFit=\{fullscreen \|\| \(preserveAspectRatio && !fillFrame\) \? 'contain' : 'cover'\}/);
+  assert.match(native, /accessibilityLabel=\{fillFrame \? 'Fit full video inside frame' : 'Fill video frame, cropping edges'\}/);
   assert.match(native, /contentFit=\{preserveAspectRatio \? 'contain' : 'cover'\}/);
   assert.match(web, /fitFrame\?: boolean/);
   assert.match(web, /objectFit: fullscreen \|\| fitFrame \? 'contain' : 'cover'/);
   assert.match(web, /muted: fullscreen \? false : !soundOn/);
   assert.match(web, /Turn sound on/);
-  assert.match(publicWall, /edgeToEdge\s+fitFrame\s+autoPlay/);
+  assert.match(publicWall, /edgeToEdge\s+fitFrame\s+handoffEnabled\s+suspendedForFullscreen=\{Boolean\(videoViewerHandoffPostId\) \|\| videoViewerOpen\}\s+autoPlay/);
   assert.match(scopedWall, /height=\{\s*470\s*\}\s*fitFrame\s*autoPlay/);
   assert.doesNotMatch(marites, /import \{ CommunityVideo, enableCommunityVideoSound \}/);
 });
