@@ -42,10 +42,11 @@
     "tests/buklod-admob-daily-qmp-20261118.test.mjs",
     "tests/community-admob-preview-contract.test.cjs",
     ".github/workflows/r38_economy_pr_qa.yml",
-    "supabase/migrations/20261118094700_buklod_admob_internal_cron_bridge_20261118.sql",
     "supabase/functions/buklod-admob-cron-bridge-v1/index.ts",
     "supabase/tests/buklod_admob_internal_cron_bridge_contract_20261118.sql",
-    "tests/buklod-admob-cron-bridge-20261118.test.mjs"
+    "tests/buklod-admob-cron-bridge-20261118.test.mjs",
+    "supabase/migrations/20261118015337_buklod_admob_internal_cron_bridge_20261118.sql",
+    "supabase/functions/buklod-admob-revenue-preview-sync/gateway-service-role.mjs"
   ],
   "regressionTests": [
     "tests/buklod-admob-daily-qmp-20261118.test.mjs",
@@ -69,7 +70,8 @@
     "GitHub SQL migration filename must equal the exact Supabase production migration-history version 20261117180753; never apply the same DDL twice.",
     "Internal Vault-generated scheduler bearer never leaves trusted DB-to-edge channel, and verifies before service JWT forwarding.",
     "Provider importer remains JWT-gated; the dedicated 256-bit cron bridge has strict auth and cannot settle cash.",
-    "Only the internal Postgres scheduler is automatic; GitHub is manual-only recovery to prevent duplicate provider polling."
+    "Only the internal Postgres scheduler is automatic; GitHub is manual-only recovery to prevent duplicate provider polling.",
+    "Modern sb_secret_ service-role keys must authenticate through gateway verified compatibility, with exact server-held comparison only; legacy JWT checks are preserved."
   ],
   "lockedFeatureChanges": [
     {
@@ -108,7 +110,7 @@
       ]
     }
   ],
-  "publicationStatus": "DEV_BACKEND_SCHEDULER_PROPOSAL_NO_OTA",
+  "publicationStatus": "DEV_WITH_LIVE_CRON_AUTH_BRIDGE_NO_PERIODIC_JOB_OR_OTA",
   "backendDeployment": {
     "project": "yhanxndaqbmuzbdqlblu",
     "migrationVersion": "20261117180753",
@@ -119,6 +121,12 @@
     "verification": "SQL permissions and source parity passed; source-backed noncash member QMP response and rollback checked; actual official provider sync still blocked by scheduler config",
     "cashLedgerRowsAfter": 0,
     "financeControls": "OFF",
-    "androidOta": "NOT_PUBLISHED"
+    "androidOta": "NOT_PUBLISHED",
+    "cronAuthMigrationVersion": "20261118015337",
+    "cronBridgeFunction": "buklod-admob-cron-bridge-v1",
+    "cronBridgeVersion": 1,
+    "cronJobEnabled": false,
+    "cronAuthModel": "Vault random token + service-only hash verifier",
+    "providerAuthFix": "Keep verify_jwt=true; accept exact server-held sb_secret_ compatibility key only after Supabase gateway validation"
   }
 }

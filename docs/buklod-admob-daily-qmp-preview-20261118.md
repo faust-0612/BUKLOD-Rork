@@ -21,3 +21,7 @@ Status: **Supabase noncash backend deployed** (migration `20261117180753`, AdMob
 ## Trusted internal cron replacement (Nov 18)
 
 The dedicated Postgres pg_cron + pg_net sender uses a Vault-generated 256-bit token, checked by a separate limited Edge bridge. It proxies only to the existing JWT-verified official importer. No token is in GitHub or mobile source; no user-finance write, and GitHub manual workflow remains an optional break-glass fallback. Enable the hourly job only after a successful authenticated end-to-end provider API response and verified DB ACLs. A new migration must be applied once and its resulting Supabase history ID reconciled into source filename. No production OTA without Android release gates.
+
+## Nov 18 server-side cron bridge verification
+
+The live migration was applied as Supabase history `20261118015337` and source renamed to that exact version. One encrypted 256-bit Vault credential and private digest are live. Supabase Edge `buklod-admob-cron-bridge-v1` is ACTIVE v1; official AdMob importer's v12 is still gateway-JWT gated. Live test of the bridge (request 26602) authenticated the cron bearer, then found the existing importer rejects a modern `sb_secret_` key with HTTP 401 after gateway minted compatibility. The DEV source now supports the exact server-held modern key while retaining `verify_jwt=true`, JWT role verification and no client access; deploy importer only after focused CI. No cron job is enabled until the official provider path succeeds. Neither cash nor payout flags changed.

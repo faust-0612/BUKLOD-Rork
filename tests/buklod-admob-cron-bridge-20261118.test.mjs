@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(p, 'utf8');
-const db = read('supabase/migrations/20261118094700_buklod_admob_internal_cron_bridge_20261118.sql');
+const db = read('supabase/migrations/20261118015337_buklod_admob_internal_cron_bridge_20261118.sql');
 const edge = read('supabase/functions/buklod-admob-cron-bridge-v1/index.ts');
 const old = read('supabase/functions/buklod-admob-revenue-preview-sync/index.ts');
 const workflow = read('.github/workflows/buklod_admob_provisional_sync.yml');

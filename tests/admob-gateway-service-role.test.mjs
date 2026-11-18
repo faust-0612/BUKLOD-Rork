@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { hasGatewayVerifiedServiceRoleClaims } from '../supabase/functions/buklod-admob-revenue-preview-sync/gateway-service-role.mjs';
+import { hasGatewayVerifiedServiceRoleClaims, hasGatewayVerifiedServiceRoleSecretKey } from '../supabase/functions/buklod-admob-revenue-preview-sync/gateway-service-role.mjs';
 
 const token = (payload, signature = 'signature') => {
   const encoded = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -36,4 +36,18 @@ test('production source depends on enforced Supabase JWT signature validation', 
   assert.doesNotMatch(importer, /token !== serviceRole/);
   assert.match(importer, /buklod_write_admob_daily_preview_v2/);
   assert.doesNotMatch(importer, /payout_processing|credit_wallet|process_withdrawal/i);
+});
+
+test('modern server-only Supabase secret accepted only when exactly gateway-verified and project-local', () => {
+  const key='sb_secret_'+'a'.repeat(44);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey(key,key),true);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey(key.slice(0,-1)+'b',key),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey('sb_publishable_'+'a'.repeat(44),key),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey(key,'sb_publishable_'+'a'.repeat(44)),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey('service_role',key),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey('sb_secret_bad','sb_secret_bad'),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey(null,key),false);
+  const importer = readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/index.ts','utf8');
+  assert.match(importer,/hasGatewayVerifiedServiceRoleSecretKey\(token, serviceRole\)/);
+  assert.match(importer,/verify_jwt=true/);
 });
