@@ -48,6 +48,10 @@ Deno.serve(async (request: Request) => {
       return json({
         error: 'Official AdMob report unavailable',
         source_error: sourceError,
+        source_stage: ['configuration', 'oauth', 'account', 'network-report', 'storage']
+          .includes(String(fault?.stage)) ? fault.stage : null,
+        source_http_status: [400, 401, 403, 404, 409, 422, 429, 500, 502, 503]
+          .includes(Number(fault?.provider_http_status)) ? Number(fault.provider_http_status) : null,
         provider_status: response.status,
       }, 503);
     }

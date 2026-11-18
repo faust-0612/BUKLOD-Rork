@@ -38,6 +38,8 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs: number) {
 
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
+  // Authenticated, sanitized troubleshooting only; never return Google bodies.
+  let reportStage: 'configuration' | 'oauth' | 'account' | 'network-report' | 'storage' = 'configuration';
   try {
     const url = requireEnv('SUPABASE_URL');
     const serviceRole = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -58,6 +60,7 @@ Deno.serve(async (req: Request) => {
     if (!/^pub-\d+$/.test(publisherId) || !/^ca-app-pub-\d+~\d+$/.test(appId))
       return json({ error: 'Invalid AdMob account/app configuration' }, 503);
 
+    reportStage = 'oauth';
     const oauth = await fetchJson('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -68,6 +71,7 @@ Deno.serve(async (req: Request) => {
     }, 12_000);
     if (!oauth?.access_token) throw new Error('AdMob OAuth access token was not returned');
 
+    reportStage = 'account';
     const account = await fetchJson(
       `https://admob.googleapis.com/v1/accounts/${publisherId}`,
       { headers: { Authorization: `Bearer ${oauth.access_token}` } }, 12_000,
@@ -81,6 +85,7 @@ Deno.serve(async (req: Request) => {
     const periodKey = `${date.year}-${String(date.month).padStart(2, '0')}`;
     const reportDate = `${periodKey}-${String(date.day).padStart(2, '0')}`;
     const reportDay = reportDate.replace(/-/g, '');
+    reportStage = 'network-report';
     const report = await fetchJson(
       `https://admob.googleapis.com/v1/accounts/${publisherId}/networkReport:generate`,
       { method: 'POST',
@@ -98,6 +103,7 @@ Deno.serve(async (req: Request) => {
     const amountPhp = Number(totalMicros) / 1_000_000;
     const todayPhp = Number(dayMicros) / 1_000_000;
     // Atomic, service-only write. No cash allocation or payout.
+    reportStage = 'storage';
     const admin = createClient(url, serviceRole, { auth: { persistSession: false } });
     const { data: result, error } = await admin.rpc('buklod_write_admob_daily_preview_v2', {
       p_period_key: periodKey, p_month_php: amountPhp, p_report_date: reportDate,
@@ -123,6 +129,14 @@ Deno.serve(async (req: Request) => {
     const kind = error instanceof Error && error.message.startsWith('Missing server configuration')
       ? 'SOURCE_NOT_CONFIGURED'
       : 'SOURCE_UNAVAILABLE';
-    return json({ error: kind }, 503);
+    // No OAuth response body, API key, publisher ID or refresh token is exposed.
+    const statusText = error instanceof Error
+      ? error.message.match(/^AdMob API request failed: HTTP (\\d{3})$/)?.[1] : null;
+    const providerHttpStatus = statusText ? Number(statusText) : null;
+    return json({
+      error: kind,
+      stage: reportStage,
+      provider_http_status: providerHttpStatus,
+    }, 503);
   }
 });

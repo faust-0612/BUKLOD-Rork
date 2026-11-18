@@ -34,3 +34,10 @@ test('after enabling internal DB cron, GitHub is manual recovery only; no duplic
   assert.match(workflow,/workflow_dispatch:/);
   assert.match(workflow,/BUKLOD_ADMOB_SYNC_ENABLED == 'true'/);
 });
+
+test('trusted scheduler exposes only safe AdMob failure stage/status and never OAuth bodies',()=>{
+  assert.match(edge,/source_stage:/);
+  assert.match(edge,/source_http_status:/);
+  assert.match(edge,/fault\?\.stage/);
+  assert.doesNotMatch(edge,/JSON\.stringify\(fault\)/);
+});

@@ -51,3 +51,11 @@ test('modern server-only Supabase secret accepted only when exactly gateway-veri
   assert.match(importer,/hasGatewayVerifiedServiceRoleSecretKey\(token, serviceRole\)/);
   assert.match(importer,/verify_jwt=true/);
 });
+
+test('verified server importer emits bounded internal stage labels and provider status only',()=>{
+  const importer=readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/index.ts','utf8');
+  for(const stage of ['oauth','account','network-report','storage']) assert.match(importer,new RegExp("reportStage = '"+stage+"'"));
+  assert.match(importer,/source_stage|stage: reportStage/);
+  assert.match(importer,/provider_http_status: providerHttpStatus/);
+  assert.doesNotMatch(importer,/return json\(\{ error: kind, details:/);
+});
