@@ -325,6 +325,8 @@ begin
   then raise exception 'Admin required' using errcode='42501'; end if;
  v_result:=public.admin_get_buklod_pf_withdrawal_payout_details_v2_unverified_legacy(p_withdrawal_id);
  v_uid:=(v_result->>'user_id')::uuid;
+ -- Serializes payout with name-change submission/revocation.
+ perform 1 from public.profiles where id=v_uid for update;
  perform private.buklod_require_legal_identity_for_withdrawal_v1(v_uid);
  select legal_full_name into v_name from private.buklod_legal_identity_v1 where user_id=v_uid;
  -- Check original frozen payout snapshot as well as current verified identity.
@@ -366,6 +368,7 @@ begin
  select user_id,payout_account_name_snapshot into v_uid,v_snapshot
  from private.buklod_r38_referral_withdrawals
  where id=p_withdrawal_id for update;
+ perform 1 from public.profiles where id=v_uid for update;
  perform private.buklod_require_legal_identity_for_withdrawal_v1(v_uid);
  select legal_full_name into v_name from private.buklod_legal_identity_v1 where user_id=v_uid;
  if v_snapshot is null or lower(regexp_replace(btrim(v_snapshot),'[[:space:]]+',' ','g')) <>
