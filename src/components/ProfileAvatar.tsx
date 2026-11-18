@@ -333,20 +333,20 @@ export function ProfileAvatar({
   const { user } = useAuth();
   const viewerId = user?.id ?? '';
   const rankTargetId = userId || viewerId;
-  const [verifiedRankName, setVerifiedRankName] = useState<string | null>(null);
-  const [online, setOnline] = useState(false);
+  const [rankCache, setRankCache] = useState<{ targetId: string; rankName: string | null }>({targetId: '', rankName: null});
+  const [onlineCache, setOnlineCache] = useState<{ targetId: string; online: boolean }>({targetId: '', online: false});
 
   useEffect(() => {
     let active = true;
     if (!viewerId || !rankTargetId) {
-      setVerifiedRankName(null);
+      setRankCache({ targetId: '', rankName: null });
       return () => { active = false; };
     }
     const warm = rankLookup.peek(viewerId, rankTargetId);
-    setVerifiedRankName(warm.found && getBuklodCircleRankArt(warm.value) ? warm.value : null);
+    setRankCache({ targetId: rankTargetId, rankName: warm.found && getBuklodCircleRankArt(warm.value) ? warm.value : null });
     void rankLookup.resolve(viewerId, rankTargetId).then(value => {
       if (active && value !== undefined) {
-        setVerifiedRankName(getBuklodCircleRankArt(value) ? value : null);
+        setRankCache({ targetId: rankTargetId, rankName: getBuklodCircleRankArt(value) ? value : null });
       }
     }).catch(() => undefined);
     return () => { active = false; };
@@ -354,14 +354,18 @@ export function ProfileAvatar({
 
   useEffect(() => {
     if (!viewerId || !rankTargetId) {
-      setOnline(false);
+      setOnlineCache({ targetId: '', online: false });
       return;
     }
     return subscribeBuklodAvatarPresence(viewerId, () => {
-      setOnline(isBuklodAvatarOnline(viewerId, rankTargetId));
+      setOnlineCache({ targetId: rankTargetId, online: isBuklodAvatarOnline(viewerId, rankTargetId) });
     });
   }, [viewerId, rankTargetId]);
 
+  // Stale async status from a recycled Wall/Connect cell must not decorate
+  // another member's avatar even for a single render or an account switch.
+  const verifiedRankName = rankCache.targetId === rankTargetId ? rankCache.rankName : null;
+  const online = onlineCache.targetId === rankTargetId && onlineCache.online;
   const rankArt = getBuklodCircleRankArt(verifiedRankName || rankName);
   const rankBorder = rankArt?.borderColor ?? colors.line;
   const badgeSize = size < 32 ? Math.max(11, Math.round(size * 0.52)) : Math.max(18, Math.round(size * 0.52));
