@@ -10,6 +10,7 @@ import {isValidBdocCaseId} from '@/lib/buklodAdminPriorityPolicy';
 type Case={feedback_id:string;reference:string;title:string;status:string;user_name:string|null;category?:string|null;message?:string|null;route?:string|null;platform?:string|null;app_version?:string|null;created_at?:string|null;updated_at?:string|null;resolution?:string|null};
 type Msg={id:string;body:string;sender_kind:string;sender_id:string;created_at:string};
 type FileRow={id:string;object_path:string;mime_type:string;created_at:string};
+type HealthEvidence={id:string;occurred_at:string;route_module:string|null;safe_error_code:string;error_signature:string;correlation_key:string|null;last_successful_action:string|null;app_version:string|null;platform:string|null;network_state:string|null};
 const BUCKET='bsoc-support-evidence';
 
 export default function BsocInbox(){
@@ -31,6 +32,7 @@ export default function BsocInbox(){
  const [caseId,setCaseId]=useState('');
  const [messages,setMessages]=useState<Msg[]>([]);
  const [files,setFiles]=useState<(FileRow&{url:string|null})[]>([]);
+ const [healthEvidence,setHealthEvidence]=useState<HealthEvidence[]>([]);
  const [draft,setDraft]=useState('');
  const [gptBusy,setGptBusy]=useState(false);
  const [gptAdvice,setGptAdvice]=useState('');
@@ -109,7 +111,7 @@ export default function BsocInbox(){
    currentCase.current=id;
    setLinkedCase(null);
    retryMessage.current=null;
-   setMessages([]);setFiles([]);setDraft('');setError('');
+   setMessages([]);setFiles([]);setHealthEvidence([]);setDraft('');setError('');
    setGptAdvice('');setGptError('');setCaseId(id);
  },[]);
  // Strictly Admin-only direct lookup supports older priority cases not present
@@ -139,6 +141,23 @@ export default function BsocInbox(){
      });
    return ()=>{active=false;};
  },[canRead,cases,openCase,queueLoaded,requestedCaseId,isSystemAdmin,routeCaseId]);
+ // Read only the selected case's privacy-safe health fields. RLS must allow
+ // observability/user360 access; support.read alone does not bypass that gate.
+ // This query is independent of message loading and never blocks a reply.
+ useEffect(()=>{
+   let active=true;
+   setHealthEvidence([]);
+   if(!caseId||!canRead)return;
+   void supabase.from('bsoc_health_events')
+     .select('id,occurred_at,route_module,safe_error_code,error_signature,correlation_key,last_successful_action,app_version,platform,network_state')
+     .eq('support_case_id',caseId)
+     .order('occurred_at',{ascending:false}).limit(5)
+     .then(({data,error})=>{
+       if(active&&currentCase.current===caseId&&!error)
+         setHealthEvidence((data||[]) as HealthEvidence[]);
+     });
+   return ()=>{active=false;};
+ },[caseId,canRead]);
  const previousUserRef=useRef(user?.id);
  useEffect(()=>{
    // Do not clear initial deep link on first mount; only clear on a real
@@ -152,7 +171,7 @@ export default function BsocInbox(){
    setCanRead(null);setCanManage(false);setUid(null);
    setCases([]);setMoreAvailable(false);setQueueLoaded(false);setLoadingOlder(false);
    retryMessage.current=null;
-   setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);setDraft('');
+   setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);setHealthEvidence([]);setDraft('');
  },[user?.id]);
  useEffect(()=>{
    if(!caseId)return;
@@ -230,10 +249,20 @@ export default function BsocInbox(){
      <View style={styles.origin}>
        <Text style={styles.h2}>Original report & origin</Text>
        <Text style={styles.body}>{selected.message||'No original description was returned. Review the support record before diagnosing.'}</Text>
-       <Text style={styles.muted}>Route: {selected.route||'Not captured'} · Platform: {selected.platform||'Unknown'} · App: {selected.app_version||'Unknown'}</Text>
+       <Text style={styles.muted}>Route: {selected.route||healthEvidence[0]?.route_module||'Not captured'} · Platform: {selected.platform||healthEvidence[0]?.platform||'Unknown'} · App: {selected.app_version||healthEvidence[0]?.app_version||'Unknown'}</Text>
        <Text style={styles.muted}>Reported: {selected.created_at?new Date(selected.created_at).toLocaleString():'Unknown'} · Last change: {selected.updated_at?new Date(selected.updated_at).toLocaleString():'Unknown'}</Text>
        {!!selected.resolution&&<Text style={styles.body}>Recorded resolution notes: {selected.resolution}</Text>}
      </View>
+     {!!healthEvidence.length&&<View style={styles.origin}>
+       <Text style={styles.h2}>Recorded client health evidence · NOT a confirmed root cause</Text>
+       {healthEvidence.map(h=><View key={h.id}>
+         <Text style={styles.bold}>{h.safe_error_code} · {h.error_signature}</Text>
+         <Text style={styles.muted}>Occurred: {new Date(h.occurred_at).toLocaleString()} · Route: {h.route_module||'Unknown'} · App: {h.app_version||'Unknown'} · {h.platform||'Unknown'}</Text>
+         <Text style={styles.muted}>Safe cause/source code: {h.correlation_key||'Unavailable'} · Last confirmed action: {h.last_successful_action||'Not captured'}</Text>
+         <Text style={styles.muted}>Network: {h.network_state||'Unknown'}. A cause/source code is a preliminary category, not a stack trace or verified fix.</Text>
+       </View>)}
+       <Text style={styles.muted}>The health event does not carry an exact OTA update ID. Compare authorized client-version records before attributing it to a release.</Text>
+     </View>}
      <View style={styles.origin}>
        <Text style={styles.h2}>Preliminary technical triage · NOT verified</Text>
        <Text style={styles.bold}>Signal: {triage.signal}</Text>
