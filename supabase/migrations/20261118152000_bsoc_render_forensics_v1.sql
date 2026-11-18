@@ -92,7 +92,7 @@ begin
      or recorded.error_signature !~ '^RENDER_[0-9A-F]{1,8}$' then
     raise exception 'Render health event not found or not eligible' using errcode='42501';
   end if;
-  if recorded.occurred_at < now()-interval '1 hour' then
+  if recorded.occurred_at < now()-interval '23 hours' then
     raise exception 'Render evidence upload window expired' using errcode='22023';
   end if;
   if p_cause_code not in (
