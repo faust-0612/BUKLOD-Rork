@@ -16,6 +16,8 @@ test('S2 revokes client DML and privileged function access, and cannot activate 
   assert.match(sql,/revoke all on schema buklod_s2 from public, anon, authenticated/);
   assert.match(sql,/revoke all on all tables in schema buklod_s2 from public,anon,authenticated/);
   assert.match(sql,/revoke update on buklod_s2\.control from service_role/);
+  assert.match(sql,/grant delete on buklod_s2\.equipped_cosmetics to service_role/);
+  assert.doesNotMatch(sql,/grant delete on all tables in schema buklod_s2/i);
   for(const fn of ['verify_main_source','credit_main_source','buy_cosmetic','claim_weekly_foundation','allocate_flex']){
     assert.match(sql,new RegExp('revoke all on function buklod_s2\\.'+fn));
   }

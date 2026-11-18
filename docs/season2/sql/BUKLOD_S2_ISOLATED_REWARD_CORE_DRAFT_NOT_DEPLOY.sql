@@ -189,6 +189,9 @@ alter table buklod_s2.momentum_ledger enable row level security;
 revoke all on all tables in schema buklod_s2 from public,anon,authenticated;
 revoke all on all sequences in schema buklod_s2 from public,anon,authenticated;
 grant select,insert,update on all tables in schema buklod_s2 to service_role;
+-- Only the Character cosmetic loadout can be unequipped (deleted).
+-- No DELETE permission on wallet, source receipts, ledgers or inventory.
+grant delete on buklod_s2.equipped_cosmetics to service_role;
 -- Even internal service credentials must NOT flip the production rollout switch.
 revoke update on buklod_s2.control from service_role;
 grant usage,select on all sequences in schema buklod_s2 to service_role;
