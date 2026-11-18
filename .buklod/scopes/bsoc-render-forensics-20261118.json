@@ -1,0 +1,69 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/bsoc-render-forensics-20261118.json",
+  "objective": "Improve future BUKLOD Main render-error investigations with classified, privacy-safe client cause/origin fingerprints and RLS-authorized per-case BSOC health evidence; no guessing or OTA auto-resolution.",
+  "baseRef": "404c87e55c62a88c95c7389ac8665f237149702a",
+  "productionBaselineEvidence": "Production Android 1.3.6 reported RENDER_3E577D35 on 2026-11-18 at 14:05:34 UTC on route scope. Existing health event retained only hash/route, no exact exception, and linked BSOC case had no verified release association. Main source 404c87e55c62a88c95c7389ac8665f237149702a read first. Exact EAS served OTA and user-specific running update remain unverified; no production write authorized.",
+  "chosenApproach": "Preserve the legacy RENDER error signature and health RPC schema while adding fixed-code on-device error pattern classification and source-area hints only when an original source frame is present. Attach codes through existing correlation_key. Display per-case health rows solely through existing RLS-protected bsoc_health_events SELECT with case ID, bound 5 rows and cancellation on switching case/account. Never include raw exception messages, stack traces or personal identifiers. Only DEV draft; no OTA.",
+  "selectionRationale": "Zero backend schema/auth changes and no native dependencies. Cannot safely infer exact source from a hashed signature or minified Hermes stack. RLS controls observational access; original error code remains comparable across releases.",
+  "alternativeApproaches": [
+    "Transmit raw JavaScript error stacks to BSOC: rejected due to privacy and secrets risk.",
+    "Decode old error hashes as root cause: impossible without original exception payload.",
+    "Add new native crash SDK or modify BSOC RLS: rejected as unnecessary release/security expansion for initial fix."
+  ],
+  "riskAreas": [
+    "navigation-auth",
+    "bsoc",
+    "app-runtime",
+    "privacy"
+  ],
+  "preserveBehaviors": [
+    "Authenticated health-event RPC signature, idempotent reporting and dedupe remain unchanged.",
+    "BSOC cases, replies, notifications, attachments and staff permission gates unchanged.",
+    "No raw exception text/stack/path/PII in telemetry; only fixed small code categories.",
+    "Wall, Connect, navigation performance, first-view AdMob, media and other production features untouched.",
+    "Season 2 December 6 production embargo, release gates, backend and native runtime remain unchanged."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/bsoc-render-forensics-20261118.json",
+    "src/lib/buklodRouteDiagnostics.ts",
+    "src/app/_layout.tsx",
+    "src/app/admin/bsoc-conversations.tsx",
+    "tests/buklod-route-diagnostics.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-route-diagnostics.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Prove fixed taxonomy for missing data, type error, React hook/render loops and unknown cause without copying raw messages or stacks.",
+    "Confirm same legacy hashed error signature, RLS-only query for selected case, bounded read, and reset on case/account switch.",
+    "Source TypeScript and relevant BUKLOD BSOC, navigation, protected-feature and AdMob smoke gates pass before staging promotion.",
+    "No claim of root cause or OTA resolution until runtime stack/source mapping and exact served bundle/device evidence are available."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Classify on-device render failures in operational event metadata without raw stack collection.",
+      "preservedBehaviors": [
+        "Legacy hashed signature and health RPC inputs remain compatible; no extra network calls in render path."
+      ],
+      "tests": [
+        "tests/buklod-route-diagnostics.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Improve only the existing root render-error boundary to record safe classified metadata.",
+      "preservedBehaviors": [
+        "Existing navigation, login/auth, fallbacks, ads and profile routing remain unchanged."
+      ],
+      "tests": [
+        "tests/buklod-route-diagnostics.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_DRAFT_NO_PUBLISH",
+  "productionStatus": "NOT_DEPLOYED",
+  "releaseAuthorized": false,
+  "season2Included": false
+}
