@@ -26,6 +26,8 @@ jobs:
       EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # V28 native-compat regression reads historical pinned source
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
