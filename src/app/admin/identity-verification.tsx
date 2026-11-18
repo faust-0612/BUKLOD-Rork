@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useState} from 'react';
-import {ActivityIndicator,Alert,Linking,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
+import {ActivityIndicator,Alert,Image,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {router} from 'expo-router';
 import {useAuth} from '@/providers/AuthProvider';
 import {listBuklodIdentityPending,openBuklodPrivateId,reviewBuklodLegalIdentity,
@@ -12,15 +12,20 @@ export default function BuklodAdminIdentityReview(){
  const [reasons,setReasons]=useState<Record<string,string>>({});
  const [busy,setBusy]=useState<string|null>(null);
  const [error,setError]=useState('');
+ const [preview,setPreview]=useState<{key:string;url:string;loaded:boolean}|null>(null);
  const refresh=useCallback(async()=>{try{
   setRows(await listBuklodIdentityPending());setError('');
  }catch(e){setError(e instanceof Error?e.message:'Could not load ID review queue.');}},[]);
  useEffect(()=>{if(hasRole('system_admin'))void refresh();},[hasRole,refresh]);
- const view=async(path:string)=>{try{
-  const url=await openBuklodPrivateId(path);await Linking.openURL(url);
+ const view=async(key:string,path:string)=>{try{
+  const url=await openBuklodPrivateId(path);
+  setPreview({key,url,loaded:false});
  }catch(e){Alert.alert('Private ID',e instanceof Error?e.message:'ID unavailable.');}};
  const save=async(row:BuklodIdentityReview,approve:boolean)=>{
   const key=`${row.user_id}:${row.revision}`;
+  if(approve&&!(preview?.key===key&&preview.loaded)){
+   Alert.alert('Review the actual ID','Open the private government ID and confirm the image loads before approval.');return;
+  }
   if(approve&&!observed[key]?.trim()){
    Alert.alert('Inspect the ID','Type the exact name you read on the ID before approval.');return;
   }
@@ -31,7 +36,7 @@ export default function BuklodAdminIdentityReview(){
   try{
    await reviewBuklodLegalIdentity({userId:row.user_id,revision:row.revision,
     approve,observedName:observed[key]||'',reason:reasons[key]||''});
-   await refresh();
+   setPreview(null);await refresh();
    Alert.alert('ID review',approve?'Legal name verified.':'ID rejected; member can resubmit.');
   }catch(e){Alert.alert('Review failed',e instanceof Error?e.message:'Review unavailable.');}
   finally{setBusy(null);}
@@ -49,9 +54,16 @@ export default function BuklodAdminIdentityReview(){
    return <View key={key} style={styles.card}>
     <Text style={styles.name}>{row.legal_full_name}</Text>
     <Text style={styles.note}>{row.id_type} · {new Date(row.submitted_at).toLocaleDateString('en-PH')}</Text>
-    <Pressable style={styles.outline} onPress={()=>void view(row.document_path)}>
+    <Pressable style={styles.outline} onPress={()=>void view(key,row.document_path)}>
      <Text style={styles.link}>VIEW PRIVATE ID (60-SECOND LINK)</Text>
     </Pressable>
+    {preview?.key===key&&<View style={{gap:6}}>
+     <Image source={{uri:preview.url}} resizeMode="contain"
+      style={{height:260,width:'100%',backgroundColor:'#F5F8F6'}}
+      onLoad={()=>setPreview(value=>value?.key===key?{...value,loaded:true}:value)}
+      onError={()=>setPreview(null)}/>
+     <Text style={styles.note}>Private preview. {preview.loaded?'ID image loaded.':'Loading ID image…'}</Text>
+    </View>}
     <TextInput style={styles.input} placeholder="Exact name printed on ID" placeholderTextColor="#8C9D93"
      value={observed[key]||''} onChangeText={value=>setObserved(prev=>({...prev,[key]:value}))}/>
     <TextInput style={styles.input} placeholder="Rejection reason" placeholderTextColor="#8C9D93"
