@@ -399,6 +399,12 @@ export default function AdminDashboard() {
                 path="/admin/security-operations"
               />
               <AdminRow
+                icon="calendar-star"
+                title="Season 2 Readiness"
+                subtitle="Protected carryover rules, open blockers and release warnings"
+                path="/admin/season2-readiness"
+              />
+              <AdminRow
                 icon="server-network"
                 title="Backend Health & Capacity"
                 subtitle="Actual connection bars, hourly trends, upgrade warnings and provider telemetry"

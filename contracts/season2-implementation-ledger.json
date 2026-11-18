@@ -26,6 +26,29 @@
       ]
     },
     {
+      "id": "season_carryover_pure_contract",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": true,
+      "evidence": [
+        "src/lib/season2/buklodSeason2CarryoverContractR1.ts",
+        "tests/buklod-season2-carryover-contract-20261119.test.mjs"
+      ],
+      "limitations": [
+        "Source-only: atomic server rollover, signed results, inventory reconciliation and recovery not yet deployed"
+      ]
+    },
+    {
+      "id": "season2_admin_readiness_preview",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "src/app/admin/season2-readiness.tsx"
+      ],
+      "limitations": [
+        "Read-only source snapshot, not real-time telemetry"
+      ]
+    },
+    {
       "id": "server_rules_rls",
       "status": "PLANNED",
       "requiredForLaunch": true,

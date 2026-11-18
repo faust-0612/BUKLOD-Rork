@@ -15,6 +15,8 @@ const FORBIDDEN_PATHS=Object.freeze([
   'src/lib/buklodSeason2CampaignR1.ts',
   'src/lib/buklodSeasonJourneyR2.ts',
   'src/components/points/BuklodSeasonJourneyPreview.tsx',
+  'src/lib/season2',
+  'src/app/admin/season2-readiness.tsx',
   'src/lib/buklodEngagementPolicyR1.ts',
   'src/lib/buklodZeroMomentumNoticePolicyR1.ts',
   'src/lib/buklodDailyCommitmentPolicyR1.ts',

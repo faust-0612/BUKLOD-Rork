@@ -65,6 +65,9 @@ export default function BuklodSeasonJourneyPreview({
       {open?(
         <View style={s.content}>
           <Text style={s.description}>{subtitle}</Text>
+          <Text style={s.description}>
+            SEASON CARRYOVER: Only seasonal competition and mission progress reset. Lifetime Circle Rank, each Character level, earned items and badges, QMP and withdrawals remain protected. Preview only; no reset is scheduled here.
+          </Text>
           <View style={s.planBox}>
             <Text style={s.planTitle}>SEASON 2 PREPARATION · DECEMBER 6, 2026</Text>
             <Text style={s.planDesc}>Target opening only. Season 1 results and official publication must be verified before these become real announcements.</Text>
