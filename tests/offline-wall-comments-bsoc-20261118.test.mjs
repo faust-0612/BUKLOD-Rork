@@ -62,6 +62,17 @@ test('offline queue actually persists, isolates accounts and reuses the SAME key
   assert.equal(attempts, 2);
   assert.equal(confirmedOnServer.size, 1);
   assert.equal((await queue.getOfflineQueueSnapshot()).pendingCount, 0);
+
+  // Corrupt storage must NEVER be treated as an empty queue and overwritten.
+  store.set('@buklod/offline-sync/v1', '{corrupt JSON');
+  await assert.rejects(
+    () => queue.enqueueOfflineAction({
+      kind: 'community_wall_comment_v1', userId: UUID_A,
+      payload: { postId: UUID_B, body: 'should be retained', parentId: null, mentionIds: [] },
+    }),
+    /Pending offline work could not be read/,
+  );
+  assert.equal(store.get('@buklod/offline-sync/v1'), '{corrupt JSON');
 });
 
 test('offline Wall comment input is strictly validated; phone-temporary files are not falsely promised offline', async () => {
