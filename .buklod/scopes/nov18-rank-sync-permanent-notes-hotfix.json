@@ -25,6 +25,7 @@
     "src/lib/buklodMessagesStatusNote.ts",
     "src/lib/buklodNotificationPost.ts",
     "supabase/migrations/20261118143054_buklod_rank_sync_permanent_notes_hotfix_20261118.sql",
+    "supabase/tests/buklod_rank_notes_permanence_security_20261118.sql",
     "tests/nov16-recent-completeness-staging132-r2.test.cjs",
     "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
     "tests/nov18-rank-notes-admob-preservation.test.mjs",
@@ -36,7 +37,8 @@
     "tests/nov18-rank-notes-database-security.test.mjs",
     "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
     "tests/nov16-recent-completeness-staging132-r2.test.cjs",
-    "tests/nov18-rank-notes-admob-preservation.test.mjs"
+    "tests/nov18-rank-notes-admob-preservation.test.mjs",
+    "supabase/tests/buklod_rank_notes_permanence_security_20261118.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -87,7 +89,8 @@
         "Only authorized owners can write Notes, platform-official rank exclusion remains, and no points, payouts or referral grants are modified"
       ],
       "tests": [
-        "tests/nov18-rank-notes-database-security.test.mjs"
+        "tests/nov18-rank-notes-database-security.test.mjs",
+        "supabase/tests/buklod_rank_notes_permanence_security_20261118.sql"
       ]
     },
     {
@@ -110,6 +113,22 @@
     "Native/web Wall and Connect must never hide Notes due to expiry; note display rehydrates after a transient network failure.",
     "Wall, post detail and notification deep link show canonical ranks or pending status; never invented Circle Starter V.",
     "Execute focused rank/notes regression tests, TypeScript noEmit, AdMob, performance, media and navigation CI gates.",
-    "Maintain DEV only; no staging OTA before verified RC and no production OTA before separate release gate. Season2 embargo remains intact."
+    "Maintain DEV only; no staging OTA before verified RC and no production OTA before separate release gate. Season2 embargo remains intact.",
+    "Database SQL contract passes read-only SQL regression in supabase/tests, preserving existing RLS and verified-user reward eligibility."
+  ],
+  "selectionRationale": "Confirmed Markley's 2100-point rank and 579 unverified active profiles, plus 23 expiry-filtered Notes out of 26. The existing display RPC gated verified users, while frontend substituted Starter V. A server guard plus small Notes/Rank client corrections is safer than changing earnings, account verification, AdMob or release flows.",
+  "alternativeApproaches": [
+    "Alter verified flags for affected members - rejected because verification belongs to separate identity and rewards workflows.",
+    "Suppress false Starter rank only on the client - rejected as it leaves the SQL RPC incorrectly filtering 579 active users and Notes still expiring.",
+    "Publish an unverified production OTA immediately - rejected by mandatory staged RC and AdMob/navigation gates."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "connect",
+    "wall-media",
+    "app-runtime",
+    "backend-security",
+    "ads-monetization",
+    "profile-data"
   ]
 }
