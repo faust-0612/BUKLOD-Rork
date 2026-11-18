@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov18-rank-sync-permanent-notes-hotfix.json",
+  "objective": "Fix canonical Circle Rank synchronization and permanent Profile/Connect Notes without introducing any Season 2 behavior or production OTA.",
+  "baseRef": "main",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "productionBaselineEvidence": "Verified main HEAD 404c87e55c62a88c95c7389ac8665f237149702a. PROD Supabase migration 20261118143054 was applied and database-verified separately; no Expo OTA publishing.",
+  "chosenApproach": "Isolated hotfix based directly on main; preserve the applied SQL in an exact-version migration file, update only the affected Wall/Connect/Profile read/write paths and targeted tests.",
+  "preserveBehaviors": [
+    "Current AdMob fill/load/render, first-view ad gate, and dashboard navigation must not regress.",
+    "No Season 2 source, payout/ledger rules, referral qualification, scoring, Character or Kingdom authority change.",
+    "Native app runtime, Android build/OTA identity and production release channel unchanged.",
+    "Keep private account-scoped Notes cache and only owners' write rights; Connect messaging and calls unchanged.",
+    "No active app OTA before independent Android compile, automated regression and staged release gates."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov18-rank-sync-permanent-notes-hotfix.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/post/[id].tsx",
+    "src/app/profile/status.tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/lib/buklodConnectSuggestedContacts.ts",
+    "src/lib/buklodMessagesStatusNote.ts",
+    "src/lib/buklodNotificationPost.ts",
+    "supabase/migrations/20261118143054_buklod_rank_sync_permanent_notes_hotfix_20261118.sql",
+    "tests/nov16-recent-completeness-staging132-r2.test.cjs",
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    "tests/nov18-rank-notes-database-security.test.mjs",
+    "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs",
+    "tests/nov18-rank-notes-database-security.test.mjs",
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    "tests/nov16-recent-completeness-staging132-r2.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Persist Profile and Connect status Notes indefinitely and remove fabricated Wall rank fallback while leaving app bootstrap and media unaffected",
+      "preservedBehaviors": [
+        "Keep current Android runtime, session isolation, offline warm caches, and first-paint behavior unchanged"
+      ],
+      "tests": [
+        "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs",
+        "tests/nov18-rank-notes-database-security.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Remove old Wall note expiration pruning, preserving media hydration, video playback and existing ad placement",
+      "preservedBehaviors": [
+        "Community Wall photos, videos, reaction previews, loading order and AdMob visibility are unchanged"
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Rank metadata changes for Wall tab without changing navigation or the authenticated session; Notes no longer expire",
+      "preservedBehaviors": [
+        "Profile and Wall route behavior, private account isolation and the bottom dashboard navigation remain intact"
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Make Connect note presentation persistent without changing Connect messaging, inbox or peer privacy rules",
+      "preservedBehaviors": [
+        "Connect realtime messages, active calls, PTT, contact navigation and unread counts remain unchanged"
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Keep active member rank visibility independent from verification while preserving RLS, official exclusions and monetary reward protections",
+      "preservedBehaviors": [
+        "Only authorized owners can write Notes, platform-official rank exclusion remains, and no points, payouts or referral grants are modified"
+      ],
+      "tests": [
+        "tests/nov18-rank-notes-database-security.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV source PR only; later staging Android RC and separately gated Production OTA",
+  "runtimeVersion": "1.3.2"
+}
