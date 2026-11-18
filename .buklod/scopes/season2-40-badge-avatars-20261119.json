@@ -1,0 +1,148 @@
+{
+  "contractVersion": 2,
+  "objective": "Season 2 rank-specific 40 art badges, 10-o'clock avatar placement, colored borders, blue verified online presence across shared Wall/Connect/Profile avatar views.",
+  "baseRef": "af95563fab1d053c82963df65da5f6d55348d811",
+  "branch": "dev/season2-40-rank-avatar-badges-20261119",
+  "environment": "DEV ONLY",
+  "sourceAssets": "User Library /Buklod rank badges",
+  "assetAtlasSha256": "db2a7604e5657263336c8a358e0ef2d800cc6b6a3a7fc6b9c5a5a19174373887",
+  "rankFamilies": 8,
+  "rankLevels": 5,
+  "badges": 40,
+  "allowedPaths": [
+    "src/components/ProfileAvatar.tsx",
+    "src/components/BuklodTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
+    "src/lib/buklodCircleRankArt.ts",
+    "src/lib/buklodAvatarPresence.ts",
+    "src/components/points/BuklodCircleRankBadge.tsx",
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "docs/BUKLOD_SEASON2_40_AVATAR_BADGES_20261119.md",
+    "assets/season2/rank-badges/buklod-circle-ranks-atlas.webp",
+    ".buklod/scopes/season2-40-badge-avatars-20261119.json",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs",
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs",
+    ".github/workflows/buklod-s2-avatar-android-compile-qa-20261119.yml",
+    "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/circle-rank-progression-20261109.test.mjs"
+  ],
+  "productionSeason2Embargo": "2026-12-06",
+  "productionChanges": false,
+  "realAwardChanges": false,
+  "safeReleaseGates": [
+    "TypeScript",
+    "42 rank art mappings",
+    "Wall and Connect badge placement",
+    "offline absence of false online",
+    "AdMob first-view",
+    "instant navigation",
+    "Android staging runtime",
+    "served manifest",
+    "production unchanged"
+  ],
+  "scopeManifestPath": ".buklod/scopes/season2-40-badge-avatars-20261119.json",
+  "productionBaselineEvidence": "verified: production Train A source 404c87e55c62a88c95c7389ac8665f237149702a and EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a verified by official release record; parent Season2 staging source af95563fab1d053c82963df65da5f6d55348d811. No production source or server writes in this PR.",
+  "chosenApproach": "Extract strictly one source cell per rank from owner-approved sheets, alpha-isolate 40 silhouettes, pack a local static WebP atlas, use the existing shared ProfileAvatar with batched server rank lookup and a single foreground-aware presence channel.",
+  "selectionRationale": "Original approved emblems preserve individual silhouettes; a static atlas avoids 40 separate network fetches and bounded rank batching avoids per-avatar server RPCs.",
+  "riskAreas": [
+    "app-runtime",
+    "wall-avatar",
+    "connect-avatar",
+    "rank-visual",
+    "weak-network",
+    "supabase-presence",
+    "navigation",
+    "ads",
+    "connect",
+    "navigation-scroll",
+    "ads-monetization"
+  ],
+  "regressionTests": [
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs",
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs",
+    "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/circle-rank-progression-20261109.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Integrate 40 verified rank visuals into the shared avatar on existing Wall/Connect/profile screens without altering rank calculations, AdMob, auth, or navigation.",
+      "preservedBehaviors": [
+        "Existing Wall and Connect clickable avatar navigation, Notes, reaction and unread indicators remain functional.",
+        "Weak-signal rendering and first-view AdMob do not wait for rank or online state.",
+        "Existing Circle Rank server authority, account isolation, and all Season 1 production behavior remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-avatar-badges-20261119.test.mjs",
+        "tests/season2-connect-avatar-badges-20261119.test.mjs",
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+        "tests/season2-avatar-admob-guard-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Show server-confirmed rank art instantly in the existing Wall author avatar without adding navigation controls or changing auth and route permissions.",
+      "preservedBehaviors": [
+        "Avatar tap continues to enter author profile, long-press actions and Community feed navigation are unchanged.",
+        "Community Wall first-view ads, comment rendering and feed race protection remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Inject rank artwork only into existing tappable Wall avatar and self/contact bubbles without touching the video/media pipeline, photo render or scroll lifecycle.",
+      "preservedBehaviors": [
+        "Existing Community post media, video playback, comments, author navigation, and ad placements remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The Circle Rank Badge asset component path overlaps the permanent AdMob protected-feature regex, but this update contains no advertising or finance logic changes and must preserve ad rendering.",
+      "preservedBehaviors": [
+        "First-view AdMob placements, ad load and fill behavior, QMP, Points, withdrawals and finance authorization remain untouched."
+      ],
+      "tests": [
+        "tests/season2-avatar-admob-guard-20261119.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No unverified user receives a fabricated rank or blue online indicator.",
+    "No per-avatar realtime channel or user-rank network fan-out; same cached atlas reused.",
+    "Note chip at upper right, blue presence at bottom, badge upper-left with transparent background.",
+    "No production or staging OTA without independent signed Android source/runtime/AdMob/nav verification.",
+    "Android compile QA is source-only: no EAS OTA, production deployment, or backend mutations."
+  ],
+  "acceptanceChecks": [
+    "40 ranks in 8 families map one-to-one to authoritative public.buklod_rank_levels and asset atlas without missing or duplicate keys.",
+    "QA contact sheet confirms transparent badge silhouettes and absence of neighboring cells.",
+    "Run tests/season2-avatar-badges-20261119.test.mjs plus old rank/profile/Wall/Connect/AdMob/nav regressions.",
+    "TypeScript, Expo staging Android export and real device Wall/Connect hitboxes, Note overlay, blue online/offline transitions must pass.",
+    "Release only on staging-user runtime 1.3.2 and read back exact served artifact; confirm production stays unchanged.",
+    "Wall and Connect author/contact rank props render instantly using existing verified feed data; background rank refresh preserves server authority.",
+    "Android staging-only export job validates runtime package, asset checksum, TypeScript, focused avatar/rank/Ads regression tests, and never publishes OTA or production.",
+    "The 2026-11-09 regression assertions verify the current persisted per-character level contract and both Circle Rank and Points navigation; never restore level-one switching resets to satisfy stale literals."
+  ],
+  "alternativeApproaches": [
+    "Draw generic shields (rejected: not approved artwork)",
+    "Download each badge per avatar (rejected: network and memory overhead)",
+    "Add private per-avatar Realtime channels (rejected: excessive subscriptions)"
+  ],
+  "releaseMode": "DEV_PR_STAGING_TARGET_NO_OTA",
+  "publicationStatus": "DEV_ONLY_NO_OTA"
+}

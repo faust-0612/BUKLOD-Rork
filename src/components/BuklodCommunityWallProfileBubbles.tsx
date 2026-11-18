@@ -521,6 +521,7 @@ function BuklodCommunityConnectRail() {
               <ConnectTappableAvatar
                 userId={contact.user_id}
                 name={contact.full_name}
+                rankName={contact.rank_name}
                 uri={contact.avatar_url}
                 size={AVATAR_SIZE}
                 onPress={() => openConversation(contact)}
