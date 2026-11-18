@@ -5,7 +5,7 @@ import {
 
 import { supabase } from '@/lib/supabase';
 import { loadBuklodCanonicalDisplayName } from '@/lib/buklodCanonicalName';
-import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+
 
 /* BUKLOD_WEB_CALLING_R1
  * Browser calls use Stream's official low-level browser client. The native
