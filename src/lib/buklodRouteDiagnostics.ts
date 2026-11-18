@@ -155,3 +155,28 @@ export function diagnoseBuklodRenderError(
     bundleColumn: safeFrameNumber(bundleFrame?.[2]),
   };
 }
+
+
+/**
+ * Server deduplicates health rows using signature + correlation_key. Include
+ * the exact crash-time OTA and a nonreversible safe-route fingerprint so a
+ * new bundle/screen cannot inherit another bundle's first-write-wins evidence.
+ * The historical RENDER_* support signature itself is preserved.
+ */
+export function buildBuklodRenderCorrelationKey(
+  evidence: Pick<BuklodRenderEvidence, 'correlationKey'>,
+  otaUpdateId: string | null | undefined,
+  route: string | null | undefined,
+): string {
+  const safeOta = typeof otaUpdateId === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(otaUpdateId)
+      ? otaUpdateId.replace(/-/g, '').toUpperCase()
+      : 'EMBEDDED';
+  const safeRoute = safeBuklodRoute(route);
+  let hash = 2166136261;
+  for (let index = 0; index < safeRoute.length; index += 1) {
+    hash = Math.imul(hash ^ safeRoute.charCodeAt(index), 16777619);
+  }
+  const routeHash = (hash >>> 0).toString(16).padStart(8, '0').toUpperCase();
+  return (evidence.correlationKey + '.OTA_' + safeOta + '.R_' + routeHash).slice(0, 160);
+}
