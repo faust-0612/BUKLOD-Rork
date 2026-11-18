@@ -151,6 +151,21 @@ during the S1-finalization eligibility check. No public API or client service
 key has been introduced. An explicit audit trail, administrative fraud
 reversals and real offline outbox still require integration and testing.
 
+## Offline / weak-signal receipt contract (DEV only)
+New pure TS outbox contract src/lib/season2/buklodSeason2OfflineOutboxR1.ts:
+- persist original operation UUID and source reference before attempting network;
+- one active in-flight operation per signed-in account (never cross flush);
+- queue/sending/unknown result are **Pending verification**, never earned;
+- retry with the same operation ID under bounded exponential backoff;
+- on app restart, interrupted sending is recoverable with same ID;
+- after max retries, keep a Manual Reconciliation record, never silently lose it;
+- server reply account/source mismatch quarantines without optimistic tokens;
+- only remove a confirmed row after server receipt is durably reflected in
+  canonical wallet/history. Source replay is deduped again by Postgres.
+This currently has NO AsyncStorage/SQLite persistence, network call, event
+hooks, background task, or installed Android behavior. Those require Phase C
+staging integration and device tests.
+
 ## Wallet test scenarios before any real staging DB migration
 1. Deny all direct anon/authenticated SELECT, INSERT, UPDATE, DELETE and EXECUTE.
 2. Reject user A requesting B's source, private-scope nonmember, former member.
