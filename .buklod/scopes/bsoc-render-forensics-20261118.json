@@ -1,0 +1,102 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/bsoc-render-forensics-20261118.json",
+  "objective": "Fully implement safe BUKLOD Main render incident diagnostics: preserve legacy hash, classify cause, record safe first-party source frame or Hermes bundle offset with crash-time OTA identity, link idempotently to health events, and show role-restricted evidence in BSOC.",
+  "baseRef": "ec15ecb4f92b7440fbe579b3f18b274f512d9876",
+  "productionBaselineEvidence": "Production Android 1.3.6 reported RENDER_3E577D35 on 2026-11-18 at 14:05:34 UTC on route scope. Existing health event retained only hash/route, no exact exception, and linked BSOC case had no verified release association. Main source 404c87e55c62a88c95c7389ac8665f237149702a read first. Exact EAS served OTA and user-specific running update remain unverified; no production write authorized. Supabase has no existing project development branches; production DB migration must not be applied directly before the dedicated staging/RC security gate. No staging backend or production OTA was changed by this DEV work. Reconciled on exact latest main ec15ecb4f92b7440fbe579b3f18b274f512d9876 after independent Faith/Word readability release on Nov18; five existing source paths verified byte-identical to original baseline before overlay; no Faith source touched. Actual BUKLOD_MAIN health backend contract accepts events <=86400 seconds and dedupes for 300s; client and forensic attachment spool bounded to <=23h. Backend migration was applied and tested in BUKLOD Supabase as version 20261118152620 (bsoc_render_forensics_v1_20261118); repository migration filename matched to that authoritative version.",
+  "chosenApproach": "Reuse original health event RPC without changing its signature; attach a second strictly authenticated, first-write-wins forensic record with only allowlisted codes, source path/line or compiled bundle coordinates and running Expo OTA identity. Retain offline dedupe/retry semantics, never send raw stack/message. RLS-controlled BSOC case view joins by health_event_id. Migration is additive and must be staged/verified before clients are published. Use free ephemeral PG17 CI for migration execution and adversarial RLS/RPC testing, avoiding a paid Supabase development branch; export Android Hermes JS read-only via existing preview credentials. Partition server dedupe correlation by exact OTA ID and safe route hash. Serialize offline queue storage to prevent lost concurrent error reports.",
+  "selectionRationale": "Detect probable cause locally with zero new native modules; record the exact current EAS updateId alongside a safe numeric compiled frame. Only private matching release maps can recover minified source lines. Avoid guessing from a hash or transmitting raw exception stacks or user content.",
+  "alternativeApproaches": [
+    "Send raw JS stack and message to telemetry: rejected; may expose user/session/private content.",
+    "Add Sentry with unconfigured DSN/source-map secrets as release prerequisite: rejected; unsafe/inoperative without exact project mapping.",
+    "Override existing health RPC fields with OTA strings: rejected; would break existing semantics/recovery and dedupe.",
+    "Add new additive per-health-event forensic RPC/table with RLS: selected."
+  ],
+  "riskAreas": [
+    "navigation-auth",
+    "bsoc",
+    "app-runtime",
+    "privacy",
+    "navigation-scroll",
+    "backend-security",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Old RENDER_ hash, main health RPC signature, error fallback, idempotent offline retry and support thread remain intact.",
+    "No change to active navigation, login/auth, Season2 embargo, ads consent/fill, backend RLS of existing tables, media or financial logic.",
+    "Only sanitized fixed taxonomy, validated source path/coordinates and Expo runtime/channel/update ID are retained; no raw messages/stacks or secret data.",
+    "Older clients and legacy incidents continue to work; BSOC detail degrades gracefully if additive backend table is missing."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/bsoc-render-forensics-20261118.json",
+    "src/lib/buklodRouteDiagnostics.ts",
+    "src/app/_layout.tsx",
+    "src/app/admin/bsoc-conversations.tsx",
+    "tests/buklod-route-diagnostics.test.mjs",
+    "tests/buklod-render-navigation-forensics-20261118.test.mjs",
+    "src/lib/buklodMainHealth.ts",
+    "src/lib/buklodRenderReleaseIdentity.ts",
+    "src/lib/buklodRenderReleaseIdentity.native.ts",
+    "src/lib/buklodRenderReleaseIdentity.web.ts",
+    "supabase/migrations/20261118152620_bsoc_render_forensics_v1_20261118.sql",
+    "supabase/tests/bsoc_render_forensics_v1.sql",
+    "supabase/tests/bsoc_render_forensics_fixture_v1.sql",
+    "supabase/tests/bsoc_render_forensics_runtime_v1.sql",
+    ".github/workflows/buklod-bsoc-render-android-qa-20261118.yml"
+  ],
+  "regressionTests": [
+    "tests/buklod-route-diagnostics.test.mjs",
+    "tests/buklod-render-navigation-forensics-20261118.test.mjs",
+    "supabase/tests/bsoc_render_forensics_v1.sql",
+    "supabase/tests/bsoc_render_forensics_runtime_v1.sql",
+    "supabase/tests/bsoc_render_forensics_fixture_v1.sql"
+  ],
+  "acceptanceChecks": [
+    "Node privacy tests reject message/stack exfiltration, source path traversal and misclassification; Hermes bundle frame parser retains numeric coordinates only.",
+    "Client event can upload through standard health queue and then attach forensic evidence to exact returned eventId, dedupe/retry without a second record.",
+    "Backend table owner-bound RLS and strict authenticated RPC validated on staging database; unauthorized user cannot attach another user's event.",
+    "Exact user-running OTA captured from expo-updates native, web fallback null, platform/runtime unchanged.",
+    "BSOC displays case-specific cause, source frame/bundle position, OTA ID without misleading root cause claims; cross-user results remain RLS guarded.",
+    "All changed-source TypeScript, protected security, AdMob, navigation, compact-layout and bundle/Expo compatibility CI gates pass.",
+    "No automatic Season2 or production OTA. Staging DB security smoke + compatible Android RC required before release.",
+    "Ephemeral PostgreSQL 17 successfully executes migration and tests role isolation, SQL injection/path validation, replay immutability and foreign-user denial; no production schema changes.",
+    "Exact-branch Expo Android/Hermes JS export with existing preview credentials passes without signed APK, OTA or exposing private keys.",
+    "Concurrent queued reports cannot be overwritten by in-flight flush; auth switch blocks cross-account upload; 23h retention matches backend's 24h accepted window."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Classify on-device render failures in operational event metadata without raw stack collection.",
+      "preservedBehaviors": [
+        "Legacy hashed signature and health RPC inputs remain compatible; no extra network calls in render path."
+      ],
+      "tests": [
+        "tests/buklod-route-diagnostics.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Improve only the existing root render-error boundary to record safe classified metadata.",
+      "preservedBehaviors": [
+        "Existing navigation, login/auth, fallbacks, ads and profile routing remain unchanged."
+      ],
+      "tests": [
+        "tests/buklod-route-diagnostics.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Introduce additive owner-checked, first-write-wins authenticated forensic attachment table/RPC without weakening any existing health RLS or support permissions.",
+      "preservedBehaviors": [
+        "Old health RPC unchanged, authenticated ownership enforced and raw stack/secret payloads forbidden."
+      ],
+      "tests": [
+        "supabase/tests/bsoc_render_forensics_v1.sql"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_EPHEMERAL_DB_AND_ANDROID_QA_NO_PUBLISH",
+  "productionStatus": "BACKEND_DEPLOYED_AND_PRIVILEGES_VERIFIED_APP_ANDROID_CI_PENDING",
+  "releaseAuthorized": false,
+  "season2Included": false
+}

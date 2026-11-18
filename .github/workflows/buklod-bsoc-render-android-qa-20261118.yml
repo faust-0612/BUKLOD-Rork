@@ -1,0 +1,112 @@
+# Read-only, isolated PR QA. No app publish, EAS build or production DB writes.
+name: BUKLOD BSOC Render PG17 and Android QA (NO OTA)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/lib/buklodMainHealth.ts'
+      - 'src/lib/buklodRouteDiagnostics.ts'
+      - 'src/lib/buklodRenderReleaseIdentity*.ts'
+      - 'src/app/_layout.tsx'
+      - 'src/app/admin/bsoc-conversations.tsx'
+      - 'supabase/migrations/20261118152620_bsoc_render_forensics_v1_20261118.sql'
+      - 'supabase/tests/bsoc_render_forensics*.sql'
+      - 'tests/buklod-render-navigation-forensics-20261118.test.mjs'
+      - 'tests/buklod-route-diagnostics.test.mjs'
+      - '.github/workflows/buklod-bsoc-render-android-qa-20261118.yml'
+permissions:
+  contents: read
+concurrency:
+  group: bsoc-render-qa-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  ephemeral-db-security:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'dev/bsoc-render-forensics-integrated-20261118'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Execute source migration and abuse tests in disposable PG17
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          psql -v ON_ERROR_STOP=1 \
+            -f supabase/tests/bsoc_render_forensics_fixture_v1.sql \
+            -f supabase/migrations/20261118152620_bsoc_render_forensics_v1_20261118.sql \
+            -f supabase/tests/bsoc_render_forensics_v1.sql \
+            -f supabase/tests/bsoc_render_forensics_runtime_v1.sql
+          echo 'PASS: disposable PostgreSQL 17 RLS/RPC and replay. No live DB changed.' >> "$GITHUB_STEP_SUMMARY"
+  native-bundle-no-publish:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'dev/bsoc-render-forensics-integrated-20261118'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: TypeScript and privacy/release source checks
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test \
+            tests/buklod-route-diagnostics.test.mjs \
+            tests/buklod-render-navigation-forensics-20261118.test.mjs \
+            tests/bsoc-auth-privacy-20261108.test.mjs \
+            tests/buklod-admob-revenue-separation-20261112.test.mjs
+          npx tsc --noEmit
+      - name: Android Hermes bundle compile, no publishing
+        run: |
+          set -euo pipefail
+          test -n "${{ secrets.EXPO_TOKEN }}" || { echo 'BLOCK: missing preview credentials'; exit 1; }
+          npx --yes eas-cli@27.9.0 env:pull --environment preview \
+            --path /tmp/buklod-render-preview.env --non-interactive >/dev/null
+          test -s /tmp/buklod-render-preview.env
+          set -a; . /tmp/buklod-render-preview.env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          export EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          node - <<'NODE'
+          const a=require('node:assert/strict');
+          a.match(process.env.EXPO_PUBLIC_SUPABASE_URL||'',/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          a.ok((process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'').length>20);
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android \
+            --output-dir /tmp/buklod-render-forensics-android --clear
+          test -s /tmp/buklod-render-forensics-android/metadata.json
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test -z "$(git status --porcelain)"
+          echo 'PASS: exact Android/Hermes JS compile. No APK, OTA, or device claim.' >> "$GITHUB_STEP_SUMMARY"

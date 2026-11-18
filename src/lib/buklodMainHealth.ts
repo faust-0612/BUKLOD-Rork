@@ -38,12 +38,26 @@ export type BuklodLocalHealResult =
   | 'INELIGIBLE'
   | 'UNKNOWN';
 
+export type BuklodRenderForensics = {
+  causeCode: string;
+  originArea: string;
+  sourcePath?: string | null;
+  sourceLine?: number | null;
+  sourceColumn?: number | null;
+  bundleLine?: number | null;
+  bundleColumn?: number | null;
+  runtimeVersion?: string | null;
+  otaUpdateId?: string | null;
+  updateChannel?: string | null;
+};
+
 export type BuklodHealthIssue = {
   category: BuklodHealthCategory;
   severity: BuklodHealthSeverity;
   safeErrorCode: string;
   errorSignature: string;
   correlationKey: string;
+  renderForensics?: BuklodRenderForensics | null;
   routeModule?: string | null;
   networkState?: string | null;
   authState?: string | null;
@@ -75,10 +89,21 @@ const DEVICE_REF_KEY = '@buklod/main-health-v1/device-ref';
 const SESSION_REF_PREFIX = '@buklod/main-health-v1/session-ref/';
 const MAX_QUEUE = 20;
 const DEDUPE_WINDOW_MS = 5 * 60_000;
-const MAX_QUEUE_AGE_MS = 30 * 60_000;
+const MAX_QUEUE_AGE_MS = 23 * 60 * 60_000; // server accepts events up to 24h
 const CODE_RE = /^[A-Z0-9_.:-]{2,160}$/;
 const ROUTE_RE = /^[A-Za-z0-9_./:-]{1,160}$/;
 const STATE_RE = /^[A-Z0-9_.:-]{2,64}$/;
+
+// Serialize only short AsyncStorage read-modify-write transactions. Never hold
+// this lock during RPC/network operations or block new error reports.
+let healthQueueIo: Promise<void> = Promise.resolve();
+const healthFlushUsers = new Set<string>();
+function withHealthQueueIO<T>(work: () => Promise<T>): Promise<T> {
+  const result = healthQueueIo.then(work, work);
+  healthQueueIo = result.then(() => undefined, () => undefined);
+  return result;
+}
+
 
 function queueKey(userId: string) {
   return QUEUE_PREFIX + userId;
@@ -103,6 +128,42 @@ function cleanState(value: string | null | undefined) {
 function cleanRoute(value: string | null | undefined) {
   const candidate = String(value ?? '').trim().slice(0, 160);
   return ROUTE_RE.test(candidate) ? candidate : 'unknown';
+}
+
+const FORENSIC_CAUSES = new Set([
+  'UNKNOWN','HOOK_ORDER','RENDER_LOOP','INVALID_ELEMENT','INVALID_CHILD',
+  'NULLISH_ACCESS','INVALID_CALL','MISSING_PROVIDER','TYPE_ERROR','REFERENCE_ERROR',
+]);
+const FORENSIC_AREAS = new Set([
+  'UNKNOWN','PROVIDER','SCOPE','CONNECT','CHARACTER','MEDIA',
+  'AUTH','ROUTE','COMPONENT','LIB',
+]);
+const OTA_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function safePositiveFrame(input: unknown): number | null {
+  const value = typeof input === 'number' ? input : NaN;
+  return Number.isSafeInteger(value) && value > 0 && value <= 100_000_000 ? value : null;
+}
+function normalizeRenderForensics(input: BuklodRenderForensics | null | undefined): BuklodRenderForensics | null {
+  if (!input || !FORENSIC_CAUSES.has(input.causeCode) || !FORENSIC_AREAS.has(input.originArea)) return null;
+  const path = String(input.sourcePath ?? '');
+  const safePath = path.length <= 180 &&
+    /^src\/(app|components|providers|lib)\/[A-Za-z0-9_./\[\]()\-]+\.(?:tsx?|jsx?)$/.test(path) &&
+    !path.includes('..') ? path : null;
+  const runtime = String(input.runtimeVersion ?? '');
+  const channel = String(input.updateChannel ?? '').toLowerCase();
+  return {
+    causeCode: input.causeCode,
+    originArea: input.originArea,
+    sourcePath: safePath,
+    sourceLine: safePath ? safePositiveFrame(input.sourceLine) : null,
+    sourceColumn: safePath ? safePositiveFrame(input.sourceColumn) : null,
+    bundleLine: safePositiveFrame(input.bundleLine),
+    bundleColumn: safePositiveFrame(input.bundleColumn),
+    runtimeVersion: /^[A-Za-z0-9_.-]{1,60}$/.test(runtime) ? runtime : null,
+    otaUpdateId: OTA_UUID_RE.test(String(input.otaUpdateId ?? '')) ? String(input.otaUpdateId) : null,
+    updateChannel: /^(production|staging|preview|development)$/.test(channel) ? channel : null,
+  };
 }
 
 function boundedCount(value: number | undefined) {
@@ -148,6 +209,7 @@ function normalizeIssue(input: BuklodHealthIssue): BuklodHealthIssue {
       'BUKLOD_MAIN_UNKNOWN',
       160,
     ),
+    renderForensics: normalizeRenderForensics(input.renderForensics),
     routeModule: cleanRoute(input.routeModule),
     networkState: cleanState(input.networkState),
     authState: cleanState(input.authState),
@@ -173,7 +235,7 @@ async function readQueue(userId: string): Promise<QueuedHealthIssue[]> {
     const cutoff = Date.now() - MAX_QUEUE_AGE_MS;
     return parsed
       .filter(item => {
-        const at = Date.parse(String(item?.lastQueuedAt ?? ''));
+        const at = Date.parse(String(item?.detectedAt ?? ''));
         return Number.isFinite(at) && at >= cutoff;
       })
       .slice(-MAX_QUEUE);
@@ -198,6 +260,7 @@ export async function enqueueBuklodMainHealthIssue(
 ) {
   if (!userId) return;
 
+  return withHealthQueueIO(async () => {
   const issue = normalizeIssue(input);
   const now = new Date().toISOString();
   const rows = await readQueue(userId);
@@ -254,28 +317,38 @@ export async function enqueueBuklodMainHealthIssue(
   }
 
   await writeQueue(userId, rows);
+  });
 }
 
 export async function flushBuklodMainHealthQueue(
   userId: string,
 ) {
   if (!userId) return { sent: 0, pending: 0 };
-
-  const rows = await readQueue(userId);
-  if (!rows.length) return { sent: 0, pending: 0 };
-
-  const [deviceRef, sessionRef] = await Promise.all([
-    getOrCreateDeviceRef(),
-    getOrCreateSessionRef(userId),
-  ]);
-
-  const remaining: QueuedHealthIssue[] = [];
+  // Concurrent flush triggers share the same account queue. A second trigger
+  // leaves the first as owner, rather than racing its snapshot or callbacks.
+  if (healthFlushUsers.has(userId)) {
+    const pending = await withHealthQueueIO(async () => (await readQueue(userId)).length);
+    return { sent: 0, pending };
+  }
+  healthFlushUsers.add(userId);
   let sent = 0;
-
-  for (const row of rows) {
-    try {
-      const { error } = await withBuklodTimeout<{
-        data: unknown;
+  try {
+    const rows = await withHealthQueueIO(() => readQueue(userId));
+    if (!rows.length) return { sent, pending: 0 };
+    const [deviceRef, sessionRef] = await Promise.all([
+      getOrCreateDeviceRef(),
+      getOrCreateSessionRef(userId),
+    ]);
+    for (const row of rows) {
+      // Do not submit queued events under a different account after sign-out,
+      // account switch or an in-flight refresh of auth state.
+      try {
+        const {data: currentSession} = await withBuklodTimeout(
+          supabase.auth.getSession(), 1_500, 'Health queue account binding',
+        );
+        if (currentSession.session?.user?.id !== userId) break;
+      const { data: receipt, error } = await withBuklodTimeout<{
+        data: {event_id?: string} | null;
         error: unknown | null;
       }>(
         (supabase as any).rpc('buklod_record_health_event_v1', {
@@ -320,14 +393,65 @@ export async function flushBuklodMainHealthQueue(
       );
 
       if (error) throw error;
+      // Separate additive RPC: original health event remains backward compatible.
+      // A failed forensic attachment leaves this row queued; replay is safe because
+      // health events dedupe by clientEventId and forensics by health_event_id.
+      // Non-render incidents use exactly the existing one-request path.
+      if (row.renderForensics) {
+        if (!receipt?.event_id || !/^[0-9a-f-]{36}$/i.test(receipt.event_id))
+          throw new Error('Missing health receipt for render forensics');
+        const forensic = normalizeRenderForensics(row.renderForensics);
+        if (forensic) {
+          const {error: attachError} = await withBuklodTimeout<{
+            data: unknown; error: unknown | null;
+          }>(
+            (supabase as any).rpc('buklod_attach_render_forensics_v1', {
+              p_health_event_id: receipt.event_id,
+              p_cause_code: forensic.causeCode,
+              p_origin_area: forensic.originArea,
+              p_source_path: forensic.sourcePath,
+              p_source_line: forensic.sourceLine,
+              p_source_column: forensic.sourceColumn,
+              p_bundle_line: forensic.bundleLine,
+              p_bundle_column: forensic.bundleColumn,
+              p_runtime_version: forensic.runtimeVersion,
+              p_ota_update_id: forensic.otaUpdateId,
+              p_update_channel: forensic.updateChannel,
+            }),
+            5_000,
+            'BUKLOD render diagnostics',
+          );
+          if (attachError) throw attachError;
+        }
+      }
       sent += 1;
-    } catch {
-      remaining.push(row);
+        await withHealthQueueIO(async () => {
+          const current = await readQueue(userId);
+          const stored = current.find(item => item.clientEventId === row.clientEventId);
+          if (!stored) return;
+          if (stored.lastQueuedAt !== row.lastQueuedAt || stored.repeatCount !== row.repeatCount) {
+            // Another report arrived while the network request was in flight.
+            // Rotate the client ID to preserve that newer occurrence for later
+            // server dedupe and never drop it by overwriting with stale rows.
+            stored.clientEventId = randomOpaqueRef('health');
+            stored.detectedAt = stored.lastQueuedAt;
+            stored.firstQueuedAt = stored.lastQueuedAt;
+            stored.repeatCount = 1;
+            await writeQueue(userId, current);
+          } else {
+            await writeQueue(userId, current.filter(item => item.clientEventId !== row.clientEventId));
+          }
+        });
+      } catch {
+        // Network or add-on RPC failed: leave the original row intact for a
+        // bounded retry. The authenticated health event itself is idempotent.
+      }
     }
+    const pending = await withHealthQueueIO(async () => (await readQueue(userId)).length);
+    return { sent, pending };
+  } finally {
+    healthFlushUsers.delete(userId);
   }
-
-  await writeQueue(userId, remaining);
-  return { sent, pending: remaining.length };
 }
 
 export async function reportBuklodMainHealthIssue(
