@@ -73,7 +73,7 @@ export async function submitMyBuklodLegalIdentity(input:{
  const {data,error}=await (supabase as any).rpc('submit_my_buklod_identity_v1',{
   p_first_name:input.firstName.trim(),p_middle_name:input.middleName.trim(),
   p_surname:input.surname.trim(),p_suffix:input.suffix.trim(),
-  p_id_type:input.idType,p_document_path:path
+  p_id_type:input.idType,p_document_path:path,p_privacy_consent:true
  });
  // Failed submissions may leave orphan private files: server-side retention must clear them.
  if(error)failure(error,'Government ID submission failed.');
