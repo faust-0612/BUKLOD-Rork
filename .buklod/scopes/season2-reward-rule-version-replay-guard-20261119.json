@@ -19,7 +19,8 @@
     "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
     "tests/season2-local-postgres-behavior-20261118.sql",
     ".github/workflows/buklod-season2-sql-dev-only-20261118.yml",
-    ".buklod/scopes/season2-reward-rule-version-replay-guard-20261119.json"
+    ".buklod/scopes/season2-reward-rule-version-replay-guard-20261119.json",
+    "contracts/season2-implementation-ledger.json"
   ],
   "regressionTests": [
     "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs"
@@ -36,7 +37,8 @@
     "Behavior test verifies duplicate-source replay after rules revision returns DUPLICATE without modifying balance or receipt count.",
     "Behavior test verifies legacy verified learning+community receipts still produce an eligible weekly foundation after a rule revision.",
     "No production or Supabase project write, no EAS OTA, no native package change, and no user earnings claimed.",
-    "Actual independent staging Supabase project plus signed gating and Android testing is required before making live rewards available to testers."
+    "Actual independent staging Supabase project plus signed gating and Android testing is required before making live rewards available to testers.",
+    "Governance implementation ledger documents SQL-only evidence and stays PLANNED, never fraudulently marks live or RC verification."
   ],
   "alternativeApproaches": [
     "Leave duplicate source keys tied to rule_version and rely on the caller to never replay (rejected: replays unavoidable with offline retries and future rules).",
