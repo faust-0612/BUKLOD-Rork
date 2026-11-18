@@ -46,6 +46,7 @@ import BuklodCenteredBrandMark, {
 } from '@/components/BuklodCenteredBrandMark';
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 import { diagnoseBuklodRenderError, resolveBuklodCrashRoute } from '@/lib/buklodRouteDiagnostics';
+import { getBuklodRenderReleaseIdentity } from '@/lib/buklodRenderReleaseIdentity';
 
 function renderErrorSignature(error: Error): string {
   // Keep diagnostic payloads free of private error messages and stack traces.
@@ -63,6 +64,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const routeModule = resolveBuklodCrashRoute(pathname, segments);
   const errorSignature = renderErrorSignature(error);
   const renderEvidence = diagnoseBuklodRenderError(error);
+  const renderRelease = getBuklodRenderReleaseIdentity();
 
   useEffect(() => {
     void reportBuklodMainHealthIssue({
@@ -72,6 +74,18 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       errorSignature,
       correlationKey: renderEvidence.correlationKey,
       routeModule,
+      renderForensics: {
+        causeCode: renderEvidence.causeCode,
+        originArea: renderEvidence.originArea,
+        sourcePath: renderEvidence.sourcePath,
+        sourceLine: renderEvidence.sourceLine,
+        sourceColumn: renderEvidence.sourceColumn,
+        bundleLine: renderEvidence.bundleLine,
+        bundleColumn: renderEvidence.bundleColumn,
+        runtimeVersion: renderRelease.runtimeVersion,
+        otaUpdateId: renderRelease.otaUpdateId,
+        updateChannel: renderRelease.updateChannel,
+      },
       networkState: 'UNKNOWN',
       authState: 'UNKNOWN',
       syncState: 'UNKNOWN',
