@@ -1,5 +1,5 @@
 import React,{useMemo,useState} from 'react';
-import {Pressable,StyleSheet,Text,View} from 'react-native';
+import {Pressable,StyleSheet,Text,View,type DimensionValue} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {SEASON_CHAPTER_PREVIEWS,SEASON_JOURNEY_TRACKS,
   deriveBuklodSeasonState,manilaCalendarDay,type SeasonSummary}
@@ -60,7 +60,7 @@ export default function BuklodSeasonJourneyPreview({
               </View>
               <View style={s.progressBg}>
                 <View style={[s.progressBar,
-                  {width:String(state.progressPercent??0)+'%'}]}/>
+                  {width:(String(state.progressPercent??0)+'%') as DimensionValue}]}/>
               </View>
             </View>
           ):null}
