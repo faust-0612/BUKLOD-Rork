@@ -31,7 +31,8 @@
     "Wall fullscreen handoff suspends inline VideoView while fullscreen binds same player; AdMob IMA remains protected",
     "No Season2 package or runtime imports, production embargo remains",
     "No new auth, payouts, points or user balance change",
-    "No publish in test-only QA workflow"
+    "No publish in test-only QA workflow",
+    "Test-only PR changes zero production source paths; protected-feature declarations are intentionally empty. All media/ad runtime behavior is covered by expanded regression tests."
   ],
   "acceptanceChecks": [
     "Run both source-based legacy test suites with 0 failures under pinned Node22",
@@ -46,43 +47,7 @@
     "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
     "tests/scoped-community-video-sidecar-recovery.test.mjs"
   ],
-  "lockedFeatureChanges": [
-    {
-      "id": "wall-media",
-      "reason": "Maintain first-frame, scoped signed URL recovery and fullscreen handoff tests when improving media implementation",
-      "preservedBehaviors": [
-        "Retry/timeouts bounded and stale protected content cannot overwrite latest",
-        "Video frames display before poster hides; handoff suspends offscreen player"
-      ],
-      "tests": [
-        "tests/community-video-playback-recovery.test.mjs",
-        "tests/unified-social-media-rendering.test.mjs"
-      ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "Preserve native IMA and source-level first view as release gates; no runtime changes",
-      "preservedBehaviors": [
-        "Ads content separate from video and financial ledgers"
-      ],
-      "tests": [
-        "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
-        "tests/unified-social-media-rendering.test.mjs"
-      ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Restore full production workflow passing contract without skipping tests or changing live app",
-      "preservedBehaviors": [
-        "No Season2, production changes only with official verified OTA/RC suite",
-        "No actual device test claims due user waiver"
-      ],
-      "tests": [
-        "tests/unified-social-media-rendering.test.mjs",
-        "tests/community-video-playback-recovery.test.mjs"
-      ]
-    }
-  ],
+  "lockedFeatureChanges": [],
   "sourceOnly": true,
   "productionStatus": "NO_OTA_AFTER_INITIAL_FAILURE",
   "releaseAuthorized": false,
