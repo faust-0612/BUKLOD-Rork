@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const source=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('Wall monetization surfaces survive the rank/Notes hotfix',()=>{
   const wall=source('src/app/(tabs)/buklod.tsx');
-  assert.match(wall,/BuklodNativeSponsoredCard/);
+  assert.match(wall,/BuklodCommunitySponsoredAd/);
   assert.match(wall,/BuklodFirstViewAd/);
   assert.match(wall,/warmBuklodAdOpportunity|showBuklodAdOpportunity/);
 });
