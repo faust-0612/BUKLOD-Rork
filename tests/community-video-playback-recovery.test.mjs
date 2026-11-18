@@ -30,10 +30,21 @@ test('scoped Wall refreshes protected Supabase or AWS video URLs with bounded at
   const scope = readFileSync('src/components/BuklodExclusiveScopeCommunity.tsx','utf8');
   assert.match(scope,/onPlaybackError=\{\(\) => \{\s*void recoverScopedWallVideo\(item\)/);
   assert.match(scope,/videoRefreshAttemptsRef\.current\.get\(postId\)/);
-  assert.match(scope,/attempts >= 2 \|\| videoRefreshInFlightRef\.current\.has\(postId\)/);
-  assert.match(scope,/getAwsWallVideoViewUrl\(postId, mediaPath\.slice\(4\), true\)/);
+  // In-flight and retry limits are intentionally separate, fail-closed guards.
+  assert.match(scope,/!postId \|\| videoRefreshInFlightRef\.current\.has\(postId\)/);
+  assert.match(scope,/const attempts = manual \? 0 : \(videoRefreshAttemptsRef\.current\.get\(postId\) \?\? 0\)/);
+  assert.match(scope,/if \(attempts >= 2\) return/);
+  assert.match(scope,/videoRefreshInFlightRef\.current\.add\(postId\)/);
+  assert.match(scope,/videoRefreshInFlightRef\.current\.delete\(postId\)/);
+  // Prefer the sidecar external_object_key; fall back to legacy aws: path.
+  assert.match(scope,/const awsKey = String\(failed\?\.external_object_key \?\? ''\)\.trim\(\)/);
+  assert.match(scope,/mediaPath\.startsWith\('aws:'\) \? mediaPath\.slice\(4\) : ''/);
+  assert.match(scope,/getAwsWallVideoViewUrl\(postId, awsKey, true\)/);
   assert.match(scope,/resignCommunityMediaUrl\(mediaPath\)/);
-  assert.match(scope,/String\(row\.media_url \?\? ''\) === failedUri/);
+  // Update only the still-matching sidecar and reject old concurrent media loads.
+  assert.match(scope,/replaceScopedCommunityVideoUrl\(row, failed, next\)/);
+  assert.match(scope,/scopeMediaLoadSeqRef\.current !== loadSeq/);
+  assert.match(scope,/loadCommunityPostMediaByPostIds\(\s*\[postId\], \{ forceFreshVideoUrls: true \}/);
   assert.doesNotMatch(scope,/getPublicUrl\(/);
 });
 
