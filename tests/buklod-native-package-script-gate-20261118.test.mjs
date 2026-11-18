@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
+import {execFileSync} from 'node:child_process';
 const require=createRequire(import.meta.url);
 const {
   V28_PINNED_PACKAGE_BLOB,gitBlobSha,canonicalPinnedNativePackageText,
@@ -41,4 +42,19 @@ test('compact layout and existing core release gates cannot be edited or removed
 test('original V28 package does not silently become an approved new native build',()=>{
   assert.throws(()=>canonicalPinnedNativePackageText(pinned),/compact source QA script/);
   assert.throws(()=>assertApprovedCompactScriptOnly(current,pinned+'\n'),/exact compact QA scripts/);
+});
+
+test('production RC compares RAW pinned Git blob, never trimmed Git helper output',()=>{
+  const raw=execFileSync('git',[
+    'show','2f26645e50e8e079ebf09f3999aacfc506ae7651:package.json'
+  ],{encoding:'utf8'});
+  assert.equal(raw.endsWith('\n'),true,'Signed native package has a newline');
+  assert.equal(gitBlobSha(raw),V28_PINNED_PACKAGE_BLOB);
+  assert.equal(assertApprovedCompactScriptOnly(current,raw),true);
+  assert.notEqual(raw.trim(),raw,'Trimming the signed blob must not be treated as byte-identical');
+  assert.throws(()=>assertApprovedCompactScriptOnly(current,raw.trim()),
+    /only by exact compact QA scripts/);
+  const rc=readFileSync('scripts/android-ota-rc.cjs','utf8');
+  assert.match(rc,/execFileSync\('git',\['show',pinnedV28\+':package\.json'\],\{encoding:'utf8'\}\)/);
+  assert.doesNotMatch(rc,/git\('show',pinnedV28\+':package\.json'\)/);
 });
