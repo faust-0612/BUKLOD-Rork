@@ -7,6 +7,14 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SCALE_LIMITS } from '@/lib/performanceScale';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import {
+  WALL_COMMENT_QUEUE_KIND,
+  parsePendingWallComment,
+} from '@/lib/buklodCommunityOfflineComment';
+import { notifyBuklodCommunityMentions } from '@/lib/buklodNotifyMentions';
+import { recordConfirmedCommunityComment } from '@/lib/buklodCommunityCommentAdCadence';
+import { warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { useBuklodOfflineSync } from '@/providers/BuklodOfflineSyncProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { useAuth } from '@/providers/AuthProvider';
@@ -99,6 +107,57 @@ export default function BuklodSyncCoordinator() {
       await AsyncStorage.setItem(key, JSON.stringify(completed));
       await removeOfflineCache('faith-abc-progress:v1', item.userId)
         .catch(() => undefined);
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
+    // Offline Wall comments use the same account-safe queue as other features.
+    // The backend v5 RPC owns idempotency: a lost response cannot create a
+    // second comment or duplicate the server's reward side effects.
+    return registerOfflineQueueHandler(WALL_COMMENT_QUEUE_KIND, async item => {
+      if (!user?.id || item.userId !== user.id) {
+        throw new OfflineQueueDeferredError();
+      }
+      const payload = parsePendingWallComment(item.payload);
+      if (!payload) {
+        throw new OfflineQueuePermanentError('Invalid saved comment.');
+      }
+      const { data: sessionData, error: sessionError } =
+        await withBuklodTimeout(supabase.auth.getSession(), 12_000, 'Community comment session');
+      if (sessionError || sessionData.session?.user?.id !== item.userId) {
+        throw new OfflineQueueDeferredError();
+      }
+      const { error } = await withBuklodTimeout(
+        (supabase as any).rpc('add_buklod_post_comment_v5', {
+          p_post_id: payload.postId,
+          p_body: payload.body,
+          p_parent_id: payload.parentId,
+          p_request_key: item.id,
+        }),
+        18_000,
+        'Community comment sync',
+      );
+      if (error) {
+        const code = String(error.code ?? '');
+        if (code === '28000' || Number(error.status) === 401) {
+          throw new OfflineQueueDeferredError();
+        }
+        if (['42501', '22023', '23505'].includes(code) || Number(error.status) === 403) {
+          throw new OfflineQueuePermanentError(String(error.message ?? 'Comment was rejected.'));
+        }
+        throw error;
+      }
+
+      // Only server-confirmed comments enter the existing ad cadence.
+      const adCount = recordConfirmedCommunityComment(item.userId);
+      if (adCount.shouldWarm) warmBuklodAdOpportunity('community_comment_overage');
+      if (payload.mentionIds.length) {
+        void notifyBuklodCommunityMentions({
+          postId: payload.postId,
+          mentionedUserIds: payload.mentionIds,
+          context: 'comment',
+        }).catch(() => undefined);
+      }
     });
   }, [user?.id]);
 
