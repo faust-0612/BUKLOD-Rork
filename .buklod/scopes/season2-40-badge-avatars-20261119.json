@@ -20,7 +20,8 @@
     "tests/season2-avatar-badges-20261119.test.mjs",
     "docs/BUKLOD_SEASON2_40_AVATAR_BADGES_20261119.md",
     "assets/season2/rank-badges/buklod-circle-ranks-atlas.webp",
-    ".buklod/scopes/season2-40-badge-avatars-20261119.json"
+    ".buklod/scopes/season2-40-badge-avatars-20261119.json",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs"
   ],
   "productionSeason2Embargo": "2026-12-06",
   "productionChanges": false,
@@ -48,10 +49,12 @@
     "weak-network",
     "supabase-presence",
     "navigation",
-    "ads"
+    "ads",
+    "connect"
   ],
   "regressionTests": [
-    "tests/season2-avatar-badges-20261119.test.mjs"
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -63,7 +66,8 @@
         "Existing Circle Rank server authority, account isolation, and all Season 1 production behavior remain unchanged."
       ],
       "tests": [
-        "tests/season2-avatar-badges-20261119.test.mjs"
+        "tests/season2-avatar-badges-20261119.test.mjs",
+        "tests/season2-connect-avatar-badges-20261119.test.mjs"
       ]
     }
   ],
