@@ -8,6 +8,7 @@ create table if not exists private.buklod_legal_identity_v1(
  legal_full_name text not null,
  id_type text not null check(id_type in ('PHILSYS','PASSPORT','DRIVERS_LICENSE','UMID','POSTAL_ID','OTHER_GOV_ID')),
  document_path text not null,
+ consented_at timestamptz not null default now(),
  submitted_at timestamptz not null default now(),
  reviewed_at timestamptz,reviewed_by uuid references auth.users(id),
  verified_at timestamptz,rejected_reason text,
@@ -80,7 +81,7 @@ grant execute on function public.get_my_buklod_identity_status_v1() to authentic
 
 create or replace function public.submit_my_buklod_identity_v1(
  p_first_name text,p_middle_name text,p_surname text,p_suffix text,
- p_id_type text,p_document_path text)
+ p_id_type text,p_document_path text,p_privacy_consent boolean)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare v_uid uuid:=(select auth.uid());
@@ -89,6 +90,8 @@ declare v_uid uuid:=(select auth.uid());
  v_name text;v_row private.buklod_legal_identity_v1%rowtype;
 begin
  if v_uid is null then raise exception 'Login required' using errcode='28000'; end if;
+ if coalesce(p_privacy_consent,false) is not true then
+  raise exception 'Government ID processing consent is required' using errcode='42501'; end if;
  if private.buklod_is_platform_official_v1(v_uid) then raise exception 'Official identity cannot submit a personal ID'; end if;
  if not exists(select 1 from public.profiles where id=v_uid and is_active=true)
   then raise exception 'Active profile required'; end if;
@@ -119,21 +122,21 @@ begin
  end if;
  insert into private.buklod_legal_identity_v1
  (user_id,status,first_name,middle_name,surname,suffix,legal_full_name,
-  id_type,document_path,submitted_at,reviewed_at,reviewed_by,verified_at,rejected_reason,revision)
+  id_type,document_path,consented_at,submitted_at,reviewed_at,reviewed_by,verified_at,rejected_reason,revision)
  values(v_uid,'PENDING',v_first,v_middle,v_last,v_suffix,v_name,
-  p_id_type,p_document_path,now(),null,null,null,null,1)
+  p_id_type,p_document_path,now(),now(),null,null,null,null,1)
  on conflict(user_id) do update
  set status='PENDING',first_name=excluded.first_name,middle_name=excluded.middle_name,
   surname=excluded.surname,suffix=excluded.suffix,legal_full_name=excluded.legal_full_name,
   id_type=excluded.id_type,document_path=excluded.document_path,
-  submitted_at=now(),reviewed_at=null,reviewed_by=null,verified_at=null,
+  consented_at=now(),submitted_at=now(),reviewed_at=null,reviewed_by=null,verified_at=null,
   rejected_reason=null,revision=private.buklod_legal_identity_v1.revision+1
  returning * into v_row;
  return jsonb_build_object('status',v_row.status,'submitted_at',v_row.submitted_at);
 end;$$;
-revoke all on function public.submit_my_buklod_identity_v1(text,text,text,text,text,text)
+revoke all on function public.submit_my_buklod_identity_v1(text,text,text,text,text,text,boolean)
 from public,anon;
-grant execute on function public.submit_my_buklod_identity_v1(text,text,text,text,text,text)
+grant execute on function public.submit_my_buklod_identity_v1(text,text,text,text,text,text,boolean)
 to authenticated;
 
 create or replace function public.admin_list_buklod_identity_pending_v1(p_limit integer default 30)
