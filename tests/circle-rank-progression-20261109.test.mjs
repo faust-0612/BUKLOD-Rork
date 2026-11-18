@@ -11,7 +11,8 @@ test('Profile Circle Rank links to the server-backed progression, not an About a
   assert.match(profile, /onPress=\{\(\) => router\.push\('\/points\/progression' as any\)\}/);
   assert.match(card, /accessibilityLabel="Open Circle Rank progression"/);
   assert.match(card, /Circle progression →/);
-  assert.match(card, /View ranking →/); // The existing Top 10 remains separate.
+  assert.match(card, /accessibilityLabel="Open ranking and BUKLOD Points"/);
+  assert.match(card, /onPress=\{\(\) => router\.push\('\/points'\)\}/); // Current Points/leaderboard route remains separately reachable.
 });
 
 test('Circle Rank roadmap reads the canonical 40-rank ladder and authenticated progress', () => {

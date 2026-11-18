@@ -1,0 +1,187 @@
+{
+  "contractVersion": 2,
+  "objective": "Season2 complete safe source-stage preview: governed rewards-OFF journey, 40 canonical avatar rank badges and LIFE language-sensitive routes. NO production, no active backend rewards, no deferred auth.",
+  "baseRef": "a1118ec69079dad757222a23798bde59b6a5b002",
+  "branch": "staging/season2-all-updates-20261119",
+  "environment": "DEV ONLY",
+  "sourceAssets": "User Library /Buklod rank badges",
+  "assetAtlasSha256": "db2a7604e5657263336c8a358e0ef2d800cc6b6a3a7fc6b9c5a5a19174373887",
+  "rankFamilies": 8,
+  "rankLevels": 5,
+  "badges": 40,
+  "allowedPaths": [
+    ".github/workflows/buklod-s2-avatar-android-compile-qa-20261119.yml",
+    "assets/season2/rank-badges/buklod-circle-ranks-atlas.webp",
+    "docs/BUKLOD_SEASON2_40_AVATAR_BADGES_20261119.md",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodTappableAvatar.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
+    "src/components/points/BuklodCircleRankBadge.tsx",
+    "src/lib/buklodAvatarPresence.ts",
+    "src/lib/buklodCircleRankArt.ts",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/circle-rank-progression-20261109.test.mjs",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs",
+    "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs",
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "src/app/life/_layout.tsx",
+    "src/app/life/guide.tsx",
+    "src/app/life/impact.tsx",
+    "src/app/life/index.tsx",
+    "src/app/life/invite.tsx",
+    "src/app/life/share.tsx",
+    "src/app/life/support.tsx",
+    "src/app/life/topic.tsx",
+    "src/components/BuklodLifeTabs.tsx",
+    "src/components/BuklodLifeWallCard.tsx",
+    "src/hooks/useBuklodLifeLanguage.ts",
+    "src/lib/__tests__/buklodLifeLanguage.test.ts",
+    "src/lib/buklodLifeLanguage.ts",
+    "src/providers/BuklodLifeLanguageProvider.tsx",
+    "tests/life-language-auth-navigation-20261119.test.mjs",
+    ".buklod/scopes/season2-all-updates-20261119.json",
+    ".github/workflows/buklod-s2-all-updates-qa-20261119.yml"
+  ],
+  "productionSeason2Embargo": "2026-12-06",
+  "productionChanges": false,
+  "realAwardChanges": false,
+  "safeReleaseGates": [
+    "TypeScript",
+    "42 rank art mappings",
+    "Wall and Connect badge placement",
+    "offline absence of false online",
+    "AdMob first-view",
+    "instant navigation",
+    "Android staging runtime",
+    "served manifest",
+    "production unchanged"
+  ],
+  "scopeManifestPath": ".buklod/scopes/season2-all-updates-20261119.json",
+  "productionBaselineEvidence": "Based on verified staging-only Season2 conso source a1118ec69079dad757222a23798bde59b6a5b002; unchanged Season1 production login/auth and QMP, no database schema migrations or reward activation.",
+  "chosenApproach": "Layer tested read-only avatar artwork and LIFE-only locale hydration onto existing verified Season2 conso stage source. Keep AuthProvider production-equivalent; do not introduce unverified preferred_language SQL into deferred auth path.",
+  "selectionRationale": "Avoid merging independent conflicting staging branches or accidental production/auth changes. Run exact merged source QA in staging-only isolated branch before any publisher.",
+  "riskAreas": [
+    "app-runtime",
+    "wall-avatar",
+    "connect-avatar",
+    "rank-visual",
+    "weak-network",
+    "supabase-presence",
+    "navigation",
+    "ads",
+    "connect",
+    "navigation-scroll",
+    "ads-monetization",
+    "faith-content-localization",
+    "profile-preferences",
+    "account-isolation"
+  ],
+  "regressionTests": [
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs",
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs",
+    "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/circle-rank-progression-20261109.test.mjs",
+    "tests/life-language-auth-navigation-20261119.test.mjs",
+    "tests/season2-governance-contract.test.mjs",
+    "tests/buklod-season2-carryover-contract-20261119.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/dashboard-instant-tabs-20261117.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Integrate 40 verified rank visuals into the shared avatar on existing Wall/Connect/profile screens without altering rank calculations, AdMob, auth, or navigation.",
+      "preservedBehaviors": [
+        "Existing Wall and Connect clickable avatar navigation, Notes, reaction and unread indicators remain functional.",
+        "Weak-signal rendering and first-view AdMob do not wait for rank or online state.",
+        "Existing Circle Rank server authority, account isolation, and all Season 1 production behavior remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-avatar-badges-20261119.test.mjs",
+        "tests/season2-connect-avatar-badges-20261119.test.mjs",
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+        "tests/season2-avatar-admob-guard-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Show server-confirmed rank art instantly in the existing Wall author avatar without adding navigation controls or changing auth and route permissions.",
+      "preservedBehaviors": [
+        "Avatar tap continues to enter author profile, long-press actions and Community feed navigation are unchanged.",
+        "Community Wall first-view ads, comment rendering and feed race protection remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Inject rank artwork only into existing tappable Wall avatar and self/contact bubbles without touching the video/media pipeline, photo render or scroll lifecycle.",
+      "preservedBehaviors": [
+        "Existing Community post media, video playback, comments, author navigation, and ad placements remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The Circle Rank Badge asset component path overlaps the permanent AdMob protected-feature regex, but this update contains no advertising or finance logic changes and must preserve ad rendering.",
+      "preservedBehaviors": [
+        "First-view AdMob placements, ad load and fill behavior, QMP, Points, withdrawals and finance authorization remain untouched."
+      ],
+      "tests": [
+        "tests/season2-avatar-admob-guard-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "faith-content-localization",
+      "reason": "LIFE uses the same bilingual preference from entry through all routes and Community preview without overriding app global language or changing spiritual checkpoints.",
+      "preservedBehaviors": [
+        "No modification of deferred production AuthProvider query, auth/session guards, or Supabase schema.",
+        "Language stays per-account and offline, and the entire LIFE subtree hydrates saved preferences before rendering.",
+        "Community Wall initial content, AdMob, and tab navigation remain non-blocking."
+      ],
+      "tests": [
+        "tests/life-language-auth-navigation-20261119.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No unverified user receives a fabricated rank or blue online indicator.",
+    "No per-avatar realtime channel or user-rank network fan-out; same cached atlas reused.",
+    "Note chip at upper right, blue presence at bottom, badge upper-left with transparent background.",
+    "No production or staging OTA without independent signed Android source/runtime/AdMob/nav verification.",
+    "Android compile QA is source-only: no EAS OTA, production deployment, or backend mutations.",
+    "No AuthProvider.tsx change; preferred_language DB selection remains deferred pending isolated auth verification."
+  ],
+  "acceptanceChecks": [
+    "40 ranks in 8 families map one-to-one to authoritative public.buklod_rank_levels and asset atlas without missing or duplicate keys.",
+    "QA contact sheet confirms transparent badge silhouettes and absence of neighboring cells.",
+    "Run tests/season2-avatar-badges-20261119.test.mjs plus old rank/profile/Wall/Connect/AdMob/nav regressions.",
+    "TypeScript, Expo staging Android export and real device Wall/Connect hitboxes, Note overlay, blue online/offline transitions must pass.",
+    "Release only on staging-user runtime 1.3.2 and read back exact served artifact; confirm production stays unchanged.",
+    "Wall and Connect author/contact rank props render instantly using existing verified feed data; background rank refresh preserves server authority.",
+    "Android staging-only export job validates runtime package, asset checksum, TypeScript, focused avatar/rank/Ads regression tests, and never publishes OTA or production.",
+    "The 2026-11-09 regression assertions verify the current persisted per-character level contract and both Circle Rank and Points navigation; never restore level-one switching resets to satisfy stale literals.",
+    "New staging-only Android compile/AdMob/instant-navigation/LIFE/badge source gates pass before OTA marker; then physical-device QA and EAS served-manifest receipt. No production changes."
+  ],
+  "alternativeApproaches": [
+    "Draw generic shields (rejected: not approved artwork)",
+    "Download each badge per avatar (rejected: network and memory overhead)",
+    "Add private per-avatar Realtime channels (rejected: excessive subscriptions)"
+  ],
+  "releaseMode": "STAGING_SOURCE_QA_NO_OTA",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

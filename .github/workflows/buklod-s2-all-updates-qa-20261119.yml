@@ -1,0 +1,81 @@
+name: BUKLOD S2 Combined LIFE + Rank Avatar Android QA — NO PUBLISH
+on:
+  push:
+    branches: [staging/season2-all-updates-20261119]
+    paths: ['.github/workflows/buklod-s2-all-updates-qa-20261119.yml']
+permissions:
+  contents: read
+concurrency:
+  group: buklod-s2-all-updates-android-no-ota
+  cancel-in-progress: true
+jobs:
+  staging-compile-only:
+    if: ${{ github.ref == 'refs/heads/staging/season2-all-updates-20261119' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Hard staging-only boundaries; keep deferred auth and prod economics unchanged
+        run: |
+          set -euo pipefail
+          git diff --exit-code 404c87e55c62a88c95c7389ac8665f237149702a HEAD -- 'src/app/(auth)/login.tsx' 'src/providers/AuthProvider.tsx'
+          test -n "$EXPO_TOKEN"
+          node - <<'NODE'
+          const a=require('node:assert/strict'),c=require('./app.config.js')({config:{}}),e=require('./eas.json');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.appTarget,'main');
+          a.equal(e.build['staging-user'].channel,'staging-user');
+          a.notEqual(e.build.production.channel,e.build['staging-user'].channel);
+          const fs=require('node:fs'),crypto=require('node:crypto');
+          a.equal(crypto.createHash('sha256').update(fs.readFileSync('assets/season2/rank-badges/buklod-circle-ranks-atlas.webp')).digest('hex'),'db2a7604e5657263336c8a358e0ef2d800cc6b6a3a7fc6b9c5a5a19174373887');
+          NODE
+      - name: Consolidated source, language, rank, finance, ads and navigation checks
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+          node scripts/season2-governance.cjs validate
+          node scripts/season2-governance.cjs ci
+          node --experimental-strip-types --test \
+            tests/life-language-auth-navigation-20261119.test.mjs \
+            tests/season2-avatar-badges-20261119.test.mjs \
+            tests/season2-connect-avatar-badges-20261119.test.mjs \
+            tests/season2-wall-avatar-navigation-20261119.test.mjs \
+            tests/season2-avatar-admob-guard-20261119.test.mjs \
+            tests/season2-avatar-android-compile-gate-20261119.test.mjs \
+            tests/circle-rank-badges-recognition-20261109.test.mjs \
+            tests/circle-rank-progression-20261109.test.mjs \
+            tests/season2-governance-contract.test.mjs \
+            tests/buklod-season2-carryover-contract-20261119.test.mjs \
+            tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/dashboard-instant-tabs-20261117.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs
+          node scripts/buklod-ad-surface-audit.mjs --summary
+      - name: Android staging JS export only — NEVER publish OTA
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-s2-all-updates-env --non-interactive >/dev/null
+          set -a; . /tmp/buklod-s2-all-updates-env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-s2-all-updates-android --clear
+          test -s /tmp/buklod-s2-all-updates-android/metadata.json
+          echo "Android staging bundle source QA complete — no EAS update issued"
