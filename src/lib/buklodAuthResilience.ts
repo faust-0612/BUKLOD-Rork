@@ -201,7 +201,11 @@ export async function signInWithPasswordResilient(
         authRuntimeState.lastSignedInAt = Date.now();
       }
 
-      if (result?.error) {
+      // Wrong credentials are ordinary sign-in feedback, not backend
+      // incidents and must never create deferred BSOC escalations.
+      if (result?.error &&
+          !isBuklodInvalidCredentialsError(result.error) &&
+          authErrorCode(result.error) !== 'auth_in_progress') {
         void enqueueDeferredBuklodFailure(
           /timed out|timeout/i.test(authErrorText(result.error))
             ? 'AUTH_REQUEST_TIMEOUT' : 'AUTH_REQUEST_FAILED',
