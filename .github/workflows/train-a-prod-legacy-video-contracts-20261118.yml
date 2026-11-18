@@ -26,4 +26,4 @@ jobs:
           node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-playback-recovery.test.mjs
           node --experimental-strip-types --test tests/video-handoff-connect-navigation-ads-20261117.test.mjs tests/scoped-community-video-sidecar-recovery.test.mjs tests/fullscreen-video-session-navigation-20261118.test.mjs
           node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
-          node scripts/buklod-season2-production-embargo.cjs --production
+          GITHUB_REF=refs/heads/main GITHUB_SHA="$(git rev-parse HEAD)" node scripts/buklod-season2-production-embargo.cjs --production
