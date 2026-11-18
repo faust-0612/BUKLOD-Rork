@@ -8,7 +8,8 @@ import {SEASON_JOURNEY_TRACKS,
 import {BUKLOD_SEASON2_CAMPAIGN,BUKLOD_SEASON2_ACTS,
   BUKLOD_SEASON2_WEEKLY_BEATS,BUKLOD_SEASON2_CHARACTER_CAST,
   BUKLOD_SEASON2_CAST_ORDER,BUKLOD_SEASON2_REWARDS,
-  previewSeason2EditorialWeek} from '@/lib/buklodSeason2CampaignR1';
+  previewSeason2EditorialWeek,BUKLOD_SEASON2_PROLOGUE_INITIAL,
+  nextSeason2Prologue,season2PrologueScene} from '@/lib/buklodSeason2CampaignR1';
 import {BUKLOD_CHARACTER_DISPLAY_NAME} from '@/lib/buklodCharacterWorldCatalog';
 
 const C={green:'#0A663B',ink:'#17382A',muted:'#587769',
@@ -23,10 +24,12 @@ export default function BuklodSeasonJourneyPreview({
   const [open,setOpen]=useState(false);
   const [track,setTrack]=useState<string>('explorer');
   const [castIndex,setCastIndex]=useState(0);
+  const [prologue,setPrologue]=useState(BUKLOD_SEASON2_PROLOGUE_INITIAL);
   const [roadmapOpen,setRoadmapOpen]=useState(false);
   const [weekDetail,setWeekDetail]=useState<number|null>(null);
   const castId=BUKLOD_SEASON2_CAST_ORDER[castIndex];
   const cast=BUKLOD_SEASON2_CHARACTER_CAST[castId];
+  const prologueScene=season2PrologueScene(prologue,castId);
   const state=useMemo(()=>deriveBuklodSeasonState(
     season,manilaCalendarDay(),verified),[season,verified]);
   const journey=SEASON_JOURNEY_TRACKS.find(x=>x.id===track)??SEASON_JOURNEY_TRACKS[0];
@@ -117,6 +120,38 @@ export default function BuklodSeasonJourneyPreview({
             </Text>
             <Text style={s.previewNote}>
               Concept only · Proposed 12 weeks · End date not published
+            </Text>
+          </View>
+          <View style={s.prologue}>
+            <Text style={s.prologueKicker}>PLAYABLE PROLOGUE · OFFLINE PREVIEW</Text>
+            <Text style={s.prologueTitle}>{prologueScene.title}</Text>
+            <Text style={s.prologueBody}>{prologueScene.text}</Text>
+            {prologue.step==='START'?(
+              <View style={s.prologueChoices}>
+                {SEASON_JOURNEY_TRACKS.map(item=>(
+                  <Pressable key={item.id} accessibilityRole="button"
+                    accessibilityLabel={'Start '+item.title+' story'}
+                    onPress={()=>setPrologue(state=>nextSeason2Prologue(
+                      state,item.id as 'explorer'|'creator'|'together'))}
+                    style={s.prologueChoice}>
+                    <Text style={s.prologueChoiceText}>{item.title}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ):(
+              <Pressable accessibilityRole="button"
+                accessibilityLabel={prologue.step==='SCENE'?'Finish prologue':'Replay prologue'}
+                onPress={()=>setPrologue(state=>nextSeason2Prologue(
+                  state,state.step==='SCENE'?'finish':'restart'))}
+                style={s.prologueNext}>
+                <Text style={s.prologueNextText}>
+                  {prologue.step==='SCENE'?'Discover the next scene':'Replay the story'}
+                </Text>
+                <MaterialCommunityIcons name="arrow-right" size={16} color="#FFFFFF"/>
+              </Pressable>
+            )}
+            <Text style={s.previewNote}>
+              Story demo only: no posting, enrollment, rewards or backend changes.
             </Text>
           </View>
           <Text style={s.sectionTitle}>MEET THE 13 GUIDES</Text>
@@ -250,6 +285,17 @@ const s=StyleSheet.create({
     backgroundColor:'#FFF7E5',borderWidth:1,borderColor:'#EEDBAD'},
   prizeTitle:{fontSize:10,fontWeight:'900',color:C.gold},
   prizeText:{fontSize:10,lineHeight:15,color:'#715C31'},
+  prologue:{padding:11,borderRadius:11,backgroundColor:'#132E27',gap:8},
+  prologueKicker:{fontSize:9,fontWeight:'900',letterSpacing:0.5,color:'#B5ECCB'},
+  prologueTitle:{fontSize:16,fontWeight:'900',color:'#FFFFFF'},
+  prologueBody:{fontSize:11,lineHeight:17,color:'#DBEFE3'},
+  prologueChoices:{flexDirection:'row',gap:5},
+  prologueChoice:{flex:1,alignItems:'center',borderRadius:8,borderWidth:1,
+    borderColor:'#9BC9AE',paddingVertical:9,paddingHorizontal:4},
+  prologueChoiceText:{fontSize:10,fontWeight:'900',color:'#FFFFFF'},
+  prologueNext:{flexDirection:'row',alignItems:'center',justifyContent:'center',
+    gap:6,borderRadius:8,backgroundColor:'#198A58',padding:9},
+  prologueNextText:{fontSize:11,fontWeight:'900',color:'#FFFFFF'},
   storyIntro:{borderRadius:10,padding:10,gap:4,backgroundColor:'#E7F2FF'},
   storyTitle:{fontSize:13,fontWeight:'900',color:'#183F69'},
   storyText:{fontSize:11,lineHeight:16,color:'#395875'},

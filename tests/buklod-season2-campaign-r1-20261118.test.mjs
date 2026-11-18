@@ -100,3 +100,36 @@ test('existing Points/Season preview uses the new campaign but preserves all ads
   assert.match(card,/Notifications are not enabled by this preview/);
   assert.doesNotMatch(card,/supabase|\.rpc\(|\.insert\(|\.update\(|\.delete\(|setInterval/i);
 });
+
+test('the playable prologue branches into all three safe paths without minting',async()=>{
+  const {BUKLOD_SEASON2_PROLOGUE_INITIAL,nextSeason2Prologue,
+    season2PrologueScene}=await import('../src/lib/buklodSeason2CampaignR1.ts');
+  for(const track of ['explorer','creator','together']){
+    const started=BUKLOD_SEASON2_PROLOGUE_INITIAL;
+    const scene=nextSeason2Prologue(started,track);
+    assert.equal(scene.step,'SCENE');
+    assert.equal(scene.track,track);
+    const text=season2PrologueScene(scene,'mitch');
+    assert.equal(text.rewardEligible,false);
+    assert.ok(text.text.length>45);
+    const done=nextSeason2Prologue(scene,'finish');
+    assert.equal(done.step,'COMPLETE');
+    assert.equal(done.track,track);
+    assert.equal(season2PrologueScene(done,'mitch').rewardEligible,false);
+    assert.deepEqual(nextSeason2Prologue(done,'restart'),started);
+    assert.deepEqual(nextSeason2Prologue(done,'finish'),done);
+  }
+});
+test('the full 13-character prologue is a read-only local scene for every guide',async()=>{
+  const {season2PrologueScene,BUKLOD_SEASON2_PROLOGUE_INITIAL,
+    BUKLOD_SEASON2_CAST_ORDER}=await import('../src/lib/buklodSeason2CampaignR1.ts');
+  for(const id of BUKLOD_SEASON2_CAST_ORDER){
+    const s=season2PrologueScene(BUKLOD_SEASON2_PROLOGUE_INITIAL,id);
+    assert.equal(s.rewardEligible,false);
+    assert.match(s.title,/Beacon/);
+  }
+  const ui=readFileSync('src/components/points/BuklodSeasonJourneyPreview.tsx','utf8');
+  assert.match(ui,/PLAYABLE PROLOGUE · OFFLINE PREVIEW/);
+  assert.match(ui,/nextSeason2Prologue/);
+  assert.match(ui,/no posting, enrollment, rewards or backend changes/);
+});

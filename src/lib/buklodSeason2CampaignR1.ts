@@ -168,3 +168,47 @@ export function previewSeason2EditorialWeek(
   return {week,date:new Date(d.getTime()+(week-1)*7*86400000).toISOString().slice(0,10),
     published:false};
 }
+
+/** Offline-safe original text prologue. Local story state only; never an award. */
+export type Season2PrologueState=Readonly<{
+  step:'START'|'SCENE'|'COMPLETE';
+  track:BuklodSeason2Track|null;
+}>;
+export const BUKLOD_SEASON2_PROLOGUE_INITIAL:Season2PrologueState=Object.freeze({
+  step:'START',track:null,
+});
+export function nextSeason2Prologue(
+  state:Season2PrologueState,
+  action:BuklodSeason2Track|'finish'|'restart',
+):Season2PrologueState {
+  if(action==='restart')return BUKLOD_SEASON2_PROLOGUE_INITIAL;
+  if(state.step==='START'&&
+    (action==='explorer'||action==='creator'||action==='together'))
+    return {step:'SCENE',track:action};
+  if(state.step==='SCENE'&&action==='finish')
+    return {step:'COMPLETE',track:state.track};
+  return state;
+}
+export function season2PrologueScene(state:Season2PrologueState,
+  characterId:BuklodCharacterWorldId):{title:string;text:string;rewardEligible:false}{
+  const guide=BUKLOD_SEASON2_CHARACTER_CAST[characterId];
+  if(state.step==='START')
+    return {title:'The Hidden Beacon',
+      text:'The BUKLOD beacon is fading. Thirteen Guides are waiting for you. '+
+        guide.line+' Choose how your journey begins.',rewardEligible:false};
+  if(state.step==='SCENE'){
+    const story:Record<BuklodSeason2Track,string>={
+      explorer:'You open an old map. A door of stories appears: learning reveals the first clue.',
+      creator:'You uncover an empty page. It responds to real stories, not copied words or noisy clicks.',
+      together:'You find a broken bridge. A respectful connection can help rebuild it, one person at a time.',
+    };
+    return {title:'The First Spark',
+      text:(story[state.track??'explorer'])+' '+guide.role+' is your story companion.',
+      rewardEligible:false};
+  }
+  return {title:'The Map Awakens',
+    text:'A first light appears on the map. Your story preview is complete. '+
+      'Earned items and points require a future published, verified quest. '+
+      'You may replay this scene freely.',
+    rewardEligible:false};
+}
