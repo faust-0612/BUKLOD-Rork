@@ -128,7 +128,7 @@ export default function BuklodSyncCoordinator() {
       if (sessionError || sessionData.session?.user?.id !== item.userId) {
         throw new OfflineQueueDeferredError();
       }
-      const { error } = await withBuklodTimeout(
+      const { error } = await withBuklodTimeout<{ error: any }>(
         (supabase as any).rpc('add_buklod_post_comment_v5', {
           p_post_id: payload.postId,
           p_body: payload.body,
