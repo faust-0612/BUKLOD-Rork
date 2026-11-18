@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/season2-circle-rank-avatar-20261119.json",
   "objective": "Stage user-approved original 40 BUKLOD Circle Rank artwork and unified 10-o'clock avatar decorations in Season 2 only. Preserve rank/points authority and production.",
   "baseRef": "staging/season2-rise-together-20261118",
-  "productionBaselineEvidence": "Verified Train A production source 404c87e55c62a88c95c7389ac8665f237149702a9, production OTA 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2. Season 2 production embargo until Dec 6 or later.",
+  "productionBaselineEvidence": "Verified Train A production source 404c87e55c62a88c95c7389ac8665f237149702a, production OTA 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2. Season 2 production embargo until Dec 6 or later.",
   "chosenApproach": "One offline transparent 5x8 WebP atlas generated from 40 owner-approved individually segmented badges, canonical read-only rank RPC batches, shared avatar badge and online presence, retaining all existing navigation and notes. Exact staging-only DEV branch and V2 scope.",
   "selectionRationale": "Keep Season 2 artwork isolated; one shared component and offline atlas prevent divergent Wall/Connect/Profile renders and square badge clipping. Do not edit existing rewards or production.",
   "alternativeApproaches": [
@@ -18,13 +18,15 @@
     "ads-first-view",
     "wall-readability",
     "rank-canonical-mapping",
-    "protected-governance"
+    "protected-governance",
+    "navigation-scroll",
+    "connect"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-circle-rank-avatar-20261119.json",
     ".github/workflows/engineering-accountability.yml",
     "tests/protected-feature-lock.test.mjs",
-    "tests/season2-avatar-navigation-rank-20261119.test.mjs",
+    "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs",
     "assets/season2/circle-rank-atlas.webp",
     "src/lib/buklodCircleRankArtwork.ts",
     "src/components/points/BuklodSeason2RankArtwork.tsx",
@@ -57,7 +59,7 @@
   ],
   "regressionTests": [
     "tests/buklod-season2-circle-rank-artwork-20261119.test.mjs",
-    "tests/season2-avatar-navigation-rank-20261119.test.mjs",
+    "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs",
     "tests/protected-feature-lock.test.mjs"
   ],
   "lockedFeatureChanges": [
@@ -78,7 +80,7 @@
         "Existing Wall profile taps, Connect message taps, authenticated account scope and Android tabs remain intact."
       ],
       "tests": [
-        "tests/season2-avatar-navigation-rank-20261119.test.mjs"
+        "tests/season2-avatar-connect-navigation-rank-20261119.test.mjs"
       ]
     },
     {
