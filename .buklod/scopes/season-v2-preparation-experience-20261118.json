@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season-v2-preparation-experience-20261118.json",
+  "objective": "Deliver an honest read-only BUKLOD Season Journey in Points with 4 chapter and 3 track previews, official schedule notices candidate and verified Season 1 rollover HOLD.",
+  "baseRef": "d23cd882f7d34c4bca3a110dadd04ee4cb2240a9",
+  "productionBaselineEvidence": "Read-only 2026-11-18 GitHub/Supabase audit: live Season 1 2026-08-01..2026-10-31 has status=active beyond expiry; season result count 0. Exact installed Android OTA/runtime fingerprint not verified. No production writes.",
+  "chosenApproach": "Existing authenticated Points rank dashboard response -> compact collapsed read-only Season teaser with interactive local track previews, pure Manila-date lifecycle and single opt-in notice candidate. Future backend reconciliation remains independent.",
+  "selectionRationale": "Reuses existing RPC and UI, avoids introducing a second Season economy, unsafe direct rollover, extra fetch, ads/nav delay or fake prize granting.",
+  "alternativeApproaches": [
+    "Auto-close Season 1 without reconciling BP claims and empty results (rejected: history corruption)",
+    "Launch Season 2 and duplicate points table from client previews (rejected: fabricated rankings and rewards)",
+    "Read-only player experience and backend guarded close design first (chosen)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "rank-dashboard",
+    "season-overdue",
+    "first-view-AdMob",
+    "navigation-latency",
+    "account-isolation",
+    "weak-network"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season-v2-preparation-experience-20261118.json",
+    "src/lib/buklodSeasonJourneyR2.ts",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "docs/BUKLOD_SEASON_V2_PREPARATION_EXPERIENCE_20261118.md"
+  ],
+  "preserveBehaviors": [
+    "No new or altered RPC, no additional network I/O or polling on Points dashboard navigation; no new AdMob load or native dependency",
+    "Existing BP claim, lifetime Circle Rank, cached account-scoped Points, history, leaderboards, UI and ads intact",
+    "Display expired Season 1 as scheduled period ended without claiming finalized results or Season 2",
+    "Season notice candidates neither send notifications nor access private faith/child info; zero account deletion",
+    "No production data write, rewards, token grants, QMP or financial settlement change; no live season activation"
+  ],
+  "acceptanceChecks": [
+    "12 focused behavioral tests: Manila cutoff, inclusive dates, expired hold, no false season, preview paths and chapters, notice consent/dedupe/offline, Points zero-additional-fetch contract",
+    "Protected scope and app-runtime regression gate pass",
+    "Full TypeScript/Expo, AdMob tab first-view, dashboard responsiveness and offline behavior pass before RC",
+    "No RC/OTA without Season 1 historical settlement and exact installed runtime/source verification"
+  ],
+  "regressionTests": [
+    "tests/buklod-season-v2-experience-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Adds one collapsed Points companion component and pure Season V2 presentation model; preserves existing claim/finance/AdMob/nav behavior.",
+      "preservedBehaviors": [
+        "No new RPC or data fetching; existing account-scoped rank snapshot only",
+        "No callback writes existing BP, QMP, Character, ads, messages or season state",
+        "No invalid live countdown on expired Season1 or missing authoritative data"
+      ],
+      "tests": [
+        "tests/buklod-season-v2-experience-20261118.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV draft PR only; no staging or production deployment",
+  "publicationStatus": "DEV_READONLY_PREVIEW_NOT_DEPLOYED",
+  "runtimeVersion": "unchanged"
+}
