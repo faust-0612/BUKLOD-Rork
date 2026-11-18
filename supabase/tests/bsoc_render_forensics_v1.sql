@@ -25,13 +25,11 @@ begin
   end if;
   select pg_get_functiondef(to_regprocedure(function_signature)) into function_source;
   if function_source not like '%e.user_id=actor%'
-     or function_source not like '%on conflict(health_event_id) do nothing%'
-     or function_source not like '%raw%' then
-    -- Check references by positive checks; no raw text/stack parameters.
-    if function_source not like '%e.user_id=actor%'
-       or function_source not like '%on conflict(health_event_id) do nothing%' then
-      raise exception 'Forensic RPC missing owner-bound, first-write-wins checks';
-    end if;
+     or function_source not like '%on conflict(health_event_id) do nothing%' then
+    raise exception 'Forensic RPC missing owner-bound, first-write-wins checks';
+  end if;
+  if function_source like '%p_raw_stack%' or function_source like '%p_error_message%' then
+    raise exception 'Raw exception content must never be an RPC input';
   end if;
   select count(*) into check_count
   from pg_policies
