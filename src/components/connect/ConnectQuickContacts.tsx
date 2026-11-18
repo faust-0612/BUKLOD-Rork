@@ -523,6 +523,7 @@ function ContactColumn({
           userId={contact.user_id}
           name={contact.full_name}
           uri={contact.avatar_url}
+          rankName={contact.rank_name}
           size={AVATAR_SIZE}
           shape="rounded"
           enableLongPressSheet={!isSelf}

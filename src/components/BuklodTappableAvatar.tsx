@@ -25,6 +25,7 @@ import {
 type Props = {
   userId?: string | null;
   uri?: string | null;
+  rankName?: string | null;
   name?: string | null;
   size?: number;
   fallbackSource?:
@@ -95,6 +96,7 @@ export function isAvatarCircleHit(
 export function BuklodTappableAvatar({
   userId,
   uri,
+  rankName,
   name,
   size = 48,
   fallbackSource,
@@ -154,6 +156,7 @@ export function BuklodTappableAvatar({
     <ProfileAvatar
       userId={userId}
       uri={uri}
+      rankName={rankName}
       name={name}
       size={size}
       fallbackSource={fallbackSource}
@@ -215,7 +218,7 @@ export function BuklodTappableAvatar({
           width: size,
           height: size,
           borderRadius: size / 2,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {avatar}
