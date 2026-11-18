@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { Card, SectionTitle, shared, Button } from '@/components/UI';
+import { shared, Button } from '@/components/UI';
+import { ReadableFaithCard as Card, ReadableFaithSectionTitle as SectionTitle } from '@/components/education/ReadableFaithSurface';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
@@ -878,7 +879,7 @@ const styles = StyleSheet.create({
   },
 
   lessonRowLocked: {
-    opacity: 0.72,
+    opacity: 1,
   },
 
   lessonLockedMeta: {
@@ -917,7 +918,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     fontWeight: '800',
-    color: colors.amber,
+    color: '#8F5400',
   },
 
   rejected: {

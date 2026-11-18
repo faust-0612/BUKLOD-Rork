@@ -7,7 +7,8 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 
-import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import { Button, shared } from '@/components/UI';
+import { ReadableFaithCard as Card, ReadableFaithSectionTitle as SectionTitle } from '@/components/education/ReadableFaithSurface';
 import FormationAdvancedStageCatalog from '@/components/formation/FormationAdvancedStageCatalog';
 import {
   formationCopy,
@@ -285,7 +286,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   stageWrap: { marginBottom: 10 },
-  cardLocked: { opacity: 0.72 },
+  cardLocked: { opacity: 1 },
   stageTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',

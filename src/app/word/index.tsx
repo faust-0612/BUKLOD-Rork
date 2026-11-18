@@ -21,10 +21,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  Card,
-  SectionTitle,
   shared,
 } from '@/components/UI';
+import { ReadableFaithCard as Card, ReadableFaithSectionTitle as SectionTitle } from '@/components/education/ReadableFaithSurface';
 import BuklodClusterMembershipGate from '@/components/BuklodClusterMembershipGate';
 import {
   supabase,
