@@ -83,7 +83,7 @@ jobs:
           test -n "$EXPO_TOKEN"
           private_file="$(mktemp /tmp/buklod-eas-plan.XXXXXXXX.json)"
           trap 'rm -f "$private_file"' EXIT
-          npx --yes eas-cli@27.9.0 account:usage --json --non-interactive > "$private_file"
+          npx --yes eas-cli@27.9.0 account:usage faust_0612 --json --non-interactive > "$private_file"
           node scripts/season2-expo-free-plan-guard.cjs "$private_file"
       - name: Verify signed staging Android binary, current production, and separate channels
         shell: bash

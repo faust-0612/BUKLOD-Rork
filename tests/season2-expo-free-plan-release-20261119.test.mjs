@@ -19,7 +19,7 @@ test('staging-only publisher checks billing BEFORE any EAS build/view/export/upd
   const chargeSensitive=workflow.indexOf('npx --yes eas-cli@27.9.0 build:view');
   const publish=workflow.indexOf('update --channel staging-user');
   assert.ok(guard>0&&chargeSensitive>guard&&publish>chargeSensitive);
-  assert.match(workflow,/eas-cli@27\.9\.0 account:usage --json --non-interactive/);
+  assert.match(workflow,/eas-cli@27\.9\.0 account:usage faust_0612 --json --non-interactive/);
   assert.match(workflow,/private_file="\$\(mktemp \/tmp\/buklod-eas-plan\./);
   assert.match(workflow,/trap 'rm -f "\$private_file"' EXIT/);
   assert.doesNotMatch(workflow,/eas-cli[^\n]*build --platform/i);
