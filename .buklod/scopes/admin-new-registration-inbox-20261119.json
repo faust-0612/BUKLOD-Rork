@@ -14,7 +14,8 @@
     "app-runtime",
     "admin-operations",
     "privacy-data",
-    "support-case-routing"
+    "support-case-routing",
+    "navigation-scroll"
   ],
   "preserveBehaviors": [
     "Season 1/2 rules, points, rewards, ad rendering, Wall, Connect, profile and Expo runtime unchanged",
@@ -33,7 +34,9 @@
   "regressionTests": [
     "tests/admin-new-registration-inbox-20261119.test.cjs",
     "tests/admin-registration-security-20261119.test.cjs",
-    "tests/admin-registration-notification-route-20261119.test.cjs"
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs"
   ],
   "allowedPaths": [
     "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
@@ -44,7 +47,9 @@
     ".buklod/scopes/admin-new-registration-inbox-20261119.json",
     "docs/BSOC_OWNER_BULK_RESOLUTION_20261119.md",
     "tests/admin-registration-security-20261119.test.cjs",
-    "tests/admin-registration-notification-route-20261119.test.cjs"
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -64,7 +69,8 @@
         "Existing notification routing, authenticated destinations, signup and Connect behavior stay unchanged."
       ],
       "tests": [
-        "tests/admin-registration-notification-route-20261119.test.cjs"
+        "tests/admin-registration-notification-route-20261119.test.cjs",
+        "tests/admin-registration-navigation-scroll-20261119.test.cjs"
       ]
     },
     {
