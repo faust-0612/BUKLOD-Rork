@@ -57,7 +57,8 @@
     "tests/season2-staging-backend-isolation-20261119.test.cjs",
     ".buklod/releases/season2-conso-staging-20261119.json",
     ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
-    "tests/season2-visual-only-hold-20261119.test.cjs"
+    "tests/season2-visual-only-hold-20261119.test.cjs",
+    "tests/season2-production-release-staging-only-hold-20261119.test.cjs"
   ],
   "productionSeason2Embargo": "2026-12-06",
   "productionChanges": false,
@@ -93,7 +94,8 @@
     "faith-content-localization",
     "profile-preferences",
     "account-isolation",
-    "supabase-backend-isolation"
+    "supabase-backend-isolation",
+    "production-release"
   ],
   "regressionTests": [
     "tests/season2-avatar-badges-20261119.test.mjs",
@@ -106,7 +108,8 @@
     "tests/life-language-auth-navigation-20261119.test.mjs",
     "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
     "tests/season2-staging-backend-isolation-20261119.test.cjs",
-    "tests/season2-visual-only-hold-20261119.test.cjs"
+    "tests/season2-visual-only-hold-20261119.test.cjs",
+    "tests/season2-production-release-staging-only-hold-20261119.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -158,6 +161,18 @@
       "tests": [
         "tests/season2-avatar-admob-guard-20261119.test.mjs"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "The staging-only EAS publisher gains an explicit December 6 Season 2 reward hold without touching or authorizing production; existing manifest identity and rollback checks stay mandatory.",
+      "preservedBehaviors": [
+        "Never route an EAS update to the production branch or production package from this staging publisher.",
+        "Production served manifest must remain unchanged before and after staging publish.",
+        "Reward SQL remains a local source draft: no migration, credential grant, token mint, character reset, QMP or cash debit."
+      ],
+      "tests": [
+        "tests/season2-production-release-staging-only-hold-20261119.test.cjs"
+      ]
     }
   ],
   "preserveBehaviors": [
@@ -188,7 +203,8 @@
     "The reward activation gate must fail when preview URL points to real Main yhanxndaqbmuzbdqlblu, an unrelated BUKLOD app, an unapproved or malformed project ref, or production EAS identity changes.",
     "CI PR runs compile/typecheck/focused ad/navigation tests on exact Season2 PR head; a separate backend job validates EAS preview/production public URLs without printing credentials and never writes a database.",
     "A successful URL comparison is not RLS, user-scoped event verifier, anti-farm, AdMob physical-device or actual Supabase staging database readiness; all require distinct evidence before enabling grants or publishing OTA.",
-    "Exact source reward hold test must pass and staging publisher must reject reward activation: no public/prod Supabase writes, no token grants, no Season1 money/rank changes."
+    "Exact source reward hold test must pass and staging publisher must reject reward activation: no public/prod Supabase writes, no token grants, no Season1 money/rank changes.",
+    "Production-release protected change is covered by a changed release-named regression test validating channel isolation, unchanged production manifest and explicit separate owner approval for rewards."
   ],
   "alternativeApproaches": [
     "Draw generic shields (rejected: not approved artwork)",
