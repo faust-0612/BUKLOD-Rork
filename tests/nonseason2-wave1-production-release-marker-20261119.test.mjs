@@ -38,14 +38,16 @@ test('production promotion touches release marker and auditable test only', () =
   assert.deepEqual(scope.regressionTests, ['tests/nonseason2-wave1-production-release-marker-20261119.test.mjs']);
   assert.deepEqual(scope.lockedFeatureChanges, []);
 });
-test('existing workflow remains responsible for the production frozen RC, native, ads, navigation, served hash and Season2 embargo', () => {
-  assert.match(workflow, /BUKLOD_ANDROID_ONLY_PROD_20261114:/);
-  assert.match(workflow, /node scripts\\/buklod-season2-production-embargo\\.cjs --production/);
-  assert.match(workflow, /node scripts\\/android-ota-rc\\.cjs baseline/);
-  assert.match(workflow, /node scripts\\/android-ota-rc\\.cjs freeze/);
-  assert.match(workflow, /node scripts\\/android-ota-rc\\.cjs verify/);
-  assert.match(workflow, /node scripts\\/android-ota-rc\\.cjs published/);
-  assert.match(workflow, /--channel production --platform android/);
-  assert.match(rc, /assert\\.equal\\(live\\.launchAsset\\.hash, bundleHash/);
-  assert.match(embargo, /INDEPENDENT_NON_SEASON2_FIX_REQUIRES_NORMAL_GATES/);
+test('existing workflow remains responsible for production native, ads, navigation, served hash and embargo', () => {
+  assert.ok(workflow.includes('BUKLOD_ANDROID_ONLY_PROD_20261114:'));
+  for (const command of [
+    'node scripts/buklod-season2-production-embargo.cjs --production',
+    'node scripts/android-ota-rc.cjs baseline',
+    'node scripts/android-ota-rc.cjs freeze',
+    'node scripts/android-ota-rc.cjs verify',
+    'node scripts/android-ota-rc.cjs published',
+    '--channel production --platform android',
+  ]) assert.ok(workflow.includes(command), command);
+  assert.ok(rc.includes('assert.equal(live.launchAsset.hash, bundleHash'));
+  assert.ok(embargo.includes('INDEPENDENT_NON_SEASON2_FIX_REQUIRES_NORMAL_GATES'));
 });
