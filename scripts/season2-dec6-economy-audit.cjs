@@ -88,6 +88,12 @@ function validateInventory(i,scope){
   check(t?.finance?.earmarkedPercent===30&&t.finance.withdrawalMinimumPHP===200&&
     t.finance.requiresVerifiedLegalIdentity===true&&t.finance.requiresMatchingPayoutBeneficiary===true,'WITHDRAWAL_SECURITY_GAP');
   check(t?.antiFarm?.length>=10&&t.antiFarm.some(x=>x.includes('rule upgrades')),'REPLAY_GUARD_GAP');
+  check(t?.optionalRewardedAds?.pointsGrantedBP===0&&t.optionalRewardedAds.qmpGranted===0&&
+    t.optionalRewardedAds.cashGrantedPHP===0&&t.optionalRewardedAds.journeyTokensAutomaticallyGranted===0&&
+    t.optionalRewardedAds.requiresOptIn===true&&t.optionalRewardedAds.requiresProviderEarnedCallback===true,
+    'REWARDED_AD_DIRECT_POINTS_OR_CASH_VIOLATION');
+  check(t?.badgeTitleCandidates?.approval==='CANDIDATE_NAMES_ONLY_NOT_SERVER_GRANTS'&&
+    t.badgeTitleCandidates.names.length===6,'UNVERIFIED_BADGE_TITLES_MARKED_EARNED');
   check(i?.nonExclusiveApprovedSupplement?.length===1&&
     i.nonExclusiveApprovedSupplement[0].id==='daily_proverbs_show_faith_wall'&&
     i.nonExclusiveApprovedSupplement[0].tokens===0,'UNAPPROVED_ELEVENTH_REWARD');
