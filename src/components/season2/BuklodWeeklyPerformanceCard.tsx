@@ -34,6 +34,9 @@ export default function BuklodWeeklyPerformanceCard({userId}:{userId?:string|nul
 
   if(!S2_WEEKLY_PERFORMANCE_STAGING_ONLY||!ownerId||viewerId!==ownerId)return null;
   const current=data.owner===ownerId?data.value:null;
+  // No staged RPC = no half-ready card on members' Profiles. The next
+  // focus rechecks the isolated backend; a valid Unrated record still shows.
+  if(!current)return null;
   const meta=current?WEEKLY_CLASS_META[current.class_code]:null;
   const next=current?WEEKLY_PERFORMANCE_TIERS.find(t=>t.minScore>current.score ||
     (t.minScore<=current.score && t.class_code!==current.class_code &&
