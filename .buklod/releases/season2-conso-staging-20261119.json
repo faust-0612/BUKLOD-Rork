@@ -20,7 +20,15 @@
     "actual-served-staging-manifest",
     "unchanged-production"
   ],
-  "sourceStatus": "86+ source tests and TypeScript verified; staging gate updated to verify current served production rather than stale historical ID",
-  "note": "Stage only. Historical Train A order proof retained; production head is checked immediately before and after publish. No rewards/production activation.",
-  "attempt": 2
+  "sourceStatus": "Android staging export and source regression QA passed on c68ef41e; reward backend isolation blocked for active rewards, so this release is visual-only with explicit reward hold",
+  "note": "Stage user-facing previews only. S2 wallets, token mint/spend, missions, season rollover and economy integration remain OFF even after Dec 6 absent fresh approval and backend verification. Production Season 1 remains unchanged.",
+  "attempt": 3,
+  "rewardsHoldUntilManilaDay": "2026-12-06",
+  "requiresSeparateOwnerApprovalForRewards": true,
+  "season2RewardDbWritesAuthorized": false,
+  "stagingReleaseFeatures": [
+    "40 canonical Circle Rank avatar badges, read-only presence overlays",
+    "LIFE Filipino and English hydration",
+    "Season 2 story journey and 13 guides preview only"
+  ]
 }
