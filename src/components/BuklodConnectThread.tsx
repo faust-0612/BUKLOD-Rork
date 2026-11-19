@@ -4876,8 +4876,8 @@ const [
                 attachmentRetryRef.current[path] = retries + 1;
                 void signAttachmentPath(path, true);
               }}
-              seenReaders={seenReaders}
-              showSeenReport={mode === 'scope' && own && !messageDeleted && hasConfirmedDelivery}
+              seenReaders={own && grouping.endsGroup ? seenReaders : []}
+              showSeenReport={mode === 'scope' && own && grouping.endsGroup && !messageDeleted && hasConfirmedDelivery}
               seenReportAvailable={scopeReadersAvailable}
               onPressSeenReaders={() => {
                 if (!own || mode !== 'scope') return;

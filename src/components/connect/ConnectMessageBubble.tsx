@@ -1,6 +1,7 @@
 import React, {
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import {
   ActivityIndicator,
@@ -149,7 +150,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     bubbleColumn: {
       position: 'relative',
-      maxWidth: '90%'
+      maxWidth: '90%',
       overflow: 'visible',
     },
     bubbleColumnOwn: {
@@ -667,10 +668,8 @@ export function ConnectMessageBubble({
           own
             ? styles.bubbleColumnOwn
             : styles.bubbleColumnOther,
-          showSenderAvatar &&
-            (own
-              ? styles.bubbleWithAvatarOwn
-              : styles.bubbleWithAvatar),
+          !own && styles.bubbleWithAvatar,
+          own && showSenderAvatar && styles.bubbleWithAvatarOwn,
         ]}
       >
         <View style={styles.bubbleAnchor}>
