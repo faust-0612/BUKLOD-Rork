@@ -1,0 +1,81 @@
+{
+  "contractVersion": 2,
+  "objective": "Forward verified non-Season2 Connect message scroll and composer fix to consolidated staging OTA publisher; no reward changes or OTA publication.",
+  "baseRef": "fe596ed78441496eb1ea4bf0a46be4c94ce4aaa4",
+  "productionBaselineEvidence": "Season2 staging publisher exact head fe596ed78441496eb1ea4bf0a46be4c94ce4aaa4; verified staging branch has exact #976 source files, existing release marker unchanged, Season2 rewards OFF. No staging OTA published, no production change.",
+  "chosenApproach": "Preserve chronological FlatList/history anchors. Composer focus temporarily follows latest through keyboard and layout reflows. Own-send wins over an in-flight older-history offset; manual scroll opts out. Reuse existing attachment sheet behind a single 44dp plus control and measure composer height for safe bottom clearance.",
+  "alternativeApproaches": [
+    "Invert message list and rewrite pagination/read cursor logic (rejected: high regressions)",
+    "Keep two large attachment buttons and force scroll only on keyboard event (rejected: narrow input and missed Android layout shifts)"
+  ],
+  "selectionRationale": "Scope-limited UI and scroll behavior repair with existing backend, read cursor, ad lifecycle, reward systems and production runtime unchanged.",
+  "preserveBehaviors": [
+    "Personal and scoped chat messages remain chronologically ordered and confidential",
+    "Older history offset, manual reading, read receipts and latest button work as before",
+    "Photo editing/upload, file selection, emoji/GIF/avatar picker and quick reaction remain reachable",
+    "No mutation to login, Supabase RLS, economy, ads, native runtime or production OTA"
+  ],
+  "acceptanceChecks": [
+    "On input focus, most recent message appears directly above composer as the keyboard opens",
+    "After send, optimistic latest message is visible and keyboard stays ready for next message",
+    "When manually swiping older messages, scroll is not stolen by reflow",
+    "At 360dp Android width, unified attachment control leaves more horizontal writing space",
+    "Composer expansion with multi-line input and photo/reply preview never obscures last row",
+    "Focused Node tests and CI required before staging integration; separate real-device smoke before release",
+    "Do not modify staging OTA marker or production; preserve existing latest-message validation exact files, AdMob gates, no native code changes."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "connect"
+  ],
+  "regressionTests": [
+    "tests/connect-composer-latest-layout-20261119.test.mjs",
+    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectComposer.tsx",
+    "tests/connect-composer-latest-layout-20261119.test.mjs",
+    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs",
+    ".buklod/scopes/connect-composer-latest-publisher-forward-20261119.json"
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseTarget": "STAGING-USER SOURCE ONLY, release marker unchanged",
+  "productionChange": false,
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Adjust shared React Native Connect chat layout and scroll behavior with no native runtime or global navigation changes.",
+      "preservedBehaviors": [
+        "Global navigation, session shell, native runtime, accessibility focus and theme behavior remain unchanged."
+      ],
+      "tests": [
+        "tests/connect-composer-latest-layout-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Fix latest-message anchoring and composer icon layout in shared personal and scope chat without changing calls, history, attachments or read cursor.",
+      "preservedBehaviors": [
+        "Older-page manual scroll, read receipts, direct/scope chat permissions, call signaling and file/photo attachment flows remain intact."
+      ],
+      "tests": [
+        "tests/connect-composer-latest-layout-20261119.test.mjs",
+        "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Conservative filename-matcher overlap flags BuklodConnectThread as an Ad change; actual edits affect chat viewport and no ad/finance/point code.",
+      "preservedBehaviors": [
+        "Ad slot lifecycle, AdMob revenue, finance and points calculations, consent and prefetch code are unmodified."
+      ],
+      "tests": [
+        "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+      ]
+    }
+  ],
+  "scopeManifestPath": ".buklod/scopes/connect-composer-latest-publisher-forward-20261119.json"
+}
