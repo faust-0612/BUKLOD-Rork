@@ -50,6 +50,7 @@ jobs:
           set -euo pipefail
           node --experimental-strip-types --test \
             tests/season2-weekly-performance-class-rewards-20261119.test.mjs \
+            tests/season2-weekly-performance-profile-navigation-20261119.test.mjs \
             tests/season2-avatar-badges-20261119.test.mjs \
             tests/season2-connect-avatar-badges-20261119.test.mjs \
             tests/season2-avatar-admob-guard-20261119.test.mjs \
