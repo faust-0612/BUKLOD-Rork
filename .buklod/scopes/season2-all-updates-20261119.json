@@ -1,6 +1,6 @@
 {
   "contractVersion": 2,
-  "objective": "Season2 safe staging integration: governed rewards-OFF journey, 40 canonical Circle Rank avatar badges, LIFE language-sensitive routes, and version-independent reward evidence replay protection verified in disposable PostgreSQL. No production or live rewards. Add fail-closed verified staging Supabase URL identity checks, with a separate negative/positive CI job that never migrates or grants rewards.",
+  "objective": "Season2 safe staging integration: governed rewards-OFF journey, 40 canonical Circle Rank avatar badges, LIFE language-sensitive routes, and version-independent reward evidence replay protection verified in disposable PostgreSQL. No production or live rewards. Add fail-closed verified staging Supabase URL identity checks, with a separate negative/positive CI job that never migrates or grants rewards. Owner confirms S2 reward engine held until Dec 6 with independent approval required after that date; non-reward previews can publish to staging only.",
   "baseRef": "a1118ec69079dad757222a23798bde59b6a5b002",
   "branch": "staging/season2-all-updates-20261119",
   "environment": "DEV ONLY",
@@ -54,7 +54,10 @@
     "tests/season2-local-postgres-behavior-20261118.sql",
     "contracts/season2-implementation-ledger.json",
     "scripts/season2-staging-backend-isolation.cjs",
-    "tests/season2-staging-backend-isolation-20261119.test.cjs"
+    "tests/season2-staging-backend-isolation-20261119.test.cjs",
+    ".buklod/releases/season2-conso-staging-20261119.json",
+    ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
+    "tests/season2-visual-only-hold-20261119.test.cjs"
   ],
   "productionSeason2Embargo": "2026-12-06",
   "productionChanges": false,
@@ -102,7 +105,8 @@
     "tests/circle-rank-progression-20261109.test.mjs",
     "tests/life-language-auth-navigation-20261119.test.mjs",
     "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
-    "tests/season2-staging-backend-isolation-20261119.test.cjs"
+    "tests/season2-staging-backend-isolation-20261119.test.cjs",
+    "tests/season2-visual-only-hold-20261119.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -164,7 +168,8 @@
     "Android compile QA is source-only: no EAS OTA, production deployment, or backend mutations.",
     "No AuthProvider.tsx change; preferred_language DB selection remains deferred pending isolated auth verification.",
     "Same verified Season2 post/quiz cannot mint again when rule_version changes; historical verified receipt remains valid for weekly foundation, without changing Season1 or real cash.",
-    "Existing released staging channel, production Main Supabase, Season1 economics, RLS, authentication, AdMob and native client remain untouched. No new paid Supabase project or branch created."
+    "Existing released staging channel, production Main Supabase, Season1 economics, RLS, authentication, AdMob and native client remain untouched. No new paid Supabase project or branch created.",
+    "December 6 is earliest review date, not auto-activation: S2 reward credentials, migration, wallet, token grants, and Season1 economy remain disabled until separately authorized and verified."
   ],
   "acceptanceChecks": [
     "40 ranks in 8 families map one-to-one to authoritative public.buklod_rank_levels and asset atlas without missing or duplicate keys.",
@@ -182,14 +187,15 @@
     "Do NOT deploy the SQL draft to any Supabase project until an independent staging database is verified, schema/RLS checked and release authority is present. Real user credits remain disabled.",
     "The reward activation gate must fail when preview URL points to real Main yhanxndaqbmuzbdqlblu, an unrelated BUKLOD app, an unapproved or malformed project ref, or production EAS identity changes.",
     "CI PR runs compile/typecheck/focused ad/navigation tests on exact Season2 PR head; a separate backend job validates EAS preview/production public URLs without printing credentials and never writes a database.",
-    "A successful URL comparison is not RLS, user-scoped event verifier, anti-farm, AdMob physical-device or actual Supabase staging database readiness; all require distinct evidence before enabling grants or publishing OTA."
+    "A successful URL comparison is not RLS, user-scoped event verifier, anti-farm, AdMob physical-device or actual Supabase staging database readiness; all require distinct evidence before enabling grants or publishing OTA.",
+    "Exact source reward hold test must pass and staging publisher must reject reward activation: no public/prod Supabase writes, no token grants, no Season1 money/rank changes."
   ],
   "alternativeApproaches": [
     "Draw generic shields (rejected: not approved artwork)",
     "Download each badge per avatar (rejected: network and memory overhead)",
     "Add private per-avatar Realtime channels (rejected: excessive subscriptions)"
   ],
-  "releaseMode": "STAGING_SOURCE_QA_NO_OTA",
+  "releaseMode": "STAGING_VISUAL_PREVIEW_REWARDS_HELD_NO_PROD",
   "publicationStatus": "NOT_PUBLISHED",
   "physicalDeviceVerification": "NOT_PERFORMED"
 }
