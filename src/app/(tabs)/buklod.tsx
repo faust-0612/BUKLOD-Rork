@@ -1,6 +1,7 @@
 import { buklodVisual } from '@/lib/buklodVisual';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
+import BuklodSeason2ProverbsDailyVerse from '@/components/BuklodSeason2ProverbsDailyVerse';
 import BuklodPostMotion from '@/components/BuklodPostMotion';
 import BuklodWallPostAudioMeter from '@/components/BuklodWallPostAudioMeter';
 import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
@@ -5593,6 +5594,9 @@ const communityFeedRows =
     placement="community_entry"
     placementId="public_wall_entry"
    />
+
+   {/* Season2 read-only Show Faith verse; native ad slot stays in place. */}
+   <BuklodSeason2ProverbsDailyVerse />
 
    {/* BUKLOD_LIVING_COMMUNITY_GREETING_R1: compact celebration banner, ads remain first. */}
    <BuklodLivingGreetingsBanner />
