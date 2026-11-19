@@ -67,9 +67,9 @@ test('40 approved badge art crops in a transparent 5×8 atlas, nonproduction onl
  const badge=read('src/features/season2/genesis/GenesisRankBadgeArtwork.tsx');
  const global=read('src/components/points/BuklodCircleRankBadge.tsx');
  const guide=read('src/lib/buklodCircleRankArt.ts');
- assert.match(badge,/width:size\\*5,height:size\\*8/);
- assert.match(badge,/left:-art\\.levelIndex\\*size,top:-art\\.familyIndex\\*size/);
- assert.match(global,/if \\(isGenesisPreviewBuild\\(\\) && approved\\)/);
+ assert.match(badge,/width:size\*5,height:size\*8/);
+ assert.match(badge,/left:-art\.levelIndex\*size,top:-art\.familyIndex\*size/);
+ assert.match(global,/if \(isGenesisPreviewBuild\(\) && approved\)/);
  assert.match(guide,/BUKLOD_CIRCLE_RANK_FAMILIES/);
  assert.match(guide,/BUKLOD_CIRCLE_RANK_LEVELS/);
  assert.match(collection,/GenesisRankBadgeArtwork/);

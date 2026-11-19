@@ -20,7 +20,7 @@ export default function GenesisRankBadgeArtwork({rankName,size=56,locked=false}:
   if (!art) return <View style={{width:size,height:size*1.12}}/>;
   return <View accessible accessibilityRole="image" accessibilityLabel={art.name+(locked?', locked':', badge')}
     style={{width:size,height:size*1.12,alignItems:'center',justifyContent:'center'}}>
-    <View style={{width:size,height:size,overflow:'hidden',opacity:locked?.35:1}}>
+    <View style={{width:size,height:size,overflow:'hidden',opacity:locked ? .35 : 1}}>
       <Image source={SHEET} resizeMode="stretch" fadeDuration={0} style={{
         position:'absolute',width:size*5,height:size*8,
         left:-art.levelIndex*size,top:-art.familyIndex*size,
