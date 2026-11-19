@@ -1,0 +1,69 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/post-detail-reactions-20261118.json",
+  "objective": "Fix clipped reaction-count badges in the Android individual BUKLOD Post view, keep every per-reaction numeric total readable and match total to the available breakdown.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source at d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 was fetched and inspected for the individual post renderer and reaction component; the user-supplied Android screenshot shows visual truncation. This verifies a SOURCE baseline only, not a live Android binary, production OTA, runtime fingerprint, or publication.",
+  "chosenApproach": "Add opt-in layout='detail' to the existing reaction component with a 34dp action, a full-width wrapping non-shrinking count summary and numeric chips. Use the backend breakdown sum for the visible detail total when supplied, retaining the backend total fallback. Do not change RPC, data schema, Wall feed, media or ads.",
+  "selectionRationale": "The individual post was using default single-row nonwrapping action/summary geometry, allowing the numeric reaction chips to be clipped while a redundant total was separated below it; an isolated display layout is the smallest fix.",
+  "alternativeApproaches": [
+    "Change the global default reaction component layout: rejected because that could regress Wall, scope and Connect UI.",
+    "Rebuild reaction counts in the database: rejected without evidence of incorrect persisted rows; the screenshot demonstrates a display truncation problem."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "post-detail-reactions",
+    "accessibility",
+    "reaction-count-consistency"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodReactionAction.tsx",
+    "src/app/post/[id].tsx",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    ".buklod/scopes/post-detail-reactions-20261118.json"
+  ],
+  "regressionTests": [
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "The main Wall uses layout='wall' and remains unchanged.",
+    "Original post reaction key/RPC, tap, long press and optimistic toggle semantics remain unchanged.",
+    "Keep individual post media, photo gallery, privacy, owner/report controls, internal/external share and comment composer.",
+    "Keep first-view native AdMob placement and Android runtime unchanged; no OTA without separate staging and production verification."
+  ],
+  "acceptanceChecks": [
+    "Every reaction type present has a fully visible, numeric badge; counts wrap on narrow displays without truncation.",
+    "Post total displays the sum of the available breakdown, with the backend total when no breakdown exists.",
+    "Both changed focused Node tests pass and required Engineering Accountability and Performance/Compact Layout CI pass.",
+    "No modification to public Wall feed UI, ad placements or post media lifecycle.",
+    "DEV-only PR; do not publish staging or production OTA until release gates."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Update only the detail post reaction display presentation and count text, without altering application runtime or data mutation contracts.",
+      "preservedBehaviors": [
+        "Keep original runtime, server reaction RPC, interaction controls, AdMob and navigation unchanged."
+      ],
+      "tests": [
+        "tests/post-detail-reaction-count-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "The individual post route contains protected Wall photo/video presentation; the reaction display must not change existing media functionality.",
+      "preservedBehaviors": [
+        "Wall feed, post photo gallery and fullscreen video/asset rendering are preserved unchanged."
+      ],
+      "tests": [
+        "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_BRANCH_PR_NO_OTA",
+  "releaseTarget": "Staging only after verified, consolidated RC",
+  "publicationStatus": "DEV_ONLY_NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
