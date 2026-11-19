@@ -46,8 +46,8 @@ export default function MemberDormancyReview() {
       <View style={{ marginTop: 8 }}>
         <Button
           title={busy ? 'CONFIRMING...' : 'I STILL USE THIS ACCOUNT'}
-          disabled={busy}
           onPress={async () => {
+            if (busy) return;
             setBusy(true);
             setErrorText('');
             try {
