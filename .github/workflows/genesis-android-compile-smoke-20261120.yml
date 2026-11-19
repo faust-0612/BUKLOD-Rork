@@ -41,7 +41,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      - name: Verify GitHub runner bundled Android SDK (avoid deprecated SDK 'tools' install)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_HOME:-}" || { echo 'BLOCK: no Android SDK root'; exit 1; }
+          test -d "$ANDROID_HOME/platform-tools" || { echo 'BLOCK: no platform-tools'; exit 1; }
+          echo 'Using preinstalled Android SDK; no deprecated tools package installation'
       - name: Prepare locally registered staging Firebase Android client (no production use)
         shell: bash
         run: |
