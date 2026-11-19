@@ -72,8 +72,14 @@ language plpgsql security definer set search_path='' as $fn$
 begin
   insert into public.bsoc_ai_case_jobs(case_id,state)
     values(new.id,'PENDING') on conflict(case_id) do nothing;
-  perform private.bsoc_ai_emit_member_report_v1(new.id,'RECEIVED','receipt-v1',
-    'Natanggap ng BSOC ang iyong concern. Susuriin ito at magbibigay ng update dito. Hindi pa ibig sabihing naayos na ang problema.');
+  -- Member submissions must succeed even if notifications or push dispatch fail.
+  -- Keep the durable queue entry; the worker retries reporting later.
+  begin
+    perform private.bsoc_ai_emit_member_report_v1(new.id,'RECEIVED','receipt-v1',
+      'Natanggap ng BSOC ang iyong concern. Susuriin ito at magbibigay ng update dito. Hindi pa ibig sabihing naayos na ang problema.');
+  exception when others then
+    raise warning 'BSOC report notification deferred for case %', new.id;
+  end;
   return new;
 end;
 $fn$;
@@ -92,9 +98,13 @@ begin
       values(new.id,'PENDING',0,null,now(),null,null,null,now())
       on conflict(case_id) do update set state='PENDING',attempts=0,leased_until=null,
         next_attempt_at=now(),error_code=null,safe_analysis=null,issue_url=null,updated_at=now();
-    perform private.bsoc_ai_emit_member_report_v1(new.id,'REOPENED',
-      'reopened-'||to_char(new.updated_at at time zone 'UTC','YYYYMMDDHH24MISSUS'),
-      'Muling binuksan ng BSOC ang concern mo. Magsasagawa ng panibagong investigation.');
+    begin
+      perform private.bsoc_ai_emit_member_report_v1(new.id,'REOPENED',
+        'reopened-'||to_char(new.updated_at at time zone 'UTC','YYYYMMDDHH24MISSUS'),
+        'Muling binuksan ng BSOC ang concern mo. Magsasagawa ng panibagong investigation.');
+    exception when others then
+      raise warning 'BSOC reopened notification deferred for case %', new.id;
+    end;
   end if;
   return new;
 end;
