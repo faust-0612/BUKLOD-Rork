@@ -46,6 +46,15 @@ BEGIN
    OR position('v_user,50' IN v_fn)=0 THEN
    RAISE EXCEPTION 'KL finale personal reflection or idempotent award guard missing';
  END IF;
+ SELECT pg_get_functiondef('public.kl_quiz_begin_v1(uuid)'::regprocedure)
+ INTO v_fn;
+ IF position('private.kl_s2_previous_chapter_complete_v1(v_user,p_episode_id)' IN v_fn)=0 THEN
+   RAISE EXCEPTION 'Old app can request out-of-order S2 quiz questions'; END IF;
+ SELECT pg_get_functiondef('public.kl_quiz_submit_v1(uuid,jsonb)'::regprocedure)
+ INTO v_fn;
+ IF position('private.kl_s2_previous_chapter_complete_v1(auth.uid(),v.episode_id)' IN v_fn)=0
+   OR position('NOT private.kl_s2_rewards_enabled_v1() AND' IN v_fn)=0 THEN
+   RAISE EXCEPTION 'S2 quiz retry sequence or no-time requirement bypass'; END IF;
  SELECT pg_get_functiondef('public.kl_read_episode_v1(uuid)'::regprocedure)
  INTO v_fn;
  IF position('private.kl_s2_previous_chapter_complete_v1(auth.uid(),p_episode_id)' IN v_fn)=0
