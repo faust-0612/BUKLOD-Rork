@@ -3,7 +3,7 @@
   "objective": "Owner-approved inclusion of silent automatic compatible OTA receipt with no restart indicator into next consolidated non-Season2 Android production OTA preparation; do not publish until verified RC gates.",
   "baseRef": "b8ab143c7945f0b8fed9c55ea0686839527123b4",
   "productionBaselineEvidence": "Consolidated non-Season2 production source prep branch prep/nonseason2-wave1-plus-connect-conso-prod-20261119 at b8ab143c7945f0b8fed9c55ea0686839527123b4 contains original I-restart/Mamaya native OTA banner (verified GitHub file blob 48248b814ac6b1ee8171bf77b9843d1ce2fbd35a), has 28 source commits ahead and 5 behind current main 551e54602addd6f7bbe7bcdddd1589d35424c964. Current served production OTA and binary/device parity remain unverified here. No release authorized.",
-  "chosenApproach": "Forward-port the five exact unchanged reviewed native host/policy/test Git blobs from staging DEV source SHA 318e276a9bbd42234724ded3e86e8942ee860c3d, with new production-specific scope manifest, onto the existing non-Season2 consolidated production source preparation branch. Keep compatibility and mandatory APK boundary; apply downloaded compatible OTA only at next normal cold start.",
+  "chosenApproach": "Forward-port four exact unchanged reviewed host/policy/test Git blobs and a production-exporter-adapted OTA regression test from staging DEV source SHA 318e276a9bbd42234724ded3e86e8942ee860c3d, with new production-specific scope manifest, onto the existing non-Season2 consolidated production source preparation branch. Keep compatibility and mandatory APK boundary; apply downloaded compatible OTA only at next normal cold start.",
   "selectionRationale": "Maintains a single reviewed implementation across staging and production while avoiding Season2 feature/financial code and avoiding a wholesale merge of outdated staging. Removes misleading restart banner; avoids interruption of PTT, calls, composer and offline submissions.",
   "alternativeApproaches": [
     "Merge all Season 2 staging source into production: rejected, embargo and reward isolation risks.",
@@ -49,7 +49,7 @@
     }
   ],
   "acceptanceChecks": [
-    "Exact five forward-port blobs match reviewed source SHA 318e276a9bbd42234724ded3e86e8942ee860c3d",
+    "Four exact forward-port blobs match reviewed source SHA 318e276a9bbd42234724ded3e86e8942ee860c3d; production OTA test adapts to actual canonical full-bundle exporter (not a nonexistent per-file allowlist)",
     "Native OTA restart banner, user-facing buttons and forced reload removed",
     "Dedicated behavioral tests confirm offline retry, throttle, dedupe and no forced restart",
     "Must reconcile five behind-main commits and latest verified production baseline before choosing frozen production RC",

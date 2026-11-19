@@ -21,6 +21,8 @@ test('No restart banner, restart controls or forced native OTA reload exist', ()
   assert.match(host, /clearTimeout\(timer\)/);
 });
 
-test('Native OTA source remains covered by canonical Android release diff scanner', () => {
-  assert.match(workflow, /^\s+- 'src\/components\/BuklodOtaFreshnessHost\.native\.tsx'$/m);
+test('Canonical production exporter packages the mounted native lifecycle host without a file allowlist', () => {
+  assert.match(root, /import BuklodOtaFreshnessHost from '@\/components\/BuklodOtaFreshnessHost';/);
+  assert.match(workflow, /npx expo export --platform android --output-dir rc/);
+  assert.match(workflow, /node scripts\/android-ota-rc\.cjs freeze/);
 });
