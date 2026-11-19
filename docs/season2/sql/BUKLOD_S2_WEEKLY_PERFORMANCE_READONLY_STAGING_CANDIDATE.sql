@@ -8,7 +8,7 @@ BEGIN;
 
 -- Backend computation shared by public badge and owner's private explanation.
 -- Deliberately narrow to 40 users; no unbounded all-member ranking table scan.
-CREATE OR REPLACE FUNCTION private.buklod_weekly_performance_core_s2(p_user_ids uuid[])
+CREATE OR REPLACE FUNCTION private.buklod_weekly_performance_core_s2(p_user_ids uuid[], p_week_start date DEFAULT NULL)
 RETURNS TABLE(
   user_id uuid, week_start date, class_code text, score integer,
   active_days integer, learning_days integer, community_days integer,
@@ -17,7 +17,7 @@ RETURNS TABLE(
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
 AS $fn$
   WITH clock AS (
-    SELECT date_trunc('week', now() AT TIME ZONE 'Asia/Manila')::date AS week_start
+    SELECT coalesce(p_week_start,date_trunc('week', now() AT TIME ZONE 'Asia/Manila')::date) AS week_start
   ),
   bounds AS (
     SELECT week_start,
@@ -31,6 +31,11 @@ AS $fn$
     JOIN public.profiles p ON p.id=input.id
     WHERE auth.uid() IS NOT NULL
       AND cardinality(p_user_ids) BETWEEN 1 AND 40
+      AND (p_week_start IS NULL OR (
+        extract(isodow from p_week_start)=1
+        AND p_week_start <= date_trunc('week',now() AT TIME ZONE 'Asia/Manila')::date
+        AND p_week_start >= date_trunc('week',now() AT TIME ZONE 'Asia/Manila')::date - 91
+      ))
       AND p.is_active = true
       AND NOT private.buklod_is_platform_official_v1(p.id)
   ),
@@ -55,6 +60,7 @@ AS $fn$
     JOIN members m ON m.user_id=l.user_id
     CROSS JOIN bounds b
     WHERE l.created_at >= b.starts_at AND l.created_at < b.ends_at
+      AND l.created_at <= now()
       AND l.direction='credit' AND l.claim_state='claimed' AND l.points>0
       AND l.activity_type IN (
         'daily_bible','devotional','abc_growth_lesson',
@@ -157,7 +163,7 @@ AS $fn$
 $fn$;
 
 -- SECURITY: Never expose the core or reward tables to untrusted clients.
-REVOKE ALL ON FUNCTION private.buklod_weekly_performance_core_s2(uuid[]) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION private.buklod_weekly_performance_core_s2(uuid[],date) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.buklod_weekly_performance_batch_s2(uuid[]) FROM PUBLIC,anon;
 REVOKE ALL ON FUNCTION public.get_my_buklod_weekly_performance_s2() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.buklod_weekly_performance_batch_s2(uuid[]) TO authenticated;
