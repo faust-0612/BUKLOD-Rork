@@ -35,6 +35,7 @@ export default function KlDynamicLibrary(){
  if(!accessError&&access&&typeof access==='object' &&
    (access as {enabled?:boolean;allowed?:boolean}).enabled===true &&
    (access as {allowed?:boolean}).allowed!==true){
+   setChapter(null);
    setMessage('Tapusin at ipa-verify muna ang naunang kabanata.');
    return;
  }
