@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "BUKLOD_KL_BUTTON_ONLY_STAGING_20261119",
+  "target": "staging-user",
+  "platform": "android",
+  "environment": "preview",
+  "releaseScope": "kl-release-button-only",
+  "productionAuthorized": false,
+  "season2RewardsEnabled": false,
+  "expectedBaseSource": "730c811cda97d106339f14fae04fb4b8890b0ed2",
+  "approvedReaderBlob": "0bc41eafad7d7f7a4cde1b88349aa98f448f03f1",
+  "approvedTestBlob": "201f392011237f62203690014c77b1f07dc0e5b2",
+  "package": "org.mzbministry.buklod.staging",
+  "runtime": "1.3.2",
+  "expectedChanges": [
+    "KL admin approve/release/reject row responsive",
+    "release confirmation shown ahead of optional quizzes"
+  ],
+  "notPartOfRelease": [
+    "Season 2 economy/reward activation",
+    "Supabase migrations",
+    "production OTA",
+    "web deploy",
+    "native APK build"
+  ],
+  "publishingRule": "publish only if current live staging source exactly matches frozen Nov17 RC; do not roll back newer staging",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
