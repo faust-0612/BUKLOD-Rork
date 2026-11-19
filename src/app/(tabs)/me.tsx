@@ -26,6 +26,7 @@ import {
   ProfilePressable,
 } from '@/components/BuklodProfileMotion';
 import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
+import BuklodWeeklyPerformanceCard from '@/components/season2/BuklodWeeklyPerformanceCard';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
@@ -1796,6 +1797,8 @@ export default function MeScreen() {
                 </Text>
               </View>
             </ProfileMotionFadeUp>
+
+            {!isBuklodOfficial && <BuklodWeeklyPerformanceCard userId={profile?.id} />}
 
             {avatarBusy && (
               <Text style={styles.avatarHint} accessibilityLiveRegion="polite">
