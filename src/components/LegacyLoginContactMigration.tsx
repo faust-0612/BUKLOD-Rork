@@ -39,8 +39,18 @@ export default function LegacyLoginContactMigration() {
         return;
       }
       setService(data);
-      setChannel(data.emailReady?'email':'mobile');
-      setPhase('choose');
+      if(data.pendingChallenge?.id){
+        setChallengeId(data.pendingChallenge.id);
+        setChannel(data.pendingChallenge.channel==='mobile'?'mobile':'email');
+        setDestination(data.pendingChallenge.destinationHint||'your contact');
+        setMessage(data.pendingChallenge.status==='VERIFIED'
+          ?'Your code is already verified. Select Retry finishing migration below.'
+          :'Enter your code, or contact support if it has expired.');
+        setPhase('otp');
+      }else{
+        setChannel(data.emailReady?'email':'mobile');
+        setPhase('choose');
+      }
     })().catch(()=>{
       if(active){setPhase('unavailable');setMessage('Cannot check migration right now. Your account remains active.');}
     });
