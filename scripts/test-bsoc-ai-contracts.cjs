@@ -40,4 +40,19 @@ expect(!/eas (update|build|deploy)|expo publish/i.test(workflow),
   'agent workflow may not publish an OTA');
 expect(/bsoc_ai_case_reports/.test(member)&&/aiReports\.map/.test(member),
   'member private report history is wired into support UI');
-console.log('PASS: 18 BSOC AI safety and report contracts');
+const zero=load('supabase/migrations/20261119234500_bsoc_zero_budget_scheduler_v1.sql');
+expect(/cron\.schedule\('buklod-bsoc-zero-budget-screening-r1','\*\/15 \* \* \* \*'/.test(zero),
+  'bounded 15-minute screening on existing cron is present');
+expect(/limit limit_n for update skip locked/.test(zero),
+  'concurrent worker claims are row-locked and batch-bounded');
+expect(/'paid_api_calls',0/.test(zero)&&!/fetch\(|OPENAI_API_KEY|BSOC_GITHUB_DISPATCH_TOKEN/.test(zero),
+  'zero-cost scheduler cannot call paid external inference or dispatch');
+expect(!/update public\.user_feedback/i.test(zero),
+  'zero-cost scheduler cannot falsely resolve canonical support cases');
+expect(/t\.stage='VERIFIED_RESOLVED' and t\.verified_at is not null/.test(zero),
+  'verified member report gated on independently audited release proof');
+expect(/report notification deferred for case/.test(migration),
+  'new support requests must not fail if notification delivery is unavailable');
+expect(/screening-/.test(zero)&&/member_read_own_reports_v1/.test(migration),
+  'screening status messages are idempotent and private');
+console.log('PASS: 25 BSOC AI and zero-budget safety contracts');
