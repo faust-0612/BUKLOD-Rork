@@ -1,13 +1,13 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/kl-s2-rewards-15-5-min20-20261119.json",
-  "objective": "BUKLOD Season2 only: approved KL +15 BP per newly verified chapter, +5 BP for first 20+ character chapter reflection, preserve +50 series. Keep Season1/production fully unchanged and hold activation until independent verification on/after Dec 6.",
+  "objective": "Season 2 only: KL numbered chapter +5 BP base +1 BP per chapter, PENDING until next verified chapter. Chapter 30 carries to verified Chapter 1 of the next series. Enforce complete sequential reading; keep +5 BP first 20+ character comment and +50 BP series bonus, Season 1/production unchanged.",
   "baseRef": "42779df703aa26fb07e56f726865deef8bcb7ec8",
-  "branch": "dev/kl-rewards-15-5-min20-20261119",
+  "branch": "dev/kl-s2-progressive-chapter-ads-20261119",
   "environment": "DEV source only; draft PR to S2 staging integration branch",
   "productionBaselineEvidence": "Reviewed S2 staging source at 42779df703aa26fb07e56f726865deef8bcb7ec8. This is NOT production OTA evidence. Live Android and exact BUKLOD MAIN Supabase project remain unverified.",
-  "chosenApproach": "Preserve existing R4 verified completion RPC semantics and pre-activation +10; add private future-dated rollout switch, one-per-user/chapter server-side comment INSERT credit trigger and 20-char staging composer. Keep release embargo and account bounds.",
-  "selectionRationale": "Trigger works for old and new clients and doesn't depend on UI for credits; unique ledger source prevents reward farming; disabled server rollout prevents production Season1 changes.",
+  "chosenApproach": "A private per-user/chapter pending entitlement ledger preserves S2-only rewards, released atomically and idempotently only by the next verified chapter or next series Chapter 1. Server-side all-prior-chapters gate, disabled-until-approved rollout, explicit pending/credited UI, and passive inline discussion AdMob placement.",
+  "selectionRationale": "Never credit current chapter on completion. Historical Season1 completions have no pending S2 row. Existing unique points-ledger source key prevents duplication. Entire prior chain is checked, including previous series, and production credentials/migrations are untouched.",
   "alternativeApproaches": [
     "Client-only BP counts (rejected because users can forge requests and points)",
     "Apply +15 and +5 directly to live Season1 rewards (rejected because Season1 must remain unchanged until separate approved release)",
@@ -21,7 +21,9 @@
     "production-embargo",
     "RLS",
     "old-clients",
-    "offline-network"
+    "offline-network",
+    "story",
+    "quiz-classroom"
   ],
   "allowedPaths": [
     "src/components/kabihasnang-ligaw/KlLiveDiscussion.tsx",
@@ -36,7 +38,12 @@
     "contracts/season2-governance.json",
     "contracts/season2-implementation-ledger.json",
     "contracts/season2-proposals/kl-verified-15bp-comment-5bp-min20-20261119.json",
-    ".buklod/scopes/kl-s2-rewards-15-5-min20-20261119.json"
+    ".buklod/scopes/kl-s2-rewards-15-5-min20-20261119.json",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlReadingQuiz.tsx",
+    "tests/kl-s2-progressive-chapters-ads-20261119.test.mjs",
+    "tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs"
   ],
   "preserveBehaviors": [
     "Season 1 continues using +10 verified chapter payout until separate activation; historical ledger and existing source keys are immutable.",
@@ -46,56 +53,71 @@
     "Rollback to the previous +10 catalog if future reward activation is explicitly disabled."
   ],
   "acceptanceChecks": [
-    "Existing R4 contract remains present and +10 while held; S2 +15 ledger amount and RPC amount agree after activation.",
-    "First 20–500 character top-level comment may earn only +5 BP once per signed-in member and released chapter, including concurrent retries.",
-    "Comment shorter than 20 does not earn S2 BP; staging composer disables send below 20 and displays count.",
-    "Anonymous/inactive/hidden/reply/unreleased comment yields no reward, and duplicate comments cannot mint again.",
-    "All three governance and protected-feature checks validate the narrowly scoped PR; no production release or EAS build in this change.",
-    "Database/Supabase staging execution remains an explicit blocker until the authenticated BUKLOD MAIN staging project can be verified."
+    "Chapter N (1..30) has pending 5+N BP, no immediate chapter credit. Verified Chapter N+1 releases exactly that pending BP once; Chapter 30 releases only on next series Chapter 1 verified completion.",
+    "A missing, unreleased, or unverified earlier chapter blocks subsequent progression, including the entire prior series and legacy partial-read histories.",
+    "Pending and released credits are distinct RPC response fields and UI messages; ad impressions cannot trigger or block rewards.",
+    "One 20–500 character top-level qualifying comment earns +5 BP once per user and released chapter; comments do not unlock chapter payout.",
+    "Season 1 +10 BP and existing +50 BP full-series bonus remain unchanged; no historical backfill or production deployment.",
+    "Source tests and database permission/ledger/anti-farming checks must pass before separate staging backend activation; physical AdMob/navigation verification remains required."
   ],
   "regressionTests": [
     "tests/kl-s2-rewards-15-5-min20-20261119.test.mjs",
     "supabase/tests/kl_s2_rewards_15_5_min20_guard.sql",
-    "supabase/tests/kl_verified_reading_r4_10_50.sql"
+    "supabase/tests/kl_verified_reading_r4_10_50.sql",
+    "tests/kl-s2-progressive-chapters-ads-20261119.test.mjs",
+    "tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Adjust the KL reader composer and shared type/copy contract for new owner-approved 20-character comment qualification.",
+      "reason": "Update KL reader and discussion with account-scoped sequential unlock, pending chapter credit text and viewport-gated inline ad while preserving reading and offline behavior.",
       "preservedBehaviors": [
         "Chapter reading, released manuscript, audio, other KL interactions and existing time/quiz verification still work.",
         "Do not treat the new UI text as proof of backend reward activation."
       ],
       "tests": [
-        "tests/kl-s2-rewards-15-5-min20-20261119.test.mjs"
+        "tests/kl-s2-progressive-chapters-ads-20261119.test.mjs"
       ]
     },
     {
       "id": "ads-finance-points",
-      "reason": "Expose season-conditional verified KL reward amounts in the existing points guide with no unrelated finance mutation.",
+      "reason": "Update Season2-only KL reward guide and ad placement without touching cash/QMP, production AdMob or withdraw logic.",
       "preservedBehaviors": [
         "Season 1 +10 BP remains in the ledger until active Season2 authorization, and the +50 bonus remains once per completed series.",
         "QMP distribution, withdrawals and AdMob finance do not change."
       ],
       "tests": [
-        "tests/kl-s2-rewards-15-5-min20-20261119.test.mjs"
+        "tests/kl-s2-progressive-chapters-ads-20261119.test.mjs"
       ]
     },
     {
       "id": "backend-security",
-      "reason": "Create narrowly gated private server-side KL comment credits with anti-farming, release eligibility and one user-chapter ledger source key.",
+      "reason": "Add disabled S2 private pending chapter entitlement table, secure complete-sequence checks, idempotent next-chapter credit and independent first-comment reward.",
       "preservedBehaviors": [
         "Existing R4 completion RPC, quiz/time validation, data authorization and ledger idempotency remain the authority for Season1.",
         "No public/direct authenticated arbitrary point-credit function is granted."
       ],
       "tests": [
         "supabase/tests/kl_s2_rewards_15_5_min20_guard.sql",
-        "supabase/tests/kl_verified_reading_r4_10_50.sql"
+        "tests/kl-s2-progressive-chapters-ads-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "Show distinct verified completion pending versus earned previous-chapter BP and keep ad cadence independent of quiz pass, retries and server approval.",
+      "preservedBehaviors": [
+        "Only three verified reading quiz answers and authorized time/ping fallback can mark a chapter complete.",
+        "Quiz failure, repeat submission and optional interstitial never grant or revoke chapter BP."
+      ],
+      "tests": [
+        "tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs"
       ]
     }
   ],
-  "releaseTarget": "PR draft only; never merge to main or execute production migration or publish OTA from this work",
+  "releaseTarget": "DRAFT PR DEV only. Prepare for consolidated staging train; no MAIN production merge, SQL activation or OTA allowed.",
   "prodSeason2Authorization": false,
   "s2EffectiveAtManila": "2026-12-06T00:00:00+08:00",
-  "stagingServerVerified": false
+  "stagingServerVerified": false,
+  "productionChange": false,
+  "stagingBlockedReason": "Connected Supabase projects do not expose a separately identified BUKLOD MAIN staging backend; do not execute SQL on production or unrelated projects."
 }
