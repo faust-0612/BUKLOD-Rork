@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Sharing from 'expo-sharing';
 import {
   router,
   useFocusEffect,
@@ -617,14 +618,27 @@ export default function SmartDrawerItemScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.assets}
               >
-                {item.assets.map(asset => (
-                  <Image
-                    key={asset.id}
-                    source={{ uri: asset.uri }}
-                    style={styles.asset}
-                    resizeMode="cover"
-                  />
-                ))}
+                {item.assets.map(asset =>
+                  asset.mimeType === 'application/pdf' || /\.pdf$/i.test(asset.originalName ?? '')
+                    ? <Pressable key={asset.id} accessibilityRole="button"
+                        accessibilityLabel={'Open or share ' + (asset.originalName ?? 'PDF')}
+                        style={[styles.asset, { backgroundColor: '#EAF4FC', alignItems: 'center', justifyContent: 'center' }]}
+                        onPress={() => { void (async () => {
+                          try {
+                            if (!await Sharing.isAvailableAsync()) throw new Error('Unavailable');
+                            await Sharing.shareAsync(asset.uri, { mimeType: 'application/pdf' });
+                          } catch {
+                            Alert.alert('Document unavailable', 'Could not open this saved PDF on this device.');
+                          }
+                        })(); }}>
+                        <MaterialCommunityIcons name="file-pdf-box" color="#AE4848" size={38} />
+                        <Text numberOfLines={2} style={{ color: '#294D6B', fontSize: 10, textAlign: 'center' }}>
+                          {asset.originalName ?? 'PDF'}
+                        </Text>
+                      </Pressable>
+                    : <Image key={asset.id} source={{ uri: asset.uri }}
+                        style={styles.asset} resizeMode="cover" />
+                )}
               </ScrollView>
             )}
 

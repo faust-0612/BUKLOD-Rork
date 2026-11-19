@@ -14,6 +14,7 @@ import GenesisCosmicSky, { GenesisOrbitHalo } from './GenesisCosmicSky';
 import GenesisRiveCharacter from './GenesisRiveCharacter';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { GenesisSeal } from './GenesisVisuals';
+import { pulseGenesisTouch } from './genesisNativeFeedback';
 
 export const GENESIS_REALMS = [
   { id:'phan-enterprise-builder', name:'Phan', title:'The First Harvest', caption:'Build a beginning that can sustain others', character:'phan' },
@@ -58,7 +59,11 @@ export default function GenesisKingdomPortal() {
   }, []);
   const animate = focused && foreground && !reduceMotion;
   const media = getRorkGameMedia(selected.id);
-  const select = (realm: Realm) => { setSelected(realm); setImageFailed(false); };
+  const select = (realm: Realm) => {
+    if (selected.id === realm.id) return;
+    setSelected(realm); setImageFailed(false);
+    if (animate) void pulseGenesisTouch('selection');
+  };
   const frameHeight = width > 640 ? 350 : 298;
   return <View style={styles.root}>
     <ScrollView contentContainerStyle={styles.content}>
@@ -89,7 +94,7 @@ export default function GenesisKingdomPortal() {
           <Text style={styles.realmCaption}>{selected.caption}</Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={'Enter '+selected.title}
-          style={styles.enter} onPress={()=>router.push(('/games/'+selected.id) as any)}>
+          style={styles.enter} onPress={()=>{ void pulseGenesisTouch('selection'); router.push(('/games/'+selected.id) as any); }}>
           <Text style={styles.enterLabel}>ENTER REALM</Text>
           <MaterialCommunityIcons name="arrow-right" color="#10291E" size={18}/>
         </Pressable>
