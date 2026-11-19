@@ -22,9 +22,7 @@
   "regressionTests": [
     "tests/buklod-wall-ad-stability.test.mjs",
     "tests/buklod-ad-restoration-locked-20261107.test.mjs",
-    "tests/buklod-ad-empty-slot-collapse.test.mjs",
-    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
-    "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs"
+    "tests/buklod-ad-empty-slot-collapse.test.mjs"
   ],
   "acceptanceChecks": [
     "Shared health counts prewarm and onscreen NativeAd failures per stable placement, expires and clears on success",
@@ -55,5 +53,16 @@
         "tests/buklod-ad-restoration-locked-20261107.test.mjs"
       ]
     }
+  ],
+  "selectionRationale": "BUKLOD live client telemetry is dominated by native loading timeouts, not a lack of ad placements. Shared prewarm/onscreen health and format-sized BannerAd loading directly address observed failure while preserving real AdMob SDK events, user consent, cooldown and no-OTA safety.",
+  "alternativeApproaches": [
+    "Make every dashboard issue concurrent native and banner requests (rejected: request spam and extra network load).",
+    "Remove shared two-minute remount cooldown (rejected: risks accidental rapid refresh and policy violations).",
+    "Change production unit IDs or native SDK without verified Android artifact (rejected: unnecessary native risk).",
+    "Silently fabricate missing AdMob impressions in client telemetry (rejected: dishonest and violates revenue integrity)."
+  ],
+  "riskAreas": [
+    "ads-finance-points",
+    "app-runtime"
   ]
 }
