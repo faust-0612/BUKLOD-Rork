@@ -17,7 +17,7 @@ import {
 } from '@/lib/buklodCharacterWorldCatalog';
 import {getS2CollectibleGuide,S2_COLLECTIBLE_RELEASE} from '@/lib/season2/buklodSeason2CollectibleGuideR1';
 import {BUKLOD_CIRCLE_RANK_FAMILIES,BUKLOD_CIRCLE_RANK_LEVELS} from '@/lib/buklodCircleRankArt';
-import {KINGDOM_SHARD_ITEMS} from '@/lib/buklodKingdomShards';
+import {S2_KINGDOM_SHARD_REFERENCE} from '@/lib/season2/buklodS2KingdomShardGuideSnapshotR1';
 
 type Tab='items'|'badges'|'ranks'|'kingdom';
 type BadgeCategory='stage'|'era'|'journey'|'starter'|'series';
@@ -145,7 +145,7 @@ export default function BuklodS2AllItemsBadgesGuide(){
    <Text style={s.note}>{t(
     'Hindi BP, QMP, cash o Season 2 Journey Tokens ang Kingdom Shards. Ang balances at purchase ownership ay dapat sa verified Kingdom server, hindi sa offline cached estimate.',
     'Kingdom Shards are not BP, QMP, cash or S2 Journey Tokens. Balances and ownership require verified Kingdom server records, not a local cache estimate.')}</Text>
-   {KINGDOM_SHARD_ITEMS.map(item=><Line key={item.key} title={item.name}
+   {S2_KINGDOM_SHARD_REFERENCE.map(item=><Line key={item.key} title={item.name}
     side={item.price+' Shards'} detail={item.description}/>)}
    <Text style={s.ruleLabel}>{t('Iba pang Kingdom at game rewards','Other Kingdom and game rewards')}</Text>
    <Text style={s.note}>{t(
