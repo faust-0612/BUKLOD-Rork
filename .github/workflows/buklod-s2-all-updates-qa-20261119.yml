@@ -92,14 +92,10 @@ jobs:
           test -s /tmp/buklod-s2-all-updates-android/metadata.json
           echo "Android staging bundle source QA complete — no EAS update issued"
 
-  season2-rewards-backend-isolation:
+  season2-rewards-held-source-only:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/staging/season2-all-updates-20261119') || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'staging/season2-all-updates-20261119') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    env:
-      CI: '1'
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      BUKLOD_S2_APPROVED_STAGING_SUPABASE_REF: ${{ vars.BUKLOD_S2_APPROVED_STAGING_SUPABASE_REF }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -108,28 +104,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run isolated backend guard negative and positive tests
+      - name: Backend identity negative/positive tests without production database access
         run: node --test tests/season2-staging-backend-isolation-20261119.test.cjs
-      - name: Require independently approved Season 2 staging project ref before EAS reads
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "$BUKLOD_S2_APPROVED_STAGING_SUPABASE_REF" ]; then
-            echo 'S2_STAGING_BACKEND_BLOCK: No independently approved staging Supabase project reference.'
-            exit 1
-          fi
-      - name: Compare preview vs production URLs without printing secrets; never write a database
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$EXPO_TOKEN"
-          preview="$(mktemp)"
-          production="$(mktemp)"
-          chmod 600 "$preview" "$production"
-          trap 'rm -f "$preview" "$production"' EXIT
-          npx --yes eas-cli@27.9.0 env:pull --environment preview --path "$preview" --non-interactive >/dev/null
-          npx --yes eas-cli@27.9.0 env:pull --environment production --path "$production" --non-interactive >/dev/null
-          node scripts/season2-staging-backend-isolation.cjs \
-            --preview-file "$preview" --production-file "$production" \
-            --approved-ref "$BUKLOD_S2_APPROVED_STAGING_SUPABASE_REF"
-          echo 'Identity only. Independent staging RLS/migrations/permissions and Android AdMob smoke still required.'
+      - name: Verify Season 2 rewards held pending December 6 and independent authorization
+        run: node --test tests/season2-visual-only-hold-20261119.test.cjs
+      - name: Confirm no Supabase environment, migration, EAS update or grants were invoked
+        run: echo "Reward source only, activation blocked. Backend isolation identity gate is reserved for a separate reward activation release."
