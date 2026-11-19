@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "objective": "Owner-approved inclusion of silent automatic compatible OTA receipt with no restart indicator into next consolidated non-Season2 Android production OTA preparation; do not publish until verified RC gates.",
+  "baseRef": "b8ab143c7945f0b8fed9c55ea0686839527123b4",
+  "productionBaselineEvidence": "Consolidated non-Season2 production source prep branch prep/nonseason2-wave1-plus-connect-conso-prod-20261119 at b8ab143c7945f0b8fed9c55ea0686839527123b4 contains original I-restart/Mamaya native OTA banner (verified GitHub file blob 48248b814ac6b1ee8171bf77b9843d1ce2fbd35a), has 28 source commits ahead and 5 behind current main 551e54602addd6f7bbe7bcdddd1589d35424c964. Current served production OTA and binary/device parity remain unverified here. No release authorized.",
+  "chosenApproach": "Forward-port four exact unchanged reviewed host/policy/test Git blobs and a production-exporter-adapted OTA regression test from staging DEV source SHA 318e276a9bbd42234724ded3e86e8942ee860c3d, with new production-specific scope manifest, onto the existing non-Season2 consolidated production source preparation branch. Keep compatibility and mandatory APK boundary; apply downloaded compatible OTA only at next normal cold start.",
+  "selectionRationale": "Maintains a single reviewed implementation across staging and production while avoiding Season2 feature/financial code and avoiding a wholesale merge of outdated staging. Removes misleading restart banner; avoids interruption of PTT, calls, composer and offline submissions.",
+  "alternativeApproaches": [
+    "Merge all Season 2 staging source into production: rejected, embargo and reward isolation risks.",
+    "Use automatic forced Updates.reloadAsync while app active: rejected, risks interruption or data loss.",
+    "Forward-port the exact tested OTA-only files into isolated conso production prep PR: selected."
+  ],
+  "preserveBehaviors": [
+    "Expo built-in cold start OTA check and runtime 1.3.2 unchanged",
+    "Native Android package, EAS release channel, native modules and Google Play mandatory APK update path unchanged",
+    "No forced reload while calls/PTT, draft, upload, offline queue are active",
+    "Hourly foreground checks staggered, deduplicated; failure cooldown 30 minutes",
+    "Wall, media, first-view AdMob, dashboard instantaneous tabs, Connect compact/Seen, KL reader, auth, Supabase, finance and Season1 production behavior unchanged",
+    "No Season2 UI, backend economy rules or December 6 embargo changes"
+  ],
+  "riskAreas": [
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodSilentOtaPolicy.ts",
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    ".buklod/scopes/silent-ota-conso-prod-prep-20261119.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Queue OTA-only background update behavior on existing non-Season2 production preparation source, without forced live restart.",
+      "preservedBehaviors": [
+        "Expo native runtime/mandatory update, first-view AdMob, instant navigation, active user work and current reward rules remain protected."
+      ],
+      "tests": [
+        "tests/buklod-silent-ota-policy.test.mjs",
+        "tests/ota-restart-safe-area.test.cjs",
+        "tests/buklod-mandatory-update-runtime.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Four exact forward-port blobs match reviewed source SHA 318e276a9bbd42234724ded3e86e8942ee860c3d; production OTA test adapts to actual canonical full-bundle exporter (not a nonexistent per-file allowlist)",
+    "Native OTA restart banner, user-facing buttons and forced reload removed",
+    "Dedicated behavioral tests confirm offline retry, throttle, dedupe and no forced restart",
+    "Must reconcile five behind-main commits and latest verified production baseline before choosing frozen production RC",
+    "Passing focused Node, TypeScript, Expo Android build/runtime compatibility, AdMob first-view/fill and instant-tab navigation gates required",
+    "Complete DEV to verified RC to explicit production OTA with EAS served-manifest readback before claiming release",
+    "No immediate production or staging publishing, no workflow marker, no database write or Season2 activation"
+  ],
+  "releaseTarget": "CONSOLIDATED_NON_SEASON2_PRODUCTION_OTA_QUEUE",
+  "productionReleaseAuthorized": false,
+  "productionChange": false,
+  "publicationStatus": "SOURCE_ONLY_DRAFT_RC_HOLD_NO_OTA",
+  "season2Included": false,
+  "season2RewardsEnabled": false,
+  "requiresFreshRcVerification": true,
+  "deviceVerification": "NOT_PERFORMED"
+}
