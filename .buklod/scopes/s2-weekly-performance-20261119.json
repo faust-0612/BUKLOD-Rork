@@ -1,0 +1,92 @@
+{
+  "contractVersion": 2,
+  "objective": "Season 2 weekly performance class indicator at 2 o'clock replaces only Notes N; personal profile information and isolated noncash held reward preview; no Season1 or production mutation.",
+  "baseRef": "integration/season2-conso-staging-20261119",
+  "productionChange": false,
+  "releaseTarget": "STAGING_SOURCE_ONLY",
+  "releaseAuthorized": false,
+  "scopeManifestPath": ".buklod/scopes/s2-weekly-performance-20261119.json",
+  "productionBaselineEvidence": "Read-only integration source 6725c5ce455e78ecf40dcb81fe93aa160f701467; upstream draft PR #956; active Supabase project includes real member/points data, NOT proven to be isolated staging. No production or Supabase writes; actual device AdMob verification unavailable.",
+  "allowedPaths": [
+    ".github/workflows/buklod-s2-weekly-performance-qa-20261119.yml",
+    "contracts/season2-implementation-ledger.json",
+    "contracts/season2-proposals/weekly-performance-20261119.json",
+    "docs/season2/BUKLOD_WEEKLY_PERFORMANCE_R1_20261119.md",
+    "docs/season2/sql/BUKLOD_S2_WEEKLY_PERFORMANCE_READONLY_STAGING_CANDIDATE.sql",
+    "src/app/(tabs)/me.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/season2/BuklodWeeklyPerformanceCard.tsx",
+    "src/lib/season2/buklodWeeklyPerformanceClientR1.ts",
+    "src/lib/season2/buklodWeeklyPerformanceRewardR1.ts",
+    "src/lib/season2/buklodWeeklyPerformanceRulesR1.ts",
+    "tests/season2-weekly-performance-class-rewards-20261119.test.mjs",
+    "tests/season2-weekly-performance-local-postgres-20261119.sql",
+    "tests/season2-weekly-performance-profile-navigation-20261119.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/season2-weekly-performance-class-rewards-20261119.test.mjs",
+    "tests/season2-weekly-performance-profile-navigation-20261119.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Node behavioral tests pass including 4 classes, Manila Monday, mock reward hold and anti-stale safeguards",
+    "TypeScript compilation and existing avatar/AdMob/navigation regressions pass",
+    "Postgres candidate executes against disposable local database with auth/RLS, score, anti-farming and per-user privacy tests",
+    "Source manifest, governance drift and Season1 production embargo pass",
+    "Dedicated MAIN staging DB service and real Android validation are REQUIRED before OTA; no production publish"
+  ],
+  "preserveBehaviors": [
+    "2 o'clock note bubble replaced, but Connect Notes data, note chips, editing and privacy remain functional",
+    "Circle Rank 10 o'clock and border colors unchanged; 6 o'clock blue online dot remains",
+    "Wall/Connect profile tap and long-press navigation, ads, fast tabs, weak network retry unchanged",
+    "Lifetime rank, monthly rank, Character, Kingdom, BP, QMP, AdMob, withdrawals and Season1 accounting untouched",
+    "Season2 cosmetic/emblem rewards remain source-only unminted preview with separate backend authorization and December 6 production embargo"
+  ],
+  "alternativeApproaches": [
+    "Client-side classification computed from local points: rejected because it can be forged and is not per-user authoritative",
+    "Write a new Season1/production reward event or activate Season2 wallets now: rejected due to financial/data safety and Dec6 embargo",
+    "Server-authored read-only classification using claimed existing verified evidence and staged/nonminting reward intent: selected"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "wall-avatar",
+    "connect-avatar",
+    "backend-security",
+    "account-isolation",
+    "weak-network",
+    "release-identity",
+    "ads-finance-points",
+    "performance",
+    "staging-backend-isolation"
+  ],
+  "chosenApproach": "Use a read-only SQL candidate outside migrations and dedicated staging-only batch data calls; replace overlay only in shared avatar, show private explanation on existing Profile, and keep reward grants fully off.",
+  "selectionRationale": "Per-day evidence avoids repetitive comment/reaction farming and permits new members to attain high class without lifetime standings. Share existing avatar and Profile layout while preserving media/ads/navigation and finance hard boundaries.",
+  "knownBlockers": [
+    "No confirmed BUKLOD MAIN dedicated staging Supabase project with deployed read-only RPC functions",
+    "Android staging device ad-fill/render and tab responsiveness have not been verified"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add shared avatar visual overlay and own-Profile informational panel without modifying existing posts, rank points, auth, ads or economy.",
+      "preservedBehaviors": [
+        "Only 2 o'clock N changes; Notes chip, Circle Rank badge border, blue online presence and user content remain identical.",
+        "Staging-only query and disabled reward grant path preserve live data."
+      ],
+      "tests": [
+        "tests/season2-weekly-performance-class-rewards-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Render the read-only weekly class panel in existing authenticated Profile without creating a new screen or redirect.",
+      "preservedBehaviors": [
+        "Existing avatar tap and long press behavior routes to Profile or Connect as before.",
+        "Owner-only details are never shown for other accounts, and no new auth bypass."
+      ],
+      "tests": [
+        "tests/season2-weekly-performance-profile-navigation-20261119.test.mjs"
+      ]
+    }
+  ]
+}
