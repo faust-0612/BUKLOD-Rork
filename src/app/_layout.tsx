@@ -47,6 +47,7 @@ import BuklodCenteredBrandMark, {
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 import { buildBuklodRenderCorrelationKey, diagnoseBuklodRenderError, resolveBuklodCrashRoute } from '@/lib/buklodRouteDiagnostics';
 import { getBuklodRenderReleaseIdentity } from '@/lib/buklodRenderReleaseIdentity';
+import { secureBuklodRememberedLoginOnStartup } from '@/lib/buklodRememberedLoginSecrets';
 
 function renderErrorSignature(error: Error): string {
   // Keep diagnostic payloads free of private error messages and stack traces.
@@ -243,6 +244,11 @@ import { BuklodOfflineSyncProvider } from '@/providers/BuklodOfflineSyncProvider
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayout() {
+  // One-time, non-blocking migration/scrub of old plaintext passwords.
+  // This also covers users who stay signed in and never revisit login.
+  useEffect(() => {
+    void secureBuklodRememberedLoginOnStartup().catch(() => undefined);
+  }, []);
   return (
     <BuklodMainBrandIntro>
     <SafeAreaProvider>

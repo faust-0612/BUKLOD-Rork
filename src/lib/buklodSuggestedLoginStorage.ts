@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { clearMatchingBuklodRememberedLogin } from './buklodRememberedLoginSecrets';
 
 export const BUKLOD_SUGGESTED_LOGINS_KEY =
   'buklod.suggested_logins.v2';
@@ -104,40 +105,12 @@ export async function clearSavedSuggestedLoginPassword(options: {
     )
   );
 
-  const rememberedRaw =
-    await AsyncStorage.getItem(
-      BUKLOD_REMEMBERED_CREDENTIALS_KEY
-    );
-
-  if (rememberedRaw) {
-    try {
-      const remembered = JSON.parse(rememberedRaw);
-      const rememberedIdentifier =
-        normalize(remembered?.identifier);
-
-      if (
-        rememberedIdentifier &&
-        (
-          matchedIdentifiers.has(
-            rememberedIdentifier
-          ) ||
-          (
-            !!targetIdentifier &&
-            rememberedIdentifier ===
-              targetIdentifier
-          )
-        )
-      ) {
-        await AsyncStorage.removeItem(
-          BUKLOD_REMEMBERED_CREDENTIALS_KEY
-        );
-      }
-    } catch {
-      await AsyncStorage.removeItem(
-        BUKLOD_REMEMBERED_CREDENTIALS_KEY
-      );
-    }
-  }
+  // Clear the encrypted native remembered secret when this account changes
+  // its password, and always erase the old plaintext cache on every platform.
+  await clearMatchingBuklodRememberedLogin({
+    userId: targetUserId,
+    identifiers: [...matchedIdentifiers, targetIdentifier].filter(Boolean),
+  });
 
   return {
     matchedUserIds:
