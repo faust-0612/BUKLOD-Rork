@@ -55,4 +55,11 @@ expect(/report notification deferred for case/.test(migration),
   'new support requests must not fail if notification delivery is unavailable');
 expect(/screening-/.test(zero)&&/member_read_own_reports_v1/.test(migration),
   'screening status messages are idempotent and private');
-console.log('PASS: 28 BSOC AI and zero-budget safety contracts');
+const followup=load('supabase/migrations/20261119235500_bsoc_member_reply_followup_v1.sql');
+expect(/member_id<>new.sender_id/.test(followup),'member reply cannot mutate other case jobs');
+expect(/state='NEEDS_DETAILS'/.test(followup),'member reply cannot reset unrelated case state');
+expect(/member-followup-/.test(followup)&&/private\.bsoc_ai_emit_member_report_v1/.test(followup),
+ 'member replies get a scoped idempotent private status report');
+expect(!/update public\.user_feedback|fetch\(/i.test(followup),
+ 'member followup cannot auto resolve canonical cases or make network calls');
+console.log('PASS: 32 BSOC AI and zero-budget safety contracts');
