@@ -16,13 +16,38 @@
     "tests/season2-native-capability-gate.test.mjs",
     "scripts/buklod-season2-production-embargo.cjs",
     ".github/workflows/engineering-accountability.yml",
-    "tests/season2-native-release-identity.test.mjs"
+    "tests/season2-native-release-identity.test.mjs",
+    "tests/genesis-protected-feature-lock.test.mjs"
   ],
   "regressionTests": [
     "tests/season2-native-capability-gate.test.mjs",
-    "tests/season2-native-release-identity.test.mjs"
+    "tests/season2-native-release-identity.test.mjs",
+    "tests/genesis-protected-feature-lock.test.mjs"
   ],
-  "lockedFeatureChanges": [],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "The protected production embargo receives the Genesis Season 2 feature source path, so new visuals do not bypass the pre-Dec-6 gate.",
+      "preservedBehaviors": [
+        "Non-Season2 production releases retain normal authorized release workflow",
+        "No automatic Season2 unlock based on date or a source code test"
+      ],
+      "tests": [
+        "tests/season2-native-release-identity.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "The existing CI accountability workflow adds only read-only Season2 native capability validation while retaining all original protected locks.",
+      "preservedBehaviors": [
+        "Keep mandatory protected-feature-lock execution and adversarial regression tests",
+        "Keep exact PR objective-scope enforcement"
+      ],
+      "tests": [
+        "tests/genesis-protected-feature-lock.test.mjs"
+      ]
+    }
+  ],
   "riskAreas": [
     "native-capability-attestation",
     "runtime-identity",
