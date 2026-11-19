@@ -8,11 +8,14 @@ BEGIN
   v_s2_enabled:=private.kl_s2_rewards_enabled_v1();
   IF position('v_user,v_chapter_points,''kl_episode_completion''' in fn)=0
      OR position('v_chapter_points integer:=10' in fn)=0
-     OR position('v_chapter_points:=15' in fn)=0
-     OR position('v_chapter_awarded then v_chapter_points else 0' in fn)=0 THEN
-   RAISE EXCEPTION 'KL S2 +15 award / preactivation +10 / accurate receipt missing';
+     OR position('v_chapter_points:=5+v_episode.episode_number' in fn)=0
+     OR position('INSERT INTO private.kl_s2_chapter_pending' in fn)=0
+     OR position('v_user,v_pending_row.reward_bp' in fn)=0
+     OR position('pending_points' in fn)=0
+     OR position('released_previous_chapter_points' in fn)=0 THEN
+   RAISE EXCEPTION 'KL S2 deferred 5+chapter reward / legacy +10 contract missing';
   END IF;
-  IF v_s2_enabled THEN v_expected:=15; END IF;
+  IF v_s2_enabled THEN v_expected:=5; END IF;
  ELSE
   IF position('v_user,10,''kl_episode_completion''' in fn)=0 THEN
    RAISE EXCEPTION 'KL legacy verified +10 reward missing';
@@ -23,7 +26,7 @@ BEGIN
  END IF;
  IF position('kl_quiz_attempts' in fn)=0
     OR position('v_season_count=30 and v_finished=30' in fn)=0
-    OR position('on conflict do nothing' in lower(fn))=0 THEN
+    OR position('ON CONFLICT' in fn)=0 THEN
   RAISE EXCEPTION 'KL quiz, series completeness or idempotency regressed';
  END IF;
  IF EXISTS(SELECT 1 FROM public.buklod_point_rules
