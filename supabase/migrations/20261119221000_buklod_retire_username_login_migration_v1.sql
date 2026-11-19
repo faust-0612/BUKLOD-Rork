@@ -219,3 +219,14 @@ end $$;
 revoke all on function public.buklod_admin_legacy_login_summary_v1()
   from public,anon;
 grant execute on function public.buklod_admin_legacy_login_summary_v1() to authenticated;
+
+
+-- Schedule only the idempotent in-app reminder function. It does nothing until
+-- legacy_reminders_enabled=true is explicitly activated on the correct backend.
+do $$
+begin
+  if exists(select 1 from pg_extension where extname='pg_cron') then
+    perform cron.schedule('buklod-username-monthly-notices-v1','30 2 1 * *',
+      'select private.buklod_legacy_login_monthly_notice_v1()');
+  end if;
+end $$;
