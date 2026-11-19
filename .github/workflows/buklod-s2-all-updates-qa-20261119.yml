@@ -107,6 +107,6 @@ jobs:
       - name: Backend identity negative/positive tests without production database access
         run: node --test tests/season2-staging-backend-isolation-20261119.test.cjs
       - name: Verify Season 2 rewards held pending December 6 and independent authorization
-        run: node --test tests/season2-visual-only-hold-20261119.test.cjs
+        run: node --test tests/season2-visual-only-hold-20261119.test.cjs tests/season2-production-release-staging-only-hold-20261119.test.cjs
       - name: Confirm no Supabase environment, migration, EAS update or grants were invoked
         run: echo "Reward source only, activation blocked. Backend isolation identity gate is reserved for a separate reward activation release."
