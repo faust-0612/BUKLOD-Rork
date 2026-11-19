@@ -20,8 +20,8 @@ test('Native first-view and feed probes stay compact and terminal fallback failu
   assert.match(native, /const AD_PENDING_SLOT_HEIGHT = 8/);
   assert.match(native, /viewportProbe:\s*\{[\s\S]*?minHeight: AD_PENDING_SLOT_HEIGHT/);
   assert.match(native, /pendingBannerShell:\s*\{[\s\S]*?minHeight: AD_PENDING_SLOT_HEIGHT/);
-  assert.match(native, /pendingArea:\s*\{[\s\S]*?minHeight: 8/);
-  assert.match(native, /if \(!bannerUnitId \|\| bannerFailed\) return null;/);
+  assert.match(native, /style=\{usePostRectangle \? styles\.rectangleArea : styles\.bannerArea\}/);
+  assert.match(native, /if \(!bannerUnitId\) return null;[\s\S]*?if \(bannerFailed\) \{/);
   assert.match(native, /bannerFailedAt.current = Date.now\(\)/);
   assert.match(native, /const AD_LOAD_TIMEOUT_MS = 12_000/);
   assert.match(native, /AD_SLOT_REMOUNT_COOLDOWN_MS/);
