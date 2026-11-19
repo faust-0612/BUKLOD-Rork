@@ -70,12 +70,21 @@ jobs:
           node scripts/season2-governance.cjs validate
           node scripts/season2-governance.cjs ci
           node scripts/seasonal-constitution.test.cjs
-          node --experimental-strip-types --test             tests/season2-governance-contract.test.mjs             tests/season2-governance-production-release-gate.test.mjs             tests/buklod-season2-carryover-contract-20261119.test.mjs             tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs             tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs             tests/buklod-season2-offline-outbox-r1-20261118.test.mjs             tests/buklod-season2-durable-outbox-r1-20261118.test.mjs             tests/buklod-season2-campaign-r1-20261118.test.mjs             tests/buklod-season2-staging-release-contract-20261118.test.mjs             tests/dashboard-instant-tabs-20261117.test.mjs             tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs             tests/ad-dashboard-focus-performance-20261116.test.mjs
+          node --experimental-strip-types --test             tests/season2-governance-contract.test.mjs             tests/season2-governance-production-release-gate.test.mjs             tests/buklod-season2-carryover-contract-20261119.test.mjs             tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs             tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs             tests/buklod-season2-offline-outbox-r1-20261118.test.mjs             tests/buklod-season2-durable-outbox-r1-20261118.test.mjs             tests/buklod-season2-campaign-r1-20261118.test.mjs             tests/buklod-season2-staging-release-contract-20261118.test.mjs             tests/dashboard-instant-tabs-20261117.test.mjs             tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs             tests/ad-dashboard-focus-performance-20261116.test.mjs             tests/season2-expo-free-plan-release-20261119.test.mjs             tests/season2-zero-budget-item-preview-20261119.test.mjs             tests/season2-character-item-ownership-20261119.test.mjs             tests/season2-collectible-mastery-guide-20261119.test.mjs
           npm ci --ignore-scripts --no-audit --no-fund
           npx tsc --noEmit
           node scripts/buklod-ad-surface-audit.mjs --summary
           node --test tests/season2-visual-only-hold-20261119.test.cjs tests/season2-production-release-staging-only-hold-20261119.test.cjs
           node scripts/buklod-season2-staging-order-gate.cjs
+      - name: Fail closed unless Expo billing proves Free plan (zero-charge OTA only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          private_file="$(mktemp /tmp/buklod-eas-plan.XXXXXXXX.json)"
+          trap 'rm -f "$private_file"' EXIT
+          npx --yes eas-cli@27.9.0 account:usage faust_0612 --json --non-interactive > "$private_file"
+          node scripts/season2-expo-free-plan-guard.cjs "$private_file"
       - name: Verify signed staging Android binary, current production, and separate channels
         shell: bash
         run: |

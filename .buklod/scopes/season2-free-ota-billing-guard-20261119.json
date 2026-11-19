@@ -1,0 +1,62 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-free-ota-billing-guard-20261119.json",
+  "objective": "Protect existing Season2 conso staging OTA from paid EAS usage by requiring positive Free-plan evidence and including new collectible/Token source tests in exact SHA release workflow.",
+  "baseRef": "integration/season2-conso-staging-20261119",
+  "productionChange": false,
+  "releaseAuthorized": false,
+  "productionBaselineEvidence": "Existing integration staging source af824195c06aab845b3008e71343f7651f65a3de; production served OTA NOT read back in this PR.",
+  "chosenApproach": "Read-only EAS account:usage through existing Expo token and reject all paid/unknown/free-unproven billing responses before any export/publish. Never print or archive billing JSON; run focused Season2 source tests on exact staging publisher.",
+  "selectionRationale": "User has zero budget. Free-plan limits have no overage but paid accounts can incur charges; an unknown plan is a blocker, not implicit permission. Staging visuals may be tested only with no-bill quota and existing Android runtime.",
+  "alternativeApproaches": [
+    "Publish unconditionally because EAS offers a Free tier: rejected, actual account may be paid.",
+    "Upgrade EAS account or increase Supabase capacity: rejected, user has no budget.",
+    "Fail closed until authenticated usage proves Free plan: selected."
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
+    "scripts/season2-expo-free-plan-guard.cjs",
+    "tests/season2-expo-free-plan-release-20261119.test.mjs",
+    "contracts/season2-implementation-ledger.json",
+    "contracts/season2-proposals/zero-cost-release-gate-20261119.json",
+    ".buklod/scopes/season2-free-ota-billing-guard-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/season2-expo-free-plan-release-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Add strict zero-budget guard to the staging-only EAS OTA workflow without changing production channel or skipping identity/AdMob/nav gates.",
+      "preservedBehaviors": [
+        "Android staging-user package/runtime identity checks and served-manifest readback remain required.",
+        "Production remains unchanged; no EAS native builds, billing upgrade or Season2 reward activation."
+      ],
+      "tests": [
+        "tests/season2-expo-free-plan-release-20261119.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "production-release",
+    "release-identity",
+    "billing-risk",
+    "season1-protection",
+    "ads-monetization"
+  ],
+  "preserveBehaviors": [
+    "No production OTA, account upgrade, billing mutation, DB migration, token mint, wallet writes, rewards or Season1 rule changes.",
+    "No Expo billing JSON logged or artifact uploaded; private temp file cleaned.",
+    "Existing AdMob/nav release guards remain mandatory."
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability and Governance Drift pass with new focused release test.",
+    "Main integration TypeScript and expo export pass.",
+    "At OTA: billing positively confirmed FREE, exact staging runtime and served manifest, production unchanged; otherwise block."
+  ],
+  "knownBlockers": [
+    "EAS plan not yet remotely confirmed",
+    "Physical device tests owner-waived, no proof"
+  ],
+  "publicationStatus": "DEV_GUARD_ONLY_NO_OTA"
+}
