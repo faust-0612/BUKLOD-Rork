@@ -34,7 +34,7 @@ test('estimates have strict write authorization and cannot automatically pay or 
   assert.match(sql, /v_mode='OFFICIAL_ADMOB_API' and v_role<>'service_role'/);
   assert.match(sql, /revoke all on private\.buklod_community_admob_estimate_snapshots from public, anon, authenticated/);
   assert.match(sql, /revoke all on function public\.get_my_buklod_community_contribution_live_v1\(\) from public,anon/);
-  assert.match(importer, /admin_set_buklod_community_admob_estimate_v1/);
+  assert.match(importer, /buklod_write_admob_daily_preview_v2/);
   assert.doesNotMatch(importer, /admin_finalize_buklod|payout_processing|credit_wallet|process_withdrawal/i);
   assert.match(admin, /This does not finalize revenue, fund balances, or unlock withdrawals/);
 });
@@ -44,12 +44,12 @@ test('official API path scopes to the BUKLOD app and verified PHP network earnin
   assert.match(importer, /networkReport:generate/);
   assert.doesNotMatch(importer, /mediationReport:generate/);
   assert.match(importer, /OFFICIAL_ADMOB_NETWORK:/);
-  assert.match(importer, /report\.some\(\(item\) => item\?\.footer\)/);
+  assert.match(readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/report-totals.mjs','utf8'), /report\.some\(\(item\) => item\?\.footer\)/);
   assert.match(importer, /dimension: 'APP', matchesAny/);
   assert.match(importer, /matchesAny: \{ values: \[appId\] \}/);
   assert.doesNotMatch(importer, /values: \[\{ value: appId \}\]/);
   assert.match(importer, /currencyCode: 'PHP'/);
-  assert.match(importer, /totalMicros \+= BigInt\(micros\)/);
+  assert.match(readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/report-totals.mjs','utf8'), /totalMicros \+= BigInt\(micros\)/);
   assert.match(importer, /hasGatewayVerifiedServiceRoleClaims\(token\)/);
   assert.match(importer, /verify_jwt=true/);
   assert.doesNotMatch(importer, /token !== serviceRole/);

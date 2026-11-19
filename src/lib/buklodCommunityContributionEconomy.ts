@@ -63,6 +63,11 @@ export type CommunityContributionDashboard = {
   estimate_status?: 'PROVISIONAL_ADMOB' | 'RECONCILED_OR_FINALIZED' | 'SOURCE_NOT_CONNECTED' | 'STALE';
   estimate_updated_at?: string | null;
   estimate_below_cent?: boolean;
+  /** Source-matched AdMob reporting-day noncash preview. */
+  today_estimated_share_minor?: number | null;
+  today_report_date?: string | null;
+  today_report_timezone?: string | null;
+  today_estimate_below_cent?: boolean;
   finalized_share: { amount_minor: number; status: string; finalized_at: string } | null;
   video_quota: CommunityVideoQuota;
   review_items: CommunityReviewItem[];

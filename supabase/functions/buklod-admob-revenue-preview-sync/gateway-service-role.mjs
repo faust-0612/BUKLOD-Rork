@@ -18,3 +18,21 @@ export function hasGatewayVerifiedServiceRoleClaims(token, nowSeconds = Date.now
     return false;
   }
 }
+
+
+// PRECONDITION: only call behind verify_jwt=true. Supabase's API gateway also
+// verifies modern sb_secret_ service-role keys via minted compatibility tokens.
+// The handler receives the original opaque key, not the gateway's minted JWT.
+// Compare ONLY against this project's server-held SUPABASE_SERVICE_ROLE_KEY;
+// never accept publishable keys, arbitrary role claims or client-supplied roles.
+// A fixed-width comparison avoids leaking matching prefix length via early exit.
+export function hasGatewayVerifiedServiceRoleSecretKey(token, expectedServerKey) {
+  if (typeof token !== 'string' || typeof expectedServerKey !== 'string'
+      || !/^sb_secret_[A-Za-z0-9_-]{20,}$/.test(expectedServerKey)
+      || token.length !== expectedServerKey.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < token.length; i++) {
+    mismatch |= token.charCodeAt(i) ^ expectedServerKey.charCodeAt(i);
+  }
+  return mismatch === 0;
+}

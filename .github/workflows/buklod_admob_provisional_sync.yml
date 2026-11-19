@@ -1,12 +1,16 @@
 name: BUKLOD provisional AdMob revenue sync
 
 on:
-  schedule:
-    - cron: '17 */3 * * *'
+  # Disaster-recovery/manual backup only: the canonical scheduler is the
+  # DB Vault + pg_cron bridge, never dual scheduled provider fetches.
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: buklod-admob-provisional-provider-preview
+  cancel-in-progress: false
 
 jobs:
   admob-report-preview:
@@ -36,4 +40,5 @@ jobs:
             --header 'Content-Type: application/json' \
             --data '{}' \
             "$BUKLOD_ADMOB_SYNC_URL" \
-            --output /dev/null
+            --output "$RUNNER_TEMP/admob-preview-response.json"
+          jq -e '.status == "PRELIMINARY_ONLY" and .cash_credited == false and .withdrawable == false' "$RUNNER_TEMP/admob-preview-response.json" >/dev/null

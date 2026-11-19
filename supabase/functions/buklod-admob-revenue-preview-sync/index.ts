@@ -8,7 +8,8 @@
 // ADMOB_OAUTH_REFRESH_TOKEN, BUKLOD_ADMOB_PUBLISHER_ID,
 // BUKLOD_ADMOB_APP_ID. No client-side AdMob revenue can fund an estimate.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { hasGatewayVerifiedServiceRoleClaims } from './gateway-service-role.mjs';
+import { hasGatewayVerifiedServiceRoleClaims, hasGatewayVerifiedServiceRoleSecretKey } from './gateway-service-role.mjs';
+import { summarizeDatedAdmobReport } from './report-totals.mjs';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -21,9 +22,9 @@ const requireEnv = (key: string) => {
   if (!value) throw new Error(`Missing server configuration: ${key}`);
   return value;
 };
-function manilaParts(at: Date) {
+function dateParts(at: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
   }).formatToParts(at);
   const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
   return { year: get('year'), month: get('month'), day: get('day') };
@@ -31,22 +32,40 @@ function manilaParts(at: Date) {
 async function fetchJson(url: string, init: RequestInit, timeoutMs: number) {
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   // Never surface OAuth or report response bodies to callers or logs.
-  if (!response.ok) throw new Error(`AdMob API request failed: HTTP ${response.status}`);
+  if (!response.ok) {
+    // Extract only standard non-sensitive OAuth error codes from the token
+    // endpoint. NEVER log or relay descriptions, credentials or raw bodies.
+    let oauthErrorCode: string | null = null;
+    if (url === 'https://oauth2.googleapis.com/token') {
+      const oauthFault = await response.json().catch(() => null);
+      if (['invalid_grant', 'invalid_client', 'invalid_request',
+        'unauthorized_client', 'temporarily_unavailable']
+        .includes(String(oauthFault?.error))) {
+        oauthErrorCode = String(oauthFault.error);
+      }
+    }
+    throw Object.assign(
+      new Error(`AdMob API request failed: HTTP ${response.status}`),
+      { oauthErrorCode },
+    );
+  }
   return response.json();
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
+  // Authenticated, sanitized troubleshooting only; never return Google bodies.
+  let reportStage: 'configuration' | 'oauth' | 'account' | 'network-report' | 'storage' = 'configuration';
   try {
     const url = requireEnv('SUPABASE_URL');
     const serviceRole = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '').trim();
-    // Security boundary: deployed with verify_jwt=true. Supabase's gateway
-    // validates the JWT signature, expiry, and project BEFORE this handler.
-    // A rotated service-role JWT need not byte-match SUPABASE_SERVICE_ROLE_KEY,
-    // which this function still uses privately for trusted database writes.
-    // Never use this claim check behind verify_jwt=false.
-    if (!token || !hasGatewayVerifiedServiceRoleClaims(token))
+    // Security boundary: verify_jwt=true. The gateway validates legacy JWTs
+    // or current sb_secret_ keys (minted compatibility). A modern secret key
+    // is not itself a JWT; compare it only to this server's own expected key.
+    // Both trusted paths are forbidden when verify_jwt=false.
+    if (!token || !(hasGatewayVerifiedServiceRoleClaims(token)
+      || hasGatewayVerifiedServiceRoleSecretKey(token, serviceRole)))
       return json({ error: 'Authorized scheduler required' }, 401);
 
     const clientId = requireEnv('ADMOB_OAUTH_CLIENT_ID');
@@ -57,6 +76,7 @@ Deno.serve(async (req: Request) => {
     if (!/^pub-\d+$/.test(publisherId) || !/^ca-app-pub-\d+~\d+$/.test(appId))
       return json({ error: 'Invalid AdMob account/app configuration' }, 503);
 
+    reportStage = 'oauth';
     const oauth = await fetchJson('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -67,69 +87,56 @@ Deno.serve(async (req: Request) => {
     }, 12_000);
     if (!oauth?.access_token) throw new Error('AdMob OAuth access token was not returned');
 
-    const date = manilaParts(new Date());
+    reportStage = 'account';
+    const account = await fetchJson(
+      `https://admob.googleapis.com/v1/accounts/${publisherId}`,
+      { headers: { Authorization: `Bearer ${oauth.access_token}` } }, 12_000,
+    );
+    const timeZone = String(account?.reportingTimeZone || '');
+    if (!timeZone || timeZone.length > 64) throw new Error('AdMob reporting timezone unavailable');
+    const date = dateParts(new Date(), timeZone);
+    const manila = dateParts(new Date(), 'Asia/Manila');
+    if (date.year !== manila.year || date.month !== manila.month)
+      throw new Error('Provider and Manila QMP months disagree');
     const periodKey = `${date.year}-${String(date.month).padStart(2, '0')}`;
+    const reportDate = `${periodKey}-${String(date.day).padStart(2, '0')}`;
+    const reportDay = reportDate.replace(/-/g, '');
+    reportStage = 'network-report';
     const report = await fetchJson(
       `https://admob.googleapis.com/v1/accounts/${publisherId}/networkReport:generate`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${oauth.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reportSpec: {
-            dateRange: {
-              startDate: { year: date.year, month: date.month, day: 1 },
-              endDate: date,
-            },
-            dimensions: ['APP'],
-            dimensionFilters: [{
-              dimension: 'APP', matchesAny: { values: [appId] },
-            }],
-            metrics: ['ESTIMATED_EARNINGS'],
-            localizationSettings: { currencyCode: 'PHP', languageCode: 'en-US' },
-          },
-        }),
-      },
-      20_000,
+      { method: 'POST',
+        headers: { Authorization: `Bearer ${oauth.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportSpec: {
+          dateRange: { startDate: { year: date.year, month: date.month, day: 1 }, endDate: date },
+          dimensions: ['DATE', 'APP'],
+          dimensionFilters: [{ dimension: 'APP', matchesAny: { values: [appId] } }],
+          metrics: ['ESTIMATED_EARNINGS'],
+          localizationSettings: { currencyCode: 'PHP', languageCode: 'en-US' },
+        } }),
+      }, 20_000,
     );
-    if (!Array.isArray(report)) throw new Error('Unexpected AdMob report response');
-    const header = report.find((item) => item?.header)?.header;
-    if (header?.localizationSettings?.currencyCode !== 'PHP')
-      throw new Error('AdMob did not confirm PHP report currency');
-    // Google terminates a complete report with a footer. Do not store a
-    // partial stream or silently treat a truncated response as zero earnings.
-    if (!report.some((item) => item?.footer))
-      throw new Error('AdMob network report footer missing');
-
-    let totalMicros = 0n;
-    for (const entry of report) {
-      if (!entry?.row) continue;
-      if (entry.row.dimensionValues?.APP?.value !== appId)
-        throw new Error('AdMob report included an unexpected app');
-      const micros = String(entry.row.metricValues?.ESTIMATED_EARNINGS?.microsValue ?? '');
-      if (!/^\d+$/.test(micros)) throw new Error('AdMob report earnings format invalid');
-      totalMicros += BigInt(micros);
-    }
-    if (totalMicros < 0n || totalMicros > 1_000_000_000_000_000n)
-      throw new Error('AdMob report amount outside the configured noncash estimate bound');
+    const { totalMicros, dayMicros } = summarizeDatedAdmobReport(report, appId, reportDay);
     const amountPhp = Number(totalMicros) / 1_000_000;
-    // Only this server-only RPC records a provisional estimate. It does not
-    // insert into Finance V3, settle referrals, or affect withdrawable balances.
+    const todayPhp = Number(dayMicros) / 1_000_000;
+    // Atomic, service-only write. No cash allocation or payout.
+    reportStage = 'storage';
     const admin = createClient(url, serviceRole, { auth: { persistSession: false } });
-    const { error } = await admin.rpc('admin_set_buklod_community_admob_estimate_v1', {
-      p_period_key: periodKey,
-      p_amount_php: amountPhp,
+    const { data: result, error } = await admin.rpc('buklod_write_admob_daily_preview_v2', {
+      p_period_key: periodKey, p_month_php: amountPhp, p_report_date: reportDate,
+      p_today_php: todayPhp,
       p_source_reference: `OFFICIAL_ADMOB_NETWORK:${publisherId}:${appId}:${periodKey}:PHP`,
-      p_source_mode: 'OFFICIAL_ADMOB_API',
-      p_observed_at: new Date().toISOString(),
+      p_reporting_time_zone: timeZone, p_observed_at: new Date().toISOString(),
     });
-    if (error) throw new Error('Estimate snapshot storage failed');
+    if (error || !['PRELIMINARY_ONLY', 'OLDER_REPORT_IGNORED'].includes(result?.status))
+      throw new Error('Estimate snapshot storage failed');
     return json({
       status: 'PRELIMINARY_ONLY',
       period_key: periodKey,
       amount_php: amountPhp,
+      today_amount_php: todayPhp,
+      report_date: reportDate,
+      reporting_time_zone: timeZone,
+      result_status: result.status,
       source: 'OFFICIAL_ADMOB_API',
       finalized: false, cash_credited: false, withdrawable: false,
     });
@@ -138,6 +145,19 @@ Deno.serve(async (req: Request) => {
     const kind = error instanceof Error && error.message.startsWith('Missing server configuration')
       ? 'SOURCE_NOT_CONFIGURED'
       : 'SOURCE_UNAVAILABLE';
-    return json({ error: kind }, 503);
+    // No OAuth response body, API key, publisher ID or refresh token is exposed.
+    const statusText = error instanceof Error
+      ? error.message.match(/^AdMob API request failed: HTTP ([0-9]{3})$/)?.[1] : null;
+    const providerHttpStatus = statusText ? Number(statusText) : null;
+    const maybeOauthCode = (error as { oauthErrorCode?: unknown } | null)?.oauthErrorCode;
+    const safeOauthCode = ['invalid_grant', 'invalid_client', 'invalid_request',
+      'unauthorized_client', 'temporarily_unavailable']
+      .includes(String(maybeOauthCode)) ? maybeOauthCode : null;
+    return json({
+      error: kind,
+      stage: reportStage,
+      provider_http_status: providerHttpStatus,
+      oauth_error_code: safeOauthCode,
+    }, 503);
   }
 });
