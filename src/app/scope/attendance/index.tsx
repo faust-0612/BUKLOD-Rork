@@ -38,6 +38,7 @@ import {
   listBuklodAttendanceEvents,
 } from '@/lib/buklodAttendanceEvents';
 import { supabase } from '@/lib/supabase';
+import { BuklodAttendanceEventQrPanel } from '@/components/attendance/BuklodAttendanceEventQrPanel';
 import { colors } from '@/lib/theme';
 
 type EventRow = {
@@ -786,6 +787,16 @@ export default function ScopeAttendanceScreen() {
           <Text style={shared.muted}>
             {scopeKind} • {workspaceScope.name}
           </Text>
+          {canOperateScope && (
+            <Pressable onPress={() => router.push({
+              pathname: '/scope/attendance/home-report',
+              params: { scopeId: workspaceScope.scope_id },
+            } as any)} style={{ paddingVertical: 4 }}>
+              <Text style={{ color: colors.greenDark, fontSize: 12, fontWeight: '800' }}>
+                Member Attendance Across Organizations
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {canOperateScope && (
@@ -818,6 +829,7 @@ export default function ScopeAttendanceScreen() {
         <Text style={styles.instructionBody}>
           {ATTENDANCE_WORKSPACE_INSTRUCTIONS}
         </Text>
+        <Button title="SCAN EVENT QR" onPress={() => router.push('/scope/attendance/scan' as any)} />
         {canOperateScope ? (
           <View style={styles.linkActions}>
             <Pressable
@@ -1023,6 +1035,10 @@ export default function ScopeAttendanceScreen() {
             </Pressable>
           );
         })
+      )}
+
+      {selected && canManageSelected && (
+        <BuklodAttendanceEventQrPanel eventId={selected.id} canManage={canManageSelected} eventOpen={selected.is_active && (!selected.ends_at || new Date(selected.ends_at).getTime() > Date.now())} />
       )}
 
       {selected && canManageSelected && (
