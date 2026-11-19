@@ -23,12 +23,15 @@
     "tests/genesis-season-branding-ads-20261120.test.mjs",
     ".github/workflows/genesis-season2-staging-release-apk-20261120.yml",
     "tests/genesis-staging-native-apk-release-20261120.test.mjs",
-    "docs/BUKLOD_GENESIS_APK_FIRST_OTA_AFTER_20261120.md"
+    "docs/BUKLOD_GENESIS_APK_FIRST_OTA_AFTER_20261120.md",
+    ".github/workflows/genesis-android-compile-smoke-20261120.yml",
+    "tests/genesis-android-compile-smoke-release-20261120.test.mjs"
   ],
   "regressionTests": [
     "tests/genesis-season-branding-navigation-20261120.test.mjs",
     "tests/genesis-season-branding-ads-20261120.test.mjs",
-    "tests/genesis-staging-native-apk-release-20261120.test.mjs"
+    "tests/genesis-staging-native-apk-release-20261120.test.mjs",
+    "tests/genesis-android-compile-smoke-release-20261120.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -39,7 +42,8 @@
         "AdMob first-view warmup and tab navigation unchanged"
       ],
       "tests": [
-        "tests/genesis-season-branding-navigation-20261120.test.mjs"
+        "tests/genesis-season-branding-navigation-20261120.test.mjs",
+        "tests/genesis-android-compile-smoke-release-20261120.test.mjs"
       ]
     },
     {
@@ -71,7 +75,8 @@
         "No OTA publication until a matching Genesis runtime signed APK and device acceptance evidence exists"
       ],
       "tests": [
-        "tests/genesis-staging-native-apk-release-20261120.test.mjs"
+        "tests/genesis-staging-native-apk-release-20261120.test.mjs",
+        "tests/genesis-android-compile-smoke-release-20261120.test.mjs"
       ]
     }
   ],
@@ -97,8 +102,9 @@
     "Build GitHub Actions checks actual Expo preview identity and staging Supabase/Firebase before any EAS credit use",
     "Actual signed APK and runtime on device remain unverified until separate build receipt and QA",
     "If GitHub staging secrets are missing, use existing registered staging-only Firebase client and EAS preview env, fail if isolated Supabase key absent",
-    "Expo dependencies npm ci installed before EAS preview env:pull (Expo CLI plugin resolve requires node_modules)"
+    "Expo dependencies npm ci installed before EAS preview env:pull (Expo CLI plugin resolve requires node_modules)",
+    "No-credentials Android dry compile confirms Kotlin+Gradle native module linkage only; binary never distributed and device validation not represented"
   ],
   "releaseMode": "DEV_ONLY",
-  "releaseStatus": "THIRD_PREVIEW_ENV_RECOVERY_TRY_DEPENDENCIES_BEFORE_EAS_PULL_NO_OTA"
+  "releaseStatus": "STAGING_SIGNED_APK_BLOCKED_MISSING_ISOLATED_BACKEND_NATIVE_COMPILE_SMOKE_PENDING"
 }

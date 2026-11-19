@@ -24,3 +24,10 @@ Official seasonal identity: **Genesis: Let There Be Light** · Genesis 1:3. Exac
 5. Only after that signed APK is confirmed on an eligible staging installation may a separate, explicitly scoped and source-compatible EAS OTA publish to `season2-genesis-preview` occur. Production Play/OTA remains untouched. Season 2 production activation is separately embargoed until at least December 6, 2026.
 
 **Status:** DEV source; signed APK, physical Android QA and OTA are pending. No automatic production promotion.
+
+## 2026-11-20 build attempts (runtime source snapshot)
+- First isolated signed Genesis staging APK workflow **#44597116701**: stopped at preflight; staging Firebase and Supabase GitHub secrets absent.
+- Corrected EAS preview fallback workflow **#44597661666**: EAS env:pull required installed Expo plugins; fixed ordering.
+- Corrected dependency-first workflow **#44597960808**: EAS Preview env returned **no valid isolated staging Supabase URL/publishable key**. It was blocked before Android build; no signed APK, staging OTA or production change.
+- Safe fallback: a separate **offline/non-distributable Android Gradle compile smoke** uses an intentionally unreachable placeholder hostname; it MUST NOT be distributed or treated as a functioning staging APK. Production backend is never used.
+- To unblock a usable staging APK, provision a *real separately isolated non-production Supabase endpoint + publishable key* in Expo Preview (or GitHub staging secrets), then rerun the signed staging build workflow. This is a genuine external-environment blocker, not something that can be patched by swapping to the live project.

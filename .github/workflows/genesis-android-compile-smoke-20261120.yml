@@ -1,0 +1,84 @@
+name: BUKLOD Genesis Native Compile Smoke - Offline No Signed APK
+on:
+  push:
+    branches:
+      - dev/genesis-season-wordmark-appwide-20261120
+    paths:
+      - .github/workflows/genesis-android-compile-smoke-20261120.yml
+permissions:
+  contents: read
+concurrency:
+  group: genesis-native-compile-smoke-20261120
+  cancel-in-progress: false
+jobs:
+  android-compile-only:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_NATIVE_COMPILE_SMOKE:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_SUPABASE_URL: https://genesis-compile-placeholder.invalid
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_OFFLINE_COMPILE_ONLY_NOT_A_CREDENTIAL
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      GRADLE_OPTS: -Xmx2g -Dorg.gradle.daemon=false
+    steps:
+      - name: Checkout exact isolated source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - name: Prepare locally registered staging Firebase Android client (no production use)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const cfg=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          const stage=(cfg.client||[]).filter(c=>c.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging');
+          assert.equal(stage.length,1,'Stage Android client must already be registered');
+          cfg.client=stage;
+          fs.writeFileSync('google-services.staging.json',JSON.stringify(cfg));
+          const app=require('./app.config.js')({config:{}});
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.runtimeVersion,'2.0.0-genesis-preview');
+          assert.equal(app.plugins.find(p=>Array.isArray(p)&&p[0]==='react-native-google-mobile-ads')[1].androidAppId,
+            'ca-app-pub-3940256099942544~3347511713');
+          console.log('Compile-only offline environment: NO working Supabase, NO EAS, NO upload or OTA');
+          NODE
+      - name: Verify immutable JS and Genesis branding source before native compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run genesis:theme:gate
+          node --test tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-android-compile-smoke-release-20261120.test.mjs
+          npx tsc --noEmit
+          npx expo export --platform android --output-dir /tmp/buklod-genesis-offline-bundle
+      - name: Generate Android staging native project and compile Kotlin+Gradle
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo prebuild --platform android --clean --no-install
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --max-workers=2 --stacktrace
+          test -n "$(find app/build/outputs/apk/debug -name '*.apk' -type f -print -quit)"
+          echo 'Android debug compile passed: NONFUNCTIONAL offline dummy backend, DO NOT DISTRIBUTE APK'
+      - name: No artifact publishing, OTA, prod, Play or backend operations
+        if: success()
+        run: echo 'No signed staging APK and no OTA publish: compile-smoke only.'
