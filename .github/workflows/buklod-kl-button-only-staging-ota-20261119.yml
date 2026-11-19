@@ -99,6 +99,8 @@ jobs:
           assert.equal(p.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
           const list=r('updates.json'),rows=list.currentPage??list;
           assert.ok(Array.isArray(rows),'Staging update list unavailable');
+          console.log('CURRENT_STAGING_UPDATE_ID',s.id);
+          console.log('STAGING_HISTORY',JSON.stringify(rows.slice(0,12).map(x=>({message:x.message,group:x.group,id:x.id}))));
           const own=rows.find(x=>x.message==='BUKLOD_KL_ONLY_STAGE_'+process.env.GITHUB_SHA);
           const base=rows.find(x=>x.message==='BUKLOD_NOV17_ALL_RECENT_'+process.env.BASE_STAGE);
           assert.ok(own?.group||base?.group,'Latest staging source unproven: do not roll back');
