@@ -20,9 +20,9 @@
     "actual-served-staging-manifest",
     "unchanged-production"
   ],
-  "sourceStatus": "Consolidated Season2 preview source + no-charge billing guard merged and source CI validated. EAS staging attempt 6 / run 44475356741 blocked before publish at PLAN_NOT_PROVEN_FREE (parser mismatch); corrected attempt 7 / run 44476334903 blocked before publish at NONZERO_OR_UNKNOWN_BILLING. Exact billing amount deliberately not logged. No staging OTA publication or production/reward deployment claimed.",
-  "note": "Stage user-facing previews only. S2 wallets, token mint/spend, missions, season rollover and economy integration remain OFF even after Dec 6 absent fresh approval and backend verification. Production Season 1 remains unchanged.",
-  "attempt": 7,
+  "sourceStatus": "Staging source merged and source-QA verified through #987 NativeAd fallback and #989 Expo canonical Free no-overage correction. Only optional estimated billing fields are tolerated when Expo account:usage independently proves Free plan and exact owner; paid/unknown plans or explicit nonzero/invalid charges still fail. Staging attempt 8 is authorized to run publisher workflow, but no actual served OTA is claimed until runner's postpublish manifest verifies.",
+  "note": "Only staging-user Android preview source, Season2 rewards/claim/wallet DB writes remain OFF. Provider-verified Expo Free-plan accounts do not incur overage charges; no upgrade or paid build. Production channel, Season1 points and production database migrations unchanged.",
+  "attempt": 8,
   "rewardsHoldUntilManilaDay": "2026-12-06",
   "requiresSeparateOwnerApprovalForRewards": true,
   "season2RewardDbWritesAuthorized": false,
@@ -33,15 +33,22 @@
     "Season 2 1,300 Character item requirements and benefits guide (preview only)",
     "Server-confirmed Character Owned vs Level Eligible UI distinction",
     "Season 2 Journey Tokens and Weekly Foundation Badge instructions (no active claims)",
-    "Disabled isolated Season 2 collectible mastery claim draft (source only, not deployed)"
+    "Disabled isolated Season 2 collectible mastery claim draft (source only, not deployed)",
+    "Non-Season2 optional frequent Wall comment interstitial on safe natural editor exit",
+    "Non-Season2 Connect latest-message on send/focus and spacious composer",
+    "Non-Season2 full post detail reaction count wrapping and KL mobile release controls",
+    "Non-Season2 first-view native ad bounded health/banner fallback"
   ],
   "requestedVisualOnlySourceParent": "89944fcf35fb08fc61637246f541d4e3af6e1505",
   "requestedAtManilaDay": "2026-11-19",
-  "publicationStatus": "BLOCKED_BEFORE_STAGING_PUBLISH_ZERO_COST_BILLING_UNVERIFIED",
+  "publicationStatus": "STAGING_ATTEMPT8_PENDING_VERIFIED_OTA",
   "noChargeRequired": true,
   "freePlanOwner": "faust_0612",
   "physicalDeviceVerification": "WAIVED_BY_OWNER_NOT_PERFORMED",
-  "blocker": "Expo faust_0612 account:usage Free plan identity was checked but zero estimated charge could not be confirmed. No paid operations allowed. Do not automatically retry or bypass.",
+  "blocker": "Actual staging release subject to authenticated canonical Free-plan check, EAS quota, staging APK/runtime/channel checks and served manifest identity. No device acceptance or production deployment claimed.",
   "lastStagingWorkflowId": 44476334903,
-  "requiresFreshZeroChargeEvidence": true
+  "requiresFreshZeroChargeEvidence": true,
+  "nonSeason2Wave1Reference": "release/nonseason2-wave1-source-20261119",
+  "approvedStagingPublishTarget": "staging-user",
+  "sourceOnlyUntilPublishReceipt": true
 }
