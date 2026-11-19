@@ -7,7 +7,15 @@ type Question = { id: string; question: string; options: string[] };
 type BeginResponse = {
   ok?: boolean; reason?: string; allow_legacy?: boolean; already_completed?: boolean; attempt_id?: string; questions?: Question[];
 };
-type Completion = { completed?: boolean; new_completion?: boolean; chapter_points?: number; series_points?: number };
+type Completion = {
+  completed?: boolean;
+  new_completion?: boolean;
+  chapter_points?: number;
+  series_points?: number;
+  pending_points?: number;
+  released_previous_chapter_points?: number;
+  reward_status?: string;
+};
 type SubmitResponse = {
   ok?: boolean; passed?: boolean; correct?: number; total?: number;
   reason?: string; completion?: Completion; already_submitted?: boolean;
@@ -22,6 +30,19 @@ const reasons: Record<string, string> = {
   attempt_unavailable: 'Hindi na makita ang quiz attempt. Subukan muli.',
   previous_chapter_required: 'Tapusin at ipa-verify muna ang naunang kabanata bago umabante.',
 };
+
+function chapterRewardFeedback(completion: Completion): string {
+  const pending = Number(completion.pending_points ?? 0);
+  const released = Number(completion.released_previous_chapter_points ?? 0);
+  const current = Number(completion.chapter_points ?? 0);
+  const series = Number(completion.series_points ?? 0);
+  const parts: string[] = [];
+  if (current > 0) parts.push('+' + current + ' BP');
+  if (released > 0) parts.push('+' + released + ' BP mula sa nakaraang kabanata');
+  if (pending > 0) parts.push(pending + ' BP pending — makukuha kapag natapos ang susunod na kabanata');
+  if (series > 0) parts.push('Series bonus +' + series + ' BP');
+  return parts.length ? ' · ' + parts.join(' · ') : '';
+}
 
 export default function KlReadingQuiz({
   episodeId, onVerified,
@@ -77,9 +98,7 @@ export default function KlReadingQuiz({
       if (completion?.completed === true) {
         setDone(true); setLegacyAllowed(false);
         setMessage('Naitala ang pagkumpleto sa kabanata.' +
-          (completion.new_completion ? ' +' + Number(completion.chapter_points ?? 0) + ' BP' +
-            (Number(completion.series_points ?? 0) > 0
-              ? ' · Series bonus +' + completion.series_points + ' BP' : '') : ''));
+          (completion.new_completion ? chapterRewardFeedback(completion) : ''));
         onVerified?.();
         if (completion.new_completion === true) {
           void showBuklodAdOpportunity('kl_chapter_success').catch(() => undefined);
@@ -113,9 +132,7 @@ export default function KlReadingQuiz({
         setQuestions([]);
         setMessage('Natapos ang kabanata!' +
           (result.completion.new_completion
-            ? ' +' + Number(result.completion.chapter_points ?? 0) + ' BP' +
-              (Number(result.completion.series_points ?? 0) > 0
-                ? ' · Series bonus +' + result.completion.series_points + ' BP' : '')
+            ? chapterRewardFeedback(result.completion)
             : ' Naitala na ang completion.'));
         onVerified?.();
         if (result.completion.new_completion === true) {
