@@ -7,6 +7,15 @@ import type { ColorSchemeName } from 'react-native';
 
 /** User-facing global appearance preference (includes system/auto). */
 export type BuklodThemePreferenceId =
+  | 'evergreenSocial'
+  | 'midnightMint'
+  | 'warmCommunity'
+  | 'sapphireFrost'
+  | 'forestChampagne'
+  | 'royalPlum'
+  | 'terracottaSand'
+  | 'graphiteLime'
+  | 'oceanCoral'
   | 'system'
   | 'cloudWhite'
   | 'softMint'
@@ -21,6 +30,15 @@ export type BuklodThemePreferenceId =
 
 /** Resolved palette id (concrete theme, never "system"). */
 export type BuklodPaletteId =
+  | 'evergreenSocial'
+  | 'midnightMint'
+  | 'warmCommunity'
+  | 'sapphireFrost'
+  | 'forestChampagne'
+  | 'royalPlum'
+  | 'terracottaSand'
+  | 'graphiteLime'
+  | 'oceanCoral'
   | 'cloudWhite'
   | 'softMint'
   | 'sage'
@@ -40,6 +58,10 @@ export type BuklodThemeRoles = {
   surfaceElevated: string;
   surfaceMuted: string;
   headerSurface: string;
+  /** Public BUKLOD header; separate from readable card headers. */
+  brandHeaderSurface: string;
+  /** Decorative line work; not used for readable text. */
+  brandLineAccent: string;
   cardSurface: string;
   textPrimary: string;
   textSecondary: string;
@@ -109,6 +131,8 @@ type PaletteSource = {
   surface: string;
   surfaceElevated: string;
   headerSurface: string;
+  brandHeaderSurface?: string;
+  brandLineAccent?: string;
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
@@ -129,6 +153,204 @@ const PALETTE_SOURCES: Record<
   BuklodPaletteId,
   PaletteSource
 > = {
+  evergreenSocial: {
+    canvas: '#F4F8F5',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#0D2943',
+    brandLineAccent: '#A6E04C',
+    textPrimary: '#162B28',
+    textSecondary: '#52645B',
+    textMuted: '#66766F',
+    accent: '#106A50',
+    accentSoft: '#E5F3EB',
+    border: '#D5E5DA',
+    inputSurface: '#F1F8F3',
+    unreadBadge: '#106A50',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#162B28',
+  },
+  midnightMint: {
+    canvas: '#F1F6F6',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#112D39',
+    brandLineAccent: '#70D6C5',
+    textPrimary: '#163034',
+    textSecondary: '#4C686A',
+    textMuted: '#60777B',
+    accent: '#0B6C68',
+    accentSoft: '#E3F5F2',
+    border: '#D3E7E5',
+    inputSurface: '#F0F8F7',
+    unreadBadge: '#0B6C68',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#163034',
+  },
+  warmCommunity: {
+    canvas: '#FAF8F2',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#123C32',
+    brandLineAccent: '#DBB86B',
+    textPrimary: '#2E2B26',
+    textSecondary: '#5F635A',
+    textMuted: '#68645D',
+    accent: '#14684F',
+    accentSoft: '#F2F0E5',
+    border: '#E5E1D5',
+    inputSurface: '#F8F6EE',
+    unreadBadge: '#14684F',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#2E2B26',
+  },
+  sapphireFrost: {
+    canvas: '#F1F5FC',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#122D53',
+    brandLineAccent: '#24B8A6',
+    textPrimary: '#192B45',
+    textSecondary: '#53657E',
+    textMuted: '#68788E',
+    accent: '#245DD8',
+    accentSoft: '#E7EFFD',
+    border: '#D5E3F3',
+    inputSurface: '#F2F6FF',
+    unreadBadge: '#245DD8',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#192B45',
+  },
+  forestChampagne: {
+    canvas: '#F8F6F0',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#153A31',
+    brandLineAccent: '#E5BD77',
+    textPrimary: '#21362F',
+    textSecondary: '#5A695F',
+    textMuted: '#717970',
+    accent: '#17644F',
+    accentSoft: '#E7F1E8',
+    border: '#E0E8DB',
+    inputSurface: '#F6F9F3',
+    unreadBadge: '#17644F',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#21362F',
+  },
+  royalPlum: {
+    canvas: '#F8F4F9',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#32253C',
+    brandLineAccent: '#DDA1B2',
+    textPrimary: '#302837',
+    textSecondary: '#65586B',
+    textMuted: '#827584',
+    accent: '#794D89',
+    accentSoft: '#F1E7F2',
+    border: '#E7DAE9',
+    inputSurface: '#F9F5FC',
+    unreadBadge: '#794D89',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#302837',
+  },
+  terracottaSand: {
+    canvas: '#FBF7F0',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#463932',
+    brandLineAccent: '#E0A76D',
+    textPrimary: '#3B302B',
+    textSecondary: '#6D5E52',
+    textMuted: '#86756A',
+    accent: '#A85741',
+    accentSoft: '#F6E9DB',
+    border: '#EBDCCE',
+    inputSurface: '#FEF9F1',
+    unreadBadge: '#A85741',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#3B302B',
+  },
+  graphiteLime: {
+    canvas: '#F0F4F2',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#17282B',
+    brandLineAccent: '#B4DB56',
+    textPrimary: '#1D3031',
+    textSecondary: '#4F6764',
+    textMuted: '#627774',
+    accent: '#355F5A',
+    accentSoft: '#E3EDE8',
+    border: '#D3E2DB',
+    inputSurface: '#F2F8F4',
+    unreadBadge: '#355F5A',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#1D3031',
+  },
+  oceanCoral: {
+    canvas: '#F3F8F9',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    headerSurface: '#FFFFFF',
+    brandHeaderSurface: '#153A51',
+    brandLineAccent: '#EF9A87',
+    textPrimary: '#1A3440',
+    textSecondary: '#557078',
+    textMuted: '#6C8288',
+    accent: '#116F8C',
+    accentSoft: '#E3F1F4',
+    border: '#D4E7EB',
+    inputSurface: '#F2FAFA',
+    unreadBadge: '#116F8C',
+    danger: '#C42E3B',
+    success: '#14784D',
+    warning: '#9B621A',
+    white: '#FFFFFF',
+    overlay: 'rgba(13, 30, 37, 0.34)',
+    shadow: '#1A3440',
+  },
   cloudWhite: {
     canvas: '#F8FAFC',
     surface: '#FFFFFF',
@@ -417,6 +639,8 @@ function buildGlobalRoles(
     surfaceElevated: p.surfaceElevated,
     surfaceMuted: p.accentSoft,
     headerSurface: p.headerSurface,
+    brandHeaderSurface: p.brandHeaderSurface ?? '#0B2048',
+    brandLineAccent: p.brandLineAccent ?? '#A6CCD5',
     cardSurface: p.surface,
     textPrimary: p.textPrimary,
     textSecondary: p.textSecondary,
@@ -452,6 +676,69 @@ export const BUKLOD_PALETTE_PRESETS: Record<
   BuklodPaletteId,
   BuklodThemePreset
 > = {
+  evergreenSocial: {
+    id: 'evergreenSocial',
+    label: 'Evergreen Social',
+    description: 'Navy, evergreen, fresh lime and soft green canvas',
+    swatch: '#106A50',
+    roles: buildGlobalRoles('evergreenSocial'),
+  },
+  midnightMint: {
+    id: 'midnightMint',
+    label: 'Midnight Mint',
+    description: 'Deep teal, sea-glass and cool mist',
+    swatch: '#0B6C68',
+    roles: buildGlobalRoles('midnightMint'),
+  },
+  warmCommunity: {
+    id: 'warmCommunity',
+    label: 'Warm Community',
+    description: 'Forest, brass and warm cream',
+    swatch: '#14684F',
+    roles: buildGlobalRoles('warmCommunity'),
+  },
+  sapphireFrost: {
+    id: 'sapphireFrost',
+    label: 'Sapphire Frost',
+    description: 'Sapphire blue and mint over frosted canvas',
+    swatch: '#245DD8',
+    roles: buildGlobalRoles('sapphireFrost'),
+  },
+  forestChampagne: {
+    id: 'forestChampagne',
+    label: 'Forest Champagne',
+    description: 'Elegant forest green with champagne gold',
+    swatch: '#17644F',
+    roles: buildGlobalRoles('forestChampagne'),
+  },
+  royalPlum: {
+    id: 'royalPlum',
+    label: 'Royal Plum',
+    description: 'Deep plum, iris and soft rose',
+    swatch: '#794D89',
+    roles: buildGlobalRoles('royalPlum'),
+  },
+  terracottaSand: {
+    id: 'terracottaSand',
+    label: 'Terracotta Sand',
+    description: 'Warm terracotta, amber and parchment',
+    swatch: '#A85741',
+    roles: buildGlobalRoles('terracottaSand'),
+  },
+  graphiteLime: {
+    id: 'graphiteLime',
+    label: 'Graphite Lime',
+    description: 'Deep graphite teal and energetic lime',
+    swatch: '#355F5A',
+    roles: buildGlobalRoles('graphiteLime'),
+  },
+  oceanCoral: {
+    id: 'oceanCoral',
+    label: 'Ocean Coral',
+    description: 'Ocean blue, sunset coral and airy aqua',
+    swatch: '#116F8C',
+    roles: buildGlobalRoles('oceanCoral'),
+  },
   cloudWhite: {
     id: 'cloudWhite',
     label: 'Cloud White',
@@ -539,6 +826,15 @@ export const BUKLOD_PALETTE_PRESETS: Record<
 };
 
 const GLOBAL_PALETTE_ORDER: BuklodPaletteId[] = [
+  'evergreenSocial',
+  'midnightMint',
+  'warmCommunity',
+  'sapphireFrost',
+  'forestChampagne',
+  'royalPlum',
+  'terracottaSand',
+  'graphiteLime',
+  'oceanCoral',
   'cloudWhite',
   'softMint',
   'sage',
