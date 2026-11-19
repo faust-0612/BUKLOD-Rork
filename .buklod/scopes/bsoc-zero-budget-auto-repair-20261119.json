@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/bsoc-zero-budget-auto-repair-20261119.json",
   "objective": "Provide zero-paid-API BUKLOD BSOC case intake, persistent low-cost technical triage, privacy-scoped member status reports, and an hourly connected ChatGPT DEV-only repair watch without exposing data or changing unrelated production behavior.",
   "baseRef": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
-  "productionBaselineEvidence": "Initial isolated DEV source branched from main 0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf. Current main advanced to 551e54602addd6f7bbe7bcdddd1589d35424c964 and MUST be reconciled before any client integration. Supabase MAIN yhanxndaqbmuzbdqlblu additive migrations bsoc_ai_autofix_reports_v1 and bsoc_zero_budget_scheduler_v1 applied on Nov 19, verified with rollback-only synthetic tests and a live empty-queue worker. No app OTA, native build, paid inference or Season2 change was made. The exact currently installed production APK/OTA remains unverified.",
+  "productionBaselineEvidence": "Initial isolated DEV source branched from main 0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf. Current main advanced to 551e54602addd6f7bbe7bcdddd1589d35424c964 and MUST be reconciled before any client integration. Supabase MAIN yhanxndaqbmuzbdqlblu additive migrations bsoc_ai_autofix_reports_v1 and bsoc_zero_budget_scheduler_v1 applied on Nov 19, verified with rollback-only synthetic tests and a live empty-queue worker. No app OTA, native build, paid inference or Season2 change was made. The exact currently installed production APK/OTA remains unverified. Additional additive backend migration bsoc_member_reply_followup_v1 applied and its live trigger guards validated.",
   "chosenApproach": "Use existing Postgres hooks and bounded pg_cron (3 cases per 15-minute run), no Edge API; active hourly ChatGPT automation uses existing GitHub/Supabase connector actions for permitted DEV source fixes. Report phases are member-scoped; no support status is auto-closed, and final resolved messages require independently audited production fix evidence.",
   "selectionRationale": "Avoid additional paid API/CI/compute, reuse current BSOC infrastructure and notification delivery while preserving strong row-level isolation and fail-open support intake.",
   "alternativeApproaches": [
@@ -35,10 +35,13 @@
     "supabase/functions/bsoc-auto-triage-v1/index.ts",
     "supabase/migrations/20261119223000_bsoc_ai_autofix_reports_v1.sql",
     "supabase/migrations/20261119234500_bsoc_zero_budget_scheduler_v1.sql",
-    "supabase/tests/bsoc_zero_budget_rollback_integration.sql"
+    "supabase/tests/bsoc_zero_budget_rollback_integration.sql",
+    "supabase/migrations/20261119235500_bsoc_member_reply_followup_v1.sql",
+    "supabase/tests/bsoc_member_reply_followup_guard.sql"
   ],
   "regressionTests": [
-    "supabase/tests/bsoc_zero_budget_rollback_integration.sql"
+    "supabase/tests/bsoc_zero_budget_rollback_integration.sql",
+    "supabase/tests/bsoc_member_reply_followup_guard.sql"
   ],
   "acceptanceChecks": [
     "Two additive Supabase migrations compile and apply with no backfill or canonical status mutations.",
@@ -47,7 +50,8 @@
     "Authenticated member can read own report but another account cannot; untrusted member cannot read internal jobs or forge report.",
     "Live scheduler exists and processes an empty queue without paid API calls.",
     "ChatGPT hourly repair watch is enabled; no guarantee of instant trigger, autonomous coding completion or paid external agent.",
-    "No native/client/Expo production release without independent DEV to RC to production safety verification."
+    "No native/client/Expo production release without independent DEV to RC to production safety verification.",
+    "Member follow-up transition requires exact case ownership, active nonclosed case and NEEDS_DETAILS state; trigger metadata and server guard tested without real push."
   ],
   "lockedFeatureChanges": [
     {
@@ -67,7 +71,8 @@
         "Existing BSOC permission checks, support status audit, user ownership, push pipeline and separation of data remain unchanged."
       ],
       "tests": [
-        "supabase/tests/bsoc_zero_budget_rollback_integration.sql"
+        "supabase/tests/bsoc_zero_budget_rollback_integration.sql",
+        "supabase/tests/bsoc_member_reply_followup_guard.sql"
       ]
     }
   ],
