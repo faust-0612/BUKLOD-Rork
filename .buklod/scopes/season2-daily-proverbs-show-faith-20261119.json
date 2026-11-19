@@ -18,7 +18,8 @@
     "tests/protected-feature-lock-daily-proverbs-20261119.test.mjs",
     "contracts/season2-proposals/daily-proverbs-show-faith-20261119.json",
     ".github/workflows/engineering-accountability.yml",
-    "contracts/season2-implementation-ledger.json"
+    "contracts/season2-implementation-ledger.json",
+    ".buklod/scopes/season2-daily-proverbs-show-faith-20261119.json"
   ],
   "regressionTests": [
     "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
