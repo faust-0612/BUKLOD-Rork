@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, {
@@ -10,6 +10,7 @@ import Svg, {
   LinearGradient as SvgGradient, Path, Rect, Stop,
 } from 'react-native-svg';
 import { useAuth } from '@/providers/AuthProvider';
+import { enterGenesisGodotKingdom } from '@/lib/genesisNativeFoundation';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import BuklodKingdomLivingFX from './BuklodKingdomLivingFX';
@@ -669,6 +670,22 @@ export default function BuklodKingdomMapPremium() {
   return (
     <View style={styles.root}>
       <LinearGradient colors={['#0d3b62', '#176b83', '#071e3b']} style={StyleSheet.absoluteFill} />
+      {Platform.OS === 'android' &&
+       process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW === 'true' &&
+       process.env.EXPO_PUBLIC_APP_ENV === 'staging' && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Enter Genesis native 3D Kingdom"
+          onPress={() => {
+            void enterGenesisGodotKingdom().catch(() =>
+              Alert.alert('Genesis 3D', 'The native 3D Kingdom cannot open on this device.'));
+          }}
+          style={{position:'absolute',right:12,top:12,zIndex:100,paddingHorizontal:14,
+            paddingVertical:10,borderRadius:12,borderWidth:1,borderColor:'#e8d6a3',
+            backgroundColor:'#18284b'}}>
+          <Text style={{color:'#f9edbd',fontSize:12,fontWeight:'800'}}>GENESIS 3D</Text>
+        </Pressable>
+      )}
 
       <ScrollView
         ref={horizontalRef} horizontal bounces={false} showsHorizontalScrollIndicator={false}

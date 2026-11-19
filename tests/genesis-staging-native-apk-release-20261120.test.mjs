@@ -34,7 +34,7 @@ test('staged native features are declared; no false Godot or PlayCore claims',()
  assert.equal(inv.signedApk.exists,false);
  for(const id of ['native-media3-compression','godot-android-3d','play-core-in-app-update']){
   const row=inv.nativeFeatures.find(x=>x.id===id);
-  assert.equal(row.status,'held-no-implementation',id);
+  assert.equal(row.status,'native-source-uncompiled',id);
  }
  for(const name of ['@rive-app/react-native','@shopify/react-native-skia','expo-audio','expo-updates']){
   assert.ok(JSON.parse(read('package.json')).dependencies[name],name);

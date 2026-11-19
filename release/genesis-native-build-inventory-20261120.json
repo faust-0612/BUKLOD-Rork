@@ -139,24 +139,24 @@
     },
     {
       "id": "native-media3-compression",
-      "status": "held-no-implementation",
-      "origin": "PR #814 audit",
+      "status": "native-source-uncompiled",
+      "origin": "Genesis native first-APK required SDK, Nov 20",
       "description": "On-device upload transcoding/video compression and adaptive delivery",
-      "remaining": "Media3 native codec quality, device heat, battery, ad/video regression not implemented"
+      "remaining": "Actual Maven AAR/Gradle compile, signed APK inspection and on-device functionality not yet verified; do not release on source presence alone"
     },
     {
       "id": "godot-android-3d",
-      "status": "held-no-implementation",
-      "origin": "PR #814/#1010",
+      "status": "native-source-uncompiled",
+      "origin": "Genesis native first-APK required SDK, Nov 20",
       "description": "Separate immersive 3D Kingdom Android AAR + engine bridge",
-      "remaining": "Godot AAR, approved 3D assets, Gradle ABI, footprint and performance not integrated"
+      "remaining": "Actual Maven AAR/Gradle compile, signed APK inspection and on-device functionality not yet verified; do not release on source presence alone"
     },
     {
       "id": "drive-oauth-cloud-sync",
       "status": "held-credentials",
-      "origin": "PR #814",
-      "description": "Optional direct Drive API sync with user-verified Google identity",
-      "remaining": "Native Android OAuth client/signature and authorized secure account binding unavailable; not enabled"
+      "origin": "Genesis native Drive AuthorizationClient first-APK source",
+      "description": "Google Play services native OAuth client with drive.file+Google identity scopes, opt-in, account-bound short-lived token handoff; encrypted automatic backup still requires secure approved transport",
+      "remaining": "Android OAuth app registration + signing SHA, verified Google subject-to-BUKLOD user binding and actual Drive restore/upload consent are not verified"
     },
     {
       "id": "silent-ota-next-launch",
@@ -167,10 +167,10 @@
     },
     {
       "id": "play-core-in-app-update",
-      "status": "held-no-implementation",
-      "origin": "PR #1013 audit",
+      "status": "native-source-uncompiled",
+      "origin": "Genesis native first-APK required SDK, Nov 20",
       "description": "Native mandatory Google Play binary update prompt",
-      "remaining": "Play Core module, live Play availability and version gate validation not integrated"
+      "remaining": "Actual Maven AAR/Gradle compile, signed APK inspection and on-device functionality not yet verified; do not release on source presence alone"
     },
     {
       "id": "android-admob",
@@ -224,6 +224,8 @@
     "Actual First-view AdMob consent/loading/no-fill + instant tab navigation",
     "Video scroll-stop, social compose/call/PTT audio focus, low-memory and contrast",
     "Asset decode/license approval and 13 .riv/audio quality gates if advertised",
-    "Dec 6 embargo and separate authorized RC; no production mutation"
+    "Dec 6 embargo and separate authorized RC; no production mutation",
+    "First signed Genesis APK must contain Godot 4.7.2, Media3 1.11.1, Google Play Core 2.1.0 and Google Play Services Auth 22.0.0; verify Gradle resolved AARs and native classes",
+    "Godot main-pack assets and launch, Media3 codec fallback, Play update eligibility and Drive OAuth account isolation require real device acceptance"
   ]
 }

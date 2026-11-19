@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - dev/genesis-season-wordmark-appwide-20261120
+      - dev/genesis-required-four-native-sdk-20261120
     paths:
       - .github/workflows/genesis-season2-staging-release-apk-20261120.yml
 permissions:
@@ -12,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   genesis-staging-apk:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_STAGING_APK_START:') }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' || github.ref == 'refs/heads/dev/genesis-required-four-native-sdk-20261120') && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_STAGING_APK_START:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -118,6 +119,7 @@ jobs:
           npm run genesis:theme:gate
           node --test tests/genesis-staging-native-apk-release-20261120.test.mjs tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-native-build-inventory-20261120.test.mjs
           node --experimental-strip-types --test tests/buklod-silent-ota-policy.test.mjs tests/buklod-mandatory-update-runtime.test.mjs tests/ota-restart-safe-area.test.cjs
+          node --test tests/genesis-four-native-sdk-first-apk-20261120.test.mjs
           node scripts/season2-native-capability-gate.mjs --mode=source
           npx tsc --noEmit
       - name: Bundle Android preview JS before native signing

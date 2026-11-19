@@ -1,0 +1,14 @@
+; BUKLOD Genesis: Let There Be Light — original procedural 3D scene
+config_version=5
+[application]
+config/name="Genesis: Let There Be Light"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/handheld/orientation=1
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.015,0.027,0.078,1)

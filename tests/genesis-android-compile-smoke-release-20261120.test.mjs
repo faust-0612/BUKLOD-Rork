@@ -20,5 +20,5 @@ test('compiled candidate only includes real native library declarations, without
   assert.ok(pkg.dependencies[dep],dep);
  const inv=JSON.parse(read('release/genesis-native-build-inventory-20261120.json'));
  assert.equal(inv.signedApk.exists,false);
- assert.equal(inv.nativeFeatures.find(x=>x.id==='godot-android-3d').status,'held-no-implementation');
+ assert.equal(inv.nativeFeatures.find(x=>x.id==='godot-android-3d').status,'native-source-uncompiled');
 });
