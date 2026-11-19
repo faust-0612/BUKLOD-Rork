@@ -75,13 +75,17 @@
     "assets/images/kingdom-item-atlas/treasure.webp",
     "assets/images/kingdom-item-atlas/utility.webp",
     "assets/images/kingdom-item-atlas/weapons.webp",
+    "assets/season2/rank-badges/buklod-circle-ranks-atlas.webp",
     "content/kingdom-item-atlas-core-v2.json",
     "content/kingdom-item-classes-v1.json",
     "docs/BUKLOD_SEASON2_GENESIS_PREMIUM_REALM_20261120.md",
     "src/app/games/genesis-collection.tsx",
     "src/app/games/index.tsx",
+    "src/components/points/BuklodCircleRankBadge.tsx",
     "src/features/season2/genesis/GenesisCosmicSky.tsx",
     "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "src/features/season2/genesis/GenesisRankBadgeArtwork.tsx",
+    "src/lib/buklodCircleRankArt.ts",
     "src/lib/buklodKingdomClassArt.ts",
     "src/lib/buklodKingdomClassCatalog.ts",
     "src/lib/buklodKingdomCoreAtlas.ts",
@@ -124,6 +128,19 @@
       "tests": [
         "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
       ]
+    },
+    {
+      "id": "profile-social",
+      "reason": "Premium 40-badge visual adapter gated by isolated Season 2 preview; all production rank and avatar rendering remains unchanged.",
+      "preservedBehaviors": [
+        "No badge art rank authority",
+        "Non-preview uses original SVG",
+        "No profile reads/writes or online status changed",
+        "Existing rank parser preserved"
+      ],
+      "tests": [
+        "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
+      ]
     }
   ],
   "preserveBehaviors": [
@@ -131,7 +148,8 @@
     "No Supabase modifications",
     "No changes to Character V2 progress",
     "No replacement of official gameplay screens",
-    "No producer audio or Beep fallback"
+    "No producer audio or Beep fallback",
+    "Existing SVG Circle Rank remains production fallback; all 40 approved rank atlas crops are preview-only"
   ],
   "acceptanceChecks": [
     "20 core sprites and 42 classic cropped art are physically present",

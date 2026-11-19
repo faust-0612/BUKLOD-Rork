@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import BuklodCollectibleArt from '@/components/points/BuklodCollectibleArt';
-import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
+import GenesisRankBadgeArtwork from '@/features/season2/genesis/GenesisRankBadgeArtwork';
 import { BUKLOD_ART_CHARACTER_IDS } from '@/lib/buklodCollectibleArtwork';
 import { CORE_ATLAS_ART, CORE_ATLAS_CELL } from '@/lib/buklodKingdomCoreAtlasArt';
 import { CLASS_ART } from '@/lib/buklodKingdomClassArt';
@@ -64,7 +64,7 @@ function GenesisCollectionContent() {
   const classicGroup=CLASSICS.find(c=>c.id===classicId)??CLASSICS[0];
   const classicItems=getVisualClassItems(classicGroup.id);
   const classicSelected=classicItems[classicIndex];
-  const rankName='Circle '+badgeTier+' '+badgeLevel;
+  const rankName=(badgeTier.startsWith('Prime')?'BUKLOD ':'Circle ')+badgeTier+' '+badgeLevel;
   const stageArt=shelf==='items'
     ? <CroppedItem classId={group.id} index={selectedItem} width={172}/>
     : shelf==='classics'
@@ -73,7 +73,7 @@ function GenesisCollectionContent() {
         : null)
       : shelf==='characters'
         ? <BuklodCollectibleArt characterId={character} level={level} itemIndex={selectedItem+1} size={112} />
-        : <BuklodCircleRankBadge rankName={rankName} size={135}/>;
+        : <GenesisRankBadgeArtwork rankName={rankName} size={135}/>;
 
   return <View style={s.root}>
     <ScrollView contentContainerStyle={s.content}>
@@ -193,11 +193,11 @@ function GenesisCollectionContent() {
         <View style={s.badges}>
           {ROMAN.map(level=><Pressable key={level} accessibilityRole="button" onPress={()=>setBadgeLevel(level)}
             accessibilityState={{selected:level===badgeLevel}} style={[s.badgeItem,level===badgeLevel&&s.itemActive]}>
-            <BuklodCircleRankBadge rankName={'Circle '+badgeTier+' '+level} size={56}/>
+            <GenesisRankBadgeArtwork rankName={(badgeTier.startsWith('Prime')?'BUKLOD ':'Circle ')+badgeTier+' '+level} size={56}/>
             <Text style={s.itemName}>{level}</Text>
           </Pressable>)}
         </View>
-        <Text style={s.notice}>Current scalable emblem rendering is a visual reference, not proof of a newly cropped approved artwork sheet. Official rank and tier are server-owned.</Text>
+        <Text style={s.notice}>All 40 original approved badges are isolated by their exact transparent atlas cell. Official rank and tier are still server-owned.</Text>
       </>}
     </ScrollView>
   </View>;
