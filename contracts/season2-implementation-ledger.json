@@ -162,6 +162,22 @@
         "No isolated staging backend or verified free Expo OTA receipt.",
         "Requires separate new owner review for any inserted or removed Season2 area."
       ]
+    },
+    {
+      "id": "show_faith_daily_proverbs_wall",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "src/components/BuklodSeason2ProverbsDailyVerse.tsx",
+        "src/lib/season2/buklodDailyProverbsR1.ts",
+        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+        "PR-995"
+      ],
+      "limitations": [
+        "Owner approved read-only Show Faith Community card as separate Season2 content, not one of ten exclusive reward modules.",
+        "No new reward/point grants, no Supabase write or staging deployment.",
+        "Source CI and Android staging verification required before integration; production still embargoed until December 6 and separate exact SHA authorization."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
