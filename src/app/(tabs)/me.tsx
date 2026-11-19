@@ -1,4 +1,6 @@
 import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {GenesisCosmosBackground} from '@/features/season2/genesis/GenesisVisuals';
 import { buklodVisual } from '@/lib/buklodVisual';
 /* PATCH_184F_R3_PROFILE_CLEANUP */
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
@@ -363,6 +365,11 @@ function MenuRow({
 }
 
 export default function MeScreen() {
+  const [genesisFocused,setGenesisFocused]=useState(false);
+  useProfileFocusEffect(useProfileFocusCallback(()=>{
+    setGenesisFocused(true);
+    return()=>setGenesisFocused(false);
+  },[]));
   const { theme, shared } = useBuklodPresentation();
   const { fontScale: profileFontScale } = useWindowDimensions();
   const params =
@@ -1643,7 +1650,8 @@ export default function MeScreen() {
       showsVerticalScrollIndicator={false}
       directionalLockEnabled
     >
-      {!!personalDashboardTheme.backgroundImage && (
+      {isGenesisPreviewBuild() ? <GenesisCosmosBackground active={genesisFocused}/> : null}
+      {canUserSelectTheme() && !!personalDashboardTheme.backgroundImage && (
         <View
           pointerEvents="none"
           style={StyleSheet.absoluteFill}
