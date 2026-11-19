@@ -374,7 +374,7 @@ export default function KlPublishingStudio() {
             onBusyChange={setMediaBusy} onUploaded={invalidatePreparedPreview}
             onPreviewInvalidated={invalidatePreparedPreview}
             approvalRefreshToken={approvalRefreshToken} />
-          <Text style={{ color: '#b7c8cd' }}>Scene photos are optional. Save the manuscript and prepare its private preview without uploading artwork. If you add illustrations (up to 12), save each exact paragraph placement and approve each uploaded media file before chapter approval.</Text>
+          <Text style={{ color: '#b7c8cd' }}>Scene photos are optional. You can prepare the manuscript even with unfinished scene uploads. Unapproved illustrations stay private and do not block chapter approval; only approved, properly placed images appear to readers. Other media approvals remain required.</Text>
           <Action label={busyAction === 'Inihahanda ang private preview' ? 'Preparing…' : 'Prepare Private Preview'}
             disabled={workspaceBusy} onPress={prepare} />
           {previewReady ? (

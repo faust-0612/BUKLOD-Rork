@@ -50,3 +50,18 @@ test('approval and release security unchanged; optional media upload still avail
   assert.match(approvals, /kl_admin_media_approve_v1/);
   assert.doesNotMatch(migration, /kl_admin_action_v1/);
 });
+
+test('existing nonmatching pending illustration drafts do not block manuscript-only preview', () => {
+  const drafts = [1,2,3,4].map(placement => ({ placement, approved: false, anchor: 'Stale, unmatched passage' }));
+  const publishable = photos => photos.filter(photo => photo.approved);
+  assert.equal(canPreparePreview(body, publishable(drafts).map(photo => photo.anchor)), true);
+  assert.equal(publishable(drafts).length, 0);
+  const approvedValid = { approved: true, anchor: 'The travelers saw lights on the distant shore.' };
+  assert.equal(canPreparePreview(body, publishable([...drafts,approvedValid]).map(photo => photo.anchor)), true);
+  const approvedInvalid = {approved:true,anchor:'Never occurs in manuscript'};
+  assert.equal(canPreparePreview(body, publishable([...drafts,approvedInvalid]).map(photo => photo.anchor)), false);
+  assert.match(migration, /m\.approved = true/);
+  assert.match(migration, /media_kind <> 'illustration'/);
+  assert.match(migration, /m\.approved=true and m\.media_kind='illustration'/);
+  assert.match(migration, /Approved illustration placement no longer matches manuscript/);
+});

@@ -1001,7 +1001,7 @@ export default function KlReaderScreen() {
                       <Text style={styles.meta}>Server status: {adminLoading ? 'Checking…' :
                         adminError ? 'Unavailable' :
                         serverChapter ? serverChapter.status.toUpperCase() : 'Not created'}</Text>
-                      <Text style={styles.meta}>Approve each illustration/audio in the private preview before approving the chapter. Chapter approval does not publish it.</Text>
+                      <Text style={styles.meta}>Photos are optional. Unapproved scene drafts remain private; approved scene images appear only when their placements are valid. Other media approvals remain required. Chapter approval does not publish it.</Text>
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
                         {serverChapter?.status === 'approved' ? (

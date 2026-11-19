@@ -3,6 +3,7 @@
 DO $kl_optional_scene_guard$
 DECLARE
   f text := pg_get_functiondef('public.kl_admin_prepare_preview_v1(uuid)'::regprocedure);
+  action_fn text := pg_get_functiondef('public.kl_admin_action_v1(uuid,text,text,text)'::regprocedure);
   n integer;
   valid integer;
   unique_n integer;
@@ -24,7 +25,15 @@ BEGIN
     RAISE EXCEPTION 'Anonymous user can execute KL admin preview';
   END IF;
 
-  -- PostgreSQL fixtures: zero media is eligible; one valid photo is eligible.
+  IF position('m.approved = true' IN f) = 0
+    OR position('media_kind <> ''illustration''' IN action_fn) = 0
+    OR position('m.approved=true and m.media_kind=''illustration''' IN action_fn) = 0
+    OR position('Approved illustration placement no longer matches manuscript' IN action_fn) = 0
+    OR position('SECURITY DEFINER' IN action_fn) = 0
+    OR position('auth.uid()' IN action_fn) = 0 THEN
+    RAISE EXCEPTION 'Optional draft media isolation or admin gate missing';
+  END IF;
+  -- PostgreSQL fixtures: zero approved media is eligible; one valid photo is eligible.
   SELECT count(*), count(*) FILTER (WHERE anchor IS NOT NULL
       AND length(btrim(anchor)) >= 12
       AND length('A unique scene passage here.') - length(replace('A unique scene passage here.', anchor, '')) = length(anchor)),

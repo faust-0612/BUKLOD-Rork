@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/kl-optional-scene-manuscript-20261119.json",
-  "objective": "KL-only cumulative RC: 119 spoiler-safe reader dictionary entries plus manuscript-only private preview with 0–12 optional scene photos; preserve all editorial, media and publication approvals.",
+  "objective": "KL-only production RC: glossary expansion and optional illustration drafts. Manuscript preview and chapter approval must advance without requiring a photo while unapproved illustration drafts stay private.",
   "baseRef": "7a3c706d44ab05389a4aa9c4a1bba82ad22f6395",
   "productionBaselineEvidence": "GitHub main 7a3c706d44ab05389a4aa9c4a1bba82ad22f6395 source; read-only live Supabase yhanxndaqbmuzbdqlblu inspected 2026-11-19: kl_admin_prepare_preview_v1 enforces 2+ illustrations, but kl_admin_action_v1 only requires a prepared preview and all existing media approved (none is allowed). Exact installed production OTA/runtime not inspected; no production mutation authorized by this DEV work.",
-  "chosenApproach": "Consolidate two owner-requested, independently scoped KL source fixes on latest production main: dictionary entries with whole-word linking and release-aware glossary, and security-preserving additive SQL removing the 2-photo minimum from private preview only. No other feature changes.",
+  "chosenApproach": "Extend KL dictionary without altering prose; update preview to validate only approved illustrations, preserve all nonillustration media approval rules and validate explicitly approved illustration anchors in the original audited, Admin-only chapter action.",
   "selectionRationale": "A single exact-source KL RC allows protection gates to verify dictionary and optional illustration fixes together without importing Season 2 rewards, ads, unapproved manuscripts, or other BUKLOD changes.",
   "alternativeApproaches": [
     "Make the button ignore the failed RPC (rejected: would falsely report success).",
@@ -28,13 +28,14 @@
   "acceptanceChecks": [
     "Zero-scene saved manuscripts can prepare a server-confirmed private preview",
     "One valid photo and up to twelve valid distinct anchored photos remain supported",
-    "Uploaded unanchored, invalid or duplicate scenes block the media-inclusive preview until repaired",
+    "Unapproved photo drafts with invalid or duplicate anchors stay private and do not block manuscript preview; approved images must have valid unique anchors.",
     "Every uploaded media item still requires server approval before chapter approval/release",
     "Readonly SQL permissions regression, focused Node tests and existing dynamic scene tests pass in isolated QA",
     "Merge/consolidate only after CI and database staging verification; physical-device and live production verification not claimed",
     "Original R5 glossary retained, 119 additions unique, whole-word links support capitalization, diacritics and phrase boundaries",
     "All new dictionary terms remain private until present in readable manuscript; unchanged public release and reward policy",
-    "Entire RC exact diff limited to 11 KL paths, audited in CI"
+    "Entire RC exact diff limited to 11 KL paths, audited in CI",
+    "Chapter 2 with four unapproved nonmatching illustration drafts may prepare manuscript preview, while drafts remain invisible to ordinary readers."
   ],
   "regressionTests": [
     "tests/kl-optional-scene-manuscript-20261119.test.mjs",
@@ -59,35 +60,26 @@
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "KL manuscript preview copy changes to reflect optional scene photos and preserve progress.",
+      "reason": "Add spoiler-safe dictionary and improve optional media status messaging without changing manuscript or reader release gates.",
       "preservedBehaviors": [
         "Keep manuscript save and private preview actions with server-confirmed success."
       ],
       "tests": [
-        "tests/kl-optional-scene-manuscript-20261119.test.mjs"
+        "tests/kl-optional-scene-manuscript-20261119.test.mjs",
+        "tests/kl-dictionary-expansion-20261119.test.mjs"
       ]
     },
     {
       "id": "backend-security",
-      "reason": "Restrict backend illustration count check without weakening privileged editor and media approvals.",
+      "reason": "Keep Admin-only publishing authorization and approvals while allowing unfinished optional illustration drafts to remain private, and validate all approved illustration anchors.",
       "preservedBehaviors": [
-        "Privileged admin-only preview RPC, valid uploaded anchors and editorial unlock remain enforced."
+        "Admin-only SECURITY DEFINER with explicit search_path and auth.uid() checks remain unchanged",
+        "Nonillustration media approval and original editorial schedule/release audit rules remain in force",
+        "Unapproved optional images never appear in member media RPC; approved illustration placement always validated"
       ],
       "tests": [
         "supabase/tests/kl_optional_scene_manuscript_20261119.sql",
         "tests/kl-optional-scene-manuscript-20261119.test.mjs"
-      ]
-    },
-    {
-      "id": "reader-dictionary",
-      "reason": "Add owner-provided glossary reference terms without changing approved story or revealing future chapter names.",
-      "preservedBehaviors": [
-        "Exact original R5 dictionary definitions remain unchanged.",
-        "Released chapter prose remains verbatim and new dictionary terms appear only if already in readable text.",
-        "No changes to chapter progress, score, ads or editorial approval."
-      ],
-      "tests": [
-        "tests/kl-dictionary-expansion-20261119.test.mjs"
       ]
     }
   ]
