@@ -112,6 +112,18 @@ begin
       and a.email is not null and a.email like '%@%'
       and lower(a.email) not like '%@buklod.invalid'
       and coalesce(p.is_active,true)=true
+      -- Long-lived sessions can keep last_sign_in_at old while the app is in use.
+      -- Use server-recorded authenticated client activity as an additional veto.
+      and not exists (
+        select 1 from private.buklod_client_version_registry_r1 activity
+        where activity.user_id=a.id
+          and activity.last_seen_at > p_now - interval '180 days'
+      )
+      and not exists (
+        select 1 from public.community_posts post
+        where post.user_id=a.id
+          and post.created_at > p_now - interval '180 days'
+      )
       and not exists (
         select 1 from public.user_roles ur
         where ur.user_id=a.id and ur.role='system_admin' and ur.is_active=true
