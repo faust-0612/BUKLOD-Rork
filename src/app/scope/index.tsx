@@ -1,3 +1,5 @@
+import {canUserSelectTheme,GENESIS_GLOBAL_ROLES} from '@/features/season2/genesis/seasonThemeAuthority';
+import {GenesisCosmosBackground} from '@/features/season2/genesis/GenesisVisuals';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import * as ReactDashboardTheme from 'react';
 import {
@@ -411,17 +413,25 @@ if (
       </View>
     );
   }
+const displayDashboardTheme: DashboardTheme = canUserSelectTheme() ? dashboardTheme : {
+  backgroundColor: GENESIS_GLOBAL_ROLES.canvas,
+  backgroundImage: null,
+  cardColor: GENESIS_GLOBAL_ROLES.cardSurface,
+  accentColor: GENESIS_GLOBAL_ROLES.accent,
+  textColor: GENESIS_GLOBAL_ROLES.textPrimary,
+};
 return (
     <View
       style={[[[
         styles.screen,
         {
           backgroundColor:
-            dashboardTheme.backgroundColor,
+            displayDashboardTheme.backgroundColor,
         },
       ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_CONTENT_WRAPPER_FLUSH */ marginTop: 0, paddingTop: 0 }], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_WORKSPACE_GAP_ZERO */ gap: 0 }]}
     >
-      {!!dashboardTheme.backgroundImage && (
+      {!canUserSelectTheme() ? <GenesisCosmosBackground active={section === 'home'}/> : null}
+      {canUserSelectTheme() && !!dashboardTheme.backgroundImage && (
         <DashboardImageBackground
           source={{
             uri: dashboardTheme.backgroundImage,
@@ -436,9 +446,10 @@ return (
         geoLevel={workspaceScope.geo_level}
         section={section}
         onBack={handleWorkspaceBack}
-        theme={dashboardTheme}
-        canCustomize={canCustomizeDashboard}
+        theme={displayDashboardTheme}
+        canCustomize={canCustomizeDashboard && canUserSelectTheme()}
         onThemeChange={async nextTheme => {
+          if (!canUserSelectTheme()) return;
           await saveScopeDashboardTheme(
             workspaceScope.scope_id,
             nextTheme
@@ -465,7 +476,7 @@ return (
           styles.tabs,
           {
             backgroundColor:
-              dashboardTheme.cardColor,
+              displayDashboardTheme.cardColor,
           },
         ], blueWorkspaceTabs && { minHeight: 54, paddingVertical: 3, borderBottomColor: '#D4E7FA', backgroundColor: '#F4F9FF' }, (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
       >
@@ -521,7 +532,7 @@ return (
         <View style={{ flex: 1, minHeight: 0 }}>
         <ScopeHome
           scope={workspaceScope}
-          theme={dashboardTheme}
+          theme={displayDashboardTheme}
           onOpenCommunity={() =>
             openSection('community')
           }

@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import React, {
   useEffect,
   useMemo,
@@ -257,7 +258,7 @@ export function BuklodProfileCustomizeSheet({
             Customize Profile
           </Text>
           <Text style={styles.sub}>
-            Section order and accent preview on this device.
+            Section order and cover settings. Season colors are controlled by BUKLOD.
             Cover uses your saved profile background.
           </Text>
 
@@ -295,6 +296,7 @@ export function BuklodProfileCustomizeSheet({
               </>
             )}
 
+            {canUserSelectTheme() ? <>
             <Text style={styles.sectionLabel}>
               ACCENT
             </Text>
@@ -317,6 +319,7 @@ export function BuklodProfileCustomizeSheet({
               ))}
             </View>
 
+            </> : null}
             <Text style={styles.sectionLabel}>
               SECTIONS
             </Text>

@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -132,7 +133,7 @@ export default function BuklodPersonalHomeFunctional() {
         <View style={styles.header}>
           <View style={styles.logo}><MaterialCommunityIcons name="home-heart" size={24} color="#fff" /></View>
           <View style={{ flex: 1 }}><Text style={styles.brand}>BUKLOD HOME</Text><Text style={styles.muted}>{getBuklodHomeTheme(themeId).label} · {activeScope?.name ?? 'your personal space'}</Text></View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Customize Home" onPress={() => setThemeOpen(true)} style={styles.icon}><MaterialCommunityIcons name="palette-outline" size={20} color={palette.primary} /></Pressable>
+          {canUserSelectTheme() ? <Pressable accessibilityRole="button" accessibilityLabel="Customize Home" onPress={() => setThemeOpen(true)} style={styles.icon}><MaterialCommunityIcons name="palette-outline" size={20} color={palette.primary} /></Pressable> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Open profile" onPress={() => openRoute('/(tabs)/me')} style={styles.icon}><MaterialCommunityIcons name="account-outline" size={20} color={palette.primary} /></Pressable>
         </View>
 
@@ -179,7 +180,7 @@ export default function BuklodPersonalHomeFunctional() {
         <View style={styles.footerRow}><Action label="MARKET / DELIVERY" icon="storefront-outline" onPress={() => openRoute('/profile/buklod-market')} styles={styles} /><Action label="COMMUNITY MAP" icon="map-marker-radius-outline" onPress={() => openRoute('/city')} styles={styles} /><Action label="BUKLOD CITY" icon="door-open" onPress={() => router.replace('/city' as any)} styles={styles} /></View>
       </View>
 
-      <BuklodHomeThemePicker visible={themeOpen} selectedThemeId={themeId} onSelect={next => { setThemeId(next); void AsyncStorage.setItem(keyFor(userId, 'theme'), next); }} onClose={() => setThemeOpen(false)} />
+      {canUserSelectTheme() ? <BuklodHomeThemePicker visible={themeOpen} selectedThemeId={themeId} onSelect={next => { setThemeId(next); void AsyncStorage.setItem(keyFor(userId, 'theme'), next); }} onClose={() => setThemeOpen(false)} /> : null}
       <Modal visible={recipeOpen} transparent animationType="slide" onRequestClose={() => setRecipeOpen(false)}><View style={styles.modalShade}><View style={styles.modal}><Text style={styles.modalTitle}>AI RECIPE</Text><TextInput value={recipeDraft} onChangeText={setRecipeDraft} placeholder="Ingredients or dish" placeholderTextColor={palette.muted} style={styles.modalInput} /><Action label="MAKE RECIPE" icon="chef-hat" onPress={runRecipe} styles={styles} />{recipe ? <Text style={styles.modalBody}>{recipe}</Text> : null}<Pressable onPress={() => setRecipeOpen(false)}><Text style={styles.close}>CLOSE</Text></Pressable></View></View></Modal>
       <Modal visible={alarmOpen} transparent animationType="slide" onRequestClose={() => setAlarmOpen(false)}><View style={styles.modalShade}><View style={styles.modal}><Text style={styles.modalTitle}>SET REMINDER</Text><TextInput value={alarm} onChangeText={setAlarm} placeholder="e.g. 9:00 PM" placeholderTextColor={palette.muted} style={styles.modalInput} /><Action label="SAVE REMINDER" icon="check" onPress={saveAlarm} styles={styles} /><Pressable onPress={() => setAlarmOpen(false)}><Text style={styles.close}>CANCEL</Text></Pressable></View></View></Modal>
     </ScrollView>

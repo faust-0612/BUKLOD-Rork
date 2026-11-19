@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
@@ -62,7 +63,7 @@ export function BuklodDashboardCustomizer({
   const [draft, setDraft] = useState<DashboardTheme>(theme);
   const [saving, setSaving] = useState(false);
 
-  if (!canCustomize) return null;
+  if (!canCustomize || !canUserSelectTheme()) return null;
 
   const save = async () => {
     try {

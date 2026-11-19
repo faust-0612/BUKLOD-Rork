@@ -144,6 +144,22 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "season2-genesis-preview": {
+      "extends": "staging-user",
+      "channel": "season2-genesis-preview",
+      "distribution": "internal",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW": "true",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   createContext,
@@ -114,6 +115,7 @@ export function ChatBackgroundProvider({
   threadId?: string | null;
 }) {
   const { theme } = useConnectTheme();
+  const seasonLocked = !canUserSelectTheme();
   const [ready, setReady] = useState(false);
   const [
     globalBackground,
@@ -157,6 +159,7 @@ export function ChatBackgroundProvider({
       : null;
 
   const resolved = useMemo(() => {
+    if (seasonLocked) return {config: {...DEFAULT_CHAT_BACKGROUND},source:'theme' as const};
     const effective = resolveEffectiveChatBackground({
       themeCanvas: theme.canvas,
       globalConfig: globalBackground,
@@ -178,6 +181,7 @@ export function ChatBackgroundProvider({
     threadBackground,
     threadId,
     previewConfig,
+    seasonLocked,
   ]);
 
   const persistGlobal = useCallback(
@@ -209,6 +213,7 @@ export function ChatBackgroundProvider({
       config: ChatBackgroundConfig,
       scope: ChatBackgroundScope
     ) => {
+      if (seasonLocked) return;
       const normalized =
         normalizeChatBackgroundConfig(config);
 
@@ -234,11 +239,12 @@ export function ChatBackgroundProvider({
         return next;
       });
     },
-    [threadId, persistGlobal, persistThreads]
+    [threadId, persistGlobal, persistThreads, seasonLocked]
   );
 
   const resetBackground = useCallback(
     (scope: ChatBackgroundScope) => {
+      if (seasonLocked) return;
       setPreviewConfig(null);
 
       if (scope === 'global') {
@@ -266,13 +272,14 @@ export function ChatBackgroundProvider({
 
   const previewBackground = useCallback(
     (config: ChatBackgroundConfig | null) => {
+      if (seasonLocked) return;
       setPreviewConfig(
         config
           ? normalizeChatBackgroundConfig(config)
           : null
       );
     },
-    []
+    [seasonLocked]
   );
 
   const value = useMemo(

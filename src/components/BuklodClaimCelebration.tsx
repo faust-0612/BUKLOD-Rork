@@ -122,8 +122,9 @@ export default function BuklodClaimCelebration({
     new Animated.Value(0.8)
   ).current;
 
+  // Genesis only admits independently mastered sound, not historical cues.
   const player = useAudioPlayer(
-    soundSource ?? null
+    isGenesisPreviewBuild() ? null : soundSource ?? null
   );
 
   const displayTitle = useMemo(
@@ -266,7 +267,8 @@ export default function BuklodClaimCelebration({
 
     if (
       soundEnabled &&
-      soundSource
+      soundSource &&
+      !isGenesisPreviewBuild()
     ) {
       try {
         player.seekTo(0);

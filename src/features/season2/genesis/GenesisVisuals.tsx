@@ -1,171 +1,208 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, Easing, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Path, Circle, G } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GENESIS_MOTION_MS, GENESIS_PALETTE, resolveGenesisMotion, type GenesisQuality } from './genesisContract';
 
-/** One shared accessible motion switch. No background work when the scene is hidden. */
-export function useGenesisMotionAllowed(active: boolean, quality: GenesisQuality = 'balanced') {
-  const [reduced, setReduced] = useState(false);
-  const [foreground, setForeground] = useState(AppState.currentState === 'active');
-  useEffect(() => {
-    let mounted = true;
-    AccessibilityInfo.isReduceMotionEnabled().then(value => { if (mounted) setReduced(value); }).catch(() => {});
-    const reducedSub = AccessibilityInfo.addEventListener('reduceMotionChanged', value => setReduced(Boolean(value)));
-    const appSub = AppState.addEventListener('change', value => setForeground(value === 'active'));
-    return () => { mounted = false; reducedSub.remove(); appSub.remove(); };
-  }, []);
-  return resolveGenesisMotion({
-    surface: 'home', quality, focused: active, appActive: foreground, reducedMotion: reduced,
-  }).ambient;
+import React, {useEffect,useRef,useState} from 'react';
+import {AccessibilityInfo,Animated,AppState,Easing,Pressable,StyleSheet,Text,View} from 'react-native';
+import Svg,{Defs,RadialGradient,LinearGradient as SvgLinearGradient,Stop,Circle,Ellipse,Rect,Path,G} from 'react-native-svg';
+import {LinearGradient} from 'expo-linear-gradient';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {GENESIS_MOTION_MS,GENESIS_PALETTE,resolveGenesisMotion,type GenesisQuality,type GenesisSurface} from './genesisContract';
+
+export function useGenesisMotionAllowed(active:boolean,quality:GenesisQuality='balanced',surface:GenesisSurface='home') {
+  const [reduced,setReduced]=useState(false);
+  const [foreground,setForeground]=useState(AppState.currentState==='active');
+  useEffect(()=>{
+    let mounted=true;
+    AccessibilityInfo.isReduceMotionEnabled().then(v=>{if(mounted)setReduced(v);}).catch(()=>{});
+    const a=AccessibilityInfo.addEventListener('reduceMotionChanged',v=>setReduced(Boolean(v)));
+    const b=AppState.addEventListener('change',v=>setForeground(v==='active'));
+    return()=>{mounted=false;a.remove();b.remove();};
+  },[]);
+  return resolveGenesisMotion({surface,quality,focused:active,appActive:foreground,reducedMotion:reduced}).ambient;
 }
 
-function Shard({ x, y, phase, angle = 0 }: { x: string; y: string; phase: Animated.Value; angle?: number }) {
-  return (
-    <Animated.View pointerEvents="none" style={{
-      position: 'absolute', left: x as any, top: y as any, width: 31, height: 10,
-      opacity: phase.interpolate({ inputRange: [0, 0.2, 0.68, 1], outputRange: [0.16, 0.83, 0.72, 0.12] }),
-      transform: [
-        { translateY: phase.interpolate({ inputRange: [0, 1], outputRange: [22, -28] }) },
-        { translateX: phase.interpolate({ inputRange: [0, 1], outputRange: [-10, 19] }) },
-        { rotate: `${angle}deg` },
-      ],
-    }}>
-      <Svg viewBox="0 0 31 10" width="31" height="10">
-        <Defs><SvgLinearGradient id="genesisShard" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor={GENESIS_PALETTE.teal} stopOpacity="0" />
-          <Stop offset=".64" stopColor={GENESIS_PALETTE.goldLight} stopOpacity=".95" />
-          <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-        </SvgLinearGradient></Defs>
-        <Path d="M0 5 L22 2 L31 5 L22 8 Z" fill="url(#genesisShard)" />
-        <Path d="M8 5 L28 5" stroke={GENESIS_PALETTE.goldLight} strokeWidth=".65" strokeOpacity=".8" />
-      </Svg>
-    </Animated.View>
-  );
+/** Original infinitely scalable Creation scene: distant galaxies, planets, nebulae and a radiant source. */
+function CreationSpaceScene(){
+  const stars=[
+    [13,19],[40,60],[82,18],[115,83],[146,30],[196,20],[240,47],[290,15],
+    [338,41],[367,105],[360,171],[295,195],[248,177],[187,201],[131,171],
+    [49,187],[21,131],[372,23],[75,135],[324,84],
+  ];
+  return <Svg width="100%" height="100%" viewBox="0 0 390 230" preserveAspectRatio="xMidYMid slice">
+    <Defs>
+      <RadialGradient id="nebula" cx="58%" cy="42%" rx="73%" ry="79%">
+        <Stop offset="0" stopColor="#777DB6" stopOpacity=".6"/>
+        <Stop offset=".37" stopColor="#384A92" stopOpacity=".31"/>
+        <Stop offset="1" stopColor="#09102A" stopOpacity="0"/>
+      </RadialGradient>
+      <RadialGradient id="firstLight" cx="50%" cy="50%" rx="50%" ry="50%">
+        <Stop offset="0" stopColor="#FFFFFF" stopOpacity="1"/>
+        <Stop offset=".12" stopColor="#FFF2C8" stopOpacity=".94"/>
+        <Stop offset=".34" stopColor="#F5CC95" stopOpacity=".42"/>
+        <Stop offset="1" stopColor="#E8B5AA" stopOpacity="0"/>
+      </RadialGradient>
+      <RadialGradient id="blueWorld" cx="27%" cy="22%" rx="81%" ry="91%">
+        <Stop offset="0" stopColor="#B4E9EB"/>
+        <Stop offset=".31" stopColor="#4A8FBC"/>
+        <Stop offset=".68" stopColor="#284F8B"/>
+        <Stop offset="1" stopColor="#0A1531"/>
+      </RadialGradient>
+      <RadialGradient id="goldWorld" cx="32%" cy="20%" rx="81%" ry="82%">
+        <Stop offset="0" stopColor="#FFF0BF"/>
+        <Stop offset=".6" stopColor="#C09B92"/>
+        <Stop offset="1" stopColor="#4C426B"/>
+      </RadialGradient>
+      <SvgLinearGradient id="orbit" x1="0" y1="0" x2="1" y2="1">
+        <Stop offset="0" stopColor="#E4F2FF" stopOpacity="0"/>
+        <Stop offset=".44" stopColor="#BBDCF9" stopOpacity=".58"/>
+        <Stop offset=".78" stopColor="#FFE3B4" stopOpacity=".4"/>
+        <Stop offset="1" stopColor="#CDE6FA" stopOpacity="0"/>
+      </SvgLinearGradient>
+    </Defs>
+    <Rect width="390" height="230" fill="#070D22"/>
+    <Ellipse cx="210" cy="113" rx="228" ry="126" fill="url(#nebula)"/>
+    <Path d="M-15 162 Q92 10 177 83 T415 39" stroke="#9A75BC" strokeOpacity=".16" strokeWidth="27" fill="none"/>
+    <Ellipse cx="234" cy="110" rx="171" ry="44" transform="rotate(-23 234 110)"
+      stroke="url(#orbit)" strokeWidth="1.3" fill="none"/>
+    <Ellipse cx="243" cy="111" rx="116" ry="28" transform="rotate(30 243 111)"
+      stroke="#C8D9F3" strokeOpacity=".26" strokeWidth=".8" fill="none"/>
+    <Circle cx="312" cy="137" r="45" fill="url(#blueWorld)"/>
+    <Path d="M271 119 Q293 126 312 111 T352 108" stroke="#DAF3F9" strokeWidth="3.7" strokeOpacity=".25" fill="none"/>
+    <Path d="M269 152 Q298 136 320 147 T350 156" stroke="#A8DCEF" strokeWidth="3" strokeOpacity=".19" fill="none"/>
+    <Circle cx="151" cy="52" r="20" fill="url(#goldWorld)"/>
+    <Ellipse cx="151" cy="52" rx="30" ry="6" transform="rotate(-23 151 52)"
+      stroke="#F9D7AE" strokeWidth="1.3" fill="none" opacity=".78"/>
+    <Circle cx="218" cy="95" r="83" fill="url(#firstLight)"/>
+    <Path d="M218 0 V192 M117 95 H309 M157 34 L279 156 M157 156 L279 34"
+      stroke="#FFF5D3" strokeOpacity=".25" strokeWidth=".9"/>
+    <Circle cx="218" cy="95" r="4.8" fill="#FFFFFF"/>
+    {stars.map(([x,y],i)=><G key={i}>
+      <Path d={'M'+(x-3)+' '+y+' H'+(x+3)+' M'+x+' '+(y-3)+' V'+(y+3)}
+        stroke="#D8EEFF" strokeWidth=".5" strokeOpacity=".48"/>
+      <Circle cx={x} cy={y} r={i%3===0?1.1:.6} fill="#E9F3FF"/>
+    </G>)}
+  </Svg>;
 }
-
-/** Fine-line botanical engraving, dawn rays and long luminous fragments — not dot particles. */
-export function GenesisAtmosphere({ active, quality = 'balanced' }: { active: boolean; quality?: GenesisQuality }) {
-  const allowMotion = useGenesisMotionAllowed(active, quality);
-  const phase = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (!allowMotion) { phase.stopAnimation(); phase.setValue(0); return; }
-    const animation = Animated.loop(Animated.timing(phase, {
-      toValue: 1, duration: GENESIS_MOTION_MS.atmosphericDrift,
-      easing: Easing.inOut(Easing.sin), useNativeDriver: true,
+function Streak({phase,x,y,rotation}:{phase:Animated.Value;x:string;y:string;rotation:string}) {
+  return <Animated.View pointerEvents="none" style={{
+    position:'absolute',left:x as any,top:y as any,width:46,height:13,
+    opacity:phase.interpolate({inputRange:[0,.2,.64,1],outputRange:[.1,.9,.65,.1]}),
+    transform:[
+      {translateY:phase.interpolate({inputRange:[0,1],outputRange:[18,-42]})},
+      {translateX:phase.interpolate({inputRange:[0,1],outputRange:[-14,30]})},
+      {rotate:rotation},
+    ],
+  }}>
+    <Svg viewBox="0 0 46 13" width="46" height="13"><Defs>
+      <SvgLinearGradient id="trail" x1="0" y1="0" x2="1" y2="0">
+        <Stop offset="0" stopColor="#A7E4FA" stopOpacity="0"/>
+        <Stop offset=".7" stopColor="#B5DFFF" stopOpacity=".68"/>
+        <Stop offset=".94" stopColor="#FFF7D6" stopOpacity="1"/>
+        <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0"/>
+      </SvgLinearGradient></Defs>
+      <Path d="M0 6 L36 3 L46 6 L36 10 Z" fill="url(#trail)"/>
+      <Path d="M9 6 L43 6" stroke="#FFF5CD" strokeWidth=".7"/>
+    </Svg>
+  </Animated.View>;
+}
+export function GenesisAtmosphere({active,quality='balanced',surface='home'}:{
+  active:boolean;quality?:GenesisQuality;surface?:GenesisSurface;
+}) {
+  const run=useGenesisMotionAllowed(active,quality,surface);
+  const phase=useRef(new Animated.Value(0)).current;
+  useEffect(()=>{
+    if(!run){phase.stopAnimation();phase.setValue(0);return;}
+    const loop=Animated.loop(Animated.timing(phase,{
+      toValue:1,duration:GENESIS_MOTION_MS.atmosphericDrift,
+      easing:Easing.inOut(Easing.sin),useNativeDriver:true,
     }));
-    animation.start();
-    return () => { animation.stop(); phase.setValue(0); };
-  }, [allowMotion, phase]);
-
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Svg width="100%" height="100%" viewBox="0 0 360 150" preserveAspectRatio="xMidYMid slice">
-        <Defs>
-          <SvgLinearGradient id="genesisRoot" x1="0" y1="1" x2="1" y2="0">
-            <Stop offset="0" stopColor={GENESIS_PALETTE.leaf} stopOpacity=".04" />
-            <Stop offset=".58" stopColor={GENESIS_PALETTE.gold} stopOpacity=".33" />
-            <Stop offset="1" stopColor={GENESIS_PALETTE.goldLight} stopOpacity=".08" />
-          </SvgLinearGradient>
-          <SvgLinearGradient id="genesisRay" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={GENESIS_PALETTE.goldLight} stopOpacity=".21" />
-            <Stop offset="1" stopColor={GENESIS_PALETTE.goldLight} stopOpacity="0" />
-          </SvgLinearGradient>
-        </Defs>
-        <Path d="M165 150 C208 119 216 84 282 40 C311 20 321 5 332 -19"
-          stroke="url(#genesisRoot)" strokeWidth="1.35" fill="none" />
-        <Path d="M212 150 C243 119 247 94 287 72 C324 48 344 40 364 37"
-          stroke="url(#genesisRoot)" strokeWidth=".7" fill="none" />
-        <Path d="M260 150 C282 123 282 92 310 79 C332 66 343 67 360 63"
-          stroke="url(#genesisRoot)" strokeWidth=".8" fill="none" />
-        <Path d="M282 40 C267 22 259 14 254 -2 M287 72 C269 68 253 54 249 39 M310 79 C297 59 293 51 296 28"
-          stroke="url(#genesisRoot)" strokeWidth="1.1" fill="none" />
-        <Path d="M0 140 C70 126 91 110 157 113" stroke="#8ECFA9" strokeOpacity=".12" fill="none"/>
-        <Path d="M214 0 L301 0 L291 150 L279 150 Z" fill="url(#genesisRay)" opacity=".34" />
-        <Path d="M315 -10 L335 0 L250 150 L232 150 Z" fill="url(#genesisRay)" opacity=".23" />
-        <G stroke={GENESIS_PALETTE.goldLight} strokeOpacity=".44" strokeWidth=".8" fill="none">
-          <Path d="M281 40 Q271 35 267 24 Q282 26 286 39" />
-          <Path d="M288 72 Q302 65 310 52 Q310 70 291 79" />
-          <Path d="M315 78 Q329 76 337 65 Q335 82 318 85" />
-          <Path d="M255 40 Q242 29 238 18 Q257 20 261 37" />
-        </G>
-      </Svg>
-      {allowMotion ? (
-        <>
-          <Shard x="18%" y="25%" phase={phase} angle={-15} />
-          <Shard x="62%" y="56%" phase={phase} angle={22} />
-          <Shard x="82%" y="13%" phase={phase} angle={-38} />
-        </>
-      ) : null}
+    loop.start();return()=>{loop.stop();phase.setValue(0);};
+  },[phase,run]);
+  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <CreationSpaceScene/>
+    {run ? <>
+      <Streak phase={phase} x="15%" y="28%" rotation="-17deg"/>
+      <Streak phase={phase} x="60%" y="69%" rotation="24deg"/>
+      <Streak phase={phase} x="86%" y="20%" rotation="-38deg"/>
+      {quality==='full'? <><Streak phase={phase} x="35%" y="48%" rotation="11deg"/>
+        <Streak phase={phase} x="77%" y="51%" rotation="-13deg"/></> : null}
+    </> : null}
+  </View>;
+}
+/** Bounded cosmic scene behind home content. Never intercepts taps or ad impressions. */
+export function GenesisCosmosBackground({active}:{active:boolean}) {
+  return <View pointerEvents="none" style={{position:'absolute',top:0,left:0,right:0,height:510}}>
+    <GenesisAtmosphere active={active}/>
+    <LinearGradient colors={['rgba(5,10,25,0)','rgba(5,10,25,.5)','#050A19']}
+      style={StyleSheet.absoluteFill}/>
+  </View>;
+}
+export function GenesisSeal({size=74,active=false}:{size?:number;active?:boolean}) {
+  const run=useGenesisMotionAllowed(active,'balanced','reward');
+  const glow=useRef(new Animated.Value(.4)).current;
+  useEffect(()=>{
+    if(!run){glow.stopAnimation();glow.setValue(.4);return;}
+    const animation=Animated.loop(Animated.sequence([
+      Animated.timing(glow,{toValue:.83,duration:1700,useNativeDriver:true}),
+      Animated.timing(glow,{toValue:.4,duration:1700,useNativeDriver:true}),
+    ]));animation.start();return()=>animation.stop();
+  },[run,glow]);
+  return <View style={{width:size,height:size,alignItems:'center',justifyContent:'center'}}>
+    <Animated.View pointerEvents="none" style={{position:'absolute',width:size*.65,height:size*.65,
+      borderRadius:size,backgroundColor:'#F2DBA6',opacity:glow}}/>
+    <Svg viewBox="0 0 120 120" width={size} height={size}>
+      <Circle cx="60" cy="60" r="53" stroke="#F0D29C" strokeWidth="1.5"
+        strokeDasharray="22 4 2 3" fill="none"/>
+      <Ellipse cx="60" cy="60" rx="52" ry="17" transform="rotate(-29 60 60)"
+        stroke="#C5E6F8" strokeWidth="1.5" fill="none"/>
+      <Ellipse cx="60" cy="60" rx="50" ry="15" transform="rotate(38 60 60)"
+        stroke="#F5D39C" strokeWidth=".9" fill="none"/>
+      <Circle cx="60" cy="60" r="34" stroke="#D1BEA1" strokeWidth=".7" fill="none"/>
+      <Path d="M60 9 V111 M9 60 H111 M25 25 L95 95 M25 95 L95 25"
+        stroke="#FFF2CA" strokeWidth="1" strokeOpacity=".7"/>
+      <Circle cx="60" cy="60" r="8" fill="#FFF8E6"/><Circle cx="60" cy="60" r="3.6" fill="#FFFFFF"/>
+      <Circle cx="16" cy="38" r="2.2" fill="#F2E4BC"/><Circle cx="100" cy="79" r="2.1" fill="#A8DEFA"/>
+    </Svg>
+  </View>;
+}
+export function GenesisLivingButton({label,onPress}:{label:string;onPress:()=>void}) {
+  const scale=useRef(new Animated.Value(1)).current;
+  const bounce=(v:number)=>Animated.spring(scale,{toValue:v,useNativeDriver:true,
+    friction:9,tension:140}).start();
+  return <Animated.View style={{alignSelf:'flex-start',transform:[{scale}]}}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
+      onPressIn={()=>bounce(.95)} onPressOut={()=>bounce(1)} style={styles.button}>
+      <MaterialCommunityIcons name="creation" size={15} color="#0D1930"/>
+      <Text style={styles.buttonText}>{label}</Text>
+      <MaterialCommunityIcons name="arrow-right" size={15} color="#0D1930"/>
+    </Pressable>
+  </Animated.View>;
+}
+export function GenesisHomeHero({active=true,quality='balanced',onExplore}:{
+  active?:boolean;quality?:GenesisQuality;onExplore?:()=>void;
+}) {
+  return <LinearGradient colors={['#060D24','#142044','#242449']} style={styles.hero}
+    start={{x:0,y:0}} end={{x:1,y:1}}>
+    <GenesisAtmosphere active={active} quality={quality}/>
+    <View style={styles.copy}>
+      <Text style={styles.kicker}>BUKLOD · SEASON 2 · CREATION</Text>
+      <Text style={styles.title}>Genesis: The Beginning</Text>
+      <Text style={styles.verse}>“God created the heavens and the earth.” · Gen 1:1</Text>
+      <Text style={styles.sub}>“Let there be light.” · Genesis 1:3</Text>
+      {onExplore ? <View style={{marginTop:12}}>
+        <GenesisLivingButton label="Explore the Kingdom" onPress={onExplore}/>
+      </View>:null}
     </View>
-  );
+    <View style={{width:64,zIndex:1}}><GenesisSeal size={64} active={active}/></View>
+  </LinearGradient>;
 }
-
-/** Engraved seal with interwoven root and dawning light; deliberately not a generic circular spinner. */
-export function GenesisSeal({ size = 72, active = false }: { size?: number; active?: boolean }) {
-  const allowMotion = useGenesisMotionAllowed(active);
-  const glow = useRef(new Animated.Value(0.4)).current;
-  useEffect(() => {
-    if (!allowMotion) { glow.stopAnimation(); glow.setValue(0.4); return; }
-    const sequence = Animated.loop(Animated.sequence([
-      Animated.timing(glow, { toValue: 0.82, duration: 1550, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      Animated.timing(glow, { toValue: 0.4, duration: 1550, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-    ]));
-    sequence.start();
-    return () => sequence.stop();
-  }, [allowMotion, glow]);
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View pointerEvents="none" style={{ position: 'absolute', width: size * .83, height: size * .83,
-        borderRadius: size, backgroundColor: '#C8AD5B', opacity: glow, transform: [{ scale: .76 }] }} />
-      <Svg width={size} height={size} viewBox="0 0 120 120">
-        <Defs><SvgLinearGradient id="genesisSealMetal" x1="0" y1="1" x2="1" y2="0">
-          <Stop offset="0" stopColor="#7F7146"/><Stop offset=".46" stopColor="#F9E4AC"/>
-          <Stop offset="1" stopColor="#B89956"/>
-        </SvgLinearGradient></Defs>
-        <Circle cx="60" cy="60" r="51" stroke="url(#genesisSealMetal)" strokeWidth="2.25" fill="#0A3326" fillOpacity=".88"/>
-        <Circle cx="60" cy="60" r="45" stroke={GENESIS_PALETTE.gold} strokeWidth=".5" strokeOpacity=".64" fill="none" strokeDasharray="21 3 4 5"/>
-        <G stroke="url(#genesisSealMetal)" strokeLinecap="round" strokeLinejoin="round" fill="none">
-          <Path d="M60 93 V59 M60 60 C47 55 42 46 37 34 M60 61 C73 53 77 43 83 32 M60 74 C48 70 39 63 33 52 M60 77 C72 72 84 63 89 49"
-            strokeWidth="3"/>
-          <Path d="M60 92 C49 90 42 96 37 102 M60 90 C75 88 81 95 84 101 M60 90 C60 98 59 101 56 105"
-            strokeWidth="1.2"/>
-          <Path d="M37 34 C46 32 52 35 54 40 C44 45 38 42 37 34 Z M83 32 C76 33 69 37 68 43 C77 45 82 40 83 32 Z"
-            strokeWidth="1.3"/>
-          <Path d="M33 52 Q44 50 50 57 Q39 62 33 52 Z M89 49 Q77 47 71 57 Q84 60 89 49 Z" strokeWidth="1.2"/>
-          <Path d="M60 19 V28 M56 22 L60 17 L64 22 M27 59 L20 59 M93 59 L100 59" strokeWidth="1.2"/>
-        </G>
-      </Svg>
-    </View>
-  );
-}
-
-export function GenesisHomeHero({ active = true, quality = 'balanced' }: { active?: boolean; quality?: GenesisQuality }) {
-  return (
-    <LinearGradient colors={['#0B3026', '#14583E', '#317853']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={styles.hero} accessible accessibilityRole="header"
-      accessibilityLabel="Genesis: The Beginning. A new chapter of life, connection and purpose.">
-      <GenesisAtmosphere active={active} quality={quality}/>
-      <View style={styles.heroCopy}>
-        <Text style={styles.kicker}>BUKLOD  ·  SEASON 2</Text>
-        <Text style={styles.title}>Genesis: The Beginning</Text>
-        <Text style={styles.sub}>A new chapter of life, connection and purpose.</Text>
-        <View style={styles.rule}><View style={styles.ruleLight}/></View>
-      </View>
-      <View style={styles.emblem}><GenesisSeal size={74} active={active}/></View>
-    </LinearGradient>
-  );
-}
-
-const styles = StyleSheet.create({
-  hero: { minHeight: 122, borderRadius: 17, overflow: 'hidden', flexDirection: 'row',
-    alignItems: 'center', paddingVertical: 15, paddingHorizontal: 14, borderWidth: 1,
-    borderColor: '#648B69' },
-  heroCopy: { flex: 1, minWidth: 0, zIndex: 1, paddingRight: 3 },
-  kicker: { fontSize: 9.5, fontWeight: '800', color: '#F3D798', letterSpacing: 1.6 },
-  title: { marginTop: 5, fontSize: 20, lineHeight: 24, fontWeight: '900', color: GENESIS_PALETTE.textOnDark },
-  sub: { marginTop: 5, fontSize: 11.5, lineHeight: 16, color: '#E0F1E5' },
-  emblem: { width: 77, alignItems: 'flex-end', justifyContent: 'center' },
-  rule: { marginTop: 10, height: 1, backgroundColor: '#6E9D7E', width: 96 },
-  ruleLight: { width: 35, height: 1, backgroundColor: GENESIS_PALETTE.goldLight },
+const styles=StyleSheet.create({
+  hero:{minHeight:170,overflow:'hidden',borderRadius:18,paddingHorizontal:13,paddingVertical:14,
+    flexDirection:'row',alignItems:'center',borderWidth:1,borderColor:'#59699F'},
+  copy:{flex:1,minWidth:0,zIndex:1},
+  kicker:{color:'#F5D39C',fontSize:9,fontWeight:'900',letterSpacing:1.3},
+  title:{fontSize:19,lineHeight:24,marginTop:7,fontWeight:'900',color:'#F8FAFF'},
+  verse:{marginTop:6,color:'#FFE5B9',fontSize:12,fontWeight:'800'},
+  sub:{marginTop:4,color:'#D9E5FD',fontSize:11,lineHeight:15},
+  button:{minHeight:40,flexDirection:'row',alignItems:'center',gap:7,
+    paddingHorizontal:12,borderRadius:11,backgroundColor:'#F1D4A0',borderWidth:1,borderColor:'#FFF0CA'},
+  buttonText:{fontSize:11,fontWeight:'900',color:'#0D1930'},
 });

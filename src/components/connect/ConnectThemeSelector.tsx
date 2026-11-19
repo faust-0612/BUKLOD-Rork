@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import React, {
   useMemo,
   useState,
@@ -206,6 +207,7 @@ export function ConnectThemeSelectorButton({
 
   const activeId = messagesPreference;
 
+  if (!canUserSelectTheme()) return null;
   return (
     <>
       <ConnectPressable

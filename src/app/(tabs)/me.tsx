@@ -1,3 +1,6 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {GenesisCosmosBackground} from '@/features/season2/genesis/GenesisVisuals';
 import { buklodVisual } from '@/lib/buklodVisual';
 /* PATCH_184F_R3_PROFILE_CLEANUP */
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
@@ -362,6 +365,11 @@ function MenuRow({
 }
 
 export default function MeScreen() {
+  const [genesisFocused,setGenesisFocused]=useState(false);
+  useProfileFocusEffect(useProfileFocusCallback(()=>{
+    setGenesisFocused(true);
+    return()=>setGenesisFocused(false);
+  },[]));
   const { theme, shared } = useBuklodPresentation();
   const { fontScale: profileFontScale } = useWindowDimensions();
   const params =
@@ -1298,6 +1306,7 @@ export default function MeScreen() {
   };
 
   const highlightAccent =
+    !canUserSelectTheme() ? theme.accent :
     personalDashboardTheme.accentColor &&
     personalDashboardTheme.accentColor !==
       DEFAULT_DASHBOARD_THEME.accentColor
@@ -1394,12 +1403,12 @@ export default function MeScreen() {
         label: 'Organization',
         onPress: () => openUserOrganization(),
       },
-      {
+      ...(canUserSelectTheme() ? [{
         key: 'theme',
-        icon: 'palette-outline',
+        icon: 'palette-outline' as const,
         label: 'Theme',
         onPress: () => setThemeOpen(true),
-      },
+      }] : []),
       {
         key: 'advertise',
         icon: 'bullhorn-outline',
@@ -1629,7 +1638,7 @@ export default function MeScreen() {
       style={[
         shared.screen,
         {
-          backgroundColor: hasPersonalCanvas
+          backgroundColor: canUserSelectTheme() && hasPersonalCanvas
             ? personalDashboardTheme.backgroundColor
             : theme.canvas,
         },
@@ -1641,7 +1650,8 @@ export default function MeScreen() {
       showsVerticalScrollIndicator={false}
       directionalLockEnabled
     >
-      {!!personalDashboardTheme.backgroundImage && (
+      {isGenesisPreviewBuild() ? <GenesisCosmosBackground active={genesisFocused}/> : null}
+      {canUserSelectTheme() && !!personalDashboardTheme.backgroundImage && (
         <View
           pointerEvents="none"
           style={StyleSheet.absoluteFill}

@@ -1,5 +1,5 @@
 # BUKLOD Season 2 Genesis — Premium Kingdom/Collections DEV candidate
-Date 2026-11-20. Starting source: `fcd437a70da9ce0a878822af719fcba15a1a0587` (Genesis Living Engine).
+Date 2026-11-20. Reconciled with latest existing Genesis DEV engine `ede0a9417055d272f36f26358159730c700d38df`, preserving its Rive/theme/audio/reward reveal source.
 
 ## Actually integrated in DEV source
 - Production keeps the original 13-station Kingdom map and current footer advertising.

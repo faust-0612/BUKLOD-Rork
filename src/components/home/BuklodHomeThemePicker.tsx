@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -30,6 +31,7 @@ export default function BuklodHomeThemePicker({
 }) {
   const selected = getBuklodHomeTheme(selectedThemeId);
 
+  if(!canUserSelectTheme())return null;
   return (
     <Modal
       visible={visible}

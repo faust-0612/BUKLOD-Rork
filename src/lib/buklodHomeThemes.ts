@@ -1,3 +1,4 @@
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 export type BuklodHomeThemeId =
   | 'cozy-family'
   | 'classic-dad'
@@ -205,9 +206,22 @@ export const BUKLOD_HOME_THEMES: BuklodHomeThemePreset[] = [
   },
 ];
 
+/** One season-owned appearance; storage from Season 1 is preserved but ignored. */
+export const GENESIS_HOME_THEME:BuklodHomeThemePreset={
+  id:'young-men',label:'Genesis: The Beginning',shortLabel:'Creation',
+  description:'Creation Cosmos: the official seasonal identity',icon:'creation',
+  palette:{
+    canvas:'#050A19',wall:'#101E3C',wallAlt:'#192949',floor:'#080E25',
+    wood:'#324767',surface:'#111F3F',surfaceStrong:'#1F3253',
+    border:'#34476D',text:'#F8FAFF',muted:'#B6C6E1',
+    primary:'#65D8CC',primarySoft:'#1B4255',secondary:'#F3D399',
+    secondarySoft:'#3B3254',glow:'#FFE5B4',
+  },
+};
 export function getBuklodHomeTheme(
   id: string | null | undefined,
 ): BuklodHomeThemePreset {
+  if(isGenesisPreviewBuild())return GENESIS_HOME_THEME;
   return (
     BUKLOD_HOME_THEMES.find((theme) => theme.id === id) ??
     BUKLOD_HOME_THEMES.find((theme) => theme.id === DEFAULT_BUKLOD_HOME_THEME)!

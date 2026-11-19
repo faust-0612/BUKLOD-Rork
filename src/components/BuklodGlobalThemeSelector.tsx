@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import React, {
   useMemo,
   useState,
@@ -143,6 +144,7 @@ export function BuklodGlobalThemeSelectorModal({
     setPreference(id);
   };
 
+  if (!canUserSelectTheme()) return null;
   return (
     <Modal
       visible={visible}
@@ -294,6 +296,7 @@ export function BuklodAppearanceSection() {
     [theme]
   );
 
+  if (!canUserSelectTheme()) return null;
   return (
     <>
       <Pressable
