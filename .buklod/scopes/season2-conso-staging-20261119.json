@@ -18,7 +18,9 @@
     "Android runtime 1.3.2 and staging package",
     "Actual staging EAS served manifest verified",
     "Production EAS unchanged",
-    "Exact source reward and release isolation tests pass; no production or Supabase write; only staging-user Android manifest may change after guarded publish."
+    "Exact source reward and release isolation tests pass; no production or Supabase write; only staging-user Android manifest may change after guarded publish.",
+    "Connect latest/IME focused tests and compact seen/metadata tests pass against exact integration source, followed by TypeScript Android compilation and AdMob/navigation checks before staging OTA.",
+    "All Connect scope read reports are cursor-based and never claim per-message seen certainty without an actual per-message receipt."
   ],
   "knownBlockers": [
     "No isolated staging database connected",
@@ -103,7 +105,12 @@
     "scripts/season2-staging-backend-isolation.cjs",
     "tests/season2-staging-backend-isolation-20261119.test.cjs",
     "tests/season2-visual-only-hold-20261119.test.cjs",
-    "tests/season2-production-release-staging-only-hold-20261119.test.cjs"
+    "tests/season2-production-release-staging-only-hold-20261119.test.cjs",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/lib/connectChatWindow.ts",
+    "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
   ],
   "regressionTests": [
     "tests/buklod-season2-carryover-contract-20261119.test.mjs",
@@ -122,7 +129,9 @@
     "tests/life-language-auth-navigation-20261119.test.mjs",
     "tests/season2-staging-backend-isolation-20261119.test.cjs",
     "tests/season2-visual-only-hold-20261119.test.cjs",
-    "tests/season2-production-release-staging-only-hold-20261119.test.cjs"
+    "tests/season2-production-release-staging-only-hold-20261119.test.cjs",
+    "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -134,7 +143,9 @@
       ],
       "tests": [
         "tests/buklod-season2-carryover-contract-20261119.test.mjs",
-        "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs"
+        "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
       ]
     },
     {
@@ -190,6 +201,19 @@
       "tests": [
         "tests/season2-avatar-admob-guard-20261119.test.mjs"
       ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Use the shared Connect text-chat renderer to anchor Latest through Android keyboard resizing and make compact bubble, date/time and seen-reader feedback consistent across personal, cluster, organization and sub-organization conversations without modifying message persistence or PTT/call flows.",
+      "preservedBehaviors": [
+        "Connection membership and Supabase RLS authorization, sender identity, media upload, offline queue, message pagination, direct-message and scope room read cursors remain intact.",
+        "AdMob lifecycle, first-view ad readiness, instant tab switching and production Season1 economy remain unchanged.",
+        "Manual reading of earlier messages does not force scroll to the latest until user taps Latest or focuses composer."
+      ],
+      "tests": [
+        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+      ]
     }
   ],
   "chosenApproach": "Preserve the already verified visual staging preview as base; reconcile dev governance and isolated disabled rewards source into one scoped staging candidate. Add read-only carryover policy, admin visibility and strict EAS stage-only workflow without production writes.",
@@ -222,5 +246,29 @@
     "supabase-backend-isolation",
     "production-release"
   ],
-  "releaseMode": "VISUAL_PREVIEW_ONLY_REWARDS_HELD"
+  "releaseMode": "VISUAL_PREVIEW_ONLY_REWARDS_HELD",
+  "connectConsolidatedPreparation": {
+    "classification": "NON_SEASON2_UI_RELIABILITY",
+    "sourceCommit": "3e2f7326eda569eff832e8204dc8b314c927a54a",
+    "includedInStagingSource": true,
+    "stagingOtaPublished": false,
+    "runtime": "1.3.2",
+    "platform": "android",
+    "affectedRooms": [
+      "personal",
+      "cluster",
+      "organization",
+      "sub-organization"
+    ],
+    "changes": [
+      "latest-on-open/focus/send/keyboard",
+      "compact sender avatars and no repeated names",
+      "tap-to-reveal timestamps",
+      "scope Seen users from authorized room cursors; direct peer Seen remains existing read-at"
+    ],
+    "backendMigration": false,
+    "productionAuthorized": false,
+    "stagedReleaseIsolated": true,
+    "note": "No staging trigger file, release-marker commit prefix, EAS push or production deployment is part of this preparation."
+  }
 }

@@ -171,12 +171,16 @@
         "src/components/BuklodSeason2ProverbsDailyVerse.tsx",
         "src/lib/season2/buklodDailyProverbsR1.ts",
         "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
-        "PR-995"
+        "PR-995",
+        "src/lib/season2/buklodProverbsKjvFullR1.ts",
+        "tests/protected-feature-lock-proverbs-915-20261119.test.mjs",
+        "Season2 915-day nonrepeating cycle owner approval 2026-11-19"
       ],
       "limitations": [
-        "Owner approved read-only Show Faith Community card as separate Season2 content, not one of ten exclusive reward modules.",
-        "No new reward/point grants, no Supabase write or staging deployment.",
-        "Source CI and Android staging verification required before integration; production still embargoed until December 6 and separate exact SHA authorization."
+        "Owner-approved read-only Show Faith Community card as separate Season2 content, not one of the ten exclusive reward modules.",
+        "Full 915 KJV Proverbs verses bundled offline with attribution and deterministic 915-day rotation; ASD requires existing online Bible RPC. Thirty-one curated takeaways are preserved, while other verses use a bilingual reflection prompt.",
+        "No new reward/point grants, no Supabase write, no staging or production OTA in this source-only change.",
+        "CI/Android staging verification required before release; production embargo until December 6 and separate exact SHA owner authorization."
       ]
     },
     {
