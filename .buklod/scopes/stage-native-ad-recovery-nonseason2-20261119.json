@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "objective": "Forward verified non-Season2 NativeAd first-view responsiveness/recovery to Season2 staging publisher *source only* without triggering EAS OTA, changing release markers, backend rewards or production.",
+  "baseRef": "1a28cd593f06b1b655b1747550b37b2f56a3e974",
+  "productionBaselineEvidence": "Current staged publisher SHA 1a28cd593f06b1b655b1747550b37b2f56a3e974 has exactly main baseline AdMob file blobs; forward port six exact QA-passed PR #982 source/test blob contents also in production candidate PR #986 head fc65e8b9791b04dc12f6b7a68f82612b41f6da1d. No AdMob actual Android live verification or EAS OTA publication claimed. Staging billing guard remains held.",
+  "chosenApproach": "9-second bounded first-view/warmup native timeout, shared two-failure/5-minute local banner-first health, and full requested banner viewport only after an allowed reservation. Preserve 12-second native feed timeout on slow 3G.",
+  "preserveBehaviors": [
+    "Do not change ad SDK/native package, ad IDs, test/live app identity, consent, remote locks, cooldown, or app native runtime.",
+    "No synthetic impressions or requests, auto-refresh, illegal off-screen SDK views, forced interstitials, extra requests, or reward changes.",
+    "AdMob production, RC and staging remain untouched until exact mandatory CI and runtime checks; Season2 untouched.",
+    "Loaded native creatives and offscreen viewability rules remain unchanged."
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodDashboardAdWarmup.android.tsx",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "src/lib/buklodNativeAdRecovery.ts",
+    ".buklod/scopes/stage-native-ad-recovery-nonseason2-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Shared health counts prewarm and onscreen NativeAd failures per stable placement, expires and clears on success",
+    "BannerAd is never clipped during a pending real SDK load",
+    "Failed/no-fill slots collapse to compact probe and maintain existing quiet-period retries",
+    "Source and tests in isolated PR; no automatic production publish or payout changes",
+    "Staging release marker unchanged and zero-charge fail-closed; do not publish staging or production from this PR."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Android ad fallback surface and asynchronous NativeAd lifecycle are changed on first-view dashboards.",
+      "preservedBehaviors": [
+        "Keep live app routes, native runtime, 3G feed loading and offscreen visibility restrictions unchanged."
+      ],
+      "tests": [
+        "tests/buklod-wall-ad-stability.test.mjs",
+        "tests/buklod-ad-empty-slot-collapse.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "NativeAd failure recovery, prewarm and BannerAd loading geometry impact protected AdMob first-view delivery.",
+      "preservedBehaviors": [
+        "Preserve real AdMob SDK callbacks, consent, placement identity, pacing, cash/QMP Finance separation and production app ID."
+      ],
+      "tests": [
+        "tests/buklod-wall-ad-stability.test.mjs",
+        "tests/buklod-ad-restoration-locked-20261107.test.mjs"
+      ]
+    }
+  ],
+  "selectionRationale": "BUKLOD live client telemetry is dominated by native loading timeouts, not a lack of ad placements. Shared prewarm/onscreen health and format-sized BannerAd loading directly address observed failure while preserving real AdMob SDK events, user consent, cooldown and no-OTA safety.",
+  "alternativeApproaches": [
+    "Make every dashboard issue concurrent native and banner requests (rejected: request spam and extra network load).",
+    "Remove shared two-minute remount cooldown (rejected: risks accidental rapid refresh and policy violations).",
+    "Change production unit IDs or native SDK without verified Android artifact (rejected: unnecessary native risk).",
+    "Silently fabricate missing AdMob impressions in client telemetry (rejected: dishonest and violates revenue integrity)."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "app-runtime",
+    "ads-finance-points"
+  ],
+  "scopeManifestPath": ".buklod/scopes/stage-native-ad-recovery-nonseason2-20261119.json",
+  "releaseTarget": "Staging OTA source only; no marker update or EAS publish",
+  "productionChange": false
+}

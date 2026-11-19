@@ -39,6 +39,11 @@ import { useAds } from '@/providers/AdsProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { AD_SLOT_REMOUNT_COOLDOWN_MS } from '@/lib/buklodAdMonetizationPolicy';
 import {
+  preferBannerAfterNativeFailures,
+  noteNativeRequestFailed,
+  noteNativeRequestSucceeded,
+} from '@/lib/buklodNativeAdRecovery';
+import {
   getBuklodDashboardAdPreloadState, takeBuklodDashboardAdPreload,
   subscribeBuklodDashboardAdPreload, noteBuklodDashboardNativeAdOwned,
   releaseBuklodDashboardNativeAdOwned,
@@ -70,36 +75,9 @@ type Props = {
 // Avoid treating a slow but valid 3G response as a terminal no-fill.
 // Requests remain single-flight and no-fill retries keep their shared cooldown.
 const AD_LOAD_TIMEOUT_MS = 12_000;
-const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 16_000;
+const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 9_000;
 const FEED_AD_CARD_HEIGHT = 392;
 const AD_PENDING_SLOT_HEIGHT = 8;
-
-// A run of genuine SDK failures is a poor time to keep making every Wall
-// slot wait for NativeAd before trying its existing banner inventory.
-// Temporarily prefer a SINGLE banner request per visible slot instead.
-// This is local, bounded and never overrides consent, focus or cooldown.
-const NATIVE_FAILURE_THRESHOLD = 2;
-const NATIVE_BANNER_PREFERENCE_MS = 5 * 60 * 1000;
-const nativeFailureState = new Map<string, { failures: number; retryNativeAfter: number }>();
-
-function preferBannerAfterNativeFailures(placementId: string, now = Date.now()) {
-  return (nativeFailureState.get(placementId)?.retryNativeAfter ?? 0) > now;
-}
-
-function noteNativeRequestFailed(placementId: string, now = Date.now()) {
-  const previous = nativeFailureState.get(placementId);
-  const failures = Math.min(NATIVE_FAILURE_THRESHOLD, (previous?.failures ?? 0) + 1);
-  nativeFailureState.set(placementId, {
-    failures,
-    retryNativeAfter: failures >= NATIVE_FAILURE_THRESHOLD
-      ? now + NATIVE_BANNER_PREFERENCE_MS
-      : 0,
-  });
-}
-
-function noteNativeRequestSucceeded(placementId: string) {
-  nativeFailureState.delete(placementId);
-}
 
 function clean(value: string | undefined) {
   return String(value ?? '').trim();
@@ -703,6 +681,9 @@ export default function BuklodCommunityInlineAd({
     );
   }
 
+  // A real SDK banner needs a format-sized surface even before onAdLoaded.
+  // Rendering a 300x250 creative through an 8px clipped viewport could
+  // suppress visibility/impression and leave an apparent blank placement.
   return (
     <View
       ref={ref}
@@ -713,9 +694,7 @@ export default function BuklodCommunityInlineAd({
       pointerEvents={bannerLoaded ? 'auto' : 'none'}
     >
       {bannerLoaded ? <Text style={styles.label}>Sponsored</Text> : null}
-      <View style={bannerLoaded
-        ? usePostRectangle ? styles.rectangleArea : styles.bannerArea
-        : styles.pendingArea}>
+      <View style={usePostRectangle ? styles.rectangleArea : styles.bannerArea}>
         <BannerAd
           unitId={bannerUnitId}
           size={usePostRectangle
@@ -779,12 +758,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pendingArea: {
-    width: '100%',
-    minHeight: 8,
-    overflow: 'hidden',
-    // Keep the SDK view visible so AdMob automatic refresh can recover no-fill.
-  },
+  // The SDK BannerAd must not be clipped to an 8px surface while loading.
+  // Reserve the actual requested format once its shared request is accepted;
+  // terminal no-fill/timeout still collapses back to the compact probe.
   nativeShell: {
     width: '100%',
     height: FEED_AD_CARD_HEIGHT,

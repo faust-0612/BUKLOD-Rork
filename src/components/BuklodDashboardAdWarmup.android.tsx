@@ -10,11 +10,12 @@ import {
 } from '@/lib/buklodGlobalAdController';
 import { buklodAdsTestMode, diagnosticPlacementFor, type BuklodAdPlacement } from '@/lib/buklodAdUnits';
 import { recordBuklodAdEvent, type BuklodAdDiagnosticPlacement } from '@/lib/buklodAdDiagnostics';
+import { preferBannerAfterNativeFailures, noteNativeRequestFailed, noteNativeRequestSucceeded } from '@/lib/buklodNativeAdRecovery';
 
 // Native SDK objects only. The on-screen first-view owns the view/impression.
 const MAX_WARM_CREATIVES = 2;
 const NATIVE_WARM_TTL_MS = 30 * 60_000;
-const NATIVE_WARM_TIMEOUT_MS = 16_000;
+const NATIVE_WARM_TIMEOUT_MS = 9_000;
 const FAILED_COOLDOWN_MS = 120_000;
 type State = 'none' | 'loading' | 'ready' | 'failed';
 type Entry = { unitId: string; state: Exclude<State, 'none'>; startedAt: number;
@@ -71,7 +72,7 @@ export function takeBuklodDashboardAdPreload(id: string, unitId: string): Native
 }
 function preload(target: Target, source: string) {
   prune();
-  if (!target.unitId || pool.has(target.placementId) || owners.has(target.placementId)) return;
+  if (!target.unitId || preferBannerAfterNativeFailures(target.placementId) || pool.has(target.placementId) || owners.has(target.placementId)) return;
   if (getBuklodPassiveAdRequestWaitMs(target.placementId, target.placementId) > 0) return;
   if ([...pool.values()].filter(e => e.state !== 'failed').length >= MAX_WARM_CREATIVES) return;
   if (isBuklodAdRouteSensitive(source) ||
@@ -85,6 +86,7 @@ function preload(target: Target, source: string) {
   e.timeout = setTimeout(() => {
     if (pool.get(target.placementId) !== e || e.state !== 'loading') return;
     e.state = 'failed';
+    noteNativeRequestFailed(target.placementId);
     recordBuklodAdEvent(target.diagnostic, 'ad_failed', new Error('NATIVE_AD_LOAD_TIMEOUT'), metadata);
     notify(target.placementId);
   }, NATIVE_WARM_TIMEOUT_MS);
@@ -93,6 +95,7 @@ function preload(target: Target, source: string) {
       if (pool.get(target.placementId) !== e || e.state !== 'loading') { ad.destroy(); return; }
       if (e.timeout) clearTimeout(e.timeout);
       e.timeout = undefined; e.ad = ad; e.state = 'ready';
+      noteNativeRequestSucceeded(target.placementId);
       recordBuklodAdEvent(target.diagnostic, 'ad_loaded', undefined, metadata);
       notify(target.placementId);
     })
@@ -100,6 +103,7 @@ function preload(target: Target, source: string) {
       if (pool.get(target.placementId) !== e || e.state !== 'loading') return;
       if (e.timeout) clearTimeout(e.timeout);
       e.timeout = undefined; e.state = 'failed';
+      noteNativeRequestFailed(target.placementId);
       recordBuklodAdEvent(target.diagnostic, 'ad_failed', error, metadata);
       notify(target.placementId);
     });
