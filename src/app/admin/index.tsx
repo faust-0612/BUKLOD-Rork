@@ -474,6 +474,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="account-plus-outline"
+                title="Bagong Members · Registration Inbox"
+                subtitle="New registration alerts and complete, protected member details"
+                path="/admin/new-users"
+              />
+
+              <AdminRow
                 icon="office-building-cog-outline"
                 title="Org / Cluster Control Center"
                 subtitle="Organizations, Clusters, grants, suspension and audit"
