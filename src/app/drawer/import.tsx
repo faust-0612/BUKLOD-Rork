@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { getGenesisNativeFoundation } from '@/features/season2/genesis/genesisNativeFoundation';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +21,8 @@ import {
 } from '@/lib/buklodImagePickerAccess';
 import {
   persistSmartDrawerAsset,
+  deleteSmartDrawerAsset,
+  isSupportedSmartDrawerImport,
 } from '@/lib/smartDrawer/assets';
 import {
   commitSmartDrawerItem,
@@ -40,6 +43,7 @@ export default function SmartDrawerImport() {
   const [items, setItems] = useState<Picked[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const fileProviderAvailable = getGenesisNativeFoundation().documentPicker;
 
   const choose = async () => {
     setNotice('');
@@ -76,6 +80,33 @@ export default function SmartDrawerImport() {
     );
   };
 
+  /** Explicit Android SAF/file-provider pick: no OAuth or automatic cloud synchronization. */
+  const chooseFiles = async () => {
+    if (busy || !fileProviderAvailable) return;
+    setNotice('');
+    try {
+      // Lazy import prevents old staging runtimes from loading an unverified native bridge.
+      const DocumentPicker = await import('expo-document-picker');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const accepted = result.assets.slice(0, 10)
+        .filter(file => isSupportedSmartDrawerImport(file.mimeType, file.name))
+        .filter(file => !file.size || file.size <= 15 * 1024 * 1024);
+      setItems(accepted.map(file => ({
+        uri: file.uri, fileName: file.name, mimeType: file.mimeType,
+      })));
+      setNotice(accepted.length
+        ? 'Selected files will be saved privately on this device. No cloud sync.'
+        : 'Select a PDF/image under 15 MB.');
+    } catch {
+      setNotice('File provider is unavailable. Saved Drawer items are unchanged.');
+    }
+  };
+
   const save = async () => {
     if (!user?.id || !items.length || busy) return;
     setBusy(true);
@@ -95,25 +126,29 @@ export default function SmartDrawerImport() {
           originalName: picked.fileName,
         });
 
-        await commitSmartDrawerItem(
-          user.id,
-          {
-            title:
-              picked.fileName?.replace(/\.[^.]+$/, '') ||
-              'Imported Image',
-            body: '',
-            extractedText: '',
-            type: 'DOCUMENT',
-            assets: [asset],
-            status: 'ACTIVE',
-            syncState: 'LOCAL_ONLY',
-          },
-        );
-        saved += 1;
+        try {
+          await commitSmartDrawerItem(
+            user.id,
+            {
+              title: picked.fileName?.replace(/\.[^.]+$/, '') || 'Imported File',
+              body: '',
+              extractedText: '',
+              type: 'DOCUMENT',
+              assets: [asset],
+              status: 'ACTIVE',
+              syncState: 'LOCAL_ONLY',
+            },
+          );
+          saved += 1;
+        } catch (error) {
+          // The original provider file is untouched. Delete only our orphaned copy.
+          await deleteSmartDrawerAsset(asset);
+          throw error;
+        }
       }
 
       setNotice(
-        `${saved} item${saved === 1 ? '' : 's'} saved. OCR or AI is never required to preserve the original image.`,
+        `${saved} item${saved === 1 ? '' : 's'} saved. OCR or cloud sync is not required; files remain local.`,
       );
 
       setTimeout(() => {
@@ -152,10 +187,10 @@ export default function SmartDrawerImport() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>
-            Import from Gallery
+            Import Photos or Files
           </Text>
           <Text style={styles.subtitle}>
-            Select one or multiple images.
+            Use Gallery or your device file provider (Drive when supported).
           </Text>
         </View>
       </View>
@@ -177,6 +212,12 @@ export default function SmartDrawerImport() {
           </Text>
         </Pressable>
 
+        {fileProviderAvailable ? <Pressable onPress={() => void chooseFiles()} disabled={busy}
+          accessibilityRole="button" accessibilityLabel="Choose PDF or images from device files"
+          style={[styles.pickButton, { marginTop: 8 }]}>
+          <MaterialCommunityIcons name="file-document-outline" size={22} color="#0A6EBD" />
+          <Text style={styles.pickText}>Choose Files / Drive Provider</Text>
+        </Pressable> : null}
         {items.length ? (
           <View style={styles.grid}>
             {items.map((item, index) => (
@@ -184,10 +225,14 @@ export default function SmartDrawerImport() {
                 key={`${item.uri}:${index}`}
                 style={styles.thumbWrap}
               >
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.thumb}
-                />
+                {item.mimeType === 'application/pdf' || /\.pdf$/i.test(item.fileName ?? '')
+                  ? <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center' }]}>
+                      <MaterialCommunityIcons name="file-pdf-box" size={36} color="#AE4848" />
+                      <Text numberOfLines={2} style={{ color: '#294D6B', fontSize: 10 }}>
+                        {item.fileName || 'PDF'}
+                      </Text>
+                    </View>
+                  : <Image source={{ uri: item.uri }} style={styles.thumb} />}
                 <View style={styles.selected}>
                   <MaterialCommunityIcons
                     name="check"
@@ -206,7 +251,7 @@ export default function SmartDrawerImport() {
               color="#87A3B9"
             />
             <Text style={styles.emptyTitle}>
-              No images selected
+              No files selected
             </Text>
             <Text style={styles.emptyText}>
               Screenshots, receipts, appointment cards and document photos can all be saved.

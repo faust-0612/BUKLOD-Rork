@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-genesis-native-drawer-foundation-20261120.json",
+  "objective": "Safely integrate native Android document-provider local import into the already embedded private Smart Drawer and add gated cosmetic Genesis haptic feedback, without changing production.",
+  "baseRef": "cea937b429e926275f70edae7977f6d7c2cdff2b",
+  "productionBaselineEvidence": "Native Reality Gate parent advanced to cea937b429e926275f70edae7977f6d7c2cdff2b with retained scope/CI/embargo tests. Exact production APK/runtime proof remains unavailable; production unchanged.",
+  "chosenApproach": "Extend existing Drawer rather than merge stale PR195; use declared document-picker/SQLite/sharing/haptics and exact preview runtime guard.",
+  "selectionRationale": "User-initiated Android file-provider import works without unreviewed Drive OAuth/cloud sync or new native dependency. Preview haptics cannot affect production.",
+  "alternativeApproaches": [
+    "Overwrite current Wall/Drawer with unmerged September Smart Drawer source (rejected)",
+    "Enable old native-lab OAuth/GIF/Media3 without credentials and Android binary tests (rejected)"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-genesis-native-drawer-foundation-20261120.json",
+    "src/lib/smartDrawer/assets.ts",
+    "src/app/drawer/import.tsx",
+    "src/app/drawer/item/[id].tsx",
+    "src/features/season2/genesis/genesisNativeFoundation.ts",
+    "src/features/season2/genesis/genesisNativeFeedback.ts",
+    "src/app/drawer/quick-note.tsx",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "tests/season2-genesis-native-drawer-20261120.test.mjs",
+    "docs/BUKLOD_GENESIS_NATIVE_DRAWER_FOUNDATION_20261120.md"
+  ],
+  "regressionTests": [
+    "tests/season2-genesis-native-drawer-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Gated Genesis Kingdom haptics and private Drawer import",
+      "preservedBehaviors": [
+        "Production preview disabled",
+        "First-view AdMob and instant navigation unchanged",
+        "No backend grants or economy changes"
+      ],
+      "tests": [
+        "tests/season2-genesis-native-drawer-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "native-runtime",
+    "private-local-drawer-import",
+    "Android-haptics",
+    "media-attachment",
+    "ad-navigation-regression"
+  ],
+  "preserveBehaviors": [
+    "No production/staging/RC OTA or new APK build",
+    "No new native dependencies, SDK migration, permissions, OAuth, Supabase or AdMob logic",
+    "Keep user-isolated SQLite and offline-first Drawer behavior",
+    "Preserve Season2 Dec6 embargo and approved asset requirement"
+  ],
+  "acceptanceChecks": [
+    "Native document picker accepts only local PDF/image and copies to per-user storage",
+    "15MB file size rejection where source size is known",
+    "Saved PDF appears as PDF not broken image and can be manually shared",
+    "Haptics suppressed outside Genesis Android preview and on Reduce Motion",
+    "Signed Android APK + real device, ad/nav and offline testing still required"
+  ],
+  "releaseMode": "DEV_ONLY",
+  "releaseStatus": "SOURCE_QA_PENDING_NO_APK_NO_OTA"
+}

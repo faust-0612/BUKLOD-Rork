@@ -22,6 +22,7 @@ import {
   commitSmartDrawerItem,
 } from '@/lib/smartDrawer/service';
 import { useAuth } from '@/providers/AuthProvider';
+import { pulseGenesisTouch } from '@/features/season2/genesis/genesisNativeFeedback';
 
 export default function SmartDrawerQuickNote() {
   const { user } = useAuth();
@@ -57,6 +58,7 @@ export default function SmartDrawerQuickNote() {
         },
       );
 
+      void pulseGenesisTouch('success');
       if (result.reminderWarning) {
         setNotice(
           `Saved to Drawer. ${result.reminderWarning}`,
