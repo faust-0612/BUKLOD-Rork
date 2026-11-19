@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Text, TextInput, View } from 'react-native';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { supabase } from '@/lib/supabase';
 
@@ -164,7 +164,6 @@ export default function AdminDormancyReview() {
                 <Button
                   title={busy === item.id ? 'UPDATING...' : item.admin_hold ? 'RELEASE ADMIN HOLD' : 'HOLD — DO NOT AUTO DELETE'}
                   onPress={() => void changeHold(item, !item.admin_hold)}
-                  disabled={!!busy}
                 />
               </View>
             </Card>
