@@ -70,8 +70,12 @@ grant execute on function private.bsoc_ai_emit_member_report_v1(uuid,text,text,t
 create or replace function private.bsoc_ai_enqueue_new_case_v1() returns trigger
 language plpgsql security definer set search_path='' as $fn$
 begin
-  insert into public.bsoc_ai_case_jobs(case_id,state)
-    values(new.id,'PENDING') on conflict(case_id) do nothing;
+  begin
+    insert into public.bsoc_ai_case_jobs(case_id,state)
+      values(new.id,'PENDING') on conflict(case_id) do nothing;
+  exception when others then
+    raise warning 'BSOC intake queue deferred for case %',new.id;
+  end;
   -- Member submissions must succeed even if notifications or push dispatch fail.
   -- Keep the durable queue entry; the worker retries reporting later.
   begin
@@ -93,11 +97,15 @@ language plpgsql security definer set search_path='' as $fn$
 begin
   if old.status in ('resolved'::public.feedback_status,'closed'::public.feedback_status)
      and new.status='in_progress'::public.feedback_status then
-    insert into public.bsoc_ai_case_jobs(case_id,state,attempts,leased_until,
-                                        next_attempt_at,error_code,safe_analysis,issue_url,updated_at)
-      values(new.id,'PENDING',0,null,now(),null,null,null,now())
-      on conflict(case_id) do update set state='PENDING',attempts=0,leased_until=null,
-        next_attempt_at=now(),error_code=null,safe_analysis=null,issue_url=null,updated_at=now();
+    begin
+      insert into public.bsoc_ai_case_jobs(case_id,state,attempts,leased_until,
+                                          next_attempt_at,error_code,safe_analysis,issue_url,updated_at)
+        values(new.id,'PENDING',0,null,now(),null,null,null,now())
+        on conflict(case_id) do update set state='PENDING',attempts=0,leased_until=null,
+          next_attempt_at=now(),error_code=null,safe_analysis=null,issue_url=null,updated_at=now();
+    exception when others then
+      raise warning 'BSOC reopened queue deferred for case %',new.id;
+    end;
     begin
       perform private.bsoc_ai_emit_member_report_v1(new.id,'REOPENED',
         'reopened-'||to_char(new.updated_at at time zone 'UTC','YYYYMMDDHH24MISSUS'),
