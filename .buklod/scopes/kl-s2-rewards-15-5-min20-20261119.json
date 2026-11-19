@@ -119,5 +119,10 @@
   "s2EffectiveAtManila": "2026-12-06T00:00:00+08:00",
   "stagingServerVerified": false,
   "productionChange": false,
-  "stagingBlockedReason": "Connected Supabase projects do not expose a separately identified BUKLOD MAIN staging backend; do not execute SQL on production or unrelated projects."
+  "stagingBlockedReason": "Connected Supabase projects do not expose a separately identified BUKLOD MAIN staging backend; do not execute SQL on production or unrelated projects.",
+  "knownBlockers": [
+    "BUKLOD MAIN isolated staging Supabase project is not accessible among connected Supabase projects; no migration execution or real ledger/RLS/quiz concurrency validation performed.",
+    "Existing public.kl_read_episode_v1 database body is not in the inspected source: legacy clients with pre-existing sessions may still fetch ahead. Require the authoritative read RPC sequence gate and prove old-client bypass blocked before Season 2 activation.",
+    "AdMob live fill/format and Android device navigation have not been verified. Release governance and production embargo stay active."
+  ]
 }
