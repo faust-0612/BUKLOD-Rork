@@ -16,8 +16,10 @@ import {
 } from '@expo/vector-icons';
 
 import {
+  BUKLOD_PALETTE_PRESETS,
   type BuklodThemePreferenceId,
 } from '@/lib/buklodTheme';
+import Svg, { Path } from 'react-native-svg';
 import {
   useBuklodTheme,
 } from '@/providers/BuklodThemeProvider';
@@ -28,7 +30,7 @@ function createSelectorStyles(
 ) {
   return StyleSheet.create({
     row: {
-      minHeight: 48,
+      minHeight: 62,
       width: '48%',
       flexGrow: 1,
       paddingHorizontal: 9,
@@ -46,10 +48,11 @@ function createSelectorStyles(
       backgroundColor: theme.accentSoft,
     },
     swatch: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      borderWidth: 2,
+      width: 54,
+      height: 42,
+      borderRadius: 9,
+      overflow: 'hidden',
+      borderWidth: 1,
       borderColor: theme.border,
     },
     copy: {
@@ -175,12 +178,15 @@ export function BuklodGlobalThemeSelectorModal({
             {' Messages can still use its own override when set.'}
           </Text>
 
-          <ScrollView style={{ maxHeight: Math.max(180, Math.min(300, viewportHeight * 0.42)) }}
+          <ScrollView style={{ maxHeight: Math.max(180, Math.min(420, viewportHeight * 0.54)) }}
             nestedScrollEnabled keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, paddingBottom: 8 }}>
           {options.map(option => {
             const active =
               option.id === preference;
+            const preview = option.id === 'system'
+              ? null
+              : BUKLOD_PALETTE_PRESETS[option.id].roles;
 
             return (
               <Pressable
@@ -197,11 +203,34 @@ export function BuklodGlobalThemeSelectorModal({
                   style={[
                     styles.swatch,
                     {
-                      backgroundColor:
-                        option.swatch,
+                      backgroundColor: preview?.canvas ?? '#EAF0F1',
                     },
                   ]}
-                />
+                >
+                  <View style={{ height: 14, backgroundColor: preview?.brandHeaderSurface ?? '#697784' }} />
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 21,
+                      left: 8,
+                      width: 32,
+                      height: 14,
+                      borderRadius: 4,
+                      backgroundColor: preview?.surface ?? '#FFFFFF',
+                    }}
+                  />
+                  <Svg
+                    width="54"
+                    height="42"
+                    viewBox="0 0 54 42"
+                    style={{ position: 'absolute', top: 0, left: 0 }}
+                    pointerEvents="none"
+                    accessibilityElementsHidden
+                  >
+                    <Path d="M-12 31 Q12 5 31 22 T69 10" stroke={preview?.brandLineAccent ?? '#A6CCD5'} strokeWidth="1.3" opacity="0.75" fill="none" />
+                    <Path d="M-8 39 Q17 13 38 31 T67 19" stroke={preview?.brandLineAccent ?? '#A6CCD5'} strokeWidth="0.9" opacity="0.55" fill="none" />
+                  </Svg>
+                </View>
                 <View style={styles.copy}>
                   <Text style={styles.label}>
                     {option.label}
