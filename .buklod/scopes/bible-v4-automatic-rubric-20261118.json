@@ -1,0 +1,104 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/bible-v4-automatic-rubric-20261118.json",
+  "objective": "Correct Filipino Bible Quiz enumeration equivalences and fully retire the human essay-approval queue: all Bible Quiz answers receive instant server-only rubric grading, feedback and limited daily BP; previously pending essays are finalized and users notified without duplicating credits.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: On 2026-11-18, the connected Supabase project yhanxndaqbmuzbdqlblu was read directly: current Bible Quiz V4 grader still used exact enum strings and manual essay pending_review; nine pending attempts and no auto-rubric helper. Rollback-only migration rehearsal confirmed zero pending inside the transaction and no persisted change after rollback. GitHub main d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 was independently read as the repository comparison baseline ONLY. It has NOT been established as the deployed Android/Web/OTA artifact; staging and production publication remain held until independent release evidence. Addendum 2026-11-19: SQL migration 20261119032356 confirmed live on shared BUKLOD Main backend and screenshot semantic score tested 2/2. This is NOT React Native OTA publication or a Season 2 production release.",
+  "chosenApproach": "Only additive question-specific rubric metadata and private SQL scorer; preserve V4 security-definer owner-scoped RPC and idempotent finalize/points ledger. Retire authenticated manual grading RPC, update learner/admin screens, regrade verified historical Nehemiah answers, auto-finalize pending essays and deliver optional result notifications. No unrelated runtime, finance, AdMob or navigation changes. Acts 15:28-29 receives question-specific guarded positive semantic equivalents only; no fuzzy global grading.",
+  "allowedPaths": [
+    ".buklod/scopes/bible-v4-automatic-rubric-20261118.json",
+    "supabase/migrations/20261118002500_buklod_bible_v4_enumeration_equivalence_fairness.sql",
+    "supabase/migrations/20261118002600_buklod_bible_v4_verified_historical_regrade.sql",
+    "supabase/migrations/20261118002700_buklod_bible_v4_automatic_essay_rubrics.sql",
+    "supabase/migrations/20261118002800_buklod_bible_v4_finalize_pending_essays.sql",
+    "supabase/tests/buklod_bible_v4_enumeration_equivalence_20261118.sql",
+    "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql",
+    "tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs",
+    "tests/buklod-bible-v4-historical-regrade-20261118.test.mjs",
+    "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
+    "src/components/bible/BuklodBibleQuizV4.tsx",
+    "src/app/admin/bible-v4-events.tsx",
+    "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
+    "supabase/migrations/20261118002900_buklod_bible_v4_essay_antifarming_gate.sql",
+    "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql",
+    "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs",
+    "supabase/migrations/20261119032356_buklod_bible_v4_acts15_semantic_fairness_20261119.sql",
+    "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql",
+    "tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs"
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_bible_v4_enumeration_equivalence_20261118.sql",
+    "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql",
+    "tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs",
+    "tests/buklod-bible-v4-historical-regrade-20261118.test.mjs",
+    "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
+    "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
+    "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql",
+    "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs",
+    "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql",
+    "tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "The Bible Quiz learner and admin screens replace delayed human approvals with transparent instant rubric feedback without touching shared navigation or AdMob.",
+      "preservedBehaviors": [
+        "Keep fast nonblocking quiz load, offline saved drafts, ad opportunity lifecycle and existing R3 fallback."
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
+        "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "V4 quiz essay submissions and historical pending attempts move to server-authoritative automatic criteria instead of admin manual scores.",
+      "preservedBehaviors": [
+        "Preserve frozen questions, protected attempts, per-day limits, score/rubric transparency and classroom Quiz dedicated project isolation."
+      ],
+      "tests": [
+        "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
+        "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Private essay scoring, restricted RPC privileges, historical correction, and owner notifications modify protected database grading and rewards.",
+      "preservedBehaviors": [
+        "All authorized users remain scoped to their own quiz attempts, private answer keys stay inaccessible, historical BP ledger remains idempotent and QMP untouched."
+      ],
+      "tests": [
+        "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql",
+        "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql",
+        "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql",
+        "tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Rollback-only SQL rehearsal with migrations 025+026+027+028 must result in zero pending essays and then zero persisted changes after rollback.",
+    "Regression SQL validates correct Filipino enumeration equivalents, instant 0/1/2 rubric logic, human review RPC denied to authenticated, and all pending essays grade without errors.",
+    "Run focused Node regression and TypeScript/Android source checks; verify staged RC before client OTA, preserving mandatory AdMob and tab-performance gates.",
+    "No production claim until exact migrations, audit receipt, staged client build and authenticated user review/notification path are verified.",
+    "Read-only live antifarming tests reject keywords/repetition, preserve all nine legitimate finalized essays, and verify private scorer permissions.",
+    "Live 20261119032356: exact Acts 15 screenshot scores 2/2, all saved correct answers reconciled, original answers preserved; 4 uniquely sourced ledgers total 14 BP, private helper denied to clients; repeat settlement must award nothing."
+  ],
+  "selectionRationale": "A small private, deterministic rubric is fast, auditable, low-cost and user-explainable for the three reviewed essay questions; no external model credentials, network or unpredictable grader availability. Backfill is transactional, BP source-keyed, and preserves original answers.",
+  "alternativeApproaches": [
+    "Leave essays pending for System Admin: rejected because users receive neither final score nor points promptly, contrary to the no-human-review policy.",
+    "Remote LLM grading on every submission: rejected for cost, external data transfer, variable latency, potentially inconsistent scoring, and lack of configured secure grading infrastructure.",
+    "Remove essays entirely: rejected because the Bible Quiz hard tier should retain reasoning rather than only recognition questions."
+  ],
+  "riskAreas": [
+    "classroom-quiz",
+    "backend-security",
+    "app-runtime"
+  ],
+  "preserveBehaviors": [
+    "One Manila-day quiz attempt per user; server-only marks, strict owner isolation, private answers and essay rubrics, and source-key anti-duplicate reward logic.",
+    "Existing daily BP caps, QMP and finance isolation, and ledger triggers are unchanged.",
+    "No ad serving, prefetch, consent, dashboard navigation, native modules, or package/runtime/channel changes.",
+    "Historical answers are preserved and previously completed essays are not rescored; only corroborated enum corrections and pending essay completions are changed.",
+    "Reject repeated, keyword-only essay responses before granting BP, without retroactively deleting legitimate completed rewards."
+  ]
+}
