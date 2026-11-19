@@ -1,1 +1,11 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- Godot uses a separate process so Kingdom graphics do not destabilize chat/PTT. -->
+    <activity
+      android:name="expo.modules.buklodgenesisime.GodotGenesisActivity"
+      android:exported="false"
+      android:screenOrientation="landscape"
+      android:process=":genesis3d"
+      android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"/>
+  </application>
+</manifest>

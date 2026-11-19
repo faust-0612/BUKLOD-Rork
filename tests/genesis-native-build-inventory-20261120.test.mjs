@@ -15,7 +15,7 @@ test('all reviewed Genesis and held native capabilities are individually account
  assert.deepEqual(rows.map(x=>x.id),nativeIds);
  assert.equal(new Set(rows.map(x=>x.id)).size,rows.length);
  for(const row of rows){
-   assert.match(row.status,/^(source-implemented|native-source-uncompiled|dependency-declared|existing-source|held-no-bytes|held-no-implementation|held-credentials|queued-separate)$/);
+   assert.match(row.status,/^(source-implemented|native-source-uncompiled|dependency-declared|existing-source|held-no-bytes|native-source-uncompiled|held-no-implementation|held-credentials|queued-separate)$/);
    assert.ok(row.origin && row.description && row.remaining,row.id+' missing evidence');
  }
 });
@@ -43,7 +43,7 @@ test('the reviewed foundations and explicit release-risk gates cannot be silentl
  ])assert.ok(existsSync(new URL('../'+path,import.meta.url)),path+' omitted');
  const approved=JSON.parse(read('assets/season2/genesis/sources.json'));
  assert.equal(approved.releaseStatus,'SOURCE_DISCOVERY_ONLY_NO_BINARY_IMPORT');
- assert.ok(inventory.nativeFeatures.some(x=>x.id==='godot-android-3d'&&x.status==='held-no-implementation'));
+ assert.ok(inventory.nativeFeatures.some(x=>x.id==='godot-android-3d'&&x.status==='native-source-uncompiled'));
  assert.ok(inventory.nativeFeatures.some(x=>x.id==='drive-oauth-cloud-sync'&&x.status==='held-credentials'));
  assert.ok(inventory.requiredChecks.some(x=>/AdMob/.test(x)));
 });

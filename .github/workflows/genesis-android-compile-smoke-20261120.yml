@@ -4,6 +4,7 @@ on:
     branches:
       - dev/genesis-season-wordmark-appwide-20261120
       - dev/genesis-silent-ota-native-integration-20261120
+      - dev/genesis-required-four-native-sdk-20261120
     paths:
       - .github/workflows/genesis-android-compile-smoke-20261120.yml
 permissions:
@@ -13,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   android-compile-only:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' || github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120') && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_NATIVE_COMPILE_SMOKE:') }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' || github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120' || github.ref == 'refs/heads/dev/genesis-required-four-native-sdk-20261120') && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_NATIVE_COMPILE_SMOKE:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 65
     env:
@@ -72,10 +73,16 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
+          # The locked Skia package fetches its native .a files via an install script;
+          # --ignore-scripts intentionally skips it. Restore just this audited installer.
+          test -f node_modules/@shopify/react-native-skia/scripts/install-skia.mjs
+          node node_modules/@shopify/react-native-skia/scripts/install-skia.mjs
+          test -s node_modules/@shopify/react-native-skia/libs/android/arm64-v8a/libskia.a
           npm run genesis:theme:gate
           node --test tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-android-compile-smoke-release-20261120.test.mjs
           node --experimental-strip-types --test tests/buklod-silent-ota-policy.test.mjs tests/buklod-mandatory-update-runtime.test.mjs tests/ota-restart-safe-area.test.cjs
           node --test tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs
+          node --test tests/genesis-four-native-sdk-first-apk-20261120.test.mjs
           npx tsc --noEmit
           npx expo export --platform android --output-dir /tmp/buklod-genesis-offline-bundle
       - name: Generate Android staging native project and compile Kotlin+Gradle

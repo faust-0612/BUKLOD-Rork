@@ -188,6 +188,8 @@ module.exports = ({ config }) => {
 
       './plugins/withBuklodWebRTC.js',
       './plugins/withBuklodPttHardwareFoundation.js',
+      // First Genesis native APK: bundle real Godot world pack only in isolated preview.
+      ...(genesisNativePreview ? ['./plugins/withBuklodGenesisGodot.js'] : []),
 
 
       'expo-router',

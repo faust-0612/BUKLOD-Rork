@@ -1,0 +1,98 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-required-four-native-sdk-20261120.json",
+  "objective": "First Genesis staging Android APK MUST include real Godot Android AAR and bundled procedural Kingdom scene, Media3 Transformer, Play Core in-app update, and Google Drive Android OAuth SDK, while keeping production/old staging intact.",
+  "baseRef": "bd4a601ac619b077f6544c425821e8c08542625e",
+  "productionBaselineEvidence": "main 551e54602addd6f7bbe7bcdddd1589d35424c964 (checked Nov 20 earlier); Genesis native source bd4a601ac619b077f6544c425821e8c08542625e, signed Genesis APK does not exist. This branch edits no production/main/Backend, and uses separately gated staging only.",
+  "chosenApproach": "One isolated combined Expo native Kotlin bridge in the existing autolinked IME Android module; Maven pinned Godot, Media3, Play Core and Play Services Auth, 3-file original Godot ZIP bundled by preview-only config plugin, native launch button; source-only compile and negative release tests.",
+  "selectionRationale": "All four native binary APIs must be compiled in FIRST signed Genesis staging runtime; future compatible JS and media can use these SDKs via OTA, avoiding repeat APK. No placeholder native SDK claims. Require real signed artifact and device proof before release.",
+  "alternativeApproaches": [
+    "Ship missing SDKs later via OTA (impossible for native ABI)",
+    "Use production Supabase to bypass isolated stage credentials (rejected)",
+    "Declare native dependencies without a compiled bridge or Godot project pack (rejected)",
+    "Merge outdated native lab wholesale (rejected due ancestry and security regression risk)"
+  ],
+  "preserveBehaviors": [
+    "First-view AdMob and tab navigation preserved by untouched providers and feature gate",
+    "Existing BUKLOD main production runtime 1.3.2 unaffected",
+    "Older staging-user OTA and backend/finance/rewards unchanged",
+    "Drive OAuth tokens short lived and scoped; account binding must be verified before any Drive sync",
+    "Codec errors retain original uploaded video and prevent runaway concurrent transcoding",
+    "Play immediate update only if available to exact Google Play distribution; never lock sideloaded staging APK",
+    "Godot rendered in separate Android process with no points, store, finances, or telemetry"
+  ],
+  "riskAreas": [
+    "native-ABI",
+    "Media3 device codecs and thermal",
+    "Godot memory footprint and crash isolation",
+    "Play app provenance",
+    "Google OAuth cross-account isolation",
+    "AdMob and navigation regression",
+    "release identity"
+  ],
+  "allowedPaths": [
+    "modules/buklod-genesis-ime/android/build.gradle",
+    "modules/buklod-genesis-ime/expo-module.config.json",
+    "modules/buklod-genesis-ime/android/src/main/AndroidManifest.xml",
+    "modules/buklod-genesis-ime/android/src/main/java/expo/modules/buklodgenesisime/GodotGenesisActivity.java",
+    "modules/buklod-genesis-ime/android/src/main/java/expo/modules/buklodgenesisime/BuklodGenesisNativeFoundationModule.kt",
+    "scripts/genesis-native/godotZip.cjs",
+    "plugins/withBuklodGenesisGodot.js",
+    "godot/genesis-creation/project.godot",
+    "godot/genesis-creation/scenes/Main.tscn",
+    "godot/genesis-creation/scripts/world.gd",
+    "app.config.js",
+    "src/lib/genesisNativeFoundation.ts",
+    "release/genesis-native-build-inventory-20261120.json",
+    "tests/genesis-native-build-inventory-20261120.test.mjs",
+    "tests/genesis-staging-native-apk-release-20261120.test.mjs",
+    "tests/genesis-android-compile-smoke-release-20261120.test.mjs",
+    ".github/workflows/genesis-android-compile-smoke-20261120.yml",
+    ".github/workflows/genesis-season2-staging-release-apk-20261120.yml",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "tests/genesis-four-native-sdk-first-apk-20261120.test.mjs",
+    ".buklod/scopes/genesis-required-four-native-sdk-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-four-native-sdk-first-apk-20261120.test.mjs",
+    "tests/genesis-native-build-inventory-20261120.test.mjs",
+    "tests/genesis-staging-native-apk-release-20261120.test.mjs",
+    "tests/genesis-android-compile-smoke-release-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add four real Android native SDK dependencies and guarded bridges to first Genesis runtime, preserving old production behavior",
+      "preservedBehaviors": [
+        "All Native SDK calls are gated to isolated Genesis staging preview; no production backend, accounts or point economy modified"
+      ],
+      "tests": [
+        "tests/genesis-four-native-sdk-first-apk-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Strengthen Genesis-only APK source and Gradle compile gates, repair verified Skia binary install blocker without altering production workflow",
+      "preservedBehaviors": [
+        "No OTA or signed APK dispatched without isolated credential and exact Android native compilation/device proof"
+      ],
+      "tests": [
+        "tests/genesis-staging-native-apk-release-20261120.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Source & TypeScript checks and protected-feature locks",
+    "Pinned four Android SDK AARs resolve and Kotlin/Gradle debug APK compilation passes for signed Genesis runtime",
+    "Skia native libraries are installed from audited locked dependency before CMake",
+    "Godot ZIP contains original real project and Activity launches on Infinix without chat/PTT regression",
+    "Media3 H.264 fallback, 400MB guard, cancellation, original video preservation and bounded runtime verified on phone",
+    "Play immediate update only once replacement is available to exact Play package/version",
+    "Drive OAuth Android signing SHA, consent, user subject-to-BUKLOD account matching, revocation, offline/denied paths verified",
+    "First-view AdMob/instant tab navigation regression, code signing SHA256 and signed runtime/channel/package verified",
+    "No production activation, backend write, rewards or cost commitment without separately authorized RC"
+  ],
+  "releaseTarget": "GENESIS_FIRST_NATIVE_STAGING_APK_ONLY",
+  "publicationStatus": "DEV_SOURCE_NOT_SIGNED_OR_COMPILED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

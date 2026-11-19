@@ -4,7 +4,8 @@
   ],
   "android": {
     "modules": [
-      "expo.modules.buklodgenesisime.BuklodGenesisImeModule"
+      "expo.modules.buklodgenesisime.BuklodGenesisImeModule",
+      "expo.modules.buklodgenesisime.BuklodGenesisNativeFoundationModule"
     ]
   }
 }
