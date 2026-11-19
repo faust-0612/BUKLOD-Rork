@@ -1,0 +1,59 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kl-mobile-release-controls-nonseason2-wave1-20261119.json",
+  "objective": "Forward the strictly non-Season2 KL mobile Release Now layout fix to guarded current-main production RC source; do not publish until staging and production AdMob/nav/runtime release gates pass.",
+  "baseRef": "release/nonseason2-wave1-source-20261119",
+  "productionBaselineEvidence": "Exact main baseline aa3aa734b15f6cc2a64fbbbed3dfdd7d4db9539c, stacked atop source-only PR #979 Wall Ad and verified Connect #976 changes. Changed code matches staging for KL and approved #933 source for reaction. No production OTA source marker or backend deployment.",
+  "chosenApproach": "Place Approve, Release Now/Release Status and Reject in their own flex-wrapped, short admin action row. Render release preflight and reject confirmation directly afterward, before the separate approved-chapter quiz buttons and long answer review. Preserve existing server-side release guards and two-click confirmation unchanged.",
+  "selectionRationale": "Approve appears and Release Now disappears specifically on approved chapters containing quiz buttons; original parent row is nowrap. Draft chapter without quiz shows the Release button.",
+  "riskAreas": [
+    "app-runtime",
+    "kl-editorial-release",
+    "mobile-layout",
+    "staging-production-isolation",
+    "story"
+  ],
+  "allowedPaths": [
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    ".buklod/scopes/kl-mobile-release-controls-nonseason2-wave1-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Repair KL admin actions overflowing the mobile chapter card while preserving server-side approval and publication security.",
+      "preservedBehaviors": [
+        "Only verified System Admin users can inspect or trigger chapter admin actions.",
+        "Every release still requires fresh server status, ready quiz, approval preflight, explicit confirmation, exact server episode ID and post-release verification.",
+        "No chapter, scene, question, points, rewards, or production release state changes occur from the layout fix."
+      ],
+      "tests": [
+        "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Existing valid KL reader, chapter accessibility, and manuscript previews remain unchanged.",
+    "Release Now does not automatically publish a chapter when displayed.",
+    "Season 2 remains completely isolated from production."
+  ],
+  "acceptanceChecks": [
+    "Approved chapter with quiz tools shows Approve, Release Now and Reject in a wrapping row on a narrow Android screen.",
+    "Release preflight appears directly under controls before quiz answer review.",
+    "Existing chapter release server guard and two-click confirmation are unchanged.",
+    "Run focused KL Node tests, TypeScript, Android export and staging release gate before publishing.",
+    "Staging OTA only; never send Season 2 changes to production before December 6, 2026.",
+    "Preserve current production native SDK, auth, payouts and Season 1 reward policies; no Season2 code/activation or EAS publication by this source commit."
+  ],
+  "releaseTarget": "NON-SEASON2 DEV RC SOURCE - HOLD OTA",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "alternativeApproaches": [
+    "Add flexWrap only to the original single row (rejected: 5-question controls still clutter and obscure release on narrow phones).",
+    "Always show the release button by skipping approval state or backend preflight (rejected: unauthorized or incomplete chapter could publish).",
+    "Add horizontal scrolling to the action row (rejected: the button would still be visually hidden and hard to discover)."
+  ]
+}
