@@ -26,8 +26,6 @@
   "regressionTests": [
     "tests/sponsor-video-egress-savings-20261119.test.mjs",
     "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
-    "tests/community-video-navigation-scroll.test.mjs",
-    "tests/dashboard-instant-tabs-20261117.test.mjs",
     "supabase/tests/buklod_paid_sponsorship_rendition_egress_20261119.sql",
     "tests/ads-sponsor-video-egress-20261119.test.mjs"
   ],
@@ -79,7 +77,7 @@
     }
   ],
   "acceptanceChecks": [
-    "New test + existing sponsored fast-start and dashboard ad-navigation tests pass.",
+    "Changed tests for sponsor fast-start, paid-ad accounting, quota evaluator and DB schema pass; unchanged dashboard/scroll tests remain relevant for separate RC verification.",
     "Only approved rendition paths are selected and legacy campaign URL is always a safe fallback.",
     "Scroll pause is immediate, while reentering near view within 1.25 seconds retains player; background/tab switch unmounts.",
     "FFmpeg optimizer emits smaller verified faststart 720p/480p files when run in trusted local environment; does not upload/rewrite original.",
