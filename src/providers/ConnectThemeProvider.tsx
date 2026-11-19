@@ -1,3 +1,4 @@
+import {canUserSelectTheme,GENESIS_GLOBAL_ROLES} from '@/features/season2/genesis/seasonThemeAuthority';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   createContext,
@@ -108,6 +109,7 @@ export function ConnectThemeProvider({
   children: React.ReactNode;
 }) {
   const colorScheme = useColorScheme();
+  const seasonLocked = !canUserSelectTheme();
   const { preference: globalPreference } =
     useBuklodTheme();
   const [
@@ -139,6 +141,7 @@ export function ConnectThemeProvider({
 
   const setMessagesPreference = useCallback(
     (next: MessagesThemePreferenceId) => {
+      if (seasonLocked) return;
       setMessagesPreferenceState(next);
 
       void AsyncStorage.setItem(
@@ -148,26 +151,42 @@ export function ConnectThemeProvider({
         /* session selection still applies */
       });
     },
-    []
+    [seasonLocked]
   );
 
   const resolved = useMemo(
-    () =>
-      resolveMessagesTheme(
-        messagesPreference,
-        globalPreference,
-        colorScheme
-      ),
-    [
-      messagesPreference,
-      globalPreference,
-      colorScheme,
-    ]
+    () => {
+      const base = resolveMessagesTheme(seasonLocked ? 'followGlobal' : messagesPreference, globalPreference, colorScheme);
+      if (!seasonLocked) return base;
+      // A seasonal social palette with no old green/white Messages override.
+      return {
+        ...base,
+        followingGlobal: true,
+        effectivePaletteId: 'nightPine' as const,
+        roles: {
+          ...base.roles, ...GENESIS_GLOBAL_ROLES,
+          bubbleSent: '#1C5268', bubbleReceived: '#1A294A',
+          textOnAccent: '#081625', textOnSentBubble: '#F8FAFF',
+          accentMuted: '#244B66', composerSurface: '#142440',
+          borderSubtle: '#354A6D', unreadBadgeText: '#081625',
+          reactionSurface: '#203450', reactionStamp: '#203450',
+          callControlSurface: '#1A3654', fabBg: '#65D8CC',
+          fabText: '#081625', fabIconBackdrop: 'rgba(2,8,25,.2)',
+          filterPillActive: '#1D4860', filterPillActiveText: '#FFE5B4',
+          tabActive: '#1D4860', sentIndicator: '#8EE0C8',
+          fileChipOwn: 'rgba(255,255,255,.12)', fileChipOther: '#243A57',
+          noteSurface: '#1A294A', attachPopover: '#142440',
+          pickerSheet: '#142440', pickerTabTrack: '#1A294A',
+          pickerTabActive: '#244B66',
+        },
+      };
+    },
+    [messagesPreference,globalPreference,colorScheme,seasonLocked]
   );
 
   const value = useMemo(
     () => ({
-      messagesPreference,
+      messagesPreference: seasonLocked ? 'followGlobal' as const : messagesPreference,
       effectivePaletteId:
         resolved.effectivePaletteId,
       followingGlobal:
@@ -175,10 +194,10 @@ export function ConnectThemeProvider({
       theme: resolved.roles,
       ready,
       setMessagesPreference,
-      options: MESSAGES_PREFERENCE_OPTIONS,
-      themeId: messagesPreference,
+      options: seasonLocked ? [] : MESSAGES_PREFERENCE_OPTIONS,
+      themeId: seasonLocked ? 'followGlobal' as const : messagesPreference,
       setThemeId: setMessagesPreference,
-      presets: MESSAGES_PREFERENCE_OPTIONS,
+      presets: seasonLocked ? [] : MESSAGES_PREFERENCE_OPTIONS,
     }),
     [
       messagesPreference,
@@ -187,6 +206,7 @@ export function ConnectThemeProvider({
       resolved.roles,
       ready,
       setMessagesPreference,
+      seasonLocked,
     ]
   );
 
