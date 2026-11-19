@@ -1022,6 +1022,39 @@ export default function KlReaderScreen() {
                         </Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
                       </View>
+                      {releaseTarget === episode.id ? (
+                        <View style={{ gap: 8 }}>
+                          <Text accessibilityRole="alert" style={styles.meta}>
+                            {adminLoading ? 'Checking latest chapter status…'
+                              : adminError ? `Server status unavailable: ${adminError}`
+                              : releaseBlockers.length
+                                ? `Release blocked: ${releaseBlockers.join(' ')}`
+                                : 'Ready for immediate public release. This cannot be undone automatically.'}
+                          </Text>
+                          <Pressable accessibilityRole="button"
+                            disabled={Boolean(adminBusyId) || !releaseReady}
+                            onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'release'); }}
+                            style={{ minHeight: 43, padding: 11, borderRadius: 9,
+                              backgroundColor: releaseReady ? '#28583f' : '#42505c', alignSelf: 'flex-start' }}>
+                            <Text style={{ color: releaseReady ? '#ffffff' : '#cdd5d6', fontWeight: '800' }}>Confirm Release Now</Text>
+                          </Pressable>
+                          <Pressable accessibilityRole="button" disabled={adminLoading}
+                            onPress={(event) => { event.stopPropagation(); void refreshAdminRows().catch(() => undefined); }}
+                            style={{ minHeight: 36, padding: 7, alignSelf: 'flex-start' }}>
+                            <Text style={{ color: '#f1d39b' }}>Refresh status</Text>
+                          </Pressable>
+                          <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); setReleaseTarget(null); }}>
+                            <Text style={{ color: '#fff' }}>Cancel</Text>
+                          </Pressable>
+                        </View>
+                      ) : null}
+                      {rejectTarget === episode.id ? (
+                        <View style={{ gap: 8 }}>
+                          <TextInput accessibilityLabel="Dahilan ng rejection" placeholder="Dahilan ng rejection (required)" placeholderTextColor="#999" value={rejectNotes} onChangeText={setRejectNotes} multiline style={{ color: '#fff', borderColor: '#aaa', borderWidth: 1, padding: 10, borderRadius: 8 }} />
+                          <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId) || !rejectNotes.trim()} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'reject', rejectNotes); }}><Text style={{ color: '#f1d39b' }}>Confirm Reject</Text></Pressable>
+                          <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); setRejectTarget(null); }}><Text style={{ color: '#fff' }}>Cancel</Text></Pressable>
+                        </View>
+                      ) : null}
                         {serverChapter?.status === 'approved' ? (
                           <View style={{ gap: 10 }}>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -1080,39 +1113,6 @@ export default function KlReaderScreen() {
                             ) : null}
                           </View>
                         ) : null}
-                      {releaseTarget === episode.id ? (
-                        <View style={{ gap: 8 }}>
-                          <Text accessibilityRole="alert" style={styles.meta}>
-                            {adminLoading ? 'Checking latest chapter status…'
-                              : adminError ? `Server status unavailable: ${adminError}`
-                              : releaseBlockers.length
-                                ? `Release blocked: ${releaseBlockers.join(' ')}`
-                                : 'Ready for immediate public release. This cannot be undone automatically.'}
-                          </Text>
-                          <Pressable accessibilityRole="button"
-                            disabled={Boolean(adminBusyId) || !releaseReady}
-                            onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'release'); }}
-                            style={{ minHeight: 43, padding: 11, borderRadius: 9,
-                              backgroundColor: releaseReady ? '#28583f' : '#42505c', alignSelf: 'flex-start' }}>
-                            <Text style={{ color: releaseReady ? '#ffffff' : '#cdd5d6', fontWeight: '800' }}>Confirm Release Now</Text>
-                          </Pressable>
-                          <Pressable accessibilityRole="button" disabled={adminLoading}
-                            onPress={(event) => { event.stopPropagation(); void refreshAdminRows().catch(() => undefined); }}
-                            style={{ minHeight: 36, padding: 7, alignSelf: 'flex-start' }}>
-                            <Text style={{ color: '#f1d39b' }}>Refresh status</Text>
-                          </Pressable>
-                          <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); setReleaseTarget(null); }}>
-                            <Text style={{ color: '#fff' }}>Cancel</Text>
-                          </Pressable>
-                        </View>
-                      ) : null}
-                      {rejectTarget === episode.id ? (
-                        <View style={{ gap: 8 }}>
-                          <TextInput accessibilityLabel="Dahilan ng rejection" placeholder="Dahilan ng rejection (required)" placeholderTextColor="#999" value={rejectNotes} onChangeText={setRejectNotes} multiline style={{ color: '#fff', borderColor: '#aaa', borderWidth: 1, padding: 10, borderRadius: 8 }} />
-                          <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId) || !rejectNotes.trim()} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'reject', rejectNotes); }}><Text style={{ color: '#f1d39b' }}>Confirm Reject</Text></Pressable>
-                          <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); setRejectTarget(null); }}><Text style={{ color: '#fff' }}>Cancel</Text></Pressable>
-                        </View>
-                      ) : null}
                     </View>
                   ) : null}
                 </View>
