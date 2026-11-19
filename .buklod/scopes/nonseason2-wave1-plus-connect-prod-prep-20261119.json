@@ -21,11 +21,13 @@
     "src/lib/connectChatWindow.ts",
     "tests/connect-latest-keyboard-follow-20261119.test.mjs",
     "tests/connect-compact-seen-all-rooms-20261119.test.mjs",
-    ".buklod/scopes/nonseason2-wave1-plus-connect-prod-prep-20261119.json"
+    ".buklod/scopes/nonseason2-wave1-plus-connect-prod-prep-20261119.json",
+    "tests/connect-admob-nav-isolation-20261119.test.mjs"
   ],
   "regressionTests": [
     "tests/connect-latest-keyboard-follow-20261119.test.mjs",
-    "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs",
+    "tests/connect-admob-nav-isolation-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -49,6 +51,17 @@
         "tests/connect-latest-keyboard-follow-20261119.test.mjs",
         "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
       ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Protected filename matcher catches the 'ad' ending of BuklodConnectThread although the Connect patches do not change AdMob or finance source. Retain full first-view ads and instant-navigation release gates instead of bypassing classification.",
+      "preservedBehaviors": [
+        "No AdMob SDK placement, controller, fill, consent, cooldown, impression, payout, QMP or points code is changed by this Connect-only preparation.",
+        "The production RC must pass the separate real ad/navigation regression gate and verify production build/runtime identity before release."
+      ],
+      "tests": [
+        "tests/connect-admob-nav-isolation-20261119.test.mjs"
+      ]
     }
   ],
   "acceptanceChecks": [
@@ -57,7 +70,8 @@
     "TypeScript and Android 1.3.2 compile QA, two focused Connect Node tests, full Connect text-photo-GIF/reaction/offline/Seen regression, dashboard/AdMob P0 and production release gates must pass.",
     "Verify actual staging-user served source/runtime identity and production remains unchanged before promotion.",
     "Require owner-approved release decision and separately verified exact live production fingerprint after OTA; no auto publish by this commit.",
-    "Never include locked Season 2 source/features/points/backend mutations before approved activation."
+    "Never include locked Season 2 source/features/points/backend mutations before approved activation.",
+    "The Connect filename false-positive in the ads-finance-points protected lock is explicitly declared and tested; actual AdMob/navigation gating cannot be bypassed."
   ],
   "knownBlockers": [
     "Source branch needs current main/production reconciliation because frozen Wave1 is behind latest main.",
