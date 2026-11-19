@@ -11,7 +11,7 @@ on:
       - modules/buklod-genesis-play-updates/**
       - modules/buklod-genesis-media3/**
       - tests/genesis-media3-native-foundation-20261120.test.mjs
-      - tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs
+      - tests/genesis-play-core-native-foundation-20261120.test.mjs
 permissions:
   contents: read
 concurrency:
@@ -83,7 +83,7 @@ jobs:
           npm run genesis:theme:gate
           node --test tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-android-compile-smoke-release-20261120.test.mjs
           node --experimental-strip-types --test tests/buklod-silent-ota-policy.test.mjs tests/buklod-mandatory-update-runtime.test.mjs tests/ota-restart-safe-area.test.cjs
-          node --test tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs tests/genesis-play-core-native-foundation-20261120.test.mjs
+          node --test tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs
           npx tsc --noEmit
           npx expo export --platform android --output-dir /tmp/buklod-genesis-offline-bundle
       - name: Generate Android staging native project and compile Kotlin+Gradle

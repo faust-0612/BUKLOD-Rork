@@ -6,6 +6,9 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('isolated Media3 Android transcoder has matched 1.11.1 native modules and Expo autolinking',()=>{
  const native=JSON.parse(read('modules/buklod-genesis-media3/expo-module.config.json'));
  assert.equal(native.android.modules[0],'expo.modules.buklodgenesismedia3.BuklodGenesisMedia3Module');
+ const workflow=read('.github/workflows/genesis-android-compile-smoke-20261120.yml');
+ assert.match(workflow,/^      - tests\/genesis-media3-native-foundation-20261120\.test\.mjs$/m);
+ assert.match(workflow,/node --test tests\/genesis-native-ime-gradle-compatibility-20261120\.test\.mjs tests\/genesis-play-core-native-foundation-20261120\.test\.mjs tests\/genesis-media3-native-foundation-20261120\.test\.mjs/);
  const gradle=read('modules/buklod-genesis-media3/android/build.gradle');
  for(const dep of ['media3-common','media3-effect','media3-transformer']){
    assert.ok(gradle.includes('androidx.media3:'+dep+':1.11.1'),dep+' mismatch');
