@@ -1,0 +1,43 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const kotlin=read('modules/buklod-genesis-ime/android/src/main/java/expo/modules/buklodgenesisime/BuklodGenesisImeModule.kt');
+const widget=read('modules/buklod-genesis-ime/KeyboardGifInput.tsx');
+const mention=read('src/components/BuklodMentionField.tsx');
+const composer=read('src/components/BuklodCommunityCommentComposer.tsx');
+const picker=read('src/lib/genesisDocumentMediaPicker.ts');
+const backup=read('src/lib/smartDrawer/portableBackup.ts');
+const settings=read('src/app/drawer/settings.tsx');
+test('Android GIF native receiver restricts provider content and never auto-sends',()=>{
+  assert.match(kotlin,/setContentMimeTypes\(outAttrs, arrayOf\("image\/gif"\)\)/);
+  assert.match(kotlin,/ViewCompat\.setOnReceiveContentListener/);
+  assert.match(kotlin,/uri\.scheme != "content"/);
+  assert.match(kotlin,/GIF87a/);
+  assert.match(kotlin,/GIF89a/);
+  assert.match(kotlin,/25L \* 1024 \* 1024/);
+  assert.doesNotMatch(kotlin,/GodotLabActivity|openGodotWorld|GoogleDrive/);
+  assert.match(widget,/requireNativeViewManager\('BuklodGenesisIme'\)/);
+  assert.match(composer,/onNativeGif=\{genesisAndroidPreview/);
+  assert.match(composer,/onMediaChange\(\{ kind: 'gif', ref: uri \}, uri\)/);
+  assert.match(mention,/getGenesisNativeFoundation\(\)\.cosmeticHaptics/);
+});
+test('document provider import is manual, typed, size bounded and gated by exact preview',()=>{
+  assert.match(picker,/DocumentPicker\.getDocumentAsync/);
+  assert.match(picker,/copyToCacheDirectory:true/);
+  assert.match(picker,/MAX_BYTES = 25 \* 1024 \* 1024/);
+  assert.match(picker,/getGenesisNativeFoundation\(\)\.cosmeticHaptics/);
+  assert.doesNotMatch(picker,/authorizeDrive|accessToken/);
+});
+test('encrypted manual backup validates account, size, checksum and does not use cloud credentials',()=>{
+  assert.match(backup,/Crypto\.aesEncryptAsync/);
+  assert.match(backup,/Crypto\.aesDecryptAsync/);
+  assert.match(backup,/sourceAccountId !== userId/);
+  assert.match(backup,/checksum !== envelope\.sha256/);
+  assert.match(backup,/MAX_ARCHIVE_BYTES = 20 \* 1024 \* 1024/);
+  assert.match(backup,/getSmartDrawerItem\(userId, row\.note\.id\)/);
+  assert.match(backup,/Sharing\.shareAsync/);
+  assert.match(settings,/Generate Recovery Key/);
+  assert.match(settings,/Restore Encrypted Backup/);
+  assert.doesNotMatch(backup,/accessToken|googleapis/);
+});

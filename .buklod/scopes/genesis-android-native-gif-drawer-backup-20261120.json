@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-android-native-gif-drawer-backup-20261120.json",
+  "objective": "Consolidate held Android native GIF input with Genesis preview and secure owner-initiated Smart Drawer AES-GCM portable backup without cloud tokens or production changes.",
+  "baseRef": "3844e4685cfed827d7f34e03f0d63fb72b1278b1",
+  "productionBaselineEvidence": "verified: exact latest Genesis staging DEV parent 3844e4685cfed827d7f34e03f0d63fb72b1278b1; production release runtime remains separate 1.3.2; no APK receipt.",
+  "chosenApproach": "Port proven Android IME core without Godot/Drive OAuth; enable only in exact non-production Genesis runtime; retain built-in Android document provider and private local Drawer; add encrypted manual backups.",
+  "selectionRationale": "Portable no-fee, no OAuth, no Play Services/Godot SDK; separate APK native ABI update required, do not override production.",
+  "alternativeApproaches": [
+    "Copy held Native QA package and Godot build wholesale (unsafe)",
+    "Activate full Google Drive OAuth without verified Android client SHA (unsafe)"
+  ],
+  "allowedPaths": [
+    "modules/buklod-genesis-ime/android/src/main/java/expo/modules/buklodgenesisime/BuklodGenesisImeModule.kt",
+    "modules/buklod-genesis-ime/KeyboardGifInput.tsx",
+    "modules/buklod-genesis-ime/expo-module.config.json",
+    "modules/buklod-genesis-ime/package.json",
+    "modules/buklod-genesis-ime/android/build.gradle",
+    "src/components/BuklodMentionField.tsx",
+    "src/lib/genesisDocumentMediaPicker.ts",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/lib/smartDrawer/portableBackup.ts",
+    "src/app/drawer/settings.tsx",
+    ".buklod/scopes/genesis-android-native-gif-drawer-backup-20261120.json",
+    "docs/BUKLOD_GENESIS_NATIVE_GIF_DRAWER_BACKUP_20261120.md",
+    "tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New Android IME module in isolated Genesis preview only",
+      "preservedBehaviors": [
+        "Production runtime remains 1.3.2",
+        "AdMob first-view/navigation must remain unchanged",
+        "No background GIF uploads or auto-share"
+      ],
+      "tests": [
+        "tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "native-android-module",
+    "comment-compose",
+    "user-private-drawer",
+    "cryptography",
+    "shared-audio-and-performance"
+  ],
+  "preserveBehaviors": [
+    "No production/RC/staging-user OTA/Play publish",
+    "No Google OAuth or automatic cloud sync",
+    "Season 2 remains embargoed until independent authorization",
+    "No Supabase, economy, RLS, ads or call changes"
+  ],
+  "acceptanceChecks": [
+    "Android GIF content:// URIs validate GIF header, cap 25MB and stage privately",
+    "Provider media import validates MIME, local file and size",
+    "Manual comment send; GIF never posts automatically",
+    "AES-GCM Drawer backup, account binding, idempotent restore and encrypted-only exports",
+    "Exact Android native compile plus on-device GIF, Drawer backup, first-view AdMob and tab latency still required"
+  ],
+  "releaseMode": "DEV_ONLY",
+  "releaseStatus": "SOURCE_QA_PENDING_NO_APK_NO_OTA"
+}

@@ -38,6 +38,8 @@ import {
 } from '@/lib/buklodSafeArea';
 import { colors } from '@/lib/theme';
 import { buklodComposerHeightLimits } from '@/lib/buklodAdaptiveInput';
+import { getGenesisNativeFoundation } from '@/features/season2/genesis/genesisNativeFoundation';
+import { pickGenesisCommunityMediaFromProvider } from '@/lib/genesisDocumentMediaPicker';
 
 type Props = {
   value: string;
@@ -77,6 +79,7 @@ export default function BuklodCommunityCommentComposer({
   const insets = useSafeAreaInsets();
   const { fontScale, height } = useWindowDimensions();
   const inputSize = buklodComposerHeightLimits(fontScale, height, 'comment');
+  const genesisAndroidPreview = getGenesisNativeFoundation().cosmeticHaptics;
   const drawerBottomInset = useBuklodDrawerBottomInset();
   const [reactionOpen, setReactionOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
@@ -127,6 +130,21 @@ export default function BuklodCommunityCommentComposer({
     } finally {
       setPickingPhoto(false);
     }
+  };
+
+  const pickProviderMedia = async () => {
+    if (pickingPhoto || busy || !genesisAndroidPreview) return;
+    setPickingPhoto(true);
+    try {
+      const file = await pickGenesisCommunityMediaFromProvider();
+      if (!file) return;
+      const kind = file.mimeType === 'image/gif' ? 'gif' : 'image';
+      onMediaChange({ kind, ref: file.uri }, file.uri);
+      setGifOpen(false);
+      setReactionOpen(false);
+    } catch (error: any) {
+      Alert.alert('Files / Drive', error?.message ?? 'Unable to import this file.');
+    } finally { setPickingPhoto(false); }
   };
 
   const pickGif = (gif: ConnectGifCatalogItem) => {
@@ -200,6 +218,15 @@ export default function BuklodCommunityCommentComposer({
           />
         </Pressable>
 
+        {genesisAndroidPreview ? (
+          <Pressable accessibilityRole="button"
+            accessibilityLabel="Choose image or GIF from device files or Drive provider"
+            disabled={busy || pickingPhoto} onPress={() => void pickProviderMedia()}
+            style={styles.tool}>
+            <MaterialCommunityIcons name="file-document-outline" size={22} color={colors.green} />
+          </Pressable>
+        ) : null}
+
         <Pressable
           accessibilityLabel="Add reaction"
           disabled={busy}
@@ -217,6 +244,13 @@ export default function BuklodCommunityCommentComposer({
 
   const commentField = (
     <BuklodMentionField
+      onNativeGif={genesisAndroidPreview ? uri => {
+        // Preview only; send is still manual. Never infer remote storage or publish.
+        if (busy || !/^file:\/\//.test(uri)) return;
+        onMediaChange({ kind: 'gif', ref: uri }, uri);
+        setGifOpen(false);
+        setReactionOpen(false);
+      } : undefined}
       value={value}
       onChangeText={onChangeText}
       mentions={mentions}

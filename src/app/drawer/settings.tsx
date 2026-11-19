@@ -4,6 +4,8 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  TextInput,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +27,8 @@ import {
   type SmartDrawerSettings,
 } from '@/lib/smartDrawer/settings';
 import { useAuth } from '@/providers/AuthProvider';
+import * as Clipboard from 'expo-clipboard';
+import { generateSmartDrawerRecoveryKey, shareSmartDrawerBackup, restoreSmartDrawerBackup } from '@/lib/smartDrawer/portableBackup';
 
 const STYLES: Array<{
   key: SmartDrawerReminderStyle;
@@ -60,6 +64,40 @@ export default function SmartDrawerSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupNotice, setBackupNotice] = useState('');
+  // Recovery key remains in volatile UI state only, never persisted to app storage.
+  const [recoveryKey, setRecoveryKey] = useState('');
+  const createRecoveryKey = async () => {
+    if (backupBusy) return;
+    setBackupBusy(true);
+    try {
+      setRecoveryKey(await generateSmartDrawerRecoveryKey());
+      setBackupNotice('Copy the new recovery key and keep it separately. BUKLOD cannot recover lost keys.');
+    } catch { setBackupNotice('Unable to generate an encryption key. No files changed.'); }
+    finally { setBackupBusy(false); }
+  };
+  const useBackup = (mode:'export'|'restore') => {
+    if (!user?.id || backupBusy) return;
+    if (!/^[a-fA-F0-9]{64}$/.test(recoveryKey.replace(/\s/g,''))) {
+      setBackupNotice('Provide your exact 64-character recovery key.'); return;
+    }
+    const ownerId = user.id, key = recoveryKey.replace(/\s/g,'');
+    Alert.alert(mode==='export'?'Export encrypted Drawer backup?':'Restore from encrypted backup?',
+      mode==='export'
+        ? 'Encrypted AES-GCM archive. Select your own cloud app manually. Keep the recovery key separately.'
+        : 'Only this BUKLOD account can restore the archive. Existing notes will not be overwritten.',
+      [{text:'Cancel',style:'cancel'},{text:'Continue',onPress:()=>{
+        setBackupBusy(true); setBackupNotice('');
+        const operation= mode==='export' ? shareSmartDrawerBackup(ownerId,key)
+          .then(r=>'Opened share sheet for '+r.count+' encrypted notes. Confirm cloud upload in the destination app.')
+          : restoreSmartDrawerBackup(ownerId,key)
+          .then(r=>r.canceled?'Restore canceled.':'Restored '+r.restored+' notes; skipped '+r.skipped+' existing notes.');
+        void operation.then(setBackupNotice).catch(e=>setBackupNotice(e instanceof Error?e.message:'Backup operation failed.'))
+          .finally(()=>setBackupBusy(false));
+      }}]);
+  };
+
 
   useFocusEffect(
     useCallback(() => {
@@ -158,6 +196,28 @@ export default function SmartDrawerSettingsScreen() {
             },
           ]}
         >
+          <Text style={styles.sectionTitle}>Private Drawer Backup</Text>
+          <Text style={styles.sectionHint}>Manual AES-GCM encrypted backup, up to 20 MB. Choose your personal Files, Drive, or cloud provider via Android share/picker. No automatic sync and no stored credentials.</Text>
+          <Pressable style={styles.option} disabled={backupBusy} onPress={() => void createRecoveryKey()}>
+            <MaterialCommunityIcons name="key-variant" size={22} color="#0A6EBD" />
+            <View style={{flex:1}}><Text style={styles.optionTitle}>Generate Recovery Key</Text><Text style={styles.optionText}>Keep the key outside the backup file.</Text></View>
+          </Pressable>
+          <TextInput value={recoveryKey} onChangeText={setRecoveryKey} autoCapitalize="none" autoCorrect={false}
+            placeholder="64-character encrypted backup recovery key"
+            placeholderTextColor="#829AAC" secureTextEntry
+            style={[styles.option,{minHeight:54,color:'#173B63',fontSize:13}]} />
+          <Pressable style={styles.option} disabled={!recoveryKey || backupBusy}
+            onPress={() => void Clipboard.setStringAsync(recoveryKey.replace(/\s/g,''))}>
+            <MaterialCommunityIcons name="content-copy" size={22} color="#0A6EBD" /><Text style={styles.optionTitle}>Copy Recovery Key</Text>
+          </Pressable>
+          <Pressable style={styles.option} disabled={backupBusy} onPress={() => useBackup('export')}>
+            <MaterialCommunityIcons name="cloud-upload-outline" size={22} color="#0A6EBD" /><Text style={styles.optionTitle}>Export Encrypted Backup</Text>
+          </Pressable>
+          <Pressable style={styles.option} disabled={backupBusy} onPress={() => useBackup('restore')}>
+            <MaterialCommunityIcons name="cloud-download-outline" size={22} color="#0A6EBD" /><Text style={styles.optionTitle}>Restore Encrypted Backup</Text>
+          </Pressable>
+          {!!backupNotice && <Text style={styles.sectionHint}>{backupNotice}</Text>}
+
           <Text style={styles.sectionTitle}>
             Reminder Style
           </Text>
