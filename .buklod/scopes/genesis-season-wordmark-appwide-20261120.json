@@ -96,8 +96,9 @@
     "Node proof runnable in CI; signed Android APK/device verification pending",
     "Build GitHub Actions checks actual Expo preview identity and staging Supabase/Firebase before any EAS credit use",
     "Actual signed APK and runtime on device remain unverified until separate build receipt and QA",
-    "If GitHub staging secrets are missing, use existing registered staging-only Firebase client and EAS preview env, fail if isolated Supabase key absent"
+    "If GitHub staging secrets are missing, use existing registered staging-only Firebase client and EAS preview env, fail if isolated Supabase key absent",
+    "Expo dependencies npm ci installed before EAS preview env:pull (Expo CLI plugin resolve requires node_modules)"
   ],
   "releaseMode": "DEV_ONLY",
-  "releaseStatus": "STAGING_BUILD_RETRIED_WITH_EAS_PREVIEW_FALLBACK_NO_OTA"
+  "releaseStatus": "THIRD_PREVIEW_ENV_RECOVERY_TRY_DEPENDENCIES_BEFORE_EAS_PULL_NO_OTA"
 }

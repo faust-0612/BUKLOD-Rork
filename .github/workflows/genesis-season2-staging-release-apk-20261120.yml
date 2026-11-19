@@ -38,6 +38,9 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Install locked Expo dependencies before EAS env pull
+        shell: bash
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Resolve existing staging Firebase client and EAS preview env, never PROD backend
         shell: bash
         run: |
@@ -112,7 +115,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci --ignore-scripts --no-audit --no-fund
           npm run genesis:theme:gate
           node --test tests/genesis-staging-native-apk-release-20261120.test.mjs tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-native-build-inventory-20261120.test.mjs
           node scripts/season2-native-capability-gate.mjs --mode=source

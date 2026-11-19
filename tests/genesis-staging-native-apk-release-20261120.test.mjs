@@ -20,6 +20,7 @@ test('stage workflow has nonprod source, hosted identity, and no OTA push',()=>{
  assert.match(w,/secrets\.STAGING_FIREBASE_JSON_B64/);
  assert.match(w,/secrets\.STAGING_SUPABASE_URL/);
  assert.match(w,/env:pull --environment preview/);
+ assert.ok(w.indexOf('npm ci --ignore-scripts')<w.indexOf('env:pull --environment preview'),'Expo dependencies must be installed before EAS env pull');
  assert.match(w,/data\.client=clients/);
  assert.match(w,/npx tsc --noEmit/);
  assert.match(w,/npx expo export --platform android/);
