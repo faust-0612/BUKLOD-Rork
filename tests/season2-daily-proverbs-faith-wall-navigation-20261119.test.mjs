@@ -1,21 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const ts = require('typescript');
+import { stripTypeScriptTypes } from 'node:module';
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const dataSource = read('src/lib/season2/buklodDailyProverbsR1.ts');
-const compiled = ts.transpileModule(dataSource, {
-  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, strict: true },
-  reportDiagnostics: true,
-});
-assert.deepEqual(compiled.diagnostics?.filter(d => d.category === ts.DiagnosticCategory.Error) ?? [], []);
-const module = { exports: {} };
-new Function('exports', 'require', 'module', compiled.outputText)(module.exports, require, module);
+// Node 22 built-in TS stripping is available in the source-only CI gate;
+// never require npm install just to run a zero-dependency contract test.
+const javascript = stripTypeScriptTypes(dataSource);
 const {
   DAILY_PROVERBS, manilaProverbsDate, dailyProverbForDate, millisecondsUntilNextManilaDate,
-} = module.exports;
+} = await import('data:text/javascript;base64,' + Buffer.from(javascript).toString('base64'));
 
 test('one correct, stable Proverbs chapter/verse every Manila calendar day', () => {
   assert.equal(DAILY_PROVERBS.length, 31);
