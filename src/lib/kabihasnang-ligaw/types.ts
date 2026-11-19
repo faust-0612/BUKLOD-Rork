@@ -5,6 +5,9 @@ export const KL_RELEASE_HOUR = 6 as const;
 
 export const KL_EPISODE_RULE = 'kl_episode_completion' as const;
 export const KL_SEASON_RULE = 'kl_season_completion' as const;
+export const KL_S2_COMMENT_MIN_CHARS = 20 as const;
+// Preview contract only; the backend keeps Season 1 rewards unchanged until activation.
+export const KL_S2_REWARD_DEFAULTS = { chapter: 15, firstQualifiedComment: 5 } as const;
 
 export const KL_POINT_DEFAULTS = {
   [KL_EPISODE_RULE]: 10,

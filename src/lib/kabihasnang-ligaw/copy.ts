@@ -58,7 +58,7 @@ export const klCopy = {
   liveReadersOne: '1 ang bumasa sa kabanatang ito',
   liveReadersManyPrefix: 'ang bumasa sa kabanatang ito',
   commentsTitle: 'Mga reaksyon at repleksyon',
-  commentsHint: 'Ano ang naramdaman, naisip o natutuhan mo sa kabanata? Sumulat ng makabuluhang repleksyon (12–500 karakter).',
+  commentsHint: 'Ano ang naramdaman, naisip o natutuhan mo sa kabanata? Sumulat ng makabuluhang repleksyon (20–500 karakter). Sa unang kwalipikadong repleksyon kada kabanata, +5 BP kapag aktibo na ang bagong reward.',
   commentsEmpty: 'Wala pang repleksyon. Maging una.',
   commentPlaceholder: 'Isulat ang iyong reaksyon o repleksyon…',
   commentSend: 'Ipadala',

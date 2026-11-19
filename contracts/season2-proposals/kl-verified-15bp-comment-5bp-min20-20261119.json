@@ -1,0 +1,38 @@
+{
+  "id": "kl-s2-reward-v2-20261119",
+  "season": 2,
+  "title": "Owner-approved KL verified chapter +15 BP and first qualifying reflection +5 BP (min 20 characters)",
+  "scope": "Kabihasnang Ligaw reader; no changes to Season1 earning rules, QMP or withdrawals",
+  "ownerInstruction": "2026-11-19: GAWIN mong 15 BP n at 5 BP s comment minimun 20 char",
+  "changes": {
+    "kl.chapter.bp_per_verified_completion": 15,
+    "kl.comment.bp_first_qualified": 5,
+    "kl.comment.minimum_trimmed_characters": 20,
+    "kl.comment.maximum_rewarded_per_member_chapter": 1,
+    "kl.series.completion_bonus_bp": 50,
+    "season1.production_logic": "untouched",
+    "mission_awards.validation": "server_verified_idempotent_antifarm",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc"
+  },
+  "acceptance": [
+    "Verified newly completed chapter is paid exactly +15 BP after independently approved Season2 activation; before activation remains +10 BP",
+    "At most +5 BP once for the first 20–500 trimmed-character top-level KL comment on an approved released chapter from the signed-in member; subsequent comments earn zero additional BP",
+    "Old clients may post shorter comments but never qualify for S2 reward; staging client composer requires 20 or more characters",
+    "One-time +50 series reward, historical ledger, all preexisting completion source keys and quiz/time anti-farming checks remain unchanged",
+    "Rewards do not begin before 2026-12-06 Philippine time; no production migration/OTA or S2 activation without separate RC and exact SHA release evidence"
+  ],
+  "security": [
+    "Server-side activation flag defaults false and cannot be enabled before date",
+    "Comment reward bound to auth.uid(), released episode and active profile",
+    "One immutable ledger source key per user per episode and no backfill",
+    "Only postgres-owned private trigger controls the new earning path; no client-facing mint RPC"
+  ],
+  "verificationStatus": "DEV_SOURCE_STATIC_CHECKED_ONLY",
+  "productionAuthorized": false,
+  "backendStagingVerified": false,
+  "limitations": [
+    "BUKLOD MAIN Supabase project unavailable via the current connected project list",
+    "Source-only checks are not proof of PostgreSQL table/rpc compatibility or paid ledger outcomes",
+    "Physical Android, AdMob and navigation release gates have not been run for this PR"
+  ]
+}
