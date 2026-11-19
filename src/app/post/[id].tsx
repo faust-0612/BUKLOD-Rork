@@ -59,6 +59,7 @@ import {
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import {
   type BuklodCommunityReactionKey,
+  sumCommunityReactionCounts,
 } from '@/lib/buklodCommunityReactions';
 type Reaction = BuklodCommunityReactionKey;
 
@@ -409,6 +410,9 @@ export default function PostDetail(){
 
  if(!post)return <View style={[shared.screen,shared.content]}><Text style={shared.h1}>BUKLOD Post</Text><Card><Text style={shared.muted}>Post unavailable or outside your allowed audience.</Text></Card><Button title="BACK" onPress={()=>router.back()}/></View>;
  const counts=post.reaction_counts||{},mentions=Array.isArray(post.mentions)?post.mentions:[];
+ const totalReactions=Object.keys(counts).length
+  ? sumCommunityReactionCounts(counts)
+  : Math.max(0,Number(post.total_reactions??0)||0);
 
  return <>
  <ScrollView ref={detailScrollRef} style={shared.screen} contentContainerStyle={s.content}>
@@ -521,6 +525,7 @@ export default function PostDetail(){
    String(post.media_mime_type||'').startsWith('video/') &&
    <CommunityVideo uri={post.media_url} height={420}/>}
    <BuklodReactionAction
+    layout="detail"
     options={BUKLOD_PUBLIC_COMMUNITY_REACTIONS}
     counts={counts}
     mine={myReaction}
@@ -528,7 +533,7 @@ export default function PostDetail(){
      void react(key as Reaction)
     }
    />
-   <View style={s.stats}><Text style={s.stat}>{Number(post.total_reactions??0)} reactions</Text><Text style={s.stat}>{Number(post.comment_count??comments.length)} comments</Text></View>
+   <View style={s.stats}><Text style={s.stat}>{totalReactions} {totalReactions===1?'reaction':'reactions'}</Text><Text style={s.stat}>{Number(post.comment_count??comments.length)} comments</Text></View>
    <BuklodPostInternalShare
     postId={String(post.id)}
    />
