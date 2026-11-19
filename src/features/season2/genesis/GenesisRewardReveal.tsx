@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, type ImageSourcePropType, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GenesisSeal } from './GenesisVisuals';
+import { GenesisSeal, useGenesisMotionAllowed } from './GenesisVisuals';
 import GenesisCosmicSky from './GenesisCosmicSky';
 import { GENESIS_MOTION_MS, GENESIS_PALETTE } from './genesisContract';
 
@@ -21,13 +21,15 @@ type Props = {
  */
 export default function GenesisRewardReveal({ visible, onClose, title, message, rewardText, characterSource }: Props) {
   const progress = useRef(new Animated.Value(0)).current;
+  const animate = useGenesisMotionAllowed(visible);
   useEffect(() => {
     if (!visible) { progress.stopAnimation(); progress.setValue(0); return; }
+    if (!animate) { progress.stopAnimation(); progress.setValue(1); return; }
     const animation = Animated.timing(progress, { toValue: 1, duration: GENESIS_MOTION_MS.rewardEntrance,
       easing: Easing.out(Easing.cubic), useNativeDriver: true });
     animation.start();
     return () => animation.stop();
-  }, [visible, progress]);
+  }, [visible, animate, progress]);
 
   const fade = progress.interpolate({ inputRange: [0, .26, 1], outputRange: [0, .85, 1] });
   const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [.86, 1] });

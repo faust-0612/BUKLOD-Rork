@@ -5,7 +5,7 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Defs, Ellipse, LinearGradient as SvgLinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useGenesisMotionAllowed } from './GenesisVisuals';
 
-type Props = { active: boolean; minimal?: boolean };
+type Props = { active: boolean; minimal?: boolean; transparent?: boolean };
 
 const FRAGMENTS = [
   { left: '12%', top: '15%', width: 58, rotate: '-24deg', lag: -14 },
@@ -14,7 +14,7 @@ const FRAGMENTS = [
   { left: '76%', top: '83%', width: 44, rotate: '32deg', lag: -8 },
 ] as const;
 
-export default function GenesisCosmicSky({ active, minimal = false }: Props) {
+export default function GenesisCosmicSky({ active, minimal = false, transparent = false }: Props) {
   const allowed = useGenesisMotionAllowed(active, minimal ? 'minimal' : 'balanced');
   const drift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function GenesisCosmicSky({ active, minimal = false }: Props) {
           <Stop offset="1" stopColor="#F3D995" stopOpacity="0"/>
         </SvgLinearGradient>
       </Defs>
-      <Rect width="420" height="300" fill="#030D1E"/>
+      <Rect width="420" height="300" fill={transparent ? "transparent" : "#030D1E"}/>
       <Rect width="420" height="300" fill="url(#genesisFirstLight)"/>
       <Ellipse cx="42" cy="210" rx="185" ry="120" fill="url(#genesisNebula)"/>
       <Path d="M -90 240 C 35 0 245 -70 480 36" stroke="url(#genesisOrbit)" strokeWidth="1.4" fill="none" opacity=".68"/>

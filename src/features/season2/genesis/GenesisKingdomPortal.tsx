@@ -83,10 +83,10 @@ export default function GenesisKingdomPortal() {
       <View style={[styles.illustration,{height:frameHeight}]}>
         {media?.background && !imageFailed ?
           <ExpoImage source={{uri:media.background}} contentFit="cover" cachePolicy="memory-disk" transition={140}
-            onError={()=>setImageFailed(true)} style={StyleSheet.absoluteFill}/>
+            onError={()=>setImageFailed(true)} style={StyleSheet.absoluteFill} key={selected.id}/>
           : null}
         <LinearGradient colors={['rgba(2,9,22,.42)','rgba(4,13,30,.1)','rgba(1,8,17,.95)']} style={StyleSheet.absoluteFill}/>
-        <GenesisCosmicSky active={animate}/>
+        <GenesisCosmicSky active={animate} transparent/>
         <Animated.View pointerEvents="none" style={[styles.heroArt,{
           transform:[{translateY:float.interpolate({inputRange:[0,1],outputRange:[3,-7]})}],
         }]}><RealmCharacter character={selected.character}/></Animated.View>
