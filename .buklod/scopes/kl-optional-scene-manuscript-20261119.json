@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kl-optional-scene-manuscript-20261119.json",
+  "objective": "Allow Kabihasnang Ligaw chapters to prepare private manuscript previews with zero uploaded scene photos; keep all scenes optional with their existing save, placement, review, approval, and publication gates.",
+  "baseRef": "7a3c706d44ab05389a4aa9c4a1bba82ad22f6395",
+  "productionBaselineEvidence": "GitHub main 7a3c706d44ab05389a4aa9c4a1bba82ad22f6395 source; read-only live Supabase yhanxndaqbmuzbdqlblu inspected 2026-11-19: kl_admin_prepare_preview_v1 enforces 2+ illustrations, but kl_admin_action_v1 only requires a prepared preview and all existing media approved (none is allowed). Exact installed production OTA/runtime not inspected; no production mutation authorized by this DEV work.",
+  "chosenApproach": "Add a later guarded CREATE OR REPLACE migration that accepts 0-12 uploaded illustrations but validates every supplied one; preserve the currently deployed editorial unlock and admin role check. Update the Studio copy and focused Node/SQL regressions without changing release, reward, or media RPCs.",
+  "selectionRationale": "The 2-photo minimum exists in the backend private-preview function. A client-only change leaves the failure in place; changing release permissions is unnecessary. The additive function fix is isolated and keeps all uploaded art placement and approval enforcement.",
+  "alternativeApproaches": [
+    "Make the button ignore the failed RPC (rejected: would falsely report success).",
+    "Allow all unanchored uploaded photos through preview (rejected: approval or placement could be bypassed).",
+    "Modify old deployed migration history (rejected: nonadditive and unsafe)."
+  ],
+  "riskAreas": [
+    "story",
+    "database"
+  ],
+  "preserveBehaviors": [
+    "Manuscripts remain independently saved, with minimum title and manuscript length, and unpublished until separately approved",
+    "Admin-only preview RPC uses protected SECURITY DEFINER explicit search_path and preserves live editorial unlock for released chapters",
+    "Uploaded photos remain optional and retain 1-12 placement, unique exact manuscript anchors, effects, file review and server approval",
+    "No auto-release or changes to rewards, chapter statuses, Wall, Connect, AdMob, or Season 2 logic",
+    "No production schema modification, CI shortcut, RC or OTA publish from this branch"
+  ],
+  "acceptanceChecks": [
+    "Zero-scene saved manuscripts can prepare a server-confirmed private preview",
+    "One valid photo and up to twelve valid distinct anchored photos remain supported",
+    "Uploaded unanchored, invalid or duplicate scenes block the media-inclusive preview until repaired",
+    "Every uploaded media item still requires server approval before chapter approval/release",
+    "Readonly SQL permissions regression, focused Node tests and existing dynamic scene tests pass in isolated QA",
+    "Merge/consolidate only after CI and database staging verification; physical-device and live production verification not claimed"
+  ],
+  "regressionTests": [
+    "tests/kl-optional-scene-manuscript-20261119.test.mjs",
+    "supabase/tests/kl_optional_scene_manuscript_20261119.sql",
+    "tests/kl-dynamic-illustration-scenes.test.mjs",
+    "supabase/tests/kl_dynamic_illustration_scenes.sql"
+  ],
+  "allowedPaths": [
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "tests/kl-dynamic-illustration-scenes.test.mjs",
+    "supabase/tests/kl_dynamic_illustration_scenes.sql",
+    "supabase/migrations/20261119064000_kl_optional_scene_manuscript_preview.sql",
+    "tests/kl-optional-scene-manuscript-20261119.test.mjs",
+    "supabase/tests/kl_optional_scene_manuscript_20261119.sql",
+    ".buklod/scopes/kl-optional-scene-manuscript-20261119.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "KL manuscript preview copy changes to reflect optional scene photos and preserve progress.",
+      "preservedBehaviors": [
+        "Keep manuscript save and private preview actions with server-confirmed success."
+      ],
+      "tests": [
+        "tests/kl-optional-scene-manuscript-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Restrict backend illustration count check without weakening privileged editor and media approvals.",
+      "preservedBehaviors": [
+        "Privileged admin-only preview RPC, valid uploaded anchors and editorial unlock remain enforced."
+      ],
+      "tests": [
+        "supabase/tests/kl_optional_scene_manuscript_20261119.sql",
+        "tests/kl-optional-scene-manuscript-20261119.test.mjs"
+      ]
+    }
+  ]
+}
