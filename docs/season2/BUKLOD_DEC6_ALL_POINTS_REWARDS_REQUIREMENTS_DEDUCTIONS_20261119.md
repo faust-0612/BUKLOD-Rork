@@ -369,3 +369,7 @@ Source additions (DEV-only):
 
 The above is **member documentation and DEV source integration**, not a claim that any Season 2 reward, balance, item or payout is activated. The December 6 launch still requires a dedicated verified staging Supabase backend, signed Season1 reconciliation, complete independent financial/KL/referral tests, exact Android RC/AdMob/navigation evidence and owner SHA-bound approval.
 
+
+## 16. Exact all-item and all-badge catalog
+
+The complete named catalogue is in `docs/season2/BUKLOD_ALL_1300_ITEMS_469_BADGES_40_RANKS_20261119.md`, generated from canonical Character source: **1,300 individually named items**, **469 exact badge titles**, **40 Circle Rank visual classes**, **8 Special Character Circle Rank gates**, **4 priced Kingdom Shard items**. All are now accessible through the expandable Season Journey -> full rewards guide -> Items/Badges tab. This is **read-only** and respects original Character levels, ownership, ranks, badge art, AdMob performance and Season 1 economy. The addition is not a claim of live Season 2 grants.

@@ -213,6 +213,22 @@
         "Member-facing source-only reference, with S1 catalog as-of 2026-11-19, no direct award/claim/wallet authority; actual backend grants and S2 production activation require independent complete verification.",
         "Read-only V8 static contract checks only; live Android device and CI Node TypeScript not yet verified."
       ]
+    },
+    {
+      "id": "full_1300_item_469_badge_40_rank_user_catalog",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "docs/season2/BUKLOD_ALL_1300_ITEMS_469_BADGES_40_RANKS_20261119.md",
+        "src/components/points/BuklodS2AllItemsBadgesGuide.tsx",
+        "src/lib/season2/buklodS2KingdomShardGuideSnapshotR1.ts",
+        "tests/season2-all-items-badges-ranks-catalog-20261119.test.cjs"
+      ],
+      "limitations": [
+        "Only exact named catalog and guide UI prepared; no actual Character/Season 2 item ownership, rank change, badge grant, Kingdom shard purchase or redemption verified.",
+        "The 1,300 items, 469 badges and 40 rank classifications are canonical names and source rules, not a promise that all are automatically obtainable on December 6.",
+        "Only DEV source; independent staging, full CI TypeScript, Android RC, data isolation and owner SHA approval still required."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
