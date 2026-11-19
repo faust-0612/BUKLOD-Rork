@@ -1,0 +1,61 @@
+{
+  "contractVersion": 2,
+  "objective": "Close public/anonymous/member direct RPC access to four unguarded internal church-role helper functions while retaining trusted owner and service_role call chains.",
+  "baseRef": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
+  "productionBaselineEvidence": "2026-11-19 production DB read-only audit: 544 public tables all RLS enabled; four helper SECURITY DEFINER functions callable by anonymous or authenticated clients and lacked direct auth checks; two helpers are postgres-owned internal callers. Exact targeted ACL migration applied live and independently verified anon=false, authenticated=false, service_role=true for all four, security cron active, all Finance V3 money switches still OFF.",
+  "chosenApproach": "Revoke PUBLIC, anon and authenticated EXECUTE only for four privileged internal helper RPCs; retain service_role and Postgres function owner access. No account, user, role records or application bundles changed.",
+  "selectionRationale": "The helpers accepted caller-supplied role/scope/user IDs and could bypass table RLS. Tight role-based EXECUTE revocation blocks direct external app clients without replacing validated internal function code.",
+  "alternativeApproaches": [
+    "Blanket revoke on hundreds of RPCs: rejected because it can break legitimate BUKLOD features.",
+    "Client-only validation: rejected because external clients can bypass app UI and call public RPCs.",
+    "Rewrite both internal caller flows urgently: rejected pending focused functional testing; permissions-only hotfix is safer."
+  ],
+  "preserveBehaviors": [
+    "Existing authenticated app sessions, onboarding UI, Wall, Connect, ads and navigation remain unmodified.",
+    "Server-owned internal role setup, trusted worker service_role access and all existing finance switches/ledger balances remain unchanged.",
+    "Season 2 code and production Android OTA remain untouched."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "backend-security",
+    "role-privilege-escalation"
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_church_role_helper_acl_20261119.sql"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261119135000_restrict_church_role_helper_rpc_execution_r1.sql",
+    "supabase/tests/buklod_church_role_helper_acl_20261119.sql",
+    ".buklod/scopes/church-role-rpc-acl-20261119.json"
+  ],
+  "acceptanceChecks": [
+    "Four internal helpers reject anon/authenticated EXECUTE and preserve service_role.",
+    "Live production read-only privileges check matches migration intended ACL without modifying any records.",
+    "RLS and emergency security scanner remain active, finance switches remain OFF.",
+    "Required Engineering Accountability source CI passes; no app OTA or new native build."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Restrict direct external RPC invocation of internal role grants without altering app UI or trusted backend onboarding.",
+      "preservedBehaviors": [
+        "No source app-runtime or native manifest changes; existing production and staging OTA packages are not republished."
+      ],
+      "tests": [
+        "supabase/tests/buklod_church_role_helper_acl_20261119.sql"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Remove publicly callable SECURITY DEFINER role/membership mutation helpers to prevent untrusted client privilege escalation.",
+      "preservedBehaviors": [
+        "Database tables, role assignments, finance history, RLS policies and Postgres-owned internal function code are unchanged."
+      ],
+      "tests": [
+        "supabase/tests/buklod_church_role_helper_acl_20261119.sql"
+      ]
+    }
+  ],
+  "releaseMode": "EMERGENCY_DATABASE_ACL_HOTFIX_NO_APP_OTA",
+  "verifiedScope": "Live DB ACL readback verified; end-to-end onboarding not yet independently device-verified."
+}
