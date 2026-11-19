@@ -185,8 +185,8 @@ export function GenesisHomeHero({active=true,quality='balanced',onExplore}:{
     <View style={styles.copy}>
       <Text style={styles.kicker}>BUKLOD · SEASON 2 · CREATION</Text>
       <Text style={styles.title}>Genesis: The Beginning</Text>
-      <Text style={styles.verse}>“Let there be light.” · Genesis 1:3</Text>
-      <Text style={styles.sub}>The universe awakened at the word of the Creator.</Text>
+      <Text style={styles.verse}>“God created the heavens and the earth.” · Gen 1:1</Text>
+      <Text style={styles.sub}>“Let there be light.” · Genesis 1:3</Text>
       {onExplore ? <View style={{marginTop:12}}>
         <GenesisLivingButton label="Explore the Kingdom" onPress={onExplore}/>
       </View>:null}
