@@ -1,0 +1,105 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-genesis-premium-realm-assets-20261120.json",
+  "objective": "Deliver an executable Season 2 Genesis premium visual Kingdom/character collection preview with real owner-cut artworks, luminous cosmic motion and 13 canonical realm routes, isolated from Season 1 production and backend.",
+  "baseRef": "fcd437a70da9ce0a878822af719fcba15a1a0587",
+  "productionBaselineEvidence": "Baseline GitHub main and production exact installed OTA/RC artifact were not verified in this connector-only session. Main and live production are untouched. No release claim.",
+  "chosenApproach": "Fork current Genesis DEV head; copy 20 optimized artwork sheets + 42 separately cropped classic art objects by their Git blob SHA, add character/collection showcase and non-prod gated Kingdom portal. Preserve existing 13 routes, advertising, server ownership and progress.",
+  "selectionRationale": "Actual approved original art crops render offline with no network for core items; production branch and current Kingdom screen are preserved. Native-driver motion and background/focus/reduced-motion protections avoid unnecessary GPU work.",
+  "alternativeApproaches": [
+    "Ship static SVG map repaint: rejected as the same low quality composition.",
+    "Generate fake icon substitutes or promise high-resolution art from 176px thumbnails: rejected.",
+    "Replace production Kingdom map unconditionally: rejected due to season embargo and production regression risk."
+  ],
+  "allowedPaths": [
+    "assets/images/kingdom-item-atlas/accessory.webp",
+    "assets/images/kingdom-item-atlas/armor.webp",
+    "assets/images/kingdom-item-atlas/character-evolution.webp",
+    "assets/images/kingdom-item-atlas/collection.webp",
+    "assets/images/kingdom-item-atlas/companion.webp",
+    "assets/images/kingdom-item-atlas/consumable.webp",
+    "assets/images/kingdom-item-atlas/crafting.webp",
+    "assets/images/kingdom-item-atlas/emblem.webp",
+    "assets/images/kingdom-item-atlas/exploration.webp",
+    "assets/images/kingdom-item-atlas/kingdom-building.webp",
+    "assets/images/kingdom-item-atlas/prestige.webp",
+    "assets/images/kingdom-item-atlas/profile-cosmetics.webp",
+    "assets/images/kingdom-item-atlas/quest.webp",
+    "assets/images/kingdom-item-atlas/relic.webp",
+    "assets/images/kingdom-item-atlas/resource.webp",
+    "assets/images/kingdom-item-atlas/season.webp",
+    "assets/images/kingdom-item-atlas/skill.webp",
+    "assets/images/kingdom-item-atlas/treasure.webp",
+    "assets/images/kingdom-item-atlas/utility.webp",
+    "assets/images/kingdom-item-atlas/weapons.webp",
+    "src/lib/buklodKingdomCoreAtlasArt.ts",
+    "src/lib/buklodKingdomCoreAtlas.ts",
+    "src/lib/buklodKingdomClassArt.ts",
+    "src/lib/buklodKingdomClassCatalog.ts",
+    "content/kingdom-item-atlas-core-v2.json",
+    "content/kingdom-item-classes-v1.json",
+    "src/features/season2/genesis/GenesisCosmicSky.tsx",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "src/app/games/genesis-collection.tsx",
+    "src/app/games/index.tsx",
+    "tests/season2-genesis-cinematic-assets-20261120.test.mjs",
+    ".buklod/scopes/season2-genesis-premium-realm-assets-20261120.json",
+    "docs/BUKLOD_SEASON2_GENESIS_PREMIUM_REALM_20261120.md"
+  ],
+  "regressionTests": [
+    "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
+  ],
+  "riskAreas": [
+    "Expo Router deep links",
+    "Android image memory usage and sprite sheet coordinate cutting",
+    "AdMob Kingdom footer",
+    "Stage/production environment isolation",
+    "Character identity and rank art authority",
+    "Device GPU/battery/reduced motion",
+    "Illustrated CDN scene fallback"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Non-production-only route replacement and additive gallery, preserving production Kingdom route and footer AdMob.",
+      "preservedBehaviors": [
+        "Production uses old 13-station map",
+        "Footer banner persists",
+        "Unrelated tabs, media, calls, navigation remain unchanged"
+      ],
+      "tests": [
+        "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Presentation-only artwork and 13 original game portal routes; no character authority, claims or earning changes.",
+      "preservedBehaviors": [
+        "Canonical 13 character IDs",
+        "Server verified rank, collectibles, equipment and 1,300 registry",
+        "No new BP/XP/Shards or cash"
+      ],
+      "tests": [
+        "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Existing Season 1 reward and finance rules",
+    "No Supabase modifications",
+    "No changes to Character V2 progress",
+    "No replacement of official gameplay screens",
+    "No producer audio or Beep fallback"
+  ],
+  "acceptanceChecks": [
+    "20 core sprites and 42 classic cropped art are physically present",
+    "No atlas crop displays a neighboring cell",
+    "13 canonical realm links match prior Kingdom map",
+    "All screens are non-production gated",
+    "Reduced Motion stops decorative motion",
+    "Footer ad and scroll performance unaffected",
+    "Android visual and battery check still required"
+  ],
+  "releaseMode": "DEV_ONLY",
+  "releaseStatus": "NOT_STAGED_NOT_RELEASED"
+}
