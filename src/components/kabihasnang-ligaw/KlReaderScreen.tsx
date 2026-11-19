@@ -42,7 +42,7 @@ import {
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
 import { memberReadable } from '@/lib/kabihasnang-ligaw/gates';
 import { isLowBandwidth, resolveLivingMotion, visibleLivingLayers } from '@/lib/kabihasnang-ligaw/livingMotion';
-import { dictionaryByName, KL_DICTIONARY, splitDictionaryTerms } from '@/lib/kabihasnang-ligaw/dictionary';
+import { dictionaryByName, dictionaryForManuscript, splitDictionaryTerms } from '@/lib/kabihasnang-ligaw/dictionary';
 import { KL_SCENE_STILLS } from '@/lib/kabihasnang-ligaw/sceneStills';
 import { paragraphDisplayText, splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
@@ -903,7 +903,7 @@ export default function KlReaderScreen() {
               <View style={styles.panel}>
                 <Text style={styles.panelTitle}>{klCopy.glossary}</Text>
                 <Text style={styles.meta}>{klCopy.glossaryNote}</Text>
-                {KL_DICTIONARY.map((entry) => (
+                {dictionaryForManuscript(reading.text ?? '').map((entry) => (
                   <Pressable key={entry.name} accessibilityRole="button" onPress={() => setOpenTerm(entry.name)}>
                     <Text style={styles.term}>{entry.name}</Text>
                     <Text style={styles.meta}>{entry.kind}</Text>
