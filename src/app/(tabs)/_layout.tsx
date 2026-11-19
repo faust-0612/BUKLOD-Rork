@@ -24,6 +24,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
@@ -137,7 +138,7 @@ function SwipeDashboardHeader() {
       style={{
         paddingTop: insets.top,
         minHeight: (scrollCompact ? 48 : 56) + insets.top,
-        backgroundColor: publicMinimal ? '#0B2048' : theme.headerSurface,
+        backgroundColor: publicMinimal ? theme.brandHeaderSurface : theme.headerSurface,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -146,6 +147,20 @@ function SwipeDashboardHeader() {
         borderBottomColor: publicMinimal ? '#1D3D70' : theme.border,
       }}
     >
+      {publicMinimal ? (
+        <Svg
+          pointerEvents="none"
+          width="100%"
+          height="100%"
+          viewBox="0 0 420 100"
+          preserveAspectRatio="none"
+          style={{ position: 'absolute', left: 0, top: 0 }}
+        >
+          <Path d="M-30 85 C52 5 117 9 178 44 S312 111 453 4" fill="none" stroke={theme.brandLineAccent} strokeWidth="1.3" opacity="0.18" />
+          <Path d="M-55 96 C25 31 118 25 186 60 S310 126 440 21" fill="none" stroke={theme.brandLineAccent} strokeWidth="0.9" opacity="0.16" />
+          <Path d="M255 -14 C278 23 325 27 368 14 S430 -15 458 40" fill="none" stroke={theme.brandLineAccent} strokeWidth="1" opacity="0.14" />
+        </Svg>
+      ) : null}
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
         {publicMinimal && (
           <Pressable accessibilityRole="button" accessibilityLabel="Open navigation menu"
@@ -158,7 +173,7 @@ function SwipeDashboardHeader() {
         <View
           accessibilityLabel="BUKLOD Green B logo"
           style={{width:scrollCompact?31:35,height:scrollCompact?31:35,
-            borderRadius:10,overflow:'hidden',backgroundColor:publicMinimal?'#0B2048':theme.headerSurface}}>
+            borderRadius:10,overflow:'hidden',backgroundColor:publicMinimal?theme.brandHeaderSurface:theme.headerSurface}}>
           <Image
             source={require('../../../assets/release/buklod-main-canonical.png')}
             resizeMode="contain"
@@ -247,7 +262,7 @@ function SwipeDashboardHeader() {
                     justifyContent: 'center',
                     backgroundColor: theme.danger,
                     borderWidth: 2,
-                    borderColor: '#0B2048',
+                    borderColor: theme.brandHeaderSurface,
                   }}
                 >
                   <Text
