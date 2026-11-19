@@ -1,6 +1,9 @@
 /* Original BUKLOD Circle Rank emblem. No third-party badge artwork/assets. */
 import React from 'react';
 import { View } from 'react-native';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import GenesisRankBadgeArtwork, { normalizeGenesisRankName } from '@/features/season2/genesis/GenesisRankBadgeArtwork';
+import { getBuklodCircleRankArt } from '@/lib/buklodCircleRankArt';
 import Svg, { Circle, Path, Polygon, Text as SvgText } from 'react-native-svg';
 
 type BadgeProps = {
@@ -35,6 +38,12 @@ export default function BuklodCircleRankBadge({
   rankFamily, rankLevel, rankName, size = 56, locked = false,
 }: BadgeProps) {
   const parsed = circleRankBadgeParts(rankName);
+  const previewName = rankName ||
+    [rankFamily || 'Circle '+parsed.family,rankLevel || parsed.level].join(' ');
+  const approved = getBuklodCircleRankArt(normalizeGenesisRankName(previewName));
+  if (isGenesisPreviewBuild() && approved) {
+    return <GenesisRankBadgeArtwork rankName={approved.name} size={size} locked={locked}/>;
+  }
   const family = String(rankFamily || parsed.family).replace(/^Circle\s+/i, '').trim();
   const level = String(rankLevel || parsed.level).trim().toUpperCase();
   const roman = LEVELS.has(level) ? level : parsed.level;
