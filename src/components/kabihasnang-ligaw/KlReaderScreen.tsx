@@ -580,13 +580,14 @@ export default function KlReaderScreen() {
   }, [user?.id, journeyRefreshToken]);
 
   useEffect(() => {
-    if (!selected || !selectedDbId || serverState !== 'readable' || !appActive || !routeFocused || !online) return;
+    if (!selected || !selectedDbId || serverState !== 'readable' || !appActive || !routeFocused || !online ||
+      (s2Progress?.ownerId === user?.id && s2Progress.enabled)) return;
     const episodeId = selectedDbId;
     const timer = setInterval(() => {
       void supabase.rpc('kl_reading_progress_v1', { p_episode_id: episodeId, p_action: 'ping' });
     }, 20000);
     return () => clearInterval(timer);
-  }, [selectedDbId, serverState, appActive, routeFocused, online]);
+  }, [selectedDbId, serverState, appActive, routeFocused, online, s2Progress, user?.id]);
 
   useEffect(() => {
     if (selected && serverState === 'readable' && online) {
