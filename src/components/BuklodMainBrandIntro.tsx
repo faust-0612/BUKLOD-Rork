@@ -8,6 +8,8 @@ import {
   View,
 } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import BuklodGenesisStartupScene from '@/components/BuklodGenesisStartupScene';
+import { isBuklodGenesisStartupPreview } from '@/lib/buklodGenesisStartupPolicy';
 import BuklodCenteredBrandMark, {
   BUKLOD_BRAND_LOGO_NATIVE,
   BUKLOD_BRAND_LOGO_WEB,
@@ -30,6 +32,7 @@ export default function BuklodMainBrandIntro({
   children: React.ReactNode;
 }) {
   const isWeb = Platform.OS === 'web';
+  const genesisPreview = isBuklodGenesisStartupPreview();
 
   /* BUKLOD_WEB_INTRO_ONCE_PER_TAB_R2
    * The web startup brand is a boot-only experience. Browser back/forward
@@ -54,8 +57,8 @@ export default function BuklodMainBrandIntro({
   const [chromeReady, setChromeReady] = useState(isWeb);
   const mountChildren = isWeb || splashGone;
 
-  const markOpacity = useRef(new Animated.Value(isWeb ? 0 : 1)).current;
-  const markScale = useRef(new Animated.Value(isWeb ? 1 : 1)).current;
+  const markOpacity = useRef(new Animated.Value(isWeb || genesisPreview ? 0 : 1)).current;
+  const markScale = useRef(new Animated.Value(genesisPreview ? 0.82 : 1)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const splashHidden = useRef(false);
@@ -133,7 +136,24 @@ export default function BuklodMainBrandIntro({
      * fades. The overlay stays through the fingerprint prompt so the mark
      * does not travel upward when Android resizes the window.
      */
-    const sequence = isWeb
+    const sequence = genesisPreview
+      ? Animated.sequence([
+          Animated.parallel([
+            Animated.timing(markOpacity, {
+              toValue: 1, duration: 920, easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            Animated.spring(markScale, {
+              toValue: 1, friction: 8, tension: 40, useNativeDriver: true,
+            }),
+          ]),
+          Animated.timing(textOpacity, {
+            toValue: 1, duration: 250, easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.delay(410),
+        ])
+      : isWeb
       ? Animated.sequence([
           Animated.timing(markOpacity, {
             toValue: 1,
@@ -182,6 +202,7 @@ export default function BuklodMainBrandIntro({
     };
   }, [
     isWeb,
+    genesisPreview,
     markOpacity,
     markScale,
     screenOpacity,
@@ -206,8 +227,10 @@ export default function BuklodMainBrandIntro({
           style={[
             isWeb ? styles.overlay : styles.nativeOverlay,
             { opacity: screenOpacity },
+            genesisPreview ? styles.genesisOverlay : null,
           ]}
         >
+          {genesisPreview ? <BuklodGenesisStartupScene /> : null}
           <BuklodCenteredBrandMark
             logoSize={isWeb ? BUKLOD_BRAND_LOGO_WEB : BUKLOD_BRAND_LOGO_NATIVE}
             lockToScreen={!isWeb}
@@ -217,6 +240,7 @@ export default function BuklodMainBrandIntro({
               transform: [{ scale: markScale }],
             }}
             taglineStyle={{ opacity: textOpacity }}
+            showTagline={!genesisPreview}
           />
         </Animated.View>
       ) : null}
@@ -239,6 +263,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFDF7',
+  },
+  genesisOverlay: {
+    backgroundColor: '#030B18',
   },
   nativeOverlay: {
     position: 'absolute',
