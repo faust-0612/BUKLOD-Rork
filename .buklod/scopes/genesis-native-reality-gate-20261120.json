@@ -13,7 +13,9 @@
   "allowedPaths": [
     ".buklod/scopes/genesis-native-reality-gate-20261120.json",
     "scripts/season2-native-capability-gate.mjs",
-    "tests/season2-native-capability-gate.test.mjs"
+    "tests/season2-native-capability-gate.test.mjs",
+    "scripts/buklod-season2-production-embargo.cjs",
+    ".github/workflows/engineering-accountability.yml"
   ],
   "regressionTests": [
     "tests/season2-native-capability-gate.test.mjs"
@@ -22,7 +24,9 @@
   "riskAreas": [
     "native-capability-attestation",
     "runtime-identity",
-    "release-identity"
+    "release-identity",
+    "production-embargo",
+    "ci-accountability"
   ],
   "preserveBehaviors": [
     "No change to production, staging, APK, OTA, package.json, app.config.js or EAS profiles",
@@ -34,7 +38,9 @@
     "Detect empty approved original Rive and mastered audio registries",
     "Validate separate production and Genesis preview runtime/package/channel",
     "Fail closed in release mode without exact native build and Android scene/audio/AdMob/navigation receipt",
-    "Tests cover mismatched SHA/channel and optimistic receipt missing rig assets"
+    "Tests cover mismatched SHA/channel and optimistic receipt missing rig assets",
+    "New Genesis feature source path is recognized by production embargo before Dec 6",
+    "Existing accountability workflow runs native truth checks on Genesis PRs without paid EAS/OTA"
   ],
   "releaseMode": "DEV_ONLY",
   "releaseStatus": "SOURCE_QA_PREPARED_NO_APK_NO_OTA"
