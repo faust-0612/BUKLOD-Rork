@@ -6,8 +6,8 @@ const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8'
 test('915-day Proverbs owner change has an exact, source-only, protected Season2 integration scope', () => {
   const manifest = JSON.parse(read('.buklod/scopes/season2-proverbs-915-day-cycle-20261119.json'));
   const workflow = read('.github/workflows/engineering-accountability.yml');
-  assert.match(workflow, /dev\\/season2-proverbs-915-day-cycle-20261119\\)/);
-  assert.match(workflow, /BUKLOD_SCOPE_MANIFEST=\\.buklod\\/scopes\\/season2-proverbs-915-day-cycle-20261119\\.json/);
+  assert.ok(workflow.includes('dev/season2-proverbs-915-day-cycle-20261119)'));
+  assert.ok(workflow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/season2-proverbs-915-day-cycle-20261119.json'));
   assert.equal(manifest.contractVersion, 2);
   assert.equal(manifest.baseRef, 'integration/season2-conso-staging-20261119');
   assert.equal(manifest.productionChange, false);
