@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json",
-  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts.",
+  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts. Include Play Core native in-app update bridge with production-only package guard and no automatic update prompt; reserve production activation for separately verified Play release.",
   "baseRef": "ee25dd41208a7758943d51868f0f61a084f33c7c",
   "productionBaselineEvidence": "Production main 551e54602addd6f7bbe7bcdddd1589d35424c964; Genesis staging APK unbuilt; original Genesis DEV branch ee25dd41208a7758943d51868f0f61a084f33c7c. This isolated PR neither modifies production nor signs/publishes Android artifacts.",
   "chosenApproach": "Forward-port byte-identical reviewed host/policy and focused Node behavior tests from #1003, preserving exact branch/base and native Gradle compile smoke. Replace obsolete restart-banner assertions rather than bypass protection.",
@@ -28,7 +28,8 @@
     "tests/ota-restart-safe-area.test.cjs",
     "tests/buklod-mandatory-update-runtime.test.mjs",
     "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs",
-    "tests/genesis-skia-native-binary-install-20261120.test.mjs"
+    "tests/genesis-skia-native-binary-install-20261120.test.mjs",
+    "tests/genesis-play-core-native-foundation-20261120.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodOtaFreshnessHost.native.tsx",
@@ -43,12 +44,18 @@
     "modules/buklod-genesis-ime/android/build.gradle",
     "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs",
     "tests/genesis-skia-native-binary-install-20261120.test.mjs",
-    "scripts/genesis-prepare-skia-binaries.mjs"
+    "scripts/genesis-prepare-skia-binaries.mjs",
+    "modules/buklod-genesis-play-updates/android/src/main/java/expo/modules/buklodgenesisplayupdates/BuklodGenesisPlayUpdateModule.kt",
+    "modules/buklod-genesis-play-updates/android/build.gradle",
+    "modules/buklod-genesis-play-updates/expo-module.config.json",
+    "modules/buklod-genesis-play-updates/package.json",
+    "modules/buklod-genesis-play-updates/index.ts",
+    "tests/genesis-play-core-native-foundation-20261120.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Replace native OTA restart banner with nonrendering bounded foreground downloader for compatible Genesis updates",
+      "reason": "Replace native OTA restart banner with nonrendering bounded foreground downloader for compatible Genesis updates; package Play Core immediate-update native bridge (no automatic activation; opt-in only after server/Play availability)",
       "preservedBehaviors": [
         "Preserves active calls, PTT, drafts and the server enforced mandatory native upgrade gate"
       ],
@@ -56,7 +63,8 @@
         "tests/buklod-silent-ota-policy.test.mjs",
         "tests/ota-restart-safe-area.test.cjs",
         "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs",
-        "tests/genesis-skia-native-binary-install-20261120.test.mjs"
+        "tests/genesis-skia-native-binary-install-20261120.test.mjs",
+        "tests/genesis-play-core-native-foundation-20261120.test.mjs"
       ]
     },
     {
@@ -79,7 +87,8 @@
     "Actual installed native Android first-view AdMob and navigation tests must pass before OTA publication",
     "No production/Play/DB/points/finance edits; Season 2 embargo preserved",
     "Local GIF IME Gradle configuration must explicitly expose versionCode 1 and versionName 1.0.0 before Kotlin/Gradle build",
-    "Pinned Skia 2.6.2 installer must materialize nonempty libskia.a across all four Android ABIs before native Gradle, no arbitrary install scripts"
+    "Pinned Skia 2.6.2 installer must materialize nonempty libskia.a across all four Android ABIs before native Gradle, no arbitrary install scripts",
+    "Play Core 2.1.0 must compile in Genesis native APK, return unsupported on sideload/staging, and never prompt before valid Play version availability; device verification still pending"
   ],
   "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
   "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",
