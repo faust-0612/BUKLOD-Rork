@@ -26,12 +26,15 @@ export default function KlSeriesReflection({
   const [message, setMessage] = useState('');
   useEffect(() => {
     let active = true;
-    void supabase.rpc('kl_s2_series_reflection_status_v1', {
-      p_season_number: seasonNumber,
-    }).then(({ data, error }) => {
-      if (active && !error && data && typeof data === 'object')
-        setStatus(data as Status);
-    }).catch(() => undefined);
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('kl_s2_series_reflection_status_v1', {
+          p_season_number: seasonNumber,
+        });
+        if (active && !error && data && typeof data === 'object')
+          setStatus(data as Status);
+      } catch { /* Do not show an unverified reward form offline. */ }
+    })();
     return () => { active = false; };
   }, [seasonNumber, refreshToken]);
 
