@@ -17,7 +17,8 @@
     "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
     "tests/protected-feature-lock-daily-proverbs-20261119.test.mjs",
     "contracts/season2-proposals/daily-proverbs-show-faith-20261119.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "contracts/season2-implementation-ledger.json"
   ],
   "regressionTests": [
     "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
@@ -70,5 +71,32 @@
         "tests/protected-feature-lock-daily-proverbs-20261119.test.mjs"
       ]
     }
+  ],
+  "productionBaselineEvidence": "Read-only GitHub inspection of current main (0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf) and Season2 integration base cd8efbc8a7bf7deb8940764696a7f7d2412183a8 on 2026-11-19. No live runtime, EAS staging artifact, Android device or Supabase write verified for this feature.",
+  "chosenApproach": "Bundled read-only 31 Proverbs KJV verses for immediate offline first paint, with optional timeout-bound existing ASD Bible chapter read and cache, filtered by Show Faith scope before rendering and placed after existing first-view ad.",
+  "selectionRationale": "Avoid posts, backend migrations, duplicated author feeds, reward mutations and paid Expo builds; reuse current Bible reader data and selected language. Preserve ten locked Season2 exclusives and December 6 embargo.",
+  "acceptanceChecks": [
+    "31 valid distinct references selected by Manila day, including midnight rollover",
+    "Hide for opted-out Non-Show Faith and scoped Reels",
+    "First-view Community ads remain before Proverbs card and existing feed ordering and media unchanged",
+    "Bible link opens book 20 and exact passage without point grants",
+    "Source CI + TypeScript compile must pass before staging integration and no production OTA without separate owner authorization"
+  ],
+  "alternativeApproaches": [
+    "Auto-publish a fresh Community post daily: rejected because it mutates server feed, requires cron/permissions, and can duplicate content or introduce accidental reward grants",
+    "Use a new daily-verse third-party endpoint: rejected due to weak-network latency and external dependency/copyright risks",
+    "Deliver simple static repeatable card first and use existing Bible RPC when online: chosen because safe and offline-capable"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "faith-cluster",
+    "cluster-faith",
+    "navigation-auth",
+    "governance-lock",
+    "production-release",
+    "ads-monetization",
+    "offline-and-weak-network",
+    "localization"
   ]
 }
