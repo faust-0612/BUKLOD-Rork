@@ -30,6 +30,7 @@ import KlChapterAudio from '@/components/kabihasnang-ligaw/KlChapterAudio';
 import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
 import KlReadingQuiz from '@/components/kabihasnang-ligaw/KlReadingQuiz';
+import KlSeriesReflection from '@/components/kabihasnang-ligaw/KlSeriesReflection';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import {
   buildAssetGate,
@@ -149,6 +150,9 @@ export default function KlReaderScreen() {
   const [releasedChapters, setReleasedChapters] = useState<ReleasedChapter[]>([]);
   const [journeyResult, setJourneyResult] = useState<{ userId: string; completed: number } | null>(null);
   const [journeyRefreshToken, setJourneyRefreshToken] = useState(0);
+  const [s2Progress, setS2Progress] = useState<{
+    ownerId: string; enabled: boolean; next_chapter_number: number;
+  } | null>(null);
   const [dynamicMedia, setDynamicMedia] = useState<DynamicMedia[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [mediaErrors, setMediaErrors] = useState<Record<string, string>>({});
@@ -185,12 +189,17 @@ export default function KlReaderScreen() {
     cellularGeneration: cellGeneration,
     userDataSaver: cache.dataSaver,
   });
+  const selectedS2Locked = Boolean(selected && selected.episodeNumber > 0 &&
+    s2Progress?.ownerId === user?.id && s2Progress?.enabled === true &&
+    selected.episodeNumber > (s2Progress?.next_chapter_number ?? 0));
   const reading = selectMemberReading({
-    locallyReadable: decision?.readable === true || Boolean(selected && releasedNumbers.has(selected.episodeNumber)),
-    serverState,
-    serverText,
-    bundledText: selected?.prose ?? null,
-    cachedText: selected ? cache.releasedProse[selected.id] ?? null : null,
+    // A previously cached manuscript must not bypass an authenticated S2 lock.
+    locallyReadable: !selectedS2Locked &&
+      (decision?.readable === true || Boolean(selected && releasedNumbers.has(selected.episodeNumber))),
+    serverState: selectedS2Locked ? 'hidden' : serverState,
+    serverText: selectedS2Locked ? null : serverText,
+    bundledText: selectedS2Locked ? null : selected?.prose ?? null,
+    cachedText: selectedS2Locked ? null : selected ? cache.releasedProse[selected.id] ?? null : null,
   });
   const paragraphs = reading.text ? splitCanonicalParagraphs(reading.text, selected?.episodeNumber ?? 0) : [];
   const sceneRows = STORYBOARD.filter((row) => row.episodeId === selected?.id);
@@ -553,14 +562,40 @@ export default function KlReaderScreen() {
     return () => { active = false; };
   }, [user?.id, journeyRefreshToken]);
 
+  // A single authenticated status read drives visible chapter locks.
+  // The server-side access/session gate also protects legacy app versions.
   useEffect(() => {
-    if (!selected || !selectedDbId || serverState !== 'readable' || !appActive || !routeFocused || !online) return;
+    let active = true;
+    if (!user?.id) {
+      setS2Progress(null);
+      return () => { active = false; };
+    }
+    const ownerId = user.id;
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('kl_s2_reader_progress_v1', {
+          p_season_number: 1,
+        });
+        if (!active || error || !data || typeof data !== 'object') return;
+        const state = data as { ok?: boolean; enabled?: boolean; next_chapter_number?: number };
+        if (state.ok === true && Number.isInteger(state.next_chapter_number)) {
+          setS2Progress({ ownerId, enabled: state.enabled === true,
+            next_chapter_number: state.next_chapter_number as number });
+        }
+      } catch { /* Network failures never grant access on the server. */ }
+    })();
+    return () => { active = false; };
+  }, [user?.id, journeyRefreshToken]);
+
+  useEffect(() => {
+    if (!selected || !selectedDbId || serverState !== 'readable' || !appActive || !routeFocused || !online ||
+      (s2Progress?.ownerId === user?.id && s2Progress?.enabled === true)) return;
     const episodeId = selectedDbId;
     const timer = setInterval(() => {
       void supabase.rpc('kl_reading_progress_v1', { p_episode_id: episodeId, p_action: 'ping' });
     }, 20000);
     return () => clearInterval(timer);
-  }, [selectedDbId, serverState, appActive, routeFocused, online]);
+  }, [selectedDbId, serverState, appActive, routeFocused, online, s2Progress, user?.id]);
 
   useEffect(() => {
     if (selected && serverState === 'readable' && online) {
@@ -669,7 +704,14 @@ export default function KlReaderScreen() {
     }
     if (sequence === openSequence.current) await persist(nextCache);
   };
+  const episodeSequenceLocked = (episodeId: string) => {
+    const episode = EPISODES.find((item) => item.id === episodeId);
+    return Boolean(episode && episode.episodeNumber > 0 &&
+      s2Progress?.ownerId === user?.id && s2Progress?.enabled === true &&
+      episode.episodeNumber > (s2Progress?.next_chapter_number ?? 0));
+  };
   const episodeReadable = (episodeId: string) => {
+    if (episodeSequenceLocked(episodeId)) return false;
     const fromCatalog = EPISODES.find((item) => item.id === episodeId);
     if (fromCatalog && releasedNumbers.has(fromCatalog.episodeNumber)) return true;
     const episode = EPISODES.find((item) => item.id === episodeId);
@@ -695,6 +737,7 @@ export default function KlReaderScreen() {
     if (!episodeReadable(episodeId)) {
       setLockedId(episodeId);
       setSelectedId(null);
+      if (episodeSequenceLocked(episodeId)) setNotice(klCopy.previousChapterRequired);
       return;
     }
     setLockedId(null);
@@ -934,6 +977,9 @@ export default function KlReaderScreen() {
             ) : null}
             <KlReadingQuiz key={selectedDbId ?? 'unavailable'} episodeId={selectedDbId}
               onVerified={() => setJourneyRefreshToken((token) => token + 1)} />
+            {selected.episodeNumber === 30 ? (
+              <KlSeriesReflection seasonNumber={1} refreshToken={journeyRefreshToken} />
+            ) : null}
 
             <KlLiveDiscussion episodeId={selectedDbId ?? klDatabaseId(selected.episodeNumber)} live={liveReleased} />
           </View>
@@ -997,7 +1043,9 @@ export default function KlReaderScreen() {
                     />
                     <Text style={styles.meta}>{readable ? klCopy.readable : klCopy.locked}</Text>
                   </View>
-                  {showLock ? <Text style={styles.body}>{klCopy.lockedDetail}</Text> : null}
+                  {showLock ? <Text style={styles.body}>
+                    {episodeSequenceLocked(episode.id) ? klCopy.previousChapterRequired : klCopy.lockedDetail}
+                  </Text> : null}
                   </Pressable>
                   {isSystemAdmin ? (
                     <View style={{ marginTop: 10, gap: 8 }}>

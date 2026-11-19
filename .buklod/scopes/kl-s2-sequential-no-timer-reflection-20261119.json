@@ -1,0 +1,92 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kl-s2-sequential-no-timer-reflection-20261119.json",
+  "objective": "Season 2 only: forbid skipping KL chapters; approve on verified quiz without elapsed reading time; immediately unlock next chapter; show short series lesson and require a private 50+ character original personal reflection to claim the single +50 BP series bonus.",
+  "baseRef": "316a661ce5d3ddde3b542ab7877e63717963c161",
+  "branch": "dev/kl-s2-sequential-no-timer-reflection-20261119",
+  "environment": "DEV only; no Main merge, backend migration, Season2 activation, staging OTA or production OTA.",
+  "productionBaselineEvidence": "verified: live BUKLOD MAIN Supabase RPC definitions inspected read-only on 2026-11-19; DEV base SHA 316a661ce5d3ddde3b542ab7877e63717963c161 is not a verified served production OTA artifact.",
+  "chosenApproach": "Keep Season1 legacy behavior when rollout flag is OFF. Add two additive S2 migrations: private idempotent reflection receipt +50 ledger, no-timer quiz-only S2 reading completion, and legacy server manuscript/media lock. Drive chapter UI from account-scoped server progress rather than local cache.",
+  "selectionRationale": "Client-only chapter locks are bypassable; timer-only fallback contradicts quiz approval; +50 series reward before personal reflection contradicts series completion contract. Per-user idempotent ledger prevents retries and duplicate credit.",
+  "riskAreas": [
+    "app-runtime",
+    "backend-security",
+    "season2-reward-authority",
+    "production-embargo",
+    "RLS",
+    "old-clients",
+    "offline-network",
+    "story",
+    "quiz-classroom"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kl-s2-sequential-no-timer-reflection-20261119.json",
+    ".github/workflows/buklod-kl-s2-sequential-source-qa-20261119.yml",
+    "src/components/kabihasnang-ligaw/KlSeriesReflection.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "supabase/migrations/20261119221000_kl_s2_sequential_no_timer_series_reflection.sql",
+    "supabase/migrations/20261119221500_kl_s2_reader_rpc_server_lock.sql",
+    "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs",
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+    "supabase/tests/kl_s2_sequential_quiz_reflection_guard_20261119.sql"
+  ],
+  "preserveBehaviors": [
+    "No changes to current production/Season1 BP, quiz time fallback while Season2 rollout disabled, QMP or cash balances.",
+    "Season2 5+N BP remains pending until next verified chapter (chapter 30 until next series chapter1), +5 eligible chapter comment unchanged.",
+    "Actual manuscript/media access and points reward are enforced server-side; old clients cannot bypass chapter order.",
+    "No AI/human/manual review needed for personal reflection length plus distinct-word check; personal reflection stays private.",
+    "Staging source remains independent of live production, release and native runtime."
+  ],
+  "acceptanceChecks": [
+    "All 30 chapters are sequential per authenticated member, locked until prior chapter quiz was verified.",
+    "S2 quiz correct 3/3 completes chapter immediately independent of seconds/pings and triggers next unlock refresh.",
+    "S2 series bonus +50 requires all 30 verified plus one genuine-looking 50+ character personal reflection.",
+    "One idempotent +50 per user/series, no duplicate credit on retries/concurrent submits, no anon/private table read.",
+    "Season1 legacy behavior preserved while rollout disabled; rollout not automatically activated before 2026-12-06.",
+    "Static source and TypeScript QA pass; DB runtime/RLS/actual staging and production gates remain independent."
+  ],
+  "regressionTests": [
+    "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs",
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+    "supabase/tests/kl_s2_sequential_quiz_reflection_guard_20261119.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Make KL reader and dynamic library respect live server progress; verified chapter triggers next chapter unlock; show private finale reflection.",
+      "preservedBehaviors": [
+        "Maintain released/approved chapter checks, reader audio, media, navigation, discussion, and existing Season1 behavior."
+      ],
+      "tests": [
+        "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add private RLS reflection table and member-scoped RPC plus immutable ledger receipt; close old-client manuscript/media bypass.",
+      "preservedBehaviors": [
+        "Account identity is always auth.uid, anon cannot query private records, old release/admin permission checks retained, no balances or rewards can be forged."
+      ],
+      "tests": [
+        "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+        "supabase/tests/kl_s2_sequential_quiz_reflection_guard_20261119.sql"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV draft PR to existing KL Season2 source only; merge into consolidated staging after QA and independent backend, not production.",
+  "prodSeason2Authorization": false,
+  "s2EffectiveAtManila": "2026-12-06T00:00:00+08:00",
+  "stagingServerVerified": false,
+  "productionChange": false,
+  "knownBlockers": [
+    "No independently verified KL staging Supabase backend. Source migrations not applied anywhere.",
+    "Live DB behavioral tests and Android compiled tests not yet performed.",
+    "Staging EAS OTA account has unknown billing; no paid publishes authorized."
+  ],
+  "alternativeApproaches": [
+    "Client-only chapter unlock and personal text checking (rejected: trivial to bypass server privacy and points)",
+    "Keep 60-second plus 2-ping fallback after S2 starts (rejected: violates owner's no-timer requirement and allows quiz bypass)",
+    "Immediate +50 on completing chapter30 (rejected: requires personal reflection first)"
+  ]
+}

@@ -1,0 +1,47 @@
+name: KL Season2 Sequential Reading + Reflection — DEV source QA only
+on:
+  pull_request:
+    paths:
+      - 'src/components/kabihasnang-ligaw/KlReaderScreen.tsx'
+      - 'src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx'
+      - 'src/components/kabihasnang-ligaw/KlSeriesReflection.tsx'
+      - 'supabase/migrations/20261119221000_kl_s2_sequential_no_timer_series_reflection.sql'
+      - 'supabase/migrations/20261119221500_kl_s2_reader_rpc_server_lock.sql'
+      - 'tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs'
+      - '.buklod/scopes/kl-s2-sequential-no-timer-reflection-20261119.json'
+      - '.github/workflows/buklod-kl-s2-sequential-source-qa-20261119.yml'
+permissions:
+  contents: read
+jobs:
+  kl-s2-isolated-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Scope release ban — no DB, no Expo update or production secrets
+        run: |
+          test "${{ github.event_name }}" = "pull_request"
+          test -z "${SUPABASE_DB_URL:-}"
+          test -z "${EXPO_TOKEN:-}"
+          test -z "${EAS_TOKEN:-}"
+      - name: Install locked dependencies without scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck and focused chapter/reward regression contracts
+        run: |
+          npx tsc --noEmit
+          node --experimental-strip-types --test \
+            tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs \
+            tests/kl-s2-sequence-database-security-20261119.test.mjs \
+            tests/kl-s2-progressive-chapters-ads-20261119.test.mjs \
+            tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs \
+            tests/kl-s2-rewards-15-5-min20-20261119.test.mjs
+      - name: Evidence is source-only, NOT database or OTA verification
+        if: always()
+        run: |
+          echo "No Supabase migration, app build, staging update or production publish was performed." >> "$GITHUB_STEP_SUMMARY"
