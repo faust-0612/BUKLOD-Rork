@@ -48,7 +48,7 @@ test('fresh password + destination OTP required before linking',()=>{
  assert.match(migrator,/action==='finalize'/);
  assert.match(migrator,/ALREADY_PENDING/);
  assert.match(backend,/status in \('VERIFIED','COMPLETED'\)/);
- assert.match(backend,/Service authorization required/);
+ assert.match(backend,/Server service authorization required/);
 });
 test('optional contact delivery is disabled until configured, audited and not mistaken for delivery',()=>{
  assert.match(backend,/legacy_reminders_enabled boolean not null default false/);
