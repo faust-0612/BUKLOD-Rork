@@ -7,6 +7,7 @@
 import React,{useMemo,useState} from 'react';
 import {Pressable,StyleSheet,Text,View} from 'react-native';
 import {useBuklodI18n} from '@/providers/BuklodI18nProvider';
+import {plannedS2BadgeCriteria} from '@/lib/season2/buklodSeason2BadgeEligibilityR1';
 import {
   BUKLOD_CHARACTER_WORLD_IDS,BUKLOD_CHARACTER_WORLD_SPECIAL_IDS,
   BUKLOD_CHARACTER_DISPLAY_NAME,BUKLOD_CHARACTER_STAGES,
@@ -116,12 +117,7 @@ export default function BuklodS2AllItemsBadgesGuide(){
     selected={badgeKind===x.id} onPress={()=>setBadgeKind(x.id)}/>)}</View>
    <Text style={s.heading}>{badgeKind==='series'?'Across all Characters':BUKLOD_CHARACTER_DISPLAY_NAME[charId]} · {namesByBadgeCategory.length} {t('pangalan','names')}</Text>
    {namesByBadgeCategory.map((name,i)=>{
-    const desc=badgeKind==='stage'
-      ?t('Candidate matapos ang stage/5-item mastery sa '+BUKLOD_CHARACTER_STAGES[charId][i]+' (level '+(i+1)+'); requires server certificate','Candidate upon stage/5-item mastery at level '+(i+1)+'; needs server certification')
-      :badgeKind==='era'?t('Candidate matapos ang buong 4-level era at verified mastery; hindi automatic','Candidate after completed four-level era and verified mastery; not automatic')
-      :badgeKind==='journey'?t('Journey milestone; exact backend threshold at claim pending','Journey milestone; exact backend threshold and claim pending')
-      :badgeKind==='starter'?t('Catalog only; ownership/claim must be independently verified','Catalog only; ownership and claim independently verified')
-      :t('Cross-character / cross-era milestone, server-certified','Cross-character/era milestone, server-certified');
+    const desc=plannedS2BadgeCriteria(badgeKind,i,en);
     return <Line key={name} title={name} detail={desc} side={t('CATALOG','CATALOG')}/>;
    })}
    <Text style={s.note}>{t(

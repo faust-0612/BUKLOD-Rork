@@ -455,3 +455,7 @@ Read-only inspection on November 19 found `private.buklod_kingdom_sync_shards_v1
 
 The Kingdom Shard wallet conserves `earned - spent = balance`, prevents negative balances, and uses server-source uniqueness. Shards do **not** convert to Journey Tokens, BP, QMP, cash, payout, or other characters' XP. Season 2 cooperative quest rewards and new collectible mastery grants remain separately **DISABLED**, even though this legacy Kingdom source exists.
 
+## 19. Proposed full badge-category eligibility for all 469 catalog titles
+
+The exact proposed conditions for 13 signature, 260 Stage Mastery, 65 Era Mastery, 13 Character Mastery, 52 Journey, 58 starter, and 8 shared Series/World badges appear under Section J in the complete item/badge catalogue. The UI lets a member select the Character and badge category to see its specific stage, era, halfway/complete journey, special rank and server receipt requirements. **Status is PROPOSED / NOT LIVE**; neither artwork nor preview generates a badge or BP. Formal grants and final criteria require the isolated backend and owner release approval.
+

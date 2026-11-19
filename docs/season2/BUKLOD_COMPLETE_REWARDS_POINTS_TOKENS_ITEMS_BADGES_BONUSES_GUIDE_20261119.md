@@ -475,6 +475,10 @@ Read-only inspection on November 19 found `private.buklod_kingdom_sync_shards_v1
 
 The Kingdom Shard wallet conserves `earned - spent = balance`, prevents negative balances, and uses server-source uniqueness. Shards do **not** convert to Journey Tokens, BP, QMP, cash, payout, or other characters' XP. Season 2 cooperative quest rewards and new collectible mastery grants remain separately **DISABLED**, even though this legacy Kingdom source exists.
 
+## 19. Proposed full badge-category eligibility for all 469 catalog titles
+
+The exact proposed conditions for 13 signature, 260 Stage Mastery, 65 Era Mastery, 13 Character Mastery, 52 Journey, 58 starter, and 8 shared Series/World badges appear under Section J in the complete item/badge catalogue. The UI lets a member select the Character and badge category to see its specific stage, era, halfway/complete journey, special rank and server receipt requirements. **Status is PROPOSED / NOT LIVE**; neither artwork nor preview generates a badge or BP. Formal grants and final criteria require the isolated backend and owner release approval.
+
 
 
 ---
@@ -1390,3 +1394,20 @@ Season 2 cannot automatically activate on December 6. It requires the independen
 - **+2 Shards** once for each redeemed, canonical Character collectible with server-owned non-null `redeemed_at` (`collectible_id`-unique). Mere image/preview does not qualify.
 - **Spend:** Wisdom Lens 2, Guardian Shield 3, Explorer Compass 2, Emerald Aura 10 Shards. These are permanent Kingdom practice powers, not Season 2 Journey Token cosmetics or cash.
 - Existing private Shards sync function and wallet table were observed in the connected BUKLOD MAIN on November 19, 2026. This observation does not prove that every client has earned or spent those Shards.
+
+## J. Complete proposed unlock criteria by badge family (source-only, not live)
+
+These rules are a **proposed deterministic Season 2 target** for the already cataloged 469 named Character badges; they do not change Season 1 ownership and are NOT yet owner-final-approved or deployable grants.
+
+| Badge family | Count | Exact proposed qualification |
+|---|---:|---|
+| Character signature | 13 | Canonical unlocked/selected Character; special rank gate if applicable; signed one-time entitlement |
+| Stage Mastery | 260 | All five distinct I1-I5 collectibles certified by the server for a matching Character and level |
+| Era Mastery | 65 | Four respective Stage Mastery badges completed: BEGIN 1-4, GROW 5-8, CONTRIBUTE 9-12, LEAD 13-16, LEGACY 17-20 |
+| Character Mastery | 13 | All 20 Stage Mastery badges and all five Era Mastery badges for one Character |
+| Character Journey badges | 52 | Journey Unlocked: canonical selected/unlocked Character; Collection Half-Way: 50/100 distinct certified items; Collection Complete: 100/100 items; Legacy Path Cleared: Character Mastery plus verified final Legacy mission or fair solo equivalent |
+| Starter/asset badges | 58 | Server-owned, one-time starter entitlement for each catalog asset after Character unlock and special rank gate where applicable; not artwork alone |
+| Shared series/world badges | 8 | Five Core Path: all 5 Core Character Mastery; Eight Special Path: all 8 Special Mastery; Thirteen World: all 13 Mastery; five named Era Circle badges: 13/13 corresponding Character Era Mastery certificates |
+
+**Claiming:** one award per canonical badge/source key, server receipt, RLS/account and Character isolation, no retry farming, and no duplicate on season changes. All claim/ownership switches remain OFF. Existing earned badges persist; pending candidate criteria cannot retroactively relock them. None of these visual/title badges automatically adds BP, QMP, cash or a gameplay multiplier.
+
