@@ -1,0 +1,92 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-conso-item-preview-20261119.json",
+  "objective": "Consolidated zero-budget Season2 item/Token/Badge how-to-earn guide + dormant isolated claim contract for Dec 6 readiness; staging-only visual preview; no paid/production/backend awards.",
+  "baseRef": "integration/season2-conso-staging-20261119",
+  "branch": "dev/season2-conso-no-cost-item-preview-20261119",
+  "productionChange": false,
+  "releaseAuthorized": false,
+  "releaseTarget": "STAGING_SOURCE_PREVIEW_ONLY",
+  "productionBaselineEvidence": "Existing staging integration SHA 6725c5ce455e78ecf40dcb81fe93aa160f701467; earlier verified production Train A source 404c87e55c62a88c95c7389ac8665f237149702a update 01a1ee79-b1f1-7295-9d48-0238ffe0202a. Fresh production served manifest not verified by this code change.",
+  "chosenApproach": "Copy only PR-966 approved guide, Character ownership fix, two focused tests and dormant SQL into exact existing conso staging source, preserving other newer staging features; no cloud DB or native build.",
+  "selectionRationale": "Avoid creating paid isolated infrastructure and keep existing S1 rewards secure. Provide full member instructions to test via free staging OTA while keeping the real token, badge, claim and wallet backends disabled until a separate isolated backend and all gates exist.",
+  "alternativeApproaches": [
+    "Create a new Supabase project for Season2 now: rejected as cost-sensitive without budget.",
+    "Use the existing live Main database as a staging test backend: rejected because it would put production Season1 records at risk.",
+    "Reuse the current low-cost staging OTA and ship disabled UI/source contract only: selected."
+  ],
+  "preserveBehaviors": [
+    "Production and existing Season1 reward data, BP, QMP, cash, AdMob, auth and Connect unchanged.",
+    "No live Season2 grants, backend schema migrations, spending, wallet or automatic Dec 6 unlock.",
+    "Existing server-owned Character items remain permanent and not revoked by optional S2 mastery.",
+    "No new native build, paid Supabase project/branch or unverified release."
+  ],
+  "allowedPaths": [
+    "src/components/points/BuklodProgressiveCharacterSelector.tsx",
+    "src/components/points/BuklodS2CollectibleGuidePanel.tsx",
+    "src/components/points/BuklodS2RewardInstructions.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "src/lib/season2/buklodSeason2CollectibleGuideR1.ts",
+    "docs/season2/sql/BUKLOD_S2_COLLECTIBLE_MASTERY_DRAFT_NOT_DEPLOY.sql",
+    "tests/season2-character-item-ownership-20261119.test.mjs",
+    "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+    "contracts/season2-proposals/item-requirements-20261119.json",
+    "contracts/season2-implementation-ledger.json",
+    "tests/season2-zero-budget-item-preview-20261119.test.mjs",
+    "docs/season2/BUKLOD_S2_ZERO_BUDGET_READINESS_20261119.md",
+    ".buklod/scopes/season2-conso-item-preview-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/season2-character-item-ownership-20261119.test.mjs",
+    "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+    "tests/season2-zero-budget-item-preview-20261119.test.mjs"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character",
+    "backend-security",
+    "season1-protection",
+    "budget-protection",
+    "staging-only"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add dormant staging preview guides and correct misleading Character ownership presentation without changing any production app.",
+      "preservedBehaviors": [
+        "Existing authentication, Wall, Connect, navigation, AdMob and financial reward screens remain untouched.",
+        "Current Character reward RPCs are not replaced by the optional Season2 mastery candidate."
+      ],
+      "tests": [
+        "tests/season2-character-item-ownership-20261119.test.mjs",
+        "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+        "tests/season2-zero-budget-item-preview-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Make Character level eligibility distinct from canonical redeemed items and keep the new Season2 mastery outside the existing inventory.",
+      "preservedBehaviors": [
+        "Each of the 13 Characters retains independent persistent levels; existing 1,300 artwork IDs and earned items are preserved.",
+        "Kingdom cannot grant server-owned items through local preview status."
+      ],
+      "tests": [
+        "tests/season2-character-item-ownership-20261119.test.mjs",
+        "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+        "tests/season2-zero-budget-item-preview-20261119.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "GitHub protected-feature scope, Season2 governance, two focused source tests and zero-budget hold test pass.",
+    "Strict TypeScript, existing AdMob/instant-nav/Character regression gates pass.",
+    "If an Expo Free-tier no-charge OTA is confirmed, publish only to staging-user and verify exact manifest and unchanged production.",
+    "No device test claim, no paid EAS build, no new Supabase project, and no Season2 reward activation."
+  ],
+  "knownBlockers": [
+    "No cost-free isolated Main staging Supabase certified; real S2 grants disabled",
+    "Physical-device test waived by owner; no physical AdMob verification",
+    "Expo plan/no-charge OTA allowance not yet confirmed"
+  ],
+  "publicationStatus": "DEV_SOURCE_ONLY_NOT_PUBLISHED"
+}

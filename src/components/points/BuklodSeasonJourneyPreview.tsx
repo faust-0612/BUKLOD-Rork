@@ -1,4 +1,7 @@
 import React,{useMemo,useState} from 'react';
+import BuklodSeason2ApprovedExclusivePreview from '@/components/points/BuklodSeason2ApprovedExclusivePreview';
+import BuklodS2CollectibleGuidePanel from '@/components/points/BuklodS2CollectibleGuidePanel';
+import BuklodS2RewardInstructions from '@/components/points/BuklodS2RewardInstructions';
 import {Pressable,StyleSheet,Text,View,type DimensionValue} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {SEASON_JOURNEY_TRACKS,
@@ -27,6 +30,7 @@ export default function BuklodSeasonJourneyPreview({
   const [prologue,setPrologue]=useState(BUKLOD_SEASON2_PROLOGUE_INITIAL);
   const [roadmapOpen,setRoadmapOpen]=useState(false);
   const [weekDetail,setWeekDetail]=useState<number|null>(null);
+  const [masteryGuideOpen,setMasteryGuideOpen]=useState(false);
   const castId=BUKLOD_SEASON2_CAST_ORDER[castIndex];
   const cast=BUKLOD_SEASON2_CHARACTER_CAST[castId];
   const prologueScene=season2PrologueScene(prologue,castId);
@@ -65,6 +69,9 @@ export default function BuklodSeasonJourneyPreview({
       {open?(
         <View style={s.content}>
           <Text style={s.description}>{subtitle}</Text>
+          <Text style={s.description}>
+            SEASON CARRYOVER: Only seasonal competition and mission progress reset. Lifetime Circle Rank, each Character level, earned items and badges, QMP and withdrawals remain protected. Preview only; no reset is scheduled here.
+          </Text>
           <View style={s.planBox}>
             <Text style={s.planTitle}>SEASON 2 PREPARATION · DECEMBER 6, 2026</Text>
             <Text style={s.planDesc}>Target opening only. Season 1 results and official publication must be verified before these become real announcements.</Text>
@@ -89,6 +96,7 @@ export default function BuklodSeasonJourneyPreview({
               </View>
             </View>
           ):null}
+          <BuklodSeason2ApprovedExclusivePreview />
           <Text style={s.sectionTitle}>CHOOSE YOUR ADVENTURE</Text>
           <View style={s.choices}>
             {SEASON_JOURNEY_TRACKS.map(item=>(
@@ -221,6 +229,14 @@ export default function BuklodSeasonJourneyPreview({
               ):null}
             </View>
           )):null}
+          <Pressable accessibilityRole="button" accessibilityState={{expanded:masteryGuideOpen}}
+            accessibilityLabel="Open Season 2 requirements for all 1300 Character items"
+            onPress={()=>setMasteryGuideOpen(value=>!value)}
+            style={{paddingVertical:13,paddingHorizontal:12,borderRadius:12,borderWidth:1,borderColor:C.gold,marginTop:8}}>
+            <Text style={{fontWeight:'900',fontSize:12,color:C.gold}}>{masteryGuideOpen?'CLOSE ITEM REQUIREMENTS':'HOW TO EARN ITEMS · 13 CHARACTERS · 1,300 ITEMS'}</Text>
+            <Text style={{fontSize:11,color:C.muted,marginTop:4}}>Requirements · purpose · prerequisites · verified claims · Season 2 preview only</Text>
+          </Pressable>
+          {masteryGuideOpen?<><BuklodS2RewardInstructions /><BuklodS2CollectibleGuidePanel /></>:null}
           <View style={s.prize}>
             <MaterialCommunityIcons name="star-circle-outline" color={C.gold} size={22}/>
             <View style={{flex:1}}>

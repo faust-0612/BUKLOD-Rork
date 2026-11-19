@@ -1,0 +1,176 @@
+name: BUKLOD Season 2 Consolidated Android Staging OTA — NO PRODUCTION
+on:
+  push:
+    branches: [integration/season2-conso-staging-20261119]
+    paths: [.buklod/releases/season2-conso-staging-20261119.json]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-season2-conso-staging-ota
+  cancel-in-progress: false
+jobs:
+  staging-only:
+    if: ${{ github.ref == 'refs/heads/integration/season2-conso-staging-20261119' && startsWith(github.event.head_commit.message, 'BUKLOD_S2_CONSO_STAGE_20261119:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      BUKLOD_CI_BASE: origin/staging/season2-rise-together-preview-20261118
+      OUT: /tmp/buklod-s2-conso-20261119
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Fail closed on staging source, campaign flags, package, channel and production auth drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          test "$GITHUB_REF" = "refs/heads/integration/season2-conso-staging-20261119"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/integration/season2-conso-staging-20261119 | cut -f1)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor af95563fab1d053c82963df65da5f6d55348d811 "$GITHUB_SHA"
+          git diff --exit-code 404c87e55c62a88c95c7389ac8665f237149702a "$GITHUB_SHA" -- 'src/app/(auth)/login.tsx' src/providers/AuthProvider.tsx
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const req=JSON.parse(fs.readFileSync('.buklod/releases/season2-conso-staging-20261119.json','utf8'));
+          a.equal(req.target,'staging-user');
+          a.equal(req.mode,'preview_only_rewards_off');
+          a.equal(req.productionAuthorized,false);
+          a.equal(req.backendRewardsLive,false);
+          a.equal(req.season2RewardDbWritesAuthorized,false);
+          a.equal(req.requiresSeparateOwnerApprovalForRewards,true);
+          a.equal(req.rewardsHoldUntilManilaDay,'2026-12-06');
+          const app=require('./app.config.js')({config:{}}),e=require('./eas.json');
+          a.equal(app.android.package,'org.mzbministry.buklod.staging');
+          a.equal(app.runtimeVersion,'1.3.2');
+          a.equal(app.extra.appEnvironment,'staging');
+          a.equal(app.extra.appTarget,'main');
+          a.equal(e.build['staging-user'].channel,'staging-user');
+          a.equal(e.build['staging-user'].environment,'preview');
+          a.notEqual(e.build.production.channel,'staging-user');
+          NODE
+      - name: Fully rerun source, rollover, reward isolation and AdMob/navigation regression gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/season2-owner-scope-lock.cjs
+          node --test tests/season2-owner-scope-lock-20261119.test.cjs
+          node scripts/season2-governance.cjs validate
+          node scripts/season2-governance.cjs ci
+          node scripts/seasonal-constitution.test.cjs
+          node --experimental-strip-types --test             tests/season2-governance-contract.test.mjs             tests/season2-governance-production-release-gate.test.mjs             tests/buklod-season2-carryover-contract-20261119.test.mjs             tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs             tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs             tests/buklod-season2-offline-outbox-r1-20261118.test.mjs             tests/buklod-season2-durable-outbox-r1-20261118.test.mjs             tests/buklod-season2-campaign-r1-20261118.test.mjs             tests/buklod-season2-staging-release-contract-20261118.test.mjs             tests/dashboard-instant-tabs-20261117.test.mjs             tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs             tests/ad-dashboard-focus-performance-20261116.test.mjs             tests/season2-expo-free-plan-release-20261119.test.mjs             tests/season2-zero-budget-item-preview-20261119.test.mjs             tests/season2-character-item-ownership-20261119.test.mjs             tests/season2-collectible-mastery-guide-20261119.test.mjs
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+          node scripts/buklod-ad-surface-audit.mjs --summary
+          node --test tests/season2-visual-only-hold-20261119.test.cjs tests/season2-production-release-staging-only-hold-20261119.test.cjs
+          node scripts/buklod-season2-staging-order-gate.cjs
+      - name: Fail closed unless Expo billing proves Free plan (zero-charge OTA only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          private_file="$(mktemp /tmp/buklod-eas-plan.XXXXXXXX.json)"
+          trap 'rm -f "$private_file"' EXIT
+          npx --yes eas-cli@27.9.0 account:usage faust_0612 --json --non-interactive > "$private_file"
+          node scripts/season2-expo-free-plan-guard.cjs "$private_file"
+      - name: Verify signed staging Android binary, current production, and separate channels
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$OUT/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$OUT/stage-before.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$OUT/prod-before.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const read=x=>JSON.parse(fs.readFileSync(process.env.OUT+'/'+x,'utf8'));
+          verifyBuild(read('build.json'));
+          verifyChannels(read('stage-before.json'),read('prod-before.json'));
+          const prod=await manifest('production');
+          assert.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          fs.writeFileSync(process.env.OUT+'/production-id.json',JSON.stringify({id:prod.id}));
+          NODE
+      - name: Export exact Android package with staging-only environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-s2-conso-env --non-interactive >/dev/null
+          set -a; . /tmp/buklod-s2-conso-env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          node <<'NODE'
+          const a=require('node:assert/strict'),c=require('./app.config.js')({config:{}});
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.ok((process.env.EXPO_PUBLIC_SUPABASE_URL||'').startsWith('https://'));
+          a.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-s2-conso-android --clear
+          test -s /tmp/buklod-s2-conso-android/metadata.json
+          test "$(git ls-remote origin refs/heads/integration/season2-conso-staging-20261119 | cut -f1)" = "$GITHUB_SHA"
+      - name: Publish idempotently ONLY to staging-user, verify actual served update and unchanged production
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$OUT/prior.json"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync(process.env.OUT+'/prior.json','utf8'));
+          const arr=d.currentPage??d;
+          a.ok(Array.isArray(arr),'Unable to verify idempotency');
+          const found=arr.find(x=>x.message==='BUKLOD_S2_CONSO_STAGE_'+process.env.GITHUB_SHA);
+          fs.writeFileSync(process.env.OUT+'/group',found?.group??'');
+          NODE
+          if [ ! -s "$OUT/group" ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android               --environment preview --skip-bundler --input-dir /tmp/buklod-s2-conso-android               --non-interactive --json --message "BUKLOD_S2_CONSO_STAGE_$GITHUB_SHA" > "$OUT/publish.json"
+            node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync(process.env.OUT+'/publish.json','utf8'));
+          a.ok(Array.isArray(d)&&d.length===1&&d[0].group);
+          fs.writeFileSync(process.env.OUT+'/group',d[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$OUT/group")" --json > "$OUT/update.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$OUT/stage-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$OUT/prod-after.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {verifyChannels,verifyUpdate,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const read=x=>JSON.parse(fs.readFileSync(process.env.OUT+'/'+x,'utf8'));
+          const id=read('production-id.json').id,stage=verifyChannels(read('stage-after.json'),read('prod-after.json'));
+          const u=verifyUpdate(read('update.json'),process.env.GITHUB_SHA,stage.name);
+          const s=await manifest('staging-user'),p=await manifest('production');
+          assert.equal(s.id.toLowerCase(),u.id.toLowerCase());
+          assert.equal(s.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(p.id,id,'PRODUCTION CHANGED DURING STAGING');
+          const receipt={status:'STAGING_SERVER_VERIFIED',sourceSha:process.env.GITHUB_SHA,
+            updateId:u.id,groupId:u.group,channel:'staging-user',runtime:'1.3.2',
+            package:'org.mzbministry.buklod.staging',productionUnchanged:id,
+            backendRewardsLive:false,rewardsHeldUntil:'2026-12-06',requiresFreshApproval:true,deviceAdMobVerified:false};
+          fs.writeFileSync(process.env.OUT+'/verified.json',JSON.stringify(receipt,null,2));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(receipt,null,2));
+          NODE
+      - name: Archive staging-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-s2-conso-staging-${{ github.sha }}
+          path: /tmp/buklod-s2-conso-20261119/*.json
+          retention-days: 14
+          if-no-files-found: ignore

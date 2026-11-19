@@ -1,0 +1,383 @@
+{
+  "contractVersion": 2,
+  "objective": "Season2 consolidated staging OTA source, governance + non-destructive rollover + isolated reward drafts; reconciled PR #963 visual-only rank badges, LIFE localization, staged release hold until Dec 6 (not automatic activation).",
+  "baseRef": "af95563fab1d053c82963df65da5f6d55348d811",
+  "productionChange": false,
+  "releaseTarget": "STAGING_ONLY",
+  "releaseAuthorized": true,
+  "scopeManifestPath": ".buklod/scopes/season2-conso-staging-20261119.json",
+  "preserveBehaviors": [
+    "Season1 prod untouched",
+    "Season2 embargo still active",
+    "No server rewards live",
+    "No financial mutations",
+    "Season 2 token grants, wallet writes, redemptions and rollover stay OFF until December 6 earliest and separately verified approval; production Season 1 BP QMP and cash unchanged."
+  ],
+  "acceptanceChecks": [
+    "Policy/source CI passes",
+    "Android runtime 1.3.2 and staging package",
+    "Actual staging EAS served manifest verified",
+    "Production EAS unchanged",
+    "Exact source reward and release isolation tests pass; no production or Supabase write; only staging-user Android manifest may change after guarded publish.",
+    "Connect latest/IME focused tests and compact seen/metadata tests pass against exact integration source, followed by TypeScript Android compilation and AdMob/navigation checks before staging OTA.",
+    "All Connect scope read reports are cursor-based and never claim per-message seen certainty without an actual per-message receipt.",
+    "Cumulative changed paths are declared exactly from main-to-integration diff; fail closed if any future code path is unlisted, even in staging."
+  ],
+  "knownBlockers": [
+    "No isolated staging database connected",
+    "AdMob device/production RC not verified"
+  ],
+  "productionBaselineEvidence": "Verified Train A source 404c87e55c62a88c95c7389ac8665f237149702a, EAS Android production update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2; verified staging Season2 preview SHA af95563fab1d053c82963df65da5f6d55348d811; physical device AdMob not verified. No production release.",
+  "allowedPaths": [
+    ".buklod/releases/season2-conso-staging-20261119.json",
+    ".buklod/scopes/season2-conso-staging-20261119.json",
+    ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
+    ".github/workflows/buklod-season2-governance-drift.yml",
+    ".github/workflows/buklod-season2-sql-dev-only-20261118.yml",
+    ".github/workflows/engineering-accountability.yml",
+    "contracts/season2-governance.json",
+    "contracts/season2-implementation-ledger.json",
+    "contracts/season2-proposals/conso-staging-20261119.json",
+    "docs/BUKLOD_SEASONAL_CONSTITUTION_20261118.md",
+    "docs/BUKLOD_SEASON_GOVERNANCE_R1_20261118.md",
+    "docs/season2/BUKLOD_S2_REWARDS_ISOLATION_ARCHITECTURE_R1_20261118.md",
+    "docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql",
+    "scripts/buklod-season2-production-embargo.cjs",
+    "scripts/buklod-season2-staging-order-gate.cjs",
+    "scripts/season2-governance.cjs",
+    "scripts/seasonal-constitution.cjs",
+    "scripts/seasonal-constitution.test.cjs",
+    "src/app/admin/index.tsx",
+    "src/app/admin/season2-readiness.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "src/lib/season2/buklodSeason2CarryoverContractR1.ts",
+    "src/lib/season2/buklodSeason2DurableOutboxR1.ts",
+    "src/lib/season2/buklodSeason2OfflineOutboxR1.ts",
+    "src/lib/season2/buklodSeason2RewardContractR1.ts",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+    "tests/buklod-season2-carryover-contract-20261119.test.mjs",
+    "tests/buklod-season2-durable-outbox-r1-20261118.test.mjs",
+    "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+    "tests/buklod-season2-offline-outbox-r1-20261118.test.mjs",
+    "tests/buklod-season2-staging-order-gate-20261118.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    "tests/season2-governance-contract.test.mjs",
+    "tests/season2-governance-production-release-gate.test.mjs",
+    "tests/season2-local-postgres-behavior-20261118.sql",
+    "tests/season2-local-postgres-fixture-20261118.sql",
+    ".github/workflows/buklod-s2-avatar-android-compile-qa-20261119.yml",
+    "assets/season2/rank-badges/buklod-circle-ranks-atlas.webp",
+    "docs/BUKLOD_SEASON2_40_AVATAR_BADGES_20261119.md",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodTappableAvatar.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
+    "src/components/points/BuklodCircleRankBadge.tsx",
+    "src/lib/buklodAvatarPresence.ts",
+    "src/lib/buklodCircleRankArt.ts",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/circle-rank-progression-20261109.test.mjs",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs",
+    "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs",
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "src/app/life/_layout.tsx",
+    "src/app/life/guide.tsx",
+    "src/app/life/impact.tsx",
+    "src/app/life/index.tsx",
+    "src/app/life/invite.tsx",
+    "src/app/life/share.tsx",
+    "src/app/life/support.tsx",
+    "src/app/life/topic.tsx",
+    "src/components/BuklodLifeTabs.tsx",
+    "src/components/BuklodLifeWallCard.tsx",
+    "src/hooks/useBuklodLifeLanguage.ts",
+    "src/lib/__tests__/buklodLifeLanguage.test.ts",
+    "src/lib/buklodLifeLanguage.ts",
+    "src/providers/BuklodLifeLanguageProvider.tsx",
+    "tests/life-language-auth-navigation-20261119.test.mjs",
+    ".buklod/scopes/season2-all-updates-20261119.json",
+    ".github/workflows/buklod-s2-all-updates-qa-20261119.yml",
+    "scripts/season2-staging-backend-isolation.cjs",
+    "tests/season2-staging-backend-isolation-20261119.test.cjs",
+    "tests/season2-visual-only-hold-20261119.test.cjs",
+    "tests/season2-production-release-staging-only-hold-20261119.test.cjs",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/lib/connectChatWindow.ts",
+    "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs",
+    ".buklod/releases/season2-staging-preview-20261118.json",
+    ".buklod/scopes/connect-composer-latest-publisher-forward-20261119.json",
+    ".buklod/scopes/expo-free-plan-no-overage-staging-20261119.json",
+    ".buklod/scopes/kl-mobile-release-controls-20261119.json",
+    ".buklod/scopes/post-detail-reactions-publisher-forward-20261119.json",
+    ".buklod/scopes/season2-conso-item-preview-20261119.json",
+    ".buklod/scopes/season2-daily-proverbs-show-faith-20261119.json",
+    ".buklod/scopes/season2-expo-free-json-guard-20261119.json",
+    ".buklod/scopes/season2-free-ota-billing-guard-20261119.json",
+    ".buklod/scopes/season2-owner-approved-ten-preview-lock-20261119.json",
+    ".buklod/scopes/season2-proverbs-915-day-cycle-20261119.json",
+    ".buklod/scopes/season2-staging-visual-preview-post-traina-prod-20261118.json",
+    ".buklod/scopes/stage-native-ad-recovery-nonseason2-20261119.json",
+    ".buklod/scopes/wall-comment-interstitial-publisher-forward-20261119.json",
+    ".github/workflows/buklod-season2-preview-staging-ota-20261118.yml",
+    "contracts/season2-owner-approved-exclusives-20261119.json",
+    "contracts/season2-proposals/daily-proverbs-show-faith-20261119.json",
+    "contracts/season2-proposals/item-requirements-20261119.json",
+    "contracts/season2-proposals/owner-exact-ten-20261119.json",
+    "contracts/season2-proposals/zero-cost-release-gate-20261119.json",
+    "docs/BUKLOD_SEASON2_STAGING_VISUAL_PREVIEW_POST_TRAIN_A_20261118.md",
+    "docs/season2/BUKLOD_S2_ZERO_BUDGET_READINESS_20261119.md",
+    "docs/season2/OWNER_APPROVED_TEN_SCOPE_LOCK_20261119.md",
+    "docs/season2/sql/BUKLOD_S2_COLLECTIBLE_MASTERY_DRAFT_NOT_DEPLOY.sql",
+    "scripts/season2-expo-free-plan-guard.cjs",
+    "scripts/season2-owner-scope-lock.cjs",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodDashboardAdWarmup.android.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodReactionAction.tsx",
+    "src/components/BuklodSeason2ProverbsDailyVerse.tsx",
+    "src/components/connect/ConnectComposer.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/components/points/BuklodProgressiveCharacterSelector.tsx",
+    "src/components/points/BuklodS2CollectibleGuidePanel.tsx",
+    "src/components/points/BuklodS2RewardInstructions.tsx",
+    "src/components/points/BuklodSeason2ApprovedExclusivePreview.tsx",
+    "src/lib/buklodNativeAdRecovery.ts",
+    "src/lib/buklodSeason2CampaignR1.ts",
+    "src/lib/buklodSeasonJourneyR2.ts",
+    "src/lib/season2/buklodDailyProverbsR1.ts",
+    "src/lib/season2/buklodProverbsKjvFullR1.ts",
+    "src/lib/season2/buklodSeason2ApprovedScopeR1.ts",
+    "src/lib/season2/buklodSeason2CollectibleGuideR1.ts",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
+    "tests/buklod-season-v2-experience-20261118.test.mjs",
+    "tests/buklod-season2-campaign-r1-20261118.test.mjs",
+    "tests/buklod-season2-staging-release-contract-20261118.test.mjs",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/connect-composer-latest-layout-20261119.test.mjs",
+    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs",
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/protected-feature-lock-daily-proverbs-20261119.test.mjs",
+    "tests/protected-feature-lock-proverbs-915-20261119.test.mjs",
+    "tests/season2-character-item-ownership-20261119.test.mjs",
+    "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+    "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+    "tests/season2-expo-free-plan-release-20261119.test.mjs",
+    "tests/season2-owner-scope-lock-20261119.test.cjs",
+    "tests/season2-production-ota-scope-lock-20261119.test.cjs",
+    "tests/season2-zero-budget-item-preview-20261119.test.mjs",
+    "tests/wall-comment-navigation-ad-20261119.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-season2-carryover-contract-20261119.test.mjs",
+    "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+    "tests/season2-governance-production-release-gate.test.mjs",
+    "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    "tests/buklod-season2-staging-order-gate-20261118.test.mjs",
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs",
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs",
+    "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/circle-rank-progression-20261109.test.mjs",
+    "tests/life-language-auth-navigation-20261119.test.mjs",
+    "tests/season2-staging-backend-isolation-20261119.test.cjs",
+    "tests/season2-visual-only-hold-20261119.test.cjs",
+    "tests/season2-production-release-staging-only-hold-20261119.test.cjs",
+    "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs",
+    "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+    "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
+    "tests/season2-character-item-ownership-20261119.test.mjs",
+    "tests/season2-collectible-mastery-guide-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add only a staging admin Season2 readiness route and non-writing seasonal carryover model while preserving existing Main gameplay/finance.",
+      "preservedBehaviors": [
+        "Season1 production behavior and earned per-character assets remain untouched",
+        "Season2 backend rewards remain entirely disabled"
+      ],
+      "tests": [
+        "tests/buklod-season2-carryover-contract-20261119.test.mjs",
+        "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Extend fail-closed source embargo and add staging-only workflow without enabling a production Season2 release.",
+      "preservedBehaviors": [
+        "December 6 production embargo and SHA-bound owner/device verification remain enforced",
+        "AdMob and instant-navigation permanent release gates remain required"
+      ],
+      "tests": [
+        "tests/season2-governance-production-release-gate.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Add explicit branch-to-manifest routing without weakening the existing protected-feature lock or production release protections.",
+      "preservedBehaviors": [
+        "Every impacted protected feature still requires changed regression tests and an exact path allowlist"
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Inject rank artwork only into existing tappable Wall avatar and self/contact bubbles without touching the video/media pipeline, photo render or scroll lifecycle.",
+      "preservedBehaviors": [
+        "Existing Community post media, video playback, comments, author navigation, and ad placements remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Show server-confirmed rank art instantly in the existing Wall author avatar without adding navigation controls or changing auth and route permissions.",
+      "preservedBehaviors": [
+        "Avatar tap continues to enter author profile, long-press actions and Community feed navigation are unchanged.",
+        "Community Wall first-view ads, comment rendering and feed race protection remain unchanged.",
+        "LIFE Filipino/English initial locale hydration and route consistency are source-reviewed; existing AuthProvider/session and Season1 production remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+        "tests/life-language-auth-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The Circle Rank Badge asset component path overlaps the permanent AdMob protected-feature regex, but this update contains no advertising or finance logic changes and must preserve ad rendering.",
+      "preservedBehaviors": [
+        "First-view AdMob placements, ad load and fill behavior, QMP, Points, withdrawals and finance authorization remain untouched."
+      ],
+      "tests": [
+        "tests/season2-avatar-admob-guard-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Use the shared Connect text-chat renderer to anchor Latest through Android keyboard resizing and make compact bubble, date/time and seen-reader feedback consistent across personal, cluster, organization and sub-organization conversations without modifying message persistence or PTT/call flows.",
+      "preservedBehaviors": [
+        "Connection membership and Supabase RLS authorization, sender identity, media upload, offline queue, message pagination, direct-message and scope room read cursors remain intact.",
+        "AdMob lifecycle, first-view ad readiness, instant tab switching and production Season1 economy remain unchanged.",
+        "Manual reading of earlier messages does not force scroll to the latest until user taps Latest or focuses composer."
+      ],
+      "tests": [
+        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cumulative approved staging scope includes Daily Proverbs and scoped Community UI preview from earlier integration commits. Enforce existing faith/community protections without changing live Season1 rewards.",
+      "preservedBehaviors": [
+        "Daily faith content, read-only Season2 preview, existing scoped community media and access permission remain preserved and no production grants are enabled."
+      ],
+      "tests": [
+        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+        "tests/buklod-community-feed-comment-ad-20261111.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Cumulative staging preview includes source-only Character requirements and collectible eligibility guide from earlier approved commits, without activation of Season2 claims or points.",
+      "preservedBehaviors": [
+        "Canonical Character ownership/XP/badges, Season1 points and protected Kingdom gameplay remain unchanged; Season2 collectibles and claims stay disabled until separately authorized."
+      ],
+      "tests": [
+        "tests/season2-character-item-ownership-20261119.test.mjs",
+        "tests/season2-collectible-mastery-guide-20261119.test.mjs"
+      ]
+    }
+  ],
+  "chosenApproach": "Preserve the already verified visual staging preview as base; reconcile dev governance and isolated disabled rewards source into one scoped staging candidate. Add read-only carryover policy, admin visibility and strict EAS stage-only workflow without production writes.",
+  "selectionRationale": "The combined source reduces feature omission while keeping backend rewards disabled and production season1 isolated; exact-scope regression and release gates prevent silent drift. Historical production update IDs are evidence of publish ordering, not an eternal head pin; a later legitimate production OTA must not block staging when the current served production manifest is reverified unchanged after publication. Updated cumulative scope explicitly includes and tests every merged PR #963 path, rather than suppressing protected-feature gate.",
+  "alternativeApproaches": [
+    "Apply SQL to existing production database: rejected because it could mutate Season1 and lacks isolated staging backend",
+    "Build a parallel non-integrated standalone preview: rejected because duplicate feature definitions would drift"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "release-identity",
+    "season1-protection",
+    "admin-ui",
+    "governance",
+    "backend-security",
+    "finance-and-ads",
+    "wall-avatar",
+    "connect-avatar",
+    "rank-visual",
+    "weak-network",
+    "supabase-presence",
+    "navigation",
+    "ads",
+    "connect",
+    "navigation-scroll",
+    "ads-monetization",
+    "faith-content-localization",
+    "profile-preferences",
+    "account-isolation",
+    "supabase-backend-isolation",
+    "production-release",
+    "cluster-faith",
+    "kingdom-character"
+  ],
+  "releaseMode": "VISUAL_PREVIEW_ONLY_REWARDS_HELD",
+  "connectConsolidatedPreparation": {
+    "classification": "NON_SEASON2_UI_RELIABILITY",
+    "sourceCommit": "ab1f37e6c222821b2bdfaa78ca5cc53ee72253b7",
+    "includedInStagingSource": true,
+    "stagingOtaPublished": false,
+    "runtime": "1.3.2",
+    "platform": "android",
+    "affectedRooms": [
+      "personal",
+      "cluster",
+      "organization",
+      "sub-organization"
+    ],
+    "changes": [
+      "latest-on-open/focus/send/keyboard",
+      "compact sender avatars and no repeated names",
+      "tap-to-reveal timestamps",
+      "scope Seen users from authorized room cursors; direct peer Seen remains existing read-at"
+    ],
+    "backendMigration": false,
+    "productionAuthorized": false,
+    "stagedReleaseIsolated": true,
+    "note": "No staging trigger file, release-marker commit prefix, EAS push or production deployment is part of this preparation.",
+    "qaStatus": "SOURCE_SCOPED_CI_RECHECK_REQUIRED_NOT_OTA_VERIFIED"
+  },
+  "cumulativeScopeReconciliation": {
+    "sourceBranch": "integration/season2-conso-staging-20261119",
+    "comparisonBaseline": "main",
+    "approvedSourceOnly": true,
+    "diffFileCount": 150,
+    "previouslyMissingExactAllowPaths": 68,
+    "allowedOnlyObservedDiffOrExistingManifest": true,
+    "changesAreManifestOnly": true,
+    "serverWrites": false,
+    "note": "All 68 added paths already exist in this exact cumulative staging diff; no source/Season2 reward code was added by this scope reconciliation."
+  }
+}

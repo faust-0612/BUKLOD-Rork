@@ -20,7 +20,7 @@ import {
   useRef,
 } from 'react';
 import {Alert,Pressable,ScrollView,Share,StyleSheet,Text,TextInput,View} from 'react-native';
-import {router,useLocalSearchParams} from 'expo-router';
+import {router,useFocusEffect,useLocalSearchParams} from 'expo-router';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {supabase} from '@/lib/supabase';
 import { acquireSharedRealtimeSubscription } from '@/lib/performance';
@@ -32,8 +32,8 @@ import {useAuth} from '@/providers/AuthProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import type { BuklodThemeRoles } from '@/lib/buklodTheme';
 import { ProfileAvatarNoteChip } from '@/components/ProfileAvatar';
-import {recordConfirmedCommunityComment} from '@/lib/buklodCommunityCommentAdCadence';
-import {warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
+import {recordConfirmedCommunityComment,takePendingCommunityCommentAdBreak} from '@/lib/buklodCommunityCommentAdCadence';
+import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 
 
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
@@ -59,6 +59,7 @@ import {
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import {
   type BuklodCommunityReactionKey,
+  sumCommunityReactionCounts,
 } from '@/lib/buklodCommunityReactions';
 type Reaction = BuklodCommunityReactionKey;
 
@@ -86,9 +87,22 @@ export default function PostDetail(){
  } = useBuklodContentReport();
  const [post,setPost]=useState<any>(null),[comments,setComments]=useState<any[]>([]),[requests,setRequests]=useState<any[]>([]);
  const [comment,setComment]=useState(''),[busy,setBusy]=useState(false);
+ const commentSendInFlightRef=useRef(false);
  const [replyTo,setReplyTo]=useState<any>(null);
  const [photoViewerOpen,setPhotoViewerOpen]=useState(false);
  const [photoViewerIndex,setPhotoViewerIndex]=useState(0);
+
+ // Ad only after leaving the editor, never while typing or submitting.
+ // The shared controller still enforces consent, route locks and global cadence.
+ useFocusEffect(useCallback(() => {
+  const adAccount=String(user?.id??'');
+  return () => {
+   if(!commentSendInFlightRef.current && adAccount &&
+      takePendingCommunityCommentAdBreak(adAccount)){
+    void showBuklodAdOpportunity('community_comment_overage');
+   }
+  };
+ },[user?.id]));
 
  const load=useCallback(async()=>{if(!id)return;
   const [{data:p,error:pe},{data:c,error:ce}]=await Promise.all([
@@ -206,8 +220,9 @@ export default function PostDetail(){
  },[id,load]);
 
  const add=async()=>{
-  if(busy || !comment.trim())return;
+  if(busy || commentSendInFlightRef.current || !comment.trim())return;
 
+  commentSendInFlightRef.current=true;
   setBusy(true);
 
   const {error}=
@@ -222,6 +237,7 @@ export default function PostDetail(){
      }
     );
 
+  commentSendInFlightRef.current=false;
   setBusy(false);
 
   if(error){
@@ -394,6 +410,9 @@ export default function PostDetail(){
 
  if(!post)return <View style={[shared.screen,shared.content]}><Text style={shared.h1}>BUKLOD Post</Text><Card><Text style={shared.muted}>Post unavailable or outside your allowed audience.</Text></Card><Button title="BACK" onPress={()=>router.back()}/></View>;
  const counts=post.reaction_counts||{},mentions=Array.isArray(post.mentions)?post.mentions:[];
+ const totalReactions=Object.keys(counts).length
+  ? sumCommunityReactionCounts(counts)
+  : Math.max(0,Number(post.total_reactions??0)||0);
 
  return <>
  <ScrollView ref={detailScrollRef} style={shared.screen} contentContainerStyle={s.content}>
@@ -506,6 +525,7 @@ export default function PostDetail(){
    String(post.media_mime_type||'').startsWith('video/') &&
    <CommunityVideo uri={post.media_url} height={420}/>}
    <BuklodReactionAction
+    layout="detail"
     options={BUKLOD_PUBLIC_COMMUNITY_REACTIONS}
     counts={counts}
     mine={myReaction}
@@ -513,7 +533,7 @@ export default function PostDetail(){
      void react(key as Reaction)
     }
    />
-   <View style={s.stats}><Text style={s.stat}>{Number(post.total_reactions??0)} reactions</Text><Text style={s.stat}>{Number(post.comment_count??comments.length)} comments</Text></View>
+   <View style={s.stats}><Text style={s.stat}>{totalReactions} {totalReactions===1?'reaction':'reactions'}</Text><Text style={s.stat}>{Number(post.comment_count??comments.length)} comments</Text></View>
    <BuklodPostInternalShare
     postId={String(post.id)}
    />

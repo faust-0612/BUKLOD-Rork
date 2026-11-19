@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "season": 2,
+  "environment": "DEV_GOVERNANCE_ONLY",
+  "productionAuthorized": false,
+  "workstreams": [
+    {
+      "id": "story_preview",
+      "status": "STAGING_SERVER_VERIFIED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "PR-948",
+        "EAS-staging-update:01a1eef0-50d1-7f01-9619-ee774d78b9ac"
+      ],
+      "limitations": [
+        "No server rewards or device AdMob proof"
+      ]
+    },
+    {
+      "id": "season1_signed_reconciliation",
+      "status": "BLOCKED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": [
+        "Expired status and pending historic credits require reconciliation"
+      ]
+    },
+    {
+      "id": "season_carryover_pure_contract",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": true,
+      "evidence": [
+        "src/lib/season2/buklodSeason2CarryoverContractR1.ts",
+        "tests/buklod-season2-carryover-contract-20261119.test.mjs"
+      ],
+      "limitations": [
+        "Source-only: atomic server rollover, signed results, inventory reconciliation and recovery not yet deployed"
+      ]
+    },
+    {
+      "id": "season2_admin_readiness_preview",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "src/app/admin/season2-readiness.tsx"
+      ],
+      "limitations": [
+        "Read-only source snapshot, not real-time telemetry"
+      ]
+    },
+    {
+      "id": "server_rules_rls",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [
+        "docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql",
+        "tests/season2-local-postgres-behavior-20261118.sql",
+        "PR-964"
+      ],
+      "limitations": [
+        "Private Season2 SQL contract is dormant and locally PostgreSQL-tested only; source replay across rule upgrades is now guarded but NOT installed on any staging Supabase project.",
+        "A distinct authenticated staging backend and RLS/device integration are required before upgrading PLANNED status."
+      ]
+    },
+    {
+      "id": "per_character_items_badges_preservation",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": true,
+      "evidence": [
+        "PR-966 source code and CI on 1f5df0cfb9af7acbcc0b8ba159988aae4dae4d50",
+        "src/lib/season2/buklodSeason2CollectibleGuideR1.ts",
+        "src/components/points/BuklodS2CollectibleGuidePanel.tsx",
+        "src/components/points/BuklodS2RewardInstructions.tsx",
+        "docs/season2/sql/BUKLOD_S2_COLLECTIBLE_MASTERY_DRAFT_NOT_DEPLOY.sql",
+        "tests/season2-character-item-ownership-20261119.test.mjs",
+        "tests/season2-collectible-mastery-guide-20261119.test.mjs"
+      ],
+      "limitations": [
+        "Read-only guide and S2 isolated claim contract are DEV source only; no Main staging backend, RLS/runtime verification, real server adapter or live rewards.",
+        "Existing Season1 Character collectible ownership is unchanged; Season2 mastery is optional and non-retroactive.",
+        "All S2 mint/spend/grant switches remain disabled through and after 2026-12-06 until independent owner approval and release gates."
+      ]
+    },
+    {
+      "id": "season_rank_archive_reset_hall_of_fame",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "faith_nonfaith_creative_community_quests",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "seasonal_token_and_expiry_policy",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "offline_parallel_retry_antifarm",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "live_telemetry_alert_ingestion",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": [
+        "Offline metrics classifier is NOT a live monitor"
+      ]
+    },
+    {
+      "id": "admob_navigation_android_rc",
+      "status": "PLANNED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "owner_production_release",
+      "status": "BLOCKED",
+      "requiredForLaunch": true,
+      "evidence": [],
+      "limitations": [
+        "Embargo until Dec6 and separate exact SHA owner approval"
+      ]
+    },
+    {
+      "id": "staging_zero_cost_eas_plan_guard",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "scripts/season2-expo-free-plan-guard.cjs",
+        "tests/season2-expo-free-plan-release-20261119.test.mjs",
+        ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml"
+      ],
+      "limitations": [
+        "Expo account billing plan must be read from EAS usage endpoint at publish time; no Free-plan evidence yet.",
+        "If plan cannot be confirmed as Free, publisher holds; no production or reward launch."
+      ]
+    },
+    {
+      "id": "owner_approved_ten_exclusives_scope_lock",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "contracts/season2-owner-approved-exclusives-20261119.json",
+        "scripts/season2-owner-scope-lock.cjs",
+        "tests/season2-owner-scope-lock-20261119.test.cjs"
+      ],
+      "limitations": [
+        "Only a source-level exact allowlist and read-only staging preview, not evidence that all ten functions are live.",
+        "No isolated staging backend or verified free Expo OTA receipt.",
+        "Requires separate new owner review for any inserted or removed Season2 area."
+      ]
+    },
+    {
+      "id": "show_faith_daily_proverbs_wall",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "src/components/BuklodSeason2ProverbsDailyVerse.tsx",
+        "src/lib/season2/buklodDailyProverbsR1.ts",
+        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+        "PR-995",
+        "src/lib/season2/buklodProverbsKjvFullR1.ts",
+        "tests/protected-feature-lock-proverbs-915-20261119.test.mjs",
+        "Season2 915-day nonrepeating cycle owner approval 2026-11-19"
+      ],
+      "limitations": [
+        "Owner-approved read-only Show Faith Community card as separate Season2 content, not one of the ten exclusive reward modules.",
+        "Full 915 KJV Proverbs verses bundled offline with attribution and deterministic 915-day rotation; ASD requires existing online Bible RPC. Thirty-one curated takeaways are preserved, while other verses use a bilingual reflection prompt.",
+        "No new reward/point grants, no Supabase write, no staging or production OTA in this source-only change.",
+        "CI/Android staging verification required before release; production embargo until December 6 and separate exact SHA owner authorization."
+      ]
+    }
+  ],
+  "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
+}

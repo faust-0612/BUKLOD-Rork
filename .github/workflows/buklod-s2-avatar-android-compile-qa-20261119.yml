@@ -1,0 +1,74 @@
+name: BUKLOD S2 Avatar Android Compile QA - NO PUBLISH
+# Contract-only rerun: persisted per-character levels and current ranking navigation.
+# This workflow never publishes EAS OTA and never changes production.
+on:
+  push:
+    branches: [staging/season2-consolidated-avatar-20261119]
+    paths: ['.github/workflows/buklod-s2-avatar-android-compile-qa-20261119.yml']
+permissions:
+  contents: read
+concurrency:
+  group: buklod-s2-avatar-compile-only
+  cancel-in-progress: true
+jobs:
+  android-compile:
+    if: ${{ github.ref == 'refs/heads/staging/season2-consolidated-avatar-20261119' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify staging target and exact badge atlas
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs');
+          const app=require('./app.config.js')({config:{}});
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.runtimeVersion,'1.3.2');
+          assert.equal(app.extra.appEnvironment,'staging');
+          assert.equal(app.extra.appTarget,'main');
+          const file=fs.readFileSync('assets/season2/rank-badges/buklod-circle-ranks-atlas.webp');
+          const hash=crypto.createHash('sha256').update(file).digest('hex');
+          assert.equal(hash,'db2a7604e5657263336c8a358e0ef2d800cc6b6a3a7fc6b9c5a5a19174373887');
+          NODE
+      - name: TypeScript and focused avatar AdMob navigation regression
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+          node --experimental-strip-types --test \
+            tests/season2-avatar-badges-20261119.test.mjs \
+            tests/season2-connect-avatar-badges-20261119.test.mjs \
+            tests/season2-wall-avatar-navigation-20261119.test.mjs \
+            tests/season2-avatar-admob-guard-20261119.test.mjs \
+            tests/season2-avatar-android-compile-gate-20261119.test.mjs \
+            tests/circle-rank-badges-recognition-20261109.test.mjs \
+            tests/circle-rank-progression-20261109.test.mjs \
+            tests/profile-avatar-batch.test.cjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/dashboard-instant-tabs-20261117.test.mjs
+      - name: Pull read-only staging build configuration and export Android
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-s2-avatar-env --non-interactive >/dev/null
+          set -a; . /tmp/buklod-s2-avatar-env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-s2-avatar-android --clear
+          test -s /tmp/buklod-s2-avatar-android/metadata.json
+          echo "Android JS bundle exported. NOT published to staging or production."

@@ -20,6 +20,7 @@ import BuklodCharacterIdleMotion from '@/components/points/BuklodCharacterIdleMo
 import BuklodCollectibleArt from '@/components/points/BuklodCollectibleArt';
 import { BuklodCharacterCollectibleArtwork, BuklodEquippedCollectibleRail, getBuklodEquipRailWidth } from '@/components/points/BuklodCharacterCollectibleVisual';
 import BuklodCharacterLevelGuide from '@/components/points/BuklodCharacterLevelGuide';
+import BuklodS2CollectibleGuidePanel from '@/components/points/BuklodS2CollectibleGuidePanel';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { withAlpha } from '@/lib/buklodContrast';
 import {
@@ -85,6 +86,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
   const [collectibleLoading, setCollectibleLoading] = useState(false);
   const [itemBusy, setItemBusy] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [guideItemIndex, setGuideItemIndex] = useState<number | null>(null);
 
   const profile = PROGRESSIVE_CHARACTERS[draft];
   const availableLevel = clampLevel(state.character_levels[draft] ?? (draft === activeCore ? state.character_level : 1));
@@ -171,8 +173,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
       if (action === 'open') await openMyCharacterCollectible(draft, collectionLevel, itemIndex);
       if (action === 'claim') await redeemMyCharacterCollectible(draft, collectionLevel, itemIndex);
       if (action === 'use') {
-        // Auto-earn may already own it; redeem is idempotent insurance before Show.
-        await redeemMyCharacterCollectible(draft, collectionLevel, itemIndex);
+        // Equip only existing server-owned items. Never redeem implicitly from Show.
         await useMyCharacterCollectible(draft, collectionLevel, itemIndex);
       }
       if (action === 'remove') {
@@ -541,7 +542,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           <View style={styles.giverCopy}>
             <Text style={styles.giverName}>{profile.name}</Text>
             <Text style={styles.giverNote}>
-              {profile.name} has their own 100 story items. Use {profile.name} first — items for reached levels are earned automatically. Tap Show to place one beside {profile.name}.
+              {profile.name} has 100 story items. Reaching a level opens eligibility, not automatic ownership. Tap Claim for server verification, then Show to display. Optional Season 2 mastery has separate prerequisites in the How & Why guide.
             </Text>
             <View style={styles.pinRow}>
               {besidePins.length ? besidePins.map((pin) => (
@@ -598,7 +599,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
             {!showingNow
               ? `USE ${profile.name.toUpperCase()} FIRST`
               : isCollectibleLevelOpen(collectibleState, collectionLevel)
-                ? 'OWNED — TAP SHOW TO DISPLAY'
+                ? 'LEVEL ELIGIBLE — EACH CLAIM MUST BE SERVER VERIFIED'
                 : `OPENS AT ${profile.name.toUpperCase()} LEVEL ${collectionLevel}`}
           </Text>
           {collectibleLoading ? <ActivityIndicator style={{ marginTop: 8 }} /> : null}
@@ -609,9 +610,10 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
             );
             const equipped = saved ? isCollectibleShown(saved, collectibleState) : false;
             const levelOpen = isCollectibleLevelOpen(collectibleState, collectionLevel);
-            const owned = Boolean(saved?.redeemedAt) || collectionLevel <= availableLevel;
-            const action = !levelOpen ? null : equipped ? 'remove' : 'use';
-            const label = action === 'use' ? 'Show' : action === 'remove' ? 'Shown' : owned ? 'Owned' : 'Locked';
+            // Level eligibility is not a receipt, and artwork is never ownership.
+            const owned = Boolean(saved?.redeemedAt);
+            const action = !levelOpen ? null : equipped ? 'remove' : owned ? 'use' : 'claim';
+            const label = action === 'use' ? 'Show' : action === 'remove' ? 'Shown' : action === 'claim' ? 'Claim' : 'Locked';
             const busyKey = itemBusy === `${collectionLevel}:${itemIndex}`;
             const rowKey = `${collectionLevel}:${itemIndex}`;
             return (
@@ -630,11 +632,16 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
                     {equipped
                       ? `Beside ${profile.name}`
                       : owned
-                        ? 'Owned. Tap Show to display.'
+                        ? 'Server-confirmed owned. Tap Show.'
                         : showingNow
-                          ? `Needs ${profile.name} Level ${collectionLevel}`
+                          ? (levelOpen ? 'Eligible level · claim requires server verification' : `Needs ${profile.name} Level ${collectionLevel}`)
                           : `Use ${profile.name} first`}
                   </Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Season 2 requirements and benefits for ${item}`}
+                    onPress={() => setGuideItemIndex(previous => previous === itemIndex ? null : itemIndex)}
+                    style={{ paddingVertical: 5, alignSelf: 'flex-start' }}>
+                    <Text style={{ color: '#E8C56B', fontSize: 10, fontWeight: '800' }}>SEASON 2 · HOW & WHY?</Text>
+                  </Pressable>
                 </View>
                 <Pressable
                   accessibilityRole="button"
@@ -654,6 +661,9 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
               </Animated.View>
             );
           })}
+          {guideItemIndex !== null ? (
+            <BuklodS2CollectibleGuidePanel characterId={draft} level={collectionLevel} itemIndex={guideItemIndex} accountId={userId} />
+          ) : null}
         </View>
       </View>
 

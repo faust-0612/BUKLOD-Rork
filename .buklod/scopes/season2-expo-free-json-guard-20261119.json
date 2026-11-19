@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-expo-free-json-guard-20261119.json",
+  "objective": "Fix zero-budget staging OTA billing gate using official EAS account:usage JSON account.plan format, verify exact faust_0612 ownership and zero estimated charges; no other release changes.",
+  "baseRef": "integration/season2-conso-staging-20261119",
+  "productionChange": false,
+  "releaseAuthorized": false,
+  "publicationStatus": "DEV_BILLING_GUARD_FIX_ONLY",
+  "productionBaselineEvidence": "Staging publish SHA 8ce9aa1e1efb6b3a160963c98dc5440137e010c3 had source tests PASS, Expo billing gate BLOCKED with PLAN_NOT_PROVEN_FREE; no EAS publish and production unchanged (not independently read back).",
+  "chosenApproach": "Use publicly documented CLI 27.x JSON fields account.name, account.plan, billing.estimated.* and updates.overageCostCents with strict nonzero/unknown rejection. No billing data printed or archived.",
+  "selectionRationale": "First gate was a false negative because it checked undocumented plan fields; official Expo eas-cli source confirms account.plan. Correct the parser without weakening the reject-paid and no-charge rules.",
+  "alternativeApproaches": [
+    "Bypass billing guard to publish: rejected, user has no budget.",
+    "Assume Expo Free based on public pricing rather than current account: rejected.",
+    "Use exact authenticated billing schema and hard-coded project owner: selected."
+  ],
+  "allowedPaths": [
+    "scripts/season2-expo-free-plan-guard.cjs",
+    "tests/season2-expo-free-plan-release-20261119.test.mjs",
+    ".buklod/scopes/season2-expo-free-json-guard-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/season2-expo-free-plan-release-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "riskAreas": [
+    "budget-protection",
+    "staging-release-guard"
+  ],
+  "preserveBehaviors": [
+    "No paid plans or unknown estimated charges accepted; no updates to production release or Season1 economy.",
+    "No grant engine, schema, EAS app identity or Expo token modifications.",
+    "Private billing JSON discarded after preflight, no output leaked."
+  ],
+  "acceptanceChecks": [
+    "Focused real CLI-shape regression test plus engineering scope and typecheck.",
+    "Stage OTA will publish only if Free and zero estimated charges, otherwise fail closed.",
+    "Staging package/runtime and unchanged production manifest remain mandatory."
+  ],
+  "knownBlockers": [
+    "Free-plan check must still execute on actual account before any EAS publishing",
+    "No separate no-cost Main staging Supabase for live reward verification"
+  ]
+}

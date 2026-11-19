@@ -25,3 +25,10 @@ test('Never stage Season2 into production or enable a reward behind an unpublish
   assert.equal(evaluateOrder({...good,campaign:{...good.campaign,missionAwardsLive:true}}).allowed,false);
   assert.equal(evaluateOrder({...good,campaign:{...good.campaign,officialOpeningPublished:true}}).allowed,false);
 });
+
+test('Newer valid production OTA keeps staging order, with served manifest snapshot still mandatory',()=>{
+ const newerId='12345678-90ab-4def-8901-123456789abc';
+ assert.equal(evaluateOrder({...good,manifest:{...good.manifest,id:newerId}}).allowed,true);
+ assert.equal(evaluateOrder({...good,manifest:{...good.manifest,id:null}}).allowed,false);
+ assert.equal(evaluateOrder({...good,manifest:{...good.manifest,extra:{expoClient:{android:{package:EXPECTED.stagingPackage}}}}}).allowed,false);
+});

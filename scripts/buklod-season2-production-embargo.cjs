@@ -15,6 +15,8 @@ const FORBIDDEN_PATHS=Object.freeze([
   'src/lib/buklodSeason2CampaignR1.ts',
   'src/lib/buklodSeasonJourneyR2.ts',
   'src/components/points/BuklodSeasonJourneyPreview.tsx',
+  'src/lib/season2',
+  'src/app/admin/season2-readiness.tsx',
   'src/lib/buklodEngagementPolicyR1.ts',
   'src/lib/buklodZeroMomentumNoticePolicyR1.ts',
   'src/lib/buklodDailyCommitmentPolicyR1.ts',
@@ -86,6 +88,20 @@ function evaluateRelease({target,now,sourceSha='',season2Files=[],approval=null}
     return {allowed:false,reason:'SEASON2_RELEASE_UNAUTHORIZED_EXACT_SHA_PROOFS_REQUIRED'};
   return {allowed:true,reason:'SEASON2_RECORD_VALID_NORMAL_RELEASE_GATES_STILL_REQUIRED'};
 }
+function enforceSeason2Readiness(root=REPO){
+  // Separate from owner exact-SHA approval and Dec6 date: plans are not releases.
+  // No runtime/backend writes, and nonseason production fixes never call this.
+  const governance=require('./season2-governance.cjs');
+  const policy=JSON.parse(fs.readFileSync(path.join(root,'contracts/season2-governance.json'),'utf8'));
+  const ledger=JSON.parse(fs.readFileSync(path.join(root,'contracts/season2-implementation-ledger.json'),'utf8'));
+  if(!governance.validatePolicy(policy).ok)
+    throw Error('SEASON2_PRODUCTION_POLICY_CONTRACT_INVALID');
+  const readiness=governance.readiness(ledger);
+  if(!readiness.readyForLaunch)
+    throw Error('SEASON2_PRODUCTION_WORKSTREAMS_INCOMPLETE: '+
+      readiness.pending.map(x=>x.id+':'+x.status).join(','));
+  return readiness;
+}
 function verifyProductionCheckout({root=REPO,now=new Date(),sourceSha=null,gitRef=process.env.GITHUB_REF}={}){
   if(gitRef&&gitRef!=='refs/heads/main')throw Error('Production checkout must be main');
   const sha=sourceSha||execFileSync('git',['rev-parse','HEAD'],{
@@ -104,6 +120,8 @@ function verifyProductionCheckout({root=REPO,now=new Date(),sourceSha=null,gitRe
     season2Files:files,approval});
   if(!r.allowed)throw Error('BUKLOD SEASON2 PRODUCTION BLOCK: '+r.reason+
     '; file evidence: '+files.map(x=>x.file).join(','));
+  // Only after the existing hard embargo AND owner approval pass.
+  if(files.length)enforceSeason2Readiness(root);
   return {reason:r.reason,sourceSha:sha,season2FileCount:files.length,
     season2ProductionAutomaticallyAuthorized:false};
 }
@@ -116,4 +134,4 @@ if(require.main===module){
 }
 module.exports={NOT_BEFORE_UTC,APPROVAL_PATH,FORBIDDEN_PATHS,
   FORBIDDEN_IMPORT_MARKERS,REQUIRED_APPROVAL_EVIDENCE,
-  runtimeEvidence,approvedRecord,evaluateRelease,verifyProductionCheckout};
+  runtimeEvidence,approvedRecord,evaluateRelease,enforceSeason2Readiness,verifyProductionCheckout};

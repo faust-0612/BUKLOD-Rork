@@ -1,6 +1,7 @@
 import { buklodVisual } from '@/lib/buklodVisual';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
+import BuklodSeason2ProverbsDailyVerse from '@/components/BuklodSeason2ProverbsDailyVerse';
 import BuklodPostMotion from '@/components/BuklodPostMotion';
 import BuklodWallPostAudioMeter from '@/components/BuklodWallPostAudioMeter';
 import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
@@ -5594,6 +5595,9 @@ const communityFeedRows =
     placementId="public_wall_entry"
    />
 
+   {/* Season2 read-only Show Faith verse; native ad slot stays in place. */}
+   <BuklodSeason2ProverbsDailyVerse />
+
    {/* BUKLOD_LIVING_COMMUNITY_GREETING_R1: compact celebration banner, ads remain first. */}
    <BuklodLivingGreetingsBanner />
 
@@ -6077,6 +6081,7 @@ const communityFeedRows =
      <BuklodTappableAvatar
        userId={item.user_id}
        name={resolvePersonDisplayName(item.author_name,item.user_id)}
+       rankName={item.author_rank_name}
        size={42}
      />
      <View style={{flex:1,minWidth:0}}>
@@ -6946,7 +6951,15 @@ const communityFeedRows =
   open={Boolean(photoCommentsTarget)}
   postId={photoCommentsTarget?.postId??''}
   mediaPosition={photoCommentsTarget?.mediaPosition??0}
-  onClose={()=>setPhotoCommentsTarget(null)}
+  onClose={()=>{
+   setPhotoCommentsTarget(null);
+   // A photo-comment interstitial is a natural editor-exit break, never a
+   // condition of save. The shared Android ad controller may still decline.
+   const adAccount=String(user?.id??'');
+   if(adAccount && takePendingCommunityCommentAdBreak(adAccount)){
+    void showBuklodAdOpportunity('community_comment_overage');
+   }
+  }}
   onCountChange={count=>{
    photoCountsRequestRef.current+=1;
    if(!photoCommentsTarget)return;

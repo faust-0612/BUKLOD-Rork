@@ -12,7 +12,7 @@ import {
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useConnectComposerKeyboardInset, CONNECT_COMPOSER_RESERVED_HEIGHT } from '@/lib/useConnectComposerKeyboardInset';
+import { useConnectComposerKeyboardInset } from '@/lib/useConnectComposerKeyboardInset';
 import {
   isBuklodScopedWorkspacePath,
   normalizeBuklodPathname,
@@ -32,7 +32,6 @@ import {
   Alert,
   AppState,
   FlatList,
-  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -138,6 +137,7 @@ import {
   connectBubbleGrouping,
   connectPhotoSlots,
   connectScrollAction,
+  connectFollowingLatest,
   connectOlderPrependScrollOffset,
   connectSignedUrlNeedsRefresh,
   connectThreadSessionKey,
@@ -644,7 +644,6 @@ function BuklodConnectThreadInner({
   const {
     composerBottom,
     keyboardVisible,
-    clearComposerInset,
     resyncComposerInset,
   } = useConnectComposerKeyboardInset(threadBodyRef);
   /*
@@ -679,6 +678,8 @@ function BuklodConnectThreadInner({
     composerBottom,
     phoneNavClearance
   );
+  // Adapt to expanded input, reply banners and attachment previews.
+  const [composerMeasuredHeight, setComposerMeasuredHeight] = useState(64);
 
   const { theme } = useConnectTheme();
   const styles = useMemo(
@@ -1410,6 +1411,27 @@ const [
   // A touch/kinetic scroll owns the viewport; content reflow cannot steal it.
   const userDraggingRef = useRef(false);
   const userMomentumRef = useRef(false);
+  // Focus opts into newest-message following, an actual user swipe opts out.
+  const composerFollowsLatestRef = useRef(false);
+  // Keep an explicit Latest request through IME/list reflow until real scroll
+  // geometry confirms arrival at the newest message.
+  const pendingLatestScrollRef = useRef(false);
+  const followingLatest = useCallback(() => connectFollowingLatest({
+    composerFocused: composerFollowsLatestRef.current,
+    jumpPending: pendingLatestScrollRef.current,
+    userInteracting: userDraggingRef.current || userMomentumRef.current,
+  }), []);
+  const followComposerToLatest = useCallback(() => {
+    if (userDraggingRef.current || userMomentumRef.current ||
+        (!composerFollowsLatestRef.current && !pendingLatestScrollRef.current)) return;
+    listRef.current?.scrollToEnd({ animated: false });
+  }, []);
+  useEffect(() => {
+    if (!keyboardVisible || !followingLatest()) return;
+    // Android sometimes finishes IME resizing after TextInput onFocus.
+    const frame = requestAnimationFrame(followComposerToLatest);
+    return () => cancelAnimationFrame(frame);
+  }, [keyboardVisible, composerDockBottom, followComposerToLatest, followingLatest]);
   // Only history prepends may adjust a prior visible message's offset.
   const pendingOlderAnchorRef =
     useRef<{ offset: number; height: number } | null>(null);
@@ -1483,6 +1505,8 @@ const [
     setFailedAttachmentPaths({});
     pinLatestOnOpenRef.current = true;
     followOwnSendRef.current = false;
+    composerFollowsLatestRef.current = false;
+    pendingLatestScrollRef.current = false;
     suppressStickRef.current = false;
     userDraggingRef.current = false;
     userMomentumRef.current = false;
@@ -1555,6 +1579,7 @@ const [
             initialLoadSettledRef.current = true;
             anchorTimer = setTimeout(() => {
               if (!active || !pinLatestOnOpenRef.current) return;
+              pendingLatestScrollRef.current = true;
               listRef.current?.scrollToEnd({ animated: false });
               pinLatestOnOpenRef.current = false;
               nearBottomRef.current = true;
@@ -1907,6 +1932,7 @@ const [
         return;
       }
       if (contentHeightRef.current <= 0) return; // content callback owns the first anchor
+      pendingLatestScrollRef.current = true;
       listRef.current?.scrollToEnd({ animated: false });
       pinLatestOnOpenRef.current = false;
       nearBottomRef.current = true;
@@ -1940,7 +1966,8 @@ const [
     if (
       initialLoadSettledRef.current &&
       !pinLatestOnOpenRef.current &&
-      !nearBottomRef.current
+      !nearBottomRef.current &&
+      !followingLatest()
     ) {
       const known = new Set(
         current.map(item => item.id)
@@ -3785,9 +3812,8 @@ const [
         return;
       }
 
-      clearComposerInset();
-      Keyboard.dismiss();
-      composerInputRef.current?.blur();
+      // Keep the keyboard open while the optimistic message is inserted.
+      // Otherwise a keyboard resize can leave the latest row off-screen.
 
       sendInFlightRef.current =
         true;
@@ -4237,6 +4263,11 @@ const [
       >
 <FlatList
         ref={listRef}
+        onLayout={() => {
+          if (followingLatest()) {
+            requestAnimationFrame(followComposerToLatest);
+          }
+        }}
         style={{ flex: 1, opacity: listAnchored ? 1 : 0 }}
         data={visibleMessages}
         keyboardShouldPersistTaps="always"
@@ -4271,10 +4302,7 @@ const [
         contentContainerStyle={[
           styles.messages,
           {
-            paddingBottom:
-              CONNECT_COMPOSER_RESERVED_HEIGHT +
-              composerDockBottom +
-              18,
+            paddingBottom: composerMeasuredHeight + composerDockBottom + 8,
           },
         ]}
         ListHeaderComponent={
@@ -4314,6 +4342,11 @@ const [
           const delta = previous > 0 ? height - previous : 0;
           contentHeightRef.current = height;
 
+          if (followOwnSendRef.current && pendingOlderAnchorRef.current) {
+            // Own send beats a prior, potentially stale history-prepend offset.
+            pendingOlderAnchorRef.current = null;
+            suppressStickRef.current = false;
+          }
           if (pendingOlderAnchorRef.current) {
             const anchor = pendingOlderAnchorRef.current;
             // Consume the prepend anchor even if the measured height did not
@@ -4342,6 +4375,7 @@ const [
             initialLoadSettledRef.current &&
             messagesLengthRef.current > 0
           ) {
+            pendingLatestScrollRef.current = true;
             listRef.current?.scrollToEnd({ animated: false });
             pinLatestOnOpenRef.current = false;
             nearBottomRef.current = true;
@@ -4379,6 +4413,11 @@ const [
             return;
           }
 
+          if (followingLatest()) {
+            // Give FlatList a frame to apply the resized content dimensions.
+            requestAnimationFrame(followComposerToLatest);
+            return;
+          }
           const action = connectScrollAction({
             intent: 'content',
             nearBottom: nearBottomRef.current,
@@ -4468,8 +4507,11 @@ const [
             layoutMeasurement,
           } = event.nativeEvent;
 
-          connectScrollOffsetRef.current =
-            contentOffset.y;
+          connectScrollOffsetRef.current = contentOffset.y;
+          if (userDraggingRef.current || userMomentumRef.current) {
+            composerFollowsLatestRef.current = false;
+            pendingLatestScrollRef.current = false;
+          }
 
           const distanceFromBottom =
             contentSize.height -
@@ -4482,6 +4524,9 @@ const [
             distanceFromBottom <= CONNECT_NEAR_BOTTOM_PX;
           const wasNearLatest = nearBottomRef.current;
           nearBottomRef.current = nearBottom;
+          if (nearBottom && listAnchoredRef.current) {
+            pendingLatestScrollRef.current = false;
+          }
 
           if (
             nearBottom &&
@@ -4496,7 +4541,7 @@ const [
               setAwayFromLatest(false);
               setNewWhileAway(0);
             }
-          } else if (!awayFromLatest && listAnchored) {
+          } else if (!followingLatest() && !awayFromLatest && listAnchored) {
             setAwayFromLatest(true);
           }
 
@@ -4766,7 +4811,7 @@ const [
               own={own}
               deleted={messageDeleted}
               replyQuote={replyQuote}
-              showSenderAvatar={mode === 'direct' && !own && grouping.startsGroup}
+              showSenderAvatar={!own && grouping.startsGroup}
               senderUserId={item.sender_id}
               senderName={
                 own
@@ -4776,16 +4821,9 @@ const [
                       item.sender_id,
                     )
               }
-              senderLabel={
-                mode === 'scope' &&
-                !own &&
-                grouping.startsGroup &&
-                item.sender_name
-                  ? repairBuklodMessageText(item.sender_name)
-                  : null
-              }
+              senderLabel={null}
               compact={!grouping.endsGroup}
-              showTime={grouping.endsGroup || !!deliveryLabel}
+              showTime={false}
               standaloneReaction={standaloneReaction}
               avatarReaction={avatarReaction}
               standaloneEmoji={
@@ -4838,18 +4876,17 @@ const [
                 attachmentRetryRef.current[path] = retries + 1;
                 void signAttachmentPath(path, true);
               }}
-              seenReaders={seenReaders}
-              showSeenReport={mode === 'scope' && isClusterConnect && own && !messageDeleted && hasConfirmedDelivery}
+              seenReaders={own && grouping.endsGroup ? seenReaders : []}
+              showSeenReport={mode === 'scope' && own && grouping.endsGroup && !messageDeleted && hasConfirmedDelivery}
               seenReportAvailable={scopeReadersAvailable}
               onPressSeenReaders={() => {
-                if (!own || mode !== 'scope' ||
-                    (!isClusterConnect && !seenReaders.length)) return;
+                if (!own || mode !== 'scope') return;
                 setSeenDetail({
                   messageId: item.id,
                   readers: seenReaders,
                   available: scopeReadersAvailable,
                 });
-                if (!isClusterConnect || !effectiveContainerId) return;
+                if (!effectiveContainerId) return;
                 // An explicit Cluster report refreshes its real room cursor;
                 // never write a read receipt or refetch all message history.
                 const session = threadSessionKeyValue;
@@ -4861,10 +4898,17 @@ const [
                     setSeenDetail(current => current?.messageId === item.id
                       ? {
                           messageId: item.id,
-                          readers: readers.filter(reader =>
-                            reader.userId !== profileId &&
-                            roomCursorCoversMessage(item.created_at, reader.lastReadAt)
-                          ),
+                          readers: isClusterConnect
+                            ? readers.filter(reader =>
+                                reader.userId !== profileId &&
+                                roomCursorCoversMessage(item.created_at, reader.lastReadAt)
+                              )
+                            : readersForMessageWindow({
+                                messageCreatedAt: item.created_at,
+                                nextMessageCreatedAt: next?.created_at ?? null,
+                                readers,
+                                selfUserId: profileId,
+                              }),
                           available: true,
                         }
                       : current);
@@ -5014,7 +5058,7 @@ const [
         </View>
       )}
 
-      {listAnchored && (awayFromLatest || newWhileAway > 0) && (
+      {listAnchored && !followingLatest() && (awayFromLatest || newWhileAway > 0) && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
@@ -5024,24 +5068,17 @@ const [
           }
           onPress={() => {
             followOwnSendRef.current = false;
-            listRef.current?.scrollToEnd({
-              animated: false,
-            });
-            nearBottomRef.current = true;
+            pendingLatestScrollRef.current = true;
             setAwayFromLatest(false);
             setNewWhileAway(0);
+            // Only a real onScroll to the bottom can confirm read visibility.
             pendingVisibleReadRef.current = 'returned-to-latest';
-            setTimeout(() => {
-              markVisibleRoomRead('returned-to-latest');
-            }, 32);
+            requestAnimationFrame(followComposerToLatest);
           }}
           style={{
             position: 'absolute',
             right: 16,
-            bottom:
-              composerDockBottom +
-              CONNECT_COMPOSER_RESERVED_HEIGHT +
-              12,
+            bottom: composerDockBottom + composerMeasuredHeight + 10,
             zIndex: 30,
             minHeight: 48,
             paddingHorizontal: 12,
@@ -5167,6 +5204,14 @@ const [
           bottom: composerDockBottom,
           zIndex: 20,
         }}
+        onLayout={event => {
+          const height = Math.ceil(event.nativeEvent.layout.height);
+          if (height > 0) {
+            setComposerMeasuredHeight(previous =>
+              Math.abs(previous - height) > 1 ? height : previous
+            );
+          }
+        }}
       >
       <ConnectComposer
         mode={mode}
@@ -5209,6 +5254,14 @@ const [
           setDraft(value);
         }}
         onSend={send}
+        onFocus={() => {
+          composerFollowsLatestRef.current = true;
+          pendingLatestScrollRef.current = true;
+          setAwayFromLatest(false);
+          setNewWhileAway(0);
+          requestAnimationFrame(followComposerToLatest);
+        }}
+        onBlur={() => { composerFollowsLatestRef.current = false; }}
         onQuickReaction={emoji => {
           if (!online) {
             Alert.alert('Offline', 'Reconnect to send your quick reaction.');

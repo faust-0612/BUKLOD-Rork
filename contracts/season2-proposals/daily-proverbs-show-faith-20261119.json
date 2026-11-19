@@ -1,0 +1,28 @@
+{
+  "id": "S2_OWNER_APPROVED_DAILY_PROVERBS_SHOW_FAITH_20261119",
+  "season": 2,
+  "ownerDecision": "ADD_READ_ONLY_PROVERBS_DAILY_VERSE_TO_SHOW_FAITH_COMMUNITY_WALL",
+  "approvedAtManila": "2026-11-19",
+  "additionalExperience": true,
+  "changesToApprovedTenExclusives": 0,
+  "season2ExclusiveTenLockUnchanged": true,
+  "scope": "Show Faith only: Public and authorized Organization/Cluster Community Walls; no display in Non-Show Faith",
+  "behavior": "915 unique Proverbs verses on successive Manila days beginning Dec 6, 2026, automatic restart only after the 915-day cycle, bundled offline public-domain KJV with MIT source attribution, optional existing ASD Bible verse read, 31 curated EN/Fil takeaways plus gentle bilingual reflection prompt for remaining verses; read-only Show Faith Walls and same Bible link",
+  "productionAuthorized": false,
+  "earliestProductionDate": "2026-12-06",
+  "requiresSeparateOwnerApprovalForProduction": true,
+  "requiresIsolatedStagingOnly": true,
+  "season1Changed": false,
+  "rewardWritesAllowed": false,
+  "financialChanges": false,
+  "existingAdSlotsPreserved": true,
+  "changes": {
+    "season1.production_logic": "untouched",
+    "show_faith.requirement": "voluntary_fair_alternatives",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc"
+  },
+  "automaticMonthlyReset": false,
+  "fullProverbsVerses": 915,
+  "cycleDays": 915,
+  "cycleStartManila": "2026-12-06"
+}

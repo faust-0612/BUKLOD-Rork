@@ -1,0 +1,13 @@
+{
+  "id": "S2_CONSO_STAGING_20261119",
+  "season": 2,
+  "changes": {
+    "season1.production_logic": "untouched",
+    "overall_circle_rank.rollover": "retain",
+    "character_levels.rollover": "retain_per_character",
+    "seasonal_rank.rollover": "archive_then_reset",
+    "qmp_finance.season_rollover": "independent_never_reset",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc"
+  },
+  "description": "Staging-only source consolidation; no server award, cash change or production grant."
+}

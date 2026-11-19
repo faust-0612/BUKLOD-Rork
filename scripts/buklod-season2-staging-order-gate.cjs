@@ -2,8 +2,9 @@
 'use strict';
 /*
  * Only BUKLOD Season2 read-only preview staging is allowed.
- * Current Train A production update must be actually served and its
- * official publisher must have succeeded. No manual device tests
+ * Train A production must have been published successfully before staging.
+ * A newer legitimate production update can replace the historical update ID;
+ * the current served production manifest is verified before and after OTA. No manual device tests
  * are pretended to exist; the owner waived them for Train A only.
  * This guard cannot issue any EAS update or mutation.
  */
@@ -19,13 +20,17 @@ const EXPECTED=Object.freeze({
   productionPackage:'org.mzbministry.buklod',
   stagingPackage:'org.mzbministry.buklod.staging',
   stagingBranch:'staging/season2-rise-together-preview-20261118',
+  consolidationBranch:'integration/season2-conso-staging-20261119',
   physicalDeviceVerification:'WAIVED_BY_OWNER_FOR_TRAIN_A_ONLY'
 });
 function evaluateOrder({manifest,release,variant,environment,ref,campaign}){
   const errors=[];
   if(variant!=='staging'||environment!=='staging')errors.push('TARGET_NOT_STAGING');
-  if(ref!=='refs/heads/'+EXPECTED.stagingBranch)errors.push('WRONG_SOURCE_BRANCH');
-  if(manifest?.id!==EXPECTED.productionUpdateId||
+  if(!['refs/heads/'+EXPECTED.stagingBranch,'refs/heads/'+EXPECTED.consolidationBranch].includes(ref))errors.push('WRONG_SOURCE_BRANCH');
+  // The historical Train A update is an ordering proof, not a permanent
+  // production head pin. Current live prod can legitimately receive non-S2 OTAs.
+  // The staging publisher independently snapshots and rechecks this exact id.
+  if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(manifest?.id||'')||
      manifest?.runtimeVersion!==EXPECTED.runtimeVersion||
      manifest?.extra?.expoClient?.android?.package!==EXPECTED.productionPackage)
     errors.push('CURRENT_PRODUCTION_UPDATE_NOT_VERIFIED');
@@ -67,8 +72,9 @@ async function main(){
   });
   assert.ok(result.allowed,'SEASON2 STAGING ORDER BLOCK: '+result.errors.join(','));
   console.log('SEASON2 STAGING ORDER VERIFIED',JSON.stringify({
-    productionUpdateId:prod.id,
-    productionSourceSha:EXPECTED.productionSourceSha,
+    currentProductionUpdateId:prod.id,
+    verifiedHistoricalTrainAUpdateId:EXPECTED.productionUpdateId,
+    historicalTrainASourceSha:EXPECTED.productionSourceSha,
     previewOnly:true,gameplayLive:false,physicalDeviceVerification:EXPECTED.physicalDeviceVerification
   }));
 }

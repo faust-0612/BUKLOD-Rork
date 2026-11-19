@@ -26,6 +26,7 @@ import {
 } from '@/components/BuklodContentReportSheet';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
+import BuklodSeason2ProverbsDailyVerse from '@/components/BuklodSeason2ProverbsDailyVerse';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodMentionField from '@/components/BuklodMentionField';
 import {
@@ -3973,6 +3974,9 @@ return (
                   : 'scope_wall_entry'
             }
           />
+        ) : null}
+        {mode === 'wall' && scope.show_faith_content ? (
+          <BuklodSeason2ProverbsDailyVerse enabled />
         ) : null}
 
         {/* PATCH_172F_HIDE_ORG_EXCLUSIVE_CARD */}

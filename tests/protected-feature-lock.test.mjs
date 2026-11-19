@@ -122,3 +122,38 @@ test('Nov17 quiet connection feedback has exact protected scope',()=>{
  assert.deepEqual(result.impacted,['app-runtime','navigation-auth','governance-lock']);
  assert.equal(scope.publicationStatus,'DEV_ONLY_NO_OTA');
 });
+
+test('Season2 consolidation declares every impacted feature and exact protected scope',()=>{
+ const s=JSON.parse(readFileSync(new URL('../.buklod/scopes/season2-conso-staging-20261119.json',import.meta.url),'utf8'));
+ const paths=[
+   '.github/workflows/engineering-accountability.yml',
+   '.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml',
+   'src/app/admin/season2-readiness.tsx',
+   'src/app/(tabs)/buklod.tsx',
+   'src/components/BuklodCommunityWallProfileBubbles.tsx',
+   'src/components/BuklodCommunityConnectHeader.web.tsx',
+   'src/components/BuklodConnectThread.tsx',
+   'src/components/connect/ConnectMessageBubble.tsx',
+   'src/lib/connectChatWindow.ts',
+   'src/components/BuklodExclusiveScopeCommunity.tsx',
+   'src/components/points/BuklodProgressiveCharacterSelector.tsx',
+   'tests/connect-latest-keyboard-follow-20261119.test.mjs',
+   'tests/connect-compact-seen-all-rooms-20261119.test.mjs',
+   'tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs',
+   'tests/buklod-community-feed-comment-ad-20261111.test.mjs',
+   'tests/season2-character-item-ownership-20261119.test.mjs',
+   'tests/season2-collectible-mastery-guide-20261119.test.mjs',
+   'tests/season2-wall-avatar-navigation-20261119.test.mjs',
+   'tests/life-language-auth-navigation-20261119.test.mjs',
+   'tests/season2-avatar-admob-guard-20261119.test.mjs',
+   'tests/buklod-season2-carryover-contract-20261119.test.mjs',
+   'tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs',
+   'tests/season2-governance-production-release-gate.test.mjs',
+   'tests/protected-feature-lock.test.mjs'
+ ];
+ const r=assessProtectedFeatureLock(paths.map(path=>({status:'M',path})),s);
+ assert.deepEqual(r.failures,[]);
+ assert.deepEqual(r.impacted,['app-runtime','wall-media','navigation-auth','connect-ptt-calls','ads-finance-points','cluster-faith','kingdom-character','production-release','governance-lock']);
+ assert.equal(s.releaseTarget,'STAGING_ONLY');
+ assert.equal(s.productionChange,false);
+});
