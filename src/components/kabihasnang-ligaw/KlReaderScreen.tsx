@@ -30,6 +30,7 @@ import KlChapterAudio from '@/components/kabihasnang-ligaw/KlChapterAudio';
 import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
 import KlReadingQuiz from '@/components/kabihasnang-ligaw/KlReadingQuiz';
+import KlSeriesReflection from '@/components/kabihasnang-ligaw/KlSeriesReflection';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import {
   buildAssetGate,
@@ -149,6 +150,9 @@ export default function KlReaderScreen() {
   const [releasedChapters, setReleasedChapters] = useState<ReleasedChapter[]>([]);
   const [journeyResult, setJourneyResult] = useState<{ userId: string; completed: number } | null>(null);
   const [journeyRefreshToken, setJourneyRefreshToken] = useState(0);
+  const [s2Progress, setS2Progress] = useState<{
+    ownerId: string; enabled: boolean; next_chapter_number: number;
+  } | null>(null);
   const [dynamicMedia, setDynamicMedia] = useState<DynamicMedia[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [mediaErrors, setMediaErrors] = useState<Record<string, string>>({});
@@ -553,6 +557,28 @@ export default function KlReaderScreen() {
     return () => { active = false; };
   }, [user?.id, journeyRefreshToken]);
 
+  // A single authenticated status read drives visible chapter locks.
+  // The server-side access/session gate also protects legacy app versions.
+  useEffect(() => {
+    let active = true;
+    if (!user?.id) {
+      setS2Progress(null);
+      return () => { active = false; };
+    }
+    const ownerId = user.id;
+    void supabase.rpc('kl_s2_reader_progress_v1', {
+      p_season_number: 1,
+    }).then(({ data, error }) => {
+      if (!active || error || !data || typeof data !== 'object') return;
+      const state = data as { ok?: boolean; enabled?: boolean; next_chapter_number?: number };
+      if (state.ok === true && Number.isInteger(state.next_chapter_number)) {
+        setS2Progress({ ownerId, enabled: state.enabled === true,
+          next_chapter_number: state.next_chapter_number as number });
+      }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [user?.id, journeyRefreshToken]);
+
   useEffect(() => {
     if (!selected || !selectedDbId || serverState !== 'readable' || !appActive || !routeFocused || !online) return;
     const episodeId = selectedDbId;
@@ -669,7 +695,14 @@ export default function KlReaderScreen() {
     }
     if (sequence === openSequence.current) await persist(nextCache);
   };
+  const episodeSequenceLocked = (episodeId: string) => {
+    const episode = EPISODES.find((item) => item.id === episodeId);
+    return Boolean(episode && episode.episodeNumber > 0 &&
+      s2Progress?.ownerId === user?.id && s2Progress.enabled &&
+      episode.episodeNumber > s2Progress.next_chapter_number);
+  };
   const episodeReadable = (episodeId: string) => {
+    if (episodeSequenceLocked(episodeId)) return false;
     const fromCatalog = EPISODES.find((item) => item.id === episodeId);
     if (fromCatalog && releasedNumbers.has(fromCatalog.episodeNumber)) return true;
     const episode = EPISODES.find((item) => item.id === episodeId);
@@ -695,6 +728,7 @@ export default function KlReaderScreen() {
     if (!episodeReadable(episodeId)) {
       setLockedId(episodeId);
       setSelectedId(null);
+      if (episodeSequenceLocked(episodeId)) setNotice(klCopy.previousChapterRequired);
       return;
     }
     setLockedId(null);
@@ -934,6 +968,9 @@ export default function KlReaderScreen() {
             ) : null}
             <KlReadingQuiz key={selectedDbId ?? 'unavailable'} episodeId={selectedDbId}
               onVerified={() => setJourneyRefreshToken((token) => token + 1)} />
+            {selected.episodeNumber === 30 ? (
+              <KlSeriesReflection seasonNumber={1} refreshToken={journeyRefreshToken} />
+            ) : null}
 
             <KlLiveDiscussion episodeId={selectedDbId ?? klDatabaseId(selected.episodeNumber)} live={liveReleased} />
           </View>
@@ -997,7 +1034,9 @@ export default function KlReaderScreen() {
                     />
                     <Text style={styles.meta}>{readable ? klCopy.readable : klCopy.locked}</Text>
                   </View>
-                  {showLock ? <Text style={styles.body}>{klCopy.lockedDetail}</Text> : null}
+                  {showLock ? <Text style={styles.body}>
+                    {episodeSequenceLocked(episode.id) ? klCopy.previousChapterRequired : klCopy.lockedDetail}
+                  </Text> : null}
                   </Pressable>
                   {isSystemAdmin ? (
                     <View style={{ marginTop: 10, gap: 8 }}>
