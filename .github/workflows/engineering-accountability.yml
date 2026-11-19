@@ -344,7 +344,7 @@ jobs:
         if: startsWith(github.head_ref, 'dev/genesis-native-reality-') || startsWith(github.head_ref, 'dev/season2-') || startsWith(github.head_ref, 'integration/season2-') || startsWith(github.head_ref, 'release/season2-')
         run: |
           if test -f scripts/season2-native-capability-gate.mjs && test -f src/features/season2/genesis/genesisAssetRegistry.ts; then
-            node --test tests/season2-native-capability-gate.test.mjs tests/season2-native-release-identity.test.mjs
+            node --test tests/season2-native-capability-gate.test.mjs tests/season2-native-release-identity.test.mjs tests/genesis-protected-feature-lock.test.mjs
             node scripts/season2-native-capability-gate.mjs --mode=source
           fi
       - name: Verify KL per-scene saved placement and draft isolation
