@@ -15,7 +15,7 @@ import {
   BUKLOD_CHARACTER_WORLD_STATS,
   type BuklodCharacterWorldId,
 } from '@/lib/buklodCharacterWorldCatalog';
-import {getS2CollectibleGuide,S2_COLLECTIBLE_RELEASE} from '@/lib/season2/buklodSeason2CollectibleGuideR1';
+import {getS2CollectibleGuide} from '@/lib/season2/buklodSeason2CollectibleGuideR1';
 import {BUKLOD_CIRCLE_RANK_FAMILIES,BUKLOD_CIRCLE_RANK_LEVELS} from '@/lib/buklodCircleRankArt';
 import {S2_KINGDOM_SHARD_REFERENCE} from '@/lib/season2/buklodS2KingdomShardGuideSnapshotR1';
 
