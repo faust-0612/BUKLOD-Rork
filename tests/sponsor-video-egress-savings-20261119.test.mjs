@@ -73,3 +73,14 @@ test('50/70/85/95 thresholds do not misreport estimated logs as real billing', (
   assert.equal(evaluateCachedEgressQuota(null).status,'UNVERIFIED');
   assert.deepEqual(evaluateCachedEgressQuota({...base,usedGb:75,cycleStart:'2027-01-02'}, {...base,usedGb:240}).crossed,[]);
 });
+
+test('verified compact asset load failures switch to original once, never spinning CDN requests', () => {
+  const sponsor=read('src/components/BuklodCommunitySponsoredAd.tsx');
+  assert.match(sponsor, /player\.addListener\('statusChange'/);
+  assert.match(sponsor, /status === 'error'/);
+  assert.match(sponsor, /failedVideoVariant\?\.id === campaign\.id/);
+  assert.match(sponsor, /return campaign\.video_url/);
+  assert.match(sponsor, /onSourceError=/);
+  assert.match(sponsor, /AppState\.currentState !== 'active' \|\| !campaign\?\.id/);
+  assert.match(sponsor, /subscription\.remove\(\)/);
+});
