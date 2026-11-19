@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import React, {
   useMemo,
   useState,
@@ -205,6 +206,10 @@ export function ConnectThemeSelectorButton({
   };
 
   const activeId = messagesPreference;
+
+  // Season 2 owns appearance app-wide. Personal/chat skin controls return
+  // when the season preview is off; saved preferences are never deleted.
+  if (!canUserSelectTheme()) return null;
 
   return (
     <>
