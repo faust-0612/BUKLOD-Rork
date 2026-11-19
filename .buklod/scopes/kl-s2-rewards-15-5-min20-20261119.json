@@ -21,7 +21,8 @@
     "production-embargo",
     "RLS",
     "old-clients",
-    "offline-network"
+    "offline-network",
+    "story"
   ],
   "allowedPaths": [
     "src/components/kabihasnang-ligaw/KlLiveDiscussion.tsx",
