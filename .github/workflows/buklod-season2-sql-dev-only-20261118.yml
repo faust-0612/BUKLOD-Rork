@@ -10,7 +10,7 @@ permissions:
   contents: read
 jobs:
   season2-database-isolation:
-    if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'staging/season2-rise-together-preview-20261118'
+    if: github.event_name == 'pull_request' && (github.event.pull_request.base.ref == 'staging/season2-rise-together-preview-20261118' || github.event.pull_request.base.ref == 'staging/season2-all-updates-20261119' || github.event.pull_request.base.ref == 'integration/season2-conso-staging-20261119')
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     services:

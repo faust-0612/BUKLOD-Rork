@@ -303,4 +303,59 @@ end;
 $test$;
 reset role;
 
+-- A rules revision must NOT create a second earning entitlement for the same
+-- verified source; a valid prior-version P0 receipt remains usable.
+insert into auth.users(id) values('abababab-abab-4aba-8aba-abababababab');
+insert into public.community_posts(id,user_id,category,body,created_at)
+values('bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc',
+ 'abababab-abab-4aba-8aba-abababababab','discussion',
+ 'A new substantive synthetic contribution must not pay twice after a rule revision.',
+ now()-interval '2 minutes');
+insert into public.kl_reading_sessions(user_id,episode_id,completed_at)
+values('abababab-abab-4aba-8aba-abababababab',
+ 'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd',now()-interval '11 minutes');
+insert into public.kl_quiz_attempts(id,episode_id,user_id,verified_at)
+values('dededede-dede-4ded-8ded-dededededede',
+ 'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd',
+ 'abababab-abab-4aba-8aba-abababababab',now()-interval '5 minutes');
+set role service_role;
+do $test$
+declare
+ a uuid:='abababab-abab-4aba-8aba-abababababab';
+ r jsonb;
+begin
+ r:=buklod_s2.credit_main_source(a,'wall_original_post',
+   'bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc');
+ if r->>'status'<>'EARNED' then raise exception 'FAIL: original R1 post %',r;end if;
+ r:=buklod_s2.credit_main_source(a,'kl_verified_chapter',
+   'dededede-dede-4ded-8ded-dededededede');
+ if r->>'status'<>'EARNED' then raise exception 'FAIL: original R1 learning %',r;end if;
+end;
+$test$;
+reset role;
+update buklod_s2.control set rule_version='season2-core-r2-synthetic';
+set role service_role;
+do $test$
+declare
+ a uuid:='abababab-abab-4aba-8aba-abababababab';
+ prior_balance bigint; after_balance bigint; r jsonb; w date;
+begin
+ select balance into prior_balance from buklod_s2.wallet where user_id=a;
+ r:=buklod_s2.credit_main_source(a,'wall_original_post',
+   'bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc');
+ if r->>'status'<>'DUPLICATE' or (r->>'minted')::int<>0 then
+   raise exception 'FAIL: rules revision double mint %',r;end if;
+ select balance into after_balance from buklod_s2.wallet where user_id=a;
+ if after_balance<>prior_balance or
+ (select count(*) from buklod_s2.source_receipt where user_id=a)<>2 then
+   raise exception 'FAIL: rule change mutated wallet or receipt count';end if;
+ select (starts_at at time zone 'Asia/Manila')::date into w from buklod_s2.control;
+ r:=buklod_s2.claim_weekly_foundation(a,w);
+ if r->>'status'<>'CLAIMED' then
+   raise exception 'FAIL: rules revision invalidated earned R1 foundation %',r;end if;
+end;
+$test$;
+reset role;
+update buklod_s2.control set rule_version='season2-core-r1';
+
 select 'S2 LOCAL POSTGRES BEHAVIOR TESTS PASSED; NOT SUPABASE OR PROD' as evidence;

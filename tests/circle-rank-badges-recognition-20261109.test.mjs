@@ -33,7 +33,12 @@ test('Rank entry points preserve character autonomy and navigate to the canonica
   const selection = read('src/lib/buklodCharacterSelectionV2.ts');
   assert.match(greetings, /action:'Tingnan ang rank',route:'\/points\/progression'/);
   assert.match(card, /<BuklodCircleRankBadge/);
-  assert.match(selection, /ATOMIC_RESET_LEVEL_1_V2/);
+  // Current server-backed character model preserves the last level per character;
+  // switching must not re-introduce the old atomic level-one reset.
+  assert.match(selection, /PER_CHARACTER_PERSISTED_V3/);
+  assert.match(selection, /character_levels/);
+  assert.match(selection, /levels\[active\] = level/);
+  assert.doesNotMatch(selection, /ATOMIC_RESET_LEVEL_1_V2/);
   assert.match(selection, /circle_rank_order/);
   assert.match(selection, /character_points_since_selection/);
   const recognition = read('src/components/points/BuklodCharacterLevelRecognition.tsx');

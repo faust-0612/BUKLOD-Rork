@@ -52,8 +52,15 @@
       "id": "server_rules_rls",
       "status": "PLANNED",
       "requiredForLaunch": true,
-      "evidence": [],
-      "limitations": []
+      "evidence": [
+        "docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql",
+        "tests/season2-local-postgres-behavior-20261118.sql",
+        "PR-964"
+      ],
+      "limitations": [
+        "Private Season2 SQL contract is dormant and locally PostgreSQL-tested only; source replay across rule upgrades is now guarded but NOT installed on any staging Supabase project.",
+        "A distinct authenticated staging backend and RLS/device integration are required before upgrading PLANNED status."
+      ]
     },
     {
       "id": "per_character_items_badges_preservation",
