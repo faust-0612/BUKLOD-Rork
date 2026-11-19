@@ -117,6 +117,7 @@ jobs:
           set -euo pipefail
           npm run genesis:theme:gate
           node --test tests/genesis-staging-native-apk-release-20261120.test.mjs tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-native-build-inventory-20261120.test.mjs
+          node --experimental-strip-types --test tests/buklod-silent-ota-policy.test.mjs tests/buklod-mandatory-update-runtime.test.mjs tests/ota-restart-safe-area.test.cjs
           node scripts/season2-native-capability-gate.mjs --mode=source
           npx tsc --noEmit
       - name: Bundle Android preview JS before native signing

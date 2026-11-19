@@ -160,10 +160,10 @@
     },
     {
       "id": "silent-ota-next-launch",
-      "status": "queued-separate",
+      "status": "source-implemented",
       "origin": "PR #1003/#1005",
       "description": "Silent compatible update download with no forced mid-call/compose restart",
-      "remaining": "Not reconciled into exact Genesis runtime branch; no served OTA evidence"
+      "remaining": "Exact #1003 silent-next-launch source forward-port added to isolated Genesis branch; compiled APK and served OTA still unverified"
     },
     {
       "id": "play-core-in-app-update",
