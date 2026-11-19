@@ -81,4 +81,5 @@ jobs:
           echo 'Android debug compile passed: NONFUNCTIONAL offline dummy backend, DO NOT DISTRIBUTE APK'
       - name: No artifact publishing, OTA, prod, Play or backend operations
         if: success()
-        run: echo 'No signed staging APK and no OTA publish: compile-smoke only.'
+        run: |
+          echo 'No signed staging APK and no OTA publish: compile-smoke only.'
