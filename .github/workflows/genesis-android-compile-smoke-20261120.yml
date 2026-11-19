@@ -75,8 +75,8 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           # The locked Skia package fetches its native .a files via an install script;
           # --ignore-scripts intentionally skips it. Restore just this audited installer.
-          test -f node_modules/@shopify/react-native-skia/scripts/install-skia.mjs
-          node node_modules/@shopify/react-native-skia/scripts/install-skia.mjs
+          test -f node_modules/@shopify/react-native-skia/scripts/install-libs.js
+          node node_modules/@shopify/react-native-skia/scripts/install-libs.js
           test -s node_modules/@shopify/react-native-skia/libs/android/arm64-v8a/libskia.a
           npm run genesis:theme:gate
           node --test tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-android-compile-smoke-release-20261120.test.mjs

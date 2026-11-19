@@ -70,7 +70,7 @@ test('native prerequisite source is ready to compile, but release remains blocke
  assert.equal(inventory.buildReady,false);
  assert.equal(inventory.releaseReady,false);
  const workflow=read('.github/workflows/genesis-android-compile-smoke-20261120.yml');
- assert.match(workflow,/scripts\/install-skia\.mjs/);
+ assert.match(workflow,/scripts\/install-libs\.js/);
  assert.match(workflow,/libskia\.a/);
  assert.match(workflow,/assembleDebug --no-daemon/);
  assert.match(read('.github/workflows/genesis-season2-staging-release-apk-20261120.yml'),/BLOCK: cannot use BUKLOD MAIN production Supabase/);
