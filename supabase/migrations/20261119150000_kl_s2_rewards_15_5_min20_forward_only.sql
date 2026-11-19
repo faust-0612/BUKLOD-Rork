@@ -65,8 +65,8 @@ CREATE OR REPLACE FUNCTION private.kl_s2_previous_chapter_complete_v1(
 ) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $fn$
  SELECT EXISTS (
   SELECT 1 FROM public.kl_episodes chapter
-  WHERE chapter.id=p_episode_id AND chapter.episode_number BETWEEN 1 AND 30
-    AND (chapter.episode_number=1 OR EXISTS (
+  WHERE chapter.id=p_episode_id AND chapter.episode_number BETWEEN 0 AND 30
+    AND (chapter.episode_number<=1 OR EXISTS (
       SELECT 1 FROM public.kl_episodes previous
       JOIN public.kl_reading_sessions sessions
         ON sessions.episode_id=previous.id AND sessions.user_id=p_user
@@ -205,7 +205,7 @@ begin
    and release_at<=now() for share;
  if not found then raise exception 'Chapter not released';end if;
  IF private.kl_s2_rewards_enabled_v1() THEN
-  IF v_episode.episode_number NOT BETWEEN 1 AND 30 THEN
+  IF v_episode.episode_number NOT BETWEEN 0 AND 30 THEN
    RAISE EXCEPTION 'Invalid Season 2 numbered chapter';
   END IF;
   IF NOT private.kl_s2_previous_chapter_complete_v1(v_user,p_episode_id) THEN
@@ -213,7 +213,8 @@ begin
       'reason','previous_chapter_required','points_awarded',0,
       'chapter_points',0,'series_points',0);
   END IF;
-  v_chapter_points:=5+v_episode.episode_number;
+  -- Panimula retains its previous behavior; progressive rates apply to numbered chapters.
+  IF v_episode.episode_number>=1 THEN v_chapter_points:=5+v_episode.episode_number; END IF;
  END IF;
  if p_action='start' then
   insert into public.kl_reading_sessions(user_id,episode_id) values(v_user,p_episode_id)
