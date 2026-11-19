@@ -14,6 +14,7 @@ const ALLOWED=new Set(['image/jpeg','image/png','image/webp','video/mp4','video/
 type Case={id:string; title:string; status:string; created_at:string};
 type Message={id:string;body:string;sender_id:string;sender_kind:string;created_at:string};
 type Evidence={id:string;case_id:string;message_id:string|null;object_path:string;mime_type:string;created_at:string};
+type AiReport={id:string;phase:string;member_message:string;created_at:string};
 const errorText=(e:unknown)=>String((e as any)?.message??e??'Network error').slice(0,250);
 
 export default function LiveSupport(){
@@ -30,6 +31,7 @@ export default function LiveSupport(){
   const [description,setDescription]=useState('');
   const [draft,setDraft]=useState('');
   const [messages,setMessages]=useState<Message[]>([]);
+  const [aiReports,setAiReports]=useState<AiReport[]>([]);
   const [evidence,setEvidence]=useState<(Evidence&{url?:string})[]>([]);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
@@ -61,16 +63,20 @@ export default function LiveSupport(){
   const loadThread=useCallback(async()=>{
     if(!caseId)return;
     const sequence=++requestSequence.current;
-    const [chat,attachments]=await Promise.all([
+    const [chat,attachments,reports]=await Promise.all([
       supabase.from('bsoc_case_messages').select('id,body,sender_id,sender_kind,created_at')
         .eq('case_id',caseId).order('created_at',{ascending:true}).limit(150),
       supabase.from('bsoc_case_attachments').select('id,case_id,message_id,object_path,mime_type,created_at')
-        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(50)
+        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(50),
+      // Additive migration rollout: existing releases still work without this table.
+      supabase.from('bsoc_ai_case_reports').select('id,phase,member_message,created_at')
+        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(80)
     ]);
     if(sequence!==requestSequence.current)return;
     if(chat.error) {setError(chat.error.message);return;}
     if(attachments.error){setError(attachments.error.message);return;}
     setMessages((chat.data||[]) as Message[]);
+    setAiReports(reports.error?[]:(reports.data||[]) as AiReport[]);
     const files=(attachments.data||[]) as Evidence[];
     const signed=await Promise.all(files.map(async file=>{
       const {data}=await supabase.storage.from(BUCKET).createSignedUrl(file.object_path,300);
@@ -80,6 +86,7 @@ export default function LiveSupport(){
     setEvidence(signed);
   },[caseId]);
   useEffect(()=>{
+    setAiReports([]);
     if(!caseId)return;
     void loadThread();
     const channel=supabase.channel('bsoc-member-'+caseId)
@@ -250,7 +257,14 @@ export default function LiveSupport(){
           </View>
           <Text style={styles.muted}>Tip: screenshot ng error message ang pinakamainam para sa visual bug; maikling video para sa playback, scrolling o navigation bugs. Huwag isama ang mga password, OTP, personal messages o financial details.</Text>
           <Text style={styles.muted}>Private evidence, maximum 250 MB per file. Large recordings can consume device memory during upload.</Text>
-          <Text style={styles.h2}>Conversation & evidence log</Text>
+          <Text style={styles.h2}>Automatic BSOC investigation reports</Text>
+           {aiReports.length===0&&<Text style={styles.muted}>Wala pang automatic investigation report para sa kasong ito.</Text>}
+           {aiReports.map(report=><View key={report.id} style={styles.evidence}>
+             <Text style={styles.bold}>BSOC · {report.phase.replaceAll('_',' ')}</Text>
+             <Text style={styles.muted}>{new Date(report.created_at).toLocaleString()}</Text>
+             <Text style={styles.body}>{report.member_message}</Text>
+           </View>)}
+           <Text style={styles.h2}>Conversation & evidence log</Text>
           {messages.length===0&&<Text style={styles.muted}>Your case is open. Send a message to BSOC support.</Text>}
           {messages.map(m=><View key={m.id} style={[styles.bubble,m.sender_id===uid&&styles.mine]}>
             <Text style={styles.muted}>{m.sender_kind==='agent'?'BSOC Agent':'You'} · {new Date(m.created_at).toLocaleString()}</Text>
