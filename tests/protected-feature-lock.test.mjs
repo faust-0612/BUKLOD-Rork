@@ -165,6 +165,8 @@ test('Nov19 source-only candidate preserves exact governance and security proofs
     '.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml',
     'src/app/(tabs)/me.tsx',
     'src/components/BuklodCommunityWallProfileBubbles.tsx',
+    // Connect Header overlaps the legacy Ad path regex, so verify that guard too.
+    'src/components/BuklodCommunityConnectHeader.web.tsx',
     'src/lib/buklodConnectSuggestedContacts.ts',
     'src/lib/buklodNotificationNavigation.ts',
     'src/components/points/BuklodS2CompleteRewardsReference.tsx',
