@@ -22,11 +22,11 @@ test('contact recovery verifies existing owner and destination before same UID m
  assert.match(handler,/attempts>=5/);
  assert.match(handler,/admin\.auth\.admin\.updateUserById\(user!\.id/);
  assert.match(handler,/p_user_id:user!\.id/);
- assert.match(wizard,/action:'finalize'/);
+ assert.match(wizard,/invoke\('finalize'\)/);
 });
 test('database denies direct contacts and old-client username signup',()=>{
  assert.match(migration,/before insert on auth\.users/);
  assert.match(migration,/revoke all on public\.buklod_login_contact_challenges_v1/);
  assert.match(migration,/service_role/);
- assert.match(migration,/automatic_deletion_enabled/);
+ assert.match(migration,/external_reminders_enabled boolean not null default false/);
 });
