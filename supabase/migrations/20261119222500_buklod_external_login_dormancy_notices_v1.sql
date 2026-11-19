@@ -25,7 +25,9 @@ create index if not exists buklod_contact_notice_recent_v1
 -- Email confirmation in legacy signup may have been automatic, therefore an
 -- accepted provider send is NOT treated as identity verification.
 create or replace function public.buklod_claim_external_contact_notices_v1(
- p_limit integer default 25)
+ p_limit integer default 25,
+ p_allow_email boolean default true,
+ p_allow_sms boolean default false)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare v_month text:=to_char(now() at time zone 'Asia/Manila','YYYY-MM'); v_rows jsonb;
@@ -71,6 +73,7 @@ begin
  eligible as (
    select c.* from candidates c
    where c.recipient is not null and c.channel is not null
+     and ((c.channel='email' and p_allow_email) or (c.channel='sms' and p_allow_sms))
      and not exists(select 1 from private.buklod_contact_notice_delivery_v1 n
           where n.user_id=c.user_id and n.campaign=c.campaign
             and n.month_key=v_month)
@@ -90,9 +93,9 @@ begin
  join eligible e on e.user_id=n.user_id and e.campaign=n.campaign;
  return jsonb_build_object('enabled',true,'rows',v_rows);
 end $$;
-revoke all on function public.buklod_claim_external_contact_notices_v1(integer)
+revoke all on function public.buklod_claim_external_contact_notices_v1(integer,boolean,boolean)
  from public,anon,authenticated;
-grant execute on function public.buklod_claim_external_contact_notices_v1(integer)
+grant execute on function public.buklod_claim_external_contact_notices_v1(integer,boolean,boolean)
  to service_role;
 
 create or replace function public.buklod_finish_external_contact_notice_v1(
