@@ -98,9 +98,20 @@ export default function BuklodMainBrandIntro({
   }, [chromeReady, isWeb]);
 
   useEffect(() => {
-    if (isWeb || !holdDone || !chromeReady) return;
-    setVisible(false);
-  }, [chromeReady, holdDone, isWeb]);
+    if (isWeb || !holdDone || !chromeReady || !visible) return;
+    if (!genesisPreview) {
+      setVisible(false);
+      return;
+    }
+    const fade = Animated.timing(screenOpacity, {
+      toValue: 0,
+      duration: 250,
+      easing: Easing.inOut(Easing.quad),
+      useNativeDriver: true,
+    });
+    fade.start(({ finished }) => { if (finished) setVisible(false); });
+    return () => fade.stop();
+  }, [chromeReady, genesisPreview, holdDone, isWeb, screenOpacity, visible]);
 
   useEffect(() => {
     if (!visible || (genesisPreview && !splashGone)) {

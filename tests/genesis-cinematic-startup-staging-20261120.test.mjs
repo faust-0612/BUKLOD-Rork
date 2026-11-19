@@ -15,6 +15,7 @@ test('Genesis cinematic intro is Android staging-only and never silently active 
   assert.match(intro, /genesisPreview \? styles\.genesisOverlay : null/);
   assert.match(intro, /markScale/);
   assert.match(intro, /genesisPreview && !splashGone/);
+  assert.match(intro, /duration: 250/);
 });
 test('Startup sound is offline, optional, honors app sound policy and cannot delay app', () => {
   const scene = read('src/components/BuklodGenesisStartupScene.tsx');
