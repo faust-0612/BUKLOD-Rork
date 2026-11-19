@@ -1,0 +1,87 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-dec6-economy-inventory-only-20261119.json",
+  "objective": "Prepare exact owner-approved 10 Season 2 exclusives and complete legacy BP/QMP plus all December 6 planned rewards/requirements/deductions as a source-only implementation inventory; add read-only CI contract before staging OTA without activation. Also expose complete read-only, searchable member rewards reference in existing Season2 Journey without added rewards or backend access.",
+  "baseRef": "b96620eb50476081cbf29085d25a5f7830f158a4",
+  "productionBaselineEvidence": "Compared source with Season 2 integration head b96620eb50476081cbf29085d25a5f7830f158a4 and read-only 2026-11-19 Supabase BP/QMP catalog; existing Train A production EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2 was prior documented evidence, not newly verified installed device. BUKLOD MAIN staging backend isolation unverified; no production writes.",
+  "productionChange": false,
+  "releaseTarget": "DEV_SOURCE_ONLY",
+  "releaseAuthorized": false,
+  "season2RewardsEnabled": false,
+  "season1ChangesAllowed": false,
+  "preserveBehaviors": [
+    "Original 10-exclusive owner scope is frozen; Daily Proverbs is separate approved read-only Wall content, not an 11th reward",
+    "Season1 BP/QMP, AdMob finance, Character XP and inventory, payouts, and settled history untouched",
+    "No Supabase SQL changes, migrations, Expo builds/OTA or source package deployments from this task",
+    "No production Season2 source/activations before 2026-12-06 PHT plus independent owner exact-SHA signoff",
+    "Current staging OTA workflow still only runs on explicit guarded integration branch release marker with Free-plan check"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-dec6-economy-inventory-only-20261119.json",
+    "contracts/season2-dec6-complete-reward-inventory-20261119.json",
+    "contracts/season2-implementation-ledger.json",
+    "docs/season2/BUKLOD_DEC6_ALL_POINTS_REWARDS_REQUIREMENTS_DEDUCTIONS_20261119.md",
+    "scripts/season2-dec6-economy-audit.cjs",
+    "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
+    ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
+    "src/lib/season2/buklodSeason2MemberRewardMatrixR1.ts",
+    "src/components/points/BuklodS2CompleteRewardsReference.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "tests/season2-member-rewards-full-reference-20261119.test.cjs",
+    "contracts/season2-proposals/complete-member-reward-guide-20261119.json",
+    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Exact 10 owner-approved exclusive IDs unchanged",
+    "46 active 16 inactive catalog source snapshot preserved; legacy active point amounts unmodified",
+    "Read-only QMP config, missions, thresholds, monthly financial separation documented",
+    "KL formula 5+n, next-verified delayed credit, 20-char comment and 50-char series reflection verified in contract",
+    "Noncash token potential 9/day, ceiling12, cosmetic prices unapproved, no child/private-prayer mint",
+    "Item prerequisites 13x20x5 and weekly class thresholds specifically covered",
+    "Momentum opt-in preview and lifetime no-deduction guarantees held",
+    "22 actual integration/security/finance/release gates remain explicitly HOLD, no fabricated completion",
+    "Read-only staging workflow preflight calls audit and contract tests without changing existing publisher trigger",
+    "Owner release embargo and Free Expo billing protections preserved",
+    "Member-facing collapsible BP/QMP/S2/carryover reference lists 46 active/16 inactive (admin-only hidden), exact requirements, limits, deferred credits and isolated status"
+  ],
+  "regressionTests": [
+    "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
+    "tests/season2-owner-scope-lock-20261119.test.cjs",
+    "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
+    "tests/buklod-season2-carryover-contract-20261119.test.mjs",
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "tests/season2-member-rewards-full-reference-20261119.test.cjs",
+    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
+  ],
+  "knownBlockers": [
+    "No dedicated independent BUKLOD MAIN staging Supabase with applied isolated S2 reward schema and verified RLS",
+    "No end-to-end backend token/item award/rollover/referral tests, native device or full RC",
+    "Pending owner economic signoff for cosmetic token prices, Momentum deductions and expiry terms",
+    "S1 signed results, S2 comparative ShowFaith/nonfaith, latest deferred KL PR and weekly class PR not merged/verified",
+    "No production deployment before Dec6 and exact owner SHA approval; maintain HOLD"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Render detailed source-only, lazy-loaded member BP/QMP/S2 guidance inside existing Season Journey preview without network calls or new award paths.",
+      "preservedBehaviors": [
+        "Current Season Journey stays collapsed by default; Wall/Connect/Character screens and existing BP claims remain untouched.",
+        "Existing first-view AdMob rendering and immediate dashboard/tab navigation are unaffected by a new inactive nested disclosure."
+      ],
+      "tests": [
+        "tests/season2-member-rewards-full-reference-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add fail-closed reference inventory and read-only regression preflight to the existing guarded staging OTA workflow without authorizing a new publish trigger.",
+      "preservedBehaviors": [
+        "Production Season 2 embargo remains at December 6 earliest with separate exact SHA signed authorization and full RC gates.",
+        "Staging OTA publishes only after the original source marker and safe Free-plan identity checks; no automatic billing or production updates."
+      ],
+      "tests": [
+        "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
+      ]
+    }
+  ]
+}

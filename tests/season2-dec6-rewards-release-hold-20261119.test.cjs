@@ -1,0 +1,50 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.join(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const stage=read('.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml');
+const audit=read('scripts/season2-dec6-economy-audit.cjs');
+const scope=JSON.parse(read('.buklod/scopes/season2-dec6-economy-inventory-only-20261119.json'));
+const manifest=JSON.parse(read('contracts/season2-dec6-complete-reward-inventory-20261119.json'));
+const exclusive=JSON.parse(read('contracts/season2-owner-approved-exclusives-20261119.json'));
+test('Dec6 guard and separate owner approval survive staging inventory integration',()=>{
+ assert.equal(manifest.release.productionAuthorized,false);
+ assert.equal(manifest.release.backendRewardWritesAllowed,false);
+ assert.equal(manifest.release.automaticLaunch,false);
+ assert.equal(manifest.release.earliestProductionPHT,'2026-12-06T00:00:00+08:00');
+ assert.equal(exclusive.productionAuthorized,false);
+ assert.equal(exclusive.productionShaBoundApprovalRequired,true);
+ assert.equal(manifest.approvedExclusiveIds.length,10);
+});
+test('existing staging OTA publisher still requires explicit guarded marker and staging-user identity',()=>{
+ assert.match(stage,/integration\/season2-conso-staging-20261119/);
+ assert.match(stage,/startsWith\(github\.event\.head_commit\.message, 'BUKLOD_S2_CONSO_STAGE_20261119:'\)/);
+ assert.match(stage,/season2-conso-staging-20261119\.json/);
+ assert.match(stage,/season2-expo-free-plan-guard\.cjs/);
+ assert.match(stage,/channel:view production/);
+ assert.match(stage,/stage-after\.json/);
+ assert.match(stage,/production-id\.json/);
+ assert.match(stage,/org\.mzbministry\.buklod\.staging/);
+});
+test('extra tests are source-only and execute before any staging publish step',()=>{
+ const auditAt=stage.indexOf('node scripts/season2-dec6-economy-audit.cjs');
+ const memberAt=stage.indexOf('node --test tests/season2-member-rewards-full-reference-20261119.test.cjs');
+ const publishAt=stage.indexOf('Publish idempotently ONLY to staging-user');
+ assert.ok(auditAt>=0&&memberAt>=0&&publishAt>=0);
+ assert.ok(auditAt<publishAt&&memberAt<publishAt);
+ assert.match(audit,/productionAuthorized:false/);
+ assert.doesNotMatch(audit,/\.rpc\s*\(|\.functions\.invoke\s*\(/);
+});
+test('precise V2 scope cannot turn on release, mutates no Season1 files, requires saved regression tests',()=>{
+ assert.equal(scope.productionChange,false);
+ assert.equal(scope.releaseAuthorized,false);
+ assert.equal(scope.season2RewardsEnabled,false);
+ assert.equal(scope.season1ChangesAllowed,false);
+ assert.ok(scope.allowedPaths.includes('.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml'));
+ assert.ok(scope.allowedPaths.includes('tests/season2-dec6-rewards-release-hold-20261119.test.cjs'));
+ assert.ok(scope.regressionTests.includes('tests/season2-dec6-rewards-release-hold-20261119.test.cjs'));
+ assert.deepEqual(scope.lockedFeatureChanges.map(x=>x.id).sort(),['app-runtime','production-release']);
+});

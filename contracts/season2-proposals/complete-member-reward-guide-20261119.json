@@ -1,0 +1,29 @@
+{
+  "id": "SEASON2_COMPLETE_MEMBER_REWARDS_DISCLOSURE_20261119",
+  "season": 2,
+  "ownerDecision": "IMPLEMENT_FULL_SPECIFIC_REWARD_POINTS_REQUIREMENTS_LIST_FOR_MEMBERS",
+  "approvedAtManila": "2026-11-19",
+  "sourceOnly": true,
+  "productionAuthorized": false,
+  "grantWritesAllowed": false,
+  "season1Changed": false,
+  "scope": "Existing Season2 collapsed Journey preview only; all S1 BP/QMP values and complete ten approved S2 feature requirements viewable without new profile cards, Wall ads, backend RPC or money grant.",
+  "changesToApprovedTenExclusives": 0,
+  "reviewStatus": "SOURCE_UI_PREVIEW_NOT_REWARD_LAUNCH",
+  "changes": {
+    "season1.production_logic": "untouched",
+    "show_faith.requirement": "voluntary_fair_alternatives",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc",
+    "qmp_finance.season_rollover": "independent_never_reset",
+    "inventory.owned_items_rollover": "retain"
+  },
+  "conditions": [
+    "Snapshot explicitly dates S1 numbers and does not pretend configured entries are live triggers",
+    "No user-facing admin-only reward configuration or private records",
+    "Earned vs Pending vs Preview vs Legacy distinguished",
+    "No new features beyond the 10 locked Season2 exclusives",
+    "No backend writes or EAS prod/OTA",
+    "Current Android AdMob/navigation has unchanged imports and lazy rendering",
+    "Keep owner exact SHA approval and Dec6 earliest hold"
+  ]
+}

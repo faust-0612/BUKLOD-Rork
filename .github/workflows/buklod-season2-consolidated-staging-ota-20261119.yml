@@ -69,6 +69,9 @@ jobs:
           set -euo pipefail
           node scripts/season2-owner-scope-lock.cjs
           node --test tests/season2-owner-scope-lock-20261119.test.cjs
+          node scripts/season2-dec6-economy-audit.cjs
+          node --test tests/season2-dec6-complete-reward-inventory-20261119.test.cjs
+          node --test tests/season2-member-rewards-full-reference-20261119.test.cjs
           node scripts/season2-governance.cjs validate
           node scripts/season2-governance.cjs ci
           node scripts/seasonal-constitution.test.cjs
@@ -78,6 +81,27 @@ jobs:
           node scripts/buklod-ad-surface-audit.mjs --summary
           node --test tests/season2-visual-only-hold-20261119.test.cjs tests/season2-production-release-staging-only-hold-20261119.test.cjs
           node scripts/buklod-season2-staging-order-gate.cjs
+      - name: Consolidated Nov19 focused cross-feature source regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/season2-weekly-performance-class-rewards-20261119.test.mjs \
+            tests/season2-weekly-performance-profile-navigation-20261119.test.mjs \
+            tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs \
+            tests/nov18-rank-notes-admob-preservation.test.mjs \
+            tests/nov18-rank-notes-database-security.test.mjs \
+            tests/kl-dictionary-expansion-20261119.test.mjs \
+            tests/admin-new-registration-inbox-20261119.test.cjs \
+            tests/admin-registration-navigation-scroll-20261119.test.cjs \
+            tests/admin-registration-notification-route-20261119.test.cjs \
+            tests/admin-registration-security-20261119.test.cjs \
+            tests/connect-compact-seen-all-rooms-20261119.test.mjs \
+            tests/connect-latest-keyboard-follow-20261119.test.mjs \
+            tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs \
+            tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs \
+            tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs \
+            tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs
       - name: Fail closed unless Expo billing proves Free plan (zero-charge OTA only)
         shell: bash
         run: |
