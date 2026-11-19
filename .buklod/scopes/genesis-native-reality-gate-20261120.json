@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-reality-gate-20261120.json",
+  "objective": "Stop treating Genesis Season 2 code, artwork previews and dependency declarations as evidence that a native APK can render the requested real animation/audio experience.",
+  "baseRef": "87af18aec3b59ef0b7a6b3c6ee904c902991011c",
+  "productionBaselineEvidence": "GitHub main SHA 551e54602addd6f7bbe7bcdddd1589d35424c964 read-only; exact installed production build, OTA and Android device graphics remain unverified.",
+  "chosenApproach": "Add zero-dependency read-only native capability truth gate and source-vs-APK receipt tests on a separate DEV branch; no native config/dependency mutations or publication.",
+  "selectionRationale": "Source code cannot prove installed Android native module compatibility, licensed high-quality Rive rigs, mastered Season2 audio or on-device visual performance.",
+  "alternativeApproaches": [
+    "Treat installed npm library and mock renders as native device acceptance (rejected).",
+    "Force new production runtime/build and advertise complete graphics without signed APK/device evidence (rejected)."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-native-reality-gate-20261120.json",
+    "scripts/season2-native-capability-gate.mjs",
+    "tests/season2-native-capability-gate.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/season2-native-capability-gate.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "riskAreas": [
+    "native-capability-attestation",
+    "runtime-identity",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "No change to production, staging, APK, OTA, package.json, app.config.js or EAS profiles",
+    "No new backend/AdMob/points/rewards side effects",
+    "Genesis stays preview-only until release authorization and actual Android performance acceptance"
+  ],
+  "acceptanceChecks": [
+    "Explicitly distinguish native libraries declared in package from binary installed on device",
+    "Detect empty approved original Rive and mastered audio registries",
+    "Validate separate production and Genesis preview runtime/package/channel",
+    "Fail closed in release mode without exact native build and Android scene/audio/AdMob/navigation receipt",
+    "Tests cover mismatched SHA/channel and optimistic receipt missing rig assets"
+  ],
+  "releaseMode": "DEV_ONLY",
+  "releaseStatus": "SOURCE_QA_PREPARED_NO_APK_NO_OTA"
+}
