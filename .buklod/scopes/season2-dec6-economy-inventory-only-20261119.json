@@ -47,10 +47,6 @@
   ],
   "regressionTests": [
     "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
-    "tests/season2-owner-scope-lock-20261119.test.cjs",
-    "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
-    "tests/buklod-season2-carryover-contract-20261119.test.mjs",
-    "tests/dashboard-instant-tabs-20261117.test.mjs",
     "tests/season2-member-rewards-full-reference-20261119.test.cjs",
     "tests/season2-dec6-rewards-release-hold-20261119.test.cjs",
     "tests/protected-feature-lock.test.mjs"
@@ -96,5 +92,24 @@
         "tests/protected-feature-lock.test.mjs"
       ]
     }
+  ],
+  "chosenApproach": "Snapshot audited S1 BP/QMP catalog into a read-only, detailed member reference under existing collapsed Season Journey; add exact owner ten-feature constraints and separate Dec6 audit with no backend connection/point mint.",
+  "selectionRationale": "Fails closed on unverifiable reward sources, preserves original Season1 monetary and Character authority, avoids performance regressions and costs, and keeps a reviewable exact implementation inventory as an admission gate rather than a fake live system.",
+  "alternativeApproaches": [
+    "Alter Season1 point-rule database now — rejected as forbidden production change.",
+    "Publish Season2 migration without isolated staging RLS tests — rejected due to data integrity and permission risk.",
+    "Force 46 catalog entries into initial Home/Wall paint — rejected due to first-view ads and navigation regressions.",
+    "Auto-activate all Season2 rewards on December 6 — rejected; separately approved exact SHA and verified RC required."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-monetization",
+    "finance-points",
+    "production-release",
+    "governance-lock",
+    "navigation-scroll",
+    "database-security",
+    "character-inventory",
+    "offline-and-weak-network"
   ]
 }
