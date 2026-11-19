@@ -15,10 +15,12 @@
     "scripts/season2-native-capability-gate.mjs",
     "tests/season2-native-capability-gate.test.mjs",
     "scripts/buklod-season2-production-embargo.cjs",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "tests/season2-native-release-identity.test.mjs"
   ],
   "regressionTests": [
-    "tests/season2-native-capability-gate.test.mjs"
+    "tests/season2-native-capability-gate.test.mjs",
+    "tests/season2-native-release-identity.test.mjs"
   ],
   "lockedFeatureChanges": [],
   "riskAreas": [
