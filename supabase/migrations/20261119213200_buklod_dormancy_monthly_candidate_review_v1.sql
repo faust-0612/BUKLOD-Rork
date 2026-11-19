@@ -272,3 +272,28 @@ end $$;
 -- Intentionally absent: any auth.users DELETE or deleteUser call.
 -- No verified external delivery, storage/finance/legal clearance or destructive
 -- account cleanup runner is configured by this migration.
+
+
+-- Minimal member-facing case status. Never expose other members or private audit data.
+create or replace function public.buklod_my_dormancy_case_v1()
+returns jsonb language plpgsql stable security definer set search_path = ''
+as $$
+declare v_case jsonb;
+begin
+  if (select auth.uid()) is null then
+    raise exception 'Authentication required' using errcode='42501';
+  end if;
+  select jsonb_build_object(
+    'id',c.id,'required_action',c.required_action,
+    'notice_at',c.first_in_app_notice_at,'status',c.status
+  ) into v_case
+  from private.buklod_dormancy_cases_v1 c
+  where c.user_id=(select auth.uid()) and c.status='PENDING'
+  order by c.created_at desc limit 1;
+  return coalesce(v_case,'null'::jsonb);
+end
+$$;
+revoke all on function public.buklod_my_dormancy_case_v1()
+  from public,anon;
+grant execute on function public.buklod_my_dormancy_case_v1()
+  to authenticated;
