@@ -51,6 +51,9 @@ jobs:
           a.equal(req.mode,'preview_only_rewards_off');
           a.equal(req.productionAuthorized,false);
           a.equal(req.backendRewardsLive,false);
+          a.equal(req.season2RewardDbWritesAuthorized,false);
+          a.equal(req.requiresSeparateOwnerApprovalForRewards,true);
+          a.equal(req.rewardsHoldUntilManilaDay,'2026-12-06');
           const app=require('./app.config.js')({config:{}}),e=require('./eas.json');
           a.equal(app.android.package,'org.mzbministry.buklod.staging');
           a.equal(app.runtimeVersion,'1.3.2');
@@ -71,6 +74,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npx tsc --noEmit
           node scripts/buklod-ad-surface-audit.mjs --summary
+          node --test tests/season2-visual-only-hold-20261119.test.cjs
           node scripts/buklod-season2-staging-order-gate.cjs
       - name: Verify signed staging Android binary, current production, and separate channels
         shell: bash
@@ -147,7 +151,7 @@ jobs:
           const receipt={status:'STAGING_SERVER_VERIFIED',sourceSha:process.env.GITHUB_SHA,
             updateId:u.id,groupId:u.group,channel:'staging-user',runtime:'1.3.2',
             package:'org.mzbministry.buklod.staging',productionUnchanged:id,
-            backendRewardsLive:false,deviceAdMobVerified:false};
+            backendRewardsLive:false,rewardsHeldUntil:'2026-12-06',requiresFreshApproval:true,deviceAdMobVerified:false};
           fs.writeFileSync(process.env.OUT+'/verified.json',JSON.stringify(receipt,null,2));
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(receipt,null,2));
           NODE
