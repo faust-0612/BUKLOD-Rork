@@ -1,5 +1,6 @@
 import React,{useMemo,useState} from 'react';
 import BuklodS2CollectibleGuidePanel from '@/components/points/BuklodS2CollectibleGuidePanel';
+import BuklodS2RewardInstructions from '@/components/points/BuklodS2RewardInstructions';
 import {Pressable,StyleSheet,Text,View,type DimensionValue} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {SEASON_JOURNEY_TRACKS,
@@ -233,7 +234,7 @@ export default function BuklodSeasonJourneyPreview({
             <Text style={{fontWeight:'900',fontSize:12,color:C.gold}}>{masteryGuideOpen?'CLOSE ITEM REQUIREMENTS':'HOW TO EARN ITEMS · 13 CHARACTERS · 1,300 ITEMS'}</Text>
             <Text style={{fontSize:11,color:C.muted,marginTop:4}}>Requirements · purpose · prerequisites · verified claims · Season 2 preview only</Text>
           </Pressable>
-          {masteryGuideOpen?<BuklodS2CollectibleGuidePanel />:null}
+          {masteryGuideOpen?<><BuklodS2RewardInstructions /><BuklodS2CollectibleGuidePanel /></>:null}
           <View style={s.prize}>
             <MaterialCommunityIcons name="star-circle-outline" color={C.gold} size={22}/>
             <View style={{flex:1}}>
