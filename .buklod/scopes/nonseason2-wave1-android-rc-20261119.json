@@ -1,16 +1,16 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/nonseason2-wave1-android-rc-20261119.json",
-  "objective": "One isolated non-Season2 Android RC wave: frequent confirmed Wall comment natural-break interstitial, Connect newest-on-send/wider composer, post reaction counts, and KL mobile release buttons. Never activate Season 2 points/tokens or publish OTA before release gates.",
+  "objective": "One isolated non-Season2 Android RC wave: frequent confirmed Wall comment natural-break interstitial, Connect newest-on-send/wider composer, post reaction counts, and KL mobile release buttons. Never activate Season 2 points/tokens or publish OTA before release gates. Add AdMob P0: shared NativeAd health between prewarm/on-screen, 9-second first-view fallback and format-visible SDK banner loading.",
   "baseRef": "aa3aa734b15f6cc2a64fbbbed3dfdd7d4db9539c",
-  "productionBaselineEvidence": "Current GitHub main exact SHA aa3aa734b15f6cc2a64fbbbed3dfdd7d4db9539c; isolated candidate PR #986 combines validated source from #979/#976/#933/#975. Staging publisher includes Wall and Connect; server-side staging OTA is blocked at zero-cost billing and is NOT verified. Existing live production artifact not independently established.",
-  "chosenApproach": "Reconcile already reviewed narrow source patches on clean main; keep backend and native runtime byte-identical; protect changed files with a single exact cumulative work scope and the existing protected-feature lock, GitHub source CI and independently verified EAS staging then production gates.",
+  "productionBaselineEvidence": "Current GitHub main exact SHA aa3aa734b15f6cc2a64fbbbed3dfdd7d4db9539c; isolated candidate PR #986 combines validated source from #979/#976/#933/#975. Staging publisher includes Wall and Connect; server-side staging OTA is blocked at zero-cost billing and is NOT verified. Existing live production artifact not independently established. Independently reviewed AdMob-only PR #982 head 96f47872c423605ae309036e71270b32a1e3385c with Engineering Accountability, Compact, Performance and Main Integration source CI success; actual Android SDK and live impressions remain unverified.",
+  "chosenApproach": "Reconcile already reviewed narrow source patches on clean main; keep backend and native runtime byte-identical; protect changed files with a single exact cumulative work scope and the existing protected-feature lock, GitHub source CI and independently verified EAS staging then production gates. Forward-port the exact six source/test blobs of QA-passed PR #982 into Wave1 candidate without its standalone manifest; track delta in this one cumulative RC scope.",
   "alternativeApproaches": [
     "Merge whole Season 2 staging into production (rejected, risks activating unapproved economy).",
     "Skip staging/cost/ad gating and push directly to production (rejected, violates agreed release and no-charge safety).",
     "Rewrite Connect scroll/pagination and make ads interrupt each comment (rejected, regression and monetization risks)."
   ],
-  "selectionRationale": "Only four non-Season2 existing approved UI/Ad improvements; source-only, no live changes, exact gate/preservation evidence.",
+  "selectionRationale": "Only four non-Season2 existing approved UI/Ad improvements; source-only, no live changes, exact gate/preservation evidence. Shared first-view NativeAd failure memory and correctly sized BannerAd loading target the live callback timeout/no-fill gap, not any Season2 economy change.",
   "riskAreas": [
     "app-runtime",
     "wall-media",
@@ -35,7 +35,9 @@
     "Wall post/video/photos, route privacy and reaction data ownership remain intact; interstitial opportunity is optional and never blocks publishing comments.",
     "Signed-in account and authorized post route remain canonical, no auth or navigation changes; AdMob may decline opportunity safely.",
     "Manual history swipes, latest/older page offsets, read receipts, GIF/photo/file and PTT/calls remain accessible and correctly scoped.",
-    "Existing global two-eligible-action spacing, consent, Ad-Light, no-fill/cooldown, payouts and points logic remain unchanged."
+    "Existing global two-eligible-action spacing, consent, Ad-Light, no-fill/cooldown, payouts and points logic remain unchanged.",
+    "Preserve canonical AdMob test/live IDs, user consent, SDK-authored impressions, cooldown, protected routes, focused dashboard priority and no offscreen ad rendering.",
+    "Keep Android first-view NativeAd timeout bounded at 9 seconds while preserving 12-second feed timeout for slow mobile networks; no parallel request storms."
   ],
   "acceptanceChecks": [
     "First five successful comments per Manila day are ad-free; sixth and every fifth extra success queue at most one optional interstitial on next editor close.",
@@ -66,7 +68,10 @@
     "Staging OTA only; never send Season 2 changes to production before December 6, 2026.",
     "Verify focused changed tests, TypeScript and web/Android source compile; all mandatory AdMob fill/instant-tab, media, scroll and KL regression gates before OTA.",
     "Prove staging-user EAS Free/zero-charge, actual served update/runtime/package/channel and unchanged production; production release only after independent RC frozen bundle and served manifest verification.",
-    "Season 2 reward, token, BP, QMP, character and payout source remains outside exact diff."
+    "Season 2 reward, token, BP, QMP, character and payout source remains outside exact diff.",
+    "Shared real native failure health is used by prewarmed and visible NativeAd requests; after two recent failures, banner-first is bounded for five minutes, resets on success.",
+    "BannerAd fallback retains actual 300x250 or adaptive requested size during SDK load; failed/no-fill slots collapse and recover only after shared cooldown.",
+    "Staging and production impressions must be confirmed from real device and official AdMob; source callbacks are not billable-impression proof."
   ],
   "regressionTests": [
     "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
@@ -75,7 +80,10 @@
     "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs",
     "tests/post-detail-reaction-count-20261118.test.mjs",
     "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
-    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs"
   ],
   "allowedPaths": [
     "src/app/post/[id].tsx",
@@ -91,17 +99,25 @@
     "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
     "tests/kl-web-release-admin-preflight-20261107.test.mjs",
-    ".buklod/scopes/nonseason2-wave1-android-rc-20261119.json"
+    ".buklod/scopes/nonseason2-wave1-android-rc-20261119.json",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodDashboardAdWarmup.android.tsx",
+    "src/lib/buklodNativeAdRecovery.ts",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Shared Android post, Wall, Connect and KL UI fixes preserve account/OTA/runtime identity and app startup.",
+      "reason": "Shared Android post, Wall, Connect and KL UI fixes preserve account/OTA/runtime identity and app startup. NativeAd state lifecycle and first-view fallback now additionally use shared session-local health.",
       "preservedBehaviors": [
-        "No native package, runtime, EAS project, auth bootstrap, login, private keys, production OTA marker, Season1 or Season2 reward contract modified."
+        "No native package, runtime, EAS project, auth bootstrap, login, private keys, production OTA marker, Season1 or Season2 reward contract modified.",
+        "Native app/runtime identity, focused/offscreen advertising visibility and weak network behavior remain governed."
       ],
       "tests": [
-        "tests/wall-comment-navigation-ad-20261119.test.mjs"
+        "tests/wall-comment-navigation-ad-20261119.test.mjs",
+        "tests/buklod-wall-ad-stability.test.mjs"
       ]
     },
     {
@@ -136,12 +152,15 @@
     },
     {
       "id": "ads-finance-points",
-      "reason": "Conservative protected filename overlap flags ConnectThread (thread ends in 'ad'); source only touches layout, and Wall ad continues global consent/cadence/anti-farming protections.",
+      "reason": "Conservative protected filename overlap flags ConnectThread (thread ends in 'ad'); source only touches layout, and Wall ad continues global consent/cadence/anti-farming protections. SDK-native timeout and banner fallback improvements are deliberately isolated from monetization and Finance.",
       "preservedBehaviors": [
-        "Existing global two-eligible-action spacing, consent, Ad-Light, no-fill/cooldown, payouts and points logic remain unchanged."
+        "Existing global two-eligible-action spacing, consent, Ad-Light, no-fill/cooldown, payouts and points logic remain unchanged.",
+        "No fabricated impressions, changed EAS AdMob unit IDs, consent bypass, retry spam or any QMP/payout changes."
       ],
       "tests": [
-        "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+        "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs",
+        "tests/buklod-wall-ad-stability.test.mjs",
+        "tests/buklod-ad-restoration-locked-20261107.test.mjs"
       ]
     }
   ],
