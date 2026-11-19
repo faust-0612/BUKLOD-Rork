@@ -74,7 +74,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npx tsc --noEmit
           node scripts/buklod-ad-surface-audit.mjs --summary
-          node --test tests/season2-visual-only-hold-20261119.test.cjs
+          node --test tests/season2-visual-only-hold-20261119.test.cjs tests/season2-production-release-staging-only-hold-20261119.test.cjs
           node scripts/buklod-season2-staging-order-gate.cjs
       - name: Verify signed staging Android binary, current production, and separate channels
         shell: bash
