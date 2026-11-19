@@ -17,7 +17,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 8,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Tapusin ang 1 tunay at verified ABC Growth lesson; no repeat credit for the same lesson."
   },
   {
     "id": "achievement_bible_scholar",
@@ -25,7 +25,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "milestones",
     "bp": 100,
     "dayCapBP": 100,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Milestone: 28 verified ABC lessons, supporting records, application/evidence verification. +100 BP once eligible."
   },
   {
     "id": "achievement_community_builder",
@@ -33,7 +33,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "milestones",
     "bp": 150,
     "dayCapBP": 150,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Milestone: real, documented community project with beneficiaries and independently verified evidence. +150 BP."
   },
   {
     "id": "achievement_faithful_mentor",
@@ -41,7 +41,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "milestones",
     "bp": 200,
     "dayCapBP": 200,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Milestone: 4 approved teaching sessions with real mentor/mentee records and supporting evidence. +200 BP."
   },
   {
     "id": "achievement_kingdom_champion",
@@ -49,7 +49,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "milestones",
     "bp": 250,
     "dayCapBP": 250,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Milestone: 20 recorded Kingdom levels PLUS independent event verification; client score alone cannot award. +250 BP."
   },
   {
     "id": "admin_bonus",
@@ -57,7 +57,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "admin",
     "bp": 0,
     "dayCapBP": null,
-    "condition": "Admin-controlled bonus; default 0, no automatic member grant"
+    "condition": "Admin-controlled only. No public self-claim or automatic +BP."
   },
   {
     "id": "admin_manual_award",
@@ -65,7 +65,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "admin",
     "bp": 0,
     "dayCapBP": null,
-    "condition": "Admin-only manual award; default 0, not self-service"
+    "condition": "Restricted, audited administrative grant only. Default +0, not a member action."
   },
   {
     "id": "bible_arena_monthly",
@@ -73,7 +73,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "game_quiz",
     "bp": 15,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Valid verified eligible monthly Bible Arena activity/event; source-controlled, not automatic for opening."
   },
   {
     "id": "bible_flash_easy",
@@ -81,7 +81,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "game_quiz",
     "bp": 1,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Passed/accepted verified Bible Flash Easy event; server validates source."
   },
   {
     "id": "bible_flash_medium",
@@ -89,7 +89,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "game_quiz",
     "bp": 3,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Passed/accepted verified Bible Flash Medium event; server validates source."
   },
   {
     "id": "bible_flash_hard",
@@ -97,7 +97,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "game_quiz",
     "bp": 6,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Passed/accepted verified Bible Flash Hard event; server validates source."
   },
   {
     "id": "bible_quiz_easy",
@@ -105,7 +105,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 3,
     "dayCapBP": 3,
-    "condition": "Daily qualified attempt, 5 questions, 4/5 passing target"
+    "condition": "Five questions, passing threshold 4/5, one legitimate daily qualified attempt/account (Manila date)."
   },
   {
     "id": "bible_quiz_medium",
@@ -113,7 +113,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 6,
     "dayCapBP": 6,
-    "condition": "Daily qualified attempt, 5 questions, 4/5 passing target"
+    "condition": "Five questions, passing threshold 4/5, one legitimate daily qualified attempt/account (Manila date)."
   },
   {
     "id": "bible_quiz_hard",
@@ -121,7 +121,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 12,
     "dayCapBP": 12,
-    "condition": "Daily qualified attempt, 5 questions, 4/5 passing target"
+    "condition": "Five questions, passing threshold 4/5, one legitimate daily qualified attempt/account (Manila date)."
   },
   {
     "id": "community_chain_resolve",
@@ -129,7 +129,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 1,
     "dayCapBP": 3,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Server-verified meaningful support-chain completion with distinct qualified members; catalog cap 3 BP/day. Related +3 BP three-member proposal is NOT confirmed live."
   },
   {
     "id": "community_challenge_complete",
@@ -137,7 +137,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 2,
     "dayCapBP": 6,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Complete an eligible accepted community challenge; source and duplicate protection, up to 6 BP/day catalog cap."
   },
   {
     "id": "community_comment",
@@ -145,7 +145,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 2,
     "dayCapBP": null,
-    "condition": "Valid comment; iisang source lamang ang maaaring ma-credit"
+    "condition": "Real accepted community comment by member, no self-farming or repeat replay; no second credit on edit."
   },
   {
     "id": "community_dugtong",
@@ -153,7 +153,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 1,
     "dayCapBP": 8,
-    "condition": "Approved Dugtong, 8 BP/day catalog cap"
+    "condition": "Valid original approved Today/Dugtong response; catalog cap 8 BP/day."
   },
   {
     "id": "community_helpful_dugtong",
@@ -161,7 +161,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 2,
     "dayCapBP": 6,
-    "condition": "Approved helpful Dugtong, 6 BP/day catalog cap"
+    "condition": "Distinct verified helpful Dugtong response; catalog cap 6 BP/day."
   },
   {
     "id": "community_poll_vote",
@@ -169,7 +169,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 1,
     "dayCapBP": 5,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "One valid member-owned poll vote per eligible poll; catalog cap 5 BP/day."
   },
   {
     "id": "community_post",
@@ -177,7 +177,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 5,
     "dayCapBP": null,
-    "condition": "Naka-publish na orihinal na post; kailangang server-verified, visible at hindi spam"
+    "condition": "One genuine originally published and moderated Wall post; rejected/deleted/spam posts excluded."
   },
   {
     "id": "community_reaction",
@@ -185,7 +185,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 1,
     "dayCapBP": null,
-    "condition": "Valid reaction; hindi self/duplicate-farming"
+    "condition": "One genuine reaction to eligible content; do not farm self-reactions, bots or repeats."
   },
   {
     "id": "community_resource_used",
@@ -193,7 +193,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 1,
     "dayCapBP": 5,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Server-confirmed eligible community resource usage, not merely opening screen; cap 5 BP/day."
   },
   {
     "id": "community_takeaway_share",
@@ -201,7 +201,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 1,
     "dayCapBP": 2,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Server-verified substantive community takeaway share; cap 2 BP/day."
   },
   {
     "id": "daily_bible",
@@ -209,7 +209,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 10,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Real completed verified Daily Bible participation; opening reader alone is not proof."
   },
   {
     "id": "daily_bible_verification",
@@ -217,7 +217,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 2,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Distinct server-approved Bible verification event, not a second grant from the same unqualified source."
   },
   {
     "id": "devotional",
@@ -225,7 +225,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 12,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Complete and verify eligible devotional entry; not rewarded merely for viewing."
   },
   {
     "id": "event_attendance",
@@ -233,7 +233,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 10,
     "dayCapBP": null,
-    "condition": "Real live event at valid attendance evidence"
+    "condition": "Check-in only for an actual scheduled live event with recorded date/location; +10 BP when independently verified."
   },
   {
     "id": "formation_lesson",
@@ -241,7 +241,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 25,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Complete eligible approved Formation lesson and required evidence; one award per distinct lesson."
   },
   {
     "id": "game_first_qualified",
@@ -249,7 +249,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "game_quiz",
     "bp": 2,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "First independently verified eligible game achievement only; scores alone do not count."
   },
   {
     "id": "game_tournament_champion",
@@ -257,7 +257,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "game_quiz",
     "bp": 100,
     "dayCapBP": 100,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Independently verified real tournament championship; cap 100 BP/day catalog."
   },
   {
     "id": "learning_progress_verification",
@@ -265,7 +265,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 5,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Submitted lesson/reading progress approved from independent server evidence; duplicate submissions excluded."
   },
   {
     "id": "mentor_session",
@@ -273,7 +273,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 15,
     "dayCapBP": null,
-    "condition": "Verified mentoring session, not self-reported"
+    "condition": "Registered mentor, actual mentees, teaching notes/date/place, proper evidence/consent and validated session. No self-report credit."
   },
   {
     "id": "mentoring_release",
@@ -281,7 +281,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 20,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Genuine approved mentoring or lesson-release milestone distinct from the mentor-session receipt."
   },
   {
     "id": "ministry_activity",
@@ -289,7 +289,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 15,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Real documented and verified ministry/service activity by member; no forged participation."
   },
   {
     "id": "ministry_major_milestone",
@@ -297,7 +297,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 100,
     "dayCapBP": 100,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Documented major ministry achievement including date, participants and independent supporting proof; cap 100 BP/day."
   },
   {
     "id": "prayer_response",
@@ -305,7 +305,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 2,
     "dayCapBP": null,
-    "condition": "Valid voluntary action; protect private prayer"
+    "condition": "Only a legitimate voluntary qualifying response; never score private prayer sincerity, text or beliefs."
   },
   {
     "id": "referral_rank_bonus",
@@ -313,7 +313,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 10,
     "dayCapBP": null,
-    "condition": "Legacy +10 BP configuration; NEW S2 target +20 is a separate unactivated rule"
+    "condition": "Legacy +10 BP configured; independent rank gain evidence required. New S2 +20 BP referrer is isolated target, NOT live, no double grant."
   },
   {
     "id": "reflection_quality_bonus",
@@ -321,7 +321,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "learning",
     "bp": 5,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Genuine original, approved substantive reflection according to its source rubric; duplicate templates excluded."
   },
   {
     "id": "scope_attendance",
@@ -329,7 +329,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 10,
     "dayCapBP": null,
-    "condition": "Check-in only when real event exists; server-approved"
+    "condition": "Actual open/live Cluster/scope event with validated attendance; no fake or duplicate check-in."
   },
   {
     "id": "stage_completion",
@@ -337,7 +337,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 75,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Verified completion of an entire assigned formation stage, not each opened lesson."
   },
   {
     "id": "verified_giving_participation",
@@ -345,7 +345,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 5,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Independently verified voluntary participation, not donation amount; protect financial privacy and no paid reward multiplier."
   },
   {
     "id": "verified_volunteer_service",
@@ -353,7 +353,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "service",
     "bp": 20,
     "dayCapBP": 20,
-    "condition": "Qualified real service, 20 BP/day catalog cap"
+    "condition": "Validated real volunteer service with documented evidence; cap 20 BP/day."
   },
   {
     "id": "weekly_consistency",
@@ -361,7 +361,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "milestones",
     "bp": 20,
     "dayCapBP": null,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Verified qualifying weekly pattern under applicable server rule; not one-time tab opening."
   },
   {
     "id": "weekly_tip_dugtong",
@@ -369,7 +369,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 2,
     "dayCapBP": 2,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Accepted meaningful Dugtong response to official Weekly Tip; cap 2 BP/day."
   },
   {
     "id": "weekly_tip_reaction",
@@ -377,7 +377,7 @@ export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
     "group": "community",
     "bp": 1,
     "dayCapBP": 1,
-    "condition": "Dapat tunay at verified na activity; maaaring may hiwalay na event-specific rules"
+    "condition": "Distinct real approved reaction to an official Weekly Tip; cap 1 BP/day."
   }
 ]);
 export const S2_LEGACY_BP_INACTIVE:readonly Readonly<{id:string;title:string;bp:number}>[] = Object.freeze([
