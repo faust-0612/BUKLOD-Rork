@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nonseason2-wave1-plus-connect-prod-prep-20261119.json",
+  "objective": "Combine currently frozen non-Season2 Wave1 source with November 19 Connect latest keyboard/scroll fix, compact messages and authorized scope Seen list as a PREPARATORY cumulative production OTA source candidate only, without modifying or publishing the frozen Wave1 RC.",
+  "baseRef": "fc65e8b9791b04dc12f6b7a68f82612b41f6da1d",
+  "productionBaselineEvidence": "Wave1 frozen RC source SHA fc65e8b9791b04dc12f6b7a68f82612b41f6da1d has AdMob, Wall/comment, KL and earlier Connect changes. New Connect blobs match its unchanged prior thread/bubble/helper source base. GitHub main 551e54602addd6f7bbe7bcdddd1589d35424c964; Wave1 is behind latest main and must be reconciled with current served production and unrelated updates before release. Live EAS artifact not verified here.",
+  "productionReleaseAuthorized": false,
+  "productionChange": false,
+  "publicationStatus": "CUMULATIVE_SOURCE_PREP_ONLY_NO_STAGING_OR_PRODUCTION_OTA",
+  "sourceFreezeSuperseded": false,
+  "priorFrozenWave1Source": "fc65e8b9791b04dc12f6b7a68f82612b41f6da1d",
+  "stagingPreparedSource": "ae1b7dd21b07291b96039c9a863bbed16ebd2963",
+  "connectFixSource": "3e2f7326eda569eff832e8204dc8b314c927a54a",
+  "nativePackageFilesModified": false,
+  "season2Included": false,
+  "season2RewardsEnabled": false,
+  "releaseMode": "HOLD_REBASE_AND_VERIFY_EXACT_PRODUCTION_RC",
+  "allowedPaths": [
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/lib/connectChatWindow.ts",
+    "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs",
+    ".buklod/scopes/nonseason2-wave1-plus-connect-prod-prep-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Prepare additive existing Connect Android keyboard latest/compact presentation on frozen Wave1 source, without changing finance or other existing runtime screens.",
+      "preservedBehaviors": [
+        "Existing Wave1 NativeAd first-view, Wall interstitial, full post reaction counts, KL release buttons, authentication and Season 1 QMP remain unchanged."
+      ],
+      "tests": [
+        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Add reviewed shared Connect chat timeline and sender-avatar/Seen layout changes to Wave1 without replacing its composer, database permissions or PTT/call system.",
+      "preservedBehaviors": [
+        "Existing optimistic send, read cursor permissions, older pagination, media uploads, offline session, deep links and manual history scrolling must remain functional."
+      ],
+      "tests": [
+        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Verify exact diff against frozen Wave1: only shared Connect Thread/Bubble/helper, their focused tests and this scope manifest changed.",
+    "Reconcile Wave1 candidate with current main/prod manifest and staging RC; no lost newer security, finance, media or user features.",
+    "TypeScript and Android 1.3.2 compile QA, two focused Connect Node tests, full Connect text-photo-GIF/reaction/offline/Seen regression, dashboard/AdMob P0 and production release gates must pass.",
+    "Verify actual staging-user served source/runtime identity and production remains unchanged before promotion.",
+    "Require owner-approved release decision and separately verified exact live production fingerprint after OTA; no auto publish by this commit.",
+    "Never include locked Season 2 source/features/points/backend mutations before approved activation."
+  ],
+  "knownBlockers": [
+    "Source branch needs current main/production reconciliation because frozen Wave1 is behind latest main.",
+    "Current EAS staging served source and Android compile for new combined candidate not verified.",
+    "Current production AdMob/nav runtime tests and deployment identity not verified."
+  ]
+}
