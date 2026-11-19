@@ -20,7 +20,7 @@ The existing voluntary Delete Account button and Google Play deletion request pa
 - No background permanent deletion job, no email/SMS sender, no photo capture, no production migration, no OTA.
 
 ## Mandatory production activation checklist
-- [ ] Confirm authoritative BUKLOD Main Supabase project and schema (other connected BUKLOD projects are **not** interchangeable).
+- [x] Read-only verified the Main production-configured Supabase project yhanxndaqbmuzbdqlblu via web release workflow, Auth triggers, and live schema; no production DDL writes.
 - [ ] Verify the real backend delete-account service, all FK constraints, storage object ownership, cascades/retention and backup controls; do not simply call auth.admin.deleteUser and assume associated media is gone.
 - [ ] Connect a valid external notification provider for verified email/SMS delivery, bounce handling, idempotent retries, timestamps and expiry. Explicit consent/privacy notice must explain the inactivity policy.
 - [ ] Define record-specific legal and financial preservation, payout holds, offline account recovery, BSOC holds, and rechecks immediately before each deletion.
@@ -29,7 +29,7 @@ The existing voluntary Delete Account button and Google Play deletion request pa
 - [ ] Update BUKLOD public privacy and account deletion disclosures *before enabling monitoring*. Existing users must get fair advance notice of new inactivity terms.
 - [ ] Approve release separately, with exact DEV → RC → Production OTA/server changes and verifiable result. Do not deploy unrelated Season 2 changes.
 
-**No account can be auto deleted by this DEV change.** This is intentional until safeguards and the unavailable BUKLOD Main backend are reconciled.
+**No account can be auto deleted by this DEV change.** This is intentional until safeguards and the available-but-production-only BUKLOD Main backend are reconciled. No separate approved staging database exists.
 
 
 ## 19 November 2026 addendum — mobile/email-only login and legacy migration
@@ -42,4 +42,12 @@ DEV source only, not applied to BUKLOD Main production or OTA.
 - Trello is not an email/SMS provider. Email requires a configured Resend sender or alternative SMTP/API provider. SMS requires a messaging gateway such as Twilio Messaging; Twilio Verify handles only OTP. SMS may cost money; do not activate it without approved funding.
 - External message worker and delivery queue exist behind OFF switches, with per-batch cap, audited provider acceptance and no false delivery proof. Accepted sends never start the 180-day account-deletion clock.
 
-Required before activation: identify authoritative BUKLOD Main backend (connected Supabase instances are different projects), reconcile new unrelated production church-role RPC security fixes, confirm sender credentials, verify true email/SMS delivery, test legacy signup rejection and migration on production-equivalent staging, validate idempotency/collisions/partial failure, preserve account recovery, and explicitly enable the policies. No real messages or account changes occurred in this source-only update.
+Required before activation: use verified BUKLOD Main yhanxndaqbmuzbdqlblu only after production-equivalent RC verification, reconcile new unrelated production church-role RPC security fixes, confirm sender credentials, verify true email/SMS delivery, test legacy signup rejection and migration on production-equivalent staging, validate idempotency/collisions/partial failure, preserve account recovery, and explicitly enable the policies. No real messages or account changes occurred in this source-only update.
+
+## Live BUKLOD Main read-only audit (November 19, 2026)
+- Project yhanxndaqbmuzbdqlblu, which is named BUKLOD Connect in the provider dashboard, is the expected Main backend in production_web_deploy.yml; shared public.profiles and authentication tables confirmed.
+- 588 profiles: 31 username, 315 email, 240 mobile, 2 null login_method.
+- Of 31 username profiles, 10 have profile mobile, 0 have a verified Auth phone number, and 0 have a real Auth email. Do not claim that SMS or email outreach is presently possible to all 31.
+- Existing live Auth trigger buklod_invalidate_email_verification_on_auth_email_change_v1 and profile trigger buklod_queue_email_verification_profile_v1 must be reconciled. Email ownership proof is distinct from BUKLOD membership/ID verification.
+- Live pg_cron/pg_net are installed. New migration/dormancy tables do not exist yet; there have been no live messages, account changes or auto deletions from this DEV branch.
+- Latest main contains unrelated privileged church-role/local-membership RPC ACL fixes. Preserve them during RC reconciliation.
