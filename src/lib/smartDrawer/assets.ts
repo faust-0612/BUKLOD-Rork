@@ -9,8 +9,9 @@ const MAX_DRAWER_FILE_BYTES = 15 * 1024 * 1024;
 const EXT: Record<string, string> = {
   'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png',
   'image/webp': '.webp', 'image/gif': '.gif', 'image/heic': '.heic',
+  'image/heif': '.heif', 'image/bmp': '.bmp', 'image/avif': '.avif', 'image/jpg': '.jpg',
 };
-const VALID_EXTENSIONS = new Set(['.pdf','.jpg','.jpeg','.png','.webp','.gif','.heic']);
+const VALID_EXTENSIONS = new Set(['.pdf','.jpg','.jpeg','.png','.webp','.gif','.heic','.heif','.bmp','.avif']);
 function safeExtension(name: string | null | undefined): string | null {
   const leaf = (name ?? '').split(/[\\/]/).pop() ?? '';
   const match = leaf.match(/\.([a-z0-9]{2,5})$/i);
@@ -44,7 +45,7 @@ export async function persistSmartDrawerAsset(input: {
     throw new Error('Only PDF and supported images may be imported.');
   }
   if (Platform.OS !== 'web') {
-    const info = await FileSystem.getInfoAsync(input.uri, { size: true }).catch(() => null);
+    const info = await FileSystem.getInfoAsync(input.uri).catch(() => null);
     if (info?.exists && 'size' in info &&
         typeof info.size === 'number' && info.size > MAX_DRAWER_FILE_BYTES) {
       throw new Error('The file exceeds the 15 MB Drawer limit.');

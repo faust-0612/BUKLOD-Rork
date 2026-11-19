@@ -21,6 +21,7 @@ import {
 } from '@/lib/buklodImagePickerAccess';
 import {
   persistSmartDrawerAsset,
+  deleteSmartDrawerAsset,
   isSupportedSmartDrawerImport,
 } from '@/lib/smartDrawer/assets';
 import {
@@ -122,21 +123,25 @@ export default function SmartDrawerImport() {
           originalName: picked.fileName,
         });
 
-        await commitSmartDrawerItem(
-          user.id,
-          {
-            title:
-              picked.fileName?.replace(/\.[^.]+$/, '') ||
-              'Imported File',
-            body: '',
-            extractedText: '',
-            type: 'DOCUMENT',
-            assets: [asset],
-            status: 'ACTIVE',
-            syncState: 'LOCAL_ONLY',
-          },
-        );
-        saved += 1;
+        try {
+          await commitSmartDrawerItem(
+            user.id,
+            {
+              title: picked.fileName?.replace(/\.[^.]+$/, '') || 'Imported File',
+              body: '',
+              extractedText: '',
+              type: 'DOCUMENT',
+              assets: [asset],
+              status: 'ACTIVE',
+              syncState: 'LOCAL_ONLY',
+            },
+          );
+          saved += 1;
+        } catch (error) {
+          // The original provider file is untouched. Delete only our orphaned copy.
+          await deleteSmartDrawerAsset(asset);
+          throw error;
+        }
       }
 
       setNotice(

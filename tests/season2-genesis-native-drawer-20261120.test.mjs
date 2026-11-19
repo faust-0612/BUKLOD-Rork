@@ -10,6 +10,9 @@ test('Drawer manual native provider import preserves local-only privacy',()=>{
 test('approved MIME, local storage and bounded import sizes',()=>{
  const a=file('src/lib/smartDrawer/assets.ts');
  for (const x of ['application/pdf','15 * 1024 * 1024','FileSystem.copyAsync','originalName']) assert.ok(a.includes(x),x);
+ assert.doesNotMatch(a,/getInfoAsync\(input\.uri,\s*\{\s*size:/);
+ const importer=file('src/app/drawer/import.tsx');
+ assert.match(importer,/deleteSmartDrawerAsset\(asset\)/);
  const d=file('src/app/drawer/item/[id].tsx');
  assert.match(d,/expo-sharing/);assert.match(d,/file-pdf-box/);
 });
