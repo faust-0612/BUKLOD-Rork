@@ -108,15 +108,12 @@ test('Preloader and visible ad slot share real native failures and never synthes
 });
 
 test('Native health switches to banner only after two recent failures and expires safely', async () => {
- const ts = await import('typescript');
+ const { stripTypeScriptTypes } = await import('node:module');
  const source=read('src/lib/buklodNativeAdRecovery.ts');
- const compiled=ts.default.transpileModule(source,{
-   compilerOptions:{module:ts.default.ModuleKind.CommonJS,target:ts.default.ScriptTarget.ES2020}
- }).outputText;
- const exports={};
- new Function('exports', compiled)(exports);
+ const compiled=stripTypeScriptTypes(source, { mode: 'strip' }).replace(/^export /gm, '');
  const { preferBannerAfterNativeFailures: prefer, noteNativeRequestFailed: failed,
-   noteNativeRequestSucceeded: succeeded }=exports;
+   noteNativeRequestSucceeded: succeeded }=new Function(compiled +
+     '\\nreturn { preferBannerAfterNativeFailures, noteNativeRequestFailed, noteNativeRequestSucceeded };')();
  const t=1000000;
  assert.equal(prefer('wall', t), false);
  failed('wall', t);
