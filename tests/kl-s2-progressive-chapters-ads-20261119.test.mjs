@@ -31,7 +31,9 @@ test('progression and reward grants enforce per-account previous completion in S
   assert.match(sql, /IF NOT private\.kl_s2_previous_chapter_complete_v1\(v_user,p_episode_id\)/);
   assert.match(sql, /BEFORE INSERT OR UPDATE OF episode_id ON public\.kl_reading_sessions/);
   assert.match(sql, /SET base_points=5,max_points_per_event=35/);
-  assert.match(sql, /v_user,v_chapter_points,'kl_episode_completion'/);
+  assert.match(sql, /v_user,v_pending_row\.reward_bp,'kl_episode_completion'/);
+  assert.match(sql, /INSERT INTO private\.kl_s2_chapter_pending/);
+  assert.match(sql, /v_previous_credit:=v_pending_row\.reward_bp/);
   assert.match(sql, /'kl:episode:'\|\|v_user::text\|\|':'\|\|p_episode_id::text/);
   assert.match(sql, /v_user,50,'kl_season_completion'/);
   assert.doesNotMatch(sql, /v_chapter_points:=15|max_points_per_event=15/);
@@ -42,7 +44,10 @@ test('unchanged legacy season rewards are locked behind future opt-in activation
   assert.match(sql, /'2026-12-06 00:00:00\+08'/);
   assert.match(sql, /v_chapter_points integer:=10/);
   assert.match(sql, /IF private\.kl_s2_rewards_enabled_v1\(\) THEN/);
-  assert.match(sql, /chapter\.episode_number<=1 OR EXISTS/);
+  assert.match(sql, /chapter\.episode_number=0/);
+  assert.match(sql, /chapter\.episode_number=1 AND/);
+  assert.match(sql, /chapter\.season_number=1/);
+  assert.match(sql, /previous\.season_number=chapter\.season_number-1/);
   assert.match(sql, /IF v_episode\.episode_number>=1 THEN v_chapter_points:=5\+v_episode\.episode_number/);
 });
 
@@ -73,4 +78,21 @@ test('banner is a lazy inline ad below comments, and interstitial stays after ve
   assert.match(quiz, /showBuklodAdOpportunity\('kl_chapter_success'\)/);
   assert.match(ads, /INTERSTITIAL_MIN_EVENT_COUNT/);
   assert.match(ads, /fullScreenCadenceCheckInFlight/);
+});
+
+test('deferred chapter rewards are never inserted as points on current chapter completion', () => {
+  const completed = sql.slice(sql.indexOf('if v_session.completed_at is null then'),
+    sql.indexOf('select count(*) into v_season_count'));
+  assert.match(completed, /v_pending_points:=v_chapter_points/);
+  assert.match(completed, /IF v_s2_enabled AND v_episode\.episode_number BETWEEN 1 AND 30 THEN/);
+  assert.match(completed, /ELSIF NOT v_s2_enabled THEN/);
+  assert.match(completed, /v_user,v_pending_row\.reward_bp,'kl_episode_completion'/);
+  assert.match(completed, /previous\.season_number=v_episode\.season_number-1/);
+  assert.match(completed, /previous\.episode_number=30/);
+  assert.match(completed, /pending\.credited_at IS NULL/);
+  assert.match(sql, /'pending_points',v_pending_points/);
+  assert.match(sql, /'released_previous_chapter_points',v_previous_credit/);
+  assert.match(sql, /'points_awarded',v_previous_credit\+/);
+  assert.match(quiz, /makukuha kapag natapos ang susunod na kabanata/);
+  assert.match(quiz, /mula sa nakaraang kabanata/);
 });
