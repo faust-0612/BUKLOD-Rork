@@ -300,7 +300,7 @@ export function ChatBackgroundProvider({
       setBackground,
       resetBackground,
       previewBackground,
-      previewConfig,
+      previewConfig: seasonLocked ? null : previewConfig,
     }),
     [
       ready,
@@ -312,7 +312,8 @@ export function ChatBackgroundProvider({
       setBackground,
       resetBackground,
       previewBackground,
-      previewConfig: seasonLocked ? null : previewConfig,
+      previewConfig,
+      seasonLocked,
     ]
   );
 
