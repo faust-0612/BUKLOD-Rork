@@ -20,7 +20,7 @@
     "release:gate": "npm run character:contract && npm run game:contract && npm run compact:contract && npm run release:base-gate",
     "quality": "npm run test && npm run test:db && npm run release:gate",
     "staging:gate": "node scripts/staging-gate.mjs",
-    "genesis:theme:gate": "node scripts/genesis-single-season-branding-gate.cjs",
+    "genesis:theme:gate": "node --test tests/genesis-season-branding-navigation-20261120.test.mjs && node scripts/genesis-single-season-branding-gate.cjs",
     "supabase:local:reset": "supabase db reset",
     "supabase:test": "supabase test db",
     "build:android:preview": "eas build --platform android --profile preview",

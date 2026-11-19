@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-season-wordmark-appwide-20261120.json",
+  "objective": "Use one canonical Genesis: Let There Be Light wordmark across native/web startup and five-tab and managed dashboards; retain one season-wide theme without user selection in preview. Reconcile native staging foundation without production mutation.",
+  "baseRef": "06db398e0dc936250dd680fac160d2bfe7b116eb",
+  "productionBaselineEvidence": "main 551e54602addd6f7bbe7bcdddd1589d35424c964; DEV native candidate 06db398e0dc936250dd680fac160d2bfe7b116eb. No verified signed Android staging Genesis APK; production untouched.",
+  "chosenApproach": "Shared GENESIS_IDENTITY constant in startup and common dashboard headers; preview-only cosmic treatment, pre-existing season locked theme tokens and deferred approved premium rigs/audio. Preserve navigation, ads and existing canonical B logo.",
+  "selectionRationale": "One shared seasonal authority prevents text drift and avoids redesign or production regressions.",
+  "alternativeApproaches": [
+    "Create different themes per dashboard (rejected)",
+    "Use a theme selector in Season 2 (rejected)",
+    "Auto-release native ABI features via OTA before signed APK exists (rejected)"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodMainBrandIntro.tsx",
+    "src/components/BuklodMainBrandIntro.web.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "src/components/BuklodScopedDashboardHeader.tsx",
+    "package.json",
+    "scripts/genesis-single-season-branding-gate.cjs",
+    ".buklod/scopes/genesis-season-wordmark-appwide-20261120.json",
+    "tests/genesis-season-branding-navigation-20261120.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-season-branding-navigation-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Seasonal startup and dashboard title variants preserve the existing production runtime and UI behavior.",
+      "preservedBehaviors": [
+        "All changes preview-gated; production user theme preferences remain untouched",
+        "AdMob first-view warmup and tab navigation unchanged"
+      ],
+      "tests": [
+        "tests/genesis-season-branding-navigation-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Shared five-tab header presentation changes must preserve existing navigation and notification routes.",
+      "preservedBehaviors": [
+        "BUKLOD menu, alerts, tabs, and navigation wiring retain their same functions"
+      ],
+      "tests": [
+        "tests/genesis-season-branding-navigation-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "shared-header text overflow",
+    "native startup logo alignment",
+    "first-view ads",
+    "global theme-override leakage",
+    "staging runtime compatibility"
+  ],
+  "preserveBehaviors": [
+    "Production/main and installed app unchanged",
+    "Season 2 date embargo remains",
+    "No reward/points/RLS/finance changes",
+    "No new native ABI or Google OAuth claims",
+    "No staging OTA without compiled signed APK and exact runtime acceptance"
+  ],
+  "acceptanceChecks": [
+    "Canonical wordmark is the same on all startup and dashboard surfaces",
+    "Preview controls hide user theme selectors",
+    "Ad/navigation behavior remains intact by source and later device QA",
+    "Node proof runnable in CI; signed Android APK/device verification pending"
+  ],
+  "releaseMode": "DEV_ONLY",
+  "releaseStatus": "SOURCE_READY_CI_PENDING_APK_AND_OTA_HOLD"
+}
