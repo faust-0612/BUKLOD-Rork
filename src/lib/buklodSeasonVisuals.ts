@@ -1,25 +1,28 @@
 /**
- * Season 2 Genesis visual identity tokens.
+ * Season 2 Genesis: The Seed of Glory visual identity tokens.
  *
  * DESIGN PREPARATION ONLY. This module deliberately has NO activation hook,
  * clock trigger, reward reference, API call, or production entrypoint.
  * Season 2 production remains embargoed until separately approved.
  */
 export const GENESIS_SEASON2_VISUALS = {
-  id: 'genesis-first-light',
-  officialWorkingTitle: 'GENESIS — THE FIRST LIGHT',
-  subtitle: 'Season 2 · A new beginning, growing together',
+  id: 'genesis-seed-of-glory',
+  officialWorkingTitle: 'GENESIS: The Seed of Glory',
+  subtitle: 'Season 2 · One seed. Boundless possibilities.',
   earliestProductionDatePht: '2026-12-06',
-  defaultDecoration: 'firstLight',
+  defaultDecoration: 'glorySeed',
   colors: {
     nightSky: '#102C3D',
+    seedEmerald: '#1E936A',
+    livingLime: '#A4DA69',
+    promiseGold: '#F3CF74',
     dawnGreen: '#1F7656',
     sunriseGold: '#E7B861',
     morningMist: '#F6F7F0',
     horizonBlue: '#79B8D2',
     textOnDark: '#FFFFFF',
   },
-  motifs: ['firstLight', 'livingRoots', 'linkedPaths'],
+  motifs: ['glorySeed', 'firstLight', 'livingRoots', 'linkedPaths'],
 } as const;
 
 /** Decorations compose over a user's chosen color palette, never replace it. */
