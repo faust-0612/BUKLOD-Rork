@@ -23,3 +23,16 @@ test('new video delivery preserves existing ads first-view preload and cache pro
   assert.match(sponsor,/requestBuklodAudioFocus\('sponsor-ad'\)/);
   assert.doesNotMatch(sponsor,/setTimeout\(check,350\)|setInterval\(check,900\)/);
 });
+
+test('trusted compact-file publishing cannot mutate original campaign or silently run on the client',()=>{
+  const publish=readFileSync('scripts/publish-buklod-sponsored-renditions.mjs','utf8');
+  assert.match(publish,/if\(!apply\)/);
+  assert.match(publish,/SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(publish,/url!==PROJECT_URL/);
+  assert.match(publish,/originalPreserved:true/);
+  assert.match(publish,/\.eq\('video_url',c\.video_url\)/);
+  assert.match(publish,/cacheControl:'31536000',upsert:false/);
+  assert.match(publish,/method:'HEAD'/);
+  assert.doesNotMatch(publish,/EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY/);
+  assert.doesNotMatch(publish,/\.remove\(|\.delete\(/);
+});
