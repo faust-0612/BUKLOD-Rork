@@ -50,7 +50,7 @@ type Props = {
   onSummaryPress?: (
     reactionKey: string
   ) => void;
-  layout?: 'default' | 'comment' | 'wall';
+  layout?: 'default' | 'comment' | 'wall' | 'detail';
 };
 
 /* ASCII-only source escapes keep Community emoji stable.
@@ -97,14 +97,18 @@ function createStyles(
   compact: boolean,
   overlay: boolean,
   summaryProminent: boolean,
-  layout: 'default' | 'comment' | 'wall'
+  layout: 'default' | 'comment' | 'wall' | 'detail'
 ) {
   const isComment = layout === 'comment';
   const isWall = layout === 'wall';
+  const isDetail = layout === 'detail';
+  const fillRow = isComment || isWall || isDetail;
   const prominent =
     summaryProminent || isWall;
   const actionSize = overlay
     ? 45
+    : isDetail
+      ? 34
     : isComment
       ? 22
       : compact
@@ -116,16 +120,16 @@ function createStyles(
       position: 'relative',
       overflow: 'visible',
       zIndex: 8,
-      width: isComment || isWall ? '100%' : undefined,
+      width: fillRow ? '100%' : undefined,
       marginTop: isWall ? 0 : undefined,
     },
     row: {
       minHeight: actionSize,
-      width: isComment || isWall ? '100%' : undefined,
+      width: fillRow ? '100%' : undefined,
       flexDirection: overlay ? 'column' : 'row',
-      flexWrap: isComment || isWall ? 'wrap' : 'nowrap',
+      flexWrap: fillRow ? 'wrap' : 'nowrap',
       alignItems: 'center',
-      gap: isWall ? 10 : isComment ? 4 : compact ? 6 : 8,
+      gap: isDetail ? 8 : isWall ? 10 : isComment ? 4 : compact ? 6 : 8,
     },
     action: {
       width: actionSize,
@@ -150,23 +154,25 @@ function createStyles(
         : theme.accent,
     },
     actionEmoji: {
-      fontSize: isComment ? 12 : compact ? 18 : 20,
-      lineHeight: isComment ? 14 : compact ? 22 : 24,
+      fontSize: isComment ? 12 : isDetail ? 16 : compact ? 18 : 20,
+      lineHeight: isComment ? 14 : isDetail ? 20 : compact ? 22 : 24,
       textAlign: 'center',
     },
     summary: {
-      flex: isComment || isWall ? 0 : 1,
-      flexGrow: isComment || isWall ? 1 : 0,
-      flexShrink: isComment || isWall ? 0 : 1,
+      flex: fillRow ? 0 : 1,
+      flexGrow: fillRow ? 1 : 0,
+      flexShrink: fillRow ? 0 : 1,
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
-      gap: isWall ? 8 : isComment ? 3 : 4,
-      maxWidth: isComment || isWall ? '100%' : undefined,
+      gap: isDetail ? 5 : isWall ? 8 : isComment ? 3 : 4,
+      maxWidth: fillRow ? '100%' : undefined,
     },
     chip: {
       minHeight: isComment
         ? 18
+        : isDetail
+          ? 26
         : prominent
           ? 30
           : compact
@@ -174,15 +180,17 @@ function createStyles(
             : 24,
       paddingHorizontal: isComment
         ? 5
+        : isDetail
+          ? 8
         : prominent
           ? 9
           : compact
             ? 6
             : 7,
-      borderRadius: isComment ? 9 : prominent ? 15 : 12,
+      borderRadius: isComment ? 9 : isDetail ? 13 : prominent ? 15 : 12,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: isComment ? 2 : prominent ? 4 : 3,
+      gap: isComment ? 2 : isDetail ? 4 : prominent ? 4 : 3,
       backgroundColor: withAlpha(theme.surfaceMuted, 0.92),
       borderWidth: 1,
       borderColor: theme.border,
@@ -194,6 +202,8 @@ function createStyles(
     chipEmoji: {
       fontSize: isComment
         ? 10
+        : isDetail
+          ? 15
         : prominent
           ? 15
           : compact
@@ -201,6 +211,8 @@ function createStyles(
             : 13,
       lineHeight: isComment
         ? 12
+        : isDetail
+          ? 18
         : prominent
           ? 18
           : compact
@@ -210,6 +222,8 @@ function createStyles(
     chipCount: {
       fontSize: isComment
         ? 9
+        : isDetail
+          ? 12
         : prominent
           ? 12
           : compact
@@ -228,7 +242,7 @@ function createStyles(
       // Deliberately overlap the action by 8px on web so there is no
       // dead hover gap while the pointer travels from the icon to the drawer.
       bottom: actionSize - 8,
-      height: compact ? 44 : 46,
+      height: compact || isDetail ? 44 : 46,
       paddingHorizontal: 6,
       flexDirection: 'row',
       alignItems: 'center',
@@ -248,8 +262,8 @@ function createStyles(
       },
     },
     option: {
-      minWidth: compact ? 40 : 44,
-      height: compact ? 36 : 40,
+      minWidth: compact || isDetail ? 40 : 44,
+      height: compact || isDetail ? 36 : 40,
       paddingHorizontal: 5,
       borderRadius: 18,
       alignItems: 'center',
@@ -261,8 +275,8 @@ function createStyles(
       borderColor: theme.accent,
     },
     optionEmoji: {
-      fontSize: compact ? 18 : 20,
-      lineHeight: compact ? 22 : 24,
+      fontSize: compact || isDetail ? 18 : 20,
+      lineHeight: compact || isDetail ? 22 : 24,
     },
   });
 }
