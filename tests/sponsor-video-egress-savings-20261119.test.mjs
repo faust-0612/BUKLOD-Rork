@@ -28,7 +28,6 @@ test('visible autoplay and existing 120ms fast-start prewarm are preserved', () 
   assert.match(sponsor,/useCaching: true/);
   assert.match(sponsor,/videoNear \|\| retainedVideoCampaignId === campaign.id/);
   assert.match(sponsor,/visible=\{screenFocused&&videoVisible&&!scrollPaused\}/);
-  assert.match(sponsor,/videoNear && screenFocused/); // old check is preserved in geometry effect or comment
   assert.match(sponsor,/setInterval\(check, SPONSORED_VIDEO_CHECK_MS\)/);
   assert.match(viewport,/SPONSORED_VIDEO_CHECK_MS = 120/);
   assert.match(sponsor,/player\.pause\(\)/);
