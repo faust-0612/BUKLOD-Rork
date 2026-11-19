@@ -1,7 +1,7 @@
 /** Season 2 non-production Kingdom entry: illustrated character portals, not the legacy cartoon map.
  * Route IDs and earned reward logic stay owned by the existing Kingdom backend. */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, Easing, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { AccessibilityInfo, AppState, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,7 +10,9 @@ import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import { getBuklodSpecialLevelAsset, type BuklodSpecialCharacterId } from '@/lib/buklodSpecialCharacterAssets';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import type { ProgressiveCharacterId } from '@/lib/buklodProgressiveCharacter';
-import GenesisCosmicSky from './GenesisCosmicSky';
+import GenesisCosmicSky, { GenesisOrbitHalo } from './GenesisCosmicSky';
+import GenesisRiveCharacter from './GenesisRiveCharacter';
+import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { GenesisSeal } from './GenesisVisuals';
 
 export const GENESIS_REALMS = [
@@ -45,7 +47,7 @@ export default function GenesisKingdomPortal() {
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [reduceMotion, setReduceMotion] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const float = useRef(new Animated.Value(0)).current;
+  const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   useEffect(() => {
     let current = true;
@@ -55,17 +57,6 @@ export default function GenesisKingdomPortal() {
     return () => { current = false; a.remove(); b.remove(); };
   }, []);
   const animate = focused && foreground && !reduceMotion;
-  useEffect(() => {
-    float.stopAnimation();
-    float.setValue(0);
-    if (!animate) return;
-    const motion = Animated.loop(Animated.sequence([
-      Animated.timing(float,{toValue:1,duration:2500,easing:Easing.inOut(Easing.sin),useNativeDriver:true}),
-      Animated.timing(float,{toValue:0,duration:2500,easing:Easing.inOut(Easing.sin),useNativeDriver:true}),
-    ]));
-    motion.start();
-    return () => motion.stop();
-  },[animate,float]);
   const media = getRorkGameMedia(selected.id);
   const select = (realm: Realm) => { setSelected(realm); setImageFailed(false); };
   const frameHeight = width > 640 ? 350 : 298;
@@ -87,9 +78,11 @@ export default function GenesisKingdomPortal() {
           : null}
         <LinearGradient colors={['rgba(2,9,22,.42)','rgba(4,13,30,.1)','rgba(1,8,17,.95)']} style={StyleSheet.absoluteFill}/>
         <GenesisCosmicSky active={animate} transparent/>
-        <Animated.View pointerEvents="none" style={[styles.heroArt,{
-          transform:[{translateY:float.interpolate({inputRange:[0,1],outputRange:[3,-7]})}],
-        }]}><RealmCharacter character={selected.character}/></Animated.View>
+        <GenesisOrbitHalo active={animate} size={Math.min(300, width * 0.72)} />
+        <View pointerEvents="none" style={styles.heroArt}>
+          <GenesisRiveCharacter active={animate} width={188} height={214}
+            fallback={<RealmCharacter character={selected.character}/>} />
+        </View>
         <View style={styles.heroCopy} pointerEvents="none">
           <Text style={styles.realmName}>{selected.name.toUpperCase()} · CREATION REALM</Text>
           <Text style={styles.realmTitle}>{selected.title}</Text>
@@ -102,6 +95,16 @@ export default function GenesisKingdomPortal() {
         </Pressable>
       </View>
       <View style={styles.actions}>
+        <Pressable accessibilityRole="switch" accessibilityLabel="Genesis cinematic ambience"
+          accessibilityState={{checked:musicEnabled}} onPress={toggleMusic}
+          style={[styles.action,styles.soundAction]}>
+          <MaterialCommunityIcons name={musicEnabled ? 'volume-high' : 'volume-off'} size={22} color="#F8DBA1"/>
+          <View style={{flex:1}}>
+            <Text style={styles.actionTitle}>Cinematic soundscape · {musicEnabled ? 'On' : 'Off'}</Text>
+            <Text style={styles.actionSub}>Opt-in local music · pauses outside Kingdom</Text>
+          </View>
+          <MaterialCommunityIcons name={musicEnabled ? 'toggle-switch' : 'toggle-switch-off'} color="#F5DBAD" size={28}/>
+        </Pressable>
         <Pressable accessibilityRole="button" onPress={()=>router.push('/games/genesis-collection' as any)} style={styles.action}>
           <MaterialCommunityIcons name="diamond-stone" size={22} color="#FFE3A3"/>
           <View style={{flex:1}}>
@@ -153,6 +156,7 @@ const styles = StyleSheet.create({
   borderRadius:11,minHeight:44,flexDirection:'row',alignItems:'center',gap:5,zIndex:3},
  enterLabel:{color:'#10291E',fontSize:10,fontWeight:'900',letterSpacing:.5},
  actions:{gap:8},
+ soundAction:{minHeight:56,borderColor:'#577A92',backgroundColor:'#102038'},
  action:{backgroundColor:'#0E2637',borderRadius:13,borderWidth:1,borderColor:'#C2A775',
   padding:12,flexDirection:'row',alignItems:'center',gap:10,minHeight:70},
  actionTitle:{color:'#F9F1E1',fontWeight:'900',fontSize:14},

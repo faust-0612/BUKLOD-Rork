@@ -1,7 +1,16 @@
-/** BUKLOD Season 2 Creation; visual-only, gated from production. */
+/** BUKLOD Season 2 cosmic Creation, presentation-only and release-gated. */
+export const GENESIS_IDENTITY = Object.freeze({
+  id: 'season2-genesis',
+  title: 'Genesis: Let There Be Light',
+  quote: 'Let there be light',
+  verse: 'Genesis 1:3',
+  motif: 'galactic-creation',
+  center: 'radiant-first-light',
+  subtitle: 'At the Creator’s word, light broke into the void.',
+});
 export const GENESIS_PALETTE = Object.freeze({
   void: '#050A19', cosmos: '#09142C', nebula: '#463D79', teal: '#65D8CC',
-  gold: '#F3D399', radiant: '#FFF3D4', star: '#E9F3FF', surface: '#101E3C',
+  gold: '#F3D399', goldLight: '#FFE8B6', radiant: '#FFF3D4', star: '#E9F3FF', surface: '#101E3C',
   textOnDark: '#F8FAFF', line: 'rgba(243,211,153,.4)',
 });
 export const GENESIS_MOTION_MS = Object.freeze({
@@ -10,6 +19,19 @@ export const GENESIS_MOTION_MS = Object.freeze({
 });
 export type GenesisSurface='home'|'wall'|'connect'|'profile'|'bible'|'character'|'kingdom'|'reward';
 export type GenesisQuality='full'|'balanced'|'minimal';
+/** Canonical galactic scene vocabulary for every Season 2 surface. No reward authority. */
+export const GENESIS_SURFACE_DESIGN: Readonly<Record<GenesisSurface, {
+  scene: string; emphasis: string; motion: 'cinematic'|'subtle'|'static';
+}>> = Object.freeze({
+  home:{scene:'galaxy-first-light',emphasis:'radiant-origin',motion:'cinematic'},
+  wall:{scene:'deep-cosmos-hairlines',emphasis:'legible-feed',motion:'static'},
+  connect:{scene:'dark-orbital-lines',emphasis:'instant-messaging',motion:'static'},
+  profile:{scene:'celestial-halo',emphasis:'rank-insignia',motion:'subtle'},
+  bible:{scene:'quiet-creation-light',emphasis:'scripture-readability',motion:'static'},
+  character:{scene:'starlit-nebula',emphasis:'licensed-rig-only',motion:'cinematic'},
+  kingdom:{scene:'living-galactic-realm',emphasis:'interactive-world',motion:'cinematic'},
+  reward:{scene:'first-light-burst',emphasis:'verified-reward-only',motion:'cinematic'},
+});
 export interface GenesisMotionContext {
   surface:GenesisSurface; quality:GenesisQuality; focused:boolean;
   appActive:boolean; reducedMotion:boolean; powerSave?:boolean;

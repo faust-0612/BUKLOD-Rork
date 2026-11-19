@@ -1,0 +1,85 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-genesis-consolidated-experience-20261120.json",
+  "objective": "Consolidate owner-approved Genesis: Let There Be Light galactic Season 2 preview with real locally separated Kingdom item art, living cosmic scene, character rig support and user-initiated cinematic audio. Do not activate Season 2 in production.",
+  "baseRef": "e9f0b31775617faa463bebaa07513a708c2e77c9",
+  "productionBaselineEvidence": "Latest premium DEV inspected at 5700ac25014d988c5f08f255bd0036a92f9fd72c; main canonical source SHA 551e54602addd6f7bbe7bcdddd1589d35424c964. Native installed production SHA/OTA and Android visual performance remain unverified. No staging/production mutation. Protected-feature scope now declares the new test changed by this PR instead of unchanged inherited suite.",
+  "chosenApproach": "Forward-port final approved Let There Be Light identity on latest Genesis premium DEV head; preserve newly added Expo preview config, guarded asset registry, message/chat appearance and reward audio approval. Add only orbital motion, original-art Rive error fallback and existing Kingdom audio opt-in with tests.",
+  "selectionRationale": "Preserves original approved source art and final season identity without merging retired Seed of Glory branch. Existing audio focus/quiet hours and offscreen animation controls are reused; preview flag prevents live exposure.",
+  "alternativeApproaches": [
+    "Whole merge botanical Seed of Glory theme (rejected: superseded identity, user theme selectors).",
+    "Ship unapproved fake 3D character rigs or beep sound effects (rejected: aesthetic and provenance).",
+    "Switch production game UI/points immediately (rejected: Dec 6 embargo and unverified RC)."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-genesis-consolidated-experience-20261120.json",
+    "docs/BUKLOD_SEASON2_GENESIS_CONSOLIDATION_20261120.md",
+    "docs/BUKLOD_SEASON2_GENESIS_LIVING_ENGINE_20261120.md",
+    "src/components/BuklodMainBrandIntro.tsx",
+    "src/features/season2/genesis/GenesisVisuals.tsx",
+    "src/features/season2/genesis/genesisContract.ts",
+    "src/features/season2/genesis/seasonThemeAuthority.ts",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "src/features/season2/genesis/GenesisCosmicSky.tsx",
+    "src/features/season2/genesis/GenesisRiveCharacter.native.tsx",
+    "tests/buklod-genesis-living-engine.test.mjs",
+    "tests/season2-genesis-full-experience-20261120.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/season2-genesis-full-experience-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preview gated startup/Home/profile visual identity and theme provider",
+      "preservedBehaviors": [
+        "Production preview flag false",
+        "Existing canonical brand logo, navigation, AdMob and quick first-view",
+        "Current production user themes intact"
+      ],
+      "tests": [
+        "tests/season2-genesis-full-experience-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Preview-only original Kingdom art, rig failure fallback, opt-in audio and cosmetic orbit motion",
+      "preservedBehaviors": [
+        "13 canonical destinations",
+        "No server-side rewards or character rank authority altered",
+        "Production Kingdom route and footer banner unchanged"
+      ],
+      "tests": [
+        "tests/season2-genesis-full-experience-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "Source-branch reconciliation",
+    "Android Rive runtime and missing approved rig files",
+    "Music focus with PTT/other media",
+    "Expo SDK 57 native bundle parity",
+    "AdMob first-view/tab navigation",
+    "Static legibility, weak Android GPU, reduced motion"
+  ],
+  "preserveBehaviors": [
+    "No points/economy/finance/Supabase writes",
+    "No automatic December 6 release",
+    "No production OTA or APK build without verified RC",
+    "No dependency/app.config/runtime version edits",
+    "Ad banner/13 game routes preserved",
+    "Social Wall and Connect stay free of cinematic ambient music",
+    "Retain approved-asset SHA/license registry and denied remote rig/audio until approval",
+    "Retain premium branch's app.config.js/eas.json and existing preview integrations"
+  ],
+  "acceptanceChecks": [
+    "Genesis preview on non-production only",
+    "Scene visibly galactic with planets/orbits/first light and premium owner-cropped collection art",
+    "Soundscape opt-in using packaged Kingdom assets; no cheap fallback beep",
+    "Real .riv animation only if approved asset provided; fallback art on rig loading/error",
+    "Reduced motion/offscreen/background stops decorative transforms",
+    "Native Android TypeScript, export, ad/nav performance and scene QA pending"
+  ],
+  "releaseMode": "DEV_ONLY",
+  "releaseStatus": "SOURCE_PREPARED_NO_STAGING_OTA_NO_APK"
+}

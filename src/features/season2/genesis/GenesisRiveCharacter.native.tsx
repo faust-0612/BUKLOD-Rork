@@ -3,9 +3,9 @@ import {View} from 'react-native';
 import {Fit,RiveView,useRiveFile} from '@rive-app/react-native';
 import {getGenesisApprovedRig} from './genesisAssetRegistry';
 type Props={rigId?:string|null;active:boolean;width:number;height:number;fallback?:React.ReactNode};
-function ApprovedRig({uri,width,height}:{uri:string;width:number;height:number}){
+function ApprovedRig({uri,width,height,fallback}:{uri:string;width:number;height:number;fallback?:React.ReactNode}){
   const {riveFile,isLoading,error}=useRiveFile({uri});
-  if(isLoading||error||!riveFile)return null;
+  if(isLoading||error||!riveFile)return <>{fallback??null}</>;
   return <RiveView file={riveFile} autoPlay fit={Fit.Contain} style={{width,height}}/>;
 }
 /**
@@ -15,6 +15,6 @@ function ApprovedRig({uri,width,height}:{uri:string;width:number;height:number})
 export default function GenesisRiveCharacter({rigId,active,width,height,fallback}:Props){
   const approved=getGenesisApprovedRig(rigId);
   return <View style={{width,height,alignItems:'center',justifyContent:'center'}}>
-    {active&&approved?<ApprovedRig uri={approved.uri} width={width} height={height}/>:fallback??null}
+    {active&&approved?<ApprovedRig uri={approved.uri} width={width} height={height} fallback={fallback}/>:fallback??null}
   </View>;
 }
