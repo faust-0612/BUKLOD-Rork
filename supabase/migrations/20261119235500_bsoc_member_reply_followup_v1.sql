@@ -56,6 +56,10 @@ begin
     raise warning 'BSOC member-followup report deferred for case %',new.case_id;
   end;
   return new;
+exception when others then
+  -- Never fail the member's actual support message because automation is unhealthy.
+  raise warning 'BSOC member followup deferred for message %',new.id;
+  return new;
 end;
 $fn$;
 revoke all on function private.bsoc_ai_member_reply_followup_v1() from public,anon,authenticated;
