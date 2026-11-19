@@ -67,3 +67,28 @@ test('published random-ID chapters stay readable with real UUID for reading and 
   assert.match(source,/releasedNumbers\.has\(selected\.episodeNumber\)/);
   assert.match(source,/releasedNumbers\.has\(fromCatalog\.episodeNumber\)/);
 });
+
+test('mobile chapter admin actions wrap, with release and reject visible ahead of optional quiz UI', () => {
+  const source = read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx');
+  const start = source.indexOf('{EPISODES.map((episode) => {');
+  const end = source.indexOf('</ScrollView>', start);
+  assert.ok(start >= 0 && end > start);
+  const chapter = source.slice(start, end);
+  const status = chapter.indexOf('Server status:');
+  const actions = chapter.indexOf("flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start'", status);
+  const actionsEnd = chapter.indexOf('                      </View>', actions);
+  assert.ok(status >= 0 && actions > status && actionsEnd > actions, 'release controls render in a wrapping action row');
+  const actionRow = chapter.slice(actions, actionsEnd);
+  const approve = actionRow.indexOf("decideEpisode(episode.id, 'approve')");
+  const release = actionRow.indexOf('setReleaseTarget(episode.id)');
+  const reject = actionRow.indexOf('setRejectTarget(episode.id); setAdminFeedback');
+  assert.ok(approve >= 0 && release > approve && reject > release, 'all three admin actions remain in the short responsive row');
+  assert.match(actionRow, /Release Status/);
+  assert.match(actionRow, /Release Now/);
+  assert.doesNotMatch(actionRow, /Prepare \/ Retry 5 Questions/, 'quiz buttons cannot force release offscreen');
+  const confirm = chapter.indexOf('Confirm Release Now', actionsEnd);
+  const quiz = chapter.indexOf("serverChapter?.status === 'approved' ? (", actionsEnd);
+  assert.ok(confirm > actionsEnd && quiz > confirm, 'release preflight stays above optional long quiz review');
+  assert.match(chapter, /disabled=\{Boolean\(adminBusyId\) \|\| !releaseReady\}/);
+  assert.match(chapter, /refreshAdminRows\(\)\.catch/);
+});
