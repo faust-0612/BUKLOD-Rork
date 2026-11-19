@@ -26,11 +26,11 @@ test('private reflection records are not accessible through direct anon/authenti
  assert.doesNotMatch(seq,/GRANT SELECT ON TABLE private\.kl_s2_series_reflections TO authenticated/);
 });
 test('public RPC permissions have anonymous execution revoked and only member permissions granted',()=>{
- for (const entry of ['kl_s2_reader_progress_v1\(integer\)',
-  'kl_s2_series_reflection_status_v1\(integer\)',
-  'kl_s2_submit_series_reflection_v1\(integer,text\)']) {
-   assert.match(seq,new RegExp('REVOKE ALL ON FUNCTION public\\.'+entry+' FROM PUBLIC,anon'));
-   assert.match(seq,new RegExp('GRANT EXECUTE ON FUNCTION public\\.'+entry+' TO authenticated'));
+ for (const entry of ['kl_s2_reader_progress_v1(integer)',
+  'kl_s2_series_reflection_status_v1(integer)',
+  'kl_s2_submit_series_reflection_v1(integer,text)']) {
+   assert.ok(seq.includes('REVOKE ALL ON FUNCTION public.'+entry+' FROM PUBLIC,anon'));
+   assert.ok(seq.includes('GRANT EXECUTE ON FUNCTION public.'+entry+' TO authenticated'));
  }
 });
 test('old client manuscript and signed-media-path RPC check ordering before exposure',()=>{
