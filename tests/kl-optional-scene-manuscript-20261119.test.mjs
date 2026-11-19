@@ -38,7 +38,7 @@ test('uploaded illustration without placement or duplicate/invalid passage remai
   assert.equal(canPreparePreview(body, ['night']), false);
   assert.equal(canPreparePreview(body + ' ' + unique, [unique]), false);
 });
-test('approval and release security unchanged; optional media upload still available', () => {
+test('approval, release and public media privacy remain protected while drafts are optional', () => {
   assert.match(migration, /SECURITY DEFINER/);
   assert.match(migration, /SET search_path TO ''/);
   assert.match(migration, /auth\.uid\(\)/);
@@ -48,7 +48,9 @@ test('approval and release security unchanged; optional media upload still avail
   assert.match(upload, /Upload Image/);
   assert.match(upload, /Save exact placement/);
   assert.match(approvals, /kl_admin_media_approve_v1/);
-  assert.doesNotMatch(migration, /kl_admin_action_v1/);
+  assert.match(migration, /kl_admin_action_v1/);
+  assert.match(migration, /media_kind <> 'illustration'/);
+  assert.match(migration, /m\.approved=true and m\.media_kind='illustration'/);
 });
 
 test('existing nonmatching pending illustration drafts do not block manuscript-only preview', () => {
