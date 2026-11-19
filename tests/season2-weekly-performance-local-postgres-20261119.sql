@@ -126,7 +126,11 @@ $tests$;
 RESET ROLE;
 
 -- No business writes were caused by classification calls.
-SELECT CASE WHEN (
-  SELECT COUNT(*) FROM public.buklod_points_ledger
-) >= 605 THEN 'DISPOSABLE_WEEKLY_SQL_BEHAVIOR_PASSED'
-ELSE (SELECT 1/0)::text END;
+DO $check$
+BEGIN
+ IF (SELECT COUNT(*) FROM public.buklod_points_ledger)<605 THEN
+   RAISE EXCEPTION 'Disposable fixture ledger unexpectedly changed';
+ END IF;
+END;
+$check$;
+SELECT 'DISPOSABLE_WEEKLY_SQL_BEHAVIOR_PASSED' AS status;
