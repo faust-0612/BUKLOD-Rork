@@ -542,7 +542,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
           <View style={styles.giverCopy}>
             <Text style={styles.giverName}>{profile.name}</Text>
             <Text style={styles.giverNote}>
-              {profile.name} has their own 100 story items. Use {profile.name} first — items for reached levels are earned automatically. Tap Show to place one beside {profile.name}.
+              {profile.name} has 100 story items. Reaching a level opens eligibility, not automatic ownership. Tap Claim for server verification, then Show to display. Optional Season 2 mastery has separate prerequisites in the How & Why guide.
             </Text>
             <View style={styles.pinRow}>
               {besidePins.length ? besidePins.map((pin) => (
