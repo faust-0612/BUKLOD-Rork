@@ -1,0 +1,178 @@
+name: BUKLOD KL Button Only Staging Android OTA
+on:
+  push:
+    branches: [release/kl-button-only-staging-20261119]
+    paths: [.buklod/releases/kl-button-only-staging-20261119.json]
+permissions:
+  contents: read
+concurrency:
+  group: buklod-kl-only-staging
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/kl-button-only-staging-20261119' && startsWith(github.event.head_commit.message, 'BUKLOD_KL_ONLY_STAGE_20261119:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      BASE_STAGE: 730c811cda97d106339f14fae04fb4b8890b0ed2
+      APK_SOURCE: c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd
+      OUT: /tmp/buklod-kl-stage-20261119
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Enforce exact KL-only source, staging identity and no native changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/release/kl-button-only-staging-20261119 | cut -f1)" = "$GITHUB_SHA"
+          node <<'NODE'
+          const a=require('node:assert/strict'),cp=require('node:child_process'),fs=require('node:fs');
+          const git=(...args)=>cp.execFileSync('git',args,{encoding:'utf8'}).trim();
+          const files=git('diff','--name-only',process.env.BASE_STAGE,'HEAD').split('\n').filter(Boolean).sort();
+          a.deepEqual(files,[
+            '.buklod/releases/kl-button-only-staging-20261119.json',
+            '.buklod/scopes/kl-button-only-ota-20261119.json',
+            '.github/workflows/buklod-kl-button-only-staging-ota-20261119.yml',
+            'src/components/kabihasnang-ligaw/KlReaderScreen.tsx',
+            'tests/kl-web-release-admin-preflight-20261107.test.mjs'
+          ].sort());
+          a.equal(git('rev-parse','HEAD:src/components/kabihasnang-ligaw/KlReaderScreen.tsx'),'0bc41eafad7d7f7a4cde1b88349aa98f448f03f1');
+          a.equal(git('rev-parse','HEAD:tests/kl-web-release-admin-preflight-20261107.test.mjs'),'201f392011237f62203690014c77b1f07dc0e5b2');
+          const mark=JSON.parse(fs.readFileSync('.buklod/releases/kl-button-only-staging-20261119.json'));
+          a.equal(mark.target,'staging-user');a.equal(mark.productionAuthorized,false);
+          a.equal(mark.season2RewardsEnabled,false);a.equal(mark.expectedBaseSource,process.env.BASE_STAGE);
+          const app=require('./app.config.js')({config:{}}),eas=require('./eas.json');
+          a.equal(app.android.package,'org.mzbministry.buklod.staging');
+          a.equal(app.runtimeVersion,'1.3.2');a.equal(app.extra.appEnvironment,'staging');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.notEqual(eas.build.production.channel,'staging-user');
+          NODE
+          git diff --exit-code "$APK_SOURCE" HEAD -- app.config.js eas.json package-lock.json android/ ios/ plugins/ google-services.staging.json babel.config.js
+          node <<'NODE'
+          const a=require('node:assert/strict'),cp=require('node:child_process');
+          const before=JSON.parse(cp.execFileSync('git',['show',process.env.APK_SOURCE+':package.json'],{encoding:'utf8'}));
+          const now=require('./package.json');
+          a.deepEqual(now.dependencies,before.dependencies,'Native runtime dependencies changed');
+          a.deepEqual(now.devDependencies,before.devDependencies,'Locked dev runtime dependencies changed');
+          NODE
+      - name: Focused KL, ad/navigation regression and compile QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test tests/kl-web-release-admin-preflight-20261107.test.mjs tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs tests/buklod-ads-production-release-contract-20261111.test.mjs tests/dashboard-instant-tabs-20261117.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+          npx tsc --noEmit
+          node scripts/buklod-ad-surface-audit.mjs --summary
+      - name: Exact current staging and production preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$OUT/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$OUT/stage.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$OUT/prod.json"
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$OUT/updates.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.OUT,r=n=>JSON.parse(fs.readFileSync(d+'/'+n,'utf8'));
+          verifyBuild(r('build.json'));
+          const branch=verifyChannels(r('stage.json'),r('prod.json'));
+          const s=await manifest('staging-user'),p=await manifest('production');
+          assert.equal(s.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(p.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          const list=r('updates.json'),rows=list.currentPage??list;
+          assert.ok(Array.isArray(rows),'Staging update list unavailable');
+          console.log('CURRENT_STAGING_UPDATE_ID',s.id);
+          console.log('STAGING_HISTORY',JSON.stringify(rows.slice(0,12).map(x=>({message:x.message,group:x.group,id:x.id}))));
+          const own=rows.find(x=>x.message==='BUKLOD_KL_ONLY_STAGE_'+process.env.GITHUB_SHA);
+          const base=rows.find(x=>x.message==='BUKLOD_NOV17_ALL_RECENT_'+process.env.BASE_STAGE);
+          assert.ok(own?.group||base?.group,'Latest staging source unproven: do not roll back');
+          fs.writeFileSync(d+'/source-group',own?.group||base.group);
+          fs.writeFileSync(d+'/already-published',own?.group||'');
+          fs.writeFileSync(d+'/preflight.json',JSON.stringify({branch,stageId:s.id,productionId:p.id,alreadyPublished:Boolean(own?.group)},null,2));
+          NODE
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$OUT/source-group")" --json > "$OUT/source-view.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          import {verifyUpdate} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.OUT,r=n=>JSON.parse(fs.readFileSync(d+'/'+n,'utf8'));
+          const p=r('preflight.json');
+          const u=verifyUpdate(r('source-view.json'),p.alreadyPublished?process.env.GITHUB_SHA:process.env.BASE_STAGE,p.branch.name);
+          assert.equal(u.id.toLowerCase(),p.stageId.toLowerCase(),'Staging already advanced beyond frozen source; no overwrite');
+          NODE
+      - name: Export Android staging bundle only — no APK build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-kl-only.env --non-interactive >/dev/null
+          set -a; . /tmp/buklod-kl-only.env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          node <<'NODE'
+          const a=require('node:assert/strict'),app=require('./app.config.js')({config:{}});
+          a.equal(app.android.package,'org.mzbministry.buklod.staging');
+          a.equal(app.runtimeVersion,'1.3.2');
+          a.ok((process.env.EXPO_PUBLIC_SUPABASE_URL||'').startsWith('https://'));
+          a.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-kl-android --clear
+          test -s /tmp/buklod-kl-android/metadata.json
+          test "$(git ls-remote origin refs/heads/release/kl-button-only-staging-20261119 | cut -f1)" = "$GITHUB_SHA"
+      - name: Publish exactly one Android update to staging-user
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -s "$OUT/already-published" ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir /tmp/buklod-kl-android --non-interactive --json --message "BUKLOD_KL_ONLY_STAGE_$GITHUB_SHA" > "$OUT/publish.json"
+            node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict');
+          const d=process.env.OUT,u=JSON.parse(fs.readFileSync(d+'/publish.json','utf8'));
+          a.ok(Array.isArray(u)&&u.length===1&&u[0].group,'Unexpected OTA receipt; no blind retry');
+          fs.writeFileSync(d+'/already-published',u[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$OUT/already-published")" --json > "$OUT/published-view.json"
+      - name: Verify live staging update ID and production unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$OUT/stage-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$OUT/prod-after.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          import {verifyChannels,verifyUpdate,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.OUT,r=n=>JSON.parse(fs.readFileSync(d+'/'+n,'utf8'));
+          const p=r('preflight.json'),u=verifyUpdate(r('published-view.json'),process.env.GITHUB_SHA,p.branch.name);
+          assert.equal(verifyChannels(r('stage-after.json'),r('prod-after.json')).id,p.branch.id);
+          const stage=await manifest('staging-user'),prod=await manifest('production');
+          assert.equal(stage.id.toLowerCase(),u.id.toLowerCase());
+          assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(prod.id,p.productionId,'Production changed during KL-only staging OTA');
+          const receipt={status:'SERVER_VERIFIED_STAGING_KL_ONLY',sourceSha:process.env.GITHUB_SHA,updateId:u.id,groupId:u.group,channel:'staging-user',runtime:'1.3.2',package:'org.mzbministry.buklod.staging',productionUnchanged:prod.id,physicalDeviceVerified:false,at:new Date().toISOString()};
+          fs.writeFileSync(d+'/verified.json',JSON.stringify(receipt,null,2));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(receipt,null,2));
+          NODE
+      - name: Archive staging receipt without secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-kl-staging-${{ github.sha }}
+          path: /tmp/buklod-kl-stage-20261119/*.json
+          retention-days: 14
+          if-no-files-found: ignore
