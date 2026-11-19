@@ -83,6 +83,15 @@ test('referral S1=10 remains isolated from S2 target 20 and referred 10',()=>{
  assert.equal(base.season2.referral.referredNewMemberTargetBP,10);
  assert.ok(mutate(i=>i.season2.referral.notYetReconciledWithLiveBP10=false).problems.includes('REFERRAL_20_VS_10_UNRECONCILED'));
 });
+test('optional rewarded ads never buy BP/QMP/cash/tokens; candidate badges are not earned',()=>{
+ const ad=base.season2.optionalRewardedAds;
+ assert.deepEqual([ad.pointsGrantedBP,ad.qmpGranted,ad.cashGrantedPHP,ad.journeyTokensAutomaticallyGranted],[0,0,0,0]);
+ assert.equal(ad.requiresOptIn,true);
+ assert.equal(ad.requiresProviderEarnedCallback,true);
+ assert.equal(base.season2.badgeTitleCandidates.approval,'CANDIDATE_NAMES_ONLY_NOT_SERVER_GRANTS');
+ assert.ok(mutate(i=>i.season2.optionalRewardedAds.pointsGrantedBP=5).problems.includes('REWARDED_AD_DIRECT_POINTS_OR_CASH_VIOLATION'));
+ assert.ok(mutate(i=>i.season2.badgeTitleCandidates.approval='GRANTED').problems.includes('UNVERIFIED_BADGE_TITLES_MARKED_EARNED'));
+});
 test('readiness remains HOLD until external server, finance, security and runtime proofs exist',()=>{
  const r=readiness(base);
  assert.equal(r.state,'HOLD');
