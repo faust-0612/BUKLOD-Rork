@@ -24,6 +24,8 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
+import { GENESIS_PALETTE, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
@@ -61,6 +63,7 @@ function SwipeDashboardHeader() {
   const showTagline = headerWidth >= 460 && headerFontScale <= 1.25;
 
   const { theme } = useBuklodTheme();
+  const genesisPreview = isGenesisPreviewBuild();
   const { unreadCount, refreshUnread } = useNotifications();
   const [navigationMenuOpen, setNavigationMenuOpen] = useState(false);
   const route = buklodDashboardRoute(pathname);
@@ -73,6 +76,8 @@ function SwipeDashboardHeader() {
   }, [route]);
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
+  const cosmicHeader = genesisPreview && publicMinimal;
+  const publicHeaderColor = cosmicHeader ? GENESIS_PALETTE.cosmos : '#0B2048';
   const badgeText =
     unreadCount > 99
       ? '99+'
@@ -137,15 +142,38 @@ function SwipeDashboardHeader() {
       style={{
         paddingTop: insets.top,
         minHeight: (scrollCompact ? 48 : 56) + insets.top,
-        backgroundColor: publicMinimal ? '#0B2048' : theme.headerSurface,
+        backgroundColor: publicMinimal ? publicHeaderColor : theme.headerSurface,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingLeft: publicMinimal ? 4 : 12,
         borderBottomWidth: 1,
-        borderBottomColor: publicMinimal ? '#1D3D70' : theme.border,
+        borderBottomColor: publicMinimal ? (cosmicHeader ? '#34476D' : '#1D3D70') : theme.border,
       }}
     >
+      {cosmicHeader ? (
+        <Svg
+          pointerEvents="none"
+          accessibilityElementsHidden
+          width="100%"
+          height="100%"
+          viewBox="0 0 390 100"
+          preserveAspectRatio="none"
+          style={{ position: 'absolute', top: 0, left: 0 }}
+        >
+          <Ellipse cx="322" cy="39" rx="108" ry="23" transform="rotate(-16 322 39)"
+            fill="none" stroke={GENESIS_PALETTE.goldLight} strokeWidth="1.3" opacity="0.22" />
+          <Ellipse cx="309" cy="45" rx="74" ry="15" transform="rotate(21 309 45)"
+            fill="none" stroke={GENESIS_PALETTE.teal} strokeWidth="0.8" opacity="0.24" />
+          <Path d="M-30 94 C87 28 165 125 266 61 S360 9 421 30"
+            stroke={GENESIS_PALETTE.goldLight} strokeWidth="1.15" opacity="0.22" fill="none" />
+          <Path d="M-20 106 C90 47 180 137 269 78 S365 23 414 45"
+            stroke={GENESIS_PALETTE.teal} strokeWidth="0.8" opacity="0.2" fill="none" />
+          <Circle cx="320" cy="43" r="2.5" fill={GENESIS_PALETTE.star} opacity="0.6" />
+          <Circle cx="226" cy="12" r="1.2" fill={GENESIS_PALETTE.star} opacity="0.48" />
+          <Circle cx="375" cy="87" r="1" fill={GENESIS_PALETTE.star} opacity="0.45" />
+        </Svg>
+      ) : null}
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
         {publicMinimal && (
           <Pressable accessibilityRole="button" accessibilityLabel="Open navigation menu"
@@ -158,7 +186,7 @@ function SwipeDashboardHeader() {
         <View
           accessibilityLabel="BUKLOD Green B logo"
           style={{width:scrollCompact?31:35,height:scrollCompact?31:35,
-            borderRadius:10,overflow:'hidden',backgroundColor:publicMinimal?'#0B2048':theme.headerSurface}}>
+            borderRadius:10,overflow:'hidden',backgroundColor:publicMinimal?publicHeaderColor:theme.headerSurface}}>
           <Image
             source={require('../../../assets/release/buklod-main-canonical.png')}
             resizeMode="contain"
@@ -247,7 +275,7 @@ function SwipeDashboardHeader() {
                     justifyContent: 'center',
                     backgroundColor: theme.danger,
                     borderWidth: 2,
-                    borderColor: '#0B2048',
+                    borderColor: publicHeaderColor,
                   }}
                 >
                   <Text
