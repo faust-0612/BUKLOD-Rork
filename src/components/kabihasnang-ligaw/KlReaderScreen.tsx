@@ -566,22 +566,25 @@ export default function KlReaderScreen() {
       return () => { active = false; };
     }
     const ownerId = user.id;
-    void supabase.rpc('kl_s2_reader_progress_v1', {
-      p_season_number: 1,
-    }).then(({ data, error }) => {
-      if (!active || error || !data || typeof data !== 'object') return;
-      const state = data as { ok?: boolean; enabled?: boolean; next_chapter_number?: number };
-      if (state.ok === true && Number.isInteger(state.next_chapter_number)) {
-        setS2Progress({ ownerId, enabled: state.enabled === true,
-          next_chapter_number: state.next_chapter_number as number });
-      }
-    }).catch(() => undefined);
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('kl_s2_reader_progress_v1', {
+          p_season_number: 1,
+        });
+        if (!active || error || !data || typeof data !== 'object') return;
+        const state = data as { ok?: boolean; enabled?: boolean; next_chapter_number?: number };
+        if (state.ok === true && Number.isInteger(state.next_chapter_number)) {
+          setS2Progress({ ownerId, enabled: state.enabled === true,
+            next_chapter_number: state.next_chapter_number as number });
+        }
+      } catch { /* Network failures never grant access on the server. */ }
+    })();
     return () => { active = false; };
   }, [user?.id, journeyRefreshToken]);
 
   useEffect(() => {
     if (!selected || !selectedDbId || serverState !== 'readable' || !appActive || !routeFocused || !online ||
-      (s2Progress?.ownerId === user?.id && s2Progress.enabled)) return;
+      (s2Progress?.ownerId === user?.id && s2Progress?.enabled === true)) return;
     const episodeId = selectedDbId;
     const timer = setInterval(() => {
       void supabase.rpc('kl_reading_progress_v1', { p_episode_id: episodeId, p_action: 'ping' });
@@ -699,8 +702,8 @@ export default function KlReaderScreen() {
   const episodeSequenceLocked = (episodeId: string) => {
     const episode = EPISODES.find((item) => item.id === episodeId);
     return Boolean(episode && episode.episodeNumber > 0 &&
-      s2Progress?.ownerId === user?.id && s2Progress.enabled &&
-      episode.episodeNumber > s2Progress.next_chapter_number);
+      s2Progress?.ownerId === user?.id && s2Progress?.enabled === true &&
+      episode.episodeNumber > (s2Progress?.next_chapter_number ?? 0));
   };
   const episodeReadable = (episodeId: string) => {
     if (episodeSequenceLocked(episodeId)) return false;
