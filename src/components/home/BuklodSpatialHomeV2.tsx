@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -1105,6 +1106,7 @@ export default function BuklodSpatialHomeV2() {
               {themePreset.label} · your digital home for real-life communities
             </Text>
           </View>
+{canUserSelectTheme() ? (
           <Pressable
             onPress={() => setThemePickerOpen(true)}
             style={styles.topIcon}
@@ -1116,6 +1118,7 @@ export default function BuklodSpatialHomeV2() {
               color={palette.primary}
             />
           </Pressable>
+) : null}
           <Pressable
             onPress={() => router.push('/(tabs)/me' as any)}
             style={styles.topIcon}
@@ -1198,6 +1201,7 @@ export default function BuklodSpatialHomeV2() {
             />
           </Pressable>
 
+{canUserSelectTheme() ? (
           <Pressable
             onPress={() => setThemePickerOpen(true)}
             style={styles.customize}
@@ -1209,6 +1213,7 @@ export default function BuklodSpatialHomeV2() {
             />
             <Text style={styles.customizeText}>Customize</Text>
           </Pressable>
+) : null}
 
           <Pressable
             onPress={() => setAssistantOpen((open) => !open)}
@@ -1631,12 +1636,12 @@ export default function BuklodSpatialHomeV2() {
         </View>
       </View>
 
-      <BuklodHomeThemePicker
+      {canUserSelectTheme() ? <BuklodHomeThemePicker
         visible={themePickerOpen}
         selectedThemeId={themeId}
         onSelect={chooseTheme}
         onClose={() => setThemePickerOpen(false)}
-      />
+      /> : null}
     </ScrollView>
   );
 }
