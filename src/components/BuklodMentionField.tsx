@@ -5,6 +5,7 @@ import React, {
 } from 'react';
 import {
   BackHandler,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -22,6 +23,7 @@ import {
 } from '@/lib/buklodMentionCompose';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { getGenesisNativeFoundation } from '@/features/season2/genesis/genesisNativeFoundation';
 
 type Props = {
   value: string;
@@ -38,6 +40,8 @@ type Props = {
   suggestionsAbove?: boolean;
   placeholderTextColor?: string;
   focusRef?: { current: TextInput | null };
+  /** User-initiated IME GIF attachment only in signed Genesis Android preview. */
+  onNativeGif?: (uri: string) => void;
 };
 
 export default function BuklodMentionField({
@@ -55,7 +59,12 @@ export default function BuklodMentionField({
   suggestionsAbove = false,
   placeholderTextColor = colors.muted,
   focusRef,
+  onNativeGif,
 }: Props) {
+  const useNativeIme = Platform.OS === 'android' && !!onNativeGif && getGenesisNativeFoundation().cosmeticHaptics;
+  const InputView: any = useNativeIme
+    ? require('../../modules/buklod-genesis-ime/KeyboardGifInput').default
+    : TextInput;
   const inputRef = useRef<TextInput>(null);
   const cursorRef = useRef(value.length);
   const searchSeq = useRef(0);
@@ -171,8 +180,9 @@ export default function BuklodMentionField({
   return (
     <View style={suggestionsAbove ? styles.aboveWrap : undefined}>
       <View style={styles.field}>
-        <TextInput
-          ref={node => {
+        <InputView
+          onGif={useNativeIme ? onNativeGif : undefined}
+          ref={(node: TextInput | null) => {
             inputRef.current = node;
             if (focusRef) {
               focusRef.current = node;
@@ -188,7 +198,7 @@ export default function BuklodMentionField({
           selection={selection}
           selectionColor={colors.green}
           onChangeText={changeText}
-          onSelectionChange={event => {
+          onSelectionChange={(event: { nativeEvent: { selection: { start: number; end: number } } }) => {
             const next = event.nativeEvent.selection;
             cursorRef.current = next.start;
             setSelection(undefined);

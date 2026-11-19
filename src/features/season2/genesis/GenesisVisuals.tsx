@@ -5,6 +5,7 @@ import Svg,{Defs,RadialGradient,LinearGradient as SvgLinearGradient,Stop,Circle,
 import {LinearGradient} from 'expo-linear-gradient';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {GENESIS_IDENTITY,GENESIS_MOTION_MS,GENESIS_PALETTE,resolveGenesisMotion,type GenesisQuality,type GenesisSurface} from './genesisContract';
+import {getGenesisDeviceQuality} from './genesisDeviceQuality';
 
 export function useGenesisMotionAllowed(active:boolean,quality:GenesisQuality='balanced',surface:GenesisSurface='home') {
   const [reduced,setReduced]=useState(false);
@@ -103,10 +104,11 @@ function Streak({phase,x,y,rotation}:{phase:Animated.Value;x:string;y:string;rot
     </Svg>
   </Animated.View>;
 }
-export function GenesisAtmosphere({active,quality='balanced',surface='home'}:{
+export function GenesisAtmosphere({active,quality,surface='home'}:{
   active:boolean;quality?:GenesisQuality;surface?:GenesisSurface;
 }) {
-  const run=useGenesisMotionAllowed(active,quality,surface);
+  const effectiveQuality = quality ?? getGenesisDeviceQuality(surface);
+  const run=useGenesisMotionAllowed(active,effectiveQuality,surface);
   const phase=useRef(new Animated.Value(0)).current;
   useEffect(()=>{
     if(!run){phase.stopAnimation();phase.setValue(0);return;}
@@ -122,7 +124,7 @@ export function GenesisAtmosphere({active,quality='balanced',surface='home'}:{
       <Streak phase={phase} x="15%" y="28%" rotation="-17deg"/>
       <Streak phase={phase} x="60%" y="69%" rotation="24deg"/>
       <Streak phase={phase} x="86%" y="20%" rotation="-38deg"/>
-      {quality==='full'? <><Streak phase={phase} x="35%" y="48%" rotation="11deg"/>
+      {effectiveQuality==='full'? <><Streak phase={phase} x="35%" y="48%" rotation="11deg"/>
         <Streak phase={phase} x="77%" y="51%" rotation="-13deg"/></> : null}
     </> : null}
   </View>;
@@ -136,7 +138,7 @@ export function GenesisCosmosBackground({active}:{active:boolean}) {
   </View>;
 }
 export function GenesisSeal({size=74,active=false}:{size?:number;active?:boolean}) {
-  const run=useGenesisMotionAllowed(active,'balanced','reward');
+  const run=useGenesisMotionAllowed(active,getGenesisDeviceQuality('reward'),'reward');
   const glow=useRef(new Animated.Value(.4)).current;
   useEffect(()=>{
     if(!run){glow.stopAnimation();glow.setValue(.4);return;}
@@ -176,7 +178,7 @@ export function GenesisLivingButton({label,onPress}:{label:string;onPress:()=>vo
     </Pressable>
   </Animated.View>;
 }
-export function GenesisHomeHero({active=true,quality='balanced',onExplore}:{
+export function GenesisHomeHero({active=true,quality,onExplore}:{
   active?:boolean;quality?:GenesisQuality;onExplore?:()=>void;
 }) {
   return <LinearGradient colors={['#060D24','#142044','#242449']} style={styles.hero}

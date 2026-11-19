@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "title": "BUKLOD Genesis: Let There Be Light — consolidated Android native foundation inventory",
+  "codeHeadBaseline": "8bfc2125174e70d41248afe3500de32e97e101ca",
+  "packageId": "org.mzbministry.buklod.staging",
+  "runtimeVersion": "2.0.0-genesis-preview",
+  "buildProfile": "season2-genesis-preview",
+  "otaChannel": "season2-genesis-preview",
+  "embargo": "2026-12-06",
+  "sourceStatus": "DEV_ONLY",
+  "signedApk": {
+    "exists": false,
+    "verified": false,
+    "artifactSha256": null,
+    "signature": null,
+    "deviceAcceptance": false
+  },
+  "buildReady": false,
+  "releaseReady": false,
+  "nativeFeatures": [
+    {
+      "id": "preview-identity",
+      "status": "source-implemented",
+      "origin": "PR #1009/#1011",
+      "description": "Exact Genesis-only Android `2.0.0-genesis-preview` runtime, internal APK channel and separate nonproduction package",
+      "remaining": "Native signed manifest, channel and installed runtime not verified"
+    },
+    {
+      "id": "native-graphics-stack",
+      "status": "dependency-declared",
+      "origin": "package.json Genesis",
+      "description": "Existing Skia, Reanimated 4, Worklets, SVG, Lottie, LinearGradient",
+      "remaining": "Android shader/ABI, GPU FPS, device battery and accessibility not verified"
+    },
+    {
+      "id": "genesis-cosmic-ui",
+      "status": "source-implemented",
+      "origin": "PR #1007/#1009",
+      "description": "Creation theme, first-light, orbit/nebula fragments, startup, Home and Kingdom scenes",
+      "remaining": "Screen-by-screen app-wide design acceptance pending"
+    },
+    {
+      "id": "adaptive-graphics",
+      "status": "source-implemented",
+      "origin": "PR #1014",
+      "description": "RAM-tier minimal/balanced/full native preview graphics",
+      "remaining": "Real memory/thermal/battery measurements pending"
+    },
+    {
+      "id": "rive-character-runtime",
+      "status": "dependency-declared",
+      "origin": "PR #1009",
+      "description": "Rive native view and fallback component",
+      "remaining": "13 licensed, rigged, approved character .riv files are missing; motion unverified"
+    },
+    {
+      "id": "character-rig-assets",
+      "status": "held-no-bytes",
+      "origin": "PR #1010",
+      "description": "13 original, joint-rigged, high-res characters",
+      "remaining": "Approved signed-off rig files and checksums absent"
+    },
+    {
+      "id": "premium-audio-runtime",
+      "status": "dependency-declared",
+      "origin": "PR #1009",
+      "description": "expo-audio + existing Kingdom focus/quiet-hour local audio policy",
+      "remaining": "Exact Android playback, ad/call interruption device tests pending"
+    },
+    {
+      "id": "mastered-genesis-soundtrack",
+      "status": "held-no-bytes",
+      "origin": "PR #1010",
+      "description": "Mastered cinematic ambience and effects with verified rights",
+      "remaining": "No approved mastering/licensed audio bytes or signature"
+    },
+    {
+      "id": "genesis-haptics",
+      "status": "source-implemented",
+      "origin": "PR #1012",
+      "description": "Expo haptics isolated to preview Kingdom and Drawer events",
+      "remaining": "Device vibration settings and no-regression tests pending"
+    },
+    {
+      "id": "reward-animation",
+      "status": "source-implemented",
+      "origin": "PR #1009",
+      "description": "Cosmetic light/reward ceremony; no client mint authority",
+      "remaining": "Reward correctness and tablet/device QA pending"
+    },
+    {
+      "id": "genesis-assets-integrity",
+      "status": "source-implemented",
+      "origin": "PR #1010 forwardport",
+      "description": "Content SHA256, rights/original asset intake candidate gate",
+      "remaining": "No approved 3D/rig/audio binaries; mandatory release gate fails closed"
+    },
+    {
+      "id": "smart-drawer-sqlite",
+      "status": "existing-source",
+      "origin": "Smart Drawer R1 + PR #1012",
+      "description": "User-scoped local/offline notes, reminders and scan",
+      "remaining": "Account switching, data restore, no-loss device QA pending"
+    },
+    {
+      "id": "smart-drawer-file-provider",
+      "status": "source-implemented",
+      "origin": "PR #1012",
+      "description": "User-controlled Android SAF Files/Drive PDF and image imports",
+      "remaining": "Android picker, cache, 15MB, cleanup, PDF share device QA pending"
+    },
+    {
+      "id": "smart-drawer-manual-encrypted-backup",
+      "status": "source-implemented",
+      "origin": "PR #1014",
+      "description": "AES-GCM manual export and account-bound restore with user recovery key",
+      "remaining": "Recovery/uninstall/provider/low-memory device QA pending; no automatic cloud sync"
+    },
+    {
+      "id": "native-android-gif-ime",
+      "status": "native-source-uncompiled",
+      "origin": "PR #1014 (ported #814)",
+      "description": "Android GIF commitContent, header + 25MB check, off-UI worker, manual comment Send",
+      "remaining": "Expo module autolink, Gradle/Kotlin ABI, Gboard and upload/send not verified"
+    },
+    {
+      "id": "native-file-provider-comments",
+      "status": "source-implemented",
+      "origin": "PR #1014",
+      "description": "User-selected image/GIF from Android provider only in signed Genesis preview",
+      "remaining": "Physical Android SAF provider, MIME and commenting not verified"
+    },
+    {
+      "id": "android-camera-media",
+      "status": "dependency-declared",
+      "origin": "package.json + app.config.js",
+      "description": "Camera, image picker, video, image manipulation, file system and sharing already declared",
+      "remaining": "Exact APK codec/safe area/video performance pending"
+    },
+    {
+      "id": "native-media3-compression",
+      "status": "held-no-implementation",
+      "origin": "PR #814 audit",
+      "description": "On-device upload transcoding/video compression and adaptive delivery",
+      "remaining": "Media3 native codec quality, device heat, battery, ad/video regression not implemented"
+    },
+    {
+      "id": "godot-android-3d",
+      "status": "held-no-implementation",
+      "origin": "PR #814/#1010",
+      "description": "Separate immersive 3D Kingdom Android AAR + engine bridge",
+      "remaining": "Godot AAR, approved 3D assets, Gradle ABI, footprint and performance not integrated"
+    },
+    {
+      "id": "drive-oauth-cloud-sync",
+      "status": "held-credentials",
+      "origin": "PR #814",
+      "description": "Optional direct Drive API sync with user-verified Google identity",
+      "remaining": "Native Android OAuth client/signature and authorized secure account binding unavailable; not enabled"
+    },
+    {
+      "id": "silent-ota-next-launch",
+      "status": "queued-separate",
+      "origin": "PR #1003/#1005",
+      "description": "Silent compatible update download with no forced mid-call/compose restart",
+      "remaining": "Not reconciled into exact Genesis runtime branch; no served OTA evidence"
+    },
+    {
+      "id": "play-core-in-app-update",
+      "status": "held-no-implementation",
+      "origin": "PR #1013 audit",
+      "description": "Native mandatory Google Play binary update prompt",
+      "remaining": "Play Core module, live Play availability and version gate validation not integrated"
+    },
+    {
+      "id": "android-admob",
+      "status": "existing-source",
+      "origin": "app.config.js + main",
+      "description": "Native ads, test ID in staging and lifecycle invariants preserved",
+      "remaining": "Real device first-view/consent/no-fill/navigation load unverified"
+    },
+    {
+      "id": "android-stream-ptt-calls",
+      "status": "existing-source",
+      "origin": "app.config.js + main",
+      "description": "Existing Stream video/call, WebRTC, PTT hardware plugin declared",
+      "remaining": "Real audio focus, background, mic/call interruption acceptance pending"
+    },
+    {
+      "id": "navigation-v2-drawer",
+      "status": "queued-separate",
+      "origin": "PR #791/#793/#800/#801/#803",
+      "description": "Compact Home/Profile/Nav and correct drawer content",
+      "remaining": "Rejected older visual staging state must be reconciled; no blind merge of stale branch"
+    },
+    {
+      "id": "scroll-stop-ad-prewarm",
+      "status": "queued-separate",
+      "origin": "PR #813/#814",
+      "description": "Immediate video pause, near-view video warm, bounded ad prefetch",
+      "remaining": "Latest main/staging video+ads fixes must be diffed; no offscreen impressions allowed"
+    },
+    {
+      "id": "secure-store-password-migration",
+      "status": "queued-separate",
+      "origin": "PR #999",
+      "description": "Native SecureStore remembered-account migration",
+      "remaining": "Review current production baseline and current auth migration to avoid overwriting"
+    },
+    {
+      "id": "offline-sync-reliability",
+      "status": "queued-separate",
+      "origin": "previous BUKLOD queue",
+      "description": "Offline comment/submission outbox and idempotent delivery",
+      "remaining": "Not part of new native module itself; actual low-network behavior unverified"
+    }
+  ],
+  "requiredChecks": [
+    "Source scope/TypeScript + focused regression CI",
+    "Source/native dependency parity and Expo autolinking",
+    "Android native Kotlin/Gradle + Hermes compile",
+    "Exact signed APK SHA256, signing cert, installed package/channel/runtime",
+    "Offline Drawer import/backup/restore cross-account safety + Gboard GIF send",
+    "Actual First-view AdMob consent/loading/no-fill + instant tab navigation",
+    "Video scroll-stop, social compose/call/PTT audio focus, low-memory and contrast",
+    "Asset decode/license approval and 13 .riv/audio quality gates if advertised",
+    "Dec 6 embargo and separate authorized RC; no production mutation"
+  ]
+}
