@@ -16,6 +16,9 @@ test('Android GIF native receiver restricts provider content and never auto-send
   assert.match(kotlin,/GIF87a/);
   assert.match(kotlin,/GIF89a/);
   assert.match(kotlin,/25L \* 1024 \* 1024/);
+  assert.match(kotlin,/Executors\.newSingleThreadExecutor/);
+  assert.match(kotlin,/gifBusy\.compareAndSet\(false, true\)/);
+  assert.match(kotlin,/gifWorker\.execute/);
   assert.doesNotMatch(kotlin,/GodotLabActivity|openGodotWorld|GoogleDrive/);
   assert.match(widget,/requireNativeViewManager\('BuklodGenesisIme'\)/);
   assert.match(composer,/onNativeGif=\{genesisAndroidPreview/);

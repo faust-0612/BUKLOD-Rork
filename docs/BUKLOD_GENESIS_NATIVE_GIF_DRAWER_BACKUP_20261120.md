@@ -11,3 +11,5 @@ Source parent 3844e4685cfed827d7f34e03f0d63fb72b1278b1; confined to isolated Gen
 Required release gates: run focused test and exact-source TypeScript, Hermes/Expo prebuild, Android Gradle native compile, app install and GIF keyboard/manual send, Drawer backup/restore, AdMob first-view, instant tabs, no ad audio overlap, native binary/runtime SHA confirmation. No APK or OTA is authorized based on this code alone.
 
 CI reconciliation: TypeScript native-input callbacks explicitly typed. Restored note IDs are deterministic per authenticated user, so encrypted archives cannot replace another local account's primary-key row; original-row IDs are checked to skip duplicates.
+
+Android GIF file-provider streams are verified and copied using a process-bounded single background worker with a non-reentrant guard; GIF decode/copy must not block the JavaScript/UI thread. Android device tests remain mandatory for provider URI grant lifetime and comment upload.

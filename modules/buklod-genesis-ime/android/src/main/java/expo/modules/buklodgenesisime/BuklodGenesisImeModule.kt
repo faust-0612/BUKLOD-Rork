@@ -26,10 +26,16 @@ import java.io.DataInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
-/** Lab-only inline comment field. Receives Gboard GIFs through the focused
+/** Genesis preview-only inline comment field. Receives Android keyboard GIFs through the focused
  * editor's IME commitContent; never routes through Android ACTION_SEND. */
 class KeyboardGifView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
+  companion object {
+    private val gifWorker = Executors.newSingleThreadExecutor()
+    private val gifBusy = AtomicBoolean(false)
+  }
   private val onChange by EventDispatcher()
   private val onSelectionChange by EventDispatcher()
   private val onGif by EventDispatcher()
@@ -72,14 +78,29 @@ class KeyboardGifView(context: Context, appContext: AppContext) : ExpoView(conte
         if (payload.clip.itemCount != 1) return@OnReceiveContentListener payload
         val uri: Uri = payload.clip.getItemAt(0).uri ?: return@OnReceiveContentListener payload
         if (uri.scheme != "content") return@OnReceiveContentListener payload
-        try {
-          val saved = stageVerifiedGif(uri)
-          onGif(mapOf("uri" to Uri.fromFile(saved).toString(), "mimeType" to "image/gif"))
-          null // Consumed. Manual comment Send remains in React Native.
-        } catch (error: Exception) {
-          onGifError(mapOf("message" to "Unable to read keyboard GIF. Try the GIF picker."))
-          null // Do not insert untrusted URI/text or redirect the Activity.
+        // GIF bytes may originate from a slow provider: never copy on the UI thread.
+        if (!gifBusy.compareAndSet(false, true)) {
+          onGifError(mapOf("message" to "Another keyboard GIF is still being prepared."))
+          return@OnReceiveContentListener null
         }
+        try {
+          gifWorker.execute {
+            try {
+              val saved = stageVerifiedGif(uri)
+              post {
+                onGif(mapOf("uri" to Uri.fromFile(saved).toString(), "mimeType" to "image/gif"))
+              }
+            } catch (_: Exception) {
+              post { onGifError(mapOf("message" to "Unable to read keyboard GIF. Try the GIF picker.")) }
+            } finally {
+              gifBusy.set(false)
+            }
+          }
+        } catch (_: Exception) {
+          gifBusy.set(false)
+          onGifError(mapOf("message" to "Keyboard GIF service is unavailable."))
+        }
+        null // Consumed; manual Send remains in React Native.
       }
     )
     addView(input, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
