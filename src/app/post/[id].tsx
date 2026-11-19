@@ -86,6 +86,7 @@ export default function PostDetail(){
  } = useBuklodContentReport();
  const [post,setPost]=useState<any>(null),[comments,setComments]=useState<any[]>([]),[requests,setRequests]=useState<any[]>([]);
  const [comment,setComment]=useState(''),[busy,setBusy]=useState(false);
+ const commentSendInFlightRef=useRef(false);
  const [replyTo,setReplyTo]=useState<any>(null);
  const [photoViewerOpen,setPhotoViewerOpen]=useState(false);
  const [photoViewerIndex,setPhotoViewerIndex]=useState(0);
@@ -95,7 +96,8 @@ export default function PostDetail(){
  useFocusEffect(useCallback(() => {
   const adAccount=String(user?.id??'');
   return () => {
-   if(adAccount && takePendingCommunityCommentAdBreak(adAccount)){
+   if(!commentSendInFlightRef.current && adAccount &&
+      takePendingCommunityCommentAdBreak(adAccount)){
     void showBuklodAdOpportunity('community_comment_overage');
    }
   };
@@ -217,8 +219,9 @@ export default function PostDetail(){
  },[id,load]);
 
  const add=async()=>{
-  if(busy || !comment.trim())return;
+  if(busy || commentSendInFlightRef.current || !comment.trim())return;
 
+  commentSendInFlightRef.current=true;
   setBusy(true);
 
   const {error}=
@@ -233,6 +236,7 @@ export default function PostDetail(){
      }
     );
 
+  commentSendInFlightRef.current=false;
   setBusy(false);
 
   if(error){
