@@ -11,6 +11,8 @@ test('old character receipts stay canonical while the Season 2 mastery overlay r
   assert.match(legacy,/get_my_buklod_character_collectible_state_v1/);
   assert.match(legacy,/redeem_my_buklod_character_collectible_v1/);
   assert.match(selector,/Boolean\(saved\?\.redeemedAt\)/);
+  assert.doesNotMatch(selector,/items for reached levels are earned automatically/i);
+  assert.match(selector,/Reaching a level opens eligibility, not automatic ownership/);
   assert.match(guide,/existingCharacterInventoryImmutable: true/);
   assert.match(sql,/create table if not exists buklod_s2\.collectible_mastery/);
   assert.doesNotMatch(sql,/update\s+public\.buklod_character_collectible_state/i);
