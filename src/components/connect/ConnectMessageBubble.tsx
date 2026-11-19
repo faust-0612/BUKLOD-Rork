@@ -223,7 +223,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     timeRow: {
       marginTop: 2,
-      flexDirection: 'row'
+      flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
     },
