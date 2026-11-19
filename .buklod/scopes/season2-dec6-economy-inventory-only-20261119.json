@@ -30,7 +30,9 @@
     "tests/season2-member-rewards-full-reference-20261119.test.cjs",
     "contracts/season2-proposals/complete-member-reward-guide-20261119.json",
     "tests/season2-dec6-rewards-release-hold-20261119.test.cjs",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/protected-feature-lock.test.mjs",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "tests/season2-connect-message-bubble-compile-20261119.test.cjs"
   ],
   "acceptanceChecks": [
     "Exact 10 owner-approved exclusive IDs unchanged",
@@ -43,13 +45,15 @@
     "22 actual integration/security/finance/release gates remain explicitly HOLD, no fabricated completion",
     "Read-only staging workflow preflight calls audit and contract tests without changing existing publisher trigger",
     "Owner release embargo and Free Expo billing protections preserved",
-    "Member-facing collapsible BP/QMP/S2/carryover reference lists 46 active/16 inactive (admin-only hidden), exact requirements, limits, deferred credits and isolated status"
+    "Member-facing collapsible BP/QMP/S2/carryover reference lists 46 active/16 inactive (admin-only hidden), exact requirements, limits, deferred credits and isolated status",
+    "Connect bubble TS syntax repaired without changing compact/seen functionality; targeted source test passes and full CI TypeScript must be rerun"
   ],
   "regressionTests": [
     "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
     "tests/season2-member-rewards-full-reference-20261119.test.cjs",
     "tests/season2-dec6-rewards-release-hold-20261119.test.cjs",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/protected-feature-lock.test.mjs",
+    "tests/season2-connect-message-bubble-compile-20261119.test.cjs"
   ],
   "knownBlockers": [
     "No dedicated independent BUKLOD MAIN staging Supabase with applied isolated S2 reward schema and verified RLS",
@@ -90,6 +94,17 @@
       ],
       "tests": [
         "tests/protected-feature-lock.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Repair one pre-existing malformed ConnectMessageBubble StyleSheet comma exposed by current integration TypeScript without changing latest ordering, seen state or chat behavior.",
+      "preservedBehaviors": [
+        "Compact Connect message bubble and time metadata behavior remain unchanged; no chat ordering, seen indicators, attachment send or scope membership changes.",
+        "No backend writes or Season2 reward credits occur from the isolated style syntax repair."
+      ],
+      "tests": [
+        "tests/season2-connect-message-bubble-compile-20261119.test.cjs"
       ]
     }
   ],
