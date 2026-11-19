@@ -119,7 +119,7 @@ BEGIN
     scanned_at=EXCLUDED.scanned_at,
     scan_count=private.buklod_security_scan_state_v1.scan_count+1,
     auth_audit_entries_24h=EXCLUDED.auth_audit_entries_24h;
-END;$function$
+END;$function$;
 
 REVOKE ALL ON FUNCTION private.buklod_security_scan_v1() FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION private.buklod_security_scan_v1() TO service_role;
