@@ -40,6 +40,13 @@ BEGIN
       notes='KL S2 verified chapter completion +15 BP; forward only',
       updated_at=now()
   WHERE activity_type='kl_episode';
+ ELSIF OLD.enabled AND NOT NEW.enabled THEN
+  -- Emergency rollback fails closed to the original Season 1 +10 catalog.
+  UPDATE public.buklod_point_rules
+  SET base_points=10,max_points_per_event=10,
+      notes='KL R4 verified chapter completion +10 BP; S2 reward rollout disabled',
+      updated_at=now()
+  WHERE activity_type='kl_episode';
  END IF;
  NEW.updated_at:=now();
  RETURN NEW;
