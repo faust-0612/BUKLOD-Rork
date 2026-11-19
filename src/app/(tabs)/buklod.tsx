@@ -47,6 +47,19 @@ import {
 } from '@/lib/buklodCommunityPostMedia';
 import { enqueueCommunityPublish } from '@/lib/buklodCommunityPublishQueue';
 import {
+  queueWallComment,
+  parsePendingWallComment,
+  subscribeConfirmedWallComment,
+  WALL_COMMENT_QUEUE_KIND,
+  isPendingWallCommentFor,
+} from '@/lib/buklodCommunityOfflineComment';
+import {
+  subscribeOfflineQueue,
+  retryOfflineQueueItem,
+  removeOfflineQueueItem,
+  type OfflineQueueItem,
+} from '@/lib/offlineSyncQueue';
+import {
   BUKLOD_WALL_VIDEO_MAX_DURATION_SECONDS,
   BUKLOD_WALL_VIDEO_TOO_LONG_MESSAGE,
   formatVideoBytes,
@@ -173,6 +186,7 @@ import BuklodCommunityCommentComposer from '@/components/BuklodCommunityCommentC
 import {
   type BuklodCommentMedia,
   encodeBuklodCommentMediaBody,
+  parseBuklodCommentMediaBody,
   buklodCommentHasSendableContent,
 } from '@/lib/buklodCommentMediaBody';
 import {
@@ -534,7 +548,7 @@ function LegacyPublicBuklodScreen(){
  const wallComposerTone = getBuklodCardTone('peach', isBuklodDarkPaletteId(paletteId));
  const wallGalleryTone = getBuklodCardTone('sky', isBuklodDarkPaletteId(paletteId));
  const { showFeedback }=useBuklodFeedback();
- const {isConnected,isInternetReachable,status:wallNetworkStatus}=useNetwork();
+ const {isConnected,isInternetReachable,status:wallNetworkStatus,online,syncNow}=useNetwork();
  const {
   unreadCount: connectUnread,
   personalUnread: connectPersonalUnread,
@@ -562,7 +576,7 @@ function LegacyPublicBuklodScreen(){
    base.category==='NETWORK_ERROR' ||
    base.category==='TIMEOUT_ERROR';
   if(connectionIssue){
-   if(wallNetworkStatus==='offline'||wallNetworkStatus==='degraded')return;
+   if(!online||wallNetworkStatus==='degraded')return;
    showFeedback({
     ...base,
     tone:'info',
@@ -598,7 +612,7 @@ function LegacyPublicBuklodScreen(){
    feature:'Community Wall',
    outcome,
   });
- },[showFeedback,wallNetworkStatus]);
+ },[showFeedback,wallNetworkStatus,online]);
  const {
   openReport,
   reportSheet,
@@ -1367,6 +1381,8 @@ function LegacyPublicBuklodScreen(){
  const [commentLoading,setCommentLoading]=useState(false);
  const [commentLoadError,setCommentLoadError]=useState<string|null>(null);
  const [commentNotice,setCommentNotice]=useState<string|null>(null);
+ const [pendingWallComments,setPendingWallComments]=useState<OfflineQueueItem[]>([]);
+ const cachedCommentsRef=useRef(new Map<string,any[]>());
  const activeCommentPostIdRef=useRef<string|null>(null);
  const commentAccountIdRef=useRef(String(user?.id??''));
  commentAccountIdRef.current=String(user?.id??'');
@@ -1397,6 +1413,8 @@ function LegacyPublicBuklodScreen(){
   draftOwnerRef.current=null;
   ++commentLoadSeqRef.current;
   commentDraftsRef.current.clear();
+  cachedCommentsRef.current.clear();
+  setPendingWallComments([]);
   setCommentOpen(false);
   setCommentPost(null);
   setComments([]);
@@ -3742,6 +3760,13 @@ const load=useCallback(async(options?:{
     );
     if(!options?.silent)setCommentLoading(true);
     setCommentLoadError(null);
+    if(!online){
+     if(isCurrent()){
+      setCommentLoadError('Offline. Previously loaded comments remain available. You can save a new comment for sync.');
+      if(!options?.silent)setCommentLoading(false);
+     }
+     return;
+    }
     try{
      const [commentsResult,reactionsResult]=await Promise.all([
       communityReadRpc('get_buklod_post_comments_v4',{p_post_id:targetId}),
@@ -3766,7 +3791,7 @@ const load=useCallback(async(options?:{
      for(const row of (reactionsResult.data??[])){
       reactionMap.set(String(row.comment_id),row);
      }
-     setComments(hydratedRows.map((row:any)=>{
+     const displayRows=hydratedRows.map((row:any)=>{
       const reaction=reactionMap.get(String(row.id));
       return {
        ...row,
@@ -3775,12 +3800,19 @@ const load=useCallback(async(options?:{
        reaction_counts:reaction?.reaction_counts??{},
        my_reaction:reaction?.my_reaction??null,
       };
-     }));
+     });
+     // Memory-only, account-scoped last-good thread: never replace it with a
+     // blank error response or persist private comment data in AsyncStorage.
+     cachedCommentsRef.current.delete(requestAccountId+':'+targetId);
+     cachedCommentsRef.current.set(requestAccountId+':'+targetId,displayRows);
+     if(cachedCommentsRef.current.size>12)
+      cachedCommentsRef.current.delete(cachedCommentsRef.current.keys().next().value!);
+     setComments(displayRows);
     }catch(error:any){
      if(!isCurrent())return;
      const category=buildBuklodUserFeedback(error).category;
      setCommentLoadError(
-      wallNetworkStatus==='offline'
+      !online
        ? 'No internet connection. Check your signal and tap Retry.'
        : wallNetworkStatus==='degraded'
         ? 'Limited connection. Tap Retry when your signal improves.'
@@ -3800,8 +3832,58 @@ const load=useCallback(async(options?:{
      if(isCurrent()&&!options?.silent)setCommentLoading(false);
     }
    },
-   [user?.id,wallNetworkStatus,reportCommunityFailure]
+   [user?.id,wallNetworkStatus,online,reportCommunityFailure]
   );
+
+ // Pending state is a durable local record, not a pretend server reply.
+ useEffect(()=>{
+  return subscribeOfflineQueue(snapshot=>{
+   if(!user?.id){
+    setPendingWallComments([]);
+    return;
+   }
+   setPendingWallComments(snapshot.items.filter(item=>
+    item.kind===WALL_COMMENT_QUEUE_KIND && item.userId===user.id
+   ));
+  });
+ },[user?.id]);
+
+ // Confirmation events are emitted only after RPC v5 acknowledges a write.
+ // Never infer "posted" from a dropped/deleted local queue entry.
+ useEffect(()=>{
+  return subscribeConfirmedWallComment(event=>{
+   if(!user?.id || event.userId!==user.id)return;
+   setPosts(current=>current.map(post=>
+    String(post.id)===event.postId
+     ? {...post,comment_count:Number(post.comment_count??0)+1}
+     : post
+   ));
+   void fetchBuklodPostCommentPreviews([event.postId],[event.postId])
+    .then(previews=>{
+     if(commentAccountIdRef.current!==event.userId || !previews[event.postId])return;
+     setPosts(current=>current.map(post=>
+      String(post.id)===event.postId
+       ? {...post,comment_preview:previews[event.postId]}
+       : post
+     ));
+    }).catch(()=>undefined);
+   if(activeCommentPostIdRef.current===event.postId &&
+      commentAccountIdRef.current===event.userId){
+    setCommentNotice('Comment posted.');
+    void loadComments(event.postId,{silent:true});
+   }
+  });
+ },[user?.id,loadComments]);
+
+ const previousCommentNetworkRef=useRef(wallNetworkStatus);
+ useEffect(()=>{
+  const previous=previousCommentNetworkRef.current;
+  previousCommentNetworkRef.current=wallNetworkStatus;
+  if(!commentOpen || !commentPost?.id || !online ||
+     (previous!=='unknown' && previous!=='degraded'))return;
+  // Reconnect silently restores the actual thread without requiring a tap.
+  void loadComments(String(commentPost.id),{silent:true});
+ },[wallNetworkStatus,online,commentOpen,commentPost?.id,loadComments]);
 
  const openComments=
   async(post:any)=>{
@@ -3820,7 +3902,7 @@ const load=useCallback(async(options?:{
    draftOwnerRef.current=accountId;
    ++commentLoadSeqRef.current;
    setCommentPost(post);
-   setComments([]);
+   setComments(cachedCommentsRef.current.get(accountId+':'+postId)??[]);
    setCommentText(saved?.text??'');
    setCommentMentions(saved?.mentions??[]);
    setCommentMedia(attachGif?{kind:'gif',ref:pendingGif!.uri}:saved?.media??null);
@@ -3896,6 +3978,10 @@ const load=useCallback(async(options?:{
 
    const postId=String(commentPost.id);
    const authorId=String(user?.id??'');
+   if(!authorId){
+    setCommentNotice('Sign in to save a comment.');
+    return;
+   }
    const initialMedia=commentMedia;
    const replyTarget=replyTo;
    let finalBody=commentText.trim();
@@ -3911,10 +3997,7 @@ const load=useCallback(async(options?:{
      replyTarget.commenter_name,replyTarget.user_id
     ));
     const mention='@'+replyName;
-    if(
-     finalBody &&
-     !finalBody.toLowerCase().startsWith(mention.toLowerCase())
-    ){
+    if(finalBody && !finalBody.toLowerCase().startsWith(mention.toLowerCase())){
      finalBody=mention+' '+finalBody;
     }
     if(replyTarget.user_id && !mentionIds.includes(String(replyTarget.user_id))){
@@ -3922,96 +4005,72 @@ const load=useCallback(async(options?:{
     }
    }
 
-   // A ref closes the double-tap gap before React commits busy state.
+   // Picker file:// / content:// URI is NOT durable across app restarts.
+   // Preserve local media drafts until upload succeeds, rather than queueing
+   // an unusable path and falsely claiming it will sync.
+   const localPhoto=initialMedia?.kind==='image' &&
+    !!initialMedia.ref && isLocalMediaUri(initialMedia.ref);
+   const localGif=initialMedia?.kind==='gif' &&
+    !!initialMedia.ref && isLocalMediaUri(initialMedia.ref);
+   if(!online && (localPhoto || localGif)){
+    setCommentNotice('Photo/GIF needs a connection to upload. Your draft is kept; text-only comments can be saved offline.');
+    return;
+   }
+
    commentSendInFlightRef.current=true;
    setCommentBusy(true);
    setCommentNotice(null);
    try{
     let mediaForBody=initialMedia;
-    if(
-     initialMedia?.kind==='image' &&
-     initialMedia.ref &&
-     !initialMedia.ref.startsWith('http') &&
-     user?.id
-    ){
-     const path=
-      user.id+'/comment-photo-'+Date.now()+'-'+
+    if(localPhoto && user?.id){
+     const path=user.id+'/comment-photo-'+Date.now()+'-'+
       Math.random().toString(36).slice(2)+'.jpg';
-     await uploadCommunityPhotoFile({path,uri:initialMedia.ref});
+     await uploadCommunityPhotoFile({path,uri:initialMedia!.ref});
      mediaForBody={kind:'image',ref:path};
     }
-    if(initialMedia?.kind==='gif' && isLocalMediaUri(initialMedia.ref) && user?.id){
+    if(localGif && user?.id){
      const path=user.id+'/comment-gif-'+Date.now()+'-'+
       Math.random().toString(36).slice(2)+'.gif';
-     await uploadCommunityGifFile({path,uri:initialMedia.ref});
+     await uploadCommunityGifFile({path,uri:initialMedia!.ref});
      mediaForBody={kind:'gif',ref:path};
     }
+    if(commentAccountIdRef.current!==authorId){
+     throw new Error('Account changed. Your comment was not submitted.');
+    }
     const body=encodeBuklodCommentMediaBody(mediaForBody,finalBody);
-    const {error}=await communityRpc('add_buklod_post_comment_v4',{
-     p_post_id:postId,
-     p_body:body,
-     p_parent_id:replyRootId,
+    // Persist BEFORE requesting the server. A lost acknowledgement leaves
+    // one recoverable action with an unchanged idempotency key.
+    await queueWallComment(authorId,{
+     postId,body,parentId:replyRootId,mentionIds,
     });
-    if(error)throw error;
-    if(initialMedia?.kind==='gif') {
+
+    commentDraftsRef.current.delete(authorId+':'+postId);
+    await clearWallCommentTextDraft(authorId,postId).catch(()=>undefined);
+    if(initialMedia?.kind==='gif'){
      void discardStagedSharedCommentGif(initialMedia.ref);
     }
-    if(authorId && commentAccountIdRef.current===authorId){
-     const adCount=recordConfirmedCommunityComment(authorId);
-     if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
-    }
-
-    // One confirmed mutation: update just this post, not the whole feed.
-    if(commentAccountIdRef.current===authorId){
-     setPosts(current=>current.map(post=>
-      String(post.id)===postId
-       ? {...post,comment_count:Number(post.comment_count??0)+1}
-       : post
-     ));
-     // Show the newly submitted actual comment without reloading the feed.
-     void fetchBuklodPostCommentPreviews([postId],[postId])
-       .then(previews=>{
-         if(commentAccountIdRef.current!==authorId || !previews[postId]) return;
-         setPosts(current=>current.map(post=>
-           String(post.id)===postId
-             ? {...post,comment_preview:previews[postId]}
-             : post
-         ));
-       })
-       .catch(error=>console.warn('Community new comment preview:',error?.message??error));
-    }
-    commentDraftsRef.current.delete(authorId+':'+postId);
-    if(authorId)void clearWallCommentTextDraft(authorId,postId).catch(()=>undefined);
-    if(
-     activeCommentPostIdRef.current===postId &&
-     commentAccountIdRef.current===authorId
-    ){
+    if(activeCommentPostIdRef.current===postId &&
+       commentAccountIdRef.current===authorId){
      setCommentText('');
      setCommentMentions([]);
      setCommentMedia(null);
      setCommentMediaPreview(null);
      setReplyTo(null);
-     setCommentNotice('Comment posted.');
+     setCommentNotice(online
+      ? 'Comment saved. Sending…'
+      : 'Comment saved on this device. Pending sync when connection returns.');
     }
-    void notifyBuklodCommunityMentions({
-     postId,
-     mentionedUserIds:mentionIds,
-     context:'comment',
-    });
-    // Keep the active Wall and comment sheet visible after sending a GIF;
-    // background reconcile only this thread without a spinner.
-    void loadComments(postId,{silent:true});
+    if(online){
+     void syncNow({maxItems:8,userId:authorId}).catch(()=>undefined);
+    }
    }catch(error:any){
-    if(commentAccountIdRef.current===authorId){
-     if(activeCommentPostIdRef.current===postId){
-      setCommentNotice('Comment not posted. Your draft is saved here; try again.');
-     }
-     reportCommunityFailure(
-      error,
-      'Comment not posted',
-      error?.message??"BUKLOD couldn't post your comment right now.",
-      'comment_post_failed',
-     );
+    // Failure to persist is NOT a posted comment. Keep all draft input.
+    if(commentAccountIdRef.current===authorId &&
+       activeCommentPostIdRef.current===postId){
+     const category=buildBuklodUserFeedback(error).category;
+     setCommentNotice(category==='NETWORK_ERROR'||category==='TIMEOUT_ERROR'
+      ? 'Upload interrupted. Your draft is still here. Try again with better signal.'
+      : 'Could not save this comment. Your draft is kept. '+String(error?.message??'Try again.'));
     }
    }finally{
     commentSendInFlightRef.current=false;
@@ -7003,7 +7062,7 @@ const communityFeedRows =
           commentPost.user_id,
          )}
          {' · '}
-         {commentLoading&&!comments.length?'…':comments.length}
+         {commentLoadError?'not loaded':commentLoading&&!comments.length?'…':comments.length}
          {' '}
          {comments.length===1
           ? 'comment'
@@ -7032,20 +7091,72 @@ const communityFeedRows =
      >
       {!!commentLoadError&&(
        <View style={{
-        padding:12,borderRadius:12,backgroundColor:'#FFF1E5',
-        flexDirection:'row',alignItems:'center',gap:10,
+        padding:10,borderRadius:10,
+        backgroundColor:(!online||wallNetworkStatus==='degraded')
+         ? '#EAF1E9' : '#FFF1E5',
+        flexDirection:'row',alignItems:'center',gap:8,
        }}>
-        <Text style={{flex:1,color:'#8E4A1E',fontSize:12}}>
+        <Text style={{flex:1,color:'#405448',fontSize:12}}>
          {commentLoadError}
         </Text>
-        <Pressable
-         accessibilityRole="button"
-         accessibilityLabel="Retry loading comments"
-         onPress={()=>commentPost?.id&&void loadComments(String(commentPost.id))}
-         style={{paddingHorizontal:12,paddingVertical:8,borderRadius:10,backgroundColor:'#FFFFFF'}}
-        >
-         <Text style={{fontWeight:'800',color:'#8E4A1E'}}>Retry</Text>
-        </Pressable>
+        {online&&(
+         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading comments"
+          onPress={()=>commentPost?.id&&void loadComments(String(commentPost.id))}
+          style={{paddingHorizontal:10,paddingVertical:7,borderRadius:9,backgroundColor:'#FFFFFF'}}
+         >
+          <Text style={{fontWeight:'800',color:'#215739'}}>Retry</Text>
+         </Pressable>
+        )}
+       </View>
+      )}
+      {!!commentPost && pendingWallComments.filter(item=>
+       isPendingWallCommentFor(item,String(user?.id??''),String(commentPost.id))
+      ).length>0&&(
+       <View style={{padding:10,borderRadius:12,backgroundColor:'#E9F4EB',gap:8}}>
+        <Text style={{fontSize:13,fontWeight:'800',color:'#17592C'}}>
+         Saved comments • pending sync
+        </Text>
+        {pendingWallComments.filter(item=>
+         isPendingWallCommentFor(item,String(user?.id??''),String(commentPost.id))
+        ).slice(-8).map(item=>{
+         const payload=parsePendingWallComment(item.payload);
+         const parsed=parseBuklodCommentMediaBody(payload?.body??'');
+         const stuck=item.attempts>=item.maxAttempts ||
+          item.nextAttemptAt===Number.MAX_SAFE_INTEGER;
+         return (
+          <View key={item.id} style={{paddingVertical:7,borderTopWidth:1,borderColor:'#CCDFCF',gap:5}}>
+           <Text style={{fontSize:13,color:'#1D3727'}} numberOfLines={4}>
+            {parsed.caption || (parsed.media ? 'Photo/GIF comment' : 'Saved comment')}
+           </Text>
+           <Text style={{fontSize:11,color:stuck?'#91421D':'#365A3E'}}>
+            {stuck
+             ? 'Could not sync yet. Saved on device; use Retry.'
+             : 'Saved on device • will send automatically when online'}
+           </Text>
+           {stuck&&(
+            <View style={{flexDirection:'row',gap:12}}>
+             <Pressable accessibilityRole="button" accessibilityLabel="Retry pending comment"
+              onPress={()=>{
+               void retryOfflineQueueItem(item.id,String(user?.id??'')).then(retried=>{
+                if(retried&&online)void syncNow({maxItems:8,userId:String(user?.id??'')});
+               }).catch(()=>undefined);
+              }}>
+              <Text style={{fontWeight:'800',color:'#17592C'}}>Retry</Text>
+             </Pressable>
+             <Pressable accessibilityRole="button" accessibilityLabel="Discard unsent comment"
+              onPress={()=>Alert.alert('Discard saved comment?','This comment has not been confirmed on the server.',[
+               {text:'Keep',style:'cancel'},
+               {text:'Discard',style:'destructive',onPress:()=>void removeOfflineQueueItem(item.id)},
+              ])}>
+              <Text style={{fontWeight:'800',color:'#91421D'}}>Discard</Text>
+             </Pressable>
+            </View>
+           )}
+          </View>
+         );
+        })}
        </View>
       )}
       {commentLoading&&!comments.length?(
@@ -7182,13 +7293,13 @@ const communityFeedRows =
        accessibilityLiveRegion="polite"
        style={{
         paddingHorizontal:14,paddingVertical:7,
-        backgroundColor:commentNotice.startsWith('Comment not posted')
+        backgroundColor:/^(Comment not posted|Could not|Photo\/GIF needs|Upload interrupted|Sign in)/.test(commentNotice)
          ? '#FFF1E5' : '#E8F5EE',
        }}
       >
        <Text style={{
         fontSize:12,fontWeight:'700',
-        color:commentNotice.startsWith('Comment not posted')
+        color:/^(Comment not posted|Could not|Photo\/GIF needs|Upload interrupted|Sign in)/.test(commentNotice)
          ? '#8E4A1E' : colors.greenDark,
        }}>
         {commentNotice}

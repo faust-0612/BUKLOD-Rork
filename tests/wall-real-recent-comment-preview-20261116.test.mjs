@@ -58,9 +58,13 @@ test('refresh preserves the actual last verified comment, but clears it at zero 
   assert.equal(emptied[0].comment_preview, null);
 });
 
-test('a successful new comment refreshes only its own preview without reloading Wall', () => {
-  assert.match(publicWall, /Community new comment preview:/);
-  assert.match(publicWall, /fetchBuklodPostCommentPreviews\(\[postId\],\[postId\]\)/);
+test('a SERVER-CONFIRMED new comment refreshes only its own preview without reloading Wall', () => {
+  // The offline queue no longer claims a comment is posted before RPC v5.
+  // Keep the old last-real-comment and scoped preview regressions locked.
+  assert.match(publicWall, /subscribeConfirmedWallComment/);
+  assert.match(publicWall, /fetchBuklodPostCommentPreviews\(\[event\.postId\],\[event\.postId\]\)/);
+  assert.match(publicWall, /String\(post\.id\)===event\.postId/);
+  assert.match(publicWall, /comment_preview:previews\[event\.postId\]/);
   assert.match(scopedWall, /Scoped new comment preview:/);
   assert.match(scopedWall, /fetchBuklodPostCommentPreviews\(\[postId\], \[postId\]\)/);
 });

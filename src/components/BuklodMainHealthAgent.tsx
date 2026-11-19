@@ -15,6 +15,7 @@ import {
 } from '@/lib/buklodMainHealth';
 import { supabase } from '@/lib/supabase';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
 import {
   getOfflineQueueSnapshot,
 } from '@/lib/offlineSyncQueue';
@@ -538,7 +539,11 @@ export default function BuklodMainHealthAgent() {
   ]);
 
   useEffect(() => {
-    if (!user?.id || !session || !online) return;
+    // NetInfo's 'online' alone does not prove usable auth connectivity.
+    // Keep the last valid local session and defer auto-escalation while 2G/3G
+    // or measured failures indicate degraded reception.
+    if (!user?.id || !session || !online ||
+        classifyNetworkQuality() !== 'normal') return;
 
     const now = Date.now();
     if (
@@ -576,6 +581,10 @@ export default function BuklodMainHealthAgent() {
       }
 
       if (healed) return;
+
+      // A transient weak-signal refresh timeout is not proof that a user's
+      // session or the backend is broken. The next healthy pass may retry.
+      if (classifyNetworkQuality() !== 'normal') return;
 
       await emitUnresolved({
         category: 'AUTH',
