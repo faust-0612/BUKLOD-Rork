@@ -7,7 +7,22 @@
     "gitBaselineBranch": "integration/season2-conso-staging-20261119",
     "connectedLiveDatabaseCheckedReadOnly": "yhanxndaqbmuzbdqlblu",
     "sourceDecision": "contracts/season2-owner-approved-exclusives-20261119.json",
-    "codeReference": "src/lib/season2/buklodSeason2RewardContractR1.ts"
+    "codeReference": "src/lib/season2/buklodSeason2RewardContractR1.ts",
+    "readOnlyLiveObservations": {
+      "checkedAtManilaDay": "2026-11-19",
+      "season1": {
+        "season": 1,
+        "endsOn": "2026-10-31",
+        "status": "active",
+        "closed": false
+      },
+      "season2RewardSchemaInstalled": false,
+      "klQuizEnforced": false,
+      "qmpFinancialFinalizationEnabled": false,
+      "activeBpCatalogEntries": 46,
+      "inactiveBpCatalogEntries": 16,
+      "note": "Read-only connected environment evidence. It is not an independent staging backend, not production runtime evidence, and authorizes no Season 1 or Season 2 changes."
+    }
   },
   "release": {
     "season": 2,
@@ -948,14 +963,16 @@
       {
         "id": "signed_season1_archive",
         "requirement": "Validate S1 final period, pending credits, signed evidence and appeal/reconciliation",
-        "status": "BLOCKED",
-        "passed": false
+        "status": "BLOCKED_LIVE_S1_ACTIVE",
+        "passed": false,
+        "observation": "Season 1 marked active although its end date was Oct 31, 2026; closed=false. Cannot perform season rollover until independently reconciled and signed."
       },
       {
         "id": "independent_staging_backend",
         "requirement": "Prove distinct BUKLOD MAIN staging database, never use connected production-like Connect database by assumption",
-        "status": "BLOCKED",
-        "passed": false
+        "status": "BLOCKED_NO_DISTINCT_STAGE",
+        "passed": false,
+        "observation": "No separately verified BUKLOD MAIN staging project is connected; connected current project has no buklod_s2 schema. No migrations are authorized on this backend."
       },
       {
         "id": "s2_rls_and_service_grants",
@@ -984,8 +1001,9 @@
       {
         "id": "kl_chapter_chain_and_rewards",
         "requirement": "Sequential quiz gate, delayed chapter BP, 20-char comment, 50-char final reflection, next-series carry",
-        "status": "DEV_PR_ONLY",
-        "passed": false
+        "status": "BLOCKED_KL_ENFORCEMENT_OFF",
+        "passed": false,
+        "observation": "Existing kl_quiz_rollout.enforce_quiz=false; Season 2 forward-only delayed-credit SQL is a separate DEV PR, not backend deployed."
       },
       {
         "id": "referral_20_vs_10_policy_reconciled",
@@ -1056,8 +1074,9 @@
       {
         "id": "financial_qmp_monthly_reconciliation",
         "requirement": "Keep monthly 30% eligible pool, finalized vs provisional, strict payout KYC and accounting",
-        "status": "READ_ONLY_CHECKED",
-        "passed": false
+        "status": "BLOCKED_FINANCIAL_FINALIZATION_OFF",
+        "passed": false,
+        "observation": "Community QMP version ACTIVE but financial_finalization_enabled=false; preliminary QMP weights are not finalized payouts."
       }
     ],
     "optionalRewardedAds": {
