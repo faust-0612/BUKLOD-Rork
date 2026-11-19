@@ -1,0 +1,80 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/connect-compact-seen-consolidated-prod-prep-20261119.json",
+  "objective": "Prepare non-Season2 BUKLOD Connect chat Latest/keyboard stabilization, compact sender avatars, tap-to-reveal timestamps, and truthful Seen reader feedback for eventual consolidated Android production OTA without publishing, changing native dependencies or touching Season1 finance or Season2.",
+  "baseRef": "551e54602addd6f7bbe7bcdddd1589d35424c964",
+  "productionBaselineEvidence": "Pinned GitHub main source SHA 551e54602addd6f7bbe7bcdddd1589d35424c964 (2026-11-19). Actual EAS production served update, latest validated RC and device AdMob are NOT verified by this source-only preparation.",
+  "productionChange": false,
+  "productionReleaseAuthorized": false,
+  "releaseTarget": "SOURCE_ONLY_PRODUCTION_CONSO_PREP_NO_OTA",
+  "publicationStatus": "PRODUCTION_NOT_PUBLISHED_STAGING_NOT_VERIFIED",
+  "sourceCommit": "3e2f7326eda569eff832e8204dc8b314c927a54a",
+  "consolidatedStagingSourceCommit": "ae1b7dd21b07291b96039c9a863bbed16ebd2963",
+  "separateFromSeason2": true,
+  "userFacingConnectCoverage": [
+    "personal direct",
+    "cluster",
+    "organization",
+    "sub-organization"
+  ],
+  "scopeVersion": "nonseason2-connect-ui-20261119",
+  "noBackendMigration": true,
+  "noNewNativeDependencies": true,
+  "runtimeCompatibilityTarget": "1.3.2_PENDING_EXACT_STAGING_AND_PROD_VERIFICATION",
+  "expectedPackage": "org.mzbministry.buklod",
+  "allowedPaths": [
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/lib/connectChatWindow.ts",
+    "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs",
+    ".buklod/scopes/connect-compact-seen-consolidated-prod-prep-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Improve existing Connect text-chat layout and Latest behavior only, protecting navigation, media and native runtime boundaries.",
+      "preservedBehaviors": [
+        "App startup, authentication, messaging participation checks, all Season1 and Season2 point/finance features, AdMob placements and shell navigation remain unchanged."
+      ],
+      "tests": [
+        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Use the existing Connect thread and shared bubble renderer to stabilize scroll intent during Android keyboard resize, compact messages and surface authorized reader metadata without changing PTT or call lifecycle.",
+      "preservedBehaviors": [
+        "Direct and scope send, receiving, offline behavior, backward pagination, signed media, read-cursor authorization and long-press actions are preserved.",
+        "No per-message Seen claim is inferred from a room-wide cursor; unknown read state is not reported as zero.",
+        "Instant dashboard navigation and first-view AdMob operations remain protected."
+      ],
+      "tests": [
+        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
+        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Reconcile exact production EAS served update group/runtime/package, currently deployed source, active independent changes and verified staging RC before release.",
+    "Run Connect latest and compact/read-marker automated tests plus existing Connect chat/offline/navigation/reaction/media tests; run TypeScript and compiled Android QA against exact candidate SHA.",
+    "Verify direct and all scoped room message order, keyboard open/close/reflow, manual drag, Latest button, incoming and outgoing send, history prepend, read cursor and Seen reader identity.",
+    "Run permanent AdMob first-render/fill/offscreen lifecycle and instant dashboard navigation performance gates; regression blocks release.",
+    "Do not activate Season2 preview/reward/points/tokens, modify Supabase policies, migrate databases or change packages/native runtime.",
+    "Prepare a fresh cumulative production RC from current authoritative production and independent non-Season2 fixes; never promote this isolated source branch directly.",
+    "Only after owner authorization and complete gates: publish exact frozen production Android OTA via canonical workflow and verify returned update ID, source SHA, runtime, channel, package and live served fingerprint."
+  ],
+  "knownBlockers": [
+    "Staging served manifest and Android compile/QA have not been verified for this integration.",
+    "Current production served EAS manifest/source reconciliation is pending.",
+    "AdMob first-view and instant navigation regression against the exact combined RC is pending."
+  ],
+  "releaseReady": false,
+  "releaseMode": "HOLD_UNTIL_STAGING_AND_CONSOLIDATED_PROD_RC_VERIFIED",
+  "season2ProductionEmbargo": "2026-12-06T00:00:00+08:00"
+}
