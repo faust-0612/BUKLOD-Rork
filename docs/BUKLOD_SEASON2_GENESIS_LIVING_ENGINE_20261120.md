@@ -36,3 +36,15 @@ New staging-only EAS profile: `season2-genesis-preview`, OTA channel of same nam
 
 ## Verification evidence
 Source readback at commit `aa51bad6c0eab27851b67dc24644a196220f8585` verified 14/14 static wiring/preview/audio/asset-related assertions earlier in the DEV sequence; this **does not** claim TypeScript compilation, test execution, Android rendering or a release. Following edits need revalidation. No CI/build was requested or started.
+
+## Season lock reconciliation — continued
+- ConnectThemeProvider is forced to Season 2's blue/celestial/teal messages palette; old Connect overrides remain stored but do not apply. ConnectThemeSelectorButton is hidden only on the Season 2 native preview.
+- ChatBackgroundProvider renders the cosmic theme canvas, ignores legacy personal/thread wallpapers without deleting them, and blocks seasonal background writes.
+- Scope workspace colors/card surfaces, background images and customization actions defer to Season Theme Authority; historical organization settings are preserved for pre-Season-2 runtime.
+- Home, Profile, Connect, and Scope now share season-owned colors. Rich celestial animated backdrops are implemented on Home/Profile, a bounded static scene in Scope; complete visual/audio acceptance for every other routed screen is still pending.
+
+## Engineering readback, 2026-11-20
+- Isolated branch against exact main baseline `551e54602addd6f7bbe7bcdddd1589d35424c964`; no production/main branch mutation.
+- 18/18 focused source assertions passed on the earlier commit `85d1ec4403ead12991086a4117c6d0c41e99a81d` (native runtime gating, creator verses, cosmic scene, assets, audio suppression, Home/Profile wiring). Additional Connect/Scope source readback confirmed guards after that point.
+- No GitHub Actions run on branch at inspection. No automated Jest/Node test, TS compile, signed APK, Expo OTA receipt, device screenshots or performance evidence. Branch is **DEV candidate only**.
+- Existing Expo SDK 57 and pinned Skia must be compatibility-tested before adoption of additional shader APIs. Do not change production dependencies opportunistically.
