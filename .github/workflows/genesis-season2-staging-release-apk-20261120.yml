@@ -1,0 +1,136 @@
+name: BUKLOD Genesis Native Staging APK Foundation - NO OTA NO PROD
+on:
+  push:
+    branches:
+      - dev/genesis-season-wordmark-appwide-20261120
+    paths:
+      - .github/workflows/genesis-season2-staging-release-apk-20261120.yml
+permissions:
+  contents: read
+concurrency:
+  group: buklod-genesis-season2-staging-native-apk-20261120
+  cancel-in-progress: false
+jobs:
+  genesis-staging-apk:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_STAGING_APK_START:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      STAGING_FIREBASE_JSON_B64: ${{ secrets.STAGING_FIREBASE_JSON_B64 }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - name: Exact isolated Genesis source; never change main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Fail closed before any external build if staging isolation or credentials missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git merge-base HEAD 06db398e0dc936250dd680fac160d2bfe7b116eb)" = 06db398e0dc936250dd680fac160d2bfe7b116eb
+          test -n "${EXPO_TOKEN:-}" || { echo 'BLOCK: no Expo staging token; no APK'; exit 1; }
+          test -n "${STAGING_FIREBASE_JSON_B64:-}" || { echo 'BLOCK: no staging Firebase client; no APK'; exit 1; }
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" || { echo 'BLOCK: no staging publishable key'; exit 1; }
+          [[ "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" == sb_publishable_* ]] || { echo 'BLOCK: no public staging key'; exit 1; }
+          [[ "$EXPO_PUBLIC_SUPABASE_URL" =~ ^https://[a-z0-9-]+\.supabase\.co$ ]] || { echo 'BLOCK: malformed staging backend'; exit 1; }
+          [[ "$EXPO_PUBLIC_SUPABASE_URL" != *yhanxndaqbmuzbdqlblu* ]] || { echo 'BLOCK: cannot use BUKLOD MAIN production Supabase for staging build'; exit 1; }
+          printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const firebase=require('./google-services.staging.json');
+          assert.ok(firebase.client?.some(c=>c.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging'),
+            'Missing exact Android staging Firebase client');
+          const cfg=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          assert.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(cfg.runtimeVersion,'2.0.0-genesis-preview');
+          assert.equal(cfg.name,'BUKLOD Staging');
+          assert.equal(cfg.extra.appTarget,'main');
+          assert.equal(cfg.extra.appEnvironment,'staging');
+          assert.equal(cfg.plugins.find(p=>Array.isArray(p)&&p[0]==='react-native-google-mobile-ads')[1].androidAppId,
+            'ca-app-pub-3940256099942544~3347511713');
+          assert.equal(eas.build['season2-genesis-preview'].channel,'season2-genesis-preview');
+          assert.equal(eas.build['season2-genesis-preview'].environment,'preview');
+          assert.equal(eas.build['season2-genesis-preview'].android.buildType,'apk');
+          assert.equal(eas.build.production.channel,'production');
+          assert.notEqual(cfg.runtimeVersion,'1.3.2','Never push Genesis JS to old production native runtime');
+          console.log('Genesis staging native identity/AdMob and production isolation PASS');
+          NODE
+      - name: Install exact npm lock and run prior source gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run genesis:theme:gate
+          node --test tests/genesis-staging-native-apk-release-20261120.test.mjs tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-native-build-inventory-20261120.test.mjs
+          node scripts/season2-native-capability-gate.mjs --mode=source
+          npx tsc --noEmit
+      - name: Bundle Android preview JS before native signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo export --platform android --output-dir /tmp/buklod-genesis-preview-export
+          test -n "$(find /tmp/buklod-genesis-preview-export -type f -print -quit)"
+      - name: Authoritative Expo credentials and remote signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 whoami --non-interactive >/dev/null
+          # Remote staging versionCode avoids local autoIncrement mismatch; runner-only edit.
+          node <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const p='eas.json',e=JSON.parse(fs.readFileSync(p,'utf8'));
+          assert.equal(e.build['season2-genesis-preview'].autoIncrement,true);
+          e.cli.appVersionSource='remote';
+          fs.writeFileSync(p,JSON.stringify(e,null,2)+'\n');
+          NODE
+          npx --yes eas-cli@27.9.0 build --platform android --profile season2-genesis-preview --non-interactive --wait --json > /tmp/buklod-genesis-stage-apk.json
+      - name: Validate actual EAS build receipt (no release claim without artifact)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict');
+          const raw=JSON.parse(fs.readFileSync('/tmp/buklod-genesis-stage-apk.json','utf8'));
+          const b=Array.isArray(raw)?raw[0]:raw;
+          a.equal(String(b.status).toLowerCase(),'finished');
+          a.equal(String(b.platform).toLowerCase(),'android');
+          a.match(String(b.id),/^[0-9a-f-]{36}$/i);
+          if(b.gitCommitHash)a.equal(String(b.gitCommitHash).toLowerCase(),process.env.GITHUB_SHA.toLowerCase());
+          const url=b.artifacts?.buildUrl??b.artifacts?.applicationArchiveUrl;
+          a.match(String(url||''),/^https:\/\//);
+          fs.writeFileSync('buklod-genesis-stage-build-receipt.json',JSON.stringify({
+            sourceSha:process.env.GITHUB_SHA,easBuildId:b.id,status:b.status,artifactUrl:url,
+            expectedPackage:'org.mzbministry.buklod.staging',expectedRuntime:'2.0.0-genesis-preview',
+            channel:'season2-genesis-preview',nativeDeviceQA:'PENDING',otaPublished:false,
+          },null,2)+'\n');
+          console.log('Staging APK EAS receipt exists; NOT an installed-device or OTA verification');
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: buklod-genesis-staging-apk-build-receipt
+          path: buklod-genesis-stage-build-receipt.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: OTA is intentionally not published by an APK build
+        if: success()
+        run: |
+          echo 'New Genesis runtime requires exact signed APK/device acceptance before any season2-genesis-preview OTA.'
+          echo 'No production / Play / web / Supabase / OTA publication performed by this workflow.'

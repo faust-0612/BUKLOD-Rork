@@ -20,11 +20,15 @@
     "scripts/genesis-single-season-branding-gate.cjs",
     ".buklod/scopes/genesis-season-wordmark-appwide-20261120.json",
     "tests/genesis-season-branding-navigation-20261120.test.mjs",
-    "tests/genesis-season-branding-ads-20261120.test.mjs"
+    "tests/genesis-season-branding-ads-20261120.test.mjs",
+    ".github/workflows/genesis-season2-staging-release-apk-20261120.yml",
+    "tests/genesis-staging-native-apk-release-20261120.test.mjs",
+    "docs/BUKLOD_GENESIS_APK_FIRST_OTA_AFTER_20261120.md"
   ],
   "regressionTests": [
     "tests/genesis-season-branding-navigation-20261120.test.mjs",
-    "tests/genesis-season-branding-ads-20261120.test.mjs"
+    "tests/genesis-season-branding-ads-20261120.test.mjs",
+    "tests/genesis-staging-native-apk-release-20261120.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -58,6 +62,17 @@
       "tests": [
         "tests/genesis-season-branding-ads-20261120.test.mjs"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Introduce an explicitly isolated Genesis staging-only APK build workflow; no production channel, OTA or Play mutation.",
+      "preservedBehaviors": [
+        "Production main, Play, AdMob production identifiers and existing signed APK remain untouched",
+        "No OTA publication until a matching Genesis runtime signed APK and device acceptance evidence exists"
+      ],
+      "tests": [
+        "tests/genesis-staging-native-apk-release-20261120.test.mjs"
+      ]
     }
   ],
   "riskAreas": [
@@ -78,7 +93,9 @@
     "Canonical wordmark is the same on all startup and dashboard surfaces",
     "Preview controls hide user theme selectors",
     "Ad/navigation behavior remains intact by source and later device QA",
-    "Node proof runnable in CI; signed Android APK/device verification pending"
+    "Node proof runnable in CI; signed Android APK/device verification pending",
+    "Build GitHub Actions checks actual Expo preview identity and staging Supabase/Firebase before any EAS credit use",
+    "Actual signed APK and runtime on device remain unverified until separate build receipt and QA"
   ],
   "releaseMode": "DEV_ONLY",
   "releaseStatus": "SOURCE_READY_CI_PENDING_APK_AND_OTA_HOLD"
