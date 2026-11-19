@@ -292,7 +292,10 @@
     "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
     "tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs",
     "tests/buklod-bible-v4-auto-essay-rubrics-20261118.test.mjs",
-    "tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs"
+    "tests/buklod-bible-v4-enumeration-equivalence-20261118.test.mjs",
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs",
+    "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -303,31 +306,8 @@
         "Season2 backend rewards remain entirely disabled"
       ],
       "tests": [
-        "tests/buklod-season2-carryover-contract-20261119.test.mjs",
-        "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
-        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
-        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
-      ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Extend fail-closed source embargo and add staging-only workflow without enabling a production Season2 release.",
-      "preservedBehaviors": [
-        "December 6 production embargo and SHA-bound owner/device verification remain enforced",
-        "AdMob and instant-navigation permanent release gates remain required"
-      ],
-      "tests": [
-        "tests/season2-governance-production-release-gate.test.mjs"
-      ]
-    },
-    {
-      "id": "governance-lock",
-      "reason": "Add explicit branch-to-manifest routing without weakening the existing protected-feature lock or production release protections.",
-      "preservedBehaviors": [
-        "Every impacted protected feature still requires changed regression tests and an exact path allowlist"
-      ],
-      "tests": [
-        "tests/protected-feature-lock.test.mjs"
+        "tests/season2-weekly-performance-profile-navigation-20261119.test.mjs",
+        "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs"
       ]
     },
     {
@@ -337,7 +317,8 @@
         "Existing Community post media, video playback, comments, author navigation, and ad placements remain unchanged."
       ],
       "tests": [
-        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+        "tests/nov18-rank-notes-admob-preservation.test.mjs"
       ]
     },
     {
@@ -349,18 +330,8 @@
         "LIFE Filipino/English initial locale hydration and route consistency are source-reviewed; existing AuthProvider/session and Season1 production remain unchanged."
       ],
       "tests": [
-        "tests/season2-wall-avatar-navigation-20261119.test.mjs",
-        "tests/life-language-auth-navigation-20261119.test.mjs"
-      ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "The Circle Rank Badge asset component path overlaps the permanent AdMob protected-feature regex, but this update contains no advertising or finance logic changes and must preserve ad rendering.",
-      "preservedBehaviors": [
-        "First-view AdMob placements, ad load and fill behavior, QMP, Points, withdrawals and finance authorization remain untouched."
-      ],
-      "tests": [
-        "tests/season2-avatar-admob-guard-20261119.test.mjs"
+        "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+        "tests/admin-registration-notification-route-20261119.test.cjs"
       ]
     },
     {
@@ -372,30 +343,64 @@
         "Manual reading of earlier messages does not force scroll to the latest until user taps Latest or focuses composer."
       ],
       "tests": [
-        "tests/connect-latest-keyboard-follow-20261119.test.mjs",
-        "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+        "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs",
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
       ]
     },
     {
-      "id": "cluster-faith",
-      "reason": "Cumulative approved staging scope includes Daily Proverbs and scoped Community UI preview from earlier integration commits. Enforce existing faith/community protections without changing live Season1 rewards.",
+      "id": "ads-finance-points",
+      "reason": "The Circle Rank Badge asset component path overlaps the permanent AdMob protected-feature regex, but this update contains no advertising or finance logic changes and must preserve ad rendering.",
       "preservedBehaviors": [
-        "Daily faith content, read-only Season2 preview, existing scoped community media and access permission remain preserved and no production grants are enabled."
+        "First-view AdMob placements, ad load and fill behavior, QMP, Points, withdrawals and finance authorization remain untouched."
       ],
       "tests": [
-        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
-        "tests/buklod-community-feed-comment-ad-20261111.test.mjs"
+        "tests/nov18-rank-notes-admob-preservation.test.mjs",
+        "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
       ]
     },
     {
-      "id": "kingdom-character",
-      "reason": "Cumulative staging preview includes source-only Character requirements and collectible eligibility guide from earlier approved commits, without activation of Season2 claims or points.",
+      "id": "production-release",
+      "reason": "Extend fail-closed source embargo and add staging-only workflow without enabling a production Season2 release.",
       "preservedBehaviors": [
-        "Canonical Character ownership/XP/badges, Season1 points and protected Kingdom gameplay remain unchanged; Season2 collectibles and claims stay disabled until separately authorized."
+        "December 6 production embargo and SHA-bound owner/device verification remain enforced",
+        "AdMob and instant-navigation permanent release gates remain required"
       ],
       "tests": [
-        "tests/season2-character-item-ownership-20261119.test.mjs",
-        "tests/season2-collectible-mastery-guide-20261119.test.mjs"
+        "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Add explicit branch-to-manifest routing without weakening the existing protected-feature lock or production release protections.",
+      "preservedBehaviors": [
+        "Every impacted protected feature still requires changed regression tests and an exact path allowlist"
+      ],
+      "tests": [
+        "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "Update BUKLOD MAIN Bible Quiz V4 only to match already verified server auto-grading; preserve separate dedicated BUKLOD Quiz classroom.",
+      "preservedBehaviors": [
+        "No change to BUKLOD Quiz Dedicated, independent classroom, essay grade source of truth, point caps or attempts.",
+        "No new manual admin grading, no client-side award authority."
+      ],
+      "tests": [
+        "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
+        "tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Carry reviewed, already-live rank/Notes, Admin registration and Bible V4 SQL sources and role-protected UI with zero database execution.",
+      "preservedBehaviors": [
+        "No Supabase migration, RLS grants, external notice, Season 1 economy or authentication service modified by this staging source commit.",
+        "New member details remain System Admin-only; no PII in notification links."
+      ],
+      "tests": [
+        "tests/admin-registration-security-20261119.test.cjs",
+        "tests/nov18-rank-notes-database-security.test.mjs"
       ]
     }
   ],
@@ -481,6 +486,8 @@
     "unverifiedKlBackendHeld": true,
     "unverifiedWeeklyBackendHeld": true,
     "canonicalReconciledThrough": "80ac6b31549284536f9ff84b665c3d651518c5ed",
-    "physicalDeviceVerificationWaivedByOwner": true
+    "physicalDeviceVerificationWaivedByOwner": true,
+    "exactPrChangedTestBasedScope": true,
+    "protectionNotBypassed": true
   }
 }
