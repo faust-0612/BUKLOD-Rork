@@ -16,4 +16,4 @@ Date 2026-11-20. Reconciled with latest existing Genesis DEV engine `ede0a941705
 - Existing text, music and gameplay routes remain untouched, so production and Season 1 money/rules are unchanged.
 
 ## Gates
-Run `node --test tests/season2-genesis-cinematic-assets-20261120.test.mjs`, typecheck, source/feature lock gate and targeted AdMob/navigation lifecycle checks. Stage OTA only after exact target runtime and CI/RC validation. Production remains embargoed until explicitly authorized.
+Run `node --test tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs`, typecheck, source/feature lock gate and targeted AdMob/navigation lifecycle checks. Stage OTA only after exact target runtime and CI/RC validation. Production remains embargoed until explicitly authorized.

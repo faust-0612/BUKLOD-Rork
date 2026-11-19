@@ -90,10 +90,10 @@
     "src/lib/buklodKingdomClassCatalog.ts",
     "src/lib/buklodKingdomCoreAtlas.ts",
     "src/lib/buklodKingdomCoreAtlasArt.ts",
-    "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
+    "tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs"
   ],
   "regressionTests": [
-    "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
+    "tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs"
   ],
   "riskAreas": [
     "Expo Router deep links",
@@ -114,7 +114,7 @@
         "Unrelated tabs, media, calls, navigation remain unchanged"
       ],
       "tests": [
-        "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
+        "tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs"
       ]
     },
     {
@@ -126,20 +126,7 @@
         "No new BP/XP/Shards or cash"
       ],
       "tests": [
-        "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
-      ]
-    },
-    {
-      "id": "profile-social",
-      "reason": "Premium 40-badge visual adapter gated by isolated Season 2 preview; all production rank and avatar rendering remains unchanged.",
-      "preservedBehaviors": [
-        "No badge art rank authority",
-        "Non-preview uses original SVG",
-        "No profile reads/writes or online status changed",
-        "Existing rank parser preserved"
-      ],
-      "tests": [
-        "tests/season2-genesis-cinematic-assets-20261120.test.mjs"
+        "tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs"
       ]
     }
   ],
