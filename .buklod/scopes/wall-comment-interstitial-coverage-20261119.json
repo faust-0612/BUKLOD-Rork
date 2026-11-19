@@ -72,5 +72,16 @@
   ],
   "productionChanges": false,
   "realAwardChanges": false,
-  "releaseTarget": "staging source PR only; no OTA"
+  "releaseTarget": "staging source PR only; no OTA",
+  "preserveBehaviors": [
+    "Community Wall author and media rendering, scoped privacy, comment/reply posting, existing first-view ads and instant dashboard navigation remain unchanged.",
+    "Only confirmed server success counts; failed, pending or duplicate comment requests do not trigger added interstitial opportunities.",
+    "Existing Android global consent, Ad-Light, two-completion spacing, route safety and full-screen concurrency guards apply unchanged.",
+    "Comment/BP qualification and Season 1 live production reward rules are unaffected."
+  ],
+  "alternativeApproaches": [
+    "Display full-screen ad directly after each submitted comment: rejected because it interrupts a conversation and violates existing safe natural-break policy.",
+    "Introduce a video-only SDK unit and raise frequency: rejected because it needs extra monetization configuration and has no guaranteed video inventory, added cost and higher interruption risk.",
+    "Reuse the shared controller and show only on missing post-detail/photo editor closures: selected for minimal, source-only and rollback-safe staging scope."
+  ]
 }
