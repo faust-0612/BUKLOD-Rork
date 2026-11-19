@@ -8,6 +8,7 @@
  */
 import {
   BUKLOD_CHARACTER_WORLD_IDS,
+  BUKLOD_CHARACTER_WORLD_SPECIAL_IDS,
   BUKLOD_CHARACTER_DISPLAY_NAME,
   BUKLOD_COLLECTIBLE_REWARD_KINDS,
   buklodCollectibleName,
@@ -27,7 +28,7 @@ export type S2CollectibleSlot = 1|2|3|4|5;
 export type S2GuideLanguage = 'fil'|'en';
 export type S2GuideStep = Readonly<{
   key: string;
-  kind: 'character'|'level'|'learning'|'community'|'foundation'|'prior_items';
+  kind: 'special_unlock'|'character'|'level'|'learning'|'community'|'foundation'|'prior_items';
   fil: string;
   en: string;
   serverEvidence: string;
@@ -98,6 +99,9 @@ export function getS2CollectibleGuide(characterId:BuklodCharacterWorldId,level:n
   const id=s2CollectibleId(characterId,level,index),slot=validSlot(index),entry=slots[slot];
   const name=BUKLOD_CHARACTER_DISPLAY_NAME[characterId];
   const steps:S2GuideStep[]=[
+    ...((BUKLOD_CHARACTER_WORLD_SPECIAL_IDS as readonly string[]).includes(characterId)
+      ? [{key:'special_unlock',kind:'special_unlock',fil:'I-unlock muna ang Special Character ayon sa aktuwal na Circle Rank gate ng server. Hindi sapat ang preview artwork.',en:'Unlock this Special Character through the server-verified Circle Rank gate first. Preview artwork is not proof.',serverEvidence:'canonical special-character gate / visible_special_character_ids',required:true as const}]
+      : []),
     {key:'character',kind:'character',fil:`I-activate si ${name} bilang kasalukuyang Character para sa mga bagong claim.`,en:`Select ${name} as your active Character for new claims.`,serverEvidence:'private.buklod_character_selection_v2:active_character_id',required:true},
     {key:'level',kind:'level',fil:`Abutin ang ${name} Level ${level}. Ang XP ay sariling progress ng bawat character.`,en:`Reach ${name} Level ${level}. Character XP is separate for every character.`,serverEvidence:'private.buklod_character_progress_v3 + canonical active-point window',required:true},
     ...entry.extra,
