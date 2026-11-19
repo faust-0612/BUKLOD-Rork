@@ -6,6 +6,8 @@ test('Drawer manual native provider import preserves local-only privacy',()=>{
  const v=file('src/app/drawer/import.tsx');
  for (const x of ['expo-document-picker','copyToCacheDirectory: true','isSupportedSmartDrawerImport','commitSmartDrawerItem',"syncState: 'LOCAL_ONLY'"]) assert.ok(v.includes(x),x);
  assert.ok(!v.includes('googleDriveTransport'));
+ assert.match(v,/fileProviderAvailable/);
+ assert.match(v,/await import\('expo-document-picker'\)/);
 });
 test('approved MIME, local storage and bounded import sizes',()=>{
  const a=file('src/lib/smartDrawer/assets.ts');
@@ -19,7 +21,7 @@ test('approved MIME, local storage and bounded import sizes',()=>{
 test('Genesis native effects only on exact Android preview runtime, no device claim',()=>{
  const n=file('src/features/season2/genesis/genesisNativeFoundation.ts');
  assert.match(n,/runtime === GENESIS_NATIVE_RUNTIME/);assert.match(n,/platform === 'android'/);
- assert.match(n,/deviceVerified: false/);
+ assert.match(n,/deviceVerified: false/);assert.match(n,/documentPicker: eligible/);
  const h=file('src/features/season2/genesis/genesisNativeFeedback.ts');
  assert.match(h,/isReduceMotionEnabled/);assert.match(h,/AppState.currentState !== 'active'/);
 });

@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
+import { getGenesisNativeFoundation } from '@/features/season2/genesis/genesisNativeFoundation';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,6 +43,7 @@ export default function SmartDrawerImport() {
   const [items, setItems] = useState<Picked[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const fileProviderAvailable = getGenesisNativeFoundation().documentPicker;
 
   const choose = async () => {
     setNotice('');
@@ -81,9 +82,11 @@ export default function SmartDrawerImport() {
 
   /** Explicit Android SAF/file-provider pick: no OAuth or automatic cloud synchronization. */
   const chooseFiles = async () => {
-    if (busy) return;
+    if (busy || !fileProviderAvailable) return;
     setNotice('');
     try {
+      // Lazy import prevents old staging runtimes from loading an unverified native bridge.
+      const DocumentPicker = await import('expo-document-picker');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*'],
         multiple: true,
@@ -209,12 +212,12 @@ export default function SmartDrawerImport() {
           </Text>
         </Pressable>
 
-        <Pressable onPress={() => void chooseFiles()} disabled={busy}
+        {fileProviderAvailable ? <Pressable onPress={() => void chooseFiles()} disabled={busy}
           accessibilityRole="button" accessibilityLabel="Choose PDF or images from device files"
           style={[styles.pickButton, { marginTop: 8 }]}>
           <MaterialCommunityIcons name="file-document-outline" size={22} color="#0A6EBD" />
           <Text style={styles.pickText}>Choose Files / Drive Provider</Text>
-        </Pressable>
+        </Pressable> : null}
         {items.length ? (
           <View style={styles.grid}>
             {items.map((item, index) => (

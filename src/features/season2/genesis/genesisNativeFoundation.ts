@@ -5,7 +5,7 @@ import { isGenesisPreviewBuild } from './genesisContract';
 export const GENESIS_NATIVE_RUNTIME = '2.0.0-genesis-preview';
 export function resolveGenesisNativeFoundation(preview: boolean, platform: string, runtime: string | null | undefined) {
   const eligible = preview && platform === 'android' && runtime === GENESIS_NATIVE_RUNTIME;
-  return { runtime: runtime ?? null, cosmeticHaptics: eligible,
+  return { runtime: runtime ?? null, cosmeticHaptics: eligible, documentPicker: eligible,
     riveEligible: eligible, audioEligible: eligible, deviceVerified: false };
 }
 export function getGenesisNativeFoundation() {
