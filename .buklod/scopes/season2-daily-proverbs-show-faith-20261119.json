@@ -41,16 +41,6 @@
       ]
     },
     {
-      "id": "wall-media",
-      "reason": "Insert Proverbs after the first-view ad without modifying either public or scoped media rendering logic",
-      "preservedBehaviors": [
-        "Media and video scroll lifecycle, first-view ads and comment pipelines remain unchanged"
-      ],
-      "tests": [
-        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs"
-      ]
-    },
-    {
       "id": "navigation-auth",
       "reason": "Link daily passage to established Bible reader route without adding public or scope authorization paths",
       "preservedBehaviors": [
