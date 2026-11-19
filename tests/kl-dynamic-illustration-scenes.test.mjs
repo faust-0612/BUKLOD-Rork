@@ -40,7 +40,7 @@ test('UI adds live + Add Scene and respects the bounded backend schema', () => {
   assert.match(ui,/\+ Add Scene/);
   assert.match(ui,/sceneNumbers\.map/);
   assert.doesNotMatch(ui,/\[1, 2, 3\]\.map\(\(scene\)/);
-  assert.match(studio,/2–12 illustrations/);
+  assert.match(studio,/Scene photos are optional/);
   assert.match(sql,/p_placement>12/);
   assert.match(sql,/BETWEEN 1 AND 12/g);
   assert.match(sql,/placement <> p_placement/);

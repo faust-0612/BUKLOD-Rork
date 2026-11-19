@@ -374,7 +374,7 @@ export default function KlPublishingStudio() {
             onBusyChange={setMediaBusy} onUploaded={invalidatePreparedPreview}
             onPreviewInvalidated={invalidatePreparedPreview}
             approvalRefreshToken={approvalRefreshToken} />
-          <Text style={{ color: '#b7c8cd' }}>Preview requires 2–12 illustrations with exact saved paragraph placements. Media approval is separate from chapter approval.</Text>
+          <Text style={{ color: '#b7c8cd' }}>Scene photos are optional. You can prepare the manuscript even with unfinished scene uploads. Unapproved illustrations stay private and do not block chapter approval; only approved, properly placed images appear to readers. Other media approvals remain required.</Text>
           <Action label={busyAction === 'Inihahanda ang private preview' ? 'Preparing…' : 'Prepare Private Preview'}
             disabled={workspaceBusy} onPress={prepare} />
           {previewReady ? (

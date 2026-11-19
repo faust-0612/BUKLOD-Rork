@@ -12,10 +12,10 @@ BEGIN
     OR position('BETWEEN 1 AND 12' IN effect_fn) = 0
     OR position('placement <> p_placement' IN place_fn) = 0
     OR position('paragraph_anchor = v_anchor' IN place_fn) = 0
-    OR position('v_count > 12' IN preview_fn) = 0
-    OR position('v_count < 2' IN preview_fn) = 0
-    OR position('count(DISTINCT paragraph_anchor)' IN preview_fn) = 0
-    OR position('v_count <> v_unique_count' IN preview_fn) = 0
+    OR position('v_total > 12' IN preview_fn) = 0
+    OR position('v_valid <> v_total' IN preview_fn) = 0
+    OR position('count(DISTINCT m.paragraph_anchor)' IN preview_fn) = 0
+    OR position('v_unique <> v_total' IN preview_fn) = 0
     THEN RAISE EXCEPTION 'KL dynamic illustration range not applied consistently'; END IF;
   IF NOT (media_fn LIKE '%SECURITY DEFINER%' AND media_fn LIKE '%auth.uid()%' AND media_fn LIKE '%system_admin%' AND media_fn LIKE '%is_active%')
       OR NOT (place_fn LIKE '%SECURITY DEFINER%' AND place_fn LIKE '%auth.uid()%' AND place_fn LIKE '%system_admin%' AND place_fn LIKE '%is_active%')
