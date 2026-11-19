@@ -14,6 +14,7 @@ export const klCopy = {
   readable: 'Mababasa na',
   lockedDetail: 'Hindi pa mababasa ang kabanatang ito. Mananatili itong sarado hanggang maaprubahan, at bubukas tuwing 6:00 ng umaga.',
   nextLocked: 'Hindi pa mababasa ang susunod na kabanata.',
+  previousChapterRequired: 'Tapusin at ipa-verify muna ang naunang kabanata bago umabante.',
   libraryHint: 'Mababasa ang Panimula at Kabanata 1. Tingnan sa ibaba ang iba pang opisyal na inilabas na kabanata.',
   notReady: 'Hindi pa handa ang buong kabanata.',
   panimulaNotReady: 'Hindi pa handa ang panimula.',
