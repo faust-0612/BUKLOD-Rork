@@ -40,18 +40,6 @@
       "tests": [
         "tests/season2-genesis-full-experience-20261120.test.mjs"
       ]
-    },
-    {
-      "id": "kingdom-character",
-      "reason": "Preview-only original Kingdom art, rig failure fallback, opt-in audio and cosmetic orbit motion",
-      "preservedBehaviors": [
-        "13 canonical destinations",
-        "No server-side rewards or character rank authority altered",
-        "Production Kingdom route and footer banner unchanged"
-      ],
-      "tests": [
-        "tests/season2-genesis-full-experience-20261120.test.mjs"
-      ]
     }
   ],
   "riskAreas": [
@@ -60,7 +48,8 @@
     "Music focus with PTT/other media",
     "Expo SDK 57 native bundle parity",
     "AdMob first-view/tab navigation",
-    "Static legibility, weak Android GPU, reduced motion"
+    "Static legibility, weak Android GPU, reduced motion",
+    "Kingdom character presentation remains governed by app-runtime protected feature; new regression test still covers it."
   ],
   "preserveBehaviors": [
     "No points/economy/finance/Supabase writes",
