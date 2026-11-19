@@ -189,12 +189,17 @@ export default function KlReaderScreen() {
     cellularGeneration: cellGeneration,
     userDataSaver: cache.dataSaver,
   });
+  const selectedS2Locked = Boolean(selected && selected.episodeNumber > 0 &&
+    s2Progress?.ownerId === user?.id && s2Progress?.enabled === true &&
+    selected.episodeNumber > (s2Progress?.next_chapter_number ?? 0));
   const reading = selectMemberReading({
-    locallyReadable: decision?.readable === true || Boolean(selected && releasedNumbers.has(selected.episodeNumber)),
-    serverState,
-    serverText,
-    bundledText: selected?.prose ?? null,
-    cachedText: selected ? cache.releasedProse[selected.id] ?? null : null,
+    // A previously cached manuscript must not bypass an authenticated S2 lock.
+    locallyReadable: !selectedS2Locked &&
+      (decision?.readable === true || Boolean(selected && releasedNumbers.has(selected.episodeNumber))),
+    serverState: selectedS2Locked ? 'hidden' : serverState,
+    serverText: selectedS2Locked ? null : serverText,
+    bundledText: selectedS2Locked ? null : selected?.prose ?? null,
+    cachedText: selectedS2Locked ? null : selected ? cache.releasedProse[selected.id] ?? null : null,
   });
   const paragraphs = reading.text ? splitCanonicalParagraphs(reading.text, selected?.episodeNumber ?? 0) : [];
   const sceneRows = STORYBOARD.filter((row) => row.episodeId === selected?.id);
