@@ -11,6 +11,7 @@ import {
 
 import { useFocusEffect } from 'expo-router';
 import { klCopy, klLiveReadersCountLabel } from '@/lib/kabihasnang-ligaw/copy';
+import { KL_S2_COMMENT_MIN_CHARS } from '@/lib/kabihasnang-ligaw/types';
 import {
   addKlComment,
   formatReaderStamp,
@@ -142,12 +143,15 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
           style={styles.input}
           textAlignVertical="top"
         />
+        <Text style={styles.meta} accessibilityLabel="Bilang ng karakter sa repleksyon">
+          {draft.trim().length}/{KL_S2_COMMENT_MIN_CHARS} karakter bago maipadala
+        </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={klCopy.commentSend}
-          disabled={busy || draft.trim().length < 12}
+          disabled={busy || draft.trim().length < KL_S2_COMMENT_MIN_CHARS}
           onPress={() => void send()}
-          style={[styles.send, (busy || draft.trim().length < 12) && styles.sendOff]}
+          style={[styles.send, (busy || draft.trim().length < KL_S2_COMMENT_MIN_CHARS) && styles.sendOff]}
         >
           <Text style={styles.sendText}>{klCopy.commentSend}</Text>
         </Pressable>
