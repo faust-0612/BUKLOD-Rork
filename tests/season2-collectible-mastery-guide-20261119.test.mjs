@@ -25,8 +25,9 @@ test('all 13 canonical characters x 20 levels x 5 items have deterministic guide
 test('mastery tasks have evidence and explain member benefits without fake economic value',()=>{
   for(const key of ['character','level','learning','community','foundation','prior_items'])
     assert.ok(guide.includes(`key:'${key}'`),`missing ${key}`);
+  const allInstructions=guide+read('src/components/points/BuklodS2RewardInstructions.tsx');
   for(const event of ['kl_verified_chapter','today_dugtong','wall_original_post','wall_meaningful_comment'])
-    assert.ok(guide.includes(event),event);
+    assert.ok(allInstructions.includes(event),event);
   assert.match(guide,/notForSale:true,notFinancial:true,legacyItemsUnaffected:true/);
   assert.match(guide,/grantsEnabled: false/);
   assert.match(guide,/PREVIEW_ONLY/);
@@ -39,7 +40,8 @@ test('full guides are discoverable, Filipino/English-aware and do not claim prev
   assert.match(ui,/Existing owned Character items remain owned/);
   assert.match(ui,/Nananatiling sa iyo ang dating owned Character items/);
   assert.match(ui,/guide\.steps\.map/);
-  assert.match(campaign,/masteryGuideOpen\?<BuklodS2CollectibleGuidePanel/);
+  assert.match(campaign,/masteryGuideOpen\?<><BuklodS2RewardInstructions/);
+  assert.match(campaign,/<BuklodS2CollectibleGuidePanel \/>/);
   assert.match(selector,/SEASON 2 · HOW & WHY\?/);
 });
 test('fix false-owned artifact: level eligibility cannot masquerade as redemption',()=>{
