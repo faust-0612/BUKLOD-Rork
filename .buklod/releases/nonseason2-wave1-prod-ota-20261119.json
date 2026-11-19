@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "BUKLOD_ANDROID_ONLY_NONSEASON2_WAVE1_20261119",
+  "target": "production",
+  "platform": "android",
+  "sourceMainSha": "58ccfa0828fbf2db8457bb3d94a898f122d54925",
+  "sourcePr": 986,
+  "sourceScopeManifest": ".buklod/scopes/nonseason2-wave1-android-rc-20261119.json",
+  "stagingServerVerified": true,
+  "stagingSourceSha": "e2cb810ee44940fa21ca1b8eba4d220b250cb78e",
+  "stagingUpdateId": "01a1f3de-f515-7180-8456-a15f2fa648be",
+  "stagingRunId": 44527675178,
+  "stagingPackage": "org.mzbministry.buklod.staging",
+  "stagingChannel": "staging-user",
+  "stagingRuntime": "1.3.2",
+  "stagingProductionUnchangedUpdateId": "01a1ef2c-188c-7479-a0b0-d3801f55c92d",
+  "expectedAndroidPackage": "org.mzbministry.buklod",
+  "expectedRuntimeVersion": "1.3.2",
+  "expectedChannel": "production",
+  "season2ProductionAuthorized": false,
+  "season2BackendRewardsAuthorized": false,
+  "season1RewardRulesUnchanged": true,
+  "published": false,
+  "publicationStatus": "PRODUCTION_RC_TRIGGER_REQUESTED_SERVER_VERIFY_REQUIRED",
+  "changes": [
+    "Optional Wall frequent-comment interstitial at eligible editor exit",
+    "Latest Connect message after typing/send and larger composer",
+    "Individual post reaction breakdown and unclipped counts",
+    "KL mobile admin Release Now buttons",
+    "NativeAd prewarm/first-view bounded banner fallback"
+  ],
+  "releaseGuards": [
+    "Exact main SHA, native/runtime and APK baseline; compare current production live manifest",
+    "Current AdMob IDs, consent, pacing, first-view/fill, instant tabs and navigation regression tests",
+    "Production EAS environment, frozen Android-only JS RC hash, single production channel and verified served manifest",
+    "Season2 embargo and no backend/points/finance/SQL/native changes",
+    "No subscription upgrade, paid build or other billable EAS operations"
+  ],
+  "sourceQaEvidence": [
+    "Engineering Accountability success",
+    "Main-side Integration QA success",
+    "Performance R1 QA success",
+    "Compact Layout Source QA success",
+    "Real Recent Comment QA success"
+  ],
+  "deviceAdMobVerified": false,
+  "physicalDeviceAcceptance": "OWNER_WAIVED_NOT_PERFORMED",
+  "sourceOnlyUntilProdReceipt": true,
+  "doNotClaimLiveUntilServedManifest": true
+}
