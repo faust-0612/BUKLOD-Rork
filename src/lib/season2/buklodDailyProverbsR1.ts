@@ -1,4 +1,6 @@
-/** Season2 Show Faith: KJV public-domain fallback; 31 Manila calendar-day passages.
+import { PROVERBS_KJV_BY_CHAPTER } from './buklodProverbsKjvFullR1';
+
+/** Season2 Show Faith: KJV public-domain fallback; 31 curated reflections retained; full 915-verse book rotates without repeats.
  * No points, awards, feed ordering or AdMob side effects. */
 export type DailyProverb = Readonly<{chapter:number;verse:number;kjv:string;lessonEn:string;lessonFil:string}>;
 export const DAILY_PROVERBS: readonly DailyProverb[] = Object.freeze([
@@ -35,17 +37,55 @@ export const DAILY_PROVERBS: readonly DailyProverb[] = Object.freeze([
   {chapter:28,verse:13,kjv:"He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy.",lessonEn:"Honesty and change open a path to restoration.",lessonFil:"Mahalaga ang pag-amin, pagsisisi, at pagbabago."},
 ]);
 const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** An immutable season-2 anchor makes all devices agree without local storage or a server write. */
+export const PROVERBS_CYCLE_ANCHOR_MANILA = '2026-12-06';
+export const TOTAL_PROVERBS_VERSES = PROVERBS_KJV_BY_CHAPTER.reduce((sum, chapter) => sum + chapter.length, 0);
+/** 433 is coprime to 915, so each of the 915 verse slots appears exactly once per cycle. */
+const PROVERBS_CYCLE_STRIDE = 433;
+const PROVERBS_CYCLE_START_INDEX = 6; // Proverbs 1:7 on Season 2 opening day.
+const reflectionByReference = new Map(DAILY_PROVERBS.map(v => [v.chapter + ':' + v.verse, v]));
+
 export function manilaProverbsDate(now: Date = new Date()): string {
-  return new Date(now.getTime() + MANILA_OFFSET_MS).toISOString().slice(0,10);
+  return new Date(now.getTime() + MANILA_OFFSET_MS).toISOString().slice(0, 10);
 }
+
+function dayIndexSinceAnchor(dateKey: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) throw new Error('Invalid Manila date key');
+  const utcMidnight = new Date(dateKey + 'T00:00:00.000Z');
+  if (!Number.isFinite(utcMidnight.getTime()) || utcMidnight.toISOString().slice(0, 10) !== dateKey) {
+    throw new Error('Invalid Manila calendar date');
+  }
+  return Math.round((utcMidnight.getTime() - Date.parse(PROVERBS_CYCLE_ANCHOR_MANILA + 'T00:00:00.000Z')) / DAY_MS);
+}
+
 export function dailyProverbForDate(dateKey: string): DailyProverb {
-  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(dateKey)) throw new Error('Invalid Manila date key');
-  const day = Number(dateKey.slice(8,10));
-  if (day < 1 || day > 31) throw new Error('Invalid Manila calendar day');
-  return DAILY_PROVERBS[day-1];
+  const days = dayIndexSinceAnchor(dateKey);
+  // Deliberately use calendar-day arithmetic, NOT day-of-month or a device-stored counter.
+  // A repeat is permitted only on day 916, after every distinct Proverbs verse is shown.
+  const unwrapped = PROVERBS_CYCLE_START_INDEX + days * PROVERBS_CYCLE_STRIDE;
+  let verseIndex = ((unwrapped % TOTAL_PROVERBS_VERSES) + TOTAL_PROVERBS_VERSES) % TOTAL_PROVERBS_VERSES;
+  for (let chapterIndex = 0; chapterIndex < PROVERBS_KJV_BY_CHAPTER.length; chapterIndex++) {
+    const chapter = PROVERBS_KJV_BY_CHAPTER[chapterIndex];
+    if (verseIndex < chapter.length) {
+      const verseNo = verseIndex + 1;
+      const chapterNo = chapterIndex + 1;
+      const reflection = reflectionByReference.get(chapterNo + ':' + verseNo);
+      return {
+        chapter: chapterNo,
+        verse: verseNo,
+        kjv: chapter[verseIndex],
+        lessonEn: reflection?.lessonEn ?? 'Reflect on this verse and how to practice its wisdom today.',
+        lessonFil: reflection?.lessonFil ?? 'Pagbulayan ang talatang ito at kung paano maisasabuhay ang karunungan nito.',
+      };
+    }
+    verseIndex -= chapter.length;
+  }
+  // The static corpus and day-index permutation are validated in source-only CI.
+  throw new Error('Proverbs verse collection is incomplete');
 }
+
 export function millisecondsUntilNextManilaDate(now: Date = new Date()): number {
-  const DAY = 24*60*60*1000;
-  const remainder = ((now.getTime() + MANILA_OFFSET_MS) % DAY + DAY) % DAY;
-  return DAY - remainder + 25;
+  const remainder = ((now.getTime() + MANILA_OFFSET_MS) % DAY_MS + DAY_MS) % DAY_MS;
+  return DAY_MS - remainder + 25;
 }

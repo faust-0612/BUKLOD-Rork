@@ -3,27 +3,65 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-const dataSource = read('src/lib/season2/buklodDailyProverbsR1.ts');
-// Node 22 built-in TS stripping is available in the source-only CI gate;
-// never require npm install just to run a zero-dependency contract test.
-const javascript = stripTypeScriptTypes(dataSource);
+
+// Bundle local TS source into a data module for the zero-dependency Node 22 CI gate.
+const corpusSource = read('src/lib/season2/buklodProverbsKjvFullR1.ts');
+const selectionSource = read('src/lib/season2/buklodDailyProverbsR1.ts');
+const inlinedSelection = selectionSource.replace(
+  /^import \{ PROVERBS_KJV_BY_CHAPTER \} from '\.\/buklodProverbsKjvFullR1';\s*/m,
+  '',
+);
+assert.notEqual(inlinedSelection, selectionSource, 'The full Proverbs corpus must be imported by the selector');
+const javascript = stripTypeScriptTypes(corpusSource + '\n' + inlinedSelection);
 const {
-  DAILY_PROVERBS, manilaProverbsDate, dailyProverbForDate, millisecondsUntilNextManilaDate,
+  DAILY_PROVERBS, PROVERBS_KJV_BY_CHAPTER, TOTAL_PROVERBS_VERSES,
+  PROVERBS_CYCLE_ANCHOR_MANILA, manilaProverbsDate,
+  dailyProverbForDate, millisecondsUntilNextManilaDate,
 } = await import('data:text/javascript;base64,' + Buffer.from(javascript).toString('base64'));
 
-test('one correct, stable Proverbs chapter/verse every Manila calendar day', () => {
-  assert.equal(DAILY_PROVERBS.length, 31);
-  assert.equal(new Set(DAILY_PROVERBS.map(v => v.chapter + ':' + v.verse)).size, 31);
-  for (let day = 1; day <= 31; day++) {
-    const verse = dailyProverbForDate('2026-01-' + String(day).padStart(2, '0'));
-    assert.equal(verse, DAILY_PROVERBS[day - 1]);
-    assert.ok(verse.chapter >= 1 && verse.chapter <= 31);
-    assert.ok(verse.verse > 0);
-    assert.ok(verse.kjv.length > 25 && verse.lessonEn && verse.lessonFil);
+const dateAtDay = day => new Date(Date.UTC(2026, 11, 6 + day)).toISOString().slice(0, 10);
+
+test('full Proverbs contains 31 authentic numbered chapters and 915 verses with an offline text', () => {
+  assert.equal(PROVERBS_KJV_BY_CHAPTER.length, 31);
+  assert.equal(TOTAL_PROVERBS_VERSES, 915);
+  assert.equal(PROVERBS_KJV_BY_CHAPTER.reduce((n, chapter) => n + chapter.length, 0), 915);
+  assert.equal(PROVERBS_KJV_BY_CHAPTER[0][6], 'The fear of the LORD is the beginning of knowledge: but fools despise wisdom and instruction.');
+  assert.equal(PROVERBS_KJV_BY_CHAPTER[30][30], 'Give her of the fruit of her hands; and let her own works praise her in the gates.');
+  assert.equal(DAILY_PROVERBS.length, 31, 'Keep 31 edited EN/Fil reflection overrides without capping the verse rotation');
+});
+
+test('every single one of 915 consecutive Manila days has a unique Bible reference before the automatic restart', () => {
+  assert.equal(PROVERBS_CYCLE_ANCHOR_MANILA, '2026-12-06');
+  const observed = new Set();
+  for (let i = 0; i < TOTAL_PROVERBS_VERSES; i++) {
+    const verse = dailyProverbForDate(dateAtDay(i));
+    const id = verse.chapter + ':' + verse.verse;
+    assert.equal(observed.has(id), false, 'Premature duplicate on offset ' + i + ': ' + id);
+    observed.add(id);
+    assert.equal(verse.kjv, PROVERBS_KJV_BY_CHAPTER[verse.chapter - 1][verse.verse - 1]);
+    assert.ok(verse.kjv.trim().length && verse.lessonEn.trim().length && verse.lessonFil.trim().length);
   }
-  assert.throws(() => dailyProverbForDate('invalid'), /Invalid Manila date key/);
-  assert.throws(() => dailyProverbForDate('2026-01-00'), /Invalid Manila calendar day/);
-  assert.throws(() => dailyProverbForDate('2026-01-32'), /Invalid Manila calendar day/);
+  assert.equal(observed.size, 915);
+  assert.equal(dailyProverbForDate(dateAtDay(0)).chapter, 1);
+  assert.equal(dailyProverbForDate(dateAtDay(0)).verse, 7);
+  assert.deepEqual(dailyProverbForDate(dateAtDay(915)), dailyProverbForDate(dateAtDay(0)));
+  assert.notDeepEqual(dailyProverbForDate(dateAtDay(914)), dailyProverbForDate(dateAtDay(0)));
+  assert.deepEqual(dailyProverbForDate(dateAtDay(916)), dailyProverbForDate(dateAtDay(1)));
+});
+
+test('day-of-month, month-end, year-end and leap-day rollover never reset the verse sequence', () => {
+  for (const [a, b] of [
+    ['2026-11-30', '2026-12-01'],
+    ['2026-12-31', '2027-01-01'],
+    ['2027-01-31', '2027-02-01'],
+    ['2028-02-28', '2028-02-29'],
+    ['2028-02-29', '2028-03-01'],
+  ]) {
+    assert.notDeepEqual(dailyProverbForDate(a), dailyProverbForDate(b), a + ' must not repeat on ' + b);
+  }
+  for (const invalid of ['invalid', '2026-01-00', '2026-01-32', '2026-02-29', '2026-13-01']) {
+    assert.throws(() => dailyProverbForDate(invalid), /Invalid Manila/);
+  }
 });
 
 test('Manila midnight is deterministic regardless of device timezone', () => {
@@ -33,6 +71,10 @@ test('Manila midnight is deterministic regardless of device timezone', () => {
   assert.equal(manilaProverbsDate(after), '2026-11-19');
   assert.equal(millisecondsUntilNextManilaDate(before), 1025);
   assert.equal(millisecondsUntilNextManilaDate(after), 86400025);
+  assert.notDeepEqual(
+    dailyProverbForDate(manilaProverbsDate(before)),
+    dailyProverbForDate(manilaProverbsDate(after)),
+  );
 });
 
 test('Show Faith card is read-only, lazy, localized and navigates to canonical Bible', () => {

@@ -1,0 +1,83 @@
+{
+  "contractVersion": 2,
+  "objective": "Owner-approved full 915-Proverbs daily cycle without repeats for Season 2 Show Faith Community Wall",
+  "baseRef": "integration/season2-conso-staging-20261119",
+  "sourceBranch": "dev/season2-proverbs-915-day-cycle-20261119",
+  "productionChange": false,
+  "releaseTarget": "SEASON2_STAGING_SOURCE_ONLY",
+  "releaseAuthorized": false,
+  "rewardWritesAllowed": false,
+  "season2ExclusiveTenLockUnchanged": true,
+  "productionEmbargoUntilManila": "2026-12-06T00:00:00+08:00",
+  "allowedPaths": [
+    "src/lib/season2/buklodProverbsKjvFullR1.ts",
+    "src/lib/season2/buklodDailyProverbsR1.ts",
+    "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+    "tests/protected-feature-lock-proverbs-915-20261119.test.mjs",
+    "contracts/season2-proposals/daily-proverbs-show-faith-20261119.json",
+    "contracts/season2-implementation-ledger.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/season2-proverbs-915-day-cycle-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+    "tests/protected-feature-lock-proverbs-915-20261119.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Season 1 and production remain unchanged; no production OTA, Expo publish or Supabase writes",
+    "The existing Show Faith opt-out hides daily verses in Non-Show Faith",
+    "Community Wall first-view ads, feed ordering, media lifecycle, comments and Reels unchanged",
+    "Existing Filipino ASD Bible retrieval, reader link and 31 curated reflections remain usable",
+    "KJV text available on first paint offline for each of 915 verses; no points or rewards"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Replace month-day selection with a pure UTC-day-to-Manila-index permutation over 915 bundled KJV verses; no Wall screen restructuring",
+      "preservedBehaviors": [
+        "Existing feature render, public/scoped gating and ad/feed lifecycle preserved"
+      ],
+      "tests": [
+        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Scope exact 915-day cycle source changes on a Season2-only PR without crossing into Season1 or production",
+      "preservedBehaviors": [
+        "Ten locked exclusives and SHA-bound Dec6 embargo unchanged"
+      ],
+      "tests": [
+        "tests/protected-feature-lock-proverbs-915-20261119.test.mjs"
+      ]
+    }
+  ],
+  "productionBaselineEvidence": "Read-only GitHub compare 2026-11-19: main commit 551e54602addd6f7bbe7bcdddd1589d35424c964 and Season2 integration source b96620eb50476081cbf29085d25a5f7830f158a4; main diverges from Season2, not a known live runtime fingerprint. No EAS, app device, live AdMob or Supabase deployment verified.",
+  "chosenApproach": "Package the full 31-chapter 915-verse King James Proverbs corpus (MIT-distributed copy with attribution) directly in a small local TS module. Keep 31 curated bilingual lesson overrides; default to a neutral bilingual reflection question for other verses. Deterministically permute verse slots using stride 433 coprime with 915 and a Dec6 2026 Manila anchor. Exact dates determine verse, no backend writes and no duplicate before cycle completion.",
+  "selectionRationale": "Previous code selected 31 entries from day-of-month and repeated each calendar month. Full static collection provides offline-first real verse text with zero operational cost and avoids fragile server counters, repeats after short months and accidental Season1 rewards changes.",
+  "acceptanceChecks": [
+    "Exactly 915 authentic numbered KJV verses across 31 chapters and MIT notice bundled offline",
+    "First day Dec6 2026 is Proverbs 1:7; 915 distinct date-selected references, then first repeats on day 916",
+    "Month, year, leap-day and midnight transitions do not reset selection",
+    "Filipino ASD lookup and 31 human-curated takeaways preserved; offline uses accurate KJV, not mismatched text",
+    "Show Faith-only and ads/feed isolation remain unchanged; no new server schema, points or reward writes",
+    "Source-focused tests, protected feature lock, TypeScript and governance CI green before merge; do not publish OTA"
+  ],
+  "alternativeApproaches": [
+    "Use random Math.random per user: rejected, users would see inconsistent verses and repeats and restarts could not be audited",
+    "Use a remote counter/cron to shuffle 915 verses: rejected, introduces backend cost, data races and offline blank state",
+    "Use only 31 verses and roll at month end: rejected by user as too repetitive",
+    "Use the entire bundled corpus plus pure deterministic cycle: chosen for zero-cost and weak-network support"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith",
+    "governance-lock",
+    "offline-and-weak-network",
+    "navigation-scroll",
+    "navigation-auth",
+    "ads-monetization",
+    "production-release",
+    "localization"
+  ]
+}
