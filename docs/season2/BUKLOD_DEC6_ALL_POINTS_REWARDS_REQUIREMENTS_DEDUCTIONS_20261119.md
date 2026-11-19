@@ -352,3 +352,20 @@ Prepared in a **separate DEV branch**, not merged into main/staging:
 **Outstanding engineering work:** apply isolated database candidates only in verified dedicated staging, finish end-to-end adapters for all ten, implement true offline mobile transport and signed rollover, perform SQL/RLS/concurrency + RC/AdMob/nav checks, reconcile exact S1/QMP/referral and owner-decided economy values, and only then create signed owner authorization for the correct final SHA.
 
 **Current status:** PARTIALLY PREPARED / PRODUCTION HOLD. The contract is a source-of-truth implementation checklist, not proof that December 6 features already exist or that launch is guaranteed.
+
+## 15. Specific in-app member guide integrated for staging review (not live)
+
+Source additions (DEV-only):
+
+- `src/lib/season2/buklodSeason2MemberRewardMatrixR1.ts` holds the dated exact 46 active and 16 inactive BP catalog snapshots, clear caveats on server-side award triggers, QMP event/mission rates and five monthly classification bands (Starter 0-24, Active 25-74, Contributor 75-149, Builder 150-299, Community Champion 300+).
+- `src/components/points/BuklodS2CompleteRewardsReference.tsx` is a **collapsed, searchable** read-only member reference. The four accessible tabs are BP / QMP / SEASON 2 / CARRYOVER. BP group selectors let the member find exact rates/daily caps; admin-only configuration stays out of public listings. All controls change only local presentation state; no extra backend fetch or reward grant.
+- The existing `BuklodSeasonJourneyPreview` renders this guide only after the parent Season Journey is opened, preserving first paint, video/ad lifecycle and instant tab navigation.
+- Separate section distinguishes **unverified social milestone proposals** (helpful-comment reaction tiers: 3 distinct -> +2 BP, 10 -> +5 BP total, 25 -> +10 BP total; three-member support chain -> +3 BP/qualified participant) from active catalog entries. These must not award any BP until the real corresponding server trigger/rollout is independently verified.
+- Optional rewarded-ad energy UI (example +1 Garden Energy) is distinct from BP/QMP/cash/Journey Tokens; the ad earned-event alone is not a permitted new money/points grant.
+- Approved separate daily Proverbs reading content now has an **915-day KJV Proverbs verse rotation**, not only a 31-verse reset. This is read-only Show Faith Community content and not an 11th Season2 reward area.
+- The live-read-only 2026-11-19 check confirmed Season1 end_date 2026-10-31 is **still active and not closed**; KL quiz enforcement FALSE; isolated `buklod_s2` schema absent; QMP financial finalization disabled. These are independently verified concrete launch blockers.
+- Focused in-app guide regression: `tests/season2-member-rewards-full-reference-20261119.test.cjs`, release hold regression: `tests/season2-dec6-rewards-release-hold-20261119.test.cjs`, and corrected protected-feature fixture for approved later Connect source.
+- New scope includes an exact-feature review proposal: `contracts/season2-proposals/complete-member-reward-guide-20261119.json`; no new exclusive ID, backend rewards or production release authorization.
+
+The above is **member documentation and DEV source integration**, not a claim that any Season 2 reward, balance, item or payout is activated. The December 6 launch still requires a dedicated verified staging Supabase backend, signed Season1 reconciliation, complete independent financial/KL/referral tests, exact Android RC/AdMob/navigation evidence and owner SHA-bound approval.
+
