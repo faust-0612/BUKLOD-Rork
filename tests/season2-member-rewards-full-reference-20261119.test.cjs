@@ -42,7 +42,7 @@ test('all member categories and QMP rates/ceilings are specific and truthful',()
  'S2_QMP_QUALIFICATIONS','S2_KL_FUTURE_RULES','S2_MOMENTUM_PREVIEW_ONLY','S2_FINANCE_CARRYOVER']){
   assert.ok(view.includes(s),'missing UI section '+s);
  }
- for(const a of ['original Wall post','qualified video','meaningful reply'])assert.ok(matrix.toLowerCase().includes(a));
+ for(const a of ['original Wall post','qualified video','meaningful reply'])assert.ok(matrix.toLowerCase().includes(a.toLowerCase()));
  assert.match(matrix,/financialFinalizationVerified:false/);
  assert.match(matrix,/fixedPesoPerQmp:false/);
  assert.match(matrix,/creatorBonusMonthlyCap:250/);
