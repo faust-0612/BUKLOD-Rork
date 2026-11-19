@@ -475,8 +475,28 @@ export const S2_QMP_EVENTS = Object.freeze([
   {id:'qualified_video',title:'Original qualified video',qmp:10,condition:'Validated author-owned video, not raw views'},
   {id:'meaningful_reply',title:'Meaningful reply',qmp:3,condition:'20+ characters; duplicate-text within 7 days excluded'},
   {id:'creator_unique_reaction',title:'Unique creator reaction bonus',qmp:1,condition:'Different real member, not self-like'},
+  {id:'creator_meaningful_reply_engagement',title:'Creator qualified reply engagement',qmp:1,condition:'Different real member and qualified reply; actual source trigger must be verified'},
   {id:'internal_share',title:'Validated internal share bonus',qmp:2,condition:'Only if actual qualifying share source exists'},
 ] as const);
+export const S2_QMP_TIERS = Object.freeze([
+ {id:'starter',title:'Starter',minQmp:0,maxQmp:24},
+ {id:'active',title:'Active',minQmp:25,maxQmp:74},
+ {id:'contributor',title:'Contributor',minQmp:75,maxQmp:149},
+ {id:'builder',title:'Builder',minQmp:150,maxQmp:299},
+ {id:'community_champion',title:'Community Champion',minQmp:300,maxQmp:null},
+] as const);
+export const S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE = Object.freeze({
+ active:false,
+ helpfulCommentDistinctReactions:[{at:3,totalBonusBP:2},{at:10,totalBonusBP:5},{at:25,totalBonusBP:10}],
+ mutualSupportChain:{distinctMembers:3,eachParticipantBp:3},
+ postImpact: 'Server-verified original post engagement; exact active threshold/source unverified',
+ note:'Source UI previously proposed these milestones, but source-authoritative grant rollout is not verified. Never auto-credit from this guide.',
+});
+export const S2_OPTIONAL_AD_ENERGY_NOT_BP = Object.freeze({
+ example:'Watch 1 optional rewarded ad → +1 Garden Energy',
+ bpGranted:0,qmpGranted:0,cashGranted:0,journeyTokensGranted:0,
+ providerEarnedEventRequired:true,grantLiveVerified:false,
+});
 export const S2_QMP_MISSIONS = Object.freeze([
   {
     "id": "COMMUNITY_BUILDER",
