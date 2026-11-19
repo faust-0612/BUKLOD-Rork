@@ -1,0 +1,96 @@
+{
+  "contractVersion": 2,
+  "objective": "Retire username-based registration and ordinary login in BUKLOD Main while preserving existing username-only owners through a secure email/mobile verification migration; add opt-in monthly member contact notices, account dormancy review and audited admin controls without modifying live users or production OTA.",
+  "scopeManifestPath": ".buklod/scopes/account-dormancy-login-contact-migration-20261119.json",
+  "baseRef": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
+  "productionBaselineEvidence": "Read-only production-configured BUKLOD Main Supabase yhanxndaqbmuzbdqlblu (provider project labeled BUKLOD Connect) 2026-11-19: 588 profiles, including 31 username logins; 10 recorded profile mobile but zero verified auth phones and zero real Auth emails among them. Main f19fc697 advanced after branch point with unrelated church-role RPC security hotfix. No user account, auth trigger, DB migration, notifier or OTA in this branch has been deployed to production.",
+  "chosenApproach": "Isolated DEV source in draft PR; mobile/email-only new client registration plus prepared Auth old-client insert guard, explicit temporary legacy login recovery, owner password reauth and one-time email/SMS code, Auth existing UID contact update, protected profile reconciliation, private audit, disabled-by-default monthly in-app and external notices, admin hold/release. Preserve existing voluntary deletion flow and all reward/finance data.",
+  "selectionRationale": "Immediate disabling of all username credentials would lock 31 real legacy members out; they have no verified external contact. A migration wizard preserves UID, account ownership and recovery, while disabled external notifications prevent accidental paid SMS or false 180-day notice claims.",
+  "alternativeApproaches": [
+    "Hard block all username sign-ins immediately (rejected: strands existing members with no verified external recovery channel).",
+    "Accept username indefinitely as new signup method (rejected: perpetuates unreachable accounts and identity risk).",
+    "Auto convert old usernames using a profile mobile without OTP (rejected: zero verified phones and account takeover risk)."
+  ],
+  "preserveBehaviors": [
+    "Preserve signed-in existing member access, BUKLOD Official protection, current user IDs, posts, chats, points, referrals, pending payouts, profile usernames used as display/search handles, and current notification/recovery semantics.",
+    "Preserve Supabase main Auth onboarding triggers and existing email verification and member-ID verification policies; verify interactions before RC.",
+    "Keep ads, Wall, Connect, navigation responsiveness, all existing Season 1 and locked Season 2 reward business rules intact.",
+    "No production OTA, live database migration, real email/SMS send, paid provider activation or account deletion from this draft branch."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "backend-security"
+  ],
+  "regressionTests": [
+    "tests/buklod-dormancy-180d-source.test.cjs",
+    "tests/buklod-retire-username-20261119.test.cjs",
+    "tests/buklod-auth-login-migration-20261119.test.cjs",
+    "supabase/tests/buklod_login_contact_migration_security_v1.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/account-dormancy-login-contact-migration-20261119.json",
+    "docs/account-dormancy-180-day-admin-review.md",
+    "src/app/(auth)/login.tsx",
+    "src/app/(auth)/register.tsx",
+    "src/app/account/security.tsx",
+    "src/app/admin/privacy/index.tsx",
+    "src/app/settings/index.tsx",
+    "src/components/AdminDormancyReview.tsx",
+    "src/components/AdminLegacyLoginSummary.tsx",
+    "src/components/LegacyLoginContactMigration.tsx",
+    "src/components/MemberDormancyReview.tsx",
+    "src/lib/buklodSuggestedLoginStorage.ts",
+    "supabase/functions/buklod-contact-notices/index.ts",
+    "supabase/functions/buklod-legacy-contact-migrate/index.ts",
+    "supabase/migrations/20261119213200_buklod_dormancy_monthly_candidate_review_v1.sql",
+    "supabase/migrations/20261119221000_buklod_retire_username_login_migration_v1.sql",
+    "supabase/migrations/20261119222500_buklod_external_login_dormancy_notices_v1.sql",
+    "supabase/tests/buklod_login_contact_migration_security_v1.sql",
+    "tests/buklod-auth-login-migration-20261119.test.cjs",
+    "tests/buklod-dormancy-180d-source.test.cjs",
+    "tests/buklod-retire-username-20261119.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Source test contracts for old-client username signup restriction, mobile/email default, temporary legacy sign-in, and same UID contact migration pass.",
+    "Production-equivalent DB test validates private RLS, server-only migration RPCs, account hold, disabled-by-default notifications and Auth trigger interactions.",
+    "Real 6-digit email/SMS OTP delivery and ownership, timeout, max attempts, collisions, network interruption, no-verified-contact legacy recovery and password reauthentication must be independently validated.",
+    "Monthly admin and member notice work only after audited opt-in policy and actual provider configuration; provider acceptance never counts as confirmed delivery for 180-day deletion clock.",
+    "Exact main security hotfix after baseRef is preserved and CI TypeScript+Node+database source gates green before production-ready RC.",
+    "Standalone production auth/backend rollout must follow verified RC; no Season 2 or unrelated OTA changes."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add migration-only Account Security, Settings, Admin Privacy UI, and server-side opt-in notices while preserving existing member accounts, app performance and locked rewards.",
+      "preservedBehaviors": [
+        "No app-wide navigation, Wall, Connect, ads, financial/point balances or existing in-app self deletion flow altered."
+      ],
+      "tests": [
+        "tests/buklod-auth-login-migration-20261119.test.cjs",
+        "supabase/tests/buklod_login_contact_migration_security_v1.sql"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Retire new username registration while offering authenticated legacy username recovery and a controlled same-UID contact verification route.",
+      "preservedBehaviors": [
+        "Current username-only members retain an explicit migration login until they verify a new email or mobile; existing email/mobile sign-in stays unchanged."
+      ],
+      "tests": [
+        "tests/buklod-auth-login-migration-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add protected database trigger, private verified challenge tables, service-only migration function, audited monthly notice policy and 180-day admin hold without activation.",
+      "preservedBehaviors": [
+        "Existing Auth triggers, public profiles, RLS, identity-based withdrawal gates, user IDs, and old client recovery stay intact until verified backend rollout."
+      ],
+      "tests": [
+        "supabase/tests/buklod_login_contact_migration_security_v1.sql"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_ONLY_DRAFT_RC_UNVERIFIED_NO_OTA",
+  "verificationStatus": "GitHub source contracts 16/16 passed by independent read-back; real DB/runtime/OTP delivery and TypeScript CI not yet confirmed. No live sends/deletions."
+}
