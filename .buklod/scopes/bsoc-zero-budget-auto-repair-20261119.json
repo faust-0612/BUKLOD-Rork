@@ -1,0 +1,77 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/bsoc-zero-budget-auto-repair-20261119.json",
+  "objective": "Provide zero-paid-API BUKLOD BSOC case intake, persistent low-cost technical triage, privacy-scoped member status reports, and an hourly connected ChatGPT DEV-only repair watch without exposing data or changing unrelated production behavior.",
+  "baseRef": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
+  "productionBaselineEvidence": "Initial isolated DEV source branched from main 0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf. Current main advanced to 551e54602addd6f7bbe7bcdddd1589d35424c964 and MUST be reconciled before any client integration. Supabase MAIN yhanxndaqbmuzbdqlblu additive migrations bsoc_ai_autofix_reports_v1 and bsoc_zero_budget_scheduler_v1 applied on Nov 19, verified with rollback-only synthetic tests and a live empty-queue worker. No app OTA, native build, paid inference or Season2 change was made. The exact currently installed production APK/OTA remains unverified.",
+  "chosenApproach": "Use existing Postgres hooks and bounded pg_cron (3 cases per 15-minute run), no Edge API; active hourly ChatGPT automation uses existing GitHub/Supabase connector actions for permitted DEV source fixes. Report phases are member-scoped; no support status is auto-closed, and final resolved messages require independently audited production fix evidence.",
+  "selectionRationale": "Avoid additional paid API/CI/compute, reuse current BSOC infrastructure and notification delivery while preserving strong row-level isolation and fail-open support intake.",
+  "alternativeApproaches": [
+    "Paid OpenAI API and Codex GitHub Action auto-repair rejected under zero budget; remain disabled and un-deployed.",
+    "Direct synchronous AI invocation from member support submission rejected for latency, cost, privacy and availability; use bounded asynchronous screening.",
+    "Separate Supabase paid development branch rejected for nonzero recurring costs; rollback-only database integration tests selected."
+  ],
+  "riskAreas": [
+    "bsoc",
+    "backend-security",
+    "user-support",
+    "notifications",
+    "privacy",
+    "existing-Supabase-plan-usage",
+    "client-release-compatibility"
+  ],
+  "preserveBehaviors": [
+    "Existing user_feedback lifecycle, 762 historical resolved cases, support chat and case evidence remain unchanged.",
+    "No changes to production reward, Season1, Season2, AdMob rendering, navigation, offline sync, auth, payout or media APIs.",
+    "The new member report table uses owner-only RLS, service-only write authorization, idempotency and fixed privacy-safe messages.",
+    "Worker never calls an external paid API, modifies canonical support case status, merges code, publishes an OTA or sets a false verified release."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/bsoc-zero-budget-auto-repair-20261119.json",
+    ".github/workflows/bsoc-ai-dev-autofix.yml",
+    "docs/BSOC_AUTONOMOUS_DEV_REPAIR_MEMBER_REPORTS_20261119.md",
+    "scripts/test-bsoc-ai-contracts.cjs",
+    "src/app/support/live.tsx",
+    "supabase/functions/bsoc-auto-triage-v1/index.ts",
+    "supabase/migrations/20261119223000_bsoc_ai_autofix_reports_v1.sql",
+    "supabase/migrations/20261119234500_bsoc_zero_budget_scheduler_v1.sql",
+    "supabase/tests/bsoc_zero_budget_rollback_integration.sql"
+  ],
+  "regressionTests": [
+    "supabase/tests/bsoc_zero_budget_rollback_integration.sql"
+  ],
+  "acceptanceChecks": [
+    "Two additive Supabase migrations compile and apply with no backfill or canonical status mutations.",
+    "Synthetic isolated data classifies a known technical signal as TRIAGED, unknown details as NEEDS_DETAILS and privacy concern as NEEDS_HUMAN.",
+    "Duplicate private member report produces one report row and one notification in rollback-only test.",
+    "Authenticated member can read own report but another account cannot; untrusted member cannot read internal jobs or forge report.",
+    "Live scheduler exists and processes an empty queue without paid API calls.",
+    "ChatGPT hourly repair watch is enabled; no guarantee of instant trigger, autonomous coding completion or paid external agent.",
+    "No native/client/Expo production release without independent DEV to RC to production safety verification."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add backwards-compatible support report history UI that fails gracefully before the new additive backend is available.",
+      "preservedBehaviors": [
+        "Member support chat, attachment upload, message ordering, offline/weak-signal refresh and navigation remain intact."
+      ],
+      "tests": [
+        "supabase/tests/bsoc_zero_budget_rollback_integration.sql"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Introduce isolated BSOC queue and RLS-bound notifications without weakening existing access controls, financial rules or canonical support records.",
+      "preservedBehaviors": [
+        "Existing BSOC permission checks, support status audit, user ownership, push pipeline and separation of data remain unchanged."
+      ],
+      "tests": [
+        "supabase/tests/bsoc_zero_budget_rollback_integration.sql"
+      ]
+    }
+  ],
+  "releaseMode": "backend-additive-live-client-ota-held",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "publicationStatus": "BACKEND_LIVE_CLIENT_DEV_ONLY"
+}
