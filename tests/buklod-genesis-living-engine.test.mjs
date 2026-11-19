@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import {GENESIS_PALETTE,GENESIS_MOTION_MS,getGenesisExperience,isGenesisPreviewEnabled,resolveGenesisMotion}
   from '../src/features/season2/genesis/genesisContract.ts';
 import {resolveGenesisAudioPermission} from '../src/features/season2/genesis/genesisAudioPolicy.ts';
+import {getGenesisApprovedRig,getGenesisApprovedAudio} from '../src/features/season2/genesis/genesisAssetRegistry.ts';
+test('unapproved remote art and audio cannot be loaded',()=>{
+  assert.equal(getGenesisApprovedRig('https://untrusted.test/file.riv'),null);
+  assert.equal(getGenesisApprovedAudio('cheap-beep.wav'),null);
+});
 test('Genesis means Creation in outer space',()=>{
   assert.equal(getGenesisExperience('home'),'creation-cosmos-hero');
   assert.equal(getGenesisExperience('reward'),'verified-cinematic-reveal');

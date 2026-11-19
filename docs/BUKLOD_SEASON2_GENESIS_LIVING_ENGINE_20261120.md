@@ -27,3 +27,12 @@ Requires EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW=true and non-production EXPO
 node --experimental-strip-types --test tests/buklod-genesis-living-engine.test.mjs
 npx tsc --noEmit
 Actual Android render and AdMob/nav regressions are mandatory before declaring quality accepted.
+
+## Native runtime preparation (isolated)
+New staging-only EAS profile: `season2-genesis-preview`, OTA channel of same name, app package `org.mzbministry.buklod.staging`, runtime `2.0.0-genesis-preview` when build-time flag is true. Existing production EAS profile, package and runtime are unchanged. Cosmic splash background is native config only on this preview. No APK built or released.
+
+## Asset quality gate
+`genesisAssetRegistry.ts` explicitly defaults to no approved Rive rigs or audio. Original licensed rigs require SHA-256, license ID, character/rig revision; mastered audio requires checksum, license, approved bit, sample rate and loudness metadata. Both remain intentionally empty. `GenesisRiveCharacter.native.tsx` accepts only manifest rig IDs, not arbitrary URLs. The existing Character engine stays authoritative. No fake full-resolution animations are claimed.
+
+## Verification evidence
+Source readback at commit `aa51bad6c0eab27851b67dc24644a196220f8585` verified 14/14 static wiring/preview/audio/asset-related assertions earlier in the DEV sequence; this **does not** claim TypeScript compilation, test execution, Android rendering or a release. Following edits need revalidation. No CI/build was requested or started.
