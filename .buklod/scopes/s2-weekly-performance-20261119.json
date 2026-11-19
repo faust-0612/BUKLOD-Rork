@@ -21,7 +21,8 @@
     "src/lib/season2/buklodWeeklyPerformanceRulesR1.ts",
     "tests/season2-weekly-performance-class-rewards-20261119.test.mjs",
     "tests/season2-weekly-performance-local-postgres-20261119.sql",
-    "tests/season2-weekly-performance-profile-navigation-20261119.test.mjs"
+    "tests/season2-weekly-performance-profile-navigation-20261119.test.mjs",
+    ".buklod/scopes/s2-weekly-performance-20261119.json"
   ],
   "regressionTests": [
     "tests/season2-weekly-performance-class-rewards-20261119.test.mjs",
