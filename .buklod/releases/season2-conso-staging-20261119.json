@@ -20,7 +20,7 @@
     "actual-served-staging-manifest",
     "unchanged-production"
   ],
-  "sourceStatus": "PR #971 passed Engineering Accountability and Main QA on commit 7e295427b9e643cee64bf92c41326c23c3d0a1d8. EAS account:usage 27.x output is now parsed from canonical account.name/account.plan and zero billing fields; publisher must prove Free on faust_0612 before any staging update. First attempt #44475356741 failed closed without EAS publish or costs.",
+  "sourceStatus": "Consolidated Season2 preview source + no-charge billing guard merged and source CI validated. EAS staging attempt 6 / run 44475356741 blocked before publish at PLAN_NOT_PROVEN_FREE (parser mismatch); corrected attempt 7 / run 44476334903 blocked before publish at NONZERO_OR_UNKNOWN_BILLING. Exact billing amount deliberately not logged. No staging OTA publication or production/reward deployment claimed.",
   "note": "Stage user-facing previews only. S2 wallets, token mint/spend, missions, season rollover and economy integration remain OFF even after Dec 6 absent fresh approval and backend verification. Production Season 1 remains unchanged.",
   "attempt": 7,
   "rewardsHoldUntilManilaDay": "2026-12-06",
@@ -37,8 +37,11 @@
   ],
   "requestedVisualOnlySourceParent": "89944fcf35fb08fc61637246f541d4e3af6e1505",
   "requestedAtManilaDay": "2026-11-19",
-  "publicationStatus": "ZERO_COST_STAGING_RETRY_AFTER_OFFICIAL_EAS_JSON_SCHEMA_FIX_NOT_YET_VERIFIED",
+  "publicationStatus": "BLOCKED_BEFORE_STAGING_PUBLISH_ZERO_COST_BILLING_UNVERIFIED",
   "noChargeRequired": true,
   "freePlanOwner": "faust_0612",
-  "physicalDeviceVerification": "WAIVED_BY_OWNER_NOT_PERFORMED"
+  "physicalDeviceVerification": "WAIVED_BY_OWNER_NOT_PERFORMED",
+  "blocker": "Expo faust_0612 account:usage Free plan identity was checked but zero estimated charge could not be confirmed. No paid operations allowed. Do not automatically retry or bypass.",
+  "lastStagingWorkflowId": 44476334903,
+  "requiresFreshZeroChargeEvidence": true
 }
