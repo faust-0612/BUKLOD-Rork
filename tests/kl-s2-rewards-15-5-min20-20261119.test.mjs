@@ -65,7 +65,8 @@ test('Staged KL composer consistently requires 20 characters before submitting',
 
 test('S2 server blocks out-of-order read sessions and credits only unlocked numbered chapters', () => {
   assert.match(s2, /CREATE OR REPLACE FUNCTION private\.kl_s2_previous_chapter_complete_v1/);
-  assert.match(s2, /previous\.episode_number=chapter\.episode_number-1/);
+  assert.match(s2, /previous\.episode_number=required\.n/);
+  assert.match(s2, /pg_catalog\.generate_series\(1,chapter\.episode_number-1\)/);
   assert.match(s2, /sessions\.completed_at IS NOT NULL/);
   assert.match(s2, /BEFORE INSERT OR UPDATE OF episode_id ON public\.kl_reading_sessions/);
   assert.match(s2, /IF NOT private\.kl_s2_previous_chapter_complete_v1\(v_user,p_episode_id\)/);
@@ -92,4 +93,11 @@ test('Chapter 30 BP carries over until first verified chapter of the following s
   assert.match(s2, /UPDATE private\.kl_s2_chapter_pending/);
   assert.match(s2, /credited_at=now\(\)/);
   assert.doesNotMatch(s2, /UPDATE public\.buklod_points_ledger\b/i);
+});
+
+test('A partial historical series cannot unlock a later chapter', () => {
+  assert.match(s2, /pg_catalog\.generate_series\(1,30\)/);
+  assert.match(s2, /previous_series\.episode_number=previous_required\.n/);
+  assert.match(s2, /prior_sessions\.user_id=p_user/);
+  assert.match(s2, /prior_sessions\.completed_at IS NOT NULL/);
 });
