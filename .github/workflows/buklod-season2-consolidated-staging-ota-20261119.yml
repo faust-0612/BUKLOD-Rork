@@ -71,6 +71,7 @@ jobs:
           node --test tests/season2-owner-scope-lock-20261119.test.cjs
           node scripts/season2-dec6-economy-audit.cjs
           node --test tests/season2-dec6-complete-reward-inventory-20261119.test.cjs
+          node --test tests/season2-member-rewards-full-reference-20261119.test.cjs
           node scripts/season2-governance.cjs validate
           node scripts/season2-governance.cjs ci
           node scripts/seasonal-constitution.test.cjs
