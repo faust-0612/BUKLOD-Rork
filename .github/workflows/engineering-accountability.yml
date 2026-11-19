@@ -340,6 +340,13 @@ jobs:
         run: node --test tests/bahay-kasambahay-invite-20261110.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Enforce Genesis source-versus-native capability truth (read-only)
+        if: startsWith(github.head_ref, 'dev/genesis-native-reality-') || startsWith(github.head_ref, 'dev/season2-') || startsWith(github.head_ref, 'integration/season2-') || startsWith(github.head_ref, 'release/season2-')
+        run: |
+          if test -f scripts/season2-native-capability-gate.mjs && test -f src/features/season2/genesis/genesisAssetRegistry.ts; then
+            node --test tests/season2-native-capability-gate.test.mjs
+            node scripts/season2-native-capability-gate.mjs --mode=source
+          fi
       - name: Verify KL per-scene saved placement and draft isolation
         if: github.head_ref == 'dev/kl-scene-anchor-persistence-20261030'
         run: node --experimental-strip-types --test tests/kl-scene-drafts.test.mjs
