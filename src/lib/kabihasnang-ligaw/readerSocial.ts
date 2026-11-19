@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { KL_RPC } from '@/lib/kabihasnang-ligaw/rpc';
+import { KL_S2_COMMENT_MIN_CHARS } from '@/lib/kabihasnang-ligaw/types';
 
 export type KlReaderPresence = {
   userId: string;
@@ -88,7 +89,7 @@ export async function addKlComment(
   body: string,
 ): Promise<{ ok: boolean; comment: KlEpisodeComment | null; error?: string }> {
   const trimmed = body.trim().slice(0, 500);
-  if (trimmed.length < 12) return { ok: false, comment: null, error: 'Kailangan ng 12 karakter o higit pa ang repleksyon.' };
+  if (trimmed.length < KL_S2_COMMENT_MIN_CHARS) return { ok: false, comment: null, error: 'Kailangan ng 20 karakter o higit pa ang repleksyon.' };
   try {
     const { data, error } = await supabase.rpc(KL_RPC.addComment, {
       p_episode_id: episodeId,
