@@ -64,6 +64,21 @@ export async function readBuklodRememberedLogin(): Promise<BuklodRememberedLogin
   return parseRememberedLogin(current);
 }
 
+/**
+ * Fire-and-forget bootstrap cleanup for existing signed-in accounts.
+ * Never delays the splash/login, touches network tokens, or logs secrets.
+ */
+export async function secureBuklodRememberedLoginOnStartup(): Promise<void> {
+  await readBuklodRememberedLogin();
+  if (Platform.OS === 'web') {
+    const keys = await AsyncStorage.getAllKeys();
+    const stalePasswordKeys = keys.filter(
+      key => key.startsWith('buklod.suggested_login.password.')
+    );
+    await Promise.allSettled(stalePasswordKeys.map(key => AsyncStorage.removeItem(key)));
+  }
+}
+
 export async function writeBuklodRememberedLogin(
   credentials: BuklodRememberedLogin | null,
 ): Promise<void> {
