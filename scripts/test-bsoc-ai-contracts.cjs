@@ -55,4 +55,4 @@ expect(/report notification deferred for case/.test(migration),
   'new support requests must not fail if notification delivery is unavailable');
 expect(/screening-/.test(zero)&&/member_read_own_reports_v1/.test(migration),
   'screening status messages are idempotent and private');
-console.log('PASS: 25 BSOC AI and zero-budget safety contracts');
+console.log('PASS: 28 BSOC AI and zero-budget safety contracts');
