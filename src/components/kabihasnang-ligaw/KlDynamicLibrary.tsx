@@ -15,6 +15,7 @@ type Media={kind:string;placement:number;path:string;anchor?:string;side?:string
 export default function KlDynamicLibrary(){
  const [chapters,setChapters]=useState<Chapter[]>([]);
  const [s2Access,setS2Access]=useState<Record<number,{enabled:boolean;next_chapter_number:number}>>({});
+ const [reflectionRefreshToken,setReflectionRefreshToken]=useState(0);
  const [chapter,setChapter]=useState<Chapter|null>(null);
  const [text,setText]=useState('');
  const [media,setMedia]=useState<Media[]>([]);
@@ -85,10 +86,10 @@ export default function KlDynamicLibrary(){
  setMediaErrors(failures);
  };
  useEffect(()=>{
- if(!chapter||!text||!routeFocused||!appActive)return;
+ if(!chapter||!text||!routeFocused||!appActive||s2Access[chapter.season_number]?.enabled)return;
  const timer=setInterval(()=>{void supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'ping'});},20000);
  return()=>clearInterval(timer);
- },[chapter?.id,text,routeFocused,appActive]);
+ },[chapter?.id,text,routeFocused,appActive,s2Access]);
  const image=(m:Media)=>{
  const key=m.kind+':'+m.placement;
  const uri=urls[key];
@@ -113,11 +114,11 @@ export default function KlDynamicLibrary(){
  {illustrationsAtParagraph(media,p,'after').map(image)}
  </View>)}
  <KlReadingQuiz key={chapter.id} episodeId={chapter.id}
-   onVerified={()=>void refreshProgress(chapters)}/>
+   onVerified={()=>{setReflectionRefreshToken(n=>n+1);void refreshProgress(chapters);}}/>
  {chapter.episode_number===30?
-   <KlSeriesReflection seasonNumber={chapter.season_number}/>:null}
+   <KlSeriesReflection seasonNumber={chapter.season_number} refreshToken={reflectionRefreshToken}/>:null}
  </View>:chapters.map(c=><Pressable key={c.id} accessibilityRole="button"
- accessibilityState={{disabled:chapterLocked(c)}}
+ accessibilityState={{disabled:chapterLocked(c)}} disabled={chapterLocked(c)}
  onPress={()=>void open(c)} style={{padding:10,backgroundColor:'#243849',
  opacity:chapterLocked(c)?0.65:1,borderRadius:8}}>
  <Text style={{color:'#fff'}}>{chapterLocked(c)?'🔒 ':'📖 '}S{c.season_number} · Kabanata {c.episode_number}: {c.title}</Text>
