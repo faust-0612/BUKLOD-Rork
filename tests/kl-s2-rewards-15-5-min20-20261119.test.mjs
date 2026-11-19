@@ -15,16 +15,22 @@ test('Season 1 verified KL reward history and series bonus remain unchanged', ()
   assert.match(s1, /v_user,50,'kl_season_completion'/);
   assert.match(s2, /VALUES\(1,false,'2026-12-06 00:00:00\+08'/);
   assert.match(s2, /enabled boolean NOT NULL DEFAULT false/);
-  assert.match(s2, /IF private\.kl_s2_rewards_enabled_v1\(\) THEN v_chapter_points:=15/);
+  assert.match(s2, /v_chapter_points:=5\+v_episode\.episode_number/);
   assert.match(s2, /v_chapter_points integer:=10/);
+  assert.match(s2, /SET base_points=5,max_points_per_event=35/);
   assert.match(s2, /IF NEW\.enabled AND now\(\)<NEW\.effective_at THEN/);
   assert.doesNotMatch(s2, /UPDATE public\.buklod_points_ledger\b/i);
 });
 
 test('Completion rewards agree in the ledger and RPC response, preserve quiz and bonus checks', () => {
   assert.match(s2, /v_user,v_chapter_points,'kl_episode_completion'/);
-  assert.match(s2, /'chapter_points',case when v_chapter_awarded then v_chapter_points else 0 end/);
-  assert.match(s2, /'points_awarded',\(case when v_chapter_awarded then v_chapter_points else 0 end\)/);
+  assert.match(s2, /'chapter_points',case when v_chapter_awarded AND NOT v_s2_enabled then v_chapter_points else 0 end/);
+  assert.match(s2, /'pending_points',v_pending_points/);
+  assert.match(s2, /'released_previous_chapter_points',v_previous_credit/);
+  assert.match(s2, /'points_awarded',v_previous_credit\+/);
+  assert.match(s2, /INSERT INTO private\.kl_s2_chapter_pending/);
+  assert.match(s2, /FOR UPDATE OF pending/);
+  assert.match(s2, /v_user,v_pending_row\.reward_bp,'kl_episode_completion'/);
   assert.match(s2, /v_user,50,'kl_season_completion'/);
   assert.match(s2, /v_season_count=30 and v_finished=30/);
   assert.match(s2, /v_session\.ping_count<2/);
@@ -49,10 +55,49 @@ test('Comment reward is backend-only, one credit per user per chapter, not for s
 
 test('Staged KL composer consistently requires 20 characters before submitting', () => {
   assert.match(types, /KL_S2_COMMENT_MIN_CHARS = 20/);
-  assert.match(types, /chapter: 15, firstQualifiedComment: 5/);
+  assert.match(types, /chapterBase: 5, perChapterStep: 1, firstQualifiedComment: 5/);
   assert.match(screen, /draft\.trim\(\)\.length < KL_S2_COMMENT_MIN_CHARS/);
   assert.match(social, /trimmed\.length < KL_S2_COMMENT_MIN_CHARS/);
   assert.match(copy, /20–500 karakter/);
   assert.doesNotMatch(copy, /12–500 karakter/);
   assert.match(screen, /draft\.trim\(\)\.length}\/\{KL_S2_COMMENT_MIN_CHARS}/);
+});
+
+test('S2 server blocks out-of-order read sessions and credits only unlocked numbered chapters', () => {
+  assert.match(s2, /CREATE OR REPLACE FUNCTION private\.kl_s2_previous_chapter_complete_v1/);
+  assert.match(s2, /previous\.episode_number=required\.n/);
+  assert.match(s2, /pg_catalog\.generate_series\(1,chapter\.episode_number-1\)/);
+  assert.match(s2, /sessions\.completed_at IS NOT NULL/);
+  assert.match(s2, /BEFORE INSERT OR UPDATE OF episode_id ON public\.kl_reading_sessions/);
+  assert.match(s2, /IF NOT private\.kl_s2_previous_chapter_complete_v1\(v_user,p_episode_id\)/);
+  assert.match(s2, /v_chapter_points:=5\+v_episode\.episode_number/);
+  assert.match(s2, /CREATE OR REPLACE FUNCTION public\.kl_s2_chapter_access_v1/);
+  assert.match(s2, /IF NOT private\.kl_s2_previous_chapter_complete_v1\(v_uid,v_episode\)/);
+  assert.doesNotMatch(s2, /max_points_per_event=15/);
+});
+
+test('Large inline chapter banner is below user comments and obeys safe ad viewport', () => {
+  assert.ok(screen.indexOf('comments.map((comment)') < screen.indexOf('placementId="kl_chapter_discussion_inline"'));
+  assert.match(screen, /format="inline"/);
+  assert.match(screen, /maxHeight=\{250\}/);
+  assert.match(screen, /requireViewport/);
+});
+
+test('Chapter 30 BP carries over until first verified chapter of the following series', () => {
+  assert.match(s2, /previous\.season_number=v_episode\.season_number-1/);
+  assert.match(s2, /previous\.episode_number=30/);
+  assert.match(s2, /v_episode\.episode_number=1 AND v_episode\.season_number>1/);
+  assert.match(s2, /AND pending\.credited_at IS NULL/);
+  assert.match(s2, /IF NOT v_previous_ledger_exists THEN/);
+  assert.match(s2, /ledger\.direction='credit' AND ledger\.points=v_pending_row\.reward_bp/);
+  assert.match(s2, /UPDATE private\.kl_s2_chapter_pending/);
+  assert.match(s2, /credited_at=now\(\)/);
+  assert.doesNotMatch(s2, /UPDATE public\.buklod_points_ledger\b/i);
+});
+
+test('A partial historical series cannot unlock a later chapter', () => {
+  assert.match(s2, /pg_catalog\.generate_series\(1,30\)/);
+  assert.match(s2, /previous_series\.episode_number=previous_required\.n/);
+  assert.match(s2, /prior_sessions\.user_id=p_user/);
+  assert.match(s2, /prior_sessions\.completed_at IS NOT NULL/);
 });

@@ -607,7 +607,21 @@ export default function KlReaderScreen() {
     let nextCache = rememberScroll(cache, episodeId, 0, readable);
     try {
       const dbId = databaseIdForEpisode(episode.episodeNumber);
-      const { data, error } = await supabase.rpc(KL_RPC.readEpisode, { p_episode_id: dbId });
+      // S2 account-scoped sequential check; no impact when S2 is disabled.
+       const { data: access, error: accessError } = await supabase.rpc(
+         'kl_s2_chapter_access_v1', { p_episode_id: dbId },
+       );
+       if (sequence !== openSequence.current) return;
+       if (!accessError && access && typeof access === 'object' &&
+           (access as {enabled?: boolean; allowed?: boolean}).enabled === true &&
+           (access as {allowed?: boolean}).allowed !== true) {
+         setServerState('hidden');
+         setSelectedId(null);
+         setLockedId(episodeId);
+         setNotice(klCopy.previousChapterRequired);
+         return;
+       }
+       const { data, error } = await supabase.rpc(KL_RPC.readEpisode, { p_episode_id: dbId });
       if (sequence !== openSequence.current) return;
       if (error || !data || typeof data !== 'object') {
         setServerState('unknown');

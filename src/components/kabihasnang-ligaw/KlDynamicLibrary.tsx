@@ -30,6 +30,15 @@ export default function KlDynamicLibrary(){
  const sequence=++openSequence.current;
  setMessage('');setText('');setMedia([]);setUrls({});setMediaErrors({});setChapter(c);
  warmBuklodAdOpportunity('kl_chapter_success');
+ const {data:access,error:accessError}=await supabase.rpc('kl_s2_chapter_access_v1',{p_episode_id:c.id});
+ if(sequence!==openSequence.current)return;
+ if(!accessError&&access&&typeof access==='object' &&
+   (access as {enabled?:boolean;allowed?:boolean}).enabled===true &&
+   (access as {allowed?:boolean}).allowed!==true){
+   setChapter(null);
+   setMessage('Tapusin at ipa-verify muna ang naunang kabanata.');
+   return;
+ }
  const {data,error}=await supabase.rpc('kl_read_episode_v1',{p_episode_id:c.id});
  const payload=data as {readable?:boolean;content?:{text:string}[]}|null;
  if(sequence!==openSequence.current)return;

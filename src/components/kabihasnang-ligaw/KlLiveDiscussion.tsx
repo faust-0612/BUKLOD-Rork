@@ -21,6 +21,7 @@ import {
   type KlReaderPresence,
 } from '@/lib/kabihasnang-ligaw/readerSocial';
 import { useAuth } from '@/providers/AuthProvider';
+import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 
 type Props = {
   episodeId: string;
@@ -170,6 +171,14 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
           ))
         )}
       </View>
+      {/* Inline ad below the discussion, not beside Send or text entry. */}
+      <BuklodAdMobBanner
+        placement="content"
+        placementId="kl_chapter_discussion_inline"
+        format="inline"
+        maxHeight={250}
+        requireViewport
+      />
     </View>
   );
 }
