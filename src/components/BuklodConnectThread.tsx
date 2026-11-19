@@ -12,7 +12,7 @@ import {
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useConnectComposerKeyboardInset, CONNECT_COMPOSER_RESERVED_HEIGHT } from '@/lib/useConnectComposerKeyboardInset';
+import { useConnectComposerKeyboardInset } from '@/lib/useConnectComposerKeyboardInset';
 import {
   isBuklodScopedWorkspacePath,
   normalizeBuklodPathname,
@@ -32,7 +32,6 @@ import {
   Alert,
   AppState,
   FlatList,
-  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -644,7 +643,6 @@ function BuklodConnectThreadInner({
   const {
     composerBottom,
     keyboardVisible,
-    clearComposerInset,
     resyncComposerInset,
   } = useConnectComposerKeyboardInset(threadBodyRef);
   /*
@@ -679,6 +677,8 @@ function BuklodConnectThreadInner({
     composerBottom,
     phoneNavClearance
   );
+  // Adapt to expanded input, reply banners and attachment previews.
+  const [composerMeasuredHeight, setComposerMeasuredHeight] = useState(64);
 
   const { theme } = useConnectTheme();
   const styles = useMemo(
@@ -1410,6 +1410,18 @@ const [
   // A touch/kinetic scroll owns the viewport; content reflow cannot steal it.
   const userDraggingRef = useRef(false);
   const userMomentumRef = useRef(false);
+  // Focus opts into newest-message following, an actual user swipe opts out.
+  const composerFollowsLatestRef = useRef(false);
+  const followComposerToLatest = useCallback(() => {
+    if (!composerFollowsLatestRef.current || userDraggingRef.current || userMomentumRef.current) return;
+    listRef.current?.scrollToEnd({ animated: false });
+  }, []);
+  useEffect(() => {
+    if (!keyboardVisible || !composerFollowsLatestRef.current) return;
+    // Android sometimes finishes IME resizing after TextInput onFocus.
+    const frame = requestAnimationFrame(followComposerToLatest);
+    return () => cancelAnimationFrame(frame);
+  }, [keyboardVisible, composerDockBottom, followComposerToLatest]);
   // Only history prepends may adjust a prior visible message's offset.
   const pendingOlderAnchorRef =
     useRef<{ offset: number; height: number } | null>(null);
@@ -1483,6 +1495,7 @@ const [
     setFailedAttachmentPaths({});
     pinLatestOnOpenRef.current = true;
     followOwnSendRef.current = false;
+    composerFollowsLatestRef.current = false;
     suppressStickRef.current = false;
     userDraggingRef.current = false;
     userMomentumRef.current = false;
@@ -3785,9 +3798,8 @@ const [
         return;
       }
 
-      clearComposerInset();
-      Keyboard.dismiss();
-      composerInputRef.current?.blur();
+      // Keep the keyboard open while the optimistic message is inserted.
+      // Otherwise a keyboard resize can leave the latest row off-screen.
 
       sendInFlightRef.current =
         true;
@@ -4237,6 +4249,11 @@ const [
       >
 <FlatList
         ref={listRef}
+        onLayout={() => {
+          if (composerFollowsLatestRef.current) {
+            requestAnimationFrame(followComposerToLatest);
+          }
+        }}
         style={{ flex: 1, opacity: listAnchored ? 1 : 0 }}
         data={visibleMessages}
         keyboardShouldPersistTaps="always"
@@ -4271,10 +4288,7 @@ const [
         contentContainerStyle={[
           styles.messages,
           {
-            paddingBottom:
-              CONNECT_COMPOSER_RESERVED_HEIGHT +
-              composerDockBottom +
-              18,
+            paddingBottom: composerMeasuredHeight + composerDockBottom + 8,
           },
         ]}
         ListHeaderComponent={
@@ -4314,6 +4328,11 @@ const [
           const delta = previous > 0 ? height - previous : 0;
           contentHeightRef.current = height;
 
+          if (followOwnSendRef.current && pendingOlderAnchorRef.current) {
+            // Own send beats a prior, potentially stale history-prepend offset.
+            pendingOlderAnchorRef.current = null;
+            suppressStickRef.current = false;
+          }
           if (pendingOlderAnchorRef.current) {
             const anchor = pendingOlderAnchorRef.current;
             // Consume the prepend anchor even if the measured height did not
@@ -4379,6 +4398,10 @@ const [
             return;
           }
 
+          if (composerFollowsLatestRef.current && !userDraggingRef.current && !userMomentumRef.current) {
+            listRef.current?.scrollToEnd({ animated: false });
+            return;
+          }
           const action = connectScrollAction({
             intent: 'content',
             nearBottom: nearBottomRef.current,
@@ -4468,8 +4491,10 @@ const [
             layoutMeasurement,
           } = event.nativeEvent;
 
-          connectScrollOffsetRef.current =
-            contentOffset.y;
+          connectScrollOffsetRef.current = contentOffset.y;
+          if (userDraggingRef.current || userMomentumRef.current) {
+            composerFollowsLatestRef.current = false;
+          }
 
           const distanceFromBottom =
             contentSize.height -
@@ -5038,10 +5063,7 @@ const [
           style={{
             position: 'absolute',
             right: 16,
-            bottom:
-              composerDockBottom +
-              CONNECT_COMPOSER_RESERVED_HEIGHT +
-              12,
+            bottom: composerDockBottom + composerMeasuredHeight + 10,
             zIndex: 30,
             minHeight: 48,
             paddingHorizontal: 12,
@@ -5167,6 +5189,14 @@ const [
           bottom: composerDockBottom,
           zIndex: 20,
         }}
+        onLayout={event => {
+          const height = Math.ceil(event.nativeEvent.layout.height);
+          if (height > 0) {
+            setComposerMeasuredHeight(previous =>
+              Math.abs(previous - height) > 1 ? height : previous
+            );
+          }
+        }}
       >
       <ConnectComposer
         mode={mode}
@@ -5209,6 +5239,13 @@ const [
           setDraft(value);
         }}
         onSend={send}
+        onFocus={() => {
+          composerFollowsLatestRef.current = true;
+          setAwayFromLatest(false);
+          setNewWhileAway(0);
+          requestAnimationFrame(followComposerToLatest);
+        }}
+        onBlur={() => { composerFollowsLatestRef.current = false; }}
         onQuickReaction={emoji => {
           if (!online) {
             Alert.alert('Offline', 'Reconnect to send your quick reaction.');
