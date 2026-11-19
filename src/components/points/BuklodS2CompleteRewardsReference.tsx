@@ -8,7 +8,8 @@ import {useBuklodI18n} from '@/providers/BuklodI18nProvider';
 import {S2_EXCLUSIVE_FEATURES} from '@/lib/season2/buklodSeason2ApprovedScopeR1';
 import {
  S2_MEMBER_GUIDE_SNAPSHOT,S2_LEGACY_BP_ACTIVE,S2_LEGACY_BP_INACTIVE,
- S2_GUIDE_BP_GROUPS,S2_QMP_EVENTS,S2_QMP_MISSIONS,S2_QMP_QUALIFICATIONS,
+ S2_GUIDE_BP_GROUPS,S2_QMP_EVENTS,S2_QMP_MISSIONS,S2_QMP_TIERS,S2_QMP_QUALIFICATIONS,
+ S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE,S2_OPTIONAL_AD_ENERGY_NOT_BP,
  S2_JOURNEY_TOKEN_SOURCES,S2_WEEKLY_CLASSIFICATIONS,S2_COSMETIC_PRICES_PREVIEW,
  S2_KL_FUTURE_RULES,s2ChapterPotentialBp,S2_WEEKLY_FOUNDATION_FUTURE,
  S2_MOMENTUM_PREVIEW_ONLY,S2_CHARACTER_MASTERY_FUTURE,S2_REFERRAL_FUTURE,
@@ -89,6 +90,14 @@ export default function BuklodS2CompleteRewardsReference(){
     {active.map(item=><Row key={item.id} name={item.title} value={`+${item.bp} BP`}
       detail={item.condition+(item.dayCapBP===null?'':` · ${item.dayCapBP} BP/day catalog cap`)}/>)}
     {!active.length?<Note>{t('Walang tugmang activity.','No matching activity.')}</Note>:null}
+    <Title>{t('Proposed social milestone bonuses (NOT LIVE)','Proposed social milestone bonuses (NOT LIVE)')}</Title>
+    <Note>{t('Ito ay nasa prior R2 user guide ngunit hindi pa verified bilang active source-authoritative reward; hindi agad na-credit ang additional BP.','These were described in the earlier R2 guide but are not verified as active source-authoritative grants; do not expect credits yet.')}</Note>
+    {S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE.helpfulCommentDistinctReactions.map(row=>
+      <Row key={row.at} name={`${row.at} distinct reactions to helpful comment`}
+        value={`+${row.totalBonusBP} BP total`} detail="NOT LIVE · qualifying real reactions required"/>)}
+    <Row name="Mutual Support Chain" value={`+${S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE.mutualSupportChain.eachParticipantBp} BP`}
+      detail={`NOT LIVE · ${S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE.mutualSupportChain.distinctMembers} independently qualified members`}/>
+    <Note>{S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE.postImpact}</Note>
     <Pressable accessibilityRole="button" accessibilityState={{expanded:showInactive}}
       accessibilityLabel="Show inactive or retired BP catalog rules" onPress={()=>setShowInactive(x=>!x)}
       style={s.disclosure}><Text style={s.disclosureText}>{t('16 inactive/retired BP rules','16 inactive/retired BP rules')} {showInactive?'−':'+'}</Text></Pressable>
@@ -103,6 +112,9 @@ export default function BuklodS2CompleteRewardsReference(){
     <Title>{t('4 monthly QMP missions','4 monthly QMP missions')}</Title>
     {S2_QMP_MISSIONS.map(item=><Row key={item.id} name={item.id.replaceAll('_',' ')}
       value={`+${item.qmp} QMP`} detail={`${item.required}× ${item.source}`}/>)}
+    <Title>{t('Monthly QMP classification','Monthly QMP classification')}</Title>
+    {S2_QMP_TIERS.map(item=><Row key={item.id} name={item.title}
+      value={`${item.minQmp}–${item.maxQmp===null?'∞':item.maxQmp} QMP`}/>)}
     <Title>{t('Qualification at anti-farming','Qualification & anti-farming')}</Title>
     <Note>{`Original post: ≥${S2_QMP_QUALIFICATIONS.postMinCharacters} chars or accepted media; reply: ≥${S2_QMP_QUALIFICATIONS.replyMinCharacters} chars; repeated reply exclusion: ${S2_QMP_QUALIFICATIONS.duplicateReplyDays} days; qualified engagement bonus caps: ${S2_QMP_QUALIFICATIONS.creatorBonusPerContentCap}/content and ${S2_QMP_QUALIFICATIONS.creatorBonusMonthlyCap}/month. Velocity hold: ${S2_QMP_QUALIFICATIONS.velocityHoldPerHour} events/hour.`}</Note>
     <Note>{t('Ang estimated earnings ay hindi pa withdrawable hanggang na-finalize, may pondo, at naaprubahan ang identity/payout. Sa audited configuration, financial finalization ay hindi pa enabled.','Estimated earnings are not withdrawable until funded and finalized, with verified identity/payout. At audit time, financial finalization was OFF.')}</Note>
@@ -152,6 +164,8 @@ export default function BuklodS2CompleteRewardsReference(){
       detail={t('Genuine member, active Cluster, at least one eligible Circle Rank gain, once per referral. Legacy +10 is NOT yet reconciled.','Genuine member, active Cluster, at least one eligible Circle Rank gain, once per referral. Legacy +10 is NOT reconciled.')}/>
     <Row name={t('Qualified referred new member','Qualified referred new member')} value={`+${S2_REFERRAL_FUTURE.referredQualifiedBp} BP`}
      detail={t('Subject to independent eligibility, not mere sign-up','Requires independent eligibility, not mere signup')}/>
+    <Title>{t('Optional rewarded ads — hindi BP','Optional rewarded ads — not BP')}</Title>
+    <Note>{S2_OPTIONAL_AD_ENERGY_NOT_BP.example}. {t('Demo UI lamang; walang automatic BP, QMP, cash, o Journey Token credits sa panonood ng ad. Kailangan ng tunay na earned event at independent game verification bago ibigay ang energy.','Demo UI only. Watching an ad does not automatically grant BP, QMP, cash or Journey Tokens. An actual earned event and independently verified game grant are required.')}</Note>
     <Title>{t('Four verified seasonal awards','Four verified seasonal awards')}</Title>
     {['The Call → Beacon Trail Frame','The Makers → Maker Ribbon','The Alliance → Alliance Crest','The Legacy → Constellation Finale Scene'].map(name=>
       <Row key={name} name={name} value="LOCKED" detail={t('Verified milestone at server grant required','Verified milestone and server-backed grant required')}/>)}
