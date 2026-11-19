@@ -223,6 +223,12 @@ The designated community user pool is **30% of eligible settled earnings**, prop
 
 All token prices, rollover/expiry/carryover policy and exact award conditions are OPEN for final owner signoff. Never buy rank, earned achievement badge, level-gated collectible, BP/QMP multiplier, cash, required access or a child-targeted reward.
 
+### Optional rewarded ads and badge-name proposals (not additional exclusive features)
+
+- Current rewarded-ad source permits only an **opt-in noncash in-game benefit** after the provider's actual `EARNED_REWARD` event. An existing BUKLOD Bahay UI example says **+1 Garden Energy**; this is **not** independently confirmed as a server award. No automatic BP, QMP, peso, Journey Token, Bayanihan or other redeemable value is granted just for watching an ad. The historical idea of +5 BP per ad / 15 BP daily must **not** be silently activated: current source expressly forbids direct Circle Points from rewarded ads.
+- Optional Character-authority badge *name candidates* are Story Explorer, Helpful Voice, Learning Mentor, Community Builder, Knowledge Keeper and Kingdom Explorer. These are **not issued badges or an 11th exclusivity category**. Exact criteria, evidence, duplicate rules and owner economic/cosmetic approval are still required.
+- Safe ad delivery remains subject to consent, cooldown, filled inventory and nonintrusive natural breaks. Failed/no-fill ads do not interrupt verified reading, comments, P0 completion or any existing entitlement.
+
 ## 7. Weekly Performance (the small avatar 2 o'clock class)
 
 Score is derived from **verified, claimed, eligible, distinct days** rather than raw spam volume. The Manila week starts Monday 00:00. One daily category receipt maximum for score; `pending` / non-claimed / reactions / basic comment taps do not count.
