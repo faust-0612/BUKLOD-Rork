@@ -156,5 +156,42 @@ Deno.serve(async (req:Request)=>{
       result.push({case_id:caseId,state:final?"NEEDS_HUMAN":"PENDING"});
     }
   }
+  // Reconcile only independently recorded release verification. A DEV branch,
+  // GitHub PR, quiet telemetry or AI recommendation cannot produce a resolved report.
+  const {data:followUps,error:followUpError}=await db.from("bsoc_ai_case_jobs")
+    .select("case_id,state").in("state",[
+      "TRIAGED","DEV_FIX_REQUESTED","DEV_FIX_READY","AWAITING_RELEASE_VERIFICATION"
+    ]).order("updated_at",{ascending:true}).limit(10);
+  if(!followUpError){
+    for(const candidate of followUps||[]){
+      const id=String(candidate.case_id||"");
+      if(!validId(id))continue;
+      const {data:fix,error:fixError}=await db.from("bsoc_case_fix_tracking")
+        .select("stage,release_reference,release_version,deployed_at,verified_at")
+        .eq("case_id",id).maybeSingle();
+      if(fixError||!fix||!fix.release_reference||!fix.release_version||!fix.deployed_at)continue;
+      const ref=clean(fix.release_reference,70);
+      const version=clean(fix.release_version,60);
+      if(fix.stage==="VERIFIED_RESOLVED"&&fix.verified_at){
+        try{
+          await send(id,"VERIFIED_RESOLVED","verified-"+ref+"-"+version,
+            "Na-verify ng BSOC ang pag-ayos sa release "+version+
+            ". Kung nararanasan mo pa rin ang problema, buksan muli ang concern o magsumite ng bagong report.");
+          await db.from("bsoc_ai_case_jobs")
+            .update({state:"VERIFIED_RESOLVED",updated_at:new Date().toISOString()})
+            .eq("case_id",id).eq("state",candidate.state);
+        }catch{ /* Keep pending; next run retries the idempotent notification. */ }
+      }else if(fix.stage==="FIX_DEPLOYED"&&candidate.state!=="AWAITING_RELEASE_VERIFICATION"){
+        try{
+          await send(id,"AWAITING_RELEASE_VERIFICATION","release-review-"+ref+"-"+version,
+            "May naitalang fix candidate para sa release "+version+
+            ". Hindi pa ito verified resolved; inoobserbahan pa ang resulta.");
+          await db.from("bsoc_ai_case_jobs")
+            .update({state:"AWAITING_RELEASE_VERIFICATION",updated_at:new Date().toISOString()})
+            .eq("case_id",id).eq("state",candidate.state);
+        }catch{ /* No false success on a failed member report. */ }
+      }
+    }
+  }
   return response(200,{ok:true,processed:result.length,results:result});
 });
