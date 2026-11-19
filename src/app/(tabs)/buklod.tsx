@@ -6947,7 +6947,15 @@ const communityFeedRows =
   open={Boolean(photoCommentsTarget)}
   postId={photoCommentsTarget?.postId??''}
   mediaPosition={photoCommentsTarget?.mediaPosition??0}
-  onClose={()=>setPhotoCommentsTarget(null)}
+  onClose={()=>{
+   setPhotoCommentsTarget(null);
+   // Photo comments share the verified comment cadence. Display only
+   // after the sheet closes, never while a comment is being submitted.
+   const adAccount=String(user?.id??'');
+   if(adAccount && takePendingCommunityCommentAdBreak(adAccount)){
+    void showBuklodAdOpportunity('community_comment_overage');
+   }
+  }}
   onCountChange={count=>{
    photoCountsRequestRef.current+=1;
    if(!photoCommentsTarget)return;
