@@ -37,6 +37,7 @@ jobs:
           npx tsc --noEmit
           node --experimental-strip-types --test \
             tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs \
+            tests/kl-s2-sequence-database-security-20261119.test.mjs \
             tests/kl-s2-progressive-chapters-ads-20261119.test.mjs \
             tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs \
             tests/kl-s2-rewards-15-5-min20-20261119.test.mjs
