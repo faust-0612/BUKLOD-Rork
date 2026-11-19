@@ -9,7 +9,8 @@
   "alternativeApproaches": [
     "Ship static SVG map repaint: rejected as the same low quality composition.",
     "Generate fake icon substitutes or promise high-resolution art from 176px thumbnails: rejected.",
-    "Replace production Kingdom map unconditionally: rejected due to season embargo and production regression risk."
+    "Replace production Kingdom map unconditionally: rejected due to season embargo and production regression risk.",
+    "Do not disable the old production release guard. Update its assertion to explicitly accept only the isolated signed Genesis preview while preserving the original Main 1.3.2 runtime."
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-genesis-premium-realm-assets-20261120.json",
@@ -90,10 +91,12 @@
     "src/lib/buklodKingdomClassCatalog.ts",
     "src/lib/buklodKingdomCoreAtlas.ts",
     "src/lib/buklodKingdomCoreAtlasArt.ts",
+    "tests/buklod-igpat-retirement-release-marker-20261111.test.mjs",
     "tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs"
   ],
   "regressionTests": [
-    "tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs"
+    "tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs",
+    "tests/buklod-igpat-retirement-release-marker-20261111.test.mjs"
   ],
   "riskAreas": [
     "Expo Router deep links",
@@ -102,7 +105,8 @@
     "Stage/production environment isolation",
     "Character identity and rank art authority",
     "Device GPU/battery/reduced motion",
-    "Illustrated CDN scene fallback"
+    "Illustrated CDN scene fallback",
+    "Legacy production marker tests must assert unchanged production runtime even when preview has a separate native ABI"
   ],
   "lockedFeatureChanges": [
     {

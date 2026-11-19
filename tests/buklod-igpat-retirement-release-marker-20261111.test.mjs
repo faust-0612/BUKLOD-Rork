@@ -32,7 +32,10 @@ test('Android OTA and Expo Web production publishing are review-marker only', ()
   assert.equal(marker.target.androidVersionCode, 30);
   assert.equal(marker.target.androidPackage, 'org.mzbministry.buklod');
   assert.equal(marker.target.easProjectId, '23dad7d0-389a-406e-8dec-08965dab85d8');
-  assert.match(read('app.config.js'), /runtimeVersion: isClassroom \? '1\.3\.0' : '1\.3\.2'/);
+  // Preserve the exact production runtime while allowing a separate signed Genesis native preview.
+  const appConfig = read('app.config.js');
+  assert.match(appConfig, /const genesisNativePreview =\s*!isClassroom &&\s*isStaging &&\s*process\.env\.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW === 'true'/);
+  assert.match(appConfig, /runtimeVersion: isClassroom \? '1\.3\.0' : \(genesisNativePreview \? '2\.0\.0-genesis-preview' : '1\.3\.2'\)/);
 });
 
 test('IGPAT is retired but Marites, Wall and Kingdom content remains in the release source', () => {

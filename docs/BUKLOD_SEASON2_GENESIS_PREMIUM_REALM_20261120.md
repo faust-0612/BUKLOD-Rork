@@ -17,3 +17,6 @@ Date 2026-11-20. Reconciled with latest existing Genesis DEV engine `ede0a941705
 
 ## Gates
 Run `node --test tests/season2-genesis-kingdom-cinematic-assets-20261120.test.mjs`, typecheck, source/feature lock gate and targeted AdMob/navigation lifecycle checks. Stage OTA only after exact target runtime and CI/RC validation. Production remains embargoed until explicitly authorized.
+
+## Upstream legacy release-marker regression resolved on this DEV branch
+The old Nov 11 marker's static runtime regex expected a single Main runtime expression, which the separate signed Genesis preview correctly replaces with a staged-only branch. Keep the production 1.3.2 and Classroom 1.3.0 exact code contract, and assert the preview 2.0.0-genesis-preview is conditional on an explicit non-Classroom staging flag. This updates test evidence only; no runtime or production configuration is modified.
