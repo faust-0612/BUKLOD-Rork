@@ -20,18 +20,25 @@
     "actual-served-staging-manifest",
     "unchanged-production"
   ],
-  "sourceStatus": "MERGED STAGING SOURCE VERIFIED: Engineering Accountability, Season 2 Governance Drift, disposable PostgreSQL SQL contract, and Main integration QA all SUCCESS on 731579b8309e509e38de0576c9872ca90c57dc6d; prior feature Android compile and reward hold checks SUCCESS on 42779df703aa26fb07e56f726865deef8bcb7ec8. Exact publisher performs fresh Android export, staging EAS readback and production manifest unchanged verification.",
+  "sourceStatus": "Consolidated source PR #967 (1,300 item/Token/Badge guide) and PR #969 (zero-charge Expo Free plan guard) each passed Engineering Accountability, Season2 Governance Drift and Main QA. Publisher must independently prove exact SHA, Free-plan billing, Android runtime, served staging manifest and unchanged production. No reward backend deployed.",
   "note": "Stage user-facing previews only. S2 wallets, token mint/spend, missions, season rollover and economy integration remain OFF even after Dec 6 absent fresh approval and backend verification. Production Season 1 remains unchanged.",
-  "attempt": 5,
+  "attempt": 6,
   "rewardsHoldUntilManilaDay": "2026-12-06",
   "requiresSeparateOwnerApprovalForRewards": true,
   "season2RewardDbWritesAuthorized": false,
   "stagingReleaseFeatures": [
     "40 canonical Circle Rank avatar badges, read-only presence overlays",
     "LIFE Filipino and English hydration",
-    "Season 2 story journey and 13 guides preview only"
+    "Season 2 story journey and 13 guides preview only",
+    "Season 2 1,300 Character item requirements and benefits guide (preview only)",
+    "Server-confirmed Character Owned vs Level Eligible UI distinction",
+    "Season 2 Journey Tokens and Weekly Foundation Badge instructions (no active claims)",
+    "Disabled isolated Season 2 collectible mastery claim draft (source only, not deployed)"
   ],
-  "requestedVisualOnlySourceParent": "731579b8309e509e38de0576c9872ca90c57dc6d",
+  "requestedVisualOnlySourceParent": "70b6d1dc4f7d3cf5f32bf48477525aaa48f04d18",
   "requestedAtManilaDay": "2026-11-19",
-  "publicationStatus": "RE_REQUESTED_AFTER_SCOPE_GATES_PASS"
+  "publicationStatus": "ZERO_COST_STAGING_OTA_REQUESTED_NOT_YET_VERIFIED",
+  "noChargeRequired": true,
+  "freePlanOwner": "faust_0612",
+  "physicalDeviceVerification": "WAIVED_BY_OWNER_NOT_PERFORMED"
 }
