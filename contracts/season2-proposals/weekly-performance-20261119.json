@@ -1,0 +1,13 @@
+{
+  "id": "S2_WEEKLY_PERFORMANCE_20261119",
+  "season": 2,
+  "changes": {
+    "overall_circle_rank.rollover": "retain",
+    "monthly_rank.cadence": "monthly_independent",
+    "show_faith.requirement": "voluntary_fair_alternatives",
+    "mission_awards.validation": "server_verified_idempotent_antifarm",
+    "qmp_finance.season_rollover": "independent_never_reset",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc"
+  },
+  "description": "Owner-approved class icon at 2 o'clock replaces Notes indicator only; backend read-only weekly classification and held noncash recognition preview for staging; Season1 and production fully unchanged."
+}

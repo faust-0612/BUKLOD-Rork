@@ -1,0 +1,79 @@
+name: BUKLOD S2 Weekly Performance Staging QA - NO PUBLISH
+on:
+  push:
+    branches: [feature/s2-weekly-performance-staging-20261119]
+  pull_request:
+    branches: [integration/season2-conso-staging-20261119]
+permissions:
+  contents: read
+concurrency:
+  group: s2-weekly-performance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Weekly classification, anti-farm, idempotent non-mint rewards, security and avatar regression
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --test \
+            tests/season2-weekly-performance-class-rewards-20261119.test.mjs \
+            tests/season2-weekly-performance-profile-navigation-20261119.test.mjs \
+            tests/season2-avatar-badges-20261119.test.mjs \
+            tests/season2-connect-avatar-badges-20261119.test.mjs \
+            tests/season2-avatar-admob-guard-20261119.test.mjs \
+            tests/season2-wall-avatar-navigation-20261119.test.mjs \
+            tests/dashboard-instant-tabs-20261117.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+      - name: TypeScript compile check
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+      - name: Execute SQL against disposable local PostgreSQL and check read-only RLS behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PGHOST" = "127.0.0.1"
+          test "$PGDATABASE" = "postgres"
+          test -z "${SUPABASE_DB_URL:-}"
+          psql -v ON_ERROR_STOP=1 -f tests/season2-weekly-performance-local-postgres-20261119.sql
+      - name: Protect production and Season 1 boundaries
+        run: |
+          set -euo pipefail
+          node scripts/season2-governance.cjs validate
+          node --test tests/season2-production-release-staging-only-hold-20261119.test.cjs
+          test ! -e supabase/migrations/20261119_weekly_performance.sql
+          echo 'No EAS publish, Supabase migration, or Season 1 reward mutation performed.'
