@@ -6,6 +6,7 @@ import test from 'node:test';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const windowSource = read('src/lib/connectChatWindow.ts');
 const thread = read('src/components/BuklodConnectThread.tsx');
+const composer = read('src/components/connect/ConnectComposer.tsx');
 
 const start = windowSource.indexOf('export function shouldAdvanceConnectReadCursor(');
 const end = windowSource.indexOf('\nexport function roomCursorCoversMessage(', start);
@@ -35,4 +36,12 @@ test('scroll stabilization remains isolated from ad and earnings integrations', 
   assert.match(thread, /const action = connectScrollAction\(\{/);
   assert.doesNotMatch(thread, /import [^;]*(?:admob|AdsProvider|Qmp|FinanceAllocation)/i);
   assert.match(thread, /const next = mergeConnectServerMessages\(/);
+});
+
+test('Connect focus/send layout correction does not change AdMob or earnings boundaries', () => {
+  assert.match(thread, /composerFollowsLatestRef\.current = true/);
+  assert.match(thread, /const action = connectScrollAction\(\{/);
+  assert.match(thread, /shouldAdvanceConnectReadCursor\(\{/);
+  assert.doesNotMatch(composer, /(?:AdsProvider|AdMob|FinanceAllocation|QMP|awardPoints|supabase)/i);
+  assert.match(composer, /onPress=\{onAttachPress\}/);
 });
