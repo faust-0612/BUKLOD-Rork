@@ -49,6 +49,7 @@ type SecurePttAccess = {
   call_type: string;
   call_id: string;
   expires_in: number;
+  display_name?: string;
   scope: BuklodPttScope;
 };
 
@@ -172,12 +173,8 @@ export async function connectBuklodPtt(
 
   const { session, data } = await getSecurePttAccess(scope, channel);
 
-  const displayName = String(
-    session.user.user_metadata?.full_name ||
-      session.user.user_metadata?.name ||
-      session.user.email ||
-      'BUKLOD Member',
-  );
+  // The backend resolves names from protected profiles, never user_metadata.
+  const displayName = String(data.display_name || 'BUKLOD Member');
 
   const options = {
     apiKey: data.api_key,

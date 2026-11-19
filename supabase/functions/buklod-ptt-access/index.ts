@@ -136,11 +136,15 @@ Deno.serve(async (req) => {
       return json({ error: "PTT_SCOPE_NOT_AUTHORIZED" }, 403);
     }
 
-    const displayName =
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      user.email ||
-      "BUKLOD Member";
+    // User metadata is client-editable; legal display identity is DB-owned.
+    const identity = await admin.from("profiles")
+      .select("full_name,is_active")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (identity.error) throw identity.error;
+    if (!identity.data?.is_active) return json({ error: "PTT_PROFILE_INACTIVE" }, 403);
+    const displayName = String(identity.data.full_name ?? "").trim().slice(0, 120)
+      || "BUKLOD Member";
 
     const stream = new StreamClient(streamApiKey, streamApiSecret);
 
@@ -183,6 +187,7 @@ Deno.serve(async (req) => {
       token,
       api_key: streamApiKey,
       user_id: user.id,
+      display_name: displayName,
       call_type: CALL_TYPE,
       call_id: callId,
       scope: {

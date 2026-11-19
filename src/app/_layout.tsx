@@ -304,6 +304,7 @@ function RootLayout() {
                 <Stack.Screen name="account/data-rights" />
                 <Stack.Screen name="account/delete" />
                 <Stack.Screen name="account/security" />
+                <Stack.Screen name="account/identity-verification" />
                 <Stack.Screen name="account/reset-password" />
                 <Stack.Screen name="moderation/report" />
                 <Stack.Screen name="onboarding/index" />
@@ -380,6 +381,7 @@ function RootLayout() {
                 <Stack.Screen name="system/update-required" />
                 <Stack.Screen name="system/pilot-access" />
                 <Stack.Screen name="system/release-notes" />
+                <Stack.Screen name="admin/identity-verification" />
                 <Stack.Screen name="admin/command-center/index" />
                 <Stack.Screen name="admin/command-center/incidents" />
                 <Stack.Screen name="admin/command-center/readiness" />

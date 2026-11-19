@@ -10,6 +10,7 @@ import {
 import {
   supabase,
 } from '@/lib/supabase';
+import { loadBuklodCanonicalDisplayName } from '@/lib/buklodCanonicalName';
 import {
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
@@ -230,15 +231,7 @@ async function resolvePushUser():
       data.session?.user;
 
     if (authUser?.id) {
-      const name = resolvePersonDisplayName(
-        {
-          full_name:
-            authUser.user_metadata?.full_name ??
-            authUser.user_metadata?.name,
-          username: authUser.email,
-        },
-        authUser.id,
-      );
+      const name = await loadBuklodCanonicalDisplayName(authUser.id);
 
       await rememberStreamPushUser(
         authUser.id,

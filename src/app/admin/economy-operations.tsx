@@ -364,6 +364,17 @@ export default function AdminEconomyOperationsScreen() {
           <Text style={styles.backText}>BACK</Text>
         </Pressable>
 
+        <Pressable
+          onPress={() => router.push('/admin/identity-verification' as any)}
+          style={{ padding: 12, marginBottom: 10, backgroundColor: '#E5F2E8', borderRadius: 9 }}
+        >
+          <Text style={{ color: '#245C3B', fontSize: 13, fontWeight: '900' }}>
+            REVIEW GOVERNMENT IDS
+          </Text>
+          <Text style={{ color: '#53725E', fontSize: 11 }}>
+            Approve real names before allowing cash withdrawals.
+          </Text>
+        </Pressable>
         <View style={styles.hero}>
           <View style={{ flex: 1 }}>
             <Text style={styles.eyebrow}>SYSTEM ADMIN Ã‚Â· ECONOMY OPERATIONS</Text>
