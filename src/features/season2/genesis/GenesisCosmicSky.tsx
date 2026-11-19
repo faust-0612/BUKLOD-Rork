@@ -80,3 +80,54 @@ const styles = StyleSheet.create({
   fragmentInner: { height: 1, width: '72%', backgroundColor: '#F4D8A2', shadowColor: '#FFE6A1',
     shadowOpacity: .8, shadowRadius: 8 },
 });
+
+/** Luminous orbital halo: scalable vector artwork, GPU-composited and focus-gated.
+ * Light and atmosphere move; low-resolution character thumbnails never impersonate animation rigs.
+ * Only real approved .riv rigs are animated by GenesisRiveCharacter. */
+export function GenesisOrbitHalo({active,size=260}:{active:boolean;size?:number}) {
+  const allowMotion = useGenesisMotionAllowed(active,'balanced','character');
+  const phase = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    phase.stopAnimation();
+    phase.setValue(0);
+    if (!allowMotion) return;
+    const loop=Animated.loop(Animated.sequence([
+      Animated.timing(phase,{toValue:1,duration:4400,easing:Easing.inOut(Easing.sin),useNativeDriver:true}),
+      Animated.timing(phase,{toValue:0,duration:4400,easing:Easing.inOut(Easing.sin),useNativeDriver:true}),
+    ]));
+    loop.start();
+    return () => { loop.stop(); phase.stopAnimation(); };
+  },[allowMotion,phase]);
+  const opacity=phase.interpolate({inputRange:[0,1],outputRange:[0.68,0.96]});
+  const scale=phase.interpolate({inputRange:[0,1],outputRange:[0.97,1.04]});
+  return <Animated.View pointerEvents="none" accessibilityElementsHidden
+    style={{position:'absolute',right:'-5%',top:'8%',width:size,height:size,opacity,transform:[{scale}]}}>
+    <Svg width="100%" height="100%" viewBox="0 0 260 260">
+      <Defs>
+        <RadialGradient id="genesisHaloInner" cx="50%" cy="52%" rx="50%" ry="50%">
+          <Stop offset="0" stopColor="#FFF0BD" stopOpacity=".42"/>
+          <Stop offset=".34" stopColor="#7F87CC" stopOpacity=".24"/>
+          <Stop offset=".72" stopColor="#45A2C7" stopOpacity=".08"/>
+          <Stop offset="1" stopColor="#020B22" stopOpacity="0"/>
+        </RadialGradient>
+        <SvgLinearGradient id="genesisHaloOrbit" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#D2EDFF" stopOpacity=".05"/>
+          <Stop offset=".5" stopColor="#FFF2C7" stopOpacity=".92"/>
+          <Stop offset="1" stopColor="#6BCBCF" stopOpacity=".14"/>
+        </SvgLinearGradient>
+      </Defs>
+      <Ellipse cx="130" cy="130" rx="127" ry="127" fill="url(#genesisHaloInner)"/>
+      <Ellipse cx="130" cy="132" rx="116" ry="37" transform="rotate(-29 130 132)"
+        stroke="url(#genesisHaloOrbit)" strokeWidth="1.8" fill="none"/>
+      <Ellipse cx="130" cy="132" rx="99" ry="23" transform="rotate(38 130 132)"
+        stroke="#9BE6E4" strokeOpacity=".38" strokeWidth=".85" fill="none"/>
+      <Path d="M130 0 V260 M0 130 H260 M40 40 L220 220 M40 220 L220 40"
+        stroke="#FFEAC0" strokeOpacity=".15" strokeWidth=".8"/>
+      <Path d="M19 155 Q127 7 246 82" stroke="#E5B7FF" strokeOpacity=".26"
+        strokeWidth="13" fill="none"/>
+      <Ellipse cx="130" cy="130" rx="15" ry="15" fill="#FFF1C3" opacity=".19"/>
+      <Rect x="127.5" y="17" width="5" height="20" rx="2.5" fill="#FFF2D2" opacity=".6"/>
+      <Rect x="227" y="125" width="19" height="2" rx="1" fill="#9BE7FF" opacity=".66"/>
+    </Svg>
+  </Animated.View>;
+}
