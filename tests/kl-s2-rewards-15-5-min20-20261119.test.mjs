@@ -59,20 +59,20 @@ test('Staged KL composer consistently requires 20 characters before submitting',
 });
 
 test('S2 server blocks out-of-order read sessions and credits only unlocked numbered chapters', () => {
-  assert.match(s2, /CREATE OR REPLACE FUNCTION private\\.kl_s2_previous_chapter_complete_v1/);
-  assert.match(s2, /previous\\.episode_number=chapter\\.episode_number-1/);
-  assert.match(s2, /sessions\\.completed_at IS NOT NULL/);
-  assert.match(s2, /BEFORE INSERT OR UPDATE OF episode_id ON public\\.kl_reading_sessions/);
-  assert.match(s2, /IF NOT private\\.kl_s2_previous_chapter_complete_v1\\(v_user,p_episode_id\\)/);
-  assert.match(s2, /v_chapter_points:=5\\+v_episode\\.episode_number/);
-  assert.match(s2, /CREATE OR REPLACE FUNCTION public\\.kl_s2_chapter_access_v1/);
-  assert.match(s2, /IF NOT private\\.kl_s2_previous_chapter_complete_v1\\(v_uid,v_episode\\)/);
+  assert.match(s2, /CREATE OR REPLACE FUNCTION private\.kl_s2_previous_chapter_complete_v1/);
+  assert.match(s2, /previous\.episode_number=chapter\.episode_number-1/);
+  assert.match(s2, /sessions\.completed_at IS NOT NULL/);
+  assert.match(s2, /BEFORE INSERT OR UPDATE OF episode_id ON public\.kl_reading_sessions/);
+  assert.match(s2, /IF NOT private\.kl_s2_previous_chapter_complete_v1\(v_user,p_episode_id\)/);
+  assert.match(s2, /v_chapter_points:=5\+v_episode\.episode_number/);
+  assert.match(s2, /CREATE OR REPLACE FUNCTION public\.kl_s2_chapter_access_v1/);
+  assert.match(s2, /IF NOT private\.kl_s2_previous_chapter_complete_v1\(v_uid,v_episode\)/);
   assert.doesNotMatch(s2, /max_points_per_event=15/);
 });
 
 test('Large inline chapter banner is below user comments and obeys safe ad viewport', () => {
   assert.ok(screen.indexOf('comments.map((comment)') < screen.indexOf('placementId="kl_chapter_discussion_inline"'));
   assert.match(screen, /format="inline"/);
-  assert.match(screen, /maxHeight=\\{250\\}/);
+  assert.match(screen, /maxHeight=\{250\}/);
   assert.match(screen, /requireViewport/);
 });
