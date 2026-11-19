@@ -5,9 +5,12 @@ import {
   Easing,
   Platform,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { GenesisAtmosphere } from '@/features/season2/genesis/GenesisVisuals';
+import { GENESIS_IDENTITY, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import BuklodCenteredBrandMark, {
   BUKLOD_BRAND_LOGO_NATIVE,
   BUKLOD_BRAND_LOGO_WEB,
@@ -30,6 +33,7 @@ export default function BuklodMainBrandIntro({
   children: React.ReactNode;
 }) {
   const isWeb = Platform.OS === 'web';
+  const genesisPreview = isGenesisPreviewBuild();
 
   /* BUKLOD_WEB_INTRO_ONCE_PER_TAB_R2
    * The web startup brand is a boot-only experience. Browser back/forward
@@ -205,10 +209,13 @@ export default function BuklodMainBrandIntro({
           importantForAccessibility="no-hide-descendants"
           style={[
             isWeb ? styles.overlay : styles.nativeOverlay,
+            genesisPreview ? styles.genesisOverlay : null,
             { opacity: screenOpacity },
           ]}
         >
+          {genesisPreview ? <GenesisAtmosphere active={false} quality="minimal" surface="home" /> : null}
           <BuklodCenteredBrandMark
+            showTagline={!genesisPreview}
             logoSize={isWeb ? BUKLOD_BRAND_LOGO_WEB : BUKLOD_BRAND_LOGO_NATIVE}
             lockToScreen={!isWeb}
             onLogoLoad={hideNativeSplash}
@@ -218,6 +225,17 @@ export default function BuklodMainBrandIntro({
             }}
             taglineStyle={{ opacity: textOpacity }}
           />
+          {genesisPreview ? (
+            <Animated.View pointerEvents="none" style={[
+              styles.genesisCopy,
+              { top: isWeb ? '73%' : NATIVE_SCREEN.height / 2 + BUKLOD_BRAND_LOGO_NATIVE / 2 + 18 },
+              { opacity: textOpacity },
+            ]}>
+              <Text style={styles.genesisTitle}>GENESIS · SEASON 2</Text>
+              <Text style={styles.genesisQuote}>“{GENESIS_IDENTITY.quote}”</Text>
+              <Text style={styles.genesisVerse}>{GENESIS_IDENTITY.verse}</Text>
+            </Animated.View>
+          ) : null}
         </Animated.View>
       ) : null}
     </View>
@@ -240,6 +258,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFFDF7',
   },
+  genesisOverlay: { backgroundColor: '#050A19' },
+  genesisCopy: { position: 'absolute', left: 18, right: 18, alignItems: 'center' },
+  genesisTitle: { color: '#F3D399', fontSize: 11, letterSpacing: 2,
+    fontWeight: '900', textAlign: 'center' },
+  genesisQuote: { color: '#FFF3D4', fontSize: 19, marginTop: 7,
+    fontWeight: '900', textAlign: 'center' },
+  genesisVerse: { color: '#D3E1FA', fontSize: 11, letterSpacing: 1.2,
+    marginTop: 5, textAlign: 'center' },
   nativeOverlay: {
     position: 'absolute',
     top: 0,

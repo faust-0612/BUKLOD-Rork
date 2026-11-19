@@ -3,14 +3,14 @@
  * for an active season. Production Season 1 behavior is preserved verbatim.
  */
 import {getBuklodGlobalTheme,type BuklodThemeRoles} from '@/lib/buklodTheme';
-import {GENESIS_PALETTE,isGenesisPreviewBuild} from './genesisContract';
+import {GENESIS_IDENTITY,GENESIS_PALETTE,isGenesisPreviewBuild} from './genesisContract';
 
 export const GENESIS_SEASON=Object.freeze({
-  id:'season2-genesis',
-  name:'Genesis: The Beginning',
-  motif:'CREATION | COSMOS | PLANETS | GALAXIES | FIRST LIGHT',
-  verse:'Genesis 1:3',
-  text:'Let there be light',
+  id:GENESIS_IDENTITY.id,
+  name:GENESIS_IDENTITY.title,
+  motif:'GALACTIC CREATION | NEBULAE | PLANETS | GALAXIES | RADIANT FIRST LIGHT',
+  verse:GENESIS_IDENTITY.verse,
+  text:GENESIS_IDENTITY.quote,
   activation:'release-gated',
   premiumAssetsPending:true,
 });

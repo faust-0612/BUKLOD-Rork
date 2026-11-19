@@ -1,0 +1,59 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-let-there-be-light-final-20261120.json",
+  "objective": "Align BUKLOD Season 2 to final owner-approved Genesis: Let There Be Light and the galactic Creation centerpiece, preview-only startup/Home/theme/reward presentation and all eight visual surface contracts.",
+  "baseRef": "200404a6570e339555ca3ff8cdb626e64699e6f1",
+  "productionBaselineEvidence": "Main reference inspected as 551e54602addd6f7bbe7bcdddd1589d35424c964. Exact installed production OTA/runtime was not fetched. Derived from isolated DEV source 200404a6570e339555ca3ff8cdb626e64699e6f1; no main, production, web or OTA mutation.",
+  "chosenApproach": "Patch newer cosmic Creation DEV implementation rather than mixing diverged/stale botanical branches; centralize title and visual tokens, guard native/web startup appearance and fix missing goldLight color.",
+  "alternativeApproaches": [
+    "Merge other Genesis branch wholesale (rejected due diverged history and older botanical motif)",
+    "Enable in production immediately (rejected: Season 2 embargo and unverified ad/nav/Android gates)"
+  ],
+  "selectionRationale": "Small presentation-only delta preserves legacy app/runtime and provides a single seasonal source of truth.",
+  "riskAreas": [
+    "app-runtime",
+    "theme",
+    "startup",
+    "accessibility",
+    "performance"
+  ],
+  "preserveBehaviors": [
+    "Season 1 runtime, logo, startup timings, security and login unchanged without non-prod preview flag",
+    "AdMob, instant tab navigation, offline media, Connect, Wall, calls and payments unchanged",
+    "Season 2 reward/points/collectible economics and RLS untouched",
+    "Existing no-audio policy for social/ad/call surfaces unchanged",
+    "No native dependency, app.config, channel or OTA change"
+  ],
+  "acceptanceChecks": [
+    "Preview startup and Home show Genesis: Let There Be Light and Genesis 1:3",
+    "Every eight-surface design token defined",
+    "goldLight palette token resolves in reward reveal",
+    "Production preview gate stays false and no theme-selection override leaks to Season 1",
+    "Focused Node tests pass; typecheck, Android device visual QA and ad/navigation tests required prior to any RC"
+  ],
+  "regressionTests": [
+    "tests/buklod-genesis-living-engine.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/features/season2/genesis/genesisContract.ts",
+    "src/features/season2/genesis/seasonThemeAuthority.ts",
+    "src/features/season2/genesis/GenesisVisuals.tsx",
+    "src/features/season2/genesis/GenesisRewardReveal.tsx",
+    "src/components/BuklodMainBrandIntro.tsx",
+    "tests/buklod-genesis-living-engine.test.mjs",
+    "docs/BUKLOD_SEASON2_GENESIS_LIVING_ENGINE_20261120.md",
+    ".buklod/scopes/season2-let-there-be-light-final-20261120.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preview-only seasonal typography/color/intro design",
+      "preservedBehaviors": [
+        "Preserve canonical B logo and live Season 1 behaviour"
+      ],
+      "tests": [
+        "tests/buklod-genesis-living-engine.test.mjs"
+      ]
+    }
+  ]
+}

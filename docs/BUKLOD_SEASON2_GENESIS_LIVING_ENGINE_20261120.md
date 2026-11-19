@@ -1,11 +1,14 @@
-# BUKLOD Season 2 Genesis — Creation Cosmos DEV
+# BUKLOD Season 2 — Genesis: Let There Be Light (FINAL OWNER THEME)
 Date: 2026-11-20 | APP_ID=buklod-main | DEV ONLY | NOT RELEASED
 
-## Owner's approved direction
+## Owner's final approved direction
+**Canonical title: Genesis: Let There Be Light. Central motif: GALACTIC CREATION.**
 Genesis is Creation: radiant origin of light, outer space, planets, nebulae, galaxies, orbits, angular flying light fragments and the biblical words “Let there be light” (Genesis 1:3). Symbolism reveals the Creator by His act of Creation, not by guessing God's appearance.
 The previous botanical/vine/forest proposal is **superseded**.
 
 ## Actual source included on isolated DEV branch
+- Preview-only startup intro carries the canonical Genesis identity and static cosmic scene; it preserves the centered B mark, native unlock and boot timing.
+- Canonical visual tokens cover Home, Wall, Connect, Profile, Bible, Character, Kingdom, and reward scenes.
 - Home /hub hero and background with hand-authored scalable multi-layer SVG cosmic lighting/planets/orbits/nebulae and animated light-fragment streaks, native+web.
 - Existing reward ceremony uses the same Creation motif, with verified reward display still controlled by the caller.
 - Release-controlled season theme authority overrides all global theme colors in Season 2 preview, and hides global, profile accent and personal Home theme selectors. Season 1 remains unchanged when preview is off.
@@ -27,3 +30,9 @@ Requires EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW=true and non-production EXPO
 node --experimental-strip-types --test tests/buklod-genesis-living-engine.test.mjs
 npx tsc --noEmit
 Actual Android render and AdMob/nav regressions are mandatory before declaring quality accepted.
+
+## Final consistency / QA obligation
+- The Season 2 appearance is controlled by the season, never selected individually. Botanical Genesis and the former `The Beginning` title are superseded.
+- Verify contrast, startup, accessibility, navigation, ad first-view, scroll performance and actual Android visual quality before RC.
+- Real multi-character rigs, mastered soundtrack/cinematic SFX, interactive Kingdom galaxy and remaining screen-by-screen artwork integration remain pending. Do not claim ML/COD-level experience or live release.
+- December 6 is the earliest authorized season date, not a background auto-publish trigger.

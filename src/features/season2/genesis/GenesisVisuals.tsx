@@ -4,7 +4,7 @@ import {AccessibilityInfo,Animated,AppState,Easing,Pressable,StyleSheet,Text,Vie
 import Svg,{Defs,RadialGradient,LinearGradient as SvgLinearGradient,Stop,Circle,Ellipse,Rect,Path,G} from 'react-native-svg';
 import {LinearGradient} from 'expo-linear-gradient';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {GENESIS_MOTION_MS,GENESIS_PALETTE,resolveGenesisMotion,type GenesisQuality,type GenesisSurface} from './genesisContract';
+import {GENESIS_IDENTITY,GENESIS_MOTION_MS,GENESIS_PALETTE,resolveGenesisMotion,type GenesisQuality,type GenesisSurface} from './genesisContract';
 
 export function useGenesisMotionAllowed(active:boolean,quality:GenesisQuality='balanced',surface:GenesisSurface='home') {
   const [reduced,setReduced]=useState(false);
@@ -184,9 +184,9 @@ export function GenesisHomeHero({active=true,quality='balanced',onExplore}:{
     <GenesisAtmosphere active={active} quality={quality}/>
     <View style={styles.copy}>
       <Text style={styles.kicker}>BUKLOD · SEASON 2 · CREATION</Text>
-      <Text style={styles.title}>Genesis: The Beginning</Text>
+      <Text style={styles.title}>{GENESIS_IDENTITY.title}</Text>
       <Text style={styles.verse}>“Let there be light.” · Genesis 1:3</Text>
-      <Text style={styles.sub}>The universe awakened at the word of the Creator.</Text>
+      <Text style={styles.sub}>{GENESIS_IDENTITY.subtitle}</Text>
       {onExplore ? <View style={{marginTop:12}}>
         <GenesisLivingButton label="Explore the Kingdom" onPress={onExplore}/>
       </View>:null}

@@ -61,7 +61,7 @@ export default function GenesisRewardReveal({ visible, onClose, title, message, 
   );
 }
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(2,12,10,.86)', alignItems: 'center',
+  backdrop: { flex: 1, backgroundColor: 'rgba(2,5,19,.86)', alignItems: 'center',
     justifyContent: 'center', paddingHorizontal: 20 },
   frame: { width: '100%', maxWidth: 420, borderRadius: 25, overflow: 'hidden', borderWidth: 1,
     borderColor: '#C7A567' },
@@ -80,5 +80,5 @@ const styles = StyleSheet.create({
   action: { minHeight: 46, marginTop: 22, backgroundColor: '#DBBB78', borderRadius: 12,
     alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   actionText: { color: '#0C1730', fontSize: 13, fontWeight: '900', letterSpacing: 1.4 },
-  disclaimer: { fontSize: 10, lineHeight: 14, marginTop: 12, color: '#B3CABE', textAlign: 'center' },
+  disclaimer: { fontSize: 10, lineHeight: 14, marginTop: 12, color: '#B6C6E1', textAlign: 'center' },
 });
