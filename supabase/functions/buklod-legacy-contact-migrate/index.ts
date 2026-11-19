@@ -62,8 +62,17 @@ Deno.serve(async req=>{
   const mailReady=!!(Deno.env.get('RESEND_API_KEY')&&Deno.env.get('RECOVERY_FROM_EMAIL'));
   const smsReady=!!(Deno.env.get('TWILIO_ACCOUNT_SID')&&Deno.env.get('TWILIO_AUTH_TOKEN')
     &&Deno.env.get('TWILIO_VERIFY_SERVICE_SID'));
-  if(action==='status') return json({ok:true,needsMigration,emailReady:mailReady,smsReady,
-    verificationRequired:true,unchangedUserId:true});
+  if(action==='status') {
+    const {data:pending,error:pendingError}=await admin.from('buklod_login_contact_challenges_v1')
+      .select('id,channel,destination,status,expires_at')
+      .eq('user_id',user.id).in('status',['PENDING','VERIFIED'])
+      .order('created_at',{ascending:false}).limit(1).maybeSingle();
+    return json({ok:true,needsMigration,emailReady:mailReady,smsReady,
+      verificationRequired:true,unchangedUserId:true,
+      pendingChallenge:!pendingError&&pending&&after(pending.expires_at)?
+        {id:pending.id,channel:pending.channel,status:pending.status,
+          destinationHint:masked(pending.destination,pending.channel)}:null});
+  }
   if(!needsMigration) return json({ok:true,alreadyMigrated:true,message:'Email/mobile login already active'});
   if(!['request','verify','finalize'].includes(action))
     return json({ok:false,message:'Unknown action'},400);
