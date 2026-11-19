@@ -19,6 +19,8 @@ test('stage workflow has nonprod source, hosted identity, and no OTA push',()=>{
  assert.match(w,/secrets\.EXPO_TOKEN/);
  assert.match(w,/secrets\.STAGING_FIREBASE_JSON_B64/);
  assert.match(w,/secrets\.STAGING_SUPABASE_URL/);
+ assert.match(w,/env:pull --environment preview/);
+ assert.match(w,/data\.client=clients/);
  assert.match(w,/npx tsc --noEmit/);
  assert.match(w,/npx expo export --platform android/);
  assert.match(w,/build --platform android --profile season2-genesis-preview/);

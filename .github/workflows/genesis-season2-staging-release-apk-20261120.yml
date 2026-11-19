@@ -38,6 +38,43 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Resolve existing staging Firebase client and EAS preview env, never PROD backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'BLOCK: Expo token absent'; exit 1; }
+          if [ -n "${STAGING_FIREBASE_JSON_B64:-}" ]; then
+            printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
+          else
+            node <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const data=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          const clients=(data.client||[]).filter(c=>c.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging');
+          assert.equal(clients.length,1,'Missing a registered staging-only Android Firebase app');
+          data.client=clients; // Drop all production/classroom Android clients from ephemeral staging file.
+          fs.writeFileSync('google-services.staging.json',JSON.stringify(data));
+          NODE
+          fi
+          if [ -z "${EXPO_PUBLIC_SUPABASE_URL:-}" ] || [ -z "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-genesis-stage-preview.env --non-interactive
+            node <<'NODE'
+          const fs=require('node:fs');
+          const raw=fs.readFileSync('/tmp/buklod-genesis-stage-preview.env','utf8');
+          const env={};
+          for(const l of raw.split(/\r?\n/)){
+            const m=l.match(/^([A-Z][A-Z0-9_]*)=(.*)$/);
+            if(!m)continue;
+            const v=m[2].trim();
+            env[m[1]]=v[0]==='"'&&v.at(-1)==='"'?JSON.parse(v):v[0]==="'"&&v.at(-1)==="'"?v.slice(1,-1):v;
+          }
+          const url=env.EXPO_PUBLIC_SUPABASE_URL||process.env.EXPO_PUBLIC_SUPABASE_URL;
+          const key=env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+          if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url||'')||url.includes('yhanxndaqbmuzbdqlblu')||
+             !/^sb_publishable_/i.test(key||'')) throw Error('No valid isolated staging Supabase env in Expo preview; no APK');
+          fs.appendFileSync(process.env.GITHUB_ENV,'EXPO_PUBLIC_SUPABASE_URL='+url+'\n'+'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY='+key+'\n');
+          console.log('Found valid non-production EAS preview environment');
+          NODE
+          fi
       - name: Fail closed before any external build if staging isolation or credentials missing
         shell: bash
         run: |
@@ -45,12 +82,11 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git merge-base HEAD 06db398e0dc936250dd680fac160d2bfe7b116eb)" = 06db398e0dc936250dd680fac160d2bfe7b116eb
           test -n "${EXPO_TOKEN:-}" || { echo 'BLOCK: no Expo staging token; no APK'; exit 1; }
-          test -n "${STAGING_FIREBASE_JSON_B64:-}" || { echo 'BLOCK: no staging Firebase client; no APK'; exit 1; }
+          test -s google-services.staging.json || { echo 'BLOCK: no staging Firebase client; no APK'; exit 1; }
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" || { echo 'BLOCK: no staging publishable key'; exit 1; }
           [[ "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" == sb_publishable_* ]] || { echo 'BLOCK: no public staging key'; exit 1; }
           [[ "$EXPO_PUBLIC_SUPABASE_URL" =~ ^https://[a-z0-9-]+\.supabase\.co$ ]] || { echo 'BLOCK: malformed staging backend'; exit 1; }
           [[ "$EXPO_PUBLIC_SUPABASE_URL" != *yhanxndaqbmuzbdqlblu* ]] || { echo 'BLOCK: cannot use BUKLOD MAIN production Supabase for staging build'; exit 1; }
-          printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
           node <<'NODE'
           const assert=require('node:assert/strict');
           const firebase=require('./google-services.staging.json');

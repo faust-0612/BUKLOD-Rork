@@ -95,8 +95,9 @@
     "Ad/navigation behavior remains intact by source and later device QA",
     "Node proof runnable in CI; signed Android APK/device verification pending",
     "Build GitHub Actions checks actual Expo preview identity and staging Supabase/Firebase before any EAS credit use",
-    "Actual signed APK and runtime on device remain unverified until separate build receipt and QA"
+    "Actual signed APK and runtime on device remain unverified until separate build receipt and QA",
+    "If GitHub staging secrets are missing, use existing registered staging-only Firebase client and EAS preview env, fail if isolated Supabase key absent"
   ],
   "releaseMode": "DEV_ONLY",
-  "releaseStatus": "SOURCE_READY_CI_PENDING_APK_AND_OTA_HOLD"
+  "releaseStatus": "STAGING_BUILD_RETRIED_WITH_EAS_PREVIEW_FALLBACK_NO_OTA"
 }
