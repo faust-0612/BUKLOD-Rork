@@ -121,6 +121,23 @@
       "limitations": [
         "Embargo until Dec6 and separate exact SHA owner approval"
       ]
+    },
+    {
+      "id": "weekly_performance_classification",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "PR-965",
+        "src/lib/season2/buklodWeeklyPerformanceRulesR1.ts",
+        "src/components/season2/BuklodWeeklyPerformanceCard.tsx",
+        "tests/season2-weekly-performance-class-rewards-20261119.test.mjs",
+        "tests/season2-weekly-performance-local-postgres-20261119.sql"
+      ],
+      "limitations": [
+        "Backend SQL is reviewable staging candidate under docs/season2/sql, NOT deployed to any Supabase environment",
+        "Current branch/QA is nonpublishing and reward grants intentionally disabled",
+        "No dedicated BUKLOD MAIN staging database connection/device AdMob verification; keep feature and rewards non-live"
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
