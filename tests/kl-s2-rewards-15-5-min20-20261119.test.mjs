@@ -15,8 +15,9 @@ test('Season 1 verified KL reward history and series bonus remain unchanged', ()
   assert.match(s1, /v_user,50,'kl_season_completion'/);
   assert.match(s2, /VALUES\(1,false,'2026-12-06 00:00:00\+08'/);
   assert.match(s2, /enabled boolean NOT NULL DEFAULT false/);
-  assert.match(s2, /IF private\.kl_s2_rewards_enabled_v1\(\) THEN v_chapter_points:=15/);
+  assert.match(s2, /v_chapter_points:=5\+v_episode\.episode_number/);
   assert.match(s2, /v_chapter_points integer:=10/);
+  assert.match(s2, /SET base_points=5,max_points_per_event=35/);
   assert.match(s2, /IF NEW\.enabled AND now\(\)<NEW\.effective_at THEN/);
   assert.doesNotMatch(s2, /UPDATE public\.buklod_points_ledger\b/i);
 });
@@ -49,10 +50,29 @@ test('Comment reward is backend-only, one credit per user per chapter, not for s
 
 test('Staged KL composer consistently requires 20 characters before submitting', () => {
   assert.match(types, /KL_S2_COMMENT_MIN_CHARS = 20/);
-  assert.match(types, /chapter: 15, firstQualifiedComment: 5/);
+  assert.match(types, /chapterBase: 5, perChapterStep: 1, firstQualifiedComment: 5/);
   assert.match(screen, /draft\.trim\(\)\.length < KL_S2_COMMENT_MIN_CHARS/);
   assert.match(social, /trimmed\.length < KL_S2_COMMENT_MIN_CHARS/);
   assert.match(copy, /20–500 karakter/);
   assert.doesNotMatch(copy, /12–500 karakter/);
   assert.match(screen, /draft\.trim\(\)\.length}\/\{KL_S2_COMMENT_MIN_CHARS}/);
+});
+
+test('S2 server blocks out-of-order read sessions and credits only unlocked numbered chapters', () => {
+  assert.match(s2, /CREATE OR REPLACE FUNCTION private\\.kl_s2_previous_chapter_complete_v1/);
+  assert.match(s2, /previous\\.episode_number=chapter\\.episode_number-1/);
+  assert.match(s2, /sessions\\.completed_at IS NOT NULL/);
+  assert.match(s2, /BEFORE INSERT OR UPDATE OF episode_id ON public\\.kl_reading_sessions/);
+  assert.match(s2, /IF NOT private\\.kl_s2_previous_chapter_complete_v1\\(v_user,p_episode_id\\)/);
+  assert.match(s2, /v_chapter_points:=5\\+v_episode\\.episode_number/);
+  assert.match(s2, /CREATE OR REPLACE FUNCTION public\\.kl_s2_chapter_access_v1/);
+  assert.match(s2, /IF NOT private\\.kl_s2_previous_chapter_complete_v1\\(v_uid,v_episode\\)/);
+  assert.doesNotMatch(s2, /max_points_per_event=15/);
+});
+
+test('Large inline chapter banner is below user comments and obeys safe ad viewport', () => {
+  assert.ok(screen.indexOf('comments.map((comment)') < screen.indexOf('placementId="kl_chapter_discussion_inline"'));
+  assert.match(screen, /format="inline"/);
+  assert.match(screen, /maxHeight=\\{250\\}/);
+  assert.match(screen, /requireViewport/);
 });
