@@ -26,7 +26,8 @@
   "regressionTests": [
     "tests/buklod-silent-ota-policy.test.mjs",
     "tests/ota-restart-safe-area.test.cjs",
-    "tests/buklod-mandatory-update-runtime.test.mjs"
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodOtaFreshnessHost.native.tsx",
@@ -37,7 +38,9 @@
     "release/genesis-native-build-inventory-20261120.json",
     ".github/workflows/genesis-android-compile-smoke-20261120.yml",
     ".github/workflows/genesis-season2-staging-release-apk-20261120.yml",
-    ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json"
+    ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json",
+    "modules/buklod-genesis-ime/android/build.gradle",
+    "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -48,7 +51,8 @@
       ],
       "tests": [
         "tests/buklod-silent-ota-policy.test.mjs",
-        "tests/ota-restart-safe-area.test.cjs"
+        "tests/ota-restart-safe-area.test.cjs",
+        "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs"
       ]
     },
     {
@@ -69,7 +73,8 @@
     "TypeScript, build identity, source gates and Android native compile must pass",
     "Native signed staging APK requires valid isolated Firebase/Supabase/Expo credentials; fail closed if absent",
     "Actual installed native Android first-view AdMob and navigation tests must pass before OTA publication",
-    "No production/Play/DB/points/finance edits; Season 2 embargo preserved"
+    "No production/Play/DB/points/finance edits; Season 2 embargo preserved",
+    "Local GIF IME Gradle configuration must explicitly expose versionCode 1 and versionName 1.0.0 before Kotlin/Gradle build"
   ],
   "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
   "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",
