@@ -32,7 +32,8 @@
   ],
   "regressionTests": [
     "tests/admin-new-registration-inbox-20261119.test.cjs",
-    "tests/admin-registration-security-20261119.test.cjs"
+    "tests/admin-registration-security-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs"
   ],
   "allowedPaths": [
     "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
@@ -42,7 +43,8 @@
     "tests/admin-new-registration-inbox-20261119.test.cjs",
     ".buklod/scopes/admin-new-registration-inbox-20261119.json",
     "docs/BSOC_OWNER_BULK_RESOLUTION_20261119.md",
-    "tests/admin-registration-security-20261119.test.cjs"
+    "tests/admin-registration-security-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -62,7 +64,7 @@
         "Existing notification routing, authenticated destinations, signup and Connect behavior stay unchanged."
       ],
       "tests": [
-        "tests/admin-new-registration-inbox-20261119.test.cjs"
+        "tests/admin-registration-notification-route-20261119.test.cjs"
       ]
     },
     {
