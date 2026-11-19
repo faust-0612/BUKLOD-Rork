@@ -58,3 +58,9 @@ test('Season2 economy and completion remain off until explicitly approved and on
  assert.match(seq,/IF NOT private\.kl_s2_rewards_enabled_v1\(\) THEN/);
  assert.doesNotMatch(seq,/UPDATE private\.kl_s2_reward_rollout/);
 });
+
+test('existing quiz attempts and old clients cannot bypass S2 progression or 2-hour limit',()=>{
+ assert.match(seq,/AND NOT private\.kl_s2_previous_chapter_complete_v1\(v_user,p_episode_id\)/);
+ assert.match(seq,/AND NOT private\.kl_s2_previous_chapter_complete_v1\(auth\.uid\(\),v\.episode_id\)/);
+ assert.match(seq,/NOT private\.kl_s2_rewards_enabled_v1\(\) AND\s+v\.started_at<now\(\)-interval '2 hours'/);
+});
