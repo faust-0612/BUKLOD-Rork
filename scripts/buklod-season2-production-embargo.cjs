@@ -20,7 +20,8 @@ const FORBIDDEN_PATHS=Object.freeze([
   'src/lib/buklodDailyCommitmentPolicyR1.ts',
   'src/lib/buklodSeason2Campaign.ts',
   'src/components/season2',
-  'src/app/season2'
+  'src/app/season2',
+  'src/features/season2/genesis'
 ]);
 const FORBIDDEN_IMPORT_MARKERS=Object.freeze([
   'BUKLOD_SEASON2_CAMPAIGN',
