@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-final-theme-reconciliation-20261120.json",
+  "objective": "Align BUKLOD Genesis: Let There Be Light with the newest owner-approved seasonal authority. Fix lingering Connect/theme/background overrides and public header linework. DEV preview only; do not merge old Seed of Glory or selectable theme branch.",
+  "baseRef": "dev/season2-let-there-be-light-final-20261120",
+  "productionBaselineEvidence": "No production OTA touched; branch rooted at owner-approved isolated final Genesis PR #1006 head b3ff1c7f9294c30a072f6d5f1cc4cd24a937b954. Source comparison is not deployed runtime verification.",
+  "chosenApproach": "Narrow targeted fixes under existing Season 2 preview gate, preserve saved legacy appearance values without applying them while theme is season-locked.",
+  "alternativeApproaches": [
+    "Merge previous botanical/nine-palette branch wholesale (rejected: superseded by final galactic theme)",
+    "Mutate production appearance settings now (rejected: Season2 production embargo)",
+    "Import unverified premium asset branch before focused consistency fixes (rejected: separate artwork/rig QA)"
+  ],
+  "selectionRationale": "Reconcile actual current implementation without touching public production behavior, rewards, ads, auth or dependencies.",
+  "riskAreas": [
+    "Connect chat contrast",
+    "legacy saved backgrounds",
+    "main header responsiveness",
+    "accessibility",
+    "release isolation"
+  ],
+  "preserveBehaviors": [
+    "Season 1 live user appearance selectors, saved preferences and custom chat backgrounds remain unchanged when preview gate is off",
+    "Season 2 palette owned by season on Home, Wall, Connect, Profile, Bible and linked gameplay surfaces",
+    "AdMob first-view, instant tab navigation and all ads unaffected",
+    "Media render, videos, calls, composers, auth, reward ledger, payouts, RLS and database unchanged",
+    "No production/main/staging/RC, channel, SDK, dependency or Expo config change"
+  ],
+  "acceptanceChecks": [
+    "Canonical theme title Genesis: Let There Be Light throughout active Season 2 preview",
+    "Preexisting personal Messages/Background choice cannot alter season-locked chat palette or canvas",
+    "Connect and global selectors hidden only in Genesis preview and restored in ordinary Season1 mode",
+    "Public header shows line-art galactic orbit only in Genesis preview; icons remain clickable and body text stays readable",
+    "Season2 preview cannot activate in production even if flag is supplied",
+    "Source tests, TypeScript, device UI, AdMob/navigation smoke and release gates required before any OTA"
+  ],
+  "regressionTests": [
+    "tests/buklod-genesis-living-engine.test.mjs",
+    "tests/buklod-season2-theme-reconciliation-20261120.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/features/season2/genesis/seasonThemeAuthority.ts",
+    "src/providers/ConnectThemeProvider.tsx",
+    "src/providers/ChatBackgroundProvider.tsx",
+    "src/components/connect/ConnectThemeSelector.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "tests/buklod-season2-theme-reconciliation-20261120.test.mjs",
+    "docs/BUKLOD_SEASON2_FINAL_THEME_RECONCILIATION_20261120.md",
+    ".buklod/scopes/season2-final-theme-reconciliation-20261120.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "theme",
+      "reason": "Final approved Season2 seasonal appearance",
+      "preservedBehaviors": [
+        "Preserve existing Season1 theme choice and all saved settings outside explicit nonproduction preview"
+      ],
+      "tests": [
+        "tests/buklod-season2-theme-reconciliation-20261120.test.mjs"
+      ]
+    }
+  ],
+  "releaseRestrictions": {
+    "productionEmbargo": "2026-12-06 00:00 Asia/Manila earliest possible date, not autoactivation",
+    "requires": "Separate owner SHA-bound authorization, exact staging RC and on-device ad/navigation acceptance",
+    "status": "DEV-only, not approved for RC or production"
+  }
+}
