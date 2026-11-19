@@ -82,7 +82,8 @@ jobs:
       - name: Guard source scope and run free focused contracts
         run: |
           node scripts/test-bsoc-ai-contracts.cjs
-          CHANGED="$(git diff --name-only)"
+          # Include newly created and deleted files, not just tracked diffs.
+          CHANGED="$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )"
           if [ -z "$CHANGED" ]; then
             echo 'No reproducible correction generated. Do not create fake fix PR.'
             exit 1
@@ -92,6 +93,9 @@ jobs:
               src/*|tests/*|scripts/test-*.cjs) ;;
               *) echo "DENIED out-of-scope file: $file"; exit 1 ;;
             esac
+            if [ -L "$file" ]; then
+              echo "DENIED symlink: $file"; exit 1
+            fi
           done <<< "$CHANGED"
           git diff --check
       - name: Open separate DEV pull request, never merge or publish
