@@ -51,7 +51,7 @@ export default function BuklodSeason2ProverbsDailyVerse({ enabled }: Props) {
     }
     void (async () => {
       try {
-        const { data, error } = await withBuklodTimeout(
+        const { data, error } = await withBuklodTimeout<{ data?: unknown; error?: unknown }>(
           (supabase as any).rpc('get_bible_chapter', {
             p_translation_code: 'ASD',
             p_book_no: 20,
