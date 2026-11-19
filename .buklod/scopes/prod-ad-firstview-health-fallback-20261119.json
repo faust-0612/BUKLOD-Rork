@@ -62,7 +62,8 @@
     "Silently fabricate missing AdMob impressions in client telemetry (rejected: dishonest and violates revenue integrity)."
   ],
   "riskAreas": [
-    "ads-finance-points",
-    "app-runtime"
+    "ads-monetization",
+    "app-runtime",
+    "ads-finance-points"
   ]
 }
