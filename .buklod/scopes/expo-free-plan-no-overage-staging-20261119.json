@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/expo-free-plan-no-overage-staging-20261119.json",
+  "objective": "Unblock no-charge BUKLOD staging OTA on independently verified Expo Free-plan identity when optional EAS CLI estimated charge fields are absent, without allowing a paid plan, changing OTA channels, permitting any charged billing, releasing Season2 rewards or touching production.",
+  "baseRef": "7ee523902ea1657790b0cfee74ced26dd982bef0",
+  "productionBaselineEvidence": "Expo Free accounts cannot incur overage charges according to current official Expo billing documentation https://docs.expo.dev/billing/plans/#plans and https://docs.expo.dev/billing/faq/#what-happens-when-i-use-up-the-free-plans-monthly-quota. Prior EAS staging run 44476334903 already independently established canonical owner faust_0612 and Free plan, then blocked at NONZERO_OR_UNKNOWN_BILLING because EAS CLI estimated charges fields were missing/unknown. No OTA yet published; exact production main aa3aa734b15f6cc2a64fbbbed3dfdd7d4db9539c stays unchanged.",
+  "chosenApproach": "Preserve live EAS account:usage fetch, exact owner, exact Free plan, and fail-closed rejection of any explicitly nonzero or malformed estimated amount; tolerate absent optional usage estimates under Expo's Free no-overage guarantee. Retain original stage Android signed binary/runtime/channel/manifest and unchanged production release checks; no purchase, plan change, dependency change, native build or OTA trigger in this PR.",
+  "alternativeApproaches": [
+    "Remove Expo account identity checks entirely (rejected: could run on paid plan and incur charges).",
+    "Keep requiring EAS CLI optional estimates, repeatedly failing the verified Free plan without publication (rejected: schema mismatch with guaranteed Free no-overage).",
+    "Add a paid plan or paid EAS build (rejected: user has no release budget).",
+    "Skip actual staging and run production OTA without served-channel verification (rejected: breaks release sequencing and safety)."
+  ],
+  "selectionRationale": "Provider's Free-plan no-overage guarantee is authoritative while estimated dollar amounts are optional and not proof of Free identity. Verified owner + plan remain mandatory, explicit nonzero still stops, and actual OTA server identity remains mandatory.",
+  "riskAreas": [
+    "staging-release",
+    "expo-free-billing",
+    "production-isolation",
+    "season2-embargo"
+  ],
+  "regressionTests": [
+    "tests/season2-expo-free-plan-release-20261119.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/expo-free-plan-no-overage-staging-20261119.json",
+    "scripts/season2-expo-free-plan-guard.cjs",
+    "tests/season2-expo-free-plan-release-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "Free plan is required from real Expo account:usage for faust_0612 on every publish attempt; never silently trust an environment variable or owner claim.",
+    "Never allow paid/unknown plans or any explicitly nonzero, malformed, negative or string-typed reported estimated costs.",
+    "EAS quota exhaustion remains provider-enforced; do not upgrade plans or buy credits.",
+    "Staging channel is staging-user, exact runtime 1.3.2, exact staging package org.mzbministry.buklod.staging, production channel and reward core unchanged.",
+    "Season2 is preview-only; production Season1 and existing rewards remain unchanged.",
+    "Secret usage JSON remains private and is deleted after checking."
+  ],
+  "acceptanceChecks": [
+    "Focused tests accept missing account:usage optional estimated fields on proven Free account, while rejecting unknown/paid plans and any explicitly nonzero/malformed reports.",
+    "Governance source gate and Main-side QA pass; no change to EAS staging publish workflow or release marker before separate trigger.",
+    "No new paid build, account upgrade or paid EAS action; ensure actual signed staging build, served channel manifest, release Update ID, runtime and unchanged production are verified after release.",
+    "If EAS rejects Free-plan quota or channel identity cannot be verified, abort without asserting deployment."
+  ],
+  "releaseTarget": "STAGING RELEASE GUARD ONLY — no OTA trigger or main deployment in this PR",
+  "publicationStatus": "SOURCE_PATCH_NOT_PUBLISHED",
+  "productionChange": false,
+  "backendRewardsLive": false
+}

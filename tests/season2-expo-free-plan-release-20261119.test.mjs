@@ -8,22 +8,36 @@ const read=(p)=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const workflow=read('.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml');
 const release=JSON.parse(read('.buklod/releases/season2-conso-staging-20261119.json'));
 const freeFixture={account:{name:'faust_0612',plan:'Free'},billing:{estimated:{recurringCents:0,overageCents:0,totalCents:0}},updates:{overageCostCents:0}};
-test('only canonical Expo account with actual CLI Free plan & no estimated charges qualifies',()=>{
-  assert.equal(EXPECTED_EXPO_OWNER,'faust_0612');
-  assert.equal(inspectFreePlan(freeFixture).free,true);
-  assert.equal(inspectFreePlan({...freeFixture,billing:{estimated:{...freeFixture.billing.estimated,recurringCents:null}}}).free,true);
-  for(const v of [
-    null,{},[],{plan:'Free'},
-    {...freeFixture,account:{name:'other_user',plan:'Free'}},
-    {...freeFixture,account:{name:'faust_0612',plan:'Starter'}},
-    {...freeFixture,account:{name:'faust_0612',plan:'Production'}},
-    {...freeFixture,account:{name:'faust_0612',plan:null}},
-    {...freeFixture,billing:{estimated:{...freeFixture.billing.estimated,overageCents:1}}},
-    {...freeFixture,billing:{estimated:{...freeFixture.billing.estimated,totalCents:1}}},
-    {...freeFixture,billing:{estimated:{...freeFixture.billing.estimated,recurringCents:1}}},
-    {...freeFixture,updates:{overageCostCents:1}},
-    {...freeFixture,updates:{}}
-  ])assert.equal(inspectFreePlan(v).free,false,JSON.stringify(v));
+test('canonical Free identity qualifies when optional estimated usage fields are omitted', () => {
+  assert.equal(EXPECTED_EXPO_OWNER, 'faust_0612');
+  assert.equal(inspectFreePlan(freeFixture).free, true);
+  for (const value of [
+    { account: { name:'faust_0612', plan:'Free' } },
+    { account: { name:'faust_0612', plan:'free' }, billing: {}, updates: {} },
+    { ...freeFixture, billing: { estimated: { recurringCents:null } }, updates:{} },
+    { ...freeFixture, billing: { estimated: { totalCents:0 } } },
+    { ...freeFixture, billing: null, updates: null },
+  ]) {
+    assert.deepEqual(inspectFreePlan(value), {
+      free:true, reason:'VERIFIED_EXPO_FREE_PLAN_NO_OVERAGE',
+    });
+  }
+});
+test('unknown/paid Expo accounts and explicit nonzero or malformed charges still fail closed', () => {
+  for (const v of [
+    null, {}, [], { plan:'Free' },
+    { ...freeFixture, account:{name:'other_user',plan:'Free'} },
+    { ...freeFixture, account:{name:'faust_0612',plan:'Starter'} },
+    { ...freeFixture, account:{name:'faust_0612',plan:'Production'} },
+    { ...freeFixture, account:{name:'faust_0612',plan:null} },
+    { ...freeFixture, billing:{ estimated:{ overageCents:1 } } },
+    { ...freeFixture, billing:{ estimated:{ totalCents:1 } } },
+    { ...freeFixture, billing:{ estimated:{ recurringCents:1 } } },
+    { ...freeFixture, updates:{ overageCostCents:1 } },
+    { ...freeFixture, billing:{ estimated:{ overageCents:-1 } } },
+    { ...freeFixture, billing:{ estimated:{ overageCents:'0' } } },
+    { ...freeFixture, billing:{ estimated:'unknown' } },
+  ]) assert.equal(inspectFreePlan(v).free, false, JSON.stringify(v));
 });
 test('billing gate runs before staging verification and EAS publication, no native EAS build',()=>{
   const guard=workflow.indexOf('node scripts/season2-expo-free-plan-guard.cjs');
