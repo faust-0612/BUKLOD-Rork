@@ -28,7 +28,8 @@
     "supabase/migrations/20261119221000_kl_s2_sequential_no_timer_series_reflection.sql",
     "supabase/migrations/20261119221500_kl_s2_reader_rpc_server_lock.sql",
     "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs",
-    "tests/kl-s2-sequence-database-security-20261119.test.mjs"
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+    "supabase/tests/kl_s2_sequential_quiz_reflection_guard_20261119.sql"
   ],
   "preserveBehaviors": [
     "No changes to current production/Season1 BP, quiz time fallback while Season2 rollout disabled, QMP or cash balances.",
@@ -47,9 +48,8 @@
   ],
   "regressionTests": [
     "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs",
-    "tests/kl-s2-progressive-chapters-ads-20261119.test.mjs",
-    "tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs",
-    "tests/kl-s2-sequence-database-security-20261119.test.mjs"
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+    "supabase/tests/kl_s2_sequential_quiz_reflection_guard_20261119.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -69,7 +69,8 @@
         "Account identity is always auth.uid, anon cannot query private records, old release/admin permission checks retained, no balances or rewards can be forged."
       ],
       "tests": [
-        "tests/kl-s2-sequence-database-security-20261119.test.mjs"
+        "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+        "supabase/tests/kl_s2_sequential_quiz_reflection_guard_20261119.sql"
       ]
     }
   ],
@@ -82,5 +83,10 @@
     "No independently verified KL staging Supabase backend. Source migrations not applied anywhere.",
     "Live DB behavioral tests and Android compiled tests not yet performed.",
     "Staging EAS OTA account has unknown billing; no paid publishes authorized."
+  ],
+  "alternativeApproaches": [
+    "Client-only chapter unlock and personal text checking (rejected: trivial to bypass server privacy and points)",
+    "Keep 60-second plus 2-ping fallback after S2 starts (rejected: violates owner's no-timer requirement and allows quiz bypass)",
+    "Immediate +50 on completing chapter30 (rejected: requires personal reflection first)"
   ]
 }
