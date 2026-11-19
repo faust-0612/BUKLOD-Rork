@@ -30,3 +30,16 @@ The existing voluntary Delete Account button and Google Play deletion request pa
 - [ ] Approve release separately, with exact DEV → RC → Production OTA/server changes and verifiable result. Do not deploy unrelated Season 2 changes.
 
 **No account can be auto deleted by this DEV change.** This is intentional until safeguards and the unavailable BUKLOD Main backend are reconciled.
+
+
+## 19 November 2026 addendum — mobile/email-only login and legacy migration
+
+DEV source only, not applied to BUKLOD Main production or OTA.
+
+- New signup: mobile or email. Registration selector omits username; a prepared auth.users BEFORE INSERT trigger rejects username signup on old builds too. Display usernames/referral codes remain intact.
+- Existing username-only members: temporary Legacy Username Recovery with existing password, then Account Security prompts a verified email or mobile. Migration requires current password and a fresh 6-digit OTP. Email uses Resend if configured, SMS OTP uses Twilio Verify if configured. Codes expire after 10 minutes; requests are rate-limited. Auth UID, posts, points, and referrals stay unchanged. Interrupted verified changes can resume. Saved old username/password bubbles are cleaned after success.
+- Notification surfaces: Settings action banner, Account Security instructions, opt-in monthly in-app notices, admin summary of remaining username accounts. There is no automatic external notification without provider and contact checks.
+- Trello is not an email/SMS provider. Email requires a configured Resend sender or alternative SMTP/API provider. SMS requires a messaging gateway such as Twilio Messaging; Twilio Verify handles only OTP. SMS may cost money; do not activate it without approved funding.
+- External message worker and delivery queue exist behind OFF switches, with per-batch cap, audited provider acceptance and no false delivery proof. Accepted sends never start the 180-day account-deletion clock.
+
+Required before activation: identify authoritative BUKLOD Main backend (connected Supabase instances are different projects), reconcile new unrelated production church-role RPC security fixes, confirm sender credentials, verify true email/SMS delivery, test legacy signup rejection and migration on production-equivalent staging, validate idempotency/collisions/partial failure, preserve account recovery, and explicitly enable the policies. No real messages or account changes occurred in this source-only update.
