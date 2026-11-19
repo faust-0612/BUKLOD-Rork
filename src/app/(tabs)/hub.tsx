@@ -15,6 +15,8 @@ import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd'
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodExecutiveQuickAccess from '@/components/home/BuklodExecutiveQuickAccess';
+import { GenesisHomeHero } from '@/features/season2/genesis/GenesisVisuals';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -41,6 +43,7 @@ class ToolBoundary extends React.Component<{ children: React.ReactNode; onClose:
 
 export default function BuklodLightHome() {
   const { theme } = useBuklodTheme();
+  const genesisPreview = isGenesisPreviewBuild();
   const [focused, setFocused] = useState(false);
   const [desktopToolsOpen, setDesktopToolsOpen] = useState(false);
   const { width } = useWindowDimensions();
@@ -66,6 +69,7 @@ export default function BuklodLightHome() {
         scrollEventThrottle={16}
         style={{ flex: 1, backgroundColor: theme.surface }}
         contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
+{genesisPreview ? <GenesisHomeHero active={focused && foreground}/> : (
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={{ minHeight: 86, borderRadius: buklodVisual.radius.card, padding: 14, justifyContent: 'center' }}>
@@ -74,6 +78,7 @@ export default function BuklodLightHome() {
             A community of faith, connection, and shared purpose.
           </Text>
         </LinearGradient>
+        )}
         {/* Desktop Home: approved paid ads share a persistent placement,
             independent of AdMob/legacy sidebar sponsors. */}
         <BuklodSystemAnnouncementBoard slot="public_home" />
@@ -127,11 +132,13 @@ export default function BuklodLightHome() {
   return (
     <ScrollView onScroll={event => {reportBuklodDashboardScroll('home',event.nativeEvent.contentOffset.y);noteBuklodVideoScroll();}} scrollEventThrottle={16} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 9, paddingBottom: 16, gap: 9 }}>
       <BuklodSystemAnnouncementBoard slot="public_home" />
+{genesisPreview ? <GenesisHomeHero active={focused && foreground}/> : (
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: 18, fontWeight: '900', color: theme.textPrimary }}>Your everyday space</Text>
         <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12, marginTop: 1 }}>Connect, learn and grow with BUKLOD.</Text></View>
         <MaterialCommunityIcons name="sprout-outline" size={22} color={theme.accent} />
       </View>
+      )}
       <BuklodExecutiveQuickAccess />
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}

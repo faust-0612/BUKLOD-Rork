@@ -19,6 +19,8 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useAudioPlayer } from 'expo-audio';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import GenesisRewardReveal from '@/features/season2/genesis/GenesisRewardReveal';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 
 export type BuklodCelebrationType =
   | 'points'
@@ -286,6 +288,19 @@ export default function BuklodClaimCelebration({
   const close = () => {
     onClose();
   };
+
+  // Season 2 presentation only: preserve canonical verified reward handling,
+  // sound focus and haptics in the existing caller.
+  if (isGenesisPreviewBuild()) {
+    return <GenesisRewardReveal
+      visible={visible}
+      onClose={close}
+      title={displayTitle}
+      message={message || encouragement}
+      rewardText={rewardText}
+      characterSource={characterSource}
+    />;
+  }
 
   return (
     <Modal
