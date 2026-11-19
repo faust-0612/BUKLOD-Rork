@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-dec6-economy-inventory-only-20261119.json",
-  "objective": "Prepare exact owner-approved 10 Season 2 exclusives and complete legacy BP/QMP plus all December 6 planned rewards/requirements/deductions as a source-only implementation inventory; add read-only CI contract before staging OTA without activation.",
+  "objective": "Prepare exact owner-approved 10 Season 2 exclusives and complete legacy BP/QMP plus all December 6 planned rewards/requirements/deductions as a source-only implementation inventory; add read-only CI contract before staging OTA without activation. Also expose complete read-only, searchable member rewards reference in existing Season2 Journey without added rewards or backend access.",
   "baseRef": "b96620eb50476081cbf29085d25a5f7830f158a4",
   "productionBaselineEvidence": "Compared source with Season 2 integration head b96620eb50476081cbf29085d25a5f7830f158a4 and read-only 2026-11-19 Supabase BP/QMP catalog; existing Train A production EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2 was prior documented evidence, not newly verified installed device. BUKLOD MAIN staging backend isolation unverified; no production writes.",
   "productionChange": false,
@@ -23,7 +23,12 @@
     "docs/season2/BUKLOD_DEC6_ALL_POINTS_REWARDS_REQUIREMENTS_DEDUCTIONS_20261119.md",
     "scripts/season2-dec6-economy-audit.cjs",
     "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
-    ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml"
+    ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
+    "src/lib/season2/buklodSeason2MemberRewardMatrixR1.ts",
+    "src/components/points/BuklodS2CompleteRewardsReference.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "tests/season2-member-rewards-full-reference-20261119.test.cjs",
+    "contracts/season2-proposals/complete-member-reward-guide-20261119.json"
   ],
   "acceptanceChecks": [
     "Exact 10 owner-approved exclusive IDs unchanged",
@@ -35,14 +40,16 @@
     "Momentum opt-in preview and lifetime no-deduction guarantees held",
     "22 actual integration/security/finance/release gates remain explicitly HOLD, no fabricated completion",
     "Read-only staging workflow preflight calls audit and contract tests without changing existing publisher trigger",
-    "Owner release embargo and Free Expo billing protections preserved"
+    "Owner release embargo and Free Expo billing protections preserved",
+    "Member-facing collapsible BP/QMP/S2/carryover reference lists 46 active/16 inactive (admin-only hidden), exact requirements, limits, deferred credits and isolated status"
   ],
   "regressionTests": [
     "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
     "tests/season2-owner-scope-lock-20261119.test.cjs",
     "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
     "tests/buklod-season2-carryover-contract-20261119.test.mjs",
-    "tests/dashboard-instant-tabs-20261117.test.mjs"
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "tests/season2-member-rewards-full-reference-20261119.test.cjs"
   ],
   "knownBlockers": [
     "No dedicated independent BUKLOD MAIN staging Supabase with applied isolated S2 reward schema and verified RLS",
