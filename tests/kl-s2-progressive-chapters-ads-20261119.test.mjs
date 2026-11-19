@@ -25,7 +25,8 @@ test('new chapter rewards are base five plus one per numbered chapter, never for
 
 test('progression and reward grants enforce per-account previous completion in SQL', () => {
   assert.match(sql, /v_chapter_points:=5\+v_episode\.episode_number/);
-  assert.match(sql, /previous\.episode_number=chapter\.episode_number-1/);
+  assert.match(sql, /previous\.episode_number=required\.n/);
+  assert.match(sql, /pg_catalog\.generate_series\(1,chapter\.episode_number-1\)/);
   assert.match(sql, /sessions\.user_id=p_user/);
   assert.match(sql, /sessions\.completed_at IS NOT NULL/);
   assert.match(sql, /IF NOT private\.kl_s2_previous_chapter_complete_v1\(v_user,p_episode_id\)/);
@@ -45,9 +46,9 @@ test('unchanged legacy season rewards are locked behind future opt-in activation
   assert.match(sql, /v_chapter_points integer:=10/);
   assert.match(sql, /IF private\.kl_s2_rewards_enabled_v1\(\) THEN/);
   assert.match(sql, /chapter\.episode_number=0/);
-  assert.match(sql, /chapter\.episode_number=1 AND/);
+  assert.match(sql, /chapter\.episode_number=0 OR/);
   assert.match(sql, /chapter\.season_number=1/);
-  assert.match(sql, /previous\.season_number=chapter\.season_number-1/);
+  assert.match(sql, /previous_series\.season_number=chapter\.season_number-1/);
   assert.match(sql, /IF v_episode\.episode_number>=1 THEN v_chapter_points:=5\+v_episode\.episode_number/);
 });
 
@@ -95,4 +96,11 @@ test('deferred chapter rewards are never inserted as points on current chapter c
   assert.match(sql, /'points_awarded',v_previous_credit\+/);
   assert.match(quiz, /makukuha kapag natapos ang susunod na kabanata/);
   assert.match(quiz, /mula sa nakaraang kabanata/);
+});
+
+test('A partial historical series cannot unlock a later chapter', () => {
+  assert.match(sql, /pg_catalog\.generate_series\(1,30\)/);
+  assert.match(sql, /previous_series\.episode_number=previous_required\.n/);
+  assert.match(sql, /prior_sessions\.user_id=p_user/);
+  assert.match(sql, /prior_sessions\.completed_at IS NOT NULL/);
 });
