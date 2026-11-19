@@ -1,0 +1,169 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/train-a-noauth-verified-client-fixes-20261118.json",
+  "objective": "Train A safe repair RC FROM CURRENT MAIN, forward-port only reviewed Nov17–18 Wall/video/Connect/Android instant-tab/Matthew Henry client fixes from consolidated #930; EXCLUDE weak-signal Login/AuthProvider/profile-hydration fix as owner requested. No backend schema, changes, Season2 rewards, prod OTA or native runtime changes. Add owner-authorized, staging-only, strict EAS publish workflow; production explicitly forbidden.",
+  "baseRef": "d23cd882f7d34c4bca3a110dadd04ee4cb2240a9",
+  "productionBaselineEvidence": "Canonical GitHub main source SHA d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 confirmed Nov 18, 2026; reviewed consolidated PR #930 head 8bb4a0cba749c4c33897eb5fad892e2784c633d0. Main App (auth)/login.tsx and AuthProvider.tsx retained exact baseline blobs; only Android persistent tab switch selectively added to baseline (tabs)/_layout.tsx. Actual installed production OTA/update group/runtime, source fingerprint, AdMob fill and installed Android evidence NOT VERIFIED; no claim of stage/prod publish.",
+  "chosenApproach": "New standalone Train A RC fork from unchanged main; overlay exact nonauth product blobs from #930 and focused regressions, preserving baseline login/Auth provider code and restoring original no-profile routing. Selectively reconstruct only Android tab import+conditional without bringing #930's profileLoadState UI. Do not overlay #930 workflow or its weak-signal PR manifest.",
+  "selectionRationale": "A branch based on main with exact allowlisted 12 product paths prevents accidentally including unverified or undesired auth fix and avoids deleting #930's protected tests. Required ad/instant-nav/media gates retained. Later full Season2 #939 should stage separately, not block critical repairs.",
+  "alternativeApproaches": [
+    "Promote #930 intact (rejected; it includes the auth/profile frontend changes owner asked to defer)",
+    "Cherry-pick all open PRs and release directly to production (rejected; unverified DB/RLS/inventory, ad regressions and EAS environment drift)",
+    "Restore main Auth files in #930 branch and delete outdated tests (rejected; violates no-deleted-tests protection, creates stale scope artifacts)",
+    "Forward-port only audited client changes into isolated main-based Train A branch (chosen)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-scroll",
+    "connect",
+    "faith-cluster",
+    "admob-navigation",
+    "staging-runtime",
+    "production-no-publish",
+    "release-identity"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/train-a-noauth-verified-client-fixes-20261118.json",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/bible/read.tsx",
+    "src/components/BuklodAndroidDashboardTabs.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodFlyingVideoReactions.tsx",
+    "src/components/CommunityVideo.tsx",
+    "src/lib/buklodFullscreenVideoSwipe.ts",
+    "src/lib/buklodHenryTranslation.ts",
+    "src/lib/buklodVideoDiscovery.ts",
+    "src/lib/communityVideoHandoff.ts",
+    "tests/bible-henry-translation-recovery-20261117.test.cjs",
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "tests/dashboard-navigation-auth-20261117.test.mjs",
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    "tests/fullscreen-video-navigation-reactions-20261117.test.mjs",
+    "tests/fullscreen-video-session-navigation-20261118.test.mjs",
+    "tests/scoped-community-video-sidecar-recovery.test.mjs",
+    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
+    "tests/video-handoff-connect-stability-20261117.test.mjs",
+    "tests/train-a-noauth-navigation-ads-20261118.test.mjs",
+    ".github/workflows/buklod-train-a-staging-ota-20261118.yml",
+    "tests/train-a-staging-release-contract-20261118.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Original main AuthProvider.tsx and (auth)/login.tsx are unchanged. No new backend auth, no changes to lifecycle/consent or RLS; old weak-network onboarding limitation remains disclosed.",
+    "Only Android persistent lazy tabs on (tabs)/_layout; web/iOS keep existing Stack, mandatory consent/maintenance/account-status gates unchanged.",
+    "Existing first-view AdMob/IMA placement, SDK, consent and warmup lifecycle remain unchanged; offscreen video stops and memory bounded.",
+    "Wall posts/reels order, private scoped Community sidecar media RLS, Connect cursor/PTT/calls and post author rights remain intact.",
+    "Matthew Henry English fallback remains; native ML Kit requires compatible binary, never implicitly delivered via OTA.",
+    "Existing QMP 30% pool, BP, Character, Kingdom, Account Delete, referrals, Season1 history and financial/payout controls unchanged.",
+    "No additional phone permissions, native package, backend migrations, stage/prod update or secrets.",
+    "Never publish production OTA from this workflow; isolated staging only, with idempotent group and verified server-served manifest."
+  ],
+  "acceptanceChecks": [
+    "All 12 product blobs come from exact #930 audited release source except (tabs)/_layout which retains main auth routing with only Android tabs source added.",
+    "Explicit test verifies no profileLoadState and no weak-signal auth feedback; original consent and account lifecycle present.",
+    "Video first-frame/signed URL/player handoff, fair discoverability, public/scoped media, Connect scroll, dashboard focus, AdMob routes tested.",
+    "TypeScript, targeted focused Node, Expo web compatibility/export, Android/native 1.3.2 compatible checks complete on same candidate SHA.",
+    "Stage only after exact EAS staging identity, backend environment, update group/runtime and downloaded served manifest validated.",
+    "Production OTA strictly separate release with Android device ad fill, nav latency, offscreen video and registration/auth smoke; physical device skip recorded, never counted as passed.",
+    "Only publish staging after exact reviewed CI success, no auth/source change, EAS signed build/channel/runtime preflight, and unchanged production post-manifest."
+  ],
+  "regressionTests": [
+    "tests/bible-henry-translation-recovery-20261117.test.cjs",
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "tests/dashboard-navigation-auth-20261117.test.mjs",
+    "tests/fullscreen-video-fair-exposure-20261118.test.cjs",
+    "tests/fullscreen-video-navigation-reactions-20261117.test.mjs",
+    "tests/fullscreen-video-session-navigation-20261118.test.mjs",
+    "tests/scoped-community-video-sidecar-recovery.test.mjs",
+    "tests/video-handoff-connect-navigation-ads-20261117.test.mjs",
+    "tests/video-handoff-connect-stability-20261117.test.mjs",
+    "tests/train-a-noauth-navigation-ads-20261118.test.mjs",
+    "tests/train-a-staging-release-contract-20261118.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Port isolated reviewed Android/Wall/Connect media fixes without login/AuthProvider changes; preserve runtime and server account rights.",
+      "preservedBehaviors": [
+        "No auth/profile/lifecycle or QMP changes; no native package or backend changes, preserve first-view AdMob."
+      ],
+      "tests": [
+        "tests/train-a-noauth-navigation-ads-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Port fullscreen swipe, video first frame/handoff, fair video discovery and scoped-community sidecar media while protecting all ad/player lifecycles.",
+      "preservedBehaviors": [
+        "Wall private/public media, photos, signed URLs, offscreen unmount and IMA remain protected."
+      ],
+      "tests": [
+        "tests/fullscreen-video-navigation-reactions-20261117.test.mjs",
+        "tests/scoped-community-video-sidecar-recovery.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Add Android-only retained tab mounts without new auth logic; retain canonical main session, consent and onboarding checks.",
+      "preservedBehaviors": [
+        "No bypass of Supabase account lifecycle, app policy consent, scoped navigation, web/iOS stack."
+      ],
+      "tests": [
+        "tests/dashboard-navigation-auth-20261117.test.mjs",
+        "tests/train-a-noauth-navigation-ads-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Port tested one-pass Connect scroll anchoring and playback handoff without touching PTT/call or authenticated message data.",
+      "preservedBehaviors": [
+        "Existing chat history, unread/read cursor, PTT and calls retain their session and media policies."
+      ],
+      "tests": [
+        "tests/video-handoff-connect-stability-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Port scoped Community sidecar media and Matthew Henry Filipino retry/fallback, retaining user/scope permissions and Bible source.",
+      "preservedBehaviors": [
+        "Organization/Cluster/Show Faith scope isolation, Bible commentary English fallback, and personal reading progress unchanged."
+      ],
+      "tests": [
+        "tests/bible-henry-translation-recovery-20261117.test.cjs",
+        "tests/scoped-community-video-sidecar-recovery.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Android dashboard tab implementation has an Ad-affected protected component name; preserve existing first-view AdMob warmup, consent, fill, offscreen suspend and monetary BP/QMP boundaries while keeping the auth fix excluded.",
+      "preservedBehaviors": [
+        "Existing first-view AdMob placement and NativeAd/IMA lifecycle must remain unchanged, no new provider request or change to ad consent/cooldown.",
+        "No BP/QMP, payouts, token or character credits are minted or deducted in the Train A repair source."
+      ],
+      "tests": [
+        "tests/train-a-noauth-navigation-ads-20261118.test.mjs",
+        "tests/video-handoff-connect-navigation-ads-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Staging-only EAS OTA with signed preflight, verified source and production isolation; owner explicitly requested Train A release.",
+      "preservedBehaviors": [
+        "No production OTA, unverified native dependencies, or new login/auth patch; ad and dashboard gates remain mandatory."
+      ],
+      "tests": [
+        "tests/train-a-staging-release-contract-20261118.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "train-a-source-rc",
+  "sourcePR": 930,
+  "ownerSkipWeakSignalAuthFix": true,
+  "releaseAuthorized": false,
+  "targetEnvironment": "staging-user source target only",
+  "targetRuntime": "1.3.2 candidate; actual installed runtime unverified",
+  "productionStatus": "NO_OTA"
+}
