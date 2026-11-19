@@ -77,3 +77,11 @@ test('pending 5+chapter points still release only on NEXT verified chapter, incl
   assert.match(sql, /'pending_points',v_pending_points/);
   assert.match(sql, /'released_previous_chapter_points',v_previous_credit/);
 });
+
+test('S2 reader cannot leak chapter quiz questions or use an expired-at-two-hours timer', () => {
+  assert.match(sql, /private\.kl_s2_previous_chapter_complete_v1\(v_user,p_episode_id\)/);
+  assert.match(sql, /private\.kl_s2_previous_chapter_complete_v1\(auth\.uid\(\),v\.episode_id\)/);
+  assert.match(sql, /'reason','previous_chapter_required'/);
+  assert.match(sql, /IF \(NOT private\.kl_s2_rewards_enabled_v1\(\) AND\s+v\.started_at<now\(\)-interval '2 hours'\) OR/);
+  assert.match(sql, /IF v_correct=3 THEN/);
+});
