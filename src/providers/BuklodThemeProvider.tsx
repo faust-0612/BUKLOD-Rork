@@ -1,3 +1,4 @@
+import {canUserSelectTheme,getLockedSeasonTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   createContext,
@@ -89,6 +90,7 @@ export function BuklodThemeProvider({
   children: React.ReactNode;
 }) {
   const colorScheme = useColorScheme();
+  const seasonLocked = !canUserSelectTheme();
   const [
     preference,
     setPreferenceState,
@@ -118,6 +120,7 @@ export function BuklodThemeProvider({
 
   const setPreference = useCallback(
     (next: BuklodThemePreferenceId) => {
+      if (seasonLocked) return;
       setPreferenceState(next);
 
       void AsyncStorage.setItem(
@@ -127,26 +130,22 @@ export function BuklodThemeProvider({
         /* session selection still applies */
       });
     },
-    []
+    [seasonLocked]
   );
 
   const resolved = useMemo(
-    () =>
-      getBuklodGlobalTheme(
-        preference,
-        colorScheme
-      ),
-    [preference, colorScheme]
+    () => seasonLocked ? getLockedSeasonTheme() : getBuklodGlobalTheme(preference, colorScheme),
+    [preference, colorScheme, seasonLocked]
   );
 
   const value = useMemo(
     () => ({
-      preference,
+      preference: seasonLocked ? 'nightPine' as const : preference,
       paletteId: resolved.paletteId,
       theme: resolved.roles,
       ready,
       setPreference,
-      options: BUKLOD_GLOBAL_PREFERENCE_OPTIONS,
+      options: seasonLocked ? [] : BUKLOD_GLOBAL_PREFERENCE_OPTIONS,
     }),
     [
       preference,
@@ -154,6 +153,7 @@ export function BuklodThemeProvider({
       resolved.roles,
       ready,
       setPreference,
+      seasonLocked,
     ]
   );
 

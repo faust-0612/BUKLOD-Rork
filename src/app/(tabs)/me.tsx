@@ -1,3 +1,4 @@
+import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import { buklodVisual } from '@/lib/buklodVisual';
 /* PATCH_184F_R3_PROFILE_CLEANUP */
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
@@ -1298,6 +1299,7 @@ export default function MeScreen() {
   };
 
   const highlightAccent =
+    !canUserSelectTheme() ? theme.accent :
     personalDashboardTheme.accentColor &&
     personalDashboardTheme.accentColor !==
       DEFAULT_DASHBOARD_THEME.accentColor
@@ -1394,12 +1396,12 @@ export default function MeScreen() {
         label: 'Organization',
         onPress: () => openUserOrganization(),
       },
-      {
+      ...(canUserSelectTheme() ? [{
         key: 'theme',
-        icon: 'palette-outline',
+        icon: 'palette-outline' as const,
         label: 'Theme',
         onPress: () => setThemeOpen(true),
-      },
+      }] : []),
       {
         key: 'advertise',
         icon: 'bullhorn-outline',
@@ -1629,7 +1631,7 @@ export default function MeScreen() {
       style={[
         shared.screen,
         {
-          backgroundColor: hasPersonalCanvas
+          backgroundColor: canUserSelectTheme() && hasPersonalCanvas
             ? personalDashboardTheme.backgroundColor
             : theme.canvas,
         },
