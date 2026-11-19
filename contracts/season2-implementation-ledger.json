@@ -133,6 +133,20 @@
       "limitations": [
         "Embargo until Dec6 and separate exact SHA owner approval"
       ]
+    },
+    {
+      "id": "staging_zero_cost_eas_plan_guard",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "scripts/season2-expo-free-plan-guard.cjs",
+        "tests/season2-expo-free-plan-release-20261119.test.mjs",
+        ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml"
+      ],
+      "limitations": [
+        "Expo account billing plan must be read from EAS usage endpoint at publish time; no Free-plan evidence yet.",
+        "If plan cannot be confirmed as Free, publisher holds; no production or reward launch."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."

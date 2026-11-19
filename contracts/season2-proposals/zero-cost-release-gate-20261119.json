@@ -1,0 +1,12 @@
+{
+  "id": "S2_FREE_PLAN_ZERO_COST_OTA_20261119",
+  "season": 2,
+  "changes": {
+    "season1.production_logic": "untouched",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc",
+    "mission_awards.validation": "server_verified_idempotent_antifarm",
+    "qmp_finance.season_rollover": "independent_never_reset"
+  },
+  "description": "Staging-only EAS billing check: refuse update unless read-only CLI proves Free plan and no billing; no paid tier, build or production reward switch.",
+  "reviewStatus": "DEV_RELEASE_SAFETY_CONTRACT_NO_PRODUCTION_AUTHORIZATION"
+}
