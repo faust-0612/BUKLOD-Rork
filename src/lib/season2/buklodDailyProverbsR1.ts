@@ -39,7 +39,7 @@ export function manilaProverbsDate(now: Date = new Date()): string {
   return new Date(now.getTime() + MANILA_OFFSET_MS).toISOString().slice(0,10);
 }
 export function dailyProverbForDate(dateKey: string): DailyProverb {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateKey)) throw new Error('Invalid Manila date key');
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(dateKey)) throw new Error('Invalid Manila date key');
   const day = Number(dateKey.slice(8,10));
   if (day < 1 || day > 31) throw new Error('Invalid Manila calendar day');
   return DAILY_PROVERBS[day-1];
