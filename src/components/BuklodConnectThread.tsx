@@ -4811,7 +4811,7 @@ const [
               own={own}
               deleted={messageDeleted}
               replyQuote={replyQuote}
-              showSenderAvatar={mode === 'direct' && !own && grouping.startsGroup}
+              showSenderAvatar={!own && grouping.startsGroup}
               senderUserId={item.sender_id}
               senderName={
                 own
@@ -4821,16 +4821,9 @@ const [
                       item.sender_id,
                     )
               }
-              senderLabel={
-                mode === 'scope' &&
-                !own &&
-                grouping.startsGroup &&
-                item.sender_name
-                  ? repairBuklodMessageText(item.sender_name)
-                  : null
-              }
+              senderLabel={null}
               compact={!grouping.endsGroup}
-              showTime={grouping.endsGroup || !!deliveryLabel}
+              showTime={false}
               standaloneReaction={standaloneReaction}
               avatarReaction={avatarReaction}
               standaloneEmoji={
@@ -4884,17 +4877,16 @@ const [
                 void signAttachmentPath(path, true);
               }}
               seenReaders={seenReaders}
-              showSeenReport={mode === 'scope' && isClusterConnect && own && !messageDeleted && hasConfirmedDelivery}
+              showSeenReport={mode === 'scope' && own && !messageDeleted && hasConfirmedDelivery}
               seenReportAvailable={scopeReadersAvailable}
               onPressSeenReaders={() => {
-                if (!own || mode !== 'scope' ||
-                    (!isClusterConnect && !seenReaders.length)) return;
+                if (!own || mode !== 'scope') return;
                 setSeenDetail({
                   messageId: item.id,
                   readers: seenReaders,
                   available: scopeReadersAvailable,
                 });
-                if (!isClusterConnect || !effectiveContainerId) return;
+                if (!effectiveContainerId) return;
                 // An explicit Cluster report refreshes its real room cursor;
                 // never write a read receipt or refetch all message history.
                 const session = threadSessionKeyValue;
@@ -4906,10 +4898,17 @@ const [
                     setSeenDetail(current => current?.messageId === item.id
                       ? {
                           messageId: item.id,
-                          readers: readers.filter(reader =>
-                            reader.userId !== profileId &&
-                            roomCursorCoversMessage(item.created_at, reader.lastReadAt)
-                          ),
+                          readers: isClusterConnect
+                            ? readers.filter(reader =>
+                                reader.userId !== profileId &&
+                                roomCursorCoversMessage(item.created_at, reader.lastReadAt)
+                              )
+                            : readersForMessageWindow({
+                                messageCreatedAt: item.created_at,
+                                nextMessageCreatedAt: next?.created_at ?? null,
+                                readers,
+                                selfUserId: profileId,
+                              }),
                           available: true,
                         }
                       : current);
