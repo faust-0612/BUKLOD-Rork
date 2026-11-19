@@ -79,7 +79,7 @@ test('pure Kingdom prices exactly match existing authoritative Shard item catalo
   assert.match(locate(kingdomCanonical),new RegExp('price:'+price+'\\b'));
   assert.match(locate(kingdomPure),new RegExp('price:'+price+'\\b'));
  }
- assert.doesNotMatch(kingdomPure,/^import\\s|from '@\\/lib\\/supabase'/m);
+ assert.equal(kingdomPure.split('\n').some(line=>line.trim().startsWith('import ')),false);
 });
 test('full Season 2 weekly mission guide and separate catalog-only seasonal awards',()=>{
  assert.match(view,/BUKLOD_SEASON2_WEEKLY_BEATS\.map/);
