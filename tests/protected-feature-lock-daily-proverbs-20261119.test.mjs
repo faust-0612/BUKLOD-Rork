@@ -13,7 +13,7 @@ test('protected-feature-lock uses an exact manifest for the Season2 Proverbs int
   assert.equal(manifest.season2ExclusiveTenLockUnchanged, true);
   assert.equal(manifest.rewardWritesAllowed, false);
   const ids = manifest.lockedFeatureChanges.map(x => x.id).sort();
-  assert.deepEqual(ids, ['app-runtime','cluster-faith','governance-lock','navigation-auth','wall-media']);
+  assert.deepEqual(ids, ['app-runtime','cluster-faith','governance-lock','navigation-auth']);
   for (const path of [
     'src/app/(tabs)/buklod.tsx',
     'src/components/BuklodExclusiveScopeCommunity.tsx',
