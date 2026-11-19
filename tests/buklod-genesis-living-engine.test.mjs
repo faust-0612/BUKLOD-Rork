@@ -51,3 +51,12 @@ test('final owner-approved Let There Be Light galactic theme is canonical', () =
   }
   assert.equal(GENESIS_SURFACE_DESIGN.reward.emphasis, 'verified-reward-only');
 });
+
+test('Genesis startup scene remains lazy and gated from the production startup path', async () => {
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(new URL('../src/components/BuklodMainBrandIntro.tsx', import.meta.url), 'utf8');
+  assert.match(source, /React\.lazy\(/);
+  assert.match(source, /genesisPreview \? \(/);
+  assert.match(source, /isGenesisPreviewBuild\(\)/);
+  assert.match(source, /GenesisStartupAtmosphere active=\{false\}/);
+});

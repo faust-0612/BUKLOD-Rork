@@ -9,7 +9,6 @@ import {
   View,
 } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { GenesisAtmosphere } from '@/features/season2/genesis/GenesisVisuals';
 import { GENESIS_IDENTITY, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import BuklodCenteredBrandMark, {
   BUKLOD_BRAND_LOGO_NATIVE,
@@ -19,6 +18,16 @@ import {
   markBuklodStartupChromeReady,
   subscribeBuklodStartupChromeReady,
 } from '@/lib/buklodStartupChrome';
+
+/**
+ * The seasonal backdrop is code-split and only mounts inside an explicitly
+ * non-production preview. Keep Season 1 boot and AdMob first-paint budget.
+ */
+const GenesisStartupAtmosphere = React.lazy(() =>
+  import('@/features/season2/genesis/GenesisVisuals').then(module => ({
+    default: module.GenesisAtmosphere,
+  }))
+);
 
 /*
  * BUKLOD_MAIN_CANONICAL_BRAND_R1
@@ -213,7 +222,11 @@ export default function BuklodMainBrandIntro({
             { opacity: screenOpacity },
           ]}
         >
-          {genesisPreview ? <GenesisAtmosphere active={false} quality="minimal" surface="home" /> : null}
+          {genesisPreview ? (
+            <React.Suspense fallback={null}>
+              <GenesisStartupAtmosphere active={false} quality="minimal" surface="home" />
+            </React.Suspense>
+          ) : null}
           <BuklodCenteredBrandMark
             showTagline={!genesisPreview}
             logoSize={isWeb ? BUKLOD_BRAND_LOGO_WEB : BUKLOD_BRAND_LOGO_NATIVE}
