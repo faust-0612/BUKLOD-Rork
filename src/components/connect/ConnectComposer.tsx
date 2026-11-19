@@ -70,6 +70,8 @@ type Props = {
   onClearReply?: () => void;
   onChangeDraft: (value: string) => void;
   onSend: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   onQuickReaction: (emoji: string) => void;
   onAttachPress: () => void;
   onChoosePhoto: () => void;
@@ -81,7 +83,8 @@ type Props = {
   onOpenComposerPicker: () => void;
 };
 
-const ICON_SIZE = 40;
+const ICON_SIZE = 44;
+const EMOJI_HIT_SIZE = 36;
 
 function createStyles(theme: ConnectThemeRoles) {
   return StyleSheet.create({
@@ -164,12 +167,12 @@ function createStyles(theme: ConnectThemeRoles) {
       minHeight: 56,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 5,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: HIBLA.outline,
       backgroundColor: HIBLA.paper,
-      paddingVertical: 7,
-      paddingHorizontal: 12,
+      paddingVertical: 6,
+      paddingHorizontal: 8,
     },
     iconHit: {
       width: ICON_SIZE,
@@ -178,12 +181,18 @@ function createStyles(theme: ConnectThemeRoles) {
       justifyContent: 'center',
     },
     iconCircle: {
-      width: ICON_SIZE,
-      height: ICON_SIZE,
-      borderRadius: ICON_SIZE / 2,
+       width: 38,
+       height: 38,
+       borderRadius: 19,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#E6F3E9',
+    },
+    emojiHit: {
+      width: EMOJI_HIT_SIZE,
+      height: ICON_SIZE,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     inputWrap: {
       flex: 1,
@@ -206,7 +215,7 @@ function createStyles(theme: ConnectThemeRoles) {
       minWidth: 0,
       minHeight: 42,
       maxHeight: 110,
-      paddingHorizontal: 12,
+      paddingHorizontal: 10,
       paddingVertical: 8,
       borderWidth: 0,
       borderRadius: 24,
@@ -327,6 +336,8 @@ export function ConnectComposer({
   onClearReply,
   onChangeDraft,
   onSend,
+  onFocus,
+  onBlur,
   onQuickReaction,
   onAttachPress,
   onChoosePhoto,
@@ -529,29 +540,14 @@ export function ConnectComposer({
       <View style={styles.composer}>
         <ConnectPressable
           onPress={onAttachPress}
-          accessibilityLabel="Attach file"
+          onLongPress={onChoosePhoto}
+          delayLongPress={BUKLOD_LONG_PRESS_MS}
+          accessibilityLabel="Add photo or file"
+          accessibilityHint="Tap for attachment options; hold to select photos directly."
           style={styles.iconHit}
         >
           <View style={styles.iconCircle} pointerEvents="none">
-            <MaterialCommunityIcons
-              name="paperclip"
-              size={20}
-              color={HIBLA.pine}
-            />
-          </View>
-        </ConnectPressable>
-
-        <ConnectPressable
-          onPress={onChoosePhoto}
-          accessibilityLabel="Attach photo"
-          style={styles.iconHit}
-        >
-          <View style={styles.iconCircle} pointerEvents="none">
-            <MaterialCommunityIcons
-              name="image-outline"
-              size={20}
-              color={HIBLA.pine}
-            />
+            <MaterialCommunityIcons name="plus" size={23} color={HIBLA.pine} />
           </View>
         </ConnectPressable>
 
@@ -561,6 +557,8 @@ export function ConnectComposer({
             ref={inputRef}
             value={draft}
             onChangeText={onChangeDraft}
+            onFocus={onFocus}
+            onBlur={onBlur}
             placeholder={mode === 'direct' ? 'Mag-type ng mensahe…' : 'Mensahe sa grupo…'}
             placeholderTextColor={HIBLA.muted}
             selectionColor={HIBLA.jade}
@@ -584,7 +582,8 @@ export function ConnectComposer({
             accessibilityLabel="Emoji, GIF, and avatar"
             accessibilityHint="Opens emoji, GIF, and avatar options."
             onPress={onOpenComposerPicker}
-            style={styles.iconHit}
+            hitSlop={BUKLOD_HIT_SLOP}
+            style={styles.emojiHit}
           >
             <Text style={styles.emojiGlyph}>{'\u{1F642}'}</Text>
           </ConnectPressable>

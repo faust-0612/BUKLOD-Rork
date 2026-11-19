@@ -34,7 +34,7 @@ test('Existing loaded native/large creative survives mounted scrolling and weak 
   assert.ok(native.includes('(adNetworkAvailable || hasLoadedCreative)'));
   assert.ok(native.includes("if ((!eligible && !hasLoadedCreative) ||"));
   assert.ok(native.includes('!sdkReady || (!adNetworkAvailable && !hasLoadedCreative)'));
-  assert.ok(native.includes("const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 16_000"));
+  assert.ok(native.includes("const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 9_000"));
   assert.ok(native.includes('const AD_LOAD_TIMEOUT_MS = 12_000'));
   assert.ok(native.includes('createdAd?.destroy()'));
   assert.ok(native.includes('NativeAdEventType.IMPRESSION'));
