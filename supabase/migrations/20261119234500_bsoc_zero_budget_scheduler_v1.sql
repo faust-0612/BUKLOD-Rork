@@ -92,9 +92,9 @@ begin
     select j.case_id,t.release_reference,t.release_version
       from public.bsoc_ai_case_jobs j
       join public.bsoc_case_fix_tracking t on t.case_id=j.case_id
-      join public.user_feedback f on f.id=j.case_id
+      join public.user_feedback fb on fb.id=j.case_id
       where j.state in ('TRIAGED','DEV_FIX_REQUESTED','DEV_FIX_READY','AWAITING_RELEASE_VERIFICATION','NEEDS_HUMAN','NEEDS_DETAILS')
-        and f.status::text='resolved'
+        and fb.status::text='resolved'
         and t.stage='VERIFIED_RESOLVED' and t.verified_at is not null
         and t.release_reference<>'' and t.release_version<>''
         and t.deployed_at<=now()
