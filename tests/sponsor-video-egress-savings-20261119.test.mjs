@@ -43,7 +43,7 @@ test('media selection stays stable during playback and db migration is purely ad
   const migration=read('supabase/migrations/20261119152000_paid_sponsor_ad_optional_mobile_renditions_r1.sql');
   const media=read('src/lib/advertise/paidSponsorshipDelivery.ts');
   assert.match(sponsor,/selectSponsoredVideoSource\(campaign, classifyNetworkQuality\(\)\)/);
-  assert.match(sponsor,/campaign\?\.video_url_mobile, campaign\?\.video_url_low/);
+  assert.match(sponsor,/campaign\?\.video_url_mobile,\s*campaign\?\.video_url_low/);
   assert.match(media,/video_url_mobile\?: string \| null/);
   assert.match(migration,/ADD COLUMN IF NOT EXISTS video_url_mobile text/);
   assert.match(migration,/ADD COLUMN IF NOT EXISTS video_url_low text/);
