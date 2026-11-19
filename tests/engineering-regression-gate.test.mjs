@@ -238,7 +238,7 @@ test('named staging cumulative PR enforces exact child scopes, tests and no prod
  const manifest={...goodManifest,releaseMode:'consolidated-staging-rc',scopeManifestPath:root,
   componentScopePaths:[child],allowedPaths:files,regressionTests:[proof],
   productionChange:false,releaseAuthorized:false,releaseTarget:'STAGING_ONLY',
-  riskAreas:[]};
+  riskAreas:['navigation-scroll']};
  assert.deepEqual(assessChanges(files,manifest,{consolidatedStaging:true,requireScope:true}).failures,[]);
  assert.match(assessChanges(files,manifest,{requireScope:true}).failures.join(' '),/Only one new scope manifest/);
  assert.match(assessChanges([...files,'.buklod/scopes/unauthorized.json'],manifest,{consolidatedStaging:true,requireScope:true}).failures.join(' '),/enumerate every changed component scope/);
