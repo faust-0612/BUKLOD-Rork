@@ -2,7 +2,7 @@
 **November 19, 2026 source snapshot · Season 2 earliest target December 6 · NOT LIVE**
 
 This complete, shareable user guide contains **all configured and approved numbers**, not just a short poster:
-- 46 active / 16 inactive legacy BUKLOD Points (BP) catalog rules and their eligibility limits
+- 46 active / 16 inactive legacy BUKLOD Points (BP) catalog rules, exact eligibility notes, milestones and daily limits
 - All configured Community QMP event bonuses, four missions, five monthly classification bands, proportional financial accounting and verification restrictions
 - The exact 10 locked Season 2 exclusive features, full 12-week Rise Together narrative quests, 4 seasonal awards and 4 weekly performance classes
 - KL chapter-by-chapter pending BP formula, one 20-character +5 comment and 50-character +50 full series reflection requirements
@@ -393,6 +393,70 @@ The above is **member documentation and DEV source integration**, not a claim th
 ## 16. Exact all-item and all-badge catalog
 
 The complete named catalogue is in `docs/season2/BUKLOD_ALL_1300_ITEMS_469_BADGES_40_RANKS_20261119.md`, generated from canonical Character source: **1,300 individually named items**, **469 exact badge titles**, **40 Circle Rank visual classes**, **8 Special Character Circle Rank gates**, **4 priced Kingdom Shard items**. All are now accessible through the expandable Season Journey -> full rewards guide -> Items/Badges tab. This is **read-only** and respects original Character levels, ownership, ranks, badge art, AdMob performance and Season 1 economy. The addition is not a claim of live Season 2 grants.
+
+## 17. All 46 configured BP rules — exact member qualification notes
+
+**Read-only legacy configuration snapshot — not automatic cash nor proof that every source trigger is currently functional.** The table below includes the two restricted admin-only entries so that the complete source inventory is auditable; public member UI hides them. An absent daily cap in the catalog means **no catalog cap reported**, not infinite farming permission. Server rules may enforce stricter eligibility. All Season 2 source changes are forward-only.
+
+| Exact activity source | BP/event | Catalog daily BP cap | Requirement before credit |
+|---|---:|---:|---|
+| `abc_growth_lesson` | 8 | Not configured | Tapusin ang 1 tunay at verified ABC Growth lesson; no repeat credit for the same lesson. |
+| `achievement_bible_scholar` | 100 | 100 | Milestone: 28 verified ABC lessons, supporting records, application/evidence verification. +100 BP once eligible. |
+| `achievement_community_builder` | 150 | 150 | Milestone: real, documented community project with beneficiaries and independently verified evidence. +150 BP. |
+| `achievement_faithful_mentor` | 200 | 200 | Milestone: 4 approved teaching sessions with real mentor/mentee records and supporting evidence. +200 BP. |
+| `achievement_kingdom_champion` | 250 | 250 | Milestone: 20 recorded Kingdom levels PLUS independent event verification; client score alone cannot award. +250 BP. |
+| `admin_bonus` | 0 | Not configured | Admin-controlled only. No public self-claim or automatic +BP. |
+| `admin_manual_award` | 0 | Not configured | Restricted, audited administrative grant only. Default +0, not a member action. |
+| `bible_arena_monthly` | 15 | Not configured | Valid verified eligible monthly Bible Arena activity/event; source-controlled, not automatic for opening. |
+| `bible_flash_easy` | 1 | Not configured | Passed/accepted verified Bible Flash Easy event; server validates source. |
+| `bible_flash_medium` | 3 | Not configured | Passed/accepted verified Bible Flash Medium event; server validates source. |
+| `bible_flash_hard` | 6 | Not configured | Passed/accepted verified Bible Flash Hard event; server validates source. |
+| `bible_quiz_easy` | 3 | 3 | Five questions, passing threshold 4/5, one legitimate daily qualified attempt/account (Manila date). |
+| `bible_quiz_medium` | 6 | 6 | Five questions, passing threshold 4/5, one legitimate daily qualified attempt/account (Manila date). |
+| `bible_quiz_hard` | 12 | 12 | Five questions, passing threshold 4/5, one legitimate daily qualified attempt/account (Manila date). |
+| `community_chain_resolve` | 1 | 3 | Server-verified meaningful support-chain completion with distinct qualified members; catalog cap 3 BP/day. Related +3 BP three-member proposal is NOT confirmed live. |
+| `community_challenge_complete` | 2 | 6 | Complete an eligible accepted community challenge; source and duplicate protection, up to 6 BP/day catalog cap. |
+| `community_comment` | 2 | Not configured | Real accepted community comment by member, no self-farming or repeat replay; no second credit on edit. |
+| `community_dugtong` | 1 | 8 | Valid original approved Today/Dugtong response; catalog cap 8 BP/day. |
+| `community_helpful_dugtong` | 2 | 6 | Distinct verified helpful Dugtong response; catalog cap 6 BP/day. |
+| `community_poll_vote` | 1 | 5 | One valid member-owned poll vote per eligible poll; catalog cap 5 BP/day. |
+| `community_post` | 5 | Not configured | One genuine originally published and moderated Wall post; rejected/deleted/spam posts excluded. |
+| `community_reaction` | 1 | Not configured | One genuine reaction to eligible content; do not farm self-reactions, bots or repeats. |
+| `community_resource_used` | 1 | 5 | Server-confirmed eligible community resource usage, not merely opening screen; cap 5 BP/day. |
+| `community_takeaway_share` | 1 | 2 | Server-verified substantive community takeaway share; cap 2 BP/day. |
+| `daily_bible` | 10 | Not configured | Real completed verified Daily Bible participation; opening reader alone is not proof. |
+| `daily_bible_verification` | 2 | Not configured | Distinct server-approved Bible verification event, not a second grant from the same unqualified source. |
+| `devotional` | 12 | Not configured | Complete and verify eligible devotional entry; not rewarded merely for viewing. |
+| `event_attendance` | 10 | Not configured | Check-in only for an actual scheduled live event with recorded date/location; +10 BP when independently verified. |
+| `formation_lesson` | 25 | Not configured | Complete eligible approved Formation lesson and required evidence; one award per distinct lesson. |
+| `game_first_qualified` | 2 | Not configured | First independently verified eligible game achievement only; scores alone do not count. |
+| `game_tournament_champion` | 100 | 100 | Independently verified real tournament championship; cap 100 BP/day catalog. |
+| `learning_progress_verification` | 5 | Not configured | Submitted lesson/reading progress approved from independent server evidence; duplicate submissions excluded. |
+| `mentor_session` | 15 | Not configured | Registered mentor, actual mentees, teaching notes/date/place, proper evidence/consent and validated session. No self-report credit. |
+| `mentoring_release` | 20 | Not configured | Genuine approved mentoring or lesson-release milestone distinct from the mentor-session receipt. |
+| `ministry_activity` | 15 | Not configured | Real documented and verified ministry/service activity by member; no forged participation. |
+| `ministry_major_milestone` | 100 | 100 | Documented major ministry achievement including date, participants and independent supporting proof; cap 100 BP/day. |
+| `prayer_response` | 2 | Not configured | Only a legitimate voluntary qualifying response; never score private prayer sincerity, text or beliefs. |
+| `referral_rank_bonus` | 10 | Not configured | Legacy +10 BP configured; independent rank gain evidence required. New S2 +20 BP referrer is isolated target, NOT live, no double grant. |
+| `reflection_quality_bonus` | 5 | Not configured | Genuine original, approved substantive reflection according to its source rubric; duplicate templates excluded. |
+| `scope_attendance` | 10 | Not configured | Actual open/live Cluster/scope event with validated attendance; no fake or duplicate check-in. |
+| `stage_completion` | 75 | Not configured | Verified completion of an entire assigned formation stage, not each opened lesson. |
+| `verified_giving_participation` | 5 | Not configured | Independently verified voluntary participation, not donation amount; protect financial privacy and no paid reward multiplier. |
+| `verified_volunteer_service` | 20 | 20 | Validated real volunteer service with documented evidence; cap 20 BP/day. |
+| `weekly_consistency` | 20 | Not configured | Verified qualifying weekly pattern under applicable server rule; not one-time tab opening. |
+| `weekly_tip_dugtong` | 2 | 2 | Accepted meaningful Dugtong response to official Weekly Tip; cap 2 BP/day. |
+| `weekly_tip_reaction` | 1 | 1 | Distinct real approved reaction to an official Weekly Tip; cap 1 BP/day. |
+
+### Important award classification
+
+- **Configured legacy BP:** Current active catalog amount with required real source evidence; do not assume exact event trigger status from catalog alone.
+- **Legacy inactive rule:** Historical placeholder catalog entry, no automatic duplicate new grant. Some live rewards use separate canonical RPCs (notably KL), so this catalog is not the entire backend settlement proof.
+- **Pending new Season 2 BP:** KL `5 + chapter number`, pending until next verified chapter; +5 per eligible chapter comment; +50 for verified series + genuine final reflection; +20 rank-qualified referrer and +10 independently qualified referred member (separate target). These are **not live**.
+- **Proposed but unverified bonuses:** Three/five/ten BP helpful-comment reaction thresholds and +3 mutual-support chain proposal require independent event-source and server activation proof; never advertise as claimable yet.
+- **Disabled/noncash:** Journey Tokens, seasonal cosmetic awards, 469 badge names and 1,300 item art cannot mint or redeem cash/BP just by being displayed.
+
+The existing `src/components/points/BuklodPointsR2Guide.tsx` describes source-specific milestones: Bible Scholar needs 28 verified ABC lessons, Faithful Mentor needs 4 approved mentoring sessions, and Kingdom Champion needs 20 recorded Kingdom levels plus independent proof. These are the **configured eligibility descriptions**, not evidence that the backend has granted every claim. Community Builder requires a genuine documented project and beneficiary evidence.
+
 
 
 ---
