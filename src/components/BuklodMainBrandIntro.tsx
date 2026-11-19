@@ -103,7 +103,7 @@ export default function BuklodMainBrandIntro({
   }, [chromeReady, holdDone, isWeb]);
 
   useEffect(() => {
-    if (!visible) {
+    if (!visible || (genesisPreview && !splashGone)) {
       return;
     }
 
@@ -151,7 +151,7 @@ export default function BuklodMainBrandIntro({
             toValue: 1, duration: 250, easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
-          Animated.delay(410),
+          Animated.delay(1260),
         ])
       : isWeb
       ? Animated.sequence([
@@ -203,6 +203,7 @@ export default function BuklodMainBrandIntro({
   }, [
     isWeb,
     genesisPreview,
+    splashGone,
     markOpacity,
     markScale,
     screenOpacity,
@@ -230,7 +231,7 @@ export default function BuklodMainBrandIntro({
             genesisPreview ? styles.genesisOverlay : null,
           ]}
         >
-          {genesisPreview ? <BuklodGenesisStartupScene /> : null}
+          {genesisPreview ? <BuklodGenesisStartupScene active={splashGone} /> : null}
           <BuklodCenteredBrandMark
             logoSize={isWeb ? BUKLOD_BRAND_LOGO_WEB : BUKLOD_BRAND_LOGO_NATIVE}
             lockToScreen={!isWeb}

@@ -11,9 +11,10 @@ test('Genesis cinematic intro is Android staging-only and never silently active 
   assert.match(guard, /env === 'staging'/);
   assert.doesNotMatch(guard, /env === 'production'/);
   assert.match(intro, /const genesisPreview = isBuklodGenesisStartupPreview\(\)/);
-  assert.match(intro, /genesisPreview \? <BuklodGenesisStartupScene \/>/);
+  assert.match(intro, /BuklodGenesisStartupScene active=/);
   assert.match(intro, /genesisPreview \? styles\.genesisOverlay : null/);
   assert.match(intro, /markScale/);
+  assert.match(intro, /genesisPreview && !splashGone/);
 });
 test('Startup sound is offline, optional, honors app sound policy and cannot delay app', () => {
   const scene = read('src/components/BuklodGenesisStartupScene.tsx');
@@ -34,5 +35,8 @@ test('Original canonical B mark stays intact; scene only supplies effects', () =
   const mark = read('src/components/BuklodCenteredBrandMark.tsx');
   assert.match(intro, /<BuklodCenteredBrandMark/);
   assert.match(mark, /buklod-main-canonical\.png/);
-  assert.match(read('src/components/BuklodGenesisStartupScene.tsx'), /isReduceMotionEnabled/);
+  const scene = read('src/components/BuklodGenesisStartupScene.tsx');
+  assert.match(scene, /isReduceMotionEnabled/);
+  assert.match(scene, /if \(!active\) return/);
+  assert.doesNotMatch(scene, /Easing\.sine/);
 });

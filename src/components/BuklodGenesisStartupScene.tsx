@@ -50,7 +50,7 @@ function GlowSeed() {
  * Compositor-driven Android opening. Decorative only; never blocks hydration,
  * authentication, navigation, ads, or the existing fingerprint gate.
  */
-export default function BuklodGenesisStartupScene() {
+export default function BuklodGenesisStartupScene({ active }: { active: boolean }) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const reveal = useRef(new Animated.Value(0)).current;
   const orbit = useRef(new Animated.Value(0)).current;
@@ -59,7 +59,8 @@ export default function BuklodGenesisStartupScene() {
   const starBlink = useRef(new Animated.Value(0.28)).current;
 
   useEffect(() => {
-    let active = true;
+    if (!active) return;
+    let mounted = true;
     let player: AudioPlayer | null = null;
     let disposeTimer: ReturnType<typeof setTimeout> | null = null;
     let playbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -68,12 +69,12 @@ export default function BuklodGenesisStartupScene() {
     void (async () => {
       try {
         await getBuklodSoundSettings();
-        if (!active || AppState.currentState !== 'active' || !isBuklodGameSoundEnabled()) return;
+        if (!mounted || AppState.currentState !== 'active' || !isBuklodGameSoundEnabled()) return;
         player = createAudioPlayer(GENESIS_STINGER, { updateInterval: 1000 });
         player.volume = Math.min(0.36, getBuklodGameSoundVolume());
         // Keep audio optional: a loading or playback failure cannot delay the app.
         playbackTimer = setTimeout(() => {
-          if (active && AppState.currentState === 'active') {
+          if (mounted && AppState.currentState === 'active') {
             try { player?.play(); } catch { /* visual-only fallback */ }
           }
         }, 160);
@@ -87,18 +88,19 @@ export default function BuklodGenesisStartupScene() {
     })();
 
     void AccessibilityInfo.isReduceMotionEnabled()
-      .then(enabled => { if (active) setReduceMotion(Boolean(enabled)); })
+      .then(enabled => { if (mounted) setReduceMotion(Boolean(enabled)); })
       .catch(() => undefined);
     return () => {
-      active = false;
+      mounted = false;
       if (playbackTimer) clearTimeout(playbackTimer);
       if (disposeTimer) clearTimeout(disposeTimer);
       try { player?.release(); } catch { /* best effort */ }
       player = null;
     };
-  }, []);
+  }, [active]);
 
   useEffect(() => {
+    if (!active) return;
     if (reduceMotion) {
       reveal.setValue(1);
       seedOpacity.setValue(0);
@@ -115,10 +117,10 @@ export default function BuklodGenesisStartupScene() {
     ]);
     const pulse = Animated.loop(Animated.sequence([
       Animated.timing(starBlink, {
-        toValue: 0.9, duration: 1150, easing: Easing.inOut(Easing.sine), useNativeDriver: true,
+        toValue: 0.9, duration: 1150, easing: Easing.inOut(Easing.sin), useNativeDriver: true,
       }),
       Animated.timing(starBlink, {
-        toValue: 0.26, duration: 1150, easing: Easing.inOut(Easing.sine), useNativeDriver: true,
+        toValue: 0.26, duration: 1150, easing: Easing.inOut(Easing.sin), useNativeDriver: true,
       }),
     ]));
     const drift = Animated.loop(Animated.timing(dust, {
@@ -139,7 +141,7 @@ export default function BuklodGenesisStartupScene() {
       drift.stop();
       rotate.stop();
     };
-  }, [reduceMotion, dust, orbit, reveal, seedOpacity, starBlink]);
+  }, [active, reduceMotion, dust, orbit, reveal, seedOpacity, starBlink]);
 
   const spin = orbit.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const translate = dust.interpolate({ inputRange: [0, 1], outputRange: [20, -45] });
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#FFF3AB', borderRightColor: 'transparent',
   },
   caption: {
-    position: 'absolute', top: LOCKED.height / 2 + 149,
+    position: 'absolute', top: LOCKED.height / 2 + Math.min(149, LOCKED.height * 0.27),
     left: 24, right: 24, alignItems: 'center',
   },
   eyebrow: { fontSize: 9, fontWeight: '700', color: '#A9EBC9', letterSpacing: 2.2 },
