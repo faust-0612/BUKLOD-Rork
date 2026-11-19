@@ -302,6 +302,11 @@ BEGIN
   SELECT md5(manuscript) INTO v_hash FROM public.kl_episodes
     WHERE id=p_episode_id AND status='approved' AND approved_at IS NOT NULL AND release_at<=now();
   IF NOT FOUND THEN RETURN jsonb_build_object('ok',false,'reason','chapter_unavailable'); END IF;
+  -- Legacy sessions cannot let a member request questions from a locked chapter.
+  IF private.kl_s2_rewards_enabled_v1()
+     AND NOT private.kl_s2_previous_chapter_complete_v1(v_user,p_episode_id) THEN
+    RETURN jsonb_build_object('ok',false,'reason','previous_chapter_required');
+  END IF;
   IF EXISTS(SELECT 1 FROM public.kl_reading_sessions WHERE episode_id=p_episode_id AND user_id=v_user AND completed_at IS NOT NULL)
     THEN RETURN jsonb_build_object('ok',true,'already_completed',true); END IF;
   IF NOT EXISTS(SELECT 1 FROM public.kl_quiz_sets WHERE episode_id=p_episode_id AND manuscript_hash=v_hash AND status='ready')
@@ -322,4 +327,55 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION public.kl_quiz_begin_v1(uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.kl_quiz_begin_v1(uuid) TO authenticated;
+
+
+-- Preserve current quiz grading and question checks, only isolate S2 order/time rules.
+CREATE OR REPLACE FUNCTION public.kl_quiz_submit_v1(p_attempt_id uuid,p_answers jsonb)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
+DECLARE v public.kl_quiz_attempts%rowtype; v_count int; v_correct int; v_result jsonb;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Sign in required'; END IF;
+  SELECT * INTO v FROM public.kl_quiz_attempts WHERE id=p_attempt_id AND user_id=auth.uid() FOR UPDATE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('ok',false,'reason','attempt_unavailable'); END IF;
+  -- A quiz already opened on another device cannot bypass sequential reading.
+  IF private.kl_s2_rewards_enabled_v1()
+     AND NOT private.kl_s2_previous_chapter_complete_v1(auth.uid(),v.episode_id) THEN
+    RETURN jsonb_build_object('ok',false,'reason','previous_chapter_required');
+  END IF;
+  IF v.submitted_at IS NOT NULL THEN
+    IF v.verified_at IS NOT NULL THEN
+      -- Safe replay when the network failed after a successful transaction.
+      SELECT public.kl_reading_progress_v1(v.episode_id,'complete') INTO v_result;
+      RETURN jsonb_build_object('ok',true,'passed',true,'already_submitted',true,'completion',v_result);
+    END IF;
+    RETURN jsonb_build_object('ok',true,'passed',false,'already_submitted',true);
+  END IF;
+  -- Only the legacy Season1 attempt has a 2-hour expiry.
+  -- In Season2 the member may answer the approved manuscript quiz at any pace.
+  IF (NOT private.kl_s2_rewards_enabled_v1() AND
+      v.started_at<now()-interval '2 hours') OR
+    NOT EXISTS(SELECT 1 FROM public.kl_episodes e JOIN public.kl_quiz_sets s ON s.episode_id=e.id
+      WHERE e.id=v.episode_id AND s.manuscript_hash=v.manuscript_hash
+      AND s.status='ready' AND e.status='approved' AND e.approved_at IS NOT NULL
+      AND e.release_at<=now() AND md5(e.manuscript)=v.manuscript_hash)
+    THEN RETURN jsonb_build_object('ok',false,'reason','attempt_expired'); END IF;
+  IF jsonb_typeof(p_answers)<>'object' THEN RETURN jsonb_build_object('ok',false,'reason','invalid_answers'); END IF;
+  SELECT count(*) INTO v_count FROM jsonb_object_keys(p_answers);
+  IF v_count<>3 OR EXISTS(SELECT 1 FROM jsonb_each_text(p_answers) a
+    WHERE a.key<>ALL(SELECT unnest(v.question_ids)::text) OR a.value !~ '^[0-3]$')
+    THEN RETURN jsonb_build_object('ok',false,'reason','invalid_answers'); END IF;
+  SELECT count(*) INTO v_correct FROM public.kl_quiz_questions q
+    WHERE q.id=ANY(v.question_ids) AND p_answers ? q.id::text
+      AND (p_answers->>q.id::text)::int=q.correct_index;
+  IF v_correct=3 THEN
+    UPDATE public.kl_quiz_attempts SET submitted_at=now(),verified_at=now() WHERE id=v.id;
+    -- The shared progress RPC retains the current season's idempotent award rules.
+    SELECT public.kl_reading_progress_v1(v.episode_id,'complete') INTO v_result;
+    RETURN jsonb_build_object('ok',true,'passed',true,'correct',3,'completion',v_result);
+  END IF;
+  UPDATE public.kl_quiz_attempts SET submitted_at=now() WHERE id=v.id;
+  RETURN jsonb_build_object('ok',true,'passed',false,'correct',v_correct,'total',3);
+END $fn$;
+REVOKE ALL ON FUNCTION public.kl_quiz_submit_v1(uuid,jsonb) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.kl_quiz_submit_v1(uuid,jsonb) TO authenticated;
 
