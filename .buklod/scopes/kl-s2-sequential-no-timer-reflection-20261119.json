@@ -27,7 +27,8 @@
     "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
     "supabase/migrations/20261119221000_kl_s2_sequential_no_timer_series_reflection.sql",
     "supabase/migrations/20261119221500_kl_s2_reader_rpc_server_lock.sql",
-    "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs"
+    "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs",
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs"
   ],
   "preserveBehaviors": [
     "No changes to current production/Season1 BP, quiz time fallback while Season2 rollout disabled, QMP or cash balances.",
@@ -47,9 +48,31 @@
   "regressionTests": [
     "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs",
     "tests/kl-s2-progressive-chapters-ads-20261119.test.mjs",
-    "tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs"
+    "tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs",
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs"
   ],
-  "lockedFeatureChanges": [],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Make KL reader and dynamic library respect live server progress; verified chapter triggers next chapter unlock; show private finale reflection.",
+      "preservedBehaviors": [
+        "Maintain released/approved chapter checks, reader audio, media, navigation, discussion, and existing Season1 behavior."
+      ],
+      "tests": [
+        "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add private RLS reflection table and member-scoped RPC plus immutable ledger receipt; close old-client manuscript/media bypass.",
+      "preservedBehaviors": [
+        "Account identity is always auth.uid, anon cannot query private records, old release/admin permission checks retained, no balances or rewards can be forged."
+      ],
+      "tests": [
+        "tests/kl-s2-sequence-database-security-20261119.test.mjs"
+      ]
+    }
+  ],
   "releaseTarget": "DEV draft PR to existing KL Season2 source only; merge into consolidated staging after QA and independent backend, not production.",
   "prodSeason2Authorization": false,
   "s2EffectiveAtManila": "2026-12-06T00:00:00+08:00",
