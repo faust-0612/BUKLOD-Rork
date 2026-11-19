@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-genesis-native-drawer-foundation-20261120.json",
   "objective": "Safely integrate native Android document-provider local import into the already embedded private Smart Drawer and add gated cosmetic Genesis haptic feedback, without changing production.",
-  "baseRef": "9f12832cc6b6372a511dd4a014c6c560e86d04e4",
-  "productionBaselineEvidence": "Main app runtime 1.3.2 remains protected. Current signed APK, EAS channel parity and Android AdMob/native acceptance are unverified.",
+  "baseRef": "cea937b429e926275f70edae7977f6d7c2cdff2b",
+  "productionBaselineEvidence": "Native Reality Gate parent advanced to cea937b429e926275f70edae7977f6d7c2cdff2b with retained scope/CI/embargo tests. Exact production APK/runtime proof remains unavailable; production unchanged.",
   "chosenApproach": "Extend existing Drawer rather than merge stale PR195; use declared document-picker/SQLite/sharing/haptics and exact preview runtime guard.",
   "selectionRationale": "User-initiated Android file-provider import works without unreviewed Drive OAuth/cloud sync or new native dependency. Preview haptics cannot affect production.",
   "alternativeApproaches": [
