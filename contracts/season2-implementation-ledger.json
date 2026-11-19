@@ -64,10 +64,22 @@
     },
     {
       "id": "per_character_items_badges_preservation",
-      "status": "PLANNED",
+      "status": "DEV_IMPLEMENTED",
       "requiredForLaunch": true,
-      "evidence": [],
-      "limitations": []
+      "evidence": [
+        "PR-966 source code and CI on 1f5df0cfb9af7acbcc0b8ba159988aae4dae4d50",
+        "src/lib/season2/buklodSeason2CollectibleGuideR1.ts",
+        "src/components/points/BuklodS2CollectibleGuidePanel.tsx",
+        "src/components/points/BuklodS2RewardInstructions.tsx",
+        "docs/season2/sql/BUKLOD_S2_COLLECTIBLE_MASTERY_DRAFT_NOT_DEPLOY.sql",
+        "tests/season2-character-item-ownership-20261119.test.mjs",
+        "tests/season2-collectible-mastery-guide-20261119.test.mjs"
+      ],
+      "limitations": [
+        "Read-only guide and S2 isolated claim contract are DEV source only; no Main staging backend, RLS/runtime verification, real server adapter or live rewards.",
+        "Existing Season1 Character collectible ownership is unchanged; Season2 mastery is optional and non-retroactive.",
+        "All S2 mint/spend/grant switches remain disabled through and after 2026-12-06 until independent owner approval and release gates."
+      ]
     },
     {
       "id": "season_rank_archive_reset_hall_of_fame",
