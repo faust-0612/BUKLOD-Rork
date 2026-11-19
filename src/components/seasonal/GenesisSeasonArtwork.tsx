@@ -36,7 +36,18 @@ export default function GenesisSeasonArtwork({
       style={[StyleSheet.absoluteFillObject, { opacity: safeOpacity }]}
     >
       <Svg width="100%" height="100%" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid slice">
-        {motif === 'firstLight' ? (
+        {motif === 'glorySeed' ? (
+          <>
+            <Path d="M-30 182 C53 103 102 93 169 113 S293 165 396 56" fill="none" stroke={stroke} strokeWidth={2.2} strokeLinecap="round" />
+            <Path d="M-31 206 C56 124 111 111 166 138 S294 184 399 80" fill="none" stroke={stroke} strokeWidth={1.1} />
+            <Path d="M184 53 C164 68 168 97 186 111 C211 97 212 69 184 53 Z" fill="none" stroke={stroke} strokeWidth={2} />
+            <Path d="M174 65 C190 75 178 87 195 100 M195 64 C178 76 191 88 175 102 M178 72 L191 75 M177 85 L193 87 M177 96 L192 95" fill="none" stroke={stroke} strokeWidth={1} />
+            <Path d="M184 111 C184 127 172 133 158 146 M184 119 C199 128 212 139 220 148" fill="none" stroke={stroke} strokeWidth={1.6} />
+            <Path d="M185 46 L185 20 M157 56 L141 36 M215 57 L230 38 M155 90 L133 92 M218 90 L240 91" fill="none" stroke={stroke} strokeWidth={1.2} />
+            <Circle cx="184" cy="83" r="48" fill="none" stroke={stroke} strokeWidth={0.9} />
+            <Circle cx="184" cy="83" r="58" fill="none" stroke={stroke} strokeWidth={0.6} strokeDasharray="2 7" />
+          </>
+        ) : motif === 'firstLight' ? (
           <>
             <Path d="M-35 178 C50 88 117 66 179 85 S291 154 395 28" fill="none" stroke={stroke} strokeWidth={2.8} strokeLinecap="round" />
             <Path d="M-30 200 C53 111 118 87 178 107 S286 165 398 52" fill="none" stroke={stroke} strokeWidth={1.6} />
