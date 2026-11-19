@@ -83,6 +83,18 @@ test('referral +20 future stays distinct from legacy +10 and member +10',()=>{
  assert.match(matrix,/legacyRankBonusConfiguredBp:10,legacyConflictUnreconciled:true/);
  assert.match(view,/Legacy \+10 is NOT reconciled/);
 });
+test('full QMP classifications and social bonus proposals never masquerade as live rewards',()=>{
+ for(const [name,min] of [['Starter',0],['Active',25],['Contributor',75],['Builder',150],['Community Champion',300]]){
+  assert.ok(matrix.includes(`title:'${name}',minQmp:${min}`));
+ }
+ assert.match(view,/S2_QMP_TIERS\.map\(/);
+ assert.match(matrix,/S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE = Object\.freeze\(\{/);
+ assert.match(matrix,/active:false,/);
+ assert.match(view,/Proposed social milestone bonuses \(NOT LIVE\)/);
+ assert.match(matrix,/S2_OPTIONAL_AD_ENERGY_NOT_BP/);
+ assert.match(matrix,/bpGranted:0,qmpGranted:0,cashGranted:0,journeyTokensGranted:0/);
+ assert.match(view,/Optional rewarded ads — not BP/);
+});
 test('exactly the ten owner-approved exclusives rendered with no extra feature',()=>{
  assert.equal(owner.approvedFeatureIds.length,10);
  assert.equal(audit.approvedExclusives.length,10);
