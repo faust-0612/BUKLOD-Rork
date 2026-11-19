@@ -13,3 +13,5 @@ Required release gates: run focused test and exact-source TypeScript, Hermes/Exp
 CI reconciliation: TypeScript native-input callbacks explicitly typed. Restored note IDs are deterministic per authenticated user, so encrypted archives cannot replace another local account's primary-key row; original-row IDs are checked to skip duplicates.
 
 Android GIF file-provider streams are verified and copied using a process-bounded single background worker with a non-reentrant guard; GIF decode/copy must not block the JavaScript/UI thread. Android device tests remain mandatory for provider URI grant lifetime and comment upload.
+
+Adaptive preview quality: devices below 3 GiB RAM show static decorative backgrounds; 3–6 GiB retain balanced motion; >=6 GiB may show full particles. Motion still pauses when app is backgrounded/reduced-motion. Unknown memory defaults to balanced. No video decoder or AdMob override.

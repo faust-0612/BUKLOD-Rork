@@ -47,3 +47,15 @@ test('encrypted manual backup validates account, size, checksum and does not use
   assert.match(settings,/Restore Encrypted Backup/);
   assert.doesNotMatch(backup,/accessToken|googleapis/);
 });
+
+test('device graphics budget uses memory tiers but never overrides native runtime or Reduced Motion',()=>{
+  const q=read('src/features/season2/genesis/genesisDeviceQuality.ts');
+  const sky=read('src/features/season2/genesis/GenesisCosmicSky.tsx');
+  const visuals=read('src/features/season2/genesis/GenesisVisuals.tsx');
+  assert.match(q,/bytes<3\*GiB/);
+  assert.match(q,/bytes>=6\*GiB/);
+  assert.match(q,/getGenesisNativeFoundation\(\)\.cosmeticHaptics/);
+  assert.match(sky,/lightweight \? 'minimal'/);
+  assert.match(visuals,/effectiveQuality = quality \?\? getGenesisDeviceQuality\(surface\)/);
+  assert.match(visuals,/useGenesisMotionAllowed/);
+});

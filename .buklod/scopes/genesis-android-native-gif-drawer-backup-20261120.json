@@ -24,7 +24,10 @@
     ".buklod/scopes/genesis-android-native-gif-drawer-backup-20261120.json",
     "docs/BUKLOD_GENESIS_NATIVE_GIF_DRAWER_BACKUP_20261120.md",
     "tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs",
-    "modules/buklod-genesis-ime/android/src/main/AndroidManifest.xml"
+    "modules/buklod-genesis-ime/android/src/main/AndroidManifest.xml",
+    "src/features/season2/genesis/genesisDeviceQuality.ts",
+    "src/features/season2/genesis/GenesisCosmicSky.tsx",
+    "src/features/season2/genesis/GenesisVisuals.tsx"
   ],
   "regressionTests": [
     "tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs"
@@ -62,7 +65,8 @@
     "Manual comment send; GIF never posts automatically",
     "AES-GCM Drawer backup, account binding, idempotent restore and encrypted-only exports",
     "Exact Android native compile plus on-device GIF, Drawer backup, first-view AdMob and tab latency still required",
-    "Restored note IDs are namespaced by authenticated user ID to guard SQLite primary-key collisions"
+    "Restored note IDs are namespaced by authenticated user ID to guard SQLite primary-key collisions",
+    "Android physical-memory tier caps cosmetic particles and orbit motion without affecting production, wall video or calls"
   ],
   "releaseMode": "DEV_ONLY",
   "releaseStatus": "SOURCE_QA_PENDING_NO_APK_NO_OTA"

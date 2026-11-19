@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Defs, Ellipse, LinearGradient as SvgLinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useGenesisMotionAllowed } from './GenesisVisuals';
+import { getGenesisDeviceQuality } from './genesisDeviceQuality';
 
 type Props = { active: boolean; minimal?: boolean; transparent?: boolean };
 
@@ -15,7 +16,8 @@ const FRAGMENTS = [
 ] as const;
 
 export default function GenesisCosmicSky({ active, minimal = false, transparent = false }: Props) {
-  const allowed = useGenesisMotionAllowed(active, minimal ? 'minimal' : 'balanced');
+  const lightweight = minimal || getGenesisDeviceQuality('home') === 'minimal';
+  const allowed = useGenesisMotionAllowed(active, lightweight ? 'minimal' : 'balanced');
   const drift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     drift.stopAnimation();
@@ -58,7 +60,7 @@ export default function GenesisCosmicSky({ active, minimal = false, transparent 
       <Path d="M 185 300 L 288 0 M 212 300 L 311 0" stroke="#EED69F" strokeWidth=".48" opacity=".28"/>
       <Path d="M 325 15 L 329 37 M 318 26 L 337 26 M 97 206 L 102 218 M 96 212 L 109 211 M 348 254 L 351 271" stroke="#FFECBC" strokeWidth=".9" opacity=".68"/>
     </Svg>
-    {!minimal ? FRAGMENTS.map((fragment, i) =>
+    {!lightweight ? FRAGMENTS.map((fragment, i) =>
       <Animated.View key={i} style={[
         styles.fragment,
         { left: fragment.left, top: fragment.top, width: fragment.width,
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
  * Light and atmosphere move; low-resolution character thumbnails never impersonate animation rigs.
  * Only real approved .riv rigs are animated by GenesisRiveCharacter. */
 export function GenesisOrbitHalo({active,size=260}:{active:boolean;size?:number}) {
-  const allowMotion = useGenesisMotionAllowed(active,'balanced','character');
+  const allowMotion = useGenesisMotionAllowed(active,getGenesisDeviceQuality('character'),'character');
   const phase = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     phase.stopAnimation();
