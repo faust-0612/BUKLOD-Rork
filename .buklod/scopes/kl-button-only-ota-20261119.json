@@ -10,7 +10,8 @@
     "story",
     "production-release",
     "ads-navigation",
-    "staging-channel-integrity"
+    "staging-channel-integrity",
+    "release-identity"
   ],
   "allowedPaths": [
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
