@@ -19,10 +19,12 @@
     "package.json",
     "scripts/genesis-single-season-branding-gate.cjs",
     ".buklod/scopes/genesis-season-wordmark-appwide-20261120.json",
-    "tests/genesis-season-branding-navigation-20261120.test.mjs"
+    "tests/genesis-season-branding-navigation-20261120.test.mjs",
+    "tests/genesis-season-branding-ads-20261120.test.mjs"
   ],
   "regressionTests": [
-    "tests/genesis-season-branding-navigation-20261120.test.mjs"
+    "tests/genesis-season-branding-navigation-20261120.test.mjs",
+    "tests/genesis-season-branding-ads-20261120.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -44,6 +46,17 @@
       ],
       "tests": [
         "tests/genesis-season-branding-navigation-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Shared dashboard header is also an ad-bearing protected surface; preserve the exact sponsor placement and first-view warmup lifecycle.",
+      "preservedBehaviors": [
+        "BUKLOD first-view ad warmup and header sponsor stay mounted with their original navigation targets",
+        "No AdMob unit identifiers, user finances, reward logic or ad SDK configuration changed"
+      ],
+      "tests": [
+        "tests/genesis-season-branding-ads-20261120.test.mjs"
       ]
     }
   ],
