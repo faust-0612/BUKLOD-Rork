@@ -162,6 +162,43 @@ Deno.serve(async (req:Request)=>{
       result.push({case_id:caseId,state:final?"NEEDS_HUMAN":"PENDING"});
     }
   }
+  // Detect a scoped draft DEV PR without trusting the AI's own success claim.
+  // This publishes a candidate update ONLY; never a resolved or deployed notice.
+  const ghToken=Deno.env.get("BSOC_GITHUB_DISPATCH_TOKEN")||"";
+  if(ghToken&&Deno.env.get("BSOC_DEV_REPAIR_DISPATCH_ENABLED")==="true"){
+    const {data:repairing}=await db.from("bsoc_ai_case_jobs")
+      .select("case_id").eq("state","DEV_FIX_REQUESTED").limit(10);
+    if(repairing?.length){
+      const abort=new AbortController(),timeout=setTimeout(()=>abort.abort(),6000);
+      try{
+        const prResponse=await fetch(
+          `https://api.github.com/repos/${repository}/pulls?state=open&per_page=50&base=dev%2Fbsoc-ai-autofix-user-reports-20261119`,{
+          signal:abort.signal,headers:{
+            "Authorization":`Bearer ${ghToken}`,
+            "Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"
+          }});
+        if(prResponse.ok){
+          const prs=await prResponse.json();
+          for(const item of repairing){
+            const pr=Array.isArray(prs)?prs.find((p:any)=>
+              p?.head?.ref===`auto/bsoc-dev-${item.case_id}`&&
+              p?.base?.ref==="dev/bsoc-ai-autofix-user-reports-20261119"&&
+              p?.draft===true):null;
+            if(!pr)continue;
+            try{
+              await send(item.case_id,"DEV_FIX_READY","dev-pr-"+String(pr.number),
+                "May ginawa nang DEV fix candidate para sa iyong concern at nakapila ito para sa independent testing. Hindi pa ito live sa production.");
+              await db.from("bsoc_ai_case_jobs")
+                .update({state:"DEV_FIX_READY",issue_url:String(pr.html_url||"").slice(0,500),
+                  updated_at:new Date().toISOString()})
+                .eq("case_id",item.case_id).eq("state","DEV_FIX_REQUESTED");
+            }catch{/* Retry independently; no fabricated notice. */}
+          }
+        }
+      }catch{/* GitHub temporarily unavailable; retain safe DEV state. */}
+      finally{clearTimeout(timeout);}
+    }
+  }
   // Reconcile only independently recorded release verification. A DEV branch,
   // GitHub PR, quiet telemetry or AI recommendation cannot produce a resolved report.
   const {data:followUps,error:followUpError}=await db.from("bsoc_ai_case_jobs")
