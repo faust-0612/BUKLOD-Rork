@@ -72,3 +72,20 @@ test('comment interstitials remain nonblocking and only after confirmed RPC succ
   assert.doesNotMatch(source, /supabase|points_ledger|rewardedAd/);
 });
 
+
+test('post detail and photo comments use a natural-close break', () => {
+  const detail = read('src/app/post/[id].tsx');
+  const wall = read('src/app/(tabs)/buklod.tsx');
+  // Finishing a comment alone must not display an interstitial.
+  const add = detail.slice(detail.indexOf(' const add=async()=>'), detail.indexOf(' const react=async('));
+  assert.match(add, /recordConfirmedCommunityComment/);
+  assert.doesNotMatch(add, /showBuklodAdOpportunity/);
+  assert.match(detail, /useFocusEffect\(useCallback\(\(\) => \{/);
+  assert.match(detail, /takePendingCommunityCommentAdBreak\(adAccount\)/);
+  assert.match(detail, /showBuklodAdOpportunity\('community_comment_overage'\)/);
+  // Closing a photo comment sheet consumes at most one pending opportunity.
+  const sheet = wall.slice(wall.indexOf('<BuklodPhotoCommentsSheet'), wall.indexOf('{\/\* PATCH_161H_COMMENT_DRAWER'));
+  assert.match(sheet, /onClose=\{\(\)=>\{/);
+  assert.match(sheet, /takePendingCommunityCommentAdBreak\(adAccount\)/);
+  assert.match(sheet, /showBuklodAdOpportunity\('community_comment_overage'\)/);
+});
