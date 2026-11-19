@@ -133,11 +133,19 @@ test('Season2 consolidation declares every impacted feature and exact protected 
    'src/components/BuklodCommunityWallProfileBubbles.tsx',
    'src/components/BuklodCommunityConnectHeader.web.tsx',
    'src/components/BuklodConnectThread.tsx',
+   'src/components/connect/ConnectMessageBubble.tsx',
+   'src/lib/connectChatWindow.ts',
+   'src/components/BuklodExclusiveScopeCommunity.tsx',
+   'src/components/points/BuklodProgressiveCharacterSelector.tsx',
+   'tests/connect-latest-keyboard-follow-20261119.test.mjs',
+   'tests/connect-compact-seen-all-rooms-20261119.test.mjs',
+   'tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs',
+   'tests/buklod-community-feed-comment-ad-20261111.test.mjs',
+   'tests/season2-character-item-ownership-20261119.test.mjs',
+   'tests/season2-collectible-mastery-guide-20261119.test.mjs',
    'tests/season2-wall-avatar-navigation-20261119.test.mjs',
    'tests/life-language-auth-navigation-20261119.test.mjs',
    'tests/season2-avatar-admob-guard-20261119.test.mjs',
-   'tests/connect-latest-keyboard-follow-20261119.test.mjs',
-   'tests/connect-compact-seen-all-rooms-20261119.test.mjs',
    'tests/buklod-season2-carryover-contract-20261119.test.mjs',
    'tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs',
    'tests/season2-governance-production-release-gate.test.mjs',
@@ -145,7 +153,7 @@ test('Season2 consolidation declares every impacted feature and exact protected 
  ];
  const r=assessProtectedFeatureLock(paths.map(path=>({status:'M',path})),s);
  assert.deepEqual(r.failures,[]);
- assert.deepEqual(r.impacted,['app-runtime','wall-media','navigation-auth','connect-ptt-calls','ads-finance-points','production-release','governance-lock']);
+ assert.deepEqual(r.impacted,['app-runtime','wall-media','navigation-auth','connect-ptt-calls','ads-finance-points','cluster-faith','kingdom-character','production-release','governance-lock']);
  assert.equal(s.releaseTarget,'STAGING_ONLY');
  assert.equal(s.productionChange,false);
 });
