@@ -1,0 +1,19 @@
+{
+  "id": "S2_OWNER_APPROVED_DAILY_PROVERBS_SHOW_FAITH_20261119",
+  "season": 2,
+  "ownerDecision": "ADD_READ_ONLY_PROVERBS_DAILY_VERSE_TO_SHOW_FAITH_COMMUNITY_WALL",
+  "approvedAtManila": "2026-11-19",
+  "additionalExperience": true,
+  "changesToApprovedTenExclusives": 0,
+  "season2ExclusiveTenLockUnchanged": true,
+  "scope": "Show Faith only: Public and authorized Organization/Cluster Community Walls; no display in Non-Show Faith",
+  "behavior": "31-day Manila-calendar selection, first-paint KJV fallback, verified ASD verse from existing Bible reader where available, Filipino/English takeaways, open existing Bible reader",
+  "productionAuthorized": false,
+  "earliestProductionDate": "2026-12-06",
+  "requiresSeparateOwnerApprovalForProduction": true,
+  "requiresIsolatedStagingOnly": true,
+  "season1Changed": false,
+  "rewardWritesAllowed": false,
+  "financialChanges": false,
+  "existingAdSlotsPreserved": true
+}
