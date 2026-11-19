@@ -111,6 +111,25 @@ jobs:
           trap 'rm -f "$private_file"' EXIT
           npx --yes eas-cli@27.9.0 account:usage faust_0612 --json --non-interactive > "$private_file"
           node scripts/season2-expo-free-plan-guard.cjs "$private_file"
+      - name: Require separately approved BUKLOD MAIN staging database identity
+        shell: bash
+        env:
+          BUKLOD_APPROVED_STAGE_REF: ${{ vars.BUKLOD_MAIN_STAGING_SUPABASE_REF }}
+        run: |
+          set -euo pipefail
+          # A visual preview is not proof that a new reward/admin RPC is safe.
+          # Release remains disabled without an independently approved stage ref.
+          test -n "$BUKLOD_APPROVED_STAGE_REF"
+          preview_file="$(mktemp /tmp/buklod-stage-preview.XXXXXXXX)"
+          prod_file="$(mktemp /tmp/buklod-stage-prod.XXXXXXXX)"
+          trap 'rm -f "$preview_file" "$prod_file"' EXIT
+          umask 077
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path "$preview_file" --non-interactive >/dev/null
+          npx --yes eas-cli@27.9.0 env:pull --environment production --path "$prod_file" --non-interactive >/dev/null
+          node scripts/season2-staging-backend-isolation.cjs \
+            --preview-file "$preview_file" \
+            --production-file "$prod_file" \
+            --approved-ref "$BUKLOD_APPROVED_STAGE_REF"
       - name: Verify signed staging Android binary, current production, and separate channels
         shell: bash
         run: |

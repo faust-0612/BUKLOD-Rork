@@ -26,7 +26,8 @@
     "Admin new-member inbox remains role-protected, includes no PII in notification route, and no backend mutation is triggered by this source-only candidate.",
     "KL dictionary expansion shows only terms present in published readable manuscript; staging source includes no unverified KL scene-photo backend activation.",
     "Bible Quiz V4 client reflects previously verified automatic server grading without manual essay approval.",
-    "Governance CI workflow change is regression-tested by an actual changed tests/protected-feature-lock.test.mjs, never waived."
+    "Governance CI workflow change is regression-tested by an actual changed tests/protected-feature-lock.test.mjs, never waived.",
+    "Staging OTA requires approved distinct BUKLOD MAIN Supabase URL identity; existing production/Quiz/Attendance DB refs fail closed. URL check alone does not verify RLS."
   ],
   "knownBlockers": [
     "No isolated staging database connected",
@@ -287,7 +288,8 @@
     "tests/season2-member-rewards-full-reference-20261119.test.cjs",
     "tests/season2-weekly-performance-class-rewards-20261119.test.mjs",
     "tests/season2-weekly-performance-profile-navigation-20261119.test.mjs",
-    "tests/engineering-regression-gate.test.mjs"
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/season2-staging-backend-isolation-20261119.test.cjs"
   ],
   "lockedFeatureChanges": [
     {

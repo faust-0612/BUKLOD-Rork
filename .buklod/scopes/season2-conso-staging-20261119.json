@@ -25,7 +25,8 @@
     "Permanent profile/Connect Notes UI has no expiry, shows server-confirmed rank, and weekly class is fail-closed when isolated staging RPC unavailable.",
     "Admin new-member inbox remains role-protected, includes no PII in notification route, and no backend mutation is triggered by this source-only candidate.",
     "KL dictionary expansion shows only terms present in published readable manuscript; staging source includes no unverified KL scene-photo backend activation.",
-    "Bible Quiz V4 client reflects previously verified automatic server grading without manual essay approval."
+    "Bible Quiz V4 client reflects previously verified automatic server grading without manual essay approval.",
+    "Staging OTA requires approved distinct BUKLOD MAIN Supabase URL identity; existing production/Quiz/Attendance DB refs fail closed. URL check alone does not verify RLS."
   ],
   "knownBlockers": [
     "No isolated staging database connected",
