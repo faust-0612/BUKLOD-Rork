@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Alert, Pressable, Text, TextInput, View,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { relinkSavedSuggestedLoginContact } from '@/lib/buklodSuggestedLoginStorage';
 import { colors } from '@/lib/theme';
 
 type Channel = 'email'|'mobile';
@@ -87,6 +88,22 @@ export default function LegacyLoginContactMigration() {
         setPhase('otp');
         setMessage('Enter the code sent to '+(data.destinationHint||'your contact')+'. The code expires in 10 minutes.');
       }else if(data.completed||data.alreadyMigrated){
+        // Never leave a remembered username/password pair pointing at the retired login.
+        try{
+          const {data:{user}}=await supabase.auth.getUser();
+          if(user){
+            const {data:profile}=await supabase.from('profiles')
+              .select('login_identifier').eq('id',user.id).maybeSingle();
+            if(typeof profile?.login_identifier==='string'){
+              await relinkSavedSuggestedLoginContact({
+                userId:user.id,newIdentifier:profile.login_identifier,
+              });
+            }
+          }
+        }catch{
+          // Server identity migration is authoritative; local device cleanup can
+          // be retried at the next login and must not roll back the verified account.
+        }
         setPhase('complete');
         setCode('');
         setCurrentPassword('');
