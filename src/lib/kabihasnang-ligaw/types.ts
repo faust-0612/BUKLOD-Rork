@@ -6,7 +6,9 @@ export const KL_RELEASE_HOUR = 6 as const;
 export const KL_EPISODE_RULE = 'kl_episode_completion' as const;
 export const KL_SEASON_RULE = 'kl_season_completion' as const;
 export const KL_S2_COMMENT_MIN_CHARS = 20 as const;
-// Preview contract only; the backend keeps Season 1 rewards unchanged until activation.
+// S2 preview contract only: chapter reward stays pending until NEXT verified chapter.
+// For Chapter 30, the next qualifying completion is Chapter 1 of the next series.
+// The backend keeps Season 1 rewards unchanged until separately authorized activation.
 export const KL_S2_REWARD_DEFAULTS = { chapterBase: 5, perChapterStep: 1, firstQualifiedComment: 5, lastNumberedChapter: 30 } as const;
 
 export function klS2ChapterPoints(chapterNumber: number): number {
