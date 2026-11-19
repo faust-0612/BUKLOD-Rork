@@ -121,6 +121,22 @@
       "limitations": [
         "Embargo until Dec6 and separate exact SHA owner approval"
       ]
+    },
+    {
+      "id": "kl_s2_verified_reading_comment_rewards",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": true,
+      "evidence": [
+        "supabase/migrations/20261119150000_kl_s2_rewards_15_5_min20_forward_only.sql",
+        "supabase/tests/kl_s2_rewards_15_5_min20_guard.sql",
+        "tests/kl-s2-rewards-15-5-min20-20261119.test.mjs",
+        "PR-970"
+      ],
+      "limitations": [
+        "Source implementation only. No BUKLOD MAIN staging or production Supabase credentials available here; schema, deployed function bodies and comment table dependencies not yet verified.",
+        "All reward grants remain OFF by default, Dec 6 earliest; requires independently verified RC, authorized activation and after-activation ledger/idempotency checks.",
+        "Season 1 points rules and historical points ledger have not been modified; no production OTA or runtime reward verified."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
