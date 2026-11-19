@@ -58,7 +58,7 @@ begin
     on conflict(case_id,report_key) do nothing returning id into stored_id;
   if stored_id is null then return false; end if;
   insert into public.notifications(user_id,kind,title,body,data)
-    values(member_id,'bsoc_case_update','BUKLOD Support · Update',left(p_message,220),
+    values(member_id,'bsoc_support','BUKLOD Support · Update',left(p_message,220),
       jsonb_build_object('case_id',p_case_id,'phase',p_phase,
                          'source','BSOC_AI_CASE_REPORT','route','/support/live'));
   return true;
