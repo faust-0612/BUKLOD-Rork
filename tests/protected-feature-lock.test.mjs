@@ -157,3 +157,29 @@ test('Season2 consolidation declares every impacted feature and exact protected 
  assert.equal(s.releaseTarget,'STAGING_ONLY');
  assert.equal(s.productionChange,false);
 });
+
+test('Nov19 source-only candidate preserves exact governance and security proofs', () => {
+  const scope = JSON.parse(readFileSync(new URL('../.buklod/scopes/nov19-all-approved-staging-candidate.json', import.meta.url), 'utf8'));
+  const paths = [
+    '.github/workflows/engineering-accountability.yml',
+    '.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml',
+    'src/app/(tabs)/me.tsx',
+    'src/components/BuklodCommunityWallProfileBubbles.tsx',
+    // Connect Header overlaps the legacy Ad path regex, so verify that guard too.
+    'src/components/BuklodCommunityConnectHeader.web.tsx',
+    'src/lib/buklodConnectSuggestedContacts.ts',
+    'src/lib/buklodNotificationNavigation.ts',
+    'src/components/points/BuklodS2CompleteRewardsReference.tsx',
+    'src/components/bible/BuklodBibleQuizV4.tsx',
+    'supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql',
+    ...scope.lockedFeatureChanges.flatMap(item => item.tests),
+  ];
+  const result = assessProtectedFeatureLock(changed(...new Set(paths)), scope);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.impacted, ['app-runtime','wall-media','navigation-auth','connect-ptt-calls','ads-finance-points','quiz-classroom','backend-security','production-release','governance-lock']);
+  assert.equal(scope.releaseAuthorized, false);
+  assert.equal(scope.productionChange, false);
+  assert.equal(scope.releaseTarget, 'STAGING_ONLY');
+  const illegal = assessProtectedFeatureLock(changed(...new Set([...paths, 'src/lib/unapproved-admin-bypass.ts'])), scope);
+  assert.match(illegal.failures.join(' '), /outside work scope/);
+});

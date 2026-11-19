@@ -182,6 +182,54 @@
         "No new reward/point grants, no Supabase write, no staging or production OTA in this source-only change.",
         "CI/Android staging verification required before release; production embargo until December 6 and separate exact SHA owner authorization."
       ]
+    },
+    {
+      "id": "weekly_performance_classification",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "PR-965",
+        "src/lib/season2/buklodWeeklyPerformanceRulesR1.ts",
+        "src/components/season2/BuklodWeeklyPerformanceCard.tsx",
+        "tests/season2-weekly-performance-class-rewards-20261119.test.mjs",
+        "tests/season2-weekly-performance-local-postgres-20261119.sql"
+      ],
+      "limitations": [
+        "Backend SQL is reviewable staging candidate under docs/season2/sql, NOT deployed to any Supabase environment",
+        "Current branch/QA is nonpublishing and reward grants intentionally disabled",
+        "No dedicated BUKLOD MAIN staging database connection/device AdMob verification; keep feature and rewards non-live"
+      ]
+    },
+    {
+      "id": "dec6_complete_reward_inventory",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "contracts/season2-dec6-complete-reward-inventory-20261119.json",
+        "docs/season2/BUKLOD_DEC6_ALL_POINTS_REWARDS_REQUIREMENTS_DEDUCTIONS_20261119.md",
+        "scripts/season2-dec6-economy-audit.cjs",
+        "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
+        ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml"
+      ],
+      "limitations": [
+        "Only read-only inventory, audit and unit regression checks are prepared; real Postgres migration/RLS, mobile/outbox, QMP parity, character awards, Dec6 owner signoff and live OTA are NOT complete.",
+        "The 22 evidence-based readiness gates remain HOLD; no release permission, fake CI/device validation, backend grants or production writes."
+      ]
+    },
+    {
+      "id": "member_complete_rewards_and_requirements_reference",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": true,
+      "evidence": [
+        "src/lib/season2/buklodSeason2MemberRewardMatrixR1.ts",
+        "src/components/points/BuklodS2CompleteRewardsReference.tsx",
+        "src/components/points/BuklodSeasonJourneyPreview.tsx",
+        "tests/season2-member-rewards-full-reference-20261119.test.cjs"
+      ],
+      "limitations": [
+        "Member-facing source-only reference, with S1 catalog as-of 2026-11-19, no direct award/claim/wallet authority; actual backend grants and S2 production activation require independent complete verification.",
+        "Read-only V8 static contract checks only; live Android device and CI Node TypeScript not yet verified."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."

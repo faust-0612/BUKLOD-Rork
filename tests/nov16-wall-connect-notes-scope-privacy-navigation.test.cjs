@@ -18,9 +18,9 @@ test('Connect notes use readable sizes and keep every avatar aligned', () => {
   const wall = read('src/components/BuklodCommunityWallProfileBubbles.tsx');
   assert.match(connect, /const NOTE_LINE_HEIGHT = 17/);
   assert.match(connect, /const NOTE_MAX_LINES = 5/);
-  assert.match(connect, /const COLUMN_WIDTH = 116/);
+  assert.match(connect, /const COLUMN_WIDTH = 96/);
   assert.match(wall, /const NOTE_MAX_LINES = 5/);
-  assert.match(wall, /return <View style=\{styles\.noteZone\} \/>;/);
+  assert.match(wall, /return <View style=\{styles\.noteZoneEmpty\} \/>;/);
   assert.match(wall, /textColor="#173626"/);
 });
 test('Wall post headers expose Connect note text without touching feed or ad lifecycle', () => {
@@ -29,7 +29,7 @@ test('Wall post headers expose Connect note text without touching feed or ad lif
   const scoped = read('src/components/BuklodExclusiveScopeCommunity.tsx');
   const detail = read('src/app/post/[id].tsx');
   assert.match(avatar, /export function ProfileAvatarNoteChip/);
-  assert.match(avatar, /quick_note_expires_at/);
+  assert.doesNotMatch(avatar, /quick_note_expires_at/);
   for (const src of [wall, scoped, detail]) assert.match(src, /<ProfileAvatarNoteChip userId=/);
 });
 test('Locked profile retains private content while showing standard authenticated avatar', () => {

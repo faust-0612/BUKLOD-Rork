@@ -2,6 +2,7 @@ import React,{useMemo,useState} from 'react';
 import BuklodSeason2ApprovedExclusivePreview from '@/components/points/BuklodSeason2ApprovedExclusivePreview';
 import BuklodS2CollectibleGuidePanel from '@/components/points/BuklodS2CollectibleGuidePanel';
 import BuklodS2RewardInstructions from '@/components/points/BuklodS2RewardInstructions';
+import BuklodS2CompleteRewardsReference from '@/components/points/BuklodS2CompleteRewardsReference';
 import {Pressable,StyleSheet,Text,View,type DimensionValue} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {SEASON_JOURNEY_TRACKS,
@@ -97,6 +98,7 @@ export default function BuklodSeasonJourneyPreview({
             </View>
           ):null}
           <BuklodSeason2ApprovedExclusivePreview />
+          <BuklodS2CompleteRewardsReference />
           <Text style={s.sectionTitle}>CHOOSE YOUR ADVENTURE</Text>
           <View style={s.choices}>
             {SEASON_JOURNEY_TRACKS.map(item=>(

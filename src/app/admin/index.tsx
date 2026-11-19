@@ -273,6 +273,12 @@ export default function AdminDashboard() {
         </View>
 
         <AdminPriorityBanner />
+        <AdminRow
+          icon="account-plus-outline"
+          title="Bagong Members · Registration Inbox"
+          subtitle="New registration alerts and complete, protected member details"
+          path="/admin/new-users"
+        />
 
         {showBlockingLoader ? (
           <View style={styles.loading}>

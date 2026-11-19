@@ -229,3 +229,24 @@ test('Nov16 cumulative source reconciles exactly declared component manifests an
  assert.match(assessChanges([...files,'.buklod/scopes/undeclared.json'],manifest,{consolidatedRc:true}).failures.join(' '),/enumerate every changed component scope/);
  assert.ok(fs.readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8').includes("'integration/nov16-current-wall-ads-zoom-rc-safe'"));
 });
+
+test('named staging cumulative PR enforces exact child scopes, tests and no production writes',()=>{
+ const root='.buklod/scopes/nov19-all-approved-staging-candidate.json';
+ const child='.buklod/scopes/s2-weekly-performance-20261119.json';
+ const source='src/components/ProfileAvatar.tsx',proof='tests/season2-weekly-performance-class-rewards-20261119.test.mjs';
+ const files=[root,child,source,proof];
+ const manifest={...goodManifest,releaseMode:'consolidated-staging-rc',scopeManifestPath:root,
+  componentScopePaths:[child],allowedPaths:files,regressionTests:[proof],
+  productionChange:false,releaseAuthorized:false,releaseTarget:'STAGING_ONLY',
+  riskAreas:['navigation-scroll']};
+ assert.deepEqual(assessChanges(files,manifest,{consolidatedStaging:true,requireScope:true}).failures,[]);
+ assert.match(assessChanges(files,manifest,{requireScope:true}).failures.join(' '),/Only one new scope manifest/);
+ assert.match(assessChanges([...files,'.buklod/scopes/unauthorized.json'],manifest,{consolidatedStaging:true,requireScope:true}).failures.join(' '),/enumerate every changed component scope/);
+ assert.match(assessChanges([...files,'src/lib/adminOverride.ts'],manifest,{consolidatedStaging:true,requireScope:true}).failures.join(' '),/outside the declared scope allowlist/);
+ assert.match(assessChanges(files,{...manifest,productionChange:true},{consolidatedStaging:true,requireScope:true}).failures.join(' '),/Only one new scope manifest/);
+ assert.match(assessChanges(files,{...manifest,releaseAuthorized:true},{consolidatedStaging:true,requireScope:true}).failures.join(' '),/Only one new scope manifest/);
+ const script=fs.readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8');
+ const workflow=fs.readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+ assert.ok(script.includes("process.env.GITHUB_HEAD_REF === 'integration/nov19-all-approved-staging-candidate'"));
+ assert.ok(workflow.includes('BUKLOD_CONSOLIDATED_STAGING_GATE=true'));
+});

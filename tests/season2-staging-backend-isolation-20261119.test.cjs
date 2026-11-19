@@ -65,3 +65,16 @@ test('missing CLI inputs fail closed before attempting a network write', () => {
   assert.throws(() => runCli(['--preview-file', '/not-a-file', '--preview-file', 'dup',
     '--approved-ref', separate]), /INVALID_GUARD_ARGUMENTS/);
 });
+
+test('cumulative staging OTA refuses to publish a full release without isolated MAIN backend identity', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.resolve(__dirname,
+    '../.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml'), 'utf8');
+  assert.match(source, /BUKLOD_MAIN_STAGING_SUPABASE_REF/);
+  assert.match(source, /node scripts\/season2-staging-backend-isolation\.cjs/);
+  assert.ok(source.indexOf('Require separately approved BUKLOD MAIN staging database identity') <
+    source.indexOf('Publish idempotently ONLY to staging-user'));
+  assert.match(source, /BUKLOD_APPROVED_STAGE_REF/);
+  assert.ok(!source.includes('BUKLOD_S2_CONSO_STAGE_' + 'AUTO_DEPLOY_PRODUCTION'));
+});

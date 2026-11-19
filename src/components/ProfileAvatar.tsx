@@ -21,6 +21,15 @@ import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { createBuklodAvatarBatchLookup } from '@/lib/buklodAvatarBatch';
 import { getBuklodCircleRankArt } from '@/lib/buklodCircleRankArt';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  loadAvatarWeeklyClass,
+  peekAvatarWeeklyClass,
+  S2_WEEKLY_PERFORMANCE_STAGING_ONLY,
+} from '@/lib/season2/buklodWeeklyPerformanceClientR1';
+import {
+  WEEKLY_CLASS_META, manilaWeekStart, type BuklodWeeklyClass,
+} from '@/lib/season2/buklodWeeklyPerformanceRulesR1';
 import { isBuklodAvatarOnline, subscribeBuklodAvatarPresence } from '@/lib/buklodAvatarPresence';
 import {
   getBuklodLiveAvatar,
@@ -79,7 +88,7 @@ async function readQuickNote(viewerId: string, targetId: string): Promise<string
   const task = (async () => {
     const { data, error } = await (supabase as any)
       .from('buklod_profile_status')
-      .select('quick_note, quick_note_expires_at')
+      .select('quick_note')
       .eq('user_id', targetId)
       .maybeSingle();
 
@@ -88,9 +97,7 @@ async function readQuickNote(viewerId: string, targetId: string): Promise<string
       return warm?.note ?? '';
     }
 
-    const expiresAt = data?.quick_note_expires_at ? Date.parse(String(data.quick_note_expires_at)) : NaN;
-    const expired = Number.isFinite(expiresAt) && expiresAt <= Date.now();
-    const note = expired ? '' : repairMojibakeText(String(data?.quick_note ?? '')).trim();
+    const note = repairMojibakeText(String(data?.quick_note ?? '')).trim();
     quickNoteCache.delete(key);
     quickNoteCache.set(key, { note, at: Date.now() });
     if (quickNoteCache.size > STATUS_NOTE_MAX) {
@@ -134,115 +141,52 @@ type ProfileAvatarProps = {
 };
 
 
+/** 2 o'clock: Weekly Performance Class, not Connect Notes or weekly rank. */
 export function ProfileAvatarStatusIndicator({
   userId,
   size = 38,
 }: {
-  userId?:
-    | string
-    | null;
-
+  userId?: string | null;
   size?: number;
 }) {
-  const pathname =
-    usePathname();
-
-  const [
-    quickNote,
-    setQuickNote,
-  ] =
-    useState('');
-
-
-  const { user } = useAuth();
-  const viewerId = user?.id ?? '';
-  const targetId = userId || viewerId;
-
-  useEffect(() => {
-    let active = true;
-    if (!viewerId || !targetId) {
-      setQuickNote('');
-      return () => { active = false; };
+  const pathname=usePathname();
+  const {user}=useAuth();
+  const viewerId=user?.id??'';
+  const targetId=userId||viewerId;
+  const identity=viewerId+':'+targetId+':'+manilaWeekStart();
+  const [state,setState]=useState<{identity:string;value:BuklodWeeklyClass|null}>({
+    identity:'',value:null,
+  });
+  useEffect(()=>{
+    let active=true;
+    if(!S2_WEEKLY_PERFORMANCE_STAGING_ONLY||!viewerId||!targetId){
+      setState({identity:'',value:null});
+      return ()=>{active=false;};
     }
-    setQuickNote(cachedQuickNote(viewerId, targetId));
-    void readQuickNote(viewerId, targetId)
-      .then(note => { if (active) setQuickNote(note); })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, [viewerId, targetId, pathname]);
-
-  if (!quickNote) {
-    return null;
-  }
-
-
+    setState({identity,value:peekAvatarWeeklyClass(viewerId,targetId)});
+    void loadAvatarWeeklyClass(viewerId,targetId)
+      .then(value=>{if(active)setState({identity,value});})
+      .catch(()=>undefined);
+    return ()=>{active=false;};
+  },[viewerId,targetId,identity,pathname]);
+  const current=state.identity===identity?state.value:null;
+  if(!current||current==='unrated'||!S2_WEEKLY_PERFORMANCE_STAGING_ONLY)return null;
+  const meta=WEEKLY_CLASS_META[current];
+  const px=Math.max(16,Math.min(25,Math.round(size*0.37)));
   return (
     <View
       pointerEvents="none"
+      accessible
+      accessibilityLabel={`Weekly performance: ${meta.title}`}
       style={{
-        position:
-          'absolute',
-
-        right:
-          -4,
-
-        top:
-          -4,
-
-        zIndex:
-          40,
-
-        minWidth:
-          Math.max(
-            18,
-            size * 0.34
-          ),
-
-        height:
-          Math.max(
-            18,
-            size * 0.34
-          ),
-
-        paddingHorizontal:
-          4,
-
-        borderRadius:
-          999,
-
-        alignItems:
-          'center',
-
-        justifyContent:
-          'center',
-
-        borderWidth:
-          1.5,
-
-        borderColor:
-          '#FFFFFF',
-
-        backgroundColor:
-          colors.greenDark,
+        position:'absolute',top:-px*0.22,right:-px*0.22,zIndex:65,
+        width:px,height:px,borderRadius:px/2,
+        alignItems:'center',justifyContent:'center',
+        borderWidth:Math.max(1.5,px*0.08),borderColor:'#FFFFFF',
+        backgroundColor:meta.color,
       }}
     >
-      <Text
-        style={{
-          color:
-            '#FFFFFF',
-
-          fontSize:
-            Math.max(
-              8,
-              size * 0.14
-            ),
-
-          fontWeight:
-            '900',
-        }}
-      >
-        N
-      </Text>
+      <MaterialCommunityIcons name={meta.icon} size={Math.round(px*0.62)} color="#FFFFFF"/>
     </View>
   );
 }
