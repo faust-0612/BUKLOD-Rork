@@ -139,10 +139,10 @@
     },
     {
       "id": "native-media3-compression",
-      "status": "held-no-implementation",
-      "origin": "PR #814 audit",
-      "description": "On-device upload transcoding/video compression and adaptive delivery",
-      "remaining": "Media3 native codec quality, device heat, battery, ad/video regression not implemented"
+      "status": "native-source-uncompiled",
+      "origin": "Genesis Media3 1.11.1 Android Expo module",
+      "description": "Local-only bounded H.264/AAC transcoding with native resize, bitrate presets, timeouts, private cache, cancel and original-file fallback; preview opt-in, upload path unchanged",
+      "remaining": "Kotlin/Gradle/codec and actual low-memory/thermal/user-upload QA outstanding; future JS OTA activation only after device acceptance"
     },
     {
       "id": "godot-android-3d",

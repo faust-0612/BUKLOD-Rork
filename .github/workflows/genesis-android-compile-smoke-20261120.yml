@@ -9,7 +9,9 @@ on:
       - .github/workflows/genesis-season2-staging-release-apk-20261120.yml
       - scripts/genesis-prepare-skia-binaries.mjs
       - modules/buklod-genesis-play-updates/**
-      - tests/genesis-play-core-native-foundation-20261120.test.mjs
+      - modules/buklod-genesis-media3/**
+      - tests/genesis-media3-native-foundation-20261120.test.mjs
+      - tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs
 permissions:
   contents: read
 concurrency:
