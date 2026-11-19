@@ -1,0 +1,92 @@
+{
+  "contractVersion": 2,
+  "objective": "Lower BUKLOD MAIN sponsored-video cached egress without compromising immediate visible autoplay, near-viewport preload, player caching, AdMob ad fill or legal paid impression accounting. Stage optional smaller-quality video renditions, retain existing player briefly on scroll-back, and define precise monthly quota threshold evaluations.",
+  "baseRef": "551e54602addd6f7bbe7bcdddd1589d35424c964",
+  "productionBaselineEvidence": "2026-11-19: Live Supabase BUKLOD MAIN yhanxndaqbmuzbdqlblu has one historical 48.54MB sponsored MP4 with 3,688 Nov 12 CDN cache hits; no currently approved active video campaigns. User screenshot shows 391.87 GB / 250 GB organization cached egress. Current CommunityVideo already caches 256MB, mounts only visible plus one next warm slot and uses poster/handoff. Sponsored-video component has Android useCaching:true and 120ms near-viewport geometry prewarm. No official organization-wide billing usage API exposed to connected Supabase connector.",
+  "chosenApproach": "Preserve original video_url, native cache, visible autoplay and one-screen prebuffer. Add optional verified 720p and low 480p MP4 URLs selected once per campaign based on network hints; pause immediately on leaving visibility, retain near-viewport decoder only 1.25s for short scroll-back, release immediately on tab unfocus. Add fully local fast-start H264/AAC encoder with byte-saving checks for operator-delivered variants. Add authoritative-source-only 50/70/85/95 quota threshold evaluator with UNVERIFIED fallback.",
+  "selectionRationale": "Dominant cached-egress spike is large public sponsored MP4 repeatedly requested. Smaller rendition files save most bytes while preserving first frame; player hold avoids transient range-request churn. No blanket autoplay disable, deferred visible playback, or aggressive prefetch deletion. Cloud transcoding and billing ingestion require separately verified runtime source and are not falsely claimed.",
+  "alternativeApproaches": [
+    "Global 30-second tap-to-play or disabling video ads: rejected because destroys first-view rendering and revenue.",
+    "Changing paid ad impression or rotation policies: rejected because monetary/revenue functions are protected.",
+    "Client-side ffmpeg runtime or paid media API: rejected because requires large native dependencies, build, device performance and potentially cost.",
+    "Assuming edge-log counts are official organization monthly egress: rejected because request counts are not billing bytes."
+  ],
+  "preserveBehaviors": [
+    "CommunityVideo native 256MB cache, fast first view, IMA/AdMob ads, 120ms near-viewport measurement, scroll-off immediate pause and fullscreen sharing remain unchanged.",
+    "Existing paid sponsorship eligibility, exact geography, admin approval, payment and impression/click counters unchanged.",
+    "All existing approved campaigns without rendition metadata keep playing original MP4 immediately.",
+    "No runtime transcoding, CDN mutation, no video file deleted or replaced, no mobile native dependency introduced.",
+    "Season 2, finances, AdMob placements, navigation, KL, Connect, character and account security unaffected."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "ads-monetization"
+  ],
+  "regressionTests": [
+    "tests/sponsor-video-egress-savings-20261119.test.mjs",
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
+    "tests/community-video-navigation-scroll.test.mjs",
+    "tests/dashboard-instant-tabs-20261117.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/advertise/sponsoredVideoDelivery.ts",
+    "src/lib/advertise/paidSponsorshipDelivery.ts",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "scripts/optimize-buklod-sponsored-video.mjs",
+    "scripts/buklod-cached-egress-thresholds.mjs",
+    "supabase/migrations/20261119152000_paid_sponsor_ad_optional_mobile_renditions_r1.sql",
+    "tests/sponsor-video-egress-savings-20261119.test.mjs",
+    ".buklod/scopes/sponsored-video-egress-savings-20261119.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Small, isolated paid-sponsored-video source-selection optimization while retaining runtime and near-viewport autoplay.",
+      "preservedBehaviors": [
+        "No app OTA or Expo runtime change, Android video cache and ad load gates remain intact."
+      ],
+      "tests": [
+        "tests/sponsor-video-egress-savings-20261119.test.mjs",
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Limit redundant video reinitialization for short scroll reversals without changing the existing Wall feed or upload UX.",
+      "preservedBehaviors": [
+        "Original player first frame, Wall preview, immediate scroll-off pause, fullscreen route and focus on return."
+      ],
+      "tests": [
+        "tests/sponsor-video-egress-savings-20261119.test.mjs",
+        "tests/community-video-navigation-scroll.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Preserve monetized sponsored playback, impression/click eligibility and AdMob first-view reliability while reducing transferred bytes only when verified smaller variants are available.",
+      "preservedBehaviors": [
+        "No quota rewards, payment amounts, campaign approval, ad impression accounting or production video ad display rules changed."
+      ],
+      "tests": [
+        "tests/sponsor-video-egress-savings-20261119.test.mjs",
+        "tests/dashboard-instant-tabs-20261117.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "New test + existing sponsored fast-start and dashboard ad-navigation tests pass.",
+    "Only approved rendition paths are selected and legacy campaign URL is always a safe fallback.",
+    "Scroll pause is immediate, while reentering near view within 1.25 seconds retains player; background/tab switch unmounts.",
+    "FFmpeg optimizer emits smaller verified faststart 720p/480p files when run in trusted local environment; does not upload/rewrite original.",
+    "Backend migration adds only nullable columns, without RLS/money rule changes.",
+    "Threshold evaluator reports UNVERIFIED when organization billing source is missing; 50/70/85/95 not claimed active until authoritative ingestion and notifications are wired.",
+    "No Android production OTA or Season2 deployment. Staging QA & exact runtime release gates precede any production promotion."
+  ],
+  "releaseMode": "NONSEASON2_DEV_AND_OPTIONAL_SAFE_DB_SCHEMA_NO_OTA",
+  "publicationStatus": "DEV_ONLY_PENDING_CI_DEVICE_AND_BILLING_PROVIDER",
+  "knownBlockers": [
+    "Connected Supabase tools have no official organization-wide cached egress billing endpoint; automatic threshold notifications are not yet live.",
+    "The historical 48.54 MB video cannot be downloaded/uploaded to storage from current connector/runtime and is not an active approved campaign.",
+    "New encoding profiles require a trusted operator's local original file and HTTP validation before any mobile/low URL is written to campaign."
+  ]
+}
