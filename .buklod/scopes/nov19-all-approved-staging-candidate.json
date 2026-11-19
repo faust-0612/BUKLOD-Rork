@@ -25,7 +25,8 @@
     "Permanent profile/Connect Notes UI has no expiry, shows server-confirmed rank, and weekly class is fail-closed when isolated staging RPC unavailable.",
     "Admin new-member inbox remains role-protected, includes no PII in notification route, and no backend mutation is triggered by this source-only candidate.",
     "KL dictionary expansion shows only terms present in published readable manuscript; staging source includes no unverified KL scene-photo backend activation.",
-    "Bible Quiz V4 client reflects previously verified automatic server grading without manual essay approval."
+    "Bible Quiz V4 client reflects previously verified automatic server grading without manual essay approval.",
+    "Governance CI workflow change is regression-tested by an actual changed tests/protected-feature-lock.test.mjs, never waived."
   ],
   "knownBlockers": [
     "No isolated staging database connected",
@@ -376,7 +377,7 @@
         "Every impacted protected feature still requires changed regression tests and an exact path allowlist"
       ],
       "tests": [
-        "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs"
+        "tests/protected-feature-lock.test.mjs"
       ]
     },
     {
