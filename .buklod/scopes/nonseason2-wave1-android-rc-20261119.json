@@ -1,0 +1,152 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nonseason2-wave1-android-rc-20261119.json",
+  "objective": "One isolated non-Season2 Android RC wave: frequent confirmed Wall comment natural-break interstitial, Connect newest-on-send/wider composer, post reaction counts, and KL mobile release buttons. Never activate Season 2 points/tokens or publish OTA before release gates.",
+  "baseRef": "aa3aa734b15f6cc2a64fbbbed3dfdd7d4db9539c",
+  "productionBaselineEvidence": "Current GitHub main exact SHA aa3aa734b15f6cc2a64fbbbed3dfdd7d4db9539c; isolated candidate PR #986 combines validated source from #979/#976/#933/#975. Staging publisher includes Wall and Connect; server-side staging OTA is blocked at zero-cost billing and is NOT verified. Existing live production artifact not independently established.",
+  "chosenApproach": "Reconcile already reviewed narrow source patches on clean main; keep backend and native runtime byte-identical; protect changed files with a single exact cumulative work scope and the existing protected-feature lock, GitHub source CI and independently verified EAS staging then production gates.",
+  "alternativeApproaches": [
+    "Merge whole Season 2 staging into production (rejected, risks activating unapproved economy).",
+    "Skip staging/cost/ad gating and push directly to production (rejected, violates agreed release and no-charge safety).",
+    "Rewrite Connect scroll/pagination and make ads interrupt each comment (rejected, regression and monetization risks)."
+  ],
+  "selectionRationale": "Only four non-Season2 existing approved UI/Ad improvements; source-only, no live changes, exact gate/preservation evidence.",
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "ads-monetization",
+    "navigation-scroll",
+    "android-native-ad-rendering",
+    "weak-network",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "connect",
+    "post-detail-reactions",
+    "accessibility",
+    "reaction-count-consistency",
+    "kl-editorial-release",
+    "mobile-layout",
+    "staging-production-isolation",
+    "story"
+  ],
+  "preserveBehaviors": [
+    "No native package, runtime, EAS project, auth bootstrap, login, private keys, production OTA marker, Season1 or Season2 reward contract modified.",
+    "Wall post/video/photos, route privacy and reaction data ownership remain intact; interstitial opportunity is optional and never blocks publishing comments.",
+    "Signed-in account and authorized post route remain canonical, no auth or navigation changes; AdMob may decline opportunity safely.",
+    "Manual history swipes, latest/older page offsets, read receipts, GIF/photo/file and PTT/calls remain accessible and correctly scoped.",
+    "Existing global two-eligible-action spacing, consent, Ad-Light, no-fill/cooldown, payouts and points logic remain unchanged."
+  ],
+  "acceptanceChecks": [
+    "First five successful comments per Manila day are ad-free; sixth and every fifth extra success queue at most one optional interstitial on next editor close.",
+    "Post detail and photo-comment close consume pending ad once; no ad during text input, RPC submission, or for failed/duplicate submissions.",
+    "Global Android safety controller still enforces two distinct eligible actions, interaction locks, route restrictions, AdMob consent, Ad-Light and remote flags.",
+    "AdMob decides the actual interstitial creative (video or static); do not promise or fabricate a video creative or impression.",
+    "Existing Community Wall, scoped Community, post detail, photo comments, media playback, first-view ad and instant dashboard navigation regression suite must pass.",
+    "Only source-level readback passed so far; focused Node test, TypeScript/Android compile and served staging OTA identity require independent verification.",
+    "Never update main, production channel, production APK, Play release or Supabase database in this PR. Season2 rewards remain off until independently approved after December 6.",
+    "Explicit compare main against candidate: no Season2 file, schema, character, token, reward policy or wallet changes.",
+    "On input focus, most recent message appears directly above composer as the keyboard opens",
+    "After send, optimistic latest message is visible and keyboard stays ready for next message",
+    "When manually swiping older messages, scroll is not stolen by reflow",
+    "At 360dp Android width, unified attachment control leaves more horizontal writing space",
+    "Composer expansion with multi-line input and photo/reply preview never obscures last row",
+    "Focused Node tests and CI required before staging integration; separate real-device smoke before release",
+    "No Season2 code, billing, runtime or production release marker changes; require source and AdMob/nav verification before OTA.",
+    "Every reaction type present has a fully visible, numeric badge; counts wrap on narrow displays without truncation.",
+    "Post total displays the sum of the available breakdown, with the backend total when no breakdown exists.",
+    "Both changed focused Node tests pass and required Engineering Accountability and Performance/Compact Layout CI pass.",
+    "No modification to public Wall feed UI, ad placements or post media lifecycle.",
+    "DEV-only PR; do not publish staging or production OTA until release gates.",
+    "Preserve current production native SDK, auth, payouts and Season 1 reward policies; no Season2 code/activation or EAS publication by this source commit.",
+    "Approved chapter with quiz tools shows Approve, Release Now and Reject in a wrapping row on a narrow Android screen.",
+    "Release preflight appears directly under controls before quiz answer review.",
+    "Existing chapter release server guard and two-click confirmation are unchanged.",
+    "Run focused KL Node tests, TypeScript, Android export and staging release gate before publishing.",
+    "Staging OTA only; never send Season 2 changes to production before December 6, 2026.",
+    "Verify focused changed tests, TypeScript and web/Android source compile; all mandatory AdMob fill/instant-tab, media, scroll and KL regression gates before OTA.",
+    "Prove staging-user EAS Free/zero-charge, actual served update/runtime/package/channel and unchanged production; production release only after independent RC frozen bundle and served manifest verification.",
+    "Season 2 reward, token, BP, QMP, character and payout source remains outside exact diff."
+  ],
+  "regressionTests": [
+    "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
+    "tests/wall-comment-navigation-ad-20261119.test.mjs",
+    "tests/connect-composer-latest-layout-20261119.test.mjs",
+    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/post/[id].tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
+    "tests/wall-comment-navigation-ad-20261119.test.mjs",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectComposer.tsx",
+    "tests/connect-composer-latest-layout-20261119.test.mjs",
+    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs",
+    "src/components/BuklodReactionAction.tsx",
+    "tests/post-detail-reaction-count-20261118.test.mjs",
+    "tests/wall-post-detail-reaction-compat-20261118.test.mjs",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    ".buklod/scopes/nonseason2-wave1-android-rc-20261119.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared Android post, Wall, Connect and KL UI fixes preserve account/OTA/runtime identity and app startup.",
+      "preservedBehaviors": [
+        "No native package, runtime, EAS project, auth bootstrap, login, private keys, production OTA marker, Season1 or Season2 reward contract modified."
+      ],
+      "tests": [
+        "tests/wall-comment-navigation-ad-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Wall post detail summary and comment-close Ad break preserve scoped photo/video rendering and reaction destinations.",
+      "preservedBehaviors": [
+        "Wall post/video/photos, route privacy and reaction data ownership remain intact; interstitial opportunity is optional and never blocks publishing comments."
+      ],
+      "tests": [
+        "tests/wall-post-detail-reaction-compat-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Post navigation and Wall comment editor focus preserve authenticated routing and natural ad exit without touching login.",
+      "preservedBehaviors": [
+        "Signed-in account and authorized post route remain canonical, no auth or navigation changes; AdMob may decline opportunity safely."
+      ],
+      "tests": [
+        "tests/wall-comment-navigation-ad-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Connect composer keyboard/newest-message reflow preserves message history, scoped privacy, calls, attachments and read cursors.",
+      "preservedBehaviors": [
+        "Manual history swipes, latest/older page offsets, read receipts, GIF/photo/file and PTT/calls remain accessible and correctly scoped."
+      ],
+      "tests": [
+        "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Conservative protected filename overlap flags ConnectThread (thread ends in 'ad'); source only touches layout, and Wall ad continues global consent/cadence/anti-farming protections.",
+      "preservedBehaviors": [
+        "Existing global two-eligible-action spacing, consent, Ad-Light, no-fill/cooldown, payouts and points logic remain unchanged."
+      ],
+      "tests": [
+        "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseTarget": "NonSeason2 Android production candidate, hold staging and production OTA on zero-charge/AdMob-runtime gates",
+  "productionChange": false,
+  "season2ProductionAuthorized": false
+}
