@@ -26,7 +26,8 @@
   "riskAreas": [
     "app-runtime",
     "connect-ptt-calls",
-    "ads-finance-points"
+    "ads-finance-points",
+    "connect"
   ],
   "regressionTests": [
     "tests/connect-composer-latest-layout-20261119.test.mjs",
