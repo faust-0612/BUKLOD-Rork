@@ -5,7 +5,10 @@ DECLARE
  v_trigger_count integer;
  v_rollout record;
 BEGIN
- IF to_regprocedure('private.kl_s2_rewards_enabled_v1()') IS NULL
+ IF to_regprocedure('private.kl_s2_previous_chapter_complete_v1(uuid,uuid)') IS NULL
+ OR to_regprocedure('private.kl_s2_reading_session_order_v1()') IS NULL
+ OR to_regprocedure('public.kl_s2_chapter_access_v1(uuid)') IS NULL
+ OR to_regprocedure('private.kl_s2_rewards_enabled_v1()') IS NULL
  OR to_regprocedure('private.kl_s2_comment_reward_v1()') IS NULL
  OR to_regprocedure('public.kl_reading_progress_v1(uuid,text)') IS NULL THEN
   RAISE EXCEPTION 'KL S2 backend reward functions absent';
@@ -40,5 +43,10 @@ BEGIN
    AND t.tgenabled<>'D';
  IF v_trigger_count<1 THEN
   RAISE EXCEPTION 'No active server-side KL comment reward trigger found';
+ END IF;
+ SELECT pg_get_functiondef('public.kl_reading_progress_v1(uuid,text)'::regprocedure) INTO v_function;
+ IF position('v_chapter_points:=5+v_episode.episode_number' IN v_function)=0
+ OR position('previous_chapter_required' IN v_function)=0 THEN
+  RAISE EXCEPTION 'KL S2 progressive chapter reward or sequential gate missing';
  END IF;
 END $check$;
