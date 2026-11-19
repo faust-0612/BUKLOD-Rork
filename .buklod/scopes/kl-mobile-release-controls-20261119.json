@@ -10,7 +10,8 @@
     "app-runtime",
     "kl-editorial-release",
     "mobile-layout",
-    "staging-production-isolation"
+    "staging-production-isolation",
+    "story"
   ],
   "allowedPaths": [
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
@@ -48,5 +49,10 @@
   ],
   "releaseTarget": "Android staging-user channel, preview environment; production untouched.",
   "publicationStatus": "DEV_ONLY_NO_OTA",
-  "physicalDeviceVerification": "NOT_PERFORMED"
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "alternativeApproaches": [
+    "Add flexWrap only to the original single row (rejected: 5-question controls still clutter and obscure release on narrow phones).",
+    "Always show the release button by skipping approval state or backend preflight (rejected: unauthorized or incomplete chapter could publish).",
+    "Add horizontal scrolling to the action row (rejected: the button would still be visually hidden and hard to discover)."
+  ]
 }
