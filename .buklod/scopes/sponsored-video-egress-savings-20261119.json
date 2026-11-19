@@ -16,7 +16,8 @@
     "Existing paid sponsorship eligibility, exact geography, admin approval, payment and impression/click counters unchanged.",
     "All existing approved campaigns without rendition metadata keep playing original MP4 immediately.",
     "No runtime transcoding, CDN mutation, no video file deleted or replaced, no mobile native dependency introduced.",
-    "Season 2, finances, AdMob placements, navigation, KL, Connect, character and account security unaffected."
+    "Season 2, finances, AdMob placements, navigation, KL, Connect, character and account security unaffected.",
+    "Existing sponsored fast-start test now explicitly checks preserved focus/near prewarming plus bounded scroll-back player retention."
   ],
   "riskAreas": [
     "wall-media",
@@ -36,7 +37,8 @@
     "scripts/buklod-cached-egress-thresholds.mjs",
     "supabase/migrations/20261119152000_paid_sponsor_ad_optional_mobile_renditions_r1.sql",
     "tests/sponsor-video-egress-savings-20261119.test.mjs",
-    ".buklod/scopes/sponsored-video-egress-savings-20261119.json"
+    ".buklod/scopes/sponsored-video-egress-savings-20261119.json",
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
