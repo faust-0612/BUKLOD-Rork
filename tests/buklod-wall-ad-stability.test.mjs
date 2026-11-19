@@ -113,7 +113,7 @@ test('Native health switches to banner only after two recent failures and expire
  const compiled=stripTypeScriptTypes(source, { mode: 'strip' }).replace(/^export /gm, '');
  const { preferBannerAfterNativeFailures: prefer, noteNativeRequestFailed: failed,
    noteNativeRequestSucceeded: succeeded }=new Function(compiled +
-     '\\nreturn { preferBannerAfterNativeFailures, noteNativeRequestFailed, noteNativeRequestSucceeded };')();
+     '\nreturn { preferBannerAfterNativeFailures, noteNativeRequestFailed, noteNativeRequestSucceeded };')();
  const t=1000000;
  assert.equal(prefer('wall', t), false);
  failed('wall', t);
