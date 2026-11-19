@@ -34,7 +34,8 @@
     "src/components/points/BuklodS2AllItemsBadgesGuide.tsx",
     "src/lib/season2/buklodS2KingdomShardGuideSnapshotR1.ts",
     "docs/season2/BUKLOD_ALL_1300_ITEMS_469_BADGES_40_RANKS_20261119.md",
-    "tests/season2-all-items-badges-ranks-catalog-20261119.test.cjs"
+    "tests/season2-all-items-badges-ranks-catalog-20261119.test.cjs",
+    "tests/season2-kingdom-shards-catalog-parity-20261119.test.cjs"
   ],
   "acceptanceChecks": [
     "Exact 10 owner-approved exclusive IDs unchanged",
@@ -50,14 +51,16 @@
     "Member-facing collapsible BP/QMP/S2/carryover reference lists 46 active/16 inactive (admin-only hidden), exact requirements, limits, deferred credits and isolated status",
     "Integration already includes canonical Connect bubble TypeScript fix and protected regression; this PR keeps dedicated read-only syntax regression, with no Connect source diff.",
     "All 1,300 canonical item names, 469 badge titles and 40 Circle Rank names are exhaustively enumerated from the current Character catalog with Special unlock rank gates, benefits, and server-only claim prerequisites.",
-    "All 4 Kingdom Shard store items and prices are displayed using a pure snapshot, guarded by parity tests against canonical store; no eager Supabase import."
+    "All 4 Kingdom Shard store items and prices are displayed using a pure snapshot, guarded by parity tests against canonical store; no eager Supabase import.",
+    "A dedicated Kingdom Shard catalog parity test verifies all four names/prices against canonical game store and prevents backend RPC imports."
   ],
   "regressionTests": [
     "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
     "tests/season2-member-rewards-full-reference-20261119.test.cjs",
     "tests/season2-dec6-rewards-release-hold-20261119.test.cjs",
     "tests/season2-connect-message-bubble-compile-20261119.test.cjs",
-    "tests/season2-all-items-badges-ranks-catalog-20261119.test.cjs"
+    "tests/season2-all-items-badges-ranks-catalog-20261119.test.cjs",
+    "tests/season2-kingdom-shards-catalog-parity-20261119.test.cjs"
   ],
   "knownBlockers": [
     "No dedicated independent BUKLOD MAIN staging Supabase with applied isolated S2 reward schema and verified RLS",
@@ -89,6 +92,17 @@
       "tests": [
         "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
       ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Show existing 4 Kingdom Shard item names and exact prices with no backend-connected import, and enumerate all 1300 character items and 469 badges in a source-only accessible catalog.",
+      "preservedBehaviors": [
+        "Kingdom server remains sole authority for Shard balances, prices and ownership, with no ad, cash, QMP, BP or Journey Token conversion.",
+        "Character V3 keeps its existing per-character earned levels, owned inventory and equipped cosmetics; no artwork grants or claims from the guide."
+      ],
+      "tests": [
+        "tests/season2-kingdom-shards-catalog-parity-20261119.test.cjs"
+      ]
     }
   ],
   "chosenApproach": "Snapshot audited S1 BP/QMP catalog into a read-only, detailed member reference under existing collapsed Season Journey; add exact owner ten-feature constraints and separate Dec6 audit with no backend connection/point mint. The new Items/Badges tab uses the existing canonical 13-character × 20-stage × 5-item API, with named level selection, ownership caveats and category filtering; documentation expands all 1300 and 469 titles without executing backend grants.",
@@ -109,6 +123,7 @@
     "database-security",
     "character-inventory",
     "offline-and-weak-network",
-    "release-identity"
+    "release-identity",
+    "kingdom-character"
   ]
 }

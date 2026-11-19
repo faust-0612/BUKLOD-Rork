@@ -73,6 +73,7 @@ jobs:
           node --test tests/season2-dec6-complete-reward-inventory-20261119.test.cjs
           node --test tests/season2-member-rewards-full-reference-20261119.test.cjs
           node --test tests/season2-all-items-badges-ranks-catalog-20261119.test.cjs
+          node --test tests/season2-kingdom-shards-catalog-parity-20261119.test.cjs
           node --test tests/season2-dec6-rewards-release-hold-20261119.test.cjs
           node scripts/season2-governance.cjs validate
           node scripts/season2-governance.cjs ci
