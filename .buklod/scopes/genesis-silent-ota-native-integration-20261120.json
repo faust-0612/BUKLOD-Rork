@@ -1,0 +1,77 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json",
+  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes.",
+  "baseRef": "ee25dd41208a7758943d51868f0f61a084f33c7c",
+  "productionBaselineEvidence": "Production main 551e54602addd6f7bbe7bcdddd1589d35424c964; Genesis staging APK unbuilt; original Genesis DEV branch ee25dd41208a7758943d51868f0f61a084f33c7c. This isolated PR neither modifies production nor signs/publishes Android artifacts.",
+  "chosenApproach": "Forward-port byte-identical reviewed host/policy and focused Node behavior tests from #1003, preserving exact branch/base and native Gradle compile smoke. Replace obsolete restart-banner assertions rather than bypass protection.",
+  "selectionRationale": "Avoid duplicate update checks and misleading restart prompts; use a bounded one-hour check and 30-minute failure cooldown, no reload during calls/compose. No native dependencies added.",
+  "alternativeApproaches": [
+    "Automatic reload rejected for PTT/call/upload safety",
+    "Use production staging backend credentials rejected by nonproduction isolation policy",
+    "Blind merge of old staging/native branches rejected for drift and unverified native SDKs"
+  ],
+  "preserveBehaviors": [
+    "Production runtime 1.3.2 and existing backend, AdMob placements and navigation unmodified",
+    "Genesis runtime remains 2.0.0-genesis-preview on season2-genesis-preview channel",
+    "Mandatory native APK version cutoff remains server-enforced",
+    "Downloaded compatible updates apply at next normal cold launch; no in-session reload",
+    "First-view ads, call/PTT sessions, offline drafts and photo uploads remain uninterrupted",
+    "No claims of signed APK or deployed OTA without verification"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "production-release"
+  ],
+  "regressionTests": [
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
+    "src/lib/buklodSilentOtaPolicy.ts",
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    "release/genesis-native-build-inventory-20261120.json",
+    ".github/workflows/genesis-android-compile-smoke-20261120.yml",
+    ".github/workflows/genesis-season2-staging-release-apk-20261120.yml",
+    ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Replace native OTA restart banner with nonrendering bounded foreground downloader for compatible Genesis updates",
+      "preservedBehaviors": [
+        "Preserves active calls, PTT, drafts and the server enforced mandatory native upgrade gate"
+      ],
+      "tests": [
+        "tests/buklod-silent-ota-policy.test.mjs",
+        "tests/ota-restart-safe-area.test.cjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add isolated Genesis staging native compile and APK preflight assertions for silent OTA without altering production workflow",
+      "preservedBehaviors": [
+        "No production channel or runtime changes and no CI bypass; signed native APK still requires separate staging credentials and device approval"
+      ],
+      "tests": [
+        "tests/buklod-mandatory-update-runtime.test.mjs",
+        "tests/buklod-silent-ota-policy.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Every changed path exactly declared including governance scope itself",
+    "Node 5-policy and mandatory-native-version tests + no restart-banner regression pass",
+    "TypeScript, build identity, source gates and Android native compile must pass",
+    "Native signed staging APK requires valid isolated Firebase/Supabase/Expo credentials; fail closed if absent",
+    "Actual installed native Android first-view AdMob and navigation tests must pass before OTA publication",
+    "No production/Play/DB/points/finance edits; Season 2 embargo preserved"
+  ],
+  "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
+  "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
