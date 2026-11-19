@@ -57,7 +57,7 @@ test('Small banners keep the SDK surface visible during initial load and no-fill
 
 test('First-view native timeout is bounded and failed banner fallbacks collapse instead of leaving a full-height blank', () => {
  const s=read('src/components/BuklodCommunityInlineAd.android.tsx');
- assert.match(s, /const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 16_000/);
+ assert.match(s, /const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 9_000/);
  assert.match(s, /firstView \? FIRST_VIEW_AD_LOAD_TIMEOUT_MS : AD_LOAD_TIMEOUT_MS/);
  assert.match(s, /if \(!bannerUnitId\) return null;[\s\S]*?if \(bannerFailed\) \{[\s\S]*?styles\.viewportProbe/);
 });
@@ -77,8 +77,10 @@ test('Public Wall first-view uses its dedicated community-entry BannerAd fallbac
 
 test('Wall NativeAd repeated timeouts use a bounded banner-first recovery without request spam', () => {
  const native=read('src/components/BuklodCommunityInlineAd.android.tsx');
- assert.match(native, /const NATIVE_FAILURE_THRESHOLD = 2/);
- assert.match(native, /const NATIVE_BANNER_PREFERENCE_MS = 5 \* 60 \* 1000/);
+ const health=read('src/lib/buklodNativeAdRecovery.ts');
+ assert.match(health, /NATIVE_FAILURE_THRESHOLD = 2/);
+ assert.match(health, /NATIVE_BANNER_PREFERENCE_MS = 5 \* 60 \* 1000/);
+ assert.match(native, /from '@\/lib\/buklodNativeAdRecovery'/);
  assert.match(native, /preferBannerAfterNativeFailures\(placementId\)/);
  assert.match(native, /noteNativeRequestFailed\(placementId\)/);
  assert.match(native, /noteNativeRequestSucceeded\(placementId\)/);
@@ -89,4 +91,53 @@ test('Wall NativeAd repeated timeouts use a bounded banner-first recovery withou
  assert.match(native, /Date\.now\(\) - bannerFailedAt\.current < AD_SLOT_REMOUNT_COOLDOWN_MS/);
  assert.match(native, /if \(bannerFailed\) \{[\s\S]*?style=\{styles\.viewportProbe\}/);
  assert.doesNotMatch(native, /fakeImpression|syntheticImpression/);
+});
+
+test('Preloader and visible ad slot share real native failures and never synthesize impressions', () => {
+ const warm=read('src/components/BuklodDashboardAdWarmup.android.tsx');
+ const native=read('src/components/BuklodCommunityInlineAd.android.tsx');
+ const health=read('src/lib/buklodNativeAdRecovery.ts');
+ assert.match(warm, /preferBannerAfterNativeFailures\(target\.placementId\)/);
+ assert.match(warm, /noteNativeRequestFailed\(target\.placementId\)/);
+ assert.match(warm, /noteNativeRequestSucceeded\(target\.placementId\)/);
+ assert.match(warm, /NATIVE_WARM_TIMEOUT_MS = 9_000/);
+ assert.match(native, /FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 9_000/);
+ assert.match(native, /noteNativeRequestFailed\(placementId\)/);
+ assert.match(native, /noteNativeRequestSucceeded\(placementId\)/);
+ assert.doesNotMatch(health, /['"]ad_impression['"]|NativeAd\.createForAdRequest/);
+});
+
+test('Native health switches to banner only after two recent failures and expires safely', async () => {
+ const ts = await import('typescript');
+ const source=read('src/lib/buklodNativeAdRecovery.ts');
+ const compiled=ts.default.transpileModule(source,{
+   compilerOptions:{module:ts.default.ModuleKind.CommonJS,target:ts.default.ScriptTarget.ES2020}
+ }).outputText;
+ const exports={};
+ new Function('exports', compiled)(exports);
+ const { preferBannerAfterNativeFailures: prefer, noteNativeRequestFailed: failed,
+   noteNativeRequestSucceeded: succeeded }=exports;
+ const t=1000000;
+ assert.equal(prefer('wall', t), false);
+ failed('wall', t);
+ assert.equal(prefer('wall', t+1), false);
+ failed('wall', t+500);
+ assert.equal(prefer('wall', t+501), true);
+ assert.equal(prefer('other', t+501), false);
+ assert.equal(prefer('wall', t+5*60*1000+501), false);
+ failed('wall', t+5*60*1000+600);
+ assert.equal(prefer('wall', t+5*60*1000+601), false);
+ failed('wall', t+5*60*1000+650);
+ assert.equal(prefer('wall', t+5*60*1000+651), true);
+ succeeded('wall');
+ assert.equal(prefer('wall', t+5*60*1000+652), false);
+});
+
+test('Fallback banner SDK has actual requested format-size viewport while loading', () => {
+ const native=read('src/components/BuklodCommunityInlineAd.android.tsx');
+ assert.match(native,/style=\{usePostRectangle \? styles\.rectangleArea : styles\.bannerArea\}/);
+ assert.match(native,/rectangleArea:\s*\{[^}]*height: 250/);
+ assert.match(native,/bannerArea:\s*\{[^}]*minHeight: 50/);
+ assert.doesNotMatch(native,/styles\.pendingArea/);
+ assert.match(native,/if \(bannerFailed\) \{[\s\S]*?styles\.viewportProbe/);
 });

@@ -1,0 +1,35 @@
+{
+  "contractVersion": 2,
+  "objective": "Improve Android production NativeAd first-view responsiveness using a shared session-local native-load health circuit and a correctly visible SDK BannerAd fallback.",
+  "baseRef": "aa3aa734b15f6cc2a64fbbbed3dfdd7d4db9539c",
+  "productionBaselineEvidence": "Read-only 2026-11-19 BUKLOD production telemetry showed 512 NativeAd load timeouts and 299 no-fill callbacks in preceding 48 hours. First-view and warmup timeout each 16 seconds; warmup and visible slots did not share failure health; fallback banner loaded in an 8-pixel clipped viewport.",
+  "chosenApproach": "9-second bounded first-view/warmup native timeout, shared two-failure/5-minute local banner-first health, and full requested banner viewport only after an allowed reservation. Preserve 12-second native feed timeout on slow 3G.",
+  "preserveBehaviors": [
+    "Do not change ad SDK/native package, ad IDs, test/live app identity, consent, remote locks, cooldown, or app native runtime.",
+    "No synthetic impressions or requests, auto-refresh, illegal off-screen SDK views, forced interstitials, extra requests, or reward changes.",
+    "AdMob production, RC and staging remain untouched until exact mandatory CI and runtime checks; Season2 untouched.",
+    "Loaded native creatives and offscreen viewability rules remain unchanged."
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodDashboardAdWarmup.android.tsx",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "src/lib/buklodNativeAdRecovery.ts",
+    ".buklod/scopes/prod-ad-firstview-health-fallback-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+    "tests/nov16-wall-nav-ads-prewarm-integration.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Shared health counts prewarm and onscreen NativeAd failures per stable placement, expires and clears on success",
+    "BannerAd is never clipped during a pending real SDK load",
+    "Failed/no-fill slots collapse to compact probe and maintain existing quiet-period retries",
+    "Source and tests in isolated PR; no automatic production publish or payout changes"
+  ]
+}
