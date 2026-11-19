@@ -8,7 +8,7 @@ const {EXPECTED_IDS,validateInventory,readiness,inspectRepo}=require('../scripts
 const root=path.join(__dirname,'..');
 const base=JSON.parse(fs.readFileSync(path.join(root,'contracts/season2-dec6-complete-reward-inventory-20261119.json'),'utf8'));
 const scope=JSON.parse(fs.readFileSync(path.join(root,'contracts/season2-owner-approved-exclusives-20261119.json'),'utf8'));
-const mutate=fn=>{const i=structuredClone(base);fn(i);return validateInventory(i,scope);};
+const mutate=fn=>{const i=JSON.parse(JSON.stringify(base));fn(i);return validateInventory(i,scope);};
 test('full 10 approved Season2 exclusives match owner allowlist, no 11th reward',()=>{
  assert.deepEqual(base.approvedExclusiveIds,EXPECTED_IDS);
  assert.equal(validateInventory(base,scope).valid,true);
