@@ -1,6 +1,6 @@
 -- S2 KL reward policy (staging source only). Explicitly OFF until separately approved
 -- on/after 2026-12-06 Asia/Manila. NEVER apply to production during Season 1.
--- Completion: verified chapter +15 BP AFTER activation; Season 1 remains +10.
+-- Completion: verified chapter earns 5 + numbered chapter BP AFTER activation (1=6; 5=10; 30=35); Season 1 remains +10.
 -- First qualifying top-level comment per member per released chapter: +5 BP
 -- with >=20 trimmed characters. Historical comments/completions are untouched.
 -- All claims must be server-authoritative, forward-only and idempotent.
@@ -36,8 +36,8 @@ BEGIN
  END IF;
  IF NEW.enabled AND NOT OLD.enabled THEN
   UPDATE public.buklod_point_rules
-  SET base_points=15,max_points_per_event=15,
-      notes='KL S2 verified chapter completion +15 BP; forward only',
+  SET base_points=5,max_points_per_event=35,
+      notes='KL S2 verified chapter +5 base and +1 per chapter number (1-30), forward only',
       updated_at=now()
   WHERE activity_type='kl_episode';
  ELSIF OLD.enabled AND NOT NEW.enabled THEN
@@ -56,6 +56,66 @@ DROP TRIGGER IF EXISTS kl_s2_reward_activation_guard ON private.kl_s2_reward_rol
 CREATE TRIGGER kl_s2_reward_activation_guard
 BEFORE UPDATE ON private.kl_s2_reward_rollout
 FOR EACH ROW EXECUTE FUNCTION private.kl_s2_reward_activation_v1();
+
+
+-- Season 2 per-user chapter unlock. Completed prior chapter is server-verified.
+-- Chapter numbers are bounded to prevent unexpected award inflation.
+CREATE OR REPLACE FUNCTION private.kl_s2_previous_chapter_complete_v1(
+ p_user uuid,p_episode_id uuid
+) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $fn$
+ SELECT EXISTS (
+  SELECT 1 FROM public.kl_episodes chapter
+  WHERE chapter.id=p_episode_id AND chapter.episode_number BETWEEN 1 AND 30
+    AND (chapter.episode_number=1 OR EXISTS (
+      SELECT 1 FROM public.kl_episodes previous
+      JOIN public.kl_reading_sessions sessions
+        ON sessions.episode_id=previous.id AND sessions.user_id=p_user
+      WHERE previous.season_number=chapter.season_number
+        AND previous.episode_number=chapter.episode_number-1
+        AND previous.status='approved' AND previous.approved_at IS NOT NULL
+        AND previous.release_at<=now() AND sessions.completed_at IS NOT NULL
+    ))
+ )
+$fn$;
+REVOKE ALL ON FUNCTION private.kl_s2_previous_chapter_complete_v1(uuid,uuid)
+ FROM PUBLIC,anon,authenticated;
+
+-- Even an old Android client cannot start a *new* chapter session out of order
+-- after activation. This trigger has no effect before Season 2 is enabled.
+CREATE OR REPLACE FUNCTION private.kl_s2_reading_session_order_v1()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
+BEGIN
+ IF private.kl_s2_rewards_enabled_v1()
+    AND NOT private.kl_s2_previous_chapter_complete_v1(NEW.user_id,NEW.episode_id)
+ THEN RAISE EXCEPTION 'previous_chapter_required'; END IF;
+ RETURN NEW;
+END $fn$;
+REVOKE ALL ON FUNCTION private.kl_s2_reading_session_order_v1()
+ FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS kl_s2_order_on_session_insert ON public.kl_reading_sessions;
+CREATE TRIGGER kl_s2_order_on_session_insert
+ BEFORE INSERT OR UPDATE OF episode_id ON public.kl_reading_sessions
+ FOR EACH ROW EXECUTE FUNCTION private.kl_s2_reading_session_order_v1();
+
+-- Versioned read gate. Production Season 1 continues using the same original
+-- reader function; client falls back when this staging RPC is not installed.
+CREATE OR REPLACE FUNCTION public.kl_s2_chapter_access_v1(p_episode_id uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $fn$
+DECLARE
+ v_user uuid:=auth.uid();
+ v_enabled boolean:=private.kl_s2_rewards_enabled_v1();
+ v_allowed boolean;
+BEGIN
+ IF v_user IS NULL THEN RAISE EXCEPTION 'Sign in required'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM public.kl_episodes WHERE id=p_episode_id) THEN
+  RETURN jsonb_build_object('enabled',v_enabled,'allowed',false);
+ END IF;
+ v_allowed:=NOT v_enabled OR private.kl_s2_previous_chapter_complete_v1(v_user,p_episode_id);
+ RETURN jsonb_build_object('enabled',v_enabled,'allowed',v_allowed,
+   'reason',CASE WHEN v_allowed THEN null ELSE 'previous_chapter_required' END);
+END $fn$;
+REVOKE ALL ON FUNCTION public.kl_s2_chapter_access_v1(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.kl_s2_chapter_access_v1(uuid) TO authenticated;
 
 -- Server-side credit: original chapter comment RPC remains unchanged and is
 -- covered through the physical table INSERT (old and new client versions).
@@ -82,7 +142,8 @@ BEGIN
     OR coalesce((v_row->>'is_hidden')::boolean,false)
     OR nullif(v_row->>'parent_id','') IS NOT NULL
  THEN RETURN NEW; END IF;
- IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=v_uid AND p.is_active=true)
+ IF NOT private.kl_s2_previous_chapter_complete_v1(v_uid,v_episode)
+    OR NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=v_uid AND p.is_active=true)
     OR NOT EXISTS (
        SELECT 1 FROM public.kl_episodes e WHERE e.id=v_episode
        AND e.status='approved' AND e.approved_at IS NOT NULL
@@ -121,7 +182,7 @@ END $install$;
 
 -- Preserve the existing verified +50 BP series bonus, anti-abuse requirements,
 -- source keys, and one-time completion semantics; only future activated
--- chapter completions switch from 10 to 15 BP.
+-- chapter completions switch from 10 BP to (5 + numbered chapter) BP.
 CREATE OR REPLACE FUNCTION public.kl_reading_progress_v1(p_episode_id uuid, p_action text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -139,11 +200,21 @@ declare
 begin
  if v_user is null then raise exception 'Sign in required';end if;
  -- Season 1 stays at +10 until a separately authorized, dated S2 activation.
- IF private.kl_s2_rewards_enabled_v1() THEN v_chapter_points:=15; END IF;
  select * into v_episode from public.kl_episodes
  where id=p_episode_id and status='approved' and approved_at is not null
    and release_at<=now() for share;
  if not found then raise exception 'Chapter not released';end if;
+ IF private.kl_s2_rewards_enabled_v1() THEN
+  IF v_episode.episode_number NOT BETWEEN 1 AND 30 THEN
+   RAISE EXCEPTION 'Invalid Season 2 numbered chapter';
+  END IF;
+  IF NOT private.kl_s2_previous_chapter_complete_v1(v_user,p_episode_id) THEN
+   RETURN jsonb_build_object('ok',false,'completed',false,
+      'reason','previous_chapter_required','points_awarded',0,
+      'chapter_points',0,'series_points',0);
+  END IF;
+  v_chapter_points:=5+v_episode.episode_number;
+ END IF;
  if p_action='start' then
   insert into public.kl_reading_sessions(user_id,episode_id) values(v_user,p_episode_id)
   on conflict(user_id,episode_id) do nothing;
