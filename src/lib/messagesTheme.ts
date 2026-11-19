@@ -230,6 +230,15 @@ export function buildMessagesThemeRoles(
 }
 
 const MESSAGES_PALETTE_ORDER: MessagesPaletteId[] = [
+  'evergreenSocial',
+  'midnightMint',
+  'warmCommunity',
+  'sapphireFrost',
+  'forestChampagne',
+  'royalPlum',
+  'terracottaSand',
+  'graphiteLime',
+  'oceanCoral',
   'cloudWhite',
   'softMint',
   'sage',
