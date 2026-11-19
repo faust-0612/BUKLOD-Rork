@@ -457,6 +457,24 @@ The complete named catalogue is in `docs/season2/BUKLOD_ALL_1300_ITEMS_469_BADGE
 
 The existing `src/components/points/BuklodPointsR2Guide.tsx` describes source-specific milestones: Bible Scholar needs 28 verified ABC lessons, Faithful Mentor needs 4 approved mentoring sessions, and Kingdom Champion needs 20 recorded Kingdom levels plus independent proof. These are the **configured eligibility descriptions**, not evidence that the backend has granted every claim. Community Builder requires a genuine documented project and beneficiary evidence.
 
+## 18. Kingdom Shards — exact verified earn and spend guide (separate from Season 2 Tokens)
+
+Read-only inspection on November 19 found `private.buklod_kingdom_sync_shards_v1(uuid)` and the canonical wallet/source tables installed in connected BUKLOD MAIN. The existing SQL source verifies the following game-only grants, while user-specific eligibility and purchase status must still be read from their own authenticated server account:
+
+| Kingdom earning event | Shards | Requirement | Repeat limit |
+|---|---:|---|---|
+| First independently verified Kingdom game mastery | +1 Shard | Credited mastery attempt, with matching official `game_first_qualified` **+2 BP** in immutable points ledger for the same `game_id`; no client score substitutes | One per `game_id` source key |
+| Redeemed existing canonical Character collectible | +2 Shards | Server-owned Character collectible record with non-null `redeemed_at`; not just artwork or unredeemed preview | One per distinct `collectible_id` source key |
+
+| Permanent Kingdom power | Shard price | Purpose |
+|---|---:|---|
+| Wisdom Lens | 2 | Practice-answer hint |
+| Guardian Shield | 3 | Protection on a retrying practice challenge |
+| Explorer Compass | 2 | Remove two wrong practice answers |
+| Emerald Aura | 10 | Permanent practice-hero visual glow |
+
+The Kingdom Shard wallet conserves `earned - spent = balance`, prevents negative balances, and uses server-source uniqueness. Shards do **not** convert to Journey Tokens, BP, QMP, cash, payout, or other characters' XP. Season 2 cooperative quest rewards and new collectible mastery grants remain separately **DISABLED**, even though this legacy Kingdom source exists.
+
 
 
 ---
@@ -1365,3 +1383,10 @@ Members need clear source-specific `How to earn`, `Why it matters`, proof, coold
 Season 2 cannot automatically activate on December 6. It requires the independent BUKLOD Main staging backend, applied isolated RLS, signed/reconciled Season 1, verified replay/caps/offline proof, AdMob and immediate tab performance on Android RC, financial/legal identity gating, and exact SHA-bound separate owner approval. Catalog inspection and passing source tests alone do not satisfy these release gates.
 
 **Source of truth:** `src/lib/buklodCharacterWorldCatalog.ts`, `src/lib/season2/buklodSeason2CollectibleGuideR1.ts`, `src/lib/buklodCircleRankArt.ts`, `src/lib/buklodKingdomShards.ts`.
+
+## I. Exact Kingdom Shards sources and prices
+
+- **+1 Shard** once for each independently credited first Kingdom game mastery (must match official +2 BP `game_first_qualified` ledger receipt, `game_id`-unique).
+- **+2 Shards** once for each redeemed, canonical Character collectible with server-owned non-null `redeemed_at` (`collectible_id`-unique). Mere image/preview does not qualify.
+- **Spend:** Wisdom Lens 2, Guardian Shield 3, Explorer Compass 2, Emerald Aura 10 Shards. These are permanent Kingdom practice powers, not Season 2 Journey Token cosmetics or cash.
+- Existing private Shards sync function and wallet table were observed in the connected BUKLOD MAIN on November 19, 2026. This observation does not prove that every client has earned or spent those Shards.

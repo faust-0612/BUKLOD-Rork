@@ -902,3 +902,10 @@ Members need clear source-specific `How to earn`, `Why it matters`, proof, coold
 Season 2 cannot automatically activate on December 6. It requires the independent BUKLOD Main staging backend, applied isolated RLS, signed/reconciled Season 1, verified replay/caps/offline proof, AdMob and immediate tab performance on Android RC, financial/legal identity gating, and exact SHA-bound separate owner approval. Catalog inspection and passing source tests alone do not satisfy these release gates.
 
 **Source of truth:** `src/lib/buklodCharacterWorldCatalog.ts`, `src/lib/season2/buklodSeason2CollectibleGuideR1.ts`, `src/lib/buklodCircleRankArt.ts`, `src/lib/buklodKingdomShards.ts`.
+
+## I. Exact Kingdom Shards sources and prices
+
+- **+1 Shard** once for each independently credited first Kingdom game mastery (must match official +2 BP `game_first_qualified` ledger receipt, `game_id`-unique).
+- **+2 Shards** once for each redeemed, canonical Character collectible with server-owned non-null `redeemed_at` (`collectible_id`-unique). Mere image/preview does not qualify.
+- **Spend:** Wisdom Lens 2, Guardian Shield 3, Explorer Compass 2, Emerald Aura 10 Shards. These are permanent Kingdom practice powers, not Season 2 Journey Token cosmetics or cash.
+- Existing private Shards sync function and wallet table were observed in the connected BUKLOD MAIN on November 19, 2026. This observation does not prove that every client has earned or spent those Shards.

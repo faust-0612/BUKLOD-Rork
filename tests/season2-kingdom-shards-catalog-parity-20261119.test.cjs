@@ -19,6 +19,20 @@ test('all four exact Kingdom Shard prices agree with existing authenticated King
  }
  assert.match(memberView,/S2_KINGDOM_SHARD_REFERENCE\.map/);
 });
+test('Shard mint sources agree with canonical SQL: +1 verified first game mastery and +2 redeemed collectible exactly once',()=>{
+ const sql=read('supabase/migrations/20261111014500_buklod_kingdom_shards_game_only_v1.sql');
+ assert.match(sql,/1::integer as reward/);
+ assert.match(sql,/2::integer as reward/);
+ assert.match(sql,/a\.status='credited'/);
+ assert.match(sql,/l\.activity_type='game_first_qualified'/);
+ assert.match(sql,/l\.points=2/);
+ assert.match(sql,/c\.redeemed_at is not null/);
+ assert.match(sql,/on conflict \(user_id,source_key\) do nothing/);
+ assert.match(snapshot,/S2_KINGDOM_SHARD_EARNING_SOURCES/);
+ assert.match(snapshot,/id:'first_verified_game_mastery',shards:1/);
+ assert.match(snapshot,/id:'redeemed_canonical_character_collectible',shards:2/);
+ assert.match(memberView,/S2_KINGDOM_SHARD_EARNING_SOURCES\.map/);
+});
 test('Kingdom guide is read-only, no eager Supabase, cannot grant BP/QMP/Tokens/cash',()=>{
  assert.equal(snapshot.split('\n').some(s=>s.trim().startsWith('import ')),false);
  assert.match(snapshot,/CANONICAL_CATALOG_SNAPSHOT_SERVER_REQUIRED/);

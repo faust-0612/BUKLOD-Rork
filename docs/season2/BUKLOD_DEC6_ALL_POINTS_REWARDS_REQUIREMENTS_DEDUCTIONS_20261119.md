@@ -437,3 +437,21 @@ The complete named catalogue is in `docs/season2/BUKLOD_ALL_1300_ITEMS_469_BADGE
 
 The existing `src/components/points/BuklodPointsR2Guide.tsx` describes source-specific milestones: Bible Scholar needs 28 verified ABC lessons, Faithful Mentor needs 4 approved mentoring sessions, and Kingdom Champion needs 20 recorded Kingdom levels plus independent proof. These are the **configured eligibility descriptions**, not evidence that the backend has granted every claim. Community Builder requires a genuine documented project and beneficiary evidence.
 
+## 18. Kingdom Shards — exact verified earn and spend guide (separate from Season 2 Tokens)
+
+Read-only inspection on November 19 found `private.buklod_kingdom_sync_shards_v1(uuid)` and the canonical wallet/source tables installed in connected BUKLOD MAIN. The existing SQL source verifies the following game-only grants, while user-specific eligibility and purchase status must still be read from their own authenticated server account:
+
+| Kingdom earning event | Shards | Requirement | Repeat limit |
+|---|---:|---|---|
+| First independently verified Kingdom game mastery | +1 Shard | Credited mastery attempt, with matching official `game_first_qualified` **+2 BP** in immutable points ledger for the same `game_id`; no client score substitutes | One per `game_id` source key |
+| Redeemed existing canonical Character collectible | +2 Shards | Server-owned Character collectible record with non-null `redeemed_at`; not just artwork or unredeemed preview | One per distinct `collectible_id` source key |
+
+| Permanent Kingdom power | Shard price | Purpose |
+|---|---:|---|
+| Wisdom Lens | 2 | Practice-answer hint |
+| Guardian Shield | 3 | Protection on a retrying practice challenge |
+| Explorer Compass | 2 | Remove two wrong practice answers |
+| Emerald Aura | 10 | Permanent practice-hero visual glow |
+
+The Kingdom Shard wallet conserves `earned - spent = balance`, prevents negative balances, and uses server-source uniqueness. Shards do **not** convert to Journey Tokens, BP, QMP, cash, payout, or other characters' XP. Season 2 cooperative quest rewards and new collectible mastery grants remain separately **DISABLED**, even though this legacy Kingdom source exists.
+

@@ -17,7 +17,7 @@ import {
 } from '@/lib/buklodCharacterWorldCatalog';
 import {getS2CollectibleGuide} from '@/lib/season2/buklodSeason2CollectibleGuideR1';
 import {BUKLOD_CIRCLE_RANK_FAMILIES,BUKLOD_CIRCLE_RANK_LEVELS} from '@/lib/buklodCircleRankArt';
-import {S2_KINGDOM_SHARD_REFERENCE} from '@/lib/season2/buklodS2KingdomShardGuideSnapshotR1';
+import {S2_KINGDOM_SHARD_REFERENCE,S2_KINGDOM_SHARD_EARNING_SOURCES} from '@/lib/season2/buklodS2KingdomShardGuideSnapshotR1';
 
 type Tab='items'|'badges'|'ranks'|'kingdom';
 type BadgeCategory='stage'|'era'|'journey'|'starter'|'series';
@@ -145,6 +145,11 @@ export default function BuklodS2AllItemsBadgesGuide(){
    <Text style={s.note}>{t(
     'Hindi BP, QMP, cash o Season 2 Journey Tokens ang Kingdom Shards. Ang balances at purchase ownership ay dapat sa verified Kingdom server, hindi sa offline cached estimate.',
     'Kingdom Shards are not BP, QMP, cash or S2 Journey Tokens. Balances and ownership require verified Kingdom server records, not a local cache estimate.')}</Text>
+   <Text style={s.ruleLabel}>{t('Paano kumita ng Kingdom Shards — verified backend','How to earn Kingdom Shards — verified backend')}</Text>
+   {S2_KINGDOM_SHARD_EARNING_SOURCES.map(rule=><Line key={rule.id}
+    title={rule.id.replaceAll('_',' ')} side={`+${rule.shards} Shards`}
+    detail={`${rule.criteria} · ${rule.limit}`}/>)}
+   <Text style={s.ruleLabel}>{t('Pambiling Shards sa permanent Kingdom powers','Shard costs for permanent Kingdom practice powers')}</Text>
    {S2_KINGDOM_SHARD_REFERENCE.map(item=><Line key={item.key} title={item.name}
     side={item.price+' Shards'} detail={item.description}/>)}
    <Text style={s.ruleLabel}>{t('Iba pang Kingdom at game rewards','Other Kingdom and game rewards')}</Text>
