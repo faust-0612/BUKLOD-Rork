@@ -20,9 +20,9 @@
     "actual-served-staging-manifest",
     "unchanged-production"
   ],
-  "sourceStatus": "Consolidated source PR #967 (1,300 item/Token/Badge guide) and PR #969 (zero-charge Expo Free plan guard) each passed Engineering Accountability, Season2 Governance Drift and Main QA. Publisher must independently prove exact SHA, Free-plan billing, Android runtime, served staging manifest and unchanged production. No reward backend deployed.",
+  "sourceStatus": "PR #971 passed Engineering Accountability and Main QA on commit 7e295427b9e643cee64bf92c41326c23c3d0a1d8. EAS account:usage 27.x output is now parsed from canonical account.name/account.plan and zero billing fields; publisher must prove Free on faust_0612 before any staging update. First attempt #44475356741 failed closed without EAS publish or costs.",
   "note": "Stage user-facing previews only. S2 wallets, token mint/spend, missions, season rollover and economy integration remain OFF even after Dec 6 absent fresh approval and backend verification. Production Season 1 remains unchanged.",
-  "attempt": 6,
+  "attempt": 7,
   "rewardsHoldUntilManilaDay": "2026-12-06",
   "requiresSeparateOwnerApprovalForRewards": true,
   "season2RewardDbWritesAuthorized": false,
@@ -35,9 +35,9 @@
     "Season 2 Journey Tokens and Weekly Foundation Badge instructions (no active claims)",
     "Disabled isolated Season 2 collectible mastery claim draft (source only, not deployed)"
   ],
-  "requestedVisualOnlySourceParent": "70b6d1dc4f7d3cf5f32bf48477525aaa48f04d18",
+  "requestedVisualOnlySourceParent": "89944fcf35fb08fc61637246f541d4e3af6e1505",
   "requestedAtManilaDay": "2026-11-19",
-  "publicationStatus": "ZERO_COST_STAGING_OTA_REQUESTED_NOT_YET_VERIFIED",
+  "publicationStatus": "ZERO_COST_STAGING_RETRY_AFTER_OFFICIAL_EAS_JSON_SCHEMA_FIX_NOT_YET_VERIFIED",
   "noChargeRequired": true,
   "freePlanOwner": "faust_0612",
   "physicalDeviceVerification": "WAIVED_BY_OWNER_NOT_PERFORMED"
