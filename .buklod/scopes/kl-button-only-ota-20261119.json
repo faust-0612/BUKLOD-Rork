@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kl-button-only-ota-20261119.json",
+  "baseRef": "730c811cda97d106339f14fae04fb4b8890b0ed2",
+  "objective": "Release only the verified KL Android admin release-button overflow fix to the installed staging-user channel, preserving latest verified staging source and all unrelated functionality.",
+  "productionBaselineEvidence": "verified: direct GitHub read of latest production main and Nov17 staging candidate shows the same KLReaderScreen legacy blob 1072a26e9eacea5ceb8a8ff64010b3c6181775b3. Exact approved KL UI patch blob 0bc41eafad7d7f7a4cde1b88349aa98f448f03f1 and test blob 201f392011237f62203690014c77b1f07dc0e5b2 are re-used. Live current staging source is verified separately by runtime update preflight, not inferred.",
+  "chosenApproach": "Isolated Expo Android staging-user OTA based on frozen Nov17 staging RC; no Season2 conso merge. Require existing staging manifest to match precisely the Nov17 source before publishing. Reuse approved build runtime, published Expo staging account, lock to exact branch and only one marker. No custom Season2 Expo account-plan gate is applied to this isolated KL fix.",
+  "riskAreas": [
+    "app-runtime",
+    "story",
+    "production-release",
+    "ads-navigation",
+    "staging-channel-integrity"
+  ],
+  "allowedPaths": [
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    ".buklod/scopes/kl-button-only-ota-20261119.json",
+    ".github/workflows/buklod-kl-button-only-staging-ota-20261119.yml",
+    ".buklod/releases/kl-button-only-staging-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Make KL admin controls visible without changing per-episode approval, quiz readiness or server publication behavior.",
+      "preservedBehaviors": [
+        "Original authorized two-step release server preflight and exact UUID targeting remain intact.",
+        "All other existing staging app source and optional Season2 feature states remain unchanged."
+      ],
+      "tests": [
+        "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add a dedicated staging-only publisher because existing Season2-wide billing and product gates are unrelated to a KL layout fix.",
+      "preservedBehaviors": [
+        "Only staging-user channel and matching signed APK runtime may receive an update.",
+        "Production manifest and channel identity are checked before and after publish; no production promotion."
+      ],
+      "tests": [
+        "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+      ]
+    }
+  ],
+  "selectionRationale": "The approved KL patch already passed independent CI; the reused Season2 publisher has unrelated billing policy and additional unapproved source scope. Isolated staging avoids both.",
+  "alternativeApproaches": [
+    "Bypass all gates in Season2 publisher: rejected, would release broad Season2 source rather than KL-only.",
+    "Merge directly to main and publish production: rejected, unauthorized production impact.",
+    "Allow unknown current staging source and overwrite blindly: rejected, could roll back latest staging work."
+  ],
+  "preserveBehaviors": [
+    "No production, web, Play, database, token, reward, AdMob placement or Season2 rules changed.",
+    "If latest stage source differs from frozen Nov17 RC, stop rather than roll back its improvements.",
+    "Physical-device verification may be skipped, but server-side OTA readback and production nonmutation remain mandatory."
+  ],
+  "acceptanceChecks": [
+    "Exact delta only KL reader, KL test and staging-specific release metadata/workflow.",
+    "Focused KL plus AdMob/navigation tests and TypeScript pass.",
+    "Current staging update and signed APK/runtime/channel are validated before publishing.",
+    "One Android staging update is published with exact source SHA, stage manifest confirms ID and production ID remains unchanged."
+  ],
+  "releaseTarget": "staging-user Android preview runtime 1.3.2, org.mzbministry.buklod.staging",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "season2RewardsHold": "December 6 2026 or until separate explicit approval"
+}
