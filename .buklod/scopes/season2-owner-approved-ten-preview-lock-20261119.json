@@ -1,0 +1,92 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-owner-approved-ten-preview-lock-20261119.json",
+  "objective": "Freeze exactly owner-approved ten Season2 exclusive areas, add read-only visible list and regression guard without any new reward activation or changes to production or Season1.",
+  "baseRef": "e2cb810ee44940fa21ca1b8eba4d220b250cb78e",
+  "productionAuthorized": false,
+  "sourceOnly": true,
+  "releasePermitted": false,
+  "requestedReleaseTarget": "staging-user only after verified zero-charge and existing release gates",
+  "allowedPaths": [
+    "contracts/season2-owner-approved-exclusives-20261119.json",
+    "contracts/season2-implementation-ledger.json",
+    "contracts/season2-proposals/owner-exact-ten-20261119.json",
+    "docs/season2/OWNER_APPROVED_TEN_SCOPE_LOCK_20261119.md",
+    "scripts/season2-owner-scope-lock.cjs",
+    "tests/season2-owner-scope-lock-20261119.test.cjs",
+    "src/lib/season2/buklodSeason2ApprovedScopeR1.ts",
+    "src/components/points/BuklodSeason2ApprovedExclusivePreview.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml",
+    ".buklod/scopes/season2-owner-approved-ten-preview-lock-20261119.json",
+    ".github/workflows/buklod-season2-governance-drift.yml",
+    "tests/season2-production-ota-scope-lock-20261119.test.cjs"
+  ],
+  "excluded": [
+    "main/production",
+    "live Supabase writes",
+    "reward grants",
+    "billing operations",
+    "app-wide theme",
+    "existing Season1 points and referral grants"
+  ],
+  "verification": "PR source CI pending including scope lock, release negative tests and protected-feature gate",
+  "rollout": "Preview only, backend rewards OFF",
+  "regressionTests": [
+    "tests/season2-owner-scope-lock-20261119.test.cjs",
+    "tests/season2-production-ota-scope-lock-20261119.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add only an optional locked Season2 ten-feature card inside existing Season Journey, with no new backend calls or earned reward controls.",
+      "preservedBehaviors": [
+        "Production Season1 and current stage balances remain untouched; no real Season2 economy, token, or rank grant.",
+        "Existing AdMob/native navigation, current Character inventory and sign-in are preserved."
+      ],
+      "tests": [
+        "tests/season2-owner-scope-lock-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add independent exact-ten owner-scope verification to staging OTA source checks without touching production publication or weakening billing guards.",
+      "preservedBehaviors": [
+        "December 6 production embargo and SHA-bound owner approval are mandatory.",
+        "Staging remains gated by no-charge EAS evidence and exact server readback, and production EAS stays unchanged."
+      ],
+      "tests": [
+        "tests/season2-production-ota-scope-lock-20261119.test.cjs"
+      ]
+    }
+  ],
+  "productionBaselineEvidence": "Last read-only verified Train A production source 404c87e55c62a88c95c7389ac8665f237149702a, EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, Android runtime 1.3.2. This change makes no claim about a fresh live production manifest; staging must reverify before OTA.",
+  "chosenApproach": "Add an exact-ten approved scope manifest, pure source allowlist, a collapsed member preview within the already existing Season Journey, and negative regression guards while preserving all existing server reward-off flags.",
+  "selectionRationale": "The ten item mechanics need a separate verified backend for activation; this source-only staging overview gives a truthful inspectable scope without risking Season1 production, cash, ranks, AdMob or expensive EAS operations. Reconciled against newly integrated staging changes; exact feature-only blobs replayed over current stage without losing existing NativeAd and Expo billing guards.",
+  "alternativeApproaches": [
+    "Activate Season2 SQL in shared Main production Supabase: rejected because it could affect Season1 live users and bypass authenticated staging RLS/concurrency proof.",
+    "Publish through the existing Expo staging workflow despite unknown billing: rejected because previous attempt returned NONZERO_OR_UNKNOWN_BILLING and the owner disallows paid operations.",
+    "Rewrite the app-wide theme now: rejected because the owner explicitly scoped the ten feature completion first."
+  ],
+  "acceptanceChecks": [
+    "Exact 10 owner-approved feature IDs, numbers and order immutable unless separately reviewed by owner.",
+    "Negative tests reject missing or inserted items, early production, S2 grants, automatic launch, altered staging identity and theme edits.",
+    "Source TypeScript and protected app runtime, AdMob and navigation regressions pass; no unaudited production changes.",
+    "GitHub release workflow remains staging-user only and guarded by zero-charge proof; unchanged release marker means no OTA triggered.",
+    "An actual staged OTA is only reported after verified update ID, 1.3.2 runtime and unchanged production EAS manifest."
+  ],
+  "preserveBehaviors": [
+    "Existing Season1 BP/QMP/finance, user membership, rank, Character progression, inventory and withdrawals remain unchanged.",
+    "No S2 token mint, spend, badge, KL delayed BP grant, seasonal reset or referral double-award activates in production or staging.",
+    "Current first-view AdMob, near-instant dashboard tabs, Wall and Connect remain protected.",
+    "Season2 release embargo through December 6 and separate SHA-bound owner authorization remain mandatory."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "release-identity",
+    "ads-monetization",
+    "season1-protection",
+    "governance",
+    "android-staging"
+  ]
+}

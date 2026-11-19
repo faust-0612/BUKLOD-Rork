@@ -46,6 +46,8 @@ jobs:
           BUKLOD_OWNER_REVIEW_VERIFIED: ${{ steps.owner_review.outputs.verified || 'false' }}
           BUKLOD_CI_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/main' }}
         run: |
+          node scripts/season2-owner-scope-lock.cjs
+          node --test tests/season2-owner-scope-lock-20261119.test.cjs tests/season2-production-ota-scope-lock-20261119.test.cjs
           node scripts/season2-governance.cjs validate
           node scripts/seasonal-constitution.test.cjs
           node --experimental-strip-types --test tests/season2-governance-contract.test.mjs tests/season2-governance-production-release-gate.test.mjs tests/buklod-season2-carryover-contract-20261119.test.mjs

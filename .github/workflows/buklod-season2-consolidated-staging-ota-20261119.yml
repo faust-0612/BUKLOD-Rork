@@ -67,6 +67,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node scripts/season2-owner-scope-lock.cjs
+          node --test tests/season2-owner-scope-lock-20261119.test.cjs
           node scripts/season2-governance.cjs validate
           node scripts/season2-governance.cjs ci
           node scripts/seasonal-constitution.test.cjs

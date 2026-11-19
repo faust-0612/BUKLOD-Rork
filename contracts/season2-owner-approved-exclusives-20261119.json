@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "policyId": "BUKLOD_S2_OWNER_APPROVED_EXCLUSIVE_SCOPE_20261119",
+  "season": 2,
+  "ownerGitHubLogin": "faust-0612",
+  "ownerDecision": "APPROVED_EXACTLY_ITEMS_1_THROUGH_10",
+  "sourceOnly": true,
+  "productionAuthorized": false,
+  "allowUnrequestedFeatureInsertion": false,
+  "allowUnrequestedFeatureRemoval": false,
+  "firstPossibleProductionManila": "2026-12-06T00:00:00+08:00",
+  "automaticDec6Launch": false,
+  "explicitSeparateOwnerApprovalRequired": true,
+  "productionShaBoundApprovalRequired": true,
+  "stagingTarget": "staging-user",
+  "stagingPackage": "org.mzbministry.buklod.staging",
+  "backendRewardWritesAllowed": false,
+  "mayModifySeason1": false,
+  "approvedFeatureIds": [
+    "rise_together_campaign",
+    "journey_token_wallet",
+    "character_mastery_1300",
+    "weekly_performance_class",
+    "four_season_awards",
+    "kingdom_cooperative_missions",
+    "foundation_momentum_grace_antifarm",
+    "kl_progressive_pending_bp",
+    "seasonal_archival_carryover",
+    "qualified_referral_rank_reward"
+  ],
+  "featureEntries": [
+    {
+      "number": 1,
+      "id": "rise_together_campaign",
+      "name": "Rise Together — 13 Guides / 12 Weeks",
+      "sourceStatus": "STORY_PREVIEW",
+      "requiresBackendForLive": false
+    },
+    {
+      "number": 2,
+      "id": "journey_token_wallet",
+      "name": "Journey Tokens / Noncash Wallet",
+      "sourceStatus": "BACKEND_HELD",
+      "requiresBackendForLive": true
+    },
+    {
+      "number": 3,
+      "id": "character_mastery_1300",
+      "name": "1,300 Character Mastery Items",
+      "sourceStatus": "CATALOG_PREVIEW",
+      "requiresBackendForLive": false
+    },
+    {
+      "number": 4,
+      "id": "weekly_performance_class",
+      "name": "Weekly Performance Classification",
+      "sourceStatus": "BACKEND_HELD",
+      "requiresBackendForLive": true
+    },
+    {
+      "number": 5,
+      "id": "four_season_awards",
+      "name": "Four Earned Seasonal Awards",
+      "sourceStatus": "AWARDS_HELD",
+      "requiresBackendForLive": true
+    },
+    {
+      "number": 6,
+      "id": "kingdom_cooperative_missions",
+      "name": "Kingdom & Cooperative Missions",
+      "sourceStatus": "BACKEND_HELD",
+      "requiresBackendForLive": true
+    },
+    {
+      "number": 7,
+      "id": "foundation_momentum_grace_antifarm",
+      "name": "Foundation, Momentum & Fair Play",
+      "sourceStatus": "BACKEND_HELD",
+      "requiresBackendForLive": true
+    },
+    {
+      "number": 8,
+      "id": "kl_progressive_pending_bp",
+      "name": "KL Progressive Chapter BP",
+      "sourceStatus": "BACKEND_HELD",
+      "requiresBackendForLive": true
+    },
+    {
+      "number": 9,
+      "id": "seasonal_archival_carryover",
+      "name": "Season Carryover & Hall of Fame",
+      "sourceStatus": "BACKEND_HELD",
+      "requiresBackendForLive": true
+    },
+    {
+      "number": 10,
+      "id": "qualified_referral_rank_reward",
+      "name": "Qualified Referral Rank Reward",
+      "sourceStatus": "RECONCILIATION_HELD",
+      "requiresBackendForLive": true
+    }
+  ],
+  "allowedStagingOutcome": "READ_ONLY_PREVIEW_WITH_ALL_REWARD_SWITCHES_OFF",
+  "themeWorkAuthorized": false,
+  "note": "An implementation inventory is not a live-grant receipt. No additional Season 2 feature may be inserted or removed without a new owner-scoped reviewed decision. This record cannot bypass owner SHA-bound production authorization."
+}
