@@ -71,17 +71,6 @@
       ]
     },
     {
-      "id": "ads-finance-points",
-      "reason": "Expose season-conditional verified KL reward amounts in the existing points guide with no unrelated finance mutation.",
-      "preservedBehaviors": [
-        "Season 1 +10 BP remains in the ledger until active Season2 authorization, and the +50 bonus remains once per completed series.",
-        "QMP distribution, withdrawals and AdMob finance do not change."
-      ],
-      "tests": [
-        "tests/kl-s2-rewards-15-5-min20-20261119.test.mjs"
-      ]
-    },
-    {
       "id": "backend-security",
       "reason": "Create narrowly gated private server-side KL comment credits with anti-farming, release eligibility and one user-chapter ledger source key.",
       "preservedBehaviors": [
