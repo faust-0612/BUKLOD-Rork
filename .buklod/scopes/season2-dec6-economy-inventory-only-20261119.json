@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-dec6-economy-inventory-only-20261119.json",
   "objective": "Prepare exact owner-approved 10 Season 2 exclusives and complete legacy BP/QMP plus all December 6 planned rewards/requirements/deductions as a source-only implementation inventory; add read-only CI contract before staging OTA without activation. Also expose complete read-only, searchable member rewards reference in existing Season2 Journey without added rewards or backend access.",
-  "baseRef": "b96620eb50476081cbf29085d25a5f7830f158a4",
-  "productionBaselineEvidence": "Compared source with Season 2 integration head b96620eb50476081cbf29085d25a5f7830f158a4 and read-only 2026-11-19 Supabase BP/QMP catalog; existing Train A production EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2 was prior documented evidence, not newly verified installed device. BUKLOD MAIN staging backend isolation unverified; no production writes.",
+  "baseRef": "ae1b7dd21b07291b96039c9a863bbed16ebd2963",
+  "productionBaselineEvidence": "Compared source with Season 2 integration head b96620eb50476081cbf29085d25a5f7830f158a4 and read-only 2026-11-19 Supabase BP/QMP catalog; existing Train A production EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2 was prior documented evidence, not newly verified installed device. BUKLOD MAIN staging backend isolation unverified; no production writes. Reconciled later Season2 integration SHA ae1b7dd21b07291b96039c9a863bbed16ebd2963 preserving approved Connect composer/seen and full 915-verse Proverbs cycle; no production write.",
   "productionChange": false,
   "releaseTarget": "DEV_SOURCE_ONLY",
   "releaseAuthorized": false,
@@ -29,7 +29,8 @@
     "src/components/points/BuklodSeasonJourneyPreview.tsx",
     "tests/season2-member-rewards-full-reference-20261119.test.cjs",
     "contracts/season2-proposals/complete-member-reward-guide-20261119.json",
-    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
+    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs",
+    "tests/protected-feature-lock.test.mjs"
   ],
   "acceptanceChecks": [
     "Exact 10 owner-approved exclusive IDs unchanged",
@@ -51,7 +52,8 @@
     "tests/buklod-season2-carryover-contract-20261119.test.mjs",
     "tests/dashboard-instant-tabs-20261117.test.mjs",
     "tests/season2-member-rewards-full-reference-20261119.test.cjs",
-    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
+    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs",
+    "tests/protected-feature-lock.test.mjs"
   ],
   "knownBlockers": [
     "No dedicated independent BUKLOD MAIN staging Supabase with applied isolated S2 reward schema and verified RLS",
@@ -81,6 +83,17 @@
       ],
       "tests": [
         "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Refresh outdated Season2 protected feature regression fixture to include already approved Connect/seen source and proof names after integration base advanced.",
+      "preservedBehaviors": [
+        "All existing protected feature declarations, exact changed path allowlists, and mandatory audit tests stay enforceable.",
+        "Season 2 production hold and AdMob/navigation protection gates remain unchanged."
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
       ]
     }
   ]
