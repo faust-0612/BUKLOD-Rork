@@ -14,6 +14,7 @@ test('Profile navigation retains existing avatar tap behavior while class panel 
  assert.match(card,/onPress=\{\(\)=>setExpanded\(v=>!v\)\}/);
  assert.match(card,/viewerId!==ownerId/);
  assert.match(card,/S2_WEEKLY_PERFORMANCE_STAGING_ONLY/);
+ assert.match(card,/if\(!current\)return null/,'Missing isolated backend must hide the incomplete Profile UI');
  assert.match(avatar,/visitMemberProfile/);
  assert.match(avatar,/isAvatarCircleHit/);
  assert.match(connect,/isAvatarCircleHit/);
