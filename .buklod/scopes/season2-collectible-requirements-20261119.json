@@ -1,0 +1,87 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-collectible-requirements-20261119.json",
+  "objective": "Season2-only full 1300 collectible item prerequisite/purpose guide and Token/Badge instruction with server-authoritative add-on mastery draft, no production grants",
+  "baseRef": "staging/season2-all-updates-20261119",
+  "productionChange": false,
+  "releaseTarget": "DEV_STAGING_SOURCE_ONLY",
+  "releaseAuthorized": false,
+  "productionBaselineEvidence": "Train A production source 404c87e55c62a88c95c7389ac8665f237149702a and EAS Android update 01a1ee79-b1f1-7295-9d48-0238ffe0202a (runtime 1.3.2) are recorded in existing Season2 isolation architecture; no fresh production OTA or physical-device proof claimed.",
+  "chosenApproach": "Use immutable canonical 13x20x5 names; add read-only bilingual instruction guides and correct legacy ownership display. Keep Season2 mastery receipts, optional Tokens and badges separated from existing Character claims and economics. SQL lives only under docs, not migrations.",
+  "selectionRationale": "Legacy Character items already exist and may be owned; retroactive locks or adding token purchase to earned items would break S1. Isolated certification prevents phantom Owned states and permits future validated milestones without granting unearned rewards or changing permanent rank, QMP, BP, cash or ads.",
+  "alternativeApproaches": [
+    "Retroactively lock all existing Character collectibles with new Season2 tasks: rejected, would revoke earned assets and mutate production semantics.",
+    "Client-only fake mission checkmarks or level-based automatic claim: rejected, vulnerable to duplicate/fabricated rewards and offers no verifiable backend evidence.",
+    "Publish an isolated preview first and apply only to a verified separate Main staging backend after SQL/RLS tests: selected."
+  ],
+  "allowedPaths": [
+    "src/lib/season2/buklodSeason2CollectibleGuideR1.ts",
+    "src/components/points/BuklodS2CollectibleGuidePanel.tsx",
+    "src/components/points/BuklodS2RewardInstructions.tsx",
+    "src/components/points/BuklodProgressiveCharacterSelector.tsx",
+    "src/components/points/BuklodSeasonJourneyPreview.tsx",
+    "docs/season2/sql/BUKLOD_S2_COLLECTIBLE_MASTERY_DRAFT_NOT_DEPLOY.sql",
+    "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+    "tests/season2-character-item-ownership-20261119.test.mjs",
+    "contracts/season2-implementation-ledger.json",
+    "contracts/season2-proposals/item-requirements-20261119.json",
+    ".buklod/scopes/season2-collectible-requirements-20261119.json"
+  ],
+  "regressionTests": [
+    "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+    "tests/season2-character-item-ownership-20261119.test.mjs"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character",
+    "backend-security",
+    "finance-and-ads",
+    "season1-protection",
+    "governance"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Introduce read-only Season2 guide and correct misleading client Owned display while keeping existing production unchanged.",
+      "preservedBehaviors": [
+        "No changes to login, navigation, first-view ads, QMP/cash ledger or production Character sources.",
+        "Legacy redeemed items are still displayed/equipped only from server receipts."
+      ],
+      "tests": [
+        "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+        "tests/season2-character-item-ownership-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Separate optional Season2 mastery certification from canonical Character inventory and prevent Show from auto-redeeming.",
+      "preservedBehaviors": [
+        "Each Character retains earned level and items independently; Circle Rank remains permanent.",
+        "Kingdom uses canonical Character state, not a client-invented mastery or token receipt."
+      ],
+      "tests": [
+        "tests/season2-collectible-mastery-guide-20261119.test.mjs",
+        "tests/season2-character-item-ownership-20261119.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Season1 production code, server functions, Character ownership and economics untouched.",
+    "No production or staging Main DB schema applied; Season2 S2_REWARD_ROLLOUT flags remain false.",
+    "No ad, media, login, Connect or navigation code changes.",
+    "No claim, token mint, badge grant, or cosmetics purchase possible from preview."
+  ],
+  "acceptanceChecks": [
+    "Run both changed Node contract tests, governance CI and protected feature lock.",
+    "Run TypeScript noEmit and focused Character regression tests.",
+    "Isolated Postgres schema, RLS, two-device concurrency, replay and false-claim tests prior to server enablement.",
+    "Independent staging Android RC validates runtime, AdMob first-view, instant tabs, weak-network and canonical item preservation."
+  ],
+  "knownBlockers": [
+    "BUKLOD Main isolated staging Supabase backend not available through connected Supabase projects",
+    "No live S2 verifier/API adapter, signed S1 reconciliation or Android/device tests",
+    "Production Season2 embargo through Dec 6 plus exact owner SHA authorization"
+  ],
+  "releaseMode": "dev-only-s2-rewards-off",
+  "publicationStatus": "NOT_PUBLISHED"
+}

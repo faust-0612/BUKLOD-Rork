@@ -64,10 +64,19 @@
     },
     {
       "id": "per_character_items_badges_preservation",
-      "status": "PLANNED",
+      "status": "DEV_IMPLEMENTED",
       "requiredForLaunch": true,
-      "evidence": [],
-      "limitations": []
+      "evidence": [
+        "PR-966",
+        "src/lib/season2/buklodSeason2CollectibleGuideR1.ts",
+        "src/components/points/BuklodS2CollectibleGuidePanel.tsx",
+        "docs/season2/sql/BUKLOD_S2_COLLECTIBLE_MASTERY_DRAFT_NOT_DEPLOY.sql",
+        "tests/season2-collectible-mastery-guide-20261119.test.mjs"
+      ],
+      "limitations": [
+        "Source-only 1300-item guide and S2 mastery claim SQL candidate; no Main staging DB migration, service adapter, device validation or live reward grants.",
+        "Existing canonical S1-owned items and Character levels deliberately remain unchanged; approved separate S2 mission certification must not revoke them."
+      ]
     },
     {
       "id": "season_rank_archive_reset_hall_of_fame",
