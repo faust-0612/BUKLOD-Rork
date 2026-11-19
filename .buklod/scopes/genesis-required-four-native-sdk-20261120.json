@@ -28,7 +28,8 @@
     "Play app provenance",
     "Google OAuth cross-account isolation",
     "AdMob and navigation regression",
-    "release identity"
+    "release identity",
+    "release-identity"
   ],
   "allowedPaths": [
     "modules/buklod-genesis-ime/android/build.gradle",
