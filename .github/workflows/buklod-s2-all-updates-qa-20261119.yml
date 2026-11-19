@@ -6,6 +6,15 @@ on:
     paths:
       - '.github/workflows/buklod-s2-all-updates-qa-20261119.yml'
       - '.buklod/scopes/season2-all-updates-20261119.json'
+      - 'scripts/season2-staging-backend-isolation.cjs'
+      - 'tests/season2-staging-backend-isolation-20261119.test.cjs'
+  pull_request:
+    branches: [integration/season2-conso-staging-20261119]
+    paths:
+      - '.github/workflows/buklod-s2-all-updates-qa-20261119.yml'
+      - '.buklod/scopes/season2-all-updates-20261119.json'
+      - 'scripts/season2-staging-backend-isolation.cjs'
+      - 'tests/season2-staging-backend-isolation-20261119.test.cjs'
 permissions:
   contents: read
 concurrency:
@@ -13,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   staging-compile-only:
-    if: ${{ github.ref == 'refs/heads/staging/season2-all-updates-20261119' }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/staging/season2-all-updates-20261119') || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'staging/season2-all-updates-20261119') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -27,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -82,3 +91,45 @@ jobs:
           EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-s2-all-updates-android --clear
           test -s /tmp/buklod-s2-all-updates-android/metadata.json
           echo "Android staging bundle source QA complete — no EAS update issued"
+
+  season2-rewards-backend-isolation:
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/staging/season2-all-updates-20261119') || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'staging/season2-all-updates-20261119') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CI: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      BUKLOD_S2_APPROVED_STAGING_SUPABASE_REF: ${{ vars.BUKLOD_S2_APPROVED_STAGING_SUPABASE_REF }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run isolated backend guard negative and positive tests
+        run: node --test tests/season2-staging-backend-isolation-20261119.test.cjs
+      - name: Require independently approved Season 2 staging project ref before EAS reads
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$BUKLOD_S2_APPROVED_STAGING_SUPABASE_REF" ]; then
+            echo 'S2_STAGING_BACKEND_BLOCK: No independently approved staging Supabase project reference.'
+            exit 1
+          fi
+      - name: Compare preview vs production URLs without printing secrets; never write a database
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          preview="$(mktemp)"
+          production="$(mktemp)"
+          chmod 600 "$preview" "$production"
+          trap 'rm -f "$preview" "$production"' EXIT
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path "$preview" --non-interactive >/dev/null
+          npx --yes eas-cli@27.9.0 env:pull --environment production --path "$production" --non-interactive >/dev/null
+          node scripts/season2-staging-backend-isolation.cjs \
+            --preview-file "$preview" --production-file "$production" \
+            --approved-ref "$BUKLOD_S2_APPROVED_STAGING_SUPABASE_REF"
+          echo 'Identity only. Independent staging RLS/migrations/permissions and Android AdMob smoke still required.'
