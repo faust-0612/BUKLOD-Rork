@@ -1002,8 +1002,26 @@ export default function KlReaderScreen() {
                         adminError ? 'Unavailable' :
                         serverChapter ? serverChapter.status.toUpperCase() : 'Not created'}</Text>
                       <Text style={styles.meta}>Approve each illustration/audio in the private preview before approving the chapter. Chapter approval does not publish it.</Text>
-                      <View style={{ flexDirection: 'row', gap: 12 }}>
+                      {/* Keep approval/release controls in their own wrapping row so
+                          approved-chapter quiz actions cannot push Release offscreen. */}
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
+                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
+                          onPress={(event) => {
+                            event.stopPropagation();
+                            setRejectTarget(null);
+                            setReleaseTarget(episode.id);
+                            setAdminFeedbackEpisodeId(episode.id);
+                            setAdminFeedback('');
+                            void refreshAdminRows().catch(() => undefined);
+                          }}
+                          style={{ padding: 12, backgroundColor: '#36547b', borderRadius: 8 }}>
+                          <Text style={{ color: '#fff' }}>
+                            {isKlChapterReleased(serverChapter) ? 'Release Status' : 'Release Now'}
+                          </Text>
+                        </Pressable>
+                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
+                      </View>
                         {serverChapter?.status === 'approved' ? (
                           <View style={{ gap: 10 }}>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -1062,22 +1080,6 @@ export default function KlReaderScreen() {
                             ) : null}
                           </View>
                         ) : null}
-                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
-                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
-                          onPress={(event) => {
-                            event.stopPropagation();
-                            setRejectTarget(null);
-                            setReleaseTarget(episode.id);
-                            setAdminFeedbackEpisodeId(episode.id);
-                            setAdminFeedback('');
-                            void refreshAdminRows().catch(() => undefined);
-                          }}
-                          style={{ padding: 12, backgroundColor: '#36547b', borderRadius: 8 }}>
-                          <Text style={{ color: '#fff' }}>
-                            {isKlChapterReleased(serverChapter) ? 'Release Status' : 'Release Now'}
-                          </Text>
-                        </Pressable>
-                      </View>
                       {releaseTarget === episode.id ? (
                         <View style={{ gap: 8 }}>
                           <Text accessibilityRole="alert" style={styles.meta}>
