@@ -80,6 +80,31 @@
       "value": "embargo_plus_exact_sha_owner_rc",
       "severity": "HARD_BOUNDARY",
       "reason": "No Season2 production before Dec6 with owner/RC and live checks"
+    },
+    "kl.chapter.bp_per_verified_completion": {
+      "value": 15,
+      "severity": "OWNER_REVIEW",
+      "reason": "Approved KL reward change on 2026-11-19; only new server-verified S2 completions receive 15 BP"
+    },
+    "kl.comment.bp_first_qualified": {
+      "value": 5,
+      "severity": "OWNER_REVIEW",
+      "reason": "Approved KL reward change on 2026-11-19; one server-verifiable comment reward per chapter and member"
+    },
+    "kl.comment.minimum_trimmed_characters": {
+      "value": 20,
+      "severity": "OWNER_REVIEW",
+      "reason": "Approved 20-character threshold for a qualified KL chapter comment reward"
+    },
+    "kl.comment.maximum_rewarded_per_member_chapter": {
+      "value": 1,
+      "severity": "HARD_BOUNDARY",
+      "reason": "Prevent repeated or duplicate comment grants while allowing ordinary discussions"
+    },
+    "kl.series.completion_bonus_bp": {
+      "value": 50,
+      "severity": "HARD_BOUNDARY",
+      "reason": "Preserve the previously approved one-time full-series bonus and historical ledger"
     }
   },
   "experience": [
