@@ -44,7 +44,7 @@ test('unchanged legacy season rewards are locked behind future opt-in activation
   assert.match(sql, /enabled boolean NOT NULL DEFAULT false/);
   assert.match(sql, /'2026-12-06 00:00:00\+08'/);
   assert.match(sql, /v_chapter_points integer:=10/);
-  assert.match(sql, /IF private\.kl_s2_rewards_enabled_v1\(\) THEN/);
+  assert.match(sql, /v_s2_enabled:=private\.kl_s2_rewards_enabled_v1\(\)/);
   assert.match(sql, /chapter\.episode_number=0/);
   assert.match(sql, /chapter\.episode_number=0 OR/);
   assert.match(sql, /chapter\.season_number=1/);
