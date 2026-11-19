@@ -194,6 +194,21 @@
         "Only read-only inventory, audit and unit regression checks are prepared; real Postgres migration/RLS, mobile/outbox, QMP parity, character awards, Dec6 owner signoff and live OTA are NOT complete.",
         "The 22 evidence-based readiness gates remain HOLD; no release permission, fake CI/device validation, backend grants or production writes."
       ]
+    },
+    {
+      "id": "member_complete_rewards_and_requirements_reference",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": true,
+      "evidence": [
+        "src/lib/season2/buklodSeason2MemberRewardMatrixR1.ts",
+        "src/components/points/BuklodS2CompleteRewardsReference.tsx",
+        "src/components/points/BuklodSeasonJourneyPreview.tsx",
+        "tests/season2-member-rewards-full-reference-20261119.test.cjs"
+      ],
+      "limitations": [
+        "Member-facing source-only reference, with S1 catalog as-of 2026-11-19, no direct award/claim/wallet authority; actual backend grants and S2 production activation require independent complete verification.",
+        "Read-only V8 static contract checks only; live Android device and CI Node TypeScript not yet verified."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
