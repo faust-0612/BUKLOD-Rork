@@ -97,7 +97,7 @@ jobs:
           const s=await manifest('staging-user'),p=await manifest('production');
           assert.equal(s.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
           assert.equal(p.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
-          const list=r('updates'),rows=list.currentPage??list;
+          const list=r('updates.json'),rows=list.currentPage??list;
           assert.ok(Array.isArray(rows),'Staging update list unavailable');
           const own=rows.find(x=>x.message==='BUKLOD_KL_ONLY_STAGE_'+process.env.GITHUB_SHA);
           const base=rows.find(x=>x.message==='BUKLOD_NOV17_ALL_RECENT_'+process.env.BASE_STAGE);
