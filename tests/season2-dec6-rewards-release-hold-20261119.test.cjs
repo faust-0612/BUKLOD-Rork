@@ -46,5 +46,5 @@ test('precise V2 scope cannot turn on release, mutates no Season1 files, require
  assert.ok(scope.allowedPaths.includes('.github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml'));
  assert.ok(scope.allowedPaths.includes('tests/season2-dec6-rewards-release-hold-20261119.test.cjs'));
  assert.ok(scope.regressionTests.includes('tests/season2-dec6-rewards-release-hold-20261119.test.cjs'));
- assert.deepEqual(scope.lockedFeatureChanges.map(x=>x.id).sort(),['app-runtime','production-release']);
+ assert.deepEqual(scope.lockedFeatureChanges.map(x=>x.id).sort(),['app-runtime','kingdom-character','production-release']);
 });
