@@ -1059,6 +1059,35 @@
         "status": "READ_ONLY_CHECKED",
         "passed": false
       }
-    ]
+    ],
+    "optionalRewardedAds": {
+      "pointsGrantedBP": 0,
+      "qmpGranted": 0,
+      "cashGrantedPHP": 0,
+      "journeyTokensAutomaticallyGranted": 0,
+      "exampleMemberDisplay": "Watch 1 optional rewarded ad → +1 Garden Energy",
+      "exampleStatus": "UI-present source only; valid EARNED_REWARD callback and authoritative in-game source must be verified before any actual grant",
+      "requiresOptIn": true,
+      "requiresProviderEarnedCallback": true,
+      "neverBlocksCoreUse": true,
+      "sourceReferences": [
+        "src/lib/buklodRewardedAds.ts",
+        "src/components/home/BuklodBahayAds.native.tsx",
+        "docs/ads-rewarded-activation.md"
+      ],
+      "note": "Current code explicitly prohibits direct Circle Points/BP/QMP/cash/Bayanihan awards for ad viewing. Historical +5 BP ad proposal is not an active award and MUST NOT be silently adopted in S2."
+    },
+    "badgeTitleCandidates": {
+      "approval": "CANDIDATE_NAMES_ONLY_NOT_SERVER_GRANTS",
+      "names": [
+        "Story Explorer",
+        "Helpful Voice",
+        "Learning Mentor",
+        "Community Builder",
+        "Knowledge Keeper",
+        "Kingdom Explorer"
+      ],
+      "requirements": "Distinct verified canonical Character-side achievements; no prayer sincerity ranking, no paid purchase, no client-only entitlement"
+    }
   }
 }
