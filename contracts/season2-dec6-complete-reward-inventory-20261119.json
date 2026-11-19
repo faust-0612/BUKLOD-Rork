@@ -1,0 +1,1064 @@
+{
+  "schemaVersion": 1,
+  "name": "BUKLOD Season 2 Dec 6 Full Economy and Rewards Implementation Inventory",
+  "asOfManilaDay": "2026-11-19",
+  "policyStatus": "SOURCE_ONLY_PREP_NO_ECONOMY_ACTIVATION",
+  "provenance": {
+    "gitBaselineBranch": "integration/season2-conso-staging-20261119",
+    "connectedLiveDatabaseCheckedReadOnly": "yhanxndaqbmuzbdqlblu",
+    "sourceDecision": "contracts/season2-owner-approved-exclusives-20261119.json",
+    "codeReference": "src/lib/season2/buklodSeason2RewardContractR1.ts"
+  },
+  "release": {
+    "season": 2,
+    "earliestProductionPHT": "2026-12-06T00:00:00+08:00",
+    "automaticLaunch": false,
+    "productionAuthorized": false,
+    "backendRewardWritesAllowed": false,
+    "season1RulesMutable": false,
+    "androidPackage": "org.mzbministry.buklod",
+    "stagingPackage": "org.mzbministry.buklod.staging",
+    "ownerExactShaApprovalRequired": true
+  },
+  "approvedExclusiveIds": [
+    "rise_together_campaign",
+    "journey_token_wallet",
+    "character_mastery_1300",
+    "weekly_performance_class",
+    "four_season_awards",
+    "kingdom_cooperative_missions",
+    "foundation_momentum_grace_antifarm",
+    "kl_progressive_pending_bp",
+    "seasonal_archival_carryover",
+    "qualified_referral_rank_reward"
+  ],
+  "approvedExclusives": [
+    {
+      "number": 1,
+      "id": "rise_together_campaign",
+      "memberRule": "12 weeks; 4 acts (CALL 1-3, MAKE 4-6, BOND 7-9, LEGACY 10-12); 13 characters; Explorer/Creator/Together voluntary routes; no forced activity",
+      "remaining": "Story preview exists; full published missions/season schedule, server receipts and earned finale require implementation",
+      "status": "STAGING_PREVIEW_ONLY",
+      "sourceReferences": [
+        "src/lib/buklodSeason2CampaignR1.ts",
+        "src/components/points/BuklodSeasonJourneyPreview.tsx"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 2,
+      "id": "journey_token_wallet",
+      "memberRule": "Source-verified Today +2 (1/day), KL +3 (1/day), original Wall +2 (1/day), meaningful nonself comment +1 (2/day), 9 supported/day, global ceiling 12; cosmetic only, no cash",
+      "remaining": "Isolated ledger/RLS/mint/spend, atomic idempotency, caps, transfer ban, actual stage backend, receipts and rollback",
+      "status": "SOURCE_ONLY",
+      "sourceReferences": [
+        "src/lib/season2/buklodSeason2RewardContractR1.ts",
+        "docs/season2/sql/BUKLOD_S2_ISOLATED_REWARD_CORE_DRAFT_NOT_DEPLOY.sql"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 3,
+      "id": "character_mastery_1300",
+      "memberRule": "13 characters x 20 levels x 5 items; selected character + level; slots: I1 stage, I2 unique learning, I3 unique community, I4 claimed Foundation, I5 certified I1-I4; special rank gate",
+      "remaining": "Server-owned inventory and durable claim/equip, unique evidence per item; no art-to-ownership or existing item re-lock",
+      "status": "DEV_PREVIEW",
+      "sourceReferences": [
+        "src/lib/season2/buklodSeason2CollectibleGuideR1.ts",
+        "docs/season2/sql/BUKLOD_S2_COLLECTIBLE_MASTERY_DRAFT_NOT_DEPLOY.sql"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 4,
+      "id": "weekly_performance_class",
+      "memberRule": "Mon 00:00 Manila week; active days 5x7; learning 6x5; community impact 7x5; quality creation 6x5; cap100; Emerging1, Active25, Thrive60, Exceptional85; tier diversity/day requirements",
+      "remaining": "Backend batch <=32 and per-user read, verified claimed evidence; only highest eligible closed-week noncash reward",
+      "status": "DEV_PR_ONLY",
+      "sourceReferences": [
+        "https://github.com/faust-0612/BUKLOD-Rork/pull/965"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 5,
+      "id": "four_season_awards",
+      "memberRule": "Beacon Trail Frame (Call), Maker Ribbon (Makers), Alliance Crest (Alliance), Constellation Finale Scene (Legacy); verified milestones; permanent audit of earned rewards",
+      "remaining": "Source-linked Character-owned badge/award grant and render; one grant per milestone, no auto-award from preview",
+      "status": "PREVIEW_ONLY",
+      "sourceReferences": [
+        "src/lib/buklodSeason2CampaignR1.ts"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 6,
+      "id": "kingdom_cooperative_missions",
+      "memberRule": "Kingdom first server-confirmed mastery; cooperative cluster/org with per-member verified inputs and solo equivalent; no invite farming",
+      "remaining": "Real game authority/adapters, balanced faith/nonfaith routes, account-scope protection, optional cosmetics",
+      "status": "PLANNED",
+      "sourceReferences": [
+        "src/lib/season2/buklodSeason2RewardContractR1.ts"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 7,
+      "id": "foundation_momentum_grace_antifarm",
+      "memberRule": "P0: 1 unique verified learning + 1 distinct community per week, 7+3 days, two opt-in Flex credits of 7 days each; P1/P2 only optional; Momentum +5 active day, after grace -5 inactivity/-2 reading/-2 creator max-9 optional",
+      "remaining": "Authenticated stage backend and stored weekly outcomes, accessible equivalent routes, offline grace and appeal; no permanent deductions",
+      "status": "SOURCE_ONLY",
+      "sourceReferences": [
+        "src/lib/season2/buklodSeason2RewardContractR1.ts"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 8,
+      "id": "kl_progressive_pending_bp",
+      "memberRule": "Chapter N awards 5+N BP pending until verified N+1, chapter30 until next series ch1, one chapter comment >=20 chars +5, full 30 chapters +50 requires >=50-char genuine personal series reflection; no reading-duration requirement; sequential chapter gate; no required photo",
+      "remaining": "Reconcile existing S1 +10/chapter and direct RPC, migrate S2 forward-only without historical recredit, quiz verification and no client bypass; pending flow + ads without reward interruption",
+      "status": "DEV_PR_ONLY",
+      "sourceReferences": [
+        "https://github.com/faust-0612/BUKLOD-Rork/pull/973"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 9,
+      "id": "seasonal_archival_carryover",
+      "memberRule": "Sign and archive final S1; only seasonal score/missions/tier reset; permanent BP, monthly QMP history, per-character level, inventory, badges, pesos and withdrawal history survive; Hall of Fame",
+      "remaining": "Atomic idempotent rollover, locks/steps/recovery, signed finality, UTC/PHT period certainty, retro-event reconciliation",
+      "status": "SOURCE_ONLY",
+      "sourceReferences": [
+        "src/lib/season2/buklodSeason2CarryoverContractR1.ts",
+        "contracts/season2-implementation-ledger.json"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    },
+    {
+      "number": 10,
+      "id": "qualified_referral_rank_reward",
+      "memberRule": "Referrer +20 BP only when one verified referred member advances >=1 eligible cluster-associated Circle Rank, 1x/referral; new-member +10 BP on independent qualification; financial referral separate",
+      "remaining": "Current S1 referral catalog still +10; S2 must not mutate S1, require ledger isolation, rank evidence, no retro double-claims",
+      "status": "GAP_CONFLICT",
+      "sourceReferences": [
+        "supabase/migrations/20261116130306_buklod_verified_referral_circle_rank_20bp_v2.sql"
+      ],
+      "requiredForActivation": true,
+      "backendVerified": false,
+      "androidVerified": false
+    }
+  ],
+  "nonExclusiveApprovedSupplement": [
+    {
+      "id": "daily_proverbs_show_faith_wall",
+      "scope": "Owner-approved Nov19; read-only daily verse in Show Faith Community Wall, not the 11th exclusive and no reward; PR #995 OPEN",
+      "points": 0,
+      "tokens": 0,
+      "status": "DEV_PR_ONLY"
+    }
+  ],
+  "currencies": [
+    {
+      "id": "BP",
+      "authority": "S1 canonical points ledger",
+      "persistence": "lifetime",
+      "cashConvertible": false
+    },
+    {
+      "id": "QMP",
+      "authority": "Existing private community QMP rules/events",
+      "persistence": "monthly qualified weight",
+      "cashConvertible": false
+    },
+    {
+      "id": "CHARACTER_EARNED_POINTS",
+      "authority": "Character V3 from canonical BP",
+      "persistence": "per character lifetime",
+      "cashConvertible": false
+    },
+    {
+      "id": "KINGDOM_SHARDS",
+      "authority": "Kingdom-only backend",
+      "persistence": "game wallet",
+      "cashConvertible": false
+    },
+    {
+      "id": "S2_JOURNEY_TOKEN",
+      "authority": "Not-yet-deployed isolated S2 ledger",
+      "persistence": "nontransferable noncash",
+      "cashConvertible": false
+    },
+    {
+      "id": "S2_SEASONAL_MOMENTUM",
+      "authority": "Opt-in future seasonal scoreboard",
+      "persistence": "seasonal",
+      "cashConvertible": false
+    },
+    {
+      "id": "PESO_AVAILABLE",
+      "authority": "Finalized funded finance ledger",
+      "persistence": "carryforward until authorized withdrawal",
+      "cashConvertible": true
+    }
+  ],
+  "season1BP": {
+    "dataStatus": "LIVE_CONFIG_AS_OF_2026-11-19_NOT_TRIGGER_PROOF",
+    "activeCatalog": [
+      {
+        "id": "abc_growth_lesson",
+        "baseBP": 8,
+        "dayCapBP": null
+      },
+      {
+        "id": "achievement_bible_scholar",
+        "baseBP": 100,
+        "dayCapBP": 100
+      },
+      {
+        "id": "achievement_community_builder",
+        "baseBP": 150,
+        "dayCapBP": 150
+      },
+      {
+        "id": "achievement_faithful_mentor",
+        "baseBP": 200,
+        "dayCapBP": 200
+      },
+      {
+        "id": "achievement_kingdom_champion",
+        "baseBP": 250,
+        "dayCapBP": 250
+      },
+      {
+        "id": "admin_bonus",
+        "baseBP": 0,
+        "dayCapBP": null
+      },
+      {
+        "id": "admin_manual_award",
+        "baseBP": 0,
+        "dayCapBP": null
+      },
+      {
+        "id": "bible_arena_monthly",
+        "baseBP": 15,
+        "dayCapBP": null
+      },
+      {
+        "id": "bible_flash_easy",
+        "baseBP": 1,
+        "dayCapBP": null
+      },
+      {
+        "id": "bible_flash_medium",
+        "baseBP": 3,
+        "dayCapBP": null
+      },
+      {
+        "id": "bible_flash_hard",
+        "baseBP": 6,
+        "dayCapBP": null
+      },
+      {
+        "id": "bible_quiz_easy",
+        "baseBP": 3,
+        "dayCapBP": 3
+      },
+      {
+        "id": "bible_quiz_medium",
+        "baseBP": 6,
+        "dayCapBP": 6
+      },
+      {
+        "id": "bible_quiz_hard",
+        "baseBP": 12,
+        "dayCapBP": 12
+      },
+      {
+        "id": "community_chain_resolve",
+        "baseBP": 1,
+        "dayCapBP": 3
+      },
+      {
+        "id": "community_challenge_complete",
+        "baseBP": 2,
+        "dayCapBP": 6
+      },
+      {
+        "id": "community_comment",
+        "baseBP": 2,
+        "dayCapBP": null
+      },
+      {
+        "id": "community_dugtong",
+        "baseBP": 1,
+        "dayCapBP": 8
+      },
+      {
+        "id": "community_helpful_dugtong",
+        "baseBP": 2,
+        "dayCapBP": 6
+      },
+      {
+        "id": "community_poll_vote",
+        "baseBP": 1,
+        "dayCapBP": 5
+      },
+      {
+        "id": "community_post",
+        "baseBP": 5,
+        "dayCapBP": null
+      },
+      {
+        "id": "community_reaction",
+        "baseBP": 1,
+        "dayCapBP": null
+      },
+      {
+        "id": "community_resource_used",
+        "baseBP": 1,
+        "dayCapBP": 5
+      },
+      {
+        "id": "community_takeaway_share",
+        "baseBP": 1,
+        "dayCapBP": 2
+      },
+      {
+        "id": "daily_bible",
+        "baseBP": 10,
+        "dayCapBP": null
+      },
+      {
+        "id": "daily_bible_verification",
+        "baseBP": 2,
+        "dayCapBP": null
+      },
+      {
+        "id": "devotional",
+        "baseBP": 12,
+        "dayCapBP": null
+      },
+      {
+        "id": "event_attendance",
+        "baseBP": 10,
+        "dayCapBP": null
+      },
+      {
+        "id": "formation_lesson",
+        "baseBP": 25,
+        "dayCapBP": null
+      },
+      {
+        "id": "game_first_qualified",
+        "baseBP": 2,
+        "dayCapBP": null
+      },
+      {
+        "id": "game_tournament_champion",
+        "baseBP": 100,
+        "dayCapBP": 100
+      },
+      {
+        "id": "learning_progress_verification",
+        "baseBP": 5,
+        "dayCapBP": null
+      },
+      {
+        "id": "mentor_session",
+        "baseBP": 15,
+        "dayCapBP": null
+      },
+      {
+        "id": "mentoring_release",
+        "baseBP": 20,
+        "dayCapBP": null
+      },
+      {
+        "id": "ministry_activity",
+        "baseBP": 15,
+        "dayCapBP": null
+      },
+      {
+        "id": "ministry_major_milestone",
+        "baseBP": 100,
+        "dayCapBP": 100
+      },
+      {
+        "id": "prayer_response",
+        "baseBP": 2,
+        "dayCapBP": null
+      },
+      {
+        "id": "referral_rank_bonus",
+        "baseBP": 10,
+        "dayCapBP": null
+      },
+      {
+        "id": "reflection_quality_bonus",
+        "baseBP": 5,
+        "dayCapBP": null
+      },
+      {
+        "id": "scope_attendance",
+        "baseBP": 10,
+        "dayCapBP": null
+      },
+      {
+        "id": "stage_completion",
+        "baseBP": 75,
+        "dayCapBP": null
+      },
+      {
+        "id": "verified_giving_participation",
+        "baseBP": 5,
+        "dayCapBP": null
+      },
+      {
+        "id": "verified_volunteer_service",
+        "baseBP": 20,
+        "dayCapBP": 20
+      },
+      {
+        "id": "weekly_consistency",
+        "baseBP": 20,
+        "dayCapBP": null
+      },
+      {
+        "id": "weekly_tip_dugtong",
+        "baseBP": 2,
+        "dayCapBP": 2
+      },
+      {
+        "id": "weekly_tip_reaction",
+        "baseBP": 1,
+        "dayCapBP": 1
+      }
+    ],
+    "inactiveCatalog": [
+      {
+        "id": "bible_weekly_streak",
+        "baseBP": 20,
+        "active": false
+      },
+      {
+        "id": "consistency_30_day",
+        "baseBP": 50,
+        "active": false
+      },
+      {
+        "id": "daily_bible_reading",
+        "baseBP": 10,
+        "active": false
+      },
+      {
+        "id": "daily_devotional_reflection",
+        "baseBP": 12,
+        "active": false
+      },
+      {
+        "id": "formation_assessment",
+        "baseBP": 25,
+        "active": false
+      },
+      {
+        "id": "formation_module",
+        "baseBP": 75,
+        "active": false
+      },
+      {
+        "id": "game_advanced_perfect",
+        "baseBP": 20,
+        "active": false
+      },
+      {
+        "id": "game_expert_campaign",
+        "baseBP": 50,
+        "active": false
+      },
+      {
+        "id": "game_hard_win",
+        "baseBP": 10,
+        "active": false
+      },
+      {
+        "id": "game_medium_win",
+        "baseBP": 5,
+        "active": false
+      },
+      {
+        "id": "game_puzzle_series",
+        "baseBP": 25,
+        "active": false
+      },
+      {
+        "id": "kl_episode",
+        "baseBP": 10,
+        "active": false
+      },
+      {
+        "id": "kl_season",
+        "baseBP": 50,
+        "active": false
+      },
+      {
+        "id": "r2_verified_challenge",
+        "baseBP": 10,
+        "active": false
+      },
+      {
+        "id": "verified_cluster_attendance",
+        "baseBP": 10,
+        "active": false
+      },
+      {
+        "id": "verified_mentoring_session",
+        "baseBP": 15,
+        "active": false
+      }
+    ],
+    "exceptions": [
+      {
+        "activity": "KL verified chapter",
+        "awardBP": 10,
+        "full30SeriesBP": 50,
+        "note": "Direct validated RPC path despite inactive kl_episode/kl_season catalog; live quiz enforcement flag was false."
+      },
+      {
+        "activity": "Referral rank bonus",
+        "awardBP": 10,
+        "note": "Live catalog; Season 2 20 target not active. Do not mutate existing rule."
+      }
+    ]
+  },
+  "qmp": {
+    "dataStatus": "LIVE_CONFIG_AS_OF_2026-11-19",
+    "base": {
+      "usefulPost": 5,
+      "qualifiedVideo": 10,
+      "meaningfulReply": 3,
+      "creatorUniqueReactionBonus": 1,
+      "creatorQualifiedCommentBonus": 1,
+      "internalShareConfigured": 2
+    },
+    "qualifications": {
+      "postMinCharactersOrApprovedMedia": 40,
+      "replyMinCharacters": 20,
+      "duplicateReplyDays": 7,
+      "disallowSelfReactions": true,
+      "sourceQualified": true,
+      "velocityHoldEventsPerHour": 30
+    },
+    "bonusCaps": {
+      "perContent": 25,
+      "monthly": 250
+    },
+    "missionBonuses": [
+      {
+        "id": "COMMUNITY_BUILDER",
+        "source": "ACTIVE_DAY",
+        "required": 3,
+        "qmp": 20
+      },
+      {
+        "id": "COMMUNITY_CREATOR",
+        "source": "USEFUL_POST",
+        "required": 3,
+        "qmp": 15
+      },
+      {
+        "id": "HELPFUL_VOICE",
+        "source": "MEANINGFUL_REPLY",
+        "required": 5,
+        "qmp": 10
+      },
+      {
+        "id": "VIDEO_STORYTELLER",
+        "source": "QUALIFIED_VIDEO",
+        "required": 1,
+        "qmp": 15
+      }
+    ],
+    "tiers": [
+      {
+        "label": "Starter",
+        "min": 0,
+        "max": 24
+      },
+      {
+        "label": "Active",
+        "min": 25,
+        "max": 74
+      },
+      {
+        "label": "Contributor",
+        "min": 75,
+        "max": 149
+      },
+      {
+        "label": "Builder",
+        "min": 150,
+        "max": 299
+      },
+      {
+        "label": "Community Champion",
+        "min": 300,
+        "max": null
+      }
+    ],
+    "providerUserPoolBps": 3000,
+    "financialFinalizationEnabledAtInspection": false,
+    "fixedPesoPerQmp": false
+  },
+  "season2": {
+    "tokenSources": [
+      {
+        "id": "today_dugtong",
+        "amount": 2,
+        "dailyCount": 1,
+        "conditions": "Accepted real Today/Dugtong, actor-owned, one source/cycle"
+      },
+      {
+        "id": "kl_verified_chapter",
+        "amount": 3,
+        "dailyCount": 1,
+        "conditions": "Published, completed chapter + verified evidence; no phantom client quiz"
+      },
+      {
+        "id": "wall_original_post",
+        "amount": 2,
+        "dailyCount": 1,
+        "conditions": "Meaningful original still-visible moderated post"
+      },
+      {
+        "id": "wall_meaningful_comment",
+        "amount": 1,
+        "dailyCount": 2,
+        "conditions": "Nonself distinct accepted >=20 chars; no duplicates"
+      }
+    ],
+    "tokenDailyCeiling": 12,
+    "verifiedModeledDailyMax": 9,
+    "unverifiedNoTokenSources": [
+      "formation_verified_unit",
+      "main_bible_qualified_quiz",
+      "general_learning_verified_unit",
+      "community_verified_challenge",
+      "kingdom_verified_mastery",
+      "children_story_milestone",
+      "private_prayer"
+    ],
+    "cosmeticPreviewPrices": [
+      {
+        "id": "accessory_finish",
+        "tokens": 30
+      },
+      {
+        "id": "gallery_theme",
+        "tokens": 60
+      },
+      {
+        "id": "skin_variant",
+        "tokens": 80
+      },
+      {
+        "id": "premium_visual_effect",
+        "tokens": 150
+      }
+    ],
+    "pricesOwnerFinalApproved": false,
+    "foundation": {
+      "priorities": [
+        "P0_FOUNDATION",
+        "P1_GROWTH",
+        "P2_OPTIONAL"
+      ],
+      "p0LearningReceipts": 1,
+      "p0SeparateCommunityReceipts": 1,
+      "normalDays": 7,
+      "automaticGraceDays": 3,
+      "flexCreditsPerSeason": 2,
+      "daysEachFlex": 7,
+      "requiresOptInBeforeWeekDeadline": true,
+      "uncompletedBlocksOnly": "OPTIONAL_S2_MISSION_BONUS",
+      "doesNotBlock": [
+        "community",
+        "connect",
+        "Bible",
+        "lessons",
+        "prayer",
+        "attendance",
+        "legitimate BP",
+        "QMP",
+        "cash"
+      ]
+    },
+    "momentum": {
+      "enabled": false,
+      "optInRequired": true,
+      "activeDayPlus": 5,
+      "firstMissedDaysGrace": 2,
+      "missedActivityMinus": 5,
+      "missedReadingMinus": 2,
+      "missedCreationMinus": 2,
+      "dailyMaximumMinus": 9,
+      "floor": 0,
+      "requiresServerCertifiedClosedDay": true,
+      "excused": [
+        "offline pending",
+        "outage",
+        "no accessible assignment",
+        "not enrolled",
+        "children",
+        "prayer/privacy",
+        "illness or legitimate absence"
+      ],
+      "neverDeduct": [
+        "BP",
+        "QMP",
+        "cash",
+        "Character XP",
+        "inventory",
+        "badges",
+        "lifetime rank"
+      ],
+      "finalDeductionsApproved": false
+    },
+    "weeklyPerformance": {
+      "period": "MONDAY_00_MANILA",
+      "weights": {
+        "activeDays": {
+          "maxDays": 7,
+          "each": 5
+        },
+        "learningDays": {
+          "maxDays": 5,
+          "each": 6
+        },
+        "communityDays": {
+          "maxDays": 5,
+          "each": 7
+        },
+        "qualityCreationDays": {
+          "maxDays": 5,
+          "each": 6
+        }
+      },
+      "totalCap": 100,
+      "tiers": [
+        {
+          "name": "Unrated",
+          "score": 0,
+          "minActiveDays": 0,
+          "minCategories": 0,
+          "earnedReward": "none"
+        },
+        {
+          "name": "Emerging",
+          "score": 1,
+          "minActiveDays": 1,
+          "minCategories": 1,
+          "earnedReward": "class only"
+        },
+        {
+          "name": "Active",
+          "score": 25,
+          "minActiveDays": 2,
+          "minCategories": 1,
+          "earnedReward": "weekly emblem"
+        },
+        {
+          "name": "Thrive",
+          "score": 60,
+          "minActiveDays": 3,
+          "minCategories": 2,
+          "earnedReward": "cosmetic frame"
+        },
+        {
+          "name": "Exceptional",
+          "score": 85,
+          "minActiveDays": 4,
+          "minCategories": 2,
+          "earnedReward": "weekly collectible"
+        }
+      ],
+      "rewardsOnlyHighestClosedWeek": true,
+      "sourceOnlyPR965": true
+    },
+    "kl": {
+      "scope": "S2 new verified completions forward-only",
+      "chaptersPerSeries": 30,
+      "bpFormula": {
+        "base": 5,
+        "perChapterNumber": 1
+      },
+      "delayReleaseUntilNextChapterVerified": true,
+      "lastChapterUntilNextSeriesFirstVerified": true,
+      "sequenceAllPreviousRequired": true,
+      "quizVerifiedNoMinimumReadingMinutes": true,
+      "chapterComment": {
+        "minCharacters": 20,
+        "maxCreditedPerChapter": 1,
+        "awardBP": 5
+      },
+      "seriesReflection": {
+        "minCharacters": 50,
+        "humanPersonalRequirement": true,
+        "awardBP": 50,
+        "onlyAfterAllChaptersVerified": true
+      },
+      "photoOptional": true,
+      "chapterPointsPotentialFull30": 615,
+      "seriesPotential": 50,
+      "commentPotentialFull30": 150,
+      "grandPotentialWithAllComments": 815,
+      "bpNoHistoricalRegrant": true,
+      "adsOptionalNeverBlockReaderOrReward": true,
+      "interstitialRequiresNaturalBreakConsentAndCooldown": true
+    },
+    "referral": {
+      "qualifiedReferrerTargetBP": 20,
+      "referredNewMemberTargetBP": 10,
+      "qualifyCondition": "one verified rank gain in active Cluster following attributed referral",
+      "oncePerReferral": true,
+      "notYetReconciledWithLiveBP10": true,
+      "neverDuplicateOneReferral": true,
+      "cashFinancialProgramSeparate": true
+    },
+    "awards": [
+      {
+        "id": "beacon_trail_frame",
+        "act": "CALL",
+        "criteria": "Verified discovery and journey participation; final exact qualifying evidence to sign off"
+      },
+      {
+        "id": "maker_ribbon",
+        "act": "MAKE",
+        "criteria": "Verified legitimate creator/learning participation; not posting volume alone"
+      },
+      {
+        "id": "alliance_crest",
+        "act": "BOND",
+        "criteria": "Verified co-op or equivalent solo contribution with distinct sources"
+      },
+      {
+        "id": "constellation_finale_scene",
+        "act": "LEGACY",
+        "criteria": "Verified final mission/season completion; accessible story ending regardless of contest"
+      }
+    ],
+    "itemPrerequisites": {
+      "characters": 13,
+      "levelsPerCharacter": 20,
+      "itemsPerLevel": 5,
+      "total": 1300,
+      "slot1": "Correct active Character, level/stage, special-character server rank eligibility",
+      "slot2": "Unique verified learning receipt",
+      "slot3": "Unique authentic community receipt",
+      "slot4": "Unique claimed weekly Foundation receipt",
+      "slot5": "Server-certified mastery of slots 1-4 in same character/level",
+      "cannotMintFromImages": true,
+      "neverReplaceExistingInventory": true,
+      "cannotPurchaseEarnedLevelGatedItems": true
+    },
+    "seasonRollover": {
+      "resetOnly": [
+        "season score",
+        "season missions",
+        "season competition tier"
+      ],
+      "preserve": [
+        "lifetime BP",
+        "earned per-character XP",
+        "owned items",
+        "permanent badges",
+        "lifetime rank",
+        "monthly QMP/accounting history",
+        "finalized pesos",
+        "withdrawals",
+        "memberships",
+        "source event history"
+      ],
+      "requireSignedS1Results": true,
+      "idempotentAndRecoverable": true,
+      "hallOfFameImmutable": true
+    },
+    "antiFarm": [
+      "actor/user and source ID server verified",
+      "source unique across rule upgrades",
+      "moderation current state",
+      "no self-response/reaction farming",
+      "source not reused for two claims",
+      "cross-account RLS and scope membership check",
+      "bounded and explicit daily/monthly caps",
+      "offline outbox same operation ID",
+      "no reward for fake attendance, referrals or generated spam",
+      "fraud reversal with immutable audit and appeal"
+    ],
+    "finance": {
+      "poolBasedOnQualifiedQMP": true,
+      "earmarkedPercent": 30,
+      "withdrawalMinimumPHP": 200,
+      "requiresVerifiedLegalIdentity": true,
+      "requiresApprovedMembership": true,
+      "requiresMatchingPayoutBeneficiary": true,
+      "requiresFinalizedFundedBalance": true,
+      "financialActivationIndependent": true,
+      "noQmpGuaranteedCash": true
+    },
+    "releaseGates": [
+      {
+        "id": "approved_ten_scope_unchanged",
+        "requirement": "Owner exact 1-10 allowlist; no unauthorized 11th reward exclusive",
+        "status": "SOURCE_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "season1_live_baseline_snapshotted",
+        "requirement": "Preserve exact S1 BP/QMP ledger, financial triggers, installed runtime",
+        "status": "READ_ONLY_CHECKED",
+        "passed": false
+      },
+      {
+        "id": "dec6_embargo_and_signed_approval",
+        "requirement": "No auto-open on Dec6; SHA-specific owner approval + runtime EAS manifest",
+        "status": "HOLD",
+        "passed": false
+      },
+      {
+        "id": "signed_season1_archive",
+        "requirement": "Validate S1 final period, pending credits, signed evidence and appeal/reconciliation",
+        "status": "BLOCKED",
+        "passed": false
+      },
+      {
+        "id": "independent_staging_backend",
+        "requirement": "Prove distinct BUKLOD MAIN staging database, never use connected production-like Connect database by assumption",
+        "status": "BLOCKED",
+        "passed": false
+      },
+      {
+        "id": "s2_rls_and_service_grants",
+        "requirement": "Private schema, RLS denied anon/auth; no service secrets in app; restricted RPCs",
+        "status": "NOT_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "s2_source_validation",
+        "requirement": "Original immutable source, actor, membership, moderation, cross-scope, real event timestamp",
+        "status": "NOT_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "s2_receipts_replay_concurrency",
+        "requirement": "Exactly once per immutable source over rule upgrades; concurrent devices and retries",
+        "status": "DEV_SOURCE_ONLY",
+        "passed": false
+      },
+      {
+        "id": "s2_wallet_atomic_spend",
+        "requirement": "No negative balance, no double spend, noncash, no transfers, atomic item grant and refund",
+        "status": "NOT_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "kl_chapter_chain_and_rewards",
+        "requirement": "Sequential quiz gate, delayed chapter BP, 20-char comment, 50-char final reflection, next-series carry",
+        "status": "DEV_PR_ONLY",
+        "passed": false
+      },
+      {
+        "id": "referral_20_vs_10_policy_reconciled",
+        "requirement": "Owner-approved 20 target without S1 10 mutation/double-credit; referred 10 independently verified",
+        "status": "CONFLICT_OPEN",
+        "passed": false
+      },
+      {
+        "id": "character_inventory_mastery",
+        "requirement": "Mastery vs existing Character ownership, switch persistence, special gates, server equip",
+        "status": "DEV_PREVIEW_ONLY",
+        "passed": false
+      },
+      {
+        "id": "weekly_classification_actual_backend",
+        "requirement": "No client authority, closed-week verified claimed evidence, score/tier boundaries",
+        "status": "DEV_PR_ONLY",
+        "passed": false
+      },
+      {
+        "id": "awards_hall_of_fame_and_rollover",
+        "requirement": "Four server-backed seasonal grants, historical archive and no destructive season reset",
+        "status": "NOT_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "co_op_and_mode_parity",
+        "requirement": "No compulsory faith, real nonfaith alternatives and solo paths, no farming",
+        "status": "NOT_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "offline_outbox_end_to_end",
+        "requirement": "Durable operation IDs, replay/dedupe, pending visibility, account isolation, outage grace",
+        "status": "PURE_SOURCE_ONLY",
+        "passed": false
+      },
+      {
+        "id": "momentum_optional_safe_settlement",
+        "requirement": "Opt-in, grace, excused days, no BP/QMP/item/cash effects, no child pressure",
+        "status": "PREVIEW_ONLY",
+        "passed": false
+      },
+      {
+        "id": "ads_and_ui_regression",
+        "requirement": "AdMob first view/fill, native video offscreen lifecycle, instant tabs, safe area, low data mode",
+        "status": "NOT_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "privacy_moderation_security",
+        "requirement": "Child protections, prayer privacy, ID-only cash withdrawal, RLS, fraud reversal audit/appeal",
+        "status": "NOT_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "runtime_rc_and_full_stage_readback",
+        "requirement": "Exact staging package, EAS update ID, Hermes/runtime, source sha, installed test or separately waived device with remaining gate",
+        "status": "NOT_VERIFIED",
+        "passed": false
+      },
+      {
+        "id": "economy_rates_and_expiry_owner_signoff",
+        "requirement": "Resolve preview token prices, Momentum deductions, valid expiry/carryover and full Season2 award terms",
+        "status": "AWAITING_FINAL_SIGNOFF",
+        "passed": false
+      },
+      {
+        "id": "financial_qmp_monthly_reconciliation",
+        "requirement": "Keep monthly 30% eligible pool, finalized vs provisional, strict payout KYC and accounting",
+        "status": "READ_ONLY_CHECKED",
+        "passed": false
+      }
+    ]
+  }
+}
