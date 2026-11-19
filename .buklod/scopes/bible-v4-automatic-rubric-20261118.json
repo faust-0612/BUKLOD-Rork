@@ -23,7 +23,8 @@
     "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql",
     "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs",
     "supabase/migrations/20261119032356_buklod_bible_v4_acts15_semantic_fairness_20261119.sql",
-    "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql"
+    "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql",
+    "tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs"
   ],
   "regressionTests": [
     "supabase/tests/buklod_bible_v4_enumeration_equivalence_20261118.sql",
@@ -34,7 +35,8 @@
     "tests/buklod-bible-quiz-v4-auto-grade-20261118.test.mjs",
     "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql",
     "tests/buklod-bible-quiz-v4-antifarm-20261118.test.mjs",
-    "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql"
+    "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql",
+    "tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -68,7 +70,8 @@
       "tests": [
         "supabase/tests/buklod_bible_v4_auto_essay_rubrics_20261118.sql",
         "supabase/tests/buklod_bible_v4_essay_antifarm_20261118.sql",
-        "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql"
+        "supabase/tests/buklod_bible_v4_acts15_semantic_20261119.sql",
+        "tests/buklod-bible-v4-acts15-fairness-20261119.test.mjs"
       ]
     }
   ],
