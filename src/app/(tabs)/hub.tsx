@@ -141,7 +141,7 @@ export default function BuklodLightHome() {
         <MaterialCommunityIcons name="sprout-outline" size={22} color={theme.accent} />
       </View>
       )}
-      <BuklodExecutiveQuickAccess />
+      <BuklodExecutiveQuickAccess active={focused && foreground} />
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}
       {foreground ? (
