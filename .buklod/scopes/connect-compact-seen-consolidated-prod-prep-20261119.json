@@ -28,11 +28,13 @@
     "src/lib/connectChatWindow.ts",
     "tests/connect-latest-keyboard-follow-20261119.test.mjs",
     "tests/connect-compact-seen-all-rooms-20261119.test.mjs",
-    ".buklod/scopes/connect-compact-seen-consolidated-prod-prep-20261119.json"
+    ".buklod/scopes/connect-compact-seen-consolidated-prod-prep-20261119.json",
+    "tests/connect-admob-nav-isolation-20261119.test.mjs"
   ],
   "regressionTests": [
     "tests/connect-latest-keyboard-follow-20261119.test.mjs",
-    "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
+    "tests/connect-compact-seen-all-rooms-20261119.test.mjs",
+    "tests/connect-admob-nav-isolation-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -58,6 +60,17 @@
         "tests/connect-latest-keyboard-follow-20261119.test.mjs",
         "tests/connect-compact-seen-all-rooms-20261119.test.mjs"
       ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Protected filename matcher catches the 'ad' ending of BuklodConnectThread although the Connect patches do not change AdMob or finance source. Retain full first-view ads and instant-navigation release gates instead of bypassing classification.",
+      "preservedBehaviors": [
+        "No AdMob SDK placement, controller, fill, consent, cooldown, impression, payout, QMP or points code is changed by this Connect-only preparation.",
+        "The production RC must pass the separate real ad/navigation regression gate and verify production build/runtime identity before release."
+      ],
+      "tests": [
+        "tests/connect-admob-nav-isolation-20261119.test.mjs"
+      ]
     }
   ],
   "acceptanceChecks": [
@@ -67,7 +80,8 @@
     "Run permanent AdMob first-render/fill/offscreen lifecycle and instant dashboard navigation performance gates; regression blocks release.",
     "Do not activate Season2 preview/reward/points/tokens, modify Supabase policies, migrate databases or change packages/native runtime.",
     "Prepare a fresh cumulative production RC from current authoritative production and independent non-Season2 fixes; never promote this isolated source branch directly.",
-    "Only after owner authorization and complete gates: publish exact frozen production Android OTA via canonical workflow and verify returned update ID, source SHA, runtime, channel, package and live served fingerprint."
+    "Only after owner authorization and complete gates: publish exact frozen production Android OTA via canonical workflow and verify returned update ID, source SHA, runtime, channel, package and live served fingerprint.",
+    "The Connect filename false-positive in the ads-finance-points protected lock is explicitly declared and tested; actual AdMob/navigation gating cannot be bypassed."
   ],
   "knownBlockers": [
     "Staging served manifest and Android compile/QA have not been verified for this integration.",
