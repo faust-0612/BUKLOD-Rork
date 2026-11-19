@@ -52,7 +52,8 @@
     ".github/workflows/genesis-season2-staging-release-apk-20261120.yml",
     "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
     "tests/genesis-four-native-sdk-first-apk-20261120.test.mjs",
-    ".buklod/scopes/genesis-required-four-native-sdk-20261120.json"
+    ".buklod/scopes/genesis-required-four-native-sdk-20261120.json",
+    "docs/BUKLOD_GENESIS_APK_FIRST_OTA_AFTER_20261120.md"
   ],
   "regressionTests": [
     "tests/genesis-four-native-sdk-first-apk-20261120.test.mjs",
@@ -91,7 +92,8 @@
     "Play immediate update only once replacement is available to exact Play package/version",
     "Drive OAuth Android signing SHA, consent, user subject-to-BUKLOD account matching, revocation, offline/denied paths verified",
     "First-view AdMob/instant tab navigation regression, code signing SHA256 and signed runtime/channel/package verified",
-    "No production activation, backend write, rewards or cost commitment without separately authorized RC"
+    "No production activation, backend write, rewards or cost commitment without separately authorized RC",
+    "Build documentation must explicitly prohibit deferring all four native SDKs until after the first signed Genesis APK"
   ],
   "releaseTarget": "GENESIS_FIRST_NATIVE_STAGING_APK_ONLY",
   "publicationStatus": "DEV_SOURCE_NOT_SIGNED_OR_COMPILED",
