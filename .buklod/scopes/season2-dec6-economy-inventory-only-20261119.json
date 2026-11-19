@@ -28,7 +28,8 @@
     "src/components/points/BuklodS2CompleteRewardsReference.tsx",
     "src/components/points/BuklodSeasonJourneyPreview.tsx",
     "tests/season2-member-rewards-full-reference-20261119.test.cjs",
-    "contracts/season2-proposals/complete-member-reward-guide-20261119.json"
+    "contracts/season2-proposals/complete-member-reward-guide-20261119.json",
+    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
   ],
   "acceptanceChecks": [
     "Exact 10 owner-approved exclusive IDs unchanged",
@@ -49,7 +50,8 @@
     "tests/buklod-season2-isolated-reward-priority-r1-20261118.test.mjs",
     "tests/buklod-season2-carryover-contract-20261119.test.mjs",
     "tests/dashboard-instant-tabs-20261117.test.mjs",
-    "tests/season2-member-rewards-full-reference-20261119.test.cjs"
+    "tests/season2-member-rewards-full-reference-20261119.test.cjs",
+    "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
   ],
   "knownBlockers": [
     "No dedicated independent BUKLOD MAIN staging Supabase with applied isolated S2 reward schema and verified RLS",
@@ -57,5 +59,29 @@
     "Pending owner economic signoff for cosmetic token prices, Momentum deductions and expiry terms",
     "S1 signed results, S2 comparative ShowFaith/nonfaith, latest deferred KL PR and weekly class PR not merged/verified",
     "No production deployment before Dec6 and exact owner SHA approval; maintain HOLD"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Render detailed source-only, lazy-loaded member BP/QMP/S2 guidance inside existing Season Journey preview without network calls or new award paths.",
+      "preservedBehaviors": [
+        "Current Season Journey stays collapsed by default; Wall/Connect/Character screens and existing BP claims remain untouched.",
+        "Existing first-view AdMob rendering and immediate dashboard/tab navigation are unaffected by a new inactive nested disclosure."
+      ],
+      "tests": [
+        "tests/season2-member-rewards-full-reference-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add fail-closed reference inventory and read-only regression preflight to the existing guarded staging OTA workflow without authorizing a new publish trigger.",
+      "preservedBehaviors": [
+        "Production Season 2 embargo remains at December 6 earliest with separate exact SHA signed authorization and full RC gates.",
+        "Staging OTA publishes only after the original source marker and safe Free-plan identity checks; no automatic billing or production updates."
+      ],
+      "tests": [
+        "tests/season2-dec6-rewards-release-hold-20261119.test.cjs"
+      ]
+    }
   ]
 }
