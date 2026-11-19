@@ -20,9 +20,9 @@
     "actual-served-staging-manifest",
     "unchanged-production"
   ],
-  "sourceStatus": "Android staging export and source regression QA passed on c68ef41e; reward backend isolation blocked for active rewards, so this release is visual-only with explicit reward hold",
+  "sourceStatus": "EXACT SOURCE VERIFIED: 5 GitHub Actions CI workflows success at 42779df703aa26fb07e56f726865deef8bcb7ec8; consolidated integration SHA 0b7f59585dd312fb91381b0a647ed744f3ae32c2. Publisher must independently rerun tests, export Android, and read back EAS served manifest before any success claim.",
   "note": "Stage user-facing previews only. S2 wallets, token mint/spend, missions, season rollover and economy integration remain OFF even after Dec 6 absent fresh approval and backend verification. Production Season 1 remains unchanged.",
-  "attempt": 3,
+  "attempt": 4,
   "rewardsHoldUntilManilaDay": "2026-12-06",
   "requiresSeparateOwnerApprovalForRewards": true,
   "season2RewardDbWritesAuthorized": false,
@@ -30,5 +30,8 @@
     "40 canonical Circle Rank avatar badges, read-only presence overlays",
     "LIFE Filipino and English hydration",
     "Season 2 story journey and 13 guides preview only"
-  ]
+  ],
+  "requestedVisualOnlySourceParent": "0b7f59585dd312fb91381b0a647ed744f3ae32c2",
+  "requestedAtManilaDay": "2026-11-19",
+  "publicationStatus": "REQUESTED_NOT_YET_VERIFIED"
 }
