@@ -1,0 +1,63 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-genesis-native-asset-foundation-20261120.json",
+  "objective": "Research reliable new native engine and original/CC0 premium assets for Genesis, create fail-closed verified-asset intake before any native integration",
+  "baseRef": "87af18aec3b59ef0b7a6b3c6ee904c902991011c",
+  "productionBaselineEvidence": "Consolidated Genesis DEV upstream latest 87af18aec3b59ef0b7a6b3c6ee904c902991011c; production runtime/OTA not independently verified; no production mutation",
+  "chosenApproach": "Godot embedded Android 3D pilot after new staging APK, existing Rive Nitro/Skia for 2D, exact SHA/license-reviewed high quality original/CC0 binary assets; this commit implements provenance catalog and gate only",
+  "selectionRationale": "Decouples production web/social/app and AdMob from GPU game while removing installed-library cap on future engine decisions",
+  "alternativeApproaches": [
+    "Use existing SVG and flat WebP animations as premium art (rejected: not real rigged 3D)",
+    "Change production dependencies now (rejected: regression and package/runtime incompatibility)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character",
+    "production-release-contract"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-genesis-native-asset-foundation-20261120.json",
+    "assets/season2/genesis/sources.json",
+    "scripts/genesis-native-asset-gate.mjs",
+    "tests/genesis-native-asset-gate.test.mjs",
+    "docs/BUKLOD_GENESIS_NATIVE_ENGINE_ASSETS_20261120.md"
+  ],
+  "preserveBehaviors": [
+    "Season 1 production stays unchanged and Season 2 remains locked",
+    "No native package/rewards/database/AdMob/navigation changes",
+    "No unlicensed media fetched automatically; candidate does not equal imported"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-asset-gate.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Node focused 4 tests must pass on exact branch",
+    "--audit on source candidates passes but lists zero installed approved roles",
+    "--release fails without binary artifacts",
+    "Before any APK requires build compatibility + actual Android QA, ad/nav regression and exact RC"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add only metadata and source verification for potential future native engine; no runtime integration",
+      "preservedBehaviors": [
+        "Installed app package/runtime/dependencies unchanged"
+      ],
+      "tests": [
+        "tests/genesis-native-asset-gate.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Document new 3D engine and strict character asset rights/provenance without modifying Kingdom code",
+      "preservedBehaviors": [
+        "Character remains sole server-authoritative XP/item/rank owner"
+      ],
+      "tests": [
+        "tests/genesis-native-asset-gate.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_ONLY_NO_NATIVE_BUILD",
+  "publicationStatus": "NO_STAGING_RC_NO_OTA_NO_PRODUCTION"
+}

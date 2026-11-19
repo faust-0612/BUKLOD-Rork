@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "season": "Genesis: Let There Be Light",
+  "releaseStatus": "SOURCE_DISCOVERY_ONLY_NO_BINARY_IMPORT",
+  "assets": [
+    {
+      "id": "kenney-skyboxes-space",
+      "role": "cosmic-skybox",
+      "sourceUrl": "https://kenney.nl/assets/skyboxes-space",
+      "license": "CC0-1.0",
+      "status": "candidate",
+      "notes": "Verified CC0 source. Obtain actual skybox, create premium composite, hash final binary."
+    },
+    {
+      "id": "kenney-modular-space-kit",
+      "role": "kingdom-environment",
+      "sourceUrl": "https://kenney.nl/assets/modular-space-kit",
+      "license": "CC0-1.0",
+      "status": "candidate",
+      "notes": "Verified 40-model CC0 kit. Geometry blockout only: premium retexturing, relighting and style harmonization required."
+    },
+    {
+      "id": "kenney-space-kit",
+      "role": "kingdom-environment",
+      "sourceUrl": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "status": "candidate",
+      "notes": "CC0 space geometry. Not considered acceptable final Kingdom art without original high-quality treatment."
+    },
+    {
+      "id": "polyhaven-hdri-source",
+      "role": "cosmic-skybox",
+      "sourceUrl": "https://polyhaven.com/license",
+      "license": "CC0-1.0",
+      "status": "candidate",
+      "notes": "License verified only. A specific suitable HDRI, license snapshot and asset hash still must be chosen."
+    },
+    {
+      "id": "freesound-individual-cues",
+      "role": "cinematic-audio",
+      "sourceUrl": "https://freesound.org/help/faq/",
+      "license": "CC0-1.0",
+      "status": "candidate",
+      "notes": "Not all Freesound material is CC0. Select and inspect individual CC0 cue, mix/master and verify Content ID."
+    },
+    {
+      "id": "buklod-owned-13-character-rigs",
+      "role": "rigged-character",
+      "sourceUrl": null,
+      "license": "BUKLOD-ORIGINAL",
+      "status": "candidate",
+      "notes": "Owner art requires independently separated limbs, vector/high-res painting, authored Rive state machines, chain of title and hashes."
+    }
+  ]
+}
