@@ -7,7 +7,8 @@ BEGIN
   'public.buklod_church_ensure_membership_v1(uuid,uuid)'::regprocedure,
   'public.buklod_church_ensure_role_key_v1(uuid,uuid,text)'::regprocedure,
   'public.buklod_church_ensure_provisional_admin_v1(uuid,uuid)'::regprocedure,
-  'public.buklod_church_ensure_scoped_leader_v1(uuid,uuid,text)'::regprocedure
+  'public.buklod_church_ensure_scoped_leader_v1(uuid,uuid,text)'::regprocedure,
+  'public.buklod_sync_local_memberships(uuid)'::regprocedure
  ]) LOOP
   IF pg_catalog.has_function_privilege('anon',v_func,'EXECUTE')
      OR pg_catalog.has_function_privilege('authenticated',v_func,'EXECUTE')
