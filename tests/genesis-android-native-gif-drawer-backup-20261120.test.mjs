@@ -21,6 +21,7 @@ test('Android GIF native receiver restricts provider content and never auto-send
   assert.match(composer,/onNativeGif=\{genesisAndroidPreview/);
   assert.match(composer,/onMediaChange\(\{ kind: 'gif', ref: uri \}, uri\)/);
   assert.match(mention,/getGenesisNativeFoundation\(\)\.cosmeticHaptics/);
+  assert.match(mention,/node: TextInput \| null/);
 });
 test('document provider import is manual, typed, size bounded and gated by exact preview',()=>{
   assert.match(picker,/DocumentPicker\.getDocumentAsync/);
@@ -36,6 +37,8 @@ test('encrypted manual backup validates account, size, checksum and does not use
   assert.match(backup,/checksum !== envelope\.sha256/);
   assert.match(backup,/MAX_ARCHIVE_BYTES = 20 \* 1024 \* 1024/);
   assert.match(backup,/getSmartDrawerItem\(userId, row\.note\.id\)/);
+  assert.match(backup,/buklod-drawer-restore-v1/);
+  assert.match(backup,/id: localId/);
   assert.match(backup,/Sharing\.shareAsync/);
   assert.match(settings,/Generate Recovery Key/);
   assert.match(settings,/Restore Encrypted Backup/);

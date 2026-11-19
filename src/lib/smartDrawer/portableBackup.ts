@@ -236,7 +236,14 @@ export async function restoreSmartDrawerBackupFromEncryptedText(userId: string, 
   if (checksum !== envelope.sha256) throw new Error('Backup integrity check failed. No notes were restored.');
   let restored = 0, skipped = 0;
   for (const row of envelope.payload.items) {
-    if (await getSmartDrawerItem(userId, row.note.id)) { skipped++; continue; }
+    // Namespace restored IDs by the authenticated BUKLOD account to prevent
+    // an archive ID from replacing a separate account's SQLite primary key.
+    const localId = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      'buklod-drawer-restore-v1|' + userId + '|' + row.note.id,
+    );
+    if (await getSmartDrawerItem(userId, row.note.id) ||
+        await getSmartDrawerItem(userId, localId)) { skipped++; continue; }
     const assets: SmartDrawerAsset[] = [];
     try {
       for (const asset of row.assets) {
@@ -254,7 +261,7 @@ export async function restoreSmartDrawerBackupFromEncryptedText(userId: string, 
         }
       }
       await commitSmartDrawerItem(userId, {
-        ...row.note, assets, reminderIds: [], syncState: 'LOCAL_ONLY',
+        ...row.note, id: localId, assets, reminderIds: [], syncState: 'LOCAL_ONLY',
       });
       restored++;
     } catch (error) {
