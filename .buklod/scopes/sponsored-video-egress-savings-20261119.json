@@ -3,7 +3,7 @@
   "objective": "Lower BUKLOD MAIN sponsored-video cached egress without compromising immediate visible autoplay, near-viewport preload, player caching, AdMob ad fill or legal paid impression accounting. Stage optional smaller-quality video renditions, retain existing player briefly on scroll-back, and define precise monthly quota threshold evaluations.",
   "baseRef": "551e54602addd6f7bbe7bcdddd1589d35424c964",
   "productionBaselineEvidence": "2026-11-19: Live Supabase BUKLOD MAIN yhanxndaqbmuzbdqlblu has one historical 48.54MB sponsored MP4 with 3,688 Nov 12 CDN cache hits; no currently approved active video campaigns. User screenshot shows 391.87 GB / 250 GB organization cached egress. Current CommunityVideo already caches 256MB, mounts only visible plus one next warm slot and uses poster/handoff. Sponsored-video component has Android useCaching:true and 120ms near-viewport geometry prewarm. No official organization-wide billing usage API exposed to connected Supabase connector.",
-  "chosenApproach": "Preserve original video_url, native cache, visible autoplay and one-screen prebuffer. Add optional verified 720p and low 480p MP4 URLs selected once per campaign based on network hints; pause immediately on leaving visibility, retain near-viewport decoder only 1.25s for short scroll-back, release immediately on tab unfocus. Add fully local fast-start H264/AAC encoder with byte-saving checks for operator-delivered variants. Add authoritative-source-only 50/70/85/95 quota threshold evaluator with UNVERIFIED fallback.",
+  "chosenApproach": "Preserve original video_url, native cache, visible autoplay and one-screen prebuffer. Add optional verified 720p and low 480p MP4 URLs selected once per campaign based on network hints; pause immediately on leaving visibility, retain near-viewport decoder only 1.25s for short scroll-back, release immediately on tab unfocus. Add fully local fast-start H264/AAC encoder with byte-saving checks for operator-delivered variants. Add authoritative-source-only 50/70/85/95 quota threshold evaluator with UNVERIFIED fallback. Provide a trusted, dry-run-first offline upload/promotion command using existing Supabase SDK; it verifies SHA, faststart and HTTP HEAD before optionally recording variants, never modifies original URL.",
   "selectionRationale": "Dominant cached-egress spike is large public sponsored MP4 repeatedly requested. Smaller rendition files save most bytes while preserving first frame; player hold avoids transient range-request churn. No blanket autoplay disable, deferred visible playback, or aggressive prefetch deletion. Cloud transcoding and billing ingestion require separately verified runtime source and are not falsely claimed.",
   "alternativeApproaches": [
     "Global 30-second tap-to-play or disabling video ads: rejected because destroys first-view rendering and revenue.",
@@ -40,7 +40,8 @@
     ".buklod/scopes/sponsored-video-egress-savings-20261119.json",
     "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
     "supabase/tests/buklod_paid_sponsorship_rendition_egress_20261119.sql",
-    "tests/ads-sponsor-video-egress-20261119.test.mjs"
+    "tests/ads-sponsor-video-egress-20261119.test.mjs",
+    "scripts/publish-buklod-sponsored-renditions.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -84,13 +85,14 @@
     "Backend migration adds only nullable columns, without RLS/money rule changes.",
     "Threshold evaluator reports UNVERIFIED when organization billing source is missing; 50/70/85/95 not claimed active until authoritative ingestion and notifications are wired.",
     "No Android production OTA or Season2 deployment. Staging QA & exact runtime release gates precede any production promotion.",
-    "Read-only SQL checks verify original paid video URL, optional nullable variants and unchanged RLS."
+    "Read-only SQL checks verify original paid video URL, optional nullable variants and unchanged RLS.",
+    "Promotion CLI defaults to read-only dry-run and requires trusted server credentials and explicit --apply to update variant URLs only; no operator key available in this session."
   ],
   "releaseMode": "NONSEASON2_DEV_AND_OPTIONAL_SAFE_DB_SCHEMA_NO_OTA",
   "publicationStatus": "DEV_ONLY_PENDING_CI_DEVICE_AND_BILLING_PROVIDER",
   "knownBlockers": [
     "Connected Supabase tools have no official organization-wide cached egress billing endpoint; automatic threshold notifications are not yet live.",
-    "The historical 48.54 MB video cannot be downloaded/uploaded to storage from current connector/runtime and is not an active approved campaign.",
+    "The historical 48.54 MB public media could not be downloaded from this tool runtime; no verified rendition has been published and there are zero currently approved active video campaigns.",
     "New encoding profiles require a trusted operator's local original file and HTTP validation before any mobile/low URL is written to campaign."
   ]
 }
