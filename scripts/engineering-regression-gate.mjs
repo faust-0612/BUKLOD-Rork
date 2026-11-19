@@ -24,7 +24,7 @@ const dbTest = p => /^supabase\/tests\/.+\.sql$/i.test(p);
 const testPath = p => nodeTest(p) || tsTest(p) || dbTest(p);
 const safe = p => typeof p === 'string' && p.length > 0 && !p.startsWith('/') && !p.includes('..') && !p.includes('\\');
 
-export function assessChanges(changedPaths, manifest = null, { consolidatedRc = false, requireScope = false } = {}) {
+export function assessChanges(changedPaths, manifest = null, { consolidatedRc = false, consolidatedStaging = false, requireScope = false } = {}) {
   const failures = [];
   const paths = [...new Set(changedPaths)];
   if (paths.some(p => !safe(p))) failures.push('Unsafe changed path detected.');
@@ -49,7 +49,11 @@ export function assessChanges(changedPaths, manifest = null, { consolidatedRc = 
   if (requireScope && (modifiedProduct.length || modifiedTests.length) && !scopeChanges.length) {
     failures.push('Product, CI, release or test changes require a new .buklod/scopes/*.json change manifest.');
   }
-  const cumulativeScope = consolidatedRc && manifest?.releaseMode === 'consolidated-main-rc';
+  const cumulativeScope =
+    (consolidatedRc && manifest?.releaseMode === 'consolidated-main-rc') ||
+    (consolidatedStaging && manifest?.releaseMode === 'consolidated-staging-rc' &&
+      manifest?.productionChange === false && manifest?.releaseAuthorized === false &&
+      manifest?.releaseTarget === 'STAGING_ONLY');
   if (scopeChanges.length) {
     if (scopeChanges.length !== 1 && !cumulativeScope) failures.push('Only one new scope manifest is permitted per isolated PR.');
     if (cumulativeScope) {
@@ -107,15 +111,22 @@ function runCli() {
     process.env.BUKLOD_CONSOLIDATED_RC_GATE === 'true' &&
     base === 'main' &&
     ['integration/buklod-nov10-single-source-ota', 'integration/buklod-nov11-postprod-conso-ota', 'integration/buklod-nov11-complete-source-hold-20261111', 'integration/buklod-nov11-reconciled-ota-candidate', 'integration/buklod-nov11-igpat-marites-wonder-qmp-kingdommap-rc', 'release/buklod-prod-rc-staging-20261114', 'integration/nov16-current-wall-ads-zoom-rc-safe'].includes(process.env.GITHUB_HEAD_REF);
+  const stagingCumulative =
+    process.env.BUKLOD_CONSOLIDATED_STAGING_GATE === 'true' &&
+    base === 'integration/season2-conso-staging-20261119' &&
+    process.env.GITHUB_HEAD_REF === 'integration/nov19-all-approved-staging-candidate';
   const manifestPath = process.env.BUKLOD_SCOPE_MANIFEST;
-  if (changedScope.length === 1 || (cumulativeRc && changedScope.includes(manifestPath))) {
+  if (changedScope.length === 1 || ((cumulativeRc || stagingCumulative) && changedScope.includes(manifestPath))) {
     const selected = changedScope.length === 1 ? changedScope[0] : manifestPath;
     try { manifest = JSON.parse(fs.readFileSync(selected, 'utf8')); }
     catch { console.error('REGRESSION BLOCK: invalid selected scope JSON'); process.exitCode = 1; return; }
   }
-  if (cumulativeRc && changedScope.length > 1) {
-    if (manifest?.releaseMode !== 'consolidated-main-rc' || manifest?.scopeManifestPath !== manifestPath) {
-      console.error('REGRESSION BLOCK: invalid consolidated release manifest selection'); process.exitCode = 1; return;
+  if ((cumulativeRc || stagingCumulative) && changedScope.length > 1) {
+    const validScopeMode = cumulativeRc ? manifest?.releaseMode === 'consolidated-main-rc' :
+      manifest?.releaseMode === 'consolidated-staging-rc' && manifest?.releaseTarget === 'STAGING_ONLY' &&
+      manifest?.productionChange === false && manifest?.releaseAuthorized === false;
+    if (!validScopeMode || manifest?.scopeManifestPath !== manifestPath) {
+      console.error('REGRESSION BLOCK: invalid consolidated source manifest selection'); process.exitCode = 1; return;
     }
     for (const scopedPath of changedScope.filter(p => p !== manifestPath)) {
       let component;
@@ -126,7 +137,7 @@ function runCli() {
       }
     }
   }
-  const result = assessChanges(paths, manifest, { consolidatedRc: cumulativeRc, requireScope: true });
+  const result = assessChanges(paths, manifest, { consolidatedRc: cumulativeRc, consolidatedStaging: stagingCumulative, requireScope: true });
   for (const failure of result.failures) console.error('REGRESSION BLOCK:', failure);
   if (result.failures.length) { process.exitCode = 1; return; }
   if (process.argv.includes('--run-focused-node-tests')) {

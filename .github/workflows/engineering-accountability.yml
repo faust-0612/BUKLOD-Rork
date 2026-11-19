@@ -34,6 +34,7 @@ jobs:
               if [ "$PR_BASE" = "integration/season2-conso-staging-20261119" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/season2-proverbs-915-day-cycle-20261119.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_BASE_REF=integration/season2-conso-staging-20261119" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_STAGING_GATE=true" >> "$GITHUB_ENV"
               fi;;
             dev/season2-daily-proverbs-show-faith-20261119)
               if [ "$PR_BASE" = "integration/season2-conso-staging-20261119" ]; then
