@@ -23,7 +23,7 @@ test('Show cannot auto-mint a legacy character collectible',()=>{
 });
 test('earning guidance names proof of benefit and token anti-farming, not financial grants',()=>{
   for(const x of ['Season 2','guide.steps.map','serverSnapshot=null']){
-    const target=x==='guide.steps.map'?read('src/components/points/BuklodS2CollectibleGuidePanel.tsx'):tokens;
+    const target=x==='guide.steps.map'||x==='serverSnapshot=null'?read('src/components/points/BuklodS2CollectibleGuidePanel.tsx'):tokens;
     assert.ok(target.includes(x)||x==='Season 2'&&target.includes('SEASON 2'),x);
   }
   assert.match(sql,/unique\(user_id,source_receipt_id\)/);
