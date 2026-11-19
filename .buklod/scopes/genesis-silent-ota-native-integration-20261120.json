@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json",
-  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes.",
+  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts.",
   "baseRef": "ee25dd41208a7758943d51868f0f61a084f33c7c",
   "productionBaselineEvidence": "Production main 551e54602addd6f7bbe7bcdddd1589d35424c964; Genesis staging APK unbuilt; original Genesis DEV branch ee25dd41208a7758943d51868f0f61a084f33c7c. This isolated PR neither modifies production nor signs/publishes Android artifacts.",
   "chosenApproach": "Forward-port byte-identical reviewed host/policy and focused Node behavior tests from #1003, preserving exact branch/base and native Gradle compile smoke. Replace obsolete restart-banner assertions rather than bypass protection.",
@@ -27,7 +27,8 @@
     "tests/buklod-silent-ota-policy.test.mjs",
     "tests/ota-restart-safe-area.test.cjs",
     "tests/buklod-mandatory-update-runtime.test.mjs",
-    "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs"
+    "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs",
+    "tests/genesis-skia-native-binary-install-20261120.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodOtaFreshnessHost.native.tsx",
@@ -40,7 +41,9 @@
     ".github/workflows/genesis-season2-staging-release-apk-20261120.yml",
     ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json",
     "modules/buklod-genesis-ime/android/build.gradle",
-    "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs"
+    "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs",
+    "tests/genesis-skia-native-binary-install-20261120.test.mjs",
+    "scripts/genesis-prepare-skia-binaries.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -52,7 +55,8 @@
       "tests": [
         "tests/buklod-silent-ota-policy.test.mjs",
         "tests/ota-restart-safe-area.test.cjs",
-        "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs"
+        "tests/genesis-native-ime-gradle-compatibility-20261120.test.mjs",
+        "tests/genesis-skia-native-binary-install-20261120.test.mjs"
       ]
     },
     {
@@ -74,7 +78,8 @@
     "Native signed staging APK requires valid isolated Firebase/Supabase/Expo credentials; fail closed if absent",
     "Actual installed native Android first-view AdMob and navigation tests must pass before OTA publication",
     "No production/Play/DB/points/finance edits; Season 2 embargo preserved",
-    "Local GIF IME Gradle configuration must explicitly expose versionCode 1 and versionName 1.0.0 before Kotlin/Gradle build"
+    "Local GIF IME Gradle configuration must explicitly expose versionCode 1 and versionName 1.0.0 before Kotlin/Gradle build",
+    "Pinned Skia 2.6.2 installer must materialize nonempty libskia.a across all four Android ABIs before native Gradle, no arbitrary install scripts"
   ],
   "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
   "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",

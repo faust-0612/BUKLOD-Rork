@@ -72,6 +72,8 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/genesis-prepare-skia-binaries.mjs
+          node --test tests/genesis-skia-native-binary-install-20261120.test.mjs
           npm run genesis:theme:gate
           node --test tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-android-compile-smoke-release-20261120.test.mjs
           node --experimental-strip-types --test tests/buklod-silent-ota-policy.test.mjs tests/buklod-mandatory-update-runtime.test.mjs tests/ota-restart-safe-area.test.cjs

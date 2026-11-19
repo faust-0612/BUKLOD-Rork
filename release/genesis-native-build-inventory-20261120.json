@@ -30,7 +30,7 @@
       "status": "dependency-declared",
       "origin": "package.json Genesis",
       "description": "Existing Skia, Reanimated 4, Worklets, SVG, Lottie, LinearGradient",
-      "remaining": "Android shader/ABI, GPU FPS, device battery and accessibility not verified"
+      "remaining": "Pinned Skia 2.6.2 ABI binary preparation added after missing libskia.a was observed; rerun native Gradle/CMake and actual device GPU FPS QA pending"
     },
     {
       "id": "genesis-cosmic-ui",
