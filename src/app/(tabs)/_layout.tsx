@@ -1,5 +1,6 @@
 import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
+import { GENESIS_IDENTITY, GENESIS_PALETTE, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import BuklodDashboardAdWarmup from '@/components/BuklodDashboardAdWarmup';
 import BuklodAndroidDashboardTabs from '@/components/BuklodAndroidDashboardTabs';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
@@ -59,6 +60,7 @@ function SwipeDashboardHeader() {
     useSafeAreaInsets();
   const { width: headerWidth, fontScale: headerFontScale } = useWindowDimensions();
   const showTagline = headerWidth >= 460 && headerFontScale <= 1.25;
+  const genesisPreview = isGenesisPreviewBuild();
 
   const { theme } = useBuklodTheme();
   const { unreadCount, refreshUnread } = useNotifications();
@@ -137,13 +139,13 @@ function SwipeDashboardHeader() {
       style={{
         paddingTop: insets.top,
         minHeight: (scrollCompact ? 48 : 56) + insets.top,
-        backgroundColor: publicMinimal ? '#0B2048' : theme.headerSurface,
+        backgroundColor: genesisPreview ? GENESIS_PALETTE.cosmos : (publicMinimal ? '#0B2048' : theme.headerSurface),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingLeft: publicMinimal ? 4 : 12,
         borderBottomWidth: 1,
-        borderBottomColor: publicMinimal ? '#1D3D70' : theme.border,
+        borderBottomColor: genesisPreview ? GENESIS_PALETTE.line : (publicMinimal ? '#1D3D70' : theme.border),
       }}
     >
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
@@ -158,7 +160,7 @@ function SwipeDashboardHeader() {
         <View
           accessibilityLabel="BUKLOD Green B logo"
           style={{width:scrollCompact?31:35,height:scrollCompact?31:35,
-            borderRadius:10,overflow:'hidden',backgroundColor:publicMinimal?'#0B2048':theme.headerSurface}}>
+            borderRadius:10,overflow:'hidden',backgroundColor:genesisPreview?GENESIS_PALETTE.cosmos:(publicMinimal?'#0B2048':theme.headerSurface)}}>
           <Image
             source={require('../../../assets/release/buklod-main-canonical.png')}
             resizeMode="contain"
@@ -170,9 +172,14 @@ function SwipeDashboardHeader() {
           />
         </View>
         <View style={{flex:1,minWidth:0}}>
-          <Text numberOfLines={1} style={{color:publicMinimal?'#FFFFFF':theme.accent,fontSize:scrollCompact?19:21,
+          <Text numberOfLines={1} style={{color:genesisPreview?GENESIS_PALETTE.textOnDark:(publicMinimal?'#FFFFFF':theme.accent),fontSize:scrollCompact?19:21,
             lineHeight:scrollCompact?26:29,fontWeight:'900'}}>{title}</Text>
-          {!scrollCompact && showTagline ? <Text numberOfLines={1} style={{color:publicMinimal?'#D6E5FF':theme.textMuted,fontSize:10,
+          {genesisPreview ? (
+            <Text accessibilityLabel={GENESIS_IDENTITY.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}
+              style={{color:GENESIS_PALETTE.goldLight,fontSize:9,lineHeight:12,fontWeight:'900',letterSpacing:0.2}}>
+              {GENESIS_IDENTITY.title}
+            </Text>
+          ) : !scrollCompact && showTagline ? <Text numberOfLines={1} style={{color:publicMinimal?'#D6E5FF':theme.textMuted,fontSize:10,
             fontWeight:'800',letterSpacing:0.8}}>KOMUNIDAD · KAIBIGAN · PAGLAGO</Text> : null}
         </View>
       </View>

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { GENESIS_IDENTITY, GENESIS_PALETTE, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import {
   Image,
   StyleSheet,
@@ -19,6 +20,7 @@ export default function BuklodMainBrandIntro({
 }: {
   children: React.ReactNode;
 }) {
+  const genesisPreview = isGenesisPreviewBuild();
   const [visible, setVisible] = useState(() => {
     try {
       return window.sessionStorage.getItem('buklod.web.brand-intro.v2') !== 'shown';
@@ -173,9 +175,17 @@ export default function BuklodMainBrandIntro({
           pointerEvents="none"
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
-          style={styles.overlay}
+          style={[styles.overlay, genesisPreview && styles.genesisOverlay]}
         >
           <View style={styles.stage}>
+            {genesisPreview ? (
+              <>
+                <View pointerEvents="none" style={styles.genesisOrbitOuter} />
+                <View pointerEvents="none" style={styles.genesisOrbitInner} />
+                <View pointerEvents="none" style={styles.genesisStarOne} />
+                <View pointerEvents="none" style={styles.genesisStarTwo} />
+              </>
+            ) : null}
             <View
               ref={markRef}
               style={styles.markInitial}
@@ -191,9 +201,14 @@ export default function BuklodMainBrandIntro({
               ref={copyRef}
               style={styles.copyInitial}
             >
-              <Text style={styles.tagline}>
-                Your Daily Companion in Life
-              </Text>
+              {genesisPreview ? (
+                <>
+                  <Text style={styles.genesisTitle}>{GENESIS_IDENTITY.title}</Text>
+                  <Text style={styles.genesisVerse}>{GENESIS_IDENTITY.verse} · SEASON 2</Text>
+                </>
+              ) : (
+                <Text style={styles.tagline}>Your Daily Companion in Life</Text>
+              )}
             </View>
           </View>
         </View>
@@ -211,6 +226,19 @@ const styles = StyleSheet.create({
     zIndex: 99999,
     backgroundColor: '#FFFDF7',
   },
+  genesisOverlay: { backgroundColor: GENESIS_PALETTE.void },
+  genesisOrbitOuter: { position: 'absolute', top: '24%', width: 390, height: 230, borderRadius: 230,
+    borderWidth: 1, borderColor: 'rgba(243,211,153,0.29)', transform: [{ rotate: '-25deg' }] },
+  genesisOrbitInner: { position: 'absolute', top: '28%', width: 310, height: 165, borderRadius: 190,
+    borderWidth: 1, borderColor: 'rgba(101,216,204,0.25)', transform: [{ rotate: '23deg' }] },
+  genesisStarOne: { position: 'absolute', top: '23%', left: '21%', width: 5, height: 5,
+    borderRadius: 3, backgroundColor: GENESIS_PALETTE.star },
+  genesisStarTwo: { position: 'absolute', top: '65%', right: '17%', width: 3, height: 3,
+    borderRadius: 2, backgroundColor: GENESIS_PALETTE.goldLight },
+  genesisTitle: { color: GENESIS_PALETTE.goldLight, fontSize: 17, fontWeight: '900',
+    textAlign: 'center', letterSpacing: 0.2 },
+  genesisVerse: { color: GENESIS_PALETTE.textOnDark, fontSize: 11, fontWeight: '700',
+    textAlign: 'center', marginTop: 5, letterSpacing: 1.0 },
   stage: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
