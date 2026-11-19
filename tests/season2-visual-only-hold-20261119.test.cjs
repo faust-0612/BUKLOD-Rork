@@ -42,7 +42,7 @@ test('Season 2 reward SQL is documentation only, never an applied migration', ()
   for (const item of fs.readdirSync(migrationsDir)) {
     if (!item.endsWith('.sql')) continue;
     const sql=fs.readFileSync(path.join(migrationsDir,item), 'utf8');
-    assert.doesNotMatch(sql, /(?:create|alter)\\s+(?:schema|table|function)\\s+(?:if not exists\\s+)?buklod_s2\\b/i,
+    assert.doesNotMatch(sql, /(?:create|alter)\s+(?:schema|table|function)\s+(?:if not exists\s+)?buklod_s2\b/i,
       'New Season 2 reward SQL must not be published in migration ' + item);
   }
 });
@@ -51,5 +51,5 @@ test('Season 2 story preview has no client-side database reward grant', () => {
   const ui=read('src/components/points/BuklodSeasonJourneyPreview.tsx');
   assert.match(ui,/No BP, QMP, items or tokens awarded/);
   assert.match(ui,/no posting, enrollment, rewards or backend changes/);
-  assert.doesNotMatch(ui,/\\.rpc\\s*\\(|service_role|grant_?tokens|credit_main_source|buy_cosmetic/i);
+  assert.doesNotMatch(ui,/\.rpc\s*\(|service_role|grant_?tokens|credit_main_source|buy_cosmetic/i);
 });
