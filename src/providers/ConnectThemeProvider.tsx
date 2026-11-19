@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {canUserSelectTheme,getLockedSeasonMessagesTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import React, {
   createContext,
   useCallback,
@@ -108,6 +109,7 @@ export function ConnectThemeProvider({
   children: React.ReactNode;
 }) {
   const colorScheme = useColorScheme();
+  const seasonLocked = !canUserSelectTheme();
   const { preference: globalPreference } =
     useBuklodTheme();
   const [
@@ -139,6 +141,7 @@ export function ConnectThemeProvider({
 
   const setMessagesPreference = useCallback(
     (next: MessagesThemePreferenceId) => {
+      if (seasonLocked) return;
       setMessagesPreferenceState(next);
 
       void AsyncStorage.setItem(
@@ -148,26 +151,28 @@ export function ConnectThemeProvider({
         /* session selection still applies */
       });
     },
-    []
+    [seasonLocked]
   );
 
   const resolved = useMemo(
-    () =>
-      resolveMessagesTheme(
-        messagesPreference,
-        globalPreference,
-        colorScheme
-      ),
-    [
-      messagesPreference,
-      globalPreference,
-      colorScheme,
-    ]
+    () => seasonLocked
+      ? {
+          messagesPreference: 'followGlobal' as const,
+          effectivePaletteId: 'nightPine' as const,
+          followingGlobal: true,
+          roles: getLockedSeasonMessagesTheme(),
+        }
+      : resolveMessagesTheme(
+          messagesPreference,
+          globalPreference,
+          colorScheme
+        ),
+    [messagesPreference, globalPreference, colorScheme, seasonLocked]
   );
 
   const value = useMemo(
     () => ({
-      messagesPreference,
+      messagesPreference: seasonLocked ? 'followGlobal' as const : messagesPreference,
       effectivePaletteId:
         resolved.effectivePaletteId,
       followingGlobal:
@@ -175,10 +180,10 @@ export function ConnectThemeProvider({
       theme: resolved.roles,
       ready,
       setMessagesPreference,
-      options: MESSAGES_PREFERENCE_OPTIONS,
-      themeId: messagesPreference,
+      options: seasonLocked ? [] : MESSAGES_PREFERENCE_OPTIONS,
+      themeId: seasonLocked ? 'followGlobal' as const : messagesPreference,
       setThemeId: setMessagesPreference,
-      presets: MESSAGES_PREFERENCE_OPTIONS,
+      presets: seasonLocked ? [] : MESSAGES_PREFERENCE_OPTIONS,
     }),
     [
       messagesPreference,
@@ -187,6 +192,7 @@ export function ConnectThemeProvider({
       resolved.roles,
       ready,
       setMessagesPreference,
+      seasonLocked,
     ]
   );
 
@@ -206,11 +212,17 @@ export function useConnectTheme() {
   const colorScheme = useColorScheme();
 
   if (!ctx) {
-    const fallback = resolveMessagesTheme(
-      DEFAULT_MESSAGES_THEME_PREFERENCE,
-      globalPreference,
-      colorScheme
-    );
+    const seasonLocked = !canUserSelectTheme();
+    const fallback = seasonLocked
+      ? {
+          effectivePaletteId: 'nightPine' as const,
+          roles: getLockedSeasonMessagesTheme(),
+        }
+      : resolveMessagesTheme(
+          DEFAULT_MESSAGES_THEME_PREFERENCE,
+          globalPreference,
+          colorScheme
+        );
 
     return {
       messagesPreference:
@@ -221,10 +233,10 @@ export function useConnectTheme() {
       theme: fallback.roles,
       ready: true,
       setMessagesPreference: () => {},
-      options: MESSAGES_PREFERENCE_OPTIONS,
+      options: seasonLocked ? [] : MESSAGES_PREFERENCE_OPTIONS,
       themeId: DEFAULT_MESSAGES_THEME_PREFERENCE,
       setThemeId: () => {},
-      presets: MESSAGES_PREFERENCE_OPTIONS,
+      presets: seasonLocked ? [] : MESSAGES_PREFERENCE_OPTIONS,
     };
   }
 
