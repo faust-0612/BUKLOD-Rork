@@ -27,7 +27,9 @@
     "tests/sponsor-video-egress-savings-20261119.test.mjs",
     "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
     "tests/community-video-navigation-scroll.test.mjs",
-    "tests/dashboard-instant-tabs-20261117.test.mjs"
+    "tests/dashboard-instant-tabs-20261117.test.mjs",
+    "supabase/tests/buklod_paid_sponsorship_rendition_egress_20261119.sql",
+    "tests/ads-sponsor-video-egress-20261119.test.mjs"
   ],
   "allowedPaths": [
     "src/lib/advertise/sponsoredVideoDelivery.ts",
@@ -38,7 +40,9 @@
     "supabase/migrations/20261119152000_paid_sponsor_ad_optional_mobile_renditions_r1.sql",
     "tests/sponsor-video-egress-savings-20261119.test.mjs",
     ".buklod/scopes/sponsored-video-egress-savings-20261119.json",
-    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
+    "supabase/tests/buklod_paid_sponsorship_rendition_egress_20261119.sql",
+    "tests/ads-sponsor-video-egress-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -53,25 +57,24 @@
       ]
     },
     {
-      "id": "wall-media",
-      "reason": "Limit redundant video reinitialization for short scroll reversals without changing the existing Wall feed or upload UX.",
-      "preservedBehaviors": [
-        "Original player first frame, Wall preview, immediate scroll-off pause, fullscreen route and focus on return."
-      ],
-      "tests": [
-        "tests/sponsor-video-egress-savings-20261119.test.mjs",
-        "tests/community-video-navigation-scroll.test.mjs"
-      ]
-    },
-    {
       "id": "ads-finance-points",
       "reason": "Preserve monetized sponsored playback, impression/click eligibility and AdMob first-view reliability while reducing transferred bytes only when verified smaller variants are available.",
       "preservedBehaviors": [
         "No quota rewards, payment amounts, campaign approval, ad impression accounting or production video ad display rules changed."
       ],
       "tests": [
-        "tests/sponsor-video-egress-savings-20261119.test.mjs",
-        "tests/dashboard-instant-tabs-20261117.test.mjs"
+        "tests/ads-sponsor-video-egress-20261119.test.mjs",
+        "tests/sponsor-video-egress-savings-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add two nullable sponsored rendition URL fields to the existing RLS-protected paid campaigns table, without widening permissions, bypassing RLS, mutating historical campaigns, or exposing media originals.",
+      "preservedBehaviors": [
+        "Campaign RLS stays enabled, original media URL and all existing rows remain intact; no new RPC or storage access grant."
+      ],
+      "tests": [
+        "supabase/tests/buklod_paid_sponsorship_rendition_egress_20261119.sql"
       ]
     }
   ],
@@ -82,7 +85,8 @@
     "FFmpeg optimizer emits smaller verified faststart 720p/480p files when run in trusted local environment; does not upload/rewrite original.",
     "Backend migration adds only nullable columns, without RLS/money rule changes.",
     "Threshold evaluator reports UNVERIFIED when organization billing source is missing; 50/70/85/95 not claimed active until authoritative ingestion and notifications are wired.",
-    "No Android production OTA or Season2 deployment. Staging QA & exact runtime release gates precede any production promotion."
+    "No Android production OTA or Season2 deployment. Staging QA & exact runtime release gates precede any production promotion.",
+    "Read-only SQL checks verify original paid video URL, optional nullable variants and unchanged RLS."
   ],
   "releaseMode": "NONSEASON2_DEV_AND_OPTIONAL_SAFE_DB_SCHEMA_NO_OTA",
   "publicationStatus": "DEV_ONLY_PENDING_CI_DEVICE_AND_BILLING_PROVIDER",
