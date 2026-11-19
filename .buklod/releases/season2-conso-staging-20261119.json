@@ -20,9 +20,9 @@
     "actual-served-staging-manifest",
     "unchanged-production"
   ],
-  "sourceStatus": "EXACT SOURCE VERIFIED: 5 GitHub Actions CI workflows success at 42779df703aa26fb07e56f726865deef8bcb7ec8; consolidated integration SHA 0b7f59585dd312fb91381b0a647ed744f3ae32c2. Publisher must independently rerun tests, export Android, and read back EAS served manifest before any success claim.",
+  "sourceStatus": "MERGED STAGING SOURCE VERIFIED: Engineering Accountability, Season 2 Governance Drift, disposable PostgreSQL SQL contract, and Main integration QA all SUCCESS on 731579b8309e509e38de0576c9872ca90c57dc6d; prior feature Android compile and reward hold checks SUCCESS on 42779df703aa26fb07e56f726865deef8bcb7ec8. Exact publisher performs fresh Android export, staging EAS readback and production manifest unchanged verification.",
   "note": "Stage user-facing previews only. S2 wallets, token mint/spend, missions, season rollover and economy integration remain OFF even after Dec 6 absent fresh approval and backend verification. Production Season 1 remains unchanged.",
-  "attempt": 4,
+  "attempt": 5,
   "rewardsHoldUntilManilaDay": "2026-12-06",
   "requiresSeparateOwnerApprovalForRewards": true,
   "season2RewardDbWritesAuthorized": false,
@@ -31,7 +31,7 @@
     "LIFE Filipino and English hydration",
     "Season 2 story journey and 13 guides preview only"
   ],
-  "requestedVisualOnlySourceParent": "0b7f59585dd312fb91381b0a647ed744f3ae32c2",
+  "requestedVisualOnlySourceParent": "731579b8309e509e38de0576c9872ca90c57dc6d",
   "requestedAtManilaDay": "2026-11-19",
-  "publicationStatus": "REQUESTED_NOT_YET_VERIFIED"
+  "publicationStatus": "RE_REQUESTED_AFTER_SCOPE_GATES_PASS"
 }
