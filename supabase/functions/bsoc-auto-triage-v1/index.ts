@@ -74,10 +74,16 @@ Deno.serve(async (req:Request)=>{
       await send(caseId,"INVESTIGATING","investigating-v1",
         "Sinimulan ng BSOC ang technical investigation ng iyong concern. Magbibigay kami ng resulta rito.");
       const diag=ticket.diagnostics&&typeof ticket.diagnostics==="object"?ticket.diagnostics:{};
-      const sign=clean(diag.error_signature||diag.safe_error_code||diag.error_code,80);
-      const area=clean(diag.route_module||diag.route||diag.origin_area||"",100);
-      const platform=clean(diag.platform||"",30);
-      const version=clean(ticket.app_version||"",60);
+      // Client diagnostics can be forged; transmit ONLY approved technical shapes.
+      const rawSignal=clean(diag.error_signature||diag.safe_error_code||diag.error_code,80);
+      const sign=/^(?:RENDER_[A-Z0-9]{6,60}|AUTH_[A-Z0-9_]{4,60}|SYNC_[A-Z0-9_]{4,60}|MEDIA_[A-Z0-9_]{4,60}|NETWORK_[A-Z0-9_]{4,60}|SYS-[0-9]{3,8})$/i.test(rawSignal)
+        ?rawSignal:"";
+      const rawArea=clean(diag.route_module||diag.route||diag.origin_area||"",100);
+      const area=/^\/?[a-z-]{2,25}(?:\/[a-z-]{2,25}){0,3}$/i.test(rawArea)?rawArea:"";
+      const rawPlatform=clean(diag.platform||"",30).toLowerCase();
+      const platform=["android","ios","web"].includes(rawPlatform)?rawPlatform:"unknown";
+      const rawVersion=clean(ticket.app_version||"",60);
+      const version=/^\d+\.\d+(?:\.\d+){0,2}$/.test(rawVersion)?rawVersion:"unknown";
       const category=clean(ticket.category||"",30);
       // Raw free text is screened locally for safety; NEVER sent to GPT or GitHub.
       const inputText=String(ticket.title||"")+" "+String(ticket.message||"");
