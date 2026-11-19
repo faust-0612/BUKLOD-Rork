@@ -162,6 +162,22 @@
         "No isolated staging backend or verified free Expo OTA receipt.",
         "Requires separate new owner review for any inserted or removed Season2 area."
       ]
+    },
+    {
+      "id": "dec6_complete_reward_inventory",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "contracts/season2-dec6-complete-reward-inventory-20261119.json",
+        "docs/season2/BUKLOD_DEC6_ALL_POINTS_REWARDS_REQUIREMENTS_DEDUCTIONS_20261119.md",
+        "scripts/season2-dec6-economy-audit.cjs",
+        "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
+        ".github/workflows/buklod-season2-consolidated-staging-ota-20261119.yml"
+      ],
+      "limitations": [
+        "Only read-only inventory, audit and unit regression checks are prepared; real Postgres migration/RLS, mobile/outbox, QMP parity, character awards, Dec6 owner signoff and live OTA are NOT complete.",
+        "The 22 evidence-based readiness gates remain HOLD; no release permission, fake CI/device validation, backend grants or production writes."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
