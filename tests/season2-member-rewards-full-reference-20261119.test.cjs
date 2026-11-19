@@ -10,15 +10,15 @@ const view=load('src/components/points/BuklodS2CompleteRewardsReference.tsx');
 const journey=load('src/components/points/BuklodSeasonJourneyPreview.tsx');
 const owner=JSON.parse(load('contracts/season2-owner-approved-exclusives-20261119.json'));
 const audit=JSON.parse(load('contracts/season2-dec6-complete-reward-inventory-20261119.json'));
-function arrayBetween(start,end){
+function freezeArray(start){
  const a=matrix.indexOf(start);
  assert.ok(a>=0,'missing matrix start '+start);
- const b=matrix.indexOf(end,a+start.length);
- assert.ok(b>a,'missing matrix end '+end);
+ const b=matrix.indexOf(');',a+start.length);
+ assert.ok(b>a,'missing Object.freeze closing bracket');
  return JSON.parse(matrix.slice(a+start.length,b).trim());
 }
-const active=arrayBetween('export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze(',');\nexport const S2_LEGACY_BP_INACTIVE');
-const inactive=arrayBetween('export const S2_LEGACY_BP_INACTIVE:readonly Readonly<{id:string;title:string;bp:number}>[] = Object.freeze(',');\nexport const S2_GUIDE_BP_GROUPS');
+const active=freezeArray('export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze(');
+const inactive=freezeArray('export const S2_LEGACY_BP_INACTIVE:readonly Readonly<{id:string;title:string;bp:number}>[] = Object.freeze(');
 test('full member BP catalog reflects exact audited active/inactive S1 snapshot',()=>{
  assert.equal(active.length,46);assert.equal(inactive.length,16);
  assert.equal(new Set(active.map(x=>x.id)).size,46);
