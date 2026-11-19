@@ -20,6 +20,7 @@ const reasons: Record<string, string> = {
   attempt_expired: 'Nag-expire ang mga tanong. Kumuha ng bagong set.',
   invalid_answers: 'Kumpletuhin muna ang tatlong sagot.',
   attempt_unavailable: 'Hindi na makita ang quiz attempt. Subukan muli.',
+  previous_chapter_required: 'Tapusin at ipa-verify muna ang naunang kabanata bago umabante.',
 };
 
 export default function KlReadingQuiz({
@@ -76,7 +77,7 @@ export default function KlReadingQuiz({
       if (completion?.completed === true) {
         setDone(true); setLegacyAllowed(false);
         setMessage('Naitala ang pagkumpleto sa kabanata.' +
-          (completion.new_completion ? ' +' + Number(completion.chapter_points ?? 10) + ' BP' +
+          (completion.new_completion ? ' +' + Number(completion.chapter_points ?? 0) + ' BP' +
             (Number(completion.series_points ?? 0) > 0
               ? ' · Series bonus +' + completion.series_points + ' BP' : '') : ''));
         onVerified?.();
@@ -84,7 +85,7 @@ export default function KlReadingQuiz({
           void showBuklodAdOpportunity('kl_chapter_success').catch(() => undefined);
         }
       } else {
-        setMessage('Kailangan pa ng 60 segundong pagbabasa at sapat na activity para sa pansamantalang completion.');
+        setMessage(reasons[(completion as {reason?:string}|null)?.reason ?? ''] ?? 'Kailangan pa ng 60 segundong pagbabasa at sapat na activity para sa pansamantalang completion.');
       }
     } catch {
       setMessage('Hindi makumpirma ang completion. Suriin ang koneksiyon at subukan muli.');
@@ -112,7 +113,7 @@ export default function KlReadingQuiz({
         setQuestions([]);
         setMessage('Natapos ang kabanata!' +
           (result.completion.new_completion
-            ? ' +' + Number(result.completion.chapter_points ?? 10) + ' BP' +
+            ? ' +' + Number(result.completion.chapter_points ?? 0) + ' BP' +
               (Number(result.completion.series_points ?? 0) > 0
                 ? ' · Series bonus +' + result.completion.series_points + ' BP' : '')
             : ' Naitala na ang completion.'));
