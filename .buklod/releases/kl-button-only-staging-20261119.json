@@ -24,5 +24,7 @@
     "native APK build"
   ],
   "publishingRule": "publish only if current live staging source exactly matches frozen Nov17 RC; do not roll back newer staging",
-  "physicalDeviceVerification": "NOT_PERFORMED"
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "attempt": 2,
+  "recoveryReason": "Fix staging preflight JSON filename; initial run stopped before Expo export or publishing."
 }
