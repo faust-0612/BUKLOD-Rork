@@ -63,20 +63,22 @@ export default function LiveSupport(){
   const loadThread=useCallback(async()=>{
     if(!caseId)return;
     const sequence=++requestSequence.current;
-    const [chat,attachments,reports]=await Promise.all([
+    const [chat,attachments]=await Promise.all([
       supabase.from('bsoc_case_messages').select('id,body,sender_id,sender_kind,created_at')
         .eq('case_id',caseId).order('created_at',{ascending:true}).limit(150),
       supabase.from('bsoc_case_attachments').select('id,case_id,message_id,object_path,mime_type,created_at')
-        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(50),
-      // Additive migration rollout: existing releases still work without this table.
-      supabase.from('bsoc_ai_case_reports').select('id,phase,member_message,created_at')
-        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(80)
+        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(50)
     ]);
     if(sequence!==requestSequence.current)return;
     if(chat.error) {setError(chat.error.message);return;}
     if(attachments.error){setError(attachments.error.message);return;}
     setMessages((chat.data||[]) as Message[]);
-    setAiReports(reports.error?[]:(reports.data||[]) as AiReport[]);
+    // Do not delay member chat rendering if report history is missing or slow.
+    void supabase.from('bsoc_ai_case_reports').select('id,phase,member_message,created_at')
+      .eq('case_id',caseId).order('created_at',{ascending:true}).limit(80)
+      .then(({data,error})=>{
+        if(sequence===requestSequence.current)setAiReports(error?[]:(data||[]) as AiReport[]);
+      });
     const files=(attachments.data||[]) as Evidence[];
     const signed=await Promise.all(files.map(async file=>{
       const {data}=await supabase.storage.from(BUCKET).createSignedUrl(file.object_path,300);
