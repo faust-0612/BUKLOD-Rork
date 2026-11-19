@@ -20,7 +20,7 @@ import {
   useRef,
 } from 'react';
 import {Alert,Pressable,ScrollView,Share,StyleSheet,Text,TextInput,View} from 'react-native';
-import {router,useLocalSearchParams} from 'expo-router';
+import {router,useFocusEffect,useLocalSearchParams} from 'expo-router';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {supabase} from '@/lib/supabase';
 import { acquireSharedRealtimeSubscription } from '@/lib/performance';
@@ -32,8 +32,8 @@ import {useAuth} from '@/providers/AuthProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import type { BuklodThemeRoles } from '@/lib/buklodTheme';
 import { ProfileAvatarNoteChip } from '@/components/ProfileAvatar';
-import {recordConfirmedCommunityComment} from '@/lib/buklodCommunityCommentAdCadence';
-import {warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
+import {recordConfirmedCommunityComment,takePendingCommunityCommentAdBreak} from '@/lib/buklodCommunityCommentAdCadence';
+import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 
 
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
@@ -86,9 +86,22 @@ export default function PostDetail(){
  } = useBuklodContentReport();
  const [post,setPost]=useState<any>(null),[comments,setComments]=useState<any[]>([]),[requests,setRequests]=useState<any[]>([]);
  const [comment,setComment]=useState(''),[busy,setBusy]=useState(false);
+ const commentSendInFlightRef=useRef(false);
  const [replyTo,setReplyTo]=useState<any>(null);
  const [photoViewerOpen,setPhotoViewerOpen]=useState(false);
  const [photoViewerIndex,setPhotoViewerIndex]=useState(0);
+
+ // Ad only after leaving the editor, never while typing or submitting.
+ // The shared controller still enforces consent, route locks and global cadence.
+ useFocusEffect(useCallback(() => {
+  const adAccount=String(user?.id??'');
+  return () => {
+   if(!commentSendInFlightRef.current && adAccount &&
+      takePendingCommunityCommentAdBreak(adAccount)){
+    void showBuklodAdOpportunity('community_comment_overage');
+   }
+  };
+ },[user?.id]));
 
  const load=useCallback(async()=>{if(!id)return;
   const [{data:p,error:pe},{data:c,error:ce}]=await Promise.all([
@@ -206,8 +219,9 @@ export default function PostDetail(){
  },[id,load]);
 
  const add=async()=>{
-  if(busy || !comment.trim())return;
+  if(busy || commentSendInFlightRef.current || !comment.trim())return;
 
+  commentSendInFlightRef.current=true;
   setBusy(true);
 
   const {error}=
@@ -222,6 +236,7 @@ export default function PostDetail(){
      }
     );
 
+  commentSendInFlightRef.current=false;
   setBusy(false);
 
   if(error){
