@@ -1,0 +1,18 @@
+{
+  "id": "S2_CHARACTER_ITEMS_TOKENS_GUIDE_20261119",
+  "season": 2,
+  "changes": {
+    "season1.production_logic": "untouched",
+    "inventory.owned_items_rollover": "retain",
+    "badges.permanent_rollover": "retain",
+    "reward_authority.canonical": "character_server_receipts",
+    "mission_awards.validation": "server_verified_idempotent_antifarm",
+    "show_faith.requirement": "voluntary_fair_alternatives",
+    "seasonal_tokens.expiry": "only_disclosed_event_tokens",
+    "qmp_finance.season_rollover": "independent_never_reset",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc"
+  },
+  "description": "DEV-only Season 2 collectible mastery guide, optional token and weekly badge instructions, honest legacy ownership, dormant isolated SQL claim candidate. No Season1/prod mutation, no token grants, no backend deployment.",
+  "scope": "13 characters x 20 stages x 5 item guides; read-only preview; server-only certificates require staging security tests.",
+  "reviewStatus": "DESIGN_PROPOSAL_NOT_PRODUCTION_AUTHORIZATION"
+}
