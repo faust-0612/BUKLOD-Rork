@@ -1,0 +1,84 @@
+{
+  "contractVersion": 2,
+  "objective": "Owner-approved daily Proverbs verse on Show Faith Community Wall for Season 2 only",
+  "baseRef": "integration/season2-conso-staging-20261119",
+  "sourceBranch": "dev/season2-daily-proverbs-show-faith-20261119",
+  "productionChange": false,
+  "releaseTarget": "SEASON2_STAGING_SOURCE_ONLY",
+  "releaseAuthorized": false,
+  "season2ExclusiveTenLockUnchanged": true,
+  "rewardWritesAllowed": false,
+  "productionEmbargoUntilManila": "2026-12-06T00:00:00+08:00",
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodSeason2ProverbsDailyVerse.tsx",
+    "src/lib/season2/buklodDailyProverbsR1.ts",
+    "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+    "tests/protected-feature-lock-daily-proverbs-20261119.test.mjs",
+    "contracts/season2-proposals/daily-proverbs-show-faith-20261119.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "regressionTests": [
+    "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs",
+    "tests/protected-feature-lock-daily-proverbs-20261119.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Season 1 production remains unchanged",
+    "Show Faith preference is respected; non-faith users do not see a religious verse",
+    "Community first-view ads, scrolling, visibility, comments and all feed server RPCs unchanged",
+    "No points, QMP, redemption, native library, migration or backend writes"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add a small Show Faith-only read-only card in existing Community header without altering feed state",
+      "preservedBehaviors": [
+        "Existing Community post loading, media and ad lifecycles are preserved"
+      ],
+      "tests": [
+        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Insert Proverbs after the first-view ad without modifying either public or scoped media rendering logic",
+      "preservedBehaviors": [
+        "Media and video scroll lifecycle, first-view ads and comment pipelines remain unchanged"
+      ],
+      "tests": [
+        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Link daily passage to established Bible reader route without adding public or scope authorization paths",
+      "preservedBehaviors": [
+        "Current Public Wall and scoped community routes and permissions remain unchanged"
+      ],
+      "tests": [
+        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Respect Show Faith opt-out and limit localized Proverbs to the Wall in faith-enabled scopes",
+      "preservedBehaviors": [
+        "Non-Show Faith members never see this card; org and cluster scope preference is unchanged"
+      ],
+      "tests": [
+        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Add one exact integration PR branch to existing protected feature manifest routing",
+      "preservedBehaviors": [
+        "All other protected-feature PR branch mappings and production release gates remain intact"
+      ],
+      "tests": [
+        "tests/protected-feature-lock-daily-proverbs-20261119.test.mjs"
+      ]
+    }
+  ]
+}
