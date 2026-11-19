@@ -42,16 +42,6 @@
       ]
     },
     {
-      "id": "cluster-faith",
-      "reason": "New daily verse selector is consumed only by the existing Show Faith card; guard every chapter/verse pair and localization fallbacks",
-      "preservedBehaviors": [
-        "Opted-out/nonfaith community still has zero faith verse exposure"
-      ],
-      "tests": [
-        "tests/season2-daily-proverbs-faith-wall-navigation-20261119.test.mjs"
-      ]
-    },
-    {
       "id": "governance-lock",
       "reason": "Scope exact 915-day cycle source changes on a Season2-only PR without crossing into Season1 or production",
       "preservedBehaviors": [
