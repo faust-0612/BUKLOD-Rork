@@ -73,25 +73,6 @@ function normalizePhilippinePhone(
   return null;
 }
 
-function normalizeUsername(
-  value: string
-) {
-  const username =
-    value.trim().toLowerCase();
-
-  if (
-    username.length < 3 ||
-    username.length > 30 ||
-    !/^(?=.*[a-z])[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(
-      username
-    )
-  ) {
-    return null;
-  }
-
-  return username;
-}
-
 function mobileInternalEmail(
   phone: string
 ) {
@@ -99,12 +80,6 @@ function mobileInternalEmail(
     /\D/g,
     ''
   )}@buklod.invalid`;
-}
-
-function usernameInternalEmail(
-  username: string
-) {
-  return `u.${username}@buklod.invalid`;
 }
 
 function buildFullName(
