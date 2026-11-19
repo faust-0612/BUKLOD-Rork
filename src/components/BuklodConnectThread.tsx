@@ -137,6 +137,7 @@ import {
   connectBubbleGrouping,
   connectPhotoSlots,
   connectScrollAction,
+  connectFollowingLatest,
   connectOlderPrependScrollOffset,
   connectSignedUrlNeedsRefresh,
   connectThreadSessionKey,
@@ -1412,16 +1413,25 @@ const [
   const userMomentumRef = useRef(false);
   // Focus opts into newest-message following, an actual user swipe opts out.
   const composerFollowsLatestRef = useRef(false);
+  // Keep an explicit Latest request through IME/list reflow until real scroll
+  // geometry confirms arrival at the newest message.
+  const pendingLatestScrollRef = useRef(false);
+  const followingLatest = useCallback(() => connectFollowingLatest({
+    composerFocused: composerFollowsLatestRef.current,
+    jumpPending: pendingLatestScrollRef.current,
+    userInteracting: userDraggingRef.current || userMomentumRef.current,
+  }), []);
   const followComposerToLatest = useCallback(() => {
-    if (!composerFollowsLatestRef.current || userDraggingRef.current || userMomentumRef.current) return;
+    if (userDraggingRef.current || userMomentumRef.current ||
+        (!composerFollowsLatestRef.current && !pendingLatestScrollRef.current)) return;
     listRef.current?.scrollToEnd({ animated: false });
   }, []);
   useEffect(() => {
-    if (!keyboardVisible || !composerFollowsLatestRef.current) return;
+    if (!keyboardVisible || !followingLatest()) return;
     // Android sometimes finishes IME resizing after TextInput onFocus.
     const frame = requestAnimationFrame(followComposerToLatest);
     return () => cancelAnimationFrame(frame);
-  }, [keyboardVisible, composerDockBottom, followComposerToLatest]);
+  }, [keyboardVisible, composerDockBottom, followComposerToLatest, followingLatest]);
   // Only history prepends may adjust a prior visible message's offset.
   const pendingOlderAnchorRef =
     useRef<{ offset: number; height: number } | null>(null);
@@ -1496,6 +1506,7 @@ const [
     pinLatestOnOpenRef.current = true;
     followOwnSendRef.current = false;
     composerFollowsLatestRef.current = false;
+    pendingLatestScrollRef.current = false;
     suppressStickRef.current = false;
     userDraggingRef.current = false;
     userMomentumRef.current = false;
@@ -1568,6 +1579,7 @@ const [
             initialLoadSettledRef.current = true;
             anchorTimer = setTimeout(() => {
               if (!active || !pinLatestOnOpenRef.current) return;
+              pendingLatestScrollRef.current = true;
               listRef.current?.scrollToEnd({ animated: false });
               pinLatestOnOpenRef.current = false;
               nearBottomRef.current = true;
@@ -1920,6 +1932,7 @@ const [
         return;
       }
       if (contentHeightRef.current <= 0) return; // content callback owns the first anchor
+      pendingLatestScrollRef.current = true;
       listRef.current?.scrollToEnd({ animated: false });
       pinLatestOnOpenRef.current = false;
       nearBottomRef.current = true;
@@ -1953,7 +1966,8 @@ const [
     if (
       initialLoadSettledRef.current &&
       !pinLatestOnOpenRef.current &&
-      !nearBottomRef.current
+      !nearBottomRef.current &&
+      !followingLatest()
     ) {
       const known = new Set(
         current.map(item => item.id)
@@ -4250,7 +4264,7 @@ const [
 <FlatList
         ref={listRef}
         onLayout={() => {
-          if (composerFollowsLatestRef.current) {
+          if (followingLatest()) {
             requestAnimationFrame(followComposerToLatest);
           }
         }}
@@ -4361,6 +4375,7 @@ const [
             initialLoadSettledRef.current &&
             messagesLengthRef.current > 0
           ) {
+            pendingLatestScrollRef.current = true;
             listRef.current?.scrollToEnd({ animated: false });
             pinLatestOnOpenRef.current = false;
             nearBottomRef.current = true;
@@ -4398,8 +4413,9 @@ const [
             return;
           }
 
-          if (composerFollowsLatestRef.current && !userDraggingRef.current && !userMomentumRef.current) {
-            listRef.current?.scrollToEnd({ animated: false });
+          if (followingLatest()) {
+            // Give FlatList a frame to apply the resized content dimensions.
+            requestAnimationFrame(followComposerToLatest);
             return;
           }
           const action = connectScrollAction({
@@ -4494,6 +4510,7 @@ const [
           connectScrollOffsetRef.current = contentOffset.y;
           if (userDraggingRef.current || userMomentumRef.current) {
             composerFollowsLatestRef.current = false;
+            pendingLatestScrollRef.current = false;
           }
 
           const distanceFromBottom =
@@ -4507,6 +4524,9 @@ const [
             distanceFromBottom <= CONNECT_NEAR_BOTTOM_PX;
           const wasNearLatest = nearBottomRef.current;
           nearBottomRef.current = nearBottom;
+          if (nearBottom && listAnchoredRef.current) {
+            pendingLatestScrollRef.current = false;
+          }
 
           if (
             nearBottom &&
@@ -4521,7 +4541,7 @@ const [
               setAwayFromLatest(false);
               setNewWhileAway(0);
             }
-          } else if (!awayFromLatest && listAnchored) {
+          } else if (!followingLatest() && !awayFromLatest && listAnchored) {
             setAwayFromLatest(true);
           }
 
@@ -5039,7 +5059,7 @@ const [
         </View>
       )}
 
-      {listAnchored && (awayFromLatest || newWhileAway > 0) && (
+      {listAnchored && !followingLatest() && (awayFromLatest || newWhileAway > 0) && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
@@ -5049,16 +5069,12 @@ const [
           }
           onPress={() => {
             followOwnSendRef.current = false;
-            listRef.current?.scrollToEnd({
-              animated: false,
-            });
-            nearBottomRef.current = true;
+            pendingLatestScrollRef.current = true;
             setAwayFromLatest(false);
             setNewWhileAway(0);
+            // Only a real onScroll to the bottom can confirm read visibility.
             pendingVisibleReadRef.current = 'returned-to-latest';
-            setTimeout(() => {
-              markVisibleRoomRead('returned-to-latest');
-            }, 32);
+            requestAnimationFrame(followComposerToLatest);
           }}
           style={{
             position: 'absolute',
@@ -5241,6 +5257,7 @@ const [
         onSend={send}
         onFocus={() => {
           composerFollowsLatestRef.current = true;
+          pendingLatestScrollRef.current = true;
           setAwayFromLatest(false);
           setNewWhileAway(0);
           requestAnimationFrame(followComposerToLatest);
