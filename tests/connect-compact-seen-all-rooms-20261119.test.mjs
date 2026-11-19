@@ -15,6 +15,7 @@ test('all Connect text rooms share compact renderer and sender avatar without re
   assert.match(bubble, /size=\{24\}/);
   assert.match(bubble, /marginBottom: 3/);
   assert.match(bubble, /maxWidth: '90%',/);
+  assert.match(bubble, /flexDirection: 'row',\s+alignItems: 'center'/);
   assert.match(bubble, /useState,/);
 });
 

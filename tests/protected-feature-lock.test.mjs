@@ -132,6 +132,11 @@ test('Season2 consolidation declares every impacted feature and exact protected 
    'src/app/(tabs)/buklod.tsx',
    'src/components/BuklodCommunityWallProfileBubbles.tsx',
    'src/components/BuklodCommunityConnectHeader.web.tsx',
+   'src/components/BuklodConnectThread.tsx',
+   'src/components/connect/ConnectMessageBubble.tsx',
+   'src/lib/connectChatWindow.ts',
+   'tests/connect-latest-keyboard-follow-20261119.test.mjs',
+   'tests/connect-compact-seen-all-rooms-20261119.test.mjs',
    'tests/season2-wall-avatar-navigation-20261119.test.mjs',
    'tests/life-language-auth-navigation-20261119.test.mjs',
    'tests/season2-avatar-admob-guard-20261119.test.mjs',
@@ -142,7 +147,7 @@ test('Season2 consolidation declares every impacted feature and exact protected 
  ];
  const r=assessProtectedFeatureLock(paths.map(path=>({status:'M',path})),s);
  assert.deepEqual(r.failures,[]);
- assert.deepEqual(r.impacted,['app-runtime','wall-media','navigation-auth','ads-finance-points','production-release','governance-lock']);
+ assert.deepEqual(r.impacted,['app-runtime','wall-media','navigation-auth','connect-ptt-calls','ads-finance-points','production-release','governance-lock']);
  assert.equal(s.releaseTarget,'STAGING_ONLY');
  assert.equal(s.productionChange,false);
 });
