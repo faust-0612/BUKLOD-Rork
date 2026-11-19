@@ -86,30 +86,39 @@ CREATE OR REPLACE FUNCTION private.kl_s2_previous_chapter_complete_v1(
  SELECT EXISTS (
   SELECT 1 FROM public.kl_episodes chapter
   WHERE chapter.id=p_episode_id AND chapter.episode_number BETWEEN 0 AND 30
-    AND (
-      chapter.episode_number=0
-      OR (chapter.episode_number=1 AND (
-        chapter.season_number=1
-        OR EXISTS (
+    AND (chapter.episode_number=0 OR (
+      -- Every numbered chapter before this one must be approved, released
+      -- AND completed by the SAME account. Missing numbers are blockers.
+      NOT EXISTS (
+        SELECT 1 FROM pg_catalog.generate_series(1,chapter.episode_number-1) required(n)
+        WHERE NOT EXISTS (
           SELECT 1 FROM public.kl_episodes previous
           JOIN public.kl_reading_sessions sessions
             ON sessions.episode_id=previous.id AND sessions.user_id=p_user
-          WHERE previous.season_number=chapter.season_number-1
-            AND previous.episode_number=30
+          WHERE previous.season_number=chapter.season_number
+            AND previous.episode_number=required.n
             AND previous.status='approved' AND previous.approved_at IS NOT NULL
             AND previous.release_at<=now() AND sessions.completed_at IS NOT NULL
         )
+      )
+      -- Cross-series means the entire earlier 30-chapter series must be
+      -- finished, not just its final chapter; skip histories cannot pass.
+      AND (chapter.season_number=1 OR NOT EXISTS (
+        SELECT 1 FROM pg_catalog.generate_series(1,30) previous_required(n)
+        WHERE NOT EXISTS (
+          SELECT 1 FROM public.kl_episodes previous_series
+          JOIN public.kl_reading_sessions prior_sessions
+            ON prior_sessions.episode_id=previous_series.id
+           AND prior_sessions.user_id=p_user
+          WHERE previous_series.season_number=chapter.season_number-1
+            AND previous_series.episode_number=previous_required.n
+            AND previous_series.status='approved'
+            AND previous_series.approved_at IS NOT NULL
+            AND previous_series.release_at<=now()
+            AND prior_sessions.completed_at IS NOT NULL
+        )
       ))
-      OR (chapter.episode_number>1 AND EXISTS (
-        SELECT 1 FROM public.kl_episodes previous
-        JOIN public.kl_reading_sessions sessions
-          ON sessions.episode_id=previous.id AND sessions.user_id=p_user
-        WHERE previous.season_number=chapter.season_number
-          AND previous.episode_number=chapter.episode_number-1
-          AND previous.status='approved' AND previous.approved_at IS NOT NULL
-          AND previous.release_at<=now() AND sessions.completed_at IS NOT NULL
-      ))
-    )
+    ))
  )
 $fn$;
 REVOKE ALL ON FUNCTION private.kl_s2_previous_chapter_complete_v1(uuid,uuid)
