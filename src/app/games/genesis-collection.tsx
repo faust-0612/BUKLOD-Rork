@@ -14,6 +14,7 @@ import { VISUAL_CLASSES, getVisualClassItems } from '@/lib/buklodKingdomClassCat
 import { KINGDOM_CORE_CLASSES, coreAtlasItem } from '@/lib/buklodKingdomCoreAtlas';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
+import { useGenesisMotionAllowed } from '@/features/season2/genesis/GenesisVisuals';
 
 const COLORS = { gold:'#E9CB8F', pearl:'#FFF3DB', mint:'#B5E6D0', muted:'#C1CDD7' };
 const TIERS = ['Starter','Active','Steady','Builder','Impact','Vanguard','Prime','Prime Elite'] as const;
@@ -35,6 +36,7 @@ function CroppedItem({ classId, index, width = 132 }: { classId: string; index: 
 
 function GenesisCollectionContent() {
   const [focused,setFocused] = useState(false);
+  const motionAllowed = useGenesisMotionAllowed(focused);
   const [shelf,setShelf] = useState<Shelf>('items');
   const [classicId,setClassicId] = useState('light');
   const [classicIndex,setClassicIndex] = useState(0);
@@ -48,14 +50,14 @@ function GenesisCollectionContent() {
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   useEffect(() => {
     bob.stopAnimation(); bob.setValue(0);
-    if (!focused) return;
+    if (!motionAllowed) return;
     const loop=Animated.loop(Animated.sequence([
       Animated.timing(bob,{toValue:1,duration:2450,easing:Easing.inOut(Easing.sin),useNativeDriver:true}),
       Animated.timing(bob,{toValue:0,duration:2450,easing:Easing.inOut(Easing.sin),useNativeDriver:true}),
     ]));
     loop.start();
     return()=>loop.stop();
-  }, [focused,bob]);
+  }, [motionAllowed,bob]);
 
   const group=KINGDOM_CORE_CLASSES.find(c=>c.id===classId) ?? KINGDOM_CORE_CLASSES[0];
   const selected=coreAtlasItem(group.id,selectedItem);

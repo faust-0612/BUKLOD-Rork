@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, type ImageSourcePropType, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GenesisAtmosphere, GenesisSeal } from './GenesisVisuals';
+import { GenesisSeal } from './GenesisVisuals';
+import GenesisCosmicSky from './GenesisCosmicSky';
 import { GENESIS_MOTION_MS, GENESIS_PALETTE } from './genesisContract';
 
 type Props = {
@@ -35,8 +36,8 @@ export default function GenesisRewardReveal({ visible, onClose, title, message, 
     <Modal visible={visible} transparent statusBarTranslucent animationType="none" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Animated.View style={[styles.frame, { opacity: fade, transform: [{ scale }, { translateY: lift }] }]}>
-          <LinearGradient colors={['#08251E', '#13523B', '#0A3026']} style={styles.surface}>
-            <GenesisAtmosphere active={visible} quality="full" />
+          <LinearGradient colors={['#020C20', '#0A2436', '#092C2A']} style={styles.surface}>
+            <GenesisCosmicSky active={visible} />
             <View style={styles.goldHairline} pointerEvents="none" />
             <Text style={styles.eyebrow}>BUKLOD  ·  GENESIS</Text>
             <View style={styles.art}>

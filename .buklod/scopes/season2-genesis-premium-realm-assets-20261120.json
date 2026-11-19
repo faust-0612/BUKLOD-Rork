@@ -82,6 +82,7 @@
     "src/app/games/index.tsx",
     "src/features/season2/genesis/GenesisCosmicSky.tsx",
     "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "src/features/season2/genesis/GenesisRewardReveal.tsx",
     "src/lib/buklodKingdomClassArt.ts",
     "src/lib/buklodKingdomClassCatalog.ts",
     "src/lib/buklodKingdomCoreAtlas.ts",

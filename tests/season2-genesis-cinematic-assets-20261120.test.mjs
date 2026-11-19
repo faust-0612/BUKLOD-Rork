@@ -55,5 +55,7 @@ test('cinematic visuals stop when hidden and never play unapproved sound',()=>{
  assert.match(portal,/focused && foreground && !reduceMotion/);
  assert.match(scene,/useGenesisMotionAllowed\(active/);
  assert.match(scene,/loop\.stop\(\)/);
+ assert.match(collection,/useGenesisMotionAllowed\(focused\)/);
+ assert.match(collection,/if \(!motionAllowed\) return/);
  assert.doesNotMatch(scene,/Audio|playSound|setInterval/);
 });
