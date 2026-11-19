@@ -3,7 +3,7 @@
   "objective": "Season2 consolidated staging OTA source, governance + non-destructive rollover + isolated reward drafts; reconciled PR #963 visual-only rank badges, LIFE localization, staged release hold until Dec 6 (not automatic activation).",
   "baseRef": "af95563fab1d053c82963df65da5f6d55348d811",
   "productionChange": false,
-  "releaseTarget": "STAGING_VISUAL_ONLY_REWARDS_HELD",
+  "releaseTarget": "STAGING_ONLY",
   "releaseAuthorized": true,
   "scopeManifestPath": ".buklod/scopes/season2-conso-staging-20261119.json",
   "preserveBehaviors": [
@@ -221,5 +221,6 @@
     "account-isolation",
     "supabase-backend-isolation",
     "production-release"
-  ]
+  ],
+  "releaseMode": "VISUAL_PREVIEW_ONLY_REWARDS_HELD"
 }
