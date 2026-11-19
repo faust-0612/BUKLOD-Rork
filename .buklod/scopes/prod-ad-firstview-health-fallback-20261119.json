@@ -31,5 +31,29 @@
     "BannerAd is never clipped during a pending real SDK load",
     "Failed/no-fill slots collapse to compact probe and maintain existing quiet-period retries",
     "Source and tests in isolated PR; no automatic production publish or payout changes"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Android ad fallback surface and asynchronous NativeAd lifecycle are changed on first-view dashboards.",
+      "preservedBehaviors": [
+        "Keep live app routes, native runtime, 3G feed loading and offscreen visibility restrictions unchanged."
+      ],
+      "tests": [
+        "tests/buklod-wall-ad-stability.test.mjs",
+        "tests/buklod-ad-empty-slot-collapse.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "NativeAd failure recovery, prewarm and BannerAd loading geometry impact protected AdMob first-view delivery.",
+      "preservedBehaviors": [
+        "Preserve real AdMob SDK callbacks, consent, placement identity, pacing, cash/QMP Finance separation and production app ID."
+      ],
+      "tests": [
+        "tests/buklod-wall-ad-stability.test.mjs",
+        "tests/buklod-ad-restoration-locked-20261107.test.mjs"
+      ]
+    }
   ]
 }
