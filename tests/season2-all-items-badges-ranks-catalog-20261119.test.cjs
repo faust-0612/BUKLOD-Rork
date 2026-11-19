@@ -64,7 +64,7 @@ test('item badge catalog is lazy inside the collapsible Season Journey and never
  assert.match(view,/tab==='assets'\?<BuklodS2AllItemsBadgesGuide\/>/);
  assert.match(journey,/\{open\?\(/);
  assert.match(journey,/<BuklodS2CompleteRewardsReference\s*\/>/);
- assert.match(guide,/S2_COLLECTIBLE_RELEASE/);
+ assert.match(guide,/getS2CollectibleGuide/);
  for(const forbidden of [/@\/lib\/supabase/,/@\/lib\/buklodKingdomShards/,/\.rpc\s*\(/,/\.functions\.invoke\s*\(/,/\.upsert\s*\(/,/\.insert\s*\(/,/\.delete\s*\(/])
    assert.doesNotMatch(guide,forbidden);
 });
