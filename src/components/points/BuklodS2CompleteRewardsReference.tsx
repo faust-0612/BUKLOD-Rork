@@ -5,6 +5,8 @@
 import React,{useMemo,useState} from 'react';
 import {Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useBuklodI18n} from '@/providers/BuklodI18nProvider';
+import BuklodS2AllItemsBadgesGuide from '@/components/points/BuklodS2AllItemsBadgesGuide';
+import {BUKLOD_SEASON2_WEEKLY_BEATS} from '@/lib/buklodSeason2CampaignR1';
 import {S2_EXCLUSIVE_FEATURES} from '@/lib/season2/buklodSeason2ApprovedScopeR1';
 import {
  S2_MEMBER_GUIDE_SNAPSHOT,S2_LEGACY_BP_ACTIVE,S2_LEGACY_BP_INACTIVE,
@@ -18,7 +20,7 @@ import {
  type S2BpGroup
 } from '@/lib/season2/buklodSeason2MemberRewardMatrixR1';
 
-type Tab='bp'|'qmp'|'season2'|'carryover';
+type Tab='bp'|'qmp'|'season2'|'assets'|'carryover';
 const C={ink:'#173D2B',green:'#126C42',muted:'#526D5E',line:'#D7E8DD',pale:'#F0F9F2',gold:'#946212'};
 const chapters=[1,5,10,20,30] as const;
 const groupCategories:S2BpGroup[]=['community','learning','service','game_quiz','milestones'];
@@ -65,7 +67,7 @@ export default function BuklodS2CompleteRewardsReference(){
     'EXACT GUIDE · Season 1 snapshot '+S2_MEMBER_GUIDE_SNAPSHOT+' · Season 2 Dec 6 target, NOT live'
    )}</Text>
    <View style={s.tabs}>
-    {([['bp',t('BUKLOD BP','BUKLOD BP')],['qmp','QMP'],['season2','SEASON 2'],['carryover',t('CARRYOVER','CARRYOVER')]] as const).map(([key,label])=>
+    {([['bp',t('BUKLOD BP','BUKLOD BP')],['qmp','QMP'],['season2','SEASON 2'],['assets',t('ITEMS / BADGES','ITEMS / BADGES')],['carryover',t('CARRYOVER','CARRYOVER')]] as const).map(([key,label])=>
      <Pressable key={key} accessibilityRole="button" accessibilityState={{selected:tab===key}}
        onPress={()=>setTab(key)} style={[s.tab,tab===key&&s.tabSelected]}>
        <Text style={[s.tabText,tab===key&&s.tabTextSelected]}>{label}</Text>
@@ -166,11 +168,16 @@ export default function BuklodS2CompleteRewardsReference(){
      detail={t('Subject to independent eligibility, not mere sign-up','Requires independent eligibility, not mere signup')}/>
     <Title>{t('Optional rewarded ads — hindi BP','Optional rewarded ads — not BP')}</Title>
     <Note>{S2_OPTIONAL_AD_ENERGY_NOT_BP.example}. {t('Demo UI lamang; walang automatic BP, QMP, cash, o Journey Token credits sa panonood ng ad. Kailangan ng tunay na earned event at independent game verification bago ibigay ang energy.','Demo UI only. Watching an ad does not automatically grant BP, QMP, cash or Journey Tokens. An actual earned event and independently verified game grant are required.')}</Note>
+    <Title>{t('12-linggong Rise Together missions — lahat ng steps','Rise Together: all 12 weekly mission requirements')}</Title>
+    {BUKLOD_SEASON2_WEEKLY_BEATS.map(beat=><Row key={beat.week}
+      name={`W${beat.week} · ${beat.title}`} value={beat.act}
+      detail={`${beat.chapterBeat} · Primary: ${beat.primaryEvidence}. Alternative: ${beat.alternativePath}. PREVIEW ONLY`}/>)}
     <Title>{t('Four verified seasonal awards','Four verified seasonal awards')}</Title>
     {['The Call → Beacon Trail Frame','The Makers → Maker Ribbon','The Alliance → Alliance Crest','The Legacy → Constellation Finale Scene'].map(name=>
       <Row key={name} name={name} value="LOCKED" detail={t('Verified milestone at server grant required','Verified milestone and server-backed grant required')}/>)}
     <Note>{t('Kingdom at Co-op: tunay na server-verified mastery at per-member team contribution. Dapat may no-cost solo route; hindi sapilitan ang faith o invites. Walang automatic earned badge dahil sa preview.','Kingdom & Co-op: genuine server-verified mastery and individual team contributions. Free solo alternatives, no compulsory faith or invites. Preview does not award badges.')}</Note>
    </>:null}
+   {tab==='assets'?<BuklodS2AllItemsBadgesGuide/>:null}
    {tab==='carryover'?<>
     <Title>{t('Magpapatuloy, hindi mabubura','Preserved — not erased')}</Title>
     {S2_CARRYOVER_POLICY.preserved.map(item=><Text style={s.listLine} key={item}>✓ {item}</Text>)}
