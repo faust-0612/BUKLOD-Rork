@@ -1,22 +1,24 @@
 {
   "contractVersion": 2,
-  "objective": "Season2 consolidated staging OTA source, governance + non-destructive rollover + isolated reward drafts",
+  "objective": "Season2 consolidated staging OTA source, governance + non-destructive rollover + isolated reward drafts; reconciled PR #963 visual-only rank badges, LIFE localization, staged release hold until Dec 6 (not automatic activation).",
   "baseRef": "af95563fab1d053c82963df65da5f6d55348d811",
   "productionChange": false,
-  "releaseTarget": "STAGING_ONLY",
+  "releaseTarget": "STAGING_VISUAL_ONLY_REWARDS_HELD",
   "releaseAuthorized": true,
   "scopeManifestPath": ".buklod/scopes/season2-conso-staging-20261119.json",
   "preserveBehaviors": [
     "Season1 prod untouched",
     "Season2 embargo still active",
     "No server rewards live",
-    "No financial mutations"
+    "No financial mutations",
+    "Season 2 token grants, wallet writes, redemptions and rollover stay OFF until December 6 earliest and separately verified approval; production Season 1 BP QMP and cash unchanged."
   ],
   "acceptanceChecks": [
     "Policy/source CI passes",
     "Android runtime 1.3.2 and staging package",
     "Actual staging EAS served manifest verified",
-    "Production EAS unchanged"
+    "Production EAS unchanged",
+    "Exact source reward and release isolation tests pass; no production or Supabase write; only staging-user Android manifest may change after guarded publish."
   ],
   "knownBlockers": [
     "No isolated staging database connected",
@@ -59,7 +61,49 @@
     "tests/season2-governance-contract.test.mjs",
     "tests/season2-governance-production-release-gate.test.mjs",
     "tests/season2-local-postgres-behavior-20261118.sql",
-    "tests/season2-local-postgres-fixture-20261118.sql"
+    "tests/season2-local-postgres-fixture-20261118.sql",
+    ".github/workflows/buklod-s2-avatar-android-compile-qa-20261119.yml",
+    "assets/season2/rank-badges/buklod-circle-ranks-atlas.webp",
+    "docs/BUKLOD_SEASON2_40_AVATAR_BADGES_20261119.md",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodTappableAvatar.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
+    "src/components/points/BuklodCircleRankBadge.tsx",
+    "src/lib/buklodAvatarPresence.ts",
+    "src/lib/buklodCircleRankArt.ts",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/circle-rank-progression-20261109.test.mjs",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs",
+    "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs",
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "src/app/life/_layout.tsx",
+    "src/app/life/guide.tsx",
+    "src/app/life/impact.tsx",
+    "src/app/life/index.tsx",
+    "src/app/life/invite.tsx",
+    "src/app/life/share.tsx",
+    "src/app/life/support.tsx",
+    "src/app/life/topic.tsx",
+    "src/components/BuklodLifeTabs.tsx",
+    "src/components/BuklodLifeWallCard.tsx",
+    "src/hooks/useBuklodLifeLanguage.ts",
+    "src/lib/__tests__/buklodLifeLanguage.test.ts",
+    "src/lib/buklodLifeLanguage.ts",
+    "src/providers/BuklodLifeLanguageProvider.tsx",
+    "tests/life-language-auth-navigation-20261119.test.mjs",
+    ".buklod/scopes/season2-all-updates-20261119.json",
+    ".github/workflows/buklod-s2-all-updates-qa-20261119.yml",
+    "scripts/season2-staging-backend-isolation.cjs",
+    "tests/season2-staging-backend-isolation-20261119.test.cjs",
+    "tests/season2-visual-only-hold-20261119.test.cjs",
+    "tests/season2-production-release-staging-only-hold-20261119.test.cjs"
   ],
   "regressionTests": [
     "tests/buklod-season2-carryover-contract-20261119.test.mjs",
@@ -67,7 +111,18 @@
     "tests/season2-governance-production-release-gate.test.mjs",
     "tests/buklod-season2-backend-isolation-source-r1-20261118.test.mjs",
     "tests/protected-feature-lock.test.mjs",
-    "tests/buklod-season2-staging-order-gate-20261118.test.mjs"
+    "tests/buklod-season2-staging-order-gate-20261118.test.mjs",
+    "tests/season2-avatar-badges-20261119.test.mjs",
+    "tests/season2-connect-avatar-badges-20261119.test.mjs",
+    "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+    "tests/season2-avatar-admob-guard-20261119.test.mjs",
+    "tests/season2-avatar-android-compile-gate-20261119.test.mjs",
+    "tests/circle-rank-badges-recognition-20261109.test.mjs",
+    "tests/circle-rank-progression-20261109.test.mjs",
+    "tests/life-language-auth-navigation-20261119.test.mjs",
+    "tests/season2-staging-backend-isolation-20261119.test.cjs",
+    "tests/season2-visual-only-hold-20261119.test.cjs",
+    "tests/season2-production-release-staging-only-hold-20261119.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -102,10 +157,43 @@
       "tests": [
         "tests/protected-feature-lock.test.mjs"
       ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Inject rank artwork only into existing tappable Wall avatar and self/contact bubbles without touching the video/media pipeline, photo render or scroll lifecycle.",
+      "preservedBehaviors": [
+        "Existing Community post media, video playback, comments, author navigation, and ad placements remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Show server-confirmed rank art instantly in the existing Wall author avatar without adding navigation controls or changing auth and route permissions.",
+      "preservedBehaviors": [
+        "Avatar tap continues to enter author profile, long-press actions and Community feed navigation are unchanged.",
+        "Community Wall first-view ads, comment rendering and feed race protection remain unchanged.",
+        "LIFE Filipino/English initial locale hydration and route consistency are source-reviewed; existing AuthProvider/session and Season1 production remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-wall-avatar-navigation-20261119.test.mjs",
+        "tests/life-language-auth-navigation-20261119.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The Circle Rank Badge asset component path overlaps the permanent AdMob protected-feature regex, but this update contains no advertising or finance logic changes and must preserve ad rendering.",
+      "preservedBehaviors": [
+        "First-view AdMob placements, ad load and fill behavior, QMP, Points, withdrawals and finance authorization remain untouched."
+      ],
+      "tests": [
+        "tests/season2-avatar-admob-guard-20261119.test.mjs"
+      ]
     }
   ],
   "chosenApproach": "Preserve the already verified visual staging preview as base; reconcile dev governance and isolated disabled rewards source into one scoped staging candidate. Add read-only carryover policy, admin visibility and strict EAS stage-only workflow without production writes.",
-  "selectionRationale": "The combined source reduces feature omission while keeping backend rewards disabled and production season1 isolated; exact-scope regression and release gates prevent silent drift. Historical production update IDs are evidence of publish ordering, not an eternal head pin; a later legitimate production OTA must not block staging when the current served production manifest is reverified unchanged after publication.",
+  "selectionRationale": "The combined source reduces feature omission while keeping backend rewards disabled and production season1 isolated; exact-scope regression and release gates prevent silent drift. Historical production update IDs are evidence of publish ordering, not an eternal head pin; a later legitimate production OTA must not block staging when the current served production manifest is reverified unchanged after publication. Updated cumulative scope explicitly includes and tests every merged PR #963 path, rather than suppressing protected-feature gate.",
   "alternativeApproaches": [
     "Apply SQL to existing production database: rejected because it could mutate Season1 and lacks isolated staging backend",
     "Build a parallel non-integrated standalone preview: rejected because duplicate feature definitions would drift"
@@ -117,6 +205,21 @@
     "admin-ui",
     "governance",
     "backend-security",
-    "finance-and-ads"
+    "finance-and-ads",
+    "wall-avatar",
+    "connect-avatar",
+    "rank-visual",
+    "weak-network",
+    "supabase-presence",
+    "navigation",
+    "ads",
+    "connect",
+    "navigation-scroll",
+    "ads-monetization",
+    "faith-content-localization",
+    "profile-preferences",
+    "account-isolation",
+    "supabase-backend-isolation",
+    "production-release"
   ]
 }
