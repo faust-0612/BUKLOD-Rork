@@ -6,16 +6,6 @@
 -- basic comments, reactions, logins, and self-reported events never score.
 BEGIN;
 
-CREATE OR REPLACE FUNCTION public.buklod_weekly_performance_batch_s2(p_user_ids uuid[])
-RETURNS TABLE(user_id uuid, week_start date, class_code text)
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
-AS $fn$
-  SELECT x.user_id,x.week_start,x.class_code
-  FROM private.buklod_weekly_performance_core_s2(p_user_ids) x
-  WHERE auth.uid() IS NOT NULL
-    AND cardinality(p_user_ids) BETWEEN 1 AND 40;
-$fn$;
-
 -- Backend computation shared by public badge and owner's private explanation.
 -- Deliberately narrow to 40 users; no unbounded all-member ranking table scan.
 CREATE OR REPLACE FUNCTION private.buklod_weekly_performance_core_s2(p_user_ids uuid[])
@@ -139,6 +129,16 @@ AS $fn$
       WHEN s.score>0 THEN 'emerging' ELSE 'unrated' END,
     s.score,s.active_days,s.learning_days,s.community_days,s.creation_days
   FROM scored s;
+$fn$;
+
+CREATE OR REPLACE FUNCTION public.buklod_weekly_performance_batch_s2(p_user_ids uuid[])
+RETURNS TABLE(user_id uuid, week_start date, class_code text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $fn$
+  SELECT x.user_id,x.week_start,x.class_code
+  FROM private.buklod_weekly_performance_core_s2(p_user_ids) x
+  WHERE auth.uid() IS NOT NULL
+    AND cardinality(p_user_ids) BETWEEN 1 AND 40;
 $fn$;
 
 -- Private breakdown: ONLY the authenticated subject; no arbitrary target UUID.
