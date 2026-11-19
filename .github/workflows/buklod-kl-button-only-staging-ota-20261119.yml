@@ -63,7 +63,14 @@ jobs:
           a.equal(eas.build['staging-user'].channel,'staging-user');
           a.notEqual(eas.build.production.channel,'staging-user');
           NODE
-          git diff --exit-code "$APK_SOURCE" HEAD -- app.config.js eas.json package.json package-lock.json android/ ios/ plugins/ google-services.staging.json babel.config.js
+          git diff --exit-code "$APK_SOURCE" HEAD -- app.config.js eas.json package-lock.json android/ ios/ plugins/ google-services.staging.json babel.config.js
+          node <<'NODE'
+          const a=require('node:assert/strict'),cp=require('node:child_process');
+          const before=JSON.parse(cp.execFileSync('git',['show',process.env.APK_SOURCE+':package.json'],{encoding:'utf8'}));
+          const now=require('./package.json');
+          a.deepEqual(now.dependencies,before.dependencies,'Native runtime dependencies changed');
+          a.deepEqual(now.devDependencies,before.devDependencies,'Locked dev runtime dependencies changed');
+          NODE
       - name: Focused KL, ad/navigation regression and compile QA
         shell: bash
         run: |
