@@ -1,0 +1,77 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-marketing-production-backend-20261118.json",
+  "objective": "Audited owner-approved activation of 5 production-only Season 2 promotional announcements on 10 AM Manila Nov 22,29 Dec 3,5,6, with no Season 2 app package push, gameplay or economy modification.",
+  "baseRef": "d8ed8f696b2719c9f70e7797e9b541ab950d744d",
+  "productionBaselineEvidence": "Read-only production baseline Nov18: existing public_home/profile boards active; profiles 585, device token users 221, prefs zero (defaults true, can opt out); notifications INSERT push webhook active; cron.timezone GMT. Before activation no Season2 notifications or schedule; migration applied live as Supabase version 20261118085622. Live cron job ID59 active; read-only validation tick not_due Nov18 and no notifications/board modification. GitHub main has since advanced to d8ed8f696b2719c9f70e7797e9b541ab950d744d with Season2 pre-Dec6 production embargo; this source branch is reconciled atop that exact current main without replacing its guards.",
+  "chosenApproach": "Independent private RLS-protected 5-event campaign, idempotent per-user receipts, existing Home board with backup/admin override/conditional Dec7 restoration, existing queue_notification push pipeline only for registered consenting devices with announcement preference honored, bounded 20 recipients per tick/daytime.",
+  "selectionRationale": "Backend-only promotion preserves pre-Dec6 production Season2 gameplay/package embargo, avoids Expo OTA/native app changes, new permissions, new admin UI or raw mass push. Existing public Home board visible without new app release.",
+  "alternativeApproaches": [
+    "Ship full Season2 Expo code to production early (rejected by owner embargo)",
+    "Unscheduled daily manual board edits (rejected: user asked for auto)",
+    "Broad mass push without token or opt-out (rejected: privacy/consent)"
+  ],
+  "riskAreas": [
+    "production-release",
+    "notification-system",
+    "public-announcements",
+    "push-privacy",
+    "cron-delivery"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-marketing-production-backend-20261118.json",
+    "supabase/migrations/20261118085622_buklod_season2_production_promos_2026.sql",
+    "tests/buklod-season2-production-database-security-20261118.test.mjs",
+    "docs/BUKLOD_SEASON2_PRODUCTION_PROMOS_20261118.md",
+    "supabase/tests/buklod_season2_promo_production_20261118.sql"
+  ],
+  "preserveBehaviors": [
+    "No BUKLOD production APK, Expo Android OTA, Season2 package, gameplay or content unlock, Season 1 ranks/results, BP/QMP/AdMob cash, account identity or Character inventory change.",
+    "Public Home existing owner message backed up then conditional restore after Dec6; manual admin update wins, Profile board remains untouched.",
+    "Only registered Expo token users, announcement preference enabled/default; opt-out honored, Manila daytime 10-18, 20 per tick, unique per event/user receipt.",
+    "No unsolicited emergency, Faith, minor, health, PTT, Connect or user-private notification details; only generic public campaign messages.",
+    "Current prod announcement unchanged until Nov22; Dec6 message remains conditional verified-launch status."
+  ],
+  "acceptanceChecks": [
+    "Exactly five event rows and GMT cron schedule persisted to production with expected names/dates.",
+    "Function only callable internally: anon and authenticated EXECUTE false; RLS private tables.",
+    "Current-day safe tick returns not_due, no Home board changes, no Season2 notifications before Nov22.",
+    "Source migration filename equals actual Supabase migration version 20261118085622; published SQL unchanged.",
+    "On future milestones exact 10am Manila public_home published, per-user push queue bounded and idempotent, no admin override loss; Dec7 original restored.",
+    "Independent source regression test PASS and protected-feature CI scope check PASS.",
+    "Supabase SQL regression asserts exact dates, RLS, revoked public execution and active cron without sending notifications"
+  ],
+  "regressionTests": [
+    "tests/buklod-season2-production-database-security-20261118.test.mjs",
+    "supabase/tests/buklod_season2_promo_production_20261118.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Owner-approved production backend promotional announcements only; deployed app UI remains unchanged, no Season2 runtime import or APK/OTA.",
+      "preservedBehaviors": [
+        "Existing Home board/authenticated notifications use current client source unchanged",
+        "No production Season2 gameplay, app import, reward, login, AdMob or navigation change",
+        "Admin manual Home board edit respected and Profile slot remains untouched"
+      ],
+      "tests": [
+        "tests/buklod-season2-production-database-security-20261118.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Private restricted Supabase schedule/receipts, pre-existing notifications push triggers, opt-out, quiet hours and idempotent unique key, no public client execution grants.",
+      "preservedBehaviors": [
+        "No public/anon/authenticated private function EXECUTE privileges",
+        "Only existing OS-consented push tokens and announcement pref enabled/default recipients; bounded send and no duplicate records",
+        "No BP/QMP/Season1/Character/account privacy mutations"
+      ],
+      "tests": [
+        "tests/buklod-season2-production-database-security-20261118.test.mjs",
+        "supabase/tests/buklod_season2_promo_production_20261118.sql"
+      ]
+    }
+  ],
+  "releaseTarget": "Supabase PRODUCTION backend-only marketing schedule; NO Expo OTA",
+  "releaseStatus": "LIVE_CRON_VERIFIED_20261118; MILESTONES_NOT_YET_DUE"
+}
