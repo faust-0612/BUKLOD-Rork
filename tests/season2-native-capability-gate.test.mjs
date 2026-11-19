@@ -71,3 +71,16 @@ test('repo source audit labels libraries, separate preview runtime, empty rig/au
     assert.equal(result.sourceBlockers.length,2);
   }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+test('production embargo recognizes Genesis feature assets and source folder',async()=>{
+  const {createRequire}=await import('node:module');
+  const require=createRequire(import.meta.url);
+  const embargo=require('../scripts/buklod-season2-production-embargo.cjs');
+  assert.ok(embargo.FORBIDDEN_PATHS.includes('src/features/season2/genesis'));
+  const root=mkdtempSync(join(tmpdir(),'buklod-genesis-embargo-'));
+  try{
+    mkdirSync(join(root,'src/features/season2/genesis'),{recursive:true});
+    const evidence=embargo.runtimeEvidence(root);
+    assert.ok(evidence.some(x=>x.file==='src/features/season2/genesis'));
+  }finally{rmSync(root,{recursive:true,force:true});}
+});
