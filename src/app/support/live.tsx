@@ -73,12 +73,6 @@ export default function LiveSupport(){
     if(chat.error) {setError(chat.error.message);return;}
     if(attachments.error){setError(attachments.error.message);return;}
     setMessages((chat.data||[]) as Message[]);
-    // Do not delay member chat rendering if report history is missing or slow.
-    void supabase.from('bsoc_ai_case_reports').select('id,phase,member_message,created_at')
-      .eq('case_id',caseId).order('created_at',{ascending:true}).limit(80)
-      .then(({data,error})=>{
-        if(sequence===requestSequence.current)setAiReports(error?[]:(data||[]) as AiReport[]);
-      });
     const files=(attachments.data||[]) as Evidence[];
     const signed=await Promise.all(files.map(async file=>{
       const {data}=await supabase.storage.from(BUCKET).createSignedUrl(file.object_path,300);
@@ -87,8 +81,23 @@ export default function LiveSupport(){
     if(sequence!==requestSequence.current)return;
     setEvidence(signed);
   },[caseId]);
+  // Separate, low-frequency member report refresh keeps chat fast on weak networks.
+  // Read-only query uses report RLS to enforce ownership; missing migration degrades safely.
   useEffect(()=>{
+    let active=true;
     setAiReports([]);
+    if(!caseId)return;
+    const refresh=async()=>{
+      const {data,error}=await supabase.from('bsoc_ai_case_reports')
+        .select('id,phase,member_message,created_at')
+        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(80);
+      if(active&&!error)setAiReports((data||[]) as AiReport[]);
+    };
+    void refresh();
+    const timer=setInterval(()=>{if(AppState.currentState==='active')void refresh();},120000);
+    return ()=>{active=false;clearInterval(timer);};
+  },[caseId]);
+  useEffect(()=>{
     if(!caseId)return;
     void loadThread();
     const channel=supabase.channel('bsoc-member-'+caseId)
