@@ -1,4 +1,5 @@
 import React,{useMemo,useState} from 'react';
+import BuklodSeason2ApprovedExclusivePreview from '@/components/points/BuklodSeason2ApprovedExclusivePreview';
 import BuklodS2CollectibleGuidePanel from '@/components/points/BuklodS2CollectibleGuidePanel';
 import BuklodS2RewardInstructions from '@/components/points/BuklodS2RewardInstructions';
 import {Pressable,StyleSheet,Text,View,type DimensionValue} from 'react-native';
@@ -95,6 +96,7 @@ export default function BuklodSeasonJourneyPreview({
               </View>
             </View>
           ):null}
+          <BuklodSeason2ApprovedExclusivePreview />
           <Text style={s.sectionTitle}>CHOOSE YOUR ADVENTURE</Text>
           <View style={s.choices}>
             {SEASON_JOURNEY_TRACKS.map(item=>(

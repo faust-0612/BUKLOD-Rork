@@ -1,0 +1,16 @@
+{
+  "id": "S2_EXACT_TEN_SCOPE_OWNER_20261119",
+  "season": 2,
+  "description": "Owner approved exact existing items 1-10 only; add read-only staging inspection and fail-closed scope validation, no new feature/grant or production release.",
+  "changes": {
+    "season1.production_logic": "untouched",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc",
+    "mission_awards.validation": "server_verified_idempotent_antifarm",
+    "season_promotion.delivery": "existing_approved_scheduler_only"
+  },
+  "evidence": [
+    "contracts/season2-owner-approved-exclusives-20261119.json",
+    "tests/season2-owner-scope-lock-20261119.test.cjs"
+  ],
+  "status": "DEV_SOURCE_ONLY"
+}

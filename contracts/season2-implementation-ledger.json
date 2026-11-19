@@ -147,6 +147,21 @@
         "Expo account billing plan must be read from EAS usage endpoint at publish time; no Free-plan evidence yet.",
         "If plan cannot be confirmed as Free, publisher holds; no production or reward launch."
       ]
+    },
+    {
+      "id": "owner_approved_ten_exclusives_scope_lock",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": false,
+      "evidence": [
+        "contracts/season2-owner-approved-exclusives-20261119.json",
+        "scripts/season2-owner-scope-lock.cjs",
+        "tests/season2-owner-scope-lock-20261119.test.cjs"
+      ],
+      "limitations": [
+        "Only a source-level exact allowlist and read-only staging preview, not evidence that all ten functions are live.",
+        "No isolated staging backend or verified free Expo OTA receipt.",
+        "Requires separate new owner review for any inserted or removed Season2 area."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."
