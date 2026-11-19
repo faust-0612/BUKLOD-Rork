@@ -62,4 +62,11 @@ expect(/member-followup-/.test(followup)&&/private\.bsoc_ai_emit_member_report_v
  'member replies get a scoped idempotent private status report');
 expect(!/update public\.user_feedback|fetch\(/i.test(followup),
  'member followup cannot auto resolve canonical cases or make network calls');
-console.log('PASS: 32 BSOC AI and zero-budget safety contracts');
+const failOpen=load('supabase/migrations/20261120000500_bsoc_support_failopen_reliability_v1.sql');
+expect(/intake queue deferred for case/.test(failOpen),
+  'normal member feedback cannot fail just because the screening queue fails');
+expect(/reopened queue deferred for case/.test(failOpen),
+  'reopening a case is not blocked by auxiliary automation');
+expect(/member followup deferred for message/.test(failOpen)&&/exception when others then/.test(failOpen),
+  'normal support messages fail open if member-report processing breaks');
+console.log('PASS: 35 BSOC AI and zero-budget safety contracts');
