@@ -7,6 +7,7 @@ const login = source('src/app/(auth)/login.tsx');
 const nativeStore = source('src/lib/buklodRememberedLoginSecrets.ts');
 const reset = source('src/lib/buklodSuggestedLoginStorage.ts');
 const securityUi = source('src/app/admin/security-operations.tsx');
+const rootLayout = source('src/app/_layout.tsx');
 
 test('passwords no longer persist in unencrypted AsyncStorage on any platform', () => {
   assert.doesNotMatch(login, /AsyncStorage\.setItem\(\s*['"]buklod\.remembered_credentials\.v1['"]/);
@@ -56,4 +57,13 @@ test('scanner R2 flags unverified Auth DB windows and privilege re-exposure with
   assert.doesNotMatch(migration, /cron\.schedule\(|DROP TABLE|DROP POLICY/);
   assert.match(source('supabase/tests/buklod_security_scanner_signals_r2_20261119.sql'),
     /Existing scan cadence not active/);
+});
+
+test('startup independently cleans legacy secrets for users with persistent sessions', () => {
+  assert.match(rootLayout, /secureBuklodRememberedLoginOnStartup\(\)\.catch\(\(\) => undefined\)/);
+  assert.match(rootLayout, /useEffect\(\(\) => \{\s*void secureBuklodRememberedLoginOnStartup/);
+  assert.match(nativeStore, /export async function secureBuklodRememberedLoginOnStartup/);
+  assert.match(nativeStore, /await readBuklodRememberedLogin\(\)/);
+  assert.match(nativeStore, /AsyncStorage\.getAllKeys\(\)/);
+  assert.match(nativeStore, /key\.startsWith\('buklod\.suggested_login\.password\.'/);
 });
