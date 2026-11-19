@@ -1,4 +1,5 @@
 import React from 'react';
+import { GENESIS_IDENTITY, GENESIS_PALETTE, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 
 import {
@@ -77,6 +78,7 @@ BuklodScopedDashboardHeader({
   canCustomize,
   onThemeChange,
 }: Props) {
+  const genesisPreview = isGenesisPreviewBuild();
   const insets = useSafeAreaInsets();
   const [scrollCompact, setScrollCompact] = React.useState(() => isBuklodDashboardScrollCompact('scope'));
   React.useEffect(() => subscribeBuklodDashboardScroll((route, compact) => {
@@ -109,7 +111,7 @@ BuklodScopedDashboardHeader({
   /* BUKLOD_V28_BLUE_SCOPE_LAYOUT_R1: stay BELOW the phone status bar. */
   if (showCommercialHeader) {
     return (
-      <View style={[styles.blueShell, { paddingTop: scopedTopInset }]}>
+      <View style={[styles.blueShell, genesisPreview && styles.genesisShell, { paddingTop: scopedTopInset }]}>
         <View style={[styles.blueTopRow, scrollCompact && {minHeight:46,paddingVertical:3}]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back"
             onPress={onBack} hitSlop={BUKLOD_HIT_SLOP_TIGHT} style={styles.blueBack}>
@@ -123,6 +125,7 @@ BuklodScopedDashboardHeader({
               <View style={styles.blueActive}><Text style={styles.blueActiveText}>Active</Text></View>
             </View>
             {!scrollCompact ? <Text numberOfLines={1} style={styles.blueSubtitle}>{scopeName}</Text> : null}
+            {genesisPreview ? <Text numberOfLines={1} style={styles.genesisSeasonLabel}>{GENESIS_IDENTITY.title}</Text> : null}
           </View>
           <View style={styles.blueCustomizer}>
             <BuklodDashboardCustomizer theme={theme} canCustomize={canCustomize} onSave={onThemeChange} />
@@ -136,12 +139,13 @@ BuklodScopedDashboardHeader({
     <View
       style={[
         styles.shell,
+        genesisPreview && styles.genesisShell,
         {
           paddingTop: scopedTopInset,
         },
       ]}
     >
-      <View style={[styles.titleBar, scrollCompact && {minHeight:48,paddingVertical:3}]}>
+      <View style={[styles.titleBar, genesisPreview && styles.genesisShell, scrollCompact && {minHeight:48,paddingVertical:3}]}>
         <View style={styles.identityPane}>
           <Pressable
             accessibilityRole="button"
@@ -171,6 +175,7 @@ BuklodScopedDashboardHeader({
             >
               {scopeName}
             </Text>
+            {genesisPreview ? <Text numberOfLines={1} style={styles.genesisSeasonLabel}>{GENESIS_IDENTITY.title}</Text> : null}
           </View>
 
           <BuklodDashboardCustomizer
@@ -274,6 +279,10 @@ const styles =
     },
 
     blueShell: { width: '100%', backgroundColor: '#07539B' },
+    genesisShell: { backgroundColor: GENESIS_PALETTE.cosmos, borderBottomWidth: 1,
+      borderBottomColor: GENESIS_PALETTE.line },
+    genesisSeasonLabel: { marginTop: 1, color: GENESIS_PALETTE.goldLight,
+      fontSize: 9, lineHeight: 12, fontWeight: '900', letterSpacing: 0.2 },
     blueTopRow: { minHeight: 62, paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', gap: 8 },
     blueBack: { width: 37, height: 40, alignItems: 'center', justifyContent: 'center' },
     blueIdentity: { flex: 1, minWidth: 0 },

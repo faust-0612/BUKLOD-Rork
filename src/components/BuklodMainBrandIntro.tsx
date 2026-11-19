@@ -244,8 +244,8 @@ export default function BuklodMainBrandIntro({
               { top: isWeb ? '73%' : NATIVE_SCREEN.height / 2 + BUKLOD_BRAND_LOGO_NATIVE / 2 + 18 },
               { opacity: textOpacity },
             ]}>
-              <Text style={styles.genesisTitle}>GENESIS · SEASON 2</Text>
-              <Text style={styles.genesisQuote}>“{GENESIS_IDENTITY.quote}”</Text>
+              <Text style={styles.genesisTitle}>{GENESIS_IDENTITY.title}</Text>
+              <Text style={styles.genesisQuote}>{GENESIS_IDENTITY.subtitle}</Text>
               <Text style={styles.genesisVerse}>{GENESIS_IDENTITY.verse}</Text>
             </Animated.View>
           ) : null}
@@ -273,9 +273,9 @@ const styles = StyleSheet.create({
   },
   genesisOverlay: { backgroundColor: '#050A19' },
   genesisCopy: { position: 'absolute', left: 18, right: 18, alignItems: 'center' },
-  genesisTitle: { color: '#F3D399', fontSize: 11, letterSpacing: 2,
+  genesisTitle: { color: '#F3D399', fontSize: 17, letterSpacing: 0.3,
     fontWeight: '900', textAlign: 'center' },
-  genesisQuote: { color: '#FFF3D4', fontSize: 19, marginTop: 7,
+  genesisQuote: { color: '#FFF3D4', fontSize: 11, marginTop: 6,
     fontWeight: '900', textAlign: 'center' },
   genesisVerse: { color: '#D3E1FA', fontSize: 11, letterSpacing: 1.2,
     marginTop: 5, textAlign: 'center' },
