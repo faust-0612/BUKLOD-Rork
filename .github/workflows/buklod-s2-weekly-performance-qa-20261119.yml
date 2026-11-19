@@ -13,7 +13,25 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 10
     env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
       APP_VARIANT: staging
@@ -43,6 +61,14 @@ jobs:
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           npx tsc --noEmit
+      - name: Execute SQL against disposable local PostgreSQL and check read-only RLS behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PGHOST" = "127.0.0.1"
+          test "$PGDATABASE" = "postgres"
+          test -z "${SUPABASE_DB_URL:-}"
+          psql -v ON_ERROR_STOP=1 -f tests/season2-weekly-performance-local-postgres-20261119.sql
       - name: Protect production and Season 1 boundaries
         run: |
           set -euo pipefail
