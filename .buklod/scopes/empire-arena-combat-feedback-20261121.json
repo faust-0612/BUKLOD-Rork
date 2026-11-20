@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-arena-combat-feedback-20261121.json",
+  "baseRef": "1a460d5f016d795e3022851fe7a25df69535b852",
+  "objective": "Repair dropped Arena attack/skill input during movement; add playable offline class effects, temporary pickups, visual/audio feedback and explicit game documentation.",
+  "productionChange": false,
+  "productionAuthorized": false,
+  "releaseAuthorized": false,
+  "releaseTarget": "DEV_OFFLINE_PRACTICE_ONLY",
+  "productionBaselineEvidence": "Derived only from existing Empire Arena cinematic DEV branch; main and live APK not edited. Exact production deployed artifact not checked and must not be inferred.",
+  "chosenApproach": "Standalone HTML practice and deterministic no-account engine; retain original licensed embedded media and deliberately avoid native/backend/deployment writes.",
+  "selectionRationale": "Keep minimum fix scoped to user-observed issue while delivering real verified practice gameplay and preserving live account/financial safety.",
+  "alternativeApproaches": [
+    "Godot/native release deferred until dedicated signed staging APK and graphics/device acceptance.",
+    "Networked ranked play deferred until trusted authoritative match service and transactional settlement."
+  ],
+  "acceptanceChecks": [
+    "Queued Attack/Skill succeeds while moving/capturing, with out-of-range assist and clear feedback.",
+    "Every archetype has a visibly receipted skill; all 13 heroes usable with shared legal placeholder animations.",
+    "Temporary health/shield/Flux pickups never grant permanent economy value.",
+    "Landscape/camera, three maps, HUD labels, sound cues and minimap remain playable offline.",
+    "No ad/nav/auth/backend/economy/runtime/production changes."
+  ],
+  "preserveBehaviors": [
+    "Existing Kingdom and original 13-station map remain untouched.",
+    "BP, QMP, Character Diamonds, cash and permanent inventory never modified.",
+    "Production AdMob/navigation/Wall/Connect/RLS/identity never modified."
+  ],
+  "riskAreas": [
+    "gameplay-sequence",
+    "visual-combat-ui",
+    "kingdom-character",
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/empire-arena-playable-practice-20261121.test.mjs",
+    "tests/empire-arena-combat-feedback-20261121.test.mjs"
+  ],
+  "allowedPaths": [
+    "experiments/empire-arena/PLAY_BUKLOD_EMPIRE_ARENA_OFFLINE.html",
+    "experiments/empire-arena/practice-engine.mjs",
+    "tests/empire-arena-combat-feedback-20261121.test.mjs",
+    "docs/empire-arena/GENESIS_COMBAT_MOVEMENT_GRAPHICS_ITEMS_CONTRACT_20261121.md",
+    ".buklod/scopes/empire-arena-combat-feedback-20261121.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "kingdom-character",
+      "reason": "Practice-only shared hero identity and temporary items, no permanent character economy or rank writes.",
+      "preservedBehaviors": [
+        "Canonical Character/Kingdom progression and 13 station UI remain untouched."
+      ],
+      "tests": [
+        "tests/empire-arena-combat-feedback-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Only offline static HTML and test/docs changes, no native module or app launcher changes.",
+      "preservedBehaviors": [
+        "Native version/runtime, Home/Wall/Connect and AdMob unchanged."
+      ],
+      "tests": [
+        "tests/empire-arena-playable-practice-20261121.test.mjs"
+      ]
+    }
+  ]
+}
