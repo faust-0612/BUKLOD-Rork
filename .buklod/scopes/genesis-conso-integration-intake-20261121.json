@@ -1,0 +1,88 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-conso-integration-intake-20261121.json",
+  "objective": "Selective additive Genesis World/Empire/asset policy intake on isolated staging source; hard hold on release until map-first, licensed media, canonical finance and native runtime gates.",
+  "baseRef": "cf99bd23d5e0eea0e56d0921c5b8079f4aeda27c",
+  "productionBaselineEvidence": "main 536741f8d97fc9dec91503c89f1c1160e5987ce0 observed. Production OTA/APK release fingerprint not independently verified. No production, EAS or Supabase writes.",
+  "chosenApproach": "Exact staging source as parent; selected new pure World, Arena, sprite and trade policy code only; no UI navigation or SQL activation. Draft-only.",
+  "riskAreas": [
+    "navigation-auth",
+    "first-view-admob",
+    "finance-qmp",
+    "earned-only-bp",
+    "asset-licensing",
+    "staging-native-runtime",
+    "backend-isolation",
+    "arena-multiplayer"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Source-only domain import; do not alter runtime or current safe routes.",
+      "preservedBehaviors": [
+        "Existing Wall, Connect, Cluster, Profile, current navigation, first-view AdMob, native app and production services remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-conso-intake-gates-20261121.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/season2-conso-intake-gates-20261121.test.mjs",
+    "tests/world-core-invariants.test.mjs",
+    "tests/empire-arena-logic.test.mjs",
+    "tests/world-png-sprite-progress-20261121.test.mjs",
+    "tests/buklod-permanent-asset-trade-policy.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-conso-integration-intake-20261121.json",
+    "__tests__/worldBpProvenance.test.ts",
+    "__tests__/worldBpWalletContract.test.ts",
+    "__tests__/worldCatalog.test.ts",
+    "__tests__/worldCommunityChallenges.test.ts",
+    "__tests__/worldCommunityTreasury.test.ts",
+    "__tests__/worldCustomization.test.ts",
+    "__tests__/worldDevelopmentBuildPlanning.test.ts",
+    "__tests__/worldItemCatalog.test.ts",
+    "__tests__/worldQmpPolicyDraft.test.ts",
+    "docs/BUKLOD_EMPIRE_ARENA_LOGIC_V1_20261121.md",
+    "docs/BUKLOD_WORLD_BACKEND_MIGRATION_CONTRACT_20261121.md",
+    "docs/BUKLOD_WORLD_OVERALL_RECONSTRUCTION_BLUEPRINT_20261120.md",
+    "docs/architecture/BUKLOD_PERMANENT_ASSET_TRADE_ECONOMY.md",
+    "docs/season2/GENESIS_CONSO_RECONCILIATION_HOLD_20261121.md",
+    "docs/world/WORLD_PNG_PROGRESS_RENDERER_20261121.md",
+    "src/components/world/WorldLevelSprite.tsx",
+    "src/features/empire-arena/arenaCore.mjs",
+    "src/features/empire-arena/matchmaking.mjs",
+    "src/features/empire-arena/roomCoordinator.mjs",
+    "src/features/empire-arena/settlementPolicy.mjs",
+    "src/features/world/worldBpProvenance.ts",
+    "src/features/world/worldBpWalletContract.ts",
+    "src/features/world/worldBuildPlanning.ts",
+    "src/features/world/worldCatalog.ts",
+    "src/features/world/worldCommunityChallenges.ts",
+    "src/features/world/worldCommunityTreasury.ts",
+    "src/features/world/worldCustomization.ts",
+    "src/features/world/worldDevelopmentCatalog.ts",
+    "src/features/world/worldEconomyBlueprint.ts",
+    "src/features/world/worldProgression.ts",
+    "src/features/world/worldQmpPolicyDraft.ts",
+    "src/features/world/worldSpriteFrame.ts",
+    "src/lib/buklodAssetTradePolicy.ts",
+    "tests/buklod-permanent-asset-trade-policy.test.mjs",
+    "tests/empire-arena-logic.test.mjs",
+    "tests/empire-arena-matchmaking.test.mjs",
+    "tests/empire-arena-room.test.mjs",
+    "tests/season2-conso-intake-gates-20261121.test.mjs",
+    "tests/world-core-invariants.test.mjs",
+    "tests/world-png-sprite-progress-20261121.test.mjs"
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "acceptanceChecks": [
+    "Reconcile remaining route and backend migrations",
+    "Import cleared genuine premium map/music/sound art",
+    "Fix 3 vs 5 stage mismatch and assign per-level BP/material values",
+    "Build native-compatible signed staging APK",
+    "Run CI and stage verification; device visual verification deliberately unverified"
+  ]
+}
