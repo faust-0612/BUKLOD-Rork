@@ -46,6 +46,7 @@
     }
   ],
   "riskAreas": [
+    "release-identity",
     "Native Android 12 system splash remains briefly static by OS design",
     "New signed staging APK required, do not apply as OTA to installed old APK",
     "biometric prompt resize and accessibility font scaling"
