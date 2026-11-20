@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/character-bp-verified-items-faith-neutral-20261121.json",
   "objective": "Independent server-authoritative per-Character visual evolution gated by earned BP eligibility AND verified acquired items, with Show Faith OFF-equivalent paths and original Circle Rank preserved.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Read-only Supabase project yhanxndaqbmuzbdqlblu inspected Nov 21 2026; live get_my_buklod_character_selection_v2 is still BP-only V3, while legacy core cosmetics auto-redeem by BP. No production environment/schema/migration, OTA or Google Play release is changed. GitHub main baseline 536741f8d97fc9dec91503c89f1c1160e5987ce0 inspected.",
+  "productionBaselineEvidence": "verified: GitHub protected main commit 536741f8d97fc9dec91503c89f1c1160e5987ce0 is the source comparison baseline, NOT verified as the production installed Android OTA. verified: read-only live Supabase BUKLOD Connect project yhanxndaqbmuzbdqlblu on Nov 21 2026 still computes V3 Character level from BP and separately auto-redeems core cosmetics. Native live OTA/version and device fingerprint remain unverified. No production DB/OTA changes performed.",
   "chosenApproach": "Isolated DEV-only TS client, all-13 task route and private SQL changeset outside migrations; preserve existing R31/R40 locked UI, retain legacy levels via one-time floor, use verified social/Kingdom activity sources and per-character idempotent item receipts.",
   "selectionRationale": "A points-only new badge or unverified cosmetic item would bypass required tasks. Server-verified receipts separate qualification from actual visible evolution, with independent faith-optional routes and no BP deductions.",
   "alternativeApproaches": [
