@@ -152,6 +152,7 @@ begin
  if v_uid is null then raise exception 'Login required' using errcode='28000'; end if;
  select enabled,rank_profit_enabled into v_enabled,v_rank from public.buklod_trade_config where singleton;
  return jsonb_build_object(
+  'viewer_id',v_uid,
   'enabled',coalesce(v_enabled,false),'rank_profit_enabled',coalesce(v_rank,false),
   'available_bp',public.buklod_available_points_for(v_uid),
   'business',(select to_jsonb(b) from public.buklod_trade_businesses b where b.owner_id=v_uid),

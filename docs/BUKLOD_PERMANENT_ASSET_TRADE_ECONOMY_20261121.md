@@ -17,7 +17,7 @@ Date: 2026-11-21. Status: isolated DEV/HOLD; no backend migration, OTA, cash/QMP
 6. Buying materials is an alternative to doing the source activity; valid BP must still be earned through participation. A buyer **does not** have to complete the original supplier's item-specific activity.
 7. Suppliers can be producers, resellers or both; source-acquired item cost basis starts at 0 BP, purchased inventory cost basis starts at actual paid BP. Profit is max(0, sales minus allocated cost basis); gross sales themselves do not improve Rank.
 8. No paid BP top-ups, fictional BP grants, BP stakes, member cash/QMP rewards from marketplace activity, wagering, or direct client mutation of wallets/inventory.
-9. Transaction dedupe keys are buyer-scoped. Stable row locks serialize inventory, listings and wallets. Operations fail atomically and should be retried only with the same key after ambiguous network failure.
+9. Transaction dedupe keys are buyer-scoped and reject reuse for a different listing or quantity. The UI persists buyer-and-listing-scoped retry keys in AsyncStorage until a confirmed receipt so an app restart after an ambiguous checkout does not issue a second BP payment. Stable row locks serialize inventory, listings and wallets; business construction locks wallet BEFORE inventory to match the buyer checkout lock order. Operations fail atomically and should be retried only with the same key after ambiguous network failure.
 10. Shared admin or official accounts cannot farm participation or buy/sell BP stock for themselves. Any Real World sale/permit/payout requires separate product/legal design.
 
 ## Registration and business growth

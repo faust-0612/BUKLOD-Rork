@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import * as Crypto from 'expo-crypto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   buildTradeBusiness, businessBuildLabel, businessCanList, canAffordBusinessStage,
   cancelTradeListing, claimTradeParticipationItem, listTradeItem,
@@ -62,13 +63,21 @@ export default function BuklodTradeWorkspace({ mode }: Props) {
   }, [busy, refresh]);
 
   const buy = useCallback((listingId: string) => {
-    const requestKey = pendingKeys.current[listingId] || Crypto.randomUUID();
-    pendingKeys.current[listingId] = requestKey;
+    if (!snapshot?.viewer_id) return;
+    const localKey = snapshot.viewer_id + ':' + listingId;
+    const storageKey = 'buklod:trade:pending:' + localKey;
     void act('Purchase', async () => {
+      // A persisted idempotency key survives app termination after an ambiguous
+      // network loss. Never retry an uncertain BP payment with a new key.
+      const previous = pendingKeys.current[localKey] || await AsyncStorage.getItem(storageKey);
+      const requestKey = previous || Crypto.randomUUID();
+      pendingKeys.current[localKey] = requestKey;
+      await AsyncStorage.setItem(storageKey, requestKey);
       await purchaseTradeItem(listingId, 1, requestKey);
-      delete pendingKeys.current[listingId];
+      await AsyncStorage.removeItem(storageKey);
+      delete pendingKeys.current[localKey];
     });
-  }, [act]);
+  }, [act, snapshot?.viewer_id]);
 
   const business = snapshot?.business ?? null;
   const next = nextBusinessRequirements(business, snapshot?.requirements ?? []);

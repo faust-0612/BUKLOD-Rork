@@ -23,7 +23,7 @@ export type TradeOrder = {
   rank_credit_bp: number; created_at: string;
 };
 export type TradeSnapshot = {
-  enabled: boolean; rank_profit_enabled: boolean; available_bp: number;
+  viewer_id: string; enabled: boolean; rank_profit_enabled: boolean; available_bp: number;
   business: TradeBusiness | null; inventory: TradeInventoryItem[];
   items: TradeItem[]; listings: TradeListing[]; requirements: TradeRequirement[];
   recent_orders: TradeOrder[];
@@ -86,11 +86,11 @@ export function tradeGrossProfit(price: number, costBasis: number): number {
 
 export async function loadBuklodTradeSnapshot(): Promise<TradeSnapshot> {
   const s = await callTradeRpc<Partial<TradeSnapshot>>('buklod_trade_snapshot_v1');
-  if (!s || typeof s.enabled !== 'boolean' || !Array.isArray(s.items)) {
+  if (!s || typeof s.enabled !== 'boolean' || typeof s.viewer_id !== 'string' || !s.viewer_id || !Array.isArray(s.items)) {
     throw new Error('Marketplace state could not be validated.');
   }
   return {
-    enabled: s.enabled, rank_profit_enabled: s.rank_profit_enabled === true,
+    viewer_id: s.viewer_id, enabled: s.enabled, rank_profit_enabled: s.rank_profit_enabled === true,
     available_bp: Math.max(0, Number(s.available_bp) || 0), business: s.business ?? null,
     inventory: s.inventory ?? [], items: s.items ?? [], listings: s.listings ?? [],
     requirements: s.requirements ?? [], recent_orders: s.recent_orders ?? [],

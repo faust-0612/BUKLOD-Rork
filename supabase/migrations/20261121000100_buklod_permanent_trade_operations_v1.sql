@@ -22,6 +22,11 @@ begin
  if not exists(select 1 from public.buklod_trade_build_requirements
   where level=v_business.level and stage=v_business.construction_stage+1) then
   raise exception 'Construction recipe unavailable'; end if;
+ -- Lock BP before inventory: buyer checkout also takes wallet before item locks.
+ -- This prevents a build-vs-buy cross-order deadlock on the same member.
+ perform 1 from public.buklod_user_points_balances where user_id=v_uid for update;
+ if public.buklod_available_points_for(v_uid)<v_cost then
+  raise exception 'Insufficient BP for construction'; end if;
  for v_req in select item_code,quantity from public.buklod_trade_build_requirements
   where level=v_business.level and stage=v_business.construction_stage+1 order by item_code loop
    select * into v_stock from public.buklod_trade_inventory
@@ -34,8 +39,6 @@ begin
    where user_id=v_uid and item_code=v_req.item_code;
  end loop;
  if v_cost>0 then
-  perform 1 from public.buklod_user_points_balances where user_id=v_uid for update;
-  if public.buklod_available_points_for(v_uid)<v_cost then raise exception 'Insufficient BP for construction'; end if;
   -- Existing debit trigger applies the debit once; do not subtract manually.
   insert into public.buklod_points_ledger(user_id,direction,points,activity_type,source_key,source_id,description)
    values(v_uid,'debit',v_cost,'trade_construction','trade:build:'||p_business::text||':'||v_business.level::text||':'||(v_business.construction_stage+1)::text,p_business,'Business construction materials');
@@ -104,16 +107,19 @@ create or replace function public.buklod_trade_buy_item_v1(p_listing uuid,p_qty 
 returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare v_uid uuid:=auth.uid(); v_l public.buklod_trade_listings%rowtype;
- v_prior uuid; v_id uuid; v_price integer; v_basis integer;
+ v_prior public.buklod_trade_orders%rowtype; v_id uuid; v_price integer; v_basis integer;
  v_buyer_ledger uuid; v_transfer uuid;
 begin
  if v_uid is null then raise exception 'Login required'; end if;
  if not exists(select 1 from public.buklod_trade_config where enabled) then raise exception 'Trading is not enabled yet'; end if;
  if p_qty not between 1 and 100 or char_length(coalesce(p_request_key,'')) not between 8 and 100
  then raise exception 'Invalid order request'; end if;
- select id into v_prior from public.buklod_trade_orders
+ select * into v_prior from public.buklod_trade_orders
   where buyer_id=v_uid and buyer_request_key=p_request_key;
- if found then return jsonb_build_object('order_id',v_prior,'already_processed',true); end if;
+ if found then
+  if v_prior.listing_id<>p_listing or v_prior.quantity<>p_qty then
+   raise exception 'Request key belongs to a different purchase'; end if;
+  return jsonb_build_object('order_id',v_prior.id,'already_processed',true); end if;
  select * into v_l from public.buklod_trade_listings where id=p_listing for update;
  if not found or v_l.status<>'ACTIVE' or v_l.quantity_remaining<p_qty
  then raise exception 'Item out of stock'; end if;

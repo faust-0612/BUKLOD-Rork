@@ -54,6 +54,8 @@ test('listings escrow items, and purchases are transactional BP transfers, never
   assert.match(operations, /available_points=available_points\+v_price/);
   assert.doesNotMatch(operations, /available_points=available_points\+v_price\+v_/);
   assert.match(operations, /if v_l\.seller_id=v_uid then raise exception/);
+  assert.match(operations, /Request key belongs to a different purchase/);
+  assert.match(operations, /Lock BP before inventory/);
 });
 
 test('business profit Rank is independently capped, deferred, net of inventory cost', () => {
@@ -102,4 +104,7 @@ test('no replacement of existing Palengke door or commercial subscription shell'
   assert.match(read('src/app/profile/buklod-bp-market.tsx'), /BuklodTradeWorkspace/);
   assert.match(read('src/app/profile/buklod-bp-business.tsx'), /BuklodTradeWorkspace/);
   assert.match(read('src/components/BuklodFoundationWorkspaceNav.tsx'), /Virtual BP Exchange/);
+  assert.match(read('src/components/BuklodTradeWorkspace.tsx'), /AsyncStorage\.getItem\(storageKey\)/);
+  assert.match(read('src/components/BuklodTradeWorkspace.tsx'), /buklod:trade:pending:/);
+  assert.match(read('src/lib/buklodTradeEconomy.ts'), /viewer_id/);
 });
