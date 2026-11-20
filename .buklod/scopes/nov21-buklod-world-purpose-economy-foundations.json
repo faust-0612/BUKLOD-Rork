@@ -54,6 +54,7 @@
     }
   ],
   "allowedPaths": [
+    ".buklod/scopes/nov21-buklod-world-purpose-economy-foundations.json",
     "__tests__/worldBpProvenance.test.ts",
     "__tests__/worldBpWalletContract.test.ts",
     "__tests__/worldCatalog.test.ts",
