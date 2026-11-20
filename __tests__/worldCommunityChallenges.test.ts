@@ -44,7 +44,7 @@ describe('BUKLOD inter-community projects — no BP wagering',()=>{
     expect(WORLD_WINNER_TAKES_STAKES_ENABLED).toBe(false);
   });
   it('rejects opposite-community loser-funded stakes and mixed sponsor pools',()=>{
-    expect(validateWorldChallengeFunding({...base().funding,recipientGetsOtherTeamsBudget:true as false})).toBeTruthy();
+    expect(validateWorldChallengeFunding({...base().funding,recipientGetsOtherTeamsBudget:true as unknown as false})).toBeTruthy();
     expect(validateWorldChallengeFunding({...base().funding,prefundedSponsorAwardBp:100})).toBeTruthy();
     expect(validateWorldChallengeFunding({mode:'separate_sponsor_award',
       restrictedProjectBudgetBp:0,prefundedSponsorAwardBp:100,recipientGetsOtherTeamsBudget:false})).toBeNull();
@@ -58,7 +58,7 @@ describe('BUKLOD inter-community projects — no BP wagering',()=>{
     expect(validateWorldChallengeFunding(award)).toBeNull();
     expect(validateWorldChallenge({...base(),funding:award})).toBeNull();
     expect(validateWorldChallengeFunding({...award,awardReservationReceiptId:''})).toBeTruthy();
-    expect(validateWorldChallengeFunding({...award,recipientGetsOtherTeamsBudget:true as false})).toBeTruthy();
+    expect(validateWorldChallengeFunding({...award,recipientGetsOtherTeamsBudget:true as unknown as false})).toBeTruthy();
     expect(validateWorldChallengeFunding({...award,restrictedProjectBudgetBp:50})).toBeTruthy();
     expect(validateWorldChallengeFunding({...award,awardSponsorCommunity:{kind:'organization' as const,scopeId:'organization-a'}})).toBeTruthy();
   });
