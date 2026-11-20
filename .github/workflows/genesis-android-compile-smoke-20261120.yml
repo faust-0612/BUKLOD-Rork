@@ -20,7 +20,7 @@ permissions:
   contents: read
 concurrency:
   group: genesis-native-compile-smoke-20261120
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   android-compile-only:
     if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' || github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120') && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_NATIVE_COMPILE_SMOKE:') }}
@@ -97,9 +97,9 @@ jobs:
           npx expo prebuild --platform android --clean --no-install
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --max-workers=2 --stacktrace
+          ./gradlew assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a --stacktrace
           test -n "$(find app/build/outputs/apk/debug -name '*.apk' -type f -print -quit)"
-          echo 'Android debug compile passed: NONFUNCTIONAL offline dummy backend, DO NOT DISTRIBUTE APK'
+          echo 'ARM64 Android debug native smoke passed: NOT full-ABI or release verification; NONFUNCTIONAL offline dummy backend, DO NOT DISTRIBUTE APK'
       - name: No artifact publishing, OTA, prod, Play or backend operations
         if: success()
         run: |

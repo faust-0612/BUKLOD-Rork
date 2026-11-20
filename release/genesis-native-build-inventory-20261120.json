@@ -224,6 +224,7 @@
     "Actual First-view AdMob consent/loading/no-fill + instant tab navigation",
     "Video scroll-stop, social compose/call/PTT audio focus, low-memory and contrast",
     "Asset decode/license approval and 13 .riv/audio quality gates if advertised",
-    "Dec 6 embargo and separate authorized RC; no production mutation"
+    "Dec 6 embargo and separate authorized RC; no production mutation",
+    "ARM64-only local compile smoke is NOT a multi-ABI release gate; signed EAS release must validate final ABIs, APK size, installed device runtime and signatures independently"
   ]
 }

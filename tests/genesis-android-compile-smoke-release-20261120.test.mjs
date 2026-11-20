@@ -7,6 +7,9 @@ test('offline native compile workflow deliberately cannot publish a release',()=
  assert.match(w,/BUKLOD_GENESIS_NATIVE_COMPILE_SMOKE/);
  assert.match(w,/2\.0\.0-genesis-preview/);
  assert.match(w,/assembleDebug --no-daemon/);
+ assert.match(w,/-PreactNativeArchitectures=arm64-v8a/);
+ assert.match(w,/cancel-in-progress: true/);
+ assert.match(w,/NOT full-ABI or release verification/);
  assert.match(w,/expo prebuild --platform android/);
  assert.match(w,/npm run genesis:theme:gate/);
  assert.match(w,/genesis-compile-placeholder\.invalid/);
