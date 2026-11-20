@@ -184,7 +184,7 @@ alter table public.buklod_market_listings enable row level security;
 alter table public.buklod_market_wall_shares enable row level security;
 alter table public.buklod_market_reports enable row level security;
 
-revoke all on public.buklod_market_stores,public.buklod_market_listings,public.buklod_market_wall_shares,public.buklod_market_reports from anon, authenticated;
+revoke all on public.buklod_market_stores,public.buklod_market_listings,public.buklod_market_wall_shares,public.buklod_market_reports from public, anon, authenticated;
 grant select,insert on public.buklod_market_stores to authenticated;
 grant update(name,description,barangay,city,province,seller_type,is_open,updated_at)
   on public.buklod_market_stores to authenticated;
