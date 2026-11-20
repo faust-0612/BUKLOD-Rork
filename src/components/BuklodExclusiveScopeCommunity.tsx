@@ -4030,11 +4030,11 @@ return (
                           styles.scopeNoticeText
                         }
                       >
-                        Posts, photos, reactions,
-                        comments and replies stay
-                        inside this exact community.
-                        Nothing here is mixed with
-                        Public or another scope.
+                        Scope-only posts and replies stay
+                        in this community. Choose Public
+                        when composing to post as this
+                        scope. Private posts are never
+                        shared automatically.
                       </Text>
                     </View>
                   </View>
