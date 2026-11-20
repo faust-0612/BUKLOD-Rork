@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-dec6-economy-inventory-only-20261119.json",
-  "objective": "Prepare exact owner-approved 10 Season 2 exclusives and complete legacy BP/QMP plus all December 6 planned rewards/requirements/deductions as a source-only implementation inventory; add read-only CI contract before staging OTA without activation. Also expose complete read-only, searchable member rewards reference in existing Season2 Journey without added rewards or backend access. Include every one of the 1300 Character items, all 469 catalog badge names, all 40 rank classes, and four game shard purchases for real user access.",
+  "objective": "Prepare exact owner-approved 10 Season 2 exclusives and complete legacy BP/QMP plus all December 6 planned rewards/requirements/deductions as a source-only implementation inventory; add read-only CI contract before staging OTA without activation. Also expose complete read-only, searchable member rewards reference in existing Season2 Journey without added rewards or backend access. Include every one of the 1300 Character items, all 469 catalog badge names, all 40 rank classes, and four game shard purchases for real user access. Complete member-facing index of every currency and all reward, item, badge, XP, token, Kingdom and cash categories; do not claim unverified activation.",
   "baseRef": "e0b9026d56e907283f1f2124485d7879a0b1776c",
   "productionBaselineEvidence": "Compared source with Season 2 integration head b96620eb50476081cbf29085d25a5f7830f158a4 and read-only 2026-11-19 Supabase BP/QMP catalog; existing Train A production EAS update 01a1ee79-b1f1-7295-9d48-0238ffe0202a, runtime 1.3.2 was prior documented evidence, not newly verified installed device. BUKLOD MAIN staging backend isolation unverified; no production writes. Reconciled later Season2 integration SHA ae1b7dd21b07291b96039c9a863bbed16ebd2963 preserving approved Connect composer/seen and full 915-verse Proverbs cycle; no production write. Latest integration now includes independently merged Connect bubble comma fix and current protected feature fixture at e0b9026d56e907283f1f2124485d7879a0b1776c; this PR does not change their canonical behavior.",
   "productionChange": false,
@@ -39,7 +39,10 @@
     "docs/season2/BUKLOD_COMPLETE_REWARDS_POINTS_TOKENS_ITEMS_BADGES_BONUSES_GUIDE_20261119.md",
     "tests/season2-complete-member-guide-integrity-20261119.test.cjs",
     "src/lib/season2/buklodSeason2BadgeEligibilityR1.ts",
-    "tests/season2-badge-469-eligibility-20261119.test.cjs"
+    "tests/season2-badge-469-eligibility-20261119.test.cjs",
+    "src/lib/season2/buklodSeason2CompleteRewardIndexR1.ts",
+    "src/components/points/BuklodS2CompleteRewardIndex.tsx",
+    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs"
   ],
   "acceptanceChecks": [
     "Exact 10 owner-approved exclusive IDs unchanged",
@@ -58,7 +61,8 @@
     "All 4 Kingdom Shard store items and prices are displayed using a pure snapshot, guarded by parity tests against canonical store; no eager Supabase import.",
     "A dedicated Kingdom Shard catalog parity test verifies all four names/prices against canonical game store and prevents backend RPC imports.",
     "Complete 1,304-line consolidated member guide includes unmodified complete economy master plus all 1,300 item names and all 469 badge names; exact join-parity test blocks drift.",
-    "All 469 Character badge names now include a proposed deterministic exact unlock route (signature, 5 items/Stage, 4 stages/Era, 20 stages/Character, 50/100 Journey, 8 shared world badges), explicitly NOT live."
+    "All 469 Character badge names now include a proposed deterministic exact unlock route (signature, 5 items/Stage, 4 stages/Era, 20 stages/Character, 50/100 Journey, 8 shared world badges), explicitly NOT live.",
+    "Member opens full guide and sees 7 currencies, 19 reward families, 7 asset/award classes; links to exhaustive 1,300 item / 469 badge / 40 rank selectors and all BP/QMP entries."
   ],
   "regressionTests": [
     "tests/season2-dec6-complete-reward-inventory-20261119.test.cjs",
@@ -68,7 +72,8 @@
     "tests/season2-all-items-badges-ranks-catalog-20261119.test.cjs",
     "tests/season2-kingdom-shards-catalog-parity-20261119.test.cjs",
     "tests/season2-complete-member-guide-integrity-20261119.test.cjs",
-    "tests/season2-badge-469-eligibility-20261119.test.cjs"
+    "tests/season2-badge-469-eligibility-20261119.test.cjs",
+    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs"
   ],
   "knownBlockers": [
     "No dedicated independent BUKLOD MAIN staging Supabase with applied isolated S2 reward schema and verified RLS",
@@ -88,7 +93,8 @@
       "tests": [
         "tests/season2-member-rewards-full-reference-20261119.test.cjs",
         "tests/season2-all-items-badges-ranks-catalog-20261119.test.cjs",
-        "tests/season2-badge-469-eligibility-20261119.test.cjs"
+        "tests/season2-badge-469-eligibility-20261119.test.cjs",
+        "tests/season2-complete-reward-encyclopedia-20261120.test.cjs"
       ]
     },
     {
