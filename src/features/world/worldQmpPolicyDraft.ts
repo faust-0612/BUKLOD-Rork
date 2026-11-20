@@ -17,7 +17,8 @@ export type WorldQmpAction =
   | 'fulfill_service'
   | 'complete_learning_milestone'
   | 'complete_game_milestone'
-  | 'complete_farm_cycle';
+  | 'complete_farm_cycle'
+  | 'complete_pet_care';
 
 export type WorldQmpEvent = {
   eventId: string;
@@ -57,6 +58,7 @@ export const WORLD_QMP_POLICY_DRAFT: WorldQmpPolicyDraft = {
     complete_learning_milestone:2,
     complete_game_milestone:2,
     complete_farm_cycle:1,
+    complete_pet_care:1,
   },
   monthlyCategoryCap:{
     purchase_item:5,
@@ -70,6 +72,7 @@ export const WORLD_QMP_POLICY_DRAFT: WorldQmpPolicyDraft = {
     complete_learning_milestone:12,
     complete_game_milestone:10,
     complete_farm_cycle:6,
+    complete_pet_care:4,
   },
   distinctEntityOnly:true,
   rejectPurchasedCurrencyActions:true,
@@ -105,10 +108,10 @@ export function previewWorldQmp(
   if(event.isFlagged || event.isSelfTrade || (event.counterpartyId && event.counterpartyId===event.actorId)) return ineligible('Risk or self-dealing.');
   if(event.source==='external_paid')return ineligible('Fiat payment must not create QMP.');
   if(policy.rejectPurchasedCurrencyActions &&
-    ['purchase_item','acquire_land','complete_eligible_trade'].includes(event.action) &&
+    ['purchase_item','acquire_land','complete_house_upgrade','complete_farm_upgrade','finish_community_project','complete_eligible_trade'].includes(event.action) &&
     event.currencyProvenance==='purchased_bp') return ineligible('Purchased BP expenditure does not qualify for revenue weight.');
+  if(history.some(row=>row.actorId===event.actorId && row.period===event.period && row.eventId===event.eventId))return ineligible('Duplicate event.');
   const applicable=history.filter(row=>row.actorId===event.actorId && row.period===event.period && row.action===event.action);
-  if(applicable.some(row=>row.eventId===event.eventId))return ineligible('Duplicate event.');
   if(policy.distinctEntityOnly && applicable.some(row=>row.entityId===event.entityId))return ineligible('Already credited for this entity/action this period.');
   const earned=applicable.reduce((sum,row)=>sum+Math.max(0,row.qualifiedWeight),0);
   const remaining=Math.max(0,policy.monthlyCategoryCap[event.action]-earned);
