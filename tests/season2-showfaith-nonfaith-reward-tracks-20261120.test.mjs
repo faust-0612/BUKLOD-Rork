@@ -92,14 +92,15 @@ test('four canonical award IDs remain four, with distinct mode variants but no e
 });
 test('unverified or spoofed context never generates BP or Tokens',()=>{
  for(const row of [
-  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k'),null),
-  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k'),scopeNon),
-  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{scopeModeAtEvent:'non_show_faith'}),scopeFaith),
-  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{serverVerified:false}),scopeFaith),
-  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{memberOfScopeAtEvent:false}),scopeFaith),
-  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{originalEventTimeVerified:false}),scopeFaith),
-  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{isMainApp:false}),scopeFaith),
-  previewS2TrackEvidence(receipt(scopeFaith,'private_prayer','p'),scopeFaith),
+  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k'),null,uid),
+  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k'),scopeNon,uid),
+  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{scopeModeAtEvent:'non_show_faith'}),scopeFaith,uid),
+  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{serverVerified:false}),scopeFaith,uid),
+  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{memberOfScopeAtEvent:false}),scopeFaith,uid),
+  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{originalEventTimeVerified:false}),scopeFaith,uid),
+  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{isMainApp:false}),scopeFaith,uid),
+  previewS2TrackEvidence(receipt(scopeFaith,'kl_verified_chapter','k',{userId:'attacker'}),scopeFaith,uid),
+  previewS2TrackEvidence(receipt(scopeFaith,'private_prayer','p'),scopeFaith,uid),
  ]){
   assert.equal(row.creditedTokens,0);assert.equal(row.bonusBP,0);
   assert.equal(row.eligibleForPreview,false);
@@ -110,14 +111,14 @@ test('a source ID never creates a second credit when the member changes scopes',
  const b=sourceKeyAcrossTracks(uid,'wall_original_post','same-source');
  assert.equal(a,b);
  const seen=new Set([a]);
- const result=previewS2TrackEvidence(receipt(scopeNon,'wall_original_post','same-source'),scopeNon,seen);
+ const result=previewS2TrackEvidence(receipt(scopeNon,'wall_original_post','same-source'),scopeNon,uid,seen);
  assert.equal(result.eligibleForPreview,false);
  assert.equal(result.reason,'INACTIVE_SOURCE');
  assert.equal(result.creditedTokens,0);
 });
 test('same receipt cannot satisfy learning and social; both tracks require two distinct eligible events',()=>{
  const forTrack=(scope,sources)=>previewS2TrackFoundation({
-  weekStartManila:'2026-12-07',scopeId:scope.scope_id,
+  weekStartManila:'2026-12-07',viewerUserId:uid,scopeId:scope.scope_id,
   track:scope.show_faith_content?'show_faith':'non_show_faith',
   scope,sources,
  });
@@ -131,7 +132,7 @@ test('same receipt cannot satisfy learning and social; both tracks require two d
 });
 test('nonfaith mission is NOT completed by a faith-only source',()=>{
  const p=previewS2TrackFoundation({
-  weekStartManila:'2026-12-07',scopeId:scopeNon.scope_id,track:'non_show_faith',scope:scopeNon,
+  weekStartManila:'2026-12-07',viewerUserId:uid,scopeId:scopeNon.scope_id,track:'non_show_faith',scope:scopeNon,
   sources:[receipt(scopeNon,'formation_verified_unit','f'),receipt(scopeNon,'wall_original_post','p')],
  });
  assert.equal(p.learning,false);assert.equal(p.community,true);
@@ -139,7 +140,7 @@ test('nonfaith mission is NOT completed by a faith-only source',()=>{
 });
 test('wrong-scope and scope switch cannot move an old mission claim into new track',()=>{
  const p=previewS2TrackFoundation({
-  weekStartManila:'2026-12-07',scopeId:scopeFaith.scope_id,track:'show_faith',scope:scopeNon,
+  weekStartManila:'2026-12-07',viewerUserId:uid,scopeId:scopeFaith.scope_id,track:'show_faith',scope:scopeNon,
   sources:[receipt(scopeFaith,'kl_verified_chapter','x'),receipt(scopeFaith,'wall_original_post','y')]
  });
  assert.equal(p.scopeTrackMatched,false);assert.equal(p.completePreview,false);
