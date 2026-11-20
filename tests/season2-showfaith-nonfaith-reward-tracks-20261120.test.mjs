@@ -154,6 +154,8 @@ test('SQL candidate is fail-closed: no exposed API, no payout, no mode edits',()
  assert.match(sql,/from public,anon,authenticated/);
  assert.match(sql,/enable row level security/);
  assert.doesNotMatch(sql,/security definer|grant execute on function|grant (?:insert|update|delete) .* to authenticated/);
+ assert.match(sql,/on delete cascade/);
+ assert.doesNotMatch(sql,/references auth\.users\(id\) on delete restrict/);
  assert.match(sql,/do not apply to production/);
 });
 test('member UI renders scope-specific rules, informational comparison only',()=>{
