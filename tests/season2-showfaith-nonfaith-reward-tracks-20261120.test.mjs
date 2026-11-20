@@ -155,6 +155,8 @@ test('SQL candidate is fail-closed: no exposed API, no payout, no mode edits',()
  assert.match(sql,/from public,anon,authenticated/);
  assert.match(sql,/enable row level security/);
  assert.doesNotMatch(sql,/security definer|grant execute on function|grant (?:insert|update|delete) .* to authenticated/);
+ assert.match(sql,/foreign key\(receipt_id,user_id\) references buklod_s2\.source_receipt\(id,user_id\)/);
+ assert.match(sql,/foreign key\(receipt_id,user_id\) references buklod_s2\.reward_track_attribution\(receipt_id,user_id\)/);
  assert.match(sql,/on delete cascade/);
  assert.doesNotMatch(sql,/references auth\.users\(id\) on delete restrict/);
  assert.match(sql,/do not apply to production/);
