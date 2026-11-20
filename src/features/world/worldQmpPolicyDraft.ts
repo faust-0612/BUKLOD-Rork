@@ -131,6 +131,10 @@ export function previewWorldQmpFromBpSpend(
       parts.some(v=>!Number.isSafeInteger(v)||v<0) ||
       parts.reduce((sum,v)=>sum+v,0)!==event.bpDebited)
     return reject('BP debit and funding-source breakdown must match.');
+  // BP is earned-only in the approved World redesign. The two paid-origin
+  // columns exist only to fail closed on historical/untrusted client payloads.
+  if(event.purchasedBpDebited!==0||event.giftedPurchasedBpDebited!==0)
+    return reject('World BP cannot be bought; paid-origin transactions are ineligible.');
   const qualifiedBp=policy.excludePurchasedOriginBp
     ? event.earnedBpDebited+event.giftedEarnedBpDebited
     : event.bpDebited;
