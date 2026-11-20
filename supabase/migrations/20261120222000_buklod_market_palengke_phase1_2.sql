@@ -57,6 +57,103 @@ create index if not exists buklod_market_listing_feed
 create index if not exists buklod_market_listing_store
   on public.buklod_market_listings(store_id, created_at desc);
 
+-- Non-payment reservation requests. Buyer/seller visibility only, no checkout or payout.
+create table if not exists public.buklod_market_reservations (
+  id uuid primary key default gen_random_uuid(),
+  listing_id uuid not null references public.buklod_market_listings(id) on delete restrict,
+  buyer_id uuid not null references auth.users(id) on delete cascade,
+  seller_id uuid not null references auth.users(id) on delete cascade,
+  request_key uuid not null,
+  quantity integer not null check (quantity between 1 and 100),
+  note text not null default '' check (char_length(note) <= 600),
+  status text not null default 'requested'
+    check (status in ('requested','accepted','declined','cancelled','completed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (buyer_id <> seller_id),
+  unique(buyer_id, request_key)
+);
+create index if not exists buklod_market_reservation_buyer
+  on public.buklod_market_reservations(buyer_id,created_at desc);
+create index if not exists buklod_market_reservation_seller
+  on public.buklod_market_reservations(seller_id,created_at desc);
+alter table public.buklod_market_reservations enable row level security;
+revoke all on public.buklod_market_reservations from public, anon, authenticated;
+grant select on public.buklod_market_reservations to authenticated;
+create policy buklod_market_reservation_participants on public.buklod_market_reservations
+  for select to authenticated
+  using(buyer_id=(select auth.uid()) or seller_id=(select auth.uid()));
+
+create or replace function public.buklod_market_reserve_v1(
+ p_listing_id uuid,p_quantity integer,p_note text,p_request_key uuid)
+returns uuid language plpgsql security definer set search_path = ''
+as $body$
+declare
+ v_actor uuid:=(select auth.uid());
+ v_listing public.buklod_market_listings%rowtype;
+ v_result uuid;
+begin
+ if v_actor is null or p_listing_id is null or p_request_key is null
+   or p_quantity not between 1 and 100 or char_length(coalesce(p_note,'')) > 600
+ then raise exception 'Invalid reservation request'; end if;
+ if not exists(select 1 from public.profiles p where p.id=v_actor and p.is_active=true)
+ then raise exception 'Active account required'; end if;
+ perform pg_advisory_xact_lock(hashtextextended('buklod_reservation_' || v_actor::text,0));
+ select id into v_result from public.buklod_market_reservations
+   where buyer_id=v_actor and request_key=p_request_key;
+ if found then return v_result; end if;
+ select * into v_listing from public.buklod_market_listings
+   where id=p_listing_id and publication_state='published'
+     and moderation_state='approved' and stock_status='available'
+   for share;
+ if not found then raise exception 'Listing is unavailable'; end if;
+ if v_actor=v_listing.owner_id then raise exception 'Cannot reserve your own listing'; end if;
+ if not exists(select 1 from public.buklod_market_stores s
+   where s.id=v_listing.store_id and s.moderation_state='approved' and s.is_open)
+ then raise exception 'Store is closed'; end if;
+ if (select count(*) from public.buklod_market_reservations
+     where buyer_id=v_actor and created_at>now()-interval '24 hours') >= 15
+ then raise exception 'Daily reservation limit reached'; end if;
+ insert into public.buklod_market_reservations(
+   listing_id,buyer_id,seller_id,request_key,quantity,note)
+ values(p_listing_id,v_actor,v_listing.owner_id,p_request_key,p_quantity,btrim(coalesce(p_note,'')))
+ on conflict(buyer_id,request_key) do nothing returning id into v_result;
+ if v_result is null then
+   select id into v_result from public.buklod_market_reservations
+   where buyer_id=v_actor and request_key=p_request_key;
+ end if;
+ return v_result;
+end
+$body$;
+revoke all on function public.buklod_market_reserve_v1(uuid,integer,text,uuid) from public,anon;
+grant execute on function public.buklod_market_reserve_v1(uuid,integer,text,uuid) to authenticated;
+
+create or replace function public.buklod_market_reservation_status_v1(p_id uuid,p_next text)
+returns text language plpgsql security definer set search_path = ''
+as $body$
+declare v_actor uuid:=(select auth.uid());
+ v_rec public.buklod_market_reservations%rowtype;
+begin
+ if v_actor is null or p_id is null then raise exception 'Authentication required'; end if;
+ select * into v_rec from public.buklod_market_reservations where id=p_id for update;
+ if not found then raise exception 'Reservation not found'; end if;
+ if p_next=v_rec.status then return v_rec.status; end if;
+ if not (
+   (v_actor=v_rec.seller_id and
+    ((v_rec.status='requested' and p_next in ('accepted','declined'))
+      or (v_rec.status='accepted' and p_next='completed')))
+   or
+   (v_actor=v_rec.buyer_id and v_rec.status in ('requested','accepted')
+      and p_next='cancelled')
+ ) then raise exception 'Invalid reservation status transition'; end if;
+ update public.buklod_market_reservations set status=p_next,updated_at=now()
+ where id=p_id;
+ return p_next;
+end
+$body$;
+revoke all on function public.buklod_market_reservation_status_v1(uuid,text) from public,anon;
+grant execute on function public.buklod_market_reservation_status_v1(uuid,text) to authenticated;
+
 -- Reports are private to their submitter and the backend moderation service.
 create table if not exists public.buklod_market_reports (
   id uuid primary key default gen_random_uuid(),

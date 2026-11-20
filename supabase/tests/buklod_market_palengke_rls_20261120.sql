@@ -4,7 +4,7 @@ declare
   v text;
   t text;
 begin
-  foreach t in array array['buklod_market_stores','buklod_market_listings','buklod_market_wall_shares','buklod_market_reports'] loop
+  foreach t in array array['buklod_market_stores','buklod_market_listings','buklod_market_wall_shares','buklod_market_reports','buklod_market_reservations'] loop
     if not exists (select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
       where n.nspname='public' and c.relname=t and c.relrowsecurity) then
       raise exception 'Market table lacks RLS: %',t;
@@ -16,6 +16,20 @@ begin
        raise exception 'Anonymous Market permissions detected: %',t;
     end if;
   end loop;
+  if has_table_privilege('authenticated','public.buklod_market_reservations','INSERT')
+     or has_table_privilege('authenticated','public.buklod_market_reservations','UPDATE')
+     or has_table_privilege('authenticated','public.buklod_market_reservations','DELETE') then
+       raise exception 'Reservation writes must go through authorized RPCs';
+  end if;
+  if has_function_privilege('anon','public.buklod_market_reserve_v1(uuid,integer,text,uuid)','execute')
+    or not has_function_privilege('authenticated','public.buklod_market_reserve_v1(uuid,integer,text,uuid)','execute')
+    or has_function_privilege('anon','public.buklod_market_reservation_status_v1(uuid,text)','execute') then
+       raise exception 'Reservation RPC grants are unsafe';
+  end if;
+  if position('p_request_key' in pg_get_functiondef('public.buklod_market_reserve_v1(uuid,integer,text,uuid)'::regprocedure))=0
+    or position('pg_advisory_xact_lock' in pg_get_functiondef('public.buklod_market_reserve_v1(uuid,integer,text,uuid)'::regprocedure))=0 then
+       raise exception 'Reservation dedupe/concurrency contract is missing';
+  end if;
   if has_table_privilege('authenticated','public.buklod_market_reports','UPDATE')
      or has_table_privilege('authenticated','public.buklod_market_reports','DELETE') then
     raise exception 'Users must not moderate their own reports';

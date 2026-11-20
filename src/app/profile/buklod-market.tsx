@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Crypto from 'expo-crypto';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
@@ -9,11 +10,12 @@ import {
   MARKET_CATEGORIES, marketChangeStock, marketCreateListing, marketCreateStore,
   marketDiscover, marketGetListing, marketImageUrl, marketMyListings, marketMyStores,
   marketPrice, marketPublishListing, marketShareToWall, marketUnpublishListing,
-  marketUploadPhoto, marketReportListing, validMarketListing, validMarketStore,
-  type MarketListing, type MarketStore,
+  marketUploadPhoto, marketReportListing, marketMyReservations, marketReserveListing,
+  marketReservationStatus, validMarketListing, validMarketStore,
+  type MarketListing, type MarketStore, type MarketReservation,
 } from '@/lib/buklodMarket';
 
-type Panel = 'browse' | 'seller' | 'register' | 'new-listing' | 'detail';
+type Panel = 'browse' | 'seller' | 'register' | 'new-listing' | 'detail' | 'requests';
 type ShopDraft = { name: string; city: string; province: string; barangay: string; description: string; seller_type: 'individual' | 'business' };
 type ListingDraft = { title: string; description: string; price: string; unit: string; kind: 'product' | 'service'; category: string };
 const blankShop: ShopDraft = { name: '',city:'',province:'',barangay:'',description:'',seller_type:'individual' };
@@ -75,6 +77,10 @@ export default function BuklodMarketScreen() {
   const [selected,setSelected]=useState<MarketListing|null>(null);
   const [reportOpen,setReportOpen]=useState(false);
   const [reportReason,setReportReason]=useState<'scam'|'misleading'|'prohibited'|'other'>('misleading');
+  const [reservations,setReservations]=useState<MarketReservation[]>([]);
+  const [quantity,setQuantity]=useState('1');
+  const [reservationNote,setReservationNote]=useState('');
+  const requestKey=useRef<string|null>(null);
   const generation=useRef(0);
   const moreBusy=useRef(false);
   const submitBusy=useRef(false);
@@ -105,6 +111,7 @@ export default function BuklodMarketScreen() {
   useEffect(()=>{
     if (!linkId) return;
     let mounted=true;
+    requestKey.current=null;
     void marketGetListing(linkId).then(item=>{
       if(mounted){setSelected(item);setPanel('detail');if(!item)setNotice('Hindi na available ang listing.');}
     }).catch((e:any)=>{if(mounted)setNotice(String(e.message));});
@@ -124,7 +131,17 @@ export default function BuklodMarketScreen() {
   const openSeller=()=>{
     setPanel('seller');setNotice('');void loadMine();
   };
-  const openDetail=(item:MarketListing)=>{setSelected(item);setNotice('');setPanel('detail');};
+  const openDetail=(item:MarketListing)=>{setSelected(item);setNotice('');requestKey.current=null;setPanel('detail');};
+  const openRequests=()=>{
+    setPanel('requests');setNotice('');
+    void (async()=>{
+      if(!user?.id)return;
+      setLoading(true);
+      try{setReservations(await marketMyReservations(user.id));}
+      catch(e:any){setNotice(String(e?.message||e));}
+      finally{setLoading(false);}
+    })();
+  };
   const guard=async(work:()=>Promise<void>)=>{
     if(submitBusy.current)return;
     submitBusy.current=true;setBusy(true);setNotice('');
@@ -172,6 +189,21 @@ export default function BuklodMarketScreen() {
         await marketChangeStock(item,action);await loadMine();
       }
     });
+  const sendReservation=()=>void guard(async()=>{
+    if(!user?.id||!selected)throw new Error('Mag-sign in at pumili ng produkto.');
+    const q=Number(quantity);
+    if(!Number.isInteger(q)||q<1||q>100)throw new Error('Quantity must be between 1 and 100.');
+    if(!requestKey.current)requestKey.current=Crypto.randomUUID();
+    await marketReserveListing(selected.id,q,reservationNote.trim(),requestKey.current);
+    setReservationNote('');setQuantity('1');requestKey.current=null;
+    openRequests();setNotice('Naipadala ang reservation request sa seller. Pending pa ito.');
+  });
+  const updateReservation=(item:MarketReservation,status:'accepted'|'declined'|'cancelled'|'completed')=>
+    void guard(async()=>{
+      await marketReservationStatus(item.id,status);
+      if(user?.id)setReservations(await marketMyReservations(user.id));
+      setNotice('Na-update ang reservation status.');
+    });
   const detail=selected;
   const seller=stores.find(s=>s.id===chosenStore);
   const header=<View style={[styles.header,{backgroundColor:theme.surface,borderColor:theme.border}]}>
@@ -181,6 +213,7 @@ export default function BuklodMarketScreen() {
     <View style={styles.navRow}>
       <MarketButton label="Mamili" secondary={panel!=='browse'} onPress={()=>{setPanel('browse');setNotice('');void loadFeed(false);}}/>
       <MarketButton label="Aking Tindahan" secondary={panel!=='seller'} onPress={openSeller}/>
+      <MarketButton label="Requests" secondary={panel!=='requests'} onPress={openRequests}/>
     </View>
   </View>;
   const unavailable=<Text style={[styles.mini,{color:theme.textMuted}]}>Walang makitang produkto. Subukan ang ibang kategorya o lokasyon.</Text>;
@@ -241,6 +274,36 @@ export default function BuklodMarketScreen() {
         </View>)}
       {!myListings.length ? unavailable : null}
     </ScrollView> : null}
+    {panel==='requests' ? <ScrollView contentContainerStyle={styles.content}>
+      <Text style={[styles.sectionTitle,{color:theme.textPrimary}]}>Reservations / Order Requests</Text>
+      <Text style={[styles.mini,{color:theme.textMuted}]}>Walang automatic charge o guaranteed stock. Tanging seller lamang ang maaaring tumanggap ng request.</Text>
+      {loading ? <ActivityIndicator color="#278744"/> : null}
+      {!loading && reservations.length===0 ? <Text style={[styles.mini,{color:theme.textMuted}]}>Wala pang request.</Text> : null}
+      {reservations.map(item=>{
+        const isSeller=item.seller_id===user?.id;
+        const permittedSeller=item.status==='requested' || item.status==='accepted';
+        const permittedBuyer=item.status==='requested' || item.status==='accepted';
+        return <View key={item.id} style={[styles.manageCard,{backgroundColor:theme.surface,borderColor:theme.border}]}>
+          <Text style={[styles.productTitle,{color:theme.textPrimary}]}>{item.listing?.title||'Market listing'}</Text>
+          <Text style={[styles.mini,{color:theme.textMuted}]}>{isSeller?'Incoming buyer request':'My purchase request'} · {item.quantity} item(s) · {item.status}</Text>
+          {item.note ? <Text style={[styles.mini,{color:theme.textSecondary}]}>{item.note}</Text> : null}
+          <View style={styles.wrap}>
+            {isSeller && item.status==='requested'?<>
+              <MarketButton label="Tanggapin" disabled={busy} onPress={()=>updateReservation(item,'accepted')}/>
+              <MarketButton label="Decline" secondary disabled={busy} onPress={()=>updateReservation(item,'declined')}/>
+            </>:null}
+            {isSeller && item.status==='accepted'?<MarketButton label="Mark Completed" disabled={busy} onPress={()=>updateReservation(item,'completed')}/>:null}
+            {!isSeller && permittedBuyer ? <MarketButton label="Cancel Request" secondary disabled={busy} onPress={()=>updateReservation(item,'cancelled')}/> : null}
+            {isSeller && permittedSeller ? <MarketButton label="Chat Buyer" secondary onPress={()=>router.push({
+              pathname:'/connect/personal/[threadId]',params:{threadId:'new',targetUserId:item.buyer_id}
+            } as any)}/> : null}
+            {!isSeller && permittedBuyer ? <MarketButton label="Chat Seller" secondary onPress={()=>router.push({
+              pathname:'/connect/personal/[threadId]',params:{threadId:'new',targetUserId:item.seller_id}
+            } as any)}/> : null}
+          </View>
+        </View>;
+      })}
+    </ScrollView> : null}
     {panel==='register' ? <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={[styles.sectionTitle,{color:theme.textPrimary}]}>Buksan ang Tindahan — 3 Hakbang</Text>
       <Text style={[styles.mini,{color:theme.textMuted}]}>Walang bagong login. Basic seller muna; hindi ito verified business badge.</Text>
@@ -290,6 +353,13 @@ export default function BuklodMarketScreen() {
           onPress={()=>router.push({pathname:'/connect/personal/[threadId]',params:{
             threadId:'new',targetUserId:detail.owner_id,otherUserName:detail.store?.name||'Seller'
           }} as any)}/>:null}
+        {detail.owner_id!==user?.id && detail.stock_status==='available' ? <View style={[styles.manageCard,{backgroundColor:theme.surface,borderColor:theme.border}]}>
+          <Text style={[styles.productTitle,{color:theme.textPrimary}]}>Magpa-reserve sa Seller</Text>
+          <MarketField label="Dami (1-100)" value={quantity} keyboardType="decimal-pad" onChangeText={setQuantity}/>
+          <MarketField label="Paalala sa seller (optional)" value={reservationNote} onChangeText={setReservationNote} multiline/>
+          <MarketButton label={busy?'Sending...':'Ipadala ang Reservation Request'} disabled={busy} onPress={sendReservation}/>
+          <Text style={[styles.mini,{color:theme.textMuted}]}>Hindi pa ito kumpirmadong order. Magkakasundo muna kayo sa pickup, bayad, at delivery sa Connect.</Text>
+        </View> : null}
         <Text style={[styles.mini,{color:theme.textMuted}]}>Direktang usapan at arrangement muna. Walang in-app payment o guaranteed delivery sa kasalukuyang Market.</Text>
         {detail.owner_id!==user?.id ? <>
           <MarketButton label={reportOpen?'Isara ang Report':'I-report ang Listing'} secondary onPress={()=>setReportOpen(!reportOpen)}/>

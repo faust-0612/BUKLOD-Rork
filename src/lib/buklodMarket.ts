@@ -146,6 +146,34 @@ export async function marketUploadPhoto(ownerId: string, listingId: string, uri:
   throwIfError(error);
   return path;
 }
+export type MarketReservation = {
+  id:string;listing_id:string;buyer_id:string;seller_id:string;
+  quantity:number;note:string;status:'requested'|'accepted'|'declined'|'cancelled'|'completed';
+  created_at:string;listing?:{title:string}|null;
+};
+export async function marketMyReservations(actorId:string):Promise<MarketReservation[]> {
+  const {data,error}=await (supabase as any).from('buklod_market_reservations')
+    .select('id,listing_id,buyer_id,seller_id,quantity,note,status,created_at,listing:buklod_market_listings(title)')
+    .or('buyer_id.eq.'+actorId+',seller_id.eq.'+actorId)
+    .order('created_at',{ascending:false}).limit(50);
+  throwIfError(error);return (data||[]) as MarketReservation[];
+}
+export async function marketReserveListing(
+  listingId:string,quantity:number,note:string,requestKey:string
+):Promise<string> {
+  if(!Number.isInteger(quantity) || quantity<1 || quantity>100 || note.length>600)
+    throw new Error('Invalid quantity or note.');
+  const {data,error}=await (supabase as any).rpc('buklod_market_reserve_v1',{
+    p_listing_id:listingId,p_quantity:quantity,p_note:note,p_request_key:requestKey
+  });
+  throwIfError(error);
+  if(!data)throw new Error('Hindi na-save ang reservation request.');
+  return String(data);
+}
+export async function marketReservationStatus(id:string,status:'accepted'|'declined'|'cancelled'|'completed') {
+  const {error}=await (supabase as any).rpc('buklod_market_reservation_status_v1',{p_id:id,p_next:status});
+  throwIfError(error);
+}
 export async function marketReportListing(listingId:string, reporterId:string, reason:'scam'|'misleading'|'prohibited'|'other') {
   const {error}=await (supabase as any).from('buklod_market_reports')
     .insert({listing_id:listingId,reporter_id:reporterId,reason});

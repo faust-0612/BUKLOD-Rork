@@ -37,6 +37,11 @@ test('Market has full browse/seller/listing/chat actions without changing native
   assert.match(screen,/marketCreateStore/);
   assert.match(screen,/marketCreateListing/);
   assert.match(screen,/marketPublishListing/);
+  assert.match(screen,/marketMyReservations/);
+  assert.match(screen,/marketReserveListing/);
+  assert.match(screen,/marketReservationStatus/);
+  assert.match(screen,/Crypto.randomUUID\(\)/);
+  assert.match(lib,/from\('buklod_market_reservations'\)/);
   assert.match(screen,/marketShareToWall/);
   assert.match(screen,/marketReportListing/);
   assert.match(lib,/from\('buklod_market_reports'\)/);
