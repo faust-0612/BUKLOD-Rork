@@ -171,14 +171,17 @@ export async function governmentCaseEvents(caseId:string):Promise<GovCaseEvent[]
   return unwrap(data??[],error);
 }
 export async function governmentSubmitCase(input:{
-  entityId:string;subject:string;description:string;localityKey?:string;
+  entityId:string;subject:string;description:string;localityKey?:string;requestKey?:string;
 }):Promise<GovCase> {
-  const uid=await governmentCurrentUserId();
-  const {data,error}=await db.from('buklod_government_cases')
-    .insert({entity_id:input.entityId,subject:input.subject.trim(),description:input.description.trim(),
-      submitted_by:uid,locality_key:input.localityKey?.trim()||null,status:'SUBMITTED'})
-    .select('*').single();
-  return unwrap(data,error);
+  const {data:id,error}=await db.rpc('buklod_government_submit_case_v1',{
+    p_entity_id:input.entityId,p_subject:input.subject.trim(),
+    p_description:input.description.trim(),p_locality_key:input.localityKey?.trim()||null,
+    p_request_key:input.requestKey??randomUUID()
+  });
+  const confirmedId=unwrap<string>(id,error);
+  const {data,error:readError}=await db.from('buklod_government_cases')
+    .select('*').eq('id',confirmedId).single();
+  return unwrap(data,readError);
 }
 export async function governmentTransitionCase(input:{
   caseId:string;status:GovCaseStatus;note:string;requestKey?:string;
