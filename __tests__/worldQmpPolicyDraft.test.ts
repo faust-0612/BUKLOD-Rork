@@ -53,10 +53,11 @@ describe('BUKLOD spend-driven QMP — disabled DEV policy preview',()=>{
     expect(purchase.netQmpChange).toBe(1);
   });
 
-  it('partial earned BP only gives partial QMP; paid/gifted BP cannot buy revenue weight',()=>{
-    const partial=previewWorldQmpFromBpSpend(valid({bpDebited:500,earnedBpDebited:200,purchasedBpDebited:300}),[]);
-    expect(partial.qualifies).toBe(true);
-    if(partial.qualifies)expect(partial.proposedWeight).toBe(2);
+  it('BP is earned-only; any paid-origin debit is forbidden, including mixed provenance',()=>{
+    const fromGift=previewWorldQmpFromBpSpend(valid({bpDebited:500,earnedBpDebited:200,giftedEarnedBpDebited:300}),[]);
+    expect(fromGift.qualifies).toBe(true);
+    if(fromGift.qualifies)expect(fromGift.proposedWeight).toBe(5);
+    expect(previewWorldQmpFromBpSpend(valid({bpDebited:500,earnedBpDebited:200,purchasedBpDebited:300}),[]).qualifies).toBe(false);
     expect(previewWorldQmpFromBpSpend(valid({earnedBpDebited:0,purchasedBpDebited:500}),[]).qualifies).toBe(false);
     expect(previewWorldQmpFromBpSpend(valid({source:'external_paid'}),[]).qualifies).toBe(false);
   });
