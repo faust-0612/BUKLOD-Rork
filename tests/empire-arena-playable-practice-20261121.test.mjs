@@ -36,3 +36,28 @@ test('standalone game has embedded assets and no remote account endpoints',()=>{
  assert.match(html,/OFFLINE TRAINING/);
  assert.doesNotMatch(html,/https?:\/\/[^"\s]*supabase/i);
 });
+test('landscape UI is explicit and uses best-effort browser orientation without claiming native support',()=>{
+ const html=readFileSync(new URL('../experiments/empire-arena/PLAY_BUKLOD_EMPIRE_ARENA_OFFLINE.html',import.meta.url),'utf8');
+ assert.match(html,/@media\(orientation:portrait\)\{#rotateGate\{display:flex\}\}/);
+ assert.match(html,/id="tryLandscape"/);assert.match(html,/requestFullscreen\(/);
+ assert.match(html,/screen\.orientation\.lock\('landscape'\)/);
+ assert.match(html,/role="dialog" aria-label="Landscape required"/);
+});
+test('cinematic practice camera follows local hero and never breaks targeting coordinates',()=>{
+ const html=readFileSync(new URL('../experiments/empire-arena/PLAY_BUKLOD_EMPIRE_ARENA_OFFLINE.html',import.meta.url),'utf8');
+ assert.match(html,/Math\.max\(w\/m\.width,h\/m\.height\)\*1\.14/);
+ assert.match(html,/camera\.x\+=\(desiredX-camera\.x\)\*\.17/);
+ assert.match(html,/mapping=\{scale,x:camera\.x,y:camera\.y\}/);
+ assert.match(html,/wx=\(e\.clientX-rect\.left-mapping\.x\)\/mapping\.scale/);
+ assert.doesNotMatch(html,/const reservedTop=Math\.max\(65/);
+});
+test('all practice actors receive sprite animation while embedded offline media remains intact',()=>{
+ const html=readFileSync(new URL('../experiments/empire-arena/PLAY_BUKLOD_EMPIRE_ARENA_OFFLINE.html',import.meta.url),'utf8');
+ assert.match(html,/const motion=main\?/);
+ assert.match(html,/sprite\[motion\+'_'\+facing\]/);
+ assert.match(html,/function drawCrystal\(/);assert.match(html,/function drawMinimap\(/);
+ assert.match(html,/draw\(ms\);drawMinimap\(\)/);
+ assert.equal((html.match(/data:image\/png;base64,/g)||[]).length,156);
+ assert.equal((html.match(/data:audio\/ogg;base64,/g)||[]).length,11);
+ assert.doesNotMatch(html,/https?:\/\/[^"\s]*supabase/i);
+});
