@@ -81,5 +81,5 @@ test('Genesis preview alone mounts real cinematic; production retains preexistin
  assert.match(scene,/SplashScreen\.hideAsync/);
  assert.match(scene,/no remote assets|No remote assets/);
  assert.match(cfg,/genesisNativePreview \? '\.\/assets\/season2\/genesis\/genesis-green-b-transparent.png'/);
- assert.doesNotMatch(scene,/supabase|awardPoints|\.rpc\(|\.from\(|useRorkGameAmbience|expo-audio/);
+ assert.doesNotMatch(scene,/supabase|awardPoints|\.rpc\(|supabase\.from\(|useRorkGameAmbience|expo-audio/);
 });

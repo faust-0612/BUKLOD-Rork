@@ -4,7 +4,7 @@
  * No remote assets, synthetic game state, backend writes, advertising, or sound.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, Dimensions, Easing, Image, Platform, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Dimensions, Easing, Image, StatusBar, StyleSheet, Text, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import Svg, { Circle, Defs, Ellipse, LinearGradient as SvgLinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { GENESIS_IDENTITY, GENESIS_PALETTE } from './genesisContract';
@@ -126,7 +126,7 @@ export default function GenesisCinematicStartup({ children }: { children: React.
   const [splashGone, setSplashGone] = useState(false);
   const [chromeReady, setChromeReady] = useState(false);
   const [motionReduced, setMotionReduced] = useState(false);
-  const [foreground, setForeground] = useState(AppState.currentState === 'active');
+  const [foreground, setForeground] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const [holdDone, setHoldDone] = useState(false);
   const [visible, setVisible] = useState(true);
   const hiddenSplash = useRef(false);
@@ -167,7 +167,6 @@ export default function GenesisCinematicStartup({ children }: { children: React.
     if (!splashGone || !visible || !foreground || holdDone) return;
     // One non-looping cinematic sequence: never steal frames from live video
     // playback, message composition or ad navigation after launch.
-    const duration = motionReduced ? 1 : 1;
     const animate = Animated.parallel([
       Animated.timing(ambient, { toValue: 1, duration: motionReduced ? 90 : 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.sequence([
