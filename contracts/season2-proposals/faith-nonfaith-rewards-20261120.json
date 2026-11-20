@@ -1,0 +1,55 @@
+{
+  "id": "BUKLOD_S2_OWNER_REWARD_TRACK_SPLIT_20261120",
+  "request": "Ihiwalay ang reward system ng Show Faith at Non-Show Faith.",
+  "status": "APPROVED_SOURCE_DESIGN_ONLY_NO_RELEASE",
+  "effectiveTarget": "DECEMBER_6_2026_EARLIEST_NO_AUTOLAUNCH",
+  "ownerDecision": "SEPARATE_SCOPE_BOUND_MISSIONS_BONUSES_BADGES_AND_AWARD_ELIGIBILITY_WITH_SHARED_CANONICAL_BP_QMP_CASH_AND_ITEM_AUTHORITIES",
+  "approvedSeason": 2,
+  "exclusiveScopeDelta": 0,
+  "newExclusiveFeature": false,
+  "productionAuthorized": false,
+  "backendRewardWritesAllowed": false,
+  "season1Modified": false,
+  "liveDatabaseModified": false,
+  "tracks": [
+    {
+      "id": "show_faith",
+      "scopeBased": true
+    },
+    {
+      "id": "non_show_faith",
+      "scopeBased": true
+    }
+  ],
+  "intendedEconomy": {
+    "sharedBPWallet": true,
+    "sharedMonthlyQMP": true,
+    "sharedFinalizedCash": true,
+    "sharedCharacterInventory": true,
+    "sharedKingdomShards": true,
+    "sharedUserJourneyTokenCeiling": 12,
+    "modeBasedWeeklyMissionKeys": true,
+    "modeBasedCosmeticAwardVariants": true
+  },
+  "serverGates": [
+    "Original event-time scope mode must be attested by authoritative backend, not auth.uid missing on service role, client preference or cached scope.",
+    "Verify source owner, original server timestamp and membership at event time; blocked on policy history gap.",
+    "Global unique original source receipt across both tracks and scope changes.",
+    "Per-user-week global optional settlement cap; independent per-track mission history with distinct evidence.",
+    "In an isolated staging backend, full RLS/permissions and concurrent replay tests must pass before feature is switched on.",
+    "Do not retroactively reclassify Season 1 points or QMP from past modes."
+  ],
+  "fairness": {
+    "equalP0EvidenceCounts": true,
+    "normalDays": 7,
+    "automaticGraceDays": 3,
+    "flexCreditsPerSeason": 2,
+    "flexExtraDays": 7,
+    "faithPrayerNeverRequired": true,
+    "nonfaithBibleNeverRequired": true,
+    "nonfaithBPComparableTargetsNotLive": true,
+    "noFaithBasedMoneyMultiplier": true,
+    "noModeSwitchPenalty": true
+  },
+  "verificationStatus": "SOURCE_ONLY_PREVIEW_NOT_BACKEND_LIVE"
+}
