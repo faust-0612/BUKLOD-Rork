@@ -148,6 +148,7 @@ export function validateWorldChallenge(challenge: WorldChallenge): string | null
 }
 function independentlyVerified(e: WorldProjectEvidence): boolean {
   return e.verification.state==='verified' && e.verification.reviewerIndependent &&
+    e.verification.reviewerId!==e.submittedBy &&
     Boolean(e.verification.reviewerId?.trim()) &&
     Boolean(e.verification.reviewReceiptId?.trim());
 }
@@ -219,6 +220,7 @@ export function assessWorldChallengeEvidence(
   const reviewer=ctx.independentReview;
   const participantScopeIds=new Set(challenge.participants.map(p=>p.scopeId));
   if(!reviewer || reviewer.result!=='pass' || !reviewer.finalAuditReceiptId?.trim() ||
+      evidence.some(item=>item.submittedBy===reviewer.reviewerId) ||
       !reviewer.reviewerId?.trim() || reviewer.conflictOfInterestDeclared ||
       reviewer.scopeIdsReviewerBelongsTo.some(id=>participantScopeIds.has(id)))
     reasons.push('No independent, conflict-free final audit receipt.');
