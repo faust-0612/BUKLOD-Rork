@@ -81,7 +81,8 @@ jobs:
           }
           const url=env.EXPO_PUBLIC_SUPABASE_URL||process.env.EXPO_PUBLIC_SUPABASE_URL;
           const key=env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-          if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url||'')||url.includes('yhanxndaqbmuzbdqlblu')||
+          const excluded=['yhanxndaqbmuzbdqlblu','oppswibwjrruxkrpiwej','cjtehbfspgimyhifnjon'];
+          if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url||'')||excluded.some(ref=>url.includes(ref))||
              !/^sb_publishable_/i.test(key||'')) throw Error('No valid isolated staging Supabase env in Expo preview; no APK');
           fs.appendFileSync(process.env.GITHUB_ENV,'EXPO_PUBLIC_SUPABASE_URL='+url+'\n'+'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY='+key+'\n');
           console.log('Found valid non-production EAS preview environment');
@@ -98,7 +99,10 @@ jobs:
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" || { echo 'BLOCK: no staging publishable key'; exit 1; }
           [[ "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" == sb_publishable_* ]] || { echo 'BLOCK: no public staging key'; exit 1; }
           [[ "$EXPO_PUBLIC_SUPABASE_URL" =~ ^https://[a-z0-9-]+\.supabase\.co$ ]] || { echo 'BLOCK: malformed staging backend'; exit 1; }
-          [[ "$EXPO_PUBLIC_SUPABASE_URL" != *yhanxndaqbmuzbdqlblu* ]] || { echo 'BLOCK: cannot use BUKLOD MAIN production Supabase for staging build'; exit 1; }
+          # Never reuse any existing BUKLOD domain backend for isolated Genesis QA.
+          for blocked in yhanxndaqbmuzbdqlblu oppswibwjrruxkrpiwej cjtehbfspgimyhifnjon; do
+            [[ "$EXPO_PUBLIC_SUPABASE_URL" != *"$blocked"* ]] || { echo 'BLOCK: Genesis staging cannot reuse connected BUKLOD production/Attendance/Quiz project'; exit 1; }
+          done
           node <<'NODE'
           const assert=require('node:assert/strict');
           const firebase=require('./google-services.staging.json');
