@@ -8,6 +8,7 @@ import {useBuklodI18n} from '@/providers/BuklodI18nProvider';
 import BuklodS2AllItemsBadgesGuide from '@/components/points/BuklodS2AllItemsBadgesGuide';
 import BuklodS2CompleteRewardIndex from '@/components/points/BuklodS2CompleteRewardIndex';
 import BuklodS2RewardTracksGuide from '@/components/points/BuklodS2RewardTracksGuide';
+import {REWARD_LANE_DETAILS,REWARD_LANE_FAMILIES,rewardLaneForLegacyBp,type RewardLane} from '@/lib/season2/buklodSeason2RewardLanesR1';
 import {BUKLOD_SEASON2_WEEKLY_BEATS} from '@/lib/buklodSeason2CampaignR1';
 import {S2_EXCLUSIVE_FEATURES} from '@/lib/season2/buklodSeason2ApprovedScopeR1';
 import {
@@ -44,13 +45,14 @@ export default function BuklodS2CompleteRewardsReference(){
  const t=(fil:string,english:string)=>en?english:fil;
  const [expanded,setExpanded]=useState(false);
  const [tab,setTab]=useState<Tab>('tracks');
+ const [lane,setLane]=useState<RewardLane>('shared');
  const [bpGroup,setBpGroup]=useState<S2BpGroup>('community');
  const [search,setSearch]=useState('');
  const [showInactive,setShowInactive]=useState(false);
  const active=useMemo(()=>S2_LEGACY_BP_ACTIVE.filter(item=>
-   item.group===bpGroup&&item.group!=='admin'&&
+   item.group===bpGroup&&item.group!=='admin'&&rewardLaneForLegacyBp(item.id)===lane&&
    (item.title+' '+item.id+' '+item.condition).toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
- ),[bpGroup,search]);
+ ),[bpGroup,search,lane]);
  return <View style={s.shell}>
   <Pressable accessibilityRole="button"
     accessibilityLabel="Full Season 1 and Season 2 rewards and requirements guide"
@@ -68,6 +70,13 @@ export default function BuklodS2CompleteRewardsReference(){
     'EXACT GUIDE · Season 1 snapshot '+S2_MEMBER_GUIDE_SNAPSHOT+' · Season 2 target Dec 6; hindi pa live',
     'EXACT GUIDE · Season 1 snapshot '+S2_MEMBER_GUIDE_SNAPSHOT+' · Season 2 Dec 6 target, NOT live'
    )}</Text>
+   {(tab==='all'||tab==='bp')?<View style={{gap:4}}>
+    <Note>CATALOG-ONLY FILTER: Hindi nito binabago ang active scope o anumang reward eligibility. Ang aktuwal na Season 2 track ay ayon sa verified source scope.</Note>
+    <View style={s.tabs}>
+     {REWARD_LANE_DETAILS.map(item=><Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected:lane===item.id}} onPress={()=>setLane(item.id)} style={[s.tab,lane===item.id&&s.tabSelected]}><Text style={[s.tabText,lane===item.id&&s.tabTextSelected]}>{item.title}</Text></Pressable>)}
+    </View>
+    <Note>{REWARD_LANE_DETAILS.find(x=>x.id===lane)?.description}</Note>
+   </View>:null}
    <View style={s.tabs}>
     {([['tracks',t('2 REWARD TRACKS','2 REWARD TRACKS')],['all',t('LAHAT / GUIDE','ALL / GUIDE')],['bp',t('BUKLOD BP','BUKLOD BP')],['qmp','QMP'],['season2','SEASON 2'],['assets',t('ITEMS / BADGES','ITEMS / BADGES')],['carryover',t('CARRYOVER','CARRYOVER')]] as const).map(([key,label])=>
      <Pressable key={key} accessibilityRole="button" accessibilityState={{selected:tab===key}}
@@ -76,9 +85,9 @@ export default function BuklodS2CompleteRewardsReference(){
      </Pressable>)}
    </View>
    {tab==='tracks'?<BuklodS2RewardTracksGuide/>:null}
-   {tab==='all'?<BuklodS2CompleteRewardIndex/>:null}
+   {tab==='all'?<><Title>{lane==='show_faith'?'SHOW FAITH REWARDS':lane==='non_faith'?'NON-FAITH REWARDS':'SHARED REWARD AUTHORITY'}</Title>{REWARD_LANE_FAMILIES.filter(x=>x.lane===lane).map(x=><Row key={x.id} name={x.title} value={x.status} detail={x.requirement}/>)}<BuklodS2CompleteRewardIndex/></>:null}
    {tab==='bp'?<>
-    <Title>{t('46 active BP catalog rules (may 2 admin-only entries na hindi reward ng user)','46 active BP catalog rules (2 admin-only entries excluded for members)')}</Title>
+    <Title>{t('BP catalog — naka-filter ayon sa Show Faith / Non-Faith / Shared','BP catalog filtered by Show Faith / Non-Faith / Shared')}</Title>
     <Note>{t(
      'Ang listed amount ay configured BP per qualified event, hindi automatic payout. May mga source na may sariling verification, duplicate protection at claim steps. Hindi lahat ng active catalog row ay confirmed na may live trigger.',
      'Listed amounts are configured BP per qualifying event, not automatic grants. Each source may have separate validation/claim rules. Active catalog status does not prove the trigger is live.'
@@ -94,7 +103,7 @@ export default function BuklodS2CompleteRewardsReference(){
       placeholder={t('Hanapin ang activity…','Search activity…')} placeholderTextColor="#647D6D"
       style={s.input} autoCapitalize="none" autoCorrect={false}/>
     {active.map(item=><Row key={item.id} name={item.title} value={`+${item.bp} BP`}
-      detail={item.condition+(item.dayCapBP===null?'':` · ${item.dayCapBP} BP/day catalog cap`)+((S2_LEGACY_FAITH_ONLY_ACTIVITY_KEYS as readonly string[]).includes(item.id)?' · SHOW FAITH activity; nonfaith has separate planned learning alternatives':' · SHARED/NEUTRAL legacy source')}/>)}
+      detail={item.condition+(item.dayCapBP===null?'':` · ${item.dayCapBP} BP/day catalog cap`)+((S2_LEGACY_FAITH_ONLY_ACTIVITY_KEYS as readonly string[]).includes(item.id)?' · SHOW FAITH legacy category; see separate Non-Show Faith proposed learning rewards':' · Shared or neutral legacy source')}/>)}
     {!active.length?<Note>{t('Walang tugmang activity.','No matching activity.')}</Note>:null}
     <Title>{t('Proposed social milestone bonuses (NOT LIVE)','Proposed social milestone bonuses (NOT LIVE)')}</Title>
     <Note>{t('Ito ay nasa prior R2 user guide ngunit hindi pa verified bilang active source-authoritative reward; hindi agad na-credit ang additional BP.','These were described in the earlier R2 guide but are not verified as active source-authoritative grants; do not expect credits yet.')}</Note>
