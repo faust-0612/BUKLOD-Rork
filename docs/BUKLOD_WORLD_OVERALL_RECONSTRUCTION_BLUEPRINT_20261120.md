@@ -79,6 +79,35 @@ Every material has **BP item value**. Tasks may award validated BP and/or discre
 ### E4. Core accounting invariants
 All state transitions server-transactional; immutable dual entry for BP user-to-user flows; matching item ownership ledger; policy version and reason code required; quote expires; stale price invalidates quote; balance never goes negative; same idempotency key cannot post twice; concurrent buyers cannot double-spend or oversell. RLS does not use user metadata for authorities. Admin restrictions extend to new world ledger; current production admin remains excluded from financial rewards.
 
+### E5. NEW 2026-11-20 owner direction — Active Community QMP instead of passive eligibility
+
+**Economy status: UNAPPROVED, DEV POLICY SIMULATION.** The proposed redesign is not authority to modify the open or closed production QMP and AdMob Finance ledgers. This rule targets a future explicitly versioned Season 2 activation, after owner review and verified finance replay.
+
+**Reason:** A member who does nothing meaningful during the current month should not keep qualifying for new monthly revenue weight just because of prior accumulated rank, old QMP, or a property owned. However *a member without land or BP remains equally eligible for meaningful social, faith-optional learning, help and community actions*. Do not make ownership/purchases mandatory to belong or to earn qualified participation.
+
+**Proposal:** calculate open-period QMP from verified **outcomes in the product ecosystem**, not from unverified taps, logins, ad views, time spent, infinite button pressing, simple chat volume, arbitrary cash payment or passive BP holdings. Recognized outcomes may include:
+- A legitimate virtual item purchase (limited first/capped purchases; not BP-value-proportional).
+- First land acquisition, and unique building or room improvement completion (not an infinite buy/undo loop).
+- Verified farm setup, crop cycle, household task, workshop or development milestone.
+- Completed fair trade with independent peer (wash-trade controls, credit caps).
+- Completed group project, verified community service or mutual helpful activity.
+- Completed collaborative session, safe education lesson or Kingdom achievement, without requiring a religious action.
+- Genuine first-time discovery milestones, with cooldown and uniqueness safeguards.
+
+**Source of truth and abuse prevention:**
+1. Each candidate is an immutable event: actor UID, scope, time, unique entity, event idempotency key, verified server evidence, policy version, action type, BP provenance, counterparty, risk flags.
+2. Event acceptance is a backend-only decision; do not trust client clicks or client-supplied completion. Confirm event origin with its owning canonical system (Bahay, Character, World, Services).
+3. Monthly weight is calculated by an approved base score, unique entity and category caps. No direct equation `QMP = BP spent`, no buying QMP, no uncapped passive rent/ownership benefits.
+4. Paid BP purchases, use of purchased BP to farm purchase/activity QMP, refunded transactions, self-trades, rapid multi-account trades, and automatic ad watching cannot create revenue-weight credits. Track BP provenance for qualification; monetary source is isolated from earned BP.
+5. The existing proposed rule for BP sent person-to-person may deduct sender open-period QMP; a successful eligible item trade may also separately create capped action QMP. Quote both independently; show BP debit, QMP deduction, eligible activity credit, net QMP and any limitations. Final sender formula, exceptions and caps remain owner-unapproved. No deduction from previous months or finalized cash.
+6. User must be allowed to join the social world without property. Non-owners may earn QMP through verified community, learning (faith optional), helping and collective actions. Limit completion/reaction farming, not legitimate cooperation.
+7. Protect social privacy: QMP verification cannot inspect private DM content or score religious beliefs, perceived intimacy, friendship depth, physical location or personal health. Validate only a minimal consented activity receipt and coarse action type.
+8. The monthly user pool still comes strictly from verified, reconciled AdMob receipts under Finance. QMP is an allocation **weight** and never a guaranteed payable cash sum. No estimated ad revenue is cashed out before finalization and payout verification.
+9. For periods before activation, preserve all historical/closed settlement records. At new season boundary, clear or transition open-period calculation only by explicit migration/reconciliation and transparent user notice. Never retroactively reduce an already-finalized month's withdrawable amount.
+10. Proposal weights and caps in `src/features/world/worldQmpPolicyDraft.ts` are placeholders exclusively for simulation, not final rates. `WORLD_QMP_ACTIVATION_ENABLED=false` blocks unreviewed activation. No live endpoint consumes this module.
+
+**Validation required before financial release:** aggregate replay of last three closed months plus one open sample period without exposing member-private records; simulate equal opportunity for zero-BP users; model acquisition vs engagement weight, inflation, BP transfer penalty/trade conflict, category concentration, opportunistic spam, cash pool stability, pending withdrawal continuity, old client behavior, and paid-BP laundering. Require reviewed migration and version-pinned server receipts, old/new app compatibility, test users and real backend dry-run.
+
 ## F. House blueprints, building and customization
 World property editor must be a **premium scene renderer**, NOT a collection of emoji/flat icons/color panels.
 - Curated architecture series: starter bungalow -> family residence -> villa -> mansion; alternate industrial/rural/subdivision options. On blueprint selection show virtual land area needed, footprint, materials by exact quantity, inventory available, deficits, BP price and style variants.
