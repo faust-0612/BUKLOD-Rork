@@ -120,6 +120,11 @@ BEGIN
      'character_public_reaction','character_public_share','character_public_active_week') THEN
     RETURN NEW;
   END IF;
+  -- Match the Character switch serialization so task credit cannot be attributed
+  -- to a stale Character in parallel with a switch.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('buklod_character_switch_v3'),
+    pg_catalog.hashtext(NEW.user_id::text));
   SELECT s.character_id INTO v_char
     FROM private.buklod_character_selection_v2 s WHERE s.user_id=NEW.user_id;
   v_char:=coalesce(v_char,'phan');
@@ -146,6 +151,9 @@ BEGIN
      OR NEW.claim_state IS DISTINCT FROM 'claimed'
      OR NEW.activity_type IS DISTINCT FROM 'game_first_qualified'
      OR NEW.source_key NOT LIKE 'kingdom:mastery:v1:%' THEN RETURN NEW; END IF;
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('buklod_character_switch_v3'),
+    pg_catalog.hashtext(NEW.user_id::text));
   SELECT s.character_id INTO v_char
     FROM private.buklod_character_selection_v2 s WHERE s.user_id=NEW.user_id;
   v_char:=coalesce(v_char,'phan');
@@ -358,6 +366,16 @@ BEGIN
     pg_catalog.hashtext('buklod_character_evolution_v1'),pg_catalog.hashtext(v_uid::text));
   v_state:=public.get_my_buklod_character_selection_v2();
   v_char:=v_state->>'active_character_id';
+  -- An interrupted network response may retry a claim after that item has
+  -- already advanced the Character. Return the latest state without duplicate rewards.
+  IF p_from_level BETWEEN 1 AND 19 AND p_item_index BETWEEN 1 AND 5
+     AND EXISTS (
+       SELECT 1 FROM private.buklod_character_evolution_items_v1 i
+       WHERE i.user_id=v_uid AND i.character_id=v_char
+         AND i.from_level=p_from_level AND i.item_index=p_item_index
+     ) THEN
+     RETURN public.get_my_buklod_character_evolution_v1();
+  END IF;
   v_level:=(v_state->>'character_level')::integer;
   IF p_from_level IS DISTINCT FROM v_level OR v_level>=20
     OR p_item_index IS NULL
