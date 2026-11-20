@@ -25,7 +25,7 @@ test('stage workflow has shared existing live backend and separate staged native
  assert.match(w,/cjtehbfspgimyhifnjon/);
  assert.match(w,/yhanxndaqbmuzbdqlblu/);
  assert.match(w,/genesis-verify-signed-apk\.mjs --receipt=/);
- assert.ok(w.indexOf('npm ci --ignore-scripts')<w.indexOf('tests/genesis-staging-live-backend-review-20261120.test.mjs'),'Native source checks require dependency install');
+ assert.ok(w.indexOf('npm ci --ignore-scripts')<w.indexOf('node scripts/genesis-assert-native-autolinking.mjs'),'Native source checks require dependency install');
  assert.match(w,/data\.client=clients/);
  assert.match(w,/npx tsc --noEmit/);
  assert.match(w,/npx expo export --platform android/);
