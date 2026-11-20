@@ -19,6 +19,9 @@ export type WorldCommunityProgressReceipt = {
   sourceActivityReceiptId:string;
   /** BP that member earned from independently verified app participation. */
   personalBpEarned:number;
+  /** Server-authoritative eligible personal BP earned earlier in the same month,
+   * so small honest activities accumulate toward community BP fairly. */
+  monthlyPersonalBpBeforeEvent:number;
   verifiedByServer:boolean;
   activeMembershipAtEarnTime:boolean;
   occurredAt:string;
@@ -60,7 +63,9 @@ export function previewCommunityProgressBp(
      !['cluster','organization'].includes(event.community.kind)||
      !event.sourceActivityReceiptId?.trim()||
      !Number.isFinite(Date.parse(event.occurredAt))||
-     !Number.isSafeInteger(event.personalBpEarned)||event.personalBpEarned<=0)
+     !Number.isSafeInteger(event.personalBpEarned)||event.personalBpEarned<=0||
+     !Number.isSafeInteger(event.monthlyPersonalBpBeforeEvent)||event.monthlyPersonalBpBeforeEvent<0||
+     !Number.isSafeInteger(event.monthlyPersonalBpBeforeEvent+event.personalBpEarned))
     return reject('Invalid original verified progress receipt.');
   if(!event.verifiedByServer||!event.activeMembershipAtEarnTime||event.flagged)
     return reject('Unverified, flagged or non-member participation.');
@@ -79,8 +84,10 @@ export function previewCommunityProgressBp(
     .filter(h=>h.communityScopeId===event.community.scopeId&&h.memberId===event.memberId&&h.period===period)
     .reduce((acc,h)=>acc+Math.max(0,h.creditedCommunityBp),0);
   const remaining=Math.max(0,policy.perMemberMonthlyCapBp-previous);
+  const beforeRatio=Math.floor(event.monthlyPersonalBpBeforeEvent*policy.communityBpPer100EarnedBp/100);
+  const afterRatio=Math.floor((event.monthlyPersonalBpBeforeEvent+event.personalBpEarned)*policy.communityBpPer100EarnedBp/100);
   const proposed=Math.min(
-    Math.floor(event.personalBpEarned*policy.communityBpPer100EarnedBp/100),
+    Math.max(0,afterRatio-beforeRatio),
     policy.perReceiptCapBp,
     remaining,
   );
