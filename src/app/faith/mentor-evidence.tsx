@@ -190,10 +190,27 @@ export default function MentorTeachingPhotoEvidence() {
     setConsent(false);
   };
 
+  // Keep every server-backed requirement, but never silently ignore a tap when
+  // one is incomplete. The input screen can be long and fields may be offscreen.
+  const missingReportRequirements = [
+    !selectedLesson ? 'Select the lesson from the list (typing in search does not select it).' : null,
+    selectedDisciples.length < 1 ? 'Select at least one assigned learner.' : null,
+    selectedDisciples.length > MAX_LEARNERS ? `Select no more than ${MAX_LEARNERS} learners.` : null,
+    location.trim().length < 4 ? 'Enter the teaching venue (at least 4 characters).' : null,
+    notes.trim().length < 20 ? 'Write a teaching summary (at least 20 characters).' : null,
+    !photo ? 'Take or choose a teaching photo.' : null,
+    !consent ? 'Confirm permission to upload the private photo.' : null,
+  ].filter((item): item is string => item !== null);
+
   const createSession = async () => {
-    if (busy || retrySessionId || !photo || !consent || !selectedLesson ||
-      selectedDisciples.length < 1 || selectedDisciples.length > MAX_LEARNERS ||
-      notes.trim().length < 20 || location.trim().length < 4) return;
+    if (busy || retrySessionId) return;
+    if (missingReportRequirements.length > 0) {
+      const details = missingReportRequirements.map((item, index) => `${index + 1}. ${item}`).join('\n');
+      setErr(`Complete these details before submitting: ${missingReportRequirements.join(' ')}`);
+      Alert.alert('Complete required details', details);
+      return;
+    }
+    if (!photo) return;
     if (!beginAction('creating')) return;
     setErr('');
     let savedSessionId: string | null = null;
@@ -316,9 +333,7 @@ export default function MentorTeachingPhotoEvidence() {
     }
   };
 
-  const canCreate = !busy && !retrySessionId && !!photo && consent && !!selectedLesson &&
-    selectedDisciples.length > 0 && selectedDisciples.length <= MAX_LEARNERS &&
-    notes.trim().length >= 20 && location.trim().length >= 4;
+  const canCreate = !busy && !retrySessionId && missingReportRequirements.length === 0;
   const visibleLessons = lessons.filter(lesson =>
     lesson.title.toLocaleLowerCase().includes(lessonSearch.trim().toLocaleLowerCase())).slice(0, 20);
 
@@ -390,10 +405,17 @@ export default function MentorTeachingPhotoEvidence() {
             disabled={!photo || !consent || busy !== null} onPress={() => void retryPhoto()}>
             <Text style={s.buttonText}>{busy === 'retry' ? 'Uploading...' : 'Retry saved photo'}</Text>
           </Pressable>
-        </> : <Pressable accessibilityRole="button" disabled={!canCreate}
-          style={[s.button, !canCreate && s.disabled]} onPress={() => void createSession()}>
-          <Text style={s.buttonText}>{busy === 'creating' ? 'Saving & uploading...' : 'Submit report with photo'}</Text>
-        </Pressable>}
+        </> : <>
+          {missingReportRequirements.length > 0 && !busy && <Text style={s.hint}>
+            {missingReportRequirements.length} requirement(s) remaining: {missingReportRequirements[0]} Tap below to see all.
+          </Text>}
+          <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy !== null }}
+            disabled={busy !== null} style={[s.button, !!busy && s.disabled]}
+            onPress={() => void createSession()}>
+            <Text style={s.buttonText}>{busy === 'creating' ? 'Saving & uploading...' :
+              canCreate ? 'Submit report with photo' : 'Review requirements to submit'}</Text>
+          </Pressable>
+        </>}
       </View>
 
       <Text style={s.sectionTitle}>My teaching report history</Text>
