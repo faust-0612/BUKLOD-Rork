@@ -249,6 +249,7 @@ BEGIN
     INTO v_active,v_baseline
     FROM private.buklod_character_selection_v2 s WHERE s.user_id=p_user_id;
   v_active:=coalesce(v_active,'phan');
+  v_baseline:=coalesce(v_baseline,0);
   IF v_character IS DISTINCT FROM v_active THEN
     RETURN QUERY SELECT false,1,0::bigint,v_lifetime;
     RETURN;
