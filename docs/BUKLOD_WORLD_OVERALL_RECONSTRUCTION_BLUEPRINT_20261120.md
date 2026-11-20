@@ -55,7 +55,7 @@ Actions: find companions; guided conversation; collaborative learning and play; 
 - **Inventory:** digital goods and quantities owned by account, household or Cluster; gift of items without BP transfer is distinct from sending BP.
 - **Real money:** separate payment compliance, refunds, verification and tax/financial reporting. World BP is not cash, not automatically cashable, and must not generate cash entitlement by conversion.
 - **Character items/XP:** authority remains Character System, not the new property service.
-- **User-funded BP top-ups:** optional future feature, off by default and subject to Google Play payments rules, local regulations, redemption/transfer restrictions and policy approvals. “Sell it outside the app” is NOT itself a Play Billing exemption.
+- **BP SALES PROHIBITED:** BP is minted only from verified active participation in canonical reward systems, and qualifying community treasury progress. No app or external BP purchase, conversion or paid shortcuts to QMP.
 
 ### E2. Catalog structure
 `item_sku`, `category`, `display_name`, `base_unit` (pc/kg/liter/bag/sheet/bundle/set/m2), `unit_precision`, `pack_size`, `pack_discount`, `sample_price_bp` until approved, `mass/storage_weight`, `asset_pack_id`, `tags`, `tradeable`, `giftable`, `vendor_type`, `quality_tier`, `approved_version`.
@@ -66,15 +66,15 @@ Every material has **BP item value**. Tasks may award validated BP and/or discre
 
 ### E3. Transaction matrix
 1. **World store purchase**: account BP debited to system; inventory delivered atomically; no person-to-person QMP transfer penalty.
-2. **User-to-user item sale**: buyer spendable BP debit; seller spendable BP credit; seller item debit; buyer item credit; buyer's outgoing BP invokes a **policy-versioned QMP adjustment** only when policy approved. Never award seller QMP or lifetime earned BP for received transferred BP.
-3. **BP gift**: sender BP debit, recipient BP credit, applicable sender QMP adjustment. Idempotent; show before confirmation. No new recipient qualified QMP.
+2. **User-to-user item sale**: buyer BP debit, seller BP credit, matching item transfer. This is a genuine purchase, eligible for buyer spend-QMP under approved future policy, NOT a BP gift penalty. Seller does not receive earned rank or QMP merely from BP transfer.
+3. **BP gift**: sender BP debit, recipient Available BP credit; no Lifetime Earned BP/rank/XP/positive QMP. Any separate sender gift-QMP deduction remains unapproved and must never be applied to purchases.
 4. **Item gift**: ownership transfer of inventory only; no BP transfer and therefore no *transfer-derived* QMP deduction.
 5. **Community contribution**: BP or item contribution belongs to a named project/treasury; receipts and member rights are explicit. BP transfers to treasury need policy definition.
 6. **Blueprint construction**: reserve required materials and BP, verify land zoning/capacity, then commit a single construction event; no hidden charges.
 7. **Craft/produce/harvest**: deterministic capped recipe/yield, cooldown or task verification; item movement in inventory ledger; cannot mint new qualified BP or QMP without a separate canonical award rule.
 8. **Refund/chargeback**: compensating journal with original idempotent receipt references; no destructive history rewriting.
 
-**QMP deduction policy remains BLOCKED FOR ACTIVATION** until owner approves actual formula, monthly caps/minimums, recipient rules, community treasury exceptions, closed period behavior, and finance simulation against live historical aggregates. No negative or retrospective finalized QMP; no transaction without clear pre-confirmation cost preview.
+**Optional sender QMP deduction for gifts is BLOCKED FOR ACTIVATION** pending explicit owner formula and review; no gift-deduction is applied to a legitimate purchase. Positive purchase-QMP also remains blocked pending approved server rules and Finance simulation. No negative or retrospective finalized QMP; no transaction without clear pre-confirmation cost preview.
 
 ### E4. Core accounting invariants
 All state transitions server-transactional; immutable dual entry for BP user-to-user flows; matching item ownership ledger; policy version and reason code required; quote expires; stale price invalidates quote; balance never goes negative; same idempotency key cannot post twice; concurrent buyers cannot double-spend or oversell. RLS does not use user metadata for authorities. Admin restrictions extend to new world ledger; current production admin remains excluded from financial rewards.
@@ -122,6 +122,25 @@ Lifetime BP and Character rank remain historical/progression authorities and are
 **Illustration ONLY:** if user earns 600 BP in existing tasks and uses 500 earned BP to buy real virtual construction materials at an illustrative 100 eligible BP/1 QMP policy, the purchase might create 5 capped QMP. Sending 500 BP as a voluntary gift creates **0 positive purchase QMP** and may have a separate sender deduction only if later approved. The user receives no guaranteed cash; revenue-share weight applies only to an approved and finalized monthly pool.
 
 
+
+### E6. Cluster BP Treasury and Real-World Community Challenges (owner direction Nov 21)
+
+**Cluster has its own earned BP balance, separate from personal member BP. No BP sales, no member wagers, no loser-funded prize.**
+
+- Verified participation earns BP normally for the member. A single authenticated source receipt may separately generate a bounded community-progress BP grant for ONE designated verified Cluster. This does not deduct any personal BP or create personal QMP/XP/rank. Indicative DEV grant: 10 Cluster BP per 100 member-earned BP, capped at 30 per activity receipt and 200 per contributing member/Cluster/month. Final issuance policy and caps need economy simulation.
+- Avoid multiple credits from one member event across overlapping Cluster/Organization memberships, historically accumulated rank, app taps without BP award, or duplicate receipts. Awards begin only from approved policy activation; no retroactive mass mint.
+- Cluster BP is the same BP unit but belongs to a separate community **treasury ledger**: progress grants + winning challenge awards - community improvements - outgoing challenge awards - currently reserved prizes. Community funds must never appear in the founder's personal Available BP or earned BP.
+- A hosting Cluster may create a skill/real-world-impact challenge and offer a fixed reward from its **own Cluster treasury**, already reserved at announcement time. Losing teams and their members contribute **zero BP stake**; there is no winner-takes-loser-balance.
+- Prize settlement transfers BP from sponsor's reserved community treasury to the winning community treasury, preserving total BP. No new BP is created on victory. If sponsor itself wins, release reservation without self-transfer. No direct individual BP, Lifetime BP/rank, Character XP or QMP award results from the treasury receipt.
+- Community funds may purchase virtual community property, road, farms, materials, hall, improvements, and other approved catalog items. These purchases cannot be claimed as personal spend-QMP of leaders. Member-owned and community-owned balances remain isolated.
+- Rewards are verified through signed, independent adjudication only: published goal/rubric; baseline/during/after evidence; project outcome metrics; optional beneficiary consent and receipts; and neutral independent reviewer with conflict-of-interest checks. Both competitors' approvals alone are INSUFFICIENT. Barangay permission is not proof of completion; an issued completion certificate requires independent issuer confirmation. Photos, EXIF and paperwork are manipulable; no method can guarantee 100% authenticity.
+- Block reused evidence, private evidence leaks, out-of-window submissions, collusion/reciprocal approvals, duplicate settlement, unfinished disputes, false documents and unsafe projects. Keep private files private; Wall only shows appropriately consented and redacted project highlights.
+- Final process: draft challenge -> verify available host treasury -> reserve sponsor BP -> accept projects -> execute real project -> upload private evidence -> verify by disinterested reviewer -> final challenge determination -> dispute/appeal window -> atomic community-to-community BP award. All money/rewards actions are server-only with immutable ledger and idempotency.
+- Challenges are based on demonstrated work/skill/impact, not random outcomes. No BP purchase removes a major concern but does not automatically settle every legal/platform issue; complete review before enabling production contests.
+- Existing Cluster/Organization membership, public challenge posting, Bayanihan and Formation action systems remain canonical. Add missing evidence and treasury logic as an extension, not a parallel community messaging implementation.
+
+**DEV-only source:** src/features/world/worldCommunityTreasury.ts (member progress, balances, sponsor award quotes) and src/features/world/worldCommunityChallenges.ts (independent proof gate); flags remain OFF and neither one settles a real BP transfer.
+
 ## F. House blueprints, building and customization
 World property editor must be a **premium scene renderer**, NOT a collection of emoji/flat icons/color panels.
 - Curated architecture series: starter bungalow -> family residence -> villa -> mansion; alternate industrial/rural/subdivision options. On blueprint selection show virtual land area needed, footprint, materials by exact quantity, inventory available, deficits, BP price and style variants.
@@ -146,7 +165,7 @@ Workshops produce exact items from recipes and energy/fuel; transactions atomica
 ## H. Two markets, and optional real money
 **World Market**: virtual BP-priced inventory, land/house cosmetic catalog, resource trade, auctions only if later legally cleared, maker commissions/transaction policy version. Prevent self-dealing, circular trades, automated wash-trading, abusive multi-account BP laundering, negative stock and duplicate receipts.
 **Real BUKLOD Market**: existing Market Focus App sells physical goods and services for fiat; separately verified business identity, delivery/return/dispute handling, taxes and payment provider compliance. Never mingle World inventory with physical orders.
-**Future paid BP acquisition**: separate opt-in monetization proposal, disabled; confirm Google Play Billing policies, eligibility for alternative billing, and financial/legal controls before any activation. Purchased BP cannot masquerade as earned participation or qualified QMP.
+**BP sales permanently excluded from the approved world design.** Virtual BP comes from verified participation; its transfer between users is not new issuance. The real-goods Market remains a separate fiat business.
 
 ## I. Governance and trust
 - Distinguish character/Kingdom royal rank (cosmetic), world development titles (earned accomplishments), elected Cluster officers (limited scope governance), verified real Government agency staff (government authority).
@@ -170,9 +189,9 @@ Workshops produce exact items from recipes and energy/fuel; transactions atomica
 - First reconcile main + current Genesis DEV + release-candidate branches; use additive changes, explicit feature flags and merge conflict review. No wholesale overwrite of the many concurrent DEV/Genesis branches.
 - Phase 0 **DEV gateway**: purpose-first Home, discovery registry, preview-only economy and personalization contracts, regression tests. No Supabase migrations, no native dependencies, no financial mutations. **Current session target.**
 - Phase 1 **world map renderer**: premium authored world atlas and location cards; optional scene preview, local cosmetics and accessibility/performance. Real land remains gated.
-- Phase 2 **property and inventory backend**: migrations staged, security tests, owned/non-owned isolation, race/idempotency tests; paid currency still disabled.
+- Phase 2 **property and inventory backend**: staged migrations, security, owner isolation and race/idempotency tests; no paid-BP acquisition exists.
 - Phase 3 **build/farm/home visits**: approved premium 3D/2.5D scene assets, Bahay integration, offline draft recovery, permissions, in-world social actions.
-- Phase 4 **world market and policy**: cost/versioned BP catalog and trades, explicit QMP formula, Finance QA, anti-fraud and manual owner decision on monetization.
+- Phase 4 **world market and policy**: catalog, earned-only BP trades, purchase-QMP Finance QA and anti-fraud; no selling of BP.
 - Phase 5 **governance/online multiplayer**: consented presence, election service, co-owner controls, moderation and safety pilots.
 - Release only via DEV -> verified RC -> staging OTA/APK (as compatible) -> production approval; protect AdMob first-view, instant tab navigation, navigation state, Wall/Connect functionality and release identity. Never claim a design-only visual is a finished delivered asset.
 
