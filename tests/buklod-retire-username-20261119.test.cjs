@@ -1,0 +1,72 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {readFileSync} = require('node:fs');
+const read = p => readFileSync(p,'utf8');
+const register=read('src/app/(auth)/register.tsx');
+const login=read('src/app/(auth)/login.tsx');
+const backend=read('supabase/migrations/20261119221000_buklod_retire_username_login_migration_v1.sql');
+const outbound=read('supabase/migrations/20261119222500_buklod_external_login_dormancy_notices_v1.sql');
+const migrator=read('supabase/functions/buklod-legacy-contact-migrate/index.ts');
+const sender=read('supabase/functions/buklod-contact-notices/index.ts');
+const member=read('src/components/LegacyLoginContactMigration.tsx');
+const admin=read('src/components/AdminLegacyLoginSummary.tsx');
+const settings=read('src/app/settings/index.tsx');
+const security=read('src/app/account/security.tsx');
+const privacy=read('src/app/admin/privacy/index.tsx');
+const stored=read('src/lib/buklodSuggestedLoginStorage.ts');
+
+test('new account registration accepts only email/mobile even for stale app releases',()=>{
+ assert.match(register,/type LoginMethod = 'mobile' \| 'email';/);
+ assert.doesNotMatch(register,/\['username',\s*'Username'\]/);
+ assert.doesNotMatch(register,/loginMethod ===\s*'username'/);
+ assert.match(register,/if \(loginMethod !== 'mobile' && loginMethod !== 'email'\)/);
+ assert.match(backend,/before insert on auth\.users/);
+ assert.match(backend,/buklod_reject_new_username_signup_v1/);
+ assert.match(backend,/new\.raw_user_meta_data->>'login_method'/);
+ assert.match(backend,/@buklod\\\.invalid/);
+});
+test('old username accounts retain a recovery path without altering account IDs',()=>{
+ assert.match(login,/LEGACY USERNAME RECOVERY/);
+ assert.match(login,/!legacyUsernameMode && !credentialsOverride\?\.suggestedUserId/);
+ assert.match(login,/legacyUsernameLogin \? '\/account\/security'/);
+ assert.match(security,/<LegacyLoginContactMigration \/>/);
+ assert.match(settings,/profile\?\.login_method==='username'/);
+ assert.match(member,/buklod-legacy-contact-migrate/);
+ assert.match(backend,/update public\.profiles/);
+ assert.doesNotMatch(backend,/\bdelete\s+from\s+(auth\.users|public\.profiles)/i);
+ assert.match(migrator,/admin\.auth\.admin\.updateUserById\(user!\.id/);
+ assert.match(migrator,/p_user_id:user!\.id/);
+});
+test('fresh password + destination OTP required before linking',()=>{
+ assert.match(migrator,/auth\.signInWithPassword/);
+ assert.match(migrator,/reauth\?\.user\?\.id!==user\.id/);
+ assert.match(migrator,/sixDigit\(\)/);
+ assert.match(migrator,/otp_hash/);
+ assert.match(migrator,/sha256|SHA-256/);
+ assert.match(migrator,/attempts>=5/);
+ assert.match(migrator,/Date\.now\(\)\+10\*60_000/);
+ assert.match(migrator,/action==='finalize'/);
+ assert.match(migrator,/ALREADY_PENDING/);
+ assert.match(backend,/status in \('VERIFIED','COMPLETED'\)/);
+ assert.match(backend,/Server service authorization required/);
+});
+test('optional contact delivery is disabled until configured, audited and not mistaken for delivery',()=>{
+ assert.match(backend,/legacy_reminders_enabled boolean not null default false/);
+ assert.match(backend,/external_reminders_enabled boolean not null default false/);
+ assert.match(sender,/BUKLOD_CONTACT_NOTICE_DELIVERY_ENABLED/);
+ assert.match(sender,/RESEND_API_KEY/);
+ assert.match(sender,/TWILIO_MESSAGING_SERVICE_SID/);
+ assert.match(sender,/deliveryVerified:0,noticeClockStarted:0/);
+ assert.match(outbound,/PROVIDER_ACCEPTED/);
+ assert.match(outbound,/notices_v1/);
+ assert.doesNotMatch(outbound,/set verified_external_notice_at/);
+ assert.match(outbound,/grant execute on function public\.buklod_claim_external_contact_notices_v1/);
+ assert.match(admin,/legacy_remaining/);
+ assert.match(privacy,/<AdminLegacyLoginSummary \/>/);
+});
+test('on-device saved username is replaced and stored secret cleared',()=>{
+ assert.match(member,/relinkSavedSuggestedLoginContact/);
+ assert.match(stored,/identifier,hasPassword:false/);
+ assert.match(stored,/removeSecret\(suggestedLoginPasswordKey\(userId\)\)/);
+ assert.match(stored,/BUKLOD_REMEMBERED_CREDENTIALS_KEY/);
+});

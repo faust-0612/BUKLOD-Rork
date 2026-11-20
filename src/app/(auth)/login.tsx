@@ -632,6 +632,7 @@ function SuggestedLoginAvatar({
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const [identifier, setIdentifier] = useState('');
+  const [legacyUsernameMode, setLegacyUsernameMode] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1038,7 +1039,7 @@ const chooseSuggestedLogin =
       triggerShake();
       return Alert.alert(
         'BUKLOD',
-        'Enter your Mobile Number, Username, or Email and your password.'
+        'Enter your mobile number or email and password. For an older username-only account, choose Legacy Username Recovery.'
       );
     }
 
@@ -1115,16 +1116,20 @@ const chooseSuggestedLogin =
 
           null;
       } else {
+        if (!legacyUsernameMode && !credentialsOverride?.suggestedUserId) {
+          releaseLogin('Only mobile number or email is accepted for normal login. Use Legacy Username Recovery to migrate an older account.');
+          return Alert.alert('Username login retired', 'For your existing username account, choose Legacy Username Recovery below. Your old account and records are preserved.');
+        }
         const username = normalizeUsername(raw);
 
         if (!username) {
           releaseLogin(
-            'Enter a valid mobile number, username, or email.'
+            'Enter a valid mobile number, email, or legacy username.'
           );
 
           return Alert.alert(
             'BUKLOD',
-            'Enter a valid Mobile Number, Username, or Email.'
+            'Enter a valid mobile number, email, or legacy username.'
           );
         }
 
@@ -1351,9 +1356,8 @@ const chooseSuggestedLogin =
      * Existing-session app reopen is handled by src/app/index.tsx
      * and remains the Public Community Wall.
      */
-    router.replace(
-      '/(tabs)/buklod'
-    );
+    const legacyUsernameLogin = !raw.includes('@') && !normalizePhilippinePhone(raw);
+    router.replace(legacyUsernameLogin ? '/account/security' as any : '/(tabs)/buklod');
 
 
     /*
@@ -1579,23 +1583,36 @@ const chooseSuggestedLogin =
         >
           <LoginMotionFadeUp delay={140} duration={240} fromOpacity={0.78}>
           <Text style={styles.label}>
-            Sign in with your mobile number, username,
-            or email — all BUKLOD apps use the same login.
+            Sign in with your mobile number or email. Existing username-only members can migrate securely.
           </Text>
 
           <Text style={styles.help}>
-            Use the login identifier you selected when you created your account.
+            Use your registered mobile number or email.
           </Text>
 
           <TextInput allowFontScaling
             value={identifier}
             onChangeText={setIdentifier}
-            placeholder="Mobile / Username / Email"
+            placeholder={legacyUsernameMode ? "Existing username (migration only)" : "Mobile / Email"}
             keyboardType="default"
             autoCapitalize="none"
             autoCorrect={false}
             style={styles.input}
           />
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { setLegacyUsernameMode(value => !value); setIdentifier(''); setPassword(''); }}
+            disabled={busy}
+            style={{ paddingVertical: 9, alignSelf: 'flex-start' }}
+          >
+            <Text style={{ color: colors.greenDark, fontWeight: '800', fontSize: 12 }}>
+              {legacyUsernameMode ? 'BACK TO MOBILE / EMAIL LOGIN' : 'LEGACY USERNAME RECOVERY — existing members only'}
+            </Text>
+          </Pressable>
+          {legacyUsernameMode && <Text style={styles.help}>
+            Mag-sign in gamit ang dating username at password. Pagkatapos, ilipat ang login sa verified email o mobile number sa Account Security. Hindi mawawala ang account, posts, o points.
+          </Text>}
 
           <Text style={styles.label}>Password</Text>
 

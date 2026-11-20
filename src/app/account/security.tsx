@@ -15,6 +15,8 @@ import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { supabase } from '@/lib/supabase';
+import MemberDormancyReview from '@/components/MemberDormancyReview';
+import LegacyLoginContactMigration from '@/components/LegacyLoginContactMigration';
 import { colors } from '@/lib/theme';
 
 type RecoveryStatus = {
@@ -137,6 +139,9 @@ export default function AccountSecurityScreen() {
             <Text style={styles.secondaryText}>{recovery.pinConfigured ? 'MANAGE RECOVERY PIN' : 'SET UP RECOVERY PIN'}</Text>
           </Pressable>
         </View>
+
+        <LegacyLoginContactMigration />
+        <MemberDormancyReview />
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>If you lose access later</Text>

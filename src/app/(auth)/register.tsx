@@ -50,10 +50,7 @@ type Group = {
   code: string | null;
 };
 
-type LoginMethod =
-  | 'mobile'
-  | 'username'
-  | 'email';
+type LoginMethod = 'mobile' | 'email';
 
 function normalizePhilippinePhone(
   value: string
@@ -76,25 +73,6 @@ function normalizePhilippinePhone(
   return null;
 }
 
-function normalizeUsername(
-  value: string
-) {
-  const username =
-    value.trim().toLowerCase();
-
-  if (
-    username.length < 3 ||
-    username.length > 30 ||
-    !/^(?=.*[a-z])[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(
-      username
-    )
-  ) {
-    return null;
-  }
-
-  return username;
-}
-
 function mobileInternalEmail(
   phone: string
 ) {
@@ -102,12 +80,6 @@ function mobileInternalEmail(
     /\D/g,
     ''
   )}@buklod.invalid`;
-}
-
-function usernameInternalEmail(
-  username: string
-) {
-  return `u.${username}@buklod.invalid`;
 }
 
 function buildFullName(
@@ -683,6 +655,7 @@ useEffect(() => {
   const chooseLoginMethod = (
     method: LoginMethod
   ) => {
+    if (method !== 'mobile' && method !== 'email') return;
     setLoginMethod(method);
     setLoginIdentifier('');
   };
@@ -698,6 +671,10 @@ useEffect(() => {
 
   const createAccount =
     async () => {
+      // New username-based accounts are no longer accepted.
+      if (loginMethod !== 'mobile' && loginMethod !== 'email') {
+        return Alert.alert('Choose login', 'Use your mobile number or email address.');
+      }
       if (
         !firstName.trim() ||
         !surname.trim() ||
@@ -760,46 +737,6 @@ useEffect(() => {
           );
         profileMobile = phone;
         publicLoginValue = phone;
-      } else if (
-        loginMethod ===
-        'username'
-      ) {
-        username =
-          normalizeUsername(
-            loginIdentifier
-          );
-
-        if (!username) {
-          return Alert.alert(
-            'Username',
-            'Use 3-30 characters, include at least one letter, and use only letters, numbers, dot, underscore, or hyphen.'
-          );
-        }
-
-        authEmail =
-          usernameInternalEmail(
-            username
-          );
-        publicLoginValue =
-          username;
-
-        if (
-          contactMobile.trim()
-        ) {
-          const phone =
-            normalizePhilippinePhone(
-              contactMobile
-            );
-
-          if (!phone) {
-            return Alert.alert(
-              'Contact Mobile',
-              'Enter a valid Philippine mobile number or leave it blank.'
-            );
-          }
-
-          profileMobile = phone;
-        }
       } else {
         const email =
           loginIdentifier
@@ -1036,26 +973,17 @@ useEffect(() => {
   const loginMethodLabel =
     loginMethod === 'mobile'
       ? 'Mobile Number *'
-      : loginMethod ===
-        'username'
-      ? 'Username *'
       : 'Email Address *';
 
   const loginPlaceholder =
     loginMethod === 'mobile'
       ? '09171234567'
-      : loginMethod ===
-        'username'
-      ? 'e.g. juandelacruz'
       : 'name@example.com';
 
   const loginHelp =
     loginMethod === 'mobile'
       ? 'Use 09XXXXXXXXX or +639XXXXXXXXX.'
-      : loginMethod ===
-        'username'
-      ? '3-30 characters; include at least one letter. No spaces.'
-      : 'No confirmation email will be required.';
+      : 'Use a valid email that you can access for notices and recovery.';
 
   return (
     <KeyboardAvoidingView
@@ -1090,7 +1018,7 @@ useEffect(() => {
           </Text>
 
           <Text style={styles.subtitle}>
-            Choose Mobile Number, Username, or Email for your login. No confirmation is required.
+            Choose your mobile number or email address as your login. Username login has been retired for new accounts.
           </Text>
         </View>
 
@@ -1175,8 +1103,7 @@ useEffect(() => {
           <Text style={styles.advisoryText}>
             Using your real email makes it easier to confirm
             your account and recover access if you forget your
-            password. Mobile and username still work across all
-            BUKLOD apps.
+            password. Mobile and email are the supported new login methods.
           </Text>
         </View>
 
@@ -1190,10 +1117,6 @@ useEffect(() => {
               [
                 'mobile',
                 'Mobile',
-              ],
-              [
-                'username',
-                'Username',
               ],
               ['email', 'Email'],
             ] as const
@@ -1253,13 +1176,7 @@ useEffect(() => {
             setLoginIdentifier
           }
           keyboardType={
-            loginMethod ===
-            'mobile'
-              ? 'phone-pad'
-              : loginMethod ===
-                'email'
-              ? 'email-address'
-              : 'default'
+            loginMethod === 'mobile' ? 'phone-pad' : 'email-address'
           }
           autoCapitalize="none"
           autoCorrect={false}
