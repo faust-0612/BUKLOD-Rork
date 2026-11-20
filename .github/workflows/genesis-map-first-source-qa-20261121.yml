@@ -19,7 +19,7 @@ jobs:
   source-check:
     if: ${{ github.ref == 'refs/heads/dev/season2-world-map-navigation-conso-20261121' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 22
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,6 +38,10 @@ jobs:
           node scripts/genesis-conso-staging-ota-preflight.mjs
           node scripts/genesis-map-reconstruction-preflight.mjs
           node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+      - name: Locked dependencies and complete TypeScript compile (no APK)
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
       - name: Source-only completion — never build or publish
         run: |
           echo "READ-ONLY SOURCE QA. No EAS, database migration, APK, OTA or production release."
