@@ -29,12 +29,12 @@ test('stage workflow has nonprod source, hosted identity, and no OTA push',()=>{
  assert.doesNotMatch(w,/--profile production/);
  assert.doesNotMatch(w,/track[:=]production|channel[:=]production/i);
 });
-test('staged native features are declared; no false Godot or PlayCore claims',()=>{
+test('new Genesis native integrations are source-only until signed APK and actual device acceptance',()=>{
  const inv=JSON.parse(read('release/genesis-native-build-inventory-20261120.json'));
  assert.equal(inv.signedApk.exists,false);
- for(const id of ['native-media3-compression','godot-android-3d','play-core-in-app-update']){
+ for(const id of ['native-media3-compression','godot-android-3d','drive-oauth-cloud-sync','play-core-in-app-update']){
   const row=inv.nativeFeatures.find(x=>x.id===id);
-  assert.equal(row.status,'held-no-implementation',id);
+  assert.equal(row.status,'native-source-uncompiled',id);
  }
  for(const name of ['@rive-app/react-native','@shopify/react-native-skia','expo-audio','expo-updates']){
   assert.ok(JSON.parse(read('package.json')).dependencies[name],name);

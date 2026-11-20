@@ -43,7 +43,12 @@ test('the reviewed foundations and explicit release-risk gates cannot be silentl
  ])assert.ok(existsSync(new URL('../'+path,import.meta.url)),path+' omitted');
  const approved=JSON.parse(read('assets/season2/genesis/sources.json'));
  assert.equal(approved.releaseStatus,'SOURCE_DISCOVERY_ONLY_NO_BINARY_IMPORT');
- assert.ok(inventory.nativeFeatures.some(x=>x.id==='godot-android-3d'&&x.status==='held-no-implementation'));
- assert.ok(inventory.nativeFeatures.some(x=>x.id==='drive-oauth-cloud-sync'&&x.status==='held-credentials'));
+ for(const id of ['native-media3-compression','godot-android-3d','drive-oauth-cloud-sync','play-core-in-app-update']){
+   const row=inventory.nativeFeatures.find(x=>x.id===id);
+   assert.equal(row?.status,'native-source-uncompiled',id+' must be native source only, not a release claim');
+ }
+ assert.equal(inventory.buildReady,false);
+ assert.equal(inventory.releaseReady,false);
+ assert.equal(inventory.signedApk.exists,false);
  assert.ok(inventory.requiredChecks.some(x=>/AdMob/.test(x)));
 });

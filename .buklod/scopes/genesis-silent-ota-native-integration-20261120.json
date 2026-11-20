@@ -34,7 +34,9 @@
     "tests/genesis-media3-native-foundation-20261120.test.mjs",
     "tests/genesis-godot-native-foundation-20261120.test.mjs",
     "tests/genesis-drive-native-foundation-20261120.test.mjs",
-    "tests/genesis-android-compile-smoke-release-20261120.test.mjs"
+    "tests/genesis-android-compile-smoke-release-20261120.test.mjs",
+    "tests/genesis-native-build-inventory-20261120.test.mjs",
+    "tests/genesis-staging-native-apk-release-20261120.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodOtaFreshnessHost.native.tsx",
@@ -76,7 +78,9 @@
     "modules/buklod-genesis-drive-auth/android/src/main/java/expo/modules/buklodgenesisdrive/BuklodGenesisDriveAuthModule.kt",
     "modules/buklod-genesis-drive-auth/index.ts",
     "tests/genesis-drive-native-foundation-20261120.test.mjs",
-    "tests/genesis-android-compile-smoke-release-20261120.test.mjs"
+    "tests/genesis-android-compile-smoke-release-20261120.test.mjs",
+    "tests/genesis-native-build-inventory-20261120.test.mjs",
+    "tests/genesis-staging-native-apk-release-20261120.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -121,7 +125,8 @@
     "Media3 1.11.1 native source compiles and is available only as opt-in preview; video output accepted only if smaller; real codec/heat/battery and feed-ad QA remains pending",
     "Official Godot 4.7.2 AAR must compile and be app-private SHA-verified, non-exported, separate process; no unapproved asset or scene activation",
     "Drive native consent is opt-in/Android preview only; SHA/OAuth registration and verified Google subject binding must precede any direct Drive request; token never persisted",
-    "ARM64 source/native compile smoke is explicitly non-release evidence; full EAS multi-ABI and real device checks mandatory before APK OTA publication"
+    "ARM64 source/native compile smoke is explicitly non-release evidence; full EAS multi-ABI and real device checks mandatory before APK OTA publication",
+    "Legacy native inventory/release CI tests must assert SDK source compiled only after actual Gradle and signed evidence; never gate on obsolete held-not-implemented statuses"
   ],
   "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
   "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",

@@ -17,11 +17,13 @@ test('offline native compile workflow deliberately cannot publish a release',()=
  assert.doesNotMatch(w,/\beas-cli\b|\beas build\b|\beas update\b|\bactions\/upload-artifact\b/);
  assert.doesNotMatch(w,/\bapply_migration\b|\bexecute_sql\b/);
 });
-test('compiled candidate only includes real native library declarations, without false 3D claim',()=>{
+test('Godot foundation is included as a dormant native module, not a verified or playable 3D scene',()=>{
  const pkg=JSON.parse(read('package.json'));
  for(const dep of ['@rive-app/react-native','@shopify/react-native-skia','expo-audio','expo-updates','react-native-reanimated'])
   assert.ok(pkg.dependencies[dep],dep);
  const inv=JSON.parse(read('release/genesis-native-build-inventory-20261120.json'));
  assert.equal(inv.signedApk.exists,false);
- assert.equal(inv.nativeFeatures.find(x=>x.id==='godot-android-3d').status,'held-no-implementation');
+ assert.equal(inv.nativeFeatures.find(x=>x.id==='godot-android-3d').status,'native-source-uncompiled');
+ assert.equal(inv.nativeFeatures.find(x=>x.id==='drive-oauth-cloud-sync').status,'native-source-uncompiled');
+ assert.equal(inv.releaseReady,false);
 });
