@@ -16,6 +16,7 @@ const valid=(overrides: Partial<WorldQmpSpendEvent> = {}):WorldQmpSpendEvent=>({
   giftedEarnedBpDebited:0,
   purchasedBpDebited:0,
   giftedPurchasedBpDebited:0,
+  qmpEligibleBpDebited:500,
   source:'world',
   settledByServer:true,
   state:'fulfilled',
@@ -73,6 +74,11 @@ describe('BUKLOD spend-driven QMP — disabled DEV policy preview',()=>{
     },[]).qualifies).toBe(false);
   });
 
+  it('exhausted BP remains spendable but cannot mint repeat QMP',()=>{
+    const oldSpend=valid({bpDebited:500,earnedBpDebited:500,qmpEligibleBpDebited:0});
+    expect(previewWorldQmpFromBpSpend(oldSpend,[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({qmpEligibleBpDebited:501}),[]).qualifies).toBe(false);
+  });
   it('rejects unverified transactions, refunds, self-trade and negative amounts',()=>{
     expect(previewWorldQmpFromBpSpend(valid({settledByServer:false}),[]).qualifies).toBe(false);
     expect(previewWorldQmpFromBpSpend(valid({state:'pending'}),[]).qualifies).toBe(false);
@@ -96,7 +102,7 @@ describe('BUKLOD spend-driven QMP — disabled DEV policy preview',()=>{
   });
 
   it('has per-receipt, per-category, and overall monthly caps',()=>{
-    const p=previewWorldQmpFromBpSpend(valid({bpDebited:100000,earnedBpDebited:100000}),[]);
+    const p=previewWorldQmpFromBpSpend(valid({bpDebited:100000,earnedBpDebited:100000,qmpEligibleBpDebited:100000}),[]);
     expect(p.qualifies).toBe(true);
     if(p.qualifies)expect(p.proposedWeight).toBe(WORLD_QMP_POLICY_DRAFT.perPurchaseCap);
     const categoryCap=[{receiptId:'past',actorId:'user-a',period:'2026-12',
