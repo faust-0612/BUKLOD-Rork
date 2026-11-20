@@ -41,7 +41,7 @@ export default function CharacterEvolutionScreen() {
   }, [refresh]));
   useEffect(() => { setState(null); }, [userId]);
   const s = StyleSheet.create({
-    screen: { flex: 1, backgroundColor: theme.background },
+    screen: { flex: 1, backgroundColor: theme.canvas },
     content: { paddingVertical: 20, paddingBottom: 48 },
     headingRow: { paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
     title: { flex: 1, fontSize: 18, fontWeight: '900', color: theme.textPrimary },
