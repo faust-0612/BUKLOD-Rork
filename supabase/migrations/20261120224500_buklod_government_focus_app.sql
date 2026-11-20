@@ -277,3 +277,37 @@ grant select,insert,delete on public.buklod_government_follows to authenticated;
 grant select,insert on public.buklod_government_cases to authenticated;
 grant update(status,assigned_to,updated_at) on public.buklod_government_cases to authenticated;
 grant select,insert on public.buklod_government_case_events to authenticated;
+
+-- Atomic case transition with status history and duplicate-request protection.
+alter table public.buklod_government_case_events add column if not exists client_key uuid;
+create unique index if not exists buklod_gov_case_event_idempotency_idx
+on public.buklod_government_case_events(case_id,actor_id,client_key)
+where client_key is not null;
+
+create or replace function public.buklod_government_case_transition_v1(
+ p_case_id uuid,p_status text,p_note text,p_client_key uuid)
+returns boolean language plpgsql security definer set search_path=''
+as $$
+declare v_actor uuid:=auth.uid(); v_case public.buklod_government_cases%rowtype;
+  v_staff boolean;
+begin
+ if v_actor is null or p_client_key is null then raise exception 'Authentication and idempotency key required'; end if;
+ if p_status not in ('ACKNOWLEDGED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED','ESCALATED')
+  or char_length(btrim(coalesce(p_note,''))) not between 2 and 2500 then raise exception 'Invalid case update'; end if;
+ select * into v_case from public.buklod_government_cases where id=p_case_id for update;
+ if not found then raise exception 'Case not found'; end if;
+ v_staff:=buklod_government_private.has_role(v_case.entity_id,array['OWNER','ADMIN','CONCERN_HANDLER']);
+ if not v_staff and not (v_case.submitted_by=v_actor and p_status='REOPENED' and v_case.status in ('RESOLVED','CLOSED')) then
+  raise exception 'Not authorized to update this case';
+ end if;
+ if not exists(select 1 from public.buklod_government_case_events
+  where case_id=p_case_id and actor_id=v_actor and client_key=p_client_key) then
+   update public.buklod_government_cases set status=p_status,updated_at=now() where id=p_case_id;
+   insert into public.buklod_government_case_events(case_id,actor_id,status,note,client_key)
+   values(p_case_id,v_actor,p_status,btrim(p_note),p_client_key);
+ end if;
+ return true;
+end;
+$$;
+revoke all on function public.buklod_government_case_transition_v1(uuid,text,text,uuid) from public,anon;
+grant execute on function public.buklod_government_case_transition_v1(uuid,text,text,uuid) to authenticated;
