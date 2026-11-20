@@ -64,9 +64,9 @@ export function previewCommunityProgressBp(
     return reject('Invalid original verified progress receipt.');
   if(!event.verifiedByServer||!event.activeMembershipAtEarnTime||event.flagged)
     return reject('Unverified, flagged or non-member participation.');
+  // One source activity can fund ONE designated community; avoid double minting.
   if(history.some(h=>h.eventId===event.receiptId||
-      h.sourceActivityReceiptId===event.sourceActivityReceiptId&&
-      h.communityScopeId===event.community.scopeId))
+      h.sourceActivityReceiptId===event.sourceActivityReceiptId))
     return reject('Already credited from this source activity in this community.');
   const period=event.occurredAt.slice(0,7);
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(period))
