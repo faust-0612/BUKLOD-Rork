@@ -105,6 +105,8 @@ import BuklodWallQuickLinks from '@/components/BuklodWallQuickLinks';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import {noteBuklodVideoScroll, subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodSeason2ProverbsDailyVerse from '@/components/BuklodSeason2ProverbsDailyVerse';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
   buildCommunityFeedWithInlineAds,
@@ -2553,9 +2555,8 @@ const load=useCallback(async(options?:{
       cluster_name:
         clusterMap[p.user_id] ??
         null,
-      author_rank_name:
-        rankMap.get(p.user_id) ??
-        'Circle Starter V',
+      // A missed RPC must not masquerade as a genuine Starter rank.
+      author_rank_name: rankMap.get(p.user_id) ?? null,
       comment_preview:
         p.comment_preview ?? null,
     }));
@@ -5594,6 +5595,8 @@ const communityFeedRows =
     placementId="public_wall_entry"
    />
 
+   {isGenesisPreviewBuild() ? <BuklodSeason2ProverbsDailyVerse /> : null}
+
    {/* BUKLOD_LIVING_COMMUNITY_GREETING_R1: compact celebration banner, ads remain first. */}
    <BuklodLivingGreetingsBanner />
 
@@ -6077,6 +6080,7 @@ const communityFeedRows =
      <BuklodTappableAvatar
        userId={item.user_id}
        name={resolvePersonDisplayName(item.author_name,item.user_id)}
+       rankName={item.author_rank_name}
        size={42}
      />
      <View style={{flex:1,minWidth:0}}>
@@ -6092,7 +6096,7 @@ const communityFeedRows =
            </BuklodTappablePersonName>
            <ProfileAvatarNoteChip userId={item.user_id} />
            <Text style={s.meta} numberOfLines={1}>
-             {item.author_rank_name||'Circle Starter V'}
+             {item.author_rank_name || 'Rank updating'}
              {item.cluster_name ? ` | ${item.cluster_name}` : ''}
              {' | '}
              {String(item.audience||'group').toUpperCase()}
