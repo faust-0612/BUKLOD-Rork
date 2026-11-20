@@ -301,9 +301,11 @@ grant select,insert,update,delete on public.buklod_government_staff to authentic
 grant select on public.buklod_government_publications to authenticated;
 grant select,insert,update,delete on public.buklod_government_services,public.buklod_government_events to authenticated;
 grant select,insert,delete on public.buklod_government_follows to authenticated;
-grant select,insert on public.buklod_government_cases to authenticated;
-grant update(status,assigned_to,updated_at) on public.buklod_government_cases to authenticated;
-grant select,insert on public.buklod_government_case_events to authenticated;
+revoke all on public.buklod_government_cases from authenticated;
+grant select on public.buklod_government_cases to authenticated;
+-- Case changes only through rate-limited, audited, transactional RPCs.
+revoke all on public.buklod_government_case_events from authenticated;
+grant select on public.buklod_government_case_events to authenticated;
 
 -- Atomic case transition with status history and duplicate-request protection.
 alter table public.buklod_government_case_events add column if not exists client_key uuid;
