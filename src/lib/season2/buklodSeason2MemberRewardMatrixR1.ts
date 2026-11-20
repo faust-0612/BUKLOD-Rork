@@ -10,6 +10,16 @@ export type S2BpGroup = 'community'|'learning'|'service'|'game_quiz'|'milestones
 export type S2BpCatalogEntry = Readonly<{
   id:string;title:string;group:S2BpGroup;bp:number;dayCapBP:number|null;condition:string;
 }>;
+/** Faith-category BP entries in the legacy configuration. Non-Show Faith
+ * members never need to complete these for any new Season 2 mission. They
+ * remain visible as historical information; S1 triggers are unchanged. */
+export const S2_LEGACY_FAITH_ONLY_ACTIVITY_KEYS=Object.freeze([
+ 'daily_bible','daily_bible_verification','devotional',
+ 'bible_quiz_easy','bible_quiz_medium','bible_quiz_hard',
+ 'bible_flash_easy','bible_flash_medium','bible_flash_hard',
+ 'bible_arena_monthly','formation_lesson','abc_growth_lesson',
+ 'prayer_response','achievement_bible_scholar',
+] as const);
 export const S2_LEGACY_BP_ACTIVE:readonly S2BpCatalogEntry[] = Object.freeze([
   {
     "id": "abc_growth_lesson",

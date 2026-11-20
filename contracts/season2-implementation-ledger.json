@@ -232,6 +232,23 @@
         "The 1,300 items, 469 badges and 40 rank classifications are canonical names and source rules, not a promise that all are automatically obtainable on December 6.",
         "Only DEV source; independent staging, full CI TypeScript, Android RC, data isolation and owner SHA approval still required."
       ]
+    },
+    {
+      "id": "faith_nonfaith_reward_track_isolation",
+      "status": "DEV_IMPLEMENTED",
+      "requiredForLaunch": true,
+      "evidence": [
+        "src/lib/season2/buklodSeason2RewardTracksR1.ts",
+        "src/components/points/BuklodS2RewardTracksGuide.tsx",
+        "docs/season2/sql/BUKLOD_S2_FAITH_NONFAITH_TRACKS_DRAFT_NOT_DEPLOY.sql",
+        "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
+        "contracts/season2-proposals/faith-nonfaith-rewards-20261120.json"
+      ],
+      "limitations": [
+        "Source-only, separate Show Faith and Non-Show Faith weekly mission and badge eligibility guide; actual backend adapter, historical event-time scope proof and isolated staging SQL/RLS verification remain unimplemented.",
+        "Non-Show Faith comparable BP learning rules are proposed only and require separately verified source integration, not live grants.",
+        "No Season1 points or QMP changes, no released staging/prod OTA, no activated Season2 wallets or awards."
+      ]
     }
   ],
   "governanceReleaseGuard": "DEV_ONLY: Season2 production embargo will also fail on incomplete ledger after date and owner review; not yet merged to main."

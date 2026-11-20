@@ -22,6 +22,11 @@ test('Bible faith and game nonfaith are explicit; ambiguous social activity is s
  assert.match(rules,/server verified activity\/source category/);
  assert.match(rules,/proverbsDailyReadingRewardBP:0/);
 });
+test('Kabihasnang Ligaw reading is shared across Show Faith and Non-Show Faith',()=>{
+ assert.match(rules,/sharedStory=new Set\(\['kl_episode','kl_season'\]\)/);
+ assert.match(rules,/if\(sharedStory\.has\(id\)\)return 'shared'/);
+ assert.match(rules,/id:'shared_kl',lane:'shared'/);
+});
 test('member guide offers lane switch, filters BP and preserves source-only behavior',()=>{
  assert.match(view,/REWARD_LANE_DETAILS\.map/);
  assert.match(view,/rewardLaneForLegacyBp\(item.id\)===lane/);

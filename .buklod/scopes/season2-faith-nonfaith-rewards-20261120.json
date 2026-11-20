@@ -1,0 +1,83 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-faith-nonfaith-rewards-20261120.json",
+  "objective": "Separate Show Faith vs Non-Show Faith Season 2 reward programs by authorized scope, preserve existing BP/QMP/token wallets and all Season1 history, block cross-track duplicate claims, and expose detailed user guidance without activating backend or production.",
+  "baseRef": "dev/season2-dec6-economy-final-prep-20261119",
+  "sourceBranch": "dev/season2-showfaith-nonfaith-reward-split-20261120",
+  "productionBaselineEvidence": "Read-only BUKLOD production-like backend inspection on 2026-11-20: existing buklod_should_show_faith_content(uuid) is auth.uid-scoped and includes CHURCH, CLUSTER admin, ORGANIZATION mandatory faith, and member preference precedence; S2 disabled schema and Season1 active from previous inspection. No Supabase data changed. Base is owner-reviewed reward guide DEV, not production. Reconciled parent DEV branch's three-lane catalog-only filter in PR #997 at SHA 72e12d5a4c1ce532676c816be28350a88a01df9b; retained existing catalog, corrected literary KL as shared, and kept active S2 track derived from scope not catalog toggle.",
+  "productionChange": false,
+  "releaseAuthorized": false,
+  "releaseTarget": "SEASON2_DEV_SOURCE_ONLY",
+  "season2RewardsEnabled": false,
+  "changesToTenExclusives": 0,
+  "season1ChangesAllowed": false,
+  "chosenApproach": "Separate future weekly mission/badge/award eligibility by server-attested user+scope+original-event mode, preserve one immutable original source and common canonical financial/reward wallet; UI follows active scope and never mints.",
+  "selectionRationale": "Avoids religious participation pressure in Non-Show Faith, fake reward claims from a user mode toggle, duplicate credits during scope switching, and destructive Season 1 accounting changes. Dedicated guarded backend schema is drafted but deliberately not installed.",
+  "alternativeApproaches": [
+    "Create fully separate BP/QMP/peso wallets for faith and nonfaith — rejected: duplicates financial balances, rank and monthly payouts and breaks Season1 continuity.",
+    "Allow a member to manually select a reward track independent of source scope — rejected: enables cross-scope farming and fraudulent weekly payouts.",
+    "Auto-assign mode from the current profile preference after the event — rejected: may misclassify historical rewards when users change preference or scope role."
+  ],
+  "preserveBehaviors": [
+    "Legacy Season1 46 active and 16 inactive BP catalog rules and existing QMP/AdMob monetary values are unchanged.",
+    "The canonical Character 1,300 item and 469 badge catalog and all already-owned assets persist.",
+    "Existing Wall, Connect, First View AdMob and instant tabs remain unaffected; reward details remain collapsed and read-only.",
+    "The exact ten approved Season2 exclusive features, Dec 6 embargo and SHA-bound production approval remain unchanged."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-faith-nonfaith-rewards-20261120.json",
+    "contracts/season2-proposals/faith-nonfaith-rewards-20261120.json",
+    "src/lib/season2/buklodSeason2RewardTracksR1.ts",
+    "src/lib/season2/buklodSeason2MemberRewardMatrixR1.ts",
+    "src/components/points/BuklodS2RewardTracksGuide.tsx",
+    "src/components/points/BuklodS2CompleteRewardsReference.tsx",
+    "docs/season2/sql/BUKLOD_S2_FAITH_NONFAITH_TRACKS_DRAFT_NOT_DEPLOY.sql",
+    "docs/season2/BUKLOD_S2_SHOWFAITH_NONFAITH_REWARD_SYSTEM_20261120.md",
+    "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
+    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
+    "src/lib/season2/buklodSeason2RewardLanesR1.ts",
+    "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs",
+    "contracts/season2-implementation-ledger.json"
+  ],
+  "regressionTests": [
+    "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
+    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
+    "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-finance-points",
+    "faith-cluster",
+    "finance-points",
+    "character-inventory",
+    "offline-and-weak-network"
+  ],
+  "acceptanceChecks": [
+    "Show Faith and Non-Show Faith have separate visible mission tables, milestone/optional badge names and four canonical award visual variants.",
+    "The UI mode derives only from active authorized scope display, never grants client-side rewards; absent/stale/suspended scope fails closed.",
+    "Six faith/neutral learning rates are matched by six clearly UNRELEASED nonfaith educational alternatives; no new BP trigger silently activated.",
+    "No private prayer, children milestone or religious affiliation qualifies for spendable tokens or cash.",
+    "Immutable event ID cannot be claimed a second time after switching modes or scopes.",
+    "Only one optional weekly financial/currency bonus per member/week across both modes; two distinct P0 learning/community receipts per valid track.",
+    "Read-only SQL adds no user-accessible RPC, no production migration, all RLS and claim flags OFF.",
+    "Existing complete 7-wallet, 19 reward-family, 1,300 item, 469 badge, 40 ranks and current S1 balances untouched.",
+    "Pass focused Node and protected feature guard, no staging or production publish without separate artifact verification.",
+    "Existing informational Show Faith/Non-Faith/Shared BP taxonomy preserved; KL literary reading is shared across both modes, not forced into faith-only completion.",
+    "Ledger truthfully declares DEV-only faith/nonfaith track isolation with actual verification blockers; no CI/RC/production readiness inflation."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add a collapsed, scope-derived Season 2 member reward track guide with distinct mode rules and no additional network calls or minting.",
+      "preservedBehaviors": [
+        "Existing Season Journey remains collapsed by default, preserving Home/Wall first paint, AdMob first-view and instant navigation.",
+        "All prior complete reward encyclopedia entries, BP/QMP rate catalogs and per-character assets remain available."
+      ],
+      "tests": [
+        "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
+        "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
+        "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
+      ]
+    }
+  ]
+}

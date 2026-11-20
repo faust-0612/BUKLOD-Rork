@@ -7,11 +7,12 @@ import {Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useBuklodI18n} from '@/providers/BuklodI18nProvider';
 import BuklodS2AllItemsBadgesGuide from '@/components/points/BuklodS2AllItemsBadgesGuide';
 import BuklodS2CompleteRewardIndex from '@/components/points/BuklodS2CompleteRewardIndex';
+import BuklodS2RewardTracksGuide from '@/components/points/BuklodS2RewardTracksGuide';
 import {REWARD_LANE_DETAILS,REWARD_LANE_FAMILIES,rewardLaneForLegacyBp,type RewardLane} from '@/lib/season2/buklodSeason2RewardLanesR1';
 import {BUKLOD_SEASON2_WEEKLY_BEATS} from '@/lib/buklodSeason2CampaignR1';
 import {S2_EXCLUSIVE_FEATURES} from '@/lib/season2/buklodSeason2ApprovedScopeR1';
 import {
- S2_MEMBER_GUIDE_SNAPSHOT,S2_LEGACY_BP_ACTIVE,S2_LEGACY_BP_INACTIVE,
+ S2_MEMBER_GUIDE_SNAPSHOT,S2_LEGACY_BP_ACTIVE,S2_LEGACY_BP_INACTIVE,S2_LEGACY_FAITH_ONLY_ACTIVITY_KEYS,
  S2_GUIDE_BP_GROUPS,S2_QMP_EVENTS,S2_QMP_MISSIONS,S2_QMP_TIERS,S2_QMP_QUALIFICATIONS,
  S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE,S2_OPTIONAL_AD_ENERGY_NOT_BP,
  S2_JOURNEY_TOKEN_SOURCES,S2_WEEKLY_CLASSIFICATIONS,S2_COSMETIC_PRICES_PREVIEW,
@@ -22,7 +23,7 @@ import {
  type S2BpGroup
 } from '@/lib/season2/buklodSeason2MemberRewardMatrixR1';
 
-type Tab='all'|'bp'|'qmp'|'season2'|'assets'|'carryover';
+type Tab='tracks'|'all'|'bp'|'qmp'|'season2'|'assets'|'carryover';
 const C={ink:'#173D2B',green:'#126C42',muted:'#526D5E',line:'#D7E8DD',pale:'#F0F9F2',gold:'#946212'};
 const chapters=[1,5,10,20,30] as const;
 const groupCategories:S2BpGroup[]=['community','learning','service','game_quiz','milestones'];
@@ -43,15 +44,15 @@ export default function BuklodS2CompleteRewardsReference(){
  const {locale}=useBuklodI18n(),en=locale==='en';
  const t=(fil:string,english:string)=>en?english:fil;
  const [expanded,setExpanded]=useState(false);
- const [tab,setTab]=useState<Tab>('all');
- const [lane,setLane]=useState<RewardLane>('show_faith');
+ const [tab,setTab]=useState<Tab>('tracks');
+ const [lane,setLane]=useState<RewardLane>('shared');
  const [bpGroup,setBpGroup]=useState<S2BpGroup>('community');
  const [search,setSearch]=useState('');
  const [showInactive,setShowInactive]=useState(false);
  const active=useMemo(()=>S2_LEGACY_BP_ACTIVE.filter(item=>
    item.group===bpGroup&&item.group!=='admin'&&rewardLaneForLegacyBp(item.id)===lane&&
    (item.title+' '+item.id+' '+item.condition).toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
- ),[bpGroup,search]);
+ ),[bpGroup,search,lane]);
  return <View style={s.shell}>
   <Pressable accessibilityRole="button"
     accessibilityLabel="Full Season 1 and Season 2 rewards and requirements guide"
@@ -69,17 +70,21 @@ export default function BuklodS2CompleteRewardsReference(){
     'EXACT GUIDE · Season 1 snapshot '+S2_MEMBER_GUIDE_SNAPSHOT+' · Season 2 target Dec 6; hindi pa live',
     'EXACT GUIDE · Season 1 snapshot '+S2_MEMBER_GUIDE_SNAPSHOT+' · Season 2 Dec 6 target, NOT live'
    )}</Text>
+   {(tab==='all'||tab==='bp')?<View style={{gap:4}}>
+    <Note>CATALOG-ONLY FILTER: Hindi nito binabago ang active scope o anumang reward eligibility. Ang aktuwal na Season 2 track ay ayon sa verified source scope.</Note>
+    <View style={s.tabs}>
+     {REWARD_LANE_DETAILS.map(item=><Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected:lane===item.id}} onPress={()=>setLane(item.id)} style={[s.tab,lane===item.id&&s.tabSelected]}><Text style={[s.tabText,lane===item.id&&s.tabTextSelected]}>{item.title}</Text></Pressable>)}
+    </View>
+    <Note>{REWARD_LANE_DETAILS.find(x=>x.id===lane)?.description}</Note>
+   </View>:null}
    <View style={s.tabs}>
-    {REWARD_LANE_DETAILS.map(item=><Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected:lane===item.id}} onPress={()=>setLane(item.id)} style={[s.tab,lane===item.id&&s.tabSelected]}><Text style={[s.tabText,lane===item.id&&s.tabTextSelected]}>{item.title}</Text></Pressable>)}
-   </View>
-   <Note>{REWARD_LANE_DETAILS.find(x=>x.id===lane)?.description}</Note>
-   <View style={s.tabs}>
-    {([['all',t('LAHAT / GUIDE','ALL / GUIDE')],['bp',t('BUKLOD BP','BUKLOD BP')],['qmp','QMP'],['season2','SEASON 2'],['assets',t('ITEMS / BADGES','ITEMS / BADGES')],['carryover',t('CARRYOVER','CARRYOVER')]] as const).map(([key,label])=>
+    {([['tracks',t('2 REWARD TRACKS','2 REWARD TRACKS')],['all',t('LAHAT / GUIDE','ALL / GUIDE')],['bp',t('BUKLOD BP','BUKLOD BP')],['qmp','QMP'],['season2','SEASON 2'],['assets',t('ITEMS / BADGES','ITEMS / BADGES')],['carryover',t('CARRYOVER','CARRYOVER')]] as const).map(([key,label])=>
      <Pressable key={key} accessibilityRole="button" accessibilityState={{selected:tab===key}}
        onPress={()=>setTab(key)} style={[s.tab,tab===key&&s.tabSelected]}>
        <Text style={[s.tabText,tab===key&&s.tabTextSelected]}>{label}</Text>
      </Pressable>)}
    </View>
+   {tab==='tracks'?<BuklodS2RewardTracksGuide/>:null}
    {tab==='all'?<><Title>{lane==='show_faith'?'SHOW FAITH REWARDS':lane==='non_faith'?'NON-FAITH REWARDS':'SHARED REWARD AUTHORITY'}</Title>{REWARD_LANE_FAMILIES.filter(x=>x.lane===lane).map(x=><Row key={x.id} name={x.title} value={x.status} detail={x.requirement}/>)}<BuklodS2CompleteRewardIndex/></>:null}
    {tab==='bp'?<>
     <Title>{t('BP catalog — naka-filter ayon sa Show Faith / Non-Faith / Shared','BP catalog filtered by Show Faith / Non-Faith / Shared')}</Title>
@@ -98,7 +103,7 @@ export default function BuklodS2CompleteRewardsReference(){
       placeholder={t('Hanapin ang activity…','Search activity…')} placeholderTextColor="#647D6D"
       style={s.input} autoCapitalize="none" autoCorrect={false}/>
     {active.map(item=><Row key={item.id} name={item.title} value={`+${item.bp} BP`}
-      detail={item.condition+(item.dayCapBP===null?'':` · ${item.dayCapBP} BP/day catalog cap`)}/>)}
+      detail={item.condition+(item.dayCapBP===null?'':` · ${item.dayCapBP} BP/day catalog cap`)+((S2_LEGACY_FAITH_ONLY_ACTIVITY_KEYS as readonly string[]).includes(item.id)?' · SHOW FAITH legacy category; see separate Non-Show Faith proposed learning rewards':' · Shared or neutral legacy source')}/>)}
     {!active.length?<Note>{t('Walang tugmang activity.','No matching activity.')}</Note>:null}
     <Title>{t('Proposed social milestone bonuses (NOT LIVE)','Proposed social milestone bonuses (NOT LIVE)')}</Title>
     <Note>{t('Ito ay nasa prior R2 user guide ngunit hindi pa verified bilang active source-authoritative reward; hindi agad na-credit ang additional BP.','These were described in the earlier R2 guide but are not verified as active source-authoritative grants; do not expect credits yet.')}</Note>
