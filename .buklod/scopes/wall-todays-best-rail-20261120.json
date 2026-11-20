@@ -16,7 +16,8 @@
     "navigation-auth",
     "ad-first-view-visibility",
     "scroll-depth",
-    "web-native-parity"
+    "web-native-parity",
+    "navigation-scroll"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
