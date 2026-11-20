@@ -14,7 +14,8 @@ export default function ProfileFocusAppsScreen() {
         <Text style={styles.body}>
           Focus Apps are available without an Organization subscription.
           Create or join an Organization or Sub-organization to use its
-          workspaces. Government public information is free for citizens;\n          official posting and case management require verified agency roles.
+          workspaces. Government public information is free for citizens;
+          official posting and case management require verified agency roles.
         </Text>
         <BuklodFoundationWorkspaceNav />
       </BuklodPortalScrollView>
