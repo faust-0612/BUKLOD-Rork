@@ -94,3 +94,20 @@ test('graphics, audio and landscape media remain offline and explicit',()=>{
  assert.equal((html.match(/data:audio\/ogg;base64,/g)||[]).length,11);
  assert.doesNotMatch(html,/https?:\/\/[^"\s]*supabase/i);
 });
+
+test('capturing a relay must not invalidate same-tick attack and skill',()=>{
+ const g=boot(),s=g.getMatch(),p=s.players['A-0'],enemy=s.players['B-0'];
+ p.x=20;p.y=12;enemy.x=22;enemy.y=12;g.setMove(1,0);
+ g.inputAction('attack');g.inputAction('skill');g.step();
+ assert.ok(s.events.some(e=>e.type==='hit'&&e.from===p.id));
+ assert.ok(s.events.some(e=>e.type==='skill'&&e.from===p.id));
+});
+test('enemy Core attack is reachable when two team relays are connected',()=>{
+ const g=boot(),s=g.getMatch(),p=s.players['A-0'],old=s.teams.B.coreHp;
+ for(let i=0;i<2;i++){s.relays[i].progress=100;s.relays[i].owner='A';}
+ p.x=35;p.y=12;
+ for(const b of Object.values(s.players).filter(q=>q.team==='B')){b.x=6;b.y=6;}
+ g.inputAction('attack');g.step();
+ assert.ok(s.teams.B.coreHp<old);
+ assert.ok(s.events.some(e=>e.type==='core_attack'&&e.from===p.id));
+});
