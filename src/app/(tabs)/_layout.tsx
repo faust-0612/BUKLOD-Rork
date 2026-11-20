@@ -282,6 +282,7 @@ function SwipeDashboardHeader() {
 export default function TabsLayout() {
   const { theme } = useBuklodTheme();
   const pathname = usePathname();
+  const genesisMapNavigation = isGenesisPreviewBuild();
   const { width } = useWindowDimensions();
   const { activeScope } = useBuklodScope();
   const showPrayer = Boolean(
@@ -446,7 +447,7 @@ export default function TabsLayout() {
           backgroundColor: theme.canvas,
         }}
       >
-        {!desktopWebShell ? <SwipeDashboardHeader /> : null}
+        {!desktopWebShell && !genesisMapNavigation ? <SwipeDashboardHeader /> : null}
 
         <View
           style={
@@ -471,7 +472,7 @@ export default function TabsLayout() {
             }}
           >
             <BuklodDashboardAdWarmup />
-            <BuklodDashboardContextBar />
+            {!genesisMapNavigation ? <BuklodDashboardContextBar /> : null}
             {workspaceStack}
           </View>
         </View>

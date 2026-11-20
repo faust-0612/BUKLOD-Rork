@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import { rememberBuklodRoute } from '@/lib/buklodRouteDiagnostics';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { Text } from 'react-native';
 import {
   isBuklodScopedWorkspacePath,
   normalizeBuklodPathname,
@@ -84,14 +86,23 @@ export default function BuklodNavSafeShell({
   }, [pathname]);
   const rawNavOccupied =
     useBuklodPersistentNavOccupiedHeight();
+  const genesisMapNavigation = isGenesisPreviewBuild();
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
   const immersiveConversation = isHiblaConversationPath(pathname);
-  const navOccupied = immersiveConversation ? 0 : rawNavOccupied;
+  const navOccupied = genesisMapNavigation || immersiveConversation ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
   const normalizedPath = normalizeBuklodPathname(pathname);
+  // Only a compact return-to-map affordance survives the retired navigation bars.
+  // Never overlay login, media immersion, live conversations or a raised keyboard.
+  const mapReturnRoutes = ['/buklod', '/messages', '/hub', '/me', '/learn', '/clusters',
+    '/organizations', '/games', '/points', '/bayanihan', '/bible', '/life',
+    '/notifications', '/profile/', '/personal-home', '/settings', '/support'];
+  const showMapReturn = genesisMapNavigation && !immersiveConversation && !immersiveIgpat
+    && normalizedPath !== '/buklod-map' && mapReturnRoutes.some(route =>
+      normalizedPath === route || normalizedPath.startsWith(route + (route.endsWith('/') ? '' : '/')));
   const reserveMyBuklodSystemInsets =
     isMyBuklodDoorPath(pathname) ||
     // Daily Reading and Children's Stories have headerless routes. Keep their
@@ -183,13 +194,26 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
+      {!genesisMapNavigation && !immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
         >
           <BuklodPersistentBottomNav />
         </View>
+      ) : null}
+
+      {showMapReturn && !keyboardVisible ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Return to BUKLOD Map"
+          onPress={() => router.replace('/buklod-map' as any)}
+          hitSlop={6}
+          style={[styles.mapReturn, { top: Math.max(insets.top, 8) + 8 }]}
+        >
+          <MaterialCommunityIcons name="map-marker-radius-outline" size={18} color="#FFE3A8" />
+          <Text style={styles.mapReturnText}>MAP</Text>
+        </Pressable>
       ) : null}
 
       {immersiveIgpat ? (
@@ -233,6 +257,13 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  mapReturn: {
+    position: 'absolute', left: 8, minHeight: 40, zIndex: 1000,
+    paddingHorizontal: 10, borderRadius: 20, flexDirection: 'row', gap: 5,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+    borderColor: 'rgba(255,227,168,.6)', backgroundColor: 'rgba(6,24,46,.94)',
+  },
+  mapReturnText: { color: '#FFE3A8', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   igpatCommunityReturn: {
     position: 'absolute',
     left: 12,

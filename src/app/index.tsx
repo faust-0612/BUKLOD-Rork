@@ -11,6 +11,7 @@ import {
 } from '@/providers/BuklodScopeProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 export default function Index() {
@@ -180,7 +181,7 @@ export default function Index() {
 
   return (
     <Redirect
-      href="/(tabs)/buklod"
+      href={isGenesisPreviewBuild() ? '/buklod-map' : '/(tabs)/buklod'}
     />
   );
 }
