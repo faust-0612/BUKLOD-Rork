@@ -19,6 +19,7 @@ import { GenesisHomeHero, GenesisCosmosBackground } from '@/features/season2/gen
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 
 // Factories execute only after the user opens a tool.
+const GenesisWorld = lazy(() => import('@/components/world/BuklodGenesisWorldHome'));
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
 const Contribution = lazy(() => import('@/components/BuklodCommunityContributionCard'));
 const DrawerCard = lazy(() => import('@/components/SmartDrawerWallCard'));
@@ -57,6 +58,14 @@ export default function BuklodLightHome() {
     setFocused(true);
     return () => { setFocused(false); };
   }, []));
+
+  // Staging Genesis: the complete World map is the first authenticated view.
+  // Keep the legacy Home and its ads untouched in every other runtime.
+  if (genesisPreview) {
+    return <Suspense fallback={<View style={{ flex: 1, backgroundColor: '#050A19' }} />}>
+      <GenesisWorld />
+    </Suspense>;
+  }
 
   if (desktopDashboard) {
     const openPost = () => router.push({
