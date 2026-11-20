@@ -25,7 +25,8 @@ test('frozen approved Genesis candidate has exact matching native config with in
   for(const path of paths){
     assert.equal(git('diff','--name-only','5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0','ded6a45f80130314f9335bb0706dd5f826697171','--',path),'','Native drift '+path);
   }
-  assert.equal(read('app.config.js'),git('show','5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0:app.config.js')+'\n'.repeat(read('app.config.js').endsWith('\n')&&!git('show','5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0:app.config.js').endsWith('\n')?1:0));
+  const installed=execFileSync('git',['show','5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0:app.config.js'],{encoding:'utf8'});
+  assert.equal(read('app.config.js'),installed,'Byte-for-byte native Expo config parity with signed staging APK');
 });
 
 test('startup correction and app-wide ad/navigation release gates are still required',()=>{
