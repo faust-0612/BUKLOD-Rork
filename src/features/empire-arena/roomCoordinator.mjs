@@ -6,7 +6,7 @@ export function createRoomCoordinator({initialMatch,verifyTicket,onSnapshot=asyn
   if(!initialMatch||!initialMatch.players||!initialMatch.id)throw Error("invalid_initial_match");
   if(typeof verifyTicket!=="function")throw Error("ticket_verifier_required");
   let state=JSON.parse(JSON.stringify(initialMatch));
-  let busy=false,terminalDelivered=false,terminalAttempts=0;
+  let busy=false,terminalDelivered=false,terminalAttempts=0,snapshotInFlight=0;
   const sessions=new Map(),pending=[];
   function snapshot(){
     // Intentional no raw tickets/session keys. Replay/log recipients are authorized by adapter.
@@ -41,9 +41,11 @@ export function createRoomCoordinator({initialMatch,verifyTicket,onSnapshot=asyn
       if(state.status==="active"){
         const commands=pending.splice(0,40);
         state=stepMatch(state,commands,50);
-        if(state.tick%2===0){
-          // Snapshot delivery failures must not stop the authoritative simulation.
-          try{await onSnapshot(snapshot())}catch{/* network send failure */ }
+        if(state.tick%2===0&&snapshotInFlight<2){
+          // Never await a slow network send in the simulation tick. Bound in-flight sends.
+          snapshotInFlight++;
+          const outgoing=snapshot();
+          Promise.resolve().then(()=>onSnapshot(outgoing)).catch(()=>{}).finally(()=>{snapshotInFlight--;});
         }
       }
       if(state.status!=="active"&&!terminalDelivered&&terminalAttempts<3){
