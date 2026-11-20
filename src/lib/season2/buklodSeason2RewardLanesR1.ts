@@ -11,13 +11,16 @@ const faith=new Set([
 'bible_quiz_easy','bible_quiz_medium','bible_quiz_hard','daily_bible',
 'daily_bible_verification','devotional','formation_lesson','prayer_response',
 'bible_weekly_streak','daily_bible_reading','daily_devotional_reflection',
-'formation_assessment','formation_module','kl_episode','kl_season'
+'formation_assessment','formation_module'
 ]);
+const sharedStory=new Set(['kl_episode','kl_season']);
 const non=new Set([
 'game_first_qualified','game_tournament_champion','game_advanced_perfect',
 'game_expert_campaign','game_hard_win','game_medium_win','game_puzzle_series'
 ]);
 export function rewardLaneForLegacyBp(id:string):RewardLane{
+ // Kabihasnang Ligaw is literary reading available in BOTH scope modes.
+ if(sharedStory.has(id))return 'shared';
  if(faith.has(id))return 'show_faith';
  if(non.has(id))return 'non_faith';
  return 'shared';
@@ -39,7 +42,7 @@ season2Activation:false,
 });
 export const REWARD_LANE_FAMILIES=Object.freeze([
 {id:'faith_bible',lane:'show_faith',title:'Bible / Daily Reading / quizzes',requirement:'Completed and verified canonical chapter or authorized quiz; no duplicate old RPC and new catalog award',status:'S1 catalog; S2 future KL separate'},
-{id:'faith_kl',lane:'show_faith',title:'KL reading, reflection, chapter comments',requirement:'Sequential verified chapters, next-chapter delayed BP, ≥20-character comment and ≥50-character series reflection',status:'S2 NOT LIVE'},
+{id:'shared_kl',lane:'shared',title:'Kabihasnang Ligaw (both modes): reading, reflection, chapter comments',requirement:'Literary reading is open to Show Faith and Non-Show Faith. Sequential verified chapters, delayed next-chapter BP, ≥20-character comment and ≥50-character final series reflection.',status:'S2 NOT LIVE'},
 {id:'faith_ministry',lane:'show_faith',title:'Faith formation, ministry, mentoring, prayer',requirement:'Verified genuine activity, proper source ownership and moderation; private prayer is not a public farming source',status:'S1 configured; verify individual triggers'},
 {id:'faith_proverbs',lane:'show_faith',title:'Show Faith daily Proverbs',requirement:'Read-only daily verse; no automatic BP, QMP, Token or XP',status:'CONTENT ONLY'},
 {id:'non_social',lane:'non_faith',title:'General Community Wall, reactions, posts and replies',requirement:'Server-confirmed nonfaith category, valid unique actor, moderation and anti-farm checks',status:'S1 shared catalog; future source-lane mapping required'},
