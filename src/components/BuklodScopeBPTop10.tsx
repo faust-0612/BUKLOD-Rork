@@ -1,3 +1,5 @@
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {GENESIS_GLASS as GLASS, GenesisGlassDecoration} from '@/features/season2/genesis/GenesisGlass';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,6 +11,8 @@ type RankRow = { rank_position: number; user_id: string; full_name: string; tota
 type Props = { scopeId: string; scopeType: 'CLUSTER' | 'ORGANIZATION' };
 
 /** Private, exact-scope BP list. The server enforces ACTIVE membership. No persisted private data. */
+const GENESIS = isGenesisPreviewBuild();
+
 export default function BuklodScopeBPTop10({ scopeId, scopeType }: Props) {
   const { user } = useAuth();
   const [rows, setRows] = useState<RankRow[]>([]);
@@ -65,19 +69,20 @@ export default function BuklodScopeBPTop10({ scopeId, scopeType }: Props) {
 
   return (
     <View style={styles.card}>
+      {GENESIS ? <GenesisGlassDecoration scene="nebula"/> : null}
       <View style={styles.header}>
-        <MaterialCommunityIcons name="trophy-outline" size={20} color="#156B9F" />
+        <MaterialCommunityIcons name="trophy-outline" size={20} color={GENESIS ? GLASS.accent : "#156B9F"} />
         <Text style={styles.title}>MEMBER BP TOP 10</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Refresh member BP ranking"
           onPress={retry} style={styles.refresh}>
-          <MaterialCommunityIcons name="refresh" size={18} color="#156B9F" />
+          <MaterialCommunityIcons name="refresh" size={18} color={GENESIS ? GLASS.accent : "#156B9F"} />
         </Pressable>
       </View>
       <Text style={styles.subtitle}>
         Lifetime BUKLOD Points · Active {scopeType === 'CLUSTER' ? 'Cluster' : 'Organization'} members only
       </Text>
       {displayStatus === 'loading' ? (
-        <View style={styles.loading}><ActivityIndicator size="small" color="#156B9F" />
+        <View style={styles.loading}><ActivityIndicator size="small" color={GENESIS ? GLASS.accent : "#156B9F"} />
           <Text style={styles.message}>Loading member rankings…</Text></View>
       ) : displayStatus === 'restricted' ? (
         <Text style={styles.message}>Available to active members only.</Text>
@@ -104,20 +109,21 @@ export default function BuklodScopeBPTop10({ scopeId, scopeType }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#FFF', borderColor: '#D8E7F2', borderWidth: StyleSheet.hairlineWidth,
+  card: { overflow:'hidden', backgroundColor:GENESIS ? GLASS.surface : '#FFF', borderColor:GENESIS ? GLASS.border : '#D8E7F2', borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16, padding: 12, gap: 7 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { flex: 1, fontSize: 14, fontWeight: '800', color: '#173A55' },
+  title: { flex: 1, fontSize: 14, fontWeight: '800', color:GENESIS ? GLASS.text : '#173A55' },
   refresh: { minWidth: 38, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
-  subtitle: { fontSize: 12, color: '#607588', lineHeight: 18 },
+  subtitle: { fontSize: 12, color:GENESIS ? GLASS.secondary : '#607588', lineHeight: 18 },
   loading: { flexDirection: 'row', gap: 9, alignItems: 'center', paddingVertical: 8 },
-  message: { fontSize: 12, lineHeight: 18, color: '#617488', paddingVertical: 8 },
+  message: { fontSize: 12, lineHeight: 18, color:GENESIS ? GLASS.muted : '#617488', paddingVertical: 8 },
   list: { gap: 2, marginTop: 2 },
   row: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 9,
+    backgroundColor:GENESIS ? GLASS.row : 'transparent',borderWidth:GENESIS ? StyleSheet.hairlineWidth : 0,borderColor:GENESIS ? GLASS.borderSoft : 'transparent',
     paddingHorizontal: 6, borderRadius: 9 },
-  mine: { backgroundColor: '#E9F3FF' },
-  rank: { width: 30, fontSize: 13, fontWeight: '800', color: '#536579' },
-  top: { color: '#AC6A12' },
-  name: { flex: 1, fontSize: 13, fontWeight: '600', color: '#203F56' },
-  points: { fontSize: 13, fontWeight: '800', color: '#0B669C', fontVariant: ['tabular-nums'] },
+  mine: { backgroundColor:GENESIS ? GLASS.selected : '#E9F3FF' },
+  rank: { width: 30, fontSize: 13, fontWeight: '800', color:GENESIS ? GLASS.secondary : '#536579' },
+  top: { color:GENESIS ? GLASS.gold : '#AC6A12' },
+  name: { flex: 1, fontSize: 13, fontWeight: '600', color:GENESIS ? GLASS.text : '#203F56' },
+  points: { fontSize: 13, fontWeight: '800', color:GENESIS ? GLASS.accent : '#0B669C', fontVariant: ['tabular-nums'] },
 });

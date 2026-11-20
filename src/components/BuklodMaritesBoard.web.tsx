@@ -13,8 +13,8 @@ type Props = {
  * Web-only Community Wall composition.
  *
  * Keep the canonical locked live satellite map exactly as previously approved.
- * Add only the Messages/Connect search + profile bubbles. Both live inside the
- * Community FlashList header so they scroll away naturally with Wall content.
+ * Show Today's Best before the Messages/Connect search and profile bubbles.
+ * All three scroll with the Wall header, leaving feed behavior unchanged.
  */
 const BaseBuklodMaritesBoard = require('./BuklodMaritesBoard.tsx')
   .default as React.ComponentType<Props>;
@@ -22,9 +22,9 @@ const BaseBuklodMaritesBoard = require('./BuklodMaritesBoard.tsx')
 export default function BuklodMaritesBoardWeb(props: Props) {
   return (
     <View>
+      <BaseBuklodMaritesBoard {...props} />
       <BuklodCommunityConnectHeaderWeb />
       <BuklodWebCommunityMapHeader />
-      <BaseBuklodMaritesBoard {...props} />
     </View>
   );
 }

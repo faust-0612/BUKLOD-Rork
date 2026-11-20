@@ -1,3 +1,5 @@
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {GENESIS_GLASS as GLASS, GenesisGlassDecoration} from '@/features/season2/genesis/GenesisGlass';
 import React, {
   useCallback,
   useMemo,
@@ -101,6 +103,8 @@ function timeLabel(item: SmartDrawerItem) {
   return item.type.replaceAll('_', ' ');
 }
 
+const GENESIS = isGenesisPreviewBuild();
+
 export default function SmartDrawerWallCard() {
   const { user } = useAuth();
   const [summary, setSummary] =
@@ -148,7 +152,7 @@ export default function SmartDrawerWallCard() {
   if (!user?.id) return null;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.card}>{GENESIS ? <GenesisGlassDecoration scene="creation"/> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open My Drawer"
@@ -159,7 +163,7 @@ export default function SmartDrawerWallCard() {
           <MaterialCommunityIcons
             name="archive-outline"
             size={20}
-            color="#0A6EBD"
+            color={GENESIS ? GLASS.accent : "#0A6EBD"}
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -171,7 +175,7 @@ export default function SmartDrawerWallCard() {
         <MaterialCommunityIcons
           name="chevron-right"
           size={21}
-          color="#6E88A0"
+          color={GENESIS ? GLASS.muted : "#6E88A0"}
         />
       </Pressable>
 
@@ -179,7 +183,7 @@ export default function SmartDrawerWallCard() {
         <MaterialCommunityIcons
           name="magnify"
           size={18}
-          color="#54728B"
+          color={GENESIS ? GLASS.secondary : "#54728B"}
         />
         <TextInput
           value={query}
@@ -187,7 +191,7 @@ export default function SmartDrawerWallCard() {
           onSubmitEditing={openSearch}
           returnKeyType="search"
           placeholder="Search your Drawer…"
-          placeholderTextColor="#8295A8"
+          placeholderTextColor={GENESIS ? GLASS.muted : "#8295A8"}
           style={styles.searchInput}
           accessibilityLabel="Search your Drawer"
         />
@@ -207,13 +211,13 @@ export default function SmartDrawerWallCard() {
             <View
               style={[
                 styles.actionIcon,
-                { backgroundColor: action.tone },
+                { backgroundColor: GENESIS ? GLASS.actionTones[action.key] : action.tone },
               ]}
             >
               <MaterialCommunityIcons
                 name={action.icon as any}
                 size={21}
-                color={action.iconColor}
+                color={GENESIS ? GLASS.actionIcons[action.key] : action.iconColor}
               />
             </View>
             <Text style={styles.actionLabel}>
@@ -254,7 +258,7 @@ export default function SmartDrawerWallCard() {
                 <MaterialCommunityIcons
                   name={itemIcon(item) as any}
                   size={19}
-                  color="#0A6EBD"
+                  color={GENESIS ? GLASS.accent : "#0A6EBD"}
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -289,7 +293,7 @@ export default function SmartDrawerWallCard() {
         <MaterialCommunityIcons
           name="arrow-right"
           size={16}
-          color="#0A6EBD"
+          color={GENESIS ? GLASS.accent : "#0A6EBD"}
         />
       </Pressable>
     </View>
@@ -300,10 +304,11 @@ const styles = StyleSheet.create({
   card: {
     marginTop: 0,
     marginBottom: 0,
-    borderRadius: 4,
+    borderRadius: GENESIS ? 17 : 4,
+    overflow: GENESIS ? "hidden" : "visible",
     borderWidth: 1,
-    borderColor: '#D7E5F2',
-    backgroundColor: '#F5F9FD',
+    borderColor:GENESIS ? GLASS.border : '#D7E5F2',
+    backgroundColor:GENESIS ? GLASS.surface : '#F5F9FD',
     padding: 12,
   },
   headingRow: {
@@ -315,18 +320,18 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 11,
-    backgroundColor: '#E8F3FC',
+    backgroundColor:GENESIS ? GLASS.inset : '#E8F3FC',
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    color: '#123B67',
+    color:GENESIS ? GLASS.text : '#123B67',
     fontWeight: '900',
     fontSize: 15,
   },
   subtitle: {
     marginTop: 2,
-    color: '#617B92',
+    color:GENESIS ? GLASS.secondary : '#617B92',
     fontSize: 10.5,
     lineHeight: 14,
   },
@@ -334,7 +339,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     minHeight: 40,
     borderRadius: 13,
-    backgroundColor: '#EAF2F9',
+    backgroundColor:GENESIS ? GLASS.input : '#EAF2F9',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 11,
@@ -342,7 +347,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#183E63',
+    color:GENESIS ? GLASS.text : '#183E63',
     fontSize: 12.5,
     paddingVertical: 0,
   },
@@ -364,7 +369,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionLabel: {
-    color: '#254965',
+    color:GENESIS ? GLASS.secondary : '#254965',
     fontSize: 9.5,
     fontWeight: '800',
     textAlign: 'center',
@@ -378,12 +383,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    color: '#173B63',
+    color:GENESIS ? GLASS.text : '#173B63',
     fontSize: 13,
     fontWeight: '900',
   },
   sectionMeta: {
-    color: '#0A6EBD',
+    color:GENESIS ? GLASS.accent : '#0A6EBD',
     fontSize: 9.5,
     fontWeight: '800',
   },
@@ -393,9 +398,9 @@ const styles = StyleSheet.create({
   item: {
     minHeight: 48,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor:GENESIS ? GLASS.inset : '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E1EAF2',
+    borderColor:GENESIS ? GLASS.borderSoft : '#E1EAF2',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -406,35 +411,36 @@ const styles = StyleSheet.create({
     width: 31,
     height: 31,
     borderRadius: 9,
-    backgroundColor: '#EAF4FD',
+    backgroundColor:GENESIS ? GLASS.inset : '#EAF4FD',
     alignItems: 'center',
     justifyContent: 'center',
   },
   itemTitle: {
-    color: '#193B5D',
+    color:GENESIS ? GLASS.text : '#193B5D',
     fontWeight: '900',
     fontSize: 11.5,
   },
   itemMeta: {
     marginTop: 2,
-    color: '#71869A',
+    color:GENESIS ? GLASS.muted : '#71869A',
     fontSize: 9.5,
   },
   empty: {
     paddingVertical: 7,
-    color: '#73879A',
+    color:GENESIS ? GLASS.muted : '#73879A',
     fontSize: 10.5,
     lineHeight: 15,
   },
   open: {
     marginTop: 8,
-    alignSelf: 'flex-start',
+    ...(GENESIS ? {justifyContent:'center' as const,minHeight:44,paddingHorizontal:10,backgroundColor:GLASS.selected,borderRadius:11,borderWidth:1,borderColor:GLASS.borderSoft} : {}),
+    alignSelf: GENESIS ? 'stretch' : 'flex-start',
     flexDirection: 'row',
     gap: 4,
     alignItems: 'center',
   },
   openText: {
-    color: '#0A6EBD',
+    color:GENESIS ? GLASS.accent : '#0A6EBD',
     fontWeight: '900',
     fontSize: 10.5,
   },
