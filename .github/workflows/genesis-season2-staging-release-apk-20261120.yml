@@ -9,6 +9,11 @@ on:
       - tests/genesis-staging-live-backend-review-20261120.test.mjs
       - tests/genesis-staging-native-apk-release-20261120.test.mjs
       - tests/genesis-apk-binary-proof-20261120.test.mjs
+      - tests/genesis-cinematic-startup-release-identity-20261120.test.mjs
+      - src/features/season2/genesis/GenesisCinematicStartup.tsx
+      - src/components/BuklodMainBrandIntro.tsx
+      - app.config.js
+      - assets/season2/genesis/genesis-green-b-transparent.png
 permissions:
   contents: read
 concurrency:
@@ -47,7 +52,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           node scripts/genesis-prepare-skia-binaries.mjs
           node scripts/genesis-assert-native-autolinking.mjs
-          node --test tests/genesis-native-autolinking-reality-20261120.test.mjs tests/genesis-staging-live-backend-review-20261120.test.mjs
+          node --test tests/genesis-native-autolinking-reality-20261120.test.mjs tests/genesis-staging-live-backend-review-20261120.test.mjs tests/genesis-cinematic-startup-release-identity-20261120.test.mjs
           node --test tests/genesis-apk-binary-proof-20261120.test.mjs
           node --test tests/genesis-skia-native-binary-install-20261120.test.mjs
           node --test tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs tests/genesis-godot-native-foundation-20261120.test.mjs tests/genesis-drive-native-foundation-20261120.test.mjs
@@ -112,6 +117,11 @@ jobs:
           assert.equal(cfg.runtimeVersion,'2.0.0-genesis-preview');
           assert.equal(cfg.name,'BUKLOD Staging');
           assert.equal(cfg.version,'2.0.0');
+          const splash=cfg.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-splash-screen')[1];
+          const genesisMark='./assets/season2/genesis/genesis-green-b-transparent.png';
+          assert.equal(splash.image,genesisMark,'Thorns native splash prohibited in Genesis');
+          assert.equal(splash.dark.image,genesisMark,'Dark native splash also must use transparent B');
+          assert.equal(cfg.android.adaptiveIcon.foregroundImage,genesisMark,'Android 12 splash must not show old cream launcher icon');
           assert.equal(cfg.extra.appTarget,'main');
           assert.equal(cfg.extra.appEnvironment,'staging');
           assert.equal(cfg.plugins.find(p=>Array.isArray(p)&&p[0]==='react-native-google-mobile-ads')[1].androidAppId,
