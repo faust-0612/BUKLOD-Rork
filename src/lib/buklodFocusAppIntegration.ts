@@ -94,9 +94,9 @@ export const BUKLOD_INTEGRATION_APPS: Record<
   },
   local: {
     id: 'local',
-    displayName: 'BUKLOD Local',
+    displayName: 'BUKLOD Government',
     doorwayRoute: '/profile/buklod-local',
-    availability: 'INTEGRATION_READY',
+    availability: 'AVAILABLE',
     foundationApp: 'government',
     deepLinkScheme: 'buklod-local',
     notificationNamespace: 'buklod_local',
@@ -105,9 +105,9 @@ export const BUKLOD_INTEGRATION_APPS: Record<
     roleKeys: ['BARANGAY_ADMIN', 'GOVERNMENT_ADMIN', 'LOCAL_ADMIN'],
     entitlementKeys: ['government.admin', 'government.barangay.admin'],
     fileHandoffBucket: 'local-announcements',
-    fallbackTitle: 'BUKLOD Local',
+    fallbackTitle: 'BUKLOD Government',
     fallbackMessage:
-      'Local community identity is linked. Full Local app features are not built yet.',
+      'Verified agencies, official communications, citizen concerns and service links in one Focus App.',
   },
   family: {
     id: 'family',
