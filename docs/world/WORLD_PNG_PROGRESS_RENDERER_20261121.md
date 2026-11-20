@@ -9,13 +9,13 @@ native dependency.
 ## Integration contract
 
 - `src/features/world/worldDevelopmentCatalog.ts` is the existing immutable
-  10-level/3-stage preview contract for `personal_lot`, `house`, `farm`,
+  10-level/5-stage preview contract for `personal_lot`, `house`, `farm`,
   `cluster` and `organization`. `WORLD_DEVELOPMENT_ENABLED` remains `false`.
 - `business` is an **art namespace only**, not a newly activated progression,
   BP source or economy gate. Its server-authoritative levels must be designed
   and verified separately before user-visible upgrades exist.
 - In `WorldSpriteProgress`, `level` is highest completed level (0–10).
-  `stage=1..3` means construction is in progress on the NEXT level. When server
+  `stage=1..5` identifies five ordered construction phases for the NEXT level. When server
   confirms completion, set `level+1, stage=0` with a higher revision.
 - A verified backend receipt and authoritative server snapshot are prerequisites
   for displaying *verified* construction. Local design previews are always
@@ -44,8 +44,8 @@ world-map DEV branch. Do not create imports for non-existent files.
 | Business (art only) | `biz` | `biz_l01.png` | `biz_l02_s01.png` |
 
 For each activated track, supply ten completed-level frames (`_l01` through
-`_l10`) and three unique stage frames for each construction level
-(`_l01_s01`..`_l10_s03`), or use the stage-3 PNG as the completed-level image
+`_l10`) and five unique stage frames for each construction level
+(`_l01_s01`..`_l10_s05`), or use the stage-5 PNG as the completed-level image
 under two explicit registry keys. All frames need consistent crop, transparent
 background, camera angle, scale and license evidence; preferably 1024+ pixel
 master artwork with optimized phone-sized PNG/WebP derivatives. High levels must

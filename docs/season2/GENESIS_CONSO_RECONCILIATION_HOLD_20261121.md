@@ -37,7 +37,7 @@ Authenticated first view: immersive illustrated BUKLOD map `BUKLOD Community Map
 
 ## Source discrepancies: mandatory fixes before release
 1. `Buklod V2/buklod_assets_catalog.json` lists 10 tiers but BP, materials, DXP and construction-day requirements are NULL/empty. **No production-valid price or ability to buy these levels.**
-2. Library house art catalog lists **5 stage IDs per tier**; World design and copied PNG renderer have **3**, separate Business DEV has **5**. Unify 5-stage authority and matching verified server receipt + art keys, not by silently skipping stages.
+2. Library house art catalog lists **5 stage IDs per tier**; World development source and PNG renderer now support **5 sequential phases** with exact preview stage arithmetic. Still blocked on five-stage licensed artwork, an approved stage registry and server transactional receipts; never charge BP until then.
 3. QMP spend qualification is a new proposal and must be reconciled to existing Finance version; seller does not mint earned BP nor QMP just because buyer pays. Resolve buyer spends, refunds, gift vs purchase and settlement provenance under Finance approvals.
 4. Character PR #1041 and trade/business PR #1043 require private SQL changesets on isolated staging DB; market #1039, scoped Wall #1038 and Government #1040 alter shared UI/SQL/permissions, not safe to blindly merge.
 5. Arena is headless logic only; no authenticated lobby, authoritative multiplayer transport, durable receipt settlement, anti-cheat/multiplayer disconnect recovery or device-level 60fps proof.

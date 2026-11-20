@@ -179,7 +179,7 @@ Circle Rank measures BP achievement; spending existing Available BP must not red
 
 ## Season 2 permanent virtual-world progression — NOT active commerce
 
-Personal Lot, Personal House, Cluster/Community and Business each have 10 permanent tiers independent of seasons. Each tier must include **five authenticated sequential visible construction stages**, with distinct assets, stage receipts and progress. The current supplied V2 asset catalog has **NULL BP costs, materials, DXP effort and build times for all 40 tiers**. Therefore there is no authoritative purchasable pricing or level schedule. World draft's three-stage renderer and original 5-stage House/Business assets must be reconciled before charging a user's BP.
+Personal Lot, Personal House, Cluster/Community and Business each have 10 permanent tiers independent of seasons. Each tier must include **five authenticated sequential visible construction stages**, with distinct assets, stage receipts and progress. The current supplied V2 asset catalog has **NULL BP costs, materials, DXP effort and build times for all 40 tiers**. Therefore there is no authoritative purchasable pricing or level schedule. World DEV planning and PNG resolver now use five phases with exact integer preview allocation, but approved artwork and authoritative backend stage receipts remain missing; no BP charges are enabled.
 
 Tasks must be accessible for users with Show Faith off. Level requirements should increase gradually and stay attainable with free verified participation. No free-money shortcuts, paid BP, or rank-gated property development.
 
