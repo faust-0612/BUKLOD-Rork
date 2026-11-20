@@ -223,7 +223,7 @@ import {getClusterLabels,formatClusterName} from '@/lib/clusterLabels'; // PATCH
 import {Button,Card,SectionTitle} from '@/components/UI';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
-import {eligiblePublicWallPostScopes,publicWallScopeTypeLabel,loadPublicWallScopeIdentities} from '@/lib/buklodPublicWallScopeIdentity';
+import {eligiblePublicWallPostScopes,publicWallScopeTypeLabel,loadPublicWallScopeIdentities,type BuklodPublicWallScopeIdentity} from '@/lib/buklodPublicWallScopeIdentity';
 import {useBuklodPresentation} from '@/hooks/useBuklodPresentation';
 import {useNetwork} from '@/providers/NetworkProvider';
 import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
@@ -2058,7 +2058,7 @@ const load=useCallback(async(options?:{
       .map((p:any)=>p.id)
       .filter(Boolean);
   // Only public feed rows; separate from members-only scope feeds.
-  const scopeIdentityPromise=loadPublicWallScopeIdentities(postIds).catch(()=>({}));
+  const scopeIdentityPromise=loadPublicWallScopeIdentities(postIds).catch(()=>({} as Record<string,BuklodPublicWallScopeIdentity>));
 
   // Comment content is a nonblocking, batched enrichment. Do not throw away
   // the actual latest comment because a fixed 4s metadata budget expired.
