@@ -9,6 +9,7 @@ const pinnedV28 = '2f26645e50e8e079ebf09f3999aacfc506ae7651';
 const project = '23dad7d0-389a-406e-8dec-08965dab85d8';
 const runtime = '1.3.2';
 const pinnedProductionUpdateId = '01a1f3f0-11f0-7ba7-a0d2-8dbebdf97ae3';
+const pinnedProductionBundleHash = 'unFUenZWw5gY5LAIPwwtyn8dlSV8j_NhAWoXbyCzQII';
 const isolatedBranch = 'release/mentor-submit-pinned-baseline-20261120';
 const verifiedBaseline = '0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf';
 const allowedChanges = [
@@ -70,6 +71,9 @@ function sourceGate() {
     'Release marker commit must change only the metadata receipt');
   const releaseRecord = read('.buklod/releases/mentor-submit-only-prod-20261120.json');
   assert.equal(releaseRecord.expectedBaselineUpdateId,pinnedProductionUpdateId);
+  assert.equal(releaseRecord.expectedBaselineBundleHash,pinnedProductionBundleHash);
+  assert.equal(releaseRecord.preReleaseSourceSha, git('rev-parse','HEAD^'),
+    'Release marker must have the last reviewed branch source as its sole parent');
   assert.equal(releaseRecord.verifiedMainSourceSha,verifiedBaseline);
   assert.equal(releaseRecord.productionAuthorized,true);
   assert.equal(releaseRecord.season2ProductionAuthorized,false);
@@ -91,6 +95,8 @@ async function run() {
     assert.ok(before.launchAsset?.hash, 'Missing live production bundle fingerprint');
     assert.equal(before.id,pinnedProductionUpdateId,
       'Live production update changed since latest verified baseline, stop before release');
+    assert.equal(before.launchAsset.hash,pinnedProductionBundleHash,
+      'Live production bundle changed since read-only verified baseline, stop');
     git('merge-base', '--is-ancestor', pinnedV28, sha);
     // V30 removes only the unused connectedDevice foreground-service manifest
     // permission. The plugin is compared byte-for-byte against a single removal;
@@ -135,7 +141,10 @@ async function run() {
     const rc = read('ota-evidence/rc.json');
     assert.equal(rc.source, sha);
     assert.deepEqual(inventory('rc'), rc.files, 'Frozen RC changed');
-    assert.equal((await manifest()).id, rc.baseline, 'Production advanced while building RC');
+    const current = await manifest();
+    assert.equal(current.id, rc.baseline, 'Production advanced while building RC');
+    assert.equal(current.launchAsset.hash,pinnedProductionBundleHash,
+      'Production launch bundle advanced while building RC');
     console.log('PASS: exact RC hashes and unchanged production baseline');
   } else if (mode === 'published') {
     const rc = read('ota-evidence/rc.json');
