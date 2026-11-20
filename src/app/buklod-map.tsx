@@ -27,7 +27,7 @@ export default function BuklodMapScreen() {
   const { width } = useWindowDimensions();
   const [focused, setFocused] = useState(false);
   const [selectedId, setSelectedId] = useState('community');
-  const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
+  const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map', { prewarmSfx: false });
 
   useFocusEffect(useCallback(() => {
     setFocused(true);

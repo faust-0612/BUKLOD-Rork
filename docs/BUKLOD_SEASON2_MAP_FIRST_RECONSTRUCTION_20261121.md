@@ -24,7 +24,7 @@ Do not expose Admin or agency-management screens as public map shortcuts. Govern
 - Scene FX: native React Native Animated + SVG `GenesisCosmicSky`; GPU-backed transform only while focused, app foreground, no reduced motion.
 - Map ambient: already bundled `assets/sounds/kingdom-premium/kingdom-theme.ogg`, through existing `useRorkGameAmbience('kingdom-map')`. The user can turn it on/off; respects sound setting, audio lifecycle, app state and quiet hours. Do not loop social feed or calls. Local fallback is existing `buklod-kingdom-cinematic-ambient.wav`.
 - Existing `kingdom-village.ogg`, `kingdom-great-hall.ogg`, and 9 Kenney CC0 WAV effects are licensed and pinned in `assets/sounds/kingdom-premium/LICENSES.md` and `manifest.json`.
-- The existing `BuklodFirstViewAd` `home/new_home_first_view` is rendered directly in the Map without a permanent blank slot; no replacement ad unit and no new external service. Existing ad consent, render and lifecycle contracts must pass regression checks.
+- The existing `BuklodFirstViewAd` `home/new_home_first_view` is rendered directly in the Map without a permanent blank slot; no replacement ad unit and no new external service. Existing ad consent, render and lifecycle contracts must pass regression checks. The map audio player now disables costly Kingdom SFX pool prewarming, without changing the default behavior inside games.
 - Zero backend calls added to launch the map by its own code; no asset upload mandatory **for this navigation screen**.
 
 ## Assets still required for full premium specification
@@ -62,3 +62,7 @@ Main backend currently carries its own points ledger, point rules, rank levels, 
 5. Even after Dec 6, 2026, production is locked until separate explicit release authorization and finance/ad/navigation gates.
 
 **Current status: source-only map navigation work in DEV; consolidated Season 2 OTA is NOT READY.**
+
+## Map catalog reconciliation
+
+World DEV catalog contains further top-level destinations including Community Contribution, Live Support, About, Invites and retired Drawer. The first four have been added directly to their proper Map districts; **Drawer is intentionally not a top-level portal** because the owner has retired the legacy navigation design. No duplicate direct route appears in different districts. The separate World DEV catalog remains a dormant reference, not a second active navigation authority.

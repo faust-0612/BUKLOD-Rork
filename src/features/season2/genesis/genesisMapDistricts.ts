@@ -35,6 +35,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
     entries: [
       { label: 'Public Wall', route: '/buklod', description: 'Feed, posts and Today\'s Best' },
       { label: 'Reels', route: '/reels', description: 'Videos and creator posts' },
+      { label: 'Invite Friends', route: '/life/invite', description: 'Invite people to participate' },
     ],
   },
   {
@@ -81,6 +82,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
       { label: 'Market', route: '/profile/buklod-market', description: 'Discover and trade' },
       { label: 'Business', route: '/profile/buklod-business', description: 'Register and manage business' },
       { label: 'Economy Guide', route: '/points/economy', description: 'BP, QMP and legitimate rewards' },
+      { label: 'Community Contribution', route: '/community-contribution', description: 'Qualified monthly participation and impact' },
     ],
   },
   {
@@ -91,6 +93,8 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
       { label: 'Health', route: '/profile/buklod-health', description: 'Health Center' },
       { label: 'Family Workspace', route: '/profile/buklod-family', description: 'Family and household tools' },
       { label: 'Support', route: '/support', description: 'Help and concerns' },
+      { label: 'Live Support', route: '/support/live', description: 'Request help from BUKLOD support' },
+      { label: 'About BUKLOD', route: '/about-buklod', description: 'Vision, principles and community' },
       { label: 'Settings', route: '/settings', description: 'Privacy, sound and preferences' },
     ],
   },

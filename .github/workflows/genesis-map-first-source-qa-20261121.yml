@@ -1,0 +1,43 @@
+name: Genesis Season 2 Map-First Source QA — NO PUBLISH
+on:
+  push:
+    branches:
+      - dev/season2-world-map-navigation-conso-20261121
+    paths:
+      - .github/workflows/genesis-map-first-source-qa-20261121.yml
+      - src/app/buklod-map.tsx
+      - src/features/season2/genesis/genesisMapDistricts.ts
+      - src/features/games/runtime/rorkAudio.ts
+      - scripts/genesis-map-reconstruction-preflight.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: genesis-world-map-readonly-source-20261121
+  cancel-in-progress: false
+jobs:
+  source-check:
+    if: ${{ github.ref == 'refs/heads/dev/season2-world-map-navigation-conso-20261121' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm exact DEV branch, no release markers
+        run: |
+          test "$GITHUB_REF" = "refs/heads/dev/season2-world-map-navigation-conso-20261121"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Verify native parity, map links, first-view audio and ad contracts
+        run: |
+          node scripts/genesis-conso-staging-ota-preflight.mjs
+          node scripts/genesis-map-reconstruction-preflight.mjs
+          node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+      - name: Source-only completion — never build or publish
+        run: |
+          echo "READ-ONLY SOURCE QA. No EAS, database migration, APK, OTA or production release."

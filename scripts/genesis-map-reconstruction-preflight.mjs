@@ -50,7 +50,7 @@ check('Bundled local Galaxy and approved CC0 music',()=>{
    'assets/sounds/kingdom-premium/LICENSES.md',
    'assets/sounds/kingdom-premium/manifest.json']) assert.ok(existsSync(resolve(root,p)),p);
  const map=read('src/app/buklod-map.tsx');
- assert.match(map,/useRorkGameAmbience\('kingdom-map'\)/);
+ assert.match(map,/useRorkGameAmbience\('kingdom-map'/);
  assert.match(map,/musicEnabled/);
 });
 check('No direct backend writes, economy minting, OTA publish, or forced unlock in new map',()=>{
