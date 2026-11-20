@@ -11,7 +11,8 @@
     "tests/genesis-startup-center-ota-safe-20261120.test.mjs",
     "tests/genesis-cinematic-startup-release-identity-20261120.test.mjs",
     "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs",
-    ".buklod/scopes/genesis-no-legacy-native-splash-conso-20261120.json"
+    ".buklod/scopes/genesis-no-legacy-native-splash-conso-20261120.json",
+    ".github/workflows/genesis-season2-staging-release-apk-20261120.yml"
   ],
   "regressionTests": [
     "tests/genesis-startup-center-ota-safe-20261120.test.mjs",
@@ -24,5 +25,36 @@
     "No app reward switch changes, no December 6 embargo early activation"
   ],
   "releaseMode": "DEV_STAGING_NATIVE_APK_ONLY",
-  "releaseStatus": "SOURCE_ONLY_AWAITING_NEW_SIGNED_APK_AND_DEVICE_QA"
+  "releaseStatus": "SOURCE_ONLY_AWAITING_NEW_SIGNED_APK_AND_DEVICE_QA",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Replace native boot imagery only on Genesis staging and preserve existing centered cinematic JS scene and auth readiness",
+      "preservedBehaviors": [
+        "Production, Classroom and ordinary staging retain their splash",
+        "Approved green B reveal, first-view navigation, biometric gate and Reduced Motion remain intact"
+      ],
+      "tests": [
+        "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs",
+        "tests/genesis-startup-center-ota-safe-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Native splash change requires a signed staging APK, never silently updating frozen production runtime or OTA",
+      "preservedBehaviors": [
+        "No production bundle, runtime, backend, OTA, or AdMob live deployment",
+        "No December 6 rewards unlock or user data migration"
+      ],
+      "tests": [
+        "tests/genesis-cinematic-startup-release-identity-20261120.test.mjs",
+        "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "production-release",
+    "release-identity"
+  ]
 }

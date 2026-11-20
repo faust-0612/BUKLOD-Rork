@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   genesis-staging-apk:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' || github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120' || github.ref == 'refs/heads/dev/genesis-no-legacy-native-splash-conso-20261120' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_STAGING_APK_START:') }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' || github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120' || github.ref == 'refs/heads/dev/genesis-no-legacy-native-splash-conso-20261120') && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_STAGING_APK_START:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
