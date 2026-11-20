@@ -9,7 +9,7 @@ test('native build must verify actual Expo resolver, not merely inventory string
  assert.match(script,/execFileSync\(bin,\['resolve','--platform','android','--json'\]/);
  assert.match(script,/found\.length!==1/);
  assert.match(script,/pkg==='@buklod\/genesis-native-ime' \? 'buklod-genesis-ime'/);
- assert.match(script,/Expo native autolinking includes all five/);
+ assert.match(script,/Expo autolinking includes all five/);
  const smoke=read('.github/workflows/genesis-android-compile-smoke-20261120.yml');
  const signed=read('.github/workflows/genesis-season2-staging-release-apk-20261120.yml');
  for(const workflow of [smoke,signed]){
