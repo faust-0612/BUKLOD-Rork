@@ -135,7 +135,7 @@ export default function BuklodGovernmentFocusApp() {
    setCaseId(id);setCaseEvents([]);
    try{setCaseEvents(await governmentCaseEvents(id));}catch(e:any){setError(String(e.message??e));}
  };
- const chooseOffice=(id:string)=>{setSelectedId(id);setPage('UPDATES');setCaseId(null);setPublishNational(false);setError('');};
+ const chooseOffice=(id:string)=>{setSelectedId(id);setPage('UPDATES');setCaseId(null);setPublishNational(false);setPostRequestKey(randomUUID());setCaseRequestKey(randomUUID());setCaseUpdateRequestKey(randomUUID());setError('');};
  const openOfficialLink=async(url:string)=>{
    if(!/^https:\/\//i.test(url)){Alert.alert('Invalid link','Official links must use HTTPS.');return;}
    try{await Linking.openURL(url);}catch{Alert.alert('Link unavailable','Could not open the external government portal.');}
@@ -243,9 +243,9 @@ export default function BuklodGovernmentFocusApp() {
      {heading('Publish official update')}
      {caption('Server verifies active government staff permissions. Only national entities can cross-post to the nationwide Public Wall.')}
      {inp('Announcement, program, advisory or project update',postBody,(v)=>{setPostBody(v);setPostRequestKey(randomUUID());},true)}
-     <View style={styles.buttonRow}>{KINDS.map(k=>btn(k,()=>setPostKind(k),postKind!==k))}</View>
-     {inp('Location PSGC keys, separated by commas (optional)',localityKeys,setLocalityKeys)}
-     {active.entity_type==='NATIONAL'?btn(publishNational?'Nationwide Public Wall ✓':'Also publish to Public Wall',()=>setPublishNational(!publishNational),true):null}
+     <View style={styles.buttonRow}>{KINDS.map(k=>btn(k,()=>{setPostKind(k);setPostRequestKey(randomUUID());},postKind!==k))}</View>
+     {inp('Location PSGC keys, separated by commas (optional)',localityKeys,(v)=>{setLocalityKeys(v);setPostRequestKey(randomUUID());})}
+     {active.entity_type==='NATIONAL'?btn(publishNational?'Nationwide Public Wall ✓':'Also publish to Public Wall',()=>{setPublishNational(!publishNational);setPostRequestKey(randomUUID());},true):null}
      {btn('Publish official update',()=>void perform(async()=>{
        const keys=localityKeys.split(',').map(x=>x.trim()).filter(Boolean);
        if(!keys.length && active.psgc_code && active.entity_type!=='NATIONAL') keys.push(active.psgc_code);
@@ -300,7 +300,7 @@ export default function BuklodGovernmentFocusApp() {
       {heading('Send a concern')}
       {inp('Concern subject',concernTitle,(v)=>{setConcernTitle(v);setCaseRequestKey(randomUUID());})}
       {inp('Describe the concern',concernText,(v)=>{setConcernText(v);setCaseRequestKey(randomUUID());},true)}
-      {inp('Locality / PSGC key (optional)',concernLocality,setConcernLocality)}
+      {inp('Locality / PSGC key (optional)',concernLocality,(v)=>{setConcernLocality(v);setCaseRequestKey(randomUUID());})}
       {btn('Submit private concern',()=>void perform(async()=>{
         const c=await governmentSubmitCase({entityId:active.id,subject:concernTitle,
           description:concernText,localityKey:concernLocality,requestKey:caseRequestKey});
@@ -322,7 +322,7 @@ export default function BuklodGovernmentFocusApp() {
          {canEditCases||c.status==='RESOLVED'||c.status==='CLOSED'?<>
           {heading('Update case')}
           {canEditCases?<View style={styles.buttonRow}>
-           {CASE_STATUSES.map(s=>btn(s,()=>setUpdateStatus(s),updateStatus!==s))}
+           {CASE_STATUSES.map(s=>btn(s,()=>{setUpdateStatus(s);setCaseUpdateRequestKey(randomUUID());},updateStatus!==s))}
           </View>:btn('Reopen case',()=>setUpdateStatus('REOPENED'),true)}
           {inp('Action taken / clarification',updateNote,(v)=>{setUpdateNote(v);setCaseUpdateRequestKey(randomUUID());},true)}
           {btn('Save case update',()=>void perform(async()=>{
