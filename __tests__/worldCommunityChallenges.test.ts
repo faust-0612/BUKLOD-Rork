@@ -49,6 +49,19 @@ describe('BUKLOD inter-community projects — no BP wagering',()=>{
     expect(validateWorldChallengeFunding({mode:'separate_sponsor_award',
       restrictedProjectBudgetBp:0,prefundedSponsorAwardBp:100,recipientGetsOtherTeamsBudget:false})).toBeNull();
   });
+  it('allows an already-reserved host Cluster award, never contributions from the losers',()=>{
+    const award={...base().funding,mode:'cluster_treasury_award' as const,
+      restrictedProjectBudgetBp:0,prefundedSponsorAwardBp:300,
+      awardSponsorCommunity:{kind:'cluster' as const,scopeId:'cluster-a'},
+      awardReservationReceiptId:'sponsor-reservation-1',
+    };
+    expect(validateWorldChallengeFunding(award)).toBeNull();
+    expect(validateWorldChallenge({...base(),funding:award})).toBeNull();
+    expect(validateWorldChallengeFunding({...award,awardReservationReceiptId:''})).toBeTruthy();
+    expect(validateWorldChallengeFunding({...award,recipientGetsOtherTeamsBudget:true as false})).toBeTruthy();
+    expect(validateWorldChallengeFunding({...award,restrictedProjectBudgetBp:50})).toBeTruthy();
+    expect(validateWorldChallengeFunding({...award,awardSponsorCommunity:{kind:'organization' as const,scopeId:'organization-a'}})).toBeTruthy();
+  });
   it('requires distinct communities, measurable purpose and dates',()=>{
     expect(validateWorldChallenge(base())).toBeNull();
     expect(validateWorldChallenge({...base(),participants:[{kind:'cluster',scopeId:'cluster-a'},{kind:'organization',scopeId:'cluster-a'}]})).toBeTruthy();
