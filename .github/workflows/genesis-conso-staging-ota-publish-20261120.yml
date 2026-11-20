@@ -25,7 +25,7 @@ jobs:
       BUKLOD_APP_TARGET: main
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APK_SOURCE: 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0
-      FROZEN_SOURCE: 2735c5b43790efd11636607d96f9acecd4a84b51
+      FROZEN_SOURCE: cf1c732c3ed3c718099f0163e18ed369149c068e
       BUILD_ID: d9e279a6-766b-4bd9-8316-3f700749594c
       STAGING_CHANNEL: season2-genesis-preview
       STAGING_PACKAGE: org.mzbministry.buklod.staging
@@ -74,6 +74,8 @@ jobs:
             tests/genesis-dashboard-contrast-gallery-20261120.test.mjs \
             tests/genesis-dashboard-contrast-asset-integrity-20261120.test.mjs \
             tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs \
+            tests/genesis-cluster-navigation-scroll.test.mjs \
+            tests/genesis-connect-chat-scope.test.mjs \
             tests/genesis-protected-feature-lock.test.mjs \
             tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
             tests/ad-dashboard-focus-performance-20261116.test.mjs \
