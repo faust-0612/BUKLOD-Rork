@@ -4,6 +4,7 @@ import {AccessibilityInfo,Animated,AppState,Easing,Pressable,StyleSheet,Text,Vie
 import Svg,{Defs,RadialGradient,LinearGradient as SvgLinearGradient,Stop,Circle,Ellipse,Rect,Path,G} from 'react-native-svg';
 import {LinearGradient} from 'expo-linear-gradient';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import GenesisCosmicSky from './GenesisCosmicSky';
 import {GENESIS_IDENTITY,GENESIS_MOTION_MS,GENESIS_PALETTE,resolveGenesisMotion,type GenesisQuality,type GenesisSurface} from './genesisContract';
 import {getGenesisDeviceQuality} from './genesisDeviceQuality';
 
@@ -130,10 +131,12 @@ export function GenesisAtmosphere({active,quality,surface='home'}:{
   </View>;
 }
 /** Bounded cosmic scene behind home content. Never intercepts taps or ad impressions. */
+/** Deep, living first-light canvas. Its transparent orbital field remains behind cards and ads.
+ * The render is static if unfocused, on low-power devices or with reduced-motion enabled. */
 export function GenesisCosmosBackground({active}:{active:boolean}) {
-  return <View pointerEvents="none" style={{position:'absolute',top:0,left:0,right:0,height:510}}>
-    <GenesisAtmosphere active={active}/>
-    <LinearGradient colors={['rgba(5,10,25,0)','rgba(5,10,25,.5)','#050A19']}
+  return <View pointerEvents="none" style={{position:'absolute',top:0,left:0,right:0,height:'100%',overflow:'hidden'}}>
+    <GenesisCosmicSky active={active} transparent/>
+    <LinearGradient colors={['rgba(5,10,25,.09)','rgba(5,10,25,.24)','rgba(5,10,25,.79)']}
       style={StyleSheet.absoluteFill}/>
   </View>;
 }

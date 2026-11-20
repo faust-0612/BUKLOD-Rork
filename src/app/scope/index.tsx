@@ -478,7 +478,7 @@ return (
             backgroundColor:
               displayDashboardTheme.cardColor,
           },
-        ], blueWorkspaceTabs && { minHeight: 54, paddingVertical: 3, borderBottomColor: '#D4E7FA', backgroundColor: '#F4F9FF' }, (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
+        ], blueWorkspaceTabs && { minHeight: 54, paddingVertical: 3, borderBottomColor: canUserSelectTheme() ? '#D4E7FA' : '#52658A', backgroundColor: canUserSelectTheme() ? '#F4F9FF' : 'rgba(15,32,59,.94)' }, (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
       >
         {visibleSections.map(
           (item) => {
@@ -500,14 +500,14 @@ return (
                   styles.tab,
                   active &&
                     styles.tabOn,
-                  blueWorkspaceTabs && { minHeight: 48, borderRadius: 0, backgroundColor: 'transparent', borderBottomWidth: active ? 3 : 0, borderBottomColor: '#0874DE' },
+                  blueWorkspaceTabs && { minHeight: 48, borderRadius: 0, backgroundColor: 'transparent', borderBottomWidth: active ? 3 : 0, borderBottomColor: canUserSelectTheme() ? '#0874DE' : '#F3D399' },
                 ]}
               >
                 <MaterialCommunityIcons
                   name={item.icon}
                   size={blueWorkspaceTabs ? 16 : 18}
                   color={blueWorkspaceTabs
-                    ? (active ? '#0874DE' : '#486E9E')
+                    ? (canUserSelectTheme() ? (active ? '#0874DE' : '#486E9E') : (active ? '#FFE8B6' : '#D2E0F7'))
                     : (active ? colors.greenDark : colors.muted)}
                 />
 
@@ -516,7 +516,7 @@ return (
                     styles.tabText,
                     active &&
                       styles.tabTextOn,
-                    blueWorkspaceTabs && { color: active ? '#0874DE' : '#486E9E', fontSize: 13 },
+                    blueWorkspaceTabs && { color: canUserSelectTheme() ? (active ? '#0874DE' : '#486E9E') : (active ? '#FFE8B6' : '#D2E0F7'), fontSize: 13 },
                   ]}
                 >
                   {item.label}
