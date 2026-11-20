@@ -932,6 +932,15 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     >
       <BuklodPointsR2Guide />
       {isGenesisPreviewBuild() ? <BuklodSeason2ApprovedExclusivePreview /> : null}
+      {isGenesisPreviewBuild() ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="Open complete Season 2 rewards guide"
+          onPress={() => router.push('/points/season2-guide' as any)}
+          style={{marginHorizontal:10,marginTop:8,marginBottom:6,paddingHorizontal:12,paddingVertical:11,
+            backgroundColor:'#122746',borderColor:'#F3D399',borderWidth:1,borderRadius:13}}>
+          <Text style={{fontSize:12,fontWeight:'900',color:'#FFE8B6'}}>BUKLOD · Complete Rewards & Items Guide</Text>
+          <Text style={{fontSize:11,color:'#E9F3FF',marginTop:3}}>BP · QMP · Tokens · 1,300 items · 469 badges · two reward tracks · LOCKED previews</Text>
+        </Pressable>
+      ) : null}
       <View style={styles.heroWrap}>
         <View style={styles.heroTopBand}>
           <View style={styles.brandRow}>
