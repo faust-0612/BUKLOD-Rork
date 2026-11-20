@@ -1,5 +1,7 @@
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, { useCallback, useMemo } from 'react';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+const GENESIS_ORG = isGenesisPreviewBuild();
 import {
   ActivityIndicator,
   Pressable,
@@ -404,7 +406,7 @@ const styles = StyleSheet.create({
     paddingTop: 9,
     paddingBottom: 28,
     gap: 9,
-    backgroundColor: '#F2F7FD',
+    backgroundColor: GENESIS_ORG ? 'transparent' : '#F2F7FD',
   },
   loading: {
     paddingVertical: 48,
@@ -420,25 +422,25 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   heroType: {
-    color: colors.muted,
+    color: GENESIS_ORG ? '#F0D49B' : colors.muted,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   heroTitle: {
-    color: '#173B2F',
+    color: GENESIS_ORG ? '#F8FAFF' : '#173B2F',
     fontSize: 24,
     fontWeight: '900',
   },
   heroText: {
-    color: '#5F6F67',
+    color: GENESIS_ORG ? '#D4E3F4' : '#5F6F67',
     fontSize: 12,
   },
   card: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E1EBF7',
-    backgroundColor: '#FFFFFF',
+    borderColor: GENESIS_ORG ? 'rgba(240,212,155,.62)' : '#E1EBF7',
+    backgroundColor: GENESIS_ORG ? 'rgba(249,251,255,.96)' : '#FFFFFF',
     padding: 11,
     gap: 9,
   },
