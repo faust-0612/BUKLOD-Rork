@@ -12,6 +12,7 @@ import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
+import GenesisMapOrbit from '@/features/season2/genesis/GenesisMapOrbit';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import { GENESIS_IDENTITY, GENESIS_PALETTE, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
@@ -90,6 +91,7 @@ export default function BuklodMapScreen() {
         <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
 
         <View style={styles.constellation}>
+          <GenesisMapOrbit active={focused} />
           <Svg style={StyleSheet.absoluteFillObject} viewBox="0 0 360 310" preserveAspectRatio="xMidYMid meet" pointerEvents="none">
             <Defs>
               <LinearGradient id="line" x1="0" x2="1" y1="0" y2="1">

@@ -21,7 +21,7 @@ Do not expose Admin or agency-management screens as public map shortcuts. Govern
 ## Native and asset reuse (zero new services)
 
 - Bundled Genesis image: `assets/season2/genesis/galaxy/nebula.jpg`; original transparent B: `assets/season2/genesis/genesis-green-b-transparent.png`.
-- Scene FX: native React Native Animated + SVG `GenesisCosmicSky`; GPU-backed transform only while focused, app foreground, no reduced motion.
+- Scene FX: native React Native Animated + SVG `GenesisCosmicSky` and `GenesisMapOrbit` (bundled Earth JPG and driver-backed glow/planet drift); only while focused, app foreground and not reduced motion.
 - Map ambient: already bundled `assets/sounds/kingdom-premium/kingdom-theme.ogg`, through existing `useRorkGameAmbience('kingdom-map')`. The user can turn it on/off; respects sound setting, audio lifecycle, app state and quiet hours. Do not loop social feed or calls. Local fallback is existing `buklod-kingdom-cinematic-ambient.wav`.
 - Existing `kingdom-village.ogg`, `kingdom-great-hall.ogg`, and 9 Kenney CC0 WAV effects are licensed and pinned in `assets/sounds/kingdom-premium/LICENSES.md` and `manifest.json`.
 - The existing `BuklodFirstViewAd` `home/new_home_first_view` is rendered directly in the Map without a permanent blank slot; no replacement ad unit and no new external service. Existing ad consent, render and lifecycle contracts must pass regression checks. The map audio player now disables costly Kingdom SFX pool prewarming, without changing the default behavior inside games.
@@ -34,7 +34,7 @@ The exact owner named "BUKLOD V2" folder was not discoverable in the connected D
 | Asset | Repo destination | Requirement |
 | --- | --- | --- |
 | Fully rigged 13 character animations, idle/walk/turn/action/evolution | `assets/season2/genesis/rigs/<character-id>.riv` | True approved Rive file, rig version, state machine, sha256, license; **currently absent** |
-| Character-specific level/evolution art and collectible layers | `assets/season2/genesis/characters/` | 13 characters, 1,300 verified collectible references, level/item mapping, source/license |
+| Character-specific level/evolution art and collectible layers | `assets/season2/genesis/characters/` | Do not re-upload the 1,300 existing catalog records: `src/lib/buklodCharacterWorldCatalog.ts` already defines them. Reconcile licensed image/media/atlas to those IDs; upload only actually missing source artwork |
 | Land/house/cluster L1-L10 staged build artwork | `assets/season2/genesis/world/` | Each level must have sequential foundation/frame/wall/roof/milestone stages; high-res atlas, overlay states |
 | Real-time War Challenge character animations/arena/match effects | `assets/season2/genesis/war/` | Playable assets with balanced states and safe sound design, **game/network logic separate** |
 | Licensed mastering-approved seasonal hub/area music (if replacing current CC0) | `assets/season2/genesis/audio/` | Loop points, quiet-hours policy, verified usage rights, LUFS, sample rate, checksum |
@@ -66,3 +66,6 @@ Main backend currently carries its own points ledger, point rules, rank levels, 
 ## Map catalog reconciliation
 
 World DEV catalog contains further top-level destinations including Community Contribution, Live Support, About, Invites and retired Drawer. The first four have been added directly to their proper Map districts; **Drawer is intentionally not a top-level portal** because the owner has retired the legacy navigation design. No duplicate direct route appears in different districts. The separate World DEV catalog remains a dormant reference, not a second active navigation authority.
+
+### Corrected asset inventory
+The 1,300 collectible definitions and multiple 13-character level JPEGs are already in the repository; 1,300 separately named image binaries and approved Rive rigs were NOT found in the audited tree. Verify external asset manifests first instead of re-uploading existing data or treating a static JPG as a working `.riv` animation.
