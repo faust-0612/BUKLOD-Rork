@@ -13,6 +13,9 @@ const valid=(overrides: Partial<WorldQmpSpendEvent> = {}):WorldQmpSpendEvent=>({
   category:'construction_materials',
   bpDebited:500,
   earnedBpDebited:500,
+  giftedEarnedBpDebited:0,
+  purchasedBpDebited:0,
+  giftedPurchasedBpDebited:0,
   source:'world',
   settledByServer:true,
   state:'fulfilled',
@@ -51,11 +54,22 @@ describe('BUKLOD spend-driven QMP — disabled DEV policy preview',()=>{
   });
 
   it('partial earned BP only gives partial QMP; paid/gifted BP cannot buy revenue weight',()=>{
-    const partial=previewWorldQmpFromBpSpend(valid({bpDebited:500,earnedBpDebited:200}),[]);
+    const partial=previewWorldQmpFromBpSpend(valid({bpDebited:500,earnedBpDebited:200,purchasedBpDebited:300}),[]);
     expect(partial.qualifies).toBe(true);
     if(partial.qualifies)expect(partial.proposedWeight).toBe(2);
-    expect(previewWorldQmpFromBpSpend(valid({earnedBpDebited:0}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({earnedBpDebited:0,purchasedBpDebited:500}),[]).qualifies).toBe(false);
     expect(previewWorldQmpFromBpSpend(valid({source:'external_paid'}),[]).qualifies).toBe(false);
+  });
+
+  it('gifted earned-origin BP can be spent for legitimate purchase QMP, but gift itself earns zero QMP',()=>{
+    const gifted=valid({bpDebited:500,earnedBpDebited:0,giftedEarnedBpDebited:500});
+    const preview=previewWorldQmpFromBpSpend(gifted,[]);
+    expect(preview.qualifies).toBe(true);
+    if(preview.qualifies)expect(preview.proposedWeight).toBe(5);
+    expect(previewWorldQmpFromBpSpend({...gifted,transactionKind:'bp_gift'},[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend({
+      ...gifted,giftedEarnedBpDebited:0,giftedPurchasedBpDebited:500
+    },[]).qualifies).toBe(false);
   });
 
   it('rejects unverified transactions, refunds, self-trade and negative amounts',()=>{
@@ -67,6 +81,7 @@ describe('BUKLOD spend-driven QMP — disabled DEV policy preview',()=>{
     expect(previewWorldQmpFromBpSpend(valid({isFlagged:true}),[]).qualifies).toBe(false);
     expect(previewWorldQmpFromBpSpend(valid({bpDebited:-5}),[]).qualifies).toBe(false);
     expect(previewWorldQmpFromBpSpend(valid({earnedBpDebited:501}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({earnedBpDebited:100,giftedEarnedBpDebited:500}),[]).qualifies).toBe(false);
   });
 
   it('cannot repeat the same spend receipt across categories or replay same purchase entity',()=>{
