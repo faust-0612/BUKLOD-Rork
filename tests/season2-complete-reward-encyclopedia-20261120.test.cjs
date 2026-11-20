@@ -40,13 +40,14 @@ test('complete reward index covers every major award family and all asset classe
 test('two-track guide is default while full encyclopedia stays accessible without eager reward mint',()=>{
  assert.match(parent,/useState<Tab>\('tracks'\)/);
  assert.match(parent,/tab==='tracks'\?<BuklodS2RewardTracksGuide\/>/);
- assert.match(parent,/tab==='all'\?<BuklodS2CompleteRewardIndex\/>/);
+ assert.match(parent,/tab==='all'\?<><Title>/);
+ assert.match(parent,/<BuklodS2CompleteRewardIndex\/>/);
  assert.match(parent,/\{expanded\?<View/);
  assert.match(ui,/S2_REWARD_FAMILY_INDEX\.map/);
  for(const s of [source,ui])for(const pattern of [/\.rpc\s*\(/,/\.insert\s*\(/,/\.update\s*\(/,/\.upsert\s*\(/,/supabase/i])assert.doesNotMatch(s,pattern);
 });
 test('1,300 items, 469 badges, 40 ranks and four seasonal awards are not confused',()=>{
- for(const s of ['1,300','469','40 rank','Four seasonal awards','four Journey Token','Kingdom'])assert.ok(source.includes(s));
+ for(const s of ['1,300','469','40 rank','Four seasonal awards','Four Journey Token','Kingdom'])assert.ok(source.includes(s));
  assert.match(source,/S2 mastery NOT LIVE/);
  assert.match(source,/S2 badge criteria NOT LIVE/);
  assert.match(source,/S2 LOCKED/);
