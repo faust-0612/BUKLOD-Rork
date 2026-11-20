@@ -121,3 +121,10 @@ test('schema specifies explicit faith-OFF parity and unverified activity adapter
   assert.match(spec, /Only \*\*Public Wall\*\* and \*\*verified Kingdom first mastery\*\*/);
   assert.match(spec, /Unresolved evidence-revocation handling is a \*\*release blocker\*\*/);
 });
+
+test('Kingdom event adapter fails closed for null keys and zero-point spoofed claims', () => {
+  assert.match(sql, /NEW\.user_id IS NULL OR NEW\.source_key IS NULL/);
+  assert.match(sql, /NEW\.points IS NULL OR NEW\.points<=0/);
+  assert.match(sql, /NEW\.source_key NOT LIKE 'kingdom:mastery:v1:%'/);
+  assert.match(sql, /NEW\.activity_type IS DISTINCT FROM 'game_first_qualified'/);
+});
