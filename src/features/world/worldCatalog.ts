@@ -1,3 +1,5 @@
+import { BUKLOD_FEATURE_LINKS } from '@/lib/buklodNavigationV2';
+
 /**
  * BUKLOD World V1 discovery catalog.
  * The gateway is intentionally a navigation layer: no existing routes, entitlements,
@@ -42,6 +44,19 @@ export const WORLD_DESTINATIONS: readonly WorldDestination[] = [
   { id:'support', label:'Help & Support', description:'Magpatulong at mag-ulat ng concern.',icon:'lifebuoy',district:'services',route:'/support/live',state:'available' },
   { id:'profile', label:'My Profile', description:'Ang iyong identity, posts at progress.',icon:'account-circle-outline',district:'services',route:'/me',state:'available' },
   { id:'contribution', label:'Community Contribution', description:'Points, participation at iyong economy information.',icon:'chart-timeline-variant',district:'economy',route:'/community-contribution',state:'available' },
+  { id:'attendance', label:'Attendance', description:'Attendance at shared events (Focus Apps).',icon:'calendar-check-outline',district:'services',route:'/profile/focus-apps',state:'available' },
+  { id:'giving', label:'Giving & Stewardship', description:'Giving tools sa Focus Apps.',icon:'hand-coin-outline',district:'services',route:'/profile/focus-apps',state:'available' },
+  { id:'faculty', label:'Faculty & Classroom', description:'Education, classes at teaching tools.',icon:'school-outline',district:'growth',route:'/profile/focus-apps',state:'available' },
+  { id:'organization', label:'Organization Workspace', description:'Verified organization community features.',icon:'domain',district:'community',route:'/profile/focus-apps',state:'available' },
+  { id:'household', label:'BUKLOD Bahay', description:'Existing family rooms, shared chores and home garden.',icon:'home-heart-outline',district:'community',route:'/personal-home',state:'available' },
+  { id:'characters', label:'Character & Rank', description:'Character levels, badges and Circle Rank.',icon:'medal-outline',district:'world',route:'/points/progression',state:'available' },
+  { id:'music', label:'Music & Audio', description:'Explore music and audio spaces.',icon:'music-note-outline',district:'growth',route:'/personal-home/radio',state:'available' },
+  { id:'referral', label:'Invite Friends', description:'Share BUKLOD with people you know.',icon:'account-plus-outline',district:'social',route:'/life/invite',state:'available' },
+  { id:'notifications', label:'Notifications', description:'See recent activity and updates.',icon:'bell-outline',district:'social',route:'/notifications',state:'available' },
+  { id:'drawer', label:'My Drawer', description:'Personal notes and saved files.',icon:'folder-outline',district:'services',route:'/drawer',state:'available' },
+  { id:'about', label:'About BUKLOD', description:'Alamin ang prinsipyo at layunin ng BUKLOD.',icon:'information-outline',district:'services',route:'/about-buklod',state:'available' },
+  { id:'challenges', label:'Community Challenges', description:'Plan verified real-world projects between communities.',icon:'handshake-outline',district:'community',route:null,state:'preview' },
+
 ] as const;
 
 export const WORLD_PURPOSES: readonly WorldPurpose[] = [
@@ -49,10 +64,10 @@ export const WORLD_PURPOSES: readonly WorldPurpose[] = [
   { id:'communicate',question:'Makipag-ugnayan',subtitle:'Usapan, updates at komunidad.',icon:'chat-outline',destinationIds:['connect','wall','cluster'] },
   { id:'play',question:'Maglaro',subtitle:'Kingdom at cooperative experiences.',icon:'gamepad-variant-outline',destinationIds:['kingdom','myworld','cluster'] },
   { id:'grow',question:'Matuto at lumago',subtitle:'Knowledge, faith at paglago.',icon:'book-open-variant',destinationIds:['learning','faith','stories'] },
-  { id:'help',question:'Tumulong o humingi',subtitle:'Bayanihan at tunay na support.',icon:'hand-heart-outline',destinationIds:['bayanihan','support','cluster'] },
-  { id:'build',question:'Bumuo ng mundo',subtitle:'Lupa, bahay, resources at community.',icon:'home-city-outline',destinationIds:['myworld','resource','cluster','contribution'] },
+  { id:'help',question:'Tumulong o humingi',subtitle:'Bayanihan at tunay na support.',icon:'hand-heart-outline',destinationIds:['bayanihan','challenges','support','cluster'] },
+  { id:'build',question:'Bumuo ng mundo',subtitle:'Lupa, bahay, resources at community.',icon:'home-city-outline',destinationIds:['myworld','resource','household','cluster','contribution'] },
   { id:'trade',question:'Magnegosyo o makipag-trade',subtitle:'Business, Market at world trade.',icon:'storefront-outline',destinationIds:['market','business','resource','contribution'] },
-  { id:'explore',question:'Tuklasin lahat',subtitle:'Lahat ng BUKLOD destinations.',icon:'compass-outline',destinationIds:['wall','connect','cluster','kingdom','faith','market','government','myworld'] },
+  { id:'explore',question:'Tuklasin lahat',subtitle:'Lahat ng BUKLOD destinations.',icon:'compass-outline',destinationIds:['wall','connect','cluster','kingdom','faith','market','government','myworld','challenges','characters','household'] },
 ] as const;
 
 export const WORLD_MAP_PINS = [
@@ -80,4 +95,32 @@ export function destinationsForPurpose(id: string): WorldDestination[] {
 }
 export function destinationsByDistrict(district: WorldDistrict): WorldDestination[] {
   return WORLD_DESTINATIONS.filter(item => item.district === district);
+}
+
+/**
+ * Preserve every legacy public/personal feature-search route. This is a directory
+ * adapter, NOT a replacement for the permissioned launcher in Focus Apps.
+ * New World experiences are additive, and all legacy search routes stay reachable.
+ */
+const existingIds = new Set(WORLD_DESTINATIONS.map(item=>item.id));
+const EXISTING_PUBLIC_FEATURE_DESTINATIONS:readonly WorldDestination[] =
+  BUKLOD_FEATURE_LINKS.filter(link=>!existingIds.has(link.id)).map(link=>({
+    id:'existing-'+link.id,
+    label:link.title,
+    description:'Existing BUKLOD feature — buksan ang orihinal na serbisyo.',
+    icon:'compass-outline',
+    district:(
+      ['settings','security','language','drawer','guide','privacy','privacy_settings'].includes(link.id)?'services':
+      ['rank','music','lesson','stories','bible'].includes(link.id)?'growth':
+      ['referral','activity','notifications','notification'].includes(link.id)?'social':
+      ['bayanihan','attendance','organization'].includes(link.id)?'community':'services'
+    ) as WorldDistrict,
+    route:link.route,
+    state:'available',
+  }));
+export const WORLD_COMPLETE_DESTINATION_DIRECTORY:readonly WorldDestination[]=[
+  ...WORLD_DESTINATIONS,...EXISTING_PUBLIC_FEATURE_DESTINATIONS,
+];
+export function worldCompleteDestinationsByDistrict(district:WorldDistrict):WorldDestination[]{
+  return WORLD_COMPLETE_DESTINATION_DIRECTORY.filter(item=>item.district===district);
 }
