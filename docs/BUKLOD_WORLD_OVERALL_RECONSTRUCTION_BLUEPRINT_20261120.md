@@ -79,34 +79,39 @@ Every material has **BP item value**. Tasks may award validated BP and/or discre
 ### E4. Core accounting invariants
 All state transitions server-transactional; immutable dual entry for BP user-to-user flows; matching item ownership ledger; policy version and reason code required; quote expires; stale price invalidates quote; balance never goes negative; same idempotency key cannot post twice; concurrent buyers cannot double-spend or oversell. RLS does not use user metadata for authorities. Admin restrictions extend to new world ledger; current production admin remains excluded from financial rewards.
 
-### E5. NEW 2026-11-20 owner direction — Active Community QMP instead of passive eligibility
+### E5. FINAL OWNER RECONCILIATION — BP IS EARNED, QMP IS QUALIFIED BP SPENDING
 
-**Economy status: UNAPPROVED, DEV POLICY SIMULATION.** The proposed redesign is not authority to modify the open or closed production QMP and AdMob Finance ledgers. This rule targets a future explicitly versioned Season 2 activation, after owner review and verified finance replay.
+**State: DEV policy proposal only; NOT active in Finance or production.** Owner explicitly distinguished **giving** BP from **buying** items. The purpose is to make earned BP useful: members engage with the diverse BUKLOD features to earn BP, then spend it on their houses, farms, community, marketplace and meaningful world development; **eligible spending** provides QMP weight for allocation of real finalized member revenue.
 
-**Reason:** A member who does nothing meaningful during the current month should not keep qualifying for new monthly revenue weight just because of prior accumulated rank, old QMP, or a property owned. However *a member without land or BP remains equally eligible for meaningful social, faith-optional learning, help and community actions*. Do not make ownership/purchases mandatory to belong or to earn qualified participation.
+**Canonical loop:**
+`verified existing BP participation → EARN BP → AVAILABLE BP → verified eligible purchase / improvement BP debit → QMP spending weight → pro-rata eligible monthly AdMob-only member revenue pool`.
+Lifetime BP and Character rank remain historical/progression authorities and are NOT consumed by purchases; only spendable BP declines.
 
-**Proposal:** calculate open-period QMP from verified **outcomes in the product ecosystem**, not from unverified taps, logins, ad views, time spent, infinite button pressing, simple chat volume, arbitrary cash payment or passive BP holdings. Recognized outcomes may include:
-- A legitimate virtual item purchase (limited first/capped purchases; not BP-value-proportional).
-- First land acquisition, and unique building or room improvement completion (not an infinite buy/undo loop).
-- Verified farm setup, crop cycle, household task, workshop or development milestone.
-- Completed fair trade with independent peer (wash-trade controls, credit caps).
-- Completed group project, verified community service or mutual helpful activity.
-- Completed collaborative session, safe education lesson or Kingdom achievement, without requiring a religious action.
-- Genuine first-time discovery milestones, with cooldown and uniqueness safeguards.
+**Three distinct economic events:**
+1. **EARN_BP:** existing canonical verified participation, learning, games, service etc. can create earned BP. **It does not directly grant QMP** under this proposed new model.
+2. **BUY_WITH_BP:** a bona fide, settled, non-refunded BP purchase of world items/materials/land/house improvements/farm inputs/home decor/eligible community construction or independently fulfilled peer-to-peer goods creates a capped, policy-versioned QMP spending event. QMP may be based on eligible BP spent, with category coefficients/caps fixed only after owner review. An acquisition must have real virtual asset delivery; no "spend only to mint revenue weight".
+3. **GIFT_BP:** moving BP to another user with no goods or legitimate service provided is **not a purchase** and produces **zero positive QMP**. The earlier proposed *sender gift-QMP deduction* is a completely separate, currently unresolved penalty policy; never apply it to genuine purchases. **GIFT_ITEM** is also not eligible purchase for either person. Transferred BP in the recipient's wallet does not itself create QMP.
 
-**Source of truth and abuse prevention:**
-1. Each candidate is an immutable event: actor UID, scope, time, unique entity, event idempotency key, verified server evidence, policy version, action type, BP provenance, counterparty, risk flags.
-2. Event acceptance is a backend-only decision; do not trust client clicks or client-supplied completion. Confirm event origin with its owning canonical system (Bahay, Character, World, Services).
-3. Monthly weight is calculated by an approved base score, unique entity and category caps. No direct equation `QMP = BP spent`, no buying QMP, no uncapped passive rent/ownership benefits.
-4. Paid BP purchases, use of purchased BP to farm purchase/activity QMP, refunded transactions, self-trades, rapid multi-account trades, and automatic ad watching cannot create revenue-weight credits. Track BP provenance for qualification; monetary source is isolated from earned BP.
-5. The existing proposed rule for BP sent person-to-person may deduct sender open-period QMP; a successful eligible item trade may also separately create capped action QMP. Quote both independently; show BP debit, QMP deduction, eligible activity credit, net QMP and any limitations. Final sender formula, exceptions and caps remain owner-unapproved. No deduction from previous months or finalized cash.
-6. User must be allowed to join the social world without property. Non-owners may earn QMP through verified community, learning (faith optional), helping and collective actions. Limit completion/reaction farming, not legitimate cooperation.
-7. Protect social privacy: QMP verification cannot inspect private DM content or score religious beliefs, perceived intimacy, friendship depth, physical location or personal health. Validate only a minimal consented activity receipt and coarse action type.
-8. The monthly user pool still comes strictly from verified, reconciled AdMob receipts under Finance. QMP is an allocation **weight** and never a guaranteed payable cash sum. No estimated ad revenue is cashed out before finalization and payout verification.
-9. For periods before activation, preserve all historical/closed settlement records. At new season boundary, clear or transition open-period calculation only by explicit migration/reconciliation and transparent user notice. Never retroactively reduce an already-finalized month's withdrawable amount.
-10. Proposal weights and caps in `src/features/world/worldQmpPolicyDraft.ts` are placeholders exclusively for simulation, not final rates. `WORLD_QMP_ACTIVATION_ENABLED=false` blocks unreviewed activation. No live endpoint consumes this module.
+**World economy units and earning eligibility:**
+- Preserve a per-unit item catalog (piece, kg, liter, bag, bundle, sheet, square meter). A purchase transaction is eligible when an item/property title or documented improvement actually transfers to the purchaser / named beneficiary. No rewards for undone upgrades.
+- Spending may be a system-store purchase or verified user-market purchase; do not confuse a buyer's payment to seller with a gift. The merchant does not get QMP merely by receiving BP. A community treasury purchase is attributed under the approved contributor/community governance rule (to avoid leader harvesting).
+- No QMP from **login, passive Wall reading, mere commenting, fulfilled activity alone, ad views, BP receipt, receiving gifts, buying BP with fiat, or direct BP transfers**. These activities may still earn BP when the existing BP system so allows.
+- BP sourced from optional real-money purchases must NOT automatically create Finance QMP or revenue entitlement; proposed `earnedBpDebited` is the independently verified portion of a purchase traceable to earned BP. Gifted/transferred BP and purchased BP require risk/eligibility handling to prevent wash-trading and pay-to-earn cash loops. An account's total available BP may include these buckets, but qualified QMP spend is determined by source tracking and settlement.
+- An eligible purchase must not earn QMP twice: once on materials bought and again on consuming the *same materials* to finish the house. Only independently newly spent eligible BP can produce a new QMP receipt.
+- Capped QMP must not be controlled by raw purchase amount without limits: approved BP/QMP ratio + per-order/category/monthly caps + anti-bot + refund reversals. No repeated self-resale or secondary-account price inflation.
+- Show users an honest transaction preview with: item/lot, quantity/units, BP charged, **eligible BP spending**, estimated QMP credit, gift-penalty field ONLY if a true gift, provenance excluded, and post-purchase available BP. Display **QMP weight, not guaranteed PHP**.
 
-**Validation required before financial release:** aggregate replay of last three closed months plus one open sample period without exposing member-private records; simulate equal opportunity for zero-BP users; model acquisition vs engagement weight, inflation, BP transfer penalty/trade conflict, category concentration, opportunistic spam, cash pool stability, pending withdrawal continuity, old client behavior, and paid-BP laundering. Require reviewed migration and version-pinned server receipts, old/new app compatibility, test users and real backend dry-run.
+**Finance & authorization safeguards:**
+1. Authority is an immutable verified BP debit receipt + associated item delivery / land/title improvement, owned by existing trusted server transaction. React Native client cannot assert `earnedBpDebited` or trigger cash settlement by itself.
+2. QMP candidate must be tied to receipt ID, actor, period, entity, category, settled/refund state, policy version and risk status. Atomic idempotent cross-ledger link; duplicates do not multiply QMP.
+3. `src/features/world/worldQmpPolicyDraft.ts` contains **illustrative** sample BP-per-QMP ratio and caps; `WORLD_QMP_ACTIVATION_ENABLED=false`. This code does not call any existing QMP or Finance RPC.
+4. Existing AdMob-only user pool is distributed only after provider reconciliation/finalization; spending QMP is **allocation weight**, not income guaranteed by virtual purchases. No backdated changes to settled periods, no cash pool financed from BP sales or real merchandise.
+5. QMP deduction on **BP gifting** remains a distinct proposed policy and must not apply to regular BP purchases/trades; confirm final deduction amount and anti-abuse rules before activation.
+6. For zero-BP users, ensure the existing BP-earning opportunities and community participation remain free and accessible; free users must have a practical route from participation → earned BP → eligible entry-level spend. Do not make donated BP spending the only path to qualify.
+7. Run historical aggregate simulation for last three closed periods plus current open data and hypothetical open-world purchases. Validate caps, inflation, relative distribution, participation rates, fairness across cohorts, refunds, self-trades, household and Cluster treasury purchases, transfer loops, purchased vs earned BP. Finance review, new runtime contract and explicit rollout gate precede any activation.
+
+**Illustration ONLY:** if user earns 600 BP in existing tasks and uses 500 earned BP to buy real virtual construction materials at an illustrative 100 eligible BP/1 QMP policy, the purchase might create 5 capped QMP. Sending 500 BP as a voluntary gift creates **0 positive purchase QMP** and may have a separate sender deduction only if later approved. The user receives no guaranteed cash; revenue-share weight applies only to an approved and finalized monthly pool.
+
 
 ## F. House blueprints, building and customization
 World property editor must be a **premium scene renderer**, NOT a collection of emoji/flat icons/color panels.
