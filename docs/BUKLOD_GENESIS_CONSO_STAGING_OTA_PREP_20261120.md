@@ -23,3 +23,15 @@ Home, Wall, Connect, Cluster, Organization, Profile, ads, shared live-account ba
 
 ## Release state
 SOURCE PREPARED; NO OTA PUBLISHED; native build/splash follow-up and real-device acceptance remain open. The current workflow contains no EAS token and no OTA publish command.
+
+## November 20 — Cluster, scoped Community Wall and Connect Seen source consolidation
+
+- Owner screenshot follow-up PR [#1021](https://github.com/faust-0612/BUKLOD-Rork/pull/1021), merged into this **staging-only release-candidate source** at commit `54a5e179d101fbce7aa2c1798d65e88495d0a2bb`. Both Engineering Accountability and Main-side source/TypeScript/web integration CI succeeded on the PR exact head before merge. This is not an OTA receipt.
+- Cluster directory reuses the official Genesis Creation artwork behind transparent scrolling, and ambient movement runs only while the screen is focused and reduced motion permits.
+- Organization/Cluster scoped Community Wall now renders over the existing Genesis sky, not the previously opaque `#F5F8FD` feed surface. Existing cards, video handling, interaction and AdMob placements are retained.
+- Connect Seen avatars use separated slots sized for ranked/note-bearing profile thumbnails. Up to three avatars appear; the balance is shown as `+N`; the visible latest time is taken from an authorized *room* read cursor. Tapping opens the individual readers/time sheet. This does not claim a per-message receipt or create backend writes.
+- Added focused read-only source regression checks to the Genesis staging preflight, including ad first-view and navigation contracts. The preflight must pass on the **final current head** before any release authorization.
+
+**Current candidate rules:** Do not trigger the older `BUKLOD_GENESIS_STAGING_OTA_PUBLISH_20261120:` action until its frozen-source guard has been explicitly pinned to the exact consolidated source and an authorized, verified release event has been recorded. A build/runtime EAS check, native-app signed-artifact verification and physical device/AdMob navigation QA are still required. The prior EAS staging update, if any, cannot be used as evidence that these new fixes are on devices.
+
+**Status:** Source merged into consolidated staging branch. Production and main untouched. New fixes NOT published as OTA; Android acceptance still pending.

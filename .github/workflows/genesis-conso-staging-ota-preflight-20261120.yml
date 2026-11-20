@@ -7,6 +7,14 @@ on:
       - .github/workflows/genesis-conso-staging-ota-preflight-20261120.yml
       - scripts/genesis-conso-staging-ota-preflight.mjs
       - tests/genesis-dashboard-contrast-asset-integrity-20261120.test.mjs
+      - tests/genesis-cluster-navigation-scroll.test.mjs
+      - tests/genesis-connect-chat-scope.test.mjs
+      - src/app/clusters/index.tsx
+      - src/app/scope/index.tsx
+      - src/components/BuklodExclusiveScopeCommunity.tsx
+      - src/components/connect/ConnectMessageBubble.tsx
+      - src/lib/connectChatWindow.ts
+      - .buklod/scopes/genesis-cluster-wall-connect-20261120.json
       - .buklod/scopes/genesis-conso-staging-ota-20261120.json
   workflow_dispatch:
 permissions:
@@ -51,6 +59,10 @@ jobs:
             tests/genesis-dashboard-contrast-gallery-20261120.test.mjs \
             tests/genesis-dashboard-contrast-asset-integrity-20261120.test.mjs \
             tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs \
+            tests/genesis-cluster-navigation-scroll.test.mjs \
+            tests/genesis-connect-chat-scope.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
             tests/genesis-protected-feature-lock.test.mjs
       - name: Preparation complete, no OTA publish action
         run: |
