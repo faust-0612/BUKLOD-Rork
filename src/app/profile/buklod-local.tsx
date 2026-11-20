@@ -69,7 +69,7 @@ export default function BuklodGovernmentFocusApp() {
  const [eventLocation,setEventLocation]=useState('');
  const [eventDate,setEventDate]=useState('');
  const [staffId,setStaffId]=useState('');
- const [staffRole,setStaffRole]=useState<GovStaffRole>('PUBLISHER');
+ const [staffAssignRole,setStaffAssignRole]=useState<GovStaffRole>('PUBLISHER');
 
  const active=entities.find(e=>e.id===selectedId)??null;
  const staffRole=myRoles.find(s=>s.entity_id===selectedId && s.is_active)?.role??null;
@@ -344,9 +344,9 @@ export default function BuklodGovernmentFocusApp() {
       {heading('Manage authorized staff')}
       {staff.map(s=><View key={s.user_id}>{caption(s.role+' • '+s.user_id+' • '+(s.is_active?'ACTIVE':'INACTIVE'))}</View>)}
       {inp('Existing BUKLOD user ID (UUID)',staffId,setStaffId)}
-      <View style={styles.buttonRow}>{STAFF_ROLES.map(s=>btn(s,()=>setStaffRole(s),staffRole!==s))}</View>
+      <View style={styles.buttonRow}>{STAFF_ROLES.map(s=>btn(s,()=>setStaffAssignRole(s),staffAssignRole!==s))}</View>
       {btn('Assign verified staff role',()=>void perform(async()=>{
-       await governmentAssignStaff(active.id,staffId.trim(),staffRole);setStaffId('');
+       await governmentAssignStaff(active.id,staffId.trim(),staffAssignRole);setStaffId('');
       },'Staff assignment saved.'),false,staffId.trim().length!==36)}
     </>):null}
     {isSystemAdmin?tile(<>
