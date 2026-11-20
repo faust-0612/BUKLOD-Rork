@@ -363,7 +363,7 @@ DECLARE
 BEGIN
   IF v_uid IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
   PERFORM pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtext('buklod_character_evolution_v1'),pg_catalog.hashtext(v_uid::text));
+    pg_catalog.hashtext('buklod_character_switch_v3'),pg_catalog.hashtext(v_uid::text));
   v_state:=public.get_my_buklod_character_selection_v2();
   v_char:=v_state->>'active_character_id';
   -- An interrupted network response may retry a claim after that item has
