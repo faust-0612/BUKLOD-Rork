@@ -83,3 +83,41 @@ test('production-value lookups use a bounded indexed grouped query rather than p
   assert.match(sql,/HAVING count\(i\.item_index\)</);
   assert.doesNotMatch(sql,/FOR v_step IN v_level\.\.\(v_bp-1\) LOOP/);
 });
+
+test('already earned levels are preserved even if BP eligibility snapshots are inconsistent', () => {
+  assert.match(sql, /v_level:=v_floor;/);
+  assert.match(sql, /v_bp_eligible_level := greatest\(/);
+  assert.doesNotMatch(sql, /v_level:=least\(v_floor,v_bp\);/);
+});
+
+test('higher tier tasks begin only at their first real required stage', () => {
+  assert.match(sql, /WHEN 3 THEN 5/);
+  assert.match(sql, /WHEN 4 THEN 10 WHEN 5 THEN 15/);
+  assert.match(sql, /IF v_step >= CASE p_item_index/);
+  assert.match(sql, /v_total:=v_total\+CASE p_item_index/);
+});
+
+test('mandatory Character items are inventory assets with durable provenance', () => {
+  assert.match(sql, /asset_key text GENERATED ALWAYS AS/);
+  assert.match(sql, /primary_event_count integer NOT NULL DEFAULT 0/);
+  assert.match(sql, /kingdom_event_count integer NOT NULL DEFAULT 0/);
+  assert.match(sql, /SELECT count\(\*\) FILTER \(WHERE e\.metric_key=v_metric\)/);
+  assert.match(sql, /IF v_primary\+v_kingdom<v_target/);
+  assert.match(sql, /'asset_key',v_char \|\| ':L'/);
+});
+
+test('core cosmetic sync cannot issue new level cosmetics from BP alone', () => {
+  assert.match(sql, /CREATE OR REPLACE FUNCTION private\.buklod_character_collectible_progress_v1/);
+  assert.match(sql, /private\.buklod_character_evolution_level_v1\(p_user_id,v_character,v_earned\)::integer/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION private\.buklod_character_collectible_progress_v1\(uuid,text\)/);
+});
+
+test('schema specifies explicit faith-OFF parity and unverified activity adapters are excluded', () => {
+  const spec = read('docs/character/CHARACTER_BP_ITEMS_FAITH_OPTIONAL_20261121.md');
+  assert.match(spec, /13 Character IDs/);
+  assert.match(spec, /1,300 across 13 Characters/);
+  assert.match(spec, /68 mandatory transition receipts/);
+  assert.match(spec, /Show Faith policy \(ON and OFF parity\)/);
+  assert.match(spec, /Only \*\*Public Wall\*\* and \*\*verified Kingdom first mastery\*\*/);
+  assert.match(spec, /Unresolved evidence-revocation handling is a \*\*release blocker\*\*/);
+});
