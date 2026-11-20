@@ -125,17 +125,6 @@
       "tests": [
         "tests/season2-kingdom-shards-catalog-parity-20261119.test.cjs"
       ]
-    },
-    {
-      "id": "release-identity",
-      "reason": "Member encyclopedia and staging-only preflight cannot change Android package identity, production OTA channel or exact owner approval gate.",
-      "preservedBehaviors": [
-        "Staging application id org.mzbministry.buklod.staging remains distinct from production org.mzbministry.buklod.",
-        "Production release and minimum-version enforcement remain disabled until independently verified owner-approved native artifact."
-      ],
-      "tests": [
-        "tests/season2-reward-guide-release-identity-20261120.test.cjs"
-      ]
     }
   ],
   "chosenApproach": "Snapshot audited S1 BP/QMP catalog into a read-only, detailed member reference under existing collapsed Season Journey; add exact owner ten-feature constraints and separate Dec6 audit with no backend connection/point mint. The new Items/Badges tab uses the existing canonical 13-character × 20-stage × 5-item API, with named level selection, ownership caveats and category filtering; documentation expands all 1300 and 469 titles without executing backend grants.",
