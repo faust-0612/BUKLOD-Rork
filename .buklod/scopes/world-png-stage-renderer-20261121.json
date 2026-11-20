@@ -1,0 +1,55 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/world-png-stage-renderer-20261121.json",
+  "baseRef": "d6456b046ca2dc3548861afa14acc7febbfb4dfa",
+  "objective": "Implement a production-isolated PNG-based level and stage visualization foundation for permanent BUKLOD World assets, without requiring new .riv files or inventing completed construction.",
+  "productionChange": false,
+  "releaseTarget": "SEASON2_WORLD_DEV_ONLY",
+  "releaseAuthorized": false,
+  "productionAuthorized": false,
+  "productionBaselineEvidence": "Current main GitHub source 536741f8d97fc9dec91503c89f1c1160e5987ce0 inspected 2026-11-21 is a source pointer only, not a verified deployed production APK/OTA. Genesis world-map DEV parent d6456b046ca2dc3548861afa14acc7febbfb4dfa. Production device manifest/runtime cannot be verified from this patch.",
+  "chosenApproach": "Statically resolved PNG stages with existing React Native Animated; refuse missing files and stale/unverified progress. Renderer is currently unmounted and stage catalog feature flag remains OFF.",
+  "selectionRationale": "Avoid authoring Rive binary, adding new native dependencies, inventing or faking high-tier world art, and unverified server-economy writes.",
+  "alternativeApproaches": [
+    "New Rive rigs rejected due to unprovided .riv/source files and native risk.",
+    "Single image per level without stage identity rejected because every level requires visible three-phase construction.",
+    "Use existing RN Animated and a literal, asset-approved Metro PNG registry once images are physically present."
+  ],
+  "acceptanceChecks": [
+    "Six pure behavioral tests cover initial, completed, in-progress, invalid, stale and missing-art cases.",
+    "No activation of 10-level construction on staging/production without real assets and verified server progression.",
+    "No data/reward/auth/AdMob/video/native dependency change.",
+    "On device verify rapid updates, reduced motion, app focus and unrelated foreground ad/navigation behavior before release."
+  ],
+  "preserveBehaviors": [
+    "Production app and current OTA unchanged; no native code/package changes.",
+    "Official Genesis theme, single world-map navigation and existing Kingdom routes unchanged.",
+    "BP, QMP, rewards, inventory, RLS, server verification and business trade do not change.",
+    "Character Rive and video, AdMob first view, calls, theme/faith settings and existing accessibility stay intact."
+  ],
+  "riskAreas": [
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/world-png-sprite-progress-20261121.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/features/world/worldSpriteFrame.ts",
+    "src/components/world/WorldLevelSprite.tsx",
+    "tests/world-png-sprite-progress-20261121.test.mjs",
+    "docs/world/WORLD_PNG_PROGRESS_RENDERER_20261121.md",
+    ".buklod/scopes/world-png-stage-renderer-20261121.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Reusable React Native Animated PNG component adds no runtime dependency or activated screen.",
+      "preservedBehaviors": [
+        "No changes to native package, ad/navigation lifecycle, preview flags, or production source."
+      ],
+      "tests": [
+        "tests/world-png-sprite-progress-20261121.test.mjs"
+      ]
+    }
+  ]
+}
