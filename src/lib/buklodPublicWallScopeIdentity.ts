@@ -17,6 +17,7 @@ export type BuklodPublicWallScopeIdentity = {
   scope_geo_level?: string | null;
   parent_scope_id?: string | null;
   safe_location_label?: string | null;
+  hide_author_name: boolean;
 };
 
 export function eligiblePublicWallPostScopes(scopes: readonly BuklodScope[]):
@@ -71,6 +72,7 @@ export async function loadPublicWallScopeIdentities(
       scope_geo_level: row.scope_geo_level ?? null,
       parent_scope_id: row.parent_scope_id ?? null,
       safe_location_label: row.safe_location_label ?? null,
+      hide_author_name: row.hide_author_name === true,
     };
   }
   return result;
