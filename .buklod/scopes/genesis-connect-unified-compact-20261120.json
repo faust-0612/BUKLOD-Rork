@@ -1,0 +1,86 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-connect-unified-compact-20261120.json",
+  "objective": "Align native Cluster and Organization room view to canonical Connect header without stacked dashboard chrome; render the true weekday/time of each message with compact bubbles and closer seen-reader avatars.",
+  "baseRef": "integration/genesis-todays-best-conso-staging-20261120",
+  "productionBaselineEvidence": "2026-11-20 checked GitHub main 536741f8d97fc9dec91503c89f1c1160e5987ce0 and Genesis consolidated staging intake 2abd7ecdfd2e7606c7bee07fe3984f451f841d07; source ancestry is not device or live OTA proof.",
+  "chosenApproach": "Reuse canonical BuklodConnectThread and ConnectThreadHeader, hide native scope dashboard chrome only while its Connect section is active, preserve desktop shell, show per-message sent-at as tiny weekday/time inside each bubble, keep full timestamp on tap and reduce spacing on seen avatars.",
+  "selectionRationale": "Single shared Connect implementation preserves scope authorization, room read cursors, send order, media, calls, reactions and message actions without parallel state or another thread screen.",
+  "alternativeApproaches": [
+    "Create separate Cluster chat renderer: rejected because it would duplicate send/read state and regress features.",
+    "Force redirect to personal messages: rejected because it changes room scope and back navigation."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "connect-ptt-calls",
+    "cluster-faith",
+    "message-order",
+    "room-cursor",
+    "navigation-scroll",
+    "ad-first-view-visibility",
+    "native-web-parity"
+  ],
+  "allowedPaths": [
+    "src/app/scope/index.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/lib/connectChatWindow.ts",
+    "tests/connect-compact-thread-parity-20261120.test.mjs",
+    "tests/connect-cluster-scope-shell-20261120.test.mjs",
+    ".buklod/scopes/genesis-connect-unified-compact-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/connect-compact-thread-parity-20261120.test.mjs",
+    "tests/connect-cluster-scope-shell-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Change only chat viewport, compact spacing and message time display using existing native/React Native modules.",
+      "preservedBehaviors": [
+        "No native dependency, JS runtime, payload, consent, AdMob placement or navigation provider modification.",
+        "Existing optimistic send, media, GIF, offline retry, messages ordering and scroll anchor are unchanged."
+      ],
+      "tests": [
+        "tests/connect-compact-thread-parity-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Reuse the canonical Connect room header and local message sent timestamp without touching verified reader/call state.",
+      "preservedBehaviors": [
+        "Room-read cursors are not per-message delivery proofs, and unchanged server metadata remains the authority.",
+        "Direct call, scope Office/PTT launcher, reactions, attachments and long-press actions remain mounted."
+      ],
+      "tests": [
+        "tests/connect-compact-thread-parity-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Render the existing scope Connect conversation as full-screen native chat and preserve Home/Community and desktop layout.",
+      "preservedBehaviors": [
+        "Full scope id and membership guard stay unchanged; back returns to the same workspace Home.",
+        "No changes to Cluster/Organization membership, prayers, community feeds, permissions or posting."
+      ],
+      "tests": [
+        "tests/connect-cluster-scope-shell-20261120.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No modifications to database/RLS, backend read-cursor RPCs, media signing, push, and referral/points economy.",
+    "No changes to application identification, native runtime, EAS channels or OTA publisher.",
+    "Keep app-wide ad rendering and dashboard switching release blockers."
+  ],
+  "acceptanceChecks": [
+    "Source readback and protected feature lock pass, both focused Node tests pass.",
+    "TypeScript and existing relevant chat regression checks pass.",
+    "Native on-device verify scoped fullscreen header, message timestamps, message/seen avatar density, input/keyboard.",
+    "Verify ad-first-view and dashboard navigation before any Genesis staging OTA release."
+  ],
+  "releaseMode": "DEV_DRAFT_FOR_NEXT_STAGING_CONSO_NO_OTA",
+  "releaseTarget": "Next separately source-pinned Genesis staging RC; production untouched",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
