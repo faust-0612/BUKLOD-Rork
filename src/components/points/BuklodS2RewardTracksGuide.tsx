@@ -7,7 +7,7 @@ import React,{useState} from 'react';
 import {Pressable,StyleSheet,Text,View} from 'react-native';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {
- S2_BOTH_TRACK_LIMITS,S2_TRACK_LEARNING_BP,S2_TRACKS,
+ S2_BOTH_TRACK_LIMITS,S2_TRACK_LEARNING_BP,S2_TRACKS,S2_TRACK_SEASONAL_AWARD_VARIANTS,
  S2_TRACK_BADGE_PREVIEWS,S2_TRACK_SOURCES,S2_TRACK_ROLLOUT,
  previewTrackForScope,type S2RewardTrack
 } from '@/lib/season2/buklodSeason2RewardTracksR1';
@@ -58,6 +58,13 @@ export default function BuklodS2RewardTracksGuide(){
        </View>
        <Text style={s.warn}>NOT LIVE</Text>
       </View>)}
+      <Text style={s.subhead}>Four official seasonal awards · track-specific evidence variants</Text>
+      {S2_TRACK_SEASONAL_AWARD_VARIANTS[id].map(a=><View key={a.key} style={s.row}>
+       <View style={{flex:1}}><Text style={s.item}>{a.title}</Text>
+         <Text style={s.note}>{a.criteria}</Text>
+       </View><Text style={s.warn}>NOT LIVE</Text>
+      </View>)}
+      <Text style={s.note}>Ang 1,300 Character items at 469 badges ay nananatiling iisang canonical catalog. Ang supporting learning/community receipts para sa future track-specific milestones ay dapat mula sa tamang mode at hindi pwedeng ma-credit muli sa kabilang track.</Text>
       <Text style={s.note}>Weekly claim namespace: {config.missionKey}. Seasonal badge namespace: {config.seasonalAwardNamespace}. Ang mission at badges ng track na ito ay hindi maaaring i-claim sa kabilang track.</Text>
     </View>;
   })}
