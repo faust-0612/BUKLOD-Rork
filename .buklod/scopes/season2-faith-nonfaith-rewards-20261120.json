@@ -4,7 +4,7 @@
   "objective": "Separate Show Faith vs Non-Show Faith Season 2 reward programs by authorized scope, preserve existing BP/QMP/token wallets and all Season1 history, block cross-track duplicate claims, and expose detailed user guidance without activating backend or production.",
   "baseRef": "dev/season2-dec6-economy-final-prep-20261119",
   "sourceBranch": "dev/season2-showfaith-nonfaith-reward-split-20261120",
-  "productionBaselineEvidence": "Read-only BUKLOD production-like backend inspection on 2026-11-20: existing buklod_should_show_faith_content(uuid) is auth.uid-scoped and includes CHURCH, CLUSTER admin, ORGANIZATION mandatory faith, and member preference precedence; S2 disabled schema and Season1 active from previous inspection. No Supabase data changed. Base is owner-reviewed reward guide DEV, not production.",
+  "productionBaselineEvidence": "Read-only BUKLOD production-like backend inspection on 2026-11-20: existing buklod_should_show_faith_content(uuid) is auth.uid-scoped and includes CHURCH, CLUSTER admin, ORGANIZATION mandatory faith, and member preference precedence; S2 disabled schema and Season1 active from previous inspection. No Supabase data changed. Base is owner-reviewed reward guide DEV, not production. Reconciled parent DEV branch's three-lane catalog-only filter in PR #997 at SHA 72e12d5a4c1ce532676c816be28350a88a01df9b; retained existing catalog, corrected literary KL as shared, and kept active S2 track derived from scope not catalog toggle.",
   "productionChange": false,
   "releaseAuthorized": false,
   "releaseTarget": "SEASON2_DEV_SOURCE_ONLY",
@@ -34,11 +34,14 @@
     "docs/season2/sql/BUKLOD_S2_FAITH_NONFAITH_TRACKS_DRAFT_NOT_DEPLOY.sql",
     "docs/season2/BUKLOD_S2_SHOWFAITH_NONFAITH_REWARD_SYSTEM_20261120.md",
     "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
-    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs"
+    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
+    "src/lib/season2/buklodSeason2RewardLanesR1.ts",
+    "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
   ],
   "regressionTests": [
     "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
-    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs"
+    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
+    "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
   ],
   "riskAreas": [
     "app-runtime",
@@ -57,7 +60,8 @@
     "Only one optional weekly financial/currency bonus per member/week across both modes; two distinct P0 learning/community receipts per valid track.",
     "Read-only SQL adds no user-accessible RPC, no production migration, all RLS and claim flags OFF.",
     "Existing complete 7-wallet, 19 reward-family, 1,300 item, 469 badge, 40 ranks and current S1 balances untouched.",
-    "Pass focused Node and protected feature guard, no staging or production publish without separate artifact verification."
+    "Pass focused Node and protected feature guard, no staging or production publish without separate artifact verification.",
+    "Existing informational Show Faith/Non-Faith/Shared BP taxonomy preserved; KL literary reading is shared across both modes, not forced into faith-only completion."
   ],
   "lockedFeatureChanges": [
     {
@@ -69,7 +73,8 @@
       ],
       "tests": [
         "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
-        "tests/season2-complete-reward-encyclopedia-20261120.test.cjs"
+        "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
+        "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
       ]
     },
     {
@@ -80,7 +85,8 @@
         "Preview source mode cannot grant Tokens, BP, QMP, cash or item rights."
       ],
       "tests": [
-        "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs"
+        "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
+        "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
       ]
     }
   ]
