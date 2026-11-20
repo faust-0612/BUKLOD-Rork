@@ -57,3 +57,11 @@ test('public feed resolves scope identity at first paint with backwards compatib
  assert.match(migration,/from public\.get_buklod_public_community_feed_v7_page/);
  assert.match(migration,/grant execute on function public\.get_buklod_public_community_feed_v8_page/);
 });
+
+test('public scope identity survives scope deletion without revealing official member byline',()=>{
+ assert.match(migration,/on delete set null/);
+ assert.match(migration,/scope_name_at_post text not null/);
+ assert.match(migration,/coalesce\(s\.name,a\.scope_name_at_post\)/);
+ assert.match(migration,/coalesce\(s\.name, a\.scope_name_at_post\)/);
+ assert.match(migration,/a\.hide_author_name/);
+});
