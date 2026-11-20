@@ -1,4 +1,4 @@
-name: BUKLOD Genesis Native Staging APK Foundation - NO OTA NO PROD
+name: BUKLOD Genesis Full Functional Staging APK - No OTA No Prod
 on:
   push:
     branches:
@@ -6,6 +6,7 @@ on:
       - dev/genesis-silent-ota-native-integration-20261120
     paths:
       - .github/workflows/genesis-season2-staging-release-apk-20261120.yml
+      - tests/genesis-staging-live-backend-review-20261120.test.mjs
 permissions:
   contents: read
 concurrency:

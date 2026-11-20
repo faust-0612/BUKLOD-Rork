@@ -48,8 +48,6 @@
     "tests/genesis-staging-native-apk-release-20261120.test.mjs",
     "tests/genesis-native-autolinking-reality-20261120.test.mjs",
     "tests/genesis-apk-binary-proof-20261120.test.mjs",
-    "tests/genesis-render-qa-isolation-20261120.test.mjs",
-    "tests/genesis-staging-release-render-identity-20261120.test.mjs",
     "tests/genesis-staging-live-backend-review-20261120.test.mjs"
   ],
   "allowedPaths": [
@@ -129,7 +127,6 @@
         "tests/genesis-godot-native-foundation-20261120.test.mjs",
         "tests/genesis-drive-native-foundation-20261120.test.mjs",
         "tests/genesis-native-autolinking-reality-20261120.test.mjs",
-        "tests/genesis-render-qa-isolation-20261120.test.mjs",
         "tests/genesis-staging-live-backend-review-20261120.test.mjs"
       ]
     },
@@ -169,7 +166,8 @@
     "Actual QA APK must be release-mode embedded-JS, ARM64 native, test signed with SHA256 and separate package; do not conflate with functional staging APK or any production approval",
     "Release identity gate verifies staging visual APK uses exact stage package/scheme/runtime and no production package; offline review mode is not equivalent to functional EAS-signed staging or Play AAB",
     "Actual Genesis 2.0.0 staging EAS profile is only place with public BUKLOD main backend credentials; production release profile and native runtime unchanged; no service_role or secret keys.",
-    "Full staging boots existing Router/Auth/Ads/PTT app, not read-only visual QA. Source checks cannot prove backend writes or device rendering; validate with real stage APK installation."
+    "Full staging boots existing Router/Auth/Ads/PTT app, not read-only visual QA. Source checks cannot prove backend writes or device rendering; validate with real stage APK installation.",
+    "Regression gates are aligned with actual full staging router bootstrap and remove assertions for deleted offline-only QA suites."
   ],
   "releaseTarget": "GENESIS_FULL_FUNCTIONALITY_STAGING_APK_ONLY",
   "publicationStatus": "STAGING_EAS_SIGNED_APK_REQUESTED_PENDING_RECEIPT",

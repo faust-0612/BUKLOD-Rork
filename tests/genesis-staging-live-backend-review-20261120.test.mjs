@@ -47,7 +47,7 @@ test('Genesis staging full app uses version 2.0.0 and distinct native runtime/ch
 });
 test('staging bundle boots the actual router/auth providers, not an offline mock or synthetic rewards',()=>{
  const entry=read('index.js');
- assert.match(entry,/require\('expo-router\/entry'\)/);
+ assert.match(entry,/import ['"]expo-router\/entry['"]/);
  assert.match(entry,/setFirebaseListeners/);
  assert.match(entry,/setPushConfig/);
  assert.match(entry,/buklodPttBootstrap/);
