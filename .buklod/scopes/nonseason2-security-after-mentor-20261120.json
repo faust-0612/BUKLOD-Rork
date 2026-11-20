@@ -5,7 +5,7 @@
   "baseRef": "98fda684f8a322ba0095adda06899534fdcfa6fe",
   "productionBaselineEvidence": "Verified Android production 2026-11-20 run 44743468133 SUCCESS, Expo Android production served update 01a1f920-ea6b-7314-a070-364a22019a24, runtime 1.3.2, exact release source 98fda684f8a322ba0095adda06899534fdcfa6fe. Independent read-only postpublish Expo run 44744193617 SUCCESS. Existing main security source commit 551e546 is separately source-tested but NOT the current live OTA; stage a source-only reconciliation first.",
   "chosenApproach": "Copy exactly the five reviewed security UI/helper source file blobs and two regression tests from Main commit 536741f8 to the last verified served production source. Do not copy unrelated backend migrations or trigger a production OTA. Preserve existing one-screen mentoring hotfix, live AdMob/instant-tab paths, and native ABI.",
-  "selectionRationale": "The main branch includes non-OTA database metadata alongside auth security; direct main release would mix unrelated pending changes. One focused source-only RC supports exact regression and runtime review without exposing money, personal identifiers or Season2.",
+  "selectionRationale": "The main branch includes non-OTA database metadata alongside auth security; direct main release would mix unrelated pending changes. One focused source-only RC supports exact regression and runtime review without exposing money, personal identifiers or Season2. The original combined client+backend scanner test is split: this release runs only five client SecureStore/login checks, avoiding an unshipped SQL migration dependency.",
   "alternativeApproaches": [
     "Merge entire main into production immediately: rejected because it would include backend migration records and other pending source not yet reconciled to the last served update.",
     "Roll out a new native APK for SecureStore: rejected because expo-secure-store already exists in the signed runtime1.3.2 native dependency set; prove via native compatibility gate before any OTA.",
@@ -17,7 +17,7 @@
     "navigation-scroll"
   ],
   "regressionTests": [
-    "tests/buklod-security-password-storage-and-auth-audit-20261119.test.mjs",
+    "tests/buklod-remembered-login-client-storage-20261120.test.mjs",
     "tests/security-root-login-boot-20261119.test.mjs"
   ],
   "allowedPaths": [
@@ -27,7 +27,7 @@
     "src/app/admin/security-operations.tsx",
     "src/lib/buklodRememberedLoginSecrets.ts",
     "src/lib/buklodSuggestedLoginStorage.ts",
-    "tests/buklod-security-password-storage-and-auth-audit-20261119.test.mjs",
+    "tests/buklod-remembered-login-client-storage-20261120.test.mjs",
     "tests/security-root-login-boot-20261119.test.mjs"
   ],
   "lockedFeatureChanges": [
@@ -40,7 +40,7 @@
         "Mentoring report, AdMob first-view and dashboard navigation remain byte-identical to the just-verified production OTA."
       ],
       "tests": [
-        "tests/buklod-security-password-storage-and-auth-audit-20261119.test.mjs",
+        "tests/buklod-remembered-login-client-storage-20261120.test.mjs",
         "tests/security-root-login-boot-20261119.test.mjs"
       ]
     },
@@ -60,14 +60,16 @@
     "No Season 2 new feature/reward activation, no financial payout change, no new Expo native dependency.",
     "No ad units/consent/first-view changes, dashboard route reconfiguration or profile rank changes.",
     "Previously verified Mentoring Submit action and its proof/consent server gates remain exactly unchanged.",
-    "All other pending main/security/backend work is excluded."
+    "All other pending main/security/backend work is excluded.",
+    "Full security-scanner R2 SQL migration and its tests remain in the independent backend source; none is shipped by this client-only OTA candidate."
   ],
   "acceptanceChecks": [
     "Verify exactly five security source blobs against reviewed main source commit and both focused tests.",
     "Engineering Accountability including protected-feature lock, auth/navigation regression and TypeScript/Web bundle compatibility PASS.",
     "Verify signed Android production native Expo SecureStore ABI compatibility; no need to force APK rebuild.",
     "Verify stage runtime1.3.2 and EAS production current baseline readback before a separate frozen RC; do not publish without full AdMob/nav/weak-network auth/login acceptance.",
-    "Explicit separate production release marker must be authorized after source QA; this PR has no trigger or publisher."
+    "Explicit separate production release marker must be authorized after source QA; this PR has no trigger or publisher.",
+    "Run backend security scanner R2 migration/tests independently; do not falsely claim backend scanner coverage from client-only CI."
   ],
   "releaseMode": "DEV_SECURITY_RC_ONLY_NO_PUBLISH",
   "publicationStatus": "SOURCE_RECONCILIATION_CI_PENDING",
