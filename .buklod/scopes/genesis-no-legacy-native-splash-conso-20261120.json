@@ -44,5 +44,17 @@
     "app-runtime",
     "production-release",
     "release-identity"
+  ],
+  "acceptanceChecks": [
+    "Genesis native splash and adaptive icon select only existing alpha-green B for staging preview, in both light and dark modes",
+    "Genesis native splash starts with cosmic indigo instead of the thorn or black background",
+    "Production, Classroom, normal staging package/runtime and splash remain unchanged",
+    "Genesis animated scene is still center-fixed, sequenced, accessibility-aware and preserves biometric unlock",
+    "Exact signed APK package/runtime/signature and on-device QA must be verified before replacing existing staging APK; no OTA or production release"
+  ],
+  "alternativeApproaches": [
+    "OTA-only old splash removal is impossible because Android native splash is compiled into APK",
+    "Editing Production or Classroom splash is rejected to preserve existing builds",
+    "Rebuilding from outdated native PR #1024 instead of latest consolidated staging integration is rejected"
   ]
 }
