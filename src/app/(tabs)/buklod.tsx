@@ -5701,6 +5701,54 @@ const communityFeedRows =
     </View>
    ) : (
     <>
+    <View style={{marginBottom:9}}>
+     <Pressable accessibilityRole="button"
+      accessibilityLabel={'Post identity: '+(selectedPostAsScope?.name??'My profile')}
+      accessibilityState={{expanded:postAsScopePickerOpen}}
+      onPress={()=>setPostAsScopePickerOpen(open=>!open)}
+      style={{minHeight:42,paddingHorizontal:11,backgroundColor:colors.background,
+       borderColor:colors.line,borderWidth:1,borderRadius:12,
+       flexDirection:'row',alignItems:'center',gap:8}}>
+      <MaterialCommunityIcons name={selectedPostAsScope?'account-group':'account-circle-outline'}
+       size={20} color={colors.greenDark}/>
+      <View style={{flex:1,minWidth:0}}>
+       <Text style={{fontSize:10,color:colors.muted,fontWeight:'700'}}>POST TO PUBLIC WALL AS</Text>
+       <Text numberOfLines={1} style={{fontSize:14,color:colors.text,fontWeight:'800'}}>
+        {selectedPostAsScope?.name??'My profile'}
+       </Text>
+      </View>
+      <MaterialCommunityIcons name={postAsScopePickerOpen?'chevron-up':'chevron-down'} size={20} color={colors.greenDark}/>
+     </Pressable>
+     {postAsScopePickerOpen&&(
+      <ScrollView nestedScrollEnabled style={{maxHeight:192,marginTop:5,borderWidth:1,
+       borderColor:colors.line,borderRadius:12,backgroundColor:colors.background}}
+       keyboardShouldPersistTaps="always">
+       <Pressable accessibilityRole="button" accessibilityLabel="Post as my personal profile"
+        onPress={()=>{setSelectedPostAsScopeId(null);setPostAsScopePickerOpen(false);}}
+        style={{minHeight:43,paddingHorizontal:11,justifyContent:'center',borderBottomWidth:1,borderColor:colors.line}}>
+        <Text style={{color:colors.text,fontWeight:selectedPostAsScope?'500':'900'}}>My profile · Personal post</Text>
+       </Pressable>
+       {eligiblePostAsScopes.map(option=>(
+        <Pressable key={option.scope_id} accessibilityRole="button"
+         accessibilityLabel={'Post publicly as '+option.name}
+         onPress={()=>{setSelectedPostAsScopeId(option.scope_id);setPostAsScopePickerOpen(false);}}
+         style={{minHeight:46,paddingHorizontal:11,justifyContent:'center',
+          borderBottomWidth:1,borderColor:colors.line}}>
+         <Text numberOfLines={1} style={{fontSize:13,
+          fontWeight:option.scope_id===selectedPostAsScopeId?'900':'700',color:colors.text}}>
+          {option.name}
+         </Text>
+         <Text style={{fontSize:10,color:colors.muted}}>{publicWallScopeTypeLabel(option)}</Text>
+        </Pressable>
+       ))}
+      </ScrollView>
+     )}
+     <Text style={{fontSize:11,color:colors.muted,marginTop:4}}>
+      {selectedPostAsScope
+       ? 'Public post from '+selectedPostAsScope.name+'. Member byline is shown unless you are a verified scope admin.'
+       : 'Personal public post. Scope-only posts remain in their own Walls.'}
+     </Text>
+    </View>
 <BuklodMentionField
  focusRef={composerInputRef}
  value={body}
@@ -6101,30 +6149,68 @@ const communityFeedRows =
     <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    {/* BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117: name + Follow on first row, Edit/Report directly below the right-hand control. */}
    <View style={{flexDirection:'row',alignItems:'flex-start',gap:8}}>
-     <BuklodTappableAvatar
+     {item.public_scope_identity ? (
+      <View style={{width:42,height:42,borderRadius:21,overflow:'hidden',
+       backgroundColor:colors.greenSoft,alignItems:'center',justifyContent:'center'}}>
+       {/^https?:\/\//i.test(String(item.public_scope_identity.scope_logo_url??'')) ? (
+        <Image source={{uri:item.public_scope_identity.scope_logo_url}} style={{width:42,height:42}}/>
+       ) : (
+        <MaterialCommunityIcons name={item.public_scope_identity.scope_type==='LOCAL'?'map-marker':'account-group'}
+         size={24} color={colors.greenDark}/>
+       )}
+      </View>
+     ) : (
+      <BuklodTappableAvatar
        userId={item.user_id}
        name={resolvePersonDisplayName(item.author_name,item.user_id)}
        rankName={item.author_rank_name}
        size={42}
-     />
+      />
+     )}
      <View style={{flex:1,minWidth:0}}>
        <View style={{flexDirection:'row',alignItems:'flex-start',gap:5}}>
          <View style={{flex:1,minWidth:0}}>
-           <BuklodTappablePersonName
-             userId={item.user_id}
-             displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
-             numberOfLines={1}
-             style={s.author}
-           >
-             {resolvePersonDisplayName(item.author_name,item.user_id)}
-           </BuklodTappablePersonName>
-           <ProfileAvatarNoteChip userId={item.user_id} />
+           {item.public_scope_identity ? (
+            <>
+             <Text numberOfLines={1} style={s.author}>
+              {item.public_scope_identity.scope_name}
+             </Text>
+             {!item.public_scope_identity.hide_author_name&&(
+              <BuklodTappablePersonName
+               userId={item.user_id}
+               displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
+               numberOfLines={1}
+               style={[s.meta,{fontSize:11}]}
+              >
+               {'Posted by '+resolvePersonDisplayName(item.author_name,item.user_id)}
+              </BuklodTappablePersonName>
+             )}
+            </>
+           ) : (
+            <>
+             <BuklodTappablePersonName
+              userId={item.user_id}
+              displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
+              numberOfLines={1}
+              style={s.author}>
+              {resolvePersonDisplayName(item.author_name,item.user_id)}
+             </BuklodTappablePersonName>
+             <ProfileAvatarNoteChip userId={item.user_id} />
+            </>
+           )}
            <Text style={s.meta} numberOfLines={1}>
-             {item.author_rank_name || 'Rank updating'}
-             {item.cluster_name ? ` | ${item.cluster_name}` : ''}
-             {' | '}
-             {String(item.audience||'group').toUpperCase()}
-             {item.author_only ? ' | AKO LANG' : ''}
+            {item.public_scope_identity ? (
+             publicWallScopeTypeLabel({
+              scope_type:item.public_scope_identity.scope_type,
+              parent_scope_id:item.public_scope_identity.parent_scope_id,
+              geo_level:item.public_scope_identity.scope_geo_level,
+             })+(item.public_scope_identity.hide_author_name?' · Official':' · Member post')+' · PUBLIC'
+            ) : (
+             (item.author_rank_name||'Rank updating')+
+             (item.cluster_name?' | '+item.cluster_name:'')+
+             ' | '+String(item.audience||'group').toUpperCase()+
+             (item.author_only?' | AKO LANG':'')
+            )}
            </Text>
            <Text
              style={[s.meta,{marginTop:2}]}
