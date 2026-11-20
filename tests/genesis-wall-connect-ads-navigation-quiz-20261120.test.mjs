@@ -39,6 +39,6 @@ test('Bible Quiz rubric remains read-only and server-issued',()=>{
  const quiz=read('src/components/bible/BuklodBibleQuizV4.tsx');
  assert.match(quiz,/rubric_guidance/);
  assert.match(quiz,/rubric_feedback/);
- assert.match(quiz,/supabase\.rpc/);
+ assert.match(quiz,/\(supabase as any\)\.rpc/);
  assert.doesNotMatch(quiz,/wallet\.mint|tokenMint\s*\(/);
 });
