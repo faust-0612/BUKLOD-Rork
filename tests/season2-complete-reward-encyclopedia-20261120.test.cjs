@@ -10,10 +10,10 @@ const ui=read('src/components/points/BuklodS2CompleteRewardIndex.tsx');
 const parent=read('src/components/points/BuklodS2CompleteRewardsReference.tsx');
 const assets=read('src/components/points/BuklodS2AllItemsBadgesGuide.tsx');
 const catalog=JSON.parse(read('contracts/season2-dec6-complete-reward-inventory-20261119.json'));
-function rows(prefix,end){
+function rows(prefix){
  const start=source.indexOf(prefix);
  assert.ok(start>=0);
- const stop=source.indexOf(end,start+prefix.length);
+ const stop=source.indexOf('] as const);',start+prefix.length);
  assert.ok(stop>start);
  const raw=source.slice(start+prefix.length,stop);
  const ids=[...raw.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]);
@@ -21,16 +21,16 @@ function rows(prefix,end){
  return ids;
 }
 test('all seven currencies represented with explicit separate authority',()=>{
- const ids=rows('export const S2_REWARD_CURRENCIES=Object.freeze([',']);\nexport const S2_REWARD_STATUS_LEGEND');
+ const ids=rows('export const S2_REWARD_CURRENCIES=Object.freeze([');
  assert.deepEqual(ids,catalog.currencies.map(x=>x.id));
  assert.match(source,/financial finalization OFF/i);
  assert.match(source,/not a fixed peso/i);
 });
 test('complete reward index covers every major award family and all asset classes',()=>{
- const ids=rows('export const S2_REWARD_FAMILY_INDEX=Object.freeze([',']);\nexport const S2_REWARD_AWARD_CATEGORIES');
+ const ids=rows('export const S2_REWARD_FAMILY_INDEX=Object.freeze([');
  assert.equal(ids.length,19);
  for(const id of ['community_bp','learning_bp','ministry_bp','game_bp','achievement_bp','qmp_events','qmp_missions','kl_progressive','tokens','weekly','momentum','referral','character','badges','rank','kingdom','awards','bonus','finance'])assert.ok(ids.includes(id));
- const awards=rows('export const S2_REWARD_AWARD_CATEGORIES=Object.freeze([',']);');
+ const awards=rows('export const S2_REWARD_AWARD_CATEGORIES=Object.freeze([');
  assert.equal(awards.length,7);
  assert.match(assets,/BUKLOD_CHARACTER_WORLD_IDS\.map/);
  assert.match(assets,/getS2CollectibleGuide\(charId,level,i\+1\)/);
@@ -51,7 +51,7 @@ test('1,300 items, 469 badges, 40 ranks and four seasonal awards are not confuse
  assert.match(source,/S2 LOCKED/);
 });
 test('earned, pending, proposed, retired and active catalog statuses distinguished',()=>{
- const ids=rows('export const S2_REWARD_STATUS_LEGEND=Object.freeze([',']);\nexport const S2_REWARD_FAMILY_INDEX');
+ const ids=rows('export const S2_REWARD_STATUS_LEGEND=Object.freeze([');
  assert.deepEqual(ids,['active','pending','earned','preview','inactive']);
  assert.match(source,/No automatic grant|no automatic grant/i);
 });
