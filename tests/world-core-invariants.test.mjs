@@ -165,7 +165,7 @@ test('two-team mutual approvals and barangay permission alone never verify a pro
 test('permanent 10-level world stages require verified step receipts and sufficient area',()=>{
  assert.equal(WORLD_DEVELOPMENT_ENABLED,false);
  for(const track of ['personal_lot','house','farm','cluster','organization']){
-  assert.equal(worldTier(track,1).stages.length,3);
+  assert.equal(worldTier(track,1).stages.length,5);
   assert.equal(worldTier(track,10).level,10);
   assert.ok(worldTier(track,10).sampleBpForFullTier>worldTier(track,1).sampleBpForFullTier);
  }
@@ -190,4 +190,24 @@ test('material catalog and house recipes can be priced without backend/fiat sale
  assert.equal(quoteWorldItemPurchase('wood-plank',10,'best_value').sampleCostBp,55);
  assert.equal(quoteWorldItemPurchase('sand',0.5,'unit').sampleCostBp,1);
  assert.equal(quoteWorldItemPurchase('wood-plank',0.5,'unit'),null);
+});
+
+test('five construction receipts consume the exact disabled preview tier sum and never invent an ownership receipt',()=>{
+  let state={track:'house',level:0,stage:0,revision:0};
+  const tier=worldTier('house',1);
+  let bp=0;
+  for(let stage=1;stage<=5;stage++){
+    const next=nextWorldAdvance(state);
+    assert.equal(next?.nextStage,stage);
+    bp+=next.sampleBpForCurrentStage;
+    const result=applyPreviewWorldAdvance(state,{worldId:'test-world',approvedArtId:next.sampleArtStageId,
+      level:1,stage,revision:state.revision+1,serverVerified:true},1000);
+    assert.equal(result.ok,true);
+    if(result.ok)state=result.next;
+  }
+  assert.equal(bp,tier.sampleBpForFullTier);
+  assert.equal(state.level,1);
+  assert.equal(state.stage,0);
+  assert.equal(state.revision,5);
+  assert.equal(nextWorldAdvance({...state,stage:5}),null);
 });

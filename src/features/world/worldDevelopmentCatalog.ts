@@ -3,16 +3,16 @@
  *
  * Independent from Circle Rank, Character level, and seasons. These are sample
  * PREVIEW requirements, not purchasable production assets or BP pricing.
- * Levels have three ordered, visually distinguishable construction stages.
+ * Levels have five ordered construction phases from the owner's V2 House catalog.
  */
 export const WORLD_DEVELOPMENT_ENABLED = false as const;
 export type WorldDevelopmentTrack = 'personal_lot'|'house'|'farm'|'cluster'|'organization';
-export type WorldDevelopmentPhase = 1|2|3;
+export type WorldDevelopmentPhase = 1|2|3|4|5;
 export type WorldDevelopmentTier = {
   level:number;
   label:string;
   /** Visual renderer must have separate authored art for each step. */
-  stages:readonly [string,string,string];
+  stages:readonly [string,string,string,string,string];
   minimumLandM2:number;
   sampleBpForFullTier:number;
   requiredWorldImpact?:string;
@@ -50,12 +50,14 @@ const landMin:Readonly<Record<WorldDevelopmentTrack,number>>={
 const baseBp:Readonly<Record<WorldDevelopmentTrack,number>>={
   personal_lot:80,house:180,farm:120,cluster:300,organization:400,
 };
-const stepContent:Readonly<Record<WorldDevelopmentTrack,readonly [string,string,string]>>={
-  personal_lot:['Survey & access','Install visible structures','Finish grounds & utilities'],
-  house:['Foundation / frame changes','Walls, roof & fixtures','Interior & functional handover'],
-  farm:['Prepare soil / utilities','Plant / grow productive assets','Harvest / expand infrastructure'],
-  cluster:['Agree community plan','Construct cooperative facilities','Verify shared use & finish'],
-  organization:['Approve public-purpose plan','Build services & facilities','Verify access & finish'],
+/** V2 canonical construction phases, pending final art and server receipts. */
+export const WORLD_CONSTRUCTION_PHASE_NAMES = ['Materials','Posts/Foundation','Frame','Structure','Finishing'] as const;
+const stepContent:Readonly<Record<WorldDevelopmentTrack,readonly [string,string,string,string,string]>>={
+  personal_lot:['Survey and bring materials','Mark parcel posts','Install path and fence frame','Build fencing and services','Landscape and inspect'],
+  house:['Deliver verified materials','Set posts and foundation','Raise structural frame','Walls, roof and utilities','Interior finishing and handover'],
+  farm:['Prepare soil and supplies','Set irrigation posts','Plant beds and frame','Install sheds and services','Crops and productive handover'],
+  cluster:['Verify project materials','Set markers and foundations','Raise cooperative facilities','Build shared services','Independent usage verification'],
+  organization:['Approve service materials','Mark project foundations','Frame public facilities','Build accessible services','Public handover verification'],
 };
 const MAX_LEVEL=10;
 export function worldTier(track:WorldDevelopmentTrack,level:number):WorldDevelopmentTier|null{
@@ -68,6 +70,8 @@ export function worldTier(track:WorldDevelopmentTrack,level:number):WorldDevelop
       labels[delta]+' — '+stepContent[track][0],
       labels[delta]+' — '+stepContent[track][1],
       labels[delta]+' — '+stepContent[track][2],
+      labels[delta]+' — '+stepContent[track][3],
+      labels[delta]+' — '+stepContent[track][4],
     ],
     minimumLandM2:landMin[track]+delta*delta*(track==='house'?12:track==='personal_lot'?14:track==='farm'?30:track==='cluster'?100:125),
     sampleBpForFullTier:baseBp[track]*(level*level)+Math.floor(baseBp[track]*level/2),
@@ -79,7 +83,7 @@ export function worldTier(track:WorldDevelopmentTrack,level:number):WorldDevelop
 export type WorldDevelopmentState={
   track:WorldDevelopmentTrack;
   level:number; // 0 = not started; 1–10 are permanently completed tiers
-  stage:number; // 0 when completed, 1–3 when constructing the NEXT tier
+  stage:number; // 0 when completed, 1–4 while constructing the NEXT tier; phase 5 completes it
   revision:number; // server CAS revision
 };
 export type WorldAdvanceIntent={
@@ -93,17 +97,19 @@ export type WorldAdvanceIntent={
 export function nextWorldAdvance(state:WorldDevelopmentState):WorldAdvanceIntent|null{
   if(!state || !tracks[state.track] || !Number.isInteger(state.level)||
       state.level<0||state.level>MAX_LEVEL||
-      !Number.isInteger(state.stage)||state.stage<0||state.stage>3||
+      !Number.isInteger(state.stage)||state.stage<0||state.stage>4||
       !Number.isSafeInteger(state.revision)||state.revision<0)return null;
   if(state.level===MAX_LEVEL)return null;
   const nextLevel=state.level+1;
-  const nextStage=state.stage===0?1:state.stage===3?3:state.stage+1;
+  const nextStage=state.stage+1;
   const tier=worldTier(state.track,nextLevel);
   if(!tier)return null;
   return {
     nextLevel,nextStage,
     minimumLandM2:tier.minimumLandM2,
-    sampleBpForCurrentStage:Math.ceil(tier.sampleBpForFullTier/3),
+    // Exact integer allocation across five preview stages; no phantom extra BP.
+    sampleBpForCurrentStage:Math.floor(tier.sampleBpForFullTier*nextStage/5)-
+      Math.floor(tier.sampleBpForFullTier*(nextStage-1)/5),
     sampleArtStageId:state.track+'-level-'+nextLevel+'-stage-'+nextStage,
     requiresCommunityProof:state.track==='cluster'||state.track==='organization',
   };
@@ -122,6 +128,6 @@ export function applyPreviewWorldAdvance(
     return {ok:false,reason:'Unverified or out-of-order construction receipt.'};
   if(!Number.isFinite(landM2)||landM2<target.minimumLandM2)
     return {ok:false,reason:'Insufficient owned or approved shared land area.'};
-  if(target.nextStage===3)return {ok:true,next:{...state,level:target.nextLevel,stage:0,revision:receipt.revision}};
+  if(target.nextStage===5)return {ok:true,next:{...state,level:target.nextLevel,stage:0,revision:receipt.revision}};
   return {ok:true,next:{...state,stage:target.nextStage,revision:receipt.revision}};
 }

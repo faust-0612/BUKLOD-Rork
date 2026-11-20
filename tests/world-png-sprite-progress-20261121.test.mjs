@@ -15,8 +15,8 @@ test('zero starts visually empty, and completed tier uses a bundled PNG key',()=
   assert.equal(completed.frameKey,'hou_l01');
   assert.equal(completed.status,'verified');
 });
-test('each of three construction stages of NEXT tier has distinct art, preserving previous completed tier',()=>{
-  for(let stage=1;stage<=3;stage++){
+test('each of five construction stages of NEXT tier has distinct art, preserving previous completed tier',()=>{
+  for(let stage=1;stage<=5;stage++){
     const frame=resolveWorldSpriteFrame(state({level:1,stage,revision:stage+1}));
     assert.equal(frame.frameKey,`hou_l02_s0${stage}`);
     assert.equal(frame.fallbackFrameKey,'hou_l01');
@@ -35,7 +35,7 @@ test('all currently defined world tracks plus business artwork use distinct pref
 test('malformed, nonverified, and over-level claims cannot display construction art',()=>{
   for(const data of [
     {origin:'authoritative_server',receiptId:null},{origin:'unknown'},
-    {level:-1},{level:11},{stage:4},{stage:-1},{level:10,stage:1},
+    {level:-1},{level:11},{stage:6},{stage:-1},{level:10,stage:1},
     {level:1.5},{revision:-1},{worldId:''},
   ]){
     const frame=resolveWorldSpriteFrame(state(data));

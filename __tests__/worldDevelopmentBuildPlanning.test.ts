@@ -13,7 +13,7 @@ describe('BUKLOD World permanent property development',()=>{
      for(let level=1;level<=10;level++){
        const tier=worldTier(track,level);
        expect(tier?.level).toBe(level);
-       expect(tier?.stages).toHaveLength(3);
+       expect(tier?.stages).toHaveLength(5);
        if(level>1){
          expect(tier!.minimumLandM2).toBeGreaterThan(worldTier(track,level-1)!.minimumLandM2);
          expect(tier!.sampleBpForFullTier).toBeGreaterThan(worldTier(track,level-1)!.sampleBpForFullTier);
@@ -21,9 +21,9 @@ describe('BUKLOD World permanent property development',()=>{
      }
    }
  });
- it('moves sequentially through 3 visible construction steps then commits a level',()=>{
+ it('moves sequentially through 5 visible construction steps then commits a level',()=>{
    let state:WorldDevelopmentState={track:'house',level:0,stage:0,revision:0};
-   for(let stage=1;stage<=3;stage++){
+   for(let stage=1;stage<=5;stage++){
      const step=nextWorldAdvance(state);
      expect(step?.nextLevel).toBe(1);
      expect(step?.nextStage).toBe(stage);
@@ -34,7 +34,7 @@ describe('BUKLOD World permanent property development',()=>{
      expect(out.ok).toBe(true);
      if(out.ok)state=out.next;
    }
-   expect(state).toEqual({track:'house',level:1,stage:0,revision:3});
+   expect(state).toEqual({track:'house',level:1,stage:0,revision:5});
    expect(nextWorldAdvance(state)?.nextLevel).toBe(2);
  });
  it('rejects premature, unverified, insufficient-land or replayed upgrades',()=>{
@@ -44,7 +44,7 @@ describe('BUKLOD World permanent property development',()=>{
      level:1,stage:1,revision:1,serverVerified:true};
    expect(applyPreviewWorldAdvance(state,{...receipt,serverVerified:false},100).ok).toBe(false);
    expect(applyPreviewWorldAdvance(state,{...receipt,revision:0},100).ok).toBe(false);
-   expect(applyPreviewWorldAdvance(state,{...receipt,stage:3},100).ok).toBe(false);
+   expect(applyPreviewWorldAdvance(state,{...receipt,stage:5},100).ok).toBe(false);
    expect(applyPreviewWorldAdvance(state,receipt,15).ok).toBe(false);
  });
  it('blocks building plans without owned land, suitable zoning or recipe',()=>{

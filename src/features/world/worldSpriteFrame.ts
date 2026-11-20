@@ -45,7 +45,7 @@ export function resolveWorldSpriteFrame(p:WorldSpriteProgress):WorldSpriteFrame 
   if(!p || typeof p.worldId!=='string' || !p.worldId.trim() ||
     !Object.prototype.hasOwnProperty.call(PREFIX,p.track) ||
     !Number.isSafeInteger(p.level) || p.level<0 || p.level>10 ||
-    !Number.isSafeInteger(p.stage) || p.stage<0 || p.stage>3 ||
+    !Number.isSafeInteger(p.stage) || p.stage<0 || p.stage>5 ||
     !Number.isSafeInteger(p.revision) || p.revision<0 ||
     (p.level===10 && p.stage>0)) return unavailable(p);
   const verified=p.origin==='authoritative_server' && typeof p.receiptId==='string' && p.receiptId.trim().length>0;
@@ -60,7 +60,7 @@ export function resolveWorldSpriteFrame(p:WorldSpriteProgress):WorldSpriteFrame 
     completedLevel:p.level,buildingLevel:building,stage:p.stage,
     frameKey:building?`${levelKey(prefix,building)}_s${String(p.stage).padStart(2,'0')}`:completed,
     fallbackFrameKey:building?completed:null,
-    label:building?`Level ${building} · construction stage ${p.stage} of 3`:
+    label:building?`Level ${building} · construction stage ${p.stage} of 5`:
       p.level===0?'Vacant lot · not started':`Level ${p.level} · completed`,
   };
 }
