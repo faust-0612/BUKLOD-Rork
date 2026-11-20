@@ -40,23 +40,28 @@ describe('World BP: received is spendable but not lifetime earned or rank',()=>{
     expect(earned.wallet.lifetimeEarnedBp).toBe(120);
     expect(availableBp(earned.wallet)).toBe(420);
   });
-  it('paid BP stays paid-origin when gifted a second time',()=>{
-    const wallet:WorldBpWallet={
-      ...EMPTY_WORLD_BP_WALLET,
-      purchasedAvailableBp:300,
-    };
-    const sender=applyWorldBpWalletChange(wallet,{
-      type:'send_transfer',amount:200,reason:'gift',receiptId:'gift-4'});
+  it('re-gifting earned BP never raises Lifetime Earned BP on either receiving account',()=>{
+    const first=applyWorldBpWalletChange(EMPTY_WORLD_BP_WALLET,{
+      type:'receive_transfer',amount:300,origin:'earned_origin',reason:'gift',receiptId:'gift-4'});
+    if(!first.ok)throw Error('Setup failure');
+    const sender=applyWorldBpWalletChange(first.wallet,{
+      type:'send_transfer',amount:200,reason:'gift',receiptId:'gift-5'});
     expect(sender.ok).toBe(true);
     if(!sender.ok || !sender.debitSources)return;
     const origins=receivedBpFromDebit(sender.debitSources);
-    expect(origins).toEqual({earnedOriginBp:0,purchasedOriginBp:200});
-    const recv=applyWorldBpWalletChange(EMPTY_WORLD_BP_WALLET,{
-      type:'receive_transfer',amount:origins.purchasedOriginBp,origin:'purchased_origin',reason:'gift',receiptId:'gift-4'});
-    expect(recv.ok).toBe(true);
-    if(!recv.ok)return;
-    expect(recv.wallet.lifetimeEarnedBp).toBe(0);
-    expect(recv.wallet.receivedPurchasedOriginBp).toBe(200);
+    expect(origins).toEqual({earnedOriginBp:200});
+    if(!origins)throw Error('Missing transfer source');
+    const receiver=applyWorldBpWalletChange(EMPTY_WORLD_BP_WALLET,{
+      type:'receive_transfer',amount:origins.earnedOriginBp,origin:'earned_origin',reason:'gift',receiptId:'gift-5'});
+    expect(receiver.ok).toBe(true);
+    if(!receiver.ok)return;
+    expect(receiver.wallet.lifetimeEarnedBp).toBe(0);
+    expect(availableBp(receiver.wallet)).toBe(200);
+  });
+  it('does not expose a paid-BP purchase model in the World wallet',()=>{
+    expect(EMPTY_WORLD_BP_WALLET).toEqual({
+      lifetimeEarnedBp:0,earnedAvailableBp:0,receivedEarnedOriginBp:0,
+    });
   });
   it('rejects zero, negative, unsafe or unaffordable amount',()=>{
     expect(applyWorldBpWalletChange(EMPTY_WORLD_BP_WALLET,{
