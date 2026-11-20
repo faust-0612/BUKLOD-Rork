@@ -84,5 +84,18 @@
     "Fix 3 vs 5 stage mismatch and assign per-level BP/material values",
     "Build native-compatible signed staging APK",
     "Run CI and stage verification; device visual verification deliberately unverified"
+  ],
+  "selectionRationale": "Forward-port only new, disabled domain policies into staging source; protect the existing Wall, Connect, AdMob, onboarding and signed native runtime until the premium map/asset/finance dependency chain is reconciled.",
+  "preserveBehaviors": [
+    "Preserve Home/Wall/Connect/Cluster/Profile and Focus Apps routing without rewrites in the additive intake.",
+    "Preserve existing first-view AdMob, consent, warmup and background/offscreen behavior.",
+    "Preserve public and managed-scope auth/permissions, legacy deep links and live Finance state.",
+    "No production APK/EAS OTA/Google Play or Supabase writes.",
+    "Keep World trading, QMP activation, World development and Arena payouts disabled before isolated backend approval."
+  ],
+  "alternativeApproaches": [
+    "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",
+    "Replace live first view with cheap schematic green map — rejected because the owner requires premium illustrated World art.",
+    "Activate the proposed World QMP spending formula in production — rejected because the canonical Finance policy and migration gates are not reconciled."
   ]
 }
