@@ -4,6 +4,9 @@
 -- Requires isolated staging project, original S2 core candidate installed there,
 -- audited event-time policy resolver, RLS/security tests, and owner-approved RC.
 --
+-- Account-deletion compatibility: all user-owned nonfinancial S2 rows cascade
+-- on authorized auth.users deletion; no reward-ledger FK may hold the account.
+-- Existing financial/legal retention decisions are handled separately.
 -- The existing S1 BP/Circle Rank, QMP/monthly money, cash, Character V3,
 -- Kingdom Shards, wallet, historical rewards and existing core trigger remain
 -- the SAME canonical systems. No retroactive edits, automatic resets, or
@@ -48,8 +51,8 @@ values(true,false,false) on conflict(singleton) do nothing;
 -- SHARED is allowed only when the source itself has no owned scope,
 -- with consumption accounted in a single global user claim ledger.
 create table if not exists buklod_s2.reward_track_attribution (
- receipt_id bigint primary key references buklod_s2.source_receipt(id) on delete restrict,
- user_id uuid not null references auth.users(id) on delete restrict,
+ receipt_id bigint primary key references buklod_s2.source_receipt(id) on delete cascade,
+ user_id uuid not null references auth.users(id) on delete cascade,
  scope_id uuid references public.buklod_scopes(id) on delete restrict,
  track text not null check(track in ('show_faith','non_show_faith','shared')),
  event_at timestamptz not null,
@@ -66,12 +69,12 @@ create index if not exists s2_track_user_scope_idx
 -- Track progress is separate for each verified user+scope+mode+week.
 -- No BP, QMP, money or token payout occurs from merely inserting progress.
 create table if not exists buklod_s2.reward_track_weekly_progress (
- user_id uuid not null references auth.users(id) on delete restrict,
+ user_id uuid not null references auth.users(id) on delete cascade,
  scope_id uuid not null references public.buklod_scopes(id) on delete restrict,
  track text not null check(track in ('show_faith','non_show_faith')),
  week_start_manila date not null,
- learning_receipt_id bigint references buklod_s2.reward_track_attribution(receipt_id),
- community_receipt_id bigint references buklod_s2.reward_track_attribution(receipt_id),
+ learning_receipt_id bigint references buklod_s2.reward_track_attribution(receipt_id) on delete set null,
+ community_receipt_id bigint references buklod_s2.reward_track_attribution(receipt_id) on delete set null,
  computed_only boolean not null default true check(computed_only),
  created_at timestamptz not null default now(),
  primary key(user_id,scope_id,track,week_start_manila),
@@ -81,8 +84,8 @@ create table if not exists buklod_s2.reward_track_weekly_progress (
 -- A canonical event receipt can be consumed for ONE distinct optional weekly
 -- mission, regardless of track or scope; prevents replay after mode switching.
 create table if not exists buklod_s2.reward_track_evidence_use (
- receipt_id bigint primary key references buklod_s2.reward_track_attribution(receipt_id) on delete restrict,
- user_id uuid not null references auth.users(id) on delete restrict,
+ receipt_id bigint primary key references buklod_s2.reward_track_attribution(receipt_id) on delete cascade,
+ user_id uuid not null references auth.users(id) on delete cascade,
  scope_id uuid not null references public.buklod_scopes(id) on delete restrict,
  track text not null check(track in ('show_faith','non_show_faith')),
  week_start_manila date not null,
@@ -90,14 +93,14 @@ create table if not exists buklod_s2.reward_track_evidence_use (
  created_at timestamptz not null default now(),
  foreign key(user_id,scope_id,track,week_start_manila)
  references buklod_s2.reward_track_weekly_progress(user_id,scope_id,track,week_start_manila)
- on delete restrict
+ on delete cascade
 );
 
 -- A member may make independent progress in different groups, but may
 -- receive at most ONE weekly optional payout of any kind across the two
 -- tracks. Badge previews are not granted by these tables.
 create table if not exists buklod_s2.reward_track_weekly_bonus_hold (
- user_id uuid not null references auth.users(id) on delete restrict,
+ user_id uuid not null references auth.users(id) on delete cascade,
  week_start_manila date not null,
  credited_track text not null check(credited_track in ('show_faith','non_show_faith')),
  credited_scope_id uuid not null references public.buklod_scopes(id) on delete restrict,
@@ -111,7 +114,7 @@ create table if not exists buklod_s2.reward_track_weekly_bonus_hold (
 -- is allowed until canonical Character authority and owner-approved rules
 -- are linked via an independent verified backend adapter.
 create table if not exists buklod_s2.reward_track_badge_candidates (
- user_id uuid not null references auth.users(id) on delete restrict,
+ user_id uuid not null references auth.users(id) on delete cascade,
  scope_id uuid not null references public.buklod_scopes(id) on delete restrict,
  track text not null check(track in ('show_faith','non_show_faith')),
  badge_key text not null check(length(badge_key) between 5 and 100),
