@@ -6,6 +6,8 @@ import {useFocusEffect} from 'expo-router';
 import {requestBuklodAudioFocus, subscribeBuklodAudioFocus} from '@/lib/buklodAudioFocus';
 import {supabase} from '@/lib/supabase';
 import {sponsoredVideoViewport, SPONSORED_VIDEO_CHECK_MS} from '@/lib/advertise/sponsoredVideoViewport';
+import {classifyNetworkQuality} from '@/lib/buklodNetworkQuality';
+import {selectSponsoredVideoSource, SPONSORED_VIDEO_SCROLLBACK_WARM_MS} from '@/lib/advertise/sponsoredVideoDelivery';
 import {subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
@@ -21,7 +23,7 @@ const ROTATE_MS = 12_000;
 
 // One near-viewport player prebuffers before intersection; on native the exact
 // original-quality video is cached across scroll-back and route re-mounts.
-function AdVideo({uri, visible}: {uri: string; visible: boolean}) {
+function AdVideo({uri, visible, onSourceError}: {uri: string; visible: boolean; onSourceError?: () => void}) {
   const source = useMemo(() =>
     Platform.OS !== 'web' && /^https?:\/\//i.test(uri)
       ? {uri, useCaching: true}
@@ -42,6 +44,15 @@ function AdVideo({uri, visible}: {uri: string; visible: boolean}) {
     }
   });
   const [playing,setPlaying] = useState(false);
+  useEffect(() => {
+    if (!onSourceError) return;
+    // A verified compact rendition may disappear from CDN; switch back once
+    // to the original rather than leaving the sponsored card blank.
+    const subscription = player.addListener('statusChange', ({status}) => {
+      if (status === 'error') onSourceError();
+    });
+    return () => subscription.remove();
+  }, [player, onSourceError]);
   const playWithSound = useCallback(() => {
     try {
       requestBuklodAudioFocus('sponsor-ad');
@@ -92,6 +103,8 @@ export default function BuklodCommunitySponsoredAd({
   const [atMs, setAtMs] = useState(() => Date.now());
   const [videoVisible, setVideoVisible] = useState(false);
   const [videoNear, setVideoNear] = useState(false);
+  const [retainedVideoCampaignId, setRetainedVideoCampaignId] = useState<string | null>(null);
+  const [failedVideoVariant, setFailedVideoVariant] = useState<{id:string;uri:string} | null>(null);
   const [scrollPaused,setScrollPaused]=useState(false);
   useEffect(()=>subscribeBuklodVideoScroll(setScrollPaused),[]);
   const [screenFocused, setScreenFocused] = useState(false);
@@ -126,7 +139,7 @@ export default function BuklodCommunitySponsoredAd({
       }
       const at = Date.now();
       let query = supabase.from('buklod_paid_ad_campaigns')
-        .select('id,advertiser_name,headline,short_text,image_url,video_url,destination_url,creative_type,coverage_level,barangay,city_municipality,province,placement,priority,status,payment_status,policy_confirmed,starts_at,ends_at')
+        .select('id,advertiser_name,headline,short_text,image_url,video_url,video_url_mobile,video_url_low,destination_url,creative_type,coverage_level,barangay,city_municipality,province,placement,priority,status,payment_status,policy_confirmed,starts_at,ends_at')
         .in('placement', ['all', 'community'])
         .eq('status', 'approved')
         .in('payment_status', ['paid', 'waived'])
@@ -184,6 +197,38 @@ export default function BuklodCommunitySponsoredAd({
   ), [rows, profile, atMs, scopeCoverage, audience]);
 
   const campaign = eligible.length ? eligible[index % eligible.length] : null;
+  // Select only when the creative changes. Never switch renditions mid-playback
+  // in response to a noisy signal measurement (that would restart the decoder).
+  const videoSourceUrl = useMemo(() => {
+    if (!campaign) return null;
+    const preferred = selectSponsoredVideoSource(campaign, classifyNetworkQuality());
+    // A failed optimized CDN URL is not retried on every scroll-back.
+    if (preferred && preferred !== campaign.video_url &&
+        failedVideoVariant?.id === campaign.id && failedVideoVariant.uri === preferred) {
+      return campaign.video_url;
+    }
+    return preferred;
+  }, [campaign?.id, campaign?.video_url, campaign?.video_url_mobile,
+      campaign?.video_url_low, failedVideoVariant]);
+  // One short paused scroll-back grace prevents player re-creation and duplicate
+  // range requests when the user reverses direction near the viewport boundary.
+  // Hidden tabs still unload immediately; no background playback is permitted.
+  useEffect(() => {
+    if (!screenFocused || AppState.currentState !== 'active' || !campaign?.id || campaign.creative_type !== 'video') {
+      setRetainedVideoCampaignId(null);
+      return;
+    }
+    if (videoNear) {
+      setRetainedVideoCampaignId(campaign.id);
+      return;
+    }
+    const campaignId = campaign.id;
+    const timer = setTimeout(
+      () => setRetainedVideoCampaignId(previous => previous === campaignId ? null : previous),
+      SPONSORED_VIDEO_SCROLLBACK_WARM_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [campaign?.id, campaign?.creative_type, videoNear, screenFocused]);
   useEffect(() => {
     if (eligible.length <= 1) return;
     // Video creative must not be cut short at the photo rotation interval.
@@ -278,9 +323,16 @@ export default function BuklodCommunitySponsoredAd({
         : campaign.coverage_level === 'city' ? 'Town / City' : campaign.coverage_level}</Text>
     </View>
     <View ref={mediaRef} collapsable={false} onLayout={() => remeasureVideoRef.current()}>
-    {campaign.creative_type === 'video' && campaign.video_url
-      ? videoNear && screenFocused
-        ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible&&!scrollPaused}/>
+    {campaign.creative_type === 'video' && videoSourceUrl
+      ? screenFocused && (videoNear || retainedVideoCampaignId === campaign.id)
+        ? <AdVideo key={`${campaign.id}:${videoSourceUrl}`}
+            uri={videoSourceUrl}
+            visible={screenFocused&&videoVisible&&!scrollPaused}
+            onSourceError={() => {
+              if (videoSourceUrl !== campaign.video_url) {
+                setFailedVideoVariant({id:campaign.id,uri:videoSourceUrl});
+              }
+            }}/>
         : <View style={s.media}/>
       : campaign.image_url
         ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="contain"/>
