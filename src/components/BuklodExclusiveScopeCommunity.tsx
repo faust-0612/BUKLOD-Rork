@@ -666,6 +666,9 @@ export default function BuklodExclusiveScopeCommunity({
     setBody,
   ] =
     useState('');
+  // Scope Wall is private by default. The author must opt in to Public.
+  const [postToPublic,setPostToPublic]=useState(false);
+  useEffect(()=>{setPostToPublic(false);},[scope.scope_id,user?.id]);
 
   const [
     mentions,
@@ -1841,14 +1844,16 @@ export default function BuklodExclusiveScopeCommunity({
           publishingReel as boolean,
         userId: user.id,
         scopeId: scope.scope_id,
+        postToPublic,
       };
 
       setBody('');
+      setPostToPublic(false);
       setMentions([]);
       clearMedia();
       setCollageLayout('grid');
       setWallComposerOpen(false);
-      setScopedPostFeedback('Publishing to Community…');
+      setScopedPostFeedback(snapshot.postToPublic?'Publishing publicly as '+scope.name+'…':'Publishing to Community…');
       setBusy(false);
       setPublishNotice(
         snapshot.communityGif
@@ -1941,7 +1946,7 @@ export default function BuklodExclusiveScopeCommunity({
               3,
               async (item, index) => {
                 const path =
-                  `scope/${snapshot.scopeId}/${snapshot.userId}/post-${Date.now()}-${index}-${Math.random()
+                  `${snapshot.postToPublic ? snapshot.userId : `scope/${snapshot.scopeId}/${snapshot.userId}`}/post-${Date.now()}-${index}-${Math.random()
                     .toString(36)
                     .slice(2)}.jpg`;
 
@@ -2120,10 +2125,11 @@ export default function BuklodExclusiveScopeCommunity({
           await (
             supabase as any
           ).rpc(
-            'buklod_scope_social_create_post_v1',
+            snapshot.postToPublic
+              ? 'create_buklod_public_wall_scope_post_v1'
+              : 'buklod_scope_social_create_post_v1',
             {
-              p_scope_id:
-                snapshot.scopeId,
+              p_scope_id:snapshot.scopeId,
               p_body:
                 snapshot.cleanBody ||
                 fallbackBody,
@@ -2151,6 +2157,9 @@ export default function BuklodExclusiveScopeCommunity({
                   : duration,
               p_is_reel:
                 isReel,
+              ...(snapshot.postToPublic
+                ? {p_mentioned_user_ids:snapshot.mentions.map(mention=>mention.user_id)}
+                : {}),
             }
           );
 
@@ -2189,8 +2198,10 @@ export default function BuklodExclusiveScopeCommunity({
           });
         }
 
-        await load();
-        setScopedPostFeedback('Posted to this Community');
+        if(!snapshot.postToPublic)await load();
+        setScopedPostFeedback(snapshot.postToPublic
+          ? 'Posted to Public Wall as '+scope.name
+          : 'Posted to this Community');
       }
       catch (
         error: any
@@ -2214,6 +2225,7 @@ export default function BuklodExclusiveScopeCommunity({
         const saved = postConfirmed || Boolean(createdPostId);
         if (!saved) {
           setBody(current => current.trim() ? current : snapshot.cleanBody);
+          setPostToPublic(snapshot.postToPublic);
           setMentions(current => current.length ? current : snapshot.mentions);
           setPhotos(current => current.length ? current : snapshot.photos);
           setWallVideo(current => current ?? snapshot.wallVideo);
@@ -4078,29 +4090,36 @@ return (
             </View>
           ) : (
             <>
-          <View
-            style={
-              styles.audienceLine
-            }
-          >
-            <MaterialCommunityIcons
-              name="lock"
-              size={14}
-              color={
-                '#0A63D8'
-              }
-            />
-
-            <Text
-              style={
-                styles.audienceText
-              }
-              numberOfLines={
-                1
-              }
-            >
-              Visible to {exactAudience}
-            </Text>
+          <View style={{marginBottom:8,gap:5}}>
+           <View style={{flexDirection:'row',gap:6}}>
+            <Pressable accessibilityRole="button"
+             accessibilityState={{selected:!postToPublic}}
+             accessibilityLabel={'Only '+scope.name+' members'}
+             onPress={()=>setPostToPublic(false)}
+             style={{minHeight:38,flex:1,flexDirection:'row',alignItems:'center',
+              justifyContent:'center',gap:5,borderRadius:10,borderWidth:1,
+              borderColor:!postToPublic?colors.green:colors.line,
+              backgroundColor:!postToPublic?colors.greenSoft:colors.background}}>
+             <MaterialCommunityIcons name="lock-outline" size={15} color={colors.greenDark}/>
+             <Text numberOfLines={1} style={{fontSize:12,fontWeight:'800',color:colors.greenDark}}>Scope only</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button"
+             accessibilityState={{selected:postToPublic}}
+             accessibilityLabel={'Post to Public Wall as '+scope.name}
+             onPress={()=>setPostToPublic(true)}
+             style={{minHeight:38,flex:1,flexDirection:'row',alignItems:'center',
+              justifyContent:'center',gap:5,borderRadius:10,borderWidth:1,
+              borderColor:postToPublic?colors.green:colors.line,
+              backgroundColor:postToPublic?colors.greenSoft:colors.background}}>
+             <MaterialCommunityIcons name="earth" size={15} color={colors.greenDark}/>
+             <Text numberOfLines={1} style={{fontSize:12,fontWeight:'800',color:colors.greenDark}}>Public</Text>
+            </Pressable>
+           </View>
+           <Text style={{fontSize:11,color:colors.muted}}>
+            {postToPublic
+             ? 'Public Wall · '+scope.name+' will be the main author. Member name appears small; verified admins post officially.'
+             : 'Visible only to '+exactAudience+'. Nothing is shared publicly.'}
+           </Text>
           </View>
 
           <BuklodMentionField
