@@ -1,0 +1,74 @@
+name: BUKLOD Genesis Existing EAS APK Verify Only - No Build No OTA No Prod
+on:
+  push:
+    branches:
+      - dev/genesis-silent-ota-native-integration-20261120
+    paths:
+      - .github/workflows/genesis-verify-existing-eas-apk-20261120.yml
+      - scripts/genesis-recover-finished-eas-build.mjs
+      - scripts/genesis-verify-signed-apk.mjs
+      - tests/genesis-existing-eas-build-recovery-20261120.test.mjs
+permissions:
+  contents: read
+concurrency:
+  group: genesis-eas-existing-apk-verification-20261120
+  cancel-in-progress: false
+jobs:
+  verify-existing-signed-genesis-apk:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_APK_VERIFY_EXISTING:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GENESIS_APK_SOURCE_SHA: 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate zero-build EAS recovery and full APK binary acceptance contract
+        run: |
+          set -euo pipefail
+          node --test tests/genesis-apk-binary-proof-20261120.test.mjs tests/genesis-existing-eas-build-recovery-20261120.test.mjs
+          test -n "${EXPO_TOKEN:-}" || { echo 'BLOCK: EAS read token unavailable'; exit 1; }
+      - name: Recover only original finished EAS build from Expo without signing again
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx --yes eas-cli@27.9.0 build:view d9e279a6-766b-4bd9-8316-3f700749594c --json > /tmp/buklod-genesis-existing-build-view.json
+          node scripts/genesis-recover-finished-eas-build.mjs --input=/tmp/buklod-genesis-existing-build-view.json --output=/tmp/buklod-genesis-stage-build-receipt.json
+      - name: Verify actual APK file SHA256, signature, staging package/version, JS and native ABIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/genesis-verify-signed-apk.mjs --receipt=/tmp/buklod-genesis-stage-build-receipt.json
+          mkdir -p /tmp/genesis-verified-receipt
+          cp /tmp/buklod-genesis-stage-build-receipt.json /tmp/genesis-verified-receipt/receipt.json
+          node <<'NODE'
+          const fs=require('node:fs');
+          const p='/tmp/genesis-verified-receipt/receipt.json';
+          const receipt=JSON.parse(fs.readFileSync(p,'utf8'));
+          delete receipt.artifactUrl; // Never publish signed asset tokens in logs or GitHub artifacts.
+          fs.writeFileSync(p,JSON.stringify(receipt,null,2)+'\n');
+          console.log('Binary accepted. SHA256:',receipt.apkSha256,'APK bytes:',receipt.apkBytes);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: buklod-genesis-existing-signed-apk-verified-receipt
+          path: /tmp/genesis-verified-receipt/receipt.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Signed artifact verified without re-building; no OTA or Google Play changes
+        if: success()
+        run: echo 'Only read existing immutable EAS build and verified binary. Physical Android acceptance pending.'

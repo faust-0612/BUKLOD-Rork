@@ -20,15 +20,17 @@ const HEX64 = /^[0-9a-f]{64}$/i;
 const SHA40 = /^[0-9a-f]{40}$/i;
 
 export function inspectSignedApk(badging, signature, listing) {
-  const pkg = badging.match(/^package:\s+name='([^']+)'\s+versionCode='(\d+)'/m);
+  const pkg = badging.match(/^package:\s+name='([^']+)'\s+versionCode='(\d+)'\s+versionName='([^']+)'/m);
   assert.ok(pkg, 'APK package/version metadata unreadable');
   assert.equal(pkg[1], EXPECTED_PACKAGE, 'APK is not the isolated Genesis staging package');
   assert.ok(Number(pkg[2]) > 0, 'Invalid APK native versionCode');
+  assert.equal(pkg[3], '2.0.0', 'APK must have Genesis native app version 2.0.0');
   const signer = [...signature.matchAll(/Signer #\d+ certificate SHA-256 digest:\s*([0-9a-f]{64})/gi)];
   assert.equal(signer.length, 1, 'APK signing identity is missing or ambiguous');
   assert.ok(/Verified using v2 scheme \(APK Signature Scheme v2\): true|Verified using v3 scheme \(APK Signature Scheme v3\): true/i.test(signature),
     'Verified v2/v3 APK signature required');
   const entries = new Set(listing.split(/\r?\n/));
+  assert.ok(entries.has('assets/index.android.bundle'), 'Staging APK missing embedded Android JS bundle');
   for (const abi of EXPECTED_ABIS) {
     assert.ok([...entries].some(n => n.startsWith('lib/' + abi + '/') && n.endsWith('.so')),
       'Universal staging APK missing native ABI ' + abi);
@@ -36,6 +38,7 @@ export function inspectSignedApk(badging, signature, listing) {
   return {
     actualPackage: pkg[1],
     actualVersionCode: Number(pkg[2]),
+    actualVersionName:pkg[3],
     signingCertificateSha256: signer[0][1].toLowerCase(),
     verifiedAbis: EXPECTED_ABIS,
     signatureVerified: true,
@@ -81,12 +84,12 @@ async function main() {
   const receiptPath=path.resolve(arg.slice(10));
   const receipt=JSON.parse(readFileSync(receiptPath,'utf8'));
   assert.ok(SHA40.test(receipt.sourceSha||''), 'Exact source commit SHA absent');
-  assert.equal(receipt.sourceSha.toLowerCase(),String(process.env.GITHUB_SHA||'').toLowerCase(),
+  assert.equal(receipt.sourceSha.toLowerCase(),String(process.env.GENESIS_APK_SOURCE_SHA||process.env.GITHUB_SHA||'').toLowerCase(),
     'APK receipt SHA differs from checked out native source');
   assert.equal(receipt.expectedPackage,EXPECTED_PACKAGE);
   assert.equal(receipt.expectedRuntime,'2.0.0-genesis-preview');
   assert.equal(receipt.channel,'season2-genesis-preview');
-  assert.equal(receipt.status,'finished');
+  assert.equal(String(receipt.status).toLowerCase(),'finished');
   const apk='/tmp/buklod-genesis-verified-stage.apk';
   await downloadReceiptApk(receipt,apk);
   const androidHome=process.env.ANDROID_HOME||process.env.ANDROID_SDK_ROOT;
