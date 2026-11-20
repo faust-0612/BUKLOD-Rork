@@ -42,7 +42,8 @@
     "tests/season2-badge-469-eligibility-20261119.test.cjs",
     "src/lib/season2/buklodSeason2CompleteRewardIndexR1.ts",
     "src/components/points/BuklodS2CompleteRewardIndex.tsx",
-    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs"
+    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
+    "tests/season2-reward-guide-release-identity-20261120.test.cjs"
   ],
   "acceptanceChecks": [
     "Exact 10 owner-approved exclusive IDs unchanged",
@@ -73,7 +74,8 @@
     "tests/season2-kingdom-shards-catalog-parity-20261119.test.cjs",
     "tests/season2-complete-member-guide-integrity-20261119.test.cjs",
     "tests/season2-badge-469-eligibility-20261119.test.cjs",
-    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs"
+    "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
+    "tests/season2-reward-guide-release-identity-20261120.test.cjs"
   ],
   "knownBlockers": [
     "No dedicated independent BUKLOD MAIN staging Supabase with applied isolated S2 reward schema and verified RLS",
@@ -117,6 +119,17 @@
       ],
       "tests": [
         "tests/season2-kingdom-shards-catalog-parity-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "release-identity",
+      "reason": "Member encyclopedia and staging-only preflight cannot change Android package identity, production OTA channel or exact owner approval gate.",
+      "preservedBehaviors": [
+        "Staging application id org.mzbministry.buklod.staging remains distinct from production org.mzbministry.buklod.",
+        "Production release and minimum-version enforcement remain disabled until independently verified owner-approved native artifact."
+      ],
+      "tests": [
+        "tests/season2-reward-guide-release-identity-20261120.test.cjs"
       ]
     }
   ],
