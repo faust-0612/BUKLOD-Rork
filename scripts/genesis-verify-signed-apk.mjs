@@ -29,7 +29,7 @@ export function inspectSignedApk(badging, signature, listing) {
   // rather than "Signer #1". Extract ONLY certificate SHA-256 digests from
   // the already-successful apksigner verify --print-certs result, and reject
   // conflicting/missing signer identities (including signing rotations).
-  const signers = [...signature.matchAll(/certificate SHA-256 digest:\\s*([a-f0-9:]+)/gi)]
+  const signers = [...signature.matchAll(/certificate SHA-256 digest:\s*([a-f0-9:]+)/gi)]
     .map(match => match[1].replace(/:/g, '').toLowerCase())
     .filter(digest => /^[a-f0-9]{64}$/.test(digest));
   const uniqueSigners = [...new Set(signers)];
