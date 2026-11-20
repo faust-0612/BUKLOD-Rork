@@ -1,107 +1,95 @@
 /**
- * World wallet accounting contract — DEV-ONLY PURE MODEL.
- * Do not connect directly to production rewards/ledger writes. The server must
- * enforce atomic dual-entry transfers, provenance and idempotency before launch.
+ * World BP wallet contract — DEV-ONLY PURE MODEL.
  *
- * Essential invariant: transferred BP increases AVAILABLE (spendable) only,
- * never recipient's Lifetime Earned BP, Character XP or BP rank.
+ * BP cannot be purchased. ONLY verified active app participation may mint
+ * original BP. Receiving gifted/traded BP increases AVAILABLE balance, never
+ * Lifetime Earned BP, Character XP, rank or the recipient's participation score.
+ *
+ * Does not write canonical production BP/QMP ledgers. Server must settle
+ * paired debits/credits atomically, preserve original earning provenance and
+ * prevent re-use of the same earned-BP lot for repeat purchase QMP claims.
  */
-export type WorldBpOrigin = 'earned_origin' | 'purchased_origin';
+export const WORLD_BP_SALES_ENABLED = false as const;
+export type WorldBpOrigin = 'earned_origin';
 export type WorldBpWallet = {
-  lifetimeEarnedBp: number; // verified participation earned by this account
-  earnedAvailableBp: number; // earned here, not yet spent
-  receivedEarnedOriginBp: number; // gifted/traded BP traceable to someone else's earned activity
-  purchasedAvailableBp: number; // paid BP held by this account
-  receivedPurchasedOriginBp: number; // paid BP from another holder
+  lifetimeEarnedBp: number;
+  earnedAvailableBp: number;
+  receivedEarnedOriginBp: number;
 };
 export type WorldBpDebitSources = {
   earnedBpDebited: number;
   giftedEarnedBpDebited: number;
-  purchasedBpDebited: number;
-  giftedPurchasedBpDebited: number;
 };
 export type WorldBpWalletChange =
-  | { type:'earn_verified'; amount:number; receiptId:string }
-  | { type:'receive_transfer'; amount:number; origin:WorldBpOrigin; reason:'gift'|'peer_trade'; receiptId:string }
-  | { type:'spend_purchase'; amount:number; receiptId:string }
-  | { type:'send_transfer'; amount:number; reason:'gift'|'peer_trade'; receiptId:string };
+  | {type:'earn_verified';amount:number;receiptId:string}
+  | {type:'receive_transfer';amount:number;origin:WorldBpOrigin;reason:'gift'|'peer_trade';receiptId:string}
+  | {type:'spend_purchase';amount:number;receiptId:string}
+  | {type:'send_transfer';amount:number;reason:'gift'|'peer_trade';receiptId:string};
 export type WorldBpWalletOutcome =
-  | {ok:true; wallet:WorldBpWallet; debitSources:WorldBpDebitSources | null}
-  | {ok:false; reason:string};
+  | {ok:true;wallet:WorldBpWallet;debitSources:WorldBpDebitSources|null}
+  | {ok:false;reason:string};
 export const EMPTY_WORLD_BP_WALLET: Readonly<WorldBpWallet> = {
-  lifetimeEarnedBp:0,
-  earnedAvailableBp:0,
-  receivedEarnedOriginBp:0,
-  purchasedAvailableBp:0,
-  receivedPurchasedOriginBp:0,
+  lifetimeEarnedBp:0,earnedAvailableBp:0,receivedEarnedOriginBp:0,
 };
-export function availableBp(world:WorldBpWallet):number {
-  return world.earnedAvailableBp+world.receivedEarnedOriginBp+
-    world.purchasedAvailableBp+world.receivedPurchasedOriginBp;
+export function availableBp(wallet:WorldBpWallet):number {
+  return wallet.earnedAvailableBp+wallet.receivedEarnedOriginBp;
 }
-function validWallet(wallet:WorldBpWallet):boolean {
-  return Object.values(wallet).every(v=>Number.isSafeInteger(v)&&v>=0)
-    && wallet.earnedAvailableBp<=wallet.lifetimeEarnedBp
-    && Number.isSafeInteger(availableBp(wallet));
+function isPositiveSafe(v:number):boolean{return Number.isSafeInteger(v)&&v>0;}
+function validWallet(wallet:WorldBpWallet):boolean{
+  return Number.isSafeInteger(wallet.lifetimeEarnedBp)&&wallet.lifetimeEarnedBp>=0&&
+    Number.isSafeInteger(wallet.earnedAvailableBp)&&wallet.earnedAvailableBp>=0&&
+    Number.isSafeInteger(wallet.receivedEarnedOriginBp)&&wallet.receivedEarnedOriginBp>=0&&
+    wallet.earnedAvailableBp<=wallet.lifetimeEarnedBp&&
+    Number.isSafeInteger(availableBp(wallet));
 }
 function validChange(change:WorldBpWalletChange):boolean{
-  return Number.isSafeInteger(change.amount)&&change.amount>0&&
-    change.receiptId.length>0 && change.receiptId.length<=160;
+  if(!isPositiveSafe(change.amount)||typeof change.receiptId!=='string'||
+     !change.receiptId.trim()||change.receiptId.length>160)return false;
+  if(change.type==='receive_transfer')
+    return change.origin==='earned_origin'&&['gift','peer_trade'].includes(change.reason);
+  if(change.type==='send_transfer')
+    return ['gift','peer_trade'].includes(change.reason);
+  return change.type==='earn_verified'||change.type==='spend_purchase';
 }
 function debit(wallet:WorldBpWallet,amount:number):WorldBpWalletOutcome {
-  if(availableBp(wallet)<amount)return {ok:false,reason:'Insufficient available BP.'};
-  let remaining=amount;
-  const take=(value:number)=>{const n=Math.min(value,remaining);remaining-=n;return n;};
-  // Deterministic and nonnegatively bounded; actual server records each debit lot.
-  const a=take(wallet.earnedAvailableBp);
-  const b=take(wallet.receivedEarnedOriginBp);
-  const c=take(wallet.purchasedAvailableBp);
-  const d=take(wallet.receivedPurchasedOriginBp);
-  if(remaining!==0)return {ok:false,reason:'Unbalanced BP funding sources.'};
-  return {ok:true,
-    wallet:{
-      ...wallet,
-      earnedAvailableBp:wallet.earnedAvailableBp-a,
-      receivedEarnedOriginBp:wallet.receivedEarnedOriginBp-b,
-      purchasedAvailableBp:wallet.purchasedAvailableBp-c,
-      receivedPurchasedOriginBp:wallet.receivedPurchasedOriginBp-d,
-    },
-    debitSources:{
-      earnedBpDebited:a,giftedEarnedBpDebited:b,
-      purchasedBpDebited:c,giftedPurchasedBpDebited:d,
-    },
-  };
+  if(availableBp(wallet)<amount)return {ok:false,reason:'Insufficient Available BP.'};
+  // Predictable source order; actual server preserves per-earning-lot eligibility.
+  const own=Math.min(wallet.earnedAvailableBp,amount);
+  const received=amount-own;
+  return {ok:true,wallet:{
+    ...wallet,
+    earnedAvailableBp:wallet.earnedAvailableBp-own,
+    receivedEarnedOriginBp:wallet.receivedEarnedOriginBp-received,
+  },debitSources:{earnedBpDebited:own,giftedEarnedBpDebited:received}};
 }
 export function applyWorldBpWalletChange(wallet:WorldBpWallet,change:WorldBpWalletChange):WorldBpWalletOutcome {
   if(!validWallet(wallet))return {ok:false,reason:'Invalid starting wallet.'};
-  if(!validChange(change))return {ok:false,reason:'Invalid BP transaction amount or receipt ID.'};
+  if(!validChange(change))return {ok:false,reason:'Invalid BP transaction or unsupported origin.'};
   if(change.type==='earn_verified'){
-    if(!Number.isSafeInteger(wallet.lifetimeEarnedBp+change.amount)||
-       !Number.isSafeInteger(wallet.earnedAvailableBp+change.amount))
-      return {ok:false,reason:'BP amount overflow.'};
-    return {ok:true,
-      wallet:{
-        ...wallet,lifetimeEarnedBp:wallet.lifetimeEarnedBp+change.amount,
-        earnedAvailableBp:wallet.earnedAvailableBp+change.amount,
-      },debitSources:null};
+    const lifetime=wallet.lifetimeEarnedBp+change.amount;
+    const available=wallet.earnedAvailableBp+change.amount;
+    if(!Number.isSafeInteger(lifetime)||!Number.isSafeInteger(available)||
+       !Number.isSafeInteger(availableBp(wallet)+change.amount))
+      return {ok:false,reason:'BP balance overflow.'};
+    return {ok:true,wallet:{...wallet,lifetimeEarnedBp:lifetime,earnedAvailableBp:available},
+      debitSources:null};
   }
   if(change.type==='receive_transfer'){
-    const key=change.origin==='earned_origin'?'receivedEarnedOriginBp':'receivedPurchasedOriginBp';
-    if(!Number.isSafeInteger(wallet[key]+change.amount)||
-       !Number.isSafeInteger(availableBp(wallet)+change.amount))
-      return {ok:false,reason:'BP amount overflow.'};
-    return {ok:true,wallet:{...wallet,[key]:wallet[key]+change.amount},debitSources:null};
+    const available=wallet.receivedEarnedOriginBp+change.amount;
+    if(!Number.isSafeInteger(available)||!Number.isSafeInteger(availableBp(wallet)+change.amount))
+      return {ok:false,reason:'BP balance overflow.'};
+    return {ok:true,wallet:{...wallet,receivedEarnedOriginBp:available},debitSources:null};
   }
   return debit(wallet,change.amount);
 }
-/** Never use wallet values to infer QMP, XP or rights.
- * Transfer settlement must supply a matching receipt on the other account.
- * The receiver inherits the source origin when gifted a previously gifted BP. */
-export function receivedBpFromDebit(source:WorldBpDebitSources):{
-  earnedOriginBp:number;purchasedOriginBp:number;
-} {
-  return {
-    earnedOriginBp:source.earnedBpDebited+source.giftedEarnedBpDebited,
-    purchasedOriginBp:source.purchasedBpDebited+source.giftedPurchasedBpDebited,
-  };
+/**
+ * Transferred BP remains originally earned, but not earned by the receiver.
+ * A trade payment may have consumed all QMP qualification rights; server must
+ * pass provenance of remaining rights separately from money availability.
+ */
+export function receivedBpFromDebit(source:WorldBpDebitSources):{earnedOriginBp:number}|null {
+  if(!Number.isSafeInteger(source.earnedBpDebited)||source.earnedBpDebited<0||
+     !Number.isSafeInteger(source.giftedEarnedBpDebited)||source.giftedEarnedBpDebited<0||
+     !Number.isSafeInteger(source.earnedBpDebited+source.giftedEarnedBpDebited))return null;
+  return {earnedOriginBp:source.earnedBpDebited+source.giftedEarnedBpDebited};
 }
