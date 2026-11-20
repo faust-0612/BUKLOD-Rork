@@ -49,6 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/genesis-ota-verification
+          npm ci --ignore-scripts --no-audit --no-fund
           npx --yes eas-cli@27.9.0 update:view "$RELEASE_GROUP" --json > /tmp/genesis-ota-verification/update.json
           npx --yes eas-cli@27.9.0 channel:view "$RELEASE_CHANNEL" --json --non-interactive > /tmp/genesis-ota-verification/staging.json
           npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/genesis-ota-verification/production.json
