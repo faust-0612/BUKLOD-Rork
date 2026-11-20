@@ -7,23 +7,28 @@ import { marketMarkerId } from '@/lib/buklodMarketLink';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 type Preview = { title:string;price_php:number;unit:string;stock_status:string;image_path?:string|null;store?:{name:string}|null };
-export default function BuklodMarketWallLink({body}:{body:string}) {
+export default function BuklodMarketWallLink({body,postId}:{body:string;postId:string}) {
   const id=marketMarkerId(body);
   const {theme}=useBuklodTheme();
   const [value,setValue]=useState<Preview|null|undefined>(undefined);
   useEffect(()=>{
     if(!id)return;
     let active=true;
-    void (supabase as any).from('buklod_market_listings')
-      .select('title,price_php,unit,stock_status,image_path,store:buklod_market_stores!inner(name)')
-      .eq('id',id).eq('publication_state','published').eq('moderation_state','approved')
-      .maybeSingle()
-      .then(({data,error}:{data:Preview|null;error:any})=>{
-        if(active)setValue(error?null:data);
-      }).catch(()=>{if(active)setValue(null);});
+    setValue(undefined);
+    void (async()=>{
+      const {data:link,error:linkError}=await (supabase as any)
+        .from('buklod_market_wall_shares').select('post_id')
+        .eq('post_id',postId).eq('listing_id',id).maybeSingle();
+      if(linkError || !link){if(active)setValue(null);return;}
+      const {data,error}=await (supabase as any).from('buklod_market_listings')
+        .select('title,price_php,unit,stock_status,image_path,store:buklod_market_stores!inner(name)')
+        .eq('id',id).eq('publication_state','published').eq('moderation_state','approved')
+        .maybeSingle();
+      if(active)setValue(error?null:(data as Preview|null));
+    })().catch(()=>{if(active)setValue(null);});
     return ()=>{active=false;};
-  },[id]);
-  if(!id)return null;
+  },[id,postId]);
+  if(!id || value===undefined || value===null)return null;
   const available=value?.stock_status==='available';
   return <Pressable accessibilityRole="button" accessibilityLabel="Open Market listing"
     onPress={()=>router.push({pathname:'/profile/buklod-market',params:{listing_id:id}} as any)}

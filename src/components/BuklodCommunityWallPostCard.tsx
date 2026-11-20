@@ -52,6 +52,7 @@ type Props = {
   containerStyle?: StyleProp<ViewStyle>;
   useThemeCard?: boolean;
   marketPostBody?: string;
+  marketPostId?: string;
   active?: boolean;
   onPressAuthor?: () => void;
   onPressPhoto?: (index: number, photos: BuklodCommunityWallMedia[]) => void;
@@ -78,6 +79,7 @@ function BuklodCommunityWallPostCard(props: Props) {
     containerStyle,
     post,
     marketPostBody,
+    marketPostId,
   } = props;
 
   // Keep the integrated feed wrapper lightweight. Existing Public/Scoped
@@ -94,7 +96,7 @@ function BuklodCommunityWallPostCard(props: Props) {
         ]}
       >
         {children}
-        {marketMarkerId(marketPostBody) ? <BuklodMarketWallLink body={marketPostBody || ''} /> : null}
+        {marketPostId && marketMarkerId(marketPostBody) ? <BuklodMarketWallLink key={marketPostId} body={marketPostBody || ''} postId={marketPostId} /> : null}
       </View>
     );
   }

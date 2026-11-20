@@ -6072,7 +6072,7 @@ const communityFeedRows =
 
     return (
       <BuklodFocusVisibleRow index={index}>
-    <BuklodCommunityWallPostCard marketPostBody={String(item.body??'')} containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
+    <BuklodCommunityWallPostCard marketPostId={String(item.id)} marketPostBody={String(item.body??'')} containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    {/* BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117: name + Follow on first row, Edit/Report directly below the right-hand control. */}
    <View style={{flexDirection:'row',alignItems:'flex-start',gap:8}}>
      <BuklodTappableAvatar

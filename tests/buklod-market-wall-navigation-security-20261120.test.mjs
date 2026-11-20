@@ -25,6 +25,8 @@ test('Public Wall retains its canonical card, caption, media and ad lifecycle',(
   assert.match(wall,/renderCommunityMedia\(item\)/);
   assert.match(card,/marketMarkerId\(marketPostBody\)/);
   assert.match(card,/BuklodMarketWallLink/);
+  assert.match(card,/marketPostId/);
+  assert.match(read('src/components/BuklodMarketWallLink.tsx'),/from\('buklod_market_wall_shares'\)/);
   assert.match(card,/\{children\}/);
 });
 test('Market has full browse/seller/listing/chat actions without changing native dependencies',()=>{
