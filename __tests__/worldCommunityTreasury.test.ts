@@ -10,6 +10,7 @@ const progress=(patch:Partial<WorldCommunityProgressReceipt>={}):WorldCommunityP
   community:{kind:'cluster',scopeId:'cluster-a'},
   sourceActivityReceiptId:'verified-original-personal-bp-1',
   personalBpEarned:100,
+  monthlyPersonalBpBeforeEvent:0,
   verifiedByServer:true,
   activeMembershipAtEarnTime:true,
   occurredAt:'2026-12-03T14:00:00+08:00',
@@ -48,6 +49,18 @@ describe('Community treasury from verified member progression — DEV only',()=>
    expect(quote.personalBpDeducted).toBe(0);
    expect(quote.personalEarnedBpAdded).toBe(0);
    expect(quote.personalQmpAdded).toBe(0);
+ });
+ it('counts small earned-BP activities fairly across the same monthly accumulation',()=>{
+   const q=previewCommunityProgressBp(progress({
+     receiptId:'small-progress-last', sourceActivityReceiptId:'small-10',
+     personalBpEarned:1,monthlyPersonalBpBeforeEvent:9,
+   }),[]);
+   expect(q.qualifies).toBe(true);
+   if(q.qualifies)expect(q.proposedCommunityBp).toBe(1);
+   expect(previewCommunityProgressBp(progress({
+     receiptId:'small-1',sourceActivityReceiptId:'small-1-receipt',
+     personalBpEarned:1,monthlyPersonalBpBeforeEvent:0,
+   }),[]).qualifies).toBe(false);
  });
  it('rejects duplicated original member progress across MULTIPLE clusters',()=>{
    const history=[{eventId:'event-x',memberId:'member-1',communityScopeId:'cluster-other',
