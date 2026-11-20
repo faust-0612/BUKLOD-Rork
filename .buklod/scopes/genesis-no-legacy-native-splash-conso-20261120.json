@@ -1,0 +1,28 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-no-legacy-native-splash-conso-20261120.json",
+  "objective": "On the latest consolidated Genesis staging source, eliminate the old thorn Android OS splash and near-black native launch; show the approved transparent green B on matching cosmic indigo before the existing centered animated green B.",
+  "baseRef": "cf99bd23d5e0eea0e56d0921c5b8079f4aeda27c",
+  "productionBaselineEvidence": "Release candidate for current OTA stays separate. New native-only branch derives from consolidated integration cf99bd23d5e0eea0e56d0921c5b8079f4aeda27c; existing installed Genesis staging APK was built from 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0 and cannot receive a changed OS splash by OTA.",
+  "chosenApproach": "Forward-port the existing verified isolated native config fix from draft PR #1024 to the newest consolidated staging candidate. Preserve the already-reconciled centered cinematic and avoid any duplicated JSX changes.",
+  "selectionRationale": "Expo splash and Android adaptive icon are compiled resources; static matching B between OS start and JS avoids showing a second old logo. New signed staging APK and on-device verification needed.",
+  "allowedPaths": [
+    "app.config.js",
+    "tests/genesis-startup-center-ota-safe-20261120.test.mjs",
+    "tests/genesis-cinematic-startup-release-identity-20261120.test.mjs",
+    "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs",
+    ".buklod/scopes/genesis-no-legacy-native-splash-conso-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-startup-center-ota-safe-20261120.test.mjs",
+    "tests/genesis-cinematic-startup-release-identity-20261120.test.mjs",
+    "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Actual centered Genesis cinematic sequence, Android biometric unlock, social/navigation/ads, existing live backend features remain unchanged",
+    "Main production package and runtime 1.3.2 and Classroom and ordinary staging splash untouched",
+    "No app reward switch changes, no December 6 embargo early activation"
+  ],
+  "releaseMode": "DEV_STAGING_NATIVE_APK_ONLY",
+  "releaseStatus": "SOURCE_ONLY_AWAITING_NEW_SIGNED_APK_AND_DEVICE_QA"
+}

@@ -59,7 +59,7 @@ module.exports = ({ config }) => {
 
     icon: isClassroom
       ? './assets/classroom/app-icon.png'
-      : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),
+      : (genesisNativePreview ? './assets/season2/genesis/genesis-green-b-transparent.png' : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png')),
 
     assetBundlePatterns: [
       'assets/**',
@@ -116,10 +116,10 @@ module.exports = ({ config }) => {
       adaptiveIcon: {
         foregroundImage: isClassroom
           ? './assets/classroom/adaptive-icon.png'
-          : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),
+          : (genesisNativePreview ? './assets/season2/genesis/genesis-green-b-transparent.png' : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png')),
 
         backgroundColor:
-          '#FFFFFF',
+          genesisNativePreview ? '#141A43' : '#FFFFFF',
       },
     },
 
@@ -350,21 +350,21 @@ module.exports = ({ config }) => {
         'expo-splash-screen',
         {
           backgroundColor:
-            genesisNativePreview ? '#050A19' : '#FFFFFF',
+            genesisNativePreview ? '#141A43' : '#FFFFFF',
 
           image: isClassroom
             ? './assets/classroom/splash-icon.png'
-            : './assets/release/splash-icon.png',
+            : (genesisNativePreview ? './assets/season2/genesis/genesis-green-b-transparent.png' : './assets/release/splash-icon.png'),
 
           imageWidth: 200,
 
           dark: {
             backgroundColor:
-              genesisNativePreview ? '#050A19' : '#0E4F20',
+              genesisNativePreview ? '#141A43' : '#0E4F20',
 
             image: isClassroom
               ? './assets/classroom/splash-icon.png'
-              : './assets/release/splash-icon.png',
+              : (genesisNativePreview ? './assets/season2/genesis/genesis-green-b-transparent.png' : './assets/release/splash-icon.png'),
           },
         },
       ],
