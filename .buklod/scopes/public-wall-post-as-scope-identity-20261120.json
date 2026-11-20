@@ -51,20 +51,40 @@
   "physicalDeviceVerification": "NOT_PERFORMED",
   "lockedFeatureChanges": [
     {
-      "id": "navigation-scroll",
-      "reason": "Add compact scope header and identity selector without changing FlatList scroll routing.",
+      "id": "app-runtime",
+      "reason": "New public scope identity is additive and leaves the native module/runtime contract unchanged.",
       "preservedBehaviors": [
-        "Existing Wall list, ad inventory and follow/reaction controls for personal posts."
+        "Existing Android runtime, tabbed Public Wall, ad load/render and navigation behavior must remain compatible."
       ],
       "tests": [
         "tests/public-wall-scope-identity-navigation-scroll-20261120.test.mjs"
       ]
     },
     {
-      "id": "auth-privacy",
-      "reason": "Reject arbitrary scope name impersonation and reveal only public post attribution from active exact membership.",
+      "id": "navigation-auth",
+      "reason": "Public Wall composer is extended with a verified identity selector without changing navigation or user login.",
       "preservedBehaviors": [
-        "Private scope visibility remains checked by existing RPC and RLS."
+        "Member profile navigation, Follow, Report, edit/delete and account isolation remain intact."
+      ],
+      "tests": [
+        "tests/public-wall-scope-identity-navigation-scroll-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cluster and Organization scope composer gains an explicit public destination while retaining exact-scope default.",
+      "preservedBehaviors": [
+        "Existing exact-scope posting, private feed, scoped comments/media and membership permission gates remain unchanged."
+      ],
+      "tests": [
+        "tests/public-wall-scope-identity-navigation-scroll-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "RLS-protected attribution and atomic exact-membership RPC are needed to prevent spoofed public authorship.",
+      "preservedBehaviors": [
+        "Only authenticated active exact-scope members may post publicly as their scope; no client table access or private-post widening."
       ],
       "tests": [
         "supabase/tests/public_wall_scope_identity_security_20261120.sql"
