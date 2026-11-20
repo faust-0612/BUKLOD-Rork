@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-startup-green-b-center-20261120.json",
   "objective": "Remove the obsolete thorn native startup logo on Genesis staging and immediately present the transparent green B; center the approved cosmic animation logo and wordmark together.",
-  "baseRef": "cf1c732c3ed3c718099f0163e18ed369149c068e",
-  "productionBaselineEvidence": "Source main 551e54602addd6f7bbe7bcdddd1589d35424c964; staging candidate cf1c732c3ed3c718099f0163e18ed369149c068e; reported installed staging APK source 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0, runtime 2.0.0-genesis-preview. Device/native execution not independently verified. Native resource edit requires new staging APK.",
+  "baseRef": "834061504f8e28e4286c9e7b06cea04f513dcd7d",
+  "productionBaselineEvidence": "Source main 551e54602addd6f7bbe7bcdddd1589d35424c964; staging candidate cf1c732c3ed3c718099f0163e18ed369149c068e; reported installed staging APK source 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0, runtime 2.0.0-genesis-preview. Device/native execution not independently verified. Native resource edit requires new staging APK. Latest candidate branch base 834061504f8e28e4286c9e7b06cea04f513dcd7d includes independent staging OTA workflow guard not edited here.",
   "chosenApproach": "Only Genesis preview Expo splash/launcher/adaptive icon uses the existing transparent B and cosmic-indigo background. Explicit screen-fixed group centers existing logo, burst and wordmark without altering animation timing or app boot.",
   "selectionRationale": "Android 12 splash is OS-native and cannot be removed by OTA; matching native B and JS B eliminates the old brand flash, while indigo replaces plain near-black.",
   "alternativeApproaches": [
