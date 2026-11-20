@@ -223,6 +223,7 @@ import {getClusterLabels,formatClusterName} from '@/lib/clusterLabels'; // PATCH
 import {Button,Card,SectionTitle} from '@/components/UI';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
+import {eligiblePublicWallPostScopes,publicWallScopeTypeLabel,loadPublicWallScopeIdentities} from '@/lib/buklodPublicWallScopeIdentity';
 import {useBuklodPresentation} from '@/hooks/useBuklodPresentation';
 import {useNetwork} from '@/providers/NetworkProvider';
 import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
@@ -527,6 +528,11 @@ export default function BuklodScreen(){
 
 function LegacyPublicBuklodScreen(){
  const { ready: reelAdsReady, canRequestAds: reelAdConsent } = useAds();
+ const {scopes: publicWallScopes}=useBuklodScope();
+ const eligiblePostAsScopes=useMemo(()=>eligiblePublicWallPostScopes(publicWallScopes),[publicWallScopes]);
+ const [selectedPostAsScopeId,setSelectedPostAsScopeId]=useState<string|null>(null);
+ const [postAsScopePickerOpen,setPostAsScopePickerOpen]=useState(false);
+ const selectedPostAsScope=eligiblePostAsScopes.find(x=>x.scope_id===selectedPostAsScopeId)??null;
 
  const {
   colors,
@@ -1285,6 +1291,9 @@ function LegacyPublicBuklodScreen(){
   }
   router.setParams({ homeTodayDraft: undefined, homeTodayIntent: undefined });
  }, [homeTodayParams.homeTodayDraft, homeTodayParams.homeTodayIntent]);
+
+ // Public scope identity never carries across signed-in accounts.
+ useEffect(()=>{setSelectedPostAsScopeId(null);setPostAsScopePickerOpen(false);},[user?.id]);
 
  // COMMUNITY_COMPACT_COMPOSER_20260811
  const [audience]=useState<Audience>('public');
@@ -2048,6 +2057,8 @@ const load=useCallback(async(options?:{
     feedRows
       .map((p:any)=>p.id)
       .filter(Boolean);
+  // Only public feed rows; separate from members-only scope feeds.
+  const scopeIdentityPromise=loadPublicWallScopeIdentities(postIds);
 
   // Comment content is a nonblocking, batched enrichment. Do not throw away
   // the actual latest comment because a fixed 4s metadata budget expired.
@@ -2603,6 +2614,15 @@ const load=useCallback(async(options?:{
   }
 
   // Hydrate real author + comment content independently from ranks and
+  void scopeIdentityPromise.then(identities=>{
+   if(communityLoadSeq!==communityLoadSeqRef.current)return;
+   if(!Object.keys(identities).length)return;
+   setPosts(current=>current.map(post=>{
+    const identity=identities[String(post.id??'')];
+    return identity?{...post,public_scope_identity:identity}:post;
+   }));
+  }).catch(()=>undefined);
+
   // media. A late result updates only its own posts; stale loads/account
   // switches cannot overwrite another feed's rows or comments.
   const requestedCommentIds = new Set(postIds.map(String));
@@ -3085,6 +3105,8 @@ const load=useCallback(async(options?:{
     ),
    audience,
    category,
+   postAsScopeId:selectedPostAsScope?.scope_id??null,
+   postAsScopeName:selectedPostAsScope?.name??null,
    groupId:
     group?.id??null,
    userId:
@@ -3092,6 +3114,8 @@ const load=useCallback(async(options?:{
  };
 
  setBody('');
+ setSelectedPostAsScopeId(null);
+ setPostAsScopePickerOpen(false);
  setPhotos([]);
  setCollageLayout('grid');
  setComposerMusicTrack(null);
@@ -3152,14 +3176,12 @@ const load=useCallback(async(options?:{
     data:created,
     error:createError
    }=
-    await communityRpc('create_buklod_community_post_v3',
+    await communityRpc(
+      snapshot.postAsScopeId?'create_buklod_public_wall_scope_post_v1':'create_buklod_community_post_v3',
      {
-      p_audience:
-       snapshot.audience,
-      p_group_id:
-       snapshot.audience==='group'
-        ? snapshot.groupId
-        : null,
+      ...(snapshot.postAsScopeId
+        ? {p_scope_id:snapshot.postAsScopeId}
+        : {p_audience:snapshot.audience,p_group_id:snapshot.audience==='group'?snapshot.groupId:null}),
       p_category:
        snapshot.category,
       p_body:
@@ -3413,7 +3435,8 @@ const load=useCallback(async(options?:{
 
    // A feed refresh error must not roll back a successfully published post.
    void load().catch(()=>undefined);
-   setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.' : 'Posted to Community');
+   setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.'
+    : snapshot.postAsScopeId?'Posted publicly as '+snapshot.postAsScopeName:'Posted to Community');
   }
   catch(e:any){
    await discardIncompleteCommunityPost({
@@ -3423,6 +3446,7 @@ const load=useCallback(async(options?:{
 
    // Never overwrite a new draft started after the background submission.
    setBody(current => current.trim() ? current : snapshot.body);
+   if(snapshot.postAsScopeId)setSelectedPostAsScopeId(current=>current??snapshot.postAsScopeId);
    setPhotos(current => current.length ? current : snapshot.photos);
    setWallVideo186O(current => current ?? snapshot.wallVideo);
    setCommunityGif(current => current ?? snapshot.communityGif);
