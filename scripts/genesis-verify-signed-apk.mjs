@@ -25,8 +25,15 @@ export function inspectSignedApk(badging, signature, listing) {
   assert.equal(pkg[1], EXPECTED_PACKAGE, 'APK is not the isolated Genesis staging package');
   assert.ok(Number(pkg[2]) > 0, 'Invalid APK native versionCode');
   assert.equal(pkg[3], '2.0.0', 'APK must have Genesis native app version 2.0.0');
-  const signer = [...signature.matchAll(/Signer #\d+ certificate SHA-256 digest:\s*([0-9a-f]{64})/gi)];
-  assert.equal(signer.length, 1, 'APK signing identity is missing or ambiguous');
+  // SDK build-tools 37 may label the same signer by minSdk/maxSdk interval
+  // rather than "Signer #1". Extract ONLY certificate SHA-256 digests from
+  // the already-successful apksigner verify --print-certs result, and reject
+  // conflicting/missing signer identities (including signing rotations).
+  const signers = [...signature.matchAll(/certificate SHA-256 digest:\\s*([a-f0-9:]+)/gi)]
+    .map(match => match[1].replace(/:/g, '').toLowerCase())
+    .filter(digest => /^[a-f0-9]{64}$/.test(digest));
+  const uniqueSigners = [...new Set(signers)];
+  assert.equal(uniqueSigners.length, 1, 'APK signing identity is missing or ambiguous');
   assert.ok(/Verified using v2 scheme \(APK Signature Scheme v2\): true|Verified using v3 scheme \(APK Signature Scheme v3\): true/i.test(signature),
     'Verified v2/v3 APK signature required');
   const entries = new Set(listing.split(/\r?\n/));
@@ -39,7 +46,7 @@ export function inspectSignedApk(badging, signature, listing) {
     actualPackage: pkg[1],
     actualVersionCode: Number(pkg[2]),
     actualVersionName:pkg[3],
-    signingCertificateSha256: signer[0][1].toLowerCase(),
+    signingCertificateSha256: uniqueSigners[0],
     verifiedAbis: EXPECTED_ABIS,
     signatureVerified: true,
   };

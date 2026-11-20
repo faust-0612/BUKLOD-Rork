@@ -13,6 +13,14 @@ test('actual staged EAS APK proof validates correct package, v2/v3 signer and ev
   assert.equal(out.actualVersionName,'2.0.0');
   assert.equal(out.verifiedAbis.length,4);
   assert.equal(out.signingCertificateSha256,'a'.repeat(64));
+  // apksigner 37 may label signer by minSdk/maxSdk instead of "#1".
+  const sdk37sig=sig.replace('Signer #1','Signer (minSdkVersion=24, maxSdkVersion=35)');
+  assert.equal(inspectSignedApk(badging,sdk37sig,entries).signingCertificateSha256,'a'.repeat(64));
+  const repeated=sdk37sig+'\\nSigner (minSdkVersion=36, maxSdkVersion=37) certificate SHA-256 digest: '+('a'.repeat(64));
+  assert.equal(inspectSignedApk(badging,repeated,entries).signingCertificateSha256,'a'.repeat(64));
+  const rotated=sdk37sig+'\\nSigner (minSdkVersion=36, maxSdkVersion=37) certificate SHA-256 digest: '+('b'.repeat(64));
+  assert.throws(()=>inspectSignedApk(badging,rotated,entries),/missing or ambiguous/);
+
   assert.throws(()=>inspectSignedApk(badging.replace('.staging',''),sig,entries),/isolated Genesis staging package/);
   assert.throws(()=>inspectSignedApk(badging.replace('2.0.0','1.3.6'),sig,entries),/Genesis native app version/);
   assert.throws(()=>inspectSignedApk(badging,sig,entries.replace('assets/index.android.bundle','')),/embedded Android JS bundle/);
