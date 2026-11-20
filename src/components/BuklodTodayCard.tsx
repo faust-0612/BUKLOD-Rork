@@ -1,3 +1,5 @@
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {GENESIS_GLASS as GLASS, GenesisGlassDecoration} from '@/features/season2/genesis/GenesisGlass';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {ActivityIndicator,AppState,Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
@@ -24,6 +26,8 @@ const REACTIONS:{id:Reaction;label:string;icon:React.ComponentProps<typeof Mater
 /** Activity-driven community tips; all public Dugtong are displayed here, not sent to Wall.
  * Public is an explicit save choice; earlier private Dugtong stay private after migration.
  * BP is credited only by the server's existing once-per-Manila-week ledger keys. */
+const GENESIS = isGenesisPreviewBuild();
+
 export default function BuklodTodayCard(){
  const [tip,setTip]=useState<Tip|null>(null);
  const [unavailable,setUnavailable]=useState(false);
@@ -147,8 +151,8 @@ export default function BuklodTodayCard(){
   }catch(e:any){setError(String(e?.message||'Could not change privacy.'));}
   finally{setBusy(false);}
  };
- if(loading)return <View style={s.shell}><ActivityIndicator color="#17644B"/></View>;
- if(!tip)return <View style={s.shell}>
+ if(loading)return <View style={s.shell}>{GENESIS ? <GenesisGlassDecoration scene="earth"/> : null}<ActivityIndicator color={GENESIS ? GLASS.accent : "#17644B"}/></View>;
+ if(!tip)return <View style={s.shell}>{GENESIS ? <GenesisGlassDecoration scene="earth"/> : null}
   <Text style={s.eyebrow}>BUKLOD TODAY</Text>
   <Text style={s.title}>Helpful tips</Text>
   <Text style={s.body}>Hindi ma-load ang tip ngayon.</Text>
@@ -158,13 +162,13 @@ export default function BuklodTodayCard(){
  const hasSavedDugtong=!!tip.my_dugtong?.trim();
  const unchangedDugtong=hasSavedDugtong&&draft.trim()===tip.my_dugtong?.trim()&&visibility===tip.my_visibility;
  const feed=feedRows;
- return <View style={s.shell}>
+ return <View style={s.shell}>{GENESIS ? <GenesisGlassDecoration scene="earth"/> : null}
   <View style={s.head}>
    <View style={{flex:1}}>
     <Text style={s.eyebrow}>BUKLOD TODAY</Text>
     <Text style={s.sub}>{tip.category.replace(/_/g,' ')}</Text>
    </View>
-   <MaterialCommunityIcons name="lightbulb-on-outline" size={25} color="#17644B"/>
+   <MaterialCommunityIcons name="lightbulb-on-outline" size={25} color={GENESIS ? GLASS.accent : "#17644B"}/>
   </View>
   <Text style={s.title}>{tip.title}</Text>
   <Text style={s.body}>{tip.lead}</Text>
@@ -176,13 +180,13 @@ export default function BuklodTodayCard(){
   <Pressable accessibilityRole="button" accessibilityState={{expanded:open}}
    onPress={()=>setOpen(v=>!v)} style={s.read}>
    <Text style={s.link}>{open?'Mas kaunti':'Basahin pa'}</Text>
-   <MaterialCommunityIcons name={open?'chevron-up':'chevron-down'} size={18} color="#17644B"/>
+   <MaterialCommunityIcons name={open?'chevron-up':'chevron-down'} size={18} color={GENESIS ? GLASS.accent : "#17644B"}/>
   </Pressable>
   {hasSavedDugtong&&<View style={s.savedDugtong} accessibilityLabel="Ang iyong na-save na Dugtong">
    <View style={s.savedHead}>
-    <MaterialCommunityIcons name="check-circle-outline" size={19} color="#17644B"/>
+    <MaterialCommunityIcons name="check-circle-outline" size={19} color={GENESIS ? GLASS.accent : "#17644B"}/>
     <Text style={s.savedTitle}>Ang Dugtong mo</Text>
-    <MaterialCommunityIcons name={tip.my_visibility==='public'?'earth':'lock-outline'} size={15} color="#17644B"/>
+    <MaterialCommunityIcons name={tip.my_visibility==='public'?'earth':'lock-outline'} size={15} color={GENESIS ? GLASS.accent : "#17644B"}/>
     <Text style={s.privateLabel}>{tip.my_visibility==='public'?'Public':'Private'}</Text>
    </View>
    <Text style={s.savedBody}>{tip.my_dugtong}</Text>
@@ -191,7 +195,7 @@ export default function BuklodTodayCard(){
      accessibilityRole="button" accessibilityState={{selected:tip.my_visibility===value}}
      disabled={busy} onPress={()=>void changePrivacy(tip.cycle_id,value)}
      style={[s.privacyChip,tip.my_visibility===value&&s.selected]}>
-     <MaterialCommunityIcons name={value==='public'?'earth':'lock-outline'} size={15} color="#17644B"/>
+     <MaterialCommunityIcons name={value==='public'?'earth':'lock-outline'} size={15} color={GENESIS ? GLASS.accent : "#17644B"}/>
      <Text style={s.privacyText}>{value==='public'?'Public':'Private'}</Text>
     </Pressable>)}
     {!editing&&<Pressable accessibilityRole="button" onPress={()=>{setDraft(tip.my_dugtong??'');setEditing(true);setShowComposer(true);}}>
@@ -205,27 +209,27 @@ export default function BuklodTodayCard(){
     disabled={busy||!tip.authenticated}
     onPress={()=>void submit(item.id,null)}
     style={[s.reaction,tip.my_reaction===item.id&&s.selected]}>
-    <MaterialCommunityIcons name={item.icon} size={17} color="#17644B"/>
+    <MaterialCommunityIcons name={item.icon} size={17} color={GENESIS ? GLASS.accent : "#17644B"}/>
     <Text style={s.reactionText}>{item.label}</Text>
    </Pressable>)}
   </View>
   {(!hasSavedDugtong&&!showComposer)&&<Pressable accessibilityRole="button"
     onPress={()=>setShowComposer(true)} style={s.addDugtong}>
-    <MaterialCommunityIcons name="plus-circle-outline" size={21} color="#17644B"/>
+    <MaterialCommunityIcons name="plus-circle-outline" size={21} color={GENESIS ? GLASS.accent : "#17644B"}/>
     <Text style={s.addDugtongText}>Magbahagi ng Dugtong</Text>
-    <MaterialCommunityIcons name="chevron-right" size={19} color="#17644B"/>
+    <MaterialCommunityIcons name="chevron-right" size={19} color={GENESIS ? GLASS.accent : "#17644B"}/>
    </Pressable>}
    {((!hasSavedDugtong&&showComposer)||editing)&&<View style={s.composer}>
     <Text style={s.section}>{hasSavedDugtong?'I-edit ang Dugtong':'Ano ang natutuhan mo?'}</Text>
    <TextInput value={draft} onChangeText={setDraft} multiline accessibilityLabel="BUKLOD Today Dugtong"
     placeholder="Isulat ang Dugtong (minimum 30 characters)"
-    placeholderTextColor="#87998D" maxLength={1200} style={s.input}/>
+    placeholderTextColor={GENESIS ? GLASS.muted : "#87998D"} maxLength={1200} style={s.input}/>
    <Text style={s.privacyTitle}>Privacy</Text>
    <View style={s.privacyRow}>
     {(['public','private'] as Visibility[]).map(value=><Pressable key={value}
      accessibilityRole="button" accessibilityState={{selected:visibility===value}}
      onPress={()=>setVisibility(value)} style={[s.privacyChip,visibility===value&&s.selected]}>
-     <MaterialCommunityIcons name={value==='public'?'earth':'lock-outline'} size={15} color="#17644B"/>
+     <MaterialCommunityIcons name={value==='public'?'earth':'lock-outline'} size={15} color={GENESIS ? GLASS.accent : "#17644B"}/>
      <Text style={s.privacyText}>{value==='public'?'Public':'Private'}</Text>
     </Pressable>)}
    </View>
@@ -244,7 +248,7 @@ export default function BuklodTodayCard(){
    </View>}
    <View style={s.communityHead}>
    <Text style={s.section}>Mga Dugtong ({tip.dugtong_total||0})</Text>
-   <MaterialCommunityIcons name="account-group-outline" size={18} color="#17644B"/>
+   <MaterialCommunityIcons name="account-group-outline" size={18} color={GENESIS ? GLASS.accent : "#17644B"}/>
   </View>
   {feed.length?feed.map((item,index)=><View key={String(item.created_at)+index} style={s.communityEntry}>
    <Text style={s.communityAuthor}>{item.is_mine?'Ikaw':item.display_name||'BUKLOD member'}</Text>
@@ -253,15 +257,15 @@ export default function BuklodTodayCard(){
   {feedHasMore&&<Pressable accessibilityRole="button" disabled={feedLoading}
    onPress={()=>void loadMore()} style={s.read}>
    <Text style={s.link}>{feedLoading?'Loading…':'Tingnan pa ang mga Dugtong'}</Text>
-   <MaterialCommunityIcons name="chevron-down" size={18} color="#17644B"/>
+   <MaterialCommunityIcons name="chevron-down" size={18} color={GENESIS ? GLASS.accent : "#17644B"}/>
   </Pressable>}
   {tip.authenticated&&<Pressable onPress={()=>{setShowHistory(v=>!v);if(!showHistory)void loadHistory();}}
    accessibilityRole="button" accessibilityState={{expanded:showHistory}} style={s.read}>
    <Text style={s.link}>{showHistory?'Itago':'Pamamahala'} ng mga dating Dugtong</Text>
-   <MaterialCommunityIcons name={showHistory?'chevron-up':'chevron-down'} size={18} color="#17644B"/>
+   <MaterialCommunityIcons name={showHistory?'chevron-up':'chevron-down'} size={18} color={GENESIS ? GLASS.accent : "#17644B"}/>
   </Pressable>}
   {showHistory&&<View style={s.history}>
-   {historyLoading?<ActivityIndicator color="#17644B"/>:history.length?
+   {historyLoading?<ActivityIndicator color={GENESIS ? GLASS.accent : "#17644B"}/>:history.length?
     history.filter(row=>row.cycle_id!==tip.cycle_id).map(row=><View key={row.cycle_id} style={s.historyEntry}>
      <Text style={s.communityAuthor}>{row.title}</Text>
      <Text style={s.communityBody}>{row.dugtong}</Text>
@@ -284,47 +288,47 @@ export default function BuklodTodayCard(){
  </View>;
 }
 const s=StyleSheet.create({
- shell:{width:'100%',backgroundColor:'#FBFFFC',borderWidth:1,borderColor:'#D5E8DC',
+ shell:{overflow:'hidden',width:'100%',backgroundColor:GENESIS ? GLASS.surface : '#FBFFFC',borderWidth:1,borderColor:GENESIS ? GLASS.border : '#D5E8DC',
    borderRadius:18,padding:15,gap:8,marginBottom:4,shadowColor:'#092E22',shadowOffset:{width:0,height:3},shadowOpacity:.09,shadowRadius:11,elevation:2},
  head:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},
- eyebrow:{fontSize:14,fontWeight:'900',letterSpacing:.5,color:'#146847'},
- sub:{fontSize:12,fontWeight:'700',color:'#315C4B',marginTop:4,textTransform:'capitalize'},
- title:{fontSize:23,fontWeight:'900',color:'#123F2C',lineHeight:29},
- body:{color:'#294D3C',fontSize:16,lineHeight:24},
- continuation:{gap:8,padding:11,backgroundColor:'#F0F8F3',borderRadius:12},
- action:{color:'#17644B',fontWeight:'800',fontSize:15,lineHeight:23},
- disclaimer:{color:'#61766B',fontSize:12,lineHeight:17},
+ eyebrow:{fontSize:14,fontWeight:'900',letterSpacing:.5,color:GENESIS ? GLASS.accent : '#146847'},
+ sub:{fontSize:12,fontWeight:'700',color:GENESIS ? GLASS.secondary : '#315C4B',marginTop:4,textTransform:'capitalize'},
+ title:{fontSize:23,fontWeight:'900',color:GENESIS ? GLASS.text : '#123F2C',lineHeight:29},
+ body:{color:GENESIS ? GLASS.text : '#294D3C',fontSize:16,lineHeight:24},
+ continuation:{gap:8,padding:11,backgroundColor:GENESIS ? GLASS.inset : '#F0F8F3',borderRadius:12},
+ action:{color:GENESIS ? GLASS.accent : '#17644B',fontWeight:'800',fontSize:15,lineHeight:23},
+ disclaimer:{color:GENESIS ? GLASS.muted : '#61766B',fontSize:12,lineHeight:17},
  read:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:5,minHeight:40,paddingVertical:5},
- link:{color:'#146847',fontWeight:'800',fontSize:14},
- section:{fontSize:15,fontWeight:'900',color:'#194D37'},
- savedDugtong:{padding:12,borderWidth:1,borderColor:'#CCE3D4',borderRadius:12,backgroundColor:'#EFF8F1',gap:8},
+ link:{color:GENESIS ? GLASS.accent : '#146847',fontWeight:'800',fontSize:14},
+ section:{fontSize:15,fontWeight:'900',color:GENESIS ? GLASS.text : '#194D37'},
+ savedDugtong:{padding:12,borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#CCE3D4',borderRadius:12,backgroundColor:GENESIS ? GLASS.inset : '#EFF8F1',gap:8},
  savedHead:{flexDirection:'row',alignItems:'center',gap:7,flexWrap:'wrap'},
- savedTitle:{fontSize:15,fontWeight:'900',color:'#17644B',flexGrow:1},
- privateLabel:{fontSize:13,color:'#526D5C',fontWeight:'700'},
- savedBody:{fontSize:16,lineHeight:24,color:'#183D2C'},
+ savedTitle:{fontSize:15,fontWeight:'900',color:GENESIS ? GLASS.accent : '#17644B',flexGrow:1},
+ privateLabel:{fontSize:13,color:GENESIS ? GLASS.muted : '#526D5C',fontWeight:'700'},
+ savedBody:{fontSize:16,lineHeight:24,color:GENESIS ? GLASS.text : '#183D2C'},
  privacyRow:{flexDirection:'row',flexWrap:'wrap',gap:8,alignItems:'center'},
- privacyTitle:{fontSize:14,fontWeight:'800',color:'#204C34'},
- privacyChip:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6,borderWidth:1,borderColor:'#BEDAC8',borderRadius:10,paddingHorizontal:13,paddingVertical:9},
- privacyText:{fontSize:14,fontWeight:'800',color:'#17644B'},
+ privacyTitle:{fontSize:14,fontWeight:'800',color:GENESIS ? GLASS.text : '#204C34'},
+ privacyChip:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6,borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#BEDAC8',borderRadius:10,paddingHorizontal:13,paddingVertical:9},
+ privacyText:{fontSize:14,fontWeight:'800',color:GENESIS ? GLASS.accent : '#17644B'},
  reactions:{flexDirection:'row',flexWrap:'wrap',gap:7,marginTop:2},
- reaction:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6,borderWidth:1,borderColor:'#C9E2D3',borderRadius:12,paddingVertical:9,paddingHorizontal:11,flexGrow:1,justifyContent:'center'},
- selected:{backgroundColor:'#DBF4E6',borderColor:'#17644B'},
- reactionText:{fontSize:14,fontWeight:'800',color:'#17644B'},
- composer:{gap:9,backgroundColor:'#F3FAF6',borderRadius:14,padding:11,borderWidth:1,borderColor:'#DBEADF'},
- addDugtong:{minHeight:48,flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:12,borderRadius:12,backgroundColor:'#ECF7EF',borderWidth:1,borderColor:'#CBE5D2'},
- addDugtongText:{flex:1,fontSize:15,fontWeight:'800',color:'#17644B'},
- input:{minHeight:104,borderWidth:1,borderColor:'#B9D8C7',borderRadius:11,backgroundColor:'#FFFFFF',textAlignVertical:'top',padding:12,fontSize:16,lineHeight:24,color:'#183D2C'},
+ reaction:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6,borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#C9E2D3',borderRadius:12,paddingVertical:9,paddingHorizontal:11,flexGrow:1,justifyContent:'center'},
+ selected:{backgroundColor:GENESIS ? GLASS.selected : '#DBF4E6',borderColor:GENESIS ? GLASS.accent : '#17644B'},
+ reactionText:{fontSize:14,fontWeight:'800',color:GENESIS ? GLASS.accent : '#17644B'},
+ composer:{gap:9,backgroundColor:GENESIS ? GLASS.inset : '#F3FAF6',borderRadius:14,padding:11,borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#DBEADF'},
+ addDugtong:{minHeight:48,flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:12,borderRadius:12,backgroundColor:GENESIS ? GLASS.selected : '#ECF7EF',borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#CBE5D2'},
+ addDugtongText:{flex:1,fontSize:15,fontWeight:'800',color:GENESIS ? GLASS.accent : '#17644B'},
+ input:{minHeight:104,borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#B9D8C7',borderRadius:11,backgroundColor:GENESIS ? GLASS.input : '#FFFFFF',textAlignVertical:'top',padding:12,fontSize:16,lineHeight:24,color:GENESIS ? GLASS.text : '#183D2C'},
  actions:{flexDirection:'row',flexWrap:'wrap',gap:8,alignItems:'center'},
  primary:{minHeight:46,paddingHorizontal:16,paddingVertical:11,borderRadius:11,backgroundColor:'#17644B',justifyContent:'center'},
  primaryText:{color:'#FFFFFF',fontWeight:'900',fontSize:15},
  secondary:{minHeight:44,paddingHorizontal:12,justifyContent:'center'},disabled:{opacity:.45},
  communityHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:5},
- communityEntry:{borderTopWidth:1,borderTopColor:'#DDE8DF',paddingTop:10,gap:4},
- communityAuthor:{fontSize:14,fontWeight:'900',color:'#17644B'},
- communityBody:{fontSize:15,lineHeight:23,color:'#344A3A'},
- history:{padding:10,borderWidth:1,borderColor:'#DDE8DF',borderRadius:12,gap:10},
- historyEntry:{borderBottomWidth:1,borderBottomColor:'#DDE8DF',paddingBottom:9,gap:5},
- help:{fontSize:12,color:'#5B7064',lineHeight:18},
- notice:{backgroundColor:'#E5F7E8',color:'#17644B',fontWeight:'800',padding:11,fontSize:13,borderRadius:9},
- error:{backgroundColor:'#FDE8E8',color:'#9B2226',padding:11,fontSize:13,borderRadius:9},
+ communityEntry:{borderTopWidth:1,borderTopColor:GENESIS ? GLASS.borderSoft : '#DDE8DF',paddingTop:10,gap:4},
+ communityAuthor:{fontSize:14,fontWeight:'900',color:GENESIS ? GLASS.accent : '#17644B'},
+ communityBody:{fontSize:15,lineHeight:23,color:GENESIS ? GLASS.secondary : '#344A3A'},
+ history:{padding:10,borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#DDE8DF',borderRadius:12,gap:10},
+ historyEntry:{borderBottomWidth:1,borderBottomColor:GENESIS ? GLASS.borderSoft : '#DDE8DF',paddingBottom:9,gap:5},
+ help:{fontSize:12,color:GENESIS ? GLASS.muted : '#5B7064',lineHeight:18},
+ notice:{backgroundColor:GENESIS ? GLASS.selected : '#E5F7E8',color:GENESIS ? GLASS.accent : '#17644B',fontWeight:'800',padding:11,fontSize:13,borderRadius:9},
+ error:{backgroundColor:GENESIS ? GLASS.errorSurface : '#FDE8E8',color:GENESIS ? GLASS.errorText : '#9B2226',padding:11,fontSize:13,borderRadius:9},
 });

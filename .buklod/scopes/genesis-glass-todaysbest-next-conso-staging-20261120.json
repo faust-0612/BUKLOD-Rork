@@ -1,0 +1,134 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-glass-todaysbest-next-conso-staging-20261120.json",
+  "objective": "Reconcile all approved nonnative Genesis glass white-card fixes and Today's Best Wall story-rail redesign against the last verified staging OTA source, preparing one consolidated staging OTA candidate without publishing or changing production.",
+  "baseRef": "48f458acf73fe27b0c042ccdb71831483e947294",
+  "productionBaselineEvidence": "Last verified Genesis Android staging OTA source fd335823622de5bfaef32f649b076831057cd29d, update 01a1f905-1cc1-7c4a-9a48-636622f2fc05, EAS group 6f334c67-e040-4a51-8bd2-adb883c3956a, runtime 2.0.0-genesis-preview, package org.mzbministry.buklod.staging; independently confirmed by read-only workflow 44740672229. Its current Git staging release source after read-only verification is 48f458acf73fe27b0c042ccdb71831483e947294. Previous and current source still carry native thorn splash; separate PR 1024 requires signed APK, not OTA.",
+  "chosenApproach": "Create an isolated consolidation intake branch from exact source 48f458ac. Copy only proven untouched original component blobs from Genesis glass PR #1022 (8 existing components plus GenesisGlass helper and focused tests) and independently scoped Today's Best PR #1030 (4 files plus tests). Both sets are disjoint and do not modify existing production, EAS/native config, backend, security, reward authority, or ad hooks. Use one new V2 scope manifest, rather than merging old branches/manifests. Perform CI regression, TS and bundle checks before any future release.",
+  "selectionRationale": "Exact compare from common PR #1022 parent 7c497e3 to the latest released source confirms no intervening edit in any of eight glass components. PR #1030 is based directly on the current staging source with only seven scoped changes. Reusing reviewed blobs minimizes accidental regression, preserves the previously published receipt and is OTA compatible.",
+  "alternativeApproaches": [
+    "Merge original #1022 branch with outdated ancestor directly (rejected: would import unrelated source or lose recent staging changes)",
+    "Overlay all native Genesis branding and graphics changes (rejected: installed APK native mismatch)",
+    "Skip AdMob/navigation/CI to push immediately (rejected: permanent release gates)"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/components/BuklodPttEntryButton.tsx",
+    "src/components/BuklodPttEntryButton.web.tsx",
+    "src/components/BuklodScopeBPTop10.tsx",
+    "src/components/BuklodScopeFundCard.tsx",
+    "src/components/BuklodScopeProfilePhoto.tsx",
+    "src/components/BuklodTodayCard.tsx",
+    "src/components/SmartDrawerWallCard.tsx",
+    "src/features/season2/genesis/GenesisGlass.tsx",
+    "tests/genesis-glass-cards-20261120.test.mjs",
+    "tests/genesis-glass-ptt-economy-20261120.test.mjs",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodMaritesBoard.web.tsx",
+    "src/lib/buklodVisual.ts",
+    "tests/todays-best-wall-header-20261120.test.mjs",
+    "tests/todays-best-wall-navigation-20261120.test.mjs",
+    ".buklod/scopes/genesis-glass-todaysbest-next-conso-staging-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-glass-cards-20261120.test.mjs",
+    "tests/genesis-glass-ptt-economy-20261120.test.mjs",
+    "tests/todays-best-wall-header-20261120.test.mjs",
+    "tests/todays-best-wall-navigation-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Staging-only glass card presentation and Today's Best layout are scoped to existing Genesis preview and preserve all live app capabilities.",
+      "preservedBehaviors": [
+        "Production and Season 1 views unchanged",
+        "Native/runtime config, secure backend, uploads, Wall media lifecycle and existing app navigation retained"
+      ],
+      "tests": [
+        "tests/genesis-glass-cards-20261120.test.mjs",
+        "tests/todays-best-wall-header-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Reorder only existing single Marites/Today's Best story rail without changing player lifecycle, media signing, scrolling, comments or ads.",
+      "preservedBehaviors": [
+        "Retain one story player, feed media signing, comments/reactions, offscreen pause, Wall ad slots"
+      ],
+      "tests": [
+        "tests/todays-best-wall-header-20261120.test.mjs",
+        "tests/todays-best-wall-navigation-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Move the Wall story section ahead of search and shortcuts while retaining existing link targets, authenticated route checks, and safe area behavior.",
+      "preservedBehaviors": [
+        "Existing Wall tab, search, navigation, auth and deep link routing stay intact",
+        "Do not touch session or login behavior"
+      ],
+      "tests": [
+        "tests/todays-best-wall-navigation-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Adjust only existing Genesis visual style around PTT door on Android and web while preserving current runtime status and call routing.",
+      "preservedBehaviors": [
+        "PTT connection and live status unchanged; existing call and message navigation routes retained"
+      ],
+      "tests": [
+        "tests/genesis-glass-ptt-economy-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Use preview-only noninteractive glass backgrounds for Contribution/QMP and scope fund cards without changing money, payout, points or ad accounting logic.",
+      "preservedBehaviors": [
+        "Keep authoritative server-origin finance and QMP values, AdMob first-view, banner lifecycle and protected payout controls unchanged"
+      ],
+      "tests": [
+        "tests/genesis-glass-ptt-economy-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "wall-media",
+    "ad-firstview",
+    "native-runtime-parity",
+    "dark-mode-accessibility",
+    "PTT-state",
+    "economic-server-authority",
+    "release-isolation"
+  ],
+  "preserveBehaviors": [
+    "Staging code only; production/main never changed",
+    "Season 2 rewards remain locked until Dec 6 approval",
+    "No native or dependency changes from installed Genesis staging APK",
+    "One consolidated staging OTA may follow only after mandatory checks; no OTA is triggered by this commit"
+  ],
+  "acceptanceChecks": [
+    "PR source paths reconciled with no overlapping subsequent edits or unrelated parent commits",
+    "All 4 focused suite files pass Engineering Accountability CI",
+    "Whole TypeScript + Main integration web compatibility checks pass",
+    "Native app config, EAS profile, package lock and Android modules remain unchanged",
+    "First-view AdMob, instant tabs and Wall navigation coverage retained",
+    "Preview-only glass fallback leaves Season 1 and production unchanged",
+    "No OTA publication or Play Production release until separately authorized"
+  ],
+  "releaseMode": "STAGING_OTA_SOURCE_PREPARATION_ONLY",
+  "releaseStatus": "DEV_PENDING_CI_NO_PUBLISH",
+  "sourceRefs": {
+    "glassPr": 1022,
+    "glassHead": "505b8a971c73ce5443b62bd9f85756fd35896175",
+    "todaysBestPr": 1030,
+    "todaysBestHead": "2abd7ecdfd2e7606c7bee07fe3984f451f841d07"
+  },
+  "releaseTargets": {
+    "package": "org.mzbministry.buklod.staging",
+    "channel": "season2-genesis-preview",
+    "runtime": "2.0.0-genesis-preview"
+  }
+}

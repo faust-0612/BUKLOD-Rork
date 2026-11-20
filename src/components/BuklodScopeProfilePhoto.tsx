@@ -1,3 +1,5 @@
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {GENESIS_GLASS as GLASS, GenesisGlassDecoration} from '@/features/season2/genesis/GenesisGlass';
 import React,{useCallback,useState} from 'react';
 import {ActivityIndicator,Alert,Image,Pressable,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
@@ -10,6 +12,8 @@ import {
 } from '@/lib/buklodScopeHomeAssets';
 
 /** Same canonical media identity for a Cluster, Organization and Sub-organization. */
+const GENESIS = isGenesisPreviewBuild();
+
 export default function BuklodScopeProfilePhoto({
  scopeId,scopeName,isAdmin,
 }:{scopeId:string;scopeName:string;isAdmin:boolean}){
@@ -58,6 +62,7 @@ export default function BuklodScopeProfilePhoto({
  };
  const initial=(scopeName||'B').trim().charAt(0).toUpperCase();
  return <View style={styles.wrap}>
+   {GENESIS ? <GenesisGlassDecoration scene="earth"/> : null}
    <View style={styles.photoFrame}>
      {url?<Image source={{uri:url}} style={styles.photo} resizeMode="cover"/>:
        <View style={styles.fallback}>
@@ -70,8 +75,8 @@ export default function BuklodScopeProfilePhoto({
      {isAdmin&&(
        <Pressable accessibilityRole="button" accessibilityLabel="Upload or change community profile photo"
          disabled={busy} onPress={()=>void choose()} style={styles.action}>
-         {busy?<ActivityIndicator size="small" color="#0A704E"/>:
-           <MaterialCommunityIcons name="camera-plus-outline" size={17} color="#0A704E"/>}
+         {busy?<ActivityIndicator size="small" color={GENESIS ? GLASS.accent : "#0A704E"}/>:
+           <MaterialCommunityIcons name="camera-plus-outline" size={17} color={GENESIS ? GLASS.accent : "#0A704E"}/>}
          <Text style={styles.actionText}>{busy?'Uploading photo…':'Edit / Upload Profile Photo'}</Text>
        </Pressable>
      )}
@@ -80,16 +85,16 @@ export default function BuklodScopeProfilePhoto({
  </View>;
 }
 const styles=StyleSheet.create({
- wrap:{flexDirection:'row',alignItems:'center',gap:12,paddingHorizontal:13,paddingVertical:11,
-   backgroundColor:'#F3FBF7',borderRadius:16,borderWidth:1,borderColor:'#B9E6D2'},
- photoFrame:{width:72,height:72,borderRadius:18,overflow:'hidden',borderWidth:1,borderColor:'#70C6A6'},
+ wrap:{overflow:'hidden',flexDirection:'row',alignItems:'center',gap:12,paddingHorizontal:13,paddingVertical:11,
+   backgroundColor:GENESIS ? GLASS.surface : '#F3FBF7',borderRadius:16,borderWidth:1,borderColor:GENESIS ? GLASS.border : '#B9E6D2'},
+ photoFrame:{width:72,height:72,borderRadius:18,overflow:'hidden',borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#70C6A6'},
  photo:{width:72,height:72},
- fallback:{width:72,height:72,backgroundColor:'#D8F5E7',alignItems:'center',justifyContent:'center'},
- initial:{fontSize:29,fontWeight:'900',color:'#0E6846'},
- title:{fontSize:14,fontWeight:'900',color:'#184734'},
- subtitle:{fontSize:10,color:'#637F70'},
+ fallback:{width:72,height:72,backgroundColor:GENESIS ? GLASS.inset : '#D8F5E7',alignItems:'center',justifyContent:'center'},
+ initial:{fontSize:29,fontWeight:'900',color:GENESIS ? GLASS.accent : '#0E6846'},
+ title:{fontSize:14,fontWeight:'900',color:GENESIS ? GLASS.text : '#184734'},
+ subtitle:{fontSize:10,color:GENESIS ? GLASS.secondary : '#637F70'},
  action:{flexDirection:'row',alignItems:'center',gap:6,minHeight:34,alignSelf:'flex-start',borderRadius:9,
-   backgroundColor:'#D7F6E7',paddingHorizontal:10,paddingVertical:6},
- actionText:{fontSize:10,fontWeight:'900',color:'#0A704E'},
- note:{fontSize:10,color:'#395E4F'}
+   backgroundColor:GENESIS ? GLASS.selected : '#D7F6E7',paddingHorizontal:10,paddingVertical:6},
+ actionText:{fontSize:10,fontWeight:'900',color:GENESIS ? GLASS.accent : '#0A704E'},
+ note:{fontSize:10,color:GENESIS ? GLASS.secondary : '#395E4F'}
 });

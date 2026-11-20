@@ -5581,6 +5581,17 @@ const communityFeedRows =
       : 'Opening the selected post in Wall…'}
    </Text>
   )}
+{/* Today's Best: top Wall story rail, before search and profile notes. */}
+   <BuklodMaritesBoard
+    playbackBlocked={videoPriority.maritesBlocked}
+    onViewerVisibilityChange={setMaritesViewerOpen}
+    visibilityRefreshRef={maritesVisibilityRefreshRef}
+    onOpenComments={(postId, story) => void openComments({ id: postId, author_name: story.author_name, user_id: story.user_id, body: story.body, avatar_url: story.avatar_url })}
+    locationScopeId={
+     publicLocationScopeId
+    }
+   />
+
 {/* PATCH_161A_COMMUNITY_COMPACT */}
     {Platform.OS !== 'web' ? (
       <BuklodCommunityWallProfileBubbles />
@@ -5612,15 +5623,6 @@ const communityFeedRows =
    <KabihasnangLigawWallCard />
 
 
-   <BuklodMaritesBoard
-    playbackBlocked={videoPriority.maritesBlocked}
-    onViewerVisibilityChange={setMaritesViewerOpen}
-    visibilityRefreshRef={maritesVisibilityRefreshRef}
-    onOpenComments={(postId, story) => void openComments({ id: postId, author_name: story.author_name, user_id: story.user_id, body: story.body, avatar_url: story.avatar_url })}
-    locationScopeId={
-     publicLocationScopeId
-    }
-   />
 
       {/* PATCH_173H_R4_PUBLIC_LOCATION_CHIPS_MOUNT */}
       <BuklodPublicLocationChips

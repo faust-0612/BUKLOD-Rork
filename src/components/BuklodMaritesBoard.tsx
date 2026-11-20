@@ -266,7 +266,7 @@ function createStyles(
       flexShrink: 1,
     },
     title: {
-      fontSize: 12,
+      fontSize: 16,
       fontWeight: '900',
       letterSpacing: 0.7,
       color: colors.greenDark,
@@ -1714,7 +1714,7 @@ export default function BuklodMaritesBoard({
 
     if (!body && !photoUris.length && !quickVideo) {
       Alert.alert(
-        'Marites Story',
+        "Today's Best",
         'Add a short message or photo first.'
       );
       return;
@@ -1722,7 +1722,7 @@ export default function BuklodMaritesBoard({
 
     if (!user?.id) {
       Alert.alert(
-        'Marites Story',
+        "Today's Best",
         'Sign in to share a story.'
       );
       return;
@@ -1730,7 +1730,7 @@ export default function BuklodMaritesBoard({
 
     if (body.length > MARITES_MAX_CHARS) {
       Alert.alert(
-        'Marites Story',
+        "Today's Best",
         `Keep it short — ${MARITES_MAX_CHARS} characters max.`
       );
       return;
@@ -1772,16 +1772,16 @@ export default function BuklodMaritesBoard({
 
       if (!shared) {
         Alert.alert(
-          'Marites Story',
+          "Today's Best",
           'Saved on this device. Shared board needs a community connection — try again when online.'
         );
       }
 
       resetComposer();
-      if (musicError) Alert.alert('Marites Music', 'Your story was posted, but the music could not be saved. Please try another track for a new story.\n' + musicError);
+      if (musicError) Alert.alert('Story Music', 'Your story was posted, but the music could not be saved. Please try another track for a new story.\n' + musicError);
     } catch (error) {
       Alert.alert(
-        'Marites Story',
+        "Today's Best",
         String(
           (error as Error)?.message ??
             'Could not save your story.'
@@ -1911,7 +1911,7 @@ export default function BuklodMaritesBoard({
     <View style={styles.section}>
       <View style={styles.headingRow}>
         <Text style={styles.title}>
-          MARITES STORY
+          Today's Best
         </Text>
         <View style={styles.headingActions}>
           <Text
@@ -1922,7 +1922,7 @@ export default function BuklodMaritesBoard({
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Share Marites update"
+            accessibilityLabel="Share to Today's Best"
             hitSlop={6}
             onPress={() => setComposerOpen(true)}
             style={({ pressed }) => [
@@ -2040,7 +2040,7 @@ export default function BuklodMaritesBoard({
             >
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>
-                New Marites Story
+                Share to Today's Best
               </Text>
               <Pressable onPress={resetComposer}>
                 <MaterialCommunityIcons
@@ -2168,7 +2168,7 @@ export default function BuklodMaritesBoard({
 
             <View style={styles.localBadge}>
               <Text style={styles.localBadgeText}>
-                Stories appear only in Marites Story.
+                Stories appear only in Today's Best.
               </Text>
             </View>
             </ScrollView>
