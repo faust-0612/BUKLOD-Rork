@@ -70,7 +70,8 @@ export function planMatchSettlement(match,verified){
   const effects=[];
   for(const p of roster.sort((a,b)=>a.id.localeCompare(b.id))){
     const a=accounts[p.id],won=p.team===winner,oldRating=safeInt(a.rating,100,3500);
-    const ratingDelta=won?(winner==="A"?deltaA:Math.round(ECONOMY_POLICY.ratingK*expectedA)):(winner==="A"?-Math.round(ECONOMY_POLICY.ratingK*expectedA):-deltaA);
+    const upsetSize=winner==="A"?deltaA:Math.round(ECONOMY_POLICY.ratingK*expectedA);
+    const ratingDelta=won?upsetSize:-upsetSize;
     const newRating=safeInt(oldRating+ratingDelta,ECONOMY_POLICY.ratingFloor,ECONOMY_POLICY.ratingCeiling);
     const before=safeInt(a.characterDiamonds);
     const qualified=p.activeMs>=Math.min(60000,match.elapsedMs*.40)&&p.contributions>=2&&
