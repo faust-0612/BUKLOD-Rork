@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const EXPECTED_PACKAGE = 'org.mzbministry.buklod.staging';
 const EXPECTED_ABIS = ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'];
-const MAX_APK_BYTES = 600 * 1024 * 1024;
+const MAX_APK_BYTES = 1536 * 1024 * 1024; // Bounded inspection only; NOT an app store size approval.
 const HEX64 = /^[0-9a-f]{64}$/i;
 const SHA40 = /^[0-9a-f]{40}$/i;
 
@@ -68,7 +68,8 @@ async function downloadReceiptApk(receipt, dest) {
   assert.ok(response.ok && response.body, 'Signed APK download failed: ' + response.status);
   assert.equal(new URL(response.url).protocol, 'https:', 'Artifact redirected to non-HTTPS');
   const declared = Number(response.headers.get('content-length') || '0');
-  assert.ok(declared <= MAX_APK_BYTES, 'APK exceeds bounded download size');
+  console.log('Original signed EAS staging APK declared bytes:',declared || 'unknown');
+  assert.ok(declared <= MAX_APK_BYTES, `APK exceeds 1536 MiB verification download cap: ${declared} bytes`);
   let total = 0;
   await pipeline(Readable.fromWeb(response.body), new Transform({
     transform(chunk, _enc, cb) {
@@ -77,6 +78,7 @@ async function downloadReceiptApk(receipt, dest) {
     }
   }), createWriteStream(dest, { flags: 'wx', mode: 0o600 }));
   assert.ok(total > 100000, 'APK unexpectedly small');
+  console.log('Actual signed staging APK downloaded bytes:',total);
 }
 async function main() {
   const arg = process.argv.find(a=>a.startsWith('--receipt='));

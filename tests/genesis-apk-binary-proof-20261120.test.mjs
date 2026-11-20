@@ -40,3 +40,10 @@ test('EAS uppercase FINISHED status is normalized before APK verification',()=>{
  assert.match(source,/String\(receipt\.status\)\.toLowerCase\(\)/);
  assert.match(source,/GENESIS_APK_SOURCE_SHA\|\|process\.env\.GITHUB_SHA/);
 });
+
+test('large Genesis render APK inspection is bounded independently from Play distribution size gate',()=>{
+ const src=read('scripts/genesis-verify-signed-apk.mjs');
+ assert.match(src,/MAX_APK_BYTES = 1536 \* 1024 \* 1024/);
+ assert.match(src,/Original signed EAS staging APK declared bytes:/);
+ assert.match(src,/APK download over size cap/);
+});
