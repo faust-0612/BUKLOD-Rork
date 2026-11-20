@@ -33,11 +33,14 @@ describe('BUKLOD world purpose-driven QMP: DEV preview only', () => {
     expect(previewWorldQmp(event({source:'external_paid',action:'purchase_item'}),[]).qualifies).toBe(false);
     expect(previewWorldQmp(event({currencyProvenance:'purchased_bp',action:'acquire_land'}),[]).qualifies).toBe(false);
     expect(previewWorldQmp(event({currencyProvenance:'purchased_bp',action:'complete_eligible_trade'}),[]).qualifies).toBe(false);
+    expect(previewWorldQmp(event({currencyProvenance:'purchased_bp',action:'complete_house_upgrade'}),[]).qualifies).toBe(false);
+    expect(previewWorldQmp(event({currencyProvenance:'purchased_bp',action:'finish_community_project'}),[]).qualifies).toBe(false);
   });
   it('prevents repeat credit on same event or entity', () => {
     const row={eventId:'event-1',actorId:'user-a',period:'2026-12',entityId:'house-a-upgrade-1',action:'complete_house_upgrade' as const,qualifiedWeight:4};
     expect(previewWorldQmp(event(),[row]).qualifies).toBe(false);
     expect(previewWorldQmp(event({eventId:'event-2'}),[row]).qualifies).toBe(false);
+    expect(previewWorldQmp(event({action:'fulfill_service'}),[row]).qualifies).toBe(false);
   });
   it('limits monthly categories without punishing ordinary useful contributions', () => {
     const cap=WORLD_QMP_POLICY_DRAFT.monthlyCategoryCap.complete_house_upgrade;
