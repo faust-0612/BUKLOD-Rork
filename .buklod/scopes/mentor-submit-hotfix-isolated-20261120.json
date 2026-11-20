@@ -52,5 +52,10 @@
   "physicalDeviceVerification": "NOT_PERFORMED",
   "sourceMainFixPr": 1025,
   "sourceBlobSha": "06451c37b8072b224ef4da900d7ea62e6fc7ddd4",
-  "priorProductionMarkerSourceSha": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf"
+  "priorProductionMarkerSourceSha": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
+  "alternativeApproaches": [
+    "Use normal main-only production publisher immediately: rejected because main contains four additional unreleased commits beyond the pinned release marker.",
+    "Release direct `eas update` with a manually constructed source tree: rejected because it would bypass the immutable RC, AdMob, native compatibility and served-manifest gates.",
+    "Change production RLS or relax mentoring form validation: rejected because the issue is an unexplained disabled client action, not an authorized server-policy change."
+  ]
 }
