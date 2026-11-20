@@ -420,6 +420,11 @@ const displayDashboardTheme: DashboardTheme = canUserSelectTheme() ? dashboardTh
   accentColor: GENESIS_GLOBAL_ROLES.accent,
   textColor: GENESIS_GLOBAL_ROLES.textPrimary,
 };
+// Cluster/Organization chat owns the entire native Connect viewport.
+// Keep the scoped dashboard chrome on other tabs and on the desktop shell.
+const showFullConnectThread = Platform.OS !== 'web' &&
+  section === 'connect' &&
+  (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER');
 return (
     <View
       style={[[[
@@ -440,6 +445,7 @@ return (
           style={DashboardStyleSheet.absoluteFill}
         />
       )}
+      {!showFullConnectThread && (
       <BuklodScopedDashboardHeader
         scopeName={workspaceScope.name}
         scopeType={workspaceScope.scope_type}
@@ -460,6 +466,7 @@ return (
           );
         }}
       />
+      )}
       {/* PATCH_172F_ORG_STATIC_TITLE_NO_SELECTOR */}
       {/* PATCH_172I_R3_CLUSTER_NO_SCOPE_SELECTOR */}
       {workspaceScope.scope_type !== 'ORGANIZATION' &&
@@ -471,6 +478,7 @@ return (
         <></>
       )}
 
+      {!showFullConnectThread && (
       <View
         style={[[
           styles.tabs,
@@ -527,6 +535,7 @@ return (
         )}
 
       </View>
+      )}
 
       {section === 'home' && workspaceScope ? (
         <View style={{ flex: 1, minHeight: 0 }}>
@@ -1060,6 +1069,7 @@ function OrganizationCommunityConnect({
     <View style={styles.scopeConnectHost}>
       <BuklodConnectThread
         mode="scope"
+        fullHeaderInWorkspace={Platform.OS !== 'web'}
         containerId={scope.scope_id}
         onBackOverride={onBack}
         focusMessageId={focusMessageId}
