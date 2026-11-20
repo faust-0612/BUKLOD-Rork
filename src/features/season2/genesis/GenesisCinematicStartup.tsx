@@ -211,6 +211,26 @@ export default function GenesisCinematicStartup({ children }: { children: React.
           }]}>
             <CreationUniverse/>
           </Animated.View>
+          {/* First-light particles drift independently of the static cosmic artwork.
+              One bounded intro animation only; nothing loops over live app content. */}
+          <Animated.View pointerEvents="none" style={[styles.lightSweep, {
+            opacity: reveal.interpolate({inputRange:[0,.25,.7,1],outputRange:[0,.1,.7,0]}),
+            transform: [
+              {translateX: reveal.interpolate({inputRange:[0,1],outputRange:[-LOCKED_SCREEN.width*.7,LOCKED_SCREEN.width*.8]})},
+              {rotate:'-24deg'},
+            ],
+          }]}/>
+          <Animated.View pointerEvents="none" style={[styles.particleField, {
+            opacity: ambient.interpolate({inputRange:[0,1],outputRange:[0,.9]}),
+            transform:[{translateY: reveal.interpolate({inputRange:[0,1],outputRange:[22,-28]})}],
+          }]}>
+            <Svg width="100%" height="100%" viewBox="0 0 400 820" preserveAspectRatio="xMidYMid slice">
+              {STARS.filter((_,i)=>i%3===0).map((star,i)=>(
+                <Circle key={i} cx={star.x} cy={star.y} r={star.radius*.8}
+                  fill={i%2===0?'#FCE5B4':'#A5E8FF'} opacity=".7"/>
+              ))}
+            </Svg>
+          </Animated.View>
           <View pointerEvents="none" style={styles.composition}>
             <View style={[styles.markFrame, { width: MARK_SIZE, height: MARK_SIZE }]}>
               <View pointerEvents="none" style={{ position:'absolute',width:haloSize,height:haloSize,alignItems:'center',justifyContent:'center' }}>
@@ -239,6 +259,8 @@ const styles = StyleSheet.create({
   root:{flex:1,backgroundColor:GENESIS_PALETTE.void},
   stage:{position:'absolute',top:0,left:0,zIndex:99999,overflow:'hidden',backgroundColor:'#050A19'},
   composition:{...StyleSheet.absoluteFillObject,alignItems:'center',justifyContent:'center'},
+  lightSweep:{position:'absolute',top:'-20%',left:'35%',width:110,height:'140%',backgroundColor:'rgba(244,227,177,.16)'},
+  particleField:{...StyleSheet.absoluteFillObject},
   markFrame:{alignItems:'center',justifyContent:'center'},
   burst:{width:'100%',height:'100%',alignItems:'center',justifyContent:'center'},
   copy:{alignItems:'center',marginTop:10,paddingHorizontal:18},
