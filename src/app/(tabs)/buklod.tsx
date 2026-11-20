@@ -223,6 +223,7 @@ import {getClusterLabels,formatClusterName} from '@/lib/clusterLabels'; // PATCH
 import {Button,Card,SectionTitle} from '@/components/UI';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
+import {eligiblePublicWallPostScopes,publicWallScopeTypeLabel,loadPublicWallScopeIdentities,type BuklodPublicWallScopeIdentity} from '@/lib/buklodPublicWallScopeIdentity';
 import {useBuklodPresentation} from '@/hooks/useBuklodPresentation';
 import {useNetwork} from '@/providers/NetworkProvider';
 import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
@@ -527,6 +528,11 @@ export default function BuklodScreen(){
 
 function LegacyPublicBuklodScreen(){
  const { ready: reelAdsReady, canRequestAds: reelAdConsent } = useAds();
+ const {scopes: publicWallScopes}=useBuklodScope();
+ const eligiblePostAsScopes=useMemo(()=>eligiblePublicWallPostScopes(publicWallScopes),[publicWallScopes]);
+ const [selectedPostAsScopeId,setSelectedPostAsScopeId]=useState<string|null>(null);
+ const [postAsScopePickerOpen,setPostAsScopePickerOpen]=useState(false);
+ const selectedPostAsScope=eligiblePostAsScopes.find(x=>x.scope_id===selectedPostAsScopeId)??null;
 
  const {
   colors,
@@ -1286,6 +1292,9 @@ function LegacyPublicBuklodScreen(){
   router.setParams({ homeTodayDraft: undefined, homeTodayIntent: undefined });
  }, [homeTodayParams.homeTodayDraft, homeTodayParams.homeTodayIntent]);
 
+ // Public scope identity never carries across signed-in accounts.
+ useEffect(()=>{setSelectedPostAsScopeId(null);setPostAsScopePickerOpen(false);},[user?.id]);
+
  // COMMUNITY_COMPACT_COMPOSER_20260811
  const [audience]=useState<Audience>('public');
  const [busy,setBusy]=useState(false),[photos,setPhotos]=useState<Photo[]>([]),[photoBusy,setPhotoBusy]=useState(false);
@@ -1976,17 +1985,21 @@ const load=useCallback(async(options?:{
       error: null,
     })),
     withBuklodTimeout<{data:any,error:any}>(
-      (supabase as any).rpc(
-        'get_buklod_public_community_feed_v7_page',
-        {
-          p_location_scope_id:
-            publicLocationScopeId,
-          p_mode:
-            communityFeedMode,
-          p_limit: limit186L,
-          p_offset: offset186L,
+      (async()=>{
+        const args={
+          p_location_scope_id:publicLocationScopeId,
+          p_mode:communityFeedMode,
+          p_limit:limit186L,
+          p_offset:offset186L,
+        };
+        // New feed carries server-authorized scope identity on first paint.
+        // During additive DB rollout older clients/backends still use v7.
+        const initial=await (supabase as any).rpc('get_buklod_public_community_feed_v8_page',args);
+        if(initial.error?.code==='PGRST202'){
+          return (supabase as any).rpc('get_buklod_public_community_feed_v7_page',args);
         }
-      ),
+        return initial;
+      })(),
       8000,
       'Community feed'
     ).catch((err:any)=>({
@@ -2048,6 +2061,11 @@ const load=useCallback(async(options?:{
     feedRows
       .map((p:any)=>p.id)
       .filter(Boolean);
+  // Only public feed rows; separate from members-only scope feeds.
+  const scopeIdentityPromise=feedRows.every((post:any)=>
+    Object.prototype.hasOwnProperty.call(post,'public_scope_identity')
+  ) ? Promise.resolve({} as Record<string,BuklodPublicWallScopeIdentity>)
+    : loadPublicWallScopeIdentities(postIds).catch(()=>({} as Record<string,BuklodPublicWallScopeIdentity>));
 
   // Comment content is a nonblocking, batched enrichment. Do not throw away
   // the actual latest comment because a fixed 4s metadata budget expired.
@@ -2603,6 +2621,15 @@ const load=useCallback(async(options?:{
   }
 
   // Hydrate real author + comment content independently from ranks and
+  void scopeIdentityPromise.then(identities=>{
+   if(communityLoadSeq!==communityLoadSeqRef.current)return;
+   if(!Object.keys(identities).length)return;
+   setPosts(current=>current.map(post=>{
+    const identity=identities[String(post.id??'')];
+    return identity?{...post,public_scope_identity:identity}:post;
+   }));
+  }).catch(()=>undefined);
+
   // media. A late result updates only its own posts; stale loads/account
   // switches cannot overwrite another feed's rows or comments.
   const requestedCommentIds = new Set(postIds.map(String));
@@ -3085,6 +3112,8 @@ const load=useCallback(async(options?:{
     ),
    audience,
    category,
+   postAsScopeId:selectedPostAsScope?.scope_id??null,
+   postAsScopeName:selectedPostAsScope?.name??null,
    groupId:
     group?.id??null,
    userId:
@@ -3092,6 +3121,8 @@ const load=useCallback(async(options?:{
  };
 
  setBody('');
+ setSelectedPostAsScopeId(null);
+ setPostAsScopePickerOpen(false);
  setPhotos([]);
  setCollageLayout('grid');
  setComposerMusicTrack(null);
@@ -3152,14 +3183,12 @@ const load=useCallback(async(options?:{
     data:created,
     error:createError
    }=
-    await communityRpc('create_buklod_community_post_v3',
+    await communityRpc(
+      snapshot.postAsScopeId?'create_buklod_public_wall_scope_post_v1':'create_buklod_community_post_v3',
      {
-      p_audience:
-       snapshot.audience,
-      p_group_id:
-       snapshot.audience==='group'
-        ? snapshot.groupId
-        : null,
+      ...(snapshot.postAsScopeId
+        ? {p_scope_id:snapshot.postAsScopeId}
+        : {p_audience:snapshot.audience,p_group_id:snapshot.audience==='group'?snapshot.groupId:null}),
       p_category:
        snapshot.category,
       p_body:
@@ -3413,7 +3442,8 @@ const load=useCallback(async(options?:{
 
    // A feed refresh error must not roll back a successfully published post.
    void load().catch(()=>undefined);
-   setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.' : 'Posted to Community');
+   setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.'
+    : snapshot.postAsScopeId?'Posted publicly as '+snapshot.postAsScopeName:'Posted to Community');
   }
   catch(e:any){
    await discardIncompleteCommunityPost({
@@ -3423,6 +3453,7 @@ const load=useCallback(async(options?:{
 
    // Never overwrite a new draft started after the background submission.
    setBody(current => current.trim() ? current : snapshot.body);
+   if(snapshot.postAsScopeId)setSelectedPostAsScopeId(current=>current??snapshot.postAsScopeId);
    setPhotos(current => current.length ? current : snapshot.photos);
    setWallVideo186O(current => current ?? snapshot.wallVideo);
    setCommunityGif(current => current ?? snapshot.communityGif);
@@ -5677,6 +5708,54 @@ const communityFeedRows =
     </View>
    ) : (
     <>
+    <View style={{marginBottom:9}}>
+     <Pressable accessibilityRole="button"
+      accessibilityLabel={'Post identity: '+(selectedPostAsScope?.name??'My profile')}
+      accessibilityState={{expanded:postAsScopePickerOpen}}
+      onPress={()=>setPostAsScopePickerOpen(open=>!open)}
+      style={{minHeight:42,paddingHorizontal:11,backgroundColor:colors.background,
+       borderColor:colors.line,borderWidth:1,borderRadius:12,
+       flexDirection:'row',alignItems:'center',gap:8}}>
+      <MaterialCommunityIcons name={selectedPostAsScope?'account-group':'account-circle-outline'}
+       size={20} color={colors.greenDark}/>
+      <View style={{flex:1,minWidth:0}}>
+       <Text style={{fontSize:10,color:colors.muted,fontWeight:'700'}}>POST TO PUBLIC WALL AS</Text>
+       <Text numberOfLines={1} style={{fontSize:14,color:colors.text,fontWeight:'800'}}>
+        {selectedPostAsScope?.name??'My profile'}
+       </Text>
+      </View>
+      <MaterialCommunityIcons name={postAsScopePickerOpen?'chevron-up':'chevron-down'} size={20} color={colors.greenDark}/>
+     </Pressable>
+     {postAsScopePickerOpen&&(
+      <ScrollView nestedScrollEnabled style={{maxHeight:192,marginTop:5,borderWidth:1,
+       borderColor:colors.line,borderRadius:12,backgroundColor:colors.background}}
+       keyboardShouldPersistTaps="always">
+       <Pressable accessibilityRole="button" accessibilityLabel="Post as my personal profile"
+        onPress={()=>{setSelectedPostAsScopeId(null);setPostAsScopePickerOpen(false);}}
+        style={{minHeight:43,paddingHorizontal:11,justifyContent:'center',borderBottomWidth:1,borderColor:colors.line}}>
+        <Text style={{color:colors.text,fontWeight:selectedPostAsScope?'500':'900'}}>My profile · Personal post</Text>
+       </Pressable>
+       {eligiblePostAsScopes.map(option=>(
+        <Pressable key={option.scope_id} accessibilityRole="button"
+         accessibilityLabel={'Post publicly as '+option.name}
+         onPress={()=>{setSelectedPostAsScopeId(option.scope_id);setPostAsScopePickerOpen(false);}}
+         style={{minHeight:46,paddingHorizontal:11,justifyContent:'center',
+          borderBottomWidth:1,borderColor:colors.line}}>
+         <Text numberOfLines={1} style={{fontSize:13,
+          fontWeight:option.scope_id===selectedPostAsScopeId?'900':'700',color:colors.text}}>
+          {option.name}
+         </Text>
+         <Text style={{fontSize:10,color:colors.muted}}>{publicWallScopeTypeLabel(option)}</Text>
+        </Pressable>
+       ))}
+      </ScrollView>
+     )}
+     <Text style={{fontSize:11,color:colors.muted,marginTop:4}}>
+      {selectedPostAsScope
+       ? 'Public post from '+selectedPostAsScope.name+'. Member byline is shown unless you are a verified scope admin.'
+       : 'Personal public post. Scope-only posts remain in their own Walls.'}
+     </Text>
+    </View>
 <BuklodMentionField
  focusRef={composerInputRef}
  value={body}
@@ -6077,30 +6156,68 @@ const communityFeedRows =
     <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    {/* BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117: name + Follow on first row, Edit/Report directly below the right-hand control. */}
    <View style={{flexDirection:'row',alignItems:'flex-start',gap:8}}>
-     <BuklodTappableAvatar
+     {item.public_scope_identity ? (
+      <View style={{width:42,height:42,borderRadius:21,overflow:'hidden',
+       backgroundColor:colors.greenSoft,alignItems:'center',justifyContent:'center'}}>
+       {/^https?:\/\//i.test(String(item.public_scope_identity.scope_logo_url??'')) ? (
+        <Image source={{uri:item.public_scope_identity.scope_logo_url}} style={{width:42,height:42}}/>
+       ) : (
+        <MaterialCommunityIcons name={item.public_scope_identity.scope_type==='LOCAL'?'map-marker':'account-group'}
+         size={24} color={colors.greenDark}/>
+       )}
+      </View>
+     ) : (
+      <BuklodTappableAvatar
        userId={item.user_id}
        name={resolvePersonDisplayName(item.author_name,item.user_id)}
        rankName={item.author_rank_name}
        size={42}
-     />
+      />
+     )}
      <View style={{flex:1,minWidth:0}}>
        <View style={{flexDirection:'row',alignItems:'flex-start',gap:5}}>
          <View style={{flex:1,minWidth:0}}>
-           <BuklodTappablePersonName
-             userId={item.user_id}
-             displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
-             numberOfLines={1}
-             style={s.author}
-           >
-             {resolvePersonDisplayName(item.author_name,item.user_id)}
-           </BuklodTappablePersonName>
-           <ProfileAvatarNoteChip userId={item.user_id} />
+           {item.public_scope_identity ? (
+            <>
+             <Text numberOfLines={1} style={s.author}>
+              {item.public_scope_identity.scope_name}
+             </Text>
+             {!item.public_scope_identity.hide_author_name&&(
+              <BuklodTappablePersonName
+               userId={item.user_id}
+               displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
+               numberOfLines={1}
+               style={[s.meta,{fontSize:11}]}
+              >
+               {'Posted by '+resolvePersonDisplayName(item.author_name,item.user_id)}
+              </BuklodTappablePersonName>
+             )}
+            </>
+           ) : (
+            <>
+             <BuklodTappablePersonName
+              userId={item.user_id}
+              displayName={resolvePersonDisplayName(item.author_name,item.user_id)}
+              numberOfLines={1}
+              style={s.author}>
+              {resolvePersonDisplayName(item.author_name,item.user_id)}
+             </BuklodTappablePersonName>
+             <ProfileAvatarNoteChip userId={item.user_id} />
+            </>
+           )}
            <Text style={s.meta} numberOfLines={1}>
-             {item.author_rank_name || 'Rank updating'}
-             {item.cluster_name ? ` | ${item.cluster_name}` : ''}
-             {' | '}
-             {String(item.audience||'group').toUpperCase()}
-             {item.author_only ? ' | AKO LANG' : ''}
+            {item.public_scope_identity ? (
+             publicWallScopeTypeLabel({
+              scope_type:item.public_scope_identity.scope_type,
+              parent_scope_id:item.public_scope_identity.parent_scope_id,
+              geo_level:item.public_scope_identity.scope_geo_level,
+             })+(item.public_scope_identity.hide_author_name?' · Official':' · Member post')+' · PUBLIC'
+            ) : (
+             (item.author_rank_name||'Rank updating')+
+             (item.cluster_name?' | '+item.cluster_name:'')+
+             ' | '+String(item.audience||'group').toUpperCase()+
+             (item.author_only?' | AKO LANG':'')
+            )}
            </Text>
            <Text
              style={[s.meta,{marginTop:2}]}
@@ -6173,7 +6290,7 @@ const communityFeedRows =
        gap:2,
       }}
      >
-      {!!item.user_id&&(
+      {!!item.user_id && !item.public_scope_identity?.hide_author_name && (
        <Pressable
         accessibilityRole="button"
         accessibilityLabel={

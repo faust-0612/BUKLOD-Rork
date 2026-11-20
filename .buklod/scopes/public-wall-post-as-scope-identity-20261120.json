@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/public-wall-post-as-scope-identity-20261120.json",
+  "objective": "Offer opt-in Public Wall publication as an authenticated member's exact active Cluster/Organization/Sub-organization/Location, showing scope first and a compact byline for members, while verified scope admins publish with official attribution without a public personal byline. Never auto-republish scope-only posts.",
+  "baseRef": "integration/genesis-next-conso-staging-ota-20261120",
+  "productionBaselineEvidence": "2026-11-20: GitHub public/main, Genesis integration source cf99bd23d5e0eea0e56d0921c5b8079f4aeda27c and read-only BUKLOD MAIN schema/function definitions were inspected. Production Android runtime, Expo OTA and device results were not inspected or asserted. No Supabase migration has been applied by this DEV work.",
+  "chosenApproach": "New RLS-protected attribution table and atomic membership-guarded Public Wall RPC wrap existing public create post validation. Both Public and Scope Wall composers offer explicit destinations. Existing scope-only posting RPC remains unchanged. Public header displays genuine scope name/logo and optionally a small member byline; official scope admins are determined server-side and retain their author ID for audit.",
+  "selectionRationale": "Switching audience to 'public' on existing scope rows would expose private posts and break exact-scope visibility. Explicit new public posts preserve privacy and keep current feeds and their media/ad lifecycles.",
+  "riskAreas": [
+    "navigation-scroll",
+    "auth-privacy",
+    "faith-cluster",
+    "wall-media",
+    "app-runtime",
+    "ads-monetization"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/lib/buklodPublicWallScopeIdentity.ts",
+    "supabase/migrations/20261120142500_buklod_public_wall_post_as_scope_identity_v1.sql",
+    "supabase/tests/public_wall_scope_identity_security_20261120.sql",
+    "tests/public-wall-scope-identity-navigation-scroll-20261120.test.mjs",
+    ".buklod/scopes/public-wall-post-as-scope-identity-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/public-wall-scope-identity-navigation-scroll-20261120.test.mjs",
+    "supabase/tests/public_wall_scope_identity_security_20261120.sql"
+  ],
+  "preserveBehaviors": [
+    "Default Scope Wall posting is members-only and never automatically copied to Public Wall.",
+    "Personal Public Wall posts and existing v3 create behavior remain unchanged.",
+    "The current public feed only reads canonical public posts and preserves all ranking, media, comment, ad and navigation rules.",
+    "A verified scope-admin flag can suppress the public personal byline but the exact author stays auditable server-side.",
+    "No new native dependency, configuration or runtime change."
+  ],
+  "acceptanceChecks": [
+    "Run Node scope-identity/navigation-scroll regression and Supabase SQL RLS contract tests.",
+    "Verify TypeScript check, current Wall header tests, scope posting, comments/reactions and AdMob/navigation regression tests.",
+    "On a signed Genesis staging APK verify non-admin location/cluster/suborg public posts, official admin scope posts, wrong-scope rejection and that scope-only rows remain private.",
+    "Verify backend migration and feature-compatible runtime against staging using a correct live backend and no production OTA effects.",
+    "Only later consider verified RC and a guarded consolidated staging OTA; no production publish from this DEV PR."
+  ],
+  "alternativeApproaches": [
+    "Mutate members-only scope posts to audience=public – rejected due permanent confidentiality leak.",
+    "Automatically mirror all scope posts in Public Wall – rejected because posting destination must be explicitly chosen."
+  ],
+  "releaseMode": "DEV_BRANCH_PR_NO_OTA",
+  "releaseTarget": "Genesis staging consolidated OTA after migration/RC verification; production release separate.",
+  "publicationStatus": "SOURCE_ONLY_NOT_LIVE",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New public scope identity is additive and leaves the native module/runtime contract unchanged.",
+      "preservedBehaviors": [
+        "Existing Android runtime, tabbed Public Wall, ad load/render and navigation behavior must remain compatible."
+      ],
+      "tests": [
+        "tests/public-wall-scope-identity-navigation-scroll-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Public Wall composer is extended with a verified identity selector without changing navigation or user login.",
+      "preservedBehaviors": [
+        "Member profile navigation, Follow, Report, edit/delete and account isolation remain intact."
+      ],
+      "tests": [
+        "tests/public-wall-scope-identity-navigation-scroll-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cluster and Organization scope composer gains an explicit public destination while retaining exact-scope default.",
+      "preservedBehaviors": [
+        "Existing exact-scope posting, private feed, scoped comments/media and membership permission gates remain unchanged."
+      ],
+      "tests": [
+        "tests/public-wall-scope-identity-navigation-scroll-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "RLS-protected attribution and atomic exact-membership RPC are needed to prevent spoofed public authorship.",
+      "preservedBehaviors": [
+        "Only authenticated active exact-scope members may post publicly as their scope; no client table access or private-post widening."
+      ],
+      "tests": [
+        "supabase/tests/public_wall_scope_identity_security_20261120.sql"
+      ]
+    }
+  ]
+}
