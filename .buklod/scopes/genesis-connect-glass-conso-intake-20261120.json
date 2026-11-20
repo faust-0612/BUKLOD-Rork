@@ -1,0 +1,104 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-connect-glass-conso-intake-20261120.json",
+  "objective": "Carry previously verified PR #1035 Connect compactness/full native scope chat view changes into the Genesis glass and Today's Best consolidated staging intake without source regression, backend changes or native splash/API runtime drift.",
+  "baseRef": "integration/genesis-glass-todaysbest-conso-staging-20261120",
+  "productionBaselineEvidence": "BUKLOD main and prior staged OTA remain unchanged; immutable previous release candidate release/genesis-conso-staging-ota-candidate-20261120. Base integration/genesis-glass-todaysbest-conso-staging-20261120 contains already-reviewed GenesisGlass + Today's Best. Source Connect deltas from PR #1035 transferred byte-for-byte after confirming all four target base blob SHAs equal their prior frozen release base. The OTA published source/update identity must be verified separately before any publish.",
+  "chosenApproach": "Copy exact four reviewed Connect product blobs plus three tests from merged Connect intake on top of the latest Glass + Today's Best staging integration. Preserve glass and Today's Best components, publish guard workflow pins and immutable previous published OTA.",
+  "selectionRationale": "Single shared Connect implementation preserves scope authorization, room read cursors, send order, media, calls, reactions and message actions without parallel state or another thread screen.",
+  "alternativeApproaches": [
+    "Create separate Cluster chat renderer: rejected because it would duplicate send/read state and regress features.",
+    "Force redirect to personal messages: rejected because it changes room scope and back navigation."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "connect-ptt-calls",
+    "cluster-faith",
+    "message-order",
+    "room-cursor",
+    "navigation-scroll",
+    "ad-first-view-visibility",
+    "native-web-parity",
+    "connect",
+    "faith-cluster"
+  ],
+  "allowedPaths": [
+    "src/app/scope/index.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/lib/connectChatWindow.ts",
+    "tests/connect-compact-thread-parity-20261120.test.mjs",
+    "tests/connect-cluster-scope-shell-20261120.test.mjs",
+    "tests/connect-chat-ads-isolation-20261120.test.mjs",
+    ".buklod/scopes/genesis-connect-glass-conso-intake-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/connect-compact-thread-parity-20261120.test.mjs",
+    "tests/connect-cluster-scope-shell-20261120.test.mjs",
+    "tests/connect-chat-ads-isolation-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Change only chat viewport, compact spacing and message time display using existing native/React Native modules.",
+      "preservedBehaviors": [
+        "No native dependency, JS runtime, payload, consent, AdMob placement or navigation provider modification.",
+        "Existing optimistic send, media, GIF, offline retry, messages ordering and scroll anchor are unchanged."
+      ],
+      "tests": [
+        "tests/connect-compact-thread-parity-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Reuse the canonical Connect room header and local message sent timestamp without touching verified reader/call state.",
+      "preservedBehaviors": [
+        "Room-read cursors are not per-message delivery proofs, and unchanged server metadata remains the authority.",
+        "Direct call, scope Office/PTT launcher, reactions, attachments and long-press actions remain mounted."
+      ],
+      "tests": [
+        "tests/connect-compact-thread-parity-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Render the existing scope Connect conversation as full-screen native chat and preserve Home/Community and desktop layout.",
+      "preservedBehaviors": [
+        "Full scope id and membership guard stay unchanged; back returns to the same workspace Home.",
+        "No changes to Cluster/Organization membership, prayers, community feeds, permissions or posting."
+      ],
+      "tests": [
+        "tests/connect-cluster-scope-shell-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The protected-feature classifier treats the 'ad' substring in BuklodConnectThread as ad-sensitive; this visual-only fix must demonstrate AdMob and economy isolation.",
+      "preservedBehaviors": [
+        "No changes to AdMob ad placement IDs, consent/prefetch/lifecycle, first-view fill, ad impression or earnings state.",
+        "No changes to QMP, payouts, reward logic, Cluster finance, referral points, or other user economy state."
+      ],
+      "tests": [
+        "tests/connect-chat-ads-isolation-20261120.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No modifications to database/RLS, backend read-cursor RPCs, media signing, push, and referral/points economy.",
+    "No changes to application identification, native runtime, EAS channels or OTA publisher.",
+    "Keep app-wide ad rendering and dashboard switching release blockers."
+  ],
+  "acceptanceChecks": [
+    "Source readback and protected feature lock pass, both focused Node tests pass.",
+    "TypeScript and existing relevant chat regression checks pass.",
+    "Chat and ad isolation source-contract tests pass, with real ad/nav regression gates still required before release.",
+    "Native on-device verify scoped fullscreen header, message timestamps, message/seen avatar density, input/keyboard.",
+    "Verify ad-first-view and dashboard navigation before any Genesis staging OTA release.",
+    "Verify exact 4 product file blob SHAs match previously merged Connect source, with no changes to existing Glass/Today's Best source blobs.",
+    "Do not reuse frozen Genesis OTA publish marker/source-pin; prepare new reviewed candidate before OTA."
+  ],
+  "releaseMode": "NEXT_GENESIS_STAGING_CONSOLIDATED_INTAKE_NO_PUBLISH",
+  "releaseTarget": "Staging application org.mzbministry.buklod.staging, channel season2-genesis-preview, runtime 2.0.0-genesis-preview, new separately verified RC only.",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
