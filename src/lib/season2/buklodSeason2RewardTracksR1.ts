@@ -167,12 +167,13 @@ export type S2TrackedEvidence=Readonly<{
 }>;
 export type S2TrackEvaluation=Readonly<{
  live:false;eligibleForPreview:boolean;track:S2RewardTrack|null;
- reason:'NO_SCOPE'|'WRONG_SCOPE'|'WRONG_TRACK'|'UNKNOWN_SOURCE'|
+ reason:'NO_SCOPE'|'WRONG_SCOPE'|'WRONG_USER'|'WRONG_TRACK'|'UNKNOWN_SOURCE'|
  'UNVERIFIED'|'NOT_MEMBER_AT_EVENT'|'INACTIVE_SOURCE'|'ELIGIBLE_PREVIEW';
  receiptKey:string|null;bonusBP:0;creditedTokens:0;
 }>;
 export function previewS2TrackEvidence(
  evidence:S2TrackedEvidence,visibleScope:S2VisibleScope|null,
+ viewerUserId:string,
  seenSources:ReadonlySet<string>=new Set(),
 ):S2TrackEvaluation{
  const track=previewTrackForScope(visibleScope);
@@ -181,7 +182,8 @@ export function previewS2TrackEvidence(
   track,reason,receiptKey:key,bonusBP:0,creditedTokens:0,
  });
  if(!track)return result('NO_SCOPE');
- if(!evidence.userId||!evidence.sourceId||!evidence.scopeId||
+ if(!viewerUserId||!evidence.userId||evidence.userId!==viewerUserId)return result('WRONG_USER');
+ if(!evidence.sourceId||!evidence.scopeId||
     evidence.scopeId!==visibleScope?.scope_id)return result('WRONG_SCOPE');
  if(evidence.scopeModeAtEvent!==track)return result('WRONG_TRACK');
  if(!Object.prototype.hasOwnProperty.call(S2_TRACK_SOURCES,evidence.source))return result('UNKNOWN_SOURCE');
@@ -197,7 +199,7 @@ export function previewS2TrackEvidence(
 }
 
 export type S2TrackWeeklyEvidence=Readonly<{
- weekStartManila:string;track:S2RewardTrack;scopeId:string;
+ weekStartManila:string;track:S2RewardTrack;scopeId:string;viewerUserId:string;
  sources:readonly S2TrackedEvidence[];scope:S2VisibleScope|null;
 }>;
 // Distinct source receipt is required; even two different categories from one
@@ -210,7 +212,7 @@ export function previewS2TrackFoundation(input:S2TrackWeeklyEvidence):Readonly<{
   input.scope?.scope_id===input.scopeId;
  const unique=new Set<string>();let learning=false,community=false;
  if(scopeTrackMatched)for(const e of input.sources){
-  const v=previewS2TrackEvidence(e,input.scope,unique);
+  const v=previewS2TrackEvidence(e,input.scope,input.viewerUserId,unique);
   if(!v.eligibleForPreview||!v.receiptKey)continue;
   unique.add(v.receiptKey);
   const rule=S2_TRACK_SOURCES[e.source];
