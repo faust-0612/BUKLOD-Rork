@@ -8,6 +8,8 @@ on:
       - .github/workflows/genesis-android-compile-smoke-20261120.yml
       - .github/workflows/genesis-season2-staging-release-apk-20261120.yml
       - scripts/genesis-prepare-skia-binaries.mjs
+      - scripts/genesis-assert-native-autolinking.mjs
+      - tests/genesis-native-autolinking-reality-20261120.test.mjs
       - modules/buklod-genesis-play-updates/**
       - modules/buklod-genesis-media3/**
       - modules/buklod-genesis-godot/**
@@ -87,6 +89,8 @@ jobs:
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           node scripts/genesis-prepare-skia-binaries.mjs
+          node scripts/genesis-assert-native-autolinking.mjs
+          node --test tests/genesis-native-autolinking-reality-20261120.test.mjs
           node --test tests/genesis-skia-native-binary-install-20261120.test.mjs
           npm run genesis:theme:gate
           node --test tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-android-compile-smoke-release-20261120.test.mjs
