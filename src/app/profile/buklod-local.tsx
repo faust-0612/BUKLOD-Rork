@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { randomUUID } from 'expo-crypto';
 import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
@@ -53,14 +54,17 @@ export default function BuklodGovernmentFocusApp() {
  const [officialUrl,setOfficialUrl]=useState('');
  const [applicationNote,setApplicationNote]=useState('');
  const [postBody,setPostBody]=useState('');
+ const [postRequestKey,setPostRequestKey]=useState(()=>randomUUID());
  const [postKind,setPostKind]=useState<GovPublicationKind>('ANNOUNCEMENT');
  const [localityKeys,setLocalityKeys]=useState('');
  const [publishNational,setPublishNational]=useState(false);
  const [concernTitle,setConcernTitle]=useState('');
+ const [caseRequestKey,setCaseRequestKey]=useState(()=>randomUUID());
  const [concernText,setConcernText]=useState('');
  const [concernLocality,setConcernLocality]=useState('');
  const [updateStatus,setUpdateStatus]=useState<GovCaseStatus>('ACKNOWLEDGED');
  const [updateNote,setUpdateNote]=useState('');
+ const [caseUpdateRequestKey,setCaseUpdateRequestKey]=useState(()=>randomUUID());
  const [serviceTitle,setServiceTitle]=useState('');
  const [serviceDescription,setServiceDescription]=useState('');
  const [serviceUrl,setServiceUrl]=useState('');
@@ -131,7 +135,7 @@ export default function BuklodGovernmentFocusApp() {
    setCaseId(id);setCaseEvents([]);
    try{setCaseEvents(await governmentCaseEvents(id));}catch(e:any){setError(String(e.message??e));}
  };
- const chooseOffice=(id:string)=>{setSelectedId(id);setPage('UPDATES');setCaseId(null);setError('');};
+ const chooseOffice=(id:string)=>{setSelectedId(id);setPage('UPDATES');setCaseId(null);setPublishNational(false);setError('');};
  const openOfficialLink=async(url:string)=>{
    if(!/^https:\/\//i.test(url)){Alert.alert('Invalid link','Official links must use HTTPS.');return;}
    try{await Linking.openURL(url);}catch{Alert.alert('Link unavailable','Could not open the external government portal.');}
@@ -238,7 +242,7 @@ export default function BuklodGovernmentFocusApp() {
     {active&&canPublish?tile(<>
      {heading('Publish official update')}
      {caption('Server verifies active government staff permissions. Only national entities can cross-post to the nationwide Public Wall.')}
-     {inp('Announcement, program, advisory or project update',postBody,setPostBody,true)}
+     {inp('Announcement, program, advisory or project update',postBody,(v)=>{setPostBody(v);setPostRequestKey(randomUUID());},true)}
      <View style={styles.buttonRow}>{KINDS.map(k=>btn(k,()=>setPostKind(k),postKind!==k))}</View>
      {inp('Location PSGC keys, separated by commas (optional)',localityKeys,setLocalityKeys)}
      {active.entity_type==='NATIONAL'?btn(publishNational?'Nationwide Public Wall ✓':'Also publish to Public Wall',()=>setPublishNational(!publishNational),true):null}
@@ -246,8 +250,8 @@ export default function BuklodGovernmentFocusApp() {
        const keys=localityKeys.split(',').map(x=>x.trim()).filter(Boolean);
        if(!keys.length && active.psgc_code && active.entity_type!=='NATIONAL') keys.push(active.psgc_code);
        await governmentPublish({entityId:active.id,body:postBody,kind:postKind,
-         localityKeys:keys,publishNationalWall:publishNational});
-       setPostBody('');setLocalityKeys('');
+         localityKeys:keys,publishNationalWall:publishNational,requestKey:postRequestKey});
+       setPostBody('');setLocalityKeys('');setPostRequestKey(randomUUID());
      },'Official update published.'),false,postBody.trim().length<1)}
     </>):null}
    </>:null}
@@ -294,13 +298,13 @@ export default function BuklodGovernmentFocusApp() {
     {!active?caption('Choose an office first.'):null}
     {active?tile(<>
       {heading('Send a concern')}
-      {inp('Concern subject',concernTitle,setConcernTitle)}
-      {inp('Describe the concern',concernText,setConcernText,true)}
+      {inp('Concern subject',concernTitle,(v)=>{setConcernTitle(v);setCaseRequestKey(randomUUID());})}
+      {inp('Describe the concern',concernText,(v)=>{setConcernText(v);setCaseRequestKey(randomUUID());},true)}
       {inp('Locality / PSGC key (optional)',concernLocality,setConcernLocality)}
       {btn('Submit private concern',()=>void perform(async()=>{
         const c=await governmentSubmitCase({entityId:active.id,subject:concernTitle,
-          description:concernText,localityKey:concernLocality});
-        setConcernTitle('');setConcernText('');setConcernLocality('');
+          description:concernText,localityKey:concernLocality,requestKey:caseRequestKey});
+        setConcernTitle('');setConcernText('');setConcernLocality('');setCaseRequestKey(randomUUID());
         setCaseId(c.id);
       },'Your BUKLOD concern has been submitted.'),false,concernTitle.trim().length<5||concernText.trim().length<10)}
     </>):null}
@@ -320,11 +324,11 @@ export default function BuklodGovernmentFocusApp() {
           {canEditCases?<View style={styles.buttonRow}>
            {CASE_STATUSES.map(s=>btn(s,()=>setUpdateStatus(s),updateStatus!==s))}
           </View>:btn('Reopen case',()=>setUpdateStatus('REOPENED'),true)}
-          {inp('Action taken / clarification',updateNote,setUpdateNote,true)}
+          {inp('Action taken / clarification',updateNote,(v)=>{setUpdateNote(v);setCaseUpdateRequestKey(randomUUID());},true)}
           {btn('Save case update',()=>void perform(async()=>{
             const status=canEditCases?updateStatus:'REOPENED';
-            await governmentTransitionCase({caseId:c.id,status,note:updateNote});
-            setUpdateNote('');setCases(await governmentCases(active!.id));
+            await governmentTransitionCase({caseId:c.id,status,note:updateNote,requestKey:caseUpdateRequestKey});
+            setUpdateNote('');setCaseUpdateRequestKey(randomUUID());setCases(await governmentCases(active!.id));
           },'Case status recorded.','CASE'),false,updateNote.trim().length<2)}
          </>:null}
        </View>:null}
