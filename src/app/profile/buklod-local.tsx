@@ -8,6 +8,7 @@ import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import {
  governmentApply, governmentAssignStaff, governmentCaseEvents, governmentCases,
+ governmentCurrentUserId,
  governmentDirectory, governmentEntityStaff, governmentEvents, governmentFollows,
  governmentIsSystemAdmin, governmentMyApplications, governmentMyRoles,
  governmentPendingApplications, governmentPosts, governmentPublish,
@@ -35,6 +36,7 @@ export default function BuklodGovernmentFocusApp() {
  const [selectedId,setSelectedId]=useState<string|null>(null);
  const [myApps,setMyApps]=useState<GovEntity[]>([]);
  const [myRoles,setMyRoles]=useState<GovStaff[]>([]);
+ const [currentUserId,setCurrentUserId]=useState<string|null>(null);
  const [follows,setFollows]=useState<string[]>([]);
  const [isSystemAdmin,setIsSystemAdmin]=useState(false);
  const [pending,setPending]=useState<GovEntity[]>([]);
@@ -86,12 +88,12 @@ export default function BuklodGovernmentFocusApp() {
    border:theme.border,accent:theme.accent,onAccent:theme.onAccent,soft:theme.surfaceMuted}),[theme]);
 
  const refreshHome=useCallback(async()=>{
-  const [directory,apps,roles,followed,admin]=await Promise.all([
+  const [directory,apps,roles,followed,admin,uid]=await Promise.all([
     governmentDirectory(),governmentMyApplications(),governmentMyRoles(),
-    governmentFollows(),governmentIsSystemAdmin()
+    governmentFollows(),governmentIsSystemAdmin(),governmentCurrentUserId()
   ]);
   setEntities(directory);setMyApps(apps);setMyRoles(roles);setFollows(followed);
-  setIsSystemAdmin(admin);
+  setIsSystemAdmin(admin);setCurrentUserId(uid);
   if(admin) setPending(await governmentPendingApplications());
  },[]);
  useEffect(()=>{
@@ -319,7 +321,7 @@ export default function BuklodGovernmentFocusApp() {
           {caption((x.status??'UPDATE')+' • '+new Date(x.created_at).toLocaleString())}
           <Text style={{color:colors.text}}>{x.note}</Text>
          </View>)}
-         {canEditCases||c.status==='RESOLVED'||c.status==='CLOSED'?<>
+         {canEditCases||(c.submitted_by===currentUserId && (c.status==='RESOLVED'||c.status==='CLOSED'))?<>
           {heading('Update case')}
           {canEditCases?<View style={styles.buttonRow}>
            {CASE_STATUSES.map(s=>btn(s,()=>{setUpdateStatus(s);setCaseUpdateRequestKey(randomUUID());},updateStatus!==s))}
