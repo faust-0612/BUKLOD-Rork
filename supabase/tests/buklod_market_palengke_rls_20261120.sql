@@ -16,6 +16,14 @@ begin
        raise exception 'Anonymous Market permissions detected: %',t;
     end if;
   end loop;
+  if has_column_privilege('authenticated','public.buklod_market_stores','verification_state','UPDATE')
+    or has_column_privilege('authenticated','public.buklod_market_stores','moderation_state','UPDATE')
+    or has_column_privilege('authenticated','public.buklod_market_stores','owner_id','UPDATE')
+    or has_column_privilege('authenticated','public.buklod_market_listings','moderation_state','UPDATE')
+    or has_column_privilege('authenticated','public.buklod_market_listings','owner_id','UPDATE')
+    or has_column_privilege('authenticated','public.buklod_market_reports','status','UPDATE') then
+      raise exception 'Market verified identity, ownership or moderation is client-writable';
+  end if;
   if has_table_privilege('authenticated','public.buklod_market_reservations','INSERT')
      or has_table_privilege('authenticated','public.buklod_market_reservations','UPDATE')
      or has_table_privilege('authenticated','public.buklod_market_reservations','DELETE') then
