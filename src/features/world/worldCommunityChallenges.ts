@@ -18,12 +18,16 @@ export type WorldChallengeState =
   | 'draft' | 'invited' | 'accepted' | 'active' | 'submitted'
   | 'under_review' | 'verified' | 'rejected' | 'disputed' | 'closed';
 export type WorldChallengeFunding = {
-  mode: 'none' | 'restricted_project_budget' | 'separate_sponsor_award';
+  mode: 'none' | 'restricted_project_budget' | 'separate_sponsor_award' | 'cluster_treasury_award';
   /** BP spent on verifiable project resources. Cannot be lost to an opponent. */
   restrictedProjectBudgetBp: number;
   /** No award is issued until independently approved and policy-cleared. */
   prefundedSponsorAwardBp: number;
   recipientGetsOtherTeamsBudget: false;
+  /** Hosting Cluster prepays an award from its own earned community BP treasury. */
+  awardSponsorCommunity?: WorldCommunity;
+  /** Pre-reservation receipt must belong to the sponsor treasury, not a participant's BP. */
+  awardReservationReceiptId?: string;
 };
 export type WorldChallenge = {
   id: string;
@@ -100,7 +104,7 @@ const validDate = (v: string): boolean => typeof v==='string' && Number.isFinite
 const naturalBp = (v: number): boolean => Number.isSafeInteger(v) && v>=0;
 
 export function validateWorldChallengeFunding(f: WorldChallengeFunding): string | null {
-  if (!f || !['none','restricted_project_budget','separate_sponsor_award'].includes(f.mode) ||
+  if (!f || !['none','restricted_project_budget','separate_sponsor_award','cluster_treasury_award'].includes(f.mode) ||
       !naturalBp(f.restrictedProjectBudgetBp) || !naturalBp(f.prefundedSponsorAwardBp))
     return 'Invalid or unsupported BP funding.';
   if (f.recipientGetsOtherTeamsBudget!==false)
@@ -111,6 +115,15 @@ export function validateWorldChallengeFunding(f: WorldChallengeFunding): string 
     return 'Project budget cannot become a prize for the opposing community.';
   if (f.mode==='separate_sponsor_award' && f.restrictedProjectBudgetBp!==0)
     return 'Sponsor award and project spending cannot share a pool.';
+  if (f.mode==='cluster_treasury_award') {
+    if(f.restrictedProjectBudgetBp!==0||f.prefundedSponsorAwardBp<=0)
+      return 'Cluster award must be an independently reserved prize, never a project stake.';
+    if(f.awardSponsorCommunity?.kind!=='cluster'||!f.awardSponsorCommunity.scopeId?.trim()||
+       !f.awardReservationReceiptId?.trim())
+      return 'Cluster award requires a verified sponsoring treasury and reservation receipt.';
+  } else if(f.awardSponsorCommunity||f.awardReservationReceiptId) {
+    return 'Cluster treasury references require a cluster_treasury_award funding mode.';
+  }
   return null;
 }
 export function validateWorldChallenge(challenge: WorldChallenge): string | null {
