@@ -50,8 +50,11 @@ values(true,false,false) on conflict(singleton) do nothing;
 -- captured by a future authorized server adapter, NEVER by the device.
 -- SHARED is allowed only when the source itself has no owned scope,
 -- with consumption accounted in a single global user claim ledger.
+-- Pairwise unique key makes a receipt foreign key enforce its canonical owner.
+create unique index if not exists s2_core_receipt_owner_key
+ on buklod_s2.source_receipt(id,user_id);
 create table if not exists buklod_s2.reward_track_attribution (
- receipt_id bigint primary key references buklod_s2.source_receipt(id) on delete cascade,
+ receipt_id bigint primary key,
  user_id uuid not null references auth.users(id) on delete cascade,
  scope_id uuid references public.buklod_scopes(id) on delete restrict,
  track text not null check(track in ('show_faith','non_show_faith','shared')),
@@ -61,8 +64,11 @@ create table if not exists buklod_s2.reward_track_attribution (
  server_event_mode_verified boolean not null default false check(not server_event_mode_verified),
  created_at timestamptz not null default now(),
  check((track='shared' and scope_id is null) or
-       (track in ('show_faith','non_show_faith') and scope_id is not null))
+       (track in ('show_faith','non_show_faith') and scope_id is not null)),
+ foreign key(receipt_id,user_id) references buklod_s2.source_receipt(id,user_id) on delete cascade
 );
+create unique index if not exists s2_track_attribution_owner_key
+ on buklod_s2.reward_track_attribution(receipt_id,user_id);
 create index if not exists s2_track_user_scope_idx
  on buklod_s2.reward_track_attribution(user_id,scope_id,track,event_at desc);
 
@@ -84,7 +90,7 @@ create table if not exists buklod_s2.reward_track_weekly_progress (
 -- A canonical event receipt can be consumed for ONE distinct optional weekly
 -- mission, regardless of track or scope; prevents replay after mode switching.
 create table if not exists buklod_s2.reward_track_evidence_use (
- receipt_id bigint primary key references buklod_s2.reward_track_attribution(receipt_id) on delete cascade,
+ receipt_id bigint primary key,
  user_id uuid not null references auth.users(id) on delete cascade,
  scope_id uuid not null references public.buklod_scopes(id) on delete restrict,
  track text not null check(track in ('show_faith','non_show_faith')),
@@ -93,6 +99,8 @@ create table if not exists buklod_s2.reward_track_evidence_use (
  created_at timestamptz not null default now(),
  foreign key(user_id,scope_id,track,week_start_manila)
  references buklod_s2.reward_track_weekly_progress(user_id,scope_id,track,week_start_manila)
+ on delete cascade,
+ foreign key(receipt_id,user_id) references buklod_s2.reward_track_attribution(receipt_id,user_id)
  on delete cascade
 );
 
