@@ -40,26 +40,56 @@
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Replace white/plain Genesis preview cards with locally-bundled static glass texture and high-contrast navy surfaces while retaining existing content and server-origin values.",
+      "reason": "Staging-only glass card presentation and Today's Best layout are scoped to existing Genesis preview and preserve all live app capabilities.",
       "preservedBehaviors": [
-        "No Season 1/production theme changes",
-        "No PTT, fund, profile, BP/QMP backend/RLS or writer behavior changes",
-        "Only passive noninteractive image/decor overlay; no added network or native dependencies"
+        "Production and Season 1 views unchanged",
+        "Native/runtime config, secure backend, uploads, Wall media lifecycle and existing app navigation retained"
       ],
       "tests": [
         "tests/genesis-glass-cards-20261120.test.mjs",
-        "tests/genesis-glass-ptt-economy-20261120.test.mjs"
+        "tests/todays-best-wall-header-20261120.test.mjs"
       ]
     },
     {
-      "id": "app-runtime",
-      "reason": "Reorder an existing single Wall story rail as Today's Best without duplicating players or changing media/deep links/ad slots.",
+      "id": "wall-media",
+      "reason": "Reorder only existing single Marites/Today's Best story rail without changing player lifecycle, media signing, scrolling, comments or ads.",
       "preservedBehaviors": [
-        "Preserve signed media, comments/reactions, offscreen playback, first-view ads, navigation and Stories/Marites database marker"
+        "Retain one story player, feed media signing, comments/reactions, offscreen pause, Wall ad slots"
       ],
       "tests": [
         "tests/todays-best-wall-header-20261120.test.mjs",
         "tests/todays-best-wall-navigation-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Move the Wall story section ahead of search and shortcuts while retaining existing link targets, authenticated route checks, and safe area behavior.",
+      "preservedBehaviors": [
+        "Existing Wall tab, search, navigation, auth and deep link routing stay intact",
+        "Do not touch session or login behavior"
+      ],
+      "tests": [
+        "tests/todays-best-wall-navigation-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Adjust only existing Genesis visual style around PTT door on Android and web while preserving current runtime status and call routing.",
+      "preservedBehaviors": [
+        "PTT connection and live status unchanged; existing call and message navigation routes retained"
+      ],
+      "tests": [
+        "tests/genesis-glass-ptt-economy-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Use preview-only noninteractive glass backgrounds for Contribution/QMP and scope fund cards without changing money, payout, points or ad accounting logic.",
+      "preservedBehaviors": [
+        "Keep authoritative server-origin finance and QMP values, AdMob first-view, banner lifecycle and protected payout controls unchanged"
+      ],
+      "tests": [
+        "tests/genesis-glass-ptt-economy-20261120.test.mjs"
       ]
     }
   ],
