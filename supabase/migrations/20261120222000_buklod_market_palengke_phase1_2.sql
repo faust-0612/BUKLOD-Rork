@@ -57,6 +57,20 @@ create index if not exists buklod_market_listing_feed
 create index if not exists buklod_market_listing_store
   on public.buklod_market_listings(store_id, created_at desc);
 
+-- Reports are private to their submitter and the backend moderation service.
+create table if not exists public.buklod_market_reports (
+  id uuid primary key default gen_random_uuid(),
+  listing_id uuid not null references public.buklod_market_listings(id) on delete cascade,
+  reporter_id uuid not null references auth.users(id) on delete cascade,
+  reason text not null check (reason in ('scam','misleading','prohibited','other')),
+  details text not null default '' check (char_length(details) <= 600),
+  status text not null default 'pending' check (status in ('pending','reviewed','dismissed')),
+  created_at timestamptz not null default now(),
+  unique(listing_id,reporter_id)
+);
+create index if not exists buklod_market_reports_pending
+  on public.buklod_market_reports(created_at desc) where status='pending';
+
 create table if not exists public.buklod_market_wall_shares (
   post_id uuid primary key references public.community_posts(id) on delete cascade,
   listing_id uuid not null references public.buklod_market_listings(id) on delete cascade,
@@ -71,8 +85,9 @@ create index if not exists buklod_market_wall_share_listing
 alter table public.buklod_market_stores enable row level security;
 alter table public.buklod_market_listings enable row level security;
 alter table public.buklod_market_wall_shares enable row level security;
+alter table public.buklod_market_reports enable row level security;
 
-revoke all on public.buklod_market_stores,public.buklod_market_listings,public.buklod_market_wall_shares from anon;
+revoke all on public.buklod_market_stores,public.buklod_market_listings,public.buklod_market_wall_shares,public.buklod_market_reports from anon;
 grant select,insert on public.buklod_market_stores to authenticated;
 grant update(name,description,barangay,city,province,seller_type,is_open,updated_at)
   on public.buklod_market_stores to authenticated;
@@ -80,6 +95,7 @@ grant select,insert on public.buklod_market_listings to authenticated;
 grant update(title,description,kind,category,price_php,unit,image_path,stock_status,publication_state,updated_at)
   on public.buklod_market_listings to authenticated;
 grant select on public.buklod_market_wall_shares to authenticated;
+grant select,insert on public.buklod_market_reports to authenticated;
 
 create policy buklod_market_store_read on public.buklod_market_stores
   for select to authenticated
@@ -87,7 +103,9 @@ create policy buklod_market_store_read on public.buklod_market_stores
 create policy buklod_market_store_insert on public.buklod_market_stores
   for insert to authenticated
   with check (owner_id = (select auth.uid())
-    and verification_state='unverified' and moderation_state='approved');
+    and verification_state='unverified' and moderation_state='approved'
+    and exists(select 1 from public.profiles p
+      where p.id=(select auth.uid()) and p.is_active=true));
 create policy buklod_market_store_update on public.buklod_market_stores
   for update to authenticated
   using (owner_id = (select auth.uid()) and moderation_state='approved')
@@ -105,7 +123,9 @@ create policy buklod_market_listing_insert on public.buklod_market_listings
   with check (owner_id=(select auth.uid()) and moderation_state='approved'
     and exists(select 1 from public.buklod_market_stores s
       where s.id=store_id and s.owner_id=(select auth.uid())
-        and s.moderation_state='approved'));
+        and s.moderation_state='approved')
+    and exists(select 1 from public.profiles p
+      where p.id=(select auth.uid()) and p.is_active=true));
 create policy buklod_market_listing_update on public.buklod_market_listings
   for update to authenticated
   using (owner_id=(select auth.uid()) and moderation_state='approved')
@@ -120,6 +140,16 @@ create policy buklod_market_wall_share_read on public.buklod_market_wall_shares
     select 1 from public.community_posts p
     where p.id=post_id and p.audience='public'
       and p.deleted_at is null and p.is_hidden=false));
+
+create policy buklod_market_reports_select on public.buklod_market_reports
+  for select to authenticated
+  using(reporter_id=(select auth.uid()));
+create policy buklod_market_reports_insert on public.buklod_market_reports
+  for insert to authenticated
+  with check(reporter_id=(select auth.uid()) and status='pending'
+    and exists(select 1 from public.buklod_market_listings l
+      where l.id=listing_id and l.publication_state='published'
+        and l.moderation_state='approved' and l.owner_id <> (select auth.uid())));
 
 -- The only Wall posting pathway for Market promos. Atomic: no orphaned links,
 -- no bypass of the existing community-post validation/approval contract.
@@ -188,8 +218,43 @@ create policy buklod_market_photo_insert on storage.objects
  for insert to authenticated
  with check(bucket_id='buklod-market-media'
    and (storage.foldername(name))[1]=(select auth.uid())::text
-   and lower(storage.extension(name))='jpg');
+   and lower(storage.extension(name))='jpg'
+   and exists(select 1 from public.profiles p
+     where p.id=(select auth.uid()) and p.is_active=true));
 create policy buklod_market_photo_delete on storage.objects
  for delete to authenticated
  using(bucket_id='buklod-market-media'
    and (storage.foldername(name))[1]=(select auth.uid())::text);
+
+-- Market promotions MUST NOT mint social QMP, CP, character XP or achievements.
+-- Existing ordinary posts keep their exact previous trigger definitions/behavior.
+-- Fail-closed on unknown function shape: never partially modify economy contracts.
+do $market_reward_exclusion$
+declare
+  v_signature text;
+  v_proc regprocedure;
+  v_def text;
+  v_start integer;
+  v_guard text := E'  -- market_promo_guard_v1\n  IF TG_TABLE_NAME = ''community_posts'' THEN\n    IF position(''[BUKLOD_MARKET:'' in coalesce(NEW.body, '''')) > 0 THEN RETURN NEW; END IF;\n  END IF;\n';
+begin
+  foreach v_signature in array array[
+    'public.community_post_points_trigger_v2()',
+    'private.buklod_community_qmp_after_post_v1()',
+    'private.buklod_engagement_r4_post_trigger_v1()',
+    'private.buklod_achievement_source_trigger_v2()',
+    'private.buklod_character_public_wall_metric_trigger_v3()'
+  ] loop
+    v_proc := to_regprocedure(v_signature);
+    if v_proc is null then raise exception 'Missing mandatory reward guard target: %',v_signature; end if;
+    if not exists(select 1 from pg_proc where oid=v_proc and prorettype='pg_catalog.trigger'::regtype and prosecdef) then
+      raise exception 'Reward trigger signature/ownership changed: %',v_signature;
+    end if;
+    select pg_get_functiondef(v_proc) into v_def;
+    if position('market_promo_guard_v1' in v_def)>0 then continue; end if;
+    v_start := strpos(lower(v_def),E'\nbegin\n');
+    if v_start=0 then raise exception 'Unexpected reward function body (no BEGIN): %',v_signature; end if;
+    v_def := substr(v_def,1,v_start+6) || v_guard || substr(v_def,v_start+7);
+    execute v_def;
+  end loop;
+end
+$market_reward_exclusion$;

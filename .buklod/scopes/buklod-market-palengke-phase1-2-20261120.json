@@ -3,7 +3,7 @@
   "objective": "Build BUKLOD Market Phase 1+2 as one BUKLOD-authenticated digital palengke: buyer discovery, personal/business storefronts, listings, store management, Connect seller inquiry and Public Wall cross-posting without a second social feed or economy authority.",
   "baseRef": "536741f8d97fc9dec91503c89f1c1160e5987ce0",
   "productionBaselineEvidence": "Verified repository main source SHA 536741f8d97fc9dec91503c89f1c1160e5987ce0 on 2026-11-20: Market route is an integration-ready placeholder; canonical public Wall and Connect route exist. This is source-only evidence; exact installed production runtime, current RC, ad fill, and real-device behavior were not verified. Market schema is not applied to live backend in this DEV branch.",
-  "chosenApproach": "Keep the existing BUKLOD Main route and use shared Auth/Connect/Public Wall. Add isolated Market tables + owner RLS, bounded public product images, atomic server-mediated Wall promotions and lightweight markers/cards. No native modules, new Expo runtime or reward changes.",
+  "chosenApproach": "Keep the existing BUKLOD Main route and use shared Auth/Connect/Public Wall. Add isolated Market tables + owner RLS, bounded public product images, atomic server-mediated Wall promotions and lightweight markers/cards. No native modules, new Expo runtime or reward changes. Dedicated Market promo reward exclusion guards apply only to posts with a Market marker; existing reward trigger code is otherwise preserved at runtime with a fail-closed signature check.",
   "selectionRationale": "Smaller than a second marketplace application or replacing the Wall feed; avoids duplicate auth, unreviewed payment paths, large media, and changes to existing organization authorization.",
   "alternativeApproaches": [
     "Build a standalone marketplace with a duplicate identity stack: rejected due to unnecessary sign-in, integration and deployment complexity",
@@ -17,20 +17,23 @@
     "Buyer opens a listing and starts existing Connect personal chat with the actual seller, no duplicate chat engine",
     "Seller shares published listing through canonical Public Wall RPC with 10-minute and 5/day rate limits; the Wall shows linked current status",
     "Market markers are not visible in public Wall captions; ordinary posts preserve media, ads, scrolling and reactions",
-    "Node regression tests, database authorization contract, TypeScript, staging installed-client checks required before RC or OTA"
+    "Node regression tests, database authorization contract, TypeScript, staging installed-client checks required before RC or OTA",
+    "All five market-promo post reward paths are excluded, while all regular Wall post reward functions keep their original behavior; release requires isolated SQL behavioral testing."
   ],
   "preserveBehaviors": [
     "Public Wall feed/media/ads render path and existing user social post reward rules remain unchanged; only a small Market-specific link card is additive",
     "Existing Connect chat flow, home/drawer navigation, profile, and organization permission gates for other Focus Apps remain intact",
     "Existing public/scope post rows, account isolation, security and Supabase storage buckets are not modified",
-    "No payments, rewards, referrals or native runtime packages are introduced"
+    "No payments, rewards, referrals or native runtime packages are introduced",
+    "Existing post economy triggers are modified only to early-return for Market promotional markers; all non-Market reward code remains intact."
   ],
   "riskAreas": [
     "app-runtime",
     "wall-media",
     "navigation-scroll",
     "navigation-auth",
-    "backend-security"
+    "backend-security",
+    "ads-finance-points"
   ],
   "allowedPaths": [
     "src/lib/buklodMarket.ts",

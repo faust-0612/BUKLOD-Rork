@@ -9,7 +9,7 @@ import {
   MARKET_CATEGORIES, marketChangeStock, marketCreateListing, marketCreateStore,
   marketDiscover, marketGetListing, marketImageUrl, marketMyListings, marketMyStores,
   marketPrice, marketPublishListing, marketShareToWall, marketUnpublishListing,
-  marketUploadPhoto, validMarketListing, validMarketStore,
+  marketUploadPhoto, marketReportListing, validMarketListing, validMarketStore,
   type MarketListing, type MarketStore,
 } from '@/lib/buklodMarket';
 
@@ -73,6 +73,8 @@ export default function BuklodMarketScreen() {
   const [listingDraft,setListingDraft]=useState<ListingDraft>(blankListing);
   const [photoUri,setPhotoUri]=useState<string|null>(null);
   const [selected,setSelected]=useState<MarketListing|null>(null);
+  const [reportOpen,setReportOpen]=useState(false);
+  const [reportReason,setReportReason]=useState<'scam'|'misleading'|'prohibited'|'other'>('misleading');
   const generation=useRef(0);
   const moreBusy=useRef(false);
   const submitBusy=useRef(false);
@@ -289,6 +291,22 @@ export default function BuklodMarketScreen() {
             threadId:'new',targetUserId:detail.owner_id,otherUserName:detail.store?.name||'Seller'
           }} as any)}/>:null}
         <Text style={[styles.mini,{color:theme.textMuted}]}>Direktang usapan at arrangement muna. Walang in-app payment o guaranteed delivery sa kasalukuyang Market.</Text>
+        {detail.owner_id!==user?.id ? <>
+          <MarketButton label={reportOpen?'Isara ang Report':'I-report ang Listing'} secondary onPress={()=>setReportOpen(!reportOpen)}/>
+          {reportOpen ? <View style={styles.field}>
+            <Text style={[styles.mini,{color:theme.textMuted}]}>Piliin ang dahilan:</Text>
+            <View style={styles.wrap}>
+              {([{key:'misleading',label:'Maling impormasyon'},{key:'scam',label:'Scam'},{key:'prohibited',label:'Bawal na produkto'},{key:'other',label:'Iba pa'}] as const).map(x=>
+                <MarketButton key={x.key} label={(reportReason===x.key?'✓ ':'')+x.label} secondary={reportReason!==x.key} onPress={()=>setReportReason(x.key)}/>)}
+            </View>
+            <MarketButton label="Isumite ang Report" disabled={busy} onPress={()=>void guard(async()=>{
+              if(!user?.id)throw new Error('Mag-sign in muna.');
+              await marketReportListing(detail.id,user.id,reportReason);
+              setReportOpen(false);setNotice('Naisumite ang report para sa review.');
+            })}/>
+          </View> : null}
+        </> : null}
+
       </> : <Text style={styles.unavailable}>Hindi na available ang listing.</Text>}
       <MarketButton label="Bumalik sa Palengke" secondary onPress={()=>{setPanel('browse');setSelected(null);}}/>
     </ScrollView> : null}

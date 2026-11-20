@@ -146,6 +146,11 @@ export async function marketUploadPhoto(ownerId: string, listingId: string, uri:
   throwIfError(error);
   return path;
 }
+export async function marketReportListing(listingId:string, reporterId:string, reason:'scam'|'misleading'|'prohibited'|'other') {
+  const {error}=await (supabase as any).from('buklod_market_reports')
+    .insert({listing_id:listingId,reporter_id:reporterId,reason});
+  throwIfError(error);
+}
 export async function marketShareToWall(listingId: string) {
   const {data,error} = await (supabase as any).rpc('buklod_market_share_wall_v1',{p_listing_id:listingId});
   throwIfError(error);

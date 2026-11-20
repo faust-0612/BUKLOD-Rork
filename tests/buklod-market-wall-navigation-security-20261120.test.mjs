@@ -38,8 +38,12 @@ test('Market has full browse/seller/listing/chat actions without changing native
   assert.match(screen,/marketCreateListing/);
   assert.match(screen,/marketPublishListing/);
   assert.match(screen,/marketShareToWall/);
+  assert.match(screen,/marketReportListing/);
+  assert.match(lib,/from\('buklod_market_reports'\)/);
   assert.match(screen,/connect\/personal\/\[threadId\]/);
   assert.match(lib,/publication_state:'draft'/);
   assert.match(lib,/marketUploadPhoto/);
+  assert.match(read('supabase/migrations/20261120222000_buklod_market_palengke_phase1_2.sql'),/market_promo_guard_v1/);
+  assert.match(read('supabase/migrations/20261120222000_buklod_market_palengke_phase1_2.sql'),/buklod_market_reports/);
   assert.match(manifest,/"backend-security"/);
 });
