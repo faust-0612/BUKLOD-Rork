@@ -18,7 +18,9 @@
     "room-cursor",
     "navigation-scroll",
     "ad-first-view-visibility",
-    "native-web-parity"
+    "native-web-parity",
+    "connect",
+    "faith-cluster"
   ],
   "allowedPaths": [
     "src/app/scope/index.tsx",
