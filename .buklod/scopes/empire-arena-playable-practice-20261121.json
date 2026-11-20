@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-arena-playable-practice-20261121.json",
+  "baseRef": "9e943870f68c60128b0628f1ec6b02521cefef73",
+  "objective": "Add offline self-contained playable Arena practice using license-cleared BUKLOD V2 and SFX/animation assets without enabling ranked rewards or changing live app.",
+  "productionChange": false,
+  "productionAuthorized": false,
+  "releaseAuthorized": false,
+  "releaseTarget": "DEV_OFFLINE_PRACTICE_ONLY",
+  "productionBaselineEvidence": "main source 536741f8d97fc9dec91503c89f1c1160e5987ce0 checked; source-only identity, production artifact/runtime unverified. No production mutation.",
+  "chosenApproach": "Self-contained static HTML, embedded media, independently testable deterministic simulation. No native modules or user data.",
+  "selectionRationale": "Avoid live-account fake multiplayer and premature wallet changes; retain Genesis season aesthetics and existing Kingdom compatibility.",
+  "alternativeApproaches": [
+    "Godot native embedding rejected until signed compatible APK and target-device QA.",
+    "Fake server-backed multiplayer rejected; no trusted gateway/signatures/ledger settlement available."
+  ],
+  "acceptanceChecks": [
+    "Offline HTML loads with no networking and runs one local player vs explicitly labeled bots.",
+    "Gameplay mode/character/relay/void tests pass with zero economy changes.",
+    "No existing app route, backend, or native dependencies altered.",
+    "Usage rights for included source packs are documented."
+  ],
+  "preserveBehaviors": [
+    "Existing 13-station Kingdom map untouched",
+    "Production BP/QMP and Diamond wallets never modified",
+    "AdMob, navigation, Wall, Connect, RLS and auth untouched"
+  ],
+  "riskAreas": [
+    "kingdom-character",
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/empire-arena-playable-practice-20261121.test.mjs"
+  ],
+  "allowedPaths": [
+    "experiments/empire-arena/PLAY_BUKLOD_EMPIRE_ARENA_OFFLINE.html",
+    "experiments/empire-arena/practice-engine.mjs",
+    "docs/empire-arena/BUKLOD_V2_PLAYABLE_PRACTICE_20261121.md",
+    "tests/empire-arena-playable-practice-20261121.test.mjs",
+    ".buklod/scopes/empire-arena-playable-practice-20261121.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "kingdom-character",
+      "reason": "Adds isolated nonrewarding practice and uses Character names only; no character progression or assets changed",
+      "preservedBehaviors": [
+        "Season 1 and 2 progression/item authorities remain untouched"
+      ],
+      "tests": [
+        "tests/empire-arena-playable-practice-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Standalone HTML requires no native/config changes, cannot modify production runtime.",
+      "preservedBehaviors": [
+        "Existing runtime, launcher, ads and navigation unchanged."
+      ],
+      "tests": [
+        "tests/empire-arena-playable-practice-20261121.test.mjs"
+      ]
+    }
+  ]
+}
