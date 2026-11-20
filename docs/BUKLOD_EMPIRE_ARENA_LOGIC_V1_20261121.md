@@ -23,7 +23,7 @@
 
 **Buklod Link:** A player links with a nearby living teammate within line of sight, spending 15 Flux; both gain a time-limited shield. Two linked allies accelerate an uncontested relay capture (1.5x). Repeat limited by 20-second cooldown.
 
-**Tactical formations:** A pair of nearby living teammates can activate a guarded formation for 8 seconds at 12 Flux cost, 25-second cooldown. "Guard" reduces damage taken by 15%; "Surge" is reserved for the next tested balancing pass, currently only records formation intent. Never claim Surge attack boost is active before implementing it.
+**Tactical formations:** A pair of nearby living teammates can activate a formation for 8 seconds at 12 Flux cost, 25-second cooldown. "Guard" reduces incoming damage by 15%; "Surge" increases outgoing hero damage by 8%. Both are implemented in the headless rules engine, subject to gameplay balancing and native verification.
 
 **Construction:** Temporary barrier, healing station and bridge (costs 25/30/20 Flux, architect discount), up to three active per team, 45 seconds per structure; barrier reduces core damage in its zone, heal station restores nearby ally health, bridge creates a local traversal shortcut and extends relay connectivity. Buildings expire; they do not affect permanent houses, lots or Cluster assets.
 
