@@ -17,7 +17,10 @@ const candidates=[
  ['@buklod/genesis-drive-auth','expo.modules.buklodgenesisdrive.BuklodGenesisDriveAuthModule'],
 ];
 for(const [pkg,cls] of candidates){
- const folder=path.join(root,'modules',pkg.replace('@buklod/genesis-','buklod-genesis-'));
+ // The original GIF module predates the newer local-module folder names.
+ const directory=pkg==='@buklod/genesis-native-ime' ? 'buklod-genesis-ime' :
+   pkg.replace('@buklod/genesis-','buklod-genesis-');
+ const folder=path.join(root,'modules',directory);
  const manifest=JSON.parse(readFileSync(path.join(folder,'package.json'),'utf8'));
  const config=JSON.parse(readFileSync(path.join(folder,'expo-module.config.json'),'utf8'));
  if(manifest.name!==pkg||!config.platforms.includes('android')||!config.android?.modules?.includes(cls))
