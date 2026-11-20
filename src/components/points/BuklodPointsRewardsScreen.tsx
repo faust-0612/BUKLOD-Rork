@@ -47,6 +47,8 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import BuklodAdLightRewardCard from '@/components/BuklodAdLightRewardCard';
+import BuklodSeason2ApprovedExclusivePreview from '@/components/points/BuklodSeason2ApprovedExclusivePreview';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
@@ -929,6 +931,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <BuklodPointsR2Guide />
+      {isGenesisPreviewBuild() ? <BuklodSeason2ApprovedExclusivePreview /> : null}
       <View style={styles.heroWrap}>
         <View style={styles.heroTopBand}>
           <View style={styles.brandRow}>
