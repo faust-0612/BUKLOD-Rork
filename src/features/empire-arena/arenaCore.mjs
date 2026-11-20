@@ -78,7 +78,7 @@ export function createMatch({id,mode="cluster",mapId="genesis_rift",ranked=false
       const maxHp=Math.round(hero.hp*(1+0.006*(level-1)));
       players[r.id]={id:r.id,team:t,characterId:r.characterId,role:hero.role,level,x,y,spawn:{x,y},
         hp:maxHp,maxHp,shield:0,alive:true,respawnAt:0,attackAt:-1e6,lastSeq:0,
-        cooldown:{primary:-1e6,secondary:-1e6,ultimate:-1e6,build:-1e6},
+        cooldown:{primary:-1e6,secondary:-1e6,ultimate:-1e6,build:-1e6,link:-1e6},linkUntil:0,
         lastActionAt:-1e6,activeMs:0,commands:0,contributions:0,kills:0,deaths:0,damage:0,capturing:false};
     });
   }
@@ -167,6 +167,18 @@ export function build(s,p,c,map){
   s.buildings.push({id:String(s.tick)+":"+p.id+":"+s.buildings.length,team:p.team,kind:c.kind,x:c.x,y:c.y,hp:150,expiresMs:s.elapsedMs+45000});
   p.cooldown.build=s.elapsedMs;p.contributions++;
 }
+export function link(s,p,c,map){
+  const ally=s.players[c.partnerId];
+  if(!ally||!ally.alive||ally.team!==p.team||ally.id===p.id)return;
+  if(s.elapsedMs-p.cooldown.link<20000||s.teams[p.team].flux<15)return;
+  if(distance({x:p.x,y:p.y},{x:ally.x,y:ally.y})>5||
+    lineBlocked(map,{x:p.x,y:p.y},{x:ally.x,y:ally.y}))return;
+  s.teams[p.team].flux-=15;
+  p.shield=Math.min(60,p.shield+24);ally.shield=Math.min(60,ally.shield+24);
+  p.linkUntil=s.elapsedMs+5000;ally.linkUntil=s.elapsedMs+5000;
+  p.cooldown.link=s.elapsedMs;p.contributions++;
+  event(s,"buklod_link",{team:p.team,actors:[p.id,ally.id]});
+}
 export function stepMatch(previous,input=[],stepMs=50){
   if(stepMs!==50)throw Error("fixed_tick_required");
   if(!Array.isArray(input)||input.length>40)throw Error("input_batch_too_large");
@@ -195,6 +207,7 @@ export function stepMatch(previous,input=[],stepMs=50){
     }else if(c.type==="attack")attack(s,p,c,map);
     else if(c.type==="skill")skill(s,p,c,map);
     else if(c.type==="build")build(s,p,c,map);
+    else if(c.type==="link")link(s,p,c,map);
     else if(c.type==="capture"){p.capturing=true;p.contributions++;}
   }
   if(s.status!=="active")return s;
@@ -202,7 +215,8 @@ export function stepMatch(previous,input=[],stepMs=50){
     const nearby=Object.values(s.players).filter(p=>p.alive&&p.capturing&&distance({x:p.x,y:p.y},n)<=2.8);
     const a=nearby.filter(p=>p.team==="A").length,b=nearby.length-a;
     if(!a&&!b||a&&b)continue;
-    const delta=(a?1:-1)*1.25*Math.min(2,Math.max(a,b)),was=n.owner;
+    const linked=nearby.filter(p=>p.linkUntil>s.elapsedMs).length>=2;
+    const delta=(a?1:-1)*1.25*Math.min(2,Math.max(a,b))*(linked?1.5:1),was=n.owner;
     n.progress=clamp(n.progress+delta,-100,100);
     n.owner=n.progress===100?"A":n.progress===-100?"B":null;
     if(n.owner&&n.owner!==was)event(s,"relay_capture",{relayId:n.id,team:n.owner});
@@ -244,7 +258,7 @@ export function validateCommandEnvelope(match,authenticatedUid,verifiedTicket,co
   if(!verifiedTicket||verifiedTicket.userId!==authenticatedUid||verifiedTicket.matchId!==match.id||verifiedTicket.expiresAtMs<=serverNowMs)return false;
   if(!match.players[authenticatedUid]||!command||command.actorId!==authenticatedUid)return false;
   if(!Number.isSafeInteger(command.seq)||command.seq<1||JSON.stringify(command).length>360)return false;
-  return ["move","attack","skill","build","capture"].includes(command.type);
+  return ["move","attack","skill","build","capture","link"].includes(command.type);
 }
 export function publicResult(match){
   if(!match.result)return null;
