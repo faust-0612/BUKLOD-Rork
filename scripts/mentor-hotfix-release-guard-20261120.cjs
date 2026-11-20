@@ -11,6 +11,7 @@ const BASE = '0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf';
 const CHANNEL = 'production';
 const REF = 'refs/heads/release/mentor-submit-pinned-baseline-20261120';
 const EXPECTED_LIVE_ID = '01a1f3f0-11f0-7ba7-a0d2-8dbebdf97ae3';
+const EXPECTED_LIVE_BUNDLE = 'unFUenZWw5gY5LAIPwwtyn8dlSV8j_NhAWoXbyCzQII';
 const SHA = execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 
 function run() {
@@ -23,6 +24,10 @@ function run() {
   const record=JSON.parse(fs.readFileSync('.buklod/releases/mentor-submit-only-prod-20261120.json','utf8'));
   assert.equal(record.verifiedMainSourceSha,BASE);
   assert.equal(record.expectedBaselineUpdateId,EXPECTED_LIVE_ID);
+  assert.equal(record.expectedBaselineBundleHash,EXPECTED_LIVE_BUNDLE);
+  assert.equal(record.preReleaseSourceSha,
+    execFileSync('git',['rev-parse','HEAD^'],{encoding:'utf8'}).trim(),
+    'Release marker parent must be the reviewed pre-release source');
   assert.equal(record.expectedRuntimeVersion,'1.3.2');
   assert.equal(record.expectedAndroidPackage,'org.mzbministry.buklod');
   assert.equal(record.expectedChannel,CHANNEL);
