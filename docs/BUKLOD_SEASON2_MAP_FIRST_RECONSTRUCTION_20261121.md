@@ -24,7 +24,8 @@ Do not expose Admin or agency-management screens as public map shortcuts. Govern
 - Scene FX: native React Native Animated + SVG `GenesisCosmicSky`; GPU-backed transform only while focused, app foreground, no reduced motion.
 - Map ambient: already bundled `assets/sounds/kingdom-premium/kingdom-theme.ogg`, through existing `useRorkGameAmbience('kingdom-map')`. The user can turn it on/off; respects sound setting, audio lifecycle, app state and quiet hours. Do not loop social feed or calls. Local fallback is existing `buklod-kingdom-cinematic-ambient.wav`.
 - Existing `kingdom-village.ogg`, `kingdom-great-hall.ogg`, and 9 Kenney CC0 WAV effects are licensed and pinned in `assets/sounds/kingdom-premium/LICENSES.md` and `manifest.json`.
-- Zero backend calls added to launch the map; no asset upload mandatory **for this navigation screen**.
+- The existing `BuklodFirstViewAd` `home/new_home_first_view` is rendered directly in the Map without a permanent blank slot; no replacement ad unit and no new external service. Existing ad consent, render and lifecycle contracts must pass regression checks.
+- Zero backend calls added to launch the map by its own code; no asset upload mandatory **for this navigation screen**.
 
 ## Assets still required for full premium specification
 

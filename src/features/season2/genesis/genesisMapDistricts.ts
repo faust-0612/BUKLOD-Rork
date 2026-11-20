@@ -26,6 +26,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
       { label: 'Personal Home', route: '/personal-home', description: 'Your personal space' },
       { label: 'My Profile', route: '/me', description: 'Identity, rank and posts' },
       { label: 'My Points', route: '/points', description: 'Participation, rank and character' },
+      { label: 'Radio', route: '/personal-home/radio', description: 'Personal audio and radio' },
     ],
   },
   {
@@ -59,6 +60,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
     entries: [
       { label: 'Learning', route: '/learn', description: 'Lessons and learning tracks' },
       { label: 'Progression', route: '/points/progression', description: 'Rank and character milestones' },
+      { label: 'Children’s Stories', route: '/children-stories', description: 'Stories and family learning' },
       { label: 'Bible', route: '/bible', description: 'Bible and reading', faithOnly: true },
       { label: 'Life', route: '/life', description: 'Faith and life journey', faithOnly: true },
     ],
@@ -87,6 +89,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
     entries: [
       { label: 'Focus Apps', route: '/profile/focus-apps', description: 'Government, education and other focus areas' },
       { label: 'Health', route: '/profile/buklod-health', description: 'Health Center' },
+      { label: 'Family Workspace', route: '/profile/buklod-family', description: 'Family and household tools' },
       { label: 'Support', route: '/support', description: 'Help and concerns' },
       { label: 'Settings', route: '/settings', description: 'Privacy, sound and preferences' },
     ],

@@ -12,6 +12,7 @@ import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import { GENESIS_IDENTITY, GENESIS_PALETTE, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
@@ -83,6 +84,10 @@ export default function BuklodMapScreen() {
           </Pressable>
         </View>
         <Text style={styles.intro}>Isang mundo, malinaw na direksyon. Pumili ng lugar sa mapa at buksan ang mga gawain nito.</Text>
+
+        {/* Preserve the established first-view Home ad inventory; the banner
+            collapses on no fill/consent without reserving a blank pane. */}
+        <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
 
         <View style={styles.constellation}>
           <Svg style={StyleSheet.absoluteFillObject} viewBox="0 0 360 310" preserveAspectRatio="xMidYMid meet" pointerEvents="none">
