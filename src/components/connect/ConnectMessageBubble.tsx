@@ -98,6 +98,7 @@ type Props = {
   fileName?: string | null;
   fileSizeLabel?: string | null;
   timeLabel: string;
+  microTimeLabel?: string;
   deliveryLabel?: string | null;
   deliveryNotSent?: boolean;
   stampEmoji?: string;
@@ -121,12 +122,12 @@ function createStyles(theme: ConnectThemeRoles) {
   return StyleSheet.create({
     wrap: {
       width: '100%',
-      marginBottom: 3,
+      marginBottom: 1,
       position: 'relative',
       overflow: 'visible',
     },
     wrapCompact: {
-      marginBottom: 1,
+      marginBottom: 0,
     },
     own: {
       alignItems: 'flex-end',
@@ -146,9 +147,9 @@ function createStyles(theme: ConnectThemeRoles) {
       right: 0,
     },
     bubble: {
-      paddingHorizontal: 11,
-      paddingVertical: 6,
-      borderRadius: 19,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 18,
       overflow: 'visible',
     },
     bubbleColumn: {
@@ -211,6 +212,8 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     body: {
       ...connectTypography.bubbleBody,
+      fontSize: 15,
+      lineHeight: 20,
       color: HIBLA.ink,
     },
     bodyOwn: {
@@ -225,13 +228,16 @@ function createStyles(theme: ConnectThemeRoles) {
       color: '#D7FCE5',
     },
     timeRow: {
-      marginTop: 2,
+      marginTop: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 5,
+      gap: 4,
     },
     time: {
       ...connectTypography.bubbleMeta,
+      fontSize: 9,
+      lineHeight: 11,
+      fontWeight: '500',
       color: HIBLA.muted,
     },
     timeOwn: {
@@ -239,9 +245,9 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     delivery: {
       color: 'rgba(255,255,255,0.76)',
-      fontSize: 11,
-      lineHeight: 14,
-      fontWeight: '800',
+      fontSize: 9,
+      lineHeight: 11,
+      fontWeight: '700',
     },
     deliveryStandalone: {
       color: theme.textMuted,
@@ -290,8 +296,8 @@ function createStyles(theme: ConnectThemeRoles) {
       alignItems: 'center',
       justifyContent: 'flex-end',
       flexWrap: 'wrap',
-      gap: 4,
-      marginTop: 3,
+      gap: 1,
+      marginTop: 1,
       minHeight: 24,
     },
     seenRowOwn: {
@@ -301,20 +307,20 @@ function createStyles(theme: ConnectThemeRoles) {
       color: theme.textMuted,
       fontSize: 11,
       fontWeight: '700',
-      marginRight: 2,
+      marginRight: 1,
     },
     seenTime: {
       color: theme.textMuted,
       fontSize: 10,
       fontWeight: '600',
-      marginLeft: 3,
+      marginLeft: 2,
     },
     seenRowOther: {
       alignSelf: 'flex-start',
     },
     seenAvatar: {
-      width: 36,
-      height: 30,
+      width: 25,
+      height: 24,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 0,
@@ -324,7 +330,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     seenExtra: {
       marginLeft: 0,
-      minWidth: 28,
+      minWidth: 25,
       height: 22,
       borderRadius: 11,
       paddingHorizontal: 6,
@@ -491,6 +497,7 @@ export function ConnectMessageBubble({
   fileName,
   fileSizeLabel,
   timeLabel,
+  microTimeLabel,
   deliveryLabel,
   deliveryNotSent,
   stampEmoji,
@@ -909,32 +916,31 @@ export function ConnectMessageBubble({
           </>
         )}
 
-        {(detailsExpanded || !!deliveryLabel) && (
-        <View style={[styles.timeRow, mediaOnly && styles.mediaOnlyMeta]}>
-          {detailsExpanded && (
-          <Text
-            style={[
-              styles.time,
-              own &&
-                !standaloneReaction && !mediaOnly &&
-                styles.timeOwn,
-            ]}
-          >
-            {timeLabel}
-          </Text>
-          )}
-          {!!deliveryLabel && (
-            <Text
-              style={[
-                styles.delivery,
-                (standaloneReaction || mediaOnly) && styles.deliveryStandalone,
-                deliveryNotSent && styles.deliveryNotSent,
-              ]}
-            >
-              {deliveryLabel}
-            </Text>
-          )}
-        </View>
+        {(showTime || detailsExpanded || !!deliveryLabel) && (
+          <View style={[styles.timeRow, mediaOnly && styles.mediaOnlyMeta]}>
+            {(showTime || detailsExpanded) && (
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.time,
+                  own && !standaloneReaction && !mediaOnly && styles.timeOwn,
+                ]}
+              >
+                {detailsExpanded ? timeLabel : (microTimeLabel || timeLabel)}
+              </Text>
+            )}
+            {!!deliveryLabel && (
+              <Text
+                style={[
+                  styles.delivery,
+                  (standaloneReaction || mediaOnly) && styles.deliveryStandalone,
+                  deliveryNotSent && styles.deliveryNotSent,
+                ]}
+              >
+                {deliveryLabel}
+              </Text>
+            )}
+          </View>
         )}
       </Pressable>
 
