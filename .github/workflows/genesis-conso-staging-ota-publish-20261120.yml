@@ -1,3 +1,5 @@
+# OWNER STAGING RELEASE: 2026-11-20; physical visual QA explicitly skipped; automated ad/nav/identity/receipt gates remain mandatory.
+# Frozen consolidated source ded6a45f80130314f9335bb0706dd5f826697171; native splash excluded (requires new APK).
 name: BUKLOD Genesis Owner-Authorized STAGING Android OTA Publish
 on:
   push:
