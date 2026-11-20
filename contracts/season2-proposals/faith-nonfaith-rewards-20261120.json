@@ -51,5 +51,15 @@
     "noFaithBasedMoneyMultiplier": true,
     "noModeSwitchPenalty": true
   },
-  "verificationStatus": "SOURCE_ONLY_PREVIEW_NOT_BACKEND_LIVE"
+  "verificationStatus": "SOURCE_ONLY_PREVIEW_NOT_BACKEND_LIVE",
+  "season": 2,
+  "changes": {
+    "season1.production_logic": "untouched",
+    "show_faith.requirement": "voluntary_fair_alternatives",
+    "mission_awards.validation": "server_verified_idempotent_antifarm",
+    "reward_authority.canonical": "character_server_receipts",
+    "inventory.owned_items_rollover": "retain",
+    "qmp_finance.season_rollover": "independent_never_reset",
+    "season2.production_launch": "embargo_plus_exact_sha_owner_rc"
+  }
 }
