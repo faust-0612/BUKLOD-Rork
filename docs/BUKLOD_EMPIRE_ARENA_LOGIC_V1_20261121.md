@@ -147,7 +147,7 @@ See: docs/empire-arena/PRIVATE_DATABASE_DRAFT_20261121.sql (UNAPPLIED).
 At a checkout of this DEV branch, run:
 
 ~~~bash
-node --test tests/empire-arena-logic.test.mjs
+node --test tests/empire-arena-logic.test.mjs tests/empire-arena-room.test.mjs tests/empire-arena-matchmaking.test.mjs
 ~~~
 
 The pure JavaScript engine has no new NPM/native dependencies. Domain tests executed through isolated exact-source V8 evaluation during authoring; a checked-out Node/Expo/Android runtime and live server tests are still required. Every release gate must distinguish these stages.
