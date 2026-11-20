@@ -143,6 +143,21 @@ jobs:
           node --test tests/genesis-staging-native-apk-release-20261120.test.mjs tests/genesis-staging-live-backend-review-20261120.test.mjs tests/genesis-android-native-gif-drawer-backup-20261120.test.mjs tests/genesis-native-build-inventory-20261120.test.mjs
           node --experimental-strip-types --test tests/buklod-silent-ota-policy.test.mjs tests/buklod-mandatory-update-runtime.test.mjs tests/ota-restart-safe-area.test.cjs
           node scripts/season2-native-capability-gate.mjs --mode=source
+          # Exact owner-approved missing-feature parity tests from consolidated PR #1019.
+          # No rewards, wallet or backend migration is enabled by this compilation.
+          node --experimental-strip-types --test \
+            tests/genesis-avatar-attachment-reconciliation-20261120.test.mjs \
+            tests/genesis-permanent-notes-carryover-20261120.test.mjs \
+            tests/genesis-verified-stage-carryover-20261120.test.mjs \
+            tests/genesis-admin-bible-verified-carryover-20261120.test.mjs \
+            tests/genesis-s2-full-reward-guide-isolation-20261120.test.mjs \
+            tests/genesis-character-reward-legacy-protection-20261120.test.mjs \
+            tests/genesis-wall-connect-ads-navigation-quiz-20261120.test.mjs \
+            tests/genesis-showfaith-915-proverbs-offline-20261120.test.mjs \
+            tests/connect-latest-keyboard-follow-20261119.test.mjs \
+            tests/connect-compact-seen-all-rooms-20261119.test.mjs \
+            tests/life-language-auth-navigation-20261119.test.mjs \
+            tests/kl-dictionary-expansion-20261119.test.mjs
           npx tsc --noEmit
       - name: Bundle Android preview JS before native signing
         shell: bash
