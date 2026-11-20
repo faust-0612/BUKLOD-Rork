@@ -376,6 +376,14 @@ export function connectThreadSessionKey(args: {
   return `${args.profileId ?? ''}:${args.mode}:${args.containerId ?? ''}`;
 }
 
+/** Local send timestamp for every bubble; separate day pills remain date boundaries. */
+export function formatConnectMessageMicroTime(value?: string | null): string {
+  if (!value) return '';
+  const sent = new Date(value);
+  if (!Number.isFinite(sent.getTime())) return '';
+  return `${sent.toLocaleDateString('en-PH', { weekday: 'short' })} · ${sent.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })}`;
+}
+
 export function connectBubbleGrouping(args: {
   senderId: string;
   createdAt: string;

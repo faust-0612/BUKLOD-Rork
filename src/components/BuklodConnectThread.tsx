@@ -135,6 +135,7 @@ import {
   CONNECT_LOAD_OLDER_PX,
   CONNECT_NEAR_BOTTOM_PX,
   connectBubbleGrouping,
+  formatConnectMessageMicroTime,
   connectPhotoSlots,
   connectScrollAction,
   connectFollowingLatest,
@@ -177,6 +178,8 @@ type Props = {
   initialOtherUserId?: string;
   pendingTargetUserId?: string;
   onBackOverride?: () => void;
+  /** Render the normal Connect header when the native workspace hides its own chrome. */
+  fullHeaderInWorkspace?: boolean;
 };
 
 /* PATCH_173E_R3_SHARED_POST_RECEIVER
@@ -622,6 +625,7 @@ function BuklodConnectThreadInner({
   initialOtherUserId,
   pendingTargetUserId,
   onBackOverride,
+  fullHeaderInWorkspace = false,
 }: Props) {
   // Web dock closes in-place on navigation, lookup failure and Back.
   // Keep the override in a ref so pending RPCs do not restart on re-renders.
@@ -4112,9 +4116,9 @@ const [
         title={title}
         subtitle={subtitle}
         showSubtitle={!managedCompactScope}
-        compactEmbedded={embeddedInWorkspace}
+        compactEmbedded={embeddedInWorkspace && !fullHeaderInWorkspace}
         paddingTop={
-          embeddedInWorkspace
+          embeddedInWorkspace && !fullHeaderInWorkspace
             ? 4
             : Math.max(insets.top, 12)
         }
@@ -4823,7 +4827,7 @@ const [
               }
               senderLabel={null}
               compact={!grouping.endsGroup}
-              showTime={false}
+              showTime={true}
               standaloneReaction={standaloneReaction}
               avatarReaction={avatarReaction}
               standaloneEmoji={
@@ -4934,6 +4938,7 @@ const [
                   : null
               }
               timeLabel={formatConnectTimestamp(item.created_at)}
+              microTimeLabel={formatConnectMessageMicroTime(item.created_at)}
               deliveryLabel={deliveryLabel}
               deliveryNotSent={item.delivery_state === 'not_sent'}
               stampEmoji={
@@ -5768,9 +5773,9 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     hiblaDayRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 9,
-      marginTop: 7,
-      marginBottom: 11,
+      gap: 7,
+      marginTop: 4,
+      marginBottom: 5,
     },
     hiblaDayRule: {
       flex: 1,
@@ -5780,8 +5785,8 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     },
     hiblaDayPill: {
       backgroundColor: '#FBE8BB',
-      paddingHorizontal: 17,
-      paddingVertical: 6,
+      paddingHorizontal: 13,
+      paddingVertical: 4,
       borderRadius: 18,
     },
     hiblaDayText: {
