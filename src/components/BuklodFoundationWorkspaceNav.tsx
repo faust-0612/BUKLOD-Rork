@@ -256,7 +256,7 @@ export default function BuklodFoundationWorkspaceNav() {
       }
 
       const route =
-        (app === 'family' || app === 'health')
+        (app === 'family' || app === 'health' || app === 'government')
           ? BUKLOD_FOCUS_APP_CATALOG[app].routes[0]
           : item?.workspace?.route || BUKLOD_FOCUS_APP_CATALOG[app].routes[0];
       if (!route) return;
@@ -357,6 +357,8 @@ export default function BuklodFoundationWorkspaceNav() {
                           ? 'Personal home · Family workspace'
                           : row.app === 'health'
                             ? 'Consultation · Health Center'
+                          : row.app === 'government'
+                            ? 'Citizen services · Verified government offices · Free'
                             : row.access?.canSee
                           ? 'Open portal'
                           : 'Workspace role required'

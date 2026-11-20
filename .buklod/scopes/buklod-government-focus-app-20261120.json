@@ -1,0 +1,86 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-government-focus-app-20261120.json",
+  "objective": "Implement BUKLOD Government in existing Focus Apps as an isolated DEV-only verified agency and free citizen community service; no production modification or OTA publication.",
+  "baseRef": "integration/genesis-next-conso-staging-ota-20261120",
+  "productionBaselineEvidence": "Genesis integration baseline SHA cf99bd23d5e0eea0e56d0921c5b8079f4aeda27c inspected on Nov 20, 2026. Main production environment and actual Android runtime not independently verified, so no production release, no database schema mutation and no OTA claimed.",
+  "chosenApproach": "Reuse profile Focus Apps government/local route and shared Supabase authentication/Wall validation; add verified entities, permissions, case workflows and mandatory RLS through isolated add-only migration. Keep municipal/local official feed in Government portal pending separate shared Public Wall scope identity review.",
+  "selectionRationale": "No new bottom navigation or duplicate social engine is needed. A dedicated government data-security boundary prevents impersonation, public exposure of complaints and unmanaged scope widening.",
+  "alternativeApproaches": [
+    "Use arbitrary existing organization scope roles for government authority (rejected: organization role does not prove government authorization)",
+    "Publish every government locality post nationally by inserting public posts directly (rejected: breaks geographic scope and canonical moderation)",
+    "Deploy to live Supabase immediately without local database RLS tests (rejected: high-risk privacy/regression exposure)"
+  ],
+  "allowedPaths": [
+    "docs/BUKLOD_GOVERNMENT_FOCUS_APP_IMPLEMENTATION_20261120.md",
+    "src/app/profile/buklod-local.tsx",
+    "src/app/profile/focus-apps.tsx",
+    "src/components/BuklodFocusAppRouteGuard.tsx",
+    "src/components/BuklodFoundationWorkspaceNav.tsx",
+    "src/lib/buklodFocusAppIntegration.ts",
+    "src/lib/buklodGovernment.ts",
+    "supabase/migrations/20261120224500_buklod_government_focus_app.sql",
+    "supabase/tests/buklod_government_permissions_20261120.sql",
+    "tests/buklod-government-focus-app-source-20261120.test.mjs",
+    ".buklod/scopes/buklod-government-focus-app-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-government-focus-app-source-20261120.test.mjs",
+    "supabase/tests/buklod_government_permissions_20261120.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Introduce the Government Focus Apps citizen portal and staff workspace without changing bottom navigation, ad placement or existing social media feed.",
+      "preservedBehaviors": [
+        "Canonical Focus Apps drawer and existing app launchers remain present",
+        "Existing Wall, Connect, AdMob and Genesis runtime are unchanged",
+        "Unprivileged citizens never obtain government administrator rights"
+      ],
+      "tests": [
+        "tests/buklod-government-focus-app-source-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add security isolated government agency verification and private citizen cases with RLS and backend-only authority checks.",
+      "preservedBehaviors": [
+        "Existing accounts, organization memberships and public/community Wall posts remain unchanged",
+        "Citizen complaints remain private through case owner and verified staff RLS",
+        "Official publishing always checks verified government staff and jurisdiction",
+        "Sensitive case writes go through idempotent transactional security-definer RPCs"
+      ],
+      "tests": [
+        "supabase/tests/buklod_government_permissions_20261120.sql"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "backend-security",
+    "citizen-privacy",
+    "focus-app-entry",
+    "verified-government-identity",
+    "scoped-public-wall",
+    "weak-network-retries"
+  ],
+  "preserveBehaviors": [
+    "Keep existing Genesis integration candidate unchanged until explicitly reconciled",
+    "Preserve first-view AdMob and instant tab navigation regression locks",
+    "No changes to live Supabase data or existing wall feeds before verified RC",
+    "Government information is free; no personal subscription for citizen access",
+    "No reward/points or advertisement-interstitial gating on citizen services"
+  ],
+  "acceptanceChecks": [
+    "Read-only source/contract tests pass in engineering PR gate",
+    "Local database migration applies cleanly and focused RLS/authorization SQL tests pass",
+    "Unverified agency owner cannot post, add staff or view private cases",
+    "Public citizen can view only verified office info and own private concerns",
+    "Official posts honor approved jurisdiction and national posts canonical moderation",
+    "No duplicated cases or publications on retries",
+    "No unrelated changes to advertising navigation runtime or release config",
+    "No staging/production publication before approved test/RC gate"
+  ],
+  "releaseMode": "DEV_SOURCE_ONLY_NO_OTA",
+  "releaseStatus": "BLOCKED_PENDING_DATABASE_RLS_TESTS_AND_SCOPE_GATES"
+}

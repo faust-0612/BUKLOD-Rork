@@ -11,7 +11,7 @@ export default function BuklodFocusAppRouteGuard() {
 
   useEffect(() => {
     // Patient Health and personal Family doors are public; their privileged workspaces remain gated.
-    if (pathname === '/profile/buklod-health' || pathname === '/profile/buklod-family') {
+    if (pathname === '/profile/buklod-health' || pathname === '/profile/buklod-family' || pathname === '/profile/buklod-local') {
       checkingRef.current = '';
       return;
     }
