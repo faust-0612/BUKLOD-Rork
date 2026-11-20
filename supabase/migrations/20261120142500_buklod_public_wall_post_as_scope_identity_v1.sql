@@ -4,9 +4,15 @@
 
 create table if not exists public.buklod_public_wall_scope_identity (
   post_id uuid primary key references public.community_posts(id) on delete cascade,
-  scope_id uuid not null references public.buklod_scopes(id) on delete cascade,
+  scope_id uuid references public.buklod_scopes(id) on delete set null,
   author_id uuid not null references public.profiles(id) on delete cascade,
   hide_author_name boolean not null default false,
+  scope_name_at_post text not null,
+  scope_type_at_post text not null,
+  scope_logo_url_at_post text,
+  scope_geo_level_at_post text,
+  parent_scope_id_at_post uuid,
+  safe_location_label_at_post text,
   created_at timestamptz not null default now()
 );
 
@@ -62,8 +68,14 @@ begin
     p_media_size_bytes, p_mentioned_user_ids, p_media_duration_seconds, p_is_reel
   );
 
-  insert into public.buklod_public_wall_scope_identity (post_id, scope_id, author_id, hide_author_name)
-  values (created_post_id, p_scope_id, actor, public.buklod_is_scope_admin(p_scope_id));
+  insert into public.buklod_public_wall_scope_identity (
+    post_id, scope_id, author_id, hide_author_name,
+    scope_name_at_post, scope_type_at_post, scope_logo_url_at_post,
+    scope_geo_level_at_post, parent_scope_id_at_post, safe_location_label_at_post
+  )
+  select created_post_id, s.id, actor, public.buklod_is_scope_admin(s.id),
+         s.name, s.scope_type, s.logo_url, s.geo_level, s.parent_scope_id, s.safe_location_label
+  from public.buklod_scopes s where s.id=p_scope_id;
 
   return created_post_id;
 end;
@@ -95,11 +107,17 @@ begin
   end if;
 
   return query
-  select a.post_id, a.scope_id, s.name::text, s.scope_type::text,
-         s.logo_url::text, s.geo_level::text, s.parent_scope_id, s.safe_location_label::text, a.hide_author_name
+  select a.post_id, a.scope_id,
+         coalesce(s.name, a.scope_name_at_post)::text,
+         coalesce(s.scope_type, a.scope_type_at_post)::text,
+         coalesce(s.logo_url, a.scope_logo_url_at_post)::text,
+         coalesce(s.geo_level, a.scope_geo_level_at_post)::text,
+         coalesce(s.parent_scope_id, a.parent_scope_id_at_post),
+         coalesce(s.safe_location_label, a.safe_location_label_at_post)::text,
+         a.hide_author_name
   from public.buklod_public_wall_scope_identity a
   join public.community_posts p on p.id = a.post_id and p.user_id = a.author_id
-  join public.buklod_scopes s on s.id = a.scope_id
+  left join public.buklod_scopes s on s.id = a.scope_id
   where a.post_id = any(coalesce(p_post_ids[1:100], array[]::uuid[]))
     and p.audience = 'public' and p.scope_id is null
     and p.deleted_at is null and p.is_hidden = false
@@ -159,12 +177,12 @@ as $$
     case when a.post_id is null then null::jsonb else jsonb_build_object(
       'post_id', a.post_id,
       'scope_id', a.scope_id,
-      'scope_name', s.name,
-      'scope_type', s.scope_type,
-      'scope_logo_url', s.logo_url,
-      'scope_geo_level', s.geo_level,
-      'parent_scope_id', s.parent_scope_id,
-      'safe_location_label', s.safe_location_label,
+      'scope_name', coalesce(s.name,a.scope_name_at_post),
+      'scope_type', coalesce(s.scope_type,a.scope_type_at_post),
+      'scope_logo_url', coalesce(s.logo_url,a.scope_logo_url_at_post),
+      'scope_geo_level', coalesce(s.geo_level,a.scope_geo_level_at_post),
+      'parent_scope_id', coalesce(s.parent_scope_id,a.parent_scope_id_at_post),
+      'safe_location_label', coalesce(s.safe_location_label,a.safe_location_label_at_post),
       'hide_author_name', a.hide_author_name
     ) end as public_scope_identity
   from public.get_buklod_public_community_feed_v7_page(
