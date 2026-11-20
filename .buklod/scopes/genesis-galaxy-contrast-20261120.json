@@ -1,0 +1,90 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-galaxy-contrast-20261120.json",
+  "baseRef": "dev/genesis-avatar-rank-reconciliation-20261120",
+  "objective": "Repair unreadable Genesis dark-on-dark Cluster widgets and plain/white masking on Home, Organization and Cluster dashboards. Render owner-supplied Galaxy gallery with native-bundled offline photos and focus-gated atmospheric light; retain Wall ad surfaces and current functionality.",
+  "productionChange": false,
+  "releaseTarget": "GENESIS_DEV_STAGING_ONLY",
+  "releaseAuthorized": false,
+  "productionAuthorized": false,
+  "productionBaselineEvidence": "GitHub production source main 551e54602addd6f7bbe7bcdddd1589d35424c964; baseline Genesis DEV parent d301864099c0f2a2b294308f3177ca0de2430a5d. Existing installed Genesis APK user screenshots show dark-on-dark Cluster card labels and plain backgrounds. This commit does not establish signed device/OTA proof.",
+  "chosenApproach": "Scoped, build-flagged React Native visual-only patch to existing screen components; import three locally optimized images from the owner's Galaxy assets library and reuse existing native-driver focus/reduced-motion guarded GenesisAtmosphere. No server writes, dependencies, backend or native SDK changes.",
+  "selectionRationale": "Fix the observed typography and compositing failures at their components instead of replacing all screens or mutating reward backend; preserve current staging APK and production package until verified.",
+  "alternativeApproaches": [
+    "Global theme palette replacement rejected because uncontrolled cross-screen text contrast and existing light editor controls could regress.",
+    "Network-hosted animated backgrounds rejected because poor networks, AdMob first-view and video rendering require minimal background traffic.",
+    "Native-bundled compressed galaxy photographs with existing SVG ambient motion chosen for offline, low-cost rendering."
+  ],
+  "acceptanceChecks": [
+    "11 approved photo/UI/test/doc files plus this scope manifest and one focused test; no auth, ads, finance, points or backend writes.",
+    "Readable dark Genesis cards and selected Cluster tile labels with light-on-dark contrast; light editor dialogs remain usable.",
+    "Galaxy images resolve via static Metro require, with no runtime network dependency.",
+    "Scope tabs, modal inputs, navigation and AdMob surfaces remain intact.",
+    "Moving elements respect app focus, reduced-motion setting, and device quality guard.",
+    "Focused Node tests and governance CI pass; actual Android staged visuals and navigation/ad perf require device verification before OTA."
+  ],
+  "preserveBehaviors": [
+    "Production application binary, Play package, release channel, native runtime and existing prod OTA remain unchanged.",
+    "All server-authoritative rewards, Season 2 December 6 locks, privacy/RLS and member authentication remain unchanged.",
+    "AdMob first-view advertisements, offscreen video lifecycle, scroll and interactive touch targets are not obscured by image overlays.",
+    "Existing dark-mode legibility, legacy light forms and dialogs remain unchanged outside Genesis preview.",
+    "No theme selector reintroduced and one centralized Genesis design remains app-wide."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "cluster-faith",
+    "faith-cluster"
+  ],
+  "regressionTests": [
+    "tests/genesis-dashboard-contrast-gallery-20261120.test.mjs",
+    "tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs"
+  ],
+  "allowedPaths": [
+    "assets/season2/genesis/galaxy/creation.jpg",
+    "assets/season2/genesis/galaxy/earth.jpg",
+    "assets/season2/genesis/galaxy/nebula.jpg",
+    "docs/BUKLOD_GENESIS_GALAXY_CONTRAST_FIX_20261120.md",
+    "src/app/scope/index.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/features/season2/genesis/GenesisVisuals.tsx",
+    "src/features/season2/genesis/genesisGalleryAssets.ts",
+    "tests/genesis-dashboard-contrast-gallery-20261120.test.mjs",
+    "tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs",
+    ".buklod/scopes/genesis-galaxy-contrast-20261120.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Scoped Genesis preview only controls the backdrop, typography and bundled ornamentation without changing runtime integrations.",
+      "preservedBehaviors": [
+        "Production and existing native runtime remain unchanged; animations respect visibility, battery and accessibility."
+      ],
+      "tests": [
+        "tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "A subtle background within the community status-note rail is decorative only and must not alter Wall photo rendering or ads.",
+      "preservedBehaviors": [
+        "Community media hydration, reactions, interactive avatar touches and native advertisements are preserved."
+      ],
+      "tests": [
+        "tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cluster Home widgets and scope navigation have corrected contrast; existing faith resources, permissions and data interactions remain untouched.",
+      "preservedBehaviors": [
+        "Cluster contributions, staff permissions, tasks, events and faith activities continue under existing backend rules."
+      ],
+      "tests": [
+        "tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs"
+      ]
+    }
+  ]
+}

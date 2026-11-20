@@ -1,9 +1,10 @@
 
 import React, {useEffect,useRef,useState} from 'react';
-import {AccessibilityInfo,Animated,AppState,Easing,Pressable,StyleSheet,Text,View} from 'react-native';
+import {AccessibilityInfo,Animated,AppState,Easing,Image,Pressable,StyleSheet,Text,View} from 'react-native';
 import Svg,{Defs,RadialGradient,LinearGradient as SvgLinearGradient,Stop,Circle,Ellipse,Rect,Path,G} from 'react-native-svg';
 import {LinearGradient} from 'expo-linear-gradient';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import { GENESIS_GALAXY_IMAGES } from './genesisGalleryAssets';
 import {GENESIS_IDENTITY,GENESIS_MOTION_MS,GENESIS_PALETTE,resolveGenesisMotion,type GenesisQuality,type GenesisSurface} from './genesisContract';
 import {getGenesisDeviceQuality} from './genesisDeviceQuality';
 
@@ -130,10 +131,14 @@ export function GenesisAtmosphere({active,quality,surface='home'}:{
   </View>;
 }
 /** Bounded cosmic scene behind home content. Never intercepts taps or ad impressions. */
+/** Deep, living first-light canvas. Its transparent orbital field remains behind cards and ads.
+ * The render is static if unfocused, on low-power devices or with reduced-motion enabled. */
 export function GenesisCosmosBackground({active}:{active:boolean}) {
-  return <View pointerEvents="none" style={{position:'absolute',top:0,left:0,right:0,height:510}}>
+  return <View pointerEvents="none" style={{position:'absolute',top:0,left:0,right:0,height:'100%',overflow:'hidden'}}>
     <GenesisAtmosphere active={active}/>
-    <LinearGradient colors={['rgba(5,10,25,0)','rgba(5,10,25,.5)','#050A19']}
+    <Image source={GENESIS_GALAXY_IMAGES.nebula} resizeMode="cover"
+      style={[StyleSheet.absoluteFill,{opacity:.45}]}/>
+    <LinearGradient colors={['rgba(5,10,25,.25)','rgba(5,10,25,.55)','rgba(5,10,25,.84)']}
       style={StyleSheet.absoluteFill}/>
   </View>;
 }
@@ -184,6 +189,10 @@ export function GenesisHomeHero({active=true,quality,onExplore}:{
   return <LinearGradient colors={['#060D24','#142044','#242449']} style={styles.hero}
     start={{x:0,y:0}} end={{x:1,y:1}}>
     <GenesisAtmosphere active={active} quality={quality}/>
+    <Image source={GENESIS_GALAXY_IMAGES.creation} resizeMode="cover"
+      style={[StyleSheet.absoluteFill,{opacity:.34}]}/>
+    <LinearGradient colors={['rgba(4,11,29,.48)','rgba(4,11,29,.30)']}
+      style={StyleSheet.absoluteFill}/>
     <View style={styles.copy}>
       <Text style={styles.kicker}>BUKLOD · SEASON 2 · CREATION</Text>
       <Text style={styles.title}>{GENESIS_IDENTITY.title}</Text>
