@@ -34,14 +34,22 @@ const parsed=JSON.parse(output);
 const modules=Array.isArray(parsed)?parsed:parsed.modules;
 if(!Array.isArray(modules))throw Error('Unexpected Expo native autolinking resolver format');
 for(const [pkg,cls] of candidates){
- // Actual native class registration is authoritative; resolver package labels can differ.
- const found=modules.filter(m=>Array.isArray(m.modules) && m.modules.includes(cls));
+ // Android Expo resolver nests Kotlin class registration under projects[].modules.
+ // A discovered npm package alone does NOT establish that Gradle links its native project.
+ const selected=modules.filter(m=>m.packageName===pkg);
+ const projects=selected.flatMap(m=>Array.isArray(m.projects)?m.projects:[]);
+ const found=projects.filter(project=>Array.isArray(project.modules) &&
+   project.modules.includes(cls) &&
+   path.resolve(project.sourceDir||'')===path.join(folder,'android'));
  if(found.length!==1){
-   const related=modules.filter(m=>String(m.packageName).includes('buklod') ||
-      (m.modules||[]).some(x=>String(x).includes('buklod')));
-   console.error('Resolved local Android modules (names and classes only):',
-     JSON.stringify(related.map(m=>({name:m.packageName,classes:m.modules}))));
-   throw Error('Android native class missing/duplicated in actual Expo autolinking output: '+cls+' ('+found.length+')');
+   const related=modules.filter(m=>String(m.packageName).includes('buklod'));
+   console.error('Resolved local Android Gradle projects and classes (no secrets):',
+     JSON.stringify(related.map(m=>({
+       name:m.packageName,
+       projects:(m.projects||[]).map(p=>({name:p.name,classes:p.modules,
+         isNativeDirectory:path.resolve(p.sourceDir||'').startsWith(path.join(root,'modules'))}))
+     }))));
+   throw Error('Android native Gradle project/class missing or duplicated: '+cls+' ('+found.length+')');
  }
 }
 console.log('Exact Android Expo autolinking includes all five Genesis local native modules. NOT signed APK proof.');

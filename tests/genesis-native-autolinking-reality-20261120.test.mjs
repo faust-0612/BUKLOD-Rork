@@ -8,8 +8,10 @@ test('native build must verify actual Expo resolver, not merely inventory string
    assert.ok(script.includes('genesis-'+module),'module absent '+module);
  assert.match(script,/execFileSync\(bin,\['resolve','--platform','android','--json'\]/);
  assert.match(script,/found\.length!==1/);
- assert.match(script,/m\.modules\.includes\(cls\)/);
- assert.match(script,/Resolved local Android modules/);
+ assert.match(script,/project\.modules\.includes\(cls\)/);
+ assert.match(script,/m\.projects/);
+ assert.match(script,/project\.sourceDir/);
+ assert.match(script,/Resolved local Android Gradle projects and classes/);
  assert.match(script,/pkg==='@buklod\/genesis-native-ime' \? 'buklod-genesis-ime'/);
  assert.match(script,/Expo autolinking includes all five/);
  const smoke=read('.github/workflows/genesis-android-compile-smoke-20261120.yml');
