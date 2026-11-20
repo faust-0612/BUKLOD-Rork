@@ -46,6 +46,10 @@ test('publisher triggers on isolated branch and exact release marker only, not m
 
 test('verified 2026-11-19 production identity, immutable RC hash, ABI and exact file scope cannot be bypassed', () => {
   assert.match(release,/01a1f3f0-11f0-7ba7-a0d2-8dbebdf97ae3/);
+  assert.match(release,/unFUenZWw5gY5LAIPwwtyn8dlSV8j_NhAWoXbyCzQII/);
+  assert.match(release,/assert\.equal\(before\.launchAsset\.hash,pinnedProductionBundleHash/);
+  assert.match(release,/releaseRecord\.preReleaseSourceSha/);
+  assert.match(guard,/record\.preReleaseSourceSha/);
   assert.match(release,/0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf/);
   assert.match(release,/assert\.equal\(before\.id,pinnedProductionUpdateId/);
   assert.match(release,/assert\.equal\(live\.id, update\.id/);
