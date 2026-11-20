@@ -107,6 +107,11 @@ Proposed transport: 20Hz fixed server simulation, 10–20Hz deltas and visual cl
 
 The current code has real side-effect-free deterministic transitions and receipt-planning, but not a deployable multiplayer gateway, signed packet implementation, dedicated headless game server process, Godot scene, app launch screen or verified mic transport.
 
+
+### Server room coordination
+
+`src/features/empire-arena/roomCoordinator.mjs` provides an adapter-independent **trusted server** room orchestrator: mandatory asynchronous signed-ticket verification callback, session-bound actor identity, duplicate-sequence and bounded-queue rejection, 50ms fixed ticks, bounded nonblocking snapshot fanout, disconnect handling, and up to three idempotent terminal-callback attempts. **It is not a network socket listener, game-server autoscaler, cryptographic signer, durable outbox processor, native Godot scene or microphone SFU.** The real transport/identity and durable signed-receipt services must still be implemented and tested.
+
 ## 5. Identity, data persistence and anti-fraud
 
 The existing database already has BUKLOD scopes/memberships, BP ledger, Character collectible state and Character level persistence. The Arena will be **additive**, never rename or overwrite these tables.
