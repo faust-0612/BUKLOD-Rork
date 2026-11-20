@@ -2058,7 +2058,7 @@ const load=useCallback(async(options?:{
       .map((p:any)=>p.id)
       .filter(Boolean);
   // Only public feed rows; separate from members-only scope feeds.
-  const scopeIdentityPromise=loadPublicWallScopeIdentities(postIds);
+  const scopeIdentityPromise=loadPublicWallScopeIdentities(postIds).catch(()=>({}));
 
   // Comment content is a nonblocking, batched enrichment. Do not throw away
   // the actual latest comment because a fixed 4s metadata budget expired.
@@ -6283,7 +6283,7 @@ const communityFeedRows =
        gap:2,
       }}
      >
-      {!!item.user_id&&(
+      {!!item.user_id && !item.public_scope_identity?.hide_author_name && (
        <Pressable
         accessibilityRole="button"
         accessibilityLabel={
