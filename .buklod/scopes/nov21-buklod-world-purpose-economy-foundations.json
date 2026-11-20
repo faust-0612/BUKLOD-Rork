@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov21-buklod-world-purpose-economy-foundations.json",
+  "objective": "Implement the isolated DEV BUKLOD World purpose-first entry, permanent 10-level visual property/community blueprint, earned-only BP and spend-driven QMP model, Cluster treasury challenges, and complete no-op security contracts without retiring any feature or publishing a release.",
+  "baseRef": "536741f8d97fc9dec91503c89f1c1160e5987ce0",
+  "productionBaselineEvidence": "Exact current BUKLOD production OTA runtime and source fingerprint were NOT independently verified in this session; main 536741f8d97fc9dec91503c89f1c1160e5987ce0 is the verified GitHub branch baseline only. No production deployment or database migration is authorized.",
+  "chosenApproach": "Base directly on canonical main, retain all legacy Wall/Connect/Cluster/Profile and Focus Apps routes, use additive World registry and guided entry, preserve Home first-view AdMob placement, add pure disabled World Economy/land/progression/contracts with tests and security guardrails. Keep a DEV-only draft PR; no staging/production publish.",
+  "selectionRationale": "Protect live features and financial histories while building an implementation-ready foundation. Avoid whole merging divergent Genesis and native branches, destructive DB rewrites and enabling untested financial rewards or low-grade graphics.",
+  "riskAreas": [
+    "navigation-auth",
+    "ads-first-view",
+    "home-performance",
+    "finance-qmp",
+    "earned-only-bp",
+    "cluster-treasury",
+    "real-world-verification",
+    "privacy",
+    "graphics",
+    "backend-rls",
+    "releases"
+  ],
+  "preservedBehaviors": [
+    "Wall, Connect, Cluster, Profile and existing five-tab navigation remain available and have their original authorization and scope behavior.",
+    "Home first-view AdMob still renders ahead of the guide, while existing Home cards, system announcements, QMP and performance behavior are preserved.",
+    "Canonical Focus Apps launcher and all existing feature-search destinations remain discoverable; no duplicate privileged government permissions are created.",
+    "Existing lifetime earned BP and character ranks never increase from gifts or trading, while available gifted BP remains spendable.",
+    "No new BP for sale, no reward payout, QMP, land ownership, database migration or production OTA is activated by these preview contracts.",
+    "Real-world evidence remains private; independent neutral verification and dispute resolution are required before a Cluster treasury challenge award."
+  ],
+  "acceptanceChecks": [
+    "Run changed tests/world-navigation-finance-route.test.mjs and source-only world:readiness gate against exact source.",
+    "Run focused Jest, TypeScript, native Expo/Android compile, first-view AdMob lifecycle and instant dashboard navigation regression gates.",
+    "Confirm premium licensed world assets at supported Android fidelity, local customization and persistence with backend authoritative land/items contracts.",
+    "Confirm isolated Supabase staging branch, schema/RLS tests, ledger idempotency and QMP Finance dry-run before any economy enablement.",
+    "Reconcile Genesis native season branches and RC staging exact runtime before any publication; current status is DEV_ONLY_NO_OTA."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "regressionTests": [
+    "tests/world-navigation-finance-route.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add the gated BUKLOD World purpose-first runtime frontend, property planning and economy model while preserving all existing user journeys and rendering lifecycles.",
+      "preservedBehaviors": [
+        "The existing full app features, five main tabs, native performance, entitlement guards, ad delivery and deep links remain intact."
+      ],
+      "tests": [
+        "tests/world-navigation-finance-route.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Change the authenticated entry from public Wall to guided Home while retaining authentication, compliance checks and authorization for every existing destination.",
+      "preservedBehaviors": [
+        "Authentication and compliance onboarding stay mandatory, Wall and Connect routes remain available, and Focus App permissions still gate access."
+      ],
+      "tests": [
+        "tests/world-navigation-finance-route.test.mjs"
+      ]
+    }
+  ],
+  "allowedPaths": [
+    "__tests__/worldBpProvenance.test.ts",
+    "__tests__/worldBpWalletContract.test.ts",
+    "__tests__/worldCatalog.test.ts",
+    "__tests__/worldCommunityChallenges.test.ts",
+    "__tests__/worldCommunityTreasury.test.ts",
+    "__tests__/worldCustomization.test.ts",
+    "__tests__/worldDevelopmentBuildPlanning.test.ts",
+    "__tests__/worldItemCatalog.test.ts",
+    "__tests__/worldQmpPolicyDraft.test.ts",
+    "docs/BUKLOD_WORLD_BACKEND_MIGRATION_CONTRACT_20261121.md",
+    "docs/BUKLOD_WORLD_OVERALL_RECONSTRUCTION_BLUEPRINT_20261120.md",
+    "package.json",
+    "scripts/world-readiness-gate.mjs",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/index.tsx",
+    "src/components/world/BuklodWorldGateway.tsx",
+    "src/features/world/worldBpProvenance.ts",
+    "src/features/world/worldBpWalletContract.ts",
+    "src/features/world/worldBuildPlanning.ts",
+    "src/features/world/worldCatalog.ts",
+    "src/features/world/worldCommunityChallenges.ts",
+    "src/features/world/worldCommunityTreasury.ts",
+    "src/features/world/worldCustomization.ts",
+    "src/features/world/worldDevelopmentCatalog.ts",
+    "src/features/world/worldEconomyBlueprint.ts",
+    "src/features/world/worldProgression.ts",
+    "src/features/world/worldQmpPolicyDraft.ts",
+    "tests/world-navigation-finance-route.test.mjs"
+  ]
+}
