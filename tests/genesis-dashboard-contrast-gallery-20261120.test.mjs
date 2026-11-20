@@ -20,6 +20,14 @@ test('Cluster selected panels keep legible text and the card orbital background 
 test('Cosmic animation is deactivated when unfocused or reduced motion is enabled',()=>{
  const visuals=read('src/features/season2/genesis/GenesisVisuals.tsx');
  const contract=read('src/features/season2/genesis/genesisContract.ts');
- assert.match(visuals,/GenesisCosmicSky active=\{active\} transparent/);
+ assert.match(visuals,/GenesisAtmosphere active=\{active\}/);
+ assert.match(visuals,/GENESIS_GALAXY_IMAGES.nebula/);
+ assert.match(visuals,/GENESIS_GALAXY_IMAGES.creation/);
  assert.match(contract,/focused&&c.appActive&&!c.reducedMotion/);
+});
+test('Owned Galaxy image gallery is statically bundled and only enabled for Genesis',()=>{
+ const gallery=read('src/features/season2/genesis/genesisGalleryAssets.ts');
+ const wall=read('src/components/BuklodCommunityWallProfileBubbles.tsx');
+ for(const name of ['nebula','creation','earth']) assert.match(gallery,new RegExp('galaxy/'+name+'\\.jpg'));
+ assert.match(wall,/GENESIS_WALL \? <View pointerEvents="none"/);
 });

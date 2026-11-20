@@ -10,6 +10,7 @@ import{supabase}from'@/lib/supabase';
 import{colors}from'@/lib/theme';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
+import { GENESIS_GALAXY_IMAGES } from '@/features/season2/genesis/genesisGalleryAssets';
 const GENESIS_CLUSTER = isGenesisPreviewBuild();
 const clusterInk = GENESIS_CLUSTER ? '#F8FAFF' : colors.text;
 const clusterMuted = GENESIS_CLUSTER ? '#D4E3F4' : colors.muted;
@@ -97,7 +98,7 @@ async function hydratePostMedia(posts: Post[]) {
 }
 
 function Card({icon,title,action,onAction,children,cardColor}:{icon:any;title:string;action?:string;onAction?:()=>void;children:React.ReactNode;cardColor:string}){
- return <View style={[s.card,{backgroundColor:GENESIS_CLUSTER ? 'rgba(12,27,55,.94)' : cardColor}]}>{GENESIS_CLUSTER ? <GenesisCosmicSky active={false} minimal transparent/> : null}<View style={s.head}><View style={s.hleft}><View style={s.ico}><MaterialCommunityIcons name={icon} size={18} color={colors.greenDark}/></View><Text style={s.ht}>{title}</Text></View>{action&&onAction?<Pressable onPress={onAction} style={s.action}><Text style={s.actionText}>{action}</Text></Pressable>:null}</View>{children}</View>
+ return <View style={[s.card,{backgroundColor:GENESIS_CLUSTER ? 'rgba(12,27,55,.94)' : cardColor}]}>{GENESIS_CLUSTER ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><Image source={GENESIS_GALAXY_IMAGES.earth} resizeMode="cover" style={[StyleSheet.absoluteFill,{opacity:.14}]}/><GenesisCosmicSky active={false} minimal transparent/></View> : null}<View style={s.head}><View style={s.hleft}><View style={s.ico}><MaterialCommunityIcons name={icon} size={18} color={colors.greenDark}/></View><Text style={s.ht}>{title}</Text></View>{action&&onAction?<Pressable onPress={onAction} style={s.action}><Text style={s.actionText}>{action}</Text></Pressable>:null}</View>{children}</View>
 }
 const Empty=({children}:{children:React.ReactNode})=><Text style={s.empty}>{children}</Text>;
 

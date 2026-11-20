@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -30,6 +31,9 @@ import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { GENESIS_GALAXY_IMAGES } from '@/features/season2/genesis/genesisGalleryAssets';
+const GENESIS_WALL = isGenesisPreviewBuild();
 import { ConnectThemeProvider } from '@/providers/ConnectThemeProvider';
 
 const MAX_BUBBLES = 14;
@@ -373,6 +377,7 @@ function BuklodCommunityConnectRail() {
 
   return (
     <View style={styles.shell}>
+      {GENESIS_WALL ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><Image source={GENESIS_GALAXY_IMAGES.nebula} resizeMode="cover" style={[StyleSheet.absoluteFill,{opacity:.20}]}/></View> : null}
       <View style={styles.searchWrap}>
         <ConnectInboxSearch
           inline
@@ -492,6 +497,7 @@ const styles = StyleSheet.create({
   shell: {
     paddingTop: 2,
     paddingBottom: 2,
+    overflow: 'hidden',
   },
   searchWrap: {
     paddingHorizontal: 12,
