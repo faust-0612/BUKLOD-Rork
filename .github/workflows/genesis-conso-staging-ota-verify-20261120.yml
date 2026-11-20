@@ -17,9 +17,9 @@ jobs:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_NO_TELEMETRY: '1'
       CI: '1'
-      RELEASE_SHA: fae8b6433026fc493596b990031d8363da4c03dd
-      RELEASE_ID: 01a1f866-b624-72dc-a8d1-c4abed7b06b0
-      RELEASE_GROUP: cf87f34b-7283-4483-a40a-7bc51503c749
+      RELEASE_SHA: fd335823622de5bfaef32f649b076831057cd29d
+      RELEASE_ID: 01a1f905-1cc1-7c4a-9a48-636622f2fc05
+      RELEASE_GROUP: 6f334c67-e040-4a51-8bd2-adb883c3956a
       RELEASE_RUNTIME: 2.0.0-genesis-preview
       RELEASE_CHANNEL: season2-genesis-preview
       PROD_CHANNEL_ID: 019feb59-2686-7665-89da-3c3f662ff782
@@ -40,7 +40,12 @@ jobs:
           set -euo pipefail
           git merge-base --is-ancestor "$RELEASE_SHA" HEAD
           CHANGED="$(git diff --name-only "$RELEASE_SHA" HEAD)"
-          test "$CHANGED" = "$(printf '%s\n' '.github/workflows/genesis-conso-staging-ota-publish-20261120.yml' '.github/workflows/genesis-conso-staging-ota-verify-20261120.yml')"
+          EXPECTED="$(printf '%s\n' \
+            '.buklod/scopes/genesis-staging-ota-live-receipt-20261120.json' \
+            '.github/workflows/genesis-conso-staging-ota-verify-20261120.yml' \
+            'tests/genesis-staging-ota-live-manifest-20261120.test.mjs' | sort)"
+          test "$CHANGED" = "$EXPECTED" || { echo 'BLOCK: unexpected post-publish source changes'; exit 1; }
+          node --test tests/genesis-staging-ota-live-manifest-20261120.test.mjs
           test -n "${EXPO_TOKEN:-}" || { echo 'No read-only EAS credential'; exit 1; }
           node scripts/genesis-conso-staging-ota-preflight.mjs
           echo "No EAS publish command is included in this read-only job."
