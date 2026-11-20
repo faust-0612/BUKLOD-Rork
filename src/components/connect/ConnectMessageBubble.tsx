@@ -1,6 +1,7 @@
 import React, {
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import {
   ActivityIndicator,
@@ -117,12 +118,12 @@ function createStyles(theme: ConnectThemeRoles) {
   return StyleSheet.create({
     wrap: {
       width: '100%',
-      marginBottom: 9,
+      marginBottom: 3,
       position: 'relative',
       overflow: 'visible',
     },
     wrapCompact: {
-      marginBottom: 2,
+      marginBottom: 1,
     },
     own: {
       alignItems: 'flex-end',
@@ -142,14 +143,14 @@ function createStyles(theme: ConnectThemeRoles) {
       right: 0,
     },
     bubble: {
-      paddingHorizontal: 16,
-      paddingVertical: 9,
+      paddingHorizontal: 11,
+      paddingVertical: 6,
       borderRadius: 19,
       overflow: 'visible',
     },
     bubbleColumn: {
       position: 'relative',
-      maxWidth: '82%',
+      maxWidth: '90%',
       overflow: 'visible',
     },
     bubbleColumnOwn: {
@@ -172,10 +173,10 @@ function createStyles(theme: ConnectThemeRoles) {
       borderWidth: 0,
     },
     bubbleWithAvatar: {
-      marginLeft: 40,
+      marginLeft: 29,
     },
     bubbleWithAvatarOwn: {
-      marginRight: 40,
+      marginRight: 29,
     },
     standaloneBubble: {
       maxWidth: '92%',
@@ -221,7 +222,7 @@ function createStyles(theme: ConnectThemeRoles) {
       color: '#D7FCE5',
     },
     timeRow: {
-      marginTop: 6,
+      marginTop: 2,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
@@ -284,8 +285,8 @@ function createStyles(theme: ConnectThemeRoles) {
     seenRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 4,
-      minHeight: 28,
+      marginTop: 1,
+      minHeight: 20,
     },
     seenRowOwn: {
       alignSelf: 'flex-end',
@@ -487,6 +488,7 @@ export function ConnectMessageBubble({
   onOpenPhoto,
   onOpenFile,
 }: Props) {
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const { theme } = useConnectTheme();
   const styles = useMemo(
     () => createStyles(theme),
@@ -509,7 +511,7 @@ export function ConnectMessageBubble({
   // Size collage media within the 82%-width bubble, not the full screen.
   const chatWidth = Math.max(
     180,
-    Math.floor((Math.min(windowWidth, 840) - (showSenderAvatar ? 56 : 28)) * 0.82) - 28
+    Math.floor((Math.min(windowWidth, 840) - (showSenderAvatar ? 40 : 20)) * 0.90) - 20
   );
   const frame = connectSinglePhotoFrame(chatWidth);
   const collageTiles = connectCollageTiles(
@@ -654,7 +656,7 @@ export function ConnectMessageBubble({
           <ConnectTappableAvatar
             userId={senderUserId}
             name={senderName}
-            size={32}
+            size={24}
             shape="rounded"
           />
         </View>
@@ -666,10 +668,8 @@ export function ConnectMessageBubble({
           own
             ? styles.bubbleColumnOwn
             : styles.bubbleColumnOther,
-          showSenderAvatar &&
-            (own
-              ? styles.bubbleWithAvatarOwn
-              : styles.bubbleWithAvatar),
+          !own && styles.bubbleWithAvatar,
+          own && showSenderAvatar && styles.bubbleWithAvatarOwn,
         ]}
       >
         <View style={styles.bubbleAnchor}>
@@ -681,6 +681,7 @@ export function ConnectMessageBubble({
               standaloneReaction && styles.standaloneBubble,
                mediaOnly && styles.mediaOnlyBubble,
             ]}
+            onPress={() => setDetailsExpanded(current => !current)}
             onLongPress={handleLongPress}
             delayLongPress={BUKLOD_LONG_PRESS_MS}
             accessibilityLabel={[
@@ -689,7 +690,7 @@ export function ConnectMessageBubble({
               bodyText,
               deliveryLabel,
             ].filter(Boolean).join('. ')}
-            accessibilityHint="Long press for reactions and message actions."
+            accessibilityHint="Tap for date and time; long press for reactions and message actions."
           >
         {!!senderLabel && (
           <Text style={styles.sender}>{senderLabel}</Text>
@@ -890,9 +891,9 @@ export function ConnectMessageBubble({
           </>
         )}
 
-        {(showTime || !!deliveryLabel) && (
+        {(detailsExpanded || !!deliveryLabel) && (
         <View style={[styles.timeRow, mediaOnly && styles.mediaOnlyMeta]}>
-          {showTime && (
+          {detailsExpanded && (
           <Text
             style={[
               styles.time,
@@ -929,7 +930,7 @@ export function ConnectMessageBubble({
           />
         </View>
       </View>
-      {seen.shown.length > 0 && (
+      {(seen.shown.length > 0 || (own && showSeenReport)) && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
@@ -951,7 +952,7 @@ export function ConnectMessageBubble({
         >
           {own && showSeenReport ? (
             <Text style={styles.seenLabel}>
-              Seen by {seen.shown.length + seen.extra}
+              {seenReportAvailable ? (seen.shown.length + seen.extra > 0 ? `Seen ${seen.shown.length + seen.extra}` : 'Sent · Tap for seen') : 'Seen unavailable'}
             </Text>
           ) : null}
           {seen.shown.map(reader => (
@@ -960,7 +961,7 @@ export function ConnectMessageBubble({
                 userId={reader.userId}
                 name={reader.name}
                 uri={reader.avatarUrl}
-                size={22}
+                size={18}
                 onPress={onPressSeenReaders}
               />
             </View>

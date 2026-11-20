@@ -13,7 +13,7 @@ import {
 
 export type MessagesStatusNote = {
   quick_note: string;
-  expires_at: string;
+  expires_at: string | null;
   viewer_count?: number;
 };
 
@@ -68,40 +68,14 @@ export function peekCachedMessagesStatusNote(userId: string): MessagesStatusNote
   return entry?.value && isActiveNote(entry.value) ? entry.value : null;
 }
 
+// Notes persist until the owner edits or deletes them.
 function isActiveNote(note: MessagesStatusNote | null) {
-  if (!note?.quick_note?.trim()) {
-    return false;
-  }
-
-  const expires = new Date(note.expires_at).getTime();
-
-  if (!Number.isFinite(expires)) {
-    return true;
-  }
-
-  return expires > Date.now();
+  return Boolean(note?.quick_note?.trim());
 }
 
-export function formatMessagesNoteExpiry(
-  expiresAt: string | null | undefined
-) {
-  if (!expiresAt) {
-    return '';
-  }
-
-  const diff = new Date(expiresAt).getTime() - Date.now();
-
-  if (!Number.isFinite(diff) || diff <= 0) {
-    return 'Expired';
-  }
-
-  const hours = Math.max(1, Math.ceil(diff / 3600000));
-
-  if (hours < 24) {
-    return `${hours}h left`;
-  }
-
-  return '24h left';
+/** Compatibility API: permanent Notes have no expiration label. */
+export function formatMessagesNoteExpiry(_expiresAt: string | null | undefined) {
+  return '';
 }
 
 async function loadLocalNote(userId: string): Promise<MessagesStatusNote | null> {
@@ -157,9 +131,7 @@ export async function loadMessagesStatusNote(): Promise<MessagesStatusNote | nul
       if (row?.quick_note) {
         const note: MessagesStatusNote = {
           quick_note: repairMojibakeText(String(row.quick_note)),
-          expires_at: String(
-            row.expires_at ?? new Date(Date.now() + 24 * 3600000).toISOString()
-          ),
+          expires_at: row.expires_at ? String(row.expires_at) : null,
           viewer_count: Math.max(0, Number(row.viewer_count ?? 0)),
         };
         next = isActiveNote(note) ? note : null;
@@ -219,7 +191,7 @@ export async function saveMessagesStatusNote(
   if (error) {
     const local: MessagesStatusNote = {
       quick_note: trimmed,
-      expires_at: new Date(Date.now() + 24 * 3600000).toISOString(),
+      expires_at: null,
     };
     await saveLocalNote(userId, local);
     publishNote(userId, local);

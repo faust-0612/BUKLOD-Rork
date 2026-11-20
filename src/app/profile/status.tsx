@@ -184,6 +184,9 @@ export default function ProfileStatusScreen() {
               ) ||
             null,
 
+          // Profile/Connect Notes are persistent until deleted by the owner.
+          quick_note_expires_at: null,
+
           // Music feature removed.
           // Clear any old profile-music reference
           // when this user saves the Note.
