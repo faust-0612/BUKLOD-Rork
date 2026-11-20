@@ -20,7 +20,8 @@ test('Season 2 member reward guide cannot authorize production identity or app u
  assert.match(workflow,/season2-expo-free-plan-guard\.cjs/);
 });
 test('release identity and exact SHA owner gate remain explicit and unskipped',()=>{
- assert.ok(scope.lockedFeatureChanges.some(x=>x.id==='release-identity'));
+ assert.ok(scope.riskAreas.includes('release-identity'));
+ assert.ok(!scope.lockedFeatureChanges.some(x=>x.id==='release-identity'));
  assert.ok(scope.lockedFeatureChanges.some(x=>x.id==='production-release'));
  assert.match(workflow,/BUKLOD_S2_CONSO_STAGE_20261119:/);
  assert.equal(inventory.release.earliestProductionPHT,'2026-12-06T00:00:00+08:00');
