@@ -60,3 +60,26 @@ test('client reads canonical level and item receipts; core guide never claims au
   assert.match(guide,/BuklodCharacterEvolutionGate/);
   assert.doesNotMatch(guide,/automatic na iko-compute ng server ang susunod na level/);
 });
+
+test('verified item retries and character switches are serialized without duplicating receipts', () => {
+  assert.match(sql,/buklod_character_switch_v3/);
+  assert.match(sql,/AND EXISTS \(\s*SELECT 1 FROM private\.buklod_character_evolution_items_v1 i/);
+  assert.match(sql,/RETURN public\.get_my_buklod_character_evolution_v1\(\)/);
+  assert.match(sql,/ON CONFLICT\(source_kind,source_id\) DO NOTHING/);
+});
+
+test('all 13 Characters have a discoverable evolution task page without changing locked Studio art', () => {
+  const route = read('src/app/points/evolution.tsx');
+  const profile = read('src/components/points/BuklodProfileCharacterCard.tsx');
+  assert.match(route,/BuklodCharacterEvolutionGate/);
+  assert.match(route,/state\.active_character_id/);
+  assert.match(profile,/\/points\/evolution/);
+  assert.match(sql,/jawo','trudice','ace','mitch','niel','angel','vhen','ellusur/);
+});
+
+test('production-value lookups use a bounded indexed grouped query rather than per-level loops', () => {
+  assert.match(sql,/CREATE INDEX IF NOT EXISTS buklod_character_evolution_activity_lookup_idx/);
+  assert.match(sql,/FROM pg_catalog\.generate_series\(v_level,v_bp-1\)/);
+  assert.match(sql,/HAVING count\(i\.item_index\)</);
+  assert.doesNotMatch(sql,/FOR v_step IN v_level\.\.\(v_bp-1\) LOOP/);
+});
