@@ -11,7 +11,7 @@ import BuklodS2RewardTracksGuide from '@/components/points/BuklodS2RewardTracksG
 import {BUKLOD_SEASON2_WEEKLY_BEATS} from '@/lib/buklodSeason2CampaignR1';
 import {S2_EXCLUSIVE_FEATURES} from '@/lib/season2/buklodSeason2ApprovedScopeR1';
 import {
- S2_MEMBER_GUIDE_SNAPSHOT,S2_LEGACY_BP_ACTIVE,S2_LEGACY_BP_INACTIVE,
+ S2_MEMBER_GUIDE_SNAPSHOT,S2_LEGACY_BP_ACTIVE,S2_LEGACY_BP_INACTIVE,S2_LEGACY_FAITH_ONLY_ACTIVITY_KEYS,
  S2_GUIDE_BP_GROUPS,S2_QMP_EVENTS,S2_QMP_MISSIONS,S2_QMP_TIERS,S2_QMP_QUALIFICATIONS,
  S2_SOCIAL_MILESTONES_NOT_YET_ACTIVE,S2_OPTIONAL_AD_ENERGY_NOT_BP,
  S2_JOURNEY_TOKEN_SOURCES,S2_WEEKLY_CLASSIFICATIONS,S2_COSMETIC_PRICES_PREVIEW,
@@ -94,7 +94,7 @@ export default function BuklodS2CompleteRewardsReference(){
       placeholder={t('Hanapin ang activity…','Search activity…')} placeholderTextColor="#647D6D"
       style={s.input} autoCapitalize="none" autoCorrect={false}/>
     {active.map(item=><Row key={item.id} name={item.title} value={`+${item.bp} BP`}
-      detail={item.condition+(item.dayCapBP===null?'':` · ${item.dayCapBP} BP/day catalog cap`)}/>)}
+      detail={item.condition+(item.dayCapBP===null?'':` · ${item.dayCapBP} BP/day catalog cap`)+((S2_LEGACY_FAITH_ONLY_ACTIVITY_KEYS as readonly string[]).includes(item.id)?' · SHOW FAITH activity; nonfaith has separate planned learning alternatives':' · SHARED/NEUTRAL legacy source')}/>)}
     {!active.length?<Note>{t('Walang tugmang activity.','No matching activity.')}</Note>:null}
     <Title>{t('Proposed social milestone bonuses (NOT LIVE)','Proposed social milestone bonuses (NOT LIVE)')}</Title>
     <Note>{t('Ito ay nasa prior R2 user guide ngunit hindi pa verified bilang active source-authoritative reward; hindi agad na-credit ang additional BP.','These were described in the earlier R2 guide but are not verified as active source-authoritative grants; do not expect credits yet.')}</Note>
