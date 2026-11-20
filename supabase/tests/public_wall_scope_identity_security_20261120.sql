@@ -43,6 +43,14 @@ begin
     pg_get_functiondef('public.create_buklod_public_wall_scope_post_v1(uuid,text,text,text,text,bigint,uuid[],numeric,boolean)'::regprocedure))=0
  then raise exception 'Membership guard removed'; end if;
 
+ if has_function_privilege('anon','public.get_buklod_public_community_feed_v8_page(uuid,text,integer,integer)','EXECUTE')
+    or not has_function_privilege('authenticated','public.get_buklod_public_community_feed_v8_page(uuid,text,integer,integer)','EXECUTE')
+ then raise exception 'New feed RPC access not restricted to authenticated users'; end if;
+
+ if position('public.get_buklod_public_community_feed_v7_page(' in
+    pg_get_functiondef('public.get_buklod_public_community_feed_v8_page(uuid,text,integer,integer)'::regprocedure))=0
+ then raise exception 'v8 must reuse canonical v7 visibility/ranking/pagination'; end if;
+
  if position('public.buklod_is_scope_admin(p_scope_id)' in
     pg_get_functiondef('public.create_buklod_public_wall_scope_post_v1(uuid,text,text,text,text,bigint,uuid[],numeric,boolean)'::regprocedure))=0
  then raise exception 'Server-signed admin visibility missing'; end if;
