@@ -37,8 +37,9 @@ test('complete reward index covers every major award family and all asset classe
  assert.match(assets,/plannedS2BadgeCriteria\(badgeKind,i,en\)/);
  assert.match(assets,/S2_KINGDOM_SHARD_EARNING_SOURCES\.map/);
 });
-test('guide is default but remains lazy and collapsed, with no reward mint',()=>{
- assert.match(parent,/useState<Tab>\('all'\)/);
+test('two-track guide is default while full encyclopedia stays accessible without eager reward mint',()=>{
+ assert.match(parent,/useState<Tab>\('tracks'\)/);
+ assert.match(parent,/tab==='tracks'\?<BuklodS2RewardTracksGuide\/>/);
  assert.match(parent,/tab==='all'\?<BuklodS2CompleteRewardIndex\/>/);
  assert.match(parent,/\{expanded\?<View/);
  assert.match(ui,/S2_REWARD_FAMILY_INDEX\.map/);
