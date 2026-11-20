@@ -8,6 +8,7 @@ test('Genesis Android APK native Godot AAR is bundled but isolated to an unexpor
   assert.deepEqual(cfg.android.modules,['expo.modules.buklodgenesisgodot.BuklodGenesisGodotModule']);
   const gradle=read('modules/buklod-genesis-godot/android/build.gradle');
   assert.match(gradle,/org\.godotengine:godot:4\.7\.2\.stable/);
+  assert.match(gradle,/androidx\.fragment:fragment:1\.8\.9/);
   const manifest=read('modules/buklod-genesis-godot/android/src/main/AndroidManifest.xml');
   assert.match(manifest,/android:exported="false"/);
   assert.match(manifest,/android:process=":genesis_godot"/);

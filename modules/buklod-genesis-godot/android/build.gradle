@@ -15,4 +15,6 @@ android {
 dependencies {
   // Maven Central, official engine binary: no runtime engine downloads.
   implementation 'org.godotengine:godot:4.7.2.stable'
+  // GodotActivity extends FragmentActivity; expose its AndroidX supertype to Kotlin compilation.
+  implementation 'androidx.fragment:fragment:1.8.9'
 }
