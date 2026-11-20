@@ -2553,9 +2553,8 @@ const load=useCallback(async(options?:{
       cluster_name:
         clusterMap[p.user_id] ??
         null,
-      author_rank_name:
-        rankMap.get(p.user_id) ??
-        'Circle Starter V',
+      // A missed RPC must not masquerade as a genuine Starter rank.
+      author_rank_name: rankMap.get(p.user_id) ?? null,
       comment_preview:
         p.comment_preview ?? null,
     }));
@@ -6093,7 +6092,7 @@ const communityFeedRows =
            </BuklodTappablePersonName>
            <ProfileAvatarNoteChip userId={item.user_id} />
            <Text style={s.meta} numberOfLines={1}>
-             {item.author_rank_name||'Circle Starter V'}
+             {item.author_rank_name || 'Rank updating'}
              {item.cluster_name ? ` | ${item.cluster_name}` : ''}
              {' | '}
              {String(item.audience||'group').toUpperCase()}
