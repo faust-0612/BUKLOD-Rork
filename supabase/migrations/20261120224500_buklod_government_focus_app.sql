@@ -276,9 +276,11 @@ begin
  where entity_id=p_entity_id and created_by=v_actor and idempotency_key=p_idempotency_key;
  if v_id is not null then return v_id; end if;
  if p_public_wall then
-   insert into public.community_posts(user_id,body,category,audience,is_hidden)
-   values(v_actor,'[OFFICIAL GOVERNMENT • '||v_entity.name||'] '||btrim(p_body),'announcement','public',false)
-   returning id into v_wall;
+   -- Preserve canonical Public Wall moderation and notification behavior.
+   v_wall:=public.create_buklod_community_post_v3(
+     'public',null,'announcement','[OFFICIAL GOVERNMENT • '||v_entity.name||'] '||btrim(p_body),
+     null,null,null,array[]::uuid[],null,false
+   );
  end if;
  insert into public.buklod_government_publications(entity_id,created_by,body,post_kind,locality_keys,public_wall_post_id,idempotency_key)
  values(p_entity_id,v_actor,btrim(p_body),p_kind,v_keys,v_wall,p_idempotency_key)
@@ -401,3 +403,47 @@ for each row execute function buklod_government_private.audit_publication();
 revoke all on function buklod_government_private.audit_entity() from public,anon,authenticated;
 revoke all on function buklod_government_private.audit_staff() from public,anon,authenticated;
 revoke all on function buklod_government_private.audit_publication() from public,anon,authenticated;
+
+
+-- Concern intake is transactional and de-duplicated across weak networks and retries.
+alter table public.buklod_government_cases add column if not exists request_key uuid;
+create unique index if not exists buklod_government_case_submission_key_idx
+ on public.buklod_government_cases(submitted_by,request_key) where request_key is not null;
+
+create or replace function public.buklod_government_submit_case_v1(
+ p_entity_id uuid,p_subject text,p_description text,p_locality_key text,p_request_key uuid)
+returns uuid language plpgsql security definer set search_path=''
+as $$
+declare v_actor uuid:=auth.uid();v_id uuid;
+begin
+ if v_actor is null or p_request_key is null then raise exception 'Authentication and idempotency key required'; end if;
+ if char_length(btrim(coalesce(p_subject,''))) not between 5 and 160
+    or char_length(btrim(coalesce(p_description,''))) not between 10 and 6000
+ then raise exception 'Invalid concern details'; end if;
+ if p_locality_key is not null and length(p_locality_key)>30 then
+  raise exception 'Invalid locality';
+ end if;
+ if not exists(select 1 from public.buklod_government_entities
+   where id=p_entity_id and status='VERIFIED') then
+   raise exception 'Verified government office required';
+ end if;
+ perform pg_advisory_xact_lock(hashtext('gov-case:'||v_actor::text));
+ select id into v_id from public.buklod_government_cases
+  where submitted_by=v_actor and request_key=p_request_key;
+ if v_id is not null then return v_id; end if;
+ if (select count(*) from public.buklod_government_cases
+   where submitted_by=v_actor and created_at>now()-interval '24 hours')>=20 then
+   raise exception 'Daily concern limit reached; use the agency official channels for urgent cases';
+ end if;
+ insert into public.buklod_government_cases
+   (entity_id,submitted_by,subject,description,locality_key,status,request_key)
+ values(p_entity_id,v_actor,btrim(p_subject),btrim(p_description),
+   nullif(btrim(coalesce(p_locality_key,'')),''),'SUBMITTED',p_request_key)
+ returning id into v_id;
+ insert into public.buklod_government_case_events(case_id,actor_id,status,note)
+ values(v_id,v_actor,'SUBMITTED','Submitted to BUKLOD; not yet acknowledged by agency');
+ return v_id;
+end;
+$$;
+revoke all on function public.buklod_government_submit_case_v1(uuid,text,text,text,uuid) from public,anon;
+grant execute on function public.buklod_government_submit_case_v1(uuid,text,text,text,uuid) to authenticated;
