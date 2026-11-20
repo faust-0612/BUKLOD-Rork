@@ -32,6 +32,18 @@
       "tests": [
         "tests/mentor-report-submit-feedback-20261120.test.mjs"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add an exact-source branch-only Android production OTA publisher to isolate the reviewed mentoring screen without touching the existing main release workflow or reducing production checks.",
+      "preservedBehaviors": [
+        "Canonical main release publisher is never edited or invoked by this hotfix branch.",
+        "Same production AdMob/media/navigation/security/Kingdom tests run ahead of production export; current served baseline, frozen RC, native ABI and actual new served manifest hash must pass.",
+        "No Season 2 assets, rewards, SQL, native or financial updates; production writes only the single Android EAS OTA after all gates."
+      ],
+      "tests": [
+        "tests/mentor-isolated-prod-release-gates-20261120.test.mjs"
+      ]
     }
   ],
   "riskAreas": [
