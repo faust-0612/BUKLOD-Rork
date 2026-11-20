@@ -1,0 +1,93 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/character-bp-verified-items-faith-neutral-20261121.json",
+  "objective": "Independent server-authoritative per-Character visual evolution gated by earned BP eligibility AND verified acquired items, with Show Faith OFF-equivalent paths and original Circle Rank preserved.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Read-only Supabase project yhanxndaqbmuzbdqlblu inspected Nov 21 2026; live get_my_buklod_character_selection_v2 is still BP-only V3, while legacy core cosmetics auto-redeem by BP. No production environment/schema/migration, OTA or Google Play release is changed. GitHub main baseline 536741f8d97fc9dec91503c89f1c1160e5987ce0 inspected.",
+  "chosenApproach": "Isolated DEV-only TS client, all-13 task route and private SQL changeset outside migrations; preserve existing R31/R40 locked UI, retain legacy levels via one-time floor, use verified social/Kingdom activity sources and per-character idempotent item receipts.",
+  "selectionRationale": "A points-only new badge or unverified cosmetic item would bypass required tasks. Server-verified receipts separate qualification from actual visible evolution, with independent faith-optional routes and no BP deductions.",
+  "alternativeApproaches": [
+    "Client local inventory gates (rejected due forged items and inconsistent cross-device state).",
+    "Reuse legacy auto-redeemed cosmetics as evolution ownership (rejected because automatically granted from BP).",
+    "Mutate live rewards ledger or native production in this PR (rejected)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-finance-points",
+    "kingdom-character",
+    "RLS and SECURITY DEFINER",
+    "legacy backfill",
+    "faith opt-out",
+    "active character switch races",
+    "CPU and dashboard latency",
+    "existing R31/R40 visual hash locks"
+  ],
+  "allowedPaths": [
+    "docs/character/CHARACTER_BP_ITEMS_FAITH_OPTIONAL_20261121.md",
+    "src/app/points/evolution.tsx",
+    "src/components/points/BuklodCharacterEvolutionGate.tsx",
+    "src/components/points/BuklodCharacterLevelGuide.tsx",
+    "src/components/points/BuklodProfileCharacterCard.tsx",
+    "src/lib/buklodCharacterEvolutionV1.ts",
+    "supabase/changesets/character_bp_verified_items_faith_neutral_v1.dev.sql",
+    "supabase/tests/buklod_character_evolution_items_v1.sql",
+    "tests/character-bp-item-gate-20261121.test.mjs",
+    "tests/character-points-gate-20261121.test.mjs",
+    ".buklod/scopes/character-bp-verified-items-faith-neutral-20261121.json"
+  ],
+  "preserveBehaviors": [
+    "Circle Rank and lifetime BP points remain independent from Character item requirements and cannot be purchased or wagered.",
+    "All 13 Character earned levels and per-character XP resume after a switch and existing saved awards remain unchanged.",
+    "QMP, financial ledgers, advertisements, auth, navigation, media and installed Android production are untouched.",
+    "Faith OFF remains a complete path, not an opt-in blocker; only actual verified server sources can issue mandatory items.",
+    "Existing Character Studio artwork and protected R31/R40 files are not modified."
+  ],
+  "acceptanceChecks": [
+    "Run changed Node source contract tests and all protected Character/points/AdMob/navigation source regressions.",
+    "Apply correctly numbered migration only to isolated test Supabase, then execute read-only SQL contract and authenticated adversarial claims.",
+    "Verify per-character switching and idempotent replay with parallel events; verify grandfathered levels and inactive characters.",
+    "Validate 13 Character task route and UI in the authorized Genesis staging APK; verify Special Character legacy collectible labels.",
+    "Verify live Release CI exact head, BP vs actual level gating, anti-farming, Show Faith OFF, performance, ads first view and instant navigation.",
+    "Do not proceed to RC or production OTA until all release gates and visual approval are complete."
+  ],
+  "regressionTests": [
+    "tests/character-bp-item-gate-20261121.test.mjs",
+    "tests/character-points-gate-20261121.test.mjs",
+    "supabase/tests/buklod_character_evolution_items_v1.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add server-driven Character evolution task experience without making BP, local state or cosmetic collectibles sufficient for visual level changes.",
+      "preservedBehaviors": [
+        "Original Android app runtime, account authentication, ad lifecycle, social media loading, and existing Character Studio presentation remain unchanged."
+      ],
+      "tests": [
+        "tests/character-bp-item-gate-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Show independent BP eligibility without deducting or converting lifetime points and without touching QMP or finance ledgers.",
+      "preservedBehaviors": [
+        "Circle Rank remains determined by the canonical BP lifetime rank function; no monetization, AdMob, or payout flows change."
+      ],
+      "tests": [
+        "tests/character-points-gate-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Require authenticated and per-character server-validated items and tasks for Character evolution, while preserving Character switching and existing legacy floors.",
+      "preservedBehaviors": [
+        "Per-character checkpoint XP, Special Character rank access gates, 1300 visible asset names, and existing acquired cosmetic rewards survive intact."
+      ],
+      "tests": [
+        "tests/character-bp-item-gate-20261121.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV PR only; no staging, production OTA, Google Play or Supabase migration executed.",
+  "runtimeVersion": "1.3.2 (unchanged by this PR)",
+  "publicationStatus": "DEV_PR_ONLY_NOT_DEPLOYED"
+}
