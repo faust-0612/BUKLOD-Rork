@@ -32,7 +32,7 @@ assert.throws(()=>levelEffort(11));
 assert.equal(mayUseItemForBuild(5,5),true);
 assert.equal(mayUseItemForBuild(4,5),false);
 const ready = {membershipApproved:true,orientationVerified:true,businessIdentityVerified:true,usableLotOrSlot:true,initialInventoryVerified:true,starterCapitalBp:100,requiredCapitalBp:100,regulatedActivityApproved:true};
-assert.deepEqual(businessOpeningGaps(ready),[]);
+assert.equal(businessOpeningGaps(ready).length,0);
 assert.ok(businessOpeningGaps({...ready,orientationVerified:false}).includes('orientation'));
 assert.ok(businessOpeningGaps({...ready,starterCapitalBp:99}).includes('capital'));
 console.log('Permanent asset-trade policy tests passed');
