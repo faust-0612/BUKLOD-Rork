@@ -25,7 +25,7 @@ jobs:
       BUKLOD_APP_TARGET: main
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APK_SOURCE: 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0
-      FROZEN_SOURCE: cf1c732c3ed3c718099f0163e18ed369149c068e
+      FROZEN_SOURCE: ded6a45f80130314f9335bb0706dd5f826697171
       BUILD_ID: d9e279a6-766b-4bd9-8316-3f700749594c
       STAGING_CHANNEL: season2-genesis-preview
       STAGING_PACKAGE: org.mzbministry.buklod.staging
@@ -50,7 +50,16 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git merge-base "$FROZEN_SOURCE" HEAD)" = "$FROZEN_SOURCE"
-          test "$(git diff --name-only "$FROZEN_SOURCE" HEAD)" = ".github/workflows/genesis-conso-staging-ota-publish-20261120.yml"
+          # Only release plumbing is permitted after the CI-approved immutable
+          # consolidated source; all product changes would block publication.
+          EXPECTED="$(printf '%s\n' \
+            '.buklod/scopes/genesis-staging-ota-owner-publish-20261120.json' \
+            '.github/workflows/genesis-conso-staging-ota-publish-20261120.yml' \
+            'tests/genesis-staging-ota-release-guard-20261120.test.mjs' | sort)"
+          test "$(git diff --name-only "$FROZEN_SOURCE" HEAD)" = "$EXPECTED" || {
+            echo 'BLOCK: unreviewed source drift since approved consolidated Genesis candidate'; exit 1;
+          }
+          node --test tests/genesis-staging-ota-release-guard-20261120.test.mjs
           node scripts/genesis-conso-staging-ota-preflight.mjs
           node - <<'NODE'
           const fs=require('node:fs'),a=require('node:assert/strict');
@@ -186,8 +195,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes eas-cli@27.9.0 channel:view "$STAGING_CHANNEL" --json --non-interactive > "$EVIDENCE_DIR/stage-after.json"
-          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-after.json"
+          # EAS channel views can briefly return incomplete branchMapping
+          # immediately after a publish. Retry only reads, never OTA writes.
+          for attempt in 1 2 3; do
+            npx --yes eas-cli@27.9.0 channel:view "$STAGING_CHANNEL" --json --non-interactive > "$EVIDENCE_DIR/stage-after.json"
+            npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-after.json"
+            if node - <<'NODE'
+          const fs=require('node:fs'),d=process.env.EVIDENCE_DIR;
+          for(const name of ['stage-after','production-after']){
+            const raw=JSON.parse(fs.readFileSync(d+'/'+name+'.json','utf8'));
+            const c=raw.currentPage??raw;
+            const m=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
+            if(m?.data?.length!==1 || !m.data[0]?.branchId) process.exitCode=1;
+          }
+          NODE
+            then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo 'BLOCK: EAS staging/production channel mapping did not stabilize'; exit 1
+            fi
+            sleep $((attempt * 8))
+          done
           node - <<'NODE'
           const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE_DIR;
           const read=x=>JSON.parse(fs.readFileSync(d+'/'+x+'.json','utf8'));
@@ -210,11 +239,11 @@ jobs:
             branch:u.branch,runtime:u.runtimeVersion,package:process.env.STAGING_PACKAGE,
             buildId:process.env.BUILD_ID,apkSource:process.env.APK_SOURCE,sourceSha:process.env.GITHUB_SHA,
             updateId:u.id,groupId:u.group,createdAt:u.createdAt,productionBranchPreserved:true,
-            physicalDeviceAcceptance:'NOT_YET_REVERIFIED',playProduction:'NOT_DEPLOYED'};
+            physicalDeviceAcceptance:'SKIPPED_EXPLICITLY_BY_OWNER_NOT_TESTED',playProduction:'NOT_DEPLOYED'};
           fs.writeFileSync(d+'/verification.json',JSON.stringify(result,null,2));
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### BUKLOD Genesis staging OTA published\n\n'+
             'Source: '+result.sourceSha+'\n\nGroup: '+result.groupId+'\n\nRuntime: '+result.runtime+
-            '\n\nProduction channel mapping unchanged. Device visual/AdMob acceptance still pending.\n');
+            '\n\nProduction channel mapping unchanged. Physical visual verification explicitly skipped; automated ad/navigation tests still mandatory.\n');
           console.log('VERIFIED GENESIS STAGING OTA RECEIPT',JSON.stringify(result));
           NODE
       - name: Retain source and OTA receipt evidence
