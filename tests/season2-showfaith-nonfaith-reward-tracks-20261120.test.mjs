@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {S2_RULES} from '../src/lib/season2/buklodSeason2RewardContractR1.ts';
 import {
  S2_TRACK_ROLLOUT,S2_TRACKS,S2_TRACK_SOURCES,S2_TRACK_LEARNING_BP,
- S2_TRACK_BADGE_PREVIEWS,S2_BOTH_TRACK_LIMITS,S2_SHARED_FINANCIAL_POLICY,
+ S2_TRACK_BADGE_PREVIEWS,S2_TRACK_SEASONAL_AWARD_VARIANTS,S2_BOTH_TRACK_LIMITS,S2_SHARED_FINANCIAL_POLICY,
  previewTrackForScope,previewS2TrackEvidence,previewS2TrackFoundation,
  sourceAvailableInTrack,sourceKeyAcrossTracks,
 } from '../src/lib/season2/buklodSeason2RewardTracksR1.ts';
@@ -75,6 +75,20 @@ test('faith legacy and proposed nonfaith learning opportunities are matched but 
  assert.deepEqual(f.map(x=>[x.comparisonKey,x.bp]),n.map(x=>[x.comparisonKey,x.bp]));
  assert.ok(f.every(x=>x.activeLegacyCatalog&&!x.backendVerifierReady));
  assert.ok(n.every(x=>!x.activeLegacyCatalog&&!x.backendVerifierReady&&x.ruleStatus==='PROPOSED_NOT_LIVE'));
+});
+test('four canonical award IDs remain four, with distinct mode variants but no extra grants',()=>{
+ const f=S2_TRACK_SEASONAL_AWARD_VARIANTS.show_faith;
+ const n=S2_TRACK_SEASONAL_AWARD_VARIANTS.non_show_faith;
+ assert.equal(f.length,4);assert.equal(n.length,4);
+ assert.deepEqual(f.map(x=>x.key),n.map(x=>x.key));
+ assert.deepEqual(f.map(x=>x.key),[
+  'beacon_trail_frame','maker_ribbon','alliance_crest','constellation_finale_scene'
+ ]);
+ assert.notDeepEqual(f.map(x=>x.variant),n.map(x=>x.variant));
+ for(const x of [...f,...n]){
+  assert.equal(x.bp,0);assert.equal(x.tokens,0);
+  assert.equal(x.status,'PREVIEW_NOT_LIVE');
+ }
 });
 test('unverified or spoofed context never generates BP or Tokens',()=>{
  for(const row of [
