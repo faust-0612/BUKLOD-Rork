@@ -1985,17 +1985,21 @@ const load=useCallback(async(options?:{
       error: null,
     })),
     withBuklodTimeout<{data:any,error:any}>(
-      (supabase as any).rpc(
-        'get_buklod_public_community_feed_v7_page',
-        {
-          p_location_scope_id:
-            publicLocationScopeId,
-          p_mode:
-            communityFeedMode,
-          p_limit: limit186L,
-          p_offset: offset186L,
+      (async()=>{
+        const args={
+          p_location_scope_id:publicLocationScopeId,
+          p_mode:communityFeedMode,
+          p_limit:limit186L,
+          p_offset:offset186L,
+        };
+        // New feed carries server-authorized scope identity on first paint.
+        // During additive DB rollout older clients/backends still use v7.
+        const initial=await (supabase as any).rpc('get_buklod_public_community_feed_v8_page',args);
+        if(initial.error?.code==='PGRST202'){
+          return (supabase as any).rpc('get_buklod_public_community_feed_v7_page',args);
         }
-      ),
+        return initial;
+      })(),
       8000,
       'Community feed'
     ).catch((err:any)=>({
@@ -2058,7 +2062,10 @@ const load=useCallback(async(options?:{
       .map((p:any)=>p.id)
       .filter(Boolean);
   // Only public feed rows; separate from members-only scope feeds.
-  const scopeIdentityPromise=loadPublicWallScopeIdentities(postIds).catch(()=>({} as Record<string,BuklodPublicWallScopeIdentity>));
+  const scopeIdentityPromise=feedRows.every((post:any)=>
+    Object.prototype.hasOwnProperty.call(post,'public_scope_identity')
+  ) ? Promise.resolve({} as Record<string,BuklodPublicWallScopeIdentity>)
+    : loadPublicWallScopeIdentities(postIds).catch(()=>({} as Record<string,BuklodPublicWallScopeIdentity>));
 
   // Comment content is a nonblocking, batched enrichment. Do not throw away
   // the actual latest comment because a fixed 4s metadata budget expired.
