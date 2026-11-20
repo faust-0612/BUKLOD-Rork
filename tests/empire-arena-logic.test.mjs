@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   MODES,MAPS,HEROES,DIAMOND_THRESHOLDS,createMatch,stepMatch,
-  levelForDiamonds,effectiveCombatLevel,validateCommandEnvelope,publicResult
+  levelForDiamonds,effectiveCombatLevel,validateCommandEnvelope,publicResult,
+  connectedRelays,teamWalkable
 } from "../src/features/empire-arena/arenaCore.mjs";
 import {
   planMatchSettlement,planParticipationDiamonds,divisionForRating
@@ -153,4 +154,46 @@ test("Diamonds only credit independently verified faith-optional participation",
 test("results include complete winner-loser and player stats",()=>{
   const s=finished(),r=publicResult(s);assert.equal(r.winner,"A");
   assert.equal(r.players.length,6);assert.equal(r.matchId,s.id);
+});
+
+test("unconnected captured relays do not provide supply or core pressure",()=>{
+  let s=match();const map=MAPS.genesis_rift;
+  s.relays[0].owner="A";s.relays[0].progress=100;
+  s.relays[2].owner="A";s.relays[2].progress=100;
+  assert.equal(connectedRelays(s,"A",map),0);
+  const coreBefore=s.teams.B.coreHp;
+  s=stepMatch(s);
+  assert.equal(s.teams.B.coreHp,coreBefore);
+  s.relays[1].owner="A";s.relays[1].progress=100;
+  assert.equal(connectedRelays(s,"A",map),3);
+});
+test("temporary allied bridge changes traversable terrain, not enemy routes",()=>{
+  const map=MAPS.genesis_rift;
+  const structures=[{team:"A",kind:"bridge",x:17,y:7,expiresMs:5000}];
+  assert.equal(teamWalkable(map,14,7,[], "A"),false);
+  assert.equal(teamWalkable(map,14,7,structures, "A"),true);
+  assert.equal(teamWalkable(map,14,7,structures, "B"),false);
+});
+test("coordinated guard formation consumes Flux and improves damage mitigation",()=>{
+  let s=match(),p=s.players["player-0"],enemy=s.players["player-3"];
+  s=stepMatch(s,[{actorId:p.id,seq:1,type:"formation",stance:"guard"}]);
+  assert.equal(s.teams.A.formation.stance,"guard");
+  assert.ok(s.teams.A.flux<40);
+  // Compare identical attack with and without temporary guard.
+  const baseline=match();baseline.players["player-3"].x=11;baseline.players["player-3"].y=10;
+  baseline.players["player-0"].x=10;baseline.players["player-0"].y=10;
+  const guarded=structuredClone(baseline);
+  guarded.teams.B.formation={stance:"guard",untilMs:9000};
+  const normal=stepMatch(baseline,[{actorId:"player-0",seq:1,type:"attack",target:"player-3"}]);
+  const protectedResult=stepMatch(guarded,[{actorId:"player-0",seq:1,type:"attack",target:"player-3"}]);
+  assert.ok(protectedResult.players["player-3"].hp>normal.players["player-3"].hp);
+});
+test("Surge formation adds modest attack strength without guaranteeing a kill",()=>{
+  const plain=match();plain.players["player-0"].x=10;plain.players["player-0"].y=10;
+  plain.players["player-3"].x=11;plain.players["player-3"].y=10;
+  const surge=structuredClone(plain);
+  surge.teams.A.formation={stance:"surge",untilMs:9000};
+  const normal=stepMatch(plain,[{actorId:"player-0",seq:1,type:"attack",target:"player-3"}]);
+  const boosted=stepMatch(surge,[{actorId:"player-0",seq:1,type:"attack",target:"player-3"}]);
+  assert.ok(boosted.players["player-3"].hp<normal.players["player-3"].hp);
 });
