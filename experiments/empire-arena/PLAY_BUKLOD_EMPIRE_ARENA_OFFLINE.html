@@ -400,9 +400,10 @@ function step(){
   else{v=approach(p,enemy);if(!v){approachTargetId=null;message('COVER BLOCKED · USE JOYSTICK');}}
  }
  // Order is critical: queued action sequence numbers are older than fresh movement/capture numbers.
- const input=pending.splice(0,2);
- if(v&&p.alive&&input.length<3){input.push({actorId:'A-0',seq:++seq,type:'move',dx:v.x,dy:v.y});lastDir=heading(v);}
- if(p.alive&&input.length<3&&match.relays.some(r=>dist2(p,r)<=2.8))input.push({actorId:'A-0',seq:++seq,type:'capture'});
+ const input=pending.splice(0,3);
+ // Drain older queued actions completely before assigning newer movement sequence numbers.
+ if(pending.length===0&&v&&p.alive&&input.length<3){input.push({actorId:'A-0',seq:++seq,type:'move',dx:v.x,dy:v.y});lastDir=heading(v);}
+ if(pending.length===0&&p.alive&&input.length<3&&match.relays.some(r=>dist2(p,r)<=2.8))input.push({actorId:'A-0',seq:++seq,type:'capture'});
  input.push(...aiCommands(match));
  try{tickPractice(match,input)}catch(err){console.error('Practice tick failed',err);pause();toast('Simulation paused after an error');return;}
  const evs=match.events.filter(e=>e.serial>lastEventSeq);if(evs.length)lastEventSeq=Math.max(...evs.map(e=>e.serial));
