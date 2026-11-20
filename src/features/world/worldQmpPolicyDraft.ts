@@ -40,8 +40,15 @@ export type WorldQmpSpendEvent = {
   transactionKind: WorldBpTransactionKind;
   category: WorldBpSpendingCategory;
   bpDebited: number;
-  /** Verified portion of this debit funded from eligible BP earnings. */
+  /** BP earned by this actor from actual verified activities. */
   earnedBpDebited: number;
+  /** BP originally earned by another user and genuinely received as gift/trade.
+   * Spendable, but NEVER added to this recipient's Lifetime Earned BP / rank. */
+  giftedEarnedBpDebited: number;
+  /** Paid BP: excluded from QMP irrespective of who currently holds it. */
+  purchasedBpDebited: number;
+  /** Paid BP passed through other accounts; never relabel as earned. */
+  giftedPurchasedBpDebited: number;
   source: 'system' | 'world' | 'cluster' | 'external_paid';
   settledByServer: boolean;
   state: 'fulfilled' | 'pending' | 'rejected';
@@ -60,7 +67,9 @@ export type WorldQmpPolicyDraft = {
   monthlyCategoryCap: Readonly<Record<WorldBpSpendingCategory, number>>;
   /** A final overall monthly cap regardless of categories. */
   monthlyTotalCap: number;
-  excludePaidAndGiftedBp: true;
+  /** Eligible purchasing power can come from own earned OR gifted earned BP.
+   * Purchased-origin BP never becomes QMP eligible by laundering through gifts. */
+  excludePurchasedOriginBp: true;
 };
 
 export const WORLD_QMP_POLICY_DRAFT: WorldQmpPolicyDraft = {
@@ -79,7 +88,7 @@ export const WORLD_QMP_POLICY_DRAFT: WorldQmpPolicyDraft = {
     pet_supplies:6,
   },
   monthlyTotalCap:50,
-  excludePaidAndGiftedBp:true,
+  excludePurchasedOriginBp:true,
 };
 
 export type WorldQmpHistoryRow = {
@@ -114,10 +123,18 @@ export function previewWorldQmpFromBpSpend(
   if (event.isFlagged || event.isSelfTrade ||
       (event.counterpartyId && event.counterpartyId===event.actorId)) return reject('Self-dealing or flagged spending.');
   if (event.source==='external_paid') return reject('External fiat purchases never create QMP.');
-  if (!Number.isSafeInteger(event.bpDebited) || !Number.isSafeInteger(event.earnedBpDebited) ||
-      event.bpDebited<=0 || event.earnedBpDebited<0 || event.earnedBpDebited>event.bpDebited) return reject('Invalid BP debit/provenance.');
-  const qualifiedBp=policy.excludePaidAndGiftedBp ? event.earnedBpDebited : event.bpDebited;
-  if(qualifiedBp<=0) return reject('No eligible earned-BP spend in this purchase.');
+  const parts=[
+    event.earnedBpDebited,event.giftedEarnedBpDebited,
+    event.purchasedBpDebited,event.giftedPurchasedBpDebited,
+  ];
+  if (!Number.isSafeInteger(event.bpDebited) || event.bpDebited<=0 ||
+      parts.some(v=>!Number.isSafeInteger(v)||v<0) ||
+      parts.reduce((sum,v)=>sum+v,0)!==event.bpDebited)
+    return reject('BP debit and funding-source breakdown must match.');
+  const qualifiedBp=policy.excludePurchasedOriginBp
+    ? event.earnedBpDebited+event.giftedEarnedBpDebited
+    : event.bpDebited;
+  if(qualifiedBp<=0) return reject('No eligible earned-origin BP spend in this purchase.');
   if (!Number.isFinite(policy.bpPerQmp) || policy.bpPerQmp<=0 ||
       !Number.isFinite(policy.perPurchaseCap) || policy.perPurchaseCap<0 ||
       !Number.isFinite(policy.monthlyTotalCap) || policy.monthlyTotalCap<0) return reject('Invalid policy limits.');
