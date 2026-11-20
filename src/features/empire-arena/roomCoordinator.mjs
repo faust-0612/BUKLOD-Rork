@@ -2,6 +2,8 @@
  * This has no listener/socket transport; adapters inject trusted ticket verification,
  * snapshots and terminal persistence. Run only on a trusted server, never on a client.
  */
+import { validateCommandEnvelope, stepMatch, publicResult } from './arenaCore.mjs';
+
 export function createRoomCoordinator({initialMatch,verifyTicket,onSnapshot=async()=>{},onTerminal=async()=>{},nowEpochMs=()=>Date.now()}){
   if(!initialMatch||!initialMatch.players||!initialMatch.id)throw Error("invalid_initial_match");
   if(typeof verifyTicket!=="function")throw Error("ticket_verifier_required");

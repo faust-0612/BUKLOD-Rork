@@ -1,13 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { transformSync } from 'esbuild';
-import vm from 'node:vm';
-
-const source = readFileSync(new URL('../src/lib/buklodAssetTradePolicy.ts', import.meta.url),'utf8');
-const compiled = transformSync(source,{loader:'ts',format:'cjs'}).code;
-const module = {exports:{}};
-vm.runInNewContext('(function(module,exports){'+compiled+'})')(module,module.exports);
-const {assessTrade,levelEffort,nextBuildPhase,businessOpeningGaps,mayUseItemForBuild,TRADE_POLICY} = module.exports;
+// Node 22+ strips TypeScript syntax natively. Avoid esbuild/install in scope CI.
+import {assessTrade,levelEffort,nextBuildPhase,businessOpeningGaps,mayUseItemForBuild,TRADE_POLICY}
+  from '../src/lib/buklodAssetTradePolicy.ts';
 const sample = {sellerId:'a',buyerId:'b',sellerAvailable:5,buyerSpendableBp:100,quantity:2,unitPriceBp:30,itemTradable:true,sellerVerified:true,buyerVerified:true,listingActive:true};
 assert.equal(assessTrade(sample).totalBp,60);
 assert.equal(assessTrade({...sample,buyerId:'a'}).allowed,false);
