@@ -49,6 +49,9 @@ export type WorldQmpSpendEvent = {
   purchasedBpDebited: number;
   /** Paid BP passed through other accounts; never relabel as earned. */
   giftedPurchasedBpDebited: number;
+  /** Authoritative unused QMP right consumed from original earned BP lots.
+   * May be LESS than earned-origin BP paid if those units funded earlier purchases. */
+  qmpEligibleBpDebited: number;
   source: 'system' | 'world' | 'cluster' | 'external_paid';
   settledByServer: boolean;
   state: 'fulfilled' | 'pending' | 'rejected';
@@ -129,6 +132,8 @@ export function previewWorldQmpFromBpSpend(
   ];
   if (!Number.isSafeInteger(event.bpDebited) || event.bpDebited<=0 ||
       parts.some(v=>!Number.isSafeInteger(v)||v<0) ||
+      !Number.isSafeInteger(event.qmpEligibleBpDebited)||event.qmpEligibleBpDebited<0||
+      event.qmpEligibleBpDebited>event.earnedBpDebited+event.giftedEarnedBpDebited||
       parts.reduce((sum,v)=>sum+v,0)!==event.bpDebited)
     return reject('BP debit and funding-source breakdown must match.');
   // BP is earned-only in the approved World redesign. The two paid-origin
@@ -136,9 +141,9 @@ export function previewWorldQmpFromBpSpend(
   if(event.purchasedBpDebited!==0||event.giftedPurchasedBpDebited!==0)
     return reject('World BP cannot be bought; paid-origin transactions are ineligible.');
   const qualifiedBp=policy.excludePurchasedOriginBp
-    ? event.earnedBpDebited+event.giftedEarnedBpDebited
+    ? event.qmpEligibleBpDebited
     : event.bpDebited;
-  if(qualifiedBp<=0) return reject('No eligible earned-origin BP spend in this purchase.');
+  if(qualifiedBp<=0) return reject('No remaining unused QMP eligibility from earned BP lots.');
   if (!Number.isFinite(policy.bpPerQmp) || policy.bpPerQmp<=0 ||
       !Number.isFinite(policy.perPurchaseCap) || policy.perPurchaseCap<0 ||
       !Number.isFinite(policy.monthlyTotalCap) || policy.monthlyTotalCap<0) return reject('Invalid policy limits.');
