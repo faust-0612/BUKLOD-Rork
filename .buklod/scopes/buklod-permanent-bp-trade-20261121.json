@@ -1,0 +1,91 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-permanent-bp-trade-20261121.json",
+  "objective": "Implement secure permanent BUKLOD participation-sourced virtual-material marketplace: verified item acquisition, business registration, staged L1–L10 construction, atomic existing-BP item transfers, Rank-only verified net profit; preserve original Market and World DEV efforts.",
+  "baseRef": "536741f8d97fc9dec91503c89f1c1160e5987ce0",
+  "productionBaselineEvidence": "GitHub main at 536741f8d97fc9dec91503c89f1c1160e5987ce0 read-only inspected on Nov 21. Connected live Supabase yhanxndaqbmuzbdqlblu inspected read-only for wallet, point-ledger unique constraints and claim states. The exact installed production OTA/runtime/ad rendering and staged database test-run evidence are NOT verified. No production migrations or OTA are authorized. Concurrent DEV PRs #1039 (real-world Palengke), #1041 (character item gates) and #1042 (preview-only World) remain unreleased.",
+  "chosenApproach": "Add isolated virtual-BP routes under existing Focus Apps, server RPCs with default-off flags and private RLS inventory/listing/transfer tables, distinctive audit receipts and buyer point debits via existing trigger, progressive business levels with 5 visible material-consuming stages, and capped delayed Rank-only net profit. Preserve canonical Market/Business routes so PR #1039 does not conflict. Do not apply migrations on live Supabase; review against isolated staging first. Preserve World/Character ownership authorities; reconcile stages and placement in later integrated RC.",
+  "selectionRationale": "Safest viable bounded implementation under source-only GitHub access. Existing points ledger has UNIQUE(user_id, source_key) and a claim_state CHECK limited to legacy/pending/claimed: therefore use unique event keys and a separate BP transfer receipt instead of altering ledger constraints or manufacturing claimable credits. Use separate isolated table family to prevent double spend and facilitate reversible release gating.",
+  "alternativeApproaches": [
+    "Patch existing points/QMP/Finance earning and rank triggers or create member-to-member reward credits (rejected: arbitrary mint, existing claim state/unique constraints and production regression risk).",
+    "Overwrite PR #1039 Palengke/PR #1042 World routes and directly activate combined market (rejected: concurrent DEV work, ownership duplication and missing verified staging).",
+    "Chosen: separate feature-off virtual economy RPCs and existing Focus Apps navigation, with verified integration via RC after schema/adversarial QA."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-finance-points",
+    "backend-security"
+  ],
+  "preserveBehaviors": [
+    "No newly minted or paid BP from business transactions; QMP, cash/Bayanihan, monthly financial settlement unchanged.",
+    "Lifetime Rank not deducted by spending; supplier profit Rank credit never alters spendable BP beyond actual received sale payment.",
+    "Existing Market Palengke route/reservation/Wall promo from PR #1039 remains unchanged and separate from virtual BP trade.",
+    "Original Character collectible and evolution item authorities unchanged; no tradable conversion of 1,300 story collectibles.",
+    "Existing World L1–10 preview, neighbor views and Cluster treasury policies not falsely represented as live; no new bottom navigation.",
+    "Existing AdMob first-view/navigation, Wall, Connect, user auth, staging/runtime identity, and all production data preserved.",
+    "Trade grants, stock and BP must be server-owned, account-isolated, idempotent and atomic; no direct new table writes by clients."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/buklod-permanent-bp-trade-20261121.json",
+    "supabase/migrations/20261121000000_buklod_permanent_trade_schema_v1.sql",
+    "supabase/migrations/20261121000100_buklod_permanent_trade_operations_v1.sql",
+    "supabase/tests/buklod_permanent_trade_rls_20261121.sql",
+    "src/lib/buklodTradeEconomy.ts",
+    "src/components/BuklodTradeWorkspace.tsx",
+    "src/components/BuklodFoundationWorkspaceNav.tsx",
+    "src/app/profile/buklod-bp-market.tsx",
+    "src/app/profile/buklod-bp-business.tsx",
+    "tests/buklod-trade-economy-20261121.test.mjs",
+    "docs/BUKLOD_PERMANENT_ASSET_TRADE_ECONOMY_20261121.md"
+  ],
+  "regressionTests": [
+    "tests/buklod-trade-economy-20261121.test.mjs",
+    "supabase/tests/buklod_permanent_trade_rls_20261121.sql"
+  ],
+  "acceptanceChecks": [
+    "Existing BP ledger unique source keys and restricted claim states untouched; seller receipt uses dedicated non-reward transfer table.",
+    "Production flags remain disabled even if migrations are safely applied later; unauthenticated and direct table writes denied.",
+    "Only claimed eligible participation source can mint one material receipt; faith-neutral item path exists.",
+    "Business requires 5 verified participation receipts, 40 available BP and orientation before L1; stages 1–5 visible each of 10 levels.",
+    "Buyer debit via existing debit trigger, seller available BP credit exactly once, escrow item movement exactly once under lock and buyer request key.",
+    "Actual item resale basis subtracts verified acquisition cost; net profit capped and delayed before Rank-only settlement.",
+    "All 11 changed paths only; focused Node and SQL tests pass in isolated staging; latest main and concurrent PRs reconciled.",
+    "DEV → verified RC → guarded staging → approved production only after true app/ad/navigation performance, Supabase integration tests and provider verification.",
+    "Future World lots/house/cluster plot allocation, privacy-safe neighbor labels, compound treasury pooled purchases and community scene rendering have distinct explicit integration gates and are NOT claimed implemented here."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New standalone BP Market/Business Focus Apps routes and React Native UI",
+      "preservedBehaviors": [
+        "No native dependency addition; original routes, instant tab/nav performance and Android AdMob preserved"
+      ],
+      "tests": [
+        "tests/buklod-trade-economy-20261121.test.mjs",
+        "supabase/tests/buklod_permanent_trade_rls_20261121.sql"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "New BP-transfer receipts and Rank-only net-profit accounting",
+      "preservedBehaviors": [
+        "No cash/QMP/AdMob mutation or unauthorized BP creation; spending does not remove lifetime Rank"
+      ],
+      "tests": [
+        "tests/buklod-trade-economy-20261121.test.mjs",
+        "supabase/tests/buklod_permanent_trade_rls_20261121.sql"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Isolated RLS/SQL business, item inventory, escrow, wallet transfer and rank RPC migrations",
+      "preservedBehaviors": [
+        "No new public direct-table permissions; preserve existing points-ledger check/unique constraint, trigger and finance segregation"
+      ],
+      "tests": [
+        "tests/buklod-trade-economy-20261121.test.mjs",
+        "supabase/tests/buklod_permanent_trade_rls_20261121.sql"
+      ]
+    }
+  ]
+}

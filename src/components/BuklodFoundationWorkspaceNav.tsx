@@ -39,7 +39,7 @@ import { supabase } from '@/lib/supabase';
 import { openBuklodQuizFromMain } from '@/lib/buklodQuizEntry';
 
 type AccessoryApp = {
-  key: 'report' | 'classroom' | 'quiz' | 'quick-check';
+  key: 'report' | 'classroom' | 'quiz' | 'quick-check' | 'bp-trade';
   title: string;
   subtitle: string;
   icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -52,6 +52,13 @@ type AccessoryApp = {
  * Routes keep their own permission/entitlement guards authoritative.
  */
 const ACCESSORY_APPS: AccessoryApp[] = [
+  {
+    key: 'bp-trade',
+    title: 'Virtual BP Exchange',
+    subtitle: 'Participation items, secure BP trading and business development',
+    icon: 'swap-horizontal-circle-outline',
+    route: '/profile/buklod-bp-market',
+  },
   {
     key: 'report',
     title: 'BUKLOD Report',
