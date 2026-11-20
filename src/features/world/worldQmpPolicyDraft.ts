@@ -1,149 +1,173 @@
 /**
- * Proposed ACTIVITY-BASED QMP MODEL (DEV policy simulation ONLY).
+ * BUKLOD WORLD: SPEND-DRIVEN QMP POLICY PROPOSAL (DEV SIMULATION ONLY).
  *
- * This is NOT the live Finance V3 QMP formula or a reward implementation.
- * Never import from wallet writes, claims, settlement or public RPCs until
- * signed-off owner policy and cross-version finance tests exist.
+ * Owner's distinction:
+ * 1. Qualifying participation earns BP in the EXISTING canonical BP system.
+ * 2. VERIFIED, ELIGIBLE BP PURCHASES / DEVELOPMENT EXPENDITURES earn QMP.
+ * 3. Giving BP is not a purchase and NEVER earns positive QMP.
+ * 4. Historic Lifetime BP / Character Rank remain separate from spendable BP.
+ *
+ * THIS FILE IS NOT CONNECTED TO PRODUCTION BP, FINANCE OR REWARD RPCs.
+ * No QMP weight is live until owner-approved formula, legal review and Finance QA.
  */
 export const WORLD_QMP_ACTIVATION_ENABLED = false as const;
-export type WorldQmpAction =
-  | 'purchase_item'
-  | 'acquire_land'
-  | 'complete_house_upgrade'
-  | 'complete_farm_upgrade'
-  | 'finish_community_project'
-  | 'complete_eligible_trade'
-  | 'fulfill_social_activity'
-  | 'fulfill_service'
-  | 'complete_learning_milestone'
-  | 'complete_game_milestone'
-  | 'complete_farm_cycle'
-  | 'complete_pet_care';
 
-export type WorldQmpEvent = {
-  eventId: string;
-  action: WorldQmpAction;
+export type WorldBpSpendingCategory =
+  | 'world_store_item'
+  | 'peer_item_purchase'
+  | 'land_acquisition'
+  | 'construction_materials'
+  | 'house_upgrade'
+  | 'farm_development'
+  | 'community_development'
+  | 'home_customization'
+  | 'pet_supplies';
+
+export type WorldBpTransactionKind =
+  | 'purchase'
+  | 'bp_gift'
+  | 'item_gift'
+  | 'earn_bp'
+  | 'refund'
+  | 'passive';
+
+export type WorldQmpSpendEvent = {
+  receiptId: string;
   actorId: string;
   period: string;
+  /** Unique fulfilled order/upgrade, never an arbitrary repeatable SKU. */
   entityId: string;
-  counterpartyId?: string | null;
+  transactionKind: WorldBpTransactionKind;
+  category: WorldBpSpendingCategory;
+  bpDebited: number;
+  /** Verified portion of this debit funded from eligible BP earnings. */
+  earnedBpDebited: number;
   source: 'system' | 'world' | 'cluster' | 'external_paid';
-  verifiedByServer: boolean;
-  participationOutcome: 'fulfilled' | 'pending' | 'rejected';
-  currencyProvenance: 'earned_bp' | 'transferred_bp' | 'purchased_bp' | 'none';
+  settledByServer: boolean;
+  state: 'fulfilled' | 'pending' | 'rejected';
+  counterpartyId?: string | null;
   isSelfTrade?: boolean;
   isFlagged?: boolean;
 };
 
 export type WorldQmpPolicyDraft = {
-  version: 'proposal_20261120_v1';
-  /** Sample rates, not live payout weights; actual policy requires simulation. */
-  weightByAction: Readonly<Record<WorldQmpAction, number>>;
-  monthlyCategoryCap: Readonly<Record<WorldQmpAction, number>>;
-  distinctEntityOnly: true;
-  rejectPurchasedCurrencyActions: true;
+  version: 'proposal_spend_driven_v2';
+  /** Illustrative BP-to-QMP scale; never a production exchange rate. */
+  bpPerQmp: number;
+  /** Cap on QMP from any single eligible transaction. */
+  perPurchaseCap: number;
+  /** Category-level monthly cap on new weight, to prevent artificial spending. */
+  monthlyCategoryCap: Readonly<Record<WorldBpSpendingCategory, number>>;
+  /** A final overall monthly cap regardless of categories. */
+  monthlyTotalCap: number;
+  excludePaidAndGiftedBp: true;
 };
 
 export const WORLD_QMP_POLICY_DRAFT: WorldQmpPolicyDraft = {
-  version:'proposal_20261120_v1',
-  weightByAction:{
-    purchase_item:1,
-    acquire_land:3,
-    complete_house_upgrade:4,
-    complete_farm_upgrade:3,
-    finish_community_project:5,
-    complete_eligible_trade:2,
-    fulfill_social_activity:3,
-    fulfill_service:4,
-    complete_learning_milestone:2,
-    complete_game_milestone:2,
-    complete_farm_cycle:1,
-    complete_pet_care:1,
-  },
+  version:'proposal_spend_driven_v2',
+  bpPerQmp:100,
+  perPurchaseCap:10,
   monthlyCategoryCap:{
-    purchase_item:5,
-    acquire_land:6,
-    complete_house_upgrade:12,
-    complete_farm_upgrade:9,
-    finish_community_project:15,
-    complete_eligible_trade:8,
-    fulfill_social_activity:18,
-    fulfill_service:16,
-    complete_learning_milestone:12,
-    complete_game_milestone:10,
-    complete_farm_cycle:6,
-    complete_pet_care:4,
+    world_store_item:12,
+    peer_item_purchase:8,
+    land_acquisition:20,
+    construction_materials:12,
+    house_upgrade:16,
+    farm_development:12,
+    community_development:16,
+    home_customization:10,
+    pet_supplies:6,
   },
-  distinctEntityOnly:true,
-  rejectPurchasedCurrencyActions:true,
+  monthlyTotalCap:50,
+  excludePaidAndGiftedBp:true,
 };
 
 export type WorldQmpHistoryRow = {
-  eventId: string;
+  receiptId: string;
   actorId: string;
   period: string;
   entityId: string;
-  action: WorldQmpAction;
+  category: WorldBpSpendingCategory;
   qualifiedWeight: number;
 };
 
-export type WorldQmpPreview =
+export type WorldQmpSpendPreview =
   | { qualifies: false; reason: string; proposedWeight: 0 }
-  | { qualifies: true; reason: 'eligible-for-policy-review'; proposedWeight: number };
+  | { qualifies: true; reason: 'eligible-spend-for-policy-review'; proposedWeight: number };
 
 /**
- * Pure preview eligibility, no mutation / authority.
- * The server must authenticate actor, verify actual outcome, provenance,
- * counterparty independence, and deduplicate transactionally before posting.
+ * Pure, side-effect-free client-side preview. In eventual production the
+ * database must independently prove payment, debit provenance, asset delivery,
+ * actor, item authenticity, caps and immutable receipt before posting QMP.
  */
-export function previewWorldQmp(
-  event: WorldQmpEvent,
+export function previewWorldQmpFromBpSpend(
+  event: WorldQmpSpendEvent,
   history: readonly WorldQmpHistoryRow[],
   policy: WorldQmpPolicyDraft = WORLD_QMP_POLICY_DRAFT,
-): WorldQmpPreview {
-  const ineligible=(reason: string):WorldQmpPreview=>({qualifies:false,reason,proposedWeight:0});
-  if(!event.eventId || !event.actorId || !event.entityId || !/^\d{4}-(0[1-9]|1[0-2])$/.test(event.period)) return ineligible('Invalid event identity or period.');
-  if(!Object.prototype.hasOwnProperty.call(policy.weightByAction,event.action)) return ineligible('Unknown action.');
-  if(!event.verifiedByServer || event.participationOutcome!=='fulfilled') return ineligible('Not independently completed and verified.');
-  if(event.isFlagged || event.isSelfTrade || (event.counterpartyId && event.counterpartyId===event.actorId)) return ineligible('Risk or self-dealing.');
-  if(event.source==='external_paid')return ineligible('Fiat payment must not create QMP.');
-  if(policy.rejectPurchasedCurrencyActions &&
-    ['purchase_item','acquire_land','complete_house_upgrade','complete_farm_upgrade','finish_community_project','complete_eligible_trade'].includes(event.action) &&
-    event.currencyProvenance==='purchased_bp') return ineligible('Purchased BP expenditure does not qualify for revenue weight.');
-  if(history.some(row=>row.actorId===event.actorId && row.period===event.period && row.eventId===event.eventId))return ineligible('Duplicate event.');
-  const applicable=history.filter(row=>row.actorId===event.actorId && row.period===event.period && row.action===event.action);
-  if(policy.distinctEntityOnly && applicable.some(row=>row.entityId===event.entityId))return ineligible('Already credited for this entity/action this period.');
-  const earned=applicable.reduce((sum,row)=>sum+Math.max(0,row.qualifiedWeight),0);
-  const remaining=Math.max(0,policy.monthlyCategoryCap[event.action]-earned);
-  if(remaining<=0)return ineligible('Monthly category cap reached.');
-  const proposedWeight=Math.min(policy.weightByAction[event.action],remaining);
-  return proposedWeight>0?{qualifies:true,reason:'eligible-for-policy-review',proposedWeight}:ineligible('No remaining policy weight.');
+): WorldQmpSpendPreview {
+  const reject = (reason:string):WorldQmpSpendPreview => ({qualifies:false,reason,proposedWeight:0});
+  if (!event.receiptId?.trim() || !event.actorId?.trim() || !event.entityId?.trim() ||
+      !/^\d{4}-(0[1-9]|1[0-2])$/.test(event.period)) return reject('Invalid receipt or month.');
+  if (event.transactionKind!=='purchase') return reject('Only genuine BP purchases may qualify; earning and gifting BP do not create QMP.');
+  if (!Object.prototype.hasOwnProperty.call(policy.monthlyCategoryCap,event.category)) return reject('Unknown purchase category.');
+  if (!event.settledByServer || event.state!=='fulfilled') return reject('Only completed and verified purchases qualify.');
+  if (event.isFlagged || event.isSelfTrade ||
+      (event.counterpartyId && event.counterpartyId===event.actorId)) return reject('Self-dealing or flagged spending.');
+  if (event.source==='external_paid') return reject('External fiat purchases never create QMP.');
+  if (!Number.isSafeInteger(event.bpDebited) || !Number.isSafeInteger(event.earnedBpDebited) ||
+      event.bpDebited<=0 || event.earnedBpDebited<0 || event.earnedBpDebited>event.bpDebited) return reject('Invalid BP debit/provenance.');
+  const qualifiedBp=policy.excludePaidAndGiftedBp ? event.earnedBpDebited : event.bpDebited;
+  if(qualifiedBp<=0) return reject('No eligible earned-BP spend in this purchase.');
+  if (!Number.isFinite(policy.bpPerQmp) || policy.bpPerQmp<=0 ||
+      !Number.isFinite(policy.perPurchaseCap) || policy.perPurchaseCap<0 ||
+      !Number.isFinite(policy.monthlyTotalCap) || policy.monthlyTotalCap<0) return reject('Invalid policy limits.');
+  if (history.some(row=>row.actorId===event.actorId && row.receiptId===event.receiptId)) return reject('Duplicate purchase receipt.');
+  if (history.some(row=>row.actorId===event.actorId && row.period===event.period &&
+       row.entityId===event.entityId && row.category===event.category)) return reject('Already credited for this purchase entity.');
+  const samePeriod=history.filter(row=>row.actorId===event.actorId && row.period===event.period);
+  const categoryWeight=samePeriod.filter(row=>row.category===event.category)
+    .reduce((sum,row)=>sum+Math.max(0,row.qualifiedWeight),0);
+  const totalWeight=samePeriod.reduce((sum,row)=>sum+Math.max(0,row.qualifiedWeight),0);
+  const room=Math.min(
+    Math.max(0,policy.monthlyCategoryCap[event.category]-categoryWeight),
+    Math.max(0,policy.monthlyTotalCap-totalWeight),
+    policy.perPurchaseCap,
+  );
+  if(room<=0)return reject('Monthly QMP cap reached.');
+  const proposedWeight=Math.floor(Math.min(room,qualifiedBp/policy.bpPerQmp)*100)/100;
+  return proposedWeight>0
+    ? {qualifies:true,reason:'eligible-spend-for-policy-review',proposedWeight}
+    : reject('Spending is below minimum effective QMP unit.');
 }
 
 /**
- * No QMP debit is assumed for every world purchase. Existing proposed
- * sender BP-transfer QMP deduction is a separate, unresolved policy.
- * A future atomic trade quote must show sender adjustment and any capped
- * action credit separately, including NET QMP, before accepting.
+ * Gifts cannot be re-labeled as market purchases. A BP gift may carry a
+ * distinct sender-side QMP debit under the PREVIOUS proposed policy, but the
+ * debit formula remains unapproved and MUST NOT imply positive QMP.
  */
-export type WorldQmpTradeQuote = {
+export type WorldSpendQmpQuote = {
+  transactionKind: WorldBpTransactionKind;
   outgoingBp: number;
-  transferQmpDeduction: number | null;
-  verifiedActivityQmpCredit: number | null;
+  purchaseQmpCredit: number;
+  giftQmpDeduction: number | null;
   netQmpChange: number | null;
 };
-export function previewWorldQmpTradeQuote(
-  outgoingBp:number,
-  transferQmpDeduction:number | null,
-  verifiedActivityQmpCredit:number | null,
-):WorldQmpTradeQuote {
-  const valid=Number.isFinite(outgoingBp)&&outgoingBp>0;
-  const safeDebit=transferQmpDeduction!==null&&Number.isFinite(transferQmpDeduction)&&transferQmpDeduction>=0 ?transferQmpDeduction:null;
-  const safeCredit=verifiedActivityQmpCredit!==null&&Number.isFinite(verifiedActivityQmpCredit)&&verifiedActivityQmpCredit>=0 ?verifiedActivityQmpCredit:null;
-  return {
-    outgoingBp: valid?outgoingBp:0,
-    transferQmpDeduction:valid?safeDebit:null,
-    verifiedActivityQmpCredit:valid?safeCredit:null,
-    netQmpChange:valid&&safeDebit!==null&&safeCredit!==null?safeCredit-safeDebit:null,
-  };
+export function previewWorldSpendQmpQuote(
+  kind: WorldBpTransactionKind,
+  bpAmount: number,
+  purchaseCredit: number,
+  giftDeduction: number | null = null,
+): WorldSpendQmpQuote {
+  const valid=Number.isSafeInteger(bpAmount) && bpAmount>0;
+  const credit=valid&&kind==='purchase'&&Number.isFinite(purchaseCredit)&&purchaseCredit>=0
+    ?purchaseCredit:0;
+  if(kind==='bp_gift'){
+    const deduction=valid && giftDeduction!==null&&Number.isFinite(giftDeduction)&&giftDeduction>=0
+      ?giftDeduction:null;
+    return {transactionKind:kind,outgoingBp:valid?bpAmount:0,
+      purchaseQmpCredit:0,giftQmpDeduction:deduction,
+      netQmpChange:deduction===null?null:-deduction};
+  }
+  return {transactionKind:kind,outgoingBp:valid?bpAmount:0,
+    purchaseQmpCredit:credit,giftQmpDeduction:null,netQmpChange:credit};
 }
