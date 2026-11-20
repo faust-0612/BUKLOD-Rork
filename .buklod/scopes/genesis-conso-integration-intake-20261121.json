@@ -6,14 +6,15 @@
   "productionBaselineEvidence": "main 536741f8d97fc9dec91503c89f1c1160e5987ce0 observed. Production OTA/APK release fingerprint not independently verified. No production, EAS or Supabase writes.",
   "chosenApproach": "Staging-preview-gated World hub with full district directory and licensed existing bundled music, protected ad placements and compact map return; pure development World/Arena code remains explicitly disabled. Owner's premium Valley art is handed off but not yet committed; no release claim.",
   "riskAreas": [
-    "navigation-auth",
-    "first-view-admob",
-    "finance-qmp",
-    "earned-only-bp",
+    "arena-multiplayer",
     "asset-licensing",
-    "staging-native-runtime",
     "backend-isolation",
-    "arena-multiplayer"
+    "earned-only-bp",
+    "finance-qmp",
+    "first-view-admob",
+    "navigation-auth",
+    "navigation-scroll",
+    "staging-native-runtime"
   ],
   "lockedFeatureChanges": [
     {
@@ -25,14 +26,26 @@
       "tests": [
         "tests/season2-conso-intake-gates-20261121.test.mjs"
       ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Genesis preview now launches the protected Public World map while preserving the production Public Wall entry and every existing auth/compliance/route guard.",
+      "preservedBehaviors": [
+        "Production/non-Genesis index still opens Public Wall with original nav header and persistent tab bar; Genesis only shows the World map, allows route entry via original permissions and excludes immersive views.",
+        "Every launched destination retains existing Expo route protection, authenticated scope controls, mandatory updates and AdMob first-view lifecycle."
+      ],
+      "tests": [
+        "tests/genesis-world-navigation-regression-20261121.test.mjs"
+      ]
     }
   ],
   "regressionTests": [
+    "tests/buklod-permanent-asset-trade-policy.test.mjs",
+    "tests/empire-arena-logic.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
     "tests/season2-conso-intake-gates-20261121.test.mjs",
     "tests/world-core-invariants.test.mjs",
-    "tests/empire-arena-logic.test.mjs",
-    "tests/world-png-sprite-progress-20261121.test.mjs",
-    "tests/buklod-permanent-asset-trade-policy.test.mjs"
+    "tests/world-png-sprite-progress-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/genesis-conso-integration-intake-20261121.json",
@@ -79,6 +92,7 @@
     "tests/empire-arena-logic.test.mjs",
     "tests/empire-arena-matchmaking.test.mjs",
     "tests/empire-arena-room.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
     "tests/season2-conso-intake-gates-20261121.test.mjs",
     "tests/world-core-invariants.test.mjs",
     "tests/world-png-sprite-progress-20261121.test.mjs"
