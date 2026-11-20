@@ -22,7 +22,10 @@ test('isolation, notes location and presence are fail closed', () => {
   assert.match(shared,/!rankPreviewEnabled \|\| !viewerId/);
   assert.match(shared,/EXPO_PUBLIC_BUKLOD_GENESIS_PRESENCE_APPROVED === 'true'/);
   assert.match(shared,/!onlinePreviewEnabled \|\| !viewerId/);
-  assert.match(shared,/top: isGenesisPreviewBuild\(\) \? -4 : undefined/);
+  assert.match(shared,/top:-px\*0\.22/);
+  assert.match(shared,/S2_WEEKLY_PERFORMANCE_STAGING_ONLY/);
+  const weeklyIndicator=shared.split('export function ProfileAvatarStatusIndicator')[1].split('/** Readable avatar-adjacent')[0];
+  assert.doesNotMatch(weeklyIndicator,/>\s*N\s*</);
   assert.match(shared,/bottom: -onlineSize \* 0\.30/);
   assert.match(presence,/supabase\.removeChannel/);
   assert.match(presence,/AppState\.currentState === 'active'/);
