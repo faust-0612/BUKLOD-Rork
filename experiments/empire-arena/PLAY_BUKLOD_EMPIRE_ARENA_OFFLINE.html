@@ -338,6 +338,11 @@ function inputAction(name){
  const v=movement()||(t?{x:(t.x-p.x)/Math.max(1,d),y:(t.y-p.y)/Math.max(1,d)}:{x:1,y:0});
  if(name==='attack'){
   if(match.elapsedMs-p.attackAt<600)return;
+  // Core attack stays reachable when its relay gate is met; remote player targets must not hijack it.
+  if(match.mode!=='duel'){
+   const m=MAPS[match.mapId],core={x:m.width-3,y:m.height/2};
+   if(connectedRelays(match,'A')>=2&&dist2(p,core)<=4.5&&(!t||!inRange(p,t,h.range))){enqueue('attack',{target:'core'});return;}
+  }
   if(t){if(!inRange(p,t,h.range-.12)){approachTargetId=t.id;message('APPROACH '+t.characterId.toUpperCase()+' '+d.toFixed(1)+'m / '+h.range+'m');return;}
    approachTargetId=null;enqueue('attack',{target:t.id});return;}
   if(match.mode!=='duel'&&connectedRelays(match,'A')>=2){const m=MAPS[match.mapId],core={x:m.width-3,y:m.height/2};
