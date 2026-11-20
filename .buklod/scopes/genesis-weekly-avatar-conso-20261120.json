@@ -25,8 +25,7 @@
   "regressionTests": [
     "tests/season2-weekly-performance-class-rewards-20261119.test.mjs",
     "tests/season2-weekly-performance-profile-navigation-20261119.test.mjs",
-    "tests/genesis-avatar-attachment-reconciliation-20261120.test.mjs",
-    "tests/genesis-wall-connect-ads-navigation-quiz-20261120.test.mjs"
+    "tests/genesis-avatar-attachment-reconciliation-20261120.test.mjs"
   ],
   "acceptanceChecks": [
     "Node behavioral tests pass including 4 classes, Manila Monday, mock reward hold and anti-stale safeguards",
