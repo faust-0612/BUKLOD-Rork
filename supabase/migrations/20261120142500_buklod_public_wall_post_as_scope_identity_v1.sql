@@ -6,6 +6,7 @@ create table if not exists public.buklod_public_wall_scope_identity (
   post_id uuid primary key references public.community_posts(id) on delete cascade,
   scope_id uuid not null references public.buklod_scopes(id) on delete cascade,
   author_id uuid not null references public.profiles(id) on delete cascade,
+  hide_author_name boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -61,8 +62,8 @@ begin
     p_media_size_bytes, p_mentioned_user_ids, p_media_duration_seconds, p_is_reel
   );
 
-  insert into public.buklod_public_wall_scope_identity (post_id, scope_id, author_id)
-  values (created_post_id, p_scope_id, actor);
+  insert into public.buklod_public_wall_scope_identity (post_id, scope_id, author_id, hide_author_name)
+  values (created_post_id, p_scope_id, actor, public.buklod_is_scope_admin(p_scope_id));
 
   return created_post_id;
 end;
@@ -78,7 +79,8 @@ create or replace function public.get_buklod_public_wall_scope_identities_v1(
   scope_logo_url text,
   scope_geo_level text,
   parent_scope_id uuid,
-  safe_location_label text
+  safe_location_label text,
+  hide_author_name boolean
 )
 language plpgsql stable security definer
 set search_path = ''
@@ -94,7 +96,7 @@ begin
 
   return query
   select a.post_id, a.scope_id, s.name::text, s.scope_type::text,
-         s.logo_url::text, s.geo_level::text, s.parent_scope_id, s.safe_location_label::text
+         s.logo_url::text, s.geo_level::text, s.parent_scope_id, s.safe_location_label::text, a.hide_author_name
   from public.buklod_public_wall_scope_identity a
   join public.community_posts p on p.id = a.post_id and p.user_id = a.author_id
   join public.buklod_scopes s on s.id = a.scope_id
