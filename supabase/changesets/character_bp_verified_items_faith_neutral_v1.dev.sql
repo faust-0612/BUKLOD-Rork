@@ -190,7 +190,6 @@ DECLARE
   v_floor integer:=1;
   v_bp integer:=private.buklod_character_level_for_delta_v2(greatest(p_earned_points,0));
   v_level integer;
-  v_step integer; v_required integer; v_owned integer;
 BEGIN
   SELECT l.legacy_level INTO v_floor
     FROM private.buklod_character_evolution_legacy_v1 l
@@ -198,15 +197,20 @@ BEGIN
   v_floor:=least(20,greatest(1,coalesce(v_floor,1)));
   v_level:=least(v_floor,v_bp);
   IF v_level>=v_bp THEN RETURN v_level::smallint; END IF;
-  FOR v_step IN v_level..(v_bp-1) LOOP
-    v_required:=private.buklod_character_evolution_item_count_v1(v_step);
-    SELECT count(*)::integer INTO v_owned
-    FROM private.buklod_character_evolution_items_v1 i
-    WHERE i.user_id=p_user_id AND i.character_id=p_character_id
-      AND i.from_level=v_step AND i.item_index<=v_required;
-    IF v_owned<>v_required THEN EXIT; END IF;
-    v_level:=v_step+1;
-  END LOOP;
+
+  -- Single indexed grouped lookup, not 19 queries × 13 characters per screen.
+  -- First incomplete transition blocks every future visual level.
+  SELECT coalesce(min(missing.step),v_bp) INTO v_level
+  FROM (
+    SELECT g.step
+    FROM pg_catalog.generate_series(v_level,v_bp-1) AS g(step)
+    LEFT JOIN private.buklod_character_evolution_items_v1 i
+      ON i.user_id=p_user_id AND i.character_id=p_character_id
+         AND i.from_level=g.step
+         AND i.item_index<=private.buklod_character_evolution_item_count_v1(g.step)
+    GROUP BY g.step
+    HAVING count(i.item_index)<private.buklod_character_evolution_item_count_v1(g.step)
+  ) missing;
   RETURN v_level::smallint;
 END;
 $$;
@@ -404,3 +408,9 @@ GRANT EXECUTE ON FUNCTION public.get_my_buklod_character_evolution_v1() TO authe
 GRANT EXECUTE ON FUNCTION public.claim_my_buklod_character_evolution_item_v1(integer,integer) TO authenticated;
 REVOKE ALL ON FUNCTION private.buklod_character_evolution_task_count_v1(uuid,text,integer) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION private.buklod_character_evolution_level_v1(uuid,text,bigint) FROM PUBLIC,anon,authenticated;
+
+REVOKE ALL ON FUNCTION private.buklod_character_evolution_capture_public_v1() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION private.buklod_character_evolution_capture_kingdom_v1() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION private.buklod_character_evolution_task_target_v1(integer,integer,integer) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION private.buklod_character_evolution_item_count_v1(integer) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION private.buklod_character_evolution_task_metric_v1(integer) FROM PUBLIC,anon,authenticated;
