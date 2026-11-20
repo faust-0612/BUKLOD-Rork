@@ -29,9 +29,15 @@ CREATE TABLE IF NOT EXISTS private.buklod_character_evolution_items_v1 (
   character_id text NOT NULL CHECK (character_id IN ('phan','quin','van','christian','lhen','jawo','trudice','ace','mitch','niel','angel','vhen','ellusur')),
   from_level smallint NOT NULL CHECK (from_level BETWEEN 1 AND 19),
   item_index smallint NOT NULL CHECK (item_index BETWEEN 1 AND 5),
+  -- Stable inventory asset identifier; the 13x20x5 story collection is not
+  -- equivalent to the old BP-auto-redeemed cosmetic collectible grants.
+  asset_key text GENERATED ALWAYS AS
+    (character_id || ':L' || pg_catalog.lpad(from_level::text,2,'0') || ':I' || item_index::text) STORED,
   earned_at timestamptz NOT NULL DEFAULT now(),
   verified_metric_key text NOT NULL,
   observed_event_count integer NOT NULL CHECK (observed_event_count>=1),
+  primary_event_count integer NOT NULL DEFAULT 0 CHECK (primary_event_count>=0),
+  kingdom_event_count integer NOT NULL DEFAULT 0 CHECK (kingdom_event_count>=0),
   PRIMARY KEY(user_id,character_id,from_level,item_index)
 );
 ALTER TABLE private.buklod_character_evolution_legacy_v1 ENABLE ROW LEVEL SECURITY;
@@ -98,13 +104,19 @@ BEGIN
     RAISE EXCEPTION 'Invalid Character evolution task target';
   END IF;
   FOR v_step IN p_floor..p_from_level LOOP
-    v_total:=v_total+CASE p_item_index
-      WHEN 1 THEN 1+(v_step-1)/4
-      WHEN 2 THEN 2+(v_step-1)/4
-      WHEN 3 THEN 3+(v_step-1)/3
-      WHEN 4 THEN 1+(v_step-1)/5
-      WHEN 5 THEN 1+(v_step-1)/6
-    END;
+    -- Do not charge requirements retroactively for slots which did not
+    -- exist in earlier tiers (reaction L5, share L10, active week L15).
+    IF v_step >= CASE p_item_index
+      WHEN 1 THEN 1 WHEN 2 THEN 1 WHEN 3 THEN 5
+      WHEN 4 THEN 10 WHEN 5 THEN 15 END THEN
+      v_total:=v_total+CASE p_item_index
+        WHEN 1 THEN 1+(v_step-1)/4
+        WHEN 2 THEN 2+(v_step-1)/4
+        WHEN 3 THEN 3+(v_step-1)/3
+        WHEN 4 THEN 1+(v_step-1)/5
+        WHEN 5 THEN 1+(v_step-1)/6
+      END;
+    END IF;
   END LOOP;
   RETURN v_total;
 END;
@@ -195,7 +207,9 @@ BEGIN
     FROM private.buklod_character_evolution_legacy_v1 l
    WHERE l.user_id=p_user_id AND l.character_id=p_character_id;
   v_floor:=least(20,greatest(1,coalesce(v_floor,1)));
-  v_level:=least(v_floor,v_bp);
+  -- Never downgrade a pre-cutover Character even if a legacy BP snapshot
+  -- is inconsistent or points are later corrected downwards.
+  v_level:=v_floor;
   IF v_level>=v_bp THEN RETURN v_level::smallint; END IF;
 
   -- Single indexed grouped lookup, not 19 queries × 13 characters per screen.
@@ -214,6 +228,40 @@ BEGIN
   RETURN v_level::smallint;
 END;
 $$;
+
+-- Existing core collectible APIs previously derived levels directly from BP.
+-- Align the cosmetic-sync helper to the verified visual level so points alone
+-- never manufacture future cosmetics. Historical owned cosmetics are untouched.
+CREATE OR REPLACE FUNCTION private.buklod_character_collectible_progress_v1(
+  p_user_id uuid,p_character_id text)
+RETURNS TABLE(is_active boolean,character_level integer,points_on_character bigint,lifetime_points bigint)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $
+DECLARE
+  v_character text:=lower(btrim(coalesce(p_character_id,'')));
+  v_active text:='phan';
+  v_baseline bigint:=0;
+  v_lifetime bigint:=0;
+  v_saved bigint:=0;
+  v_earned bigint:=0;
+BEGIN
+  v_lifetime:=public.buklod_lifetime_points_for(p_user_id);
+  SELECT s.character_id,greatest(coalesce(s.baseline_lifetime_points,0),0)
+    INTO v_active,v_baseline
+    FROM private.buklod_character_selection_v2 s WHERE s.user_id=p_user_id;
+  v_active:=coalesce(v_active,'phan');
+  IF v_character IS DISTINCT FROM v_active THEN
+    RETURN QUERY SELECT false,1,0::bigint,v_lifetime;
+    RETURN;
+  END IF;
+  SELECT coalesce(p.earned_points,0) INTO v_saved
+    FROM private.buklod_character_progress_v3 p
+    WHERE p.user_id=p_user_id AND p.character_id=v_character;
+  v_earned:=coalesce(v_saved,0)+greatest(v_lifetime-v_baseline,0);
+  RETURN QUERY SELECT true,
+    private.buklod_character_evolution_level_v1(p_user_id,v_character,v_earned)::integer,
+    v_earned,v_lifetime;
+END;
+$;
 
 -- Getter is compatible with legacy clients, but the visible level now has server item gates.
 
@@ -268,8 +316,11 @@ begin
   -- Saved points plus the active window's verified points. Inactive characters
   -- retain their checkpoint unchanged; lifetime Circle Rank never decreases.
   v_earned := v_earned + greatest(v_lifetime-v_baseline,0);
-  v_bp_eligible_level := private.buklod_character_level_for_delta_v2(v_earned);
   v_level := private.buklod_character_evolution_level_v1(v_uid,v_character,v_earned);
+  -- Protected legacy floors must never make the client's visible > eligible.
+  v_bp_eligible_level := greatest(
+    private.buklod_character_level_for_delta_v2(v_earned),v_level
+  );
 
   select coalesce(jsonb_object_agg(p.character_id,
     private.buklod_character_evolution_level_v1(v_uid,p.character_id,
@@ -346,7 +397,9 @@ BEGIN
         WHERE i.user_id=v_uid AND i.character_id=v_char AND i.from_level=v_level
           AND i.item_index=v_i) INTO v_owned;
       v_items:=v_items||jsonb_build_array(jsonb_build_object(
-        'item_index',v_i,'task_metric',v_metric,'verified_count',v_have,
+        'item_index',v_i,
+        'asset_key',v_char || ':L' || pg_catalog.lpad(v_level::text,2,'0') || ':I' || v_i::text,
+        'task_metric',v_metric,'verified_count',v_have,
         'required_count',v_target,'obtained',v_owned,'ready_to_claim',v_have>=v_target AND NOT v_owned,
         'alternative','Verified Kingdom first mastery (items 1-4); Show Faith not required'));
     END LOOP;
@@ -364,6 +417,7 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE
   v_uid uuid:=(SELECT auth.uid()); v_state jsonb; v_char text; v_level integer;
   v_floor integer:=1; v_metric text; v_have integer; v_target integer;
+  v_primary integer:=0; v_kingdom integer:=0;
 BEGIN
   IF v_uid IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
   PERFORM pg_catalog.pg_advisory_xact_lock(
@@ -392,9 +446,22 @@ BEGIN
   v_have:=private.buklod_character_evolution_task_count_v1(v_uid,v_char,p_item_index);
   v_target:=private.buklod_character_evolution_task_target_v1(v_floor,v_level,p_item_index);
   IF v_have<v_target THEN RAISE EXCEPTION 'Verified Character item task is incomplete'; END IF;
+  SELECT count(*) FILTER (WHERE e.metric_key=v_metric)::integer,
+         count(*) FILTER (WHERE e.metric_key='character_kingdom_mastery')::integer
+    INTO v_primary,v_kingdom
+  FROM private.buklod_character_evolution_activity_v1 e
+  WHERE e.user_id=v_uid AND e.character_id=v_char
+    AND e.metric_key IN (v_metric,'character_kingdom_mastery');
+  IF p_item_index=5 THEN v_kingdom:=0; END IF;
+  -- Every receipt preserves how much of the qualifying evidence came from
+  -- the native task versus optional verified Kingdom first-mastery.
+  IF v_primary+v_kingdom<v_target THEN
+    RAISE EXCEPTION 'Verified evidence changed; refresh Character tasks';
+  END IF;
   INSERT INTO private.buklod_character_evolution_items_v1
-    (user_id,character_id,from_level,item_index,verified_metric_key,observed_event_count)
-  VALUES(v_uid,v_char,v_level,p_item_index,v_metric,v_have)
+    (user_id,character_id,from_level,item_index,verified_metric_key,
+     observed_event_count,primary_event_count,kingdom_event_count)
+  VALUES(v_uid,v_char,v_level,p_item_index,v_metric,v_have,v_primary,v_kingdom)
   ON CONFLICT(user_id,character_id,from_level,item_index) DO NOTHING;
   RETURN public.get_my_buklod_character_evolution_v1();
 END;
@@ -406,6 +473,7 @@ REVOKE ALL ON FUNCTION public.claim_my_buklod_character_evolution_item_v1(intege
 GRANT EXECUTE ON FUNCTION public.get_my_buklod_character_selection_v2() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_my_buklod_character_evolution_v1() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_my_buklod_character_evolution_item_v1(integer,integer) TO authenticated;
+REVOKE ALL ON FUNCTION private.buklod_character_collectible_progress_v1(uuid,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION private.buklod_character_evolution_task_count_v1(uuid,text,integer) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION private.buklod_character_evolution_level_v1(uuid,text,bigint) FROM PUBLIC,anon,authenticated;
 
