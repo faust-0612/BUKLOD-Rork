@@ -34,7 +34,14 @@ const parsed=JSON.parse(output);
 const modules=Array.isArray(parsed)?parsed:parsed.modules;
 if(!Array.isArray(modules))throw Error('Unexpected Expo native autolinking resolver format');
 for(const [pkg,cls] of candidates){
- const found=modules.filter(m=>m.packageName===pkg && Array.isArray(m.modules) && m.modules.includes(cls));
- if(found.length!==1)throw Error('Android native module missing/duplicated in actual Expo autolinking output: '+pkg+' ('+found.length+')');
+ // Actual native class registration is authoritative; resolver package labels can differ.
+ const found=modules.filter(m=>Array.isArray(m.modules) && m.modules.includes(cls));
+ if(found.length!==1){
+   const related=modules.filter(m=>String(m.packageName).includes('buklod') ||
+      (m.modules||[]).some(x=>String(x).includes('buklod')));
+   console.error('Resolved local Android modules (names and classes only):',
+     JSON.stringify(related.map(m=>({name:m.packageName,classes:m.modules}))));
+   throw Error('Android native class missing/duplicated in actual Expo autolinking output: '+cls+' ('+found.length+')');
+ }
 }
 console.log('Exact Android Expo autolinking includes all five Genesis local native modules. NOT signed APK proof.');
