@@ -7,7 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import {
-  WORLD_DESTINATIONS, WORLD_MAP_PINS, WORLD_PURPOSES,
+  WORLD_MAP_PINS, WORLD_PURPOSES,
+  worldCompleteDestinationsByDistrict,
   destinationsForPurpose, worldDestinationById, worldPurposeById,
   type WorldDestination,
 } from '@/features/world/worldCatalog';
@@ -200,7 +201,7 @@ export default function BuklodWorldGateway() {
         {showAll ? DISTRICTS.map(district=>(
           <View key={district.id} style={{gap:5}}>
             <Text style={{color:theme.textPrimary,fontSize:12,fontWeight:'900'}}>{district.label}</Text>
-            {WORLD_DESTINATIONS.filter(item=>item.district===district.id).map(item=>(
+            {worldCompleteDestinationsByDistrict(district.id).map(item=>(
               <Pressable key={item.id} accessibilityRole="button" onPress={()=>openDestination(item)}
                 style={{minHeight:43,flexDirection:'row',alignItems:'center',gap:9,
                   borderBottomWidth:1,borderBottomColor:theme.border}}>
