@@ -15,7 +15,7 @@ test('native Cluster and Organization Connect use the full shared chat viewport,
   assert.match(scope, /fullHeaderInWorkspace=\{Platform\.OS !== 'web'\}/);
   assert.match(thread, /compactEmbedded=\{embeddedInWorkspace && !fullHeaderInWorkspace\}/);
   assert.match(thread, /embeddedInWorkspace && !fullHeaderInWorkspace\s*\? 4\s*: Math\.max\(insets\.top, 12\)/);
-  assert.match(thread, /onBackOverride=\{onBack\}/);
+  assert.match(scope, /onBackOverride=\{onBack\}/);
 });
 
 test('every message renders a tiny local weekday and send time without hiding delivery status', () => {
