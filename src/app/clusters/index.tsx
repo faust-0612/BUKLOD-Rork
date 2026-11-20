@@ -269,6 +269,11 @@ export default function ClustersScreen() {
 function ClusterDirectory({ owner }: { owner: string }) {
   const { theme } = useBuklodTheme();
   const genesisClusterCanvas = isGenesisPreviewBuild();
+  const [clusterFocused, setClusterFocused] = useState(false);
+  useFocusEffect(useCallback(() => {
+    setClusterFocused(true);
+    return () => setClusterFocused(false);
+  }, []));
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -546,7 +551,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
 
   return (
     <View style={[styles.screen, { backgroundColor: genesisClusterCanvas ? '#070D22' : theme.canvas }]}>
-      {genesisClusterCanvas ? <GenesisCosmosBackground active /> : null}
+      {genesisClusterCanvas ? <GenesisCosmosBackground active={clusterFocused} /> : null}
     <BuklodPortalScrollView
       style={[styles.screen, { backgroundColor: 'transparent' }]}
       contentContainerStyle={styles.content}
