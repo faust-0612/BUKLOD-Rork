@@ -44,6 +44,10 @@ import {
   updateSavedSuggestedLoginAvatar,
 } from '@/lib/buklodSuggestedLoginStorage';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import {
+  readBuklodRememberedLogin,
+  writeBuklodRememberedLogin,
+} from '@/lib/buklodRememberedLoginSecrets';
 
 const LOGIN_EASING = Easing.out(Easing.cubic);
 
@@ -277,13 +281,11 @@ function suggestedLoginPasswordKey(
   return `buklod.suggested_login.password.${userId}`;
 }
 
-/* PATCH_AUTH_RESILIENCE_R1_WEB_SECRET_STORAGE
- * SecureStore is native-only. Web uses the app's existing AsyncStorage
- * adapter so Suggested Login never crashes the browser login screen.
- */
+/* Security: no saved passwords in browser AsyncStorage / localStorage. */
 async function readLoginSecret(key: string) {
   if (Platform.OS === 'web') {
-    return AsyncStorage.getItem(key);
+    await AsyncStorage.removeItem(key);
+    return null;
   }
 
   return SecureStore.getItemAsync(key);
@@ -294,7 +296,8 @@ async function writeLoginSecret(
   value: string
 ) {
   if (Platform.OS === 'web') {
-    await AsyncStorage.setItem(key, value);
+    // Scrub stale plaintext browser copies, never write new ones.
+    await AsyncStorage.removeItem(key);
     return;
   }
 
@@ -340,7 +343,7 @@ function parseSuggestedLogins(
             ? item.lastUsedAt
             : new Date(0).toISOString(),
         hasPassword:
-          item.hasPassword === true,
+          Platform.OS !== 'web' && item.hasPassword === true,
       }))
       .sort(
         (a, b) =>
@@ -692,12 +695,23 @@ export default function LoginScreen() {
 
     void AsyncStorage
       .getItem(SUGGESTED_LOGINS_KEY)
-      .then(raw => {
+      .then(async raw => {
+        const parsed = parseSuggestedLogins(raw);
+        if (Platform.OS === 'web') {
+          // Remove previously saved per-account browser passwords without
+          // exposing them in React state or sending them to the server.
+          await Promise.allSettled(parsed.map(item =>
+            AsyncStorage.removeItem(suggestedLoginPasswordKey(item.userId))
+          ));
+          if (raw) {
+            await AsyncStorage.setItem(
+              SUGGESTED_LOGINS_KEY,
+              JSON.stringify(parsed.map(item => ({ ...item, hasPassword: false })))
+            );
+          }
+        }
         if (!active) return;
-
-        setSuggestedLogins(
-          parseSuggestedLogins(raw)
-        );
+        setSuggestedLogins(parsed);
       })
       .catch(error => {
         console.warn(
@@ -720,25 +734,15 @@ export default function LoginScreen() {
 
     (async () => {
       try {
-        const saved =
-          await AsyncStorage.getItem(
-            'buklod.remembered_credentials.v1'
-          );
+        const saved = await readBuklodRememberedLogin();
 
         if (!active || !saved) {
           return;
         }
 
-        const parsed = JSON.parse(saved);
-
-        if (
-          typeof parsed?.identifier === 'string' &&
-          typeof parsed?.password === 'string'
-        ) {
-          setIdentifier(parsed.identifier);
-          setPassword(parsed.password);
-          setRememberPassword(true);
-        }
+        setIdentifier(saved.identifier);
+        setPassword(saved.password);
+        setRememberPassword(true);
       } catch (error) {
         console.warn(
           'Could not restore remembered BUKLOD credentials.',
@@ -951,7 +955,7 @@ const chooseSuggestedLogin =
         lastUsedAt:
           new Date().toISOString(),
         hasPassword:
-          rememberPassword,
+          rememberPassword && Platform.OS !== 'web',
       };
 
       const next = [
@@ -967,7 +971,7 @@ const chooseSuggestedLogin =
         JSON.stringify(next)
       );
 
-      if (rememberPassword) {
+      if (rememberPassword && Platform.OS !== 'web') {
         await writeLoginSecret(
           suggestedLoginPasswordKey(
             userId
@@ -1378,22 +1382,18 @@ const chooseSuggestedLogin =
     // The account may sign in immediately, but AuthProvider will keep every
     // unverified account on /onboarding until System Admin approval.
     try {
-      if (rememberPassword) {
-        await AsyncStorage.setItem(
-          'buklod.remembered_credentials.v1',
-          JSON.stringify({
-            identifier: raw,
-            password: effectivePassword,
-          })
-        );
-      } else {
-        await AsyncStorage.removeItem(
-          'buklod.remembered_credentials.v1'
-        );
-      }
+      await writeBuklodRememberedLogin(
+        rememberPassword && Platform.OS !== 'web'
+          ? {
+              identifier: raw,
+              password: effectivePassword,
+              userId: authenticatedUser?.id,
+            }
+          : null
+      );
     } catch (storageError) {
       console.warn(
-        'Could not update remembered BUKLOD credentials.',
+        'Could not update secure remembered BUKLOD credentials.',
         storageError
       );
     }
@@ -1619,7 +1619,7 @@ const chooseSuggestedLogin =
               />
             </Pressable>
           </View>
-          <Pressable
+          {Platform.OS !== 'web' ? <Pressable
             onPress={() =>
               setRememberPassword(
                 (value) => !value
@@ -1659,9 +1659,13 @@ const chooseSuggestedLogin =
                 fontSize: 13,
               }}
             >
-              Remember password on this device
+              Remember password securely on this device
             </Text>
-          </Pressable>
+          </Pressable> : (
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 10 }}>
+              For your security, passwords are not saved in this browser.
+            </Text>
+          )}
 
           <HomePressable
             haptic={false}
