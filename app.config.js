@@ -30,20 +30,23 @@ module.exports = ({ config }) => {
     !isClassroom &&
     isStaging &&
     process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW === 'true';
+  // Separate read-only render QA package: cannot overwrite staging or production.
+  const genesisRenderQa = genesisNativePreview &&
+    process.env.EXPO_PUBLIC_BUKLOD_GENESIS_RENDER_QA === 'true';
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
-    : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
+    : (genesisRenderQa ? 'BUKLOD Genesis Visual QA' : (isStaging ? 'BUKLOD Staging' : 'BUKLOD'));
 
   const packageId = isClassroom
     ? 'org.mzbministry.buklod.classroom'
-    : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
+    : (genesisRenderQa ? 'org.mzbministry.buklod.genesisqa' : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod'));
 
   const scheme = isClassroom
     ? 'buklod-classroom'
-    : (isStaging ? 'buklod-staging' : 'buklod');
+    : (genesisRenderQa ? 'buklod-genesis-qa' : (isStaging ? 'buklod-staging' : 'buklod'));
 
   return {
     ...config,
@@ -106,6 +109,7 @@ module.exports = ({ config }) => {
       ],
 
       blockedPermissions: [
+        ...(genesisRenderQa ? ['android.permission.INTERNET'] : []),
         'android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE',
         'android.permission.READ_MEDIA_IMAGES',
         'android.permission.READ_MEDIA_VIDEO',
@@ -388,7 +392,9 @@ module.exports = ({ config }) => {
 
 
     updates:
-      projectId
+      genesisRenderQa
+        ? { enabled: false, checkAutomatically: 'NEVER' }
+        : projectId
         ? {
             url:
               `https://u.expo.dev/${projectId}`,
