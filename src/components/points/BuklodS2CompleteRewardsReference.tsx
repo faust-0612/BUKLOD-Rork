@@ -7,6 +7,7 @@ import {Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useBuklodI18n} from '@/providers/BuklodI18nProvider';
 import BuklodS2AllItemsBadgesGuide from '@/components/points/BuklodS2AllItemsBadgesGuide';
 import BuklodS2CompleteRewardIndex from '@/components/points/BuklodS2CompleteRewardIndex';
+import BuklodS2RewardTracksGuide from '@/components/points/BuklodS2RewardTracksGuide';
 import {BUKLOD_SEASON2_WEEKLY_BEATS} from '@/lib/buklodSeason2CampaignR1';
 import {S2_EXCLUSIVE_FEATURES} from '@/lib/season2/buklodSeason2ApprovedScopeR1';
 import {
@@ -21,7 +22,7 @@ import {
  type S2BpGroup
 } from '@/lib/season2/buklodSeason2MemberRewardMatrixR1';
 
-type Tab='all'|'bp'|'qmp'|'season2'|'assets'|'carryover';
+type Tab='tracks'|'all'|'bp'|'qmp'|'season2'|'assets'|'carryover';
 const C={ink:'#173D2B',green:'#126C42',muted:'#526D5E',line:'#D7E8DD',pale:'#F0F9F2',gold:'#946212'};
 const chapters=[1,5,10,20,30] as const;
 const groupCategories:S2BpGroup[]=['community','learning','service','game_quiz','milestones'];
@@ -42,7 +43,7 @@ export default function BuklodS2CompleteRewardsReference(){
  const {locale}=useBuklodI18n(),en=locale==='en';
  const t=(fil:string,english:string)=>en?english:fil;
  const [expanded,setExpanded]=useState(false);
- const [tab,setTab]=useState<Tab>('all');
+ const [tab,setTab]=useState<Tab>('tracks');
  const [bpGroup,setBpGroup]=useState<S2BpGroup>('community');
  const [search,setSearch]=useState('');
  const [showInactive,setShowInactive]=useState(false);
@@ -68,12 +69,13 @@ export default function BuklodS2CompleteRewardsReference(){
     'EXACT GUIDE · Season 1 snapshot '+S2_MEMBER_GUIDE_SNAPSHOT+' · Season 2 Dec 6 target, NOT live'
    )}</Text>
    <View style={s.tabs}>
-    {([['all',t('LAHAT / GUIDE','ALL / GUIDE')],['bp',t('BUKLOD BP','BUKLOD BP')],['qmp','QMP'],['season2','SEASON 2'],['assets',t('ITEMS / BADGES','ITEMS / BADGES')],['carryover',t('CARRYOVER','CARRYOVER')]] as const).map(([key,label])=>
+    {([['tracks',t('2 REWARD TRACKS','2 REWARD TRACKS')],['all',t('LAHAT / GUIDE','ALL / GUIDE')],['bp',t('BUKLOD BP','BUKLOD BP')],['qmp','QMP'],['season2','SEASON 2'],['assets',t('ITEMS / BADGES','ITEMS / BADGES')],['carryover',t('CARRYOVER','CARRYOVER')]] as const).map(([key,label])=>
      <Pressable key={key} accessibilityRole="button" accessibilityState={{selected:tab===key}}
        onPress={()=>setTab(key)} style={[s.tab,tab===key&&s.tabSelected]}>
        <Text style={[s.tabText,tab===key&&s.tabTextSelected]}>{label}</Text>
      </Pressable>)}
    </View>
+   {tab==='tracks'?<BuklodS2RewardTracksGuide/>:null}
    {tab==='all'?<BuklodS2CompleteRewardIndex/>:null}
    {tab==='bp'?<>
     <Title>{t('46 active BP catalog rules (may 2 admin-only entries na hindi reward ng user)','46 active BP catalog rules (2 admin-only entries excluded for members)')}</Title>
