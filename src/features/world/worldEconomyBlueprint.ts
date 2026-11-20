@@ -174,9 +174,15 @@ export function quoteWorldItemPurchase(
  const bundle=item.bundle;
  if(mode==='bundle'&&!bundle)return null;
  if(bundle && (!Number.isSafeInteger(bundle.size)||bundle.size<=0||!Number.isSafeInteger(bundle.samplePriceBp)||bundle.samplePriceBp<0))return null;
+ // Constant-time bundle optimization: an honest bundle discount creates a
+ // linear cost curve, so only zero, floor, and ceil pack counts can win.
+ // Avoid iterating over unbounded quantities on low-memory mobile devices.
+ if(quantity>100000)return null;
  const maxBundles=bundle?Math.ceil(quantity/bundle.size):0;
+ const floorBundles=bundle?Math.floor(quantity/bundle.size):0;
+ const candidates=mode==='unit'?[0]:mode==='bundle'?[maxBundles]:[0,floorBundles,maxBundles];
  let best:{bundleCount:number;individualUnits:number;deliveredQuantity:number;cost:number}|null=null;
- for(let i=0;i<=(mode==='unit'?0:maxBundles);i++){
+ for(const i of new Set(candidates)){
   if(mode==='bundle'&&i===0)continue;
   const extra=Math.max(0,quantity-i*(bundle?.size??0));
   const individualUnits=mode==='bundle'?0:extra;
