@@ -67,6 +67,7 @@ export default function BuklodLightHome() {
         scrollEventThrottle={16}
         style={{ flex: 1, backgroundColor: theme.surface }}
         contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
+        <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
         <BuklodWorldGateway />
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -120,7 +121,7 @@ export default function BuklodLightHome() {
             </Suspense>
           </ToolBoundary>
         ) : null}
-        <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
+        {/* First-view AdMob renders before the World gateway, not in a delayed card. */}
       <BuklodScreenBottomBanner placement="home" variant="large" />
       </ScrollView>
     );
@@ -128,6 +129,7 @@ export default function BuklodLightHome() {
 
   return (
     <ScrollView onScroll={event => {reportBuklodDashboardScroll('home',event.nativeEvent.contentOffset.y);noteBuklodVideoScroll();}} scrollEventThrottle={16} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 9, paddingBottom: 16, gap: 9 }}>
+      <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
       <BuklodWorldGateway />
       <BuklodSystemAnnouncementBoard slot="public_home" />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -150,7 +152,7 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
-      <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
+      {/* First-view AdMob renders before the World gateway, not in a delayed card. */}
       {foreground ? (
         <ToolBoundary onClose={() => {}}>
           <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home cards" color={theme.accent} />}>
