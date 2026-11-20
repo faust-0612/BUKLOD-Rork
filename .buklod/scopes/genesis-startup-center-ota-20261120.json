@@ -1,0 +1,62 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-startup-center-ota-20261120.json",
+  "objective": "Prepare only OTA-compatible Genesis staging startup centering for the consolidated staging OTA, preserving current APK native splash and all unrelated accumulated staging changes.",
+  "baseRef": "889da46e52444dc2e4ac6ce9a7c817e22f94525a",
+  "productionBaselineEvidence": "Current consolidated staging candidate baseline 889da46e52444dc2e4ac6ce9a7c817e22f94525a. Reported installed signed Genesis staging APK source 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0, EAS build d9e279a6-766b-4bd9-8316-3f700749594c, runtime 2.0.0-genesis-preview, Android package org.mzbministry.buklod.staging. This is source-only evidence; device runtime, ads and production not freshly verified.",
+  "chosenApproach": "Port only the existing reviewed JS GenesisCinematicStartup centeredBrandGroup presentation from draft PR #1024 into the latest cumulative Genesis OTA candidate. Keep app.config, package/lockfile, EAS, native plugins and Android OS splash untouched. Explicitly block any promise that an OTA can replace the thorn native launcher.",
+  "selectionRationale": "Expo's native Android system splash is embedded in the signed APK. Moving the image config into an OTA would be incompatible with the installed Genesis native baseline. A single JS scene/layout edit is OTA-compatible and preserves live production isolation.",
+  "alternativeApproaches": [
+    "Merge the entire native PR #1024 into the OTA (rejected: would change native app config and fail installed APK parity)",
+    "Publish an immediate Play or staging APK instead of the requested OTA preparation (rejected: this request is specifically source preparation, and APK/release verification remains a separate gate)"
+  ],
+  "allowedPaths": [
+    "src/features/season2/genesis/GenesisCinematicStartup.tsx",
+    "tests/genesis-startup-center-ota-safe-20261120.test.mjs",
+    ".buklod/scopes/genesis-startup-center-ota-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-startup-center-ota-safe-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Consolidated Genesis staging startup layout receives a screen-fixed group centering fix while keeping the existing animation, biometric gate, runtime and advertising/navigation unchanged.",
+      "preservedBehaviors": [
+        "Both legacy production intro and all previously accumulated staging candidate updates remain unchanged",
+        "Startup animation motion sequence, reduced motion, auth unlock and safe-area behavior remain intact",
+        "No native resources, EAS channel, ad SDK, backend, points or Season 2 rewards changed"
+      ],
+      "tests": [
+        "tests/genesis-startup-center-ota-safe-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "startup-fullscreen-layout",
+    "biometric-resize",
+    "staging-ota-compatibility",
+    "AdMob-first-view-and-navigation"
+  ],
+  "preserveBehaviors": [
+    "Keep the cumulative staging candidate's latest mentoring submit validation, galaxy and Connect/Cluster/Wall improvements",
+    "Use exactly the installed Genesis runtime and staging EAS channel; do not publish OTA before QA",
+    "Production/main app/runtime and protected ad/navigation unaffected",
+    "Native thorn/old splash removal is excluded and remains pending new signed staging APK under PR #1024"
+  ],
+  "acceptanceChecks": [
+    "Pure JS diff with no native app config/dependency/module changes from installed signed APK baseline",
+    "Centered green B, burst, heading and scripture as one full-screen unit",
+    "App launch sequence, appState/reduced-motion and chrome gating retained",
+    "Scope and Node tests pass in CI; TypeScript/export checks if workflow available",
+    "No staging or production OTA published, exact rendered Android confirmation and ad/nav tests still pending"
+  ],
+  "releaseMode": "STAGING_OTA_SOURCE_PREPARATION_ONLY",
+  "releaseStatus": "NO_PUBLICATION_PENDING_CI_AND_ANDROID_QA",
+  "linkage": {
+    "nativeFixPr": 1024,
+    "stagingCandidateSha": "889da46e52444dc2e4ac6ce9a7c817e22f94525a",
+    "nativeApkRequiredForSplash": true
+  }
+}

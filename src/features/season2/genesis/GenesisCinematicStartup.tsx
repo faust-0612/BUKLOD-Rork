@@ -212,6 +212,7 @@ export default function GenesisCinematicStartup({ children }: { children: React.
             <CreationUniverse/>
           </Animated.View>
           <View pointerEvents="none" style={styles.composition}>
+            <View style={styles.centeredBrandGroup}>
             <View style={[styles.markFrame, { width: MARK_SIZE, height: MARK_SIZE }]}>
               <View pointerEvents="none" style={{ position:'absolute',width:haloSize,height:haloSize,alignItems:'center',justifyContent:'center' }}>
                 <FirstLightBurst phase={reveal}/>
@@ -228,6 +229,7 @@ export default function GenesisCinematicStartup({ children }: { children: React.
               <Text style={styles.verse}>“LET THERE BE LIGHT” · {GENESIS_IDENTITY.verse}</Text>
               <View style={styles.goldRule}/>
             </Animated.View>
+            </View>
           </View>
         </Animated.View>
       ) : null}
@@ -238,7 +240,10 @@ export default function GenesisCinematicStartup({ children }: { children: React.
 const styles = StyleSheet.create({
   root:{flex:1,backgroundColor:GENESIS_PALETTE.void},
   stage:{position:'absolute',top:0,left:0,zIndex:99999,overflow:'hidden',backgroundColor:'#050A19'},
-  composition:{...StyleSheet.absoluteFillObject,alignItems:'center',justifyContent:'center'},
+  // Keep the whole Genesis logo + wordmark centered on the original screen,
+  // even when Android briefly resizes its application window for biometrics.
+  composition:{position:'absolute',top:0,left:0,width:LOCKED_SCREEN.width,height:LOCKED_SCREEN.height,alignItems:'center',justifyContent:'center'},
+  centeredBrandGroup:{width:'100%',alignItems:'center',justifyContent:'center',paddingHorizontal:12},
   markFrame:{alignItems:'center',justifyContent:'center'},
   burst:{width:'100%',height:'100%',alignItems:'center',justifyContent:'center'},
   copy:{alignItems:'center',marginTop:10,paddingHorizontal:18},
