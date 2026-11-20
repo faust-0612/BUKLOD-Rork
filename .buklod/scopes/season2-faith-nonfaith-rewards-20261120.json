@@ -36,7 +36,8 @@
     "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
     "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
     "src/lib/season2/buklodSeason2RewardLanesR1.ts",
-    "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
+    "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs",
+    "contracts/season2-implementation-ledger.json"
   ],
   "regressionTests": [
     "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
@@ -61,7 +62,8 @@
     "Read-only SQL adds no user-accessible RPC, no production migration, all RLS and claim flags OFF.",
     "Existing complete 7-wallet, 19 reward-family, 1,300 item, 469 badge, 40 ranks and current S1 balances untouched.",
     "Pass focused Node and protected feature guard, no staging or production publish without separate artifact verification.",
-    "Existing informational Show Faith/Non-Faith/Shared BP taxonomy preserved; KL literary reading is shared across both modes, not forced into faith-only completion."
+    "Existing informational Show Faith/Non-Faith/Shared BP taxonomy preserved; KL literary reading is shared across both modes, not forced into faith-only completion.",
+    "Ledger truthfully declares DEV-only faith/nonfaith track isolation with actual verification blockers; no CI/RC/production readiness inflation."
   ],
   "lockedFeatureChanges": [
     {
@@ -74,18 +76,6 @@
       "tests": [
         "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
         "tests/season2-complete-reward-encyclopedia-20261120.test.cjs",
-        "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
-      ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "Record that Show Faith and Non-Show Faith earning sources and missions differ while legacy BP/QMP, cash and AdMob economics remain a single unchanged authority.",
-      "preservedBehaviors": [
-        "No changes to BP/QMP/AdMob provider, rule value, wallet or finalized cash transaction are made.",
-        "Preview source mode cannot grant Tokens, BP, QMP, cash or item rights."
-      ],
-      "tests": [
-        "tests/season2-showfaith-nonfaith-reward-tracks-20261120.test.mjs",
         "tests/season2-show-faith-nonfaith-reward-lanes-20261120.test.cjs"
       ]
     }
