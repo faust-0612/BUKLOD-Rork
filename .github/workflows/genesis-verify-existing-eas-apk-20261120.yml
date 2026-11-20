@@ -8,6 +8,7 @@ on:
       - scripts/genesis-recover-finished-eas-build.mjs
       - scripts/genesis-verify-signed-apk.mjs
       - tests/genesis-existing-eas-build-recovery-20261120.test.mjs
+      - tests/genesis-apk-binary-proof-20261120.test.mjs
 permissions:
   contents: read
 concurrency:

@@ -29,5 +29,6 @@ test('recovery workflow never invokes EAS build or Expo OTA',()=>{
  assert.match(w,/build:view/);
  assert.match(w,/genesis-verify-signed-apk\.mjs --receipt=/);
  assert.match(w,/actions\/upload-artifact@v4/);
+ assert.match(w,/tests\/genesis-apk-binary-proof-20261120\.test\.mjs/);
  assert.doesNotMatch(w,/eas-cli[^\n]* build --platform|eas update|--profile production/);
 });
