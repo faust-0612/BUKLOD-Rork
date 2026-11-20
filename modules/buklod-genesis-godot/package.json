@@ -1,0 +1,7 @@
+{
+  "name": "@buklod/genesis-godot",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "description": "Bundled Godot 4.7.2 AAR and verified local pack launcher for Genesis preview only"
+}

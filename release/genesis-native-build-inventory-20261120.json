@@ -146,10 +146,10 @@
     },
     {
       "id": "godot-android-3d",
-      "status": "held-no-implementation",
-      "origin": "PR #814/#1010",
-      "description": "Separate immersive 3D Kingdom Android AAR + engine bridge",
-      "remaining": "Godot AAR, approved 3D assets, Gradle ABI, footprint and performance not integrated"
+      "status": "native-source-uncompiled",
+      "origin": "Official Godot 4.7.2.stable Maven Central AAR + isolated Genesis Expo module",
+      "description": "Dormant native Godot renderer Activity in separate Android process, SHA-256 verified private PCK launcher; no unapproved map/character art displayed",
+      "remaining": "Actual AAR/Kotlin/Gradle compile and engine runtime/ABI/size testing pending; approved professional 3D PCK/13 rigs absent; future OTA assets must be approved and integrity-checked"
     },
     {
       "id": "drive-oauth-cloud-sync",

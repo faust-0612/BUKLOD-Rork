@@ -1,0 +1,12 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- Never exported. Godot runs separately so video/ad/call React activity is isolated. -->
+    <activity
+      android:name="expo.modules.buklodgenesisgodot.GenesisGodotActivity"
+      android:exported="false"
+      android:process=":genesis_godot"
+      android:hardwareAccelerated="true"
+      android:screenOrientation="landscape"
+      android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|uiMode" />
+  </application>
+</manifest>
