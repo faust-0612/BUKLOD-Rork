@@ -51,3 +51,11 @@ test('existing source-owned audio and sponsors stay permissioned and mounted wit
   assert.match(map,/BuklodNativeSponsoredCard/);
   assert.match(map,/BuklodScreenBottomBanner/);
 });
+
+test('first paint exposes World map before community bulletins without moving the existing first-view ad',()=>{
+  const world=src('src/components/world/BuklodGenesisWorldHome.tsx');
+  const firstAd=world.indexOf('<BuklodFirstViewAd placement="home"');
+  const map=world.indexOf('<WorldCanvas active={active}');
+  const board=world.indexOf('<BuklodSystemAnnouncementBoard slot="public_home"');
+  assert.ok(firstAd>=0&&map>firstAd&&board>map);
+});

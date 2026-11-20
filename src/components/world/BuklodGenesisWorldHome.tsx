@@ -203,9 +203,9 @@ export default function BuklodGenesisWorldHome(){
           <Text style={styles.musicText}>{musicEnabled?'Music on':'Music off'}</Text>
         </Pressable>
       </View>
-      <BuklodSystemAnnouncementBoard slot="public_home"/>
       <BuklodFirstViewAd placement="home" placementId="new_home_first_view"/>
       <WorldCanvas active={active} onOpen={open} onPreview={setPreview}/>
+      <BuklodSystemAnnouncementBoard slot="public_home"/>
       <View style={styles.findRow}>
         <Pressable accessibilityRole="button" accessibilityState={{expanded:showDirectory}}
           accessibilityLabel="Explore all BUKLOD World locations"
