@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "BUKLOD_MENTOR_SUBMIT_ONLY_PROD_20261120",
+  "releaseType": "ANDROID_EXPO_OTA_ONE_SCREEN_HOTFIX",
+  "productionAuthorized": true,
+  "verifiedMainSourceSha": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
+  "preReleaseSourceSha": "4c90182712549006c8c76c797af3ddc9d1d9e0d3",
+  "reviewedMentorSourceBlobSha": "06451c37b8072b224ef4da900d7ea62e6fc7ddd4",
+  "expectedBaselineUpdateId": "01a1f3f0-11f0-7ba7-a0d2-8dbebdf97ae3",
+  "expectedBaselineBundleHash": "unFUenZWw5gY5LAIPwwtyn8dlSV8j_NhAWoXbyCzQII",
+  "verifiedCurrentProductionManifestRunId": 44741559385,
+  "verifiedPreviousProductionPublishRunId": 44530679945,
+  "exactHeadQaRuns": {
+    "engineeringAccountability": 44742879399,
+    "mainIntegration": 44742879366
+  },
+  "expectedRuntimeVersion": "1.3.2",
+  "expectedChannel": "production",
+  "expectedAndroidPackage": "org.mzbministry.buklod",
+  "season2ProductionAuthorized": false,
+  "backendMutationAuthorized": false,
+  "nativeBuildAuthorized": false,
+  "webProductionAuthorized": false,
+  "excludedSourceCommitsAfterBaseline": 4,
+  "sourceChangePaths": [
+    "src/app/faith/mentor-evidence.tsx"
+  ],
+  "submissionSafeguards": [
+    "required lesson",
+    "assigned learners",
+    "teaching venue",
+    "teaching summary",
+    "private photo",
+    "photo consent",
+    "server idempotency",
+    "admin review"
+  ],
+  "releaseGuards": [
+    "full existing Android production CI suites incl AdMob/navigation/media/Kingdom",
+    "last live update ID AND bundle hash match",
+    "exact branch-only marker and approved parent",
+    "locked V28/V30 ABI runtime1.3.2",
+    "frozen RC and SHA256 readback",
+    "single EAS Android production update",
+    "verify live served update ID and launch bundle hash",
+    "no generic main source export"
+  ],
+  "publicationStatus": "RELEASE_MARKER_TRIGGERED_BUT_NOT_YET_VERIFIED_LIVE",
+  "published": false,
+  "physicalDeviceAdMobVerification": "NOT_PERFORMED",
+  "productionVerification": "REQUIRED_FROM_GITHUB_WORKFLOW_BEFORE_SUCCESS"
+}

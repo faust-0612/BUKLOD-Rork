@@ -1,0 +1,87 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/mentor-submit-hotfix-isolated-20261120.json",
+  "objective": "Release exactly one previously source-validated Mentoring Submit client fix to currently verified BUKLOD Android production using dedicated fail-closed isolated branch-only full production QA, frozen RC and served-manifest checks. No Season2, other main, native, database, web or finance changes.",
+  "baseRef": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
+  "productionBaselineEvidence": "VERIFIED: BUKLOD production Android OTA GitHub Actions run 44530679945 SUCCESS on 2026-11-19, exact main source 0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf, channel production, runtime 1.3.2, Expo update ID 01a1f3f0-11f0-7ba7-a0d2-8dbebdf97ae3. Read-only 2026-11-20 workflow 44741559385 SUCCESS and matches that served update. Future live changes must abort before publication.",
+  "chosenApproach": "Isolate previous production marker source 0a4f0b2 and the reviewed Mentoring screen blob, retain all canonical production QA steps by copying workflow to exact non-main release branch (shared production concurrency), enforce latest read-only live Expo update pin, original V28/V30 native ABI, full AdMob/navigation/Kingdom tests, and exact publish/served-bundle verification before calling live.",
+  "selectionRationale": "Canonical publisher compiles entire current main, including four unrelated security/backend changes. An exact pinned branch verified equal to the currently served Nov19 production allows the one-screen hotfix without publishing other pending changes.",
+  "allowedPaths": [
+    ".buklod/releases/mentor-submit-only-prod-20261120.json",
+    ".buklod/scopes/mentor-submit-hotfix-isolated-20261120.json",
+    ".github/workflows/mentor-hotfix-live-baseline-check-20261120.yml",
+    ".github/workflows/mentor-submit-only-prod-ota-20261120.yml",
+    "scripts/android-ota-rc-mentor-20261120.cjs",
+    "scripts/mentor-hotfix-release-guard-20261120.cjs",
+    "src/app/faith/mentor-evidence.tsx",
+    "tests/mentor-isolated-prod-release-gates-20261120.test.mjs",
+    "tests/mentor-report-submit-feedback-20261120.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/mentor-report-submit-feedback-20261120.test.mjs",
+    "tests/mentor-isolated-prod-release-gates-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Adjust only the mentorship teaching-report submit action to expose incomplete required fields without bypassing photo consent, participant role authorization or idempotency.",
+      "preservedBehaviors": [
+        "Venue, lesson, attendee and teaching note requirements are not removed; image upload remains private and consent-required.",
+        "Existing ads, navigation, backend auth permissions, production native runtime and rewards do not change."
+      ],
+      "tests": [
+        "tests/mentor-report-submit-feedback-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add an exact-source branch-only Android production OTA publisher to isolate the reviewed mentoring screen without touching the existing main release workflow or reducing production checks.",
+      "preservedBehaviors": [
+        "Canonical main release publisher is never edited or invoked by this hotfix branch.",
+        "Same production AdMob/media/navigation/security/Kingdom tests run ahead of production export; current served baseline, frozen RC, native ABI and actual new served manifest hash must pass.",
+        "No Season 2 assets, rewards, SQL, native or financial updates; production writes only the single Android EAS OTA after all gates."
+      ],
+      "tests": [
+        "tests/mentor-isolated-prod-release-gates-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "mentoring-report",
+    "production-release-identity",
+    "AdMob",
+    "navigation",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "No Season 2 Genesis source, native package, DB changes, Expo config, ad or navigation changes are introduced by this branch.",
+    "No skipped latest main security patch is silently declared deployed or superseded.",
+    "Do not publish from this unverified Nov19 source marker without reconciling the true Expo production served update.",
+    "Protect existing photo consent, owner/mentor permissions and idempotent upload/receipt checks.",
+    "No production DB/RLS, auth, native package/SDK, web or Season 2 changes.",
+    "Do not alter the canonical main-only production publisher, and keep same production concurrency lock.",
+    "No synthetic AdMob impression/fill success; Android physical rendering remains unverified until measured."
+  ],
+  "acceptanceChecks": [
+    "Confirmed last production action 44530679945 serves source 0a4f0b2 and update 01a1f3f0-11f0-7ba7-a0d2-8dbebdf97ae3; subsequent read-only baseline check run 44741559385 passed.",
+    "Require exact isolated branch, reviewed mentor source Git blob 06451c37b8072b224ef4da900d7ea62e6fc7ddd4, and exact production metadata-only trigger commit.",
+    "Run all original production workflow tests (TypeScript/AdMob/Navigation/Media/Kingdom/Security) and 2 new targeted suites before publish.",
+    "Preserve V28/V30 native ABI and current runtime 1.3.2; require EAS production credential/env and known AdMob IDs.",
+    "Require live currently served update ID to remain 01a1f3f0-11f0-7ba7-a0d2-8dbebdf97ae3; abort on concurrent production changes before export or freeze.",
+    "Freeze Android-only export, inventory SHA256 and verify unchanged hashes before publish.",
+    "Verify real EAS production Android update ID/runtime/served launch bundle hash and archive verification evidence.",
+    "Only call LIVE after exact production verification; never fake physical Android ad/nav smoke."
+  ],
+  "releaseMode": "EXACT_PINNED_ANDROID_PRODUCTION_OTA_WITH_FULL_ORIGINAL_GATES",
+  "publicationStatus": "SOURCE_RC_GATES_PENDING_RELEASE_MARKER",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "sourceMainFixPr": 1025,
+  "sourceBlobSha": "06451c37b8072b224ef4da900d7ea62e6fc7ddd4",
+  "priorProductionMarkerSourceSha": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
+  "alternativeApproaches": [
+    "Use normal main-only production publisher immediately: rejected because main contains four additional unreleased commits beyond the pinned release marker.",
+    "Release direct `eas update` with a manually constructed source tree: rejected because it would bypass the immutable RC, AdMob, native compatibility and served-manifest gates.",
+    "Change production RLS or relax mentoring form validation: rejected because the issue is an unexplained disabled client action, not an authorized server-policy change."
+  ]
+}
