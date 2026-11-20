@@ -47,6 +47,7 @@ jobs:
           node scripts/genesis-prepare-skia-binaries.mjs
           node scripts/genesis-assert-native-autolinking.mjs
           node --test tests/genesis-native-autolinking-reality-20261120.test.mjs
+          node --test tests/genesis-apk-binary-proof-20261120.test.mjs
           node --test tests/genesis-skia-native-binary-install-20261120.test.mjs
           node --test tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs tests/genesis-godot-native-foundation-20261120.test.mjs tests/genesis-drive-native-foundation-20261120.test.mjs
       - name: Resolve existing staging Firebase client and EAS preview env, never PROD backend
@@ -169,6 +170,12 @@ jobs:
           },null,2)+'\n');
           console.log('Staging APK EAS receipt exists; NOT an installed-device or OTA verification');
           NODE
+      - name: Inspect actual signed staging APK SHA256, cert, identity and universal ABIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/genesis-apk-binary-proof-20261120.test.mjs
+          node scripts/genesis-verify-signed-apk.mjs --receipt=buklod-genesis-stage-build-receipt.json
       - uses: actions/upload-artifact@v4
         if: success()
         with:

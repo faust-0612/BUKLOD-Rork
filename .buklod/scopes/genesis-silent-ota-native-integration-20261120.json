@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json",
-  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts. Include Play Core native in-app update bridge with production-only package guard and no automatic update prompt; reserve production activation for separately verified Play release. Bundle local-only Media3 H.264/AAC video compression bridge in Genesis native binary, opt-in preview only and without changing existing video upload playback. Add official Maven Godot 4.7.2 AAR and SHA-256 verified app-private PCK launcher for future approved Genesis Kingdom assets without distributing unapproved 3D maps. Include dormant user-initiated Google Drive native OAuth 22.0.0 consent bridge for future manual Drawer cloud backup; unverified token never automatically syncs or accesses files. Add exact autolinking resolver check to ensure five native source modules are actually included in Expo Android Gradle integration rather than falsely assumed present. Resolve actual Gradle Godot Kotlin compile failure where GenesisGodotActivity FragmentActivity supertype was not visible by declaring AndroidX Fragment dependency.",
+  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts. Include Play Core native in-app update bridge with production-only package guard and no automatic update prompt; reserve production activation for separately verified Play release. Bundle local-only Media3 H.264/AAC video compression bridge in Genesis native binary, opt-in preview only and without changing existing video upload playback. Add official Maven Godot 4.7.2 AAR and SHA-256 verified app-private PCK launcher for future approved Genesis Kingdom assets without distributing unapproved 3D maps. Include dormant user-initiated Google Drive native OAuth 22.0.0 consent bridge for future manual Drawer cloud backup; unverified token never automatically syncs or accesses files. Add exact autolinking resolver check to ensure five native source modules are actually included in Expo Android Gradle integration rather than falsely assumed present. Resolve actual Gradle Godot Kotlin compile failure where GenesisGodotActivity FragmentActivity supertype was not visible by declaring AndroidX Fragment dependency. Verify actual signed universal Genesis staging APK package/version, signature certificate SHA256, APK digest, all four Android ABIs and preserve no-OTA/no-device-claim when EAS credentials become available.",
   "baseRef": "ee25dd41208a7758943d51868f0f61a084f33c7c",
   "productionBaselineEvidence": "Production main 551e54602addd6f7bbe7bcdddd1589d35424c964; Genesis staging APK unbuilt; original Genesis DEV branch ee25dd41208a7758943d51868f0f61a084f33c7c. This isolated PR neither modifies production nor signs/publishes Android artifacts.",
   "chosenApproach": "Forward-port byte-identical reviewed host/policy and focused Node behavior tests from #1003, preserving exact branch/base and native Gradle compile smoke. Replace obsolete restart-banner assertions rather than bypass protection. Make Godot a dormant Android native capability now; require app-private hash-verified packs later instead of shipping a cheap placeholder world. Replace outdated in-flight compile-smoke run via concurrency cancellation; compile arm64 first to detect exact native compatibility without spending CI on four architectures before release.",
@@ -37,7 +37,8 @@
     "tests/genesis-android-compile-smoke-release-20261120.test.mjs",
     "tests/genesis-native-build-inventory-20261120.test.mjs",
     "tests/genesis-staging-native-apk-release-20261120.test.mjs",
-    "tests/genesis-native-autolinking-reality-20261120.test.mjs"
+    "tests/genesis-native-autolinking-reality-20261120.test.mjs",
+    "tests/genesis-apk-binary-proof-20261120.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodOtaFreshnessHost.native.tsx",
@@ -83,7 +84,9 @@
     "tests/genesis-native-build-inventory-20261120.test.mjs",
     "tests/genesis-staging-native-apk-release-20261120.test.mjs",
     "scripts/genesis-assert-native-autolinking.mjs",
-    "tests/genesis-native-autolinking-reality-20261120.test.mjs"
+    "tests/genesis-native-autolinking-reality-20261120.test.mjs",
+    "scripts/genesis-verify-signed-apk.mjs",
+    "tests/genesis-apk-binary-proof-20261120.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -133,7 +136,8 @@
     "Legacy native inventory/release CI tests must assert SDK source compiled only after actual Gradle and signed evidence; never gate on obsolete held-not-implemented statuses",
     "Native smoke workflow re-triggers whenever source inventory and exact native-release regression assertions change",
     "Real Android expo-modules-autolinking resolve output must include exactly once all five local native module classes before Gradle or APK release",
-    "Godot Kotlin module must compile with explicit AndroidX FragmentActivity supertype on classpath; CI run 44645939344 failed without this dependency"
+    "Godot Kotlin module must compile with explicit AndroidX FragmentActivity supertype on classpath; CI run 44645939344 failed without this dependency",
+    "Do not mark signed APK complete from EAS receipt alone: download exact completed binary, validate Android package, signature, SHA256 and all four ABIs; retain device runtime/ads/OTA gates"
   ],
   "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
   "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",
