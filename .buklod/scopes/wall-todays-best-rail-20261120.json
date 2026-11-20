@@ -1,0 +1,85 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-todays-best-rail-20261120.json",
+  "objective": "Rename Marites Story to Today's Best, relocate the story strip to the start of the Wall just below the title bar and before search/Notes, and modestly enlarge the cards and heading.",
+  "baseRef": "release/genesis-conso-staging-ota-candidate-20261120",
+  "productionBaselineEvidence": "GitHub main source 536741f8d97fc9dec91503c89f1c1160e5987ce0 and Genesis staging release candidate 48f458acf73fe27b0c042ccdb71831483e947294 inspected on 2026-11-20; these establish source ancestry only, not a live production APK/OTA fingerprint.",
+  "chosenApproach": "Reuse existing single BuklodMaritesBoard mount and media/visibility hooks, place it before the native search/Notes rail; reorder the web wrapper likewise; adjust shared story dimensions from 132x178 to 148x200 dp and title font from 12 to 16; rename user-visible story strings without changing backend marker, auth or model.",
+  "selectionRationale": "Changing the existing FlashList header composition gives an immediately discoverable Today's Best rail without adding screens, duplicate players, endpoints, native dependencies or new assets.",
+  "alternativeApproaches": [
+    "Duplicate story cards in a sticky separate header, rejected because it doubles video/visibility work and ad scroll depth.",
+    "Keep stories after the manuscript and link from the top, rejected because it does not meet immediate top placement."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "ad-first-view-visibility",
+    "scroll-depth",
+    "web-native-parity"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodMaritesBoard.web.tsx",
+    "src/lib/buklodVisual.ts",
+    "tests/todays-best-wall-header-20261120.test.mjs",
+    "tests/todays-best-wall-navigation-20261120.test.mjs",
+    ".buklod/scopes/wall-todays-best-rail-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/todays-best-wall-header-20261120.test.mjs",
+    "tests/todays-best-wall-navigation-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Change only Wall header layout and story labels, preserving existing runtime modules and cross-tab behavior.",
+      "preservedBehaviors": [
+        "No changes to native dependencies, runtime, provider subscriptions or background handlers.",
+        "Single story player mount and existing visibility lifecycle preserved."
+      ],
+      "tests": [
+        "tests/todays-best-wall-header-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Enlarge existing story cards and move them in the Wall while preserving streaming, signed media URLs and video focus.",
+      "preservedBehaviors": [
+        "72-hour story filtering, author controls, media signing, comments and reactions unchanged.",
+        "Virtualized story FlatList and scroll-pause visibility state retained."
+      ],
+      "tests": [
+        "tests/todays-best-wall-header-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Place Today's Best before the existing search/Notes rail without changing authenticated scope or search navigation.",
+      "preservedBehaviors": [
+        "Existing search/Notes functionality, location audience scope and scroll-to-top shortcuts retained.",
+        "Public Wall permissions and profile navigation unchanged."
+      ],
+      "tests": [
+        "tests/todays-best-wall-navigation-20261120.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Keep existing AdMob components, placement IDs and lifecycle implementation unchanged, but verify their new first-viewport visibility before any release.",
+    "Keep stories, profile search, location chips, post composer and all community ads in the same single scrolling FlashList.",
+    "Preserve user identities, captions, authorized media visibility and backend story marker."
+  ],
+  "acceptanceChecks": [
+    "Both focused Node source tests pass.",
+    "Protected feature source lock and required CI gate pass.",
+    "Test story open/close, swipe, reactions, comments, search and visible media on Genesis staging device.",
+    "Check first-view ad availability/fill and dashboard switching; block release if regressions.",
+    "Exact RC and staging verification before any production OTA."
+  ],
+  "releaseMode": "DEV_DRAFT_PR_NO_OTA",
+  "releaseTarget": "Genesis staging release candidate only after required gates",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
