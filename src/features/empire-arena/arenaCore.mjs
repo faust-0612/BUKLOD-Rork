@@ -50,6 +50,32 @@ export function lineBlocked(map,a,b){
     return Math.hypot(a.x+u*dx-x,a.y+u*dy-y)<r+0.2;
   });
 }
+export function connectedRelays(s,team,map){
+  const anchor={x:team==="A"?8:map.width-8,y:map.height/2};
+  const nodes=[
+    ...s.relays.filter(n=>n.owner===team).map(n=>({...n,isRelay:true})),
+    ...s.buildings.filter(b=>b.team===team&&b.kind==="bridge").map(b=>({...b,isRelay:false}))
+  ];
+  const reached=new Set(),frontier=[anchor];
+  while(frontier.length){
+    const from=frontier.shift();
+    nodes.forEach((n,i)=>{if(reached.has(i)||distance(from,n)>14)return;reached.add(i);frontier.push(n);});
+  }
+  return nodes.filter((n,i)=>n.isRelay&&reached.has(i)).length;
+}
+export function teamWalkable(map,x,y,structures,team){
+  const inBounds=Number.isFinite(x)&&Number.isFinite(y)&&x>.7&&y>.7&&x<map.width-.7&&y<map.height-.7;
+  return inBounds&&(walkable(map,x,y)||structures.some(b=>b.team===team&&b.kind==="bridge"&&distance({x,y},b)<3.5));
+}
+export function formation(s,p,c){
+  if(!["guard","surge"].includes(c.stance)||s.elapsedMs-p.cooldown.formation<25000)return;
+  if(!Object.values(s.players).some(q=>q.team===p.team&&q.alive&&q.id!==p.id&&distance({x:p.x,y:p.y},{x:q.x,y:q.y})<=5))return;
+  if(s.teams[p.team].flux<12)return;
+  s.teams[p.team].flux-=12;
+  s.teams[p.team].formation={stance:c.stance,untilMs:s.elapsedMs+8000};
+  p.cooldown.formation=s.elapsedMs;p.contributions++;
+  event(s,"team_formation",{team:p.team,stance:c.stance});
+}
 export function event(s,type,extra={}){
   s.events.push({tick:s.tick,type,...extra});
   if(s.events.length>128)s.events=s.events.slice(-128);
@@ -78,19 +104,20 @@ export function createMatch({id,mode="cluster",mapId="genesis_rift",ranked=false
       const maxHp=Math.round(hero.hp*(1+0.006*(level-1)));
       players[r.id]={id:r.id,team:t,characterId:r.characterId,role:hero.role,level,x,y,spawn:{x,y},
         hp:maxHp,maxHp,shield:0,alive:true,respawnAt:0,attackAt:-1e6,lastSeq:0,
-        cooldown:{primary:-1e6,secondary:-1e6,ultimate:-1e6,build:-1e6,link:-1e6},linkUntil:0,
+        cooldown:{primary:-1e6,secondary:-1e6,ultimate:-1e6,build:-1e6,link:-1e6,formation:-1e6},linkUntil:0,
         lastActionAt:-1e6,activeMs:0,commands:0,contributions:0,kills:0,deaths:0,damage:0,capturing:false};
     });
   }
   const relays=mode==="duel"?[]:map.relays.slice(0,mode==="grand"?4:3).map(([x,y],i)=>({id:"relay"+i,x,y,progress:0,owner:null}));
   return {id,mode,mapId,ranked:!!ranked,ruleVersion:1,tick:0,elapsedMs:0,status:"active",overtime:false,result:null,players,
-    teams:{A:{coreHp:conf.coreHp,flux:40,kills:0,holdMs:0},B:{coreHp:conf.coreHp,flux:40,kills:0,holdMs:0}},
+    teams:{A:{coreHp:conf.coreHp,flux:40,kills:0,holdMs:0,formation:null},B:{coreHp:conf.coreHp,flux:40,kills:0,holdMs:0,formation:null}},
     relays,buildings:[],events:[]};
 }
 export function damage(s,attacker,victim,base){
   if(!victim.alive||attacker.team===victim.team)return false;
   const reduction=Math.min(victim.shield,base);victim.shield-=reduction;
-  const taken=Math.max(0,base-reduction);
+  const guard=s.teams[victim.team].formation;
+  const taken=Math.max(0,(base-reduction)*(guard?.stance==="guard"&&guard.untilMs>s.elapsedMs?0.85:1));
   victim.hp=Math.max(0,victim.hp-taken);attacker.damage+=taken;
   if(victim.hp===0){
     victim.alive=false;victim.deaths++;attacker.kills++;
@@ -106,7 +133,7 @@ export function attack(s,p,c,map){
   const enemy=p.team==="A"?"B":"A";
   if(c.target==="core"&&s.mode!=="duel"){
     const core=map.cores[enemy],near=distance({x:p.x,y:p.y},core)<=4.5;
-    if(!near||s.relays.filter(n=>n.owner===p.team).length<2)return;
+    if(!near||connectedRelays(s,p.team,map)<2)return;
     const shield=s.buildings.some(b=>b.team===enemy&&b.kind==="barrier"&&distance(b,core)<6);
     const n=16*(1+0.006*(p.level-1))*(shield?0.55:1);
     s.teams[enemy].coreHp=Math.max(0,s.teams[enemy].coreHp-n);
@@ -129,7 +156,7 @@ export function skill(s,p,c,map){
   if(c.slot==="secondary"||c.slot==="primary"&&HEROES[p.characterId].primary==="blink"){
     const mag=Math.hypot(c.dx,c.dy);if(!Number.isFinite(mag)||mag<0.1)return;
     const boost=c.slot==="secondary"?3:4,x=p.x+boost*c.dx/mag,y=p.y+boost*c.dy/mag;
-    if(!walkable(map,x,y))return;
+    if(!teamWalkable(map,x,y,s.buildings,p.team))return;
     p.x=x;p.y=y;
   }else if(c.slot==="ultimate"){
     if(s.teams[p.team].flux<30||!victim||!victim.alive||victim.team===p.team||distance(here,{x:victim.x,y:victim.y})>6||lineBlocked(map,here,{x:victim.x,y:victim.y}))return;
@@ -203,11 +230,12 @@ export function stepMatch(previous,input=[],stepMs=50){
       if(!Number.isFinite(mag)||mag<0.05||mag>1.5)continue;
       const speed=4.6*(1+0.003*(p.level-1));
       const x=p.x+(c.dx/Math.max(1,mag))*speed*.05,y=p.y+(c.dy/Math.max(1,mag))*speed*.05;
-      if(walkable(map,x,y)){p.x=x;p.y=y;}
+      if(teamWalkable(map,x,y,s.buildings,p.team)){p.x=x;p.y=y;}
     }else if(c.type==="attack")attack(s,p,c,map);
     else if(c.type==="skill")skill(s,p,c,map);
     else if(c.type==="build")build(s,p,c,map);
     else if(c.type==="link")link(s,p,c,map);
+    else if(c.type==="formation")formation(s,p,c);
     else if(c.type==="capture"){p.capturing=true;p.contributions++;}
   }
   if(s.status!=="active")return s;
@@ -224,7 +252,7 @@ export function stepMatch(previous,input=[],stepMs=50){
   s.buildings=s.buildings.filter(b=>b.expiresMs>s.elapsedMs&&b.hp>0);
   for(const team of ["A","B"]){
     const other=team==="A"?"B":"A",mine=s.teams[team];
-    const owned=s.relays.filter(n=>n.owner===team).length;
+    const owned=connectedRelays(s,team,map);
     mine.flux=Math.min(120,mine.flux+owned*.02);
     if(owned>=2&&s.mode!=="duel")s.teams[other].coreHp=Math.max(0,s.teams[other].coreHp-(s.overtime?.35:.1));
     mine.holdMs=owned>=3&&owned===s.relays.length?mine.holdMs+50:0;
@@ -258,7 +286,7 @@ export function validateCommandEnvelope(match,authenticatedUid,verifiedTicket,co
   if(!verifiedTicket||verifiedTicket.userId!==authenticatedUid||verifiedTicket.matchId!==match.id||verifiedTicket.expiresAtMs<=serverNowMs)return false;
   if(!match.players[authenticatedUid]||!command||command.actorId!==authenticatedUid)return false;
   if(!Number.isSafeInteger(command.seq)||command.seq<1||JSON.stringify(command).length>360)return false;
-  return ["move","attack","skill","build","capture","link"].includes(command.type);
+  return ["move","attack","skill","build","capture","link","formation"].includes(command.type);
 }
 export function publicResult(match){
   if(!match.result)return null;
