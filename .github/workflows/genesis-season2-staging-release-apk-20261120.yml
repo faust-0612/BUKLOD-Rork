@@ -4,12 +4,15 @@ on:
     branches:
       - dev/genesis-season-wordmark-appwide-20261120
       - dev/genesis-silent-ota-native-integration-20261120
+      - dev/genesis-no-legacy-native-splash-conso-20261120
     paths:
       - .github/workflows/genesis-season2-staging-release-apk-20261120.yml
       - tests/genesis-staging-live-backend-review-20261120.test.mjs
       - tests/genesis-staging-native-apk-release-20261120.test.mjs
       - tests/genesis-apk-binary-proof-20261120.test.mjs
       - tests/genesis-cinematic-startup-release-identity-20261120.test.mjs
+      - tests/genesis-startup-green-b-runtime-release-20261120.test.mjs
+      - tests/genesis-startup-center-ota-safe-20261120.test.mjs
       - src/features/season2/genesis/GenesisCinematicStartup.tsx
       - src/components/BuklodMainBrandIntro.tsx
       - app.config.js
@@ -21,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   genesis-staging-apk:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' || github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120') && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_STAGING_APK_START:') }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.ref == 'refs/heads/dev/genesis-season-wordmark-appwide-20261120' || github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120' || github.ref == 'refs/heads/dev/genesis-no-legacy-native-splash-conso-20261120') && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_STAGING_APK_START:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -52,7 +55,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           node scripts/genesis-prepare-skia-binaries.mjs
           node scripts/genesis-assert-native-autolinking.mjs
-          node --test tests/genesis-native-autolinking-reality-20261120.test.mjs tests/genesis-staging-live-backend-review-20261120.test.mjs tests/genesis-cinematic-startup-release-identity-20261120.test.mjs
+          node --test tests/genesis-native-autolinking-reality-20261120.test.mjs tests/genesis-staging-live-backend-review-20261120.test.mjs tests/genesis-cinematic-startup-release-identity-20261120.test.mjs tests/genesis-startup-green-b-runtime-release-20261120.test.mjs tests/genesis-startup-center-ota-safe-20261120.test.mjs
           node --test tests/genesis-apk-binary-proof-20261120.test.mjs
           node --test tests/genesis-skia-native-binary-install-20261120.test.mjs
           node --test tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs tests/genesis-godot-native-foundation-20261120.test.mjs tests/genesis-drive-native-foundation-20261120.test.mjs

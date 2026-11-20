@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 const src = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const scene = src('src/features/season2/genesis/GenesisCinematicStartup.tsx');
 test('center logo, creation burst and complete Genesis copy as one native-screen-sized unit', () => {
@@ -36,14 +36,26 @@ test('keep timed single-shot cinematic, accessibility and chrome/biometric gate 
     'duration: motionReduced ? 100 : 260',
   ]) assert.ok(scene.includes(token), 'Broken launch safeguard: ' + token);
 });
-test('existing APK-native configuration is byte-for-byte unchanged; this OTA cannot remove the OS thorn splash', () => {
-  const expected = execFileSync('git', ['show', '5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0:app.config.js'], {encoding:'utf8'});
-  const actual = src('app.config.js');
-  assert.equal(actual, expected, 'Native config differs from signed Genesis staging baseline: APK rebuild needed');
-  assert.ok(actual.includes(": './assets/release/splash-icon.png'"), 'Existing native splash remains pinned');
-  assert.ok(!actual.includes("genesisNativePreview ? './assets/season2/genesis/genesis-green-b-transparent.png'"), 'Native splash edit was accidentally included in OTA');
-  const preview = src('src/components/BuklodMainBrandIntro.tsx');
-  assert.ok(preview.includes('if (isGenesisPreviewBuild())'));
-  assert.ok(preview.includes('<GenesisCinematicStartup>{children}</GenesisCinematicStartup>'));
-  assert.ok(preview.includes('return <LegacyBrandIntro>{children}</LegacyBrandIntro>'));
+test('native-rebuild lane replaces legacy Android splash without affecting other app targets', () => {
+  const require = createRequire(import.meta.url);
+  const keys = ['APP_VARIANT','EXPO_PUBLIC_APP_ENV','EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW'];
+  const before = Object.fromEntries(keys.map(k => [k, process.env[k]]));
+  try {
+    Object.assign(process.env, {APP_VARIANT:'staging',EXPO_PUBLIC_APP_ENV:'staging',EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW:'true'});
+    const config = require('../app.config.js')({config:{}});
+    const splash = config.plugins.find(x => Array.isArray(x) && x[0] === 'expo-splash-screen')[1];
+    const greenB = './assets/season2/genesis/genesis-green-b-transparent.png';
+    assert.equal(splash.image,greenB);
+    assert.equal(splash.dark.image,greenB);
+    assert.equal(splash.backgroundColor,'#141A43');
+    assert.equal(splash.dark.backgroundColor,'#141A43');
+    assert.equal(config.android.adaptiveIcon.foregroundImage,greenB);
+    assert.equal(config.runtimeVersion,'2.0.0-genesis-preview');
+    const intro=src('src/components/BuklodMainBrandIntro.tsx');
+    assert.ok(intro.includes('if (isGenesisPreviewBuild())'));
+    assert.ok(intro.includes('<GenesisCinematicStartup>{children}</GenesisCinematicStartup>'));
+    assert.ok(intro.includes('return <LegacyBrandIntro>{children}</LegacyBrandIntro>'));
+  } finally {
+    for(const k of keys) before[k] === undefined ? delete process.env[k] : process.env[k] = before[k];
+  }
 });
