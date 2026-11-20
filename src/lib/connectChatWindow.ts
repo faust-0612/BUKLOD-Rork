@@ -341,6 +341,15 @@ export function connectScrollAction(args: {
  * measured height inserted before the visible history. Do this ONCE for a
  * history prepend; ordinary media/layout updates must never adjust the list.
  */
+/** Follow the last row through keyboard reflows unless the user is scrolling. */
+export function connectFollowingLatest(args: {
+  composerFocused: boolean;
+  jumpPending: boolean;
+  userInteracting: boolean;
+}): boolean {
+  return !args.userInteracting && (args.composerFocused || args.jumpPending);
+}
+
 export function connectOlderPrependScrollOffset(
   anchor: { offset: number; height: number } | null,
   currentHeight: number

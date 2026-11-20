@@ -1,6 +1,5 @@
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -31,18 +30,11 @@ import {
 } from 'react-native-safe-area-context';
 
 import {
-  supabase,
-} from '@/lib/supabase';
-
-import {
-  detectBuklodPublicLanguage,
-} from '@/lib/buklodPublicDailyContent';
-
-import {
   getBuklodLifeCopy,
-  normalizeBuklodLifeLanguage,
   type BuklodLifeTopicKey,
 } from '@/lib/buklodLifeContent';
+
+import { useBuklodLifeLanguage, useBuklodLifeLanguageSettings } from '@/hooks/useBuklodLifeLanguage';
 
 import BuklodLifeTabs from '@/components/BuklodLifeTabs';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -65,95 +57,11 @@ export default function BuklodLifeScreen() {
   const showFaithContent = Boolean(activeScope?.show_faith_content);
   const [savedJourney, setSavedJourney] = useState<BuklodLifePrivateProgress | null>(null);
 
-  const {
-    user,
-    profile,
-  } =
-    useAuth();
+  const { user } = useAuth();
 
-  const [
-    address,
-    setAddress,
-  ] =
-    useState<{
-      country?: string | null;
-      province?: string | null;
-    }>({});
-
-
-  useEffect(() => {
-
-    let alive = true;
-
-    const load =
-      async () => {
-
-        if (!user?.id) {
-          return;
-        }
-
-        const {
-          data,
-        } =
-          await supabase
-            .from(
-              'buklod_user_addresses'
-            )
-            .select(
-              'country,province'
-            )
-            .eq(
-              'user_id',
-              user.id
-            )
-            .maybeSingle();
-
-        if (
-          alive &&
-          data
-        ) {
-          setAddress(
-            data
-          );
-        }
-      };
-
-    void load();
-
-    return () => {
-      alive = false;
-    };
-
-  }, [
-    user?.id,
-  ]);
-
-
-  const language =
-    useMemo(
-      () =>
-        normalizeBuklodLifeLanguage(
-          detectBuklodPublicLanguage(
-            (
-              profile as any
-            )?.preferred_language,
-            address.country ??
-              (
-                profile as any
-              )?.country,
-            address.province ??
-              (
-                profile as any
-              )?.province,
-          )
-        ),
-      [
-        profile,
-        address.country,
-        address.province,
-      ]
-    );
-
+  // One locale source for LIFE entry, deep links and resumptions.
+  const language = useBuklodLifeLanguage();
+  const setLifeLanguage = useBuklodLifeLanguageSettings();
 
   const copy =
     useMemo(
@@ -282,19 +190,18 @@ export default function BuklodLifeScreen() {
           </Text>
         </View>
 
-        <View
-          style={
-            styles.languageBadge
-          }
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={language === 'fil' ? 'Wika: Filipino. Palitan sa English' : 'Language: English. Switch to Filipino'}
+          accessibilityHint={language === 'fil' ? 'I-tap upang gawing English ang buong LIFE' : 'Tap to use Filipino throughout LIFE'}
+          onPress={() => void setLifeLanguage(language === 'fil' ? 'en' : 'fil').catch(error =>
+            console.warn('LIFE language preference could not be saved', error))}
+          style={styles.languageBadge}
         >
-          <Text
-            style={
-              styles.languageText
-            }
-          >
-            {copy.languageLabel}
-          </Text>
-        </View>
+          <MaterialCommunityIcons name="translate" size={15} color="#365D3E" />
+          <Text style={styles.languageText}>{copy.languageLabel}</Text>
+          <MaterialCommunityIcons name="swap-horizontal" size={13} color="#365D3E" />
+        </Pressable>
       </View>
 
       <BuklodLifeTabs
@@ -306,7 +213,7 @@ export default function BuklodLifeScreen() {
         <Pressable
           onPress={() => router.push({
             pathname: '/life/topic' as any,
-            params: { topic: savedJourney.topic, lang: savedJourney.language },
+            params: { topic: savedJourney.topic, lang: language },
           })}
           accessibilityRole="button"
           style={styles.continueCard}>
@@ -1061,6 +968,10 @@ const styles =
     },
 
     languageBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      minHeight: 32,
       paddingHorizontal:
         8,
 
@@ -1076,7 +987,7 @@ const styles =
 
     languageText: {
       fontSize:
-        7,
+        10,
 
       letterSpacing:
         0.7,

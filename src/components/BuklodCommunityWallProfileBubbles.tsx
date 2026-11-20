@@ -43,69 +43,7 @@ function firstName(name: string) {
   return String(name ?? 'Member').trim().split(/\s+/)[0] || 'Member';
 }
 
-function isExpired(expiresAt: string | null | undefined, now = Date.now()) {
-  if (!expiresAt) return false;
-  const expires = new Date(expiresAt).getTime();
-  return Number.isFinite(expires) && expires <= now;
-}
-
-async function pruneExpiredContactNotes(
-  rows: ConnectSuggestedContact[],
-): Promise<ConnectSuggestedContact[]> {
-  const ids = [
-    ...new Set(
-      rows
-        .map(row => String(row.user_id ?? '').trim())
-        .filter(Boolean),
-    ),
-  ];
-
-  if (!ids.length) return rows;
-
-  try {
-    const { data, error } = await supabase
-      .from('buklod_profile_status')
-      .select('user_id, quick_note_expires_at')
-      .in('user_id', ids);
-
-    if (error) return rows;
-
-    const expired = new Set<string>();
-    const now = Date.now();
-
-    for (const row of data ?? []) {
-      const userId = String(row.user_id ?? '').trim();
-      if (
-        userId &&
-        row.quick_note_expires_at &&
-        isExpired(String(row.quick_note_expires_at), now)
-      ) {
-        expired.add(userId);
-      }
-    }
-
-    if (!expired.size) return rows;
-
-    return rows.map(row =>
-      expired.has(row.user_id)
-        ? { ...row, quick_note: null }
-        : row,
-    );
-  } catch {
-    return rows;
-  }
-}
-
-function hoursLeftLabel(
-  expiresAt: string | null | undefined,
-  now: number,
-) {
-  if (!expiresAt) return '';
-  const diff = new Date(expiresAt).getTime() - now;
-  if (!Number.isFinite(diff) || diff <= 0) return '';
-  const hours = Math.min(24, Math.max(1, Math.ceil(diff / 3600000)));
-  return `${hours}h`;
-}
+// All Notes are persistent; no expiry filtering or extra Note-only network read.
 
 function NoteBubble({
   note,
@@ -113,8 +51,6 @@ function NoteBubble({
   secondaryColor = textColor,
   editable = false,
   mine = false,
-  expiresAt = null,
-  now = Date.now(),
   saving = false,
   onSave,
 }: {
@@ -123,15 +59,12 @@ function NoteBubble({
   secondaryColor?: string;
   editable?: boolean;
   mine?: boolean;
-  expiresAt?: string | null;
-  now?: number;
   saving?: boolean;
   onSave?: (value: string) => Promise<boolean>;
 }) {
   const value = repairMojibakeText(String(note ?? '')).trim();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
-  const timeLabel = mine ? hoursLeftLabel(expiresAt, now) : '';
 
   useEffect(() => {
     if (!editing) setDraft(value);
@@ -216,11 +149,6 @@ function NoteBubble({
           {value}
         </Text>
       </View>
-      {timeLabel ? (
-        <Text style={[styles.noteTime, { color: secondaryColor }]}>
-          {timeLabel}
-        </Text>
-      ) : null}
     </Pressable>
   );
 }
@@ -233,7 +161,6 @@ function BuklodCommunityConnectRail() {
   const [query, setQuery] = useState('');
   const [selfNote, setSelfNote] = useState<MessagesStatusNote | null>(null);
   const [selfSaving, setSelfSaving] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
 
   const currentUser = useMemo(() => {
     const userId = String(
@@ -270,9 +197,7 @@ function BuklodCommunityConnectRail() {
 
     if (viewerRef.current !== viewerId) return;
     if (contactsResult.status === 'fulfilled') {
-      const clean = await pruneExpiredContactNotes(
-        contactsResult.value.slice(0, MAX_BUBBLES),
-      );
+      const clean = contactsResult.value.slice(0, MAX_BUBBLES);
       if (viewerRef.current === viewerId) {
         // Preserve the painted list when an intermittent read comes back empty.
         setContacts(previous => clean.length ? clean : previous);
@@ -283,7 +208,6 @@ function BuklodCommunityConnectRail() {
       setSelfNote(selfNoteResult.value);
     }
 
-    if (viewerRef.current === viewerId) setNow(Date.now());
   }, [viewerId]);
 
   // Hydrate per-user notes and avatars without a blank/loading flash.
@@ -316,12 +240,6 @@ function BuklodCommunityConnectRail() {
     const interval = setInterval(() => { void refreshRail(); }, NOTE_REFRESH_MS);
     return () => { clearInterval(interval); };
   }, [viewerId, refreshRail]));
-
-  useEffect(() => {
-    if (selfNote && isExpired(selfNote.expires_at, now)) {
-      setSelfNote(null);
-    }
-  }, [now, selfNote]);
 
   useEffect(() => {
     const clean = query.trim();
@@ -366,7 +284,7 @@ function BuklodCommunityConnectRail() {
 
         const enriched =
           await enrichConnectSuggestedContactsWithNotes(mapped);
-        const cleanRows = await pruneExpiredContactNotes(enriched);
+        const cleanRows = enriched;
 
         if (!cancelled) setSearchContacts(cleanRows);
       })();
@@ -422,7 +340,6 @@ function BuklodCommunityConnectRail() {
     try {
       const saved = await saveMessagesStatusNote(value);
       setSelfNote(saved);
-      setNow(Date.now());
       return !!saved;
     } catch (error) {
       console.warn(
@@ -446,12 +363,9 @@ function BuklodCommunityConnectRail() {
       rank_name: null,
       thread_id: null,
       unread_count: 0,
-      quick_note:
-        selfNote && !isExpired(selfNote.expires_at, now)
-          ? selfNote.quick_note
-          : null,
+      quick_note: selfNote?.quick_note ?? null,
     };
-  }, [currentUser, now, selfNote]);
+  }, [currentUser, selfNote]);
 
   if (!selfContact && !visibleContacts.length && !searching) {
     return null;
@@ -482,8 +396,6 @@ function BuklodCommunityConnectRail() {
               secondaryColor={theme.textSecondary}
               editable
               mine
-              expiresAt={selfNote?.expires_at}
-              now={now}
               saving={selfSaving}
               onSave={persistSelfNote}
             />
@@ -521,6 +433,7 @@ function BuklodCommunityConnectRail() {
               <ConnectTappableAvatar
                 userId={contact.user_id}
                 name={contact.full_name}
+                rankName={contact.rank_name}
                 uri={contact.avatar_url}
                 size={AVATAR_SIZE}
                 onPress={() => openConversation(contact)}

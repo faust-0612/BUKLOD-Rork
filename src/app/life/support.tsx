@@ -3,17 +3,15 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-import { normalizeBuklodLifeLanguage } from '@/lib/buklodLifeContent';
+import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
 import { BUKLOD_LIFE_CONCERNS } from '@/lib/buklodLifeGuide';
 
 export default function BuklodLifeSupportScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ concern?: string }>();
-  const { profile } = useAuth();
   const { activeScope } = useBuklodScope();
-  const lang = normalizeBuklodLifeLanguage((profile as any)?.preferred_language);
+  const lang = useBuklodLifeLanguage();
   const isFil = lang === 'fil';
   const topic = useMemo(() =>
     BUKLOD_LIFE_CONCERNS.find(item => item.key === params.concern) ??

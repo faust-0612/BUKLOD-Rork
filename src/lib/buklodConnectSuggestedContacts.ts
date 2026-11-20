@@ -202,7 +202,7 @@ async function loadSuggestedFromScopeMembers(
 
 async function loadConnectStatusNotes(
   userIds: string[]
-): Promise<Map<string, string>> {
+): Promise<Map<string, string> | null> {
   const ids = [
     ...new Set(
       userIds
@@ -248,26 +248,21 @@ async function loadConnectStatusNotes(
     );
   }
 
-  const { data } = await supabase
+  const { data, error: fallbackError } = await supabase
     .from('buklod_profile_status')
-    .select('user_id, quick_note, quick_note_expires_at')
+    .select('user_id, quick_note')
     .in('user_id', ids);
+  if (fallbackError) return null; // Preserve warm notes when network fails.
 
   for (const row of data ?? []) {
     const note = repairMojibakeText(
       String(row.quick_note ?? '')
     ).trim();
-    const expires = row.quick_note_expires_at
-      ? new Date(String(row.quick_note_expires_at)).getTime()
-      : null;
 
     if (!note) {
       continue;
     }
 
-    if (expires && expires <= Date.now()) {
-      continue;
-    }
 
     noteByUser.set(String(row.user_id), note);
   }
@@ -347,13 +342,11 @@ async function attachQuickNotes(
   }
 
   const noteByUser = await loadConnectStatusNotes(ids);
-
+  if (!noteByUser) return contacts;
   return contacts.map(contact => ({
     ...contact,
-    quick_note:
-      noteByUser.get(contact.user_id) ||
-      contact.quick_note?.trim() ||
-      null,
+    // Authoritative empty Notes clear stale deleted Notes.
+    quick_note: noteByUser.get(contact.user_id) ?? null,
   }));
 }
 

@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=(p)=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('offline Genesis native compile prepares version-pinned Skia binaries before CMake without arbitrary npm postinstall',()=>{
+ const pkg=JSON.parse(read('package.json'));
+ assert.equal(pkg.dependencies['@shopify/react-native-skia'],'2.6.2');
+ const preparer=read('scripts/genesis-prepare-skia-binaries.mjs');
+ assert.match(preparer,/manifest\.version !== '2\.6\.2'/);
+ assert.match(preparer,/scripts\/install-libs\.js/);
+ assert.match(preparer,/execFileSync\(process\.execPath, \[entry\]/);
+ assert.match(preparer,/arm64-v8a/);
+ assert.match(preparer,/libskia\.a/);
+ const smoke=read('.github/workflows/genesis-android-compile-smoke-20261120.yml');
+ assert.match(smoke,/npm ci --ignore-scripts --no-audit --no-fund/);
+ assert.match(smoke,/node scripts\/genesis-prepare-skia-binaries\.mjs/);
+ assert.ok(smoke.indexOf('node scripts/genesis-prepare-skia-binaries.mjs')<smoke.indexOf('npx expo prebuild'), 'Skia asset install must precede Gradle');
+ const apk=read('.github/workflows/genesis-season2-staging-release-apk-20261120.yml');
+ assert.match(apk,/node scripts\/genesis-prepare-skia-binaries\.mjs/);
+ assert.match(apk,/test -n "\$\{EXPO_TOKEN:-\}"/);
+});

@@ -1,0 +1,7 @@
+{
+  "name": "@buklod/genesis-play-updates",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "description": "Native Play Core immediate update bridge, fail closed for staging/sideload"
+}

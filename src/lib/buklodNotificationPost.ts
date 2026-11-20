@@ -95,7 +95,7 @@ export async function loadBuklodNotificationPost(
     media_items: mediaItems,
     media_url: mediaItems.find((item: any) => item.media_url)?.media_url ?? row.media_url,
     my_reaction: reactionResult?.data?.reaction ?? row.my_reaction ?? null,
-    author_rank_name: authorRank ?? row.author_rank_name ?? 'Circle Starter V',
+    author_rank_name: authorRank ?? row.author_rank_name ?? null,
     cluster_name: clusterMap[row.user_id] ?? row.cluster_name ?? null,
     comment_preview: previewMap[id] ?? row.comment_preview ?? null,
   };

@@ -30,7 +30,7 @@
       "status": "dependency-declared",
       "origin": "package.json Genesis",
       "description": "Existing Skia, Reanimated 4, Worklets, SVG, Lottie, LinearGradient",
-      "remaining": "Android shader/ABI, GPU FPS, device battery and accessibility not verified"
+      "remaining": "Pinned Skia 2.6.2 ABI binary preparation added after missing libskia.a was observed; rerun native Gradle/CMake and actual device GPU FPS QA pending"
     },
     {
       "id": "genesis-cosmic-ui",
@@ -139,38 +139,38 @@
     },
     {
       "id": "native-media3-compression",
-      "status": "held-no-implementation",
-      "origin": "PR #814 audit",
-      "description": "On-device upload transcoding/video compression and adaptive delivery",
-      "remaining": "Media3 native codec quality, device heat, battery, ad/video regression not implemented"
+      "status": "native-source-uncompiled",
+      "origin": "Genesis Media3 1.11.1 Android Expo module",
+      "description": "Local-only bounded H.264/AAC transcoding with native resize, bitrate presets, timeouts, private cache, cancel and original-file fallback; preview opt-in, upload path unchanged",
+      "remaining": "Kotlin/Gradle/codec and actual low-memory/thermal/user-upload QA outstanding; future JS OTA activation only after device acceptance"
     },
     {
       "id": "godot-android-3d",
-      "status": "held-no-implementation",
-      "origin": "PR #814/#1010",
-      "description": "Separate immersive 3D Kingdom Android AAR + engine bridge",
-      "remaining": "Godot AAR, approved 3D assets, Gradle ABI, footprint and performance not integrated"
+      "status": "native-source-uncompiled",
+      "origin": "Official Godot 4.7.2.stable Maven Central AAR + isolated Genesis Expo module",
+      "description": "Dormant native Godot renderer Activity in separate Android process, SHA-256 verified private PCK launcher; no unapproved map/character art displayed",
+      "remaining": "Actual AAR/Kotlin/Gradle compile and engine runtime/ABI/size testing pending; approved professional 3D PCK/13 rigs absent; future OTA assets must be approved and integrity-checked"
     },
     {
       "id": "drive-oauth-cloud-sync",
-      "status": "held-credentials",
-      "origin": "PR #814",
-      "description": "Optional direct Drive API sync with user-verified Google identity",
-      "remaining": "Native Android OAuth client/signature and authorized secure account binding unavailable; not enabled"
+      "status": "native-source-uncompiled",
+      "origin": "Genesis Android Google Identity AuthorizationClient 22.0.0 Expo native consent module",
+      "description": "Dormant user-triggered least-privilege Drive.file+openid+email consent bridge; no automatic sync, no token persistence; account identity remains unverified until explicit secure JS/server binding",
+      "remaining": "OAuth app package/signing SHA registration, actual Android consent flow, Google subject to active BUKLOD identity verification, revoke/recovery/Drive API QA and legal authorization pending; never auto enabled"
     },
     {
       "id": "silent-ota-next-launch",
-      "status": "queued-separate",
+      "status": "source-implemented",
       "origin": "PR #1003/#1005",
       "description": "Silent compatible update download with no forced mid-call/compose restart",
-      "remaining": "Not reconciled into exact Genesis runtime branch; no served OTA evidence"
+      "remaining": "Exact #1003 silent-next-launch source forward-port added to isolated Genesis branch; compiled APK and served OTA still unverified"
     },
     {
       "id": "play-core-in-app-update",
-      "status": "held-no-implementation",
-      "origin": "PR #1013 audit",
-      "description": "Native mandatory Google Play binary update prompt",
-      "remaining": "Play Core module, live Play availability and version gate validation not integrated"
+      "status": "native-source-uncompiled",
+      "origin": "Genesis Play Core 2.1.0 native Expo module",
+      "description": "Google Play AppUpdateManager availability checks and opt-in IMMEDIATE flow, production-only package guard, fail-closed for side-loaded staging",
+      "remaining": "Kotlin/Gradle compile, actual Play-distributed install, server minimum-version policy gating and lifecycle/device QA required; no automatic forcing before Google Play availability"
     },
     {
       "id": "android-admob",
@@ -224,6 +224,8 @@
     "Actual First-view AdMob consent/loading/no-fill + instant tab navigation",
     "Video scroll-stop, social compose/call/PTT audio focus, low-memory and contrast",
     "Asset decode/license approval and 13 .riv/audio quality gates if advertised",
-    "Dec 6 embargo and separate authorized RC; no production mutation"
+    "Dec 6 embargo and separate authorized RC; no production mutation",
+    "ARM64-only local compile smoke is NOT a multi-ABI release gate; signed EAS release must validate final ABIs, APK size, installed device runtime and signatures independently",
+    "Real Expo Android autolinking output includes GIF, Play Core, Media3, Godot, Drive local native modules exactly once; not inferred from source files alone"
   ]
 }

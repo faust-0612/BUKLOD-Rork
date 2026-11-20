@@ -1,0 +1,7 @@
+{
+  "name": "@buklod/genesis-media3",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "description": "Isolated Android Media3 local upload-video compression foundation; no auto-upload"
+}

@@ -41,9 +41,7 @@ import {
   BuklodQrMatrix,
 } from '@/components/BuklodQrMatrix';
 
-import {
-  normalizeBuklodLifeLanguage,
-} from '@/lib/buklodLifeContent';
+import { useBuklodLifeLanguage } from '@/hooks/useBuklodLifeLanguage';
 
 import {
   loadBuklodLifeShareInfo,
@@ -51,9 +49,6 @@ import {
   type BuklodLifeShareInfo,
 } from '@/lib/buklodLifeImpact';
 
-import {
-  useAuth,
-} from '@/providers/AuthProvider';
 
 
 function BuklodLifeShareScreenContent() {
@@ -61,23 +56,7 @@ function BuklodLifeShareScreenContent() {
   const insets =
     useSafeAreaInsets();
 
-  const {
-    profile,
-  } =
-    useAuth();
-
-  const language =
-    useMemo(
-      () =>
-        normalizeBuklodLifeLanguage(
-          (
-            profile as any
-          )?.preferred_language
-        ),
-      [
-        profile,
-      ]
-    );
+  const language = useBuklodLifeLanguage();
 
   const [
     info,

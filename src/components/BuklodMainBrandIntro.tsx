@@ -20,6 +20,18 @@ import {
 } from '@/lib/buklodStartupChrome';
 
 /**
+ * Prevent premature native splash disappearance while the Genesis-only
+ * cinematic scene is code-split. The production intro remains unchanged.
+ */
+if (Platform.OS !== 'web' && isGenesisPreviewBuild()) {
+  void SplashScreen.preventAutoHideAsync().catch(() => undefined);
+}
+
+const GenesisCinematicStartup = React.lazy(() =>
+  import('@/features/season2/genesis/GenesisCinematicStartup')
+);
+
+/**
  * The seasonal backdrop is code-split and only mounts inside an explicitly
  * non-production preview. Keep Season 1 boot and AdMob first-paint budget.
  */
@@ -36,11 +48,19 @@ const GenesisStartupAtmosphere = React.lazy(() =>
  * Asset source is the same canonical app icon used by Expo config.
  * No alternate/legacy logo may be rendered here.
  */
-export default function BuklodMainBrandIntro({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function BuklodMainBrandIntro({ children }: { children: React.ReactNode }) {
+  if (isGenesisPreviewBuild()) {
+    return (
+      <React.Suspense fallback={<View style={{ flex: 1, backgroundColor: '#050A19' }} />}>
+        <GenesisCinematicStartup>{children}</GenesisCinematicStartup>
+      </React.Suspense>
+    );
+  }
+  return <LegacyBrandIntro>{children}</LegacyBrandIntro>;
+}
+
+/** Keep all existing non-Genesis startup hooks and production rendering unchanged. */
+function LegacyBrandIntro({ children }: { children: React.ReactNode }) {
   const isWeb = Platform.OS === 'web';
   const genesisPreview = isGenesisPreviewBuild();
 

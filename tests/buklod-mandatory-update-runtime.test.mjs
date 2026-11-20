@@ -12,15 +12,24 @@ test('Server retains authority for version cutoff and foreground refresh has thr
  assert.match(s,/Platform.OS === 'web'\s*\? '999.999.999'/);
 });
 
-test('Existing EAS OTA remains compatible and never auto-reloads over a call', () => {
+test('Genesis uses silent OTA downloads without restarting calls or drafts', () => {
  const host=read('src/components/BuklodOtaFreshnessHost.native.tsx');
- assert.match(host,/CHECK_INTERVAL_MS = 60 \* 60 \* 1000/);
+ const policy=read('src/lib/buklodSilentOtaPolicy.ts');
+ assert.match(host,/createSilentOtaDownloader/);
  assert.match(host,/Updates.checkForUpdateAsync/);
  assert.match(host,/Updates.fetchUpdateAsync/);
- assert.match(host,/Updates.reloadAsync/);
- assert.match(host,/I-restart/);
- assert.match(host,/Mamaya/);
- assert.doesNotMatch(host, /await Updates.reloadAsync\(\)/);
+ assert.match(host,/AppState.currentState === 'active'/);
+ assert.match(policy,/OTA_CHECK_INTERVAL_MS = 60 \* 60 \* 1000/);
+ assert.match(policy,/OTA_FAILURE_COOLDOWN_MS = 30 \* 60 \* 1000/);
+ assert.doesNotMatch(host,/Updates.reloadAsync|I-restart|Mamaya|Pressable/);
+});
+
+test('Genesis runtime and OTA channel cannot overlap production', () => {
+ const c=read('app.config.js');
+ const eas=JSON.parse(read('eas.json'));
+ assert.match(c,/genesisNativePreview \? '2\.0\.0-genesis-preview' : '1\.3\.2'/);
+ assert.equal(eas.build['season2-genesis-preview'].channel,'season2-genesis-preview');
+ assert.equal(eas.build.production.channel,'production');
 });
 
 test('Server cutoff remains unchanged by this DEV-only change',()=>{
