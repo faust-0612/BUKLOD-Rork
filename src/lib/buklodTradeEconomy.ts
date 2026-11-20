@@ -3,6 +3,7 @@
  * The backend owns all balances, eligibility, inventory and Rank qualifications.
  */
 import { supabase } from '@/lib/supabase';
+import { invalidateCache } from '@/lib/performance';
 
 export type TradeItem = { code: string; title: string; max_unit_price: number };
 export type TradeInventoryItem = { code: string; quantity: number; cost_basis_bp: number };
@@ -49,6 +50,16 @@ async function callTradeRpc<T>(fn: string, args?: Record<string, unknown>): Prom
       data: T; error: { message?: string } | null;
     };
     if (error) throw new Error(String(error.message || 'BUKLOD Marketplace is unavailable.'));
+    if (fn !== 'buklod_trade_snapshot_v1' && fn !== 'buklod_trade_unclaimed_sources_v1') {
+      // Successful BP/Rank mutations must not leave the canonical 60s dashboard
+      // cache stale. Cache refresh failure must NOT report payment failure.
+      try {
+        const { data: authData } = await supabase.auth.getSession();
+        if (authData.session?.user?.id) {
+          invalidateCache('buklod:points:' + authData.session.user.id + ':');
+        }
+      } catch { /* refresh remains best effort after durable server receipt */ }
+    }
     return data;
   } finally {
     if (timer) clearTimeout(timer);

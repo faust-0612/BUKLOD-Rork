@@ -107,4 +107,6 @@ test('no replacement of existing Palengke door or commercial subscription shell'
   assert.match(read('src/components/BuklodTradeWorkspace.tsx'), /AsyncStorage\.getItem\(storageKey\)/);
   assert.match(read('src/components/BuklodTradeWorkspace.tsx'), /buklod:trade:pending:/);
   assert.match(read('src/lib/buklodTradeEconomy.ts'), /viewer_id/);
+  assert.match(read('src/lib/buklodTradeEconomy.ts'), /invalidateCache\('buklod:points:'/);
+  assert.match(read('src/lib/buklodTradeEconomy.ts'), /Cache refresh failure must NOT report payment failure/);
 });
