@@ -21,7 +21,7 @@ Status: **DEV SOURCE ONLY / NOT DEPLOYED**. Generated changeset is in `supabase/
 
 Each item represents one of the Character's **1,300 existing named story-asset slots** (13 × 20 × 5). Only required slots per transition gate progress; other collectibles remain cosmetic. Requirements rise monotonically with level. Each level uses *cumulative activity since the Character's applicable baseline*, so identical social actions do not instantly satisfy every later transition. Requirements remain finite and visible in the user interface.
 
-The source of truth is a private per-Character activity attribution table populated only by validated server events, plus a private per-transition item receipt table. The claim RPC checks `auth.uid()`, active Character, current stage, required verified event count, and idempotent item uniqueness. A client-supplied photo, point count, unverified post, arbitrary task declaration or cosmetic collectible cannot self-issue an evolution item.
+The source of truth is a private per-Character activity attribution table populated only by validated server events, plus a private per-transition item receipt table. Capture callbacks and claims share the Character-switch transaction advisory lock; the visible-level query uses one grouped indexed lookup per Character, not 19 separate level probes. The claim RPC checks `auth.uid()`, active Character, current stage, required verified event count, and idempotent item uniqueness. A client-supplied photo, point count, unverified post, arbitrary task declaration or cosmetic collectible cannot self-issue an evolution item.
 
 ## Existing assets and legacy protection
 
@@ -35,7 +35,7 @@ Historical auto-redeemed core cosmetics are NOT treated as new evolution receipt
 2. Apply only to an isolated, authorized test database first; verify private grants/RLS, trigger event attribution, per-account and per-Character isolation, duplicate/retry idempotency, weak-network recoverability, Show Faith OFF, late switch, and cross-session behavior.
 3. Test a BP-eligible L2 member with no items (must remain L1); award one verified item (still L1); award both (L2); then attempt replay, cross-character claims, wrong level, arbitrary game event, and historical cosmetic ownership (all must fail to bypass).
 4. Test all 13 Characters and the 20-level thresholds, including legacy floor levels and lower-level new users. Verify zero regressions in Circle Rank, QMP, ad first-view and dashboard navigation. Confirm native visual parity using protected R31/R40 layouts.
-5. Make the Special Character item task panel discoverable without bypassing the existing hard visual hash gate; backend gating already covers all 13. Do not promote before this UX gap is closed.
+5. The all-13-Character item task panel is discoverable via Profile → EVOLUTION ITEMS · TASKS → /points/evolution, without modifying hash-locked Character Studio art. Validate physical device layout and special-character collectible legacy level labels before promotion.
 6. Follow DEV → verified RC → staging verification → owner acceptance → consolidated production release. No production database changes or OTA from this branch.
 
 Known limitation: the initial verified sources cover Public Wall and Kingdom first mastery, not every Organization/Cluster/Government/Market action. Add new source adapters only after their authoritative validators, scope permissions, rate limits and evidence of anti-collusion are verified. Do not promise those adapters as live.
