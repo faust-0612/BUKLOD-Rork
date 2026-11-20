@@ -1,12 +1,12 @@
 {
   "contractVersion": 2,
   "objective": "Forward-port the owner-approved 2-o'clock Weekly Performance replacement for the green Notes N onto the latest Genesis consolidated staging candidate, preserving 40 authentic Circle Rank atlas, rank-colored frame, off-by-default blue presence, Connect Notes, Wall/Connect navigation, ads, and season lock. Source-only database SQL, no active live-backend migration or production release.",
-  "baseRef": "48f458acf73fe27b0c042ccdb71831483e947294",
+  "baseRef": "integration/genesis-glass-todaysbest-conso-staging-20261120",
   "productionChange": false,
   "releaseTarget": "GENESIS_STAGING_SOURCE_ONLY",
   "releaseAuthorized": false,
   "scopeManifestPath": ".buklod/scopes/genesis-weekly-avatar-conso-20261120.json",
-  "productionBaselineEvidence": "Exact release/genesis-conso-staging-ota-candidate-20261120 base 48f458acf73fe27b0c042ccdb71831483e947294; previous PR #1019 staged rank enhancements already integrated; BUKLOD shared live data project yhanxndaqbmuzbdqlblu is not an isolated staging backend. Source-only weekly RPC SQL not executed. Production package, runtime and OTA untouched.",
+  "productionBaselineEvidence": "Exact release/genesis-conso-staging-ota-candidate-20261120 base 48f458acf73fe27b0c042ccdb71831483e947294; previous PR #1019 staged rank enhancements already integrated; BUKLOD shared live data project yhanxndaqbmuzbdqlblu is not an isolated staging backend. Source-only weekly RPC SQL not executed. Production package, runtime and OTA untouched. PR #1036 glass/Today's Best + compact Connect conso source merged at deaddda6cc1dd547210d540de96abd2df102cd63; this weekly source change is disjoint and leaves native/ads and all other consolidated files byte-identical.",
   "allowedPaths": [
     ".buklod/scopes/genesis-weekly-avatar-conso-20261120.json",
     "src/components/ProfileAvatar.tsx",
@@ -66,7 +66,8 @@
   "knownBlockers": [
     "No isolated BUKLOD MAIN staging Supabase endpoint confirmed; only shared live project and unrelated Quiz/Attendance projects found",
     "No staged weekly RPC deployed; live UI fails closed",
-    "Physical Android staging rendering and ad-fill remain unverified by device"
+    "Physical Android staging rendering and ad-fill remain unverified by device",
+    "Genesis EAS staging-user profile explicitly uses shared live BUKLOD Supabase yhanxndaqbmuzbdqlblu; no staging branch exists; never run SQL migration on shared live without separately verified isolation"
   ],
   "lockedFeatureChanges": [
     {
