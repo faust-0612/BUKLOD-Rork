@@ -1,0 +1,66 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-startup-green-b-center-20261120.json",
+  "objective": "Remove the obsolete thorn native startup logo on Genesis staging and immediately present the transparent green B; center the approved cosmic animation logo and wordmark together.",
+  "baseRef": "834061504f8e28e4286c9e7b06cea04f513dcd7d",
+  "productionBaselineEvidence": "Source main 551e54602addd6f7bbe7bcdddd1589d35424c964; staging candidate cf1c732c3ed3c718099f0163e18ed369149c068e; reported installed staging APK source 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0, runtime 2.0.0-genesis-preview. Device/native execution not independently verified. Native resource edit requires new staging APK. Latest candidate branch base 834061504f8e28e4286c9e7b06cea04f513dcd7d includes independent staging OTA workflow guard not edited here.",
+  "chosenApproach": "Only Genesis preview Expo splash/launcher/adaptive icon uses the existing transparent B and cosmic-indigo background. Explicit screen-fixed group centers existing logo, burst and wordmark without altering animation timing or app boot.",
+  "selectionRationale": "Android 12 splash is OS-native and cannot be removed by OTA; matching native B and JS B eliminates the old brand flash, while indigo replaces plain near-black.",
+  "alternativeApproaches": [
+    "OTA-only native splash rewrite: impossible without new APK",
+    "Global branding swap: unwanted production/classroom regression",
+    "Custom native Activity: disproportionate risk for a simple image swap"
+  ],
+  "allowedPaths": [
+    "app.config.js",
+    "src/features/season2/genesis/GenesisCinematicStartup.tsx",
+    "tests/genesis-cinematic-startup-release-identity-20261120.test.mjs",
+    "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs",
+    ".buklod/scopes/genesis-startup-green-b-center-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-cinematic-startup-release-identity-20261120.test.mjs",
+    "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Align initial Genesis brand and entire centered cinematic without altering boot/chrome/biometric and app navigation lifecycle.",
+      "preservedBehaviors": [
+        "Production startup, video and ad first paint, reduced motion, Season 2 embargo and navigation unchanged."
+      ],
+      "tests": [
+        "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Native Expo splash and adaptive icon assets require a new signed staging APK; no OTA should change frozen installed native resources.",
+      "preservedBehaviors": [
+        "Production package and runtime remain identical and no staging/production OTA or Play release is triggered."
+      ],
+      "tests": [
+        "tests/genesis-cinematic-startup-release-identity-20261120.test.mjs",
+        "tests/genesis-startup-green-b-runtime-release-20261120.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "release-identity",
+    "Native Android 12 system splash remains briefly static by OS design",
+    "New signed staging APK required, do not apply as OTA to installed old APK",
+    "biometric prompt resize and accessibility font scaling"
+  ],
+  "preserveBehaviors": [
+    "Existing intro audio, motion, timings, galaxy, fonts, startup and auth lifecycle",
+    "Production icon, package and runtime; ads, backend and December 6 rewards embargo"
+  ],
+  "acceptanceChecks": [
+    "Config asserts stage-only native B with transparent alpha asset",
+    "Production/classroom and normal staging remain unchanged",
+    "Existing cinematic group centered without changing animation",
+    "Automation and physical Android rendering required before publication"
+  ],
+  "releaseMode": "DEV_NEW_STAGING_APK_REQUIRED",
+  "releaseStatus": "SOURCE_PATCH_ONLY_NO_OTA_NO_APK"
+}

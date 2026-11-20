@@ -24,10 +24,10 @@ test('native Genesis staging release uses only transparent green B; production s
  assert.equal(qa.runtimeVersion,'2.0.0-genesis-preview');
  assert.equal(qa.icon,mark);
  assert.equal(qa.android.adaptiveIcon.foregroundImage,mark);
- assert.equal(qa.android.adaptiveIcon.backgroundColor,'#050A19');
+ assert.equal(qa.android.adaptiveIcon.backgroundColor,'#141A43');
  assert.equal(splash(qa).image,mark);
  assert.equal(splash(qa).dark.image,mark);
- assert.equal(splash(qa).backgroundColor,'#050A19');
+ assert.equal(splash(qa).backgroundColor,'#141A43');
  assert.equal(prod.android.package,'org.mzbministry.buklod');
  assert.equal(prod.runtimeVersion,'1.3.2');
  assert.equal(splash(prod).image,'./assets/release/splash-icon.png');
