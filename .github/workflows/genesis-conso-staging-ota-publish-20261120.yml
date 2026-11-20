@@ -200,7 +200,7 @@ jobs:
           a.equal(u.group,fs.readFileSync(d+'/update-group.txt','utf8').trim());
           a.ok(u.id&&u.group&&!u.isRollBackToEmbedded);
           for(const [name,expected] of [['stage-after',original.stageBranchId],['production-after',original.productionBranchId]]){
-            const c=read(name),m=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
+            const snapshot=read(name),c=snapshot.currentPage??snapshot,m=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
             a.equal(m?.data?.length,1);
             a.equal(m.data[0].branchId,expected,'EAS channel mapping changed during OTA release');
           }
