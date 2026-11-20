@@ -126,7 +126,8 @@
     "Official Godot 4.7.2 AAR must compile and be app-private SHA-verified, non-exported, separate process; no unapproved asset or scene activation",
     "Drive native consent is opt-in/Android preview only; SHA/OAuth registration and verified Google subject binding must precede any direct Drive request; token never persisted",
     "ARM64 source/native compile smoke is explicitly non-release evidence; full EAS multi-ABI and real device checks mandatory before APK OTA publication",
-    "Legacy native inventory/release CI tests must assert SDK source compiled only after actual Gradle and signed evidence; never gate on obsolete held-not-implemented statuses"
+    "Legacy native inventory/release CI tests must assert SDK source compiled only after actual Gradle and signed evidence; never gate on obsolete held-not-implemented statuses",
+    "Native smoke workflow re-triggers whenever source inventory and exact native-release regression assertions change"
   ],
   "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
   "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",

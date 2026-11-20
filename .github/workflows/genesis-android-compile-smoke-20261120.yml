@@ -13,6 +13,10 @@ on:
       - modules/buklod-genesis-godot/**
       - modules/buklod-genesis-drive-auth/**
       - tests/genesis-drive-native-foundation-20261120.test.mjs
+      - tests/genesis-android-compile-smoke-release-20261120.test.mjs
+      - tests/genesis-native-build-inventory-20261120.test.mjs
+      - tests/genesis-staging-native-apk-release-20261120.test.mjs
+      - release/genesis-native-build-inventory-20261120.json
       - tests/genesis-godot-native-foundation-20261120.test.mjs
       - tests/genesis-media3-native-foundation-20261120.test.mjs
       - tests/genesis-play-core-native-foundation-20261120.test.mjs
