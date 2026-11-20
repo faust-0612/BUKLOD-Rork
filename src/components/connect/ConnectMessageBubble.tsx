@@ -50,6 +50,7 @@ import {
   connectSinglePhotoFrame,
   connectMediaOnlyMessage,
   visibleReaderAvatars,
+  latestConnectReaderReadAt,
 } from '@/lib/connectChatWindow';
 
 export type ConnectPhotoSlot = {
@@ -62,6 +63,8 @@ export type ConnectSeenReader = {
   userId: string;
   name: string;
   avatarUrl?: string | null;
+  /** Authorized room-read cursor; not a separate per-message receipt. */
+  lastReadAt?: string | null;
 };
 
 type AvatarReaction = {
@@ -285,8 +288,11 @@ function createStyles(theme: ConnectThemeRoles) {
     seenRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 1,
-      minHeight: 20,
+      justifyContent: 'flex-end',
+      flexWrap: 'wrap',
+      gap: 4,
+      marginTop: 3,
+      minHeight: 24,
     },
     seenRowOwn: {
       alignSelf: 'flex-end',
@@ -295,19 +301,25 @@ function createStyles(theme: ConnectThemeRoles) {
       color: theme.textMuted,
       fontSize: 11,
       fontWeight: '700',
-      marginRight: 8,
+      marginRight: 2,
+    },
+    seenTime: {
+      color: theme.textMuted,
+      fontSize: 10,
+      fontWeight: '600',
+      marginLeft: 3,
     },
     seenRowOther: {
       alignSelf: 'flex-start',
     },
     seenAvatar: {
-      marginRight: -6,
+      marginRight: 0,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: theme.canvas,
     },
     seenExtra: {
-      marginLeft: 10,
+      marginLeft: 0,
       minWidth: 28,
       height: 22,
       borderRadius: 11,
@@ -519,6 +531,8 @@ export function ConnectMessageBubble({
     frame.width
   );
   const seen = visibleReaderAvatars(seenReaders ?? []);
+  const latestReadAt = latestConnectReaderReadAt(seenReaders ?? []);
+  const latestReadTime = latestReadAt?.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   // A standalone photo, GIF, album, or attachment owns its frame. Do not
   // surround it with an extra white/green bordered message card.
   const mediaOnly = connectMediaOnlyMessage({
@@ -971,6 +985,11 @@ export function ConnectMessageBubble({
               <Text style={styles.seenExtraText}>+{seen.extra}</Text>
             </View>
           )}
+          {latestReadTime && seen.shown.length > 0 ? (
+            <Text style={styles.seenTime} accessibilityLabel={`Latest room read at ${latestReadTime}`}>
+              {latestReadTime}
+            </Text>
+          ) : null}
         </Pressable>
       )}
     </View>

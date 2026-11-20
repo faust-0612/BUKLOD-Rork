@@ -606,6 +606,19 @@ export function visibleReaderAvatars<T>(
   };
 }
 
+/** Latest verified room cursor among displayed readers; never infer from send time. */
+export function latestConnectReaderReadAt(
+  readers: Array<{ lastReadAt?: string | null }>
+): Date | null {
+  let latest = Number.NEGATIVE_INFINITY;
+  for (const reader of readers) {
+    if (!reader.lastReadAt) continue;
+    const timestamp = Date.parse(reader.lastReadAt);
+    if (Number.isFinite(timestamp)) latest = Math.max(latest, timestamp);
+  }
+  return Number.isFinite(latest) ? new Date(latest) : null;
+}
+
 export function connectPhotoSlots(args: {
   paths: string[];
   urls: Record<string, string | undefined>;

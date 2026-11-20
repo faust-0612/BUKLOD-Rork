@@ -43,6 +43,8 @@ import { useNetwork } from '@/providers/NetworkProvider';
 import {useBuklodScopePhoto} from '@/hooks/useBuklodScopePhoto';
 import { getBuklodCardTone, getStableBuklodCardTone, isBuklodDarkPaletteId, type BuklodCardToneName } from '@/lib/buklodCardTones';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { GenesisCosmosBackground } from '@/features/season2/genesis/GenesisVisuals';
 
 function messageOf(error: unknown) {
   if (error && typeof error === 'object' && 'code' in error &&
@@ -266,6 +268,7 @@ export default function ClustersScreen() {
 
 function ClusterDirectory({ owner }: { owner: string }) {
   const { theme } = useBuklodTheme();
+  const genesisClusterCanvas = isGenesisPreviewBuild();
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -542,8 +545,10 @@ function ClusterDirectory({ owner }: { owner: string }) {
 
 
   return (
+    <View style={[styles.screen, { backgroundColor: genesisClusterCanvas ? '#070D22' : theme.canvas }]}>
+      {genesisClusterCanvas ? <GenesisCosmosBackground active /> : null}
     <BuklodPortalScrollView
-      style={[styles.screen, { backgroundColor: theme.canvas }]}
+      style={[styles.screen, { backgroundColor: 'transparent' }]}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
       refreshControl={
@@ -836,6 +841,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
       ) : null}
 
     </BuklodPortalScrollView>
+    </View>
   );
 }
 
