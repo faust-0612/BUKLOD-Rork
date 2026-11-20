@@ -18,6 +18,8 @@ import {
 } from '@/components/BuklodCommunityPostEngagement';
 import type { BuklodReactionOption } from '@/components/BuklodReactionAction';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import BuklodMarketWallLink from '@/components/BuklodMarketWallLink';
+import { marketMarkerId } from '@/lib/buklodMarketLink';
 
 export type BuklodCommunityWallMedia = {
   id?: string;
@@ -49,6 +51,7 @@ type Props = {
   children?: ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
   useThemeCard?: boolean;
+  marketPostBody?: string;
   active?: boolean;
   onPressAuthor?: () => void;
   onPressPhoto?: (index: number, photos: BuklodCommunityWallMedia[]) => void;
@@ -74,6 +77,7 @@ function BuklodCommunityWallPostCard(props: Props) {
     children,
     containerStyle,
     post,
+    marketPostBody,
   } = props;
 
   // Keep the integrated feed wrapper lightweight. Existing Public/Scoped
@@ -90,6 +94,7 @@ function BuklodCommunityWallPostCard(props: Props) {
         ]}
       >
         {children}
+        {marketMarkerId(marketPostBody) ? <BuklodMarketWallLink body={marketPostBody || ''} /> : null}
       </View>
     );
   }

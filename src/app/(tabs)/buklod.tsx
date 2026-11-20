@@ -1,6 +1,7 @@
 import { buklodVisual } from '@/lib/buklodVisual';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
+import { marketVisiblePostBody } from '@/lib/buklodMarketLink';
 import BuklodPostMotion from '@/components/BuklodPostMotion';
 import BuklodWallPostAudioMeter from '@/components/BuklodWallPostAudioMeter';
 import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
@@ -6071,7 +6072,7 @@ const communityFeedRows =
 
     return (
       <BuklodFocusVisibleRow index={index}>
-    <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
+    <BuklodCommunityWallPostCard marketPostBody={String(item.body??'')} containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    {/* BUKLOD_WALL_TWO_COLUMN_HEADER_R3_20261117: name + Follow on first row, Edit/Report directly below the right-hand control. */}
    <View style={{flexDirection:'row',alignItems:'flex-start',gap:8}}>
      <BuklodTappableAvatar
@@ -6236,10 +6237,10 @@ const communityFeedRows =
     active={wallScreenFocused&&visibleCreativePostIds.includes(String(item.id))}>
    <BuklodExpandableWallCaption
     key={String(item.id)}
-    text={String(repairMojibakeText(item.body) ?? '').replace(
+    text={marketVisiblePostBody(String(repairMojibakeText(item.body) ?? '').replace(
      /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
      ''
-    )}
+    ))}
     style={s.body}
     hasMedia={Boolean(
      item.media_path ||
