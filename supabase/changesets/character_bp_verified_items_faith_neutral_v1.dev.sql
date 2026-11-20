@@ -162,6 +162,8 @@ BEGIN
   IF NEW.direction IS DISTINCT FROM 'credit'
      OR NEW.claim_state IS DISTINCT FROM 'claimed'
      OR NEW.activity_type IS DISTINCT FROM 'game_first_qualified'
+     OR NEW.points IS NULL OR NEW.points<=0
+     OR NEW.user_id IS NULL OR NEW.source_key IS NULL
      OR NEW.source_key NOT LIKE 'kingdom:mastery:v1:%' THEN RETURN NEW; END IF;
   PERFORM pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtext('buklod_character_switch_v3'),
