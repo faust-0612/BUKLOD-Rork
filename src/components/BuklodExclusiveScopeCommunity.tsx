@@ -2150,16 +2150,17 @@ export default function BuklodExclusiveScopeCommunity({
                 !snapshot.publishingReel
                   ? null
                   : mediaSize,
-              p_duration_seconds:
-                snapshot.wallVideo &&
-                !snapshot.publishingReel
-                  ? null
-                  : duration,
-              p_is_reel:
-                isReel,
               ...(snapshot.postToPublic
-                ? {p_mentioned_user_ids:snapshot.mentions.map(mention=>mention.user_id)}
-                : {}),
+                ? {
+                    p_media_duration_seconds:
+                      snapshot.wallVideo && !snapshot.publishingReel ? null : duration,
+                    p_mentioned_user_ids: snapshot.mentions.map(mention => mention.user_id),
+                  }
+                : {
+                    p_duration_seconds:
+                      snapshot.wallVideo && !snapshot.publishingReel ? null : duration,
+                  }),
+              p_is_reel:isReel,
             }
           );
 
@@ -2187,6 +2188,7 @@ export default function BuklodExclusiveScopeCommunity({
 
         if (
           createdId &&
+          !snapshot.postToPublic &&
           snapshot.mentions.length
         ) {
           void notifyBuklodCommunityMentions({
