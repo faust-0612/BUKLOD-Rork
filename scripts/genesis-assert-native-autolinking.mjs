@@ -39,7 +39,7 @@ for(const [pkg,cls] of candidates){
  const selected=modules.filter(m=>m.packageName===pkg);
  const projects=selected.flatMap(m=>Array.isArray(m.projects)?m.projects:[]);
  const found=projects.filter(project=>Array.isArray(project.modules) &&
-   project.modules.includes(cls) &&
+   project.modules.some(entry=>entry===cls || entry?.classifier===cls) &&
    path.resolve(project.sourceDir||'')===path.join(folder,'android'));
  if(found.length!==1){
    const related=modules.filter(m=>String(m.packageName).includes('buklod'));

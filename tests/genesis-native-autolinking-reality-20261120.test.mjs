@@ -8,7 +8,8 @@ test('native build must verify actual Expo resolver, not merely inventory string
    assert.ok(script.includes('genesis-'+module),'module absent '+module);
  assert.match(script,/execFileSync\(bin,\['resolve','--platform','android','--json'\]/);
  assert.match(script,/found\.length!==1/);
- assert.match(script,/project\.modules\.includes\(cls\)/);
+ assert.match(script,/entry\?\.classifier===cls/);
+ assert.match(script,/project\.modules\.some/);
  assert.match(script,/m\.projects/);
  assert.match(script,/project\.sourceDir/);
  assert.match(script,/Resolved local Android Gradle projects and classes/);
