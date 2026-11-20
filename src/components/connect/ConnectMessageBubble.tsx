@@ -313,6 +313,10 @@ function createStyles(theme: ConnectThemeRoles) {
       alignSelf: 'flex-start',
     },
     seenAvatar: {
+      width: 36,
+      height: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
       marginRight: 0,
       borderRadius: 999,
       borderWidth: 1,
@@ -975,7 +979,7 @@ export function ConnectMessageBubble({
                 userId={reader.userId}
                 name={reader.name}
                 uri={reader.avatarUrl}
-                size={18}
+                size={22}
                 onPress={onPressSeenReaders}
               />
             </View>
