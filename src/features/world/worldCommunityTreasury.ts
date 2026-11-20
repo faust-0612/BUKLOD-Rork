@@ -33,12 +33,15 @@ export type WorldCommunityProgressPolicyDraft={
   communityBpPer100EarnedBp:number;
   perReceiptCapBp:number;
   perMemberMonthlyCapBp:number;
+  /** Aggregate treasury issuance ceiling; must be enforced atomically server-side. */
+  perCommunityMonthlyCapBp:number;
 };
 export const WORLD_COMMUNITY_PROGRESS_POLICY:WorldCommunityProgressPolicyDraft={
   version:'community_bp_progress_v1',
   communityBpPer100EarnedBp:10,
   perReceiptCapBp:30,
   perMemberMonthlyCapBp:200,
+  perCommunityMonthlyCapBp:3000,
 };
 export type WorldCommunityProgressCredit={
   eventId:string;
@@ -78,12 +81,19 @@ export function previewCommunityProgressBp(
     return reject('Invalid monthly period.');
   if(!Number.isSafeInteger(policy.communityBpPer100EarnedBp)||policy.communityBpPer100EarnedBp<0||
      !Number.isSafeInteger(policy.perReceiptCapBp)||policy.perReceiptCapBp<0||
-     !Number.isSafeInteger(policy.perMemberMonthlyCapBp)||policy.perMemberMonthlyCapBp<0)
+     !Number.isSafeInteger(policy.perMemberMonthlyCapBp)||policy.perMemberMonthlyCapBp<0||
+     !Number.isSafeInteger(policy.perCommunityMonthlyCapBp)||policy.perCommunityMonthlyCapBp<0)
     return reject('Invalid policy limits.');
   const previous=history
     .filter(h=>h.communityScopeId===event.community.scopeId&&h.memberId===event.memberId&&h.period===period)
     .reduce((acc,h)=>acc+Math.max(0,h.creditedCommunityBp),0);
-  const remaining=Math.max(0,policy.perMemberMonthlyCapBp-previous);
+  const communityPreviouslyIssued=history
+    .filter(h=>h.communityScopeId===event.community.scopeId&&h.period===period)
+    .reduce((acc,h)=>acc+Math.max(0,h.creditedCommunityBp),0);
+  const remaining=Math.min(
+    Math.max(0,policy.perMemberMonthlyCapBp-previous),
+    Math.max(0,policy.perCommunityMonthlyCapBp-communityPreviouslyIssued),
+  );
   const beforeRatio=Math.floor(event.monthlyPersonalBpBeforeEvent*policy.communityBpPer100EarnedBp/100);
   const afterRatio=Math.floor((event.monthlyPersonalBpBeforeEvent+event.personalBpEarned)*policy.communityBpPer100EarnedBp/100);
   const proposed=Math.min(
