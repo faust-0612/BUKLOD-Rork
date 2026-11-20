@@ -115,9 +115,11 @@ export function createMatch({id,mode="cluster",mapId="genesis_rift",ranked=false
 }
 export function damage(s,attacker,victim,base){
   if(!victim.alive||attacker.team===victim.team)return false;
-  const reduction=Math.min(victim.shield,base);victim.shield-=reduction;
+  const surge=s.teams[attacker.team].formation;
+  const boosted=base*(surge?.stance==="surge"&&surge.untilMs>s.elapsedMs?1.08:1);
+  const reduction=Math.min(victim.shield,boosted);victim.shield-=reduction;
   const guard=s.teams[victim.team].formation;
-  const taken=Math.max(0,(base-reduction)*(guard?.stance==="guard"&&guard.untilMs>s.elapsedMs?0.85:1));
+  const taken=Math.max(0,(boosted-reduction)*(guard?.stance==="guard"&&guard.untilMs>s.elapsedMs?0.85:1));
   victim.hp=Math.max(0,victim.hp-taken);attacker.damage+=taken;
   if(victim.hp===0){
     victim.alive=false;victim.deaths++;attacker.kills++;
