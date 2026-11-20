@@ -47,3 +47,13 @@ test('database records actual author securely; no private scope wall publication
  assert.match(migration,/revoke all on table public\.buklod_public_wall_scope_identity from public, anon, authenticated/);
  assert.doesNotMatch(migration,/update\s+public\.community_posts\s+set\s+audience\s*=\s*'public'/i);
 });
+
+test('public feed resolves scope identity at first paint with backwards compatibility',()=>{
+ assert.match(wall,/get_buklod_public_community_feed_v8_page/);
+ assert.match(wall,/initial\.error\?\.code==='PGRST202'/);
+ assert.match(wall,/get_buklod_public_community_feed_v7_page/);
+ assert.match(wall,/Object\.prototype\.hasOwnProperty\.call\(post,'public_scope_identity'\)/);
+ assert.match(migration,/create or replace function public\.get_buklod_public_community_feed_v8_page/);
+ assert.match(migration,/from public\.get_buklod_public_community_feed_v7_page/);
+ assert.match(migration,/grant execute on function public\.get_buklod_public_community_feed_v8_page/);
+});
