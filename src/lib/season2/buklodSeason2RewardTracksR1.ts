@@ -122,6 +122,23 @@ export const S2_TRACK_BADGE_PREVIEWS=Object.freeze([
  {key:'community_foundation_crest',track:'non_show_faith',criteria:'One distinct learning and one distinct social receipt in a closed Non-Show Faith week.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
 ] as const);
 
+/** Exactly FOUR canonical seasonal awards, with evidence/visual context
+ * variants. Not 8 new badges or a new Season 2 exclusive category. */
+export const S2_TRACK_SEASONAL_AWARD_VARIANTS=Object.freeze({
+ show_faith:[
+  {key:'beacon_trail_frame',variant:'faith_light',title:'Beacon Trail Frame · Faith Path',criteria:'Verified faith-scoped or shared discovery; optional personal learning, no private prayer proof.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
+  {key:'maker_ribbon',variant:'faith_maker',title:'Maker Ribbon · Faith Path',criteria:'Original creative/community contribution in an eligible Show Faith scope.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
+  {key:'alliance_crest',variant:'faith_fellowship',title:'Alliance Crest · Faith Path',criteria:'Verified group service or equivalent solo community assistance.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
+  {key:'constellation_finale_scene',variant:'faith_legacy',title:'Constellation Finale Scene · Faith Path',criteria:'Verified full seasonal journey with ordinary/solo alternatives, no belief screening.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
+ ],
+ non_show_faith:[
+  {key:'beacon_trail_frame',variant:'explorer_discovery',title:'Beacon Trail Frame · Discovery Path',criteria:'Verified general/scoped or shared discovery without any faith tasks.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
+  {key:'maker_ribbon',variant:'community_maker',title:'Maker Ribbon · Community Path',criteria:'Original practical/creative contributions in an eligible Non-Show Faith scope.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
+  {key:'alliance_crest',variant:'community_alliance',title:'Alliance Crest · Community Path',criteria:'Verified team assistance or a solo alternative, without religious prerequisites.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
+  {key:'constellation_finale_scene',variant:'discovery_legacy',title:'Constellation Finale Scene · Community Path',criteria:'Verified complete seasonal journey via neutral learning and community routes.',bp:0,tokens:0,status:'PREVIEW_NOT_LIVE'},
+ ],
+} as const);
+
 export type S2VisibleScope=Readonly<{
  scope_id?:string|null; show_faith_content?:boolean|null;
  scope_status?:string|null;
