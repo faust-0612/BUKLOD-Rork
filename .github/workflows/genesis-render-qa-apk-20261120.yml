@@ -1,4 +1,4 @@
-name: BUKLOD Genesis Isolated Native Visual QA APK - NO BACKEND NO OTA
+name: BUKLOD Genesis Real Staging Native Render Preview APK - NO BACKEND NO OTA
 on:
   push:
     branches:
@@ -9,13 +9,14 @@ on:
       - index.js
       - src/features/season2/genesis/GenesisRenderQaEntry.tsx
       - tests/genesis-render-qa-isolation-20261120.test.mjs
+      - tests/genesis-staging-release-render-identity-20261120.test.mjs
 permissions:
   contents: read
 concurrency:
-  group: buklod-genesis-isolated-render-qa-20261120
+  group: buklod-genesis-staging-render-review-20261120
   cancel-in-progress: true
 jobs:
-  build-offline-genesis-qa:
+  build-genesis-staging-render-review:
     if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-silent-ota-native-integration-20261120' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_RENDER_QA_BUILD:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 70
@@ -53,18 +54,18 @@ jobs:
           const fs=require('node:fs');
           const assert=require('node:assert/strict');
           const cfg=require('./app.config.js')({config:{}});
-          assert.equal(cfg.android.package,'org.mzbministry.buklod.genesisqa');
+          assert.equal(cfg.android.package,'org.mzbministry.buklod.staging');
           assert.equal(cfg.updates.enabled,false);
           assert.ok(cfg.android.blockedPermissions.includes('android.permission.INTERNET'));
           const fake={
-            project_info:{project_number:'000000000000',project_id:'buklod-genesis-qa-offline',storage_bucket:'buklod-genesis-qa-offline.invalid'},
+            project_info:{project_number:'000000000000',project_id:'buklod-genesis-stage-render-offline',storage_bucket:'buklod-genesis-stage-render-offline.invalid'},
             client:[{client_info:{mobilesdk_app_id:'1:000000000000:android:0000000000000000000000',
-              android_client_info:{package_name:'org.mzbministry.buklod.genesisqa'}},
+              android_client_info:{package_name:'org.mzbministry.buklod.staging'}},
               api_key:[{current_key:'AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'}]}],
             configuration_version:'1'
           };
           fs.writeFileSync('google-services.staging.json',JSON.stringify(fake));
-          console.log('QA only: no working Supabase, no real Firebase keys, Expo updates disabled, Internet denied');
+          console.log('STAGING visual review only: no working Supabase, no real Firebase keys, Expo updates disabled, Internet denied');
           NODE
       - name: Locked native source, security and true Genesis rendering components QA
         shell: bash
@@ -73,7 +74,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           node scripts/genesis-prepare-skia-binaries.mjs
           node scripts/genesis-assert-native-autolinking.mjs
-          node --test tests/genesis-render-qa-isolation-20261120.test.mjs
+          node --test tests/genesis-render-qa-isolation-20261120.test.mjs tests/genesis-staging-release-render-identity-20261120.test.mjs
           npm run genesis:theme:gate
           node --test tests/genesis-drive-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs tests/genesis-godot-native-foundation-20261120.test.mjs tests/genesis-play-core-native-foundation-20261120.test.mjs
           npx tsc --noEmit
@@ -98,28 +99,30 @@ jobs:
           "$apksigner" verify --verbose --print-certs "$apk" > /tmp/genesis-qa-signer.txt
           grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' /tmp/genesis-qa-signer.txt
           "$aapt" dump badging "$apk" > /tmp/genesis-qa-badging.txt
-          grep -q "package: name='org.mzbministry.buklod.genesisqa'" /tmp/genesis-qa-badging.txt
+          grep -q "package: name='org.mzbministry.buklod.staging'" /tmp/genesis-qa-badging.txt
           "$aapt" dump permissions "$apk" > /tmp/genesis-qa-permissions.txt
           if grep -q 'android.permission.INTERNET' /tmp/genesis-qa-permissions.txt; then
             echo 'BLOCK: offline QA APK has INTERNET permission'; exit 1
           fi
-          unzip -Z1 "$apk" | grep -q '^assets/index.android.bundle$'
+          unzip -Z1 "$apk" > /tmp/genesis-stage-apk-entries.txt
+          grep -qx 'assets/index.android.bundle' /tmp/genesis-stage-apk-entries.txt
           test "$(unzip -Z1 "$apk" | grep -c '^lib/arm64-v8a/.*\.so$')" -gt 0
           mkdir -p /tmp/genesis-qa-out
-          cp "$apk" /tmp/genesis-qa-out/BUKLOD-Genesis-Offline-Visual-QA-arm64.apk
+          cp "$apk" /tmp/genesis-qa-out/BUKLOD-Genesis-Staging-Render-Preview-arm64.apk
           sha256sum "$apk" | awk '{print $1}' > /tmp/genesis-qa-out/apk.sha256
           node <<'NODE'
           const fs=require('node:fs');
           const crypto=require('node:crypto');
-          const file='/tmp/genesis-qa-out/BUKLOD-Genesis-Offline-Visual-QA-arm64.apk';
+          const file='/tmp/genesis-qa-out/BUKLOD-Genesis-Staging-Render-Preview-arm64.apk';
           const hash=crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
           const signer=fs.readFileSync('/tmp/genesis-qa-signer.txt','utf8');
           const cert=signer.match(/Signer #1 certificate SHA-256 digest: ([0-9a-f]{64})/i);
           if(!cert)throw Error('No QA APK signing certificate');
           fs.writeFileSync('/tmp/genesis-qa-out/receipt.json',JSON.stringify({
-            sourceSha:process.env.GITHUB_SHA,package:'org.mzbministry.buklod.genesisqa',
+            sourceSha:process.env.GITHUB_SHA,package:'org.mzbministry.buklod.staging',
             runtime:'2.0.0-genesis-preview',artifactSha256:hash,signatureSha256:cert[1],
             networkPermission:false,expoOta:false,abi:'arm64-v8a',
+            stagingVisualReviewOnly:true,functionalStagingReady:false,
             testSigningOnly:true,production:false,deviceRenderingVerified:false,
             features:'offline visual-only rendering of original Genesis components; no live backend or functionality'
           },null,2)+'\n');
@@ -127,10 +130,10 @@ jobs:
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: buklod-genesis-offline-render-qa-arm64
+          name: buklod-genesis-staging-render-preview-arm64
           path: /tmp/genesis-qa-out/
           if-no-files-found: error
           retention-days: 7
       - name: No OTA or production release
         if: success()
-        run: echo 'Isolated visual QA artifact only; no user data, OTA, Play, Supabase or production changes.'
+        run: echo 'Actual staging package, visual-review-only; test signing key, no user data, OTA, Play, Supabase or production changes.'

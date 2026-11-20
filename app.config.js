@@ -30,7 +30,7 @@ module.exports = ({ config }) => {
     !isClassroom &&
     isStaging &&
     process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW === 'true';
-  // Separate read-only render QA package: cannot overwrite staging or production.
+  // Read-only review mode uses the REAL staging package. Production never enables it.
   const genesisRenderQa = genesisNativePreview &&
     process.env.EXPO_PUBLIC_BUKLOD_GENESIS_RENDER_QA === 'true';
 
@@ -38,15 +38,15 @@ module.exports = ({ config }) => {
 
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
-    : (genesisRenderQa ? 'BUKLOD Genesis Visual QA' : (isStaging ? 'BUKLOD Staging' : 'BUKLOD'));
+    : (genesisRenderQa ? 'BUKLOD Genesis Staging' : (isStaging ? 'BUKLOD Staging' : 'BUKLOD'));
 
   const packageId = isClassroom
     ? 'org.mzbministry.buklod.classroom'
-    : (genesisRenderQa ? 'org.mzbministry.buklod.genesisqa' : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod'));
+    : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
 
   const scheme = isClassroom
     ? 'buklod-classroom'
-    : (genesisRenderQa ? 'buklod-genesis-qa' : (isStaging ? 'buklod-staging' : 'buklod'));
+    : (isStaging ? 'buklod-staging' : 'buklod');
 
   return {
     ...config,

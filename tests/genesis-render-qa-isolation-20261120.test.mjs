@@ -16,14 +16,14 @@ function forEnv(values) {
    for(const k of keys) { if(original[k]===undefined)delete process.env[k];else process.env[k]=original[k]; }
  }
 }
-test('Genesis offline QA is a distinct package with no network permission or OTA',()=>{
+test('Genesis visual review runs in actual staging package with no network permission or OTA',()=>{
  const args={APP_VARIANT:'staging',EXPO_PUBLIC_APP_ENV:'staging',EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW:'true'};
  const qa=forEnv({...args,EXPO_PUBLIC_BUKLOD_GENESIS_RENDER_QA:'true'});
  const stage=forEnv(args);
  const prod=forEnv({APP_VARIANT:'production',EXPO_PUBLIC_APP_ENV:'production',EXPO_PUBLIC_BUKLOD_GENESIS_RENDER_QA:'true'});
- assert.equal(qa.android.package,'org.mzbministry.buklod.genesisqa');
- assert.equal(qa.name,'BUKLOD Genesis Visual QA');
- assert.equal(qa.scheme,'buklod-genesis-qa');
+ assert.equal(qa.android.package,'org.mzbministry.buklod.staging');
+ assert.equal(qa.name,'BUKLOD Genesis Staging');
+ assert.equal(qa.scheme,'buklod-staging');
  assert.equal(qa.runtimeVersion,'2.0.0-genesis-preview');
  assert.equal(qa.updates.enabled,false);
  assert.ok(qa.android.blockedPermissions.includes('android.permission.INTERNET'));
@@ -56,9 +56,9 @@ test('QA release workflow emits installable embedded-JS APK without production i
  assert.match(w,/BUKLOD_GENESIS_RENDER_QA_BUILD/);
  assert.match(w,/assembleRelease/);
  assert.match(w,/EXPO_PUBLIC_BUKLOD_GENESIS_RENDER_QA: 'true'/);
- assert.match(w,/genesisqa/);
+ assert.match(w,/org\.mzbministry\.buklod\.staging/);
  assert.match(w,/android\.permission\.INTERNET/);
- assert.match(w,/apksigner verify/);
+ assert.match(w,/\"\\$apksigner\" verify/);
  assert.match(w,/actions\/upload-artifact@v4/);
  assert.doesNotMatch(w,/eas (build|update)|--profile production|deploy-prod|supabase db/);
 });
