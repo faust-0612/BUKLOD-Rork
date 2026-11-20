@@ -1,0 +1,31 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-arena-v2-canonical-engine-20261121.json",
+  "objective": "Lock full BUKLOD Empire Arena V2 gameplay logic and deliver isolated deterministic simulation with landscape HTML practice without any production writes",
+  "baseRef": "ddfeae77735006861351266fd5e6d30dddd5ee04",
+  "productionBaselineEvidence": "GitHub main source SHA 536741f8d97fc9dec91503c89f1c1160e5987ce0 inspected previously, is NOT evidence of a deployed APK, OTA runtime or matching production binary; no live deployment is changed",
+  "releaseTarget": "DEV_OFFLINE_PRACTICE_ONLY",
+  "productionAuthorized": false,
+  "releaseAuthorized": false,
+  "chosenApproach": "Fork latest Arena DEV combat branch; add new isolated V2 module, editable canonical contract, game-embedded licensed SFX, behavioral tests; preserve prior source and avoid DB or runtime changes",
+  "selectionRationale": "Need to implement newly owner-approved resource, army, boss and final-elimination architecture without disturbing previously working V1 demo or pretending offline browser practice is secure multiplayer",
+  "alternativeApproaches": ["Rewrite the existing large embedded HTML in-place (rejected, regression and size risk)", "Create real ranked data and wallet changes without trusted live server (rejected, security risk)", "Unity/Godot native runtime before compatible signed APK (rejected, native release impact)"],
+  "allowedPaths": [
+    ".buklod/scopes/empire-arena-v2-canonical-engine-20261121.json",
+    "docs/empire-arena/BUKLOD_EMPIRE_ARENA_V2_CANONICAL_DESIGN.md",
+    "experiments/empire-arena-v2/README.md",
+    "experiments/empire-arena-v2/arena-v2-engine.mjs",
+    "experiments/empire-arena-v2/arena-v2-ui.mjs",
+    "experiments/empire-arena-v2/index.html",
+    "experiments/empire-arena-v2/media.mjs",
+    "tests/empire-arena-v2-design-and-simulation.test.mjs"
+  ],
+  "preserveBehaviors": ["Original V1 Arena engine and offline demo intact", "All 13 BUKLOD characters and 1300 official item identities preserved", "No Circle Rank, BP, QMP, Wallet, Character Diamond, Supabase, Ads, runtime, app/navigation or production OTA writes", "Show Faith optional mandatory items route retained"],
+  "acceptanceChecks": ["Node behavioral tests for 13 heroes, item keys, resource delivery, paid army queue, villagers, tower upgrades/repairs, roaming buffs, hero skills, boss respawn, Siege + Final Hunt winner and VOID", "Existing V1 engine and tests untouched", "Can serve and launch V2 isolated HTML with zero account, network or paid dependencies", "No production deployment"],
+  "riskAreas": ["kingdom-character", "app-runtime"],
+  "regressionTests": ["tests/empire-arena-v2-design-and-simulation.test.mjs"],
+  "lockedFeatureChanges": [
+    {"id":"kingdom-character", "reason":"V2 practice consumes canonical Character names and item *keys* conceptually but cannot alter ownership or progression", "preservedBehaviors":["All Character and Circle Rank authorities remain unchanged"], "tests":["tests/empire-arena-v2-design-and-simulation.test.mjs"]},
+    {"id":"app-runtime", "reason":"Add standalone HTML-only practice path with no route or native runtime edits", "preservedBehaviors":["App startup, ads, navigation and OTA unchanged"], "tests":["tests/empire-arena-v2-design-and-simulation.test.mjs"]}
+  ]
+}
