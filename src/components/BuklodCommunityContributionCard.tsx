@@ -1,3 +1,5 @@
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {GENESIS_GLASS as GLASS, GenesisGlassDecoration} from '@/features/season2/genesis/GenesisGlass';
 import { buklodVisual } from '@/lib/buklodVisual';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -22,6 +24,8 @@ const shareTone = getBuklodCardTone('lavender');
 const contentTone = getBuklodCardTone('peach');
 const impactTone = getBuklodCardTone('amber');
 const revenueTone = getBuklodCardTone('mint');
+
+const GENESIS = isGenesisPreviewBuild();
 
 export default function BuklodCommunityContributionCard() {
   const { session } = useAuth();
@@ -93,7 +97,8 @@ export default function BuklodCommunityContributionCard() {
       <Pressable accessibilityRole="button" accessibilityLabel="Community Contribution status, tap to retry"
         onPress={() => setRetryEpoch(current => current + 1)}
         style={s.emptyShell}>
-        <MaterialCommunityIcons name="account-heart-outline" size={22} color="#1E6B45" />
+        {GENESIS ? <GenesisGlassDecoration scene="earth"/> : null}
+        <MaterialCommunityIcons name="account-heart-outline" size={22} color={GENESIS ? GLASS.accent : "#1E6B45"} />
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>YOUR COMMUNITY CONTRIBUTION</Text>
           <Text style={s.sub}>{status === 'failed'
@@ -110,10 +115,10 @@ export default function BuklodCommunityContributionCard() {
   const breakdown = data.engagement_breakdown;
 
   return (
-    <View style={s.shell}>
+    <View style={s.shell}>{GENESIS ? <GenesisGlassDecoration scene="earth"/> : null}
       <View style={s.head}>
         <View style={s.icon}>
-          <MaterialCommunityIcons name="account-heart-outline" size={20} color="#1E6B45" />
+          <MaterialCommunityIcons name="account-heart-outline" size={20} color={GENESIS ? GLASS.accent : "#1E6B45"} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>YOUR COMMUNITY CONTRIBUTION</Text>
@@ -127,12 +132,12 @@ export default function BuklodCommunityContributionCard() {
           <Text style={s.metricValue}>{data.this_month_qmp}</Text>
           <Text style={s.metricLabel}>THIS MONTH QMP</Text>
         </View>
-        <View style={[s.metric, { backgroundColor: shareTone.surface }]}>
-          <Text style={[s.metricValue, { color: shareTone.ink }]}>{data.meaningful_replies}</Text>
+        <View style={[s.metric, { backgroundColor: GENESIS ? GLASS.metricPurple : shareTone.surface }]}>
+          <Text style={[s.metricValue, { color: GENESIS ? GLASS.text : shareTone.ink }]}>{data.meaningful_replies}</Text>
           <Text style={s.metricLabel}>MEANINGFUL REPLIES</Text>
         </View>
-        <View style={[s.metric, { backgroundColor: contentTone.surface }]}>
-          <Text style={[s.metricValue, { color: contentTone.ink }]}>{data.qualified_posts + data.qualified_videos}</Text>
+        <View style={[s.metric, { backgroundColor: GENESIS ? GLASS.metricGold : contentTone.surface }]}>
+          <Text style={[s.metricValue, { color: GENESIS ? GLASS.text : contentTone.ink }]}>{data.qualified_posts + data.qualified_videos}</Text>
           <Text style={s.metricLabel}>QUALIFIED CONTENT</Text>
         </View>
       </View>
@@ -143,7 +148,7 @@ export default function BuklodCommunityContributionCard() {
         accessibilityState={{ expanded: detailsOpen }} onPress={() => setDetailsOpen(value => !value)}
         style={{ minHeight: buklodVisual.size.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={s.historyLine}>Contribution breakdown</Text>
-        <MaterialCommunityIcons name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={20} color="#1E6B45" />
+        <MaterialCommunityIcons name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={20} color={GENESIS ? GLASS.accent : "#1E6B45"} />
       </Pressable>
       {detailsOpen && <View style={{ gap: 8 }}>
       <Text style={s.periodNote}>
@@ -170,7 +175,7 @@ export default function BuklodCommunityContributionCard() {
           <Text style={s.estimateValue}>{estimate}</Text>
           <Text style={s.estimateGuard}>Estimate only · Not final · Not withdrawable</Text>
         </View>
-        <MaterialCommunityIcons name="chevron-right" size={24} color="#1E6B45" />
+        <MaterialCommunityIcons name="chevron-right" size={24} color={GENESIS ? GLASS.accent : "#1E6B45"} />
       </Pressable>
       {detailsOpen ? <View style={{ gap: 5 }}>
         {data.estimate_updated_at ? <Text style={s.periodNote}>
@@ -191,25 +196,25 @@ export default function BuklodCommunityContributionCard() {
 }
 
 const s = StyleSheet.create({
-  emptyShell:{marginTop:0,marginBottom:0,padding:14,borderRadius:buklodVisual.radius.card,
-    borderWidth:1,borderColor:contributionTone.border,backgroundColor:contributionTone.surface,
+  emptyShell:{overflow:'hidden',marginTop:0,marginBottom:0,padding:14,borderRadius:buklodVisual.radius.card,
+    borderWidth:1,borderColor:GENESIS ? GLASS.border : contributionTone.border,backgroundColor:GENESIS ? GLASS.surface : contributionTone.surface,
     flexDirection:'row',alignItems:'center',gap:12,minHeight:72},
-  shell:{marginTop:0,marginBottom:0,borderWidth:1,borderColor:contributionTone.border,borderRadius:14,backgroundColor:contributionTone.surface,padding:11,gap:6},
+  shell:{overflow:'hidden',marginTop:0,marginBottom:0,borderWidth:1,borderColor:GENESIS ? GLASS.border : contributionTone.border,borderRadius:14,backgroundColor:GENESIS ? GLASS.surface : contributionTone.surface,padding:11,gap:6},
   head:{flexDirection:'row',alignItems:'center',gap:9},
-  icon:{width:36,height:36,borderRadius:18,backgroundColor:contributionTone.soft,alignItems:'center',justifyContent:'center'},
-  eyebrow:{fontSize:11,fontWeight:'900',color:'#173C2C',letterSpacing:.4},
-  sub:{marginTop:1,fontSize:12,lineHeight:16,color:'#52665C'},
-  level:{fontSize:12,fontWeight:'900',color:'#1E6B45',backgroundColor:'#EAF4EE',borderRadius:99,paddingHorizontal:7,paddingVertical:5,overflow:'hidden'},
+  icon:{width:36,height:36,borderRadius:18,backgroundColor:GENESIS ? GLASS.selected : contributionTone.soft,alignItems:'center',justifyContent:'center'},
+  eyebrow:{fontSize:11,fontWeight:'900',color:GENESIS ? GLASS.text : '#173C2C',letterSpacing:.4},
+  sub:{marginTop:1,fontSize:12,lineHeight:16,color:GENESIS ? GLASS.secondary : '#52665C'},
+  level:{fontSize:12,fontWeight:'900',color:GENESIS ? GLASS.accent : '#1E6B45',backgroundColor:GENESIS ? GLASS.selected : '#EAF4EE',borderRadius:99,paddingHorizontal:7,paddingVertical:5,overflow:'hidden'},
   metrics:{flexDirection:'row',gap:6},
-  metric:{flex:1,minWidth:0,minHeight:52,borderRadius:10,backgroundColor:monthTone.surface,padding:7,justifyContent:'center'},
-  metricValue:{fontSize:18,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:10.5,lineHeight:14,fontWeight:'900',color:'#354F43'},
-  historyLine:{fontSize:10,fontWeight:'800',color:'#305C47',paddingHorizontal:2},
-  periodNote:{fontSize:12,lineHeight:17,color:'#52665C',paddingHorizontal:2},
-  impact:{borderRadius:12,borderWidth:1,borderColor:impactTone.border,backgroundColor:impactTone.surface,padding:9},
-  impactTitle:{fontSize:12,fontWeight:'900',color:impactTone.ink},
-  impactText:{marginTop:3,fontSize:12,lineHeight:17,color:'#5F7066'},
-  estimate:{borderRadius:11,backgroundColor:revenueTone.surface,padding:10,flexDirection:'row',alignItems:'center',gap:8,minHeight:65}, estimateLabel:{fontSize:12,fontWeight:'900',color:revenueTone.ink},
-  detailLink:{marginTop:7,fontSize:12,fontWeight:'900',color:'#1E6B45'},
-  estimateValue:{marginTop:1,fontSize:19,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:10.5,lineHeight:15,fontWeight:'800',color:'#66501D'},
-  secondary:{minHeight:buklodVisual.size.touch,borderRadius:10,borderWidth:1,borderColor:shareTone.border,backgroundColor:shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:shareTone.ink,fontSize:12,fontWeight:'900'},
+  metric:{flex:1,minWidth:0,minHeight:52,borderRadius:10,backgroundColor:GENESIS ? GLASS.metricBlue : monthTone.surface,padding:7,justifyContent:'center'},
+  metricValue:{fontSize:18,fontWeight:'900',color:GENESIS ? GLASS.text : '#173C2C'}, metricLabel:{marginTop:2,fontSize:10.5,lineHeight:14,fontWeight:'900',color:GENESIS ? GLASS.secondary : '#354F43'},
+  historyLine:{fontSize:10,fontWeight:'800',color:GENESIS ? GLASS.secondary : '#305C47',paddingHorizontal:2},
+  periodNote:{fontSize:12,lineHeight:17,color:GENESIS ? GLASS.secondary : '#52665C',paddingHorizontal:2},
+  impact:{borderRadius:12,borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : impactTone.border,backgroundColor:GENESIS ? GLASS.inset : impactTone.surface,padding:9},
+  impactTitle:{fontSize:12,fontWeight:'900',color:GENESIS ? GLASS.text : impactTone.ink},
+  impactText:{marginTop:3,fontSize:12,lineHeight:17,color:GENESIS ? GLASS.secondary : '#5F7066'},
+  estimate:{borderRadius:11,backgroundColor:GENESIS ? GLASS.inset : revenueTone.surface,padding:10,flexDirection:'row',alignItems:'center',gap:8,minHeight:65}, estimateLabel:{fontSize:12,fontWeight:'900',color:GENESIS ? GLASS.text : revenueTone.ink},
+  detailLink:{marginTop:7,fontSize:12,fontWeight:'900',color:GENESIS ? GLASS.accent : '#1E6B45'},
+  estimateValue:{marginTop:1,fontSize:19,fontWeight:'900',color:GENESIS ? GLASS.accent : '#1E6B45'}, estimateGuard:{marginTop:2,fontSize:10.5,lineHeight:15,fontWeight:'800',color:GENESIS ? GLASS.gold : '#66501D'},
+  secondary:{minHeight:buklodVisual.size.touch,borderRadius:10,borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : shareTone.border,backgroundColor:GENESIS ? GLASS.inset : shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:GENESIS ? GLASS.text : shareTone.ink,fontSize:12,fontWeight:'900'},
 });

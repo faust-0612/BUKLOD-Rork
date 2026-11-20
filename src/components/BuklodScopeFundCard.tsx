@@ -1,3 +1,5 @@
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {GENESIS_GLASS as GLASS, GenesisGlassDecoration} from '@/features/season2/genesis/GenesisGlass';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -19,6 +21,8 @@ type Fund = {
 type Props = {scopeId:string; scopeName:string};
 const money = (v:number | null | undefined) => typeof v === 'number' && Number.isFinite(v)
   ? formatMinorPhp(v) : 'Unavailable';
+
+const GENESIS = isGenesisPreviewBuild();
 
 export default function BuklodScopeFundCard({scopeId,scopeName}:Props) {
   const [fund,setFund]=useState<Fund | null>(null);
@@ -53,15 +57,16 @@ export default function BuklodScopeFundCard({scopeId,scopeName}:Props) {
   },[reload,retry]);
   const open=()=>router.push({pathname:'/scope-fund',params:{scopeId}} as any);
   return <View style={s.card} accessibilityLabel="Exact-scope community fund, separate from personal earnings">
+    {GENESIS ? <GenesisGlassDecoration scene="earth"/> : null}
     <View style={s.top}>
-      <MaterialCommunityIcons name="bank-outline" color="#1B6544" size={22}/>
+      <MaterialCommunityIcons name="bank-outline" color={GENESIS ? GLASS.accent : "#1B6544"} size={22}/>
       <View style={s.flex}>
         <Text style={s.title}>{scopeName} FUND</Text>
         <Text style={s.sub}>Cluster / Organization account only</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Refresh scope fund"
         onPress={()=>setRetry(v=>v+1)} style={s.refresh}>
-        <MaterialCommunityIcons name="refresh" color="#1B6544" size={21}/>
+        <MaterialCommunityIcons name="refresh" color={GENESIS ? GLASS.accent : "#1B6544"} size={21}/>
       </Pressable>
     </View>
     {loading && !fund ? <Text style={s.note}>Loading verified fund records…</Text> : null}
@@ -97,21 +102,21 @@ export default function BuklodScopeFundCard({scopeId,scopeName}:Props) {
   </View>;
 }
 const s=StyleSheet.create({
-  card:{borderRadius:17,backgroundColor:'#FFFFFF',borderColor:'#D2E4D9',borderWidth:1,padding:14,gap:12},
+  card:{overflow:'hidden',borderRadius:17,backgroundColor:GENESIS ? GLASS.surface : '#FFFFFF',borderColor:GENESIS ? GLASS.border : '#D2E4D9',borderWidth:1,padding:14,gap:12},
   top:{flexDirection:'row',alignItems:'center',gap:10},
-  title:{fontSize:16,fontWeight:'900',color:'#174832'},
-  sub:{fontSize:12,color:'#5E7067',marginTop:2},
-  flex:{flex:1},refresh:{padding:8,backgroundColor:'#E9F6EE',borderRadius:10},
-  total:{backgroundColor:'#E8F5ED',padding:14,borderRadius:13,gap:8},
-  caption:{color:'#526D5D',fontSize:12,fontWeight:'700'},
-  amount:{fontSize:27,color:'#14523A',fontWeight:'900'},
+  title:{fontSize:16,fontWeight:'900',color:GENESIS ? GLASS.text : '#174832'},
+  sub:{fontSize:12,color:GENESIS ? GLASS.secondary : '#5E7067',marginTop:2},
+  flex:{flex:1},refresh:{padding:8,backgroundColor:GENESIS ? GLASS.inset : '#E9F6EE',borderRadius:10},
+  total:{backgroundColor:GENESIS ? GLASS.inset : '#E8F5ED',padding:14,borderRadius:13,gap:8},
+  caption:{color:GENESIS ? GLASS.secondary : '#526D5D',fontSize:12,fontWeight:'700'},
+  amount:{fontSize:27,color:GENESIS ? GLASS.accent : '#14523A',fontWeight:'900'},
   row:{flexDirection:'row',gap:11},
-  metric:{fontSize:17,fontWeight:'900',color:'#16503A',marginTop:3},
-  note:{fontSize:12,lineHeight:18,color:'#627369'},
-  warning:{fontSize:12,lineHeight:18,color:'#936229'},
+  metric:{fontSize:17,fontWeight:'900',color:GENESIS ? GLASS.accent : '#16503A',marginTop:3},
+  note:{fontSize:12,lineHeight:18,color:GENESIS ? GLASS.muted : '#627369'},
+  warning:{fontSize:12,lineHeight:18,color:GENESIS ? GLASS.gold : '#936229'},
   button:{flex:1,alignItems:'center',justifyContent:'center',paddingVertical:13,paddingHorizontal:6,backgroundColor:'#176B49',borderRadius:10,minHeight:48},
   buttonText:{fontSize:11,color:'#FFF',fontWeight:'900',textAlign:'center'},
-  outline:{backgroundColor:'#FFFFFF',borderWidth:1,borderColor:'#8BB29C'},
-  outlineText:{fontSize:11,color:'#176B49',fontWeight:'900',textAlign:'center'},
+  outline:{backgroundColor:GENESIS ? GLASS.surface : '#FFFFFF',borderWidth:1,borderColor:GENESIS ? GLASS.borderSoft : '#8BB29C'},
+  outlineText:{fontSize:11,color:GENESIS ? GLASS.accent : '#176B49',fontWeight:'900',textAlign:'center'},
   disabled:{opacity:0.5}
 });

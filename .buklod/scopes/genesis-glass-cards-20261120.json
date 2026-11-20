@@ -1,0 +1,85 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-glass-cards-20261120.json",
+  "objective": "Reconcile owner-approved dark transparent Genesis visual panels on six grouped Home/Cluster/Organization cards, preserving business rules and ad lifecycle.",
+  "baseRef": "dev/genesis-cluster-wall-connect-receipts-20261120",
+  "productionBaselineEvidence": "Current production main SHA 551e54602addd6f7bbe7bcdddd1589d35424c964; Genesis DEV base PR #1021 head 7c497e3dd4f136259ff88ea7dcfc0540b9d4f158. App owner provided Android screenshots, but production live runtime and OTA not tested. DEV only.",
+  "chosenApproach": "Create a single shared Genesis preview glass color authority and noninteractive static local background element, with conditional style branches for Today, Drawer, PTT native/web, contribution, scope profile, fund and ranking. Maintain all existing backend and native paths.",
+  "selectionRationale": "Opaque light cards currently block the existing cosmic background, breaking the season-wide aesthetic; localized conditional color updates preserve production and avoid a dangerous global theme override.",
+  "alternativeApproaches": [
+    "Global theme override rejected due to legibility regression risk for forms and financial controls.",
+    "Remote animated gallery rejected due to weak-network and AdMob/navigation performance concerns.",
+    "Recoloring Google-native ad creative rejected because provider ads and reporting must remain intact."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "connect-ptt-calls",
+    "ads-finance-points"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodTodayCard.tsx",
+    "src/components/SmartDrawerWallCard.tsx",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/components/BuklodScopeFundCard.tsx",
+    "src/components/BuklodScopeBPTop10.tsx",
+    "src/components/BuklodScopeProfilePhoto.tsx",
+    "src/components/BuklodPttEntryButton.tsx",
+    "src/components/BuklodPttEntryButton.web.tsx",
+    "src/features/season2/genesis/GenesisGlass.tsx",
+    "tests/genesis-glass-cards-20261120.test.mjs",
+    "tests/genesis-glass-ptt-economy-20261120.test.mjs",
+    "docs/BUKLOD_GENESIS_GLASS_RECONCILIATION_20261120.md",
+    ".buklod/scopes/genesis-glass-cards-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-glass-cards-20261120.test.mjs",
+    "tests/genesis-glass-ptt-economy-20261120.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preview-only Genesis card surfaces and locally bundled static image backdrop, with no production runtime modification.",
+      "preservedBehaviors": [
+        "Current Home tab, responsive navigation, offline caches, Wall media, native ads, and no extra network loads remain intact."
+      ],
+      "tests": [
+        "tests/genesis-glass-cards-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Reconcile BUKLOD PTT navigation card color and border with Genesis glass while preserving live connection and route actions.",
+      "preservedBehaviors": [
+        "PTT connection status subscriptions and existing push-to-talk route, signaling and real-time authorization are unchanged."
+      ],
+      "tests": [
+        "tests/genesis-glass-ptt-economy-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Make QMP and contribution explanatory panels readable on Genesis dark surfaces without changing server-awarded amounts or ad placement.",
+      "preservedBehaviors": [
+        "Backend QMP/revenue estimate, scope fund ledger, rankings, native AdMob creative, impression and click surfaces remain untouched."
+      ],
+      "tests": [
+        "tests/genesis-glass-ptt-economy-20261120.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Season 1 production styling remains unchanged because isGenesisPreviewBuild is explicit staging-only.",
+    "Existing management routes, role guards, fund RPC, member ranking RPC and financial guard text are unchanged.",
+    "No database schema, native dependency or ads provider creative changes."
+  ],
+  "acceptanceChecks": [
+    "GitHub PR scope/protected-feature governance must pass.",
+    "Run exact focused static and existing TS/Jest tests.",
+    "Android portrait/narrow-screen actual visual acceptance, dynamic text scaling, first-view ad rendering and fast tab navigation must pass before staging OTA.",
+    "Do not promote to production without release gate, locked-season approval and exact artifact QA."
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "releaseTarget": "Genesis staging preview source; release gate pending."
+}
