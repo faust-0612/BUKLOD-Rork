@@ -1,0 +1,58 @@
+name: BUKLOD Genesis Consolidated Staging OTA Source QA (NO PUBLISH)
+on:
+  push:
+    branches:
+      - release/genesis-conso-staging-ota-candidate-20261120
+    paths:
+      - .github/workflows/genesis-conso-staging-ota-preflight-20261120.yml
+      - scripts/genesis-conso-staging-ota-preflight.mjs
+      - tests/genesis-dashboard-contrast-asset-integrity-20261120.test.mjs
+      - .buklod/scopes/genesis-conso-staging-ota-20261120.json
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: buklod-genesis-ota-staging-source-qa
+  cancel-in-progress: false
+jobs:
+  source-preflight:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/genesis-conso-staging-ota-candidate-20261120' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CI: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      BUKLOD_APP_TARGET: main
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - name: Checkout immutable Genesis staging candidate (no write credentials)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Node 22, no paid build or npm dependency installation
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm the exact source and installed-native parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node scripts/genesis-conso-staging-ota-preflight.mjs
+      - name: Run focused photo, text, wall, Cluster, Connect and embargo checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/genesis-dashboard-contrast-gallery-20261120.test.mjs \
+            tests/genesis-dashboard-contrast-asset-integrity-20261120.test.mjs \
+            tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs \
+            tests/genesis-protected-feature-lock.test.mjs
+      - name: Preparation complete, no OTA publish action
+        run: |
+          echo "This is read-only staging OTA source QA, NOT an EAS update or release."
+          echo "Actual Android/AdMob/navigation QA, signed APK evidence and source-specific RC approval remain mandatory."
