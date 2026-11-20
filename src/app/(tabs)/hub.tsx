@@ -15,6 +15,7 @@ import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd'
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodExecutiveQuickAccess from '@/components/home/BuklodExecutiveQuickAccess';
+import BuklodWorldGateway from '@/components/world/BuklodWorldGateway';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -66,6 +67,7 @@ export default function BuklodLightHome() {
         scrollEventThrottle={16}
         style={{ flex: 1, backgroundColor: theme.surface }}
         contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
+        <BuklodWorldGateway />
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={{ minHeight: 86, borderRadius: buklodVisual.radius.card, padding: 14, justifyContent: 'center' }}>
@@ -126,6 +128,7 @@ export default function BuklodLightHome() {
 
   return (
     <ScrollView onScroll={event => {reportBuklodDashboardScroll('home',event.nativeEvent.contentOffset.y);noteBuklodVideoScroll();}} scrollEventThrottle={16} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 9, paddingBottom: 16, gap: 9 }}>
+      <BuklodWorldGateway />
       <BuklodSystemAnnouncementBoard slot="public_home" />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: 18, fontWeight: '900', color: theme.textPrimary }}>Your everyday space</Text>
