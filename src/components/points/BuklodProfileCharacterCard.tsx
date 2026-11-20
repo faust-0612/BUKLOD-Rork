@@ -477,6 +477,15 @@ export default function BuklodProfileCharacterCard({
                     Customize
                   </Text>
                 </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="View verified Character evolution items"
+                  onPress={() => router.push('/points/evolution' as any)}
+                  style={[styles.customize, { marginTop: 7, backgroundColor: customizeTone.soft, borderColor: customizeTone.border }]}
+                >
+                  <MaterialCommunityIcons name="shield-star-outline" size={16} color={customizeTone.ink} />
+                  <Text style={styles.customizeText}>EVOLUTION ITEMS · TASKS</Text>
+                </Pressable>
                 <Pressable accessibilityRole="button" accessibilityLabel="Open BUKLOD Points and Claim Center"
                   onPress={()=>router.push('/points')} style={[styles.customize,{backgroundColor:pointsTone.soft,
                     borderColor:pointsTone.border,marginTop:7}]}>
