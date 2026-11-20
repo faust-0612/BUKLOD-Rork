@@ -38,7 +38,7 @@ test('public feed primary identity is scope; only non-admin member receives a sm
 test('database records actual author securely; no private scope wall publication or role spoofing',()=>{
  assert.match(migration,/m\.user_id = actor/);
  assert.match(migration,/m\.membership_status = 'ACTIVE'/);
- assert.match(migration,/public\.buklod_is_scope_admin\(p_scope_id\)/);
+ assert.match(migration,/public\.buklod_is_scope_admin\(s\.id\)/);
  assert.match(migration,/public\.create_buklod_community_post_v3\(/);
  assert.match(migration,/'public', null, p_category/);
  assert.match(migration,/p\.audience = 'public' and p\.scope_id is null/);
