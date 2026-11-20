@@ -167,7 +167,8 @@
     "Release identity gate verifies staging visual APK uses exact stage package/scheme/runtime and no production package; offline review mode is not equivalent to functional EAS-signed staging or Play AAB",
     "Actual Genesis 2.0.0 staging EAS profile is only place with public BUKLOD main backend credentials; production release profile and native runtime unchanged; no service_role or secret keys.",
     "Full staging boots existing Router/Auth/Ads/PTT app, not read-only visual QA. Source checks cannot prove backend writes or device rendering; validate with real stage APK installation.",
-    "Regression gates are aligned with actual full staging router bootstrap and remove assertions for deleted offline-only QA suites."
+    "Regression gates are aligned with actual full staging router bootstrap and remove assertions for deleted offline-only QA suites.",
+    "Signed full staging native preflight test checks dependency install precedes exact test file, including tests batched with other source assertions."
   ],
   "releaseTarget": "GENESIS_FULL_FUNCTIONALITY_STAGING_APK_ONLY",
   "publicationStatus": "STAGING_EAS_SIGNED_APK_REQUESTED_PENDING_RECEIPT",

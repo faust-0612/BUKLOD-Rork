@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/genesis-season2-staging-release-apk-20261120.yml
       - tests/genesis-staging-live-backend-review-20261120.test.mjs
+      - tests/genesis-staging-native-apk-release-20261120.test.mjs
 permissions:
   contents: read
 concurrency:
