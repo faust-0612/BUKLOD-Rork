@@ -1,17 +1,18 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json",
-  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts. Include Play Core native in-app update bridge with production-only package guard and no automatic update prompt; reserve production activation for separately verified Play release. Bundle local-only Media3 H.264/AAC video compression bridge in Genesis native binary, opt-in preview only and without changing existing video upload playback. Add official Maven Godot 4.7.2 AAR and SHA-256 verified app-private PCK launcher for future approved Genesis Kingdom assets without distributing unapproved 3D maps. Include dormant user-initiated Google Drive native OAuth 22.0.0 consent bridge for future manual Drawer cloud backup; unverified token never automatically syncs or accesses files. Add exact autolinking resolver check to ensure five native source modules are actually included in Expo Android Gradle integration rather than falsely assumed present. Resolve actual Gradle Godot Kotlin compile failure where GenesisGodotActivity FragmentActivity supertype was not visible by declaring AndroidX Fragment dependency. Verify actual signed universal Genesis staging APK package/version, signature certificate SHA256, APK digest, all four Android ABIs and preserve no-OTA/no-device-claim when EAS credentials become available. Harden isolated EAS preview backend preflight to reject existing BUKLOD Main, Attendance, and Quiz Supabase project IDs, and run one user-requested signed APK attempt only when valid separate credentials pass. Add a separate strictly offline Android ARM64 RELEASE visual QA binary using the real official Genesis rendering components and dormant five native SDKs, without requiring or reusing any backend, with distinct package, disabled Expo OTA and removed INTERNET permission. Owner clarified the actual org.mzbministry.buklod.staging package must be installed for Genesis review before future production Play AAB; target staging package with a clearly segregated read-only offline render entry while backend credentials remain unavailable.",
+  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts. Include Play Core native in-app update bridge with production-only package guard and no automatic update prompt; reserve production activation for separately verified Play release. Bundle local-only Media3 H.264/AAC video compression bridge in Genesis native binary, opt-in preview only and without changing existing video upload playback. Add official Maven Godot 4.7.2 AAR and SHA-256 verified app-private PCK launcher for future approved Genesis Kingdom assets without distributing unapproved 3D maps. Include dormant user-initiated Google Drive native OAuth 22.0.0 consent bridge for future manual Drawer cloud backup; unverified token never automatically syncs or accesses files. Add exact autolinking resolver check to ensure five native source modules are actually included in Expo Android Gradle integration rather than falsely assumed present. Resolve actual Gradle Godot Kotlin compile failure where GenesisGodotActivity FragmentActivity supertype was not visible by declaring AndroidX Fragment dependency. Verify actual signed universal Genesis staging APK package/version, signature certificate SHA256, APK digest, all four Android ABIs and preserve no-OTA/no-device-claim when EAS credentials become available. Harden isolated EAS preview backend preflight to reject existing BUKLOD Main, Attendance, and Quiz Supabase project IDs, and run one user-requested signed APK attempt only when valid separate credentials pass. Add a separate strictly offline Android ARM64 RELEASE visual QA binary using the real official Genesis rendering components and dormant five native SDKs, without requiring or reusing any backend, with distinct package, disabled Expo OTA and removed INTERNET permission. Owner clarified the actual org.mzbministry.buklod.staging package must be installed for Genesis review before future production Play AAB; target staging package with a clearly segregated read-only offline render entry while backend credentials remain unavailable. Replace deprecated offline/visual-only Genesis QA branch with actual fully functional signed Genesis staging package, stage-only version 2.0.0, runtime 2.0.0-genesis-preview and channel season2-genesis-preview; bind only this preview profile to user-authorized existing BUKLOD MAIN publishable backend (no new database, no server changes), preserving prod-live functionality and keeping unactivated Season 2 rewards locked.",
   "baseRef": "ee25dd41208a7758943d51868f0f61a084f33c7c",
   "productionBaselineEvidence": "Production main 551e54602addd6f7bbe7bcdddd1589d35424c964; Genesis staging APK unbuilt; original Genesis DEV branch ee25dd41208a7758943d51868f0f61a084f33c7c. This isolated PR neither modifies production nor signs/publishes Android artifacts.",
-  "chosenApproach": "Forward-port byte-identical reviewed host/policy and focused Node behavior tests from #1003, preserving exact branch/base and native Gradle compile smoke. Replace obsolete restart-banner assertions rather than bypass protection. Make Godot a dormant Android native capability now; require app-private hash-verified packs later instead of shipping a cheap placeholder world. Replace outdated in-flight compile-smoke run via concurrency cancellation; compile arm64 first to detect exact native compatibility without spending CI on four architectures before release.",
+  "chosenApproach": "Forward-port byte-identical reviewed host/policy and focused Node behavior tests from #1003, preserving exact branch/base and native Gradle compile smoke. Replace obsolete restart-banner assertions rather than bypass protection. Make Godot a dormant Android native capability now; require app-private hash-verified packs later instead of shipping a cheap placeholder world. Replace outdated in-flight compile-smoke run via concurrency cancellation; compile arm64 first to detect exact native compatibility without spending CI on four architectures before release. Owner revised staging policy: existing live backend is explicitly permitted for full staging login and currently live functionality; published staging APK is isolated at package/runtime/channel level, but live data writes remain real and governed by existing RLS/feature locks.",
   "selectionRationale": "Avoid duplicate update checks and misleading restart prompts; use a bounded one-hour check and 30-minute failure cooldown, no reload during calls/compose. No native dependencies added.",
   "alternativeApproaches": [
     "Automatic reload rejected for PTT/call/upload safety",
     "Use production staging backend credentials rejected by nonproduction isolation policy",
     "Blind merge of old staging/native branches rejected for drift and unverified native SDKs",
     "Auto-enable old Godot native lab placeholder map rejected: owner-approved real 3D assets are not available",
-    "Independent genesisqa package deprecated by owner's requirement to inspect actual staging package; staging visual preview will carry clearly labeled offline limits and test signature"
+    "Independent genesisqa package deprecated by owner's requirement to inspect actual staging package; staging visual preview will carry clearly labeled offline limits and test signature",
+    "Separate offline-only Genesis visual QA APK rejected by owner as insufficient for full acceptance and Play AAB decision"
   ],
   "preserveBehaviors": [
     "Production runtime 1.3.2 and existing backend, AdMob placements and navigation unmodified",
@@ -21,12 +22,16 @@
     "First-view ads, call/PTT sessions, offline drafts and photo uploads remain uninterrupted",
     "No claims of signed APK or deployed OTA without verification",
     "Do not replace existing staging or production APK: QA package is org.mzbministry.buklod.genesisqa, previews only and cannot authenticate or write",
-    "Genesis review uses actual org.mzbministry.buklod.staging package; future functional EAS-signed staging has independent credentials/identity check. Production Play package unchanged."
+    "Genesis review uses actual org.mzbministry.buklod.staging package; future functional EAS-signed staging has independent credentials/identity check. Production Play package unchanged.",
+    "Production native package org.mzbministry.buklod, version 1.3.6/runtime 1.3.2, production channel and current backend/server policy unchanged",
+    "Staging shares existing BUKLOD main backend for already-live features and authenticated user writes with normal RLS. Do not alter Season 2 release gates, season reward switch, backend tables or database roles."
   ],
   "riskAreas": [
     "app-runtime",
     "production-release",
-    "release-identity"
+    "release-identity",
+    "release-identity",
+    "auth-privacy"
   ],
   "regressionTests": [
     "tests/buklod-silent-ota-policy.test.mjs",
@@ -44,7 +49,8 @@
     "tests/genesis-native-autolinking-reality-20261120.test.mjs",
     "tests/genesis-apk-binary-proof-20261120.test.mjs",
     "tests/genesis-render-qa-isolation-20261120.test.mjs",
-    "tests/genesis-staging-release-render-identity-20261120.test.mjs"
+    "tests/genesis-staging-release-render-identity-20261120.test.mjs",
+    "tests/genesis-staging-live-backend-review-20261120.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodOtaFreshnessHost.native.tsx",
@@ -98,7 +104,13 @@
     "src/features/season2/genesis/GenesisRenderQaEntry.tsx",
     "tests/genesis-render-qa-isolation-20261120.test.mjs",
     ".github/workflows/genesis-render-qa-apk-20261120.yml",
-    "tests/genesis-staging-release-render-identity-20261120.test.mjs"
+    "tests/genesis-staging-release-render-identity-20261120.test.mjs",
+    "eas.json",
+    "tests/genesis-staging-live-backend-review-20261120.test.mjs",
+    "src/features/season2/genesis/GenesisRenderQaEntry.tsx",
+    "tests/genesis-render-qa-isolation-20261120.test.mjs",
+    "tests/genesis-staging-release-render-identity-20261120.test.mjs",
+    ".github/workflows/genesis-render-qa-apk-20261120.yml"
   ],
   "lockedFeatureChanges": [
     {
@@ -117,7 +129,8 @@
         "tests/genesis-godot-native-foundation-20261120.test.mjs",
         "tests/genesis-drive-native-foundation-20261120.test.mjs",
         "tests/genesis-native-autolinking-reality-20261120.test.mjs",
-        "tests/genesis-render-qa-isolation-20261120.test.mjs"
+        "tests/genesis-render-qa-isolation-20261120.test.mjs",
+        "tests/genesis-staging-live-backend-review-20261120.test.mjs"
       ]
     },
     {
@@ -154,9 +167,11 @@
     "Reject all three previously connected BUKLOD Supabase backends from Genesis EAS APK signing; never silently reuse production, Attendance or Quiz",
     "Isolated device-only visual QA APK must not include INTERNET permission, must not initialize live backend or Firebase and must disable OTA; code branch guarded by three staging/Genesis QA flags",
     "Actual QA APK must be release-mode embedded-JS, ARM64 native, test signed with SHA256 and separate package; do not conflate with functional staging APK or any production approval",
-    "Release identity gate verifies staging visual APK uses exact stage package/scheme/runtime and no production package; offline review mode is not equivalent to functional EAS-signed staging or Play AAB"
+    "Release identity gate verifies staging visual APK uses exact stage package/scheme/runtime and no production package; offline review mode is not equivalent to functional EAS-signed staging or Play AAB",
+    "Actual Genesis 2.0.0 staging EAS profile is only place with public BUKLOD main backend credentials; production release profile and native runtime unchanged; no service_role or secret keys.",
+    "Full staging boots existing Router/Auth/Ads/PTT app, not read-only visual QA. Source checks cannot prove backend writes or device rendering; validate with real stage APK installation."
   ],
-  "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
-  "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",
+  "releaseTarget": "GENESIS_FULL_FUNCTIONALITY_STAGING_APK_ONLY",
+  "publicationStatus": "STAGING_EAS_SIGNED_APK_REQUESTED_PENDING_RECEIPT",
   "physicalDeviceVerification": "NOT_PERFORMED"
 }

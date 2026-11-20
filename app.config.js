@@ -30,15 +30,12 @@ module.exports = ({ config }) => {
     !isClassroom &&
     isStaging &&
     process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW === 'true';
-  // Read-only review mode uses the REAL staging package. Production never enables it.
-  const genesisRenderQa = genesisNativePreview &&
-    process.env.EXPO_PUBLIC_BUKLOD_GENESIS_RENDER_QA === 'true';
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
-    : (genesisRenderQa ? 'BUKLOD Genesis Staging' : (isStaging ? 'BUKLOD Staging' : 'BUKLOD'));
+    : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
 
   const packageId = isClassroom
     ? 'org.mzbministry.buklod.classroom'
@@ -53,7 +50,7 @@ module.exports = ({ config }) => {
 
     name: appName,
     slug: isClassroom ? 'buklod-classroom' : 'buklod',
-    version: isClassroom ? '1.3.4' : '1.3.6',
+    version: isClassroom ? '1.3.4' : (genesisNativePreview ? '2.0.0' : '1.3.6'),
 
     orientation: 'default',
     scheme,
@@ -109,7 +106,6 @@ module.exports = ({ config }) => {
       ],
 
       blockedPermissions: [
-        ...(genesisRenderQa ? ['android.permission.INTERNET'] : []),
         'android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE',
         'android.permission.READ_MEDIA_IMAGES',
         'android.permission.READ_MEDIA_VIDEO',
@@ -392,9 +388,7 @@ module.exports = ({ config }) => {
 
 
     updates:
-      genesisRenderQa
-        ? { enabled: false, checkAutomatically: 'NEVER' }
-        : projectId
+      projectId
         ? {
             url:
               `https://u.expo.dev/${projectId}`,
