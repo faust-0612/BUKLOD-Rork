@@ -6077,6 +6077,7 @@ const communityFeedRows =
      <BuklodTappableAvatar
        userId={item.user_id}
        name={resolvePersonDisplayName(item.author_name,item.user_id)}
+       rankName={item.author_rank_name}
        size={42}
      />
      <View style={{flex:1,minWidth:0}}>

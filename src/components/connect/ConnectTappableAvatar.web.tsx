@@ -17,6 +17,7 @@ type Props = {
   userId?: string | null;
   uri?: string | null;
   name?: string | null;
+  rankName?: string | null;
   size?: number;
   shape?: 'circle' | 'rounded';
   fallbackSource?: number | { uri: string } | null;
@@ -38,6 +39,7 @@ export function ConnectTappableAvatar({
   userId,
   uri,
   name,
+  rankName,
   size = 48,
   shape = 'circle',
   fallbackSource,
@@ -84,6 +86,7 @@ export function ConnectTappableAvatar({
       userId={userId}
       uri={uri}
       name={name}
+      rankName={rankName}
       size={size}
       shape={shape}
       fallbackSource={fallbackSource}
@@ -121,7 +124,7 @@ export function ConnectTappableAvatar({
           width: size,
           height: size,
           borderRadius: shape === 'rounded' ? Math.round(size * 0.2) : size / 2,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {avatar}
