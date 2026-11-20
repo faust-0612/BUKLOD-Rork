@@ -4,6 +4,9 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { supabase } from '@/lib/supabase';
+import BuklodCharacterEvolutionGate from '@/components/points/BuklodCharacterEvolutionGate';
+import { CORE_CHARACTER_ORDER, CHARACTER_DISPLAY_NAME } from '@/lib/buklodCharacterSelectionV2';
 const PROGRESSIVE_LEVEL_THRESHOLDS = [0,50,100,250,500,1000,2500,5000,10000,25000,50000,75000,100000,150000,200000,250000,300000,350000,400000,500000] as const;
 
 type Props = {
@@ -26,6 +29,16 @@ export default function BuklodCharacterLevelGuide({
   onRefresh,
 }: Props) {
   const { theme } = useBuklodPresentation();
+  const [authenticatedUserId, setAuthenticatedUserId] = React.useState<string | null>(null);
+  const coreCharacterId = CORE_CHARACTER_ORDER.find(id => CHARACTER_DISPLAY_NAME[id] === characterName) ?? null;
+  React.useEffect(() => {
+    let mounted = true;
+    if (!isActive) { setAuthenticatedUserId(null); return () => { mounted = false; }; }
+    void supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setAuthenticatedUserId(data.session?.user?.id ?? null);
+    }).catch(() => { if (mounted) setAuthenticatedUserId(null); });
+    return () => { mounted = false; };
+  }, [isActive]);
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshError, setRefreshError] = React.useState(false);
   const refresh = async () => {
@@ -43,7 +56,8 @@ export default function BuklodCharacterLevelGuide({
   const from = PROGRESSIVE_LEVEL_THRESHOLDS[level - 1];
   const target = maximum ? null : PROGRESSIVE_LEVEL_THRESHOLDS[level];
   // Avoid confidently showing outdated thresholds if the server's level and the snapshot disagree.
-  const inSync = points >= from && (target === null || points < target);
+  // BP may be higher than the visible gated level; that is valid pending verified items.
+  const inSync = points >= from;
   const remaining = target === null ? 0 : Math.max(0, target - points);
   const fraction = target === null ? 1 :
     Math.max(0, Math.min(1, (points - from) / Math.max(1, target - from)));
@@ -80,7 +94,7 @@ export default function BuklodCharacterLevelGuide({
         <>
           <Text style={s.path}>{characterName} · Level {level}</Text>
           <Text style={s.detail}>Earned since selection: {format(points)} points</Text>
-          <Text style={s.footnote}>{maximum ? 'Maximum level reached' : inSync ? 'Level-up in progress' : 'Progress needs refresh'}</Text>
+          <Text style={s.footnote}>{maximum ? 'Maximum level reached' : inSync ? 'BP eligibility and verified items are separate' : 'Progress needs refresh'}</Text>
         </>
       ) : null}
       {!isActive ? (
@@ -104,7 +118,7 @@ export default function BuklodCharacterLevelGuide({
             Level {level} · {stages[level - 1]} → Level {level + 1} · {stages[level]}
           </Text>
           <Text style={s.detail}>
-            Kailangan: {format(target!)} lifetime points na na-credit mula nang piliin si {characterName}.
+            BP milestone: {format(target!)} earned points on this Character. Hindi nito awtomatikong papalitan ang Character.
           </Text>
           <Text style={s.counter}>
             {format(points)} / {format(target!)} points · Kulang pa: {format(remaining)} points
@@ -115,12 +129,19 @@ export default function BuklodCharacterLevelGuide({
           <Text style={s.tipTitle}>Ano ang gagawin?</Text>
           <Text style={s.tip}>1. Kumpletuhin ang BUKLOD activities na may verified Points reward.</Text>
           <Text style={s.tip}>2. I-claim ang reward kung kailangan para pumasok ito sa lifetime points balance.</Text>
-          <Text style={s.tip}>3. Kapag na-credit ang sapat na points, automatic na iko-compute ng server ang susunod na level.</Text>
+          <Text style={s.tip}>3. Kunin at i-claim ang verified evolution items para magbago ang Character. Kailangan ang BP at items pareho.</Text>
           <Text style={s.footnote}>
-            Ang items at badges ay rewards/collectibles, hindi dagdag na mandatory tasks para sa core-character Level-Up. Hindi ito Circle Rank progress.
+            Evolution items ay mandatory at hiwalay sa lumang cosmetic collectibles. Hindi kailangan ang Show Faith para sa mga task, at hindi apektado ang Circle Rank.
           </Text>
         </>
       )}
+      {isActive && coreCharacterId && authenticatedUserId ? (
+        <BuklodCharacterEvolutionGate
+          userId={authenticatedUserId}
+          activeCharacterId={coreCharacterId}
+          onProgressRefresh={onRefresh}
+        />
+      ) : null}
       {isActive ? (
         <Pressable
           accessibilityRole="button"
