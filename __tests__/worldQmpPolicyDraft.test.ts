@@ -1,61 +1,93 @@
-import { previewWorldQmp, previewWorldQmpTradeQuote, WORLD_QMP_ACTIVATION_ENABLED, WORLD_QMP_POLICY_DRAFT, type WorldQmpEvent } from '@/features/world/worldQmpPolicyDraft';
+import {
+  previewWorldQmpFromBpSpend, previewWorldSpendQmpQuote,
+  WORLD_QMP_ACTIVATION_ENABLED, WORLD_QMP_POLICY_DRAFT,
+  type WorldQmpSpendEvent,
+} from '@/features/world/worldQmpPolicyDraft';
 
-function event(overrides: Partial<WorldQmpEvent> = {}): WorldQmpEvent {
-  return {
-    eventId:'event-1',
-    action:'complete_house_upgrade',
-    actorId:'user-a',
-    period:'2026-12',
-    entityId:'house-a-upgrade-1',
-    source:'world',
-    currencyProvenance:'earned_bp',
-    verifiedByServer:true,
-    participationOutcome:'fulfilled',
-    ...overrides,
-  };
-}
-describe('BUKLOD world purpose-driven QMP: DEV preview only', () => {
-  it('has no live financial activation', () => {
+const valid=(overrides: Partial<WorldQmpSpendEvent> = {}):WorldQmpSpendEvent=>({
+  receiptId:'receipt-1',
+  actorId:'user-a',
+  period:'2026-12',
+  entityId:'order-1',
+  transactionKind:'purchase',
+  category:'construction_materials',
+  bpDebited:500,
+  earnedBpDebited:500,
+  source:'world',
+  settledByServer:true,
+  state:'fulfilled',
+  ...overrides,
+});
+
+describe('BUKLOD spend-driven QMP — disabled DEV policy preview',()=>{
+  it('is never connected to production Finance',()=>{
     expect(WORLD_QMP_ACTIVATION_ENABLED).toBe(false);
-    expect(WORLD_QMP_POLICY_DRAFT.version).toMatch(/^proposal_/);
+    expect(WORLD_QMP_POLICY_DRAFT.version).toBe('proposal_spend_driven_v2');
   });
-  it('requires independently verified completed activity', () => {
-    expect(previewWorldQmp(event({verifiedByServer:false}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({participationOutcome:'pending'}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({participationOutcome:'rejected'}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event(),[]).qualifies).toBe(true);
+
+  it('participation earns BP elsewhere; BP earning cannot directly create QMP',()=>{
+    expect(previewWorldQmpFromBpSpend(valid({transactionKind:'earn_bp'}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({transactionKind:'passive'}),[]).qualifies).toBe(false);
   });
-  it('requires actual meaningful actions rather than logins', () => {
-    expect(previewWorldQmp(event({action:'login' as any}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({action:'watch_ad' as any}),[]).qualifies).toBe(false);
+
+  it('a completed eligible BP purchase creates proposed spend QMP',()=>{
+    const quote=previewWorldQmpFromBpSpend(valid(),[]);
+    expect(quote.qualifies).toBe(true);
+    if(quote.qualifies)expect(quote.proposedWeight).toBe(5);
   });
-  it('refuses real-money actions and purchased-BP purchase qualification', () => {
-    expect(previewWorldQmp(event({source:'external_paid',action:'purchase_item'}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({currencyProvenance:'purchased_bp',action:'acquire_land'}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({currencyProvenance:'purchased_bp',action:'complete_eligible_trade'}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({currencyProvenance:'purchased_bp',action:'complete_house_upgrade'}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({currencyProvenance:'purchased_bp',action:'finish_community_project'}),[]).qualifies).toBe(false);
+
+  it('a BP gift or item gift never receives a positive QMP credit',()=>{
+    expect(previewWorldQmpFromBpSpend(valid({transactionKind:'bp_gift'}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({transactionKind:'item_gift'}),[]).qualifies).toBe(false);
+    const gift=previewWorldSpendQmpQuote('bp_gift',100,5,2);
+    expect(gift.purchaseQmpCredit).toBe(0);
+    expect(gift.giftQmpDeduction).toBe(2);
+    expect(gift.netQmpChange).toBe(-2);
+    expect(previewWorldSpendQmpQuote('bp_gift',100,5,null).netQmpChange).toBeNull();
+    const purchase=previewWorldSpendQmpQuote('purchase',100,1,5);
+    expect(purchase.purchaseQmpCredit).toBe(1);
+    expect(purchase.giftQmpDeduction).toBeNull();
+    expect(purchase.netQmpChange).toBe(1);
   });
-  it('prevents repeat credit on same event or entity', () => {
-    const row={eventId:'event-1',actorId:'user-a',period:'2026-12',entityId:'house-a-upgrade-1',action:'complete_house_upgrade' as const,qualifiedWeight:4};
-    expect(previewWorldQmp(event(),[row]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({eventId:'event-2'}),[row]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({action:'fulfill_service'}),[row]).qualifies).toBe(false);
+
+  it('partial earned BP only gives partial QMP; paid/gifted BP cannot buy revenue weight',()=>{
+    const partial=previewWorldQmpFromBpSpend(valid({bpDebited:500,earnedBpDebited:200}),[]);
+    expect(partial.qualifies).toBe(true);
+    if(partial.qualifies)expect(partial.proposedWeight).toBe(2);
+    expect(previewWorldQmpFromBpSpend(valid({earnedBpDebited:0}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({source:'external_paid'}),[]).qualifies).toBe(false);
   });
-  it('limits monthly categories without punishing ordinary useful contributions', () => {
-    const cap=WORLD_QMP_POLICY_DRAFT.monthlyCategoryCap.complete_house_upgrade;
-    const row={eventId:'other',actorId:'user-a',period:'2026-12',entityId:'house-2',action:'complete_house_upgrade' as const,qualifiedWeight:cap};
-    expect(previewWorldQmp(event(),[row]).qualifies).toBe(false);
+
+  it('rejects unverified transactions, refunds, self-trade and negative amounts',()=>{
+    expect(previewWorldQmpFromBpSpend(valid({settledByServer:false}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({state:'pending'}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({transactionKind:'refund'}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({isSelfTrade:true}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({counterpartyId:'user-a'}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({isFlagged:true}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({bpDebited:-5}),[]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({earnedBpDebited:501}),[]).qualifies).toBe(false);
   });
-  it('rejects self-dealing and risk flags', () => {
-    expect(previewWorldQmp(event({isSelfTrade:true}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({isFlagged:true}),[]).qualifies).toBe(false);
-    expect(previewWorldQmp(event({counterpartyId:'user-a'}),[]).qualifies).toBe(false);
+
+  it('cannot repeat the same spend receipt across categories or replay same purchase entity',()=>{
+    const previous={
+      receiptId:'receipt-1',actorId:'user-a',period:'2026-12',entityId:'order-1',
+      category:'construction_materials' as const,qualifiedWeight:5,
+    };
+    expect(previewWorldQmpFromBpSpend(valid(),[previous]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({receiptId:'receipt-1',category:'house_upgrade'}),[previous]).qualifies).toBe(false);
+    expect(previewWorldQmpFromBpSpend(valid({receiptId:'receipt-2'}),[previous]).qualifies).toBe(false);
   });
-  it('keeps the outgoing BP transfer deduction separate from qualifying activity credit', () => {
-    expect(previewWorldQmpTradeQuote(100,null,3).netQmpChange).toBeNull();
-    expect(previewWorldQmpTradeQuote(100,5,2).netQmpChange).toBe(-3);
-    expect(previewWorldQmpTradeQuote(100,0,2).netQmpChange).toBe(2);
-    expect(previewWorldQmpTradeQuote(0,5,2).netQmpChange).toBeNull();
+
+  it('has per-receipt, per-category, and overall monthly caps',()=>{
+    const p=previewWorldQmpFromBpSpend(valid({bpDebited:100000,earnedBpDebited:100000}),[]);
+    expect(p.qualifies).toBe(true);
+    if(p.qualifies)expect(p.proposedWeight).toBe(WORLD_QMP_POLICY_DRAFT.perPurchaseCap);
+    const categoryCap=[{receiptId:'past',actorId:'user-a',period:'2026-12',
+      entityId:'order-prev',category:'construction_materials' as const,qualifiedWeight:12}];
+    expect(previewWorldQmpFromBpSpend(valid(),categoryCap).qualifies).toBe(false);
+    const totalCap=[{receiptId:'past',actorId:'user-a',period:'2026-12',
+      entityId:'other-order',category:'land_acquisition' as const,qualifiedWeight:50}];
+    expect(previewWorldQmpFromBpSpend(valid(),totalCap).qualifies).toBe(false);
   });
 });
