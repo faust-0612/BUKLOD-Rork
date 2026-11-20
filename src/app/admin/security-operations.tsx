@@ -89,8 +89,12 @@ export default function SecurityOperations() {
         <Card>
           <Text style={shared.h2}>Last scan: {data.scan_at ? new Date(data.scan_at).toLocaleString() : 'NOT YET RUN'}</Text>
           <Text style={shared.muted}>
-            Auth audit: {data.auth_audit_coverage === 'EVENTS_PRESENT' ? 'Events present (coverage not independently verified)' : 'UNVERIFIED'}
-            {' • '}24h rows: {data.auth_audit_rows_24h}
+            Auth audit: {data.auth_audit_coverage === 'EVENTS_PRESENT'
+              ? 'DB events present (coverage not independently verified)'
+              : 'UNVERIFIED — database audit window not checked'}
+            {data.auth_audit_coverage === 'EVENTS_PRESENT'
+              ? ` • 24h database rows (bounded): ${data.auth_audit_rows_24h}`
+              : ' • External Auth log monitoring is separate'}
           </Text>
           {data.findings.length === 0
             ? <Text style={shared.body}>No configured signals active. This is not an all-clear.</Text>
