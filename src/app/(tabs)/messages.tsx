@@ -1297,7 +1297,7 @@ function ConnectScreenInner({
   // Preserve the same VirtualizedList across tab taps. Its header contains
   // the appearance modal and SDK ads; replacing the list destroys them mid-press.
   return (
-    <ConnectThreadBackground style={styles.screen}>
+    <ConnectThreadBackground style={styles.screen} genesisInbox>
       <View style={styles.body}>
         <FlatList
           onScroll={event => reportBuklodDashboardScroll('connect', event.nativeEvent.contentOffset.y)}

@@ -8,6 +8,9 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
+import { GENESIS_GALAXY_IMAGES } from '@/features/season2/genesis/genesisGalleryAssets';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 
 import {
   isDarkHexColor,
@@ -26,6 +29,8 @@ import {
 type Props = {
   children: React.ReactNode;
   style?: ViewStyle;
+  /** Inbox-only seasonal canvas; thread backgrounds remain untouched. */
+  genesisInbox?: boolean;
 };
 
 function PatternLayer({
@@ -349,11 +354,13 @@ function BackgroundLayers({
 export function ConnectThreadBackground({
   children,
   style,
+  genesisInbox = false,
 }: Props) {
   const { theme } = useConnectTheme();
   const {
     effectiveBackground,
   } = useChatBackground();
+  const showGenesisInbox = genesisInbox && isGenesisPreviewBuild();
 
   return (
     <View
@@ -362,10 +369,26 @@ export function ConnectThreadBackground({
         style,
       ]}
     >
-      <BackgroundLayers
-        config={effectiveBackground}
-        themeCanvas={theme.canvas}
-      />
+      {showGenesisInbox ? (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <ImageBackground
+            source={GENESIS_GALAXY_IMAGES.nebula}
+            resizeMode="cover"
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            colors={['rgba(5,10,25,.66)', 'rgba(5,10,25,.88)']}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Static orbit lines keep inbox scrolling, ads and video unencumbered. */}
+          <GenesisCosmicSky active={false} minimal transparent />
+        </View>
+      ) : (
+        <BackgroundLayers
+          config={effectiveBackground}
+          themeCanvas={theme.canvas}
+        />
+      )}
       <View style={{ flex: 1 }}>
         {children}
       </View>
