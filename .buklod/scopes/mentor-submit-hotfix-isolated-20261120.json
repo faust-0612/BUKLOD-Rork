@@ -51,7 +51,8 @@
     "mentoring-report",
     "production-release-identity",
     "AdMob",
-    "navigation"
+    "navigation",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "No Season 2 Genesis source, native package, DB changes, Expo config, ad or navigation changes are introduced by this branch.",
