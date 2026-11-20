@@ -48,7 +48,7 @@ import { buildScopedWorkspacePath, isManagedCommunityScope } from '@/lib/buklodS
  * Organization/Cluster workspaces remain route-owned by /scope.
  */
 export const unstable_settings = {
-  initialRouteName: 'buklod',
+  initialRouteName: 'hub',
 };
 
 function SwipeDashboardHeader() {
