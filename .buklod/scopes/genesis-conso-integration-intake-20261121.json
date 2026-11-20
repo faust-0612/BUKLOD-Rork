@@ -1,0 +1,123 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-conso-integration-intake-20261121.json",
+  "objective": "Selective staging-only Genesis World first-view, hidden old global nav, optional music, existing premium galaxy artwork + additive World/Arena policies; no production or backend writes.",
+  "baseRef": "cf99bd23d5e0eea0e56d0921c5b8079f4aeda27c",
+  "productionBaselineEvidence": "main 536741f8d97fc9dec91503c89f1c1160e5987ce0 observed. Production OTA/APK release fingerprint not independently verified. No production, EAS or Supabase writes.",
+  "chosenApproach": "Staging-preview-gated World hub with full district directory and licensed existing bundled music, protected ad placements and compact map return; pure development World/Arena code remains explicitly disabled. Owner's premium Valley art is handed off but not yet committed; no release claim.",
+  "riskAreas": [
+    "arena-multiplayer",
+    "asset-licensing",
+    "backend-isolation",
+    "earned-only-bp",
+    "finance-qmp",
+    "first-view-admob",
+    "navigation-auth",
+    "navigation-scroll",
+    "staging-native-runtime"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Source-only domain import; do not alter runtime or current safe routes.",
+      "preservedBehaviors": [
+        "Existing Wall, Connect, Cluster, Profile, current navigation, first-view AdMob, native app and production services remain unchanged."
+      ],
+      "tests": [
+        "tests/season2-conso-intake-gates-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Genesis preview now launches the protected Public World map while preserving the production Public Wall entry and every existing auth/compliance/route guard.",
+      "preservedBehaviors": [
+        "Production/non-Genesis index still opens Public Wall with original nav header and persistent tab bar; Genesis only shows the World map, allows route entry via original permissions and excludes immersive views.",
+        "Every launched destination retains existing Expo route protection, authenticated scope controls, mandatory updates and AdMob first-view lifecycle."
+      ],
+      "tests": [
+        "tests/genesis-world-navigation-regression-20261121.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/buklod-permanent-asset-trade-policy.test.mjs",
+    "tests/empire-arena-logic.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-conso-intake-gates-20261121.test.mjs",
+    "tests/world-core-invariants.test.mjs",
+    "tests/world-png-sprite-progress-20261121.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-conso-integration-intake-20261121.json",
+    "__tests__/worldBpProvenance.test.ts",
+    "__tests__/worldBpWalletContract.test.ts",
+    "__tests__/worldCatalog.test.ts",
+    "__tests__/worldCommunityChallenges.test.ts",
+    "__tests__/worldCommunityTreasury.test.ts",
+    "__tests__/worldCustomization.test.ts",
+    "__tests__/worldDevelopmentBuildPlanning.test.ts",
+    "__tests__/worldItemCatalog.test.ts",
+    "__tests__/worldQmpPolicyDraft.test.ts",
+    "docs/BUKLOD_EMPIRE_ARENA_LOGIC_V1_20261121.md",
+    "docs/BUKLOD_WORLD_BACKEND_MIGRATION_CONTRACT_20261121.md",
+    "docs/BUKLOD_WORLD_OVERALL_RECONSTRUCTION_BLUEPRINT_20261120.md",
+    "docs/architecture/BUKLOD_PERMANENT_ASSET_TRADE_ECONOMY.md",
+    "docs/season2/BUKLOD_ECONOMY_USER_GUIDE_ACTUAL_VS_SEASON2_20261121.md",
+    "docs/season2/GENESIS_CONSO_RECONCILIATION_HOLD_20261121.md",
+    "docs/world/WORLD_PNG_PROGRESS_RENDERER_20261121.md",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/index.tsx",
+    "src/components/BuklodNavSafeShell.tsx",
+    "src/components/world/BuklodGenesisWorldHome.tsx",
+    "src/components/world/WorldLevelSprite.tsx",
+    "src/features/empire-arena/arenaCore.mjs",
+    "src/features/empire-arena/matchmaking.mjs",
+    "src/features/empire-arena/roomCoordinator.mjs",
+    "src/features/empire-arena/settlementPolicy.mjs",
+    "src/features/world/worldBpProvenance.ts",
+    "src/features/world/worldBpWalletContract.ts",
+    "src/features/world/worldBuildPlanning.ts",
+    "src/features/world/worldCatalog.ts",
+    "src/features/world/worldCommunityChallenges.ts",
+    "src/features/world/worldCommunityTreasury.ts",
+    "src/features/world/worldCustomization.ts",
+    "src/features/world/worldDevelopmentCatalog.ts",
+    "src/features/world/worldEconomyBlueprint.ts",
+    "src/features/world/worldProgression.ts",
+    "src/features/world/worldQmpPolicyDraft.ts",
+    "src/features/world/worldSpriteFrame.ts",
+    "src/lib/buklodAssetTradePolicy.ts",
+    "tests/buklod-permanent-asset-trade-policy.test.mjs",
+    "tests/empire-arena-logic.test.mjs",
+    "tests/empire-arena-matchmaking.test.mjs",
+    "tests/empire-arena-room.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-conso-intake-gates-20261121.test.mjs",
+    "tests/world-core-invariants.test.mjs",
+    "tests/world-png-sprite-progress-20261121.test.mjs"
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "acceptanceChecks": [
+    "Validate actual preview runtime build with exact staging APK and new map-native stack; no production release.",
+    "Bring Valley community-map art from BUKLOD V2 handoff and replace Galaxy fallback after license and asset optimization; verify hotspots.",
+    "Run navigation/advertising performance tests and Android Metro/TS build; device visual verification explicitly waived, not passed.",
+    "Verify 3-v-5 stage construction and economy values in isolated backend before enabling any World purchase.",
+    "Ensure session and ad audio focus lifecycle and toggles prevent background music over calls, ads and video."
+  ],
+  "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
+  "preserveBehaviors": [
+    "Non-Genesis production and staging legacy routes retain original hub layout, old entry and old bar because guard is preview-only.",
+    "Signed-in Genesis entry respects auth, compliance, forced update, maintenance and PUBLIC-scope reset before entering World.",
+    "Every existing feature route remains in the World directory; privileged permissions remain in original Focus Apps and route guards.",
+    "First-view Home AdMob, second native sponsor, community sponsor and bottom banner remain mounted in Genesis; no false forced ad success.",
+    "No BP, QMP, Diamond, ownership or Marketplace server mutation; World preview labeled non-live.",
+    "Music starts only when opted in and foreground/focused; stops on audio focus interruption, navigation and background.",
+    "Live Play APK, production EAS/OTA and existing Supabase unchanged."
+  ],
+  "alternativeApproaches": [
+    "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",
+    "Replace live first view with cheap schematic green map — rejected because the owner requires premium illustrated World art.",
+    "Activate the proposed World QMP spending formula in production — rejected because the canonical Finance policy and migration gates are not reconciled."
+  ]
+}

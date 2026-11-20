@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import { rememberBuklodRoute } from '@/lib/buklodRouteDiagnostics';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import {
   isBuklodScopedWorkspacePath,
   normalizeBuklodPathname,
@@ -87,7 +88,8 @@ export default function BuklodNavSafeShell({
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
   const immersiveConversation = isHiblaConversationPath(pathname);
-  const navOccupied = immersiveConversation ? 0 : rawNavOccupied;
+  const genesisWorld = isGenesisPreviewBuild();
+  const navOccupied = genesisWorld || immersiveConversation ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
@@ -166,6 +168,13 @@ export default function BuklodNavSafeShell({
             ? Math.max(insets.bottom, 0)
             : 0;
 
+  // A single compact World portal replaces legacy persistent nav in staging.
+  // Never overlap an active conversation, immersive reel, keyboard or auth gate.
+  const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !keyboardVisible &&
+    ['/buklod','/messages','/clusters','/me','/games','/learn','/bible',
+      '/bayanihan','/profile/focus-apps','/personal-home','/support/live',
+      '/profile/buklod-health','/community-contribution'].includes(normalizedPath);
+
   return (
     <View style={styles.root}>
       <View
@@ -183,7 +192,7 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
+      {!genesisWorld && !immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
@@ -192,6 +201,14 @@ export default function BuklodNavSafeShell({
         </View>
       ) : null}
 
+      {worldReturnEligible ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="Return to Genesis World map"
+          onPress={() => router.replace('/hub' as any)}
+          hitSlop={8} style={[styles.worldReturn,{top:Math.max(insets.top,5)+5}]}>
+          <MaterialCommunityIcons name="earth" size={20} color="#F7D8A2"/>
+          <MaterialCommunityIcons name="arrow-left" size={15} color="#F7D8A2"/>
+        </Pressable>
+      ) : null}
       {immersiveIgpat ? (
         <Pressable
           accessibilityRole="button"
@@ -216,6 +233,13 @@ export default function BuklodNavSafeShell({
 }
 
 const styles = StyleSheet.create({
+  worldReturn: {
+    position: 'absolute', right: 10, zIndex: 1000, minWidth: 48, minHeight: 42,
+    borderRadius: 22, backgroundColor: 'rgba(7,20,42,0.88)',
+    borderColor: 'rgba(239,211,158,0.6)', borderWidth: 1,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, elevation: 5,
+  },
   root: {
     flex: 1,
   },

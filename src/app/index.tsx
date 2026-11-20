@@ -4,6 +4,7 @@ import {
   useState,
 } from 'react';
 import { Redirect } from 'expo-router';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -180,7 +181,7 @@ export default function Index() {
 
   return (
     <Redirect
-      href="/(tabs)/buklod"
+      href={isGenesisPreviewBuild() ? '/(tabs)/hub' : '/(tabs)/buklod'}
     />
   );
 }
