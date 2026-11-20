@@ -150,3 +150,103 @@ The V2 subdirectory implements an **offline headless simulation and optional HTM
 ### Change control
 
 Any future gameplay revision must modify this file alongside executable behavior and at least one new focused behavioral test. Record why the change improves the approved player experience, its impact on fairness/economy/victory, and explicit DEV/CI/RC/production evidence. Never quietly change hardcoded gameplay without updating this source of truth.
+
+---
+
+## 11. OWNER ADDENDUM — ONE BUKLOD ECONOMY, not disconnected minigames (2026-11-21)
+
+**APPROVED PERMANENT INTENT:** BUKLOD's Character, Kingdom, Empire, Cluster/Organization, Community Map, House, Personal Lot, Wall, Connect, Learning, Bayanihan and Market share one member identity, verified accomplishments, item provenance and clear optional cross-feature benefits. Different interests are equally legitimate ways to contribute to community. **A member need not visit or play every feature.** The goal is a sustainable, qualified QMP ecosystem, *not* a guaranteed QMP payment for playing games or buying/selling points. No feature can create BP just by generating business sales, trading repeatedly or opening an offline game.
+
+### 11.1 Universal progression boundaries — non-negotiable
+
+1. **Circle Rank:** official server-authoritative earned lifetime BP remains independent. Peer trading must never fake *earned lifetime BP* or accelerate Circle Rank by recycling the same balance; treat balance transfers as **spendable existing BP only** and carry distinct `earned_bp` vs `transfer_received_bp`. Purchases and trades do not count as new participation or new points earned. Never replace Circle Rank with account trading volume.
+2. **Character Level:** BP eligibility plus server-verified required character-specific evolution-item receipts. These receipts are **soulbound**, not tradable, and cannot be bypassed with purchased lookalike items. Evolution and previously earned 20-level histories survive switches. Show Faith OFF has equivalent non-faith mandatory paths. Character collectibles and cosmetic art remain their own authority.
+3. **Arena ranked:** verified in-match participation may **qualify** for a capped BP reward through the **existing audited participation-reward service**, after authenticated live PvP result review. No direct wallet mutation from the game client, offline HTML or random player kills. Match-earned loot is match-local and nontradable unless a separately verified permanent reward authority creates a distinct transferable item receipt. Character Diamond ranked stakes never become BP wagering.
+4. **Peer-to-peer Marketplace:** buying a recognized item **transfers already-owned spendable BP** from buyer to seller. Double-entry and atomic escrow only. A business, market, house, miner, player or trader does **not** mint additional BP. Transfer-received BP is not fresh earned lifetime participation and is not a Circle Rank shortcut. Do not sell BP directly or promise cash conversion.
+5. **QMP:** authoritative qualified revenue share/cash policies remain completely separate from BP transfers, match XP, items, in-match Wood/Gold/Stone, Character Diamonds and temporary game events. Monetization may fund QMP only via the pre-existing authorized qualifying settlement system and actual eligible revenue, **not** by fictional match-score or trade fees. Participation, not mandatory activity in all features, remains the engagement pathway; never connect sensitive school grades or medical data to QMP farming.
+6. **Permanent assets:** House, Lot, Cluster Map and Organization projects preserve their independent permanent progression through Level 10 with visible multistage building, verified Development XP and escalating materials/time. Circle Rank is prestige only, never the upgrade gate. Player donations/trades can accelerate material availability but not bypass real construction stages/verification.
+
+### 11.2 Five globally distinguishable inventory/receipt types
+
+| Category | Durable or temporary | Trade | Origin | Where usable |
+| --- | --- | --- | --- | --- |
+| Verified **Evolution Item Receipt** | Permanent/account-character bound | **Never** | Authenticated milestone evidence and canonical item key | Actual Character evolution only |
+| Character/legacy **Cosmetic Collectible** | Permanent/account-character bound | **Never by default** | Existing cosmetic/collectible registry | Profile/customization and allowed visuals |
+| **Transferable equipment certificate** | Permanent owned item instance; provenance and creator retained | **Yes, if explicitly tradeable** | Separately verified Kingdom, Arena or sanctioned community achievement | Character-specific Arena prep or role specialization subject to rank/level and loadout power cap |
+| **Construction/strategy supply** | Permanent transferable item instance until consumed | **Yes**, including across Cluster/Org boundaries | Distinct verified, capped activity receipt | House/Lot/Cluster/Map development; cluster-approved Arena support |
+| **In-match field loot** | Temporary match-local gear, potions, drops, Wood/Gold/Stone | **Never for BP** | Server-simulated match RNG/combat/harvesting | Same match only |
+
+One original 1,300-story art key (e.g. `quin:L07:I03`, **Explorer Hiking Compass**) can inform the visuals, identity, specialization and recipe of a separate transferable certificate **without converting the protected evolution receipt into transferable property**. The instance IDs, wallet source, item class, ownership records, rarity and evidence must remain separate and auditable. The item name comes from the canonical BUKLOD catalog, never from a made-up loot name. Forged client item JSON and duplicate image uploads have zero authority.
+
+**Character exclusivity persists after trading:** A Quin-exclusive item may be sold by a Phan-oriented Kingdom specialist to a Quin Arena player of a different Cluster. The seller receives the buyer's pre-existing spendable BP. The owner may keep an exclusive item for future use or re-trade it, but cannot equip it on Phan or unlock special Character access with it. No forced personal game-switching or character evolution bypass.
+
+### 11.3 BUKLOD Exchange / Universal Inventory service contract
+
+A verified event from any supported surface must carry a unique event ID, subject, user and scope attribution, timestamp, proof type, moderation/anti-fraud status and canonical source reference. Only the authoritative source adapter can attest it. Read-only profile displays can present multi-feature opportunity suggestions but may not create receipts.
+
+**Item state machine:** `EARN_ELIGIBLE -> SERVER_VERIFIED -> OWNED -> ESCROWED -> TRANSFERRED -> OWNED` or `OWNED -> CONSUMED`, with `ESCROWED -> CANCELLED -> OWNED`. Mandatory character receipts skip trade states entirely. Verified match-only loot may never enter the global transfer pipeline.
+
+**Trade state machine:** `LISTED` locks the exact item once; `SETTLED` transfers BP and item in one DB transaction; `CANCELLED/EXPIRED` returns the original item to inventory. Row locking/optimistic revisions, idempotency keys, unique source receipts, server timestamp, amount checks, authorization/RLS, wallet sufficiency and replay limits are mandatory. The amount of BP transferred between two ordinary members is conserved: buyer debit equals seller credit (and any explicit audited fee must not silently mint BP). Never count resale volume as BP earned or verified engagement.
+
+**Cross-cluster access:** Marketplace search and purchases are not restricted to the same Cluster. A seller does not need to join the buyer's team. Marketplace/Kingdom specialists can sponsor a player or donate project resources to another Cluster/Org, subject to receiving project's consent and separate contribution receipt. Team management cannot seize private member items. A transferred **cluster-owned** item must have traceable treasury provenance and explicit authorized custody change; scope managers need audited approvals to spend organization/cluster treasury assets.
+
+**Dispute lifecycle:** On forged/revoked evidence, freeze affected item offers/permits and trace derived transfers; preserve full receipts and balance history for review. Reversal cannot simply double-deduct an innocent buyer, produce negative balances or destroy settled cash history. On timeout/disconnect during escrow, a retry with identical idempotency ID must return the same authoritative transaction result, never mint a second item or debit twice. Avoid unbounded auto-retries.
+
+### 11.4 Direct cross-feature benefit graph — no mandatory participation loops
+
+| Starting activity | Verified reward class | Where it can help | Fair non-player alternative |
+| --- | --- | --- | --- |
+| Kingdom mastery/challenges | Earned tradeable equipment certificate or crafting/strategy material, **only via audited verified achievement** | Arena support, House/Lot projects, Marketplace | Sell for existing spendable BP; continue Kingdom without Arena |
+| Empire verified ranked contribution | Capped BP reward proposal; eligible nontrade match accolades; possibly distinct certified tradable material | Character BP path (if actual separately earned), Market purchases, Cluster projects | Players can buy eligible Kingdom goods using existing BP; no obligation to play mind games |
+| Public Wall/Connect community contribution | Verified helpful participation signal, never per-message spam | Existing BP/Character evolution rules and project collaboration | Character Show Faith OFF uses public/secular accepted activity |
+| Cluster/Org/Bayanihan projects | Verified project material, scope strategy, construction XP | Cluster map/House/Lot, Empire team logistics, team recognition | Donate or trade without joining PvP; evidence is independent of mutual approval |
+| House/Lot development | Tangible completed visible construction milestone and eligible resource reuse | Personal/Community Map and permitted noncombat recognition | Material assistance from other users does not skip required building stages |
+| Marketplace trade | **Transfer of existing spendable BP + item custody** | Match tactical choices, ongoing asset progress | Selling items earns transferable BP income without playing Arena |
+| Government/Public Focus Apps | Only eligible non-sensitive civic/project activities when individually verified | Community Project documentation/support | No reward for merely viewing services; no duplicate govt transaction system |
+| Education / Health | Optional learning and wellbeing support; private content protected | No compulsory BP/QMP link based on diagnoses, grades or sensitive disclosures | Equal access and separate privacy policies |
+
+This is an **opportunity graph**, not a forced dependency graph: every essential Character evolution and early asset progression path remains realistically attainable through a non-faith, nonpaid route. Users can specialize and trade to fill other gaps. No feature is required to manufacture low-quality engagements just to feed another feature.
+
+### 11.5 Arena team sponsorship and Cluster strategy goods
+
+A team is comprised of opted-in players, **not the entire Cluster population**. Kingdom specialists, builders, casual users and members of other Clusters can help any team without joining the match. Their support may be purchased or gifted through the Exchange, or the receiving Cluster may approve use of an owned strategy item.
+
+A Cluster treasury strategy item is: earned or bought with a unique receipt -> donated into consenting scope treasury -> reserved for a specified match/team/recipient with authorized scope manager -> **consumed only when verified match starts** -> applied as **one bounded strategic option**; cancelled matches return the reserved item. Stronger paid supplies cannot circumvent fair ranked matchmaking or mint premium base power.
+
+Initial one-support-slot examples reusing exact original existing items:
+
+- **Explorer Hiking Compass (Quin item)**, `reveal_once`: one temporary scout/intel reveal, no direct damage or hidden opponent secrets outside match.
+- **Legacy Art Mentor Master Brush Chest Tools (Mitch item)**, `construction_queue`: **one** engineer-assisted structure construction job at at most 8% shorter duration, no instant tower and all normal material costs/stages required.
+- **Team Leader Radio Set (Christian item)**, `dispatch_intel`: one tactical supply/coordination hint, no BP generation or global battle auto-win.
+
+These are **illustrative tactical effects**, not declarations that a story collectible itself was traded. Each equipment/strategy item must originate in the existing catalog, preserve hero exclusivity where applicable and have distinct verified tradeable-instance custody. The match server checks the team, receiving player, already-spent strategy slot, item receipt and rank bracket. Ranked opponents get equal strategic support budgets/free reachable equivalents; sponsorship may change choice of tactics, not purchase victory. No real item is consumed before confirmed match start.
+
+### 11.6 BP lifetime earned vs spendable vs received — anti-level-boost invariant
+
+**Critical:** Because Circle Rank and per-character BP eligibility must reflect actual participation, do not treat BP received from selling items as if earned by fresh verified actions. Maintain server-separated accumulators:
+
+- `earned_lifetime_bp`: increments only via the approved audited, nonduplicating activity reward ledger and its historical preserved receipts; **never** by trade.
+- `spendable_bp_balance`: balance allowed to move between accounts, with buyer debit and seller credit, and no fiat redemption.
+- `trade_received_bp`: net traceability/audit classification; **does not grant earned-lifetime Circle Rank or Character eligibility** simply because value changed hands.
+- `character_bp_earned_since_selection`: separate per-character earned progress; transactions may not silently change it.
+- `qmp_settled_cash` and `qmp_qualified_share`: canonical existing financially funded/revenue-derived systems, independent.
+- `match_resource_balance`: volatile Wood/Gold/Stone and Arena-only equipment, **never** direct BP stock or a cash wallet.
+
+A **seller** can earn spendable BP through market exchange even without playing the buyer's feature. They still need separately verified participation to increase earned lifetime BP/Circle Rank. A **player** can qualify for modest BP through genuine verified Arena contribution; QMP is not directly minted by defeating enemies, viewing an ad or completing a trade. All rate cards require a separate approved reward-policy version and cannot activate from a DEV simulation.
+
+### 11.7 Newcomer, veteran, Show Faith and economic fairness
+
+- Beginners receive accessible starter routes to obtain materials and permitted support; no forced purchase, paid subscription or dependence on high-ranking patrons. Cross-cluster support is voluntary.
+- Older members retain independently earned levels, receipts, assets and rank. Progression has expansion ceilings, opt-in prestige, specialized utility and meaningful challenges rather than infinite raw stat advantage.
+- Matchmaking bands normalize major persistent power gaps; item loadout budget and capped support slots mean gifted/purchased gear cannot auto-defeat a skilled beginner. New player versus veteran games require compatible levels/roles or distinct consented Open-Power casual rooms.
+- The **Show Faith OFF** path obtains every mandatory item via equivalent secular activities and the same marketplace rights. Faith ON activities can offer voluntary participation opportunities, not unbounded BP or nonfaith progression exclusion. Trade access depends on verified item rights, not a member's religion or faith-mode preference.
+- Prevent reciprocal trade farming, circular BP cycling, self/family-group boosting, bot farming, match-fixing, manufactured sales, fake Kingdom mastery, self-approval, duplicate cross-cluster material receipts and fake location-based participation. Rate-limit rewards **per evidence family**, not just per account.
+- Personal lot/house/cluster tracks remain permanently separate but connected through materials and contributions, each with tangible level 1–10 stages, increasing costs and no rank gating. If a community project accepts cross-cluster aid, both the donor and destination must be auditable; donor cannot grant progress twice.
+
+### 11.8 Sandbox modules, acceptance and limits
+
+The isolated DEV `experiments/empire-arena-v2/buklod-exchange.mjs` and `arena-v2-world-bridge.mjs` implement **offline sandbox state transitions**, not production BP trading. They demonstrate a nonplayer Kingdom seller on another Cluster trading a canonical named item for existing BP, ownership-preserving escrow, item/strategy reservation, cross-cluster donations to House/Map projects, rank/hero equip gating and optional bounded match support consumed only on match start. The existing `arena-v2-engine.mjs` and `arena-v2-empire.mjs` remain match-local/independent.
+
+**Mandatory production integration blockers:** a complete audited DB schema and ledger separation of earned-vs-spendable BP, live authenticated receipts for Kingdom/Arena/Projects, transfer/escrow transaction and RLS authorization, true cross-scope team/manager permissions, double-entry accounting/compensation, anti-collusion monitoring, rollback behavior, account activity/identity rules, QMP privacy-safe independent settlement, live network match server, Android UI and reconciliation against PR #1041 Character Evolution. Sandbox `sandboxEvidence()` and `simulateApprovedArenaBp()` are explicitly **not** secure validation or real user rewards; the demo has no ability to access Supabase or release real BP. No production migration or OTA is authorized by this document.
+
+**Traceability acceptance scenarios:** (a) Kingdom nonplayer of Cluster North lists exclusive Quin item -> Cluster South member pays with existing spendable BP -> seller receives same BP transfer -> item remains Quin-only; (b) external member contributes finite materials to consenting Cluster Map or House -> progress rises once; (c) legitimate Cluster strategy approved/escrowed -> cancelled match returns item, started match consumes once -> one capped tactical effect; (d) Arena verified contribution creates **proposal** only until existing BP reward authority approves exactly once; (e) evolution receipts, cosmetic awards and match-local equipment are not tradable; (f) original BP/QMP/Circle Rank/Character wallet untouched by sandbox; (g) Show Faith OFF never affects trade permissions and beginners retain free routes; (h) duplicate/invalid trade IDs, underfunded wallet, fake authority, self-trade and revoked evidence fail closed.
