@@ -22,6 +22,7 @@ import {
   shouldAdvanceConnectReadCursor,
   splitAlbumUpload,
   visibleReaderAvatars,
+  latestConnectReaderReadAt,
 } from '@/lib/connectChatWindow';
 import {
   createConnectHistoryAvailability,
@@ -651,5 +652,24 @@ describe('Connect scope read review migration', () => {
     expect(threadSource).toContain(
       'This is not a separate receipt for every message.'
     );
+  });
+});
+
+
+describe('Connect seen-avatar density and room read time', () => {
+  it('limits a long reader row to three separate avatars and a +N count', () => {
+    const { shown, extra } = visibleReaderAvatars(['a', 'b', 'c', 'd', 'e', 'f']);
+    expect(shown).toEqual(['a', 'b', 'c']);
+    expect(extra).toBe(3);
+  });
+
+  it('uses the latest valid read cursor, not message send time', () => {
+    const latest = latestConnectReaderReadAt([
+      { lastReadAt: '2026-11-20T09:40:00.000Z' },
+      { lastReadAt: 'not-a-date' },
+      { lastReadAt: '2026-11-20T09:45:00.000Z' },
+    ]);
+    expect(latest?.toISOString()).toBe('2026-11-20T09:45:00.000Z');
+    expect(latestConnectReaderReadAt([{ lastReadAt: null }])).toBeNull();
   });
 });

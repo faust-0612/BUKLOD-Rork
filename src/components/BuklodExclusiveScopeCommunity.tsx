@@ -4710,6 +4710,8 @@ return (
     <>
       <FlatList<any>
         ref={feedRef}
+        // Reveal the official Creation sky instead of an opaque white feed canvas.
+        style={isGenesisPreviewBuild() && mode === 'wall' ? { backgroundColor: 'transparent' } : undefined}
         onScroll={event => { reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y); noteBuklodVideoScroll(); }}
         scrollEventThrottle={64}
         data={
@@ -4851,6 +4853,7 @@ return (
             paddingBottom:
               scrollBottomInset,
           },
+          isGenesisPreviewBuild() && mode === 'wall' ? { backgroundColor: 'transparent' } : undefined,
         ]}
         keyboardShouldPersistTaps="handled"
       />

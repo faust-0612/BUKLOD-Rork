@@ -430,7 +430,7 @@ return (
         },
       ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_CONTENT_WRAPPER_FLUSH */ marginTop: 0, paddingTop: 0 }], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_WORKSPACE_GAP_ZERO */ gap: 0 }]}
     >
-      {!canUserSelectTheme() ? <GenesisCosmosBackground active={section === 'home'}/> : null}
+      {!canUserSelectTheme() ? <GenesisCosmosBackground active={section === 'home' || section === 'community'}/> : null}
       {canUserSelectTheme() && !!dashboardTheme.backgroundImage && (
         <DashboardImageBackground
           source={{
