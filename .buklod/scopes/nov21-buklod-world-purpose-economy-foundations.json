@@ -29,7 +29,8 @@
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "regressionTests": [
-    "tests/world-navigation-finance-route.test.mjs"
+    "tests/world-navigation-finance-route.test.mjs",
+    "tests/world-core-invariants.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -39,7 +40,8 @@
         "The existing full app features, five main tabs, native performance, entitlement guards, ad delivery and deep links remain intact."
       ],
       "tests": [
-        "tests/world-navigation-finance-route.test.mjs"
+        "tests/world-navigation-finance-route.test.mjs",
+        "tests/world-core-invariants.test.mjs"
       ]
     },
     {
@@ -83,6 +85,7 @@
     "src/features/world/worldEconomyBlueprint.ts",
     "src/features/world/worldProgression.ts",
     "src/features/world/worldQmpPolicyDraft.ts",
+    "tests/world-core-invariants.test.mjs",
     "tests/world-navigation-finance-route.test.mjs"
   ],
   "preserveBehaviors": [
