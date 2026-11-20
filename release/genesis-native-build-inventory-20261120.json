@@ -153,10 +153,10 @@
     },
     {
       "id": "drive-oauth-cloud-sync",
-      "status": "held-credentials",
-      "origin": "PR #814",
-      "description": "Optional direct Drive API sync with user-verified Google identity",
-      "remaining": "Native Android OAuth client/signature and authorized secure account binding unavailable; not enabled"
+      "status": "native-source-uncompiled",
+      "origin": "Genesis Android Google Identity AuthorizationClient 22.0.0 Expo native consent module",
+      "description": "Dormant user-triggered least-privilege Drive.file+openid+email consent bridge; no automatic sync, no token persistence; account identity remains unverified until explicit secure JS/server binding",
+      "remaining": "OAuth app package/signing SHA registration, actual Android consent flow, Google subject to active BUKLOD identity verification, revoke/recovery/Drive API QA and legal authorization pending; never auto enabled"
     },
     {
       "id": "silent-ota-next-launch",

@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-silent-ota-native-integration-20261120.json",
-  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts. Include Play Core native in-app update bridge with production-only package guard and no automatic update prompt; reserve production activation for separately verified Play release. Bundle local-only Media3 H.264/AAC video compression bridge in Genesis native binary, opt-in preview only and without changing existing video upload playback. Add official Maven Godot 4.7.2 AAR and SHA-256 verified app-private PCK launcher for future approved Genesis Kingdom assets without distributing unapproved 3D maps.",
+  "objective": "Integrate reviewed invisible silent next-normal-cold-start compatible Expo OTA downloader into the Genesis preview Android native foundation, with exact native compile and staging APK source QA, no production or backend changes. Repair verified Android native Skia missing ABI prebuilts in isolated compile workflow, without arbitrary dependency lifecycle scripts. Include Play Core native in-app update bridge with production-only package guard and no automatic update prompt; reserve production activation for separately verified Play release. Bundle local-only Media3 H.264/AAC video compression bridge in Genesis native binary, opt-in preview only and without changing existing video upload playback. Add official Maven Godot 4.7.2 AAR and SHA-256 verified app-private PCK launcher for future approved Genesis Kingdom assets without distributing unapproved 3D maps. Include dormant user-initiated Google Drive native OAuth 22.0.0 consent bridge for future manual Drawer cloud backup; unverified token never automatically syncs or accesses files.",
   "baseRef": "ee25dd41208a7758943d51868f0f61a084f33c7c",
   "productionBaselineEvidence": "Production main 551e54602addd6f7bbe7bcdddd1589d35424c964; Genesis staging APK unbuilt; original Genesis DEV branch ee25dd41208a7758943d51868f0f61a084f33c7c. This isolated PR neither modifies production nor signs/publishes Android artifacts.",
   "chosenApproach": "Forward-port byte-identical reviewed host/policy and focused Node behavior tests from #1003, preserving exact branch/base and native Gradle compile smoke. Replace obsolete restart-banner assertions rather than bypass protection. Make Godot a dormant Android native capability now; require app-private hash-verified packs later instead of shipping a cheap placeholder world.",
@@ -32,7 +32,8 @@
     "tests/genesis-skia-native-binary-install-20261120.test.mjs",
     "tests/genesis-play-core-native-foundation-20261120.test.mjs",
     "tests/genesis-media3-native-foundation-20261120.test.mjs",
-    "tests/genesis-godot-native-foundation-20261120.test.mjs"
+    "tests/genesis-godot-native-foundation-20261120.test.mjs",
+    "tests/genesis-drive-native-foundation-20261120.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodOtaFreshnessHost.native.tsx",
@@ -67,7 +68,13 @@
     "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java",
     "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/BuklodGenesisGodotModule.kt",
     "modules/buklod-genesis-godot/index.ts",
-    "tests/genesis-godot-native-foundation-20261120.test.mjs"
+    "tests/genesis-godot-native-foundation-20261120.test.mjs",
+    "modules/buklod-genesis-drive-auth/package.json",
+    "modules/buklod-genesis-drive-auth/expo-module.config.json",
+    "modules/buklod-genesis-drive-auth/android/build.gradle",
+    "modules/buklod-genesis-drive-auth/android/src/main/java/expo/modules/buklodgenesisdrive/BuklodGenesisDriveAuthModule.kt",
+    "modules/buklod-genesis-drive-auth/index.ts",
+    "tests/genesis-drive-native-foundation-20261120.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -83,7 +90,8 @@
         "tests/genesis-skia-native-binary-install-20261120.test.mjs",
         "tests/genesis-play-core-native-foundation-20261120.test.mjs",
         "tests/genesis-media3-native-foundation-20261120.test.mjs",
-        "tests/genesis-godot-native-foundation-20261120.test.mjs"
+        "tests/genesis-godot-native-foundation-20261120.test.mjs",
+        "tests/genesis-drive-native-foundation-20261120.test.mjs"
       ]
     },
     {
@@ -109,7 +117,8 @@
     "Pinned Skia 2.6.2 installer must materialize nonempty libskia.a across all four Android ABIs before native Gradle, no arbitrary install scripts",
     "Play Core 2.1.0 must compile in Genesis native APK, return unsupported on sideload/staging, and never prompt before valid Play version availability; device verification still pending",
     "Media3 1.11.1 native source compiles and is available only as opt-in preview; video output accepted only if smaller; real codec/heat/battery and feed-ad QA remains pending",
-    "Official Godot 4.7.2 AAR must compile and be app-private SHA-verified, non-exported, separate process; no unapproved asset or scene activation"
+    "Official Godot 4.7.2 AAR must compile and be app-private SHA-verified, non-exported, separate process; no unapproved asset or scene activation",
+    "Drive native consent is opt-in/Android preview only; SHA/OAuth registration and verified Google subject binding must precede any direct Drive request; token never persisted"
   ],
   "releaseTarget": "GENESIS_DEV_STAGING_NATIVE_QUEUE_ONLY",
   "publicationStatus": "DEV_ONLY_NO_SIGNED_APK_NO_OTA",

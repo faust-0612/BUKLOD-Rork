@@ -46,7 +46,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           node scripts/genesis-prepare-skia-binaries.mjs
           node --test tests/genesis-skia-native-binary-install-20261120.test.mjs
-          node --test tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs tests/genesis-godot-native-foundation-20261120.test.mjs
+          node --test tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs tests/genesis-godot-native-foundation-20261120.test.mjs tests/genesis-drive-native-foundation-20261120.test.mjs
       - name: Resolve existing staging Firebase client and EAS preview env, never PROD backend
         shell: bash
         run: |
