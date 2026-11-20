@@ -12,6 +12,8 @@ test('native build must verify actual Expo resolver, not merely inventory string
  assert.match(script,/project\.modules\.some/);
  assert.match(script,/m\.projects/);
  assert.match(script,/project\.sourceDir/);
+ assert.match(script,/expectedAndroidProjectDirs\.set\(pkg/);
+ assert.match(script,/expectedAndroidProjectDirs\.get\(pkg\)/);
  assert.match(script,/Resolved local Android Gradle projects and classes/);
  assert.match(script,/pkg==='@buklod\/genesis-native-ime' \? 'buklod-genesis-ime'/);
  assert.match(script,/Expo autolinking includes all five/);

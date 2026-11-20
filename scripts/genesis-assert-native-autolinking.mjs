@@ -16,11 +16,13 @@ const candidates=[
  ['@buklod/genesis-godot','expo.modules.buklodgenesisgodot.BuklodGenesisGodotModule'],
  ['@buklod/genesis-drive-auth','expo.modules.buklodgenesisdrive.BuklodGenesisDriveAuthModule'],
 ];
+const expectedAndroidProjectDirs=new Map();
 for(const [pkg,cls] of candidates){
  // The original GIF module predates the newer local-module folder names.
  const directory=pkg==='@buklod/genesis-native-ime' ? 'buklod-genesis-ime' :
    pkg.replace('@buklod/genesis-','buklod-genesis-');
  const folder=path.join(root,'modules',directory);
+ expectedAndroidProjectDirs.set(pkg,path.join(folder,'android'));
  const manifest=JSON.parse(readFileSync(path.join(folder,'package.json'),'utf8'));
  const config=JSON.parse(readFileSync(path.join(folder,'expo-module.config.json'),'utf8'));
  if(manifest.name!==pkg||!config.platforms.includes('android')||!config.android?.modules?.includes(cls))
@@ -40,7 +42,7 @@ for(const [pkg,cls] of candidates){
  const projects=selected.flatMap(m=>Array.isArray(m.projects)?m.projects:[]);
  const found=projects.filter(project=>Array.isArray(project.modules) &&
    project.modules.some(entry=>entry===cls || entry?.classifier===cls) &&
-   path.resolve(project.sourceDir||'')===path.join(folder,'android'));
+   path.resolve(project.sourceDir||'')===expectedAndroidProjectDirs.get(pkg));
  if(found.length!==1){
    const related=modules.filter(m=>String(m.packageName).includes('buklod'));
    console.error('Resolved local Android Gradle projects and classes (no secrets):',
