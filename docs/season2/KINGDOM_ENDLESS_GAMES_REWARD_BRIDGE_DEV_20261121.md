@@ -75,3 +75,17 @@ genre-specific cue selection. The other eleven character centers already use
 the shared 39-scene cinematic. This closes the visual access gap without
 changing Bible Crown/Scripture, Leadership, Block Forge, Merge or Mural
 completion logic or BP rules.
+
+## Per-game signature encounter polish (39/39)
+Beyond the individual generated bitmap, SVG, character motion and per-genre controls, every
+offline continuation now adds a unique **game-specific** third mission rather than the same
+generic supply-arithmetic prompt. All 39 mission identities have independently written
+prompts and matching illustrated tokens: harbor workshop, trade route, market order,
+ruins/evidence/cipher, city/sudoku/logic machine, council/scripture, beat/melody,
+forest/maze/habitat, memory/picture/word garden, rescue/chess/towers,
+mural/forge/color, mountain/sky/word explorer, vault/gems, tropical farm,
+village/domino/bridge engineering. Inputs vary deterministically by account, game and level.
+The first compass and pattern encounters, 3/3 clear gate, hints, local save, offline use and
+server reward isolation are unchanged. This is a scripted arithmetic/logic signature
+**practice** expansion, not a claim that all 39 live gameplay engines use different
+control paradigms or that production economy migrations are complete.

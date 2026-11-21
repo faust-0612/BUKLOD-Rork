@@ -2,6 +2,7 @@
  * Deterministic, offline and intentionally non-credit practice generator.
  * Runs in Expo native, web and Node without a runtime service or new native API.
  */
+import { buildKingdomSignatureMission } from './kingdomSignatureEncounters.mjs';
 // The practical integer ceiling is a platform safety limit, not a progression season end.
 export const KINGDOM_OFFLINE_MAX_LEVEL = Number.MAX_SAFE_INTEGER - 1;
 const THEMES = {
@@ -19,7 +20,7 @@ function hash(text) {
   }
   return result >>> 0;
 }
-function makeQuestion(prompt, correct, level, choiceSeed) {
+function makeQuestion(prompt, correct, level, choiceSeed, signature = null) {
   const value = Math.max(0, correct);
   const candidates = [value, value + 2 + level % 3,
     Math.max(0,value - (3 + level % 2)), value + 7 + level % 4];
@@ -30,7 +31,8 @@ function makeQuestion(prompt, correct, level, choiceSeed) {
   const choices = [...distinct.slice(shift),...distinct.slice(0,shift)].map(String);
   return {
     prompt, choices, answer_index:choices.indexOf(String(value)), mode:'supplies',
-    visualTokens:['📦','🛠️','🏡'],
+    visualTokens:signature?.visualTokens ?? ['📦','🛠️','🏡'],
+    encounterTitle:signature?.encounterTitle,
     explanation: 'Solution: ' + value + '. Review the quantities and operations in the problem.',
   };
 }
@@ -127,9 +129,11 @@ export function buildKingdomOfflineLevel(gameId,level,userId) {
   // Three genuine interaction genres: spatial turns, visual pattern
   // inference and supply calculation. No question pool grows with level.
   const [prompt,answer]=types[rotation];
+  const signature = buildKingdomSignatureMission(gameId,Math.max(a,18),b,c);
   return [
     encounterQuestion('compass',level,seed,domain),
     encounterQuestion('pattern',level,seed,domain),
-    makeQuestion('Level '+level+', supply mission: '+prompt,answer,level,(seed>>>14)&7),
+    makeQuestion('Level '+level+', '+(signature?.prompt ?? ('supply mission: '+prompt)),
+      signature?.answer ?? answer,level,(seed>>>14)&7,signature),
   ];
 }

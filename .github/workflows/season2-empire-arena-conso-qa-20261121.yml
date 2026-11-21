@@ -52,6 +52,7 @@ jobs:
             tests/empire-arena-v2-actor-pose-20261121.test.mjs \
             tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs \
             tests/kingdom-season2-endless-economy-20261121.test.mjs \
+            tests/kingdom-signature-missions-39-20261121.test.mjs \
             tests/kingdom-premium-art-39-scenes-20261121.test.mjs \
             tests/kingdom-generated-atlas-39-20261121.test.mjs \
             tests/kingdom-premium-interactions-20261121.test.mjs \

@@ -6,6 +6,7 @@ export type KingdomOfflinePracticeQuestion = {
   explanation: string;
   mode: 'compass' | 'pattern' | 'supplies';
   visualTokens: string[];
+  encounterTitle?: string;
 };
 export function buildKingdomOfflineLevel(
   gameId: string, level: number, userId: string,

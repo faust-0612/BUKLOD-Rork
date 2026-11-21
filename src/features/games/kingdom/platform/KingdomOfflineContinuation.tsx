@@ -216,7 +216,7 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
           .filter(index=>index!==item.answer_index).slice(0,2);
         return <View key={i} style={styles.question}>
         <View style={styles.encounterTop}>
-          <Text style={styles.encounterKind}>{item.mode==='compass'?'🧭 TRAIL NAVIGATION':item.mode==='pattern'?'🌿 NATURE SIGNALS':'📦 RESOURCE PLANNING'}</Text>
+          <Text style={styles.encounterKind}>{item.mode==='compass'?'🧭 TRAIL NAVIGATION':item.mode==='pattern'?'🌿 NATURE SIGNALS':(item.encounterTitle ? '🎯 '+item.encounterTitle : '📦 RESOURCE PLANNING')}</Text>
           <Text style={styles.encounterNumber}>{i+1}/3</Text>
         </View>
         <View style={styles.encounterScene} accessibilityLabel="Visual game clues">

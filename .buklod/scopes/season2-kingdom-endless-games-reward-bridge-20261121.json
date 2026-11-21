@@ -41,7 +41,10 @@
     "assets/season2/genesis/kingdom/kingdom-39-game-illustration-atlas.webp",
     "tests/kingdom-generated-atlas-39-20261121.test.mjs",
     "src/app/games/christian-civic-leadership.tsx",
-    "src/app/games/mitch-restore-mural.tsx"
+    "src/app/games/mitch-restore-mural.tsx",
+    "src/features/games/kingdom/platform/kingdomSignatureEncounters.mjs",
+    "src/features/games/kingdom/platform/kingdomSignatureEncounters.d.mts",
+    "tests/kingdom-signature-missions-39-20261121.test.mjs"
   ],
   "regressionTests": [
     "tests/kingdom-season2-endless-economy-20261121.test.mjs",
@@ -50,7 +53,8 @@
     "tests/kingdom-premium-art-39-scenes-20261121.test.mjs",
     "tests/kingdom-premium-interactions-20261121.test.mjs",
     "tests/kingdom-premium-audio-39-20261121.test.mjs",
-    "tests/kingdom-generated-atlas-39-20261121.test.mjs"
+    "tests/kingdom-generated-atlas-39-20261121.test.mjs",
+    "tests/kingdom-signature-missions-39-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -96,7 +100,8 @@
     "Canonical Match-3 and Merge score engines accept swipe controls and retain accessible taps/arrows; Word Trail has a local-only illuminated connection path.",
     "All 26 pilot signatures reuse installed CC0 audio, obey game sound toggle and focus safety; no preview-host streaming.",
     "Optimized 180,638-byte, image-generated 840×815 WebP atlas is bundled in APK/OTA source; exactly 39 indexed sprites and local SVG fallback with no member downloads.",
-    "Both custom game centers render game-specific generated atlas/character scene for all six Christian/Mitch games; the 11 existing shared centers retain their rendering."
+    "Both custom game centers render game-specific generated atlas/character scene for all six Christian/Mitch games; the 11 existing shared centers retain their rendering.",
+    "All 39 independent Kingdom game IDs offer one game-specific procedural signature mission every offline level, while keeping deterministic three-encounter offline scoring and zero real ledgers."
   ],
   "productionBaselineEvidence": "verified: GitHub main is the existing production code repository source reference, and this change explicitly isolates to the already reviewed DEV Season2 conso branch; current installed production APK or live OTA fingerprint not verified.",
   "publicationStatus": "DEV_ONLY_NO_OTA",
