@@ -57,6 +57,11 @@ export class SupabaseArenaStore {
   }
   async profile({userId,hero}){
     if(!UUID.test(userId)||!HEROES.has(hero))throw Error('invalid_profile_lookup');
+    // Claim only prior server-verified, legitimately earned participation
+    // events. The private RPC is idempotent and daily-capped. No client-supplied
+    // BP, Diamond, faith, or match result can create a reward.
+    // Fail closed if the trusted claim/ledger schema is not deployed.
+    await this.rpc('arena_v2_claim_daily_diamonds',{p_user:userId});
     const r=await this.rpc('arena_v2_ranked_profile',{p_user:userId,p_hero:hero});
     const diamonds=Number(r?.diamonds);
     const rating=Number(r?.rating);
