@@ -39,7 +39,8 @@
     "Ranked WSS server matches real players, authoritatively simulates and validates input, and settles Diamonds/rating only through trusted private Postgres RPCs; backend is not yet deployed.",
     "Isolated 17-alpine PostgreSQL validates same-person multiple seats, idempotent stakes, BP nonminting, server-only RPC ACLs and transaction recovery.",
     "Server lock action and pinned dependency lockfile are protected DEV-only scope; changes reconciled to actual pull request diff.",
-    "Ranked server unit tests and disposable PostgreSQL security checks are separate GitHub workflow steps; scope regressionTests lists valid tests/*.test.mjs paths only."
+    "Ranked server unit tests and disposable PostgreSQL security checks are separate GitHub workflow steps; scope regressionTests lists valid tests/*.test.mjs paths only.",
+    "Ranked player full-body attack and skill pose selection is driven by server-authored event timestamps for the correct actor; untrusted local cues never alter combat."
   ],
   "riskAreas": [
     "app-runtime",
@@ -53,7 +54,8 @@
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
     "tests/empire-arena-v2-ranked-seat-20261121.test.mjs",
-    "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs"
+    "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
+    "tests/empire-arena-v2-actor-pose-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -222,7 +224,9 @@
     "assets/season2/arena/generated/sprite/vhen-d446b5b7acb8.webp",
     ".github/workflows/buklod-arena-dev-server-lock.yml",
     "services/empire-arena/package-lock.json",
-    "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs"
+    "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
+    "src/features/games/empire/arenaActorPose.mjs",
+    "tests/empire-arena-v2-actor-pose-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -238,7 +242,8 @@
         "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
         "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
         "tests/empire-arena-v2-ranked-seat-20261121.test.mjs",
-        "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs"
+        "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
+        "tests/empire-arena-v2-actor-pose-20261121.test.mjs"
       ]
     },
     {
