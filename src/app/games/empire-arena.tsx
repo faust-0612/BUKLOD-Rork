@@ -24,6 +24,8 @@ import {
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import { tryPlayRorkGameFeedback, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
+// @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
+import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
 // @ts-ignore — The canonical offline Arena engine is already .mjs. Metro bundles .mjs; native import is intentionally isolated.
 import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
@@ -31,16 +33,17 @@ import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../.
 type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
 type Position = { x: number; y: number };
-type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number> };
+type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number };
 type ArenaState = {
-  w: number; h: number; status: string; elapsed: number;
+  w: number; h: number; status: string; elapsed: number; mode?: Mode;
   map: { lanes: number[]; colors: string[] };
   players: Record<string, Actor>;
   towers: Actor[]; units: Actor[]; creatures: Actor[]; buildings: Actor[];
-  nodes: (Position & { id: string; type: string })[];
+  nodes: (Position & { id: string; type: string; stock: number })[];
+  loot: (Position & { id: string; expires?: number })[];
   teams: Record<Team, { resources: { wood: number; gold: number; stone: number }; kills: number }>;
   seals: Record<Team, { hp: number; maxHp: number; breached: boolean }>;
-  cover: [number, number, number][]; events: { type: string; seq: number }[];
+  cover: [number, number, number][]; events: { type: string; seq: number; time: number; actor?: string; to?: string; tower?: string }[];
   result?: { winner: Team | null; reason: string } | null;
 };
 /** Typed bridge to the unchanged JavaScript-only deterministic practice engine. */
@@ -76,10 +79,20 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
   state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void;
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
-  return <View style={styles.field}>
+  const [area, setArea] = useState({ width: 720, height: 360 });
+  const player = state.players.A0;
+  const camera = arenaCamera(state.w, state.h, player, area.width, area.height,
+    state.w <= 160 ? 70 : state.w <= 240 ? 90 : 115);
+  const effects = arenaVisualEffects(state.events, state.elapsed, 1100);
+  return <View style={styles.field} onLayout={event => {
+    const { width, height } = event.nativeEvent.layout;
+    if (width > 5 && height > 5 && (Math.abs(width - area.width) > 1 || Math.abs(height - area.height) > 1)) {
+      setArea({ width, height });
+    }
+  }}>
     {generatedArt || art ? <ExpoImage source={generatedArt ? (generatedArt as React.ComponentProps<typeof ExpoImage>['source']) : { uri: art! }} contentFit="cover" cachePolicy="disk" style={StyleSheet.absoluteFill} /> : null}
     <LinearGradient colors={['rgba(4,10,26,0.70)', 'rgba(5,20,28,0.40)', 'rgba(4,12,24,0.76)']} style={StyleSheet.absoluteFill} />
-    <Svg width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
+    <Svg width="100%" height="100%" viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`} preserveAspectRatio="xMidYMid meet">
       <Rect width={state.w} height={state.h} rx={4} fill="rgba(10,40,56,0.20)" />
       {lanes.map((y, i) => <Path key={'lane-' + i} d={`M 5 ${y * state.h} Q ${state.w / 2} ${y * state.h + (i - 1) * 3} ${state.w - 5} ${y * state.h}`} stroke="#ffe0a2" opacity={0.38} strokeWidth={1.9} fill="none" strokeDasharray="1 3" />)}
       <Line x1={state.w / 2} y1={6} x2={state.w / 2} y2={state.h - 6} stroke="#a9f8ea" strokeWidth={0.5} strokeDasharray="2 3" opacity={0.5} />
@@ -104,7 +117,30 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
               </G>
         ) : null}
       </G>)}
+      {effects.map((effect: { seq: number; type: string; actor?: string; to?: string; tower?: string; strength: number }) => {
+        const subject = state.players[effect.actor || ''] || state.players[effect.to || ''] ||
+          state.towers.find(t => t.id === effect.tower);
+        if (!subject) return null;
+        const r = 3 + (1 - effect.strength) * (effect.type === 'defeat' ? 11 : 7);
+        return <G key={'fx-' + effect.seq}>
+          <Circle cx={subject.x} cy={subject.y} r={r} fill="none"
+            stroke={effect.type === 'defeat' ? '#ff9d8b' : effect.type === 'dash' ? '#8ff8f0' : '#f9d77d'}
+            strokeWidth={0.65 + effect.strength} opacity={effect.strength * 0.85} />
+          <Circle cx={subject.x} cy={subject.y} r={r * 0.53} fill="#fce3a4"
+            opacity={effect.strength * 0.14} />
+        </G>;
+      })}
     </Svg>
+    <View pointerEvents="none" style={styles.minimap}>
+      <Svg width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
+        <Rect x={0} y={0} width={state.w} height={state.h} fill="#102735" stroke="#e1c78e" strokeWidth={1} />
+        {lanes.map((fraction, i) => <Line key={'m-' + i} x1={4} y1={fraction * state.h} x2={state.w - 4} y2={fraction * state.h} stroke="#5f8491" strokeWidth={0.75} />)}
+        <Rect x={camera.x} y={camera.y} width={camera.width} height={camera.height} fill="#c2e9fa" fillOpacity={0.12} stroke="#f1d48d" strokeWidth={0.9} />
+        {Object.values(state.players).filter(life).map(p =>
+          <Circle key={'p-' + p.id} cx={p.x} cy={p.y} r={2.4} fill={p.team === 'A' ? '#7ffce8' : '#ff9f90'} />)}
+        <Circle cx={player?.x ?? 17} cy={player?.y ?? state.h / 2} r={3} fill="#f7e090" stroke="#122329" strokeWidth={1} />
+      </Svg>
+    </View>
     <View pointerEvents="none" style={styles.fieldLabel}><Text style={styles.labelText}>GENESIS • EMPIRE BATTLEFIELD</Text></View>
   </View>;
 }
@@ -126,6 +162,7 @@ export default function EmpireArenaInApp() {
   const [message, setMessage] = useState('Offline practice only • No BP, diamonds, XP, cash, or ranked effects.');
   const [target, setTarget] = useState<string | null>(null);
   const [joyVisual, setJoyVisual] = useState<Position>({ x: 0, y: 0 });
+  const [tacticsOpen, setTacticsOpen] = useState(false);
   const gameRef = useRef<ArenaState | null>(null);
   const directionRef = useRef<Position>({ x: 0, y: 0 });
   const focused = useRef(false);
@@ -208,6 +245,7 @@ export default function EmpireArenaInApp() {
     gameRef.current = state;
     selected.current = null;
     setTarget(null);
+    setTacticsOpen(false);
     setMessage('Move, attack, gather, train and break the opposing seal. Practice grants no rewards.');
     setPhase('playing');
     setRevision(v => v + 1);
@@ -255,9 +293,31 @@ export default function EmpireArenaInApp() {
     execute({ type: 'order', order: 'push' }, 'move');
     setMessage('Allied units ordered to PUSH. Train near your base to reinforce.');
   };
+  const siege = () => execute({ type: 'seal_attack' });
+  const collectLoot = () => {
+    const match = gameRef.current;
+    const me = match?.players.A0;
+    const nearby = arenaNearby(match, me);
+    execute({ type: 'loot', id: nearby.loot?.id }, 'collect');
+  };
+  const buildTower = () => {
+    const match = gameRef.current, player = match?.players.A0;
+    if (!match || !player) return;
+    const sign = player.team === 'A' ? 1 : -1;
+    execute({ type: 'build', kind: 'watchtower',
+      x: clamp(player.x + 6 * sign, 3, match.w - 3),
+      y: clamp(player.y + 3, 3, match.h - 3) }, 'collect');
+  };
+  const towerAction = (type: 'tower_repair' | 'tower_upgrade') => {
+    const match = gameRef.current, player = match?.players.A0;
+    const nearby = arenaNearby(match, player);
+    execute({ type, towerId: nearby.tower?.id }, 'collect');
+  };
   const game = gameRef.current;
   const me = game?.players.A0;
   const opponent = game?.players.B0;
+  const nearby = arenaNearby(game, me);
+  const resources = game?.teams.A.resources;
   const media = getRorkGameMedia(ARENA_SCENE_GAME_ID[mapId]);
   void revision; // Intentionally render every bounded fixed simulation step.
 
@@ -286,7 +346,8 @@ export default function EmpireArenaInApp() {
     {game && phase !== 'menu' ? <View style={styles.stage}>
       <View style={styles.hud}>
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>
-        <Text numberOfLines={1} style={styles.hudText}>A SEAL {Math.ceil(game.seals.A.hp)}   ·   B SEAL {Math.ceil(game.seals.B.hp)}   ·   {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
+        <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text>
+        <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
       </View>
       <ArenaField state={game} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
       <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
@@ -297,10 +358,10 @@ export default function EmpireArenaInApp() {
         </View>
         <View style={styles.actions}>
           <View style={styles.actionLine}>
-            <Control icon="pickaxe" title="MINE" onPress={mine} />
-            <Control icon="archive-arrow-down" title="BANK" onPress={() => execute({ type: 'deposit' }, 'collect')} />
-            <Control icon="account-multiple-plus" title="TRAIN" onPress={() => execute({ type: 'train', kind: 'warrior' }, 'collect')} />
-            <Control icon="shield-sword" title="PUSH" onPress={order} />
+            <Control icon="pickaxe" title="MINE" onPress={mine} disabled={!nearby.mine} />
+            <Control icon="archive-arrow-down" title="BANK" onPress={() => execute({ type: 'deposit' }, 'collect')} disabled={!nearby.canBank} />
+            <Control icon="account-multiple-plus" title="TRAIN" onPress={() => execute({ type: 'train', kind: 'warrior' }, 'collect')} disabled={!nearby.canBank} />
+            <Control icon="tools" title={tacticsOpen ? 'CLOSE' : 'TACTICS'} onPress={() => setTacticsOpen(v => !v)} />
           </View>
           <View style={styles.actionLine}>
             <Control icon="lightning-bolt" title="SKILL" onPress={() => skill('primary')} />
@@ -309,6 +370,18 @@ export default function EmpireArenaInApp() {
             <Control icon="sword" title="ATTACK" onPress={attack} />
           </View>
         </View>
+        {tacticsOpen ? <View style={styles.tactics}>
+          <Text style={styles.tacticsHeader}>FIELD COMMANDS • TAP TO USE</Text>
+          <View style={styles.tacticsControls}>
+            <Control icon="shield-sword" title="PUSH" onPress={order} />
+            <Control icon="flag-variant" title="SIEGE" onPress={siege} disabled={!nearby.canSiege} />
+            <Control icon="treasure-chest-outline" title="LOOT" onPress={collectLoot} disabled={!nearby.loot} />
+            <Control icon="hammer-wrench" title="BUILD" onPress={buildTower} disabled={!nearby.canBuild} />
+            <Control icon="wrench" title="REPAIR" onPress={() => towerAction('tower_repair')} disabled={!nearby.tower} />
+            <Control icon="arrow-up-bold-hexagon-outline" title="UPGRADE" onPress={() => towerAction('tower_upgrade')} disabled={!nearby.tower} />
+          </View>
+          <Text style={styles.tacticsHint}>Siege unlocks after enemy towers fall. Build near home and repair allied towers. No real rewards.</Text>
+        </View> : null}
       </> : <View style={styles.overlay}>
         <Text style={styles.overlayTitle}>{phase === 'paused' ? 'PAUSED' : game.result?.winner === 'A' ? 'VICTORY' : game.result?.winner === 'B' ? 'DEFEAT' : 'MATCH ENDED'}</Text>
         <Text style={styles.description}>{phase === 'paused' ? 'Match time is frozen. Return to gameplay or abandon this practice.' : 'Offline practice only. No BP, diamonds, rank or inventory changes.'}</Text>
@@ -343,6 +416,8 @@ const styles = StyleSheet.create({
   hud: { zIndex: 1, minHeight: 26, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   hudText: { color: '#f8dfa8', fontSize: 10, fontWeight: '800', flexShrink: 1 },
   field: { flex: 1, overflow: 'hidden', borderColor: '#576d67', borderWidth: 1, marginHorizontal: 6, borderRadius: 5 },
+  minimap: { position: 'absolute', top: 9, right: 9, width: 126, height: 74, borderWidth: 1,
+    borderRadius: 7, borderColor: '#e4cc97', backgroundColor: '#081b2bd9', padding: 3 },
   fieldLabel: { position: 'absolute', top: 6, alignSelf: 'center', backgroundColor: '#09152099', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   labelText: { color: '#f8e6bd', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   info: { paddingHorizontal: 8, paddingVertical: 4, minHeight: 24, backgroundColor: '#051021' },
@@ -352,6 +427,11 @@ const styles = StyleSheet.create({
   joyHandle: { width: 29, height: 29, borderRadius: 15, backgroundColor: '#d1a85cbb', borderWidth: 2, borderColor: '#ffe5b7' },
   joyLabel: { fontSize: 9, color: '#ffe7bd', fontWeight: '900' },
   actions: { position: 'absolute', right: 9, bottom: 32, zIndex: 5, gap: 6 },
+  tactics: { position: 'absolute', right: 12, bottom: 141, zIndex: 6, width: 340, maxWidth: '66%',
+    borderRadius: 11, borderWidth: 1, borderColor: '#f1ca86', backgroundColor: '#061e30ed', padding: 8, gap: 6 },
+  tacticsHeader: { color: '#fff1c5', fontWeight: '900', fontSize: 10 },
+  tacticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  tacticsHint: { color: '#c1d3d1', fontSize: 9 },
   actionLine: { flexDirection: 'row', alignSelf: 'flex-end', gap: 5 },
   control: { minHeight: 47, minWidth: 46, borderRadius: 9, borderWidth: 1, borderColor: '#c5ac7d', backgroundColor: '#102a3ddd', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 4 },
   controlLabel: { color: '#ffe7b5', fontSize: 8, fontWeight: '900' },
