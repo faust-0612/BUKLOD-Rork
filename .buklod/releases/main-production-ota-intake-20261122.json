@@ -92,6 +92,30 @@
       "blockers": [
         "Exact native production runtime 1.3.2 OTA download/resume/call/typing/weak-network behavior and mandatory update gate QA"
       ]
+    },
+    {
+      "feature": "System Admin new-member registration inbox and private notification deep links",
+      "sourcePr": 994,
+      "sourceSha": "e0122cce1b64963276e071411a841c6515410ecd",
+      "portMode": "reviewed full new screen and tests; two exact context-anchored additions onto latest main",
+      "sourceFiles": [
+        "src/app/admin/index.tsx",
+        "src/app/admin/new-users.tsx",
+        "src/lib/buklodNotificationNavigation.ts"
+      ],
+      "sqlMigration": "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
+      "testFiles": [
+        "supabase/tests/admin_new_registration_security_20261119.sql",
+        "tests/admin-new-registration-inbox-20261119.test.cjs",
+        "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+        "tests/admin-registration-notification-route-20261119.test.cjs",
+        "tests/admin-registration-security-20261119.test.cjs"
+      ],
+      "status": "COLLECTED_DEV_LIVE_BACKEND_READ_ONLY_VERIFIED",
+      "blockers": [
+        "Authenticated on-device System Admin/ordinary-user denial smoke, privacy/notification deep-link and Expo Android compiled RC still required",
+        "Existing Supabase migration source is recorded for parity and must not be blindly re-applied"
+      ]
     }
   ],
   "alreadyOnCanonicalMain": [
@@ -131,13 +155,6 @@
       "sha": "17b60617e808d6ee05bdb470dafdacdf1e306555",
       "status": "RECONCILE_SOURCE",
       "blocker": "15 commits behind main; overlaps Wall/Profile/Connect; backend already live"
-    },
-    {
-      "pr": 994,
-      "feature": "Secure Admin new-registration inbox and BSOC UI",
-      "sha": "e0122cce1b64963276e071411a841c6515410ecd",
-      "status": "RECONCILE_SOURCE",
-      "blocker": "five commits behind main; do not double-merge staging PR #1002"
     },
     {
       "pr": 940,
@@ -268,7 +285,8 @@
     "Use unchanged production native package and runtime 1.3.2; new Godot/SOS native modules require new signed Play APK and are excluded",
     "Publish only via canonical guarded single production workflow after verified RC, preserve rollback and independently verify live served artifact",
     "Only announce a verified production OTA, never a staging or unverified DEV state",
-    "Silent OTA must prefetch in background and activate on next natural cold start only; never reload during PTT, calls, input, upload or offline work; native forced-update gate remains authoritative"
+    "Silent OTA must prefetch in background and activate on next natural cold start only; never reload during PTT, calls, input, upload or offline work; native forced-update gate remains authoritative",
+    "Admin new-member inbox must verify authorized System Admin-only RPC, non-admin/anonymous denial, no member PII in notification payload, and correct guarded deep-link navigation"
   ],
   "state": "PARTIALLY_COLLECTED_DEV_WITH_EXPLICIT_BLOCKERS",
   "otaPublished": false,
@@ -294,6 +312,27 @@
     "src/lib/buklodSilentOtaPolicy.ts": "3d03929768b2515d700ac20ce0a698f6da28a82c",
     "tests/buklod-mandatory-update-runtime.test.mjs": "676e826b788bfcd4dae4be1b8b4f90b5cb5ed9a7",
     "tests/buklod-silent-ota-policy.test.mjs": "a069d3de072e08e7aaf8434214076e822280a8f5",
-    "tests/ota-restart-safe-area.test.cjs": "6ac38210a2bf4c31f27e8542cd7bbf02bded79d3"
+    "tests/ota-restart-safe-area.test.cjs": "6ac38210a2bf4c31f27e8542cd7bbf02bded79d3",
+    "src/app/admin/index.tsx": "31e6dff038ffb1aaace39734ce6c88c20a307877",
+    "src/app/admin/new-users.tsx": "ca5bfc1f56250a536fa10aeda5a108e0f8e28831",
+    "src/lib/buklodNotificationNavigation.ts": "85532675919a3a421a48b7f9833cda2bf3f707c3",
+    "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql": "109df32c7383166f99ea3f8cd799d65897f63b3c",
+    "supabase/tests/admin_new_registration_security_20261119.sql": "17be4810666114bd05ea57a9a9bfe9cc0bd29b5f",
+    "tests/admin-new-registration-inbox-20261119.test.cjs": "a4530f820fc855ad10f84ffcd185cec2ebbb0155",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs": "c9dd1cb484ff5611abf02f9fc9b522000cf25bae",
+    "tests/admin-registration-notification-route-20261119.test.cjs": "f6bf9afb2ca50c711b109617b9fb331217471fd7",
+    "tests/admin-registration-security-20261119.test.cjs": "58e42a0cf53ccf127498e13b4838b28d75271827"
+  },
+  "previouslyVerifiedBackendReadOnlyCheck": {
+    "asOf": "2026-11-22",
+    "project": "yhanxndaqbmuzbdqlblu",
+    "functions": [
+      "buklod_admin_recent_registrations_v1",
+      "buklod_admin_registration_detail_v1"
+    ],
+    "anonExecute": false,
+    "authenticatedExecute": true,
+    "authorizationEnforcedInsideFunctions": true,
+    "note": "Read-only existence/ACL check; not E2E System Admin user impersonation and not permission to reapply SQL"
   }
 }
