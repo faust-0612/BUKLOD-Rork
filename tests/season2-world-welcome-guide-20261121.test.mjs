@@ -30,6 +30,8 @@ test('seven true door shortcuts and Android audio on entry, without production c
  assert.match(guide,/minHeight:44/);
  assert.match(src('src/app/buklod-map.tsx'),/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
  assert.match(src('src/app/buklod-map.tsx'),/!requiresAcceptance/);
+ assert.match(src('src/app/buklod-map.tsx'),/!complianceLoading/);
+ assert.match(src('src/app/buklod-map.tsx'),/!runtimeLoading/);
  assert.match(src('src/features/games/runtime/rorkAudio.ts'),/controlledAutoStart/);
  assert.doesNotMatch(src('src/app/(tabs)/hub.tsx'),/<Redirect href="\/buklod-map"/);
  assert.match(src('src/app/index.tsx'),/href=\{isGenesisPreviewBuild\(\) \? '\/buklod-map' : '\/\(tabs\)\/buklod'\}/);

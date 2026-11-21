@@ -21,8 +21,8 @@ import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 /** A staging-only immersive gateway. Existing feature pages and permissions stay authoritative. */
 export default function BuklodMapScreen() {
   const { session, loading, profile } = useAuth();
-  const { requiresAcceptance } = useCompliance();
-  const { config } = useRuntimeConfig();
+  const { requiresAcceptance, loading: complianceLoading } = useCompliance();
+  const { config, loading: runtimeLoading } = useRuntimeConfig();
   const { activeScope } = useBuklodScope();
   const insets = useSafeAreaInsets();
   const {width:windowWidth,height:windowHeight}=useWindowDimensions();
@@ -34,8 +34,8 @@ export default function BuklodMapScreen() {
   const lastDoorTap = useRef(0);
   // The default is silent until real authentication, consent, runtime and onboarding gates pass.
   // On approved Genesis entry, local music autostarts while Android system volume remains authoritative.
-  const canPlayMusic = Boolean(isGenesisPreviewBuild() && session && profile &&
-    !requiresAcceptance && !config?.maintenance_mode && !config?.update_required &&
+  const canPlayMusic = Boolean(isGenesisPreviewBuild() && !loading && !complianceLoading &&
+    !runtimeLoading && session && profile && !requiresAcceptance && !config?.maintenance_mode && !config?.update_required &&
     (!config?.pilot_access_required || config?.pilot_access_granted));
   useRorkGameAmbience('kingdom-map',{autoStart:canPlayMusic});
 

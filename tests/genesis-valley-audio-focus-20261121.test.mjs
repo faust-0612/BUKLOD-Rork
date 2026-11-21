@@ -23,6 +23,8 @@ test('Genesis World auto-starts local audio without screen music toggle or first
  const audio=read('src/features/games/runtime/rorkAudio.ts');
  assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
  assert.match(map,/!requiresAcceptance/);
+ assert.match(map,/!complianceLoading/);
+ assert.match(map,/!runtimeLoading/);
  assert.doesNotMatch(map,/musicButton|Music on|BuklodFirstViewAd/);
  assert.match(audio,/autoStart = isKingdomMap && options\?\.autoStart === true/);
  assert.match(audio,/if \(!isKingdomMap \|\| controlledAutoStart\) return/);
