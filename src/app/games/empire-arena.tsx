@@ -37,7 +37,7 @@ import { ARENA_HUD_DEFAULT, sanitizeArenaHudLayout, serializeArenaHudLayout } fr
 // @ts-ignore — pure presentation helper, reads only server-authoritative snapshots.
 import { arenaActorPose } from '@/features/games/empire/arenaActorPose.mjs';
 // @ts-ignore — deterministic event-to-sound mapping; offline, no wallet or backend.
-import { drainArenaSoundscape } from '@/features/games/empire/arenaSoundscape.mjs';
+import { drainArenaSoundscape, nearbyArenaBuffCue } from '@/features/games/empire/arenaSoundscape.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
@@ -416,7 +416,14 @@ function EmpireArenaInApp() {
         {team:state.players[localSeat]?.team??'A',seat:localSeat,players:state.players,
           units:state.units,towers:state.towers,buildings:state.buildings});
       lastAudioEventSeq.current = drained.lastSeq;
-      if (sfxEnabled) for (const cue of drained.cues) tryPlayArenaEventCue(cue, true);
+      if (sfxEnabled) {
+        for (const cue of drained.cues) tryPlayArenaEventCue(cue, true);
+        // Bounded proximity-only buff wildlife: one soft motif, never remote.
+        if (state.tick % 10===0) {
+          const wildlife = nearbyArenaBuffCue(state,localSeat);
+          if (wildlife) tryPlayArenaEventCue(wildlife,true);
+        }
+      }
       const d = directionRef.current;
       if ((!state.solo || !state.solo.intermissionUntil) && Math.hypot(d.x, d.y) > 0.05) {
         command(state, localSeat, { type: 'move', dx: d.x, dy: d.y });
