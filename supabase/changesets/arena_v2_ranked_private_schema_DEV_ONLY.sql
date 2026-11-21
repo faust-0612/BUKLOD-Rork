@@ -293,6 +293,26 @@ BEGIN
   RETURN v_count;
 END; $fn$;
 
+-- Startup orphan recovery for the contractually SINGLE authoritative process.
+-- A newly started process has no in-memory live matches from its predecessor.
+-- Refund EVERY active orphan before accepting a new ranked queue; otherwise
+-- users could lose access to already-earned Diamonds until the 32m expiry.
+-- Do NOT run concurrently with another active Arena process: startup must
+-- be serialized by the host's single-instance deployment policy.
+CREATE OR REPLACE FUNCTION public.arena_v2_ranked_recover_orphans()
+RETURNS integer LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, buklod_arena, public
+AS $fn$
+DECLARE v_match uuid; v_count integer:=0;
+BEGIN
+  FOR v_match IN SELECT id FROM buklod_arena.matches WHERE status='active'
+    ORDER BY started_at,id LIMIT 100 FOR UPDATE SKIP LOCKED LOOP
+    PERFORM public.arena_v2_ranked_abort(v_match,'single_host_restart_refund');
+    v_count:=v_count+1;
+  END LOOP;
+  RETURN v_count;
+END; $fn$;
+
 -- Absolute client deny: only trusted backend (service_role) can call privileged
 -- public RPCs, even though PostgreSQL defaults to EXECUTE for PUBLIC.
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_profile(uuid,text) FROM PUBLIC,anon,authenticated;
@@ -302,6 +322,7 @@ REVOKE ALL ON FUNCTION public.arena_v2_ranked_open(uuid,text,text,jsonb) FROM PU
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_settle(uuid,text,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_abort(uuid,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_expire() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.arena_v2_ranked_recover_orphans() FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_profile(uuid,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_award_verified_participation(uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_claim_daily_diamonds(uuid) TO service_role;
@@ -309,3 +330,4 @@ GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_open(uuid,text,text,jsonb) TO s
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_settle(uuid,text,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_abort(uuid,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_expire() TO service_role;
+GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_recover_orphans() TO service_role;
