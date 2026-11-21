@@ -226,6 +226,15 @@ export default function CircleRankProgressionScreen() {
             </View>
           </View>
 
+          <Pressable accessibilityRole="button" accessibilityLabel="Open Character Tasks and Collections"
+            onPress={() => router.push('/points/character-collections' as any)}
+            style={{ backgroundColor: '#0B5437', borderRadius: 12, padding: 15, marginBottom: 6 }}>
+            <Text style={{ color: '#F4FFED', fontSize: 14, fontWeight: '900' }}>CHARACTER TASKS & COLLECTIONS</Text>
+            <Text style={{ color: '#DCF2E1', fontSize: 12, marginTop: 3 }}>
+              Your saved Characters, verified badges and 1,300 unique story items
+            </Text>
+          </Pressable>
+
           <BuklodKingdomAdSlot placementId="points_rank_progression_native" kind="native" />
           <View style={styles.roadmapHead}>
             <Text style={styles.roadmapTitle}>FULL RANK ROADMAP</Text>

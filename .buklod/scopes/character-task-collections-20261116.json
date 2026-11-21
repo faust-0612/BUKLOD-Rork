@@ -1,0 +1,118 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/character-task-collections-20261116.json",
+  "objective": "Integrate exact 1,300 existing Character System collectible graphics and authenticated task evidence into the existing per-character progression UI; preserve separate Kingdom economy, existing points and AdMob without production changes.",
+  "baseRef": "63ccd4b58ff02ff3c1535a1e05d3097fa8323c61",
+  "productionBaselineEvidence": "verified: GitHub main at 63ccd4b58ff02ff3c1535a1e05d3097fa8323c61 on November 16, 2026 before this isolated DEV task; live Supabase preinspection found existing authenticated character V3 checkpoint, core item state RPC, special badge awards and no special story-item RPC or public art bucket. No new changes applied to production.",
+  "chosenApproach": "Canonical all-13 Character task ledger, independent V3-saved Core XP, preserved legacy Core redeemed items, and vetted 1300-item art. Kingdom remains read-only consumer; do not edit economy.",
+  "selectionRationale": "Alternative client-side XP or invented collectible ownership risks resets, fraud and cross-account leaks. Server-backed independent character checkpoints, validated task events, and distinct badges/story items prevent that.",
+  "alternativeApproaches": [
+    "Bundle 1,300 full-size PNG sheets in Expo OTA: rejected due to runtime, size and performance.",
+    "Award all five stage items merely on level-up: rejected because level achievement is not verified item completion.",
+    "Copy Kingdom local game previews into the official reward ledger: rejected due to lack of authenticated evidence."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-finance-points",
+    "kingdom-character",
+    "backend-security",
+    "account-isolation",
+    "media-performance"
+  ],
+  "allowedPaths": [
+    "docs/character-system/COLLECTIBLES_ASSET_STATUS_20261116.md",
+    "docs/character-system/TASK_COLLECTION_INTEGRATION_20261116.md",
+    "scripts/publish-character-collectible-art.mjs",
+    "scripts/validate-character-collectible-art.mjs",
+    "src/app/points/character-collections.tsx",
+    "src/app/points/progression.tsx",
+    "src/components/points/BuklodCharacterCollectibleZoom.tsx",
+    "src/lib/buklodCharacterArt.ts",
+    "src/lib/buklodCharacterCollectionLogic.ts",
+    "supabase/migrations/20261116120000_character_task_story_art_v1.sql",
+    "supabase/tests/character_story_art_security_20261116.sql",
+    "tests/character-points-ads-regression-20261116.test.mjs",
+    "tests/character-story-art-server-security-20261116.test.mjs",
+    "tests/character-task-collections-20261116.test.mjs",
+    ".buklod/scopes/character-task-collections-20261116.json",
+    "supabase/migrations/20261116121000_character_core_v3_collectible_compat.sql",
+    "tests/character-core-v3-compat-20261116.test.mjs",
+    "src/app/games/legacy.tsx"
+  ],
+  "preserveBehaviors": [
+    "Existing R31/R40 character art/selector hash locks are byte-for-byte unchanged; saved per-character V3 checkpoint persists and Circle Rank stays independent.",
+    "Existing Core collectible claim, equip, and Shards award RPCs remain authoritative and unchanged.",
+    "Existing Special Character task badges are not replaced by new tangible story-item records.",
+    "AdMob native first-view placement, offscreen lifecycle, user consent, and fast Circle Rank/dashboard navigation remain unchanged.",
+    "Original uploaded 10 Library collection sheets are preserved unmodified; visual zoom never claims HD resolution or creates official rewards.",
+    "No client direct table write for task evidence, story-item awards, QMP, finance or Kingdom Shards.",
+    "IGPAT remains retired and no video/Wall/Connect functionality is edited."
+  ],
+  "acceptanceChecks": [
+    "All 10 original batch images are independently mapped to exactly 1,300 unique canonical id/level/slot, with every output WebP checked by SHA-256.",
+    "No Character stage is marked owned unless its official core redeemed record or authenticated Special story awards explicitly confirms it.",
+    "Special badges remain distinct from five story items; server-only task event source attribution and unique award constraints block replay/cross-account assignment.",
+    "Full-screen zoom opens on a selected thumbnail with pinch, pan, plus/minus and accessible text; offline/missing-art falls back without loading adjacent content.",
+    "Existing Circle Rank and Character V3 levels resume unchanged on switching characters or accounts; no points or revenue mutation.",
+    "Art publication marker is served only after 1,300 verified remote objects, using a secret-free app and a guarded operator upload.",
+    "Run local SQL validation, TypeScript, new focused tests, existing AdMob/points/navigation release gates before moving beyond isolated DEV.",
+    "Do not run production migration, install native packages, build AAB, publish OTA or merge to production without verified RC gates.",
+    "Core redeemed-item progress helper must equal restored V3 saved XP plus active BP delta after multiple Character switches; other accounts cannot invoke the private helper.",
+    "Rejected/reversed ledger credits cannot count for future task awards; previously issued cosmetics require audit rather than automatic confiscation.",
+    "Kingdom Legacy directly opens Character Tasks without touching game or AdMob lifecycle.",
+    "New-award celebrations use the transaction's insert-row counts and cannot replay on subsequent reads."
+  ],
+  "regressionTests": [
+    "tests/character-task-collections-20261116.test.mjs",
+    "tests/character-story-art-server-security-20261116.test.mjs",
+    "tests/character-points-ads-regression-20261116.test.mjs",
+    "supabase/tests/character_story_art_security_20261116.sql",
+    "tests/character-core-v3-compat-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add isolated Character collections UI, React Native zoom and art resolver without modifying Expo runtime, native dependencies, production identity, or default navigation.",
+      "preservedBehaviors": [
+        "Current app runtime 1.3.2 and existing navigation/AdMob user experience stay unchanged"
+      ],
+      "tests": [
+        "tests/character-task-collections-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Introduce a Circle Rank navigation entry while keeping its AdMob slots intact and refusing all client-side BP, QMP, revenue and Shards awards.",
+      "preservedBehaviors": [
+        "Circle Rank, verified lifetime points and existing ad display/cooldown rules stay authoritative and unchanged"
+      ],
+      "tests": [
+        "tests/character-points-ads-regression-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Attach ten existing Character art collection sheets and task-based tangible items to a read-only Character hub without overriding server V3 levels or Kingdom-specific gameplay.",
+      "preservedBehaviors": [
+        "All 13 canonical character identities, 1,300 names, 469 badges and separate owner-specific inventory persist"
+      ],
+      "tests": [
+        "tests/character-task-collections-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Stage new restricted private task evidence and Special story award tables, additive authenticated read RPC and a public art-only bucket without touching the production backend.",
+      "preservedBehaviors": [
+        "RLS and signed-in account isolation protect personal events and awards while no public client can mint items or mutate points"
+      ],
+      "tests": [
+        "tests/character-story-art-server-security-20261116.test.mjs",
+        "supabase/tests/character_story_art_security_20261116.sql"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV-only draft PR with future staging Android runtime 1.3.2 following verified RC; no OTA, no production deployment",
+  "runtimeVersion": "1.3.2",
+  "publicationStatus": "DEV_ONLY_PR_OPEN_DB_MIGRATION_NOT_APPLIED_ART_NOT_LIVE_NO_OTA"
+}
