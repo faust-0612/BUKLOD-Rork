@@ -1,0 +1,99 @@
+{
+  "contractVersion": 2,
+  "objective": "Build BUKLOD Market Phase 1+2 as one BUKLOD-authenticated digital palengke: buyer discovery, personal/business storefronts, listings, store management, Connect seller inquiry and Public Wall cross-posting without a second social feed or economy authority. Reservation requests with buyer/seller-only visibility and explicit acceptance/cancellation/completion are also included; payments remain out of scope.",
+  "baseRef": "536741f8d97fc9dec91503c89f1c1160e5987ce0",
+  "productionBaselineEvidence": "Verified repository main source SHA 536741f8d97fc9dec91503c89f1c1160e5987ce0 on 2026-11-20: Market route is an integration-ready placeholder; canonical public Wall and Connect route exist. This is source-only evidence; exact installed production runtime, current RC, ad fill, and real-device behavior were not verified. Market schema is not applied to live backend in this DEV branch.",
+  "chosenApproach": "Keep the existing BUKLOD Main route and use shared Auth/Connect/Public Wall. Add isolated Market tables + owner RLS, bounded public product images, atomic server-mediated Wall promotions and lightweight markers/cards. No native modules, new Expo runtime or reward changes. Dedicated Market promo reward exclusion guards apply only to posts with a Market marker; existing reward trigger code is otherwise preserved at runtime with a fail-closed signature check.",
+  "selectionRationale": "Smaller than a second marketplace application or replacing the Wall feed; avoids duplicate auth, unreviewed payment paths, large media, and changes to existing organization authorization.",
+  "alternativeApproaches": [
+    "Build a standalone marketplace with a duplicate identity stack: rejected due to unnecessary sign-in, integration and deployment complexity",
+    "Store listings directly as community posts and reuse social post data: rejected because product state, seller authorization, search and stock require independent lifecycle",
+    "Launch payments, orders and delivery immediately: rejected pending financial, refund, dispute and regulatory contracts"
+  ],
+  "acceptanceChecks": [
+    "Any signed-in user can browse/search published active listings, sellers can register a personal/business storefront without changing their BUKLOD identity",
+    "Only the actual store owner can create/edit/list/share; hidden/unpublished content is not shown to other users",
+    "Seller can compress/upload product photo, recover draft after failed publish, mark sold-out or unpublish",
+    "Buyer opens a listing and starts existing Connect personal chat with the actual seller, no duplicate chat engine",
+    "Seller shares published listing through canonical Public Wall RPC with 10-minute and 5/day rate limits; the Wall shows linked current status",
+    "Market markers are not visible in public Wall captions; ordinary posts preserve media, ads, scrolling and reactions",
+    "Node regression tests, database authorization contract, TypeScript, staging installed-client checks required before RC or OTA",
+    "All five market-promo post reward paths are excluded, while all regular Wall post reward functions keep their original behavior; release requires isolated SQL behavioral testing.",
+    "A buyer can request a reservation once per idempotency key, seller can accept/decline/complete, buyer can cancel; unauthorized status changes are rejected on the backend and private details are visible only to participants."
+  ],
+  "preserveBehaviors": [
+    "Public Wall feed/media/ads render path and existing user social post reward rules remain unchanged; only a small Market-specific link card is additive",
+    "Existing Connect chat flow, home/drawer navigation, profile, and organization permission gates for other Focus Apps remain intact",
+    "Existing public/scope post rows, account isolation, security and Supabase storage buckets are not modified",
+    "No payments, rewards, referrals or native runtime packages are introduced",
+    "Existing post economy triggers are modified only to early-return for Market promotional markers; all non-Market reward code remains intact.",
+    "No automatic charge, escrow, cash payout, stock decrement or external delivery claim is made by a reservation."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-scroll",
+    "navigation-auth",
+    "backend-security",
+    "ads-finance-points"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodMarket.ts",
+    "src/lib/buklodMarketLink.ts",
+    "src/components/BuklodMarketWallLink.tsx",
+    "src/components/BuklodCommunityWallPostCard.tsx",
+    "src/app/profile/buklod-market.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "supabase/migrations/20261120222000_buklod_market_palengke_phase1_2.sql",
+    "tests/buklod-market-wall-navigation-security-20261120.test.mjs",
+    "supabase/tests/buklod_market_palengke_rls_20261120.sql",
+    ".buklod/scopes/buklod-market-palengke-phase1-2-20261120.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-market-wall-navigation-security-20261120.test.mjs",
+    "supabase/tests/buklod_market_palengke_rls_20261120.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New routed Market screen and lightweight shared Wall link integration for current Expo runtime only",
+      "preservedBehaviors": [
+        "Navigation, native packages, background OTA, and Android runtime remain unchanged"
+      ],
+      "tests": [
+        "tests/buklod-market-wall-navigation-security-20261120.test.mjs",
+        "supabase/tests/buklod_market_palengke_rls_20261120.sql"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Add market-specific listing card and hidden marker to existing public post wrapper without replacing media lifecycle",
+      "preservedBehaviors": [
+        "Canonical Wall audio/video/collage handling, native ad rendering, comments and reactions retained"
+      ],
+      "tests": [
+        "tests/buklod-market-wall-navigation-security-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Public Wall passes optional Market link metadata and buyer navigation uses the existing authenticated Market route",
+      "preservedBehaviors": [
+        "No change to login, user roles, selected scopes or mandatory native update behavior"
+      ],
+      "tests": [
+        "tests/buklod-market-wall-navigation-security-20261120.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "New owner-isolated RLS Market schema, guarded public photo writes and server-mediated Public Wall promotions",
+      "preservedBehaviors": [
+        "No changes to existing BUKLOD tables, user sessions, production point/reward ledgers, or security policies"
+      ],
+      "tests": [
+        "supabase/tests/buklod_market_palengke_rls_20261120.sql"
+      ]
+    }
+  ]
+}
