@@ -15,19 +15,24 @@ test('Premium Kingdom nature landmarks are selectable canonical character worlds
  assert.match(portal,/accessibilityState=\{\{selected:isSelected\}\}/);
  assert.doesNotMatch(portal,/claimBp|awardBp|awardDiamond|supabase\.rpc/i);
 });
-test('Arena native route and experimental engine cannot enter staging bundle, even via deep links',()=>{
+test('Empire Arena joins the existing conso bundle without a second staging backend',()=>{
  const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
- assert.doesNotMatch(portal,/empire-arena|arenaExperimental/);
- assert.equal(existsSync(resolve(root,'src/app/games/empire-arena.tsx')),false);
- assert.equal(existsSync(resolve(root,'src/features/games/empire/arenaGeneratedAssets.ts')),false);
- assert.equal(existsSync(resolve(root,'experiments/empire-arena-v2/arena-v2-engine.mjs')),false);
+ assert.match(portal,/router\.push\('\/games\/empire-arena'/);
+ for(const path of ['src/app/games/empire-arena.tsx','src/features/games/empire/arenaGeneratedAssets.ts','experiments/empire-arena-v2/arena-v2-engine.mjs','assets/season2/arena/generated-manifest.json'])
+  assert.equal(existsSync(resolve(root,path)),true,'Missing '+path);
+ const route=read('src/app/games/empire-arena.tsx');
+ assert.match(route,/EmpireArenaRouteGuard/);
+ assert.match(route,/isGenesisPreviewBuild\(\)/);
+ assert.match(route,/requiresAcceptance/);
+ assert.match(route,/update_required/);
 });
 
 test('EAS Genesis profile reuses existing paid BUKLOD Supabase without new subscriptions',()=>{
  const eas=JSON.parse(read('eas.json'));
  const env=eas.build['season2-genesis-preview'].env;
  assert.equal(env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW,'true');
- assert.equal(env.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL,'false');
+ assert.equal(env.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL,'true');
+ assert.equal(env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
  assert.equal(env.EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW,'true');
  assert.equal(env.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
  assert.match(env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,/^sb_publishable_/);
