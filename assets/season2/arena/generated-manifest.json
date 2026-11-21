@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "assets": [
+    {
+      "key": "scene:aurora_foundry",
+      "kind": "scene",
+      "id": "aurora_foundry",
+      "file": "assets/season2/arena/generated/scene/aurora_foundry-b724e6a41e12.png",
+      "sha256": "b724e6a41e126c1dcf0ae362c7bb06167fde661ebab13a4e4cd5f7912180e239",
+      "bytes": 2462900,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "scene:genesis_rift",
+      "kind": "scene",
+      "id": "genesis_rift",
+      "file": "assets/season2/arena/generated/scene/genesis_rift-93a5185cde9f.png",
+      "sha256": "93a5185cde9fe23893c0706956ff0188f467d5297c263c637764ea5474c0b5ad",
+      "bytes": 2528044,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "scene:verdant_fracture",
+      "kind": "scene",
+      "id": "verdant_fracture",
+      "file": "assets/season2/arena/generated/scene/verdant_fracture-268f1aad617a.png",
+      "sha256": "268f1aad617a45776eed4a8ecc81ab7c82553581a1bf13cee105aca12bbe8078",
+      "bytes": 3452975,
+      "status": "dev-baseline"
+    }
+  ]
+}
