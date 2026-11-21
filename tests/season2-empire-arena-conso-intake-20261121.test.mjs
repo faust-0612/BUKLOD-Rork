@@ -98,7 +98,10 @@ test('Release remains HARD HOLD without signed matching Android APK and actual O
  assert.match(script,/--source/);
  assert.match(script,/otaReady/);
  const map=read('src/app/buklod-map.tsx');
- assert.match(map,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
+ assert.doesNotMatch(map,/BuklodFirstViewAd/);
+ const home=read('src/app/(tabs)/hub.tsx');
+ assert.match(home,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
+ assert.match(map,/<GenesisApprovedEntryMap/);
  const app=read('src/app/games/index.tsx');
  assert.match(app,/BuklodKingdomAdSlot/);
 });

@@ -43,14 +43,24 @@
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
     "tests/season2-final-conso-staging-20261121.test.mjs",
     "assets/season2/genesis/world/buklod-community-village-stage1.webp",
-    "assets/season2/genesis/world/buklod-my-home-stage1.webp"
+    "assets/season2/genesis/world/buklod-my-home-stage1.webp",
+    "tests/season2-map-first-conso-intake-20261121.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
+    "tests/season2-community-village-preview-20261121.test.mjs",
+    "tests/season2-empire-arena-conso-intake-20261121.test.mjs"
   ],
   "regressionTests": [
     "tests/season2-final-conso-staging-20261121.test.mjs",
     "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
     "tests/genesis-valley-audio-focus-20261121.test.mjs",
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
-    "tests/season2-complete-community-facilities-20261121.test.mjs"
+    "tests/season2-complete-community-facilities-20261121.test.mjs",
+    "tests/season2-map-first-conso-intake-20261121.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
+    "tests/season2-community-village-preview-20261121.test.mjs",
+    "tests/season2-empire-arena-conso-intake-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {

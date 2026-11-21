@@ -5,42 +5,51 @@ import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>readFileSync(resolve(root,p),'utf8');
-const village=read('src/app/community-village.tsx');
-const spots=JSON.parse(read('src/features/season2/genesis/genesisApprovedEntryHotspots.json'));
-const gate=read('src/app/buklod-map.tsx');
+const world=read('src/features/season2/world/Season2DevelopmentMap.tsx');
+const guard=read('src/features/season2/world/GuardedSeason2DevelopmentWorld.tsx');
+const village=read('src/app/season2/community-village.tsx');
+const home=read('src/app/season2/my-world.tsx');
+const hotspots=JSON.parse(read('src/features/season2/genesis/genesisApprovedEntryHotspots.json'));
+const entry=read('src/app/buklod-map.tsx');
 
-test('Community Village is a real distinct in-app route from approved owner entry art',()=>{
- assert.ok(existsSync(resolve(root,'src/app/community-village.tsx')));
- assert.equal(spots.hotspots.find(x=>x.id==='community-village').route,'/community-village');
- assert.match(gate,/router\.push\(route as any\)/);
- assert.match(gate,/onCommunityVillage=\{\(\) => router\.push\('\/community-village'/);
+test('Community Village and My Home have distinct in-app one-tap routes from approved art',()=>{
+ assert.ok(existsSync(resolve(root,'src/app/season2/community-village.tsx')));
+ assert.ok(existsSync(resolve(root,'src/app/season2/my-world.tsx')));
+ assert.equal(hotspots.hotspots.find(x=>x.id==='community-village').route,'/season2/community-village');
+ assert.equal(hotspots.hotspots.find(x=>x.id==='my-home').route,'/season2/my-world');
+ assert.match(entry,/<GenesisApprovedEntryMap/);
+ assert.match(entry,/router\.push\(route as any\)/);
+ assert.match(village,/world="village"/);
+ assert.match(home,/world="home"/);
 });
 
-test('Community Village builds a premium nature scene with four genuine district links',()=>{
- assert.match(village,/kingdom-nature-panorama\.webp/);
- for(const id of ['lot','house','cluster','market'])assert.ok(village.includes("id:'"+id+"'"));
- for(const route of ['/personal-home','/clusters','/profile/buklod-business'])
-   assert.ok(village.includes("route:'"+route+"'"),route);
- assert.match(village,/REGIONS\.map/);
- assert.match(village,/router\.push\(region\.route as any\)/);
+test('Separate premium nature scenes preserve real member service destinations',()=>{
+ for(const art of ['buklod-community-village-stage1.webp','buklod-my-home-stage1.webp'])
+  assert.ok(world.includes(art),art);
+ for(const id of ['lot','house','garden','cluster','org','market','bayanihan'])
+  assert.ok(world.includes("id:'"+id+"'"),id);
+ for(const route of ['/personal-home','/clusters','/profile/buklod-market'])
+  assert.ok(world.includes("route:'"+route+"'"),route);
+ assert.match(world,/doors\.map/);
+ assert.match(world,/router\.push\(door\.route as any\)/);
+ assert.equal(hotspots.hotspots.length,12);
 });
 
-test('Five visible construction stages and Levels 1–10 are explicitly nontransactional previews',()=>{
- for(const label of ['Land markers','Foundation','Structure','Roof & exterior','Amenities & expansion'])
-  assert.ok(village.includes(label));
- assert.match(village,/setPreviewLevel\(x=>Math\.min\(10,x\+1\)\)/);
- assert.match(village,/setPreviewLevel\(x=>Math\.max\(1,x-1\)\)/);
- assert.match(village,/No real materials or BP spent/);
- assert.match(village,/NO CLAIMED PROPERTY/);
- assert.doesNotMatch(village,/(?:supabase|service_role|\.rpc\(|awardBp|claimBp|awardDiamond|sendBp|withdraw|fetch\()/i);
+test('Five progressive construction stages and independent Levels 1–10 are preview only',()=>{
+ for(const label of ['Materials','Posts / Foundation','Framework','Structure','Finishing'])
+  assert.ok(world.includes(label),label);
+ assert.match(world,/clampDevelopmentLevel/);
+ assert.match(world,/previewLevels,setPreviewLevels/);
+ assert.match(world,/previewStages,setPreviewStages/);
+ assert.match(world,/visual previews only/);
+ assert.doesNotMatch(world,/(?:supabase|service_role|\.rpc\(|awardBp|claimBp|awardDiamond|sendBp|withdraw|fetch\()/i);
 });
 
-test('Read-only Village has full preview/auth/consent/update/maintenance gates; production unchanged',()=>{
- for(const token of [
- '!isGenesisPreviewBuild()','!session','requiresAcceptance','maintenance_mode',
- 'update_required','pilot_access_required','!profile','onboarding',
- ])
- assert.ok(village.includes(token),token);
- assert.match(village,/router\.replace\('\/buklod-map'/);
- assert.match(village,/The permanent BP, QMP, items, property ownership and trade authority/);
+test('World deep links enforce login, consent, update, pilot and onboarding',()=>{
+ for(const token of ['!isGenesisPreviewBuild()','!session','requiresAcceptance','maintenance_mode',
+  'update_required','pilot_access_required','!profile','onboarding'])
+  assert.ok(guard.includes(token),token);
+ assert.match(world,/router\.replace\('\/buklod-map'/);
+ assert.match(world,/getDevelopmentAsset/);
+ assert.doesNotMatch(guard,/(?:supabase|awardBp|claimBp|withdraw|\.rpc\()/i);
 });

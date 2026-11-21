@@ -31,7 +31,10 @@ test('old navigation hidden only for Genesis; one return-to-map action; protect 
  assert.match(shell,/normalizedPath !== '\/buklod-map'/);
  assert.match(shell,/router.replace\('\/buklod-map'/);
  assert.match(shell,/!keyboardVisible/);
- assert.match(map,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
+ assert.doesNotMatch(map,/BuklodFirstViewAd/);
+ assert.match(map,/<BuklodMapHeader \/>/);
+ assert.match(map,/<BuklodMapGuideDock active=\{focused\} \/>/);
+ assert.match(read('src/app/(tabs)/hub.tsx'),/BuklodFirstViewAd placement="home"/);
  assert.match(map,/useRorkGameAmbience\('kingdom-map'/);
  assert.doesNotMatch(map,/(?:service_role|supabase\.rpc|eas update|claimBp|mintBp|awardBp)/i);
 });
