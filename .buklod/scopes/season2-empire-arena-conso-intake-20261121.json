@@ -15,7 +15,10 @@
     "audio-focus",
     "shared-paid-supabase",
     "map-first-route",
-    "native-asset-compatibility"
+    "native-asset-compatibility",
+    "release-identity",
+    "native-build-compatibility",
+    "backend-security"
   ],
   "lockedFeatureChanges": [
     {
@@ -226,5 +229,21 @@
     "Arena 13-character hero identity with all 52 fullbody idle/walk/attack/skill WebPs, 3 local battlefield plates, approved existing CC0 Kingdom music/sound, server authoritative ranked source, and isolated PostgreSQL tests are committed.",
     "No new staging environment, no paid subscription or Supabase branch, no live SQL/RLS, no Diamond reservation/minting, no production APK/Google Play/OTA update.",
     "Gate native/runtime exact signed APK, Play-style AdMob first view and navigation, actual Android render, and verified EAS OTA receipt independently. Source-only Metro passing is NOT OTA READY."
+  ],
+  "selectionRationale": "The owner explicitly superseded the prior Arena exclusion: the original Arena must be incorporated in the ONE existing Season 2 conso OTA, using existing assets, runtime/channel and already paid Supabase; source-only privacy and economy isolation protect live users.",
+  "preserveBehaviors": [
+    "Production and previous BUKLOD Android runtime/package, current staged APK source and Google Play are not mutated.",
+    "Genesis first-view map, native Home AdMob, Kingdom banner, premium tropical/winter art, offline CC0 music and audio focus remain unchanged.",
+    "Production and non-Genesis clients cannot open Arena; authenticated preview players must pass established onboarding/consent/maintenance/update guards.",
+    "All BP, QMP, monthly rank, Character Diamonds, item ledgers, withdrawal, trade and existing Supabase RLS remain authoritative and untouched.",
+    "Existing Kingdom/Character features and accessible world-map navigation remain present and responsive.",
+    "Only source+asset changes are proposed, with no new paid staging or backend subscription."
+  ],
+  "alternativeApproaches": [
+    "Rejected: launch Empire Arena as a separate Android app or independent APK.",
+    "Rejected: create a second Supabase staging project/branch or paid subscription.",
+    "Rejected: enable live ranked Diamond escrow without verified paid-backend migration and server.",
+    "Rejected: publish a staging OTA from source tests without signed matching Android runtime/AdMob/navigation verification.",
+    "Rejected: overwrite the Genesis premium Kingdom portal or remove its first-view native ad slot."
   ]
 }
