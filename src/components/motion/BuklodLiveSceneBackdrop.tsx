@@ -1,5 +1,12 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
+import { useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import {
@@ -63,8 +70,12 @@ function RemoteVideoLayer({ url }: VideoProps) {
 /**
  * Shared cinematic backdrop for BUKLOD character/reward surfaces.
  *
- * The procedural layer is always available and does not require network media.
- * A BUKLOD-owned remote MP4/WebM may be supplied as progressive enhancement.
+ * BUKLOD_PERF_DELTA_LIVE_BACKDROP_R1
+ * - procedural motion runs only while the owning route is focused
+ * - web keeps a static procedural layer (the HTML shell already owns web motion)
+ * - shimmer and sparkles stay visual but no longer add their own infinite loops
+ * - optional approved video still plays only while the backdrop is focused/visible
+ *
  * No progression, points, rank, inventory, or entitlement state is read here.
  */
 export default function BuklodLiveSceneBackdrop({
@@ -73,120 +84,112 @@ export default function BuklodLiveSceneBackdrop({
   intensity = 1,
 }: Props) {
   const reduceMotion = useBuklodReduceMotion();
-  const drift = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
-  const shimmer = useRef(new Animated.Value(0)).current;
+  const [focused, setFocused] = useState(false);
+  const drift = useRef(new Animated.Value(0.45)).current;
+  const pulse = useRef(new Animated.Value(0.35)).current;
 
   const normalizedVideoUrl = String(videoUrl ?? '').trim();
   const safeIntensity = Math.max(0, Math.min(intensity, 1.35));
 
-  useEffect(() => {
-    drift.stopAnimation();
-    pulse.stopAnimation();
-    shimmer.stopAnimation();
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
 
-    if (!visible || reduceMotion) {
-      drift.setValue(0.45);
-      pulse.setValue(0.35);
-      shimmer.setValue(0);
-      return;
-    }
+      return () => {
+        setFocused(false);
+      };
+    }, [])
+  );
 
-    const driftLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(drift, {
-          toValue: 1,
-          duration: 8800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(drift, {
-          toValue: 0,
-          duration: 8800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
+  useFocusEffect(
+    useCallback(() => {
+      drift.stopAnimation();
+      pulse.stopAnimation();
 
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 3300,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 3300,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
+      if (
+        !visible ||
+        reduceMotion ||
+        Platform.OS === 'web'
+      ) {
+        drift.setValue(0.45);
+        pulse.setValue(0.35);
+        return;
+      }
 
-    const shimmerLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, {
-          toValue: 1,
-          duration: 5200,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.delay(1100),
-        Animated.timing(shimmer, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ])
-    );
+      const driftLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(drift, {
+            toValue: 1,
+            duration: 9200,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(drift, {
+            toValue: 0,
+            duration: 9200,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      );
 
-    driftLoop.start();
-    pulseLoop.start();
-    shimmerLoop.start();
+      const pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, {
+            toValue: 1,
+            duration: 3600,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulse, {
+            toValue: 0,
+            duration: 3600,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      );
 
-    return () => {
-      driftLoop.stop();
-      pulseLoop.stop();
-      shimmerLoop.stop();
-    };
-  }, [drift, pulse, reduceMotion, shimmer, visible]);
+      driftLoop.start();
+      pulseLoop.start();
+
+      return () => {
+        driftLoop.stop();
+        pulseLoop.stop();
+        drift.stopAnimation();
+        pulse.stopAnimation();
+      };
+    }, [drift, pulse, reduceMotion, visible])
+  );
 
   const driftX = drift.interpolate({
     inputRange: [0, 1],
-    outputRange: [-24, 24],
+    outputRange: [-20, 20],
   });
   const driftY = drift.interpolate({
     inputRange: [0, 1],
-    outputRange: [12, -16],
+    outputRange: [10, -13],
   });
   const reverseX = Animated.multiply(driftX, -0.72);
   const glowScale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.96, 1.08],
+    outputRange: [0.97, 1.06],
   });
   const glowOpacity = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.16 * safeIntensity, 0.34 * safeIntensity],
+    outputRange: [0.16 * safeIntensity, 0.31 * safeIntensity],
   });
-  const sparkleOpacity = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.24 * safeIntensity, 0.82 * safeIntensity],
-  });
-  const shimmerX = shimmer.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-260, 360],
-  });
-  const shimmerOpacity = shimmer.interpolate({
-    inputRange: [0, 0.1, 0.82, 1],
-    outputRange: [0, 0.18 * safeIntensity, 0.1 * safeIntensity, 0],
-  });
+
+  const sparkleOpacity = 0.4 * safeIntensity;
+  const shimmerOpacity = 0.055 * safeIntensity;
+  const videoActive =
+    focused &&
+    visible &&
+    !reduceMotion;
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {normalizedVideoUrl && visible && !reduceMotion ? (
+      {normalizedVideoUrl && videoActive ? (
         <View style={[StyleSheet.absoluteFill, styles.videoLayer]}>
           <RemoteVideoLayer url={normalizedVideoUrl} />
         </View>
@@ -224,28 +227,31 @@ export default function BuklodLiveSceneBackdrop({
             opacity: glowOpacity,
             transform: [
               { translateX: reverseX },
-              { translateY: Animated.multiply(driftY, -0.55) },
+              {
+                translateY:
+                  Animated.multiply(
+                    driftY,
+                    -0.55
+                  ),
+              },
               { scale: glowScale },
             ],
           },
         ]}
       />
 
-      <Animated.View
+      <View
         style={[
           styles.shimmer,
           {
             opacity: shimmerOpacity,
-            transform: [
-              { translateX: shimmerX },
-              { rotate: '-13deg' },
-            ],
+            transform: [{ rotate: '-13deg' }],
           },
         ]}
       />
 
-      {SPARKLES.map((sparkle, index) => (
-        <Animated.View
+      {SPARKLES.map((sparkle) => (
+        <View
           key={sparkle.key}
           style={[
             styles.sparkle,
@@ -256,23 +262,6 @@ export default function BuklodLiveSceneBackdrop({
               height: sparkle.size,
               borderRadius: sparkle.size / 2,
               opacity: sparkleOpacity,
-              transform: [
-                {
-                  translateY: Animated.add(
-                    driftY,
-                    index % 2 === 0 ? -4 : 5
-                  ),
-                },
-                {
-                  scale: pulse.interpolate({
-                    inputRange: [0, 1],
-                    outputRange:
-                      index % 2 === 0
-                        ? [0.72, 1.28]
-                        : [1.16, 0.78],
-                  }),
-                },
-              ],
             },
           ]}
         />
@@ -325,7 +314,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '-14%',
     bottom: '-14%',
-    left: '18%',
+    left: '44%',
     width: 72,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.34)',
@@ -333,8 +322,5 @@ const styles = StyleSheet.create({
   sparkle: {
     position: 'absolute',
     backgroundColor: 'rgba(236,255,245,0.95)',
-    shadowColor: '#E8FFF2',
-    shadowOpacity: 0.72,
-    shadowRadius: 7,
   },
 });

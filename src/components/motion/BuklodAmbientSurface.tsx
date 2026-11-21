@@ -1,8 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
+
+import { useFocusEffect } from 'expo-router';
 
 import {
   Animated,
   Easing,
+  Platform,
   StyleSheet,
   View,
 } from 'react-native';
@@ -16,8 +19,16 @@ type Props = {
 };
 
 /**
- * Low-cost transparent motion layer for cards/HUD surfaces.
- * It never owns business state and is safe to remove without changing layout.
+ * Low-cost transparent atmosphere for cards/HUD surfaces.
+ *
+ * BUKLOD_PERF_DELTA_AMBIENT_R1
+ * - web is static (the HTML shell already owns web atmosphere)
+ * - native uses one shared animation phase instead of two independent loops
+ * - sparkles are static decoration instead of four extra animated layers
+ * - native animation runs only while the owning route is focused
+ *
+ * Presentation only: no business state, layout authority, points, Character
+ * progression, navigation, or persistence behavior lives here.
  */
 export default function BuklodAmbientSurface({
   visible = true,
@@ -25,89 +36,76 @@ export default function BuklodAmbientSurface({
   tone = 'surface',
 }: Props) {
   const reduceMotion = useBuklodReduceMotion();
-  const drift = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
+  const phase = useRef(new Animated.Value(0.35)).current;
   const safeIntensity = Math.max(0, Math.min(intensity, 1.25));
 
-  useEffect(() => {
-    drift.stopAnimation();
-    pulse.stopAnimation();
+  useFocusEffect(
+    useCallback(() => {
+      phase.stopAnimation();
 
-    if (!visible || reduceMotion) {
-      drift.setValue(0.4);
-      pulse.setValue(0.35);
-      return;
-    }
+      if (
+        !visible ||
+        reduceMotion ||
+        Platform.OS === 'web'
+      ) {
+        phase.setValue(0.35);
+        return;
+      }
 
-    const driftLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(drift, {
-          toValue: 1,
-          duration: 7200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(drift, {
-          toValue: 0,
-          duration: 7200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(phase, {
+            toValue: 1,
+            duration: 6200,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(phase, {
+            toValue: 0,
+            duration: 6200,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      );
 
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 2800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 2800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
+      loop.start();
 
-    driftLoop.start();
-    pulseLoop.start();
+      return () => {
+        loop.stop();
+        phase.stopAnimation();
+      };
+    }, [phase, reduceMotion, visible])
+  );
 
-    return () => {
-      driftLoop.stop();
-      pulseLoop.stop();
-    };
-  }, [drift, pulse, reduceMotion, visible]);
-
-  const translateX = drift.interpolate({
+  const translateX = phase.interpolate({
     inputRange: [0, 1],
-    outputRange: [-16, 18],
+    outputRange: [-14, 16],
   });
-  const translateY = drift.interpolate({
+  const translateY = phase.interpolate({
     inputRange: [0, 1],
-    outputRange: [8, -10],
+    outputRange: [7, -9],
   });
   const reverseX = Animated.multiply(translateX, -0.7);
-  const opacity = pulse.interpolate({
+  const opacity = phase.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.12 * safeIntensity, 0.26 * safeIntensity],
+    outputRange: [
+      0.14 * safeIntensity,
+      0.24 * safeIntensity,
+    ],
   });
-  const sparkleOpacity = pulse.interpolate({
+  const scale = phase.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.2 * safeIntensity, 0.62 * safeIntensity],
-  });
-  const scale = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.94, 1.06],
+    outputRange: [0.97, 1.04],
   });
 
   const palette =
     tone === 'dark'
       ? DARK_PALETTE
       : SURFACE_PALETTE;
+
+  const sparkleOpacity =
+    0.36 * safeIntensity;
 
   return (
     <View
@@ -142,15 +140,21 @@ export default function BuklodAmbientSurface({
             opacity,
             transform: [
               { translateX: reverseX },
-              { translateY: Animated.multiply(translateY, -0.55) },
+              {
+                translateY:
+                  Animated.multiply(
+                    translateY,
+                    -0.55
+                  ),
+              },
               { scale },
             ],
           },
         ]}
       />
 
-      {SPARKLES.map((item, index) => (
-        <Animated.View
+      {SPARKLES.map((item) => (
+        <View
           key={item.key}
           style={[
             styles.sparkle,
@@ -162,14 +166,6 @@ export default function BuklodAmbientSurface({
               borderRadius: item.size / 2,
               backgroundColor: palette.sparkle,
               opacity: sparkleOpacity,
-              transform: [
-                {
-                  translateY: Animated.add(
-                    translateY,
-                    index % 2 === 0 ? -2 : 3
-                  ),
-                },
-              ],
             },
           ]}
         />

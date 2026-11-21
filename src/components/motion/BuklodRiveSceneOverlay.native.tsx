@@ -1,4 +1,9 @@
-import React from 'react';
+import React, {
+  useCallback,
+  useState,
+} from 'react';
+
+import { useFocusEffect } from 'expo-router';
 
 import {
   StyleSheet,
@@ -30,6 +35,18 @@ function RemoteRiveOverlay({
   opacity,
 }: RemoteProps) {
   const reduceMotion = useBuklodReduceMotion();
+  const [focused, setFocused] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+
+      return () => {
+        setFocused(false);
+      };
+    }, [])
+  );
+
   const {
     riveFile,
     isLoading,
@@ -38,6 +55,7 @@ function RemoteRiveOverlay({
 
   if (
     !visible ||
+    !focused ||
     reduceMotion ||
     isLoading ||
     error ||
@@ -67,7 +85,9 @@ function RemoteRiveOverlay({
 
 /**
  * Native-only decorative Rive layer for an approved BUKLOD-owned scene asset.
- * Character ownership/progression remains in the existing local renderer.
+ *
+ * BUKLOD_PERF_DELTA_RIVE_R1 keeps autoplay mounted only while the owning route
+ * is focused. Character ownership/progression remains in the local renderer.
  */
 export default function BuklodRiveSceneOverlay({
   url,
