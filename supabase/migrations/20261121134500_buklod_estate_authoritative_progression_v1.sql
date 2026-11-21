@@ -93,7 +93,7 @@ begin
  ) or exists(
    select 1 from public.buklod_scope_role_assignments r
    where r.scope_id=p_id and r.user_id=v_user and r.status='ACTIVE'
-     and r.revoked_at is null and lower(r.role_key) in ('owner','admin','leader','organizer')
+     and r.revoked_at is null and lower(r.role_key) in ('owner','admin','leader','organizer','cluster_admin','org_admin')
  ) into v_is_admin;
  return coalesce(v_is_admin,false);
 end $$;
