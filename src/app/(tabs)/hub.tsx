@@ -4,7 +4,7 @@ import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, Text, Vie
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH } from '@/lib/buklodWebResponsivePolicy';
-import { router, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import {noteBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
@@ -19,7 +19,6 @@ import { GenesisHomeHero, GenesisCosmosBackground } from '@/features/season2/gen
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 
 // Factories execute only after the user opens a tool.
-const GenesisWorld = lazy(() => import('@/components/world/BuklodGenesisWorldHome'));
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
 const Contribution = lazy(() => import('@/components/BuklodCommunityContributionCard'));
 const DrawerCard = lazy(() => import('@/components/SmartDrawerWallCard'));
@@ -62,9 +61,8 @@ export default function BuklodLightHome() {
   // Staging Genesis: the complete World map is the first authenticated view.
   // Keep the legacy Home and its ads untouched in every other runtime.
   if (genesisPreview) {
-    return <Suspense fallback={<View style={{ flex: 1, backgroundColor: '#050A19' }} />}>
-      <GenesisWorld />
-    </Suspense>;
+    // One canonical approved-art gateway, including Home re-entry.
+    return <Redirect href="/buklod-map" />;
   }
 
   if (desktopDashboard) {

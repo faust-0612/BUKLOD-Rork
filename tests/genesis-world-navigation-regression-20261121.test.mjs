@@ -13,7 +13,7 @@ test('preview-only auth entry selects World, regular production entry stays the 
 test('World replaces cluttered Home only under Genesis preview, preserving original tabs and AdMob',()=>{
   const home=src('src/app/(tabs)/hub.tsx');
   assert.match(home,/if \(genesisPreview\) \{/);
-  assert.match(home,/<GenesisWorld \/>/);
+  assert.match(home,/<Redirect href="\/buklod-map" \/>/);
   assert.match(home,/BuklodFirstViewAd/);
   assert.match(home,/BuklodNativeSponsoredCard/);
   const layout=src('src/app/(tabs)/_layout.tsx');

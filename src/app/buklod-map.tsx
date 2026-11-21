@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Image, ImageBackground, Pressable, ScrollView, StyleSheet,
   Text, View,
@@ -29,6 +29,7 @@ export default function BuklodMapScreen() {
   const [selectedId, setSelectedId] = useState('community');
   const [selectedHotspotId, setSelectedHotspotId] = useState('community-wall-plaza');
   const [showDirectory, setShowDirectory] = useState(false);
+  const lastDoorTap = useRef(0);
   const { musicEnabled, musicSuspended, toggleMusic } = useRorkGameAmbience('kingdom-map');
 
   useFocusEffect(useCallback(() => {
@@ -88,7 +89,7 @@ export default function BuklodMapScreen() {
             <Text style={styles.musicText}>{musicEnabled ? (musicSuspended ? 'Music paused' : 'Music on') : 'Music off'}</Text>
           </Pressable>
         </View>
-        <Text style={styles.intro}>Isang mundo, malinaw na direksyon. Pumili ng lugar sa mapa at buksan ang mga gawain nito.</Text>
+        <Text style={styles.intro}>Ang bawat pintuan sa mapa ay direktang bumubukas sa isang tap. Walang hiwalay na Enter.</Text>
 
         {/* Preserve the established first-view Home ad inventory; the banner
             collapses on no fill/consent without reserving a blank pane. */}
@@ -99,15 +100,20 @@ export default function BuklodMapScreen() {
           showFaith={showFaith}
           selectedHotspotId={selectedHotspotId}
           onSelect={hotspot => {
+            // One-tap direct route; bounded guard prevents rapid duplicate pushes.
+            const now = Date.now();
+            if (now - lastDoorTap.current < 650) return;
+            lastDoorTap.current = now;
             setSelectedHotspotId(hotspot.id);
             setSelectedId(hotspot.districtId);
+            router.push(hotspot.route as any);
           }}
         />
         <View style={styles.mapSelectedCaption}>
           <Text style={styles.selectedCaptionText}>
             {selectedHotspot ? selectedHotspot.label : district.title}
           </Text>
-          <Text style={styles.selectedCaptionNote}>Iisang mapa, isang malinaw na destinasyon.</Text>
+          <Text style={styles.selectedCaptionNote}>Direktang pasok sa isang tap. Optional lamang ang ibang links sa ibaba.</Text>
         </View>
 
         <View style={styles.districtPanel}>
@@ -118,15 +124,6 @@ export default function BuklodMapScreen() {
               <Text style={styles.panelSubtitle}>{district.tagline}</Text>
             </View>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={'Enter ' + (selectedHotspot?.label ?? district.title)}
-            onPress={() => router.push((selectedHotspot?.route ?? district.destination) as any)}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryText}>ENTER {(selectedHotspot?.label ?? district.title).toUpperCase()}</Text>
-            <MaterialCommunityIcons name="arrow-right" size={20} color="#071B2C"/>
-          </Pressable>
           {entries.map(entry => (
             <Pressable
               key={entry.route}
@@ -216,8 +213,6 @@ const styles = StyleSheet.create({
   panelHeading: { flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 2 },
   panelTitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '900' },
   panelSubtitle: { color: '#D4E6F9', fontSize: 12 },
-  primaryButton: { marginTop: 6, backgroundColor: '#FFE3A8', borderRadius: 13, minHeight: 46, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  primaryText: { color: '#071B2C', fontSize: 12, fontWeight: '900', letterSpacing: .6 },
   entry: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(205,228,249,.18)', flexDirection: 'row', alignItems: 'center', paddingVertical: 9, gap: 4, minHeight: 48 },
   entryPressed: { backgroundColor: 'rgba(255,255,255,.08)' },
   entryTitle: { color: '#F8FBFF', fontSize: 13, fontWeight: '800' },

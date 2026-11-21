@@ -80,8 +80,8 @@ export default function GenesisKingdomPortal() {
       <View style={styles.header}>
         <GenesisCosmicSky active={animate}/>
         <View style={styles.headerText}>
-          <Text style={styles.kicker}>BUKLOD · SEASON 2 · GENESIS</Text>
-          <Text style={styles.headerTitle}>Let there be light.</Text>
+          <Text style={styles.kicker}>BUKLOD · GENESIS · CHARACTER KINGDOM</Text>
+          <Text style={styles.headerTitle}>Character Kingdom</Text>
           <Text style={styles.headerSubtitle}>A living universe begins with purpose. Enter the world through its characters.</Text>
         </View>
         <GenesisSeal active={animate} size={70}/>
@@ -112,7 +112,7 @@ export default function GenesisKingdomPortal() {
           </Pressable>;
         })}
         <View pointerEvents="none" style={styles.vistaCaption}>
-          <Text style={styles.vistaEyebrow}>THE LIVING KINGDOM</Text>
+          <Text style={styles.vistaEyebrow}>CHARACTER KINGDOM</Text>
           <Text numberOfLines={2} style={styles.vistaTitle}>Tropical Valleys · Winter Peaks</Text>
         </View>
       </View>
@@ -139,16 +139,6 @@ export default function GenesisKingdomPortal() {
         </Pressable>
       </View>
       <View style={styles.actions}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Enter BUKLOD Empire Arena inside the Kingdom"
-          onPress={()=>{ void pulseGenesisTouch('selection'); router.push('/games/empire-arena' as any); }}
-          style={styles.action}>
-          <MaterialCommunityIcons name="shield-sword" size={23} color="#FFD99C"/>
-          <View style={{flex:1}}>
-            <Text style={styles.actionTitle}>Empire Arena</Text>
-            <Text style={styles.actionSub}>Landscape 1v1 / 3v3 / 5v5 · animated battles · offline practice</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" color="#FFE3A3" size={24}/>
-        </Pressable>
         <Pressable accessibilityRole="switch" accessibilityLabel="Genesis cinematic ambience"
           accessibilityState={{checked:musicEnabled}} onPress={toggleMusic}
           style={[styles.action,styles.soundAction]}>

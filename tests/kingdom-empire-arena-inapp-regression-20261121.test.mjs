@@ -4,13 +4,19 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 const root=resolve(import.meta.dirname,'..');
 const read=(p)=>readFileSync(resolve(root,p),'utf8');
-test('Kingdom map retains canonical renderer and exposes an in-app Arena door',()=>{
+test('Character Kingdom and Empire Arena have independent world-map doors',()=>{
   const map=read('src/app/games/index.tsx');
   assert.match(map,/BuklodKingdomMapPremium/);
   assert.match(map,/BuklodKingdomAdSlot/);
   const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
   assert.match(map,/GenesisKingdomPortal/);
-  assert.match(portal,/\/games\/empire-arena/);
+  assert.doesNotMatch(portal,/\/games\/empire-arena/);
+  const districts=read('src/features/season2/genesis/genesisMapDistricts.ts');
+  const valley=JSON.parse(read('src/features/season2/genesis/genesisValleyHotspots.json'));
+  assert.match(districts,/id: 'arena', title: 'Empire Arena'/);
+  assert.match(districts,/id: 'kingdom', title: 'Character Kingdom'/);
+  assert.equal(valley.hotspots.find(h=>h.id==='character-kingdom')?.route,'/games');
+  assert.equal(valley.hotspots.find(h=>h.id==='empire-arena')?.route,'/games/empire-arena');
   assert.doesNotMatch(map,/Linking\.openURL|WebBrowser\.openBrowserAsync/);
 });
 test('Arena stays in BUKLOD package with canonical hero art and original game simulation',()=>{

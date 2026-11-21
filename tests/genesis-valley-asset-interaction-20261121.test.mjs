@@ -24,10 +24,10 @@ test('The actual 1448 and 1024 WebP image bytes are bundled with pinned SHA256',
  }
 });
 
-test('All 14 tappable targets match owner map positions, district taxonomy and real routes',()=>{
+test('All 14 original landmarks plus a separate Character Kingdom portal keep approved art, district taxonomy and real routes',()=>{
  const hs=metadata.hotspots;
  assert.equal(metadata.coordinateSystem,'normalized-image-top-left');
- assert.equal(hs.length,14);
+ assert.equal(hs.length,15);
  assert.equal(new Set(hs.map(h=>h.id)).size,hs.length);
  for(const h of hs){
   assert.ok(h.x>0.04&&h.x<0.95&&h.y>0.10&&h.y<0.80,h.id);
@@ -41,7 +41,11 @@ test('All 14 tappable targets match owner map positions, district taxonomy and r
  assert.deepEqual(hs.filter(h=>h.faithOnly).map(h=>h.id),['faith-center']);
  assert.equal(hs.find(h=>h.id==='community-wall-plaza')?.route,'/buklod');
  assert.equal(hs.find(h=>h.id==='government-hall')?.route,'/profile/focus-apps');
- assert.equal(metadata.positionAuthority.includes('gold-icon centers'),true);
+ assert.equal(hs.find(h=>h.id==='character-kingdom')?.route,'/games');
+ assert.equal(hs.find(h=>h.id==='character-kingdom')?.districtId,'kingdom');
+ assert.equal(hs.find(h=>h.id==='empire-arena')?.route,'/games/empire-arena');
+ assert.equal(hs.find(h=>h.id==='empire-arena')?.districtId,'arena');
+ assert.equal(metadata.positionAuthority.includes('Original 14 approved Valley gold-icon centers remain fixed'),true);
  assert.deepEqual([hs.find(h=>h.id==='cluster-village')?.x,hs.find(h=>h.id==='cluster-village')?.y],[0.057,0.318]);
 });
 
@@ -58,14 +62,16 @@ test('Map is imagery-first with touch/zoom, visual selected state, faith gating 
  assert.match(comp,/isReduceMotionEnabled/);
  assert.match(comp,/getGenesisDeviceQuality/);
  assert.match(gateway,/GENESIS_VALLEY_HOTSPOTS/);
- assert.match(gateway,/selectedHotspot\?\.route \?\? district.destination/);
+ assert.match(gateway,/router\.push\(hotspot\.route as any\)/);
+ assert.doesNotMatch(gateway,/>ENTER \{/);
+ assert.match(gateway,/lastDoorTap/);
  assert.match(gateway,/visibleBuklodMapDestinations\(area, showFaith\)/);
  assert.match(gateway,/BuklodFirstViewAd placement="home"/);
  assert.doesNotMatch(gateway,/<GenesisMapOrbit|<Svg |<View style=\{styles\.constellation\}>/);
  assert.doesNotMatch(gateway,/(service_role|supabase\.rpc|claimBp|mintBp|awardBp)/i);
 });
 
-test('Narrow Android map keeps all fourteen 44px touch areas inside the viewport',()=>{
+test('Narrow Android map keeps all fifteen 44px touch areas inside the viewport',()=>{
  const map=src('src/features/season2/genesis/GenesisValleyMap.tsx');
  assert.match(map,/const diameter = zoomed \? 48 : 44/);
  assert.match(map,/Math\.max\(diameter \/ 2, Math\.min\(imageWidth - diameter \/ 2/);

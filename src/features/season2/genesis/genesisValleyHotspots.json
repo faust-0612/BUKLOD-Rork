@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "referenceImage": "Buklod Community Map: A Welcoming Valley",
   "coordinateSystem": "normalized-image-top-left",
   "hotspots": [
@@ -24,9 +24,19 @@
       "faithOnly": true
     },
     {
-      "id": "kingdom-arena",
-      "label": "Kingdom Arena",
+      "id": "character-kingdom",
+      "label": "Character Kingdom",
       "districtId": "kingdom",
+      "route": "/games",
+      "icon": "castle",
+      "x": 0.65,
+      "y": 0.15,
+      "faithOnly": false
+    },
+    {
+      "id": "empire-arena",
+      "label": "Empire Arena",
+      "districtId": "arena",
       "route": "/games/empire-arena",
       "icon": "shield-sword-outline",
       "x": 0.806,
@@ -144,5 +154,5 @@
       "faithOnly": false
     }
   ],
-  "positionAuthority": "Visual calibration of supplied 1024x768 Valley image: interactive gold-icon centers, not text-label centers"
+  "positionAuthority": "Original 14 approved Valley gold-icon centers remain fixed; Character Kingdom is one clearly separate companion portal overlay near the Arena skyline (not a new building painted on baseline art)."
 }

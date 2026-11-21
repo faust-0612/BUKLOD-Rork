@@ -27,6 +27,8 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
       { label: 'My Profile', route: '/me', description: 'Identity, rank and posts' },
       { label: 'My Points', route: '/points', description: 'Participation, rank and character' },
       { label: 'Radio', route: '/personal-home/radio', description: 'Personal audio and radio' },
+      { label: 'Reminders', route: '/personal-home/reminders', description: 'Personal reminders' },
+      { label: 'Budget', route: '/personal-home/budget', description: 'Personal budget tools' },
     ],
   },
   {
@@ -53,6 +55,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
       { label: 'Clusters', route: '/clusters', description: 'Join and contribute in your cluster' },
       { label: 'Organizations', route: '/organizations', description: 'Organization and sub-organization' },
       { label: 'Bayanihan', route: '/bayanihan', description: 'Real-world community action' },
+      { label: 'Discover Communities', route: '/community/discover', description: 'Find communities and circles' },
     ],
   },
   {
@@ -61,19 +64,27 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
     entries: [
       { label: 'Learning', route: '/learn', description: 'Lessons and learning tracks' },
       { label: 'Progression', route: '/points/progression', description: 'Rank and character milestones' },
+      { label: 'Season Journey', route: '/points/season2-guide', description: 'Season story and guided milestones' },
       { label: 'Children’s Stories', route: '/children-stories', description: 'Stories and family learning' },
       { label: 'Bible', route: '/bible', description: 'Bible and reading', faithOnly: true },
       { label: 'Life', route: '/life', description: 'Faith and life journey', faithOnly: true },
     ],
   },
   {
-    id: 'kingdom', title: 'Kingdom', tagline: 'Explore and play together',
+    id: 'kingdom', title: 'Character Kingdom', tagline: 'Characters, realms and earned collectibles',
     icon: 'castle', accent: '#FFD49E', destination: '/games',
     entries: [
-      { label: 'Living Kingdom', route: '/games', description: 'World, games and creation' },
-      { label: 'Empire Arena', route: '/games/empire-arena', description: 'In-app landscape battles and fair offline practice' },
-      { label: 'Collection', route: '/games/genesis-collection', description: 'Owned items and collectibles' },
-      { label: 'Practice', route: '/games/practice', description: 'Learn to play without risk' },
+      { label: 'Character Kingdom', route: '/games', description: 'Explore the 13 character realms' },
+      { label: 'Verified Character Progress', route: '/games/legacy', description: 'View official character achievements' },
+      { label: 'Collection Vault', route: '/games/genesis-collection', description: 'Items and character collectibles' },
+      { label: 'Game Practice', route: '/games/practice', description: 'Practice existing character games' },
+    ],
+  },
+  {
+    id: 'arena', title: 'Empire Arena', tagline: 'Separate real-time battle destination',
+    icon: 'shield-sword-outline', accent: '#F1BA90', destination: '/games/empire-arena',
+    entries: [
+      { label: 'Empire Arena', route: '/games/empire-arena', description: 'In-app landscape battles; practice available, ranked access stays server-gated' },
     ],
   },
   {
@@ -97,6 +108,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
       { label: 'Live Support', route: '/support/live', description: 'Request help from BUKLOD support' },
       { label: 'About BUKLOD', route: '/about-buklod', description: 'Vision, principles and community' },
       { label: 'Settings', route: '/settings', description: 'Privacy, sound and preferences' },
+      { label: 'Navigation Help', route: '/settings/navigation-help', description: 'Learn where every door leads' },
     ],
   },
 ] as const);
