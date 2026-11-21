@@ -27,11 +27,16 @@ test('real hero knockouts distinguish my death, friendly death and enemy death',
   assert.equal(cue({type:'defeat',from:'B0',to:'A1'}),'ally_down');
   assert.equal(cue({type:'defeat',from:'A1',to:'B0'}),'enemy_down');
   assert.equal(cue({type:'defeat',from:'A0',to:'B0'}),'enemy_down');
-  assert.equal(cue({type:'unit_ko',target:'A1'}),'ally_unit_down');
-  assert.equal(cue({type:'unit_ko',target:'B0'}),'enemy_unit_down');
+  assert.equal(cue({type:'unit_ko',target:'A1'}),'ally_down');
+  assert.equal(cue({type:'unit_ko',target:'u1'}),'ally_unit_down');
+  assert.equal(cue({type:'unit_ko',target:'B0'}),'enemy_down');
+  assert.equal(cue({type:'unit_ko',target:'u2'}),'enemy_unit_down');
   assert.equal(cue({type:'tower_ko',target:'A0'}),'self_down');
-  assert.equal(cue({type:'trap_ko',target:'A1'}),'ally_unit_down');
+  assert.equal(cue({type:'trap_ko',target:'A1'}),'ally_down');
+  assert.equal(cue({type:'boss_ko',target:'B0'}),'enemy_down');
   assert.equal(cue({type:'storm_defeat',actor:'A0'}),'self_down');
+  assert.equal(cue({type:'storm_defeat',actor:'A1'}),'ally_down');
+  assert.equal(cue({type:'hazard_ko',actor:'B0'}),'enemy_down');
   assert.equal(cue({type:'defeat',from:'A0',to:'A1'}),'ally_down');
 });
 
