@@ -22,7 +22,7 @@ test('Map music requires user toggle and delegates sound focus without overridin
  const map=read('src/app/buklod-map.tsx');
  assert.match(map,/if \(!musicEnabled\) requestBuklodAudioFocus\('genesis-valley-map'\)/);
  assert.match(map,/musicSuspended \? 'Music paused'/);
- assert.match(map,/musicEnabled \? 'Music on'/);
+ assert.match(map,/musicEnabled \? \(musicSuspended \? 'Music paused' : 'Music on'\)/);
  assert.match(map,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
  assert.doesNotMatch(map,/player\.play\(/);
  const sound=read('src/features/games/runtime/kingdomPremiumAudioAssets.ts');

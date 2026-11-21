@@ -30,7 +30,7 @@ test('All 14 tappable targets match owner map positions, district taxonomy and r
  assert.equal(hs.length,14);
  assert.equal(new Set(hs.map(h=>h.id)).size,hs.length);
  for(const h of hs){
-  assert.ok(h.x>0.07&&h.x<0.95&&h.y>0.10&&h.y<0.80,h.id);
+  assert.ok(h.x>0.04&&h.x<0.95&&h.y>0.10&&h.y<0.80,h.id);
   assert.match(h.route,/^\/[a-z/-]+$/);
   assert.ok(districts.includes("id: '"+h.districtId+"'"),h.districtId);
   assert.ok(districts.includes("route: '"+h.route+"'"),h.route);

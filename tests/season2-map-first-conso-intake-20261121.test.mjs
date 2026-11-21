@@ -35,7 +35,7 @@ test('old navigation hidden only for Genesis; one return-to-map action; protect 
  assert.match(map,/useRorkGameAmbience\('kingdom-map'/);
  assert.doesNotMatch(map,/(?:service_role|supabase\.rpc|eas update|claimBp|mintBp|awardBp)/i);
 });
-test('bundled CC0 audio and Galaxy fallback present, but map art release blocked until licensed import',()=>{
+test('bundled CC0 audio and actual Valley map included; native acceptance still held',()=>{
  for(const path of ['assets/sounds/kingdom-premium/LICENSES.md','assets/sounds/kingdom-premium/kingdom-theme.ogg','assets/season2/genesis/galaxy/nebula.jpg'])assert.ok(existsSync(resolve(root,path)),path);
  const map=read('src/app/buklod-map.tsx');assert.match(map,/GenesisValleyMap/);
  assert.match(read('src/features/season2/genesis/GenesisValleyMap.tsx'),/buklod-community-map\.webp/);
