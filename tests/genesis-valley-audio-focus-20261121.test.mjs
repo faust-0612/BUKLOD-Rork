@@ -25,7 +25,7 @@ test('Map auto music respects auth and audio focus, without a switch or entry ad
  assert.doesNotMatch(map,/toggleMusic|musicButton|BuklodFirstViewAd|Music on/);
  const audio=read('src/features/games/runtime/rorkAudio.ts');
  const sound=read('src/features/games/runtime/kingdomPremiumAudioAssets.ts');
- const licenses=read('assets/sounds/README-LICENSES.md');
+ const licenses=read('assets/sounds/kingdom-premium/LICENSES.md');
  assert.match(audio,/controlledAutoStart/);
  assert.match(audio,/subscribeBuklodAudioFocus/);
  assert.match(sound,/if \(gameId === 'kingdom-map'\) return MUSIC\.adventure/);
