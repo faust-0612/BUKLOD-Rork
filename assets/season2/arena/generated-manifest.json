@@ -2,6 +2,474 @@
   "schema": 1,
   "assets": [
     {
+      "key": "fullbody:ace_attack",
+      "kind": "fullbody",
+      "id": "ace_attack",
+      "file": "assets/season2/arena/generated/fullbody/ace_attack-4d31f8ed247e.webp",
+      "sha256": "4d31f8ed247e5f4eef9222955ca0959e2fa60824d2b78982eb9c663c20c413f5",
+      "bytes": 158504,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:ace_idle",
+      "kind": "fullbody",
+      "id": "ace_idle",
+      "file": "assets/season2/arena/generated/fullbody/ace_idle-6133cb24a62c.webp",
+      "sha256": "6133cb24a62c2bbafe0e34fff2e74fe3b00544542463b87ec966a05f79e33ca2",
+      "bytes": 157610,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:ace_skill",
+      "kind": "fullbody",
+      "id": "ace_skill",
+      "file": "assets/season2/arena/generated/fullbody/ace_skill-c94eef7b025e.webp",
+      "sha256": "c94eef7b025e031f096a6facc0c92c1a2bfc5e327f9124ce79b463480d1bbf98",
+      "bytes": 164410,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:ace_walk",
+      "kind": "fullbody",
+      "id": "ace_walk",
+      "file": "assets/season2/arena/generated/fullbody/ace_walk-a585299cfbe3.webp",
+      "sha256": "a585299cfbe3f99c0af294a5e6993da8d3276c4ebd457924aafc7c37875ab43a",
+      "bytes": 160664,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:angel_attack",
+      "kind": "fullbody",
+      "id": "angel_attack",
+      "file": "assets/season2/arena/generated/fullbody/angel_attack-925d01ee70f9.webp",
+      "sha256": "925d01ee70f96daaf9b532a8de45f12e5302fad011fa3823ecad7c9c10be7fd7",
+      "bytes": 166488,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:angel_idle",
+      "kind": "fullbody",
+      "id": "angel_idle",
+      "file": "assets/season2/arena/generated/fullbody/angel_idle-cbaca1769c5b.webp",
+      "sha256": "cbaca1769c5ba140f5ced15ff107c570a155e9bcc223c8346e0d1771a6478678",
+      "bytes": 166122,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:angel_skill",
+      "kind": "fullbody",
+      "id": "angel_skill",
+      "file": "assets/season2/arena/generated/fullbody/angel_skill-ea3f7a507232.webp",
+      "sha256": "ea3f7a5072326b1b82eca6811d9339fa222289236bbe9d3dec21c842f95bbeb6",
+      "bytes": 169658,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:angel_walk",
+      "kind": "fullbody",
+      "id": "angel_walk",
+      "file": "assets/season2/arena/generated/fullbody/angel_walk-90adf40c9d71.webp",
+      "sha256": "90adf40c9d71b39e77f3bca9b60260334985f2f5fa292cf102a16d993136bfac",
+      "bytes": 168760,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:christian_attack",
+      "kind": "fullbody",
+      "id": "christian_attack",
+      "file": "assets/season2/arena/generated/fullbody/christian_attack-2ef59c182d84.webp",
+      "sha256": "2ef59c182d84ec2fe8d4d23576b024655e44f6e9cf34b4d68836c3e293f17d21",
+      "bytes": 107648,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:christian_idle",
+      "kind": "fullbody",
+      "id": "christian_idle",
+      "file": "assets/season2/arena/generated/fullbody/christian_idle-22b2ab3f2e63.webp",
+      "sha256": "22b2ab3f2e63b75d88445d88bd967772694b22eb4c08c197a35883cd0c9745d4",
+      "bytes": 110902,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:christian_skill",
+      "kind": "fullbody",
+      "id": "christian_skill",
+      "file": "assets/season2/arena/generated/fullbody/christian_skill-aff31e34bab2.webp",
+      "sha256": "aff31e34bab2b8c9ad5eb28bc305bbc39006f46a6c06da1ee2e21822d22c3888",
+      "bytes": 118140,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:christian_walk",
+      "kind": "fullbody",
+      "id": "christian_walk",
+      "file": "assets/season2/arena/generated/fullbody/christian_walk-d7ad2c4d3feb.webp",
+      "sha256": "d7ad2c4d3feb713983addc1eda39828cbe04f8c9b32ff3f76618ea3804498cd9",
+      "bytes": 113762,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:ellusur_attack",
+      "kind": "fullbody",
+      "id": "ellusur_attack",
+      "file": "assets/season2/arena/generated/fullbody/ellusur_attack-04d5c9a8ff66.webp",
+      "sha256": "04d5c9a8ff66548b97ead28ca87743e154580c59758a1ccd6fcdb93ccaa33077",
+      "bytes": 165126,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:ellusur_idle",
+      "kind": "fullbody",
+      "id": "ellusur_idle",
+      "file": "assets/season2/arena/generated/fullbody/ellusur_idle-9aaef456596a.webp",
+      "sha256": "9aaef456596ae3ecccf502199d601fad18f499d0468d403b95453816663ebffb",
+      "bytes": 164616,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:ellusur_skill",
+      "kind": "fullbody",
+      "id": "ellusur_skill",
+      "file": "assets/season2/arena/generated/fullbody/ellusur_skill-ddbdc6be1423.webp",
+      "sha256": "ddbdc6be1423b5f41b83b2c91c820ee015cad7b3af1daa0f1de90df5b4839da1",
+      "bytes": 171290,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:ellusur_walk",
+      "kind": "fullbody",
+      "id": "ellusur_walk",
+      "file": "assets/season2/arena/generated/fullbody/ellusur_walk-6218298eca6e.webp",
+      "sha256": "6218298eca6e3314b860b7e00a57ba47c82922b5ac0d0eb6737e05a3543b1250",
+      "bytes": 168526,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:jawo_attack",
+      "kind": "fullbody",
+      "id": "jawo_attack",
+      "file": "assets/season2/arena/generated/fullbody/jawo_attack-dc4a7ad61776.webp",
+      "sha256": "dc4a7ad61776020ec33e72d4b30ebda353bff2b0865236b9b95eec897212e699",
+      "bytes": 123844,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:jawo_idle",
+      "kind": "fullbody",
+      "id": "jawo_idle",
+      "file": "assets/season2/arena/generated/fullbody/jawo_idle-c63e8db072f3.webp",
+      "sha256": "c63e8db072f3ea455aea96d57a0417cba13829f66ee0d3b1b532c084d4b3e70b",
+      "bytes": 121856,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:jawo_skill",
+      "kind": "fullbody",
+      "id": "jawo_skill",
+      "file": "assets/season2/arena/generated/fullbody/jawo_skill-e352fbe5f307.webp",
+      "sha256": "e352fbe5f307aad67e8f585dd204b10292870a843ddfe8d176b7f682c4d64324",
+      "bytes": 129908,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:jawo_walk",
+      "kind": "fullbody",
+      "id": "jawo_walk",
+      "file": "assets/season2/arena/generated/fullbody/jawo_walk-2f552dae18ff.webp",
+      "sha256": "2f552dae18ffedfcd08e5890588554069d797d04eda6846dc35f49265fcf4543",
+      "bytes": 123824,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:lhen_attack",
+      "kind": "fullbody",
+      "id": "lhen_attack",
+      "file": "assets/season2/arena/generated/fullbody/lhen_attack-dfa1d68cee4c.webp",
+      "sha256": "dfa1d68cee4c2e1dfe0027c1c6db40d26dedecc6312545fc62f4f59033efd7d3",
+      "bytes": 148956,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:lhen_idle",
+      "kind": "fullbody",
+      "id": "lhen_idle",
+      "file": "assets/season2/arena/generated/fullbody/lhen_idle-a0f2c6e11d01.webp",
+      "sha256": "a0f2c6e11d014106778fc22bd5c97f870c685d8fa0f2a8867c23c138b0cf0f34",
+      "bytes": 150262,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:lhen_skill",
+      "kind": "fullbody",
+      "id": "lhen_skill",
+      "file": "assets/season2/arena/generated/fullbody/lhen_skill-838ba856af1b.webp",
+      "sha256": "838ba856af1bb8e8b1487375f2356a36d82ca49da0eb4afb91a67cdee0e5fd6c",
+      "bytes": 157382,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:lhen_walk",
+      "kind": "fullbody",
+      "id": "lhen_walk",
+      "file": "assets/season2/arena/generated/fullbody/lhen_walk-36ff943b0174.webp",
+      "sha256": "36ff943b0174ed97f64eb960d6742a5a4207734490a93e616422049d4452d422",
+      "bytes": 153674,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:mitch_attack",
+      "kind": "fullbody",
+      "id": "mitch_attack",
+      "file": "assets/season2/arena/generated/fullbody/mitch_attack-1102136c254c.webp",
+      "sha256": "1102136c254ca21e9ba7bf9de7eb8ee3b1afb9c4f7db111951085c7af1211dca",
+      "bytes": 178134,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:mitch_idle",
+      "kind": "fullbody",
+      "id": "mitch_idle",
+      "file": "assets/season2/arena/generated/fullbody/mitch_idle-cc4073c6d763.webp",
+      "sha256": "cc4073c6d763b9eb6e8bea8436cf1c7fa00df0280b9bfec7906551ac1478dfb0",
+      "bytes": 183094,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:mitch_skill",
+      "kind": "fullbody",
+      "id": "mitch_skill",
+      "file": "assets/season2/arena/generated/fullbody/mitch_skill-508e929b458f.webp",
+      "sha256": "508e929b458fd49a6b22f4c25c60aef8c3def6abf65a6d6b393182df070928bf",
+      "bytes": 187052,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:mitch_walk",
+      "kind": "fullbody",
+      "id": "mitch_walk",
+      "file": "assets/season2/arena/generated/fullbody/mitch_walk-e755041042b7.webp",
+      "sha256": "e755041042b7b1def22e4a499473299925e5b15d0cbcfaee04a6f6c39f3cef97",
+      "bytes": 184982,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:niel_attack",
+      "kind": "fullbody",
+      "id": "niel_attack",
+      "file": "assets/season2/arena/generated/fullbody/niel_attack-70693843514d.webp",
+      "sha256": "70693843514d09f058348b97dee15a8499b36b3e3befad73711ecf6514eaad2f",
+      "bytes": 161820,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:niel_idle",
+      "kind": "fullbody",
+      "id": "niel_idle",
+      "file": "assets/season2/arena/generated/fullbody/niel_idle-b41ef9e560bb.webp",
+      "sha256": "b41ef9e560bbbeaf8cdfabfab563f67089db7fdda97efe486e91dc6d03d6400e",
+      "bytes": 170250,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:niel_skill",
+      "kind": "fullbody",
+      "id": "niel_skill",
+      "file": "assets/season2/arena/generated/fullbody/niel_skill-e14d6654c008.webp",
+      "sha256": "e14d6654c00805a5669b54818bdbca7f4c3660af9d8f1bf6a6e2d066f75222f6",
+      "bytes": 173752,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:niel_walk",
+      "kind": "fullbody",
+      "id": "niel_walk",
+      "file": "assets/season2/arena/generated/fullbody/niel_walk-aa1d57a29371.webp",
+      "sha256": "aa1d57a29371b57eacdfbccac471383cb7550d485044929789b0aaf1a1f47d21",
+      "bytes": 171628,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:phan_attack",
+      "kind": "fullbody",
+      "id": "phan_attack",
+      "file": "assets/season2/arena/generated/fullbody/phan_attack-b6e439e02dc7.webp",
+      "sha256": "b6e439e02dc70e52c7071d48fd049058c3e95e3a572c40dda4eab223ed06991b",
+      "bytes": 140798,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:phan_idle",
+      "kind": "fullbody",
+      "id": "phan_idle",
+      "file": "assets/season2/arena/generated/fullbody/phan_idle-877043f20106.webp",
+      "sha256": "877043f201069aeffb84dc65e7d6383bec03052a9d543b343391d92d3afc755a",
+      "bytes": 145312,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:phan_skill",
+      "kind": "fullbody",
+      "id": "phan_skill",
+      "file": "assets/season2/arena/generated/fullbody/phan_skill-b7e30f8c5031.webp",
+      "sha256": "b7e30f8c503173cb33817f990e701bca138dceaab6a1cd3b059ba6f766bb6a10",
+      "bytes": 153022,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:phan_walk",
+      "kind": "fullbody",
+      "id": "phan_walk",
+      "file": "assets/season2/arena/generated/fullbody/phan_walk-d6e7ca353f08.webp",
+      "sha256": "d6e7ca353f0852e83b2645668c25a6b2a3c64b5eb83c5f712ceb8561aed0450b",
+      "bytes": 147470,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:quin_attack",
+      "kind": "fullbody",
+      "id": "quin_attack",
+      "file": "assets/season2/arena/generated/fullbody/quin_attack-80b117b943fd.webp",
+      "sha256": "80b117b943fd7fcf53ae724ccd5960c0cadda92e3ee35edd259493913dd8bf05",
+      "bytes": 145658,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:quin_idle",
+      "kind": "fullbody",
+      "id": "quin_idle",
+      "file": "assets/season2/arena/generated/fullbody/quin_idle-7b098312da14.webp",
+      "sha256": "7b098312da14686fd28e1d0e68a6df12d945817ec2ab3d525a0c85b30dbaa7d2",
+      "bytes": 143214,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:quin_skill",
+      "kind": "fullbody",
+      "id": "quin_skill",
+      "file": "assets/season2/arena/generated/fullbody/quin_skill-510a576f6db6.webp",
+      "sha256": "510a576f6db6b17a8d0d021a3a892c1673cddda0277c8e2f2338bb8a47d86dad",
+      "bytes": 146132,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:quin_walk",
+      "kind": "fullbody",
+      "id": "quin_walk",
+      "file": "assets/season2/arena/generated/fullbody/quin_walk-8c05aea381f4.webp",
+      "sha256": "8c05aea381f4efb7bad1c6a4e857f77ad8d0f8f60032c78fe5e013a9132e0c94",
+      "bytes": 146448,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:trudice_attack",
+      "kind": "fullbody",
+      "id": "trudice_attack",
+      "file": "assets/season2/arena/generated/fullbody/trudice_attack-bcadef8e2d07.webp",
+      "sha256": "bcadef8e2d075071dcdc9a5c11d8dd7a6511346c1752d9cd151ef4bcffb048be",
+      "bytes": 129298,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:trudice_idle",
+      "kind": "fullbody",
+      "id": "trudice_idle",
+      "file": "assets/season2/arena/generated/fullbody/trudice_idle-dd4ddf97eeae.webp",
+      "sha256": "dd4ddf97eeae14c24704ff9b1c084b220d508c4b9a5bbfe96321a42ed03eadb4",
+      "bytes": 128664,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:trudice_skill",
+      "kind": "fullbody",
+      "id": "trudice_skill",
+      "file": "assets/season2/arena/generated/fullbody/trudice_skill-405eee56cca7.webp",
+      "sha256": "405eee56cca7f254a9f5e09fc63a5150a235f89e19f6a811585c06a7b6f6be88",
+      "bytes": 133092,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:trudice_walk",
+      "kind": "fullbody",
+      "id": "trudice_walk",
+      "file": "assets/season2/arena/generated/fullbody/trudice_walk-c62b0e04959a.webp",
+      "sha256": "c62b0e04959ae1abd85245a6e6f99bb4503a6ee6ef63cbcbaac6a8c15e401d0f",
+      "bytes": 129752,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:van_attack",
+      "kind": "fullbody",
+      "id": "van_attack",
+      "file": "assets/season2/arena/generated/fullbody/van_attack-4eccc70adbcf.webp",
+      "sha256": "4eccc70adbcf6840044d181e5442a83f0202f9763afe65f38feb874e3fc44e9b",
+      "bytes": 140208,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:van_idle",
+      "kind": "fullbody",
+      "id": "van_idle",
+      "file": "assets/season2/arena/generated/fullbody/van_idle-48cb6171243f.webp",
+      "sha256": "48cb6171243fe4e1295e04936327d568885cf8e2cdd7839f820f10d45910094d",
+      "bytes": 143090,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:van_skill",
+      "kind": "fullbody",
+      "id": "van_skill",
+      "file": "assets/season2/arena/generated/fullbody/van_skill-a919e48bceca.webp",
+      "sha256": "a919e48bceca5ea681aab739c8359df02bcfcc1844417601c9ee502bfd77ad6c",
+      "bytes": 151042,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:van_walk",
+      "kind": "fullbody",
+      "id": "van_walk",
+      "file": "assets/season2/arena/generated/fullbody/van_walk-cd2909665bd8.webp",
+      "sha256": "cd2909665bd8b7a582883599cc2aaf2e66855df3aae71837f2394e93e9d23574",
+      "bytes": 146420,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:vhen_attack",
+      "kind": "fullbody",
+      "id": "vhen_attack",
+      "file": "assets/season2/arena/generated/fullbody/vhen_attack-6474b25b262b.webp",
+      "sha256": "6474b25b262bb56d3d6c411bf750c1859f02d9e3d60976d08c604e32aac72969",
+      "bytes": 117130,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:vhen_idle",
+      "kind": "fullbody",
+      "id": "vhen_idle",
+      "file": "assets/season2/arena/generated/fullbody/vhen_idle-13b7c1400c75.webp",
+      "sha256": "13b7c1400c75e3b64917d9cd06ee44b594f9652216897fc018699e9780a6228d",
+      "bytes": 116702,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:vhen_skill",
+      "kind": "fullbody",
+      "id": "vhen_skill",
+      "file": "assets/season2/arena/generated/fullbody/vhen_skill-b9b6eb75baf7.webp",
+      "sha256": "b9b6eb75baf702079d9238258ef62eefac9e25234396b5d7c6f87b918109682a",
+      "bytes": 123492,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "fullbody:vhen_walk",
+      "kind": "fullbody",
+      "id": "vhen_walk",
+      "file": "assets/season2/arena/generated/fullbody/vhen_walk-8ba974987dfc.webp",
+      "sha256": "8ba974987dfc6c93caac748605ea19b6e4e247e3666ac0aae4c553836231db11",
+      "bytes": 120044,
+      "status": "dev-baseline"
+    },
+    {
       "key": "scene:aurora_foundry",
       "kind": "scene",
       "id": "aurora_foundry",
