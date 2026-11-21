@@ -7,10 +7,10 @@ const MAX_SHIELD_RATIO := 0.30
 const MAX_COVER := 20
 const MAX_DEPLOYED := 80
 
-static func _friends(sim: RefCounted, hero: Dictionary, radius: float) -> Array:
+static func _friends(sim, hero: Dictionary, radius: float) -> Array:
 	return sim._allies(hero, radius)
 
-static func _target(sim: RefCounted, hero: Dictionary, radius: float) -> Dictionary:
+static func _target(sim, hero: Dictionary, radius: float) -> Dictionary:
 	for e in sim._enemies(hero, radius):
 		if str(e.get("kind", "")) == "hero" and not sim._line_blocked(hero["pos"], e["pos"]):
 			return e
@@ -33,7 +33,7 @@ static func _mark(target: Dictionary, until: float) -> void:
 static func _slow(target: Dictionary, until: float) -> void:
 	target["buffs"]["slow"] = {"until": until, "strength": 0.30}
 
-static func _wall(sim: RefCounted, hero: Dictionary, direction: Vector2,
+static func _wall(sim, hero: Dictionary, direction: Vector2,
 		radius: float, duration: float) -> bool:
 	if sim.state["cover"].size() >= MAX_COVER:
 		return false
@@ -46,7 +46,7 @@ static func _wall(sim: RefCounted, hero: Dictionary, direction: Vector2,
 		"expires": float(sim.state["time"]) + duration})
 	return true
 
-static func cast(sim: RefCounted, hero: Dictionary, identity: String,
+static func cast(sim, hero: Dictionary, identity: String,
 		direction: Vector2) -> bool:
 	var now: float = float(sim.state["time"])
 	var friends: Array = _friends(sim, hero, 13.0)
