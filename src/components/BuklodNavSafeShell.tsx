@@ -175,6 +175,7 @@ export default function BuklodNavSafeShell({
     '/games','/points','/bayanihan','/bible','/life','/notifications','/profile',
     '/personal-home','/settings','/support','/community-contribution','/children-stories'];
   const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !keyboardVisible &&
+    !normalizedPath.startsWith('/games') &&
     normalizedPath !== '/buklod-map' && mapReturnRoots.some(route => normalizedPath === route || normalizedPath.startsWith(route + '/'));
 
   return (

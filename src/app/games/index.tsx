@@ -11,7 +11,7 @@ export default function BuklodKingdomScreen() {
   return (
     <View style={{ flex: 1 }}>
       {genesisPreview ? <GenesisKingdomPortal /> : <BuklodKingdomMap />}
-      <BuklodKingdomAdSlot placementId="kingdom_map_footer" kind="banner" />
+      {!genesisPreview ? <BuklodKingdomAdSlot placementId="kingdom_map_footer" kind="banner" /> : null}
     </View>
   );
 }

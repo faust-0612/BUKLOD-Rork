@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
-  "objective": "Consolidate BUKLOD Genesis Season 2 premium portrait Welcome exactly from owner-approved artwork: nine special map doors incl. Special Events, external animated Guide and four correct activity prompts, existing five-item bottom navigation, all learning/faith/university/focus app destinations and verified Cluster/Organization community previews; preserve Home/Connect spacing, paid Supabase authority, AdMob and existing production unchanged. Correct the real Android blank-map regression from the R2 staging OTA with exact approved JPEGs, a fallback URI, and a no-image emergency interactive map. Fix persistent Character Progression spinner through bounded authenticated read-only queries; make Genesis staging retry a missed OTA after startup without force reload or changing production OTA cadence.",
+  "objective": "Consolidate BUKLOD Genesis Season 2 premium portrait Welcome exactly from owner-approved artwork: nine special map doors incl. Special Events, external animated Guide and four correct activity prompts, existing five-item bottom navigation, all learning/faith/university/focus app destinations and verified Cluster/Organization community previews; preserve Home/Connect spacing, paid Supabase authority, AdMob and existing production unchanged. Correct the real Android blank-map regression from the R2 staging OTA with exact approved JPEGs, a fallback URI, and a no-image emergency interactive map. Fix persistent Character Progression spinner through bounded authenticated read-only queries; make Genesis staging retry a missed OTA after startup without force reload or changing production OTA cadence. Restore all 13 canonical character stations on the existing Genesis Kingdom panoramic map, and put Kingdom ads only after scroll content, never covering artwork or actions.",
   "baseRef": "5a3de4ac4cc3e43dd2c404e4033c098d2d92c4d6",
   "productionBaselineEvidence": "Uses exact independently confirmed existing DEV head 5a3de4a and preserves immutable main/production. Signed staging Android APK and previously published OTA refer to earlier sources, not this new commit.",
-  "chosenApproach": "Bundle SHA-pinned local portrait and compact WebP artwork, overlay transparent one-tap targets on baked labels (no duplicate main tabs), use existing guarded Focus, Learning, Kingdom/Arena, Home, Church, Community and event routes, preserve faith alternatives and role-bound community previews, and exercise source/Metro/ad/navigation regressions before a staging-only RC. No new app/native module, database migration, reward mint or production OTA. R3 correction uses the approved JPG variant through React Native Image, a JS-bundled offline JPEG fallback, and a guarded emergency nine-door directory after decoder stalls/failures; original approved WebPs retained for byte-level provenance. Keep immutable Character art/selection UI and server-side progression authority. Timebox only session/RPC reads; clear in-flight read on rejection, never publish an expired selection; retry Genesis staging OTA download once after a 45-second delay without in-session reload.",
+  "chosenApproach": "Bundle SHA-pinned local portrait and compact WebP artwork, overlay transparent one-tap targets on baked labels (no duplicate main tabs), use existing guarded Focus, Learning, Kingdom/Arena, Home, Church, Community and event routes, preserve faith alternatives and role-bound community previews, and exercise source/Metro/ad/navigation regressions before a staging-only RC. No new app/native module, database migration, reward mint or production OTA. R3 correction uses the approved JPG variant through React Native Image, a JS-bundled offline JPEG fallback, and a guarded emergency nine-door directory after decoder stalls/failures; original approved WebPs retained for byte-level provenance. Keep immutable Character art/selection UI and server-side progression authority. Timebox only session/RPC reads; clear in-flight read on rejection, never publish an expired selection; retry Genesis staging OTA download once after a 45-second delay without in-session reload. Preserve original panorama byte-for-byte and all game URLs; use a horizontally scrollable 13-character station trail with direct one-tap game navigation, account-scoped local clear indicators and no BP writes. Place the same allowlisted AdMob inventory as the final element inside the Kingdom ScrollView; hide the overlapping floating World return only for /games and provide a normal-flow World Map link.",
   "selectionRationale": "No new native modules, paid services, or production backend writes; owner approved original 1672x941 image and only entry ad removal.",
   "alternativeApproaches": [
     "Overwrite approved map with a divergent Valley drawing (rejected)",
@@ -24,7 +24,10 @@
     "offline-failover",
     "auth-session-stall",
     "read-only-rpc-timeout",
-    "ota-delivery-freshness"
+    "ota-delivery-freshness",
+    "kingdom-layout",
+    "ads-viewport-lifecycle",
+    "account-scoped-preview-data"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
@@ -43,6 +46,7 @@
     "src/app/(tabs)/hub.tsx",
     "src/app/buklod-map.tsx",
     "src/app/faith/abc/index.tsx",
+    "src/app/games/index.tsx",
     "src/app/learn/index.tsx",
     "src/app/season2/church.tsx",
     "src/app/season2/community-village.tsx",
@@ -56,6 +60,7 @@
     "src/components/BuklodPersistentBottomNav.tsx",
     "src/features/games/runtime/rorkAudio.ts",
     "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
     "src/features/season2/genesis/GenesisReliablePortraitImage.tsx",
     "src/features/season2/genesis/genesisApprovedEntryHotspots.json",
     "src/features/season2/genesis/genesisMapDistricts.ts",
@@ -74,6 +79,7 @@
     "src/lib/buklodCharacterReadDeadline.ts",
     "src/lib/buklodCharacterSelectionV2.ts",
     "src/lib/buklodSilentOtaPolicy.ts",
+    "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
     "tests/genesis-ota-character-timeout-20261121.test.mjs",
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
     "tests/genesis-valley-audio-focus-20261121.test.mjs",
@@ -111,7 +117,8 @@
     "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
     "tests/season2-special-events-contract-20261121.test.mjs",
     "tests/season2-special-events-welcome-20261121.test.mjs",
-    "tests/genesis-ota-character-timeout-20261121.test.mjs"
+    "tests/genesis-ota-character-timeout-20261121.test.mjs",
+    "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -156,7 +163,7 @@
     },
     {
       "id": "kingdom-character",
-      "reason": "End indefinite Character Progression spinner from a hung read-only authenticated session/RPC; preserve the SHA-pinned R31/R40 visual selector and authoritative server unlock rules.",
+      "reason": "End indefinite Character Progression spinner from a hung read-only authenticated session/RPC; preserve the SHA-pinned R31/R40 visual selector and authoritative server unlock rules. Restore exact canonical 13 stations and direct gameplay routes under preserved premium panorama.",
       "preservedBehaviors": [
         "All Character levels and selected identity remain server-authoritative; no offline character advancement or unlock.",
         "Existing 13 Character visual sprites, locked Special identity protection, permanent Circle Rank and collectibles unchanged.",
@@ -164,7 +171,21 @@
         "Timeout rejects and clears shared in-flight work; a late response cannot replace verified Character selection or re-award points."
       ],
       "tests": [
-        "tests/genesis-ota-character-timeout-20261121.test.mjs"
+        "tests/genesis-ota-character-timeout-20261121.test.mjs",
+        "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-monetization",
+      "reason": "Place Genesis Kingdom passive AdMob banner only after all scroll content; retain same allowlisted placement and no visual obstruction.",
+      "preservedBehaviors": [
+        "Original AdMob unit and placement are unchanged",
+        "Ads remain blocked inside live game and quiz interactions",
+        "Unrelated Home, Connect, Wall, Profile and Production inventory unchanged",
+        "Global World return no longer floats over Kingdom ad; in-flow back route remains accessible"
+      ],
+      "tests": [
+        "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs"
       ]
     }
   ],
@@ -188,9 +209,11 @@
     "Staging EAS provider exact OTA receipt, compatible signed APK runtime and actual Android AdMob/navigation acceptance are mandatory before publication.",
     "R3 portrait JPEG bytes and JS-bundled rescue data URIs verified by approved-portrait-art test, with onError and bounded timeout leading to accessible nine-door fallback.",
     "Character V2 authenticated fetch times out after a bounded interval, preserves existing server authority, R31/R40 visual locks unchanged and does not touch BP, RLS or payouts.",
-    "Only Genesis preview performs a throttled early OTA check; no reloadAsync, no call/draft interruptions and no production OTA cadence change."
+    "Only Genesis preview performs a throttled early OTA check; no reloadAsync, no call/draft interruptions and no production OTA cadence change.",
+    "Kingdom panorama 16:9 artwork unchanged; 13 character stations open exact canonical original game URLs directly, account-scoped local clears only.",
+    "Staging Kingdom ad slot remains allowlisted but is last in scrollable content; no sticky ad overlaps character, map, nav, or touch controls."
   ],
-  "publicationStatus": "R3 already published to staging with provider receipt. Latest DEV recovery and character/OTA timeout source is NOT yet published; requires exact-head CI, native parity, ads/nav gate and EAS provider evidence.",
+  "publicationStatus": "DEV SOURCE ONLY: Genesis Kingdom original station layout + nonblocking footer ad prepared; exact-head CI and EAS provider receipts required for OTA. Earlier R3 published, this change not published yet.",
   "releaseMode": "staging-source-prepared-native-runtime-and-ota-proof-pending",
   "physicalDeviceVerification": "USER_WAIVED_UNVERIFIED",
   "productionDeployment": "NONE"
