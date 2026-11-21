@@ -66,7 +66,7 @@ test('actual Arena uses themed circular glyphs, local asset menus, editor, coold
   assert.match(route, /resolveGear\(me.hero, me.gear/);
   assert.match(route, /arenaKind === 'practice'/);
   assert.match(route, /ARENA_GENERATED_ART\['scene:' \+ m\]/);
-  assert.match(route, /ARENA_GENERATED_ART\['fullbody:' \+ hero \+ '_idle'\]/);
+  assert.match(route, /ARENA_GENERATED_ART\['fullbody:' \+ soloHero \+ '_idle'\]/);
   assert.match(hud, /RadialGradient/);
   assert.match(hud, /PanResponder.create/);
   assert.match(hud, /gesture\.dx/);
