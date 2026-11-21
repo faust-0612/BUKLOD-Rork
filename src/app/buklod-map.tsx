@@ -117,7 +117,7 @@ export default function BuklodMapScreen() {
         />
         <GenesisWorldGuide active={focused}
           onCharacterKingdom={() => router.push('/games' as any)}
-          onCommunityVillage={() => router.push('/clusters' as any)}
+          onCommunityVillage={() => router.push('/community-village' as any)}
           onDirectory={() => setShowDirectory(true)}
         />
         <View style={styles.mapSelectedCaption}>
