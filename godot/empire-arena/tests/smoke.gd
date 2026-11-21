@@ -53,8 +53,11 @@ func _run() -> void:
 	if not _check(sim.action("A0", "deposit"), "resource deposits are team-local"):
 		quit(10)
 		return
-	if not _check(not sim.action("A0", "ultimate"), "ultimate locked before in-match level 6"):
+	if not _check(sim.action("A0", "ultimate"), "owner-approved ultimate available from first playable level"):
 		quit(11)
+		return
+	if not _check(not sim.action("A0", "ultimate"), "ultimate native cooldown must prevent replay"):
+		quit(15)
 		return
 	var prior_count: int = sim.state["units"].size()
 	if not _check(sim.action("A0", "train", Vector2.ZERO, "villager"), "training debits supplies"):
