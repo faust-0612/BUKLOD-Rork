@@ -36,6 +36,7 @@ jobs:
             tests/genesis-world-navigation-regression-20261121.test.mjs \
             tests/genesis-valley-asset-interaction-20261121.test.mjs \
             tests/season2-one-tap-kingdom-guide-20261121.test.mjs \
+            tests/season2-community-village-preview-20261121.test.mjs \
             tests/genesis-valley-audio-focus-20261121.test.mjs \
             tests/season2-premium-nature-kingdom-20261121.test.mjs \
             tests/season2-premium-staging-ota-contract-20261121.test.mjs \
