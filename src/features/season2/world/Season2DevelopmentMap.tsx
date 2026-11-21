@@ -18,6 +18,8 @@ import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
 import {getDevelopmentAsset} from './developmentAssetManifest';
 import Season2CommunityFacilities from './Season2CommunityFacilities';
 import DevelopmentStructurePreview from './DevelopmentStructurePreview';
+import EstateConstructionConsole from './EstateConstructionConsole';
+import {type EstateCosmetics,type EstateSnapshot} from './estateProgressClient';
 import {constructionPlan, nextMilestone, safeCosmetics, safeMastery} from './constructionPlan.mjs';
 const VILLAGE_ART = require('../../../../assets/season2/genesis/world/buklod-community-village-stage1.webp');
 const HOME_ART = require('../../../../assets/season2/genesis/world/buklod-my-home-stage1.webp');
@@ -84,17 +86,29 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const [previewLevels,setPreviewLevels] = useState({lot:1,house:1,cluster:1});
   const [previewStages,setPreviewStages] = useState({lot:0,house:0,cluster:0});
   const [previewMastery,setPreviewMastery]=useState({lot:0,house:0,cluster:0});
-  const level=previewLevels[previewTrack];
+  const [liveView,setLiveView]=useState(true);
+  const [earnedByProperty,setEarnedByProperty]=useState<Record<string,EstateSnapshot>>({});
+  const personId=String(profile?.id??'');
+  const estateIdentity=world==='home'
+    ?(personId?{kind:'USER' as const,ownerId:personId,track:previewTrack}:null)
+    :(chosenScope?.scope_id?{kind:'SCOPE' as const,ownerId:chosenScope.scope_id,track:'cluster' as const}:null);
+  const earnedKey=estateIdentity?estateIdentity.kind+':'+estateIdentity.ownerId+':'+estateIdentity.track:'';
+  const verified=earnedByProperty[earnedKey]??null;
+  const level=liveView&&verified?verified.level:previewLevels[previewTrack];
+  const stage=liveView&&verified?verified.stage:previewStages[previewTrack];
+  const mastery=liveView&&verified?verified.mastery:previewMastery[previewTrack];
   const assetMeta=getDevelopmentAsset(previewTrack,level);
-  const stage=previewStages[previewTrack];
-  const mastery=previewMastery[previewTrack];
-  const chooseTrack=(track:'lot'|'house'|'cluster')=>setPreviewTrack(track);
-  const chooseStage=(i:number)=>setPreviewStages(v=>({...v,[previewTrack]:i}));
-  const adjustLevel=(delta:number)=>setPreviewLevels(v=>({...v,[previewTrack]:clampDevelopmentLevel(v[previewTrack]+delta)}));
-  const adjustMastery=(delta:number)=>setPreviewMastery(v=>({...v,[previewTrack]:safeMastery(Math.min(Number.MAX_SAFE_INTEGER,v[previewTrack]+delta))}));
+  const chooseTrack=(track:'lot'|'house'|'cluster')=>{setPreviewTrack(track);setLiveView(true);};
+  const chooseStage=(i:number)=>{setLiveView(false);setPreviewStages(v=>({...v,[previewTrack]:i}));};
+  const adjustLevel=(delta:number)=>{setLiveView(false);setPreviewLevels(v=>({...v,[previewTrack]:clampDevelopmentLevel(v[previewTrack]+delta)}));};
+  const adjustMastery=(delta:number)=>{setLiveView(false);setPreviewMastery(v=>({...v,[previewTrack]:safeMastery(Math.min(Number.MAX_SAFE_INTEGER,v[previewTrack]+delta))}));};
   const [look,setLook] = useState<Look>('stone');
   const [roof,setRoof]=useState<'gable'|'hip'|'terrace'>('gable');
   const [ground,setGround]=useState<'grass'|'flower'|'stone'>('grass');
+  const [fence,setFence]=useState<EstateCosmetics['fence']>('wood');
+  const [windows,setWindows]=useState<EstateCosmetics['windows']>('classic');
+  const [lights,setLights]=useState<EstateCosmetics['lights']>('warm');
+  const design:EstateCosmetics={finish:look,roof,ground,fence,windows,lights};
   const [zoom,setZoom]=useState(1);
   const [cosmeticLoadedKey,setCosmeticLoadedKey]=useState('');
   const [showRequirements,setShowRequirements] = useState(false);
@@ -107,12 +121,26 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const isPreview = isGenesisPreviewBuild();
   const requirements=constructionPlan(previewTrack,level,stage);
   const next=nextMilestone(level,stage,mastery);
+  const applyEarned=(snapshot:EstateSnapshot)=>{
+    const key=snapshot.owner_kind+':'+snapshot.owner_id+':'+snapshot.track;
+    setEarnedByProperty(current=>({...current,[key]:snapshot}));
+    if(liveView&&key===earnedKey){
+      setLook(snapshot.cosmetics.finish);setRoof(snapshot.cosmetics.roof);
+      setGround(snapshot.cosmetics.ground);setFence(snapshot.cosmetics.fence);
+      setWindows(snapshot.cosmetics.windows);setLights(snapshot.cosmetics.lights);
+    }
+  };
+  const applySavedDesign=(saved:EstateCosmetics)=>{
+    setLook(saved.finish);setRoof(saved.roof);setGround(saved.ground);
+    setFence(saved.fence);setWindows(saved.windows);setLights(saved.lights);
+    setLiveView(true);
+  };
 
   useEffect(()=>{
     // A person's draft cannot cross account or verified scope boundaries.
     let live=true;
     setCosmeticLoadedKey('');
-    setLook('stone');setRoof('gable');setGround('grass');
+    setLook('stone');setRoof('gable');setGround('grass');setFence('wood');setWindows('classic');setLights('warm');
     if(!isPreview||ownerId==='guest'||!canCustomizePreview)return()=>{live=false;};
     void Promise.all([AsyncStorage.getItem(cosmeticKey),AsyncStorage.getItem(storageKey)]).then(([saved,legacy])=>{
       if(!live)return;
@@ -122,13 +150,16 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
       setLook(c.finish as Look);
       setRoof(c.roof as 'gable'|'hip'|'terrace');
       setGround(c.ground as 'grass'|'flower'|'stone');
+      setFence((['wood','iron','hedge'].includes(c.fence)?c.fence:'wood') as EstateCosmetics['fence']);
+      setWindows((['classic','panorama','arched'].includes(c.windows)?c.windows:'classic') as EstateCosmetics['windows']);
+      setLights((['warm','starlight','garden'].includes(c.lights)?c.lights:'warm') as EstateCosmetics['lights']);
     }).catch(()=>undefined).finally(()=>{if(live)setCosmeticLoadedKey(storageKey);});
     return()=>{live=false;};
   },[cosmeticKey,storageKey,ownerId,isPreview,canCustomizePreview]);
   useEffect(()=>{
     if(cosmeticLoadedKey!==storageKey||ownerId==='guest'||!canCustomizePreview||!isPreview)return;
-    void AsyncStorage.setItem(cosmeticKey,JSON.stringify({finish:look,roof,ground})).catch(()=>undefined);
-  },[cosmeticLoadedKey,storageKey,cosmeticKey,look,roof,ground,canCustomizePreview,ownerId,isPreview]);
+    void AsyncStorage.setItem(cosmeticKey,JSON.stringify({finish:look,roof,ground,fence,windows,lights})).catch(()=>undefined);
+  },[cosmeticLoadedKey,storageKey,cosmeticKey,look,roof,ground,fence,windows,lights,canCustomizePreview,ownerId,isPreview]);
   const chooseLook = useCallback((next:Look)=>{
     if(canCustomizePreview)setLook(next);
   },[canCustomizePreview]);
@@ -177,11 +208,11 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             <LinearGradient colors={['rgba(5,30,28,.03)','rgba(10,25,25,.07)','rgba(9,25,32,.56)']} style={StyleSheet.absoluteFill}/>
           </View>
           <View pointerEvents="none" style={styles.previewStructure}>
-            <DevelopmentStructurePreview track={previewTrack} level={level} stage={stage} mastery={level===10&&stage===4?mastery:0} finish={look} roof={roof} ground={ground}/>
+            <DevelopmentStructurePreview track={previewTrack} level={level} stage={level===10&&mastery>0?4:stage} mastery={level===10?mastery:0} finish={look} roof={roof} ground={ground} fence={fence} windows={windows} lights={lights}/>
           </View>
           <View style={styles.mapBadge} pointerEvents="none">
             <MaterialCommunityIcons name="hammer-wrench" size={14} color="#FFE6B0"/>
-            <Text style={styles.mapBadgeText}>BLUEPRINT · {previewTrack.toUpperCase()} L{level}{level===10&&mastery>0?' · M'+mastery:''}</Text>
+            <Text style={styles.mapBadgeText}>{liveView&&verified?'VERIFIED':'BLUEPRINT'} · {previewTrack.toUpperCase()} L{level}{level===10&&mastery>0?' · M'+mastery:''}</Text>
           </View>
           <View style={styles.zoomBar}>
             <Pressable accessibilityRole="button" accessibilityLabel="Zoom out of world" disabled={zoom<=1} onPress={()=>setZoom(v=>Math.max(1,Math.round((v-.15)*100)/100))} style={styles.zoomButton}><MaterialCommunityIcons name="minus" size={20} color="#FFEBC5"/></Pressable>
@@ -206,12 +237,24 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             </Pressable>
           ))}
         </View>
-        <Text style={styles.mapNote}>Tap a glowing landmark to enter instantly. Use − / + to explore the scene. Construction shown is a visual blueprint, not verified ownership or unlocked progress.</Text>
+        <Text style={styles.mapNote}>One-tap landmarks open the existing BUKLOD tools. Verified progress comes only from the server. Preview controls are for exploring future designs.</Text>
+        <EstateConstructionConsole identity={estateIdentity} userId={personId} design={design} onVerified={applyEarned} onApplyDesign={applySavedDesign}/>
         <Season2CommunityFacilities world={world}/>
         <View style={styles.panel}>
-          <Text style={styles.panelTitle}>{trackTitle}</Text>
+          <View style={styles.levelRow}>
+            <Text style={[styles.panelTitle,{flex:1}]}>{trackTitle}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="View my verified constructed estate"
+              onPress={()=>setLiveView(true)} disabled={!verified}
+              style={[styles.previewToggle,liveView&&verified&&styles.previewToggleActive]}>
+              <Text style={styles.previewToggleText}>VERIFIED</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Explore future blueprint designs"
+              onPress={()=>setLiveView(false)} style={[styles.previewToggle,!liveView&&styles.previewToggleActive]}>
+              <Text style={styles.previewToggleText}>BLUEPRINT</Text>
+            </Pressable>
+          </View>
           <Text style={styles.muted}>Permanent Levels 1–10 → unbounded Mastery. Lot, House and Community are independent of Circle Rank. Five construction stages per level.</Text>
-          <View style={styles.assetLine}><MaterialCommunityIcons name="layers-triple-outline" size={18} color="#FFE7AD"/><Text style={styles.assetName}>{assetMeta.assetId} · {assetMeta.title}</Text><Text style={styles.previewPill}>PREVIEW</Text></View>
+          <View style={styles.assetLine}><MaterialCommunityIcons name="layers-triple-outline" size={18} color="#FFE7AD"/><Text style={styles.assetName}>{assetMeta.assetId} · {assetMeta.title}</Text><Text style={styles.previewPill}>{liveView&&verified?'EARNED':'PREVIEW'}</Text></View>
           {world==='home' ? <View style={styles.trackRow}>
             {(['lot','house'] as const).map(track=>(
               <Pressable key={track} accessibilityRole="button" accessibilityLabel={'Preview '+track+' independently'}
@@ -242,7 +285,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
               </Pressable>
             ))}
           </View>
-          <Text style={styles.muted}>{STAGES[stage].detail}. The scene changes with your selected level and stage. These controls never grant an upgrade.</Text>
+          <Text style={styles.muted}>{STAGES[stage].detail}. The scene reflects the selected stage. To view earned construction select VERIFIED; previews never unlock upgrades.</Text>
           {level===10&&stage===4?<View style={styles.levelRow}>
             <Pressable accessibilityRole="button" accessibilityLabel="Preview previous Mastery" disabled={mastery<=0} onPress={()=>adjustMastery(-1)} style={styles.stepper}><MaterialCommunityIcons name="minus" size={18} color="#FFE9BE"/></Pressable>
             <Text style={styles.levelText}>ESTATE MASTERY · {mastery.toLocaleString()}</Text>
@@ -253,7 +296,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             <View style={styles.metric}><MaterialCommunityIcons name="tree-outline" size={19} color="#D6E8BA"/><Text style={styles.metricAmount}>{requirements.estimatedTimber} timber</Text><Text style={styles.metricLabel}>estimated</Text></View>
             <View style={styles.metric}><MaterialCommunityIcons name="clock-outline" size={19} color="#D6E8BA"/><Text style={styles.metricAmount}>{requirements.estimatedBuildMinutes} min</Text><Text style={styles.metricLabel}>build estimate</Text></View>
           </View>
-          <Text style={styles.nextHint}>Next design milestone: {next.mastery>0?'Mastery '+next.mastery:'Level '+next.level+' · '+STAGES[next.stage].name}. Requirements are illustrative until verified server records are connected.</Text>
+          <Text style={styles.nextHint}>Next design milestone: {next.mastery>0?'Mastery '+next.mastery:'Level '+next.level+' · '+STAGES[next.stage].name}. Use the verified construction console above for real materials and transactions; this planning estimate is non-authoritative.</Text>
         </View>
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>Design studio · Your blueprint</Text>
@@ -283,7 +326,28 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
                 <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
-          <Text style={styles.nextHint}>{canCustomizePreview?'This design draft is stored only on this device for your account and scope. It does not purchase materials, change shared property, or affect rewards.':'Community design editing is limited to verified scope administrators. You may still explore stages.'}</Text>
+          <Text style={styles.optionTitle}>FENCE & PERIMETER</Text>
+          <View style={styles.optionRow}>
+            {([{id:'wood',label:'Wood fence',icon:'fence'},{id:'iron',label:'Iron railing',icon:'gate'},{id:'hedge',label:'Green hedge',icon:'tree-outline'}] as const).map(item=>
+              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:fence===item.id}} disabled={!canCustomizePreview} onPress={()=>setFence(item.id)} style={[styles.option,fence===item.id&&styles.activeOption]}>
+                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+              </Pressable>)}
+          </View>
+          <Text style={styles.optionTitle}>WINDOWS & GLAZING</Text>
+          <View style={styles.optionRow}>
+            {([{id:'classic',label:'Classic',icon:'window-closed-variant'},{id:'panorama',label:'Panorama',icon:'window-maximize'},{id:'arched',label:'Heritage arch',icon:'arch'}] as const).map(item=>
+              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:windows===item.id}} disabled={!canCustomizePreview} onPress={()=>setWindows(item.id)} style={[styles.option,windows===item.id&&styles.activeOption]}>
+                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+              </Pressable>)}
+          </View>
+          <Text style={styles.optionTitle}>ESTATE LIGHTING</Text>
+          <View style={styles.optionRow}>
+            {([{id:'warm',label:'Warm lamps',icon:'lightbulb-outline'},{id:'starlight',label:'Starlight',icon:'star-four-points'},{id:'garden',label:'Garden lights',icon:'outdoor-lamp'}] as const).map(item=>
+              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:lights===item.id}} disabled={!canCustomizePreview} onPress={()=>setLights(item.id)} style={[styles.option,lights===item.id&&styles.activeOption]}>
+                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+              </Pressable>)}
+          </View>
+          <Text style={styles.nextHint}>{canCustomizePreview?'Customize the blueprint, then use SAVE DESIGN TO SERVER in the verified construction panel. Drafts on this device never grant ownership or level upgrades.':'Only authorized scope administrators may save shared designs. Members may preview safely.'}</Text>
           <Pressable accessibilityRole="button" onPress={()=>setShowRequirements(v=>!v)}
             accessibilityState={{expanded:showRequirements}} style={styles.requirements}>
             <Text style={styles.reqText}>Development requirements & safeguards</Text>
@@ -317,6 +381,9 @@ const styles=StyleSheet.create({
   mapBadge:{position:'absolute',top:11,left:10,right:110,flexDirection:'row',alignItems:'center',gap:5,backgroundColor:'rgba(9,30,32,.85)',borderWidth:1,borderColor:'#A7B08F',borderRadius:14,paddingHorizontal:9,paddingVertical:6},
   mapBadgeText:{color:'#FDEBC4',fontWeight:'800',fontSize:9,flexShrink:1},
   zoomBar:{position:'absolute',top:9,right:9,flexDirection:'row',gap:3,backgroundColor:'rgba(8,29,34,.89)',padding:3,borderRadius:15,borderWidth:1,borderColor:'#B8A57B'},
+  previewToggle:{minHeight:34,justifyContent:'center',paddingHorizontal:7,borderRadius:8,backgroundColor:'#2B4A47'},
+  previewToggleActive:{backgroundColor:'#5B7358',borderWidth:1,borderColor:'#F0DBAB'},
+  previewToggleText:{color:'#FFF0CC',fontSize:9,fontWeight:'900'},
   zoomButton:{minWidth:32,minHeight:34,alignItems:'center',justifyContent:'center',borderRadius:9},
   zoomText:{fontSize:10,color:'#FFE7AC',fontWeight:'900'},
   tree:{position:'absolute',opacity:.8},
