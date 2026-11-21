@@ -32,6 +32,7 @@ POSES = ("idle", "walk", "attack", "skill")
 SIZE = (256, 384)
 FRAMES = 8
 DURATION_MS = 110
+SEGMENTATION_SESSION = None
 
 
 def canonical_images():
@@ -63,49 +64,37 @@ def center_source(path):
 
 
 def matte_fullbody(art: Image.Image) -> Image.Image:
-    """Conservative 2D character extraction with bounded CPU and safe fallback."""
-    canvas_w, canvas_h = 192, 288
-    crop = ImageOps.contain(art, (canvas_w, canvas_h), Image.Resampling.LANCZOS)
-    rgb = np.asarray(crop).astype(np.uint8)
-    h, w = rgb.shape[:2]
-    # The foreground seed covers head -> torso -> knees, but avoids text and
-    # colored icon strips typically running along the outer poster edges.
-    mask = np.full((h, w), cv2.GC_PR_BGD, dtype=np.uint8)
-    margin_x, margin_y = max(3, w // 24), max(3, h // 30)
-    mask[:margin_y] = cv2.GC_BGD
-    mask[h-margin_y:] = cv2.GC_BGD
-    mask[:, :margin_x] = cv2.GC_BGD
-    mask[:, w-margin_x:] = cv2.GC_BGD
-    cx = w // 2
-    # Poster hero commonly occupies center-left 55%; choose central torso.
-    cv2.ellipse(mask, (cx, int(h * .48)), (int(w * .39), int(h * .46)),
-                0, 0, 360, cv2.GC_PR_FGD, -1)
-    cv2.ellipse(mask, (cx, int(h * .45)), (max(4, int(w * .09)), int(h * .12)),
-                0, 0, 360, cv2.GC_FGD, -1)
-    bg = np.zeros((1, 65), np.float64)
-    fg = np.zeros((1, 65), np.float64)
+    """Open-source person mask; rejects clipped head/legs instead of shipping them.
+
+    U²-Net small via rembg is CPU-only and licensed for no-cost processing.
+    We preserve the *actual canonical BUKLOD illustration*, not a replacement.
+    """
+    from rembg import new_session, remove
+    global SEGMENTATION_SESSION
+    if SEGMENTATION_SESSION is None:
+        SEGMENTATION_SESSION = new_session("u2netp", providers=["CPUExecutionProvider"])
+    crop = ImageOps.contain(art, (240, 360), Image.Resampling.LANCZOS)
     try:
-        cv2.grabCut(rgb, mask, None, bg, fg, 4, cv2.GC_INIT_WITH_MASK)
-        alpha = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
-        count, labels, stats, centers = cv2.connectedComponentsWithStats(alpha, connectivity=8)
-        if count > 1:
-            area = stats[1:, cv2.CC_STAT_AREA]
-            largest = 1 + int(np.argmax(area))
-            alpha = np.where(labels == largest, 255, 0).astype(np.uint8)
-        if np.count_nonzero(alpha) < int(w * h * .055):
-            raise RuntimeError("GrabCut extracted too little visible character")
-    except (cv2.error, RuntimeError):
-        # Retain source center, never replace it with a different person.
-        alpha = np.zeros((h, w), dtype=np.uint8)
-        cv2.ellipse(alpha, (cx, int(h * .49)), (int(w * .40), int(h * .47)),
-                    0, 0, 360, 255, -1)
-    alpha = cv2.GaussianBlur(alpha, (3, 3), .7)
-    rgba = np.dstack((rgb, alpha))
-    result = Image.fromarray(rgba, "RGBA")
-    box = result.getbbox()
-    if not box:
-        raise RuntimeError("No full-body pixels extracted")
-    return result.crop(box)
+        result = remove(crop, session=SEGMENTATION_SESSION, post_process_mask=True).convert("RGBA")
+    except Exception as exc:
+        raise RuntimeError("Reliable foreground matting unavailable") from exc
+    alpha = np.asarray(result.getchannel("A"))
+    visible = alpha > 80
+    if int(visible.sum()) < int(crop.width * crop.height * .065):
+        raise RuntimeError("No credible full-body foreground")
+    ys, xs = np.where(visible)
+    top = int(ys.min())
+    bottom = int(ys.max())
+    visible_height = bottom - top
+    # Image's person must occupy substantial height; no chopped heads or legs.
+    if visible_height < int(crop.height * .61) or top > int(crop.height * .23) or bottom < int(crop.height * .76):
+        raise RuntimeError(
+            f"Clipped full-body source: top={top}, bottom={bottom}, height={crop.height}; manual art refinement required"
+        )
+    bbox = result.getbbox()
+    if not bbox:
+        raise RuntimeError("Transparent portrait after segmentation")
+    return result.crop(bbox)
 
 
 def transform_piece(base: Image.Image, angle: float, dx: float, dy: float):
