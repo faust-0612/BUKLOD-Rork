@@ -28,6 +28,9 @@ test('staging may continue through its normal release gates and independent prod
  assert.equal(evaluateRelease({target:'production',now:at,sourceSha,season2Files:[]}).allowed,true);
  assert.equal(evaluateRelease({target:'production',now:at,sourceSha,season2Files:null}).allowed,false);
  assert.ok(FORBIDDEN_PATHS.includes('src/features/season2/genesis'));
+ for(const p of ['src/features/games/empire','src/app/games/empire-arena.tsx','src/app/buklod-map.tsx','assets/season2','assets/sounds/estate-premium']) {
+   assert.ok(FORBIDDEN_PATHS.includes(p),'Season 2 APK-bundled file must be forbidden in production: '+p);
+ }
  assert.ok(FORBIDDEN_IMPORT_MARKERS.includes('BUKLOD_SEASON2_CAMPAIGN'));
 });
 test('production release entry point invokes embargo before build/export/publish',()=>{
