@@ -19,6 +19,7 @@ import BuklodPttConversation from '@/components/BuklodPttConversation';
 import { useNetwork } from '@/providers/NetworkProvider';
 import {
   loadBuklodPttScopes,
+  supabase,
   type BuklodPttKind,
   type BuklodPttScope,
 } from '@/ptt/buklodPttCore';
@@ -36,13 +37,14 @@ import {
 } from '@/ptt/buklodPttRuntime';
 import {
   hasSeenBuklodPttOnboarding,
-  loadBuklodPttRouteMode,
+  loadBuklodPttUserSettings,
   markBuklodPttOnboardingSeen,
   openBluetoothSettings,
   openWifiSettings,
   refreshBuklodPttSetup,
   resolveBuklodPttRoute,
-  saveBuklodPttRouteMode,
+  saveBuklodPttUserSettings,
+  type BuklodPttUserSettings,
   type BuklodPttRouteMode,
   type BuklodPttSetupSnapshot,
 } from '@/ptt/buklodPttSetup';
@@ -84,11 +86,15 @@ function LiveHoldButton({
   runtime,
   talkMode,
   enabled,
+  targetMatched,
+  disabledLabel,
   onNeedConnect,
 }: {
   runtime: BuklodPttRuntimeState;
   talkMode: BuklodPttKind;
   enabled: boolean;
+  targetMatched: boolean;
+  disabledLabel: string;
   onNeedConnect: () => Promise<boolean>;
 }) {
   const connection = runtime.connection;
@@ -127,7 +133,7 @@ function LiveHoldButton({
     remoteSpeaker?.name || remoteSpeaker?.user?.name || 'Another member';
 
   const label = !enabled
-    ? 'SETUP NEEDED'
+    ? disabledLabel
     : tx
       ? 'TRANSMITTING...'
       : held || runtime.requestingFloor
@@ -139,7 +145,7 @@ function LiveHoldButton({
             : 'HOLD TO TALK';
 
   const hint = !enabled
-    ? 'Finish setup above, then hold to speak.'
+    ? 'Select Start listening or finish the requirements above.'
     : blocked
       ? 'Wait for them to finish, or use Priority / SOS.'
       : remoteSpeaker && !tx
@@ -148,7 +154,7 @@ function LiveHoldButton({
 
   const down = async () => {
     if (!enabled || blocked) return;
-    if (!runtime.connection) {
+    if (!runtime.connection || !targetMatched) {
       const ok = await onNeedConnect();
       if (!ok || !heldRef.current) return;
     }
@@ -218,6 +224,9 @@ export default function BuklodPttScreen() {
   const network = useNetwork();
 
   const [scopes, setScopes] = useState<BuklodPttScope[]>([]);
+  const [userId, setUserId] = useState('');
+  const [preferences, setPreferences] = useState<BuklodPttUserSettings | null>(null);
+  const [saving, setSaving] = useState(false);
   const [scope, setScope] = useState<BuklodPttScope | null>(null);
   const [channel, setChannel] = useState(1);
   const [showChannels, setShowChannels] = useState(false);
@@ -236,6 +245,19 @@ export default function BuklodPttScreen() {
   const chatOffsetRef = useRef(0);
   const connectLock = useRef(false);
   const connectPromiseRef = useRef<Promise<boolean> | null>(null);
+  const autoJoinKeyRef = useRef('');
+  const targetMatched = Boolean(runtime.connection && scope &&
+    runtime.connection.scope.id === scope.id && runtime.connection.channel === channel);
+  const persistPreferences = useCallback(async (next: BuklodPttUserSettings) => {
+    if (!userId) throw new Error('PTT settings are not loaded.');
+    setSaving(true);
+    try {
+      await saveBuklodPttUserSettings(userId, next);
+      setPreferences(next);
+    } finally {
+      setSaving(false);
+    }
+  }, [userId]);
 
   const refreshSetup = useCallback(async () => {
     const next = await refreshBuklodPttSetup();
@@ -244,41 +266,43 @@ export default function BuklodPttScreen() {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     const unsubscribe = subscribeBuklodPttRuntime(setRuntime);
-    void bootstrapBuklodPttRuntime();
-
+    void bootstrapBuklodPttRuntime().catch(() => undefined);
     void (async () => {
-      const [savedMode, seen] = await Promise.all([
-        loadBuklodPttRouteMode(),
-        hasSeenBuklodPttOnboarding(),
-        refreshSetup(),
-      ]);
-      setRouteMode(savedMode);
-      if (!seen) setShowOnboarding(true);
-
       try {
-        const rows = await loadBuklodPttScopes();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) throw new Error('Sign in to restore PTT settings.');
+        const [saved, rows, seen] = await Promise.all([
+          loadBuklodPttUserSettings(session.user.id),
+          loadBuklodPttScopes(),
+          hasSeenBuklodPttOnboarding(),
+          refreshSetup(),
+        ]);
+        if (!mounted) return;
+        const live = getBuklodPttRuntimeState();
+        const selected = rows.find(s => s.id === saved.scopeId) ||
+          (!live.priorityReceiving ? rows.find(s => s.id === live.connection?.scope.id) : null) ||
+          rows[0] || null;
+        setUserId(session.user.id);
         setScopes(rows);
-        const current = getBuklodPttRuntimeState().connection;
-        if (current) {
-          setScope(current.scope);
-          setChannel(current.channel);
-        } else {
-          setScope(rows[0] ?? null);
-        }
+        setScope(selected);
+        setChannel(selected?.id === saved.scopeId ? saved.channel : (live.connection?.channel || 1));
+        setRouteMode(saved.routeMode);
+        setTalkMode(saved.talkMode);
+        setPreferences({ ...saved, scopeId: selected?.id ?? '',
+          channel: selected?.id === saved.scopeId ? saved.channel : (live.connection?.channel || 1) });
+        if (!seen) setShowOnboarding(true);
       } catch (error: any) {
-        Alert.alert(
-          'BUKLOD PTT',
-          error?.message || 'Could not load your talk groups.',
-        );
+        if (mounted) Alert.alert('BUKLOD PTT', error?.message || 'Could not restore PTT settings.');
       }
     })();
-
     const appSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') void refreshSetup();
     });
-
     return () => {
+      mounted = false;
+      setBuklodPttArmedKind('NORMAL'); // emergency is never left armed on navigation.
       unsubscribe();
       appSub.remove();
     };
@@ -287,13 +311,6 @@ export default function BuklodPttScreen() {
   useEffect(() => {
     setBuklodPttArmedKind(talkMode);
   }, [talkMode]);
-
-  useEffect(() => {
-    const current = runtime.connection;
-    if (!current) return;
-    setScope(current.scope);
-    setChannel(current.channel);
-  }, [runtime.connection]);
 
   const effectiveRoute = useMemo(
     () =>
