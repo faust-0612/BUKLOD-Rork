@@ -32,3 +32,23 @@ jobs:
             tests/empire-arena-v2-design-and-simulation.test.mjs \
             tests/empire-arena-v2-world-economy.test.mjs \
             tests/empire-arena-v2-connected-world-preview-20261121.test.mjs
+
+  android-metro-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Export actual Android JS and packaged images (NOT APK or OTA)
+        run: npx expo export --platform android --output-dir /tmp/buklod-arena-android --clear
+      - name: Verify nonempty Android JavaScript/asset export
+        run: |
+          test -d /tmp/buklod-arena-android
+          test "$(find /tmp/buklod-arena-android -type f | wc -l)" -gt 3
+          echo "Android Metro export completed; device APK, landscape, audio, rendering and PvP are NOT verified."
