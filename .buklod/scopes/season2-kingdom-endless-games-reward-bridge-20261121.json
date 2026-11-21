@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/season2-kingdom-endless-games-reward-bridge-20261121.json",
   "objective": "DEV-only 39 Kingdom game adventure fidelity, reuse approved biomes/music, source-safe endless progression and financial authority separation",
   "baseRef": "dev/season2-map-first-conso-intake-20261121",
-  "chosenApproach": "Reuse only original per-character scenic media, existing packaged sound and Skia motion; add offline deterministic environment encounters and verified-only world/reward projection without modifying production. Author 39 original SVG panorama motifs directly in source, layered beneath the existing 13 local characters and existing Skia animations.",
+  "chosenApproach": "Reuse only original per-character scenic media, existing packaged sound and Skia motion; add offline deterministic environment encounters and verified-only world/reward projection without modifying production. Author 39 original SVG panorama motifs directly in source, layered beneath the existing 13 local characters and existing Skia animations. The actual generated artwork is vendored in a single 6-by-7 tile WebP atlas, cropped locally by each canonical game ID.",
   "riskAreas": [
     "app-runtime",
     "kingdom-reward-authority",
@@ -36,7 +36,10 @@
     "src/features/games/kingdom/platform/gestureRules.mjs",
     "src/features/games/kingdom/platform/gestureRules.d.mts",
     "tests/kingdom-premium-interactions-20261121.test.mjs",
-    "tests/kingdom-premium-audio-39-20261121.test.mjs"
+    "tests/kingdom-premium-audio-39-20261121.test.mjs",
+    "src/features/games/kingdom/platform/KingdomGameSpriteAtlas.tsx",
+    "assets/season2/genesis/kingdom/kingdom-39-game-illustration-atlas.webp",
+    "tests/kingdom-generated-atlas-39-20261121.test.mjs"
   ],
   "regressionTests": [
     "tests/kingdom-season2-endless-economy-20261121.test.mjs",
@@ -44,7 +47,8 @@
     "tests/kingdom-complete-user-experience-20261111.test.mjs",
     "tests/kingdom-premium-art-39-scenes-20261121.test.mjs",
     "tests/kingdom-premium-interactions-20261121.test.mjs",
-    "tests/kingdom-premium-audio-39-20261121.test.mjs"
+    "tests/kingdom-premium-audio-39-20261121.test.mjs",
+    "tests/kingdom-generated-atlas-39-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -58,7 +62,8 @@
         "tests/kingdom-season2-endless-economy-20261121.test.mjs",
         "tests/kingdom-premium-art-39-scenes-20261121.test.mjs",
         "tests/kingdom-premium-interactions-20261121.test.mjs",
-        "tests/kingdom-premium-audio-39-20261121.test.mjs"
+        "tests/kingdom-premium-audio-39-20261121.test.mjs",
+        "tests/kingdom-generated-atlas-39-20261121.test.mjs"
       ]
     }
   ],
@@ -76,7 +81,8 @@
     "Existing 5,000-level numeric-only source tests are updated to assert three interactive genres and 5,001+ progression without weakening Shards or user data protection.",
     "All 39 original and pilot games have unique vector art scenes and native Focus/Reduce Motion-safe parallax; no downloads, paid asset services or new native dependencies.",
     "Canonical Match-3 and Merge score engines accept swipe controls and retain accessible taps/arrows; Word Trail has a local-only illuminated connection path.",
-    "All 26 pilot signatures reuse installed CC0 audio, obey game sound toggle and focus safety; no preview-host streaming."
+    "All 26 pilot signatures reuse installed CC0 audio, obey game sound toggle and focus safety; no preview-host streaming.",
+    "Optimized 180,638-byte, image-generated 840×815 WebP atlas is bundled in APK/OTA source; exactly 39 indexed sprites and local SVG fallback with no member downloads."
   ],
   "productionBaselineEvidence": "verified: GitHub main is the existing production code repository source reference, and this change explicitly isolates to the already reviewed DEV Season2 conso branch; current installed production APK or live OTA fingerprint not verified.",
   "publicationStatus": "DEV_ONLY_NO_OTA",

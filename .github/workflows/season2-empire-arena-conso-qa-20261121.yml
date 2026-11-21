@@ -53,6 +53,7 @@ jobs:
             tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs \
             tests/kingdom-season2-endless-economy-20261121.test.mjs \
             tests/kingdom-premium-art-39-scenes-20261121.test.mjs \
+            tests/kingdom-generated-atlas-39-20261121.test.mjs \
             tests/kingdom-premium-interactions-20261121.test.mjs \
             tests/kingdom-premium-audio-39-20261121.test.mjs \
             tests/kingdom-shards-free-powers-20261111.test.mjs \

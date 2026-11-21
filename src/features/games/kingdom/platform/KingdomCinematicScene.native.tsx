@@ -24,6 +24,7 @@ import { subscribeBuklodGameCharacterMotion } from '@/features/games/runtime/cha
 import type { BuklodCharacterReaction } from '@/components/points/BuklodCharacterMotion';
 import { KINGDOM_CHARACTER_MOTION, getKingdomCinematicScene, type KingdomSceneProfile } from './KingdomCinematicScenes';
 import KingdomPremiumWorldArt, { getKingdomIllustratedArt } from './KingdomPremiumWorldArt';
+import KingdomGameSpriteAtlas from './KingdomGameSpriteAtlas';
 
 const TAU = Math.PI * 2;
 const CORE = ['phan','quin','van','christian','lhen'] as const;
@@ -231,6 +232,9 @@ function Scene({ gameId, profile, compact }: {
     <Animated.View pointerEvents="none" style={[styles.paintedWorld, worldStyle]}>
       <KingdomPremiumWorldArt gameId={gameId} opacity={.84} />
     </Animated.View>
+    <View pointerEvents="none" style={styles.spriteHolder}>
+      <KingdomGameSpriteAtlas gameId={gameId} height={compact?62:102}/>
+    </View>
     <View pointerEvents="none" style={styles.cinematicScrim}/>
     <View style={styles.artHolder}>
       <Animated.View style={characterStyle}>
@@ -270,7 +274,8 @@ const styles=StyleSheet.create({
     alignItems:'center', marginBottom:6 },
   compact:{height:70,borderRadius:14},
   paintedWorld:{...StyleSheet.absoluteFillObject,overflow:'hidden'},
-  cinematicScrim:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(12,21,23,.37)'},
+  spriteHolder:{position:'absolute',right:5,top:3,overflow:'hidden'},
+  cinematicScrim:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(12,21,23,.26)'},
   artHolder:{width:89,alignItems:'center',justifyContent:'flex-end',zIndex:1},
   right:{flex:1,paddingRight:9,minWidth:0,zIndex:1},
   title:{fontSize:13,fontWeight:'900',color:'#fff8ea',letterSpacing:.6},

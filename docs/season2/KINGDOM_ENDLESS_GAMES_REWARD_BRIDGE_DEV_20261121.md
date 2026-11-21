@@ -39,11 +39,20 @@ and no paid image subscription. The approved 13 character sprites and Skia/
 Reanimated reaction effects remain above this picture; motion respects focus,
 app background and Reduce Motion.
 
-A generated painterly concept atlas was also prepared as an art-direction
-reference but is NOT claimed to be an APK-bundled bitmap; it must not be
-mistaken for independently tested gameplay sprites. Current native source
-illustrations ARE integrated, one per game. Interactive individual game boards,
-artistic quality and input latency still require Android device QA before OTA.
+The approved image-generation result is now **actually shipped in repository
+source** as `assets/season2/genesis/kingdom/kingdom-39-game-illustration-atlas.webp`.
+One optimized 180,638-byte WebP (840×815 px) contains 39 distinct painterly
+game scenes arranged in six columns × seven rows; the final three cells are
+unused. `KingdomGameSpriteAtlas.tsx` assigns sprites by exact 39-game catalog
+order and crops the selected game without downloading a single asset.
+The bundled raster is layered with 39 original SVG fallback panoramas, the
+existing character art, movement, particles and scene text. Local decode
+failure falls back to vector without blocking play. No external subscription,
+runtime image generator, new native library or user-supplied download.
+
+These are now integrated raster + vector game-specific visuals, but physical
+Android rendering, input latency and artistic polish still need independent QA
+before any real OTA claim.
 
 ## Modern input + unique character-world audio
 - 3 Match-3 games accept direct adjacent swipes AND tap-two-cells. Bounds
