@@ -46,6 +46,8 @@ test('Source gate passes but artifact release gate fails closed without independ
  assert.equal(srcReport.backendMode,'existing-paid-shared-live');
  assert.equal(srcReport.backendProjectRef,'yhanxndaqbmuzbdqlblu');
  assert.equal(srcReport.ok,true);
+ assert.equal(srcReport.arenaIncluded,true,'Conso source must truthfully report Arena included');
+ assert.equal(srcReport.rankedLive,false,'Ranked remains disabled pending authorized server migration');
  assert.equal(srcReport.otaReady,false);
  assert.equal(srcReport.published,false);
  const release=spawnSync(process.execPath,[script,'--release'],{cwd:root,encoding:'utf8',

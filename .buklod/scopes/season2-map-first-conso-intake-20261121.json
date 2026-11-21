@@ -44,7 +44,8 @@
         "tests/season2-empire-arena-conso-intake-20261121.test.mjs",
         "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
         "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
-        "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs"
+        "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
+        "tests/season2-one-tap-kingdom-guide-20261121.test.mjs"
       ]
     },
     {
@@ -57,7 +58,8 @@
         "tests/season2-map-first-conso-intake-20261121.test.mjs",
         "tests/genesis-world-navigation-regression-20261121.test.mjs",
         "tests/genesis-valley-asset-interaction-20261121.test.mjs",
-        "tests/season2-empire-arena-conso-intake-20261121.test.mjs"
+        "tests/season2-empire-arena-conso-intake-20261121.test.mjs",
+        "tests/season2-one-tap-kingdom-guide-20261121.test.mjs"
       ]
     },
     {
@@ -102,7 +104,8 @@
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
     "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
-    "tests/empire-arena-v2-animated-bundle-20261121.test.mjs"
+    "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
+    "tests/season2-one-tap-kingdom-guide-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
@@ -272,7 +275,9 @@
     "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
     "tests/sql/arena_ranked_concurrency.sh",
     "tests/sql/arena_ranked_disposable_setup.sql",
-    "tests/sql/arena_ranked_private_integrity.sql"
+    "tests/sql/arena_ranked_private_integrity.sql",
+    "src/features/season2/genesis/GenesisWorldGuide.tsx",
+    "tests/season2-one-tap-kingdom-guide-20261121.test.mjs"
   ],
   "publicationStatus": "Consolidated Season 2 + Arena DEV source merged and protected. No new staging project/branch. No signed native build or EAS OTA published; ranked Diamond settlement still disabled.",
   "acceptanceChecks": [
@@ -301,7 +306,9 @@
     "2026-11-21 owner supersession: EXACT existing conso source includes inside-one-app Empire Arena, 13 animated heroes/52 fullbody clips, 3 scenes, CC0 soundtrack and battle SFX; all original Kingdom, AdMob and map routes remain preserved.",
     "No new Supabase staging/database project or subscription; existing paid BUKLOD Supabase URL with publishable key used normally, no live Arena schema migration or private wallet modifications.",
     "Offline Arena practice enabled ONLY in Genesis staging preview; real ranked gameplay disabled by EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED=false pending separate secure backend/transaction/live verification.",
-    "Android bundle/source parity and PostgreSQL concurrency tests are CI evidence only; never label as actual signed APK, real device QA, published OTA or production activation."
+    "Android bundle/source parity and PostgreSQL concurrency tests are CI evidence only; never label as actual signed APK, real device QA, published OTA or production activation.",
+    "Owner-approved Genesis map gold-marker coordinates unchanged: touching the marker opens its guarded destination immediately; no second ENTER/button and no scroll required to confirm.",
+    "Character Kingdom and Empire Arena are separately named destinations; animated local Phan concierge sits OUTSIDE the map and respects Reduce Motion; no economy writes or new native modules."
   ],
   "selectionRationale": "Owner explicitly superseded previous 'skip arena' instruction with inclusion in the existing Season 2 consolidated OTA source, with NO new staging backend. No redundant Android app, no new subscriptions, no unauthorized live financial writes.",
   "preserveBehaviors": [

@@ -67,13 +67,19 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
     ],
   },
   {
-    id: 'kingdom', title: 'Kingdom', tagline: 'Explore and play together',
+    id: 'kingdom', title: 'Character Kingdom', tagline: 'Characters, nature realms, growth and collectibles',
     icon: 'castle', accent: '#FFD49E', destination: '/games',
     entries: [
       { label: 'Living Kingdom', route: '/games', description: 'World, games and creation' },
-      { label: 'Empire Arena', route: '/games/empire-arena', description: 'In-app landscape battles and fair offline practice' },
       { label: 'Collection', route: '/games/genesis-collection', description: 'Owned items and collectibles' },
       { label: 'Practice', route: '/games/practice', description: 'Learn to play without risk' },
+    ],
+  },
+  {
+    id: 'empire-arena', title: 'Empire Arena', tagline: 'A separate competitive battlefield inside BUKLOD',
+    icon: 'shield-sword-outline', accent: '#FFBE89', destination: '/games/empire-arena',
+    entries: [
+      { label: 'Empire Arena', route: '/games/empire-arena', description: 'Landscape action battles: offline practice; ranked locked until safe live verification' },
     ],
   },
   {

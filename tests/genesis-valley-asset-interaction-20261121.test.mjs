@@ -58,7 +58,7 @@ test('Map is imagery-first with touch/zoom, visual selected state, faith gating 
  assert.match(comp,/isReduceMotionEnabled/);
  assert.match(comp,/getGenesisDeviceQuality/);
  assert.match(gateway,/GENESIS_VALLEY_HOTSPOTS/);
- assert.match(gateway,/selectedHotspot\?\.route \?\? district.destination/);
+ assert.match(gateway,/router\.push\(hotspot\.route as any\)/);
  assert.match(gateway,/visibleBuklodMapDestinations\(area, showFaith\)/);
  assert.match(gateway,/BuklodFirstViewAd placement="home"/);
  assert.doesNotMatch(gateway,/<GenesisMapOrbit|<Svg |<View style=\{styles\.constellation\}>/);

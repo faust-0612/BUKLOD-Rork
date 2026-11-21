@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image, ImageBackground, Pressable, ScrollView, StyleSheet,
   Text, View,
@@ -12,6 +12,7 @@ import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
 import GenesisValleyMap, {GENESIS_VALLEY_HOTSPOTS} from '@/features/season2/genesis/GenesisValleyMap';
+import GenesisWorldGuide from '@/features/season2/genesis/GenesisWorldGuide';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import { GENESIS_IDENTITY, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
@@ -29,6 +30,11 @@ export default function BuklodMapScreen() {
   const [selectedId, setSelectedId] = useState('community');
   const [selectedHotspotId, setSelectedHotspotId] = useState('community-wall-plaza');
   const [showDirectory, setShowDirectory] = useState(false);
+  const [showDistrictEntries, setShowDistrictEntries] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
+  useEffect(() => {
+    if (showDirectory) scrollRef.current?.scrollToEnd({animated:true});
+  }, [showDirectory]);
   const { musicEnabled, musicSuspended, toggleMusic } = useRorkGameAmbience('kingdom-map');
 
   useFocusEffect(useCallback(() => {
@@ -63,6 +69,7 @@ export default function BuklodMapScreen() {
       </ImageBackground>
       <GenesisCosmicSky active={focused} transparent />
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingTop: Math.max(12, insets.top) + 12, paddingBottom: Math.max(20, insets.bottom) + 44 }]}
         showsVerticalScrollIndicator={false}
@@ -88,7 +95,7 @@ export default function BuklodMapScreen() {
             <Text style={styles.musicText}>{musicEnabled ? (musicSuspended ? 'Music paused' : 'Music on') : 'Music off'}</Text>
           </Pressable>
         </View>
-        <Text style={styles.intro}>Isang mundo, malinaw na direksyon. Pumili ng lugar sa mapa at buksan ang mga gawain nito.</Text>
+        <Text style={styles.intro}>Isang tap sa lokasyon, pasok agad. Walang hiwalay na Enter.</Text>
 
         {/* Preserve the established first-view Home ad inventory; the banner
             collapses on no fill/consent without reserving a blank pane. */}
@@ -99,9 +106,18 @@ export default function BuklodMapScreen() {
           showFaith={showFaith}
           selectedHotspotId={selectedHotspotId}
           onSelect={hotspot => {
+            // A map marker is the doorway itself. Never require a second
+            // bottom-of-page ENTER action, and never bypass its route guard.
+            if (hotspot.faithOnly && !showFaith) return;
             setSelectedHotspotId(hotspot.id);
             setSelectedId(hotspot.districtId);
+            router.push(hotspot.route as any);
           }}
+        />
+        <GenesisWorldGuide active={focused}
+          onCharacterKingdom={() => router.push('/games' as any)}
+          onCommunityVillage={() => router.push('/clusters' as any)}
+          onDirectory={() => setShowDirectory(true)}
         />
         <View style={styles.mapSelectedCaption}>
           <Text style={styles.selectedCaptionText}>
@@ -111,23 +127,21 @@ export default function BuklodMapScreen() {
         </View>
 
         <View style={styles.districtPanel}>
-          <View style={styles.panelHeading}>
-            <MaterialCommunityIcons name={district.icon as any} size={27} color={district.accent}/>
+          <Pressable accessibilityRole="button"
+            accessibilityLabel={showDistrictEntries ? 'Hide district shortcuts' : 'Show district shortcuts'}
+            accessibilityState={{expanded:showDistrictEntries}}
+            onPress={() => setShowDistrictEntries(value => !value)}
+            style={styles.panelHeading}
+          >
+            <MaterialCommunityIcons name={district.icon as any} size={25} color={district.accent}/>
             <View style={{flex:1}}>
               <Text style={styles.panelTitle}>{district.title}</Text>
-              <Text style={styles.panelSubtitle}>{district.tagline}</Text>
+              <Text style={styles.panelSubtitle}>More places · {district.tagline}</Text>
             </View>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={'Enter ' + (selectedHotspot?.label ?? district.title)}
-            onPress={() => router.push((selectedHotspot?.route ?? district.destination) as any)}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryText}>ENTER {(selectedHotspot?.label ?? district.title).toUpperCase()}</Text>
-            <MaterialCommunityIcons name="arrow-right" size={20} color="#071B2C"/>
+            <MaterialCommunityIcons name={showDistrictEntries ? 'chevron-up' : 'chevron-down'} size={22} color="#FFE6AE"/>
           </Pressable>
-          {entries.map(entry => (
+          {showDistrictEntries ? entries.map(entry => (
+
             <Pressable
               key={entry.route}
               accessibilityRole="button"
@@ -141,7 +155,7 @@ export default function BuklodMapScreen() {
               </View>
               <MaterialCommunityIcons name="chevron-right" size={22} color="#DAECFF"/>
             </Pressable>
-          ))}
+          )) : null}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -212,7 +226,7 @@ const styles = StyleSheet.create({
     borderTopWidth:StyleSheet.hairlineWidth, borderColor:'rgba(205,228,249,.2)', minHeight:45,
     paddingHorizontal:8},
   directoryEntryLabel: {color:'#F6FAFF', fontWeight:'700', fontSize:12},
-  districtPanel: { marginTop: 12, borderRadius: 20, padding: 15, gap: 7, borderWidth: 1, borderColor: 'rgba(243,211,153,.35)', backgroundColor: 'rgba(6,20,42,.91)' },
+  districtPanel: { marginTop: 9, borderRadius: 16, padding: 11, gap: 6, borderWidth: 1, borderColor: 'rgba(243,211,153,.35)', backgroundColor: 'rgba(6,20,42,.91)' },
   panelHeading: { flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 2 },
   panelTitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '900' },
   panelSubtitle: { color: '#D4E6F9', fontSize: 12 },
