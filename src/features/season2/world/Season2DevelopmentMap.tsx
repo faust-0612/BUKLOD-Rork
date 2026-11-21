@@ -118,7 +118,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           <Image source={world==='home'?HOME_ART:VILLAGE_ART} contentFit="cover" style={StyleSheet.absoluteFill} transition={0} accessibilityLabel={world==='home'?'My Home construction world':'Community Village development world'} />
           <LinearGradient colors={['rgba(5,30,28,.08)','rgba(10,25,25,.20)','rgba(9,25,32,.64)']} style={StyleSheet.absoluteFill}/>
           {decoration.map(n=>(
-            <View key={n} pointerEvents="none" style={[styles.tree,{left:(n*17+6)+'%',top:(n%2===0?4:83)+'%'}]}>
+            <View key={n} pointerEvents="none" style={[styles.tree,{left:`${n*17+6}%` as `${number}%`,top:`${n%2===0?4:83}%` as `${number}%`}]}>
               <MaterialCommunityIcons name={n%3===0?'pine-tree':'tree'} size={compact?23:32} color={n%2===0?'#C3E8BD':'#6DAD70'}/>
             </View>
           ))}
@@ -131,7 +131,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
               accessibilityLabel={'Open '+door.label}
               accessibilityHint={'Directly opens '+door.sub}
               onPress={()=>router.push(door.route as any)}
-              style={({pressed})=>[styles.door,{left:door.left+'%',top:door.top+'%',
+              style={({pressed})=>[styles.door,{left:`${door.left}%` as `${number}%`,top:`${door.top}%` as `${number}%`,
                 borderColor:choice.tint,backgroundColor:pressed?'#1C473F':'rgba(9,25,40,.88)'}]}>
               <MaterialCommunityIcons name={door.icon} size={compact?18:22} color="#FFEAC3"/>
               <Text numberOfLines={2} style={styles.doorLabel}>{door.label}</Text>

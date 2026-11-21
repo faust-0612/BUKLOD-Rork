@@ -45,7 +45,7 @@ export default function BuklodMapGuideDock({active}:{active:boolean}) {
   const waveTurn=wave.interpolate({inputRange:[0,1],outputRange:['-9deg','16deg']});
   const submitQuestion=()=>{setAnswer(resolveBuklodGuideDestination(question,Boolean(activeScope?.show_faith_content)));};
   const suggestions=[
-    {label:'My Home',route:'/season2/my-world',icon:'home-heart-outline' as const},
+    {label:'My Home',route:'/season2/my-world',icon:'home-heart' as const},
     {label:'Community Village',route:'/season2/community-village',icon:'home-group' as const},
     {label:"What's new",route:'/notifications',icon:'bell-outline' as const},
   ];
