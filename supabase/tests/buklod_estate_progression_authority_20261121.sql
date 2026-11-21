@@ -62,7 +62,7 @@ begin
 
  begin
    perform public.start_buklod_estate_construction_v1('USER',u,'lot',first_key);
-   raise exception 'Member constructed without earned materials';
+   raise exception using errcode='XX000', message='Member constructed without earned materials';
  exception when sqlstate 'P0001' then null;
  end;
  if not public.award_buklod_estate_resources_v1(u,grant_key,500,100,100,100)
@@ -98,12 +98,12 @@ begin
  if j->'wallet'<>w then raise exception 'Retry charged materials twice';end if;
  begin
    perform public.start_buklod_estate_construction_v1('USER',u,'lot',second_key);
-   raise exception 'Overlapping build allowed';
+   raise exception using errcode='XX000', message='Overlapping build allowed';
  exception when sqlstate 'P0001' then null;
  end;
  begin
    perform public.complete_buklod_estate_construction_v1('USER',u,'lot');
-   raise exception 'Client completed unfinished timer';
+   raise exception using errcode='XX000', message='Client completed unfinished timer';
  exception when sqlstate 'P0001' then null;
  end;
 
