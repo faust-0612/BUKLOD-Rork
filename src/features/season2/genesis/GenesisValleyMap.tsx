@@ -84,7 +84,7 @@ export default function GenesisValleyMap({
       <View style={styles.topline}>
         <View style={styles.topText}>
           <Text style={styles.mapTitle}>EXPLORE BUKLOD WORLD</Text>
-          <Text style={styles.hint}>Piliin ang gusali, saka buksan ang destinasyon.</Text>
+          <Text style={styles.hint}>Tap the gold marker to enter immediately.</Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -129,7 +129,7 @@ export default function GenesisValleyMap({
                 key={hotspot.id}
                 accessibilityRole="button"
                 accessibilityLabel={hotspot.label}
-                accessibilityHint={'Select the '+hotspot.label+' destination'}
+                accessibilityHint={'Open '+hotspot.label+' in one tap; destination permissions remain enforced'}
                 accessibilityState={{selected: chosen}}
                 onPress={() => onSelect(hotspot)}
                 style={({pressed}) => [
@@ -171,7 +171,7 @@ export default function GenesisValleyMap({
         <Text numberOfLines={1} style={styles.legendText}>
           {selected && (!selected.faithOnly || showFaith) ? selected.label : 'Pumili ng lokasyon'}
         </Text>
-        <Text style={styles.legendHint}>{zoomed ? 'Swipe sideways to explore' : 'Zoom for larger touch targets'}</Text>
+        <Text style={styles.legendHint}>{zoomed ? 'Swipe sideways to explore' : 'Tap any marker to enter'}</Text>
       </View>
     </View>
   );
