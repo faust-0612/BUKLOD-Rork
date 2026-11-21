@@ -95,7 +95,10 @@ wss.on('connection',ws=>{
           state='authed';
           // Resume is authoritative; never re-queue a live seat on reconnection.
           const resumed=coordinator.reattach(session);
-          sendRaw(ws,{type:'hello_ok',hero:session.hero,rankedEligible:session.eligible,
+          sendRaw(ws,{type:'hello_ok',hero:session.hero,
+            // A resumed match already holds the user's legitimately earned Diamond.
+            // Zero currently spendable Diamonds must not block a verified reattach.
+            rankedEligible:session.eligible||resumed,
             diamonds:profile.diamonds,rating:profile.rating,resumed});
         }catch(error){
           metrics.rejected++;
