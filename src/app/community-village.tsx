@@ -116,6 +116,12 @@ export default function CommunityVillageScreen(){
         <MaterialCommunityIcons name="arrow-right" size={20} color="#0C342C"/>
       </Pressable>
     </View>
+    <Pressable accessibilityRole="button" accessibilityLabel="Open the interactive village construction workshop"
+      onPress={()=>router.push('/season2/community-village' as any)}
+      style={[styles.open,{backgroundColor:'#C6E6B1'}]}>
+      <MaterialCommunityIcons name="hammer-wrench" size={19} color="#0C342C"/>
+      <Text style={styles.openText}>EXPLORE VILLAGE CONSTRUCTION</Text>
+    </Pressable>
     <Text style={styles.footer}>The permanent BP, QMP, items, property ownership and trade authority remains on the existing verified backend. Live construction and customization unlock only after approved asset-stage receipts and security gates.</Text>
    </ScrollView>
  </View>;
