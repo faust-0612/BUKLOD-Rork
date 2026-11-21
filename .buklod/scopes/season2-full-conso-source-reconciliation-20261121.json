@@ -16,7 +16,8 @@
     "navigation-auth",
     "ads-monetization",
     "audio-focus",
-    "economy-integrity"
+    "economy-integrity",
+    "release-pipeline"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
@@ -48,7 +49,9 @@
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
     "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
     "tests/season2-community-village-preview-20261121.test.mjs",
-    "tests/season2-empire-arena-conso-intake-20261121.test.mjs"
+    "tests/season2-empire-arena-conso-intake-20261121.test.mjs",
+    ".github/workflows/season2-empire-arena-conso-qa-20261121.yml",
+    "tests/season2-full-conso-source-release-gate-20261121.test.mjs"
   ],
   "regressionTests": [
     "tests/season2-final-conso-staging-20261121.test.mjs",
@@ -60,7 +63,8 @@
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
     "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
     "tests/season2-community-village-preview-20261121.test.mjs",
-    "tests/season2-empire-arena-conso-intake-20261121.test.mjs"
+    "tests/season2-empire-arena-conso-intake-20261121.test.mjs",
+    "tests/season2-full-conso-source-release-gate-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -99,7 +103,8 @@
   "acceptanceChecks": [
     "Exact source tests, TypeScript, Metro Android assets, native parity, AdMob/navigation regression and isolated RLS tests green",
     "Manual Android UI/touch/performance/AdMob fill is unverified and waived by owner, not misreported as passed",
-    "No OTA receipt or production release claimed for this source unless externally confirmed"
+    "No OTA receipt or production release claimed for this source unless externally confirmed",
+    "Exact-head staging-only Android Metro, TypeScript, Game+Arena static/source tests via existing non-publishing QA workflow; only a verified provider EAS receipt can establish a published OTA."
   ],
   "publicationStatus": "DEV_ONLY_NOT_PUBLISHED",
   "releaseMode": "source-only-staging-rc-hold",

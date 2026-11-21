@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - integration/season2-empire-arena-conso-intake-20261121
+      - integration/season2-genesis-full-conso-staging-20261121
   pull_request:
     branches:
       - dev/season2-map-first-conso-intake-20261121
