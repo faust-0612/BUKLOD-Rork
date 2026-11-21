@@ -1,0 +1,57 @@
+name: BUKLOD Godot One-Time Approved Hero Art Vendor (DEV ONLY)
+on:
+  push:
+    branches:
+      - dev/arena-godot-approved-asset-intake-20261122
+    paths:
+      - .github/workflows/arena-godot-vendor-assets-20261122.yml
+permissions:
+  contents: write
+jobs:
+  convert-approved-art:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/arena-godot-approved-asset-intake-20261122' && startsWith(github.event.head_commit.message, 'BUKLOD_GODOT_VENDOR:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: One-time deterministic conversion of original WebP animation frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/buklod-art-pillow
+          /tmp/buklod-art-pillow/bin/pip install --disable-pip-version-check --no-cache-dir 'pillow==12.0.0'
+          /tmp/buklod-art-pillow/bin/python scripts/vendor-empire-godot-art.py
+          test "$(find godot/empire-arena/art -name '*.png' -type f | wc -l)" = 65
+          test -s godot/empire-arena/art/art_manifest.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('godot/empire-arena/art/art_manifest.json')
+          entries=json.loads(p.read_text())['assets']
+          assert len(entries)==65
+          assert all(x['frames']==8 for k,x in entries.items() if k.startswith('fullbody/'))
+          print('APPROVED 65 PNG SOURCES AND 52 8-FRAME ATLASES: validated')
+          PY
+      - name: Commit exactly generated hero assets onto isolated DEV branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'dev/arena-godot-approved-asset-intake-20261122'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- godot/empire-arena/art
+          test -n "$(git diff --cached --name-only)"
+          if git diff --cached --name-only | grep -Ev '^godot/empire-arena/art/'; then
+            echo 'BLOCK: unexpected path in vendored-art change'
+            exit 1
+          fi
+          git commit -m 'BUKLOD_GODOT_ART_QA: vendor approved native 65 PNG hero atlases, no production'
+          git push origin HEAD:refs/heads/dev/arena-godot-approved-asset-intake-20261122
+      - name: No APK / OTA / production / backend mutation
+        run: echo 'Only generated user-approved art was committed in isolated DEV.'
