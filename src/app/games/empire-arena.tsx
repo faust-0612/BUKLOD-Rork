@@ -76,8 +76,8 @@ function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: bool
   </G>;
 }
 
-function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
-  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void;
+function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying }: {
+  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean;
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
   const [area, setArea] = useState({ width: 720, height: 360 });
@@ -119,14 +119,10 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === 'A'} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== 'A0') onTarget(p.id); }}>
         <ActorMark actor={p} friendly={p.team === 'A'} selected={p.id === selectedId || p.id === 'A0'} />
-        {p.hero && life(p) ? (
-          ARENA_GENERATED_ART['sprite:' + p.hero]
-            ? <SvgImage href={ARENA_GENERATED_ART['sprite:' + p.hero] as any} x={p.x - 3.8} y={p.y - 3.8} width={7.6} height={7.6} preserveAspectRatio="xMidYMid meet" />
-            : <G>
-                <Defs><ClipPath id={'arena-portrait-' + p.id}><Circle cx={p.x} cy={p.y} r={2.7} /></ClipPath></Defs>
-                <SvgImage href={ARENA_HERO_ART[p.hero as BuklodCharacterId] as any} x={p.x - 2.8} y={p.y - 2.8} width={5.6} height={5.6} preserveAspectRatio="xMidYMid slice" clipPath={'url(#arena-portrait-' + p.id + ')'} />
-              </G>
-        ) : null}
+        {p.hero && life(p) && (!isPlaying || !ARENA_GENERATED_ART['sprite:' + p.hero]) ? <G>
+          <Defs><ClipPath id={'arena-portrait-' + p.id}><Circle cx={p.x} cy={p.y} r={2.7} /></ClipPath></Defs>
+          <SvgImage href={ARENA_HERO_ART[p.hero as BuklodCharacterId] as any} x={p.x - 2.8} y={p.y - 2.8} width={5.6} height={5.6} preserveAspectRatio="xMidYMid slice" clipPath={'url(#arena-portrait-' + p.id + ')'} />
+        </G> : null}
       </G>)}
       {state.visualCue && state.elapsed - state.visualCue.time < 650 ? (() => {
         const cue = state.visualCue;
@@ -158,6 +154,21 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
         </G>;
       })}
     </Svg>
+    {isPlaying ? Object.values(state.players)
+      .filter(p => p.hero && life(p) && ARENA_GENERATED_ART['sprite:' + p.hero] &&
+        p.x >= camera.x - 4 && p.x <= camera.x + camera.width + 4 &&
+        p.y >= camera.y - 4 && p.y <= camera.y + camera.height + 4)
+      .map(p => {
+        const image = ARENA_GENERATED_ART['sprite:' + p.hero];
+        const size = clamp(area.width * 8 / camera.width, 36, 106);
+        return <ExpoImage key={'anim-' + p.id} source={image as React.ComponentProps<typeof ExpoImage>['source']}
+          contentFit="contain" pointerEvents="none"
+          style={{
+            position: 'absolute', width: size, height: size,
+            left: (p.x - camera.x) * area.width / camera.width - size / 2,
+            top: (p.y - camera.y) * area.height / camera.height - size * 0.72,
+          }} />;
+      }) : null}
     <View pointerEvents="none" style={styles.minimap}>
       <Svg width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
         <Rect x={0} y={0} width={state.w} height={state.h} fill="#102735" stroke="#e1c78e" strokeWidth={1} />
@@ -386,7 +397,7 @@ export default function EmpireArenaInApp() {
         <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text>
         <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
       </View>
-      <ArenaField state={game} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
+      <ArenaField state={game} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
       <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
       {phase === 'playing' ? <>
         <View style={styles.joystick} {...joystick.panHandlers}>
