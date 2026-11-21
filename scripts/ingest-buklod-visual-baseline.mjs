@@ -16,7 +16,7 @@ import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const VALID_KINDS = new Set(['scene', 'hero', 'sprite', 'building', 'effect', 'ui']);
+const VALID_KINDS = new Set(['scene', 'hero', 'sprite', 'fullbody', 'building', 'effect', 'ui']);
 const SCENES = new Set(['genesis_rift', 'aurora_foundry', 'verdant_fracture']);
 const HEROES = new Set(['phan', 'quin', 'van', 'christian', 'lhen', 'ace', 'ellusur', 'jawo', 'mitch', 'niel', 'angel', 'vhen', 'trudice']);
 const MAX_BYTES = 28 * 1024 * 1024;
@@ -65,6 +65,7 @@ function main() {
   if (!VALID_KINDS.has(kind) || !/^[a-z][a-z0-9_-]{1,60}$/.test(id)) throw new Error('Invalid kind or slug');
   if (kind === 'scene' && !SCENES.has(id)) throw new Error('Unknown official Arena battlefield');
   if (kind === 'hero' && !HEROES.has(id)) throw new Error('Unknown canonical BUKLOD character');
+  if (kind === 'fullbody' && !/^(phan|quin|van|christian|lhen|ace|ellusur|jawo|mitch|niel|angel|vhen|trudice)_(idle|walk|attack|skill)$/.test(id)) throw new Error('Unknown character full-body pose');
   const root = resolve(args.root || DEFAULT_ROOT);
   const src = resolve(args.source);
   const st = lstatSync(src);
