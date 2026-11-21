@@ -99,6 +99,9 @@ const PRIMARY_GLYPH_BY_STYLE: Record<string, CombatAction['icon']> = {
   blink: 'flash', burst: 'sword-cross', disrupt: 'lightning-bolt',
 };
 const MODES: Mode[] = ['duel', 'cluster', 'grand'];
+/** Six supplied starter kits; other seven characters intentionally use baseline skills. */
+const starterKitFor = (id?: string) => id && Object.prototype.hasOwnProperty.call(STARTER_HERO_KITS, id)
+  ? STARTER_HERO_KITS[id as keyof typeof STARTER_HERO_KITS] : undefined;
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 const near = (a: Position, b: Position) => Math.hypot(a.x - b.x, a.y - b.y);
 const life = (a: Actor) => a.alive !== false && a.hp > 0;
@@ -189,7 +192,7 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
         r={.17+(i%3)*.10} fill={light.star} opacity={.22 + .28*Math.abs(Math.sin(state.elapsed/950+star.phase))}/>)}
       {lanes.map((y, i) => <Path key={'lane-' + i} d={`M 5 ${y * state.h} Q ${state.w / 2} ${y * state.h + (i - 1) * 3} ${state.w - 5} ${y * state.h}`} stroke="#ffe0a2" opacity={0.38} strokeWidth={1.9} fill="none" strokeDasharray="1 3" />)}
       <Line x1={state.w / 2} y1={6} x2={state.w / 2} y2={state.h - 6} stroke="#a9f8ea" strokeWidth={0.5} strokeDasharray="2 3" opacity={0.5} />
-      <ArenaTerrainArt cover={state.cover} sceneId={sceneId} elapsed={state.elapsed}
+      <ArenaTerrainArt cover={state.cover.map(c => [c[0], c[1], c[2]] as [number, number, number])} sceneId={sceneId} elapsed={state.elapsed}
         worldWidth={state.w} worldHeight={state.h} />
       <ArenaResourceLootArt nodes={state.nodes} loot={state.loot} elapsed={state.elapsed} />
       {!state.solo ? <ArenaBaseArt width={state.w} height={state.h} elapsed={state.elapsed}
@@ -690,9 +693,9 @@ function EmpireArenaInApp() {
   };
   const actions: CombatAction[] = [
     {id:'attack',label:'ATTACK',icon:'sword-cross',onPress:attack},
-    {id:'primary',label:arenaKind==='practice' && me?.hero && STARTER_HERO_KITS[me.hero]?'SKILL 1':'SKILL',icon:PRIMARY_GLYPH_BY_STYLE[HEROES[game?.solo ? soloHero : hero]?.style] || 'lightning-bolt',onPress:()=>skill('primary'),
+    {id:'primary',label:arenaKind==='practice' && me?.hero && starterKitFor(me.hero)?'SKILL 1':'SKILL',icon:PRIMARY_GLYPH_BY_STYLE[HEROES[game?.solo ? soloHero : hero]?.style] || 'lightning-bolt',onPress:()=>skill('primary'),
       disabled:(me?.mana || 0)<18,cooldownMs:cooldownFor('primary')},
-    {id:'secondary',label:arenaKind==='practice' && me?.hero && STARTER_HERO_KITS[me.hero]?'SKILL 2':'DASH',icon:'run-fast',onPress:()=>skill('secondary'),
+    {id:'secondary',label:arenaKind==='practice' && me?.hero && starterKitFor(me.hero)?'SKILL 2':'DASH',icon:'run-fast',onPress:()=>skill('secondary'),
       disabled:(me?.matchLevel||1)<3 || (me?.mana||0)<14,cooldownMs:cooldownFor('secondary')},
     {id:'ultimate',label:'ULT',icon:'fire',onPress:()=>skill('ultimate'),
       disabled:(me?.matchLevel||1)<6 || (me?.mana||0)<55,cooldownMs:cooldownFor('ultimate')},
@@ -814,8 +817,8 @@ function EmpireArenaInApp() {
         <View style={styles.menuHeroText}><Text style={styles.heroName}>{CHARACTER_DISPLAY_NAME[soloHero]}</Text>
           <Text style={styles.heroCaption}>{HEROES[soloHero]?.role?.toUpperCase() ?? 'HERO'} • OFFLINE TRAINING CHARACTER</Text>
           <Text style={styles.heroCaption}>13 heroes • 3 realms • animated battle poses</Text>
-          {STARTER_HERO_KITS[soloHero] ? <Text style={styles.heroCaption} numberOfLines={2}>
-            {STARTER_HERO_KITS[soloHero].primary.id.replace(/_/g,' ')} • {STARTER_HERO_KITS[soloHero].secondary.id.replace(/_/g,' ')} • {STARTER_HERO_KITS[soloHero].ultimate.id.replace(/_/g,' ')}
+          {starterKitFor(soloHero) ? <Text style={styles.heroCaption} numberOfLines={2}>
+            {starterKitFor(soloHero)?.primary.id.replace(/_/g,' ')} • {starterKitFor(soloHero)?.secondary.id.replace(/_/g,' ')} • {starterKitFor(soloHero)?.ultimate.id.replace(/_/g,' ')}
           </Text> : null}</View>
       </View>
       <Text style={styles.groupLabel}>CLASSIC OFFLINE WAR PRACTICE</Text>
