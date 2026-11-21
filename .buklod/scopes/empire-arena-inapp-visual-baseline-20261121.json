@@ -29,7 +29,9 @@
     "Source tests and scope-lock checks pass before staging build",
     "Real Android visual/latency/controls and full online PvP remain explicitly unverified",
     "Battle camera and minimap bound to the same deterministic world coordinates; siege/build/loot and repair actions available from in-app tactics only when legal.",
-    "The 3 existing BUKLOD Realm scene PNGs are mirrored in DEV with actual bytes, verified SHA-256 and Metro static registration; owner manual Library downloads are not required."
+    "The 3 existing BUKLOD Realm scene PNGs are mirrored in DEV with actual bytes, verified SHA-256 and Metro static registration; owner manual Library downloads are not required.",
+    "Arena has source-owned 2.5D breathing/walking portrait motion fallback for 13 canonical identities; genuine rigged combat sprite art is a separately pending fidelity gate.",
+    "Arena reuses existing packaged CC0 premium Kingdom orchestration and local WAV SFX with per-screen music/effects toggles, bounded event cues, and focus-scoped release."
   ],
   "riskAreas": [
     "app-runtime",
@@ -39,7 +41,8 @@
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
-    "tests/empire-arena-v2-packaged-art-20261121.test.mjs"
+    "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -60,7 +63,10 @@
     "assets/season2/arena/generated/scene/verdant_fracture-268f1aad617a.png",
     "scripts/vendor-buklod-arena-scenes.mjs",
     ".github/workflows/buklod-arena-dev-art-vendor.yml",
-    "tests/empire-arena-v2-packaged-art-20261121.test.mjs"
+    "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
+    "src/features/games/empire/arenaPracticeAudio.mjs",
+    "src/features/games/empire/ArenaAnimatedActor.tsx",
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -72,7 +78,8 @@
       "tests": [
         "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
         "tests/empire-arena-v2-presentation-20261121.test.mjs",
-        "tests/empire-arena-v2-packaged-art-20261121.test.mjs"
+        "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
+        "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
       ]
     },
     {
