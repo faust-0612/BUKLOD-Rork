@@ -106,7 +106,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const choice = LOOKS.find(x=>x.id===look) ?? LOOKS[0];
   const isPreview = isGenesisPreviewBuild();
   const requirements=constructionPlan(previewTrack,level,stage);
-  const next=nextMilestone(level,stage);
+  const next=nextMilestone(level,stage,mastery);
 
   useEffect(()=>{
     // A person's draft cannot cross account or verified scope boundaries.
