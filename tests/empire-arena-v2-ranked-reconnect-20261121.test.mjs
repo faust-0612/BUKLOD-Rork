@@ -8,6 +8,7 @@ import {ArenaMatchCoordinator} from '../services/empire-arena/core.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const client=readFileSync(resolve(root,'src/features/games/empire/rankedClient.ts'),'utf8');
 const server=readFileSync(resolve(root,'services/empire-arena/server.mjs'),'utf8');
+const transport=readFileSync(resolve(root,'services/empire-arena/transport.mjs'),'utf8');
 const uuid=i=>'00000000-0000-4000-8000-'+String(i).padStart(12,'0');
 const session=(i,eligible=true)=>{
   const out=[];
@@ -45,8 +46,8 @@ test('Last reserved Diamond does not prohibit reattachment to server-owned activ
 });
 
 test('Server allows authenticated resumed seat with zero spendable Diamonds',()=>{
-  assert.match(server,/const resumed=coordinator\.reattach\(session\)/);
-  assert.match(server,/rankedEligible:session\.eligible\|\|resumed/);
+  assert.match(transport,/const resumed=coordinator\.reattach\(session\)/);
+  assert.match(transport,/rankedEligible:session\.eligible\|\|resumed/);
   assert.match(client,/if\(this\.resumeOnly&&packet\.resumed!==true\)/);
   assert.match(client,/if\(packet\.resumed!==true&&this\.queue\)/);
 });
