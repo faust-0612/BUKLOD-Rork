@@ -57,12 +57,13 @@
       ]
     },
     {
-      "id": "ads-monetization",
-      "reason": "Owner explicitly removes the oversized map-entry ad; original BUKLOD advertisements and mandatory fill/nav performance checks remain unchanged elsewhere.",
+      "id": "navigation-auth",
+      "reason": "The Genesis map entry, Home shortcut and restored BUKLOD title/menu adjust route presentation; preserve the original auth, onboarding, scope and consent guards with no privileged feature bypass.",
       "preservedBehaviors": [
-        "Original Home, Community and other AdMob inventory remains configured with existing placement components and warmups.",
-        "No payout, QMP, BP, points or finance logic is mutated; staging preview never deploys to production.",
-        "Map ambience yields to media, calls and ads via existing audio focus arbitration."
+        "Original public production boot and auth boundaries remain unchanged, including maintenance, forced update, onboarding and privacy consent.",
+        "Home enters existing Home and cannot redirect-loop to the map; Community, Cluster, Connect and Profile use existing guarded routes.",
+        "Other feature advertisements remain present; removing only the map landing ad does not disable existing monetization policies.",
+        "The guide suggestions never confer authorization, mint points, bypass Show Faith or access a protected scope."
       ],
       "tests": [
         "tests/genesis-valley-audio-focus-20261121.test.mjs",
