@@ -125,7 +125,7 @@
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Make BUKLOD header, guide, Home and approved world map coexist with immediate entries; ensure Genesis Wall/Connect controls clear Android status bar without shifting other dashboards",
+      "reason": "Make BUKLOD header, guide, Home and approved world map coexist with immediate entries; ensure Genesis Wall/Connect controls clear Android status bar without shifting other dashboards The Genesis Kingdom AdMob slot now stays last in normal scroll content and the global floating return stays off Kingdom's ad area.",
       "preservedBehaviors": [
         "Existing production remains unchanged",
         "Auth, onboarding, maintenance, update, pilot and consent gates hold",
@@ -134,7 +134,8 @@
       "tests": [
         "tests/season2-final-conso-staging-20261121.test.mjs",
         "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
-        "tests/season2-approved-portrait-art-20261121.test.mjs"
+        "tests/season2-approved-portrait-art-20261121.test.mjs",
+        "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs"
       ]
     },
     {
@@ -177,19 +178,6 @@
         "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
         "tests/season2-premium-staging-ota-contract-20261121.test.mjs"
       ]
-    },
-    {
-      "id": "ads-monetization",
-      "reason": "Place Genesis Kingdom passive AdMob banner only after all scroll content; retain same allowlisted placement and no visual obstruction.",
-      "preservedBehaviors": [
-        "Original AdMob unit and placement are unchanged",
-        "Ads remain blocked inside live game and quiz interactions",
-        "Unrelated Home, Connect, Wall, Profile and Production inventory unchanged",
-        "Global World return no longer floats over Kingdom ad; in-flow back route remains accessible"
-      ],
-      "tests": [
-        "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs"
-      ]
     }
   ],
   "preserveBehaviors": [
@@ -198,7 +186,11 @@
     "First-view map only omits AdMob, normal Home/other monetization unaffected",
     "Audio follows Android focus, native sound settings and user lifecycle",
     "Construction preview is separate from real server owned property and unbounded Mastery",
-    "R3 keeps approved nine doors, four guide bubble routes and existing bottom nav while ensuring a permanent blank panel cannot be terminal state"
+    "R3 keeps approved nine doors, four guide bubble routes and existing bottom nav while ensuring a permanent blank panel cannot be terminal state",
+    "Original AdMob unit and placement are unchanged",
+    "Ads remain blocked inside live game and quiz interactions",
+    "Unrelated Home, Connect, Wall, Profile and Production inventory unchanged",
+    "Global World return no longer floats over Kingdom ad; in-flow back route remains accessible"
   ],
   "acceptanceChecks": [
     "Exact source tests, TypeScript, Metro Android assets, native parity, AdMob/navigation regression and isolated RLS tests green",
