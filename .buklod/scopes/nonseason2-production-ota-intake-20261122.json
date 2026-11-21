@@ -1,11 +1,11 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/nonseason2-production-ota-intake-20261122.json",
-  "objective": "Collect current production-compatible BUKLOD MAIN PTT preferences and non-punitive lesson/mentoring changes into a single isolated DEV production-OTA intake, with a complete explicit pending-source queue and strict Season 2 production embargo; do not publish.",
+  "objective": "Collect current production-compatible BUKLOD MAIN silent OTA activation, PTT preferences and non-punitive lesson/mentoring changes into a single isolated DEV production-OTA intake, with a complete explicit pending-source queue and strict Season 2 production embargo; do not publish.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: last independently recorded BUKLOD MAIN production Android receipt on 2026-11-20 source 98fda684f8a322ba0095adda06899534fdcfa6fe, update 01a1f920-ea6b-7314-a070-364a22019a24, runtime 1.3.2, in PR #1032 (publisher 44743468133, read-only receipt 44744193617). Canonical main source inspected 2026-11-22 at ecd34228dd24f07a47ba397bb1c29199aac51779. This is not proof of the latest served live update now.",
-  "chosenApproach": "Create one protected nonpublishing branch from current main; port exact audited source blobs of source PRs #1071 and #1081, preserve main fixes, pin their Git object IDs, record all remaining eligible workstreams with exact SHAs and reasons to hold, and explicitly exclude Season 2/native changes.",
-  "selectionRationale": "Two newest independent production-compatible fixes share current main as an ancestor and have non-overlapping changed paths. Older DEV/RC candidates diverge and overlap Wall, Connect, Admin, media and security; wholesale merges would risk overwriting current fixes and violate release gates.",
+  "chosenApproach": "Create one protected nonpublishing branch from current main; port exact audited source blobs of source PRs #1071, #1081 and exact compatible five-file #1005, preserve main fixes, pin their Git object IDs, record all remaining eligible workstreams with exact SHAs and reasons to hold, and explicitly exclude Season 2/native changes.",
+  "selectionRationale": "The PTT and lesson/mentor fixes are disjoint descendants of current main; all three modified silent-OTA files in #1005 have exact current-main blob parity with their PR base, permitting safe intact copy. Other old-main-rooted PRs overlap sensitive code and remain on hold.",
   "allowedPaths": [
     ".buklod/scopes/nonseason2-production-ota-intake-20261122.json",
     ".buklod/releases/main-production-ota-intake-20261122.json",
@@ -23,7 +23,12 @@
     "tests/lesson-checking-mentor-options-20261122.test.mjs",
     "tests/mentor-catalog-auth-permission-20261122.test.mjs",
     "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
-    "tests/nonseason2-prod-intake-contract-20261122.test.mjs"
+    "tests/nonseason2-prod-intake-contract-20261122.test.mjs",
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
+    "src/lib/buklodSilentOtaPolicy.ts",
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs"
   ],
   "riskAreas": [
     "app-runtime",
@@ -33,14 +38,18 @@
     "authentication",
     "AdMob",
     "navigation",
-    "release-governance"
+    "release-governance",
+    "silent-ota"
   ],
   "regressionTests": [
     "tests/buklod-ptt-preferences-and-switching.test.mjs",
     "tests/lesson-checking-mentor-options-20261122.test.mjs",
     "tests/mentor-catalog-auth-permission-20261122.test.mjs",
     "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
-    "tests/nonseason2-prod-intake-contract-20261122.test.mjs"
+    "tests/nonseason2-prod-intake-contract-20261122.test.mjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -54,7 +63,10 @@
       "tests": [
         "tests/buklod-ptt-preferences-and-switching.test.mjs",
         "tests/lesson-checking-mentor-options-20261122.test.mjs",
-        "tests/nonseason2-prod-intake-contract-20261122.test.mjs"
+        "tests/nonseason2-prod-intake-contract-20261122.test.mjs",
+        "tests/buklod-mandatory-update-runtime.test.mjs",
+        "tests/buklod-silent-ota-policy.test.mjs",
+        "tests/ota-restart-safe-area.test.cjs"
       ]
     },
     {
@@ -78,7 +90,8 @@
     "Preserve current main security/auth role ACL, latest Wall/Connect/Ads/compact spacing, and current production runtime 1.3.2.",
     "No silent auto-approval of incorrect lessons; no permanent failed grade, no BP penalty for retries.",
     "Never double-cherry-pick branches already in main, or copy older whole branches over newer code.",
-    "Production remains on its last independently verified served update until a complete release is approved and read back."
+    "Production remains on its last independently verified served update until a complete release is approved and read back.",
+    "Expo OTA downloads in background; no force reload during active PTT/calls, draft editing, uploads or offline submissions, and mandatory new APK gating stays unchanged."
   ],
   "acceptanceChecks": [
     "Check each source blob in GitHub branch matches pinned SHA in .buklod/releases/main-production-ota-intake-20261122.json.",
@@ -88,12 +101,14 @@
     "Reconcile latest production main, verified release branch and backlog; forward port remaining nonSeason2 candidates only after separate risk validation, never wholesale branch merge.",
     "Run Android Hermes export, TypeScript, AdMob first-view/fill, fast-tab navigation, weak network, PTT audio, media/lifecycle, auth and UI regression on one frozen RC.",
     "No production OTA until all mandatory gates pass; preserve installed runtime 1.3.2 and use canonical Android guarded publish/readback only.",
-    "Only announce to users after independently verifying the exact production OTA/update ID and bundle hash."
+    "Only announce to users after independently verifying the exact production OTA/update ID and bundle hash.",
+    "Verify silent background OTA and next-cold-launch activation in actual production native binary, including no call/PTT or draft interruption."
   ],
   "alternativeApproaches": [
     "Merge all open branches wholesale into main: rejected because many are older than current production source and include Season 2-native or unreviewed backend changes.",
     "Automatically publish latest main or staging R4 to production: rejected because latest served source is independently unverified, native ABIs differ and the owner explicitly holds Season 2.",
-    "Collect exact main-descendant source patches now and track diverged candidates in an explicit no-publish release inventory: chosen to avoid regressions and support safe RC freeze."
+    "Collect exact main-descendant source patches now and track diverged candidates in an explicit no-publish release inventory: chosen to avoid regressions and support safe RC freeze.",
+    "Repackage a new production APK solely to enable silent Expo JS update behavior: rejected as this is a verified JS-only patch with unchanged required native module set."
   ],
   "releaseMode": "DEV_INTAKE_NONPUBLISHING",
   "publicationStatus": "NO_OTA_NO_APK_NO_BACKEND",
