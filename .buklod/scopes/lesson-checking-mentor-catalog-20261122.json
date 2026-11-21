@@ -23,11 +23,13 @@
     "src/app/mentoring/index.tsx",
     "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql",
     "tests/lesson-checking-mentor-options-20261122.test.mjs",
-    "tests/mentor-catalog-auth-permission-20261122.test.mjs"
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
   ],
   "regressionTests": [
     "tests/lesson-checking-mentor-options-20261122.test.mjs",
-    "tests/mentor-catalog-auth-permission-20261122.test.mjs"
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -51,7 +53,8 @@
         "No historical approvals, RLS policies, existing BP ledger, QMP, review records or private storage objects are mutated by this migration."
       ],
       "tests": [
-        "tests/mentor-catalog-auth-permission-20261122.test.mjs"
+        "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+        "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
       ]
     }
   ],
@@ -62,7 +65,7 @@
     "The user's photo permission, assigned learners and System Admin review cannot be bypassed."
   ],
   "acceptanceChecks": [
-    "Run focused Node contract tests on exact branch SHA plus prior mentor selector/reward tests.",
+    "Run focused Node and SQL contracts on exact branch SHA plus existing mentor selector/reward tests; execute SQL on an isolated database only.",
     "Run source, engineering accountability and protected-feature anti-regression gates.",
     "Apply and RLS-test SQL only on an isolated nonproduction PostgreSQL test environment, verifying an unauthenticated and ordinary member receives no catalog, and a permitted mentor can select all published ready lessons.",
     "Verify real Android weak-network lesson completion, editing, retry, refresh, catalog search/scroll, photo consent, mentor record idempotency and unrelated Ads/navigation/spacing gates before any consolidated RC.",
@@ -71,5 +74,10 @@
   "releaseMode": "ISOLATED_DEV_SOURCE_ONLY",
   "publicationStatus": "NOT_PUBLISHED",
   "physicalDeviceVerification": "NOT_PERFORMED",
-  "stagingDatabaseVerification": "NOT_AVAILABLE"
+  "stagingDatabaseVerification": "NOT_AVAILABLE",
+  "alternativeApproaches": [
+    "Auto-pass all answers and hide failure: rejected because verification and points integrity would be bypassed.",
+    "Expand client options but retain CCP-only server catalog: rejected because published, content-ready general lessons stay inaccessible.",
+    "All-field feedback, unlimited corrections and an authorized full published-ready mentor catalog: selected because verification and private evidence are preserved."
+  ]
 }
