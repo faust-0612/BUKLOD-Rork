@@ -17,7 +17,11 @@ test('Historical owner-approved original is kept byte-identical, new tropical sc
  assert.equal(img.length,473226);
  assert.equal(createHash('sha256').update(img).digest('hex'),
    'a343c70d1c71e849b536570bd92ede7134667d40347f6465003d41710e818b02');
- assert.match(map,/buklod-genesis-portrait-welcome-720x995\.webp/);
+ assert.match(map,/GenesisReliablePortraitImage/);
+ const image=read('src/features/season2/genesis/GenesisReliablePortraitImage.tsx');
+ assert.match(image,/buklod-genesis-portrait-welcome-720x995\.jpg/);
+ assert.match(image,/GENESIS_PORTRAIT_RESCUE_URI/);
+ assert.match(image,/mode==='safe'/);
  assert.ok(existsSync(resolve(root,'assets/buklod-guide/wave.png')));
 });
 

@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - fix/genesis-r2-portrait-android-fallback-20261121
-    paths:
-      - .github/workflows/genesis-r2-portrait-hotfix-qa-20261121.yml
 permissions:
   contents: read
 concurrency:
