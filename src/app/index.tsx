@@ -180,7 +180,7 @@ export default function Index() {
 
   return (
     <Redirect
-      href="/(tabs)/buklod"
+      href="/(tabs)/hub"
     />
   );
 }
