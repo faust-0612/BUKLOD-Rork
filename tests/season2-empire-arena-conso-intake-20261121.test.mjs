@@ -95,7 +95,7 @@ test('All 13 original hero identities have fullbody motion on the same source-ow
 test('Release remains HARD HOLD without signed matching Android APK and actual OTA provider receipt',()=>{
  const script=read('scripts/season2-premium-staging-ota-gate.mjs');
  assert.match(script,/Signed native APK EAS record evidence missing/);
- assert.match(script,/Source gate/);
+ assert.match(script,/--source/);
  assert.match(script,/otaReady/);
  const map=read('src/app/buklod-map.tsx');
  assert.match(map,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
