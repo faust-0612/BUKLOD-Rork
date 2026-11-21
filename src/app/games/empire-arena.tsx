@@ -493,5 +493,8 @@ export default function EmpireArenaPreviewGate() {
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
   if (!profile) return <Redirect href="/onboarding" />;
+  // This release explicitly EXCLUDES Arena. Unavailable even via a deep link
+  // unless an isolated experimental DEV build opts in; never infer from Genesis.
+  if (process.env.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL !== 'true') return <Redirect href="/games" />;
   return <EmpireArenaInApp />;
 }

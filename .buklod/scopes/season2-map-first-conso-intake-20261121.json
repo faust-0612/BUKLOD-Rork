@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
-  "objective": "Genesis stage-only map-first single-door World, now bundling user-approved 1448/1024 Valley artwork and 14 physically anchored hotspots, preserving rights, receipts, ads, permissions and production. In-app Empire Arena offline V2 practice, no separate game or actual ranked economy.",
+  "objective": "Premium nature-first Genesis Kingdom staging source: bundle original tropic/winter cinematic artwork, maintain canonical live Kingdom, and explicitly opt OUT of Arena; NO OTA or economy activation.",
   "baseRef": "44d07a65d5e19f4cfb8f70aaff4f9d24545eb097",
   "productionBaselineEvidence": "Main production untouched; parent DEV commit 9997d85d646257d83e18642a4219a38cc57b0ec2. App/runtime Play identity not independently verified; no Supabase/OTA writes.",
-  "chosenApproach": "Use native expo-image local WebP, deterministic image-coordinate hotspots, overview/explore swipe, exact real routes plus collapsible directory; no 3D SDK or new backend in OTA, no production writes. Anchor all pins on the actual painted gold building icons. Protect background music through existing audio-focus bus, stop after competing media, and do not auto-restart over ads/calls. Selective source import of engine + Expo portrait/terrain inputs from existing Arena DEV; preview launch via GenesisKingdomPortal, legacy games/index untouched.",
+  "chosenApproach": "Keep the previously verified Valley map and original DEV foundation; replace Kingdom's remote realm backdrop with a new locally bundled 16:9 tropical/coastal+alpine original illustration and compact memory-tier WebP. Character ownership/unlocks remain canonical. Disable Arena door and deep-link by default; keep offline code isolated for later.",
   "riskAreas": [
     "arena-multiplayer",
     "asset-licensing",
@@ -18,7 +18,8 @@
     "advertising-audio-priority",
     "asset-touch-hitboxes",
     "arena-offline-practice",
-    "arena-orientation"
+    "arena-orientation",
+    "premium-kingdom-graphics"
   ],
   "lockedFeatureChanges": [
     {
@@ -71,7 +72,8 @@
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
-    "tests/genesis-arena-auth-boundary-20261121.test.mjs"
+    "tests/genesis-arena-auth-boundary-20261121.test.mjs",
+    "tests/season2-premium-nature-kingdom-20261121.test.mjs"
   ],
   "allowedPaths": [
     "src/app/buklod-map.tsx",
@@ -108,7 +110,10 @@
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
     "docs/empire-arena/BUKLOD_ARENA_IN_APP_VISUAL_BASELINE_20261121.md",
     "src/features/season2/genesis/GenesisKingdomPortal.tsx",
-    "tests/genesis-arena-auth-boundary-20261121.test.mjs"
+    "tests/genesis-arena-auth-boundary-20261121.test.mjs",
+    "assets/season2/genesis/kingdom/kingdom-nature-panorama.webp",
+    "assets/season2/genesis/kingdom/kingdom-nature-panorama-compact.webp",
+    "tests/season2-premium-nature-kingdom-20261121.test.mjs"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
@@ -120,7 +125,10 @@
     "No Stage→Production release until 2026-12-06 and authorization.",
     "Source QA workflow runs actual WebP SHA256/14-route checks plus audio-focus regression with no release/publish step.",
     "Focused Arena engine/camera/input offline tests and exact-head TypeScript; physical device, full PvP and signed APK remain unverified.",
-    "Preview-only Arena direct deep link checks session, onboarding, maintenance, update, pilot and privacy gates before game mount."
+    "Preview-only Arena direct deep link checks session, onboarding, maintenance, update, pilot and privacy gates before game mount.",
+    "Premium original Kingdom source WebP SHA256 232c99e995fafde2e018a286f998a39917de32620ee502c8486ca58a1eabf8eb; compact 5e7ed0af9568aa6f9cc8d6753015b3c8ac36fd4e070541d43f017d88975fcc95; 1536x864 and 960x540. Static no network/egress. Real device image decode waived but unverified.",
+    "Arena specifically out of staging: EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL is OFF by default for portal and direct link. Does NOT remove the source from DEV. No staged version may silently opt in.",
+    "No signed staging APK/EAS runtime/OTA receipt, AdMob fill and native regression proof, isolated BP/QMP/RLS backend or end-to-end 5-stage World art present; staging OTA READY remains blocked."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
@@ -130,7 +138,9 @@
     "First-view Home AdMob, second native sponsor, community sponsor and bottom banner remain mounted in Genesis; no false forced ad success.",
     "No BP, QMP, Diamond, ownership or Marketplace server mutation; World preview labeled non-live.",
     "Music starts only when opted in and foreground/focused; stops on audio focus interruption, navigation and background.",
-    "Live Play APK, production EAS/OTA and existing Supabase unchanged."
+    "Live Play APK, production EAS/OTA and existing Supabase unchanged.",
+    "Never replace production Kingdom rendering; only Genesis preview sees the new local nature panorama. Remote preview-host image is not loaded on new portal.",
+    "Arena is excluded in staging by default, including deep links, while existing DEV source/tests remain available for explicit separate experiments."
   ],
   "alternativeApproaches": [
     "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",

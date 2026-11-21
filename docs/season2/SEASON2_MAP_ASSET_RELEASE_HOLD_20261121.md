@@ -40,3 +40,11 @@ No production main changes. No migration deployment. No release or update workfl
 
 ## Arena privacy/auth direct-link gate
 The /games/empire-arena route now checks session, profile/onboarding, consent, maintenance, forced update, pilot access, and Genesis-only build before mounting the offline practice component. Production clients remain redirected. This source security gate is not proof of Android behavior.
+
+## Nature-first premium Kingdom visual staging intake — 2026-11-21
+
+Owner's four references supersede the earlier flower-heavy/feminine Kingdom scene: cinematic, mature classic-modern architecture in nature-rich landscapes; tropical coast and forests, waterfalls, alpine winter peaks, deep terrain and mist. The new original rendered environment panorama is 1536x864 WebP SHA256 `232c99e995fafde2e018a286f998a39917de32620ee502c8486ca58a1eabf8eb`, with low-RAM 960x540 SHA256 `5e7ed0af9568aa6f9cc8d6753015b3c8ac36fd4e070541d43f017d88975fcc95`. Both are compiled local assets in this DEV branch, no user download/third-party image service required. The 16:9 source composition remains intact on narrow screens. The original 13 character selection and earned rewards are preserved; art is an **environment** asset, not fake animated rig or backend ownership proof.
+
+**Arena excluded from premium Season 2 staging scope:** the portal button and deep-link mount require explicit `EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL=true`; default false. Existing experimental practice code remains in isolated DEV source only; do not include its multiplayer/diamonds requirements in visual-only candidate acceptance, and never imply multiplayer live.
+
+**Still NOT STAGING OTA READY:** this is a source/art preflight only; staging native runtime, active Expo/EAS channel/update group, exact destination bundle, ad-fill/navigation/codec regression and signed APK compatibility have not been verified. The World 5-stage visual authority and spendable BP/QMP/Character item RLS settlement lack isolated backend. Production/main/Play/OTA/Supabase unchanged. Physical visual verification waived by owner but unverified.

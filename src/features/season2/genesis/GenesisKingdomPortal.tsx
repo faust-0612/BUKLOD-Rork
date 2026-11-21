@@ -6,7 +6,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
+import { getGenesisDeviceQuality } from './genesisDeviceQuality';
 import { getBuklodSpecialLevelAsset, type BuklodSpecialCharacterId } from '@/lib/buklodSpecialCharacterAssets';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import type { ProgressiveCharacterId } from '@/lib/buklodProgressiveCharacter';
@@ -33,6 +33,8 @@ export const GENESIS_REALMS = [
 ] as const;
 type Realm = (typeof GENESIS_REALMS)[number];
 const CORE: readonly string[] = ['phan','quin','van','christian','lhen'];
+const KINGDOM_NATURE_HIGH = require('../../../../assets/season2/genesis/kingdom/kingdom-nature-panorama.webp');
+const KINGDOM_NATURE_COMPACT = require('../../../../assets/season2/genesis/kingdom/kingdom-nature-panorama-compact.webp');
 
 function RealmCharacter({ character }: { character: Realm['character'] }) {
   return CORE.includes(character)
@@ -47,7 +49,6 @@ export default function GenesisKingdomPortal() {
   const [focused, setFocused] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
   const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   useEffect(() => {
@@ -58,10 +59,12 @@ export default function GenesisKingdomPortal() {
     return () => { current = false; a.remove(); b.remove(); };
   }, []);
   const animate = focused && foreground && !reduceMotion;
-  const media = getRorkGameMedia(selected.id);
+  const natureVista = getGenesisDeviceQuality('kingdom') === 'minimal' ? KINGDOM_NATURE_COMPACT : KINGDOM_NATURE_HIGH;
+  // Arena source remains DEV-only but is not in the Season 2 visual staging candidate.
+  const arenaExperimental = process.env.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL === 'true';
   const select = (realm: Realm) => {
     if (selected.id === realm.id) return;
-    setSelected(realm); setImageFailed(false);
+    setSelected(realm);
     if (animate) void pulseGenesisTouch('selection');
   };
   const frameHeight = width > 640 ? 350 : 298;
@@ -76,12 +79,23 @@ export default function GenesisKingdomPortal() {
         </View>
         <GenesisSeal active={animate} size={70}/>
       </View>
+      {/* Fixed local BUKLOD-owned art: mature, nature-first, tropical/coastal and alpine/winter.
+          Preserve full 16:9 panorama on narrow Android displays; no server egress or blank art. */}
+      <View style={styles.kingdomVista} accessibilityLabel="Majestic Kingdom overlooking tropical valleys, rivers, waterfalls, ocean and winter mountains">
+        <ExpoImage source={natureVista} contentFit="cover" cachePolicy="memory-disk"
+          transition={reduceMotion ? 0 : 140} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['transparent','rgba(3,15,26,.02)','rgba(3,16,29,.85)']}
+          locations={[0,.55,1]} style={StyleSheet.absoluteFill} />
+        <View pointerEvents="none" style={styles.vistaCaption}>
+          <Text style={styles.vistaEyebrow}>THE LIVING KINGDOM</Text>
+          <Text numberOfLines={2} style={styles.vistaTitle}>Tropical Valleys · Winter Peaks</Text>
+        </View>
+      </View>
       <View style={[styles.illustration,{height:frameHeight}]}>
-        {media?.background && !imageFailed ?
-          <ExpoImage source={{uri:media.background}} contentFit="cover" cachePolicy="memory-disk" transition={140}
-            onError={()=>setImageFailed(true)} style={StyleSheet.absoluteFill} key={selected.id}/>
-          : null}
-        <LinearGradient colors={['rgba(2,9,22,.42)','rgba(4,13,30,.1)','rgba(1,8,17,.95)']} style={StyleSheet.absoluteFill}/>
+        {/* Individual characters retain their original local models/art. Do not load remote
+            preview-host backgrounds or substitute wallpaper for animated character rigs. */}
+        <LinearGradient colors={['#13322D','#102C3D','#071623']} style={StyleSheet.absoluteFill}/>
+        <LinearGradient colors={['rgba(2,10,20,.20)','rgba(4,15,28,.16)','rgba(1,8,17,.88)']} style={StyleSheet.absoluteFill}/>
         <GenesisCosmicSky active={animate} transparent/>
         <GenesisOrbitHalo active={animate} size={Math.min(300, width * 0.72)} />
         <View pointerEvents="none" style={styles.heroArt}>
@@ -110,7 +124,8 @@ export default function GenesisKingdomPortal() {
           </View>
           <MaterialCommunityIcons name={musicEnabled ? 'toggle-switch' : 'toggle-switch-off'} color="#F5DBAD" size={28}/>
         </Pressable>
-        <Pressable accessibilityRole="button"
+        {arenaExperimental ? (
+          <Pressable accessibilityRole="button"
           accessibilityLabel="Enter Empire Arena offline practice inside BUKLOD MAIN"
           onPress={()=>router.push('/games/empire-arena' as any)}
           style={[styles.action,{borderColor:'#E6BF7B',backgroundColor:'#173443'}]}>
@@ -120,7 +135,8 @@ export default function GenesisKingdomPortal() {
             <Text style={styles.actionSub}>In-app landscape practice • no BP or Diamond changes</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#FFE1A6"/>
-        </Pressable>
+          </Pressable>
+        ) : null}
         <Pressable accessibilityRole="button" onPress={()=>router.push('/games/genesis-collection' as any)} style={styles.action}>
           <MaterialCommunityIcons name="diamond-stone" size={22} color="#FFE3A3"/>
           <View style={{flex:1}}>
@@ -156,6 +172,11 @@ export default function GenesisKingdomPortal() {
 const styles = StyleSheet.create({
  root:{flex:1,backgroundColor:'#030D1E'},
  content:{width:'100%',maxWidth:850,alignSelf:'center',padding:12,paddingBottom:28,gap:12},
+ kingdomVista:{width:'100%',aspectRatio:16/9,borderRadius:18,overflow:'hidden',
+   borderWidth:1,borderColor:'#728B83',backgroundColor:'#0B2832'},
+ vistaCaption:{position:'absolute',left:12,right:10,bottom:10},
+ vistaEyebrow:{color:'#C8E8D7',fontSize:9,fontWeight:'900',letterSpacing:1.2},
+ vistaTitle:{color:'#FFF7DE',fontSize:15,lineHeight:19,fontWeight:'900',marginTop:2},
  header:{borderRadius:18,minHeight:110,overflow:'hidden',flexDirection:'row',alignItems:'center',paddingHorizontal:17,
   borderWidth:1,borderColor:'#7D947C'},
  headerText:{flex:1,zIndex:2,paddingVertical:15},
