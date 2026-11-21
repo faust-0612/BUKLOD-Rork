@@ -140,6 +140,12 @@ test('solo module requires neither signal nor backend and cannot modify the real
   const executable = solo.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
   assert.doesNotMatch(executable,/https?:|fetch\(|supabase|websocket|AsyncStorage|awardBp|awardDiamond|rpc\(|balance|withdrawal/i);
   assert.match(route,/createOfflineSoloBattle/);
+  assert.match(route,/hero:soloHero,opponent:cpuHero/);
+  assert.match(route,/const \[soloHero,setSoloHero\]/);
+  assert.match(route,/soloHeroTouched\.current=true/);
+  assert.match(route,/if\(!soloHeroTouched\.current\)setSoloHero/);
+  assert.ok(route.indexOf('BATTLEFIELD')<route.indexOf('PLAY OFFLINE • VS CPU'),
+    'offline map choices must be accessible before the Start button');
   assert.match(route,/tickOfflineSolo\(state\)/);
   assert.match(route,/onPress=\{startSolo\}/);
   assert.match(route,/PLAY OFFLINE • VS CPU/);
