@@ -93,9 +93,10 @@ wss.on('connection',ws=>{
             lastCommandSeq:0};
           clientsByUser.set(user.id,ws);
           state='authed';
+          // Resume is authoritative; never re-queue a live seat on reconnection.
+          const resumed=coordinator.reattach(session);
           sendRaw(ws,{type:'hello_ok',hero:session.hero,rankedEligible:session.eligible,
-            diamonds:profile.diamonds,rating:profile.rating});
-          coordinator.reattach(session);
+            diamonds:profile.diamonds,rating:profile.rating,resumed});
         }catch(error){
           metrics.rejected++;
           sendRaw(ws,{type:'error',code:'authentication_or_rank_eligibility_failed'});
