@@ -35,7 +35,7 @@ test('13 original offline estate SFX are real bounded 24kHz stereo 16-bit PCM WA
    assert.ok(peak>1000, 'audible signal '+cue);
    assert.ok(energy>1000000, 'not silent '+cue);
    hashes.add(createHash('sha256').update(wav).digest('hex'));
-   assert.match(native,new RegExp("estate-premium/"+cue+"\\\\.wav"));
+   assert.ok(native.includes('estate-premium/'+cue+'.wav'),'native asset binding '+cue);
  }
  assert.equal(hashes.size,cues.length,'each event gets a distinct sound');
 });
