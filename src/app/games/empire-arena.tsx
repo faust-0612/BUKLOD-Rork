@@ -87,13 +87,21 @@ function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: bool
   if (!life(actor)) return null;
   const tint = friendly ? '#8ffce6' : '#ff9d8b';
   const r = actor.hero ? 2.6 : actor.kind === 'villager' ? 1.25 : 1.8;
+  // The official full-body actor overlays hero markers. No enormous cheap
+  // initial-letter badges: just a readable tactical selection circle below feet.
   return <G>
-    {selected ? <Circle cx={actor.x} cy={actor.y} r={r + 2.5} stroke="#f9dd8b" strokeWidth={0.75} fill="transparent" /> : null}
-    <Circle cx={actor.x} cy={actor.y + 1} r={r + 1.0} fill="#07131b" opacity={0.45} />
-    <Circle cx={actor.x} cy={actor.y} r={r} fill={tint} stroke="#122a38" strokeWidth={0.55} />
-    {actor.hero ? <SvgText x={actor.x} y={actor.y + 0.85} textAnchor="middle" fontSize={2.6} fontWeight="bold" fill="#12202e">{actor.hero.slice(0, 1).toUpperCase()}</SvgText> : null}
-    <Rect x={actor.x - r - 0.5} y={actor.y - r - 2.2} width={(r + 0.5) * 2} height={0.75} fill="#301b23" />
-    <Rect x={actor.x - r - 0.5} y={actor.y - r - 2.2} width={(r + 0.5) * 2 * clamp(actor.hp / Math.max(1, actor.maxHp), 0, 1)} height={0.75} fill="#9effa7" />
+    {selected ? <Circle cx={actor.x} cy={actor.y} r={r + 2.5}
+      stroke="#f9dd8b" strokeWidth={0.85} fill="none" strokeDasharray="2.2 1.5" /> : null}
+    <Circle cx={actor.x} cy={actor.y + 1} r={r + 1.0} fill="#07131b" opacity={0.42} />
+    <Circle cx={actor.x} cy={actor.y} r={r}
+      fill={actor.hero ? '#0a2e31' : tint} stroke={tint} strokeWidth={actor.hero ? 0.95 : 0.55}
+      fillOpacity={actor.hero ? 0.38 : 0.9} />
+    {!actor.hero ? <G>
+      <Rect x={actor.x - r - 0.5} y={actor.y - r - 2.2} width={(r + 0.5) * 2} height={0.75} fill="#301b23" />
+      <Rect x={actor.x - r - 0.5} y={actor.y - r - 2.2}
+        width={(r + 0.5) * 2 * clamp(actor.hp / Math.max(1, actor.maxHp), 0, 1)}
+        height={0.75} fill="#9effa7" />
+    </G> : null}
   </G>;
 }
 
