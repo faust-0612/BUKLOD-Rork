@@ -90,7 +90,7 @@ export default function BuklodNavSafeShell({
   const immersiveConversation = isHiblaConversationPath(pathname);
   const genesisWorld = isGenesisPreviewBuild();
   // Genesis retains the regular bottom navigation except inside immersive routes.
-  const navOccupied = immersiveConversation || normalizeBuklodPathname(pathname) === '/games/empire-arena' ? 0 : rawNavOccupied;
+  const navOccupied = immersiveConversation ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
@@ -198,7 +198,7 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat && !immersiveArena ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!immersiveIgpat && !immersiveConversation && !immersiveArena && rawNavOccupied > 0 ? (
+      {!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 && !immersiveArena ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}

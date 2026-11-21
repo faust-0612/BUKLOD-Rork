@@ -112,7 +112,8 @@ function poolFor(key: RorkAudioKey) {
 function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
   if (focusedKingdomViews === 0 || AppState.currentState !== 'active') return false;
   // All mini-games and Arena must obey the existing master sound switch.
-  if (!isBuklodGameSoundEnabled() || arenaAudioInterrupted) return false;
+  if (!isBuklodGameSoundEnabled()) return false;
+  if (arenaAudioInterrupted) return false;
   const now = Date.now();
   const last = lastPlayedAt.get(key) ?? 0;
   if (cooldownMs > 0 && now - last < cooldownMs) return false;
@@ -287,6 +288,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
     if (isKingdomMap || options?.arena) setMusicSuspended(false);
     // Keep the long-standing Genesis callback contract intact. Arena takes a
     // separate, focus-owned subscription so non-Arena screens are unchanged.
+    // All 39 focused mini-games yield to calls, video and AdMob sound focus.
     const releaseAudioFocus = isKingdomMap
       ? subscribeBuklodAudioFocus(owner => {
           if (owner === 'genesis-valley-map' || !active) return;

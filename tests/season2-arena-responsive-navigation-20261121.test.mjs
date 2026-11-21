@@ -26,7 +26,7 @@ test('global nav, ads and floating map return never cover the Arena', () => {
   assert.match(shell, /immersiveArena = normalizeBuklodPathname\(pathname\) === '\/games\/empire-arena'/);
   assert.match(shell, /!immersiveIgpat && !immersiveArena \? <BuklodFocusAppAdStrip/);
   assert.match(shell, /!immersiveArena && !keyboardVisible/);
-  assert.match(shell, /!immersiveConversation && !immersiveArena && rawNavOccupied/);
+  assert.match(shell, /!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 && !immersiveArena/);
 });
 test('practice remains isolated from reward balances and ranked stays gated', () => {
   assert.match(arena, /diamonds: 0, verifiedItems: \[\]/);
