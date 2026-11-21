@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,existsSync} from 'node:fs';
+import {readFileSync,existsSync,statSync} from 'node:fs';
 import {
  FINISHES,ROOFS,GROUNDS,FENCES,WINDOWS,LIGHTS,DOORS,PATHS,YARDS,
  safeCosmetics,visualDevelopmentFeatures,
@@ -41,7 +41,7 @@ test('all 150 stages are separately identified with installed renderer and remai
   const visual=visualDevelopmentFeatures(track,level,stage,0,false);
   const earned=visualDevelopmentFeatures(track,level,stage,0,true);
   assert.ok(visual.length>=earned.length);
-  assert.equal(earned.length,level-1,'future tier cannot be marked completed before stage finishing');
+  assert.equal(earned.length,stage===4?level:level-1,'completed finishing must render the earned current tier');
  }
  assert.equal(ids.size,150);
  assert.equal(visualDevelopmentFeatures('house',10,0,1,true).length,10);
@@ -54,7 +54,12 @@ test('world underpaintings are bundled, not broken catalog references',()=>{
  for(const path of [
   'assets/season2/genesis/world/buklod-community-village-stage1.webp',
   'assets/season2/genesis/world/buklod-my-home-stage1.webp',
- ])assert.ok(existsSync(new URL('../'+path,import.meta.url)),path);
+ ]){
+  const file=new URL('../'+path,import.meta.url);
+  assert.ok(existsSync(file),path);
+  assert.ok(statSync(file).size>10000,'asset is missing image data: '+path);
+  assert.ok(map.includes(path.split('/').at(-1)),'bundled image is actually referenced: '+path);
+ }
  assert.match(map,/VILLAGE_ART/);assert.match(map,/HOME_ART/);
  assert.match(map,/renderStatus|stageAsset/);
 });
@@ -87,4 +92,18 @@ test('real progress and local preview remain different, scoped, with one-tap edi
  assert.match(renderer,/opacity:reveal/);
  assert.match(map,/save_buklod_estate_design_v1|EstateConstructionConsole/);
  assert.match(sql,/v_door not in/);assert.match(sql,/v_path not in/);assert.match(sql,/v_yard not in/);
+});
+
+test('nine customization families cover all 30 choices, apply through the studio, and persist in the server RPC',()=>{
+ const lists={finish:FINISHES,roof:ROOFS,ground:GROUNDS,fence:FENCES,windows:WINDOWS,lights:LIGHTS,door:DOORS,path:PATHS,yard:YARDS};
+ for(const [field,choices] of Object.entries(lists)){
+  for(const option of choices)assert.equal(safeCosmetics({[field]:option})[field],option,field+' '+option);
+  assert.equal(safeCosmetics({[field]:'invalid'})[field],safeCosmetics({})[field]);
+  assert.match(map,new RegExp(field==='finish'?'previewCustomize\\(\\{finish:next\\}\\)':'previewCustomize\\(\\{'+field+':item.id\\}\\)'));
+  assert.match(client,new RegExp(field+':isChoice'));
+  assert.match(sql,new RegExp("v_"+field+":=p_design->>'"+field+"'"));
+ }
+ assert.match(map,/visualDesign:EstateCosmetics=liveView&&verified\?verified.cosmetics:design/);
+ assert.match(map,/setLiveView\(false\)/);
+ assert.match(sql,/Unsupported cosmetic choice/);
 });
