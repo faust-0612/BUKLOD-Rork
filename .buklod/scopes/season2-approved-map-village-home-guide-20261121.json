@@ -35,7 +35,9 @@
     "src/features/season2/world/developmentAssetManifest.ts",
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
     "tests/season2-village-home-guide-20261121.test.mjs",
-    ".buklod/scopes/season2-approved-map-village-home-guide-20261121.json"
+    ".buklod/scopes/season2-approved-map-village-home-guide-20261121.json",
+    "src/features/season2/world/guideDestinations.ts",
+    "src/features/season2/genesis/genesisHitTargetLayout.ts"
   ],
   "regressionTests": [
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",

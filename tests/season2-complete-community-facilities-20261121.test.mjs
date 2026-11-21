@@ -55,7 +55,7 @@ test('search, category isolation, bounds, and empty queries are deterministic',(
 test('optional directory adds linked one-tap access without modifying approved entry art or authorities',()=>{
   const world=source('src/features/season2/world/Season2DevelopmentMap.tsx');
   const directory=source('src/features/season2/world/Season2CommunityFacilities.tsx');
-  const guide=source('src/features/season2/world/BuklodMapGuideDock.tsx');
+  const guide=source('src/features/season2/world/guideDestinations.ts');
   const map=source('src/app/buklod-map.tsx');
   assert.match(world,/<Season2CommunityFacilities world=\{world\}\/>/);
   assert.ok(world.indexOf('<Season2CommunityFacilities')>world.indexOf('styles.mapNote'));

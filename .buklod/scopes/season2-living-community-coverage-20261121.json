@@ -24,9 +24,9 @@
     "src/features/season2/world/communityFacilityDirectory.d.mts",
     "src/features/season2/world/Season2CommunityFacilities.tsx",
     "src/features/season2/world/Season2DevelopmentMap.tsx",
-    "src/features/season2/world/BuklodMapGuideDock.tsx",
     "tests/season2-complete-community-facilities-20261121.test.mjs",
-    "docs/season2/LIVING_COMMUNITY_FACILITY_COVERAGE_DEV_20261121.md"
+    "docs/season2/LIVING_COMMUNITY_FACILITY_COVERAGE_DEV_20261121.md",
+    "src/features/season2/world/guideDestinations.ts"
   ],
   "regressionTests": [
     "tests/season2-complete-community-facilities-20261121.test.mjs"
@@ -61,5 +61,10 @@
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "releaseMode": "dev-staging-candidate-no-ota",
   "physicalDeviceVerification": "NOT_PERFORMED",
-  "productionDeployment": "NONE"
+  "productionDeployment": "NONE",
+  "reconciliationEvidence": {
+    "fromParentCommit": "1d611a3f27f89478c3d0d3de20cfe897a4473abe",
+    "priorFeatureCommit": "328da4ac0058ce2ce9325c60eb22758d4cc9f082",
+    "reason": "Parent added React Native type fixes, reusable guide destinations helper and map hit-target layout. Use complete parent tree and overlay only new directory plus helper hint changes."
+  }
 }

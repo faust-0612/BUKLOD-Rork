@@ -70,3 +70,37 @@ test('landscape first view preserves map and ad side-by-side; guide has local he
   assert.match(guide,/TextInput/);
   assert.match(guide,/isReduceMotionEnabled/);
 });
+
+test('real offline guide routes Filipino/English requests without transmitting messages',async()=>{
+ const {resolveBuklodGuideDestination}=await import('../src/features/season2/world/guideDestinations.ts');
+ const cases=[
+  ['Gusto kong magpost sa Wall',false,'/buklod'],
+  ['Paano lumaban sa Empire Arena?',false,'/games/empire-arena'],
+  ['Anong kailangan sa Cluster?',false,'/season2/community-village'],
+  ['Bahay at lote ko',false,'/season2/my-world'],
+  ['Bible reading',false,'/learn'],
+  ['Bible reading',true,'/bible'],
+  ['Mag-message at call',false,'/messages'],
+  ['QMP points and rewards',false,'/points/progression'],
+  ['Unknown question',false,'/buklod-map'],
+ ];
+ for(const [question,faith,route] of cases)assert.equal(resolveBuklodGuideDestination(question,faith).route,route,question);
+});
+test('real BUKLOD V2 30-level catalog has independent correct keys and safe clamping',async()=>{
+ const {DEVELOPMENT_ASSET_CATALOG,getDevelopmentAsset}=await import('../src/features/season2/world/developmentAssetManifest.ts');
+ assert.equal(DEVELOPMENT_ASSET_CATALOG.length,30);
+ assert.equal(new Set(DEVELOPMENT_ASSET_CATALOG.map(x=>x.assetId)).size,30);
+ const keys={lot:'LOT',house:'HOU',cluster:'COM'};
+ for(const [track,prefix] of Object.entries(keys)){
+  const levels=DEVELOPMENT_ASSET_CATALOG.filter(x=>x.track===track);
+  assert.equal(levels.length,10);
+  for(let level=1;level<=10;level++){
+   const entry=getDevelopmentAsset(track,level);
+   assert.equal(entry.assetId,prefix+'_L'+String(level).padStart(2,'0'));
+   assert.match(entry.catalogPath,/^buklod_assets\/png\//);
+   assert.equal(entry.stagingStatus,'catalog-only');
+  }
+  assert.equal(getDevelopmentAsset(track,-1).level,1);
+  assert.equal(getDevelopmentAsset(track,999).level,10);
+ }
+});

@@ -60,3 +60,18 @@ test('narrow Android 44px hit targets stay within landscape image bounds',()=>{
     assert.ok(y-diameter/2>=0&&y+diameter/2<=height,h.id);
   }
 });
+
+test('real narrow landscape targets never overlap at 280dp and stay in viewport',async()=>{
+  const {layoutHotspotCenters}=await import('../src/features/season2/genesis/genesisHitTargetLayout.ts');
+  const width=280,height=width*941/1672,diameter=44;
+  const centers=layoutHotspotCenters(metadata.hotspots,width,height,diameter);
+  assert.equal(centers.length,12);
+  centers.forEach(({x,y})=>{
+    assert.ok(x>=diameter/2&&x<=width-diameter/2);
+    assert.ok(y>=diameter/2&&y<=height-diameter/2);
+  });
+  for(let i=0;i<centers.length;i++)for(let j=i+1;j<centers.length;j++){
+    const distance=Math.hypot(centers[j].x-centers[i].x,centers[j].y-centers[i].y);
+    assert.ok(distance>=diameter-0.05,'overlapping '+metadata.hotspots[i].id+' / '+metadata.hotspots[j].id);
+  }
+});
