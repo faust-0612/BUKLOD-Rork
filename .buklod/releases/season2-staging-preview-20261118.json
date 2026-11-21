@@ -1,0 +1,19 @@
+{
+  "contractVersion": 1,
+  "approval": "OWNER_APPROVED_SEASON2_STAGING_AFTER_CURRENT_PRODUCTION",
+  "manilaDay": "2026-11-18",
+  "release": "BUKLOD Season 2 Rise Together native visual preview only",
+  "branch": "staging/season2-rise-together-preview-20261118",
+  "target": "staging-user",
+  "package": "org.mzbministry.buklod.staging",
+  "runtime": "1.3.2",
+  "reviewedSourceSha": "0895e932107904861319cbf800e19b3305de539e",
+  "productionTrainAUpdateId": "01a1ee79-b1f1-7295-9d48-0238ffe0202a",
+  "productionSourceSha": "404c87e55c62a88c95c7389ac8665f237149702a",
+  "releaseAuthorizedForStaging": true,
+  "productionPublicationAuthorized": false,
+  "productionSeason2EmbargoUntilManilaDay": "2026-12-06",
+  "gameplayLive": false,
+  "qmpOrCashModified": false,
+  "physicalAndroidVisualQACompleted": false
+}
