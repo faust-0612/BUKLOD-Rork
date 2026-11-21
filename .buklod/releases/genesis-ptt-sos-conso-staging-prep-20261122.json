@@ -2,10 +2,11 @@
   "contractVersion": 2,
   "objective": "Prepare one cumulative Genesis R4 Android staging candidate: prior verified staging R4 + PTT saved settings + SOS audible overlay, sender GPS, authorized rescue navigation, without publishing or changing the paid production backend.",
   "freeze": {
-    "sourceRef": "41d74d52f39eb96abc273429f1e704233b6c4a81",
+    "sourceRef": "919330b54b01a64b02d37442c2f732fe0e8d45a1",
     "sosSourceRef": "1cbab5f91051f12fb5b2beb724a276d03bdbd4c2",
     "priorVerifiedStagingR4": "1eb38e7cec2f0befad73180ab02b2ac04ed60df4",
-    "prodMainBaseline": "ecd34228dd24f07a47ba397bb1c29199aac51779"
+    "prodMainBaseline": "ecd34228dd24f07a47ba397bb1c29199aac51779",
+    "reconciledParentPttFix": "919330b54b01a64b02d37442c2f732fe0e8d45a1"
   },
   "scope": {
     "preservedPTT": [
@@ -36,6 +37,9 @@
       "production branch deployments",
       "direct production schema edits",
       "new runtime or package rename"
+    ],
+    "preservedPTTLatest": [
+      "src/ptt/buklodPttSetup.ts"
     ]
   },
   "deploymentDependencies": {

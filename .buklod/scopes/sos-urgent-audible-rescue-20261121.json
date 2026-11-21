@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Make BUKLOD SOS activate an urgent audible nearby notification and app-wide recipient overlay with mandatory sender GPS and tightly authorized responder navigation; do not alter live production without native and backend gates.",
-  "baseRef": "41d74d52f39eb96abc273429f1e704233b6c4a81",
-  "productionBaselineEvidence": "Main ecd34228dd24f07a47ba397bb1c29199aac51779 retains R1 SOS and R2 overlay; 2026-11-21 read-only MAIN audit found one active SOS marked SENT with zero nearby recipients and no push records. Dedicated Android R2 channel referenced by server but missing matching client initialization. No claim that physical push, native APK, or published OTA has changed. This additive consolidated PR is based on the exact previously prepared R4+PTT source 41d74d52f39eb96abc273429f1e704233b6c4a81, not directly on production main. GitHub R4 stage 1eb38e7cec2f0befad73180ab02b2ac04ed60df4 already published before these SOS changes. Current production main ecd34228dd24f07a47ba397bb1c29199aac51779 is unchanged.",
+  "baseRef": "919330b54b01a64b02d37442c2f732fe0e8d45a1",
+  "productionBaselineEvidence": "Main ecd34228dd24f07a47ba397bb1c29199aac51779 retains R1 SOS and R2 overlay; 2026-11-21 read-only MAIN audit found one active SOS marked SENT with zero nearby recipients and no push records. Dedicated Android R2 channel referenced by server but missing matching client initialization. No claim that physical push, native APK, or published OTA has changed. This additive consolidated PR is based on the exact previously prepared R4+PTT source 41d74d52f39eb96abc273429f1e704233b6c4a81, not directly on production main. GitHub R4 stage 1eb38e7cec2f0befad73180ab02b2ac04ed60df4 already published before these SOS changes. Current production main ecd34228dd24f07a47ba397bb1c29199aac51779 is unchanged. Follow-up PTT parent 919330b54b01a64b02d37442c2f732fe0e8d45a1 adds a corrected PTT setup; same implementation is now reconciled into this candidate.",
   "chosenApproach": "Create bundled sound channel buklod-emergency-v2 with per-token confirmed capability=3 and legacy channel fallback; retain root in-app Modal; enforce foreground GPS on send, targeted recipient RLS+proximity RPC, foreground opt-in presence refresh, and narrowly scoped ON_MY_WAY map handoff.",
   "selectionRationale": "Native notification channels are required for reliable Android audio delivery, but cannot be OTA-only. Explicit per-device capability avoids trying noninstalled channels. Existing app-only overlay and authenticated server fanout remain the canonical transport. Sender-informed on-the-way navigation is preferable to exposing precise location to all nearby users.",
   "alternativeApproaches": [
@@ -104,9 +104,11 @@
     "supabase/tests/sos_urgent_responder_security_20261121.sql",
     ".buklod/releases/genesis-ptt-sos-conso-staging-prep-20261122.json",
     "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs",
-    "eas.json"
+    "eas.json",
+    "src/ptt/buklodPttSetup.ts"
   ],
   "originalSosDevBaseRef": "ecd34228dd24f07a47ba397bb1c29199aac51779",
   "cumulativeStagingParent": "release/ptt-persistent-settings-genesis-staging-ota-candidate-20261122",
-  "releaseMode": "staging-source-prepare-only-native-APK-and-isolated-backend-blocked"
+  "releaseMode": "staging-source-prepare-only-native-APK-and-isolated-backend-blocked",
+  "cumulativeStagingParentSha": "919330b54b01a64b02d37442c2f732fe0e8d45a1"
 }
