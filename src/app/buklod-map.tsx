@@ -1,20 +1,19 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Image, ImageBackground, Pressable, ScrollView, StyleSheet,
-  Text, View, useWindowDimensions,
+  Text, View,
 } from 'react-native';
 import { router, Redirect, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop } from 'react-native-svg';
 import { useAuth } from '@/providers/AuthProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
-import GenesisMapOrbit from '@/features/season2/genesis/GenesisMapOrbit';
+import GenesisValleyMap, {GENESIS_VALLEY_HOTSPOTS} from '@/features/season2/genesis/GenesisValleyMap';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
-import { GENESIS_IDENTITY, GENESIS_PALETTE, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { GENESIS_IDENTITY, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 
@@ -25,9 +24,10 @@ export default function BuklodMapScreen() {
   const { config } = useRuntimeConfig();
   const { activeScope } = useBuklodScope();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const [focused, setFocused] = useState(false);
   const [selectedId, setSelectedId] = useState('community');
+  const [selectedHotspotId, setSelectedHotspotId] = useState('community-wall-plaza');
+  const [showDirectory, setShowDirectory] = useState(false);
   const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
 
   useFocusEffect(useCallback(() => {
@@ -38,7 +38,7 @@ export default function BuklodMapScreen() {
   const district = useMemo(() => getBuklodMapDistrict(selectedId), [selectedId]);
   const showFaith = Boolean(activeScope?.show_faith_content);
   const entries = visibleBuklodMapDestinations(district, showFaith);
-  const compact = width < 355;
+  const selectedHotspot = GENESIS_VALLEY_HOTSPOTS.find(h => h.id === selectedHotspotId && (!h.faithOnly || showFaith));
 
   // Protect the same boundaries as /index and /_layout, including old clients.
   if (!isGenesisPreviewBuild()) return <Redirect href="/(tabs)/buklod" />;
@@ -90,52 +90,20 @@ export default function BuklodMapScreen() {
             collapses on no fill/consent without reserving a blank pane. */}
         <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
 
-        <View style={styles.constellation}>
-          <GenesisMapOrbit active={focused} />
-          <Svg style={StyleSheet.absoluteFillObject} viewBox="0 0 360 310" preserveAspectRatio="xMidYMid meet" pointerEvents="none">
-            <Defs>
-              <LinearGradient id="line" x1="0" x2="1" y1="0" y2="1">
-                <Stop offset="0" stopColor="#82C9DA" stopOpacity=".18"/>
-                <Stop offset=".52" stopColor="#FFE2A0" stopOpacity=".68"/>
-                <Stop offset="1" stopColor="#89CBBE" stopOpacity=".12"/>
-              </LinearGradient>
-            </Defs>
-            <Ellipse cx="180" cy="152" rx="150" ry="92" transform="rotate(-15 180 152)" stroke="url(#line)" strokeWidth="1.3" fill="none"/>
-            <Ellipse cx="180" cy="152" rx="112" ry="140" transform="rotate(31 180 152)" stroke="#9EDEF0" strokeOpacity=".25" strokeWidth=".8" fill="none"/>
-            <Path d="M52 74 C116 148 250 90 302 234" stroke="url(#line)" strokeWidth="1.6" fill="none"/>
-            <Path d="M50 252 C110 190 239 246 314 52" stroke="#EED6A2" strokeOpacity=".28" strokeWidth="1" fill="none"/>
-            <Circle cx="180" cy="151" r="54" fill="#EED6A2" fillOpacity=".06" stroke="#FFE5AA" strokeOpacity=".3" strokeWidth="1"/>
-            <Circle cx="180" cy="151" r="3.2" fill="#FFF9E7"/>
-          </Svg>
-          <View style={styles.mapCore} pointerEvents="none">
-            <Image source={require('../../assets/season2/genesis/genesis-green-b-transparent.png')} style={styles.coreMark} resizeMode="contain"/>
-            <Text style={styles.coreText}>BUKLOD</Text>
-          </View>
-          <View style={styles.nodeGrid}>
-            {BUKLOD_MAP_DISTRICTS.map((node, i) => {
-              const active = node.id === selectedId;
-              return (
-                <Pressable
-                  key={node.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel={node.title + ', ' + node.tagline}
-                  onPress={() => setSelectedId(node.id)}
-                  style={({ pressed }) => [
-                    styles.node, { borderColor: active ? node.accent : 'rgba(197,229,255,.24)' },
-                    active && styles.nodeActive, pressed && styles.pressed,
-                    compact && styles.nodeCompact,
-                  ]}
-                >
-                  <View style={[styles.nodeIcon, { backgroundColor: active ? 'rgba(255,231,176,.19)' : 'rgba(97,179,186,.11)' }]}>
-                    <MaterialCommunityIcons name={node.icon as any} size={compact ? 21 : 25} color={node.accent}/>
-                  </View>
-                  <Text numberOfLines={1} style={styles.nodeTitle}>{node.title}</Text>
-                  <Text numberOfLines={2} style={styles.nodeTagline}>{node.tagline}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        <GenesisValleyMap
+          active={focused}
+          showFaith={showFaith}
+          selectedHotspotId={selectedHotspotId}
+          onSelect={hotspot => {
+            setSelectedHotspotId(hotspot.id);
+            setSelectedId(hotspot.districtId);
+          }}
+        />
+        <View style={styles.mapSelectedCaption}>
+          <Text style={styles.selectedCaptionText}>
+            {selectedHotspot ? selectedHotspot.label : district.title}
+          </Text>
+          <Text style={styles.selectedCaptionNote}>Iisang mapa, isang malinaw na destinasyon.</Text>
         </View>
 
         <View style={styles.districtPanel}>
@@ -148,11 +116,11 @@ export default function BuklodMapScreen() {
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={'Enter ' + district.title}
-            onPress={() => router.push(district.destination as any)}
+            accessibilityLabel={'Enter ' + (selectedHotspot?.label ?? district.title)}
+            onPress={() => router.push((selectedHotspot?.route ?? district.destination) as any)}
             style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryText}>ENTER {district.title.toUpperCase()}</Text>
+            <Text style={styles.primaryText}>ENTER {(selectedHotspot?.label ?? district.title).toUpperCase()}</Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#071B2C"/>
           </Pressable>
           {entries.map(entry => (
@@ -171,6 +139,37 @@ export default function BuklodMapScreen() {
             </Pressable>
           ))}
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={showDirectory ? 'Close accessible destination directory' : 'Show all BUKLOD destinations'}
+          accessibilityState={{expanded: showDirectory}}
+          onPress={() => setShowDirectory(value => !value)}
+          style={({pressed}) => [styles.directoryToggle, pressed && styles.entryPressed]}
+        >
+          <Text style={styles.directoryTitle}>ALL DESTINATIONS · ACCESSIBLE DIRECTORY</Text>
+          <MaterialCommunityIcons name={showDirectory ? 'chevron-up' : 'chevron-down'} color="#FFE3A8" size={21}/>
+        </Pressable>
+        {showDirectory ? (
+          <View style={styles.directory}>
+            {BUKLOD_MAP_DISTRICTS.map(area => (
+              <View key={area.id} style={styles.directorySection}>
+                <Text style={styles.directoryArea}>{area.title}</Text>
+                {visibleBuklodMapDestinations(area, showFaith).map(place => (
+                  <Pressable
+                    key={place.route}
+                    accessibilityRole="button"
+                    accessibilityLabel={'Open '+place.label}
+                    onPress={() => router.push(place.route as any)}
+                    style={styles.directoryEntry}
+                  >
+                    <Text style={styles.directoryEntryLabel}>{place.label}</Text>
+                    <MaterialCommunityIcons name="chevron-right" color="#CEDAE9" size={19}/>
+                  </Pressable>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : null}
         <Text style={styles.footer}>Iisang mapa para sa lahat ng destinasyon. Ang permissions, verified rewards, at privacy ay pinamamahalaan pa rin sa bawat feature.</Text>
       </ScrollView>
     </View>
@@ -194,17 +193,21 @@ const styles = StyleSheet.create({
   musicText: { color: '#FFF2D6', fontSize: 11, fontWeight: '800' },
   pressed: { opacity: .75, transform: [{ scale: .985 }] },
   intro: { color: '#DAE8FA', marginTop: 13, marginBottom: 14, fontSize: 12, lineHeight: 18, fontWeight: '600' },
-  constellation: { minHeight: 310, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(172,222,238,.28)', overflow: 'hidden', backgroundColor: 'rgba(4,15,34,.49)', justifyContent: 'center', paddingVertical: 14 },
-  mapCore: { position: 'absolute', top: '43%', left: '40%', width: '20%', alignItems: 'center' },
-  coreMark: { width: 48, height: 48 },
-  coreText: { fontSize: 9, color: '#FCEBCB', fontWeight: '900', letterSpacing: 1 },
-  nodeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-evenly', rowGap: 8 },
-  node: { width: '45%', minHeight: 66, borderWidth: 1, borderRadius: 14, paddingVertical: 6, paddingHorizontal: 8, backgroundColor: 'rgba(7,20,46,.88)', justifyContent: 'center', alignItems: 'center' },
-  nodeCompact: { minHeight: 70 },
-  nodeActive: { backgroundColor: 'rgba(28,47,78,.98)', shadowColor: '#FFE5B2', shadowOpacity: .34, shadowRadius: 10, elevation: 3 },
-  nodeIcon: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  nodeTitle: { fontSize: 12, color: '#FFFFFF', fontWeight: '900', marginTop: 1 },
-  nodeTagline: { fontSize: 9, lineHeight: 11, color: '#BFD3EE', textAlign: 'center' },
+  mapSelectedCaption: {flexDirection:'row', alignItems:'center', justifyContent:'space-between',
+    marginTop:7, paddingHorizontal:4, gap:8},
+  selectedCaptionText: {fontSize:12, fontWeight:'900', color:'#FFE6AE', flex:1},
+  selectedCaptionNote: {fontSize:10, color:'#BDD6E7', flexShrink:1, textAlign:'right'},
+  directoryToggle: {marginTop:11, minHeight:45, flexDirection:'row', alignItems:'center',
+    borderRadius:11, paddingHorizontal:13, justifyContent:'space-between',
+    borderWidth:1, borderColor:'rgba(251,224,174,.40)', backgroundColor:'rgba(6,20,42,.85)'},
+  directoryTitle: {fontSize:10, fontWeight:'900', letterSpacing:.4, color:'#FFE3A8'},
+  directory: {backgroundColor:'rgba(7,20,42,.92)', borderRadius:14, padding:10, gap:10, marginTop:4},
+  directorySection: {gap:3},
+  directoryArea: {color:'#97E9D3', fontSize:12, fontWeight:'900', marginTop:8, marginBottom:4},
+  directoryEntry: {flexDirection:'row', justifyContent:'space-between', alignItems:'center',
+    borderTopWidth:StyleSheet.hairlineWidth, borderColor:'rgba(205,228,249,.2)', minHeight:45,
+    paddingHorizontal:8},
+  directoryEntryLabel: {color:'#F6FAFF', fontWeight:'700', fontSize:12},
   districtPanel: { marginTop: 12, borderRadius: 20, padding: 15, gap: 7, borderWidth: 1, borderColor: 'rgba(243,211,153,.35)', backgroundColor: 'rgba(6,20,42,.91)' },
   panelHeading: { flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 2 },
   panelTitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '900' },

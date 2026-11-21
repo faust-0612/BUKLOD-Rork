@@ -37,5 +37,6 @@ test('old navigation hidden only for Genesis; one return-to-map action; protect 
 });
 test('bundled CC0 audio and Galaxy fallback present, but map art release blocked until licensed import',()=>{
  for(const path of ['assets/sounds/kingdom-premium/LICENSES.md','assets/sounds/kingdom-premium/kingdom-theme.ogg','assets/season2/genesis/galaxy/nebula.jpg'])assert.ok(existsSync(resolve(root,path)),path);
- const map=read('src/app/buklod-map.tsx');assert.doesNotMatch(map,/community-world-map\.webp/);
+ const map=read('src/app/buklod-map.tsx');assert.match(map,/GenesisValleyMap/);
+ assert.match(read('src/features/season2/genesis/GenesisValleyMap.tsx'),/buklod-community-map\.webp/);
 });

@@ -10,7 +10,7 @@ Branch baseline: 44d07a65d5e19f4cfb8f70aaff4f9d24545eb097 (draft PR #1047). Stat
 - Existing World preview, Arena simulations, learning, Market, Faith, Focus Apps and released features from PR #1047 are preserved unchanged.
 
 ## Non-negotiable incomplete work before staging OTA
-1. The actual approved Valley **illustration is not in GitHub**. Import user Library `/BUKLOD_Genesis_S2_Map_Asset_Handoff_20261121.zip`: `community-world-map-1448.webp` to `assets/season2/genesis/world/buklod-community-map.webp`, and `community-world-map-1024.webp` as low-RAM fallback. Replace the schematic 8-node map with a real touchable/pannable 14-building hotspot canvas (source MAP_HOTSPOT_GUIDE.md); double-check drawn positions after aspect fit. Do not pretend the fallback is the finished asset.
+1. The approved Valley artwork **was imported into this DEV branch** as SHA-verified local 1448/1024 WebPs. Source: user Library `/BUKLOD_Genesis_S2_Map_Asset_Handoff_20261121.zip`: `community-world-map-1448.webp` as high-resolution `assets/season2/genesis/world/buklod-community-map.webp`, and 1024 low-RAM fallback. The source now renders all 14 anchored destinations with an overview/explore zoom, horizontal pan, reduced-motion gate, selected detail card and accessible directory. Actual device alignment and native image decoding remain UNVERIFIED (owner waived visual test); no OTA release proof.
 2. `/Buklod V2/buklod_assets_catalog.json` lists 40 Lot/House/Community/Business level art paths, not actual PNG presence. Five sequential construction stages per tier require up to 200 verified stage visuals and server approved stages/values. Reuse available licensed originals/approved art only.
 3. `/Sound and voice effects/Animation` contains hero pack archives and 3D GLBs. Gameplay practice has 151 frames and 11 FX but the full 13 approved, original animated character rigs and all combat/skill/impact movement are not verified. Native Godot embedding must stay within BUKLOD MAIN and requires a new signed staging APK, NOT an OTA.
 4. `assets/sounds/kingdom-premium/LICENSES.md` documents already-bundled CC0: kingdom-theme/village/great-hall .ogg, Kenney UI-SFX. Prefer these now. The 20 tracks in `/BUKLOD_AUDIO_LIBRARY/music` must not be redistributed: the Library licenses folder is empty. Imported audio must stop on blur, call, video, ad, background, user opt-out, and not compete with media.
@@ -20,3 +20,9 @@ Branch baseline: 44d07a65d5e19f4cfb8f70aaff4f9d24545eb097 (draft PR #1047). Stat
 
 ## Source protection
 No production main changes. No migration deployment. No release or update workflow touched. DO NOT PROMOTE from DEV until all blockers resolved with test evidence.
+
+## New asset import proof (DEV only)
+- High-res 1448×1086 WebP SHA256 `1ecc69c1886eebc18ad5cc3971c944e3bceee65a757b85a2fcf1c91bf5d2dd0c`; compact 1024×768 `226465e86d69b99a4666ba934c1b90690dc04d2fce4a768ea4e6cda0a089f88a`.
+- `GenesisValleyMap.tsx` implements source-level actual illustration and 14 tap-select destinations; each existing Expo Router route retains its real guards, focus/ads and Show Faith filtering.
+- No licensed Genesis soundtrack imported from unverified Library music; existing local CC0 music remains.
+- **Release still HARD HOLD:** no signed native staging APK, no Supabase test backend, no authoritative arena server, no E2E BP/QMP/trade/Character Diamond settlement. Automated source checks cannot replace those.

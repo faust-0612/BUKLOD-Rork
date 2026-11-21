@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
-  "objective": "Additive DEV-only map-first Genesis preview from held consolidated Season 2 source; preserve production Wall, AdMob, original routes, permissions and no writes.",
+  "objective": "Genesis stage-only map-first single-door World, now bundling user-approved 1448/1024 Valley artwork and 14 physically anchored hotspots, preserving rights, receipts, ads, permissions and production.",
   "baseRef": "44d07a65d5e19f4cfb8f70aaff4f9d24545eb097",
-  "productionBaselineEvidence": "GitHub main baseline observed; production Play/OTA artifact not independently verified. This commit is source-only; no prod, EAS, Supabase, or OTA modification.",
-  "chosenApproach": "Only forward-port pure map entry, 8 governed districts, music/animation and map-only return from divergent map branch. Keep approved Valley illustrated WebP in explicit asset-import hold; never include OTA publisher or activate ledger/backend.",
+  "productionBaselineEvidence": "Main production untouched; parent DEV commit 9997d85d646257d83e18642a4219a38cc57b0ec2. App/runtime Play identity not independently verified; no Supabase/OTA writes.",
+  "chosenApproach": "Use native expo-image local WebP, deterministic image-coordinate hotspots, overview/explore swipe, exact real routes plus collapsible directory; no 3D SDK or new backend in OTA, no production writes.",
   "riskAreas": [
     "arena-multiplayer",
     "asset-licensing",
@@ -24,7 +24,8 @@
         "Production/non-Genesis resolves to original Public Wall; maintenance, compliance, pilot and mandatory update continue to guard all routes."
       ],
       "tests": [
-        "tests/season2-map-first-conso-intake-20261121.test.mjs"
+        "tests/season2-map-first-conso-intake-20261121.test.mjs",
+        "tests/genesis-valley-asset-interaction-20261121.test.mjs"
       ]
     },
     {
@@ -35,13 +36,15 @@
       ],
       "tests": [
         "tests/season2-map-first-conso-intake-20261121.test.mjs",
-        "tests/genesis-world-navigation-regression-20261121.test.mjs"
+        "tests/genesis-world-navigation-regression-20261121.test.mjs",
+        "tests/genesis-valley-asset-interaction-20261121.test.mjs"
       ]
     }
   ],
   "regressionTests": [
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
-    "tests/season2-map-first-conso-intake-20261121.test.mjs"
+    "tests/season2-map-first-conso-intake-20261121.test.mjs",
+    "tests/genesis-valley-asset-interaction-20261121.test.mjs"
   ],
   "allowedPaths": [
     "src/app/buklod-map.tsx",
@@ -56,13 +59,18 @@
     "tests/season2-map-first-conso-intake-20261121.test.mjs",
     "docs/season2/SEASON2_MAP_ASSET_RELEASE_HOLD_20261121.md",
     ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
-    ".github/workflows/season2-map-conso-source-qa-20261121.yml"
+    ".github/workflows/season2-map-conso-source-qa-20261121.yml",
+    "src/features/season2/genesis/GenesisValleyMap.tsx",
+    "src/features/season2/genesis/genesisValleyHotspots.json",
+    "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+    "assets/season2/genesis/world/buklod-community-map.webp",
+    "assets/season2/genesis/world/buklod-community-map-compact.webp"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
     "The source-only map-specific PR workflow runs Node preflight and both focused regression tests; this is NOT a signed native build, OTA, or real asset acceptance.",
     "Source gates and exact-head CI; regressions on existing ads/fast navigation.",
-    "Import actual user-supplied Welcoming Valley WebP and map precise 14 hotspots; source preview currently 8-node constellation fallback.",
+    "Both Valley WebP files and 14 owner-handoff hotspots are in DEV Git source; real mobile touch/scale and signed staging visual validation remain WAIVED/UNVERIFIED, not OTA ready.",
     "No native/Supabase changes or OTA publisher change. Premium asset bytes/licensing, 13 unique rigs, Arena true multiplayer, isolated economy ledger, signed Genesis native build remain hard HOLD.",
     "Physical device visual check waived but unverified; signed Android/native/AdMob QA not waived.",
     "No Stage→Production release until 2026-12-06 and authorization."
