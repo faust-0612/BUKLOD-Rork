@@ -8,6 +8,8 @@ on:
       - 'scripts/ingest-buklod-visual-baseline.mjs'
       - 'scripts/verify-buklod-arena-motion.py'
       - 'tests/empire-arena-v2-*'
+      - 'tests/arena-*-20261121.test.mjs'
+      - 'tests/season2-arena-responsive-navigation-20261121.test.mjs'
       - 'experiments/empire-arena-v2/**'
       - '.github/workflows/buklod-arena-inapp-dev-qa.yml'
   workflow_dispatch:
@@ -27,6 +29,9 @@ jobs:
       - name: Test real Arena V2 engine and in-app visual pipeline
         run: |
           node --test \
+            tests/arena-kingdom-game-premium-20261121.test.mjs \
+            tests/arena-protected-feature-lock-20261121.test.mjs \
+            tests/season2-arena-responsive-navigation-20261121.test.mjs \
             tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs \
             tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs \
             tests/empire-arena-v2-presentation-20261121.test.mjs \
