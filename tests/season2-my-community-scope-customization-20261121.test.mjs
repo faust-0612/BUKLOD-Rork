@@ -9,11 +9,13 @@ test('My Community is a verified scope preview, never the global Wall',()=>{
  assert.match(src,/chosenScope\?\.is_admin/);
  assert.match(src,/separate from the Public Community Wall/);
 });
-test('Community customization is locally isolated per user and chosen verified scope',()=>{
+test('Community customization drafts remain isolated per user and scope until authenticated server save',()=>{
  assert.match(src,/ownerId/);
  assert.match(src,/world\+'\.'\+\(world==='home'\?'personal':chosenScope\?\.scope_id\?\?'unassigned'\)/);
  assert.match(src,/if\(!canCustomizePreview\)return/);
  assert.match(src,/setLook\('stone'\)/);
- assert.match(src,/AsyncStorage\.setItem\(storageKey,next\)/);
+ assert.match(src,/AsyncStorage\.setItem\(cosmeticKey/);
+ assert.match(src,/EstateConstructionConsole/);
+ assert.match(src,/canCustomizePreview/);
  assert.doesNotMatch(src,/supabase\.rpc|mintBp|awardBp|withdrawQMP/);
 });
