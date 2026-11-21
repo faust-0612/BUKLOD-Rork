@@ -5,6 +5,7 @@
 import {EQUIPMENT_SLOTS,itemDefinition,resolveGear,isExclusiveItem,dropTier,CONSUMABLE_TYPES,consumableDefinition} from './arena-v2-armory.mjs';
 import {ARENA_MAPS,getArenaMap,terrainFor} from './arena-v2-maps.mjs';
 import {BUILD_COSTS,initializeBuildings,operational,baseSite,beginBuild,beginSealRebuild,processEmpireBuilds} from './arena-v2-empire.mjs';
+import {enableMinionWaves,tickMinionWaves} from './arena-v2-minions.mjs';
 export const STEP_MS=100;
 export {EQUIPMENT_SLOTS,itemDefinition,resolveGear,CONSUMABLE_TYPES,consumableDefinition,ARENA_MAPS,BUILD_COSTS};
 export const HEROES=Object.freeze({
@@ -33,7 +34,7 @@ export const DIAMOND_THRESHOLDS=Object.freeze([0,15,35,55,75,100,120,155,200,260
 const between=(x,a,b)=>Math.max(a,Math.min(b,Number.isFinite(x)?x:a));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const opponent=t=>t==='A'?'B':'A';
-const owner=(s,id)=>s.players[id]||s.units.find(x=>x.id===id)||s.creatures.find(x=>x.id===id)||s.towers.find(x=>x.id===id)||s.buildings.find(x=>x.id===id);
+const owner=(s,id)=>s.players[id]||s.units.find(x=>x.id===id)||(s.minions||[]).find(x=>x.id===id)||s.creatures.find(x=>x.id===id)||s.towers.find(x=>x.id===id)||s.buildings.find(x=>x.id===id);
 const alive=o=>o&&o.hp>0&&(o.alive!==false);
 const xpNeeded=level=>Math.round(65*level+18*level*level);
 function rand(s){s.seed=(Math.imul(s.seed,1664525)+1013904223)>>>0;return s.seed/4294967296}
@@ -44,10 +45,10 @@ export function collectibleArtPath(hero,level,index){assetKey(hero,level,index);
 export function diamondLevel(balance){let level=1;for(let i=0;i<DIAMOND_THRESHOLDS.length;i++)if(balance>=DIAMOND_THRESHOLDS[i])level=i+1;return level}
 export function effectiveLevel(snapshot={}){return Math.max(1,Math.min(20,...['characterLevel','bpEligibleLevel','itemVerifiedLevel'].map(k=>between(Math.floor(snapshot[k]??1),1,20)),diamondLevel(Math.max(0,Number(snapshot.diamonds)||0))))}
 export function itemPower(hero,level,verifiedKeys){if(!HEROES[hero])return 0;const keys=new Set(Array.isArray(verifiedKeys)?verifiedKeys:[]);let score=0;for(let l=1;l<=Math.min(20,level);l++)for(let i=1;i<=5;i++)if(keys.has(assetKey(hero,l,i)))score+=(i===3?3:i===5?2:1);return between(score/24,0,5)}
-export function createPractice({mode='cluster',mapId='verdant_fracture',hero='phan',seed=20261121,snapshot,snapshots=null,allies=[],foes=[]}={}){
+export function createPractice({mode='cluster',mapId='verdant_fracture',hero='phan',seed=20261121,snapshot,snapshots=null,allies=[],foes=[],minionWaves=false}={}){
  if(!MODES[mode]||!HEROES[hero])throw Error('Invalid Arena V2 mode/character');
  const m=MODES[mode],w=m.width,h=m.height,terrain=terrainFor(mode,w,h,mapId),map=terrain.cfg;
- const s={kind:'OFFLINE_PRACTICE',ranked:false,mode,mapId,map,w,h,seed:seed>>>0,elapsed:0,tick:0,status:'active',phase:'expansion',huntStarted:null,hardLock:false,deadline:m.minutes*60000+240000,hardDeadline:m.minutes*60000,eventSeq:0,events:[],result:null,players:{},teams:{A:{resources:{wood:150,gold:100,stone:110},queue:[],tech:0,kills:0},B:{resources:{wood:150,gold:100,stone:110},queue:[],tech:0,kills:0}},towers:[],units:[],creatures:[],nodes:[],loot:[],cover:terrain.cover,traps:[],seals:{A:{hp:1050,maxHp:1050,breached:false,lastDamage:-1e8},B:{hp:1050,maxHp:1050,breached:false,lastDamage:-1e8}},nextId:1,raidCount:0};
+ const s={kind:'OFFLINE_PRACTICE',ranked:false,mode,mapId,map,w,h,seed:seed>>>0,elapsed:0,tick:0,status:'active',phase:'expansion',huntStarted:null,hardLock:false,deadline:m.minutes*60000+240000,hardDeadline:m.minutes*60000,eventSeq:0,events:[],result:null,players:{},teams:{A:{resources:{wood:150,gold:100,stone:110},queue:[],tech:0,kills:0},B:{resources:{wood:150,gold:100,stone:110},queue:[],tech:0,kills:0}},towers:[],units:[],minions:[],creatures:[],nodes:[],loot:[],cover:terrain.cover,traps:[],seals:{A:{hp:1050,maxHp:1050,breached:false,lastDamage:-1e8},B:{hp:1050,maxHp:1050,breached:false,lastDamage:-1e8}},nextId:1,raidCount:0};
  const identities=Object.keys(HEROES);for(const team of ['A','B'])for(let i=0;i<m.n;i++){
   const char=team==='A'?(i===0?hero:(allies[i-1]||identities[(i+3)%13])):(foes[i]||identities[(i+7)%13]);if(!HEROES[char])throw Error('Invalid roster hero');
   const isLocal=team==='A'&&i===0,profile=(snapshots?.[team+i]|| (isLocal?snapshot:null) || {characterLevel:1,bpEligibleLevel:1,itemVerifiedLevel:1,diamonds:0,verifiedItems:[]});
@@ -64,6 +65,7 @@ export function createPractice({mode='cluster',mapId='verdant_fracture',hero='ph
  for(let i=0;i<6;i++){const kind=Object.keys(BUFFS)[i%6],x=w*(i%2?.65:.35),y=h*(.13+Math.floor(i/2)*.34);s.creatures.push({id:'buff'+i,kind,team:null,x,y,home:{x,y},hp:125,maxHp:125,alive:true,respawnAt:0,roamAt:0,lastAttack:-1e8})}
  for(const kind of ['stalker','shellkeeper']){const x=w*.5,y=h*(kind==='stalker'?.37:.63);s.creatures.push({id:kind,kind,team:null,x,y,home:{x,y},hp:kind==='stalker'?420:480,maxHp:kind==='stalker'?420:480,alive:true,respawnAt:0,roamAt:0,lastAttack:-1e8})}
  for(const team of ['A','B'])for(let i=0;i<2;i++){const x=team==='A'?21:w-21,y=h/2+(i?6:-6);s.units.push({id:'v'+team+i,team,kind:'villager',x,y,hp:72,maxHp:72,alive:true,carry:{wood:0,gold:0,stone:0},targetNode:team==='A'?i:i+3,command:'mine',attackAt:-1e8,respawnAt:0})}
+ if(minionWaves)enableMinionWaves(s);
  log(s,'match_start',{mode,mapId,mapDifficulty:map.difficulty,roster:Object.values(s.players).map(p=>[p.id,p.hero])});return s;
 }
 function awardXp(s,p,amount,reason){if(!p?.alive||!amount)return;p.xp+=amount;while(p.matchLevel<15&&p.xp>=xpNeeded(p.matchLevel)){p.xp-=xpNeeded(p.matchLevel);p.matchLevel++;p.maxHp+=8;p.hp=Math.min(p.maxHp,p.hp+22);p.maxMana+=3;p.mana=Math.min(p.maxMana,p.mana+12);log(s,'level_up',{actor:p.id,level:p.matchLevel,x:p.x,y:p.y})}if(reason)log(s,'xp',{actor:p.id,amount,reason})}
@@ -88,7 +90,7 @@ function skillStep(s,p,dx,dy,length){
  p.x=x;p.y=y;p.lastMoveTick=s.tick;return true;
 }
 function living(s,team){return Object.values(s.players).filter(p=>p.team===team&&p.alive)}
-function closeEnemy(s,p,radius=8){return [...Object.values(s.players),...s.units,...s.creatures].filter(x=>x!==p&&alive(x)&&x.team!==p.team&&(x.team!==null||x.kind==='stalker'||x.kind==='shellkeeper'||BUFFS[x.kind])&&distance(p,x)<=radius).sort((a,b)=>distance(p,a)-distance(p,b))[0]}
+function closeEnemy(s,p,radius=8){return [...Object.values(s.players),...s.units,...(s.minions||[]),...s.creatures].filter(x=>x!==p&&alive(x)&&x.team!==p.team&&(x.team!==null||x.kind==='stalker'||x.kind==='shellkeeper'||BUFFS[x.kind])&&distance(p,x)<=radius).sort((a,b)=>distance(p,a)-distance(p,b))[0]}
 /** Named, exclusive, match-only relic drops: deterministic quality, bounded RNG.
  * Rare drops use existing canonical item names/art; no persistent ownership transfer.
  */
@@ -117,6 +119,7 @@ function hit(s,p,target,base){if(!p?.alive||!alive(target)||target.team===p.team
  else if(target.kind==='stalker'||target.kind==='shellkeeper'){log(s,'boss_defeat',{actor:p.id,target:target.id,kind:target.kind,x:target.x,y:target.y});awardXp(s,p,140,'world_boss');rollEquipmentDrop(s,p,target,.65,'boss');if(target.kind==='shellkeeper'){for(const t of s.towers.filter(t=>t.team===p.team&&t.alive))t.structureXp+=65;s.seals[p.team].hp=Math.min(s.seals[p.team].maxHp,s.seals[p.team].hp+70);log(s,'structure_xp',{team:p.team,amount:65})}else{p.effects.hunter=s.elapsed+55000;log(s,'hunter_reward',{actor:p.id})}target.respawnAt=s.elapsed+105000;}
  else if(BUFFS[target.kind]){addBuff(s,p,target.kind);rollEquipmentDrop(s,p,target,.4,'buff');target.respawnAt=s.elapsed+65000;}
  else if(s.units.includes(target)){awardXp(s,p,16,'unit_defeat');}
+ else if((s.minions||[]).includes(target)){target.deathAt=s.elapsed;awardXp(s,p,9,'minion_defeat');}
  else if(s.towers.includes(target)){target.lastDamage=s.elapsed;awardXp(s,p,65,'tower_destroyed');log(s,'tower_destroyed',{team:target.team,tower:target.id})}
  else if(s.buildings.includes(target)){target.lastDamage=s.elapsed;awardXp(s,p,32,'building_destroyed');log(s,'building_destroyed',{team:target.team,building:target.id})}
  return true;
@@ -220,10 +223,10 @@ function startHunt(s,reason){if(s.huntStarted!==null)return;s.huntStarted=s.elap
 function sealRestored(s,team){if(!s.hardLock&&!s.seals.A.breached&&!s.seals.B.breached){s.huntStarted=null;s.phase='siege';log(s,'defense_recovered',{team,respawnsRestored:true})}}
 function moveToward(o,d,amount,s){const len=distance(o,d);if(len<.02)return;const step=Math.min(amount,len);o.x=between(o.x+(d.x-o.x)/len*step,2,s.w-2);o.y=between(o.y+(d.y-o.y)/len*step,2,s.h-2)}
 function automata(s){
- // Production is explicit: queued units only, never free auto-spawning minion waves.
+ // Player-trained army remains explicitly queued; optional neutral lane minions use separate match-only pools.
  for(const team of ['A','B']){const t=s.teams[team];while(t.queue.length&&t.queue[0].ready<=s.elapsed){const q=t.queue.shift(),c=COSTS[q.kind],idx=s.nextId++;const x=team==='A'?23:s.w-23,y=s.h*(.24+(idx%3)*.26);s.units.push({id:'u'+idx,team,kind:q.kind,x,y,hp:c.hp,maxHp:c.hp,alive:true,carry:{wood:0,gold:0,stone:0},targetNode:team==='A'?0:3,command:q.kind==='villager'?'mine':'push',attackAt:-1e8});log(s,'unit_spawn',{team,kind:q.kind})}}
  for(const node of s.nodes)node.stock=Math.min(node.capacity,node.stock+.065*s.map.regenRate);
- for(const unit of s.units){if(!unit.alive)continue;const target=[...Object.values(s.players),...s.units].filter(x=>alive(x)&&x.team!==unit.team&&distance(unit,x)<(unit.kind==='archer'?7:4.5)).sort((a,b)=>distance(unit,a)-distance(unit,b))[0];if(target&&s.elapsed-unit.attackAt>=1400){unit.attackAt=s.elapsed;const base=unit.kind==='villager'?4:unit.kind==='guardian'?12:unit.kind==='siege'?18:9;target.hp=Math.max(0,target.hp-base);target.lastDamage=s.elapsed;log(s,'unit_hit',{from:unit.id,to:target.id,team:target.team??null,x:target.x,y:target.y});if(target.hp<=0){target.alive=false;log(s,'unit_ko',{from:unit.id,target:target.id,team:target.team??null,x:target.x,y:target.y});if(s.players[target.id]){target.deaths++;target.respawnAt=s.elapsed+7500}}continue}
+ for(const unit of s.units){if(!unit.alive)continue;const target=[...Object.values(s.players),...s.units,...(s.minions||[])].filter(x=>alive(x)&&x.team!==unit.team&&distance(unit,x)<(unit.kind==='archer'?7:4.5)).sort((a,b)=>distance(unit,a)-distance(unit,b))[0];if(target&&s.elapsed-unit.attackAt>=1400){unit.attackAt=s.elapsed;const base=unit.kind==='villager'?4:unit.kind==='guardian'?12:unit.kind==='siege'?18:9;target.hp=Math.max(0,target.hp-base);target.lastDamage=s.elapsed;log(s,'unit_hit',{from:unit.id,to:target.id,team:target.team??null,x:target.x,y:target.y});if(target.hp<=0){target.alive=false;log(s,'unit_ko',{from:unit.id,target:target.id,team:target.team??null,x:target.x,y:target.y});if(s.players[target.id]){target.deaths++;target.respawnAt=s.elapsed+7500}}continue}
   if(unit.kind==='villager'&&unit.command==='repair'){
    const tower=s.towers.filter(t=>t.alive&&t.team===unit.team&&t.hp<t.maxHp&&s.elapsed-t.lastDamage>4000).sort((a,b)=>distance(unit,a)-distance(unit,b))[0];
    if(tower){moveToward(unit,tower,.5,s);if(distance(unit,tower)<4&&s.elapsed-unit.attackAt>2500&&spend(s.teams[unit.team],{wood:5,stone:8})){tower.hp=Math.min(tower.maxHp,tower.hp+19);unit.attackAt=s.elapsed;log(s,'villager_repair',{tower:tower.id,team:unit.team})}continue}}
@@ -234,14 +237,14 @@ function automata(s){
   if(unit.kind==='siege'&&distance(unit,{x:unit.team==='A'?s.w-14:14,y:s.h/2})<8){const enemy=opponent(unit.team),seal=s.seals[enemy];if(s.towers.filter(x=>x.team===enemy&&x.alive).length<=1&&!seal.breached){seal.hp=Math.max(0,seal.hp-6);seal.lastDamage=s.elapsed;if(seal.hp===0){seal.breached=true;startHunt(s,'siege_breach');log(s,'seal_breached',{team:enemy})}}}
  }
  // towers fire at units or heroes, only inside defended area.
- for(const tower of s.towers){if(!tower.alive||s.elapsed-tower.lastShot<1400)continue;const targets=[...Object.values(s.players),...s.units].filter(x=>x.team!==tower.team&&alive(x)&&distance(x,tower)<9+tower.level*1.5).sort((a,b)=>distance(a,tower)-distance(b,tower));if(!targets.length)continue;const target=targets[0],armor=s.players[target.id]?gearOf(target).mitigation:0;target.hp=Math.max(0,target.hp-(11+4*tower.level)*(1-armor));target.lastDamage=s.elapsed;tower.lastShot=s.elapsed;log(s,'tower_hit',{tower:tower.id,team:tower.team,target:target.id,x:target.x,y:target.y});if(target.hp===0){target.alive=false;log(s,'tower_ko',{tower:tower.id,team:target.team??null,target:target.id,x:target.x,y:target.y});if(s.players[target.id]){target.deaths++;target.respawnAt=s.elapsed+7500}}}
+ for(const tower of s.towers){if(!tower.alive||s.elapsed-tower.lastShot<1400)continue;const targets=[...(s.minions||[]),...Object.values(s.players),...s.units].filter(x=>x.team!==tower.team&&alive(x)&&distance(x,tower)<9+tower.level*1.5).sort((a,b)=>distance(a,tower)-distance(b,tower));if(!targets.length)continue;const target=targets[0],armor=s.players[target.id]?gearOf(target).mitigation:0;target.hp=Math.max(0,target.hp-(11+4*tower.level)*(1-armor));target.lastDamage=s.elapsed;tower.lastShot=s.elapsed;log(s,'tower_hit',{tower:tower.id,team:tower.team,target:target.id,x:target.x,y:target.y});if(target.hp===0){target.alive=false;log(s,'tower_ko',{tower:tower.id,team:target.team??null,target:target.id,x:target.x,y:target.y});if(s.players[target.id]){target.deaths++;target.respawnAt=s.elapsed+7500}}}
  for(const creature of s.creatures){if(!creature.alive){if(s.elapsed>=creature.respawnAt){creature.alive=true;creature.hp=creature.maxHp;creature.x=creature.home.x;creature.y=creature.home.y;log(s,'creature_respawn',{kind:creature.kind,x:creature.x,y:creature.y})}continue}
   if(creature.kind==='stalker'){const target=Object.values(s.players).filter(x=>x.alive&&distance(x,creature)<30).sort((a,b)=>distance(a,creature)-distance(b,creature))[0];if(target){moveToward(creature,target,.52,s);if(distance(creature,target)<4&&s.elapsed-creature.lastAttack>1600){target.hp=Math.max(0,target.hp-16*s.map.bossPressure);target.lastDamage=s.elapsed;creature.lastAttack=s.elapsed;log(s,'boss_hit',{actor:creature.id,target:target.id,kind:creature.kind,x:target.x,y:target.y});if(target.hp===0){target.alive=false;target.deaths++;target.respawnAt=s.elapsed+7500;log(s,'boss_ko',{actor:creature.id,target:target.id,team:target.team??null,x:target.x,y:target.y})}}}else if(distance(creature,creature.home)>3)moveToward(creature,creature.home,.3,s)}
   else if(s.elapsed-creature.roamAt>2200){creature.roamAt=s.elapsed;const theta=rand(s)*Math.PI*2,r=3+rand(s)*5;const dest={x:between(creature.home.x+Math.cos(theta)*r,3,s.w-3),y:between(creature.home.y+Math.sin(theta)*r,3,s.h-3)};moveToward(creature,dest,2.5,s)}
  }
  // Resurrections only BEFORE the Final Hunt begins.
  if(s.huntStarted===null)for(const p of Object.values(s.players)){if(!p.alive&&s.elapsed>=p.respawnAt){p.alive=true;p.hp=p.maxHp;p.mana=p.maxMana;p.shield=0;p.x=p.spawn.x;p.y=p.spawn.y;log(s,'respawn',{actor:p.id})}}
- for(const trap of s.traps){if(trap.expires<=s.elapsed)continue;const foe=[...Object.values(s.players),...s.units].find(x=>x.team!==trap.team&&alive(x)&&distance(x,trap)<2.2);if(foe){foe.hp=Math.max(0,foe.hp-trap.damage);foe.lastDamage=s.elapsed;trap.expires=0;log(s,'trap_hit',{target:foe.id,team:trap.team,x:foe.x,y:foe.y});if(foe.hp===0){foe.alive=false;log(s,'trap_ko',{target:foe.id,team:foe.team??null,x:foe.x,y:foe.y});if(s.players[foe.id]){foe.deaths++;foe.respawnAt=s.elapsed+7500}}}}s.traps=s.traps.filter(t=>t.expires>s.elapsed);
+ for(const trap of s.traps){if(trap.expires<=s.elapsed)continue;const foe=[...Object.values(s.players),...s.units,...(s.minions||[])].find(x=>x.team!==trap.team&&alive(x)&&distance(x,trap)<2.2);if(foe){foe.hp=Math.max(0,foe.hp-trap.damage);foe.lastDamage=s.elapsed;trap.expires=0;log(s,'trap_hit',{target:foe.id,team:trap.team,x:foe.x,y:foe.y});if(foe.hp===0){foe.alive=false;log(s,'trap_ko',{target:foe.id,team:foe.team??null,x:foe.x,y:foe.y});if(s.players[foe.id]){foe.deaths++;foe.respawnAt=s.elapsed+7500}}}}s.traps=s.traps.filter(t=>t.expires>s.elapsed);
  for(const item of s.loot)if(item.expires<=s.elapsed)item.expired=true;s.loot=s.loot.filter(x=>!x.expired);
 }
 function runBot(s,p){if(!p.alive||s.elapsed-p.botAt<400)return;p.botAt=s.elapsed;
@@ -260,11 +263,11 @@ export function tick(s,commands=[]){if(s.status!=='active')return s;s.tick++;s.e
 s.phase=s.huntStarted!==null?'hunt':s.elapsed<120000?'expansion':s.elapsed<540000?'territory':'siege';
  for(const c of commands){if(c&&typeof c.playerId==='string')command(s,c.playerId,c.action)}
  if(s.tick%4===0)for(const p of Object.values(s.players))if(p.bot)runBot(s,p);
- if(s.tick%5===0){automata(s);processEmpireBuilds(s,log,b=>{s.towers.push({id:'watch-'+b.id,team:b.team,x:b.x,y:b.y,lane:1,level:1,hp:340,maxHp:340,lastDamage:-1e8,lastShot:-1e8,lastRepair:-1e8,structureXp:0,specialization:'range',alive:true})},team=>sealRestored(s,team))}
+ if(s.tick%5===0){automata(s);tickMinionWaves(s,log,500);processEmpireBuilds(s,log,b=>{s.towers.push({id:'watch-'+b.id,team:b.team,x:b.x,y:b.y,lane:1,level:1,hp:340,maxHp:340,lastDamage:-1e8,lastShot:-1e8,lastRepair:-1e8,structureXp:0,specialization:'range',alive:true})},team=>sealRestored(s,team))}
  if(s.map.hazard!=='none'&&s.elapsed>120000&&s.tick%10===0&&Math.floor(s.elapsed/s.map.hazardInterval)!==Math.floor((s.elapsed-STEP_MS)/s.map.hazardInterval))for(const p of Object.values(s.players)){if(p.alive&&Math.abs(p.x-s.w*.5)<s.w*.055){p.hp=Math.max(0,p.hp-s.map.hazardDamage);log(s,'map_hazard',{actor:p.id,kind:s.map.hazard});if(p.hp===0){p.alive=false;p.deaths++;p.respawnAt=s.elapsed+7500;log(s,'hazard_ko',{actor:p.id,team:p.team,x:p.x,y:p.y})}}}
  if(!s.hardLock&&s.elapsed>=s.hardDeadline){s.hardLock=true;s.seals.A.breached=true;s.seals.B.breached=true;startHunt(s,'hard_deadline');log(s,'both_seals_breached',{reason:'overtime'})}
  if(s.huntStarted!==null){const age=s.elapsed-s.huntStarted;if(age>120000&&s.tick%10===0){const radius=Math.max(10,Math.min(s.w,s.h)/2-(age-120000)/2000);for(const p of Object.values(s.players))if(p.alive&&distance(p,{x:s.w/2,y:s.h/2})>radius){p.hp=Math.max(0,p.hp-12);if(p.hp===0){p.alive=false;p.deaths++;log(s,'storm_defeat',{actor:p.id})}}}
   if(age>240000&&s.tick%10===0)for(const p of Object.values(s.players))if(p.alive){p.hp=Math.max(0,p.hp-20);if(p.hp===0){p.alive=false;p.deaths++}}
  }
  resolve(s);return s}
-export function getHud(s){return {mapId:s.mapId,mapName:s.map.name,mapDifficulty:s.map.difficulty,phase:s.phase,time:s.elapsed,winner:s.result?.winner,teamA:s.teams.A.resources,teamB:s.teams.B.resources,sealA:s.seals.A,sealB:s.seals.B,buildings:s.buildings,construction:s.teams.A.rebuildJob,units:s.units.filter(x=>x.alive).length,heroes:Object.values(s.players).map(p=>({id:p.id,hero:p.hero,level:p.matchLevel,hp:p.hp,maxHp:p.maxHp,mana:p.mana,maxMana:p.maxMana,shield:p.shield,gear:Object.keys(p.gear).map(k=>p.gear[k].name),alive:p.alive,mastery:p.itemMastery})),recent:s.events.slice(-8)}};
+export function getHud(s){return {mapId:s.mapId,mapName:s.map.name,mapDifficulty:s.map.difficulty,phase:s.phase,time:s.elapsed,winner:s.result?.winner,teamA:s.teams.A.resources,teamB:s.teams.B.resources,sealA:s.seals.A,sealB:s.seals.B,buildings:s.buildings,construction:s.teams.A.rebuildJob,units:s.units.filter(x=>x.alive).length,minions:(s.minions||[]).filter(x=>x.alive).length,heroes:Object.values(s.players).map(p=>({id:p.id,hero:p.hero,level:p.matchLevel,hp:p.hp,maxHp:p.maxHp,mana:p.mana,maxMana:p.maxMana,shield:p.shield,gear:Object.keys(p.gear).map(k=>p.gear[k].name),alive:p.alive,mastery:p.itemMastery})),recent:s.events.slice(-8)}};
