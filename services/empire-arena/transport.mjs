@@ -21,7 +21,16 @@ wss.on('connection',ws=>{
   authTimer.unref?.();
   let session=null;
   let messageChain=Promise.resolve();
+  let inflightFrames=0;
+  let framesInSecond=0;
+  let frameWindowStart=Date.now();
   ws.on('message',bytes=>{
+    // Bound both queued async authentication work and network floods. This is
+    // distinct from the 35 accepted gameplay commands/sec in Arena coordinator.
+    const now=Date.now();
+    if(now-frameWindowStart>=1000){frameWindowStart=now;framesInSecond=0;}
+    if(++framesInSecond>72){ws.close(1008,'message_rate_exceeded');return;}
+    if(++inflightFrames>32){ws.close(1008,'too_many_pending_messages');return;}
     // Explicit serialization prevents overlapping async auth/queue/command races.
     messageChain=messageChain.then(async()=>{
       if(ws.readyState!==WebSocket.OPEN||isStopping())return;
@@ -90,7 +99,8 @@ wss.on('connection',ws=>{
       }else{
         sendRaw(ws,{type:'error',code:'unsupported_message'});
       }
-    }).catch(()=>{metrics.rejected++;ws.close(1011,'server_error');});
+    }).catch(()=>{metrics.rejected++;ws.close(1011,'server_error');})
+      .finally(()=>{inflightFrames=Math.max(0,inflightFrames-1);});
   });
   ws.on('close',()=>{
     clearTimeout(authTimer);
