@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * Compare BUKLOD premium Genesis OTA source with the actual Nov 20 verified
- * signed Genesis staging APK native source. Source integrity only; no EAS API,
+ * signed Genesis staging APK native source (newer verified green-B package).
+ * It may be on another Git branch: identical native files, not Git ancestry,
+ * establish compatibility. Source integrity only; no EAS API,
  * APK download, physical device, wallet changes, production or OTA publication.
  */
 import assert from 'node:assert/strict';
@@ -11,8 +13,10 @@ import {resolve} from 'node:path';
 
 const root=resolve(import.meta.dirname,'..');
 export const PINNED_GENESIS_APK={
- source:'5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0',
- easBuildId:'d9e279a6-766b-4bd9-8316-3f700749594c',
+ source:'a04d9ccf91e508a062bab8a7657297e574ae40a2',
+ verifiedApkSha256:'f2608820b522a2d58fbbcfe94be10df600f7c3915a509e625f53902288770900',
+ verifiedApkVersionCode:13,
+ verifiedGithubJobId:136181340162,
  package:'org.mzbministry.buklod.staging',
  channel:'season2-genesis-preview',
  runtime:'2.0.0-genesis-preview',
@@ -21,8 +25,8 @@ export const PINNED_GENESIS_APK={
 const git=(args)=>execFileSync('git',args,{cwd:root,encoding:'utf8',timeout:30000}).trim();
 const sha=git(['rev-parse','HEAD']);
 assert.match(sha,/^[a-f0-9]{40}$/);
-try{git(['merge-base','--is-ancestor',PINNED_GENESIS_APK.source,sha]);}
-catch{throw Error('Signed Genesis native APK source is not an ancestor; never reuse without a fresh APK');}
+try{git(['cat-file','-e',PINNED_GENESIS_APK.source+'^{commit}']);}
+catch{throw Error('Newest verified signed Genesis native source unavailable in Git; cannot claim parity');}
 
 // Native code, plugin config, pinned dependencies, generated native projects and
 // native helper scripts must match the installed full-functionality signed APK.
@@ -58,10 +62,12 @@ assert.notEqual(preview?.channel,production?.channel);
 console.log(JSON.stringify({
  nativeSourceCompatible:true,
  signedNativeBaselineSha:PINNED_GENESIS_APK.source,
- knownSignedEasBuildId:PINNED_GENESIS_APK.easBuildId,
+ verifiedSignedApkSha256:PINNED_GENESIS_APK.verifiedApkSha256,
+ verifiedSignedApkVersionCode:PINNED_GENESIS_APK.verifiedApkVersionCode,
+ verifiedSignedApkGithubJobId:PINNED_GENESIS_APK.verifiedGithubJobId,
  sourceSha:sha,package:PINNED_GENESIS_APK.package,
  channel:PINNED_GENESIS_APK.channel,runtime:PINNED_GENESIS_APK.runtime,
  stagingOtaPublished:false,existingSignedApkLiveReverified:false,
  physicalDeviceVerified:false,
- note:'Code/config/dependency parity only; previous EAS signed binary evidence exists. Verify current EAS channel and signed APK proof before a new OTA.'
+ note:'Code/config/dependency parity only against the newer VERIFIED green-B native APK. Old 2.0 runtime installers may have previous native splash; verify installed APK distribution and EAS channel before OTA.'
 }));

@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
   "objective": "Premium Season 2 map-first Kingdom staging candidate with locally bundled nature-first tropical/winter art and canonical paid Supabase; Arena EXCLUDED FROM THE COMPILED APPLICATION BUNDLE, no production deployment.",
   "baseRef": "44d07a65d5e19f4cfb8f70aaff4f9d24545eb097",
-  "productionBaselineEvidence": "Main production untouched; parent DEV commit 9997d85d646257d83e18642a4219a38cc57b0ec2. App/runtime Play identity not independently verified; no Supabase/OTA writes. Owner clarified 2026-11-21: sharing the existing paid BUKLOD Supabase is explicitly authorized for normal app operations; new subscriptions and independent paid database are not required. DEV source only; no live backend writes performed.",
+  "productionBaselineEvidence": "Main production untouched; parent DEV commit 9997d85d646257d83e18642a4219a38cc57b0ec2. App/runtime Play identity not independently verified; no Supabase/OTA writes. Owner clarified 2026-11-21: sharing the existing paid BUKLOD Supabase is explicitly authorized for normal app operations; new subscriptions and independent paid database are not required. DEV source only; no live backend writes performed. Signed green B staging APK Android job 136181340162 (2026-11-20) verified APK SHA256 f2608820b522a2d58fbbcfe94be10df600f7c3915a509e625f53902288770900 source a04d9ccf91e508a062bab8a7657297e574ae40a2; native config matched exactly in this source.",
   "chosenApproach": "Preserve existing consolidated core and Kingdom graphical UX; fully remove new Expo Router Arena route, offline engine and arena renderers from this staging candidate so no Arena feature is in the APK, keep its independent experimental DEV PR intact; source gate uses canonical live paid Supabase with no new finance mutations.",
   "riskAreas": [
     "asset-licensing",
@@ -21,7 +21,8 @@
     "release-identity",
     "shared-live-supabase-data-integrity",
     "native-character-idle-motion",
-    "android-js-bundle-compatibility"
+    "android-js-bundle-compatibility",
+    "native-splash-identity"
   ],
   "lockedFeatureChanges": [
     {
@@ -105,7 +106,8 @@
     "tests/season2-android-bundle-compatibility-20261121.test.mjs",
     "scripts/season2-android-bundle-compatibility.mjs",
     "scripts/season2-native-apk-source-parity.mjs",
-    "tests/season2-native-apk-parity-20261121.test.mjs"
+    "tests/season2-native-apk-parity-20261121.test.mjs",
+    "app.config.js"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
@@ -129,7 +131,8 @@
     "Native-driver bounded idle motion only for existing original character images; active/focus/background/Reduce Motion gate and cleanup; no fictional .riv rig or fake gameplay ownership.",
     "Android map hit targets >=44px with edge clamps on narrow 280px viewport; focused route and Show Faith regressions preserved.",
     "Exact staging Android Metro JS/asset export added to Season 2 CI with locked npm dependencies; source-only pass is NOT signed native APK or OTA proof. Existing paid Supabase is compile-time config only; no backend request.",
-    "Pinned native source of Nov 20 signed Genesis APK EAS build d9e279a6-766b-4bd9-8316-3f700749594c from SHA 5bd80d... must be verified as ancestor with no drift in app config, metro/babel, lockfile, native modules/scripts or runtime dependencies; this is NOT live EAS channel or device acceptance."
+    "Pinned native source of Nov 20 signed Genesis APK EAS build d9e279a6-766b-4bd9-8316-3f700749594c from SHA 5bd80d... must be verified as ancestor with no drift in app config, metro/babel, lockfile, native modules/scripts or runtime dependencies; this is NOT live EAS channel or device acceptance.",
+    "Premium Genesis-only native splash/icon matches source a04d9cc... of actual verified signed stage APK SHA256 f260... versionCode13; no changes to non-Genesis production icons or native module/dependency lockfile."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
@@ -148,7 +151,8 @@
     "Original live Kingdom 13 character station routes unchanged; future Arena development remains isolated and can only be re-integrated via later separately authorized scope.",
     "Animated character fallback retains exactly the selected existing character art; no external animations, new network, unsupported native SDK, BP logic, or ad competing audio.",
     "No production configuration, Google Play deployment, EAS token, OTA publish, Supabase mutation or Arena native route enters the Android export QA.",
-    "Do not rebuild native APK unnecessarily when its native source and runtime are identical; never send a new premium JS OTA before checking exact EAS channel routing and current signed native artifact."
+    "Do not rebuild native APK unnecessarily when its native source and runtime are identical; never send a new premium JS OTA before checking exact EAS channel routing and current signed native artifact.",
+    "Only Genesis-preview app.config native splash/logo uses the approved transparent green B. Default production / classroom / other staging variants still use prior icon paths."
   ],
   "alternativeApproaches": [
     "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",

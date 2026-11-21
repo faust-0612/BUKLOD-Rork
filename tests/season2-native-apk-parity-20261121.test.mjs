@@ -11,8 +11,9 @@ test('Premium Season 2 OTA JS can reuse the verified Genesis staging native base
  assert.equal(job.status,0,job.stderr||job.stdout);
  const report=JSON.parse(job.stdout);
  assert.equal(report.nativeSourceCompatible,true);
- assert.equal(report.signedNativeBaselineSha,'5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0');
- assert.equal(report.knownSignedEasBuildId,'d9e279a6-766b-4bd9-8316-3f700749594c');
+ assert.equal(report.signedNativeBaselineSha,'a04d9ccf91e508a062bab8a7657297e574ae40a2');
+ assert.equal(report.verifiedSignedApkSha256,'f2608820b522a2d58fbbcfe94be10df600f7c3915a509e625f53902288770900');
+ assert.equal(report.verifiedSignedApkVersionCode,13);
  assert.equal(report.package,'org.mzbministry.buklod.staging');
  assert.equal(report.runtime,'2.0.0-genesis-preview');
  assert.equal(report.stagingOtaPublished,false);
@@ -24,7 +25,7 @@ test('Native compatibility compares pinned source and dependencies; cannot build
  for(const file of ['app.config.js','metro.config.js','babel.config.js','package-lock.json',
   'modules','plugins','android','ios','scripts/genesis-assert-native-autolinking.mjs'])
   assert.ok(script.includes(file),'Required native input missing: '+file);
- assert.match(script,/merge-base','--is-ancestor'/);
+ assert.match(script,/cat-file','-e'/);
  assert.match(script,/git\(\['diff','--name-only'/);
  assert.match(script,/assert\.deepEqual\(currentPkg\[key\]/);
  assert.match(workflow,/fetch-depth: 0/);

@@ -24,6 +24,7 @@ on:
       - 'scripts/season2-premium-staging-ota-gate.mjs'
       - 'scripts/season2-android-bundle-compatibility.mjs'
       - 'scripts/season2-native-apk-source-parity.mjs'
+      - 'app.config.js'
       - 'tests/season2-native-apk-parity-20261121.test.mjs'
       - 'tests/season2-android-bundle-compatibility-20261121.test.mjs'
       - 'eas.json'
@@ -32,6 +33,9 @@ on:
     branches:
       - dev/season2-map-first-conso-intake-20261121
     paths:
+      - 'app.config.js'
+      - 'scripts/season2-native-apk-source-parity.mjs'
+      - 'tests/season2-native-apk-parity-20261121.test.mjs'
       - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
       - 'src/app/buklod-map.tsx'
       - 'src/app/index.tsx'
