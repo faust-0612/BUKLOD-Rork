@@ -8,7 +8,7 @@
  * No network, audio, timers, expensive blur, events or animation loops.
  */
 import React,{memo} from 'react';
-import Svg,{Circle,Defs,Ellipse,G,Line,LinearGradient as SvgGradient,Path,Polygon,Rect,Stop} from 'react-native-svg';
+import Svg,{Circle,Defs,Ellipse,G,Line,LinearGradient as SvgGradient,Path,Rect,Stop} from 'react-native-svg';
 import {KL_KINGDOM_VISUAL_MOTIFS,type KlKingdomVisualId} from './klKingdomVisualMotifs';
 
 type Props={id:KlKingdomVisualId;mode?:'station'|'hero'};

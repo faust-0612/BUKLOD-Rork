@@ -3,6 +3,7 @@
  * BUKLOD Kingdom character STATIONS. Do not treat pairings as canonical story
  * assignments: the glossary names individual places and characters, but does
  * not canonically assign one unique world to each of the 13 playable characters.
+ * The visual mapping is NOT an amendment to unreleased KL lore.
  *
  * Names and descriptions are checked against the existing
  * kabihasnang-ligaw/dictionary.ts and dictionaryExtras.ts by CI. They are NOT

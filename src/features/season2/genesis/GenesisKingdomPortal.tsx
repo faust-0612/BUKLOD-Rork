@@ -19,7 +19,6 @@ import { emptyKingdomPreviewProgress, loadBuklodKingdomPreviewProgress, subscrib
 import { GenesisSeal } from './GenesisVisuals';
 import { pulseGenesisTouch } from './genesisNativeFeedback';
 import GenesisKingdomStationScene from './GenesisKingdomStationScene';
-import { KL_KINGDOM_VISUAL_MOTIFS } from './klKingdomVisualMotifs';
 
 export const GENESIS_REALMS = [
   { id:'phan-enterprise-builder', name:'Phan', title:'The First Harvest', caption:'Build a beginning that can sustain others', character:'phan' },
