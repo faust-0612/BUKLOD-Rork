@@ -14,6 +14,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
@@ -29,6 +30,9 @@ import { tryPlayRorkGameFeedback, playRorkSignatureSfx, useRorkGameAmbience } fr
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
 import { ArenaRankedSocket, isArenaRankedConfigured } from '@/features/games/empire/rankedClient';
 import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
+import { ArenaCombatHud, type ArenaHudKey, type ArenaHudLayout, type HudPoint, type CombatAction } from '@/features/games/empire/ArenaCombatHud';
+// @ts-ignore — pure, versioned, per-device preferences. Never a source of Arena game authority.
+import { ARENA_HUD_DEFAULT, sanitizeArenaHudLayout, serializeArenaHudLayout } from '@/features/games/empire/arenaHudLayout.mjs';
 // @ts-ignore — pure presentation helper, reads only server-authoritative snapshots.
 import { arenaActorPose } from '@/features/games/empire/arenaActorPose.mjs';
 // @ts-ignore — source-only audio event filter; no network and no private data.
@@ -37,12 +41,12 @@ import { drainArenaAudioEvents } from '@/features/games/empire/arenaPracticeAudi
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
 // @ts-ignore — The canonical offline Arena engine is already .mjs. Metro bundles .mjs; native import is intentionally isolated.
-import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
+import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS, resolveGear } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
 
 type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
 type Position = { x: number; y: number };
-type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; lastMoveTick?: number; lastAttacked?: number };
+type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; itemMastery?: number; cooldowns?: Record<'primary' | 'secondary' | 'ultimate', number>; gear?: Record<string, unknown>; lastMoveTick?: number; lastAttacked?: number };
 type ArenaState = {
   w: number; h: number; status: string; elapsed: number; tick: number; mode?: Mode;
   map: { lanes: number[]; colors: string[] };
@@ -229,6 +233,12 @@ function EmpireArenaInApp() {
   const [target, setTarget] = useState<string | null>(null);
   const [joyVisual, setJoyVisual] = useState<Position>({ x: 0, y: 0 });
   const [tacticsOpen, setTacticsOpen] = useState(false);
+  const [hudEditing, setHudEditing] = useState(false);
+  const [hudPositions, setHudPositions] = useState<ArenaHudLayout>(() => sanitizeArenaHudLayout(null) as ArenaHudLayout);
+  const [hudArea, setHudArea] = useState({width: 800, height: 280});
+  const moveHudControl = useCallback((key: ArenaHudKey, point: HudPoint) => {
+    setHudPositions(current => ({...current, [key]:point}));
+  }, []);
   const [zoom, setZoom] = useState(1);
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const compactLandscape = viewportHeight < 440;
@@ -241,6 +251,30 @@ function EmpireArenaInApp() {
   const rankedRef = useRef<ArenaRankedSocket | null>(null);
   const lastAudioEventSeq = useRef(0);
   const { musicEnabled, toggleMusic } = useRorkGameAmbience(ARENA_SCENE_GAME_ID[mapId]);
+
+  // Hydrate only device-local, per-account preferences. Malformed or old data
+  // always falls back to a safe ergonomic default; no backend write or sync.
+  useEffect(() => {
+    let current = true;
+    setHudPositions(sanitizeArenaHudLayout(null) as ArenaHudLayout);
+    if (user?.id) {
+      void AsyncStorage.getItem('@buklod_arena_hud_v2:' + user.id)
+        .then(stored => { if (current) setHudPositions(sanitizeArenaHudLayout(stored) as ArenaHudLayout); })
+        .catch(() => undefined);
+    }
+    return () => { current = false; };
+  }, [user?.id]);
+
+  const saveHudControls = useCallback(async () => {
+    if (!user?.id) { setMessage('Sign in to save Arena controls.'); return; }
+    try {
+      await AsyncStorage.setItem('@buklod_arena_hud_v2:' + user.id, serializeArenaHudLayout(hudPositions));
+      setHudEditing(false);
+      setMessage('Custom combat controls saved on this device.');
+    } catch {
+      setMessage('Cannot save controls right now; adjustments remain in this session.');
+    }
+  }, [hudPositions, user?.id]);
 
   useEffect(() => {
     let alive = true;
@@ -293,7 +327,7 @@ function EmpireArenaInApp() {
   }), []);
 
   useEffect(() => {
-    if (phase !== 'playing') return;
+    if (phase !== 'playing' || (hudEditing && arenaKind === 'practice')) return;
     const timer = setInterval(() => {
       if (!focused.current || AppState.currentState !== 'active') return;
       const state = gameRef.current;
@@ -319,7 +353,7 @@ function EmpireArenaInApp() {
       }
     }, STEP_MS as number);
     return () => clearInterval(timer);
-  }, [phase, sfxEnabled, arenaKind, localSeat]);
+  }, [phase, sfxEnabled, arenaKind, localSeat, hudEditing]);
 
   const start = useCallback(() => {
     // Server-owned Diamond/item eligibility is NOT simulated with fabricated user data.
@@ -336,6 +370,7 @@ function EmpireArenaInApp() {
     selected.current = null;
     setTarget(null);
     setTacticsOpen(false);
+    setHudEditing(false);
     setZoom(1);
     setMessage('Move, attack, gather, train and break the opposing seal. Practice grants no rewards.');
     setPhase('playing');
@@ -491,6 +526,28 @@ function EmpireArenaInApp() {
   const nearby = arenaNearby(game, me);
   const resources = game?.teams[ownTeam].resources;
   const media = getRorkGameMedia(ARENA_SCENE_GAME_ID[mapId]);
+  // Cooldown numbers are derived from the canonical engine snapshot; this HUD
+  // never grants abilities or fabricates ready-state timers.
+  const cooldownFor = (slot: 'primary'|'secondary'|'ultimate'): number => {
+    if (!game || !me || !me.cooldowns) return 0;
+    const base = {primary:5800, secondary:11000, ultimate:38000}[slot];
+    const gear = me.hero ? resolveGear(me.hero, me.gear || {}) : {cooldown:0};
+    const duration = base / (1 + Math.min(.2, (me.itemMastery || 0) * .04) + (gear.cooldown || 0));
+    return Math.max(0, duration - (game.elapsed - (me.cooldowns[slot] ?? -1e8)));
+  };
+  const actions: CombatAction[] = [
+    {id:'attack',label:'ATTACK',icon:'sword-cross',onPress:attack},
+    {id:'primary',label:'SKILL',icon:'lightning-bolt',onPress:()=>skill('primary'),
+      disabled:(me?.mana || 0)<18,cooldownMs:cooldownFor('primary')},
+    {id:'secondary',label:'DASH',icon:'run-fast',onPress:()=>skill('secondary'),
+      disabled:(me?.matchLevel||1)<3 || (me?.mana||0)<14,cooldownMs:cooldownFor('secondary')},
+    {id:'ultimate',label:'ULT',icon:'fire',onPress:()=>skill('ultimate'),
+      disabled:(me?.matchLevel||1)<6 || (me?.mana||0)<55,cooldownMs:cooldownFor('ultimate')},
+    {id:'mine',label:'MINE',icon:'pickaxe',onPress:mine,disabled:!nearby.mine},
+    {id:'bank',label:'BANK',icon:'archive-arrow-down',onPress:()=>execute({type:'deposit'},'collect'),disabled:!nearby.canBank},
+    {id:'train',label:'TRAIN',icon:'account-multiple-plus',onPress:()=>execute({type:'train',kind:'warrior'},'collect'),disabled:!nearby.canBank},
+    {id:'tactics',label:'TACTICS',icon:'chess-knight',onPress:()=>setTacticsOpen(v=>!v)},
+  ];
   void revision; // Intentionally render every bounded fixed simulation step.
 
   return <View style={[styles.root, { paddingTop: Math.max(4, insets.top), paddingBottom: Math.max(2, insets.bottom) }]}>
@@ -513,16 +570,35 @@ function EmpireArenaInApp() {
         <Pressable accessibilityRole="button" accessibilityLabel="Reset battlefield zoom" onPress={() => setZoom(1)} style={styles.zoomButton}><Text style={styles.zoomText}>{Math.round(zoom * 100)}%</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Zoom in battlefield" onPress={() => changeZoom(1.25)} style={styles.zoomButton}><MaterialCommunityIcons name="plus" size={19} color="#ffe7b5" /></Pressable>
       </View> : null}
+      {phase === 'playing' && arenaKind === 'practice' ? <Pressable accessibilityRole="button"
+        accessibilityLabel="Customize Arena controls" onPress={() => {
+          directionRef.current={x:0,y:0};setJoyVisual({x:0,y:0});setTacticsOpen(false);setHudEditing(true);
+        }} style={styles.audioToggle}>
+        <MaterialCommunityIcons name="gesture-tap" size={19} color="#f9df9e" />
+      </Pressable> : null}
       {phase === 'playing' && arenaKind === 'practice' ? <Control icon="pause" title="PAUSE" onPress={() => setPhase('paused')} /> : phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : null}
     </View>
 
     {phase === 'menu' ? <ScrollView style={styles.menuScroll} contentContainerStyle={[styles.menu, compactLandscape && styles.menuCompact]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>GENESIS WAR ARENA</Text>
-      <Text style={styles.description}>Play offline practice without affecting BP or Diamonds. Ranked PvP is enabled only on staging builds connected to a verified server with earned Diamond stakes.</Text>
+      <Text style={styles.description}>Offline practice • no BP or Diamond changes. Choose the match, then use the circular Arena controls. Customize their positions in the game.</Text>
+      <View style={styles.menuHeroPreview}>
+        <ExpoImage source={ARENA_GENERATED_ART['fullbody:' + hero + '_idle'] || ARENA_HERO_ART[hero]}
+          contentFit="contain" style={styles.menuHeroImage} />
+        <View style={styles.menuHeroText}><Text style={styles.heroName}>{CHARACTER_DISPLAY_NAME[hero]}</Text>
+          <Text style={styles.heroCaption}>{HEROES[hero]?.role?.toUpperCase() ?? 'HERO'} • CANONICAL BUKLOD CHARACTER</Text>
+          <Text style={styles.heroCaption}>13 heroes • 3 realms • animated battle poses</Text></View>
+      </View>
       <Text style={styles.groupLabel}>BATTLE MODE</Text>
       <View style={styles.options}>{MODES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMode(m)} style={[styles.option, mode === m && styles.optionActive]}><Text style={styles.optionText}>{MODE_LABELS[m]}</Text></Pressable>)}</View>
       <Text style={styles.groupLabel}>BATTLEFIELD</Text>
-      <View style={styles.options}>{SCENES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMapId(m)} style={[styles.option, mapId === m && styles.optionActive]}><Text style={styles.optionText}>{ARENA_MAPS[m].name}</Text></Pressable>)}</View>
+      <View style={styles.sceneOptions}>{SCENES.map(m => <Pressable key={m} accessibilityRole="button" accessibilityLabel={'Battlefield ' + ARENA_MAPS[m].name}
+        onPress={() => setMapId(m)} style={[styles.sceneCard, mapId === m && styles.sceneActive]}>
+        <ExpoImage source={ARENA_GENERATED_ART['scene:' + m]} contentFit="cover" style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['rgba(5,17,29,.1)','rgba(5,17,29,.94)']} style={StyleSheet.absoluteFill}/>
+        <Text style={styles.sceneTitle}>{ARENA_MAPS[m].name}</Text>
+        {mapId===m ? <MaterialCommunityIcons name="check-decagram" size={19} color="#fbe2a6" style={styles.sceneCheck}/> : null}
+      </Pressable>)}</View>
       <Pressable accessibilityRole="button" onPress={start} style={styles.start}><MaterialCommunityIcons name="sword-cross" color="#102b31" size={20} /><Text style={styles.startText}>ENTER PRACTICE ARENA</Text></Pressable>
       {isArenaRankedConfigured() ? <Pressable accessibilityRole="button" onPress={() => void startRanked()}
         style={styles.start}><MaterialCommunityIcons name="shield-sword" color="#102b31" size={20} /><Text style={styles.startText}>SEARCH RANKED OPPONENTS</Text></Pressable>
@@ -536,7 +612,10 @@ function EmpireArenaInApp() {
         rankedRef.current?.leave();rankedRef.current=null;setPhase('menu');setArenaKind('practice');
       }} style={styles.start}><Text style={styles.startText}>CANCEL QUEUE</Text></Pressable>
     </View> : null}
-    {game && phase !== 'menu' && phase !== 'queued' ? <View style={styles.stage}>
+    {game && phase !== 'menu' && phase !== 'queued' ? <View style={styles.stage} onLayout={event => {
+      const {width,height}=event.nativeEvent.layout;
+      if(Math.abs(width-hudArea.width)>1 || Math.abs(height-hudArea.height)>1) setHudArea({width,height});
+    }}>
       <View style={styles.hud}>
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>
         <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text>
@@ -545,25 +624,17 @@ function EmpireArenaInApp() {
       <ArenaField zoom={zoom} onPinchZoom={changeZoom} state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
       {!compactLandscape ? <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View> : null}
       {phase === 'playing' ? <>
-        <View style={[styles.joystick, compactLandscape && styles.joystickCompact]} {...joystick.panHandlers}>
-          <View style={styles.joyRing}><View style={[styles.joyHandle, { transform: [{ translateX: joyVisual.x * 25 }, { translateY: joyVisual.y * 25 }] }]} /></View>
-          <Text style={styles.joyLabel}>MOVE</Text>
-        </View>
-        <View style={[styles.actions, compactLandscape && styles.actionsCompact]}>
-          <View style={styles.actionLine}>
-            <Control icon="pickaxe" title="MINE" onPress={mine} disabled={!nearby.mine} />
-            <Control icon="archive-arrow-down" title="BANK" onPress={() => execute({ type: 'deposit' }, 'collect')} disabled={!nearby.canBank} />
-            <Control icon="account-multiple-plus" title="TRAIN" onPress={() => execute({ type: 'train', kind: 'warrior' }, 'collect')} disabled={!nearby.canBank} />
-            <Control icon="tools" title={tacticsOpen ? 'CLOSE' : 'TACTICS'} onPress={() => setTacticsOpen(v => !v)} />
-          </View>
-          <View style={styles.actionLine}>
-            <Control icon="lightning-bolt" title="SKILL" onPress={() => skill('primary')} />
-            <Control icon="run-fast" title="DASH" onPress={() => skill('secondary')} disabled={(me?.matchLevel || 1) < 3} />
-            <Control icon="fire" title="ULT" onPress={() => skill('ultimate')} disabled={(me?.matchLevel || 1) < 6} />
-            <Control icon="sword" title="ATTACK" onPress={attack} />
-          </View>
-        </View>
-        {tacticsOpen ? <View style={[styles.tactics, compactLandscape && styles.tacticsCompact]}>
+        <ArenaCombatHud width={hudArea.width} height={hudArea.height} positions={hudPositions}
+          editing={hudEditing} onMove={moveHudControl} joystickHandlers={joystick.panHandlers}
+          joy={joyVisual} actions={actions} />
+        {hudEditing && arenaKind==='practice' ? <View style={styles.hudEditor}>
+          <Text style={styles.hudEditorText}>DRAG ANY ICON TO MOVE</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Reset Arena controls" onPress={() => setHudPositions(sanitizeArenaHudLayout(null) as ArenaHudLayout)} style={styles.hudEditorButton}>
+            <Text style={styles.hudEditorAction}>RESET</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Save Arena control positions" onPress={() => void saveHudControls()} style={[styles.hudEditorButton,styles.hudSave]}>
+            <Text style={styles.hudEditorAction}>SAVE</Text></Pressable>
+        </View> : null}
+        {tacticsOpen && !hudEditing ? <View style={[styles.tactics, compactLandscape && styles.tacticsCompact]}>
           <Text style={styles.tacticsHeader}>FIELD COMMANDS • TAP TO USE</Text>
           <View style={styles.tacticsControls}>
             <Control icon="shield-sword" title="PUSH" onPress={order} />
@@ -616,6 +687,25 @@ const styles = StyleSheet.create({
   header: { color: '#ffe0a4', fontWeight: '900', fontSize: 14 },
   sub: { color: '#a7c4ce', fontSize: 9 },
   menuScroll: { flex: 1, width: '100%' },
+  menuHeroPreview: {minHeight:68,flexDirection:'row',alignItems:'center',gap:10,
+    borderRadius:13,backgroundColor:'#102a3988',borderColor:'#786746',borderWidth:1,paddingHorizontal:9},
+  menuHeroImage: {width:61,height:67},
+  menuHeroText: {flex:1,gap:2},
+  heroName: {color:'#ffe2a5',fontSize:16,fontWeight:'900'},
+  heroCaption: {color:'#d5dedb',fontSize:9,fontWeight:'700'},
+  sceneOptions: {flexDirection:'row',flexWrap:'wrap',gap:8},
+  sceneCard: {width:142,height:75,borderWidth:1.5,borderColor:'#567988',borderRadius:10,overflow:'hidden',
+    backgroundColor:'#0e2a3a',justifyContent:'flex-end',padding:7},
+  sceneActive: {borderColor:'#f2d292',borderWidth:2.5},
+  sceneTitle: {fontSize:10,color:'#fff2d8',fontWeight:'900'},
+  sceneCheck: {position:'absolute',right:5,top:5},
+  hudEditor: {position:'absolute',top:28,alignSelf:'center',zIndex:20,
+    flexDirection:'row',alignItems:'center',gap:7,borderRadius:11,borderWidth:1,
+    borderColor:'#d9c791',backgroundColor:'#061c30e8',paddingHorizontal:7,paddingVertical:5},
+  hudEditorText: {fontSize:9,color:'#fff1c6',fontWeight:'900'},
+  hudEditorButton: {paddingHorizontal:10,paddingVertical:7,borderRadius:8,backgroundColor:'#294a5c'},
+  hudEditorAction: {fontSize:10,fontWeight:'900',color:'#fff1cf'},
+  hudSave: {backgroundColor:'#39755f'},
   menu: { alignSelf: 'center', width: '100%', maxWidth: 720, paddingHorizontal: 18, paddingVertical: 18, gap: 11 },
   menuCompact: { maxWidth: 1000, paddingVertical: 8, gap: 7 },
   topCompact: { minHeight: 44 },
@@ -649,14 +739,14 @@ const styles = StyleSheet.create({
   joyLabel: { fontSize: 9, color: '#ffe7bd', fontWeight: '900' },
   actions: { position: 'absolute', right: 9, bottom: 32, zIndex: 5, gap: 6 },
   actionsCompact: { right: 7, bottom: 5, gap: 3 },
-  tactics: { position: 'absolute', right: 12, bottom: 141, zIndex: 6, width: 340, maxWidth: '66%',
+  tactics: { position: 'absolute', right: 12, top: 8, zIndex: 6, width: 340, maxWidth: '66%',
     borderRadius: 11, borderWidth: 1, borderColor: '#f1ca86', backgroundColor: '#061e30ed', padding: 8, gap: 6 },
-  tacticsCompact: { bottom: 100, maxHeight: '65%' },
+  tacticsCompact: {top:8,bottom:undefined,maxHeight:'75%'},
   tacticsHeader: { color: '#fff1c5', fontWeight: '900', fontSize: 10 },
-  tacticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  tacticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   tacticsHint: { color: '#c1d3d1', fontSize: 9 },
   actionLine: { flexDirection: 'row', alignSelf: 'flex-end', gap: 5 },
-  control: { minHeight: 40, minWidth: 42, borderRadius: 9, borderWidth: 1, borderColor: '#c5ac7d', backgroundColor: '#102a3ddd', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 4 },
+  control: { width:53,height:53,borderRadius:28, borderWidth: 1, borderColor: '#c5ac7d', backgroundColor: '#102a3ddd', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 4 },
   controlLabel: { color: '#ffe7b5', fontSize: 8, fontWeight: '900' },
   disabled: { opacity: 0.35 },
   overlay: { position: 'absolute', top: 25, bottom: 25, left: '22%', right: '22%', zIndex: 10, borderWidth: 1, borderColor: '#d3b477', backgroundColor: '#061727f2', borderRadius: 15, padding: 15, alignItems: 'center', justifyContent: 'center', gap: 14 },
