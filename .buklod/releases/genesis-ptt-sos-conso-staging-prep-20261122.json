@@ -47,7 +47,12 @@
       "supabase/functions/push/index.ts"
     ],
     "existingServerSharedWithProduction": true,
-    "stageOnlyUntilVerified": true
+    "stageOnlyUntilVerified": true,
+    "runtimeVersion": "2.0.1-genesis-sos",
+    "previousStagingRuntime": "2.0.0-genesis-preview",
+    "existingStagingAPKsCannotReceiveSOSRuntimeOTA": true,
+    "packageName": "org.mzbministry.buklod.staging",
+    "avoidOldBuildNoSound": "old APK does not contain native SOS raw asset; do not use same OTA runtime"
   },
   "gates": {
     "sourceContract": "scripts/community-help-sos-release-contract.mjs",
@@ -67,7 +72,8 @@
       "admob rendering and first-view nav performance",
       "account-isolation and location disclosure",
       "two-device notification overlay and map route",
-      "exact RC Expo/EAS provider receipt"
+      "exact RC Expo/EAS provider receipt",
+      "native runtime isolation: old 2.0.0 Genesis APK never gets new SOS OTA"
     ],
     "physicalDeviceTest": "not performed; user previously elected to skip, do not label as passed"
   },
