@@ -48,7 +48,14 @@ test('mender heals only allied damaged minions with health and shield cap',()=>{
  const ally=s.minions.find(m=>m.team==='A'&&m.kind==='vanguard'&&m.lane===0);
  const enemy=s.minions.find(m=>m.team==='B'&&m.kind==='vanguard'&&m.lane===0);
  ally.hp=20;enemy.hp=20;s.elapsed=3000;tickMinionWaves(s,event);
- assert.ok(ally.hp>20&&ally.hp<=ally.maxHp);assert.equal(enemy.hp,20);
+ assert.ok(ally.hp>20&&ally.hp<=ally.maxHp);
+ // Both teams have their own Mender. The rival is legitimately healed by THEIR Mender,
+ // not by team A; prove ownership with the receipt's exact from/to actor IDs.
+ assert.ok(enemy.hp>20&&enemy.hp<=enemy.maxHp);
+ for(const evt of s.events.filter(e=>e.type==='minion_heal')){
+  const from=s.minions.find(m=>m.id===evt.from),to=s.minions.find(m=>m.id===evt.to);
+  assert.ok(from&&to);assert.equal(from.team,to.team);
+ }
  assert.ok(ally.shield<=18);assert.ok(s.events.some(e=>e.type==='minion_heal'));
 });
 test('lane tower gates enemy seal until physically destroyed',()=>{
