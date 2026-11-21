@@ -196,7 +196,7 @@ export default function EmpireArenaInApp() {
     const state = createPractice({
       mode, mapId, hero,
       snapshot: { characterLevel: 1, bpEligibleLevel: 1, itemVerifiedLevel: 1, diamonds: 0, verifiedItems: [] },
-    }) as ArenaState;
+    } as any) as unknown as ArenaState;
     gameRef.current = state;
     selected.current = null;
     setTarget(null);
