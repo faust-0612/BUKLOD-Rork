@@ -1,0 +1,59 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-conso-staging-ota-publication-20261121.json",
+  "objective": "Publish one owner-authorized Genesis premium Season 2 consolidated Android OTA to existing EAS staging channel only, reusing signed runtime-compatible staging APK and preserving Play Production, verified BUKLOD finances and security.",
+  "baseRef": "759741954cf487f6429c1cc49c4b23796e938687",
+  "productionBaselineEvidence": "Frozen app source SHA was independently verified green across source regressions, Metro Android export, TS, ad/nav/auth governance on PR #1061. The source APK baseline is a04d9..., EAS signed build 42ce...; this new release workflow performs current EAS provider checks before and after OTA. No production channel change authorized.",
+  "chosenApproach": "Dedicated owner-tagged staging-only push workflow on isolated release branch. Diff only workflow, scoped release manifest and release governance test. Verify EAS Preview backend/native ABI/runtime/ads, export Android JS once, publish idempotently, read back EAS update receipt and production isolation.",
+  "selectionRationale": "Existing direct GitHub workflow supports authorized EAS update using already provisioned token without new apps, accounts, subscriptions or APK builds. The verified 39 Kingdom games, entry map, guide and Village/Home stay byte-for-byte unchanged.",
+  "alternativeApproaches": [
+    "Publish to production (forbidden, not requested)",
+    "Create a new signed APK (unnecessary under passing native parity)",
+    "Rebuild or redesign source after verified RC (unnecessary risk)"
+  ],
+  "riskAreas": [
+    "release-identity",
+    "release-pipeline",
+    "production-release",
+    "ads-monetization",
+    "navigation-auth",
+    "app-runtime",
+    "security-permissions"
+  ],
+  "allowedPaths": [
+    ".github/workflows/genesis-conso-staging-ota-publish-20261120.yml",
+    ".buklod/scopes/genesis-conso-staging-ota-publication-20261121.json",
+    "tests/genesis-conso-staging-ota-publication-20261121.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-conso-staging-ota-publication-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Staging-only EAS deployment workflow with signed native compatibility checks and no production write permissions",
+      "preservedBehaviors": [
+        "No production update, no Play release, no shared live Supabase schema/finance mutations",
+        "Only exact reviewed staging code is compiled to Android and published to existing preview channel",
+        "No duplicate publish for same commit and no accidental wrong runtime, package, scope or AdMob advertising identifier"
+      ],
+      "tests": [
+        "tests/genesis-conso-staging-ota-publication-20261121.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Preserve frozen app source including 39 premium games, signed green B entry art and guide, and all server-owned rewards",
+    "Preserve production, existing ad slots except authorized map entry, runtime/auth gate, Show Faith and privacy",
+    "Do not declare OTA receipt until external EAS update:view verifies exact Android update and unchanged production mapping"
+  ],
+  "acceptanceChecks": [
+    "Exact source-app freeze diff proves no app changes since green CI commit",
+    "Signed native EAS build/view, single mapped EAS stage branch, different production branch, canonical preview Supabase and expo config verified",
+    "Actual EAS Android update:view platform, runtime, branch, source SHA, id and group verified, production channel mapping unchanged",
+    "Actual Android physical verification owner-waived: NOT VERIFIED"
+  ],
+  "releaseMode": "staging-only-Android-EAS-OTA",
+  "publicationStatus": "REQUESTED_PENDING_PROVIDER_RECEIPT",
+  "productionDeployment": "NONE"
+}

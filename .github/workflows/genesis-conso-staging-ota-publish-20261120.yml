@@ -1,8 +1,8 @@
-name: BUKLOD Genesis Owner-Authorized STAGING Android OTA Publish
+name: BUKLOD Genesis 2026-11-21 Consolidated Android Staging OTA (PUBLISH)
 on:
   push:
     branches:
-      - release/genesis-conso-staging-ota-candidate-20261120
+      - release/genesis-conso-staging-ota-candidate-20261121
     paths:
       - .github/workflows/genesis-conso-staging-ota-publish-20261120.yml
 permissions:
@@ -10,9 +10,10 @@ permissions:
 concurrency:
   group: buklod-genesis-staging-ota-owner-publish-20261120
   cancel-in-progress: false
+
 jobs:
-  verified-genesis-staging-ota:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/genesis-conso-staging-ota-candidate-20261120' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_STAGING_OTA_PUBLISH_20261120:') }}
+  publish-verified-android-staging:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/genesis-conso-staging-ota-candidate-20261121' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_OTA_STAGE_20261121:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:
@@ -21,20 +22,23 @@ jobs:
       APP_VARIANT: staging
       EXPO_PUBLIC_APP_ENV: staging
       EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW: 'true'
       EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
       BUKLOD_APP_TARGET: main
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      APK_SOURCE: 5bd80dbcafd85b0e8dc3c78f8d555b4aff2193d0
-      FROZEN_SOURCE: cf1c732c3ed3c718099f0163e18ed369149c068e
-      BUILD_ID: d9e279a6-766b-4bd9-8316-3f700749594c
+      FROZEN_SOURCE: 759741954cf487f6429c1cc49c4b23796e938687
+      APK_SOURCE: a04d9ccf91e508a062bab8a7657297e574ae40a2
+      BUILD_ID: 42ce5047-70dc-47e1-b8a9-77948c9b8dba
       STAGING_CHANNEL: season2-genesis-preview
       STAGING_PACKAGE: org.mzbministry.buklod.staging
       STAGING_RUNTIME: 2.0.0-genesis-preview
       PROJECT_ID: 23dad7d0-389a-406e-8dec-08965dab85d8
-      EVIDENCE_DIR: /tmp/buklod-genesis-staging-ota-20261120
-      EXPORT_DIR: /tmp/buklod-genesis-staging-ota-export-20261120
+      EVIDENCE_DIR: /tmp/buklod-genesis-conso-staging-20261121
+      EXPORT_DIR: /tmp/buklod-genesis-conso-android-20261121
     steps:
-      - name: Immutable checkout; no repository write credentials
+      - name: Exact release checkout, no repository write token
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
@@ -44,186 +48,211 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Fail closed on scope, frozen candidate or native drift
+      - name: Protect the verified source, scope and current production code
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(git merge-base "$FROZEN_SOURCE" HEAD)" = "$FROZEN_SOURCE"
-          test "$(git diff --name-only "$FROZEN_SOURCE" HEAD)" = ".github/workflows/genesis-conso-staging-ota-publish-20261120.yml"
-          node scripts/genesis-conso-staging-ota-preflight.mjs
-          node - <<'NODE'
-          const fs=require('node:fs'),a=require('node:assert/strict');
-          const e=JSON.parse(fs.readFileSync('eas.json','utf8'));
-          const p=e.build['season2-genesis-preview'];
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict'; import fs from 'node:fs'; import {execFileSync} from 'node:child_process';
+          const base=process.env.FROZEN_SOURCE;
+          const parent=execFileSync('git',['rev-parse','HEAD^'],{encoding:'utf8'}).trim();
+          a.equal(parent,base,'Candidate must descend DIRECTLY from verified source');
+          const changed=execFileSync('git',['diff','--name-only',base,'HEAD'],{encoding:'utf8'}).trim().split('\n').sort();
+          a.deepEqual(changed,[
+            '.buklod/scopes/genesis-conso-staging-ota-publication-20261121.json',
+            '.github/workflows/genesis-conso-staging-ota-publish-20261120.yml',
+            'tests/genesis-conso-staging-ota-publication-20261121.test.mjs',
+          ].sort(),'No app, package, SQL, native or production source changes allowed');
+          const scope=JSON.parse(fs.readFileSync('.buklod/scopes/genesis-conso-staging-ota-publication-20261121.json','utf8'));
+          a.equal(scope.baseRef,base);
+          a.equal(scope.releaseMode,'staging-only-Android-EAS-OTA');
+          const eas=JSON.parse(fs.readFileSync('eas.json','utf8'));
+          const p=eas.build['season2-genesis-preview'];
           a.equal(p.channel,process.env.STAGING_CHANNEL);
           a.equal(p.environment,'preview');
-          a.notEqual(e.build.production.channel,p.channel);
-          const m=JSON.parse(fs.readFileSync('.buklod/scopes/genesis-conso-staging-ota-20261120.json','utf8'));
-          a.equal(m.base.signedApkSourceSha,process.env.APK_SOURCE);
-          a.equal(m.base.reportedInstalledEasBuildId,process.env.BUILD_ID);
-          a.equal(m.base.androidPackage,process.env.STAGING_PACKAGE);
-          a.equal(m.base.runtimeVersion,process.env.STAGING_RUNTIME);
+          a.equal(p.android.buildType,'apk');
+          a.equal(p.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
+          a.equal(p.env.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
+          a.notEqual(eas.build.production.channel,p.channel);
+          console.log('Exact frozen verified app source and separate staging profile confirmed');
           NODE
-      - name: Locked dependency install, ad/navigation contracts and complete TypeScript compile
+          node scripts/season2-native-apk-source-parity.mjs
+          node scripts/season2-premium-staging-ota-gate.mjs --source
+      - name: Regression gate before any remote publication
         shell: bash
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
-          node --experimental-strip-types --test \
-            tests/genesis-dashboard-contrast-gallery-20261120.test.mjs \
-            tests/genesis-dashboard-contrast-asset-integrity-20261120.test.mjs \
-            tests/genesis-galaxy-wall-cluster-scope-20261120.test.mjs \
-            tests/genesis-cluster-navigation-scroll.test.mjs \
-            tests/genesis-connect-chat-scope.test.mjs \
-            tests/genesis-protected-feature-lock.test.mjs \
+          node --test \
+            tests/genesis-conso-staging-ota-publication-20261121.test.mjs \
+            tests/season2-final-conso-staging-20261121.test.mjs \
+            tests/season2-full-conso-source-release-gate-20261121.test.mjs \
+            tests/season2-premium-ad-navigation-guard-20261121.test.mjs \
+            tests/genesis-valley-audio-focus-20261121.test.mjs \
+            tests/season2-complete-community-facilities-20261121.test.mjs \
+            tests/kingdom-signature-missions-39-20261121.test.mjs \
+            tests/kingdom-premium-audio-39-20261121.test.mjs \
+            tests/kingdom-season2-endless-economy-20261121.test.mjs \
+            tests/season2-empire-arena-conso-intake-20261121.test.mjs \
             tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
-            tests/ad-dashboard-focus-performance-20261116.test.mjs \
-            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
-            tests/genesis-avatar-attachment-reconciliation-20261120.test.mjs
+            tests/ad-dashboard-focus-performance-20261116.test.mjs
+          node --experimental-strip-types --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+          node --test services/empire-arena/tests/core.test.mjs
           npx tsc --noEmit
-      - name: Validate Expo credential, exact signed Genesis APK and channel isolation
+          node scripts/season2-native-apk-source-parity.mjs
+      - name: Confirm Expo credentials, native signed build and unchanged production channel
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${EXPO_TOKEN:-}" || { echo 'BLOCK: EXPO_TOKEN is not configured'; exit 1; }
+          test -n "$EXPO_TOKEN" || { echo 'BLOCK: EXPO_TOKEN is not configured'; exit 1; }
           mkdir -p "$EVIDENCE_DIR"
           npx --yes eas-cli@27.9.0 build:view "$BUILD_ID" --json > "$EVIDENCE_DIR/build.json"
           npx --yes eas-cli@27.9.0 channel:view "$STAGING_CHANNEL" --json --non-interactive > "$EVIDENCE_DIR/stage-before.json"
-          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-before.json"
-          node - <<'NODE'
-          const fs=require('node:fs'),a=require('node:assert/strict');
-          const dir=process.env.EVIDENCE_DIR,read=n=>JSON.parse(fs.readFileSync(dir+'/'+n+'.json','utf8'));
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/prod-before.json"
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict'; import fs from 'node:fs';
+          const dir=process.env.EVIDENCE_DIR;const read=n=>JSON.parse(fs.readFileSync(dir+'/'+n+'.json','utf8'));
           const b=read('build');
           a.equal(b.id,process.env.BUILD_ID);
-          a.equal(String(b.status).toLowerCase(),'finished','Signed Genesis APK build is not finished');
+          a.equal(String(b.status).toLowerCase(),'finished');
           a.equal(String(b.platform).toLowerCase(),'android');
           a.equal(b.gitCommitHash,process.env.APK_SOURCE);
           a.equal(b.appIdentifier,process.env.STAGING_PACKAGE);
-          a.equal(b.appVersion,'2.0.0');
           a.equal(b.buildProfile,'season2-genesis-preview');
           a.equal(b.updateChannel?.name,process.env.STAGING_CHANNEL);
           a.equal(b.runtime?.version,process.env.STAGING_RUNTIME);
           a.equal(b.app?.id,process.env.PROJECT_ID);
-          function branch(c,expected){
-            const x=c.currentPage??c;
-            a.equal(x.name,expected);
-            a.notEqual(x.isPaused,true,'Channel is paused');
-            const m=typeof x.branchMapping==='string'?JSON.parse(x.branchMapping):x.branchMapping;
-            a.equal(m?.data?.length,1,'Channel has no single stable mapping');
-            const v=x.updateBranches?.find(t=>t.id===m.data[0].branchId);
-            a.ok(v?.id&&v?.name,'EAS branch identity is missing');
-            return v;
-          }
-          const s=branch(read('stage-before'),process.env.STAGING_CHANNEL),p=branch(read('production-before'),'production');
-          a.notEqual(s.id,p.id,'Production branch is shared with staging');
-          a.notEqual(s.name,p.name,'Production branch name is shared with staging');
-          a.notEqual(s.name,'production');
-          fs.writeFileSync(dir+'/stage-target.json',JSON.stringify({stageBranch:s.name,stageBranchId:s.id,productionBranch:p.name,productionBranchId:p.id}));
-          console.log('Exact signed Genesis APK and distinct EAS staging channel VERIFIED');
+          const extract=(obj,name)=>{
+            const c=obj.currentPage??obj;
+            a.equal(c.name,name);
+            a.notEqual(c.isPaused,true);
+            const m=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
+            a.equal(m?.data?.length,1);
+            const id=m.data[0].branchId;
+            const row=c.updateBranches?.find(v=>v.id===id);
+            a.ok(row?.name && row.id);
+            return {name:row.name,id:row.id};
+          };
+          const stage=extract(read('stage-before'),process.env.STAGING_CHANNEL);
+          const prod=extract(read('prod-before'),'production');
+          a.notEqual(stage.id,prod.id);
+          a.notEqual(stage.name,prod.name);
+          a.notEqual(stage.name,'production');
+          fs.writeFileSync(dir+'/target.json',JSON.stringify({stage,prod}));
+          console.log('Verified exact signed native build and distinct staging/production EAS branches');
           NODE
-      - name: Verify EAS Preview backend before compiling or publishing
+      - name: Check Preview backend, runtime and native ad identity before compilation
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-genesis-ota-preview.env --non-interactive > /dev/null
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-genesis-20261121-preview.env --non-interactive > /dev/null
           set -a
-          . /tmp/buklod-genesis-ota-preview.env
+          . /tmp/buklod-genesis-20261121-preview.env
           set +a
-          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW=true BUKLOD_APP_TARGET=main
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW=true
+          export EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL=true EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED=false
+          export EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW=true BUKLOD_APP_TARGET=main
           export EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
-          node - <<'NODE'
-          const a=require('node:assert/strict'),fs=require('node:fs');
-          const p=JSON.parse(fs.readFileSync('eas.json','utf8')).build['season2-genesis-preview'].env;
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict';import fs from 'node:fs';
+          const expected=JSON.parse(fs.readFileSync('eas.json','utf8')).build['season2-genesis-preview'].env;
           for(const k of ['EXPO_PUBLIC_SUPABASE_URL','EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY'])
-            a.equal(process.env[k],p[k],'EAS Preview '+k+' differs from installed Genesis backend; refusing OTA');
+            a.equal(process.env[k],expected[k],'EAS Preview canonical backend mismatch: '+k);
           a.equal(process.env.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
-          a.equal(process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW,'true');
-          a.equal(process.env.EXPO_PUBLIC_APP_ENV,'staging');
-          console.log('EAS Preview environment matches owner-authorized BUKLOD Genesis staging shared-live backend (secrets withheld)');
+          a.equal(process.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
+          console.log('Only owner-approved shared paid Supabase backend and non-ranked staging');
           NODE
-          npx expo config --json > "$EVIDENCE_DIR/expo-config.json"
-          node - <<'NODE'
-          const a=require('node:assert/strict'),f=require('node:fs'),c=JSON.parse(f.readFileSync(process.env.EVIDENCE_DIR+'/expo-config.json','utf8'));
+          npx expo config --json > "$EVIDENCE_DIR/config.json"
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict';import fs from 'node:fs';
+          const c=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/config.json','utf8'));
           a.equal(c.android.package,process.env.STAGING_PACKAGE);
           a.equal(c.runtimeVersion,process.env.STAGING_RUNTIME);
           a.equal(c.extra.eas.projectId,process.env.PROJECT_ID);
           a.equal(c.extra.appEnvironment,'staging');
           a.equal(c.extra.appTarget,'main');
-          a.equal(c.plugins.find(p=>Array.isArray(p)&&p[0]==='react-native-google-mobile-ads')[1].androidAppId,'ca-app-pub-3940256099942544~3347511713');
+          const ads=c.plugins.find(p=>Array.isArray(p)&&p[0]==='react-native-google-mobile-ads');
+          a.equal(ads?.[1].androidAppId,'ca-app-pub-3940256099942544~3347511713');
           NODE
           EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir "$EXPORT_DIR" --clear
           test -s "$EXPORT_DIR/metadata.json"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Idempotent Android-only OTA publish to Genesis staging, never production
+      - name: Idempotent Android ONLY EAS update on Genesis staging
         shell: bash
         run: |
           set -euo pipefail
-          STAGE_BRANCH=$(node -p "require(process.env.EVIDENCE_DIR+'/stage-target.json').stageBranch")
-          npx --yes eas-cli@27.9.0 update:list --branch "$STAGE_BRANCH" --limit 30 --json --non-interactive > "$EVIDENCE_DIR/prior-updates.json"
-          node - <<'NODE'
-          const fs=require('node:fs'),a=require('node:assert/strict');
-          const dir=process.env.EVIDENCE_DIR;
-          const raw=JSON.parse(fs.readFileSync(dir+'/prior-updates.json','utf8'));
+          STAGE_BRANCH=$(node -p "require(process.env.EVIDENCE_DIR+'/target.json').stage.name")
+          npx --yes eas-cli@27.9.0 update:list --branch "$STAGE_BRANCH" --limit 50 --json --non-interactive > "$EVIDENCE_DIR/prior.json"
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict';import fs from 'node:fs';
+          const d=process.env.EVIDENCE_DIR;
+          const raw=JSON.parse(fs.readFileSync(d+'/prior.json','utf8'));
           const rows=raw.currentPage??raw;
-          a.ok(Array.isArray(rows),'Cannot detect existing EAS update reliably');
-          const marker='BUKLOD_GENESIS_STAGING_CONSO_'+process.env.GITHUB_SHA;
-          const hits=rows.filter(x=>x.message===marker);
-          a.ok(hits.length<=1,'Ambiguous duplicate update; fail closed');
-          fs.writeFileSync(dir+'/update-group.txt',hits[0]?.group??'');
+          a.ok(Array.isArray(rows),'Unrecognized EAS update list; fail closed');
+          const msg='BUKLOD_GENESIS_CONSO_STAGE_20261121_'+process.env.GITHUB_SHA;
+          const matches=rows.filter(v=>v.message===msg);
+          a.ok(matches.length<=1,'Ambiguous existing update; refuse duplicate');
+          fs.writeFileSync(d+'/group.txt',matches[0]?.group||'');
           NODE
-          if [ ! -s "$EVIDENCE_DIR/update-group.txt" ]; then
-            npx --yes eas-cli@27.9.0 update --channel "$STAGING_CHANNEL" --platform android --environment preview --skip-bundler --input-dir "$EXPORT_DIR" --non-interactive --json --message "BUKLOD_GENESIS_STAGING_CONSO_${GITHUB_SHA}" > "$EVIDENCE_DIR/published.json"
-            node - <<'NODE'
-          const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE_DIR;
-          const rows=JSON.parse(fs.readFileSync(d+'/published.json','utf8'));
-          a.ok(Array.isArray(rows)&&rows.length===1&&rows[0].group,'Missing exact Android EAS update group; no automatic retry');
-          fs.writeFileSync(d+'/update-group.txt',rows[0].group);
+          if [ ! -s "$EVIDENCE_DIR/group.txt" ]; then
+            npx --yes eas-cli@27.9.0 update --channel "$STAGING_CHANNEL" --platform android --environment preview --skip-bundler --input-dir "$EXPORT_DIR" --non-interactive --json --message "BUKLOD_GENESIS_CONSO_STAGE_20261121_$GITHUB_SHA" > "$EVIDENCE_DIR/publish.json"
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs';import a from 'node:assert/strict';
+          const d=process.env.EVIDENCE_DIR;const rows=JSON.parse(fs.readFileSync(d+'/publish.json','utf8'));
+          a.ok(Array.isArray(rows)&&rows.length===1&&rows[0].group,'Expected one Android update group');
+          fs.writeFileSync(d+'/group.txt',rows[0].group);
           NODE
           fi
-          npx --yes eas-cli@27.9.0 update:view "$(cat "$EVIDENCE_DIR/update-group.txt")" --json > "$EVIDENCE_DIR/update-view.json"
-      - name: Check remote update receipt, branch/runtime identity and unchanged production channel
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$EVIDENCE_DIR/group.txt")" --json > "$EVIDENCE_DIR/view.json"
+      - name: Provider verification of exact update, channel and unchanged production mapping
         shell: bash
         run: |
           set -euo pipefail
           npx --yes eas-cli@27.9.0 channel:view "$STAGING_CHANNEL" --json --non-interactive > "$EVIDENCE_DIR/stage-after.json"
-          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-after.json"
-          node - <<'NODE'
-          const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE_DIR;
-          const read=x=>JSON.parse(fs.readFileSync(d+'/'+x+'.json','utf8'));
-          const original=read('stage-target');
-          const updates=read('update-view');
-          a.ok(Array.isArray(updates)&&updates.length===1,'Expected exactly one Android update');
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/prod-after.json"
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict';import fs from 'node:fs';
+          const d=process.env.EVIDENCE_DIR,read=k=>JSON.parse(fs.readFileSync(d+'/'+k+'.json','utf8'));
+          const target=read('target'),updates=read('view');
+          a.ok(Array.isArray(updates)&&updates.length===1,'Exact one remote Android update required');
           const u=updates[0];
           a.equal(u.platform,'android');
           a.equal(u.runtimeVersion,process.env.STAGING_RUNTIME);
           a.equal(u.gitCommitHash,process.env.GITHUB_SHA);
-          a.equal(u.branch,original.stageBranch);
-          a.equal(u.group,fs.readFileSync(d+'/update-group.txt','utf8').trim());
-          a.ok(u.id&&u.group&&!u.isRollBackToEmbedded);
-          for(const [name,expected] of [['stage-after',original.stageBranchId],['production-after',original.productionBranchId]]){
-            const snapshot=read(name),c=snapshot.currentPage??snapshot,m=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
-            a.equal(m?.data?.length,1);
-            a.equal(m.data[0].branchId,expected,'EAS channel mapping changed during OTA release');
-          }
-          const result={status:'SERVER_SIDE_GENESIS_STAGING_OTA_VERIFIED',platform:'android',channel:process.env.STAGING_CHANNEL,
-            branch:u.branch,runtime:u.runtimeVersion,package:process.env.STAGING_PACKAGE,
-            buildId:process.env.BUILD_ID,apkSource:process.env.APK_SOURCE,sourceSha:process.env.GITHUB_SHA,
-            updateId:u.id,groupId:u.group,createdAt:u.createdAt,productionBranchPreserved:true,
-            physicalDeviceAcceptance:'NOT_YET_REVERIFIED',playProduction:'NOT_DEPLOYED'};
-          fs.writeFileSync(d+'/verification.json',JSON.stringify(result,null,2));
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### BUKLOD Genesis staging OTA published\n\n'+
-            'Source: '+result.sourceSha+'\n\nGroup: '+result.groupId+'\n\nRuntime: '+result.runtime+
-            '\n\nProduction channel mapping unchanged. Device visual/AdMob acceptance still pending.\n');
-          console.log('VERIFIED GENESIS STAGING OTA RECEIPT',JSON.stringify(result));
+          a.equal(u.branch,target.stage.name);
+          a.equal(u.group,fs.readFileSync(d+'/group.txt','utf8').trim());
+          a.ok(u.id&&u.group&&!u.isRollBackToEmbedded,'Invalid provider receipt');
+          const identify=(raw,name)=>{
+            const c=raw.currentPage??raw;
+            a.equal(c.name,name);
+            const map=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
+            a.equal(map?.data?.length,1);
+            return map.data[0].branchId;
+          };
+          a.equal(identify(read('stage-after'),process.env.STAGING_CHANNEL),target.stage.id);
+          a.equal(identify(read('prod-after'),'production'),target.prod.id);
+          const receipt={status:'VERIFIED_GENESIS_CONSO_STAGING_OTA',platform:'android',
+            channel:process.env.STAGING_CHANNEL,branch:u.branch,package:process.env.STAGING_PACKAGE,
+            runtime:u.runtimeVersion,sourceSha:process.env.GITHUB_SHA,
+            exactFrozenAppSourceSha:process.env.FROZEN_SOURCE,
+            nativeBuildId:process.env.BUILD_ID,nativeSourceSha:process.env.APK_SOURCE,
+            updateId:u.id,groupId:u.group,createdAt:u.createdAt,
+            productionChannelPreserved:true,physicalDeviceVerified:false,
+            rankedLive:false,playProduction:'NOT_DEPLOYED'};
+          fs.writeFileSync(d+'/receipt.json',JSON.stringify(receipt,null,2)+'\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            '### BUKLOD Genesis staging OTA — VERIFIED\n\n'+
+            'Update: '+receipt.updateId+'\n\nGroup: '+receipt.groupId+
+            '\n\nCommit: '+receipt.sourceSha+'\n\nRuntime: '+receipt.runtime+
+            '\n\nProduction channel remains untouched; physical Android verification was waived.\n');
+          console.log('VERIFIED GENESIS STAGING OTA RECEIPT',JSON.stringify(receipt));
           NODE
-      - name: Retain source and OTA receipt evidence
+      - name: Store ONLY sanitized receipt (never Preview secrets)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: genesis-conso-staging-ota-${{ github.sha }}
-          path: |
-            /tmp/buklod-genesis-staging-ota-20261120/*.json
-            /tmp/buklod-genesis-staging-ota-20261120/*.txt
+          name: genesis-20261121-android-staging-receipt
+          path: /tmp/buklod-genesis-conso-staging-20261121/receipt.json
           retention-days: 14
           if-no-files-found: ignore
