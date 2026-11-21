@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
   inspectUnifiedSignedApk, STAGING_PACKAGE, STAGING_VERSION, STAGING_RUNTIME,
-  STAGING_CHANNEL, EXPECTED_ABIS
+  STAGING_CHANNEL, EXPECTED_ABIS, EXISTING_EAS_STAGING_CERT_SHA256
 } from '../scripts/genesis-unified-verify-signed-apk.mjs';
 
 const signer='a'.repeat(64);
@@ -66,4 +66,21 @@ test('no signed APK acceptance on receipt-only evidence, production credentials 
   assert.match(script,/otaPublished:false/);
   assert.equal(STAGING_RUNTIME,'2.0.3-genesis-unified-godot');
   assert.equal(STAGING_CHANNEL,'season2-genesis-unified-preview');
+});
+
+test('verified November 20 EAS staging certificate is pinned and no bypassing signed RC gate',()=>{
+  assert.equal(EXISTING_EAS_STAGING_CERT_SHA256,
+    'b2470c2dfa865dd670293ee283cbb55463faf486af4e33a514c3e843289e41a9');
+  const wf=readFileSync(new URL('../.github/workflows/genesis-unified-staging-signed-rc-20261122.yml',import.meta.url),'utf8');
+  assert.match(wf,/genesis-unified-signed-stage-preflight\.mjs --signed/);
+  assert.match(wf,/genesis-unified-verify-signed-apk\.mjs/);
+  assert.match(wf,/STAGING_SIGNING_CERT_SHA256/);
+  assert.match(wf,/buildSourceSha:b\.gitCommitHash/);
+  assert.match(wf,/buildRuntime:b\.runtime\.version/);
+  assert.match(wf,/path: buklod-genesis-unified-verified-apk\.json/);
+  assert.doesNotMatch(wf,/eas-cli[^\n]*update --/);
+  assert.doesNotMatch(wf,/eas-cli[^\n]*submit --/);
+  const hold=JSON.parse(readFileSync(new URL('../.buklod/releases/genesis-unified-signed-rc-hold-20261122.json',import.meta.url),'utf8'));
+  assert.equal(hold.signedReleaseReady,false,'No release without fully verified Godot scenes and isolated backend');
+  assert.equal(hold.productionUntouched,true);
 });
