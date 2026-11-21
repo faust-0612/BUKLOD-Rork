@@ -80,7 +80,7 @@ test('orders enforce team boundaries and living worker ownership',()=>{
  const s=practice();
  assert.equal(command(s,'A0',{type:'order',order:'repair',unitId:'vB0'}),false);
  assert.equal(command(s,'A0',{type:'order',order:'research',unitId:'vA0'}),true);
- assert.equal(s.units.find(u=>u.id==='vB0').command,'repair');
+ assert.equal(s.units.find(u=>u.id==='vB0').command,'mine');
  assert.equal(command(s,'A0',{type:'order',order:'invalid',unitId:'vA0'}),false);
  assert.equal(issueVillagerOrder(s,'A','retreat','vA1'),true);
  assert.equal(s.units.find(u=>u.id==='vA1').command,'retreat');
