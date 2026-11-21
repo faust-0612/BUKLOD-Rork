@@ -4,7 +4,7 @@
   "objective": "Finish real BUKLOD Genesis estate visuals, real verified progression and nine-part customization, plus original, owned offline SFX, opt-in bilingual voice, responsive celebratory effects, and focus/quiet-hours safety; DEV only and no production changes.",
   "baseRef": "dev/genesis-premium-personal-world-progress-20261121",
   "productionBaselineEvidence": "The approved Genesis world base was inspected at f01dd05102bd4acd292549073c26ac22542902e3; DEV source-only comparison. No live Android/production APK/runtime/OTA proof claimed.",
-  "chosenApproach": "Reuse owned Genesis stage-one WebP underpaintings and install per-tier SVG scenes for all 30 permanent level IDs and 150 construction-stage compositions. Separate blueprint and earned stages; store per-property draft locally and save explicitly via validated Supabase RPC. New SQL remains DEV migration only. Add 13 offline original PCM stereo SFX mapped separately to navigation, preview, customize, apply, claim, market entry, purchase confirmed/rejected, construction start/finish, contribution, error and unlock. Add optional local Filipino/English TTS, native SVG material emblems and Genesis light/celebration effects. Purchase completion is intentionally not bound to a Palengke portal without verified checkout.",
+  "chosenApproach": "Reuse owned Genesis stage-one WebP underpaintings and install per-tier SVG scenes for all 30 permanent level IDs and 150 construction-stage compositions. Separate blueprint and earned stages; store per-property draft locally and save explicitly via validated Supabase RPC. New SQL remains DEV migration only. Add 13 offline original PCM stereo SFX mapped separately to navigation, preview, customize, apply, claim, market entry, purchase confirmed/rejected, construction start/finish, contribution, error and unlock. Add optional local Filipino/English TTS, native SVG material emblems and Genesis light/celebration effects. Purchase completion is intentionally not bound to a Palengke portal without verified checkout. Stage the 30 distinct interactive SVG customization thumbnails, material piles/scaffolds per construction phase, plus server-verified resource-flight and applied-design visual effects.",
   "selectionRationale": "Owner's catalog specifies 30 development tiers but its referenced PNG files are not installed. SVG tier compositions avoid falsely claiming missing PNGs, keep APK size bounded, support all supported customizations, and preserve the 1-tap original world map. Native SVG and bundled WAV assets have actual bytes; existing MP3 preview hosts are not used and no network fetch is required for estate sounds.",
   "alternativeApproaches": [
     "Use 30 unverified PNG catalog filenames as runtime images; rejected because files do not exist.",
@@ -49,6 +49,7 @@
     "assets/sounds/estate-premium/unlock.wav",
     "src/features/season2/world/DevelopmentStructurePreview.tsx",
     "src/features/season2/world/EstateConstructionConsole.tsx",
+    "src/features/season2/world/EstateCosmeticTile.tsx",
     "src/features/season2/world/EstateGenesisAtmosphere.tsx",
     "src/features/season2/world/EstateMomentFX.tsx",
     "src/features/season2/world/EstateResourceEmblem.tsx",
@@ -97,7 +98,9 @@
     "All 13 stereo WAV files are locally bundled and RIFF/PCM-checked, have nonzero distinct audio signals and are referenced by the native focused player.",
     "Claim, apply, construction and contribution success audio/FX execute after successful estate RPC; failure uses a separate cue, not a false success sound.",
     "Native voice narration is opt-in, locale-sensitive (Filipino system voice or English fallback), focus/quiet-hours/master-games-sound gated and stopped on blur.",
-    "Actual Palengke purchase success remains unconnected until a verified real checkout transaction integration exists. Never play purchase-confirmed on entering its integration portal."
+    "Actual Palengke purchase success remains unconnected until a verified real checkout transaction integration exists. Never play purchase-confirmed on entering its integration portal.",
+    "Nine customization families render 30 distinct local 2.5D thumbnails in selectors; thumbnail preview alone never grants purchase or a saved cosmetic.",
+    "Construction phase 0–3 illustrations and milestone-dependent resource emblems animate without fabricated wallet changes; motion preference is observed."
   ],
   "lockedFeatureChanges": [
     {
