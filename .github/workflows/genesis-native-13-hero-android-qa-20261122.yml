@@ -1,0 +1,134 @@
+name: BUKLOD Genesis 13 Native Godot Heroes and Worlds Android QA (NO EAS/OTA/PROD)
+on:
+  push:
+    branches:
+      - dev/genesis-full-game-native-20261122
+    paths:
+      - .github/workflows/genesis-native-13-hero-android-qa-20261122.yml
+      - godot/empire-arena/**
+      - scripts/build-empire-godot-pack.mjs
+      - tests/genesis-godot-13-hero-runtime-20261122.test.mjs
+permissions:
+  contents: read
+concurrency:
+  group: buklod-genesis-13-hero-android-dev-proof
+  cancel-in-progress: false
+jobs:
+  actual-godot-and-android-native-build:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-full-game-native-20261122' && startsWith(github.event.head_commit.message, 'BUKLOD_GODOT_HERO_QA:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS: 'true'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_SUPABASE_URL: https://genesis-unified-offline.invalid
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_OFFLINE_NOT_A_CREDENTIAL
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Fail closed against production backend, signing or ranked changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const c=require('./app.config.js')({config:{}});
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.runtimeVersion,'2.0.3-genesis-unified-godot');
+          assert.equal(process.env.EXPO_PUBLIC_ARENA_RANKED_ENABLED,undefined);
+          assert.equal(process.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
+          assert.equal(process.env.EXPO_PUBLIC_SUPABASE_URL,'https://genesis-unified-offline.invalid');
+          assert.equal(c.plugins.includes('./plugins/withBuklodGodotArenaPack.js'),true);
+          const fb=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          fb.client=(fb.client||[]).filter(x=>x.client_info?.android_client_info?.package_name===c.android.package);
+          assert.equal(fb.client.length,1);
+          fs.writeFileSync('google-services.staging.json',JSON.stringify(fb));
+          NODE
+      - name: Source identity parity and original GDScript catalog pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/genesis-godot-13-hero-runtime-20261122.test.mjs tests/genesis-unified-godot-native-contract-20261122.test.mjs tests/genesis-unified-production-runtime-isolation-20261122.test.mjs
+          node --test tests/arena-godot-native-migration-20261122.test.mjs
+          npx tsc --noEmit
+          node scripts/build-empire-godot-pack.mjs --out=/tmp/buklod-13-hero-worlds.zip
+          unzip -t /tmp/buklod-13-hero-worlds.zip
+          mkdir -p /tmp/buklod-13-hero-worlds
+          unzip -q /tmp/buklod-13-hero-worlds.zip -d /tmp/buklod-13-hero-worlds
+          test "$(unzip -Z -1 /tmp/buklod-13-hero-worlds.zip | grep -Ec '^hero-originals/heroes/.+\.gd$')" = 6
+          test "$(unzip -Z -1 /tmp/buklod-13-hero-worlds.zip | grep -Ec '^art/(fullbody|sprite|scene)/')" = 68
+      - name: Execute real Godot 4.7.2 original and special hero scene gameplay checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot-4.7.2.zip
+          mkdir -p /tmp/godotbin
+          unzip -q /tmp/godot-4.7.2.zip -d /tmp/godotbin
+          GODOT=$(find /tmp/godotbin -type f -name 'Godot_*linux.x86_64' -print -quit)
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          "$GODOT" --version | grep -F '4.7.2'
+          "$GODOT" --headless --path /tmp/buklod-13-hero-worlds --editor --quit 2>&1 | tee /tmp/godot-source.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/godot-source.log; then exit 1; fi
+          for case in smoke art_smoke world_smoke hero_native_smoke; do
+            "$GODOT" --headless --path /tmp/buklod-13-hero-worlds --script "res://tests/$case.gd" > "/tmp/godot-$case.log" 2>&1 || { cat "/tmp/godot-$case.log"; exit 1; }
+            tail -8 "/tmp/godot-$case.log"
+          done
+          grep -F BUKLOD_GODOT_SMOKE_PASS /tmp/godot-smoke.log
+          grep -F BUKLOD_NATIVE_13_HERO_PASS /tmp/godot-hero_native_smoke.log
+      - name: Compile exact consolidated Android package with embedded game packs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/genesis-prepare-skia-binaries.mjs
+          node scripts/genesis-assert-native-autolinking.mjs
+          npx expo prebuild --platform android --clean --no-install
+          cmp /tmp/buklod-13-hero-worlds.zip android/app/src/main/assets/godot/empire-arena.zip
+          cd android
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a
+      - name: Verify offline debug engineering receipt (not EAS-signed staging)
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          unzip -Z -1 "$APK" | grep -E '^lib/arm64-v8a/.*godot.*\.so$'
+          unzip -p "$APK" assets/godot/empire-arena.zip > /tmp/packed-from-apk.zip
+          cmp /tmp/buklod-13-hero-worlds.zip /tmp/packed-from-apk.zip
+          BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)
+          "$BT/apksigner" verify --verbose "$APK"
+          "$BT/aapt" dump badging "$APK" | grep -F "package: name='org.mzbministry.buklod.staging'"
+          sha256sum "$APK" > godot-13-hero-offline-apk.sha256
+          node -e 'require("fs").writeFileSync("godot-13-hero-dev-receipt.json",JSON.stringify({sourceSha:process.env.GITHUB_SHA,package:"org.mzbministry.buklod.staging",runtime:"2.0.3-genesis-unified-godot",nativeHeroes:13,originalGDScripts:6,godotWorlds:["arena","kingdom","community","house"],backend:"UNREACHABLE_OFFLINE",signature:"DEBUG_NOT_EAS",installOverExistingStaging:false,deviceTested:false,releaseReady:false,productionUnchanged:true},null,2))'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buklod-genesis-godot-13-hero-offline-android-qa
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            godot-13-hero-offline-apk.sha256
+            godot-13-hero-dev-receipt.json
+          if-no-files-found: error
+          retention-days: 7
