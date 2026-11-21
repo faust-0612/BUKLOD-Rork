@@ -10,7 +10,7 @@ import { StyleSheet, View } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import Svg, {Circle, Defs, RadialGradient, Stop, Path} from 'react-native-svg';
 import Animated, {
-  Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming,
+  Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming, withSequence,
 } from 'react-native-reanimated';
 
 const AnimatedExpoImage = Animated.createAnimatedComponent(ExpoImage);
@@ -28,14 +28,20 @@ type Props = {
   pose?: 'idle' | 'walk' | 'attack' | 'skill';
   health?: number;
   selected?: boolean;
+  hitSequence?: number;
+  knockedOut?: boolean;
 };
 
 export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
   image, actorId, x, y, size, sprite, moving, friendly, active, pose='idle', health=1, selected=false,
+  hitSequence=0, knockedOut=false,
 }: Props) {
   const breath = useSharedValue(0);
   const motion = useSharedValue(0);
   const abilityFlash = useSharedValue(0);
+  const stagger=useSharedValue(0);
+  const hitGlow=useSharedValue(0);
+  const collapse=useSharedValue(0);
   const screenX = useSharedValue(x - size / 2);
   const screenY = useSharedValue(y - size * 0.77);
   // Smooth the received 5Hz server snapshots / 10Hz practice frames on UI
@@ -78,15 +84,32 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
     return () => cancelAnimation(abilityFlash);
   }, [active, pose, abilityFlash]);
 
+  useEffect(() => {
+    if(!active || !hitSequence || knockedOut)return;
+    stagger.value=withSequence(withTiming(-4.5,{duration:55}),
+      withTiming(2.2,{duration:70}),withTiming(0,{duration:155}));
+    hitGlow.value=withSequence(withTiming(1,{duration:55}),
+      withTiming(0,{duration:250}));
+    return ()=>{cancelAnimation(stagger);cancelAnimation(hitGlow);};
+  },[hitSequence,active,knockedOut,stagger,hitGlow]);
+  useEffect(()=>{
+    collapse.value=withTiming(knockedOut?1:0,{duration:knockedOut?520:110});
+  },[knockedOut,collapse]);
+
+  const hitStyle = useAnimatedStyle(()=>({
+    opacity:hitGlow.value*.5,
+    transform:[{scale:1+hitGlow.value*.045}],
+  }));
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: screenX.value },
-      { translateY: screenY.value - (breath.value * (1.4 + motion.value * 3.3)) },
-      { rotate: `${Math.sin(breath.value * Math.PI * 2) * (sprite ? 0.9 : 1.7)}deg` },
-      { scale: 1 + breath.value * 0.032 + motion.value * 0.028 },
+      { translateX: screenX.value+stagger.value },
+      { translateY: screenY.value - (breath.value * (1.4 + motion.value * 3.3)) + collapse.value*size*.32 },
+      { rotate: `${Math.sin(breath.value * Math.PI * 2) * (sprite ? 0.9 : 1.7) + collapse.value*67}deg` },
+      { scale: 1 + breath.value * 0.032 + motion.value * 0.028 - collapse.value*.32 },
     ],
   }));
 
+  const deathStyle = useAnimatedStyle(()=>({opacity:1-collapse.value*.94}));
   const auraStyle = useAnimatedStyle(() => ({
     opacity: 0.54 + breath.value * 0.18 + (1 - abilityFlash.value) * (pose === 'skill' ? .18 : .05),
     transform: [{scale: 1 + breath.value*.06 + (1 - abilityFlash.value) * (pose === 'skill' ? .24 : .05)}],
@@ -101,7 +124,7 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
       pointerEvents="none"
       style={[
         styles.actor, { left: 0, top: 0, width: size, height: size },
-        animatedStyle,
+        animatedStyle,deathStyle,
       ]}
     >
       <Animated.View pointerEvents="none" style={[styles.aura,{width:size*1.22,height:size*.56,
@@ -147,6 +170,9 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
         contentFit="contain"
         style={StyleSheet.absoluteFill}
       />}
+      <Animated.View pointerEvents="none" style={[
+        styles.hitOverlay,{height:size*.66,width:size*.58,left:size*.21,top:size*.15},hitStyle
+      ]}/>
       <View pointerEvents="none" style={[styles.hpBack,{width:size*.70,top:Math.max(0,size*.04)}]}>
         <View style={[styles.hpFill,{width:hpWidth,backgroundColor:friendly?'#92fac9':'#ffab87'}]}/>
       </View>
@@ -159,6 +185,7 @@ const styles = StyleSheet.create({
   actor: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   aura: {position:'absolute',zIndex:-2},
   abilityFlash: {position:'absolute',zIndex:2},
+  hitOverlay: {position:'absolute',zIndex:7,borderRadius:16,backgroundColor:'#ffb49b'},
   hpBack: {position:'absolute',height:4.6,borderRadius:4,backgroundColor:'#162834',borderColor:'#f5d9a2',borderWidth:.65,zIndex:5,left:'15%',overflow:'hidden'},
   hpFill: {height:'100%',borderRadius:3},
   portraitFrame: { flex: 1, width: '86%', overflow: 'hidden', borderWidth: 1.8, elevation: 4 },
