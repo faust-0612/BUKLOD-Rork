@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "objective": "Resolve the owner-authorized BSOC backlog with per-case audit and create a fully protected System Admin new-member registration inbox showing complete available registration details without PII in alerts.",
+  "baseRef": "0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf",
+  "productionBaselineEvidence": "Main source 0a4f0b2b849f24b46b4a0643a6cc55ae539d5cdf. Verified live BUKLOD Supabase project yhanxndaqbmuzbdqlblu had 588 profiles, 759 open BSOC cases and 74 admin unread BSOC alerts before owner-authorized cleanup. Only direct database actions and server RPCs are live; app UI is DEV code pending separate RC and OTA.",
+  "chosenApproach": "Atomically resolve 759 open user_feedback cases and write 759 case audits, clear only 74 matching System Admin alerts. Preserve original reports and never assert each underlying bug is technically fixed. Use a profile-insert trigger with only opaque user IDs, and System Admin-only paginated list/detail RPCs plus one admin inbox screen and fixed notification deep link.",
+  "selectionRationale": "Live records are the source of truth. Keeping all profile PII server-side with checked admin roles and fixed routes prevents cross-account disclosure and avoids placing private details in push payloads.",
+  "alternativeApproaches": [
+    "Copy registration fields into push data (rejected for privacy)",
+    "Read all auth.users directly from the client (rejected for security)",
+    "Delete reports and clear all notifications (rejected because it destroys evidence and member notifications)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "admin-operations",
+    "privacy-data",
+    "support-case-routing",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Season 1/2 rules, points, rewards, ad rendering, Wall, Connect, profile and Expo runtime unchanged",
+    "Original BSOC cases and diagnostics preserved for forensics",
+    "No ordinary user gains system-admin data access or gets alerts auto-read",
+    "New profile registration stays successful if notification delivery fails"
+  ],
+  "acceptanceChecks": [
+    "Verified 0 currently open BSOC user_feedback cases and 0 System Admin unread BSOC alerts after scoped administrative cleanup",
+    "Exactly 759 case-audit entries written; 74 admin alerts only marked read",
+    "Backend list and detail RPCs return current available profile/contact/address/request/scope information to System Admin; normal members are denied",
+    "New profile creation inserts one metadata-only admin notification; data is fetched live only after authorized open",
+    "Admin can navigate from dashboard and notification to complete details with missing fields explicitly labeled",
+    "No client UI OTA or production release until source checks and release gates pass"
+  ],
+  "regressionTests": [
+    "tests/admin-new-registration-inbox-20261119.test.cjs",
+    "tests/admin-registration-security-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
+    "src/app/admin/new-users.tsx",
+    "src/app/admin/index.tsx",
+    "src/lib/buklodNotificationNavigation.ts",
+    "tests/admin-new-registration-inbox-20261119.test.cjs",
+    ".buklod/scopes/admin-new-registration-inbox-20261119.json",
+    "docs/BSOC_OWNER_BULK_RESOLUTION_20261119.md",
+    "tests/admin-registration-security-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add a secure, separate admin new registration inbox with no changes to other tabs or season rules.",
+      "preservedBehaviors": [
+        "Current production navigation, AdMob, chat and profile render remain unchanged until separately verified OTA."
+      ],
+      "tests": [
+        "tests/admin-new-registration-inbox-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Add strict, fixed registration notification navigation while preserving existing message, BSOC and authentication routes.",
+      "preservedBehaviors": [
+        "Existing notification routing, authenticated destinations, signup and Connect behavior stay unchanged."
+      ],
+      "tests": [
+        "tests/admin-registration-notification-route-20261119.test.cjs",
+        "tests/admin-registration-navigation-scroll-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Secure the new member detail RPCs behind System Admin role and grant checks; install metadata-only notification trigger.",
+      "preservedBehaviors": [
+        "All member records, privacy, RLS, auth and registration remain protected; no signup rollback due to notification failure."
+      ],
+      "tests": [
+        "tests/admin-registration-security-20261119.test.cjs"
+      ]
+    }
+  ],
+  "releaseIntent": {
+    "target": "future-consolidated-staging-ota",
+    "nativeRuntimeChanged": false,
+    "dbMigrationRequired": true,
+    "prodPublishAuthorized": false,
+    "status": "DEV_UI_PENDING_COMPILE_BACKEND_FUNCTIONS_LIVE"
+  }
+}
