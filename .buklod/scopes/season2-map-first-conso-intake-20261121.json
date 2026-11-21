@@ -63,6 +63,18 @@
         "tests/empire-arena-v2-presentation-20261121.test.mjs",
         "tests/genesis-arena-auth-boundary-20261121.test.mjs"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Protect production/native release identity while removing explicit live Supabase configuration from the Genesis staging profile and adding a fail-closed OTA readiness gate.",
+      "preservedBehaviors": [
+        "All existing production, preview, staging-user, Classroom and other EAS profile identities and native release configurations remain unchanged outside the dedicated season2-genesis-preview profile.",
+        "No signed build, EAS OTA, main branch, Google Play or production Supabase deployment is changed or initiated; new EAS profile requires verified independent staging backend credentials.",
+        "Existing version/runtime checks, asset verification, AdMob first-view inventory and fast navigation release gates remain mandatory and cannot be skipped by source-only tests."
+      ],
+      "tests": [
+        "tests/season2-premium-staging-ota-contract-20261121.test.mjs"
+      ]
     }
   ],
   "regressionTests": [
