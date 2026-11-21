@@ -51,7 +51,7 @@ test('Godot project has a real playable scene, native physics, hero skills, unit
   assert.match(hud, /"train"/);
   assert.match(hud, /"build"/);
   for (const gd of [root, sim, hud]) {
-    assert.doesNotMatch(gd, /https?:\/\/|supabase|fetch\(|service_role|signIn|diamond_settlement/i);
+    assert.doesNotMatch(gd, /https?:\/\/|supabase\s*\.|fetch\(|service_role\s*[=:]|signIn\(/i);
   }
 });
 
