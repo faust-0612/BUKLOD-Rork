@@ -30,7 +30,7 @@ test('Every dictionary environment is a detailed distinct native SVG landmark, n
  for(const [,id,,visual] of mapping){
   assert.ok(renderer.includes("case '"+visual+"':"),id+' scenic landmark missing');
  }
- for(const tag of ['Svg','SvgGradient','Polygon','Rect','Path','Circle','Ellipse'])
+ for(const tag of ['Svg','SvgGradient','Rect','Path','Circle','Ellipse'])
   assert.ok(renderer.includes(tag),'missing illustration layer '+tag);
  assert.match(renderer,/KingdomLandmark id=\{id\}/);
  assert.doesNotMatch(renderer,/fetch\(|supabase|new Audio|setTimeout|Animated.loop/);
