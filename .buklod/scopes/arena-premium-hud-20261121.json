@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/arena-premium-hud-20261121.json",
-  "objective": "BUKLOD Empire Arena premium native gameplay HUD, readable Genesis map graphics and 13 canon-identity actor visual feedback with customizable, ergonomically arranged round touch controls, bounded zoom, safe scene layout and per-device controller preferences. Offline staging practice only.",
+  "objective": "BUKLOD Empire Arena premium native gameplay HUD, readable Genesis map graphics and 13 canon-identity actor visual feedback with customizable, ergonomically arranged round touch controls, bounded zoom, safe scene layout and per-device controller preferences. Offline staging practice only. Add a fully playable, best-of-three, disconnected solo duel against real local CPU opponents selectable from the 13 canonical heroes, with difficulty, round scoring, equivalent level-6 match-only abilities and no ranked/reward impact.",
   "baseRef": "dev/season2-map-first-conso-intake-20261121",
   "chosenApproach": "Use existing repo-tracked BUKLOD hero pose WebP, scene plates and licensed local sound packs, add original gradient+SVG-native combat sigils; keep canonical Arena simulation/server and currency authoritative, no new paid services, native module changes, wallet grants, or production OTA.",
   "riskAreas": [
@@ -19,12 +19,19 @@
     "asset-rights",
     "no-production-writes",
     "staging-RC",
-    "multiplayer-seated-audio"
+    "multiplayer-seated-audio",
+    "offline-first",
+    "cpu-ai-turn-bounds",
+    "round-state-determinism",
+    "local-only-combat-verification",
+    "no-internet-duel"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-premium-hud-20261121.json",
     ".github/workflows/buklod-arena-inapp-dev-qa.yml",
     ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/season2-empire-arena-conso-qa-20261121.yml",
+    "experiments/empire-arena-v2/arena-v2-solo.mjs",
     "src/app/games/empire-arena.tsx",
     "src/components/BuklodNavSafeShell.tsx",
     "src/features/games/empire/ArenaAnimatedActor.tsx",
@@ -32,6 +39,7 @@
     "src/features/games/empire/arenaHudLayout.mjs",
     "src/features/games/empire/arenaPracticeAudio.mjs",
     "tests/arena-kingdom-game-premium-20261121.test.mjs",
+    "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
     "tests/arena-protected-feature-lock-20261121.test.mjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/season2-arena-responsive-navigation-20261121.test.mjs"
@@ -40,7 +48,8 @@
     "tests/season2-arena-responsive-navigation-20261121.test.mjs",
     "tests/arena-kingdom-game-premium-20261121.test.mjs",
     "tests/arena-protected-feature-lock-20261121.test.mjs",
-    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+    "tests/arena-offline-solo-cpu-battle-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -51,7 +60,8 @@
       ],
       "tests": [
         "tests/arena-kingdom-game-premium-20261121.test.mjs",
-        "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
+        "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+        "tests/arena-offline-solo-cpu-battle-20261121.test.mjs"
       ]
     },
     {
@@ -71,7 +81,8 @@
         "Canonical hero identities, existing 13-character item eligibility, original simulation, non-faith parity and no client-created BP, QMP, Diamond or inventory gains."
       ],
       "tests": [
-        "tests/arena-kingdom-game-premium-20261121.test.mjs"
+        "tests/arena-kingdom-game-premium-20261121.test.mjs",
+        "tests/arena-offline-solo-cpu-battle-20261121.test.mjs"
       ]
     },
     {
@@ -88,7 +99,9 @@
   "preserveBehaviors": [
     "Existing signed green-B staging build/package and Expo update runtime remain unchanged; no OTA.",
     "No production baseline, RLS, AdMob rendering logic, or paid wallet changes.",
-    "Landscape screen transitions return to normal BUKLOD orientation; audio follows existing focus controls."
+    "Landscape screen transitions return to normal BUKLOD orientation; audio follows existing focus controls.",
+    "Offline duel never bypasses existing Auth/Compliance/Production preview gates; last cached authenticated user may play without connectivity.",
+    "CPU and player share canonical combat commands, damage and cooldowns, match-only level does not unlock permanent characters."
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "releaseMode": "staging-source-candidate-hold",
@@ -97,9 +110,10 @@
   "acceptanceChecks": [
     "Run the focused Node controls/camera/presentation tests and exact protected-scope CI.",
     "Run Android Metro export and TypeScript compile on the exact PR head.",
-    "Staging physical landscape/pinch/tap/joystick, AdMob and 5v5 performance required before RC, and exact runtime OTA receipt before release."
+    "Staging physical landscape/pinch/tap/joystick, AdMob and 5v5 performance required before RC, and exact runtime OTA receipt before release.",
+    "Simulate 13 heroes, CPU damage, real cooldown/skill usage, best-of-three victory/defeat, 3 difficulties, seed determinism, zero network dependency."
   ],
-  "selectionRationale": "Owner-provided landscape screenshots show overlap, clipped controls, oversized models and poor battlefield readability; the existing in-app 13-character assets and local scene plates can support a high-fidelity native HUD without a new engine, independent app or license risk. Scoped overlays and normalized editor improve usability while preserving canonical economy authority.",
+  "selectionRationale": "Owner-provided landscape screenshots show overlap, clipped controls, oversized models and poor battlefield readability; the existing in-app 13-character assets and local scene plates can support a high-fidelity native HUD without a new engine, independent app or license risk. Scoped overlays and normalized editor improve usability while preserving canonical economy authority. Existing practice CPU trains/mines and does not deliver a direct no-signal fight; an isolated local hero duel reuses the same authoritative per-match combat engine rather than creating a fake animation-only demo.",
   "alternativeApproaches": [
     "Use ready-made Mobile Legends interface textures or clone their HUD (rejected: visual IP concerns and no BUKLOD identity).",
     "Replace Arena engine with a new standalone 3D game/Unity/Godot app (rejected: heavy native builds, extra cost and breaks single BUKLOD app contract).",
