@@ -54,10 +54,14 @@ export function arenaActionVisuals(state,elapsed,ttl=950,limit=16) {
       kind==='buff'?(e.kind||'lumen'):
       kind==='mining'?(e.kind||'stone'):'';
     const source=locate(state,e.from??e.actor);
-    const destination=locate(state,e.to??e.target);
+    const destination=locate(state,e.to??e.target??e.targetId);
+    // Prefer authoritative event-time geometry over current positions; a
+    // moving opponent must not drag an old impact across the battlefield.
     out.push({seq:e.seq,type:e.type,kind,x,y,style,progress,alpha:1-progress,
-      fromX:source?.x??x,fromY:source?.y??y,
-      targetX:destination?.x??x,targetY:destination?.y??y,
+      fromX:finite(e.fromX)?e.fromX:source?.x??x,
+      fromY:finite(e.fromY)?e.fromY:source?.y??y,
+      targetX:finite(e.toX)?e.toX:finite(e.targetX)?e.targetX:destination?.x??x,
+      targetY:finite(e.toY)?e.toY:finite(e.targetY)?e.targetY:destination?.y??y,
       actor:e.actor??e.from??'',target:e.to??e.target??'',team:e.team??null,
       amount:Number(e.amount)||0});
   }
