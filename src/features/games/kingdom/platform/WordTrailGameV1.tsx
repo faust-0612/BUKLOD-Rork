@@ -1,6 +1,7 @@
 import React,{useCallback,useRef,useState} from 'react';
 import {Pressable,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import Svg,{Path,Circle} from 'react-native-svg';
 import type {BuklodGameResult} from '@/features/games/types';
 import {useBuklodGameLanguage} from '@/features/games/runtime/BuklodGameLanguage';
 import {playBuklodGameFeedback} from '@/features/games/runtime/BuklodGameFeedback';
@@ -103,7 +104,16 @@ export function WordTrailGameV1({gameId,onFinish}:Props){
      accessibilityState={{selected:selected.has(r+':'+c)}}
      onPress={()=>pick(r,c)} style={[s.letter,selected.has(r+':'+c)&&s.letterSelected]}>
       <Text style={s.letterText}>{letter}</Text>
-     </Pressable>)}</View>)}</View>
+     </Pressable>)}</View>)}
+    {run.path.length>0?<Svg pointerEvents="none" style={StyleSheet.absoluteFillObject}
+      viewBox="0 0 400 400" preserveAspectRatio="none">
+      <Path d={run.path.map((cell,i)=>(i===0?'M':'L')+
+        (50+100*cell.col)+' '+(50+100*cell.row)).join(' ')}
+        fill="none" stroke="#ffe3a1" strokeWidth={7} opacity={.52}
+        strokeLinejoin="round" strokeLinecap="round"/>
+      {run.path.map((cell,i)=><Circle key={i} cx={50+100*cell.col}
+        cy={50+100*cell.row} r={9} fill="#fff3cd" opacity={.72}/>)}
+    </Svg>:null}</View>
    <View style={s.current}><Text style={s.currentLabel}>{t('CURRENT WORD','KASALUKUYANG SALITA')}</Text>
      <Text style={s.currentWord}>{currentWord(run)||'· · ·'}</Text></View>
    <View style={s.actions}>
@@ -133,7 +143,7 @@ const s=StyleSheet.create({
  bank:{flexDirection:'row',justifyContent:'center',flexWrap:'wrap',gap:7},
  wordChip:{flexDirection:'row',gap:5,alignItems:'center',borderRadius:9,padding:8,backgroundColor:'#345c4f',borderColor:'#b2c5a0',borderWidth:1},
  wordFound:{backgroundColor:'#397c64'},wordText:{color:'#f5ebcc',fontWeight:'900',fontSize:12},
- board:{alignSelf:'center',width:'100%',maxWidth:420,gap:6,padding:8,borderRadius:16,borderWidth:2,borderColor:'#b5c69f',backgroundColor:'#24463f'},
+ board:{alignSelf:'center',width:'100%',maxWidth:420,gap:6,padding:8,position:'relative',borderRadius:16,borderWidth:2,borderColor:'#b5c69f',backgroundColor:'#24463f'},
  boardRow:{flexDirection:'row',gap:6},
  letter:{flex:1,aspectRatio:1,alignItems:'center',justifyContent:'center',borderRadius:10,backgroundColor:'#77a17b',borderWidth:1,borderColor:'#b8d19e'},
  letterSelected:{backgroundColor:'#e4cb87',borderColor:'#fff9e5',borderWidth:3},

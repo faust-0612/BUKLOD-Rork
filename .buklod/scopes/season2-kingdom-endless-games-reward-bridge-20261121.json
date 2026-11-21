@@ -29,13 +29,22 @@
     "tests/kingdom-complete-user-experience-20261111.test.mjs",
     "src/features/games/kingdom/platform/KingdomPremiumWorldArt.tsx",
     "src/features/games/kingdom/platform/KingdomCinematicScene.native.tsx",
-    "tests/kingdom-premium-art-39-scenes-20261121.test.mjs"
+    "tests/kingdom-premium-art-39-scenes-20261121.test.mjs",
+    "src/features/games/kingdom/platform/MatchThreeGameV1.tsx",
+    "src/features/games/kingdom/platform/MergeGameV1.tsx",
+    "src/features/games/kingdom/platform/WordTrailGameV1.tsx",
+    "src/features/games/kingdom/platform/gestureRules.mjs",
+    "src/features/games/kingdom/platform/gestureRules.d.mts",
+    "tests/kingdom-premium-interactions-20261121.test.mjs",
+    "tests/kingdom-premium-audio-39-20261121.test.mjs"
   ],
   "regressionTests": [
     "tests/kingdom-season2-endless-economy-20261121.test.mjs",
     "tests/kingdom-shards-free-powers-20261111.test.mjs",
     "tests/kingdom-complete-user-experience-20261111.test.mjs",
-    "tests/kingdom-premium-art-39-scenes-20261121.test.mjs"
+    "tests/kingdom-premium-art-39-scenes-20261121.test.mjs",
+    "tests/kingdom-premium-interactions-20261121.test.mjs",
+    "tests/kingdom-premium-audio-39-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -47,7 +56,9 @@
       ],
       "tests": [
         "tests/kingdom-season2-endless-economy-20261121.test.mjs",
-        "tests/kingdom-premium-art-39-scenes-20261121.test.mjs"
+        "tests/kingdom-premium-art-39-scenes-20261121.test.mjs",
+        "tests/kingdom-premium-interactions-20261121.test.mjs",
+        "tests/kingdom-premium-audio-39-20261121.test.mjs"
       ]
     }
   ],
@@ -63,7 +74,9 @@
     "Existing protected feature and AdMob/navigation source gates remain passing.",
     "Never claim runtime device QA, wallet activation or OTA receipt from a source commit alone.",
     "Existing 5,000-level numeric-only source tests are updated to assert three interactive genres and 5,001+ progression without weakening Shards or user data protection.",
-    "All 39 original and pilot games have unique vector art scenes and native Focus/Reduce Motion-safe parallax; no downloads, paid asset services or new native dependencies."
+    "All 39 original and pilot games have unique vector art scenes and native Focus/Reduce Motion-safe parallax; no downloads, paid asset services or new native dependencies.",
+    "Canonical Match-3 and Merge score engines accept swipe controls and retain accessible taps/arrows; Word Trail has a local-only illuminated connection path.",
+    "All 26 pilot signatures reuse installed CC0 audio, obey game sound toggle and focus safety; no preview-host streaming."
   ],
   "productionBaselineEvidence": "verified: GitHub main is the existing production code repository source reference, and this change explicitly isolates to the already reviewed DEV Season2 conso branch; current installed production APK or live OTA fingerprint not verified.",
   "publicationStatus": "DEV_ONLY_NO_OTA",

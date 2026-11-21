@@ -44,3 +44,16 @@ reference but is NOT claimed to be an APK-bundled bitmap; it must not be
 mistaken for independently tested gameplay sprites. Current native source
 illustrations ARE integrated, one per game. Interactive individual game boards,
 artistic quality and input latency still require Android device QA before OTA.
+
+## Modern input + unique character-world audio
+- 3 Match-3 games accept direct adjacent swipes AND tap-two-cells. Bounds
+  and legal swaps remain enforced by the existing `performMatch3Swap`.
+- 3 Merge games accept direction swipes, with an explicit dead zone, diagonal
+  rejection and accessible arrow alternatives. Invalid moves still cost zero.
+- 2 Word Trail games show an illuminated selected-letter path without
+  changing the canonical dictionary or answer checker.
+- All 26 pilot games have genre-specific selectable signatures from already
+  licensed local game SFX, with master-sound and foreground-focus protection.
+- These changes are source-only and have no BP, QMP, Diamond or cash reward
+  writes. Distinct sound files for *every single scene* are not claimed; the
+  installed pack is reused with individually selected cues.

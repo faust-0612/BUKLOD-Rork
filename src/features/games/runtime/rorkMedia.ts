@@ -125,6 +125,35 @@ const KINGDOM_PILOT_SCENIC_IDS = new Set<string>([
   'elesur-domino-village',
   'elesur-bridge-puzzle'
 ]);
+// Source-local, genre-specific cue. Never fetch Rork preview-host MP3s.
+const PILOT_SIGNATURE_SFX: Readonly<Record<string,RorkAudioKey>> = {
+  'phan-trade-master':'coins',
+  'phan-market-match':'pickup',
+  'quin-guessing-quest':'ui_confirm',
+  'quin-code-breaker':'unlock',
+  'van-sudoku-master':'ui_confirm',
+  'van-mind-challenge':'unlock',
+  'christian-bible-crown':'unlock',
+  'christian-scripture-word-search':'ui_confirm',
+  'lhen-melody-memory':'beat_hit',
+  'lhen-beat-composer':'beat_combo',
+  'jawo-trail-maze':'mission_go',
+  'jawo-nature-match':'pickup',
+  'trudice-picture-pairs':'ui_confirm',
+  'trudice-word-garden':'pickup',
+  'ace-chess-master':'ui_confirm',
+  'ace-tower-tactics':'build_hit',
+  'mitch-block-forge':'build_hit',
+  'mitch-color-merge':'unlock',
+  'niel-expedition-puzzle':'mission_go',
+  'niel-word-explorer':'unlock',
+  'angel-number-vault':'coins',
+  'angel-treasure-merge':'unlock',
+  'vhen-harvest-match':'pickup',
+  'vhen-farm-merge':'build_hit',
+  'elesur-domino-village':'build_hit',
+  'elesur-bridge-puzzle':'mission_go',
+};
 export function getRorkGameMedia(gameId?: string | null) {
   if (!gameId) return null;
   const exact = RORK_GAME_MEDIA[gameId];
@@ -134,5 +163,8 @@ export function getRorkGameMedia(gameId?: string | null) {
   // providing game audio or premium scene backgrounds to arbitrary routes.
   const prefix = gameId.split('-')[0];
   const parent = PILOT_PARENT[prefix];
-  return parent && gameId.startsWith(prefix + '-') ? RORK_GAME_MEDIA[parent] : null;
+  if(!parent || !gameId.startsWith(prefix + '-'))return null;
+  const original=RORK_GAME_MEDIA[parent];
+  const signature=PILOT_SIGNATURE_SFX[gameId];
+  return signature?{...original,signature}:original;
 }

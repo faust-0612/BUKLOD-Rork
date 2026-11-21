@@ -13,6 +13,7 @@ import { KingdomMasteryCheck } from './KingdomMasteryCheck';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import KingdomCinematicScene from './KingdomCinematicScene';
 import { getKingdomCinematicScene } from './KingdomCinematicScenes';
+import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -110,7 +111,13 @@ export function KingdomInteriorCenter({
             key={option.id} accessibilityRole="button"
             accessibilityState={{ selected: option.id === active.id }}
             style={[styles.option, compact && styles.optionCompact, option.id === active.id && styles.optionSelected]}
-            onPress={() => { setActiveId(option.id); onActiveGameChange?.(option.id); }}
+            onPress={() => {
+              if(option.id!==active.id){
+                void playRorkSignatureSfx(option.id);
+                setActiveId(option.id);
+                onActiveGameChange?.(option.id);
+              }
+            }}
           >
             <Text numberOfLines={compact ? 1 : undefined} style={[styles.optionTitle, compact && styles.optionTitleCompact]}>
               {getKingdomCinematicScene(option.id)?.glyph ?? '🎮'}  {option.title}

@@ -1,9 +1,10 @@
-import React,{useCallback,useRef,useState} from 'react';
-import {Pressable,StyleSheet,Text,View} from 'react-native';
+import React,{useCallback,useMemo,useRef,useState} from 'react';
+import {PanResponder,Pressable,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import type {BuklodGameResult} from '@/features/games/types';
 import {useBuklodGameLanguage} from '@/features/games/runtime/BuklodGameLanguage';
 import {playBuklodGameFeedback} from '@/features/games/runtime/BuklodGameFeedback';
+import {kingdomSwipeDirection} from './gestureRules.mjs';
 import {MERGE_LEVELS,createMergeRound,moveMerge,type MergeGameId,type MergeDirection,type MergeRound} from './mergeRules';
 
 type Props={gameId:MergeGameId;onFinish?:(result:BuklodGameResult,sessionId:string)=>void};
@@ -67,6 +68,17 @@ export function MergeGameV1({gameId,onFinish}:Props){
    else phaseSet('retry');
   }
  },[finish,gameId,level]);
+ // Swipe input is a second control path; only canonical moveMerge spends moves.
+ const swipePan=useMemo(()=>PanResponder.create({
+   onStartShouldSetPanResponder:()=>false,
+   onMoveShouldSetPanResponder:(_event,gesture)=>phaseRef.current==='playing'&&
+     Math.max(Math.abs(gesture.dx),Math.abs(gesture.dy))>17,
+   onPanResponderRelease:(_event,gesture)=>{
+     const direction=kingdomSwipeDirection(gesture.dx,gesture.dy);
+     if(direction)move(direction);
+   },
+   onPanResponderTerminationRequest:()=>true,
+ }),[move]);
  const symbol=(value:number)=>theme.items[Math.log2(value)]??'★';
  return <View style={s.shell}>
    <View style={s.header}><View style={s.headerText}><Text style={s.eyebrow}>{theme.character} • KINGDOM STUDIO</Text>
@@ -89,7 +101,8 @@ export function MergeGameV1({gameId,onFinish}:Props){
      <View style={s.stats}><Text style={s.stat}>{t('LEVEL','LEVEL')} {level+1}/3</Text><Text style={s.stat}>{t('TARGET','TARGET')}: {run.goal}</Text>
       <Text style={s.stat}>{t('MOVES','GALAW')}: {run.maxMoves-run.moves}</Text>
       <Pressable onPress={()=>phaseSet('paused')} style={s.pause}><Text style={s.pauseText}>{t('PAUSE','IHINTO')}</Text></Pressable></View>
-     <View style={s.board}>{run.board.map((line,r)=><View key={r} style={s.row}>{line.map((value,c)=><View key={c} style={[s.tile,value>0&&s.tileFilled]}>
+     <Text style={s.gestureNote}>{t('Swipe board to merge or use arrows.', 'I-swipe ang board o gamitin ang arrows.')}</Text>
+     <View {...swipePan.panHandlers} style={s.board}>{run.board.map((line,r)=><View key={r} style={s.row}>{line.map((value,c)=><View key={c} style={[s.tile,value>0&&s.tileFilled]}>
        <Text style={s.icon}>{value?symbol(value):''}</Text><Text style={s.value}>{value||''}</Text>
      </View>)}</View>)}</View>
      <View style={s.buttons}>{order.map(dir=><Pressable key={dir} accessibilityRole="button" accessibilityLabel={t('Slide','Igalaw')+' '+dir}
@@ -112,7 +125,8 @@ const s=StyleSheet.create({
  final:{color:'#ffe2a3',fontSize:42,fontWeight:'900'},
  stats:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8},
  stat:{color:'#f1e7c7',fontSize:11,fontWeight:'900'},pause:{borderColor:'#b5b89c',borderWidth:1,borderRadius:9,padding:9},
- pauseText:{color:'#e5edda',fontSize:10,fontWeight:'900'},board:{width:'100%',maxWidth:440,alignSelf:'center',gap:5,padding:7,backgroundColor:'#263d47',borderColor:'#b7b292',borderWidth:2,borderRadius:15},
+ pauseText:{color:'#e5edda',fontSize:10,fontWeight:'900'},
+ gestureNote:{color:'#e3e9cf',fontSize:11,textAlign:'center',fontWeight:'700'},board:{width:'100%',maxWidth:440,alignSelf:'center',gap:5,padding:7,backgroundColor:'#263d47',borderColor:'#b7b292',borderWidth:2,borderRadius:15},
  row:{flexDirection:'row',gap:5},tile:{flex:1,aspectRatio:1,backgroundColor:'#435a57',borderRadius:10,justifyContent:'center',alignItems:'center',gap:1},
  tileFilled:{backgroundColor:'#7d9677',borderColor:'#d3dcad',borderWidth:1},icon:{fontSize:26},
  value:{fontSize:12,color:'#fff9e7',fontWeight:'900'},

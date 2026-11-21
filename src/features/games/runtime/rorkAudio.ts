@@ -92,6 +92,8 @@ function poolFor(key: RorkAudioKey) {
 
 function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
   if (focusedKingdomViews === 0 || AppState.currentState !== 'active') return false;
+  // Mini-game entrance cues and score SFX always respect the master sound toggle.
+  if (!isBuklodGameSoundEnabled()) return false;
   const now = Date.now();
   const last = lastPlayedAt.get(key) ?? 0;
   if (cooldownMs > 0 && now - last < cooldownMs) return false;
