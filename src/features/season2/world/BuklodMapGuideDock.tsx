@@ -59,6 +59,7 @@ export default function BuklodMapGuideDock({active}:{active:boolean}) {
     return ()=>{loop.stop();wave.stopAnimation();};
   },[active,reducedMotion,wave]);
   const lift=wave.interpolate({inputRange:[0,1],outputRange:[0,-4]});
+  const waveTurn=wave.interpolate({inputRange:[0,1],outputRange:['-9deg','16deg']});
   const submitQuestion=()=>{setAnswer(resolveBuklodGuideDestination(question,Boolean(activeScope?.show_faith_content)));};
   const suggestions=[
     {label:'My Home',route:'/season2/my-world',icon:'home-heart-outline' as const},
@@ -73,8 +74,11 @@ export default function BuklodMapGuideDock({active}:{active:boolean}) {
         <Animated.View style={{transform:[{translateY:lift}]}}>
           {minimized ? <MaterialCommunityIcons name="account-star" size={30} color="#EFDCA5"/> : (
             <View style={[styles.portrait,shortLandscape&&{height:48,width:42}]}>
+              <MaterialCommunityIcons name="account-circle" size={shortLandscape?35:44} color="#7BBF9E" style={styles.defaultPortrait}/>
               <BuklodActiveCharacterArt fallbackCharacter={DEFAULT_CHARACTER} height={shortLandscape?48:62} viewportWidth={shortLandscape?39:52} showEffects={false}/>
-              <MaterialCommunityIcons name="hand-wave-outline" size={16} color="#FFF2C9" style={styles.waveIcon}/>
+              <Animated.View style={[styles.waveIcon,{transform:[{rotate:waveTurn}]}]}>
+                <MaterialCommunityIcons name="hand-wave-outline" size={17} color="#FFF2C9" />
+              </Animated.View>
             </View>
           )}
         </Animated.View>
@@ -127,6 +131,7 @@ const styles=StyleSheet.create({
   faceButton:{width:56,minHeight:52,justifyContent:'center',alignItems:'center'},
   portrait:{width:53,height:62,overflow:'hidden',justifyContent:'flex-end'},
   waveIcon:{position:'absolute',right:0,top:3},
+  defaultPortrait:{position:'absolute',left:5,top:5},
   content:{flex:1,minWidth:0,gap:5},
   greeting:{color:'#FFE3A5',fontSize:12,fontWeight:'900'},
   hint:{color:'#E6F2E5',fontSize:10,lineHeight:13},
