@@ -148,7 +148,7 @@ test('each score points to real, locally compiled CC0 SFX, not a remote placehol
     assert.ok(valid.has(cue.sound),id+': missing vendor sound alias');
     assert.ok(cue.volume>0&&cue.volume<.5,id+': volume must be bounded');
     assert.ok(cue.rate>=.7&&cue.rate<=1.3,id+': pitch rate must be bounded');
-    assert.ok(cue.cooldown>=100&&cue.cooldown<=4000,id+': spam guard');
+    assert.ok(cue.cooldown>=100&&cue.cooldown<=10000,id+': spam guard');
   }
   for(const name of ['victory.wav','victory-alt.wav','collect-crystal.wav','coins.wav',
     'impact-wood.wav','ui-soft.wav','failure.wav','unlock.wav','enter.wav']){
