@@ -36,7 +36,7 @@ import { ArenaCombatHud, type ArenaHudKey, type ArenaHudLayout, type HudPoint, t
 import { ARENA_HUD_DEFAULT, sanitizeArenaHudLayout, serializeArenaHudLayout } from '@/features/games/empire/arenaHudLayout.mjs';
 // @ts-ignore — pure presentation helper, reads only server-authoritative snapshots.
 import { arenaActorPose } from '@/features/games/empire/arenaActorPose.mjs';
-// @ts-ignore — deterministic event-to-sound mapping; offline, no wallet or backend.
+// @ts-ignore — deterministic event-to-sound mapping; audio only, no remote dependency.
 import { drainArenaSoundscape, nearbyArenaBuffCue } from '@/features/games/empire/arenaSoundscape.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
