@@ -81,11 +81,11 @@ function evaluateRelease({target,now,sourceSha='',season2Files=[],approval=null}
   if(!Array.isArray(season2Files))return {allowed:false,reason:'INVALID_SOURCE_SCAN'};
   if(season2Files.length===0)
     return {allowed:true,reason:'INDEPENDENT_NON_SEASON2_FIX_REQUIRES_NORMAL_GATES'};
-  if(now.getTime()<Date.parse(NOT_BEFORE_UTC))
-    return {allowed:false,reason:'SEASON2_PRODUCTION_EMBARGO_BEFORE_DEC_6'};
-  if(!approvedRecord(approval,sourceSha))
-    return {allowed:false,reason:'SEASON2_RELEASE_UNAUTHORIZED_EXACT_SHA_PROOFS_REQUIRED'};
-  return {allowed:true,reason:'SEASON2_RECORD_VALID_NORMAL_RELEASE_GATES_STILL_REQUIRED'};
+  // Owner directive 2026-11-22: Season 2 is STAGING ONLY. The prior
+  // December date and stored authorization proofs cannot auto-lift this hold.
+  // Any future production inclusion requires a new explicit owner instruction
+  // and separately reviewed production release code, not this staging branch.
+  return {allowed:false,reason:'SEASON2_PRODUCTION_EXPLICIT_OWNER_HOLD'};
 }
 function verifyProductionCheckout({root=REPO,now=new Date(),sourceSha=null,gitRef=process.env.GITHUB_REF}={}){
   if(gitRef&&gitRef!=='refs/heads/main')throw Error('Production checkout must be main');
