@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install fixed-version open-source image encoder
-        run: python -m pip install --disable-pip-version-check --no-input Pillow==11.3.0 numpy==1.26.4 opencv-python-headless==4.10.0.84 rembg==2.0.80 onnxruntime==1.22.1
+        run: python -m pip install --disable-pip-version-check --no-input Pillow==11.3.0 numpy==2.3.3 rembg==2.0.80 onnxruntime==1.22.1
       - name: Vendor exactly three existing BUKLOD Realm plates from approved public image endpoints
         run: node scripts/vendor-buklod-arena-scenes.mjs
       - name: Produce 13 real animated WebP assets from approved repository portraits
