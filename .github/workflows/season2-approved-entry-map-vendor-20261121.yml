@@ -1,0 +1,55 @@
+name: BUKLOD Season 2 Owner-Approved Entry Map Vendor — DEV Only
+on:
+  push:
+    branches:
+      - dev/season2-map-first-conso-intake-20261121
+    paths:
+      - 'assets/season2/genesis/world/approved-entry-map-source/**'
+      - 'scripts/vendor-season2-approved-entry-map.mjs'
+      - '.github/workflows/season2-approved-entry-map-vendor-20261121.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: buklod-season2-approved-entry-map-source
+  cancel-in-progress: false
+
+jobs:
+  import-byte-identical-approved-map:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/season2-map-first-conso-intake-20261121'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reconstruct exact approved original and refuse SHA drift
+        run: |
+          node scripts/vendor-season2-approved-entry-map.mjs
+          node - <<'NODE'
+          const fs=require('node:fs'),crypto=require('node:crypto'),a=require('node:assert/strict');
+          const m=require('./assets/season2/genesis/world/approved-entry-map-manifest.json');
+          const b=fs.readFileSync(m.assetPath);
+          a.equal(b.length,473226);
+          a.equal(crypto.createHash('sha256').update(b).digest('hex'),'a343c70d1c71e849b536570bd92ede7134667d40347f6465003d41710e818b02');
+          a.equal(m.width,1672);a.equal(m.height,941);
+          NODE
+      - name: Commit exact image and original provenance only to DEV, never production
+        run: |
+          set -euo pipefail
+          git config user.name 'buklod-approved-map[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/season2/genesis/world/buklod-approved-entry-map-1672x941.webp assets/season2/genesis/world/approved-entry-map-manifest.json
+          if git diff --cached --quiet; then
+            echo 'Approved entry artwork already present, no changes'
+            exit 0
+          fi
+          git commit -m 'assets(genesis): integrate exact owner-approved Season 2 entry map into existing DEV conso'
+          git fetch origin dev/season2-map-first-conso-intake-20261121
+          git rebase origin/dev/season2-map-first-conso-intake-20261121
+          git push origin HEAD:refs/heads/dev/season2-map-first-conso-intake-20261121

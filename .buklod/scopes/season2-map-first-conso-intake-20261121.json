@@ -27,7 +27,9 @@
     "arena-auth",
     "arena-pvp-financial-integrity",
     "consolidated-ota",
-    "admob-instant-navigation"
+    "admob-instant-navigation",
+    "exact-owner-approved-entry-map-provenance",
+    "landscape-hotspot-calibration"
   ],
   "lockedFeatureChanges": [
     {
@@ -45,7 +47,8 @@
         "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
         "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
         "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
-        "tests/season2-one-tap-kingdom-guide-20261121.test.mjs"
+        "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
+        "tests/season2-community-village-preview-20261121.test.mjs"
       ]
     },
     {
@@ -59,7 +62,8 @@
         "tests/genesis-world-navigation-regression-20261121.test.mjs",
         "tests/genesis-valley-asset-interaction-20261121.test.mjs",
         "tests/season2-empire-arena-conso-intake-20261121.test.mjs",
-        "tests/season2-one-tap-kingdom-guide-20261121.test.mjs"
+        "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
+        "tests/season2-community-village-preview-20261121.test.mjs"
       ]
     },
     {
@@ -105,7 +109,8 @@
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
     "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
     "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
-    "tests/season2-one-tap-kingdom-guide-20261121.test.mjs"
+    "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
+    "tests/season2-community-village-preview-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
@@ -278,7 +283,21 @@
     "tests/sql/arena_ranked_private_integrity.sql",
     "src/features/season2/genesis/GenesisWorldGuide.tsx",
     "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
-    "src/app/(tabs)/hub.tsx"
+    "src/app/(tabs)/hub.tsx",
+    "assets/season2/genesis/world/approved-entry-map-source/part-001.txt",
+    "assets/season2/genesis/world/approved-entry-map-source/part-002.txt",
+    "assets/season2/genesis/world/approved-entry-map-source/part-003.txt",
+    "assets/season2/genesis/world/approved-entry-map-source/part-004.txt",
+    "assets/season2/genesis/world/buklod-approved-entry-map-1672x941.webp",
+    "assets/season2/genesis/world/approved-entry-map-manifest.json",
+    "scripts/vendor-season2-approved-entry-map.mjs",
+    ".github/workflows/season2-approved-entry-map-vendor-20261121.yml",
+    "src/features/season2/genesis/genesisApprovedEntryHotspots.json",
+    "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
+    "src/app/community-village.tsx",
+    "tests/season2-community-village-preview-20261121.test.mjs",
+    "docs/season2/CONSO_OWNER_APPROVED_MAP_REAUDIT_20261121.md",
+    ".github/workflows/season2-existing-eas-staging-receipt-20261121.yml"
   ],
   "publicationStatus": "Consolidated Season 2 + Arena DEV source merged and protected. No new staging project/branch. No signed native build or EAS OTA published; ranked Diamond settlement still disabled.",
   "acceptanceChecks": [
@@ -310,7 +329,12 @@
     "Android bundle/source parity and PostgreSQL concurrency tests are CI evidence only; never label as actual signed APK, real device QA, published OTA or production activation.",
     "Owner-approved Genesis map gold-marker coordinates unchanged: touching the marker opens its guarded destination immediately; no second ENTER/button and no scroll required to confirm.",
     "Character Kingdom and Empire Arena are separately named destinations; animated local Phan concierge sits OUTSIDE the map and respects Reduce Motion; no economy writes or new native modules.",
-    "In Genesis preview, Home route reuses the ONE approved Valley world map via guarded /buklod-map redirect; no obsolete secondary schematic, no first-view AdMob loss, and legacy production Home unchanged."
+    "In Genesis preview, Home route reuses the ONE approved Valley world map via guarded /buklod-map redirect; no obsolete secondary schematic, no first-view AdMob loss, and legacy production Home unchanged.",
+    "Owner original approved 1672x941 landscape Season 2 Entry Map is SHA256 a343c70d1c71e849b536570bd92ede7134667d40347f6465003d41710e818b02, committed and locally bundled with no recompression and 12 direct real routes.",
+    "Visible baked menu/profile/notification/search controls are real accessible Pressables; reduced-motion and Show Faith alternative protected. Main Home redirects to single approved map and guide remains outside image.",
+    "Genesis preflight asserts exact approved 1672x941 map path and one-tap direct navigation, replacing superseded 1448 Valley evidence.",
+    "Community Village opens a distinct nature-first visual submap: Personal Lot, House/Rooms, Community Estate, Business/Farm; 1–10 major levels plus five construction stages are marked preview-only, with real original route links and zero wallet/ownership mutations.",
+    "Read-only existing EAS staging-native receipt must identify exact signed green-B APK, same runtime, same preview channel, same package and distinct production channel; it must not publish an OTA."
   ],
   "selectionRationale": "Owner explicitly superseded previous 'skip arena' instruction with inclusion in the existing Season 2 consolidated OTA source, with NO new staging backend. No redundant Android app, no new subscriptions, no unauthorized live financial writes.",
   "preserveBehaviors": [

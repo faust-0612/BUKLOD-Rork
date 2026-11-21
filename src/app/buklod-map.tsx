@@ -11,7 +11,8 @@ import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
-import GenesisValleyMap, {GENESIS_VALLEY_HOTSPOTS} from '@/features/season2/genesis/GenesisValleyMap';
+import GenesisApprovedEntryMap from '@/features/season2/genesis/GenesisApprovedEntryMap';
+import approvedEntry from '@/features/season2/genesis/genesisApprovedEntryHotspots.json';
 import GenesisWorldGuide from '@/features/season2/genesis/GenesisWorldGuide';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import { GENESIS_IDENTITY, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
@@ -28,7 +29,7 @@ export default function BuklodMapScreen() {
   const insets = useSafeAreaInsets();
   const [focused, setFocused] = useState(false);
   const [selectedId, setSelectedId] = useState('community');
-  const [selectedHotspotId, setSelectedHotspotId] = useState('community-wall-plaza');
+  const [selectedHotspotId, setSelectedHotspotId] = useState('community-hall');
   const [showDirectory, setShowDirectory] = useState(false);
   const [showDistrictEntries, setShowDistrictEntries] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
@@ -45,7 +46,7 @@ export default function BuklodMapScreen() {
   const district = useMemo(() => getBuklodMapDistrict(selectedId), [selectedId]);
   const showFaith = Boolean(activeScope?.show_faith_content);
   const entries = visibleBuklodMapDestinations(district, showFaith);
-  const selectedHotspot = GENESIS_VALLEY_HOTSPOTS.find(h => h.id === selectedHotspotId && (!h.faithOnly || showFaith));
+  const selectedHotspot = approvedEntry.hotspots.find(h => h.id === selectedHotspotId);
 
   // Protect the same boundaries as /index and /_layout, including old clients.
   if (!isGenesisPreviewBuild()) return <Redirect href="/(tabs)/buklod" />;
@@ -95,28 +96,28 @@ export default function BuklodMapScreen() {
             <Text style={styles.musicText}>{musicEnabled ? (musicSuspended ? 'Music paused' : 'Music on') : 'Music off'}</Text>
           </Pressable>
         </View>
-        <Text style={styles.intro}>Isang tap sa lokasyon, pasok agad. Walang hiwalay na Enter.</Text>
+        <Text style={styles.intro}>Ang official Season 2 map: Character Kingdom at Empire Arena ay magkaiba. Pindutin ang gusali para pumasok.</Text>
 
         {/* Preserve the established first-view Home ad inventory; the banner
             collapses on no fill/consent without reserving a blank pane. */}
         <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
 
-        <GenesisValleyMap
+        <GenesisApprovedEntryMap
           active={focused}
           showFaith={showFaith}
-          selectedHotspotId={selectedHotspotId}
-          onSelect={hotspot => {
-            // A map marker is the doorway itself. Never require a second
-            // bottom-of-page ENTER action, and never bypass its route guard.
-            if (hotspot.faithOnly && !showFaith) return;
-            setSelectedHotspotId(hotspot.id);
-            setSelectedId(hotspot.districtId);
-            router.push(hotspot.route as any);
+          onOpen={(door,route) => {
+            setSelectedHotspotId(door.id);
+            setSelectedId(door.districtId);
+            router.push(route as any);
           }}
+          onMenu={() => setShowDirectory(true)}
+          onProfile={() => router.push('/me' as any)}
+          onNotifications={() => router.push('/notifications' as any)}
+          onSearch={() => router.push('/feature-search' as any)}
         />
         <GenesisWorldGuide active={focused}
           onCharacterKingdom={() => router.push('/games' as any)}
-          onCommunityVillage={() => router.push('/clusters' as any)}
+          onCommunityVillage={() => router.push('/community-village' as any)}
           onDirectory={() => setShowDirectory(true)}
         />
         <View style={styles.mapSelectedCaption}>
