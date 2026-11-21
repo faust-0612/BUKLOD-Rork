@@ -18,6 +18,10 @@ const RANKED_REATTACH_WINDOW_MS=19000;
 const HANDSHAKE_TIMEOUT_MS=10000;
 
 export function isArenaRankedConfigured():boolean{
+  // Never enable ranked/escrow in production or outside reviewed Genesis preview.
+  if(process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW!=='true'||
+     !['staging','preview','development','dev'].includes(
+       String(process.env.EXPO_PUBLIC_APP_ENV||'').toLowerCase()))return false;
   if(process.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED!=='true')return false;
   const endpoint=process.env.EXPO_PUBLIC_BUKLOD_ARENA_WS_URL||'';
   if(!/^wss:\/\//.test(endpoint))return false;
