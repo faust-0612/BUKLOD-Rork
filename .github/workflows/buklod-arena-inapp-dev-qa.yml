@@ -35,6 +35,7 @@ jobs:
             tests/empire-arena-v2-animated-bundle-20261121.test.mjs \
             tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs \
             tests/empire-arena-v2-actor-pose-20261121.test.mjs \
+            tests/empire-arena-v2-earned-diamond-claim-20261121.test.mjs \
             tests/empire-arena-v2-design-and-simulation.test.mjs \
             tests/empire-arena-v2-world-economy.test.mjs \
             tests/empire-arena-v2-connected-world-preview-20261121.test.mjs
