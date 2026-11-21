@@ -19,6 +19,9 @@ test('nine independent radial controls have ergonomic normalized anchors', () =>
   assert.ok(ARENA_HUD_DEFAULT.joystick.x < .2);
   assert.ok(ARENA_HUD_DEFAULT.attack.x > .8);
   assert.ok(ARENA_HUD_DEFAULT.primary.x < ARENA_HUD_DEFAULT.attack.x);
+  assert.notEqual(ARENA_HUD_DEFAULT.mine.y, ARENA_HUD_DEFAULT.bank.y,
+    'Contextual tools should form a shallow arc, not a cheap row');
+  assert.equal(ARENA_HUD_DEFAULT.bank.y, ARENA_HUD_DEFAULT.train.y);
   for (const key of ARENA_HUD_KEYS) {
     assert.ok(ARENA_HUD_DEFAULT[key].x >= 0 && ARENA_HUD_DEFAULT[key].x <= 1);
     assert.ok(ARENA_HUD_DEFAULT[key].y >= 0 && ARENA_HUD_DEFAULT[key].y <= 1);
@@ -55,6 +58,7 @@ test('actual Arena uses themed circular glyphs, local asset menus, editor, coold
   const animation=read('src/features/games/empire/ArenaAnimatedActor.tsx');
   const art=read('src/features/games/empire/arenaGeneratedAssets.ts');
   assert.match(route, /<ArenaCombatHud /);
+  assert.match(route, /PRIMARY_GLYPH_BY_STYLE\[HEROES\[hero\]\?\.style\]/);
   assert.match(route, /@buklod_arena_hud_v2:/);
   assert.match(route, /setHudEditing\(true\)/);
   assert.match(route, /Save Arena control positions/);
