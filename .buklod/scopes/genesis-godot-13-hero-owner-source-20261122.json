@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-godot-13-hero-owner-source-20261122.json",
-  "objective": "Embed all 13 user-approved BUKLOD hero identities in the real Godot 4.7.2 engine within the existing unified MAIN Android staging native runtime; directly execute original six .gd skill identities and seven distinct approved special skill actions, with line-of-sight, shield limits and first-level ultimate.",
+  "objective": "Embed all 13 user-approved BUKLOD hero identities in the real Godot 4.7.2 engine within the existing unified MAIN Android staging native runtime; directly execute original six .gd skill identities and seven distinct approved special skill actions, with line-of-sight, shield limits and first-level ultimate. Include premium native 3-lane 4-role minion waves, two-team named villagers/role jobs, and real Godot touch worker command controls.",
   "baseRef": "integration/genesis-unified-godot-native-staging-20261122",
   "chosenApproach": "Use the owner's exact 13-hero JSON design as immutable embedded source, bundle six original Godot .gd scripts rather than converting them to React Native, implement seven unique GDScript actions and headless smoke tests; preserve existing JS Arena fallback and Godot world previews pending complete game parity.",
   "allowedPaths": [
@@ -15,11 +15,21 @@
     "scripts/build-empire-godot-pack.mjs",
     "tests/genesis-godot-13-hero-runtime-20261122.test.mjs",
     ".github/workflows/genesis-native-13-hero-android-qa-20261122.yml",
-    "docs/GENESIS_NATIVE_COMPLETENESS_GATE_20261122.md"
+    "docs/GENESIS_NATIVE_COMPLETENESS_GATE_20261122.md",
+    "godot/empire-arena/scripts/native_minion_waves.gd",
+    "godot/empire-arena/scripts/native_villager_roles.gd",
+    "godot/empire-arena/scripts/arena_root.gd",
+    "godot/empire-arena/scripts/arena_hud.gd",
+    "godot/empire-arena/tests/native_minion_smoke.gd",
+    "godot/empire-arena/tests/native_villager_smoke.gd",
+    "tests/genesis-native-minion-wave-20261122.test.mjs",
+    "tests/genesis-native-villager-roles-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [],
   "regressionTests": [
-    "tests/genesis-godot-13-hero-runtime-20261122.test.mjs"
+    "tests/genesis-godot-13-hero-runtime-20261122.test.mjs",
+    "tests/genesis-native-minion-wave-20261122.test.mjs",
+    "tests/genesis-native-villager-roles-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "Godot Arena stays inside the ONE BUKLOD MAIN package; no second APK/app",
@@ -41,7 +51,9 @@
     "premium character behavior",
     "Godot main-pack packaging",
     "Android ABI/native runtime",
-    "signed staging identity and device install"
+    "signed staging identity and device install",
+    "Game NPC concurrency and lane cap",
+    "Villager resource conservation and role HUD"
   ],
   "releaseMode": "DEV_ONLY_NO_EAS_NO_OTA_NO_PRODUCTION",
   "physicalDeviceVerification": "NOT_PERFORMED",
@@ -50,7 +62,8 @@
     "Real Godot 4.7.2 headless parse and skill/LOS/cooldown/shield smoke",
     "Gradle Android arm64 compile with 13 active native skill files and 4 world scenes",
     "Exact ZIP-in-APK SHA and native Godot lib check",
-    "Do not sign or distribute over existing staging until all pending audio/villagers/Kingdom/Community/House/SOS/backend/physical-device gates pass"
+    "Do not sign or distribute over existing staging until all pending audio/villagers/Kingdom/Community/House/SOS/backend/physical-device gates pass",
+    "Run actual Godot native_minion_smoke and native_villager_smoke scripts; assert no accidental finance/ledger."
   ],
   "productionBaselineEvidence": "Production remains org.mzbministry.buklod, runtime 1.3.2, production channel. Existing unified staging integration origin 36e407a76731b97c0562c8c8000fcd01b99870f0. Prior EAS 2.0.0 signing identity retained and pinned in verifier. No release attempted."
 }
