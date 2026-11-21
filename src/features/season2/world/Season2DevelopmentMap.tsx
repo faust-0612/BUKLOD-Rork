@@ -57,8 +57,14 @@ export function constructionStageLabel(index:number) {
 export default function Season2DevelopmentMap({world}:{world:World}) {
   const {width} = useWindowDimensions();
   const {profile} = useAuth();
-  const [level,setLevel] = useState(1);
-  const [stage,setStage] = useState(0);
+  const [previewTrack,setPreviewTrack] = useState<'lot'|'house'|'cluster'>(world==='home'?'lot':'cluster');
+  const [previewLevels,setPreviewLevels] = useState({lot:1,house:1,cluster:1});
+  const [previewStages,setPreviewStages] = useState({lot:0,house:0,cluster:0});
+  const level=previewLevels[previewTrack];
+  const stage=previewStages[previewTrack];
+  const chooseTrack=(track:'lot'|'house'|'cluster')=>setPreviewTrack(track);
+  const chooseStage=(i:number)=>setPreviewStages(v=>({...v,[previewTrack]:i}));
+  const adjustLevel=(delta:number)=>setPreviewLevels(v=>({...v,[previewTrack]:clampDevelopmentLevel(v[previewTrack]+delta)}));
   const [look,setLook] = useState<Look>('stone');
   const [showRequirements,setShowRequirements] = useState(false);
   const ownerId = String(profile?.id ?? 'guest');
@@ -111,7 +117,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           ))}
           <View pointerEvents="none" style={[styles.landPlot,{borderColor:choice.tint,backgroundColor:choice.shade+'88'}]}>
             <MaterialCommunityIcons name={STAGES[stage].icon as IconName} size={compact?24:35} color={choice.tint}/>
-            <Text style={styles.landLabel}>DESIGN STUDY · L{level}</Text>
+            <Text style={styles.landLabel}>{previewTrack.toUpperCase()} · L{level}</Text>
           </View>
           {doors.map(door=>(
             <Pressable key={door.id} accessibilityRole="button"
@@ -129,21 +135,30 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>{trackTitle}</Text>
           <Text style={styles.muted}>Permanent Levels 1–10 → unbounded Mastery. Each level has five visible construction stages; Rank does not gate development.</Text>
+          {world==='home' ? <View style={styles.trackRow}>
+            {(['lot','house'] as const).map(track=>(
+              <Pressable key={track} accessibilityRole="button" accessibilityLabel={'Preview '+track+' independently'}
+                accessibilityState={{selected:previewTrack===track}} onPress={()=>chooseTrack(track)}
+                style={[styles.trackButton,previewTrack===track&&styles.activeTrack]}>
+                <Text style={styles.trackText}>{track==='lot'?'MY LOT':'MY HOUSE'} · L{previewLevels[track]}</Text>
+              </Pressable>
+            ))}
+          </View> : null}
           <View style={styles.levelRow}>
             <Pressable accessibilityRole="button" accessibilityLabel="Preview previous level"
-              disabled={level===1} style={styles.stepper} onPress={()=>{setLevel(v=>clampDevelopmentLevel(v-1));setStage(0);}}>
+              disabled={level===1} style={styles.stepper} onPress={()=>adjustLevel(-1)}>
               <MaterialCommunityIcons name="minus" size={20} color="#FFE9BE"/>
             </Pressable>
             <Text style={styles.levelText}>LEVEL {level} · {STAGES[stage].name.toUpperCase()}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Preview next level"
-              disabled={level===10} style={styles.stepper} onPress={()=>{setLevel(v=>clampDevelopmentLevel(v+1));setStage(0);}}>
+              disabled={level===10} style={styles.stepper} onPress={()=>adjustLevel(1)}>
               <MaterialCommunityIcons name="plus" size={20} color="#FFE9BE"/>
             </Pressable>
           </View>
           <View style={styles.stages}>
             {STAGES.map((s,i)=>(
               <Pressable key={s.name} accessibilityRole="button" accessibilityLabel={'Preview '+s.name}
-                accessibilityState={{selected:stage===i}} onPress={()=>setStage(i)}
+                accessibilityState={{selected:stage===i}} onPress={()=>chooseStage(i)}
                 style={[styles.stage,stage===i&&styles.activeStage]}>
                 <MaterialCommunityIcons name={s.icon as IconName} size={18} color={stage===i?'#21392F':'#F5E3BF'}/>
                 <Text style={[styles.stageText,stage===i&&styles.activeStageText]}>{i+1}</Text>
@@ -197,6 +212,11 @@ const styles=StyleSheet.create({
   panel:{padding:12,borderRadius:15,backgroundColor:'#152C34',borderColor:'#46645B',borderWidth:1,gap:9},
   panelTitle:{color:'#FEE5B7',fontWeight:'900',fontSize:15},
   muted:{color:'#BDD0CA',fontSize:11,lineHeight:17},
+  trackRow:{flexDirection:'row',gap:7},
+  trackButton:{flex:1,minHeight:39,alignItems:'center',justifyContent:'center',borderRadius:9,
+    backgroundColor:'#253D41',borderColor:'#50635A',borderWidth:1},
+  activeTrack:{borderColor:'#E9C68F',backgroundColor:'#3D584E'},
+  trackText:{color:'#FFF1D2',fontSize:11,fontWeight:'900'},
   levelRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:9},
   stepper:{minWidth:44,minHeight:42,justifyContent:'center',alignItems:'center',backgroundColor:'#24453F',borderRadius:10},
   levelText:{color:'#FFFFFF',fontSize:12,fontWeight:'900',textAlign:'center',flex:1},
