@@ -26,6 +26,7 @@ type Props = {
 type AutomaticLessonResult = {
   ok?: boolean;
   status?: string;
+  response_id?: string;
   auto_approved?: boolean;
   auto_approval_reason?: string | null;
   human_approval_required?: boolean;
@@ -77,6 +78,8 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
   );
   const [reflectionValidation, setReflectionValidation] = useState<AIAnswerValidationResult | null>(null);
   const [previouslySubmitted, setPreviouslySubmitted] = useState(false);
+  const [serverReceipt, setServerReceipt] = useState<string | null>(null);
+  const [loadWarning, setLoadWarning] = useState('');
   // Guards the entire validation + submit RPC cycle against double tapping.
   const submissionLock = useRef(false);
 
@@ -90,13 +93,25 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
     const loadExisting = async () => {
       if (!lesson?.id || !enrollmentId) return;
 
+      const { data: current, error: authError } = await supabase.auth.getUser();
+      if (!active) return;
+      if (authError || !current.user) {
+        setLoadWarning('Could not check the saved lesson. Sign in or retry with a stable connection.');
+        return;
+      }
       const { data, error } = await supabase
         .from('learning_lesson_responses')
-        .select('question_answers,reflection_text,submitted_at')
+        .select('id,question_answers,reflection_text,submitted_at')
+        .eq('user_id', current.user.id)
         .eq('lesson_id', lesson.id)
         .maybeSingle();
 
-      if (!active || error) return;
+      if (!active) return;
+      if (error) {
+        setLoadWarning('Could not check your saved lesson status. Your answers may already be on the server.');
+        return;
+      }
+      setLoadWarning('');
 
       if (data) {
         const saved = Array.isArray(data.question_answers)
@@ -105,9 +120,15 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         if (saved.length === 4) setAnswers(saved);
         setReflection(String(data.reflection_text ?? ''));
         setPreviouslySubmitted(true);
+        setServerReceipt(String(data.id ?? ''));
       }
     };
 
+    setAnswers(emptyAnswers());
+    setReflection('');
+    setPreviouslySubmitted(false);
+    setServerReceipt(null);
+    setLoadWarning('');
     void loadExisting();
     return () => {
       active = false;
@@ -225,8 +246,13 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       if (error) throw error;
 
       const result = (data ?? {}) as AutomaticLessonResult;
+      if (result.ok !== true || typeof result.response_id !== 'string') {
+        throw new Error('No verified lesson receipt was returned. Check your progress before retrying.');
+      }
       const approved = result.status === 'approved' || result.auto_approved === true;
       setPreviouslySubmitted(true);
+      setServerReceipt(result.response_id);
+      setLoadWarning('');
       // Ads are best effort after the authoritative database commit.
       // A failed ad must never tell the learner that their completion failed.
       if (approved) {
@@ -338,6 +364,9 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         </View>
       )}
 
+      {!!loadWarning && <Text style={styles.helper}>{loadWarning}</Text>}
+      <Text style={styles.helper}>Typing answers does not submit them. Tap COMPLETE LESSON and confirm the server receipt before leaving this screen.</Text>
+      {!!serverReceipt && <Text selectable style={styles.helper}>BUKLOD lesson receipt: {serverReceipt}</Text>}
       <BuklodSubmissionAdSlot placementId="formation_lesson_before_submit" />
       <Text style={styles.helper}>After a saved, approved completion, an optional sponsored break may appear. Ads never prevent submission.</Text>
       <Button
