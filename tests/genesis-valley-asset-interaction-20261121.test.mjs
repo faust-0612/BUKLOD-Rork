@@ -64,3 +64,20 @@ test('Map is imagery-first with touch/zoom, visual selected state, faith gating 
  assert.doesNotMatch(gateway,/<GenesisMapOrbit|<Svg |<View style=\{styles\.constellation\}>/);
  assert.doesNotMatch(gateway,/(service_role|supabase\.rpc|claimBp|mintBp|awardBp)/i);
 });
+
+test('Narrow Android map keeps all fourteen 44px touch areas inside the viewport',()=>{
+ const map=src('src/features/season2/genesis/GenesisValleyMap.tsx');
+ assert.match(map,/const diameter = zoomed \? 48 : 44/);
+ assert.match(map,/Math\.max\(diameter \/ 2, Math\.min\(imageWidth - diameter \/ 2/);
+ assert.match(map,/Math\.max\(diameter \/ 2, Math\.min\(imageHeight - diameter \/ 2/);
+ assert.match(map,/left: x - diameter \/ 2/);
+ assert.match(map,/top: y - diameter \/ 2/);
+ const narrowWidth=280, mapHeight=narrowWidth*1086/1448, diameter=44;
+ const imageMeta=JSON.parse(src('src/features/season2/genesis/genesisValleyHotspots.json'));
+ for(const hotspot of imageMeta.hotspots){
+   const x=Math.max(diameter/2,Math.min(narrowWidth-diameter/2,hotspot.x*narrowWidth));
+   const y=Math.max(diameter/2,Math.min(mapHeight-diameter/2,hotspot.y*mapHeight));
+   assert.ok(x-diameter/2>=0&&x+diameter/2<=narrowWidth,hotspot.id+' x');
+   assert.ok(y-diameter/2>=0&&y+diameter/2<=mapHeight,hotspot.id+' y');
+ }
+});

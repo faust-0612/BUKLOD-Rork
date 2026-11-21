@@ -119,7 +119,11 @@ export default function GenesisValleyMap({
           />
           {points.map(hotspot => {
             const chosen = hotspot.id === selectedHotspotId;
-            const diameter = zoomed ? 46 : 30;
+            // Keep gold-icon center alignment while enlarging tap targets for Android.
+            // Clamp edge icons to the image so no target is clipped on narrow phones.
+            const diameter = zoomed ? 48 : 44;
+            const x = Math.max(diameter / 2, Math.min(imageWidth - diameter / 2, hotspot.x * imageWidth));
+            const y = Math.max(diameter / 2, Math.min(imageHeight - diameter / 2, hotspot.y * imageHeight));
             return (
               <Pressable
                 key={hotspot.id}
@@ -132,8 +136,8 @@ export default function GenesisValleyMap({
                   styles.hotspot,
                   {
                     width: diameter, height: diameter,
-                    left: hotspot.x * imageWidth - diameter / 2,
-                    top: hotspot.y * imageHeight - diameter / 2,
+                    left: x - diameter / 2,
+                    top: y - diameter / 2,
                     opacity: pressed ? 0.72 : 1,
                   },
                 ]}

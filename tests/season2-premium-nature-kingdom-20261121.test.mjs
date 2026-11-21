@@ -44,3 +44,16 @@ test('Arena is entirely absent from this premium visual staging source, with can
 });
 function requireArenaRouteExists(){return existsSync(resolve(root,'src/app/games/empire-arena.tsx'));}
 function requireArenaEngineExists(){return existsSync(resolve(root,'experiments/empire-arena-v2/arena-v2-engine.mjs'));}
+
+test('Kingdom character motion is original local art, bounded by active/focus and Reduce Motion',()=>{
+ const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
+ const idle=read('src/features/season2/genesis/GenesisRiveCharacter.tsx');
+ assert.match(portal,/const animate = focused && foreground && !reduceMotion/);
+ assert.match(portal,/GenesisRiveCharacter active={animate}/);
+ assert.match(idle,/if \(!active\) return;/);
+ assert.match(idle,/useNativeDriver:true/);
+ assert.match(idle,/animation\.stop\(\)/);
+ assert.match(idle,/fallback\?\?null/);
+ assert.doesNotMatch(idle,/require\([^)]*\.riv/);
+ assert.match(portal,/landmark:\{position:'absolute',width:44,height:44/);
+});

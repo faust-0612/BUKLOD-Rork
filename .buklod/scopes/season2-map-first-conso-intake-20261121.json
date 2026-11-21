@@ -19,7 +19,8 @@
     "premium-kingdom-graphics",
     "staging-backend-isolation",
     "release-identity",
-    "shared-live-supabase-data-integrity"
+    "shared-live-supabase-data-integrity",
+    "native-character-idle-motion"
   ],
   "lockedFeatureChanges": [
     {
@@ -95,7 +96,8 @@
     "eas.json",
     "scripts/season2-premium-staging-ota-gate.mjs",
     "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
-    "package.json"
+    "package.json",
+    "src/features/season2/genesis/GenesisRiveCharacter.tsx"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
@@ -115,7 +117,9 @@
     "Explicit live Supabase reference removed from Genesis EAS profile; isolated BUKLOD_STAGING_PROJECT_REF and matching publishable env + signed EAS artifact must be supplied and verified to pass release gate.",
     "Supabase correction: Genesis EAS profile points to existing already paid BUKLOD Supabase; release source gate verifies exact canonical URL and publishable-only key, with explicit shared-live backend mode. No new paid app/plan/subscription required.",
     "Shared-live backend is NOT an isolated test database: never run test users, idempotency stress tests, payout/mint migrations, unsafe RLS trials or destructive fixtures against production; real normal app activity uses existing authoritative server policies.",
-    "Arena absent at source/Metro route level: src/app/games/empire-arena.tsx and experiments/empire-arena-v2 do NOT exist in candidate tree; no UX or deep-link mount. Independent Arena DEV PR remains available."
+    "Arena absent at source/Metro route level: src/app/games/empire-arena.tsx and experiments/empire-arena-v2 do NOT exist in candidate tree; no UX or deep-link mount. Independent Arena DEV PR remains available.",
+    "Native-driver bounded idle motion only for existing original character images; active/focus/background/Reduce Motion gate and cleanup; no fictional .riv rig or fake gameplay ownership.",
+    "Android map hit targets >=44px with edge clamps on narrow 280px viewport; focused route and Show Faith regressions preserved."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
@@ -131,7 +135,8 @@
     "All non-Genesis EAS profiles, especially production, remain byte-for-byte semantically unchanged; no production backend credentials or app deployments altered.",
     "Existing paid BUKLOD Supabase project and authenticated member flows remain connected in Genesis preview; this is not a sandbox, so user posts and ordinary authorized writes may affect live data.",
     "No new QMP/BP/Character economy issuance, migration, privileged grants, payout or compensation testing on shared live DB; cosmetic changes cannot introduce authoritative rewards.",
-    "Original live Kingdom 13 character station routes unchanged; future Arena development remains isolated and can only be re-integrated via later separately authorized scope."
+    "Original live Kingdom 13 character station routes unchanged; future Arena development remains isolated and can only be re-integrated via later separately authorized scope.",
+    "Animated character fallback retains exactly the selected existing character art; no external animations, new network, unsupported native SDK, BP logic, or ad competing audio."
   ],
   "alternativeApproaches": [
     "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",

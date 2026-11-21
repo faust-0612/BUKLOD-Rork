@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
  content:{width:'100%',maxWidth:850,alignSelf:'center',padding:12,paddingBottom:28,gap:12},
  kingdomVista:{width:'100%',aspectRatio:16/9,borderRadius:18,overflow:'hidden',
    borderWidth:1,borderColor:'#728B83',backgroundColor:'#0B2832'},
- landmark:{position:'absolute',width:38,height:38,marginLeft:-19,marginTop:-19,
+ landmark:{position:'absolute',width:44,height:44,marginLeft:-22,marginTop:-22,
    borderRadius:19,borderWidth:1.4,borderColor:'#C5D9CA',backgroundColor:'rgba(9,33,38,.82)',
    alignItems:'center',justifyContent:'center',elevation:2},
  landmarkActive:{borderColor:'#FFE6A4',backgroundColor:'rgba(28,61,57,.96)',elevation:4},
