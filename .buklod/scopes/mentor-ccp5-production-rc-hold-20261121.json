@@ -1,0 +1,58 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/mentor-ccp5-production-rc-hold-20261121.json",
+  "objective": "Repair live Android mentor teaching-report access and CCP5 lesson selection, with secure audited mentor grants and account-scoped lesson completion receipts; prepare a strictly gated production Android OTA candidate without deploying.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Source-only: inspected GitHub main production config on 2026-11-21; package org.mzbministry.buklod, EAS project 23dad7d0-389a-406e-8dec-08965dab85d8, configured runtimeVersion 1.3.2. Installed binary/update ID and live API response not independently attested. Live Supabase read-only check confirmed 0 active mentor capabilities, one legacy official-admin assignment and CCP5 Lesson 2 catalog presence.",
+  "chosenApproach": "Forward-port only seven isolated DEV paths plus a security-hardening trigger, one SQL contract and one scope manifest to a fresh main-based RC hold. Do not merge 139 unrelated DEV commits, deploy SQL to production, mutate identity permissions or release OTA until isolated DB/CI/Android gates pass.",
+  "selectionRationale": "The source branch is diverged from main. Mentor catalog RPC currently returns [] for all users because there are no active mentor capabilities, and the Admin relationship editor can assign learners without granting mentor capability. An audited, explicitly reviewed admin-only capability path preserves protected official identity and avoids accidental BP awards.",
+  "alternativeApproaches": [
+    "Merge divergent Season 2 DEV branch directly to production (rejected: hundreds of unrelated unverified changes).",
+    "Automatically reactivate five inactive mentor capability records (rejected: unclear revocation history, least privilege).",
+    "Publish JS-only OTA before SQL dependency (rejected: admin activation fails and source/back-end diverge)."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "faith-cluster",
+    "release-identity",
+    "mentor-access",
+    "RLS",
+    "BP-integrity",
+    "app-runtime",
+    "ads-navigation"
+  ],
+  "allowedPaths": [
+    "src/app/faith/mentor-evidence.tsx",
+    "src/app/admin/learning/mentors.tsx",
+    "src/components/LearningQuestionResponse.tsx",
+    "supabase/migrations/20261121132000_mentor_report_catalog_titles_and_role_clarity.sql",
+    "supabase/migrations/20261121141000_admin_mentor_capability_review_audit_v1.sql",
+    "tests/mentor-report-selector-access-20261121.test.mjs",
+    "docs/incidents/20261121_live_mentor_ccp5_access_and_receipt.md",
+    "supabase/tests/mentor_capability_release_guard_20261121.sql",
+    ".buklod/scopes/mentor-ccp5-production-rc-hold-20261121.json"
+  ],
+  "regressionTests": [
+    "tests/mentor-report-selector-access-20261121.test.mjs",
+    "supabase/tests/mentor_capability_release_guard_20261121.sql"
+  ],
+  "preserveBehaviors": [
+    "No live production DB/OTA/APK changes before release gate.",
+    "Preserve all historical mentor assignments and teaching reports; no backfill/automatic BP awards.",
+    "Preserve private photo storage, verified learner roster, and idempotent report RPC.",
+    "Maintain system-admin protections and all app-wide AdMob navigation and compact-spacing gates.",
+    "No new native dependencies or changes to app.config.js, eas.json, package-lock.json."
+  ],
+  "acceptanceChecks": [
+    "Main-isolated source diff includes only declared paths and native config is unchanged.",
+    "Node mentor tests, existing Points R2 tests, full TypeScript and release suites pass in CI.",
+    "Isolated SQL migrations execute and database test passes, including real authenticated/RLS, system-admin, protected-account, idempotency and concurrency scenarios.",
+    "Staging Android RC confirms learner receipt, CCP5 lesson 2 selection and private evidence report, weak network and duplicate-request recovery.",
+    "Signed installed production APK runtime/channel/project and update source SHA verified; AdMob first view and instant navigation unchanged.",
+    "Apply reviewed DB schema before OTA, freeze exact RC and verify publication ID plus post-release device behavior."
+  ],
+  "releaseMode": "production-android-source-rc-hold",
+  "publicationStatus": "BLOCKED_PENDING_ISOLATED_DB_CI_ANDROID_AND_RUNTIME_VERIFICATION",
+  "releaseTarget": "org.mzbministry.buklod / production Android OTA / configured runtime 1.3.2; actual installed runtime verification required",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
