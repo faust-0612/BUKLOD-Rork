@@ -110,7 +110,8 @@ function poolFor(key: RorkAudioKey) {
 }
 
 function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
-  if (focusedKingdomViews === 0 || arenaAudioInterrupted || AppState.currentState !== 'active') return false;
+  if (focusedKingdomViews === 0 || AppState.currentState !== 'active') return false;
+  if (arenaAudioInterrupted) return false;
   const now = Date.now();
   const last = lastPlayedAt.get(key) ?? 0;
   if (cooldownMs > 0 && now - last < cooldownMs) return false;
@@ -279,12 +280,22 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
     // request. Never resume spontaneously while a competing source is active.
     let interruptedByOtherAudio = false;
     if (isKingdomMap || options?.arena) setMusicSuspended(false);
-    const releaseAudioFocus = (isKingdomMap || options?.arena)
+    // Keep the long-standing Genesis callback contract intact. Arena takes a
+    // separate, focus-owned subscription so non-Arena screens are unchanged.
+    const releaseAudioFocus = isKingdomMap
       ? subscribeBuklodAudioFocus(owner => {
-          if (owner === (isKingdomMap ? 'genesis-valley-map' : 'buklod-empire-arena') || !active) return;
+          if (owner === 'genesis-valley-map' || !active) return;
           interruptedByOtherAudio = true;
           setMusicSuspended(true);
           try { audio.pause(); } catch { /* optional ambience */ }
+        })
+      : () => undefined;
+    const releaseArenaMusicFocus = options?.arena
+      ? subscribeBuklodAudioFocus(owner => {
+          if (owner === 'buklod-empire-arena' || !active) return;
+          interruptedByOtherAudio = true;
+          setMusicSuspended(true);
+          try { audio.pause(); } catch { /* optional Arena ambience */ }
         })
       : () => undefined;
     audio.loop = true;
@@ -319,6 +330,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
       active = false;
       if(options?.arena&&arenaAmbience===audio){arenaAmbience=null;setArenaVoiceDucking(false);}
       releaseAudioFocus();
+      releaseArenaMusicFocus();
       readyListener.remove();
       stateListener.remove();
       try { audio.pause(); } catch { /* already disposed or unavailable */ }
