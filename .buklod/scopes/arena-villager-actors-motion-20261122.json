@@ -18,20 +18,23 @@
     "src/features/games/empire/ArenaVillagerSprite.tsx",
     "src/app/games/empire-arena.tsx",
     "experiments/empire-arena-v2/arena-v2-villagers.mjs",
-    "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+    "tests/empire-arena-two-faction-villagers-20261122.test.mjs",
+    "tests/empire-arena-villager-game-animation-20261122.test.mjs"
   ],
   "regressionTests": [
-    "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+    "tests/empire-arena-two-faction-villagers-20261122.test.mjs",
+    "tests/empire-arena-villager-game-animation-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
-      "id": "game-kingdom",
+      "id": "kingdom-character",
       "reason": "Replace placeholder SVG villagers with data-driven 12-character on-field animated actors only.",
       "preservedBehaviors": [
         "No client-trusted moves, damage, skills, wallet awards, ranked results or persistent character/item provenance changes.",
         "Arena renderer stays inside BUKLOD MAIN, without new native modules."
       ],
       "tests": [
+        "tests/empire-arena-villager-game-animation-20261122.test.mjs",
         "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
       ]
     },
@@ -43,7 +46,7 @@
         "Position/motion only follow simulated game updates."
       ],
       "tests": [
-        "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+        "tests/empire-arena-villager-game-animation-20261122.test.mjs"
       ]
     }
   ],
