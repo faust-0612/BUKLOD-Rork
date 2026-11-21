@@ -38,11 +38,14 @@ test('manifest fails closed on untracked component path, missing source proof an
     'tests/todays-best-wall-header-20261120.test.mjs',
     'tests/sos-urgent-release-20261121.test.mjs',
     'tests/genesis-all-updates-scope-integrity-20261122.test.mjs'];
-  assert.deepEqual(assessChanges(minimal,manifest,{consolidatedRc:true,requireScope:true}).failures,[]);
-  assert.match(assessChanges([...minimal,'src/lib/unknown-unreviewed-secrets.ts'],manifest,{consolidatedRc:true,requireScope:true}).failures.join(' '),/outside the declared scope allowlist/);
-  const bad={...manifest,componentScopePaths:[]};
+  // The fixture exercises a small synthetic diff; only its changed test files
+  // are declared as evidence here, while the real manifest requires all 35.
+  const scoped={...manifest,regressionTests:manifest.regressionTests.filter(p=>minimal.includes(p))};
+  assert.deepEqual(assessChanges(minimal,scoped,{consolidatedRc:true,requireScope:true}).failures,[]);
+  assert.match(assessChanges([...minimal,'src/lib/unknown-unreviewed-secrets.ts'],scoped,{consolidatedRc:true,requireScope:true}).failures.join(' '),/outside the declared scope allowlist/);
+  const bad={...scoped,componentScopePaths:[]};
   assert.match(assessChanges(minimal,bad,{consolidatedRc:true,requireScope:true}).failures.join(' '),/enumerate every changed component scope/);
-  const missingRisk={...manifest,riskAreas:[]};
+  const missingRisk={...scoped,riskAreas:[]};
   assert.match(assessChanges(minimal,missingRisk,{consolidatedRc:true,requireScope:true}).failures.join(' '),/nonempty riskAreas|omits impacted area/);
 });
 
