@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 const source = path => readFileSync(join(process.cwd(),path),'utf8');
 test('new community and home destinations use separate, staged, one-tap routes',()=>{
@@ -33,4 +34,39 @@ test('construction remains visual-only and user-scoped, not a reward ledger',()=
   assert.ok(!/(mintBp|awardPoints|spendBp|supabase\.from\()/i.test(map));
   assert.ok(map.includes("elesur-village-builder")&&map.includes("phan-enterprise-builder"));
   assert.match(map,/visual previews only/);
+});
+
+test('premium Village and My Home backing landscapes have pinned bytes',()=>{
+  for(const [path,bytes,digest] of [
+    ['assets/season2/genesis/world/buklod-community-village-stage1.webp',398830,'0538c6998152c1fd7a09f61b1d95ae283ba330ae1b92a8c4b4970179c5bc9972'],
+    ['assets/season2/genesis/world/buklod-my-home-stage1.webp',225624,'149c8441f3c164cbf1b135885a33a187fcb8ded04932e26b489635749930c5ce'],
+  ]){
+    const data=readFileSync(join(process.cwd(),path));
+    assert.equal(data.length,bytes);
+    assert.equal(data.toString('ascii',0,4),'RIFF');
+    assert.equal(createHash('sha256').update(data).digest('hex'),digest);
+  }
+  const map=source('src/features/season2/world/Season2DevelopmentMap.tsx');
+  assert.match(map,/buklod-community-village-stage1.webp/);
+  assert.match(map,/buklod-my-home-stage1.webp/);
+});
+test('independent Lot House Cluster catalogs and local previews do not conflate reward authority',()=>{
+  const manifest=source('src/features/season2/world/developmentAssetManifest.ts');
+  const map=source('src/features/season2/world/Season2DevelopmentMap.tsx');
+  for(const prefix of ["lot:'LOT'","house:'HOU'","cluster:'COM'"])assert.ok(manifest.includes(prefix));
+  assert.match(map,/previewLevels,setPreviewLevels/);
+  assert.match(map,/previewStages,setPreviewStages/);
+  assert.match(map,/getDevelopmentAsset\(previewTrack,level\)/);
+  assert.match(manifest,/stagingStatus:'catalog-only'/);
+  assert.doesNotMatch(map,/(?:supabase\.from|supabase\.rpc|mintBP|awardBP|claimBp|withdrawQMP)/i);
+});
+test('landscape first view preserves map and ad side-by-side; guide has local help',()=>{
+  const entry=source('src/app/buklod-map.tsx');
+  const guide=source('src/features/season2/world/BuklodMapGuideDock.tsx');
+  assert.match(entry,/landscapeFirstRow/);
+  assert.match(entry,/landscapeAdColumn/);
+  assert.match(entry,/new_home_first_view/);
+  assert.match(guide,/resolveBuklodGuideDestination/);
+  assert.match(guide,/TextInput/);
+  assert.match(guide,/isReduceMotionEnabled/);
 });
