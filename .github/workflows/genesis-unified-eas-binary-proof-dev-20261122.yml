@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   exact-source-apk-release-guard:
-    if: \${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-unified-signed-apk-evidence-20261122' && startsWith(github.event.head_commit.message, 'BUKLOD_GODOT_CERT_EVIDENCE_QA:') }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-unified-signed-apk-evidence-20261122' && startsWith(github.event.head_commit.message, 'BUKLOD_GODOT_CERT_EVIDENCE_QA:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
