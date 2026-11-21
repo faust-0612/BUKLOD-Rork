@@ -201,7 +201,7 @@ func _draw_actor(p: Dictionary) -> void:
 				Vector2(large * 3.9, large * 3.9))
 			if frame_texture != null:
 				# Four columns / two rows, eight actual frames from each approved animation.
-				var idx: int = posmodi(int(frames * 8.0) + int(pos.x * 0.2), 8)
+				var idx: int = posmod(int(frames * 8.0) + int(pos.x * 0.2), 8)
 				var cell := Vector2(float(frame_texture.get_width()) * 0.25,
 					float(frame_texture.get_height()) * 0.5)
 				var region := Rect2(Vector2(float(idx % 4) * cell.x,
