@@ -6,7 +6,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AppState, Image, PanResponder, Platform, Pressable, StyleSheet, Text, View,
+  AppState, Image, PanResponder, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View,
 } from 'react-native';
 import { useFocusEffect, router, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,7 +35,9 @@ import { arenaActorPose } from '@/features/games/empire/arenaActorPose.mjs';
 import { drainArenaAudioEvents } from '@/features/games/empire/arenaPracticeAudio.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
-import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
+// @ts-ignore — pure JS viewport interactions; no BP/rank/server authority.
+import { arenaZoom, arenaZoomSpan, arenaDragPan, arenaTouchCenter, arenaTouchDistance, arenaMinimapPan } from '@/features/games/empire/arenaViewportControls.mjs';
+import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
 // @ts-ignore — The canonical offline Arena engine is already .mjs. Metro bundles .mjs; native import is intentionally isolated.
 import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
 
@@ -90,12 +92,54 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
   const [area, setArea] = useState({ width: 720, height: 360 });
+  const [zoom, setZoom] = useState(0.85);
+  const [pan, setPan] = useState<Position>({ x: 0, y: 0 });
   const player = state.players[localSeat];
   const localTeam = player?.team ?? 'A';
-  const camera = arenaCamera(state.w, state.h, player, area.width, area.height,
-    state.w <= 160 ? 70 : state.w <= 240 ? 90 : 115);
+  const camera = arenaCamera(state.w, state.h,
+    { x: (player?.x ?? state.w / 2) + pan.x, y: (player?.y ?? state.h / 2) + pan.y },
+    area.width, area.height, arenaZoomSpan(state.w <= 160 ? 70 : state.w <= 240 ? 90 : 115, zoom));
+  const cameraRef = useRef(camera); cameraRef.current = camera;
+  const zoomRef = useRef(zoom); zoomRef.current = zoom;
+  const panRef = useRef(pan); panRef.current = pan;
+  const gesture = useRef<null | { kind: 'drag' | 'pinch'; x: number; y: number; distance: number; zoom: number; pan: Position }>(null);
+  const onCameraGesture = (event: any) => {
+    const touches = event.nativeEvent?.touches ?? [];
+    if (!touches.length) return;
+    const center = arenaTouchCenter(touches);
+    if (touches.length >= 2) {
+      const distance = arenaTouchDistance(touches);
+      if (gesture.current?.kind !== 'pinch') {
+        gesture.current = { kind: 'pinch', x: center.x, y: center.y, distance,
+          zoom: zoomRef.current, pan: panRef.current };
+        return;
+      }
+      const start = gesture.current;
+      if (distance > 0 && start.distance > 0)
+        setZoom(arenaZoom(start.zoom * distance / start.distance));
+      setPan(arenaDragPan(start.pan, center.x - start.x, center.y - start.y,
+        cameraRef.current, area.width, area.height));
+    } else {
+      if (gesture.current?.kind !== 'drag') {
+        gesture.current = { kind: 'drag', x: center.x, y: center.y, distance: 0,
+          zoom: zoomRef.current, pan: panRef.current };
+        return;
+      }
+      const start = gesture.current;
+      setPan(arenaDragPan(start.pan, center.x - start.x, center.y - start.y,
+        cameraRef.current, area.width, area.height));
+    }
+  };
+  const resetCamera = () => { gesture.current = null; setZoom(1); setPan({ x: 0, y: 0 }); };
   const effects = arenaVisualEffects(state.events, state.elapsed, 1100);
-  return <View style={styles.field} onLayout={event => {
+  return <View style={styles.field}
+    onStartShouldSetResponder={event => (event.nativeEvent.touches?.length ?? 0) >= 2}
+    onMoveShouldSetResponder={() => true}
+    onResponderGrant={onCameraGesture}
+    onResponderMove={onCameraGesture}
+    onResponderRelease={() => { gesture.current = null; }}
+    onResponderTerminate={() => { gesture.current = null; }}
+    onLayout={event => {
     const { width, height } = event.nativeEvent.layout;
     if (width > 5 && height > 5 && (Math.abs(width - area.width) > 1 || Math.abs(height - area.height) > 1)) {
       setArea({ width, height });
@@ -118,18 +162,41 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
       {lanes.map((y, i) => <Path key={'lane-' + i} d={`M 5 ${y * state.h} Q ${state.w / 2} ${y * state.h + (i - 1) * 3} ${state.w - 5} ${y * state.h}`} stroke="#ffe0a2" opacity={0.38} strokeWidth={1.9} fill="none" strokeDasharray="1 3" />)}
       <Line x1={state.w / 2} y1={6} x2={state.w / 2} y2={state.h - 6} stroke="#a9f8ea" strokeWidth={0.5} strokeDasharray="2 3" opacity={0.5} />
       {state.cover.map(([x, y, r], i) => <G key={'cover-' + i}><Circle cx={x} cy={y} r={r + 1.5} fill="#052624" opacity={0.6} /><Circle cx={x} cy={y} r={r} fill="#206b62" stroke="#74cbb8" strokeWidth={0.3} opacity={0.8} /></G>)}
-      {state.nodes.map((n) => <G key={n.id}><Circle cx={n.x} cy={n.y} r={3.2} fill={n.type === 'gold' ? '#c68b38' : n.type === 'wood' ? '#276947' : '#738b9a'} stroke="#ffe9bc" strokeWidth={0.5} /><SvgText x={n.x} y={n.y + 0.75} fontSize={2.5} textAnchor="middle" fill="#fff">{n.type.slice(0, 1).toUpperCase()}</SvgText></G>)}
-      {(['A', 'B'] as Team[]).map(team => <G key={team}>
-        <Rect x={team === 'A' ? 9 : state.w - 19} y={state.h / 2 - 7} width={10} height={14} rx={2} fill={team === 'A' ? '#2d8d86' : '#9c4d59'} stroke="#ffdaa5" strokeWidth={0.7} />
-        <SvgText x={team === 'A' ? 14 : state.w - 14} y={state.h / 2 + 0.7} fontSize={4} textAnchor="middle" fill="#fff">{team}</SvgText>
+      {state.nodes.map(n => <G key={n.id}>
+        <Circle cx={n.x} cy={n.y + 1.3} r={3.4} fill="#081b1d" opacity={0.55} />
+        {n.type === 'wood' ? <G>
+          <Rect x={n.x - 0.5} y={n.y - 0.5} width={1} height={4} fill="#996d49" />
+          <Path d={`M ${n.x} ${n.y-4.8} L ${n.x+3.3} ${n.y+0.4} L ${n.x-3.3} ${n.y+0.4} Z`}
+            fill="#3b8860" stroke="#a5d2a0" strokeWidth={0.5} />
+        </G> : n.type === 'gold' ? <Path
+          d={`M ${n.x} ${n.y-3.4} L ${n.x+3.2} ${n.y} L ${n.x} ${n.y+3.4} L ${n.x-3.2} ${n.y} Z`}
+          fill="#e7b854" stroke="#fff0bf" strokeWidth={0.65} /> :
+          <Path d={`M ${n.x-3.5} ${n.y+2} L ${n.x-2} ${n.y-2.7} L ${n.x+1.5} ${n.y-3.2} L ${n.x+3.5} ${n.y+0.6} L ${n.x+1.1} ${n.y+2.6} Z`}
+            fill="#869ba7" stroke="#d6d7d0" strokeWidth={0.6} />}
       </G>)}
+      {(['A', 'B'] as Team[]).map(team => {
+        const x = team === 'A' ? 14 : state.w - 14;
+        const own = team === localTeam;
+        const remaining = clamp(state.seals[team].hp / Math.max(1, state.seals[team].maxHp), 0, 1);
+        return <G key={team}>
+          <Circle cx={x} cy={state.h / 2 + 2} r={8.2} fill="#111d27" opacity={0.55} />
+          <Path d={`M ${x-6} ${state.h/2+7} L ${x-6} ${state.h/2-5} Q ${x} ${state.h/2-11} ${x+6} ${state.h/2-5} L ${x+6} ${state.h/2+7} Z`}
+            fill={own ? '#285b58' : '#643f47'} stroke="#e5c689" strokeWidth={0.85} />
+          <Path d={`M ${x-3.5} ${state.h/2+6} L ${x-3.5} ${state.h/2-3} Q ${x} ${state.h/2-7} ${x+3.5} ${state.h/2-3} L ${x+3.5} ${state.h/2+6} Z`}
+            fill="#071b22" stroke="#9eb4aa" strokeWidth={0.55} />
+          <Circle cx={x} cy={state.h/2-4.8} r={1.4} fill={own ? '#91efc7' : '#ffba8e'} />
+          <Rect x={x-6} y={state.h/2-11} width={12} height={1.2} fill="#321c24" />
+          <Rect x={x-6} y={state.h/2-11} width={12*remaining} height={1.2} fill="#96e8bb" />
+        </G>;
+      })}
       {state.towers.filter(life).map(t => <G key={t.id}><Rect x={t.x - 3} y={t.y - 3.5} width={6} height={7} rx={0.5} fill={t.team === 'A' ? '#497c9d' : '#a15f65'} stroke="#f9d68f" strokeWidth={0.5} /></G>)}
       {state.buildings.filter(life).map(b => <Rect key={b.id} x={b.x - 2.4} y={b.y - 2.4} width={4.8} height={4.8} rx={0.6} fill={b.team === 'A' ? '#6ebda9' : '#d48473'} stroke="#e8c989" strokeWidth={0.4} />)}
       {state.creatures.filter(life).map(c => <G key={c.id}><Circle cx={c.x} cy={c.y} r={3} fill="#b38ed6" stroke="#f2d6ff" strokeWidth={0.8} /><Circle cx={c.x} cy={c.y} r={1.1} fill="#f9e9b9" /></G>)}
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
+        {p.id !== localSeat ? <Rect x={p.x - 4.7} y={p.y - 6.2} width={9.4} height={11}
+          fill="transparent" /> : null}
         <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} />
-
       </G>)}
       {state.visualCue && state.elapsed - state.visualCue.time < 650 ? (() => {
         const cue = state.visualCue;
@@ -147,9 +214,10 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
             stroke="#ffe9bb" strokeWidth={0.9 * alpha} opacity={alpha} />
         </G>;
       })() : null}
-      {effects.map((effect: { seq: number; type: string; actor?: string; to?: string; tower?: string; strength: number }) => {
-        const subject = state.players[effect.actor || ''] || state.players[effect.to || ''] ||
-          state.towers.find(t => t.id === effect.tower);
+      {effects.map((effect: { seq: number; type: string; actor?: string; to?: string; from?: string; tower?: string; amount?: number; strength: number }) => {
+        const subject = state.players[effect.to || ''] || state.players[effect.actor || ''] ||
+          state.players[effect.from || ''] || state.units.find(u => u.id === effect.to) ||
+          state.towers.find(t => t.id === effect.to || t.id === effect.tower);
         if (!subject) return null;
         const r = 3 + (1 - effect.strength) * (effect.type === 'defeat' ? 11 : 7);
         return <G key={'fx-' + effect.seq}>
@@ -158,6 +226,12 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
             strokeWidth={0.65 + effect.strength} opacity={effect.strength * 0.85} />
           <Circle cx={subject.x} cy={subject.y} r={r * 0.53} fill="#fce3a4"
             opacity={effect.strength * 0.14} />
+          {effect.type === 'damage' && Number.isFinite(effect.amount) ? <SvgText
+            x={subject.x} y={subject.y - 8 - (1 - effect.strength) * 3}
+            textAnchor="middle" fontSize={3.7} fontWeight="bold"
+            fill="#ffe6a9" stroke="#28151b" strokeWidth={0.22} opacity={effect.strength}>
+            -{Math.max(0, Math.round(effect.amount || 0))}
+          </SvgText> : null}
         </G>;
       })}
     </Svg>
@@ -174,15 +248,35 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
         const sprite = ARENA_GENERATED_ART['sprite:' + p.hero];
         const image = fullbody || sprite || ARENA_GENERATED_ART['hero:' + p.hero] ||
           ARENA_HERO_ART[p.hero as BuklodCharacterId];
-        const size = clamp(area.width * 12 / camera.width, 47, 146);
+        const size = clamp(area.width * 7.2 / camera.width, 35, 84);
         return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
           sprite={Boolean(fullbody || sprite)} friendly={p.team === localTeam} active={isPlaying}
           moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1)}
           x={(p.x - camera.x) * area.width / camera.width}
           y={(p.y - camera.y) * area.height / camera.height} size={size} />;
       })}
-    <View pointerEvents="none" style={styles.minimap}>
-      <Svg width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
+    <View style={styles.cameraTools}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Zoom out battlefield"
+        onPress={() => setZoom((value: number) => arenaZoom(value / 1.25))} style={styles.zoomButton}>
+        <MaterialCommunityIcons name="minus" size={20} color="#fff0cb" />
+      </Pressable>
+      <Text style={styles.zoomValue}>{zoom.toFixed(1)}×</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Zoom in battlefield"
+        onPress={() => setZoom((value: number) => arenaZoom(value * 1.25))} style={styles.zoomButton}>
+        <MaterialCommunityIcons name="plus" size={20} color="#fff0cb" />
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Follow character and reset camera"
+        onPress={resetCamera} style={styles.zoomButton}>
+        <MaterialCommunityIcons name="crosshairs-gps" size={18} color="#fff0cb" />
+      </Pressable>
+    </View>
+    <View style={styles.minimap}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Move camera to selected minimap location"
+        style={{ flex: 1 }} onPress={event => {
+          setPan(arenaMinimapPan(event.nativeEvent.locationX, event.nativeEvent.locationY,
+            120, 68, state.w, state.h, player));
+        }}>
+      <Svg pointerEvents="none" width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
         <Rect x={0} y={0} width={state.w} height={state.h} fill="#102735" stroke="#e1c78e" strokeWidth={1} />
         {lanes.map((fraction, i) => <Line key={'m-' + i} x1={4} y1={fraction * state.h} x2={state.w - 4} y2={fraction * state.h} stroke="#5f8491" strokeWidth={0.75} />)}
         <Rect x={camera.x} y={camera.y} width={camera.width} height={camera.height} fill="#c2e9fa" fillOpacity={0.12} stroke="#f1d48d" strokeWidth={0.9} />
@@ -190,8 +284,8 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
           <Circle key={'p-' + p.id} cx={p.x} cy={p.y} r={2.4} fill={p.team === localTeam ? '#7ffce8' : '#ff9f90'} />)}
         <Circle cx={player?.x ?? 17} cy={player?.y ?? state.h / 2} r={3} fill="#f7e090" stroke="#122329" strokeWidth={1} />
       </Svg>
+      </Pressable>
     </View>
-    <View pointerEvents="none" style={styles.fieldLabel}><Text style={styles.labelText}>GENESIS • EMPIRE BATTLEFIELD</Text></View>
   </View>;
 }
 
@@ -204,6 +298,9 @@ function Control({ icon, title, onPress, disabled }: { icon: React.ComponentProp
 function EmpireArenaInApp() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const narrowGame = screenWidth < 590;
+  const shortScreen = screenHeight < 430;
   const [hero, setHero] = useState<BuklodCharacterId>('phan');
   const [mode, setMode] = useState<Mode>('duel');
   const [mapId, setMapId] = useState<ArenaSceneId>('genesis_rift');
@@ -237,6 +334,7 @@ function EmpireArenaInApp() {
 
   useFocusEffect(useCallback(() => {
     focused.current = true;
+    if (Platform.OS === 'android') StatusBar.setHidden(true, 'none');
     let cancelled = false;
     // Prevent a slow landscape lock from re-locking the rest of the BUKLOD app after exit.
     if (Platform.OS !== 'web') void (async () => {
@@ -248,6 +346,7 @@ function EmpireArenaInApp() {
     return () => {
       cancelled = true;
       focused.current = false;
+      if (Platform.OS === 'android') StatusBar.setHidden(false, 'none');
       rankedRef.current?.close();
       rankedRef.current = null;
       directionRef.current = { x: 0, y: 0 };
@@ -470,18 +569,29 @@ function EmpireArenaInApp() {
   const ownTeam = me?.team ?? 'A';
   const opponent = Object.values(game?.players ?? {}).find(p=>p.team && p.team !== ownTeam);
   const nearby = arenaNearby(game, me);
+  const inRangeFoe = game && me ? closestEnemy(8) : null;
+  const carried = me ? Object.values(me.bag || {}).reduce((sum, amount) => sum + amount, 0) : 0;
+  const arenaHint = inRangeFoe ? 'COMBAT RANGE: tap ATTACK or SKILL' :
+    carried > 0 && nearby.canBank ? 'SUPPLY READY: tap BANK to train allies' :
+    nearby.mine ? 'RESOURCE NEARBY: tap MINE' :
+    'Joystick moves hero • drag/pinch battlefield, tap minimap to explore';
   const resources = game?.teams[ownTeam].resources;
   const media = getRorkGameMedia(ARENA_SCENE_GAME_ID[mapId]);
   void revision; // Intentionally render every bounded fixed simulation step.
 
-  return <View style={[styles.root, { paddingTop: Math.max(4, insets.top), paddingBottom: Math.max(2, insets.bottom) }]}>
+  return <View style={[styles.root, {
+    paddingTop: Platform.OS === 'android' ? 0 : Math.max(0, insets.top),
+    paddingBottom: Math.max(0, insets.bottom),
+    paddingLeft: Math.max(0, insets.left),
+    paddingRight: Math.max(0, insets.right),
+  }]}>
     <LinearGradient colors={['#060d1d', '#092b3a', '#071324']} style={StyleSheet.absoluteFill} />
-    <View style={styles.top}>
+    <View style={[styles.top, shortScreen && styles.topCompact]}>
       <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD Kingdom" onPress={() => router.back()} style={styles.back}><MaterialCommunityIcons name="arrow-left" size={20} color="#ffdfa4" /></Pressable>
       <Image source={ARENA_GENERATED_ART['hero:' + hero] || ARENA_HERO_ART[hero]} style={styles.portrait} />
       <View style={styles.topText}>
         <Text numberOfLines={1} style={styles.header}>BUKLOD EMPIRE • ARENA</Text>
-        <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {phase === 'playing' ? (arenaKind === 'ranked' ? 'RANKED LIVE' : 'PRACTICE LIVE') : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
+        <Text numberOfLines={1} style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {phase === 'playing' ? (arenaKind === 'ranked' ? 'RANKED LIVE' : 'PRACTICE LIVE') : phase.toUpperCase()}</Text>
       </View>
       <Pressable onPress={toggleMusic} accessibilityRole="button" accessibilityLabel={musicEnabled ? 'Mute Arena music' : 'Enable Arena music'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={17} color="#f9df9e" />
@@ -492,54 +602,75 @@ function EmpireArenaInApp() {
       {phase === 'playing' && arenaKind === 'practice' ? <Control icon="pause" title="PAUSE" onPress={() => setPhase('paused')} /> : phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : null}
     </View>
 
-    {phase === 'menu' ? <View style={styles.menu}>
-      <Text style={styles.title}>GENESIS WAR ARENA</Text>
-      <Text style={styles.description}>Play offline practice without affecting BP or Diamonds. Ranked PvP is enabled only on staging builds connected to a verified server with earned Diamond stakes.</Text>
-      <Text style={styles.groupLabel}>BATTLE MODE</Text>
-      <View style={styles.options}>{MODES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMode(m)} style={[styles.option, mode === m && styles.optionActive]}><Text style={styles.optionText}>{MODE_LABELS[m]}</Text></Pressable>)}</View>
-      <Text style={styles.groupLabel}>BATTLEFIELD</Text>
-      <View style={styles.options}>{SCENES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMapId(m)} style={[styles.option, mapId === m && styles.optionActive]}><Text style={styles.optionText}>{ARENA_MAPS[m].name}</Text></Pressable>)}</View>
-      <Pressable accessibilityRole="button" onPress={start} style={styles.start}><MaterialCommunityIcons name="sword-cross" color="#102b31" size={20} /><Text style={styles.startText}>ENTER PRACTICE ARENA</Text></Pressable>
-      {isArenaRankedConfigured() ? <Pressable accessibilityRole="button" onPress={() => void startRanked()}
-        style={styles.start}><MaterialCommunityIcons name="shield-sword" color="#102b31" size={20} /><Text style={styles.startText}>SEARCH RANKED OPPONENTS</Text></Pressable>
-        : <Text style={styles.groupLabel}>Ranked PvP: awaiting trusted staging server and verified Diamond ledger</Text>}
-    </View> : null}
+    {phase === 'menu' ? <ScrollView style={styles.menuScroll}
+      contentContainerStyle={[styles.menu, shortScreen && styles.menuCompact]} showsVerticalScrollIndicator>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={styles.title}>EMPIRE ARENA • PRACTICE</Text>
+      <Text style={styles.description}>Offline battles · no BP or Diamond changes. Choose a mode and battlefield.</Text>
+      <View style={[styles.lobbyPreview, narrowGame && styles.lobbyPreviewNarrow]}>
+        <ExpoImage source={ARENA_GENERATED_ART['scene:' + mapId]} contentFit="cover"
+          style={[styles.lobbyPreviewImage, narrowGame && styles.lobbyPreviewImageNarrow]} />
+        <View style={styles.lobbyPreviewCaption}>
+          <Text style={styles.lobbyPreviewTitle}>{ARENA_MAPS[mapId].name}</Text>
+          <Text style={styles.lobbyPreviewText}>13 heroes • 3 battlefields • real practice combat. Collect resources, defeat opponents and protect your seal.</Text>
+        </View>
+      </View>
+      <View style={[styles.menuSections, narrowGame && styles.menuSectionsNarrow]}>
+        <View style={styles.menuSection}>
+          <Text style={styles.groupLabel}>BATTLE MODE</Text>
+          <View style={styles.options}>{MODES.map(m => <Pressable key={m} accessibilityRole="button"
+            accessibilityState={{ selected: mode === m }} onPress={() => setMode(m)}
+            style={[styles.option, mode === m && styles.optionActive]}><Text style={styles.optionText}>{MODE_LABELS[m]}</Text></Pressable>)}</View>
+        </View>
+        <View style={styles.menuSection}>
+          <Text style={styles.groupLabel}>BATTLEFIELD</Text>
+          <View style={styles.options}>{SCENES.map(m => <Pressable key={m} accessibilityRole="button"
+            accessibilityState={{ selected: mapId === m }} onPress={() => setMapId(m)}
+            style={[styles.option, mapId === m && styles.optionActive]}><Text numberOfLines={1} style={styles.optionText}>{ARENA_MAPS[m].name}</Text></Pressable>)}</View>
+        </View>
+      </View>
+      <View style={styles.menuFooter}>
+        <Pressable accessibilityRole="button" onPress={start} style={styles.start}><MaterialCommunityIcons name="sword-cross" color="#102b31" size={18} /><Text style={styles.startText}>PLAY PRACTICE</Text></Pressable>
+        {isArenaRankedConfigured() ? <Pressable accessibilityRole="button" onPress={() => void startRanked()}
+          style={styles.start}><Text style={styles.startText}>RANKED</Text></Pressable>
+          : <Text style={styles.rankedHold}>Ranked locked until trusted server and Diamond ledger verification.</Text>}
+      </View>
+    </ScrollView> : null}
 
-    {phase === 'queued' ? <View style={styles.menu}>
+    {phase === 'queued' ? <ScrollView style={styles.menuScroll} contentContainerStyle={styles.menu}>
       <Text style={styles.title}>RANKED MATCHMAKING</Text>
       <Text style={styles.description}>{message}</Text>
       <Pressable accessibilityRole="button" onPress={() => {
         rankedRef.current?.leave();rankedRef.current=null;setPhase('menu');setArenaKind('practice');
       }} style={styles.start}><Text style={styles.startText}>CANCEL QUEUE</Text></Pressable>
-    </View> : null}
+    </ScrollView> : null}
     {game && phase !== 'menu' && phase !== 'queued' ? <View style={styles.stage}>
-      <View style={styles.hud}>
+      <View style={[styles.hud, narrowGame && styles.hudNarrow]}>
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>
         <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text>
         <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
       </View>
       <ArenaField state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
-      <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
+      <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message.startsWith('Action unavailable') || message.startsWith('Arena server:') ? message : arenaHint} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
       {phase === 'playing' ? <>
         <View style={styles.joystick} {...joystick.panHandlers}>
           <View style={styles.joyRing}><View style={[styles.joyHandle, { transform: [{ translateX: joyVisual.x * 25 }, { translateY: joyVisual.y * 25 }] }]} /></View>
           <Text style={styles.joyLabel}>MOVE</Text>
         </View>
-        <View style={styles.actions}>
-          <View style={styles.actionLine}>
+        <View style={[styles.actions, narrowGame && styles.actionsNarrow]}>
+          <View style={[styles.actionLine, narrowGame && styles.actionLineNarrow]}>
             <Control icon="pickaxe" title="MINE" onPress={mine} disabled={!nearby.mine} />
             <Control icon="archive-arrow-down" title="BANK" onPress={() => execute({ type: 'deposit' }, 'collect')} disabled={!nearby.canBank} />
             <Control icon="account-multiple-plus" title="TRAIN" onPress={() => execute({ type: 'train', kind: 'warrior' }, 'collect')} disabled={!nearby.canBank} />
             <Control icon="tools" title={tacticsOpen ? 'CLOSE' : 'TACTICS'} onPress={() => setTacticsOpen(v => !v)} />
           </View>
-          <View style={styles.actionLine}>
+          <View style={[styles.actionLine, narrowGame && styles.actionLineNarrow]}>
             <Control icon="lightning-bolt" title="SKILL" onPress={() => skill('primary')} />
             <Control icon="run-fast" title="DASH" onPress={() => skill('secondary')} disabled={(me?.matchLevel || 1) < 3} />
             <Control icon="fire" title="ULT" onPress={() => skill('ultimate')} disabled={(me?.matchLevel || 1) < 6} />
             <Control icon="sword" title="ATTACK" onPress={attack} />
           </View>
         </View>
-        {tacticsOpen ? <View style={styles.tactics}>
+        {tacticsOpen ? <ScrollView style={[styles.tactics, narrowGame && styles.tacticsNarrow]} contentContainerStyle={styles.tacticsContent}>
           <Text style={styles.tacticsHeader}>FIELD COMMANDS • TAP TO USE</Text>
           <View style={styles.tacticsControls}>
             <Control icon="shield-sword" title="PUSH" onPress={order} />
@@ -549,8 +680,8 @@ function EmpireArenaInApp() {
             <Control icon="wrench" title="REPAIR" onPress={() => towerAction('tower_repair')} disabled={!nearby.tower} />
             <Control icon="arrow-up-bold-hexagon-outline" title="UPGRADE" onPress={() => towerAction('tower_upgrade')} disabled={!nearby.tower} />
           </View>
-          <Text style={styles.tacticsHint}>Siege unlocks after enemy towers fall. Build near home and repair allied towers. No real rewards.</Text>
-        </View> : null}
+          <Text style={styles.tacticsHint}>Siege after enemy towers fall • Build and repair near base • No practice rewards.</Text>
+        </ScrollView> : null}
       </> : <View style={styles.overlay}>
         <Text style={styles.overlayTitle}>{phase === 'paused' ? 'PAUSED' : game.result?.winner === ownTeam ? 'VICTORY' : game.result?.winner && game.result.winner !== ownTeam ? 'DEFEAT' : 'MATCH ENDED'}</Text>
         <Text style={styles.description}>{phase === 'paused' ? 'Match time is frozen. Return to gameplay or abandon this practice.' : arenaKind === 'ranked' ? 'Ranked outcome is settled by the server only. No BUKLOD BP or QMP is minted.' : 'Offline practice only. No BP, diamonds, rank or inventory changes.'}</Text>
@@ -584,47 +715,71 @@ export default function EmpireArenaRouteGuard() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#071323' },
-  top: { minHeight: 51, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 9, borderBottomColor: '#456570', borderBottomWidth: 1 },
+  top: { minHeight: 45, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 7, gap: 5, borderBottomColor: '#456570', borderBottomWidth: 1 },
+  topCompact: { minHeight: 41 },
   back: { padding: 7, minWidth: 35, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
-  portrait: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, borderColor: '#b69a62' },
+  portrait: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, borderColor: '#b69a62' },
   audioToggle: { minHeight: 34, minWidth: 33, padding: 6, justifyContent: 'center', alignItems: 'center' },
   topText: { flex: 1, minWidth: 0 },
   header: { color: '#ffe0a4', fontWeight: '900', fontSize: 14 },
   sub: { color: '#a7c4ce', fontSize: 9 },
-  menu: { alignSelf: 'center', width: '100%', maxWidth: 720, flex: 1, paddingHorizontal: 18, justifyContent: 'center', gap: 11 },
-  title: { color: '#ffe7ba', fontSize: 25, fontWeight: '900' },
-  description: { color: '#d0e3df', lineHeight: 19, fontSize: 12 },
-  groupLabel: { color: '#a2d9ce', fontSize: 11, fontWeight: '900', marginTop: 6 },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
-  option: { borderWidth: 1, borderColor: '#3d6c7e', borderRadius: 9, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#102c40' },
+  menuScroll: { flex: 1, width: '100%' },
+  menu: { alignSelf: 'center', width: '100%', maxWidth: 900, paddingHorizontal: 14, paddingVertical: 12, gap: 8 },
+  menuCompact: { paddingVertical: 7, gap: 5 },
+  lobbyPreview: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  lobbyPreviewNarrow: { flexDirection: 'column', alignItems: 'stretch', gap: 4 },
+  lobbyPreviewImage: { width: 166, height: 72, borderRadius: 10, borderWidth: 1, borderColor: '#b8a06a' },
+  lobbyPreviewImageNarrow: { width: '100%', height: 108 },
+  lobbyPreviewCaption: { flex: 1, gap: 4 },
+  lobbyPreviewTitle: { color: '#f2d49c', fontSize: 14, fontWeight: '900' },
+  lobbyPreviewText: { color: '#c0d5d7', fontSize: 10, lineHeight: 14 },
+  menuSections: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, justifyContent: 'space-between' },
+  menuSectionsNarrow: { flexDirection: 'column', gap: 8 },
+  menuSection: { flexGrow: 1, flexShrink: 1, minWidth: 200, gap: 5 },
+  menuFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
+  rankedHold: { color: '#b3d2d4', fontSize: 10, flexShrink: 1 },
+  title: { color: '#ffe7ba', fontSize: 20, lineHeight: 24, fontWeight: '900' },
+  description: { color: '#d0e3df', lineHeight: 16, fontSize: 11 },
+  groupLabel: { color: '#a2d9ce', fontSize: 10, fontWeight: '900' },
+  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, alignItems: 'center' },
+  option: { borderWidth: 1, borderColor: '#3d6c7e', borderRadius: 9, minHeight: 42, justifyContent: 'center', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#102c40' },
   optionActive: { borderColor: '#f3c46f', backgroundColor: '#3d4651' },
   optionText: { color: '#f3e0b5', fontWeight: '800', fontSize: 11 },
-  start: { borderRadius: 12, padding: 12, backgroundColor: '#eaca81', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, alignSelf: 'flex-start', marginTop: 8 },
+  start: { minHeight: 43, borderRadius: 11, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#eaca81', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7, alignSelf: 'flex-start' },
   startText: { color: '#162f39', fontWeight: '900' },
   stage: { flex: 1, overflow: 'hidden' },
-  hud: { zIndex: 1, minHeight: 26, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  hud: { zIndex: 1, minHeight: 24, paddingHorizontal: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 5 },
+  hudNarrow: { flexWrap: 'wrap', justifyContent: 'center' },
   hudText: { color: '#f8dfa8', fontSize: 10, fontWeight: '800', flexShrink: 1 },
   field: { flex: 1, overflow: 'hidden', borderColor: '#576d67', borderWidth: 1, marginHorizontal: 6, borderRadius: 5 },
-  minimap: { position: 'absolute', top: 9, right: 9, width: 126, height: 74, borderWidth: 1,
-    borderRadius: 7, borderColor: '#e4cc97', backgroundColor: '#081b2bd9', padding: 3 },
+  cameraTools: { position: 'absolute', top: 7, left: 7, flexDirection: 'row', alignItems: 'center', gap: 3, zIndex: 7,
+    padding: 3, borderRadius: 11, borderWidth: 1, borderColor: '#799a99', backgroundColor: '#081b2be9' },
+  zoomButton: { minWidth: 39, minHeight: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
+  zoomValue: { color: '#ffebbd', minWidth: 35, textAlign: 'center', fontWeight: '900', fontSize: 11 },
+  minimap: { position: 'absolute', top: 7, right: 7, width: 126, height: 74, borderWidth: 1,
+    borderRadius: 7, borderColor: '#e4cc97', backgroundColor: '#081b2bd9', padding: 3, zIndex: 7 },
   fieldLabel: { position: 'absolute', top: 6, alignSelf: 'center', backgroundColor: '#09152099', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   labelText: { color: '#f8e6bd', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   info: { paddingHorizontal: 8, paddingVertical: 4, minHeight: 24, backgroundColor: '#051021' },
   infoText: { color: '#e4dbb9', fontSize: 10 },
-  joystick: { position: 'absolute', left: 16, bottom: 31, width: 113, height: 110, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
-  joyRing: { width: 76, height: 76, borderRadius: 38, backgroundColor: '#081d30bb', borderWidth: 2, borderColor: '#a8bcb9', alignItems: 'center', justifyContent: 'center' },
+  joystick: { position: 'absolute', left: 9, bottom: 23, width: 94, height: 93, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
+  joyRing: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#081d30bb', borderWidth: 2, borderColor: '#a8bcb9', alignItems: 'center', justifyContent: 'center' },
   joyHandle: { width: 29, height: 29, borderRadius: 15, backgroundColor: '#d1a85cbb', borderWidth: 2, borderColor: '#ffe5b7' },
   joyLabel: { fontSize: 9, color: '#ffe7bd', fontWeight: '900' },
-  actions: { position: 'absolute', right: 9, bottom: 32, zIndex: 5, gap: 6 },
-  tactics: { position: 'absolute', right: 12, bottom: 141, zIndex: 6, width: 340, maxWidth: '66%',
-    borderRadius: 11, borderWidth: 1, borderColor: '#f1ca86', backgroundColor: '#061e30ed', padding: 8, gap: 6 },
+  actions: { position: 'absolute', right: 7, bottom: 21, zIndex: 5, gap: 3 },
+  actionsNarrow: { right: 3, bottom: 19 },
+  tactics: { position: 'absolute', top: 4, bottom: 4, right: 8, zIndex: 8, width: 360, maxWidth: '64%',
+    borderRadius: 11, borderWidth: 1, borderColor: '#f1ca86', backgroundColor: '#061e30ed' },
+  tacticsNarrow: { width: 190, maxWidth: '62%' },
+  tacticsContent: { padding: 8, gap: 5 },
   tacticsHeader: { color: '#fff1c5', fontWeight: '900', fontSize: 10 },
   tacticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   tacticsHint: { color: '#c1d3d1', fontSize: 9 },
-  actionLine: { flexDirection: 'row', alignSelf: 'flex-end', gap: 5 },
-  control: { minHeight: 47, minWidth: 46, borderRadius: 9, borderWidth: 1, borderColor: '#c5ac7d', backgroundColor: '#102a3ddd', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 4 },
+  actionLine: { flexDirection: 'row', alignSelf: 'flex-end', gap: 3 },
+  actionLineNarrow: { width: 102, flexWrap: 'wrap', justifyContent: 'flex-end' },
+  control: { minHeight: 43, minWidth: 45, borderRadius: 9, borderWidth: 1, borderColor: '#c5ac7d', backgroundColor: '#102a3ddd', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, paddingVertical: 3 },
   controlLabel: { color: '#ffe7b5', fontSize: 8, fontWeight: '900' },
   disabled: { opacity: 0.35 },
-  overlay: { position: 'absolute', top: 25, bottom: 25, left: '22%', right: '22%', zIndex: 10, borderWidth: 1, borderColor: '#d3b477', backgroundColor: '#061727f2', borderRadius: 15, padding: 15, alignItems: 'center', justifyContent: 'center', gap: 14 },
+  overlay: { position: 'absolute', top: 7, bottom: 7, left: '18%', right: '18%', zIndex: 10, borderWidth: 1, borderColor: '#d3b477', backgroundColor: '#061727f2', borderRadius: 15, padding: 8, alignItems: 'center', justifyContent: 'center', gap: 7 },
   overlayTitle: { color: '#ffe8ae', fontWeight: '900', fontSize: 27 },
 });

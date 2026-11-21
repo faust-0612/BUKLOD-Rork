@@ -16,8 +16,12 @@ export function arenaCamera(worldWidth, worldHeight, focus, screenWidth, screenH
     height = h;
     width = Math.min(w, h * aspect);
   }
-  const x = clamp((Number(focus?.x) || w / 2) - width / 2, 0, Math.max(0, w - width));
-  const y = clamp((Number(focus?.y) || h / 2) - height / 2, 0, Math.max(0, h - height));
+  // Explicit world-edge zero is a valid camera target (e.g. minimap left/top).
+  // Do not treat it as a falsey/missing coordinate and jump to map center.
+  const focusX = Number(focus?.x);
+  const focusY = Number(focus?.y);
+  const x = clamp((Number.isFinite(focusX) ? focusX : w / 2) - width / 2, 0, Math.max(0, w - width));
+  const y = clamp((Number.isFinite(focusY) ? focusY : h / 2) - height / 2, 0, Math.max(0, h - height));
   return { x, y, width, height };
 }
 
@@ -32,7 +36,7 @@ export function arenaScreenToWorld(x, y, screenWidth, screenHeight, camera) {
 /** Light, strictly visual-only effects. Authoritative hit/skill outcomes are in Arena engine. */
 export function arenaVisualEffects(events, elapsed, ttl = 1100) {
   if (!Array.isArray(events)) return [];
-  const valid = new Set(['skill', 'dash', 'defeat', 'tower_destroyed', 'seal_breached', 'buff', 'level_up', 'equipment_drop', 'unit_spawn']);
+  const valid = new Set(['skill', 'dash', 'damage', 'unit_hit', 'mine', 'seal_damage', 'defeat', 'tower_destroyed', 'seal_breached', 'buff', 'level_up', 'equipment_drop', 'unit_spawn']);
   return events.filter(e => e && valid.has(e.type) && Number.isFinite(e.time) &&
     e.time <= elapsed && elapsed - e.time < ttl)
     .slice(-14)

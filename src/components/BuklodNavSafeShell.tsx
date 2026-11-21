@@ -89,11 +89,14 @@ export default function BuklodNavSafeShell({
     !isBuklodScopedWorkspacePath(pathname);
   const immersiveConversation = isHiblaConversationPath(pathname);
   const genesisWorld = isGenesisPreviewBuild();
-  const navOccupied = genesisWorld || immersiveConversation ? 0 : rawNavOccupied;
+  const normalizedPath = normalizeBuklodPathname(pathname);
+  // Fullscreen Arena, even if existing Android channel flags hydrate late.
+  // Production route guard still prevents any Arena gameplay outside preview.
+  const immersiveArena = normalizedPath === '/games/empire-arena';
+  const navOccupied = genesisWorld || immersiveConversation || immersiveArena ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
-  const normalizedPath = normalizeBuklodPathname(pathname);
   const reserveMyBuklodSystemInsets =
     isMyBuklodDoorPath(pathname) ||
     // Daily Reading and Children's Stories have headerless routes. Keep their
@@ -158,7 +161,7 @@ export default function BuklodNavSafeShell({
         ? Math.max(insets.top, 0)
         : 0;
   const contentBottomInset =
-    immersiveIgpat || immersiveConversation
+    immersiveIgpat || immersiveConversation || immersiveArena
       ? 0
       : keyboardVisible
         ? 0
@@ -173,7 +176,7 @@ export default function BuklodNavSafeShell({
   const mapReturnRoots = ['/buklod','/messages','/hub','/me','/learn','/clusters','/organizations',
     '/games','/points','/bayanihan','/bible','/life','/notifications','/profile',
     '/personal-home','/settings','/support','/community-contribution','/children-stories'];
-  const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !keyboardVisible &&
+  const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !immersiveArena && !keyboardVisible &&
     normalizedPath !== '/buklod-map' && mapReturnRoots.some(route => normalizedPath === route || normalizedPath.startsWith(route + '/'));
 
   return (
@@ -190,10 +193,10 @@ export default function BuklodNavSafeShell({
         <View style={styles.routedContent}>
           {children}
         </View>
-        {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
+        {!immersiveIgpat && !immersiveArena ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!genesisWorld && !immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
+      {!genesisWorld && !immersiveIgpat && !immersiveConversation && !immersiveArena && rawNavOccupied > 0 ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
