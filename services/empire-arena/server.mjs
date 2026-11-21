@@ -67,10 +67,16 @@ server.listen(PORT,HOST,()=>{
   console.log('[arena] ready on protected internal listener',PORT);
 });
 
+let heartbeatPending=false;
 const gameClock=setInterval(()=>{
-  if(stopping)return;
-  void coordinator.heartbeat().catch(error=>console.error('[arena] heartbeat_failed',
-    typeof error?.message==='string'?error.message.slice(0,80):'error'));
+  // Settlement may await a database transaction. Never run another game tick
+  // concurrently with the previous heartbeat or mutate a finalizing match.
+  if(stopping||heartbeatPending)return;
+  heartbeatPending=true;
+  void coordinator.heartbeat()
+    .catch(error=>console.error('[arena] heartbeat_failed',
+      typeof error?.message==='string'?error.message.slice(0,80):'error'))
+    .finally(()=>{heartbeatPending=false;});
 },100);
 gameClock.unref();
 const expireClock=setInterval(()=>{
