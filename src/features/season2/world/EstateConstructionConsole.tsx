@@ -3,6 +3,9 @@ import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {ActivityIndicator,Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useFocusEffect} from 'expo-router';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import EstateResourceEmblem from './EstateResourceEmblem';
+import DevelopmentStructurePreview from './DevelopmentStructurePreview';
+import type {EstateMoment} from './estateFeedback';
 import {
  completeVerifiedEstateBuild,contributeVerifiedEstate,enoughEstateMaterials,
  fetchVerifiedEstate,newEstateOperationKey,saveVerifiedEstateDesign,startVerifiedEstateBuild,
@@ -10,7 +13,7 @@ import {
 } from './estateProgressClient';
 type Identity={kind:EstateOwnerKind;ownerId:string;track:EstateTrack};
 type Props={identity:Identity|null;userId:string;design:EstateCosmetics;
- onVerified:(snapshot:EstateSnapshot)=>void;onApplyDesign:(design:EstateCosmetics)=>void};
+ onVerified:(snapshot:EstateSnapshot)=>void;onApplyDesign:(design:EstateCosmetics)=>void;onMoment?:(cue:EstateMoment)=>void};
 const ZERO:EstateWallet={development_xp:0,timber:0,stone:0,metal:0};
 const fmt=(n:number)=>Math.max(0,n).toLocaleString();
 type IconName=React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -20,7 +23,7 @@ const materialNames:readonly [keyof EstateWallet,string,IconName][]=[
  ['stone','Stone','wall'],
  ['metal','Metal','anvil'],
 ];
-export default function EstateConstructionConsole({identity,userId,design,onVerified,onApplyDesign}:Props){
+export default function EstateConstructionConsole({identity,userId,design,onVerified,onApplyDesign,onMoment}:Props){
  const kind=identity?.kind||'USER',ownerId=identity?.ownerId||'',track=identity?.track||'lot';
  const key=identity?kind+':'+ownerId+':'+track:'no-scope';
  const [verified,setVerified]=useState<EstateSnapshot|null>(null);
@@ -39,7 +42,8 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
  const donationKey=useRef<string|null>(null);
  const onVerifiedRef=useRef(onVerified);
  const onApplyRef=useRef(onApplyDesign);
- useEffect(()=>{onVerifiedRef.current=onVerified;onApplyRef.current=onApplyDesign;},[onVerified,onApplyDesign]);
+ const onMomentRef=useRef(onMoment);
+ useEffect(()=>{onVerifiedRef.current=onVerified;onApplyRef.current=onApplyDesign;onMomentRef.current=onMoment;},[onVerified,onApplyDesign,onMoment]);
  const apply=(snapshot:EstateSnapshot)=>{setVerified(snapshot);onVerifiedRef.current(snapshot);setError('');};
  const refresh=useCallback(async()=>{
   const n=++sequence.current;
@@ -69,7 +73,7 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
   const timer=setInterval(()=>setNow(Date.now()),15000);
   return()=>clearInterval(timer);
  },[verified?.build_finish_at]);
- const act=async(fn:()=>Promise<EstateSnapshot>,done:string)=>{
+ const act=async(fn:()=>Promise<EstateSnapshot>,done:string,cue?:EstateMoment|((s:EstateSnapshot)=>EstateMoment))=>{
   if(inFlight.current||busy||loading)return;
   const request=++actionSeq.current;
   inFlight.current=true;setBusy(true);setMessage('');setError('');
@@ -77,8 +81,9 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
     const snapshot=await fn();
     if(request!==actionSeq.current)return;
     apply(snapshot);setMessage(done);setNow(Date.now());
+    if(cue)onMomentRef.current?.(typeof cue==='function'?cue(snapshot):cue);
   }catch(e){
-    if(request===actionSeq.current)setError(e instanceof Error?e.message:'Could not verify estate action.');
+    if(request===actionSeq.current){setError(e instanceof Error?e.message:'Could not verify estate action.');onMomentRef.current?.('error');}
   }finally{
     if(request===actionSeq.current){inFlight.current=false;setBusy(false);}
   }
@@ -90,17 +95,17 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
    const snapshot=await startVerifiedEstateBuild({kind,ownerId,track},operationKey!);
    if(startKey.current===operationKey)startKey.current=null;
    return snapshot;
-  },'Construction started. Verified materials were deducted once.');
+  },'Construction started. Verified materials were deducted once.','build_start');
  };
  const finish=()=>{if(!verified||!verified.can_build)return;
   void act(()=>completeVerifiedEstateBuild({kind,ownerId,track}),
-   'Verified milestone completed and recorded.');
+   'Verified milestone completed and recorded.',snapshot=>snapshot.stage===0?'build_complete':'claim');
  };
  const save=()=>{if(!verified||!verified.can_build)return;
   void act(async()=>{
    const next=await saveVerifiedEstateDesign({kind,ownerId,track},design);
    onApplyRef.current(next.cosmetics);return next;
-  },'Design saved to your account or scope.');
+  },'Design saved to your account or scope.','apply');
  };
  const donate=()=>{if(kind!=='SCOPE'||!ownerId||!userId||!personalWallet)return;
   const amount={...donation};
@@ -114,7 +119,7 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
    const mine=await fetchVerifiedEstate({kind:'USER',ownerId:userId,track:'lot'}).catch(()=>null);
    setPersonalWallet(mine?.wallet??null);
    setDonation({...ZERO});return next;
-  },'Earned materials transferred to your community. No BP was created.');
+  },'Earned materials transferred to your community. No BP was created.','contribute');
  };
  if(!ownerId)return <View style={styles.panel}><Text style={styles.title}>CONSTRUCTION CONTROL</Text><Text style={styles.hint}>Choose an active verified Cluster or Organization first.</Text></View>;
  const cost=verified?.next_cost??null;
@@ -148,10 +153,18 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
      <MaterialCommunityIcons name="check-decagram" size={20} color="#BFE7BA"/>
     </View>
     <View style={styles.progressTrack}><View style={[styles.progressFill,{width:String(Math.max(2,verified.stage/5*100))+'%' as any}]}/></View>
+    <View style={styles.earnedArt}>
+      <DevelopmentStructurePreview track={track} level={verified.level} stage={verified.stage} mastery={verified.mastery}
+        earnedProgress finish={verified.cosmetics.finish} roof={verified.cosmetics.roof} ground={verified.cosmetics.ground}
+        fence={verified.cosmetics.fence} windows={verified.cosmetics.windows} lights={verified.cosmetics.lights}
+        door={verified.cosmetics.door} path={verified.cosmetics.path} yard={verified.cosmetics.yard}/>
+      <View style={styles.earnedArtBadge}><MaterialCommunityIcons name="shield-check-outline" size={14} color="#E9F8CB"/>
+        <Text style={styles.earnedArtLabel}>VERIFIED STRUCTURE</Text></View>
+    </View>
     <Text style={styles.section}>VERIFIED MATERIALS</Text>
     <View style={styles.materials}>
-     {materialNames.map(([field,label,icon])=><View key={field} style={styles.material}>
-      <MaterialCommunityIcons name={icon} size={18} color="#D2E4B1"/>
+     {materialNames.map(([field,label])=><View key={field} style={styles.material}>
+      <EstateResourceEmblem kind={field} size={32}/>
       <Text style={styles.materialValue}>{fmt(verified.wallet[field])}</Text>
       <Text style={styles.materialName}>{label}</Text>
      </View>)}
@@ -202,6 +215,11 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
  </View>;
 }
 const styles=StyleSheet.create({
+ earnedArt:{height:145,borderRadius:12,overflow:'hidden',backgroundColor:'#20413C',
+   borderWidth:1,borderColor:'#6D9886',position:'relative'},
+ earnedArtBadge:{position:'absolute',top:7,right:7,flexDirection:'row',alignItems:'center',gap:4,
+   paddingHorizontal:7,paddingVertical:5,backgroundColor:'rgba(12,42,39,.89)',borderRadius:9},
+ earnedArtLabel:{fontSize:9,fontWeight:'900',color:'#E9F8CB'},
  panel:{padding:12,borderRadius:16,backgroundColor:'#152C34',borderWidth:1,borderColor:'#668B7D',gap:9},
  heading:{flexDirection:'row',alignItems:'center',gap:8},headingText:{flex:1,minWidth:0},
  title:{color:'#FFE6B7',fontWeight:'900',fontSize:15},

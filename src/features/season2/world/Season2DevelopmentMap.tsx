@@ -19,6 +19,8 @@ import {getDevelopmentAsset,getDevelopmentStageAsset} from './developmentAssetMa
 import Season2CommunityFacilities from './Season2CommunityFacilities';
 import DevelopmentStructurePreview from './DevelopmentStructurePreview';
 import EstateConstructionConsole from './EstateConstructionConsole';
+import EstateMomentFX from './EstateMomentFX';
+import {useEstateFeedback,type EstateMoment} from './estateFeedback';
 import {type EstateCosmetics,type EstateSnapshot} from './estateProgressClient';
 import {constructionPlan, nextMilestone, safeCosmetics, safeMastery} from './constructionPlan.mjs';
 const VILLAGE_ART = require('../../../../assets/season2/genesis/world/buklod-community-village-stage1.webp');
@@ -87,6 +89,15 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const [previewLevels,setPreviewLevels] = useState({lot:1,house:1,cluster:1});
   const [previewStages,setPreviewStages] = useState({lot:0,house:0,cluster:0});
   const [previewMastery,setPreviewMastery]=useState({lot:0,house:0,cluster:0});
+  const estateFeedback=useEstateFeedback();
+  const [estateMoment,setEstateMoment]=useState<EstateMoment|null>(null);
+  const [estateMomentSequence,setEstateMomentSequence]=useState(0);
+  const handleEstateMoment=(cue:EstateMoment)=>{
+    estateFeedback.emit(cue);
+    if(['apply','claim','build_start','build_complete','contribute','buy_success','buy_failure','unlock','error'].includes(cue)){
+      setEstateMoment(cue);setEstateMomentSequence(n=>n+1);
+    }
+  };
   const [studioTab,setStudioTab]=useState<'structure'|'grounds'|'lighting'>(world==='home'?'grounds':'structure');
   const [liveView,setLiveView]=useState(true);
   const [earnedByProperty,setEarnedByProperty]=useState<Record<string,EstateSnapshot>>({});
@@ -101,7 +112,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const mastery=liveView&&verified?verified.mastery:previewMastery[previewTrack];
   const assetMeta=getDevelopmentAsset(previewTrack,level);
   const stageAsset=getDevelopmentStageAsset(previewTrack,level,stage);
-  const chooseTrack=(track:'lot'|'house'|'cluster')=>{setPreviewTrack(track);setLiveView(true);setStudioTab(track==='lot'?'grounds':'structure');};
+  const chooseTrack=(track:'lot'|'house'|'cluster')=>{estateFeedback.emit('preview');setPreviewTrack(track);setLiveView(true);setStudioTab(track==='lot'?'grounds':'structure');};
   const enterBlueprint=()=>{
     if(liveView&&verified){
       setPreviewLevels(v=>({...v,[previewTrack]:verified.level}));
@@ -110,12 +121,12 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
     }
     setLiveView(false);
   };
-  const chooseStage=(i:number)=>{if(liveView&&verified){
+  const chooseStage=(i:number)=>{estateFeedback.emit('preview');if(liveView&&verified){
     setPreviewLevels(v=>({...v,[previewTrack]:verified.level}));
     setPreviewMastery(v=>({...v,[previewTrack]:verified.mastery}));
   }setPreviewStages(v=>({...v,[previewTrack]:i}));setLiveView(false);};
-  const adjustLevel=(delta:number)=>{setPreviewLevels(v=>({...v,[previewTrack]:clampDevelopmentLevel(level+delta)}));setLiveView(false);};
-  const adjustMastery=(delta:number)=>{if(liveView&&verified){setPreviewLevels(v=>({...v,[previewTrack]:verified.level}));setPreviewStages(v=>({...v,[previewTrack]:verified.stage}));}
+  const adjustLevel=(delta:number)=>{estateFeedback.emit('preview');setPreviewLevels(v=>({...v,[previewTrack]:clampDevelopmentLevel(level+delta)}));setLiveView(false);};
+  const adjustMastery=(delta:number)=>{estateFeedback.emit('preview');if(liveView&&verified){setPreviewLevels(v=>({...v,[previewTrack]:verified.level}));setPreviewStages(v=>({...v,[previewTrack]:verified.stage}));}
     setPreviewMastery(v=>({...v,[previewTrack]:safeMastery(Math.min(Number.MAX_SAFE_INTEGER,mastery+delta))}));setLiveView(false);};
   const [look,setLook] = useState<Look>('stone');
   const [roof,setRoof]=useState<'gable'|'hip'|'terrace'>('gable');
@@ -188,6 +199,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   },[cosmeticLoadedKey,storageKey,cosmeticKey,look,roof,ground,fence,windows,lights,doorStyle,pathStyle,yardStyle,canCustomizePreview,ownerId,isPreview]);
   const previewCustomize=(partial:Partial<EstateCosmetics>)=>{
     if(!canCustomizePreview)return;
+    estateFeedback.emit('customize');
     const next={...(liveView&&verified?verified.cosmetics:design),...partial};
     setLook(next.finish);setRoof(next.roof);setGround(next.ground);
     setFence(next.fence);setWindows(next.windows);setLights(next.lights);
@@ -287,7 +299,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             <Pressable key={door.id} accessibilityRole="button"
               accessibilityLabel={'Open '+door.label}
               accessibilityHint={'Directly opens '+door.sub}
-              onPress={()=>router.push(door.route as any)}
+              onPress={()=>{handleEstateMoment(door.id==='market'?'buy_open':'navigation');router.push(door.route as any);}}
               style={({pressed})=>[styles.door,{left:`${door.left}%` as `${number}%`,top:`${door.top}%` as `${number}%`,
                 borderColor:choice.tint,backgroundColor:pressed?'#1C473F':'rgba(9,25,40,.88)'}]}>
               <MaterialCommunityIcons name={door.icon} size={compact?18:22} color="#FFEAC3"/>
@@ -295,38 +307,46 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             </Pressable>
           ))}
           </Animated.View>
+          <EstateMomentFX event={estateMoment} sequence={estateMomentSequence}/>
           <View style={styles.mapBadge} pointerEvents="none">
             <MaterialCommunityIcons name="hammer-wrench" size={14} color="#FFE6B0"/>
             <Text style={styles.mapBadgeText}>{liveView&&verified?'VERIFIED':'BLUEPRINT'} · {previewTrack.toUpperCase()} L{level}{level===10&&mastery>0?' · M'+mastery:''}</Text>
           </View>
           <View style={styles.zoomBar}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Zoom out of world" disabled={zoom<=1} onPress={()=>setZoom(v=>Math.max(1,Math.round((v-.15)*100)/100))} style={styles.zoomButton}><MaterialCommunityIcons name="minus" size={20} color="#FFEBC5"/></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Reset world zoom" onPress={()=>{setZoom(1);panBase.current={x:0,y:0};pan.setValue({x:0,y:0});}} style={styles.zoomButton}><Text style={styles.zoomText}>{Math.round(zoom*100)}%</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Zoom in on world" disabled={zoom>=1.6} onPress={()=>setZoom(v=>Math.min(1.6,Math.round((v+.15)*100)/100))} style={styles.zoomButton}><MaterialCommunityIcons name="plus" size={20} color="#FFEBC5"/></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Zoom out of world" disabled={zoom<=1} onPress={()=>{estateFeedback.emit('navigation');setZoom(v=>Math.max(1,Math.round((v-.15)*100)/100));}} style={styles.zoomButton}><MaterialCommunityIcons name="minus" size={20} color="#FFEBC5"/></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Reset world zoom" onPress={()=>{estateFeedback.emit('navigation');setZoom(1);panBase.current={x:0,y:0};pan.setValue({x:0,y:0});}} style={styles.zoomButton}><Text style={styles.zoomText}>{Math.round(zoom*100)}%</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Zoom in on world" disabled={zoom>=1.6} onPress={()=>{estateFeedback.emit('navigation');setZoom(v=>Math.min(1.6,Math.round((v+.15)*100)/100));}} style={styles.zoomButton}><MaterialCommunityIcons name="plus" size={20} color="#FFEBC5"/></Pressable>
           </View>
         </View>
         <View style={styles.quickActions}>
           <Pressable accessibilityRole="button" accessibilityLabel="Jump to property customization studio"
-            onPress={()=>{enterBlueprint();scrollRef.current?.scrollTo({y:studioPosition.current,animated:true});}} style={styles.quickAction}>
+            onPress={()=>{estateFeedback.emit('navigation');enterBlueprint();scrollRef.current?.scrollTo({y:studioPosition.current,animated:true});}} style={styles.quickAction}>
             <MaterialCommunityIcons name="palette-outline" size={18} color="#FFEBBC"/><Text style={styles.quickActionText}>CUSTOMIZE</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Jump to verified construction and materials"
-            onPress={()=>scrollRef.current?.scrollTo({y:buildPosition.current,animated:true})} style={styles.quickAction}>
+            onPress={()=>{estateFeedback.emit('navigation');scrollRef.current?.scrollTo({y:buildPosition.current,animated:true});}} style={styles.quickAction}>
             <MaterialCommunityIcons name="hammer-wrench" size={18} color="#FFEBBC"/><Text style={styles.quickActionText}>BUILD / MATERIALS</Text>
           </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={estateFeedback.voiceEnabled?'Disable estate voice guide':'Enable estate voice guide'}
+            accessibilityState={{checked:estateFeedback.voiceEnabled}} onPress={estateFeedback.toggleVoice} style={styles.quickAction}>
+            <MaterialCommunityIcons name={estateFeedback.voiceEnabled?'volume-high':'volume-off'} size={18} color="#FFEBBC"/>
+            <Text style={styles.quickActionText}>{estateFeedback.voiceEnabled?'VOICE ON':'VOICE OFF'}</Text>
+          </Pressable>
         </View>
+        {estateFeedback.voiceEnabled&&!estateFeedback.voiceAvailable?
+          <Text style={styles.mapNote}>English voice fallback active. Install a Filipino system TTS voice for Filipino narration.</Text>:null}
         <Text style={styles.mapNote}>One-tap landmarks open existing household and community features. Construction comes from verified server progress. BLUEPRINT stages are optional visual samples.</Text>
         <Season2CommunityFacilities world={world}/>
         <View style={styles.panel}>
           <View style={styles.levelRow}>
             <Text style={[styles.panelTitle,{flex:1}]}>{trackTitle}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="View my verified constructed estate"
-              onPress={()=>setLiveView(true)} disabled={!verified}
+              onPress={()=>{estateFeedback.emit('preview');setLiveView(true);}} disabled={!verified>
               style={[styles.previewToggle,liveView&&verified&&styles.previewToggleActive]}>
               <Text style={styles.previewToggleText}>VERIFIED</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Explore future blueprint designs"
-              onPress={enterBlueprint} style={[styles.previewToggle,!liveView&&styles.previewToggleActive]}>
+              onPress={()=>{estateFeedback.emit('preview');enterBlueprint();}} style={[styles.previewToggle,!liveView&&styles.previewToggleActive]}>
               <Text style={styles.previewToggleText}>BLUEPRINT</Text>
             </Pressable>
           </View>
@@ -392,7 +412,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             {([{id:'structure',label:'STRUCTURE'},{id:'grounds',label:'LAND & YARD'},{id:'lighting',label:'LIGHTS'}] as const).map(item=>
               <Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected:studioTab===item.id,disabled:previewTrack==='lot'&&item.id==='structure'}}
                 accessibilityHint={previewTrack==='lot'&&item.id==='structure'?'Roof, windows and doors apply to buildings. Switch to My House to customize them.':'Select design category'}
-                disabled={previewTrack==='lot'&&item.id==='structure'} onPress={()=>setStudioTab(item.id)}
+                disabled={previewTrack==='lot'&&item.id==='structure'} onPress={()=>{estateFeedback.emit('preview');setStudioTab(item.id);}}
                 style={[styles.studioTab,studioTab===item.id&&styles.studioTabActive]}>
                 <Text style={styles.studioTabText}>{item.label}</Text>
               </Pressable>)}
@@ -491,7 +511,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
         </View>
         <View onLayout={event=>{buildPosition.current=event.nativeEvent.layout.y;}}>
           <EstateConstructionConsole key={earnedKey||'no-estate'} identity={estateIdentity} userId={personId} design={design}
-            onVerified={applyEarned} onApplyDesign={applySavedDesign}/>
+            onVerified={applyEarned} onApplyDesign={applySavedDesign} onMoment={handleEstateMoment}/>
         </View>
         <Text style={styles.footer}>Season 2 DEV experience. Existing BUKLOD family, scope, market and reward pages remain the owners of their real data.</Text>
       </ScrollView>
