@@ -32,7 +32,7 @@ test('Approved landscape has twelve real one-tap landmarks and separate Arena / 
   const village=meta.hotspots.find(h=>h.id==='community-village');
   assert.equal(kingdom.route,'/games');
   assert.equal(arena.route,'/games/empire-arena');
-  assert.equal(village.route,'/clusters');
+  assert.equal(village.route,'/community-village');
   assert.match(district,/id: 'kingdom', title: 'Character Kingdom'/);
   assert.match(district,/id: 'empire-arena', title: 'Empire Arena'/);
   for(const h of meta.hotspots){
@@ -65,6 +65,7 @@ test('The moving Phan character guide is located OUTSIDE the approved map',()=>{
   assert.match(guide,/onCharacterKingdom/);
   assert.match(guide,/onCommunityVillage/);
   assert.match(gateway,/onCharacterKingdom=\{\(\) => router\.push\('\/games'/);
+  assert.match(gateway,/onCommunityVillage=\{\(\) => router\.push\('\/community-village'/);
   assert.doesNotMatch(guide,/supabase|service_role|mint|claimBp|awardBp|setInterval/i);
 });
 
