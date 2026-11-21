@@ -38,6 +38,7 @@
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs"
   ],
   "allowedPaths": [
+    ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
     ".github/workflows/buklod-arena-inapp-dev-qa.yml",
     "docs/empire-arena/BUKLOD_ARENA_IN_APP_VISUAL_BASELINE_20261121.md",
     "scripts/ingest-buklod-visual-baseline.mjs",
