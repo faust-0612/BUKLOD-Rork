@@ -62,7 +62,7 @@ export default function BuklodMapScreen() {
 
   const mapNode = (
     <GenesisApprovedEntryMap active={focused} showFaith={showFaith}
-      availableWidth={landscape ? Math.max(290, Math.min(windowWidth * .55, (windowHeight - 145) * 1672 / 941)) : undefined}
+      availableWidth={landscape ? Math.max(290, Math.min(windowWidth * .55, (windowHeight - 145) * 720 / 670)) : undefined}
       onOpen={(door, route) => {
         const now = Date.now();
         if (now - lastDoorTap.current < 650) return;
@@ -97,12 +97,12 @@ export default function BuklodMapScreen() {
           {landscape ? (
             <>
               <View style={styles.landscapeMapColumn}>{mapNode}</View>
-              <View style={styles.landscapeGuideColumn}><BuklodMapGuideDock active={focused}/></View>
+              <View style={styles.landscapeGuideColumn}><BuklodMapGuideDock active={focused} /></View>
             </>
           ) : (
             <>
               {mapNode}
-              <BuklodMapGuideDock active={focused} />
+              <BuklodMapGuideDock active={focused} artworkEmbedded />
             </>
           )}
         </View>

@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 
 const root=resolve(import.meta.dirname,'..');
 const read=p=>readFileSync(resolve(root,p),'utf8');
@@ -61,7 +62,12 @@ check('Bundled local Galaxy and approved CC0 music',()=>{
  assert.match(map,/<BuklodMapGuideDock active=\{focused\} \/>/);
  assert.match(map,/GenesisApprovedEntryMap/);
  const approved=read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx');
- assert.match(approved,/kingdom-nature-panorama\.webp/);
+ assert.match(approved,/buklod-genesis-portrait-welcome-720x995\.webp/);
+ const picture=readFileSync(resolve(root,'assets/season2/genesis/world/buklod-genesis-portrait-welcome-720x995.webp'));
+ assert.equal(picture.length,202914);
+ assert.equal(createHash('sha256').update(picture).digest('hex'),'e8a2ee3f7d6f00b2ce657f0d4662dfd0258da018f4131d740e90414b56076f1a');
+ const compact=readFileSync(resolve(root,'assets/season2/genesis/world/buklod-genesis-portrait-9doors-720x670.webp'));
+ assert.equal(compact.length,160272);
  assert.match(map,/router\.push\(route as any\)/);
  for(const p of ['assets/season2/genesis/world/buklod-approved-entry-map-1672x941.webp','assets/season2/genesis/world/approved-entry-map-manifest.json'])assert.ok(existsSync(resolve(root,p)),p);
 });

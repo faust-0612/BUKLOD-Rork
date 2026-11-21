@@ -17,7 +17,7 @@ test('exact original approved image and 39 game atlas stay included',()=>{
 test('first view is one-tap, preserves full BUKLOD bar and puts speaking guide outside artwork',()=>{
  const map=src('src/app/buklod-map.tsx'),guide=src('src/features/season2/world/BuklodMapGuideDock.tsx');
  assert.match(map,/<BuklodMapHeader \/>/);
- assert.match(map,/Welcome sa BUKLOD!/);
+ assert.match(src('src/features/season2/genesis/GenesisApprovedEntryMap.tsx'),/Welcome Guide/);
  const portrait=map.slice(map.indexOf('portraitFirstView'));
  assert.ok(portrait.indexOf('{mapNode}')>=0 &&
   portrait.lastIndexOf('{mapNode}')<portrait.lastIndexOf('<BuklodMapGuideDock'),'map above guide in portrait');

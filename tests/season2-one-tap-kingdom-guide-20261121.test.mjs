@@ -17,7 +17,7 @@ test('Historical owner-approved original is kept byte-identical, new tropical sc
  assert.equal(img.length,473226);
  assert.equal(createHash('sha256').update(img).digest('hex'),
    'a343c70d1c71e849b536570bd92ede7134667d40347f6465003d41710e818b02');
- assert.match(map,/kingdom-nature-panorama\.webp/);
+ assert.match(map,/buklod-genesis-portrait-welcome-720x995\.webp/);
  assert.ok(existsSync(resolve(root,'assets/buklod-guide/wave.png')));
 });
 

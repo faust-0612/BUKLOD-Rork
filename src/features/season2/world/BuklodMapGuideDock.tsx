@@ -19,7 +19,7 @@ const UTILITIES:readonly SuggestedAction[]=[
   {label:'Settings Engine',icon:'cog-outline',route:'/settings'},
   {label:'My BUKLOD',icon:'home-heart',route:'/season2/my-world'},
 ];
-export default function BuklodMapGuideDock({active}:{active:boolean}){
+export default function BuklodMapGuideDock({active,artworkEmbedded=false}:{active:boolean;artworkEmbedded?:boolean}){
   const {activeScope}=useBuklodScope();
   const [minimized,setMinimized]=useState(false);
   const [askOpen,setAskOpen]=useState(false);
@@ -35,7 +35,7 @@ export default function BuklodMapGuideDock({active}:{active:boolean}){
   },[]);
   useEffect(()=>{
     float.stopAnimation();hand.stopAnimation();
-    if(!active||reducedMotion){float.setValue(0);hand.setValue(0);return;}
+    if(!active||reducedMotion||artworkEmbedded){float.setValue(0);hand.setValue(0);return;}
     const bob=Animated.loop(Animated.sequence([
       Animated.timing(float,{toValue:1,duration:1450,useNativeDriver:true}),
       Animated.timing(float,{toValue:0,duration:1450,useNativeDriver:true}),
@@ -47,7 +47,7 @@ export default function BuklodMapGuideDock({active}:{active:boolean}){
     ]));
     bob.start();wave.start();
     return ()=>{bob.stop();wave.stop();};
-  },[active,reducedMotion,float,hand]);
+  },[active,artworkEmbedded,reducedMotion,float,hand]);
   const find=()=>setAnswer(resolveBuklodGuideDestination(question,Boolean(activeScope?.show_faith_content)));
   const open=(route:string)=>router.push(route as any);
   const pick=(item:SuggestedAction,small=false)=><Pressable key={item.label}
@@ -58,7 +58,8 @@ export default function BuklodMapGuideDock({active}:{active:boolean}){
     <Text style={small?styles.utilityText:styles.promptText} numberOfLines={2}
       adjustsFontSizeToFit minimumFontScale={.78}>{item.label}</Text>
   </Pressable>;
-  return <View style={styles.guide} accessibilityLabel="Animated BUKLOD human guide outside the map">
+  return <View style={artworkEmbedded?styles.inlineUtilities:styles.guide} accessibilityLabel="BUKLOD Guide and feature actions outside the world map">
+    {!artworkEmbedded?
     <View style={styles.top}>
       <Animated.View style={[styles.avatarWrap,{transform:[
         {translateY:float.interpolate({inputRange:[0,1],outputRange:[0,-5]})}
@@ -84,6 +85,7 @@ export default function BuklodMapGuideDock({active}:{active:boolean}){
         {!minimized?<View style={styles.prompts}>{SUGGESTIONS.map(item=>pick(item))}</View>:null}
       </View>
     </View>
+    :null}
     {!minimized?<View style={styles.actions}>
       {UTILITIES.map(item=>pick(item,true))}
       <Pressable accessibilityRole="button" accessibilityLabel="Ask the BUKLOD Guide"
@@ -107,6 +109,7 @@ export default function BuklodMapGuideDock({active}:{active:boolean}){
   </View>;
 }
 const styles=StyleSheet.create({
+ inlineUtilities:{padding:4,gap:3,backgroundColor:'rgba(9,35,36,.90)',borderRadius:12},
  guide:{padding:9,gap:6,backgroundColor:'rgba(9,35,36,.96)',borderWidth:1,
    borderColor:'#B5B486',borderRadius:18},
  top:{flexDirection:'row',alignItems:'center',gap:8},

@@ -41,5 +41,5 @@ test('Genesis keeps its one persistent bottom nav and the map return action with
 test('bundled CC0 audio and actual Valley map included; native acceptance still held',()=>{
  for(const path of ['assets/sounds/kingdom-premium/LICENSES.md','assets/sounds/kingdom-premium/kingdom-theme.ogg','assets/season2/genesis/galaxy/nebula.jpg'])assert.ok(existsSync(resolve(root,path)),path);
  const map=read('src/app/buklod-map.tsx');assert.match(map,/GenesisApprovedEntryMap/);
- assert.match(read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx'),/kingdom-nature-panorama\.webp/);
+ assert.match(read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx'),/buklod-genesis-portrait-welcome-720x995\.webp/);
 });
