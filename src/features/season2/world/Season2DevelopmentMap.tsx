@@ -87,6 +87,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const [previewLevels,setPreviewLevels] = useState({lot:1,house:1,cluster:1});
   const [previewStages,setPreviewStages] = useState({lot:0,house:0,cluster:0});
   const [previewMastery,setPreviewMastery]=useState({lot:0,house:0,cluster:0});
+  const [studioTab,setStudioTab]=useState<'structure'|'grounds'|'lighting'>(world==='home'?'grounds':'structure');
   const [liveView,setLiveView]=useState(true);
   const [earnedByProperty,setEarnedByProperty]=useState<Record<string,EstateSnapshot>>({});
   const personId=String(profile?.id??'');
@@ -100,7 +101,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const mastery=liveView&&verified?verified.mastery:previewMastery[previewTrack];
   const assetMeta=getDevelopmentAsset(previewTrack,level);
   const stageAsset=getDevelopmentStageAsset(previewTrack,level,stage);
-  const chooseTrack=(track:'lot'|'house'|'cluster')=>{setPreviewTrack(track);setLiveView(true);};
+  const chooseTrack=(track:'lot'|'house'|'cluster')=>{setPreviewTrack(track);setLiveView(true);setStudioTab(track==='lot'?'grounds':'structure');};
   const enterBlueprint=()=>{
     if(liveView&&verified){
       setPreviewLevels(v=>({...v,[previewTrack]:verified.level}));
@@ -125,7 +126,6 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const [doorStyle,setDoorStyle]=useState<EstateCosmetics['door']>('wood');
   const [pathStyle,setPathStyle]=useState<EstateCosmetics['path']>('gravel');
   const [yardStyle,setYardStyle]=useState<EstateCosmetics['yard']>('bench');
-  const [studioTab,setStudioTab]=useState<'structure'|'grounds'|'lighting'>('structure');
   const scrollRef=useRef<ScrollView|null>(null);
   const studioPosition=useRef(0),buildPosition=useRef(0);
   const design:EstateCosmetics={finish:look,roof,ground,fence,windows,lights,door:doorStyle,path:pathStyle,yard:yardStyle};
@@ -377,7 +377,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
         </View>
         <View style={styles.panel} onLayout={event=>{studioPosition.current=event.nativeEvent.layout.y;}}>
           <Text style={styles.panelTitle}>Design studio · Your blueprint</Text>
-          <Text style={styles.muted}>Mix exterior finishes, roof forms, and landscaping while retaining the official Genesis: Let There Be Light environment. Changes appear on the scene immediately.</Text>
+          <Text style={styles.muted}>Choose only the parts that apply to this property. The Genesis landscape remains official; changes render immediately in this showroom, and SAVE DESIGN TO SERVER applies them to the verified estate.</Text>
           <View style={styles.showroom}>
             <Text style={styles.showroomTitle}>LIVE DESIGN SHOWROOM · LEVEL 8 SAMPLE</Text>
             <View style={styles.showroomArt}>
@@ -390,8 +390,9 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           </View>
           <View style={styles.studioTabs}>
             {([{id:'structure',label:'STRUCTURE'},{id:'grounds',label:'LAND & YARD'},{id:'lighting',label:'LIGHTS'}] as const).map(item=>
-              <Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected:studioTab===item.id}}
-                onPress={()=>setStudioTab(item.id)}
+              <Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected:studioTab===item.id,disabled:previewTrack==='lot'&&item.id==='structure'}}
+                accessibilityHint={previewTrack==='lot'&&item.id==='structure'?'Roof, windows and doors apply to buildings. Switch to My House to customize them.':'Select design category'}
+                disabled={previewTrack==='lot'&&item.id==='structure'} onPress={()=>setStudioTab(item.id)}
                 style={[styles.studioTab,studioTab===item.id&&styles.studioTabActive]}>
                 <Text style={styles.studioTabText}>{item.label}</Text>
               </Pressable>)}

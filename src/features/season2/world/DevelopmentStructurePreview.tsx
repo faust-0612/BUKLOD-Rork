@@ -22,6 +22,7 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
  const p=PALETTES[cosmetics.finish as keyof typeof PALETTES];
  const l=majorLevel(level),s=constructionStage(stage);
  const shine=useRef(new Animated.Value(.3)).current;
+ const reveal=useRef(new Animated.Value(1)).current;
  const [reduced,setReduced]=useState(true);
  useEffect(()=>{let mounted=true;AccessibilityInfo.isReduceMotionEnabled().then(v=>{if(mounted)setReduced(v);}).catch(()=>undefined);return()=>{mounted=false;};},[]);
  useEffect(()=>{
@@ -31,6 +32,12 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
      Animated.timing(shine,{toValue:.3,duration:2200,useNativeDriver:true})
    ]));pulse.start();return()=>pulse.stop();
  },[reduced,shine]);
+ useEffect(()=>{
+   if(reduced){reveal.setValue(1);return;}
+   reveal.setValue(.45);
+   const fade=Animated.timing(reveal,{toValue:1,duration:330,useNativeDriver:true});
+   fade.start();return()=>fade.stop();
+ },[reduced,track,level,stage,mastery,finish,roof,ground,fence,windows,lights,door,path,yard,reveal]);
  const features=visualDevelopmentFeatures(track,l,s,mastery,earnedProgress);
  const completedTier=features.length;
  // Retain previously finished structures across the next stage and next level.
@@ -40,6 +47,7 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
  const growth=l>=4,large=l>=7,premium=l>=9;
  const hasTier=(n:number)=>features.length>=n;
  return <View pointerEvents="none" style={StyleSheet.absoluteFillObject} accessible={false}>
+  <Animated.View style={[StyleSheet.absoluteFill,{opacity:reveal}]} pointerEvents="none">
   <Svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
    <Defs>
     <LinearGradient id="lot-earth" x1="0" x2="0" y1="0" y2="1"><Stop offset="0" stopColor="#5A845C"/><Stop offset="1" stopColor="#244C3C"/></LinearGradient>
@@ -107,6 +115,7 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
     fence={cosmetics.fence} windows={cosmetics.windows} lights={cosmetics.lights}
     door={cosmetics.door} path={cosmetics.path} yard={cosmetics.yard}/>
   </Svg>
+  </Animated.View>
   <Animated.View style={[styles.glow,{opacity:shine}]}/>
  </View>;
 }

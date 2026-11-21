@@ -83,6 +83,8 @@ test('real progress and local preview remain different, scoped, with one-tap edi
  assert.match(map,/LIVE DESIGN SHOWROOM/);
  assert.match(map,/Visual sample only/);
  assert.match(map,/previewCustomize/);
+ assert.match(map,/disabled=\{previewTrack==='lot'&&item.id==='structure'\}/);
+ assert.match(renderer,/opacity:reveal/);
  assert.match(map,/save_buklod_estate_design_v1|EstateConstructionConsole/);
  assert.match(sql,/v_door not in/);assert.match(sql,/v_path not in/);assert.match(sql,/v_yard not in/);
 });
