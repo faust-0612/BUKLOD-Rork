@@ -1,0 +1,78 @@
+{
+  "contractVersion": 2,
+  "objective": "Prepare one cumulative Genesis R4 Android staging candidate: prior verified staging R4 + PTT saved settings + SOS audible overlay, sender GPS, authorized rescue navigation, without publishing or changing the paid production backend.",
+  "freeze": {
+    "sourceRef": "41d74d52f39eb96abc273429f1e704233b6c4a81",
+    "sosSourceRef": "1cbab5f91051f12fb5b2beb724a276d03bdbd4c2",
+    "priorVerifiedStagingR4": "1eb38e7cec2f0befad73180ab02b2ac04ed60df4",
+    "prodMainBaseline": "ecd34228dd24f07a47ba397bb1c29199aac51779"
+  },
+  "scope": {
+    "preservedPTT": [
+      "src/app/personal-home/ptt.tsx",
+      "src/ptt/buklodPttDutyNotification.ts",
+      "src/ptt/buklodPttRuntime.ts",
+      "src/ptt/buklodPttSetup.ts",
+      "tests/buklod-ptt-preferences-and-switching.test.mjs"
+    ],
+    "integratedSOS": [
+      ".buklod/scopes/sos-urgent-audible-rescue-20261121.json",
+      "docs/COMMUNITY_HELP_SOS_R1_LOCK.md",
+      "scripts/community-help-sos-release-contract.mjs",
+      "src/components/BuklodCommunityHelp.tsx",
+      "src/components/BuklodGlobalEmergencyHost.tsx",
+      "src/lib/pushNotifications.ts",
+      "supabase/functions/push/index.ts",
+      "supabase/migrations/20261121230000_sos_urgent_audible_rescue.sql",
+      "supabase/tests/sos_urgent_responder_security_20261121.sql",
+      "tests/sos-global-emergency-overlay-20261107.test.mjs",
+      "tests/sos-urgent-release-20261121.test.mjs",
+      "tests/sos-urgent-responder-20261121.test.mjs",
+      "tests/sos-urgent-security-20261121.test.mjs",
+      "app.config.js"
+    ],
+    "excluded": [
+      "unverified Genesis Arena ranked transactions",
+      "production branch deployments",
+      "direct production schema edits",
+      "new runtime or package rename"
+    ]
+  },
+  "deploymentDependencies": {
+    "newNativeAndroidStagingAPK": true,
+    "reason": "expo-notifications bundled custom sound + Android notification channel cannot be introduced reliably through JavaScript OTA",
+    "isolatedStagingBackend": true,
+    "requiredBackend": [
+      "supabase/migrations/20261121230000_sos_urgent_audible_rescue.sql",
+      "supabase/functions/push/index.ts"
+    ],
+    "existingServerSharedWithProduction": true,
+    "stageOnlyUntilVerified": true
+  },
+  "gates": {
+    "sourceContract": "scripts/community-help-sos-release-contract.mjs",
+    "tests": [
+      "tests/sos-global-emergency-overlay-20261107.test.mjs",
+      "tests/sos-urgent-release-20261121.test.mjs",
+      "tests/sos-urgent-responder-20261121.test.mjs",
+      "tests/sos-urgent-security-20261121.test.mjs",
+      "tests/buklod-ptt-preferences-and-switching.test.mjs"
+    ],
+    "mandatory": [
+      "TypeScript",
+      "Android Expo export and native app build",
+      "new APK with SOS custom sound channel",
+      "migration tested on isolated database",
+      "push edge version/capability verification",
+      "admob rendering and first-view nav performance",
+      "account-isolation and location disclosure",
+      "two-device notification overlay and map route",
+      "exact RC Expo/EAS provider receipt"
+    ],
+    "physicalDeviceTest": "not performed; user previously elected to skip, do not label as passed"
+  },
+  "releaseStatus": "PREPARED_SOURCE_ONLY__BLOCKED_NATIVE_AND_ISOLATED_BACKEND",
+  "actualPublishedNow": false,
+  "productionUnchanged": true,
+  "announcementPolicy": "Only announce independently verified production OTA; never announce staging source work."
+}
