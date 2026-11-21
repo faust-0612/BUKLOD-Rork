@@ -403,7 +403,7 @@ export default function EmpireArenaInApp() {
         const actors = [
           ...Object.values(game.players), ...game.towers, ...game.units, ...game.creatures,
         ];
-        const actor = actors.find(a => a.id === targetId) ?? game.players.A0;
+        const actor = actors.find(a => a.id === targetId) ?? game.players[localSeat];
         if (actor) game.visualCue = { type: actionType, x: actor.x, y: actor.y,
           time: game.elapsed, seq: (game.visualCue?.seq || 0) + 1 };
       }
@@ -436,7 +436,7 @@ export default function EmpireArenaInApp() {
     });
   };
   const mine = () => {
-    const game = gameRef.current, self = game?.players.A0;
+    const game = gameRef.current, self = game?.players[localSeat];
     const node = game && self ? game.nodes.filter(n => near(n, self) <= 8).sort((a, b) => near(a, self) - near(b, self))[0] : null;
     execute({ type: 'mine', nodeId: node?.id }, 'collect');
   };
@@ -460,7 +460,7 @@ export default function EmpireArenaInApp() {
       y: clamp(player.y + 3, 3, match.h - 3) }, 'collect');
   };
   const towerAction = (type: 'tower_repair' | 'tower_upgrade') => {
-    const match = gameRef.current, player = match?.players.A0;
+    const match = gameRef.current, player = match?.players[localSeat];
     const nearby = arenaNearby(match, player);
     execute({ type, towerId: nearby.tower?.id }, 'collect');
   };
