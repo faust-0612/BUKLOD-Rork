@@ -333,6 +333,7 @@ export default function BuklodPttScreen() {
   );
 
   const internetReady =
+    Boolean(preferences?.listening) &&
     Boolean(setup?.microphone) &&
     (setup?.internet ?? network.online) &&
     Boolean(scope);
@@ -352,14 +353,17 @@ export default function BuklodPttScreen() {
   }, [setup, effectiveRoute]);
 
   const statusCard: StatusCard = useMemo(() => {
-    if (!setup) {
+    if (!setup || !preferences) {
       return {
         tone: 'info',
-        title: 'Checking PTT setup…',
+        title: 'Restoring PTT settings…',
         detail: 'Please wait a moment.',
       };
     }
 
+    if (!preferences.listening && !runtime.priorityReceiving) {
+      return { tone: 'info', title: 'PTT listening paused', detail: 'Your selected channel is saved. Tap Start listening to resume.' };
+    }
     if (!setup.microphone) {
       return {
         tone: 'bad',
@@ -376,11 +380,18 @@ export default function BuklodPttScreen() {
           detail: 'Turn on mobile data or Wi-Fi internet to use Internet PTT.',
         };
       }
-      if (runtime.connection) {
+      if (targetMatched) {
         return {
           tone: 'ready',
-          title: 'Internet PTT Ready',
-          detail: `${runtime.connection.scope.name} · Channel ${runtime.connection.channel}`,
+          title: 'Internet PTT connected',
+          detail: `${runtime.connection!.scope.name} · Channel ${runtime.connection!.channel} · Listening`,
+        };
+      }
+      if (runtime.connection) {
+        return {
+          tone: 'warn',
+          title: 'Different channel connected',
+          detail: `Active: ${runtime.connection.scope.name} CH${runtime.connection.channel}. Saved: ${scope?.name || 'No group'} CH${channel}.`,
         };
       }
       if (busy) {
@@ -397,55 +408,28 @@ export default function BuklodPttScreen() {
       };
     }
 
-    // NEARBY path
-    if (setup.wifiOn === false) {
-      return {
-        tone: 'bad',
-        title: 'Wi-Fi is off',
-        detail: 'Turn on Wi-Fi for Offline Nearby PTT.',
-      };
-    }
-    if (!setup.nearby) {
-      return {
-        tone: 'bad',
-        title: 'Nearby devices permission needed',
-        detail: 'Allow nearby devices so BUKLOD can find members around you.',
-      };
-    }
-    if (nearbySearching) {
-      return {
-        tone: 'warn',
-        title: 'Searching for nearby users…',
-        detail: 'Keep Wi-Fi and Bluetooth on while we look around you.',
-      };
-    }
-    if (nearbyPeers.length > 0) {
-      return {
-        tone: 'ready',
-        title: 'Nearby PTT Ready',
-        detail: `${nearbyPeers.length} nearby BUKLOD users found`,
-      };
-    }
+    // A Nearby preference is not proof of a working device-to-device call.
     return {
       tone: 'warn',
-      title: 'No nearby users found',
-      detail: 'You can switch to Internet PTT to talk over data or Wi-Fi internet.',
+      title: 'Offline Nearby unavailable',
+      detail: 'Saved as a preference only. This build has no verified nearby voice transport. Choose Internet or Auto.',
     };
   }, [
-    setup,
-    effectiveRoute,
-    runtime.connection,
-    busy,
-    nearbySearching,
-    nearbyPeers.length,
+    setup, preferences, effectiveRoute, runtime.connection, targetMatched,
+    scope, channel, busy,
   ]);
 
   const chooseRoute = async (next: BuklodPttRouteMode) => {
-    setRouteMode(next);
-    await saveBuklodPttRouteMode(next);
-    if (next === 'NEARBY' || (next === 'AUTO' && !network.online)) {
-      setNearbySearching(true);
-      setTimeout(() => setNearbySearching(false), 2200);
+    if (!preferences || saving || next === routeMode) return;
+    if (next === 'NEARBY') {
+      Alert.alert('Offline Nearby unavailable', 'Nearby device-to-device PTT is not working in this build. Choose Auto or Internet.');
+      return;
+    }
+    try {
+      await persistPreferences({ ...preferences, routeMode: next });
+      setRouteMode(next);
+    } catch (error: any) {
+      Alert.alert('Mode not saved', error?.message || 'Previous selection remains.');
     }
   };
 
@@ -453,7 +437,7 @@ export default function BuklodPttScreen() {
     // Auto-join can already be running when the member presses PTT.
     // Reuse that promise so a held button starts talking once join succeeds.
     if (connectPromiseRef.current) return connectPromiseRef.current;
-    if (!scope) return Promise.resolve(false);
+    if (!scope || !preferences?.listening) return Promise.resolve(false);
 
     const attempt = (async () => {
       try {
@@ -472,8 +456,14 @@ export default function BuklodPttScreen() {
 
         connectLock.current = true;
         setBusy(true);
-        await connectBuklodPttRuntime(scope, channel);
-        return true;
+        await bootstrapBuklodPttRuntime();
+        if (getBuklodPttRuntimeState().priorityReceiving) return false;
+        const current = getBuklodPttRuntimeState().connection;
+        if (current?.scope.id !== scope.id || current?.channel !== channel) {
+          await connectBuklodPttRuntime(scope, channel);
+        }
+        const applied = getBuklodPttRuntimeState().connection;
+        return applied?.scope.id === scope.id && applied?.channel === channel;
       } catch (error: any) {
         Alert.alert(
           'Could not connect',
@@ -497,58 +487,100 @@ export default function BuklodPttScreen() {
       },
     );
     return attempt;
-  }, [scope, channel, setup, refreshSetup, network.online]);
+  }, [scope, channel, preferences?.listening, setup, refreshSetup, network.online]);
 
-  // Auto-join Internet when ready so the user only holds to talk.
+  // Explicit Stop persists, including across app restarts. Automatic joins are
+  // attempted once per saved target, not retried endlessly on each render.
   useEffect(() => {
-    if (effectiveRoute !== 'INTERNET') return;
-    if (!internetReady) return;
-    if (runtime.connection || busy || connectLock.current) return;
+    if (!preferences?.listening) {
+      autoJoinKeyRef.current = '';
+      return;
+    }
+    if (effectiveRoute !== 'INTERNET' || !internetReady || !scope) return;
+    if (targetMatched || runtime.priorityReceiving || busy || connectLock.current) return;
+    const key = `${scope.id}:${channel}:${routeMode}`;
+    if (autoJoinKeyRef.current === key) return;
+    autoJoinKeyRef.current = key;
     void connectInternet();
-  }, [
-    effectiveRoute,
-    internetReady,
-    runtime.connection,
-    busy,
-    connectInternet,
-  ]);
+  }, [preferences?.listening, effectiveRoute, internetReady, scope, channel, routeMode,
+    targetMatched, runtime.priorityReceiving, busy, connectInternet]);
 
-  const chooseTarget = async (
-    nextScope: BuklodPttScope,
-    nextChannel: number,
-  ) => {
-    if (busy) return;
-    const live = runtime.connection;
-    setScope(nextScope);
-    setChannel(nextChannel);
+  const chooseTarget = async (nextScope: BuklodPttScope, nextChannel: number) => {
+    if (!preferences || busy || saving) return;
+    if (runtime.priorityReceiving) {
+      Alert.alert('Incoming priority PTT', 'Wait until the priority or SOS call ends before switching channels.');
+      return;
+    }
+    if (scope?.id === nextScope.id && channel === nextChannel) {
+      setShowChannels(false);
+      return;
+    }
+    const next = { ...preferences, scopeId: nextScope.id, channel: nextChannel };
     setShowChannels(false);
-
-    if (!live) return;
-    if (live.scope.id === nextScope.id && live.channel === nextChannel) return;
-
-    setBusy(true);
+    if (runtime.connection) {
+      setBusy(true);
+      try {
+        await selectBuklodPttTarget(nextScope, nextChannel);
+        const applied = getBuklodPttRuntimeState().connection;
+        if (applied?.scope.id !== nextScope.id || applied?.channel !== nextChannel) {
+          throw new Error('New channel was not connected.');
+        }
+        try {
+          await persistPreferences(next);
+        } catch (error: any) {
+          // Runtime switched successfully, so reflect it, but never say Saved.
+          setPreferences(next);
+          throw new Error('Now connected, but the channel was NOT saved for next time: ' +
+            (error?.message || 'storage failure'));
+        }
+        setScope(nextScope);
+        setChannel(nextChannel);
+      } catch (error: any) {
+        Alert.alert('PTT channel change', error?.message || 'The selected channel was not applied.');
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     try {
-      await selectBuklodPttTarget(nextScope, nextChannel);
+      await persistPreferences(next);
+      setScope(nextScope);
+      setChannel(nextChannel);
     } catch (error: any) {
-      setScope(live.scope);
-      setChannel(live.channel);
-      Alert.alert(
-        'BUKLOD PTT',
-        error?.message || 'Could not change channel. Try again.',
-      );
+      Alert.alert('Channel not saved', error?.message || 'Previous choice remains.');
+    }
+  };
+
+  const disconnect = async () => {
+    if (!preferences || busy || saving) return;
+    try {
+      await persistPreferences({ ...preferences, listening: false });
+      setBusy(true);
+      await disconnectBuklodPttRuntime();
+      if (talkMode === 'SOS') setTalkMode(preferences.talkMode);
+    } catch (error: any) {
+      Alert.alert('PTT stop failed', error?.message || 'Please retry.');
     } finally {
       setBusy(false);
     }
   };
 
-  const disconnect = async () => {
-    if (busy) return;
-    setBusy(true);
+  const startListening = async () => {
+    if (!preferences || busy || saving) return;
     try {
-      await disconnectBuklodPttRuntime();
-      setTalkMode('NORMAL');
-    } finally {
-      setBusy(false);
+      await persistPreferences({ ...preferences, listening: true });
+    } catch (error: any) {
+      Alert.alert('PTT start failed', error?.message || 'Your setting was not saved.');
+    }
+  };
+
+  const chooseTalkMode = async (next: 'NORMAL' | 'PRIORITY') => {
+    if (!preferences || busy || saving) return;
+    try {
+      await persistPreferences({ ...preferences, talkMode: next });
+      setTalkMode(next);
+    } catch (error: any) {
+      Alert.alert('Talk mode not saved', error?.message || 'Previous mode remains.');
     }
   };
 
@@ -579,15 +611,13 @@ export default function BuklodPttScreen() {
   };
 
   const holdEnabled =
-    effectiveRoute === 'INTERNET'
-      ? Boolean(setup?.microphone) && (setup?.internet ?? network.online) && Boolean(scope)
-      : nearbyPeers.length > 0 && Boolean(setup?.microphone);
+    Boolean(preferences?.listening) &&
+    effectiveRoute === 'INTERNET' &&
+    Boolean(setup?.microphone) &&
+    (setup?.internet ?? network.online) &&
+    Boolean(scope);
 
-  const showNearbyFallback =
-    effectiveRoute === 'NEARBY' &&
-    !nearbySearching &&
-    nearbyPeers.length === 0 &&
-    Boolean(setup);
+  const showNearbyFallback = effectiveRoute === 'NEARBY' && Boolean(setup);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#030A10' }}>
