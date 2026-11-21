@@ -19,7 +19,9 @@ export function resolveBuklodGuideDestination(input:string,showFaith:boolean) {
   return {label:'Community Wall',route:'/buklod'};
  if(/message|chat|call|ptt|connect|private/.test(q))
   return {label:'Connect',route:'/messages'};
- if(/reading|basa|matuto|learn|knowledge|kl|kuwento|story|children|bible|verse|lesson/.test(q))
+ if(/bible|verse|scripture|talata|bibliya|biblia/.test(q))
+  return {label:showFaith?'Bible':'Learnings',route:showFaith?'/bible':'/season2/learnings'};
+ if(/reading|basa|matuto|learn|knowledge|kl|kuwento|story|children|lesson/.test(q))
   return {label:'Learnings',route:'/season2/learnings'};
  if(/cluster|organi|barangay|community|komunidad|village|scope/.test(q))
   return {label:'Cluster',route:'/clusters'};
