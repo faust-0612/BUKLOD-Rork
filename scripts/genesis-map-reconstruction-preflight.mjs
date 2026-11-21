@@ -54,8 +54,11 @@ check('Bundled local Galaxy and approved CC0 music',()=>{
  assert.match(map,/useRorkGameAmbience\('kingdom-map'/);
  assert.match(map,/musicEnabled/);
  assert.match(map,/requestBuklodAudioFocus/);
- assert.match(map,/GenesisValleyMap/);
- for(const p of ['assets/season2/genesis/world/buklod-community-map.webp','assets/season2/genesis/world/buklod-community-map-compact.webp'])assert.ok(existsSync(resolve(root,p)),p);
+ assert.match(map,/GenesisApprovedEntryMap/);
+ const approved=read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx');
+ assert.match(approved,/buklod-approved-entry-map-1672x941\.webp/);
+ assert.match(map,/router\.push\(route as any\)/);
+ for(const p of ['assets/season2/genesis/world/buklod-approved-entry-map-1672x941.webp','assets/season2/genesis/world/approved-entry-map-manifest.json'])assert.ok(existsSync(resolve(root,p)),p);
 });
 check('No direct backend writes, economy minting, OTA publish, or forced unlock in new map',()=>{
  const map=read('src/app/buklod-map.tsx');
