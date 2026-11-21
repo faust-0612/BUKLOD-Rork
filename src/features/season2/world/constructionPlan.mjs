@@ -8,6 +8,9 @@ export const TRACKS=Object.freeze(['lot','house','cluster']);
 export const FINISHES=Object.freeze(['stone','timber','garden','slate','clay','light']);
 export const ROOFS=Object.freeze(['gable','hip','terrace']);
 export const GROUNDS=Object.freeze(['grass','flower','stone']);
+export const FENCES=Object.freeze(['wood','iron','hedge']);
+export const WINDOWS=Object.freeze(['classic','panorama','arched']);
+export const LIGHTS=Object.freeze(['warm','starlight','garden']);
 export function majorLevel(value) {
   const n=Number(value);
   return Number.isFinite(n)?Math.max(1,Math.min(10,Math.trunc(n))):1;
@@ -46,6 +49,9 @@ export function safeCosmetics(value) {
     finish:FINISHES.includes(v.finish)?v.finish:'stone',
     roof:ROOFS.includes(v.roof)?v.roof:'gable',
     ground:GROUNDS.includes(v.ground)?v.ground:'grass',
+    fence:FENCES.includes(v.fence)?v.fence:'wood',
+    windows:WINDOWS.includes(v.windows)?v.windows:'classic',
+    lights:LIGHTS.includes(v.lights)?v.lights:'warm',
   };
 }
 
