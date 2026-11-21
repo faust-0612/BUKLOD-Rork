@@ -105,6 +105,15 @@ test('Ace ultimate revives one downed teammate during local training, not ranked
   assert.equal(team.ranked,false);
   assert.ok(team.events.some(e=>e.type==='kit_revival'));
 });
+test('source hero movement speed changes actual joystick physics without teleporting',()=>{
+  const ph=createPractice({mode:'duel',hero:'phan'}), qu=createPractice({mode:'duel',hero:'quin'});
+  const px=ph.players.A0.x,qx=qu.players.A0.x;
+  assert.equal(command(ph,'A0',{type:'move',dx:1,dy:0}),true);
+  assert.equal(command(qu,'A0',{type:'move',dx:1,dy:0}),true);
+  const phStep=ph.players.A0.x-px,quStep=qu.players.A0.x-qx;
+  assert.ok(quStep>phStep,'Quin speed 240 exceeds Phan speed 200 from the original kit');
+  assert.ok(quStep<1,'bounded to one legal movement tick, not an unvalidated teleport');
+});
 test('skill cooldown and mana only mutate on accepted commands; secondary requires level three',()=>{
   const {s,a,b}=duel('christian');
   assert.equal(cast(s,a,'primary',{targetId:b.id}),true);
