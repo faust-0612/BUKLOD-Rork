@@ -58,7 +58,7 @@ test('actual Arena uses themed circular glyphs, local asset menus, editor, coold
   const animation=read('src/features/games/empire/ArenaAnimatedActor.tsx');
   const art=read('src/features/games/empire/arenaGeneratedAssets.ts');
   assert.match(route, /<ArenaCombatHud /);
-  assert.match(route, /PRIMARY_GLYPH_BY_STYLE\[HEROES\[hero\]\?\.style\]/);
+  assert.match(route, /PRIMARY_GLYPH_BY_STYLE\[HEROES\[game\?\.solo \? soloHero : hero\]\?\.style\]/);
   assert.match(route, /@buklod_arena_hud_v2:/);
   assert.match(route, /setHudEditing\(true\)/);
   assert.match(route, /Save Arena control positions/);
