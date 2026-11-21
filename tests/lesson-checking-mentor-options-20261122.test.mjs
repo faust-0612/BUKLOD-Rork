@@ -8,6 +8,7 @@ const catalog = read('supabase/migrations/20261122065000_mentor_full_published_c
 const response = read('src/components/LearningQuestionResponse.tsx');
 const track = read('src/app/learn/[id].tsx');
 const detail = read('src/app/learn/lesson.tsx');
+const mentoring = read('src/app/mentoring/index.tsx');
 
 test('mentor selector exposes all matching authorized teaching lessons without a 20-option cap', () => {
   assert.match(mentor, /const visibleLessons = lessons\.filter\(lesson =>/);
@@ -45,4 +46,12 @@ test('lesson checking evaluates every answer and reflection and provides unlimit
   assert.match(response, /completion rewards require verified approval/);
   assert.match(track, /Revise & Retry/);
   assert.match(detail, /REVISE & TRY AGAIN/);
+});
+
+test('BUKLOD 106/107 mentoring releases also guide all answers before retry', () => {
+  assert.match(mentoring, /let allAnswersAcceptable = true/);
+  assert.match(mentoring, /return allAnswersAcceptable && isValidationAcceptable\(reflectionResult\)/);
+  assert.match(mentoring, /Revisions are unlimited; no permanent failed grade/);
+  assert.match(mentoring, /submit_mentoring_release_response_v2/);
+  assert.match(mentoring, /status === 'approved'/);
 });
