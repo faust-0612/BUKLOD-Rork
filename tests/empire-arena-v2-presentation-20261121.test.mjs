@@ -60,5 +60,9 @@ test('Native in-app Arena exposes every core combat and economic PRACTICE action
   }
   assert.match(native, /towerAction\('tower_repair'\)/);
   assert.match(native, /towerAction\('tower_upgrade'\)/);
+  assert.match(native, /isPlaying \? Object.values\(state.players\)/);
+  assert.match(native, /ARENA_GENERATED_ART\['sprite:' \+ p.hero\]/);
+  assert.match(native, /source=\{image as React.ComponentProps<typeof ExpoImage>/);
+  assert.match(native, /pointerEvents="none"/);
   assert.doesNotMatch(native, /supabase\.|\.rpc\(|awardDiamond|awardBp|settleWorldTrade/);
 });
