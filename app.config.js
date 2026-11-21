@@ -37,6 +37,10 @@ module.exports = ({ config }) => {
   // New Godot main-pack changes the native APK and must not reuse older OTA runtime.
   const godotArenaNativePreview = genesisNativePreview &&
     process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED === 'true';
+  // One additional compatible native runtime holds Arena and all three
+  // guarded Genesis world scene entrypoints. Never changes production.
+  const unifiedGodotWorldsPreview = godotArenaNativePreview &&
+    process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS === 'true';
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
@@ -60,6 +64,7 @@ module.exports = ({ config }) => {
     version: isClassroom ? '1.3.4' : (genesisNativePreview ? '2.0.0' : '1.3.6'),
     ...(sosNativePreview ? { version: '2.0.1' } : {}),
     ...(godotArenaNativePreview ? { version: '2.0.2' } : {}),
+    ...(unifiedGodotWorldsPreview ? { version: '2.0.3' } : {}),
 
     orientation: 'default',
     scheme,
@@ -415,6 +420,7 @@ module.exports = ({ config }) => {
     runtimeVersion: isClassroom ? '1.3.0' : (genesisNativePreview ? '2.0.0-genesis-preview' : '1.3.2'),
     ...(sosNativePreview ? { runtimeVersion: '2.0.1-genesis-sos' } : {}),
     ...(godotArenaNativePreview ? { runtimeVersion: '2.0.2-genesis-godot-arena' } : {}),
+    ...(unifiedGodotWorldsPreview ? { runtimeVersion: '2.0.3-genesis-unified-godot' } : {}),
   };
 };
 

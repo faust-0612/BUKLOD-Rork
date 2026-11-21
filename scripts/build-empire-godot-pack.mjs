@@ -75,9 +75,32 @@ assert.equal(Object.keys(artManifest.assets || {}).length, 65, 'Missing approved
 entries.push({ name: 'art/art_manifest.json',
   bytes: readFileSync(path.join(project, 'art/art_manifest.json')) });
 
+// The same native pack includes owner-approved Kingdom, Community and House
+// visuals/SFX already in BUKLOD MAIN (no network download or external license).
+// These remain PREVIEWS; no property or reward authority is in the pack.
+const originalWorldMedia = [
+  ['world-art/kingdom.webp', 'assets/season2/genesis/kingdom/kingdom-nature-panorama.webp', 'RIFF'],
+  ['world-art/community.webp', 'assets/season2/genesis/world/buklod-community-village-stage1.webp', 'RIFF'],
+  ['world-art/house.webp', 'assets/season2/genesis/world/buklod-my-home-stage1.webp', 'RIFF'],
+  ['world-audio/navigation.wav', 'assets/sounds/estate-premium/navigation.wav', 'RIFF'],
+  ['world-audio/build_start.wav', 'assets/sounds/estate-premium/build_start.wav', 'RIFF'],
+  ['world-audio/build_complete.wav', 'assets/sounds/estate-premium/build_complete.wav', 'RIFF'],
+  ['world-audio/claim.wav', 'assets/sounds/estate-premium/claim.wav', 'RIFF'],
+];
+for (const [name, relative, magic] of originalWorldMedia) {
+  const binary = readFileSync(path.join(root, relative));
+  assert.ok(binary.length > 100 && binary.length < 1500000,
+    'Invalid native world media size: ' + relative);
+  assert.equal(binary.toString('ascii', 0, 4), magic,
+    'Unexpected native world media format: ' + relative);
+  entries.push({ name, bytes: binary });
+}
+
 const entryNames = new Set(entries.map(x => x.name));
 for (const name of ['project.godot', 'scenes/Arena.tscn', 'scripts/arena_root.gd',
-  'scripts/arena_hud.gd', 'scripts/arena_simulation.gd', 'data/catalog.json']) {
+  'scripts/arena_hud.gd', 'scripts/arena_simulation.gd', 'data/catalog.json',
+  'scenes/WorldPreview.tscn', 'scripts/world_preview.gd', 'tests/world_smoke.gd',
+  ...originalWorldMedia.map(x => x[0])]) {
   assert.ok(entryNames.has(name), 'Missing Godot Arena pack resource: ' + name);
 }
 const table = new Uint32Array(256);
