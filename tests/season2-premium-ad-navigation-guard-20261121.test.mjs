@@ -22,8 +22,8 @@ test('Premium Genesis map honors auth/compliance/mandatory-update before first v
   const at=map.indexOf(token);
   assert.ok(at>=0&&at<ad,'Auth or privacy guard must precede first-view AdMob: '+token);
  }
- assert.match(map,/GenesisValleyMap[\s\S]*selectedHotspotId/);
- assert.match(map,/router\.push\(hotspot\.route as any\)/);
+ assert.match(map,/GenesisApprovedEntryMap[\s\S]*onOpen/);
+ assert.match(map,/router\.push\(route as any\)/);
 });
 test('Kingdom retains AdMob and launches in-app Arena only through Genesis portal',()=>{
  const games=read('src/app/games/index.tsx');
