@@ -90,10 +90,11 @@ export default function BuklodNavSafeShell({
   const immersiveConversation = isHiblaConversationPath(pathname);
   const genesisWorld = isGenesisPreviewBuild();
   // Preview keeps the SAME existing bottom nav; never duplicate it in World or Guide.
-  const navOccupied = immersiveConversation ? 0 : rawNavOccupied;
+  const navOccupied = immersiveArena || immersiveConversation ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
+  const immersiveArena = normalizeBuklodPathname(pathname) === '/games/empire-arena';
   const normalizedPath = normalizeBuklodPathname(pathname);
   const reserveMyBuklodSystemInsets =
     isMyBuklodDoorPath(pathname) ||
@@ -153,13 +154,13 @@ export default function BuklodNavSafeShell({
   }, []);
 
   const contentTopInset =
-    immersiveIgpat
+    immersiveIgpat || immersiveArena
       ? 0
       : reserveMyBuklodSystemInsets
         ? Math.max(insets.top, 0)
         : 0;
   const contentBottomInset =
-    immersiveIgpat || immersiveConversation
+    immersiveIgpat || immersiveConversation || immersiveArena
       ? 0
       : keyboardVisible
         ? 0
@@ -174,7 +175,7 @@ export default function BuklodNavSafeShell({
   const mapReturnRoots = ['/buklod','/messages','/hub','/me','/learn','/clusters','/organizations',
     '/games','/points','/bayanihan','/bible','/life','/notifications','/profile',
     '/personal-home','/settings','/support','/community-contribution','/children-stories'];
-  const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !keyboardVisible &&
+  const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !immersiveArena && !keyboardVisible &&
     !normalizedPath.startsWith('/games') &&
     normalizedPath !== '/buklod-map' && mapReturnRoots.some(route => normalizedPath === route || normalizedPath.startsWith(route + '/'));
 
@@ -192,10 +193,10 @@ export default function BuklodNavSafeShell({
         <View style={styles.routedContent}>
           {children}
         </View>
-        {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
+        {!immersiveIgpat && !immersiveArena ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
+      {!immersiveIgpat && !immersiveConversation && !immersiveArena && rawNavOccupied > 0 ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}

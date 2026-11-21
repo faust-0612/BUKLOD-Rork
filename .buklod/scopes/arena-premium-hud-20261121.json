@@ -1,0 +1,182 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/arena-premium-hud-20261121.json",
+  "objective": "BUKLOD Empire Arena premium native gameplay HUD, readable Genesis map graphics and 13 canon-identity actor visual feedback with customizable, ergonomically arranged round touch controls, bounded zoom, safe scene layout and per-device controller preferences. Offline staging practice only. Add a fully playable, best-of-three, disconnected solo duel against real local CPU opponents selectable from the 13 canonical heroes, with difficulty, round scoring, equivalent level-6 match-only abilities and no ranked/reward impact. Sound and graphics completeness: real event-to-audio mappings for ally/enemy hero kills, tower/seal/building damage, farming by material, buff wildlife, inventory pickup/use, construction completion and upgrades; implement 2.5D state-driven resource/loot/buff/structure graphics while verifying all local hero poses and scene art. Action-specific weapon slashes, real victim hit reaction, hero death/KO animation, themed arena terrains/citadels and optional offline-device announcer with focus, mute and priority controls. Follow-up audit: independently controlled game SFX and voice; verified fly-to-inventory wood/gold/stone resources, level-up, loot, upgrade and construction feedback; offline tactical calls to CPU teammates; strict carry, partial-loot and wall-collision rules. Actual ranked multiplayer voice is explicitly held pending authenticated, isolated signalling infrastructure.",
+  "baseRef": "dev/season2-map-first-conso-intake-20261121",
+  "chosenApproach": "Use existing repo-tracked BUKLOD hero pose WebP, scene plates and licensed local sound packs, add original gradient+SVG-native combat sigils; keep canonical Arena simulation/server and currency authoritative, no new paid services, native module changes, wallet grants, or production OTA.",
+  "riskAreas": [
+    "android-landscape-fit",
+    "gesture-containment",
+    "admob-navigation",
+    "touch-hitboxes",
+    "performance-3g",
+    "hero-animation",
+    "show-faith",
+    "account-local-preferences",
+    "ranked-server-authority",
+    "economy-protection",
+    "audio-focus",
+    "asset-rights",
+    "no-production-writes",
+    "staging-RC",
+    "multiplayer-seated-audio",
+    "offline-first",
+    "cpu-ai-turn-bounds",
+    "round-state-determinism",
+    "local-only-combat-verification",
+    "no-internet-duel",
+    "sound-event-classification",
+    "ally-enemy-cue-privacy",
+    "audio-voice-pool",
+    "audio-first-view-prewarm",
+    "visual-stage-accuracy",
+    "asset-bundle-completeness",
+    "render-bounds",
+    "device-offline-speech-availability",
+    "short-vocal-playback",
+    "reanimated-hit-fx",
+    "effect-burst-performance",
+    "terrain-obstacle-clarity",
+    "map-state-visual-parity",
+    "resource-overfill",
+    "partial-drop-lifecycle",
+    "sound-vs-voice-isolation",
+    "combat-vfx-event-time-coordinates",
+    "offline-team-command-spam",
+    "live-voice-privacy-release-blocker",
+    "battle-material-hud-screen-fit"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/arena-premium-hud-20261121.json",
+    ".github/workflows/buklod-arena-inapp-dev-qa.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/season2-empire-arena-conso-qa-20261121.yml",
+    "experiments/empire-arena-v2/arena-v2-empire.mjs",
+    "experiments/empire-arena-v2/arena-v2-engine.mjs",
+    "experiments/empire-arena-v2/arena-v2-solo.mjs",
+    "src/app/games/empire-arena.tsx",
+    "src/components/BuklodNavSafeShell.tsx",
+    "src/features/games/empire/ArenaActionFx.tsx",
+    "src/features/games/empire/ArenaAnimatedActor.tsx",
+    "src/features/games/empire/ArenaBaseArt.tsx",
+    "src/features/games/empire/ArenaCombatHud.tsx",
+    "src/features/games/empire/ArenaMaterialFeedback.tsx",
+    "src/features/games/empire/ArenaTerrainArt.tsx",
+    "src/features/games/empire/ArenaVoiceRuntime.ts",
+    "src/features/games/empire/ArenaWorldArt.tsx",
+    "src/features/games/empire/arenaActionVisuals.mjs",
+    "src/features/games/empire/arenaFeedbackReceipts.mjs",
+    "src/features/games/empire/arenaHudLayout.mjs",
+    "src/features/games/empire/arenaPracticeAudio.mjs",
+    "src/features/games/empire/arenaPracticePresentation.mjs",
+    "src/features/games/empire/arenaSoundscape.mjs",
+    "src/features/games/empire/arenaTacticalCalls.mjs",
+    "src/features/games/empire/arenaVoiceDirector.mjs",
+    "src/features/games/runtime/rorkAudio.ts",
+    "tests/arena-event-audio-graphics-20261121.test.mjs",
+    "tests/arena-full-functionality-audit-20261121.test.mjs",
+    "tests/arena-kingdom-game-premium-20261121.test.mjs",
+    "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
+    "tests/arena-premium-voice-motion-terrain-20261121.test.mjs",
+    "tests/arena-protected-feature-lock-20261121.test.mjs",
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "tests/season2-arena-responsive-navigation-20261121.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/season2-arena-responsive-navigation-20261121.test.mjs",
+    "tests/arena-kingdom-game-premium-20261121.test.mjs",
+    "tests/arena-protected-feature-lock-20261121.test.mjs",
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+    "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "tests/arena-event-audio-graphics-20261121.test.mjs",
+    "tests/arena-premium-voice-motion-terrain-20261121.test.mjs",
+    "tests/arena-full-functionality-audit-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Improve Arena native rendering and in-app adaptive layout only, without changing global gameplay authority.",
+      "preservedBehaviors": [
+        "Existing auth, updates, local gameplay and all BUKLOD feature screens remain available; no new service or backend dependency."
+      ],
+      "tests": [
+        "tests/arena-kingdom-game-premium-20261121.test.mjs",
+        "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+        "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
+        "tests/empire-arena-v2-presentation-20261121.test.mjs",
+        "tests/arena-event-audio-graphics-20261121.test.mjs",
+        "tests/arena-premium-voice-motion-terrain-20261121.test.mjs",
+        "tests/arena-full-functionality-audit-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Suppress legacy global bottom navigation, ad strip and floating map return only inside the immersive Arena route.",
+      "preservedBehaviors": [
+        "Production and every non-Arena screen retain their existing navigation, ads, and consent/update/authentication gates."
+      ],
+      "tests": [
+        "tests/season2-arena-responsive-navigation-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Present the authoritative 13 BUKLOD characters and offline Arena mechanics with richer battle visual feedback and ergonomic controls.",
+      "preservedBehaviors": [
+        "Canonical hero identities, existing 13-character item eligibility, original simulation, non-faith parity and no client-created BP, QMP, Diamond or inventory gains."
+      ],
+      "tests": [
+        "tests/arena-kingdom-game-premium-20261121.test.mjs",
+        "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
+        "tests/arena-event-audio-graphics-20261121.test.mjs",
+        "tests/arena-premium-voice-motion-terrain-20261121.test.mjs",
+        "tests/arena-full-functionality-audit-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Select a specific branch-only V2 scope manifest in existing Engineering Accountability CI without bypassing other feature protections.",
+      "preservedBehaviors": [
+        "Scope allowlist and changed-proof tests stay mandatory, unchanged production workflows and release approval still required."
+      ],
+      "tests": [
+        "tests/arena-protected-feature-lock-20261121.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Existing signed green-B staging build/package and Expo update runtime remain unchanged; no OTA.",
+    "No production baseline, RLS, AdMob rendering logic, or paid wallet changes.",
+    "Landscape screen transitions return to normal BUKLOD orientation; audio follows existing focus controls.",
+    "Offline duel never bypasses existing Auth/Compliance/Production preview gates; last cached authenticated user may play without connectivity.",
+    "CPU and player share canonical combat commands, damage and cooldowns, match-only level does not unlock permanent characters.",
+    "Damage sounds and effects are client-only, filtered to local player involvement and bounded per sequence to avoid 5v5 storms.",
+    "All sound sources remain currently licensed and locally bundled; avoid importing unverified Library ZIP audio; no network or new paid sound service.",
+    "Production economy, BP/QMP/Diamonds and ranked server authority stay untouched; bounded offline engine fixes correct carry overflow, partial pickups and skill collision without changing match win/loss authority.",
+    "Voice lines use device-installed TTS only, are nonblocking, rate-limited, and muted on competing audio focus, without cloud API or backend changes.",
+    "No unverified match-scoped realtime microphone capture, voice traffic, chat delivery or ranked team ping is enabled. Local team voice calls affect offline practice bots only.",
+    "All local pickup and quantity animations read exact authoritative event receipts; no optimistic inventory/currency increment."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "staging-source-candidate-hold",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "productionBaselineEvidence": "Compared source with existing consolidated Season 2 map-first DEV PR base; the current Google Play/live production build has not been re-verified in this workstream. No production calls or migrations performed.",
+  "acceptanceChecks": [
+    "Run the focused Node controls/camera/presentation tests and exact protected-scope CI.",
+    "Run Android Metro export and TypeScript compile on the exact PR head.",
+    "Staging physical landscape/pinch/tap/joystick, AdMob and 5v5 performance required before RC, and exact runtime OTA receipt before release.",
+    "Simulate 13 heroes, CPU damage, real cooldown/skill usage, best-of-three victory/defeat, 3 difficulties, seed determinism, zero network dependency.",
+    "Source-test specific defeat, tower, seal, item, mining, buff and construction cues, and validate 13*4 full-body hero asset files plus 3 Genesis maps, app-wide focus and audio permissions.",
+    "Voice director classifications and integration, action-event geometry, themed terrain/base and knockout gesture tests.",
+    "Proof of real resource transfer, overfill prevention, partial drop preservation, skill obstacle collision, event-time hit geometry, offline team calls, separate SFX/voice toggles and bounded visual feedback."
+  ],
+  "selectionRationale": "Owner-provided landscape screenshots show overlap, clipped controls, oversized models and poor battlefield readability; the existing in-app 13-character assets and local scene plates can support a high-fidelity native HUD without a new engine, independent app or license risk. Scoped overlays and normalized editor improve usability while preserving canonical economy authority. Existing practice CPU trains/mines and does not deliver a direct no-signal fight; an isolated local hero duel reuses the same authoritative per-match combat engine rather than creating a fake animation-only demo. Existing event router reduced dozens of meaningful Arena events to six generic SFX; this work introduces semantic, priority-scored audio keyed to engine-proven events and stronger source-owned world object art. Original voice engine uses already installed expo-speech as an optional device-local announcer; no external voice API/new subscription or rank privilege. Follow-up audit found missing resource fly-to-HUD, voice tied to SFX toggle, carry overflow/partial loot loss, skill teleport through cover and no multiplayer comm transport. Fix client/offline local pathways now; preserve a fail-closed network voice release gate until secure server transport can be independently tested.",
+  "alternativeApproaches": [
+    "Use ready-made Mobile Legends interface textures or clone their HUD (rejected: visual IP concerns and no BUKLOD identity).",
+    "Replace Arena engine with a new standalone 3D game/Unity/Godot app (rejected: heavy native builds, extra cost and breaks single BUKLOD app contract).",
+    "Reimport unverified third-party Library sound and sprite ZIPs wholesale (rejected: mixed asset licenses and unbounded mobile bundle growth).",
+    "Keep original row of tiny box action buttons (rejected: unsatisfactory ergonomics, premium requirement not met)."
+  ]
+}
