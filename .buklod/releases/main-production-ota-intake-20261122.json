@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "id": "BUKLOD_MAIN_PRODUCTION_OTA_INTAKE_20261122",
+  "createdDate": "2026-11-22",
+  "mode": "DEV_INTAKE_NO_PUBLISH",
+  "releaseTarget": "Android BUKLOD MAIN production OTA",
+  "productionAuthorizedByThisManifest": false,
+  "publishAllowed": false,
+  "canonicalMain": {
+    "branch": "main",
+    "shaAtIntake": "ecd34228dd24f07a47ba397bb1c29199aac51779"
+  },
+  "lastVerifiedProductionEvidence": {
+    "exactSourceSha": "98fda684f8a322ba0095adda06899534fdcfa6fe",
+    "updateId": "01a1f920-ea6b-7314-a070-364a22019a24",
+    "verifiedAsOf": "2026-11-20",
+    "recordedEvidence": "PR #1032: publisher 44743468133 and independent read-only receipt 44744193617",
+    "notReverifiedInThisIntake": true
+  },
+  "productionTarget": {
+    "androidPackage": "org.mzbministry.buklod",
+    "channel": "production",
+    "runtime": "1.3.2",
+    "nativeRuntimeMustMatchInstalledBinary": true
+  },
+  "mainVsLastVerifiedSource": {
+    "comparison": "diverged",
+    "aheadBy": 5,
+    "behindBy": 13,
+    "requiresIndividualSourceReconciliation": true
+  },
+  "collectedCode": [
+    {
+      "feature": "PTT persist per-user preferences and truthful connected/Stop state",
+      "sourcePr": 1071,
+      "sourceSha": "b10ea5d127fcf802d7bf16289628b2caed3ba32d",
+      "portMode": "exact-source-blobs-from-main-descendant",
+      "sourceFiles": [
+        "src/app/personal-home/ptt.tsx",
+        "src/ptt/buklodPttDutyNotification.ts",
+        "src/ptt/buklodPttRuntime.ts",
+        "src/ptt/buklodPttSetup.ts"
+      ],
+      "testFiles": [
+        "tests/buklod-ptt-preferences-and-switching.test.mjs"
+      ],
+      "status": "COLLECTED_DEV_NO_PRODUCTION_AUTHORIZATION",
+      "blockers": [
+        "End-to-end PTT native audio, Stop/reopen, account isolation, scope switch, and background notification behavior remain to verify in exact production binary"
+      ]
+    },
+    {
+      "feature": "Non-punitive lesson checking + full published content-ready mentor lesson options",
+      "sourcePr": 1081,
+      "sourceSha": "a6d2ae18098a9b1889e30d9075d1802ebb7631ed",
+      "portMode": "exact-source-blobs-from-main-descendant",
+      "sourceFiles": [
+        "src/app/faith/mentor-evidence.tsx",
+        "src/app/learn/[id].tsx",
+        "src/app/learn/lesson.tsx",
+        "src/app/mentoring/index.tsx",
+        "src/components/LearningQuestionResponse.tsx"
+      ],
+      "sqlMigration": "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql",
+      "testFiles": [
+        "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+        "tests/lesson-checking-mentor-options-20261122.test.mjs",
+        "tests/mentor-catalog-auth-permission-20261122.test.mjs"
+      ],
+      "status": "COLLECTED_DEV_BACKEND_HOLD",
+      "blockers": [
+        "Isolated Postgres 17 functional/RLS/unauthorized-mentor tests",
+        "No independent nonproduction BUKLOD Supabase database exists",
+        "Android authorized mentor and learner completion/receipt validation"
+      ]
+    }
+  ],
+  "alreadyOnCanonicalMain": [
+    {
+      "feature": "Wave1 Android Wall/Connect/reactions/KL/NativeAd recovery",
+      "sourceCommit": "58ccfa0828fbf2db8457bb3d94a898f122d54925",
+      "action": "Do not reapply; audit served OTA parity"
+    },
+    {
+      "feature": "Encrypted remembered-login and Auth monitoring safeguards",
+      "sourceCommit": "551e54602addd6f7bbe7bcdddd1589d35424c964",
+      "action": "Do not overwrite with stale auth branch"
+    },
+    {
+      "feature": "Mentor report field-level submission feedback",
+      "sourceCommit": "536741f8d97fc9dec91503c89f1c1160e5987ce0",
+      "action": "Already in main; port once only"
+    },
+    {
+      "feature": "CCP5 mentor permission clarification and lesson receipt sources",
+      "sourceCommit": "ecd34228dd24f07a47ba397bb1c29199aac51779",
+      "action": "Already in main; keep verified guards"
+    },
+    {
+      "feature": "Wall reaction FK security repair and membership role helper RPC restrictions",
+      "sourceCommits": [
+        "dafa7b4eb8f11484c4fc862565653e8b26bb1570",
+        "f19fc6972a6e6321b34da02a24b5f887528b18bd"
+      ],
+      "action": "DB live state requires readback; do not duplicate migrations"
+    }
+  ],
+  "pendingNonSeason2Candidates": [
+    {
+      "pr": 1005,
+      "feature": "Silent download and next-cold-start Expo OTA activation",
+      "sha": "eb655213cdf0c1fba45d69b969810378c2d1cc0e",
+      "status": "RECONCILE_SOURCE",
+      "blocker": "seven commits behind main and shared dashboard/OTA code"
+    },
+    {
+      "pr": 951,
+      "feature": "Circle Rank sync and permanent Notes",
+      "sha": "17b60617e808d6ee05bdb470dafdacdf1e306555",
+      "status": "RECONCILE_SOURCE",
+      "blocker": "15 commits behind main; overlaps Wall/Profile/Connect; backend already live"
+    },
+    {
+      "pr": 994,
+      "feature": "Secure Admin new-registration inbox and BSOC UI",
+      "sha": "e0122cce1b64963276e071411a841c6515410ecd",
+      "status": "RECONCILE_SOURCE",
+      "blocker": "five commits behind main; do not double-merge staging PR #1002"
+    },
+    {
+      "pr": 940,
+      "feature": "Video/Connect/instant tabs/Henry no-auth-safe Train A",
+      "sha": "6a33d05e85121d3d8a0a6760ef6b2e84c6c6721e",
+      "status": "RECONCILE_SOURCE",
+      "blocker": "32 commits behind main; overlapping hot UI paths, full ad/nav/scroll checks"
+    },
+    {
+      "pr": 833,
+      "feature": "Referral/Organization/Economy consistency",
+      "sha": "eb1935044222c53ae9b78f260f4e750e860eabbf",
+      "status": "RECONCILE_SECURITY_AND_ECONOMY",
+      "blocker": "140 commits behind; DB partially deployed; preserve current reward policy"
+    },
+    {
+      "pr": 935,
+      "feature": "Offline-first Wall comments and network-safe BSOC triage",
+      "sha": "a60cb8fb7a66ab42c572b3ac6edd02ebfac04312",
+      "status": "BACKEND_HOLD",
+      "blocker": "new idempotent v5 comment RPC and backend SQL not deployed; security and low-network tests"
+    },
+    {
+      "pr": 932,
+      "feature": "Rotating event QR Attendance V2 and anti-farming rewards",
+      "sha": "575789510f81876dec55adeedc027dfee10f78cc",
+      "status": "BACKEND_HOLD",
+      "blocker": "isolated Postgres checks passed previously; live backend lacks required tables/RPC"
+    },
+    {
+      "pr": 998,
+      "feature": "Email/mobile login, legacy username migration and 180-day dormancy notices",
+      "sha": "85ce45809793dbb0cd6b2556c4a9f32061e33036",
+      "status": "IDENTITY_PROVIDER_HOLD",
+      "blocker": "OTP/provider delivery, account recovery, DB RLS and 180-day notice cannot be assumed"
+    },
+    {
+      "pr": 958,
+      "feature": "Government-ID real name and verified-only withdrawal security",
+      "sha": "2dddbbe79f55507d6fb6db2c46799f9bdf3e8a6d",
+      "status": "PRIVACY_FINANCE_HOLD",
+      "blocker": "sensitive-ID retention, storage RLS, payout negative paths and existing RPC parity"
+    },
+    {
+      "pr": 1038,
+      "feature": "Public Wall post-as verified scope identity",
+      "sha": "45162c62ac2dba3c3819c8c48b952ae712ffe055",
+      "status": "ISOLATE_FROM_SEASON2_BASE",
+      "blocker": "parent branch contains Genesis content; only independently reviewed nonSeason2 files may be forward-ported"
+    },
+    {
+      "pr": 821,
+      "feature": "Video scroll-pause and native ad prewarm",
+      "sha": "83d93ff29fb8cbc3dbc7cfe7366a42baaadba81c",
+      "status": "RECONCILE_SOURCE",
+      "blocker": "needs current media renderer and strict AdMob/navigation regression parity"
+    }
+  ],
+  "duplicateOrSupersededCandidates": [
+    {
+      "pr": 1031,
+      "reason": "Mentor submit reviewed source already merged in canonical main and recorded in newer production receipt"
+    },
+    {
+      "pr": 1032,
+      "reason": "Related secure-login source now in main; branch retains pinned baseline/release machinery and must not replace main wholesale"
+    },
+    {
+      "pr": 1002,
+      "reason": "Season2 staged forward-port of Admin inbox PR #994; do not double-merge"
+    },
+    {
+      "pr": 1072,
+      "reason": "Season2 staging integration variant of PTT PR #1071"
+    },
+    {
+      "pr": 1073,
+      "reason": "Genesis+PTT/SOS staging native 2.0.1 candidate; not production OTA"
+    },
+    {
+      "pr": 1074,
+      "reason": "Single Genesis staging-only consolidated source; hard production exclusion"
+    }
+  ],
+  "excludedFromProductionOTA": {
+    "strictSeason2OwnerHold": true,
+    "noAutomaticReleaseOnDate": true,
+    "excludedFeatures": [
+      "Genesis: Let There Be Light seasonal map and assets",
+      "Empire Arena and native Godot",
+      "Kingdom/House/Community Village Season 2 gameplay",
+      "Genesis staging PTT/SOS native alarm bundle",
+      "Season 2 economy/diamonds/points/trading/collectibles",
+      "unverified marketplace/government Season2 services"
+    ],
+    "excludedRefs": [
+      1074,
+      1080,
+      1079,
+      1078,
+      1077,
+      1076,
+      1075,
+      1069,
+      1068,
+      1067,
+      1066,
+      1065,
+      1061,
+      1054,
+      1047,
+      1042,
+      1041,
+      1040,
+      1039,
+      1070
+    ],
+    "reason": "Explicit 2026-11-22 owner production embargo; native 2.0+ is not compatible with existing production 1.3.2 OTA",
+    "requiredPath": "Separate approved native APK/Play production release and owner Season2 authorization after QA"
+  },
+  "releaseGates": [
+    "Recheck exact current served Android production update ID, bundle hash, package, channel and runtime; GitHub main alone is not a verified live baseline",
+    "Reconcile each remaining candidate against production, main, and verified RC; forward-port only missing reviewed code and retain latest fixes",
+    "Complete isolated SQL/RLS security tests and do not apply candidate migrations to shared live Supabase as a staging experiment",
+    "No first-view AdMob fill/regression, dashboard/navigation latency, offscreen audio/video or weak-network state regressions",
+    "Verify PTT device/audio/Stop and mentor lesson receipt, unlimited review, eligible catalog and one-time evidence rewards",
+    "TypeScript, Node, Android Hermes bundle export, protected-feature/gov scope and source parity CI all green on one immutable RC SHA",
+    "Use unchanged production native package and runtime 1.3.2; new Godot/SOS native modules require new signed Play APK and are excluded",
+    "Publish only via canonical guarded single production workflow after verified RC, preserve rollback and independently verify live served artifact",
+    "Only announce a verified production OTA, never a staging or unverified DEV state"
+  ],
+  "state": "PARTIALLY_COLLECTED_DEV_WITH_EXPLICIT_BLOCKERS",
+  "otaPublished": false,
+  "prodDatabaseModified": false,
+  "nativeBuildChanged": false,
+  "announcementSent": false
+}
