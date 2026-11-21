@@ -1,0 +1,57 @@
+{
+  "contractVersion": 2,
+  "objective": "Preserve each authenticated member's Android PTT preferences over screen/app restart and prevent saved-but-unapplied route/group/channel choices from appearing active; preserve explicit Stop and safe SOS behavior.",
+  "baseRef": "ecd34228dd24f07a47ba397bb1c29199aac51779",
+  "productionBaselineEvidence": "Main source SHA ecd34228dd24f07a47ba397bb1c29199aac51779 was fetched and inspected 2026-11-21. Exact live Android binary, OTA group, runtime and audio device behavior were NOT independently verified. DEV branch only; do not promote without verified staging RC and mandatory ad/nav gates.",
+  "chosenApproach": "Use per-account AsyncStorage persistence for preferred route, scope, channel, listening switch and normal/priority mode; hydrate before visual selection; distinguish preferred from live Stream call; serialize and commit target swaps only after server monitor confirmation; honor persisted stop in bootstrap and normal push; do not claim Nearby transport before implementation. SOS remains per-session emergency arming. A per-member in-process change publisher keeps the PTT screen synchronized when duty notification Stop is invoked outside it.",
+  "selectionRationale": "UI had AUTO/CH01/preselected group before hydration, updated targets optimistically, and autoconnected after explicit Stop; stored route writes swallowed failures, while failed target joins could leave disconnected prior calls marked active. Account-scoped confirmed preferences plus runtime-backed live labels correct the sources of drift without altering Stream floor authorization.",
+  "alternativeApproaches": [
+    "Store all preferences remotely in a new Supabase table/RPC and require backend migration; rejected for narrowly scoped device preferences, extra network dependence and release risk.",
+    "Persist only visual chip states without reconciling underlying connection state; rejected because it would perpetuate misleading activation and unsafe retry behavior.",
+    "Selected: confirmed per-account local preferences, transparent live state and safe serialized runtime switching."
+  ],
+  "acceptanceChecks": [
+    "App/screen reopen restores the authenticated user's last saved route, CH01-CH10, scope, Stop/Start listening and NORMAL/PRIORITY; settings never leak across users.",
+    "Options do not appear as live before confirmed runtime connection; route and group/channel labels distinguish saved preference, live and unsaved applied state.",
+    "Failed disk write never falsely claims settings were saved; failed channel join preserves previous functioning connection and monitor.",
+    "Stop during pending join waits for completion and leaves no active channel; background normal push and bootstrap do not undo saved Stop.",
+    "Disabled/missing Internet shows offline, not fictional Nearby ready; direct-device Nearby is explicitly unavailable in this build.",
+    "SOS arming requires explicit current-session confirmation; no automatic SOS re-arm on reopen.",
+    "Existing Stream floor leases, push Priority/SOS, caption consent, ads, organization/cluster authorization and unrelated app navigation stay unchanged.",
+    "Focused Node tests and required scope gates pass; staging device audio and ad/nav tests must run before any OTA.",
+    "Android notification Stop action persists listening=false and disconnects the real Stream call rather than only releasing the mic."
+  ],
+  "preserveBehaviors": [
+    "Valid active membership remains required to join Stream organization/cluster channel CH01-CH10; server floor leasing remains authoritative.",
+    "Hold to talk requires continuously held input; release immediately stops local transmit.",
+    "Priority/SOS incoming alerts and their server authorization remain active even if normal listening is paused.",
+    "PTT banner and global live Stream host are preserved; other Connect and ordinary phone calls remain unchanged."
+  ],
+  "riskAreas": [
+    "ptt-preferences",
+    "ptt-runtime-switching"
+  ],
+  "regressionTests": [
+    "tests/buklod-ptt-preferences-and-switching.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/ptt/buklodPttSetup.ts",
+    "src/ptt/buklodPttRuntime.ts",
+    "src/app/personal-home/ptt.tsx",
+    "tests/buklod-ptt-preferences-and-switching.test.mjs",
+    ".buklod/scopes/ptt-preferences-active-selection-20261121.json",
+    "src/ptt/buklodPttDutyNotification.ts"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Correct Android PTT runtime state and persisted member choices without marking pending selections as live.",
+      "preservedBehaviors": [
+        "PTT Stream membership/floor authorization, voice hold/release, Priority/SOS, caption recording consent and global host behavior are preserved."
+      ],
+      "tests": [
+        "tests/buklod-ptt-preferences-and-switching.test.mjs"
+      ]
+    }
+  ]
+}
