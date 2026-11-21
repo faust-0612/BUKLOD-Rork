@@ -53,7 +53,7 @@ function releaseKingdomSfx() {
 }
 
 function prewarmKingdomSfx() {
-  for (const key of ['ui_tap', 'pickup', 'build_hit', 'success', 'retry', 'unlock'] as const) poolFor(key);
+  for (const key of ['ui_tap','ui_confirm','pickup','build_hit','success','retry','unlock','beat_combo','beat_hit','coins','game_enter','mission_go'] as const) poolFor(key);
 }
 
 // The Rork live-preview audio host is not a production asset origin and was
