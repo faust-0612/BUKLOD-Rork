@@ -109,6 +109,8 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const [windows,setWindows]=useState<EstateCosmetics['windows']>('classic');
   const [lights,setLights]=useState<EstateCosmetics['lights']>('warm');
   const design:EstateCosmetics={finish:look,roof,ground,fence,windows,lights};
+  // The VERIFIED map always paints server-saved cosmetics, never an unsaved draft.
+  const visualDesign:EstateCosmetics=liveView&&verified?verified.cosmetics:design;
   const [zoom,setZoom]=useState(1);
   const [cosmeticLoadedKey,setCosmeticLoadedKey]=useState('');
   const [showRequirements,setShowRequirements] = useState(false);
@@ -117,7 +119,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const cosmeticKey=storageKey+'.cosmetics.v2';
   const compact = width < 600;
   const doors = world === 'home' ? HOME_DOORS : VILLAGE_DOORS;
-  const choice = LOOKS.find(x=>x.id===look) ?? LOOKS[0];
+  const choice = LOOKS.find(x=>x.id===visualDesign.finish) ?? LOOKS[0];
   const isPreview = isGenesisPreviewBuild();
   const requirements=constructionPlan(previewTrack,level,stage,mastery);
   const next=nextMilestone(level,stage,mastery);
@@ -162,7 +164,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   },[cosmeticLoadedKey,storageKey,cosmeticKey,look,roof,ground,fence,windows,lights,canCustomizePreview,ownerId,isPreview]);
   const chooseLook = useCallback((next:Look)=>{
     if(!canCustomizePreview)return;
-    setLook(next);
+    setLook(next);setLiveView(false);
   },[canCustomizePreview]);
   const title = world==='home' ? 'MY HOME · PERSONAL WORLD' : 'MY COMMUNITY · '+(chosenScope?.name??'Choose a Cluster or Organization');
   const desc = world==='home'
@@ -229,7 +231,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             <LinearGradient colors={['rgba(5,30,28,.03)','rgba(10,25,25,.07)','rgba(9,25,32,.56)']} style={StyleSheet.absoluteFill}/>
           </View>
           <View pointerEvents="none" style={styles.previewStructure}>
-            <DevelopmentStructurePreview track={previewTrack} level={level} stage={level===10&&mastery>0?4:stage} mastery={level===10?mastery:0} finish={look} roof={roof} ground={ground} fence={fence} windows={windows} lights={lights}/>
+            <DevelopmentStructurePreview track={previewTrack} level={level} stage={level===10&&mastery>0?4:stage} mastery={level===10?mastery:0} finish={visualDesign.finish} roof={visualDesign.roof} ground={visualDesign.ground} fence={visualDesign.fence} windows={visualDesign.windows} lights={visualDesign.lights}/>
           </View>
           {decoration.map(n=>(
             <View key={n} pointerEvents="none" style={[styles.tree,{left:`${n*17+6}%` as `${number}%`,top:`${n%2===0?4:83}%` as `${number}%`}]}>
@@ -337,35 +339,35 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           <Text style={styles.optionTitle}>ROOF SHAPE</Text>
           <View style={styles.optionRow}>
             {([{id:'gable',label:'Gable',icon:'home-roof'},{id:'hip',label:'Hip roof',icon:'home-outline'},{id:'terrace',label:'Flat deck',icon:'view-dashboard-outline'}] as const).map(item=>
-              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Preview '+item.label+' roof'} accessibilityState={{selected:roof===item.id}} disabled={!canCustomizePreview} onPress={()=>setRoof(item.id)} style={[styles.option,roof===item.id&&styles.activeOption]}>
+              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Preview '+item.label+' roof'} accessibilityState={{selected:roof===item.id}} disabled={!canCustomizePreview} onPress={()=>{setRoof(item.id);setLiveView(false);}} style={[styles.option,roof===item.id&&styles.activeOption]}>
                 <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>LANDSCAPING</Text>
           <View style={styles.optionRow}>
             {([{id:'grass',label:'Green lot',icon:'grass'},{id:'flower',label:'Flower garden',icon:'flower'},{id:'stone',label:'Stone paths',icon:'road-variant'}] as const).map(item=>
-              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Preview '+item.label} accessibilityState={{selected:ground===item.id}} disabled={!canCustomizePreview} onPress={()=>setGround(item.id)} style={[styles.option,ground===item.id&&styles.activeOption]}>
+              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Preview '+item.label} accessibilityState={{selected:ground===item.id}} disabled={!canCustomizePreview} onPress={()=>{setGround(item.id);setLiveView(false);}} style={[styles.option,ground===item.id&&styles.activeOption]}>
                 <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>FENCE & PERIMETER</Text>
           <View style={styles.optionRow}>
             {([{id:'wood',label:'Wood fence',icon:'fence'},{id:'iron',label:'Iron railing',icon:'gate'},{id:'hedge',label:'Green hedge',icon:'tree-outline'}] as const).map(item=>
-              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:fence===item.id}} disabled={!canCustomizePreview} onPress={()=>setFence(item.id)} style={[styles.option,fence===item.id&&styles.activeOption]}>
+              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:fence===item.id}} disabled={!canCustomizePreview} onPress={()=>{setFence(item.id);setLiveView(false);}} style={[styles.option,fence===item.id&&styles.activeOption]}>
                 <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>WINDOWS & GLAZING</Text>
           <View style={styles.optionRow}>
             {([{id:'classic',label:'Classic',icon:'window-closed-variant'},{id:'panorama',label:'Panorama',icon:'window-maximize'},{id:'arched',label:'Heritage arch',icon:'arch'}] as const).map(item=>
-              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:windows===item.id}} disabled={!canCustomizePreview} onPress={()=>setWindows(item.id)} style={[styles.option,windows===item.id&&styles.activeOption]}>
+              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:windows===item.id}} disabled={!canCustomizePreview} onPress={()=>{setWindows(item.id);setLiveView(false);}} style={[styles.option,windows===item.id&&styles.activeOption]}>
                 <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>ESTATE LIGHTING</Text>
           <View style={styles.optionRow}>
             {([{id:'warm',label:'Warm lamps',icon:'lightbulb-outline'},{id:'starlight',label:'Starlight',icon:'star-four-points'},{id:'garden',label:'Garden lights',icon:'outdoor-lamp'}] as const).map(item=>
-              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:lights===item.id}} disabled={!canCustomizePreview} onPress={()=>setLights(item.id)} style={[styles.option,lights===item.id&&styles.activeOption]}>
+              <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:lights===item.id}} disabled={!canCustomizePreview} onPress={()=>{setLights(item.id);setLiveView(false);}} style={[styles.option,lights===item.id&&styles.activeOption]}>
                 <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
