@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { ProfilePressable } from '@/components/BuklodProfileMotion';
 
 type Icon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -39,6 +40,7 @@ const GROUPS: { title: string; links: SettingLink[] }[] = [
 
 export default function BuklodSettingsHome() {
   const [query, setQuery] = useState('');
+  const {profile}=useAuth();
   const groups = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
     return GROUPS.map(group => ({ ...group, links: group.links.filter(item =>
@@ -76,6 +78,19 @@ export default function BuklodSettingsHome() {
           <MaterialCommunityIcons name="close" size={20} color={theme.textMuted} />
         </Pressable>}
       </View>
+      {profile?.login_method==='username'&&(!query||/login|username|email|phone|mobile|account|security/i.test(query))&&(
+        <Pressable accessibilityRole="button" accessibilityLabel="Update legacy username login"
+          onPress={()=>router.push('/account/security' as any)}
+          style={{borderWidth:1,borderColor:theme.accent,borderRadius:14,
+            padding:12,backgroundColor:theme.accentSoft,gap:4}}>
+          <Text style={{fontWeight:'900',fontSize:15,color:theme.textPrimary}}>Action required: Update your login</Text>
+          <Text style={{fontSize:13,color:theme.textPrimary}}>
+            Dating username-only account? I-verify ang iyong email o mobile sa Account Security.
+            Hindi maaapektuhan ang posts, points, at history mo.
+          </Text>
+          <Text style={{fontWeight:'800',fontSize:13,color:theme.accent}}>OPEN VERIFICATION</Text>
+        </Pressable>
+      )}
       {(!query || /appearance|theme|display|accessib|font/i.test(query)) && <BuklodAppearanceSection />}
       {groups.length === 0 && <Text allowFontScaling style={{ color: theme.textMuted, padding: 12 }}>No matching setting. Try account, privacy, notifications or help.</Text>}
       {groups.map(group => (

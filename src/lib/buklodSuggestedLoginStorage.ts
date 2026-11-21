@@ -220,3 +220,39 @@ export async function consumePasswordRecoveryNotice():
     };
   }
 }
+
+
+/** After verified legacy login migration, refresh the local login bubble.
+ * Never retain a password paired with the old username identifier.
+ * This is local-only; the remote Auth user ID stays exactly the same.
+ */
+export async function relinkSavedSuggestedLoginContact(options:{
+  userId:string;
+  newIdentifier:string;
+}):Promise<void>{
+  const userId=String(options.userId||'').trim();
+  const identifier=normalize(options.newIdentifier);
+  if(!userId||!identifier)return;
+  const raw=await AsyncStorage.getItem(BUKLOD_SUGGESTED_LOGINS_KEY);
+  const items=parseSuggestedLogins(raw);
+  const previous=items.filter(item=>String(item.userId||'')===userId);
+  const oldIdentifiers=new Set(previous.map(item=>normalize(item.identifier)));
+  const next=items.map(item=>String(item.userId||'')===userId
+    ?{...item,identifier,hasPassword:false}
+    :item);
+  if(previous.length>0){
+    await AsyncStorage.setItem(BUKLOD_SUGGESTED_LOGINS_KEY,JSON.stringify(next));
+  }
+  await removeSecret(suggestedLoginPasswordKey(userId)).catch(()=>{});
+  const remembered=await AsyncStorage.getItem(BUKLOD_REMEMBERED_CREDENTIALS_KEY);
+  if(remembered){
+    try{
+      const parsed=JSON.parse(remembered);
+      if(oldIdentifiers.has(normalize(parsed?.identifier))){
+        await AsyncStorage.removeItem(BUKLOD_REMEMBERED_CREDENTIALS_KEY);
+      }
+    }catch{
+      await AsyncStorage.removeItem(BUKLOD_REMEMBERED_CREDENTIALS_KEY);
+    }
+  }
+}

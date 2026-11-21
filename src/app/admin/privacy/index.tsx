@@ -13,6 +13,8 @@ import {
   type ContentReportRow,
 } from '@/lib/buklodContentReports';
 import { supabase } from '@/lib/supabase';
+import AdminDormancyReview from '@/components/AdminDormancyReview';
+import AdminLegacyLoginSummary from '@/components/AdminLegacyLoginSummary';
 
 export default function PrivacyAdmin() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -90,6 +92,8 @@ export default function PrivacyAdmin() {
         }
       >
         <Text style={shared.h1}>Privacy & Moderation</Text>
+        <AdminLegacyLoginSummary />
+        <AdminDormancyReview />
 
         <SectionTitle>ACCOUNT DELETION REQUESTS</SectionTitle>
         {!!deletionError && <Text accessibilityRole="alert" style={{ color: '#A34229' }}>
