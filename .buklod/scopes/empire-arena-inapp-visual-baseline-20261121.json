@@ -52,7 +52,8 @@
     "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
-    "tests/empire-arena-v2-ranked-seat-20261121.test.mjs"
+    "tests/empire-arena-v2-ranked-seat-20261121.test.mjs",
+    "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -220,7 +221,8 @@
     "assets/season2/arena/generated/sprite/van-bea489cdaa65.webp",
     "assets/season2/arena/generated/sprite/vhen-d446b5b7acb8.webp",
     ".github/workflows/buklod-arena-dev-server-lock.yml",
-    "services/empire-arena/package-lock.json"
+    "services/empire-arena/package-lock.json",
+    "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -235,7 +237,8 @@
         "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
         "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
         "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
-        "tests/empire-arena-v2-ranked-seat-20261121.test.mjs"
+        "tests/empire-arena-v2-ranked-seat-20261121.test.mjs",
+        "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs"
       ]
     },
     {
