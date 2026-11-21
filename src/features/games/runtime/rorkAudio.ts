@@ -197,15 +197,21 @@ export function useRorkGameAmbience(gameId?: string | null) {
     // request. Never resume spontaneously while a competing source is active.
     let interruptedByOtherAudio = false;
     if (isKingdomMap) setMusicSuspended(false);
-    // All 39 mini-games must yield to ads/video/calls, not only the map.
-    // Explicit new playback focus wins until next intentional navigation.
-    const releaseAudioFocus = subscribeBuklodAudioFocus(owner => {
-      if (!active || owner === 'kingdom-game-stage') return;
-      if (isKingdomMap && owner === 'genesis-valley-map') return;
-      interruptedByOtherAudio = true;
-      setMusicSuspended(true);
-      try { audio.pause(); } catch { /* optional ambience */ }
-    });
+    // Preserve Genesis map's exact tested focus contract. All 39 focused
+    // mini-games ALSO yield to ads, video and calls through the same bus.
+    const releaseAudioFocus = isKingdomMap
+      ? subscribeBuklodAudioFocus(owner => {
+          if (owner === 'genesis-valley-map' || !active) return;
+          interruptedByOtherAudio = true;
+          setMusicSuspended(true);
+          try { audio.pause(); } catch { /* optional ambience */ }
+        })
+      : subscribeBuklodAudioFocus(owner => {
+          if (!active || owner === 'kingdom-game-stage') return;
+          interruptedByOtherAudio = true;
+          setMusicSuspended(true);
+          try { audio.pause(); } catch { /* optional ambience */ }
+        });
     audio.loop = true;
     const sync = async () => {
       try {
