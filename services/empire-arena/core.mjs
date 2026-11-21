@@ -119,6 +119,11 @@ export class ArenaMatchCoordinator {
       const receipt=await this.store.open({matchId,mode,mapId,players:seats});
       if(receipt?.accepted!==true)throw Error('diamond_reservation_rejected');
       reserved=true;
+      // Abort and refund if a player disconnects during the async escrow RPC.
+      // Never promote a departed roster into an authoritative ranked match.
+      if(roster.some(({session})=>session.disconnectedAt!=null||
+        this.occupied.get(session.userId)?.kind!=='allocating'))
+        throw Error('player_disconnected_during_escrow');
       const playerBySlot=Object.fromEntries(roster.map(x=>[x.slot,x]));
       const allyIds=Array.from({length:n-1},(_,i)=>playerBySlot['A'+(i+1)].session.hero);
       const foeIds=Array.from({length:n},(_,i)=>playerBySlot['B'+i].session.hero);
@@ -198,6 +203,11 @@ export class ArenaMatchCoordinator {
       const next=queue.filter(x=>x.session!==session);
       if(next.length)this.queues.set(p.key,next);else this.queues.delete(p.key);
       this.occupied.delete(session.userId);
+    }
+    if(p.kind==='allocating'){
+      // Queue->escrow is async; the allocation's post-RPC check must observe
+      // this disconnect and refund rather than creating a ghost participant.
+      session.disconnectedAt=this.clock();
     }
     if(p.kind==='playing'){
       const match=this.matches.get(p.matchId);

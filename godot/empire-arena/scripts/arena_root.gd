@@ -3,6 +3,8 @@
 extends Node2D
 
 const SIM_SCRIPT = preload("res://scripts/arena_simulation.gd")
+const FX_SCRIPT = preload("res://scripts/arena_effects.gd")
+const ANIM_SCRIPT = preload("res://scripts/hero_animation.gd")
 const PX := 10.0
 const HEROSUIT := [Color("#7bf2cb"), Color("#75c9ff"), Color("#ffc68b"),
 	Color("#d6b7ff"), Color("#f7ed8f"), Color("#ff9aa8"),
@@ -22,8 +24,8 @@ var accumulator := 0.0
 var event_cursor := -1
 var flashes: Array[Dictionary] = []
 var art_cache: Dictionary = {}
-var actor_pose: Dictionary = {}
-var actor_last_pos: Dictionary = {}
+var animator
+var effect_layer
 
 # Godot-decoded PNG previews in signed main pack; bounded lazy GPU cache.
 func _art(path: String) -> Texture2D:
@@ -42,6 +44,9 @@ func _art(path: String) -> Texture2D:
 
 func _ready() -> void:
 	sim = SIM_SCRIPT.new()
+	animator = ANIM_SCRIPT.new()
+	effect_layer = FX_SCRIPT.new()
+	add_child(effect_layer)
 	hud.start_requested.connect(_start)
 	hud.command_requested.connect(_command)
 	hud.direction_changed.connect(_move)
@@ -67,8 +72,8 @@ func _start(mode: String, hero: String, map_id: String, solo: bool, foe: String)
 	hud.paused = false
 	event_cursor = -1
 	flashes.clear()
-	actor_pose.clear()
-	actor_last_pos.clear()
+	animator.reset()
+	effect_layer.clear()
 	camera.position = (sim.actor("A0")["pos"] as Vector2) * PX
 	_update_zoom()
 	hud.set_snapshot(sim.state)
@@ -140,13 +145,10 @@ func _read_events() -> void:
 		if int(event["id"]) <= event_cursor:
 			continue
 		event_cursor = int(event["id"])
-		if event["type"] in ["damage", "skill"]:
-			var id: String = str(event.get("actor", event.get("from", "")))
-			if id != "":
-				actor_pose[id] = {"pose": "skill" if event["type"] == "skill" else "attack",
-					"until": frames + 0.45}
+		animator.handle_event(event, frames)
 		if event.has("pos") and event["pos"] is Vector2:
 			flashes.append({"pos": event["pos"], "time": frames, "type": event["type"]})
+			effect_layer.play_event(str(event["type"]), event["pos"])
 		if event["type"] in ["level_up", "construction_complete", "seal_damage",
 				"field_pickup_claimed", "solo_round_end", "result"]:
 			hud.notify(str(event["type"]).replace("_", " ").to_upper())
@@ -190,18 +192,15 @@ func _draw_actor(p: Dictionary) -> void:
 		var hero_id: String = str(p.get("hero", "phan"))
 		var portrait: Texture2D = _art("res://art/sprite/" + hero_id + ".png")
 		if portrait != null:
-			var old_pos: Vector2 = actor_last_pos.get(p["id"], pos)
-			var walking: bool = old_pos.distance_to(pos) > 0.9
-			actor_last_pos[p["id"]] = pos
-			var last_pose: Dictionary = actor_pose.get(p["id"], {})
-			var pose: String = str(last_pose.get("pose", "walk" if walking else "idle")) if float(last_pose.get("until", 0)) > frames else ("walk" if walking else "idle")
+			var pose_data: Dictionary = animator.sample(str(p["id"]), pos, frames)
+			var pose: String = str(pose_data["pose"])
 			# Fullbody source contains four approved distinct poses, not fake frame indicators.
 			var frame_texture: Texture2D = _art("res://art/fullbody/" + hero_id + "_" + pose + ".png")
 			var destination := Rect2(pos + Vector2(-large * 1.95, -large * 2.8 + breath * 1.1),
 				Vector2(large * 3.9, large * 3.9))
 			if frame_texture != null:
 				# Four columns / two rows, eight actual frames from each approved animation.
-				var idx: int = posmod(int(frames * 8.0) + int(pos.x * 0.2), 8)
+				var idx: int = int(pose_data["frame"])
 				var cell := Vector2(float(frame_texture.get_width()) * 0.25,
 					float(frame_texture.get_height()) * 0.5)
 				var region := Rect2(Vector2(float(idx % 4) * cell.x,

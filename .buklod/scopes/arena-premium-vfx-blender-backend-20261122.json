@@ -1,0 +1,56 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/arena-premium-vfx-blender-backend-20261122.json",
+  "objective": "Enhance the embedded Godot offline Arena with bounded shader combat effects and stable 13-hero pose transitions, author an editable Blender environment source pipeline, and stop async ranked escrow ghost-seat loss on disconnect without affecting production.",
+  "baseRef": "30c62ddbfc7f7dd9de1669d8d0ab139f74a08e20",
+  "chosenApproach": "Layer GPU effects atop existing approved 2D atlases and keep 3D Blender kit additive; patch the already-authoritative Node coordinator rather than duplicate rank/points logic inside Godot.",
+  "allowedPaths": [
+    ".buklod/scopes/arena-premium-vfx-blender-backend-20261122.json",
+    "godot/empire-arena/scripts/arena_root.gd",
+    "godot/empire-arena/scripts/hero_animation.gd",
+    "godot/empire-arena/scripts/arena_effects.gd",
+    "godot/empire-arena/shaders/arena_impact.gdshader",
+    "godot/empire-arena/tests/premium_smoke.gd",
+    "scripts/generate-arena-blender-kit.py",
+    "scripts/build-empire-godot-pack.mjs",
+    "services/empire-arena/core.mjs",
+    "services/empire-arena/tests/core.test.mjs",
+    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
+    "docs/BUKLOD_ARENA_PREMIUM_VISUAL_BACKEND_DEV_20261122.md"
+  ],
+  "lockedFeatureChanges": [],
+  "regressionTests": [
+    "services/empire-arena/tests/core.test.mjs",
+    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Godot still launches within BUKLOD MAIN as signed staging-only offline practice",
+    "13 approved hero likenesses and 68 verified PNG assets remain unchanged",
+    "No changes to unrelated Expo navigation/ads/audio/network/legacy practice",
+    "Existing authoritative Node server remains sole ranked match and escrow owner",
+    "BP QMP and earned Diamonds cannot be minted or settled by client-side Godot",
+    "No live Supabase DDL or new billable infrastructure"
+  ],
+  "riskAreas": [
+    "Godot 4.7.2 shader parser/runtime not accessible in this execution",
+    "Blender 4.x not available; exports are authored source only",
+    "Android GPU/texture budget",
+    "Match startup refund must be confirmed by private RPC",
+    "New DEV work must reconcile with parallel Arena map/minion branches"
+  ],
+  "alternativeApproaches": [
+    "Replace approved 13 characters with procedural Blender people (rejected: visual identity regression)",
+    "Move ranked authority into mobile Godot process (rejected: trivial cheating)",
+    "Apply live Supabase SQL or provision paid server before proof (rejected: account/financial risk)"
+  ],
+  "productionBaselineEvidence": "GitHub main ecd34228dd24f07a47ba397bb1c29199aac51779 inspected; the exact live production runtime/device is not verified; staging Godot source branch inspected at 30c62ddbfc7f7dd9de1669d8d0ab139f74a08e20.",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "acceptanceChecks": [
+    "Compile Godot 4.7.2 scene and shader headlessly and physically render on Android",
+    "Export Blender kit on Blender 4.x and compare to owner-approved imagery",
+    "Pass Node server disconnect escrow behavioral regression",
+    "Build exact signed staging RC and independently verify AdMob/nav/landscape/reentry"
+  ]
+}
