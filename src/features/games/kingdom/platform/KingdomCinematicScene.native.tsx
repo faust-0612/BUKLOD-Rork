@@ -23,6 +23,8 @@ import BuklodSpecialCharacterArtV2 from '@/components/points/BuklodSpecialCharac
 import { subscribeBuklodGameCharacterMotion } from '@/features/games/runtime/characterMotionBus';
 import type { BuklodCharacterReaction } from '@/components/points/BuklodCharacterMotion';
 import { KINGDOM_CHARACTER_MOTION, getKingdomCinematicScene, type KingdomSceneProfile } from './KingdomCinematicScenes';
+import KingdomPremiumWorldArt, { getKingdomIllustratedArt } from './KingdomPremiumWorldArt';
+import KingdomGameSpriteAtlas from './KingdomGameSpriteAtlas';
 
 const TAU = Math.PI * 2;
 const CORE = ['phan','quin','van','christian','lhen'] as const;
@@ -211,6 +213,15 @@ function Scene({ gameId, profile, compact }: {
       ],
     };
   });
+  // One authored 2.5D landscape and focal object per game; subtle parallax
+  // runs on the UI thread and is fully stopped with app focus / Reduce Motion.
+  const worldStyle = useAnimatedStyle(() => ({
+    transform: [
+      {translateX: Math.sin(cycle.value * TAU) * 2.5},
+      {scale: 1.018 + .01 * Math.sin(cycle.value * TAU)},
+    ],
+  }));
+  const artCaption = getKingdomIllustratedArt(gameId)?.mission;
   const progressX = useDerivedValue(() => 10 + cycle.value * 212);
   const progressOpacity = useDerivedValue(() => .22 + (1-burst.value)*.6);
   const artSize = compact ? 62 : 86;
@@ -218,6 +229,13 @@ function Scene({ gameId, profile, compact }: {
   return <View pointerEvents="none" style={[
     styles.surface, { backgroundColor: profile.shade }, compact && styles.compact,
   ]} accessible={false}>
+    <Animated.View pointerEvents="none" style={[styles.paintedWorld, worldStyle]}>
+      <KingdomPremiumWorldArt gameId={gameId} opacity={.84} />
+    </Animated.View>
+    <View pointerEvents="none" style={styles.spriteHolder}>
+      <KingdomGameSpriteAtlas gameId={gameId} height={compact?62:102}/>
+    </View>
+    <View pointerEvents="none" style={styles.cinematicScrim}/>
     <View style={styles.artHolder}>
       <Animated.View style={characterStyle}>
         <KingdomHeroArt id={profile.character} size={artSize} />
@@ -228,7 +246,7 @@ function Scene({ gameId, profile, compact }: {
         {profile.glyph}  {profile.title.toUpperCase()}
       </Text>
       {!compact ? <Text numberOfLines={1} style={styles.subtitle}>
-        {profile.character.toUpperCase()} · LIVE GAMEPLAY MOTION
+        {artCaption ?? profile.character.toUpperCase() + ' · LIVE GAMEPLAY MOTION'}
       </Text> : null}
       <Canvas style={compact ? styles.canvasCompact : styles.canvas}>
         {Array.from({length:profile.density},(_,i)=>
@@ -255,8 +273,11 @@ const styles=StyleSheet.create({
     borderWidth:1, borderColor:'rgba(246,231,187,.35)', flexDirection:'row',
     alignItems:'center', marginBottom:6 },
   compact:{height:70,borderRadius:14},
-  artHolder:{width:89,alignItems:'center',justifyContent:'flex-end'},
-  right:{flex:1,paddingRight:9,minWidth:0},
+  paintedWorld:{...StyleSheet.absoluteFillObject,overflow:'hidden'},
+  spriteHolder:{position:'absolute',right:5,top:3,overflow:'hidden'},
+  cinematicScrim:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(12,21,23,.26)'},
+  artHolder:{width:89,alignItems:'center',justifyContent:'flex-end',zIndex:1},
+  right:{flex:1,paddingRight:9,minWidth:0,zIndex:1},
   title:{fontSize:13,fontWeight:'900',color:'#fff8ea',letterSpacing:.6},
   subtitle:{fontSize:9,color:'#e9eff3',fontWeight:'700',marginTop:2},
   canvas:{width:248,height:63},

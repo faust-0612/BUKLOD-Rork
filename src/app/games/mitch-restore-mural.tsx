@@ -13,6 +13,8 @@ import type { BuklodGameResult } from '@/features/games/types';
 import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
+import KingdomCinematicScene from '@/features/games/kingdom/platform/KingdomCinematicScene';
+import {playRorkSignatureSfx} from '@/features/games/runtime/rorkAudio';
 
 const GAME_ID = 'mitch-restore-mural';
 const FORGE_ID = 'mitch-block-forge';
@@ -22,6 +24,7 @@ function MitchInterior() {
   const { user } = useAuth();
   const { t } = useBuklodGameLanguage();
   const [selected, setSelected] = useState<'mural' | 'forge' | 'merge'>('forge');
+  const activeArtGameId=selected==='mural'?GAME_ID:selected==='merge'?MERGE_ID:FORGE_ID;
   const [record, setRecord] = useState<KingdomPreviewRecord | null>(null);
   const [notice, setNotice] = useState('');
   const liveOwner = useRef(user?.id ?? null);
@@ -69,21 +72,22 @@ function MitchInterior() {
         <Text style={styles.kicker}>MITCH • CHARACTER GAME CENTER</Text>
         <View style={styles.chooser}>
           <Pressable accessibilityRole="button" accessibilityState={{ selected: selected === 'forge' }}
-            style={[styles.option, selected === 'forge' && styles.active]} onPress={() => setSelected('forge')}>
+            style={[styles.option, selected === 'forge' && styles.active]} onPress={() => {void playRorkSignatureSfx(FORGE_ID);setSelected('forge');}}>
             <Text style={styles.optionText}>Block Forge</Text>
             <Text style={styles.optionSub}>{t('Block puzzle', 'Block puzzle')}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityState={{ selected: selected === 'merge' }}
-            style={[styles.option, selected === 'merge' && styles.active]} onPress={() => setSelected('merge')}>
+            style={[styles.option, selected === 'merge' && styles.active]} onPress={() => {void playRorkSignatureSfx(MERGE_ID);setSelected('merge');}}>
             <Text style={styles.optionText}>Color Merge</Text>
             <Text style={styles.optionSub}>{t('Blend paint tiles','Pagsamahin ang mga kulay')}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityState={{ selected: selected === 'mural' }}
-            style={[styles.option, selected === 'mural' && styles.active]} onPress={() => setSelected('mural')}>
+            style={[styles.option, selected === 'mural' && styles.active]} onPress={() => {void playRorkSignatureSfx(GAME_ID);setSelected('mural');}}>
             <Text style={styles.optionText}>Restore the Mural</Text>
             <Text style={styles.optionSub}>{t('Original art game', 'Orihinal na art game')}</Text>
           </Pressable>
         </View>
+        <KingdomCinematicScene key={activeArtGameId} gameId={activeArtGameId} compact />
         <Pressable accessibilityRole="button" accessibilityLabel="Play next Kingdom level offline"
           onPress={() => router.push({pathname:'/games/practice',params:{gameId:(selected === 'mural' ? GAME_ID : selected === 'merge' ? MERGE_ID : FORGE_ID)}} as any)}
           style={styles.practiceLink}>

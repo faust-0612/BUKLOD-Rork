@@ -92,6 +92,8 @@ function poolFor(key: RorkAudioKey) {
 
 function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
   if (focusedKingdomViews === 0 || AppState.currentState !== 'active') return false;
+  // Mini-game entrance cues and score SFX always respect the master sound toggle.
+  if (!isBuklodGameSoundEnabled()) return false;
   const now = Date.now();
   const last = lastPlayedAt.get(key) ?? 0;
   if (cooldownMs > 0 && now - last < cooldownMs) return false;
@@ -197,6 +199,8 @@ export function useRorkGameAmbience(gameId?: string | null) {
     // request. Never resume spontaneously while a competing source is active.
     let interruptedByOtherAudio = false;
     if (isKingdomMap) setMusicSuspended(false);
+    // Preserve Genesis map's exact tested focus contract. All 39 focused
+    // mini-games ALSO yield to ads, video and calls through the same bus.
     const releaseAudioFocus = isKingdomMap
       ? subscribeBuklodAudioFocus(owner => {
           if (owner === 'genesis-valley-map' || !active) return;
@@ -204,7 +208,12 @@ export function useRorkGameAmbience(gameId?: string | null) {
           setMusicSuspended(true);
           try { audio.pause(); } catch { /* optional ambience */ }
         })
-      : () => undefined;
+      : subscribeBuklodAudioFocus(owner => {
+          if (!active || owner === 'kingdom-game-stage') return;
+          interruptedByOtherAudio = true;
+          setMusicSuspended(true);
+          try { audio.pause(); } catch { /* optional ambience */ }
+        });
     audio.loop = true;
     const sync = async () => {
       try {

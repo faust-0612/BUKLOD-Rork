@@ -79,7 +79,92 @@ export const RORK_GAME_MEDIA: Record<string, RorkGameMedia> = {
   'quin-discovery-expedition': { background: BG.ruins, ambience: 'amb_desert', signature: 'pickup', accent: '#7f91d6' },
 };
 
+// Keep 26 pilot games in their original character biomes. Reuse the existing
+// verified scenic media and local music; never route pilot IDs to live-preview
+// remote audio or create 26 additional image downloads per session.
+const PILOT_PARENT: Readonly<Record<string, keyof typeof RORK_GAME_MEDIA>> = {
+  phan: 'phan-enterprise-builder',
+  quin: 'quin-discovery-expedition',
+  van: 'van-living-city-dispatch',
+  christian: 'christian-civic-leadership',
+  lhen: 'lhen-rhythm-journey',
+  jawo: 'jawo-forest-trail',
+  trudice: 'trudice-playground-memory',
+  ace: 'ace-rescue-grid',
+  mitch: 'mitch-restore-mural',
+  niel: 'niel-mission-trail',
+  angel: 'angel-kingdom-treasury',
+  vhen: 'vhen-farm-to-market',
+  elesur: 'elesur-village-builder',
+};
+const KINGDOM_PILOT_SCENIC_IDS = new Set<string>([
+  'phan-trade-master',
+  'phan-market-match',
+  'quin-guessing-quest',
+  'quin-code-breaker',
+  'van-sudoku-master',
+  'van-mind-challenge',
+  'christian-bible-crown',
+  'christian-scripture-word-search',
+  'lhen-melody-memory',
+  'lhen-beat-composer',
+  'jawo-trail-maze',
+  'jawo-nature-match',
+  'trudice-picture-pairs',
+  'trudice-word-garden',
+  'ace-chess-master',
+  'ace-tower-tactics',
+  'mitch-block-forge',
+  'mitch-color-merge',
+  'niel-expedition-puzzle',
+  'niel-word-explorer',
+  'angel-number-vault',
+  'angel-treasure-merge',
+  'vhen-harvest-match',
+  'vhen-farm-merge',
+  'elesur-domino-village',
+  'elesur-bridge-puzzle'
+]);
+// Source-local, genre-specific cue. Never fetch Rork preview-host MP3s.
+const PILOT_SIGNATURE_SFX: Readonly<Record<string,RorkAudioKey>> = {
+  'phan-trade-master':'coins',
+  'phan-market-match':'pickup',
+  'quin-guessing-quest':'ui_confirm',
+  'quin-code-breaker':'unlock',
+  'van-sudoku-master':'ui_confirm',
+  'van-mind-challenge':'unlock',
+  'christian-bible-crown':'unlock',
+  'christian-scripture-word-search':'ui_confirm',
+  'lhen-melody-memory':'beat_hit',
+  'lhen-beat-composer':'beat_combo',
+  'jawo-trail-maze':'mission_go',
+  'jawo-nature-match':'pickup',
+  'trudice-picture-pairs':'ui_confirm',
+  'trudice-word-garden':'pickup',
+  'ace-chess-master':'ui_confirm',
+  'ace-tower-tactics':'build_hit',
+  'mitch-block-forge':'build_hit',
+  'mitch-color-merge':'unlock',
+  'niel-expedition-puzzle':'mission_go',
+  'niel-word-explorer':'unlock',
+  'angel-number-vault':'coins',
+  'angel-treasure-merge':'unlock',
+  'vhen-harvest-match':'pickup',
+  'vhen-farm-merge':'build_hit',
+  'elesur-domino-village':'build_hit',
+  'elesur-bridge-puzzle':'mission_go',
+};
 export function getRorkGameMedia(gameId?: string | null) {
   if (!gameId) return null;
-  return RORK_GAME_MEDIA[gameId] ?? null;
+  const exact = RORK_GAME_MEDIA[gameId];
+  if (exact) return exact;
+  if (!KINGDOM_PILOT_SCENIC_IDS.has(gameId)) return null;
+  // Explicitly scoped to the reviewed 39-game catalog: avoid accidentally
+  // providing game audio or premium scene backgrounds to arbitrary routes.
+  const prefix = gameId.split('-')[0];
+  const parent = PILOT_PARENT[prefix];
+  if(!parent || !gameId.startsWith(prefix + '-'))return null;
+  const original=RORK_GAME_MEDIA[parent];
+  const signature=PILOT_SIGNATURE_SFX[gameId];
+  return signature?{...original,signature}:original;
 }

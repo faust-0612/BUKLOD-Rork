@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BuklodGameResult } from '@/features/games/types';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
+import { kingdomSwipeDirection } from './gestureRules.mjs';
 import {
   MATCH_LEVELS, createMatch3Round, match3LegalSwaps, performMatch3Swap,
   type MatchCell, type MatchGameId, type MatchRound,
@@ -61,6 +62,8 @@ export function MatchThreeGameV1({ gameId, onFinish }: Props) {
   const [lastMatch, setLastMatch] = useState(0);
   const sessionRef = useRef('');
   const finishedRef = useRef(false);
+  const touchOrigin = useRef<{row:number;col:number;x:number;y:number}|null>(null);
+  const didSwipe = useRef(false);
   const changePhase = (value: Phase) => { phaseRef.current = value; setPhase(value); };
   const levelSetup = useCallback((index: number, keepRetry = false) => {
     const next = createMatch3Round(gameId, index);
@@ -203,6 +206,7 @@ export function MatchThreeGameV1({ gameId, onFinish }: Props) {
             </Text>
           </View> : null)}
         </View>
+        <Text style={s.gestureNote}>{t('Swipe adjacent goods or tap two tiles to match.', 'I-swipe ang magkatabing produkto o i-tap ang dalawang tile.')}</Text>
         <View style={s.board}>
           {run.board.map((row, r) => <View key={r} style={s.boardRow}>
             {row.map((tile, c) => {
@@ -212,7 +216,29 @@ export function MatchThreeGameV1({ gameId, onFinish }: Props) {
               return <Pressable key={c} accessibilityRole="button"
                 accessibilityLabel={t('Row', 'Hanay') + ' ' + (r + 1) + ', ' + t('column', 'kolum') + ' ' + (c + 1) + ', ' + skin.items[tile]}
                 accessibilityState={{ selected: !!isSelected }}
-                onPress={() => pick({ row: r, col: c })}
+                onTouchStart={event => {
+                  touchOrigin.current={row:r,col:c,x:event.nativeEvent.pageX,y:event.nativeEvent.pageY};
+                  didSwipe.current=false;
+                }}
+                onTouchEnd={event => {
+                  const start=touchOrigin.current;touchOrigin.current=null;
+                  if(!start||phaseRef.current!=='playing')return;
+                  const direction=kingdomSwipeDirection(event.nativeEvent.pageX-start.x,
+                    event.nativeEvent.pageY-start.y);
+                  if(!direction)return;
+                  didSwipe.current=true;
+                  const target={
+                    row:start.row+(direction==='down'?1:direction==='up'?-1:0),
+                    col:start.col+(direction==='right'?1:direction==='left'?-1:0),
+                  };
+                  if(target.row>=0&&target.col>=0&&target.row<runRef.current.board.length&&
+                    target.col<runRef.current.board[0].length)swap(start,target);
+                }}
+                onTouchCancel={()=>{touchOrigin.current=null;didSwipe.current=false;}}
+                onPress={() => {
+                  if(didSwipe.current){didSwipe.current=false;return;}
+                  pick({ row:r,col:c });
+                }}
                 style={[s.cell, isSelected && s.selectedCell, isHint && s.hintedCell]}>
                 <Text style={s.piece}>{skin.items[tile]}</Text>
               </Pressable>;
@@ -255,6 +281,7 @@ const s = StyleSheet.create({
   goalEmoji: { fontSize: 22 },
   goalProgress: { color: '#f7e7cb', fontSize: 12, fontWeight: '900' },
   goalDone: { color: '#b5ecb0' },
+  gestureNote: { color:'#e5e3c4',fontSize:11,textAlign:'center',fontWeight:'700' },
   board: { maxWidth: 493, alignSelf: 'center', width: '100%', gap: 3, padding: 7, borderRadius: 14, backgroundColor: '#1d3a49', borderWidth: 2, borderColor: '#b2c39f' },
   boardRow: { flexDirection: 'row', gap: 3 },
   cell: { flex: 1, aspectRatio: 1, borderRadius: 7, backgroundColor: '#52746d', borderWidth: 1, borderColor: '#729383', justifyContent: 'center', alignItems: 'center' },

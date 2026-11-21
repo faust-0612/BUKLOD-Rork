@@ -2,7 +2,9 @@
  * Deterministic, offline and intentionally non-credit practice generator.
  * Runs in Expo native, web and Node without a runtime service or new native API.
  */
-export const KINGDOM_OFFLINE_MAX_LEVEL = 5000;
+import { buildKingdomSignatureMission } from './kingdomSignatureEncounters.mjs';
+// The practical integer ceiling is a platform safety limit, not a progression season end.
+export const KINGDOM_OFFLINE_MAX_LEVEL = Number.MAX_SAFE_INTEGER - 1;
 const THEMES = {
   phan: 'market stalls', quin: 'exploration routes', van: 'city districts',
   christian: 'community service teams', lhen: 'music rehearsals',
@@ -18,7 +20,7 @@ function hash(text) {
   }
   return result >>> 0;
 }
-function makeQuestion(prompt, correct, level, choiceSeed) {
+function makeQuestion(prompt, correct, level, choiceSeed, signature = null) {
   const value = Math.max(0, correct);
   const candidates = [value, value + 2 + level % 3,
     Math.max(0,value - (3 + level % 2)), value + 7 + level % 4];
@@ -28,10 +30,53 @@ function makeQuestion(prompt, correct, level, choiceSeed) {
   const shift = choiceSeed % 4;
   const choices = [...distinct.slice(shift),...distinct.slice(0,shift)].map(String);
   return {
-    prompt, choices, answer_index:choices.indexOf(String(value)),
+    prompt, choices, answer_index:choices.indexOf(String(value)), mode:'supplies',
+    visualTokens:signature?.visualTokens ?? ['📦','🛠️','🏡'],
+    encounterTitle:signature?.encounterTitle,
     explanation: 'Solution: ' + value + '. Review the quantities and operations in the problem.',
   };
 }
+
+/**
+ * Different hands-on encounters for all character stations. A level contains
+ * compass navigation, environmental pattern discovery and a supply puzzle.
+ * Difficulty and sequences vary deterministically without network/AI spending.
+ * These are NON-CREDIT local exercises, never server qualification evidence.
+ */
+function encounterQuestion(kind, level, seed, domain) {
+  if (kind === 'compass') {
+    const directions=['⬆️ North','➡️ East','⬇️ South','⬅️ West'];
+    const steps=level<10?2:level<100?3:4;
+    let heading=seed%4;
+    const turns=[];
+    for(let i=0;i<steps;i++){
+      const clockwise=((seed >>> ((i*5)%24)) & 1)===0;
+      turns.push(clockwise?'↪️ RIGHT':'↩️ LEFT');
+      heading=(heading+(clockwise?1:3))%4;
+    }
+    return {
+      prompt:'Level '+level+' compass mission: Guide the scout through '+domain+'. Start facing '+directions[seed%4]+
+        ' and follow each turn. Which direction faces the destination?',
+      choices:directions, answer_index:heading, mode:'compass',
+      visualTokens:['🧭',...turns,'🏕️'],
+      explanation:'The last compass heading is '+directions[heading]+'.',
+    };
+  }
+  const icons=['🌲','💧','☀️','⛰️'];
+  const rotation=(seed>>>3)%4;
+  const symbols=icons.map((_,i)=>icons[(i+rotation)%4]);
+  const period=level<20?2:level<200?3:4;
+  const shown=Array.from({length:period*2-1},(_,i)=>symbols[i%period]);
+  const right=symbols[(period*2-1)%period];
+  const choices=icons.slice((seed>>>9)%4).concat(icons.slice(0,(seed>>>9)%4));
+  return {
+    prompt:'Level '+level+' pattern mission: Study the repeating nature signals along '+domain+'. Which symbol comes next?',
+    choices,answer_index:choices.indexOf(right),mode:'pattern',
+    visualTokens:[...shown,'❔'],
+    explanation:'The sequence repeats every '+period+' symbols. Next is '+right+'.',
+  };
+}
+
 /**
  * @param {string} gameId
  * @param {number} level
@@ -81,11 +126,14 @@ export function buildKingdomOfflineLevel(gameId,level,userId) {
     [`A ${domain} count grows from ${a} by ${c} over ${b} rounds. Final count?`,a+b*c],
   ];
   const rotation=(level + (seed % types.length)) % types.length;
-  // Three distinct templates per level, widely separated across the pool.
-  const stride=Math.max(3,Math.floor(types.length/3));
-  return Array.from({length:3},(_,index)=>{
-    const [prompt,answer]=types[(rotation+index*stride)%types.length];
-    return makeQuestion(`Level ${level}, challenge ${index+1}: ${prompt}`,answer,
-      level,(seed >>> (index*7)) & 7);
-  });
+  // Three genuine interaction genres: spatial turns, visual pattern
+  // inference and supply calculation. No question pool grows with level.
+  const [prompt,answer]=types[rotation];
+  const signature = buildKingdomSignatureMission(gameId,Math.max(a,18),b,c);
+  return [
+    encounterQuestion('compass',level,seed,domain),
+    encounterQuestion('pattern',level,seed,domain),
+    makeQuestion('Level '+level+', '+(signature?.prompt ?? ('supply mission: '+prompt)),
+      signature?.answer ?? answer,level,(seed>>>14)&7,signature),
+  ];
 }
