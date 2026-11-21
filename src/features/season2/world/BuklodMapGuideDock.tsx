@@ -17,7 +17,7 @@ const SUGGESTIONS:readonly SuggestedAction[]=[
 ];
 const UTILITIES:readonly SuggestedAction[]=[
   {label:'Settings Engine',icon:'cog-outline',route:'/settings'},
-  {label:'My BUKLOD',icon:'home-heart-outline',route:'/season2/my-world'},
+  {label:'My BUKLOD',icon:'home-heart',route:'/season2/my-world'},
 ];
 export default function BuklodMapGuideDock({active}:{active:boolean}){
   const {activeScope}=useBuklodScope();

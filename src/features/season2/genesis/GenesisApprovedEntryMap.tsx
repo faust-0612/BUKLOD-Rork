@@ -90,7 +90,7 @@ export default function GenesisApprovedEntryMap({
         width:Math.min(115,mapWidth*.30),height:Math.min(115,mapWidth*.30),
         opacity:glow,
       }]}/>
-      <Image pointerEvents="none" source={GREEN_B} resizeMode="contain"
+      <Image source={GREEN_B} resizeMode="contain"
         style={[styles.centerB,{width:Math.min(92,mapWidth*.25),height:Math.min(92,mapWidth*.25)}]}/>
       {DOORS.map((door,index)=><Pressable key={door.id} accessibilityRole="button"
         accessibilityLabel={'Enter '+door.label}
