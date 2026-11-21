@@ -71,6 +71,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
     icon: 'castle', accent: '#FFD49E', destination: '/games',
     entries: [
       { label: 'Living Kingdom', route: '/games', description: 'World, games and creation' },
+      { label: 'Empire Arena', route: '/games/empire-arena', description: 'In-app landscape battles and fair offline practice' },
       { label: 'Collection', route: '/games/genesis-collection', description: 'Owned items and collectibles' },
       { label: 'Practice', route: '/games/practice', description: 'Learn to play without risk' },
     ],
