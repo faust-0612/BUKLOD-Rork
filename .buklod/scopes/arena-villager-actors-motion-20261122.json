@@ -1,0 +1,66 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/arena-villager-actors-motion-20261122.json",
+  "objective": "Render the twelve named Lux and Tenebra villagers as independently moving on-field units whose walking, work, facing and tactical display derive only from deterministic Arena game state.",
+  "baseRef": "dev/arena-two-faction-villagers-20261122",
+  "chosenApproach": "Extend the existing React Native SVG Arena renderer with visually distinct role/faction-specific lightweight vector rigs. Preserve the canonical offline simulation as the sole authority for unit coordinates, HP and job effects.",
+  "riskAreas": [
+    "arena-visual-pipeline",
+    "game-performance",
+    "svg-mobile",
+    "unit-ai",
+    "native-bundle",
+    "ranked-isolation",
+    "ads-and-navigation-regressions"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/arena-villager-actors-motion-20261122.json",
+    "src/features/games/empire/ArenaVillagerSprite.tsx",
+    "src/app/games/empire-arena.tsx",
+    "experiments/empire-arena-v2/arena-v2-villagers.mjs",
+    "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "game-kingdom",
+      "reason": "Replace placeholder SVG villagers with data-driven 12-character on-field animated actors only.",
+      "preservedBehaviors": [
+        "No client-trusted moves, damage, skills, wallet awards, ranked results or persistent character/item provenance changes.",
+        "Arena renderer stays inside BUKLOD MAIN, without new native modules."
+      ],
+      "tests": [
+        "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Use already-installed SVG components inside the existing Arena-only battlefield render path.",
+      "preservedBehaviors": [
+        "No main navigation/ads/consent changes, no automatic OTA or production publication.",
+        "Position/motion only follow simulated game updates."
+      ],
+      "tests": [
+        "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Production and ranked server unchanged.",
+    "SFX, core gameplay and team control remain intact.",
+    "Two teams remain mechanically symmetric; only appearance differs.",
+    "Supplied artwork is a reference poster, not falsely treated as twelve exact transparent riggable sprites."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "dev-visual-integration-candidate",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "acceptanceChecks": [
+    "Focused test must prove real world position changes and facing timestamps.",
+    "Exact-head Arena Android Metro build must pass.",
+    "Engineering Accountability protected feature scope gate must pass.",
+    "Visually check both 6-villager factions, combat animation, responsiveness on real Android before RC/OTA.",
+    "Real transparent character cutouts remain separate art-fidelity work."
+  ]
+}
