@@ -58,7 +58,7 @@ test('Genesis Home redirects to the single approved Valley and retains first-vie
   const map=src('src/app/buklod-map.tsx');
   assert.match(home,/<Redirect href="\/buklod-map" \/>/);
   const firstAd=map.indexOf('<BuklodFirstViewAd placement="home"');
-  const valley=map.indexOf('<GenesisValleyMap');
+  const valley=map.indexOf('<GenesisApprovedEntryMap');
   const guide=map.indexOf('<GenesisWorldGuide');
   assert.ok(firstAd>=0&&valley>firstAd&&guide>valley);
   assert.match(map,/if \(!isGenesisPreviewBuild\(\)\)/);
