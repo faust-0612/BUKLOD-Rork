@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-godot-13-hero-owner-source-20261122.json",
-  "objective": "Embed all 13 user-approved BUKLOD hero identities in the real Godot 4.7.2 engine within the existing unified MAIN Android staging native runtime; directly execute original six .gd skill identities and seven distinct approved special skill actions, with line-of-sight, shield limits and first-level ultimate. Include premium native 3-lane 4-role minion waves, two-team named villagers/role jobs, and real Godot touch worker command controls.",
+  "objective": "Embed all 13 user-approved BUKLOD hero identities in the real Godot 4.7.2 engine within the existing unified MAIN Android staging native runtime; directly execute original six .gd skill identities and seven distinct approved special skill actions, with line-of-sight, shield limits and first-level ultimate. Include premium native 3-lane 4-role minion waves, two-team named villagers/role jobs, and real Godot touch worker command controls. Reconcile latest independently-scoped November 22 mentor lesson catalog, report UX and RLS migration artifacts from main production intake without mutating production database.",
   "baseRef": "integration/genesis-unified-godot-native-staging-20261122",
   "chosenApproach": "Use the owner's exact 13-hero JSON design as immutable embedded source, bundle six original Godot .gd scripts rather than converting them to React Native, implement seven unique GDScript actions and headless smoke tests; preserve existing JS Arena fallback and Godot world previews pending complete game parity.",
   "allowedPaths": [
@@ -23,13 +23,61 @@
     "godot/empire-arena/tests/native_minion_smoke.gd",
     "godot/empire-arena/tests/native_villager_smoke.gd",
     "tests/genesis-native-minion-wave-20261122.test.mjs",
-    "tests/genesis-native-villager-roles-20261122.test.mjs"
+    "tests/genesis-native-villager-roles-20261122.test.mjs",
+    "src/app/admin/learning/mentors.tsx",
+    "src/app/learn/[id].tsx",
+    "src/app/learn/lesson.tsx",
+    "src/app/mentoring/index.tsx",
+    "src/components/LearningQuestionResponse.tsx",
+    "src/app/faith/mentor-evidence.tsx",
+    "supabase/migrations/20261121132000_mentor_report_catalog_titles_and_role_clarity.sql",
+    "supabase/migrations/20261121141000_admin_mentor_capability_review_audit_v1.sql",
+    "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql",
+    "supabase/tests/mentor_capability_release_guard_20261121.sql",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+    "tests/fixtures/mentor-capability-postgres17-20261121.sql",
+    "tests/fixtures/mentor-capability-postgres17-verification-20261121.sql",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "tests/mentor-report-selector-access-20261121.test.mjs",
+    "docs/incidents/20261121_live_mentor_ccp5_access_and_receipt.md"
   ],
-  "lockedFeatureChanges": [],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Bring all newly published lesson/mentoring review catalog and reporting UX into Genesis staging while retaining existing message and photo submission behavior.",
+      "preservedBehaviors": [
+        "Existing login, member role and learner privacy remain server enforced",
+        "No lesson failure score is incorrectly minted by client; database-backed eligibility governs access",
+        "App gameplay, AdMob and navigation remain isolated"
+      ],
+      "tests": [
+        "tests/lesson-checking-mentor-options-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Include latest mentor capability authorization and complete published lesson catalog RLS migration source without applying any migration to production or main project.",
+      "preservedBehaviors": [
+        "No live database migrations executed or service-role key exposed",
+        "Authorized mentor role checked by server RPC and no authorization bypass",
+        "Private photos and financial/points rewards retain existing RLS and admin workflow"
+      ],
+      "tests": [
+        "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+        "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
+      ]
+    }
+  ],
   "regressionTests": [
     "tests/genesis-godot-13-hero-runtime-20261122.test.mjs",
     "tests/genesis-native-minion-wave-20261122.test.mjs",
-    "tests/genesis-native-villager-roles-20261122.test.mjs"
+    "tests/genesis-native-villager-roles-20261122.test.mjs",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "tests/mentor-report-selector-access-20261121.test.mjs",
+    "supabase/tests/mentor_capability_release_guard_20261121.sql",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
   ],
   "preserveBehaviors": [
     "Godot Arena stays inside the ONE BUKLOD MAIN package; no second APK/app",
@@ -53,7 +101,11 @@
     "Android ABI/native runtime",
     "signed staging identity and device install",
     "Game NPC concurrency and lane cap",
-    "Villager resource conservation and role HUD"
+    "Villager resource conservation and role HUD",
+    "app-runtime",
+    "backend-security",
+    "faith-cluster",
+    "mentor authorization and private photo access"
   ],
   "releaseMode": "DEV_ONLY_NO_EAS_NO_OTA_NO_PRODUCTION",
   "physicalDeviceVerification": "NOT_PERFORMED",
@@ -63,7 +115,8 @@
     "Gradle Android arm64 compile with 13 active native skill files and 4 world scenes",
     "Exact ZIP-in-APK SHA and native Godot lib check",
     "Do not sign or distribute over existing staging until all pending audio/villagers/Kingdom/Community/House/SOS/backend/physical-device gates pass",
-    "Run actual Godot native_minion_smoke and native_villager_smoke scripts; assert no accidental finance/ledger."
+    "Run actual Godot native_minion_smoke and native_villager_smoke scripts; assert no accidental finance/ledger.",
+    "Focused lesson checking, mentor report access, catalog and migration RLS tests; no production database mutation."
   ],
   "productionBaselineEvidence": "Production remains org.mzbministry.buklod, runtime 1.3.2, production channel. Existing unified staging integration origin 36e407a76731b97c0562c8c8000fcd01b99870f0. Prior EAS 2.0.0 signing identity retained and pinned in verifier. No release attempted."
 }
