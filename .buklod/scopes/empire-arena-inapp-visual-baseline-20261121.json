@@ -48,7 +48,8 @@
     "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
-    "tests/sql/arena_ranked_private_integrity.sql"
+    "tests/sql/arena_ranked_private_integrity.sql",
+    "tests/empire-arena-v2-ranked-seat-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -151,7 +152,8 @@
     "services/empire-arena/server.mjs",
     "services/empire-arena/supabaseStore.mjs",
     "services/empire-arena/tests/core.test.mjs",
-    "src/features/games/empire/rankedClient.ts"
+    "src/features/games/empire/rankedClient.ts",
+    "tests/empire-arena-v2-ranked-seat-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -165,7 +167,8 @@
         "tests/empire-arena-v2-presentation-20261121.test.mjs",
         "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
         "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
-        "tests/empire-arena-v2-animated-bundle-20261121.test.mjs"
+        "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
+        "tests/empire-arena-v2-ranked-seat-20261121.test.mjs"
       ]
     },
     {
