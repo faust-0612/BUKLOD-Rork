@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const catalog = JSON.parse(read('src/features/games/kingdom/platform/game-catalog.json'));
 const games = catalog.characters.flatMap(c => c.games.map(g => g.id));
 
-test('all 39 Kingdom games retain 200 deterministic base levels and extend to 5000 free levels', () => {
+test('all 39 Kingdom games retain 200 deterministic levels and extend beyond 5000 free visual encounters', () => {
   assert.equal(games.length,39);
   assert.equal(new Set(games).size,39);
   for(const game of games) {
@@ -19,8 +19,12 @@ test('all 39 Kingdom games retain 200 deterministic base levels and extend to 50
         assert.equal(item.choices.length,4);
         assert.equal(new Set(item.choices).size,4);
         assert.ok(item.answer_index>=0&&item.answer_index<4);
-        assert.match(item.choices[item.answer_index], /^\d+$/);
-        assert.match(item.explanation, /Solution: \d+/);
+        assert.ok(['compass','pattern','supplies'].includes(item.mode));
+        assert.ok(item.visualTokens.length>=3);
+        if (item.mode==='supplies') {
+          assert.match(item.choices[item.answer_index], /^\d+$/);
+          assert.match(item.explanation, /Solution: \d+/);
+        } else assert.ok(item.explanation.length>15);
         assert.ok(!prompts.has(item.prompt),game+' duplicated '+item.prompt);
         prompts.add(item.prompt);
       }
@@ -29,7 +33,8 @@ test('all 39 Kingdom games retain 200 deterministic base levels and extend to 50
   }
   assert.notDeepEqual(buildKingdomOfflineLevel(games[0],5,'account-A'),
     buildKingdomOfflineLevel(games[0],5,'account-B'));
-  for(const invalid of [0,5001,-1,2.5,NaN]) {
+  assert.equal(buildKingdomOfflineLevel(games[0],5001,'account-A').length,3);
+  for(const invalid of [0,Number.MAX_SAFE_INTEGER,-1,2.5,NaN]) {
     assert.deepEqual(buildKingdomOfflineLevel(games[0],invalid,'account-A'),[]);
   }
 });

@@ -91,8 +91,8 @@ test('all three powers have a concrete noncredit practice effect, offline cached
   assert.doesNotMatch(practice,/supabase\.rpc|awardBP|mintShards|giveMoney/);
 });
 
-test('free deterministic continuation has 39 valid games and 5,000 levels each',()=>{
-  assert.equal(KINGDOM_OFFLINE_MAX_LEVEL,5000);
+test('all 39 local continuation games retain 5,000 levels and expand through endless visual practice',()=>{
+  assert.ok(KINGDOM_OFFLINE_MAX_LEVEL>5000);
   assert.equal(gameIds.length,39);
   assert.equal(new Set(gameIds).size,39);
   for(const gameId of gameIds) {
@@ -106,12 +106,16 @@ test('free deterministic continuation has 39 valid games and 5,000 levels each',
         assert.equal(q.choices.length,4);
         assert.equal(new Set(q.choices).size,4);
         assert.ok(q.answer_index>=0 && q.answer_index<4);
-        assert.match(q.choices[q.answer_index],/^\d+$/);
-        assert.match(q.explanation,/Solution: \d+/);
+        assert.ok(['compass','pattern','supplies'].includes(q.mode));
+        assert.ok(q.visualTokens.length>=3);
+        if(q.mode==='supplies'){
+          assert.match(q.choices[q.answer_index],/^\d+$/);
+          assert.match(q.explanation,/Solution: \d+/);
+        }else assert.ok(q.explanation.length>15);
       });
     }
   }
-  assert.deepEqual(buildKingdomOfflineLevel(gameIds[0],5001,'test-user-a'),[]);
+  assert.equal(buildKingdomOfflineLevel(gameIds[0],5001,'test-user-a').length,3);
   assert.notDeepEqual(buildKingdomOfflineLevel(gameIds[0],5000,'test-user-a'),
     buildKingdomOfflineLevel(gameIds[0],5000,'test-user-b'));
   const generator=read('src/features/games/kingdom/platform/kingdomOfflineGenerator.mjs');

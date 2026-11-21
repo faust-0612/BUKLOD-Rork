@@ -53,7 +53,7 @@ function encounterQuestion(kind, level, seed, domain) {
       heading=(heading+(clockwise?1:3))%4;
     }
     return {
-      prompt:'Guide the scout through '+domain+'. Start facing '+directions[seed%4]+
+      prompt:'Level '+level+' compass mission: Guide the scout through '+domain+'. Start facing '+directions[seed%4]+
         ' and follow each turn. Which direction faces the destination?',
       choices:directions, answer_index:heading, mode:'compass',
       visualTokens:['🧭',...turns,'🏕️'],
@@ -68,7 +68,7 @@ function encounterQuestion(kind, level, seed, domain) {
   const right=symbols[(period*2-1)%period];
   const choices=icons.slice((seed>>>9)%4).concat(icons.slice(0,(seed>>>9)%4));
   return {
-    prompt:'Study the repeating nature signals along '+domain+'. Which symbol comes next?',
+    prompt:'Level '+level+' pattern mission: Study the repeating nature signals along '+domain+'. Which symbol comes next?',
     choices,answer_index:choices.indexOf(right),mode:'pattern',
     visualTokens:[...shown,'❔'],
     explanation:'The sequence repeats every '+period+' symbols. Next is '+right+'.',

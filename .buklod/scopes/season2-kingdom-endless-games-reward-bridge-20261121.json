@@ -24,10 +24,14 @@
     "src/features/games/kingdom/platform/kingdomEndlessProgression.mjs",
     "src/features/games/kingdom/platform/kingdomEndlessProgression.d.mts",
     "tests/kingdom-season2-endless-economy-20261121.test.mjs",
-    ".buklod/scopes/season2-kingdom-endless-games-reward-bridge-20261121.json"
+    ".buklod/scopes/season2-kingdom-endless-games-reward-bridge-20261121.json",
+    "tests/kingdom-shards-free-powers-20261111.test.mjs",
+    "tests/kingdom-complete-user-experience-20261111.test.mjs"
   ],
   "regressionTests": [
-    "tests/kingdom-season2-endless-economy-20261121.test.mjs"
+    "tests/kingdom-season2-endless-economy-20261121.test.mjs",
+    "tests/kingdom-shards-free-powers-20261111.test.mjs",
+    "tests/kingdom-complete-user-experience-20261111.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -52,7 +56,8 @@
     "Existing Genesis audio-focus regression and all 39-game source tests pass.",
     "Exact-head TypeScript and Android Metro native asset compile pass.",
     "Existing protected feature and AdMob/navigation source gates remain passing.",
-    "Never claim runtime device QA, wallet activation or OTA receipt from a source commit alone."
+    "Never claim runtime device QA, wallet activation or OTA receipt from a source commit alone.",
+    "Existing 5,000-level numeric-only source tests are updated to assert three interactive genres and 5,001+ progression without weakening Shards or user data protection."
   ],
   "productionBaselineEvidence": "verified: GitHub main is the existing production code repository source reference, and this change explicitly isolates to the already reviewed DEV Season2 conso branch; current installed production APK or live OTA fingerprint not verified.",
   "publicationStatus": "DEV_ONLY_NO_OTA",
