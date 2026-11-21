@@ -34,6 +34,8 @@ test('admin cannot silently assign a non-mentor or enable a protected official',
   assert.match(roles,/public\.is_system_admin\(\)/);
   assert.match(roles,/buklod_foundation_protected_principals/);
   assert.match(roles,/target_role='system_admin'/);
+  assert.match(roles,/create trigger buklod_guard_protected_mentor_capability_v1/);
+  assert.match(roles,/before insert or update of capability, is_active, user_id/);
   assert.match(roles,/private\.buklod_mentor_capability_audit_v1/);
   assert.match(roles,/pg_advisory_xact_lock/);
   assert.match(roles,/p_request_key/);
@@ -55,5 +57,7 @@ test('learner completion uses user-scoped saved response and server receipt befo
   assert.match(lessonResponse,/typeof result\.response_id !== 'string'/);
   assert.match(lessonResponse,/BUKLOD lesson receipt:/);
   assert.match(lessonResponse,/Typing answers does not submit them/);
+  assert.match(lessonResponse,/A failed dashboard refresh is not a failed submission/);
+  assert.match(lessonResponse,/await onSubmitted\(\)/);
   assert.match(lessonResponse,/complete_my_formation_lesson_v2/);
 });
