@@ -17,7 +17,8 @@
     "ads-monetization",
     "audio-focus",
     "economy-integrity",
-    "release-pipeline"
+    "release-pipeline",
+    "release-identity"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
