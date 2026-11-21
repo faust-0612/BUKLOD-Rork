@@ -40,6 +40,67 @@ export type BuklodPttSetupSnapshot = {
 
 const ONBOARDING_KEY = 'buklod.ptt.onboarding.v1';
 const ROUTE_MODE_KEY = 'buklod.ptt.routeMode.v1';
+const SETTINGS_KEY_PREFIX = 'buklod.ptt.userSettings.v2.';
+
+export type BuklodPttUserSettings = {
+  routeMode: BuklodPttRouteMode;
+  scopeId: string;
+  channel: number;
+  listening: boolean;
+  talkMode: 'NORMAL' | 'PRIORITY';
+};
+
+export function defaultBuklodPttUserSettings(): BuklodPttUserSettings {
+  return { routeMode: 'AUTO', scopeId: '', channel: 1, listening: true, talkMode: 'NORMAL' };
+}
+
+function settingsKey(userId: string) {
+  // Preferences must never cross accounts on the same phone.
+  if (!userId || !/^[a-zA-Z0-9_-]{8,128}$/.test(userId)) {
+    throw new Error('A signed-in member is required for PTT settings.');
+  }
+  return SETTINGS_KEY_PREFIX + userId;
+}
+
+export async function loadBuklodPttUserSettings(userId: string): Promise<BuklodPttUserSettings> {
+  const raw = await AsyncStorage.getItem(settingsKey(userId));
+  const defaults = defaultBuklodPttUserSettings();
+  if (!raw) {
+    // Read the former mode setting only for first-time migration. Future changes
+    // are scoped to the authenticated member, not shared across account switches.
+    return { ...defaults, routeMode: await loadBuklodPttRouteMode() };
+  }
+  let saved: Partial<BuklodPttUserSettings>;
+  try {
+    saved = JSON.parse(raw);
+  } catch {
+    throw new Error('Saved PTT settings are unreadable. Please repair app storage.');
+  }
+  return {
+    routeMode: ['AUTO', 'INTERNET', 'NEARBY'].includes(String(saved?.routeMode))
+      ? saved.routeMode as BuklodPttRouteMode : defaults.routeMode,
+    scopeId: typeof saved?.scopeId === 'string' ? saved.scopeId : '',
+    channel: Number.isInteger(saved?.channel) && Number(saved.channel) >= 1 &&
+      Number(saved.channel) <= 10 ? Number(saved.channel) : 1,
+    listening: typeof saved?.listening === 'boolean' ? saved.listening : true,
+    talkMode: saved?.talkMode === 'PRIORITY' ? 'PRIORITY' : 'NORMAL',
+  };
+}
+
+export async function saveBuklodPttUserSettings(
+  userId: string,
+  settings: BuklodPttUserSettings,
+): Promise<void> {
+  if (
+    !['AUTO', 'INTERNET', 'NEARBY'].includes(settings.routeMode) ||
+    !Number.isInteger(settings.channel) ||
+    settings.channel < 1 || settings.channel > 10 ||
+    !['NORMAL', 'PRIORITY'].includes(settings.talkMode) ||
+    typeof settings.listening !== 'boolean'
+  ) throw new Error('Invalid PTT settings.');
+  // Never swallow a write failure: only acknowledge Saved after disk succeeds.
+  await AsyncStorage.setItem(settingsKey(userId), JSON.stringify(settings));
+}
 
 async function openAndroidIntent(action: string) {
   try {
@@ -311,5 +372,7 @@ export function resolveBuklodPttRoute(
     return 'NEARBY';
   }
   if (setup.internet) return 'INTERNET';
-  return 'NEARBY';
+  // There is no verified peer-to-peer transport in the current Android build.
+  // Lack of internet is a disconnected Internet state, not a Nearby success.
+  return 'INTERNET';
 }
