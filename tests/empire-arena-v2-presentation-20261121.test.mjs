@@ -51,6 +51,7 @@ test('Visual effects are only recent display metadata, not reward operations', (
   assert.deepEqual(arenaVisualEffects(sample, 1500).map(e=>e.type), ['dash']);
   assert.deepEqual(arenaVisualEffects(sample, 1500, 1500).map(e=>e.type), ['skill','defeat','dash']);
   assert.deepEqual(arenaVisualEffects(sample, 3000), []);
+  assert.equal(arenaVisualEffects([{seq:9,time:3000,type:'damage',from:'B0',to:'A0'}],3050).length,1,'CPU hits produce visible native feedback');
   assert.equal(arenaVisualEffects(sample, 1200)[0].strength <= 1, true);
 });
 
