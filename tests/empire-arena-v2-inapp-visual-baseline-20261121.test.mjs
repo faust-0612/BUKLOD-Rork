@@ -62,6 +62,10 @@ test('Generated artwork is committed to an immutable SHA-addressed baseline, no 
     assert.notEqual(unsafe.status, 0);
     const wrongType = spawnSync(process.execPath, [importer, '--root', work, '--source', source, '--kind', 'hero', '--id', 'unknown-character'], { encoding: 'utf8' });
     assert.notEqual(wrongType.status, 0);
-    assert.equal(readFileSync(manifestPath, 'utf8'), readFileSync(manifestPath, 'utf8'));
+    const invalid = join(work, 'not-an-image.png');
+    writeFileSync(invalid, Buffer.alloc(64, 0));
+    const rejected = spawnSync(process.execPath, [importer, '--root', work, '--source', invalid, '--kind', 'scene', '--id', 'aurora_foundry'], { encoding: 'utf8' });
+    assert.notEqual(rejected.status, 0);
+    assert.equal(JSON.parse(readFileSync(manifestPath, 'utf8')).assets.length, 1);
   } finally { rmSync(work, { recursive: true, force: true }); }
 });
