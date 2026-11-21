@@ -1,0 +1,90 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-arena-navigation-viewport-20261121.json",
+  "objective": "Correct the actual November 21 BUKLOD Empire Arena landscape Android screenshot regressions: toolbar/lobby overlaps, bottom navigation over game, fixed viewport and missing zoom/pan/minimap navigation, without modifying gameplay or earned economy.",
+  "baseRef": "92712e5da90711a3ec3406ddabdf981bd738e2c4",
+  "productionBaselineEvidence": "Main/Play production unchanged and no EAS OTA published from this isolated branch. 2026-11-21 screenshots document current Android preview defects, not evidence of passed Android runtime checks. Current source is a protected DEV-only PR based on consolidated Season 2 branch.",
+  "chosenApproach": "One Expo native in-app Arena camera/presentation upgrade, guarded immersive shell, scrollable adaptive lobby, existing licensed/packaged battlefield art, pure deterministic camera math and regression proof. Preserve the canonical arena game engine and existing EAS/native constraints.",
+  "riskAreas": [
+    "navigation-auth",
+    "navigation-scroll",
+    "ads-first-view",
+    "android-landscape-safearea",
+    "orientation-cleanup",
+    "character-graphics",
+    "input-touch-gesture",
+    "battlefield-camera-bounds",
+    "ranked-financial-integrity",
+    "staging-native-runtime"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Adjust Arena Expo native rendering, safe-area state and reusable viewport math in isolated preview source.",
+      "preservedBehaviors": [
+        "All existing production and non-Genesis screens retain their normal dashboard, ads and bottom navigation; the immersive bypass applies only to the guarded Arena route.",
+        "Auth, Show Faith, maintenance, mandatory update, consent and pilot gate remain untouched; ranked Diamond/BP/QMP/marketplace writes stay disabled.",
+        "Full app orientation and status-bar controls are restored on Arena exit, with no native dependency additions.",
+        "Existing first-view AdMob and fast dashboard navigation protections outside the active Arena remain unchanged."
+      ],
+      "tests": [
+        "tests/empire-arena-game-navigation-viewport-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Suppress root global nav/ad overlays only on /games/empire-arena; all route guards and legacy navigation remain intact.",
+      "preservedBehaviors": [
+        "All existing production and non-Genesis screens retain their normal dashboard, ads and bottom navigation; the immersive bypass applies only to the guarded Arena route.",
+        "Auth, Show Faith, maintenance, mandatory update, consent and pilot gate remain untouched; ranked Diamond/BP/QMP/marketplace writes stay disabled.",
+        "Full app orientation and status-bar controls are restored on Arena exit, with no native dependency additions.",
+        "Existing first-view AdMob and fast dashboard navigation protections outside the active Arena remain unchanged."
+      ],
+      "tests": [
+        "tests/empire-arena-game-navigation-viewport-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Make Arena's canonical hero and map visually navigable without modifying hero progression, arena logic, inventory or Diamond/BP authority.",
+      "preservedBehaviors": [
+        "All existing production and non-Genesis screens retain their normal dashboard, ads and bottom navigation; the immersive bypass applies only to the guarded Arena route.",
+        "Auth, Show Faith, maintenance, mandatory update, consent and pilot gate remain untouched; ranked Diamond/BP/QMP/marketplace writes stay disabled.",
+        "Full app orientation and status-bar controls are restored on Arena exit, with no native dependency additions.",
+        "Existing first-view AdMob and fast dashboard navigation protections outside the active Arena remain unchanged."
+      ],
+      "tests": [
+        "tests/empire-arena-game-navigation-viewport-20261121.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/empire-arena-game-navigation-viewport-20261121.test.mjs",
+    "tests/season2-empire-arena-conso-intake-20261121.test.mjs",
+    "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-arena-navigation-viewport-20261121.json",
+    ".github/workflows/season2-empire-arena-conso-qa-20261121.yml",
+    "src/app/games/empire-arena.tsx",
+    "src/components/BuklodNavSafeShell.tsx",
+    "src/features/games/empire/arenaViewportControls.mjs",
+    "src/features/games/empire/arenaPracticePresentation.mjs",
+    "tests/empire-arena-game-navigation-viewport-20261121.test.mjs"
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "preserveBehaviors": [
+    "All existing production and non-Genesis screens retain their normal dashboard, ads and bottom navigation; the immersive bypass applies only to the guarded Arena route.",
+    "Auth, Show Faith, maintenance, mandatory update, consent and pilot gate remain untouched; ranked Diamond/BP/QMP/marketplace writes stay disabled.",
+    "Full app orientation and status-bar controls are restored on Arena exit, with no native dependency additions.",
+    "Existing first-view AdMob and fast dashboard navigation protections outside the active Arena remain unchanged."
+  ],
+  "outOfScope": [
+    "New native modules or APK builds",
+    "Production deployment/OTA",
+    "Server-authoritative ranked WSS activation or Supabase SQL migrations",
+    "Changes to BP, QMP, Character Diamonds or payouts"
+  ]
+}
