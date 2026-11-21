@@ -12,6 +12,7 @@ import {Image} from 'expo-image';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {getGenesisDeviceQuality} from './genesisDeviceQuality';
 import valley from './genesisValleyHotspots.json';
+import {layoutHotspotCenters} from './genesisHitTargetLayout';
 
 export type GenesisValleyHotspot = Readonly<{
   id: string;
@@ -54,6 +55,11 @@ export default function GenesisValleyMap({
   const points = useMemo(
     () => GENESIS_VALLEY_HOTSPOTS.filter(h => !h.faithOnly || showFaith),
     [showFaith],
+  );
+
+  const hitCenters = useMemo(
+    () => layoutHotspotCenters(points,imageWidth,imageHeight,zoomed?48:44),
+    [points,imageWidth,imageHeight,zoomed],
   );
 
   useEffect(() => {
@@ -121,13 +127,11 @@ export default function GenesisValleyMap({
             accessibilityLabel="Approved BUKLOD landscape world with twelve one-tap destinations"
             accessible={false}
           />
-          {points.map(hotspot => {
+          {points.map((hotspot,index) => {
             const chosen = hotspot.id === selectedHotspotId;
-            // Keep gold-icon center alignment while enlarging tap targets for Android.
-            // Clamp edge icons to the image so no target is clipped on narrow phones.
+            // Keep 44dp minimum taps independent, even when labels nearly touch at 280dp.
             const diameter = zoomed ? 48 : 44;
-            const x = Math.max(diameter / 2, Math.min(imageWidth - diameter / 2, hotspot.x * imageWidth));
-            const y = Math.max(diameter / 2, Math.min(imageHeight - diameter / 2, hotspot.y * imageHeight));
+            const {x,y} = hitCenters[index];
             return (
               <Pressable
                 key={hotspot.id}
