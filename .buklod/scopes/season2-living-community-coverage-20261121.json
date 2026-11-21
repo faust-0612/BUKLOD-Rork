@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-living-community-coverage-20261121.json",
   "objective": "Implement one canonical Village/Home community facilities taxonomy, searchable and browsable in existing premium Season 2 scenes, with truthful planned-vs-linked status and direct existing-route navigation.",
-  "baseRef": "fc482130e79d9126967249ea743e0f50a94dfaad",
-  "productionBaselineEvidence": "Isolated branch forked from existing verified DEV branch dev/season2-village-home-guide-20261121 commit fc482130e79d9126967249ea743e0f50a94dfaad. Production installed APK/OTA fingerprint not checked; do not infer prod feature state.",
+  "baseRef": "1d611a3f27f89478c3d0d3de20cfe897a4473abe",
+  "productionBaselineEvidence": "Scoped changes are compared against exact current parent DEV commit 1d611a3f27f89478c3d0d3de20cfe897a4473abe after preserving its guide/Android touch fixes. No independent installed production APK or OTA fingerprint verification was performed, and this is not a production release.",
   "chosenApproach": "Extend the already approved premium Stage 1 scenes with a collapsed searchable public facility directory; no map art edits, new backend authority or native SDK.",
   "selectionRationale": "Keeps one-tap doors, enables complete categorization without duplicating BUKLOD Bahay, Walls, Focus Apps or Economy, and avoids advertising unbuilt infrastructure as live.",
   "alternativeApproaches": [
@@ -68,6 +68,7 @@
   "reconciliationEvidence": {
     "fromParentCommit": "1d611a3f27f89478c3d0d3de20cfe897a4473abe",
     "priorFeatureCommit": "328da4ac0058ce2ce9325c60eb22758d4cc9f082",
-    "reason": "Parent added React Native type fixes, reusable guide destinations helper and map hit-target layout. Use complete parent tree and overlay only new directory plus helper hint changes."
+    "reason": "Parent added React Native type fixes, reusable guide destinations helper and map hit-target layout. Use complete parent tree and overlay only new directory plus helper hint changes.",
+    "scopeDiffBaseRef": "1d611a3f27f89478c3d0d3de20cfe897a4473abe"
   }
 }

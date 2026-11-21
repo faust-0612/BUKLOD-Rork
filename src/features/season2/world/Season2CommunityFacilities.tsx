@@ -36,7 +36,7 @@ export default function Season2CommunityFacilities({world}:{world:World}) {
       accessibilityState={{expanded}} onPress={()=>setExpanded(v=>!v)} style={styles.heading}>
       <View style={styles.titleArea}>
         <Text style={styles.title}>{world==='village'?'VILLAGE FACILITIES & SERVICES':'PERSONAL HOME FACILITIES'}</Text>
-        <Text style={styles.subtitle}>{stats.total} mapped areas · {stats.linked} linked · {stats.planned} planned</Text>
+        <Text style={styles.subtitle}>{stats.total} mapped facilities · {stats.linked} linked · {stats.planned} planned</Text>
       </View>
       <MaterialCommunityIcons name={expanded?'chevron-up':'chevron-down'} size={23} color="#FFE4AC"/>
     </Pressable>
