@@ -50,7 +50,7 @@ export function nextVillagerSlot(s,team){
 export function makeVillager(s,team,slot,id){
  if(!VILLAGER_FACTIONS[team]||!Number.isInteger(slot)||slot<0||slot>=VILLAGER_LIMIT)throw Error('invalid_villager_slot');
  const role=VILLAGER_ROLES[slot];
- const defaultJob={builder:'repair',gatherer:'mine',guardian:'defend',healer:'support',researcher:'research',supplier:'mine'}[role];
+ const defaultJob={builder:'mine',gatherer:'mine',guardian:'defend',healer:'support',researcher:'research',supplier:'mine'}[role];
  const b=home(s,team);
  return {id,team,kind:'villager',villagerSlot:slot,villagerRole:role,villagerName:VILLAGER_FACTIONS[team].members[slot],
   x:b.x+(team==='A'?1:-1)*(slot%2),y:b.y+(slot-2.5)*2.7,

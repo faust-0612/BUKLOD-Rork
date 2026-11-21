@@ -22,10 +22,12 @@
     "experiments/empire-arena-v2/arena-v2-engine.mjs",
     "src/app/games/empire-arena.tsx",
     "src/features/games/empire/arenaSoundscape.mjs",
-    "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+    "tests/empire-arena-two-faction-villagers-20261122.test.mjs",
+    "tests/arena-kingdom-villager-proof-20261122.test.mjs"
   ],
   "regressionTests": [
-    "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+    "tests/empire-arena-two-faction-villagers-20261122.test.mjs",
+    "tests/arena-kingdom-villager-proof-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -35,7 +37,8 @@
         "Canonical 13 heroes, level/item gates, ranked server authority, no client reward grants, both factions fair."
       ],
       "tests": [
-        "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+        "tests/empire-arena-two-faction-villagers-20261122.test.mjs",
+        "tests/arena-kingdom-villager-proof-20261122.test.mjs"
       ]
     },
     {

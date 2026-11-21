@@ -34,7 +34,7 @@ export const ARENA_SOUND_CUE = Object.freeze({
   village_work:   {sound:'build_hit',rate:1.16,volume:.13,priority:1,cooldown:2200},
   village_supply: {sound:'coins',rate:1.06,volume:.18,priority:2,cooldown:1800},
   village_heal:   {sound:'pickup',rate:1.0,volume:.2,priority:2,cooldown:3200},
-  village_tech:   {sound:'unlock',rate:1.12,volume:.32,priority:4,cooldown:12000},
+  village_tech:   {sound:'unlock',rate:1.12,volume:.32,priority:4,cooldown:9500},
   recruit:        {sound:'enter',rate:1.07,volume:.25,priority:2,cooldown:980},
   order:          {sound:'mission_go',rate:1.07,volume:.24,priority:2,cooldown:600},
   item_drop:      {sound:'pickup',rate:1.24,volume:.32,priority:4,cooldown:330},
