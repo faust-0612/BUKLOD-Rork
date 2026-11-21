@@ -21,7 +21,7 @@ test('Android Metro compiler is locked to staging and cannot touch Expo EAS publ
  const workflow=read('.github/workflows/season2-map-conso-source-qa-20261121.yml');
  assert.match(script,/spawnSync\(expoBin,\['export','--platform','android'/);
  assert.match(script,/otaPublished:false/);
- assert.match(script,/EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL,'false'/);
+ assert.match(script,/EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL,'true'/);
  assert.match(script,/BUKLOD_APP_TARGET:'main'/);
  assert.match(workflow,/npm ci --ignore-scripts --no-audit --no-fund/);
  assert.match(workflow,/node scripts\/season2-android-bundle-compatibility\.mjs --compile/);
@@ -29,5 +29,6 @@ test('Android Metro compiler is locked to staging and cannot touch Expo EAS publ
  assert.doesNotMatch(workflow,/\bEXPO_TOKEN\b|\beas-cli\b|actions\/upload-artifact/);
  const profile=JSON.parse(read('eas.json')).build['season2-genesis-preview'];
  assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
- assert.equal(existsSync(resolve(root,'src/app/games/empire-arena.tsx')),false);
+ assert.equal(existsSync(resolve(root,'src/app/games/empire-arena.tsx')),true);
+ assert.equal(profile.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
 });
