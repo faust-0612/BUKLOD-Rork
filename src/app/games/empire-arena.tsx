@@ -14,7 +14,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Image as SvgImage, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -23,6 +23,7 @@ import {
 } from '@/lib/buklodCharacterSelectionV2';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import { tryPlayRorkGameFeedback, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
+import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
 // @ts-ignore — The canonical offline Arena engine is already .mjs. Metro bundles .mjs; native import is intentionally isolated.
 import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
@@ -63,12 +64,12 @@ function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: bool
   </G>;
 }
 
-function ArenaField({ state, art, selectedId, onTarget }: {
-  state: ArenaState; art: string | undefined; selectedId: string | null; onTarget: (id: string) => void;
+function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
+  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof ExpoImage>['source']; selectedId: string | null; onTarget: (id: string) => void;
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
   return <View style={styles.field}>
-    {art ? <ExpoImage source={{ uri: art }} contentFit="cover" cachePolicy="disk" style={StyleSheet.absoluteFill} /> : null}
+    {generatedArt || art ? <ExpoImage source={generatedArt || { uri: art! }} contentFit="cover" cachePolicy="disk" style={StyleSheet.absoluteFill} /> : null}
     <LinearGradient colors={['rgba(4,10,26,0.70)', 'rgba(5,20,28,0.40)', 'rgba(4,12,24,0.76)']} style={StyleSheet.absoluteFill} />
     <Svg width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
       <Rect width={state.w} height={state.h} rx={4} fill="rgba(10,40,56,0.20)" />
@@ -84,7 +85,10 @@ function ArenaField({ state, art, selectedId, onTarget }: {
       {state.buildings.filter(life).map(b => <Rect key={b.id} x={b.x - 2.4} y={b.y - 2.4} width={4.8} height={4.8} rx={0.6} fill={b.team === 'A' ? '#6ebda9' : '#d48473'} stroke="#e8c989" strokeWidth={0.4} />)}
       {state.creatures.filter(life).map(c => <G key={c.id}><Circle cx={c.x} cy={c.y} r={3} fill="#b38ed6" stroke="#f2d6ff" strokeWidth={0.8} /><Circle cx={c.x} cy={c.y} r={1.1} fill="#f9e9b9" /></G>)}
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === 'A'} />)}
-      {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== 'A0') onTarget(p.id); }}><ActorMark actor={p} friendly={p.team === 'A'} selected={p.id === selectedId || p.id === 'A0'} /></G>)}
+      {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== 'A0') onTarget(p.id); }}>
+        <ActorMark actor={p} friendly={p.team === 'A'} selected={p.id === selectedId || p.id === 'A0'} />
+        {p.hero && life(p) && ARENA_GENERATED_ART['sprite:' + p.hero] ? <SvgImage href={ARENA_GENERATED_ART['sprite:' + p.hero] as any} x={p.x - 3} y={p.y - 3} width={6} height={6} preserveAspectRatio="xMidYMid meet" /> : null}
+      </G>)}
     </Svg>
     <View pointerEvents="none" style={styles.fieldLabel}><Text style={styles.labelText}>GENESIS • EMPIRE BATTLEFIELD</Text></View>
   </View>;
@@ -240,7 +244,7 @@ export default function EmpireArenaInApp() {
     <LinearGradient colors={['#060d1d', '#092b3a', '#071324']} style={StyleSheet.absoluteFill} />
     <View style={styles.top}>
       <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD Kingdom" onPress={() => router.back()} style={styles.back}><MaterialCommunityIcons name="arrow-left" size={20} color="#ffdfa4" /></Pressable>
-      <Image source={ARENA_HERO_ART[hero]} style={styles.portrait} />
+      <Image source={ARENA_GENERATED_ART['hero:' + hero] || ARENA_HERO_ART[hero]} style={styles.portrait} />
       <View style={styles.topText}>
         <Text numberOfLines={1} style={styles.header}>BUKLOD EMPIRE • ARENA</Text>
         <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {phase === 'playing' ? 'PRACTICE LIVE' : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
@@ -263,7 +267,7 @@ export default function EmpireArenaInApp() {
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>
         <Text numberOfLines={1} style={styles.hudText}>A SEAL {Math.ceil(game.seals.A.hp)}   ·   B SEAL {Math.ceil(game.seals.B.hp)}   ·   {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
       </View>
-      <ArenaField state={game} art={media?.background} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
+      <ArenaField state={game} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
       <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
       {phase === 'playing' ? <>
         <View style={styles.joystick} {...joystick.panHandlers}>
