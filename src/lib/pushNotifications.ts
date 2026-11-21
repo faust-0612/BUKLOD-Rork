@@ -22,7 +22,26 @@ Notifications.setNotificationHandler({
 export async function registerPushToken(userId: string) {
   if (Platform.OS === 'web') return null;
 
+  // Dedicated SOS channel must exist BEFORE the token advertises capability.
+  let emergencyChannelReady = false;
   if (Platform.OS === 'android') {
+    try {
+      await Notifications.setNotificationChannelAsync('buklod-emergency-v2', {
+        name: 'BUKLOD Emergency SOS',
+        description: 'Urgent nearby BUKLOD emergency alerts',
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'buklod_alert.wav',
+        vibrationPattern: [0, 600, 250, 600, 250, 850],
+        enableVibrate: true,
+        lightColor: '#C62828',
+        showBadge: true,
+      });
+      emergencyChannelReady = Boolean(
+        await Notifications.getNotificationChannelAsync('buklod-emergency-v2')
+      );
+    } catch (error) {
+      console.warn('BUKLOD SOS channel unavailable; regular push fallback remains.', error);
+    }
     await Notifications.setNotificationChannelAsync('buklod-activity-v2',{
       name:'BUKLOD Activity Alerts',
       importance:Notifications.AndroidImportance.MAX,
@@ -74,6 +93,15 @@ const { error } = await supabase.rpc(
     return null;
   }
 
+  // Upgrade only this device's token AFTER the native channel exists.
+  // Older APKs retain the safe, preexisting activity push channel.
+  if (emergencyChannelReady) {
+    const { error: capabilityError } = await supabase.rpc(
+      'buklod_help_register_emergency_channel',
+      { p_expo_push_token: token },
+    );
+    if (capabilityError) console.warn('BUKLOD SOS channel registration:', capabilityError.message);
+  }
   return token;
 }
 
