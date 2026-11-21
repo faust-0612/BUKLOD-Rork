@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-estate-asset-customization-20261121.json",
+  "objective": "Complete and verify actual rendered Personal Lot, House and Cluster progression assets and nine functional, owner-scoped customization settings, with server-authoritative construction and no production changes.",
+  "baseRef": "dev/genesis-premium-personal-world-progress-20261121",
+  "productionBaselineEvidence": "The approved Genesis world base was inspected at f01dd05102bd4acd292549073c26ac22542902e3; DEV source-only comparison. No live Android/production APK/runtime/OTA proof claimed.",
+  "chosenApproach": "Reuse owned Genesis stage-one WebP underpaintings and install per-tier SVG scenes for all 30 permanent level IDs and 150 construction-stage compositions. Separate blueprint and earned stages; store per-property draft locally and save explicitly via validated Supabase RPC. New SQL remains DEV migration only.",
+  "selectionRationale": "Owner's catalog specifies 30 development tiers but its referenced PNG files are not installed. SVG tier compositions avoid falsely claiming missing PNGs, keep APK size bounded, support all supported customizations, and preserve the 1-tap original world map.",
+  "alternativeApproaches": [
+    "Use 30 unverified PNG catalog filenames as runtime images; rejected because files do not exist.",
+    "Deploy authoritative RPCs directly into shared live BUKLOD Supabase for smoke tests; rejected to protect production data.",
+    "Redesign production navigation or merge staging OTA without signed Android verification; rejected."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "premium-estate-graphics",
+    "asset-provenance",
+    "backend-security",
+    "scope-isolation",
+    "offline",
+    "accessibility",
+    "navigation",
+    "admob-regression",
+    "production-release"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-estate-asset-customization-20261121.json",
+    ".github/workflows/genesis-premium-personal-world-dev-qa.yml",
+    "src/features/season2/world/DevelopmentStructurePreview.tsx",
+    "src/features/season2/world/EstateConstructionConsole.tsx",
+    "src/features/season2/world/EstateTierArtwork.tsx",
+    "src/features/season2/world/Season2DevelopmentMap.tsx",
+    "src/features/season2/world/constructionPlan.d.mts",
+    "src/features/season2/world/constructionPlan.mjs",
+    "src/features/season2/world/developmentAssetManifest.ts",
+    "src/features/season2/world/estateProgressClient.ts",
+    "supabase/migrations/20261121134500_buklod_estate_authoritative_progression_v1.sql",
+    "tests/season2-community-village-preview-20261121.test.mjs",
+    "tests/season2-estate-asset-customization-20261121.test.mjs",
+    "tests/season2-estate-server-authority-20261121.test.mjs",
+    "tests/season2-my-community-scope-customization-20261121.test.mjs",
+    "tests/season2-premium-construction-plan.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Original approved Genesis entry map/one-tap doors and legacy BUKLOD Bahay, reminders, budget, garden and family routes remain unchanged.",
+    "Lot and House have independent permanent levels and customized cosmetics; Cluster uses verified active scope and admin role checks.",
+    "No earned BP/QMP/Character Diamond minting from construction, UI previews, customization, or community resource transfers.",
+    "Existing first-view AdMob and fast-navigation protections remain release blockers.",
+    "Show Faith and non-faith participation paths remain available via the underlying verified BUKLOD reward ledger.",
+    "No change to native runtime, signed APK, EAS channel or production data."
+  ],
+  "regressionTests": [
+    "tests/season2-community-village-preview-20261121.test.mjs",
+    "tests/season2-estate-asset-customization-20261121.test.mjs",
+    "tests/season2-estate-server-authority-20261121.test.mjs",
+    "tests/season2-my-community-scope-customization-20261121.test.mjs",
+    "tests/season2-premium-construction-plan.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "30 SVG level identities and 150 stage compositions represented in installed renderer.",
+    "All nine cosmetic categories validated in server JSON and applied to suitable development scene artwork; per-property drafts isolated.",
+    "Client never labels unearned Finishing-stage graphics as verified property.",
+    "Focused Node tests, TypeScript, compact layout, one-tap map and ad/navigation release regressions pass in DEV workflow.",
+    "Migration is NOT applied to shared live Supabase; real device/staging SQL concurrency, RLS and signed OTA remain separate mandatory gates."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Implement stage-aware vector asset renderer and nine-part interactive design studio without editing home/ads/nav architecture.",
+      "preservedBehaviors": [
+        "Approved map and functional household routes unchanged; customization and blueprint state cannot grant earned rank or unlocks.",
+        "Android safe areas and one-tap navigation remain preserved; legacy production is feature-gated."
+      ],
+      "tests": [
+        "tests/season2-estate-asset-customization-20261121.test.mjs",
+        "tests/season2-premium-construction-plan.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Draft explicit RLS-protected Supabase estate wallet, construction, admin design, and idempotent contribution RPC migration without deploying to production.",
+      "preservedBehaviors": [
+        "Shared live Supabase unchanged; no client direct-write permissions or BP minting.",
+        "Role/ownership gates, verified earned resource credits, and per-scope idempotency remain required."
+      ],
+      "tests": [
+        "tests/season2-estate-server-authority-20261121.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "stagingDatabaseMigration": "NOT_DEPLOYED"
+}
