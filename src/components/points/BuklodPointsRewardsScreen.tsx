@@ -50,8 +50,8 @@ import BuklodAdLightRewardCard from '@/components/BuklodAdLightRewardCard';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
-const CLAIM_SUCCESS_SOUND = require('../../../assets/sounds/buklod-points-claim.wav');
-const SOFT_TAP_SOUND = require('../../../assets/sounds/buklod-reaction.wav');
+const CLAIM_SUCCESS_SOUND = require('../../../assets/sounds/kingdom-premium/coins.wav');
+const SOFT_TAP_SOUND = require('../../../assets/sounds/kingdom-premium/ui-soft.wav');
 
 const COLORS = {
   ink: '#10251B',
