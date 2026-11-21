@@ -20,7 +20,8 @@
     "navigation-scroll",
     "weak-network-resilience",
     "account-isolation",
-    "production-boundary"
+    "production-boundary",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Original SOS 1800ms deliberate long press and local device confirmation remain",
@@ -37,7 +38,8 @@
     "tests/sos-global-emergency-overlay-20261107.test.mjs",
     "tests/sos-urgent-responder-20261121.test.mjs",
     "tests/sos-urgent-security-20261121.test.mjs",
-    "tests/sos-urgent-release-20261121.test.mjs"
+    "tests/sos-urgent-release-20261121.test.mjs",
+    "supabase/tests/sos_urgent_responder_security_20261121.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -78,7 +80,8 @@
     "No auth, radius or notification entitlement => no emergency detail or exact location",
     "ON_MY_WAY responder can explicitly open restricted GPS navigation with consent confirmation, including after an app tab change",
     "Disabled nearby alert setting remains off across background and foreground transitions",
-    "All changed regression tests, TypeScript, staging RPC integration, native two-device QA, AdMob/nav regression gate and exact RC must pass before any merge/release"
+    "All changed regression tests, TypeScript, staging RPC integration, native two-device QA, AdMob/nav regression gate and exact RC must pass before any merge/release",
+    "Read-only database contract test proves no direct authenticated writes or anonymous access to rescue/location RPCs."
   ],
   "allowedPaths": [
     "app.config.js",
@@ -93,6 +96,7 @@
     "tests/sos-urgent-responder-20261121.test.mjs",
     "tests/sos-urgent-security-20261121.test.mjs",
     "tests/sos-urgent-release-20261121.test.mjs",
-    ".buklod/scopes/sos-urgent-audible-rescue-20261121.json"
+    ".buklod/scopes/sos-urgent-audible-rescue-20261121.json",
+    "supabase/tests/sos_urgent_responder_security_20261121.sql"
   ]
 }
