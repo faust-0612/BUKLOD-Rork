@@ -29,7 +29,8 @@ create table if not exists private.buklod_world_exchange_gate_v1 (
   updated_at timestamptz not null default now()
 );
 insert into private.buklod_world_exchange_gate_v1 (singleton,trading_enabled,issuance_enabled)
-values (true,false,false) on conflict (singleton) do nothing;
+values (true,false,false) on conflict (singleton)
+  do update set trading_enabled=false,issuance_enabled=false,updated_at=now();
 
 -- Only a server verifier can record a source after checking the REAL subsystem.
 -- No client API can insert receipts or assert that Kingdom / Empire was completed.

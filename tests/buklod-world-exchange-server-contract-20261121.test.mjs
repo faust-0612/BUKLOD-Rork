@@ -27,6 +27,7 @@ test('owner clarification: BP is not a commodity; item sale moves spendable bala
 
 test('feature flags fail closed and direct private table access is revoked',()=>{
  assert.match(sql,/values \(true,false,false\) on conflict/);
+ assert.match(sql,/do update set trading_enabled=false,issuance_enabled=false/,'Re-running source proposal must never leave trading enabled');
  for(const name of ['exchange_gate','verified_sources','items','offers','bp_transfers']){
    assert.match(sql,new RegExp(`alter table private\\.buklod_world_${name}_v1 enable row level security`));
    assert.match(sql,new RegExp(`revoke all on private\\.buklod_world_${name}_v1 from public,anon,authenticated`));
