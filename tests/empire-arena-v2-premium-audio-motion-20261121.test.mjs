@@ -76,3 +76,17 @@ test('Arena audio remains on existing focus-scoped sound provider, never preview
   assert.match(provider,/getPremiumKingdomSfx/);
   assert.ok(!route.includes('kp3ge50a5t6chyb7gv3jn-web.rork.live'));
 });
+
+test('local SFX follow the assigned multiplayer seat, never an assumed A0 or neighboring 5v5 actor', () => {
+  assert.equal(arenaAudioCueForEvent({type:'skill',actor:'B2'}, 'B', 'B2'), 'unlock');
+  assert.equal(arenaAudioCueForEvent({type:'skill',actor:'A0'}, 'B', 'B2'), null);
+  assert.equal(arenaAudioCueForEvent({type:'defeat',actor:'A0',to:'B2'}, 'B', 'B2'), 'failure');
+  const events = [
+    {seq:10,type:'skill',actor:'A0'},
+    {seq:11,type:'skill',actor:'B2'},
+    {seq:12,type:'skill',actor:'B1'},
+    {seq:13,type:'result',winner:'B'},
+  ];
+  assert.deepEqual(drainArenaAudioEvents(events, 9, 13, 'B', 'B2').cues, ['unlock','success']);
+  assert.deepEqual(drainArenaAudioEvents(events, 13, 13, 'B', 'B2').cues, []);
+});
