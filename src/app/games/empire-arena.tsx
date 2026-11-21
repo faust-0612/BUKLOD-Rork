@@ -42,13 +42,18 @@ import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/e
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
 // @ts-ignore — The canonical offline Arena engine is already .mjs. Metro bundles .mjs; native import is intentionally isolated.
 import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS, resolveGear } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
+// @ts-ignore — deterministic offline CPU duel; imports NO auth/network/store modules.
+import { createOfflineSoloBattle, tickOfflineSolo, SOLO_CPU_DIFFICULTIES, SOLO_ROUND_MS } from '../../../experiments/empire-arena-v2/arena-v2-solo.mjs';
 
 type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
 type Position = { x: number; y: number };
 type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; itemMastery?: number; cooldowns?: Record<'primary' | 'secondary' | 'ultimate', number>; gear?: Record<string, unknown>; lastMoveTick?: number; lastAttacked?: number };
 type ArenaState = {
-  w: number; h: number; status: string; elapsed: number; tick: number; mode?: Mode;
+  w: number; h: number; status: string; elapsed: number; tick: number; mode?: Mode; kind?: string;
+  solo?: { difficulty: string; round: number; wins: Record<Team, number>; draws: number;
+    intermissionUntil: number; roundStartedAt: number; lastRoundWinner: Team | null;
+    opponent: string; playerHero: string; };
   map: { lanes: number[]; colors: string[] };
   players: Record<string, Actor>;
   towers: Actor[]; units: Actor[]; creatures: Actor[]; buildings: Actor[];
@@ -68,6 +73,9 @@ type OfflinePracticeSetup = {
   snapshot: { characterLevel: number; bpEligibleLevel: number; itemVerifiedLevel: number; diamonds: number; verifiedItems: string[] };
 };
 const createArenaPractice = createPractice as unknown as (options: OfflinePracticeSetup) => ArenaState;
+const createArenaSolo = createOfflineSoloBattle as unknown as (options: {
+  hero:BuklodCharacterId; opponent:BuklodCharacterId; difficulty:'easy'|'normal'|'hard'; mapId:ArenaSceneId;
+}) => ArenaState;
 const MODE_LABELS: Record<Mode, string> = { duel: '1v1', cluster: '3v3', grand: '5v5' };
 const SCENES: ArenaSceneId[] = ['genesis_rift', 'aurora_foundry', 'verdant_fracture'];
 // Official hero archetypes select an original readable combat glyph, not a
@@ -281,6 +289,8 @@ function EmpireArenaInApp() {
   const insets = useSafeAreaInsets();
   const [hero, setHero] = useState<BuklodCharacterId>('phan');
   const [mode, setMode] = useState<Mode>('duel');
+  const [cpuHero,setCpuHero] = useState<BuklodCharacterId>('ace');
+  const [cpuDifficulty,setCpuDifficulty] = useState<'easy'|'normal'|'hard'>('normal');
   const [mapId, setMapId] = useState<ArenaSceneId>('genesis_rift');
   const [phase, setPhase] = useState<'menu' | 'queued' | 'playing' | 'paused' | 'result'>('menu');
   const [arenaKind, setArenaKind] = useState<'practice' | 'ranked'>('practice');
@@ -396,7 +406,8 @@ function EmpireArenaInApp() {
         if (Math.hypot(d.x, d.y) > 0.05) rankedRef.current?.sendAction({type:'move',dx:d.x,dy:d.y});
         return;
       }
-      tick(state);
+      if(state.solo) tickOfflineSolo(state);
+      else tick(state);
       const drained = drainArenaAudioEvents(state.events, lastAudioEventSeq.current,
         state.events[state.events.length - 1]?.seq ?? lastAudioEventSeq.current,
         state.players[localSeat]?.team ?? 'A', localSeat);
@@ -405,7 +416,9 @@ function EmpireArenaInApp() {
         tryPlayRorkGameFeedback(cue, cue === 'failure' || cue === 'success' ? 0.35 : 0.22);
       }
       const d = directionRef.current;
-      if (Math.hypot(d.x, d.y) > 0.05) command(state, localSeat, { type: 'move', dx: d.x, dy: d.y });
+      if ((!state.solo || !state.solo.intermissionUntil) && Math.hypot(d.x, d.y) > 0.05) {
+        command(state, localSeat, { type: 'move', dx: d.x, dy: d.y });
+      }
       setRevision(v => v + 1);
       if (state.status !== 'active') {
         directionRef.current = { x: 0, y: 0 };
@@ -437,6 +450,23 @@ function EmpireArenaInApp() {
     setPhase('playing');
     setRevision(v => v + 1);
   }, [hero, mode, mapId, sfxEnabled]);
+
+  const startSolo = useCallback(() => {
+    // No promise, fetch, session query, socket, wallet or Diamond calls.
+    // The same canonical combat engine drives both player and CPU actions.
+    rankedRef.current?.close();rankedRef.current=null;
+    const state = createArenaSolo({hero,opponent:cpuHero,difficulty:cpuDifficulty,mapId});
+    gameRef.current=state;
+    setLocalSeat('A0');localSeatRef.current='A0';
+    setArenaKind('practice');
+    lastAudioEventSeq.current=state.events[state.events.length-1]?.seq ?? 0;
+    if(sfxEnabled)playRorkSignatureSfx(ARENA_SCENE_GAME_ID[mapId],.24);
+    selected.current='B0';setTarget('B0');
+    directionRef.current={x:0,y:0};setJoyVisual({x:0,y:0});
+    setTacticsOpen(false);setHudEditing(false);setZoom(1);
+    setMessage('OFFLINE CPU BATTLE • Best of 3 rounds • Real attacks, skills, HP and cooldowns • No rewards');
+    setPhase('playing');setRevision(v=>v+1);
+  },[hero,cpuHero,cpuDifficulty,mapId,sfxEnabled]);
 
   const startRanked = useCallback(async () => {
     if (!user?.id || !isArenaRankedConfigured()) {
@@ -508,7 +538,7 @@ function EmpireArenaInApp() {
 
   const execute = useCallback((action: Record<string, unknown>, cue: 'impact' | 'collect' | 'move' = 'impact') => {
     const game = gameRef.current;
-    if (!game || phase !== 'playing') return;
+    if (!game || phase !== 'playing' || (game.solo && game.solo.intermissionUntil > game.elapsed)) return;
     if (arenaKind === 'ranked') {
       const accepted = rankedRef.current?.sendAction(action) ?? false;
       if (!accepted) setMessage('Command not sent: Arena connection unavailable.');
@@ -607,10 +637,12 @@ function EmpireArenaInApp() {
       disabled:(me?.matchLevel||1)<3 || (me?.mana||0)<14,cooldownMs:cooldownFor('secondary')},
     {id:'ultimate',label:'ULT',icon:'fire',onPress:()=>skill('ultimate'),
       disabled:(me?.matchLevel||1)<6 || (me?.mana||0)<55,cooldownMs:cooldownFor('ultimate')},
-    {id:'mine',label:'MINE',icon:'pickaxe',onPress:mine,disabled:!nearby.mine},
-    {id:'bank',label:'BANK',icon:'archive-arrow-down',onPress:()=>execute({type: 'deposit'},'collect'),disabled:!nearby.canBank},
-    {id:'train',label:'TRAIN',icon:'account-multiple-plus',onPress:()=>execute({type: 'train',kind:'warrior'},'collect'),disabled:!nearby.canBank},
-    {id:'tactics',label:'TACTICS',icon:'chess-knight',onPress:()=>setTacticsOpen(v=>!v)},
+    ...(!game?.solo ? [
+    {id:'mine' as const,label:'MINE',icon:'pickaxe' as const,onPress:mine,disabled:!nearby.mine},
+    {id:'bank' as const,label:'BANK',icon:'archive-arrow-down' as const,onPress:()=>execute({type: 'deposit'},'collect'),disabled:!nearby.canBank},
+    {id:'train' as const,label:'TRAIN',icon:'account-multiple-plus' as const,onPress:()=>execute({type: 'train',kind:'warrior'},'collect'),disabled:!nearby.canBank},
+    {id:'tactics' as const,label:'TACTICS',icon:'chess-knight' as const,onPress:()=>setTacticsOpen(v=>!v)},
+    ] : []),
   ];
   void revision; // Intentionally render every bounded fixed simulation step.
 
@@ -621,7 +653,7 @@ function EmpireArenaInApp() {
       <Image source={ARENA_GENERATED_ART['hero:' + hero] || ARENA_HERO_ART[hero]} style={styles.portrait} />
       <View style={styles.topText}>
         <Text numberOfLines={1} style={styles.header}>BUKLOD EMPIRE • ARENA</Text>
-        <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {phase === 'playing' ? (arenaKind === 'ranked' ? 'RANKED LIVE' : 'PRACTICE LIVE') : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
+        <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {gameRef.current?.solo ? 'OFFLINE • VS CPU' : phase === 'playing' ? (arenaKind === 'ranked' ? 'RANKED LIVE' : 'PRACTICE LIVE') : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
       </View>
       <Pressable onPress={toggleMusic} accessibilityRole="button" accessibilityLabel={musicEnabled ? 'Mute Arena music' : 'Enable Arena music'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={17} color="#f9df9e" />
@@ -645,7 +677,47 @@ function EmpireArenaInApp() {
 
     {phase === 'menu' ? <ScrollView style={styles.menuScroll} contentContainerStyle={[styles.menu, compactLandscape && styles.menuCompact]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>GENESIS WAR ARENA</Text>
-      <Text style={styles.description}>Offline practice • no BP or Diamond changes. Choose the match, then use the circular Arena controls. Customize their positions in the game.</Text>
+      <Text style={styles.description}>Fight BUKLOD computer characters without signal. Real attacks, skills, knockouts and winner. No BP or Diamond change.</Text>
+      <View style={styles.soloBanner}>
+        <MaterialCommunityIcons name="wifi-off" color="#a6ffe0" size={20}/>
+        <View style={{flex:1}}>
+          <Text style={styles.soloBannerTitle}>OFFLINE SOLO • HERO VS CPU</Text>
+          <Text style={styles.soloBannerNote}>No matchmaking, server or internet while playing • Best of 3 rounds</Text>
+        </View>
+      </View>
+      <Text style={styles.groupLabel}>YOUR HERO • OFFLINE TEST ONLY</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.heroPicker}>
+        {(Object.keys(HEROES) as BuklodCharacterId[]).map(c=><Pressable key={'human-'+c}
+          accessibilityRole="button" accessibilityLabel={'Use '+CHARACTER_DISPLAY_NAME[c]+' in offline Arena'}
+          onPress={()=>setHero(c)} style={[styles.heroPick,hero===c&&styles.heroPickActive]}>
+          <ExpoImage source={ARENA_GENERATED_ART['fullbody:'+c+'_idle']||ARENA_HERO_ART[c]}
+            contentFit="contain" style={styles.heroPickImage}/>
+          <Text numberOfLines={1} style={styles.heroPickText}>{CHARACTER_DISPLAY_NAME[c]}</Text>
+        </Pressable>)}
+      </ScrollView>
+      <Text style={styles.groupLabel}>COMPUTER OPPONENT</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.heroPicker}>
+        {(Object.keys(HEROES) as BuklodCharacterId[]).map(c=><Pressable key={'cpu-'+c}
+          accessibilityRole="button" accessibilityLabel={'Fight CPU '+CHARACTER_DISPLAY_NAME[c]}
+          onPress={()=>setCpuHero(c)} style={[styles.heroPick,cpuHero===c&&styles.cpuPickActive]}>
+          <ExpoImage source={ARENA_GENERATED_ART['fullbody:'+c+'_idle']||ARENA_HERO_ART[c]}
+            contentFit="contain" style={styles.heroPickImage}/>
+          <Text numberOfLines={1} style={styles.heroPickText}>{CHARACTER_DISPLAY_NAME[c]}</Text>
+        </Pressable>)}
+      </ScrollView>
+      <Text style={styles.groupLabel}>CPU DIFFICULTY</Text>
+      <View style={styles.options}>
+        {(['easy','normal','hard'] as const).map(d=><Pressable key={d}
+          accessibilityRole="button" accessibilityLabel={'CPU difficulty '+SOLO_CPU_DIFFICULTIES[d].label}
+          onPress={()=>setCpuDifficulty(d)} style={[styles.option,cpuDifficulty===d&&styles.optionActive]}>
+          <Text style={styles.optionText}>{SOLO_CPU_DIFFICULTIES[d].label}</Text>
+        </Pressable>)}
+      </View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Play offline against BUKLOD computer hero"
+        onPress={startSolo} style={[styles.start,styles.soloStart]}>
+        <MaterialCommunityIcons name="sword-cross" size={22} color="#0a2932"/>
+        <Text style={styles.startText}>PLAY OFFLINE • VS CPU</Text>
+      </Pressable>
       <View style={styles.menuHeroPreview}>
         <ExpoImage source={ARENA_GENERATED_ART['fullbody:' + hero + '_idle'] || ARENA_HERO_ART[hero]}
           contentFit="contain" style={styles.menuHeroImage} />
@@ -653,6 +725,8 @@ function EmpireArenaInApp() {
           <Text style={styles.heroCaption}>{HEROES[hero]?.role?.toUpperCase() ?? 'HERO'} • CANONICAL BUKLOD CHARACTER</Text>
           <Text style={styles.heroCaption}>13 heroes • 3 realms • animated battle poses</Text></View>
       </View>
+      <Text style={styles.groupLabel}>CLASSIC OFFLINE WAR PRACTICE</Text>
+      <Text style={styles.soloBannerNote}>1v1, 3v3 or 5v5 • mining, towers, troops and seals</Text>
       <Text style={styles.groupLabel}>BATTLE MODE</Text>
       <View style={styles.options}>{MODES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMode(m)} style={[styles.option, mode === m && styles.optionActive]}><Text style={styles.optionText}>{MODE_LABELS[m]}</Text></Pressable>)}</View>
       <Text style={styles.groupLabel}>BATTLEFIELD</Text>
@@ -663,7 +737,7 @@ function EmpireArenaInApp() {
         <Text style={styles.sceneTitle}>{ARENA_MAPS[m].name}</Text>
         {mapId===m ? <MaterialCommunityIcons name="check-decagram" size={19} color="#fbe2a6" style={styles.sceneCheck}/> : null}
       </Pressable>)}</View>
-      <Pressable accessibilityRole="button" onPress={start} style={styles.start}><MaterialCommunityIcons name="sword-cross" color="#102b31" size={20} /><Text style={styles.startText}>ENTER PRACTICE ARENA</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={start} style={styles.start}><MaterialCommunityIcons name="shield-sword" color="#102b31" size={20} /><Text style={styles.startText}>ENTER CLASSIC WAR PRACTICE</Text></Pressable>
       {isArenaRankedConfigured() ? <Pressable accessibilityRole="button" onPress={() => void startRanked()}
         style={styles.start}><MaterialCommunityIcons name="shield-sword" color="#102b31" size={20} /><Text style={styles.startText}>SEARCH RANKED OPPONENTS</Text></Pressable>
         : <Text style={styles.groupLabel}>Ranked PvP: awaiting trusted staging server and verified Diamond ledger</Text>}
@@ -680,17 +754,22 @@ function EmpireArenaInApp() {
       const {width,height}=event.nativeEvent.layout;
       if(Math.abs(width-hudArea.width)>1 || Math.abs(height-hudArea.height)>1) setHudArea({width,height});
     }}>
+      {game.solo ? <View style={styles.soloScore}>
+        <Text style={styles.soloScoreText}>YOU {game.solo.wins.A} — {game.solo.wins.B} CPU</Text>
+        <Text style={styles.soloScoreText}>ROUND {game.solo.round} • {Math.max(0,Math.ceil((SOLO_ROUND_MS-(game.elapsed-game.solo.roundStartedAt))/1000))}s</Text>
+        <Text style={styles.soloCpuName}>{CHARACTER_DISPLAY_NAME[game.solo.opponent as BuklodCharacterId]} • {SOLO_CPU_DIFFICULTIES[game.solo.difficulty]?.label} • {Math.ceil(game.players.B0?.hp||0)} HP</Text>
+      </View> : null}
       <View style={styles.hud}>
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>
-        <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text>
-        <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
+        {!game.solo ? <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text> : null}
+        {!game.solo ? <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text> : null}
       </View>
       <ArenaField zoom={zoom} onPinchZoom={changeZoom} sceneId={mapId} state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
       {!compactLandscape ? <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View> : null}
       {phase === 'playing' ? <>
         <ArenaCombatHud width={hudArea.width} height={hudArea.height} positions={hudPositions}
           editing={hudEditing} onMove={moveHudControl} joystickHandlers={joystick.panHandlers}
-          joy={joyVisual} actions={actions} />
+          joy={joyVisual} actions={game.solo?.intermissionUntil ? actions.map(a=>({...a,disabled:true})) : actions} />
         {hudEditing && arenaKind==='practice' ? <View style={styles.hudEditor}>
           <Text style={styles.hudEditorText}>DRAG ANY ICON TO MOVE</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Play with current Arena controls" onPress={() => setHudEditing(false)} style={styles.hudEditorButton}>
@@ -700,7 +779,7 @@ function EmpireArenaInApp() {
           <Pressable accessibilityRole="button" accessibilityLabel="Save Arena control positions" onPress={() => void saveHudControls()} style={[styles.hudEditorButton,styles.hudSave]}>
             <Text style={styles.hudEditorAction}>SAVE</Text></Pressable>
         </View> : null}
-        {tacticsOpen && !hudEditing ? <View style={[styles.tactics, compactLandscape && styles.tacticsCompact]}>
+        {tacticsOpen && !hudEditing && !game.solo ? <View style={[styles.tactics, compactLandscape && styles.tacticsCompact]}>
           <Text style={styles.tacticsHeader}>FIELD COMMANDS • TAP TO USE</Text>
           <View style={styles.tacticsControls}>
             <Control icon="shield-sword" title="PUSH" onPress={order} />
@@ -712,11 +791,15 @@ function EmpireArenaInApp() {
           </View>
           <Text style={styles.tacticsHint}>Siege unlocks after enemy towers fall. Build near home and repair allied towers. No real rewards.</Text>
         </View> : null}
+        {game.solo?.intermissionUntil && game.solo.intermissionUntil>game.elapsed ? <View pointerEvents="none" style={styles.roundBanner}>
+          <Text style={styles.roundBannerText}>{game.solo.lastRoundWinner==='A'?'ROUND WON':game.solo.lastRoundWinner==='B'?'ROUND LOST':'ROUND DRAW'}</Text>
+          <Text style={styles.roundBannerNote}>Next round • same heroes, full HP and mana</Text>
+        </View> : null}
       </> : <View style={styles.overlay}>
         <Text style={styles.overlayTitle}>{phase === 'paused' ? 'PAUSED' : game.result?.winner === ownTeam ? 'VICTORY' : game.result?.winner && game.result.winner !== ownTeam ? 'DEFEAT' : 'MATCH ENDED'}</Text>
-        <Text style={styles.description}>{phase === 'paused' ? 'Match time is frozen. Return to gameplay or abandon this practice.' : arenaKind === 'ranked' ? 'Ranked outcome is settled by the server only. No BUKLOD BP or QMP is minted.' : 'Offline practice only. No BP, diamonds, rank or inventory changes.'}</Text>
+        <Text style={styles.description}>{phase === 'paused' ? 'Battle frozen. Resume or leave without penalties.' : arenaKind === 'ranked' ? 'Ranked outcome is settled by the server only. No BUKLOD BP or QMP is minted.' : game.solo ? 'Solo result: YOU '+game.solo.wins.A+' — '+game.solo.wins.B+' CPU • No BP, Diamond, rank or inventory changes.' : 'Offline practice only. No BP, diamonds, rank or inventory changes.'}</Text>
         <View style={styles.options}>
-          {phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : arenaKind === 'ranked' ? <Control icon="home-map-marker" title="MENU" onPress={() => { gameRef.current=null;setArenaKind('practice');setPhase('menu'); }} /> : <Control icon="restart" title="REPLAY" onPress={start} />}
+          {phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : arenaKind === 'ranked' ? <Control icon="home-map-marker" title="MENU" onPress={() => { gameRef.current=null;setArenaKind('practice');setPhase('menu'); }} /> : <Control icon="restart" title="REPLAY" onPress={game.solo ? startSolo : start} />}
           <Control icon="home-map-marker" title="EXIT" onPress={() => { gameRef.current = null; setPhase('menu'); }} />
         </View>
       </View>}
@@ -753,6 +836,27 @@ const styles = StyleSheet.create({
   header: { color: '#ffe0a4', fontWeight: '900', fontSize: 14 },
   sub: { color: '#a7c4ce', fontSize: 9 },
   menuScroll: { flex: 1, width: '100%' },
+  soloBanner: {flexDirection:'row',alignItems:'center',gap:9,borderRadius:12,
+    padding:10,borderWidth:1.5,borderColor:'#54c6a8',backgroundColor:'#0d3541ed'},
+  soloBannerTitle: {fontWeight:'900',fontSize:13,color:'#d9ffe4'},
+  soloBannerNote: {fontSize:10,color:'#bbd9d2',lineHeight:15},
+  soloStart: {backgroundColor:'#9eeac9',borderColor:'#ffe4aa',borderWidth:1.5},
+  heroPicker: {gap:6,paddingVertical:2,paddingRight:10},
+  heroPick: {width:69,height:82,borderWidth:1,borderColor:'#345a69',
+    borderRadius:11,backgroundColor:'#142e3c',alignItems:'center',padding:3},
+  heroPickActive: {borderColor:'#ebd69b',borderWidth:2,backgroundColor:'#29544d'},
+  cpuPickActive: {borderColor:'#ffae91',borderWidth:2,backgroundColor:'#543a4f'},
+  heroPickImage: {width:55,height:58},
+  heroPickText: {fontSize:9,color:'#fff0c9',fontWeight:'800',maxWidth:65},
+  soloScore: {zIndex:2,flexDirection:'row',alignItems:'center',justifyContent:'space-between',
+    backgroundColor:'#0a2838',minHeight:23,paddingHorizontal:12,borderBottomWidth:1,borderBottomColor:'#628a89'},
+  soloScoreText: {fontWeight:'900',fontSize:10,color:'#ffe5a3'},
+  soloCpuName: {fontSize:9,color:'#febfab',fontWeight:'800'},
+  roundBanner: {position:'absolute',alignSelf:'center',top:'34%',zIndex:22,
+    paddingHorizontal:23,paddingVertical:15,borderRadius:13,backgroundColor:'#081e36ec',
+    borderColor:'#eacb82',borderWidth:1.5,alignItems:'center'},
+  roundBannerText: {color:'#ffe7a7',fontSize:23,fontWeight:'900'},
+  roundBannerNote: {color:'#dceae4',fontSize:11},
   menuHeroPreview: {minHeight:68,flexDirection:'row',alignItems:'center',gap:10,
     borderRadius:13,backgroundColor:'#102a3988',borderColor:'#786746',borderWidth:1,paddingHorizontal:9},
   menuHeroImage: {width:61,height:67},
