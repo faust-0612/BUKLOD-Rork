@@ -91,7 +91,7 @@ test('guide differentiates health, public services, infrastructure and faith wit
   ['gobyerno',false,'/profile/focus-apps'],
   ['kalsada',false,'/season2/community-village'],
   ['tulay',false,'/season2/community-village'],
-  ['Bible verse',false,'/learn'],
+  ['Bible verse',false,'/season2/learnings'],
   ['Bible verse',true,'/bible'],
  ];
  for(const [input,faith,expected] of cases)assert.equal(resolveBuklodGuideDestination(input,faith).route,expected,input);

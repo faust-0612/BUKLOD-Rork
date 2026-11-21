@@ -20,7 +20,7 @@ test('Motion is bounded to active foreground and respects reduced motion',()=>{
  assert.match(page,/AccessibilityInfo\.isReduceMotionEnabled/);
  assert.match(page,/AppState\.addEventListener/);
  assert.match(page,/!focused\|\|!foreground\|\|reduceMotion/);
- assert.match(page,/loop\.stop\(\)/);
+ assert.match(page,/seq\.stop\(\)/);
 });
 test('Guide prompts follow the four owner approved actions',()=>{
  assert.match(guide,/Gusto mong may makasama\?/);

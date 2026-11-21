@@ -25,8 +25,9 @@ test('Genesis preview routes to map-first World and preserves single bottom nav 
   const world=text('src/components/world/BuklodGenesisWorldHome.tsx');
   const tabs=text('src/app/(tabs)/_layout.tsx');
   const shell=text('src/components/BuklodNavSafeShell.tsx');
-  assert.ok(hub.includes('if (genesisPreview)'));
-  assert.ok(hub.includes('<GenesisWorld />'));
+  assert.doesNotMatch(hub,/<Redirect href="\/buklod-map" \/>/);
+  assert.match(hub,/BuklodFirstViewAd placement="home"/);
+  assert.match(text('src/app/index.tsx'),/isGenesisPreviewBuild\(\) \? '\/buklod-map'/);
   assert.ok(tabs.includes('!isGenesisPreviewBuild() ? <SwipeDashboardHeader />'));
   assert.ok(shell.includes('!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0'));
   assert.ok(world.includes('WORLD_COMPLETE_DESTINATION_DIRECTORY'));

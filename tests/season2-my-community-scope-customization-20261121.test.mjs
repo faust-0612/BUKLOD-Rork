@@ -6,7 +6,7 @@ test('My Community is a verified scope preview, never the global Wall',()=>{
  assert.match(src,/communityScopes=scopes\.filter/);
  assert.match(src,/scope_type==='CLUSTER'\|\|s\.scope_type==='ORGANIZATION'/);
  assert.match(src,/chosenScope\?\.scope_id/);
- assert.match(src,/scope\.is_admin/);
+ assert.match(src,/chosenScope\?\.is_admin/);
  assert.match(src,/separate from the Public Community Wall/);
 });
 test('Community customization is locally isolated per user and chosen verified scope',()=>{

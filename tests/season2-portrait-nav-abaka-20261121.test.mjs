@@ -14,7 +14,7 @@ test('Genesis has exactly one five-destination navigation bar with approved orde
 });
 test('Portrait map respects vertical room for guide, bottom nav and all nine signs',()=>{
  const map=read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx');
- assert.match(map,/Math\.min\(mapHeight-44/);
+ assert.match(map,/top:clamp\(y\*mapHeight-h\/2,0,mapHeight-h\)/);
  assert.match(map,/PORTRAIT_RATIO=995\/720/);
  assert.match(map,/COMPACT_RATIO=670\/720/);
  const doors=JSON.parse(read('src/features/season2/genesis/genesisApprovedEntryHotspots.json')).hotspots;
