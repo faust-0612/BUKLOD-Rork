@@ -1,6 +1,7 @@
 /* BUKLOD_CHARACTER_SELECTION_V2_WEB_RECOVERY */
 /* BUKLOD_CHARACTER_SELECTION_V2_SERVER_CONTRACT_R2 */
 import { supabase } from '@/lib/supabase';
+import { CHARACTER_SELECTION_DEADLINE_MS, CHARACTER_SESSION_DEADLINE_MS, withBuklodCharacterReadDeadline } from '@/lib/buklodCharacterReadDeadline';
 
 export type BuklodCoreCharacterId =
   | 'phan'
@@ -326,7 +327,7 @@ export async function getMyBuklodCharacterSelectionV2(
 
   // Validate before any cached or in-flight result can be returned across
   // account boundaries; a healthy persisted session requires no network I/O.
-  await ensureCharacterSession(userId);
+  await withBuklodCharacterReadDeadline(ensureCharacterSession(userId), CHARACTER_SESSION_DEADLINE_MS, 'session');
 
   // A forced refresh bypasses cache, but joins an already running refresh.
   const pending = inflight.get(userId);
@@ -338,8 +339,12 @@ export async function getMyBuklodCharacterSelectionV2(
 
   const requestEpoch = mutationEpoch.get(userId) ?? 0;
   const request = (async () => {
-    const { data, error } = await (supabase as any).rpc(
-      'get_my_buklod_character_selection_v2',
+    // A stalled PostgREST call must not leave Character UI spinning forever.
+    // Only the winning (in-time) response may update the shared selection cache.
+    const { data, error } = await withBuklodCharacterReadDeadline(
+      (supabase as any).rpc('get_my_buklod_character_selection_v2'),
+      CHARACTER_SELECTION_DEADLINE_MS,
+      'selection',
     );
 
     if (error) {
