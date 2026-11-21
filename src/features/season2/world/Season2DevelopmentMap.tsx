@@ -3,8 +3,8 @@
  * previews. This UI NEVER mints BP, unlocks land, or modifies a shared scope.
  * Actual development must come from separately verified server records/RPCs.
  */
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions} from 'react-native';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Animated,PanResponder,Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {LinearGradient} from 'expo-linear-gradient';
@@ -169,6 +169,25 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
     : 'Virtual cluster/organization development preview, separate from the Public Community Wall. Shared construction remains server-authorized.';
   const trackTitle = world==='home' ? 'Lot / House development' : 'Community / Cluster development';
   const sceneHeight = Math.max(310,Math.min(500,compact ? width*0.92 : width*0.50));
+  const pan=useRef(new Animated.ValueXY()).current;
+  const panBase=useRef({x:0,y:0});
+  const mapPanResponder=useMemo(()=>PanResponder.create({
+    onStartShouldSetPanResponder:()=>false,
+    onMoveShouldSetPanResponder:(_,g)=>zoom>1&&(Math.abs(g.dx)>8||Math.abs(g.dy)>8),
+    onPanResponderGrant:()=>{
+      pan.setOffset(panBase.current);
+      pan.setValue({x:0,y:0});
+    },
+    onPanResponderMove:(_,g)=>pan.setValue({x:g.dx,y:g.dy}),
+    onPanResponderRelease:(_,g)=>{
+      const maxX=Math.max(0,width*(zoom-1)/2);
+      const maxY=Math.max(0,sceneHeight*(zoom-1)/2);
+      const x=Math.max(-maxX,Math.min(maxX,panBase.current.x+g.dx));
+      const y=Math.max(-maxY,Math.min(maxY,panBase.current.y+g.dy));
+      pan.flattenOffset();panBase.current={x,y};pan.setValue({x,y});
+    },
+    onPanResponderTerminate:()=>{pan.flattenOffset();pan.setValue(panBase.current);},
+  }),[zoom,width,sceneHeight,pan]);
   const decoration = useMemo(()=>[0,1,2,3,4,5],[]);
   return (
     <View style={styles.root}>
@@ -201,23 +220,15 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           <Text style={styles.muted}>{canCustomizePreview?'Local visual preview for this scope only; no server or shared land is changed.':'Only a verified Cluster/Organization admin may save this local design preview. Actual community land remains read-only until server verification.'}</Text>
         </View>:null}
         <View style={[styles.scene,{height:sceneHeight}]}>
+          <Animated.View {...mapPanResponder.panHandlers} style={[StyleSheet.absoluteFill,{transform:[...pan.getTranslateTransform(),{scale:zoom}]}]}>
           {/* Existing V2 artwork is the graceful fallback if the new local WebP cannot decode. */}
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill,{transform:[{scale:zoom}]}]}>
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             <BuklodGameBackdrop thumbnail gameId={world==='home'?'phan-enterprise-builder':'elesur-village-builder'} opacity={0.82}/>
             <Image source={world==='home'?HOME_ART:VILLAGE_ART} contentFit="cover" style={StyleSheet.absoluteFill} transition={0} accessibilityLabel={world==='home'?'My Home construction world':'Community Village development world'} />
             <LinearGradient colors={['rgba(5,30,28,.03)','rgba(10,25,25,.07)','rgba(9,25,32,.56)']} style={StyleSheet.absoluteFill}/>
           </View>
           <View pointerEvents="none" style={styles.previewStructure}>
             <DevelopmentStructurePreview track={previewTrack} level={level} stage={level===10&&mastery>0?4:stage} mastery={level===10?mastery:0} finish={look} roof={roof} ground={ground} fence={fence} windows={windows} lights={lights}/>
-          </View>
-          <View style={styles.mapBadge} pointerEvents="none">
-            <MaterialCommunityIcons name="hammer-wrench" size={14} color="#FFE6B0"/>
-            <Text style={styles.mapBadgeText}>{liveView&&verified?'VERIFIED':'BLUEPRINT'} · {previewTrack.toUpperCase()} L{level}{level===10&&mastery>0?' · M'+mastery:''}</Text>
-          </View>
-          <View style={styles.zoomBar}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Zoom out of world" disabled={zoom<=1} onPress={()=>setZoom(v=>Math.max(1,Math.round((v-.15)*100)/100))} style={styles.zoomButton}><MaterialCommunityIcons name="minus" size={20} color="#FFEBC5"/></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Reset world zoom" onPress={()=>setZoom(1)} style={styles.zoomButton}><Text style={styles.zoomText}>{Math.round(zoom*100)}%</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Zoom in on world" disabled={zoom>=1.6} onPress={()=>setZoom(v=>Math.min(1.6,Math.round((v+.15)*100)/100))} style={styles.zoomButton}><MaterialCommunityIcons name="plus" size={20} color="#FFEBC5"/></Pressable>
           </View>
           {decoration.map(n=>(
             <View key={n} pointerEvents="none" style={[styles.tree,{left:`${n*17+6}%` as `${number}%`,top:`${n%2===0?4:83}%` as `${number}%`}]}>
@@ -236,6 +247,16 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
               <Text numberOfLines={2} style={styles.doorLabel}>{door.label}</Text>
             </Pressable>
           ))}
+          </Animated.View>
+          <View style={styles.mapBadge} pointerEvents="none">
+            <MaterialCommunityIcons name="hammer-wrench" size={14} color="#FFE6B0"/>
+            <Text style={styles.mapBadgeText}>{liveView&&verified?'VERIFIED':'BLUEPRINT'} · {previewTrack.toUpperCase()} L{level}{level===10&&mastery>0?' · M'+mastery:''}</Text>
+          </View>
+          <View style={styles.zoomBar}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Zoom out of world" disabled={zoom<=1} onPress={()=>setZoom(v=>Math.max(1,Math.round((v-.15)*100)/100))} style={styles.zoomButton}><MaterialCommunityIcons name="minus" size={20} color="#FFEBC5"/></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Reset world zoom" onPress={()=>{setZoom(1);panBase.current={x:0,y:0};pan.setValue({x:0,y:0});}} style={styles.zoomButton}><Text style={styles.zoomText}>{Math.round(zoom*100)}%</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Zoom in on world" disabled={zoom>=1.6} onPress={()=>setZoom(v=>Math.min(1.6,Math.round((v+.15)*100)/100))} style={styles.zoomButton}><MaterialCommunityIcons name="plus" size={20} color="#FFEBC5"/></Pressable>
+          </View>
         </View>
         <Text style={styles.mapNote}>One-tap landmarks open the existing BUKLOD tools. Verified progress comes only from the server. Preview controls are for exploring future designs.</Text>
         <EstateConstructionConsole identity={estateIdentity} userId={personId} design={design} onVerified={applyEarned} onApplyDesign={applySavedDesign}/>
