@@ -7,11 +7,14 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {LinearGradient} from 'expo-linear-gradient';
+import {Image} from 'expo-image';
 import {router} from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@/providers/AuthProvider';
 import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+const VILLAGE_ART = require('../../../../assets/season2/genesis/world/buklod-community-village-stage1.webp');
+const HOME_ART = require('../../../../assets/season2/genesis/world/buklod-my-home-stage1.webp');
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type World = 'home' | 'village';
@@ -108,7 +111,9 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           </View>
         </View>
         <View style={[styles.scene,{height:sceneHeight}]}>
+          {/* Existing V2 artwork is the graceful fallback if the new local WebP cannot decode. */}
           <BuklodGameBackdrop thumbnail gameId={world==='home'?'phan-enterprise-builder':'elesur-village-builder'} opacity={0.82}/>
+          <Image source={world==='home'?HOME_ART:VILLAGE_ART} contentFit="cover" style={StyleSheet.absoluteFill} transition={0} accessibilityLabel={world==='home'?'My Home construction world':'Community Village development world'} />
           <LinearGradient colors={['rgba(5,30,28,.08)','rgba(10,25,25,.20)','rgba(9,25,32,.64)']} style={StyleSheet.absoluteFill}/>
           {decoration.map(n=>(
             <View key={n} pointerEvents="none" style={[styles.tree,{left:(n*17+6)+'%',top:(n%2===0?4:83)+'%'}]}>
