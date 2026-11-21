@@ -90,3 +90,30 @@ revoke all on function public.admin_set_mentor_capability_v1(uuid,boolean,text,u
   from public, anon;
 grant execute on function public.admin_set_mentor_capability_v1(uuid,boolean,text,uuid)
   to authenticated;
+
+-- Protect the official identity even from legacy direct capability updates.
+-- This applies only to attempts to activate a mentor capability; historical rows remain unchanged.
+create or replace function private.buklod_guard_protected_mentor_capability_v1()
+returns trigger language plpgsql security definer set search_path=''
+as $$
+begin
+  if new.capability='mentor' and new.is_active=true and (
+    exists (select 1 from public.profiles p
+            where p.id=new.user_id and p.role::text='system_admin')
+    or exists (select 1 from public.buklod_foundation_protected_principals pp
+               where pp.user_id=new.user_id and pp.protected=true)
+  ) then
+    raise exception 'Protected System Admin cannot have active mentor capability'
+      using errcode='42501';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.buklod_guard_protected_mentor_capability_v1()
+  from public, anon, authenticated;
+drop trigger if exists buklod_guard_protected_mentor_capability_v1
+  on public.user_capabilities;
+create trigger buklod_guard_protected_mentor_capability_v1
+before insert or update of capability, is_active, user_id
+on public.user_capabilities for each row
+execute function private.buklod_guard_protected_mentor_capability_v1();
