@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '22'
       - name: Simulate live duel, 3v3 and 5v5 with authoritative server coordinator
-        run: node --test services/empire-arena/tests/core.test.mjs
+        run: node --test services/empire-arena/tests/core.test.mjs tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs
   isolated-postgres-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10
