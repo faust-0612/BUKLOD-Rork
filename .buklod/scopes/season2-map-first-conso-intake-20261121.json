@@ -41,8 +41,7 @@
   ],
   "regressionTests": [
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
-    "tests/season2-map-first-conso-intake-20261121.test.mjs",
-    "scripts/genesis-map-reconstruction-preflight.mjs"
+    "tests/season2-map-first-conso-intake-20261121.test.mjs"
   ],
   "allowedPaths": [
     "src/app/buklod-map.tsx",
