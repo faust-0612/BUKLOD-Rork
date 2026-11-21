@@ -282,6 +282,7 @@ function SwipeDashboardHeader() {
 export default function TabsLayout() {
   const { theme } = useBuklodTheme();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { activeScope } = useBuklodScope();
   const showPrayer = Boolean(
@@ -404,6 +405,16 @@ export default function TabsLayout() {
       width,
     );
 
+  // Genesis preview omits the shared dashboard header. Only the Wall and
+  // Connect require the missing status-bar clearance; World Home already
+  // includes its own safe-area inset. Keep production layouts unchanged.
+  const genesisDashboardTopInset =
+    Platform.OS !== 'web' &&
+    isGenesisPreviewBuild() &&
+    ['/buklod', '/messages'].includes(normalizeBuklodPathname(pathname))
+      ? Math.max(0, insets.top) + 4
+      : 0;
+
   // Non-auth Train A: Android reuses frozen dashboard instances; Web/iOS keep Stack.
   // Session, compliance and existing profile checks above remain exactly as main.
   const workspaceStack = Platform.OS === 'android' ? (
@@ -468,6 +479,7 @@ export default function TabsLayout() {
             style={{
               flex: 1,
               minWidth: 0,
+              paddingTop: genesisDashboardTopInset,
             }}
           >
             <BuklodDashboardAdWarmup />
