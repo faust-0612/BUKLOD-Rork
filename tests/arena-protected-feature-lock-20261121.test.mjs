@@ -23,6 +23,7 @@ const changed = [
   'src/features/games/runtime/rorkAudio.ts',
   'experiments/empire-arena-v2/arena-v2-engine.mjs',
   'tests/arena-event-audio-graphics-20261121.test.mjs',
+  'tests/arena-premium-voice-motion-terrain-20261121.test.mjs',
   'src/features/games/empire/arenaPracticePresentation.mjs',
   'tests/empire-arena-v2-presentation-20261121.test.mjs',
   'experiments/empire-arena-v2/arena-v2-solo.mjs',
