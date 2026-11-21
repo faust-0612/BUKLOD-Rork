@@ -30,6 +30,10 @@ import { tryPlayRorkGameFeedback, tryPlayArenaEventCue, playRorkSignatureSfx, us
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
 import { ArenaRankedSocket, isArenaRankedConfigured } from '@/features/games/empire/rankedClient';
 import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
+import { ArenaActionFx } from '@/features/games/empire/ArenaActionFx';
+import { ArenaTerrainArt } from '@/features/games/empire/ArenaTerrainArt';
+import { ArenaBaseArt } from '@/features/games/empire/ArenaBaseArt';
+import { setArenaVoiceFocus, playArenaVoiceAnnouncements } from '@/features/games/empire/ArenaVoiceRuntime';
 import { ArenaStructureArt, ArenaWildlifeArt, ArenaResourceLootArt } from '@/features/games/empire/ArenaWorldArt';
 import { ArenaCombatHud, type ArenaHudKey, type ArenaHudLayout, type HudPoint, type CombatAction } from '@/features/games/empire/ArenaCombatHud';
 // @ts-ignore — pure, versioned, per-device preferences. Never a source of Arena game authority.
@@ -38,6 +42,8 @@ import { ARENA_HUD_DEFAULT, sanitizeArenaHudLayout, serializeArenaHudLayout } fr
 import { arenaActorPose } from '@/features/games/empire/arenaActorPose.mjs';
 // @ts-ignore — deterministic event-to-sound mapping; audio only, no remote dependency.
 import { drainArenaSoundscape, nearbyArenaBuffCue } from '@/features/games/empire/arenaSoundscape.mjs';
+// @ts-ignore - pure event-world geometry adapter, presentation only.
+import { arenaActionVisuals } from '@/features/games/empire/arenaActionVisuals.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
@@ -132,7 +138,7 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
   const localTeam = player?.team ?? 'A';
   const camera = arenaCamera(state.w, state.h, player, area.width, area.height,
     (state.w <= 160 ? 70 : state.w <= 240 ? 90 : 115) / zoom);
-  const effects = arenaVisualEffects(state.events, state.elapsed, 1100);
+  const actionFx = arenaActionVisuals(state, state.elapsed, 950, 16);
   const light = ARENA_SCENE_LIGHT[sceneId];
   return <View style={styles.field}
     onTouchStart={event => { pinchDistance.current = touchDistance(event.nativeEvent.touches); }}
@@ -176,19 +182,11 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
         r={.17+(i%3)*.10} fill={light.star} opacity={.22 + .28*Math.abs(Math.sin(state.elapsed/950+star.phase))}/>)}
       {lanes.map((y, i) => <Path key={'lane-' + i} d={`M 5 ${y * state.h} Q ${state.w / 2} ${y * state.h + (i - 1) * 3} ${state.w - 5} ${y * state.h}`} stroke="#ffe0a2" opacity={0.38} strokeWidth={1.9} fill="none" strokeDasharray="1 3" />)}
       <Line x1={state.w / 2} y1={6} x2={state.w / 2} y2={state.h - 6} stroke="#a9f8ea" strokeWidth={0.5} strokeDasharray="2 3" opacity={0.5} />
-      {state.cover.map(([x, y, r], i) => <G key={'cover-' + i}><Circle cx={x} cy={y} r={r + 1.5} fill="#052624" opacity={0.6} /><Circle cx={x} cy={y} r={r} fill="#206b62" stroke="#74cbb8" strokeWidth={0.3} opacity={0.8} /></G>)}
+      <ArenaTerrainArt cover={state.cover} sceneId={sceneId} elapsed={state.elapsed}
+        worldWidth={state.w} worldHeight={state.h} />
       <ArenaResourceLootArt nodes={state.nodes} loot={state.loot} elapsed={state.elapsed} />
-      {(['A', 'B'] as Team[]).map(team => {
-        const bx=team==='A'?14:state.w-14,by=state.h/2;
-        return <G key={team}>
-          <Circle cx={bx} cy={by} r={12} fill="url(#arena-world-glow)" opacity=".8"/>
-          <Path d={`M ${bx-6.2} ${by+6} L ${bx-6.2} ${by-2} L ${bx-3.6} ${by-2} L ${bx-3.6} ${by-6.7} L ${bx-1} ${by-6.7} L ${bx-1} ${by-3.5} L ${bx+1} ${by-3.5} L ${bx+1} ${by-6.7} L ${bx+3.6} ${by-6.7} L ${bx+3.6} ${by-2} L ${bx+6.2} ${by-2} L ${bx+6.2} ${by+6} Z`}
-            fill={team==='A'?'#2b7e78':'#873b5a'} stroke="#ffe6ae" strokeWidth=".9"/>
-          <Path d={`M ${bx-6.5} ${by+5.2} H ${bx+6.5} L ${bx+4} ${by+8} H ${bx-4} Z`}
-            fill="#8d7b58" stroke="#f5db9c" strokeWidth=".6"/>
-          <SvgText x={bx} y={by+2} fontSize={4} textAnchor="middle" fill="#fff0bb" fontWeight="bold">{team}</SvgText>
-        </G>;
-      })}
+      {!state.solo ? <ArenaBaseArt width={state.w} height={state.h} elapsed={state.elapsed}
+        seals={state.seals} localTeam={localTeam} /> : null}
       <ArenaStructureArt towers={state.towers} buildings={state.buildings} elapsed={state.elapsed} />
       <ArenaWildlifeArt creatures={state.creatures} elapsed={state.elapsed} />
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
@@ -212,40 +210,23 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
             stroke="#ffe9bb" strokeWidth={0.9 * alpha} opacity={alpha} />
         </G>;
       })() : null}
-      {effects.map((effect: { seq: number; type: string; actor?: string; to?: string; tower?: string; strength: number }) => {
-        const event = effect as {seq:number;type:string;actor?:string;to?:string;target?:string;
-          from?:string;tower?:string;id?:string;x?:number;y?:number;strength:number};
-        const entities=[...Object.values(state.players),...state.towers,...state.buildings,...state.units,...state.creatures];
-        // Damage and defeat are centered on the actual victim, not the attacking hero.
-        const id=(['damage','defeat','unit_ko','tower_ko','boss_ko','trap_ko','unit_hit','tower_hit','boss_hit'].includes(event.type))
-          ? event.to||event.target : event.tower||event.id||event.actor||event.to;
-        const subject=entities.find(entity=>entity.id===id);
-        const cx=Number.isFinite(event.x)?event.x:subject?.x;
-        const cy=Number.isFinite(event.y)?event.y:subject?.y;
-        if(cx==null||cy==null)return null;
-        const construction=/(construction|upgrade|repair|rebuild)/.test(event.type);
-        const casualty=/(defeat|destroyed|unit_ko|storm_defeat|seal_breached)/.test(event.type);
-        const pickup=/(buff|loot|equipment|item_consumed)/.test(event.type);
-        const shade=casualty?'#ffa09b':construction?'#fce4a4':pickup?'#a6ffe5':'#b5dffe';
-        const r=2.4+(1-event.strength)*(casualty?10:construction?8:6.3);
-        return <G key={'fx-'+effect.seq}>
-          <Circle cx={cx} cy={cy} r={r} fill="none" stroke={shade}
-            strokeWidth={.85+event.strength} opacity={event.strength*.90} />
-          <Circle cx={cx} cy={cy} r={r*.53} fill={shade}
-            opacity={event.strength*(casualty?.19:.12)} />
-          {construction?<Path d={'M '+(cx-1.9)+' '+cy+' h 3.8 M '+cx+' '+(cy-1.9)+' v 3.8'}
-            stroke="#fff8d8" strokeWidth=".6" opacity={event.strength}/>:null}
-        </G>;
-      })}
+      <ArenaActionFx effects={actionFx} />
     </Svg>
     {Object.values(state.players)
-      .filter(p => p.hero && life(p) &&
+      .filter(p => p.hero && (life(p) || state.events.slice(-35).some(e =>
+        ['defeat','unit_ko','tower_ko','trap_ko','hazard_ko','storm_defeat'].includes(e.type) &&
+        (e.to===p.id || (e as {target?:string}).target===p.id || e.actor===p.id) &&
+        state.elapsed-e.time>=0 && state.elapsed-e.time<640)) &&
         p.x >= camera.x - 5 && p.x <= camera.x + camera.width + 5 &&
         p.y >= camera.y - 5 && p.y <= camera.y + camera.height + 5)
       .map(p => {
         // Single source-owned hero identity across all four real full-body motion states.
         // No visual transition may modify the server-owned action, level, HP, or gear.
         const pose = arenaActorPose(state, p, state.visualCue);
+        const lastDamage = state.events.slice(-40).reverse().find(e=>
+          ['damage','unit_hit','tower_hit','boss_hit','trap_hit','map_hazard'].includes(e.type) &&
+          (e.to===p.id||(e as {target?:string}).target===p.id||e.actor===p.id) &&
+          state.elapsed-e.time>=0 && state.elapsed-e.time<450);
         const fullbody = ARENA_GENERATED_ART['fullbody:' + p.hero + '_' + pose] ||
           ARENA_GENERATED_ART['fullbody:' + p.hero + '_idle'];
         const sprite = ARENA_GENERATED_ART['sprite:' + p.hero];
@@ -255,6 +236,7 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
         return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
           pose={pose} health={p.hp/Math.max(1,p.maxHp)} selected={p.id===selectedId || p.id===localSeat}
           sprite={Boolean(fullbody || sprite)} friendly={p.team === localTeam} active={isPlaying}
+          hitSequence={lastDamage?.seq??0} knockedOut={!life(p)}
           moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1)}
           x={(p.x - camera.x) * area.width / camera.width}
           y={(p.y - camera.y) * area.height / camera.height} size={size} />;
@@ -309,6 +291,7 @@ function EmpireArenaInApp() {
   const compactLandscape = viewportHeight < 440;
   const changeZoom = useCallback((factor: number) => setZoom(z => clamp(z * factor, 0.65, 2.6)), []);
   const [sfxEnabled, setSfxEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const gameRef = useRef<ArenaState | null>(null);
   const directionRef = useRef<Position>({ x: 0, y: 0 });
   const focused = useRef(false);
@@ -361,6 +344,7 @@ function EmpireArenaInApp() {
 
   useFocusEffect(useCallback(() => {
     focused.current = true;
+    setArenaVoiceFocus(true);
     let cancelled = false;
     // Prevent a slow landscape lock from re-locking the rest of the BUKLOD app after exit.
     if (Platform.OS !== 'web') void (async () => {
@@ -372,6 +356,7 @@ function EmpireArenaInApp() {
     return () => {
       cancelled = true;
       focused.current = false;
+      setArenaVoiceFocus(false);
       rankedRef.current?.close();
       rankedRef.current = null;
       directionRef.current = { x: 0, y: 0 };
@@ -418,6 +403,7 @@ function EmpireArenaInApp() {
       lastAudioEventSeq.current = drained.lastSeq;
       if (sfxEnabled) {
         for (const cue of drained.cues) tryPlayArenaEventCue(cue, true);
+        playArenaVoiceAnnouncements(drained.cues, voiceEnabled);
         // Bounded proximity-only buff wildlife: one soft motif, never remote.
         if (state.tick % 10===0) {
           const wildlife = nearbyArenaBuffCue(state,localSeat);
@@ -435,7 +421,7 @@ function EmpireArenaInApp() {
       }
     }, STEP_MS as number);
     return () => clearInterval(timer);
-  }, [phase, sfxEnabled, arenaKind, localSeat, hudEditing]);
+  }, [phase, sfxEnabled, voiceEnabled, arenaKind, localSeat, hudEditing]);
 
   const start = useCallback(() => {
     // Server-owned Diamond/item eligibility is NOT simulated with fabricated user data.
@@ -508,7 +494,10 @@ function EmpireArenaInApp() {
               {team:match.players?.[seat]?.team??'A',seat,players:match.players,
                 units:match.units,towers:match.towers,buildings:match.buildings});
             lastAudioEventSeq.current = drain.lastSeq;
-            if (sfxEnabled) for (const cue of drain.cues) tryPlayArenaEventCue(cue,true);
+            if (sfxEnabled) {
+              for (const cue of drain.cues) tryPlayArenaEventCue(cue,true);
+              playArenaVoiceAnnouncements(drain.cues,voiceEnabled);
+            }
             setRevision(v => v + 1);
           }
         } else if (packet.type === 'match_end' && packet.confirmed === true) {
@@ -544,7 +533,7 @@ function EmpireArenaInApp() {
       setMessage(error instanceof Error ? error.message : 'Ranked connection unavailable');
       bridge.close();rankedRef.current=null;setPhase('menu');
     }
-  }, [mode,mapId,user?.id,sfxEnabled]);
+  }, [mode,mapId,user?.id,sfxEnabled,voiceEnabled]);
 
   const execute = useCallback((action: Record<string, unknown>, cue: 'impact' | 'collect' | 'move' = 'impact') => {
     const game = gameRef.current;
@@ -669,6 +658,12 @@ function EmpireArenaInApp() {
       </View>
       <Pressable onPress={toggleMusic} accessibilityRole="button" accessibilityLabel={musicEnabled ? 'Mute Arena music' : 'Enable Arena music'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={17} color="#f9df9e" />
+      </Pressable>
+      <Pressable onPress={() => setVoiceEnabled(v => !v)} accessibilityRole="button"
+        accessibilityLabel={voiceEnabled ? 'Mute Arena voice announcements' : 'Enable Arena voice announcements'}
+        style={styles.audioToggle}>
+        <MaterialCommunityIcons name={voiceEnabled ? 'account-voice' : 'microphone-off'}
+          size={17} color="#f9df9e" />
       </Pressable>
       <Pressable onPress={() => setSfxEnabled(value => !value)} accessibilityRole="button" accessibilityLabel={sfxEnabled ? 'Mute Arena effects' : 'Enable Arena effects'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={sfxEnabled ? 'volume-high' : 'volume-off'} size={17} color="#f9df9e" />
