@@ -13,7 +13,6 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
-import {useRuntimeConfig} from '@/providers/RuntimeConfigProvider';
 
 const LANDSCAPE=require('../../../assets/season2/genesis/kingdom/kingdom-nature-panorama.webp');
 type EventRow={id:string;title:string;event_type:string;starts_at:string;ends_at:string|null;location:string|null;requires_rsvp:boolean|null};
@@ -31,13 +30,13 @@ function fmt(date:string){const d=new Date(date);return Number.isFinite(d.getTim
 export default function GenesisSpecialEvents(){
  const {user}=useAuth();
  const {activeScope}=useBuklodScope();
- const {featureEnabled}=useRuntimeConfig();
  const insets=useSafeAreaInsets();
  const [events,setEvents]=useState<EventRow[]>([]);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
  const [reduceMotion,setReduceMotion]=useState(true);
  const [foreground,setForeground]=useState(AppState.currentState==='active');
+ const [focused,setFocused]=useState(false);
  const sparkle=useRef(new Animated.Value(0)).current;
  const live=useRef(false);
  const showFaith=Boolean(activeScope?.show_faith_content);
@@ -49,14 +48,14 @@ export default function GenesisSpecialEvents(){
  },[]);
  useEffect(()=>{
    sparkle.stopAnimation();
-   if(reduceMotion||!foreground||!live.current){sparkle.setValue(0);return;}
+   if(reduceMotion||!foreground||!focused){sparkle.setValue(0);return;}
    const loop=Animated.loop(Animated.sequence([
      Animated.timing(sparkle,{toValue:1,duration:1750,useNativeDriver:true}),
      Animated.timing(sparkle,{toValue:0,duration:1750,useNativeDriver:true}),
    ]));
    loop.start();
    return()=>{loop.stop();sparkle.stopAnimation();};
- },[reduceMotion,foreground,sparkle]);
+ },[reduceMotion,foreground,focused,sparkle]);
  const refresh=useCallback(async()=>{
    if(!user){setEvents([]);setLoading(false);setError('Mag-sign in para makita ang mga event na available sa iyo.');return;}
    setLoading(true);setError('');
@@ -72,8 +71,8 @@ export default function GenesisSpecialEvents(){
    finally{if(live.current)setLoading(false);}
  },[user?.id]);
  useFocusEffect(useCallback(()=>{
-   live.current=true;void refresh();
-   return()=>{live.current=false;};
+   live.current=true;setFocused(true);void refresh();
+   return()=>{live.current=false;setFocused(false);};
  },[refresh]));
  const categories=CATEGORIES.filter(c=>!c.faith||showFaith);
  return <ScrollView style={styles.page} contentContainerStyle={{paddingTop:Math.max(insets.top,10)+8,paddingBottom:Math.max(insets.bottom,14)+30}}>
