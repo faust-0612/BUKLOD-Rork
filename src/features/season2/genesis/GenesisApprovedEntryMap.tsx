@@ -72,16 +72,29 @@ export default function GenesisApprovedEntryMap({
           onPress={()=>onOpen(door,door.faithOnly&&!showFaith?(door.fallbackRoute||'/learn'):door.route)}
           style={[styles.door,touch(door.x,door.y,zoomed?54:44)]}
         ><View pointerEvents="none" style={styles.pressHalo}/></Pressable>)}
-        <Pressable accessibilityRole="button" accessibilityLabel="Open BUKLOD destinations menu"
-          onPress={onMenu} style={[styles.corner,touch(.041,.04,44)]}/>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open my BUKLOD profile"
-          onPress={onProfile} style={[styles.corner,touch(.098,.04,44)]}/>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open notifications"
-          onPress={onNotifications} style={[styles.corner,touch(.906,.04,44)]}/>
-        <Pressable accessibilityRole="button" accessibilityLabel="Search BUKLOD"
-          onPress={onSearch} style={[styles.corner,touch(.963,.04,44)]}/>
+        {mapWidth>=770?<>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open BUKLOD destinations menu"
+            onPress={onMenu} style={[styles.corner,touch(.041,.04,44)]}/>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open my BUKLOD profile"
+            onPress={onProfile} style={[styles.corner,touch(.098,.04,44)]}/>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open notifications"
+            onPress={onNotifications} style={[styles.corner,touch(.906,.04,44)]}/>
+          <Pressable accessibilityRole="button" accessibilityLabel="Search BUKLOD"
+            onPress={onSearch} style={[styles.corner,touch(.963,.04,44)]}/>
+        </>:null}
       </View>
     </ScrollView>
+    {mapWidth<770?<View style={styles.compactShortcuts}>
+      {([
+        {id:'menu',label:'Open BUKLOD destinations menu',icon:'menu',press:onMenu},
+        {id:'profile',label:'Open my BUKLOD profile',icon:'account-outline',press:onProfile},
+        {id:'notifications',label:'Open notifications',icon:'bell-outline',press:onNotifications},
+        {id:'search',label:'Search BUKLOD',icon:'magnify',press:onSearch},
+      ] as const).map(item=><Pressable key={item.id} accessibilityRole="button"
+        accessibilityLabel={item.label} onPress={item.press} style={styles.shortcut}>
+        <MaterialCommunityIcons name={item.icon} size={20} color="#E7F5DE"/>
+      </Pressable>)}
+    </View>:null}
     <View style={styles.legend}>
       <MaterialCommunityIcons name="gesture-tap-button" size={16} color="#F5DA97"/>
       <Text style={styles.legendText}>Tap a building sign to enter. No second ENTER button.</Text>
@@ -101,6 +114,8 @@ const styles=StyleSheet.create({
   pressHalo:{width:'100%',height:'100%',borderRadius:18,borderWidth:1,
     borderColor:'rgba(251,235,164,.16)',backgroundColor:'rgba(255,248,202,.025)'},
   corner:{position:'absolute',zIndex:3},
+  compactShortcuts:{flexDirection:'row',justifyContent:'space-around',paddingHorizontal:5,backgroundColor:'#102F2A'},
+  shortcut:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},
   legend:{minHeight:37,paddingHorizontal:12,flexDirection:'row',gap:7,
     alignItems:'center',backgroundColor:'rgba(5,25,25,.98)'},
   legendText:{flex:1,color:'#E6F5D9',fontSize:10,fontWeight:'800'},
