@@ -35,94 +35,115 @@ type OpenBuklodQuizOptions = {
   source: QuizEntrySource;
 };
 
-function timeoutResult<T>(value: T, ms: number) {
-  return new Promise<T>(resolve => {
-    setTimeout(() => resolve(value), ms);
-  });
+/*
+ * BUKLOD_QUIZ_DOOR_SESSION_FASTPATH_R1
+ * The dedicated Quiz bridge verifies the signed Main JWT cryptographically.
+ * Avoid a second getUser() network round-trip for an unexpired Main session.
+ * Near-expiry sessions refresh before handoff; uncertain legacy sessions keep
+ * remote validation. A rejected bridge JWT may refresh/retry exactly once.
+ * No Main tokens appear in the Quiz URL.
+ */
+const TOKEN_EXPIRY_BUFFER_SECONDS = 60;
+
+async function withTimeout<T>(operation: Promise<T>, ms: number, code: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(code)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 async function getValidatedMainAccessToken() {
-  const current = await supabase.auth.getSession();
+  const current = await withTimeout(
+    supabase.auth.getSession(),
+    SESSION_TIMEOUT_MS,
+    'BUKLOD_MAIN_SESSION_READ_TIMEOUT',
+  );
   if (current.error) throw current.error;
 
-  let accessToken = String(current.data.session?.access_token ?? '').trim();
+  const session = current.data.session;
+  let accessToken = String(session?.access_token ?? '').trim();
   if (!accessToken) {
     throw new Error(
       'Your BUKLOD Main session is unavailable. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
     );
   }
 
-  const validation = await Promise.race([
-    supabase.auth.getUser(accessToken),
-    timeoutResult<any>(
-      {
-        data: { user: null },
-        error: new Error('BUKLOD_MAIN_SESSION_VALIDATE_TIMEOUT'),
-      },
-      SESSION_TIMEOUT_MS,
-    ),
-  ]);
+  const expiresAt = Number(session?.expires_at ?? 0);
+  const nowSeconds = Math.floor(Date.now() / 1000);
 
-  if (!validation?.error && validation?.data?.user) {
+  // Backend getClaims() remains the authoritative verifier. A still-fresh
+  // signed JWT does not need a separate Main Auth /user request per door tap.
+  if (Number.isFinite(expiresAt) && expiresAt > nowSeconds + TOKEN_EXPIRY_BUFFER_SECONDS) {
     return accessToken;
   }
 
-  const refreshed = await Promise.race([
-    supabase.auth.refreshSession(),
-    timeoutResult<any>(
-      {
-        data: { session: null, user: null },
-        error: new Error('BUKLOD_MAIN_SESSION_REFRESH_TIMEOUT'),
-      },
+  if (!expiresAt || !Number.isFinite(expiresAt)) {
+    // Legacy sessions without expiry metadata retain the prior validation.
+    const validation = await withTimeout(
+      supabase.auth.getUser(accessToken),
       SESSION_TIMEOUT_MS,
-    ),
-  ]);
+      'BUKLOD_MAIN_SESSION_VALIDATE_TIMEOUT',
+    ).catch(() => null);
+    if (!validation?.error && validation?.data?.user) return accessToken;
+  }
+
+  const refreshed = await withTimeout(
+    supabase.auth.refreshSession(),
+    SESSION_TIMEOUT_MS,
+    'BUKLOD_MAIN_SESSION_REFRESH_TIMEOUT',
+  );
 
   accessToken = String(refreshed?.data?.session?.access_token ?? '').trim();
   if (refreshed?.error || !accessToken) {
     throw new Error(
-      'Your saved BUKLOD session on this device is no longer valid. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
+      'Your saved BUKLOD session is no longer valid. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
     );
   }
 
-  const revalidated = await Promise.race([
+  const revalidated = await withTimeout(
     supabase.auth.getUser(accessToken),
-    timeoutResult<any>(
-      {
-        data: { user: null },
-        error: new Error('BUKLOD_MAIN_SESSION_REVALIDATE_TIMEOUT'),
-      },
-      SESSION_TIMEOUT_MS,
-    ),
-  ]);
-
+    SESSION_TIMEOUT_MS,
+    'BUKLOD_MAIN_SESSION_REVALIDATE_TIMEOUT',
+  );
   if (revalidated?.error || !revalidated?.data?.user) {
     throw new Error(
-      'BUKLOD refreshed your saved session, but this device could not validate it. Check your connection, then sign in again if needed.',
+      'BUKLOD refreshed your session, but verification did not finish. Check your connection and retry.',
     );
   }
-
   return accessToken;
 }
 
-export async function createBuklodQuizLaunchUrl(
+type QuizBridgeResult = {
+  response: Awaited<ReturnType<typeof fetch>>;
+  result: any;
+};
+
+async function requestQuizBridge(
+  accessToken: string,
   options: OpenBuklodQuizOptions,
-) {
-  const accessToken = await getValidatedMainAccessToken();
+): Promise<QuizBridgeResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ENTRY_TIMEOUT_MS);
-
-  let response: Awaited<ReturnType<typeof fetch>>;
   try {
-    response = await fetch(QUIZ_ENTRY_BRIDGE, {
+    const response = await fetch(QUIZ_ENTRY_BRIDGE, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: 'Bearer ' + accessToken,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ source: options.source }),
       signal: controller.signal,
     });
+    // Keep the timeout active until the whole response body has arrived.
+    const result = await response.json().catch(() => null);
+    return { response, result };
   } catch (error: any) {
     if (error?.name === 'AbortError' || controller.signal.aborted) {
       throw new Error(
@@ -133,8 +154,36 @@ export async function createBuklodQuizLaunchUrl(
   } finally {
     clearTimeout(timeoutId);
   }
+}
 
-  const result = await response.json().catch(() => null);
+let launchInFlight: Promise<string> | null = null;
+
+async function createQuizLaunchUrlOnce(options: OpenBuklodQuizOptions) {
+  const startedAt = Date.now();
+  let accessToken = await getValidatedMainAccessToken();
+  let bridge = await requestQuizBridge(accessToken, options);
+
+  // Retry only a rejected Main session. Never retry ambiguous network errors,
+  // 409 duplicate-entry claims, or a minted one-time handoff.
+  if (
+    bridge.response.status === 401 &&
+    bridge.result?.error === 'main_session_required'
+  ) {
+    const refreshed = await withTimeout(
+      supabase.auth.refreshSession(),
+      SESSION_TIMEOUT_MS,
+      'BUKLOD_MAIN_SESSION_REFRESH_TIMEOUT',
+    );
+    accessToken = String(refreshed?.data?.session?.access_token ?? '').trim();
+    if (refreshed?.error || !accessToken) {
+      throw new Error(
+        'Your BUKLOD Main session expired. Sign in again, then open Quiz.',
+      );
+    }
+    bridge = await requestQuizBridge(accessToken, options);
+  }
+
+  const { response, result } = bridge;
   const legacyLaunchUrl = String(result?.launch_url ?? '').trim();
   const sessionLaunchUrl = String(result?.session_launch_url ?? '').trim();
   const launchUrl =
@@ -142,15 +191,21 @@ export async function createBuklodQuizLaunchUrl(
       ? sessionLaunchUrl
       : legacyLaunchUrl;
 
-  if (!response.ok || result?.ok !== true || !launchUrl) {
-    const code = String(result?.error ?? '').trim();
+  if (response.status !== 200 || Date.now() - startedAt > 3000) {
+    // Safe for BSOC aggregation: no user ID, bearer, magic URL, or token.
+    console.warn('buklod_quiz_entry_result', {
+      status: response.status,
+      error_code: String(result?.error ?? 'none').slice(0, 80),
+      elapsed_ms: Date.now() - startedAt,
+    });
+  }
 
-    if (code === 'entry_already_in_progress') {
+  if (!response.ok || result?.ok !== true || !launchUrl) {
+    if (result?.error === 'entry_already_in_progress') {
       throw new Error(
-        'Your BUKLOD Quiz entry is already processing. Wait a few seconds, then tap BUKLOD Quiz once.',
+        'Your BUKLOD Quiz entry is already processing. Wait a few seconds, then tap once.',
       );
     }
-
     throw new Error(
       String(
         result?.message ??
@@ -161,6 +216,18 @@ export async function createBuklodQuizLaunchUrl(
   }
 
   return launchUrl;
+}
+
+export function createBuklodQuizLaunchUrl(options: OpenBuklodQuizOptions) {
+  if (launchInFlight) return launchInFlight;
+  const pending = createQuizLaunchUrlOnce(options);
+  launchInFlight = pending;
+  // clear both resolved and rejected promises without unhandled rejections
+  void pending.then(
+    () => { if (launchInFlight === pending) launchInFlight = null; },
+    () => { if (launchInFlight === pending) launchInFlight = null; },
+  );
+  return pending;
 }
 
 export async function openBuklodQuizFromMain(
