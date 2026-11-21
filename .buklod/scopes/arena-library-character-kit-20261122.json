@@ -9,7 +9,8 @@
     "experiments/empire-arena-v2/arena-v2-engine.mjs",
     "experiments/empire-arena-v2/arena-v2-solo.mjs",
     "src/app/games/empire-arena.tsx",
-    "tests/arena-library-starter-character-integration-20261122.test.mjs"
+    "tests/arena-library-starter-character-integration-20261122.test.mjs",
+    "tests/empire-arena-v2-design-and-simulation.test.mjs"
   ],
   "preserveBehaviors": [
     "One BUKLOD MAIN app (no Godot APK)",
@@ -19,7 +20,8 @@
     "Godot assets remain source references; no unverified assets/licenses copied"
   ],
   "regressionTests": [
-    "node --test tests/arena-library-starter-character-integration-20261122.test.mjs"
+    "node --test tests/arena-library-starter-character-integration-20261122.test.mjs",
+    "node --test tests/empire-arena-v2-design-and-simulation.test.mjs"
   ],
   "releaseMode": "DEV_ONLY_NO_OTA",
   "physicalDeviceVerification": "NOT_PERFORMED"
