@@ -39,6 +39,19 @@ const arenaCuePlayedAt = new Map<string, number>();
 const startedVoices = new WeakSet<Player>();
 let focusedKingdomViews = 0;
 let arenaAudioInterrupted = false;
+let arenaVoiceDucking = false;
+let arenaAmbience: Player | null = null;
+
+/** Voice intelligibility: spoken calls temporarily lower *Arena* background
+ * music and impact loudness, never unrelated Connect/video/call playback. */
+export function setArenaVoiceDucking(active:boolean){
+  arenaVoiceDucking=Boolean(active);
+  if(arenaAmbience){
+    try {
+      arenaAmbience.volume=Math.min(.16,getBuklodGameSoundVolume()*.55)*(arenaVoiceDucking?.23:1);
+    }catch{/* no interruption to gameplay */}
+  }
+}
 
 function releaseKingdomSfx() {
   for (const voices of pools.values()) {
@@ -176,7 +189,8 @@ export function tryPlayArenaEventCue(cue: ArenaSoundCue, enabled = true): boolea
   const player=voices[index%voices.length];
   if(!player.isLoaded)return false;
   try {
-    player.volume=Math.max(0,Math.min(.48,(Number(cue.volume)||.22)*.75*getBuklodGameSoundVolume()));
+    player.volume=Math.max(0,Math.min(.48,(Number(cue.volume)||.22)*.75*getBuklodGameSoundVolume()*(arenaVoiceDucking?.27:1)));
+
     player.playbackRate=Math.max(.7,Math.min(1.3,Number(cue.rate)||1));
     if(!startedVoices.has(player)){
       startedVoices.add(player);
@@ -225,7 +239,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
   useFocusEffect(useCallback(() => {
     if (!gameId) return;
     focusedKingdomViews += 1;
-    if (options?.arena) arenaAudioInterrupted = false;
+    if (options?.arena) { arenaAudioInterrupted = false; setArenaVoiceDucking(false); }
     prewarmKingdomSfx(Boolean(options?.arena));
     // An actual Connect call, ad, Reels/Wall video or PTT explicitly claiming
     // media focus silences Arena effects, not just background music.
@@ -238,7 +252,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
     }) : () => undefined;
     return () => {
       releaseArenaFocus();
-      if (options?.arena) arenaAudioInterrupted = false;
+      if (options?.arena) { arenaAudioInterrupted = false; setArenaVoiceDucking(false); }
       focusedKingdomViews = Math.max(0, focusedKingdomViews - 1);
       if (focusedKingdomViews === 0) releaseKingdomSfx();
     };
@@ -259,6 +273,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
     } catch { return; }
     if (!player) return;
     const audio = player;
+    if(options?.arena)arenaAmbience=audio;
     let active = true;
     // Genesis map music yields to any explicit ad, video, call or music focus
     // request. Never resume spontaneously while a competing source is active.
@@ -281,7 +296,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
           audio.pause();
           return;
         }
-        audio.volume = Math.min(0.16, getBuklodGameSoundVolume() * 0.55);
+        audio.volume = Math.min(0.16, getBuklodGameSoundVolume() * 0.55) * (options?.arena&&arenaVoiceDucking?.23:1);
         if (audio.isLoaded) audio.play();
       } catch {
         // No impact to gameplay if sound assets, platform or autoplay fail.
@@ -302,6 +317,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
       // Invalidate pending hydration/status callbacks before release to avoid
       // late replay of the loop after a rapid back/forward navigation.
       active = false;
+      if(options?.arena&&arenaAmbience===audio){arenaAmbience=null;setArenaVoiceDucking(false);}
       releaseAudioFocus();
       readyListener.remove();
       stateListener.remove();
