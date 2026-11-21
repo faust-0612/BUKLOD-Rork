@@ -32,3 +32,8 @@ No production main changes. No migration deployment. No release or update workfl
 - Existing CC0 Kingdom soundtrack now listens for competing audio-focus ownership and pauses the Genesis map music when another ad, user video, call or audio source requests focus; it does not automatically resume over competing playback.
 - Music button is opt-in; tapping Music On sends an explicit map focus request; status shows 'Music paused' when external media interrupts. User controls volume/quiet hours through existing sound settings.
 - No automated test can prove ad fill or exact native audio-focus timing; release remains HARD HOLD.
+
+## Integrated single-app Arena offline practice — DEV source only
+- Pure Arena V2 combat, 13 art portraits and 3 maps, 1v1 / 3v3 / 5v5 offline practice controls imported. Entry only from Genesis Kingdom portal. Real ranked and server settlement unimplemented.
+- Original /games/index source and production behavior untouched. No BP, QMP, Diamond, inventory, token ledger, credentials or backend mutations.
+- Native Android compilation and visual acceptance still unverified; no OTA release authorization.

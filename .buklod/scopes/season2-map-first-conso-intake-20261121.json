@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
-  "objective": "Genesis stage-only map-first single-door World, now bundling user-approved 1448/1024 Valley artwork and 14 physically anchored hotspots, preserving rights, receipts, ads, permissions and production.",
+  "objective": "Genesis stage-only map-first single-door World, now bundling user-approved 1448/1024 Valley artwork and 14 physically anchored hotspots, preserving rights, receipts, ads, permissions and production. In-app Empire Arena offline V2 practice, no separate game or actual ranked economy.",
   "baseRef": "44d07a65d5e19f4cfb8f70aaff4f9d24545eb097",
   "productionBaselineEvidence": "Main production untouched; parent DEV commit 9997d85d646257d83e18642a4219a38cc57b0ec2. App/runtime Play identity not independently verified; no Supabase/OTA writes.",
-  "chosenApproach": "Use native expo-image local WebP, deterministic image-coordinate hotspots, overview/explore swipe, exact real routes plus collapsible directory; no 3D SDK or new backend in OTA, no production writes. Anchor all pins on the actual painted gold building icons. Protect background music through existing audio-focus bus, stop after competing media, and do not auto-restart over ads/calls.",
+  "chosenApproach": "Use native expo-image local WebP, deterministic image-coordinate hotspots, overview/explore swipe, exact real routes plus collapsible directory; no 3D SDK or new backend in OTA, no production writes. Anchor all pins on the actual painted gold building icons. Protect background music through existing audio-focus bus, stop after competing media, and do not auto-restart over ads/calls. Selective source import of engine + Expo portrait/terrain inputs from existing Arena DEV; preview launch via GenesisKingdomPortal, legacy games/index untouched.",
   "riskAreas": [
     "arena-multiplayer",
     "asset-licensing",
@@ -16,7 +16,9 @@
     "navigation-scroll",
     "staging-native-runtime",
     "advertising-audio-priority",
-    "asset-touch-hitboxes"
+    "asset-touch-hitboxes",
+    "arena-offline-practice",
+    "arena-orientation"
   ],
   "lockedFeatureChanges": [
     {
@@ -28,7 +30,10 @@
       "tests": [
         "tests/season2-map-first-conso-intake-20261121.test.mjs",
         "tests/genesis-valley-asset-interaction-20261121.test.mjs",
-        "tests/genesis-valley-audio-focus-20261121.test.mjs"
+        "tests/genesis-valley-audio-focus-20261121.test.mjs",
+        "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
+        "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
+        "tests/empire-arena-v2-presentation-20261121.test.mjs"
       ]
     },
     {
@@ -42,13 +47,28 @@
         "tests/genesis-world-navigation-regression-20261121.test.mjs",
         "tests/genesis-valley-asset-interaction-20261121.test.mjs"
       ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Preview-only Expo Arena offline practice reuses existing V2 engine. No account/ledger writes.",
+      "preservedBehaviors": [
+        "Production Kingdom map retains its original 13 stations and sponsored placement; no legacy client mounts this practice Arena."
+      ],
+      "tests": [
+        "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
+        "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
+        "tests/empire-arena-v2-presentation-20261121.test.mjs"
+      ]
     }
   ],
   "regressionTests": [
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
     "tests/season2-map-first-conso-intake-20261121.test.mjs",
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
-    "tests/genesis-valley-audio-focus-20261121.test.mjs"
+    "tests/genesis-valley-audio-focus-20261121.test.mjs",
+    "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
+    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs"
   ],
   "allowedPaths": [
     "src/app/buklod-map.tsx",
@@ -70,7 +90,21 @@
     "assets/season2/genesis/world/buklod-community-map.webp",
     "assets/season2/genesis/world/buklod-community-map-compact.webp",
     "src/features/games/runtime/rorkAudio.ts",
-    "tests/genesis-valley-audio-focus-20261121.test.mjs"
+    "tests/genesis-valley-audio-focus-20261121.test.mjs",
+    "experiments/empire-arena-v2/arena-v2-engine.mjs",
+    "experiments/empire-arena-v2/arena-v2-armory.mjs",
+    "experiments/empire-arena-v2/arena-v2-maps.mjs",
+    "experiments/empire-arena-v2/arena-v2-empire.mjs",
+    "src/features/games/empire/arenaVisualBaseline.ts",
+    "src/features/games/empire/arenaGeneratedAssets.ts",
+    "src/features/games/empire/arenaPracticePresentation.mjs",
+    "src/app/games/empire-arena.tsx",
+    "scripts/ingest-buklod-visual-baseline.mjs",
+    "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
+    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "docs/empire-arena/BUKLOD_ARENA_IN_APP_VISUAL_BASELINE_20261121.md",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
@@ -80,7 +114,8 @@
     "No native/Supabase changes or OTA publisher change. Premium asset bytes/licensing, 13 unique rigs, Arena true multiplayer, isolated economy ledger, signed Genesis native build remain hard HOLD.",
     "Physical device visual check waived but unverified; signed Android/native/AdMob QA not waived.",
     "No Stage→Production release until 2026-12-06 and authorization.",
-    "Source QA workflow runs actual WebP SHA256/14-route checks plus audio-focus regression with no release/publish step."
+    "Source QA workflow runs actual WebP SHA256/14-route checks plus audio-focus regression with no release/publish step.",
+    "Focused Arena engine/camera/input offline tests and exact-head TypeScript; physical device, full PvP and signed APK remain unverified."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
