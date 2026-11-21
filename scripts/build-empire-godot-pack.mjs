@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { deflateRawSync } from 'node:zlib';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { HEROES, MODES, COSTS, BUFFS, STARTER_HERO_KITS, ARENA_MAPS, BUILD_COSTS } from '../experiments/empire-arena-v2/arena-v2-engine.mjs';
@@ -57,7 +58,19 @@ for (const match of visualManifest.matchAll(/'(fullbody|scene|sprite):([^']+)':\
   assert.ok((group === 'scene' && ext === '.png') || (group !== 'scene' && ext === '.webp'),
     'Unexpected asset format for ' + group);
   assert.match(key, /^[a-z0-9_]+$/, 'Unsafe asset key');
-  entries.push({ name: 'art/' + group + '/' + key + ext, bytes: readFileSync(filename) });
+  // Approved source WebPs are ANIM WebP, unsupported by Godot's static WebP
+  // decoder. Extract only frame one into a portable native PNG visual preview.
+  // Original animations stay intact in the React Native asset inventory.
+  const bytes = ext === '.webp'
+    ? execFileSync('ffmpeg', [
+      '-hide_banner', '-loglevel', 'error', '-i', filename,
+      '-frames:v', '1', '-f', 'image2pipe', '-vcodec', 'png', '-'
+    ], { timeout: 25000, maxBuffer: 8 * 1024 * 1024 })
+    : readFileSync(filename);
+  assert.ok(bytes.length > 100 &&
+    bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
+    'Native Arena art PNG validation failed for ' + key);
+  entries.push({ name: 'art/' + group + '/' + key + '.png', bytes });
   artCounts[group]++;
 }
 assert.deepEqual(artCounts, { fullbody: 52, scene: 3, sprite: 13 },
