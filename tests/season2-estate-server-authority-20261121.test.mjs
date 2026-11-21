@@ -58,6 +58,9 @@ test('read and write paths require server authority and preserve household isola
  assert.match(api,/save_buklod_estate_design_v1/);
  assert.match(consoleSource,/if\(!verified\|\|!verified.can_build\)return/);
  assert.match(consoleSource,/pending_key/);
+ assert.match(consoleSource,/actionSeq.current/);
+ assert.match(consoleSource,/inFlight.current/);
+ assert.match(consoleSource,/if\(startKey.current===operationKey\)/);
  assert.match(consoleSource,/enoughEstateMaterials/);
  assert.match(read('src/components/home/BuklodPersonalHomeE2E.tsx'),/BuklodBahayHome/);
 });

@@ -33,6 +33,8 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
  const [showDonation,setShowDonation]=useState(false);
  const [donation,setDonation]=useState<EstateWallet>({...ZERO});
  const sequence=useRef(0);
+ const actionSeq=useRef(0);
+ const inFlight=useRef(false);
  const startKey=useRef<string|null>(null);
  const donationKey=useRef<string|null>(null);
  const onVerifiedRef=useRef(onVerified);
@@ -57,7 +59,8 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
   }finally{if(n===sequence.current)setLoading(false);}
  },[kind,ownerId,track,userId]);
  useEffect(()=>{
-  ++sequence.current;setVerified(null);setPersonalWallet(null);setError('');setMessage('');
+  ++sequence.current;++actionSeq.current;inFlight.current=false;setBusy(false);
+  setVerified(null);setPersonalWallet(null);setError('');setMessage('');
   startKey.current=null;donationKey.current=null;setDonation({...ZERO});
  },[key]);
  useFocusEffect(useCallback(()=>{void refresh();return()=>{++sequence.current;};},[refresh]));
@@ -67,17 +70,26 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
   return()=>clearInterval(timer);
  },[verified?.build_finish_at]);
  const act=async(fn:()=>Promise<EstateSnapshot>,done:string)=>{
-  if(busy||loading)return;
-  setBusy(true);setMessage('');setError('');
-  try{const snapshot=await fn();apply(snapshot);setMessage(done);setNow(Date.now());}
-  catch(e){setError(e instanceof Error?e.message:'Could not verify estate action.');}
-  finally{setBusy(false);}
+  if(inFlight.current||busy||loading)return;
+  const request=++actionSeq.current;
+  inFlight.current=true;setBusy(true);setMessage('');setError('');
+  try{
+    const snapshot=await fn();
+    if(request!==actionSeq.current)return;
+    apply(snapshot);setMessage(done);setNow(Date.now());
+  }catch(e){
+    if(request===actionSeq.current)setError(e instanceof Error?e.message:'Could not verify estate action.');
+  }finally{
+    if(request===actionSeq.current){inFlight.current=false;setBusy(false);}
+  }
  };
  const start=()=>{if(!verified||!verified.can_build)return;
   if(!startKey.current)startKey.current=newEstateOperationKey();
+  const operationKey=startKey.current;
   void act(async()=>{
-   const snapshot=await startVerifiedEstateBuild({kind,ownerId,track},startKey.current!);
-   startKey.current=null;return snapshot;
+   const snapshot=await startVerifiedEstateBuild({kind,ownerId,track},operationKey!);
+   if(startKey.current===operationKey)startKey.current=null;
+   return snapshot;
   },'Construction started. Verified materials were deducted once.');
  };
  const finish=()=>{if(!verified||!verified.can_build)return;
@@ -95,9 +107,10 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
   if(materialNames.every(([k])=>amount[k]<=0))return;
   if(!materialNames.every(([k])=>Number.isSafeInteger(amount[k])&&amount[k]>=0&&amount[k]<=1000000))return;
   if(!donationKey.current)donationKey.current=newEstateOperationKey();
+  const operationKey=donationKey.current;
   void act(async()=>{
-   const next=await contributeVerifiedEstate(ownerId,donationKey.current!,amount);
-   donationKey.current=null;
+   const next=await contributeVerifiedEstate(ownerId,operationKey!,amount);
+   if(donationKey.current===operationKey)donationKey.current=null;
    const mine=await fetchVerifiedEstate({kind:'USER',ownerId:userId,track:'lot'}).catch(()=>null);
    setPersonalWallet(mine?.wallet??null);
    setDonation({...ZERO});return next;
