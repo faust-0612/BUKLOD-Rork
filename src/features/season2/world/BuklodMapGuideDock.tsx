@@ -4,7 +4,7 @@
  * No invented AI network service or voice playback; respects reduced-motion.
  */
 import React,{useEffect,useRef,useState} from 'react';
-import {AccessibilityInfo,Animated,Pressable,StyleSheet,Text,View} from 'react-native';
+import {AccessibilityInfo,Animated,Pressable,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -13,6 +13,8 @@ import {DEFAULT_CHARACTER} from '@/lib/buklodCharacter';
 
 export default function BuklodMapGuideDock({active}:{active:boolean}) {
   const insets=useSafeAreaInsets();
+  const {width,height}=useWindowDimensions();
+  const shortLandscape=width>height&&height<=520;
   const [minimized,setMinimized]=useState(false);
   const [details,setDetails]=useState(false);
   const [reducedMotion,setReducedMotion]=useState(true);
@@ -40,23 +42,23 @@ export default function BuklodMapGuideDock({active}:{active:boolean}) {
   ];
   return (
     <View accessibilityLabel="BUKLOD animated guide, outside the world map"
-      style={[styles.dock,{paddingBottom:Math.max(4,insets.bottom)}]}>
+      style={[styles.dock,{paddingBottom:shortLandscape?3:Math.max(4,insets.bottom),paddingTop:shortLandscape?2:6}]}>
       <Pressable accessibilityRole="button" accessibilityLabel={minimized?'Expand BUKLOD guide':'Minimize BUKLOD guide'}
         onPress={()=>setMinimized(v=>!v)} style={styles.faceButton}>
         <Animated.View style={{transform:[{translateY:lift}]}}>
           {minimized ? <MaterialCommunityIcons name="account-star" size={30} color="#EFDCA5"/> : (
-            <View style={styles.portrait}>
-              <BuklodActiveCharacterArt fallbackCharacter={DEFAULT_CHARACTER} height={62} viewportWidth={52} showEffects={false}/>
+            <View style={[styles.portrait,shortLandscape&&{height:48,width:42}]}>
+              <BuklodActiveCharacterArt fallbackCharacter={DEFAULT_CHARACTER} height={shortLandscape?48:62} viewportWidth={shortLandscape?39:52} showEffects={false}/>
               <MaterialCommunityIcons name="hand-wave-outline" size={16} color="#FFF2C9" style={styles.waveIcon}/>
             </View>
           )}
         </Animated.View>
       </Pressable>
-      <View style={styles.content}>
+      <View style={[styles.content,shortLandscape&&{flexDirection:'row',alignItems:'center',gap:12}]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Hear guide recommendations in text"
           onPress={()=>{setMinimized(false);setDetails(v=>!v);}}>
           <Text style={styles.greeting}>{minimized?'BUKLOD Guide · tap to open':'Kumusta! Ako ang BUKLOD Guide.'}</Text>
-          {!minimized ? <Text style={styles.hint} numberOfLines={2}>{details
+          {!minimized&&!shortLandscape ? <Text style={styles.hint} numberOfLines={2}>{details
             ? 'Pumili ng pinto sa mapa. Ang My Home ay para sa iyong sariling Lot at House; ang Village ay para sa Cluster at community.'
             : 'Handa akong tumulong. Saan mo gustong pumunta?'}</Text> : null}
         </Pressable>
