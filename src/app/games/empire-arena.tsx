@@ -43,6 +43,14 @@ type ArenaState = {
   cover: [number, number, number][]; events: { type: string; seq: number }[];
   result?: { winner: Team | null; reason: string } | null;
 };
+/** Typed bridge to the unchanged JavaScript-only deterministic practice engine. */
+type OfflinePracticeSetup = {
+  mode: Mode;
+  mapId: ArenaSceneId;
+  hero: BuklodCharacterId;
+  snapshot: { characterLevel: number; bpEligibleLevel: number; itemVerifiedLevel: number; diamonds: number; verifiedItems: string[] };
+};
+const createArenaPractice = createPractice as unknown as (options: OfflinePracticeSetup) => ArenaState;
 const MODE_LABELS: Record<Mode, string> = { duel: '1v1', cluster: '3v3', grand: '5v5' };
 const SCENES: ArenaSceneId[] = ['genesis_rift', 'aurora_foundry', 'verdant_fracture'];
 const MODES: Mode[] = ['duel', 'cluster', 'grand'];
@@ -193,10 +201,10 @@ export default function EmpireArenaInApp() {
   const start = useCallback(() => {
     // Server-owned Diamond/item eligibility is NOT simulated with fabricated user data.
     // Level-1 equalized offline practice is separate from permanent profile progression.
-    const state = createPractice({
+    const state = createArenaPractice({
       mode, mapId, hero,
       snapshot: { characterLevel: 1, bpEligibleLevel: 1, itemVerifiedLevel: 1, diamonds: 0, verifiedItems: [] },
-    } as any) as unknown as ArenaState;
+    });
     gameRef.current = state;
     selected.current = null;
     setTarget(null);
