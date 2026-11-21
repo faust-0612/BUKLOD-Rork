@@ -46,6 +46,9 @@ test('Genesis-only Arena is immersive with safe navigation and economic guard',(
  assert.doesNotMatch(screen,/awardDiamond|awardBp|settleWorldTrade|\.rpc\(/);
 });
 
+test('Arena has no malformed ScrollView ternary endings',()=>{
+ assert.doesNotMatch(read('src/app/games/empire-arena.tsx'),/<\\/ScrollView>\\s*:\\s*null>/);
+});
 test('Practice combat presents real source-owned hit feedback and discoverable objective prompts',()=>{
  const events=[{seq:1,time:1100,type:'damage',to:'B0',amount:24},
   {seq:2,time:1200,type:'mine',actor:'A0',amount:12}];

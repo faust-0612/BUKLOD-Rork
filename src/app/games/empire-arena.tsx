@@ -681,7 +681,7 @@ function EmpireArenaInApp() {
             <Control icon="arrow-up-bold-hexagon-outline" title="UPGRADE" onPress={() => towerAction('tower_upgrade')} disabled={!nearby.tower} />
           </View>
           <Text style={styles.tacticsHint}>Siege after enemy towers fall • Build and repair near base • No practice rewards.</Text>
-        </ScrollView> : null>
+        </ScrollView> : null}
       </> : <View style={styles.overlay}>
         <Text style={styles.overlayTitle}>{phase === 'paused' ? 'PAUSED' : game.result?.winner === ownTeam ? 'VICTORY' : game.result?.winner && game.result.winner !== ownTeam ? 'DEFEAT' : 'MATCH ENDED'}</Text>
         <Text style={styles.description}>{phase === 'paused' ? 'Match time is frozen. Return to gameplay or abandon this practice.' : arenaKind === 'ranked' ? 'Ranked outcome is settled by the server only. No BUKLOD BP or QMP is minted.' : 'Offline practice only. No BP, diamonds, rank or inventory changes.'}</Text>
