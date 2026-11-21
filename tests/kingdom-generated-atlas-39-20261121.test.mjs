@@ -9,7 +9,7 @@ const scene=read('src/features/games/kingdom/platform/KingdomCinematicScene.nati
 test('39 original and pilot game IDs map to individually cropped image-generated local atlas cells',()=>{
  assert.equal(ids.length,39);
  assert.equal(new Set(ids).size,39);
- const all=[...atlas.matchAll(/^  '([^']+)',?$/gm)].map(x=>x[1]);
+ const all=[...atlas.matchAll(/^  "([^"]+)",?$/gm)].map(x=>x[1]);
  assert.deepEqual(all,ids);
  assert.match(atlas,/const COLS=6,ROWS=7,WIDTH=840,HEIGHT=815/);
  assert.match(atlas,/index%COLS/);
