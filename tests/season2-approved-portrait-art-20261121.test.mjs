@@ -68,10 +68,10 @@ test('Animation follows focus and reduced-motion safeguards; no financial writes
  assert.match(component,/AccessibilityInfo\.isReduceMotionEnabled/);
  assert.match(component,/!active\|\|reduceMotion/);
  assert.match(component,/cycle\.stop\(\)/);
- assert.match(component,/guideLife/);
- assert.match(component,/hand-wave-outline/);
- assert.match(component,/translateY:glow\.interpolate/);
+ assert.match(component,/GenesisOriginalGuideMotion/);
+ assert.match(read('src/features/season2/genesis/GenesisOriginalGuideMotion.tsx'),/ORIGINAL_GUIDE_IN_MAP/);
  assert.match(component,/specialLandmark/);
  assert.doesNotMatch(component,/supabase\.rpc|service_role|awardBp|mintBp/i);
- assert.doesNotMatch(entry,/BuklodFirstViewAd|toggleMusic|awardBp|mintBp/i);
+ assert.match(entry,/BuklodAdMobBanner/);
+ assert.doesNotMatch(entry,/toggleMusic|awardBp|mintBp/i);
 });

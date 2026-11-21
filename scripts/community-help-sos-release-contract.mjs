@@ -49,7 +49,8 @@ requireAll('src/components/BuklodCommunityHelp.tsx', [
   'Enable nearby safety alerts',
   'Nearby safety alerts on',
   "I'M SAFE / RESOLVE",
-  'Exact location is used only for proximity matching.',
+  'Phone Location must be ON to send.',
+  'A nearby responder who marks ON MY WAY may open your rescue location in Maps',
   'not a replacement for official emergency services',
 ]);
 
@@ -120,7 +121,30 @@ requireAll('supabase/functions/buklod-help-alert/index.ts', [
   'Do not call Expo Push directly here, or a single SOS could be sent twice.',
 ]);
 
-// R1 intentionally does not require background location or a native alarm/full-screen takeover.
+// Explicit R3 contract revision: preserve R1 background/location boundaries,
+// but allow sender-informed, responder-gated navigation ONLY after ON_MY_WAY.
+// Android-specific sound is native-build dependent, not an OS overlay claim.
+requireAll('app.config.js', [
+  "sounds: ['./assets/sounds/buklod_alert.wav']",
+]);
+requireAll('src/lib/pushNotifications.ts', [
+  "setNotificationChannelAsync('buklod-emergency-v2'",
+  'buklod_help_register_emergency_channel',
+]);
+requireAll('src/components/BuklodGlobalEmergencyHost.tsx', [
+  'buklod_help_get_emergency_for_viewer',
+  'buklod_help_get_rescue_coordinates',
+  'NAVIGATE TO SOS LOCATION',
+  'buklod_help_refresh_opted_in_presence',
+]);
+requireAll('supabase/migrations/20261121230000_sos_urgent_audible_rescue.sql', [
+  'REVOKE INSERT, UPDATE, DELETE ON TABLE',
+  "response.response_type='ON_MY_WAY'",
+  "n.data->>'help_request_id'=r.id::text",
+  'REVOKE ALL ON FUNCTION public.buklod_help_get_rescue_coordinates',
+]);
+
+// R1 intentionally does not require background location or an OS full-screen takeover.
 forbidAll('app.config.js', [
   'isIosBackgroundLocationEnabled: true',
   'isAndroidBackgroundLocationEnabled: true',

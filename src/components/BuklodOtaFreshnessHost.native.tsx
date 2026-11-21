@@ -6,16 +6,12 @@
 import * as Updates from 'expo-updates';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
-import { createSilentOtaDownloader, GENESIS_OTA_INITIAL_CHECK_MS } from '@/lib/buklodSilentOtaPolicy';
-import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { createSilentOtaDownloader } from '@/lib/buklodSilentOtaPolicy';
 
 // Singleton survives provider remounts. Never initiate simultaneous downloads.
 const ota = createSilentOtaDownloader({
   checkForUpdate: () => Updates.checkForUpdateAsync(),
   fetchUpdate: () => Updates.fetchUpdateAsync(),
-  // A missed cold-start request otherwise waits an entire hour. Genesis staging
-  // checks once early without an unsafe in-session reload. Production unchanged.
-  initialCheckDelayMs: isGenesisPreviewBuild() ? GENESIS_OTA_INITIAL_CHECK_MS : undefined,
 });
 
 export default function BuklodOtaFreshnessHost() {
@@ -38,12 +34,6 @@ export default function BuklodOtaFreshnessHost() {
       }, 5_000 + Math.floor(Math.random() * 20_000));
     };
 
-    const initial = isGenesisPreviewBuild()
-      ? setTimeout(() => {
-          if (AppState.currentState === 'active') void ota.checkIfDue();
-        }, GENESIS_OTA_INITIAL_CHECK_MS + 1000)
-      : null;
-
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') onForeground();
       else clear();
@@ -51,7 +41,6 @@ export default function BuklodOtaFreshnessHost() {
 
     return () => {
       clear();
-      if (initial) clearTimeout(initial);
       subscription.remove();
     };
   }, []);

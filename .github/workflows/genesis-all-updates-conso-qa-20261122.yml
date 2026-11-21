@@ -1,0 +1,165 @@
+name: BUKLOD Genesis ALL-UPDATES Conso Staging Source QA (NO PUBLISH)
+on:
+  push:
+    branches:
+      - integration/genesis-all-updates-conso-staging-20261122
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: buklod-genesis-all-updates-conso-source-check
+  cancel-in-progress: true
+jobs:
+  source-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm full owner-queued source and separate SOS native-release gate
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'; import assert from 'node:assert/strict';
+          const m=JSON.parse(fs.readFileSync('.buklod/releases/genesis-all-updates-conso-20261122.json','utf8'));
+          assert.equal(m.status,'DEV_CONSOLIDATED_NATIVE_AND_BACKEND_RELEASE_HOLD');
+          assert.equal(m.releaseSafety.doNotPublishToExistingRuntime,true);
+          assert.equal(m.releaseSafety.newSignedStagingApkRequired,true);
+          assert.equal(m.releaseSafety.isolatedSupabaseStagingRequiredForSOSAndEstate,true);
+          assert.equal(m.releaseSafety.productionUnchanged,true);
+          assert.equal(m.totalNewUniqueSourceFiles,89);
+          assert.equal(m.sources.length,6);
+          const eas=JSON.parse(fs.readFileSync('eas.json','utf8'));
+          assert.equal(eas.build['season2-genesis-preview'].channel,'season2-genesis-preview');
+          const p=eas.build['season2-genesis-sos-preview'];
+          assert.equal(p.env.EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3,'true');
+          assert.equal(p.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
+          assert.equal(p.channel,'season2-genesis-preview');
+          for(const f of [
+            'src/features/games/empire/ArenaMaterialFeedback.tsx',
+            'src/features/games/empire/ArenaVoiceRuntime.ts',
+            'src/app/personal-home/ptt.tsx',
+            'src/components/BuklodGlobalEmergencyHost.tsx',
+            'src/features/season2/genesis/GenesisDimensionalMapEffects.tsx',
+            'src/features/season2/genesis/GenesisOriginalGuideMotion.tsx',
+            'src/features/season2/world/EstateTierArtwork.tsx',
+            'src/components/BuklodMaritesBoard.tsx',
+            'src/components/BuklodOtaFreshnessHost.native.tsx',
+            'assets/sounds/estate-premium/claim.wav',
+            'supabase/migrations/20261121230000_sos_urgent_audible_rescue.sql'
+          ]) assert.ok(fs.existsSync(f),'Missing required consolidated source: '+f);
+          console.log('CONSO SOURCE PRESENT; OLD 2.0 RUNTIME AND SHARED-LIVE DB RELEASE BLOCKED');
+          NODE
+          node scripts/genesis-map-reconstruction-preflight.mjs
+          node scripts/season2-premium-staging-ota-gate.mjs --source
+          # Existing signed R4 native APK is intentionally incompatible with new SOS R3 code.
+          # Preserve the real release-blocking parity failure; do not waive or fake it.
+          if node scripts/season2-native-apk-source-parity.mjs > /tmp/old-native-parity.log 2>&1; then
+            echo "BLOCK: unexpected native parity pass against prior signed R4 build"
+            exit 1
+          fi
+          grep -F 'Native source changed from signed APK; new verified native build required: app.config.js' /tmp/old-native-parity.log
+          echo "EXPECTED_NATIVE_RELEASE_HOLD: old 2.0 signed APK cannot receive SOS R3 OTA"
+      - name: Focused Genesis Arena PTT SOS Wall Estate and sound regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/genesis-world-navigation-regression-20261121.test.mjs \
+            tests/season2-map-first-conso-intake-20261121.test.mjs \
+            tests/season2-one-tap-kingdom-guide-20261121.test.mjs \
+            tests/season2-approved-portrait-art-20261121.test.mjs \
+            tests/season2-final-conso-staging-20261121.test.mjs \
+            tests/season2-premium-ad-navigation-guard-20261121.test.mjs \
+            tests/season2-premium-staging-ota-contract-20261121.test.mjs \
+            tests/season2-special-events-welcome-20261121.test.mjs \
+            tests/season2-community-village-preview-20261121.test.mjs \
+            tests/genesis-valley-audio-focus-20261121.test.mjs \
+            tests/genesis-dimensional-entry-map-motion-20261121.test.mjs \
+            tests/genesis-original-guide-ad-20261121.test.mjs \
+            tests/arena-premium-voice-motion-terrain-20261121.test.mjs \
+            tests/arena-full-functionality-audit-20261121.test.mjs \
+            tests/arena-event-audio-graphics-20261121.test.mjs \
+            tests/arena-offline-solo-cpu-battle-20261121.test.mjs \
+            tests/season2-arena-responsive-navigation-20261121.test.mjs \
+            tests/arena-protected-feature-lock-20261121.test.mjs \
+            tests/empire-arena-v2-presentation-20261121.test.mjs \
+            tests/buklod-ptt-preferences-and-switching.test.mjs \
+            tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs \
+            tests/sos-global-emergency-overlay-20261107.test.mjs \
+            tests/sos-urgent-release-20261121.test.mjs \
+            tests/sos-urgent-responder-20261121.test.mjs \
+            tests/sos-urgent-security-20261121.test.mjs \
+            tests/todays-best-wall-header-20261120.test.mjs \
+            tests/todays-best-wall-navigation-20261120.test.mjs \
+            tests/season2-estate-asset-customization-20261121.test.mjs \
+            tests/season2-estate-premium-audio-20261121.test.mjs \
+            tests/season2-estate-server-authority-20261121.test.mjs \
+            tests/season2-my-community-scope-customization-20261121.test.mjs \
+            tests/season2-premium-construction-plan.test.mjs \
+            tests/kingdom-season2-endless-economy-20261121.test.mjs \
+            tests/kingdom-premium-audio-39-20261121.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/buklod-silent-ota-policy.test.mjs
+          node --experimental-strip-types --test tests/buklod-mandatory-update-runtime.test.mjs
+          node --test tests/ota-restart-safe-area.test.cjs
+          node --test tests/buklod-season2-production-explicit-hold-20261122.test.cjs
+          node --test services/empire-arena/tests/core.test.mjs
+  android-compile:
+    needs: source-regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Strict TypeScript and real Android Metro app/assets export
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+          node scripts/season2-android-bundle-compatibility.mjs --compile
+      - name: Verify new SOS native staging runtime identity without publishing
+        run: |
+          set -euo pipefail
+          EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3=true npx expo config --json > /tmp/buklod-sos-proposal.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'; import assert from 'node:assert/strict';
+          const c=JSON.parse(fs.readFileSync('/tmp/buklod-sos-proposal.json','utf8'));
+          assert.equal(c.runtimeVersion,'2.0.1-genesis-sos');
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          console.log('NATIVE SOURCE ONLY: new signed staging APK and isolated SOS/estate DB required.');
+          NODE
+      - name: Never publish unverified OTA or modify production
+        run: echo "NO OTA, NO APK BUILD, NO SUPABASE WRITE, NO PLAY DEPLOY."

@@ -1,0 +1,63 @@
+{
+  "contractVersion": 2,
+  "objective": "Remove the misleading restart/apply-later banner and silently fetch compatible Expo OTA updates for next normal cold start, preserving active user activity and mandatory native APK version enforcement.",
+  "baseRef": "09fb62437a9c838f374166890ef0b6d5ff6f0ba8",
+  "productionBaselineEvidence": "GitHub main and consolidated staging integration both still have the same manual I-restart/Mamaya OTA banner. Exact production-served Android EAS update/build and installed-device adoption are unverified. No production OTA, release marker, backend, or Season 1/2 reward change is authorized here.",
+  "chosenApproach": "Retain Expo built-in ON_LOAD check and next-cold-start activation. Replace native banner with invisible lifecycle host and testable bounded downloader, stagger checks on foreground returns, dedupe downloads, fail silently with cooldown. Never reload during calls/PTT/posts or pending offline submissions.",
+  "selectionRationale": "No native dependency change; eliminates confusing user-visible restart warning. Expo documented next-cold-start activation is safer than inferring whether ongoing work is safe to interrupt. Low network overhead and dedicated regression tests protect release behavior.",
+  "alternativeApproaches": [
+    "Run Updates.reloadAsync automatically: rejected as it may interrupt calls/PTT, drafts, uploads and offline submissions.",
+    "Keep the banner with renamed buttons: rejected as it preserves a misleading forced-action prompt.",
+    "Create an OS background service/native build: rejected as unnecessary for compatible OTA-only behavior."
+  ],
+  "preserveBehaviors": [
+    "Native OTA host stays mounted; web remains unchanged",
+    "Runtime 1.3.2, binary/channel identity and Expo launch updates unchanged",
+    "No forced reload during calls, PTT, drafts, uploads and offline work",
+    "Server-enforced mandatory APK update screen stays for incompatible native builds",
+    "Bounded staggered checks and failure cooldown preserve bandwidth",
+    "Wall/media, navigation, AdMob first-view and Season 1/2 reward architecture unchanged"
+  ],
+  "riskAreas": [
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodSilentOtaPolicy.ts",
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    ".buklod/scopes/silent-ota-next-launch-20261119.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Remove manual restart UI and activate downloaded compatible OTA on next normal cold start without forced reload",
+      "preservedBehaviors": [
+        "Native runtime, mandatory APK gate, network recovery and active user work protected"
+      ],
+      "tests": [
+        "tests/buklod-silent-ota-policy.test.mjs",
+        "tests/ota-restart-safe-area.test.cjs",
+        "tests/buklod-mandatory-update-runtime.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "No restart banner or restart/later buttons in native app",
+    "Automatic bounded foreground checks/downloads and single-flight with 30-minute backoff",
+    "Downloaded bundles take effect at next normal cold start without forced interruption",
+    "Expo built-in cold launch checks and runtime identity unchanged",
+    "Server mandatory APK update protection preserved",
+    "TypeScript and scoped OTA, nav/ad regressions required before staging publication",
+    "No release marker changed; no staging or production OTA from this isolated PR"
+  ],
+  "releaseTarget": "STAGING_QUEUE_ONLY",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "WAIVED_BY_OWNER_NOT_PERFORMED"
+}
