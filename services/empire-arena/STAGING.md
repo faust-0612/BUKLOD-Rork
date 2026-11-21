@@ -11,17 +11,27 @@ result is implied by this document.
 
 ## Zero-production-change staging prerequisite
 
-1. Use an explicitly approved, separate **Supabase preview branch** with its
-   own Auth, PostgreSQL and API keys. BUKLOD MAIN project
-   `yhanxndaqbmuzbdqlblu` is a read-only baseline for this staging task.
-   Never apply `supabase/changesets/arena_v2_ranked_private_schema_DEV_ONLY.sql`
-   to MAIN or another app database. Branch creation has a separate per-hour
-   compute charge and requires explicit owner agreement.
-2. Apply and inspect the reviewed ranked SQL change set **only in the
-   disposable preview branch**. Verify RLS/GRANTs, verified participation
-   Diamond claims, all-seat reservations, win/loss, cancellation refunds,
-   crash-expiry refunds, and concurrent double-submit behavior.
-3. Run the server container from repository root:
+1. **No new staging project, preview database branch, subscription, or
+   paid server.** Reuse the owner's existing BUKLOD Staging app/channel and
+   the already paid BUKLOD Supabase project
+   `yhanxndaqbmuzbdqlblu`. This is the approved *infrastructure* baseline,
+   NOT authorization to mutate live production data or enable a ranked endpoint
+   without isolation. Do not call Supabase create_branch or create_project.
+2. Keep ranked SQL isolated in the disposable **local/CI PostgreSQL** test
+   environment until an existing, already paid and approved runtime can
+   safely host an isolated authoritative Arena service. Never silently apply
+   `supabase/changesets/arena_v2_ranked_private_schema_DEV_ONLY.sql`
+   to live BUKLOD MAIN: additive schemas still change the shared production
+   database. A zero-extra-cost approach must first prove isolation and account
+   separation on the existing infrastructure, without touching active user
+   balances, BP, QMP, production OTA, or production application flows.
+   Verify RLS/GRANTs, participation Diamond claims, all-seat reservations,
+   win/loss, cancellation refunds, crash-expiry refunds and concurrent
+   double-submit behavior in isolated CI.
+3. The packaged WSS service is a **deployment candidate only** until an
+   already existing, zero-incremental-cost BUKLOD hosting process is identified.
+   Do not provision a new paid runtime. If such an owned process is present,
+   run the server container from repository root:
    `docker build -f services/empire-arena/Dockerfile -t buklod-arena-staging:dev .`
    Pass **server-side only** `ARENA_SUPABASE_URL`,
    `ARENA_SUPABASE_PUBLISHABLE_KEY` and `ARENA_SUPABASE_SECRET_KEY`
@@ -38,9 +48,11 @@ result is implied by this document.
    health checks, graceful stop, transaction refund recovery and limited
    connection lifecycle active. Exercise the **real live staging WSS** with
    at least two dedicated staging users and separate devices.
-6. **Staging Android build only:** set `APP_VARIANT=staging`,
-   `EXPO_PUBLIC_APP_ENV=staging`, and supply the **same preview branch
-   Supabase Auth URL/publishable key** used by the server. Once the live
+6. **Existing BUKLOD staging channel only:** set `APP_VARIANT=staging`,
+   `EXPO_PUBLIC_APP_ENV=staging`, using the same existing Supabase Auth
+   project and publishable key already authorized for BUKLOD Staging.
+   Do not create another Android package, EAS project, database or paid
+   deployment. Once the live
    endpoint is verified, set
    `EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED=true` and
    `EXPO_PUBLIC_BUKLOD_ARENA_WS_URL=wss://<staging-host>/arena-v2`.
@@ -74,6 +86,11 @@ result is implied by this document.
 `node --test services/empire-arena/tests/core.test.mjs services/empire-arena/tests/gateway.test.mjs`
 `python scripts/verify-buklod-arena-motion.py`
 `npx expo export --platform android --output-dir /tmp/buklod-arena-android --clear`
+
+The exact owner-approved zero-additional-cost contract overrides any older
+proposal for a paid staging branch or new server. If no existing stateful
+WSS host is available, keep live ranked **disabled** rather than quietly
+creating a billable service or treating offline practice as real ranked PvP.
 
 No additional image download/save in ChatGPT Library is required:
 source-approved image bytes are SHA-256 versioned in
