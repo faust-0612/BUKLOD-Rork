@@ -10,27 +10,27 @@
  * Seven other heroes retain their existing native Arena behaviors.
  */
 export const STARTER_HERO_KITS = Object.freeze({
-  phan: {name:'Phan',passive:'lands_resolve',
+  phan: {name:'Phan',speed:200,passive:'lands_resolve',
     basic:{damage:22,range:3,cooldown:800},
     primary:{id:'groundbreaker',cd:8000},secondary:{id:'foundation_wall',cd:12000},
     ultimate:{id:'bayanihan_bastion',cd:90000}},
-  quin: {name:'Quin',passive:'trail_sense',
+  quin: {name:'Quin',speed:240,passive:'trail_sense',
     basic:{damage:25,range:13,cooldown:700},
     primary:{id:'route_dash',cd:8000},secondary:{id:'beacon_mark',cd:12000},
     ultimate:{id:'horizon_corridor',cd:90000}},
-  van: {name:'Van',passive:'protective_link',
+  van: {name:'Van',speed:210,passive:'protective_link',
     basic:{damage:19,range:3,cooldown:900},
     primary:{id:'signal_shield',cd:8000},secondary:{id:'intercept_rush',cd:12000},
     ultimate:{id:'command_network',cd:90000}},
-  christian: {name:'Christian',passive:'command_presence',
+  christian: {name:'Christian',speed:210,passive:'command_presence',
     basic:{damage:28,range:3.5,cooldown:800},
     primary:{id:'banner_rush',cd:8000},secondary:{id:'rally_formation',cd:12000},
     ultimate:{id:'stand_united',cd:90000}},
-  lhen: {name:'Lhen',passive:'harmony_weaver',
+  lhen: {name:'Lhen',speed:220,passive:'harmony_weaver',
     basic:{damage:20,range:10,cooldown:800},
     primary:{id:'resonance_wave',cd:8000},secondary:{id:'restorative_beat',cd:12000},
     ultimate:{id:'symphony_of_buklod',cd:90000}},
-  ace: {name:'Ace',passive:'critical_care',
+  ace: {name:'Ace',speed:210,passive:'critical_care',
     basic:{damage:19,range:9.5,cooldown:800},
     primary:{id:'field_patch',cd:8000},secondary:{id:'knight_step',cd:12000},
     ultimate:{id:'checkmate_rescue',cd:90000}},
@@ -66,8 +66,9 @@ function damageNearby(s,p,r,n,hit,fn){
   return affected;
 }
 function supportHeal(s,p,target,amount,regen,now){
-  heal(target,amount);
-  if(regen>0)setBuff(target,'HealRegen',regen,now+5000,now);
+  const harmony=p.hero==='lhen'?clamp(p.effects.kitHarmony||0,0,5):0;
+  heal(target,amount*(1+.08*harmony));
+  if(regen>0)setBuff(target,'HealRegen',regen*(1+.08*harmony),now+5000+harmony*500,now);
   if(p.hero==='ace')setBuff(target,'Dr',.12,now+4000,now);
   if(p.hero==='lhen')p.effects.kitHarmony=clamp((p.effects.kitHarmony||0)+1,0,5);
 }
@@ -173,7 +174,7 @@ export function castStarterSkill(s,p,slot,action,ctx){
       break;
     }
     case 'restorative_beat':
-      withKit(s,p,6.5,q=>{cleanse(q);setBuff(q,'HealRegen',4.5,now+4000,now);
+      withKit(s,p,6.5,q=>{cleanse(q);setBuff(q,'HealRegen',4.5*(1+.08*clamp(p.effects.kitHarmony||0,0,5)),now+4000,now);
         supportHeal(s,p,q,4,0,now)});
       accepted=true;break;
     case 'symphony_of_buklod':
@@ -205,7 +206,7 @@ export function starterCanAct(s,p){return (p.effects.kitStunUntil||0)<=s.elapsed
 export function starterMoveFactor(s,p){
   const e=p.effects;const speed=e.kitSpeedUntil>s.elapsed?e.kitSpeed||0:0;
   const slow=e.kitSlowUntil>s.elapsed?e.kitSlow||0:0;
-  return clamp((1+speed)*(1-slow),.45,1.6);
+  return clamp((STARTER_HERO_KITS[p.hero]?.speed||210)/210*(1+speed)*(1-slow),.45,1.6);
 }
 export function starterHitModifiers(s,attacker,target,amount){
   let multiplier=1;
@@ -256,7 +257,7 @@ export function tickStarterKits(s,stepMs,log){
       if(friends.length){setBuff(p,'Dr',.12,now+150,now);heal(p,.4*delta);
         friends.forEach(q=>{setBuff(q,'Dr',.12,now+150,now);heal(q,.4*delta)})}
     }
-    if(p.hero==='christian')withKit(s,p,8.75,q=>heal(q,q.maxHp*.005*delta));
+    if(p.hero==='christian')withKit(s,p,8.75,q=>heal(q,q.maxHp*.01*delta));
     if(p.hero==='lhen'&&allies(s,p,7.5).some(q=>q!==p)&&now-(e.kitHarmonyAt||0)>=2000){
       e.kitHarmony=Math.min(5,(e.kitHarmony||0)+1);e.kitHarmonyAt=now
     }
