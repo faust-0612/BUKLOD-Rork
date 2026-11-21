@@ -10,6 +10,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {AccessibilityInfo,Animated,Pressable,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
 import GenesisReliablePortraitImage from './GenesisReliablePortraitImage';
+import GenesisOriginalGuideMotion from './GenesisOriginalGuideMotion';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import approved from './genesisApprovedEntryHotspots.json';
@@ -89,6 +90,7 @@ export default function GenesisApprovedEntryMap({
    <View style={{width:mapWidth,height:mapHeight,alignSelf:'center',overflow:'hidden'}}>
      <GenesisReliablePortraitImage landscape={landscape} width={mapWidth} height={mapHeight}
        active={active} showFaith={showFaith} doors={DOORS} onOpen={onOpen} onMenu={onMenu}/>
+     {!landscape?<GenesisOriginalGuideMotion active={active} landscape={landscape} width={mapWidth} height={mapHeight}/>:null}
      {DOORS.map(door=><Pressable
        key={door.id} accessibilityRole="button" accessibilityLabel={'Enter '+door.label}
        accessibilityHint={door.faithOnly&&!showFaith?'Show Faith is off: open equivalent learning path':'Opens the feature directly with existing permissions'}
@@ -110,13 +112,6 @@ export default function GenesisApprovedEntryMap({
          styles.promptTarget,hotspot(prompt.x,prompt.y,mapWidth*.30),
          pressed&&styles.pressed,
        ]}/>):null}
-     {!landscape?<Animated.View pointerEvents="none" style={[
-       styles.guideLife,{left:mapWidth*.11,top:mapHeight*.925,opacity:glow,
-       transform:[{translateY:glow.interpolate({inputRange:[.32,.84],outputRange:[3,-3]})},
-         {rotate:glow.interpolate({inputRange:[.32,.84],outputRange:['-12deg','14deg']})}]},
-     ]}>
-       <MaterialCommunityIcons name="hand-wave-outline" size={23} color="#FFE9AB"/>
-     </Animated.View>:null}
      <Pressable accessibilityRole="button" accessibilityLabel="Open complete BUKLOD destination directory"
        onPress={onMenu} style={[styles.directory,hotspot(.95,.045,44)]}>
        <MaterialCommunityIcons name="compass-outline" size={21} color="#FFE8BB"/>
@@ -132,7 +127,6 @@ const styles=StyleSheet.create({
  directory:{borderRadius:22,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(5,24,34,.28)'},
  specialLandmark:{borderColor:'rgba(255,240,185,.10)'},
  eventSparkle:{position:'absolute',top:-13,right:12},
- guideLife:{position:'absolute',width:30,height:30,alignItems:'center',justifyContent:'center'},
  faithMask:{position:'absolute',top:1,bottom:1,left:1,right:1,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:'#173D38'},
  faithMaskText:{color:'#FFF0B5',fontSize:11,fontWeight:'900'},
 });
