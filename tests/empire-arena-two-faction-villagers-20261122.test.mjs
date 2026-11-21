@@ -42,7 +42,8 @@ test('workers move real material out of nodes and deposit only carried amounts',
  for(let i=0;i<8;i++)stepVillager(s,u,(state,type,extra)=>state.events.push({type,...extra}));
  assert.ok(n.stock<start);const mined=start-n.stock;
  assert.ok(u.carry.gold>0&&u.carry.gold<=50);
- n.stock=0;u.x=20;u.y=s.h/2;
+ for(const node of s.nodes.filter(n=>n.side==='A'))node.stock=0;
+ u.x=20;u.y=s.h/2;
  stepVillager(s,u,()=>{});
  assert.equal(s.teams.A.resources.gold-initial,mined);
  assert.equal(u.carry.gold,0);

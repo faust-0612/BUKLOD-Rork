@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Svg, { Circle, G, Line, Path, Rect, Defs, RadialGradient as SvgRadialGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Line, Path, Rect, Defs, RadialGradient as SvgRadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
