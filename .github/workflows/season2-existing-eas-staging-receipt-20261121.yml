@@ -49,6 +49,8 @@ jobs:
           node scripts/season2-native-apk-source-parity.mjs
           node scripts/season2-premium-staging-ota-gate.mjs --source
           test -n "${EXPO_TOKEN:-}" || { echo 'BLOCK: existing EAS read-only credential unavailable'; exit 1; }
+      - name: Install existing locked app config dependencies for EAS read-only resolution
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: READ-ONLY verification of existing signed Genesis APK, preview channel and production isolation
         shell: bash
         run: |
