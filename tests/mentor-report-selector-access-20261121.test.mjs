@@ -11,7 +11,7 @@ test('teaching report keeps role gate and distinguishes missing access from no l
   assert.match(screen, /mentorEligible === false/);
   assert.match(screen, /mentorEligible === true && lessons\.length === 0/);
   assert.match(screen, /visibleLessons\.length === 0/);
-  assert.match(screen, /replace\(\/\[\\s_-\]\+\/g, ''\)/);
+  assert.ok(screen.includes(String.raw`replace(/[\s_-]+/g, '')`));
   assert.match(screen, /report_my_mentor_teaching_with_details_r3/);
 });
 
