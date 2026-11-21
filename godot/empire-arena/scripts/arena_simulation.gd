@@ -563,6 +563,7 @@ func _automation() -> void:
 		while not queue.is_empty() and float(queue.front()["at"]) <= float(state["time"]):
 			var item: Dictionary = queue.pop_front()
 			var id := "u" + str(state["next_id"])
+			state["next_id"] = int(state["next_id"]) + 1
 			var pos := Vector2(23 if team == "A" else state["w"] - 23, state["h"] * 0.5)
 			var recruited: Dictionary = _new_unit(id, team, item["kind"], pos)
 			if item["kind"] == "villager":
