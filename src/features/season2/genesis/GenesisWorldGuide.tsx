@@ -37,7 +37,7 @@ export default function GenesisWorldGuide({active,onCharacterKingdom,onCommunity
   // Animated local WebP is active only when this screen is focused and the user
   // has not requested reduced motion; no timers, streams or second subscriptions.
   const art=active&&!reduceMotion
-    ? ARENA_GENERATED_ART['sprite:phan'] || ARENA_HERO_ART.phan
+    ? ARENA_GENERATED_ART['fullbody:phan_idle'] || ARENA_GENERATED_ART['sprite:phan'] || ARENA_HERO_ART.phan
     : ARENA_HERO_ART.phan;
   return <View style={styles.shell} accessibilityLabel="BUKLOD character guide, outside the world map">
     <View style={styles.row}>
@@ -79,7 +79,7 @@ const styles=StyleSheet.create({
   shell:{marginTop:8,borderRadius:17,borderWidth:1,borderColor:'rgba(231,213,155,.43)',
     padding:10,backgroundColor:'rgba(7,26,40,.93)',gap:8},
   row:{flexDirection:'row',alignItems:'center',gap:9},
-  character:{width:61,height:67,borderRadius:14,borderWidth:1,borderColor:'rgba(178,247,204,.50)',
+  character:{width:72,height:87,borderRadius:14,borderWidth:1,borderColor:'rgba(178,247,204,.50)',
     backgroundColor:'rgba(11,57,61,.71)',overflow:'hidden'},
   characterArt:{width:'100%',height:'100%'},
   message:{flex:1,minWidth:0,gap:4},
