@@ -32,6 +32,102 @@ insert into private.buklod_world_exchange_gate_v1 (singleton,trading_enabled,iss
 values (true,false,false) on conflict (singleton)
   do update set trading_enabled=false,issuance_enabled=false,updated_at=now();
 
+-- Immutable deploy-owned projection of the official Arena V2 armory (13 heroes × 5
+-- slots); this does not create transferable ownership of story collectibles.
+-- Keep this table in sync with src/lib/buklodCharacterWorldCatalog.ts and the
+-- Arena V2 armory through reviewed source/asset-mapping tests, never user input.
+create table if not exists private.buklod_world_tradeable_catalog_v1 (
+  character_id text not null,
+  slot text not null check (slot in ('weapon','shield','armor','boots','jewel')),
+  asset_key text not null,
+  required_character_level smallint not null check (required_character_level between 1 and 20),
+  primary key (character_id,slot),
+  unique (character_id,slot,asset_key)
+);
+insert into private.buklod_world_tradeable_catalog_v1
+  (character_id,slot,asset_key,required_character_level)
+values
+  ('phan','weapon','phan:L01:I03',1),
+  ('phan','shield','phan:L03:I03',3),
+  ('phan','armor','phan:L07:I03',7),
+  ('phan','boots','phan:L10:I03',10),
+  ('phan','jewel','phan:L20:I03',20),
+  ('quin','weapon','quin:L01:I03',1),
+  ('quin','shield','quin:L03:I03',3),
+  ('quin','armor','quin:L07:I03',7),
+  ('quin','boots','quin:L10:I03',10),
+  ('quin','jewel','quin:L20:I03',20),
+  ('van','weapon','van:L01:I03',1),
+  ('van','shield','van:L03:I03',3),
+  ('van','armor','van:L07:I03',7),
+  ('van','boots','van:L10:I03',10),
+  ('van','jewel','van:L20:I03',20),
+  ('christian','weapon','christian:L01:I03',1),
+  ('christian','shield','christian:L03:I03',3),
+  ('christian','armor','christian:L07:I03',7),
+  ('christian','boots','christian:L10:I03',10),
+  ('christian','jewel','christian:L20:I03',20),
+  ('lhen','weapon','lhen:L01:I03',1),
+  ('lhen','shield','lhen:L03:I03',3),
+  ('lhen','armor','lhen:L07:I03',7),
+  ('lhen','boots','lhen:L10:I03',10),
+  ('lhen','jewel','lhen:L20:I03',20),
+  ('ace','weapon','ace:L01:I03',1),
+  ('ace','shield','ace:L03:I03',3),
+  ('ace','armor','ace:L07:I03',7),
+  ('ace','boots','ace:L10:I03',10),
+  ('ace','jewel','ace:L20:I03',20),
+  ('ellusur','weapon','ellusur:L01:I03',1),
+  ('ellusur','shield','ellusur:L03:I03',3),
+  ('ellusur','armor','ellusur:L07:I03',7),
+  ('ellusur','boots','ellusur:L10:I03',10),
+  ('ellusur','jewel','ellusur:L20:I03',20),
+  ('jawo','weapon','jawo:L01:I03',1),
+  ('jawo','shield','jawo:L03:I03',3),
+  ('jawo','armor','jawo:L07:I03',7),
+  ('jawo','boots','jawo:L10:I03',10),
+  ('jawo','jewel','jawo:L20:I03',20),
+  ('mitch','weapon','mitch:L01:I03',1),
+  ('mitch','shield','mitch:L03:I03',3),
+  ('mitch','armor','mitch:L07:I03',7),
+  ('mitch','boots','mitch:L10:I03',10),
+  ('mitch','jewel','mitch:L20:I03',20),
+  ('niel','weapon','niel:L01:I03',1),
+  ('niel','shield','niel:L03:I03',3),
+  ('niel','armor','niel:L07:I03',7),
+  ('niel','boots','niel:L10:I03',10),
+  ('niel','jewel','niel:L20:I03',20),
+  ('angel','weapon','angel:L01:I03',1),
+  ('angel','shield','angel:L03:I03',3),
+  ('angel','armor','angel:L07:I03',7),
+  ('angel','boots','angel:L10:I03',10),
+  ('angel','jewel','angel:L20:I03',20),
+  ('vhen','weapon','vhen:L01:I03',1),
+  ('vhen','shield','vhen:L03:I03',3),
+  ('vhen','armor','vhen:L07:I03',7),
+  ('vhen','boots','vhen:L10:I03',10),
+  ('vhen','jewel','vhen:L20:I03',20),
+  ('trudice','weapon','trudice:L01:I03',1),
+  ('trudice','shield','trudice:L03:I03',3),
+  ('trudice','armor','trudice:L07:I03',7),
+  ('trudice','boots','trudice:L10:I03',10),
+  ('trudice','jewel','trudice:L20:I03',20)
+on conflict (character_id,slot) do nothing;
+-- Never silently accept a stale/wrong 65-item catalog during schema re-apply.
+do $$
+begin
+  if (select count(*) from private.buklod_world_tradeable_catalog_v1)<>65
+     or exists (
+       select 1 from private.buklod_world_tradeable_catalog_v1 c
+       where c.asset_key <> c.character_id||':L'||lpad(
+          (case c.slot when 'weapon' then 1 when 'shield' then 3
+            when 'armor' then 7 when 'boots' then 10 when 'jewel' then 20 end)::text,2,'0')||':I03'
+         or c.required_character_level <> (case c.slot
+           when 'weapon' then 1 when 'shield' then 3 when 'armor' then 7
+           when 'boots' then 10 when 'jewel' then 20 end)
+     ) then raise exception 'Stale/corrupt BUKLOD canonical world item catalog'; end if;
+end $$;
+
 -- Only a server verifier can record a source after checking the REAL subsystem.
 -- No client API can insert receipts or assert that Kingdom / Empire was completed.
 create table if not exists private.buklod_world_verified_sources_v1 (
@@ -51,6 +147,10 @@ create table if not exists private.buklod_world_verified_sources_v1 (
   revoked_at timestamptz,
   item_id uuid unique,
   constraint world_source_unique_origin unique (source_surface,source_object_key),
+  -- Exact 65-row canonical character/slot/asset relation, not an arbitrary
+  -- syntactically valid Lxx/Ixx key. NULL columns bypass FK for materials only.
+  constraint world_source_canonical_gear_v1 foreign key (character_id,slot,asset_key)
+    references private.buklod_world_tradeable_catalog_v1(character_id,slot,asset_key),
   constraint world_source_identity check (
     (kind in ('gear','strategy') and character_id in
      ('phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
@@ -123,11 +223,13 @@ create index if not exists buklod_world_bp_transfer_seller_created_v1
   on private.buklod_world_bp_transfers_v1(seller_user_id,settled_at desc);
 
 -- Defense in depth. Private tables cannot be read or changed directly by a user.
+alter table private.buklod_world_tradeable_catalog_v1 enable row level security;
 alter table private.buklod_world_exchange_gate_v1 enable row level security;
 alter table private.buklod_world_verified_sources_v1 enable row level security;
 alter table private.buklod_world_items_v1 enable row level security;
 alter table private.buklod_world_offers_v1 enable row level security;
 alter table private.buklod_world_bp_transfers_v1 enable row level security;
+revoke all on private.buklod_world_tradeable_catalog_v1 from public,anon,authenticated;
 revoke all on private.buklod_world_exchange_gate_v1 from public,anon,authenticated;
 revoke all on private.buklod_world_verified_sources_v1 from public,anon,authenticated;
 revoke all on private.buklod_world_items_v1 from public,anon,authenticated;
@@ -136,7 +238,41 @@ revoke all on private.buklod_world_bp_transfers_v1 from public,anon,authenticate
 
 -- The independent verifier controls source ingestion. Service role is NEVER
 -- used in client apps. Zero direct access for regular authenticated users.
-grant select,insert,update on private.buklod_world_verified_sources_v1 to service_role;
+-- The verifier can only INSERT immutable attestations. Revocation is a
+-- separate audited RPC; no direct UPDATE of the ownership/provenance fields.
+grant usage on schema private to service_role;
+revoke all on private.buklod_world_verified_sources_v1 from service_role;
+grant select,insert on private.buklod_world_verified_sources_v1 to service_role;
+
+-- A service bug cannot rewrite a receipt actor, tier, asset, origin or proof.
+-- After issuance an item pointer is permanent. Revocation is one-way.
+create or replace function private.buklod_world_source_immutable_v1()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op='INSERT' then
+    if new.item_id is not null or new.revoked_at is not null then
+      raise exception 'Verified source cannot arrive pre-issued or revoked';
+    end if;
+    return new;
+  end if;
+  if (to_jsonb(new) - 'revoked_at' - 'item_id')
+       is distinct from (to_jsonb(old) - 'revoked_at' - 'item_id') then
+    raise exception 'Verified source identity is immutable';
+  end if;
+  if old.revoked_at is not null and new.revoked_at is distinct from old.revoked_at then
+    raise exception 'Cannot undo source revocation';
+  end if;
+  if old.item_id is not null and new.item_id is distinct from old.item_id then
+    raise exception 'Cannot rebind issued item';
+  end if;
+  return new;
+end $$;
+revoke all on function private.buklod_world_source_immutable_v1() from public,anon,authenticated;
+drop trigger if exists trg_buklod_world_source_immutable_v1
+  on private.buklod_world_verified_sources_v1;
+create trigger trg_buklod_world_source_immutable_v1
+before insert or update on private.buklod_world_verified_sources_v1
+for each row execute function private.buklod_world_source_immutable_v1();
 
 create or replace function private.buklod_world_issue_verified_item_v1(p_source_key text)
 returns uuid language plpgsql security definer set search_path = '' as $$
@@ -168,11 +304,28 @@ grant execute on function private.buklod_world_issue_verified_item_v1(text) to s
 create or replace function private.buklod_world_quarantine_item_v1(p_source_key text)
 returns boolean language plpgsql security definer set search_path = '' as $$
 declare v_item private.buklod_world_items_v1%rowtype;
+        v_item_id uuid; v_initial_id uuid;
 begin
+  -- Match the SAME item-scoped advisory lock taken by listing, purchase and
+  -- cancellation before any row-level lock: no item/offer lock-order inversion.
+  select id into v_initial_id from private.buklod_world_items_v1
+    where source_key=p_source_key;
+  if v_initial_id is not null then
+    perform pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended('buklod-world-item:'||v_initial_id::text,0));
+  end if;
   update private.buklod_world_verified_sources_v1 set revoked_at=coalesce(revoked_at,now())
     where source_key=p_source_key;
+  -- Issuance may have committed while we waited on the source row.
+  select id into v_item_id from private.buklod_world_items_v1
+    where source_key=p_source_key;
+  if v_item_id is null then return false; end if;
+  if v_initial_id is null then
+    perform pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended('buklod-world-item:'||v_item_id::text,0));
+  end if;
   select * into v_item from private.buklod_world_items_v1
-    where source_key=p_source_key for update;
+    where id=v_item_id for update;
   if not found then return false; end if;
   if v_item.status='escrow' then
     update private.buklod_world_offers_v1 set status='cancelled',closed_at=now()
@@ -241,6 +394,10 @@ begin
      p_price_bp is null or p_price_bp not between 1 and 100000 then
     raise exception 'Invalid listing request';
   end if;
+  -- Distinct items can otherwise race past the active-offer cap. The lock is
+  -- scoped to THIS seller and is released automatically on transaction end.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('buklod-world-list:'||v_user::text,0));
   select * into v_offer from private.buklod_world_offers_v1
    where seller_user_id=v_user and client_request_id=p_request_id;
   if found then
@@ -255,6 +412,8 @@ begin
   if p_restricted_buyer_id=v_user then raise exception 'Self trading forbidden'; end if;
   if not exists(select 1 from public.profiles where id=v_user and is_active=true
       and user_deactivated_at is null) then raise exception 'Inactive account'; end if;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('buklod-world-item:'||p_item_id::text,0));
   select * into v_item from private.buklod_world_items_v1
      where id=p_item_id for update;
   -- A concurrent identical request may have committed while we waited for
@@ -287,10 +446,15 @@ returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_buyer uuid := auth.uid(); v_offer private.buklod_world_offers_v1%rowtype;
         v_item private.buklod_world_items_v1%rowtype; v_prior private.buklod_world_bp_transfers_v1%rowtype;
         v_row_count integer; v_locked integer; v_seller_balance bigint;
+        v_lock_item_id uuid;
 begin
   if v_buyer is null then raise exception 'Authentication required'; end if;
   if p_request_id is null or length(p_request_id) not between 8 and 120 then
     raise exception 'Invalid purchase request'; end if;
+  -- Serialize the SAME buyer/request key even when concurrently sent against
+  -- DIFFERENT offers. Never double-debit, and retries return one stable receipt.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('buklod-world-purchase:'||v_buyer::text||':'||p_request_id,0));
   select * into v_prior from private.buklod_world_bp_transfers_v1
     where buyer_user_id=v_buyer and client_request_id=p_request_id;
   if found then
@@ -302,6 +466,11 @@ begin
       where singleton=true and trading_enabled=true) then raise exception 'World trading disabled'; end if;
   if not exists(select 1 from public.profiles where id=v_buyer and is_active=true
       and user_deactivated_at is null) then raise exception 'Inactive account'; end if;
+  select item_id into v_lock_item_id from private.buklod_world_offers_v1
+    where id=p_offer_id;
+  if v_lock_item_id is null then raise exception 'Offer not available'; end if;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('buklod-world-item:'||v_lock_item_id::text,0));
   select * into v_offer from private.buklod_world_offers_v1
     where id=p_offer_id for update;
   -- Verify the same-buyer request a second time AFTER obtaining the offer
@@ -361,8 +530,14 @@ create or replace function public.buklod_world_cancel_offer_v1(p_offer_id uuid)
 returns boolean language plpgsql security definer set search_path = '' as $$
 declare v_user uuid := auth.uid(); v_offer private.buklod_world_offers_v1%rowtype;
         v_item private.buklod_world_items_v1%rowtype;
+        v_lock_item_id uuid;
 begin
   if v_user is null then raise exception 'Authentication required'; end if;
+  select item_id into v_lock_item_id from private.buklod_world_offers_v1
+    where id=p_offer_id;
+  if v_lock_item_id is null then raise exception 'Not your offer'; end if;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('buklod-world-item:'||v_lock_item_id::text,0));
   select * into v_offer from private.buklod_world_offers_v1
     where id=p_offer_id for update;
   if not found or v_offer.seller_user_id<>v_user then raise exception 'Not your offer'; end if;

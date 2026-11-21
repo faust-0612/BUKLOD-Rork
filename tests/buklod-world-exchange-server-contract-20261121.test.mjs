@@ -142,3 +142,94 @@ test('new backend proposal forbids BP-to-BP or BP-for-cash listings: only separa
  assert.doesNotMatch(sql,/\('bp','currency','cash'\)/i);
  assert.match(sql,/BP itself CANNOT be bought or sold as a listed item/);
 });
+
+
+test('canonical World Exchange gear certificates are exactly the 13×5 approved original character items',()=>{
+ const heroes=['phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice'];
+ const slots=['weapon','shield','armor','boots','jewel'];
+ const levels=[1,3,7,10,20];
+ const rows=[...sql.matchAll(/\('([^']+)','(weapon|shield|armor|boots|jewel)','([^']+)',(\d+)\)/g)];
+ assert.equal(rows.length,65);
+ for(const h of heroes)for(const [index,slot] of slots.entries()){
+   const found=rows.filter(x=>x[1]===h&&x[2]===slot);
+   assert.equal(found.length,1,`missing canonical ${h}/${slot}`);
+   assert.equal(found[0][3],`${h}:L${String(levels[index]).padStart(2,'0')}:I03`);
+   assert.equal(+found[0][4],levels[index]);
+ }
+ assert.match(sql,/world_source_canonical_gear_v1 foreign key \(character_id,slot,asset_key\)/);
+ assert.match(sql,/references private\.buklod_world_tradeable_catalog_v1\(character_id,slot,asset_key\)/);
+});
+
+test('verified source is immutable, revocation irreversible, verifier has no direct UPDATE privilege',()=>{
+ assert.match(sql,/create or replace function private\.buklod_world_source_immutable_v1/);
+ assert.match(sql,/to_jsonb\(new\) - 'revoked_at' - 'item_id'/);
+ assert.match(sql,/Verified source identity is immutable/);
+ assert.match(sql,/Cannot undo source revocation/);
+ assert.match(sql,/Cannot rebind issued item/);
+ assert.match(sql,/create trigger trg_buklod_world_source_immutable_v1/);
+ assert.match(sql,/revoke all on private\.buklod_world_verified_sources_v1 from service_role;/);
+ assert.match(sql,/grant select,insert on private\.buklod_world_verified_sources_v1 to service_role;/);
+ assert.doesNotMatch(sql,/grant (?:[^;]*,)?update[^;]*private\.buklod_world_verified_sources_v1 to service_role/i);
+});
+
+test('distinct identical buyer request IDs are serialized before offer-lock and settlement',()=>{
+ const fn=sql.split('create or replace function public.buklod_world_buy_offer_v1')[1].split('create or replace function public.buklod_world_cancel_offer_v1')[0];
+ const advisory=fn.indexOf("'buklod-world-purchase:'||v_buyer::text||':'||p_request_id");
+ const offerLock=fn.indexOf('where id=p_offer_id for update');
+ const previousReceipt=fn.indexOf('where buyer_user_id=v_buyer and client_request_id=p_request_id');
+ assert.ok(advisory>0&&advisory<previousReceipt&&previousReceipt<offerLock);
+ assert.match(sql,/unique\(buyer_user_id,client_request_id\)/);
+});
+
+test('per-seller listing cap has transaction advisory serialization across different items',()=>{
+ const fn=sql.split('create or replace function public.buklod_world_list_item_v1')[1].split('create or replace function public.buklod_world_buy_offer_v1')[0];
+ const advisory=fn.indexOf("'buklod-world-list:'||v_user::text");
+ const cap=fn.indexOf("status='open')>=30");
+ assert.ok(advisory>0&&advisory<cap);
+ assert.match(fn,/pg_catalog\.pg_advisory_xact_lock/);
+});
+
+test('untrusted inventory and offer responses are validated, never accepted as verified item ownership',async()=>{
+ const badInventory=makeBuklodWorldExchangeClient({rpc:async()=>response([{id:uuids[0],kind:'currency',asset_key:'bp:999'}])});
+ await assert.rejects(badInventory.inventory(),/Invalid World Exchange item/);
+ const badOffers=makeBuklodWorldExchangeClient({rpc:async()=>response([{offer_id:uuids[1],kind:'gear',asset_key:'quin:L20:I04',character_id:'quin',slot:'weapon',price_bp:8,tier:1,created_at:'2026-11-21'}])});
+ await assert.rejects(badOffers.browse(),/Invalid World Exchange offer/);
+ const badSlot=makeBuklodWorldExchangeClient({rpc:async()=>response([{offer_id:uuids[1],kind:'gear',asset_key:'quin:L20:I03',character_id:'quin',slot:'weapon',price_bp:8,tier:1,created_at:'2026-11-21'}])});
+ await assert.rejects(badSlot.browse(),/Invalid World Exchange offer/);
+ const realItem={id:uuids[0],kind:'gear',asset_key:'quin:L07:I03',character_id:'quin',slot:'armor',tier:2,material_quantity:1,tradable:true,status:'inventory',created_at:'2026-11-21T00:00:00Z'};
+ const actual=makeBuklodWorldExchangeClient({rpc:async()=>response([realItem])});
+ assert.deepEqual(await actual.inventory(),[realItem]);
+});
+
+test('malformed request keys or mismatched settlement receipt fail closed',async()=>{
+ const {api,calls}=mock(()=>response(uuids[0]));
+ await assert.rejects(api.listItem({itemId:uuids[0],priceBp:5,requestId:'x123\n6789'}),/Invalid listing parameters/);
+ assert.equal(calls.length,0);
+ const wrong=makeBuklodWorldExchangeClient({rpc:async()=>response({transfer_id:uuids[2],item_id:uuids[0],offer_id:uuids[0],amount_bp:5,status:'settled'})});
+ await assert.rejects(wrong.buyOffer(uuids[1],'idempotent-001'),/Settlement offer mismatch/);
+});
+
+
+test('item operations share advisory lock before offer/item row locks to avoid revoke/purchase deadlocks',()=>{
+ const funcs={
+   list:sql.split('create or replace function public.buklod_world_list_item_v1')[1].split('create or replace function public.buklod_world_buy_offer_v1')[0],
+   buy:sql.split('create or replace function public.buklod_world_buy_offer_v1')[1].split('create or replace function public.buklod_world_cancel_offer_v1')[0],
+   cancel:sql.split('create or replace function public.buklod_world_cancel_offer_v1')[1].split('-- Canonical read/action APIs')[0],
+   revoke:sql.split('create or replace function private.buklod_world_quarantine_item_v1')[1].split('create or replace function public.buklod_world_my_items_v1')[0],
+ };
+ for(const [name,fn] of Object.entries(funcs)){
+   const lock=fn.indexOf("pg_catalog.hashtextextended('buklod-world-item:'");
+   assert.ok(lock>0,`${name} missing common item advisory`);
+   if(name==='buy'||name==='cancel')assert.ok(lock<fn.indexOf('where id=p_offer_id for update'),`${name} locks offer before item advisory`);
+   if(name==='list')assert.ok(lock<fn.indexOf('where id=p_item_id for update'),`${name} locks item row too early`);
+ }
+ assert.match(funcs.revoke,/Issuance may have committed while we waited on the source row/);
+});
+
+test('source proofs cannot be inserted already issued/revoked and reruns fail on stale asset catalog',()=>{
+ assert.match(sql,/tg_op='INSERT'/);
+ assert.match(sql,/Verified source cannot arrive pre-issued or revoked/);
+ assert.match(sql,/before insert or update on private\.buklod_world_verified_sources_v1/);
+ assert.match(sql,/Stale\/corrupt BUKLOD canonical world item catalog/);
+ assert.match(sql,/if \(select count\(\*\) from private\.buklod_world_tradeable_catalog_v1\)<>65/);
+});

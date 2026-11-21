@@ -45,3 +45,20 @@ node --test tests/buklod-world-exchange-server-contract-20261121.test.mjs
 ```
 
 These are **contract/client tests**, not live database execution. Unapplied SQL is not proof of production readiness; mark all integration/authorization/RC evidence separately.
+
+
+## DEV V1.1 hardening: canonical asset bindings and concurrent requests
+
+The candidate now seeds a **private 65-row allowlist** (13 real Character IDs × five Arena equipment slots) drawn from the existing V2 armory, with each slot bound to its exact immutable `hero:Lxx:I03` key and minimum Character level. This catalog is not itself proof of ownership: only server-issued independent verified-source certificates may be minted; the protected 1,300 story/evolution items remain nontransferable. The source table uses a composite foreign key to reject mismatched hero/slot/art keys, and its immutable identity trigger rejects changing actor, provenance, item kind, level/tier, proof or character. Issued item pointers and source revocations cannot be reversed.
+
+The server verifier has only direct `SELECT, INSERT` on verified sources; it must call narrowly-scoped issuance and quarantine routines for later state transitions. Buyer request keys are serialized by a transaction-scoped advisory lock before checking settlement receipts (even when the same request key is sent against two different offers). Seller listing creation is serialized across all their items, enforcing the maximum 30 simultaneous offers. Both operations preserve deterministic row locking, rollback and unique receipt constraints. The thin client now validates remote item/offer shapes, request keys and the echoed offer ID, rather than silently treating malformed RPC data as confirmed inventory.
+
+**Still blocked:** isolated PostgreSQL DDL/auth/RLS/concurrency execution, trusted event adapters and direct item-verification, independent audit/reconciliation, real-world rollout. A passing source/Node contract is not evidence of database correctness. Live feature flags remain OFF and no production DB/OTA changes are permitted from this candidate.
+
+### V1.2 item-lock and source integrity additions
+
+All operations targeting an issued item now take the **same transaction-scoped item advisory lock before their offer/item row locks**, including list, buy, cancel, and trusted quarantine. The buyer additionally takes a buyer/request-key advisory lock to serialize retries across different offers; seller listings take a seller-scoped advisory lock to preserve the 30-offer quota. The quarantine routine re-reads newly issued item IDs after waiting for the source row, preventing missed in-flight issuance. The verified-source insert/update trigger rejects pre-issued/pre-revoked source inserts, forbids changing item identity/provenance, forbids reassignment of the issued pointer, and permits revocation only once. Catalog seed mismatch fails migration rather than silently introducing a forged or stale character item mapping.
+
+The **runtime client** independently checks that each item or offer belongs to the correct 13-character / five-slot / exact level mapping and that returned settlement `offer_id` matches the requested offer. These checks are defense in depth, never a substitute for server ownership authorization.
+
+**Remaining mandatory gates:** Postgres transaction tests with two simultaneous buyers and buy-vs-cancel-vs-quarantine, missing-wallet/new-member seller activation policy, end-to-end source signature/attestation and dispute reimbursement, actual SQL parser/DDL execution, separate RC. Only local Node contract checks are currently executable; no production records were changed.
