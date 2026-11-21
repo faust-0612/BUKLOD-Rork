@@ -18,7 +18,8 @@
     "audio-focus",
     "asset-rights",
     "no-production-writes",
-    "staging-RC"
+    "staging-RC",
+    "multiplayer-seated-audio"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-premium-hud-20261121.json",
@@ -29,14 +30,17 @@
     "src/features/games/empire/ArenaAnimatedActor.tsx",
     "src/features/games/empire/ArenaCombatHud.tsx",
     "src/features/games/empire/arenaHudLayout.mjs",
+    "src/features/games/empire/arenaPracticeAudio.mjs",
     "tests/arena-kingdom-game-premium-20261121.test.mjs",
     "tests/arena-protected-feature-lock-20261121.test.mjs",
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/season2-arena-responsive-navigation-20261121.test.mjs"
   ],
   "regressionTests": [
     "tests/season2-arena-responsive-navigation-20261121.test.mjs",
     "tests/arena-kingdom-game-premium-20261121.test.mjs",
-    "tests/arena-protected-feature-lock-20261121.test.mjs"
+    "tests/arena-protected-feature-lock-20261121.test.mjs",
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -46,7 +50,8 @@
         "Existing auth, updates, local gameplay and all BUKLOD feature screens remain available; no new service or backend dependency."
       ],
       "tests": [
-        "tests/arena-kingdom-game-premium-20261121.test.mjs"
+        "tests/arena-kingdom-game-premium-20261121.test.mjs",
+        "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
       ]
     },
     {
