@@ -315,7 +315,7 @@ function EmpireArenaInApp() {
   const selected = useRef<string | null>(null);
   const rankedRef = useRef<ArenaRankedSocket | null>(null);
   const lastAudioEventSeq = useRef(0);
-  const { musicEnabled, toggleMusic } = useRorkGameAmbience(ARENA_SCENE_GAME_ID[mapId]);
+  const { musicEnabled, toggleMusic } = useRorkGameAmbience(ARENA_SCENE_GAME_ID[mapId], {arena:true});
 
   // Hydrate only device-local, per-account preferences. Malformed or old data
   // always falls back to a safe ergonomic default; no backend write or sync.
