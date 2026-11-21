@@ -38,7 +38,8 @@
     "Server-authoritative ranked backend and private SQL are DEV-only until staged WSS, database migrations, settlement/reconnect integration, and Android runtime are actually verified.",
     "Ranked WSS server matches real players, authoritatively simulates and validates input, and settles Diamonds/rating only through trusted private Postgres RPCs; backend is not yet deployed.",
     "Isolated 17-alpine PostgreSQL validates same-person multiple seats, idempotent stakes, BP nonminting, server-only RPC ACLs and transaction recovery.",
-    "Server lock action and pinned dependency lockfile are protected DEV-only scope; changes reconciled to actual pull request diff."
+    "Server lock action and pinned dependency lockfile are protected DEV-only scope; changes reconciled to actual pull request diff.",
+    "Ranked server unit tests and disposable PostgreSQL security checks are separate GitHub workflow steps; scope regressionTests lists valid tests/*.test.mjs paths only."
   ],
   "riskAreas": [
     "app-runtime",
@@ -51,9 +52,7 @@
     "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
-    "tests/sql/arena_ranked_private_integrity.sql",
-    "tests/empire-arena-v2-ranked-seat-20261121.test.mjs",
-    "services/empire-arena/tests/core.test.mjs"
+    "tests/empire-arena-v2-ranked-seat-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
