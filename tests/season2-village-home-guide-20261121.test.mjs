@@ -22,9 +22,11 @@ test('new community and home destinations use separate, staged, one-tap routes',
 });
 test('character guide is out of image, not an overlay over landmarks',()=>{
   const map=source('src/app/buklod-map.tsx');
-  assert.ok(map.indexOf('</ScrollView>')<map.indexOf('<BuklodMapGuideDock'));
+  const portrait = map.slice(map.indexOf('style={styles.welcomeTextBlock}'));
+  assert.ok(portrait.indexOf('<BuklodMapGuideDock') < portrait.indexOf('{mapNode}'));
   assert.match(source('src/features/season2/world/BuklodMapGuideDock.tsx'),/isReduceMotionEnabled/);
-  assert.match(map,/BuklodFirstViewAd/);
+  assert.match(map,/BuklodMapHeader/);
+  assert.doesNotMatch(map,/BuklodFirstViewAd/);
 });
 test('construction remains visual-only and user-scoped, not a reward ledger',()=>{
   const map=source('src/features/season2/world/Season2DevelopmentMap.tsx');
@@ -60,12 +62,12 @@ test('independent Lot House Cluster catalogs and local previews do not conflate 
   assert.match(manifest,/stagingStatus:'catalog-only'/);
   assert.doesNotMatch(map,/(?:supabase\.from|supabase\.rpc|mintBP|awardBP|claimBp|withdrawQMP)/i);
 });
-test('landscape first view preserves map and ad side-by-side; guide has local help',()=>{
+test('landscape first view preserves map and guide side-by-side; guide has local help',()=>{
   const entry=source('src/app/buklod-map.tsx');
   const guide=source('src/features/season2/world/BuklodMapGuideDock.tsx');
   assert.match(entry,/landscapeFirstRow/);
-  assert.match(entry,/landscapeAdColumn/);
-  assert.match(entry,/new_home_first_view/);
+  assert.match(entry,/landscapeGuideColumn/);
+  assert.doesNotMatch(entry,/new_home_first_view/);
   assert.match(guide,/resolveBuklodGuideDestination/);
   assert.match(guide,/TextInput/);
   assert.match(guide,/isReduceMotionEnabled/);

@@ -18,13 +18,17 @@ test('Local Genesis map audio yields to competing media and AdMob focus, with bo
  assert.match(src,/audio\.remove\(\)/);
 });
 
-test('Map music requires user toggle and delegates sound focus without overriding ad setup',()=>{
+test('Genesis World auto-starts local audio without screen music toggle or first-view ad',()=>{
  const map=read('src/app/buklod-map.tsx');
- assert.match(map,/if \(!musicEnabled\) requestBuklodAudioFocus\('genesis-valley-map'\)/);
- assert.match(map,/musicSuspended \? 'Music paused'/);
- assert.match(map,/musicEnabled \? \(musicSuspended \? 'Music paused' : 'Music on'\)/);
- assert.match(map,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
- assert.doesNotMatch(map,/player\.play\(/);
+ const audio=read('src/features/games/runtime/rorkAudio.ts');
+ assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
+ assert.match(map,/!requiresAcceptance/);
+ assert.match(map,/!complianceLoading/);
+ assert.match(map,/!runtimeLoading/);
+ assert.doesNotMatch(map,/musicButton|Music on|BuklodFirstViewAd/);
+ assert.match(audio,/autoStart = isKingdomMap && options\?\.autoStart === true/);
+ assert.match(audio,/if \(!isKingdomMap \|\| controlledAutoStart\) return/);
+ assert.match(audio,/\|\| interruptedByOtherAudio/);
  const sound=read('src/features/games/runtime/kingdomPremiumAudioAssets.ts');
  assert.match(sound,/if \(gameId === 'kingdom-map'\) return MUSIC\.adventure/);
  const licenses=read('assets/sounds/kingdom-premium/LICENSES.md');

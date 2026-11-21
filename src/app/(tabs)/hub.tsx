@@ -4,7 +4,7 @@ import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, Text, Vie
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH } from '@/lib/buklodWebResponsivePolicy';
-import { Redirect, router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import {noteBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
@@ -58,12 +58,8 @@ export default function BuklodLightHome() {
     return () => { setFocused(false); };
   }, []));
 
-  // Staging Genesis: the complete World map is the first authenticated view.
-  // Keep the legacy Home and its ads untouched in every other runtime.
-  if (genesisPreview) {
-    // One canonical approved-art gateway, including Home re-entry.
-    return <Redirect href="/buklod-map" />;
-  }
+  // Boot starts on the World map; its explicit Home door opens this real dashboard.
+  // Do not redirect the user's Home tap back into the map.
 
   if (desktopDashboard) {
     const openPost = () => router.push({
