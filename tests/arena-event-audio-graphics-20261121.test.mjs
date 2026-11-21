@@ -180,3 +180,36 @@ test('visual presentation recognizes actual construction, loot, farming and casu
     assert.ok(engine.includes("'"+type+"'")||construction.includes("'"+type+"'"));
   assert.ok(ARENA_VISUAL_EVENT_TYPES.has('building_destroyed'));
 });
+
+
+test('canonical engine emits actionable sound cues when hero defeats enemy and collects a buff',()=>{
+  const s=createPractice({mode:'duel',hero:'phan'});
+  const player=s.players.A0,foe=s.players.B0;
+  player.x=foe.x-3;player.y=foe.y;foe.hp=1;
+  assert.equal(command(s,'A0',{type:'attack',targetId:'B0'}),true);
+  const kill=s.events.find(e=>e.type==='defeat'&&e.to==='B0');
+  assert.ok(kill,'a real knockout must generate the event');
+  assert.equal(cue(kill,{...ctx,players:s.players}),'enemy_down');
+  const buff=s.creatures.find(c=>c.kind==='forest');
+  player.x=buff.x-3;player.y=buff.y;buff.hp=1;
+  s.elapsed+=1000;
+  assert.equal(command(s,'A0',{type:'attack',targetId:buff.id}),true);
+  const gained=s.events.find(e=>e.type==='buff'&&e.kind==='forest');
+  assert.ok(gained,'buff pickup must be confirmed by engine event');
+  assert.equal(cue(gained,{...ctx,players:s.players}),'buff_forest');
+  const animalDefeat=s.events.find(e=>e.type==='defeat'&&e.to===buff.id);
+  assert.equal(cue(animalDefeat,{...ctx,players:s.players}),null,
+    'buff creature KO cannot play a fake enemy hero kill');
+});
+
+test('canonical tower combat emits distinct real hit and local casualty alerts',()=>{
+  const s=createPractice({mode:'duel',hero:'phan'});
+  const tower=s.towers.find(t=>t.team==='B');
+  s.players.A0.x=tower.x;s.players.A0.y=tower.y;
+  s.players.A0.hp=1;
+  for(let i=0;i<12&&s.players.A0.alive;i++)tick(s);
+  assert.equal(s.players.A0.alive,false,'tower should actually defeat exposed hero');
+  const dead=s.events.find(e=>e.type==='tower_ko'&&e.target==='A0');
+  assert.ok(dead,'tower KO must have engine-produced semantic metadata');
+  assert.equal(cue(dead,{...ctx,players:s.players}),'self_down');
+});
