@@ -1,5 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { loadBuklodPttUserSettings } from './buklodPttSetup';
+import { loadBuklodPttUserSettings, saveBuklodPttUserSettings } from './buklodPttSetup';
 import { hasBuklodPttCaptionConsent, persistOwnBuklodPttCaption } from './buklodPttConversation';
 
 import {
@@ -296,8 +296,9 @@ export async function selectBuklodPttTarget(
 }
 
 export async function disconnectBuklodPttRuntime() {
-  // If Stop arrives during a pending join, wait and then disconnect the actual
-  // resulting call; never let late async completion undo the user's Stop.
+  // Mute immediately before awaiting joins, then mute again after any late
+  // join so Stop always wins without leaving an active microphone.
+  await pttUp().catch(() => undefined);
   await targetSwitchTail.catch(() => undefined);
   await pttUp().catch(() => undefined);
   stopPriorityGuard();
@@ -310,6 +311,14 @@ export async function disconnectBuklodPttRuntime() {
     priorityValue: 0,
   };
   emit();
+}
+
+export async function stopBuklodPttListening() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) throw new Error('PTT member session is unavailable.');
+  const saved = await loadBuklodPttUserSettings(session.user.id);
+  await saveBuklodPttUserSettings(session.user.id, { ...saved, listening: false });
+  await disconnectBuklodPttRuntime();
 }
 
 async function dropFloor(transmissionId: string | null | undefined) {
