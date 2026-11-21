@@ -279,10 +279,10 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           </View>
         </View>
         {nativeWorldPreview?<View style={{flexDirection:'row',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Explore Godot ${world==='home'?'House':'Community'} preview" disabled={nativeWorldOpening}
+          <Pressable accessibilityRole="button" accessibilityLabel={'Explore Godot '+(world==='home'?'House':'Community')+' preview'} disabled={nativeWorldOpening}
             onPress={()=>void openNativeWorld(world==='home'?'house':'community')}
             style={{borderRadius:12,borderWidth:1,borderColor:'#8CE0BC',paddingHorizontal:14,paddingVertical:9,backgroundColor:'#173D37'}}>
-            <Text style={{color:'#F1FFEB',fontWeight:'800'}}>GODOT ${world==='home'?'HOUSE':'COMMUNITY'} PREVIEW</Text>
+            <Text style={{color:'#F1FFEB',fontWeight:'800'}}>GODOT {world==='home'?'HOUSE':'COMMUNITY'} PREVIEW</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Explore Godot Kingdom preview" disabled={nativeWorldOpening}
             onPress={()=>void openNativeWorld('kingdom')}
