@@ -14,10 +14,11 @@ trap 'rm -f "$one" "$two"' EXIT
 
 # Both competing games include the SAME two legitimate users, with one earned
 # Diamond remaining for B. Only one two-player reservation can commit.
-first="SELECT public.arena_v2_ranked_open('20000000-0000-4000-8000-000000000006','duel','genesis_rift',
-'[{"seat_id":"A0","user_id":"00000000-0000-4000-8000-000000000001","hero_id":"phan"},{"seat_id":"B0","user_id":"00000000-0000-4000-8000-000000000002","hero_id":"quin"}]'::jsonb)"
-second="SELECT public.arena_v2_ranked_open('20000000-0000-4000-8000-000000000007','duel','genesis_rift',
-'[{"seat_id":"A0","user_id":"00000000-0000-4000-8000-000000000001","hero_id":"phan"},{"seat_id":"B0","user_id":"00000000-0000-4000-8000-000000000002","hero_id":"quin"}]'::jsonb)"
+# PostgreSQL constructs JSON from SQL literals, so Bash cannot strip the
+# JSON double quotes when the query is passed through psql -c.
+players="jsonb_build_array(jsonb_build_object('seat_id','A0','user_id','00000000-0000-4000-8000-000000000001','hero_id','phan'),jsonb_build_object('seat_id','B0','user_id','00000000-0000-4000-8000-000000000002','hero_id','quin'))"
+first="SELECT public.arena_v2_ranked_open('20000000-0000-4000-8000-000000000006','duel','genesis_rift',$players)"
+second="SELECT public.arena_v2_ranked_open('20000000-0000-4000-8000-000000000007','duel','genesis_rift',$players)"
 
 psql -v ON_ERROR_STOP=1 -c "$first" >"$one" 2>&1 &
 p1=$!
