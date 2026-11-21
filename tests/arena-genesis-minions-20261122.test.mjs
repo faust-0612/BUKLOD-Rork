@@ -76,3 +76,26 @@ test('input validation fails closed',()=>{
  assert.throws(()=>enableMinionWaves(make(),{intervalMs:200}),/Invalid/);
  assert.throws(()=>enableMinionWaves(make(),{maxPerTeam:1000}),/Invalid/);
 });
+
+test('minion motion supplies facing, stride and prior real movement coordinates',()=>{
+ const s=make();enableMinionWaves(s,{firstWaveMs:0});tickMinionWaves(s,event);
+ const a=s.minions.find(m=>m.team==='A'&&m.kind==='vanguard');const x=a.x;
+ s.elapsed+=500;tickMinionWaves(s,event);assert.equal(a.pose,'walk');
+ assert.ok(Number.isFinite(a.prevX));assert.ok(a.lastMoveAt>=0);
+ assert.ok(Math.abs(a.x-x)<=1.6);assert.equal(a.facing,1);
+});
+test('healing plays a support pose only after real allied HP recovery',()=>{
+ const s=make();enableMinionWaves(s,{firstWaveMs:0});tickMinionWaves(s,event);
+ const m=s.minions.find(x=>x.team==='A'&&x.kind==='mender');
+ const ally=s.minions.find(x=>x.team==='A'&&x.kind==='vanguard'&&x.lane===m.lane);
+ ally.hp=12;s.elapsed=3000;tickMinionWaves(s,event);
+ assert.equal(m.pose,'heal');assert.equal(m.poseAt,3000);assert.ok(ally.hp>12);
+});
+test('clash creates event-backed attacks and damage-timed hit animations',()=>{
+ const s=make();enableMinionWaves(s,{firstWaveMs:0});tickMinionWaves(s,event);
+ const attacker=s.minions.find(x=>x.team==='A'&&x.kind==='vanguard');
+ const victim=s.minions.find(x=>x.team==='B'&&x.kind==='vanguard');
+ victim.x=attacker.x+2;victim.y=attacker.y;const prior=victim.hp;s.elapsed=1800;tickMinionWaves(s,event);
+ assert.ok(victim.hp<prior);assert.ok(['attack','hit'].includes(attacker.pose));
+ assert.ok(s.events.some(e=>e.type==='minion_hit'&&e.from===attacker.id));
+});

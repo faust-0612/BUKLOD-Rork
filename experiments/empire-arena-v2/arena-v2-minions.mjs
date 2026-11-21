@@ -39,7 +39,9 @@ function spawnWave(s,emit){
       const cfg=MINION_CLASSES[kind],unit={id:'minion-'+s.nextId++,team,lane,kind,
         x:baseX(s,team)+(team==='A'?-i*.9:i*.9),y:laneY(s,lane)+(i-1.5)*.65,
         hp:cfg.hp,maxHp:cfg.hp,shield:0,alive:true,attackAt:-1e9,healAt:-1e9,
-        createdAt:s.elapsed,deathAt:null,lastDamage:-1e9};
+        createdAt:s.elapsed,deathAt:null,lastDamage:-1e9,pose:'idle',poseAt:s.elapsed,
+        facing:team==='A'?1:-1,prevX:baseX(s,team),prevY:laneY(s,lane),lastMoveAt:-1e9,
+        strideOffset:(i*7+lane*3+(team==='B'?11:0))%17};
       s.minions.push(unit);slots--;
     }
   }
@@ -48,6 +50,7 @@ function spawnWave(s,emit){
 function finishTarget(s,source,target,emit){
   if(target.hp>0)return;
   target.hp=0;target.alive=false;target.deathAt=s.elapsed;
+  if(target.id?.startsWith('minion-')){target.pose='death';target.poseAt=s.elapsed;}
   if(s.players?.[target.id]){target.deaths=(target.deaths||0)+1;target.respawnAt=s.elapsed+7500;}
   if(s.towers?.includes(target))logEvent(s,emit,'tower_destroyed',{team:target.team,tower:target.id,x:target.x,y:target.y});
   logEvent(s,emit,'minion_ko',{actor:source.id,to:target.id,team:target.team,x:target.x,y:target.y});
@@ -57,26 +60,37 @@ function strike(s,source,target,damage,emit,structure=false){
   let remaining=Math.max(1,Math.round(damage*(1-armor)));
   if(target.shield>0){const shield=Math.min(target.shield,remaining);target.shield-=shield;remaining-=shield;}
   if(remaining>0)target.hp=Math.max(0,target.hp-remaining);
-  target.lastDamage=s.elapsed;source.attackAt=s.elapsed;
+  target.lastDamage=s.elapsed;source.attackAt=s.elapsed;source.pose='attack';source.poseAt=s.elapsed;
+  if(target.id?.startsWith('minion-')&&target.hp>0){target.pose='hit';target.poseAt=s.elapsed;}
   logEvent(s,emit,structure?'minion_siege_hit':'minion_hit',{
     from:source.id,to:target.id,amount:remaining,team:source.team,x:target.x,y:target.y,kind:source.kind,
   });
   finishTarget(s,source,target,emit);
 }
 function move(s,m,target,stepMs){
-  const cfg=MINION_CLASSES[m.kind];let dx=target.x-m.x,dy=target.y-m.y;
-  const mag=Math.hypot(dx,dy);if(mag<.001)return;
-  const step=Math.min(mag,cfg.speed*stepMs/1000);dx=dx/mag*step;dy=dy/mag*step;
-  let nx=clamp(m.x+dx,2,s.w-2),ny=clamp(m.y+dy,2,s.h-2);
-  const blocked=(x,y)=>(s.cover||[]).some(([cx,cy,r])=>Math.hypot(x-cx,y-cy)<r+1);
-  if(blocked(nx,ny)){
-    const direction=(m.lane%2===0)?1:-1;
-    const detours=[direction*step,-direction*step];
-    const free=detours.find(shift=>!blocked(nx,clamp(ny+shift,2,s.h-2)));
-    if(free===undefined)return;
-    ny=clamp(ny+free,2,s.h-2);
+  // Role-driven steering, collision-safe terrain sliding, allied separation.
+  // Receipts allow the UI to interpolate actual (not invented) movement.
+  const cfg=MINION_CLASSES[m.kind],before={x:m.x,y:m.y};
+  let vx=target.x-m.x,vy=target.y-m.y;
+  const laneCenter=laneY(s,m.lane),laneDrift=laneCenter-m.y;
+  if(Math.abs(laneDrift)>1.8)vy+=laneDrift*.20;
+  const nearby=s.minions.filter(other=>other!==m&&alive(other)&&other.team===m.team&&dist(m,other)<3.6);
+  for(const other of nearby){const len=Math.max(.35,dist(m,other));
+    vx+=(m.x-other.x)/len*2.4;vy+=(m.y-other.y)/len*2.4;
   }
-  m.x=nx;m.y=ny;
+  const mag=Math.hypot(vx,vy);if(mag<.001)return;
+  const step=Math.min(mag,cfg.speed*stepMs/1000),dx=vx/mag*step,dy=vy/mag*step;
+  const blocked=(x,y)=>(s.cover||[]).some(([cx,cy,r])=>Math.hypot(x-cx,y-cy)<r+1);
+  const nx=clamp(m.x+dx,2,s.w-2),ny=clamp(m.y+dy,2,s.h-2);
+  const attempts=[[nx,ny],[nx,m.y],[m.x,ny]];
+  const tangent=Math.sign(dy||laneDrift||(m.lane%2===0?1:-1));
+  attempts.push([clamp(m.x+Math.abs(dx)*.55,2,s.w-2),clamp(m.y+tangent*step,2,s.h-2)]);
+  attempts.push([clamp(m.x-Math.abs(dx)*.55,2,s.w-2),clamp(m.y-tangent*step,2,s.h-2)]);
+  const candidate=attempts.find(([x,y])=>!blocked(x,y)&&Math.hypot(x-m.x,y-m.y)>.015);
+  if(!candidate)return;
+  m.prevX=m.x;m.prevY=m.y;m.x=candidate[0];m.y=candidate[1];m.lastMoveAt=s.elapsed;
+  m.facing=Math.abs(m.x-before.x)>.015?Math.sign(m.x-before.x):m.facing;
+  m.pose='walk';m.poseAt=s.elapsed;
 }
 function findEnemy(s,m){
   const actors=[...(s.minions||[]),...(s.units||[]),...Object.values(s.players||{})]
@@ -99,7 +113,7 @@ function healAlly(s,m,emit){
   injured.sort((a,b)=>(a.hp/a.maxHp)-(b.hp/b.maxHp)||String(a.id).localeCompare(String(b.id)));
   const mate=injured[0];if(!mate)return false;
   const amount=Math.min(cfg.heal,mate.maxHp-mate.hp);mate.hp+=amount;mate.shield=Math.min(18,(mate.shield||0)+4);
-  m.healAt=s.elapsed;
+  m.healAt=s.elapsed;m.pose='heal';m.poseAt=s.elapsed;
   logEvent(s,emit,'minion_heal',{from:m.id,to:mate.id,amount,team:m.team,x:mate.x,y:mate.y});
   return true;
 }
@@ -110,7 +124,7 @@ function siegeSeal(s,m,emit){
   const position={x:opposing==='A'?14:s.w-14,y:s.h/2};
   if(dist(m,position)>Math.max(6,MINION_CLASSES[m.kind].range)){move(s,m,position,500);return true;}
   const cfg=MINION_CLASSES[m.kind];if(s.elapsed-m.attackAt<cfg.cooldown)return true;
-  m.attackAt=s.elapsed;seal.hp=Math.max(0,seal.hp-cfg.structureDamage);
+  m.attackAt=s.elapsed;m.pose='attack';m.poseAt=s.elapsed;seal.hp=Math.max(0,seal.hp-cfg.structureDamage);
   seal.lastDamage=s.elapsed;
   logEvent(s,emit,'minion_siege_hit',{from:m.id,to:opposing+'-seal',amount:cfg.structureDamage,team:m.team,x:position.x,y:position.y});
   if(seal.hp===0){seal.breached=true;if(s.huntStarted===null){s.huntStarted=s.elapsed;s.phase='hunt';logEvent(s,emit,'final_hunt',{reason:'minion_siege_breach'});}logEvent(s,emit,'seal_breached',{team:opposing});}
@@ -128,11 +142,20 @@ export function tickMinionWaves(s,emit,stepMs=500){
     if(!alive(m))continue;
     const cfg=MINION_CLASSES[m.kind];
     if(healAlly(s,m,emit))continue;
+    if(m.pose!=='death'&&s.elapsed-m.poseAt>650)m.pose='idle';
     const target=findEnemy(s,m);
     if(target){
-      if(dist(m,target)<=cfg.range){if(s.elapsed-m.attackAt>=cfg.cooldown)strike(s,m,target,cfg.damage,emit);}
+      if(m.kind==='ranger'&&dist(m,target)<4.8){const dx=m.x-target.x,dy=m.y-target.y;
+        move(s,m,{x:clamp(m.x+dx*1.8,2,s.w-2),y:clamp(m.y+dy*1.8,2,s.h-2)},stepMs);
+      } else if(dist(m,target)<=cfg.range){if(s.elapsed-m.attackAt>=cfg.cooldown)strike(s,m,target,cfg.damage,emit);}
       else move(s,m,target,stepMs);
       continue;
+    }
+    // Menders remain behind a friendly frontline except while healing.
+    if(m.kind==='mender'){
+      const guards=s.minions.filter(a=>alive(a)&&a.team===m.team&&a.lane===m.lane&&a.kind==='vanguard');
+      const guard=guards.sort((a,b)=>dist(m,a)-dist(m,b))[0];
+      if(guard&&dist(m,guard)>5){move(s,m,{x:clamp(guard.x+(m.team==='A'?-4:4),2,s.w-2),y:guard.y},stepMs);continue;}
     }
     const tower=findTower(s,m);
     if(tower){

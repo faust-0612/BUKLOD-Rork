@@ -197,7 +197,8 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
         seals={state.seals} localTeam={localTeam} /> : null}
       <ArenaStructureArt towers={state.towers} buildings={state.buildings} elapsed={state.elapsed} />
       <ArenaWildlifeArt creatures={state.creatures} elapsed={state.elapsed} />
-      <ArenaMinionArt minions={state.minions||[]} elapsed={state.elapsed} localTeam={localTeam} />
+      <ArenaMinionArt minions={state.minions||[]} elapsed={state.elapsed} localTeam={localTeam}
+        view={{x:camera.x,y:camera.y,width:camera.width,height:camera.height}} />
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
         <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} />

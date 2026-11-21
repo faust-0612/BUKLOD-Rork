@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/arena-genesis-minions-20261122.json",
-  "objective": "Add original Solar Legion/Nebula Legion four-class, three-lane Genesis Empire Arena minion waves with self-contained deterministic AI, in-app lightweight animated visual silhouettes, event-time hits and restrained cues. Preserve trained RTS units, BUKLOD characters, standalone solo duel, account economy, ranked authority and production untouched.",
+  "objective": "Add original Solar Legion/Nebula Legion four-class, three-lane Genesis Empire Arena minion waves with self-contained deterministic AI, in-app lightweight animated visual silhouettes, event-time hits and restrained cues. Preserve trained RTS units, BUKLOD characters, standalone solo duel, account economy, ranked authority and production untouched. Follow-up: frame-interpolated identity-accurate locomotion, facing, dynamic weapon swing, defensive/kiting/support AI formation and viewport-culling for native performance.",
   "baseRef": "d3b618f37bf91d9906d2c99f14b2f73202fd1891",
   "productionBaselineEvidence": "Based on live GitHub integration/genesis-all-updates-conso-staging-20261122 head d3b618f, branch PR #1074; no exact Google Play production source/build/runtime verification in this workstream and no production writes. DEV-only isolation.",
   "chosenApproach": "Make separate match-local minions array+strict optional enableMinionWaves contract in the existing canonical offline Arena engine, read-only local artwork via SVG and wave state; keep villager/army command, bot training, wallet and ranked client unchanged.",
@@ -21,7 +21,11 @@
     "economy-isolation",
     "ranked-server-authority",
     "staging-QA",
-    "production-embargo"
+    "production-embargo",
+    "interpolation-latency",
+    "minion-footstep-animation",
+    "movement-collision",
+    "camera-culling"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-genesis-minions-20261122.json",
@@ -31,10 +35,13 @@
     "src/app/games/empire-arena.tsx",
     "src/features/games/empire/arenaActionVisuals.mjs",
     "src/features/games/empire/arenaSoundscape.mjs",
-    "tests/arena-genesis-minions-20261122.test.mjs"
+    "tests/arena-genesis-minions-20261122.test.mjs",
+    "src/features/games/empire/arenaMinionMotion.mjs",
+    "tests/arena-genesis-minion-motion-20261122.test.mjs"
   ],
   "regressionTests": [
-    "tests/arena-genesis-minions-20261122.test.mjs"
+    "tests/arena-genesis-minions-20261122.test.mjs",
+    "tests/arena-genesis-minion-motion-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -44,7 +51,8 @@
         "Existing BUKLOD MAIN app navigation, AdMob, route access, auth, session, audio focus, other dashboards and offline team controls remain unchanged; solo duel has no waves."
       ],
       "tests": [
-        "tests/arena-genesis-minions-20261122.test.mjs"
+        "tests/arena-genesis-minions-20261122.test.mjs",
+        "tests/arena-genesis-minion-motion-20261122.test.mjs"
       ]
     },
     {
@@ -54,7 +62,8 @@
         "Only verified server can authorize ranked progression; local practice minions never mint BP/QMP/Diamonds, persistent XP, materials or prizes."
       ],
       "tests": [
-        "tests/arena-genesis-minions-20261122.test.mjs"
+        "tests/arena-genesis-minions-20261122.test.mjs",
+        "tests/arena-genesis-minion-motion-20261122.test.mjs"
       ]
     }
   ],
@@ -70,7 +79,8 @@
     "Run node --test tests/arena-genesis-minions-20261122.test.mjs and existing focused Arena suites on head.",
     "Confirm React Native TS compile and Expo Android Metro bundling, in-app view rendering of two teams, all three lanes, shield/heal FX and no audio flood.",
     "Real Android screenshot and FPS check at 5v5/weak network; verify existing ads, nav, orientation, hero animation.",
-    "Confirm staged PR source SHA, new runtime compatibility and isolated staging OTA gates before any RC or release."
+    "Confirm staged PR source SHA, new runtime compatibility and isolated staging OTA gates before any RC or release.",
+    "Verify deterministic motion interpolation, dynamic limb animation, role-based steering, and event-backed combat reactions with Node tests; Android rendering remains a separate release gate."
   ],
   "alternativeApproaches": [
     "Replace existing recruitable units with minions (rejected: breaks resource/game economy and tactical command gameplay).",
