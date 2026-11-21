@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,existsSync} from 'node:fs';
+import {readFileSync,existsSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 const root=resolve(import.meta.dirname,'..');
@@ -47,4 +49,51 @@ test('Source gate passes but artifact release gate fails closed without independ
  const report=JSON.parse(release.stdout);
  assert.equal(report.otaReady,false);
  assert.ok(report.failures.some(e=>e.includes('signed APK')||e.includes('EAS')));
+});
+
+test('New premium OTA SHA is distinct from verified native APK SHA and local evidence alone cannot publish',()=>{
+ const script=resolve(root,'scripts/season2-premium-staging-ota-gate.mjs');
+ const working=mkdtempSync(join(tmpdir(),'buklod-premium-stage-gate-'));
+ try{
+  const git=spawnSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'});
+  assert.equal(git.status,0);
+  const current=git.stdout.trim();
+  const good={
+    otaSourceCommit:current,
+    nativeApkSourceCommit:'a04d9ccf91e508a062bab8a7657297e574ae40a2',
+    nativeApkSha256:'f2608820b522a2d58fbbcfe94be10df600f7c3915a509e625f53902288770900',
+    nativeApkVersionCode:13,
+    nativeEasBuildId:'42ce5047-70dc-47e1-b8a9-77948c9b8dba',
+    easProjectId:'23dad7d0-389a-406e-8dec-08965dab85d8',
+    channel:'season2-genesis-preview',
+    runtimeVersion:'2.0.0-genesis-preview',
+    package:'org.mzbministry.buklod.staging',
+    platform:'android',environment:'preview',
+    signed:true,status:'finished',
+    backendProjectRef:'yhanxndaqbmuzbdqlblu',backendMode:'shared-live',
+    evidenceUrl:'https://expo.dev/accounts/a/projects/b/builds/42ce5047-70dc-47e1-b8a9-77948c9b8dba',
+    checks:Object.fromEntries(['adFirstView','navigation','audioFocus','imageDecode','mediaLifecycle','authPrivacy','noUnreleasedEconomyWrites'].map(k=>[k,'passed'])),
+  };
+  const evidence=join(working,'eas-evidence.json');
+  const run=()=>spawnSync(process.execPath,[script,'--release','--commit='+current,'--evidence='+evidence],{cwd:root,encoding:'utf8'});
+  writeFileSync(evidence,JSON.stringify({...good,nativeApkSha256:'f'.repeat(64)}));
+  const bad=run();assert.notEqual(bad.status,0);
+  assert.match(bad.stdout,/Signed green-B native APK provenance/);
+  writeFileSync(evidence,JSON.stringify({...good,otaSourceCommit:good.nativeApkSourceCommit}));
+  const badJs=run();assert.notEqual(badJs.status,0);
+  assert.match(badJs.stdout,/Premium OTA source is not the exact current commit/);
+  writeFileSync(evidence,JSON.stringify(good));
+  const local=run();
+  // All offline assertions may pass, but a self-authored JSON cannot become a
+  // verified EAS OTA publication or an RC release receipt.
+  if(local.status===0){
+   const report=JSON.parse(local.stdout);
+   assert.equal(report.artifactContractValidated,true);
+   assert.equal(report.otaReady,false);
+   assert.equal(report.published,false);
+  } else {
+   const report=JSON.parse(local.stdout);
+   assert.equal(report.otaReady,false);
+  }
+ }finally{rmSync(working,{recursive:true,force:true});}
 });
