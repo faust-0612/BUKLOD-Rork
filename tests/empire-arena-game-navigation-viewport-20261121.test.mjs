@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {arenaZoom,arenaZoomSpan,arenaTouchCenter,arenaTouchDistance,arenaDragPan,arenaMinimapPan} from '../src/features/games/empire/arenaViewportControls.mjs';
-import {arenaCamera} from '../src/features/games/empire/arenaPracticePresentation.mjs';
+import {arenaCamera,arenaVisualEffects} from '../src/features/games/empire/arenaPracticePresentation.mjs';
 const read=p=>readFileSync(resolve(import.meta.dirname,'..',p),'utf8');
 test('Arena pinch, zoom buttons and camera reset have deterministic bounded math',()=>{
  assert.equal(arenaZoom(999),2.4);
@@ -44,4 +44,18 @@ test('Genesis-only Arena is immersive with safe navigation and economic guard',(
   'OrientationLock.DEFAULT','requiresAcceptance','maintenance_mode','update_required',
   '!isGenesisPreviewBuild()','diamonds: 0, verifiedItems: []']) assert.ok(screen.includes(s),s);
  assert.doesNotMatch(screen,/awardDiamond|awardBp|settleWorldTrade|\.rpc\(/);
+});
+
+test('Practice combat presents real source-owned hit feedback and discoverable objective prompts',()=>{
+ const events=[{seq:1,time:1100,type:'damage',to:'B0',amount:24},
+  {seq:2,time:1200,type:'mine',actor:'A0',amount:12}];
+ const result=arenaVisualEffects(events,1300);
+ assert.deepEqual(result.map(e=>e.type),['damage','mine']);
+ assert.equal(result[0].amount,24);
+ assert.ok(result.every(e=>e.strength>0&&e.strength<=1));
+ const source=read('src/app/games/empire-arena.tsx');
+ assert.ok(source.includes('COMBAT RANGE: tap ATTACK or SKILL'));
+ assert.ok(source.includes('RESOURCE NEARBY: tap MINE'));
+ assert.ok(source.includes('effect.type === \'damage\''));
+ assert.ok(source.includes('onTarget(p.id)'));
 });

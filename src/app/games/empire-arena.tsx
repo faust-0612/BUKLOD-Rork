@@ -194,8 +194,9 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
       {state.creatures.filter(life).map(c => <G key={c.id}><Circle cx={c.x} cy={c.y} r={3} fill="#b38ed6" stroke="#f2d6ff" strokeWidth={0.8} /><Circle cx={c.x} cy={c.y} r={1.1} fill="#f9e9b9" /></G>)}
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
+        {p.id !== localSeat ? <Rect x={p.x - 4.7} y={p.y - 6.2} width={9.4} height={11}
+          fill="transparent" /> : null}
         <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} />
-
       </G>)}
       {state.visualCue && state.elapsed - state.visualCue.time < 650 ? (() => {
         const cue = state.visualCue;
@@ -213,9 +214,10 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
             stroke="#ffe9bb" strokeWidth={0.9 * alpha} opacity={alpha} />
         </G>;
       })() : null}
-      {effects.map((effect: { seq: number; type: string; actor?: string; to?: string; tower?: string; strength: number }) => {
-        const subject = state.players[effect.actor || ''] || state.players[effect.to || ''] ||
-          state.towers.find(t => t.id === effect.tower);
+      {effects.map((effect: { seq: number; type: string; actor?: string; to?: string; from?: string; tower?: string; amount?: number; strength: number }) => {
+        const subject = state.players[effect.to || ''] || state.players[effect.actor || ''] ||
+          state.players[effect.from || ''] || state.units.find(u => u.id === effect.to) ||
+          state.towers.find(t => t.id === effect.to || t.id === effect.tower);
         if (!subject) return null;
         const r = 3 + (1 - effect.strength) * (effect.type === 'defeat' ? 11 : 7);
         return <G key={'fx-' + effect.seq}>
@@ -224,6 +226,12 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
             strokeWidth={0.65 + effect.strength} opacity={effect.strength * 0.85} />
           <Circle cx={subject.x} cy={subject.y} r={r * 0.53} fill="#fce3a4"
             opacity={effect.strength * 0.14} />
+          {effect.type === 'damage' && Number.isFinite(effect.amount) ? <SvgText
+            x={subject.x} y={subject.y - 8 - (1 - effect.strength) * 3}
+            textAnchor="middle" fontSize={3.7} fontWeight="bold"
+            fill="#ffe6a9" stroke="#28151b" strokeWidth={0.22} opacity={effect.strength}>
+            -{Math.max(0, Math.round(effect.amount || 0))}
+          </SvgText> : null}
         </G>;
       })}
     </Svg>
@@ -561,6 +569,12 @@ function EmpireArenaInApp() {
   const ownTeam = me?.team ?? 'A';
   const opponent = Object.values(game?.players ?? {}).find(p=>p.team && p.team !== ownTeam);
   const nearby = arenaNearby(game, me);
+  const inRangeFoe = game && me ? closestEnemy(8) : null;
+  const carried = me ? Object.values(me.bag || {}).reduce((sum, amount) => sum + amount, 0) : 0;
+  const arenaHint = inRangeFoe ? 'COMBAT RANGE: tap ATTACK or SKILL' :
+    carried > 0 && nearby.canBank ? 'SUPPLY READY: tap BANK to train allies' :
+    nearby.mine ? 'RESOURCE NEARBY: tap MINE' :
+    'Joystick moves hero • drag/pinch battlefield, tap minimap to explore';
   const resources = game?.teams[ownTeam].resources;
   const media = getRorkGameMedia(ARENA_SCENE_GAME_ID[mapId]);
   void revision; // Intentionally render every bounded fixed simulation step.
@@ -636,7 +650,7 @@ function EmpireArenaInApp() {
         <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
       </View>
       <ArenaField state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
-      <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message.startsWith('Action unavailable') || message.startsWith('Arena server:') ? message : 'Drag map or pinch to zoom • No practice rewards'} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
+      <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message.startsWith('Action unavailable') || message.startsWith('Arena server:') ? message : arenaHint} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
       {phase === 'playing' ? <>
         <View style={styles.joystick} {...joystick.panHandlers}>
           <View style={styles.joyRing}><View style={[styles.joyHandle, { transform: [{ translateX: joyVisual.x * 25 }, { translateY: joyVisual.y * 25 }] }]} /></View>
