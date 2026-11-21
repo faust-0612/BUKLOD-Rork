@@ -315,7 +315,8 @@ function EmpireArenaInApp() {
       setHudEditing(false);
       setMessage('Custom combat controls saved on this device.');
     } catch {
-      setMessage('Cannot save controls right now; adjustments remain in this session.');
+      setHudEditing(false);
+      setMessage('Could not save control positions; current session layout still works.');
     }
   }, [hudPositions, user?.id]);
 
@@ -672,6 +673,8 @@ function EmpireArenaInApp() {
           joy={joyVisual} actions={actions} />
         {hudEditing && arenaKind==='practice' ? <View style={styles.hudEditor}>
           <Text style={styles.hudEditorText}>DRAG ANY ICON TO MOVE</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Play with current Arena controls" onPress={() => setHudEditing(false)} style={styles.hudEditorButton}>
+            <Text style={styles.hudEditorAction}>PLAY</Text></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Reset Arena controls" onPress={() => setHudPositions(sanitizeArenaHudLayout(null) as ArenaHudLayout)} style={styles.hudEditorButton}>
             <Text style={styles.hudEditorAction}>RESET</Text></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Save Arena control positions" onPress={() => void saveHudControls()} style={[styles.hudEditorButton,styles.hudSave]}>
