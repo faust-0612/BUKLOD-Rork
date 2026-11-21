@@ -37,7 +37,8 @@
     "Ranked database changeset is source-only until isolated PostgreSQL validates service-role-only RPCs, claimed-participation Diamond issuance, full-wallet transaction, and idempotent settlement.",
     "Server-authoritative ranked backend and private SQL are DEV-only until staged WSS, database migrations, settlement/reconnect integration, and Android runtime are actually verified.",
     "Ranked WSS server matches real players, authoritatively simulates and validates input, and settles Diamonds/rating only through trusted private Postgres RPCs; backend is not yet deployed.",
-    "Isolated 17-alpine PostgreSQL validates same-person multiple seats, idempotent stakes, BP nonminting, server-only RPC ACLs and transaction recovery."
+    "Isolated 17-alpine PostgreSQL validates same-person multiple seats, idempotent stakes, BP nonminting, server-only RPC ACLs and transaction recovery.",
+    "Server lock action and pinned dependency lockfile are protected DEV-only scope; changes reconciled to actual pull request diff."
   ],
   "riskAreas": [
     "app-runtime",
@@ -218,7 +219,9 @@
     "assets/season2/arena/generated/sprite/phan-579c1ac69be4.webp",
     "assets/season2/arena/generated/sprite/quin-e4768d7fe0ee.webp",
     "assets/season2/arena/generated/sprite/van-bea489cdaa65.webp",
-    "assets/season2/arena/generated/sprite/vhen-d446b5b7acb8.webp"
+    "assets/season2/arena/generated/sprite/vhen-d446b5b7acb8.webp",
+    ".github/workflows/buklod-arena-dev-server-lock.yml",
+    "services/empire-arena/package-lock.json"
   ],
   "lockedFeatureChanges": [
     {
