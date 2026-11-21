@@ -148,7 +148,8 @@ func _read_events() -> void:
 		if event.has("pos") and event["pos"] is Vector2:
 			flashes.append({"pos": event["pos"], "time": frames, "type": event["type"]})
 		if event["type"] in ["level_up", "construction_complete", "seal_damage",
-				"field_pickup_claimed", "solo_round_end", "result"]:
+				"field_pickup_claimed", "solo_round_end", "result", "minion_wave",
+				"tower_destroyed", "minion_heal", "minion_siege_hit"]:
 			hud.notify(str(event["type"]).replace("_", " ").to_upper())
 	while flashes.size() > 30:
 		flashes.pop_front()
@@ -177,6 +178,16 @@ func _draw_actor(p: Dictionary) -> void:
 	var large := 11.5 if is_hero else 6.0
 	var color: Color = _suit_color(p.get("hero", "phan")) if is_hero else \
 		Color("#7de8d0") if team == "A" else Color("#f39a92")
+	if not is_hero:
+		match str(p.get("kind", "")):
+			"vanguard": large = 8.0
+			"ranger": large = 6.0
+			"mender":
+				large = 7.0
+				color = color.lightened(0.28)
+			"siege_breaker":
+				large = 10.0
+				color = color.darkened(0.24)
 	var breath: float = sin(frames * (3.0 if is_hero else 5.0) + float(pos.x) * 0.15)
 	var shift := Vector2(0, breath * 1.2)
 	draw_circle(pos + Vector2(0, 8), large * 1.1, Color(0, 0, 0, 0.35))
@@ -186,6 +197,18 @@ func _draw_actor(p: Dictionary) -> void:
 	draw_line(pos + shift + Vector2(large, 2), pos + shift + Vector2(large * 1.55, 5 - breath * 2), color, 3.0)
 	draw_circle(pos + shift - Vector2(large * 0.18, large * 0.36), 1.25, Color("#0c1f2c"))
 	draw_circle(pos + shift + Vector2(large * 0.18, -large * 0.36), 1.25, Color("#0c1f2c"))
+	if not is_hero:
+		var kind: String = str(p.get("kind", ""))
+		match kind:
+			"vanguard":
+				draw_arc(pos + shift, large + 2, -PI * 0.8, PI * 0.8, 20, Color("#f8edbd"), 2.0)
+			"ranger":
+				draw_line(pos + Vector2(0, -large - 5), pos + Vector2(0, -large + 1), Color("#f2e99d"), 2.0)
+			"mender":
+				draw_line(pos + Vector2(-4, -large), pos + Vector2(4, -large), Color.WHITE, 2.0)
+				draw_line(pos + Vector2(0, -large - 4), pos + Vector2(0, -large + 4), Color.WHITE, 2.0)
+			"siege_breaker":
+				draw_rect(Rect2(pos + Vector2(-7, -large - 5), Vector2(14, 6)), Color("#f6ce7f"))
 	if is_hero:
 		var hero_id: String = str(p.get("hero", "phan"))
 		var portrait: Texture2D = _art("res://art/sprite/" + hero_id + ".png")
@@ -273,6 +296,8 @@ func _draw_world() -> void:
 		draw_circle(pos + Vector2(0, -23), 6 + 2 * sin(frames * 4), Color("#fcf0b6"))
 	for unit in s["units"]:
 		_draw_actor(unit)
+	for minion in s.get("minions", []):
+		_draw_actor(minion)
 	for hero in s["players"].values():
 		_draw_actor(hero)
 	for drop in s["loot"]:
