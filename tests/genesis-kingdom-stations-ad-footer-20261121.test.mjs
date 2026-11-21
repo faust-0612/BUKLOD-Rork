@@ -31,7 +31,8 @@ test('Existing season 2 panorama retained in original 16:9 graphics without subs
 test('Kingdom ad appears last in scroll content and never acts as a sticky first-view overlay',()=>{
  const start=portal.indexOf('<ScrollView contentContainerStyle={styles.content}>');
  const ad=portal.indexOf('<BuklodKingdomAdSlot placementId="kingdom_map_footer" kind="banner" />');
- const exit=portal.indexOf('</ScrollView>',start);
+ // The station rail contains its own nested horizontal ScrollView; close the OUTER page.
+ const exit=portal.lastIndexOf('</ScrollView>');
  const disclaimer=portal.indexOf('Original Character Kingdom stations and routes.');
  assert.ok(start>=0&&ad>disclaimer&&ad<exit);
  assert.match(portal,/kingdomAdFooter:\{width:'100%'/);
