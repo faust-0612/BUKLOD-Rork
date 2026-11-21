@@ -32,6 +32,10 @@ jobs:
           case "$PR_HEAD" in
             # Explicit isolated Arena HUD workstream. This does NOT grant OTA or
             # production release rights; only enables exact-path regression checks.
+            integration/genesis-all-updates-conso-staging-20261122)
+              if [ "$PR_BASE" = "integration/season2-genesis-full-conso-staging-20261121" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/genesis-all-updates-conso-20261122.json" >> "$GITHUB_ENV"
+              fi;;
             dev/arena-responsive-zoom-navigation-fix-20261121)
               if [ "$PR_BASE" = "dev/season2-map-first-conso-intake-20261121" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/arena-premium-hud-20261121.json" >> "$GITHUB_ENV"
