@@ -32,19 +32,19 @@ test('staging may continue through its normal release gates and independent prod
 });
 test('production release entry point invokes embargo before build/export/publish',()=>{
  const flow=read('.github/workflows/production_android_ota.yml');
- assert.match(flow,/branches: \\[main\\]/);
+ assert.match(flow,/branches: \[main\]/);
  const embargo=flow.indexOf('node scripts/buklod-season2-production-embargo.cjs --production');
  const build=flow.indexOf('Expo credential preflight');
  const publish=flow.indexOf('Publish exact frozen Android RC');
  assert.ok(embargo>0 && embargo<build && embargo<publish);
- assert.match(flow,/github\\.ref == 'refs\\/heads\\/main'/);
+ assert.match(flow,/github\.ref == 'refs\/heads\/main'/);
  const eas=JSON.parse(read('eas.json'));
  assert.equal(eas.build.production.channel,'production');
  assert.equal(eas.build.production.env.APP_VARIANT,'production');
  assert.equal(eas.build['season2-genesis-preview'].channel,'season2-genesis-preview');
  assert.notEqual(eas.build.production.channel,eas.build['season2-genesis-preview'].channel);
  const config=read('app.config.js');
- assert.match(config,/genesisNativePreview[\\s\\S]{0,150}isStaging/);
+ assert.match(config,/genesisNativePreview[\s\S]{0,150}isStaging/);
  assert.match(config,/sosNativePreview = genesisNativePreview/);
- assert.match(config,/genesisNativePreview \\? '2\\.0\\.0-genesis-preview' : '1\\.3\\.2'/);
+ assert.match(config,/genesisNativePreview \? '2\.0\.0-genesis-preview' : '1\.3\.2'/);
 });
