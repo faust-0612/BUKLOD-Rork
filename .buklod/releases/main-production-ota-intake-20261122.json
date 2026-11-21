@@ -261,5 +261,21 @@
   "otaPublished": false,
   "prodDatabaseModified": false,
   "nativeBuildChanged": false,
-  "announcementSent": false
+  "announcementSent": false,
+  "portedSourceBlobs": {
+    "src/app/personal-home/ptt.tsx": "5b2204ed90622e0b5185d2af50dc282e3caab465",
+    "src/ptt/buklodPttDutyNotification.ts": "6a496e879654fc2255632e2183ff1c808048c69e",
+    "src/ptt/buklodPttRuntime.ts": "63fc12379d27d11d0bbce356ccd9148f77979049",
+    "src/ptt/buklodPttSetup.ts": "3185d045074e27500fc14c50b3c75b1f450e56e9",
+    "tests/buklod-ptt-preferences-and-switching.test.mjs": "d9c52cdd8265d500cdf0378888b081b92bde49f7",
+    "src/app/faith/mentor-evidence.tsx": "315a766d776ea88d7ea013fbbbf772cd34c4c65d",
+    "src/app/learn/[id].tsx": "de0538561da6d6765eced38ef37dce7810084d2d",
+    "src/app/learn/lesson.tsx": "2e08be27d2e80969aeec2602007705c6870b1c70",
+    "src/app/mentoring/index.tsx": "55bdbaaa8c9ab69a1c1b2a09c0c8ab9320a361f0",
+    "src/components/LearningQuestionResponse.tsx": "cec1f3b5dad1ef872989ff7e0497c71867b93837",
+    "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql": "4898f3441a9b62796e62df0476166d726ac16943",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql": "4a322fbfb4872b5e4bc62fee67b2c86a6a601e7a",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs": "d5c3ece1abfe95c9606f38af0f27c7425182cf5f",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs": "6abadecc8bcf242554f792d959e47d2af2932585"
+  }
 }
