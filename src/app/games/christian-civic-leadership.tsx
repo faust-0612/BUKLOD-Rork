@@ -15,6 +15,8 @@ import {
 import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
+import KingdomCinematicScene from '@/features/games/kingdom/platform/KingdomCinematicScene';
+import {playRorkSignatureSfx} from '@/features/games/runtime/rorkAudio';
 
 const GAME_ID = 'christian-civic-leadership';
 const CROWN_ID = 'christian-bible-crown';
@@ -26,6 +28,7 @@ function ChristianGameCenterContent() {
   const { t } = useBuklodGameLanguage();
   const [selectedGame, setSelectedGame] = useState<'crown' | 'council' | 'word'>('crown');
   const previewGameId = selectedGame === 'word' ? WORD_ID : CROWN_ID;
+  const activeArtGameId = selectedGame === 'council' ? GAME_ID : previewGameId;
   const liveGameId = useRef(previewGameId);
   liveGameId.current = previewGameId;
   const [preview, setPreview] = useState<KingdomPreviewRecord | null>(null);
@@ -81,7 +84,7 @@ function ChristianGameCenterContent() {
             accessibilityRole="button"
             accessibilityState={{ selected: selectedGame === 'crown' }}
             style={[styles.option, selectedGame === 'crown' && styles.selected]}
-            onPress={() => setSelectedGame('crown')}
+            onPress={() => {void playRorkSignatureSfx(CROWN_ID);setSelectedGame('crown');}}
           >
             <Text style={styles.optionText}>{CHRISTIAN_CENTER?.games.find((game) => game.id === CROWN_ID)?.title ?? 'Bible Crown'}</Text>
             <Text style={styles.optionSub}>{t('15-question Bible game', '15-tanong na Bible game')}</Text>
@@ -90,7 +93,7 @@ function ChristianGameCenterContent() {
             accessibilityRole="button"
             accessibilityState={{ selected: selectedGame === 'word' }}
             style={[styles.option, selectedGame === 'word' && styles.selected]}
-            onPress={() => setSelectedGame('word')}
+            onPress={() => {void playRorkSignatureSfx(WORD_ID);setSelectedGame('word');}}
           >
             <Text style={styles.optionText}>Scripture Word Search</Text>
             <Text style={styles.optionSub}>{t('Three Bible word puzzles', 'Tatlong Bible word puzzle')}</Text>
@@ -99,12 +102,13 @@ function ChristianGameCenterContent() {
             accessibilityRole="button"
             accessibilityState={{ selected: selectedGame === 'council' }}
             style={[styles.option, selectedGame === 'council' && styles.selected]}
-            onPress={() => setSelectedGame('council')}
+            onPress={() => {void playRorkSignatureSfx(GAME_ID);setSelectedGame('council');}}
           >
             <Text style={styles.optionText}>Leadership Council</Text>
             <Text style={styles.optionSub}>{t('Original strategy game', 'Orihinal na strategy game')}</Text>
           </Pressable>
         </View>
+        <KingdomCinematicScene key={activeArtGameId} gameId={activeArtGameId} compact />
         {selectedGame === 'council' ? (
           // Preserve original Leadership Council and its existing preview-map behavior.
           <CivicLeadershipGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result, user?.id ?? null).catch(() => undefined); }} />

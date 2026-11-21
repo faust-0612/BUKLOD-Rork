@@ -66,3 +66,12 @@ before any real OTA claim.
 - These changes are source-only and have no BP, QMP, Diamond or cash reward
   writes. Distinct sound files for *every single scene* are not claimed; the
   installed pack is reused with individually selected cues.
+
+## Complete station coverage
+Two legacy standalone game centers (Christian, Mitch) do not use the shared
+`KingdomInteriorCenter` selector. They now render the same selected-game
+cinematic / original raster sprite atlas for their six games, including local
+genre-specific cue selection. The other eleven character centers already use
+the shared 39-scene cinematic. This closes the visual access gap without
+changing Bible Crown/Scripture, Leadership, Block Forge, Merge or Mural
+completion logic or BP rules.

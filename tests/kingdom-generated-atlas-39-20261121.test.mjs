@@ -27,3 +27,15 @@ test('generated artwork is ACTUALLY bundled and has a valid RIFF/WEBP header; ze
  assert.match(scene,/KingdomHeroArt/);
  assert.doesNotMatch(atlas,/https?:|fetch\(|supabase|awardBp|mintShards/);
 });
+
+test('special Christian and Mitch centers display the selected original/pilot illustration and preserve gameplay',()=>{
+ const christian=read('src/app/games/christian-civic-leadership.tsx');
+ const mitch=read('src/app/games/mitch-restore-mural.tsx');
+ for(const s of [christian,mitch]){
+   assert.match(s,/<KingdomCinematicScene key=\{activeArtGameId\} gameId=\{activeArtGameId\} compact/);
+   assert.match(s,/playRorkSignatureSfx/);
+   assert.match(s,/recordKingdomPreviewResult/);
+   assert.match(s,/recordBuklodKingdomPreviewResult/);
+   assert.doesNotMatch(s,/awardBp|mintShards|creditPoints/);
+ }
+});
