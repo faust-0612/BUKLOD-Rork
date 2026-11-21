@@ -625,12 +625,12 @@ function EmpireArenaInApp() {
   };
   const sendLocalTeamCall = (key:string) => {
     const match=gameRef.current;
-    if(!arenaCanSendLocalCall(match,localSeat,key)){
+    if(!match || !arenaCanSendLocalCall(match,localSeat,key)){
       setMessage('Team calls are offline training only. Live ranked communication requires a secured match channel.');
       return;
     }
     if(match.elapsed-lastTeamCallAt.current<1600)return; // tactile anti-spam
-    const call=ARENA_TACTICAL_CALLS[key];
+    const call=ARENA_TACTICAL_CALLS[key as keyof typeof ARENA_TACTICAL_CALLS];
     if(!call || !command(match,localSeat,{type:'order',order:call.order})){
       setMessage('Team command unavailable in the current match.');
       return;
@@ -839,7 +839,7 @@ function EmpireArenaInApp() {
             <Text style={styles.teamCallHeader}>OFFLINE TEAM COMMANDS</Text>
             <Text style={styles.teamCallHint}>Speech on your device • CPU units follow orders • no microphone</Text>
             <View style={styles.teamCallGrid}>{Object.keys(ARENA_TACTICAL_CALLS).map(key=>{
-              const call=ARENA_TACTICAL_CALLS[key];
+              const call=ARENA_TACTICAL_CALLS[key as keyof typeof ARENA_TACTICAL_CALLS];
               return <Pressable key={key} accessibilityRole="button"
                 accessibilityLabel={'Issue '+call.label+' CPU team order'}
                 onPress={()=>sendLocalTeamCall(key)} style={styles.teamCallButton}>
