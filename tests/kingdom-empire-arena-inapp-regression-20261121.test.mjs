@@ -8,7 +8,9 @@ test('Kingdom map retains canonical renderer and exposes an in-app Arena door',(
   const map=read('src/app/games/index.tsx');
   assert.match(map,/BuklodKingdomMapPremium/);
   assert.match(map,/BuklodKingdomAdSlot/);
-  assert.match(map,/\/games\/empire-arena/);
+  const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
+  assert.match(map,/GenesisKingdomPortal/);
+  assert.match(portal,/\/games\/empire-arena/);
   assert.doesNotMatch(map,/Linking\.openURL|WebBrowser\.openBrowserAsync/);
 });
 test('Arena stays in BUKLOD package with canonical hero art and original game simulation',()=>{
