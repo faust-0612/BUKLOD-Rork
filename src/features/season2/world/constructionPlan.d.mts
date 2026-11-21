@@ -15,7 +15,7 @@ export const WINDOWS:readonly CosmeticWindow[];
 export const LIGHTS:readonly CosmeticLights[];
 export function majorLevel(value:unknown):number;
 export function constructionStage(value:unknown):number;
-export function constructionPlan(track:ConstructionTrack,level:number,stage:number):Readonly<{
+export function constructionPlan(track:ConstructionTrack,level:number,stage:number,mastery?:number):Readonly<{
  track:ConstructionTrack;level:number;stage:number;stageName:string;
  estimatedDevelopmentXp:number;estimatedTimber:number;estimatedStone:number;
  estimatedMetal:number;estimatedBuildMinutes:number;needsVerifiedContribution:boolean;
