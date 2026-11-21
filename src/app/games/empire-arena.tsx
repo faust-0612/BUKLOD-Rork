@@ -53,7 +53,7 @@ import { ARENA_TACTICAL_CALLS, arenaCanSendLocalCall } from '@/features/games/em
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
 // @ts-ignore — The canonical offline Arena engine is already .mjs. Metro bundles .mjs; native import is intentionally isolated.
-import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS, resolveGear } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
+import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS, resolveGear, STARTER_HERO_KITS, starterAttack, starterSkillCooldown } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
 // @ts-ignore — deterministic offline CPU duel; imports NO auth/network/store modules.
 import { createOfflineSoloBattle, tickOfflineSolo, SOLO_CPU_DIFFICULTIES, SOLO_ROUND_MS } from '../../../experiments/empire-arena-v2/arena-v2-solo.mjs';
 
@@ -69,11 +69,12 @@ type ArenaState = {
   map: { lanes: number[]; colors: string[] };
   players: Record<string, Actor>;
   towers: Actor[]; units: Actor[]; creatures: Actor[]; buildings: Actor[];
+  heroWalls?: (Actor & { expires: number })[];
   nodes: (Position & { id: string; type: string; stock: number })[];
   loot: (Position & { id: string; expires?: number })[];
   teams: Record<Team, { resources: { wood: number; gold: number; stone: number }; kills: number }>;
   seals: Record<Team, { hp: number; maxHp: number; breached: boolean }>;
-  cover: [number, number, number][]; events: { type: string; seq: number; time: number; actor?: string; to?: string; tower?: string }[];
+  cover: [number, number, number, string?][]; events: { type: string; seq: number; time: number; actor?: string; to?: string; tower?: string }[];
   result?: { winner: Team | null; reason: string } | null;
   visualCue?: Position & { type: string; time: number; seq: number; actor?: string };
 };
@@ -193,6 +194,11 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
       {!state.solo ? <ArenaBaseArt width={state.w} height={state.h} elapsed={state.elapsed}
         seals={state.seals} localTeam={localTeam} /> : null}
       <ArenaStructureArt towers={state.towers} buildings={state.buildings} elapsed={state.elapsed} />
+       {(state.heroWalls || []).filter(w=>life(w)).map(w=><G key={w.id} onPress={()=>onTarget(w.id)}>
+         <Rect x={w.x-2.2} y={w.y-2.2} width={4.4} height={4.4} rx={.6}
+           stroke="#b3f9e2" strokeWidth={.75} fill="#1a686f" opacity={.9}/>
+         <Path d={`M ${w.x-1.3} ${w.y-1.2} L ${w.x+1.3} ${w.y+1.2} M ${w.x+1.3} ${w.y-1.2} L ${w.x-1.3} ${w.y+1.2}`} stroke="#ebffb7" strokeWidth={.6}/>
+       </G>)}
       <ArenaWildlifeArt creatures={state.creatures} elapsed={state.elapsed} />
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
@@ -577,12 +583,16 @@ function EmpireArenaInApp() {
     const game = gameRef.current;
     const player = game?.players[localSeat];
     if (!game || !player) return undefined;
-    const foes = [...Object.values(game.players), ...game.units, ...game.creatures, ...game.towers]
+    const foes = [...Object.values(game.players), ...game.units, ...game.creatures, ...game.towers, ...(game.heroWalls || [])]
       .filter(p => p.id !== localSeat && life(p) && (p.team !== player.team || !p.team));
     const active = selected.current ? foes.find(p => p.id === selected.current && near(p, player) <= range) : undefined;
     return active ?? foes.filter(p => near(p, player) <= range).sort((a, b) => near(a, player) - near(b, player))[0];
   };
-  const attack = () => execute({ type: 'attack', targetId: closestEnemy(5.5)?.id });
+  const attack = () => {
+    const game=gameRef.current, me=game?.players[localSeat];
+    const basic=arenaKind==='practice' && me?.hero ? starterAttack(me.hero) : null;
+    execute({type:'attack',targetId:closestEnemy(basic?.range ?? 5.5)?.id});
+  };
   const skill = (slot: 'primary' | 'secondary' | 'ultimate') => {
     const game = gameRef.current, self = game?.players[localSeat];
     if (!self) return;
@@ -656,16 +666,17 @@ function EmpireArenaInApp() {
   // never grants abilities or fabricates ready-state timers.
   const cooldownFor = (slot: 'primary'|'secondary'|'ultimate'): number => {
     if (!game || !me || !me.cooldowns) return 0;
-    const base = {primary:5800, secondary:11000, ultimate:38000}[slot];
+    const base = (arenaKind==='practice' && me.hero ? starterSkillCooldown(me.hero,slot) : null)
+       ?? {primary:5800, secondary:11000, ultimate:38000}[slot];
     const gear = me.hero ? resolveGear(me.hero, me.gear || {}) : {cooldown:0};
     const duration = base / (1 + Math.min(.2, (me.itemMastery || 0) * .04) + (gear.cooldown || 0));
     return Math.max(0, duration - (game.elapsed - (me.cooldowns[slot] ?? -1e8)));
   };
   const actions: CombatAction[] = [
     {id:'attack',label:'ATTACK',icon:'sword-cross',onPress:attack},
-    {id:'primary',label:'SKILL',icon:PRIMARY_GLYPH_BY_STYLE[HEROES[game?.solo ? soloHero : hero]?.style] || 'lightning-bolt',onPress:()=>skill('primary'),
+    {id:'primary',label:arenaKind==='practice' && me?.hero && STARTER_HERO_KITS[me.hero]?'SKILL 1':'SKILL',icon:PRIMARY_GLYPH_BY_STYLE[HEROES[game?.solo ? soloHero : hero]?.style] || 'lightning-bolt',onPress:()=>skill('primary'),
       disabled:(me?.mana || 0)<18,cooldownMs:cooldownFor('primary')},
-    {id:'secondary',label:'DASH',icon:'run-fast',onPress:()=>skill('secondary'),
+    {id:'secondary',label:arenaKind==='practice' && me?.hero && STARTER_HERO_KITS[me.hero]?'SKILL 2':'DASH',icon:'run-fast',onPress:()=>skill('secondary'),
       disabled:(me?.matchLevel||1)<3 || (me?.mana||0)<14,cooldownMs:cooldownFor('secondary')},
     {id:'ultimate',label:'ULT',icon:'fire',onPress:()=>skill('ultimate'),
       disabled:(me?.matchLevel||1)<6 || (me?.mana||0)<55,cooldownMs:cooldownFor('ultimate')},
@@ -779,7 +790,10 @@ function EmpireArenaInApp() {
           contentFit="contain" style={styles.menuHeroImage} />
         <View style={styles.menuHeroText}><Text style={styles.heroName}>{CHARACTER_DISPLAY_NAME[soloHero]}</Text>
           <Text style={styles.heroCaption}>{HEROES[soloHero]?.role?.toUpperCase() ?? 'HERO'} • OFFLINE TRAINING CHARACTER</Text>
-          <Text style={styles.heroCaption}>13 heroes • 3 realms • animated battle poses</Text></View>
+          <Text style={styles.heroCaption}>13 heroes • 3 realms • animated battle poses</Text>
+          {STARTER_HERO_KITS[soloHero] ? <Text style={styles.heroCaption} numberOfLines={2}>
+            {STARTER_HERO_KITS[soloHero].primary.id.replace(/_/g,' ')} • {STARTER_HERO_KITS[soloHero].secondary.id.replace(/_/g,' ')} • {STARTER_HERO_KITS[soloHero].ultimate.id.replace(/_/g,' ')}
+          </Text> : null}</View>
       </View>
       <Text style={styles.groupLabel}>CLASSIC OFFLINE WAR PRACTICE</Text>
       <Text style={styles.soloBannerNote}>1v1, 3v3 or 5v5 • mining, towers, troops and seals</Text>
