@@ -109,6 +109,10 @@ export class ArenaRankedSocket{
         }
       }
       if(packet.type==='match_start'||packet.type==='match_resume'){
+        // Server binds a fresh authenticated socket to a new command sequence.
+        // Long-running matches can exceed seq 1000 before a network drop;
+        // continuing the old counter would be rejected forever after resume.
+        if(packet.type==='match_resume')this.nextSeq=0;
         this.active=true;
         this.resumeOnly=false;
         this.retryAttempts=0;
