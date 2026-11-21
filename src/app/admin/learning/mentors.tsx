@@ -21,6 +21,13 @@ export default function MentorAssignmentsAdmin() {
   const assign=async()=>{
     if(!mentorId||!discipleId)return Alert.alert('Mentor Assignment','Select both mentor and disciple.');
     if(mentorId===discipleId)return Alert.alert('Mentor Assignment','Mentor and disciple must be different people.');
+    // An assignment alone does not grant the security capability required by report RPCs.
+    const {data:mentorAccess,error:capabilityError}=await (supabase as any).rpc('has_capability',{
+      p_user_id:mentorId,p_capability:'mentor'
+    });
+    if(capabilityError)return Alert.alert('Could not verify mentor access',capabilityError.message);
+    if(mentorAccess!==true)return Alert.alert('Mentor permission required',
+      'This member does not have an active mentor capability. Ask an authorized administrator to review and activate that permission before assigning learners.');
     const {error}=await supabase.from('mentor_assignments').upsert({
       mentor_id:mentorId,disciple_id:discipleId,is_active:true
     });
