@@ -144,7 +144,8 @@ export function tickMinionWaves(s,emit,stepMs=500){
     const opposing=enemy(m.team);const advance={x:opposing==='A'?14:s.w-14,y:laneY(s,m.lane)};
     if(dist(m,advance)>2)move(s,m,advance,stepMs);
   }
-  // Tombstones last long enough for one death animation. Dead minions never respawn.
-  s.minions=s.minions.filter(m=>alive(m)||s.elapsed-(m.deathAt??s.elapsed)<900);
+  // Tombstones last long enough for one death animation, including hero/tower kills.
+  for(const m of s.minions)if(!alive(m)&&m.deathAt==null)m.deathAt=m.lastDamage??s.elapsed;
+  s.minions=s.minions.filter(m=>alive(m)||s.elapsed-m.deathAt<900);
   return s;
 }
