@@ -26,6 +26,7 @@ on:
       - 'scripts/season2-native-apk-source-parity.mjs'
       - 'app.config.js'
       - 'tests/season2-native-apk-parity-20261121.test.mjs'
+      - 'tests/season2-premium-ad-navigation-guard-20261121.test.mjs'
       - 'tests/season2-android-bundle-compatibility-20261121.test.mjs'
       - 'eas.json'
       - '.github/workflows/season2-map-conso-source-qa-20261121.yml'
@@ -36,6 +37,7 @@ on:
       - 'app.config.js'
       - 'scripts/season2-native-apk-source-parity.mjs'
       - 'tests/season2-native-apk-parity-20261121.test.mjs'
+      - 'tests/season2-premium-ad-navigation-guard-20261121.test.mjs'
       - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
       - 'src/app/buklod-map.tsx'
       - 'src/app/index.tsx'
@@ -69,6 +71,10 @@ jobs:
         run: node scripts/season2-native-apk-source-parity.mjs
       - name: Genesis preview and existing World regression checks
         run: node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/genesis-world-navigation-regression-20261121.test.mjs tests/genesis-valley-asset-interaction-20261121.test.mjs tests/genesis-valley-audio-focus-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs tests/season2-premium-staging-ota-contract-20261121.test.mjs tests/season2-android-bundle-compatibility-20261121.test.mjs tests/season2-native-apk-parity-20261121.test.mjs
+      - name: Permanent AdMob first-view, focus, consent and nav regressions (source-only, NO AD SDK fill)
+        run: |
+          node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs tests/season2-premium-ad-navigation-guard-20261121.test.mjs
+          node --experimental-strip-types --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
       - name: Locked Expo install for exact Android JS bundle (NO EAS, NO OTA)
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Genesis premium map and Kingdom Android Metro compatibility export

@@ -71,7 +71,8 @@
     "tests/season2-premium-nature-kingdom-20261121.test.mjs",
     "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
     "tests/season2-android-bundle-compatibility-20261121.test.mjs",
-    "tests/season2-native-apk-parity-20261121.test.mjs"
+    "tests/season2-native-apk-parity-20261121.test.mjs",
+    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs"
   ],
   "allowedPaths": [
     "src/app/buklod-map.tsx",
@@ -107,7 +108,8 @@
     "scripts/season2-android-bundle-compatibility.mjs",
     "scripts/season2-native-apk-source-parity.mjs",
     "tests/season2-native-apk-parity-20261121.test.mjs",
-    "app.config.js"
+    "app.config.js",
+    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
@@ -134,7 +136,8 @@
     "Pinned native source of Nov 20 signed Genesis APK EAS build d9e279a6-766b-4bd9-8316-3f700749594c from SHA 5bd80d... must be verified as ancestor with no drift in app config, metro/babel, lockfile, native modules/scripts or runtime dependencies; this is NOT live EAS channel or device acceptance.",
     "Premium Genesis-only native splash/icon matches source a04d9cc... of actual verified signed stage APK SHA256 f260... versionCode13; no changes to non-Genesis production icons or native module/dependency lockfile.",
     "Real GitHub Actions artifact 14616118120 confirms newer signed Genesis APK EAS build 42ce5047-70dc-47e1-b8a9-77948c9b8dba, APK source a04d9..., actual SHA256 f260..., versionCode 13, 4 ABIs, native splash green B. Distinguish from current premium OTA JS commit.",
-    "Local release gate cannot set OTA ready from an unverified JSON; exact current premium commit, signed native APK provenance+sha+EAS build ID and native source parity required. Actual EAS channel/update receipts still mandatory."
+    "Local release gate cannot set OTA ready from an unverified JSON; exact current premium commit, signed native APK provenance+sha+EAS build ID and native source parity required. Actual EAS channel/update receipts still mandatory.",
+    "Run permanent old AdMob focus/warmup/cooldown/sensitive-route and new premium first-view/Kingdom placement source regressions as an isolated GitHub CI step before Android Metro export; source PASS is not a real SDK ad fill acceptance."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
@@ -155,7 +158,8 @@
     "No production configuration, Google Play deployment, EAS token, OTA publish, Supabase mutation or Arena native route enters the Android export QA.",
     "Do not rebuild native APK unnecessarily when its native source and runtime are identical; never send a new premium JS OTA before checking exact EAS channel routing and current signed native artifact.",
     "Only Genesis-preview app.config native splash/logo uses the approved transparent green B. Default production / classroom / other staging variants still use prior icon paths.",
-    "Reuse existing signed green-B staging APK if verified compatible; do not merge signed APK git SHA and premium OTA git SHA or bypass the native/ads/navigation gate. Keep production untouched."
+    "Reuse existing signed green-B staging APK if verified compatible; do not merge signed APK git SHA and premium OTA git SHA or bypass the native/ads/navigation gate. Keep production untouched.",
+    "Every production first-view dashboard ad, offscreen lifecycle, consent/route gating, safe audio focus and fast navigation remains release-protected."
   ],
   "alternativeApproaches": [
     "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",
