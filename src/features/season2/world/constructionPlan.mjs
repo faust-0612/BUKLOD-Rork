@@ -19,10 +19,10 @@ export function constructionStage(value) {
   const n=Number(value);
   return Number.isFinite(n)?Math.max(0,Math.min(4,Math.trunc(n))):0;
 }
-export function constructionPlan(track,level,stage) {
+export function constructionPlan(track,level,stage,mastery=0) {
   if(!TRACKS.includes(track))throw new Error('Unknown construction track');
   const l=majorLevel(level), s=constructionStage(stage);
-  const factor={lot:1,house:1.45,cluster:2.5}[track];
+  const factor={lot:1,house:1.45,cluster:2.5}[track]*(l===10?1+Math.log2(1+safeMastery(mastery))/4:1);
   const effort=Math.ceil((18+6*l*l+9*s*(l+1))*factor);
   return Object.freeze({
     track,level:l,stage:s,stageName:STAGE_NAMES[s],
