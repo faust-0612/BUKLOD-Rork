@@ -50,6 +50,7 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
     id: 'communities', title: 'Communities', tagline: 'Grow with real people',
     icon: 'account-group-outline', accent: '#B4F2B6', destination: '/clusters',
     entries: [
+      { label: 'Community Village', route: '/community-village', description: 'Explore personal lot, home, community estate, business and development previews' },
       { label: 'Clusters', route: '/clusters', description: 'Join and contribute in your cluster' },
       { label: 'Organizations', route: '/organizations', description: 'Organization and sub-organization' },
       { label: 'Bayanihan', route: '/bayanihan', description: 'Real-world community action' },
