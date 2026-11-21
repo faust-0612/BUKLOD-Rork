@@ -6,7 +6,7 @@
  * Designed for a previously signed-in BUKLOD user to play with zero signal.
  * No independent matchmaking or shadow economy is introduced.
  */
-import { HEROES, createPractice, command, tick, STEP_MS } from './arena-v2-engine.mjs';
+import { HEROES, createPractice, command, tick, STEP_MS, starterAttack } from './arena-v2-engine.mjs';
 
 export const SOLO_CPU_DIFFICULTIES = Object.freeze({
   easy: Object.freeze({label:'Beginner',thinkMs:700,attackEvery:2,skillEvery:4,moveEvery:2,strafe:false}),
@@ -38,6 +38,8 @@ function restoreRound(s) {
     if(id==='B0')p.botAt=0;
   }
   s.loot=[];s.traps=[];
+  // Temporary kit structures are round-local, never survive into a new duel.
+  s.heroWalls=[];s.cover=s.cover.filter(c=>!c[3]);
   s.solo.roundStartedAt=s.elapsed;
   s.solo.intermissionUntil=0;
   s.solo.lastRoundWinner=null;
@@ -110,7 +112,8 @@ function runSoloCpu(s) {
   // Close distance every movement frame. Strafe around an aggressive opponent
   // rather than standing in place like the old mining bot.
   const flank=cfg.strafe&&d<5.4 && !low && Math.floor(s.elapsed/1800)%2===0;
-  if(d>4.3||flank) {
+  const reach=starterAttack(cpu.hero)?.range ?? 5.5;
+  if(d>Math.min(11,Math.max(3.8,reach*.8))||flank) {
     const goal=flank
       ? {x:player.x+(cpu.y-player.y)*.4,y:player.y+(player.x-cpu.x)*.4}
       : {x:player.x,y:player.y};
@@ -121,7 +124,7 @@ function runSoloCpu(s) {
   s.solo.cpuDecisions++;
   const turn=s.solo.cpuDecisions;
   // Both attacks AND abilities use canonical real cooldowns/mana/damage.
-  if(d<=5.5&&turn%cfg.attackEvery===0) {
+  if(d<=reach&&turn%cfg.attackEvery===0) {
     command(s,cpu.id,{type:'attack',targetId:player.id});
   }
   if((turn%cfg.skillEvery===0 || low&&isSupport) && d<7.8) {
