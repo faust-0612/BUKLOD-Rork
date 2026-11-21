@@ -81,3 +81,17 @@ test('Learning Grove resolves a previously missing map route without exposing re
  assert.match(learning,/\/children-stories/);
  assert.doesNotMatch(learning,/(supabase\.from|supabase\.rpc|mintBp|awardPoints|spendBp)/i);
 });
+
+test('guide differentiates health, public services, infrastructure and faith without dead doors',async()=>{
+ const {resolveBuklodGuideDestination}=await import('../src/features/season2/world/guideDestinations.ts');
+ const cases=[
+  ['health center',false,'/profile/buklod-health'],
+  ['kalusugan',false,'/profile/buklod-health'],
+  ['gobyerno',false,'/profile/focus-apps'],
+  ['kalsada',false,'/season2/community-village'],
+  ['tulay',false,'/season2/community-village'],
+  ['Bible verse',false,'/learn'],
+  ['Bible verse',true,'/bible'],
+ ];
+ for(const [input,faith,expected] of cases)assert.equal(resolveBuklodGuideDestination(input,faith).route,expected,input);
+});
