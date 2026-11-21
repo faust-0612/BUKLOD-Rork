@@ -344,7 +344,7 @@ export default function MentorTeachingPhotoEvidence() {
 
   const canCreate = !busy && !retrySessionId && missingReportRequirements.length === 0;
   // Match "CCP5" and "CCP 5" without loosening server-side mentor authorization.
-  const searchKey = (value: string) => value.toLocaleLowerCase().replace(/[\\s_-]+/g, '');
+  const searchKey = (value: string) => value.toLocaleLowerCase().replace(/[\s_-]+/g, '');
   const visibleLessons = lessons.filter(lesson =>
     searchKey(lesson.title).includes(searchKey(lessonSearch.trim()))).slice(0, 20);
 
