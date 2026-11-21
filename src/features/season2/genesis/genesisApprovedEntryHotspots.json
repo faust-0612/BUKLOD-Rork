@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "approvedReference": "BUKLOD_S2_APPROVED_ENTRY_MAP_WEBP_BASE64.txt",
+  "imageWidth": 1672,
+  "imageHeight": 941,
+  "coordinateSystem": "normalized-image-top-left",
+  "hotspots": [
+    {
+      "id": "character-kingdom",
+      "label": "Character Kingdom",
+      "districtId": "kingdom",
+      "route": "/games",
+      "x": 0.184,
+      "y": 0.208,
+      "icon": "castle",
+      "faithOnly": false
+    },
+    {
+      "id": "empire-arena",
+      "label": "Empire Arena",
+      "districtId": "empire-arena",
+      "route": "/games/empire-arena",
+      "x": 0.846,
+      "y": 0.235,
+      "icon": "shield-sword",
+      "faithOnly": false
+    },
+    {
+      "id": "knowledge-sanctuary",
+      "label": "Knowledge Sanctuary",
+      "districtId": "growth",
+      "route": "/learn",
+      "x": 0.564,
+      "y": 0.319,
+      "icon": "school",
+      "faithOnly": false
+    },
+    {
+      "id": "community-village",
+      "label": "Community Village",
+      "districtId": "communities",
+      "route": "/community-village",
+      "x": 0.142,
+      "y": 0.476,
+      "icon": "account-group",
+      "faithOnly": false
+    },
+    {
+      "id": "community-hall",
+      "label": "Community Hall",
+      "districtId": "community",
+      "route": "/buklod",
+      "x": 0.348,
+      "y": 0.513,
+      "icon": "account-multiple",
+      "faithOnly": false
+    },
+    {
+      "id": "connect-center",
+      "label": "Connect Center",
+      "districtId": "connect",
+      "route": "/messages",
+      "x": 0.632,
+      "y": 0.502,
+      "icon": "forum",
+      "faithOnly": false
+    },
+    {
+      "id": "marketplace",
+      "label": "Marketplace",
+      "districtId": "market",
+      "route": "/profile/buklod-market",
+      "x": 0.79,
+      "y": 0.48,
+      "icon": "store",
+      "faithOnly": false
+    },
+    {
+      "id": "bayanihan-center",
+      "label": "Bayanihan Center",
+      "districtId": "communities",
+      "route": "/bayanihan",
+      "x": 0.925,
+      "y": 0.557,
+      "icon": "handshake",
+      "faithOnly": false
+    },
+    {
+      "id": "my-home",
+      "label": "My Home",
+      "districtId": "my-place",
+      "route": "/personal-home",
+      "x": 0.133,
+      "y": 0.728,
+      "icon": "home",
+      "faithOnly": false
+    },
+    {
+      "id": "focus-apps-center",
+      "label": "Focus Apps Center",
+      "districtId": "services",
+      "route": "/profile/focus-apps",
+      "x": 0.34,
+      "y": 0.828,
+      "icon": "apps",
+      "faithOnly": false
+    },
+    {
+      "id": "achievement-hall",
+      "label": "Achievement Hall",
+      "districtId": "growth",
+      "route": "/points/progression",
+      "x": 0.587,
+      "y": 0.833,
+      "icon": "trophy",
+      "faithOnly": false
+    },
+    {
+      "id": "life-center",
+      "label": "Life Center",
+      "districtId": "growth",
+      "route": "/life",
+      "fallbackRoute": "/learn",
+      "x": 0.841,
+      "y": 0.799,
+      "icon": "sprout",
+      "faithOnly": true
+    }
+  ],
+  "note": "Exact owner-approved landscape image. Visible icons are baked art; actual pressable target rectangles are bound separately and route through original auth guards."
+}

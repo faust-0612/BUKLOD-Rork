@@ -6,7 +6,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
+import { getGenesisDeviceQuality } from './genesisDeviceQuality';
 import { getBuklodSpecialLevelAsset, type BuklodSpecialCharacterId } from '@/lib/buklodSpecialCharacterAssets';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import type { ProgressiveCharacterId } from '@/lib/buklodProgressiveCharacter';
@@ -33,6 +33,17 @@ export const GENESIS_REALMS = [
 ] as const;
 type Realm = (typeof GENESIS_REALMS)[number];
 const CORE: readonly string[] = ['phan','quin','van','christian','lhen'];
+const KINGDOM_NATURE_HIGH = require('../../../../assets/season2/genesis/kingdom/kingdom-nature-panorama.webp');
+const KINGDOM_NATURE_COMPACT = require('../../../../assets/season2/genesis/kingdom/kingdom-nature-panorama-compact.webp');
+/** Position normalized to the original 16:9 art, not device pixels. Region taps
+ * change only the selected canonical Character realm, never inventory or BP. */
+export const KINGDOM_NATURE_LANDMARKS = [
+  { id:'forest', label:'Living Forest', character:'jawo', left:'15%', top:'51%', icon:'pine-tree' },
+  { id:'citadel', label:'Kingdom Citadel', character:'christian', left:'49%', top:'31%', icon:'castle' },
+  { id:'alpine', label:'Winter Highlands', character:'quin', left:'79%', top:'17%', icon:'terrain' },
+  { id:'river', label:'River Valley', character:'vhen', left:'47%', top:'75%', icon:'waves' },
+  { id:'coast', label:'Coastal District', character:'phan', left:'87%', top:'63%', icon:'sail-boat' },
+] as const;
 
 function RealmCharacter({ character }: { character: Realm['character'] }) {
   return CORE.includes(character)
@@ -47,7 +58,6 @@ export default function GenesisKingdomPortal() {
   const [focused, setFocused] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
   const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   useEffect(() => {
@@ -58,10 +68,10 @@ export default function GenesisKingdomPortal() {
     return () => { current = false; a.remove(); b.remove(); };
   }, []);
   const animate = focused && foreground && !reduceMotion;
-  const media = getRorkGameMedia(selected.id);
+  const natureVista = getGenesisDeviceQuality('kingdom') === 'minimal' ? KINGDOM_NATURE_COMPACT : KINGDOM_NATURE_HIGH;
   const select = (realm: Realm) => {
     if (selected.id === realm.id) return;
-    setSelected(realm); setImageFailed(false);
+    setSelected(realm);
     if (animate) void pulseGenesisTouch('selection');
   };
   const frameHeight = width > 640 ? 350 : 298;
@@ -76,12 +86,41 @@ export default function GenesisKingdomPortal() {
         </View>
         <GenesisSeal active={animate} size={70}/>
       </View>
+      {/* Fixed local BUKLOD-owned art: mature, nature-first, tropical/coastal and alpine/winter.
+          Preserve full 16:9 panorama on narrow Android displays; no server egress or blank art. */}
+      <View style={styles.kingdomVista} accessibilityLabel="Majestic Kingdom overlooking tropical valleys, rivers, waterfalls, ocean and winter mountains">
+        <ExpoImage source={natureVista} contentFit="cover" cachePolicy="memory-disk"
+          transition={reduceMotion ? 0 : 140} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['transparent','rgba(3,15,26,.02)','rgba(3,16,29,.85)']}
+          locations={[0,.55,1]} style={StyleSheet.absoluteFill} />
+        {KINGDOM_NATURE_LANDMARKS.map(landmark => {
+          const isSelected = selected.character === landmark.character;
+          const realm = GENESIS_REALMS.find(entry => entry.character === landmark.character);
+          if (!realm) return null;
+          return <Pressable
+            key={landmark.id}
+            accessibilityRole="button"
+            accessibilityLabel={'Explore '+landmark.label+' with '+realm.name}
+            accessibilityState={{selected:isSelected}}
+            onPress={() => select(realm)}
+            style={({pressed}) => [
+              styles.landmark, {left:landmark.left, top:landmark.top},
+              isSelected && styles.landmarkActive, pressed && styles.landmarkPressed,
+            ]}
+          >
+            <MaterialCommunityIcons name={landmark.icon as any} size={16} color={isSelected ? '#FFF5CB' : '#DCEFE8'} />
+          </Pressable>;
+        })}
+        <View pointerEvents="none" style={styles.vistaCaption}>
+          <Text style={styles.vistaEyebrow}>THE LIVING KINGDOM</Text>
+          <Text numberOfLines={2} style={styles.vistaTitle}>Tropical Valleys · Winter Peaks</Text>
+        </View>
+      </View>
       <View style={[styles.illustration,{height:frameHeight}]}>
-        {media?.background && !imageFailed ?
-          <ExpoImage source={{uri:media.background}} contentFit="cover" cachePolicy="memory-disk" transition={140}
-            onError={()=>setImageFailed(true)} style={StyleSheet.absoluteFill} key={selected.id}/>
-          : null}
-        <LinearGradient colors={['rgba(2,9,22,.42)','rgba(4,13,30,.1)','rgba(1,8,17,.95)']} style={StyleSheet.absoluteFill}/>
+        {/* Individual characters retain their original local models/art. Do not load remote
+            preview-host backgrounds or substitute wallpaper for animated character rigs. */}
+        <LinearGradient colors={['#13322D','#102C3D','#071623']} style={StyleSheet.absoluteFill}/>
+        <LinearGradient colors={['rgba(2,10,20,.20)','rgba(4,15,28,.16)','rgba(1,8,17,.88)']} style={StyleSheet.absoluteFill}/>
         <GenesisCosmicSky active={animate} transparent/>
         <GenesisOrbitHalo active={animate} size={Math.min(300, width * 0.72)} />
         <View pointerEvents="none" style={styles.heroArt}>
@@ -100,6 +139,16 @@ export default function GenesisKingdomPortal() {
         </Pressable>
       </View>
       <View style={styles.actions}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Enter BUKLOD Empire Arena inside the Kingdom"
+          onPress={()=>{ void pulseGenesisTouch('selection'); router.push('/games/empire-arena' as any); }}
+          style={styles.action}>
+          <MaterialCommunityIcons name="shield-sword" size={23} color="#FFD99C"/>
+          <View style={{flex:1}}>
+            <Text style={styles.actionTitle}>Empire Arena</Text>
+            <Text style={styles.actionSub}>Landscape 1v1 / 3v3 / 5v5 · animated battles · offline practice</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" color="#FFE3A3" size={24}/>
+        </Pressable>
         <Pressable accessibilityRole="switch" accessibilityLabel="Genesis cinematic ambience"
           accessibilityState={{checked:musicEnabled}} onPress={toggleMusic}
           style={[styles.action,styles.soundAction]}>
@@ -145,6 +194,16 @@ export default function GenesisKingdomPortal() {
 const styles = StyleSheet.create({
  root:{flex:1,backgroundColor:'#030D1E'},
  content:{width:'100%',maxWidth:850,alignSelf:'center',padding:12,paddingBottom:28,gap:12},
+ kingdomVista:{width:'100%',aspectRatio:16/9,borderRadius:18,overflow:'hidden',
+   borderWidth:1,borderColor:'#728B83',backgroundColor:'#0B2832'},
+ landmark:{position:'absolute',width:44,height:44,marginLeft:-22,marginTop:-22,
+   borderRadius:19,borderWidth:1.4,borderColor:'#C5D9CA',backgroundColor:'rgba(9,33,38,.82)',
+   alignItems:'center',justifyContent:'center',elevation:2},
+ landmarkActive:{borderColor:'#FFE6A4',backgroundColor:'rgba(28,61,57,.96)',elevation:4},
+ landmarkPressed:{opacity:.78},
+ vistaCaption:{position:'absolute',left:12,right:10,bottom:10},
+ vistaEyebrow:{color:'#C8E8D7',fontSize:9,fontWeight:'900',letterSpacing:1.2},
+ vistaTitle:{color:'#FFF7DE',fontSize:15,lineHeight:19,fontWeight:'900',marginTop:2},
  header:{borderRadius:18,minHeight:110,overflow:'hidden',flexDirection:'row',alignItems:'center',paddingHorizontal:17,
   borderWidth:1,borderColor:'#7D947C'},
  headerText:{flex:1,zIndex:2,paddingVertical:15},

@@ -1,0 +1,109 @@
+name: BUKLOD Season 2 Conso — Existing EAS Staging Native Receipt (READ ONLY)
+on:
+  push:
+    branches:
+      - dev/season2-map-first-conso-intake-20261121
+    paths:
+      - '.github/workflows/season2-existing-eas-staging-receipt-20261121.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-season2-existing-eas-staging-readonly
+  cancel-in-progress: false
+
+jobs:
+  exact-native-receipt:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/season2-map-first-conso-intake-20261121'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      BUKLOD_APP_TARGET: main
+      APK_SOURCE: a04d9ccf91e508a062bab8a7657297e574ae40a2
+      BUILD_ID: 42ce5047-70dc-47e1-b8a9-77948c9b8dba
+      CHANNEL: season2-genesis-preview
+      STAGING_RUNTIME: 2.0.0-genesis-preview
+      STAGING_PACKAGE: org.mzbministry.buklod.staging
+      EAS_PROJECT_ID: 23dad7d0-389a-406e-8dec-08965dab85d8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check immutable reviewed DEV source and signed native parity (NO APK build)
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = "refs/heads/dev/season2-map-first-conso-intake-20261121"
+          node scripts/season2-native-apk-source-parity.mjs
+          node scripts/season2-premium-staging-ota-gate.mjs --source
+          test -n "${EXPO_TOKEN:-}" || { echo 'BLOCK: existing EAS read-only credential unavailable'; exit 1; }
+      - name: Install existing locked app config dependencies for EAS read-only resolution
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: READ-ONLY verification of existing signed Genesis APK, preview channel and production isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/buklod-readonly-stage
+          npx --yes eas-cli@27.9.0 build:view "$BUILD_ID" --json > /tmp/buklod-readonly-stage/build.json
+          npx --yes eas-cli@27.9.0 channel:view "$CHANNEL" --json --non-interactive > /tmp/buklod-readonly-stage/staging.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/buklod-readonly-stage/production.json
+          node --input-type=module <<'NODE'
+          import a from 'node:assert/strict';
+          import fs from 'node:fs';
+          const base='/tmp/buklod-readonly-stage/';
+          const get=n=>JSON.parse(fs.readFileSync(base+n+'.json','utf8'));
+          const b=get('build');
+          a.equal(b.id,process.env.BUILD_ID);
+          a.equal(String(b.status).toLowerCase(),'finished','Existing signed staging APK unavailable');
+          a.equal(String(b.platform).toLowerCase(),'android');
+          a.equal(b.gitCommitHash,process.env.APK_SOURCE);
+          a.equal(b.appIdentifier,process.env.STAGING_PACKAGE);
+          a.equal(b.buildProfile,'season2-genesis-preview');
+          a.equal(b.updateChannel?.name,process.env.CHANNEL);
+          a.equal(b.runtime?.version,process.env.STAGING_RUNTIME);
+          a.equal(b.app?.id,process.env.EAS_PROJECT_ID);
+          const stage=get('staging').currentPage??get('staging');
+          const prod=get('production').currentPage??get('production');
+          a.equal(stage.name,process.env.CHANNEL);
+          a.equal(prod.name,'production');
+          a.notEqual(stage.isPaused,true,'Existing EAS Genesis staging channel is paused');
+          const mapOf=c=>typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
+          const sm=mapOf(stage),pm=mapOf(prod);
+          a.equal(sm?.data?.length,1,'No stable staging EAS branch');
+          a.equal(pm?.data?.length,1,'No stable production EAS branch');
+          a.notEqual(sm.data[0].branchId,pm.data[0].branchId,'Production mapping is shared with staging');
+          const result={
+            result:'EXISTING_NATIVE_EAS_RECEIPT_VERIFIED_READ_ONLY',
+            sourceSha:process.env.GITHUB_SHA,
+            nativeApkSourceSha:process.env.APK_SOURCE,
+            nativeEasBuildId:b.id,
+            channel:process.env.CHANNEL,
+            runtime:process.env.STAGING_RUNTIME,
+            package:process.env.STAGING_PACKAGE,
+            productionChannelPreserved:true,
+            otaForThisSourcePublished:false,
+            deviceRunVerified:false,
+          };
+          fs.writeFileSync(base+'safe-evidence.json',JSON.stringify(result,null,2));
+          console.log('READ_ONLY_EAS_STAGE_BASELINE',JSON.stringify(result));
+          NODE
+      - name: Preserve only sanitized staging-native receipt, never build secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: season2-existing-staging-native-readonly-${{ github.sha }}
+          path: /tmp/buklod-readonly-stage/safe-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14

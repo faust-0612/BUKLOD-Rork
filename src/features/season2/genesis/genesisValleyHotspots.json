@@ -1,0 +1,148 @@
+{
+  "version": 2,
+  "referenceImage": "Buklod Community Map: A Welcoming Valley",
+  "coordinateSystem": "normalized-image-top-left",
+  "hotspots": [
+    {
+      "id": "learning-grove",
+      "label": "Learning Grove",
+      "districtId": "growth",
+      "route": "/learn",
+      "icon": "school-outline",
+      "x": 0.226,
+      "y": 0.228,
+      "faithOnly": false
+    },
+    {
+      "id": "faith-center",
+      "label": "Faith Center",
+      "districtId": "growth",
+      "route": "/bible",
+      "icon": "book-cross",
+      "x": 0.493,
+      "y": 0.222,
+      "faithOnly": true
+    },
+    {
+      "id": "kingdom-arena",
+      "label": "Empire Arena",
+      "districtId": "empire-arena",
+      "route": "/games/empire-arena",
+      "icon": "shield-sword-outline",
+      "x": 0.806,
+      "y": 0.224,
+      "faithOnly": false
+    },
+    {
+      "id": "cluster-village",
+      "label": "Community Village",
+      "districtId": "communities",
+      "route": "/clusters",
+      "icon": "account-group-outline",
+      "x": 0.057,
+      "y": 0.318,
+      "faithOnly": false
+    },
+    {
+      "id": "health-center",
+      "label": "Health Center",
+      "districtId": "services",
+      "route": "/profile/buklod-health",
+      "icon": "hospital-box-outline",
+      "x": 0.266,
+      "y": 0.371,
+      "faithOnly": false
+    },
+    {
+      "id": "connect-hub",
+      "label": "Connect Hub",
+      "districtId": "connect",
+      "route": "/messages",
+      "icon": "forum-outline",
+      "x": 0.459,
+      "y": 0.374,
+      "faithOnly": false
+    },
+    {
+      "id": "government-hall",
+      "label": "Government Hall",
+      "districtId": "services",
+      "route": "/profile/focus-apps",
+      "icon": "bank-outline",
+      "x": 0.66,
+      "y": 0.358,
+      "faithOnly": false
+    },
+    {
+      "id": "business-district",
+      "label": "Business District",
+      "districtId": "market",
+      "route": "/profile/buklod-business",
+      "icon": "office-building-outline",
+      "x": 0.878,
+      "y": 0.358,
+      "faithOnly": false
+    },
+    {
+      "id": "family-homes",
+      "label": "Family Homes",
+      "districtId": "my-place",
+      "route": "/personal-home",
+      "icon": "home-heart",
+      "x": 0.062,
+      "y": 0.476,
+      "faithOnly": false
+    },
+    {
+      "id": "support-center",
+      "label": "Support Center",
+      "districtId": "services",
+      "route": "/support/live",
+      "icon": "lifebuoy",
+      "x": 0.262,
+      "y": 0.512,
+      "faithOnly": false
+    },
+    {
+      "id": "market-street",
+      "label": "Market Street",
+      "districtId": "market",
+      "route": "/profile/buklod-market",
+      "icon": "storefront-outline",
+      "x": 0.766,
+      "y": 0.497,
+      "faithOnly": false
+    },
+    {
+      "id": "children-story-world",
+      "label": "Children's Story World",
+      "districtId": "growth",
+      "route": "/children-stories",
+      "icon": "book-open-variant",
+      "x": 0.083,
+      "y": 0.685,
+      "faithOnly": false
+    },
+    {
+      "id": "community-wall-plaza",
+      "label": "Community Wall Plaza",
+      "districtId": "community",
+      "route": "/buklod",
+      "icon": "earth",
+      "x": 0.464,
+      "y": 0.632,
+      "faithOnly": false
+    },
+    {
+      "id": "bayanihan-hall",
+      "label": "Bayanihan Hall",
+      "districtId": "communities",
+      "route": "/bayanihan",
+      "icon": "handshake-outline",
+      "x": 0.813,
+      "y": 0.692,
+      "faithOnly": false
+    }
+  ],
+  "positionAuthority": "Visual calibration of supplied 1024x768 Valley image: interactive gold-icon centers, not text-label centers"
+}

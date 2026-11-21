@@ -471,7 +471,7 @@ export default function TabsLayout() {
             }}
           >
             <BuklodDashboardAdWarmup />
-            <BuklodDashboardContextBar />
+            {!isGenesisPreviewBuild() ? <BuklodDashboardContextBar /> : null}
             {workspaceStack}
           </View>
         </View>

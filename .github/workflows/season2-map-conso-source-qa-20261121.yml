@@ -1,0 +1,81 @@
+name: "Season 2 map-first DEV source gates (NO OTA)"
+on:
+  pull_request:
+    branches:
+      - dev/season2-conso-reconciliation-hold-20261121
+    paths:
+      - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
+      - 'src/app/buklod-map.tsx'
+      - 'src/app/index.tsx'
+      - 'src/app/_layout.tsx'
+      - 'src/app/(tabs)/_layout.tsx'
+      - 'src/components/BuklodNavSafeShell.tsx'
+      - 'src/features/season2/genesis/**'
+      - 'scripts/genesis-map-reconstruction-preflight.mjs'
+      - 'tests/genesis-world-navigation-regression-20261121.test.mjs'
+      - 'tests/season2-map-first-conso-intake-20261121.test.mjs'
+      - 'tests/genesis-valley-asset-interaction-20261121.test.mjs'
+      - 'tests/genesis-valley-audio-focus-20261121.test.mjs'
+      - 'src/features/games/runtime/rorkAudio.ts'
+      - 'assets/season2/genesis/world/**'
+      - 'assets/season2/genesis/kingdom/**'
+      - 'tests/season2-premium-nature-kingdom-20261121.test.mjs'
+      - 'tests/season2-premium-staging-ota-contract-20261121.test.mjs'
+      - 'scripts/season2-premium-staging-ota-gate.mjs'
+      - 'scripts/season2-android-bundle-compatibility.mjs'
+      - 'scripts/season2-native-apk-source-parity.mjs'
+      - 'app.config.js'
+      - 'tests/season2-native-apk-parity-20261121.test.mjs'
+      - 'tests/season2-premium-ad-navigation-guard-20261121.test.mjs'
+      - 'tests/season2-android-bundle-compatibility-20261121.test.mjs'
+      - 'eas.json'
+      - '.github/workflows/season2-map-conso-source-qa-20261121.yml'
+  push:
+    branches:
+      - dev/season2-map-first-conso-intake-20261121
+    paths:
+      - 'app.config.js'
+      - 'scripts/season2-native-apk-source-parity.mjs'
+      - 'tests/season2-native-apk-parity-20261121.test.mjs'
+      - 'tests/season2-premium-ad-navigation-guard-20261121.test.mjs'
+      - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
+      - 'src/app/buklod-map.tsx'
+      - 'src/app/index.tsx'
+      - 'src/app/_layout.tsx'
+      - 'src/app/(tabs)/_layout.tsx'
+      - 'src/components/BuklodNavSafeShell.tsx'
+      - 'src/features/season2/genesis/**'
+      - 'scripts/genesis-map-reconstruction-preflight.mjs'
+      - 'tests/genesis-world-navigation-regression-20261121.test.mjs'
+      - 'tests/season2-map-first-conso-intake-20261121.test.mjs'
+      - '.github/workflows/season2-map-conso-source-qa-20261121.yml'
+permissions:
+  contents: read
+jobs:
+  source-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Protected map/nav/ad/audio source preflight (not OTA verification)
+        run: node scripts/genesis-map-reconstruction-preflight.mjs
+      - name: Premium Genesis staging source-only gate (never publishes)
+        run: node scripts/season2-premium-staging-ota-gate.mjs --source
+      - name: Pinned signed APK native source parity (NO EAS, NO OTA)
+        run: node scripts/season2-native-apk-source-parity.mjs
+      - name: Genesis preview and existing World regression checks
+        run: node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/genesis-world-navigation-regression-20261121.test.mjs tests/genesis-valley-asset-interaction-20261121.test.mjs tests/genesis-valley-audio-focus-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs tests/season2-premium-staging-ota-contract-20261121.test.mjs tests/season2-android-bundle-compatibility-20261121.test.mjs tests/season2-native-apk-parity-20261121.test.mjs
+      - name: Permanent AdMob first-view, focus, consent and nav regressions (source-only, NO AD SDK fill)
+        run: |
+          node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs tests/season2-premium-ad-navigation-guard-20261121.test.mjs
+          node --experimental-strip-types --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+      - name: Locked Expo install for exact Android JS bundle (NO EAS, NO OTA)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Genesis premium map and Kingdom Android Metro compatibility export
+        run: node scripts/season2-android-bundle-compatibility.mjs --compile

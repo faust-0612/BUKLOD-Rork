@@ -298,6 +298,7 @@ function RootLayout() {
                 }}
               >
                 <Stack.Screen name="index" />
+                <Stack.Screen name="buklod-map" />
                 <Stack.Screen name="child-safety" />
                 <Stack.Screen name="children-stories/index" />
                 <Stack.Screen name="children-stories/[id]" />

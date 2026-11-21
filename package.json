@@ -31,7 +31,8 @@
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
     "play:draft": "bash scripts/submit-google-play-draft.sh",
-    "play:internal": "bash scripts/submit-google-play-internal.sh"
+    "play:internal": "bash scripts/submit-google-play-internal.sh",
+    "season2:ota:gate": "node scripts/season2-premium-staging-ota-gate.mjs --release"
   },
   "jest": {
     "preset": "jest-expo",
