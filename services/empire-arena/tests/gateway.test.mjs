@@ -168,6 +168,20 @@ test('Real network invalid authentication fails closed before a queue or wallet 
   assert.equal(h.calls.open.length,0);
 });
 
+test('Production ranked readiness fail-closes until orphan refunds are idempotently recovered',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const {resolve}=await import('node:path');
+  const {fileURLToPath}=await import('node:url');
+  const src=readFileSync(resolve(fileURLToPath(new URL('../server.mjs',import.meta.url))),'utf8');
+  const store=readFileSync(resolve(fileURLToPath(new URL('../supabaseStore.mjs',import.meta.url))),'utf8');
+  const readyAt=src.indexOf('ready=true;');
+  const recoverAt=src.indexOf('const refunded=await store.recover()');
+  const expireAt=src.indexOf('await store.expire()');
+  assert.ok(recoverAt>0&&expireAt>recoverAt&&readyAt>expireAt,'Readiness cannot precede orphan refunds');
+  assert.match(src,/if\(!startupRecoveryComplete\)throw Error\('ranked_orphan_refund_incomplete'\)/);
+  assert.match(store,/arena_v2_ranked_recover_orphans/);
+});
+
 test('Production server serializes async authoritative heartbeats',async()=>{
   const {readFileSync}=await import('node:fs');
   const {resolve}=await import('node:path');
