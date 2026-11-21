@@ -35,7 +35,9 @@
     "All 13 canonical portraits have source-owned animated WebP 12-frame 2.5D avatar badges, generated automatically by DEV CI and committed by SHA to app registry. Not full-body combat sprites.",
     "Procedurally matte and composite each of the 13 canonical full-body source illustrations into four transparent eight-frame WebP states: idle, walk, attack and skill. Actual visual fidelity remains unverified.",
     "Ranked database changeset is source-only until isolated PostgreSQL validates service-role-only RPCs, claimed-participation Diamond issuance, full-wallet transaction, and idempotent settlement.",
-    "Server-authoritative ranked backend and private SQL are DEV-only until staged WSS, database migrations, settlement/reconnect integration, and Android runtime are actually verified."
+    "Server-authoritative ranked backend and private SQL are DEV-only until staged WSS, database migrations, settlement/reconnect integration, and Android runtime are actually verified.",
+    "Ranked WSS server matches real players, authoritatively simulates and validates input, and settles Diamonds/rating only through trusted private Postgres RPCs; backend is not yet deployed.",
+    "Isolated 17-alpine PostgreSQL validates same-person multiple seats, idempotent stakes, BP nonminting, server-only RPC ACLs and transaction recovery."
   ],
   "riskAreas": [
     "app-runtime",
@@ -49,7 +51,8 @@
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
     "tests/sql/arena_ranked_private_integrity.sql",
-    "tests/empire-arena-v2-ranked-seat-20261121.test.mjs"
+    "tests/empire-arena-v2-ranked-seat-20261121.test.mjs",
+    "services/empire-arena/tests/core.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
