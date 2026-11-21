@@ -1,0 +1,134 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov18-rank-sync-permanent-notes-hotfix.json",
+  "objective": "Fix canonical Circle Rank synchronization and permanent Profile/Connect Notes without introducing any Season 2 behavior or production OTA.",
+  "baseRef": "main",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "productionBaselineEvidence": "verified: baseline is main commit 404c87e55c62a88c95c7389ac8665f237149702a; PROD Supabase migration 20261118143054 applied and validated (Markley rank IV, 26 Notes preserved, zero expiries); no Expo OTA shipped. This is an evidence-scoped backend hotfix, not a production client release.",
+  "chosenApproach": "Isolated hotfix based directly on main; preserve the applied SQL in an exact-version migration file, update only the affected Wall/Connect/Profile read/write paths and targeted tests.",
+  "preserveBehaviors": [
+    "Current AdMob fill/load/render, first-view ad gate, and dashboard navigation must not regress.",
+    "No Season 2 source, payout/ledger rules, referral qualification, scoring, Character or Kingdom authority change.",
+    "Native app runtime, Android build/OTA identity and production release channel unchanged.",
+    "Keep private account-scoped Notes cache and only owners' write rights; Connect messaging and calls unchanged.",
+    "No active app OTA before independent Android compile, automated regression and staged release gates."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov18-rank-sync-permanent-notes-hotfix.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/post/[id].tsx",
+    "src/app/profile/status.tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/lib/buklodConnectSuggestedContacts.ts",
+    "src/lib/buklodMessagesStatusNote.ts",
+    "src/lib/buklodNotificationPost.ts",
+    "supabase/migrations/20261118143054_buklod_rank_sync_permanent_notes_hotfix_20261118.sql",
+    "supabase/tests/buklod_rank_notes_permanence_security_20261118.sql",
+    "tests/nov16-recent-completeness-staging132-r2.test.cjs",
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    "tests/nov18-rank-notes-admob-preservation.test.mjs",
+    "tests/nov18-rank-notes-database-security.test.mjs",
+    "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs",
+    "tests/nov18-rank-notes-database-security.test.mjs",
+    "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs",
+    "tests/nov16-recent-completeness-staging132-r2.test.cjs",
+    "tests/nov18-rank-notes-admob-preservation.test.mjs",
+    "supabase/tests/buklod_rank_notes_permanence_security_20261118.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Persist Profile and Connect status Notes indefinitely and remove fabricated Wall rank fallback while leaving app bootstrap and media unaffected",
+      "preservedBehaviors": [
+        "Keep current Android runtime, session isolation, offline warm caches, and first-paint behavior unchanged"
+      ],
+      "tests": [
+        "tests/nov18-rank-sync-permanent-notes-hotfix.test.mjs",
+        "tests/nov18-rank-notes-database-security.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Remove old Wall note expiration pruning, preserving media hydration, video playback and existing ad placement",
+      "preservedBehaviors": [
+        "Community Wall photos, videos, reaction previews, loading order and AdMob visibility are unchanged"
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Rank metadata changes for Wall tab without changing navigation or the authenticated session; Notes no longer expire",
+      "preservedBehaviors": [
+        "Profile and Wall route behavior, private account isolation and the bottom dashboard navigation remain intact"
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Make Connect note presentation persistent without changing Connect messaging, inbox or peer privacy rules",
+      "preservedBehaviors": [
+        "Connect realtime messages, active calls, PTT, contact navigation and unread counts remain unchanged"
+      ],
+      "tests": [
+        "tests/nov16-wall-connect-notes-scope-privacy-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Keep active member rank visibility independent from verification while preserving RLS, official exclusions and monetary reward protections",
+      "preservedBehaviors": [
+        "Only authorized owners can write Notes, platform-official rank exclusion remains, and no points, payouts or referral grants are modified"
+      ],
+      "tests": [
+        "tests/nov18-rank-notes-database-security.test.mjs",
+        "supabase/tests/buklod_rank_notes_permanence_security_20261118.sql"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Protected-feature classifier also matches the Connect Header filename; the change is Note presentation only and cannot affect monetization or navigation-critical ad mounts",
+      "preservedBehaviors": [
+        "Wall first-view AdMob, sponsored-card rendering, consent, cooldown and off-screen ad lifecycle are untouched; no points, QMP, finance or revenue sharing functions are changed"
+      ],
+      "tests": [
+        "tests/nov18-rank-notes-admob-preservation.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV source PR only; later staging Android RC and separately gated Production OTA",
+  "runtimeVersion": "1.3.2",
+  "acceptanceChecks": [
+    "PROD SQL: active unverified Markley current rank Circle Active IV verified by authenticated RPC; points and achievement ledger unchanged.",
+    "PROD SQL: all 26 nonblank Notes preserved, zero expiry values, and legacy-write trigger enabled.",
+    "Protect Profile/Connect Note ownership and 80 character limit with database-security static tests and no RLS policy weakening.",
+    "Native/web Wall and Connect must never hide Notes due to expiry; note display rehydrates after a transient network failure.",
+    "Wall, post detail and notification deep link show canonical ranks or pending status; never invented Circle Starter V.",
+    "Execute focused rank/notes regression tests, TypeScript noEmit, AdMob, performance, media and navigation CI gates.",
+    "Maintain DEV only; no staging OTA before verified RC and no production OTA before separate release gate. Season2 embargo remains intact.",
+    "Database SQL contract passes read-only SQL regression in supabase/tests, preserving existing RLS and verified-user reward eligibility."
+  ],
+  "selectionRationale": "Confirmed Markley's 2100-point rank and 579 unverified active profiles, plus 23 expiry-filtered Notes out of 26. The existing display RPC gated verified users, while frontend substituted Starter V. A server guard plus small Notes/Rank client corrections is safer than changing earnings, account verification, AdMob or release flows.",
+  "alternativeApproaches": [
+    "Alter verified flags for affected members - rejected because verification belongs to separate identity and rewards workflows.",
+    "Suppress false Starter rank only on the client - rejected as it leaves the SQL RPC incorrectly filtering 579 active users and Notes still expiring.",
+    "Publish an unverified production OTA immediately - rejected by mandatory staged RC and AdMob/navigation gates."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "connect",
+    "wall-media",
+    "app-runtime",
+    "backend-security",
+    "ads-monetization",
+    "profile-data"
+  ]
+}

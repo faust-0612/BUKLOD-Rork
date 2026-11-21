@@ -63,7 +63,7 @@ async function readQuickNote(viewerId: string, targetId: string): Promise<string
   const task = (async () => {
     const { data, error } = await (supabase as any)
       .from('buklod_profile_status')
-      .select('quick_note, quick_note_expires_at')
+      .select('quick_note')
       .eq('user_id', targetId)
       .maybeSingle();
 
@@ -72,9 +72,7 @@ async function readQuickNote(viewerId: string, targetId: string): Promise<string
       return warm?.note ?? '';
     }
 
-    const expiresAt = data?.quick_note_expires_at ? Date.parse(String(data.quick_note_expires_at)) : NaN;
-    const expired = Number.isFinite(expiresAt) && expiresAt <= Date.now();
-    const note = expired ? '' : repairMojibakeText(String(data?.quick_note ?? '')).trim();
+    const note = repairMojibakeText(String(data?.quick_note ?? '')).trim();
     quickNoteCache.delete(key);
     quickNoteCache.set(key, { note, at: Date.now() });
     if (quickNoteCache.size > STATUS_NOTE_MAX) {

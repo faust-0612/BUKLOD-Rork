@@ -32,7 +32,7 @@ test('Notes render with adequate space on Wall and Connect without removing them
   assert.match(wall,/ProfileAvatarNoteChip/);
   assert.match(detail,/createPostDetailStyles\(theme\)/);
   assert.match(avatars,/export function ProfileAvatarNoteChip/);
-  assert.match(avatars,/quick_note_expires_at/);
+  assert.doesNotMatch(avatars,/quick_note_expires_at/);
   assert.match(bubbles,/const NOTE_MAX_LINES = 5/);
   assert.match(connect,/const NOTE_MAX_LINES = 5/);
 });
