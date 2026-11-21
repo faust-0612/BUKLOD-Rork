@@ -20,6 +20,7 @@ import Season2CommunityFacilities from './Season2CommunityFacilities';
 import DevelopmentStructurePreview from './DevelopmentStructurePreview';
 import EstateConstructionConsole from './EstateConstructionConsole';
 import EstateMomentFX from './EstateMomentFX';
+import EstateGenesisAtmosphere from './EstateGenesisAtmosphere';
 import {useEstateFeedback,type EstateMoment} from './estateFeedback';
 import {type EstateCosmetics,type EstateSnapshot} from './estateProgressClient';
 import {constructionPlan, nextMilestone, safeCosmetics, safeMastery} from './constructionPlan.mjs';
@@ -282,6 +283,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             <BuklodGameBackdrop thumbnail gameId={world==='home'?'phan-enterprise-builder':'elesur-village-builder'} opacity={0.82}/>
             <Image source={world==='home'?HOME_ART:VILLAGE_ART} contentFit="cover" style={StyleSheet.absoluteFill} transition={0} accessibilityLabel={world==='home'?'My Home construction world':'Community Village development world'} />
             <LinearGradient colors={['rgba(5,30,28,.03)','rgba(10,25,25,.07)','rgba(9,25,32,.56)']} style={StyleSheet.absoluteFill}/>
+            <EstateGenesisAtmosphere world={world} level={level} building={Boolean(verified?.pending_key)}/>
           </View>
           <View pointerEvents="none" style={styles.previewStructure}>
             <DevelopmentStructurePreview track={previewTrack} level={level} stage={stage} mastery={level===10?mastery:0} earnedProgress={liveView&&!!verified}
