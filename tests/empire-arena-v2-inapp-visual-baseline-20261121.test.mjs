@@ -17,7 +17,7 @@ const engine = readFileSync(join(ROOT, 'experiments/empire-arena-v2/arena-v2-eng
 test('Arena is an Expo Router screen inside the ONE BUKLOD app, using original offline engine', () => {
   assert.match(index, /router\.push\('\/games\/empire-arena'/);
   assert.match(route, /createPractice/);
-  assert.match(route, /command\(game, 'A0'/);
+  assert.match(route, /command\(game, localSeat, action\)/);
   assert.match(route, /tick\(state\)/);
   assert.match(route, /expo-screen-orientation/);
   assert.match(route, /OrientationLock\.LANDSCAPE/);
