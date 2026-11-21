@@ -9,14 +9,11 @@
  */
 import React,{useEffect,useRef,useState} from 'react';
 import {AccessibilityInfo,Animated,Pressable,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
-import {Image as ExpoImage} from 'expo-image';
+import GenesisReliablePortraitImage from './GenesisReliablePortraitImage';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
-import {getGenesisDeviceQuality} from './genesisDeviceQuality';
 import approved from './genesisApprovedEntryHotspots.json';
 
-const PORTRAIT_IMAGE=require('../../../../assets/season2/genesis/world/buklod-genesis-portrait-welcome-720x995.webp');
-const COMPACT_MAP_IMAGE=require('../../../../assets/season2/genesis/world/buklod-genesis-portrait-9doors-720x670.webp');
 export type GenesisApprovedEntryDoor={
   id:string;label:string;districtId:string;route:string;fallbackRoute?:string;
   icon:string;faithOnly:boolean;
@@ -57,7 +54,6 @@ export default function GenesisApprovedEntryMap({
  const landscape=width>height&&height<540;
  const mapWidth=clamp((availableWidth??width)-20,270,900);
  const mapHeight=Math.round(mapWidth*(landscape?COMPACT_RATIO:PORTRAIT_RATIO));
- const quality=getGenesisDeviceQuality('home');
  const [reduceMotion,setReduceMotion]=useState(true);
  const glow=useRef(new Animated.Value(.32)).current;
  useEffect(()=>{
@@ -91,10 +87,8 @@ export default function GenesisApprovedEntryMap({
  };
  return <View style={styles.frame} accessibilityLabel="BUKLOD illustrated one-tap world and Welcome Guide">
    <View style={{width:mapWidth,height:mapHeight,alignSelf:'center',overflow:'hidden'}}>
-     <ExpoImage source={landscape?COMPACT_MAP_IMAGE:PORTRAIT_IMAGE} contentFit="fill"
-       priority={quality==='minimal'?'normal':'high'} transition={reduceMotion?0:150}
-       style={StyleSheet.absoluteFillObject}
-       accessibilityLabel="Owner-approved Genesis premium portrait artwork: Character Kingdom, Hero Arena, Learnings, University, My House, Church, My Community, Office Building, Special Events and the Welcome Guide"/>
+     <GenesisReliablePortraitImage landscape={landscape} width={mapWidth} height={mapHeight}
+       active={active} showFaith={showFaith} doors={DOORS} onOpen={onOpen} onMenu={onMenu}/>
      {DOORS.map(door=><Pressable
        key={door.id} accessibilityRole="button" accessibilityLabel={'Enter '+door.label}
        accessibilityHint={door.faithOnly&&!showFaith?'Show Faith is off: open equivalent learning path':'Opens the feature directly with existing permissions'}

@@ -62,7 +62,10 @@ check('Bundled local Galaxy and approved CC0 music',()=>{
  assert.match(map,/<BuklodMapGuideDock active=\{focused\} \/>/);
  assert.match(map,/GenesisApprovedEntryMap/);
  const approved=read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx');
- assert.match(approved,/buklod-genesis-portrait-welcome-720x995\.webp/);
+ assert.match(approved,/GenesisReliablePortraitImage/);
+ const reliable=read('src/features/season2/genesis/GenesisReliablePortraitImage.tsx');
+ assert.match(reliable,/buklod-genesis-portrait-welcome-720x995\.jpg/);
+ assert.match(reliable,/GENESIS_PORTRAIT_RESCUE_URI/);
  const picture=readFileSync(resolve(root,'assets/season2/genesis/world/buklod-genesis-portrait-welcome-720x995.webp'));
  assert.equal(picture.length,202914);
  assert.equal(createHash('sha256').update(picture).digest('hex'),'e8a2ee3f7d6f00b2ce657f0d4662dfd0258da018f4131d740e90414b56076f1a');

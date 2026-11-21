@@ -19,7 +19,29 @@ test('Approved full portrait and compact map are real SHA-verified bundled asset
   assert.equal(bytes.toString('ascii',8,12),'WEBP');
   assert.equal(createHash('sha256').update(bytes).digest('hex'),digest);
  }
- assert.match(component,/source=\{landscape\?COMPACT_MAP_IMAGE:PORTRAIT_IMAGE\}/);
+ const reliable=read('src/features/season2/genesis/GenesisReliablePortraitImage.tsx');
+ assert.match(component,/<GenesisReliablePortraitImage/);
+ assert.match(reliable,/buklod-genesis-portrait-welcome-720x995\.jpg/);
+ assert.match(reliable,/buklod-genesis-portrait-9doors-720x670\.jpg/);
+ assert.match(reliable,/onError=\{onFailed\}/);
+ assert.match(reliable,/GENESIS_PORTRAIT_RESCUE_URI/);
+ assert.match(reliable,/GENESIS_COMPACT_RESCUE_URI/);
+ assert.match(reliable,/setTimeout/);
+ assert.match(reliable,/mode==='safe'/);
+ assert.match(reliable,/styles\.safeWorld/);
+ assert.match(reliable,/doors\.map/);
+ for(const jpeg of ['buklod-genesis-portrait-welcome-720x995.jpg','buklod-genesis-portrait-9doors-720x670.jpg']){
+   const bytes=readFileSync(new URL('../assets/season2/genesis/world/'+jpeg,import.meta.url));
+   assert.ok(bytes.length>100000);
+   assert.deepEqual([...bytes.subarray(0,3)],[0xff,0xd8,0xff]);
+   assert.deepEqual([...bytes.subarray(-2)],[0xff,0xd9]);
+ }
+ const rescue=read('src/features/season2/genesis/genesisPortraitFallback.generated.ts');
+ for(const key of ['GENESIS_PORTRAIT_RESCUE_URI','GENESIS_COMPACT_RESCUE_URI']){
+   const data=rescue.match(new RegExp(key+"='data:image/jpeg;base64,([^']+)'"))?.[1];
+   assert.ok(data&&data.length>100000,'JS-bundled offline fallback missing');
+   assert.deepEqual([...Buffer.from(data,'base64').subarray(0,3)],[0xff,0xd8,0xff]);
+ }
 });
 test('Exactly nine special doors, no duplicate main navigation and safe faith alternative',()=>{
  assert.equal(doors.length,9);

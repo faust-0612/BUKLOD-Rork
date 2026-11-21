@@ -81,8 +81,17 @@ if(!existsSync(resolve(root,portraitPath))||!existsSync(resolve(root,compactPath
  if(picture.length!==202914||createHash('sha256').update(picture).digest('hex')!=='e8a2ee3f7d6f00b2ce657f0d4662dfd0258da018f4131d740e90414b56076f1a'||
     small.length!==160272||createHash('sha256').update(small).digest('hex')!=='eff12f78b11b7d45286647a128a438a0065fe61777e5fe39cc1f3d18ff7123d4')
   fail.push('Genesis owner-approved portrait binary SHA/size mismatch');
- if(!read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx').includes('buklod-genesis-portrait-welcome-720x995.webp'))
-  fail.push('Genesis is not using approved portrait artwork');
+ const reliable=read('src/features/season2/genesis/GenesisReliablePortraitImage.tsx');
+ if(!read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx').includes('GenesisReliablePortraitImage')||
+    !reliable.includes('buklod-genesis-portrait-welcome-720x995.jpg')||
+    !reliable.includes('GENESIS_PORTRAIT_RESCUE_URI')||
+    !reliable.includes("mode==='safe'")||!reliable.includes('onError={onFailed}'))
+  fail.push('Android Genesis JPEG, offline rescue or visible fallback missing');
+ for(const jpeg of ['buklod-genesis-portrait-welcome-720x995.jpg','buklod-genesis-portrait-9doors-720x670.jpg']){
+  const p=resolve(root,'assets/season2/genesis/world/'+jpeg);
+  if(!existsSync(p)||readFileSync(p).subarray(0,3).toString('hex')!=='ffd8ff')
+   fail.push('Missing Android JPEG portrait: '+jpeg);
+ }
 }
 
 if(!existsSync(resolve(root,approvedEntryImage))||!existsSync(resolve(root,approvedEntryManifest))){
