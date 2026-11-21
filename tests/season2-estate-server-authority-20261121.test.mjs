@@ -31,6 +31,11 @@ test('all three estate tracks have five stages and harder but bounded Mastery mi
  assert.deepEqual(nextMilestone(10,4,99),{level:10,stage:0,mastery:100});
  assert.deepEqual(nextMilestone(10,0,100),{level:10,stage:1,mastery:100});
  assert.equal(visualDevelopmentFeatures('lot',10,0,100).length,10);
+ for(const track of ['lot','house','cluster'])for(let level=1;level<=10;level++){
+  assert.equal(visualDevelopmentFeatures(track,level,4,0,true).length,level,'earned completed tier must render');
+  assert.equal(visualDevelopmentFeatures(track,level,4,0,false).length,level,'blueprint completed tier must render');
+  if(level>1)assert.equal(visualDevelopmentFeatures(track,level,0,0,true).length,level-1);
+ }
  assert.equal(safeMastery(Number.MAX_SAFE_INTEGER),Number.MAX_SAFE_INTEGER);
 });
 test('nine-part customization rejects unknown values and retains approved styles',()=>{

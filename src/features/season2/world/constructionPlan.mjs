@@ -67,7 +67,10 @@ export function safeCosmetics(value) {
 export function visualDevelopmentFeatures(track,level,stage,mastery=0,earned=false) {
  if(!TRACKS.includes(track))throw new Error('Unknown construction track');
  const l=majorLevel(level),s=constructionStage(stage);
- const count=Math.max(0,l-((s===4&&!earned)||(l===10&&safeMastery(mastery)>0)?0:1));
+ // Completed stage 4 always contains the current tier, including verified progress.
+ // During stages 0–3 only previous major tiers persist; Mastery never removes
+ // Level 10 amenities, regardless of whether the scene is a draft or earned.
+ const count=Math.max(0,l-(s===4||(l===10&&safeMastery(mastery)>0)?0:1));
  return Object.freeze(Array.from({length:count},(_,i)=>track+'-amenity-'+String(i+1).padStart(2,'0')));
 }
 
