@@ -10,7 +10,7 @@ func _verify() -> void:
 	var count: int = 0
 	for hero in heroes:
 		for pose in variants:
-			var path: String = "res://art/fullbody/" + hero + "_" + pose + ".webp"
+			var path: String = "res://art/fullbody/" + hero + "_" + pose + ".png"
 			if not FileAccess.file_exists(path):
 				push_error("Missing approved native pose " + path)
 				quit(2)
@@ -21,7 +21,7 @@ func _verify() -> void:
 				quit(3)
 				return
 			count += 1
-		var sprite_path: String = "res://art/sprite/" + hero + ".webp"
+		var sprite_path: String = "res://art/sprite/" + hero + ".png"
 		var sprite: Image = Image.load_from_file(sprite_path)
 		if sprite == null or sprite.is_empty():
 			push_error("Cannot decode native sprite " + sprite_path)
