@@ -75,7 +75,7 @@ test('PTT notifies active screen only after successful per-user storage writes',
 
 test('Notification Stop requests persistent listening off, not just mic release', () => {
   const duty = readSource('src/ptt/buklodPttDutyNotification.ts');
-  assert.match(duty, /action === STOP_ACTION[\\s\\S]*stopBuklodPttListening\\(\\)/);
+  assert.ok(duty.split('if (action === STOP_ACTION)')[1]?.split('return true;')[0]?.includes('stopBuklodPttListening()'));
 });
 
 test('PTT storage failures do not silently claim a new saved setting', async () => {
