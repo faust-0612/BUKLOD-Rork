@@ -21,6 +21,24 @@ var frames := 0.0
 var accumulator := 0.0
 var event_cursor := -1
 var flashes: Array[Dictionary] = []
+var art_cache: Dictionary = {}
+var actor_pose: Dictionary = {}
+var actor_last_pos: Dictionary = {}
+
+/** Raw WebP/PNG in the signed Godot main pack; bounded lazy GPU cache. */
+func _art(path: String) -> Texture2D:
+	if art_cache.has(path):
+		return art_cache[path]
+	var bitmap: Image = Image.load_from_file(path)
+	if bitmap == null or bitmap.is_empty():
+		art_cache[path] = null
+		return null
+	if art_cache.size() >= 24:
+		art_cache.erase(art_cache.keys().front())
+	var texture: Texture2D = ImageTexture.create_from_image(bitmap)
+	art_cache[path] = texture
+	return texture
+
 
 func _ready() -> void:
 	sim = SIM_SCRIPT.new()
@@ -49,6 +67,8 @@ func _start(mode: String, hero: String, map_id: String, solo: bool, foe: String)
 	hud.paused = false
 	event_cursor = -1
 	flashes.clear()
+	actor_pose.clear()
+	actor_last_pos.clear()
 	camera.position = (sim.actor("A0")["pos"] as Vector2) * PX
 	_update_zoom()
 	hud.set_snapshot(sim.state)
@@ -120,6 +140,11 @@ func _read_events() -> void:
 		if int(event["id"]) <= event_cursor:
 			continue
 		event_cursor = int(event["id"])
+		if event["type"] in ["damage", "skill"]:
+			var id: String = str(event.get("actor", event.get("from", "")))
+			if id != "":
+				actor_pose[id] = {"pose": "skill" if event["type"] == "skill" else "attack",
+					"until": frames + 0.45}
 		if event.has("pos") and event["pos"] is Vector2:
 			flashes.append({"pos": event["pos"], "time": frames, "type": event["type"]})
 		if event["type"] in ["level_up", "construction_complete", "seal_damage",
@@ -162,6 +187,21 @@ func _draw_actor(p: Dictionary) -> void:
 	draw_circle(pos + shift - Vector2(large * 0.18, large * 0.36), 1.25, Color("#0c1f2c"))
 	draw_circle(pos + shift + Vector2(large * 0.18, -large * 0.36), 1.25, Color("#0c1f2c"))
 	if is_hero:
+		var hero_id: String = str(p.get("hero", "phan"))
+		var portrait: Texture2D = _art("res://art/sprite/" + hero_id + ".webp")
+		if portrait != null:
+			var old_pos: Vector2 = actor_last_pos.get(p["id"], pos)
+			var walking: bool = old_pos.distance_to(pos) > 0.9
+			actor_last_pos[p["id"]] = pos
+			var last_pose: Dictionary = actor_pose.get(p["id"], {})
+			var pose: String = str(last_pose.get("pose", "walk" if walking else "idle")) if float(last_pose.get("until", 0)) > frames else ("walk" if walking else "idle")
+			# Fullbody source contains four approved distinct poses, not fake frame indicators.
+			var frame_texture: Texture2D = _art("res://art/fullbody/" + hero_id + "_" + pose + ".webp")
+			if frame_texture != null:
+				portrait = frame_texture
+			draw_texture_rect(portrait,
+				Rect2(pos + Vector2(-large * 1.95, -large * 2.8 + breath * 1.1),
+					Vector2(large * 3.9, large * 3.9)), false, Color(1, 1, 1, 0.98))
 		draw_arc(pos, large + 4.0, -PI, PI, 30,
 			Color("#6af7ca") if team == "A" else Color("#ff9b8c"), 2.0)
 		draw_string(ThemeDB.fallback_font, pos + Vector2(-18, -large - 16),
@@ -180,6 +220,10 @@ func _draw_world() -> void:
 	var ground := Color(str(colors[0]))
 	var lane := Color(str(colors[1]))
 	draw_rect(Rect2(Vector2(-100, -100), Vector2(w + 200, h + 200)), ground)
+	var scenery: Texture2D = _art("res://art/scene/" + str(s["map"]) + ".png")
+	if scenery != null:
+		draw_texture_rect(scenery, Rect2(Vector2.ZERO, Vector2(w, h)), false,
+			Color(1.0, 1.0, 1.0, 0.82))
 	draw_circle(Vector2(w * 0.5, h * 0.5), w * 0.35, lane * Color(1, 1, 1, 0.3))
 	for i in range(3):
 		var y: float = h * float(map["lanes"][i])
