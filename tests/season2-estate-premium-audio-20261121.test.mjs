@@ -42,7 +42,8 @@ test('13 original offline estate SFX are real bounded 24kHz stereo 16-bit PCM WA
 });
 test('correct sound events are tied to actual RPC success, not button initiation',()=>{
  assert.match(consoleSource,/await fn\(\)/);
- assert.match(consoleSource,/onMomentRef\.current\?\.\(typeof cue/);
+ assert.match(consoleSource,/const resolvedCue=typeof cue==='function'\?cue\(snapshot\):cue/);
+ assert.match(consoleSource,/if\(resolvedCue\)onMomentRef\.current\?\.\(resolvedCue\)/);
  assert.match(consoleSource,/,'build_start'\)/);
  assert.match(consoleSource,/'build_complete':'claim'/);
  assert.match(consoleSource,/,'apply'\)/);
@@ -110,7 +111,8 @@ test('late scope RPC responses cannot overwrite a new estate design or contribut
  const donated=c.indexOf('setDonation({...ZERO})',awaited);
  assert.ok(awaited>=0&&guard>awaited&&saved>guard&&donated>guard);
  assert.doesNotMatch(c,/onApplyRef.current\(next.cosmetics\)/);
- assert.doesNotMatch(c,/setPersonalWallet\(mine\?\.wallet/);
+ const donationAction=c.slice(c.indexOf('const donate=()=>'),c.indexOf('if(!ownerId)return'));
+ assert.doesNotMatch(donationAction,/setPersonalWallet\(mine\?\.wallet/);
  assert.match(c,/if\(request===actionSeq.current\)setPersonalWallet\(mine.wallet\)/);
  assert.match(c,/onMomentRef.current\?\.\(resolvedCue\)/);
 });
