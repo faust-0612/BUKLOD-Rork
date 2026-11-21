@@ -92,7 +92,7 @@ export async function loadBuklodPttUserSettings(userId: string): Promise<BuklodP
     routeMode: ['AUTO', 'INTERNET', 'NEARBY'].includes(String(saved?.routeMode))
       ? saved.routeMode as BuklodPttRouteMode : defaults.routeMode,
     scopeId: typeof saved?.scopeId === 'string' ? saved.scopeId : '',
-    channel: Number.isInteger(saved?.channel) && Number(saved.channel) >= 1 &&
+    channel: Number.isInteger(Number(saved?.channel)) && Number(saved?.channel) >= 1 &&
       Number(saved.channel) <= 10 ? Number(saved.channel) : 1,
     listening: typeof saved?.listening === 'boolean' ? saved.listening : true,
     talkMode: saved?.talkMode === 'PRIORITY' ? 'PRIORITY' : 'NORMAL',
