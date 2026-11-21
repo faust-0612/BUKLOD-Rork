@@ -152,3 +152,25 @@ BEGIN
     RAISE EXCEPTION 'Arena changed BP ledger';
   END IF;
 END; $test$;
+
+-- Verify no shortcutting sequential character item gates.
+DO $test$
+DECLARE v_profile jsonb;
+BEGIN
+  v_profile:=public.arena_v2_ranked_profile('00000000-0000-4000-8000-000000000001','phan');
+  IF (v_profile->>'verified_item_level')::integer<>1
+    THEN RAISE EXCEPTION 'Unverified item level granted'; END IF;
+END; $test$;
+INSERT INTO public.buklod_character_collectible_state(user_id,character_id,level_no,item_index,redeemed_at)
+SELECT '00000000-0000-4000-8000-000000000001','phan',2,gs,now()
+FROM generate_series(1,5) gs;
+INSERT INTO public.buklod_character_collectible_state(user_id,character_id,level_no,item_index,redeemed_at)
+SELECT '00000000-0000-4000-8000-000000000001','phan',4,gs,now()
+FROM generate_series(1,5) gs;
+DO $test$
+DECLARE v_profile jsonb;
+BEGIN
+  v_profile:=public.arena_v2_ranked_profile('00000000-0000-4000-8000-000000000001','phan');
+  IF (v_profile->>'verified_item_level')::integer<>2
+    THEN RAISE EXCEPTION 'Skipped item stage wrongly unlocked'; END IF;
+END; $test$;
