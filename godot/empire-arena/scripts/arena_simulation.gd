@@ -17,7 +17,7 @@ const MAX_RELICS := 36
 var config: Dictionary = {}
 var state: Dictionary = {}
 var rng := RandomNumberGenerator.new()
-var hero_catalog: RefCounted
+var hero_catalog
 
 func _init() -> void:
 	hero_catalog = HERO_IDENTITY_SCRIPT.new()
