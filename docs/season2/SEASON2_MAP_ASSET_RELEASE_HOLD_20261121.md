@@ -26,3 +26,9 @@ No production main changes. No migration deployment. No release or update workfl
 - `GenesisValleyMap.tsx` implements source-level actual illustration and 14 tap-select destinations; each existing Expo Router route retains its real guards, focus/ads and Show Faith filtering.
 - No licensed Genesis soundtrack imported from unverified Library music; existing local CC0 music remains.
 - **Release still HARD HOLD:** no signed native staging APK, no Supabase test backend, no authoritative arena server, no E2E BP/QMP/trade/Character Diamond settlement. Automated source checks cannot replace those.
+
+## Gold-icon touchpoint and audio-focus refinement
+- The 14 anchors were visually aligned to the *gold icon circles* in the supplied 1024 reference, rather than covering the location labels. Source coordinate verification is not Android runtime touch proof.
+- Existing CC0 Kingdom soundtrack now listens for competing audio-focus ownership and pauses the Genesis map music when another ad, user video, call or audio source requests focus; it does not automatically resume over competing playback.
+- Music button is opt-in; tapping Music On sends an explicit map focus request; status shows 'Music paused' when external media interrupts. User controls volume/quiet hours through existing sound settings.
+- No automated test can prove ad fill or exact native audio-focus timing; release remains HARD HOLD.

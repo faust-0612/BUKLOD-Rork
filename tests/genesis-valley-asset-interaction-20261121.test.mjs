@@ -41,6 +41,8 @@ test('All 14 tappable targets match owner map positions, district taxonomy and r
  assert.deepEqual(hs.filter(h=>h.faithOnly).map(h=>h.id),['faith-center']);
  assert.equal(hs.find(h=>h.id==='community-wall-plaza')?.route,'/buklod');
  assert.equal(hs.find(h=>h.id==='government-hall')?.route,'/profile/focus-apps');
+ assert.equal(metadata.positionAuthority.includes('gold-icon centers'),true);
+ assert.deepEqual([hs.find(h=>h.id==='cluster-village')?.x,hs.find(h=>h.id==='cluster-village')?.y],[0.057,0.318]);
 });
 
 test('Map is imagery-first with touch/zoom, visual selected state, faith gating and accessible directory',()=>{

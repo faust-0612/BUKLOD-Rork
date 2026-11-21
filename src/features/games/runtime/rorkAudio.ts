@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {subscribeBuklodAudioFocus} from '@/lib/buklodAudioFocus';
 import { AppState } from 'react-native';
 import { getBuklodSoundSettings, isBuklodGameSoundEnabled, getBuklodGameSoundVolume } from '@/lib/buklodSounds';
 import { createAudioPlayer } from 'expo-audio';
@@ -155,6 +156,7 @@ export function useRorkGameAmbience(gameId?: string | null) {
   // Keep legacy interior-game audio behavior unchanged; only the main map is opt-in.
   const isKingdomMap = gameId === 'kingdom-map';
   const [musicEnabled, setMusicEnabled] = useState(!isKingdomMap);
+  const [musicSuspended, setMusicSuspended] = useState(false);
   useEffect(() => {
     if (!isKingdomMap) return;
     let live = true;
@@ -191,12 +193,24 @@ export function useRorkGameAmbience(gameId?: string | null) {
     if (!player) return;
     const audio = player;
     let active = true;
+    // Genesis map music yields to any explicit ad, video, call or music focus
+    // request. Never resume spontaneously while a competing source is active.
+    let interruptedByOtherAudio = false;
+    if (isKingdomMap) setMusicSuspended(false);
+    const releaseAudioFocus = isKingdomMap
+      ? subscribeBuklodAudioFocus(owner => {
+          if (owner === 'genesis-valley-map' || !active) return;
+          interruptedByOtherAudio = true;
+          setMusicSuspended(true);
+          try { audio.pause(); } catch { /* optional ambience */ }
+        })
+      : () => undefined;
     audio.loop = true;
     const sync = async () => {
       try {
         await getBuklodSoundSettings();
         if (!active) return;
-        if (AppState.currentState !== 'active' || !isBuklodGameSoundEnabled()) {
+        if (AppState.currentState !== 'active' || !isBuklodGameSoundEnabled() || interruptedByOtherAudio) {
           audio.pause();
           return;
         }
@@ -221,17 +235,18 @@ export function useRorkGameAmbience(gameId?: string | null) {
       // Invalidate pending hydration/status callbacks before release to avoid
       // late replay of the loop after a rapid back/forward navigation.
       active = false;
+      releaseAudioFocus();
       readyListener.remove();
       stateListener.remove();
       try { audio.pause(); } catch { /* already disposed or unavailable */ }
       try { audio.remove(); } catch { /* enhancement only */ }
     };
-  }, [gameId, musicEnabled]));
-  return { musicEnabled, toggleMusic: () => setMusicEnabled(value => {
+  }, [gameId, musicEnabled, isKingdomMap]));
+  return { musicEnabled, musicSuspended, toggleMusic: () => { setMusicSuspended(false); setMusicEnabled(value => {
     const next = !value;
     if (isKingdomMap) {
       void AsyncStorage.setItem(KINGDOM_AMBIENCE_SETTING_KEY, next ? 'on' : 'off').catch(() => undefined);
     }
     return next;
-  }) };
+  }); } };
 }

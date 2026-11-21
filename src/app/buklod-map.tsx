@@ -16,6 +16,7 @@ import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import { GENESIS_IDENTITY, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
+import {requestBuklodAudioFocus} from '@/lib/buklodAudioFocus';
 
 /** A staging-only immersive gateway. Existing feature pages and permissions stay authoritative. */
 export default function BuklodMapScreen() {
@@ -28,7 +29,7 @@ export default function BuklodMapScreen() {
   const [selectedId, setSelectedId] = useState('community');
   const [selectedHotspotId, setSelectedHotspotId] = useState('community-wall-plaza');
   const [showDirectory, setShowDirectory] = useState(false);
-  const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
+  const { musicEnabled, musicSuspended, toggleMusic } = useRorkGameAmbience('kingdom-map');
 
   useFocusEffect(useCallback(() => {
     setFocused(true);
@@ -76,12 +77,15 @@ export default function BuklodMapScreen() {
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={musicEnabled ? 'Turn ambient music off' : 'Turn ambient music on'}
-            onPress={toggleMusic}
+            accessibilityLabel={musicEnabled ? (musicSuspended ? 'Music was paused by another audio source; turn music off' : 'Turn ambient music off') : 'Turn ambient music on'}
+            onPress={() => {
+              if (!musicEnabled) requestBuklodAudioFocus('genesis-valley-map');
+              toggleMusic();
+            }}
             style={({ pressed }) => [styles.musicButton, pressed && styles.pressed]}
           >
             <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={18} color="#FFF0CC"/>
-            <Text style={styles.musicText}>{musicEnabled ? 'Music on' : 'Music off'}</Text>
+            <Text style={styles.musicText}>{musicEnabled ? (musicSuspended ? 'Music paused' : 'Music on') : 'Music off'}</Text>
           </Pressable>
         </View>
         <Text style={styles.intro}>Isang mundo, malinaw na direksyon. Pumili ng lugar sa mapa at buksan ang mga gawain nito.</Text>

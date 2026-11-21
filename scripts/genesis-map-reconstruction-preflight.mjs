@@ -53,6 +53,7 @@ check('Bundled local Galaxy and approved CC0 music',()=>{
  const map=read('src/app/buklod-map.tsx');
  assert.match(map,/useRorkGameAmbience\('kingdom-map'/);
  assert.match(map,/musicEnabled/);
+ assert.match(map,/requestBuklodAudioFocus/);
  assert.match(map,/GenesisValleyMap/);
  for(const p of ['assets/season2/genesis/world/buklod-community-map.webp','assets/season2/genesis/world/buklod-community-map-compact.webp'])assert.ok(existsSync(resolve(root,p)),p);
 });
