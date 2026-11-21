@@ -20,6 +20,10 @@ func _verify() -> void:
 				push_error("Cannot decode native hero artwork " + path)
 				quit(3)
 				return
+			if image.get_width() % 4 != 0 or image.get_height() % 2 != 0:
+				push_error("Hero pose atlas must be four columns by two rows: " + path)
+				quit(7)
+				return
 			count += 1
 		var sprite_path: String = "res://art/sprite/" + hero + ".png"
 		var sprite: Image = Image.load_from_file(sprite_path)
