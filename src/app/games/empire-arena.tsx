@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AppState, Image, PanResponder, Platform, Pressable, StyleSheet, Text, View,
 } from 'react-native';
-import { useFocusEffect, router } from 'expo-router';
+import { useFocusEffect, router, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +17,9 @@ import { Image as ExpoImage } from 'expo-image';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
+import { useCompliance } from '@/providers/ComplianceProvider';
+import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import {
   CHARACTER_DISPLAY_NAME, getCachedBuklodCharacterSelectionV2, getMyBuklodCharacterSelectionV2,
   type BuklodCharacterId,
@@ -198,7 +201,7 @@ function Control({ icon, title, onPress, disabled }: { icon: React.ComponentProp
   </Pressable>;
 }
 
-export default function EmpireArenaInApp() {
+function EmpireArenaInApp() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [hero, setHero] = useState<BuklodCharacterId>('phan');
@@ -558,6 +561,25 @@ export default function EmpireArenaInApp() {
       </View>}
     </View> : null}
   </View>;
+}
+
+/** Fail-closed direct-link guard: Arena cannot bypass the canonical BUKLOD map's
+ * auth, consent, maintenance, mandatory-update or onboarding boundaries.
+ * Crucially, production clients never mount or orient-lock the Arena screen.
+ */
+export default function EmpireArenaRouteGuard() {
+  const {user,loading,profile}=useAuth();
+  const {requiresAcceptance}=useCompliance();
+  const {config}=useRuntimeConfig();
+  if (!isGenesisPreviewBuild()) return <Redirect href="/(tabs)/buklod"/>;
+  if (loading && !user) return <View style={{flex:1,backgroundColor:'#071523'}}/>;
+  if (!user) return <Redirect href="/(auth)/login"/>;
+  if (config?.maintenance_mode) return <Redirect href="/system/maintenance"/>;
+  if (config?.update_required) return <Redirect href="/system/update-required"/>;
+  if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access"/>;
+  if (requiresAcceptance) return <Redirect href="/privacy/consent"/>;
+  if (!profile) return <Redirect href="/onboarding"/>;
+  return <EmpireArenaInApp/>;
 }
 
 const styles = StyleSheet.create({
