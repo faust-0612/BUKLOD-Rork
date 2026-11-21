@@ -270,7 +270,14 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
           : 'Your answers and reflection were saved and checked automatically. BUKLOD found something to improve; revise the guided fields and complete the lesson again. No manual approval queue is required.',
       );
 
-      await onSubmitted?.();
+      // The lesson is already committed. A failed dashboard refresh is not a failed submission.
+      if (onSubmitted) {
+        try {
+          await onSubmitted();
+        } catch {
+          setLoadWarning('Saved successfully; progress refresh is temporarily unavailable. Reopen the lesson to refresh.');
+        }
+      }
     } catch (error: any) {
       Alert.alert(
         'Could Not Complete Lesson',
