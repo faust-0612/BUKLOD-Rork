@@ -1,0 +1,65 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-living-community-coverage-20261121.json",
+  "objective": "Implement one canonical Village/Home community facilities taxonomy, searchable and browsable in existing premium Season 2 scenes, with truthful planned-vs-linked status and direct existing-route navigation.",
+  "baseRef": "fc482130e79d9126967249ea743e0f50a94dfaad",
+  "productionBaselineEvidence": "Isolated branch forked from existing verified DEV branch dev/season2-village-home-guide-20261121 commit fc482130e79d9126967249ea743e0f50a94dfaad. Production installed APK/OTA fingerprint not checked; do not infer prod feature state.",
+  "chosenApproach": "Extend the already approved premium Stage 1 scenes with a collapsed searchable public facility directory; no map art edits, new backend authority or native SDK.",
+  "selectionRationale": "Keeps one-tap doors, enables complete categorization without duplicating BUKLOD Bahay, Walls, Focus Apps or Economy, and avoids advertising unbuilt infrastructure as live.",
+  "alternativeApproaches": [
+    "Create a new standalone app or redraw owner-approved map (rejected as redundant/regressive).",
+    "Activate new backend BP/land/treasury operations without verified transactions/RLS (rejected as unsafe).",
+    "Render all facility cards above first-view scene/ad (rejected for usability and performance)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "ads-monetization",
+    "community-scopes",
+    "security-permissions"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-living-community-coverage-20261121.json",
+    "src/features/season2/world/communityFacilityDirectory.mjs",
+    "src/features/season2/world/communityFacilityDirectory.d.mts",
+    "src/features/season2/world/Season2CommunityFacilities.tsx",
+    "src/features/season2/world/Season2DevelopmentMap.tsx",
+    "src/features/season2/world/BuklodMapGuideDock.tsx",
+    "tests/season2-complete-community-facilities-20261121.test.mjs",
+    "docs/season2/LIVING_COMMUNITY_FACILITY_COVERAGE_DEV_20261121.md"
+  ],
+  "regressionTests": [
+    "tests/season2-complete-community-facilities-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add optional Village/Home community directory and local guide route hints; no other app screens or release behavior changed",
+      "preservedBehaviors": [
+        "Existing Valley map buttons, first-view AdMob placement and one-tap entry unchanged",
+        "Existing auth/scope/Show Faith/Focus Apps permission guards remain in owner routes",
+        "No real BP/QMP/Character Diamonds/inventory/virtual land ownership changes",
+        "Production continues existing navigation until guarded Genesis is released"
+      ],
+      "tests": [
+        "tests/season2-complete-community-facilities-20261121.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Approved local Stage1 Village/Home/Entry artworks remain exact, guide remains outside map",
+    "Original scene one-tap doors, local preview level/stage, look previews and audio/media lifecycles unchanged",
+    "New directory starts collapsed and paginated; planned facilities are disabled",
+    "No new native dependencies or paid services; live Supabase is not modified"
+  ],
+  "acceptanceChecks": [
+    "Run Node behavioral tests for complete taxonomy, linked/planned semantics, Show Faith, search and world isolation",
+    "Check exact existing route integrity and TypeScript compile in isolated checkout",
+    "Verify Android first-view AdMob, nav, memory, reduced motion, visual touch sizing, auth and permission regression before OTA",
+    "Keep real ledger/land construction disabled pending independent transaction/RLS/concurrency verification"
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "productionDeployment": "NONE"
+}
