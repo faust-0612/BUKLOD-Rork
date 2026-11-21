@@ -10,8 +10,8 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
+import BuklodAssignedReportsPanel from '@/components/BuklodAssignedReportsPanel';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
-import BuklodWeeklyReportForm from '@/components/BuklodWeeklyReportForm';
 import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import { colors } from '@/lib/theme';
 import {
@@ -149,7 +149,7 @@ export default function BuklodReportLandingScreen() {
             )}
 
             {scopeId && entitled ? (
-              <BuklodWeeklyReportForm scopeId={scopeId} onSubmitted={() => void load()} />
+              <BuklodAssignedReportsPanel scopeId={scopeId} onSubmitted={() => void load()} />
             ) : scopeId ? (
               <View style={styles.warningCard}>
                 <MaterialCommunityIcons name="lock-outline" size={22} color="#92400E" />
@@ -163,17 +163,31 @@ export default function BuklodReportLandingScreen() {
             ) : null}
 
             {scopeId && canManage ? (
-              <Pressable
-                onPress={() => router.push(buklodReportDefinitionsPath(scopeId) as any)}
-                style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
-              >
-                <MaterialCommunityIcons name="clipboard-text-clock-outline" size={20} color={colors.greenDark} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.manageTitle}>Report settings</Text>
-                  <Text style={styles.manageMeta}>Manage definitions and scope reporting rules</Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.greenDark} />
-              </Pressable>
+              <View style={styles.manageStack}>
+                <Pressable
+                  onPress={() => router.push(buklodReportDefinitionsPath(scopeId) as any)}
+                  style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
+                >
+                  <MaterialCommunityIcons name="clipboard-text-clock-outline" size={20} color={colors.greenDark} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.manageTitle}>Report settings</Text>
+                    <Text style={styles.manageMeta}>Manage definitions and scope reporting rules</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.greenDark} />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => router.push({ pathname: '/reports/publish', params: { scopeId } } as any)}
+                  style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
+                >
+                  <MaterialCommunityIcons name="send-clock-outline" size={20} color={colors.greenDark} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.manageTitle}>Publish report to members</Text>
+                    <Text style={styles.manageMeta}>Preview active members, set the real deadline, then assign automatically</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.greenDark} />
+                </Pressable>
+              </View>
             ) : null}
 
             <View style={styles.footerLine}>
@@ -224,6 +238,7 @@ const styles = StyleSheet.create({
   errorText: { color: '#991B1B', fontSize: 11, lineHeight: 16 },
   retryButton: { alignSelf: 'flex-start', borderRadius: 9, backgroundColor: '#991B1B', paddingHorizontal: 10, paddingVertical: 7 },
   retryText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+  manageStack: { gap: 8 },
   manageButton: { minHeight: 58, borderRadius: 14, borderWidth: 1, borderColor: '#DCE5E0', backgroundColor: '#FFFFFF', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
   manageTitle: { color: '#173B2F', fontSize: 11, fontWeight: '900' },
   manageMeta: { marginTop: 2, color: '#6C7B73', fontSize: 9 },
