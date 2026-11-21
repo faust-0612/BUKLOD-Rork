@@ -153,6 +153,36 @@ BEGIN
   END IF;
 END; $test$;
 
+-- Orphan crash recovery must refund the same Diamond hold exactly once
+-- without waiting 32 minutes or minting BP. An actually running second server
+-- is disallowed by the single authoritative host contract.
+SELECT public.arena_v2_ranked_open(
+  '20000000-0000-4000-8000-000000000005','duel','genesis_rift',
+  '[{"seat_id":"A0","user_id":"00000000-0000-4000-8000-000000000001","hero_id":"phan"},
+    {"seat_id":"B0","user_id":"00000000-0000-4000-8000-000000000002","hero_id":"quin"}]'::jsonb);
+SELECT public.arena_v2_ranked_recover_orphans();
+DO $test$
+BEGIN
+  IF (SELECT status FROM buklod_arena.matches
+    WHERE id='20000000-0000-4000-8000-000000000005') <> 'aborted'
+  OR (SELECT balance FROM buklod_arena.diamond_wallets
+    WHERE user_id='00000000-0000-4000-8000-000000000001')<>3
+  OR (SELECT balance FROM buklod_arena.diamond_wallets
+    WHERE user_id='00000000-0000-4000-8000-000000000002')<>1
+  OR (SELECT count(*) FROM buklod_arena.diamond_events
+    WHERE event_type='ranked_refund'
+    AND source_id='20000000-0000-4000-8000-000000000005')<>2
+  THEN RAISE EXCEPTION 'Orphan recovery did not refund each earned Diamond once'; END IF;
+  IF has_function_privilege('anon','public.arena_v2_ranked_recover_orphans()','EXECUTE')
+  OR has_function_privilege('authenticated','public.arena_v2_ranked_recover_orphans()','EXECUTE')
+  THEN RAISE EXCEPTION 'Orphan recovery exposed to client auth roles'; END IF;
+END; $test$;
+DO $test$
+BEGIN
+  IF public.arena_v2_ranked_recover_orphans() <> 0 THEN
+    RAISE EXCEPTION 'Orphan recovery is not idempotent'; END IF;
+END; $test$;
+
 -- Verify no shortcutting sequential character item gates.
 DO $test$
 DECLARE v_profile jsonb;
