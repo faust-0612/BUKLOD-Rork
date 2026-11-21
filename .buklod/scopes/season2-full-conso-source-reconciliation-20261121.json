@@ -74,6 +74,7 @@
         "No fresh DB or wallet writes"
       ],
       "tests": [
+        "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
         "tests/season2-final-conso-staging-20261121.test.mjs"
       ]
     }
