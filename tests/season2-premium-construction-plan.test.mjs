@@ -21,10 +21,11 @@ test('five stages per major level lead to unbounded mastery, without granting an
  assert.deepEqual(nextMilestone(10,4,12),{level:10,stage:0,mastery:13});
  assert.deepEqual(nextMilestone(10,0,13),{level:10,stage:1,mastery:13});
  assert.equal(visualDevelopmentFeatures('house',10,0,13).length,10);
+ assert.equal(visualDevelopmentFeatures('house',1,4,0,true).length,0,'verified finishing is not complete until awarded');
 });
 test('corrupt or foreign cosmetic storage is normalized',()=>{
- assert.deepEqual(safeCosmetics({finish:'malicious',roof:'none',ground:null}),{finish:'stone',roof:'gable',ground:'grass',fence:'wood',windows:'classic',lights:'warm'});
- assert.deepEqual(safeCosmetics({finish:'slate',roof:'hip',ground:'flower',fence:'iron',windows:'arched',lights:'starlight'}),{finish:'slate',roof:'hip',ground:'flower',fence:'iron',windows:'arched',lights:'starlight'});
+ assert.deepEqual(safeCosmetics({finish:'malicious',roof:'none',ground:null}),{finish:'stone',roof:'gable',ground:'grass',fence:'wood',windows:'classic',lights:'warm',door:'wood',path:'gravel',yard:'bench'});
+ assert.deepEqual(safeCosmetics({finish:'slate',roof:'hip',ground:'flower',fence:'iron',windows:'arched',lights:'starlight',door:'wood',path:'gravel',yard:'bench'}),{finish:'slate',roof:'hip',ground:'flower',fence:'iron',windows:'arched',lights:'starlight',door:'wood',path:'gravel',yard:'bench'});
 });
 
 test('the rendered scene changes progressively at all 10 major tiers across all tracks',()=>{

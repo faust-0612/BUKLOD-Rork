@@ -33,14 +33,14 @@ test('all three estate tracks have five stages and harder but bounded Mastery mi
  assert.equal(visualDevelopmentFeatures('lot',10,0,100).length,10);
  assert.equal(safeMastery(Number.MAX_SAFE_INTEGER),Number.MAX_SAFE_INTEGER);
 });
-test('six-part customization rejects unknown values and retains approved styles',()=>{
+test('nine-part customization rejects unknown values and retains approved styles',()=>{
  assert.deepEqual(safeCosmetics({finish:'bad',roof:'bad',ground:'bad',fence:'bad',windows:'bad',lights:'bad'}),{
-  finish:'stone',roof:'gable',ground:'grass',fence:'wood',windows:'classic',lights:'warm',
+  finish:'stone',roof:'gable',ground:'grass',fence:'wood',windows:'classic',lights:'warm',door:'wood',path:'gravel',yard:'bench',
  });
  assert.deepEqual(safeCosmetics({finish:'light',roof:'terrace',ground:'stone',fence:'hedge',windows:'panorama',lights:'garden'}),{
-  finish:'light',roof:'terrace',ground:'stone',fence:'hedge',windows:'panorama',lights:'garden',
+  finish:'light',roof:'terrace',ground:'stone',fence:'hedge',windows:'panorama',lights:'garden',door:'wood',path:'gravel',yard:'bench',
  });
- for(const symbol of ['cosmetics.fence','cosmetics.windows','cosmetics.lights'])
+ for(const symbol of ['cosmetics.fence','cosmetics.windows','cosmetics.lights','cosmetics.door','cosmetics.path','cosmetics.yard'])
   assert.ok(drawing.includes(symbol),symbol);
 });
 test('read and write paths require server authority and preserve household isolation',()=>{

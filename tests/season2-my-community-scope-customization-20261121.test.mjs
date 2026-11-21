@@ -11,7 +11,7 @@ test('My Community is a verified scope preview, never the global Wall',()=>{
 });
 test('Community customization drafts remain isolated per user and scope until authenticated server save',()=>{
  assert.match(src,/ownerId/);
- assert.match(src,/world\+'\.'\+\(world==='home'\?'personal':chosenScope\?\.scope_id\?\?'unassigned'\)/);
+ assert.match(src,/world\+'\.'\+\(world==='home'\?previewTrack:chosenScope\?\.scope_id\?\?'unassigned'\)/);
  assert.match(src,/if\(!canCustomizePreview\)return/);
  assert.match(src,/setLook\('stone'\)/);
  assert.match(src,/AsyncStorage\.setItem\(cosmeticKey/);
