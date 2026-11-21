@@ -34,7 +34,7 @@ test('Character Kingdom and Empire Arena have distinct door ownership and routes
   assert.equal(hero.districtId,'empire-arena');
   assert.equal(hero.route,'/games/empire-arena');
   assert.ok(existsSync(resolve(root,'src/app/games/empire-arena.tsx')));
-  assert.match(guide,/onCharacterKingdom=\{\(\) => router\.push\('\/games'/);
+  assert.match(gateway,/onCharacterKingdom=\{\(\) => router\.push\('\/games'/);
 });
 
 test('Animated guide lives physically outside the map, supports reduced motion and gives real one-tap help',()=>{
