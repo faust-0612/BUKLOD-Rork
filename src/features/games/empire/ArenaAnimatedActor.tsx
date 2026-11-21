@@ -92,6 +92,7 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
     transform: [{scale: 1 + breath.value*.06 + (1 - abilityFlash.value) * (pose === 'skill' ? .24 : .05)}],
   }));
   const ringColor = friendly ? '#78f7dd' : '#ffc59d';
+  const auraId = 'arena-hero-aura-' + actorId.replace(/[^a-zA-Z0-9]/g, '');
   const hpWidth = (size*.70)*Math.max(0,Math.min(1,health));
 
   return (
@@ -106,12 +107,12 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
       <Animated.View pointerEvents="none" style={[styles.aura,{width:size*1.22,height:size*.56,
           left:-size*.11,bottom:size*.10},auraStyle]}>
         <Svg width="100%" height="100%" viewBox="0 0 120 54">
-          <Defs><RadialGradient id="arena-hero-aura" cx="50%" cy="50%" rx="48%" ry="45%">
+          <Defs><RadialGradient id={auraId} cx="50%" cy="50%" rx="48%" ry="45%">
             <Stop offset="0%" stopColor={ringColor} stopOpacity=".65"/>
             <Stop offset="65%" stopColor={ringColor} stopOpacity=".16"/>
             <Stop offset="100%" stopColor={ringColor} stopOpacity="0"/>
           </RadialGradient></Defs>
-          <Circle cx="60" cy="27" r="26" fill="url(#arena-hero-aura)"/>
+          <Circle cx="60" cy="27" r="26" fill={"url(#"+auraId+")"}/>
           <Path d="M8 27 Q60 -5 112 27 Q60 59 8 27 Z"
             stroke={ringColor} strokeOpacity={selected ? .95 : .48}
             strokeWidth={selected ? 2.4 : 1.2} fill="none"/>
