@@ -314,11 +314,19 @@ export async function disconnectBuklodPttRuntime() {
 }
 
 export async function stopBuklodPttListening() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user?.id) throw new Error('PTT member session is unavailable.');
-  const saved = await loadBuklodPttUserSettings(session.user.id);
-  await saveBuklodPttUserSettings(session.user.id, { ...saved, listening: false });
+  // Stop the transport even if local storage cannot persist the preference.
+  // The caller receives a genuine failure and must not claim Stop is saved.
+  let persistenceError: unknown = null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) throw new Error('PTT member session is unavailable.');
+    const saved = await loadBuklodPttUserSettings(session.user.id);
+    await saveBuklodPttUserSettings(session.user.id, { ...saved, listening: false });
+  } catch (error) {
+    persistenceError = error;
+  }
   await disconnectBuklodPttRuntime();
+  if (persistenceError) throw persistenceError;
 }
 
 async function dropFloor(transmissionId: string | null | undefined) {
@@ -602,8 +610,10 @@ async function restoreLastMonitoredChannel(scopes: BuklodPttScope[]) {
   } = await supabase.auth.getSession();
 
   if (!session?.user?.id) return;
+  let savedSettings;
   try {
-    if (!(await loadBuklodPttUserSettings(session.user.id)).listening) return;
+    savedSettings = await loadBuklodPttUserSettings(session.user.id);
+    if (!savedSettings.listening || savedSettings.routeMode === 'NEARBY') return;
   } catch {
     return; // Do not override a saved Stop if local state cannot be read.
   }
@@ -619,8 +629,10 @@ async function restoreLastMonitoredChannel(scopes: BuklodPttScope[]) {
 
   if (error || !data?.scope_id || !data?.channel) return;
 
-  const scope = scopes.find((item) => item.id === String(data.scope_id));
-  const channel = Number(data.channel);
+  const preferredScope = scopes.find((item) => item.id === savedSettings.scopeId);
+  const scope = preferredScope ??
+    scopes.find((item) => item.id === String(data.scope_id));
+  const channel = preferredScope ? savedSettings.channel : Number(data.channel);
 
   if (!scope || channel < 1 || channel > 10) return;
 
@@ -679,7 +691,8 @@ async function listenForIncomingPtt(data: any) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user?.id) return;
   try {
-    if (!(await loadBuklodPttUserSettings(session.user.id)).listening) return;
+    const saved = await loadBuklodPttUserSettings(session.user.id);
+    if (!saved.listening || saved.routeMode === 'NEARBY') return;
   } catch {
     return;
   }
