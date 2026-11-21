@@ -14,7 +14,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import Svg, { Circle, G, Image as SvgImage, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, G, Image as SvgImage, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -87,7 +87,14 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === 'A'} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== 'A0') onTarget(p.id); }}>
         <ActorMark actor={p} friendly={p.team === 'A'} selected={p.id === selectedId || p.id === 'A0'} />
-        {p.hero && life(p) && ARENA_GENERATED_ART['sprite:' + p.hero] ? <SvgImage href={ARENA_GENERATED_ART['sprite:' + p.hero] as any} x={p.x - 3} y={p.y - 3} width={6} height={6} preserveAspectRatio="xMidYMid meet" /> : null}
+        {p.hero && life(p) ? (
+          ARENA_GENERATED_ART['sprite:' + p.hero]
+            ? <SvgImage href={ARENA_GENERATED_ART['sprite:' + p.hero] as any} x={p.x - 3.8} y={p.y - 3.8} width={7.6} height={7.6} preserveAspectRatio="xMidYMid meet" />
+            : <G>
+                <Defs><ClipPath id={'arena-portrait-' + p.id}><Circle cx={p.x} cy={p.y} r={2.7} /></ClipPath></Defs>
+                <SvgImage href={ARENA_HERO_ART[p.hero as BuklodCharacterId] as any} x={p.x - 2.8} y={p.y - 2.8} width={5.6} height={5.6} preserveAspectRatio="xMidYMid slice" clipPath={'url(#arena-portrait-' + p.id + ')'} />
+              </G>
+        ) : null}
       </G>)}
     </Svg>
     <View pointerEvents="none" style={styles.fieldLabel}><Text style={styles.labelText}>GENESIS • EMPIRE BATTLEFIELD</Text></View>
