@@ -157,7 +157,7 @@ const ARENA_PACKAGED_SOUND_KEY: Readonly<Record<string, RorkAudioKey>> = {
   ui_tap:'ui_tap', ui_confirm:'ui_confirm', mission_go:'mission_go',
 };
 export function tryPlayArenaEventCue(cue: ArenaSoundCue, enabled = true): boolean {
-  if (!enabled || focusedKingdomViews <= 0 || AppState.currentState !== 'active') return false;
+  if (!enabled || focusedKingdomViews <= 0 || AppState.currentState !== 'active' || !isBuklodGameSoundEnabled()) return false;
   if (!cue || !Object.prototype.hasOwnProperty.call(ARENA_PACKAGED_SOUND_KEY,cue.sound)) return false;
   const key=ARENA_PACKAGED_SOUND_KEY[cue.sound];
   const now=Date.now();
@@ -172,7 +172,7 @@ export function tryPlayArenaEventCue(cue: ArenaSoundCue, enabled = true): boolea
   const player=voices[index%voices.length];
   if(!player.isLoaded)return false;
   try {
-    player.volume=Math.max(0,Math.min(.48,(Number(cue.volume)||.22)*.75));
+    player.volume=Math.max(0,Math.min(.48,(Number(cue.volume)||.22)*.75*getBuklodGameSoundVolume()));
     player.playbackRate=Math.max(.7,Math.min(1.3,Number(cue.rate)||1));
     if(!startedVoices.has(player)){
       startedVoices.add(player);
