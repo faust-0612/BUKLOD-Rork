@@ -49,7 +49,7 @@ const manifestDir = path.join(root, 'src/features/games/empire');
 const visualManifest = readFileSync(path.join(manifestDir, 'arenaGeneratedAssets.ts'), 'utf8');
 const imageRoot = path.join(root, 'assets/season2/arena/generated') + path.sep;
 const artCounts = { fullbody: 0, scene: 0, sprite: 0 };
-for (const match of visualManifest.matchAll(/'(fullbody|scene|sprite):([^']+)':\\s*require\\('([^']+)'\\)/g)) {
+for (const match of visualManifest.matchAll(/'(fullbody|scene|sprite):([^']+)':\s*require\('([^']+)'\)/g)) {
   const [, group, key, relative] = match;
   const filename = path.resolve(manifestDir, relative);
   assert.ok(filename.startsWith(imageRoot), 'Arena pack image escapes approved art inventory');
