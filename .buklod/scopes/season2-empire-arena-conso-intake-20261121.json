@@ -71,7 +71,6 @@
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-empire-arena-conso-intake-20261121.json",
-    ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
     ".github/workflows/buklod-arena-inapp-dev-qa.yml",
     ".github/workflows/buklod-arena-ranked-dev-qa.yml",
     ".github/workflows/season2-empire-arena-conso-qa-20261121.yml",
