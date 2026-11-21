@@ -20,7 +20,6 @@
   ],
   "lockedFeatureChanges": [],
   "regressionTests": [
-    "services/empire-arena/tests/core.test.mjs",
     "tests/arena-premium-vfx-blender-backend-20261122.test.mjs"
   ],
   "preserveBehaviors": [
@@ -52,5 +51,6 @@
     "Export Blender kit on Blender 4.x and compare to owner-approved imagery",
     "Pass Node server disconnect escrow behavioral regression",
     "Build exact signed staging RC and independently verify AdMob/nav/landscape/reentry"
-  ]
+  ],
+  "selectionRationale": "The existing Godot native Arena already preserves the 13 approved hero atlases and a separate authoritative ranked Node coordinator. Layering bounded shader events and pose state onto that approved scene, authoring Blender geometry separately, and hardening the escrow disconnect path is the least invasive route; no client-side rank authority, production changes, or new paid infrastructure are required."
 }
