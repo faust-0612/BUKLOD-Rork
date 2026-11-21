@@ -69,8 +69,6 @@ export default function GenesisKingdomPortal() {
   }, []);
   const animate = focused && foreground && !reduceMotion;
   const natureVista = getGenesisDeviceQuality('kingdom') === 'minimal' ? KINGDOM_NATURE_COMPACT : KINGDOM_NATURE_HIGH;
-  // Arena source remains DEV-only but is not in the Season 2 visual staging candidate.
-  const arenaExperimental = process.env.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL === 'true';
   const select = (realm: Realm) => {
     if (selected.id === realm.id) return;
     setSelected(realm);
@@ -151,19 +149,6 @@ export default function GenesisKingdomPortal() {
           </View>
           <MaterialCommunityIcons name={musicEnabled ? 'toggle-switch' : 'toggle-switch-off'} color="#F5DBAD" size={28}/>
         </Pressable>
-        {arenaExperimental ? (
-          <Pressable accessibilityRole="button"
-          accessibilityLabel="Enter Empire Arena offline practice inside BUKLOD MAIN"
-          onPress={()=>router.push('/games/empire-arena' as any)}
-          style={[styles.action,{borderColor:'#E6BF7B',backgroundColor:'#173443'}]}>
-          <MaterialCommunityIcons name="shield-sword-outline" size={24} color="#FFE1A6"/>
-          <View style={{flex:1}}>
-            <Text style={styles.actionTitle}>Empire Arena</Text>
-            <Text style={styles.actionSub}>In-app landscape practice • no BP or Diamond changes</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#FFE1A6"/>
-          </Pressable>
-        ) : null}
         <Pressable accessibilityRole="button" onPress={()=>router.push('/games/genesis-collection' as any)} style={styles.action}>
           <MaterialCommunityIcons name="diamond-stone" size={22} color="#FFE3A3"/>
           <View style={{flex:1}}>

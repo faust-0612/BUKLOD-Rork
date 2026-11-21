@@ -1,12 +1,11 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
-  "objective": "Premium Genesis Season 2 DEV-to-staging preparation with original nature-first Kingdom/World visuals, Arena excluded, existing PAID BUKLOD live Supabase preserved, new economy server writes and production releases held.",
+  "objective": "Premium Season 2 map-first Kingdom staging candidate with locally bundled nature-first tropical/winter art and canonical paid Supabase; Arena EXCLUDED FROM THE COMPILED APPLICATION BUNDLE, no production deployment.",
   "baseRef": "44d07a65d5e19f4cfb8f70aaff4f9d24545eb097",
   "productionBaselineEvidence": "Main production untouched; parent DEV commit 9997d85d646257d83e18642a4219a38cc57b0ec2. App/runtime Play identity not independently verified; no Supabase/OTA writes. Owner clarified 2026-11-21: sharing the existing paid BUKLOD Supabase is explicitly authorized for normal app operations; new subscriptions and independent paid database are not required. DEV source only; no live backend writes performed.",
-  "chosenApproach": "Reuse the already paid canonical BUKLOD Supabase project and original publishable client key in the Genesis staging EAS profile; no new paid subscriptions. Scope only premium app graphics/route changes in DEV, keep existing Supabase RLS and current app permissions authoritative, prevent unverified new BP/QMP/Character Diamond backend activation, and gate staging OTA on exact signed native source evidence.",
+  "chosenApproach": "Preserve existing consolidated core and Kingdom graphical UX; fully remove new Expo Router Arena route, offline engine and arena renderers from this staging candidate so no Arena feature is in the APK, keep its independent experimental DEV PR intact; source gate uses canonical live paid Supabase with no new finance mutations.",
   "riskAreas": [
-    "arena-multiplayer",
     "asset-licensing",
     "backend-isolation",
     "earned-only-bp",
@@ -17,8 +16,6 @@
     "staging-native-runtime",
     "advertising-audio-priority",
     "asset-touch-hitboxes",
-    "arena-offline-practice",
-    "arena-orientation",
     "premium-kingdom-graphics",
     "staging-backend-isolation",
     "release-identity",
@@ -34,11 +31,7 @@
       "tests": [
         "tests/season2-map-first-conso-intake-20261121.test.mjs",
         "tests/genesis-valley-asset-interaction-20261121.test.mjs",
-        "tests/genesis-valley-audio-focus-20261121.test.mjs",
-        "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
-        "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
-        "tests/empire-arena-v2-presentation-20261121.test.mjs",
-        "tests/genesis-arena-auth-boundary-20261121.test.mjs"
+        "tests/genesis-valley-audio-focus-20261121.test.mjs"
       ]
     },
     {
@@ -54,21 +47,8 @@
       ]
     },
     {
-      "id": "kingdom-character",
-      "reason": "Preview-only Expo Arena offline practice reuses existing V2 engine. No account/ledger writes.",
-      "preservedBehaviors": [
-        "Production Kingdom map retains its original 13 stations and sponsored placement; no legacy client mounts this practice Arena."
-      ],
-      "tests": [
-        "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
-        "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
-        "tests/empire-arena-v2-presentation-20261121.test.mjs",
-        "tests/genesis-arena-auth-boundary-20261121.test.mjs"
-      ]
-    },
-    {
       "id": "production-release",
-      "reason": "Protect production/native release identity while removing explicit live Supabase configuration from the Genesis staging profile and adding a fail-closed OTA readiness gate.",
+      "reason": "Protect exact native runtime and paid existing BUKLOD Supabase while adding a fail-closed source-vs-artifact staging OTA gate; no production build/release workflows changed.",
       "preservedBehaviors": [
         "All existing production, preview, staging-user, Classroom and other EAS profile identities and native release configurations remain unchanged outside the dedicated season2-genesis-preview profile.",
         "No signed build, EAS OTA, main branch, Google Play or production Supabase deployment is changed or initiated; new EAS profile requires verified independent staging backend credentials.",
@@ -84,10 +64,6 @@
     "tests/season2-map-first-conso-intake-20261121.test.mjs",
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
     "tests/genesis-valley-audio-focus-20261121.test.mjs",
-    "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
-    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
-    "tests/empire-arena-v2-presentation-20261121.test.mjs",
-    "tests/genesis-arena-auth-boundary-20261121.test.mjs",
     "tests/season2-premium-nature-kingdom-20261121.test.mjs",
     "tests/season2-premium-staging-ota-contract-20261121.test.mjs"
   ],
@@ -112,21 +88,7 @@
     "assets/season2/genesis/world/buklod-community-map-compact.webp",
     "src/features/games/runtime/rorkAudio.ts",
     "tests/genesis-valley-audio-focus-20261121.test.mjs",
-    "experiments/empire-arena-v2/arena-v2-engine.mjs",
-    "experiments/empire-arena-v2/arena-v2-armory.mjs",
-    "experiments/empire-arena-v2/arena-v2-maps.mjs",
-    "experiments/empire-arena-v2/arena-v2-empire.mjs",
-    "src/features/games/empire/arenaVisualBaseline.ts",
-    "src/features/games/empire/arenaGeneratedAssets.ts",
-    "src/features/games/empire/arenaPracticePresentation.mjs",
-    "src/app/games/empire-arena.tsx",
-    "scripts/ingest-buklod-visual-baseline.mjs",
-    "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
-    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
-    "tests/empire-arena-v2-presentation-20261121.test.mjs",
-    "docs/empire-arena/BUKLOD_ARENA_IN_APP_VISUAL_BASELINE_20261121.md",
     "src/features/season2/genesis/GenesisKingdomPortal.tsx",
-    "tests/genesis-arena-auth-boundary-20261121.test.mjs",
     "assets/season2/genesis/kingdom/kingdom-nature-panorama.webp",
     "assets/season2/genesis/kingdom/kingdom-nature-panorama-compact.webp",
     "tests/season2-premium-nature-kingdom-20261121.test.mjs",
@@ -152,7 +114,8 @@
     "Exact native Genesis staging runtime 2.0.0-genesis-preview, channel season2-genesis-preview, staging package; actual built APK absent. Source gate does NOT attest runtime.",
     "Explicit live Supabase reference removed from Genesis EAS profile; isolated BUKLOD_STAGING_PROJECT_REF and matching publishable env + signed EAS artifact must be supplied and verified to pass release gate.",
     "Supabase correction: Genesis EAS profile points to existing already paid BUKLOD Supabase; release source gate verifies exact canonical URL and publishable-only key, with explicit shared-live backend mode. No new paid app/plan/subscription required.",
-    "Shared-live backend is NOT an isolated test database: never run test users, idempotency stress tests, payout/mint migrations, unsafe RLS trials or destructive fixtures against production; real normal app activity uses existing authoritative server policies."
+    "Shared-live backend is NOT an isolated test database: never run test users, idempotency stress tests, payout/mint migrations, unsafe RLS trials or destructive fixtures against production; real normal app activity uses existing authoritative server policies.",
+    "Arena absent at source/Metro route level: src/app/games/empire-arena.tsx and experiments/empire-arena-v2 do NOT exist in candidate tree; no UX or deep-link mount. Independent Arena DEV PR remains available."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
@@ -167,7 +130,8 @@
     "Arena is excluded in staging by default, including deep links, while existing DEV source/tests remain available for explicit separate experiments.",
     "All non-Genesis EAS profiles, especially production, remain byte-for-byte semantically unchanged; no production backend credentials or app deployments altered.",
     "Existing paid BUKLOD Supabase project and authenticated member flows remain connected in Genesis preview; this is not a sandbox, so user posts and ordinary authorized writes may affect live data.",
-    "No new QMP/BP/Character economy issuance, migration, privileged grants, payout or compensation testing on shared live DB; cosmetic changes cannot introduce authoritative rewards."
+    "No new QMP/BP/Character economy issuance, migration, privileged grants, payout or compensation testing on shared live DB; cosmetic changes cannot introduce authoritative rewards.",
+    "Original live Kingdom 13 character station routes unchanged; future Arena development remains isolated and can only be re-integrated via later separately authorized scope."
   ],
   "alternativeApproaches": [
     "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",

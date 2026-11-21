@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 const root=resolve(import.meta.dirname,'..');
@@ -13,6 +13,14 @@ test('Premium Kingdom nature landmarks are selectable canonical character worlds
  assert.match(portal,/accessibilityState=\{\{selected:isSelected\}\}/);
  assert.doesNotMatch(portal,/claimBp|awardBp|awardDiamond|supabase\.rpc/i);
 });
+test('Arena native route and experimental engine cannot enter staging bundle, even via deep links',()=>{
+ const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
+ assert.doesNotMatch(portal,/empire-arena|arenaExperimental/);
+ assert.equal(existsSync(resolve(root,'src/app/games/empire-arena.tsx')),false);
+ assert.equal(existsSync(resolve(root,'src/features/games/empire/arenaGeneratedAssets.ts')),false);
+ assert.equal(existsSync(resolve(root,'experiments/empire-arena-v2/arena-v2-engine.mjs')),false);
+});
+
 test('EAS Genesis profile reuses existing paid BUKLOD Supabase without new subscriptions',()=>{
  const eas=JSON.parse(read('eas.json'));
  const env=eas.build['season2-genesis-preview'].env;

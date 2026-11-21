@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 
@@ -35,12 +35,12 @@ test('Season 2 Kingdom is a local nature-first panorama, not generic floral/remo
  assert.match(games,/genesisPreview \? <GenesisKingdomPortal \/> : <BuklodKingdomMap \/>/);
  assert.match(games,/BuklodKingdomAdSlot/);
 });
-test('Arena is explicitly excluded from candidate staging (including direct links)',()=>{
+test('Arena is entirely absent from this premium visual staging source, with canonical production Kingdom intact',()=>{
  const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
- const route=read('src/app/games/empire-arena.tsx');
- assert.match(portal,/EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL === 'true'/);
- assert.match(portal,/arenaExperimental \? \(/);
- assert.match(route,/EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL !== 'true'/);
- assert.match(route,/return <Redirect href="\/games" \/>/);
+ assert.doesNotMatch(portal,/empire-arena|EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL|Empire Arena/);
+ assert.equal(requireArenaRouteExists(),false,'No Arena Expo Router entry must be packaged');
+ assert.equal(requireArenaEngineExists(),false,'No Arena engine code in this candidate');
  assert.doesNotMatch(portal,/supabase\.|\.rpc\(|awardBp|awardDiamond|eas update/i);
 });
+function requireArenaRouteExists(){return existsSync(resolve(root,'src/app/games/empire-arena.tsx'));}
+function requireArenaEngineExists(){return existsSync(resolve(root,'experiments/empire-arena-v2/arena-v2-engine.mjs'));}

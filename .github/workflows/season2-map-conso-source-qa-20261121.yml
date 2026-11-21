@@ -4,15 +4,7 @@ on:
     branches:
       - dev/season2-conso-reconciliation-hold-20261121
     paths:
-      - 'tests/genesis-arena-auth-boundary-20261121.test.mjs'
-      - 'src/app/games/empire-arena.tsx'
-      - 'src/features/games/empire/**'
       - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
-      - 'experiments/empire-arena-v2/**'
-      - 'scripts/ingest-buklod-visual-baseline.mjs'
-      - 'tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs'
-      - 'tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs'
-      - 'tests/empire-arena-v2-presentation-20261121.test.mjs'
       - 'src/app/buklod-map.tsx'
       - 'src/app/index.tsx'
       - 'src/app/_layout.tsx'
@@ -36,15 +28,7 @@ on:
     branches:
       - dev/season2-map-first-conso-intake-20261121
     paths:
-      - 'tests/genesis-arena-auth-boundary-20261121.test.mjs'
-      - 'src/app/games/empire-arena.tsx'
-      - 'src/features/games/empire/**'
       - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
-      - 'experiments/empire-arena-v2/**'
-      - 'scripts/ingest-buklod-visual-baseline.mjs'
-      - 'tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs'
-      - 'tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs'
-      - 'tests/empire-arena-v2-presentation-20261121.test.mjs'
       - 'src/app/buklod-map.tsx'
       - 'src/app/index.tsx'
       - 'src/app/_layout.tsx'
@@ -72,7 +56,3 @@ jobs:
         run: node scripts/season2-premium-staging-ota-gate.mjs --source
       - name: Genesis preview and existing World regression checks
         run: node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/genesis-world-navigation-regression-20261121.test.mjs tests/genesis-valley-asset-interaction-20261121.test.mjs tests/genesis-valley-audio-focus-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs tests/season2-premium-staging-ota-contract-20261121.test.mjs
-      - name: In-app offline Arena V2 deterministic source/logic acceptance (NO OTA)
-        run: |
-          node --check experiments/empire-arena-v2/arena-v2-engine.mjs
-          node --test tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs tests/empire-arena-v2-presentation-20261121.test.mjs tests/genesis-arena-auth-boundary-20261121.test.mjs
