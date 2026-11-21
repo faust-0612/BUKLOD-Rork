@@ -1,0 +1,66 @@
+{
+  "contractVersion": 2,
+  "objective": "Authorize one Android-only production OTA for already-staged Nov16 consolidated recent fixes. Do not deploy web/Play/backend/native.",
+  "authorization": "OWNER_PROCEED_RECENT_FIXES_COMPLETE_2026-11-16",
+  "sourcePr": 868,
+  "sourceSha": "6111ff370eff9ed97fdc027b64a7c02158ab7e7f",
+  "mergedMainBaseSha": "81c0e78518f05518fa9ad4036756fd0ca2f014f6",
+  "mergedSourceTree": "9d396a54cb058e599f68dcdb1b4a0f964d38c1ac",
+  "mergedAssetsTree": "25b99bad7b12fea25ac73ec3be703e8cdd7c5b9b",
+  "verifiedStaging": {
+    "otaUpdateId": "01a1e27b-0009-7e15-a0fd-e2207701a55e",
+    "runtimeVersion": "1.3.2",
+    "platform": "android",
+    "channel": "staging-user",
+    "publishRun": 43800264845
+  },
+  "productionBefore": {
+    "updateId": "01a1e10a-f043-7113-9a6c-673e91a58517",
+    "runtimeVersion": "1.3.2",
+    "channel": "production",
+    "package": "org.mzbministry.buklod"
+  },
+  "prodAndroidQa": {
+    "run": 43800923352,
+    "conclusion": "success",
+    "deviceAcceptance": "SKIPPED_BY_OWNER"
+  },
+  "liveAdTelemetry": {
+    "checkedUtc": "2026-11-16T04:01:00Z",
+    "windowMinutes": 30,
+    "segmentedBy": "build_version/runtime_version",
+    "build30": {
+      "adRequest": 23,
+      "adLoaded": 22,
+      "adRendered": 15,
+      "adImpression": 6,
+      "adFailed": 0
+    },
+    "build31": {
+      "adRequest": 6,
+      "adLoaded": 3,
+      "adRendered": 2,
+      "adImpression": 2,
+      "adFailed": 0
+    },
+    "notes": "Event counts are not distinct-request success rates. Navigation timings/visual-device acceptance not measured. Actual ad rendering may vary by client."
+  },
+  "allow": {
+    "productionAndroidOta": true,
+    "web": false,
+    "playStore": false,
+    "backendMigrations": false,
+    "nativeBuild": false
+  },
+  "mandatoryGates": [
+    "Source main equals staged src/assets trees; baseline is verified before publishing",
+    "Preserve Expo Android runtime 1.3.2, app package, AdMob and navigation behavior",
+    "Full existing BUKLOD Production Android OTA workflow must pass TypeScript, ads, media, navigation, Kingdom and native checks",
+    "Freeze exact Android Hermes production RC with bundle hash and baseline-check",
+    "Abort if main advances or production manifest moves during RC preparation",
+    "EAS production channel Android-only publish exactly once; verify live OTA update and serving bundle hash",
+    "Physical device verification explicitly skipped by owner; server readback alone is not device proof"
+  ],
+  "releaseMarkerPrefix": "BUKLOD_ANDROID_ONLY_PROD_20261114:",
+  "published": false
+}

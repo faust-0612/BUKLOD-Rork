@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
+const r=JSON.parse(fs.readFileSync('release/nov16-all-recent-android-production-ota-authorization-20261116.json','utf8'));
+const s=JSON.parse(fs.readFileSync('.buklod/scopes/nov16-all-recent-android-production-ota-authorization.json','utf8'));
+const git=(...args)=>execFileSync('git',args,{encoding:'utf8'}).trim();
+test('Nov16 consolidated production authorization is Android-only and source-identical to verified staging',()=>{
+  assert.equal(r.sourcePr,868);
+  assert.equal(r.sourceSha,'6111ff370eff9ed97fdc027b64a7c02158ab7e7f');
+  assert.equal(git('rev-parse','HEAD:src'),r.mergedSourceTree);
+  assert.equal(git('rev-parse','HEAD:assets'),r.mergedAssetsTree);
+  assert.equal(r.verifiedStaging.otaUpdateId,'01a1e27b-0009-7e15-a0fd-e2207701a55e');
+  assert.equal(r.productionBefore.updateId,'01a1e10a-f043-7113-9a6c-673e91a58517');
+  assert.equal(r.verifiedStaging.runtimeVersion,r.productionBefore.runtimeVersion);
+  assert.equal(r.productionBefore.package,'org.mzbministry.buklod');
+  assert.equal(r.prodAndroidQa.conclusion,'success');
+  assert.deepEqual(r.allow,{productionAndroidOta:true,web:false,playStore:false,backendMigrations:false,nativeBuild:false});
+  assert.equal(r.published,false);
+  assert.equal(r.releaseMarkerPrefix,'BUKLOD_ANDROID_ONLY_PROD_20261114:');
+  assert.equal(s.scopeManifestPath,'.buklod/scopes/nov16-all-recent-android-production-ota-authorization.json');
+  assert.ok(s.regressionTests.includes('tests/nov16-prod-ota-authorization-20261116.test.mjs'));
+  assert.deepEqual(s.allowedPaths.slice().sort(),['release/nov16-all-recent-android-production-ota-authorization-20261116.json','.buklod/scopes/nov16-all-recent-android-production-ota-authorization.json','tests/nov16-prod-ota-authorization-20261116.test.mjs'].sort());
+});
