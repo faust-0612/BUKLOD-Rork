@@ -30,6 +30,7 @@ import { tryPlayRorkGameFeedback, tryPlayArenaEventCue, playRorkSignatureSfx, us
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
 import { ArenaRankedSocket, isArenaRankedConfigured } from '@/features/games/empire/rankedClient';
 import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
+import { ArenaVillagerSprite } from '@/features/games/empire/ArenaVillagerSprite';
 import { ArenaActionFx } from '@/features/games/empire/ArenaActionFx';
 import { ArenaResourceHud, ArenaPickupTrails, ArenaRewardBanner } from '@/features/games/empire/ArenaMaterialFeedback';
 import { ArenaTerrainArt } from '@/features/games/empire/ArenaTerrainArt';
@@ -60,7 +61,7 @@ import { createOfflineSoloBattle, tickOfflineSolo, SOLO_CPU_DIFFICULTIES, SOLO_R
 type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
 type Position = { x: number; y: number };
-type Actor = Position & { id: string; team?: Team | null; hp: number; villagerRole?: string; villagerName?: string; villagerSlot?: number; command?: string; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; itemMastery?: number; cooldowns?: Record<'primary' | 'secondary' | 'ultimate', number>; gear?: Record<string, unknown>; lastMoveTick?: number; lastAttacked?: number };
+type Actor = Position & { id: string; team?: Team | null; hp: number; villagerRole?: string; villagerName?: string; villagerSlot?: number; command?: string; facing?: number; lastMovedAt?: number; jobAt?: number; attackAt?: number; carry?: {wood?: number; gold?: number; stone?: number}; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; itemMastery?: number; cooldowns?: Record<'primary' | 'secondary' | 'ultimate', number>; gear?: Record<string, unknown>; lastMoveTick?: number; lastAttacked?: number };
 type ArenaState = {
   w: number; h: number; status: string; elapsed: number; tick: number; mode?: Mode; kind?: string;
   solo?: { difficulty: string; round: number; wins: Record<Team, number>; draws: number;
@@ -109,23 +110,11 @@ const ARENA_SPARKS=Array.from({length:34},(_,index)=>({
   x:((index*43+11)%97+1)/100,y:((index*29+23)%91+2)/100,phase:index%5,
 }));
 
-function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: boolean; selected?: boolean }) {
+function ActorMark({ actor, friendly, selected, elapsed = 0 }: { actor: Actor; friendly: boolean; selected?: boolean; elapsed?: number }) {
   if (!life(actor)) return null;
   const tint = friendly ? '#8ffce6' : '#ff9d8b';
   if (actor.kind === 'villager') {
-    const accents: Record<string,string> = {builder:'#ffd38f',gatherer:'#99ec99',guardian:'#a9d9ff',healer:'#ffafd5',researcher:'#d6adff',supplier:'#f4e68e'};
-    const accent=accents[actor.villagerRole||'']||'#eee9db';
-    const x=actor.x,y=actor.y;
-    return <G>
-      <Ellipse cx={x} cy={y+1.5} rx={2.1} ry={.68} fill="#061422" opacity={.65}/>
-      <Path d={'M '+(x-1.3)+' '+(y+.85)+' L '+(x-1.05)+' '+(y-.8)+' L '+(x+1.05)+' '+(y-.8)+' L '+(x+1.3)+' '+(y+.85)+' Z'} fill={tint} stroke={accent} strokeWidth={.35}/>
-      <Circle cx={x} cy={y-1.2} r={.74} fill="#f6d3b0" stroke={accent} strokeWidth={.3}/>
-      <Rect x={x-.72} y={y-2.15} width={1.45} height={.45} rx={.1} fill={accent}/>
-      <Circle cx={x+1.05} cy={y-.3} r={.55} fill={accent} stroke={tint} strokeWidth={.28}/>
-      <SvgText x={x} y={y-3} textAnchor="middle" fontSize={1.4} fontWeight="bold" fill={accent}>{actor.villagerName||'Villager'}</SvgText>
-      <Rect x={x-1.5} y={y+1.5} width={3} height={.32} fill="#19252e"/>
-      <Rect x={x-1.5} y={y+1.5} width={3*clamp(actor.hp/Math.max(1,actor.maxHp),0,1)} height={.32} fill="#9bffa2"/>
-    </G>;
+    return <ArenaVillagerSprite actor={actor} elapsed={elapsed} selected={selected} />;
   }
   const r = actor.hero ? 2.6 : actor.kind === 'villager' ? 1.25 : 1.8;
   // The official full-body actor overlays hero markers. No enormous cheap
@@ -209,9 +198,9 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
         seals={state.seals} localTeam={localTeam} /> : null}
       <ArenaStructureArt towers={state.towers} buildings={state.buildings} elapsed={state.elapsed} />
       <ArenaWildlifeArt creatures={state.creatures} elapsed={state.elapsed} />
-      {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
+      {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} elapsed={state.elapsed} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
-        <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} />
+        <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} elapsed={state.elapsed} />
 
       </G>)}
       {state.visualCue && state.elapsed - state.visualCue.time < 650 ? (() => {
