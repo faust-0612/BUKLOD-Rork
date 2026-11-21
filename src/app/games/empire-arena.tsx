@@ -26,7 +26,7 @@ import {
   type BuklodCharacterId,
 } from '@/lib/buklodCharacterSelectionV2';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
-import { tryPlayRorkGameFeedback, playRorkSignatureSfx, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
+import { tryPlayRorkGameFeedback, tryPlayArenaEventCue, playRorkSignatureSfx, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
 import { ArenaRankedSocket, isArenaRankedConfigured } from '@/features/games/empire/rankedClient';
 import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
@@ -35,8 +35,8 @@ import { ArenaCombatHud, type ArenaHudKey, type ArenaHudLayout, type HudPoint, t
 import { ARENA_HUD_DEFAULT, sanitizeArenaHudLayout, serializeArenaHudLayout } from '@/features/games/empire/arenaHudLayout.mjs';
 // @ts-ignore — pure presentation helper, reads only server-authoritative snapshots.
 import { arenaActorPose } from '@/features/games/empire/arenaActorPose.mjs';
-// @ts-ignore — source-only audio event filter; no network and no private data.
-import { drainArenaAudioEvents } from '@/features/games/empire/arenaPracticeAudio.mjs';
+// @ts-ignore — deterministic event-to-sound mapping; offline, no wallet or backend.
+import { drainArenaSoundscape } from '@/features/games/empire/arenaSoundscape.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
@@ -416,13 +416,12 @@ function EmpireArenaInApp() {
       }
       if(state.solo) tickOfflineSolo(state);
       else tick(state);
-      const drained = drainArenaAudioEvents(state.events, lastAudioEventSeq.current,
+      const drained = drainArenaSoundscape(state.events, lastAudioEventSeq.current,
         state.events[state.events.length - 1]?.seq ?? lastAudioEventSeq.current,
-        state.players[localSeat]?.team ?? 'A', localSeat);
+        {team:state.players[localSeat]?.team??'A',seat:localSeat,players:state.players,
+          units:state.units,towers:state.towers,buildings:state.buildings});
       lastAudioEventSeq.current = drained.lastSeq;
-      if (sfxEnabled) for (const cue of drained.cues) {
-        tryPlayRorkGameFeedback(cue, cue === 'failure' || cue === 'success' ? 0.35 : 0.22);
-      }
+      if (sfxEnabled) for (const cue of drained.cues) tryPlayArenaEventCue(cue, true);
       const d = directionRef.current;
       if ((!state.solo || !state.solo.intermissionUntil) && Math.hypot(d.x, d.y) > 0.05) {
         command(state, localSeat, { type: 'move', dx: d.x, dy: d.y });
@@ -503,10 +502,11 @@ function EmpireArenaInApp() {
             gameRef.current = match;
             const latest = match.events?.at(-1)?.seq ?? lastAudioEventSeq.current;
             const seat = localSeatRef.current;
-            const drain = drainArenaAudioEvents(match.events,lastAudioEventSeq.current,latest,
-              match.players?.[seat]?.team ?? 'A', seat);
+            const drain = drainArenaSoundscape(match.events,lastAudioEventSeq.current,latest,
+              {team:match.players?.[seat]?.team??'A',seat,players:match.players,
+                units:match.units,towers:match.towers,buildings:match.buildings});
             lastAudioEventSeq.current = drain.lastSeq;
-            if (sfxEnabled) for (const cue of drain.cues) tryPlayRorkGameFeedback(cue,0.22);
+            if (sfxEnabled) for (const cue of drain.cues) tryPlayArenaEventCue(cue,true);
             setRevision(v => v + 1);
           }
         } else if (packet.type === 'match_end' && packet.confirmed === true) {
@@ -564,12 +564,14 @@ function EmpireArenaInApp() {
         if (actor) game.visualCue = { type: actionType, actor: localSeat, x: actor.x, y: actor.y,
           time: game.elapsed, seq: (game.visualCue?.seq || 0) + 1 };
       }
-      if (sfxEnabled) tryPlayRorkGameFeedback(cue, 0.28);
+      // A successful combat action is confirmed by engine events; the semantic
+      // sound queue plays it once, with no duplicate generic button impact.
+      void cue;
       setRevision(v => v + 1);
     } else {
       setMessage('Action unavailable: get closer, check resources, level or cooldown.');
     }
-  }, [phase, sfxEnabled, arenaKind, localSeat]);
+  }, [phase, arenaKind, localSeat]);
 
   const closestEnemy = (range: number) => {
     const game = gameRef.current;
