@@ -3,7 +3,7 @@ import React from 'react';
 import {G,Circle,Ellipse,Rect,Path,Line,Text as SvgText} from 'react-native-svg';
 type Obj={id:string;x:number;y:number;hp?:number;maxHp?:number;alive?:boolean;team?:'A'|'B'|null;
 kind?:string;level?:number;status?:string;stage?:string;progress?:number;upgrading?:{progress:number}|null;
-stock?:number;capacity?:number;type?:string;expires?:number;item?:{tier?:number}};
+stock?:number;capacity?:number;type?:string;expires?:number;item?:{tier?:number};effect?:string;rarity?:string;itemId?:string;ownerHero?:string|null};
 const clamp=(n:number,a:number,b:number)=>Math.max(a,Math.min(b,Number.isFinite(n)?n:a));
 const shape=(x:number,y:number,parts:number[][])=>'M '+parts.map(p=>(x+p[0])+' '+(y+p[1])).join(' L ')+' Z';
 const teamColor=(team?:string|null)=>team==='A'?'#81dfdc':'#faafbf';
@@ -125,6 +125,8 @@ export function ArenaWildlifeArt({creatures,elapsed}:{creatures:Obj[];elapsed:nu
     </G>;
   })}</G>;
 }
+const pickupGlyphs:Record<string,string>={health:'HP',mana:'MP',shield:'SH',xp:'XP',wood:'WD',gold:'AU',stone:'ST',haste:'SP',fury:'AT',guard:'DF',regen:'RG',cooldown:'CD'};
+const pickupHues:Record<string,string>={health:'#7df2ab',mana:'#91caff',shield:'#b8f9f1',xp:'#ffe2a2',wood:'#abefab',gold:'#ffd87f',stone:'#c9d5ee',haste:'#9ee8ff',fury:'#ff9a8b',guard:'#d2baff',regen:'#9cffce',cooldown:'#dec9ff'};
 export function ArenaResourceLootArt({nodes,loot,elapsed}:{nodes:Obj[];loot:Obj[];elapsed:number}){
   return <G>
     {nodes.filter(n=>(n.stock??0)>0).map((n,i)=>{
@@ -149,17 +151,26 @@ export function ArenaResourceLootArt({nodes,loot,elapsed}:{nodes:Obj[];loot:Obj[
     })}
     {loot.filter(l=>!l.expires||l.expires>elapsed).map((l,i)=>{
       const rate=1+.1*Math.sin(elapsed/330+i);
-      const hue=l.kind==='equipment'?'#ffe6a5':l.kind==='consumable'?'#98eedb':'#acdafa';
+      const field=l.kind==='field_pickup';
+      const hue=field?(pickupHues[l.effect??'']??'#ffe6a5'):l.kind==='equipment'?'#ffe6a5':l.kind==='consumable'?'#98eedb':'#acdafa';
       return <G key={'loot-'+l.id}
         transform={'translate('+l.x+','+l.y+') scale('+rate+')'}>
         <Circle r="3.8" fill="#091b2d" stroke={hue} strokeWidth=".65"/>
-        {l.kind==='equipment'?<Path d="M0 -2.3L1.4 -.6L.5 2.1L-.5 2.1L-1.4 -.6Z"
+        {field?<G>
+          <Circle r="2.8" fill={hue} opacity=".91"/>
+          <Circle r={l.rarity==='radiant'?5.2:l.rarity==='charged'?4.8:4.3}
+            fill="none" stroke={hue} strokeWidth=".45"
+            strokeDasharray={l.rarity==='field'?'1.1 1.1':'none'} opacity=".85"/>
+          <Path d="M-4 -3L-3.1 -4M3 4L4 3" stroke="#fff9d9" strokeWidth=".65"/>
+          <SvgText x="0" y=".7" fontSize="1.6" fontWeight="bold"
+            fill="#09212a" textAnchor="middle">{pickupGlyphs[l.effect??'']??'PK'}</SvgText>
+        </G>:l.kind==='equipment'?<Path d="M0 -2.3L1.4 -.6L.5 2.1L-.5 2.1L-1.4 -.6Z"
           fill={hue} stroke="#fff3c8" strokeWidth=".4"/>:
           l.kind==='consumable'?<G><Rect x="-1.2" y="-1.5" width="2.4" height="3.2"
             rx=".4" fill="#4ebca8"/><Path d="M-1 0h2M0 -1v2"
             stroke="#fff" strokeWidth=".4"/></G>:
           <Path d="M-2 1.2L-1 -1L1 -1.8L2 1.2Z" fill={hue}/>}
-        {(l.item?.tier??1)>2?<Circle r="4.4" fill="none" stroke="#f9d99a"
+        {(l.rarity==='radiant'||(l.item?.tier??1)>2)?<Circle r="4.4" fill="none" stroke="#f9d99a"
           strokeWidth=".6" strokeDasharray="1 2"/>:null}
       </G>;
     })}
