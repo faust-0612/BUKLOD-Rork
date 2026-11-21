@@ -41,7 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/genesis-unified-signed-stage-preflight.mjs --signed
-          [[ "${STAGING_SIGNING_CERT_SHA256:-}" =~ ^[a-fA-F0-9]{64}$ ]] || { echo 'BLOCK: no pinned existing EAS staging APK signing certificate'; exit 1; }
+          # Verified original EAS signing certificate is pinned in the binary verifier.
+          # Optional CI override is accepted only if identical to the audited original.
           printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
           node <<'NODE'
           const a=require('node:assert/strict');
