@@ -169,16 +169,6 @@
       "tests": [
         "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs"
       ]
-    },
-    {
-      "id": "economy-wallet",
-      "reason": "Create private ranked-only Diamond, matchmaking reserve, rating, settlement, and recovery schema. Never modify BP/QMP/Circle Rank ledgers.",
-      "preservedBehaviors": [
-        "BP earning/trading lifetime accounting and QMP payout systems unchanged. Production schemas not applied."
-      ],
-      "tests": [
-        "tests/sql/arena_ranked_private_integrity.sql"
-      ]
     }
   ]
 }
