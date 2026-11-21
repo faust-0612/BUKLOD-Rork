@@ -78,9 +78,9 @@ export async function loadBuklodPttUserSettings(userId: string): Promise<BuklodP
   const raw = await AsyncStorage.getItem(settingsKey(userId));
   const defaults = defaultBuklodPttUserSettings();
   if (!raw) {
-    // Read the former mode setting only for first-time migration. Future changes
-    // are scoped to the authenticated member, not shared across account switches.
-    return { ...defaults, routeMode: await loadBuklodPttRouteMode() };
+    // Legacy route choice was device-global with no verified account ownership.
+    // Never inherit another person's mode on a shared device.
+    return defaults;
   }
   let saved: Partial<BuklodPttUserSettings>;
   try {
