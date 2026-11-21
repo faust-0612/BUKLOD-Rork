@@ -34,6 +34,7 @@ test('admin cannot silently assign a non-mentor or enable a protected official',
   assert.match(roles,/public\.is_system_admin\(\)/);
   assert.match(roles,/buklod_foundation_protected_principals/);
   assert.match(roles,/target_role='system_admin'/);
+  assert.match(roles,/public\.user_roles ur/);
   assert.match(roles,/create trigger buklod_guard_protected_mentor_capability_v1/);
   assert.match(roles,/before insert or update of capability, is_active, user_id/);
   assert.match(roles,/create trigger buklod_guard_active_mentor_assignment_v1/);
