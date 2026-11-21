@@ -143,6 +143,31 @@ test('Idle unauthenticated sockets are bounded and never reserve earned Diamonds
   assert.equal(h.calls.open.length,0);
 });
 
+test('Real network WebSocket flood is bounded independently of ranked command rate',async t=>{
+  const h=await harness(t);
+  const attacker=await peer(h.url);
+  attacker.send({type:'hello',token:'token1'});
+  await attacker.packet('hello_ok');
+  const close=once(attacker.ws,'close');
+  // Ping is not a game input; it must still be limited to protect the gateway.
+  for(let i=0;i<110;i++)attacker.send({type:'ping'});
+  const [code]=await close;
+  assert.equal(code,1008);
+  assert.equal(h.calls.open.length,0,'Flood must never enter ranked reserve');
+  assert.equal(h.wallet.get(ids.token1),1);
+});
+
+test('Real network invalid authentication fails closed before a queue or wallet hold',async t=>{
+  const h=await harness(t);
+  const attacker=await peer(h.url);
+  const closed=once(attacker.ws,'close');
+  attacker.send({type:'hello',token:'fake_token'});
+  const [code]=await closed;
+  assert.equal(code,1008);
+  assert.equal(h.coordinator.matches.size,0);
+  assert.equal(h.calls.open.length,0);
+});
+
 test('Production server serializes async authoritative heartbeats',async()=>{
   const {readFileSync}=await import('node:fs');
   const {resolve}=await import('node:path');
