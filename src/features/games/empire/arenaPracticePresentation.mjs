@@ -37,7 +37,7 @@ export function arenaVisualEffects(events, elapsed, ttl = 1100) {
     'tower_hit','boss_hit','tower_destroyed','building_destroyed','seal_breached','seal_restored',
     'construction_start','construction_complete','rebuild_start','tower_upgrade_start','tower_upgrade',
     'tower_repair','villager_repair','buff','level_up','equipment_drop','equipment_equip',
-    'item_consumed','loot','mine','deposit','unit_spawn','map_hazard','trap_hit',
+    'item_consumed','loot','field_pickup_drop','field_pickup_claimed','mine','deposit','unit_spawn','map_hazard','trap_hit',
     'final_hunt','solo_round_end','solo_round_start',
   ]);
   return events.filter(e => e && valid.has(e.type) && Number.isFinite(e.time) &&
@@ -53,7 +53,7 @@ export function arenaNearby(state, player) {
   const closest = (items, reach) => (items || []).filter(x => x && x.alive !== false && distance(x) <= reach)
     .sort((a, b) => distance(a) - distance(b))[0] ?? null;
   const mine = closest((state.nodes || []).filter(n => n.stock > 0), 8);
-  const loot = closest((state.loot || []).filter(n => !n.expires || n.expires > state.elapsed), 3);
+  const loot = closest((state.loot || []).filter(n => (!n.expires || n.expires > state.elapsed) && (!n.ownerHero || n.ownerHero === player.hero) && !(n.kind === 'equipment' && (player.gear?.[n.item?.slot]?.tier ?? 0) >= (n.item?.tier ?? 1))), 3);
   const tower = closest((state.towers || []).filter(t => t.team === player.team && t.hp > 0), 10);
   const enemy = player.team === 'A' ? 'B' : 'A';
   const seal = { x: enemy === 'A' ? 14 : state.w - 14, y: state.h / 2 };

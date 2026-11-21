@@ -3,6 +3,7 @@
  * A future trusted game server must run and validate all commands itself.
  */
 import {EQUIPMENT_SLOTS,itemDefinition,resolveGear,isExclusiveItem,dropTier,CONSUMABLE_TYPES,consumableDefinition} from './arena-v2-armory.mjs';
+import {PICKUP_LIMIT,PICKUP_LIFETIME_MS,ARENA_PICKUP_BY_ID,rollArenaPickupDefinition,applyArenaPickupEffect} from './arena-v2-pickups.mjs';
 import {ARENA_MAPS,getArenaMap,terrainFor} from './arena-v2-maps.mjs';
 import {BUILD_COSTS,initializeBuildings,operational,baseSite,beginBuild,beginSealRebuild,processEmpireBuilds} from './arena-v2-empire.mjs';
 import {STARTER_HERO_KITS,starterAttack,starterSkillCooldown,starterCanAct,starterMoveFactor,starterHitModifiers,starterEvades,starterAfterDamage,castStarterSkill,tickStarterKits} from './arena-starter-hero-kits.mjs';
@@ -111,17 +112,33 @@ export function rollEquipmentDrop(s,killer,loser,quality=.45,source='hero'){
  s.loot.push(drop);log(s,'equipment_drop',{actor:killer.id,hero:killer.hero,name:item.name,slot:item.slot||item.type,tier,source,x:loser.x,y:loser.y});return drop;
 }
 
+/** Match-only deterministic drop, capped independently of all permanent economy. */
+export function rollArenaFieldPickup(s,killer,loser,source='hero'){
+ if(!s||s.status!=='active'||!killer?.alive||!loser||!HEROES[killer.hero])return null;
+ if(s.loot.filter(x=>x.kind==='field_pickup').length>=PICKUP_LIMIT||s.loot.length>=36)return null;
+ const chance={hero:.43,boss:.92,buff:.48,unit:.17,tower:.65}[source]??.2;
+ if(rand(s)>chance)return null;
+ const item=rollArenaPickupDefinition({hero:killer.hero,matchLevel:killer.matchLevel,source,random:()=>rand(s)});
+ if(!item)return null;
+ const drop={id:'field'+s.nextId++,x:loser.x,y:loser.y,kind:'field_pickup',
+  itemId:item.id,ownerHero:item.hero,effect:item.effect,rarity:item.rarity,
+  expires:s.elapsed+PICKUP_LIFETIME_MS};
+ s.loot.push(drop);
+ log(s,'field_pickup_drop',{actor:killer.id,id:drop.id,itemId:item.id,name:item.name,
+  rarity:item.rarity,hero:item.hero,source,x:drop.x,y:drop.y});
+ return drop;
+}
 function hit(s,p,target,base){if(!p?.alive||!alive(target)||target.team===p.team||(target.kind!=='kit_wall'&&lineBlocked(s,p,target)))return false;
  if(starterEvades(s,target)){log(s,'kit_evasion',{actor:target.id,from:p.id,x:target.x,y:target.y});return true;}
- const offense=gearOf(p),defense=s.players[target.id]?gearOf(target):{mitigation:0,block:0};const raw=starterHitModifiers(s,p,target,(base+offense.attack)*skillMult(p)),mitigated=raw*(1-Math.min(.32,(defense.mitigation||0)+(defense.block||0)));const resisted=target.shield?Math.min(target.shield,mitigated):0;target.shield=(target.shield||0)-resisted;const d=Math.max(0,mitigated-resisted),priorHp=target.hp;target.hp=Math.max(0,target.hp-d);target.lastDamage=s.elapsed;p.hits++;log(s,'damage',{from:p.id,to:target.id,amount:Math.round(Math.min(d,priorHp)),absorbed:Math.round(resisted),fromX:p.x,fromY:p.y,toX:target.x,toY:target.y,x:target.x,y:target.y});
+ const offense=gearOf(p),defense=s.players[target.id]?gearOf(target):{mitigation:0,block:0};const fieldFury=p.effects?.fieldFury>s.elapsed?Math.min(.22,p.effects.fieldFuryStrength||0):0,fieldGuard=target.effects?.fieldGuard>s.elapsed?Math.min(.2,target.effects.fieldGuardStrength||0):0;const raw=starterHitModifiers(s,p,target,(base+offense.attack)*skillMult(p)*(1+fieldFury)),mitigated=raw*(1-Math.min(.42,(defense.mitigation||0)+(defense.block||0)+fieldGuard));const resisted=target.shield?Math.min(target.shield,mitigated):0;target.shield=(target.shield||0)-resisted;const d=Math.max(0,mitigated-resisted),priorHp=target.hp;target.hp=Math.max(0,target.hp-d);target.lastDamage=s.elapsed;p.hits++;log(s,'damage',{from:p.id,to:target.id,amount:Math.round(Math.min(d,priorHp)),absorbed:Math.round(resisted),fromX:p.x,fromY:p.y,toX:target.x,toY:target.y,x:target.x,y:target.y});
  starterAfterDamage(s,p,target,log);
   if(target.hp>0)return true;target.alive=false;log(s,'defeat',{from:p.id,to:target.id,team:target.team??null,kind:target.kind||'hero',x:target.x,y:target.y});
  if(s.players[target.id]){target.deaths++;p.kills++;s.teams[p.team].kills++;target.respawnAt=s.elapsed+7500;
-  const carried=Object.values(target.bag).reduce((a,b)=>a+b,0);if(carried>0){s.loot.push({id:'resources'+s.nextId++,x:target.x,y:target.y,kind:'resources',resources:{...target.bag},expires:s.elapsed+45000});target.bag={wood:0,gold:0,stone:0};log(s,'resource_drop',{from:target.id,amount:Math.round(carried)})}const repeat=p.killHistory[target.id]||0;p.killHistory[target.id]=repeat+1;awardXp(s,p,Math.max(12,Math.round(115/(repeat+1))),'hero_defeat');const quality=between((p.attacks? p.hits/p.attacks:0)*.45+(p.contributions? .35:0)+.2,0,1);if(repeat<2)rollEquipmentDrop(s,p,target,quality,'hero')}
- else if(target.kind==='stalker'||target.kind==='shellkeeper'){log(s,'boss_defeat',{actor:p.id,target:target.id,kind:target.kind,x:target.x,y:target.y});awardXp(s,p,140,'world_boss');rollEquipmentDrop(s,p,target,.65,'boss');if(target.kind==='shellkeeper'){for(const t of s.towers.filter(t=>t.team===p.team&&t.alive))t.structureXp+=65;s.seals[p.team].hp=Math.min(s.seals[p.team].maxHp,s.seals[p.team].hp+70);log(s,'structure_xp',{team:p.team,amount:65})}else{p.effects.hunter=s.elapsed+55000;log(s,'hunter_reward',{actor:p.id})}target.respawnAt=s.elapsed+105000;}
- else if(BUFFS[target.kind]){addBuff(s,p,target.kind);rollEquipmentDrop(s,p,target,.4,'buff');target.respawnAt=s.elapsed+65000;}
- else if(s.units.includes(target)){awardXp(s,p,16,'unit_defeat');}
- else if(s.towers.includes(target)){target.lastDamage=s.elapsed;awardXp(s,p,65,'tower_destroyed');log(s,'tower_destroyed',{team:target.team,tower:target.id})}
+  const carried=Object.values(target.bag).reduce((a,b)=>a+b,0);if(carried>0){s.loot.push({id:'resources'+s.nextId++,x:target.x,y:target.y,kind:'resources',resources:{...target.bag},expires:s.elapsed+45000});target.bag={wood:0,gold:0,stone:0};log(s,'resource_drop',{from:target.id,amount:Math.round(carried)})}const repeat=p.killHistory[target.id]||0;p.killHistory[target.id]=repeat+1;awardXp(s,p,Math.max(12,Math.round(115/(repeat+1))),'hero_defeat');const quality=between((p.attacks? p.hits/p.attacks:0)*.45+(p.contributions? .35:0)+.2,0,1);if(repeat<2)rollEquipmentDrop(s,p,target,quality,'hero');rollArenaFieldPickup(s,p,target,'hero')}
+ else if(target.kind==='stalker'||target.kind==='shellkeeper'){log(s,'boss_defeat',{actor:p.id,target:target.id,kind:target.kind,x:target.x,y:target.y});awardXp(s,p,140,'world_boss');rollEquipmentDrop(s,p,target,.65,'boss');rollArenaFieldPickup(s,p,target,'boss');if(target.kind==='shellkeeper'){for(const t of s.towers.filter(t=>t.team===p.team&&t.alive))t.structureXp+=65;s.seals[p.team].hp=Math.min(s.seals[p.team].maxHp,s.seals[p.team].hp+70);log(s,'structure_xp',{team:p.team,amount:65})}else{p.effects.hunter=s.elapsed+55000;log(s,'hunter_reward',{actor:p.id})}target.respawnAt=s.elapsed+105000;}
+ else if(BUFFS[target.kind]){addBuff(s,p,target.kind);rollEquipmentDrop(s,p,target,.4,'buff');rollArenaFieldPickup(s,p,target,'buff');target.respawnAt=s.elapsed+65000;}
+ else if(s.units.includes(target)){awardXp(s,p,16,'unit_defeat');rollArenaFieldPickup(s,p,target,'unit');}
+ else if(s.towers.includes(target)){target.lastDamage=s.elapsed;awardXp(s,p,65,'tower_destroyed');rollArenaFieldPickup(s,p,target,'tower');log(s,'tower_destroyed',{team:target.team,tower:target.id})}
  else if(s.buildings.includes(target)){target.lastDamage=s.elapsed;awardXp(s,p,32,'building_destroyed');log(s,'building_destroyed',{team:target.team,building:target.id})}
   else if(target.kind==='kit_wall'){log(s,'kit_wall_destroyed',{wallId:target.id,team:target.team,x:target.x,y:target.y})}
  return true;
@@ -137,7 +154,7 @@ export function command(s,playerId,action={}){
  if(s.status!=='active')return false;const p=assertOwner(s,playerId);if(!p||!action||typeof action.type!=='string')return false;
   if(['move','attack','skill'].includes(action.type)&&!starterCanAct(s,p))return false;
   const t=s.teams[p.team];
- if(action.type==='move'){if(p.lastMoveTick===s.tick)return false;const dx=Number(action.dx),dy=Number(action.dy),mag=Math.hypot(dx,dy);if(!Number.isFinite(mag)||mag<.05)return false;const sp=4.4*(1+gearOf(p).speed)*(p.effects.lumen>s.elapsed?1.16:1)*(p.effects.slow>s.elapsed?.7:1)*starterMoveFactor(s,p),step=sp*STEP_MS/1000;
+ if(action.type==='move'){if(p.lastMoveTick===s.tick)return false;const dx=Number(action.dx),dy=Number(action.dy),mag=Math.hypot(dx,dy);if(!Number.isFinite(mag)||mag<.05)return false;const sp=4.4*(1+gearOf(p).speed)*(p.effects.lumen>s.elapsed?1.16:1)*(p.effects.slow>s.elapsed?.7:1)*(p.effects.fieldHaste>s.elapsed?1+Math.min(.25,p.effects.fieldHasteStrength||0):1)*starterMoveFactor(s,p),step=sp*STEP_MS/1000;
   const x=between(p.x+dx/mag*step,2,s.w-2),y=between(p.y+dy/mag*step,2,s.h-2);if(distance({x,y},p)>.6||s.cover.some(([cx,cy,r])=>Math.hypot(x-cx,y-cy)<r+1))return false;p.x=x;p.y=y;p.moves++;p.lastMoveTick=s.tick;return true}
  if(action.type==='mine'){if(s.elapsed-p.lastMine<700)return false;const node=s.nodes.find(x=>x.id===action.nodeId)||s.nodes.filter(n=>distance(p,n)<8).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!node||distance(p,node)>8||node.stock<=0)return false;
   const bagTotal=Object.values(p.bag).reduce((a,b)=>a+b,0);if(bagTotal>=65)return false;const base=Math.min(12,node.stock,65-bagTotal),buff=p.effects[{wood:'forest',gold:'golden',stone:'stone'}[node.type]]>s.elapsed?BUFFS[{wood:'forest',gold:'golden',stone:'stone'}[node.type]].rate:0;
@@ -214,7 +231,16 @@ export function command(s,playerId,action={}){
   else if(kind==='mana')p.mana=Math.min(p.maxMana,p.mana+45);
   else if(kind==='ward')p.shield=Math.min(shieldCap(p),p.shield+40);
   else if(kind==='edge')p.effects.edge=s.elapsed+50000;
-  else if(kind==='resources'){
+  else if(kind==='field_pickup'){
+   if(!item.itemId||!ARENA_PICKUP_BY_ID[item.itemId]||item.expires<=s.elapsed)return false;
+   const definition=ARENA_PICKUP_BY_ID[item.itemId];
+   if(item.ownerHero!==definition.hero)return false;
+   const receipt=applyArenaPickupEffect(s,p,definition,{awardXp,shieldCap});
+   if(!receipt)return false;
+   log(s,'field_pickup_claimed',{actor:p.id,id:item.id,itemId:definition.id,
+    name:definition.name,effect:receipt.effect,amount:receipt.amount,rarity:definition.rarity,
+    x:item.x,y:item.y});
+  }else if(kind==='resources'){
     let limit=Math.max(0,65-Object.values(p.bag).reduce((a,b)=>a+b,0));
     if(limit<=0)return false;
     for(const k of ['wood','gold','stone']){
@@ -228,7 +254,7 @@ export function command(s,playerId,action={}){
   }else p.effects.lumen=s.elapsed+40000;
   const allCollected=kind!=='resources'||!Object.values(item.resources).some(v=>v>0);
   if(allCollected)s.loot=s.loot.filter(x=>x.id!==item.id);
-  log(s,'loot',{actor:p.id,kind,lootId:item.id,name:item.item?.name??kind,tier:item.item?.tier??1,resources:collectedResources,x:item.x,y:item.y});return true}
+  log(s,'loot',{actor:p.id,kind,lootId:item.id,name:item.item?.name??ARENA_PICKUP_BY_ID[item.itemId]?.name??kind,tier:item.item?.tier??ARENA_PICKUP_BY_ID[item.itemId]?.tier??1,itemId:item.itemId??null,resources:collectedResources,x:item.x,y:item.y});return true}
 
  return false;
 }
@@ -272,7 +298,7 @@ function runBot(s,p){if(!p.alive||s.elapsed-p.botAt<400)return;p.botAt=s.elapsed
  const node=s.nodes.filter(n=>n.stock>10).sort((a,b)=>distance(a,p)-distance(b,p))[0];if(!node)return;const bag=Object.values(p.bag).reduce((a,b)=>a+b,0);if(bag>=60){const depot={x:p.team==='A'?18:s.w-18,y:s.h/2};command(s,p.id,{type:'move',dx:depot.x-p.x,dy:depot.y-p.y})}else if(distance(p,node)<8)command(s,p.id,{type:'mine',nodeId:node.id});else command(s,p.id,{type:'move',dx:node.x-p.x,dy:node.y-p.y});
 }
 export function tick(s,commands=[]){if(s.status!=='active')return s;s.tick++;s.elapsed+=STEP_MS;
- for(const p of Object.values(s.players))if(p.alive){p.mana=Math.min(p.maxMana,p.mana+(3.3+gearOf(p).regen)*STEP_MS/1000);if(s.huntStarted===null){const home=baseSite(s,p.team);if(distance(p,home)<7){p.hp=Math.min(p.maxHp,p.hp+.55);p.mana=Math.min(p.maxMana,p.mana+.5)}}}
+ for(const p of Object.values(s.players))if(p.alive){p.mana=Math.min(p.maxMana,p.mana+(3.3+gearOf(p).regen)*STEP_MS/1000);if(p.effects.fieldRegen>s.elapsed)p.hp=Math.min(p.maxHp,p.hp+Math.max(0,p.effects.fieldRegenStrength||0)*STEP_MS/1000);if(s.huntStarted===null){const home=baseSite(s,p.team);if(distance(p,home)<7){p.hp=Math.min(p.maxHp,p.hp+.55);p.mana=Math.min(p.maxMana,p.mana+.5)}}}
 s.phase=s.huntStarted!==null?'hunt':s.elapsed<120000?'expansion':s.elapsed<540000?'territory':'siege';
  for(const c of commands){if(c&&typeof c.playerId==='string')command(s,c.playerId,c.action)}
  if(s.tick%4===0)for(const p of Object.values(s.players))if(p.bot)runBot(s,p);
