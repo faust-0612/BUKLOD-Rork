@@ -295,7 +295,8 @@
     "src/features/season2/genesis/genesisApprovedEntryHotspots.json",
     "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
     "src/app/community-village.tsx",
-    "tests/season2-community-village-preview-20261121.test.mjs"
+    "tests/season2-community-village-preview-20261121.test.mjs",
+    "docs/season2/CONSO_OWNER_APPROVED_MAP_REAUDIT_20261121.md"
   ],
   "publicationStatus": "Consolidated Season 2 + Arena DEV source merged and protected. No new staging project/branch. No signed native build or EAS OTA published; ranked Diamond settlement still disabled.",
   "acceptanceChecks": [
