@@ -610,7 +610,7 @@ function EmpireArenaInApp() {
   const attack = () => {
     const game=gameRef.current, me=game?.players[localSeat];
     const basic=arenaKind==='practice' && me?.hero ? starterAttack(me.hero) : null;
-    execute({type:'attack',targetId:closestEnemy(basic?.range ?? 5.5)?.id});
+    execute({type: 'attack',targetId:closestEnemy(basic?.range ?? 5.5)?.id});
   };
   const skill = (slot: 'primary' | 'secondary' | 'ultimate') => {
     const game = gameRef.current, self = game?.players[localSeat];

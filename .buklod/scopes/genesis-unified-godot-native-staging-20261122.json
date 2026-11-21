@@ -1,0 +1,88 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-unified-godot-native-staging-20261122.json",
+  "objective": "Reconcile first all-native Genesis Android foundation in ONE BUKLOD MAIN staging APK: existing Arena Godot plus native Kingdom, Personal Community and House previews, approved art/SFX, safe gameplay/LOS regression and fail-closed source/Android acceptance. No production or live reward changes.",
+  "baseRef": "dev/arena-godot-native-migration-20261122",
+  "chosenApproach": "Reuse audited Godot Android 4.7.2 AAR, shared deterministic packed main scene, Native Expo bridge, approved existing assets; add zero speculative Android SDKs. Preserve full legacy Arena until Godot parity and physical device proof. New staging runtime 2.0.3 only when all opt-ins present.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-unified-godot-native-staging-20261122.json",
+    ".github/workflows/genesis-unified-godot-native-qa-20261122.yml",
+    "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
+    "app.config.js",
+    "scripts/build-empire-godot-pack.mjs",
+    "modules/buklod-genesis-godot/index.ts",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/BuklodGenesisGodotModule.kt",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java",
+    "src/features/season2/world/Season2DevelopmentMap.tsx",
+    "godot/empire-arena/scenes/WorldPreview.tscn",
+    "godot/empire-arena/scripts/world_preview.gd",
+    "godot/empire-arena/tests/world_smoke.gd",
+    "godot/empire-arena/README_UNIFIED_WORLDS.md",
+    "tests/arena-full-functionality-audit-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "experiments/empire-arena-v2/arena-starter-hero-kits.mjs",
+    "experiments/empire-arena-v2/arena-v2-engine.mjs",
+    "src/app/games/empire-arena.tsx"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared four-scene Godot native preview entrypoints behind staged 2.0.3 runtime",
+      "preservedBehaviors": [
+        "BUKLOD MAIN same single package and authenticated route guards",
+        "Production native runtime and OTA untouched",
+        "Existing signed staging runtime never receives incompatible native OTA",
+        "AdMob first view, consent, video-offscreen, PTT/call audio and navigation preserved"
+      ],
+      "tests": [
+        "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "arena-gameplay",
+      "reason": "Restore wall collision and LOS guarantees after owner-supplied hero kits",
+      "preservedBehaviors": [
+        "No through-wall movement/damage",
+        "Blocked skill never consumes mana",
+        "New Quin beacon/route-dash identities remain distinct",
+        "All old practice actions remain discoverable",
+        "Ranked, BP, Diamonds and inventory stay backend-authoritative"
+      ],
+      "tests": [
+        "tests/arena-full-functionality-audit-20261121.test.mjs",
+        "tests/empire-arena-v2-presentation-20261121.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
+    "tests/arena-full-functionality-audit-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "tests/arena-godot-native-migration-20261122.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "No repo main/prod edits",
+    "No new native dangerous permissions",
+    "No live Supabase/finance write",
+    "No unapproved asset downloads",
+    "Identity user/scope authorization stays in React Native + server",
+    "Multiple worlds share one signed Godot pack; no standalone app"
+  ],
+  "riskAreas": [
+    "Godot CLI --scene + app-specific arguments on embedded Android",
+    "audio focus/stream calls",
+    "existing Expo runtime regression",
+    "Kotlin/Gradle build",
+    "signed debug APK cannot replace EAS certificate",
+    "unisolated SOS/World backend"
+  ],
+  "releaseMode": "DEV_ONLY_NO_PRODUCTION_OR_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "acceptanceChecks": [
+    "Run new source tests including blocked LOS/dash and retained old Arena commands",
+    "Godot 4.7.2 engine headless tests smoke, art and all three world artworks/sounds",
+    "Gradle arm64 APK compile, Godot native library, pack SHA256, Android manifest/test ads",
+    "Device-verified EAS signed staging build required separately once proper isolated backend and CI gates pass"
+  ]
+}
