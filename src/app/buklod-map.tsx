@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Image, ImageBackground, Pressable, ScrollView, StyleSheet,
-  Text, View,
+  Text, View, useWindowDimensions,
 } from 'react-native';
 import { router, Redirect, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -26,6 +26,8 @@ export default function BuklodMapScreen() {
   const { config } = useRuntimeConfig();
   const { activeScope } = useBuklodScope();
   const insets = useSafeAreaInsets();
+  const {width:windowWidth,height:windowHeight}=useWindowDimensions();
+  const landscape=windowWidth>windowHeight && windowHeight<=520;
   const [focused, setFocused] = useState(false);
   const [selectedId, setSelectedId] = useState('community');
   const [selectedHotspotId, setSelectedHotspotId] = useState('community-wall-plaza');
@@ -66,9 +68,12 @@ export default function BuklodMapScreen() {
       <GenesisCosmicSky active={focused} transparent />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: Math.max(12, insets.top) + 12, paddingBottom: Math.max(20, insets.bottom) + 44 }]}
+        contentContainerStyle={[styles.content, landscape&&styles.landscapeContent, { paddingTop: landscape ? Math.max(2,insets.top)+2 : Math.max(12, insets.top) + 12, paddingBottom: Math.max(20, insets.bottom) + 44 }]}
         showsVerticalScrollIndicator={false}
       >
+        <View style={landscape ? styles.landscapeFirstRow : undefined}>
+          <View style={landscape ? styles.landscapeMapColumn : undefined}>
+          {!landscape ? <>
         <View style={styles.topline}>
           <View style={styles.brand}>
             <Image source={require('../../assets/season2/genesis/genesis-green-b-transparent.png')} style={styles.brandMark} resizeMode="contain"/>
@@ -96,6 +101,7 @@ export default function BuklodMapScreen() {
             collapses on no fill/consent without reserving a blank pane. */}
         <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
 
+          </> : null}
         <GenesisValleyMap
           active={focused}
           showFaith={showFaith}
@@ -110,6 +116,20 @@ export default function BuklodMapScreen() {
             router.push(hotspot.route as any);
           }}
         />
+          </View>
+          {landscape ? <View style={styles.landscapeAdColumn}>
+            <Text style={styles.eyebrow}>BUKLOD WORLD MAP</Text>
+            <Text style={styles.title}>{GENESIS_IDENTITY.title}</Text>
+            <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
+            <Pressable accessibilityRole="button" accessibilityLabel={musicEnabled?'Turn ambient music off':'Turn ambient music on'}
+              onPress={()=>{if(!musicEnabled) requestBuklodAudioFocus('genesis-valley-map'); toggleMusic();}}
+              style={styles.musicButton}>
+              <MaterialCommunityIcons name={musicEnabled?'music-note':'music-note-off'} size={18} color="#FFF0CC"/>
+              <Text style={styles.musicText}>{musicEnabled?'Music on':'Music off'}</Text>
+            </Pressable>
+            <Text style={styles.landscapeHint}>Tap a building or landmark once to enter. The guide stays below, outside the map.</Text>
+          </View> : null}
+        </View>
         <View style={styles.mapSelectedCaption}>
           <Text style={styles.selectedCaptionText}>
             {selectedHotspot ? selectedHotspot.label : district.title}
@@ -187,6 +207,11 @@ const styles = StyleSheet.create({
   underpainting: { opacity: .78 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 14, width: '100%', maxWidth: 700, alignSelf: 'center' },
+  landscapeContent:{maxWidth:1100,paddingHorizontal:6},
+  landscapeFirstRow:{flexDirection:'row',alignItems:'flex-start',gap:8},
+  landscapeMapColumn:{flex:6,minWidth:0,alignItems:'center'},
+  landscapeAdColumn:{flex:4,minWidth:0,paddingTop:9,gap:8,paddingRight:4},
+  landscapeHint:{color:'#D6E4F2',fontSize:11,lineHeight:15},
   topline: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between' },
   brand: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, gap: 7 },
   brandMark: { height: 46, width: 40 },
