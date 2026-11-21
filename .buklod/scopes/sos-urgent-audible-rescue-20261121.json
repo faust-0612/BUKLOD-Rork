@@ -32,7 +32,8 @@
     "Old Android tokens retain activity notification channel; no unsupported custom sound assigned to older native installations",
     "Caller can end own SOS but recipients cannot resolve others' requests",
     "Current Ads and global navigation regression locks remain unchanged",
-    "No live backend schema, production native APK, or OTA mutated by this DEV source change"
+    "No live backend schema, production native APK, or OTA mutated by this DEV source change",
+    "The pre-existing Genesis 2.0.0 runtime and package remain unchanged; only a newly signed SOS-native APK can claim emergency sound capability."
   ],
   "regressionTests": [
     "tests/sos-global-emergency-overlay-20261107.test.mjs",
@@ -83,7 +84,8 @@
     "Disabled nearby alert setting remains off across background and foreground transitions",
     "All changed regression tests, TypeScript, staging RPC integration, native two-device QA, AdMob/nav regression gate and exact RC must pass before any merge/release",
     "Read-only database contract test proves no direct authenticated writes or anonymous access to rescue/location RPCs.",
-    "The exact new native staging runtime 2.0.1-genesis-sos cannot publish to older 2.0.0-genesis-preview APKs; production 1.3.2 unchanged."
+    "The exact new native staging runtime 2.0.1-genesis-sos cannot publish to older 2.0.0-genesis-preview APKs; production 1.3.2 unchanged.",
+    "Native SOS capability is registered only when Updates.runtimeVersion proves the installed binary runtime is 2.0.1-genesis-sos."
   ],
   "allowedPaths": [
     "app.config.js",
@@ -101,6 +103,7 @@
     ".buklod/scopes/sos-urgent-audible-rescue-20261121.json",
     "supabase/tests/sos_urgent_responder_security_20261121.sql",
     ".buklod/releases/genesis-ptt-sos-conso-staging-prep-20261122.json",
-    "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs"
+    "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs",
+    "eas.json"
   ]
 }

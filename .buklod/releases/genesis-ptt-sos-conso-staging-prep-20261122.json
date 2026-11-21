@@ -52,7 +52,11 @@
     "previousStagingRuntime": "2.0.0-genesis-preview",
     "existingStagingAPKsCannotReceiveSOSRuntimeOTA": true,
     "packageName": "org.mzbministry.buklod.staging",
-    "avoidOldBuildNoSound": "old APK does not contain native SOS raw asset; do not use same OTA runtime"
+    "avoidOldBuildNoSound": "old APK does not contain native SOS raw asset; do not use same OTA runtime",
+    "newSignedSosProfile": "season2-genesis-sos-preview",
+    "runtimeSelectorEnv": "EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3=true",
+    "previousStagingRuntimePreserved": true,
+    "defaultGenesisPreviewRuntime": "2.0.0-genesis-preview"
   },
   "gates": {
     "sourceContract": "scripts/community-help-sos-release-contract.mjs",
@@ -73,7 +77,8 @@
       "account-isolation and location disclosure",
       "two-device notification overlay and map route",
       "exact RC Expo/EAS provider receipt",
-      "native runtime isolation: old 2.0.0 Genesis APK never gets new SOS OTA"
+      "native runtime isolation: old 2.0.0 Genesis APK never gets new SOS OTA",
+      "EAS build profile season2-genesis-sos-preview is the ONLY build intended for the new SOS custom sound; old Genesis preview build remains unchanged."
     ],
     "physicalDeviceTest": "not performed; user previously elected to skip, do not label as passed"
   },

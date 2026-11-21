@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
@@ -25,7 +26,9 @@ export async function registerPushToken(userId: string) {
   // Dedicated SOS channel must exist BEFORE the token advertises capability.
   let emergencyChannelReady = false;
   if (Platform.OS === 'android') {
-    try {
+    // The installed native binary, not an OTA JS flag, is authoritative.
+    // Prevent old Genesis APKs from claiming a nonexistent raw alarm resource.
+    if (Updates.runtimeVersion === '2.0.1-genesis-sos') try {
       await Notifications.setNotificationChannelAsync('buklod-emergency-v2', {
         name: 'BUKLOD Emergency SOS',
         description: 'Urgent nearby BUKLOD emergency alerts',
