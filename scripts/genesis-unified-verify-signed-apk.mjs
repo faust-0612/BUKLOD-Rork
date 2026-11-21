@@ -17,6 +17,9 @@ import {pipeline} from 'node:stream/promises';
 export const STAGING_PACKAGE = 'org.mzbministry.buklod.staging';
 export const STAGING_VERSION = '2.0.3';
 export const STAGING_RUNTIME = '2.0.3-genesis-unified-godot';
+// SHA-256 from original EAS staging signed-APK verified receipt (2026-11-20),
+// GitHub Actions artifact 14598805245. Public certificate fingerprint, not a secret.
+export const EXISTING_EAS_STAGING_CERT_SHA256 = 'b2470c2dfa865dd670293ee283cbb55463faf486af4e33a514c3e843289e41a9';
 export const STAGING_CHANNEL = 'season2-genesis-unified-preview';
 export const EXPECTED_ABIS = ['arm64-v8a','armeabi-v7a','x86','x86_64'];
 const SHA256 = /^[a-f0-9]{64}$/i;
@@ -121,8 +124,9 @@ export async function verifySignedReceipt(receipt, opts={}) {
   assert.equal(receipt.buildProfile,'season2-genesis-unified-worlds-staging');
   assert.equal(receipt.buildRuntime,STAGING_RUNTIME,'Expo build runtime metadata mismatch');
   assert.equal(receipt.buildSourceSha,sha,'Expo build source metadata mismatch');
-  const expectedSigner=String(process.env.STAGING_SIGNING_CERT_SHA256||'').toLowerCase();
-  assert.match(expectedSigner,SHA256,'Missing pinned existing staging EAS signer certificate');
+  const expectedSigner=String(process.env.STAGING_SIGNING_CERT_SHA256||EXISTING_EAS_STAGING_CERT_SHA256).toLowerCase();
+  assert.equal(expectedSigner,EXISTING_EAS_STAGING_CERT_SHA256,
+    'Existing staging signer override differs from independently verified original EAS certificate');
   const work=mkdtempSync(path.join(tmpdir(),'buklod-verified-eas-'));
   try {
     const apk=path.join(work,'signed-staging.apk');
