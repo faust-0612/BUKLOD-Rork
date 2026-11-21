@@ -271,6 +271,7 @@ function EmpireArenaInApp() {
   const [phase, setPhase] = useState<'menu' | 'queued' | 'playing' | 'paused' | 'result'>('menu');
   const [arenaKind, setArenaKind] = useState<'practice' | 'ranked'>('practice');
   const [localSeat, setLocalSeat] = useState('A0');
+  const localSeatRef = useRef('A0');
   const [revision, setRevision] = useState(0);
   const [message, setMessage] = useState('Offline practice only • No BP, diamonds, XP, cash, or ranked effects.');
   const [target, setTarget] = useState<string | null>(null);
@@ -383,7 +384,8 @@ function EmpireArenaInApp() {
       }
       tick(state);
       const drained = drainArenaAudioEvents(state.events, lastAudioEventSeq.current,
-        state.events[state.events.length - 1]?.seq ?? lastAudioEventSeq.current);
+        state.events[state.events.length - 1]?.seq ?? lastAudioEventSeq.current,
+        state.players[localSeat]?.team ?? 'A', localSeat);
       lastAudioEventSeq.current = drained.lastSeq;
       if (sfxEnabled) for (const cue of drained.cues) {
         tryPlayRorkGameFeedback(cue, cue === 'failure' || cue === 'success' ? 0.35 : 0.22);
@@ -408,6 +410,7 @@ function EmpireArenaInApp() {
     });
     gameRef.current = state;
     setLocalSeat('A0');
+    localSeatRef.current = 'A0';
     setArenaKind('practice');
     lastAudioEventSeq.current = state.events[state.events.length - 1]?.seq ?? 0;
     if (sfxEnabled) playRorkSignatureSfx(ARENA_SCENE_GAME_ID[mapId], 0.24);
@@ -437,6 +440,7 @@ function EmpireArenaInApp() {
           if (!match.players?.[seat]) return;
           gameRef.current = match;
           setLocalSeat(seat);
+          localSeatRef.current = seat;
           lastAudioEventSeq.current = match.events?.at(-1)?.seq ?? 0;
           setPhase('playing');
           setMessage('Ranked match • server-authoritative actions • one earned Diamond at risk.');
@@ -446,7 +450,9 @@ function EmpireArenaInApp() {
           if (gameRef.current && match.tick >= gameRef.current.tick) {
             gameRef.current = match;
             const latest = match.events?.at(-1)?.seq ?? lastAudioEventSeq.current;
-            const drain = drainArenaAudioEvents(match.events,lastAudioEventSeq.current,latest);
+            const seat = localSeatRef.current;
+            const drain = drainArenaAudioEvents(match.events,lastAudioEventSeq.current,latest,
+              match.players?.[seat]?.team ?? 'A', seat);
             lastAudioEventSeq.current = drain.lastSeq;
             if (sfxEnabled) for (const cue of drain.cues) tryPlayRorkGameFeedback(cue,0.22);
             setRevision(v => v + 1);
