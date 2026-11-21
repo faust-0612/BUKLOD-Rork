@@ -61,5 +61,6 @@
     "Run node --test tests/arena-300-match-pickups-20261122.test.mjs and existing Arena Node regressions",
     "Prove actual Android render/loot interaction and audio before RC",
     "Reconcile this branch with parallel villager integration and consolidated staging branch before any OTA"
-  ]
+  ],
+  "selectionRationale": "The current deterministic offline Arena battle already supports match-scoped loot, hero gear and source-authored world visuals. An original data-driven 300-item registry reuses its validated loot command and visual layer, isolates existing economy and ranked server, and delivers universal plus hero-exclusive behavior at bounded rendering cost without duplicating permanent character collectibles. Source-only rollout pending genuine native and ranked-server parity gates."
 }
