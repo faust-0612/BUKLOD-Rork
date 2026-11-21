@@ -71,7 +71,7 @@ func begin(mode: String = "cluster", hero: String = "phan",
 	var roster: Array = config["heroes"].keys()
 	for team in ["A", "B"]:
 		for i in range(count):
-			var id := team + str(i)
+			var id: String = str(team) + str(i)
 			var char: String = hero if team == "A" and i == 0 else foe if solo and team == "B" else str(roster[(i + (4 if team == "A" else 8)) % roster.size()])
 			var spawn := Vector2(17.0 if team == "A" else w - 17.0,
 				h * 0.5 + (float(i) - float(count - 1) * 0.5) * 5.0)
