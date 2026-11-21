@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as Crypto from 'expo-crypto';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AdminGate } from '@/components/AdminGate';
 import { Button, Card, shared } from '@/components/UI';
 import { supabase } from '@/lib/supabase';
@@ -87,7 +87,7 @@ export default function MentorAssignmentsAdmin() {
   };
 
   return <AdminGate>
-    <View style={[shared.screen,shared.content]}>
+    <ScrollView style={shared.screen} contentContainerStyle={shared.content} keyboardShouldPersistTaps="handled">
       <Text style={shared.h1}>Mentor Assignments</Text>
       <Card>
         <Text style={shared.h2}>Choose Mentor</Text>
@@ -119,7 +119,7 @@ export default function MentorAssignmentsAdmin() {
         </View>
         <Button title={busy?'WORKING...':'ASSIGN MENTOR'} onPress={()=>void assign()}/>
       </Card>
-    </View>
+    </ScrollView>
   </AdminGate>;
 }
 const styles=StyleSheet.create({
