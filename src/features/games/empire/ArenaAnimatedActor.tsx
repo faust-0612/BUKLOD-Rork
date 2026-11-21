@@ -31,6 +31,25 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
 }: Props) {
   const breath = useSharedValue(0);
   const motion = useSharedValue(0);
+  const screenX = useSharedValue(x - size / 2);
+  const screenY = useSharedValue(y - size * 0.77);
+  // Smooth the received 5Hz server snapshots / 10Hz practice frames on UI
+  // thread without changing the authoritative world position or hit timing.
+  useEffect(() => {
+    const nextX = x - size / 2;
+    const nextY = y - size * 0.77;
+    const jump = Math.hypot(nextX - screenX.value, nextY - screenY.value);
+    if (!active || jump > Math.max(110, size * 1.6)) {
+      cancelAnimation(screenX);
+      cancelAnimation(screenY);
+      screenX.value = nextX;
+      screenY.value = nextY;
+    } else {
+      const transition = { duration: 155, easing: Easing.out(Easing.quad) };
+      screenX.value = withTiming(nextX, transition);
+      screenY.value = withTiming(nextY, transition);
+    }
+  }, [x, y, size, active, screenX, screenY]);
   useEffect(() => {
     if (active) {
       breath.value = withRepeat(withTiming(1, { duration: 840, easing: Easing.inOut(Easing.sin) }), -1, true);
@@ -48,7 +67,8 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: -(breath.value * (1.4 + motion.value * 3.3)) },
+      { translateX: screenX.value },
+      { translateY: screenY.value - (breath.value * (1.4 + motion.value * 3.3)) },
       { rotate: `${Math.sin(breath.value * Math.PI * 2) * (sprite ? 0.9 : 1.7)}deg` },
       { scale: 1 + breath.value * 0.032 + motion.value * 0.028 },
     ],
@@ -59,7 +79,7 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
       accessible={false}
       pointerEvents="none"
       style={[
-        styles.actor, { left: x - size / 2, top: y - size * 0.77, width: size, height: size },
+        styles.actor, { left: 0, top: 0, width: size, height: size },
         animatedStyle,
       ]}
     >
