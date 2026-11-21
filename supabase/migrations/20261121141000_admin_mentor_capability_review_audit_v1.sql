@@ -55,6 +55,9 @@ begin
     raise exception 'Target must be an active BUKLOD member';
   end if;
   if target_role='system_admin' or exists (
+    select 1 from public.user_roles ur
+    where ur.user_id=p_target_id and ur.role='system_admin' and ur.is_active=true
+  ) or exists (
     select 1 from public.buklod_foundation_protected_principals pp
     where pp.user_id=p_target_id and pp.protected=true
   ) then
@@ -100,6 +103,8 @@ begin
   if new.capability='mentor' and new.is_active=true and (
     exists (select 1 from public.profiles p
             where p.id=new.user_id and p.role::text='system_admin')
+    or exists (select 1 from public.user_roles ur
+               where ur.user_id=new.user_id and ur.role='system_admin' and ur.is_active=true)
     or exists (select 1 from public.buklod_foundation_protected_principals pp
                where pp.user_id=new.user_id and pp.protected=true)
   ) then
@@ -129,6 +134,9 @@ begin
     if exists (
        select 1 from public.profiles p
        where p.id=new.mentor_id and p.role::text='system_admin'
+    ) or exists (
+       select 1 from public.user_roles ur
+       where ur.user_id=new.mentor_id and ur.role='system_admin' and ur.is_active=true
     ) or exists (
        select 1 from public.buklod_foundation_protected_principals pp
        where pp.user_id=new.mentor_id and pp.protected=true
