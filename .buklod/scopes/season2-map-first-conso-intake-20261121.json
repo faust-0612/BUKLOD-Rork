@@ -296,7 +296,8 @@
     "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
     "src/app/community-village.tsx",
     "tests/season2-community-village-preview-20261121.test.mjs",
-    "docs/season2/CONSO_OWNER_APPROVED_MAP_REAUDIT_20261121.md"
+    "docs/season2/CONSO_OWNER_APPROVED_MAP_REAUDIT_20261121.md",
+    ".github/workflows/season2-existing-eas-staging-receipt-20261121.yml"
   ],
   "publicationStatus": "Consolidated Season 2 + Arena DEV source merged and protected. No new staging project/branch. No signed native build or EAS OTA published; ranked Diamond settlement still disabled.",
   "acceptanceChecks": [
@@ -332,7 +333,8 @@
     "Owner original approved 1672x941 landscape Season 2 Entry Map is SHA256 a343c70d1c71e849b536570bd92ede7134667d40347f6465003d41710e818b02, committed and locally bundled with no recompression and 12 direct real routes.",
     "Visible baked menu/profile/notification/search controls are real accessible Pressables; reduced-motion and Show Faith alternative protected. Main Home redirects to single approved map and guide remains outside image.",
     "Genesis preflight asserts exact approved 1672x941 map path and one-tap direct navigation, replacing superseded 1448 Valley evidence.",
-    "Community Village opens a distinct nature-first visual submap: Personal Lot, House/Rooms, Community Estate, Business/Farm; 1–10 major levels plus five construction stages are marked preview-only, with real original route links and zero wallet/ownership mutations."
+    "Community Village opens a distinct nature-first visual submap: Personal Lot, House/Rooms, Community Estate, Business/Farm; 1–10 major levels plus five construction stages are marked preview-only, with real original route links and zero wallet/ownership mutations.",
+    "Read-only existing EAS staging-native receipt must identify exact signed green-B APK, same runtime, same preview channel, same package and distinct production channel; it must not publish an OTA."
   ],
   "selectionRationale": "Owner explicitly superseded previous 'skip arena' instruction with inclusion in the existing Season 2 consolidated OTA source, with NO new staging backend. No redundant Android app, no new subscriptions, no unauthorized live financial writes.",
   "preserveBehaviors": [
