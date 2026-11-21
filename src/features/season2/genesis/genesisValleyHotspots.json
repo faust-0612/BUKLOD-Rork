@@ -1,36 +1,17 @@
 {
-  "version": 3,
-  "referenceImage": "Buklod Community Map: A Welcoming Valley",
+  "version": 5,
+  "referenceImage": "BUKLOD Season 2 Entry Map — owner-approved landscape artwork, no guide overlay",
+  "assetPath": "assets/season2/genesis/world/buklod-season2-entry-map-approved.webp",
   "coordinateSystem": "normalized-image-top-left",
   "hotspots": [
-    {
-      "id": "learning-grove",
-      "label": "Learning Grove",
-      "districtId": "growth",
-      "route": "/learn",
-      "icon": "school-outline",
-      "x": 0.226,
-      "y": 0.228,
-      "faithOnly": false
-    },
-    {
-      "id": "faith-center",
-      "label": "Faith Center",
-      "districtId": "growth",
-      "route": "/bible",
-      "icon": "book-cross",
-      "x": 0.493,
-      "y": 0.222,
-      "faithOnly": true
-    },
     {
       "id": "character-kingdom",
       "label": "Character Kingdom",
       "districtId": "kingdom",
       "route": "/games",
       "icon": "castle",
-      "x": 0.65,
-      "y": 0.15,
+      "x": 0.181,
+      "y": 0.215,
       "faithOnly": false
     },
     {
@@ -39,120 +20,110 @@
       "districtId": "arena",
       "route": "/games/empire-arena",
       "icon": "shield-sword-outline",
-      "x": 0.806,
-      "y": 0.224,
+      "x": 0.832,
+      "y": 0.227,
+      "faithOnly": false
+    },
+    {
+      "id": "knowledge-sanctuary",
+      "label": "Knowledge Sanctuary",
+      "districtId": "growth",
+      "route": "/learn",
+      "icon": "book-open-page-variant-outline",
+      "x": 0.552,
+      "y": 0.317,
       "faithOnly": false
     },
     {
       "id": "cluster-village",
-      "label": "Cluster Village",
+      "label": "Community Village",
       "districtId": "communities",
-      "route": "/clusters",
-      "icon": "account-group-outline",
-      "x": 0.057,
-      "y": 0.318,
-      "faithOnly": false
-    },
-    {
-      "id": "health-center",
-      "label": "Health Center",
-      "districtId": "services",
-      "route": "/profile/buklod-health",
-      "icon": "hospital-box-outline",
-      "x": 0.266,
-      "y": 0.371,
-      "faithOnly": false
-    },
-    {
-      "id": "connect-hub",
-      "label": "Connect Hub",
-      "districtId": "connect",
-      "route": "/messages",
-      "icon": "forum-outline",
-      "x": 0.459,
-      "y": 0.374,
-      "faithOnly": false
-    },
-    {
-      "id": "government-hall",
-      "label": "Government Hall",
-      "districtId": "services",
-      "route": "/profile/focus-apps",
-      "icon": "bank-outline",
-      "x": 0.66,
-      "y": 0.358,
-      "faithOnly": false
-    },
-    {
-      "id": "business-district",
-      "label": "Business District",
-      "districtId": "market",
-      "route": "/profile/buklod-business",
-      "icon": "office-building-outline",
-      "x": 0.878,
-      "y": 0.358,
-      "faithOnly": false
-    },
-    {
-      "id": "family-homes",
-      "label": "Family Homes",
-      "districtId": "my-place",
-      "route": "/personal-home",
-      "icon": "home-heart",
-      "x": 0.062,
-      "y": 0.476,
-      "faithOnly": false
-    },
-    {
-      "id": "support-center",
-      "label": "Support Center",
-      "districtId": "services",
-      "route": "/support/live",
-      "icon": "lifebuoy",
-      "x": 0.262,
-      "y": 0.512,
-      "faithOnly": false
-    },
-    {
-      "id": "market-street",
-      "label": "Market Street",
-      "districtId": "market",
-      "route": "/profile/buklod-market",
-      "icon": "storefront-outline",
-      "x": 0.766,
-      "y": 0.497,
-      "faithOnly": false
-    },
-    {
-      "id": "children-story-world",
-      "label": "Children's Story World",
-      "districtId": "growth",
-      "route": "/children-stories",
-      "icon": "book-open-variant",
-      "x": 0.083,
-      "y": 0.685,
+      "route": "/season2/community-village",
+      "icon": "home-group",
+      "x": 0.13,
+      "y": 0.47,
       "faithOnly": false
     },
     {
       "id": "community-wall-plaza",
-      "label": "Community Wall Plaza",
+      "label": "Community Hall",
       "districtId": "community",
       "route": "/buklod",
-      "icon": "earth",
-      "x": 0.464,
-      "y": 0.632,
+      "icon": "forum-outline",
+      "x": 0.348,
+      "y": 0.508,
+      "faithOnly": false
+    },
+    {
+      "id": "connect-hub",
+      "label": "Connect Center",
+      "districtId": "connect",
+      "route": "/messages",
+      "icon": "forum",
+      "x": 0.625,
+      "y": 0.494,
+      "faithOnly": false
+    },
+    {
+      "id": "marketplace",
+      "label": "Marketplace",
+      "districtId": "market",
+      "route": "/profile/buklod-market",
+      "icon": "storefront-outline",
+      "x": 0.787,
+      "y": 0.491,
       "faithOnly": false
     },
     {
       "id": "bayanihan-hall",
-      "label": "Bayanihan Hall",
+      "label": "Bayanihan Center",
       "districtId": "communities",
       "route": "/bayanihan",
       "icon": "handshake-outline",
-      "x": 0.813,
-      "y": 0.692,
+      "x": 0.919,
+      "y": 0.555,
+      "faithOnly": false
+    },
+    {
+      "id": "family-homes",
+      "label": "My Home",
+      "districtId": "my-place",
+      "route": "/season2/my-world",
+      "icon": "home-heart",
+      "x": 0.123,
+      "y": 0.729,
+      "faithOnly": false
+    },
+    {
+      "id": "focus-apps-center",
+      "label": "Focus Apps Center",
+      "districtId": "services",
+      "route": "/profile/focus-apps",
+      "icon": "bank-outline",
+      "x": 0.345,
+      "y": 0.828,
+      "faithOnly": false
+    },
+    {
+      "id": "achievement-hall",
+      "label": "Achievement Hall",
+      "districtId": "growth",
+      "route": "/points/progression",
+      "icon": "trophy-outline",
+      "x": 0.578,
+      "y": 0.827,
+      "faithOnly": false
+    },
+    {
+      "id": "life-center",
+      "label": "Life Center",
+      "districtId": "my-place",
+      "route": "/personal-home/reminders",
+      "icon": "sprout-outline",
+      "x": 0.835,
+      "y": 0.795,
       "faithOnly": false
     }
   ],
-  "positionAuthority": "Original 14 approved Valley gold-icon centers remain fixed; Character Kingdom is one clearly separate companion portal overlay near the Arena skyline (not a new building painted on baseline art)."
+  "positionAuthority": "Twelve owner-approved landmark labels, coordinates derived from full 1672 x 941 landscape art. Character Kingdom and Empire Arena are physically distinct. Guide is docked outside the image."
 }

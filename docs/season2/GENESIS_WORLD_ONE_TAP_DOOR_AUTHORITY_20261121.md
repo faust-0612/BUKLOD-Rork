@@ -1,33 +1,41 @@
-# BUKLOD Season 2 — One-tap door authority (DEV only)
+# BUKLOD Season 2 — owner-approved world and one-tap door authority (DEV only)
 
-## Canonical illustrated entry map
-- Preserve the approved **BUKLOD Community Map: A Welcoming Valley** local WebP exactly; original 14 gold-icon landmarks and coordinates remain unchanged.
-- Add a separate **Character Kingdom** map portal at normalized (0.650, 0.150), near the high plateau; **Empire Arena** retains original top-right Arena landmark (0.806, 0.224). The extra portal is an overlay, not an altered or generated building. The two must be visually reviewed for exact alignment on Android before final visual acceptance.
-- All hotspot taps call the corresponding existing route immediately (debounced to avoid duplicate pushes). There is **no Enter button**, no required downward scroll or two-step selection. Zoom is optional.
-- Genesis startup and legacy Home re-entry both resolve to `/buklod-map`; production remains the existing Wall first view and its legacy navigation.
-- Map's first-view ad remains present, collapses on non-fill/consent under the original ad component; audio remains opt-in and yields to media/calls/ads.
+## Owner-approved entry map
+- The current visual authority is **BUKLOD Season 2 Entry Map** (landscape 1672×941), not the superseded **Welcoming Valley** reference. Its optimized, locally bundled WebP is at `assets/season2/genesis/world/buklod-season2-entry-map-approved.webp`.
+- Twelve **on-image labels** are preserved. Interactive 44 px hotspots are UI overlays; images are not repainted by an assistant bubble.
+- The moving selected-character guide is a **separate bottom dock outside the map ScrollView**, never over the map. It waves when reduced-motion is off and offers one-tap routes plus a local privacy-preserving keyword guide; it is not a remote LLM or voice recognition service.
+- On compact landscape screens, first-view AdMob occupies a side column beside the map. It is not moved out of the initial viewport; the guide remains below. The destination directory underneath is optional.
+- Map/secondary world artwork is local and decodes offline; retained existing V2 backgrounds serve as the fallback in secondary worlds. Neither map nor artwork creates BP, QMP, Diamonds or unlocks.
 
-## One district owns each route
+## Twelve primary landmarks
 
-| Primary door | What belongs inside | Canonical entry |
+| Visual label | One-tap destination | Authority |
 | --- | --- | --- |
-| My Place / Family Homes | Personal Home, profile, BP view, radio, reminders, budget | `/personal-home` |
-| Community Wall Plaza | Public Wall, Reels, invites | `/buklod` |
-| Connect Hub | Messages, calls, notifications | `/messages` |
-| Cluster Village / Bayanihan Hall | Cluster, organization, sub-organization, community discovery, Bayanihan | `/clusters` / `/bayanihan` |
-| Learning Grove / Children's Story World / Faith Center | Learning, progression, Season Journey, children's stories, optional Bible/Life | `/learn` |
-| **Character Kingdom** | 13 characters and realms, progression, collectibles, game practice | `/games` |
-| **Empire Arena** | Separate embedded in-app landscape combat/practice, future ranked authority | `/games/empire-arena` |
-| Market Street / Business District | Market, business, economy guide, qualified community contributions | `/profile/buklod-market` |
-| Government Hall / Health Center / Support Center | Focus Apps (government and education), health, family, help, support, settings | `/profile/focus-apps` |
+| Character Kingdom | `/games` | Character game + item systems |
+| Empire Arena | `/games/empire-arena` | Separate combat game with server-gated ranked authority |
+| Knowledge Sanctuary | `/learn` | Learning; opt-in Bible/faith subfeatures |
+| Community Village | `/season2/community-village` | New village visual hub; Cluster/Org existing routes remain authoritative |
+| Community Hall | `/buklod` | Public Wall, Marites, Reels |
+| Connect Center | `/messages` | Messaging, calls, PTT |
+| Marketplace | `/profile/buklod-market` | Business and transfer-only BP commerce |
+| Bayanihan Center | `/bayanihan` | Qualified community projects and contributions |
+| My Home | `/season2/my-world` | New individual Lot / House visual hub; existing household routes remain authoritative |
+| Focus Apps Center | `/profile/focus-apps` | Government, Health, Education, Family and role-permissioned tools |
+| Achievement Hall | `/points/progression` | Circle Rank and achievement progress |
+| Life Center | `/personal-home/reminders` | Accessible personal planning and life tools |
 
-## Door rules
-1. The drawn location is a navigational doorway, **not** a second version of a feature. Its existing Expo Router page and server-side authorization stay authoritative. A scope wall post is created and moderated within existing Wall/scope routes, not as a new independent wall app.
-2. Government uses the existing **Focus Apps** door; **Education/Classroom**, Health and Family remain inside their existing Focus App/workspace destinations. Do not duplicate the native bottom tab.
-3. Character Kingdom is not Empire Arena. Do not nest Arena under Kingdom or route Arena back to Kingdom; Arena returns to World Map. Character BP eligibility / item verification and Arena ranked Diamonds remain separate authorities.
-4. Show Faith OFF must hide faith-only doors and preserve non-faith character/item paths. Protected routes must still enforce their own access; hidden-map shortcuts do not grant entitlements.
-5. The complete directory remains accessible below the map but optional; no normal navigation requires scrolling. Future assets may add labels or distinguishable shapes, but do **not** replace the approved landscape without new approval.
-6. Additional unfinished experiences (lot/house/cluster stages, Arena live matchmaking, transaction-safe BP/item economy, government workflows) stay behind current implementation/authority gates. A doorway is not evidence those backends are complete.
+**One tap** means tapping a landmark immediately invokes the registered Expo Router destination. No mandatory scroll, second-card selection or `Enter` action. Duplicate pushes are guarded by a 650ms client tap bound. Fine zoom remains optional and touch targets respect 44dp minimums. The final physical-device target/coordinate review is an outstanding release gate.
+
+## Village and Home submaps
+- **Community Village**: Village Cluster, Organizations, compounds, development yard, livelihood, Bayanihan; stage-1 background `buklod-community-village-stage1.webp`.
+- **My Home**: independent Lot, House, garden, family, identity, personal tools; stage-1 background `buklod-my-home-stage1.webp`.
+- **Three independent development tracks** (in canonical `/Buklod V2/buklod_assets_catalog.json`): `LOT_L01–L10`, `HOU_L01–L10`, `COM_L01–L10`. Each Level has Materials → Posts/Foundation → Framework → Structure → Finishing. Permanent Levels 1–10 lead into unbounded Mastery, not a second seasonal reset. Circle Rank grants prestige but never gates property levels.
+- **Safety**: the current level selectors are clearly labeled visual **previews**; local material-look selections are stored per user/world, not written to a shared scope. Actual saved level, asset ownership, build costs, time, Development XP, material availability, neighbor lot permissions, construction concurrency and infinite Mastery are **not yet server-backed in this DEV implementation**. The 30 catalog PNG paths are only metadata; do not dynamically `require()` absent files or pretend those levels have been animated.
+- No business or trade mints BP. Verified participation can legitimately earn BP; buying/selling/trading is a transfer of pre-earned balance with no lifetime Circle Rank duplication.
+- One official Genesis Season 2 theme; structural material previews do **not** expose alternative seasonal themes.
+
+## Authority and privacy
+All route destinations retain their own server permission checks. Public posts, private scopes, government Focus Apps, finances and role access are not inferred from map selection. Show Faith off still permits generic Learning and non-faith development. No new native SDKs, subscription charges or production data mutations are introduced by the visual changes.
 
 ## Release boundary
-Isolated source-only change. No production APK/OTA, main merge, live Supabase schema migration, ledger mutation, or staging OTA publish. Source static checks are not physical Android, AdMob-fill, or live PvP verification.
+**DEV source is implemented, not staging OTA verified.** Isolated `dev/season2-village-home-guide-20261121` only; **Production APK, live OTA and database remain unchanged**. Mandatory gates before staging release: full Android UI and 44dp hotspot rendering on actual screens, first-view AdMob fill + dashboard navigation performance, error/no-fill transitions, offline assets, auth/scope/Show Faith regressions, native runtime compatibility, and signed/verified server progression schema before any real upgrades. No RC or Production publish from this branch.

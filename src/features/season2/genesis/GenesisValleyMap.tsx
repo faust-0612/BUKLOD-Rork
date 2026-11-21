@@ -12,6 +12,7 @@ import {Image} from 'expo-image';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {getGenesisDeviceQuality} from './genesisDeviceQuality';
 import valley from './genesisValleyHotspots.json';
+import {layoutHotspotCenters} from './genesisHitTargetLayout';
 
 export type GenesisValleyHotspot = Readonly<{
   id: string;
@@ -25,9 +26,10 @@ export type GenesisValleyHotspot = Readonly<{
 }>;
 
 export const GENESIS_VALLEY_HOTSPOTS: readonly GenesisValleyHotspot[] = valley.hotspots;
-const HIGH_RES = require('../../../../assets/season2/genesis/world/buklod-community-map.webp');
-const LOW_RAM = require('../../../../assets/season2/genesis/world/buklod-community-map-compact.webp');
-const MAP_ASPECT = 1086 / 1448;
+const HIGH_RES = require('../../../../assets/season2/genesis/world/buklod-season2-entry-map-approved.webp');
+// The same owner-approved art is shown on low-memory devices; never regress to a different map.
+const LOW_RAM = HIGH_RES;
+const MAP_ASPECT = 941 / 1672;
 
 export default function GenesisValleyMap({
   active, showFaith, selectedHotspotId, onSelect,
@@ -37,8 +39,11 @@ export default function GenesisValleyMap({
   selectedHotspotId: string;
   onSelect: (hotspot: GenesisValleyHotspot) => void;
 }) {
-  const {width: windowWidth} = useWindowDimensions();
-  const viewportWidth = Math.min(700, Math.max(280, windowWidth - 28));
+  const {width: windowWidth, height: windowHeight} = useWindowDimensions();
+  // Keep the entire approved LANDSCAPE artwork in the initial map viewport.
+  // Detail zoom remains optional, never required for one-tap routing.
+  const fitHeight = Math.max(175, windowHeight - 150);
+  const viewportWidth = Math.min(700, Math.max(280, windowWidth - 28), fitHeight / MAP_ASPECT);
   const quality = getGenesisDeviceQuality('home');
   const [zoomed, setZoomed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(true);
@@ -50,6 +55,11 @@ export default function GenesisValleyMap({
   const points = useMemo(
     () => GENESIS_VALLEY_HOTSPOTS.filter(h => !h.faithOnly || showFaith),
     [showFaith],
+  );
+
+  const hitCenters = useMemo(
+    () => layoutHotspotCenters(points,imageWidth,imageHeight,zoomed?48:44),
+    [points,imageWidth,imageHeight,zoomed],
   );
 
   useEffect(() => {
@@ -83,7 +93,7 @@ export default function GenesisValleyMap({
     <View style={styles.container}>
       <View style={styles.topline}>
         <View style={styles.topText}>
-          <Text style={styles.mapTitle}>EXPLORE BUKLOD WORLD</Text>
+          <Text style={styles.mapTitle}>BUKLOD · SEASON 2 WORLD</Text>
           <Text style={styles.hint}>Isang tap sa gusali o portal, pasok agad.</Text>
         </View>
         <Pressable
@@ -114,16 +124,14 @@ export default function GenesisValleyMap({
             contentFit="fill"
             transition={reducedMotion ? 0 : 180}
             style={StyleSheet.absoluteFill}
-            accessibilityLabel="Illustrated BUKLOD Valley with fourteen community buildings"
+            accessibilityLabel="Approved BUKLOD landscape world with twelve one-tap destinations"
             accessible={false}
           />
-          {points.map(hotspot => {
+          {points.map((hotspot,index) => {
             const chosen = hotspot.id === selectedHotspotId;
-            // Keep gold-icon center alignment while enlarging tap targets for Android.
-            // Clamp edge icons to the image so no target is clipped on narrow phones.
+            // Keep 44dp minimum taps independent, even when labels nearly touch at 280dp.
             const diameter = zoomed ? 48 : 44;
-            const x = Math.max(diameter / 2, Math.min(imageWidth - diameter / 2, hotspot.x * imageWidth));
-            const y = Math.max(diameter / 2, Math.min(imageHeight - diameter / 2, hotspot.y * imageHeight));
+            const {x,y} = hitCenters[index];
             return (
               <Pressable
                 key={hotspot.id}

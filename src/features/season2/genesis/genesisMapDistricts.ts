@@ -21,9 +21,10 @@ export type BuklodMapDistrict = Readonly<{
 export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze([
   {
     id: 'my-place', title: 'My Place', tagline: 'Your home, identity and daily life',
-    icon: 'home-variant-outline', accent: '#97E9D3', destination: '/personal-home',
+    icon: 'home-variant-outline', accent: '#97E9D3', destination: '/season2/my-world',
     entries: [
-      { label: 'Personal Home', route: '/personal-home', description: 'Your personal space' },
+      { label: 'My World (Lot + House)', route: '/season2/my-world', description: 'Own development map and local customization' },
+      { label: 'Household Rooms', route: '/personal-home', description: 'Existing family and household tools' },
       { label: 'My Profile', route: '/me', description: 'Identity, rank and posts' },
       { label: 'My Points', route: '/points', description: 'Participation, rank and character' },
       { label: 'Radio', route: '/personal-home/radio', description: 'Personal audio and radio' },
@@ -50,8 +51,9 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
   },
   {
     id: 'communities', title: 'Communities', tagline: 'Grow with real people',
-    icon: 'account-group-outline', accent: '#B4F2B6', destination: '/clusters',
+    icon: 'account-group-outline', accent: '#B4F2B6', destination: '/season2/community-village',
     entries: [
+      { label: 'Community Village', route: '/season2/community-village', description: 'Interactive village development map' },
       { label: 'Clusters', route: '/clusters', description: 'Join and contribute in your cluster' },
       { label: 'Organizations', route: '/organizations', description: 'Organization and sub-organization' },
       { label: 'Bayanihan', route: '/bayanihan', description: 'Real-world community action' },
