@@ -89,7 +89,7 @@
       "id": "my-home",
       "label": "My Home",
       "districtId": "my-place",
-      "route": "/personal-home",
+      "route": "/season2/my-world",
       "x": 0.133,
       "y": 0.728,
       "icon": "home",
