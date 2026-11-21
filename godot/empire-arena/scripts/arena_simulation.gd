@@ -6,6 +6,7 @@ extends RefCounted
 
 const HERO_IDENTITY_SCRIPT = preload("res://scripts/hero_identity.gd")
 const SPECIAL_HERO_ACTIONS = preload("res://scripts/special_hero_actions.gd")
+const NATIVE_MINION_WAVES = preload("res://scripts/native_minion_waves.gd")
 
 const STEP := 0.1
 const PICKUP_CAP := 24
@@ -75,6 +76,7 @@ func begin(mode: String = "cluster", hero: String = "phan",
 		"solo_round": 1, "solo_wins": {"A": 0, "B": 0},
 		"solo_draws": 0, "solo_round_start": 0.0, "solo_intermission": 0.0
 	}
+	NATIVE_MINION_WAVES.init(self)
 	var roster: Array = config["heroes"].keys()
 	for team in ["A", "B"]:
 		for i in range(count):
@@ -152,7 +154,7 @@ func actor(id: String) -> Dictionary:
 		return {}
 	if state["players"].has(id):
 		return state["players"][id]
-	for category in ["units", "towers", "buildings"]:
+	for category in ["units", "minions", "towers", "buildings"]:
 		for thing in state[category]:
 			if thing["id"] == id:
 				return thing
@@ -173,7 +175,7 @@ func _enemies(p: Dictionary, r: float) -> Array:
 	for a in state["players"].values():
 		if _alive(a) and a["team"] != p["team"] and _dist(a, p) <= r:
 			output.append(a)
-	for category in ["units", "towers"]:
+	for category in ["units", "minions", "towers"]:
 		for a in state[category]:
 			if _alive(a) and a["team"] != p["team"] and _dist(a, p) <= r:
 				output.append(a)
@@ -597,7 +599,7 @@ func _automation() -> void:
 		if not _alive(tower) or float(state["time"]) - float(tower["last_attack"]) < 1.4:
 			continue
 		var candidates: Array = []
-		for category in [state["players"].values(), state["units"]]:
+		for category in [state["players"].values(), state["units"], state["minions"]]:
 			for enemy in category:
 				if _alive(enemy) and enemy["team"] != tower["team"] and _dist(tower, enemy) < 9.0 + float(tower["level"]) * 1.5:
 					candidates.append(enemy)
@@ -727,7 +729,9 @@ func advance() -> void:
 		return
 	state["phase"] = "hunt" if float(state["hunt_started"]) >= 0 else "expansion" if float(state["time"]) < 120 else "territory" if float(state["time"]) < 540 else "siege"
 	if int(state["tick"]) % 4 == 0: _bots()
-	if int(state["tick"]) % 5 == 0: _automation()
+	if int(state["tick"]) % 5 == 0:
+		_automation()
+		NATIVE_MINION_WAVES.step(self)
 	if float(state["time"]) >= float(state["hard_deadline"]) and not state["hard_lock"]:
 		state["hard_lock"] = true
 		state["seals"]["A"]["breached"] = true
