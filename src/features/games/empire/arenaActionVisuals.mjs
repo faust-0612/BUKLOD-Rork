@@ -53,7 +53,11 @@ export function arenaActionVisuals(state,elapsed,ttl=950,limit=16) {
     const style=kind==='ability'?e.style||state.players?.[e.actor]?.role||'burst':
       kind==='buff'?(e.kind||'lumen'):
       kind==='mining'?(e.kind||'stone'):'';
+    const source=locate(state,e.from??e.actor);
+    const destination=locate(state,e.to??e.target);
     out.push({seq:e.seq,type:e.type,kind,x,y,style,progress,alpha:1-progress,
+      fromX:source?.x??x,fromY:source?.y??y,
+      targetX:destination?.x??x,targetY:destination?.y??y,
       actor:e.actor??e.from??'',target:e.to??e.target??'',team:e.team??null,
       amount:Number(e.amount)||0});
   }
