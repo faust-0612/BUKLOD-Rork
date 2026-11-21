@@ -21,6 +21,22 @@ test('one-tap approved My Home goes to guarded Season 2 map, while Bahay stays a
  assert.doesNotMatch(canvas,/(?:supabase\.from|supabase\.rpc|mintBP|awardBP|withdrawQMP)/i);
 });
 
+test('complete facilities remain permissioned and discoverable without invented live services',async()=>{
+ const {communityFacilitySummary,listCommunityFacilities}=await import('../src/features/season2/world/communityFacilityDirectory.mjs');
+ const home=communityFacilitySummary('home',false);
+ const village=communityFacilitySummary('village',false);
+ assert.ok(home.total>=30);
+ assert.ok(village.total>=90);
+ assert.equal(home.linked+home.planned,home.total);
+ const planned=listCommunityFacilities({world:'home',query:'co-ownership'});
+ assert.ok(planned.length>0&&planned.every(x=>x.route===null&&x.status==='planned'));
+ assert.equal(listCommunityFacilities({world:'home',zone:'not-a-zone'}).length,0);
+ const screen=read('src/features/season2/world/Season2CommunityFacilities.tsx');
+ assert.match(screen,/disabled=\{!available\}/);
+ assert.match(screen,/router.push\(route as any\)/);
+ assert.match(read('src/features/season2/world/Season2DevelopmentMap.tsx'),/Season2CommunityFacilities world=\{world\}/);
+});
+
 test('offline work starts at true vacant level zero with strict bounds and no shared entitlement',()=>{
  const w=newWorkshop();
  assert.deepEqual(w.tracks.lot,{level:0,stage:0,mastery:0});

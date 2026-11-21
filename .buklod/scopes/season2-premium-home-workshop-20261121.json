@@ -5,7 +5,7 @@
   "baseRef": "92712e5da90711a3ec3406ddabdf981bd738e2c4",
   "productionBaselineEvidence": "Consolidated DEV PR 1054 base head 92712e5da90711a3ec3406ddabdf981bd738e2c4 verified as comparison. Existing signed staging package and runtime recorded in PR 1054, not modified. Main/Play production, EAS staging/production OTA mapping and paid shared Supabase untouched; current change is draft DEV only.",
   "chosenApproach": "Reuse existing authored licensed Genesis home/village WebP assets from isolated DEV art branch, introduce a local-only validated gameplay and cosmetics engine with original procedural 2.5D React Native SVG architecture and safe-area guards, link the owner approved My Home sign to a separate scene, preserve existing real Bahay/Cluster routes and auth controls.",
-  "selectionRationale": "Separately authored stage-reactive diorama is a real visual response to completed in-game workshop stages instead of manual fake level toggles. Local finite resource hunt and serial per-user saves work without minting spendable BP, remote inventory or legal land title; all server-facing authority remains off until independently verified.",
+  "selectionRationale": "Separately authored stage-reactive diorama is a real visual response to completed in-game workshop stages instead of manual fake level toggles. Local finite resource hunt and serial per-user saves work without minting spendable BP, remote inventory or legal land title; all server-facing authority remains off until independently verified. The existing comprehensive BUKLOD district catalog remains accessible as a collapsed, searchable, compact permissioned directory with truthfully disabled planned facilities.",
   "alternativeApproaches": [
     "Activate untested shared-server property economy immediately: rejected; lacks RLS/concurrency evidence and would affect paid live Supabase.",
     "Preview-only level +/- text cards: rejected as nonfunctional.",
@@ -36,7 +36,10 @@
     "src/app/community-village.tsx",
     "src/features/season2/genesis/genesisApprovedEntryHotspots.json",
     "tests/season2-premium-home-workshop-20261121.test.mjs",
-    ".buklod/scopes/season2-premium-home-workshop-20261121.json"
+    ".buklod/scopes/season2-premium-home-workshop-20261121.json",
+    "src/features/season2/world/communityFacilityDirectory.mjs",
+    "src/features/season2/world/communityFacilityDirectory.d.mts",
+    "src/features/season2/world/Season2CommunityFacilities.tsx"
   ],
   "regressionTests": [
     "tests/season2-premium-home-workshop-20261121.test.mjs"

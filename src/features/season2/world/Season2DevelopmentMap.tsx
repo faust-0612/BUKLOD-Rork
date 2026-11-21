@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@/providers/AuthProvider';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import WorldConstructionDiorama from './WorldConstructionDiorama';
+import Season2CommunityFacilities from './Season2CommunityFacilities';
 import {newWorkshop, restoreWorkshop, buildRequirements, buildWorkshopStage, startWorkshopGather, gatherTarget, chooseWorkshopGather, customizeWorkshop, type WorkshopTrack, type WorkshopMaterial, type WorkshopStyle, type WorkshopSky, type WorkshopDecor} from './worldWorkshopEngine';
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
 import {getDevelopmentAsset} from './developmentAssetManifest';
@@ -295,6 +296,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
     <MaterialCommunityIcons name={showRequirements?'chevron-up':'chevron-down'} color="#F4DCAD" size={20}/>
    </Pressable>
    {showRequirements?<Text style={styles.muted}>The live BUKLOD BP, QMP, character items, household permissions, title rights and Cluster approvals are separate. Actual world construction needs authenticated ownership, material inventory receipts, idempotent stage settlement, role and RLS checks and artwork approval. This workshop never unlocks them.</Text>:null}
+   <Season2CommunityFacilities world={world}/>
    <Text style={styles.footer}>PREVIEW PLAYGROUND · Local saves only. The real Bahay, Garden, Market and Cluster features open directly from landmarks; no shared data is changed.</Text>
   </ScrollView>
  </View>;
