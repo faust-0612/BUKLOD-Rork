@@ -188,14 +188,14 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
         const sprite = ARENA_GENERATED_ART['sprite:' + p.hero];
         const image = fullbody || sprite || ARENA_GENERATED_ART['hero:' + p.hero] ||
           ARENA_HERO_ART[p.hero as BuklodCharacterId];
-        const size = clamp(area.width * 12 / camera.width, 47, 146);
+        const size = clamp(Math.min(area.width * 8 / camera.width, area.height * 0.36), 32, 80);
         return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
           sprite={Boolean(fullbody || sprite)} friendly={p.team === localTeam} active={isPlaying}
           moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1)}
           x={(p.x - camera.x) * area.width / camera.width}
           y={(p.y - camera.y) * area.height / camera.height} size={size} />;
       })}
-    <View pointerEvents="none" style={styles.minimap}>
+    <View pointerEvents="none" style={[styles.minimap, area.height < 240 && styles.minimapCompact]}>
       <Svg width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
         <Rect x={0} y={0} width={state.w} height={state.h} fill="#102735" stroke="#e1c78e" strokeWidth={1} />
         {lanes.map((fraction, i) => <Line key={'m-' + i} x1={4} y1={fraction * state.h} x2={state.w - 4} y2={fraction * state.h} stroke="#5f8491" strokeWidth={0.75} />)}
@@ -637,6 +637,7 @@ const styles = StyleSheet.create({
   field: { flex: 1, overflow: 'hidden', borderColor: '#576d67', borderWidth: 1, marginHorizontal: 6, borderRadius: 5 },
   minimap: { position: 'absolute', top: 9, right: 9, width: 126, height: 74, borderWidth: 1,
     borderRadius: 7, borderColor: '#e4cc97', backgroundColor: '#081b2bd9', padding: 3 },
+  minimapCompact: { width: 82, height: 48, top: 4, right: 4 },
   fieldLabel: { position: 'absolute', top: 6, alignSelf: 'center', backgroundColor: '#09152099', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   labelText: { color: '#f8e6bd', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   info: { paddingHorizontal: 8, paddingVertical: 4, minHeight: 24, backgroundColor: '#051021' },
