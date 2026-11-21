@@ -52,6 +52,7 @@ function describeStatus(task: Task) {
 export default function MentorTeachingPhotoEvidence() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [mentorEligible, setMentorEligible] = useState<boolean | null>(null);
   const [selectedLesson, setSelectedLesson] = useState('');
   const [lessonSearch, setLessonSearch] = useState('');
   const [disciples, setDisciples] = useState<Disciple[]>([]);
@@ -87,22 +88,28 @@ export default function MentorTeachingPhotoEvidence() {
     const sequence = ++requestSeq.current;
     setLoading(true);
     try {
-      const [taskResponse, lessonResponse, menteeResponse] = await Promise.all([
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth?.user) throw authError || new Error('Sign in to load mentoring reports.');
+      const [taskResponse, lessonResponse, menteeResponse, mentorResponse] = await Promise.all([
         (supabase as any).rpc('get_my_mentor_photo_tasks_r2'),
         (supabase as any).rpc('get_my_mentor_reportable_lessons_r2'),
         (supabase as any).rpc('mentor_disciple_progress'),
+        (supabase as any).rpc('has_capability', { p_user_id: auth.user.id, p_capability: 'mentor' }),
       ]);
       if (taskResponse.error) throw taskResponse.error;
       if (lessonResponse.error) throw lessonResponse.error;
       if (menteeResponse.error) throw menteeResponse.error;
+      if (mentorResponse.error) throw mentorResponse.error;
       if (sequence !== requestSeq.current) return;
       setErr('');
       setTasks(Array.isArray(taskResponse.data) ? taskResponse.data : []);
       setLessons(Array.isArray(lessonResponse.data) ? lessonResponse.data : []);
+      setMentorEligible(mentorResponse.data === true);
       setDisciples(Array.isArray(menteeResponse.data) ? menteeResponse.data : []);
       setPhotoUrls({});
     } catch (error) {
       if (sequence === requestSeq.current) {
+        setMentorEligible(null);
         setErr(`Unable to load mentoring reports: ${message(error)}`);
       }
     } finally {
@@ -193,7 +200,9 @@ export default function MentorTeachingPhotoEvidence() {
   // Keep every server-backed requirement, but never silently ignore a tap when
   // one is incomplete. The input screen can be long and fields may be offscreen.
   const missingReportRequirements = [
-    !selectedLesson ? 'Select the lesson from the list (typing in search does not select it).' : null,
+    mentorEligible === false
+      ? 'Your active mentor permission must be verified by an administrator before reporting.'
+      : !selectedLesson ? 'Select the lesson from the list (typing in search does not select it).' : null,
     selectedDisciples.length < 1 ? 'Select at least one assigned learner.' : null,
     selectedDisciples.length > MAX_LEARNERS ? `Select no more than ${MAX_LEARNERS} learners.` : null,
     location.trim().length < 4 ? 'Enter the teaching venue (at least 4 characters).' : null,
@@ -334,8 +343,10 @@ export default function MentorTeachingPhotoEvidence() {
   };
 
   const canCreate = !busy && !retrySessionId && missingReportRequirements.length === 0;
+  // Match "CCP5" and "CCP 5" without loosening server-side mentor authorization.
+  const searchKey = (value: string) => value.toLocaleLowerCase().replace(/[\\s_-]+/g, '');
   const visibleLessons = lessons.filter(lesson =>
-    lesson.title.toLocaleLowerCase().includes(lessonSearch.trim().toLocaleLowerCase())).slice(0, 20);
+    searchKey(lesson.title).includes(searchKey(lessonSearch.trim()))).slice(0, 20);
 
   return <SafeAreaView style={s.root}>
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
@@ -360,8 +371,12 @@ export default function MentorTeachingPhotoEvidence() {
           onPress={() => setSelectedLesson(lesson.id)}>
           <Text style={s.choiceText}>{lesson.title}</Text>
         </Pressable>)}
-        {lessons.length === 0 && !loading &&
-          <Text style={s.meta}>No reportable lessons or mentor access. Ask your Cluster administrator to check your assigned mentor role.</Text>}
+        {mentorEligible === false && !loading &&
+          <Text style={s.meta}>Mentor permission is inactive. A learner assignment or a completed CCP lesson does not grant permission to submit a teaching report. Ask an authorized administrator to review your mentor access.</Text>}
+        {mentorEligible === true && lessons.length === 0 && !loading &&
+          <Text style={s.meta}>No reportable teaching lessons are available. Ask your administrator to check the published catalog.</Text>}
+        {mentorEligible === true && lessons.length > 0 && visibleLessons.length === 0 && !loading &&
+          <Text style={s.meta}>No matching lesson. Try searching by CCP number, track or lesson title.</Text>}
         {!!selectedLesson && <Text style={s.hint}>Selected: {lessons.find(l => l.id === selectedLesson)?.title}</Text>}
         <Text style={s.meta}>Select only assigned learners who actually attended ({selectedDisciples.length} selected; up to {MAX_LEARNERS}).</Text>
         {disciples.map(d => <Pressable key={d.disciple_id} accessibilityRole="checkbox"
