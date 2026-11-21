@@ -1,114 +1,194 @@
 /**
- * In-app Arena ranked transport — NO game authority, no wallet writes.
- * Supabase user access token goes to the owned WSS Arena server only.
- * All match positions, outcomes and Diamond ledgers come from that server.
+ * BUKLOD in-app authoritative Arena ranked transport.
+ *
+ * The client never decides outcomes, Diamond balances or server-side character
+ * eligibility. Only an owned WSS endpoint receives the Supabase session token.
+ * Reconnects resume the server-owned seat without silently staking another
+ * earned Diamond or queueing a new match.
  */
 import { supabase } from '@/lib/supabase';
 
 type Mode='duel'|'cluster'|'grand';
 type ArenaScene='genesis_rift'|'aurora_foundry'|'verdant_fracture';
+type MatchPacket=Record<string,unknown> & {type:string};
+type Callbacks={onPacket:(packet:MatchPacket)=>void;onError:(message:string)=>void};
 
-type MatchPacket = Record<string,unknown> & {type:string};
+const RECONNECT_DELAYS_MS=[800,1700,3200] as const;
+const RANKED_REATTACH_WINDOW_MS=19000;
+const HANDSHAKE_TIMEOUT_MS=10000;
 
-export function isArenaRankedConfigured():boolean {
-  const enabled=process.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED==='true';
+export function isArenaRankedConfigured():boolean{
+  if(process.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED!=='true')return false;
   const endpoint=process.env.EXPO_PUBLIC_BUKLOD_ARENA_WS_URL||'';
-  if(!enabled||!/^wss:\/\//.test(endpoint))return false;
-  try {
-    const url=new URL(endpoint);
-    return url.protocol==='wss:' && Boolean(url.hostname) &&
-      !url.username && !url.password && !url.hash && !url.search &&
-      url.pathname==='/arena-v2';
-  } catch {return false;}
+  if(!/^wss:\/\//.test(endpoint))return false;
+  try{
+    const u=new URL(endpoint);
+    return u.protocol==='wss:'&&Boolean(u.hostname)&&!u.username&&!u.password&&
+      !u.hash&&!u.search&&u.pathname==='/arena-v2';
+  }catch{return false;}
 }
 
-type ArenaCallbacks={
-  onPacket:(packet:MatchPacket)=>void;
-  onError:(message:string)=>void;
-};
-
-export class ArenaRankedSocket {
+export class ArenaRankedSocket{
   private ws:WebSocket|null=null;
   private nextSeq=0;
   private queue:{mode:Mode;mapId:ArenaScene}|null=null;
+  private expectedUserId:string|null=null;
   private active=false;
   private ready=false;
   private closed=false;
-  private readonly callbacks:ArenaCallbacks;
+  private finished=false;
+  private resumeOnly=false;
+  private reconnectDeadline=0;
+  private retryAttempts=0;
+  private retryTimer:ReturnType<typeof setTimeout>|null=null;
+  private handshakeTimer:ReturnType<typeof setTimeout>|null=null;
+  private readonly callbacks:Callbacks;
 
-  constructor(callbacks:ArenaCallbacks){this.callbacks=callbacks;}
+  constructor(callbacks:Callbacks){this.callbacks=callbacks;}
 
   async connectAndQueue(mode:Mode,mapId:ArenaScene,expectedUserId:string){
     if(!isArenaRankedConfigured())throw Error('Arena ranked server not configured');
-    if(this.ws)throw Error('Arena connection already created');
+    if(this.ws||this.queue||this.closed)throw Error('Arena connection already created');
+    this.queue={mode,mapId};
+    this.expectedUserId=expectedUserId;
+    try{await this.openConnection();}
+    catch(error){this.queue=null;this.expectedUserId=null;throw error;}
+  }
+
+  private clearHandshake(){
+    if(this.handshakeTimer!==null)clearTimeout(this.handshakeTimer);
+    this.handshakeTimer=null;
+  }
+
+  private async openConnection(){
+    if(this.closed||!this.queue||!this.expectedUserId)return;
+    if(this.ws)return;
     const {data,error}=await supabase.auth.getSession();
     const session=data.session;
-    if(error||!session||session.user.id!==expectedUserId||!session.access_token)
-      throw Error('Bangkang authorization expired — please sign in again');
+    if(error||!session||session.user.id!==this.expectedUserId||!session.access_token)
+      throw Error('Ranked sign-in expired. Please sign in again.');
     if(this.closed)return;
-    this.queue={mode,mapId};
-    const socket=new WebSocket(process.env.EXPO_PUBLIC_BUKLOD_ARENA_WS_URL!);
-    this.ws=socket;
-    const timeout=setTimeout(()=>{
-      if(!this.ready && !this.closed){
-        this.callbacks.onError('Ranked connection timed out');
-        socket.close();
+    const ws=new WebSocket(process.env.EXPO_PUBLIC_BUKLOD_ARENA_WS_URL!);
+    this.ws=ws;
+    this.ready=false;
+    this.handshakeTimer=setTimeout(()=>{
+      if(!this.closed&&!this.ready&&this.ws===ws){
+        this.callbacks.onError('Arena ranked connection timed out.');
+        ws.close();
       }
-    },12000);
-    socket.onopen=()=>{
-      if(this.closed){socket.close();return;}
-      socket.send(JSON.stringify({type:'hello',token:session.access_token}));
+    },HANDSHAKE_TIMEOUT_MS);
+
+    ws.onopen=()=>{
+      if(this.closed||this.ws!==ws){ws.close();return;}
+      ws.send(JSON.stringify({type:'hello',token:session.access_token}));
     };
-    socket.onmessage=(event)=>{
-      if(this.closed)return;
+    ws.onmessage=event=>{
+      if(this.closed||this.ws!==ws)return;
       let packet:MatchPacket;
       try{
-        const decoded=JSON.parse(String(event.data));
-        if(!decoded||typeof decoded!=='object'||typeof decoded.type!=='string')return;
-        packet=decoded as MatchPacket;
+        const parsed=JSON.parse(String(event.data));
+        if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)||typeof parsed.type!=='string')return;
+        packet=parsed as MatchPacket;
       }catch{return;}
       if(packet.type==='hello_ok'){
-        this.ready=true;clearTimeout(timeout);
-        if(packet.rankedEligible!==true){
-          this.callbacks.onError('Ranked requires an earned Character Diamond. Participate to qualify.');
-          socket.close();return;
+        this.ready=true;
+        this.clearHandshake();
+        // Reconnect is an existing stake, not permission to mint/reserve a second one.
+        if(this.resumeOnly&&packet.resumed!==true){
+          this.callbacks.onError('The server could not resume the previous ranked match. Check its authoritative result.');
+          this.close();
+          return;
         }
-        if(packet.resumed!==true) socket.send(JSON.stringify({type:'queue',mode:this.queue!.mode,mapId:this.queue!.mapId}));
+        if(packet.rankedEligible!==true){
+          this.callbacks.onError('An earned Character Diamond is needed to queue for ranked play.');
+          this.close();
+          return;
+        }
+        if(packet.resumed!==true&&this.queue){
+          ws.send(JSON.stringify({type:'queue',mode:this.queue.mode,mapId:this.queue.mapId}));
+        }
       }
-      if(packet.type==='match_start'||packet.type==='match_resume')this.active=true;
-      if(packet.type==='match_end'||packet.type==='match_aborted')this.active=false;
+      if(packet.type==='match_start'||packet.type==='match_resume'){
+        this.active=true;
+        this.resumeOnly=false;
+        this.retryAttempts=0;
+        this.reconnectDeadline=0;
+      }
+      if(packet.type==='match_end'||packet.type==='match_aborted'){
+        this.active=false;
+        this.finished=true;
+      }
       this.callbacks.onPacket(packet);
     };
-    socket.onerror=()=>{
-      if(!this.closed)this.callbacks.onError('Arena network unavailable; no result has been accepted.');
+    ws.onerror=()=>{
+      if(!this.closed&&this.ws===ws)
+        this.callbacks.onError('Arena network interrupted. Only the server can confirm match results.');
     };
-    socket.onclose=()=>{
-      clearTimeout(timeout);
-      if(!this.closed&&this.active)
-        this.callbacks.onError('Connection lost. Reconnect within 20 seconds to avoid a ranked forfeit.');
-      this.active=false;
-      this.ready=false;
+    ws.onclose=()=>{
+      if(this.ws!==ws)return;
+      this.clearHandshake();
+      this.ws=null;
+      const wasActive=this.active;
+      this.active=false;this.ready=false;
+      if(this.closed||this.finished)return;
+      if(wasActive){
+        this.resumeOnly=true;
+        this.reconnectDeadline=Date.now()+RANKED_REATTACH_WINDOW_MS;
+        this.callbacks.onError('Connection interrupted. Reconnecting to the same ranked seat.');
+      }
+      this.scheduleRetry();
     };
+  }
+
+  private scheduleRetry(){
+    if(this.closed||this.finished||!this.queue)return;
+    if(this.retryAttempts>=RECONNECT_DELAYS_MS.length||
+       (this.resumeOnly&&Date.now()>=this.reconnectDeadline)){
+      this.callbacks.onError('Arena reconnect limit reached. Ranked settlement remains server-owned.');
+      this.close();
+      return;
+    }
+    const delay=RECONNECT_DELAYS_MS[this.retryAttempts++];
+    if(this.resumeOnly&&Date.now()+delay>=this.reconnectDeadline){
+      this.callbacks.onError('Ranked reconnection grace elapsed. Server will settle or refund.');
+      this.close();
+      return;
+    }
+    this.retryTimer=setTimeout(()=>{
+      this.retryTimer=null;
+      if(this.closed)return;
+      void this.openConnection().catch(()=>{
+        if(!this.closed)this.scheduleRetry();
+      });
+    },delay);
   }
 
   sendAction(action:Record<string,unknown>):boolean{
     const ws=this.ws;
-    if(!ws||ws.readyState!==WebSocket.OPEN||!this.active)return false;
-    const seq=++this.nextSeq;
-    ws.send(JSON.stringify({type:'action',seq,action}));
+    if(!ws||ws.readyState!==WebSocket.OPEN||!this.active||ws.bufferedAmount>64_000)return false;
+    ws.send(JSON.stringify({type:'action',seq:++this.nextSeq,action}));
     return true;
   }
 
   leave(){
-    if(this.ws?.readyState===WebSocket.OPEN)
-      this.ws.send(JSON.stringify({type:'leave'}));
+    if(this.ws?.readyState===WebSocket.OPEN){
+      try{this.ws.send(JSON.stringify({type:'leave'}));}catch{/* disconnect still clears */ }
+    }
     this.close();
   }
 
   close(){
-    this.closed=true;this.ready=false;this.active=false;
-    const ws=this.ws;this.ws=null;
-    if(ws){ws.onmessage=null;ws.onerror=null;ws.onopen=null;ws.onclose=null;
-      try{ws.close();}catch{/* disposal best effort */}}
+    this.closed=true;
+    this.finished=true;
+    this.ready=false;this.active=false;
+    this.clearHandshake();
+    if(this.retryTimer!==null)clearTimeout(this.retryTimer);
+    this.retryTimer=null;
+    const ws=this.ws;
+    this.ws=null;
+    if(ws){
+      ws.onmessage=null;ws.onerror=null;ws.onopen=null;ws.onclose=null;
+      try{ws.close();}catch{/* best-effort disposal */}
+    }
   }
 }
