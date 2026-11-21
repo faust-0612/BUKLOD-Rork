@@ -42,5 +42,5 @@ test('Read-only Village has full preview/auth/consent/update/maintenance gates; 
  ])
  assert.ok(village.includes(token),token);
  assert.match(village,/router\.replace\('\/buklod-map'/);
- assert.match(village,/Permanent BP, QMP, items, property ownership and trade authority/);
+ assert.match(village,/The permanent BP, QMP, items, property ownership and trade authority/);
 });
