@@ -12,6 +12,8 @@ import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { buildKingdomOfflineLevel, KINGDOM_OFFLINE_MAX_LEVEL } from './kingdomOfflineGenerator.mjs';
+import { getKingdomPracticePosition } from './kingdomEndlessProgression.mjs';
+import KingdomCinematicScene from './KingdomCinematicScene';
 import { emptyKingdomShards, getCachedKingdomShards, getMyKingdomShards,
   hasKingdomPower, type KingdomShardsSnapshot } from '@/lib/buklodKingdomShards';
 
@@ -112,6 +114,7 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
 
   const items = useMemo(() => userId ? buildKingdomOfflineLevel(gameId, level, userId) : [],
     [gameId, level, userId]);
+  const practicePosition = useMemo(() => getKingdomPracticePosition(completed), [completed]);
   const allAnswered = answers.every(index => index >= 0);
   const score = items.reduce((count,item,index) =>
     count + (item.answer_index === answers[index] ? 1 : 0),0);
@@ -161,7 +164,15 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
       'Procedurally built, account-isolated practice levels with fresh numbers and scenarios. No AI charges, BP, character XP or cash rewards.',
       'Automatically nabubuong practice levels, hiwalay bawat account. Walang AI charges, BP, character XP o cash rewards.'
     )}</Text>
-    <Text style={styles.progress}>{t('Completed', 'Natapos')}: {completed}/{LIMIT}</Text>
+    <KingdomCinematicScene gameId={gameId} />
+    <View style={styles.journey}>
+      <MaterialCommunityIcons name="map-marker-path" size={26} color="#f8e8c2"/>
+      <View style={{flex:1}}>
+        <Text style={styles.journeyTitle}>{t('ADVENTURE CHAPTER','KABANATA NG ADVENTURE')} {practicePosition.chapter}</Text>
+        <Text style={styles.journeyMeta}>{t('Scene','Eksena')} {practicePosition.scene}/5 • {practicePosition.regionName} • {t('Local practice only','Local practice lamang')}</Text>
+      </View>
+      <Text style={styles.journeyCount}>{completed.toLocaleString()}</Text>
+    </View>
     <Pressable accessibilityRole="button" onPress={()=>router.push('/games/rewards' as any)}
       style={styles.powerShop}>
       <MaterialCommunityIcons name="diamond-stone" size={20} color="#f6dfaa"/>
@@ -204,6 +215,15 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
         const eliminated = item.choices.map((_choice,index)=>index)
           .filter(index=>index!==item.answer_index).slice(0,2);
         return <View key={i} style={styles.question}>
+        <View style={styles.encounterTop}>
+          <Text style={styles.encounterKind}>{item.mode==='compass'?'🧭 TRAIL NAVIGATION':item.mode==='pattern'?'🌿 NATURE SIGNALS':'📦 RESOURCE PLANNING'}</Text>
+          <Text style={styles.encounterNumber}>{i+1}/3</Text>
+        </View>
+        <View style={styles.encounterScene} accessibilityLabel="Visual game clues">
+          {(item.visualTokens ?? []).map((symbol,k)=><View key={k} style={styles.encounterSymbol}>
+            <Text style={styles.encounterSymbolText}>{symbol}</Text>
+          </View>)}
+        </View>
         <Text style={styles.questionText}>{item.prompt}</Text>
         {phase==='playing' && hasWisdom && wisdomHintIndex===null ?
           <Pressable accessibilityRole="button" onPress={()=>setWisdomHintIndex(i)}
@@ -265,6 +285,19 @@ const styles=StyleSheet.create({
   progress:{color:'#f7d58d',fontSize:13,fontWeight:'800'},
   notice:{color:'#e6e5d3',fontSize:12,lineHeight:19},
   level:{gap:12},
+  journey:{flexDirection:'row',alignItems:'center',gap:10,borderRadius:14,
+    padding:12,backgroundColor:'#153c40',borderWidth:1,borderColor:'#a8c9ac'},
+  journeyTitle:{fontWeight:'900',fontSize:13,color:'#fce7b0'},
+  journeyMeta:{fontSize:10,color:'#c5e6da',marginTop:2},
+  journeyCount:{color:'#ffefcb',fontSize:18,fontWeight:'900'},
+  encounterTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+  encounterKind:{fontWeight:'900',color:'#fff0c6',fontSize:11,letterSpacing:.5},
+  encounterNumber:{fontWeight:'900',color:'#bcddc8',fontSize:10},
+  encounterScene:{minHeight:76,flexDirection:'row',justifyContent:'center',alignItems:'center',
+    flexWrap:'wrap',gap:7,padding:8,backgroundColor:'#183b42',borderRadius:12},
+  encounterSymbol:{width:43,height:48,backgroundColor:'#355f56',borderRadius:12,
+    justifyContent:'center',alignItems:'center',borderColor:'#8bb5a4',borderWidth:1},
+  encounterSymbolText:{fontSize:25},
   levelTitle:{color:'#ffe1a3',fontSize:16,fontWeight:'900'},
   question:{backgroundColor:'#375d61',borderRadius:10,padding:10,gap:7},
   questionText:{color:'#fff',fontSize:14,fontWeight:'800',lineHeight:20},

@@ -12,6 +12,7 @@ import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLangua
 import { KingdomMasteryCheck } from './KingdomMasteryCheck';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import KingdomCinematicScene from './KingdomCinematicScene';
+import { getKingdomCinematicScene } from './KingdomCinematicScenes';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -111,8 +112,13 @@ export function KingdomInteriorCenter({
             style={[styles.option, compact && styles.optionCompact, option.id === active.id && styles.optionSelected]}
             onPress={() => { setActiveId(option.id); onActiveGameChange?.(option.id); }}
           >
-            <Text numberOfLines={compact ? 1 : undefined} style={[styles.optionTitle, compact && styles.optionTitleCompact]}>{option.title}</Text>
-            {!compact ? <Text style={styles.optionDescription}>{t(option.descriptionEn, option.descriptionTl)}</Text> : null}
+            <Text numberOfLines={compact ? 1 : undefined} style={[styles.optionTitle, compact && styles.optionTitleCompact]}>
+              {getKingdomCinematicScene(option.id)?.glyph ?? '🎮'}  {option.title}
+            </Text>
+            {!compact ? <>
+              <Text style={styles.optionDescription}>{t(option.descriptionEn, option.descriptionTl)}</Text>
+              <Text style={styles.optionBadge}>{option.kind === 'pilot' ? t('LOCAL ADVENTURE','LOCAL ADVENTURE') : t('ORIGINAL QUEST','ORIGINAL QUEST')}</Text>
+            </> : null}
           </Pressable>)}
         </View>
         {active.kind === 'pilot' ? (
@@ -177,6 +183,7 @@ const styles = StyleSheet.create({
   optionTitle: { color: '#fff6df', fontSize: 14, fontWeight: '900' },
   optionTitleCompact: { fontSize: 11, textAlign: 'center' },
   optionDescription: { color: '#ced9e9', fontSize: 11, lineHeight: 16, marginTop: 5 },
+  optionBadge: { color: '#e8d29a', fontSize: 9, fontWeight: '900', letterSpacing: .7, marginTop: 8 },
   record: { color: '#ffdfa6', fontSize: 12, fontWeight: '800' },
   notice: { color: '#dce8fd', fontSize: 11, lineHeight: 17 },
   game: { flexGrow: 1 },

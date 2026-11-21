@@ -79,7 +79,31 @@ export const RORK_GAME_MEDIA: Record<string, RorkGameMedia> = {
   'quin-discovery-expedition': { background: BG.ruins, ambience: 'amb_desert', signature: 'pickup', accent: '#7f91d6' },
 };
 
+// Keep 26 pilot games in their original character biomes. Reuse the existing
+// verified scenic media and local music; never route pilot IDs to live-preview
+// remote audio or create 26 additional image downloads per session.
+const PILOT_PARENT: Readonly<Record<string, keyof typeof RORK_GAME_MEDIA>> = {
+  phan: 'phan-enterprise-builder',
+  quin: 'quin-discovery-expedition',
+  van: 'van-living-city-dispatch',
+  christian: 'christian-civic-leadership',
+  lhen: 'lhen-rhythm-journey',
+  jawo: 'jawo-forest-trail',
+  trudice: 'trudice-playground-memory',
+  ace: 'ace-rescue-grid',
+  mitch: 'mitch-restore-mural',
+  niel: 'niel-mission-trail',
+  angel: 'angel-kingdom-treasury',
+  vhen: 'vhen-farm-to-market',
+  elesur: 'elesur-village-builder',
+};
 export function getRorkGameMedia(gameId?: string | null) {
   if (!gameId) return null;
-  return RORK_GAME_MEDIA[gameId] ?? null;
+  const exact = RORK_GAME_MEDIA[gameId];
+  if (exact) return exact;
+  // Explicitly scoped to the reviewed 39-game catalog: avoid accidentally
+  // providing game audio or premium scene backgrounds to arbitrary routes.
+  const prefix = gameId.split('-')[0];
+  const parent = PILOT_PARENT[prefix];
+  return parent && gameId.startsWith(prefix + '-') ? RORK_GAME_MEDIA[parent] : null;
 }
