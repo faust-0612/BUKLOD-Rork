@@ -196,7 +196,7 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat && !immersiveArena ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!genesisWorld && !immersiveIgpat && !immersiveArena && !immersiveConversation && rawNavOccupied > 0 ? (
+      {!genesisWorld && !immersiveIgpat && !immersiveConversation && !immersiveArena && rawNavOccupied > 0 ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
