@@ -1,11 +1,11 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/nonseason2-production-ota-intake-20261122.json",
-  "objective": "Collect current production-compatible BUKLOD MAIN silent OTA activation, PTT preferences and non-punitive lesson/mentoring changes into a single isolated DEV production-OTA intake, with a complete explicit pending-source queue and strict Season 2 production embargo; do not publish.",
+  "objective": "Collect current production-compatible BUKLOD MAIN silent OTA activation, PTT preferences secure new-member Admin inbox and non-punitive lesson/mentoring changes into a single isolated DEV production-OTA intake, with a complete explicit pending-source queue and strict Season 2 production embargo; do not publish.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: last independently recorded BUKLOD MAIN production Android receipt on 2026-11-20 source 98fda684f8a322ba0095adda06899534fdcfa6fe, update 01a1f920-ea6b-7314-a070-364a22019a24, runtime 1.3.2, in PR #1032 (publisher 44743468133, read-only receipt 44744193617). Canonical main source inspected 2026-11-22 at ecd34228dd24f07a47ba397bb1c29199aac51779. This is not proof of the latest served live update now.",
-  "chosenApproach": "Create one protected nonpublishing branch from current main; port exact audited source blobs of source PRs #1071, #1081 and exact compatible five-file #1005, preserve main fixes, pin their Git object IDs, record all remaining eligible workstreams with exact SHAs and reasons to hold, and explicitly exclude Season 2/native changes.",
-  "selectionRationale": "The PTT and lesson/mentor fixes are disjoint descendants of current main; all three modified silent-OTA files in #1005 have exact current-main blob parity with their PR base, permitting safe intact copy. Other old-main-rooted PRs overlap sensitive code and remain on hold.",
+  "chosenApproach": "Create one protected nonpublishing branch from current main; port exact audited source blobs of source PRs #1071, #1081 exact compatible five-file #1005 and guarded additive admin PR #994, preserve main fixes, pin their Git object IDs, record all remaining eligible workstreams with exact SHAs and reasons to hold, and explicitly exclude Season 2/native changes.",
+  "selectionRationale": "The PTT and lesson/mentor fixes are disjoint descendants of current main; all three modified silent-OTA files in #1005 have exact current-main blob parity with their PR base, permitting safe intact copy. Other old-main-rooted PRs overlap sensitive code and remain on hold. PR #994 Admin inbox uses additive anchors on current main, with its server-side Admin RPCs verified live read-only and anonymous execute revoked.",
   "allowedPaths": [
     ".buklod/scopes/nonseason2-production-ota-intake-20261122.json",
     ".buklod/releases/main-production-ota-intake-20261122.json",
@@ -28,7 +28,16 @@
     "src/lib/buklodSilentOtaPolicy.ts",
     "tests/buklod-mandatory-update-runtime.test.mjs",
     "tests/buklod-silent-ota-policy.test.mjs",
-    "tests/ota-restart-safe-area.test.cjs"
+    "tests/ota-restart-safe-area.test.cjs",
+    "src/app/admin/index.tsx",
+    "src/app/admin/new-users.tsx",
+    "src/lib/buklodNotificationNavigation.ts",
+    "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "tests/admin-new-registration-inbox-20261119.test.cjs",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "tests/admin-registration-security-20261119.test.cjs"
   ],
   "riskAreas": [
     "app-runtime",
@@ -39,7 +48,9 @@
     "AdMob",
     "navigation",
     "release-governance",
-    "silent-ota"
+    "silent-ota",
+    "navigation-scroll",
+    "admin-privacy"
   ],
   "regressionTests": [
     "tests/buklod-ptt-preferences-and-switching.test.mjs",
@@ -49,7 +60,12 @@
     "tests/nonseason2-prod-intake-contract-20261122.test.mjs",
     "tests/buklod-mandatory-update-runtime.test.mjs",
     "tests/buklod-silent-ota-policy.test.mjs",
-    "tests/ota-restart-safe-area.test.cjs"
+    "tests/ota-restart-safe-area.test.cjs",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "tests/admin-new-registration-inbox-20261119.test.cjs",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "tests/admin-registration-security-20261119.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -66,7 +82,10 @@
         "tests/nonseason2-prod-intake-contract-20261122.test.mjs",
         "tests/buklod-mandatory-update-runtime.test.mjs",
         "tests/buklod-silent-ota-policy.test.mjs",
-        "tests/ota-restart-safe-area.test.cjs"
+        "tests/ota-restart-safe-area.test.cjs",
+        "tests/admin-new-registration-inbox-20261119.test.cjs",
+        "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+        "tests/admin-registration-notification-route-20261119.test.cjs"
       ]
     },
     {
@@ -80,7 +99,22 @@
       "tests": [
         "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
         "tests/mentor-catalog-auth-permission-20261122.test.mjs",
-        "tests/nonseason2-prod-intake-contract-20261122.test.mjs"
+        "tests/nonseason2-prod-intake-contract-20261122.test.mjs",
+        "supabase/tests/admin_new_registration_security_20261119.sql",
+        "tests/admin-registration-security-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Add only a fixed, non-PII new registration notification route to the existing guarded System Admin inbox, preserving unrelated notification routing and privacy.",
+      "preservedBehaviors": [
+        "Only a server-authorized System Admin can fetch private registration information; notifications and deep-link query strings contain only opaque IDs.",
+        "Other alert types and case/support route parsing remain unchanged; ordinary members cannot access the new Admin inbox.",
+        "No changes to member authentication, password persistence, reward accounting or native sign-in dependencies."
+      ],
+      "tests": [
+        "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+        "tests/admin-registration-notification-route-20261119.test.cjs"
       ]
     }
   ],
@@ -91,7 +125,8 @@
     "No silent auto-approval of incorrect lessons; no permanent failed grade, no BP penalty for retries.",
     "Never double-cherry-pick branches already in main, or copy older whole branches over newer code.",
     "Production remains on its last independently verified served update until a complete release is approved and read back.",
-    "Expo OTA downloads in background; no force reload during active PTT/calls, draft editing, uploads or offline submissions, and mandatory new APK gating stays unchanged."
+    "Expo OTA downloads in background; no force reload during active PTT/calls, draft editing, uploads or offline submissions, and mandatory new APK gating stays unchanged.",
+    "New registration notices carry no member PII in push payload; Admin-only details are loaded through existing server-authorized RPCs; do not reapply already-live migrations."
   ],
   "acceptanceChecks": [
     "Check each source blob in GitHub branch matches pinned SHA in .buklod/releases/main-production-ota-intake-20261122.json.",
@@ -102,7 +137,8 @@
     "Run Android Hermes export, TypeScript, AdMob first-view/fill, fast-tab navigation, weak network, PTT audio, media/lifecycle, auth and UI regression on one frozen RC.",
     "No production OTA until all mandatory gates pass; preserve installed runtime 1.3.2 and use canonical Android guarded publish/readback only.",
     "Only announce to users after independently verifying the exact production OTA/update ID and bundle hash.",
-    "Verify silent background OTA and next-cold-launch activation in actual production native binary, including no call/PTT or draft interruption."
+    "Verify silent background OTA and next-cold-launch activation in actual production native binary, including no call/PTT or draft interruption.",
+    "Verify the admin-registration RPC privilege and anonymous denial read-only before E2E System Admin vs ordinary-member Android smoke."
   ],
   "alternativeApproaches": [
     "Merge all open branches wholesale into main: rejected because many are older than current production source and include Season 2-native or unreviewed backend changes.",
