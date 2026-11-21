@@ -166,8 +166,7 @@
       ],
       "tests": [
         "tests/genesis-ota-character-timeout-20261121.test.mjs",
-        "tests/buklod-character-art-release-contract-20261116.test.mjs",
-        "tests/character-rc-modern-lock.test.mjs"
+        "tests/buklod-character-art-release-contract-20261116.test.mjs"
       ]
     }
   ],

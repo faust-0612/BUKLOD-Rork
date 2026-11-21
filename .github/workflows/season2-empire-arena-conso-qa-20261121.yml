@@ -64,7 +64,8 @@ jobs:
       - name: Verify Character timeout, immutable Character visuals and Genesis OTA freshness
         run: |
           node --experimental-strip-types --test tests/genesis-ota-character-timeout-20261121.test.mjs tests/buklod-mandatory-update-runtime.test.mjs
-          node --test tests/buklod-character-art-release-contract-20261116.test.mjs tests/character-rc-modern-lock.test.mjs
+          node --test tests/buklod-character-art-release-contract-20261116.test.mjs
+          node scripts/character-release-contract.mjs
       - name: Prevent first-view ads and instant navigation regressions
         run: |
           node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
