@@ -93,8 +93,11 @@ test('Disconnected player gets short reconnection grace; after grace server sett
   h.advance(5000);
   await h.coordinator.heartbeat();
   assert.equal(h.calls.settle.length,0);
-  const reconnected=fakeSession(1);
+  const reconnected=fakeSession(1,'quin',snapshot(4));
   assert.equal(h.coordinator.reattach(reconnected),true);
+  assert.equal(reconnected.hero,'phan','Authenticated seat keeps original match hero');
+  assert.equal(reconnected.snapshot.characterLevel,1,'Reattach cannot substitute a different hero level');
+  assert.equal(m.state.players.A0.hero,'phan');
   await h.coordinator.heartbeat();
   assert.equal(h.calls.settle.length,0);
   h.coordinator.disconnect(reconnected);
