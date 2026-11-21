@@ -4,7 +4,7 @@ import {ActivityIndicator,Pressable,StyleSheet,Text,TextInput,View} from 'react-
 import {useFocusEffect} from 'expo-router';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {
- completeVerifiedEstateBuild,contributeVerifiedEstate,enoughEstateMaterials,estateCost,
+ completeVerifiedEstateBuild,contributeVerifiedEstate,enoughEstateMaterials,
  fetchVerifiedEstate,newEstateOperationKey,saveVerifiedEstateDesign,startVerifiedEstateBuild,
  type EstateCosmetics,type EstateOwnerKind,type EstateSnapshot,type EstateTrack,type EstateWallet,
 } from './estateProgressClient';
@@ -104,7 +104,7 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
   },'Earned materials transferred to your community. No BP was created.');
  };
  if(!ownerId)return <View style={styles.panel}><Text style={styles.title}>CONSTRUCTION CONTROL</Text><Text style={styles.hint}>Choose an active verified Cluster or Organization first.</Text></View>;
- const cost=verified?estateCost(track,verified.level,verified.stage):null;
+ const cost=verified?.next_cost??null;
  const readyAt=verified?.build_finish_at?Date.parse(verified.build_finish_at):0;
  const timeLeft=Math.max(0,Math.ceil((readyAt-now)/60000));
  const constructing=Boolean(verified?.pending_key);
