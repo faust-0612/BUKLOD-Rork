@@ -1,0 +1,62 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/world-exchange-v1-rank-safe-20261121.json",
+  "objective": "Develop a disabled-by-default authoritative World Exchange backend candidate and signed-in RPC adapter; reaffirm item purchases only transfer existing available BP and NEVER credit lifetime BP/Circle Rank/QMP or sell BP as a commodity.",
+  "baseRef": "6bf6699d1f249b158ec8c07fc706e92d6e74e645",
+  "productionBaselineEvidence": "Read-only GitHub main SHA 536741f8d97fc9dec91503c89f1c1160e5987ce0 and live Supabase schema/triggers inspected 2026-11-21. This is not a verified production APK/OTA fingerprint. No production changes authorized or performed.",
+  "productionChange": false,
+  "productionAuthorized": false,
+  "releaseAuthorized": false,
+  "releaseTarget": "DEV_CANDIDATE_NO_LIVE_DATABASE",
+  "chosenApproach": "Isolated source-only Postgres changeset with default-OFF gates; server-verified source and escrow/transfer ledger; authenticated RPC client; focused Node and isolated-db SQL contracts, no live migrations or game wallet mutation.",
+  "selectionRationale": "The current points ledger has active rank/debit triggers. Trading via it would double count or mutate rank. A separate item-and-spendable-BP transfer transaction preserves historical earned BP and rank while allowing cross-cluster exchange.",
+  "alternativeApproaches": [
+    "Reuse public.buklod_points_ledger credit/debit for every trade (rejected: would affect lifetime/rank and other triggers, double count).",
+    "Allow clients to submit verified receipts or to mutate inventory and balances directly (rejected: item duplication, IDOR, forged BP).",
+    "Turn on real trade against production without isolated authenticated/RLS concurrency tests (rejected: consequential persistence and lack of rollback/verification)."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/world-exchange-v1-rank-safe-20261121.json",
+    "docs/empire-arena/BUKLOD_EMPIRE_ARENA_V2_CANONICAL_DESIGN.md",
+    "docs/empire-arena/BUKLOD_WORLD_EXCHANGE_V1_BACKEND_DEV_CONTRACT.md",
+    "src/lib/buklodWorldExchangeV1.ts",
+    "supabase/changesets/buklod_world_exchange_v1.dev.sql",
+    "supabase/tests/buklod_world_exchange_v1_contract.sql",
+    "tests/buklod-world-exchange-server-contract-20261121.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Current application, Arena V1/V2, Character/Kingdom/Cluster progression, ad rendering and navigation unchanged.",
+    "Lifetime BP and Circle Rank update only through existing verified participation authority; the exchange touches only available_points under a separate audited transfer.",
+    "No BP itself is buyable/sellable; only independently verified goods may be exchanged for existing BP.",
+    "No current user inventory, BP balances, QMP, cash, diamonds, production Supabase schema/migrations or OTA changed."
+  ],
+  "acceptanceChecks": [
+    "Focused Node tests confirm exact spendable debit/credit conservation without lifetime BP/QMP writes or reward ledger mutation.",
+    "RPC client rejects invalid IDs/amounts/currency and cannot issue goods or optimistic wallet updates.",
+    "Escrow/listing/purchase/cancel transactions have server-owned identity, deterministic locks, idempotency and source-revocation gates.",
+    "DEV GitHub branch commit and PR scope gate; isolated DB/RLS and Android tests remain release blockers."
+  ],
+  "riskAreas": [
+    "backend-security",
+    "ads-finance-points",
+    "kingdom-character",
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/buklod-world-exchange-server-contract-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New optional authenticated source-only RPC adapter and disabled DB proposal must not alter existing app runtime or protected payments",
+      "preservedBehaviors": [
+        "No app imports, navigation, advertisements, authentication or production runtime modified",
+        "No native modules or OTA changes",
+        "No live DB migration executed"
+      ],
+      "tests": [
+        "tests/buklod-world-exchange-server-contract-20261121.test.mjs"
+      ]
+    }
+  ]
+}
