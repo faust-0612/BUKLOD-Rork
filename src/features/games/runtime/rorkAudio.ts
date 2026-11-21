@@ -35,6 +35,7 @@ const voiceCount: Partial<Record<RorkAudioKey, number>> = {
 const pools = new Map<RorkAudioKey, Player[]>();
 const cursors = new Map<RorkAudioKey, number>();
 const lastPlayedAt = new Map<RorkAudioKey, number>();
+const arenaCuePlayedAt = new Map<string, number>();
 const startedVoices = new WeakSet<Player>();
 let focusedKingdomViews = 0;
 
@@ -48,6 +49,7 @@ function releaseKingdomSfx() {
   pools.clear();
   cursors.clear();
   lastPlayedAt.clear();
+  arenaCuePlayedAt.clear();
 }
 
 function prewarmKingdomSfx() {
@@ -133,6 +135,55 @@ export function tryPlayRorkGameFeedback(event: BuklodGameFeedbackEvent, volume =
     event === 'impact' ? 120 :
     250;
   return playKey(key, volume, cooldownMs);
+}
+
+/**
+ * Arena semantic SFX score. All sound sources are already bundled in
+ * kingdomPremiumAudioAssets.ts (CC0). This does not fetch music, award rewards,
+ * affect HP, or start audio when game focus is gone.
+ */
+export type ArenaSoundCue = {
+  id: string;
+  sound: string;
+  rate: number;
+  volume: number;
+  priority: number;
+  cooldown: number;
+};
+const ARENA_PACKAGED_SOUND_KEY: Readonly<Record<string, RorkAudioKey>> = {
+  build_hit:'build_hit', beat_combo:'beat_combo', beat_hit:'beat_hit',
+  victory:'success', victory_alt:'beat_combo', enter:'game_enter',
+  retry:'retry', pickup:'pickup', coins:'coins', unlock:'unlock',
+  ui_tap:'ui_tap', ui_confirm:'ui_confirm', mission_go:'mission_go',
+};
+export function tryPlayArenaEventCue(cue: ArenaSoundCue, enabled = true): boolean {
+  if (!enabled || focusedKingdomViews <= 0 || AppState.currentState !== 'active') return false;
+  if (!cue || !Object.prototype.hasOwnProperty.call(ARENA_PACKAGED_SOUND_KEY,cue.sound)) return false;
+  const key=ARENA_PACKAGED_SOUND_KEY[cue.sound];
+  const now=Date.now();
+  const previous=arenaCuePlayedAt.get(cue.id)??-Infinity;
+  if(now-previous<Math.max(0,Math.min(4000,Number(cue.cooldown)||0)))return false;
+  const voices=poolFor(key);
+  if(!voices.length)return false;
+  // Reserve the semantic gate only if a real pool voice exists.
+  arenaCuePlayedAt.set(cue.id,now);
+  const index=cursors.get(key)??0;
+  cursors.set(key,(index+1)%voices.length);
+  const player=voices[index%voices.length];
+  if(!player.isLoaded)return false;
+  try {
+    player.volume=Math.max(0,Math.min(.48,(Number(cue.volume)||.22)*.75));
+    player.playbackRate=Math.max(.7,Math.min(1.3,Number(cue.rate)||1));
+    if(!startedVoices.has(player)){
+      startedVoices.add(player);
+      player.play();
+    }else{
+      void player.seekTo(0).then(()=>{
+        if(focusedKingdomViews>0&&AppState.currentState==='active')player.play();
+      }).catch(()=>undefined);
+    }
+    return true;
+  }catch{return false}
 }
 
 export function playRorkSignatureSfx(gameId?: string | null, volume = 0.26) {
