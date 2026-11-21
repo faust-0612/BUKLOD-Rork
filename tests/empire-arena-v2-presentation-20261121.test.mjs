@@ -32,7 +32,7 @@ test('Practice contextual controls reflect authoritative node distances, tower d
   player.x = s.w - 14; player.y = s.h / 2;
   nearby = arenaNearby(s, player);
   assert.equal(nearby.canSiege, false, 'two+ live enemy towers must block siege');
-  for (const tower of s.towers.filter(t => t.team === 'B').slice(1)) tower.hp = 0;
+  for (const tower of s.towers.filter(t => t.team === 'B').slice(1)) { tower.hp = 0; tower.alive = false; }
   nearby = arenaNearby(s, player);
   assert.equal(nearby.canSiege, true);
   assert.equal(command(s, 'A0', { type: 'seal_attack' }), true);
@@ -55,8 +55,10 @@ test('Visual effects are only recent display metadata, not reward operations', (
 });
 
 test('Native in-app Arena exposes every core combat and economic PRACTICE action', () => {
-  for(const word of ['arenaCamera(', 'arenaNearby(', 'arenaVisualEffects(', 'minimap','type: \'seal_attack\'', 'type: \'loot\'', 'type: \'build\'', 'type: \'tower_repair\'', 'type: \'tower_upgrade\'', 'type: \'train\'', 'type: \'order\'', 'type: \'deposit\'', 'type: \'mine\'', 'type: \'attack\'', 'type: \'skill\'']){
+  for(const word of ['arenaCamera(', 'arenaNearby(', 'arenaVisualEffects(', 'minimap','type: \'seal_attack\'', 'type: \'loot\'', 'type: \'build\'', 'type: \'train\'', 'type: \'order\'', 'type: \'deposit\'', 'type: \'mine\'', 'type: \'attack\'', 'type: \'skill\'']){
     assert.ok(native.includes(word), 'Missing in-app command '+word);
   }
+  assert.match(native, /towerAction\('tower_repair'\)/);
+  assert.match(native, /towerAction\('tower_upgrade'\)/);
   assert.doesNotMatch(native, /supabase\.|\.rpc\(|awardDiamond|awardBp|settleWorldTrade/);
 });
