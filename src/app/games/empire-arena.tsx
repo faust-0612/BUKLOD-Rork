@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Svg, { Circle, G, Line, Path, Rect, Defs, RadialGradient as SvgRadialGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Line, Path, Rect, Defs, RadialGradient as SvgRadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
@@ -60,7 +60,7 @@ import { createOfflineSoloBattle, tickOfflineSolo, SOLO_CPU_DIFFICULTIES, SOLO_R
 type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
 type Position = { x: number; y: number };
-type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; itemMastery?: number; cooldowns?: Record<'primary' | 'secondary' | 'ultimate', number>; gear?: Record<string, unknown>; lastMoveTick?: number; lastAttacked?: number };
+type Actor = Position & { id: string; team?: Team | null; hp: number; villagerRole?: string; villagerName?: string; villagerSlot?: number; command?: string; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; itemMastery?: number; cooldowns?: Record<'primary' | 'secondary' | 'ultimate', number>; gear?: Record<string, unknown>; lastMoveTick?: number; lastAttacked?: number };
 type ArenaState = {
   w: number; h: number; status: string; elapsed: number; tick: number; mode?: Mode; kind?: string;
   solo?: { difficulty: string; round: number; wins: Record<Team, number>; draws: number;
@@ -71,7 +71,7 @@ type ArenaState = {
   towers: Actor[]; units: Actor[]; creatures: Actor[]; buildings: Actor[];
   nodes: (Position & { id: string; type: string; stock: number })[];
   loot: (Position & { id: string; expires?: number })[];
-  teams: Record<Team, { resources: { wood: number; gold: number; stone: number }; kills: number }>;
+  teams: Record<Team, { resources: { wood: number; gold: number; stone: number }; kills: number; tech?: number }>;
   seals: Record<Team, { hp: number; maxHp: number; breached: boolean }>;
   cover: [number, number, number][]; events: { type: string; seq: number; time: number; actor?: string; to?: string; tower?: string }[];
   result?: { winner: Team | null; reason: string } | null;
@@ -112,6 +112,21 @@ const ARENA_SPARKS=Array.from({length:34},(_,index)=>({
 function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: boolean; selected?: boolean }) {
   if (!life(actor)) return null;
   const tint = friendly ? '#8ffce6' : '#ff9d8b';
+  if (actor.kind === 'villager') {
+    const accents: Record<string,string> = {builder:'#ffd38f',gatherer:'#99ec99',guardian:'#a9d9ff',healer:'#ffafd5',researcher:'#d6adff',supplier:'#f4e68e'};
+    const accent=accents[actor.villagerRole||'']||'#eee9db';
+    const x=actor.x,y=actor.y;
+    return <G>
+      <Ellipse cx={x} cy={y+1.5} rx={2.1} ry={.68} fill="#061422" opacity={.65}/>
+      <Path d={'M '+(x-1.3)+' '+(y+.85)+' L '+(x-1.05)+' '+(y-.8)+' L '+(x+1.05)+' '+(y-.8)+' L '+(x+1.3)+' '+(y+.85)+' Z'} fill={tint} stroke={accent} strokeWidth={.35}/>
+      <Circle cx={x} cy={y-1.2} r={.74} fill="#f6d3b0" stroke={accent} strokeWidth={.3}/>
+      <Rect x={x-.72} y={y-2.15} width={1.45} height={.45} rx={.1} fill={accent}/>
+      <Circle cx={x+1.05} cy={y-.3} r={.55} fill={accent} stroke={tint} strokeWidth={.28}/>
+      <SvgText x={x} y={y-3} textAnchor="middle" fontSize={1.4} fontWeight="bold" fill={accent}>{actor.villagerName||'Villager'}</SvgText>
+      <Rect x={x-1.5} y={y+1.5} width={3} height={.32} fill="#19252e"/>
+      <Rect x={x-1.5} y={y+1.5} width={3*clamp(actor.hp/Math.max(1,actor.maxHp),0,1)} height={.32} fill="#9bffa2"/>
+    </G>;
+  }
   const r = actor.hero ? 2.6 : actor.kind === 'villager' ? 1.25 : 1.8;
   // The official full-body actor overlays hero markers. No enormous cheap
   // initial-letter badges: just a readable tactical selection circle below feet.
@@ -603,6 +618,7 @@ function EmpireArenaInApp() {
     execute({ type: 'order', order: 'push' }, 'move');
     setMessage('Allied units ordered to PUSH. Train near your base to reinforce.');
   };
+  const villagerOrder = (order: 'mine'|'defend'|'repair'|'support'|'research'|'retreat') => execute({type:'order',kind:'villager',order},'move');
   const siege = () => execute({ type: 'seal_attack' });
   const collectLoot = () => {
     const match = gameRef.current;
@@ -859,7 +875,19 @@ function EmpireArenaInApp() {
             <Control icon="wrench" title="REPAIR" onPress={() => towerAction('tower_repair')} disabled={!nearby.tower} />
             <Control icon="arrow-up-bold-hexagon-outline" title="UPGRADE" onPress={() => towerAction('tower_upgrade')} disabled={!nearby.tower} />
           </View>
-          <Text style={styles.tacticsHint}>Siege unlocks after enemy towers fall. Build near home and repair allied towers. No real rewards.</Text>
+          {arenaKind==='practice' ? <>
+            <Text style={styles.tacticsHeader}>VILLAGE • {ownTeam==='A'?'LUX LIGHTBEARERS':'TENEBRA SHADOWBORNE'} • {game.units.filter(u=>u.team===ownTeam&&u.kind==='villager'&&life(u)).length}/6 • TECH {game.teams[ownTeam]?.tech||0}/3</Text>
+            <View style={styles.tacticsControls}>
+              <Control icon="account-plus" title="RECRUIT" onPress={()=>execute({type:'train',kind:'villager'},'collect')} disabled={!nearby.canBank}/>
+              <Control icon="pickaxe" title="GATHER" onPress={()=>villagerOrder('mine')}/>
+              <Control icon="shield" title="GUARD" onPress={()=>villagerOrder('defend')}/>
+              <Control icon="wrench" title="FIX" onPress={()=>villagerOrder('repair')}/>
+              <Control icon="medical-bag" title="HEAL" onPress={()=>villagerOrder('support')}/>
+              <Control icon="book-open" title="TECH" onPress={()=>villagerOrder('research')}/>
+              <Control icon="arrow-left-bold" title="RETREAT" onPress={()=>villagerOrder('retreat')}/>
+            </View>
+          </> : null}
+          <Text style={styles.tacticsHint}>Siege unlocks after enemy towers fall. Villagers spend real match resources and need protection. No persistent rewards.</Text>
         </View> : null}
         {game.solo?.intermissionUntil && game.solo.intermissionUntil>game.elapsed ? <View pointerEvents="none" style={styles.roundBanner}>
           <Text style={styles.roundBannerText}>{game.solo.lastRoundWinner==='A'?'ROUND WON':game.solo.lastRoundWinner==='B'?'ROUND LOST':'ROUND DRAW'}</Text>
