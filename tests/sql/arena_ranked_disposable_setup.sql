@@ -14,6 +14,13 @@ CREATE TABLE public.buklod_points_ledger (
   points integer NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE public.buklod_character_collectible_state (
+  user_id uuid REFERENCES auth.users(id),
+  character_id text NOT NULL,
+  level_no integer NOT NULL,
+  item_index integer NOT NULL,
+  redeemed_at timestamptz
+);
 INSERT INTO auth.users(id) VALUES
  ('00000000-0000-4000-8000-000000000001'),
  ('00000000-0000-4000-8000-000000000002'),
