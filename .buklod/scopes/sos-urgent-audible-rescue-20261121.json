@@ -1,0 +1,98 @@
+{
+  "contractVersion": 2,
+  "objective": "Make BUKLOD SOS activate an urgent audible nearby notification and app-wide recipient overlay with mandatory sender GPS and tightly authorized responder navigation; do not alter live production without native and backend gates.",
+  "baseRef": "ecd34228dd24f07a47ba397bb1c29199aac51779",
+  "productionBaselineEvidence": "Main ecd34228dd24f07a47ba397bb1c29199aac51779 retains R1 SOS and R2 overlay; 2026-11-21 read-only MAIN audit found one active SOS marked SENT with zero nearby recipients and no push records. Dedicated Android R2 channel referenced by server but missing matching client initialization. No claim that physical push, native APK, or published OTA has changed.",
+  "chosenApproach": "Create bundled sound channel buklod-emergency-v2 with per-token confirmed capability=3 and legacy channel fallback; retain root in-app Modal; enforce foreground GPS on send, targeted recipient RLS+proximity RPC, foreground opt-in presence refresh, and narrowly scoped ON_MY_WAY map handoff.",
+  "selectionRationale": "Native notification channels are required for reliable Android audio delivery, but cannot be OTA-only. Explicit per-device capability avoids trying noninstalled channels. Existing app-only overlay and authenticated server fanout remain the canonical transport. Sender-informed on-the-way navigation is preferable to exposing precise location to all nearby users.",
+  "alternativeApproaches": [
+    "Force Android OS-level full-screen intent over other apps, rejected due platform restrictions and disproportionate privilege",
+    "Expose sender raw GPS in ordinary push or nearby feed, rejected due privacy and safety abuse",
+    "Background GPS tracking, rejected due opt-in and R1 foreground-only constraints",
+    "Blindly route all old tokens to a new channel, rejected because missing channel silently drops pushes"
+  ],
+  "riskAreas": [
+    "emergency-safety",
+    "auth-privacy",
+    "native-notification",
+    "android-runtime",
+    "server-security",
+    "navigation-scroll",
+    "weak-network-resilience",
+    "account-isolation",
+    "production-boundary"
+  ],
+  "preserveBehaviors": [
+    "Original SOS 1800ms deliberate long press and local device confirmation remain",
+    "No public raw location or unverified viewing; exact coordinates are delivered only to a freshly eligible ON_MY_WAY responder on a deliberate action",
+    "Explicit opt-in controls presence; no background location and no re-enabling a disabled record",
+    "Existing app-wide overlay, notification UUID handoff, 45-second inbox fallback and 15-second incident refresh remain",
+    "Canonical notification webhook, anti-spam, max 5km, radius selection, expiration and zero-recipient warnings remain",
+    "Old Android tokens retain activity notification channel; no unsupported custom sound assigned to older native installations",
+    "Caller can end own SOS but recipients cannot resolve others' requests",
+    "Current Ads and global navigation regression locks remain unchanged",
+    "No live backend schema, production native APK, or OTA mutated by this DEV source change"
+  ],
+  "regressionTests": [
+    "tests/sos-global-emergency-overlay-20261107.test.mjs",
+    "tests/sos-urgent-responder-20261121.test.mjs",
+    "tests/sos-urgent-security-20261121.test.mjs",
+    "tests/sos-urgent-release-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Urgent GPS and app-wide overlay need native notification initialization and safe React Native runtime behavior.",
+      "preservedBehaviors": [
+        "SOS remains part of BUKLOD MAIN, no new independent app or lost navigation drafts."
+      ],
+      "tests": [
+        "tests/sos-urgent-responder-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Prevent direct SOS table writes and restrict responder-only rescue coordinate access to current verified on-my-way recipients.",
+      "preservedBehaviors": [
+        "All raw safety tables keep RLS; authorized RPCs enforce opt-in proximity, canonical inbox, owner isolation and expiry."
+      ],
+      "tests": [
+        "tests/sos-urgent-security-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "New APK-bundled SOS audio changes native build identity and requires capability-gated rollout rather than dangerous OTA-only promotion.",
+      "preservedBehaviors": [
+        "Production package/runtime/app identity are untouched; no auto OTA or merge to main by this draft PR."
+      ],
+      "tests": [
+        "tests/sos-urgent-release-20261121.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "SOS blocked when location permission or device location is off; high-accuracy fresh coordinate sent only after deliberate confirmation",
+    "On capable Android native build, OS presents recognizable SOS tone and vibration to nearby opted-in recipient even if app backgrounded, respecting OS notification settings",
+    "Within BUKLOD app the canonical alert fully overlays Home, Wall, Cluster, Connect and Profile without losing drafts",
+    "No auth, radius or notification entitlement => no emergency detail or exact location",
+    "ON_MY_WAY responder can explicitly open restricted GPS navigation with consent confirmation, including after an app tab change",
+    "Disabled nearby alert setting remains off across background and foreground transitions",
+    "All changed regression tests, TypeScript, staging RPC integration, native two-device QA, AdMob/nav regression gate and exact RC must pass before any merge/release"
+  ],
+  "allowedPaths": [
+    "app.config.js",
+    "src/lib/pushNotifications.ts",
+    "src/components/BuklodCommunityHelp.tsx",
+    "src/components/BuklodGlobalEmergencyHost.tsx",
+    "supabase/functions/push/index.ts",
+    "supabase/migrations/20261121230000_sos_urgent_audible_rescue.sql",
+    "scripts/community-help-sos-release-contract.mjs",
+    "docs/COMMUNITY_HELP_SOS_R1_LOCK.md",
+    "tests/sos-global-emergency-overlay-20261107.test.mjs",
+    "tests/sos-urgent-responder-20261121.test.mjs",
+    "tests/sos-urgent-security-20261121.test.mjs",
+    "tests/sos-urgent-release-20261121.test.mjs",
+    ".buklod/scopes/sos-urgent-audible-rescue-20261121.json"
+  ]
+}
