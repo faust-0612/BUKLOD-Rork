@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
-  "objective": "Consolidate BUKLOD Genesis Season 2 premium portrait Welcome exactly from owner-approved artwork: nine special map doors incl. Special Events, external animated Guide and four correct activity prompts, existing five-item bottom navigation, all learning/faith/university/focus app destinations and verified Cluster/Organization community previews; preserve Home/Connect spacing, paid Supabase authority, AdMob and existing production unchanged. Correct the real Android blank-map regression from the R2 staging OTA with exact approved JPEGs, a fallback URI, and a no-image emergency interactive map. Fix persistent Character Progression spinner through bounded authenticated read-only queries; make Genesis staging retry a missed OTA after startup without force reload or changing production OTA cadence. Restore all 13 canonical character stations on the existing Genesis Kingdom panoramic map, and put Kingdom ads only after scroll content, never covering artwork or actions.",
+  "objective": "Consolidate BUKLOD Genesis Season 2 premium portrait Welcome exactly from owner-approved artwork: nine special map doors incl. Special Events, external animated Guide and four correct activity prompts, existing five-item bottom navigation, all learning/faith/university/focus app destinations and verified Cluster/Organization community previews; preserve Home/Connect spacing, paid Supabase authority, AdMob and existing production unchanged. Correct the real Android blank-map regression from the R2 staging OTA with exact approved JPEGs, a fallback URI, and a no-image emergency interactive map. Fix persistent Character Progression spinner through bounded authenticated read-only queries; make Genesis staging retry a missed OTA after startup without force reload or changing production OTA cadence. Restore all 13 canonical character stations on the existing Genesis Kingdom panoramic map, and put Kingdom ads only after scroll content, never covering artwork or actions. Give every canonical Kingdom character station a unique premium illustrated environment derived from the Kabihasnang Ligaw dictionary, without claiming any unapproved per-character world associations as canon.",
   "baseRef": "5a3de4ac4cc3e43dd2c404e4033c098d2d92c4d6",
   "productionBaselineEvidence": "Uses exact independently confirmed existing DEV head 5a3de4a and preserves immutable main/production. Signed staging Android APK and previously published OTA refer to earlier sources, not this new commit.",
-  "chosenApproach": "Bundle SHA-pinned local portrait and compact WebP artwork, overlay transparent one-tap targets on baked labels (no duplicate main tabs), use existing guarded Focus, Learning, Kingdom/Arena, Home, Church, Community and event routes, preserve faith alternatives and role-bound community previews, and exercise source/Metro/ad/navigation regressions before a staging-only RC. No new app/native module, database migration, reward mint or production OTA. R3 correction uses the approved JPG variant through React Native Image, a JS-bundled offline JPEG fallback, and a guarded emergency nine-door directory after decoder stalls/failures; original approved WebPs retained for byte-level provenance. Keep immutable Character art/selection UI and server-side progression authority. Timebox only session/RPC reads; clear in-flight read on rejection, never publish an expired selection; retry Genesis staging OTA download once after a 45-second delay without in-session reload. Preserve original panorama byte-for-byte and all game URLs; use a horizontally scrollable 13-character station trail with direct one-tap game navigation, account-scoped local clear indicators and no BP writes. Place the same allowlisted AdMob inventory as the final element inside the Kingdom ScrollView; hide the overlapping floating World return only for /games and provide a normal-flow World Map link.",
+  "chosenApproach": "Bundle SHA-pinned local portrait and compact WebP artwork, overlay transparent one-tap targets on baked labels (no duplicate main tabs), use existing guarded Focus, Learning, Kingdom/Arena, Home, Church, Community and event routes, preserve faith alternatives and role-bound community previews, and exercise source/Metro/ad/navigation regressions before a staging-only RC. No new app/native module, database migration, reward mint or production OTA. R3 correction uses the approved JPG variant through React Native Image, a JS-bundled offline JPEG fallback, and a guarded emergency nine-door directory after decoder stalls/failures; original approved WebPs retained for byte-level provenance. Keep immutable Character art/selection UI and server-side progression authority. Timebox only session/RPC reads; clear in-flight read on rejection, never publish an expired selection; retry Genesis staging OTA download once after a 45-second delay without in-session reload. Preserve original panorama byte-for-byte and all game URLs; use a horizontally scrollable 13-character station trail with direct one-tap game navigation, account-scoped local clear indicators and no BP writes. Place the same allowlisted AdMob inventory as the final element inside the Kingdom ScrollView; hide the overlapping floating World return only for /games and provide a normal-flow World Map link. Use lightweight in-app native SVG scenery for 13 visual motifs sourced from already-existing KL dictionary places; display NONE of their unreleased story/dictionary terms, retain existing 16:9 Kingdom panorama and original direct station routes. No new image downloads, permissions, native packages, lore edits, reward writes or subscription.",
   "selectionRationale": "No new native modules, paid services, or production backend writes; owner approved original 1672x941 image and only entry ad removal.",
   "alternativeApproaches": [
     "Overwrite approved map with a divergent Valley drawing (rejected)",
@@ -27,7 +27,9 @@
     "ota-delivery-freshness",
     "kingdom-layout",
     "ads-viewport-lifecycle",
-    "account-scoped-preview-data"
+    "account-scoped-preview-data",
+    "kl-dictionary-lore-boundary",
+    "kingdom-station-rendering"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
@@ -61,10 +63,12 @@
     "src/features/games/runtime/rorkAudio.ts",
     "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
     "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "src/features/season2/genesis/GenesisKingdomStationScene.tsx",
     "src/features/season2/genesis/GenesisReliablePortraitImage.tsx",
     "src/features/season2/genesis/genesisApprovedEntryHotspots.json",
     "src/features/season2/genesis/genesisMapDistricts.ts",
     "src/features/season2/genesis/genesisPortraitFallback.generated.ts",
+    "src/features/season2/genesis/klKingdomVisualMotifs.ts",
     "src/features/season2/world/BuklodMapGuideDock.tsx",
     "src/features/season2/world/BuklodMapHeader.tsx",
     "src/features/season2/world/BuklodSpecialDoorDirectory.tsx",
@@ -79,6 +83,7 @@
     "src/lib/buklodCharacterReadDeadline.ts",
     "src/lib/buklodCharacterSelectionV2.ts",
     "src/lib/buklodSilentOtaPolicy.ts",
+    "tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs",
     "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
     "tests/genesis-ota-character-timeout-20261121.test.mjs",
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
@@ -120,7 +125,8 @@
     "tests/season2-special-events-welcome-20261121.test.mjs",
     "tests/genesis-ota-character-timeout-20261121.test.mjs",
     "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
-    "tests/season2-premium-staging-ota-contract-20261121.test.mjs"
+    "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
+    "tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -176,7 +182,8 @@
       "tests": [
         "tests/genesis-ota-character-timeout-20261121.test.mjs",
         "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
-        "tests/season2-premium-staging-ota-contract-20261121.test.mjs"
+        "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
+        "tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs"
       ]
     }
   ],
@@ -206,9 +213,10 @@
     "Character V2 authenticated fetch times out after a bounded interval, preserves existing server authority, R31/R40 visual locks unchanged and does not touch BP, RLS or payouts.",
     "Only Genesis preview performs a throttled early OTA check; no reloadAsync, no call/draft interruptions and no production OTA cadence change.",
     "Kingdom panorama 16:9 artwork unchanged; 13 character stations open exact canonical original game URLs directly, account-scoped local clears only.",
-    "Staging Kingdom ad slot remains allowlisted but is last in scrollable content; no sticky ad overlaps character, map, nav, or touch controls."
+    "Staging Kingdom ad slot remains allowlisted but is last in scrollable content; no sticky ad overlaps character, map, nav, or touch controls.",
+    "Every 13 station ID is visually distinct, is referenced from an existing KL glossary location, contains an illustration instead of only text, while story canon/unreleased locations remain concealed from member-facing copy."
   ],
-  "publicationStatus": "DEV SOURCE ONLY: Genesis Kingdom original station layout + nonblocking footer ad prepared; exact-head CI and EAS provider receipts required for OTA. Earlier R3 published, this change not published yet.",
+  "publicationStatus": "DEV SOURCE ONLY: KL glossary-derived 13 Realm illustrations added on top of prior 13-station and last-in-scroll ads layout. QA/Metro/RC and OTA release evidence pending; production unchanged.",
   "releaseMode": "staging-source-prepared-native-runtime-and-ota-proof-pending",
   "physicalDeviceVerification": "USER_WAIVED_UNVERIFIED",
   "productionDeployment": "NONE"

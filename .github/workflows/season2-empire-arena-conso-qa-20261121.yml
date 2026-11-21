@@ -69,6 +69,8 @@ jobs:
       - name: Restore original Kingdom stations without a covering ad
         run: |
           node --test tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs tests/buklod-kingdom-character-ads-20261111.test.mjs tests/kingdom-premium-map-r6.test.mjs
+      - name: Validate KL dictionary-driven 13 original Kingdom scenery layouts
+        run: node --test tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs
       - name: Prevent first-view ads and instant navigation regressions
         run: |
           node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs

@@ -18,6 +18,8 @@ import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import { emptyKingdomPreviewProgress, loadBuklodKingdomPreviewProgress, subscribeBuklodKingdomPreviewProgress, type BuklodKingdomPreviewProgress } from '@/features/games/kingdom/progress';
 import { GenesisSeal } from './GenesisVisuals';
 import { pulseGenesisTouch } from './genesisNativeFeedback';
+import GenesisKingdomStationScene from './GenesisKingdomStationScene';
+import { KL_KINGDOM_VISUAL_MOTIFS } from './klKingdomVisualMotifs';
 
 export const GENESIS_REALMS = [
   { id:'phan-enterprise-builder', name:'Phan', title:'The First Harvest', caption:'Build a beginning that can sustain others', character:'phan' },
@@ -198,6 +200,9 @@ export default function GenesisKingdomPortal() {
                 <Text style={styles.stationIndex}>STATION {String(index+1).padStart(2,'0')}</Text>
                 {stationClears > 0 ? <MaterialCommunityIcons name="check-decagram" color="#BCE6B0" size={17} /> : null}
               </View>
+              <View pointerEvents="none" style={styles.stationScene}>
+                <GenesisKingdomStationScene id={realm.id}/>
+              </View>
               <Text numberOfLines={1} style={styles.stationCharacter}>{realm.name}</Text>
               <Text numberOfLines={1} style={styles.stationRegion}>{details.region}</Text>
               <Text numberOfLines={2} style={styles.stationGame}>{details.game}</Text>
@@ -212,7 +217,9 @@ export default function GenesisKingdomPortal() {
       <View style={[styles.illustration,{height:frameHeight}]}>
         {/* Individual characters retain their original local models/art. Do not load remote
             preview-host backgrounds or substitute wallpaper for animated character rigs. */}
-        <LinearGradient colors={['#13322D','#102C3D','#071623']} style={StyleSheet.absoluteFill}/>
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <GenesisKingdomStationScene id={selected.id} mode="hero"/>
+        </View>
         <LinearGradient colors={['rgba(2,10,20,.20)','rgba(4,15,28,.16)','rgba(1,8,17,.88)']} style={StyleSheet.absoluteFill}/>
         <GenesisCosmicSky active={animate} transparent/>
         <GenesisOrbitHalo active={animate} size={Math.min(300, width * 0.72)} />
@@ -299,11 +306,13 @@ const styles = StyleSheet.create({
  stationHeadingText:{fontSize:12,letterSpacing:.6,fontWeight:'900',color:'#FFE4AB'},
  stationSwipeHint:{fontSize:9,fontWeight:'800',color:'#B8D9C9'},
  stationTrail:{alignItems:'stretch',gap:9,paddingVertical:3,paddingHorizontal:3,paddingRight:15},
- stationCard:{width:148,minHeight:164,padding:9,borderWidth:1.3,borderRadius:15,
+ stationCard:{width:182,minHeight:218,padding:8,borderWidth:1.3,borderRadius:15,
    backgroundColor:'#102E33',justifyContent:'space-between',elevation:2},
  stationCardSelected:{backgroundColor:'#193C3C'},
  stationCardPressed:{opacity:.72},
  stationCardTop:{flexDirection:'row',alignItems:'center',gap:4},
+ stationScene:{height:91,width:'100%',borderRadius:10,overflow:'hidden',
+   borderWidth:1,borderColor:'rgba(227,219,175,.38)',backgroundColor:'#153B3D'},
  stationIcon:{width:41,height:41,borderRadius:21,borderWidth:1.2,alignItems:'center',
    justifyContent:'center',backgroundColor:'#193E39'},
  stationIndex:{flex:1,fontSize:9,fontWeight:'900',color:'#E4D9B1'},
