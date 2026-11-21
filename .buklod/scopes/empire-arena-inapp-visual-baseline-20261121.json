@@ -41,7 +41,8 @@
     "Server lock action and pinned dependency lockfile are protected DEV-only scope; changes reconciled to actual pull request diff.",
     "Ranked server unit tests and disposable PostgreSQL security checks are separate GitHub workflow steps; scope regressionTests lists valid tests/*.test.mjs paths only.",
     "Ranked player full-body attack and skill pose selection is driven by server-authored event timestamps for the correct actor; untrusted local cues never alter combat.",
-    "All 52 generated fullbody WebP clips are actually decoded and inspected in CI: 8 frames each (416 total), motion transitions, distinct skill/attack poses, and SHA-256 integrity; approved-art style/device rendering remains separately unverified."
+    "All 52 generated fullbody WebP clips are actually decoded and inspected in CI: 8 frames each (416 total), motion transitions, distinct skill/attack poses, and SHA-256 integrity; approved-art style/device rendering remains separately unverified.",
+    "The production Arena WebSocket protocol is extracted and tested through real loopback Node ws network connections using a fake trusted store; no authentication bypass is included in deployable server."
   ],
   "riskAreas": [
     "app-runtime",
@@ -228,7 +229,9 @@
     "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
     "src/features/games/empire/arenaActorPose.mjs",
     "tests/empire-arena-v2-actor-pose-20261121.test.mjs",
-    "scripts/verify-buklod-arena-motion.py"
+    "scripts/verify-buklod-arena-motion.py",
+    "services/empire-arena/transport.mjs",
+    "services/empire-arena/tests/gateway.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
