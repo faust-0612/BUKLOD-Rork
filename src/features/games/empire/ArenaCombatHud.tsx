@@ -105,11 +105,11 @@ function ActionButton({ item, editing }: { item: CombatAction; editing: boolean 
       >
         <Svg width={size - 7} height={size - 7} viewBox="0 0 80 80"
           pointerEvents="none" style={StyleSheet.absoluteFill}>
-          <Defs><RadialGradient id="arena-hud-sigil" cx="40%" cy="23%" r="75%">
+          <Defs><RadialGradient id={"arena-hud-sigil-"+item.id} cx="40%" cy="23%" r="75%">
             <Stop offset="0%" stopColor={theme.glow} stopOpacity="0.45" />
             <Stop offset="100%" stopColor="#091525" stopOpacity="0" />
           </RadialGradient></Defs>
-          <Circle cx="40" cy="40" r="35.5" fill="url(#arena-hud-sigil)" />
+          <Circle cx="40" cy="40" r="35.5" fill={"url(#arena-hud-sigil-"+item.id+")"} />
           <Circle cx="40" cy="40" r="32" fill="none" stroke={theme.edge}
             strokeOpacity=".55" strokeWidth="1.2" strokeDasharray={utility ? '6 8':'16 4'} />
           <Path d="M18 22 Q40 7 62 22" fill="none" stroke="#ffffff"
