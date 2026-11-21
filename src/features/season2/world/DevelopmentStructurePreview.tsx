@@ -5,6 +5,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {AccessibilityInfo,Animated,StyleSheet,View} from 'react-native';
 import Svg,{Circle,Defs,Ellipse,G,Line,LinearGradient,Path,Polygon,Rect,Stop} from 'react-native-svg';
 import {constructionStage,majorLevel,safeCosmetics,visualDevelopmentFeatures,masteryMotifCount} from './constructionPlan.mjs';
+import EstateTierArtwork from './EstateTierArtwork';
 
 const PALETTES={
  stone:{wall:'#D7C49E',dark:'#7B6859',roof:'#5D707A',trim:'#FCEDC9'},
@@ -15,9 +16,9 @@ const PALETTES={
  light:{wall:'#E8DCC4',dark:'#8A8F9F',roof:'#6879A4',trim:'#FFF9E9'},
 };
 type Track='lot'|'house'|'cluster';
-type Props={track:Track;level:number;stage:number;mastery?:number;finish:string;roof:string;ground:string;fence?:string;windows?:string;lights?:string;};
-export default function DevelopmentStructurePreview({track,level,stage,mastery=0,finish,roof,ground,fence='wood',windows='classic',lights='warm'}:Props){
- const cosmetics=safeCosmetics({finish,roof,ground,fence,windows,lights});
+type Props={track:Track;level:number;stage:number;mastery?:number;finish:string;roof:string;ground:string;fence?:string;windows?:string;lights?:string;door?:string;path?:string;yard?:string;earnedProgress?:boolean;};
+export default function DevelopmentStructurePreview({track,level,stage,mastery=0,finish,roof,ground,fence='wood',windows='classic',lights='warm',door='wood',path='gravel',yard='bench',earnedProgress=false}:Props){
+ const cosmetics=safeCosmetics({finish,roof,ground,fence,windows,lights,door,path,yard});
  const p=PALETTES[cosmetics.finish as keyof typeof PALETTES];
  const l=majorLevel(level),s=constructionStage(stage);
  const shine=useRef(new Animated.Value(.3)).current;
@@ -30,10 +31,13 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
      Animated.timing(shine,{toValue:.3,duration:2200,useNativeDriver:true})
    ]));pulse.start();return()=>pulse.stop();
  },[reduced,shine]);
- const wood=s>=1,frame=s>=2,walls=s>=3,finished=s>=4;
+ const features=visualDevelopmentFeatures(track,l,s,mastery,earnedProgress);
+ const completedTier=features.length;
+ // Retain previously finished structures across the next stage and next level.
+ const wood=s>=1||completedTier>0,frame=s>=2||completedTier>0;
+ const walls=s>=3||completedTier>0,finished=(s>=4&&!earnedProgress)||completedTier>0;
  const isHouse=track==='house',isVillage=track==='cluster';
  const growth=l>=4,large=l>=7,premium=l>=9;
- const features=visualDevelopmentFeatures(track,l,s,mastery);
  const hasTier=(n:number)=>features.length>=n;
  return <View pointerEvents="none" style={StyleSheet.absoluteFillObject} accessible={false}>
   <Svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
@@ -45,6 +49,8 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
    <Path d="M20 172 L201 95 L380 172 L203 244 Z" fill={cosmetics.ground==='stone'?'#758078':'url(#lot-earth)'} stroke="#D5C08B" strokeWidth="3"/>
    {cosmetics.ground==='flower'&&[55,90,318,349].map((x,i)=><G key={i}><Circle cx={x} cy={178+i%2*29} r="12" fill="#426D50"/><Circle cx={x+3} cy={174+i%2*29} r="5" fill="#E9A1B7"/></G>)}
    {cosmetics.ground==='stone'&&<Path d="M202 240 L200 177 L220 175 L229 239" fill="#C7BBA0" stroke="#9C957F" strokeWidth="1"/>}
+   {cosmetics.path==='brick'&&<Path d="M198 245 L187 203 L209 184 L231 203 L218 243" fill="#BE886F" stroke="#F2D8B5" strokeWidth="2"/>}
+   {cosmetics.path==='pavers'&&<Path d="M198 245 L188 207 L210 185 L230 204 L221 243" fill="#E3D8BD" stroke="#8E8B7D" strokeWidth="2"/>}
    {wood&&<G stroke={cosmetics.fence==='iron'?'#B8CCCE':cosmetics.fence==='hedge'?'#4E8C5D':'#E7CC93'} strokeWidth={cosmetics.fence==='iron'?3:4} strokeLinecap="round">
      <Path d="M35 172 L201 108 L364 172 M35 172 L202 232 L364 172" strokeDasharray={s<4?'12 9':'3 0'}/>
      <Line x1="35" y1="172" x2="35" y2="148"/><Line x1="364" y1="172" x2="364" y2="148"/>
@@ -64,7 +70,7 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
      <Polygon points={cosmetics.roof==='terrace'?'101,135 194,86 297,131 204,179':cosmetics.roof==='hip'?'103,137 199,73 299,138 204,106':'105,136 204,67 297,138 203,101'} fill={s===2?'#385A50':p.roof} stroke={p.trim} strokeWidth="3" fillOpacity={s===2 ? .4 : 1}/>
      {walls&&<G> <Rect x={cosmetics.windows==='panorama'?216:229} y={cosmetics.windows==='arched'?146:149} width={cosmetics.windows==='panorama'?46:27} height={cosmetics.windows==='arched'?31:28} rx={cosmetics.windows==='arched'?14:2} fill={cosmetics.windows==='panorama'?'#98D9E9':'#90D4D9'} stroke={p.trim} strokeWidth="3"/> {cosmetics.windows==='classic'&&<Path d="M242 149 L242 178 M229 164 L255 164" stroke="#F5E9BD" strokeWidth="2"/>}
        {cosmetics.windows==='panorama'&&<Path d="M239 149 L239 177" stroke="#F4F6E4" strokeWidth="2"/>}
-       <Path d="M142 158 L173 144 L173 192 L142 205 Z" fill="#463A34" stroke={p.trim} strokeWidth="3"/></G>}
+       <Path d="M142 158 L173 144 L173 192 L142 205 Z" fill={cosmetics.door==='glass'?'#97CDD6':cosmetics.door==='arched'?'#936D4F':'#463A34'} stroke={p.trim} strokeWidth="3"/></G>}
    </G>}
    {s===0&&<G>
      <Path d="M129 181 L168 160 L203 181 L163 201 Z" fill="#B49C76" stroke="#F4D39E" strokeWidth="2"/>
@@ -96,6 +102,10 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
    {isVillage&&growth&&<G><Rect x="286" y="205" width="28" height="12" fill="#D5C093"/><Line x1="300" y1="192" x2="300" y2="205" stroke="#FFEDBB" strokeWidth="3"/></G>}
    {isHouse&&large&&<Path d="M145 119 L202 85 L244 107" fill="none" stroke="#F8DF9F" strokeWidth="3" opacity=".75"/>}
    {track==='lot'&&s<3&&<Path d="M122 202 L200 228 L291 199" fill="none" stroke="#F7DAB2" strokeDasharray="9 5" strokeWidth="3"/>}
+   <EstateTierArtwork track={track} completedTier={completedTier} activeStage={s} mastery={mastery}
+    wall={p.wall} dark={p.dark} roofColor={p.roof} trim={p.trim}
+    fence={cosmetics.fence} windows={cosmetics.windows} lights={cosmetics.lights}
+    door={cosmetics.door} path={cosmetics.path} yard={cosmetics.yard}/>
   </Svg>
   <Animated.View style={[styles.glow,{opacity:shine}]}/>
  </View>;
