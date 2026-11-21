@@ -124,4 +124,21 @@ export function customizeWorkshop(state:WorkshopState,world:'home'|'village',edi
  return {...state,cosmetics:{...state.cosmetics,[world]:next}};
 }
 /** Local workshop stages/objects do not unlock server-owned land or paid currency. */
+
+/**
+ * Monotonic silhouette maturity across all fifty construction completions.
+ * Local stages may clear temporary scaffolding but may NEVER revert the base.
+ * Levels 1-2 are basic marked/foundation sites, not finished mansions.
+ */
+export function visualPhaseForWorkshop(p:WorkshopProgress):0|1|2|3|4|5 {
+ if(!p||!validInt(p.level,10)||!validInt(p.stage,4))return 0;
+ const value=p.level*5+p.stage;
+ if(value===0)return 0;
+ if(value<10)return 1;
+ if(value<20)return 2;
+ if(value<30)return 3;
+ if(value<40)return 4;
+ return 5;
+}
+
 export const WORKSHOP_IS_NONTRANSACTIONAL=true as const;

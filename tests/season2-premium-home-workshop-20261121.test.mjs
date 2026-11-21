@@ -5,7 +5,7 @@ import {join} from 'node:path';
 const root=process.cwd();
 const read=p=>readFileSync(join(root,p),'utf8');
 const engine=await import('../src/features/season2/world/worldWorkshopEngine.ts');
-const {newWorkshop,restoreWorkshop,buildRequirements,buildWorkshopStage,startWorkshopGather,gatherTarget,chooseWorkshopGather,customizeWorkshop}=engine;
+const {newWorkshop,restoreWorkshop,buildRequirements,buildWorkshopStage,startWorkshopGather,gatherTarget,chooseWorkshopGather,customizeWorkshop,visualPhaseForWorkshop}=engine;
 
 test('one-tap approved My Home goes to guarded Season 2 map, while Bahay stays accessible',()=>{
  const metadata=JSON.parse(read('src/features/season2/genesis/genesisApprovedEntryHotspots.json'));
@@ -46,6 +46,23 @@ test('offline work starts at true vacant level zero with strict bounds and no sh
  const broken=restoreWorkshop({schema:1,tracks:{lot:{level:999,stage:9,mastery:8}},stock:{timber:-4,stone:Infinity,supplies:1e30},rounds:Infinity});
  assert.deepEqual(broken.tracks.lot,{level:0,stage:0,mastery:0});
  assert.deepEqual(broken.stock,{timber:0,stone:0,supplies:0});
+});
+
+test('construction silhouette never degrades when a stage completes or resets',()=>{
+ let last=0;
+ for(let level=0;level<=10;level++){
+  for(let stage=0;stage<=4;stage++){
+   const phase=visualPhaseForWorkshop({level,stage,mastery:0});
+   assert.ok(phase>=last, 'visual regression at level '+level+', stage '+stage);
+   last=phase;
+  }
+ }
+ assert.equal(visualPhaseForWorkshop({level:0,stage:0,mastery:0}),0);
+ assert.equal(visualPhaseForWorkshop({level:1,stage:0,mastery:0}),1);
+ assert.equal(visualPhaseForWorkshop({level:10,stage:0,mastery:5}),5);
+ const svg=read('src/features/season2/world/WorldConstructionDiorama.tsx');
+ assert.match(svg,/const stage=visualPhaseForWorkshop\(progress\)/);
+ assert.match(svg,/progress.stage>=4/);
 });
 
 test('three-choice hunt respects a correct combo and never mints remote BP',()=>{

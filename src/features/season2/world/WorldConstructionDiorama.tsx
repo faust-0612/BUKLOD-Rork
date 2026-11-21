@@ -1,7 +1,7 @@
 import React from 'react';
 import {StyleSheet,View} from 'react-native';
 import Svg,{Defs,LinearGradient,Stop,Ellipse,Path,Polygon,Rect,Line,Circle,G} from 'react-native-svg';
-import type {WorkshopProgress,WorkshopStyle,WorkshopTrack} from './worldWorkshopEngine';
+import {visualPhaseForWorkshop,type WorkshopProgress,type WorkshopStyle,type WorkshopTrack} from './worldWorkshopEngine';
 
 /**
  * Genuine level/stage-reactive vector diorama on top of the licensed local
@@ -12,7 +12,7 @@ export default function WorldConstructionDiorama({track,progress,styleId}:{
  track:WorkshopTrack;progress:WorkshopProgress;styleId:WorkshopStyle;
 }){
  const tier=Math.min(10,progress.level);
- const stage=Math.max(Math.min(5,Math.ceil(tier/2)),progress.stage);
+ const stage=visualPhaseForWorkshop(progress);
  const colors=styleId==='tropical'
   ?{wall:'#CBA27A',shade:'#88664D',roof:'#3B6447',frame:'#8A5437',soil:'#437255',light:'#F8D8A1'}
   :styleId==='nature'
@@ -98,6 +98,25 @@ export default function WorldConstructionDiorama({track,progress,styleId}:{
    {tier>=8 && track!=='lot'?<G>
     <Rect x="128" y="99" width="4" height="4" fill="#EDE0B4"/>
     <Path d="M101 72 v-22 l18 -9 18 9 v21" fill="none" stroke={colors.frame} strokeWidth="4"/>
+   </G>:null}
+   {/* Temporary physical worksite cues vary at EACH construction stage and clear
+       after completion without ever removing the permanent structure. */}
+   {progress.stage>=1?<G>
+     <Rect x="27" y="138" width="23" height="14" rx="2" fill="#B69260" stroke="#F5D49A" strokeWidth="1.5"/>
+     <Path d="M27 145 h23 M38 138 v14" stroke="#7B603F" strokeWidth="1.5"/>
+   </G>:null}
+   {progress.stage>=2?<G>
+     <Path d="M48 125 L124 98 L195 124" stroke="#E7C886" strokeWidth="2" strokeDasharray="5 4" fill="none"/>
+     <Circle cx="48" cy="125" r="3" fill="#FFF0BE"/>
+     <Circle cx="195" cy="124" r="3" fill="#FFF0BE"/>
+   </G>:null}
+   {progress.stage>=3?<G>
+     <Path d="M62 120 v-41 h122 v41 M62 96 h122" stroke="#D6B37B" strokeWidth="3" opacity=".86" fill="none"/>
+     <Path d="M62 80 l30 40 M182 80 l-31 40" stroke="#EACB9A" strokeWidth="2" opacity=".75"/>
+   </G>:null}
+   {progress.stage>=4?<G>
+     <Path d="M54 82 L122 58 L191 82" stroke="#F3DDA5" strokeWidth="4" fill="none"/>
+     <Path d="M63 85 L118 63 L181 85" stroke="#B4CFAD" strokeWidth="2" fill="none"/>
    </G>:null}
    {progress.mastery>0?<G>
      <Circle cx="119" cy="30" r="9" fill="#F8EAC2" opacity=".8"/>
