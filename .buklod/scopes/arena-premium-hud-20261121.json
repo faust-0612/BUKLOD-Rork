@@ -22,15 +22,16 @@
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-premium-hud-20261121.json",
+    ".github/workflows/buklod-arena-inapp-dev-qa.yml",
     ".github/workflows/engineering-accountability.yml",
-    "src/components/BuklodNavSafeShell.tsx",
     "src/app/games/empire-arena.tsx",
+    "src/components/BuklodNavSafeShell.tsx",
     "src/features/games/empire/ArenaAnimatedActor.tsx",
     "src/features/games/empire/ArenaCombatHud.tsx",
     "src/features/games/empire/arenaHudLayout.mjs",
-    "tests/season2-arena-responsive-navigation-20261121.test.mjs",
     "tests/arena-kingdom-game-premium-20261121.test.mjs",
-    "tests/arena-protected-feature-lock-20261121.test.mjs"
+    "tests/arena-protected-feature-lock-20261121.test.mjs",
+    "tests/season2-arena-responsive-navigation-20261121.test.mjs"
   ],
   "regressionTests": [
     "tests/season2-arena-responsive-navigation-20261121.test.mjs",
