@@ -87,11 +87,13 @@ function cueFor(e,ctx){
   if(type==='solo_round_end')return key(e.winner===own?'round_win':e.winner==null?'draw':'round_loss');
   if(type==='solo_round_start')return key('round_start');
   if(type==='defeat'){
-    // Actor is the killer, 'to' is the victim.
+    // Actor is the killer, 'to' is the victim. Wildlife is not a hero.
+    if(['stalker','shellkeeper','forest','golden','stone','lumen','forager','wisp'].includes(e.kind)) return null;
     if(target===seat)return key('self_down');
+    if(e.kind&&e.kind!=='hero')return key(targetTeam===own?'ally_unit_down':targetTeam?'enemy_unit_down':null);
     return key(targetTeam===own?'ally_down':targetTeam?'enemy_down':null);
   }
-  if(type==='unit_ko'||type==='tower_ko'||type==='boss_ko'||type==='trap_ko'||type==='storm_defeat'){
+  if(type==='unit_ko'||type==='tower_ko'||type==='boss_ko'||type==='trap_ko'||type==='hazard_ko'||type==='storm_defeat'){
     if(type==='boss_ko')return null; // boss_defeat is the meaningful reward cue
     if(target===seat||e.actor===seat)return key('self_down');
     return key(targetTeam===own?'ally_unit_down':targetTeam?'enemy_unit_down':null);
