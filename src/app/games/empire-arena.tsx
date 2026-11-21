@@ -34,7 +34,7 @@ import { ArenaActionFx } from '@/features/games/empire/ArenaActionFx';
 import { ArenaResourceHud, ArenaPickupTrails, ArenaRewardBanner } from '@/features/games/empire/ArenaMaterialFeedback';
 import { ArenaTerrainArt } from '@/features/games/empire/ArenaTerrainArt';
 import { ArenaBaseArt } from '@/features/games/empire/ArenaBaseArt';
-import { setArenaVoiceFocus, playArenaVoiceAnnouncements } from '@/features/games/empire/ArenaVoiceRuntime';
+import { setArenaVoiceFocus, playArenaVoiceAnnouncements, stopArenaVoiceAnnouncements } from '@/features/games/empire/ArenaVoiceRuntime';
 import { ArenaStructureArt, ArenaWildlifeArt, ArenaResourceLootArt } from '@/features/games/empire/ArenaWorldArt';
 import { ArenaCombatHud, type ArenaHudKey, type ArenaHudLayout, type HudPoint, type CombatAction } from '@/features/games/empire/ArenaCombatHud';
 // @ts-ignore — pure, versioned, per-device preferences. Never a source of Arena game authority.
@@ -405,9 +405,9 @@ function EmpireArenaInApp() {
         {team:state.players[localSeat]?.team??'A',seat:localSeat,players:state.players,
           units:state.units,towers:state.towers,buildings:state.buildings});
       lastAudioEventSeq.current = drained.lastSeq;
+      if (voiceEnabled) playArenaVoiceAnnouncements(drained.cues, true);
       if (sfxEnabled) {
         for (const cue of drained.cues) tryPlayArenaEventCue(cue, true);
-        playArenaVoiceAnnouncements(drained.cues, voiceEnabled);
         // Bounded proximity-only buff wildlife: one soft motif, never remote.
         if (state.tick % 10===0) {
           const wildlife = nearbyArenaBuffCue(state,localSeat);
@@ -498,10 +498,8 @@ function EmpireArenaInApp() {
               {team:match.players?.[seat]?.team??'A',seat,players:match.players,
                 units:match.units,towers:match.towers,buildings:match.buildings});
             lastAudioEventSeq.current = drain.lastSeq;
-            if (sfxEnabled) {
-              for (const cue of drain.cues) tryPlayArenaEventCue(cue,true);
-              playArenaVoiceAnnouncements(drain.cues,voiceEnabled);
-            }
+            if (voiceEnabled) playArenaVoiceAnnouncements(drain.cues,true);
+            if (sfxEnabled) for (const cue of drain.cues) tryPlayArenaEventCue(cue,true);
             setRevision(v => v + 1);
           }
         } else if (packet.type === 'match_end' && packet.confirmed === true) {
@@ -623,7 +621,7 @@ function EmpireArenaInApp() {
   const ownTeam = me?.team ?? 'A';
   const opponent = Object.values(game?.players ?? {}).find(p=>p.team && p.team !== ownTeam);
   const nearby = arenaNearby(game, me);
-  const resources = game?.teams[ownTeam].resources;
+  // Material chips read exact snapshot stock and carry balances, never inferred loot.
   const arenaReceipts = game ? arenaFeedbackReceipts(game, localSeat) : [];
   const materialCounts = arenaResourceCounts(game, localSeat);
   const media = getRorkGameMedia(ARENA_SCENE_GAME_ID[mapId]);
@@ -665,7 +663,7 @@ function EmpireArenaInApp() {
       <Pressable onPress={toggleMusic} accessibilityRole="button" accessibilityLabel={musicEnabled ? 'Mute Arena music' : 'Enable Arena music'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={17} color="#f9df9e" />
       </Pressable>
-      <Pressable onPress={() => setVoiceEnabled(v => !v)} accessibilityRole="button"
+      <Pressable onPress={() => { if (voiceEnabled) stopArenaVoiceAnnouncements(); else setArenaVoiceFocus(true); setVoiceEnabled(!voiceEnabled); }} accessibilityRole="button"
         accessibilityLabel={voiceEnabled ? 'Mute Arena voice announcements' : 'Enable Arena voice announcements'}
         style={styles.audioToggle}>
         <MaterialCommunityIcons name={voiceEnabled ? 'account-voice' : 'microphone-off'}
