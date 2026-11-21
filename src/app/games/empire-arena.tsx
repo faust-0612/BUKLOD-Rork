@@ -14,7 +14,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import Svg, { Circle, ClipPath, Defs, G, Image as SvgImage, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -22,8 +22,11 @@ import {
   type BuklodCharacterId,
 } from '@/lib/buklodCharacterSelectionV2';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
-import { tryPlayRorkGameFeedback, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
+import { tryPlayRorkGameFeedback, playRorkSignatureSfx, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
+import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
+// @ts-ignore — source-only audio event filter; no network and no private data.
+import { drainArenaAudioEvents } from '@/features/games/empire/arenaPracticeAudio.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
@@ -119,10 +122,7 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying 
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === 'A'} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== 'A0') onTarget(p.id); }}>
         <ActorMark actor={p} friendly={p.team === 'A'} selected={p.id === selectedId || p.id === 'A0'} />
-        {p.hero && life(p) && (!isPlaying || !ARENA_GENERATED_ART['sprite:' + p.hero]) ? <G>
-          <Defs><ClipPath id={'arena-portrait-' + p.id}><Circle cx={p.x} cy={p.y} r={2.7} /></ClipPath></Defs>
-          <SvgImage href={ARENA_HERO_ART[p.hero as BuklodCharacterId] as any} x={p.x - 2.8} y={p.y - 2.8} width={5.6} height={5.6} preserveAspectRatio="xMidYMid slice" clipPath={'url(#arena-portrait-' + p.id + ')'} />
-        </G> : null}
+
       </G>)}
       {state.visualCue && state.elapsed - state.visualCue.time < 650 ? (() => {
         const cue = state.visualCue;
@@ -154,21 +154,21 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying 
         </G>;
       })}
     </Svg>
-    {isPlaying ? Object.values(state.players)
-      .filter(p => p.hero && life(p) && ARENA_GENERATED_ART['sprite:' + p.hero] &&
-        p.x >= camera.x - 4 && p.x <= camera.x + camera.width + 4 &&
-        p.y >= camera.y - 4 && p.y <= camera.y + camera.height + 4)
+    {Object.values(state.players)
+      .filter(p => p.hero && life(p) &&
+        p.x >= camera.x - 5 && p.x <= camera.x + camera.width + 5 &&
+        p.y >= camera.y - 5 && p.y <= camera.y + camera.height + 5)
       .map(p => {
-        const image = ARENA_GENERATED_ART['sprite:' + p.hero];
-        const size = clamp(area.width * 8 / camera.width, 36, 106);
-        return <ExpoImage key={'anim-' + p.id} source={image as React.ComponentProps<typeof ExpoImage>['source']}
-          contentFit="contain" pointerEvents="none"
-          style={{
-            position: 'absolute', width: size, height: size,
-            left: (p.x - camera.x) * area.width / camera.width - size / 2,
-            top: (p.y - camera.y) * area.height / camera.height - size * 0.72,
-          }} />;
-      }) : null}
+        const sprite = ARENA_GENERATED_ART['sprite:' + p.hero];
+        const image = sprite || ARENA_GENERATED_ART['hero:' + p.hero] ||
+          ARENA_HERO_ART[p.hero as BuklodCharacterId];
+        const size = clamp(area.width * 8 / camera.width, 32, 94);
+        return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
+          sprite={Boolean(sprite)} friendly={p.team === 'A'} active={isPlaying}
+          moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= (state as ArenaState & {tick:number}).tick - 1)}
+          x={(p.x - camera.x) * area.width / camera.width}
+          y={(p.y - camera.y) * area.height / camera.height} size={size} />;
+      })}
     <View pointerEvents="none" style={styles.minimap}>
       <Svg width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
         <Rect x={0} y={0} width={state.w} height={state.h} fill="#102735" stroke="#e1c78e" strokeWidth={1} />
@@ -201,11 +201,13 @@ export default function EmpireArenaInApp() {
   const [target, setTarget] = useState<string | null>(null);
   const [joyVisual, setJoyVisual] = useState<Position>({ x: 0, y: 0 });
   const [tacticsOpen, setTacticsOpen] = useState(false);
+  const [sfxEnabled, setSfxEnabled] = useState(true);
   const gameRef = useRef<ArenaState | null>(null);
   const directionRef = useRef<Position>({ x: 0, y: 0 });
   const focused = useRef(false);
   const selected = useRef<string | null>(null);
-  useRorkGameAmbience(ARENA_SCENE_GAME_ID[mapId]);
+  const lastAudioEventSeq = useRef(0);
+  const { musicEnabled, toggleMusic } = useRorkGameAmbience(ARENA_SCENE_GAME_ID[mapId]);
 
   useEffect(() => {
     let alive = true;
@@ -262,6 +264,12 @@ export default function EmpireArenaInApp() {
       const state = gameRef.current;
       if (!state || state.status !== 'active') return;
       tick(state);
+      const drained = drainArenaAudioEvents(state.events, lastAudioEventSeq.current,
+        state.events[state.events.length - 1]?.seq ?? lastAudioEventSeq.current);
+      lastAudioEventSeq.current = drained.lastSeq;
+      if (sfxEnabled) for (const cue of drained.cues) {
+        tryPlayRorkGameFeedback(cue, cue === 'failure' || cue === 'success' ? 0.35 : 0.22);
+      }
       const d = directionRef.current;
       if (Math.hypot(d.x, d.y) > 0.05) command(state, 'A0', { type: 'move', dx: d.x, dy: d.y });
       setRevision(v => v + 1);
@@ -271,7 +279,7 @@ export default function EmpireArenaInApp() {
       }
     }, STEP_MS as number);
     return () => clearInterval(timer);
-  }, [phase]);
+  }, [phase, sfxEnabled]);
 
   const start = useCallback(() => {
     // Server-owned Diamond/item eligibility is NOT simulated with fabricated user data.
@@ -281,13 +289,15 @@ export default function EmpireArenaInApp() {
       snapshot: { characterLevel: 1, bpEligibleLevel: 1, itemVerifiedLevel: 1, diamonds: 0, verifiedItems: [] },
     });
     gameRef.current = state;
+    lastAudioEventSeq.current = state.events[state.events.length - 1]?.seq ?? 0;
+    if (sfxEnabled) playRorkSignatureSfx(ARENA_SCENE_GAME_ID[mapId], 0.24);
     selected.current = null;
     setTarget(null);
     setTacticsOpen(false);
     setMessage('Move, attack, gather, train and break the opposing seal. Practice grants no rewards.');
     setPhase('playing');
     setRevision(v => v + 1);
-  }, [hero, mode, mapId]);
+  }, [hero, mode, mapId, sfxEnabled]);
 
   const execute = useCallback((action: Record<string, unknown>, cue: 'impact' | 'collect' | 'move' = 'impact') => {
     const game = gameRef.current;
@@ -304,12 +314,12 @@ export default function EmpireArenaInApp() {
         if (actor) game.visualCue = { type: actionType, x: actor.x, y: actor.y,
           time: game.elapsed, seq: (game.visualCue?.seq || 0) + 1 };
       }
-      tryPlayRorkGameFeedback(cue, 0.28);
+      if (sfxEnabled) tryPlayRorkGameFeedback(cue, 0.28);
       setRevision(v => v + 1);
     } else {
       setMessage('Action unavailable: get closer, check resources, level or cooldown.');
     }
-  }, [phase]);
+  }, [phase, sfxEnabled]);
 
   const closestEnemy = (range: number) => {
     const game = gameRef.current;
@@ -378,6 +388,12 @@ export default function EmpireArenaInApp() {
         <Text numberOfLines={1} style={styles.header}>BUKLOD EMPIRE • ARENA</Text>
         <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {phase === 'playing' ? 'PRACTICE LIVE' : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
       </View>
+      <Pressable onPress={toggleMusic} accessibilityRole="button" accessibilityLabel={musicEnabled ? 'Mute Arena music' : 'Enable Arena music'} style={styles.audioToggle}>
+        <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={17} color="#f9df9e" />
+      </Pressable>
+      <Pressable onPress={() => setSfxEnabled(value => !value)} accessibilityRole="button" accessibilityLabel={sfxEnabled ? 'Mute Arena effects' : 'Enable Arena effects'} style={styles.audioToggle}>
+        <MaterialCommunityIcons name={sfxEnabled ? 'volume-high' : 'volume-off'} size={17} color="#f9df9e" />
+      </Pressable>
       {phase === 'playing' ? <Control icon="pause" title="PAUSE" onPress={() => setPhase('paused')} /> : phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : null}
     </View>
 
@@ -447,6 +463,7 @@ const styles = StyleSheet.create({
   top: { minHeight: 51, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 9, borderBottomColor: '#456570', borderBottomWidth: 1 },
   back: { padding: 7, minWidth: 35, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
   portrait: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, borderColor: '#b69a62' },
+  audioToggle: { minHeight: 34, minWidth: 33, padding: 6, justifyContent: 'center', alignItems: 'center' },
   topText: { flex: 1, minWidth: 0 },
   header: { color: '#ffe0a4', fontWeight: '900', fontSize: 14 },
   sub: { color: '#a7c4ce', fontSize: 9 },
