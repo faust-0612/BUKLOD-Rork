@@ -20,7 +20,8 @@
     "staging-backend-isolation",
     "release-identity",
     "shared-live-supabase-data-integrity",
-    "native-character-idle-motion"
+    "native-character-idle-motion",
+    "android-js-bundle-compatibility"
   ],
   "lockedFeatureChanges": [
     {
@@ -32,7 +33,8 @@
       "tests": [
         "tests/season2-map-first-conso-intake-20261121.test.mjs",
         "tests/genesis-valley-asset-interaction-20261121.test.mjs",
-        "tests/genesis-valley-audio-focus-20261121.test.mjs"
+        "tests/genesis-valley-audio-focus-20261121.test.mjs",
+        "tests/season2-android-bundle-compatibility-20261121.test.mjs"
       ]
     },
     {
@@ -66,7 +68,8 @@
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
     "tests/genesis-valley-audio-focus-20261121.test.mjs",
     "tests/season2-premium-nature-kingdom-20261121.test.mjs",
-    "tests/season2-premium-staging-ota-contract-20261121.test.mjs"
+    "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
+    "tests/season2-android-bundle-compatibility-20261121.test.mjs"
   ],
   "allowedPaths": [
     "src/app/buklod-map.tsx",
@@ -97,7 +100,9 @@
     "scripts/season2-premium-staging-ota-gate.mjs",
     "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
     "package.json",
-    "src/features/season2/genesis/GenesisRiveCharacter.tsx"
+    "src/features/season2/genesis/GenesisRiveCharacter.tsx",
+    "tests/season2-android-bundle-compatibility-20261121.test.mjs",
+    "scripts/season2-android-bundle-compatibility.mjs"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
@@ -119,7 +124,8 @@
     "Shared-live backend is NOT an isolated test database: never run test users, idempotency stress tests, payout/mint migrations, unsafe RLS trials or destructive fixtures against production; real normal app activity uses existing authoritative server policies.",
     "Arena absent at source/Metro route level: src/app/games/empire-arena.tsx and experiments/empire-arena-v2 do NOT exist in candidate tree; no UX or deep-link mount. Independent Arena DEV PR remains available.",
     "Native-driver bounded idle motion only for existing original character images; active/focus/background/Reduce Motion gate and cleanup; no fictional .riv rig or fake gameplay ownership.",
-    "Android map hit targets >=44px with edge clamps on narrow 280px viewport; focused route and Show Faith regressions preserved."
+    "Android map hit targets >=44px with edge clamps on narrow 280px viewport; focused route and Show Faith regressions preserved.",
+    "Exact staging Android Metro JS/asset export added to Season 2 CI with locked npm dependencies; source-only pass is NOT signed native APK or OTA proof. Existing paid Supabase is compile-time config only; no backend request."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
@@ -136,7 +142,8 @@
     "Existing paid BUKLOD Supabase project and authenticated member flows remain connected in Genesis preview; this is not a sandbox, so user posts and ordinary authorized writes may affect live data.",
     "No new QMP/BP/Character economy issuance, migration, privileged grants, payout or compensation testing on shared live DB; cosmetic changes cannot introduce authoritative rewards.",
     "Original live Kingdom 13 character station routes unchanged; future Arena development remains isolated and can only be re-integrated via later separately authorized scope.",
-    "Animated character fallback retains exactly the selected existing character art; no external animations, new network, unsupported native SDK, BP logic, or ad competing audio."
+    "Animated character fallback retains exactly the selected existing character art; no external animations, new network, unsupported native SDK, BP logic, or ad competing audio.",
+    "No production configuration, Google Play deployment, EAS token, OTA publish, Supabase mutation or Arena native route enters the Android export QA."
   ],
   "alternativeApproaches": [
     "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",

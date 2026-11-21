@@ -22,6 +22,8 @@ on:
       - 'tests/season2-premium-nature-kingdom-20261121.test.mjs'
       - 'tests/season2-premium-staging-ota-contract-20261121.test.mjs'
       - 'scripts/season2-premium-staging-ota-gate.mjs'
+      - 'scripts/season2-android-bundle-compatibility.mjs'
+      - 'tests/season2-android-bundle-compatibility-20261121.test.mjs'
       - 'eas.json'
       - '.github/workflows/season2-map-conso-source-qa-20261121.yml'
   push:
@@ -44,7 +46,7 @@ permissions:
 jobs:
   source-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,4 +57,8 @@ jobs:
       - name: Premium Genesis staging source-only gate (never publishes)
         run: node scripts/season2-premium-staging-ota-gate.mjs --source
       - name: Genesis preview and existing World regression checks
-        run: node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/genesis-world-navigation-regression-20261121.test.mjs tests/genesis-valley-asset-interaction-20261121.test.mjs tests/genesis-valley-audio-focus-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs tests/season2-premium-staging-ota-contract-20261121.test.mjs
+        run: node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/genesis-world-navigation-regression-20261121.test.mjs tests/genesis-valley-asset-interaction-20261121.test.mjs tests/genesis-valley-audio-focus-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs tests/season2-premium-staging-ota-contract-20261121.test.mjs tests/season2-android-bundle-compatibility-20261121.test.mjs
+      - name: Locked Expo install for exact Android JS bundle (NO EAS, NO OTA)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Genesis premium map and Kingdom Android Metro compatibility export
+        run: node scripts/season2-android-bundle-compatibility.mjs --compile
