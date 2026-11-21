@@ -61,5 +61,6 @@ test('Ranked client has bounded retry/grace and fail-closed identity',()=>{
   assert.match(client,/if\(this\.retryTimer!==null\)clearTimeout\(this\.retryTimer\)/);
   assert.match(client,/ws\.bufferedAmount>64_000/);
   assert.match(client,/this\.finished=true/);
+  assert.match(client,/if\(packet\.type==='match_resume'\)this\.nextSeq=0/);
   assert.doesNotMatch(client,/service_role|secretKey|awardDiamond|settleWorldTrade/);
 });
