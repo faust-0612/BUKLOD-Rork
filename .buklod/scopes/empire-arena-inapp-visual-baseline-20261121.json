@@ -27,7 +27,8 @@
     "Landscaped Arena input actions use the shared offline engine; orientation restored on leaving",
     "13 canon characters resolve to existing bundled art with new versioned image registry",
     "Source tests and scope-lock checks pass before staging build",
-    "Real Android visual/latency/controls and full online PvP remain explicitly unverified"
+    "Real Android visual/latency/controls and full online PvP remain explicitly unverified",
+    "Battle camera and minimap bound to the same deterministic world coordinates; siege/build/loot and repair actions available from in-app tactics only when legal."
   ],
   "riskAreas": [
     "app-runtime",
@@ -35,7 +36,8 @@
   ],
   "regressionTests": [
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
-    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs"
+    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -47,7 +49,9 @@
     "src/features/games/empire/arenaGeneratedAssets.ts",
     "src/features/games/empire/arenaVisualBaseline.ts",
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
-    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs"
+    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
+    "src/features/games/empire/arenaPracticePresentation.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -57,7 +61,8 @@
         "Existing BUKLOD profile, auth, Wall/Connect navigation, map, and live wallets are untouched."
       ],
       "tests": [
-        "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs"
+        "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
+        "tests/empire-arena-v2-presentation-20261121.test.mjs"
       ]
     },
     {
