@@ -22,7 +22,9 @@ check('Genesis has one bottom nav with old duplicate dashboard headers hidden',(
  const tab=read('src/app/(tabs)/_layout.tsx');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
  assert.match(tab,/!desktopWebShell && !isGenesisPreviewBuild\(\)/);
- assert.match(shell,/!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0/);
+ // Original Genesis nav is retained; the immersive Arena excludes only its own overlay.
+ assert.match(shell,/!immersiveIgpat && !immersiveConversation && !immersiveArena && rawNavOccupied > 0/);
+ assert.match(shell,/immersiveArena = normalizeBuklodPathname\(pathname\) === '\/games\/empire-arena'/);
  assert.match(shell,/Return to BUKLOD Map/);
  assert.match(shell,/normalizedPath !== '\/buklod-map'/);
  assert.match(tab,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar/);
