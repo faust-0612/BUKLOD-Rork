@@ -41,7 +41,8 @@
   ],
   "regressionTests": [
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
-    "tests/season2-map-first-conso-intake-20261121.test.mjs"
+    "tests/season2-map-first-conso-intake-20261121.test.mjs",
+    "scripts/genesis-map-reconstruction-preflight.mjs"
   ],
   "allowedPaths": [
     "src/app/buklod-map.tsx",
@@ -55,10 +56,12 @@
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
     "tests/season2-map-first-conso-intake-20261121.test.mjs",
     "docs/season2/SEASON2_MAP_ASSET_RELEASE_HOLD_20261121.md",
-    ".buklod/scopes/season2-map-first-conso-intake-20261121.json"
+    ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
+    ".github/workflows/season2-map-conso-source-qa-20261121.yml"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
+    "The source-only map-specific PR workflow runs Node preflight and both focused regression tests; this is NOT a signed native build, OTA, or real asset acceptance.",
     "Source gates and exact-head CI; regressions on existing ads/fast navigation.",
     "Import actual user-supplied Welcoming Valley WebP and map precise 14 hotspots; source preview currently 8-node constellation fallback.",
     "No native/Supabase changes or OTA publisher change. Premium asset bytes/licensing, 13 unique rigs, Arena true multiplayer, isolated economy ledger, signed Genesis native build remain hard HOLD.",

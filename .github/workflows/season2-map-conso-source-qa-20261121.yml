@@ -1,0 +1,45 @@
+name: "Season 2 map-first DEV source gates (NO OTA)"
+on:
+  pull_request:
+    branches:
+      - dev/season2-conso-reconciliation-hold-20261121
+    paths:
+      - 'src/app/buklod-map.tsx'
+      - 'src/app/index.tsx'
+      - 'src/app/_layout.tsx'
+      - 'src/app/(tabs)/_layout.tsx'
+      - 'src/components/BuklodNavSafeShell.tsx'
+      - 'src/features/season2/genesis/**'
+      - 'scripts/genesis-map-reconstruction-preflight.mjs'
+      - 'tests/genesis-world-navigation-regression-20261121.test.mjs'
+      - 'tests/season2-map-first-conso-intake-20261121.test.mjs'
+      - '.github/workflows/season2-map-conso-source-qa-20261121.yml'
+  push:
+    branches:
+      - dev/season2-map-first-conso-intake-20261121
+    paths:
+      - 'src/app/buklod-map.tsx'
+      - 'src/app/index.tsx'
+      - 'src/app/_layout.tsx'
+      - 'src/app/(tabs)/_layout.tsx'
+      - 'src/components/BuklodNavSafeShell.tsx'
+      - 'src/features/season2/genesis/**'
+      - 'scripts/genesis-map-reconstruction-preflight.mjs'
+      - 'tests/genesis-world-navigation-regression-20261121.test.mjs'
+      - 'tests/season2-map-first-conso-intake-20261121.test.mjs'
+      - '.github/workflows/season2-map-conso-source-qa-20261121.yml'
+permissions:
+  contents: read
+jobs:
+  source-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Protected map/nav/ad/audio source preflight (not OTA verification)
+        run: node scripts/genesis-map-reconstruction-preflight.mjs
+      - name: Genesis preview and existing World regression checks
+        run: node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/genesis-world-navigation-regression-20261121.test.mjs
