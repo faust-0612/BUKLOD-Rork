@@ -36,7 +36,7 @@ func _run() -> void:
 	if not _check(sim.action("A0", "primary", Vector2.RIGHT, "B0"), "Phan primary skill works"):
 		quit(6)
 		return
-	var g := sim.begin("cluster", "quin", "verdant_fracture", false, "ace", "easy", 11)
+	var g: bool = sim.begin("cluster", "quin", "verdant_fracture", false, "ace", "easy", 11)
 	if not _check(g and sim.state["players"].size() == 6, "3v3 roster"):
 		quit(7)
 		return
