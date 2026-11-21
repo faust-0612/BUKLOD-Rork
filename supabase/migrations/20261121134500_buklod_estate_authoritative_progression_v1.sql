@@ -64,8 +64,8 @@ alter table public.buklod_estate_event_v1 enable row level security;
 alter table public.buklod_estate_build_v1 enable row level security;
 revoke all on public.buklod_estate_wallet_v1, public.buklod_estate_progress_v1,
  public.buklod_estate_event_v1, public.buklod_estate_build_v1 from public,anon,authenticated;
--- No client writes are ever granted, even to a scope administrator.
-grant select on public.buklod_estate_wallet_v1,public.buklod_estate_progress_v1 to authenticated;
+-- No direct client SELECT/INSERT/UPDATE access: read through the verified RPC.
+-- This prevents private helper execute permissions from leaking into Data API.
 create schema if not exists buklod_estate_private;
 revoke all on schema buklod_estate_private from public,anon,authenticated;
 
@@ -99,15 +99,6 @@ begin
 end $$;
 revoke all on function buklod_estate_private.allowed(text,uuid,text,boolean) from public,anon,authenticated;
 
-create policy estate_wallet_owner_read on public.buklod_estate_wallet_v1
- for select to authenticated using (
-   buklod_estate_private.allowed(owner_kind,owner_id,case when owner_kind='USER' then 'lot' else 'cluster' end,false)
- );
-create policy estate_progress_owner_read on public.buklod_estate_progress_v1
- for select to authenticated using (
-   buklod_estate_private.allowed(owner_kind,owner_id,track,false)
- );
-
 create or replace function public.get_buklod_estate_snapshot_v1(
  p_owner_kind text,p_owner_id uuid,p_track text
 ) returns jsonb language plpgsql stable security definer
@@ -140,7 +131,8 @@ create or replace function public.award_buklod_estate_resources_v1(
 ) returns boolean language plpgsql security definer
 set search_path=pg_catalog,public as $$
 begin
- if p_user_id is null or length(coalesce(p_event_key,'')) not between 6 and 180
+ if p_user_id is null or p_xp is null or p_timber is null or p_stone is null or p_metal is null
+ or length(coalesce(p_event_key,'')) not between 6 and 180
   or p_xp not between 0 and 1000 or p_timber not between 0 and 100
   or p_stone not between 0 and 100 or p_metal not between 0 and 100
   or p_xp+p_timber+p_stone+p_metal<=0 then
@@ -199,7 +191,8 @@ declare u uuid:=auth.uid(); w public.buklod_estate_wallet_v1%rowtype;
 begin
  if u is null or not buklod_estate_private.allowed('SCOPE',p_scope_id,'cluster',false)
  then raise exception 'Verified scope membership required' using errcode='42501'; end if;
- if length(coalesce(p_operation_key,'')) not between 12 and 160
+ if p_xp is null or p_timber is null or p_stone is null or p_metal is null
+   or length(coalesce(p_operation_key,'')) not between 12 and 160
    or p_xp not between 0 and 1000000 or p_timber not between 0 and 1000000
    or p_stone not between 0 and 1000000 or p_metal not between 0 and 1000000
    or p_xp+p_timber+p_stone+p_metal<1 then
@@ -208,6 +201,8 @@ begin
  insert into public.buklod_estate_wallet_v1(owner_kind,owner_id) values ('USER',u) on conflict do nothing;
  select * into w from public.buklod_estate_wallet_v1 where owner_kind='USER' and owner_id=u for update;
  if exists(select 1 from public.buklod_estate_event_v1 where source_key='scope-donate:'||u||':'||p_operation_key) then
+    if not exists(select 1 from public.buklod_estate_event_v1 where source_key='scope-donate:'||u||':'||p_operation_key and owner_id=p_scope_id)
+    then raise exception 'Operation key already used for another scope' using errcode='23505'; end if;
     return public.get_buklod_estate_snapshot_v1('SCOPE',p_scope_id,'cluster');
  end if;
  if w.development_xp<p_xp or w.timber<p_timber or w.stone<p_stone or w.metal<p_metal
