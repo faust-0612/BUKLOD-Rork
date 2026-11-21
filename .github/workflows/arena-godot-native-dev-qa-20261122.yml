@@ -96,6 +96,8 @@ jobs:
           if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/godot-source.log; then exit 1; fi
           "$GODOT" --headless --path /tmp/buklod-godot-project --script res://tests/smoke.gd 2>&1 | tee /tmp/godot-smoke.log
           grep -F 'BUKLOD_GODOT_SMOKE_PASS' /tmp/godot-smoke.log
+          "$GODOT" --headless --path /tmp/buklod-godot-project --script res://tests/art_smoke.gd 2>&1 | tee /tmp/godot-art.log
+          grep -F 'BUKLOD_GODOT_ART_PASS' /tmp/godot-art.log
       - name: Build Android native project and confirm embedded Godot archive
         run: |
           set -euo pipefail
@@ -116,6 +118,8 @@ jobs:
           unzip -Z -1 "$APK" | grep -Fx 'assets/godot/empire-arena.zip'
           unzip -p "$APK" assets/godot/empire-arena.zip > /tmp/apk-bundled-godot.zip
           cmp /tmp/buklod-empire-arena.zip /tmp/apk-bundled-godot.zip
+          test "$(unzip -Z -1 /tmp/apk-bundled-godot.zip | grep -Ec '^art/(fullbody|sprite|scene)/')" = 68
+          unzip -Z -1 /tmp/apk-bundled-godot.zip | grep -Fx 'art/art_manifest.json'
           BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)
           test -x "$BT/aapt"
           test -x "$BT/apksigner"
