@@ -39,7 +39,7 @@
       "id": "community-village",
       "label": "Community Village",
       "districtId": "communities",
-      "route": "/clusters",
+      "route": "/community-village",
       "x": 0.142,
       "y": 0.476,
       "icon": "account-group",
