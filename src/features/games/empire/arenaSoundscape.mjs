@@ -94,9 +94,13 @@ function cueFor(e,ctx){
     return key(targetTeam===own?'ally_down':targetTeam?'enemy_down':null);
   }
   if(type==='unit_ko'||type==='tower_ko'||type==='boss_ko'||type==='trap_ko'||type==='hazard_ko'||type==='storm_defeat'){
-    if(type==='boss_ko')return null; // boss_defeat is the meaningful reward cue
-    if(target===seat||e.actor===seat)return key('self_down');
-    return key(targetTeam===own?'ally_unit_down':targetTeam?'enemy_unit_down':null);
+    // Environmental casualties have actor=the victim, others have target=the victim.
+    const victim=(type==='hazard_ko'||type==='storm_defeat')?e.actor:target;
+    if(victim===seat)return key('self_down');
+    const victimTeam=playerTeam(victim,ctx);
+    const hero=Boolean(ctx.players?.[victim]);
+    return key(victimTeam===own?(hero?'ally_down':'ally_unit_down'):
+      victimTeam?(hero?'enemy_down':'enemy_unit_down'):null);
   }
   if(type==='tower_destroyed')return key(e.team===own?'tower_ally':'tower_enemy');
   if(type==='building_destroyed')return key(e.team===own?'building_ally':'building_enemy');
