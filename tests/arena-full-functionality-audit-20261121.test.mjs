@@ -206,4 +206,12 @@ test('all animation/event subsystems remain bounded and nonauthoritative',()=>{
  assert.ok(audio.includes("owner === 'buklod-empire-arena'"),'only Arena-owner audio keeps SFX focus');
  assert.ok(audio.includes("try { player.pause(); }"),'active Arena voices pause immediately');
  assert.ok(audio.includes("isKingdomMap || options?.arena"),'Arena ambient loop also honors call/video priority');
+ assert.ok(audio.includes('export function setArenaVoiceDucking(active:boolean)'));
+ assert.ok(audio.includes('arenaVoiceDucking ? 0.23 : 1'),'announcer ducks background music');
+ assert.ok(audio.includes('arenaVoiceDucking ? 0.27 : 1'),'announcer ducks overlapping battle hits');
+ const voice=read('src/features/games/empire/ArenaVoiceRuntime.ts');
+ assert.ok(voice.includes('setArenaVoiceDucking(true)'));
+ assert.ok(voice.includes('setArenaVoiceDucking(false)'));
+ assert.ok(voice.includes('speechGeneration'));
+ assert.ok(voice.includes('endSpeech(generation)'));
 });
