@@ -4,7 +4,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {AccessibilityInfo,Animated,StyleSheet,View} from 'react-native';
 import Svg,{Circle,Defs,Ellipse,G,Line,LinearGradient,Path,Polygon,Rect,Stop} from 'react-native-svg';
-import {constructionStage,majorLevel,safeCosmetics,visualDevelopmentFeatures} from './constructionPlan.mjs';
+import {constructionStage,majorLevel,safeCosmetics,visualDevelopmentFeatures,masteryMotifCount} from './constructionPlan.mjs';
 
 const PALETTES={
  stone:{wall:'#D7C49E',dark:'#7B6859',roof:'#5D707A',trim:'#FCEDC9'},
@@ -15,8 +15,8 @@ const PALETTES={
  light:{wall:'#E8DCC4',dark:'#8A8F9F',roof:'#6879A4',trim:'#FFF9E9'},
 };
 type Track='lot'|'house'|'cluster';
-type Props={track:Track;level:number;stage:number;finish:string;roof:string;ground:string;};
-export default function DevelopmentStructurePreview({track,level,stage,finish,roof,ground}:Props){
+type Props={track:Track;level:number;stage:number;mastery?:number;finish:string;roof:string;ground:string;};
+export default function DevelopmentStructurePreview({track,level,stage,mastery=0,finish,roof,ground}:Props){
  const cosmetics=safeCosmetics({finish,roof,ground});
  const p=PALETTES[cosmetics.finish as keyof typeof PALETTES];
  const l=majorLevel(level),s=constructionStage(stage);
@@ -85,6 +85,10 @@ export default function DevelopmentStructurePreview({track,level,stage,finish,ro
    {hasTier(7)&&track==='lot'&&<G><Path d="M110 184 L135 171 L159 183 L135 198 Z" fill={p.roof} stroke={p.trim} strokeWidth="2"/><Line x1="135" y1="198" x2="135" y2="222" stroke="#EDDEAB" strokeWidth="4"/></G>}
    {hasTier(8)&&<G><Path d="M89 210 Q117 187 142 209" fill="none" stroke="#A0CB81" strokeWidth="6"/><Circle cx="120" cy="208" r="8" fill="#E2AAA2"/></G>}
    {hasTier(9)&&track==='lot'&&<G><Rect x="148" y="216" width="7" height="15" fill="#D7C398"/><Rect x="225" y="215" width="7" height="16" fill="#D7C398"/></G>}
+   {hasTier(10)&&masteryMotifCount(mastery)>0&&Array.from({length:masteryMotifCount(mastery)},(_,i)=><G key={'mastery-'+i}>
+     <Circle cx={65+i*37} cy={118+(i%3)*10} r={3+(i%2)} fill={i%2?'#C4F8F0':'#FFEDB3'}/>
+     <Path d={`M${65+i*37} ${109+(i%3)*10} L${65+i*37} ${104+(i%3)*10}`} stroke="#FFEEBF" strokeWidth="2"/>
+   </G>)}
    {hasTier(10)&&<G><Ellipse cx="279" cy="222" rx="17" ry="8" fill="#8FCBD1" stroke="#E4D4A8" strokeWidth="2"/><Line x1="279" y1="216" x2="279" y2="204" stroke="#B0EAF1" strokeWidth="3"/><Circle cx="279" cy="203" r="4" fill="#E2F6FF"/></G>}
    {isVillage&&growth&&<G><Rect x="286" y="205" width="28" height="12" fill="#D5C093"/><Line x1="300" y1="192" x2="300" y2="205" stroke="#FFEDBB" strokeWidth="3"/></G>}
    {isHouse&&large&&<Path d="M145 119 L202 85 L244 107" fill="none" stroke="#F8DF9F" strokeWidth="3" opacity=".75"/>}

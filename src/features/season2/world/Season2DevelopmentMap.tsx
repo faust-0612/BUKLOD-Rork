@@ -18,7 +18,7 @@ import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
 import {getDevelopmentAsset} from './developmentAssetManifest';
 import Season2CommunityFacilities from './Season2CommunityFacilities';
 import DevelopmentStructurePreview from './DevelopmentStructurePreview';
-import {constructionPlan, nextMilestone, safeCosmetics} from './constructionPlan.mjs';
+import {constructionPlan, nextMilestone, safeCosmetics, safeMastery} from './constructionPlan.mjs';
 const VILLAGE_ART = require('../../../../assets/season2/genesis/world/buklod-community-village-stage1.webp');
 const HOME_ART = require('../../../../assets/season2/genesis/world/buklod-my-home-stage1.webp');
 
@@ -83,12 +83,15 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const [previewTrack,setPreviewTrack] = useState<'lot'|'house'|'cluster'>(world==='home'?'lot':'cluster');
   const [previewLevels,setPreviewLevels] = useState({lot:1,house:1,cluster:1});
   const [previewStages,setPreviewStages] = useState({lot:0,house:0,cluster:0});
+  const [previewMastery,setPreviewMastery]=useState({lot:0,house:0,cluster:0});
   const level=previewLevels[previewTrack];
   const assetMeta=getDevelopmentAsset(previewTrack,level);
   const stage=previewStages[previewTrack];
+  const mastery=previewMastery[previewTrack];
   const chooseTrack=(track:'lot'|'house'|'cluster')=>setPreviewTrack(track);
   const chooseStage=(i:number)=>setPreviewStages(v=>({...v,[previewTrack]:i}));
   const adjustLevel=(delta:number)=>setPreviewLevels(v=>({...v,[previewTrack]:clampDevelopmentLevel(v[previewTrack]+delta)}));
+  const adjustMastery=(delta:number)=>setPreviewMastery(v=>({...v,[previewTrack]:safeMastery(Math.min(Number.MAX_SAFE_INTEGER,v[previewTrack]+delta))}));
   const [look,setLook] = useState<Look>('stone');
   const [roof,setRoof]=useState<'gable'|'hip'|'terrace'>('gable');
   const [ground,setGround]=useState<'grass'|'flower'|'stone'>('grass');
@@ -174,11 +177,11 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             <LinearGradient colors={['rgba(5,30,28,.03)','rgba(10,25,25,.07)','rgba(9,25,32,.56)']} style={StyleSheet.absoluteFill}/>
           </View>
           <View pointerEvents="none" style={styles.previewStructure}>
-            <DevelopmentStructurePreview track={previewTrack} level={level} stage={stage} finish={look} roof={roof} ground={ground}/>
+            <DevelopmentStructurePreview track={previewTrack} level={level} stage={stage} mastery={level===10&&stage===4?mastery:0} finish={look} roof={roof} ground={ground}/>
           </View>
           <View style={styles.mapBadge} pointerEvents="none">
             <MaterialCommunityIcons name="hammer-wrench" size={14} color="#FFE6B0"/>
-            <Text style={styles.mapBadgeText}>BLUEPRINT PREVIEW · {previewTrack.toUpperCase()} L{level}</Text>
+            <Text style={styles.mapBadgeText}>BLUEPRINT · {previewTrack.toUpperCase()} L{level}{level===10&&mastery>0?' · M'+mastery:''}</Text>
           </View>
           <View style={styles.zoomBar}>
             <Pressable accessibilityRole="button" accessibilityLabel="Zoom out of world" disabled={zoom<=1} onPress={()=>setZoom(v=>Math.max(1,Math.round((v-.15)*100)/100))} style={styles.zoomButton}><MaterialCommunityIcons name="minus" size={20} color="#FFEBC5"/></Pressable>
@@ -240,6 +243,11 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             ))}
           </View>
           <Text style={styles.muted}>{STAGES[stage].detail}. The scene changes with your selected level and stage. These controls never grant an upgrade.</Text>
+          {level===10&&stage===4?<View style={styles.levelRow}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Preview previous Mastery" disabled={mastery<=0} onPress={()=>adjustMastery(-1)} style={styles.stepper}><MaterialCommunityIcons name="minus" size={18} color="#FFE9BE"/></Pressable>
+            <Text style={styles.levelText}>ESTATE MASTERY · {mastery.toLocaleString()}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Preview next Mastery" disabled={mastery>=Number.MAX_SAFE_INTEGER} onPress={()=>adjustMastery(1)} style={styles.stepper}><MaterialCommunityIcons name="plus" size={18} color="#FFE9BE"/></Pressable>
+          </View>:null}
           <View style={styles.requirementMetrics}>
             <View style={styles.metric}><MaterialCommunityIcons name="hammer-screwdriver" size={19} color="#D6E8BA"/><Text style={styles.metricAmount}>{requirements.estimatedDevelopmentXp} XP</Text><Text style={styles.metricLabel}>planning effort</Text></View>
             <View style={styles.metric}><MaterialCommunityIcons name="tree-outline" size={19} color="#D6E8BA"/><Text style={styles.metricAmount}>{requirements.estimatedTimber} timber</Text><Text style={styles.metricLabel}>estimated</Text></View>

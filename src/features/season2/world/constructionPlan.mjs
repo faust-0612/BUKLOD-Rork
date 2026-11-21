@@ -58,3 +58,10 @@ export function visualDevelopmentFeatures(track,level,stage) {
  const count=Math.max(0,majorLevel(level)-(constructionStage(stage)===4?0:1));
  return Object.freeze(Array.from({length:count},(_,i)=>track+'-amenity-'+String(i+1).padStart(2,'0')));
 }
+
+/** Mastery changes only reusable cosmetic combinations, not PvP power, BP or ownership. */
+export function safeMastery(value) {
+ const n=Number(value);
+ return Number.isSafeInteger(n)&&n>0?n:0;
+}
+export function masteryMotifCount(value) {return Math.min(8,safeMastery(value));}

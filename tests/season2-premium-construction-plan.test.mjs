@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {majorLevel,constructionStage,constructionPlan,nextMilestone,safeCosmetics,visualDevelopmentFeatures} from '../src/features/season2/world/constructionPlan.mjs';
+import {majorLevel,constructionStage,constructionPlan,nextMilestone,safeCosmetics,visualDevelopmentFeatures,safeMastery,masteryMotifCount} from '../src/features/season2/world/constructionPlan.mjs';
 test('preview selectors cannot overflow stages and major levels',()=>{
  assert.equal(majorLevel(Infinity),1);assert.equal(majorLevel(42),10);assert.equal(majorLevel(-8),1);
  assert.equal(constructionStage(100),4);assert.equal(constructionStage(-5),0);
@@ -36,4 +36,12 @@ test('the rendered scene changes progressively at all 10 major tiers across all 
    before=finished;
   }
  }
+});
+
+test('unbounded mastery remains finite-cost to render and cannot alter combat strength',()=>{
+ assert.equal(safeMastery(0),0);
+ assert.equal(safeMastery(300),300);
+ assert.equal(safeMastery(-1),0);
+ assert.equal(safeMastery(Number.POSITIVE_INFINITY),0);
+ assert.equal(masteryMotifCount(10000000),8);
 });
