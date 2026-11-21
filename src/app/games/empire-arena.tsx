@@ -587,8 +587,8 @@ function EmpireArenaInApp() {
     {id:'ultimate',label:'ULT',icon:'fire',onPress:()=>skill('ultimate'),
       disabled:(me?.matchLevel||1)<6 || (me?.mana||0)<55,cooldownMs:cooldownFor('ultimate')},
     {id:'mine',label:'MINE',icon:'pickaxe',onPress:mine,disabled:!nearby.mine},
-    {id:'bank',label:'BANK',icon:'archive-arrow-down',onPress:()=>execute({type:'deposit'},'collect'),disabled:!nearby.canBank},
-    {id:'train',label:'TRAIN',icon:'account-multiple-plus',onPress:()=>execute({type:'train',kind:'warrior'},'collect'),disabled:!nearby.canBank},
+    {id:'bank',label:'BANK',icon:'archive-arrow-down',onPress:()=>execute({type: 'deposit'},'collect'),disabled:!nearby.canBank},
+    {id:'train',label:'TRAIN',icon:'account-multiple-plus',onPress:()=>execute({type: 'train',kind:'warrior'},'collect'),disabled:!nearby.canBank},
     {id:'tactics',label:'TACTICS',icon:'chess-knight',onPress:()=>setTacticsOpen(v=>!v)},
   ];
   void revision; // Intentionally render every bounded fixed simulation step.
