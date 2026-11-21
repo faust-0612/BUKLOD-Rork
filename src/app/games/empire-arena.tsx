@@ -6,7 +6,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AppState, Image, PanResponder, Platform, Pressable, StyleSheet, Text, View,
+  AppState, Image, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect, router, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -85,17 +85,31 @@ function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: bool
   </G>;
 }
 
-function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying, localSeat }: {
-  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean; localSeat: string;
+function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying, localSeat, zoom, onPinchZoom }: {
+  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean; localSeat: string; zoom: number; onPinchZoom: (factor: number) => void;
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
   const [area, setArea] = useState({ width: 720, height: 360 });
+  const pinchDistance = useRef<number | null>(null);
+  const touchDistance = (touches: readonly { pageX: number; pageY: number }[]) => touches.length === 2
+    ? Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY) : null;
   const player = state.players[localSeat];
   const localTeam = player?.team ?? 'A';
   const camera = arenaCamera(state.w, state.h, player, area.width, area.height,
-    state.w <= 160 ? 70 : state.w <= 240 ? 90 : 115);
+    (state.w <= 160 ? 70 : state.w <= 240 ? 90 : 115) / zoom);
   const effects = arenaVisualEffects(state.events, state.elapsed, 1100);
-  return <View style={styles.field} onLayout={event => {
+  return <View style={styles.field}
+    onTouchStart={event => { pinchDistance.current = touchDistance(event.nativeEvent.touches); }}
+    onTouchMove={event => {
+      const distance = touchDistance(event.nativeEvent.touches);
+      if (distance && pinchDistance.current && pinchDistance.current > 8) {
+        const factor = distance / pinchDistance.current;
+        if (factor > 1.06 || factor < 0.94) { onPinchZoom(factor); pinchDistance.current = distance; }
+      }
+    }}
+    onTouchEnd={event => { pinchDistance.current = touchDistance(event.nativeEvent.touches); }}
+    onTouchCancel={() => { pinchDistance.current = null; }}
+    onLayout={event => {
     const { width, height } = event.nativeEvent.layout;
     if (width > 5 && height > 5 && (Math.abs(width - area.width) > 1 || Math.abs(height - area.height) > 1)) {
       setArea({ width, height });
@@ -215,6 +229,10 @@ function EmpireArenaInApp() {
   const [target, setTarget] = useState<string | null>(null);
   const [joyVisual, setJoyVisual] = useState<Position>({ x: 0, y: 0 });
   const [tacticsOpen, setTacticsOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
+  const compactLandscape = viewportHeight < 440;
+  const changeZoom = useCallback((factor: number) => setZoom(z => clamp(z * factor, 0.65, 2.6)), []);
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const gameRef = useRef<ArenaState | null>(null);
   const directionRef = useRef<Position>({ x: 0, y: 0 });
@@ -318,6 +336,7 @@ function EmpireArenaInApp() {
     selected.current = null;
     setTarget(null);
     setTacticsOpen(false);
+    setZoom(1);
     setMessage('Move, attack, gather, train and break the opposing seal. Practice grants no rewards.');
     setPhase('playing');
     setRevision(v => v + 1);
@@ -476,7 +495,7 @@ function EmpireArenaInApp() {
 
   return <View style={[styles.root, { paddingTop: Math.max(4, insets.top), paddingBottom: Math.max(2, insets.bottom) }]}>
     <LinearGradient colors={['#060d1d', '#092b3a', '#071324']} style={StyleSheet.absoluteFill} />
-    <View style={styles.top}>
+    <View style={[styles.top, compactLandscape && styles.topCompact]}>
       <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD Kingdom" onPress={() => router.back()} style={styles.back}><MaterialCommunityIcons name="arrow-left" size={20} color="#ffdfa4" /></Pressable>
       <Image source={ARENA_GENERATED_ART['hero:' + hero] || ARENA_HERO_ART[hero]} style={styles.portrait} />
       <View style={styles.topText}>
@@ -489,10 +508,15 @@ function EmpireArenaInApp() {
       <Pressable onPress={() => setSfxEnabled(value => !value)} accessibilityRole="button" accessibilityLabel={sfxEnabled ? 'Mute Arena effects' : 'Enable Arena effects'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={sfxEnabled ? 'volume-high' : 'volume-off'} size={17} color="#f9df9e" />
       </Pressable>
+      {phase === 'playing' ? <View style={styles.zoomControls}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Zoom out battlefield" onPress={() => changeZoom(1 / 1.25)} style={styles.zoomButton}><MaterialCommunityIcons name="minus" size={19} color="#ffe7b5" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Reset battlefield zoom" onPress={() => setZoom(1)} style={styles.zoomButton}><Text style={styles.zoomText}>{Math.round(zoom * 100)}%</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Zoom in battlefield" onPress={() => changeZoom(1.25)} style={styles.zoomButton}><MaterialCommunityIcons name="plus" size={19} color="#ffe7b5" /></Pressable>
+      </View> : null}
       {phase === 'playing' && arenaKind === 'practice' ? <Control icon="pause" title="PAUSE" onPress={() => setPhase('paused')} /> : phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : null}
     </View>
 
-    {phase === 'menu' ? <View style={styles.menu}>
+    {phase === 'menu' ? <ScrollView style={styles.menuScroll} contentContainerStyle={[styles.menu, compactLandscape && styles.menuCompact]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>GENESIS WAR ARENA</Text>
       <Text style={styles.description}>Play offline practice without affecting BP or Diamonds. Ranked PvP is enabled only on staging builds connected to a verified server with earned Diamond stakes.</Text>
       <Text style={styles.groupLabel}>BATTLE MODE</Text>
@@ -503,7 +527,7 @@ function EmpireArenaInApp() {
       {isArenaRankedConfigured() ? <Pressable accessibilityRole="button" onPress={() => void startRanked()}
         style={styles.start}><MaterialCommunityIcons name="shield-sword" color="#102b31" size={20} /><Text style={styles.startText}>SEARCH RANKED OPPONENTS</Text></Pressable>
         : <Text style={styles.groupLabel}>Ranked PvP: awaiting trusted staging server and verified Diamond ledger</Text>}
-    </View> : null}
+    </ScrollView> : null}
 
     {phase === 'queued' ? <View style={styles.menu}>
       <Text style={styles.title}>RANKED MATCHMAKING</Text>
@@ -518,14 +542,14 @@ function EmpireArenaInApp() {
         <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text>
         <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
       </View>
-      <ArenaField state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
-      <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
+      <ArenaField zoom={zoom} onPinchZoom={changeZoom} state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
+      {!compactLandscape ? <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View> : null}
       {phase === 'playing' ? <>
-        <View style={styles.joystick} {...joystick.panHandlers}>
+        <View style={[styles.joystick, compactLandscape && styles.joystickCompact]} {...joystick.panHandlers}>
           <View style={styles.joyRing}><View style={[styles.joyHandle, { transform: [{ translateX: joyVisual.x * 25 }, { translateY: joyVisual.y * 25 }] }]} /></View>
           <Text style={styles.joyLabel}>MOVE</Text>
         </View>
-        <View style={styles.actions}>
+        <View style={[styles.actions, compactLandscape && styles.actionsCompact]}>
           <View style={styles.actionLine}>
             <Control icon="pickaxe" title="MINE" onPress={mine} disabled={!nearby.mine} />
             <Control icon="archive-arrow-down" title="BANK" onPress={() => execute({ type: 'deposit' }, 'collect')} disabled={!nearby.canBank} />
@@ -539,7 +563,7 @@ function EmpireArenaInApp() {
             <Control icon="sword" title="ATTACK" onPress={attack} />
           </View>
         </View>
-        {tacticsOpen ? <View style={styles.tactics}>
+        {tacticsOpen ? <View style={[styles.tactics, compactLandscape && styles.tacticsCompact]}>
           <Text style={styles.tacticsHeader}>FIELD COMMANDS • TAP TO USE</Text>
           <View style={styles.tacticsControls}>
             <Control icon="shield-sword" title="PUSH" onPress={order} />
@@ -591,7 +615,13 @@ const styles = StyleSheet.create({
   topText: { flex: 1, minWidth: 0 },
   header: { color: '#ffe0a4', fontWeight: '900', fontSize: 14 },
   sub: { color: '#a7c4ce', fontSize: 9 },
-  menu: { alignSelf: 'center', width: '100%', maxWidth: 720, flex: 1, paddingHorizontal: 18, justifyContent: 'center', gap: 11 },
+  menuScroll: { flex: 1, width: '100%' },
+  menu: { alignSelf: 'center', width: '100%', maxWidth: 720, paddingHorizontal: 18, paddingVertical: 18, gap: 11 },
+  menuCompact: { maxWidth: 1000, paddingVertical: 8, gap: 7 },
+  topCompact: { minHeight: 44 },
+  zoomControls: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  zoomButton: { minWidth: 34, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#567782', borderRadius: 7, backgroundColor: '#102a3d' },
+  zoomText: { color: '#ffe7b5', fontSize: 9, fontWeight: '800' },
   title: { color: '#ffe7ba', fontSize: 25, fontWeight: '900' },
   description: { color: '#d0e3df', lineHeight: 19, fontSize: 12 },
   groupLabel: { color: '#a2d9ce', fontSize: 11, fontWeight: '900', marginTop: 6 },
@@ -612,17 +642,20 @@ const styles = StyleSheet.create({
   info: { paddingHorizontal: 8, paddingVertical: 4, minHeight: 24, backgroundColor: '#051021' },
   infoText: { color: '#e4dbb9', fontSize: 10 },
   joystick: { position: 'absolute', left: 16, bottom: 31, width: 113, height: 110, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
+  joystickCompact: { left: 10, bottom: 5, width: 88, height: 88 },
   joyRing: { width: 76, height: 76, borderRadius: 38, backgroundColor: '#081d30bb', borderWidth: 2, borderColor: '#a8bcb9', alignItems: 'center', justifyContent: 'center' },
   joyHandle: { width: 29, height: 29, borderRadius: 15, backgroundColor: '#d1a85cbb', borderWidth: 2, borderColor: '#ffe5b7' },
   joyLabel: { fontSize: 9, color: '#ffe7bd', fontWeight: '900' },
   actions: { position: 'absolute', right: 9, bottom: 32, zIndex: 5, gap: 6 },
+  actionsCompact: { right: 7, bottom: 5, gap: 3 },
   tactics: { position: 'absolute', right: 12, bottom: 141, zIndex: 6, width: 340, maxWidth: '66%',
     borderRadius: 11, borderWidth: 1, borderColor: '#f1ca86', backgroundColor: '#061e30ed', padding: 8, gap: 6 },
+  tacticsCompact: { bottom: 100, maxHeight: '65%' },
   tacticsHeader: { color: '#fff1c5', fontWeight: '900', fontSize: 10 },
   tacticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   tacticsHint: { color: '#c1d3d1', fontSize: 9 },
   actionLine: { flexDirection: 'row', alignSelf: 'flex-end', gap: 5 },
-  control: { minHeight: 47, minWidth: 46, borderRadius: 9, borderWidth: 1, borderColor: '#c5ac7d', backgroundColor: '#102a3ddd', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 4 },
+  control: { minHeight: 40, minWidth: 42, borderRadius: 9, borderWidth: 1, borderColor: '#c5ac7d', backgroundColor: '#102a3ddd', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 4 },
   controlLabel: { color: '#ffe7b5', fontSize: 8, fontWeight: '900' },
   disabled: { opacity: 0.35 },
   overlay: { position: 'absolute', top: 25, bottom: 25, left: '22%', right: '22%', zIndex: 10, borderWidth: 1, borderColor: '#d3b477', backgroundColor: '#061727f2', borderRadius: 15, padding: 15, alignItems: 'center', justifyContent: 'center', gap: 14 },
