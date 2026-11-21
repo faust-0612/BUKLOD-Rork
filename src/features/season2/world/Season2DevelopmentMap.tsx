@@ -11,6 +11,7 @@ import {Image} from 'expo-image';
 import {router} from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@/providers/AuthProvider';
+import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
 import {getDevelopmentAsset} from './developmentAssetManifest';
@@ -62,6 +63,16 @@ export function constructionStageLabel(index:number) {
 export default function Season2DevelopmentMap({world}:{world:World}) {
   const {width} = useWindowDimensions();
   const {profile} = useAuth();
+  const {activeScope,scopes} = useBuklodScope();
+  // Community previews belong to one verified member scope, not to the global Wall.
+  const communityScopes=scopes.filter(s=>s.scope_type==='CLUSTER'||s.scope_type==='ORGANIZATION');
+  const [selectedCommunityScopeId,setSelectedCommunityScopeId]=useState('');
+  const chosenScope=world==='village'
+    ? communityScopes.find(s=>s.scope_id===selectedCommunityScopeId)
+      ?? communityScopes.find(s=>s.scope_id===activeScope?.scope_id)
+      ?? communityScopes[0] ?? null
+    : null;
+  const canCustomizePreview=world==='home'||Boolean(chosenScope?.is_admin);
   const [previewTrack,setPreviewTrack] = useState<'lot'|'house'|'cluster'>(world==='home'?'lot':'cluster');
   const [previewLevels,setPreviewLevels] = useState({lot:1,house:1,cluster:1});
   const [previewStages,setPreviewStages] = useState({lot:0,house:0,cluster:0});
@@ -74,28 +85,31 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const [look,setLook] = useState<Look>('stone');
   const [showRequirements,setShowRequirements] = useState(false);
   const ownerId = String(profile?.id ?? 'guest');
-  const storageKey = 'buklod.s2.world-look.'+ownerId+'.'+world;
+  const storageKey = 'buklod.s2.world-look.'+ownerId+'.'+world+'.'+(world==='home'?'personal':chosenScope?.scope_id??'unassigned');
   const compact = width < 600;
   const doors = world === 'home' ? HOME_DOORS : VILLAGE_DOORS;
   const choice = LOOKS.find(x=>x.id===look) ?? LOOKS[0];
   const isPreview = isGenesisPreviewBuild();
 
   useEffect(()=>{
-    if (!isPreview || ownerId==='guest') return;
+    // Never let a previously selected cluster's cosmetic look leak into another scope.
+    setLook('stone');
+    if (!isPreview || ownerId==='guest' || !canCustomizePreview) return;
     let live=true;
     void AsyncStorage.getItem(storageKey).then(saved=>{
       if (live && LOOKS.some(v=>v.id===saved)) setLook(saved as Look);
     }).catch(()=>undefined);
     return ()=>{live=false;};
-  },[storageKey,ownerId,isPreview]);
+  },[storageKey,ownerId,isPreview,canCustomizePreview]);
   const chooseLook = useCallback((next:Look)=>{
+    if(!canCustomizePreview)return;
     setLook(next);
     if (ownerId !== 'guest') void AsyncStorage.setItem(storageKey,next).catch(()=>undefined);
-  },[ownerId,storageKey]);
-  const title = world==='home' ? 'MY HOME · PERSONAL WORLD' : 'COMMUNITY VILLAGE';
+  },[ownerId,storageKey,canCustomizePreview]);
+  const title = world==='home' ? 'MY HOME · PERSONAL WORLD' : 'MY COMMUNITY · '+(chosenScope?.name??'Choose a Cluster or Organization');
   const desc = world==='home'
     ? 'Lot and House grow independently. Explore your personal space and household tools.'
-    : 'Communities, compounds, facilities and livelihood grow through verified contribution.';
+    : 'Virtual cluster/organization development preview, separate from the Public Community Wall. Shared construction remains server-authorized.';
   const trackTitle = world==='home' ? 'Lot / House development' : 'Community / Cluster development';
   const sceneHeight = Math.max(250,Math.min(360,compact ? width*0.65 : width*0.43));
   const decoration = useMemo(()=>[0,1,2,3,4,5],[]);
@@ -113,6 +127,22 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             <Text style={styles.subtitle}>{desc}</Text>
           </View>
         </View>
+        {world==='village'?<View style={styles.scopePanel}>
+          <Text style={styles.panelTitle}>My Community · Verified scope</Text>
+          {!communityScopes.length?<Pressable accessibilityRole="button" accessibilityLabel="Discover Clusters"
+            onPress={()=>router.push('/clusters' as any)} style={styles.scopeChoice}>
+            <Text style={styles.scopeChoiceText}>Sumali muna sa Cluster o Organization →</Text>
+          </Pressable>:<View style={styles.scopeRow}>
+            {communityScopes.map(scope=><Pressable key={scope.scope_id} accessibilityRole="button"
+              accessibilityLabel={'Preview '+scope.name+' community land'}
+              accessibilityState={{selected:chosenScope?.scope_id===scope.scope_id}}
+              onPress={()=>setSelectedCommunityScopeId(scope.scope_id)}
+              style={[styles.scopeChoice,chosenScope?.scope_id===scope.scope_id&&styles.selectedScope]}>
+              <Text style={styles.scopeChoiceText} numberOfLines={2}>{scope.name}</Text>
+            </Pressable>)}
+          </View>}
+          <Text style={styles.muted}>{canCustomizePreview?'Local visual preview for this scope only; no server or shared land is changed.':'Only a verified Cluster/Organization admin may save this local design preview. Actual community land remains read-only until server verification.'}</Text>
+        </View>:null}
         <View style={[styles.scene,{height:sceneHeight}]}>
           {/* Existing V2 artwork is the graceful fallback if the new local WebP cannot decode. */}
           <BuklodGameBackdrop thumbnail gameId={world==='home'?'phan-enterprise-builder':'elesur-village-builder'} opacity={0.82}/>
@@ -183,7 +213,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           <View style={styles.looks}>
             {LOOKS.map(item=>(
               <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.name+' local preview'}
-                accessibilityState={{selected:look===item.id}} onPress={()=>chooseLook(item.id)}
+                accessibilityState={{selected:look===item.id}} disabled={!canCustomizePreview} onPress={()=>chooseLook(item.id)}
                 style={[styles.look,look===item.id&&styles.activeLook]}>
                 <View style={[styles.swatch,{backgroundColor:item.tint}]}/>
                 <Text style={styles.lookText}>{item.name}</Text>
@@ -207,6 +237,12 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
 const styles=StyleSheet.create({
   root:{flex:1,backgroundColor:'#071A22'},scroll:{flex:1},
   content:{paddingHorizontal:12,paddingTop:12,paddingBottom:26,gap:10,maxWidth:920,width:'100%',alignSelf:'center'},
+  scopePanel:{padding:12,borderRadius:14,backgroundColor:'#153B3B',borderColor:'#799B7D',borderWidth:1,gap:9},
+  scopeRow:{flexDirection:'row',flexWrap:'wrap',gap:7},
+  scopeChoice:{minHeight:44,justifyContent:'center',paddingHorizontal:10,borderRadius:10,
+    backgroundColor:'#264940',borderWidth:1,borderColor:'#577C65'},
+  selectedScope:{borderColor:'#FFE5AE',backgroundColor:'#3B6551'},
+  scopeChoiceText:{color:'#FFEAC3',fontWeight:'800',fontSize:12},
   header:{flexDirection:'row',alignItems:'center',gap:12},
   return:{minWidth:60,alignItems:'center',justifyContent:'center',minHeight:52,borderRadius:12,borderWidth:1,borderColor:'#6A8A81',paddingHorizontal:8},
   returnText:{color:'#FFEAC3',fontSize:9,fontWeight:'900'},
