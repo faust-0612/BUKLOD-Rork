@@ -36,9 +36,9 @@ import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../.
 type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
 type Position = { x: number; y: number };
-type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number };
+type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; lastMoveTick?: number };
 type ArenaState = {
-  w: number; h: number; status: string; elapsed: number; mode?: Mode;
+  w: number; h: number; status: string; elapsed: number; tick: number; mode?: Mode;
   map: { lanes: number[]; colors: string[] };
   players: Record<string, Actor>;
   towers: Actor[]; units: Actor[]; creatures: Actor[]; buildings: Actor[];
@@ -165,7 +165,7 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying 
         const size = clamp(area.width * 8 / camera.width, 32, 94);
         return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
           sprite={Boolean(sprite)} friendly={p.team === 'A'} active={isPlaying}
-          moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= (state as ArenaState & {tick:number}).tick - 1)}
+          moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1)}
           x={(p.x - camera.x) * area.width / camera.width}
           y={(p.y - camera.y) * area.height / camera.height} size={size} />;
       })}
