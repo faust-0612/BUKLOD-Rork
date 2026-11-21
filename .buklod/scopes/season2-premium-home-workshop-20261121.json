@@ -59,5 +59,21 @@
         "tests/season2-premium-home-workshop-20261121.test.mjs"
       ]
     }
-  ]
+  ],
+  "acceptanceChecks": [
+    "Exact-head GitHub source regression and pure offline World Workshop game-logic tests must pass; including stage order, clamping, local material spending, per-track isolation, cosmetic account separation and all planned directory services disabled.",
+    "Expo Android Metro asset bundling and TypeScript integration QA must pass for WebP/SVG/Android safe area and Expo Router compatibility; no native APK compatibility claim is made by source-only checks.",
+    "Protected-feature lock and Engineering Accountability gate must pass with a single exact-file allowlist and changed regression tests, preserving Home AdMob and instant navigation.",
+    "Staging publishing remains blocked until actual native package runtime, channel, live Supabase isolation safeguards and AdMob/nav acceptance are verified; physical device execution owner-waived means UNVERIFIED, not passed.",
+    "Do not deploy Supabase schema, reward ledger, production APK/OTA or new subscription; real property ownership, material trading and multiplayer construction are not operational in local workshop."
+  ],
+  "preserveBehaviors": [
+    "Genesis preview-only first-view approved 1672x941 image and existing one-tap destinations remain; original production first view and primary tabs unaffected.",
+    "BUKLOD Bahay / Family with actual permissions, calendar, messages, garden, and existing real services remain linked from one-tap My Home and the searchable directory.",
+    "No minting or spending live BP, QMP or Character Diamonds; fake cosmetic workshop resources cannot enter the existing authoritative inventory, property title, Circle Rank or Marketplace.",
+    "Preserve system forced update, pilot restriction, onboarding, auth/consent, maintenance and Profile/Cluster role guards.",
+    "No changes to existing EAS runtime, paid shared Supabase or production branch, Play APK, live OTA, AdMob lifecycle code or revenue accounting.",
+    "Planned Home and Community Village facilities are explicitly disabled and cannot be used as shortcuts to unauthorized server writes."
+  ],
+  "publicationStatus": "Draft DEV PR; source implementation only. Existing staging OTA and production unchanged. Real construction ledger, owned assets, multiplayer and physical-device Android rendering not verified."
 }
