@@ -117,9 +117,11 @@ export default function GenesisApprovedEntryMap({
          pressed&&styles.pressed,
        ]}/>):null}
      {!landscape?<Animated.View pointerEvents="none" style={[
-       styles.guideLife,{left:mapWidth*.11,top:mapHeight*.865,opacity:glow},
+       styles.guideLife,{left:mapWidth*.11,top:mapHeight*.865,opacity:glow,
+       transform:[{translateY:glow.interpolate({inputRange:[.32,.84],outputRange:[3,-3]})},
+         {rotate:glow.interpolate({inputRange:[.32,.84],outputRange:['-12deg','14deg']})}]},
      ]}>
-       <MaterialCommunityIcons name="star-four-points-outline" size={21} color="#FFE9AB"/>
+       <MaterialCommunityIcons name="hand-wave-outline" size={23} color="#FFE9AB"/>
      </Animated.View>:null}
      <Pressable accessibilityRole="button" accessibilityLabel="Open complete BUKLOD destination directory"
        onPress={onMenu} style={[styles.directory,hotspot(.95,.045,44)]}>

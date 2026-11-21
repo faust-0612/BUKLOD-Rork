@@ -18,7 +18,8 @@
     "audio-focus",
     "economy-integrity",
     "release-pipeline",
-    "release-identity"
+    "release-identity",
+    "navigation-scroll"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
@@ -154,7 +155,7 @@
     "Special Events lists only existing RLS-visible events, uses existing RSVP/attendance and never mints BP; Show Faith off has equal learning access.",
     "Staging EAS provider exact OTA receipt, compatible signed APK runtime and actual Android AdMob/navigation acceptance are mandatory before publication."
   ],
-  "publicationStatus": "Consolidated Genesis DEV source includes approved actual portrait art and special doors at commit 6edcbc5e37403c606313f592d78b429008a5c144; signed native runtime, first-view AdMob/device checks and actual EAS channel OTA receipt remain separate release blockers. No production publishing.",
+  "publicationStatus": "Consolidated Genesis DEV source contains bundled original portrait Welcome artwork, nine one-tap special feature doors, animated Guide visual and guarded real events. Exact-head CI and Metro export remain mandatory; no EAS OTA receipt or production deployment has been asserted.",
   "releaseMode": "staging-source-prepared-native-runtime-and-ota-proof-pending",
   "physicalDeviceVerification": "USER_WAIVED_UNVERIFIED",
   "productionDeployment": "NONE"
