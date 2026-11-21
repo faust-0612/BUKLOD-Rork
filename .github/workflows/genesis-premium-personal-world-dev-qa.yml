@@ -1,0 +1,43 @@
+name: Genesis Personal World - DEV Source QA (no OTA)
+on:
+  push:
+    branches:
+      - dev/genesis-premium-personal-world-progress-20261121
+    paths:
+      - src/features/season2/world/**
+      - tests/season2-premium-construction-plan.test.mjs
+      - .github/workflows/genesis-premium-personal-world-dev-qa.yml
+permissions:
+  contents: read
+concurrency:
+  group: genesis-personal-world-dev-qa
+  cancel-in-progress: true
+jobs:
+  construction-and-types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_APP_ENV: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Deterministic construction model and permission-safe preview
+        run: node --test tests/season2-premium-construction-plan.test.mjs
+      - name: Locked dependency install + strict source typecheck
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+      - name: Existing compact layout + Genesis map integration contracts
+        run: |
+          node scripts/compact-layout-gate.mjs
+          node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/season2-premium-ad-navigation-guard-20261121.test.mjs
+      - name: SOURCE QA ONLY; no native APK, OTA, EAS, backend mutation or production
+        run: echo 'No publication performed.'
