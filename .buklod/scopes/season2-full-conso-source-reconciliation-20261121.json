@@ -165,8 +165,7 @@
         "Timeout rejects and clears shared in-flight work; a late response cannot replace verified Character selection or re-award points."
       ],
       "tests": [
-        "tests/genesis-ota-character-timeout-20261121.test.mjs",
-        "tests/buklod-character-art-release-contract-20261116.test.mjs"
+        "tests/genesis-ota-character-timeout-20261121.test.mjs"
       ]
     }
   ],
