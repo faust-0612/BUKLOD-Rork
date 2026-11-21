@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Rect, Defs, RadialGradient as SvgRadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
@@ -74,6 +74,14 @@ const MODES: Mode[] = ['duel', 'cluster', 'grand'];
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 const near = (a: Position, b: Position) => Math.hypot(a.x - b.x, a.y - b.y);
 const life = (a: Actor) => a.alive !== false && a.hp > 0;
+const ARENA_SCENE_LIGHT: Record<ArenaSceneId,{star:string;ground:string;accent:string;enemy:string}> = {
+  genesis_rift:{star:'#f7d4ff',ground:'#482f72',accent:'#bf9aff',enemy:'#ffa6bf'},
+  aurora_foundry:{star:'#d9fbff',ground:'#125d69',accent:'#89ddf2',enemy:'#f7c2a1'},
+  verdant_fracture:{star:'#dcffe9',ground:'#195b46',accent:'#98ffb6',enemy:'#f7c88a'},
+};
+const ARENA_SPARKS=Array.from({length:34},(_,index)=>({
+  x:((index*43+11)%97+1)/100,y:((index*29+23)%91+2)/100,phase:index%5,
+}));
 
 function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: boolean; selected?: boolean }) {
   if (!life(actor)) return null;
@@ -89,8 +97,8 @@ function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: bool
   </G>;
 }
 
-function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying, localSeat, zoom, onPinchZoom }: {
-  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean; localSeat: string; zoom: number; onPinchZoom: (factor: number) => void;
+function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, isPlaying, localSeat, zoom, onPinchZoom }: {
+  state: ArenaState; sceneId: ArenaSceneId; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean; localSeat: string; zoom: number; onPinchZoom: (factor: number) => void;
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
   const [area, setArea] = useState({ width: 720, height: 360 });
@@ -102,6 +110,7 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
   const camera = arenaCamera(state.w, state.h, player, area.width, area.height,
     (state.w <= 160 ? 70 : state.w <= 240 ? 90 : 115) / zoom);
   const effects = arenaVisualEffects(state.events, state.elapsed, 1100);
+  const light = ARENA_SCENE_LIGHT[sceneId];
   return <View style={styles.field}
     onTouchStart={event => { pinchDistance.current = touchDistance(event.nativeEvent.touches); }}
     onTouchMove={event => {
@@ -130,20 +139,53 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
         top: -camera.y * (area.height / camera.height),
       }}
     /> : null}
-    <LinearGradient colors={['rgba(4,10,26,0.70)', 'rgba(5,20,28,0.40)', 'rgba(4,12,24,0.76)']} style={StyleSheet.absoluteFill} />
+    <LinearGradient colors={['rgba(4,10,26,0.31)', 'rgba(5,20,28,0.13)', 'rgba(4,12,24,0.43)']} style={StyleSheet.absoluteFill} />
     <Svg width="100%" height="100%" viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`} preserveAspectRatio="xMidYMid meet">
-      <Rect width={state.w} height={state.h} rx={4} fill="rgba(10,40,56,0.20)" />
+      <Defs>
+        <SvgRadialGradient id="arena-world-glow" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor={light.accent} stopOpacity=".55"/>
+          <Stop offset="100%" stopColor={light.ground} stopOpacity="0"/>
+        </SvgRadialGradient>
+      </Defs>
+      <Rect width={state.w} height={state.h} rx={4} fill="rgba(10,40,56,0.08)" />
+      <Circle cx={state.w/2} cy={state.h/2} r={state.h*.31} fill="url(#arena-world-glow)" opacity=".55"/>
+      {ARENA_SPARKS.map((star,i)=><Circle key={'spark-'+i} cx={star.x*state.w} cy={star.y*state.h}
+        r={.17+(i%3)*.10} fill={light.star} opacity={.22 + .28*Math.abs(Math.sin(state.elapsed/950+star.phase))}/>)}
       {lanes.map((y, i) => <Path key={'lane-' + i} d={`M 5 ${y * state.h} Q ${state.w / 2} ${y * state.h + (i - 1) * 3} ${state.w - 5} ${y * state.h}`} stroke="#ffe0a2" opacity={0.38} strokeWidth={1.9} fill="none" strokeDasharray="1 3" />)}
       <Line x1={state.w / 2} y1={6} x2={state.w / 2} y2={state.h - 6} stroke="#a9f8ea" strokeWidth={0.5} strokeDasharray="2 3" opacity={0.5} />
       {state.cover.map(([x, y, r], i) => <G key={'cover-' + i}><Circle cx={x} cy={y} r={r + 1.5} fill="#052624" opacity={0.6} /><Circle cx={x} cy={y} r={r} fill="#206b62" stroke="#74cbb8" strokeWidth={0.3} opacity={0.8} /></G>)}
-      {state.nodes.map((n) => <G key={n.id}><Circle cx={n.x} cy={n.y} r={3.2} fill={n.type === 'gold' ? '#c68b38' : n.type === 'wood' ? '#276947' : '#738b9a'} stroke="#ffe9bc" strokeWidth={0.5} /><SvgText x={n.x} y={n.y + 0.75} fontSize={2.5} textAnchor="middle" fill="#fff">{n.type.slice(0, 1).toUpperCase()}</SvgText></G>)}
-      {(['A', 'B'] as Team[]).map(team => <G key={team}>
-        <Rect x={team === 'A' ? 9 : state.w - 19} y={state.h / 2 - 7} width={10} height={14} rx={2} fill={team === 'A' ? '#2d8d86' : '#9c4d59'} stroke="#ffdaa5" strokeWidth={0.7} />
-        <SvgText x={team === 'A' ? 14 : state.w - 14} y={state.h / 2 + 0.7} fontSize={4} textAnchor="middle" fill="#fff">{team}</SvgText>
+      {state.nodes.filter(n=>n.stock>0).map(n => <G key={n.id}>
+        <Circle cx={n.x} cy={n.y} r={5} fill="url(#arena-world-glow)" opacity=".55"/>
+        <Circle cx={n.x} cy={n.y} r={3.1} fill={n.type==='gold'?'#6d4c27':n.type==='wood'?'#124f3a':'#3b4d65'}
+          stroke={n.type==='gold'?'#f8ce78':n.type==='wood'?'#a6eeaa':'#c3e1f6'} strokeWidth=".7" />
+        {n.type==='gold' ? <Path d={`M ${n.x} ${n.y-2.4} l2.1 2.4 -2.1 2.4 -2.1 -2.4 Z`}
+          fill="#f6df84" stroke="#ffefbd" strokeWidth=".35"/> : n.type==='wood' ?
+          <Path d={`M ${n.x} ${n.y-2.8} l-2 3 h1.1 l-1.1 1.4 h4 l-1.1 -1.4 h1.1 Z`}
+            fill="#a6f2be" stroke="#ecffdc" strokeWidth=".35"/> :
+          <Path d={`M ${n.x-2} ${n.y+2} L ${n.x-1} ${n.y-2} L ${n.x+1} ${n.y-2.6} L ${n.x+2.3} ${n.y+1.5} Z`}
+            fill="#c3eaff" stroke="#fff" strokeWidth=".35"/>}
       </G>)}
-      {state.towers.filter(life).map(t => <G key={t.id}><Rect x={t.x - 3} y={t.y - 3.5} width={6} height={7} rx={0.5} fill={t.team === 'A' ? '#497c9d' : '#a15f65'} stroke="#f9d68f" strokeWidth={0.5} /></G>)}
+      {(['A', 'B'] as Team[]).map(team => {
+        const bx=team==='A'?14:state.w-14,by=state.h/2;
+        return <G key={team}>
+          <Circle cx={bx} cy={by} r={12} fill="url(#arena-world-glow)" opacity=".8"/>
+          <Path d={`M ${bx-6.2} ${by+6} L ${bx-6.2} ${by-2} L ${bx-3.6} ${by-2} L ${bx-3.6} ${by-6.7} L ${bx-1} ${by-6.7} L ${bx-1} ${by-3.5} L ${bx+1} ${by-3.5} L ${bx+1} ${by-6.7} L ${bx+3.6} ${by-6.7} L ${bx+3.6} ${by-2} L ${bx+6.2} ${by-2} L ${bx+6.2} ${by+6} Z`}
+            fill={team==='A'?'#2b7e78':'#873b5a'} stroke="#ffe6ae" strokeWidth=".9"/>
+          <Path d={`M ${bx-6.5} ${by+5.2} H ${bx+6.5} L ${bx+4} ${by+8} H ${bx-4} Z`}
+            fill="#8d7b58" stroke="#f5db9c" strokeWidth=".6"/>
+          <SvgText x={bx} y={by+2} fontSize={4} textAnchor="middle" fill="#fff0bb" fontWeight="bold">{team}</SvgText>
+        </G>;
+      })}
+      {state.towers.filter(life).map(t => <G key={t.id}>
+        <Circle cx={t.x} cy={t.y} r={5.5} fill="url(#arena-world-glow)" opacity=".55"/>
+        <Rect x={t.x-2.8} y={t.y-2.2} width={5.6} height={5.8} rx=".7"
+          fill={t.team==='A'?'#477b96':'#9b5365'} stroke="#ffe7ac" strokeWidth=".6"/>
+        <Path d={`M ${t.x-3.7} ${t.y-2.4} L ${t.x} ${t.y-6} L ${t.x+3.7} ${t.y-2.4} Z`}
+          fill={t.team==='A'?'#84cfdf':'#f7b6a3'} stroke="#ffe5b1" strokeWidth=".5"/>
+        <Circle cx={t.x} cy={t.y} r=".85" fill="#fff0bc"/>
+      </G>)}
       {state.buildings.filter(life).map(b => <Rect key={b.id} x={b.x - 2.4} y={b.y - 2.4} width={4.8} height={4.8} rx={0.6} fill={b.team === 'A' ? '#6ebda9' : '#d48473'} stroke="#e8c989" strokeWidth={0.4} />)}
-      {state.creatures.filter(life).map(c => <G key={c.id}><Circle cx={c.x} cy={c.y} r={3} fill="#b38ed6" stroke="#f2d6ff" strokeWidth={0.8} /><Circle cx={c.x} cy={c.y} r={1.1} fill="#f9e9b9" /></G>)}
+      {state.creatures.filter(life).map(c => <G key={c.id}><Circle cx={c.x} cy={c.y} r={5} fill="url(#arena-world-glow)" opacity=".65"/><Circle cx={c.x} cy={c.y} r={3} fill="#64377a" stroke="#eed3ff" strokeWidth={0.8} /><Circle cx={c.x} cy={c.y} r={1.1} fill="#ffe4a8" /><Path d={`M ${c.x-3} ${c.y} L ${c.x} ${c.y-4} L ${c.x+3} ${c.y}`} fill="none" stroke="#e5c2fa" strokeWidth=".7" /></G>)}
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
         <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} />
@@ -194,6 +236,7 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
           ARENA_HERO_ART[p.hero as BuklodCharacterId];
         const size = clamp(Math.min(area.width * 8 / camera.width, area.height * 0.36), 32, 80);
         return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
+          pose={pose} health={p.hp/Math.max(1,p.maxHp)} selected={p.id===selectedId || p.id===localSeat}
           sprite={Boolean(fullbody || sprite)} friendly={p.team === localTeam} active={isPlaying}
           moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1)}
           x={(p.x - camera.x) * area.width / camera.width}
@@ -576,7 +619,7 @@ function EmpireArenaInApp() {
         }} style={styles.audioToggle}>
         <MaterialCommunityIcons name="gesture-tap" size={19} color="#f9df9e" />
       </Pressable> : null}
-      {phase === 'playing' && arenaKind === 'practice' ? <Control icon="pause" title="PAUSE" onPress={() => setPhase('paused')} /> : phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : null}
+      {phase === 'playing' && arenaKind === 'practice' && !hudEditing ? <Control icon="pause" title="PAUSE" onPress={() => setPhase('paused')} /> : phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : null}
     </View>
 
     {phase === 'menu' ? <ScrollView style={styles.menuScroll} contentContainerStyle={[styles.menu, compactLandscape && styles.menuCompact]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -621,7 +664,7 @@ function EmpireArenaInApp() {
         <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text>
         <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
       </View>
-      <ArenaField zoom={zoom} onPinchZoom={changeZoom} state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
+      <ArenaField zoom={zoom} onPinchZoom={changeZoom} sceneId={mapId} state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
       {!compactLandscape ? <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View> : null}
       {phase === 'playing' ? <>
         <ArenaCombatHud width={hudArea.width} height={hudArea.height} positions={hudPositions}
