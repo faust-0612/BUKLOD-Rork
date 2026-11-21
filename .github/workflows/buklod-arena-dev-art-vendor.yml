@@ -89,6 +89,9 @@ jobs:
             echo "Asset baseline already current."
             exit 0
           fi
-          git commit -m "assets(arena): version approved 13 animated hero portraits and three scenes in DEV baseline"
-          # Fast-forward only. Never force or bypass concurrent DEV changes.
+          git commit -m "assets(arena): version 13 original hero sprites, 52 fullbody pose clips and scenes in DEV baseline"
+          # Reconcile concurrent DEV changes without force. Abort on real conflict.
+          # This prevents an older CI checkout from clobbering newer owner work.
+          git fetch origin dev/empire-arena-v2-inapp-asset-baseline-20261121
+          git rebase origin/dev/empire-arena-v2-inapp-asset-baseline-20261121
           git push origin HEAD:refs/heads/dev/empire-arena-v2-inapp-asset-baseline-20261121
