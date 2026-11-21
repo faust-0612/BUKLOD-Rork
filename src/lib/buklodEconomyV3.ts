@@ -215,6 +215,41 @@ async function economyV3Rpc<T>(
   return data as T;
 }
 
+
+export type BuklodCommunityDestinationOptionV1 = {
+  scope_id: string;
+  name: string;
+  scope_type: 'CLUSTER' | 'ORGANIZATION';
+};
+
+export async function loadMyBuklodCommunityDestinationsV1(): Promise<BuklodCommunityDestinationOptionV1[]> {
+  await ensureBuklodProfitFirstIdentity();
+  const result = await economyV3Rpc<{ ok: boolean; items: BuklodCommunityDestinationOptionV1[] }>(
+    'get_my_buklod_community_destinations_v1',
+    undefined,
+    'Could not load eligible Community destinations.',
+  );
+  if (result?.ok !== true || !Array.isArray(result.items)) {
+    throw new Error('Community destinations are temporarily unavailable.');
+  }
+  return result.items.filter(row =>
+    typeof row?.scope_id === 'string' && typeof row?.name === 'string'
+    && (row.scope_type === 'CLUSTER' || row.scope_type === 'ORGANIZATION')
+  );
+}
+
+export async function selectMyBuklodCommunityDestinationV1(scopeId: string) {
+  if (!scopeId) throw new Error('Choose a valid Community destination.');
+  await ensureBuklodProfitFirstIdentity();
+  const result = await economyV3Rpc<{ ok: boolean; locked_until?: string }>(
+    'set_my_buklod_community_destination_v1',
+    { p_scope_id: scopeId },
+    'Could not save your Community destination.',
+  );
+  if (result?.ok !== true) throw new Error('Community destination was not saved.');
+  return result;
+}
+
 function withdrawalRequestKey() {
   return `pf-withdrawal:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
 }

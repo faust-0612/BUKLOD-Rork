@@ -1,0 +1,103 @@
+{
+  "contractVersion": 2,
+  "objective": "Reconcile verified referral and Economy data with canonical signup identity, member-scoped destination selection and Organization-specific Cluster messaging without payouts or unrelated changes.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: BUKLOD-Rork GitHub main SHA 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742 at integration start; on 2026-11-15 Supabase read-only audit confirmed code mismatch, QMP parity, Official referral guard and all Finance payout gates disabled. Dry-run SQL transaction ROLLBACK, no production migration applied or OTA published.",
+  "chosenApproach": "Small additive Finance RPC for verified idempotent referral attribution and authenticated Community Destination, replace suggestion-only display RPC with canonical Finance code, nonpaying historical provenance backfill, correct scoped UI and preserve runtime 1.3.2.",
+  "selectionRationale": "Prevents wrong referrer locks, avoids legacy-code divergence for 356 accounts, corrects misleading Organization-specific Cluster state while keeping existing membership and monetary protections intact.",
+  "alternativeApproaches": [
+    "Rewrite all legacy referral codes in place (rejected: would invalidate old invitation links).",
+    "Automatically convert all historical referrals into payouts (rejected: violates Finance qualification and BUKLOD Official guard).",
+    "Rebuild native Android to resolve presentation mismatches (rejected: no native dependency change)."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "financial-integrity",
+    "referral-attribution",
+    "organization-cluster",
+    "community-fund"
+  ],
+  "preserveBehaviors": [
+    "Historical invitation counts and 8-character aliases remain usable; no reassignment to another referrer.",
+    "One-time ₱20 and 10%/six-month referral policy requires real qualification; no automatic credit.",
+    "Official member referral financial restrictions remain enforced on client and backend.",
+    "30% QMP user-pool points unchanged, no AdMob source or cash ledger mutation.",
+    "Cluster membership remains scope-specific, not silently transferred between Organizations.",
+    "System Admin, data permissions, unrelated ads/media/PTT and runtime 1.3.2 unchanged.",
+    "Legacy-only active profiles without Finance mapping remain discoverable, but historical attribution alone is never withdrawable."
+  ],
+  "allowedPaths": [
+    "src/lib/buklodRewards.ts",
+    "src/app/(auth)/register.tsx",
+    "src/components/BuklodOrgHomeClusterCard.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/lib/buklodEconomyV3.ts",
+    "src/app/bayanihan/index.tsx",
+    "supabase/migrations/20261115140000_buklod_referral_scope_consistency_v1.sql",
+    "tests/nov15-referral-scope-consistency-contract.test.mjs",
+    "tests/nov15-auth-referral-consistency-20261115.test.mjs",
+    "supabase/tests/referral_scope_consistency_20261115.sql",
+    "docs/referral-scope-consistency-20261115.md",
+    ".buklod/scopes/referral-economy-scope-consistency-20261115.json",
+    "tests/nov15-finance-referral-guard-20261115.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/nov15-referral-scope-consistency-contract.test.mjs",
+    "tests/nov15-auth-referral-consistency-20261115.test.mjs",
+    "supabase/tests/referral_scope_consistency_20261115.sql",
+    "tests/nov15-finance-referral-guard-20261115.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Canonical suggestion returns 7BF347319E for Biboy and never 48680BC3; legacy code still resolves.",
+    "Wrong-referrer duplicate request denied; original referrer retry succeeds idempotently.",
+    "Qualified Finance identity only for historic pending records with original timestamps, matching profiles, non-Official participants; no money credited.",
+    "Personal 195 QMP and total 2758 QMP unchanged.",
+    "Organization shows zero in-scope Cluster while permitting access to five existing Clusters elsewhere.",
+    "No Community designation selected unless user explicitly chooses eligible membership; switch lock enforced.",
+    "SQL contract plus auth/finance/scope JS tests and Engineering Accountability pass.",
+    "All payouts/finance flags stay OFF, staging before any production release.",
+    "Unlinked older accounts remain discoverable with an explicit pending-identity message and can record a historical-only attribution without making up money."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preserve full BUKLOD runtime and existing activity points while adding bounded referral and Community destination RPCs.",
+      "preservedBehaviors": [
+        "Existing Wall, video, ads, Connect, PTT and runtime 1.3.2 keep their working behavior."
+      ],
+      "tests": [
+        "tests/nov15-referral-scope-consistency-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Prevent unconfirmed optional referrer from being silently ignored on new signup without changing current login sessions.",
+      "preservedBehaviors": [
+        "Existing users can still sign in and recover accounts; no OTP or account migration introduced."
+      ],
+      "tests": [
+        "tests/nov15-auth-referral-consistency-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Keep QMP and Finance monetary qualification separate while adding member-controlled future Community designation.",
+      "preservedBehaviors": [
+        "No user share, referral bonus, AdMob estimate, payouts, balances or QMP is recalculated or made withdrawable."
+      ],
+      "tests": [
+        "tests/nov15-finance-referral-guard-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add authenticated member-scoped RPCs and provenance-only referral reconciliation while respecting BUKLOD Official guard.",
+      "preservedBehaviors": [
+        "RLS, Official exclusions, non-duplication, referral locks and Finance disabled flags remain effective."
+      ],
+      "tests": [
+        "supabase/tests/referral_scope_consistency_20261115.sql"
+      ]
+    }
+  ]
+}

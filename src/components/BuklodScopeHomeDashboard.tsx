@@ -288,7 +288,7 @@ export default function BuklodScopeHomeDashboard({
             <StatCard label="MEMBERS" value={summary.total_members} />
             <StatCard label="ACTIVE" value={summary.active_members} />
             <StatCard label="ADMINS" value={summary.admin_count} />
-            <StatCard label="ROLES" value={summary.functional_role_count} />
+            <StatCard label="FUNCTIONAL ROLES" value={summary.functional_role_count} />
           </View>
           {summary.pending_join_requests > 0 ? (
             <Text style={styles.pending}>
@@ -305,7 +305,7 @@ export default function BuklodScopeHomeDashboard({
 
       <View style={styles.card}>
         <View style={styles.cardHead}>
-          <Text style={styles.cardTitle}>MY ROLE(S)</Text>
+          <Text style={styles.cardTitle}>MY FUNCTIONAL ROLE(S)</Text>
         </View>
         {summary?.my_functional_roles.length ? (
           <View style={styles.roleChips}>
@@ -317,7 +317,7 @@ export default function BuklodScopeHomeDashboard({
           </View>
         ) : (
           <Text style={styles.muted}>
-            No functional role assigned yet in this scope.
+            No additional task role assigned. Administrator access, if granted, is shown below.
           </Text>
         )}
         <Text style={styles.accessLine}>

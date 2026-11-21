@@ -22,6 +22,7 @@ export default function BuklodOrgHomeClusterCard({
   const { selectScope } = useBuklodScope();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [otherClusterCount, setOtherClusterCount] = useState(0);
   const [context, setContext] = useState<FormationContext | null>(null);
   const [canReport, setCanReport] = useState(false);
   const [organizationName, setOrganizationName] = useState('Current Organization');
@@ -37,12 +38,16 @@ export default function BuklodOrgHomeClusterCard({
           work.then(value => { clearTimeout(timer); resolve(value); },
                     error => { clearTimeout(timer); reject(error); });
         });
-      const [next, scopeResult] = await withDeadline(Promise.all([
+      const [next, globalContext, scopeResult] = await withDeadline(Promise.all([
         fetchFormationContextResilient(organizationId),
+        fetchFormationContextResilient(),
         (supabase as any).from('buklod_scopes').select('name')
           .eq('id', organizationId).maybeSingle(),
       ]));
       setContext(next);
+      setOtherClusterCount(globalContext.clusters.filter(
+        item => item.organization_id !== organizationId,
+      ).length);
       if (scopeResult.data?.name) setOrganizationName(String(scopeResult.data.name));
       if (next.primary_cluster?.cluster_id) {
         setCanReport(await withDeadline(canViewClusterProgress(next.primary_cluster.cluster_id)));
@@ -52,6 +57,7 @@ export default function BuklodOrgHomeClusterCard({
     } catch (error) {
       console.warn('Organization My Cluster load:', error);
       setLoadError(true);
+      setOtherClusterCount(0);
     } finally {
       setLoading(false);
     }
@@ -117,11 +123,16 @@ export default function BuklodOrgHomeClusterCard({
           </>
         ) : (
           <>
-            <Text style={styles.title}>You are not in a Cluster yet</Text>
+            <Text style={styles.title}>No Cluster joined in this Organization</Text>
             <Text style={styles.body}>
-              Daily Bible Reading, Daily Devotion, and BUKLOD Lessons are
-              Cluster features. Join or request to join a Cluster to continue.
+              Cluster membership is Organization-specific. Join or request to
+              join a Cluster here to access its activities.
             </Text>
+            {otherClusterCount > 0 ? (
+              <Text style={styles.meta}>
+                You have {otherClusterCount} active Cluster membership(s) outside this Organization.
+              </Text>
+            ) : null}
             {context?.pending_clusters[0] ? (
               <Text style={styles.pending}>
                 Request pending: {context.pending_clusters[0].cluster_name}
@@ -131,7 +142,7 @@ export default function BuklodOrgHomeClusterCard({
               onPress={() => router.push('/clusters' as any)}
               style={styles.button}
             >
-              <Text style={styles.buttonText}>JOIN A CLUSTER</Text>
+              <Text style={styles.buttonText}>{otherClusterCount > 0 ? 'OPEN MY CLUSTERS' : 'JOIN A CLUSTER'}</Text>
             </Pressable>
           </>
         )}
