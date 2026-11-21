@@ -5,6 +5,8 @@
 import {EQUIPMENT_SLOTS,itemDefinition,resolveGear,isExclusiveItem,dropTier,CONSUMABLE_TYPES,consumableDefinition} from './arena-v2-armory.mjs';
 import {ARENA_MAPS,getArenaMap,terrainFor} from './arena-v2-maps.mjs';
 import {BUILD_COSTS,initializeBuildings,operational,baseSite,beginBuild,beginSealRebuild,processEmpireBuilds} from './arena-v2-empire.mjs';
+import {STARTER_HERO_KITS,starterAttack,starterSkillCooldown,starterCanAct,starterMoveFactor,starterHitModifiers,starterEvades,starterAfterDamage,castStarterSkill,tickStarterKits} from './arena-starter-hero-kits.mjs';
+export {STARTER_HERO_KITS,starterAttack,starterSkillCooldown};
 export const STEP_MS=100;
 export {EQUIPMENT_SLOTS,itemDefinition,resolveGear,CONSUMABLE_TYPES,consumableDefinition,ARENA_MAPS,BUILD_COSTS};
 export const HEROES=Object.freeze({
@@ -33,7 +35,7 @@ export const DIAMOND_THRESHOLDS=Object.freeze([0,15,35,55,75,100,120,155,200,260
 const between=(x,a,b)=>Math.max(a,Math.min(b,Number.isFinite(x)?x:a));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const opponent=t=>t==='A'?'B':'A';
-const owner=(s,id)=>s.players[id]||s.units.find(x=>x.id===id)||s.creatures.find(x=>x.id===id)||s.towers.find(x=>x.id===id)||s.buildings.find(x=>x.id===id);
+const owner=(s,id)=>s.players[id]||s.units.find(x=>x.id===id)||s.creatures.find(x=>x.id===id)||s.towers.find(x=>x.id===id)||s.buildings.find(x=>x.id===id)||s.heroWalls?.find(x=>x.id===id);
 const alive=o=>o&&o.hp>0&&(o.alive!==false);
 const xpNeeded=level=>Math.round(65*level+18*level*level);
 function rand(s){s.seed=(Math.imul(s.seed,1664525)+1013904223)>>>0;return s.seed/4294967296}
@@ -47,7 +49,7 @@ export function itemPower(hero,level,verifiedKeys){if(!HEROES[hero])return 0;con
 export function createPractice({mode='cluster',mapId='verdant_fracture',hero='phan',seed=20261121,snapshot,snapshots=null,allies=[],foes=[]}={}){
  if(!MODES[mode]||!HEROES[hero])throw Error('Invalid Arena V2 mode/character');
  const m=MODES[mode],w=m.width,h=m.height,terrain=terrainFor(mode,w,h,mapId),map=terrain.cfg;
- const s={kind:'OFFLINE_PRACTICE',ranked:false,mode,mapId,map,w,h,seed:seed>>>0,elapsed:0,tick:0,status:'active',phase:'expansion',huntStarted:null,hardLock:false,deadline:m.minutes*60000+240000,hardDeadline:m.minutes*60000,eventSeq:0,events:[],result:null,players:{},teams:{A:{resources:{wood:150,gold:100,stone:110},queue:[],tech:0,kills:0},B:{resources:{wood:150,gold:100,stone:110},queue:[],tech:0,kills:0}},towers:[],units:[],creatures:[],nodes:[],loot:[],cover:terrain.cover,traps:[],seals:{A:{hp:1050,maxHp:1050,breached:false,lastDamage:-1e8},B:{hp:1050,maxHp:1050,breached:false,lastDamage:-1e8}},nextId:1,raidCount:0};
+ const s={kind:'OFFLINE_PRACTICE',ranked:false,mode,mapId,map,w,h,seed:seed>>>0,elapsed:0,tick:0,status:'active',phase:'expansion',huntStarted:null,hardLock:false,deadline:m.minutes*60000+240000,hardDeadline:m.minutes*60000,eventSeq:0,events:[],result:null,players:{},teams:{A:{resources:{wood:150,gold:100,stone:110},queue:[],tech:0,kills:0},B:{resources:{wood:150,gold:100,stone:110},queue:[],tech:0,kills:0}},towers:[],units:[],creatures:[],nodes:[],loot:[],cover:terrain.cover,traps:[],heroWalls:[],seals:{A:{hp:1050,maxHp:1050,breached:false,lastDamage:-1e8},B:{hp:1050,maxHp:1050,breached:false,lastDamage:-1e8}},nextId:1,raidCount:0};
  const identities=Object.keys(HEROES);for(const team of ['A','B'])for(let i=0;i<m.n;i++){
   const char=team==='A'?(i===0?hero:(allies[i-1]||identities[(i+3)%13])):(foes[i]||identities[(i+7)%13]);if(!HEROES[char])throw Error('Invalid roster hero');
   const isLocal=team==='A'&&i===0,profile=(snapshots?.[team+i]|| (isLocal?snapshot:null) || {characterLevel:1,bpEligibleLevel:1,itemVerifiedLevel:1,diamonds:0,verifiedItems:[]});
@@ -109,9 +111,11 @@ export function rollEquipmentDrop(s,killer,loser,quality=.45,source='hero'){
  s.loot.push(drop);log(s,'equipment_drop',{actor:killer.id,hero:killer.hero,name:item.name,slot:item.slot||item.type,tier,source,x:loser.x,y:loser.y});return drop;
 }
 
-function hit(s,p,target,base){if(!p?.alive||!alive(target)||target.team===p.team||lineBlocked(s,p,target))return false;
- const offense=gearOf(p),defense=s.players[target.id]?gearOf(target):{mitigation:0,block:0};const raw=(base+offense.attack)*skillMult(p),mitigated=raw*(1-Math.min(.32,(defense.mitigation||0)+(defense.block||0)));const resisted=target.shield?Math.min(target.shield,mitigated):0;target.shield=(target.shield||0)-resisted;const d=Math.max(0,mitigated-resisted),priorHp=target.hp;target.hp=Math.max(0,target.hp-d);target.lastDamage=s.elapsed;p.hits++;log(s,'damage',{from:p.id,to:target.id,amount:Math.round(Math.min(d,priorHp)),absorbed:Math.round(resisted),fromX:p.x,fromY:p.y,toX:target.x,toY:target.y,x:target.x,y:target.y});
- if(target.hp>0)return true;target.alive=false;log(s,'defeat',{from:p.id,to:target.id,team:target.team??null,kind:target.kind||'hero',x:target.x,y:target.y});
+function hit(s,p,target,base){if(!p?.alive||!alive(target)||target.team===p.team||(target.kind!=='kit_wall'&&lineBlocked(s,p,target)))return false;
+ if(starterEvades(s,target)){log(s,'kit_evasion',{actor:target.id,from:p.id,x:target.x,y:target.y});return true;}
+ const offense=gearOf(p),defense=s.players[target.id]?gearOf(target):{mitigation:0,block:0};const raw=starterHitModifiers(s,p,target,(base+offense.attack)*skillMult(p)),mitigated=raw*(1-Math.min(.32,(defense.mitigation||0)+(defense.block||0)));const resisted=target.shield?Math.min(target.shield,mitigated):0;target.shield=(target.shield||0)-resisted;const d=Math.max(0,mitigated-resisted),priorHp=target.hp;target.hp=Math.max(0,target.hp-d);target.lastDamage=s.elapsed;p.hits++;log(s,'damage',{from:p.id,to:target.id,amount:Math.round(Math.min(d,priorHp)),absorbed:Math.round(resisted),fromX:p.x,fromY:p.y,toX:target.x,toY:target.y,x:target.x,y:target.y});
+ starterAfterDamage(s,p,target,log);
+  if(target.hp>0)return true;target.alive=false;log(s,'defeat',{from:p.id,to:target.id,team:target.team??null,kind:target.kind||'hero',x:target.x,y:target.y});
  if(s.players[target.id]){target.deaths++;p.kills++;s.teams[p.team].kills++;target.respawnAt=s.elapsed+7500;
   const carried=Object.values(target.bag).reduce((a,b)=>a+b,0);if(carried>0){s.loot.push({id:'resources'+s.nextId++,x:target.x,y:target.y,kind:'resources',resources:{...target.bag},expires:s.elapsed+45000});target.bag={wood:0,gold:0,stone:0};log(s,'resource_drop',{from:target.id,amount:Math.round(carried)})}const repeat=p.killHistory[target.id]||0;p.killHistory[target.id]=repeat+1;awardXp(s,p,Math.max(12,Math.round(115/(repeat+1))),'hero_defeat');const quality=between((p.attacks? p.hits/p.attacks:0)*.45+(p.contributions? .35:0)+.2,0,1);if(repeat<2)rollEquipmentDrop(s,p,target,quality,'hero')}
  else if(target.kind==='stalker'||target.kind==='shellkeeper'){log(s,'boss_defeat',{actor:p.id,target:target.id,kind:target.kind,x:target.x,y:target.y});awardXp(s,p,140,'world_boss');rollEquipmentDrop(s,p,target,.65,'boss');if(target.kind==='shellkeeper'){for(const t of s.towers.filter(t=>t.team===p.team&&t.alive))t.structureXp+=65;s.seals[p.team].hp=Math.min(s.seals[p.team].maxHp,s.seals[p.team].hp+70);log(s,'structure_xp',{team:p.team,amount:65})}else{p.effects.hunter=s.elapsed+55000;log(s,'hunter_reward',{actor:p.id})}target.respawnAt=s.elapsed+105000;}
@@ -119,6 +123,7 @@ function hit(s,p,target,base){if(!p?.alive||!alive(target)||target.team===p.team
  else if(s.units.includes(target)){awardXp(s,p,16,'unit_defeat');}
  else if(s.towers.includes(target)){target.lastDamage=s.elapsed;awardXp(s,p,65,'tower_destroyed');log(s,'tower_destroyed',{team:target.team,tower:target.id})}
  else if(s.buildings.includes(target)){target.lastDamage=s.elapsed;awardXp(s,p,32,'building_destroyed');log(s,'building_destroyed',{team:target.team,building:target.id})}
+  else if(target.kind==='kit_wall'){log(s,'kit_wall_destroyed',{wallId:target.id,team:target.team,x:target.x,y:target.y})}
  return true;
 }
 function resolve(s){if(s.status!=='active')return;const a=living(s,'A'),b=living(s,'B');
@@ -129,8 +134,10 @@ function resolve(s){if(s.status!=='active')return;const a=living(s,'A'),b=living
 function assertOwner(s,playerId){const p=s.players[playerId];if(!p||!p.alive)return null;return p}
 /** Commands are bounded and validated. This is practice only: no trusted network identity exists. */
 export function command(s,playerId,action={}){
- if(s.status!=='active')return false;const p=assertOwner(s,playerId);if(!p||!action||typeof action.type!=='string')return false;const t=s.teams[p.team];
- if(action.type==='move'){if(p.lastMoveTick===s.tick)return false;const dx=Number(action.dx),dy=Number(action.dy),mag=Math.hypot(dx,dy);if(!Number.isFinite(mag)||mag<.05)return false;const sp=4.4*(1+gearOf(p).speed)*(p.effects.lumen>s.elapsed?1.16:1)*(p.effects.slow>s.elapsed?.7:1),step=sp*STEP_MS/1000;
+ if(s.status!=='active')return false;const p=assertOwner(s,playerId);if(!p||!action||typeof action.type!=='string')return false;
+  if(['move','attack','skill'].includes(action.type)&&!starterCanAct(s,p))return false;
+  const t=s.teams[p.team];
+ if(action.type==='move'){if(p.lastMoveTick===s.tick)return false;const dx=Number(action.dx),dy=Number(action.dy),mag=Math.hypot(dx,dy);if(!Number.isFinite(mag)||mag<.05)return false;const sp=4.4*(1+gearOf(p).speed)*(p.effects.lumen>s.elapsed?1.16:1)*(p.effects.slow>s.elapsed?.7:1)*starterMoveFactor(s,p),step=sp*STEP_MS/1000;
   const x=between(p.x+dx/mag*step,2,s.w-2),y=between(p.y+dy/mag*step,2,s.h-2);if(distance({x,y},p)>.6||s.cover.some(([cx,cy,r])=>Math.hypot(x-cx,y-cy)<r+1))return false;p.x=x;p.y=y;p.moves++;p.lastMoveTick=s.tick;return true}
  if(action.type==='mine'){if(s.elapsed-p.lastMine<700)return false;const node=s.nodes.find(x=>x.id===action.nodeId)||s.nodes.filter(n=>distance(p,n)<8).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!node||distance(p,node)>8||node.stock<=0)return false;
   const bagTotal=Object.values(p.bag).reduce((a,b)=>a+b,0);if(bagTotal>=65)return false;const base=Math.min(12,node.stock,65-bagTotal),buff=p.effects[{wood:'forest',gold:'golden',stone:'stone'}[node.type]]>s.elapsed?BUFFS[{wood:'forest',gold:'golden',stone:'stone'}[node.type]].rate:0;
@@ -152,20 +159,28 @@ export function command(s,playerId,action={}){
  if(action.type==='build')return beginBuild(s,p,action.kind,Number(action.x),Number(action.y),log);
  if(action.type==='rebuild_seal')return beginSealRebuild(s,p,log);
  if(action.type==='attack'){
-  if(s.elapsed-p.lastAttacked<800)return false;const target=action.targetId?owner(s,action.targetId):closeEnemy(s,p,5.5);if(!target||!alive(target)||target.team===p.team||distance(p,target)>5.5||lineBlocked(s,p,target))return false;p.lastAttacked=s.elapsed;p.attacks++;return hit(s,p,target,20)}
+  const basic=starterAttack(p.hero);const cooldown=basic?.cooldown??800,range=basic?.range??5.5;
+   if(s.elapsed-p.lastAttacked<cooldown)return false;const target=action.targetId?owner(s,action.targetId):closeEnemy(s,p,range);
+   if(!target||!alive(target)||target.team===p.team||distance(p,target)>range||(target.kind!=='kit_wall'&&lineBlocked(s,p,target)))return false;
+   p.lastAttacked=s.elapsed;p.attacks++;return hit(s,p,target,basic?.damage??20)}
  if(action.type==='skill'){
   const slot=action.slot;if(!['primary','secondary','ultimate'].includes(slot)||slot==='secondary'&&p.matchLevel<3||slot==='ultimate'&&p.matchLevel<6)return false;
-  const cd={primary:5800,secondary:11000,ultimate:38000}[slot]/(1+Math.min(.2,p.itemMastery*.04)+gearOf(p).cooldown);const manaCost={primary:18,secondary:14,ultimate:55}[slot];if(s.elapsed-p.cooldowns[slot]<cd||p.mana<manaCost)return false;
-  const hero=HEROES[p.hero],target=action.targetId?owner(s,action.targetId):closeEnemy(s,p,8);let success=false;
+  const cd=(starterSkillCooldown(p.hero,slot)??{primary:5800,secondary:11000,ultimate:38000}[slot])/(1+Math.min(.2,p.itemMastery*.04)+gearOf(p).cooldown);const manaCost={primary:18,secondary:14,ultimate:55}[slot];if(s.elapsed-p.cooldowns[slot]<cd||p.mana<manaCost)return false;
+  const hero=HEROES[p.hero],target=action.targetId?owner(s,action.targetId):closeEnemy(s,p,8);
+  const kitResult=STARTER_HERO_KITS[p.hero]?castStarterSkill(s,p,slot,action,{hit,skillStep,log,shieldCap}):null;
+  let success=Boolean(kitResult);
+  if(!STARTER_HERO_KITS[p.hero]){
   if(slot==='secondary'){const dx=Number(action.dx)||1,dy=Number(action.dy)||0;success=skillStep(s,p,dx,dy,4);if(success)log(s,'dash',{actor:p.id,x:p.x,y:p.y})}
   else if(hero.style==='heal'){const ally=[...living(s,p.team)].sort((a,b)=>(a.hp/a.maxHp)-(b.hp/b.maxHp))[0];if(ally&&distance(p,ally)<10){ally.hp=Math.min(ally.maxHp,ally.hp+(slot==='ultimate'?80:38)*skillMult(p));success=true}}
   else if(hero.style==='guard'){p.shield=Math.min(shieldCap(p),(p.shield||0)+(slot==='ultimate'?68:36)*skillMult(p));if(slot==='ultimate')for(const a of living(s,p.team))if(distance(p,a)<9)a.shield=Math.min(90,(a.shield||0)+25);success=true}
   else if(hero.style==='supply'){if(slot==='ultimate'){for(const a of living(s,p.team))if(distance(p,a)<12){a.hp=Math.min(a.maxHp,a.hp+35);a.effects.lumen=s.elapsed+2500}}else p.shield=Math.min(shieldCap(p),p.shield+25);success=true}
   else if(hero.style==='blink'){const dx=Number(action.dx)||1,dy=Number(action.dy)||0;success=skillStep(s,p,dx,dy,slot==='ultimate'?8:5);if(success&&target&&distance(p,target)<6)hit(s,p,target,slot==='ultimate'?55:22)}
   else if(target&&alive(target)&&distance(p,target)<(slot==='ultimate'?10:7)){success=hit(s,p,target,slot==='ultimate'?69:35);if(hero.style==='disrupt'&&target.effects)target.effects.slow=s.elapsed+2800}
+  }
   if(!success)return false;
   // Character-specific tactical modifiers: 13 canon identities, item mastery governs strength.
   const q=p.itemMastery,boost=1+Math.min(.15,q*.03);
+  if(!STARTER_HERO_KITS[p.hero]){
   if(p.hero==='phan'){const tower=s.towers.find(t=>t.alive&&t.team===p.team&&distance(p,t)<9);if(tower&&s.elapsed-tower.lastDamage>4000)tower.hp=Math.min(tower.maxHp,tower.hp+Math.round(8*boost));}
   else if(p.hero==='quin')p.effects.scout=s.elapsed+Math.round(4200*boost);
   else if(p.hero==='van'){for(const a of living(s,p.team))if(distance(p,a)<7)a.shield=Math.min(100,(a.shield||0)+Math.round(6*boost));}
@@ -179,7 +194,8 @@ export function command(s,playerId,action={}){
   else if(p.hero==='angel'){for(const a of living(s,p.team))if(distance(p,a)<8)a.hp=Math.min(a.maxHp,a.hp+Math.round(7*boost));}
   else if(p.hero==='vhen')p.effects.forest=s.elapsed+Math.round(8000*boost);
   else if(p.hero==='trudice'&&s.traps.length<12){s.traps.push({id:'decoy'+s.nextId++,team:p.team,x:p.x,y:p.y,expires:s.elapsed+12000,damage:Math.round(10*boost)});}
-  p.mana-=manaCost;p.cooldowns[slot]=s.elapsed;p.contributions++;log(s,'skill',{actor:p.id,slot,style:hero.style,mastery:p.itemMastery,identity:p.hero,x:p.x,y:p.y,targetId:target?.id??null,targetX:target?.x??p.x,targetY:target?.y??p.y});return true}
+  }
+  p.mana-=manaCost;p.cooldowns[slot]=s.elapsed;p.contributions++;log(s,'skill',{actor:p.id,slot,style:hero.style,mastery:p.itemMastery,identity:p.hero,skillId:kitResult?.id??null,x:p.x,y:p.y,targetId:target?.id??null,targetX:target?.x??p.x,targetY:target?.y??p.y});return true}
  if(action.type==='seal_attack'){const enemy=opponent(p.team),seal=s.seals[enemy],base={x:enemy==='A'?14:s.w-14,y:s.h/2};if(seal.breached||distance(p,base)>7||s.towers.filter(t=>t.team===enemy&&t.alive).length>1||s.elapsed-p.lastAttacked<950)return false;p.lastAttacked=s.elapsed;seal.hp=Math.max(0,seal.hp-(27+4*p.matchLevel)*skillMult(p));seal.lastDamage=s.elapsed;log(s,'seal_damage',{from:p.id,team:enemy,hp:Math.round(seal.hp)});if(seal.hp<=0){seal.breached=true;startHunt(s,'seal_breach');log(s,'seal_breached',{team:enemy})}resolve(s);return true}
  if(action.type==='loot'){
   const item=s.loot.find(x=>x.id===action.id&&distance(p,x)<3);if(!item)return false;
@@ -266,5 +282,6 @@ s.phase=s.huntStarted!==null?'hunt':s.elapsed<120000?'expansion':s.elapsed<54000
  if(s.huntStarted!==null){const age=s.elapsed-s.huntStarted;if(age>120000&&s.tick%10===0){const radius=Math.max(10,Math.min(s.w,s.h)/2-(age-120000)/2000);for(const p of Object.values(s.players))if(p.alive&&distance(p,{x:s.w/2,y:s.h/2})>radius){p.hp=Math.max(0,p.hp-12);if(p.hp===0){p.alive=false;p.deaths++;log(s,'storm_defeat',{actor:p.id})}}}
   if(age>240000&&s.tick%10===0)for(const p of Object.values(s.players))if(p.alive){p.hp=Math.max(0,p.hp-20);if(p.hp===0){p.alive=false;p.deaths++}}
  }
+ tickStarterKits(s,STEP_MS,log);
  resolve(s);return s}
 export function getHud(s){return {mapId:s.mapId,mapName:s.map.name,mapDifficulty:s.map.difficulty,phase:s.phase,time:s.elapsed,winner:s.result?.winner,teamA:s.teams.A.resources,teamB:s.teams.B.resources,sealA:s.seals.A,sealB:s.seals.B,buildings:s.buildings,construction:s.teams.A.rebuildJob,units:s.units.filter(x=>x.alive).length,heroes:Object.values(s.players).map(p=>({id:p.id,hero:p.hero,level:p.matchLevel,hp:p.hp,maxHp:p.maxHp,mana:p.mana,maxMana:p.maxMana,shield:p.shield,gear:Object.keys(p.gear).map(k=>p.gear[k].name),alive:p.alive,mastery:p.itemMastery})),recent:s.events.slice(-8)}};
