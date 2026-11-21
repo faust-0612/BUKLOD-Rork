@@ -14,6 +14,7 @@ import {useAuth} from '@/providers/AuthProvider';
 import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
 import {getDevelopmentAsset} from './developmentAssetManifest';
+import Season2CommunityFacilities from './Season2CommunityFacilities';
 const VILLAGE_ART = require('../../../../assets/season2/genesis/world/buklod-community-village-stage1.webp');
 const HOME_ART = require('../../../../assets/season2/genesis/world/buklod-my-home-stage1.webp');
 
@@ -139,6 +140,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           ))}
         </View>
         <Text style={styles.mapNote}>Tap a landmark to open instantly. No second Enter button. The illustration is a design preview, not verified ownership or development status.</Text>
+        <Season2CommunityFacilities world={world}/>
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>{trackTitle}</Text>
           <Text style={styles.muted}>Permanent Levels 1–10 → unbounded Mastery. Lot, House and Community are independent of Circle Rank. Five construction stages per level.</Text>
