@@ -77,6 +77,7 @@ export default function AdminAccountRecoveryScreen() {
   const [rows, setRows] = useState<RecoveryRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [statusText, setStatusText] = useState('');
 
@@ -90,11 +91,14 @@ export default function AdminAccountRecoveryScreen() {
         throw new Error(await functionErrorMessage(error, 'Could not load recovery requests. Please refresh and try again.'));
       }
       if (!data?.ok) throw new Error(data?.message ?? 'Could not load recovery requests.');
+      setLoadFailed(false);
       setRows(Array.isArray(data.requests) ? data.requests : []);
       setConfirmation(null);
       if (refresh) setStatusText('Recovery requests refreshed.');
     } catch (error: any) {
       const message = String(error?.message ?? error ?? 'Could not load requests.');
+      setRows([]); // Never retain sensitive request data after an authorization failure.
+      setLoadFailed(true);
       setStatusText(`ERROR: ${message}`);
       if (Platform.OS !== 'web') Alert.alert('Account Recovery', message);
     } finally {
@@ -239,6 +243,16 @@ export default function AdminAccountRecoveryScreen() {
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 28 }} color={colors.green} />
+      ) : loadFailed ? (
+        <View style={styles.empty}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={28} color="#A62828" />
+          <Text style={styles.emptyTitle}>Could not check recovery requests</Text>
+          <Text style={styles.emptyText}>The queue is not verified. Please check your session or connection, then retry.</Text>
+          <Pressable accessibilityRole="button" onPress={() => void load(true)} style={styles.primary}>
+            <MaterialCommunityIcons name="refresh" size={19} color="#FFFFFF" />
+            <Text style={styles.primaryText}>RETRY REQUEST LIST</Text>
+          </Pressable>
+        </View>
       ) : rows.length === 0 ? (
         <View style={styles.empty}>
           <MaterialCommunityIcons name="check-decagram-outline" size={28} color={colors.green} />

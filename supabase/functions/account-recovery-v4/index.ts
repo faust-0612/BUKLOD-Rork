@@ -272,11 +272,28 @@ Deno.serve(async (req) => {
     const { data, error } = await client.auth.getUser(token);
     return error ? null : data.user;
   }
-  async function systemAdmin(userId: string) {
-    const { data: p } = await admin.from('profiles').select('role').eq('id', userId).maybeSingle();
-    if (p?.role === 'system_admin') return true;
-    const { data: r } = await admin.from('user_roles').select('user_id').eq('user_id', userId).eq('role', 'system_admin').eq('is_active', true).maybeSingle();
-    return !!r;
+  // A failed PostgREST/JWT query is not proof that an account lost its admin role.
+  async function systemAdmin(userId: string): Promise<boolean | 'unavailable'> {
+    const { data: p, error: pe } = await admin.from('profiles').select('role,is_active').eq('id', userId).maybeSingle();
+    if (pe) {
+      console.error('Recovery admin profile check failed', pe.code);
+      return 'unavailable';
+    }
+    if (!p || p.is_active !== true) return false;
+    const { data: r, error: re } = await admin.from('user_roles').select('user_id').eq('user_id', userId).eq('role', 'system_admin').eq('is_active', true).maybeSingle();
+    if (re) {
+      console.error('Recovery admin role check failed', re.code);
+      return 'unavailable';
+    }
+    return !!r || p.role === 'system_admin';
+  }
+  async function requireRecoveryAdmin(): Promise<{ user: any; denied: Response | null }> {
+    const user = await authUser();
+    if (!user) return { user: null, denied: json({ ok: false, code: 'AUTH_REQUIRED', message: 'Sign in again to access Account Recovery.' }, 401) };
+    const authorized = await systemAdmin(user.id);
+    if (authorized === 'unavailable') return { user: null, denied: json({ ok: false, code: 'ADMIN_CHECK_UNAVAILABLE', message: 'Admin verification is temporarily unavailable. Your account permissions have not been changed. Please retry.' }, 503) };
+    if (!authorized) return { user: null, denied: json({ ok: false, code: 'ADMIN_REQUIRED', message: 'System Admin access required.' }, 403) };
+    return { user, denied: null };
   }
   async function byIdentifier(raw: unknown) {
     const id = identifier(raw);
@@ -433,8 +450,8 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'admin_list_requests') {
-    const user = await authUser();
-    if (!user || !(await systemAdmin(user.id))) return json({ ok: false, message: 'System Admin access required.' }, 403);
+    const { user, denied } = await requireRecoveryAdmin();
+    if (denied) return denied;
     const { data: rows, error } = await admin.from('buklod_account_recovery_requests')
       .select('id,user_id,username,status,created_at,requested_at,match_status,submitted_identifier,submitted_first_name,submitted_middle_name,submitted_surname,submitted_birth_date,client_token_expires_at,client_token_hash')
       .eq('status', 'pending').order('created_at', { ascending: true });
@@ -463,8 +480,8 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'admin_verify_request') {
-    const user = await authUser();
-    if (!user || !(await systemAdmin(user.id))) return json({ ok: false, message: 'System Admin access required.' }, 403);
+    const { user, denied } = await requireRecoveryAdmin();
+    if (denied) return denied;
     const requestId = text(body?.requestId);
     if (!validUuid(requestId)) return json({ ok: false, message: 'Invalid recovery request.' }, 400);
     const { data: rr } = await admin.from('buklod_account_recovery_requests')
@@ -505,8 +522,8 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'admin_reject_request') {
-    const user = await authUser();
-    if (!user || !(await systemAdmin(user.id))) return json({ ok: false, message: 'System Admin access required.' }, 403);
+    const { user, denied } = await requireRecoveryAdmin();
+    if (denied) return denied;
     const requestId = text(body?.requestId);
     const now = new Date().toISOString();
     const { data: rr, error } = await admin.from('buklod_account_recovery_requests').update({ status: 'rejected', reviewed_by: user.id, reviewed_at: now, completed_at: now, recovery_code_ciphertext: null, recovery_code_iv: null, recovery_code_expires_at: null }).eq('id', requestId).eq('status', 'pending').select('id,user_id').maybeSingle();
