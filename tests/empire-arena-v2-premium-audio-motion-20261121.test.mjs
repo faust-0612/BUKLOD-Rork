@@ -57,6 +57,17 @@ test('13 heroes get source-owned animated presentation; sprite image takes prece
   assert.doesNotMatch(route,/supabase\.|\.rpc\(|awardBp|awardDiamond|settleWorldTrade/);
 });
 
+test('Ranked 5Hz snapshots interpolate on the UI thread without moving server combat authority', () => {
+  assert.match(animated,/const screenX = useSharedValue\(x - size \/ 2\)/);
+  assert.match(animated,/const screenY = useSharedValue\(y - size \* 0\.77\)/);
+  assert.match(animated,/jump > Math\.max\(110, size \* 1\.6\)/);
+  assert.match(animated,/screenX\.value = withTiming\(nextX, transition\)/);
+  assert.match(animated,/screenY\.value = withTiming\(nextY, transition\)/);
+  assert.match(animated,/cancelAnimation\(screenX\)/);
+  assert.match(animated,/duration: 155/);
+  assert.doesNotMatch(animated,/supabase|\.rpc\(|diamond|awardBp|fetch\(/i);
+});
+
 test('Arena audio remains on existing focus-scoped sound provider, never preview-host streaming',()=>{
   const provider = readFileSync(resolve(ROOT,'src/features/games/runtime/rorkAudio.ts'),'utf8');
   assert.match(provider,/REMOTE_RORK_AUDIO_ENABLED = false/);
