@@ -12,6 +12,18 @@ permissions:
   contents: read
 
 jobs:
+  authoritative-server-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Simulate live duel, 3v3 and 5v5 with authoritative server coordinator
+        run: node --test services/empire-arena/tests/core.test.mjs
   isolated-postgres-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10
