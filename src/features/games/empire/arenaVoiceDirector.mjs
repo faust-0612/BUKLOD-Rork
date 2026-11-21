@@ -24,6 +24,13 @@ export const ARENA_ANNOUNCEMENTS=Object.freeze({
  round_win: {text:'Round won!',priority:7,cooldown:2500},
  round_loss: {text:'Round lost!',priority:7,cooldown:2500},
  round_start: {text:'Battle!',priority:5,cooldown:1400},
+ // Offline-only tactical voice calls are locally initiated by an active player.
+ tactical_push: {text:'Push together!',priority:6,cooldown:3500},
+ tactical_defend: {text:'Defend our base!',priority:7,cooldown:3500},
+ tactical_retreat: {text:'Fall back now!',priority:7,cooldown:3500},
+ tactical_gather: {text:'Gather resources!',priority:4,cooldown:4000},
+ tactical_escort: {text:'Help our team!',priority:6,cooldown:3500},
+ tactical_repair: {text:'Repair the tower!',priority:5,cooldown:4000},
  // Important utility and objective calls are voiced sparingly; normal attacks
  // and repetitive mining never interrupt tactical information.
  item_equip: {text:'Equipment ready!',priority:4,cooldown:8000},
