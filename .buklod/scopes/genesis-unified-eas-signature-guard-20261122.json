@@ -11,21 +11,7 @@
     "scripts/genesis-unified-verify-signed-apk.mjs",
     "tests/genesis-unified-verify-signed-apk-20261122.test.mjs"
   ],
-  "lockedFeatureChanges": [
-    {
-      "id": "production-release",
-      "reason": "Actual signed APK must match original EAS signing certificate, exact source, runtime and embedded native Godot pack before any owner installation; existing signature mismatch caused failed update.",
-      "preservedBehaviors": [
-        "No production APK/AAB/OTA or Google Play mutation",
-        "No EAS build until signed release preflight independently passes",
-        "No change to main package/runtime or existing working staging app",
-        "No debug APK distribution or fallback to production Supabase"
-      ],
-      "tests": [
-        "tests/genesis-unified-verify-signed-apk-20261122.test.mjs"
-      ]
-    }
-  ],
+  "lockedFeatureChanges": [],
   "regressionTests": [
     "tests/genesis-unified-verify-signed-apk-20261122.test.mjs"
   ],
@@ -40,7 +26,8 @@
     "Godot pack integrity",
     "Android ABI identity",
     "EAS signing profile",
-    "Release gate bypass"
+    "Release gate bypass",
+    "release-identity"
   ],
   "releaseMode": "DEV_ONLY_NO_EAS_NO_OTA_NO_PRODUCTION",
   "physicalDeviceVerification": "NOT_PERFORMED",
@@ -50,5 +37,11 @@
     "CI validates deliberate signed RC hold",
     "EAS-signed release later requires actual APK download, apksigner, pack hash and device QA"
   ],
-  "productionBaselineEvidence": "Existing main production package org.mzbministry.buklod runtime 1.3.2 preserved. Signed previous staging identity proven by GitHub Actions artifact 14598805245 for build d9e279a6-766b-4bd9-8316-3f700749594c."
+  "productionBaselineEvidence": "Existing main production package org.mzbministry.buklod runtime 1.3.2 preserved. Signed previous staging identity proven by GitHub Actions artifact 14598805245 for build d9e279a6-766b-4bd9-8316-3f700749594c.",
+  "selectionRationale": "Audited path classifiers do not mark this staging-only signed-RC workflow name or verifier script as a production-release feature; preserve immutable release hold and use strict source-only test + scope allowlist. Production release scope intentionally NOT claimed.",
+  "alternativeApproaches": [
+    "Use debug APK or generate new signing certificate (rejected because existing installed staging app cannot update and identity would change).",
+    "Trust EAS finished build receipt alone (rejected because it does not cryptographically inspect the delivered APK, signer or embedded Godot archive).",
+    "Pin original independently verified EAS staging certificate, exact source/runtime and on-disk pack SHA (chosen; build remains blocked until acceptance)."
+  ]
 }
