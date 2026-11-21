@@ -125,7 +125,9 @@ const outcome={schema:'buklod-premium-season2-staging-gate-v1',
  nativeApkSha256:verifiedNativeApk.sha256,
  nativeEasBuildId:verifiedNativeApk.buildId,
  channel,runtimeVersion:nativeRuntime,package:appPackage,
- arenaIncluded:false,backendMode:'existing-paid-shared-live',backendProjectRef:prodRef,
+ arenaIncluded:existsSync(resolve(root,'src/app/games/empire-arena.tsx'))&&
+   env.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL==='true',
+ rankedLive:false,backendMode:'existing-paid-shared-live',backendProjectRef:prodRef,
  deviceVisualVerification:'owner-waived-unverified',published:false,
  failures:fail};
 console.log(JSON.stringify(outcome,null,2));
