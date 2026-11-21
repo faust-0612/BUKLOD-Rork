@@ -29,6 +29,23 @@ assert.ok(catalog.pickups.every(x => !x.transferable && x.temporary));
 assert.ok(output.endsWith('.zip'), 'Godot --main-pack requires a .zip archive');
 const data = Buffer.from(JSON.stringify(catalog), 'utf8');
 const entries = [{ name: 'data/catalog.json', bytes: data }];
+// Preserve the owner's exact design source and execute all six owner-supplied
+// original GDScript hero DATA resources inside the native Godot pack.
+const designBytes=readFileSync(path.join(project,'data/owner-13-hero-design-v1.json'));
+const design=JSON.parse(designBytes.toString('utf8'));
+const OWNER_IDS=['phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice'];
+assert.deepEqual(design.heroes.map(h=>h.id),OWNER_IDS,'Mismatch against owner-approved 13-hero order');
+assert.equal(design.hero_contract.passive_count,1);
+assert.equal(design.hero_contract.active_skill_count,2);
+assert.equal(design.hero_contract.ultimate_count,1);
+entries.push({name:'data/owner-13-hero-design-v1.json',bytes:designBytes});
+for(const hero of OWNER_IDS.slice(0,6)){
+  const filename=path.join(root,'godot/hero-originals/heroes',hero+'.gd');
+  const bytes=readFileSync(filename);
+  assert.ok(bytes.length>300&&bytes.toString('utf8').includes('const DATA := {'),
+    'Missing original Godot hero identity script: '+hero);
+  entries.push({name:'hero-originals/heroes/'+hero+'.gd',bytes});
+}
 function collect(dir, prefix = '') {
   for (const name of readdirSync(dir).sort()) {
     const full = path.join(dir, name);
@@ -99,6 +116,9 @@ for (const [name, relative, magic] of originalWorldMedia) {
 const entryNames = new Set(entries.map(x => x.name));
 for (const name of ['project.godot', 'scenes/Arena.tscn', 'scripts/arena_root.gd',
   'scripts/arena_hud.gd', 'scripts/arena_simulation.gd', 'data/catalog.json',
+  'scripts/hero_identity.gd', 'scripts/special_hero_actions.gd',
+  'data/owner-13-hero-design-v1.json',
+  ...OWNER_IDS.slice(0,6).map(id=>'hero-originals/heroes/'+id+'.gd'),
   'scenes/WorldPreview.tscn', 'scripts/world_preview.gd', 'tests/world_smoke.gd',
   ...originalWorldMedia.map(x => x[0])]) {
   assert.ok(entryNames.has(name), 'Missing Godot Arena pack resource: ' + name);
