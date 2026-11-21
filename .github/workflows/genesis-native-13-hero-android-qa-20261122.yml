@@ -1,6 +1,6 @@
 name: BUKLOD Genesis 13 Native Godot Heroes and Worlds Android QA (NO EAS/OTA/PROD)
 # Actual Godot headless and arm64 debug source proof; EAS signed release stays held.
-# Offline proof now covers 13 heroes, 4 role minion waves and existing 4 world scenes.
+# Offline proof covers 13 heroes, four minion roles, twelve villagers, four world scenes.
 on:
   push:
     branches:
@@ -72,7 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
-          node --test tests/genesis-godot-13-hero-runtime-20261122.test.mjs tests/genesis-native-minion-wave-20261122.test.mjs tests/genesis-unified-godot-native-contract-20261122.test.mjs tests/genesis-unified-production-runtime-isolation-20261122.test.mjs
+          node --test tests/genesis-godot-13-hero-runtime-20261122.test.mjs tests/genesis-native-minion-wave-20261122.test.mjs tests/genesis-native-villager-roles-20261122.test.mjs tests/genesis-unified-godot-native-contract-20261122.test.mjs tests/genesis-unified-production-runtime-isolation-20261122.test.mjs
           EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS=false node --test tests/arena-godot-native-migration-20261122.test.mjs
           npx tsc --noEmit
           node scripts/build-empire-godot-pack.mjs --out=/tmp/buklod-13-hero-worlds.zip
@@ -94,13 +94,14 @@ jobs:
           "$GODOT" --version | grep -F '4.7.2'
           "$GODOT" --headless --path /tmp/buklod-13-hero-worlds --editor --quit 2>&1 | tee /tmp/godot-source.log
           if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/godot-source.log; then exit 1; fi
-          for case in smoke art_smoke world_smoke hero_native_smoke native_minion_smoke; do
+          for case in smoke art_smoke world_smoke hero_native_smoke native_minion_smoke native_villager_smoke; do
             "$GODOT" --headless --path /tmp/buklod-13-hero-worlds --script "res://tests/$case.gd" > "/tmp/godot-$case.log" 2>&1 || { cat "/tmp/godot-$case.log"; exit 1; }
             tail -8 "/tmp/godot-$case.log"
           done
           grep -F BUKLOD_GODOT_SMOKE_PASS /tmp/godot-smoke.log
           grep -F BUKLOD_NATIVE_13_HERO_PASS /tmp/godot-hero_native_smoke.log
           grep -F BUKLOD_NATIVE_MINION_PASS /tmp/godot-native_minion_smoke.log
+          grep -F BUKLOD_NATIVE_VILLAGER_PASS /tmp/godot-native_villager_smoke.log
       - name: Compile exact consolidated Android package with embedded game packs
         shell: bash
         run: |
