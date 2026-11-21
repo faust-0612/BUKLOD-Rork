@@ -65,11 +65,11 @@ function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: bool
 }
 
 function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
-  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof ExpoImage>['source']; selectedId: string | null; onTarget: (id: string) => void;
+  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void;
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
   return <View style={styles.field}>
-    {generatedArt || art ? <ExpoImage source={generatedArt || { uri: art! }} contentFit="cover" cachePolicy="disk" style={StyleSheet.absoluteFill} /> : null}
+    {generatedArt || art ? <ExpoImage source={generatedArt ? (generatedArt as React.ComponentProps<typeof ExpoImage>['source']) : { uri: art! }} contentFit="cover" cachePolicy="disk" style={StyleSheet.absoluteFill} /> : null}
     <LinearGradient colors={['rgba(4,10,26,0.70)', 'rgba(5,20,28,0.40)', 'rgba(4,12,24,0.76)']} style={StyleSheet.absoluteFill} />
     <Svg width="100%" height="100%" viewBox={`0 0 ${state.w} ${state.h}`} preserveAspectRatio="xMidYMid meet">
       <Rect width={state.w} height={state.h} rx={4} fill="rgba(10,40,56,0.20)" />
@@ -130,10 +130,16 @@ export default function EmpireArenaInApp() {
 
   useFocusEffect(useCallback(() => {
     focused.current = true;
-    if (Platform.OS !== 'web') {
-      void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => undefined);
-    }
+    let cancelled = false;
+    // Prevent a slow landscape lock from re-locking the rest of the BUKLOD app after exit.
+    if (Platform.OS !== 'web') void (async () => {
+      try {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        if (cancelled) await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
+      } catch { /* Keep game accessible if a device disallows orientation locks. */ }
+    })();
     return () => {
+      cancelled = true;
       focused.current = false;
       directionRef.current = { x: 0, y: 0 };
       if (Platform.OS !== 'web') void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT).catch(() => undefined);
