@@ -4,19 +4,43 @@
  * No invented AI network service or voice playback; respects reduced-motion.
  */
 import React,{useEffect,useRef,useState} from 'react';
-import {AccessibilityInfo,Animated,Pressable,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
+import {AccessibilityInfo,Animated,Pressable,StyleSheet,Text,TextInput,View,useWindowDimensions} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import {DEFAULT_CHARACTER} from '@/lib/buklodCharacter';
+import {useBuklodScope} from '@/providers/BuklodScopeProvider';
+
+/** Offline, privacy-preserving navigation hints; not a paid AI endpoint. */
+export function resolveBuklodGuideDestination(input:string,showFaith:boolean) {
+  const q=String(input||'').toLowerCase().slice(0,150);
+  if(/arena|laban|battle|pvp|fight|combat/.test(q))return {label:'Empire Arena',route:'/games/empire-arena'};
+  if(/character|kingdom|collectible|evolution|equipment|inventory/.test(q))return {label:'Character Kingdom',route:'/games'};
+  if(/cluster|organi|barangay|community|komunidad|village|scope/.test(q))return {label:'Community Village',route:'/season2/community-village'};
+  if(/post|wall|marites|reels|video|feed/.test(q))return {label:'Community Hall',route:'/buklod'};
+  if(/message|chat|kausap|call|ptt|connect/.test(q))return {label:'Connect Center',route:'/messages'};
+  if(/market|business|trade|bili|benta|negosyo/.test(q))return {label:'Marketplace',route:'/profile/buklod-market'};
+  if(/bayanihan|donat|giving|volunteer|tulong sa komunidad/.test(q))return {label:'Bayanihan Center',route:'/bayanihan'};
+  if(/government|health|school|focus apps|serbisyo|gobyerno/.test(q))return {label:'Focus Apps Center',route:'/profile/focus-apps'};
+  if(/bible|dasal|verse|scripture|kl|lesson|learn|knowledge/.test(q))
+    return {label:'Knowledge Sanctuary',route:showFaith?'/bible':'/learn'};
+  if(/rank|achievement|points|bp|reward/.test(q))return {label:'Achievement Hall',route:'/points/progression'};
+  if(/bahay|home|house|lot|garden|pamilya|kwarto|personal/.test(q))return {label:'My Home',route:'/season2/my-world'};
+  return {label:'World Map',route:'/buklod-map'};
+}
+
 
 export default function BuklodMapGuideDock({active}:{active:boolean}) {
   const insets=useSafeAreaInsets();
+  const {activeScope}=useBuklodScope();
   const {width,height}=useWindowDimensions();
   const shortLandscape=width>height&&height<=520;
   const [minimized,setMinimized]=useState(false);
   const [details,setDetails]=useState(false);
+  const [question,setQuestion]=useState('');
+  const [askOpen,setAskOpen]=useState(false);
+  const [answer,setAnswer]=useState<{label:string;route:string}|null>(null);
   const [reducedMotion,setReducedMotion]=useState(true);
   const wave=useRef(new Animated.Value(0)).current;
   useEffect(()=>{
@@ -35,6 +59,7 @@ export default function BuklodMapGuideDock({active}:{active:boolean}) {
     return ()=>{loop.stop();wave.stopAnimation();};
   },[active,reducedMotion,wave]);
   const lift=wave.interpolate({inputRange:[0,1],outputRange:[0,-4]});
+  const submitQuestion=()=>{setAnswer(resolveBuklodGuideDestination(question,Boolean(activeScope?.show_faith_content)));};
   const suggestions=[
     {label:'My Home',route:'/season2/my-world',icon:'home-heart-outline' as const},
     {label:'Community Village',route:'/season2/community-village',icon:'home-group' as const},
@@ -70,6 +95,23 @@ export default function BuklodMapGuideDock({active}:{active:boolean}) {
               <Text style={styles.chipText}>{s.label}</Text>
             </Pressable>
           ))}
+          <Pressable accessibilityRole="button" accessibilityLabel="Ask BUKLOD guide where to go"
+            onPress={()=>{setAskOpen(v=>!v);setAnswer(null);}} style={styles.chip}>
+            <MaterialCommunityIcons name="help-circle-outline" size={15} color="#FFE8AC"/>
+            <Text style={styles.chipText}>Ask</Text>
+          </Pressable>
+        </View> : null}
+        {askOpen&&!minimized ? <View style={styles.askRow}>
+          <TextInput accessibilityLabel="Ask guide about BUKLOD features"
+            placeholder="Ano ang kailangan mo?" placeholderTextColor="#A8BEB7"
+            value={question} onChangeText={v=>{setQuestion(v.slice(0,150));setAnswer(null);}}
+            onSubmitEditing={submitQuestion} returnKeyType="search"
+            style={styles.askInput}/>
+          {answer ? <Pressable accessibilityRole="button"
+            accessibilityLabel={'Open '+answer.label} onPress={()=>router.push(answer.route as any)}
+            style={styles.askGo}><Text style={styles.askGoText}>Open {answer.label}</Text></Pressable>
+            : <Pressable accessibilityRole="button" accessibilityLabel="Find suggested destination"
+              onPress={submitQuestion} style={styles.askGo}><Text style={styles.askGoText}>Find</Text></Pressable>}
         </View> : null}
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel={minimized?'Expand guide':'Collapse guide'}
@@ -93,4 +135,10 @@ const styles=StyleSheet.create({
     borderRadius:11,backgroundColor:'#275046',borderWidth:1,borderColor:'#62806C',gap:3},
   chipText:{color:'#FFF2DA',fontWeight:'800',fontSize:9},
   collapse:{minWidth:30,minHeight:48,justifyContent:'center',alignItems:'center'},
+  askRow:{flexDirection:'row',gap:5,alignItems:'center'},
+  askInput:{flex:1,minWidth:50,backgroundColor:'#203B39',color:'#FFFFFF',paddingHorizontal:10,
+    minHeight:38,borderColor:'#668471',borderWidth:1,borderRadius:10,fontSize:12},
+  askGo:{minHeight:38,paddingHorizontal:9,alignItems:'center',justifyContent:'center',
+    borderRadius:9,backgroundColor:'#42694C'},
+  askGoText:{color:'#FFF4D6',fontWeight:'900',fontSize:11},
 });
