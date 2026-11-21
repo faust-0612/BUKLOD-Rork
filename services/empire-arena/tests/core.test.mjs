@@ -89,6 +89,7 @@ test('Disconnected player gets short reconnection grace; after grace server sett
   await h.coordinator.enqueue(a,'duel','aurora_foundry');
   await h.coordinator.enqueue(b,'duel','aurora_foundry');
   const m=[...h.coordinator.matches.values()][0];
+  a.lastCommandSeq=1450; // Long real-time match before weak-network disconnect.
   h.coordinator.disconnect(a);
   h.advance(5000);
   await h.coordinator.heartbeat();
@@ -98,6 +99,8 @@ test('Disconnected player gets short reconnection grace; after grace server sett
   assert.equal(reconnected.hero,'phan','Authenticated seat keeps original match hero');
   assert.equal(reconnected.snapshot.characterLevel,1,'Reattach cannot substitute a different hero level');
   assert.equal(m.state.players.A0.hero,'phan');
+  assert.equal(h.coordinator.input(reconnected,1,{type:'move',dx:1,dy:0}),true,
+    'New authenticated socket must accept sequence 1 even after prior seq 1450');
   await h.coordinator.heartbeat();
   assert.equal(h.calls.settle.length,0);
   h.coordinator.disconnect(reconnected);
