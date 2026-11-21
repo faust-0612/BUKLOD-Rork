@@ -6,6 +6,7 @@ on:
       - 'src/app/games/index.tsx'
       - 'src/features/games/empire/**'
       - 'scripts/ingest-buklod-visual-baseline.mjs'
+      - 'scripts/verify-buklod-arena-motion.py'
       - 'tests/empire-arena-v2-*'
       - 'experiments/empire-arena-v2/**'
       - '.github/workflows/buklod-arena-inapp-dev-qa.yml'
@@ -37,6 +38,14 @@ jobs:
             tests/empire-arena-v2-design-and-simulation.test.mjs \
             tests/empire-arena-v2-world-economy.test.mjs \
             tests/empire-arena-v2-connected-world-preview-20261121.test.mjs
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify decoded fullbody motion frames, pose differentiation, and asset hashes
+        run: |
+          python -m pip install --disable-pip-version-check --no-input Pillow==12.1.0
+          python scripts/verify-buklod-arena-motion.py
 
   android-metro-bundle:
     runs-on: ubuntu-latest
