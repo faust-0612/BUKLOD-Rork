@@ -27,7 +27,13 @@ test('EAS OTA quietly downloads on foreground checks without a restart prompt or
 test('Existing built-in Expo launch behavior and mandatory APK gate stay intact', () => {
  const config = read('app.config.js');
  assert.match(config, /fallbackToCacheTimeout: 0/);
- assert.match(config, /runtimeVersion: isClassroom \? '1.3.0' : '1.3.2'/);
+ // Main production must retain 1.3.2; Genesis R4 and SOS require their
+ // *different* signed native runtime contracts. The old 2026-11-19 one-line
+ // regex would incorrectly reject intentional native SOS isolation.
+ assert.match(config, /genesisNativePreview \? '2\\.0\\.0-genesis-preview' : '1\\.3\\.2'/);
+ assert.match(config, /sosNativePreview \? \\{ runtimeVersion: '2\\.0\\.1-genesis-sos' \\}/);
+ assert.match(config, /genesisNativePreview =/);
+ assert.match(config, /sosNativePreview = genesisNativePreview &&/);
  const scope = JSON.parse(read('.buklod/scopes/mandatory-android-update-20261101.json'));
  assert.match(scope.productionBaselineEvidence, /minimum_supported_version=1\.0\.0/);
  assert.ok(scope.acceptanceChecks.some(s => s.includes('DO NOT')));
