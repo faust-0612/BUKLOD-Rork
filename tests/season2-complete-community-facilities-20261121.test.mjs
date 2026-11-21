@@ -66,7 +66,8 @@ test('optional directory adds linked one-tap access without modifying approved e
   assert.match(directory,/results\.slice\(0,limit\)/);
   assert.match(directory,/maxLength=\{80\}/);
   assert.match(guide,/kalsada\|tulay\|bridge/);
-  assert.match(map,/GenesisValleyMap/);
+  assert.match(map,/GenesisApprovedEntryMap/);
+  assert.match(map,/genesisApprovedEntryHotspots/);
   assert.doesNotMatch(directory,/(supabase|awardPoints|mintBp|spendBp|service_role|withdrawQMP)/i);
   assert.doesNotMatch(world,/Season2CommunityFacilities.*(?:mintBp|spendBp)/);
 });
