@@ -43,7 +43,8 @@
     "Ranked player full-body attack and skill pose selection is driven by server-authored event timestamps for the correct actor; untrusted local cues never alter combat.",
     "All 52 generated fullbody WebP clips are actually decoded and inspected in CI: 8 frames each (416 total), motion transitions, distinct skill/attack poses, and SHA-256 integrity; approved-art style/device rendering remains separately unverified.",
     "The production Arena WebSocket protocol is extracted and tested through real loopback Node ws network connections using a fake trusted store; no authentication bypass is included in deployable server.",
-    "Staging backend is packaged as a nonroot single-instance Docker image with readiness checks; live hosting and isolated DB are still explicit release dependencies."
+    "Staging backend is packaged as a nonroot single-instance Docker image with readiness checks; live hosting and isolated DB are still explicit release dependencies.",
+    "Server-side ranked eligibility first calls idempotent verified-participation private Diamond claim; fails closed without the private SQL RPC. No direct mobile BP/diamond writes."
   ],
   "riskAreas": [
     "app-runtime",
@@ -58,7 +59,8 @@
     "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
     "tests/empire-arena-v2-ranked-seat-20261121.test.mjs",
     "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
-    "tests/empire-arena-v2-actor-pose-20261121.test.mjs"
+    "tests/empire-arena-v2-actor-pose-20261121.test.mjs",
+    "tests/empire-arena-v2-earned-diamond-claim-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -234,7 +236,8 @@
     "services/empire-arena/transport.mjs",
     "services/empire-arena/tests/gateway.test.mjs",
     "services/empire-arena/Dockerfile",
-    "services/empire-arena/STAGING.md"
+    "services/empire-arena/STAGING.md",
+    "tests/empire-arena-v2-earned-diamond-claim-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -251,7 +254,8 @@
         "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
         "tests/empire-arena-v2-ranked-seat-20261121.test.mjs",
         "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
-        "tests/empire-arena-v2-actor-pose-20261121.test.mjs"
+        "tests/empire-arena-v2-actor-pose-20261121.test.mjs",
+        "tests/empire-arena-v2-earned-diamond-claim-20261121.test.mjs"
       ]
     },
     {
