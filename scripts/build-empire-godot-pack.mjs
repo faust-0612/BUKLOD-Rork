@@ -42,6 +42,27 @@ function collect(dir, prefix = '') {
   }
 }
 collect(project);
+
+// Carry the SAME approved bitmap assets already shipped by the existing BUKLOD
+// Arena source. No mockup replacement, stock image, new license or asset URL.
+const manifestDir = path.join(root, 'src/features/games/empire');
+const visualManifest = readFileSync(path.join(manifestDir, 'arenaGeneratedAssets.ts'), 'utf8');
+const imageRoot = path.join(root, 'assets/season2/arena/generated') + path.sep;
+const artCounts = { fullbody: 0, scene: 0, sprite: 0 };
+for (const match of visualManifest.matchAll(/'(fullbody|scene|sprite):([^']+)':\\s*require\\('([^']+)'\\)/g)) {
+  const [, group, key, relative] = match;
+  const filename = path.resolve(manifestDir, relative);
+  assert.ok(filename.startsWith(imageRoot), 'Arena pack image escapes approved art inventory');
+  const ext = path.extname(filename);
+  assert.ok((group === 'scene' && ext === '.png') || (group !== 'scene' && ext === '.webp'),
+    'Unexpected asset format for ' + group);
+  assert.match(key, /^[a-z0-9_]+$/, 'Unsafe asset key');
+  entries.push({ name: 'art/' + group + '/' + key + ext, bytes: readFileSync(filename) });
+  artCounts[group]++;
+}
+assert.deepEqual(artCounts, { fullbody: 52, scene: 3, sprite: 13 },
+  'Never publish a partial hero-animation/map art inventory into Godot');
+
 const entryNames = new Set(entries.map(x => x.name));
 for (const name of ['project.godot', 'scenes/Arena.tscn', 'scripts/arena_root.gd',
   'scripts/arena_hud.gd', 'scripts/arena_simulation.gd', 'data/catalog.json']) {
@@ -96,10 +117,10 @@ end.writeUInt16LE(entries.length, 10);
 end.writeUInt32LE(dirBytes.length, 12);
 end.writeUInt32LE(offset, 16);
 const zip = Buffer.concat([...parts, dirBytes, end]);
-assert.ok(zip.length < 8 * 1024 * 1024, 'Procedural Godot pack unexpectedly large');
+assert.ok(zip.length < 40 * 1024 * 1024, 'Procedural Godot pack unexpectedly large');
 mkdirSync(path.dirname(output), { recursive: true });
 writeFileSync(output, zip);
 const hash = createHash('sha256').update(zip).digest('hex');
 console.log(JSON.stringify({ result: 'BUKLOD_GODOT_OFFLINE_PACK_BUILT', output,
   sha256: hash, bytes: zip.length, entries: entries.length, heroes: 13, pickups: 300,
-  ranked: false, serverAccess: false }, null, 2));
+  ranked: false, serverAccess: false, art: artCounts }, null, 2));
