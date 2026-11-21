@@ -16,13 +16,17 @@
     "rankedTeamVoice": "DISABLED"
   },
   "riskAreas": [
+    "audio-focus",
+    "auth-privacy",
+    "backend-security",
     "emergency-safety",
     "native-runtime",
-    "auth-privacy",
-    "production-release",
     "navigation-ads",
-    "audio-focus",
-    "backend-security",
+    "navigation-scroll",
+    "production-boundary",
+    "production-release",
+    "release-identity",
+    "wall-media",
     "world-economy"
   ],
   "allowedPaths": [
@@ -64,6 +68,7 @@
     "experiments/empire-arena-v2/arena-v2-solo.mjs",
     "scripts/buklod-season2-production-embargo.cjs",
     "scripts/community-help-sos-release-contract.mjs",
+    "scripts/engineering-regression-gate.mjs",
     "scripts/genesis-map-reconstruction-preflight.mjs",
     "src/app/(tabs)/buklod.tsx",
     "src/app/buklod-map.tsx",
@@ -134,6 +139,7 @@
     "tests/buklod-season2-production-explicit-hold-20261122.test.cjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "tests/genesis-all-updates-scope-integrity-20261122.test.mjs",
     "tests/genesis-dimensional-entry-map-motion-20261121.test.mjs",
     "tests/genesis-original-guide-ad-20261121.test.mjs",
     "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs",
@@ -170,6 +176,7 @@
     "tests/buklod-season2-production-explicit-hold-20261122.test.cjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "tests/genesis-all-updates-scope-integrity-20261122.test.mjs",
     "tests/genesis-dimensional-entry-map-motion-20261121.test.mjs",
     "tests/genesis-original-guide-ad-20261121.test.mjs",
     "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs",
@@ -268,5 +275,32 @@
         "tests/arena-protected-feature-lock-20261121.test.mjs"
       ]
     }
+  ],
+  "releaseMode": "consolidated-staging-source-hold",
+  "componentScopePaths": [
+    ".buklod/scopes/arena-premium-hud-20261121.json",
+    ".buklod/scopes/genesis-estate-asset-customization-20261121.json",
+    ".buklod/scopes/genesis-premium-personal-world-20261121.json",
+    ".buklod/scopes/ptt-preferences-active-selection-20261121.json",
+    ".buklod/scopes/season2-todays-best-placement-staging-20261121.json",
+    ".buklod/scopes/silent-ota-next-launch-20261119.json",
+    ".buklod/scopes/sos-urgent-audible-rescue-20261121.json"
+  ],
+  "acceptanceChecks": [
+    "Confirmed source contains owner-approved Arena, SOS, PTT, Today's Best, Estate, cosmic Guide and silent OTA contracts with changed regression tests.",
+    "New signed 2.0.1-genesis-sos staging APK with the installed native emergency channel and audio asset is independently verified BEFORE matching SOS OTA.",
+    "Isolated staging Supabase migration and Edge Function are separately authenticated and RLS tested; shared paid production backend receives no staging mutation.",
+    "Exact-source AdMob/navigation/voice focus regressions, strict TypeScript, Android bundle and native-device rescue flow pass before staging release.",
+    "Season 2 production embargo remains active and no signed production AAB/OTA is created."
+  ],
+  "preserveBehaviors": [
+    "Production package, EAS channel mapping and paid database remain untouched; staging source cannot override native runtime compatibility.",
+    "Keep original 5-tab navigation, Wall/Connect content, current ads and audio focus, protected economy ledger and signed media.",
+    "Defensive emergency privacy requires GPS only on consented request and exact coordinates only to current authorized responders."
+  ],
+  "alternativeApproaches": [
+    "Replace every per-feature scope manifest with one synthetic artifact: rejected because it destroys source provenance and independent review evidence.",
+    "Treat staging integration as a production cumulative RC: rejected because it would cross a production authorization boundary.",
+    "Keep one explicit staging-source hold manifest enumerating all V2 component scopes and exact changed-file tests; selected."
   ]
 }
