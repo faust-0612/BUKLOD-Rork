@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/arena-two-faction-villagers-20261122.json",
+  "objective": "Implement the two named Arena villager factions (Lux/Lightbearers and Tenebra/Shadowborne), six specialized roles with in-match resource-conserving AI, owner-scoped commands, fair mirrored recruits, event-driven audio and native in-app HUD. Offline Genesis practice only; no ranked server or wallet writes.",
+  "baseRef": "1f287e06876da84ce5c1594152932ce95bcefb08",
+  "chosenApproach": "Extend the existing canonical offline Arena deterministic engine and Expo screen rather than introduce a second authority, faction-dependent stat advantage or separate app.",
+  "riskAreas": [
+    "unit-ai",
+    "offline-economy",
+    "resources",
+    "queue-cap",
+    "team-authorization",
+    "game-performance",
+    "screen-layout",
+    "audio-spam",
+    "ranked-isolation",
+    "production-embargo"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/arena-two-faction-villagers-20261122.json",
+    "experiments/empire-arena-v2/arena-v2-villagers.mjs",
+    "experiments/empire-arena-v2/arena-v2-engine.mjs",
+    "src/app/games/empire-arena.tsx",
+    "src/features/games/empire/arenaSoundscape.mjs",
+    "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "kingdom-character",
+      "reason": "Add support villagers to the existing in-app Arena without altering character eligibility, BP, Diamond or ranked settlement.",
+      "preservedBehaviors": [
+        "Canonical 13 heroes, level/item gates, ranked server authority, no client reward grants, both factions fair."
+      ],
+      "tests": [
+        "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Expose small Arena-only villager role graphics and command buttons.",
+      "preservedBehaviors": [
+        "All other screens, AdMob, navigation, native runtime, login and mandatory-update gates remain untouched."
+      ],
+      "tests": [
+        "tests/empire-arena-two-faction-villagers-20261122.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No changes to production, ranked server, Supabase, item/points ledgers or APK native modules.",
+    "Fixed-tick offline practice stays deterministic.",
+    "Both teams have identical costs, HP, role actions, capacities and caps.",
+    "Resource stock and deposit conservation; repair/heal/research consume match resources.",
+    "No server-trusted match outcomes are invented by this feature.",
+    "Current ranked socket never enables local villager buttons."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "staging-source-candidate-hold",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "productionBaselineEvidence": "Existing main source remains production baseline; latest Genesis all-updates conso head 1f287e06876da84ce5c1594152932ce95bcefb08 is staging-only and held for native APK, separate DB, runtime and device checks. No current installed production artifact verified in this task.",
+  "acceptanceChecks": [
+    "Run focused Node villager behavior and existing Arena logic regression tests.",
+    "Run Engineering Accountability protected feature/scope CI on exact PR head.",
+    "Review landscape battle HUD performance and offline Android art on a real staging build before any OTA.",
+    "Verify native APK/runtime parity, isolated staging DB, ads and navigation before staging release."
+  ],
+  "selectionRationale": "Existing Arena already has generic worker mining, capped recruitment and structures. A narrow profile/action extension enables the approved two-team visual identity with actual economy and defense consequences instead of a disconnected mockup.",
+  "alternativeApproaches": [
+    "Separate villager minigame—rejected because the owner wants one in-app Arena.",
+    "Create persistent BP/diamond income from villagers—rejected for economy integrity.",
+    "Give Shadowborne intrinsic stronger attack stats—rejected to preserve PvP fairness."
+  ]
+}
