@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/arena-300-match-pickups-20261122.json",
   "objective": "Add 300 original in-match BUKLOD Empire Arena loot pickups (144 universal, 156 hero-exclusive), realistic short-lived effects, deterministic bounded drop selection and hero eligibility, 2.5D effect icons and focused regressions. Offline practice only; preserve gameplay server authority, economy and staging gates.",
-  "baseRef": "c7d126ff423414917f34f7719046f78af6cc40be",
+  "baseRef": "5bb538a0c2d5232b6d3fb464a717a9d622646539",
   "chosenApproach": "Extend established OFFLINE_PRACTICE loot flow, keep canonical item definitions and server-independence, render compact SVG symbols without adding native modules or unlicensed assets.",
   "allowedPaths": [
     ".buklod/scopes/arena-300-match-pickups-20261122.json",
