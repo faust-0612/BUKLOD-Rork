@@ -28,6 +28,9 @@ on:
       - 'assets/season2/genesis/world/**'
       - 'assets/season2/genesis/kingdom/**'
       - 'tests/season2-premium-nature-kingdom-20261121.test.mjs'
+      - 'tests/season2-premium-staging-ota-contract-20261121.test.mjs'
+      - 'scripts/season2-premium-staging-ota-gate.mjs'
+      - 'eas.json'
       - '.github/workflows/season2-map-conso-source-qa-20261121.yml'
   push:
     branches:
@@ -65,8 +68,10 @@ jobs:
           node-version: '22'
       - name: Protected map/nav/ad/audio source preflight (not OTA verification)
         run: node scripts/genesis-map-reconstruction-preflight.mjs
+      - name: Premium Genesis staging source-only gate (never publishes)
+        run: node scripts/season2-premium-staging-ota-gate.mjs --source
       - name: Genesis preview and existing World regression checks
-        run: node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/genesis-world-navigation-regression-20261121.test.mjs tests/genesis-valley-asset-interaction-20261121.test.mjs tests/genesis-valley-audio-focus-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs
+        run: node --test tests/season2-map-first-conso-intake-20261121.test.mjs tests/genesis-world-navigation-regression-20261121.test.mjs tests/genesis-valley-asset-interaction-20261121.test.mjs tests/genesis-valley-audio-focus-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs tests/season2-premium-staging-ota-contract-20261121.test.mjs
       - name: In-app offline Arena V2 deterministic source/logic acceptance (NO OTA)
         run: |
           node --check experiments/empire-arena-v2/arena-v2-engine.mjs

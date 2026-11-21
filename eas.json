@@ -156,9 +156,8 @@
         "EXPO_PUBLIC_APP_ENV": "staging",
         "EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW": "true",
         "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging",
-        "EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW": "true",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS"
+        "EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW": "false",
+        "EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL": "false"
       },
       "android": {
         "buildType": "apk"

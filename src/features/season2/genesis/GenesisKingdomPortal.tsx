@@ -35,6 +35,15 @@ type Realm = (typeof GENESIS_REALMS)[number];
 const CORE: readonly string[] = ['phan','quin','van','christian','lhen'];
 const KINGDOM_NATURE_HIGH = require('../../../../assets/season2/genesis/kingdom/kingdom-nature-panorama.webp');
 const KINGDOM_NATURE_COMPACT = require('../../../../assets/season2/genesis/kingdom/kingdom-nature-panorama-compact.webp');
+/** Position normalized to the original 16:9 art, not device pixels. Region taps
+ * change only the selected canonical Character realm, never inventory or BP. */
+export const KINGDOM_NATURE_LANDMARKS = [
+  { id:'forest', label:'Living Forest', character:'jawo', left:'15%', top:'51%', icon:'pine-tree' },
+  { id:'citadel', label:'Kingdom Citadel', character:'christian', left:'49%', top:'31%', icon:'castle' },
+  { id:'alpine', label:'Winter Highlands', character:'quin', left:'79%', top:'17%', icon:'terrain' },
+  { id:'river', label:'River Valley', character:'vhen', left:'47%', top:'75%', icon:'waves' },
+  { id:'coast', label:'Coastal District', character:'phan', left:'87%', top:'63%', icon:'sail-boat' },
+] as const;
 
 function RealmCharacter({ character }: { character: Realm['character'] }) {
   return CORE.includes(character)
@@ -86,6 +95,24 @@ export default function GenesisKingdomPortal() {
           transition={reduceMotion ? 0 : 140} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={['transparent','rgba(3,15,26,.02)','rgba(3,16,29,.85)']}
           locations={[0,.55,1]} style={StyleSheet.absoluteFill} />
+        {KINGDOM_NATURE_LANDMARKS.map(landmark => {
+          const isSelected = selected.character === landmark.character;
+          const realm = GENESIS_REALMS.find(entry => entry.character === landmark.character);
+          if (!realm) return null;
+          return <Pressable
+            key={landmark.id}
+            accessibilityRole="button"
+            accessibilityLabel={'Explore '+landmark.label+' with '+realm.name}
+            accessibilityState={{selected:isSelected}}
+            onPress={() => select(realm)}
+            style={({pressed}) => [
+              styles.landmark, {left:landmark.left, top:landmark.top},
+              isSelected && styles.landmarkActive, pressed && styles.landmarkPressed,
+            ]}
+          >
+            <MaterialCommunityIcons name={landmark.icon as any} size={16} color={isSelected ? '#FFF5CB' : '#DCEFE8'} />
+          </Pressable>;
+        })}
         <View pointerEvents="none" style={styles.vistaCaption}>
           <Text style={styles.vistaEyebrow}>THE LIVING KINGDOM</Text>
           <Text numberOfLines={2} style={styles.vistaTitle}>Tropical Valleys · Winter Peaks</Text>
@@ -174,6 +201,11 @@ const styles = StyleSheet.create({
  content:{width:'100%',maxWidth:850,alignSelf:'center',padding:12,paddingBottom:28,gap:12},
  kingdomVista:{width:'100%',aspectRatio:16/9,borderRadius:18,overflow:'hidden',
    borderWidth:1,borderColor:'#728B83',backgroundColor:'#0B2832'},
+ landmark:{position:'absolute',width:38,height:38,marginLeft:-19,marginTop:-19,
+   borderRadius:19,borderWidth:1.4,borderColor:'#C5D9CA',backgroundColor:'rgba(9,33,38,.82)',
+   alignItems:'center',justifyContent:'center',elevation:2},
+ landmarkActive:{borderColor:'#FFE6A4',backgroundColor:'rgba(28,61,57,.96)',elevation:4},
+ landmarkPressed:{opacity:.78},
  vistaCaption:{position:'absolute',left:12,right:10,bottom:10},
  vistaEyebrow:{color:'#C8E8D7',fontSize:9,fontWeight:'900',letterSpacing:1.2},
  vistaTitle:{color:'#FFF7DE',fontSize:15,lineHeight:19,fontWeight:'900',marginTop:2},
