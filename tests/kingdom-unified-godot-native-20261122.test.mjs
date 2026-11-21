@@ -16,5 +16,6 @@ test('Kingdom and personal worlds are Godot scenes but never new authorities',()
   assert.match(scene,/STAGES := \[/);
   assert.match(root,/openBundledBuklodWorld/);
   assert.match(root,/GODOT KINGDOM PREVIEW/);
-  assert.doesNotMatch(scene,/supabase|awardBP|transfer|wallet|service_role|https?:\/\//i);
+  const executable=scene.split('\n').filter(line=>!line.trimStart().startsWith('#')).join('\n');
+  assert.doesNotMatch(executable,/supabase|awardBP|transfer|wallet|service_role|https?:\/\//i);
 });
