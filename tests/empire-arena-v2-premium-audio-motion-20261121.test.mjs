@@ -21,7 +21,8 @@ test('All three Arena maps use the existing local royalty-free Kingdom audio bas
   assert.ok(route.includes('toggleMusic'));
   assert.ok(route.includes('setSfxEnabled'));
   assert.ok(route.includes('playRorkSignatureSfx'));
-  assert.ok(route.includes('drainArenaAudioEvents'));
+  assert.ok(route.includes('drainArenaSoundscape'));
+  assert.ok(route.includes('tryPlayArenaEventCue'))
 });
 
 test('Arena battle event cues are meaningful, bounded, and never replay a past event', () => {
