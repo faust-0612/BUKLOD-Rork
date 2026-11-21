@@ -1,0 +1,97 @@
+name: BUKLOD Arena DEV Scene Vendor
+on:
+  push:
+    branches:
+      - dev/empire-arena-v2-inapp-asset-baseline-20261121
+    paths:
+      - scripts/vendor-buklod-arena-scenes.mjs
+      - scripts/generate-buklod-arena-hero-motion.py
+      - scripts/generate-buklod-arena-fullbody.py
+      - src/features/games/empire/arenaVisualBaseline.ts
+      - .github/workflows/buklod-arena-dev-art-vendor.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: buklod-arena-dev-scenes
+  cancel-in-progress: false
+
+jobs:
+  vendor-approved-art:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/empire-arena-v2-inapp-asset-baseline-20261121'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install fixed-version open-source image encoder
+        run: python -m pip install --disable-pip-version-check --no-input Pillow==12.1.0 numpy==2.3.3 rembg==2.0.80 onnxruntime==1.22.1
+      - name: Vendor exactly three existing BUKLOD Realm plates from approved public image endpoints
+        run: node scripts/vendor-buklod-arena-scenes.mjs
+      - name: Produce 13 real animated WebP assets from approved repository portraits
+        run: python scripts/generate-buklod-arena-hero-motion.py
+      - name: Build source-owned full-body idle/walk/attack/skill animation clips
+        run: python scripts/generate-buklod-arena-fullbody.py
+      - name: Verify all original scene images are SHA-versioned and statically bundled
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const m = JSON.parse(fs.readFileSync('assets/season2/arena/generated-manifest.json','utf8'));
+          for (const key of ['scene:genesis_rift','scene:aurora_foundry','scene:verdant_fracture']) {
+            const found = m.assets.find(x=>x.key===key && x.status==='dev-baseline' && x.bytes>=512);
+            if (!found || !fs.existsSync(found.file)) throw new Error('Missing verified scene '+key);
+          }
+          for (const id of ['phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice']) {
+            const motion = m.assets.find(x => x.key === 'sprite:' + id);
+            if (!motion || !fs.existsSync(motion.file)) throw new Error('Missing character animation ' + id);
+            const b = fs.readFileSync(motion.file);
+            if (b.subarray(0,4).toString() !== 'RIFF' || b.subarray(8,12).toString() !== 'WEBP' || !b.includes(Buffer.from('ANIM')))
+              throw new Error('Invalid real animated WebP for ' + id);
+          }
+          for (const id of ['phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice'])
+            for (const pose of ['idle','walk','attack','skill']) {
+              const entry = m.assets.find(x => x.key === 'fullbody:' + id + '_' + pose);
+              if (!entry || !fs.existsSync(entry.file)) throw new Error('Missing full-body pose '+id+'/'+pose);
+              const bytes = fs.readFileSync(entry.file);
+              if (!bytes.includes(Buffer.from('ANIM')) || bytes.subarray(8,12).toString() !== 'WEBP') throw new Error('Invalid animated full-body art '+id+'/'+pose);
+            }
+          const source = fs.readFileSync('src/features/games/empire/arenaGeneratedAssets.ts','utf8');
+          if (!source.includes("require('../../../../assets/season2/arena/generated/scene/"))
+            throw new Error('Metro image registry missing actual native asset imports');
+          NODE
+      - name: Register exact generated paths in the existing DEV scope manifest
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = '.buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json';
+          const doc = JSON.parse(fs.readFileSync(path,'utf8'));
+          const art = JSON.parse(fs.readFileSync('assets/season2/arena/generated-manifest.json','utf8'));
+          for (const entry of art.assets) {
+            if (!doc.allowedPaths.includes(entry.file)) doc.allowedPaths.push(entry.file);
+          }
+          fs.writeFileSync(path, JSON.stringify(doc,null,2) + '\n');
+          NODE
+      - name: Commit DEV-only scene and animation assets without touching production
+        run: |
+          git config user.name "buklod-scene-vendor[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/season2/arena src/features/games/empire/arenaGeneratedAssets.ts .buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json
+          if git diff --cached --quiet; then
+            echo "Asset baseline already current."
+            exit 0
+          fi
+          git commit -m "assets(arena): version 13 original hero sprites, 52 fullbody pose clips and scenes in DEV baseline"
+          # Reconcile concurrent DEV changes without force. Abort on real conflict.
+          # This prevents an older CI checkout from clobbering newer owner work.
+          git fetch origin dev/empire-arena-v2-inapp-asset-baseline-20261121
+          git rebase origin/dev/empire-arena-v2-inapp-asset-baseline-20261121
+          git push origin HEAD:refs/heads/dev/empire-arena-v2-inapp-asset-baseline-20261121

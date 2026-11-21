@@ -1,0 +1,45 @@
+name: BUKLOD Arena DEV Server Lockfile
+on:
+  push:
+    branches:
+      - dev/empire-arena-v2-inapp-asset-baseline-20261121
+    paths:
+      - 'services/empire-arena/package.json'
+      - '.github/workflows/buklod-arena-dev-server-lock.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: buklod-arena-server-lock
+  cancel-in-progress: false
+
+jobs:
+  commit-lockfile:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/empire-arena-v2-inapp-asset-baseline-20261121'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate exact isolated WebSocket server dependencies
+        run: npm install --prefix services/empire-arena --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify reproducible lock and trusted runtime
+        run: |
+          test -s services/empire-arena/package-lock.json
+          npm ci --prefix services/empire-arena --ignore-scripts --no-audit --no-fund
+          node --test services/empire-arena/tests/core.test.mjs
+      - name: Commit lockfile to DEV only
+        run: |
+          git config user.name "buklod-arena-deps[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/empire-arena/package-lock.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "build(arena): pin full server dependency tree for safe staging setup"
+          git fetch origin dev/empire-arena-v2-inapp-asset-baseline-20261121
+          git rebase origin/dev/empire-arena-v2-inapp-asset-baseline-20261121
+          git push origin HEAD:refs/heads/dev/empire-arena-v2-inapp-asset-baseline-20261121
