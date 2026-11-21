@@ -37,7 +37,7 @@ import { drainArenaAudioEvents } from '@/features/games/empire/arenaPracticeAudi
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 // @ts-ignore — pure JS viewport interactions; no BP/rank/server authority.
 import { arenaZoom, arenaZoomSpan, arenaDragPan, arenaTouchCenter, arenaTouchDistance, arenaMinimapPan } from '@/features/games/empire/arenaViewportControls.mjs';
-import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
+import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
 // @ts-ignore — The canonical offline Arena engine is already .mjs. Metro bundles .mjs; native import is intentionally isolated.
 import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
 
@@ -162,11 +162,33 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
       {lanes.map((y, i) => <Path key={'lane-' + i} d={`M 5 ${y * state.h} Q ${state.w / 2} ${y * state.h + (i - 1) * 3} ${state.w - 5} ${y * state.h}`} stroke="#ffe0a2" opacity={0.38} strokeWidth={1.9} fill="none" strokeDasharray="1 3" />)}
       <Line x1={state.w / 2} y1={6} x2={state.w / 2} y2={state.h - 6} stroke="#a9f8ea" strokeWidth={0.5} strokeDasharray="2 3" opacity={0.5} />
       {state.cover.map(([x, y, r], i) => <G key={'cover-' + i}><Circle cx={x} cy={y} r={r + 1.5} fill="#052624" opacity={0.6} /><Circle cx={x} cy={y} r={r} fill="#206b62" stroke="#74cbb8" strokeWidth={0.3} opacity={0.8} /></G>)}
-      {state.nodes.map((n) => <G key={n.id}><Circle cx={n.x} cy={n.y} r={3.2} fill={n.type === 'gold' ? '#c68b38' : n.type === 'wood' ? '#276947' : '#738b9a'} stroke="#ffe9bc" strokeWidth={0.5} /><SvgText x={n.x} y={n.y + 0.75} fontSize={2.5} textAnchor="middle" fill="#fff">{n.type.slice(0, 1).toUpperCase()}</SvgText></G>)}
-      {(['A', 'B'] as Team[]).map(team => <G key={team}>
-        <Rect x={team === 'A' ? 9 : state.w - 19} y={state.h / 2 - 7} width={10} height={14} rx={2} fill={team === 'A' ? '#2d8d86' : '#9c4d59'} stroke="#ffdaa5" strokeWidth={0.7} />
-        <SvgText x={team === 'A' ? 14 : state.w - 14} y={state.h / 2 + 0.7} fontSize={4} textAnchor="middle" fill="#fff">{team}</SvgText>
+      {state.nodes.map(n => <G key={n.id}>
+        <Circle cx={n.x} cy={n.y + 1.3} r={3.4} fill="#081b1d" opacity={0.55} />
+        {n.type === 'wood' ? <G>
+          <Rect x={n.x - 0.5} y={n.y - 0.5} width={1} height={4} fill="#996d49" />
+          <Path d={`M ${n.x} ${n.y-4.8} L ${n.x+3.3} ${n.y+0.4} L ${n.x-3.3} ${n.y+0.4} Z`}
+            fill="#3b8860" stroke="#a5d2a0" strokeWidth={0.5} />
+        </G> : n.type === 'gold' ? <Path
+          d={`M ${n.x} ${n.y-3.4} L ${n.x+3.2} ${n.y} L ${n.x} ${n.y+3.4} L ${n.x-3.2} ${n.y} Z`}
+          fill="#e7b854" stroke="#fff0bf" strokeWidth={0.65} /> :
+          <Path d={`M ${n.x-3.5} ${n.y+2} L ${n.x-2} ${n.y-2.7} L ${n.x+1.5} ${n.y-3.2} L ${n.x+3.5} ${n.y+0.6} L ${n.x+1.1} ${n.y+2.6} Z`}
+            fill="#869ba7" stroke="#d6d7d0" strokeWidth={0.6} />}
       </G>)}
+      {(['A', 'B'] as Team[]).map(team => {
+        const x = team === 'A' ? 14 : state.w - 14;
+        const own = team === localTeam;
+        const remaining = clamp(state.seals[team].hp / Math.max(1, state.seals[team].maxHp), 0, 1);
+        return <G key={team}>
+          <Circle cx={x} cy={state.h / 2 + 2} r={8.2} fill="#111d27" opacity={0.55} />
+          <Path d={`M ${x-6} ${state.h/2+7} L ${x-6} ${state.h/2-5} Q ${x} ${state.h/2-11} ${x+6} ${state.h/2-5} L ${x+6} ${state.h/2+7} Z`}
+            fill={own ? '#285b58' : '#643f47'} stroke="#e5c689" strokeWidth={0.85} />
+          <Path d={`M ${x-3.5} ${state.h/2+6} L ${x-3.5} ${state.h/2-3} Q ${x} ${state.h/2-7} ${x+3.5} ${state.h/2-3} L ${x+3.5} ${state.h/2+6} Z`}
+            fill="#071b22" stroke="#9eb4aa" strokeWidth={0.55} />
+          <Circle cx={x} cy={state.h/2-4.8} r={1.4} fill={own ? '#91efc7' : '#ffba8e'} />
+          <Rect x={x-6} y={state.h/2-11} width={12} height={1.2} fill="#321c24" />
+          <Rect x={x-6} y={state.h/2-11} width={12*remaining} height={1.2} fill="#96e8bb" />
+        </G>;
+      })}
       {state.towers.filter(life).map(t => <G key={t.id}><Rect x={t.x - 3} y={t.y - 3.5} width={6} height={7} rx={0.5} fill={t.team === 'A' ? '#497c9d' : '#a15f65'} stroke="#f9d68f" strokeWidth={0.5} /></G>)}
       {state.buildings.filter(life).map(b => <Rect key={b.id} x={b.x - 2.4} y={b.y - 2.4} width={4.8} height={4.8} rx={0.6} fill={b.team === 'A' ? '#6ebda9' : '#d48473'} stroke="#e8c989" strokeWidth={0.4} />)}
       {state.creatures.filter(life).map(c => <G key={c.id}><Circle cx={c.x} cy={c.y} r={3} fill="#b38ed6" stroke="#f2d6ff" strokeWidth={0.8} /><Circle cx={c.x} cy={c.y} r={1.1} fill="#f9e9b9" /></G>)}
@@ -218,7 +240,7 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
         const sprite = ARENA_GENERATED_ART['sprite:' + p.hero];
         const image = fullbody || sprite || ARENA_GENERATED_ART['hero:' + p.hero] ||
           ARENA_HERO_ART[p.hero as BuklodCharacterId];
-        const size = clamp(area.width * 12 / camera.width, 47, 146);
+        const size = clamp(area.width * 7.2 / camera.width, 35, 84);
         return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
           sprite={Boolean(fullbody || sprite)} friendly={p.team === localTeam} active={isPlaying}
           moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1)}
@@ -256,7 +278,6 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
       </Svg>
       </Pressable>
     </View>
-    <View pointerEvents="none" style={styles.fieldLabel}><Text style={styles.labelText}>GENESIS • EMPIRE BATTLEFIELD</Text></View>
   </View>;
 }
 
@@ -571,6 +592,14 @@ function EmpireArenaInApp() {
       contentContainerStyle={[styles.menu, shortScreen && styles.menuCompact]} showsVerticalScrollIndicator>
       <Text numberOfLines={1} adjustsFontSizeToFit style={styles.title}>EMPIRE ARENA • PRACTICE</Text>
       <Text style={styles.description}>Offline battles · no BP or Diamond changes. Choose a mode and battlefield.</Text>
+      <View style={[styles.lobbyPreview, narrowGame && styles.lobbyPreviewNarrow]}>
+        <ExpoImage source={ARENA_GENERATED_ART['scene:' + mapId]} contentFit="cover"
+          style={[styles.lobbyPreviewImage, narrowGame && styles.lobbyPreviewImageNarrow]} />
+        <View style={styles.lobbyPreviewCaption}>
+          <Text style={styles.lobbyPreviewTitle}>{ARENA_MAPS[mapId].name}</Text>
+          <Text style={styles.lobbyPreviewText}>13 heroes • 3 battlefields • real practice combat. Collect resources, defeat opponents and protect your seal.</Text>
+        </View>
+      </View>
       <View style={[styles.menuSections, narrowGame && styles.menuSectionsNarrow]}>
         <View style={styles.menuSection}>
           <Text style={styles.groupLabel}>BATTLE MODE</Text>
@@ -683,6 +712,13 @@ const styles = StyleSheet.create({
   menuScroll: { flex: 1, width: '100%' },
   menu: { alignSelf: 'center', width: '100%', maxWidth: 900, paddingHorizontal: 14, paddingVertical: 12, gap: 8 },
   menuCompact: { paddingVertical: 7, gap: 5 },
+  lobbyPreview: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  lobbyPreviewNarrow: { flexDirection: 'column', alignItems: 'stretch', gap: 4 },
+  lobbyPreviewImage: { width: 166, height: 72, borderRadius: 10, borderWidth: 1, borderColor: '#b8a06a' },
+  lobbyPreviewImageNarrow: { width: '100%', height: 108 },
+  lobbyPreviewCaption: { flex: 1, gap: 4 },
+  lobbyPreviewTitle: { color: '#f2d49c', fontSize: 14, fontWeight: '900' },
+  lobbyPreviewText: { color: '#c0d5d7', fontSize: 10, lineHeight: 14 },
   menuSections: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, justifyContent: 'space-between' },
   menuSectionsNarrow: { flexDirection: 'column', gap: 8 },
   menuSection: { flexGrow: 1, flexShrink: 1, minWidth: 200, gap: 5 },

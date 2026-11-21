@@ -31,7 +31,7 @@ test('Genesis-only Arena is immersive with safe navigation and economic guard',(
  const shell=read('src/components/BuklodNavSafeShell.tsx');
  const screen=read('src/app/games/empire-arena.tsx');
  assert.match(shell,/immersiveArena = normalizedPath === '\/games\/empire-arena'/);
- assert.match(shell,/!immersiveArena \? <BuklodFocusAppAdStrip/);
+ assert.match(shell,/!immersiveIgpat && !immersiveArena \? <BuklodFocusAppAdStrip/);
  assert.match(shell,/!immersiveArena && rawNavOccupied > 0/);
  for(const s of ['ScrollView','onResponderMove={onCameraGesture}','Zoom in battlefield',
   'Zoom out battlefield','Follow character and reset camera','Move camera to selected minimap location',
