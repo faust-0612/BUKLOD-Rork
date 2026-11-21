@@ -18,7 +18,9 @@ test('first view is one-tap, preserves full BUKLOD bar and puts speaking guide o
  const map=src('src/app/buklod-map.tsx'),guide=src('src/features/season2/world/BuklodMapGuideDock.tsx');
  assert.match(map,/<BuklodMapHeader \/>/);
  assert.match(map,/Welcome sa BUKLOD!/);
- assert.ok(map.indexOf('<BuklodMapGuideDock')<map.indexOf('{mapNode}'),'guide before map in portrait');
+ const portrait=map.slice(map.indexOf('style={styles.welcomeTextBlock}'));
+ assert.ok(portrait.indexOf('<BuklodMapGuideDock')>=0 &&
+  portrait.indexOf('<BuklodMapGuideDock')<portrait.indexOf('{mapNode}'),'guide before map in portrait');
  assert.match(map,/onOpen=\{\(door, route\)/);
  assert.match(map,/router.push\(route as any\)/);
  assert.match(map,/landscapeGuideColumn/);
