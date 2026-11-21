@@ -53,3 +53,21 @@ test('Audio focus/first-view prewarm protection remains bounded when switching d
   assert.ok(warm.includes(s),'Lost bounded prewarm: '+s);
  }
 });
+
+test('Genesis Wall and Connect clear status bar without moving other dashboards',()=>{
+ const tab=read('src/app/(tabs)/_layout.tsx');
+ const home=read('src/app/(tabs)/hub.tsx');
+ for(const piece of [
+   'const genesisDashboardTopInset =',
+   "Platform.OS !== 'web' &&",
+   'isGenesisPreviewBuild() &&',
+   "['/buklod', '/messages'].includes(normalizeBuklodPathname(pathname))",
+   'Math.max(0, insets.top) + 4',
+   'paddingTop: genesisDashboardTopInset,',
+ ]) assert.ok(tab.includes(piece),'Missing Genesis clearance guard: '+piece);
+ assert.ok(tab.includes('!desktopWebShell && !isGenesisPreviewBuild() ? <SwipeDashboardHeader /> : null'),
+   'Do not change production header behavior');
+ assert.ok(home.includes('const genesisPreview = isGenesisPreviewBuild()'),
+   'Home remains independently controlled');
+ assert.ok(!tab.includes("['/buklod', '/messages', '/hub'"),'Do not shift other dashboards');
+});
