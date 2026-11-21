@@ -25,13 +25,13 @@ export type GenesisApprovedEntryDoor={
 const DOORS=approved.hotspots as readonly GenesisApprovedEntryDoor[];
 
 export default function GenesisApprovedEntryMap({
-  active,showFaith,onOpen,onMenu,onProfile,onNotifications,onSearch,
+  active,showFaith,availableWidth,onOpen,onMenu,onProfile,onNotifications,onSearch,
 }:{
-  active:boolean;showFaith:boolean;onOpen:(door:GenesisApprovedEntryDoor,route:string)=>void;
+  active:boolean;showFaith:boolean;availableWidth?:number;onOpen:(door:GenesisApprovedEntryDoor,route:string)=>void;
   onMenu:()=>void;onProfile:()=>void;onNotifications:()=>void;onSearch:()=>void;
 }){
   const {width}=useWindowDimensions();
-  const viewportWidth=Math.max(270,Math.min(width-24,900));
+  const viewportWidth=Math.max(270,Math.min((availableWidth ?? width)-24,900));
   const [zoomed,setZoomed]=useState(false);
   const [reduceMotion,setReduceMotion]=useState(true);
   const scroller=useRef<ScrollView|null>(null);

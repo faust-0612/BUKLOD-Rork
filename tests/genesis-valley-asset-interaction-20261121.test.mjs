@@ -60,7 +60,9 @@ test('Map is imagery-first with touch/zoom, visual selected state, faith gating 
  assert.match(gateway,/genesisApprovedEntryHotspots/);
  assert.match(gateway,/router\.push\(route as any\)/);
  assert.match(gateway,/visibleBuklodMapDestinations\(area, showFaith\)/);
- assert.match(gateway,/BuklodFirstViewAd placement="home"/);
+ assert.match(gateway,/<BuklodMapHeader \/>/);
+ assert.match(gateway,/<BuklodMapGuideDock active=\{focused\} \/>/);
+ assert.doesNotMatch(gateway,/BuklodFirstViewAd/);
  assert.doesNotMatch(gateway,/<GenesisMapOrbit|<Svg |<View style=\{styles\.constellation\}>/);
  assert.doesNotMatch(gateway,/(service_role|supabase\.rpc|claimBp|mintBp|awardBp)/i);
 });

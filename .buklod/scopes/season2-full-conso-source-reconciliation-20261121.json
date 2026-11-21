@@ -1,0 +1,97 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
+  "objective": "Reconcile owner's Nov21 premium Kingdom, exact approved World Map, title bar, live guide, Village/Home scenes, and scoped safe offline game flow into ONE DEV staging source while leaving Play production, shared paid Supabase finances and ranked writes intact",
+  "baseRef": "5a3de4ac4cc3e43dd2c404e4033c098d2d92c4d6",
+  "productionBaselineEvidence": "Uses exact independently confirmed existing DEV head 5a3de4a and preserves immutable main/production. Signed staging Android APK and previously published OTA refer to earlier sources, not this new commit.",
+  "chosenApproach": "Add only reviewed native-compatible source files and exact existing Git blobs, update approved map's responsive presentation, protect direct preview routes, and preserve all 39 offline games and 13 arena heroes.",
+  "selectionRationale": "No new native modules, paid services, or production backend writes; owner approved original 1672x941 image and only entry ad removal.",
+  "alternativeApproaches": [
+    "Overwrite approved map with a divergent Valley drawing (rejected)",
+    "Commit a new APK or production OTA without signed runtime/device evidence (rejected)",
+    "Grant BP or Character Diamonds from offline previews (rejected)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "ads-monetization",
+    "audio-focus",
+    "economy-integrity"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
+    "src/features/season2/world/BuklodMapHeader.tsx",
+    "src/features/season2/world/BuklodMapGuideDock.tsx",
+    "src/features/season2/world/guideDestinations.ts",
+    "src/features/season2/world/Season2CommunityFacilities.tsx",
+    "src/features/season2/world/Season2DevelopmentMap.tsx",
+    "src/features/season2/world/communityFacilityDirectory.mjs",
+    "src/features/season2/world/communityFacilityDirectory.d.mts",
+    "src/features/season2/world/developmentAssetManifest.ts",
+    "src/app/learn/index.tsx",
+    "tests/season2-complete-community-facilities-20261121.test.mjs",
+    "src/app/buklod-map.tsx",
+    "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
+    "src/features/games/runtime/rorkAudio.ts",
+    "src/app/(tabs)/hub.tsx",
+    "src/features/season2/genesis/genesisApprovedEntryHotspots.json",
+    "src/features/season2/world/GuardedSeason2DevelopmentWorld.tsx",
+    "src/app/season2/community-village.tsx",
+    "src/app/season2/my-world.tsx",
+    "tests/genesis-valley-audio-focus-20261121.test.mjs",
+    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
+    "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+    "tests/season2-final-conso-staging-20261121.test.mjs",
+    "assets/season2/genesis/world/buklod-community-village-stage1.webp",
+    "assets/season2/genesis/world/buklod-my-home-stage1.webp"
+  ],
+  "regressionTests": [
+    "tests/season2-final-conso-staging-20261121.test.mjs",
+    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
+    "tests/genesis-valley-audio-focus-20261121.test.mjs",
+    "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+    "tests/season2-complete-community-facilities-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Make BUKLOD header, guide, Home and approved world map coexist with immediate entries",
+      "preservedBehaviors": [
+        "Existing production remains unchanged",
+        "Auth, onboarding, maintenance, update, pilot and consent gates hold",
+        "Approved asset image and Empire Arena one-app route remain source owned"
+      ],
+      "tests": [
+        "tests/season2-final-conso-staging-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Make protected Home/Village destinations directly navigable from approved map and guide",
+      "preservedBehaviors": [
+        "Existing verified user identity and Show Faith checks preserved",
+        "Home no longer loops to World Map; existing ads and tabs remain active",
+        "No fresh DB or wallet writes"
+      ],
+      "tests": [
+        "tests/season2-final-conso-staging-20261121.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "39 mini-games including source-generated atlas, original sounds, 13 characters and in-app Arena offline practice",
+    "No ranked Diamond transaction, no client-side BP/QMP/receipt mint, no new Supabase subscription",
+    "First-view map only omits AdMob, normal Home/other monetization unaffected",
+    "Audio follows Android focus, native sound settings and user lifecycle",
+    "Construction preview is separate from real server owned property and unbounded Mastery"
+  ],
+  "acceptanceChecks": [
+    "Exact source tests, TypeScript, Metro Android assets, native parity, AdMob/navigation regression and isolated RLS tests green",
+    "Manual Android UI/touch/performance/AdMob fill is unverified and waived by owner, not misreported as passed",
+    "No OTA receipt or production release claimed for this source unless externally confirmed"
+  ],
+  "publicationStatus": "DEV_ONLY_NOT_PUBLISHED",
+  "releaseMode": "source-only-staging-rc-hold",
+  "physicalDeviceVerification": "USER_WAIVED_UNVERIFIED",
+  "productionDeployment": "NONE"
+}

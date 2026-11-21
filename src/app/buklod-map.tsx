@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  Image, ImageBackground, Pressable, ScrollView, StyleSheet,
-  Text, View,
+  ImageBackground, Pressable, ScrollView, StyleSheet,
+  Text, View, useWindowDimensions,
 } from 'react-native';
 import { router, Redirect, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -13,30 +13,32 @@ import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
 import GenesisApprovedEntryMap from '@/features/season2/genesis/GenesisApprovedEntryMap';
 import approvedEntry from '@/features/season2/genesis/genesisApprovedEntryHotspots.json';
-import GenesisWorldGuide from '@/features/season2/genesis/GenesisWorldGuide';
-import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
-import { GENESIS_IDENTITY, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import BuklodMapHeader from '@/features/season2/world/BuklodMapHeader';
+import BuklodMapGuideDock from '@/features/season2/world/BuklodMapGuideDock';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
-import {requestBuklodAudioFocus} from '@/lib/buklodAudioFocus';
 
 /** A staging-only immersive gateway. Existing feature pages and permissions stay authoritative. */
 export default function BuklodMapScreen() {
   const { session, loading, profile } = useAuth();
-  const { requiresAcceptance } = useCompliance();
-  const { config } = useRuntimeConfig();
+  const { requiresAcceptance, loading: complianceLoading } = useCompliance();
+  const { config, loading: runtimeLoading } = useRuntimeConfig();
   const { activeScope } = useBuklodScope();
   const insets = useSafeAreaInsets();
+  const {width:windowWidth,height:windowHeight}=useWindowDimensions();
+  const landscape=windowWidth>windowHeight && windowHeight<=520;
   const [focused, setFocused] = useState(false);
   const [selectedId, setSelectedId] = useState('community');
   const [selectedHotspotId, setSelectedHotspotId] = useState('community-hall');
   const [showDirectory, setShowDirectory] = useState(false);
-  const [showDistrictEntries, setShowDistrictEntries] = useState(false);
-  const scrollRef = useRef<ScrollView | null>(null);
-  useEffect(() => {
-    if (showDirectory) scrollRef.current?.scrollToEnd({animated:true});
-  }, [showDirectory]);
-  const { musicEnabled, musicSuspended, toggleMusic } = useRorkGameAmbience('kingdom-map');
+  const lastDoorTap = useRef(0);
+  // The default is silent until real authentication, consent, runtime and onboarding gates pass.
+  // On approved Genesis entry, local music autostarts while Android system volume remains authoritative.
+  const canPlayMusic = Boolean(isGenesisPreviewBuild() && !loading && !complianceLoading &&
+    !runtimeLoading && session && profile && !requiresAcceptance && !config?.maintenance_mode && !config?.update_required &&
+    (!config?.pilot_access_required || config?.pilot_access_granted));
+  useRorkGameAmbience('kingdom-map',{autoStart:canPlayMusic});
 
   useFocusEffect(useCallback(() => {
     setFocused(true);
@@ -58,6 +60,24 @@ export default function BuklodMapScreen() {
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
   if (!profile) return <Redirect href="/onboarding" />;
 
+  const mapNode = (
+    <GenesisApprovedEntryMap active={focused} showFaith={showFaith}
+      availableWidth={landscape ? Math.max(290, Math.min(windowWidth * .55, (windowHeight - 145) * 1672 / 941)) : undefined}
+      onOpen={(door, route) => {
+        const now = Date.now();
+        if (now - lastDoorTap.current < 650) return;
+        lastDoorTap.current = now;
+        setSelectedHotspotId(door.id);
+        setSelectedId(door.districtId);
+        router.push(route as any);
+      }}
+      onMenu={() => setShowDirectory(true)}
+      onProfile={() => router.push('/me' as any)}
+      onNotifications={() => router.push('/notifications' as any)}
+      onSearch={() => router.push('/feature-search' as any)}
+    />
+  );
+
   return (
     <View style={styles.root}>
       <ImageBackground
@@ -69,80 +89,50 @@ export default function BuklodMapScreen() {
         <View style={styles.dimmer}/>
       </ImageBackground>
       <GenesisCosmicSky active={focused} transparent />
+      <BuklodMapHeader />
       <ScrollView
-        ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: Math.max(12, insets.top) + 12, paddingBottom: Math.max(20, insets.bottom) + 44 }]}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.content, landscape&&styles.landscapeContent, { paddingTop: 8, paddingBottom: Math.max(20, insets.bottom) + 32 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topline}>
-          <View style={styles.brand}>
-            <Image source={require('../../assets/season2/genesis/genesis-green-b-transparent.png')} style={styles.brandMark} resizeMode="contain"/>
-            <View style={styles.brandText}>
-              <Text style={styles.eyebrow}>BUKLOD WORLD MAP</Text>
-              <Text numberOfLines={2} style={styles.title}>{GENESIS_IDENTITY.title}</Text>
-            </View>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={musicEnabled ? (musicSuspended ? 'Music was paused by another audio source; turn music off' : 'Turn ambient music off') : 'Turn ambient music on'}
-            onPress={() => {
-              if (!musicEnabled) requestBuklodAudioFocus('genesis-valley-map');
-              toggleMusic();
-            }}
-            style={({ pressed }) => [styles.musicButton, pressed && styles.pressed]}
-          >
-            <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={18} color="#FFF0CC"/>
-            <Text style={styles.musicText}>{musicEnabled ? (musicSuspended ? 'Music paused' : 'Music on') : 'Music off'}</Text>
-          </Pressable>
+        <View style={landscape ? styles.landscapeFirstRow : styles.portraitFirstView}>
+          {landscape ? (
+            <>
+              <View style={styles.landscapeMapColumn}>{mapNode}</View>
+              <View style={styles.landscapeGuideColumn}>
+                <Text style={styles.welcomeTitle}>Welcome sa BUKLOD!</Text>
+                <Text style={styles.welcomeNote}>Maligayang pagdating. Saan tayo magsisimula ngayon?</Text>
+                <BuklodMapGuideDock active={focused} />
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.welcomeTextBlock}>
+                <Text style={styles.welcomeTitle}>Welcome sa BUKLOD!</Text>
+                <Text style={styles.welcomeNote}>Maligayang pagdating. Saan tayo magsisimula ngayon?</Text>
+              </View>
+              <BuklodMapGuideDock active={focused} />
+              {mapNode}
+            </>
+          )}
         </View>
-        <Text style={styles.intro}>Ang official Season 2 map: Character Kingdom at Empire Arena ay magkaiba. Pindutin ang gusali para pumasok.</Text>
-
-        {/* Preserve the established first-view Home ad inventory; the banner
-            collapses on no fill/consent without reserving a blank pane. */}
-        <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
-
-        <GenesisApprovedEntryMap
-          active={focused}
-          showFaith={showFaith}
-          onOpen={(door,route) => {
-            setSelectedHotspotId(door.id);
-            setSelectedId(door.districtId);
-            router.push(route as any);
-          }}
-          onMenu={() => setShowDirectory(true)}
-          onProfile={() => router.push('/me' as any)}
-          onNotifications={() => router.push('/notifications' as any)}
-          onSearch={() => router.push('/feature-search' as any)}
-        />
-        <GenesisWorldGuide active={focused}
-          onCharacterKingdom={() => router.push('/games' as any)}
-          onCommunityVillage={() => router.push('/community-village' as any)}
-          onDirectory={() => setShowDirectory(true)}
-        />
         <View style={styles.mapSelectedCaption}>
           <Text style={styles.selectedCaptionText}>
             {selectedHotspot ? selectedHotspot.label : district.title}
           </Text>
-          <Text style={styles.selectedCaptionNote}>Iisang mapa, isang malinaw na destinasyon.</Text>
+          <Text style={styles.selectedCaptionNote}>Direktang pasok sa isang tap. Optional lamang ang ibang links sa ibaba.</Text>
         </View>
 
         <View style={styles.districtPanel}>
-          <Pressable accessibilityRole="button"
-            accessibilityLabel={showDistrictEntries ? 'Hide district shortcuts' : 'Show district shortcuts'}
-            accessibilityState={{expanded:showDistrictEntries}}
-            onPress={() => setShowDistrictEntries(value => !value)}
-            style={styles.panelHeading}
-          >
-            <MaterialCommunityIcons name={district.icon as any} size={25} color={district.accent}/>
+          <View style={styles.panelHeading}>
+            <MaterialCommunityIcons name={district.icon as any} size={27} color={district.accent}/>
             <View style={{flex:1}}>
               <Text style={styles.panelTitle}>{district.title}</Text>
-              <Text style={styles.panelSubtitle}>More places · {district.tagline}</Text>
+              <Text style={styles.panelSubtitle}>{district.tagline}</Text>
             </View>
-            <MaterialCommunityIcons name={showDistrictEntries ? 'chevron-up' : 'chevron-down'} size={22} color="#FFE6AE"/>
-          </Pressable>
-          {showDistrictEntries ? entries.map(entry => (
-
+          </View>
+          {entries.map(entry => (
             <Pressable
               key={entry.route}
               accessibilityRole="button"
@@ -156,7 +146,7 @@ export default function BuklodMapScreen() {
               </View>
               <MaterialCommunityIcons name="chevron-right" size={22} color="#DAECFF"/>
             </Pressable>
-          )) : null}
+          ))}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -202,16 +192,14 @@ const styles = StyleSheet.create({
   underpainting: { opacity: .78 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 14, width: '100%', maxWidth: 700, alignSelf: 'center' },
-  topline: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between' },
-  brand: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, gap: 7 },
-  brandMark: { height: 46, width: 40 },
-  brandText: { flex: 1, minWidth: 0 },
-  eyebrow: { color: '#9EE5D7', letterSpacing: 1.5, fontSize: 10, fontWeight: '900' },
-  title: { fontSize: 17, lineHeight: 22, color: '#FFE5B2', fontWeight: '900' },
-  musicButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, gap: 5, borderRadius: 21, borderWidth: 1, borderColor: 'rgba(255,233,188,.38)', backgroundColor: 'rgba(8,21,44,.75)' },
-  musicText: { color: '#FFF2D6', fontSize: 11, fontWeight: '800' },
-  pressed: { opacity: .75, transform: [{ scale: .985 }] },
-  intro: { color: '#DAE8FA', marginTop: 13, marginBottom: 14, fontSize: 12, lineHeight: 18, fontWeight: '600' },
+  landscapeContent:{maxWidth:1100,paddingHorizontal:6},
+  landscapeFirstRow:{flexDirection:'row',alignItems:'flex-start',gap:8},
+  landscapeMapColumn:{flex:6,minWidth:0,alignItems:'center'},
+  landscapeGuideColumn:{flex:4,minWidth:0,paddingTop:3,gap:5},
+  portraitFirstView:{gap:8},
+  welcomeTextBlock:{paddingHorizontal:4,paddingTop:2,paddingBottom:2},
+  welcomeTitle:{fontSize:19,lineHeight:25,fontWeight:'900',color:'#FFE2AF'},
+  welcomeNote:{fontSize:12,lineHeight:17,color:'#DAE9F7'},
   mapSelectedCaption: {flexDirection:'row', alignItems:'center', justifyContent:'space-between',
     marginTop:7, paddingHorizontal:4, gap:8},
   selectedCaptionText: {fontSize:12, fontWeight:'900', color:'#FFE6AE', flex:1},
@@ -227,12 +215,10 @@ const styles = StyleSheet.create({
     borderTopWidth:StyleSheet.hairlineWidth, borderColor:'rgba(205,228,249,.2)', minHeight:45,
     paddingHorizontal:8},
   directoryEntryLabel: {color:'#F6FAFF', fontWeight:'700', fontSize:12},
-  districtPanel: { marginTop: 9, borderRadius: 16, padding: 11, gap: 6, borderWidth: 1, borderColor: 'rgba(243,211,153,.35)', backgroundColor: 'rgba(6,20,42,.91)' },
+  districtPanel: { marginTop: 12, borderRadius: 20, padding: 15, gap: 7, borderWidth: 1, borderColor: 'rgba(243,211,153,.35)', backgroundColor: 'rgba(6,20,42,.91)' },
   panelHeading: { flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 2 },
   panelTitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '900' },
   panelSubtitle: { color: '#D4E6F9', fontSize: 12 },
-  primaryButton: { marginTop: 6, backgroundColor: '#FFE3A8', borderRadius: 13, minHeight: 46, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  primaryText: { color: '#071B2C', fontSize: 12, fontWeight: '900', letterSpacing: .6 },
   entry: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(205,228,249,.18)', flexDirection: 'row', alignItems: 'center', paddingVertical: 9, gap: 4, minHeight: 48 },
   entryPressed: { backgroundColor: 'rgba(255,255,255,.08)' },
   entryTitle: { color: '#F8FBFF', fontSize: 13, fontWeight: '800' },
