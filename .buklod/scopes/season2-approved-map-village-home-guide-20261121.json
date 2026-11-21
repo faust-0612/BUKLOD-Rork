@@ -1,0 +1,77 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-approved-map-village-home-guide-20261121.json",
+  "objective": "Integrate owner-approved 12-door Season 2 landscape map, animated guidance outside its image, and separate premium Community Village/My Home development scenes on isolated DEV without altering production or simulating economy upgrades.",
+  "baseRef": "d1597dcc6e0be761c8aff0a8820a896cee27597f",
+  "productionBaselineEvidence": "Original target is DEV dev/season2-one-tap-door-map-20261121 at commit d1597dcc6e0be761c8aff0a8820a896cee27597f. Current deployed Android production artifact/OTA fingerprint not independently verified during this task. This branch and draft PR have not updated production; no release is claimed.",
+  "chosenApproach": "Retain established Expo Router and BUKLOD V2 media, replace only owner-approved map source and its normalized coordinates, add two DEV-gated development-world routes with local premium backgrounds and non-authoritative visual-only progression previews, and mount a compact outside-map animated guide. Preserve existing AdMob first-view by side-column composition on narrow landscape.",
+  "selectionRationale": "Owner approved the 12-label landscape image and specified a one-tap immersive map, separate Kingdom/Arena, off-map guide, progressive village and individual home assets. Isolated screen overlays and existing route/data authorities minimize regressions versus replacement of core navigation and backend.",
+  "alternativeApproaches": [
+    "Replace all existing screens/navigation with a new game runtime (rejected: native compatibility, app size, AdMob and auth regressions).",
+    "Embed the helper into the approved image or use a second Enter sheet (rejected: contradicts owner-approved exact artwork and one-tap requirement).",
+    "Perform real BP/item/land progression upgrades purely client-side (rejected: insecure duplicate awards and unverified ownership/concurrent transactions)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "ads-monetization",
+    "character-kingdom",
+    "community-scopes",
+    "security-permissions"
+  ],
+  "allowedPaths": [
+    "assets/season2/genesis/world/buklod-community-village-stage1.webp",
+    "assets/season2/genesis/world/buklod-my-home-stage1.webp",
+    "assets/season2/genesis/world/buklod-season2-entry-map-approved.webp",
+    "docs/season2/GENESIS_WORLD_ONE_TAP_DOOR_AUTHORITY_20261121.md",
+    "src/app/buklod-map.tsx",
+    "src/app/season2/community-village.tsx",
+    "src/app/season2/my-world.tsx",
+    "src/features/season2/genesis/GenesisValleyMap.tsx",
+    "src/features/season2/genesis/genesisMapDistricts.ts",
+    "src/features/season2/genesis/genesisValleyHotspots.json",
+    "src/features/season2/world/BuklodMapGuideDock.tsx",
+    "src/features/season2/world/Season2DevelopmentMap.tsx",
+    "src/features/season2/world/developmentAssetManifest.ts",
+    "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+    "tests/season2-village-home-guide-20261121.test.mjs",
+    ".buklod/scopes/season2-approved-map-village-home-guide-20261121.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+    "tests/season2-village-home-guide-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add approved local map imagery and separate Community Village, My Home, and guide UI while preserving all existing runtime destinations and finance and ad authorities.",
+      "preservedBehaviors": [
+        "Production keeps existing Public Wall startup, bottom navigation, signed native runtime and server-authorized access.",
+        "Map entries use existing feature routes; AdMob remains first-view and no server-side BP, QMP, Diamonds or construction authority is changed.",
+        "No new native module, production OTA, scope policy, membership permission or local shared data mutation."
+      ],
+      "tests": [
+        "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+        "tests/season2-village-home-guide-20261121.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Staging-only features remain gated behind isGenesisPreviewBuild; production route restores Public Wall and current personal/cluster screens.",
+    "Character Kingdom and Empire Arena remain distinct routes within the single BUKLOD MAIN Android app.",
+    "Existing scope/RLS, Show Faith, notifications, media, AdMob fill/lifecycle, return-to-map, background audio arbitration and privacy contracts remain protected.",
+    "Stage and level selectors are explicitly visual previews; persistent saved look is scoped by profile id/world only and never changes authoritative rewards.",
+    "All 12 hotspots route directly without second Enter and the animated helper never overlaps the approved image."
+  ],
+  "acceptanceChecks": [
+    "Actual 3 locally bundled WebP images and SHA256 records verified on isolated DEV branch; source checks pass for map, guide and new routes.",
+    "Run changed Node regression tests in CI with exact 12 hotspots, responsive guide outside ScrollView, 44dp hitboxes, asset hashes and 30-level metadata.",
+    "Before any staging OTA: TypeScript/Metro compile, Android first-view layout and press hitbox tests, AdMob fill/cold navigation safety, scope/Show Faith, reduced motion, offline, weak network and deep-link verification.",
+    "Before allowing real expansion upgrades: isolated server schema transactions/RLS, idempotent participation/materials, independent Lot/House/Cluster progression and concurrency tests.",
+    "Do not claim staging ready, RC or production update until corresponding signed artifact, compatible runtime and deployment evidence are verified."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "productionDeployment": "NONE"
+}
