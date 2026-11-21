@@ -37,3 +37,6 @@ No production main changes. No migration deployment. No release or update workfl
 - Pure Arena V2 combat, 13 art portraits and 3 maps, 1v1 / 3v3 / 5v5 offline practice controls imported. Entry only from Genesis Kingdom portal. Real ranked and server settlement unimplemented.
 - Original /games/index source and production behavior untouched. No BP, QMP, Diamond, inventory, token ledger, credentials or backend mutations.
 - Native Android compilation and visual acceptance still unverified; no OTA release authorization.
+
+## Arena privacy/auth direct-link gate
+The /games/empire-arena route now checks session, profile/onboarding, consent, maintenance, forced update, pilot access, and Genesis-only build before mounting the offline practice component. Production clients remain redirected. This source security gate is not proof of Android behavior.

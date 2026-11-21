@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { useFocusEffect, router, Redirect } from 'expo-router';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { useCompliance } from '@/providers/ComplianceProvider';
+import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -480,5 +482,16 @@ const styles = StyleSheet.create({
 
 /** Genesis-only. This mount boundary preserves the production Kingdom experience. */
 export default function EmpireArenaPreviewGate() {
-  return isGenesisPreviewBuild() ? <EmpireArenaInApp /> : <Redirect href="/games" />;
+  const { session, profile, loading } = useAuth();
+  const { requiresAcceptance } = useCompliance();
+  const { config } = useRuntimeConfig();
+  if (!isGenesisPreviewBuild()) return <Redirect href="/games" />;
+  if (loading && !session) return <View style={styles.root} />;
+  if (!session) return <Redirect href="/(auth)/login" />;
+  if (config?.maintenance_mode) return <Redirect href="/system/maintenance" />;
+  if (config?.update_required) return <Redirect href="/system/update-required" />;
+  if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
+  if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
+  if (!profile) return <Redirect href="/onboarding" />;
+  return <EmpireArenaInApp />;
 }

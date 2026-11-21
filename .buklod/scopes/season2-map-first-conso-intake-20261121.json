@@ -33,7 +33,8 @@
         "tests/genesis-valley-audio-focus-20261121.test.mjs",
         "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
         "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
-        "tests/empire-arena-v2-presentation-20261121.test.mjs"
+        "tests/empire-arena-v2-presentation-20261121.test.mjs",
+        "tests/genesis-arena-auth-boundary-20261121.test.mjs"
       ]
     },
     {
@@ -57,7 +58,8 @@
       "tests": [
         "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
         "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
-        "tests/empire-arena-v2-presentation-20261121.test.mjs"
+        "tests/empire-arena-v2-presentation-20261121.test.mjs",
+        "tests/genesis-arena-auth-boundary-20261121.test.mjs"
       ]
     }
   ],
@@ -68,7 +70,8 @@
     "tests/genesis-valley-audio-focus-20261121.test.mjs",
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
-    "tests/empire-arena-v2-presentation-20261121.test.mjs"
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "tests/genesis-arena-auth-boundary-20261121.test.mjs"
   ],
   "allowedPaths": [
     "src/app/buklod-map.tsx",
@@ -104,7 +107,8 @@
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
     "docs/empire-arena/BUKLOD_ARENA_IN_APP_VISUAL_BASELINE_20261121.md",
-    "src/features/season2/genesis/GenesisKingdomPortal.tsx"
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "tests/genesis-arena-auth-boundary-20261121.test.mjs"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "acceptanceChecks": [
@@ -115,7 +119,8 @@
     "Physical device visual check waived but unverified; signed Android/native/AdMob QA not waived.",
     "No Stage→Production release until 2026-12-06 and authorization.",
     "Source QA workflow runs actual WebP SHA256/14-route checks plus audio-focus regression with no release/publish step.",
-    "Focused Arena engine/camera/input offline tests and exact-head TypeScript; physical device, full PvP and signed APK remain unverified."
+    "Focused Arena engine/camera/input offline tests and exact-head TypeScript; physical device, full PvP and signed APK remain unverified.",
+    "Preview-only Arena direct deep link checks session, onboarding, maintenance, update, pilot and privacy gates before game mount."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
