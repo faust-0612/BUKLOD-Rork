@@ -197,11 +197,19 @@ func _draw_actor(p: Dictionary) -> void:
 			var pose: String = str(last_pose.get("pose", "walk" if walking else "idle")) if float(last_pose.get("until", 0)) > frames else ("walk" if walking else "idle")
 			# Fullbody source contains four approved distinct poses, not fake frame indicators.
 			var frame_texture: Texture2D = _art("res://art/fullbody/" + hero_id + "_" + pose + ".png")
+			var destination := Rect2(pos + Vector2(-large * 1.95, -large * 2.8 + breath * 1.1),
+				Vector2(large * 3.9, large * 3.9))
 			if frame_texture != null:
-				portrait = frame_texture
-			draw_texture_rect(portrait,
-				Rect2(pos + Vector2(-large * 1.95, -large * 2.8 + breath * 1.1),
-					Vector2(large * 3.9, large * 3.9)), false, Color(1, 1, 1, 0.98))
+				# Four columns / two rows, eight actual frames from each approved animation.
+				var idx: int = posmodi(int(frames * 8.0) + int(pos.x * 0.2), 8)
+				var cell := Vector2(float(frame_texture.get_width()) * 0.25,
+					float(frame_texture.get_height()) * 0.5)
+				var region := Rect2(Vector2(float(idx % 4) * cell.x,
+					float(idx / 4) * cell.y), cell)
+				draw_texture_rect_region(frame_texture, destination, region,
+					Color(1, 1, 1, 0.98))
+			else:
+				draw_texture_rect(portrait, destination, false, Color(1, 1, 1, 0.98))
 		draw_arc(pos, large + 4.0, -PI, PI, 30,
 			Color("#6af7ca") if team == "A" else Color("#ff9b8c"), 2.0)
 		draw_string(ThemeDB.fallback_font, pos + Vector2(-18, -large - 16),
