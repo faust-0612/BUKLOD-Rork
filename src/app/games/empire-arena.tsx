@@ -21,6 +21,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { openBundledEmpireArena } from '../../../modules/buklod-genesis-godot';
 import {
   CHARACTER_DISPLAY_NAME, getCachedBuklodCharacterSelectionV2, getMyBuklodCharacterSelectionV2,
   type BuklodCharacterId,
@@ -284,6 +285,21 @@ function EmpireArenaInApp() {
   const [cpuDifficulty,setCpuDifficulty] = useState<'easy'|'normal'|'hard'>('normal');
   const [mapId, setMapId] = useState<ArenaSceneId>('genesis_rift');
   const [phase, setPhase] = useState<'menu' | 'queued' | 'playing' | 'paused' | 'result'>('menu');
+  const [godotOpening, setGodotOpening] = useState(false);
+  const godotNativeEnabled = Platform.OS === 'android' &&
+    process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED === 'true';
+  const launchNativeGodot = useCallback(async () => {
+    if (!godotNativeEnabled || godotOpening) return;
+    setGodotOpening(true);
+    try {
+      const started = await openBundledEmpireArena();
+      if (!started) setMessage('Godot Arena pack unavailable. Existing practice remains accessible.');
+    } catch {
+      setMessage('Could not enter native Godot Arena. Existing practice remains accessible.');
+    } finally {
+      setGodotOpening(false);
+    }
+  }, [godotNativeEnabled, godotOpening]);
   const [arenaKind, setArenaKind] = useState<'practice' | 'ranked'>('practice');
   const [localSeat, setLocalSeat] = useState('A0');
   const localSeatRef = useRef('A0');
@@ -737,6 +753,13 @@ function EmpireArenaInApp() {
     {phase === 'menu' ? <ScrollView style={styles.menuScroll} contentContainerStyle={[styles.menu, compactLandscape && styles.menuCompact]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>GENESIS WAR ARENA</Text>
       <Text style={styles.description}>Fight BUKLOD computer characters without signal. Real attacks, skills, knockouts and winner. No BP or Diamond change.</Text>
+      {godotNativeEnabled ? <Pressable accessibilityRole="button"
+        accessibilityLabel="Launch native Godot Empire Arena inside BUKLOD"
+        disabled={godotOpening} onPress={() => void launchNativeGodot()}
+        style={[styles.start, styles.soloStart, godotOpening && {opacity:0.6}]}>
+        <MaterialCommunityIcons name="gamepad-variant" size={23} color="#0a2932" />
+        <Text style={styles.startText}>{godotOpening ? 'OPENING GODOT...' : 'PLAY GODOT EMPIRE ARENA'}</Text>
+      </Pressable> : null}
       <View style={styles.soloBanner}>
         <MaterialCommunityIcons name="wifi-off" color="#a6ffe0" size={20}/>
         <View style={{flex:1}}>
