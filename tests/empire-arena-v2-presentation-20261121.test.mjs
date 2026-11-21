@@ -56,7 +56,7 @@ test('Visual effects are only recent display metadata, not reward operations', (
 });
 
 test('Native in-app Arena exposes every core combat and economic PRACTICE action', () => {
-  for(const word of ['arenaCamera(', 'arenaNearby(', 'arenaVisualEffects(', 'minimap','type: \'seal_attack\'', 'type: \'loot\'', 'type: \'build\'', 'type: \'train\'', 'type: \'order\'', 'type: \'deposit\'', 'type: \'mine\'', 'type: \'attack\'', 'type: \'skill\'']){
+  for(const word of ['arenaCamera(', 'arenaNearby(', 'arenaActionVisuals(', 'minimap','type: \'seal_attack\'', 'type: \'loot\'', 'type: \'build\'', 'type: \'train\'', 'type: \'order\'', 'type: \'deposit\'', 'type: \'mine\'', 'type: \'attack\'', 'type: \'skill\'']){
     assert.ok(native.includes(word), 'Missing in-app command '+word);
   }
   assert.match(native, /towerAction\('tower_repair'\)/);
