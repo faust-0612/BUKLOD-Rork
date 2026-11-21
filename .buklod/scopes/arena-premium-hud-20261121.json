@@ -38,10 +38,12 @@
     "src/features/games/empire/ArenaCombatHud.tsx",
     "src/features/games/empire/arenaHudLayout.mjs",
     "src/features/games/empire/arenaPracticeAudio.mjs",
+    "src/features/games/empire/arenaPracticePresentation.mjs",
     "tests/arena-kingdom-game-premium-20261121.test.mjs",
     "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
     "tests/arena-protected-feature-lock-20261121.test.mjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
     "tests/season2-arena-responsive-navigation-20261121.test.mjs"
   ],
   "regressionTests": [
@@ -49,7 +51,8 @@
     "tests/arena-kingdom-game-premium-20261121.test.mjs",
     "tests/arena-protected-feature-lock-20261121.test.mjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
-    "tests/arena-offline-solo-cpu-battle-20261121.test.mjs"
+    "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
+    "tests/empire-arena-v2-presentation-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -61,7 +64,8 @@
       "tests": [
         "tests/arena-kingdom-game-premium-20261121.test.mjs",
         "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
-        "tests/arena-offline-solo-cpu-battle-20261121.test.mjs"
+        "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
+        "tests/empire-arena-v2-presentation-20261121.test.mjs"
       ]
     },
     {
@@ -101,7 +105,8 @@
     "No production baseline, RLS, AdMob rendering logic, or paid wallet changes.",
     "Landscape screen transitions return to normal BUKLOD orientation; audio follows existing focus controls.",
     "Offline duel never bypasses existing Auth/Compliance/Production preview gates; last cached authenticated user may play without connectivity.",
-    "CPU and player share canonical combat commands, damage and cooldowns, match-only level does not unlock permanent characters."
+    "CPU and player share canonical combat commands, damage and cooldowns, match-only level does not unlock permanent characters.",
+    "Damage sounds and effects are client-only, filtered to local player involvement and bounded per sequence to avoid 5v5 storms."
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "releaseMode": "staging-source-candidate-hold",
