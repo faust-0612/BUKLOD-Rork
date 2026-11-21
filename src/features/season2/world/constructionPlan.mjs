@@ -11,6 +11,9 @@ export const GROUNDS=Object.freeze(['grass','flower','stone']);
 export const FENCES=Object.freeze(['wood','iron','hedge']);
 export const WINDOWS=Object.freeze(['classic','panorama','arched']);
 export const LIGHTS=Object.freeze(['warm','starlight','garden']);
+export const DOORS=Object.freeze(['wood','glass','arched']);
+export const PATHS=Object.freeze(['gravel','pavers','brick']);
+export const YARDS=Object.freeze(['bench','pond','pergola']);
 export function majorLevel(value) {
   const n=Number(value);
   return Number.isFinite(n)?Math.max(1,Math.min(10,Math.trunc(n))):1;
@@ -51,6 +54,9 @@ export function safeCosmetics(value) {
     fence:FENCES.includes(v.fence)?v.fence:'wood',
     windows:WINDOWS.includes(v.windows)?v.windows:'classic',
     lights:LIGHTS.includes(v.lights)?v.lights:'warm',
+ door:DOORS.includes(v.door)?v.door:'wood',
+ path:PATHS.includes(v.path)?v.path:'gravel',
+ yard:YARDS.includes(v.yard)?v.yard:'bench',
   };
 }
 
@@ -58,10 +64,10 @@ export function safeCosmetics(value) {
  * The stage 0-3 blueprint only shows previous-tier amenities; stage 4 adds the
  * new tier. This is deliberately a DRAWING, never a claim about earned inventory.
  */
-export function visualDevelopmentFeatures(track,level,stage,mastery=0) {
+export function visualDevelopmentFeatures(track,level,stage,mastery=0,earned=false) {
  if(!TRACKS.includes(track))throw new Error('Unknown construction track');
  const l=majorLevel(level),s=constructionStage(stage);
- const count=Math.max(0,l-(s===4||(l===10&&safeMastery(mastery)>0)?0:1));
+ const count=Math.max(0,l-((s===4&&!earned)||(l===10&&safeMastery(mastery)>0)?0:1));
  return Object.freeze(Array.from({length:count},(_,i)=>track+'-amenity-'+String(i+1).padStart(2,'0')));
 }
 

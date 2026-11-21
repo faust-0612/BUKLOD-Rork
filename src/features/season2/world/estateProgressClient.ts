@@ -10,9 +10,10 @@ export type EstateCosmetics={
  roof:'gable'|'hip'|'terrace'; ground:'grass'|'flower'|'stone';
  fence:'wood'|'iron'|'hedge'; windows:'classic'|'panorama'|'arched';
  lights:'warm'|'starlight'|'garden';
+ door:'wood'|'glass'|'arched';path:'gravel'|'pavers'|'brick';yard:'bench'|'pond'|'pergola';
 };
 export const DEFAULT_ESTATE_COSMETICS:EstateCosmetics={
- finish:'stone',roof:'gable',ground:'grass',fence:'wood',windows:'classic',lights:'warm',
+ finish:'stone',roof:'gable',ground:'grass',fence:'wood',windows:'classic',lights:'warm',door:'wood',path:'gravel',yard:'bench',
 };
 export type EstateWallet={development_xp:number;timber:number;stone:number;metal:number};
 export type EstateSnapshot={
@@ -36,6 +37,9 @@ export function normalizedEstateCosmetics(value:unknown):EstateCosmetics {
  fence:isChoice(v.fence,['wood','iron','hedge'])?v.fence:a.fence,
  windows:isChoice(v.windows,['classic','panorama','arched'])?v.windows:a.windows,
  lights:isChoice(v.lights,['warm','starlight','garden'])?v.lights:a.lights,
+ door:isChoice(v.door,['wood','glass','arched'])?v.door:a.door,
+ path:isChoice(v.path,['gravel','pavers','brick'])?v.path:a.path,
+ yard:isChoice(v.yard,['bench','pond','pergola'])?v.yard:a.yard,
  };
 }
 function normalizeSnapshot(raw:any,id:EstateIdentity):EstateSnapshot {

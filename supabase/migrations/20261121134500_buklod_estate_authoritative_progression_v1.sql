@@ -19,7 +19,7 @@ create table if not exists public.buklod_estate_progress_v1 (
   mastery bigint not null default 0 check (mastery between 0 and 9007199254740991),
   build_finish_at timestamptz,
   pending_key text,
-  cosmetics jsonb not null default '{"finish":"stone","roof":"gable","ground":"grass","fence":"wood","windows":"classic","lights":"warm"}'::jsonb,
+  cosmetics jsonb not null default '{"finish":"stone","roof":"gable","ground":"grass","fence":"wood","windows":"classic","lights":"warm","door":"wood","path":"gravel","yard":"bench"}'::jsonb,
   updated_at timestamptz not null default now(),
   primary key (owner_kind,owner_id,track),
   constraint estate_track_owner_match check
@@ -142,7 +142,7 @@ begin
    'mastery',coalesce(s.mastery,0),'build_finish_at',s.build_finish_at,
    'pending_key',s.pending_key,
    'next_cost',buklod_estate_private.cost(p_track,coalesce(s.level,1),coalesce(s.stage,0),coalesce(s.mastery,0)),
-   'cosmetics',coalesce(s.cosmetics,'{"finish":"stone","roof":"gable","ground":"grass","fence":"wood","windows":"classic","lights":"warm"}'::jsonb),
+   'cosmetics',coalesce(s.cosmetics,'{"finish":"stone","roof":"gable","ground":"grass","fence":"wood","windows":"classic","lights":"warm","door":"wood","path":"gravel","yard":"bench"}'::jsonb),
    'wallet',jsonb_build_object('development_xp',coalesce(w.development_xp,0),
      'timber',coalesce(w.timber,0),'stone',coalesce(w.stone,0),'metal',coalesce(w.metal,0)),
    'updated_at',coalesce(s.updated_at,w.updated_at)
@@ -329,7 +329,7 @@ create or replace function public.save_buklod_estate_design_v1(
  p_owner_kind text,p_owner_id uuid,p_track text,p_design jsonb
 ) returns jsonb language plpgsql security definer
 set search_path=pg_catalog,public as $$
-declare v_finish text;v_roof text;v_ground text;v_fence text;v_windows text;v_lights text;
+declare v_finish text;v_roof text;v_ground text;v_fence text;v_windows text;v_lights text;v_door text;v_path text;v_yard text;
 begin
  if not buklod_estate_private.allowed(p_owner_kind,p_owner_id,p_track,true)
  then raise exception 'Only authorized owners/admins can save this design' using errcode='42501'; end if;
@@ -337,17 +337,21 @@ begin
  then raise exception 'Invalid design' using errcode='22023'; end if;
  v_finish:=p_design->>'finish';v_roof:=p_design->>'roof';v_ground:=p_design->>'ground';
  v_fence:=p_design->>'fence';v_windows:=p_design->>'windows';v_lights:=p_design->>'lights';
+ v_door:=p_design->>'door';v_path:=p_design->>'path';v_yard:=p_design->>'yard';
  if v_finish is null or v_finish not in ('stone','timber','garden','slate','clay','light')
  or v_roof is null or v_roof not in ('gable','hip','terrace')
  or v_ground is null or v_ground not in ('grass','flower','stone')
  or v_fence is null or v_fence not in ('wood','iron','hedge')
  or v_windows is null or v_windows not in ('classic','panorama','arched')
  or v_lights is null or v_lights not in ('warm','starlight','garden')
+ or v_door is null or v_door not in ('wood','glass','arched')
+ or v_path is null or v_path not in ('gravel','pavers','brick')
+ or v_yard is null or v_yard not in ('bench','pond','pergola')
  then raise exception 'Unsupported cosmetic choice' using errcode='22023'; end if;
  insert into public.buklod_estate_progress_v1(owner_kind,owner_id,track,cosmetics)
  values(p_owner_kind,p_owner_id,p_track,
  jsonb_build_object('finish',v_finish,'roof',v_roof,'ground',v_ground,
- 'fence',v_fence,'windows',v_windows,'lights',v_lights))
+ 'fence',v_fence,'windows',v_windows,'lights',v_lights,'door',v_door,'path',v_path,'yard',v_yard))
  on conflict(owner_kind,owner_id,track) do update set
  cosmetics=excluded.cosmetics,updated_at=now();
  return public.get_buklod_estate_snapshot_v1(p_owner_kind,p_owner_id,p_track);
