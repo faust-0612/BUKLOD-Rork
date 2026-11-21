@@ -21,7 +21,7 @@ function setupHarness() {
     async setItem(key, value) { if (failWrite) throw new Error('DISK_WRITE_FAILED'); records.set(key, value); },
   };
   const api = runInNewContext(compile(readSource('src/ptt/buklodPttSetup.ts')) +
-    '\n({ loadBuklodPttUserSettings, saveBuklodPttUserSettings, resolveBuklodPttRoute })', {
+    '\n({ loadBuklodPttUserSettings, saveBuklodPttUserSettings, subscribeBuklodPttUserSettings, resolveBuklodPttRoute })', {
     AsyncStorage, Platform: { OS: 'android', Version: 35 }, NetInfo: {},
     Notifications: {}, Linking: {}, PermissionsAndroid: {},
     getRecordingPermissionsAsync: async () => ({ granted: true }),
@@ -47,6 +47,35 @@ test('PTT restores saved route, channel, listening and ordinary talk mode for th
   assert.equal(restored.talkMode, 'PRIORITY');
   assert.equal((await api.loadBuklodPttUserSettings('user-87654321')).scopeId, '');
   assert.equal((await api.loadBuklodPttUserSettings('user-87654321')).listening, true);
+});
+
+test('PTT notifies active screen only after successful per-user storage writes', async () => {
+  const { api, failWrites } = setupHarness();
+  const alice = 'user-12345678', bob = 'user-87654321';
+  const updates = [];
+  const unsubscribe = api.subscribeBuklodPttUserSettings(alice, saved => updates.push(saved.listening));
+  await api.saveBuklodPttUserSettings(bob, {
+    routeMode: 'AUTO', scopeId: 'other', channel: 1,
+    listening: false, talkMode: 'NORMAL',
+  });
+  assert.equal(updates.length, 0);
+  await api.saveBuklodPttUserSettings(alice, {
+    routeMode: 'AUTO', scopeId: 'mine', channel: 2,
+    listening: false, talkMode: 'NORMAL',
+  });
+  assert.deepEqual(updates, [false]);
+  failWrites(true);
+  await assert.rejects(() => api.saveBuklodPttUserSettings(alice, {
+    routeMode: 'AUTO', scopeId: 'mine', channel: 2,
+    listening: true, talkMode: 'NORMAL',
+  }), /DISK_WRITE_FAILED/);
+  assert.deepEqual(updates, [false]);
+  unsubscribe();
+});
+
+test('Notification Stop requests persistent listening off, not just mic release', () => {
+  const duty = readSource('src/ptt/buklodPttDutyNotification.ts');
+  assert.match(duty, /action === STOP_ACTION[\\s\\S]*stopBuklodPttListening\\(\\)/);
 });
 
 test('PTT storage failures do not silently claim a new saved setting', async () => {
