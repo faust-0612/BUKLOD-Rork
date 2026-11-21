@@ -90,7 +90,17 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
       setArea({ width, height });
     }
   }}>
-    {generatedArt || art ? <ExpoImage source={generatedArt ? (generatedArt as React.ComponentProps<typeof ExpoImage>['source']) : { uri: art! }} contentFit="cover" cachePolicy="disk" style={StyleSheet.absoluteFill} /> : null}
+    {generatedArt || art ? <ExpoImage
+      source={generatedArt ? (generatedArt as React.ComponentProps<typeof ExpoImage>['source']) : { uri: art! }}
+      contentFit="cover" cachePolicy="disk" pointerEvents="none"
+      style={{
+        position: 'absolute',
+        width: area.width * (state.w / camera.width),
+        height: area.height * (state.h / camera.height),
+        left: -camera.x * (area.width / camera.width),
+        top: -camera.y * (area.height / camera.height),
+      }}
+    /> : null}
     <LinearGradient colors={['rgba(4,10,26,0.70)', 'rgba(5,20,28,0.40)', 'rgba(4,12,24,0.76)']} style={StyleSheet.absoluteFill} />
     <Svg width="100%" height="100%" viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`} preserveAspectRatio="xMidYMid meet">
       <Rect width={state.w} height={state.h} rx={4} fill="rgba(10,40,56,0.20)" />
