@@ -169,6 +169,7 @@
     "scripts/generate-buklod-arena-hero-motion.py",
     "scripts/ingest-buklod-visual-baseline.mjs",
     "scripts/season2-android-bundle-compatibility.mjs",
+    "scripts/season2-native-apk-source-parity.mjs",
     "scripts/season2-premium-staging-ota-gate.mjs",
     "scripts/vendor-buklod-arena-scenes.mjs",
     "scripts/verify-buklod-arena-motion.py",
