@@ -12,7 +12,7 @@ import {GENESIS_PORTRAIT_RESCUE_URI,GENESIS_COMPACT_RESCUE_URI} from './genesisP
 
 const NATIVE_PORTRAIT=require('../../../../assets/season2/genesis/world/buklod-genesis-portrait-welcome-720x995.jpg');
 const NATIVE_COMPACT=require('../../../../assets/season2/genesis/world/buklod-genesis-portrait-9doors-720x670.jpg');
-type Door={id:string;label:string;route:string;fallbackRoute?:string;faithOnly:boolean;icon:string};
+type Door={id:string;districtId:string;label:string;route:string;fallbackRoute?:string;faithOnly:boolean;icon:string};
 const PROMPTS=[
  {label:'Gusto mong may makasama?',route:'/clusters',icon:'account-group-outline'},
  {label:'Maglaro?',route:'/season2/games',icon:'gamepad-variant-outline'},
