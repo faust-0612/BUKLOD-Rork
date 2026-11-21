@@ -131,6 +131,35 @@ BEGIN
   RETURN jsonb_build_object('awarded',true,'balance',v_balance);
 END; $fn$;
 
+-- Authenticate then auto-credit up to three EXISTING verified participation events
+-- per Manila day, using a bounded 90-day ledger scan. No participation BP is minted.
+CREATE OR REPLACE FUNCTION public.arena_v2_claim_daily_diamonds(p_user uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, buklod_arena, public
+AS $fn$
+DECLARE v_event uuid; v_result jsonb; v_awarded integer:=0;
+BEGIN
+  IF p_user IS NULL THEN RAISE EXCEPTION 'invalid_user'; END IF;
+  FOR v_event IN SELECT l.id FROM public.buklod_points_ledger l
+    WHERE l.user_id=p_user AND l.direction='credit' AND l.claim_state='claimed'
+    AND l.points>0 AND l.created_at>=now()-interval '90 days'
+    AND l.activity_type IN (
+      'r36_engager_comment','r36_creator_impact','community_mutual_support_chain',
+      'learning_progress_verification','game_first_qualified','abc_growth_lesson',
+      'daily_bible','devotional','reflection_quality_bonus')
+    AND NOT EXISTS (
+      SELECT 1 FROM buklod_arena.diamond_events e
+      WHERE e.user_id=p_user AND e.event_type='verified_participation'
+      AND e.source_id=l.id)
+    ORDER BY l.created_at,l.id LIMIT 3
+  LOOP
+    v_result:=public.arena_v2_award_verified_participation(v_event);
+    IF coalesce((v_result->>'awarded')::boolean,false) THEN v_awarded:=v_awarded+1; END IF;
+    EXIT WHEN v_result->>'reason'='daily_cap';
+  END LOOP;
+  RETURN jsonb_build_object('awarded',v_awarded,'source','claimed_verified_participation');
+END; $fn$;
+
 -- Every participant deposits exactly one already-earned Diamond as a rank-risk stake.
 -- The debit happens ATOMICALLY for both teams. Failed/duplicate/insufficient joins
 -- roll back; players cannot forge this RPC using their normal client JWT.
@@ -268,12 +297,14 @@ END; $fn$;
 -- public RPCs, even though PostgreSQL defaults to EXECUTE for PUBLIC.
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_profile(uuid,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_award_verified_participation(uuid) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.arena_v2_claim_daily_diamonds(uuid) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_open(uuid,text,text,jsonb) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_settle(uuid,text,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_abort(uuid,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_expire() FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_profile(uuid,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_award_verified_participation(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.arena_v2_claim_daily_diamonds(uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_open(uuid,text,text,jsonb) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_settle(uuid,text,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_abort(uuid,text) TO service_role;
