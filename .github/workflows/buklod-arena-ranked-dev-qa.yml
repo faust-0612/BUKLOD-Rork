@@ -22,8 +22,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Simulate live duel, 3v3 and 5v5 with authoritative server coordinator
-        run: node --test services/empire-arena/tests/core.test.mjs tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs
+      - name: Install isolated pinned Arena server dependencies
+        run: npm ci --prefix services/empire-arena --ignore-scripts --no-audit --no-fund
+      - name: Test real WebSocket handshake, ranked seat binding, anti-replay and session recovery
+        run: node --test services/empire-arena/tests/core.test.mjs services/empire-arena/tests/gateway.test.mjs tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs
   isolated-postgres-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10
