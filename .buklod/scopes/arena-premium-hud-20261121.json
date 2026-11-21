@@ -93,5 +93,12 @@
     "Run the focused Node controls/camera/presentation tests and exact protected-scope CI.",
     "Run Android Metro export and TypeScript compile on the exact PR head.",
     "Staging physical landscape/pinch/tap/joystick, AdMob and 5v5 performance required before RC, and exact runtime OTA receipt before release."
+  ],
+  "selectionRationale": "Owner-provided landscape screenshots show overlap, clipped controls, oversized models and poor battlefield readability; the existing in-app 13-character assets and local scene plates can support a high-fidelity native HUD without a new engine, independent app or license risk. Scoped overlays and normalized editor improve usability while preserving canonical economy authority.",
+  "alternativeApproaches": [
+    "Use ready-made Mobile Legends interface textures or clone their HUD (rejected: visual IP concerns and no BUKLOD identity).",
+    "Replace Arena engine with a new standalone 3D game/Unity/Godot app (rejected: heavy native builds, extra cost and breaks single BUKLOD app contract).",
+    "Reimport unverified third-party Library sound and sprite ZIPs wholesale (rejected: mixed asset licenses and unbounded mobile bundle growth).",
+    "Keep original row of tiny box action buttons (rejected: unsatisfactory ergonomics, premium requirement not met)."
   ]
 }
