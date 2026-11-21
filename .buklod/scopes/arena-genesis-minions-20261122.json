@@ -1,0 +1,83 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/arena-genesis-minions-20261122.json",
+  "objective": "Add original Solar Legion/Nebula Legion four-class, three-lane Genesis Empire Arena minion waves with self-contained deterministic AI, in-app lightweight animated visual silhouettes, event-time hits and restrained cues. Preserve trained RTS units, BUKLOD characters, standalone solo duel, account economy, ranked authority and production untouched.",
+  "baseRef": "d3b618f37bf91d9906d2c99f14b2f73202fd1891",
+  "productionBaselineEvidence": "Based on live GitHub integration/genesis-all-updates-conso-staging-20261122 head d3b618f, branch PR #1074; no exact Google Play production source/build/runtime verification in this workstream and no production writes. DEV-only isolation.",
+  "chosenApproach": "Make separate match-local minions array+strict optional enableMinionWaves contract in the existing canonical offline Arena engine, read-only local artwork via SVG and wave state; keep villager/army command, bot training, wallet and ranked client unchanged.",
+  "selectionRationale": "User requested minion imagery and actual game behavior. Existing arena had only manually trained villagers/soldiers and no minion waves. Opt-in deterministic lane AI integrates with real heroes/towers and avoids rearchitecting the BUKLOD MAIN in-app Arena or falsely granting progression.",
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character",
+    "arena-combat",
+    "performance",
+    "offline",
+    "seed-determinism",
+    "asset-handoff",
+    "audio-spam",
+    "hero-respawn",
+    "tower-siege",
+    "map-cover",
+    "economy-isolation",
+    "ranked-server-authority",
+    "staging-QA",
+    "production-embargo"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/arena-genesis-minions-20261122.json",
+    "experiments/empire-arena-v2/arena-v2-minions.mjs",
+    "experiments/empire-arena-v2/arena-v2-engine.mjs",
+    "src/features/games/empire/ArenaMinionArt.tsx",
+    "src/app/games/empire-arena.tsx",
+    "src/features/games/empire/arenaActionVisuals.mjs",
+    "src/features/games/empire/arenaSoundscape.mjs",
+    "tests/arena-genesis-minions-20261122.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/arena-genesis-minions-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add minion renderer and optional match-local effects only inside existing Empire Arena practice route",
+      "preservedBehaviors": [
+        "Existing BUKLOD MAIN app navigation, AdMob, route access, auth, session, audio focus, other dashboards and offline team controls remain unchanged; solo duel has no waves."
+      ],
+      "tests": [
+        "tests/arena-genesis-minions-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Introduce independent disposable match minions without modifying canonical 13 heroes, ranks, character item authority or BP/Diamond eligibility",
+      "preservedBehaviors": [
+        "Only verified server can authorize ranked progression; local practice minions never mint BP/QMP/Diamonds, persistent XP, materials or prizes."
+      ],
+      "tests": [
+        "tests/arena-genesis-minions-20261122.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Existing native package and update runtime unchanged; no APK, OTA or production deployment.",
+    "No new auth, Supabase, DB, wallet, currency, material minting or ranked settlement behavior.",
+    "13 existing heroes, their item/diamond eligibility, multiplayer transport and standalone solo CPU duel preserved.",
+    "Manual village/resource gathering, unit recruitment and direct army orders remain separate from automatic minions.",
+    "Minions despawn after short death animation; bounded 42 per side with per-wave symmetry.",
+    "High-fidelity PNG/WebP handoff remains external to source until its binary assets are reviewed/bundled; in-app SVG art provides an offline render fallback."
+  ],
+  "acceptanceChecks": [
+    "Run node --test tests/arena-genesis-minions-20261122.test.mjs and existing focused Arena suites on head.",
+    "Confirm React Native TS compile and Expo Android Metro bundling, in-app view rendering of two teams, all three lanes, shield/heal FX and no audio flood.",
+    "Real Android screenshot and FPS check at 5v5/weak network; verify existing ads, nav, orientation, hero animation.",
+    "Confirm staged PR source SHA, new runtime compatibility and isolated staging OTA gates before any RC or release."
+  ],
+  "alternativeApproaches": [
+    "Replace existing recruitable units with minions (rejected: breaks resource/game economy and tactical command gameplay).",
+    "Run minion combat in client-ranked mode and award persistent XP/BP (rejected: exploit and server authority risk).",
+    "Bundle large unverified external art in production immediately (rejected: licensing/compression/integration verification required)."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "releaseMode": "staging-source-candidate-hold"
+}
