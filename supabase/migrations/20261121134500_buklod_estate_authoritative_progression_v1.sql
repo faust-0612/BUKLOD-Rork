@@ -124,7 +124,7 @@ revoke all on function buklod_estate_private.cost(text,integer,integer,bigint) f
 
 create or replace function public.get_buklod_estate_snapshot_v1(
  p_owner_kind text,p_owner_id uuid,p_track text
-) returns jsonb language plpgsql stable security definer
+) returns jsonb language plpgsql volatile security definer
 set search_path=pg_catalog,public as $$
 declare s public.buklod_estate_progress_v1%rowtype; w public.buklod_estate_wallet_v1%rowtype;
 begin
