@@ -19,7 +19,7 @@ export type EstateSnapshot={
  server_verified:true; can_build:boolean; owner_kind:EstateOwnerKind;owner_id:string;
  track:EstateTrack;level:number;stage:number;mastery:number;
  build_finish_at:string|null;pending_key:string|null;
- cosmetics:EstateCosmetics;wallet:EstateWallet;updated_at:string|null;
+ cosmetics:EstateCosmetics;wallet:EstateWallet;next_cost:ReturnType<typeof estateCost>;updated_at:string|null;
 };
 type EstateIdentity={kind:EstateOwnerKind;ownerId:string;track:EstateTrack};
 const asNonnegative=(value:unknown)=>Number.isSafeInteger(Number(value))&&Number(value)>=0?Number(value):0;
@@ -51,11 +51,16 @@ function normalizeSnapshot(raw:any,id:EstateIdentity):EstateSnapshot {
   cosmetics:normalizedEstateCosmetics(raw.cosmetics),
   wallet:{development_xp:asNonnegative(raw.wallet?.development_xp),
     timber:asNonnegative(raw.wallet?.timber),stone:asNonnegative(raw.wallet?.stone),metal:asNonnegative(raw.wallet?.metal)},
+  next_cost:raw.next_cost?{
+   development_xp:asNonnegative(raw.next_cost.development_xp),timber:asNonnegative(raw.next_cost.timber),
+   stone:asNonnegative(raw.next_cost.stone),metal:asNonnegative(raw.next_cost.metal),
+   build_minutes:asNonnegative(raw.next_cost.build_minutes),
+  }:estateCost(id.track,raw.level,raw.stage,raw.mastery),
   updated_at:typeof raw.updated_at==='string'?raw.updated_at:null,
  };
 }
-export function estateCost(track:EstateTrack,level:number,stage:number){
- const p=constructionPlan(track,level,stage);
+export function estateCost(track:EstateTrack,level:number,stage:number,mastery=0){
+ const p=constructionPlan(track,level,stage,mastery);
  return {development_xp:p.estimatedDevelopmentXp,timber:p.estimatedTimber,
    stone:p.estimatedStone,metal:p.estimatedMetal,build_minutes:p.estimatedBuildMinutes};
 }
