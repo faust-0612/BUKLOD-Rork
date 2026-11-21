@@ -119,7 +119,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const doors = world === 'home' ? HOME_DOORS : VILLAGE_DOORS;
   const choice = LOOKS.find(x=>x.id===look) ?? LOOKS[0];
   const isPreview = isGenesisPreviewBuild();
-  const requirements=constructionPlan(previewTrack,level,stage);
+  const requirements=constructionPlan(previewTrack,level,stage,mastery);
   const next=nextMilestone(level,stage,mastery);
   const applyEarned=(snapshot:EstateSnapshot)=>{
     const key=snapshot.owner_kind+':'+snapshot.owner_id+':'+snapshot.track;
