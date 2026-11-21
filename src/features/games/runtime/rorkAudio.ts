@@ -48,7 +48,7 @@ export function setArenaVoiceDucking(active:boolean){
   arenaVoiceDucking=Boolean(active);
   if(arenaAmbience){
     try {
-      arenaAmbience.volume=Math.min(.16,getBuklodGameSoundVolume()*.55)*(arenaVoiceDucking?.23:1);
+      arenaAmbience.volume=Math.min(.16,getBuklodGameSoundVolume()*.55)*(arenaVoiceDucking ? 0.23 : 1);
     }catch{/* no interruption to gameplay */}
   }
 }
@@ -189,7 +189,7 @@ export function tryPlayArenaEventCue(cue: ArenaSoundCue, enabled = true): boolea
   const player=voices[index%voices.length];
   if(!player.isLoaded)return false;
   try {
-    player.volume=Math.max(0,Math.min(.48,(Number(cue.volume)||.22)*.75*getBuklodGameSoundVolume()*(arenaVoiceDucking?.27:1)));
+    player.volume=Math.max(0,Math.min(.48,(Number(cue.volume)||.22)*.75*getBuklodGameSoundVolume()*(arenaVoiceDucking ? 0.27 : 1)));
 
     player.playbackRate=Math.max(.7,Math.min(1.3,Number(cue.rate)||1));
     if(!startedVoices.has(player)){
@@ -296,7 +296,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
           audio.pause();
           return;
         }
-        audio.volume = Math.min(0.16, getBuklodGameSoundVolume() * 0.55) * (options?.arena&&arenaVoiceDucking?.23:1);
+        audio.volume = Math.min(0.16, getBuklodGameSoundVolume() * 0.55) * (options?.arena&&arenaVoiceDucking ? 0.23 : 1);
         if (audio.isLoaded) audio.play();
       } catch {
         // No impact to gameplay if sound assets, platform or autoplay fail.
