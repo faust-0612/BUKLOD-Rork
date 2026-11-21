@@ -51,7 +51,9 @@
     "tests/season2-community-village-preview-20261121.test.mjs",
     "tests/season2-empire-arena-conso-intake-20261121.test.mjs",
     ".github/workflows/season2-empire-arena-conso-qa-20261121.yml",
-    "tests/season2-full-conso-source-release-gate-20261121.test.mjs"
+    "tests/season2-full-conso-source-release-gate-20261121.test.mjs",
+    "scripts/genesis-map-reconstruction-preflight.mjs",
+    "scripts/season2-premium-staging-ota-gate.mjs"
   ],
   "regressionTests": [
     "tests/season2-final-conso-staging-20261121.test.mjs",
@@ -90,6 +92,18 @@
       "tests": [
         "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
         "tests/season2-final-conso-staging-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Reconcile fail-closed existing staging OTA preflight from retired entry AdMob to approved guide while preserving all other Home ad inventory and immutable native/production receipt requirements",
+      "preservedBehaviors": [
+        "Existing staging EAS runtime, signed APK/native source provenance and externally verified EAS receipt required for release",
+        "Production stays unchanged, no automatic build, publish, wallet payout or shadow Supabase project",
+        "All existing Home and other permitted AdMob placements protected; only map landing ad removed"
+      ],
+      "tests": [
+        "tests/season2-full-conso-source-release-gate-20261121.test.mjs"
       ]
     }
   ],

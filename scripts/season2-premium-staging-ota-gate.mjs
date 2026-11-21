@@ -49,7 +49,13 @@ if(!appConfig.includes("'2.0.0-genesis-preview'"))fail.push('Native Genesis runt
 if(!appConfig.includes("genesisNativePreview ? './assets/season2/genesis/genesis-green-b-transparent.png'"))
  fail.push('Genesis staging native green B splash/icon must match verified signed APK');
 if(!read('src/app/games/index.tsx').includes('BuklodKingdomAdSlot'))fail.push('Kingdom ad slot missing');
-if(!read('src/app/buklod-map.tsx').includes('BuklodFirstViewAd'))fail.push('First-view ad protected source missing');
+// Owner-approved Genesis entry uses an animated guide in place of ONLY that landing ad.
+const mapEntry=read('src/app/buklod-map.tsx');
+const originalHome=read('src/app/(tabs)/hub.tsx');
+if(mapEntry.includes('BuklodFirstViewAd'))fail.push('Genesis World Map first-view ad was not replaced by approved character guide');
+if(!mapEntry.includes('BuklodMapGuideDock')||!mapEntry.includes('BuklodMapHeader'))fail.push('Approved Genesis title and active character guide are missing');
+if(!originalHome.includes('BuklodFirstViewAd'))fail.push('Original Home first-view AdMob has been removed');
+if(!originalHome.includes('BuklodNativeSponsoredCard'))fail.push('Original Home native sponsored ad has been removed');
 if(!existsSync(resolve(root,'src/app/games/empire-arena.tsx'))||
    !existsSync(resolve(root,'experiments/empire-arena-v2/arena-v2-engine.mjs')))
  fail.push('Season 2 conso must include in-app Arena route and engine');

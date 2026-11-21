@@ -21,6 +21,13 @@ test('Live production and financial writes are not part of the Genesis source up
  assert.match(world,/<BuklodMapHeader \/>/);
  assert.doesNotMatch(world,/BuklodFirstViewAd|supabase\.rpc|awardBp|withdrawQMP/);
  assert.match(home,/BuklodFirstViewAd/);
+ const sourceGate=source('scripts/season2-premium-staging-ota-gate.mjs');
+ assert.match(sourceGate,/Genesis World Map first-view ad was not replaced/);
+ assert.match(sourceGate,/Original Home first-view AdMob has been removed/);
+ assert.match(sourceGate,/Signed native APK EAS record evidence missing/);
+ assert.match(sourceGate,/otaReady:false/);
+ const preflight=source('scripts/genesis-map-reconstruction-preflight.mjs');
+ assert.match(preflight,/controlledAutoStart/);
  const stage=source('src/features/season2/world/Season2DevelopmentMap.tsx');
  assert.doesNotMatch(stage,/supabase\.rpc|spendBp|mintBp/);
  const arena=source('src/features/games/empire/rankedClient.ts');

@@ -52,8 +52,13 @@ check('Bundled local Galaxy and approved CC0 music',()=>{
    'assets/sounds/kingdom-premium/manifest.json']) assert.ok(existsSync(resolve(root,p)),p);
  const map=read('src/app/buklod-map.tsx');
  assert.match(map,/useRorkGameAmbience\('kingdom-map'/);
- assert.match(map,/musicEnabled/);
- assert.match(map,/requestBuklodAudioFocus/);
+ assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
+ assert.match(map,/!requiresAcceptance/);
+ assert.doesNotMatch(map,/BuklodFirstViewAd|toggleMusic|musicButton/);
+ assert.match(read('src/features/games/runtime/rorkAudio.ts'),/subscribeBuklodAudioFocus/);
+ assert.match(read('src/features/games/runtime/rorkAudio.ts'),/controlledAutoStart/);
+ assert.match(map,/<BuklodMapHeader \/>/);
+ assert.match(map,/<BuklodMapGuideDock active=\{focused\} \/>/);
  assert.match(map,/GenesisApprovedEntryMap/);
  const approved=read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx');
  assert.match(approved,/buklod-approved-entry-map-1672x941\.webp/);
