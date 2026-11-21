@@ -99,6 +99,29 @@ begin
 end $$;
 revoke all on function buklod_estate_private.allowed(text,uuid,text,boolean) from public,anon,authenticated;
 
+-- Cost quote and debit are computed by the same PostgreSQL function.
+create or replace function buklod_estate_private.cost(
+ p_track text,p_level integer,p_stage integer,p_mastery bigint
+) returns jsonb language plpgsql immutable
+set search_path=pg_catalog,public as $$
+declare f numeric;l integer;p integer;
+begin
+ if p_track not in ('lot','house','cluster') or p_level not between 1 and 10
+   or p_stage not between 0 and 4 or p_mastery<0
+ then raise exception 'Invalid estate milestone' using errcode='22023'; end if;
+ l:=p_level;p:=p_stage;
+ f:=(case p_track when 'lot' then 1 when 'house' then 1.45 else 2.5 end)
+   * (case when l=10 then 1+ln((p_mastery+1)::numeric)/ln(2::numeric)/4 else 1 end);
+ return jsonb_build_object(
+   'development_xp',ceil((18+6*l*l+9*p*(l+1))*f)::bigint,
+   'timber',ceil((3+l*2+p*2)*f)::bigint,
+   'stone',ceil((2+l*l+p*2)*f)::bigint,
+   'metal',ceil((l+p+1)*f/2)::bigint,
+   'build_minutes',ceil((5+l*l*3+p*l*2)*f)::integer
+ );
+end $$;
+revoke all on function buklod_estate_private.cost(text,integer,integer,bigint) from public,anon,authenticated;
+
 create or replace function public.get_buklod_estate_snapshot_v1(
  p_owner_kind text,p_owner_id uuid,p_track text
 ) returns jsonb language plpgsql stable security definer
@@ -118,6 +141,7 @@ begin
    'level',coalesce(s.level,1),'stage',coalesce(s.stage,0),
    'mastery',coalesce(s.mastery,0),'build_finish_at',s.build_finish_at,
    'pending_key',s.pending_key,
+   'next_cost',buklod_estate_private.cost(p_track,coalesce(s.level,1),coalesce(s.stage,0),coalesce(s.mastery,0)),
    'cosmetics',coalesce(s.cosmetics,'{"finish":"stone","roof":"gable","ground":"grass","fence":"wood","windows":"classic","lights":"warm"}'::jsonb),
    'wallet',jsonb_build_object('development_xp',coalesce(w.development_xp,0),
      'timber',coalesce(w.timber,0),'stone',coalesce(w.stone,0),'metal',coalesce(w.metal,0)),
@@ -227,7 +251,7 @@ create or replace function public.start_buklod_estate_construction_v1(
 ) returns jsonb language plpgsql security definer
 set search_path=pg_catalog,public as $$
 declare s public.buklod_estate_progress_v1%rowtype;
- w public.buklod_estate_wallet_v1%rowtype; f numeric; xp bigint; t bigint; st bigint; m bigint; minutes integer;
+ w public.buklod_estate_wallet_v1%rowtype; q jsonb; xp bigint; t bigint; st bigint; m bigint; minutes integer;
 begin
  if not buklod_estate_private.allowed(p_owner_kind,p_owner_id,p_track,true)
  then raise exception 'Not authorized to build this estate' using errcode='42501'; end if;
@@ -245,12 +269,12 @@ begin
  if s.pending_key is not null then
   raise exception 'Finish the current construction before starting another' using errcode='P0001';
  end if;
- f:=case p_track when 'lot' then 1 when 'house' then 1.45 else 2.5 end;
- xp:=ceil((18+6*s.level*s.level+9*s.stage*(s.level+1))*f)::bigint;
- t:=ceil((3+s.level*2+s.stage*2)*f)::bigint;
- st:=ceil((2+s.level*s.level+s.stage*2)*f)::bigint;
- m:=ceil((s.level+s.stage+1)*f/2)::bigint;
- minutes:=ceil((5+s.level*s.level*3+s.stage*s.level*2)*f)::integer;
+ q:=buklod_estate_private.cost(p_track,s.level,s.stage,s.mastery);
+ xp:=(q->>'development_xp')::bigint;
+ t:=(q->>'timber')::bigint;
+ st:=(q->>'stone')::bigint;
+ m:=(q->>'metal')::bigint;
+ minutes:=(q->>'build_minutes')::integer;
  -- Each verified lot/house/cluster uses its own wallet. No BP is debited or minted.
  insert into public.buklod_estate_wallet_v1(owner_kind,owner_id)
  values(p_owner_kind,p_owner_id) on conflict do nothing;
