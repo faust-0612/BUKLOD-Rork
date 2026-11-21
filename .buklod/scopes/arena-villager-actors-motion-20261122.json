@@ -65,5 +65,12 @@
     "Engineering Accountability protected feature scope gate must pass.",
     "Visually check both 6-villager factions, combat animation, responsiveness on real Android before RC/OTA.",
     "Real transparent character cutouts remain separate art-fidelity work."
+  ],
+  "productionBaselineEvidence": "Authoritative production baseline is main ecd34228dd24f07a47ba397bb1c29199aac51779 at inspection. Existing approved two-team villager DEV base branch is dev/arena-two-faction-villagers-20261122 (PR #1076 base SHA 941f921cb4a7e2bcd9f517a1e5cd0435917f6815). No live production hash, APK or release runtime has been verified for this visual change. No OTA is authorized.",
+  "selectionRationale": "The existing canonical Arena engine already moves 12 named role units, but React Native renders placeholder markers. A lightweight SVG puppet renderer directly follows authoritative unit state, uses existing installed dependencies, adds no new native module and keeps ranked and wallet systems untouched.",
+  "alternativeApproaches": [
+    "Crop 12 identities out of the single faction poster: rejected for this patch because characters overlap the background and each other, and poster pixels cannot rig concealed limbs.",
+    "Introduce Godot standalone animation module: rejected for native-module/runtime complexity and BUKLOD MAIN in-app constraint.",
+    "Animate an entire poster/GIF: rejected because the villagers must occupy independently moving Arena world coordinates with real AI behavior."
   ]
 }
