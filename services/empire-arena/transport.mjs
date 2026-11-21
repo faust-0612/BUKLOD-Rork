@@ -6,10 +6,19 @@
 import { WebSocket } from 'ws';
 import { deriveVerifiedArenaSnapshot } from './supabaseStore.mjs';
 
-export function attachArenaTransport({wss,store,coordinator,clientsByUser,metrics,sendRaw,isStopping}){
+export function attachArenaTransport({wss,store,coordinator,clientsByUser,metrics,sendRaw,isStopping,authTimeoutMs=8000}){
+  if(!Number.isInteger(authTimeoutMs)||authTimeoutMs<500||authTimeoutMs>30000)
+    throw Error('invalid_auth_timeout');
 wss.on('connection',ws=>{
   metrics.connections++;
   let state='awaiting_auth';
+  // Unauthenticated sockets have a hard lifetime, avoiding memory/connection
+  // exhaustion by peers that never present a valid BUKLOD Supabase token.
+  const authTimer=setTimeout(()=>{
+    if(state!=='authed'&&ws.readyState===WebSocket.OPEN)
+      ws.close(1008,'auth_timeout');
+  },authTimeoutMs);
+  authTimer.unref?.();
   let session=null;
   let messageChain=Promise.resolve();
   ws.on('message',bytes=>{
@@ -44,6 +53,7 @@ wss.on('connection',ws=>{
             lastCommandSeq:0};
           clientsByUser.set(user.id,ws);
           state='authed';
+          clearTimeout(authTimer);
           // Resume is authoritative; never re-queue a live seat on reconnection.
           const resumed=coordinator.reattach(session);
           sendRaw(ws,{type:'hello_ok',hero:session.hero,
@@ -83,6 +93,7 @@ wss.on('connection',ws=>{
     }).catch(()=>{metrics.rejected++;ws.close(1011,'server_error');});
   });
   ws.on('close',()=>{
+    clearTimeout(authTimer);
     if(session){
       coordinator.disconnect(session);
       if(clientsByUser.get(session.userId)===ws)clientsByUser.delete(session.userId);
