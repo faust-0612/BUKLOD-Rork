@@ -85,3 +85,18 @@ test('confirmation FX and resource imagery use bundled renderers and respect red
  assert.match(consoleSource,/<DevelopmentStructurePreview track=\{track\} level=\{verified\.level\}/);
  for(const asset of ['development_xp','timber','stone','metal'])assert.ok(icons.includes("kind==='"+asset+"'"));
 });
+
+test('verified construction FX animate wood, stone, metal and crystal resources with stage-specific visuals',()=>{
+ for(const resource of ['timber','stone','metal','development_xp'])assert.ok(fx.includes("'"+resource+"'"));
+ assert.match(fx,/EstateResourceEmblem kind=\{resource\}/);
+ assert.match(fx,/earningMilestone/);
+ assert.match(fx,/usingMaterials/);
+ assert.match(fx,/showingDesign/);
+ assert.match(fx,/EstateCosmeticTile family="finish"/);
+ assert.match(map,/cosmetics=\{visualDesign\}/);
+ const render=read('src/features/season2/world/DevelopmentStructurePreview.tsx');
+ for(const stage of ['s===0','s>=1','s>=2','s===3'])assert.ok(render.includes(stage),'distinct construction visualization '+stage);
+ assert.match(render,/timber-material/);
+ assert.match(render,/stone-material/);
+ assert.match(render,/s<4/);
+});

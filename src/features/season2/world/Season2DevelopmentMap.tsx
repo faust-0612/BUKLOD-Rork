@@ -310,7 +310,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             </Pressable>
           ))}
           </Animated.View>
-          <EstateMomentFX event={estateMoment} sequence={estateMomentSequence}/>
+          <EstateMomentFX event={estateMoment} sequence={estateMomentSequence} cosmetics={visualDesign}/>
           <View style={styles.mapBadge} pointerEvents="none">
             <MaterialCommunityIcons name="hammer-wrench" size={14} color="#FFE6B0"/>
             <Text style={styles.mapBadgeText}>{liveView&&verified?'VERIFIED':'BLUEPRINT'} · {previewTrack.toUpperCase()} L{level}{level===10&&mastery>0?' · M'+mastery:''}</Text>
