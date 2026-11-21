@@ -57,4 +57,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f tests/sql/arena_ranked_disposable_setup.sql
           psql -v ON_ERROR_STOP=1 -f supabase/changesets/arena_v2_ranked_private_schema_DEV_ONLY.sql
           psql -v ON_ERROR_STOP=1 -f tests/sql/arena_ranked_private_integrity.sql
+          bash tests/sql/arena_ranked_concurrency.sh
           echo "Isolated PostgreSQL checks passed. NO BUKLOD production or staging SQL was applied."
