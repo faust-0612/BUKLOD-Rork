@@ -21,7 +21,15 @@ const FORBIDDEN_PATHS=Object.freeze([
   'src/lib/buklodSeason2Campaign.ts',
   'src/components/season2',
   'src/app/season2',
-  'src/features/season2/genesis'
+  'src/features/season2/genesis',
+  // Include complete integrated Season 2 game surfaces and bundled assets,
+  // not just the original Genesis campaign folders.
+  'src/features/season2',
+  'src/features/games/empire',
+  'src/app/games/empire-arena.tsx',
+  'src/app/buklod-map.tsx',
+  'assets/season2',
+  'assets/sounds/estate-premium'
 ]);
 const FORBIDDEN_IMPORT_MARKERS=Object.freeze([
   'BUKLOD_SEASON2_CAMPAIGN',
