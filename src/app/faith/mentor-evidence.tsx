@@ -110,6 +110,9 @@ export default function MentorTeachingPhotoEvidence() {
     } catch (error) {
       if (sequence === requestSeq.current) {
         setMentorEligible(null);
+        setTasks([]);
+        setLessons([]);
+        setDisciples([]);
         setErr(`Unable to load mentoring reports: ${message(error)}`);
       }
     } finally {
@@ -342,7 +345,7 @@ export default function MentorTeachingPhotoEvidence() {
     }
   };
 
-  const canCreate = !busy && !retrySessionId && missingReportRequirements.length === 0;
+  const canCreate = mentorEligible === true && !loading && !busy && !retrySessionId && missingReportRequirements.length === 0;
   // Match "CCP5" and "CCP 5" without loosening server-side mentor authorization.
   const searchKey = (value: string) => value.toLocaleLowerCase().replace(/[\s_-]+/g, '');
   const visibleLessons = lessons.filter(lesson =>
@@ -357,6 +360,9 @@ export default function MentorTeachingPhotoEvidence() {
       <Text style={s.sub}>Record a lesson you actually taught to assigned learners. One report requires the lesson, attendees, venue, teaching summary and a genuine photo. Your private photo is sent to System Admin for verification; verified sessions earn +15 BP once.</Text>
       <Text style={s.privacy}>Ask participants for permission before taking or uploading a photo. For minors, obtain appropriate parent or guardian permission. Do not include sensitive records or unrelated people. Photos are private to the mentor and authorized reviewers.</Text>
       {!!err && <Text accessibilityRole="alert" style={s.err}>{err}</Text>}
+      {!!err && !loading && <Pressable accessibilityRole="button" onPress={() => void load()} style={s.choice}>
+        <Text style={s.choiceText}>Retry loading mentoring access</Text>
+      </Pressable>}
       {loading && <ActivityIndicator size="large" color="#0A7436" />}
 
       <View style={s.card}>
