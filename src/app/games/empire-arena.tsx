@@ -25,7 +25,7 @@ import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import { tryPlayRorkGameFeedback, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
 // @ts-ignore — The canonical offline Arena engine is already .mjs. Metro bundles .mjs; native import is intentionally isolated.
-import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
+import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../../../experiments/empire-arena-v2/arena-v2-engine.mjs';
 
 type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
