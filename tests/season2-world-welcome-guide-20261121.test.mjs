@@ -11,7 +11,8 @@ test('classic BUKLOD title bar survives with search, menu and notifications',()=
 });
 test('one tap guide comes before untouched illustrated map and no ad steals first view',()=>{
  const map=src('src/app/buklod-map.tsx'),guide=src('src/features/season2/world/BuklodMapGuideDock.tsx');
- assert.ok(map.indexOf('<BuklodMapGuideDock')<map.indexOf('{mapNode}'));
+ const portrait=map.slice(map.indexOf('style={styles.welcomeTextBlock}'));
+ assert.ok(portrait.indexOf('<BuklodMapGuideDock')<portrait.indexOf('{mapNode}'));
  assert.doesNotMatch(map,/BuklodFirstViewAd|new_home_first_view|toggleMusic|musicButton/);
  assert.match(src('src/features/season2/genesis/GenesisValleyMap.tsx'),/buklod-season2-entry-map-approved.webp/);
  assert.match(map,/landscapeGuideColumn/);
@@ -27,7 +28,9 @@ test('seven true door shortcuts and Android audio on entry, without production c
     existsSync('src/app/(tabs)/'+route.slice(1)+'.tsx'),route);
  }
  assert.match(guide,/minHeight:44/);
- assert.match(src('src/app/buklod-map.tsx'),/useRorkGameAmbience\('kingdom-map',\{autoStart:true\}\)/);
+ assert.match(src('src/app/buklod-map.tsx'),/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
+ assert.match(src('src/app/buklod-map.tsx'),/!requiresAcceptance/);
+ assert.match(src('src/features/games/runtime/rorkAudio.ts'),/controlledAutoStart/);
  assert.doesNotMatch(src('src/app/(tabs)/hub.tsx'),/<Redirect href="\/buklod-map"/);
  assert.match(src('src/app/index.tsx'),/href=\{isGenesisPreviewBuild\(\) \? '\/buklod-map' : '\/\(tabs\)\/buklod'\}/);
 });

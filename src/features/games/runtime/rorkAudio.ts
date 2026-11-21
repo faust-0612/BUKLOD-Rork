@@ -155,16 +155,20 @@ export function useRorkGameAmbience(gameId?: string | null, options?: {autoStart
   // Genesis entry may auto-start; other map and gameplay callers preserve existing preferences.
   const isKingdomMap = gameId === 'kingdom-map';
   const autoStart = isKingdomMap && options?.autoStart === true;
+  const controlledAutoStart = isKingdomMap && typeof options?.autoStart === 'boolean';
   const [musicEnabled, setMusicEnabled] = useState(!isKingdomMap || autoStart);
   const [musicSuspended, setMusicSuspended] = useState(false);
   useEffect(() => {
-    if (!isKingdomMap || autoStart) return;
+    if (controlledAutoStart) setMusicEnabled(autoStart);
+  }, [autoStart, controlledAutoStart]);
+  useEffect(() => {
+    if (!isKingdomMap || controlledAutoStart) return;
     let live = true;
     void AsyncStorage.getItem(KINGDOM_AMBIENCE_SETTING_KEY)
       .then(value => { if (live) setMusicEnabled(value === 'on'); })
       .catch(() => undefined);
     return () => { live = false; };
-  }, [isKingdomMap, autoStart]);
+  }, [isKingdomMap, controlledAutoStart]);
   // Keep native SFX players warm while a Kingdom route is actually focused.
   // Never let late feedback leak into Wall videos, calls or other app screens.
   useFocusEffect(useCallback(() => {

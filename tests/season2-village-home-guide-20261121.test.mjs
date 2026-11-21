@@ -22,7 +22,8 @@ test('new community and home destinations use separate, staged, one-tap routes',
 });
 test('character guide is out of image, not an overlay over landmarks',()=>{
   const map=source('src/app/buklod-map.tsx');
-  assert.ok(map.indexOf('<BuklodMapGuideDock')<map.indexOf('{mapNode}'));
+  const portrait = map.slice(map.indexOf('style={styles.welcomeTextBlock}'));
+  assert.ok(portrait.indexOf('<BuklodMapGuideDock') < portrait.indexOf('{mapNode}'));
   assert.match(source('src/features/season2/world/BuklodMapGuideDock.tsx'),/isReduceMotionEnabled/);
   assert.match(map,/BuklodMapHeader/);
   assert.doesNotMatch(map,/BuklodFirstViewAd/);

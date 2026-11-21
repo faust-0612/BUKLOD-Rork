@@ -1,0 +1,93 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-world-welcome-entry-20261121.json",
+  "objective": "Restore the classic BUKLOD title bar and compact welcoming character-guide navigation before the approved Season 2 Genesis World Map, remove only the map first-view ad/music switch, and safely auto-start local ambience after login and consent.",
+  "baseRef": "32522f5ef0a31468ded20972d73a355f3b8f85e1",
+  "productionBaselineEvidence": "Current change compares only against parent consolidated Season 2 DEV sha 32522f5e. No production or deployed APK/OTA identity was independently verified; no deployment to main or production is authorized.",
+  "chosenApproach": "Rebuild the staging map entry composition using existing Green B, the already-animated character guide, verified existing routes, existing local audio-focus manager and unchanged 12-hotspot approved map image. Preserve unrelated ads in original screens.",
+  "selectionRationale": "Directly addresses owner screenshot without redrawing approved artwork, altering backend wallets or deleting production ad inventory. Small isolated source patch minimizes regression risk.",
+  "alternativeApproaches": [
+    "Insert guide into approved map artwork (rejected because approved map is immutable and guide belongs outside).",
+    "Delete the global ad system or suppress sponsorship on all screens (rejected; owner requests only first-view ad removal).",
+    "Start music before authentication/consent or ignore competing media (rejected for privacy and audio-focus safety)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "ads-monetization",
+    "security-permissions"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/season2-world-welcome-entry-20261121.json",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/buklod-map.tsx",
+    "src/components/BuklodNavigationSideMenu.tsx",
+    "src/features/games/runtime/rorkAudio.ts",
+    "src/features/season2/world/BuklodMapGuideDock.tsx",
+    "src/features/season2/world/BuklodMapHeader.tsx",
+    "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+    "tests/genesis-valley-audio-focus-20261121.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-village-home-guide-20261121.test.mjs",
+    "tests/season2-world-welcome-guide-20261121.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+    "tests/genesis-valley-audio-focus-20261121.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-village-home-guide-20261121.test.mjs",
+    "tests/season2-world-welcome-guide-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Replace Genesis first-view map header, initial guide and direct navigation while preserving production routing and access gates.",
+      "preservedBehaviors": [
+        "Only Genesis preview enters World Map on authenticated boot; regular production boots to existing Community Wall.",
+        "Existing login, onboarding, compliance, maintenance, pilot, Show Faith and server-side access guards stay authoritative.",
+        "The approved 12 map hotspot routes and asset are unchanged, including distinct Character Kingdom and Empire Arena."
+      ],
+      "tests": [
+        "tests/genesis-valley-asset-interaction-20261121.test.mjs",
+        "tests/genesis-valley-audio-focus-20261121.test.mjs",
+        "tests/genesis-world-navigation-regression-20261121.test.mjs",
+        "tests/season2-village-home-guide-20261121.test.mjs",
+        "tests/season2-world-welcome-guide-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-monetization",
+      "reason": "Owner explicitly removes the oversized map-entry ad; original BUKLOD advertisements and mandatory fill/nav performance checks remain unchanged elsewhere.",
+      "preservedBehaviors": [
+        "Original Home, Community and other AdMob inventory remains configured with existing placement components and warmups.",
+        "No payout, QMP, BP, points or finance logic is mutated; staging preview never deploys to production.",
+        "Map ambience yields to media, calls and ads via existing audio focus arbitration."
+      ],
+      "tests": [
+        "tests/genesis-valley-audio-focus-20261121.test.mjs",
+        "tests/genesis-world-navigation-regression-20261121.test.mjs",
+        "tests/season2-world-welcome-guide-20261121.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "BUKLOD legacy header icons still navigate; no new bottom navigation in Genesis.",
+    "The guide displays the actual in-app selected character, animates only when active and reduced-motion off, and uses offline/zero-API-cost routing hints.",
+    "Home, Community, Connect, Profile, Cluster, Settings Engine and My BUKLOD each have verified existing routes; 44dp entry buttons and no extra Enter step.",
+    "The Genesis music starts only once authorized and focused; user can use Android system media volume, app sound settings or OS focus protections.",
+    "Community Village, My Home, game systems, kingdom arenas, Show Faith, membership and all ledger authorities are left unchanged.",
+    "No native dependency, Supabase schema or application production OTA mutation."
+  ],
+  "acceptanceChecks": [
+    "Run and pass all modified and new source-level Node tests on exact branch commit; review React Native hook safety and valid route targets.",
+    "Run TypeScript, Android Metro export and staging-only AdMob/nav/audio focus/weak network regression before considering an OTA.",
+    "Verify keyboard and touch target layout at portrait/landscape, Android audio interruptions, reduced motion and stable app-header menu/search/notification.",
+    "No map ad and no Music on toggle; BUKLOD old title bar, welcome guide, all seven short doors and approved map appear on initial entry.",
+    "Physical Android verification not performed; OTA and production remain blocked until release evidence is met."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "productionDeployment": "NONE"
+}

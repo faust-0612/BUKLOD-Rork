@@ -32,8 +32,12 @@ export default function BuklodMapScreen() {
   const [selectedHotspotId, setSelectedHotspotId] = useState('community-wall-plaza');
   const [showDirectory, setShowDirectory] = useState(false);
   const lastDoorTap = useRef(0);
-  // Automatically play local ambience while focused, subject to Android volume/audio focus.
-  useRorkGameAmbience('kingdom-map',{autoStart:true});
+  // The default is silent until real authentication, consent, runtime and onboarding gates pass.
+  // On approved Genesis entry, local music autostarts while Android system volume remains authoritative.
+  const canPlayMusic = Boolean(isGenesisPreviewBuild() && session && profile &&
+    !requiresAcceptance && !config?.maintenance_mode && !config?.update_required &&
+    (!config?.pilot_access_required || config?.pilot_access_granted));
+  useRorkGameAmbience('kingdom-map',{autoStart:canPlayMusic});
 
   useFocusEffect(useCallback(() => {
     setFocused(true);

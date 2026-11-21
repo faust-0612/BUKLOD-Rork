@@ -21,10 +21,11 @@ test('Local Genesis map audio yields to competing media and AdMob focus, with bo
 test('Genesis World auto-starts local audio without screen music toggle or first-view ad',()=>{
  const map=read('src/app/buklod-map.tsx');
  const audio=read('src/features/games/runtime/rorkAudio.ts');
- assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:true\}\)/);
+ assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
+ assert.match(map,/!requiresAcceptance/);
  assert.doesNotMatch(map,/musicButton|Music on|BuklodFirstViewAd/);
  assert.match(audio,/autoStart = isKingdomMap && options\?\.autoStart === true/);
- assert.match(audio,/if \(!isKingdomMap \|\| autoStart\) return/);
+ assert.match(audio,/if \(!isKingdomMap \|\| controlledAutoStart\) return/);
  assert.match(audio,/\|\| interruptedByOtherAudio/);
  const sound=read('src/features/games/runtime/kingdomPremiumAudioAssets.ts');
  assert.match(sound,/if \(gameId === 'kingdom-map'\) return MUSIC\.adventure/);

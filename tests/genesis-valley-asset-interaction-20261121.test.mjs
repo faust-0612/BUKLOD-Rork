@@ -49,7 +49,8 @@ test('tapping landmarks routes immediately and the character guide is OUTSIDE ma
   assert.doesNotMatch(gateway,/BuklodFirstViewAd/);
   assert.match(mapSrc,/const diameter = zoomed \? 48 : 44/);
   assert.match(mapSrc,/isReduceMotionEnabled/);
-  assert.ok(gateway.indexOf('<BuklodMapGuideDock')<gateway.indexOf('{mapNode}'));
+  const portrait = gateway.slice(gateway.indexOf('style={styles.welcomeTextBlock}'));
+  assert.ok(portrait.indexOf('<BuklodMapGuideDock') < portrait.indexOf('{mapNode}'));
   assert.doesNotMatch(gateway,/(service_role|supabase\.rpc|claimBp|mintBp|awardBp)/i);
 });
 test('narrow Android 44px hit targets stay within landscape image bounds',()=>{
