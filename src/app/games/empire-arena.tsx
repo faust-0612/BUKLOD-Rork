@@ -287,7 +287,9 @@ function Control({ icon, title, onPress, disabled }: { icon: React.ComponentProp
 function EmpireArenaInApp() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const [hero, setHero] = useState<BuklodCharacterId>('phan');
+  const [hero, setHero] = useState<BuklodCharacterId>('phan'); // verified profile/ranked selection
+  const [soloHero,setSoloHero] = useState<BuklodCharacterId>('phan'); // local training selection only
+  const soloHeroTouched = useRef(false);
   const [mode, setMode] = useState<Mode>('duel');
   const [cpuHero,setCpuHero] = useState<BuklodCharacterId>('ace');
   const [cpuDifficulty,setCpuDifficulty] = useState<'easy'|'normal'|'hard'>('normal');
@@ -349,9 +351,15 @@ function EmpireArenaInApp() {
     let alive = true;
     const id = user?.id;
     const cached = id ? getCachedBuklodCharacterSelectionV2(id) : null;
-    if (cached?.active_character_id) setHero(cached.active_character_id);
+    if (cached?.active_character_id) {
+      setHero(cached.active_character_id);
+      if(!soloHeroTouched.current)setSoloHero(cached.active_character_id);
+    }
     if (id) void getMyBuklodCharacterSelectionV2(id).then(value => {
-      if (alive && value.active_character_id) setHero(value.active_character_id);
+      if (alive && value.active_character_id) {
+        setHero(value.active_character_id);
+        if(!soloHeroTouched.current)setSoloHero(value.active_character_id);
+      }
     }).catch(() => undefined);
     return () => { alive = false; };
   }, [user?.id]);
@@ -455,7 +463,7 @@ function EmpireArenaInApp() {
     // Pure local CPU match: no remote requests, account checks, sockets or reward grants.
     // The same canonical combat engine drives both player and CPU actions.
     rankedRef.current?.close();rankedRef.current=null;
-    const state = createArenaSolo({hero,opponent:cpuHero,difficulty:cpuDifficulty,mapId});
+    const state = createArenaSolo({hero:soloHero,opponent:cpuHero,difficulty:cpuDifficulty,mapId});
     gameRef.current=state;
     setLocalSeat('A0');localSeatRef.current='A0';
     setArenaKind('practice');
@@ -466,7 +474,7 @@ function EmpireArenaInApp() {
     setTacticsOpen(false);setHudEditing(false);setZoom(1);
     setMessage('OFFLINE CPU BATTLE • Best of 3 rounds • Real attacks, skills, HP and cooldowns • No rewards');
     setPhase('playing');setRevision(v=>v+1);
-  },[hero,cpuHero,cpuDifficulty,mapId,sfxEnabled]);
+  },[soloHero,cpuHero,cpuDifficulty,mapId,sfxEnabled]);
 
   const startRanked = useCallback(async () => {
     if (!user?.id || !isArenaRankedConfigured()) {
@@ -631,7 +639,7 @@ function EmpireArenaInApp() {
   };
   const actions: CombatAction[] = [
     {id:'attack',label:'ATTACK',icon:'sword-cross',onPress:attack},
-    {id:'primary',label:'SKILL',icon:PRIMARY_GLYPH_BY_STYLE[HEROES[hero]?.style] || 'lightning-bolt',onPress:()=>skill('primary'),
+    {id:'primary',label:'SKILL',icon:PRIMARY_GLYPH_BY_STYLE[HEROES[game?.solo ? soloHero : hero]?.style] || 'lightning-bolt',onPress:()=>skill('primary'),
       disabled:(me?.mana || 0)<18,cooldownMs:cooldownFor('primary')},
     {id:'secondary',label:'DASH',icon:'run-fast',onPress:()=>skill('secondary'),
       disabled:(me?.matchLevel||1)<3 || (me?.mana||0)<14,cooldownMs:cooldownFor('secondary')},
@@ -650,10 +658,10 @@ function EmpireArenaInApp() {
     <LinearGradient colors={['#060d1d', '#092b3a', '#071324']} style={StyleSheet.absoluteFill} />
     <View style={[styles.top, compactLandscape && styles.topCompact]}>
       <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD Kingdom" onPress={() => router.back()} style={styles.back}><MaterialCommunityIcons name="arrow-left" size={20} color="#ffdfa4" /></Pressable>
-      <Image source={ARENA_GENERATED_ART['hero:' + hero] || ARENA_HERO_ART[hero]} style={styles.portrait} />
+      <Image source={ARENA_GENERATED_ART['hero:' + (game?.solo ? soloHero : hero)] || ARENA_HERO_ART[game?.solo ? soloHero : hero]} style={styles.portrait} />
       <View style={styles.topText}>
         <Text numberOfLines={1} style={styles.header}>BUKLOD EMPIRE • ARENA</Text>
-        <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {gameRef.current?.solo ? 'OFFLINE • VS CPU' : phase === 'playing' ? (arenaKind === 'ranked' ? 'RANKED LIVE' : 'PRACTICE LIVE') : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
+        <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[game?.solo ? soloHero : hero]} • {gameRef.current?.solo ? 'OFFLINE • VS CPU' : phase === 'playing' ? (arenaKind === 'ranked' ? 'RANKED LIVE' : 'PRACTICE LIVE') : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
       </View>
       <Pressable onPress={toggleMusic} accessibilityRole="button" accessibilityLabel={musicEnabled ? 'Mute Arena music' : 'Enable Arena music'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={17} color="#f9df9e" />
@@ -689,7 +697,7 @@ function EmpireArenaInApp() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.heroPicker}>
         {(Object.keys(HEROES) as BuklodCharacterId[]).map(c=><Pressable key={'human-'+c}
           accessibilityRole="button" accessibilityLabel={'Use '+CHARACTER_DISPLAY_NAME[c]+' in offline Arena'}
-          onPress={()=>setHero(c)} style={[styles.heroPick,hero===c&&styles.heroPickActive]}>
+          onPress={()=>{soloHeroTouched.current=true;setSoloHero(c);}} style={[styles.heroPick,soloHero===c&&styles.heroPickActive]}>
           <ExpoImage source={ARENA_GENERATED_ART['fullbody:'+c+'_idle']||ARENA_HERO_ART[c]}
             contentFit="contain" style={styles.heroPickImage}/>
           <Text numberOfLines={1} style={styles.heroPickText}>{CHARACTER_DISPLAY_NAME[c]}</Text>
@@ -713,22 +721,6 @@ function EmpireArenaInApp() {
           <Text style={styles.optionText}>{SOLO_CPU_DIFFICULTIES[d].label}</Text>
         </Pressable>)}
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Play offline against BUKLOD computer hero"
-        onPress={startSolo} style={[styles.start,styles.soloStart]}>
-        <MaterialCommunityIcons name="sword-cross" size={22} color="#0a2932"/>
-        <Text style={styles.startText}>PLAY OFFLINE • VS CPU</Text>
-      </Pressable>
-      <View style={styles.menuHeroPreview}>
-        <ExpoImage source={ARENA_GENERATED_ART['fullbody:' + hero + '_idle'] || ARENA_HERO_ART[hero]}
-          contentFit="contain" style={styles.menuHeroImage} />
-        <View style={styles.menuHeroText}><Text style={styles.heroName}>{CHARACTER_DISPLAY_NAME[hero]}</Text>
-          <Text style={styles.heroCaption}>{HEROES[hero]?.role?.toUpperCase() ?? 'HERO'} • CANONICAL BUKLOD CHARACTER</Text>
-          <Text style={styles.heroCaption}>13 heroes • 3 realms • animated battle poses</Text></View>
-      </View>
-      <Text style={styles.groupLabel}>CLASSIC OFFLINE WAR PRACTICE</Text>
-      <Text style={styles.soloBannerNote}>1v1, 3v3 or 5v5 • mining, towers, troops and seals</Text>
-      <Text style={styles.groupLabel}>BATTLE MODE</Text>
-      <View style={styles.options}>{MODES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMode(m)} style={[styles.option, mode === m && styles.optionActive]}><Text style={styles.optionText}>{MODE_LABELS[m]}</Text></Pressable>)}</View>
       <Text style={styles.groupLabel}>BATTLEFIELD</Text>
       <View style={styles.sceneOptions}>{SCENES.map(m => <Pressable key={m} accessibilityRole="button" accessibilityLabel={'Battlefield ' + ARENA_MAPS[m].name}
         onPress={() => setMapId(m)} style={[styles.sceneCard, mapId === m && styles.sceneActive]}>
@@ -737,6 +729,23 @@ function EmpireArenaInApp() {
         <Text style={styles.sceneTitle}>{ARENA_MAPS[m].name}</Text>
         {mapId===m ? <MaterialCommunityIcons name="check-decagram" size={19} color="#fbe2a6" style={styles.sceneCheck}/> : null}
       </Pressable>)}</View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Play offline against BUKLOD computer hero"
+        onPress={startSolo} style={[styles.start,styles.soloStart]}>
+        <MaterialCommunityIcons name="sword-cross" size={22} color="#0a2932"/>
+        <Text style={styles.startText}>PLAY OFFLINE • VS CPU</Text>
+      </Pressable>
+      <View style={styles.menuHeroPreview}>
+        <ExpoImage source={ARENA_GENERATED_ART['fullbody:' + soloHero + '_idle'] || ARENA_HERO_ART[soloHero]}
+          contentFit="contain" style={styles.menuHeroImage} />
+        <View style={styles.menuHeroText}><Text style={styles.heroName}>{CHARACTER_DISPLAY_NAME[soloHero]}</Text>
+          <Text style={styles.heroCaption}>{HEROES[soloHero]?.role?.toUpperCase() ?? 'HERO'} • OFFLINE TRAINING CHARACTER</Text>
+          <Text style={styles.heroCaption}>13 heroes • 3 realms • animated battle poses</Text></View>
+      </View>
+      <Text style={styles.groupLabel}>CLASSIC OFFLINE WAR PRACTICE</Text>
+      <Text style={styles.soloBannerNote}>1v1, 3v3 or 5v5 • mining, towers, troops and seals</Text>
+      <Text style={styles.groupLabel}>BATTLE MODE</Text>
+      <View style={styles.options}>{MODES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMode(m)} style={[styles.option, mode === m && styles.optionActive]}><Text style={styles.optionText}>{MODE_LABELS[m]}</Text></Pressable>)}</View>
+
       <Pressable accessibilityRole="button" onPress={start} style={styles.start}><MaterialCommunityIcons name="shield-sword" color="#102b31" size={20} /><Text style={styles.startText}>ENTER CLASSIC WAR PRACTICE</Text></Pressable>
       {isArenaRankedConfigured() ? <Pressable accessibilityRole="button" onPress={() => void startRanked()}
         style={styles.start}><MaterialCommunityIcons name="shield-sword" color="#102b31" size={20} /><Text style={styles.startText}>SEARCH RANKED OPPONENTS</Text></Pressable>
