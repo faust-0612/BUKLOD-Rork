@@ -18,7 +18,7 @@ test('arena supports bounded pinch, zoom in, zoom out and reset', () => {
   assert.match(arena, /\) \/ zoom\);/);
 });
 test('game controls and actors respect short landscape height', () => {
-  for (const token of ['styles.topCompact','styles.joystickCompact','styles.actionsCompact',
+  for (const token of ['styles.topCompact','<ArenaCombatHud', 'hudArea.height',
     'styles.tacticsCompact','styles.minimapCompact','area.height * 0.36'])
     assert.ok(arena.includes(token), token);
 });
