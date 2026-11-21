@@ -26,7 +26,8 @@ test('preloading has a bounded viewport and the native replay cache preserves or
   const sponsor=read('src/components/BuklodCommunitySponsoredAd.tsx');
   assert.match(sponsor,/useVideoPlayer\(source,/);
   assert.match(sponsor,/useCaching: true/);
-  assert.match(sponsor,/videoNear && screenFocused/);
+  assert.match(sponsor,/screenFocused && \(videoNear \|\| retainedVideoCampaignId === campaign.id\)/);
+  assert.match(sponsor,/selectSponsoredVideoSource/);
   assert.match(sponsor,/mediaRef\.current\?\.measureInWindow/);
   assert.match(sponsor,/ref=\{mediaRef\} collapsable=\{false\}/);
   assert.match(sponsor,/onLayout=\{\(\) => remeasureVideoRef\.current\(\)\}/);

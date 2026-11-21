@@ -9,6 +9,9 @@ export type PaidSponsorshipCampaign = {
   short_text: string | null;
   image_url: string | null;
   video_url: string | null;
+  /** Optional verified small MP4 renditions; legacy campaigns still use video_url. */
+  video_url_mobile?: string | null;
+  video_url_low?: string | null;
   destination_url: string | null;
   creative_type: PaidSponsorshipCreative;
   coverage_level: PaidSponsorshipCoverage;
