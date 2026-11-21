@@ -344,7 +344,10 @@ export async function getMyBuklodCharacterSelectionV2(
   const request = (async () => {
     // A stalled PostgREST call must not leave Character UI spinning forever.
     // Only the winning (in-time) response may update the shared selection cache.
-    const { data, error } = await withBuklodCharacterReadDeadline(
+    const { data, error } = await withBuklodCharacterReadDeadline<{
+      data: unknown;
+      error: { message?: string } | null;
+    }>(
       (supabase as any).rpc('get_my_buklod_character_selection_v2'),
       CHARACTER_SELECTION_DEADLINE_MS,
       'selection',
