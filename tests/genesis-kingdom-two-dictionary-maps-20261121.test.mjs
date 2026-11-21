@@ -32,6 +32,8 @@ test('Locked Special identities, names, faces, captions and routes never render 
  assert.match(portal,/getMyBuklodCharacterSelectionV2\(userId\)/);
  assert.match(portal,/state.visible_special_character_ids/);
  assert.match(portal,/setVisibleSpecialIds\(\[\]\)/);
+ assert.match(portal,/verifiedSpecialOwner===userId\?visibleSpecialIds:\[\]/);
+ assert.match(portal,/setVerifiedSpecialOwner\(null\)/);
  assert.match(portal,/mapMode==='special'&&!visibleSpecialIds.includes\(realm.character\)/);
 });
 test('No new progression authority or ad overlay, canonical 13 game routes and footer remain',()=>{

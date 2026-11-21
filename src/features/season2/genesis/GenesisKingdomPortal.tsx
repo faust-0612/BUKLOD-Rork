@@ -82,6 +82,8 @@ export default function GenesisKingdomPortal() {
   const [selected, setSelected] = useState<Realm>(GENESIS_REALMS[0]);
   const [mapMode,setMapMode]=useState<KingdomMapKind>('core');
   const [visibleSpecialIds,setVisibleSpecialIds]=useState<readonly string[]>([]);
+  const [verifiedSpecialOwner,setVerifiedSpecialOwner]=useState<string|null>(null);
+  const allowedSpecialIds=verifiedSpecialOwner===userId?visibleSpecialIds:[];
   const [specialLoading,setSpecialLoading]=useState(false);
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
@@ -91,15 +93,15 @@ export default function GenesisKingdomPortal() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
   // Account switches must not reuse unlocked Special identities from another user.
-  useEffect(()=>{setSelected(GENESIS_REALMS[0]);setMapMode('core');setVisibleSpecialIds([]);},[userId]);
+  useEffect(()=>{setSelected(GENESIS_REALMS[0]);setMapMode('core');setVisibleSpecialIds([]);setVerifiedSpecialOwner(null);},[userId]);
   useEffect(()=>{
     if(mapMode!=='special'||!focused||!userId)return;
     let live=true;
     setSpecialLoading(true);
     void getMyBuklodCharacterSelectionV2(userId).then(state=>{
-      if(live)setVisibleSpecialIds(state.visible_special_character_ids);
+      if(live){setVisibleSpecialIds(state.visible_special_character_ids);setVerifiedSpecialOwner(userId);}
     }).catch(()=>{
-      if(live)setVisibleSpecialIds([]);
+      if(live){setVisibleSpecialIds([]);setVerifiedSpecialOwner(null);}
     }).finally(()=>{if(live)setSpecialLoading(false);});
     return()=>{live=false;};
   },[mapMode,focused,userId]);
@@ -140,12 +142,12 @@ export default function GenesisKingdomPortal() {
     setMapMode(next);
     if(next==='core')setSelected(GENESIS_REALMS[0]);
     else {
-      const first=GENESIS_REALMS.find(r=>!CORE.includes(r.character)&&visibleSpecialIds.includes(r.character));
+      const first=GENESIS_REALMS.find(r=>!CORE.includes(r.character)&&allowedSpecialIds.includes(r.character));
       if(first)setSelected(first);
     }
   };
   const activeSelected=mapMode==='core'?CORE.includes(selected.character):
-    !CORE.includes(selected.character)&&visibleSpecialIds.includes(selected.character);
+    !CORE.includes(selected.character)&&allowedSpecialIds.includes(selected.character);
   const frameHeight = width > 640 ? 260 : 235;
   return <View style={styles.root}>
     <ScrollView contentContainerStyle={styles.content}>
@@ -164,7 +166,7 @@ export default function GenesisKingdomPortal() {
         <Text style={styles.worldBackText}>BUKLOD World Map</Text>
       </Pressable>
       <GenesisKingdomLoreMaps mode={mapMode} realms={GENESIS_REALMS}
-        unlockedSpecialIds={visibleSpecialIds} loadingSpecial={specialLoading}
+        unlockedSpecialIds={allowedSpecialIds} loadingSpecial={specialLoading}
         stationClears={Object.fromEntries(Object.entries(stationProgress.stations).map(([k,v])=>[k,v.clears??0]))}
         onSelect={realm=>enterStation(realm as Realm)} onSwitch={switchMap}/>
       {/* Fixed local BUKLOD-owned art: mature, nature-first, tropical/coastal and alpine/winter.
@@ -213,7 +215,7 @@ export default function GenesisKingdomPortal() {
           contentContainerStyle={styles.stationTrail}>
           {GENESIS_REALMS.map((realm,index) => {
             if((mapMode==='core')!==CORE.includes(realm.character))return null;
-            if(mapMode==='special'&&!visibleSpecialIds.includes(realm.character))return null;
+            if(mapMode==='special'&&!allowedSpecialIds.includes(realm.character))return null;
             const details = STATION_DETAILS[realm.id];
             const stationClears = stationProgress.stations[realm.id]?.clears ?? 0;
             return <Pressable key={realm.id} accessibilityRole="button"
