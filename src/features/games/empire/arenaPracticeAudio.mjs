@@ -33,11 +33,12 @@ export function arenaAudioCueForEvent(event, team = 'A', localSeat = 'A0') {
   }
   const cue = EVENT_AUDIO[type];
   if (!cue) return null;
+  // A local defeat must be audible even when the enemy performed the hit.
+  if (type === 'defeat' && event.to === localSeat) return 'failure';
   // Character-triggered effects from other players may be visually represented,
   // but user audio should not become a storm in 5v5.
   if (typeof event.actor === 'string' && event.actor !== localSeat && 
       !['tower_destroyed', 'seal_breached'].includes(type)) return null;
-  if (type === 'defeat' && event.to === localSeat) return 'failure';
   return cue;
 }
 
