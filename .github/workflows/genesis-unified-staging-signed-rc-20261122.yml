@@ -26,6 +26,7 @@ jobs:
       STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
       STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
       STAGING_FIREBASE_JSON_B64: ${{ secrets.STAGING_FIREBASE_JSON_B64 }}
+      STAGING_SIGNING_CERT_SHA256: ${{ secrets.STAGING_SIGNING_CERT_SHA256 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,6 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/genesis-unified-signed-stage-preflight.mjs --signed
+          # Verified original EAS signing certificate is pinned in the binary verifier.
+          # Optional CI override is accepted only if identical to the audited original.
           printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
           node <<'NODE'
           const a=require('node:assert/strict');
@@ -81,18 +84,31 @@ jobs:
           a.equal(String(b.status).toLowerCase(),'finished');
           a.equal(String(b.platform).toLowerCase(),'android');
           a.match(String(b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl||''),/^https:\/\//);
+          a.equal(b.gitCommitHash,process.env.GITHUB_SHA,'EAS source differs from signed RC');
+          a.equal(b.runtime?.version,'2.0.3-genesis-unified-godot','EAS built wrong native runtime');
+          a.equal(b.updateChannel?.name,'season2-genesis-unified-preview','EAS built wrong OTA channel');
           fs.writeFileSync('buklod-genesis-unified-eas-build-receipt.json',JSON.stringify({
-            sourceSha:process.env.GITHUB_SHA,buildId:b.id,status:b.status,package:'org.mzbministry.buklod.staging',
+            sourceSha:process.env.GITHUB_SHA,buildSourceSha:b.gitCommitHash,buildRuntime:b.runtime.version,
+            buildProfile:'season2-genesis-unified-worlds-staging',
+            buildId:b.id,status:b.status,package:'org.mzbministry.buklod.staging',
             runtime:'2.0.3-genesis-unified-godot',channel:'season2-genesis-unified-preview',
             artifactUrl:b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl,
-            signingCertComparedToInstalledEas:false,deviceQA:'PENDING',otaPublished:false,
+            deviceQA:'PENDING',otaPublished:false,
             productionChanged:false,
           },null,2));
           NODE
-      - name: Retain exact EAS receipt, do not publish OTA or production
+      - name: Verify actual EAS-signed APK, Godot resources and signing continuity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/genesis-unified-verify-signed-apk.mjs \
+            --receipt=buklod-genesis-unified-eas-build-receipt.json \
+            --output=buklod-genesis-unified-verified-apk.json
+          test -s buklod-genesis-unified-verified-apk.json
+      - name: Retain verified binary receipt only, do not publish OTA or production
         uses: actions/upload-artifact@v4
         with:
           name: buklod-genesis-unified-signed-staging-receipt
-          path: buklod-genesis-unified-eas-build-receipt.json
+          path: buklod-genesis-unified-verified-apk.json
           if-no-files-found: error
           retention-days: 14
