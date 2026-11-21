@@ -111,14 +111,29 @@ export function startCommunityProject(s,{scopeId,projectId,target,kind='cluster_
  c.projects[projectId]={id:projectId,scopeId,kind,target,progress:0,contributors:dict(),completed:false};return copy(c.projects[projectId]);
 }
 export function contributeWorldMaterial(s,{itemId,contributorId,scopeId,projectId,requestId}){
- if(s.projectUses[requestId]){const old=s.projectUses[requestId];required(old.itemId===itemId&&old.contributorId===contributorId&&old.projectId===projectId,'conflicting project retry');return copy(old)}
+ required(typeof requestId==='string'&&requestId.length>=4&&requestId.length<=120,'invalid contribution id');
+ if(s.projectUses[requestId]){
+  const old=s.projectUses[requestId];
+  required(old.itemId===itemId&&old.contributorId===contributorId&&old.projectId===projectId&&old.scopeId===scopeId,'conflicting project retry');
+  return copy(old);
+ }
  const item=s.items[itemId],project=s.scopes[scopeId]?.projects[projectId];
  required(s.accounts[contributorId]&&item&&item.ownerId===contributorId&&item.kind===TRADE_KINDS.material&&item.location==='inventory'&&!item.used,'not owned transferable materials');
  required(project&&!project.completed,'project closed');
- // Cross-cluster support is optional, auditable and never a forced minimum spend.
- const applied=Math.min(item.quantity,project.target-project.progress);required(applied>0,'nothing to contribute');
- item.used=true;item.location='consumed';project.progress+=applied;project.completed=project.progress>=project.target;project.contributors[contributorId]=(project.contributors[contributorId]||0)+applied;
- const receipt={requestId,itemId,contributorId,projectId,scopeId,applied,progress:project.progress,completed:project.completed};s.projectUses[requestId]=receipt;s.receiptLog.push({type:'project_contribution',...receipt});return copy(receipt);
+ // Transfer ONLY the useful quantity. The unspent remainder stays in custody
+ // and can support another consented project or a later cross-cluster sale.
+ const beforeQuantity=item.quantity;
+ required(positiveInt(beforeQuantity),'invalid source material quantity');
+ const applied=Math.min(beforeQuantity,project.target-project.progress);required(applied>0,'nothing to contribute');
+ const remainingQuantity=beforeQuantity-applied;
+ item.quantity=remainingQuantity;
+ item.used=remainingQuantity===0;
+ item.location=item.used?'consumed':'inventory';
+ project.progress+=applied;project.completed=project.progress>=project.target;
+ project.contributors[contributorId]=(project.contributors[contributorId]||0)+applied;
+ const receipt={requestId,itemId,contributorId,projectId,scopeId,applied,beforeQuantity,remainingQuantity,progress:project.progress,completed:project.completed};
+ s.projectUses[requestId]=receipt;s.receiptLog.push({type:'project_contribution',...receipt});
+ return copy(receipt);
 }
 export function registerClusterStrategy(s,{itemId,ownerId,scopeId,authorizedBy,requestId}){
  required(typeof requestId==='string'&&requestId.length>3,'approval id required');

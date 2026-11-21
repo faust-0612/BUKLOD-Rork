@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-arena-v2-world-journey-preview-20261121.json",
+  "objective": "Extend isolated Arena V2 DEV with playable local Kingdom → Marketplace → Empire → Community journey using the existing BUKLOD economy model; fix partial-material loss without enabling trading SQL or production.",
+  "baseRef": "6bf6699d1f249b158ec8c07fc706e92d6e74e645",
+  "productionBaselineEvidence": "GitHub main source 536741f8d97fc9dec91503c89f1c1160e5987ce0 inspected; this is not a production runtime/artifact verification. Production APK, OTA and database are NOT modified.",
+  "productionChange": false,
+  "productionAuthorized": false,
+  "releaseAuthorized": false,
+  "releaseTarget": "DEV_OFFLINE_HTML_ONLY",
+  "chosenApproach": "Reuse the canonical Arena V2 item/market/material/strategy models with an independent local HTML journey, preserve old Arena and real wallet, repair proportional material consumption, add behavioral Node and smoke tests.",
+  "selectionRationale": "The existing Arena HTML exposes only one simulated weapon trade and has no discoverable multi-feature economy demo. Also, project materials consumed an entire pack even if a project needed only a small fraction; this silently destroys legitimate virtual value. A separate preview and narrow conservation fix are safer than reworking live client or deploying untested backend.",
+  "alternativeApproaches": [
+    "Make live Market trading depend on untested Supabase SQL now (rejected: production security and agreed deferral)",
+    "Rebuild entire app navigation and change production theme to demo economy (rejected: unrelated regression and release scope)",
+    "Build a disconnected mock marketplace with its own independent point arithmetic (rejected: duplicated rules and future drift)"
+  ],
+  "preserveBehaviors": [
+    "Existing V1 and V2 Arena gameplay, maps, items, audio and controls unchanged",
+    "BP trade remains zero-mint and never credits earned lifetime/Circle Rank or QMP",
+    "Permanent Character evolution receipts and match-only loot remain nontradeable",
+    "Show Faith OFF access and cross-cluster participation remain supported",
+    "Native runtime, user account, production Supabase, ads, notifications, wallets, live APK/OTA unchanged"
+  ],
+  "acceptanceChecks": [
+    "13 canonical heroes × 5 real named equipment slot identities remain available",
+    "Cross-cluster item sale preserves total spendable BP and obeys buyer/hero/level and escrow gates",
+    "Material pack over target remainder is retained, usable for another project or a new item trade, and cannot be double consumed via repeated receipt",
+    "One authorized strategy permit reaches one linked offline match, never becomes a ranked reward",
+    "3 maps remain independently selectable; Show Faith OFF participates; HTML has explicit offline-only disclaimer",
+    "No Supabase migration, real wallet transaction or production deployment occurs"
+  ],
+  "riskAreas": [
+    "kingdom-character",
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/empire-arena-v2-connected-world-preview-20261121.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-arena-v2-world-journey-preview-20261121.json",
+    "docs/empire-arena/BUKLOD_EMPIRE_ARENA_V2_CANONICAL_DESIGN.md",
+    "experiments/empire-arena-v2/README.md",
+    "experiments/empire-arena-v2/index.html",
+    "experiments/empire-arena-v2/buklod-exchange.mjs",
+    "experiments/empire-arena-v2/world-exchange-journey.mjs",
+    "experiments/empire-arena-v2/world-exchange-preview.mjs",
+    "experiments/empire-arena-v2/world-exchange-preview.html",
+    "tests/empire-arena-v2-connected-world-preview-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": []
+}

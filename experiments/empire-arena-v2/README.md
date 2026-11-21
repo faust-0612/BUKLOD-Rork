@@ -32,3 +32,18 @@ Media: embedded six audio clips from user Library `/Sound and voice effects/magi
 node --test tests/empire-arena-v2-world-economy.test.mjs
 node --test tests/empire-arena-v2-design-and-simulation.test.mjs
 ```
+
+## Connected World interactive OFFLINE journey (Season 2 DEV)
+
+Open [World Exchange offline preview](./world-exchange-preview.html) or its link on the Arena practice menu. It reuses the SAME in-memory `buklod-exchange.mjs`, `arena-v2-world-bridge.mjs`, `arena-v2-armory.mjs`, `arena-v2-maps.mjs` and existing 13-hero/item authorities. This is NOT live BUKLOD trading: the two demo accounts and all evidence are explicitly synthetic, discarded on refresh, without network or persistent BP/QMP/wallet effects.
+
+Journey: Kingdom specialist (Show Faith OFF) acquires a character-exclusive item → escrow listing → another Cluster's Arena player pays existing spendable BP → character- and level-gated loadout → optionally approves bounded team strategy support → one linked offline Arena match. A different route lets the Kingdom helper donate material packs across Clusters into House and Cluster Map construction; only the project-needed quantity is consumed, and unused units remain tradable. Actual permanent upgrades still require verified Development XP and time, not simulated donation alone.
+
+To run:
+```sh
+python3 -m http.server 8000
+# Visit http://localhost:8000/experiments/empire-arena-v2/world-exchange-preview.html
+node --test tests/empire-arena-v2-connected-world-preview-20261121.test.mjs
+```
+
+The separate World Exchange SQL candidate under draft PR #1050 stays **unapplied and trading OFF**, pending authenticated isolated PostgreSQL/RLS/concurrency tests. The preview never calls it; progress and QMP are not credited by a transfer.
