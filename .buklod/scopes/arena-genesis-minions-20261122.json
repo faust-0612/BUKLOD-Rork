@@ -37,11 +37,13 @@
     "src/features/games/empire/arenaSoundscape.mjs",
     "tests/arena-genesis-minions-20261122.test.mjs",
     "src/features/games/empire/arenaMinionMotion.mjs",
-    "tests/arena-genesis-minion-motion-20261122.test.mjs"
+    "tests/arena-genesis-minion-motion-20261122.test.mjs",
+    "tests/arena-game-minion-identity-20261122.test.mjs"
   ],
   "regressionTests": [
     "tests/arena-genesis-minions-20261122.test.mjs",
-    "tests/arena-genesis-minion-motion-20261122.test.mjs"
+    "tests/arena-genesis-minion-motion-20261122.test.mjs",
+    "tests/arena-game-minion-identity-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -52,7 +54,8 @@
       ],
       "tests": [
         "tests/arena-genesis-minions-20261122.test.mjs",
-        "tests/arena-genesis-minion-motion-20261122.test.mjs"
+        "tests/arena-genesis-minion-motion-20261122.test.mjs",
+        "tests/arena-game-minion-identity-20261122.test.mjs"
       ]
     },
     {
@@ -63,7 +66,8 @@
       ],
       "tests": [
         "tests/arena-genesis-minions-20261122.test.mjs",
-        "tests/arena-genesis-minion-motion-20261122.test.mjs"
+        "tests/arena-genesis-minion-motion-20261122.test.mjs",
+        "tests/arena-game-minion-identity-20261122.test.mjs"
       ]
     }
   ],

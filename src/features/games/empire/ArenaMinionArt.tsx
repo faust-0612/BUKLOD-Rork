@@ -26,7 +26,6 @@ export function ArenaMinionArt({minions,elapsed,localTeam,view}:Props){
       const phase=Math.sin(elapsed/180+i*.77);
       const firing=motion.attack;
       const healing=motion.heal;
-      const dead=m.alive===false||m.hp<=0;
       const y=motion.y;
       const facing=motion.facing;
       const scale=m.kind==='siege_breaker'?1.28:m.kind==='mender'?.92:1;
