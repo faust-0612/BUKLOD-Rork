@@ -61,7 +61,18 @@ attachArenaTransport({
   wss,store,coordinator,clientsByUser,metrics,sendRaw,isStopping:()=>stopping,
 });
 
-await store.expire(); // Refuse ranked readiness when crash-refund recovery RPC is missing.
+// No Arena process may accept ranked players until orphaned holds from its
+// previous SINGLE-instance run are refunded by a private, idempotent RPC.
+// Do not run overlapping versions of the coordinator during a deployment.
+let startupRecoveryComplete=false;
+for(let pass=0;pass<10;pass++){
+  const refunded=await store.recover();
+  if(!Number.isSafeInteger(refunded)||refunded<0||refunded>100)
+    throw Error('ranked_orphan_refund_receipt_invalid');
+  if(refunded===0){startupRecoveryComplete=true;break;}
+}
+if(!startupRecoveryComplete)throw Error('ranked_orphan_refund_incomplete');
+await store.expire(); // Also fail readiness if stale-refund RPC is unavailable.
 ready=true;
 server.listen(PORT,HOST,()=>{
   console.log('[arena] ready on protected internal listener',PORT);
