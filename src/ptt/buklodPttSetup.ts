@@ -41,6 +41,18 @@ export type BuklodPttSetupSnapshot = {
 const ONBOARDING_KEY = 'buklod.ptt.onboarding.v1';
 const ROUTE_MODE_KEY = 'buklod.ptt.routeMode.v1';
 const SETTINGS_KEY_PREFIX = 'buklod.ptt.userSettings.v2.';
+const settingsListeners = new Set<(userId: string, settings: BuklodPttUserSettings) => void>();
+
+export function subscribeBuklodPttUserSettings(
+  userId: string,
+  listener: (settings: BuklodPttUserSettings) => void,
+) {
+  const wrapped = (changedId: string, settings: BuklodPttUserSettings) => {
+    if (changedId === userId) listener(settings);
+  };
+  settingsListeners.add(wrapped);
+  return () => { settingsListeners.delete(wrapped); };
+}
 
 export type BuklodPttUserSettings = {
   routeMode: BuklodPttRouteMode;
@@ -100,6 +112,10 @@ export async function saveBuklodPttUserSettings(
   ) throw new Error('Invalid PTT settings.');
   // Never swallow a write failure: only acknowledge Saved after disk succeeds.
   await AsyncStorage.setItem(settingsKey(userId), JSON.stringify(settings));
+  // Only a committed disk write notifies other mounted PTT surfaces.
+  for (const listener of settingsListeners) {
+    try { listener(userId, settings); } catch {}
+  }
 }
 
 async function openAndroidIntent(action: string) {
