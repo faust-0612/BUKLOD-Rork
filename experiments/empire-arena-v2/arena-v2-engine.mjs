@@ -298,6 +298,8 @@ function runBot(s,p){if(!p.alive||s.elapsed-p.botAt<400)return;p.botAt=s.elapsed
  const node=s.nodes.filter(n=>n.stock>10).sort((a,b)=>distance(a,p)-distance(b,p))[0];if(!node)return;const bag=Object.values(p.bag).reduce((a,b)=>a+b,0);if(bag>=60){const depot={x:p.team==='A'?18:s.w-18,y:s.h/2};command(s,p.id,{type:'move',dx:depot.x-p.x,dy:depot.y-p.y})}else if(distance(p,node)<8)command(s,p.id,{type:'mine',nodeId:node.id});else command(s,p.id,{type:'move',dx:node.x-p.x,dy:node.y-p.y});
 }
 export function tick(s,commands=[]){if(s.status!=='active')return s;s.tick++;s.elapsed+=STEP_MS;
+ // Expiration is authoritative on every fixed tick, not deferred to NPC automation.
+ s.loot=s.loot.filter(item=>!Number.isFinite(item.expires)||item.expires>s.elapsed);
  for(const p of Object.values(s.players))if(p.alive){p.mana=Math.min(p.maxMana,p.mana+(3.3+gearOf(p).regen)*STEP_MS/1000);if(p.effects.fieldRegen>s.elapsed)p.hp=Math.min(p.maxHp,p.hp+Math.max(0,p.effects.fieldRegenStrength||0)*STEP_MS/1000);if(s.huntStarted===null){const home=baseSite(s,p.team);if(distance(p,home)<7){p.hp=Math.min(p.maxHp,p.hp+.55);p.mana=Math.min(p.maxMana,p.mana+.5)}}}
 s.phase=s.huntStarted!==null?'hunt':s.elapsed<120000?'expansion':s.elapsed<540000?'territory':'siege';
  for(const c of commands){if(c&&typeof c.playerId==='string')command(s,c.playerId,c.action)}
