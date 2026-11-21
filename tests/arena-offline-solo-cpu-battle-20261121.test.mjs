@@ -135,7 +135,10 @@ test('same inputs and seed produce identical local battle replay at fixed ticks'
 test('solo module requires neither signal nor backend and cannot modify the real economy',()=>{
   const solo=source('experiments/empire-arena-v2/arena-v2-solo.mjs');
   const route=source('src/app/games/empire-arena.tsx');
-  assert.doesNotMatch(solo,/https?:|fetch\(|supabase|websocket|AsyncStorage|awardBp|awardDiamond|rpc\(|balance|withdrawal/i);
+  // Comments can name forbidden services when documenting their absence;
+  // validate executable code, not descriptive documentation.
+  const executable = solo.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
+  assert.doesNotMatch(executable,/https?:|fetch\(|supabase|websocket|AsyncStorage|awardBp|awardDiamond|rpc\(|balance|withdrawal/i);
   assert.match(route,/createOfflineSoloBattle/);
   assert.match(route,/tickOfflineSolo\(state\)/);
   assert.match(route,/onPress=\{startSolo\}/);
