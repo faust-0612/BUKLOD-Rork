@@ -43,7 +43,8 @@
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
     "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
-    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+    "tests/empire-arena-v2-animated-bundle-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -81,7 +82,8 @@
     "assets/season2/arena/generated/sprite/trudice-8bacb802830e.webp",
     "assets/season2/arena/generated/sprite/van-f37dac3f225a.webp",
     "assets/season2/arena/generated/sprite/vhen-b611d9a37fac.webp",
-    "scripts/generate-buklod-arena-hero-motion.py"
+    "scripts/generate-buklod-arena-hero-motion.py",
+    "tests/empire-arena-v2-animated-bundle-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -94,7 +96,8 @@
         "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
         "tests/empire-arena-v2-presentation-20261121.test.mjs",
         "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
-        "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
+        "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+        "tests/empire-arena-v2-animated-bundle-20261121.test.mjs"
       ]
     },
     {
