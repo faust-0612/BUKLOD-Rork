@@ -39,7 +39,8 @@
     ".buklod/scopes/season2-premium-home-workshop-20261121.json",
     "src/features/season2/world/communityFacilityDirectory.mjs",
     "src/features/season2/world/communityFacilityDirectory.d.mts",
-    "src/features/season2/world/Season2CommunityFacilities.tsx"
+    "src/features/season2/world/Season2CommunityFacilities.tsx",
+    ".github/workflows/season2-premium-home-workshop-tests-20261121.yml"
   ],
   "regressionTests": [
     "tests/season2-premium-home-workshop-20261121.test.mjs"
@@ -65,7 +66,8 @@
     "Expo Android Metro asset bundling and TypeScript integration QA must pass for WebP/SVG/Android safe area and Expo Router compatibility; no native APK compatibility claim is made by source-only checks.",
     "Protected-feature lock and Engineering Accountability gate must pass with a single exact-file allowlist and changed regression tests, preserving Home AdMob and instant navigation.",
     "Staging publishing remains blocked until actual native package runtime, channel, live Supabase isolation safeguards and AdMob/nav acceptance are verified; physical device execution owner-waived means UNVERIFIED, not passed.",
-    "Do not deploy Supabase schema, reward ledger, production APK/OTA or new subscription; real property ownership, material trading and multiplayer construction are not operational in local workshop."
+    "Do not deploy Supabase schema, reward ledger, production APK/OTA or new subscription; real property ownership, material trading and multiplayer construction are not operational in local workshop.",
+    "Isolated test workflow must directly execute six focused Workshop/Community Facility tests under Node 22; the existing source-regression green alone does not prove new game logic."
   ],
   "preserveBehaviors": [
     "Genesis preview-only first-view approved 1672x941 image and existing one-tap destinations remain; original production first view and primary tabs unaffected.",

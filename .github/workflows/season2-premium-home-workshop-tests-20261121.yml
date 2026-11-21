@@ -1,0 +1,28 @@
+name: "Genesis My Home / Village gameplay regressions (NO OTA)"
+on:
+  pull_request:
+    branches:
+      - dev/season2-map-first-conso-intake-20261121
+    paths:
+      - 'src/features/season2/world/**'
+      - 'src/app/season2/**'
+      - 'src/features/season2/genesis/genesisApprovedEntryHotspots.json'
+      - 'tests/season2-premium-home-workshop-20261121.test.mjs'
+      - '.github/workflows/season2-premium-home-workshop-tests-20261121.yml'
+permissions:
+  contents: read
+jobs:
+  offline-world-gameplay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify real local builder mechanics, account isolation and disabled future services
+        run: node --experimental-strip-types --test tests/season2-premium-home-workshop-20261121.test.mjs
+      - name: Verify existing owner approved world/preview route contracts
+        run: node --test tests/season2-community-village-preview-20261121.test.mjs
