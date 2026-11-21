@@ -39,8 +39,6 @@ import {
   hasSeenBuklodPttOnboarding,
   loadBuklodPttUserSettings,
   markBuklodPttOnboardingSeen,
-  openBluetoothSettings,
-  openWifiSettings,
   refreshBuklodPttSetup,
   resolveBuklodPttRoute,
   saveBuklodPttUserSettings,
@@ -227,6 +225,7 @@ export default function BuklodPttScreen() {
   const [userId, setUserId] = useState('');
   const [preferences, setPreferences] = useState<BuklodPttUserSettings | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectionUnsaved, setSelectionUnsaved] = useState(false);
   const [scope, setScope] = useState<BuklodPttScope | null>(null);
   const [channel, setChannel] = useState(1);
   const [showChannels, setShowChannels] = useState(false);
@@ -246,15 +245,20 @@ export default function BuklodPttScreen() {
   const connectLock = useRef(false);
   const connectPromiseRef = useRef<Promise<boolean> | null>(null);
   const autoJoinKeyRef = useRef('');
+  const saveLockRef = useRef(false);
   const targetMatched = Boolean(runtime.connection && scope &&
     runtime.connection.scope.id === scope.id && runtime.connection.channel === channel);
   const persistPreferences = useCallback(async (next: BuklodPttUserSettings) => {
     if (!userId) throw new Error('PTT settings are not loaded.');
+    if (saveLockRef.current) throw new Error('Another PTT setting is still saving.');
+    saveLockRef.current = true;
     setSaving(true);
     try {
       await saveBuklodPttUserSettings(userId, next);
       setPreferences(next);
+      setSelectionUnsaved(false);
     } finally {
+      saveLockRef.current = false;
       setSaving(false);
     }
   }, [userId]);
@@ -362,7 +366,9 @@ export default function BuklodPttScreen() {
     }
 
     if (!preferences.listening && !runtime.priorityReceiving) {
-      return { tone: 'info', title: 'PTT listening paused', detail: 'Your selected channel is saved. Tap Start listening to resume.' };
+      return runtime.connection
+        ? { tone: 'warn', title: 'Stopping PTT connection', detail: 'A live channel is still present. Stop listening must finish before PTT is paused.' }
+        : { tone: 'info', title: 'PTT listening paused', detail: 'Your saved channel is retained. Tap Start listening to resume.' };
     }
     if (!setup.microphone) {
       return {
@@ -530,6 +536,9 @@ export default function BuklodPttScreen() {
         } catch (error: any) {
           // Runtime switched successfully, so reflect it, but never say Saved.
           setPreferences(next);
+          setScope(nextScope);
+          setChannel(nextChannel);
+          setSelectionUnsaved(true);
           throw new Error('Now connected, but the channel was NOT saved for next time: ' +
             (error?.message || 'storage failure'));
         }
@@ -684,22 +693,8 @@ export default function BuklodPttScreen() {
                   </Pressable>
                 ) : null,
               )}
-              {effectiveRoute === 'NEARBY' ? (
-                <>
-                  <Pressable
-                    onPress={() => void runSetupAction('wifi-open', openWifiSettings)}
-                    style={styles.setupBtnSecondary}
-                  >
-                    <Text style={styles.setupBtnSecondaryText}>TURN ON WI-FI</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => void runSetupAction('bt-open', openBluetoothSettings)}
-                    style={styles.setupBtnSecondary}
-                  >
-                    <Text style={styles.setupBtnSecondaryText}>TURN ON BLUETOOTH</Text>
-                  </Pressable>
-                </>
-              ) : null}
+              {/* Offline Nearby is not a working transport; avoid fake setup
+                  buttons that imply turning Wi-Fi/Bluetooth will activate it. */}
             </View>
           ) : null}
 
@@ -731,7 +726,8 @@ export default function BuklodPttScreen() {
                 ['NEARBY', 'OFFLINE NEARBY'],
               ] as const
             ).map(([value, label]) => {
-              const on = Boolean(preferences) && routeMode === value;
+              const preferred = Boolean(preferences) && routeMode === value;
+              const on = preferred && targetMatched && effectiveRoute === 'INTERNET';
               return (
                 <Pressable
                   key={value}
@@ -740,7 +736,7 @@ export default function BuklodPttScreen() {
                   style={[styles.modeChip, on && styles.modeChipOn]}
                 >
                   <Text style={[styles.modeChipText, on && styles.modeChipTextOn]}>
-                    {label}
+                    {label}{preferred && !on ? ' · SAVED ONLY' : ''}
                   </Text>
                 </Pressable>
               );
@@ -756,7 +752,7 @@ export default function BuklodPttScreen() {
           <Text style={styles.sectionLabel}>CHANNEL</Text>
           <View style={styles.channelCard}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.channelTitle}>CHANNEL {channel} · {targetMatched ? 'LIVE' : 'SAVED / NOT CONNECTED'}</Text>
+              <Text style={styles.channelTitle}>CHANNEL {channel} · {targetMatched ? (selectionUnsaved ? 'LIVE / NOT SAVED' : 'LIVE') : 'SAVED / NOT CONNECTED'}</Text>
               <Text style={styles.channelSub}>{channelSubtitle(scope)}</Text>
             </View>
             <Pressable
@@ -913,7 +909,7 @@ export default function BuklodPttScreen() {
             <BuklodPttConversation
               scopeId={scope.id}
               channel={channel}
-              connection={runtime.connection}
+              connection={targetMatched ? runtime.connection : null}
             />
             </View>
           ) : null}
