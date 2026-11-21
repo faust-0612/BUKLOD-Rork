@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@/providers/AuthProvider';
 import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+import {getDevelopmentAsset} from './developmentAssetManifest';
 const VILLAGE_ART = require('../../../../assets/season2/genesis/world/buklod-community-village-stage1.webp');
 const HOME_ART = require('../../../../assets/season2/genesis/world/buklod-my-home-stage1.webp');
 
@@ -64,6 +65,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const [previewLevels,setPreviewLevels] = useState({lot:1,house:1,cluster:1});
   const [previewStages,setPreviewStages] = useState({lot:0,house:0,cluster:0});
   const level=previewLevels[previewTrack];
+  const assetMeta=getDevelopmentAsset(previewTrack,level);
   const stage=previewStages[previewTrack];
   const chooseTrack=(track:'lot'|'house'|'cluster')=>setPreviewTrack(track);
   const chooseStage=(i:number)=>setPreviewStages(v=>({...v,[previewTrack]:i}));
@@ -139,7 +141,8 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
         <Text style={styles.mapNote}>Tap a landmark to open instantly. No second Enter button. The illustration is a design preview, not verified ownership or development status.</Text>
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>{trackTitle}</Text>
-          <Text style={styles.muted}>Permanent Levels 1–10 → unbounded Mastery. Each level has five visible construction stages; Rank does not gate development.</Text>
+          <Text style={styles.muted}>Permanent Levels 1–10 → unbounded Mastery. Lot, House and Community are independent of Circle Rank. Five construction stages per level.</Text>
+          <Text style={styles.assetName}>{assetMeta.assetId} · {assetMeta.title}</Text>
           {world==='home' ? <View style={styles.trackRow}>
             {(['lot','house'] as const).map(track=>(
               <Pressable key={track} accessibilityRole="button" accessibilityLabel={'Preview '+track+' independently'}
@@ -216,6 +219,7 @@ const styles=StyleSheet.create({
   mapNote:{color:'#B9D6CE',fontSize:10,lineHeight:15},
   panel:{padding:12,borderRadius:15,backgroundColor:'#152C34',borderColor:'#46645B',borderWidth:1,gap:9},
   panelTitle:{color:'#FEE5B7',fontWeight:'900',fontSize:15},
+  assetName:{color:'#E9DFB8',fontSize:12,fontWeight:'800'},
   muted:{color:'#BDD0CA',fontSize:11,lineHeight:17},
   trackRow:{flexDirection:'row',gap:7},
   trackButton:{flex:1,minHeight:39,alignItems:'center',justifyContent:'center',borderRadius:9,
