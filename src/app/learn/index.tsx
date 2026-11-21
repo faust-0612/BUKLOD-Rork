@@ -52,7 +52,7 @@ export default function LearningGrove() {
    <Text style={styles.title}>Explore, learn and grow.</Text>
    <Text style={styles.intro}>Isang pintuan para sa pag-aaral, stories at iyong development. Ang access, lessons at completion ay pinangangasiwaan pa rin sa umiiral na learning services.</Text>
    <View style={styles.section}>
-    {DESTINATIONS.filter(item=>!item.faithOnly||showFaith).map(item=>(
+    {DESTINATIONS.filter(item=>!('faithOnly' in item && item.faithOnly)||showFaith).map(item=>(
       <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Open '+item.label}
        onPress={()=>navigate(item.route)} style={({pressed})=>[styles.link,pressed&&styles.pressed]}>
        <View style={styles.icon}>
