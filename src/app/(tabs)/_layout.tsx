@@ -446,7 +446,7 @@ export default function TabsLayout() {
           backgroundColor: theme.canvas,
         }}
       >
-        {!desktopWebShell && !isGenesisPreviewBuild() ? <SwipeDashboardHeader /> : null}
+        {!desktopWebShell ? <SwipeDashboardHeader /> : null}
 
         <View
           style={

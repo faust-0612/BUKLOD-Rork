@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -78,7 +79,7 @@ export default function BuklodNavigationSideMenu({ visible, onClose }: { visible
               </Pressable>
             </View>
             <Text allowFontScaling style={{ color: '#AFC7E8', fontSize: 12 }}>
-              Home, Wall, Cluster, Connect at Profile ay nasa navigation bar sa ibaba.
+              {isGenesisPreviewBuild() ? 'Home, Community, Connect, Profile at Cluster ay nasa BUKLOD Guide sa World Map.' : 'Home, Wall, Cluster, Connect at Profile ay nasa navigation bar sa ibaba.'}
             </Text>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled"

@@ -45,10 +45,11 @@ test('all 12 approved landmarks open exactly one existing destination each',()=>
 test('tapping landmarks routes immediately and the character guide is OUTSIDE map content',()=>{
   assert.match(gateway,/router\.push\(hotspot\.route as any\)/);
   assert.match(gateway,/lastDoorTap/);
-  assert.match(gateway,/BuklodFirstViewAd placement="home"/);
+  assert.match(gateway,/BuklodMapGuideDock/);
+  assert.doesNotMatch(gateway,/BuklodFirstViewAd/);
   assert.match(mapSrc,/const diameter = zoomed \? 48 : 44/);
   assert.match(mapSrc,/isReduceMotionEnabled/);
-  assert.ok(gateway.indexOf('</ScrollView>')<gateway.indexOf('<BuklodMapGuideDock'));
+  assert.ok(gateway.indexOf('<BuklodMapGuideDock')<gateway.indexOf('{mapNode}'));
   assert.doesNotMatch(gateway,/(service_role|supabase\.rpc|claimBp|mintBp|awardBp)/i);
 });
 test('narrow Android 44px hit targets stay within landscape image bounds',()=>{

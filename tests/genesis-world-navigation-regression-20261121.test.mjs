@@ -10,14 +10,13 @@ test('preview-only auth entry selects World, regular production entry stays the 
   assert.match(boot,/selectScope/);
   assert.match(boot,/bootReady/);
 });
-test('World replaces cluttered Home only under Genesis preview, preserving original tabs and AdMob',()=>{
+test('World stays boot default while explicit Home remains accessible and retains existing AdMob',()=>{
   const home=src('src/app/(tabs)/hub.tsx');
-  assert.match(home,/if \(genesisPreview\) \{/);
-  assert.match(home,/<Redirect href="\/buklod-map" \/>/);
+  assert.doesNotMatch(home,/<Redirect href="\/buklod-map" \/>/);
   assert.match(home,/BuklodFirstViewAd/);
   assert.match(home,/BuklodNativeSponsoredCard/);
   const layout=src('src/app/(tabs)/_layout.tsx');
-  assert.match(layout,/!isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader/);
+  assert.match(layout,/!desktopWebShell \? <SwipeDashboardHeader/);
   assert.match(layout,/BuklodDashboardAdWarmup/);
 });
 test('no legacy persistent navigation bar in Genesis and a compact return map action persists',()=>{

@@ -58,12 +58,8 @@ export default function BuklodLightHome() {
     return () => { setFocused(false); };
   }, []));
 
-  // Staging Genesis: the complete World map is the first authenticated view.
-  // Keep the legacy Home and its ads untouched in every other runtime.
-  if (genesisPreview) {
-    // One canonical approved-art gateway, including Home re-entry.
-    return <Redirect href="/buklod-map" />;
-  }
+  // Boot starts on the World map; its explicit Home door opens this real dashboard.
+  // Do not redirect the user's Home tap back into the map.
 
   if (desktopDashboard) {
     const openPost = () => router.push({

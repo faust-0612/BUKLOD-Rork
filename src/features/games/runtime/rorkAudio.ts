@@ -151,20 +151,20 @@ const KINGDOM_AMBIENCE_SETTING_KEY = '@buklod_kingdom_cinematic_ambience_v1';
  * follows the existing game sound/quiet-hours settings. This is decorative:
  * audio loading/playback must never block real gameplay.
  */
-export function useRorkGameAmbience(gameId?: string | null) {
-  // Opt-in avoids surprising playback and the previously reported harsh intro.
-  // Keep legacy interior-game audio behavior unchanged; only the main map is opt-in.
+export function useRorkGameAmbience(gameId?: string | null, options?: {autoStart?: boolean}) {
+  // Genesis entry may auto-start; other map and gameplay callers preserve existing preferences.
   const isKingdomMap = gameId === 'kingdom-map';
-  const [musicEnabled, setMusicEnabled] = useState(!isKingdomMap);
+  const autoStart = isKingdomMap && options?.autoStart === true;
+  const [musicEnabled, setMusicEnabled] = useState(!isKingdomMap || autoStart);
   const [musicSuspended, setMusicSuspended] = useState(false);
   useEffect(() => {
-    if (!isKingdomMap) return;
+    if (!isKingdomMap || autoStart) return;
     let live = true;
     void AsyncStorage.getItem(KINGDOM_AMBIENCE_SETTING_KEY)
       .then(value => { if (live) setMusicEnabled(value === 'on'); })
       .catch(() => undefined);
     return () => { live = false; };
-  }, [isKingdomMap]);
+  }, [isKingdomMap, autoStart]);
   // Keep native SFX players warm while a Kingdom route is actually focused.
   // Never let late feedback leak into Wall videos, calls or other app screens.
   useFocusEffect(useCallback(() => {
