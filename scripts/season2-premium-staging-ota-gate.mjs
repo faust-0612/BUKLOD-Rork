@@ -62,6 +62,22 @@ const variants=[
  ['assets/season2/genesis/kingdom/kingdom-nature-panorama.webp','232c99e995fafde2e018a286f998a39917de32620ee502c8486ca58a1eabf8eb'],
  ['assets/season2/genesis/kingdom/kingdom-nature-panorama-compact.webp','5e7ed0af9568aa6f9cc8d6753015b3c8ac36fd4e070541d43f017d88975fcc95'],
 ];
+const approvedEntryImage='assets/season2/genesis/world/buklod-approved-entry-map-1672x941.webp';
+const approvedEntrySha='a343c70d1c71e849b536570bd92ede7134667d40347f6465003d41710e818b02';
+const approvedEntryManifest='assets/season2/genesis/world/approved-entry-map-manifest.json';
+if(!existsSync(resolve(root,approvedEntryImage))||!existsSync(resolve(root,approvedEntryManifest))){
+ fail.push('Owner-approved 1672x941 landscape Entry Map image or original provenance missing');
+}else{
+ const bytes=readFileSync(resolve(root,approvedEntryImage));
+ const metadata=JSON.parse(read(approvedEntryManifest));
+ if(bytes.length!==473226||createHash('sha256').update(bytes).digest('hex')!==approvedEntrySha||
+    metadata.sha256!==approvedEntrySha||metadata.width!==1672||metadata.height!==941)
+  fail.push('Owner-approved landscape Entry Map bytes/dimensions differ from approved baseline');
+}
+if(!read('src/app/buklod-map.tsx').includes('GenesisApprovedEntryMap')||
+   !read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx').includes('router')&&
+   !read('src/app/buklod-map.tsx').includes('router.push(route as any)'))
+ fail.push('Owner-approved one-tap Entry Map navigation is missing');
 for(const [path,expected] of variants){
  if(!existsSync(resolve(root,path))){fail.push('Missing premium art: '+path);continue;}
  const data=readFileSync(resolve(root,path));
