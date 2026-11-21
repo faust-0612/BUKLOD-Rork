@@ -47,6 +47,8 @@ import { drainArenaSoundscape, nearbyArenaBuffCue } from '@/features/games/empir
 import { arenaActionVisuals } from '@/features/games/empire/arenaActionVisuals.mjs';
 // @ts-ignore — pure event receipts, all positive quantities proved by Arena engine/server.
 import { arenaFeedbackReceipts, arenaResourceCounts } from '@/features/games/empire/arenaFeedbackReceipts.mjs';
+// @ts-ignore — offline-only commands, no microphone or unreviewed ranked transport.
+import { ARENA_TACTICAL_CALLS, arenaCanSendLocalCall } from '@/features/games/empire/arenaTacticalCalls.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
@@ -284,6 +286,9 @@ function EmpireArenaInApp() {
   const [target, setTarget] = useState<string | null>(null);
   const [joyVisual, setJoyVisual] = useState<Position>({ x: 0, y: 0 });
   const [tacticsOpen, setTacticsOpen] = useState(false);
+  const [teamCallsOpen, setTeamCallsOpen] = useState(false);
+  const [lastTeamCall, setLastTeamCall] = useState<{label:string;at:number}|null>(null);
+  const lastTeamCallAt = useRef(-100000);
   const [hudEditing, setHudEditing] = useState(false);
   const [hudPositions, setHudPositions] = useState<ArenaHudLayout>(() => sanitizeArenaHudLayout(null) as ArenaHudLayout);
   const [hudArea, setHudArea] = useState({width: 800, height: 280});
@@ -443,6 +448,7 @@ function EmpireArenaInApp() {
     selected.current = null;
     setTarget(null);
     setTacticsOpen(false);
+    setTeamCallsOpen(false);setLastTeamCall(null);lastTeamCallAt.current=-100000;
     setHudEditing(false);
     setZoom(1);
     setMessage('Move, attack, gather, train and break the opposing seal. Practice grants no rewards.');
@@ -462,7 +468,8 @@ function EmpireArenaInApp() {
     if(sfxEnabled)playRorkSignatureSfx(ARENA_SCENE_GAME_ID[mapId],.24);
     selected.current='B0';setTarget('B0');
     directionRef.current={x:0,y:0};setJoyVisual({x:0,y:0});
-    setTacticsOpen(false);setHudEditing(false);setZoom(1);
+    setTacticsOpen(false);setTeamCallsOpen(false);setLastTeamCall(null);lastTeamCallAt.current=-100000;
+    setHudEditing(false);setZoom(1);
     setMessage('OFFLINE CPU BATTLE • Best of 3 rounds • Real attacks, skills, HP and cooldowns • No rewards');
     setPhase('playing');setRevision(v=>v+1);
   },[soloHero,cpuHero,cpuDifficulty,mapId,sfxEnabled]);
@@ -616,6 +623,26 @@ function EmpireArenaInApp() {
     const nearby = arenaNearby(match, player);
     execute({ type, towerId: nearby.tower?.id }, 'collect');
   };
+  const sendLocalTeamCall = (key:string) => {
+    const match=gameRef.current;
+    if(!arenaCanSendLocalCall(match,localSeat,key)){
+      setMessage('Team calls are offline training only. Live ranked communication requires a secured match channel.');
+      return;
+    }
+    if(match.elapsed-lastTeamCallAt.current<1600)return; // tactile anti-spam
+    const call=ARENA_TACTICAL_CALLS[key];
+    if(!call || !command(match,localSeat,{type:'order',order:call.order})){
+      setMessage('Team command unavailable in the current match.');
+      return;
+    }
+    lastTeamCallAt.current=match.elapsed;
+    setLastTeamCall({label:call.label,at:match.elapsed});
+    setMessage('TEAM TRAINING • '+call.label+' • allied CPU units ordered');
+    if(sfxEnabled)tryPlayRorkGameFeedback('move',.14);
+    if(voiceEnabled)playArenaVoiceAnnouncements([{id:'tactical_'+key}],true);
+    setRevision(v=>v+1);
+    setTeamCallsOpen(false);
+  };
   const game = gameRef.current;
   const me = game?.players[localSeat];
   const ownTeam = me?.team ?? 'A';
@@ -669,6 +696,16 @@ function EmpireArenaInApp() {
         <MaterialCommunityIcons name={voiceEnabled ? 'account-voice' : 'microphone-off'}
           size={17} color="#f9df9e" />
       </Pressable>
+      {(phase==='playing' || phase==='paused') ? <Pressable accessibilityRole="button"
+        accessibilityLabel={arenaKind==='ranked'?'Team communication requires secure ranked server':
+          'Offline team training commands'} onPress={() => {
+          if(arenaKind==='ranked' || gameRef.current?.solo){
+            setMessage('Live team voice and match pings are not available in this preview; no microphone is recorded.');
+          } else {setTeamCallsOpen(v=>!v);setTacticsOpen(false);}
+        }} style={styles.audioToggle}>
+        <MaterialCommunityIcons name={arenaKind==='ranked'?'microphone-off':'bullhorn'}
+          size={18} color="#b9f5dc"/>
+      </Pressable> : null}
       <Pressable onPress={() => setSfxEnabled(value => !value)} accessibilityRole="button" accessibilityLabel={sfxEnabled ? 'Mute Arena effects' : 'Enable Arena effects'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={sfxEnabled ? 'volume-high' : 'volume-off'} size={17} color="#f9df9e" />
       </Pressable>
@@ -778,6 +815,11 @@ function EmpireArenaInApp() {
       </View>
       <ArenaField zoom={zoom} onPinchZoom={changeZoom} sceneId={mapId} state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} receipts={arenaReceipts} />
       <ArenaRewardBanner receipts={arenaReceipts}/>
+      {lastTeamCall && phase==='playing' && game.elapsed-lastTeamCall.at<3000 ?
+        <View pointerEvents="none" style={styles.teamCallToast}>
+          <MaterialCommunityIcons name="bullhorn" size={17} color="#a9ffdc"/>
+          <Text style={styles.teamCallToastText}>{lastTeamCall.label} • CPU TEAM</Text>
+        </View> : null}
       {!compactLandscape ? <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View> : null}
       {phase === 'playing' ? <>
         <ArenaCombatHud width={hudArea.width} height={hudArea.height} positions={hudPositions}
@@ -792,6 +834,21 @@ function EmpireArenaInApp() {
           <Pressable accessibilityRole="button" accessibilityLabel="Save Arena control positions" onPress={() => void saveHudControls()} style={[styles.hudEditorButton,styles.hudSave]}>
             <Text style={styles.hudEditorAction}>SAVE</Text></Pressable>
         </View> : null}
+        {teamCallsOpen && !hudEditing && !game.solo && arenaKind==='practice' ?
+          <View style={[styles.teamCallPanel,compactLandscape && styles.teamCallPanelCompact]}>
+            <Text style={styles.teamCallHeader}>OFFLINE TEAM COMMANDS</Text>
+            <Text style={styles.teamCallHint}>Speech on your device • CPU units follow orders • no microphone</Text>
+            <View style={styles.teamCallGrid}>{Object.keys(ARENA_TACTICAL_CALLS).map(key=>{
+              const call=ARENA_TACTICAL_CALLS[key];
+              return <Pressable key={key} accessibilityRole="button"
+                accessibilityLabel={'Issue '+call.label+' CPU team order'}
+                onPress={()=>sendLocalTeamCall(key)} style={styles.teamCallButton}>
+                <MaterialCommunityIcons name={call.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']}
+                  size={16} color="#d9f6e8"/>
+                <Text style={styles.teamCallButtonText}>{call.label}</Text>
+              </Pressable>;
+            })}</View>
+          </View> : null}
         {tacticsOpen && !hudEditing && !game.solo ? <View style={[styles.tactics, compactLandscape && styles.tacticsCompact]}>
           <Text style={styles.tacticsHeader}>FIELD COMMANDS • TAP TO USE</Text>
           <View style={styles.tacticsControls}>
@@ -849,6 +906,21 @@ const styles = StyleSheet.create({
   header: { color: '#ffe0a4', fontWeight: '900', fontSize: 14 },
   sub: { color: '#a7c4ce', fontSize: 9 },
   menuScroll: { flex: 1, width: '100%' },
+  teamCallPanel: {position:'absolute',left:8,top:7,zIndex:24,width:265,
+    padding:9,backgroundColor:'#092b3bf5',borderColor:'#87cdb5',borderWidth:1.4,
+    borderRadius:12,gap:4},
+  teamCallPanelCompact: {top:5,width:245,padding:7},
+  teamCallHeader: {fontSize:11,color:'#ffebb9',fontWeight:'900'},
+  teamCallHint: {fontSize:8,color:'#b6e8d5'},
+  teamCallGrid: {flexDirection:'row',flexWrap:'wrap',gap:5},
+  teamCallButton: {minWidth:73,minHeight:30,flexDirection:'row',alignItems:'center',
+    justifyContent:'center',gap:3,paddingHorizontal:6,borderRadius:9,
+    backgroundColor:'#28526a',borderColor:'#8bc9ba',borderWidth:1},
+  teamCallButtonText: {fontSize:9,fontWeight:'900',color:'#ecf9d6'},
+  teamCallToast: {position:'absolute',top:36,alignSelf:'center',zIndex:22,
+    flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:12,paddingVertical:7,
+    borderRadius:20,backgroundColor:'#184450ea',borderWidth:1,borderColor:'#adf6cd'},
+  teamCallToastText:{fontSize:10,fontWeight:'900',color:'#e8ffe7'},
   soloBanner: {flexDirection:'row',alignItems:'center',gap:9,borderRadius:12,
     padding:10,borderWidth:1.5,borderColor:'#54c6a8',backgroundColor:'#0d3541ed'},
   soloBannerTitle: {fontWeight:'900',fontSize:13,color:'#d9ffe4'},
