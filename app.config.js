@@ -373,6 +373,12 @@ module.exports = ({ config }) => {
         variant,
 
       appTarget: isClassroom ? 'classroom' : 'main',
+      // Public OAuth client identifier only. Never embed refresh tokens or secrets.
+      // Staging and Classroom need independent Android OAuth clients/certificates.
+      smartDrawerGoogleDriveAndroidClientId:
+        !isClassroom && !isStaging
+          ? '1042684297204-ttfqqj0bhqc3i2d10jco599tndtvc67k.apps.googleusercontent.com'
+          : null,
 
       eas:
         projectId

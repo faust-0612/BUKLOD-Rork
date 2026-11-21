@@ -55,8 +55,8 @@ const ACTIONS = [
   },
   {
     key: 'import',
-    label: 'Import',
-    icon: 'image-multiple-outline',
+    label: 'Files & Photos',
+    icon: 'file-upload-outline',
     route: '/drawer/import',
     tone: '#F4ECFF',
     iconColor: '#8E44CE',
@@ -80,6 +80,11 @@ const VIEWS = [
   ['programs', 'Programs'],
   ['ideas', 'Ideas'],
   ['documents', 'Documents'],
+  ['receipts', 'Receipts'],
+  ['reference', 'References'],
+  ['notices', 'Notices'],
+  ['contacts', 'Contacts'],
+  ['notes', 'Quick Notes'],
   ['appointments', 'Appointments'],
   ['events', 'Events'],
   ['tasks', 'Tasks'],
@@ -143,7 +148,7 @@ function sectionName(item: SmartDrawerItem) {
   }
   if (['SHOPPING_LIST', 'CHECKLIST'].includes(item.type)) return 'Lists';
   if (['WRITING', 'POEM'].includes(item.type)) return 'Writing';
-  if (['DOCUMENT', 'RECEIPT', 'NOTICE'].includes(item.type)) {
+  if (['DOCUMENT', 'RECEIPT', 'NOTICE', 'REFERENCE', 'CONTACT_REFERENCE'].includes(item.type)) {
     return 'Documents';
   }
   if (item.type === 'IDEA') return 'Ideas';

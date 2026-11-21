@@ -22,6 +22,7 @@ import {
   commitSmartDrawerItem,
 } from '@/lib/smartDrawer/service';
 import { useAuth } from '@/providers/AuthProvider';
+import type { SmartDrawerItemType } from '@/lib/smartDrawer/types';
 
 export default function SmartDrawerQuickNote() {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export default function SmartDrawerQuickNote() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [asChecklist, setAsChecklist] = useState(false);
+  const [manualType, setManualType] = useState<SmartDrawerItemType | null>(null);
   const [notice, setNotice] = useState('');
 
   const classification = useMemo(
@@ -46,7 +48,7 @@ export default function SmartDrawerQuickNote() {
       const result = await commitSmartDrawerItem(
         user.id,
         {
-          type: classification.type,
+          type: manualType ?? classification.type,
           title: classification.title,
           body: text.trim(),
           dueAt: classification.dueAt,
@@ -143,6 +145,20 @@ export default function SmartDrawerQuickNote() {
         </Pressable>
 
         {!!text.trim() && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={{ color: '#173B63', fontWeight: '800', marginBottom: 6 }}>Category — auto detected, tap to correct</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {([null, 'QUICK_NOTE', 'TASK', 'DUE_TASK', 'SHOPPING_LIST', 'CHECKLIST', 'EVENT', 'APPOINTMENT', 'PROGRAM', 'IDEA', 'WRITING', 'POEM', 'REFERENCE', 'DOCUMENT', 'RECEIPT', 'NOTICE', 'CONTACT_REFERENCE', 'OTHER'] as (SmartDrawerItemType | null)[]).map(category => {
+                const active = manualType === category;
+                return <Pressable key={category ?? 'AUTO'} onPress={() => setManualType(category)}
+                  style={{ paddingHorizontal: 12, paddingVertical: 9, marginRight: 6, borderRadius: 10, backgroundColor: active ? '#0B70C9' : '#E7EFF5' }}>
+                  <Text style={{ color: active ? '#FFF' : '#173B63', fontWeight: '700' }}>{category ? category.replaceAll('_', ' ') : 'AUTO'}</Text>
+                </Pressable>;
+              })}
+            </ScrollView>
+          </View>
+        )}
+        {!!text.trim() && (
           <View style={styles.detected}>
             <View style={styles.detectedHeading}>
               <MaterialCommunityIcons
@@ -152,7 +168,7 @@ export default function SmartDrawerQuickNote() {
               />
               <Text style={styles.detectedTitle}>
                 Detected as:{' '}
-                {classification.type.replaceAll('_', ' ')}
+                {(manualType ?? classification.type).replaceAll('_', ' ')}
               </Text>
             </View>
 

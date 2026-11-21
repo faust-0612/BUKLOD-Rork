@@ -32,7 +32,7 @@ export type SmartDrawerSyncState =
 export type SmartDrawerAsset = {
   id: string;
   uri: string;
-  kind: 'SCAN' | 'PHOTO' | 'IMPORT';
+  kind: 'SCAN' | 'PHOTO' | 'IMPORT' | 'FILE';
   mimeType?: string | null;
   width?: number | null;
   height?: number | null;
