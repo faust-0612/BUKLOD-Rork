@@ -26,3 +26,21 @@
 **Mandatory server-side implementation still pending:** append-only event receipts, versioned eligibility and caps, per-user/scope RLS, concurrency-safe immutable earning idempotency, two-sided BP transfer with total conservation, verified items/material reservation, cross-account trade audits, Show Faith parity, transactional world stage receipts, rewarded-ad anti-farm restrictions, server-only ranked match escrow/settlement and current Supabase/Finance compatibility. The classification helper is a review policy, not an authorization mechanism.
 
 **Release gates:** Node behavioral test across all 39 games and 5,000+ levels; TypeScript/Metro; art/audio licensing; authenticated UI navigation, first-view Ads and audio-focus; physical device optional only on owner's explicit waiver (unverified); isolated PostgreSQL RLS/concurrent tests before any real wallet/progression rollout; no production Season 2 changes.
+
+## Individual 39-game illustrated scene extension
+The premium source adds one **unique original 2.5D vector illustration per game ID**:
+terrain, horizon and lighting for 7 distinct nature/classical biomes, with
+39 distinct focal silhouettes (dock, scales, market, portal, telescope, runes,
+roads, logic towers, councils, music, forest missions, rescue, craft, treasure,
+farms and bridge). The exact game ID is the key, not the shared character prefix.
+These paths are shipped as React Native SVG source inside the app bundle:
+no user download, no remotely hosted new asset requirement, no new native module
+and no paid image subscription. The approved 13 character sprites and Skia/
+Reanimated reaction effects remain above this picture; motion respects focus,
+app background and Reduce Motion.
+
+A generated painterly concept atlas was also prepared as an art-direction
+reference but is NOT claimed to be an APK-bundled bitmap; it must not be
+mistaken for independently tested gameplay sprites. Current native source
+illustrations ARE integrated, one per game. Interactive individual game boards,
+artistic quality and input latency still require Android device QA before OTA.
