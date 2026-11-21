@@ -45,6 +45,7 @@ type ArenaState = {
   seals: Record<Team, { hp: number; maxHp: number; breached: boolean }>;
   cover: [number, number, number][]; events: { type: string; seq: number; time: number; actor?: string; to?: string; tower?: string }[];
   result?: { winner: Team | null; reason: string } | null;
+  visualCue?: Position & { type: string; time: number; seq: number };
 };
 /** Typed bridge to the unchanged JavaScript-only deterministic practice engine. */
 type OfflinePracticeSetup = {
@@ -127,6 +128,22 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget }: {
               </G>
         ) : null}
       </G>)}
+      {state.visualCue && state.elapsed - state.visualCue.time < 650 ? (() => {
+        const cue = state.visualCue;
+        const age = Math.max(0, state.elapsed - cue.time);
+        const alpha = 1 - age / 650;
+        const radius = 2 + age / 75;
+        return <G key={'feedback-' + cue.seq}>
+          <Circle cx={cue.x} cy={cue.y} r={radius} fill="none"
+            stroke={cue.type === 'attack' || cue.type === 'seal_attack' ? '#ffb3a0' : '#a2fbff'}
+            strokeWidth={1.4 * alpha + 0.25} opacity={alpha} />
+          <Path d={`M ${cue.x - radius * 0.8} ${cue.y - radius * 0.7}
+            L ${cue.x + radius * 0.7} ${cue.y + radius * 0.75}
+            M ${cue.x + radius * 0.25} ${cue.y - radius}
+            L ${cue.x - radius * 0.3} ${cue.y + radius}`}
+            stroke="#ffe9bb" strokeWidth={0.9 * alpha} opacity={alpha} />
+        </G>;
+      })() : null}
       {effects.map((effect: { seq: number; type: string; actor?: string; to?: string; tower?: string; strength: number }) => {
         const subject = state.players[effect.actor || ''] || state.players[effect.to || ''] ||
           state.towers.find(t => t.id === effect.tower);
@@ -266,6 +283,16 @@ export default function EmpireArenaInApp() {
     if (!game || phase !== 'playing') return;
     const worked = command(game, 'A0', action);
     if (worked) {
+      const actionType = typeof action.type === 'string' ? action.type : '';
+      if (['attack', 'skill', 'seal_attack', 'mine', 'loot', 'build'].includes(actionType)) {
+        const targetId = typeof action.targetId === 'string' ? action.targetId : '';
+        const actors = [
+          ...Object.values(game.players), ...game.towers, ...game.units, ...game.creatures,
+        ];
+        const actor = actors.find(a => a.id === targetId) ?? game.players.A0;
+        if (actor) game.visualCue = { type: actionType, x: actor.x, y: actor.y,
+          time: game.elapsed, seq: (game.visualCue?.seq || 0) + 1 };
+      }
       tryPlayRorkGameFeedback(cue, 0.28);
       setRevision(v => v + 1);
     } else {
