@@ -129,7 +129,7 @@ DECLARE v_expected integer; v_count integer; v_user uuid; v_p jsonb;
   v_hero text; v_seat text; v_balance integer;
 BEGIN
   v_expected:=case p_mode when 'duel' then 1 when 'cluster' then 3 when 'grand' then 5 else 0 end;
-  IF p_match_id IS NULL OR v_expected=0 OR p_map NOT IN ('genesis_rift','aurora_foundry','verdant_fracture')
+  IF p_match_id IS NULL OR v_expected=0 OR p_map IS NULL OR p_map NOT IN ('genesis_rift','aurora_foundry','verdant_fracture')
      OR jsonb_typeof(p_players) <> 'array' OR jsonb_array_length(p_players) <> 2*v_expected THEN
     RAISE EXCEPTION 'invalid_ranked_match';
   END IF;
@@ -185,7 +185,7 @@ BEGIN
     RETURN jsonb_build_object('settled',false,'reason','already_settled','winner',v_match.winner);
   END IF;
   IF v_match.status <> 'active' THEN RAISE EXCEPTION 'cannot_settle_inactive_match'; END IF;
-  IF p_winner NOT IN ('A','B','DRAW') THEN RAISE EXCEPTION 'invalid_winner'; END IF;
+  IF p_winner IS NULL OR p_winner NOT IN ('A','B','DRAW') THEN RAISE EXCEPTION 'invalid_winner'; END IF;
   FOR v_seat IN SELECT * FROM buklod_arena.seats WHERE match_id=p_match_id ORDER BY user_id LOOP
     v_refund:=p_winner='DRAW' OR v_seat.team=p_winner;
     IF v_refund THEN
@@ -243,7 +243,7 @@ AS $fn$
 DECLARE v_match uuid; v_count integer:=0;
 BEGIN
   FOR v_match IN SELECT id FROM buklod_arena.matches WHERE status='active'
-    AND expires_at < now() ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 100 LOOP
+    AND expires_at < now() ORDER BY id LIMIT 100 FOR UPDATE SKIP LOCKED LOOP
     PERFORM public.arena_v2_ranked_abort(v_match,'match_timeout_refund');
     v_count:=v_count+1;
   END LOOP;
