@@ -66,7 +66,20 @@
     "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
     "src/features/games/empire/arenaPracticeAudio.mjs",
     "src/features/games/empire/ArenaAnimatedActor.tsx",
-    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs"
+    "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
+    "assets/season2/arena/generated/sprite/ace-c7877b984cae.webp",
+    "assets/season2/arena/generated/sprite/angel-ef5f9ce132ae.webp",
+    "assets/season2/arena/generated/sprite/christian-3f52360cfb94.webp",
+    "assets/season2/arena/generated/sprite/ellusur-5b106abc4075.webp",
+    "assets/season2/arena/generated/sprite/jawo-00295f17e495.webp",
+    "assets/season2/arena/generated/sprite/lhen-60e6ac8def21.webp",
+    "assets/season2/arena/generated/sprite/mitch-8c48d1a483e6.webp",
+    "assets/season2/arena/generated/sprite/niel-f4a2b7d93f3c.webp",
+    "assets/season2/arena/generated/sprite/phan-81ce70699e47.webp",
+    "assets/season2/arena/generated/sprite/quin-a4f61bd084ab.webp",
+    "assets/season2/arena/generated/sprite/trudice-8bacb802830e.webp",
+    "assets/season2/arena/generated/sprite/van-f37dac3f225a.webp",
+    "assets/season2/arena/generated/sprite/vhen-b611d9a37fac.webp"
   ],
   "lockedFeatureChanges": [
     {

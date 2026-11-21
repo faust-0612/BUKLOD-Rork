@@ -27,6 +27,123 @@
       "sha256": "268f1aad617a45776eed4a8ecc81ab7c82553581a1bf13cee105aca12bbe8078",
       "bytes": 3452975,
       "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:ace",
+      "kind": "sprite",
+      "id": "ace",
+      "file": "assets/season2/arena/generated/sprite/ace-c7877b984cae.webp",
+      "sha256": "c7877b984cae74e90bf0671e04d3e34ff157167a940bb65f7be8b8de8bb00287",
+      "bytes": 74674,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:angel",
+      "kind": "sprite",
+      "id": "angel",
+      "file": "assets/season2/arena/generated/sprite/angel-ef5f9ce132ae.webp",
+      "sha256": "ef5f9ce132aee7f3c4a90485c489aeb8f4294867e61c9864615f07235419fde8",
+      "bytes": 72364,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:christian",
+      "kind": "sprite",
+      "id": "christian",
+      "file": "assets/season2/arena/generated/sprite/christian-3f52360cfb94.webp",
+      "sha256": "3f52360cfb940d65fe2e5475a8fa70f34946702a653850d7a2bc6e58c20b5a42",
+      "bytes": 60812,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:ellusur",
+      "kind": "sprite",
+      "id": "ellusur",
+      "file": "assets/season2/arena/generated/sprite/ellusur-5b106abc4075.webp",
+      "sha256": "5b106abc4075bf87c1b4aea618eea0beb17ad11c0af19d995998f8abd70dce77",
+      "bytes": 71684,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:jawo",
+      "kind": "sprite",
+      "id": "jawo",
+      "file": "assets/season2/arena/generated/sprite/jawo-00295f17e495.webp",
+      "sha256": "00295f17e495ac5f20428d7528918c9e9fcc79e892384d19ecb1912fcc54ba6d",
+      "bytes": 71912,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:lhen",
+      "kind": "sprite",
+      "id": "lhen",
+      "file": "assets/season2/arena/generated/sprite/lhen-60e6ac8def21.webp",
+      "sha256": "60e6ac8def21ab00694db30e9975f75344d1a4befdbda324c2a4039c786ddbba",
+      "bytes": 65324,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:mitch",
+      "kind": "sprite",
+      "id": "mitch",
+      "file": "assets/season2/arena/generated/sprite/mitch-8c48d1a483e6.webp",
+      "sha256": "8c48d1a483e62262f3f3360a6842d50760a7a5a573feeab9e1df051ef87cd5e3",
+      "bytes": 73066,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:niel",
+      "kind": "sprite",
+      "id": "niel",
+      "file": "assets/season2/arena/generated/sprite/niel-f4a2b7d93f3c.webp",
+      "sha256": "f4a2b7d93f3ca3651516bf8d17007e4a01b30242de0cfb89c1e607e748ba993d",
+      "bytes": 71456,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:phan",
+      "kind": "sprite",
+      "id": "phan",
+      "file": "assets/season2/arena/generated/sprite/phan-81ce70699e47.webp",
+      "sha256": "81ce70699e47b0d7fecc3903dcca690ff542f9813a2e2e1915db13f3541fccac",
+      "bytes": 62686,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:quin",
+      "kind": "sprite",
+      "id": "quin",
+      "file": "assets/season2/arena/generated/sprite/quin-a4f61bd084ab.webp",
+      "sha256": "a4f61bd084ab699c92efa02cc5d772739fb17d382bc1fd024ef3d6acd84a3370",
+      "bytes": 66696,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:trudice",
+      "kind": "sprite",
+      "id": "trudice",
+      "file": "assets/season2/arena/generated/sprite/trudice-8bacb802830e.webp",
+      "sha256": "8bacb802830ef427e02e476d44edf75553c6a37764f8d06fad45bd53c8411c92",
+      "bytes": 69708,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:van",
+      "kind": "sprite",
+      "id": "van",
+      "file": "assets/season2/arena/generated/sprite/van-f37dac3f225a.webp",
+      "sha256": "f37dac3f225a0a98d238fc6681d6b65566a7130d62804d7d50e35edac972bdfd",
+      "bytes": 65280,
+      "status": "dev-baseline"
+    },
+    {
+      "key": "sprite:vhen",
+      "kind": "sprite",
+      "id": "vhen",
+      "file": "assets/season2/arena/generated/sprite/vhen-b611d9a37fac.webp",
+      "sha256": "b611d9a37fac3155ac3e7e153f1ebc9f2d2db939121fc75a0a9f6524461ea304",
+      "bytes": 68426,
+      "status": "dev-baseline"
     }
   ]
 }
