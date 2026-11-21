@@ -39,7 +39,8 @@
     "tests/season2-estate-asset-customization-20261121.test.mjs",
     "tests/season2-estate-server-authority-20261121.test.mjs",
     "tests/season2-my-community-scope-customization-20261121.test.mjs",
-    "tests/season2-premium-construction-plan.test.mjs"
+    "tests/season2-premium-construction-plan.test.mjs",
+    "supabase/tests/buklod_estate_progression_authority_20261121.sql"
   ],
   "preserveBehaviors": [
     "Original approved Genesis entry map/one-tap doors and legacy BUKLOD Bahay, reminders, budget, garden and family routes remain unchanged.",
@@ -54,14 +55,16 @@
     "tests/season2-estate-asset-customization-20261121.test.mjs",
     "tests/season2-estate-server-authority-20261121.test.mjs",
     "tests/season2-my-community-scope-customization-20261121.test.mjs",
-    "tests/season2-premium-construction-plan.test.mjs"
+    "tests/season2-premium-construction-plan.test.mjs",
+    "supabase/tests/buklod_estate_progression_authority_20261121.sql"
   ],
   "acceptanceChecks": [
     "30 SVG level identities and 150 stage compositions represented in installed renderer.",
     "All nine cosmetic categories validated in server JSON and applied to suitable development scene artwork; per-property drafts isolated.",
     "Client never labels unearned Finishing-stage graphics as verified property.",
     "Focused Node tests, TypeScript, compact layout, one-tap map and ad/navigation release regressions pass in DEV workflow.",
-    "Migration is NOT applied to shared live Supabase; real device/staging SQL concurrency, RLS and signed OTA remain separate mandatory gates."
+    "Migration is NOT applied to shared live Supabase; real device/staging SQL concurrency, RLS and signed OTA remain separate mandatory gates.",
+    "Isolated SQL regression in supabase/tests validates grants, RLS, owner/scope isolation, exact-once resource credits and builds, timer gates and persistence. Source added; execution against staging remains pending."
   ],
   "lockedFeatureChanges": [
     {
@@ -84,7 +87,8 @@
         "Role/ownership gates, verified earned resource credits, and per-scope idempotency remain required."
       ],
       "tests": [
-        "tests/season2-estate-server-authority-20261121.test.mjs"
+        "tests/season2-estate-server-authority-20261121.test.mjs",
+        "supabase/tests/buklod_estate_progression_authority_20261121.sql"
       ]
     }
   ],
