@@ -69,10 +69,10 @@ test('The moving Phan character guide is located OUTSIDE the approved map',()=>{
 });
 
 test('Built-in illustrated menu, profile, notifications and search icons have REAL tap routes',()=>{
-  assert.match(map,/onMenu=\{/);
-  assert.match(map,/onProfile=\{/);
-  assert.match(map,/onNotifications=\{/);
-  assert.match(map,/onSearch=\{/);
+  assert.match(gateway,/onMenu=\{/);
+  assert.match(gateway,/onProfile=\{/);
+  assert.match(gateway,/onNotifications=\{/);
+  assert.match(gateway,/onSearch=\{/);
   for(const label of ['Open BUKLOD destinations menu','Open my BUKLOD profile','Open notifications','Search BUKLOD'])assert.ok(map.includes(label));
   assert.match(gateway,/onSearch=\{\(\) => router\.push\('\/feature-search'/);
   assert.match(gateway,/onNotifications=\{\(\) => router\.push\('\/notifications'/);
