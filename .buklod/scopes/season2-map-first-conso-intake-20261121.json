@@ -277,7 +277,8 @@
     "tests/sql/arena_ranked_disposable_setup.sql",
     "tests/sql/arena_ranked_private_integrity.sql",
     "src/features/season2/genesis/GenesisWorldGuide.tsx",
-    "tests/season2-one-tap-kingdom-guide-20261121.test.mjs"
+    "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
+    "src/app/(tabs)/hub.tsx"
   ],
   "publicationStatus": "Consolidated Season 2 + Arena DEV source merged and protected. No new staging project/branch. No signed native build or EAS OTA published; ranked Diamond settlement still disabled.",
   "acceptanceChecks": [
@@ -308,7 +309,8 @@
     "Offline Arena practice enabled ONLY in Genesis staging preview; real ranked gameplay disabled by EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED=false pending separate secure backend/transaction/live verification.",
     "Android bundle/source parity and PostgreSQL concurrency tests are CI evidence only; never label as actual signed APK, real device QA, published OTA or production activation.",
     "Owner-approved Genesis map gold-marker coordinates unchanged: touching the marker opens its guarded destination immediately; no second ENTER/button and no scroll required to confirm.",
-    "Character Kingdom and Empire Arena are separately named destinations; animated local Phan concierge sits OUTSIDE the map and respects Reduce Motion; no economy writes or new native modules."
+    "Character Kingdom and Empire Arena are separately named destinations; animated local Phan concierge sits OUTSIDE the map and respects Reduce Motion; no economy writes or new native modules.",
+    "In Genesis preview, Home route reuses the ONE approved Valley world map via guarded /buklod-map redirect; no obsolete secondary schematic, no first-view AdMob loss, and legacy production Home unchanged."
   ],
   "selectionRationale": "Owner explicitly superseded previous 'skip arena' instruction with inclusion in the existing Season 2 consolidated OTA source, with NO new staging backend. No redundant Android app, no new subscriptions, no unauthorized live financial writes.",
   "preserveBehaviors": [
