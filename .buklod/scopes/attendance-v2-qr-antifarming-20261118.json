@@ -1,0 +1,108 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/attendance-v2-qr-antifarming-20261118.json",
+  "objective": "Implement universal one-scan rotating Event QR attendance across authorized BUKLOD Organization/Sub-organization/Cluster scopes, with independent reward verification and anti-farming BP limits.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Read-only GitHub source baseline main SHA d23cd882f7d34c4bca3a110dadd04ee4cb2240a9 and live Supabase catalog, RLS, point rules, and QR-token integrity were inspected November 18, 2026 (21 events, 24 direct attendance rows, 12 person rows, 136 valid distinct active QR tokens, and 25 historical scoped attendance credits). This verifies code and backend catalogs only; it does NOT verify the physical device, current served OTA runtime or production artifact.",
+  "chosenApproach": "Add independent event QR session and approval RPCs without changing existing personal QR identity; funnel old and new scoped award triggers through independent completed-event approval, capped daily and weekly in Manila time. Preserve historical ledger and attendance. Bridge old Cluster Home review to canonical attendance and cap the legacy church attendance ledger path. Add exact-scope reports and targeted security + contract tests.",
+  "selectionRationale": "Avoid migrating user QR tokens, avoid client-side point claims, preserve previously issued rewards, require independent review with audit and verified attendance rather than creating reward-eligible events from organizer action.",
+  "allowedPaths": [
+    "supabase/migrations/20261118013000_buklod_attendance_v2_qr_antifarm.sql",
+    "supabase/migrations/20261118014000_buklod_attendance_v2_legacy_bridge_report.sql",
+    "src/app/scope/attendance/scan.tsx",
+    "src/app/scope/attendance/home-report.tsx",
+    "src/components/attendance/BuklodAttendanceEventQrPanel.tsx",
+    "tests/attendance-v2-contract.test.mjs",
+    "tests/scope-attendance-v2-security.test.mjs",
+    "supabase/tests/attendance_v2_security.sql",
+    "src/app/scope/attendance/index.tsx",
+    "src/app/profile/attendance-qr.tsx",
+    "src/components/BuklodHomeCheckinToday.tsx",
+    "src/hooks/useAttendancePermissions.ts",
+    ".buklod/scopes/attendance-v2-qr-antifarming-20261118.json",
+    "supabase/tests/attendance_v2_fixture.sql",
+    "supabase/tests/attendance_v2_integration.sql",
+    ".github/workflows/attendance-v2-db-qa.yml"
+  ],
+  "regressionTests": [
+    "tests/attendance-v2-contract.test.mjs",
+    "tests/scope-attendance-v2-security.test.mjs",
+    "supabase/tests/attendance_v2_security.sql",
+    "supabase/tests/attendance_v2_integration.sql"
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "classroom-quiz",
+    "app-runtime",
+    "cluster-faith",
+    "quiz-classroom",
+    "backend-security"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add scope event QR scanner/display and scope attendance reporting without modifying Wall, Connect, media, ads or global navigation primitives.",
+      "preservedBehaviors": [
+        "All existing dashboard navigation, AdMob placements, personal QR identity and on-device login behaviors remain unchanged."
+      ],
+      "tests": [
+        "tests/attendance-v2-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Unify scoped Cluster/Organization Event attendance and cross-scope reporting with strict authorized operator visibility.",
+      "preservedBehaviors": [
+        "Cluster attendance reporting, home scope membership privacy, and previously recorded check-in history remain available."
+      ],
+      "tests": [
+        "tests/scope-attendance-v2-security.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "Add one-scan attendee self-registration while preserving separate existing classroom gradebook and classroom attendance functionality.",
+      "preservedBehaviors": [
+        "Classroom grading, roster attendance and optional personal Profile QR remain unchanged, without new points for duplicate scans."
+      ],
+      "tests": [
+        "tests/attendance-v2-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Introduce server-owned short-lived QR, protected independent event review, reward caps, RLS, legacy reward bridging, and privately scoped attendance reports.",
+      "preservedBehaviors": [
+        "System Admin cannot mint BP from event creation or self-approved event reviews; historical ledger is retained and no public security-definer reward RPC is opened."
+      ],
+      "tests": [
+        "tests/scope-attendance-v2-security.test.mjs",
+        "supabase/tests/attendance_v2_security.sql",
+        "supabase/tests/attendance_v2_integration.sql"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Do not delete or rotate any of the 136 valid individual QR tokens or historical attendance records.",
+    "No existing BUKLOD points or rank balances are rewritten retroactively.",
+    "Existing admin manual attendance and attendance checker remain usable, with new rewards gated.",
+    "No changes to ads, offscreen video lifecycle, dashboard navigation, or production OTA channels."
+  ],
+  "acceptanceChecks": [
+    "Focused Node contract tests, focused database/RLS tests in isolated staging after migrations, TypeScript and Engineering Accountability gates.",
+    "Replay/duplicate scans produce only one attendance record; invalid/stale QR never grants a record.",
+    "Event author cannot self-approve, approval cannot occur before completed event, high-frequency events require System Admin, and no BP is awarded before approval.",
+    "Reward ledger respects 10 BP per verified event, 20 per Manila day and 50 per Manila week across scoped/legacy event attendance.",
+    "Cross-organization home report has no cross-account exposure or duplicate rewards.",
+    "No manual device verification per owner request; DEV changes stay out of production OTA until automated gates and verified RC are ready.",
+    "GitHub Actions isolated PostgreSQL 17 service applies both attendance migrations then runs RLS, QR replay, forged-metadata, independent approval, ledger dedup, partial reversal, and private cross-scope reporting assertions.",
+    "Nonpublishing Android staging bundle compilation under exact staging package/runtime, with AdMob and navigation tests, after isolated PostgreSQL behavior tests pass."
+  ],
+  "alternativeApproaches": [
+    "Let event creators automatically award rewards to scanned members (rejected: farming and self-approval abuse).",
+    "Replace every personal QR and attendance ledger with a new identity system (rejected: breaks existing tokens and history).",
+    "Use server-issued Event QR with independent rewards and reuse legacy identity and reports (selected)."
+  ],
+  "releaseMode": "ISOLATED_DEV_PR_NO_DATABASE_APPLIED_NO_OTA",
+  "physicalDeviceVerification": "SKIPPED_BY_OWNER"
+}

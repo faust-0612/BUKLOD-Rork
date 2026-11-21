@@ -66,7 +66,7 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
   try{
    const{data,error}=await(supabase as any).rpc('submit_my_buklod_home_checkin_r3',{p_event_id:item.event_id});
    if(error)throw error;
-   setMessage(`Check-in received for ${data.event}. Awaiting Admin verification for +10 BP.`);
+   setMessage(`Check-in received for ${data.event}. Pending independent event verification. Points are not guaranteed.`);
    await load();showBuklodAdOpportunity('points_submission_success');
   }catch(e){setMessage(e instanceof Error?e.message:'Could not check in. Try again.');}
   finally{setBusy(null)}
@@ -78,7 +78,7 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
    <MaterialCommunityIcons name="calendar-check" color="#1B7843" size={22}/>
    <View style={{flex:1}}>
     <Text style={styles.title}>Check In Today</Text>
-    <Text style={styles.caption}>Only during a live Cluster event · +10 BP after Admin verification</Text>
+    <Text style={styles.caption}>Live Cluster event · Attendance first · BP only after independent event verification</Text>
    </View>
   </View>
   {loading&&<ActivityIndicator color="#167944"/>}

@@ -52,7 +52,9 @@ export function useAttendancePermissions(
     () =>
       isAdmin ||
       isOperator ||
-      scopeHasRole(workspaceScope, 'attendance_admin'),
+      Boolean(workspaceScope?.is_admin) ||
+      ['attendance_admin', 'admin', 'org_admin', 'cluster_admin', 'sub_org_admin']
+        .some(role => scopeHasRole(workspaceScope, role)),
     [isAdmin, isOperator, workspaceScope]
   );
 
