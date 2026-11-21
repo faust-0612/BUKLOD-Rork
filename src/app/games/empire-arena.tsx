@@ -452,7 +452,7 @@ function EmpireArenaInApp() {
   }, [hero, mode, mapId, sfxEnabled]);
 
   const startSolo = useCallback(() => {
-    // No promise, fetch, session query, socket, wallet or Diamond calls.
+    // Pure local CPU match: no remote requests, account checks, sockets or reward grants.
     // The same canonical combat engine drives both player and CPU actions.
     rankedRef.current?.close();rankedRef.current=null;
     const state = createArenaSolo({hero,opponent:cpuHero,difficulty:cpuDifficulty,mapId});
