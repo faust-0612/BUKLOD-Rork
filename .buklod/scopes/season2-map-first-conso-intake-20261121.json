@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
-  "objective": "Premium Season 2 map-first Kingdom staging candidate with locally bundled nature-first tropical/winter art and canonical paid Supabase; Arena EXCLUDED FROM THE COMPILED APPLICATION BUNDLE, no production deployment.",
+  "objective": "Premium Season 2 map-first Kingdom consolidated source with nature-first graphics, the in-app Empire Arena practice/assets and owned ranked server source; existing paid BUKLOD Supabase ONLY, ranked financial writes OFF pending separate release verification; no new staging infrastructure or production deployment.",
   "baseRef": "44d07a65d5e19f4cfb8f70aaff4f9d24545eb097",
   "productionBaselineEvidence": "Main production untouched; parent DEV commit 9997d85d646257d83e18642a4219a38cc57b0ec2. App/runtime Play identity not independently verified; no Supabase/OTA writes. Owner clarified 2026-11-21: sharing the existing paid BUKLOD Supabase is explicitly authorized for normal app operations; new subscriptions and independent paid database are not required. DEV source only; no live backend writes performed. Signed green B staging APK Android job 136181340162 (2026-11-20) verified APK SHA256 f2608820b522a2d58fbbcfe94be10df600f7c3915a509e625f53902288770900 source a04d9ccf91e508a062bab8a7657297e574ae40a2; native config matched exactly in this source.",
-  "chosenApproach": "Preserve existing consolidated core and Kingdom graphical UX; fully remove new Expo Router Arena route, offline engine and arena renderers from this staging candidate so no Arena feature is in the APK, keep its independent experimental DEV PR intact; source gate uses canonical live paid Supabase with no new finance mutations.",
+  "chosenApproach": "Retain verified Genesis map-first and premium Kingdom portal; add Arena screen/animations through canonical Kingdom route and accessible map directory; reuse exact existing Expo staging profile, runtime and paid Supabase. Ranked backend/SQL is source prepared but not connected or migrated; all live financial writes remain disabled. No second staging project or APK launched.",
   "riskAreas": [
     "asset-licensing",
     "backend-isolation",
@@ -22,7 +22,10 @@
     "shared-live-supabase-data-integrity",
     "native-character-idle-motion",
     "android-js-bundle-compatibility",
-    "native-splash-identity"
+    "native-splash-identity",
+    "arena-ranked-escrow",
+    "arena-asset-native-compatibility",
+    "arena-router-direct-link"
   ],
   "lockedFeatureChanges": [
     {
@@ -55,7 +58,7 @@
       "reason": "Protect exact native runtime and paid existing BUKLOD Supabase while adding a fail-closed source-vs-artifact staging OTA gate; no production build/release workflows changed.",
       "preservedBehaviors": [
         "All existing production, preview, staging-user, Classroom and other EAS profile identities and native release configurations remain unchanged outside the dedicated season2-genesis-preview profile.",
-        "No signed build, EAS OTA, main branch, Google Play or production Supabase deployment is changed or initiated; new EAS profile requires verified independent staging backend credentials.",
+        "Existing EAS Season 2 profile points to the canonical paid Supabase with publishable client key; no independent staging project, schema migration, production promotion, or new live rewards.",
         "Existing version/runtime checks, asset verification, AdMob first-view inventory and fast navigation release gates remain mandatory and cannot be skipped by source-only tests."
       ],
       "tests": [
@@ -116,20 +119,15 @@
     "The source-only map-specific PR workflow runs Node preflight and both focused regression tests; this is NOT a signed native build, OTA, or real asset acceptance.",
     "Source gates and exact-head CI; regressions on existing ads/fast navigation.",
     "Both Valley WebP files and 14 owner-handoff hotspots are in DEV Git source; real mobile touch/scale and signed staging visual validation remain WAIVED/UNVERIFIED, not OTA ready.",
-    "No native/Supabase changes or OTA publisher change. Premium asset bytes/licensing, 13 unique rigs, Arena true multiplayer, isolated economy ledger, signed Genesis native build remain hard HOLD.",
     "Physical device visual check waived but unverified; signed Android/native/AdMob QA not waived.",
     "No Stage→Production release until 2026-12-06 and authorization.",
     "Source QA workflow runs actual WebP SHA256/14-route checks plus audio-focus regression with no release/publish step.",
-    "Focused Arena engine/camera/input offline tests and exact-head TypeScript; physical device, full PvP and signed APK remain unverified.",
     "Preview-only Arena direct deep link checks session, onboarding, maintenance, update, pilot and privacy gates before game mount.",
     "Premium original Kingdom source WebP SHA256 232c99e995fafde2e018a286f998a39917de32620ee502c8486ca58a1eabf8eb; compact 5e7ed0af9568aa6f9cc8d6753015b3c8ac36fd4e070541d43f017d88975fcc95; 1536x864 and 960x540. Static no network/egress. Real device image decode waived but unverified.",
-    "Arena specifically out of staging: EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL is OFF by default for portal and direct link. Does NOT remove the source from DEV. No staged version may silently opt in.",
     "No signed staging APK/EAS runtime/OTA receipt, AdMob fill and native regression proof, isolated BP/QMP/RLS backend or end-to-end 5-stage World art present; staging OTA READY remains blocked.",
     "Exact native Genesis staging runtime 2.0.0-genesis-preview, channel season2-genesis-preview, staging package; actual built APK absent. Source gate does NOT attest runtime.",
-    "Explicit live Supabase reference removed from Genesis EAS profile; isolated BUKLOD_STAGING_PROJECT_REF and matching publishable env + signed EAS artifact must be supplied and verified to pass release gate.",
     "Supabase correction: Genesis EAS profile points to existing already paid BUKLOD Supabase; release source gate verifies exact canonical URL and publishable-only key, with explicit shared-live backend mode. No new paid app/plan/subscription required.",
     "Shared-live backend is NOT an isolated test database: never run test users, idempotency stress tests, payout/mint migrations, unsafe RLS trials or destructive fixtures against production; real normal app activity uses existing authoritative server policies.",
-    "Arena absent at source/Metro route level: src/app/games/empire-arena.tsx and experiments/empire-arena-v2 do NOT exist in candidate tree; no UX or deep-link mount. Independent Arena DEV PR remains available.",
     "Native-driver bounded idle motion only for existing original character images; active/focus/background/Reduce Motion gate and cleanup; no fictional .riv rig or fake gameplay ownership.",
     "Android map hit targets >=44px with edge clamps on narrow 280px viewport; focused route and Show Faith regressions preserved.",
     "Exact staging Android Metro JS/asset export added to Season 2 CI with locked npm dependencies; source-only pass is NOT signed native APK or OTA proof. Existing paid Supabase is compile-time config only; no backend request.",
@@ -137,7 +135,11 @@
     "Premium Genesis-only native splash/icon matches source a04d9cc... of actual verified signed stage APK SHA256 f260... versionCode13; no changes to non-Genesis production icons or native module/dependency lockfile.",
     "Real GitHub Actions artifact 14616118120 confirms newer signed Genesis APK EAS build 42ce5047-70dc-47e1-b8a9-77948c9b8dba, APK source a04d9..., actual SHA256 f260..., versionCode 13, 4 ABIs, native splash green B. Distinguish from current premium OTA JS commit.",
     "Local release gate cannot set OTA ready from an unverified JSON; exact current premium commit, signed native APK provenance+sha+EAS build ID and native source parity required. Actual EAS channel/update receipts still mandatory.",
-    "Run permanent old AdMob focus/warmup/cooldown/sensitive-route and new premium first-view/Kingdom placement source regressions as an isolated GitHub CI step before Android Metro export; source PASS is not a real SDK ad fill acceptance."
+    "Run permanent old AdMob focus/warmup/cooldown/sensitive-route and new premium first-view/Kingdom placement source regressions as an isolated GitHub CI step before Android Metro export; source PASS is not a real SDK ad fill acceptance.",
+    "Owner correction 2026-11-21: Arena source, 13-character motion assets and optional ranked server now participate in the SAME consolidated Season 2 staging source; existing EAS profile reused. Previous Arena exclusion is superseded.",
+    "Ranked availability remains explicitly disabled in the existing Season 2 EAS preview profile until an owned WSS service and verified private SQL on the already paid backend satisfy financial gates; do not use production for isolated tests.",
+    "The Arena direct link enforces Genesis preview, signed-in user, consent, maintenance, mandatory update, pilot, onboarding, and return to existing Kingdom/map, without touching permanent tab layout or AdMob.",
+    "Offline practice uses synthetic level-1 profiles only, cannot credit BP/QMP/Diamonds; rank/eligibility and Diamond escrow remain server authoritative."
   ],
   "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
   "preserveBehaviors": [
