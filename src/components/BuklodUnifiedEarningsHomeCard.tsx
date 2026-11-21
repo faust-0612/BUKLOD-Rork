@@ -122,11 +122,13 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
     ++serial.current;
     setCash(null); setContribution(null); setMonthly(null); setScopeFund(null); setErrors([]);
     void load();
+    const refreshTimer = setInterval(() => { if (AppState.currentState === 'active') void load(); }, 300_000);
     const listener = AppState.addEventListener('change', state => {
       if (state === 'active') void load();
     });
     return () => {
       ++serial.current;
+      clearInterval(refreshTimer);
       listener.remove();
     };
   }, [load, retries]);
@@ -192,10 +194,21 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
               value={projected ? formatMinorPhp(projected.currentEstimateMinor) : 'No fresh estimate'}
             />
           </View>
+          <Stat label="TODAY · ADMOB REPORT (ESTIMATE)"
+            value={activeProvisional && contribution?.today_estimated_share_minor != null
+              ? contribution.today_estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(contribution.today_estimated_share_minor)
+              : 'No current daily report'} />
+          <Text style={styles.note}>AdMob reporting day: {contribution?.today_report_date ?? 'Unavailable'}
+            {contribution?.today_report_timezone ? ` · ${contribution.today_report_timezone}` : ''}
+          </Text>
           <Stat label="PROJECTED TOTAL · NOT WITHDRAWABLE"
             value={projected ? formatMinorPhp(projected.projectedTotalMinor) : 'Current estimate unavailable'} />
           <Stat label={`AVAILABLE FINALIZED · MINIMUM ${formatMinorPhp(monthly.minimum_withdrawal_minor)}`}
             value={formatMinorPhp(monthly.available_finalized_minor)} />
+          <View style={styles.cashRow}>
+            <Stat label="ALREADY WITHDRAWN · PAID" value={formatMinorPhp(monthly.already_paid_minor)} />
+            <Stat label="RESERVED FOR PAYOUT" value={formatMinorPhp(monthly.reserved_for_payout_minor)} />
+          </View>
           <Text style={styles.note}>
             Finalized monthly earnings stay in history even after a payout. Current-month QMP changes only
             the preliminary estimate. Projected total excludes money reserved or already paid.
@@ -212,6 +225,11 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
         <Text style={styles.category}>PRELIMINARY COMMUNITY REVENUE SHARE</Text>
         <Text style={styles.estimateValue}>{activeProvisional ? estimate : 'No fresh estimate'}</Text>
         <Text style={styles.warning}>Estimate only. Not finalized, funded, or withdrawable.</Text>
+        <Text style={styles.note}>{contribution?.estimate_updated_at
+          ? `AdMob last synced: ${new Date(contribution.estimate_updated_at).toLocaleString()}`
+          : 'No current official AdMob sync.'}</Text>
+        {contribution?.estimate_status === 'STALE' ?
+          <Text style={styles.warning}>AdMob sync overdue; stale revenue is hidden.</Text> : null}
       </View>
 
       {scopeId && scopeIsSupported ? (

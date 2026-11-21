@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { hasGatewayVerifiedServiceRoleClaims } from '../supabase/functions/buklod-admob-revenue-preview-sync/gateway-service-role.mjs';
+import { hasGatewayVerifiedServiceRoleClaims, hasGatewayVerifiedServiceRoleSecretKey } from '../supabase/functions/buklod-admob-revenue-preview-sync/gateway-service-role.mjs';
 
 const token = (payload, signature = 'signature') => {
   const encoded = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -34,6 +34,36 @@ test('production source depends on enforced Supabase JWT signature validation', 
   assert.match(importer, /hasGatewayVerifiedServiceRoleClaims\(token\)/);
   assert.doesNotMatch(importer, /^\s*verify_jwt\s*=\s*false/m);
   assert.doesNotMatch(importer, /token !== serviceRole/);
-  assert.match(importer, /admin_set_buklod_community_admob_estimate_v1/);
+  assert.match(importer, /buklod_write_admob_daily_preview_v2/);
   assert.doesNotMatch(importer, /payout_processing|credit_wallet|process_withdrawal/i);
+});
+
+test('modern server-only Supabase secret accepted only when exactly gateway-verified and project-local', () => {
+  const key='sb_secret_'+'a'.repeat(44);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey(key,key),true);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey(key.slice(0,-1)+'b',key),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey('sb_publishable_'+'a'.repeat(44),key),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey(key,'sb_publishable_'+'a'.repeat(44)),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey('service_role',key),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey('sb_secret_bad','sb_secret_bad'),false);
+  assert.equal(hasGatewayVerifiedServiceRoleSecretKey(null,key),false);
+  const importer = readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/index.ts','utf8');
+  assert.match(importer,/hasGatewayVerifiedServiceRoleSecretKey\(token, serviceRole\)/);
+  assert.match(importer,/verify_jwt=true/);
+});
+
+test('verified server importer emits bounded internal stage labels and provider status only',()=>{
+  const importer=readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/index.ts','utf8');
+  for(const stage of ['oauth','account','network-report','storage']) assert.match(importer,new RegExp("reportStage = '"+stage+"'"));
+  assert.match(importer,/source_stage|stage: reportStage/);
+  assert.match(importer,/provider_http_status: providerHttpStatus/);
+  assert.doesNotMatch(importer,/return json\(\{ error: kind, details:/);
+});
+
+test('only allowed OAuth error code categories are reported, never error descriptions or secrets',()=>{
+  const importer=readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/index.ts','utf8');
+  assert.match(importer,/oauthFault\?\.error/);
+  assert.match(importer,/invalid_grant/);
+  assert.match(importer,/oauth_error_code: safeOauthCode/);
+  assert.doesNotMatch(importer,/error_description|console\.log\(oauthFault\)/);
 });
