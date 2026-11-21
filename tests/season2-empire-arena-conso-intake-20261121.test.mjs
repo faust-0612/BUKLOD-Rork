@@ -10,7 +10,7 @@ const env=JSON.parse(read('eas.json')).build['season2-genesis-preview'].env;
 
 test('The ONE BUKLOD Genesis map and Kingdom portal both reach the same in-app Arena',()=>{
  const map=JSON.parse(read('src/features/season2/genesis/genesisApprovedEntryHotspots.json'));
- const arena=map.hotspots.filter(x=>x.id==='empire-arena');
+ const arena=map.hotspots.filter(x=>x.id==='hero-arena');
  assert.equal(arena.length,1);
  assert.equal(arena[0].route,'/games/empire-arena');
  const district=read('src/features/season2/genesis/genesisMapDistricts.ts');
@@ -98,7 +98,10 @@ test('Release remains HARD HOLD without signed matching Android APK and actual O
  assert.match(script,/--source/);
  assert.match(script,/otaReady/);
  const map=read('src/app/buklod-map.tsx');
- assert.match(map,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
+ assert.doesNotMatch(map,/BuklodFirstViewAd/);
+ const home=read('src/app/(tabs)/hub.tsx');
+ assert.match(home,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
+ assert.match(map,/<GenesisApprovedEntryMap/);
  const app=read('src/app/games/index.tsx');
  assert.match(app,/BuklodKingdomAdSlot/);
 });

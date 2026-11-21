@@ -84,6 +84,27 @@ export const BUKLOD_MAP_DISTRICTS: readonly BuklodMapDistrict[] = Object.freeze(
     ],
   },
   {
+    id:'university', title:'University', tagline:'Classrooms, quizzes, faculty and learning resources',
+    icon:'school-outline',accent:'#C7D9FF',destination:'/season2/university',
+    entries:[
+      {label:'University Directory',route:'/season2/university',description:'Classroom, faculty, exams and learning materials'},
+    ],
+  },
+  {
+    id:'church', title:'Church', tagline:'BUKLOD Lessons, ABAKA, WORD and prayer',
+    icon:'church',accent:'#FFE3BA',destination:'/season2/church',
+    entries:[
+      {label:'Church Directory',route:'/season2/church',description:'Church and Christian resources',faithOnly:true},
+    ],
+  },
+  {
+    id:'events', title:'Special Events', tagline:'Programs, challenges, festivals and meaningful activities',
+    icon:'star-circle-outline',accent:'#FFDE9A',destination:'/season2/special-events',
+    entries:[
+      {label:'Special Events',route:'/season2/special-events',description:'Live and upcoming authorized events'},
+    ],
+  },
+  {
     id: 'market', title: 'Market & Economy', tagline: 'Trade, build and understand value',
     icon: 'storefront-outline', accent: '#A9E3EC', destination: '/profile/buklod-market',
     entries: [

@@ -11,7 +11,7 @@ test('forward-porting must remain fail-closed until the backend is verified',()=
 test('existing Genesis app entry, nav persistence and AdMob bootstrap remain unmodified at intake',()=>{
   const boot=text('src/app/index.tsx');
   assert.ok(boot.includes('isGenesisPreviewBuild()'));
-  assert.ok(boot.includes("'/(tabs)/hub' : '/(tabs)/buklod'"));
+  assert.ok(boot.includes("'/buklod-map' : '/(tabs)/buklod'"));
   assert.ok(text('src/app/(tabs)/_layout.tsx').includes('BuklodDashboardAdWarmup'));
   assert.ok(text('src/app/(tabs)/_layout.tsx').includes('BuklodAndroidDashboardTabs'));
 });
@@ -20,15 +20,16 @@ test('arena still returns server-only plans, never a client-declared match payme
   assert.ok(text('src/features/empire-arena/settlementPolicy.mjs').includes('planned_not_committed'));
 });
 
-test('Genesis preview routes to map-first World, hides old global bars and preserves complete purpose directory',()=>{
+test('Genesis preview routes to map-first World and preserves single bottom nav and purpose directory',()=>{
   const hub=text('src/app/(tabs)/hub.tsx');
   const world=text('src/components/world/BuklodGenesisWorldHome.tsx');
   const tabs=text('src/app/(tabs)/_layout.tsx');
   const shell=text('src/components/BuklodNavSafeShell.tsx');
-  assert.ok(hub.includes('if (genesisPreview)'));
-  assert.ok(hub.includes('<GenesisWorld />'));
+  assert.doesNotMatch(hub,/<Redirect href="\/buklod-map" \/>/);
+  assert.match(hub,/BuklodFirstViewAd placement="home"/);
+  assert.match(text('src/app/index.tsx'),/isGenesisPreviewBuild\(\) \? '\/buklod-map'/);
   assert.ok(tabs.includes('!isGenesisPreviewBuild() ? <SwipeDashboardHeader />'));
-  assert.ok(shell.includes('!genesisWorld && !immersiveIgpat && !immersiveConversation'));
+  assert.ok(shell.includes('!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0'));
   assert.ok(world.includes('WORLD_COMPLETE_DESTINATION_DIRECTORY'));
   assert.ok(world.includes('BuklodFirstViewAd'));
   assert.ok(world.includes('BuklodScreenBottomBanner'));

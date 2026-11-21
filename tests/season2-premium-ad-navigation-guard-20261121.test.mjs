@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 const root=resolve(import.meta.dirname,'..');
 const read=p=>readFileSync(resolve(root,p),'utf8');
 
-test('Premium Genesis map honors auth/compliance/mandatory-update before first view ads',()=>{
+test('Premium Genesis map honors auth/compliance/mandatory-update before guide and map, while Home keeps ads',()=>{
  const map=read('src/app/buklod-map.tsx');
  const guard=[
   "if (!isGenesisPreviewBuild())",
@@ -16,12 +16,16 @@ test('Premium Genesis map honors auth/compliance/mandatory-update before first v
   "if (requiresAcceptance)",
   "if (!profile)",
  ];
- const ad=map.indexOf('<BuklodFirstViewAd placement="home" placementId="new_home_first_view"');
- assert.ok(ad>0,'Approved first-view placement must not be removed');
+ const mapIndex=map.indexOf('<GenesisApprovedEntryMap');
+ assert.ok(mapIndex>0,'Approved map must be present');
  for(const token of guard){
   const at=map.indexOf(token);
-  assert.ok(at>=0&&at<ad,'Auth or privacy guard must precede first-view AdMob: '+token);
+  assert.ok(at>=0&&at<mapIndex,'Auth/privacy gate must precede map: '+token);
  }
+ assert.doesNotMatch(map,/BuklodFirstViewAd/);
+ const home=read('src/app/(tabs)/hub.tsx');
+ assert.match(home,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
+ assert.doesNotMatch(home,/<Redirect href="\/buklod-map"/);
  assert.match(map,/GenesisApprovedEntryMap[\s\S]*onOpen/);
  assert.match(map,/router\.push\(route as any\)/);
 });
@@ -48,4 +52,22 @@ test('Audio focus/first-view prewarm protection remains bounded when switching d
    'isBuklodPassiveAdAllowed','reserveBuklodPassiveAdRequest']){
   assert.ok(warm.includes(s),'Lost bounded prewarm: '+s);
  }
+});
+
+test('Genesis Wall and Connect clear status bar without moving other dashboards',()=>{
+ const tab=read('src/app/(tabs)/_layout.tsx');
+ const home=read('src/app/(tabs)/hub.tsx');
+ for(const piece of [
+   'const genesisDashboardTopInset =',
+   "Platform.OS !== 'web' &&",
+   'isGenesisPreviewBuild() &&',
+   "['/buklod', '/messages'].includes(normalizeBuklodPathname(pathname))",
+   'Math.max(0, insets.top) + 4',
+   'paddingTop: genesisDashboardTopInset,',
+ ]) assert.ok(tab.includes(piece),'Missing Genesis clearance guard: '+piece);
+ assert.ok(tab.includes('!desktopWebShell && !isGenesisPreviewBuild() ? <SwipeDashboardHeader /> : null'),
+   'Do not change production header behavior');
+ assert.ok(home.includes('const genesisPreview = isGenesisPreviewBuild()'),
+   'Home remains independently controlled');
+ assert.ok(!tab.includes("['/buklod', '/messages', '/hub'"),'Do not shift other dashboards');
 });

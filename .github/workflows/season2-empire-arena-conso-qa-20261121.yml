@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - integration/season2-empire-arena-conso-intake-20261121
+      - integration/season2-genesis-full-conso-staging-20261121
   pull_request:
     branches:
       - dev/season2-map-first-conso-intake-20261121
@@ -36,6 +37,7 @@ jobs:
             tests/genesis-world-navigation-regression-20261121.test.mjs \
             tests/genesis-valley-asset-interaction-20261121.test.mjs \
             tests/season2-one-tap-kingdom-guide-20261121.test.mjs \
+            tests/season2-special-events-welcome-20261121.test.mjs \
             tests/season2-community-village-preview-20261121.test.mjs \
             tests/genesis-valley-audio-focus-20261121.test.mjs \
             tests/season2-premium-nature-kingdom-20261121.test.mjs \
@@ -59,6 +61,18 @@ jobs:
             tests/kingdom-premium-audio-39-20261121.test.mjs \
             tests/kingdom-shards-free-powers-20261111.test.mjs \
             tests/kingdom-complete-user-experience-20261111.test.mjs
+      - name: Verify Character timeout, immutable Character visuals and Genesis OTA freshness
+        run: |
+          node --experimental-strip-types --test tests/genesis-ota-character-timeout-20261121.test.mjs tests/buklod-mandatory-update-runtime.test.mjs
+          node --test tests/buklod-character-art-release-contract-20261116.test.mjs
+          node scripts/character-release-contract.mjs
+      - name: Restore original Kingdom stations without a covering ad
+        run: |
+          node --test tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs tests/season2-premium-nature-kingdom-20261121.test.mjs tests/buklod-kingdom-character-ads-20261111.test.mjs tests/kingdom-premium-map-r6.test.mjs
+      - name: Validate KL dictionary-driven 13 original Kingdom scenery layouts
+        run: node --test tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs
+      - name: Verify separate KL Core/Special world map identity and original ad footer
+        run: node --test tests/genesis-kingdom-two-dictionary-maps-20261121.test.mjs
       - name: Prevent first-view ads and instant navigation regressions
         run: |
           node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs

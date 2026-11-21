@@ -58,15 +58,6 @@ export default function BuklodLightHome() {
     return () => { setFocused(false); };
   }, []));
 
-  // Staging Genesis: the complete World map is the first authenticated view.
-  // Keep the legacy Home and its ads untouched in every other runtime.
-  if (genesisPreview) {
-    // The owner-approved Valley is the ONE first-view map and premium Home.
-    // Do not paint the retired schematic as a second competing Home/Kingdom.
-    // BuklodMapScreen remains owner of auth, consent, update and first-view AdMob.
-    return <Redirect href="/buklod-map" />;
-  }
-
   if (desktopDashboard) {
     const openPost = () => router.push({
       pathname: '/buklod' as any,

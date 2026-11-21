@@ -5,6 +5,7 @@
  */
 export const OTA_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 export const OTA_FAILURE_COOLDOWN_MS = 30 * 60 * 1000;
+export const GENESIS_OTA_INITIAL_CHECK_MS = 45 * 1000;
 
 type CheckResult = { isAvailable: boolean };
 type FetchResult = { isNew: boolean };
@@ -15,15 +16,17 @@ export function createSilentOtaDownloader({
   fetchUpdate,
   checkIntervalMs = OTA_CHECK_INTERVAL_MS,
   failureCooldownMs = OTA_FAILURE_COOLDOWN_MS,
+  initialCheckDelayMs = checkIntervalMs,
 }: {
   now?: () => number;
   checkForUpdate: () => Promise<CheckResult>;
   fetchUpdate: () => Promise<FetchResult>;
   checkIntervalMs?: number;
   failureCooldownMs?: number;
+  initialCheckDelayMs?: number;
 }) {
   // Expo performs the initial cold-launch check. Do not duplicate that request.
-  let nextCheckAt = now() + checkIntervalMs;
+  let nextCheckAt = now() + initialCheckDelayMs;
   let inFlight: Promise<boolean> | null = null;
   let pendingNextLaunch = false;
 

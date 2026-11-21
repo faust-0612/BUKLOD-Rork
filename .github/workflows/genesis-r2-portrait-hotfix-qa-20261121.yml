@@ -1,0 +1,76 @@
+name: BUKLOD Genesis R2 Android portrait fallback RC QA (NO OTA)
+on:
+  push:
+    branches:
+      - fix/genesis-r2-portrait-android-fallback-20261121
+permissions:
+  contents: read
+concurrency:
+  group: genesis-r2-android-portrait-qa
+  cancel-in-progress: false
+jobs:
+  source-and-native-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      BUKLOD_APP_TARGET: main
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exactly approved art, guardrails and never-blank fallback
+        run: |
+          set -euo pipefail
+          node scripts/genesis-map-reconstruction-preflight.mjs
+          node scripts/season2-premium-staging-ota-gate.mjs --source
+          node scripts/season2-native-apk-source-parity.mjs
+          node --test \
+            tests/season2-approved-portrait-art-20261121.test.mjs \
+            tests/season2-special-events-welcome-20261121.test.mjs \
+            tests/season2-map-first-conso-intake-20261121.test.mjs \
+            tests/genesis-world-navigation-regression-20261121.test.mjs \
+            tests/season2-one-tap-kingdom-guide-20261121.test.mjs \
+            tests/season2-community-village-preview-20261121.test.mjs \
+            tests/season2-premium-staging-ota-contract-20261121.test.mjs \
+            tests/season2-premium-ad-navigation-guard-20261121.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs
+          node --experimental-strip-types --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+  actual-android-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      BUKLOD_APP_TARGET: main
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install immutable existing dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: TypeScript complete app integration
+        run: npx tsc --noEmit
+      - name: Android Metro asset bundling with JPEG and embedded rescue
+        run: node scripts/season2-android-bundle-compatibility.mjs --compile
+      - name: Do not publish on QA
+        run: echo 'Native source parity and Android bundle checks only. No EAS update triggered.'

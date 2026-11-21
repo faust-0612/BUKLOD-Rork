@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 
 const root=resolve(import.meta.dirname,'..');
 const read=p=>readFileSync(resolve(root,p),'utf8');
@@ -17,11 +18,11 @@ check('Staging-only authentication-gated map landing',()=>{
  assert.match(map,/requiresAcceptance/);
  assert.match(map,/maintenance_mode/);
 });
-check('Old navigation bars suppressed ONLY in preview',()=>{
+check('Genesis has one bottom nav with old duplicate dashboard headers hidden',()=>{
  const tab=read('src/app/(tabs)/_layout.tsx');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
  assert.match(tab,/!desktopWebShell && !isGenesisPreviewBuild\(\)/);
- assert.match(shell,/!genesisWorld && !immersiveIgpat/);
+ assert.match(shell,/!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0/);
  assert.match(shell,/Return to BUKLOD Map/);
  assert.match(shell,/normalizedPath !== '\/buklod-map'/);
  assert.match(tab,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar/);
@@ -52,11 +53,24 @@ check('Bundled local Galaxy and approved CC0 music',()=>{
    'assets/sounds/kingdom-premium/manifest.json']) assert.ok(existsSync(resolve(root,p)),p);
  const map=read('src/app/buklod-map.tsx');
  assert.match(map,/useRorkGameAmbience\('kingdom-map'/);
- assert.match(map,/musicEnabled/);
- assert.match(map,/requestBuklodAudioFocus/);
+ assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
+ assert.match(map,/!requiresAcceptance/);
+ assert.doesNotMatch(map,/BuklodFirstViewAd|toggleMusic|musicButton/);
+ assert.match(read('src/features/games/runtime/rorkAudio.ts'),/subscribeBuklodAudioFocus/);
+ assert.match(read('src/features/games/runtime/rorkAudio.ts'),/controlledAutoStart/);
+ assert.match(map,/<BuklodMapHeader \/>/);
+ assert.match(map,/<BuklodMapGuideDock active=\{focused\} \/>/);
  assert.match(map,/GenesisApprovedEntryMap/);
  const approved=read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx');
- assert.match(approved,/buklod-approved-entry-map-1672x941\.webp/);
+ assert.match(approved,/GenesisReliablePortraitImage/);
+ const reliable=read('src/features/season2/genesis/GenesisReliablePortraitImage.tsx');
+ assert.match(reliable,/buklod-genesis-portrait-welcome-720x995\.jpg/);
+ assert.match(reliable,/GENESIS_PORTRAIT_RESCUE_URI/);
+ const picture=readFileSync(resolve(root,'assets/season2/genesis/world/buklod-genesis-portrait-welcome-720x995.webp'));
+ assert.equal(picture.length,202914);
+ assert.equal(createHash('sha256').update(picture).digest('hex'),'e8a2ee3f7d6f00b2ce657f0d4662dfd0258da018f4131d740e90414b56076f1a');
+ const compact=readFileSync(resolve(root,'assets/season2/genesis/world/buklod-genesis-portrait-9doors-720x670.webp'));
+ assert.equal(compact.length,160272);
  assert.match(map,/router\.push\(route as any\)/);
  for(const p of ['assets/season2/genesis/world/buklod-approved-entry-map-1672x941.webp','assets/season2/genesis/world/approved-entry-map-manifest.json'])assert.ok(existsSync(resolve(root,p)),p);
 });

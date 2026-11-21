@@ -18,15 +18,16 @@ test('Local Genesis map audio yields to competing media and AdMob focus, with bo
  assert.match(src,/audio\.remove\(\)/);
 });
 
-test('Map music requires user toggle and delegates sound focus without overriding ad setup',()=>{
+test('Map auto music respects auth and audio focus, without a switch or entry advertisement',()=>{
  const map=read('src/app/buklod-map.tsx');
- assert.match(map,/if \(!musicEnabled\) requestBuklodAudioFocus\('genesis-valley-map'\)/);
- assert.match(map,/musicSuspended \? 'Music paused'/);
- assert.match(map,/musicEnabled \? \(musicSuspended \? 'Music paused' : 'Music on'\)/);
- assert.match(map,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
- assert.doesNotMatch(map,/player\.play\(/);
+ assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
+ for(const token of ['!requiresAcceptance','!runtimeLoading','!complianceLoading'])assert.ok(map.includes(token));
+ assert.doesNotMatch(map,/toggleMusic|musicButton|BuklodFirstViewAd|Music on/);
+ const audio=read('src/features/games/runtime/rorkAudio.ts');
  const sound=read('src/features/games/runtime/kingdomPremiumAudioAssets.ts');
- assert.match(sound,/if \(gameId === 'kingdom-map'\) return MUSIC\.adventure/);
  const licenses=read('assets/sounds/kingdom-premium/LICENSES.md');
+ assert.match(audio,/controlledAutoStart/);
+ assert.match(audio,/subscribeBuklodAudioFocus/);
+ assert.match(sound,/if \(gameId === 'kingdom-map'\) return MUSIC\.adventure/);
  assert.match(licenses,/Creative Commons Zero \(CC0 1.0\)/);
 });

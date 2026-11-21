@@ -21,22 +21,29 @@ test('map districts preserve unique real routes and Show Faith optionality',()=>
  assert.match(content,/entry.faithOnly \|\| showFaith/);
  for(const route of routes){const file='src/app/'+route.slice(1);assert.ok(existsSync(resolve(root,file+'.tsx'))||existsSync(resolve(root,file+'/index.tsx'))||existsSync(resolve(root,file+'.native.tsx'))||existsSync(resolve(root,'src/app/(tabs)/'+route.slice(1)+'.tsx')),'missing '+route);}
 });
-test('old navigation hidden only for Genesis; one return-to-map action; protect ad lifecycle',()=>{
+test('Genesis keeps its one persistent bottom nav and the map return action without duplicating main doors',()=>{
  const tabs=read('src/app/(tabs)/_layout.tsx');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
  const map=read('src/app/buklod-map.tsx');
  assert.match(tabs,/!isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader/);
  assert.match(tabs,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar/);
- assert.match(shell,/!genesisWorld && !immersiveIgpat && !immersiveConversation/);
+ assert.match(shell,/!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0/);
  assert.match(shell,/normalizedPath !== '\/buklod-map'/);
  assert.match(shell,/router.replace\('\/buklod-map'/);
  assert.match(shell,/!keyboardVisible/);
- assert.match(map,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
+ assert.doesNotMatch(map,/BuklodFirstViewAd/);
+ assert.match(map,/<BuklodMapHeader \/>/);
+ assert.match(map,/<BuklodMapGuideDock active=\{focused\} \/>/);
+ assert.match(read('src/app/(tabs)/hub.tsx'),/BuklodFirstViewAd placement="home"/);
  assert.match(map,/useRorkGameAmbience\('kingdom-map'/);
  assert.doesNotMatch(map,/(?:service_role|supabase\.rpc|eas update|claimBp|mintBp|awardBp)/i);
 });
 test('bundled CC0 audio and actual Valley map included; native acceptance still held',()=>{
  for(const path of ['assets/sounds/kingdom-premium/LICENSES.md','assets/sounds/kingdom-premium/kingdom-theme.ogg','assets/season2/genesis/galaxy/nebula.jpg'])assert.ok(existsSync(resolve(root,path)),path);
  const map=read('src/app/buklod-map.tsx');assert.match(map,/GenesisApprovedEntryMap/);
- assert.match(read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx'),/buklod-approved-entry-map-1672x941\.webp/);
+ assert.match(read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx'),/GenesisReliablePortraitImage/);
+ const image=read('src/features/season2/genesis/GenesisReliablePortraitImage.tsx');
+ assert.match(image,/buklod-genesis-portrait-welcome-720x995\.jpg/);
+ assert.match(image,/GENESIS_PORTRAIT_RESCUE_URI/);
+ assert.match(image,/onError=\{onFailed\}/);
 });

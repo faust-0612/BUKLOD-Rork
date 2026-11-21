@@ -1,122 +1,138 @@
 /**
- * BUKLOD Genesis approved illustrated 1672×941 map, not the superseded Valley.
+ * Owner-approved portrait Genesis welcome.
  *
- * Entrances are transparent accessible hit targets over their ORIGINAL baked
- * labels. The whole image is contained; no title/icon is repainted, cropped,
- * or watermarked. One press navigates to the existing guarded Expo route.
+ * Exact local illustrated scene includes the nine baked feature signs, the
+ * Welcome Guide and four question bubbles. ONLY transparent accessible
+ * press surfaces sit over that original design (no duplicated text/buttons).
+ * Main Home/Community/Connect/Cluster/Profile navigation is rendered by
+ * BuklodPersistentBottomNav outside this component.
  */
-import React, {useEffect, useRef, useState} from 'react';
-import {
-  AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View,
-  useWindowDimensions,
-} from 'react-native';
-import {Image as ExpoImage} from 'expo-image';
+import React,{useEffect,useRef,useState} from 'react';
+import {AccessibilityInfo,Animated,Pressable,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
+import GenesisReliablePortraitImage from './GenesisReliablePortraitImage';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {getGenesisDeviceQuality} from './genesisDeviceQuality';
+import {router} from 'expo-router';
 import approved from './genesisApprovedEntryHotspots.json';
 
-const MAP_SOURCE=require('../../../../assets/season2/genesis/world/buklod-approved-entry-map-1672x941.webp');
-const ASPECT=approved.imageHeight/approved.imageWidth;
-
 export type GenesisApprovedEntryDoor={
-  id:string;label:string;districtId:string;route:string;
-  fallbackRoute?:string;x:number;y:number;icon:string;faithOnly:boolean;
+  id:string;label:string;districtId:string;route:string;fallbackRoute?:string;
+  icon:string;faithOnly:boolean;
 };
 const DOORS=approved.hotspots as readonly GenesisApprovedEntryDoor[];
+const WORLD_POSITIONS:Record<string,[number,number]>={
+  'character-kingdom':[.288,.149],'hero-arena':[.735,.148],
+  'learnings':[.201,.271],'university':[.791,.271],
+  'my-house':[.198,.394],'church':[.796,.393],
+  'my-community':[.210,.515],'office-building':[.804,.514],
+  'special-events':[.500,.609],
+};
+const COMPACT_POSITIONS:Record<string,[number,number]>={
+  'character-kingdom':[.288,.220],'hero-arena':[.735,.220],
+  'learnings':[.201,.391],'university':[.791,.391],
+  'my-house':[.198,.590],'church':[.796,.590],
+  'my-community':[.210,.770],'office-building':[.804,.770],
+  'special-events':[.500,.910],
+};
+const PROMPTS=[
+  {label:'Gusto mong may makasama?',route:'/clusters',x:.475,y:.842},
+  {label:'Maglaro?',route:'/season2/games',x:.810,y:.842},
+  {label:'Matuto?',route:'/season2/learnings',x:.475,y:.939},
+  {label:'Makipag-usap?',route:'/buklod',x:.810,y:.939},
+] as const;
+const PORTRAIT_RATIO=995/720;
+const COMPACT_RATIO=670/720;
+const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
 
 export default function GenesisApprovedEntryMap({
-  active,showFaith,onOpen,onMenu,onProfile,onNotifications,onSearch,
+ active,showFaith,availableWidth,onOpen,onMenu,
 }:{
-  active:boolean;showFaith:boolean;onOpen:(door:GenesisApprovedEntryDoor,route:string)=>void;
-  onMenu:()=>void;onProfile:()=>void;onNotifications:()=>void;onSearch:()=>void;
+ active:boolean;showFaith:boolean;availableWidth?:number;
+ onOpen:(door:GenesisApprovedEntryDoor,route:string)=>void;
+ onMenu:()=>void;
 }){
-  const {width}=useWindowDimensions();
-  const viewportWidth=Math.max(270,Math.min(width-24,900));
-  const [zoomed,setZoomed]=useState(false);
-  const [reduceMotion,setReduceMotion]=useState(true);
-  const scroller=useRef<ScrollView|null>(null);
-  const quality=getGenesisDeviceQuality('home');
-  const mapWidth=zoomed?Math.max(800,Math.round(viewportWidth*1.65)):viewportWidth;
-  const mapHeight=mapWidth*ASPECT;
-  useEffect(()=>{
-    let current=true;
-    void AccessibilityInfo.isReduceMotionEnabled().then(v=>{if(current)setReduceMotion(v);}).catch(()=>undefined);
-    return ()=>{current=false;};
-  },[]);
-  useEffect(()=>{scroller.current?.scrollTo({x:0,animated:active&&!reduceMotion});},[active,reduceMotion,zoomed]);
-  const touch=(x:number,y:number,diameter:number)=>{
-    const left=Math.max(0,Math.min(mapWidth-diameter,x*mapWidth-diameter/2));
-    const top=Math.max(0,Math.min(mapHeight-diameter,y*mapHeight-diameter/2));
-    return {left,top,width:diameter,height:diameter};
-  };
-  return <View style={styles.container} accessibilityLabel="BUKLOD Season 2 approved landscape entry map">
-    <View style={styles.controls}>
-      <Text style={styles.label}>BUKLOD · ONE-TAP WORLD ENTRANCE</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={zoomed?'Return to whole world view':'Zoom into approved world map'}
-        onPress={()=>setZoomed(x=>!x)} style={styles.zoomButton}>
-        <MaterialCommunityIcons name={zoomed?'magnify-minus':'magnify-plus'} size={17} color="#E5ECCC"/>
-        <Text style={styles.zoomLabel}>{zoomed?'WHOLE MAP':'EXPLORE'}</Text>
-      </Pressable>
-    </View>
-    <ScrollView horizontal ref={scroller} bounces={false} nestedScrollEnabled
-      showsHorizontalScrollIndicator={false} scrollEnabled={zoomed} style={{height:mapHeight}}
-      contentContainerStyle={{width:mapWidth}} accessibilityLabel="Owner-approved illustrated map with one-tap building entrances">
-      <View style={{width:mapWidth,height:mapHeight}}>
-        <ExpoImage source={MAP_SOURCE} contentFit="fill" priority={quality==='minimal'?'normal':'high'}
-          transition={reduceMotion?0:160} style={StyleSheet.absoluteFillObject}
-          accessibilityLabel="BUKLOD Season 2 official illustration, Character Kingdom and Empire Arena on separate sides"
-        />
-        {DOORS.map(door=><Pressable key={door.id} accessibilityRole="button"
-          accessibilityLabel={'Enter '+door.label}
-          accessibilityHint={door.faithOnly&&!showFaith?'Faith is hidden: opens the equivalent learning path':'Opens the guarded BUKLOD feature immediately'}
-          onPress={()=>onOpen(door,door.faithOnly&&!showFaith?(door.fallbackRoute||'/learn'):door.route)}
-          style={[styles.door,touch(door.x,door.y,zoomed?54:44)]}
-        ><View pointerEvents="none" style={styles.pressHalo}/></Pressable>)}
-        {mapWidth>=770?<>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open BUKLOD destinations menu"
-            onPress={onMenu} style={[styles.corner,touch(.041,.04,44)]}/>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open my BUKLOD profile"
-            onPress={onProfile} style={[styles.corner,touch(.098,.04,44)]}/>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open notifications"
-            onPress={onNotifications} style={[styles.corner,touch(.906,.04,44)]}/>
-          <Pressable accessibilityRole="button" accessibilityLabel="Search BUKLOD"
-            onPress={onSearch} style={[styles.corner,touch(.963,.04,44)]}/>
-        </>:null}
-      </View>
-    </ScrollView>
-    {mapWidth<770?<View style={styles.compactShortcuts}>
-      {([
-        {id:'menu',label:'Open BUKLOD destinations menu',icon:'menu',press:onMenu},
-        {id:'profile',label:'Open my BUKLOD profile',icon:'account-outline',press:onProfile},
-        {id:'notifications',label:'Open notifications',icon:'bell-outline',press:onNotifications},
-        {id:'search',label:'Search BUKLOD',icon:'magnify',press:onSearch},
-      ] as const).map(item=><Pressable key={item.id} accessibilityRole="button"
-        accessibilityLabel={item.label} onPress={item.press} style={styles.shortcut}>
-        <MaterialCommunityIcons name={item.icon} size={20} color="#E7F5DE"/>
-      </Pressable>)}
-    </View>:null}
-    <View style={styles.legend}>
-      <MaterialCommunityIcons name="gesture-tap-button" size={16} color="#F5DA97"/>
-      <Text style={styles.legendText}>Tap a building sign to enter. No second ENTER button.</Text>
-    </View>
-  </View>;
+ const {width,height}=useWindowDimensions();
+ const landscape=width>height&&height<540;
+ const mapWidth=clamp((availableWidth??width)-20,270,900);
+ const mapHeight=Math.round(mapWidth*(landscape?COMPACT_RATIO:PORTRAIT_RATIO));
+ const [reduceMotion,setReduceMotion]=useState(true);
+ const glow=useRef(new Animated.Value(.32)).current;
+ useEffect(()=>{
+   let mounted=true;
+   void AccessibilityInfo.isReduceMotionEnabled()
+     .then(v=>{if(mounted)setReduceMotion(v);}).catch(()=>undefined);
+   return()=>{mounted=false;};
+ },[]);
+ useEffect(()=>{
+   glow.stopAnimation();
+   if(!active||reduceMotion){glow.setValue(.32);return;}
+   const cycle=Animated.loop(Animated.sequence([
+     Animated.timing(glow,{toValue:.84,duration:1350,useNativeDriver:true}),
+     Animated.timing(glow,{toValue:.32,duration:1350,useNativeDriver:true}),
+   ]));
+   cycle.start();
+   return()=>{cycle.stop();glow.stopAnimation();};
+ },[active,reduceMotion,glow]);
+ const hotspot=(x:number,y:number,w:number,h=44)=>{
+   const hitWidth=clamp(w,74,mapWidth-4);
+   return {
+     position:'absolute' as const,zIndex:3,
+     left:clamp(x*mapWidth-hitWidth/2,0,mapWidth-hitWidth),
+     top:clamp(y*mapHeight-h/2,0,mapHeight-h),
+     width:hitWidth,height:h,
+   };
+ };
+ const doorTarget=(door:GenesisApprovedEntryDoor)=>{
+   const pos=(landscape?COMPACT_POSITIONS:WORLD_POSITIONS)[door.id]||[.5,.5];
+   return hotspot(pos[0],pos[1],door.id==='special-events'?mapWidth*.37:mapWidth*.33);
+ };
+ return <View style={styles.frame} accessibilityLabel="BUKLOD illustrated one-tap world and Welcome Guide">
+   <View style={{width:mapWidth,height:mapHeight,alignSelf:'center',overflow:'hidden'}}>
+     <GenesisReliablePortraitImage landscape={landscape} width={mapWidth} height={mapHeight}
+       active={active} showFaith={showFaith} doors={DOORS} onOpen={onOpen} onMenu={onMenu}/>
+     {DOORS.map(door=><Pressable
+       key={door.id} accessibilityRole="button" accessibilityLabel={'Enter '+door.label}
+       accessibilityHint={door.faithOnly&&!showFaith?'Show Faith is off: open equivalent learning path':'Opens the feature directly with existing permissions'}
+       onPress={()=>onOpen(door,door.faithOnly&&!showFaith?(door.fallbackRoute||'/season2/learnings'):door.route)}
+       style={({pressed})=>[styles.target,doorTarget(door),door.id==='special-events'&&styles.specialLandmark,pressed&&styles.pressed]}>
+       {door.id==='special-events'?<Animated.View pointerEvents="none"
+         style={[styles.eventSparkle,{opacity:glow}]}>
+         <MaterialCommunityIcons name="star-four-points" size={20} color="#FFEFBC"/>
+       </Animated.View>:null}
+       {!showFaith&&door.faithOnly?<View pointerEvents="none" style={styles.faithMask}>
+         <Text style={styles.faithMaskText}>Learnings</Text>
+       </View>:null}
+     </Pressable>)}
+     {!landscape?PROMPTS.map(prompt=><Pressable key={prompt.label} accessibilityRole="button"
+       accessibilityLabel={'Open '+prompt.label}
+       accessibilityHint="The Welcome Guide opens the suggested destination in one tap"
+       onPress={()=>router.push(prompt.route as any)}
+       style={({pressed})=>[
+         styles.promptTarget,hotspot(prompt.x,prompt.y,mapWidth*.30),
+         pressed&&styles.pressed,
+       ]}/>):null}
+     {!landscape?<Animated.View pointerEvents="none" style={[
+       styles.guideLife,{left:mapWidth*.11,top:mapHeight*.925,opacity:glow,
+       transform:[{translateY:glow.interpolate({inputRange:[.32,.84],outputRange:[3,-3]})},
+         {rotate:glow.interpolate({inputRange:[.32,.84],outputRange:['-12deg','14deg']})}]},
+     ]}>
+       <MaterialCommunityIcons name="hand-wave-outline" size={23} color="#FFE9AB"/>
+     </Animated.View>:null}
+     <Pressable accessibilityRole="button" accessibilityLabel="Open complete BUKLOD destination directory"
+       onPress={onMenu} style={[styles.directory,hotspot(.95,.045,44)]}>
+       <MaterialCommunityIcons name="compass-outline" size={21} color="#FFE8BB"/>
+     </Pressable>
+   </View>
+ </View>;
 }
 const styles=StyleSheet.create({
-  container:{borderRadius:16,overflow:'hidden',borderWidth:1,
-    borderColor:'rgba(234,216,165,.72)',backgroundColor:'#16352D'},
-  controls:{height:42,paddingHorizontal:10,alignItems:'center',flexDirection:'row',
-    justifyContent:'space-between',gap:5,backgroundColor:'rgba(5,25,25,.96)'},
-  label:{color:'#F8E2A6',fontWeight:'900',fontSize:10,flex:1,letterSpacing:.3},
-  zoomButton:{minHeight:36,paddingHorizontal:10,flexDirection:'row',alignItems:'center',
-    gap:5,borderRadius:12,borderWidth:1,borderColor:'#B4D4B2',backgroundColor:'#274A48'},
-  zoomLabel:{fontSize:10,fontWeight:'900',color:'#F0F9E4'},
-  door:{position:'absolute',zIndex:2,alignItems:'center',justifyContent:'center'},
-  pressHalo:{width:'100%',height:'100%',borderRadius:18,borderWidth:1,
-    borderColor:'rgba(251,235,164,.16)',backgroundColor:'rgba(255,248,202,.025)'},
-  corner:{position:'absolute',zIndex:3},
-  compactShortcuts:{flexDirection:'row',justifyContent:'space-around',paddingHorizontal:5,backgroundColor:'#102F2A'},
-  shortcut:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},
-  legend:{minHeight:37,paddingHorizontal:12,flexDirection:'row',gap:7,
-    alignItems:'center',backgroundColor:'rgba(5,25,25,.98)'},
-  legendText:{flex:1,color:'#E6F5D9',fontSize:10,fontWeight:'800'},
+ frame:{width:'100%',borderRadius:16,overflow:'hidden',borderWidth:1,borderColor:'#DDC58A',backgroundColor:'#102D2C'},
+ target:{borderRadius:15,backgroundColor:'transparent',borderColor:'transparent',borderWidth:1},
+ promptTarget:{borderRadius:17,backgroundColor:'transparent',borderColor:'transparent',borderWidth:1},
+ pressed:{backgroundColor:'rgba(126,250,172,.22)',borderColor:'#FFE4A4'},
+ directory:{borderRadius:22,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(5,24,34,.28)'},
+ specialLandmark:{borderColor:'rgba(255,240,185,.10)'},
+ eventSparkle:{position:'absolute',top:-13,right:12},
+ guideLife:{position:'absolute',width:30,height:30,alignItems:'center',justifyContent:'center'},
+ faithMask:{position:'absolute',top:1,bottom:1,left:1,right:1,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:'#173D38'},
+ faithMaskText:{color:'#FFF0B5',fontSize:11,fontWeight:'900'},
 });
