@@ -1,0 +1,68 @@
+name: BUKLOD Nov15 Read-only Release Receipt Audit
+on:
+  push:
+    branches: [audit/nov15-conso-ota-receipt-readonly]
+    paths: [.github/workflows/buklod-nov15-conso-release-receipt-audit.yml]
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/buklod-nov15-conso-release-receipt-audit.yml]
+permissions:
+  contents: read
+  actions: read
+  issues: write
+jobs:
+  report-stage-receipt:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && (github.head_ref == 'audit/nov15-conso-ota-receipt-readonly' || startsWith(github.event.head_commit.message || '', 'BUKLOD_READONLY_NOV15_RECEIPT_AUDIT:')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Report actual GitHub Actions staging release run IDs without publishing
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const heads=['d1c39f1688d8b0f2059f750a327589603e7d372b','74645fa89be1a40334f1725103ecd58cdc191230'];
+            const wanted='BUKLOD Nov15 Consolidated Staging Android OTA Publish';
+            const {data}=await github.rest.actions.listWorkflowRunsForRepo({
+              ...context.repo, per_page:100, branch:'integration/buklod-nov15-conso-video-ads-staging-rc'
+            });
+            const exact=data.workflow_runs.filter(r=>r.name===wanted && heads.includes(r.head_sha));
+            let lines=[
+              '<!-- nov15-conso-readonly-release-receipt-audit -->',
+              '### Read-only Nov15 consolidated Android OTA release audit',
+              'Trigger candidate sources: '+heads.join(', '),
+              'Matches: '+exact.length,
+            ];
+            for(const r of exact){
+              core.info('STAGING_RELEASE_RUN id='+r.id+' source='+r.head_sha+' status='+r.status+' conclusion='+(r.conclusion||'pending')+' url='+r.html_url);
+              lines.push('- [Staging release run #'+r.id+']('+r.html_url+') — '+r.status+' / '+(r.conclusion||'pending')+', event='+r.event);
+              const artifacts=await github.rest.actions.listWorkflowRunArtifacts({
+                ...context.repo, run_id:r.id, per_page:100
+              });
+              for(const a of artifacts.data.artifacts){
+                lines.push('  - Evidence artifact '+a.id+': '+a.name+' (expired='+a.expired+')');
+              }
+            }
+            if(!exact.length){
+              core.warning('No matching staging publish workflow run was returned. Do not assume an OTA was published.');
+              lines.push('No matching staging publish workflow run was returned; do not assume an OTA was published.');
+            }
+            const mainReleaseSha='66b3eefaeae7f9f136a98fdef08e1cba2ecfb742';
+            const {data:prodRuns}=await github.rest.actions.listWorkflowRunsForRepo({
+              ...context.repo,branch:'main',per_page:100
+            });
+            const prod=prodRuns.workflow_runs.filter(r=>
+              r.head_sha===mainReleaseSha && r.name==='BUKLOD Production Android OTA'
+            );
+            lines.push('Production main source: '+mainReleaseSha);
+            lines.push('Production OTA run matches: '+prod.length);
+            for(const r of prod){
+              core.info('PRODUCTION_RELEASE_RUN id='+r.id+' source='+r.head_sha+' status='+r.status+' conclusion='+(r.conclusion||'pending')+' url='+r.html_url);
+              lines.push('- [Production Android OTA run #'+r.id+']('+r.html_url+') — '+r.status+' / '+(r.conclusion||'pending'));
+              const artifacts=await github.rest.actions.listWorkflowRunArtifacts({...context.repo,run_id:r.id,per_page:100});
+              for(const a of artifacts.data.artifacts)lines.push('  - Production evidence artifact '+a.id+': '+a.name+' (expired='+a.expired+')');
+            }
+            if(!prod.length){core.warning('Production OTA push run not yet visible. Do not claim production is published.');lines.push('Production OTA run not yet visible; NOT VERIFIED.');}
+            lines.push('No EAS publication or mutation was performed by this read-only audit.');
+            core.info(lines.join('\n'));
+            try { await github.rest.issues.createComment({...context.repo,issue_number:817,body:lines.join('\n')}); }
+            catch(error){ core.warning('Could not post optional PR comment; log-only evidence remains: '+error.message); }
