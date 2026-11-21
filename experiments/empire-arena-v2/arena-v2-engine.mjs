@@ -73,6 +73,20 @@ const shieldCap=p=>105+gearOf(p).shieldMax;
 const totalResources=t=>Object.values(t.resources).reduce((a,b)=>a+b,0);
 function addBuff(s,p,kind){const cfg=BUFFS[kind];if(!cfg)return;p.effects[kind]=s.elapsed+cfg.duration;if(kind==='forager')s.teams[p.team].foragerUntil=s.elapsed+cfg.duration;if(kind==='lumen')p.mana=Math.min(p.maxMana,p.mana+32);log(s,'buff',{actor:p.id,kind,x:p.x,y:p.y});awardXp(s,p,24,'neutral')}
 function lineBlocked(s,a,b){return s.cover.some(([cx,cy,r])=>{const dx=b.x-a.x,dy=b.y-a.y,d=dx*dx+dy*dy;const v=d?between(((cx-a.x)*dx+(cy-a.y)*dy)/d,0,1):0;return Math.hypot(a.x+v*dx-cx,a.y+v*dy-cy)<r+.3})}
+/** Traverse displacement in small checked segments: dash and blink may not
+ * teleport through walls, even if their final destination is free. */
+function skillStep(s,p,dx,dy,length){
+ const mag=Math.hypot(dx,dy);if(!Number.isFinite(mag)||mag<.01)return false;
+ const steps=Math.max(1,Math.ceil(length/.48)),ux=dx/mag,uy=dy/mag;
+ let x=p.x,y=p.y;
+ for(let i=0;i<steps;i++){
+  const nx=between(x+ux*length/steps,2,s.w-2),ny=between(y+uy*length/steps,2,s.h-2);
+  if(Math.hypot(nx-x,ny-y)<.001||s.cover.some(([cx,cy,r])=>Math.hypot(nx-cx,ny-cy)<r+1))break;
+  x=nx;y=ny;
+ }
+ if(Math.hypot(x-p.x,y-p.y)<.05)return false;
+ p.x=x;p.y=y;p.lastMoveTick=s.tick;return true;
+}
 function living(s,team){return Object.values(s.players).filter(p=>p.team===team&&p.alive)}
 function closeEnemy(s,p,radius=8){return [...Object.values(s.players),...s.units,...s.creatures].filter(x=>x!==p&&alive(x)&&x.team!==p.team&&(x.team!==null||x.kind==='stalker'||x.kind==='shellkeeper'||BUFFS[x.kind])&&distance(p,x)<=radius).sort((a,b)=>distance(p,a)-distance(p,b))[0]}
 /** Named, exclusive, match-only relic drops: deterministic quality, bounded RNG.
@@ -95,8 +109,8 @@ export function rollEquipmentDrop(s,killer,loser,quality=.45,source='hero'){
  s.loot.push(drop);log(s,'equipment_drop',{actor:killer.id,hero:killer.hero,name:item.name,slot:item.slot||item.type,tier,source,x:loser.x,y:loser.y});return drop;
 }
 
-function hit(s,p,target,base){if(!p?.alive||!alive(target)||target.team===p.team)return false;
- const offense=gearOf(p),defense=s.players[target.id]?gearOf(target):{mitigation:0,block:0};const raw=(base+offense.attack)*skillMult(p),mitigated=raw*(1-Math.min(.32,(defense.mitigation||0)+(defense.block||0)));const resisted=target.shield?Math.min(target.shield,mitigated):0;target.shield=(target.shield||0)-resisted;const d=Math.max(0,mitigated-resisted);target.hp=Math.max(0,target.hp-d);target.lastDamage=s.elapsed;p.hits++;log(s,'damage',{from:p.id,to:target.id,amount:Math.round(Math.min(d,target.hp+d)),absorbed:Math.round(resisted),fromX:p.x,fromY:p.y,toX:target.x,toY:target.y,x:target.x,y:target.y});
+function hit(s,p,target,base){if(!p?.alive||!alive(target)||target.team===p.team||lineBlocked(s,p,target))return false;
+ const offense=gearOf(p),defense=s.players[target.id]?gearOf(target):{mitigation:0,block:0};const raw=(base+offense.attack)*skillMult(p),mitigated=raw*(1-Math.min(.32,(defense.mitigation||0)+(defense.block||0)));const resisted=target.shield?Math.min(target.shield,mitigated):0;target.shield=(target.shield||0)-resisted;const d=Math.max(0,mitigated-resisted),priorHp=target.hp;target.hp=Math.max(0,target.hp-d);target.lastDamage=s.elapsed;p.hits++;log(s,'damage',{from:p.id,to:target.id,amount:Math.round(Math.min(d,priorHp)),absorbed:Math.round(resisted),fromX:p.x,fromY:p.y,toX:target.x,toY:target.y,x:target.x,y:target.y});
  if(target.hp>0)return true;target.alive=false;log(s,'defeat',{from:p.id,to:target.id,team:target.team??null,kind:target.kind||'hero',x:target.x,y:target.y});
  if(s.players[target.id]){target.deaths++;p.kills++;s.teams[p.team].kills++;target.respawnAt=s.elapsed+7500;
   const carried=Object.values(target.bag).reduce((a,b)=>a+b,0);if(carried>0){s.loot.push({id:'resources'+s.nextId++,x:target.x,y:target.y,kind:'resources',resources:{...target.bag},expires:s.elapsed+45000});target.bag={wood:0,gold:0,stone:0};log(s,'resource_drop',{from:target.id,amount:Math.round(carried)})}const repeat=p.killHistory[target.id]||0;p.killHistory[target.id]=repeat+1;awardXp(s,p,Math.max(12,Math.round(115/(repeat+1))),'hero_defeat');const quality=between((p.attacks? p.hits/p.attacks:0)*.45+(p.contributions? .35:0)+.2,0,1);if(repeat<2)rollEquipmentDrop(s,p,target,quality,'hero')}
@@ -143,11 +157,11 @@ export function command(s,playerId,action={}){
   const slot=action.slot;if(!['primary','secondary','ultimate'].includes(slot)||slot==='secondary'&&p.matchLevel<3||slot==='ultimate'&&p.matchLevel<6)return false;
   const cd={primary:5800,secondary:11000,ultimate:38000}[slot]/(1+Math.min(.2,p.itemMastery*.04)+gearOf(p).cooldown);const manaCost={primary:18,secondary:14,ultimate:55}[slot];if(s.elapsed-p.cooldowns[slot]<cd||p.mana<manaCost)return false;
   const hero=HEROES[p.hero],target=action.targetId?owner(s,action.targetId):closeEnemy(s,p,8);let success=false;
-  if(slot==='secondary'){const dx=Number(action.dx)||1,dy=Number(action.dy)||0,mag=Math.hypot(dx,dy)||1;p.x=between(p.x+dx/mag*4,2,s.w-2);p.y=between(p.y+dy/mag*4,2,s.h-2);success=true;log(s,'dash',{actor:p.id})}
+  if(slot==='secondary'){const dx=Number(action.dx)||1,dy=Number(action.dy)||0;success=skillStep(s,p,dx,dy,4);if(success)log(s,'dash',{actor:p.id,x:p.x,y:p.y})}
   else if(hero.style==='heal'){const ally=[...living(s,p.team)].sort((a,b)=>(a.hp/a.maxHp)-(b.hp/b.maxHp))[0];if(ally&&distance(p,ally)<10){ally.hp=Math.min(ally.maxHp,ally.hp+(slot==='ultimate'?80:38)*skillMult(p));success=true}}
   else if(hero.style==='guard'){p.shield=Math.min(shieldCap(p),(p.shield||0)+(slot==='ultimate'?68:36)*skillMult(p));if(slot==='ultimate')for(const a of living(s,p.team))if(distance(p,a)<9)a.shield=Math.min(90,(a.shield||0)+25);success=true}
   else if(hero.style==='supply'){if(slot==='ultimate'){for(const a of living(s,p.team))if(distance(p,a)<12){a.hp=Math.min(a.maxHp,a.hp+35);a.effects.lumen=s.elapsed+2500}}else p.shield=Math.min(shieldCap(p),p.shield+25);success=true}
-  else if(hero.style==='blink'){const dx=Number(action.dx)||1,dy=Number(action.dy)||0,mag=Math.hypot(dx,dy)||1;p.x=between(p.x+dx/mag*(slot==='ultimate'?8:5),2,s.w-2);p.y=between(p.y+dy/mag*(slot==='ultimate'?8:5),2,s.h-2);success=true;if(target&&distance(p,target)<6)hit(s,p,target,slot==='ultimate'?55:22)}
+  else if(hero.style==='blink'){const dx=Number(action.dx)||1,dy=Number(action.dy)||0;success=skillStep(s,p,dx,dy,slot==='ultimate'?8:5);if(success&&target&&distance(p,target)<6)hit(s,p,target,slot==='ultimate'?55:22)}
   else if(target&&alive(target)&&distance(p,target)<(slot==='ultimate'?10:7)){success=hit(s,p,target,slot==='ultimate'?69:35);if(hero.style==='disrupt'&&target.effects)target.effects.slow=s.elapsed+2800}
   if(!success)return false;
   // Character-specific tactical modifiers: 13 canon identities, item mastery governs strength.
