@@ -26,6 +26,8 @@ import { tryPlayRorkGameFeedback, playRorkSignatureSfx, useRorkGameAmbience } fr
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
 import { ArenaRankedSocket, isArenaRankedConfigured } from '@/features/games/empire/rankedClient';
 import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
+// @ts-ignore — pure presentation helper, reads only server-authoritative snapshots.
+import { arenaActorPose } from '@/features/games/empire/arenaActorPose.mjs';
 // @ts-ignore — source-only audio event filter; no network and no private data.
 import { drainArenaAudioEvents } from '@/features/games/empire/arenaPracticeAudio.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
@@ -37,7 +39,7 @@ import { createPractice, command, tick, STEP_MS, HEROES, ARENA_MAPS } from '../.
 type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
 type Position = { x: number; y: number };
-type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; lastMoveTick?: number };
+type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; lastMoveTick?: number; lastAttacked?: number };
 type ArenaState = {
   w: number; h: number; status: string; elapsed: number; tick: number; mode?: Mode;
   map: { lanes: number[]; colors: string[] };
@@ -49,7 +51,7 @@ type ArenaState = {
   seals: Record<Team, { hp: number; maxHp: number; breached: boolean }>;
   cover: [number, number, number][]; events: { type: string; seq: number; time: number; actor?: string; to?: string; tower?: string }[];
   result?: { winner: Team | null; reason: string } | null;
-  visualCue?: Position & { type: string; time: number; seq: number };
+  visualCue?: Position & { type: string; time: number; seq: number; actor?: string };
 };
 /** Typed bridge to the unchanged JavaScript-only deterministic practice engine. */
 type OfflinePracticeSetup = {
@@ -163,11 +165,7 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying,
       .map(p => {
         // Single source-owned hero identity across all four real full-body motion states.
         // No visual transition may modify the server-owned action, level, HP, or gear.
-        const recentAction = state.visualCue && state.elapsed - state.visualCue.time < 510 &&
-          near(state.visualCue, p) < 8 ? state.visualCue.type : '';
-        const pose = recentAction === 'skill' ? 'skill' :
-          ['attack', 'seal_attack'].includes(recentAction) ? 'attack' :
-          p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1 ? 'walk' : 'idle';
+        const pose = arenaActorPose(state, p, state.visualCue);
         const fullbody = ARENA_GENERATED_ART['fullbody:' + p.hero + '_' + pose] ||
           ARENA_GENERATED_ART['fullbody:' + p.hero + '_idle'];
         const sprite = ARENA_GENERATED_ART['sprite:' + p.hero];
@@ -404,7 +402,7 @@ export default function EmpireArenaInApp() {
           ...Object.values(game.players), ...game.towers, ...game.units, ...game.creatures,
         ];
         const actor = actors.find(a => a.id === targetId) ?? game.players[localSeat];
-        if (actor) game.visualCue = { type: actionType, x: actor.x, y: actor.y,
+        if (actor) game.visualCue = { type: actionType, actor: localSeat, x: actor.x, y: actor.y,
           time: game.elapsed, seq: (game.visualCue?.seq || 0) + 1 };
       }
       if (sfxEnabled) tryPlayRorkGameFeedback(cue, 0.28);
