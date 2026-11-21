@@ -62,6 +62,7 @@
     "src/components/BuklodPersistentBottomNav.tsx",
     "src/features/games/runtime/rorkAudio.ts",
     "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
+    "src/features/season2/genesis/GenesisKingdomLoreMaps.tsx",
     "src/features/season2/genesis/GenesisKingdomPortal.tsx",
     "src/features/season2/genesis/GenesisKingdomStationScene.tsx",
     "src/features/season2/genesis/GenesisReliablePortraitImage.tsx",
@@ -85,6 +86,7 @@
     "src/lib/buklodSilentOtaPolicy.ts",
     "tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs",
     "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
+    "tests/genesis-kingdom-two-dictionary-maps-20261121.test.mjs",
     "tests/genesis-ota-character-timeout-20261121.test.mjs",
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
     "tests/genesis-valley-audio-focus-20261121.test.mjs",
@@ -126,7 +128,8 @@
     "tests/genesis-ota-character-timeout-20261121.test.mjs",
     "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
     "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
-    "tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs"
+    "tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs",
+    "tests/genesis-kingdom-two-dictionary-maps-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -172,18 +175,21 @@
     },
     {
       "id": "kingdom-character",
-      "reason": "End indefinite Character Progression spinner from a hung read-only authenticated session/RPC; preserve the SHA-pinned R31/R40 visual selector and authoritative server unlock rules. Restore exact canonical 13 stations and direct gameplay routes under preserved premium panorama.",
+      "reason": "End indefinite Character Progression spinner from a hung read-only authenticated session/RPC; preserve the SHA-pinned R31/R40 visual selector and authoritative server unlock rules. Restore exact canonical 13 stations and direct gameplay routes under preserved premium panorama. Separate the canonical 5 Core and 8 Special world maps using the existing owner KL dictionary art motifs, with server-visible Special identity masking.",
       "preservedBehaviors": [
         "All Character levels and selected identity remain server-authoritative; no offline character advancement or unlock.",
         "Existing 13 Character visual sprites, locked Special identity protection, permanent Circle Rank and collectibles unchanged.",
         "Read deadline never writes to Supabase and never changes XP, BP, QMP, Character Diamonds, rewards or payout balances.",
-        "Timeout rejects and clears shared in-flight work; a late response cannot replace verified Character selection or re-award points."
+        "Timeout rejects and clears shared in-flight work; a late response cannot replace verified Character selection or re-award points.",
+        "Special Characters may only expose identity, character art and route after the existing server-visible unlock; no identity previews while locked.",
+        "Original 13 Kingdom game IDs and 39 existing games remain unchanged; ads remain last and in normal scroll flow."
       ],
       "tests": [
         "tests/genesis-ota-character-timeout-20261121.test.mjs",
         "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
         "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
-        "tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs"
+        "tests/genesis-kingdom-kl-dictionary-visuals-20261121.test.mjs",
+        "tests/genesis-kingdom-two-dictionary-maps-20261121.test.mjs"
       ]
     }
   ],
@@ -214,9 +220,10 @@
     "Only Genesis preview performs a throttled early OTA check; no reloadAsync, no call/draft interruptions and no production OTA cadence change.",
     "Kingdom panorama 16:9 artwork unchanged; 13 character stations open exact canonical original game URLs directly, account-scoped local clears only.",
     "Staging Kingdom ad slot remains allowlisted but is last in scrollable content; no sticky ad overlaps character, map, nav, or touch controls.",
-    "Every 13 station ID is visually distinct, is referenced from an existing KL glossary location, contains an illustration instead of only text, while story canon/unreleased locations remain concealed from member-facing copy."
+    "Every 13 station ID is visually distinct, is referenced from an existing KL glossary location, contains an illustration instead of only text, while story canon/unreleased locations remain concealed from member-facing copy.",
+    "Two distinct portrait in-app Kingdom maps (5 Core, 8 Special) display the real KL dictionary-derived station scenery, with hidden Special identities until server verification and no new reward pathways."
   ],
-  "publicationStatus": "DEV SOURCE ONLY: KL glossary-derived 13 Realm illustrations added on top of prior 13-station and last-in-scroll ads layout. QA/Metro/RC and OTA release evidence pending; production unchanged.",
+  "publicationStatus": "DEV SOURCE ONLY: 5+8 Kabihasnang Ligaw split Kingdom maps under protected Character unlock and original AdMob footer; Android QA and staging OTA not yet verified.",
   "releaseMode": "staging-source-prepared-native-runtime-and-ota-proof-pending",
   "physicalDeviceVerification": "USER_WAIVED_UNVERIFIED",
   "productionDeployment": "NONE"

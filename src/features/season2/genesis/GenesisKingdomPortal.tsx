@@ -19,6 +19,8 @@ import { emptyKingdomPreviewProgress, loadBuklodKingdomPreviewProgress, subscrib
 import { GenesisSeal } from './GenesisVisuals';
 import { pulseGenesisTouch } from './genesisNativeFeedback';
 import GenesisKingdomStationScene from './GenesisKingdomStationScene';
+import GenesisKingdomLoreMaps,{type KingdomMapKind} from './GenesisKingdomLoreMaps';
+import {getMyBuklodCharacterSelectionV2} from '@/lib/buklodCharacterSelectionV2';
 
 export const GENESIS_REALMS = [
   { id:'phan-enterprise-builder', name:'Phan', title:'The First Harvest', caption:'Build a beginning that can sustain others', character:'phan' },
@@ -78,6 +80,9 @@ function RealmCharacter({ character }: { character: Realm['character'] }) {
 export default function GenesisKingdomPortal() {
   const { width } = useWindowDimensions();
   const [selected, setSelected] = useState<Realm>(GENESIS_REALMS[0]);
+  const [mapMode,setMapMode]=useState<KingdomMapKind>('core');
+  const [visibleSpecialIds,setVisibleSpecialIds]=useState<readonly string[]>([]);
+  const [specialLoading,setSpecialLoading]=useState(false);
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
   const [stationProgress, setStationProgress] = useState<BuklodKingdomPreviewProgress>(emptyKingdomPreviewProgress());
@@ -85,6 +90,19 @@ export default function GenesisKingdomPortal() {
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [reduceMotion, setReduceMotion] = useState(false);
   const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
+  // Account switches must not reuse unlocked Special identities from another user.
+  useEffect(()=>{setSelected(GENESIS_REALMS[0]);setMapMode('core');setVisibleSpecialIds([]);},[userId]);
+  useEffect(()=>{
+    if(mapMode!=='special'||!focused||!userId)return;
+    let live=true;
+    setSpecialLoading(true);
+    void getMyBuklodCharacterSelectionV2(userId).then(state=>{
+      if(live)setVisibleSpecialIds(state.visible_special_character_ids);
+    }).catch(()=>{
+      if(live)setVisibleSpecialIds([]);
+    }).finally(()=>{if(live)setSpecialLoading(false);});
+    return()=>{live=false;};
+  },[mapMode,focused,userId]);
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   useEffect(() => {
     let current = true;
@@ -118,6 +136,16 @@ export default function GenesisKingdomPortal() {
     if (animate) void pulseGenesisTouch('selection');
     router.push(('/games/' + realm.id) as any);
   };
+  const switchMap=(next:KingdomMapKind)=>{
+    setMapMode(next);
+    if(next==='core')setSelected(GENESIS_REALMS[0]);
+    else {
+      const first=GENESIS_REALMS.find(r=>!CORE.includes(r.character)&&visibleSpecialIds.includes(r.character));
+      if(first)setSelected(first);
+    }
+  };
+  const activeSelected=mapMode==='core'?CORE.includes(selected.character):
+    !CORE.includes(selected.character)&&visibleSpecialIds.includes(selected.character);
   const frameHeight = width > 640 ? 260 : 235;
   return <View style={styles.root}>
     <ScrollView contentContainerStyle={styles.content}>
@@ -135,6 +163,10 @@ export default function GenesisKingdomPortal() {
         <MaterialCommunityIcons name="arrow-left" size={18} color="#EFD7A0"/>
         <Text style={styles.worldBackText}>BUKLOD World Map</Text>
       </Pressable>
+      <GenesisKingdomLoreMaps mode={mapMode} realms={GENESIS_REALMS}
+        unlockedSpecialIds={visibleSpecialIds} loadingSpecial={specialLoading}
+        stationClears={Object.fromEntries(Object.entries(stationProgress.stations).map(([k,v])=>[k,v.clears??0]))}
+        onSelect={realm=>enterStation(realm as Realm)} onSwitch={switchMap}/>
       {/* Fixed local BUKLOD-owned art: mature, nature-first, tropical/coastal and alpine/winter.
           Preserve full 16:9 panorama on narrow Android displays; no server egress or blank art. */}
       <View style={styles.kingdomVista} accessibilityLabel="Majestic Kingdom overlooking tropical valleys, rivers, waterfalls, ocean and winter mountains">
@@ -145,7 +177,7 @@ export default function GenesisKingdomPortal() {
         {KINGDOM_NATURE_LANDMARKS.map(landmark => {
           const isSelected = selected.character === landmark.character;
           const realm = GENESIS_REALMS.find(entry => entry.character === landmark.character);
-          if (!realm) return null;
+          if (!realm || mapMode==='special' || !CORE.includes(realm.character)) return null;
           return <Pressable
             key={landmark.id}
             accessibilityRole="button"
@@ -180,6 +212,8 @@ export default function GenesisKingdomPortal() {
           accessibilityLabel="All 13 original Kingdom character stations"
           contentContainerStyle={styles.stationTrail}>
           {GENESIS_REALMS.map((realm,index) => {
+            if((mapMode==='core')!==CORE.includes(realm.character))return null;
+            if(mapMode==='special'&&!visibleSpecialIds.includes(realm.character))return null;
             const details = STATION_DETAILS[realm.id];
             const stationClears = stationProgress.stations[realm.id]?.clears ?? 0;
             return <Pressable key={realm.id} accessibilityRole="button"
@@ -213,7 +247,7 @@ export default function GenesisKingdomPortal() {
           })}
         </ScrollView>
       </View>
-      <View style={[styles.illustration,{height:frameHeight}]}>
+      {activeSelected?<View style={[styles.illustration,{height:frameHeight}]}>
         {/* Individual characters retain their original local models/art. Do not load remote
             preview-host backgrounds or substitute wallpaper for animated character rigs. */}
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -236,7 +270,7 @@ export default function GenesisKingdomPortal() {
           <Text style={styles.enterLabel}>ENTER REALM</Text>
           <MaterialCommunityIcons name="arrow-right" color="#10291E" size={18}/>
         </Pressable>
-      </View>
+      </View>:null}
       <View style={styles.actions}>
         <Pressable accessibilityRole="button" accessibilityLabel="Enter BUKLOD Empire Arena inside the Kingdom"
           onPress={()=>{ void pulseGenesisTouch('selection'); router.push('/games/empire-arena' as any); }}
