@@ -217,7 +217,7 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
           from?:string;tower?:string;id?:string;x?:number;y?:number;strength:number};
         const entities=[...Object.values(state.players),...state.towers,...state.buildings,...state.units,...state.creatures];
         // Damage and defeat are centered on the actual victim, not the attacking hero.
-        const id=(event.type==='damage'||event.type==='defeat'||event.type==='unit_ko')
+        const id=(['damage','defeat','unit_ko','tower_ko','boss_ko','trap_ko','unit_hit','tower_hit','boss_hit'].includes(event.type))
           ? event.to||event.target : event.tower||event.id||event.actor||event.to;
         const subject=entities.find(entity=>entity.id===id);
         const cx=Number.isFinite(event.x)?event.x:subject?.x;
