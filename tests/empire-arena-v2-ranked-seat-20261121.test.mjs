@@ -18,6 +18,6 @@ test('Ranked player actions and tactics always target authenticated local seat, 
 test('Reauthenticated live ranked seat is not queued a second time',()=>{
   assert.match(server,/const resumed=coordinator\.reattach\(session\)/);
   assert.match(server,/rating:profile\.rating,resumed/);
-  assert.match(client,/if\(packet\.resumed!==true\) socket\.send/);
+  assert.match(client,/if\(packet\.resumed!==true&&this\.queue\)/);
   assert.match(client,/this\.ready=true/);
 });
