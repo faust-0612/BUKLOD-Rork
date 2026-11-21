@@ -12,7 +12,7 @@ test('each of 39 Kingdom games has its OWN authored vector motif with consistent
  for(const id of games){
    assert.match(art,new RegExp("'"+id+"': \\{biome:"));
  }
- assert.equal((art.match(/: \\{biome:/g)||[]).length,39);
+ assert.equal(art.split("': {biome:").length-1,39);
  assert.equal((art.match(/motif:'/g)||[]).length,39);
  const motifs=[...art.matchAll(/motif:'([^']+)'/g)].map(x=>x[1]);
  assert.equal(new Set(motifs).size,39);
