@@ -11,6 +11,9 @@ const HEROES := ["phan", "quin", "van", "christian", "lhen", "ace", "ellusur",
 	"jawo", "mitch", "niel", "angel", "vhen", "trudice"]
 const MAPS := ["genesis_rift", "aurora_foundry", "verdant_fracture"]
 const MODES := ["duel", "cluster", "grand"]
+const WORKER_JOBS := ["mine", "repair", "defend", "support", "research", "retreat", "escort", "patrol"]
+const JOB_ABBR := ["GATH", "FIX", "GUARD", "HEAL", "TECH", "HOME", "ESC", "PAT"]
+var worker_job_index := 0
 var hero_index := 0
 var foe_index := 5
 var map_index := 0
@@ -104,6 +107,8 @@ func _draw() -> void:
 		_button_at(w - 290, h - 118, "MINE", 27)
 		_button_at(w - 363, h - 80, "UNIT", 26)
 		_button_at(w - 357, h - 146, "BUILD", 27)
+		_button_at(w - 440, h - 151, JOB_ABBR[worker_job_index], 28)
+		_text(Vector2(w - 465, h - 193), "WORKER", 12)
 	_text(Vector2(w * 0.48, h - 12), status.get("map", "").replace("_", " ").to_upper() +
 		"  •  " + str(int(status.get("time", 0))) + "s", 13)
 	if not event_messages.is_empty():
@@ -153,10 +158,18 @@ func _game_tap(at: Vector2) -> void:
 		{"id": "loot", "p": Vector2(w - 292, h - 53), "r": 32.0},
 		{"id": "mine", "p": Vector2(w - 290, h - 118), "r": 32.0},
 		{"id": "train", "p": Vector2(w - 363, h - 80), "r": 32.0},
-		{"id": "build", "p": Vector2(w - 357, h - 146), "r": 32.0}
+		{"id": "build", "p": Vector2(w - 357, h - 146), "r": 32.0},
+		{"id": "worker_job", "p": Vector2(w - 440, h - 151), "r": 32.0}
 	]:
 		if at.distance_to(b["p"]) <= b["r"]:
-			command_requested.emit(b["id"])
+			if b["id"] == "worker_job":
+				var chosen: String = WORKER_JOBS[worker_job_index]
+				command_requested.emit("worker_" + chosen)
+				notify("VILLAGER ORDER: " + chosen.to_upper())
+				worker_job_index = (worker_job_index + 1) % WORKER_JOBS.size()
+				queue_redraw()
+			else:
+				command_requested.emit(b["id"])
 			return
 	if at.y < 82 and at.x > w * 0.84:
 		zoom_requested.emit(1.2)

@@ -1,0 +1,471 @@
+{
+  "title": "BUKLOD 13 — Basic Hero Suit and Reconciled Team Combat Concept v1",
+  "status": "DESIGN ONLY: no implementation or deployment",
+  "canonical_source": "src/lib/buklodCharacterWorldCatalog.ts",
+  "game_goal": "Original short-session real-time 5v5 action/strategy Arena; cooperative 3–5 player group challenges",
+  "hero_contract": {
+    "basic_attacks": true,
+    "passive_count": 1,
+    "active_skill_count": 2,
+    "ultimate_count": 1,
+    "standard_s1_cooldown_seconds": "8–12",
+    "standard_s2_cooldown_seconds": "12–18",
+    "standard_ultimate_cooldown_seconds": "90–120",
+    "ultimates_enabled_from_first_playable_level": true
+  },
+  "hero_progression": {
+    "per_character_stages": 20,
+    "collectibles_per_stage": 5,
+    "total_collectibles": 1300,
+    "suit_eras": [
+      {
+        "name": "Starter",
+        "levels": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "Evolved",
+        "levels": [
+          5,
+          8
+        ]
+      },
+      {
+        "name": "Identity",
+        "levels": [
+          9,
+          12
+        ]
+      },
+      {
+        "name": "Impact",
+        "levels": [
+          13,
+          16
+        ]
+      },
+      {
+        "name": "Legacy",
+        "levels": [
+          17,
+          20
+        ]
+      }
+    ],
+    "independent_persistent_levels": true,
+    "rank_gate_for_specials": "Circle Rank; only next unlock preview, later specials hidden",
+    "next_character_selection": "Restore each character’s last earned level; first-ever selection starts Level 1",
+    "evolution_requirement": "BP eligibility + verifiable collectible tasks, with Show Faith off equivalents"
+  },
+  "ranked_balance": {
+    "mode": "5v5 objective and combat",
+    "match_length_minutes": [
+      6,
+      9
+    ],
+    "equalized_loadout_power": true,
+    "pvp_effective_power_spread_percent_max": 5,
+    "maximum_combined_shield_percent_max_hp": 30,
+    "maximum_total_team_damage_reduction_percent": 30,
+    "hard_cc_chain_window_seconds": 5,
+    "hard_cc_chain_cap_seconds": 2,
+    "ranked_loss": "real ranked loss and character-diamond debit through authoritative backend",
+    "diamond_logic": "earned Character Diamonds affect effective combat eligibility, not permanent collectible ownership",
+    "real_money_power_purchases": false,
+    "win_conditions": [
+      "objective score",
+      "final showdown/tie-breaker"
+    ],
+    "disconnect_rejoin_grace_seconds": 45,
+    "no_reward_double_count": true
+  },
+  "economy": {
+    "circle_rank_source": "Lifetime legitimately earned BP",
+    "hero_level_source": "character-specific verified tasks/items and BP eligibility",
+    "character_diamonds": "separate authoritative ledger",
+    "bp_from_business_generation": false,
+    "arena_match_resources": "temporary resources reset every match, never BP/QMP/Diamonds"
+  },
+  "heroes": [
+    {
+      "id": "phan",
+      "name": "Phan",
+      "tier": "core",
+      "unlock_circle_rank": 1,
+      "role": "Terrain Bruiser",
+      "identity": "Earthforge Vanguard",
+      "colors": [
+        "forest green",
+        "bronze",
+        "warm silver"
+      ],
+      "suit": "Workman’s field armor with reinforced boots, soil-crystal bracers, tool gauntlets, asymmetrical shoulder guard and seed crest.",
+      "passive": "Grounded Resolve: short-lived guard after contesting an objective",
+      "s1": "Groundbreaker: short-range shockwave and slow",
+      "s2": "Foundation Wall: destructible temporary cover",
+      "ultimate": "Bayanihan Bastion: temporary zone reducing allied incoming damage",
+      "game": "Enterprise Builder",
+      "tags": [
+        "frontline",
+        "terrain",
+        "guard"
+      ]
+    },
+    {
+      "id": "quin",
+      "name": "Quin",
+      "tier": "core",
+      "unlock_circle_rank": 1,
+      "role": "Ranged Scout",
+      "identity": "Horizon Wayfinder",
+      "colors": [
+        "silver",
+        "teal",
+        "deep cyan"
+      ],
+      "suit": "Mobile explorer bodysuit, compass visor, light scarf, telescopic map projector, precision bracer and padded travel boots.",
+      "passive": "Trail Sense: brief contextual tracking of recently revealed opponents",
+      "s1": "Route Dash: evade and empower next shot",
+      "s2": "Beacon Mark: limited-area pulse vision and target marking",
+      "ultimate": "Horizon Corridor: visible temporary safe approach lane granting movement and vision",
+      "game": "Discovery Expedition",
+      "tags": [
+        "ranged",
+        "scout",
+        "vision"
+      ]
+    },
+    {
+      "id": "van",
+      "name": "Van",
+      "tier": "core",
+      "unlock_circle_rank": 1,
+      "role": "Protector Tank",
+      "identity": "Relay Warden",
+      "colors": [
+        "navy blue",
+        "silver",
+        "electric blue"
+      ],
+      "suit": "Heavy shield-bearing armor with shoulder comm relay, compact signal mast, broad boots and layered dark-blue plates.",
+      "passive": "Protection Link: nearby ally benefits from limited damage mitigation",
+      "s1": "Signal Shield: short targeted barrier on ally",
+      "s2": "Intercept Rush: dash to ally and knock attackers aside",
+      "ultimate": "Command Network: limited group shield-sharing and defensive signals",
+      "game": "City Dispatch",
+      "tags": [
+        "tank",
+        "protector",
+        "relay"
+      ]
+    },
+    {
+      "id": "christian",
+      "name": "Christian",
+      "tier": "core",
+      "unlock_circle_rank": 1,
+      "role": "Commander Fighter",
+      "identity": "Crimson Marshal",
+      "colors": [
+        "crimson",
+        "antique gold",
+        "graphite"
+      ],
+      "suit": "Light plate command armor, short crimson mantle, tactical gauntlets, rally banner and gold leadership crest.",
+      "passive": "Rally Momentum: increased contribution when contesting an objective",
+      "s1": "Banner Rush: initiating charge and close strike",
+      "s2": "Rally Formation: short modest allied attack-tempo boost",
+      "ultimate": "Stand United: organized push with resistance and objective pressure",
+      "game": "Leadership Council",
+      "tags": [
+        "fighter",
+        "engage",
+        "rally"
+      ]
+    },
+    {
+      "id": "lhen",
+      "name": "Lhen",
+      "tier": "core",
+      "unlock_circle_rank": 1,
+      "role": "Rhythm Support",
+      "identity": "Harmony Weaver",
+      "colors": [
+        "amethyst",
+        "silver",
+        "indigo"
+      ],
+      "suit": "Flexible amethyst-silver resonance suit, modular sound-ring gauntlets, small utility drum and translucent notation ribbons.",
+      "passive": "Tempo Keeper: rhythm accuracy charges a temporary support pulse",
+      "s1": "Resonance Wave: directional sonic damage and short disruption",
+      "s2": "Restorative Beat: bounded area healing pulse",
+      "ultimate": "Symphony of Buklod: large but capped team recovery and protective harmony",
+      "game": "Rhythm Journey",
+      "tags": [
+        "support",
+        "heal",
+        "rhythm"
+      ]
+    },
+    {
+      "id": "ace",
+      "name": "Ace",
+      "tier": "special",
+      "unlock_circle_rank": 5,
+      "role": "Medic Tactician",
+      "identity": "Triage Grandmaster",
+      "colors": [
+        "white",
+        "surgical teal",
+        "royal blue"
+      ],
+      "suit": "Field-medic armor with minimal chess-board motifs, holographic triage scanner, compact medical gauntlet and knight-shaped shoulder crest.",
+      "passive": "Critical Care: prioritizes wounded allies for a limited rescue bonus",
+      "s1": "Field Patch: precise single-target heal with cooldown",
+      "s2": "Knight Step: tactical short relocation to a nearby ally",
+      "ultimate": "Checkmate Rescue: deploys short-lived multi-point triage squares and emergency shield",
+      "game": "Rescue Grid",
+      "tags": [
+        "healer",
+        "rescue",
+        "tactics"
+      ]
+    },
+    {
+      "id": "ellusur",
+      "name": "ELESUR",
+      "tier": "special",
+      "unlock_circle_rank": 6,
+      "role": "Path Support",
+      "identity": "Beacon Shepherd",
+      "colors": [
+        "sage green",
+        "ivory",
+        "sun gold"
+      ],
+      "suit": "Soft ivory-and-sage protective armor with lantern staff, agricultural belt and teaching-symbol panels, without literal clergy-only requirement.",
+      "passive": "Teach by Example: assists grant brief ally movement utility",
+      "s1": "Guiding Path: marks a navigable route and gives speed to allies traversing it",
+      "s2": "Seed Sanctuary: small short-lived sustain and anti-slow zone",
+      "ultimate": "Beacon of Service: luminous rally beacon for positional protection and resistance",
+      "game": "Village Builder",
+      "tags": [
+        "support",
+        "mobility",
+        "beacon"
+      ]
+    },
+    {
+      "id": "jawo",
+      "name": "Jawo",
+      "tier": "special",
+      "unlock_circle_rank": 7,
+      "role": "Agile Disruptor",
+      "identity": "Verdant Bard",
+      "colors": [
+        "moss green",
+        "copper",
+        "emerald"
+      ],
+      "suit": "Forest-cloaked lightweight music combat suit, copper string-gauntlet, resonant vine device and practical travel boots.",
+      "passive": "Natural Rhythm: successful timed hits build a bounded note stack",
+      "s1": "Vine Riff: short-range vine strike with brief snare",
+      "s2": "Echo Skip: agile flank movement leaving a slowing echo",
+      "ultimate": "Canopy Crescendo: telegraphed resonant forest wave and area displacement",
+      "game": "Forest Trail",
+      "tags": [
+        "skirmisher",
+        "disrupt",
+        "rhythm"
+      ]
+    },
+    {
+      "id": "mitch",
+      "name": "Mitch",
+      "tier": "special",
+      "unlock_circle_rank": 8,
+      "role": "Terrain Controller",
+      "identity": "Mural Weaver",
+      "colors": [
+        "indigo",
+        "magenta",
+        "ochre"
+      ],
+      "suit": "Artist-combat tunic with non-sacred geometric textile inspiration, pigment projectors, arm-mounted paintbrush tool and layered protective sleeves.",
+      "passive": "Color Theory: alternating color tags create a non-stacking tactical mark",
+      "s1": "Pigment Bolt: skillshot applying color mark",
+      "s2": "Mosaic Wall: short destructible visual barrier",
+      "ultimate": "Living Canvas: temporary area pattern changing routes and zoning enemies",
+      "game": "Restore the Mural",
+      "tags": [
+        "controller",
+        "terrain",
+        "debuff"
+      ]
+    },
+    {
+      "id": "niel",
+      "name": "Niel",
+      "tier": "special",
+      "unlock_circle_rank": 9,
+      "role": "Vanguard Herald",
+      "identity": "Dawn Herald",
+      "colors": [
+        "midnight blue",
+        "amber",
+        "white"
+      ],
+      "suit": "Service-and-mission field armor with luminous dawn trim, ceremonial-but-functional chest banner and acoustic echo staff.",
+      "passive": "Shared Resolve: nearby allies gain brief resistance after an assist",
+      "s1": "Echo Lance: forward ranged strike and mark",
+      "s2": "Conviction Dash: advance that briefly steadies allies on path",
+      "ultimate": "Call of the Dawn: telegraphed forward wave that breaks a control effect and displaces foes",
+      "game": "Mission Trail",
+      "tags": [
+        "fighter",
+        "initiate",
+        "cleanse"
+      ]
+    },
+    {
+      "id": "angel",
+      "name": "Angel",
+      "tier": "special",
+      "unlock_circle_rank": 10,
+      "role": "Shield Economist",
+      "identity": "Ledger Sentinel",
+      "colors": [
+        "black",
+        "champagne gold",
+        "cyan"
+      ],
+      "suit": "Sleek guardian armor with ledger grid emitters, shield-to-shield circuitry, precision wrist console and balanced-scale crest.",
+      "passive": "Fair Allocation: efficiency on match-only shield pickups; no BP or Diamonds generation",
+      "s1": "Ledger Shield: transfer a limited personal shield to ally",
+      "s2": "Balance Field: short defensively reactive field with strict shield caps",
+      "ultimate": "Equal Measure: redistributes existing team shields without creating unlimited protection",
+      "game": "Kingdom Treasury",
+      "tags": [
+        "defender",
+        "shield",
+        "resource"
+      ]
+    },
+    {
+      "id": "vhen",
+      "name": "Vhen",
+      "tier": "special",
+      "unlock_circle_rank": 11,
+      "role": "Summoner Engineer",
+      "identity": "Grove Mechanist",
+      "colors": [
+        "terracotta",
+        "olive green",
+        "steel"
+      ],
+      "suit": "Agriculture-tech field suit with seed-pod drones, articulated planting gauntlet, reinforced work boots and practical family-farm insignia.",
+      "passive": "Rooted Growth: placed devices gain bounded durability during their short lifespan",
+      "s1": "Seed Turret: one destructible low-output turret",
+      "s2": "Irrigation Snare: telegraphed patch of slowing wet terrain",
+      "ultimate": "Harvest Engine: single temporary growth platform providing modest control and cover",
+      "game": "Farm to Market",
+      "tags": [
+        "engineer",
+        "deployable",
+        "zone"
+      ]
+    },
+    {
+      "id": "trudice",
+      "name": "Trudice",
+      "tier": "special",
+      "unlock_circle_rank": 13,
+      "role": "Counterplay Scholar",
+      "identity": "Story Strategist",
+      "colors": [
+        "violet",
+        "turquoise",
+        "sunrise gold"
+      ],
+      "suit": "Adult learning specialist in ornate yet mobile armored teaching coat, holographic storybook folio and floating illuminated page shields.",
+      "passive": "Lesson Learned: observing enemy casts builds one short-lived counterplay insight",
+      "s1": "Question Sigil: precise interrupting projectile on channels",
+      "s2": "Turning Page: reactive single-hit ally protection",
+      "ultimate": "Grand Lesson: announces opponent ability tells and grants tactical team counterplay window",
+      "game": "Wonder Path",
+      "tags": [
+        "controller",
+        "counter",
+        "protect"
+      ]
+    }
+  ],
+  "team_combos": [
+    {
+      "name": "Bayanihan Front",
+      "characters": [
+        "phan",
+        "van"
+      ],
+      "effect": "Ground wall plus relay protection create a flankable defense; team damage reduction obeys global cap."
+    },
+    {
+      "name": "Guided Strike",
+      "characters": [
+        "quin",
+        "christian"
+      ],
+      "effect": "A marked opening followed by banner charge grants one small coordinated damage window."
+    },
+    {
+      "name": "Forest Symphony",
+      "characters": [
+        "lhen",
+        "jawo"
+      ],
+      "effect": "Alternating rhythm activations trigger one brief slow pulse and minor ally restorative beat."
+    },
+    {
+      "name": "Triage Route",
+      "characters": [
+        "ace",
+        "quin"
+      ],
+      "effect": "Scout beacon provides a limited target for the medic’s reposition, with strict line-of-sight checks."
+    },
+    {
+      "name": "Living Bulwark",
+      "characters": [
+        "phan",
+        "vhen",
+        "angel"
+      ],
+      "effect": "Construct + terrain wall + redistributed team shield improve objective hold without infinite fortification."
+    },
+    {
+      "name": "Learn and Counter",
+      "characters": [
+        "mitch",
+        "trudice"
+      ],
+      "effect": "Telegraphed mural zone plus question sigil offers limited counterplay against enemy channels."
+    },
+    {
+      "name": "Dawn Path",
+      "characters": [
+        "niel",
+        "ellusur"
+      ],
+      "effect": "A guiding route primes a herald’s initiation; speed and control resistance are capped."
+    }
+  ],
+  "guardrails": [
+    "Special characters add tactics, not raw overpowered combat strength.",
+    "Server-authoritative hit validation, cooldowns, ranked outcomes, and idempotent rewards.",
+    "Show Faith OFF uses equivalent non-faith progression paths.",
+    "No automatic team-combo loops; each combo requires active player execution and has an internal cooldown.",
+    "Do not expose deep-locked Special art or identities to ordinary members."
+  ]
+}

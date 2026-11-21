@@ -4,6 +4,11 @@
 class_name BuklodArenaSimulation
 extends RefCounted
 
+const HERO_IDENTITY_SCRIPT = preload("res://scripts/hero_identity.gd")
+const SPECIAL_HERO_ACTIONS = preload("res://scripts/special_hero_actions.gd")
+const NATIVE_MINION_WAVES = preload("res://scripts/native_minion_waves.gd")
+const NATIVE_VILLAGER_ROLES = preload("res://scripts/native_villager_roles.gd")
+
 const STEP := 0.1
 const PICKUP_CAP := 24
 const PICKUP_LIFETIME := 45.0
@@ -14,8 +19,10 @@ const MAX_RELICS := 36
 var config: Dictionary = {}
 var state: Dictionary = {}
 var rng := RandomNumberGenerator.new()
+var hero_catalog
 
 func _init() -> void:
+	hero_catalog = HERO_IDENTITY_SCRIPT.new()
 	var path := "res://data/catalog.json"
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
@@ -29,7 +36,9 @@ func _init() -> void:
 
 func available() -> bool:
 	return config.has("heroes") and config.has("maps") and config.has("pickups") \
-		and config["heroes"].size() == 13 and config["pickups"].size() == 300
+		and config["heroes"].size() == 13 and config["pickups"].size() == 300 \
+		and hero_catalog != null and hero_catalog.available() \
+		and config["heroes"].keys().all(func(id): return hero_catalog.approved.has(id))
 
 func begin(mode: String = "cluster", hero: String = "phan",
 		map_id: String = "genesis_rift", solo: bool = false,
@@ -55,8 +64,8 @@ func begin(mode: String = "cluster", hero: String = "phan",
 		"w": w, "h": h, "time": 0.0, "tick": 0, "phase": "expansion",
 		"status": "active", "winner": "", "events": [], "next_id": 1,
 		"team": {
-			"A": {"wood": 150.0, "gold": 100.0, "stone": 110.0, "queue": [], "kills": 0},
-			"B": {"wood": 150.0, "gold": 100.0, "stone": 110.0, "queue": [], "kills": 0}
+			"A": {"wood": 150.0, "gold": 100.0, "stone": 110.0, "queue": [], "kills": 0, "tech": 0},
+			"B": {"wood": 150.0, "gold": 100.0, "stone": 110.0, "queue": [], "kills": 0, "tech": 0}
 		}, "players": {}, "units": [], "towers": [], "nodes": [],
 		"loot": [], "buildings": [], "cover": world_cover, "effects": [],
 		"seals": {
@@ -68,6 +77,7 @@ func begin(mode: String = "cluster", hero: String = "phan",
 		"solo_round": 1, "solo_wins": {"A": 0, "B": 0},
 		"solo_draws": 0, "solo_round_start": 0.0, "solo_intermission": 0.0
 	}
+	NATIVE_MINION_WAVES.init(self)
 	var roster: Array = config["heroes"].keys()
 	for team in ["A", "B"]:
 		for i in range(count):
@@ -104,8 +114,10 @@ func begin(mode: String = "cluster", hero: String = "phan",
 					"hp": float(config["buildings"][definition]["hp"]),
 					"alive": true, "progress": 1.0, "status": "operational"})
 			for i in range(2):
-				state["units"].append(_new_unit("v" + team + str(i), team, "villager",
-					Vector2(21.0 if team == "A" else w - 21.0, h * 0.5 + (6.0 if i else -6.0))))
+				var resident: Dictionary = _new_unit("v" + team + str(i), team, "villager",
+					Vector2(21.0 if team == "A" else w - 21.0, h * 0.5 + (6.0 if i else -6.0)))
+				NATIVE_VILLAGER_ROLES.configure(resident, team, i)
+				state["units"].append(resident)
 		for site in ["A", "B", "CENTER"]:
 			for i in range(3):
 				var type: String = ["wood", "gold", "stone"][i]
@@ -145,7 +157,7 @@ func actor(id: String) -> Dictionary:
 		return {}
 	if state["players"].has(id):
 		return state["players"][id]
-	for category in ["units", "towers", "buildings"]:
+	for category in ["units", "minions", "towers", "buildings"]:
 		for thing in state[category]:
 			if thing["id"] == id:
 				return thing
@@ -166,12 +178,25 @@ func _enemies(p: Dictionary, r: float) -> Array:
 	for a in state["players"].values():
 		if _alive(a) and a["team"] != p["team"] and _dist(a, p) <= r:
 			output.append(a)
-	for category in ["units", "towers"]:
+	for category in ["units", "minions", "towers"]:
 		for a in state[category]:
 			if _alive(a) and a["team"] != p["team"] and _dist(a, p) <= r:
 				output.append(a)
 	output.sort_custom(func(a, b): return _dist(a, p) < _dist(b, p))
 	return output
+
+func _line_blocked(start: Vector2, finish: Vector2) -> bool:
+	var path: Vector2 = finish - start
+	var length_sq: float = path.length_squared()
+	if length_sq < 0.001:
+		return false
+	for obstacle in state.get("cover", []):
+		var center: Vector2 = obstacle["pos"]
+		var ratio: float = clampf((center - start).dot(path) / length_sq, 0.0, 1.0)
+		var closest: Vector2 = start + path * ratio
+		if closest.distance_to(center) < float(obstacle["radius"]) + 0.25:
+			return true
+	return false
 
 func _blocked(pos: Vector2, radius: float = 1.0) -> bool:
 	if pos.x < 2 or pos.y < 2 or pos.x > state["w"] - 2 or pos.y > state["h"] - 2:
@@ -322,11 +347,11 @@ func _loot(p: Dictionary) -> bool:
 func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 	if not ["primary", "secondary", "ultimate"].has(slot):
 		return false
-	if slot == "secondary" and int(p["level"]) < 3:
+	# The owner's approved combat contract enables both skills and ultimate from
+	# the first playable match level; permanent unlock rules remain server-owned.
+	var skill: Dictionary = hero_catalog.skill(str(p["hero"]), slot)
+	if skill.is_empty():
 		return false
-	if slot == "ultimate" and int(p["level"]) < 6:
-		return false
-	var skill: Dictionary = config["starter"].get(p["hero"], {}).get(slot, {})
 	var cooldown: float = float(skill.get("cd", {"primary": 5800, "secondary": 11000, "ultimate": 38000}[slot])) / 1000.0
 	var mana_cost: float = {"primary": 18.0, "secondary": 14.0, "ultimate": 55.0}[slot]
 	if float(state["time"]) - float(p["cooldowns"][slot]) < cooldown or float(p["mana"]) < mana_cost:
@@ -369,7 +394,7 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 					ally["hp"] = minf(float(ally["max_hp"]), float(ally["hp"]) + 48.0)
 			accepted = true
 		"beacon_mark":
-			if not target.is_empty():
+			if not target.is_empty() and not _line_blocked(p["pos"], target["pos"]):
 				target["buffs"]["marked"] = {"until": float(state["time"]) + 5.0, "strength": 0.15}
 				accepted = true
 		"signal_shield", "restorative_beat", "field_patch":
@@ -386,7 +411,9 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 			p["buffs"]["triage"] = {"until": float(state["time"]) + 10.0, "strength": 1.0}
 			accepted = true
 		_:
-			if slot == "secondary":
+			if hero_catalog.EXTRA_HEROES.has(str(p["hero"])):
+				accepted = SPECIAL_HERO_ACTIONS.cast(self, p, identity, direction)
+			elif slot == "secondary":
 				accepted = _move(p, direction, 40.0)
 			elif style in ["heal", "supply", "guard"]:
 				for ally in _allies(p, 9.0):
@@ -434,7 +461,7 @@ func action(id: String, command: String, vector: Vector2 = Vector2.ZERO,
 			var radius: float = float(basic.get("range", 5.5))
 			var enemies := _enemies(p, radius)
 			var target: Dictionary = actor(target_id) if target_id != "" else enemies.front() if not enemies.is_empty() else {}
-			if target.is_empty() or _dist(p, target) > radius:
+			if target.is_empty() or _dist(p, target) > radius or _line_blocked(p["pos"], target["pos"]):
 				return false
 			p["cooldowns"]["attack"] = float(state["time"])
 			var damage: float = float(basic.get("damage", 20)) + (float(p["level"]) - 1.0) * 0.6
@@ -473,8 +500,12 @@ func action(id: String, command: String, vector: Vector2 = Vector2.ZERO,
 			var kind: String = target_id if config["costs"].has(target_id) else "warrior"
 			var cost: Dictionary = config["costs"][kind]
 			if state["team"][p["team"]]["queue"].size() >= 8: return false
+			var slot: int = NATIVE_VILLAGER_ROLES.next_slot(self, str(p["team"])) if kind == "villager" else -1
+			if kind == "villager" and slot < 0: return false
 			if not _spend(p["team"], cost): return false
-			state["team"][p["team"]]["queue"].append({"kind": kind, "at": float(state["time"]) + float(cost["time"]) / 1000.0})
+			var work: Dictionary = {"kind": kind, "at": float(state["time"]) + float(cost["time"]) / 1000.0}
+			if kind == "villager": work["slot"] = slot
+			state["team"][p["team"]]["queue"].append(work)
 			_log("train", {"actor": id, "kind": kind})
 			return true
 		"build":
@@ -490,6 +521,11 @@ func action(id: String, command: String, vector: Vector2 = Vector2.ZERO,
 				"progress": 0.0, "status": "building", "duration": float(cost["time"]) / 1000.0})
 			_log("construction_start", {"actor": id, "kind": kind, "pos": at})
 			return true
+		"worker_mine", "worker_repair", "worker_defend", "worker_support",
+		"worker_research", "worker_retreat", "worker_escort", "worker_patrol":
+			if state["solo"]: return false
+			return NATIVE_VILLAGER_ROLES.order(self, str(p["team"]), target_id,
+				command.trim_prefix("worker_"))
 		"seal_attack":
 			if state["solo"]: return false
 			var enemy: String = _other(p["team"])
@@ -527,13 +563,20 @@ func _automation() -> void:
 		while not queue.is_empty() and float(queue.front()["at"]) <= float(state["time"]):
 			var item: Dictionary = queue.pop_front()
 			var id := "u" + str(state["next_id"])
+			state["next_id"] = int(state["next_id"]) + 1
 			var pos := Vector2(23 if team == "A" else state["w"] - 23, state["h"] * 0.5)
-			state["units"].append(_new_unit(id, team, item["kind"], pos))
+			var recruited: Dictionary = _new_unit(id, team, item["kind"], pos)
+			if item["kind"] == "villager":
+				NATIVE_VILLAGER_ROLES.configure(recruited, team, int(item.get("slot", -1)))
+			state["units"].append(recruited)
 			_log("unit_spawn", {"team": team, "kind": item["kind"], "pos": pos})
 	for node in state["nodes"]:
 		node["stock"] = minf(float(node["capacity"]), float(node["stock"]) + 0.065)
 	for unit in state["units"]:
 		if not _alive(unit): continue
+		if unit["kind"] == "villager":
+			NATIVE_VILLAGER_ROLES.step(self, unit)
+			continue
 		var enemy: Dictionary = {}
 		for target in state["players"].values():
 			if _alive(target) and target["team"] != unit["team"] and _dist(unit, target) < 5.0:
@@ -543,28 +586,8 @@ func _automation() -> void:
 			unit["last_attack"] = float(state["time"])
 			_hit(unit, enemy, 4.0 if unit["kind"] == "villager" else 12.0)
 			continue
-		if unit["kind"] == "villager" and unit["command"] == "mine":
-			var resource: Dictionary = {}
-			for node in state["nodes"]:
-				if node["side"] == unit["team"]:
-					resource = node
-					break
-			if not resource.is_empty():
-				var carry: Dictionary = unit["carry"]
-				var total: float = float(carry["wood"]) + float(carry["gold"]) + float(carry["stone"])
-				var depot := Vector2(20 if unit["team"] == "A" else state["w"] - 20, state["h"] * 0.5)
-				if total >= 50.0:
-					_move(unit, depot - unit["pos"], 5.0)
-					if (unit["pos"] as Vector2).distance_to(depot) < 3.0:
-						for type in ["wood", "gold", "stone"]:
-							state["team"][unit["team"]][type] = float(state["team"][unit["team"]][type]) + float(carry[type])
-							carry[type] = 0.0
-							_log("villager_deposit", {"team": unit["team"], "pos": depot})
-				else:
-					_move(unit, resource["pos"] - unit["pos"], 5.0)
-					if _dist(unit, resource) < 4.0 and float(resource["stock"]) >= 2.0:
-						resource["stock"] = float(resource["stock"]) - 2.0
-						carry[resource["type"]] = float(carry[resource["type"]]) + 2.0
+		if unit["kind"] == "seed_turret":
+			# Native bounded station defense: never walk a temporary deployable.
 			continue
 		var goal := Vector2(state["w"] - 14 if unit["team"] == "A" else 14, state["h"] * 0.5)
 		_move(unit, goal - unit["pos"], 4.3 if unit["kind"] != "siege" else 2.6)
@@ -572,7 +595,7 @@ func _automation() -> void:
 		if not _alive(tower) or float(state["time"]) - float(tower["last_attack"]) < 1.4:
 			continue
 		var candidates: Array = []
-		for category in [state["players"].values(), state["units"]]:
+		for category in [state["players"].values(), state["units"], state["minions"]]:
 			for enemy in category:
 				if _alive(enemy) and enemy["team"] != tower["team"] and _dist(tower, enemy) < 9.0 + float(tower["level"]) * 1.5:
 					candidates.append(enemy)
@@ -670,6 +693,9 @@ func advance() -> void:
 	for cover in state["cover"].duplicate():
 		if cover.has("expires") and float(cover["expires"]) <= float(state["time"]):
 			state["cover"].erase(cover)
+	for unit in state["units"].duplicate():
+		if unit.has("expires") and float(unit["expires"]) <= float(state["time"]):
+			state["units"].erase(unit)
 	for p in state["players"].values():
 		if _alive(p):
 			p["mana"] = minf(float(p["max_mana"]), float(p["mana"]) + 0.33)
@@ -699,7 +725,9 @@ func advance() -> void:
 		return
 	state["phase"] = "hunt" if float(state["hunt_started"]) >= 0 else "expansion" if float(state["time"]) < 120 else "territory" if float(state["time"]) < 540 else "siege"
 	if int(state["tick"]) % 4 == 0: _bots()
-	if int(state["tick"]) % 5 == 0: _automation()
+	if int(state["tick"]) % 5 == 0:
+		_automation()
+		NATIVE_MINION_WAVES.step(self)
 	if float(state["time"]) >= float(state["hard_deadline"]) and not state["hard_lock"]:
 		state["hard_lock"] = true
 		state["seals"]["A"]["breached"] = true

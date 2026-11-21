@@ -26,6 +26,7 @@ type Props = {
 type AutomaticLessonResult = {
   ok?: boolean;
   status?: string;
+  response_id?: string;
   auto_approved?: boolean;
   auto_approval_reason?: string | null;
   human_approval_required?: boolean;
@@ -77,6 +78,9 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
   );
   const [reflectionValidation, setReflectionValidation] = useState<AIAnswerValidationResult | null>(null);
   const [previouslySubmitted, setPreviouslySubmitted] = useState(false);
+  const [reviewNeeded, setReviewNeeded] = useState(false);
+  const [serverReceipt, setServerReceipt] = useState<string | null>(null);
+  const [loadWarning, setLoadWarning] = useState('');
   // Guards the entire validation + submit RPC cycle against double tapping.
   const submissionLock = useRef(false);
 
@@ -90,13 +94,25 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
     const loadExisting = async () => {
       if (!lesson?.id || !enrollmentId) return;
 
+      const { data: current, error: authError } = await supabase.auth.getUser();
+      if (!active) return;
+      if (authError || !current.user) {
+        setLoadWarning('Could not check the saved lesson. Sign in or retry with a stable connection.');
+        return;
+      }
       const { data, error } = await supabase
         .from('learning_lesson_responses')
-        .select('question_answers,reflection_text,submitted_at')
+        .select('id,question_answers,reflection_text,submitted_at')
+        .eq('user_id', current.user.id)
         .eq('lesson_id', lesson.id)
         .maybeSingle();
 
-      if (!active || error) return;
+      if (!active) return;
+      if (error) {
+        setLoadWarning('Could not check your saved lesson status. Your answers may already be on the server.');
+        return;
+      }
+      setLoadWarning('');
 
       if (data) {
         const saved = Array.isArray(data.question_answers)
@@ -105,9 +121,16 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         if (saved.length === 4) setAnswers(saved);
         setReflection(String(data.reflection_text ?? ''));
         setPreviouslySubmitted(true);
+        setServerReceipt(String(data.id ?? ''));
       }
     };
 
+    setAnswers(emptyAnswers());
+    setReflection('');
+    setPreviouslySubmitted(false);
+    setReviewNeeded(false);
+    setServerReceipt(null);
+    setLoadWarning('');
     void loadExisting();
     return () => {
       active = false;
@@ -134,6 +157,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
 
     try {
       const nextAnswerValidations: Array<AIAnswerValidationResult | null> = [null, null, null, null];
+      let allAnswersAcceptable = true;
 
       for (let index = 0; index < normalized.length; index += 1) {
         const result = await validateBuklodResponse({
@@ -151,11 +175,8 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         });
 
         nextAnswerValidations[index] = result;
-        if (!isValidationAcceptable(result)) {
-          setAnswerValidations(nextAnswerValidations);
-          setReflectionValidation(null);
-          return false;
-        }
+        // Check every field before returning feedback; one imperfect answer is not a failed lesson.
+        if (!isValidationAcceptable(result)) allAnswersAcceptable = false;
       }
 
       const reflectionResult = await validateBuklodResponse({
@@ -173,7 +194,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
 
       setAnswerValidations(nextAnswerValidations);
       setReflectionValidation(reflectionResult);
-      return isValidationAcceptable(reflectionResult);
+      return allAnswersAcceptable && isValidationAcceptable(reflectionResult);
     } finally {
       setValidating(false);
     }
@@ -210,7 +231,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       if (!validated) {
         Alert.alert(
           'Review your answers',
-          'Please improve the flagged answers using the AI guidance, then try again.',
+          'Review the guidance on all answers and your reflection, then retry. There is no permanent failed grade or limit on revisions.',
         );
         return;
       }
@@ -225,8 +246,14 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       if (error) throw error;
 
       const result = (data ?? {}) as AutomaticLessonResult;
+      if (result.ok !== true || typeof result.response_id !== 'string') {
+        throw new Error('No verified lesson receipt was returned. Check your progress before retrying.');
+      }
       const approved = result.status === 'approved' || result.auto_approved === true;
       setPreviouslySubmitted(true);
+      setReviewNeeded(!approved);
+      setServerReceipt(result.response_id);
+      setLoadWarning('');
       // Ads are best effort after the authoritative database commit.
       // A failed ad must never tell the learner that their completion failed.
       if (approved) {
@@ -238,13 +265,20 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       }
 
       Alert.alert(
-        approved ? 'Lesson completed' : 'Please improve this lesson',
+        approved ? 'Lesson completed' : 'Answers saved · Revise and retry',
         approved
           ? 'Your answers and reflection were saved, submitted, checked, and approved automatically. No Cluster Admin approval is required.'
-          : 'Your answers and reflection were saved and checked automatically. BUKLOD found something to improve; revise the guided fields and complete the lesson again. No manual approval queue is required.',
+          : 'Your answers are saved. Review the guidance and retry as often as needed. No failed grade or points penalty applies; completion rewards require verified approval.',
       );
 
-      await onSubmitted?.();
+      // The lesson is already committed. A failed dashboard refresh is not a failed submission.
+      if (onSubmitted) {
+        try {
+          await onSubmitted();
+        } catch {
+          setLoadWarning('Saved successfully; progress refresh is temporarily unavailable. Reopen the lesson to refresh.');
+        }
+      }
     } catch (error: any) {
       Alert.alert(
         'Could Not Complete Lesson',
@@ -331,13 +365,18 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
 
       {previouslySubmitted && (
         <View style={styles.savedBanner}>
-          <Text style={styles.savedTitle}>✓ STUDY SAVED</Text>
+          <Text style={styles.savedTitle}>{reviewNeeded ? '↻ SAVED · REVISION OPEN' : '✓ ANSWERS SAVED'}</Text>
           <Text style={styles.savedText}>
-            Completing the lesson automatically submits and checks your latest answers. There is no separate Admin submission step.
+            {reviewNeeded
+              ? 'No permanent fail. Use the feedback, improve your answers and submit again without a retry limit.'
+              : 'Your submitted answers are saved. Check your official lesson progress for approval; no separate Admin submission is needed.'}
           </Text>
         </View>
       )}
 
+      {!!loadWarning && <Text style={styles.helper}>{loadWarning}</Text>}
+      <Text style={styles.helper}>Typing answers does not submit them. Tap COMPLETE LESSON and confirm the server receipt before leaving this screen. Revisions are unlimited and do not deduct points.</Text>
+      {!!serverReceipt && <Text selectable style={styles.helper}>BUKLOD lesson receipt: {serverReceipt}</Text>}
       <BuklodSubmissionAdSlot placementId="formation_lesson_before_submit" />
       <Text style={styles.helper}>After a saved, approved completion, an optional sponsored break may appear. Ads never prevent submission.</Text>
       <Button
