@@ -3,6 +3,12 @@
  * Visual animation is selected from server-authored action events/timestamps.
  * Never creates a combat event, changes HP, or modifies ranked results.
  */
+/**
+ * @param {any} state
+ * @param {any} actor
+ * @param {{actor?:string,type?:string,time?:number}|null} [localCue]
+ * @returns {'idle'|'walk'|'attack'|'skill'}
+ */
 export function arenaActorPose(state,actor,localCue=null) {
   if(!state||!actor)return 'idle';
   const now=Number(state.elapsed)||0;
