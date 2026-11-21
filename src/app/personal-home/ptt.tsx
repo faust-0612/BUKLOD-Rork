@@ -237,7 +237,7 @@ export default function BuklodPttScreen() {
   const [showSetupDetails, setShowSetupDetails] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [nearbyPeers] = useState<NearbyPeer[]>([]);
-  const [nearbySearching, setNearbySearching] = useState(false);
+  const nearbySearching = false;
   const [setup, setSetup] = useState<BuklodPttSetupSnapshot | null>(null);
   const [runtime, setRuntime] = useState(getBuklodPttRuntimeState());
   const [chatOpen, setChatOpen] = useState(false);
@@ -722,7 +722,7 @@ export default function BuklodPttScreen() {
           ) : null}
 
           {/* 2. Mode */}
-          <Text style={styles.sectionLabel}>CONNECTION MODE</Text>
+          <Text style={styles.sectionLabel}>CONNECTION MODE · SAVED PREFERENCE</Text>
           <View style={styles.modeRow}>
             {(
               [
@@ -731,10 +731,11 @@ export default function BuklodPttScreen() {
                 ['NEARBY', 'OFFLINE NEARBY'],
               ] as const
             ).map(([value, label]) => {
-              const on = routeMode === value;
+              const on = Boolean(preferences) && routeMode === value;
               return (
                 <Pressable
                   key={value}
+                  disabled={!preferences || saving}
                   onPress={() => void chooseRoute(value)}
                   style={[styles.modeChip, on && styles.modeChipOn]}
                 >
@@ -746,15 +747,16 @@ export default function BuklodPttScreen() {
             })}
           </View>
           <Text style={styles.autoExplain}>
-            AUTO chooses the best available connection: Nearby when possible,
-            Internet when needed.
+            This is your saved preference, not a live connection. Only the green
+            Connected status confirms an active channel. Auto uses Internet; Offline
+            Nearby is not yet functional in this build.
           </Text>
 
           {/* 3. Channel */}
           <Text style={styles.sectionLabel}>CHANNEL</Text>
           <View style={styles.channelCard}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.channelTitle}>CHANNEL {channel}</Text>
+              <Text style={styles.channelTitle}>CHANNEL {channel} · {targetMatched ? 'LIVE' : 'SAVED / NOT CONNECTED'}</Text>
               <Text style={styles.channelSub}>{channelSubtitle(scope)}</Text>
             </View>
             <Pressable
@@ -772,14 +774,14 @@ export default function BuklodPttScreen() {
               {Array.from({ length: 10 }, (_, i) => i + 1).map((ch) => (
                 <Pressable
                   key={ch}
-                  disabled={busy || !scope}
+                  disabled={busy || saving || !scope}
                   onPress={() => scope && void chooseTarget(scope, ch)}
-                  style={[styles.channelCell, channel === ch && styles.channelCellOn]}
+                  style={[styles.channelCell, targetMatched && channel === ch && styles.channelCellOn]}
                 >
                   <Text
                     style={[
                       styles.channelCellText,
-                      channel === ch && styles.channelCellTextOn,
+                      targetMatched && channel === ch && styles.channelCellTextOn,
                     ]}
                   >
                     {ch}
@@ -795,11 +797,11 @@ export default function BuklodPttScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.scopeRow}>
                   {scopes.map((item) => {
-                    const selected = item.id === scope?.id;
+                    const selected = targetMatched && item.id === scope?.id;
                     return (
                       <Pressable
                         key={item.id}
-                        disabled={busy}
+                        disabled={busy || saving}
                         onPress={() => void chooseTarget(item, channel)}
                         style={[styles.scopeChip, selected && styles.scopeChipOn]}
                       >
@@ -820,7 +822,7 @@ export default function BuklodPttScreen() {
               <Text style={styles.nearbyTitle}>
                 {nearbySearching
                   ? 'Searching for nearby BUKLOD users…'
-                  : `${nearbyPeers.length} nearby BUKLOD users found`}
+                  : 'Offline Nearby transport is unavailable in this build'}
               </Text>
               {nearbyPeers.map((peer) => (
                 <Text key={peer.id} style={styles.nearbyPeer}>
@@ -829,7 +831,7 @@ export default function BuklodPttScreen() {
               ))}
               {!nearbySearching && nearbyPeers.length === 0 ? (
                 <Text style={styles.nearbyPeer}>
-                  No one nearby right now. Keep Wi-Fi and Bluetooth on, or use Internet.
+                  A saved Offline Nearby preference does not mean a voice connection.
                 </Text>
               ) : null}
             </View>
@@ -838,7 +840,7 @@ export default function BuklodPttScreen() {
           {showNearbyFallback ? (
             <View style={styles.fallbackCard}>
               <Text style={styles.fallbackText}>
-                No nearby users found. Switch to Internet PTT?
+                Offline Nearby is not connected. Use Internet instead.
               </Text>
               <Pressable
                 onPress={() => void chooseRoute('INTERNET')}
@@ -855,13 +857,16 @@ export default function BuklodPttScreen() {
               runtime={runtime}
               talkMode={talkMode}
               enabled={holdEnabled}
+              targetMatched={targetMatched}
+              disabledLabel={!preferences?.listening ? 'START LISTENING' : effectiveRoute === 'NEARBY' ? 'NEARBY UNAVAILABLE' : 'SETUP NEEDED'}
               onNeedConnect={connectInternet}
             />
 
             <Text style={styles.sectionLabel}>TALK PRIORITY</Text>
             <View style={styles.talkModeRow}>
               <Pressable
-                onPress={() => setTalkMode('NORMAL')}
+                disabled={!preferences || saving}
+                onPress={() => void chooseTalkMode('NORMAL')}
                 style={[styles.talkMode, talkMode === 'NORMAL' && styles.talkModeOn]}
               >
                 <Text style={[styles.talkModeText, talkMode === 'NORMAL' && styles.talkModeTextOn]}>
@@ -869,7 +874,8 @@ export default function BuklodPttScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => setTalkMode('PRIORITY')}
+                disabled={!preferences || saving}
+                onPress={() => void chooseTalkMode('PRIORITY')}
                 style={[styles.talkMode, talkMode === 'PRIORITY' && styles.talkModePriority]}
               >
                 <Text style={[styles.talkModeText, talkMode === 'PRIORITY' && styles.talkModeTextOn]}>
@@ -886,9 +892,15 @@ export default function BuklodPttScreen() {
               </Pressable>
             </View>
 
-            {runtime.connection ? (
-              <Pressable onPress={() => void disconnect()} style={styles.stopBtn}>
-                <Text style={styles.stopBtnText}>Stop listening</Text>
+            {preferences ? (
+              <Pressable
+                disabled={busy || saving}
+                onPress={() => void (preferences.listening ? disconnect() : startListening())}
+                style={styles.stopBtn}
+              >
+                <Text style={styles.stopBtnText}>
+                  {preferences.listening ? 'Stop listening' : 'Start listening'}
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -935,8 +947,8 @@ export default function BuklodPttScreen() {
             <Text style={styles.modalStep}>3. Hold PTT to speak</Text>
             <Text style={styles.modalStep}>4. Release to listen</Text>
             <Text style={styles.modalNote}>
-              Offline Nearby needs Wi-Fi/Bluetooth. Internet PTT needs data or Wi-Fi
-              internet.
+              PTT remembers your last channel, listening switch and ordinary talk mode.
+              Offline Nearby direct-device voice is not active in this build.
             </Text>
             <Pressable
               style={styles.modalBtn}
