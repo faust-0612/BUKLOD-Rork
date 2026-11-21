@@ -41,6 +41,13 @@ export function setArenaVoiceFocus(active:boolean){
     }
   });
 }
+/** Immediately silence an ongoing announcement when the member disables
+ * voice, rather than waiting until the current spoken sentence finishes. */
+export function stopArenaVoiceAnnouncements(){
+  endSpeech();
+  void Speech.stop().catch(()=>undefined);
+}
+
 export function playArenaVoiceAnnouncements(cues:readonly {id:string}[], enabled=true):boolean {
   if(!enabled||!focused||mutedByCompetingAudio||!voiceAvailable||
     AppState.currentState!=='active'||!isBuklodGameSoundEnabled()||Platform.OS==='web')return false;
