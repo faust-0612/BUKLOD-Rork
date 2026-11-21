@@ -131,6 +131,7 @@ jobs:
       EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
       EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
       EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
       BUKLOD_APP_TARGET: main
     steps:
       - uses: actions/checkout@v4
