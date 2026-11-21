@@ -52,8 +52,11 @@ function releaseKingdomSfx() {
   arenaCuePlayedAt.clear();
 }
 
-function prewarmKingdomSfx() {
-  for (const key of ['ui_tap','ui_confirm','pickup','build_hit','success','retry','unlock','beat_combo','beat_hit','coins','game_enter','mission_go'] as const) poolFor(key);
+function prewarmKingdomSfx(arena = false) {
+  // Extra voices are prewarmed only for the immersive Arena, not for every
+  // Kingdom screen. This protects Dashboard/Wall/Connect memory and navigation.
+  for (const key of ['ui_tap','pickup','build_hit','success','retry','unlock'] as const) poolFor(key);
+  if (arena) for (const key of ['ui_confirm','beat_combo','beat_hit','coins','game_enter','mission_go'] as const) poolFor(key);
 }
 
 // The Rork live-preview audio host is not a production asset origin and was
@@ -202,7 +205,7 @@ const KINGDOM_AMBIENCE_SETTING_KEY = '@buklod_kingdom_cinematic_ambience_v1';
  * follows the existing game sound/quiet-hours settings. This is decorative:
  * audio loading/playback must never block real gameplay.
  */
-export function useRorkGameAmbience(gameId?: string | null) {
+export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: boolean }) {
   // Opt-in avoids surprising playback and the previously reported harsh intro.
   // Keep legacy interior-game audio behavior unchanged; only the main map is opt-in.
   const isKingdomMap = gameId === 'kingdom-map';
@@ -221,12 +224,12 @@ export function useRorkGameAmbience(gameId?: string | null) {
   useFocusEffect(useCallback(() => {
     if (!gameId) return;
     focusedKingdomViews += 1;
-    prewarmKingdomSfx();
+    prewarmKingdomSfx(Boolean(options?.arena));
     return () => {
       focusedKingdomViews = Math.max(0, focusedKingdomViews - 1);
       if (focusedKingdomViews === 0) releaseKingdomSfx();
     };
-  }, [gameId]));
+  }, [gameId, options?.arena]));
   // Expo Router can keep inactive game screens mounted in its stack. This
   // effect is owned by *navigation focus*, not just React mount lifetime.
   // On every blur (Home, Wall, Connect, another game) the Kingdom-only
