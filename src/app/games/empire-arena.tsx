@@ -628,7 +628,7 @@ function EmpireArenaInApp() {
       <Pressable accessibilityRole="button" onPress={() => {
         rankedRef.current?.leave();rankedRef.current=null;setPhase('menu');setArenaKind('practice');
       }} style={styles.start}><Text style={styles.startText}>CANCEL QUEUE</Text></Pressable>
-    </ScrollView> : null>
+    </ScrollView> : null}
     {game && phase !== 'menu' && phase !== 'queued' ? <View style={styles.stage}>
       <View style={[styles.hud, narrowGame && styles.hudNarrow]}>
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>

@@ -59,11 +59,7 @@
     }
   ],
   "regressionTests": [
-    "tests/empire-arena-game-navigation-viewport-20261121.test.mjs",
-    "tests/season2-empire-arena-conso-intake-20261121.test.mjs",
-    "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
-    "tests/empire-arena-v2-presentation-20261121.test.mjs",
-    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs"
+    "tests/empire-arena-game-navigation-viewport-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-navigation-viewport-20261121.json",
@@ -86,5 +82,19 @@
     "Production deployment/OTA",
     "Server-authoritative ranked WSS activation or Supabase SQL migrations",
     "Changes to BP, QMP, Character Diamonds or payouts"
+  ],
+  "selectionRationale": "The owner supplied two real landscape Android screenshots showing double title overlays, obscured Arena controls and persistent dashboard nav; explicitly requested adjustable screens, pinch zoom and friendly map navigation. Isolated Expo in-app UI/camera repair is the lowest-risk reversible path.",
+  "acceptanceChecks": [
+    "Source and Metro must compile actual Expo Android Arena screen without JSX/TypeScript errors.",
+    "Pure gesture regression covers zoom limits, drag direction, minimap jump, camera edge anchors and both portrait and landscape aspect ratios.",
+    "Arena stage must not render global dashboard bottom navigation, map return overlay or focus-app ad strip; other routes remain unchanged.",
+    "Scroll/lobby CTA, tutorial hints, music orientation exit cleanup, timed combat and economy isolation retain current permissions.",
+    "Signed native/AdMob device runtime must be separately verified before OTA or production claim."
+  ],
+  "alternativeApproaches": [
+    "Replacing Expo app Arena with a standalone APK or Godot shell: rejected because one installed BUKLOD Android app is authoritative.",
+    "Global hiding of navigation or advertising: rejected because it would regress outside-Arena pages.",
+    "Unbounded zoom or locally simulated online ranked Diamond: rejected to preserve camera bounds and server-side economy.",
+    "Native dependency replacement: rejected because it would require a new verified APK instead of existing runtime-compatible JS."
   ]
 }
