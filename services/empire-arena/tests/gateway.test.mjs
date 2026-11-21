@@ -10,7 +10,7 @@ const uuid=i=>'00000000-0000-4000-8000-'+String(i).padStart(12,'0');
 const ids={token1:uuid(1),token2:uuid(2)};
 const heroes={token1:'phan',token2:'quin'};
 
-async function harness(t){
+async function harness(t,authTimeoutMs=8000){
   const wallet=new Map(Object.values(ids).map(id=>[id,1]));
   const calls={open:[],settle:[],abort:[]};
   const store={
@@ -36,7 +36,7 @@ async function harness(t){
     wss.handleUpgrade(request,socket,head,ws=>wss.emit('connection',ws));
   });
   const sendRaw=(ws,msg)=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(msg));};
-  attachArenaTransport({wss,store,coordinator,clientsByUser,metrics,sendRaw,isStopping:()=>false});
+  attachArenaTransport({wss,store,coordinator,clientsByUser,metrics,sendRaw,isStopping:()=>false,authTimeoutMs});
   server.listen(0,'127.0.0.1');
   await once(server,'listening');
   const port=server.address().port;
@@ -132,4 +132,23 @@ test('Real network WebSocket reconnect with last Diamond reserved resumes same m
   assert.equal(hello.diamonds,0);
   assert.equal(h.calls.open.length,1,'No second ranked stake/seat');
   reconnect.close();b.close();
+});
+
+test('Idle unauthenticated sockets are bounded and never reserve earned Diamonds',async t=>{
+  const h=await harness(t,600);
+  const idle=await peer(h.url);
+  const timeout=new Promise((_,reject)=>setTimeout(()=>reject(Error('auth_timeout_not_enforced')),2500));
+  const [code]=await Promise.race([once(idle.ws,'close'),timeout]);
+  assert.equal(code,1008);
+  assert.equal(h.calls.open.length,0);
+});
+
+test('Production server serializes async authoritative heartbeats',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const {resolve}=await import('node:path');
+  const {fileURLToPath}=await import('node:url');
+  const src=readFileSync(resolve(fileURLToPath(new URL('../server.mjs',import.meta.url))),'utf8');
+  assert.match(src,/let heartbeatPending=false/);
+  assert.match(src,/if\(stopping\|\|heartbeatPending\)return/);
+  assert.match(src,/\.finally\(\(\)=>\{heartbeatPending=false;\}\)/);
 });
