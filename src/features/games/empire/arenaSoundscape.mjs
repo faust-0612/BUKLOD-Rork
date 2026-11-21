@@ -44,6 +44,8 @@ export const ARENA_SOUND_CUE = Object.freeze({
   buff_forager:   {sound:'pickup',rate:.82,volume:.30,priority:3,cooldown:450},
   buff_wisp:      {sound:'ui_confirm',rate:1.28,volume:.30,priority:3,cooldown:450},
   buff_respawn:   {sound:'ui_tap',rate:1.22,volume:.12,priority:1,cooldown:2500},
+  boss_hit:       {sound:'build_hit',rate:.78,volume:.24,priority:2,cooldown:600},
+  buff_chirp:     {sound:'ui_confirm',rate:1.26,volume:.10,priority:1,cooldown:8500},
   boss_down:      {sound:'victory_alt',rate:.82,volume:.4,priority:7,cooldown:600},
   hero_respawn:   {sound:'enter',rate:.96,volume:.36,priority:5,cooldown:400},
   level_up:       {sound:'unlock',rate:1.0,volume:.32,priority:4,cooldown:300},
@@ -62,7 +64,8 @@ const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const typeOf=e=>typeof e?.type==='string'?e.type:'';
 const playerTeam=(id,ctx)=>{
   if(typeof id!=='string')return null;
-  const p=ctx.players?.[id] ?? ctx.units?.find?.(u=>u.id===id);
+  const p=ctx.players?.[id] ?? ctx.units?.find?.(u=>u.id===id) ??
+    ctx.towers?.find?.(t=>t.id===id) ?? ctx.buildings?.find?.(b=>b.id===id);
   if(p?.team==='A'||p?.team==='B')return p.team;
   // Canonical Arena seating is A0..A4/B0..B4. Never infer team from arbitrary IDs.
   return /^[AB][0-4]$/.test(id)?id[0]:null;
@@ -88,7 +91,8 @@ function cueFor(e,ctx){
     if(target===seat)return key('self_down');
     return key(targetTeam===own?'ally_down':targetTeam?'enemy_down':null);
   }
-  if(type==='unit_ko'||type==='storm_defeat'){
+  if(type==='unit_ko'||type==='tower_ko'||type==='boss_ko'||type==='trap_ko'||type==='storm_defeat'){
+    if(type==='boss_ko')return null; // boss_defeat is the meaningful reward cue
     if(target===seat||e.actor===seat)return key('self_down');
     return key(targetTeam===own?'ally_unit_down':targetTeam?'enemy_unit_down':null);
   }
@@ -98,7 +102,7 @@ function cueFor(e,ctx){
   if(type==='both_seals_breached')return key('final_hunt');
   if(type==='seal_restored')return ownsEvent?'seal_restored':null;
   if(type==='final_hunt')return 'final_hunt';
-  if(type==='damage'||type==='unit_hit')return ownAction||target===seat?'impact':null;
+  if(type==='damage'||type==='unit_hit'||type==='tower_hit'||type==='boss_hit')return ownAction||target===seat?'impact':null;
   if(type==='skill')return ownAction?'skill':null;
   if(type==='dash')return ownAction?'dash':null;
   if(type==='buff')return ownAction?key('buff_'+e.kind):null;
@@ -121,7 +125,7 @@ function cueFor(e,ctx){
   if(type==='map_hazard')return e.actor===seat?'map_hazard':null;
   if(type==='trap_hit')return e.target===seat?'trap':null;
   if(type==='seal_damage')return e.team===own?'seal_damage':null;
-  if(type==='hunter_reward')return ownAction?'boss_down':null;
+  if(type==='hunter_reward'||type==='boss_defeat')return ownAction?'boss_down':null;
   return null;
 }
 export function arenaCueForEvent(event,context={}) {
@@ -155,10 +159,29 @@ export function drainArenaSoundscape(events,previousSeq,currentSeq,context={},li
   return {lastSeq:end,cues:selected};
 }
 export const ARENA_VISUAL_EVENT_TYPES=Object.freeze(new Set([
-  'damage','defeat','unit_ko','storm_defeat','tower_destroyed','building_destroyed',
+  'damage','defeat','unit_ko','tower_ko','boss_ko','trap_ko','storm_defeat','tower_destroyed','building_destroyed',
   'seal_breached','seal_restored','construction_start','construction_complete',
   'tower_upgrade_start','tower_upgrade','tower_repair','villager_repair',
   'equipment_drop','equipment_equip','loot','item_consumed','buff',
-  'mine','level_up','skill','dash','trap_hit','map_hazard',
+  'mine','level_up','skill','dash','trap_hit','map_hazard','boss_hit','tower_hit','boss_defeat',
   'final_hunt','solo_round_end','solo_round_start','unit_spawn',
 ]));
+
+
+/** Quiet proximate buff/magic chirp. Up to one event every 8.5 seconds per
+ * semantic sound ID, even during 10 Hz simulation or 5v5 spectator feeds. */
+export function nearbyArenaBuffCue(state,seat='A0') {
+  const player=state?.players?.[seat];
+  if(!player||!player.alive||state?.status!=='active')return null;
+  const creatures=Array.isArray(state.creatures)?state.creatures:[];
+  const buffs=creatures.filter(c=>c&&c.alive&&
+    ['forest','golden','stone','lumen','forager','wisp'].includes(c.kind)&&
+    Math.hypot(c.x-player.x,c.y-player.y)<=10);
+  if(!buffs.length)return null;
+  buffs.sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y));
+  const first=buffs[0];
+  const cue=ARENA_SOUND_CUE['buff_'+first.kind] || ARENA_SOUND_CUE.buff_chirp;
+  // Same timbre but quieter and slower than the pickup notification.
+  return {id:'nearby_'+first.kind,sound:cue.sound,
+    rate:Math.max(.76,Math.min(1.2,cue.rate*.91)),volume:.105,priority:1,cooldown:8500};
+}
