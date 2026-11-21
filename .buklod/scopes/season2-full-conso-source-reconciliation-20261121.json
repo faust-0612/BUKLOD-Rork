@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
-  "objective": "Consolidate BUKLOD Genesis Season 2 premium portrait Welcome exactly from owner-approved artwork: nine special map doors incl. Special Events, external animated Guide and four correct activity prompts, existing five-item bottom navigation, all learning/faith/university/focus app destinations and verified Cluster/Organization community previews; preserve Home/Connect spacing, paid Supabase authority, AdMob and existing production unchanged. Correct the real Android blank-map regression from the R2 staging OTA with exact approved JPEGs, a fallback URI, and a no-image emergency interactive map.",
+  "objective": "Consolidate BUKLOD Genesis Season 2 premium portrait Welcome exactly from owner-approved artwork: nine special map doors incl. Special Events, external animated Guide and four correct activity prompts, existing five-item bottom navigation, all learning/faith/university/focus app destinations and verified Cluster/Organization community previews; preserve Home/Connect spacing, paid Supabase authority, AdMob and existing production unchanged. Correct the real Android blank-map regression from the R2 staging OTA with exact approved JPEGs, a fallback URI, and a no-image emergency interactive map. Fix persistent Character Progression spinner through bounded authenticated read-only queries; make Genesis staging retry a missed OTA after startup without force reload or changing production OTA cadence.",
   "baseRef": "5a3de4ac4cc3e43dd2c404e4033c098d2d92c4d6",
   "productionBaselineEvidence": "Uses exact independently confirmed existing DEV head 5a3de4a and preserves immutable main/production. Signed staging Android APK and previously published OTA refer to earlier sources, not this new commit.",
-  "chosenApproach": "Bundle SHA-pinned local portrait and compact WebP artwork, overlay transparent one-tap targets on baked labels (no duplicate main tabs), use existing guarded Focus, Learning, Kingdom/Arena, Home, Church, Community and event routes, preserve faith alternatives and role-bound community previews, and exercise source/Metro/ad/navigation regressions before a staging-only RC. No new app/native module, database migration, reward mint or production OTA. R3 correction uses the approved JPG variant through React Native Image, a JS-bundled offline JPEG fallback, and a guarded emergency nine-door directory after decoder stalls/failures; original approved WebPs retained for byte-level provenance.",
+  "chosenApproach": "Bundle SHA-pinned local portrait and compact WebP artwork, overlay transparent one-tap targets on baked labels (no duplicate main tabs), use existing guarded Focus, Learning, Kingdom/Arena, Home, Church, Community and event routes, preserve faith alternatives and role-bound community previews, and exercise source/Metro/ad/navigation regressions before a staging-only RC. No new app/native module, database migration, reward mint or production OTA. R3 correction uses the approved JPG variant through React Native Image, a JS-bundled offline JPEG fallback, and a guarded emergency nine-door directory after decoder stalls/failures; original approved WebPs retained for byte-level provenance. Keep immutable Character art/selection UI and server-side progression authority. Timebox only session/RPC reads; clear in-flight read on rejection, never publish an expired selection; retry Genesis staging OTA download once after a 45-second delay without in-session reload.",
   "selectionRationale": "No new native modules, paid services, or production backend writes; owner approved original 1672x941 image and only entry ad removal.",
   "alternativeApproaches": [
     "Overwrite approved map with a divergent Valley drawing (rejected)",
@@ -21,7 +21,10 @@
     "release-identity",
     "navigation-scroll",
     "media-decoding",
-    "offline-failover"
+    "offline-failover",
+    "auth-session-stall",
+    "read-only-rpc-timeout",
+    "ota-delivery-freshness"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
@@ -49,6 +52,7 @@
     "src/app/season2/special-events.tsx",
     "src/app/season2/university.tsx",
     "src/components/BuklodNavSafeShell.tsx",
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
     "src/components/BuklodPersistentBottomNav.tsx",
     "src/features/games/runtime/rorkAudio.ts",
     "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
@@ -67,6 +71,10 @@
     "src/features/season2/world/developmentAssetManifest.ts",
     "src/features/season2/world/guideDestinations.ts",
     "src/features/season2/world/specialEventsLogic.ts",
+    "src/lib/buklodCharacterReadDeadline.ts",
+    "src/lib/buklodCharacterSelectionV2.ts",
+    "src/lib/buklodSilentOtaPolicy.ts",
+    "tests/genesis-ota-character-timeout-20261121.test.mjs",
     "tests/genesis-valley-asset-interaction-20261121.test.mjs",
     "tests/genesis-valley-audio-focus-20261121.test.mjs",
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
@@ -102,7 +110,9 @@
     "tests/season2-portrait-nav-abaka-20261121.test.mjs",
     "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
     "tests/season2-special-events-contract-20261121.test.mjs",
-    "tests/season2-special-events-welcome-20261121.test.mjs"
+    "tests/season2-special-events-welcome-20261121.test.mjs",
+    "tests/genesis-ota-character-timeout-20261121.test.mjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -164,9 +174,11 @@
     "All nine special map doors and four Guide suggestion routes match owner instruction; no duplicate Home/Wall/Connect/Cluster/Profile inside map.",
     "Special Events lists only existing RLS-visible events, uses existing RSVP/attendance and never mints BP; Show Faith off has equal learning access.",
     "Staging EAS provider exact OTA receipt, compatible signed APK runtime and actual Android AdMob/navigation acceptance are mandatory before publication.",
-    "R3 portrait JPEG bytes and JS-bundled rescue data URIs verified by approved-portrait-art test, with onError and bounded timeout leading to accessible nine-door fallback."
+    "R3 portrait JPEG bytes and JS-bundled rescue data URIs verified by approved-portrait-art test, with onError and bounded timeout leading to accessible nine-door fallback.",
+    "Character V2 authenticated fetch times out after a bounded interval, preserves existing server authority, R31/R40 visual locks unchanged and does not touch BP, RLS or payouts.",
+    "Only Genesis preview performs a throttled early OTA check; no reloadAsync, no call/draft interruptions and no production OTA cadence change."
   ],
-  "publicationStatus": "Consolidated Genesis DEV source contains bundled original portrait Welcome artwork, nine one-tap special feature doors, animated Guide visual and guarded real events. Exact-head CI and Metro export remain mandatory; no EAS OTA receipt or production deployment has been asserted.",
+  "publicationStatus": "R3 already published to staging with provider receipt. Latest DEV recovery and character/OTA timeout source is NOT yet published; requires exact-head CI, native parity, ads/nav gate and EAS provider evidence.",
   "releaseMode": "staging-source-prepared-native-runtime-and-ota-proof-pending",
   "physicalDeviceVerification": "USER_WAIVED_UNVERIFIED",
   "productionDeployment": "NONE"
