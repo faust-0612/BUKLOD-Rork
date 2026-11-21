@@ -1,0 +1,65 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/children-bible-instory-dialogue-20261116.json",
+  "objective": "Provide all 132 offline Bible children's stories with Scripture-faithful in-story dialogue and meaningful bilingual event-specific expansion; remove synthetic classroom commentary from the on-screen story and audio narration without touching unrelated BUKLOD protected systems.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main code baseline 3b488fa704b804f05c5a289a7e0775daeabb2404 was inspected for scoped DEV changes. This verifies only repository code, NOT which binary/OTA is live. Production deployment identity, EAS runtime 1.3.2, staging manifests and last-hour Ads/Nav telemetry remain independently unverified; no release authorization is asserted.",
+  "chosenApproach": "Retain canonical original three-act structure, remove after-story classroom Q&A, preserve direct Scripture-grounded dialogue, replace seven key scenes, and integrate a unique editor-authored event paragraph for each of the other 125 Bible episodes. Add 132 complete editorial source records, bilingual Jest and Node contracts, and preserve offline TTS, prayer, discussion, quiz and account progress.",
+  "selectionRationale": "A source-only change to the 132 Bible lesson assembly automatically updates both the full reader and existing TTS without new dependencies; each Scripture reference now has a unique canonical-event paragraph and no generic teacher/class conversations.",
+  "alternativeApproaches": [
+    "Leave the epilogue but rename it as a teaching question: rejected because the teacher conversation would still interrupt the requested Bible story and audio.",
+    "Automate fabricated dialogue for every biblical figure: rejected because fictional quotations misrepresent the Scripture.",
+    "Refactor the shared story reader and speech engine: rejected due unrelated runtime and performance regression risk."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "child-safety",
+    "story-narration"
+  ],
+  "preserveBehaviors": [
+    "Keep all 132 bundled Scripture references and bilingual offline narratives, their three-act source data, moral/spiritual lessons, prayers, discussions, quizzes and user-scoped progress.",
+    "Keep the existing story text and audio playback using the same full lesson.narrative, without new native dependencies or Supabase migrations.",
+    "No changes to AdMob consent/creative lifecycle, first-view inventory, navigation, media rendering, payment/points integrity, authentication or production environment.",
+    "Avoid verbatim-source claims: character speech is clearly a child-friendly paraphrase where Scripture dialogue exists; when not recorded, do not fabricate a quotation.",
+    "No automatic staging/production OTA, native build, Firebase changes or Play Console release."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/children-bible-instory-dialogue-20261116.json",
+    "src/features/childrenStories/bibleEditorialDepth.test.ts",
+    "src/features/childrenStories/bibleEditorialDepthNewA.ts",
+    "src/features/childrenStories/bibleEditorialDepthNewB.ts",
+    "src/features/childrenStories/bibleEditorialDepthOld.ts",
+    "src/features/childrenStories/bibleExpansion.ts",
+    "src/features/childrenStories/inStoryDialogue.test.ts",
+    "src/features/childrenStories/inStoryDialogue.ts",
+    "src/features/childrenStories/sundaySchool.ts",
+    "tests/bible-132-complete-storytelling-20261116.test.mjs",
+    "tests/bible-132-editorial-integrity-20261116.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/bible-132-complete-storytelling-20261116.test.mjs",
+    "tests/bible-132-editorial-integrity-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "The child Bible narration text is modified in the core app while all existing functionality is retained.",
+      "preservedBehaviors": [
+        "Maintain offline and bilingual story reading, existing full-story speech playback and all unrelated ads/navigation functionality."
+      ],
+      "tests": [
+        "tests/bible-132-complete-storytelling-20261116.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "All 132 stories and 264 bilingual narratives preserve source references and existing lesson/quiz data.",
+    "Neither the complete reading text nor the TTS narration includes an invented after-story teacher/classroom exchange or mid-story teacher/child lecture.",
+    "Expanded story examples incorporate biblically grounded speech where attested, without invented attributed dialogue.",
+    "No individual story shortened below existing 650-character regression length floor in either language.",
+    "Engineering Accountability governance, focused Node/Jest checks, Hermes/Expo runtime checks, and protected Ads/Nav gates pass before any release.",
+    "Staging verifies correct target runtime 1.3.2 and audio story, and production remains held pending full staging RC and exact OTA manifest verification.",
+    "Exactly 57 Old Testament and 75 New Testament records have unique bilingual canonical-event enrichment and stable story IDs; no invented innkeeper or falsely numbered Magi.",
+    "At least 650 characters per actual bilingual episode with balanced quoted dialogue, no teacher/class epilogue, and on-screen audio reading the same lesson.narrative."
+  ]
+}
