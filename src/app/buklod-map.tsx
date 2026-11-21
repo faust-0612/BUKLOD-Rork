@@ -13,6 +13,7 @@ import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
 import GenesisValleyMap, {GENESIS_VALLEY_HOTSPOTS} from '@/features/season2/genesis/GenesisValleyMap';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodMapGuideDock from '@/features/season2/world/BuklodMapGuideDock';
 import { GENESIS_IDENTITY, isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
@@ -173,6 +174,8 @@ export default function BuklodMapScreen() {
         ) : null}
         <Text style={styles.footer}>Iisang mapa para sa lahat ng destinasyon. Ang permissions, verified rewards, at privacy ay pinamamahalaan pa rin sa bawat feature.</Text>
       </ScrollView>
+      {/* Guide is a separate sibling dock OUTSIDE the approved map art and its scroll content. */}
+      <BuklodMapGuideDock active={focused} />
     </View>
   );
 }
