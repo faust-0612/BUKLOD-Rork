@@ -14,6 +14,7 @@ import {useAuth} from '@/providers/AuthProvider';
 import {useCompliance} from '@/providers/ComplianceProvider';
 import {useRuntimeConfig} from '@/providers/RuntimeConfigProvider';
 import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {useRorkGameAmbience} from '@/features/games/runtime/rorkAudio';
 
 const REGIONS=[
  {id:'lot',title:'Personal Lot',icon:'map-marker-path',x:'14%',y:'42%',
@@ -36,6 +37,7 @@ export default function CommunityVillageScreen(){
  const {requiresAcceptance}=useCompliance();
  const {config}=useRuntimeConfig();
  const insets=useSafeAreaInsets();
+ const {musicEnabled,musicSuspended,toggleMusic}=useRorkGameAmbience('kingdom-map');
  const [activeId,setActiveId]=useState<RegionId>('lot');
  const [previewLevel,setPreviewLevel]=useState(1);
  const [previewStage,setPreviewStage]=useState(0);
@@ -55,6 +57,10 @@ export default function CommunityVillageScreen(){
         <MaterialCommunityIcons name="arrow-left" size={21} color="#FBE5BA"/><Text style={styles.backText}>WORLD MAP</Text>
       </Pressable>
       <Text style={styles.tag}>GENESIS · COMMUNITY VILLAGE</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={musicEnabled?'Mute Village background music':'Enable Village background music'}
+        onPress={toggleMusic} style={styles.music}>
+        <MaterialCommunityIcons name={musicEnabled&&!musicSuspended?'music-note':'music-note-off'} size={19} color="#FFE8B4"/>
+      </Pressable>
     </View>
     <Text style={styles.title}>Community Village</Text>
     <Text style={styles.subtitle}>Lupa, tahanan, farm, business at tunay na komunidad — bawat uri may sariling development track.</Text>
@@ -121,6 +127,7 @@ const styles=StyleSheet.create({
  back:{minHeight:44,flexDirection:'row',alignItems:'center',gap:5,paddingHorizontal:8},
  backText:{fontSize:11,fontWeight:'900',color:'#FBE5BA'},
  tag:{fontSize:9,fontWeight:'900',color:'#A5E6D0',flexShrink:1},
+ music:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},
  title:{fontSize:26,fontWeight:'900',color:'#FFF5D8'},
  subtitle:{fontSize:12,lineHeight:18,color:'#CFE7D9'},
  map:{aspectRatio:16/9,width:'100%',borderRadius:18,overflow:'hidden',
