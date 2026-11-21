@@ -44,7 +44,8 @@ export default function GenesisReliablePortraitImage({
    ? (landscape?NATIVE_COMPACT:NATIVE_PORTRAIT)
    : {uri:landscape?GENESIS_COMPACT_RESCUE_URI:GENESIS_PORTRAIT_RESCUE_URI,
       width:720,height:landscape?670:995};
- return <View style={[styles.root,{width,height}]}>
+ // Emergency directory must layer above transparent baked-art hitboxes.
+ return <View style={[styles.root,{width,height,zIndex:mode==='safe'?10:0}]}>
   {mode!=='safe'?<Image key={landscape+'-'+mode}
     source={imageSource} resizeMode="stretch" fadeDuration={0}
     style={[StyleSheet.absoluteFillObject,{width,height}]}

@@ -29,6 +29,7 @@ test('Approved full portrait and compact map are real SHA-verified bundled asset
  assert.match(reliable,/setTimeout/);
  assert.match(reliable,/mode==='safe'/);
  assert.match(reliable,/styles\.safeWorld/);
+ assert.match(reliable,/zIndex:mode==='safe'\?10:0/);
  assert.match(reliable,/doors\.map/);
  for(const jpeg of ['buklod-genesis-portrait-welcome-720x995.jpg','buklod-genesis-portrait-9doors-720x670.jpg']){
    const bytes=readFileSync(new URL('../assets/season2/genesis/world/'+jpeg,import.meta.url));
