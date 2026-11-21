@@ -118,6 +118,7 @@ jobs:
             tests/buklod-silent-ota-policy.test.mjs
           node --experimental-strip-types --test tests/buklod-mandatory-update-runtime.test.mjs
           node --test tests/ota-restart-safe-area.test.cjs
+          node --test tests/buklod-season2-production-explicit-hold-20261122.test.cjs
           node --test services/empire-arena/tests/core.test.mjs
   android-compile:
     needs: source-regression
