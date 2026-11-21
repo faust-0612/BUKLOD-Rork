@@ -46,8 +46,11 @@ function buyGear(){if(!lastOfferId)throw Error('List the item first');const r=de
 function material(){const i=demo.simulateKingdomMaterial({material:$('materialType').value,quantity:Number($('materialCount').value)});lastMaterialId=i.id;log(`North Kingdom helper gained ${i.quantity} ${i.material} (OFFLINE FIXTURE).`)}
 function donate(){if(!lastMaterialId)throw Error('Generate a materials pack first');const p=$('project').value;const r=demo.donateMaterials({itemId:lastMaterialId,project:p});log(`${r.applied} material units went from North to ${p==='house'?'South personal house':'South Cluster Map'}. Remaining ${demo.summary().items.find(x=>x.id===lastMaterialId).quantity}. Construction XP and time still required.`)}
 function launch(){if(lastMatchId)throw Error('Already started a demo match. Reset to create another.');
- const hero=$('hero').value,mapId=$('map').value,level=Number($('level').value),item=lastGearId&&demo.eligibleGear({itemId:lastGearId,hero,characterLevel:level})?lastGearId:null;
- if(lastGearId&&!item)throw Error('Owned item must match this hero and required level before it can be equipped.');
+ const hero=$('hero').value,mapId=$('map').value,level=Number($('level').value);
+ const wantsGear=$('equip').checked;
+ const item=wantsGear?lastGearId:null;
+ if(wantsGear&&!item)throw Error('Acquire and purchase an item first, or untick optional equipment.');
+ if(item&&!demo.eligibleGear({itemId:item,hero,characterLevel:level}))throw Error('Owned item must match this hero and required level before it can be equipped.');
  const matchId=demo.prepareMatchId();let permitId=null;
  if($('support').checked){const p=demo.simulateKingdomStrategy({strategy:$('strategy').value,matchId});permitId=p.requestId;}
  const game=demo.startPractice({matchId,hero,mapId,mode:$('mode').value,characterLevel:level,gearItemId:item,permitId});

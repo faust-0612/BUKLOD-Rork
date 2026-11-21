@@ -88,7 +88,15 @@ test('standalone preview is clear about its sandbox nature and never loads backe
  const h=readFileSync(new URL('../experiments/empire-arena-v2/world-exchange-preview.html',import.meta.url),'utf8');
  const js=readFileSync(new URL('../experiments/empire-arena-v2/world-exchange-preview.mjs',import.meta.url),'utf8');
  assert.match(h,/OFFLINE DEMONSTRATION/);assert.match(h,/No real trading, BP, QMP or rewards/);
- assert.match(h,/world-exchange-preview\.mjs/);assert.match(js,/createOfflineJourney/);
+ assert.match(h,/world-exchange-preview\.mjs/);assert.match(h,/id="equip"/);assert.match(js,/createOfflineJourney/);
  assert.doesNotMatch(js,/supabase\.co|fetch\(|localStorage|service_role/);
  assert.doesNotMatch(h,/https:\/\/[^"']*\.js/);
+});
+
+
+test('Arena is playable without requiring Kingdom, item trade or Cluster donations',()=>{
+ const d=begin();d.simulateKingdomGear({hero:'quin',slot:'weapon'});
+ const match=d.startPractice({matchId:d.prepareMatchId(),hero:'phan',mapId:'verdant_fracture',characterLevel:1,mode:'duel'});
+ assert.equal(match.worldGear,undefined);assert.equal(match.worldSupport,undefined);
+ assert.equal(d.summary().bp.total,285);
 });
