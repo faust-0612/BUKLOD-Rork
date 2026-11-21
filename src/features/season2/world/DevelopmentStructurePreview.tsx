@@ -15,9 +15,9 @@ const PALETTES={
  light:{wall:'#E8DCC4',dark:'#8A8F9F',roof:'#6879A4',trim:'#FFF9E9'},
 };
 type Track='lot'|'house'|'cluster';
-type Props={track:Track;level:number;stage:number;mastery?:number;finish:string;roof:string;ground:string;};
-export default function DevelopmentStructurePreview({track,level,stage,mastery=0,finish,roof,ground}:Props){
- const cosmetics=safeCosmetics({finish,roof,ground});
+type Props={track:Track;level:number;stage:number;mastery?:number;finish:string;roof:string;ground:string;fence?:string;windows?:string;lights?:string;};
+export default function DevelopmentStructurePreview({track,level,stage,mastery=0,finish,roof,ground,fence='wood',windows='classic',lights='warm'}:Props){
+ const cosmetics=safeCosmetics({finish,roof,ground,fence,windows,lights});
  const p=PALETTES[cosmetics.finish as keyof typeof PALETTES];
  const l=majorLevel(level),s=constructionStage(stage);
  const shine=useRef(new Animated.Value(.3)).current;
@@ -45,11 +45,12 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
    <Path d="M20 172 L201 95 L380 172 L203 244 Z" fill={cosmetics.ground==='stone'?'#758078':'url(#lot-earth)'} stroke="#D5C08B" strokeWidth="3"/>
    {cosmetics.ground==='flower'&&[55,90,318,349].map((x,i)=><G key={i}><Circle cx={x} cy={178+i%2*29} r="12" fill="#426D50"/><Circle cx={x+3} cy={174+i%2*29} r="5" fill="#E9A1B7"/></G>)}
    {cosmetics.ground==='stone'&&<Path d="M202 240 L200 177 L220 175 L229 239" fill="#C7BBA0" stroke="#9C957F" strokeWidth="1"/>}
-   {wood&&<G stroke="#E7CC93" strokeWidth="4" strokeLinecap="round">
+   {wood&&<G stroke={cosmetics.fence==='iron'?'#B8CCCE':cosmetics.fence==='hedge'?'#4E8C5D':'#E7CC93'} strokeWidth={cosmetics.fence==='iron'?3:4} strokeLinecap="round">
      <Path d="M35 172 L201 108 L364 172 M35 172 L202 232 L364 172" strokeDasharray={s<4?'12 9':'3 0'}/>
      <Line x1="35" y1="172" x2="35" y2="148"/><Line x1="364" y1="172" x2="364" y2="148"/>
      <Line x1="91" y1="151" x2="91" y2="124"/><Line x1="310" y1="150" x2="310" y2="124"/>
    </G>}
+   {wood&&cosmetics.fence==='hedge'&&[52,105,295,348].map((x,i)=><G key={'hedge-'+i}><Circle cx={x} cy={i%2?163:184} r={10} fill="#3F7D4C"/><Circle cx={x-4} cy={i%2?160:182} r={6} fill="#6FAD68"/></G>)}
    {track==='lot'&&frame&&<G stroke="#F2D8A4" strokeWidth="4" strokeLinecap="round">
      <Path d="M88 155 L200 105 L307 155 M88 155 L88 204 L200 238 L307 204 L307 155" fill="none" strokeDasharray={walls?'0':'7 6'}/>
      {walls&&<G><Path d="M150 223 L150 190 L185 174 L185 233" fill="#5C6B58" stroke={p.trim}/><Path d="M185 233 L185 192" stroke="#FFE1A5" strokeWidth="2"/></G>}
@@ -61,7 +62,8 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
      {walls&&<Path d="M114 140 L204 100 L204 234 L114 198 Z" fill={p.wall} opacity=".8"/>}
      {walls&&<Path d="M204 100 L288 139 L288 202 L204 234 Z" fill={p.dark} opacity=".95"/>}
      <Polygon points={cosmetics.roof==='terrace'?'101,135 194,86 297,131 204,179':cosmetics.roof==='hip'?'103,137 199,73 299,138 204,106':'105,136 204,67 297,138 203,101'} fill={s===2?'#385A50':p.roof} stroke={p.trim} strokeWidth="3" fillOpacity={s===2 ? .4 : 1}/>
-     {walls&&<G><Rect x="229" y="149" width="27" height="28" rx="2" fill="#90D4D9" stroke={p.trim} strokeWidth="3"/><Path d="M242 149 L242 178 M229 164 L255 164" stroke="#F5E9BD" strokeWidth="2"/>
+     {walls&&<G> <Rect x={cosmetics.windows==='panorama'?216:229} y={cosmetics.windows==='arched'?146:149} width={cosmetics.windows==='panorama'?46:27} height={cosmetics.windows==='arched'?31:28} rx={cosmetics.windows==='arched'?14:2} fill={cosmetics.windows==='panorama'?'#98D9E9':'#90D4D9'} stroke={p.trim} strokeWidth="3"/> {cosmetics.windows==='classic'&&<Path d="M242 149 L242 178 M229 164 L255 164" stroke="#F5E9BD" strokeWidth="2"/>}
+       {cosmetics.windows==='panorama'&&<Path d="M239 149 L239 177" stroke="#F4F6E4" strokeWidth="2"/>}
        <Path d="M142 158 L173 144 L173 192 L142 205 Z" fill="#463A34" stroke={p.trim} strokeWidth="3"/></G>}
    </G>}
    {s===0&&<G>
@@ -81,7 +83,8 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
    {hasTier(3)&&[71,334].map((x,i)=><G key={'flowers-'+i}><Circle cx={x} cy={185+i*3} r="12" fill="#3F835B"/><Circle cx={x+4} cy={181+i*3} r="5" fill="#F3C0A1"/></G>)}
    {hasTier(4)&&track==='lot'&&<Path d="M264 198 L294 185 L310 192 L279 205" fill="#C2AC84" stroke="#F6E2A5" strokeWidth="2"/>}
    {hasTier(5)&&<G><Path d="M280 156 L298 147 L307 153 L288 161" fill="#609A9B" stroke="#F8E9BE" strokeWidth="2"/><Line x1="291" y1="160" x2="291" y2="183" stroke="#E5D3A6" strokeWidth="3"/></G>}
-   {hasTier(6)&&[65,344].map((x,i)=><G key={'lamp-'+i}><Line x1={x} y1={180+i*10} x2={x} y2={154+i*10} stroke="#E0D7AD" strokeWidth="3"/><Circle cx={x} cy={150+i*10} r="7" fill="#FCE6A0"/></G>)}
+   {hasTier(6)&&[65,344].map((x,i)=><G key={'lamp-'+i}><Line x1={x} y1={180+i*10} x2={x} y2={154+i*10} stroke="#E0D7AD" strokeWidth="3"/><Circle cx={x} cy={150+i*10} r="7" fill={cosmetics.lights==='starlight'?'#BFE7FF':cosmetics.lights==='garden'?'#C9F2B5':'#FCE6A0'}/></G>)}
+   {cosmetics.lights==='starlight'&&hasTier(6)&&[95,160,275].map((x,i)=><G key={'star-'+i}><Circle cx={x} cy={111+i*9} r="3" fill="#C7E9FF"/><Path d={'M'+x+' '+(105+i*9)+'v12'} stroke="#E1F1FF" opacity=".7"/></G>)}
    {hasTier(7)&&track==='lot'&&<G><Path d="M110 184 L135 171 L159 183 L135 198 Z" fill={p.roof} stroke={p.trim} strokeWidth="2"/><Line x1="135" y1="198" x2="135" y2="222" stroke="#EDDEAB" strokeWidth="4"/></G>}
    {hasTier(8)&&<G><Path d="M89 210 Q117 187 142 209" fill="none" stroke="#A0CB81" strokeWidth="6"/><Circle cx="120" cy="208" r="8" fill="#E2AAA2"/></G>}
    {hasTier(9)&&track==='lot'&&<G><Rect x="148" y="216" width="7" height="15" fill="#D7C398"/><Rect x="225" y="215" width="7" height="16" fill="#D7C398"/></G>}
