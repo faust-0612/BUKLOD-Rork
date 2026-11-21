@@ -18,6 +18,8 @@ const changed = [
   'src/features/games/empire/ArenaCombatHud.tsx',
   'src/features/games/empire/arenaHudLayout.mjs',
   'src/features/games/empire/arenaPracticeAudio.mjs',
+  'src/features/games/empire/arenaPracticePresentation.mjs',
+  'tests/empire-arena-v2-presentation-20261121.test.mjs',
   'experiments/empire-arena-v2/arena-v2-solo.mjs',
   '.github/workflows/season2-empire-arena-conso-qa-20261121.yml',
   'tests/arena-offline-solo-cpu-battle-20261121.test.mjs',
