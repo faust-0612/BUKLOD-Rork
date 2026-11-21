@@ -161,6 +161,8 @@ test('each score points to real, locally compiled CC0 SFX, not a remote placehol
     assert.ok(existsSync(resolve(root,'assets/sounds/kingdom-premium',name)),name+' not bundled');
   }
   assert.ok(audio.includes('tryPlayArenaEventCue'));
+  assert.ok(audio.includes('if (arena) for (const key of'), 'Arena voices must be prewarmed ONLY on Arena');
+  assert.match(load('src/app/games/empire-arena.tsx'),/useRorkGameAmbience\(ARENA_SCENE_GAME_ID\[mapId\], \{arena:true\}\)/);
   assert.ok(audio.includes('getBuklodGameSoundVolume'));
   assert.ok(audio.includes("focusedKingdomViews <= 0"));
   assert.ok(audio.includes('ARENA_PACKAGED_SOUND_KEY'));
