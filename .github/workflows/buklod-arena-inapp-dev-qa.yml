@@ -29,6 +29,7 @@ jobs:
       - name: Test real Arena V2 engine and in-app visual pipeline
         run: |
           node --test \
+            tests/arena-offline-solo-cpu-battle-20261121.test.mjs \
             tests/arena-kingdom-game-premium-20261121.test.mjs \
             tests/arena-protected-feature-lock-20261121.test.mjs \
             tests/season2-arena-responsive-navigation-20261121.test.mjs \
