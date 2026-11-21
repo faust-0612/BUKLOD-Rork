@@ -15,6 +15,11 @@ test('Arena pinch, zoom buttons and camera reset have deterministic bounded math
  assert.equal(arenaTouchDistance(touches),100);
  assert.deepEqual(arenaTouchCenter(touches),{x:150,y:100});
 });
+test('Camera respects edge coordinates instead of treating zero as missing',()=>{
+ const camera=arenaCamera(220,120,{x:0,y:0},812,280,arenaZoomSpan(90,1));
+ assert.equal(camera.x,0);
+ assert.equal(camera.y,0);
+});
 test('Arena drag and minimap work for portrait/landscape with safe camera bounds',()=>{
  for(const [w,h] of [[812,280],[360,640],[1024,480]]){
   const camera=arenaCamera(220,120,{x:110,y:60},w,h,arenaZoomSpan(90,1.1));

@@ -16,8 +16,12 @@ export function arenaCamera(worldWidth, worldHeight, focus, screenWidth, screenH
     height = h;
     width = Math.min(w, h * aspect);
   }
-  const x = clamp((Number(focus?.x) || w / 2) - width / 2, 0, Math.max(0, w - width));
-  const y = clamp((Number(focus?.y) || h / 2) - height / 2, 0, Math.max(0, h - height));
+  // Explicit world-edge zero is a valid camera target (e.g. minimap left/top).
+  // Do not treat it as a falsey/missing coordinate and jump to map center.
+  const focusX = Number(focus?.x);
+  const focusY = Number(focus?.y);
+  const x = clamp((Number.isFinite(focusX) ? focusX : w / 2) - width / 2, 0, Math.max(0, w - width));
+  const y = clamp((Number.isFinite(focusY) ? focusY : h / 2) - height / 2, 0, Math.max(0, h - height));
   return { x, y, width, height };
 }
 
