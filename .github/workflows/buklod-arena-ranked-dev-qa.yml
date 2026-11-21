@@ -25,7 +25,7 @@ jobs:
       - name: Install isolated pinned Arena server dependencies
         run: npm ci --prefix services/empire-arena --ignore-scripts --no-audit --no-fund
       - name: Test real WebSocket handshake, ranked seat binding, anti-replay and session recovery
-        run: node --test services/empire-arena/tests/core.test.mjs services/empire-arena/tests/gateway.test.mjs tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs
+        run: node --test services/empire-arena/tests/core.test.mjs services/empire-arena/tests/gateway.test.mjs tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs tests/empire-arena-v2-earned-diamond-claim-20261121.test.mjs
   isolated-postgres-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10
