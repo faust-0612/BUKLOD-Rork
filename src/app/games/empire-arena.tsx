@@ -30,6 +30,7 @@ import { tryPlayRorkGameFeedback, tryPlayArenaEventCue, playRorkSignatureSfx, us
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
 import { ArenaRankedSocket, isArenaRankedConfigured } from '@/features/games/empire/rankedClient';
 import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
+import { ArenaStructureArt, ArenaWildlifeArt, ArenaResourceLootArt } from '@/features/games/empire/ArenaWorldArt';
 import { ArenaCombatHud, type ArenaHudKey, type ArenaHudLayout, type HudPoint, type CombatAction } from '@/features/games/empire/ArenaCombatHud';
 // @ts-ignore — pure, versioned, per-device preferences. Never a source of Arena game authority.
 import { ARENA_HUD_DEFAULT, sanitizeArenaHudLayout, serializeArenaHudLayout } from '@/features/games/empire/arenaHudLayout.mjs';
@@ -176,17 +177,7 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
       {lanes.map((y, i) => <Path key={'lane-' + i} d={`M 5 ${y * state.h} Q ${state.w / 2} ${y * state.h + (i - 1) * 3} ${state.w - 5} ${y * state.h}`} stroke="#ffe0a2" opacity={0.38} strokeWidth={1.9} fill="none" strokeDasharray="1 3" />)}
       <Line x1={state.w / 2} y1={6} x2={state.w / 2} y2={state.h - 6} stroke="#a9f8ea" strokeWidth={0.5} strokeDasharray="2 3" opacity={0.5} />
       {state.cover.map(([x, y, r], i) => <G key={'cover-' + i}><Circle cx={x} cy={y} r={r + 1.5} fill="#052624" opacity={0.6} /><Circle cx={x} cy={y} r={r} fill="#206b62" stroke="#74cbb8" strokeWidth={0.3} opacity={0.8} /></G>)}
-      {state.nodes.filter(n=>n.stock>0).map(n => <G key={n.id}>
-        <Circle cx={n.x} cy={n.y} r={5} fill="url(#arena-world-glow)" opacity=".55"/>
-        <Circle cx={n.x} cy={n.y} r={3.1} fill={n.type==='gold'?'#6d4c27':n.type==='wood'?'#124f3a':'#3b4d65'}
-          stroke={n.type==='gold'?'#f8ce78':n.type==='wood'?'#a6eeaa':'#c3e1f6'} strokeWidth=".7" />
-        {n.type==='gold' ? <Path d={`M ${n.x} ${n.y-2.4} l2.1 2.4 -2.1 2.4 -2.1 -2.4 Z`}
-          fill="#f6df84" stroke="#ffefbd" strokeWidth=".35"/> : n.type==='wood' ?
-          <Path d={`M ${n.x} ${n.y-2.8} l-2 3 h1.1 l-1.1 1.4 h4 l-1.1 -1.4 h1.1 Z`}
-            fill="#a6f2be" stroke="#ecffdc" strokeWidth=".35"/> :
-          <Path d={`M ${n.x-2} ${n.y+2} L ${n.x-1} ${n.y-2} L ${n.x+1} ${n.y-2.6} L ${n.x+2.3} ${n.y+1.5} Z`}
-            fill="#c3eaff" stroke="#fff" strokeWidth=".35"/>}
-      </G>)}
+      <ArenaResourceLootArt nodes={state.nodes} loot={state.loot} elapsed={state.elapsed} />
       {(['A', 'B'] as Team[]).map(team => {
         const bx=team==='A'?14:state.w-14,by=state.h/2;
         return <G key={team}>
@@ -198,16 +189,8 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
           <SvgText x={bx} y={by+2} fontSize={4} textAnchor="middle" fill="#fff0bb" fontWeight="bold">{team}</SvgText>
         </G>;
       })}
-      {state.towers.filter(life).map(t => <G key={t.id}>
-        <Circle cx={t.x} cy={t.y} r={5.5} fill="url(#arena-world-glow)" opacity=".55"/>
-        <Rect x={t.x-2.8} y={t.y-2.2} width={5.6} height={5.8} rx=".7"
-          fill={t.team==='A'?'#477b96':'#9b5365'} stroke="#ffe7ac" strokeWidth=".6"/>
-        <Path d={`M ${t.x-3.7} ${t.y-2.4} L ${t.x} ${t.y-6} L ${t.x+3.7} ${t.y-2.4} Z`}
-          fill={t.team==='A'?'#84cfdf':'#f7b6a3'} stroke="#ffe5b1" strokeWidth=".5"/>
-        <Circle cx={t.x} cy={t.y} r=".85" fill="#fff0bc"/>
-      </G>)}
-      {state.buildings.filter(life).map(b => <Rect key={b.id} x={b.x - 2.4} y={b.y - 2.4} width={4.8} height={4.8} rx={0.6} fill={b.team === 'A' ? '#6ebda9' : '#d48473'} stroke="#e8c989" strokeWidth={0.4} />)}
-      {state.creatures.filter(life).map(c => <G key={c.id}><Circle cx={c.x} cy={c.y} r={5} fill="url(#arena-world-glow)" opacity=".65"/><Circle cx={c.x} cy={c.y} r={3} fill="#64377a" stroke="#eed3ff" strokeWidth={0.8} /><Circle cx={c.x} cy={c.y} r={1.1} fill="#ffe4a8" /><Path d={`M ${c.x-3} ${c.y} L ${c.x} ${c.y-4} L ${c.x+3} ${c.y}`} fill="none" stroke="#e5c2fa" strokeWidth=".7" /></G>)}
+      <ArenaStructureArt towers={state.towers} buildings={state.buildings} elapsed={state.elapsed} />
+      <ArenaWildlifeArt creatures={state.creatures} elapsed={state.elapsed} />
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
         <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} />
@@ -230,16 +213,28 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
         </G>;
       })() : null}
       {effects.map((effect: { seq: number; type: string; actor?: string; to?: string; tower?: string; strength: number }) => {
-        const subject = state.players[effect.actor || ''] || state.players[effect.to || ''] ||
-          state.towers.find(t => t.id === effect.tower);
-        if (!subject) return null;
-        const r = 3 + (1 - effect.strength) * (effect.type === 'defeat' ? 11 : 7);
-        return <G key={'fx-' + effect.seq}>
-          <Circle cx={subject.x} cy={subject.y} r={r} fill="none"
-            stroke={effect.type === 'defeat' ? '#ff9d8b' : effect.type === 'dash' ? '#8ff8f0' : '#f9d77d'}
-            strokeWidth={0.65 + effect.strength} opacity={effect.strength * 0.85} />
-          <Circle cx={subject.x} cy={subject.y} r={r * 0.53} fill="#fce3a4"
-            opacity={effect.strength * 0.14} />
+        const event = effect as {seq:number;type:string;actor?:string;to?:string;target?:string;
+          from?:string;tower?:string;id?:string;x?:number;y?:number;strength:number};
+        const entities=[...Object.values(state.players),...state.towers,...state.buildings,...state.units,...state.creatures];
+        // Damage and defeat are centered on the actual victim, not the attacking hero.
+        const id=(event.type==='damage'||event.type==='defeat'||event.type==='unit_ko')
+          ? event.to||event.target : event.tower||event.id||event.actor||event.to;
+        const subject=entities.find(entity=>entity.id===id);
+        const cx=Number.isFinite(event.x)?event.x:subject?.x;
+        const cy=Number.isFinite(event.y)?event.y:subject?.y;
+        if(cx==null||cy==null)return null;
+        const construction=/(construction|upgrade|repair|rebuild)/.test(event.type);
+        const casualty=/(defeat|destroyed|unit_ko|storm_defeat|seal_breached)/.test(event.type);
+        const pickup=/(buff|loot|equipment|item_consumed)/.test(event.type);
+        const shade=casualty?'#ffa09b':construction?'#fce4a4':pickup?'#a6ffe5':'#b5dffe';
+        const r=2.4+(1-event.strength)*(casualty?10:construction?8:6.3);
+        return <G key={'fx-'+effect.seq}>
+          <Circle cx={cx} cy={cy} r={r} fill="none" stroke={shade}
+            strokeWidth={.85+event.strength} opacity={event.strength*.90} />
+          <Circle cx={cx} cy={cy} r={r*.53} fill={shade}
+            opacity={event.strength*(casualty?.19:.12)} />
+          {construction?<Path d={'M '+(cx-1.9)+' '+cy+' h 3.8 M '+cx+' '+(cy-1.9)+' v 3.8'}
+            stroke="#fff8d8" strokeWidth=".6" opacity={event.strength}/>:null}
         </G>;
       })}
     </Svg>
