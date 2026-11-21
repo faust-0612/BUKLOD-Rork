@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {majorLevel,constructionStage,constructionPlan,nextMilestone,safeCosmetics} from '../src/features/season2/world/constructionPlan.mjs';
+import {majorLevel,constructionStage,constructionPlan,nextMilestone,safeCosmetics,visualDevelopmentFeatures} from '../src/features/season2/world/constructionPlan.mjs';
 test('preview selectors cannot overflow stages and major levels',()=>{
  assert.equal(majorLevel(Infinity),1);assert.equal(majorLevel(42),10);assert.equal(majorLevel(-8),1);
  assert.equal(constructionStage(100),4);assert.equal(constructionStage(-5),0);
@@ -23,4 +23,17 @@ test('five stages per major level lead to unbounded mastery, without granting an
 test('corrupt or foreign cosmetic storage is normalized',()=>{
  assert.deepEqual(safeCosmetics({finish:'malicious',roof:'none',ground:null}),{finish:'stone',roof:'gable',ground:'grass'});
  assert.deepEqual(safeCosmetics({finish:'slate',roof:'hip',ground:'flower'}),{finish:'slate',roof:'hip',ground:'flower'});
+});
+
+test('the rendered scene changes progressively at all 10 major tiers across all tracks',()=>{
+ for(const track of ['lot','house','cluster']){
+  let before=[];
+  for(let level=1;level<=10;level++){
+   const finished=visualDevelopmentFeatures(track,level,4);
+   assert.equal(finished.length,level);
+   assert.notDeepEqual(finished,before);
+   assert.equal(visualDevelopmentFeatures(track,level,2).length,level-1);
+   before=finished;
+  }
+ }
 });

@@ -48,3 +48,13 @@ export function safeCosmetics(value) {
     ground:GROUNDS.includes(v.ground)?v.ground:'grass',
   };
 }
+
+/** Each selected level carries one unique, cumulative visible development feature.
+ * The stage 0-3 blueprint only shows previous-tier amenities; stage 4 adds the
+ * new tier. This is deliberately a DRAWING, never a claim about earned inventory.
+ */
+export function visualDevelopmentFeatures(track,level,stage) {
+ if(!TRACKS.includes(track))throw new Error('Unknown construction track');
+ const count=Math.max(0,majorLevel(level)-(constructionStage(stage)===4?0:1));
+ return Object.freeze(Array.from({length:count},(_,i)=>track+'-amenity-'+String(i+1).padStart(2,'0')));
+}

@@ -17,3 +17,4 @@ export function constructionPlan(track:ConstructionTrack,level:number,stage:numb
 }>;
 export function nextMilestone(level:number,stage:number,mastery?:number):{level:number;stage:number;mastery:number};
 export function safeCosmetics(value:unknown):{finish:CosmeticFinish;roof:CosmeticRoof;ground:CosmeticGround};
+export function visualDevelopmentFeatures(track:ConstructionTrack,level:number,stage:number):readonly string[];
