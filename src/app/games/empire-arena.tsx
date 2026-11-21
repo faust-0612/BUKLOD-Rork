@@ -159,12 +159,21 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying 
         p.x >= camera.x - 5 && p.x <= camera.x + camera.width + 5 &&
         p.y >= camera.y - 5 && p.y <= camera.y + camera.height + 5)
       .map(p => {
+        // Single source-owned hero identity across all four real full-body motion states.
+        // No visual transition may modify the server-owned action, level, HP, or gear.
+        const recentAction = state.visualCue && state.elapsed - state.visualCue.time < 510 &&
+          near(state.visualCue, p) < 8 ? state.visualCue.type : '';
+        const pose = recentAction === 'skill' ? 'skill' :
+          ['attack', 'seal_attack'].includes(recentAction) ? 'attack' :
+          p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1 ? 'walk' : 'idle';
+        const fullbody = ARENA_GENERATED_ART['fullbody:' + p.hero + '_' + pose] ||
+          ARENA_GENERATED_ART['fullbody:' + p.hero + '_idle'];
         const sprite = ARENA_GENERATED_ART['sprite:' + p.hero];
-        const image = sprite || ARENA_GENERATED_ART['hero:' + p.hero] ||
+        const image = fullbody || sprite || ARENA_GENERATED_ART['hero:' + p.hero] ||
           ARENA_HERO_ART[p.hero as BuklodCharacterId];
-        const size = clamp(area.width * 8 / camera.width, 32, 94);
+        const size = clamp(area.width * 12 / camera.width, 47, 146);
         return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
-          sprite={Boolean(sprite)} friendly={p.team === 'A'} active={isPlaying}
+          sprite={Boolean(fullbody || sprite)} friendly={p.team === 'A'} active={isPlaying}
           moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1)}
           x={(p.x - camera.x) * area.width / camera.width}
           y={(p.y - camera.y) * area.height / camera.height} size={size} />;
