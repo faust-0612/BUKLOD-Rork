@@ -60,7 +60,8 @@ test('Approved portrait map goes first, guide remains external, and new one-tap 
  assert.match(map,/AccessibilityInfo\.isReduceMotionEnabled/);
  assert.match(map,/!active\|\|reduceMotion/);
  assert.match(screen,/if \(!isGenesisPreviewBuild\(\)\)/);
- assert.doesNotMatch(screen,/BuklodFirstViewAd|toggleMusic|musicButton|awardBp|mintBp/);
+ assert.match(screen,/BuklodAdMobBanner/);
+ assert.doesNotMatch(screen,/toggleMusic|musicButton|awardBp|mintBp/);
 });
 
 test('Existing persistent bottom bar is restored in Genesis and never redrawn inside guide or map',()=>{
