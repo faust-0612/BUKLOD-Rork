@@ -21,13 +21,13 @@ test('map districts preserve unique real routes and Show Faith optionality',()=>
  assert.match(content,/entry.faithOnly \|\| showFaith/);
  for(const route of routes){const file='src/app/'+route.slice(1);assert.ok(existsSync(resolve(root,file+'.tsx'))||existsSync(resolve(root,file+'/index.tsx'))||existsSync(resolve(root,file+'.native.tsx'))||existsSync(resolve(root,'src/app/(tabs)/'+route.slice(1)+'.tsx')),'missing '+route);}
 });
-test('old navigation hidden only for Genesis; one return-to-map action; protect ad lifecycle',()=>{
+test('Genesis keeps its one persistent bottom nav and the map return action without duplicating main doors',()=>{
  const tabs=read('src/app/(tabs)/_layout.tsx');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
  const map=read('src/app/buklod-map.tsx');
  assert.match(tabs,/!isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader/);
  assert.match(tabs,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar/);
- assert.match(shell,/!genesisWorld && !immersiveIgpat && !immersiveConversation/);
+ assert.match(shell,/!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0/);
  assert.match(shell,/normalizedPath !== '\/buklod-map'/);
  assert.match(shell,/router.replace\('\/buklod-map'/);
  assert.match(shell,/!keyboardVisible/);

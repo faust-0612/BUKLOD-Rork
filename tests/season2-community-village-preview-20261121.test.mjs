@@ -15,8 +15,8 @@ const entry=read('src/app/buklod-map.tsx');
 test('Community Village and My Home have distinct in-app one-tap routes from approved art',()=>{
  assert.ok(existsSync(resolve(root,'src/app/season2/community-village.tsx')));
  assert.ok(existsSync(resolve(root,'src/app/season2/my-world.tsx')));
- assert.equal(hotspots.hotspots.find(x=>x.id==='community-village').route,'/season2/community-village');
- assert.equal(hotspots.hotspots.find(x=>x.id==='my-home').route,'/season2/my-world');
+ assert.equal(hotspots.hotspots.find(x=>x.id==='my-community').route,'/season2/community-village');
+ assert.equal(hotspots.hotspots.find(x=>x.id==='my-house').route,'/season2/my-world');
  assert.match(entry,/<GenesisApprovedEntryMap/);
  assert.match(entry,/router\.push\(route as any\)/);
  assert.match(village,/world="village"/);
@@ -32,7 +32,7 @@ test('Separate premium nature scenes preserve real member service destinations',
   assert.ok(world.includes("route:'"+route+"'"),route);
  assert.match(world,/doors\.map/);
  assert.match(world,/router\.push\(door\.route as any\)/);
- assert.equal(hotspots.hotspots.length,12);
+ assert.equal(hotspots.hotspots.length,9);
 });
 
 test('Five progressive construction stages and independent Levels 1–10 are preview only',()=>{
