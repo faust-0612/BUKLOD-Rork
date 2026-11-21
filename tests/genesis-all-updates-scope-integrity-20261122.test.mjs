@@ -33,8 +33,7 @@ test('source-only staging scope cannot skip the separate signed SOS native and i
 });
 
 test('manifest fails closed on untracked component path, missing source proof and missing release-risk coverage', () => {
-  const minimal = ['.buklod/scopes/genesis-all-updates-conso-20261122.json',
-    '.buklod/scopes/sos-urgent-audible-rescue-20261121.json',
+  const minimal = [manifest.scopeManifestPath,...manifest.componentScopePaths,
     'src/components/BuklodMaritesBoard.tsx','app.config.js',
     'tests/todays-best-wall-header-20261120.test.mjs',
     'tests/sos-urgent-release-20261121.test.mjs',
