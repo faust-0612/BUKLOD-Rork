@@ -179,6 +179,11 @@ export class ArenaMatchCoordinator {
     if(!match||match.status!=='active')return false;
     const seat=match.roster.find(r=>r.slot===current.slot);
     if(!seat)return false;
+    // Character identity is frozen by the original verified match roster.
+    // A profile switch during a network drop must not impersonate another hero,
+    // reset another hero's level, or change the already reserved Diamond stake.
+    session.hero=match.state.players[current.slot]?.hero||seat.session.hero;
+    session.snapshot=seat.session.snapshot;
     seat.session=session;
     session.matchId=match.id;session.slot=current.slot;
     session.lastCommandSeq=0;session.disconnectedAt=null;
