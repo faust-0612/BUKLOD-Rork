@@ -44,7 +44,8 @@
     "All 52 generated fullbody WebP clips are actually decoded and inspected in CI: 8 frames each (416 total), motion transitions, distinct skill/attack poses, and SHA-256 integrity; approved-art style/device rendering remains separately unverified.",
     "The production Arena WebSocket protocol is extracted and tested through real loopback Node ws network connections using a fake trusted store; no authentication bypass is included in deployable server.",
     "Staging backend is packaged as a nonroot single-instance Docker image with readiness checks; live hosting and isolated DB are still explicit release dependencies.",
-    "Server-side ranked eligibility first calls idempotent verified-participation private Diamond claim; fails closed without the private SQL RPC. No direct mobile BP/diamond writes."
+    "Server-side ranked eligibility first calls idempotent verified-participation private Diamond claim; fails closed without the private SQL RPC. No direct mobile BP/diamond writes.",
+    "Verified Diamond eligibility grant/profile order uses one server-only dependency-free helper, unit-tested without external npm dependencies and invoked only after Auth and character verification."
   ],
   "riskAreas": [
     "app-runtime",
@@ -237,7 +238,8 @@
     "services/empire-arena/tests/gateway.test.mjs",
     "services/empire-arena/Dockerfile",
     "services/empire-arena/STAGING.md",
-    "tests/empire-arena-v2-earned-diamond-claim-20261121.test.mjs"
+    "tests/empire-arena-v2-earned-diamond-claim-20261121.test.mjs",
+    "services/empire-arena/rankedParticipation.mjs"
   ],
   "lockedFeatureChanges": [
     {
