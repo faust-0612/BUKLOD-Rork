@@ -17,3 +17,20 @@ export async function openVerifiedGenesisKingdomPack(
     return (await api?.openApprovedPack(privateFileUri, expectedSha256)) ?? false;
   } catch { return false; }
 }
+
+/**
+ * Play the real Godot 4.7.2 Arena scene bundled INSIDE this signed staging APK.
+ * Never loads a remote PCK or grants match/leaderboard/financial rewards.
+ * Production, web and existing staging runtimes fail closed.
+ */
+export async function openBundledEmpireArena(): Promise<boolean> {
+  if (Platform.OS !== 'android' ||
+      process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED !== 'true' ||
+      process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW !== 'true') return false;
+  try {
+    const api = requireOptionalNativeModule<{openBundledArena: () => Promise<boolean>}>('BuklodGenesisGodot');
+    return (await api?.openBundledArena()) ?? false;
+  } catch {
+    return false;
+  }
+}

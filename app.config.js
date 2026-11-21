@@ -34,6 +34,9 @@ module.exports = ({ config }) => {
   // Old 2.0.0 staging builds must retain their already-published runtime.
   const sosNativePreview = genesisNativePreview &&
     process.env.EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3 === 'true';
+  // New Godot main-pack changes the native APK and must not reuse older OTA runtime.
+  const godotArenaNativePreview = genesisNativePreview &&
+    process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED === 'true';
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
@@ -56,6 +59,7 @@ module.exports = ({ config }) => {
     slug: isClassroom ? 'buklod-classroom' : 'buklod',
     version: isClassroom ? '1.3.4' : (genesisNativePreview ? '2.0.0' : '1.3.6'),
     ...(sosNativePreview ? { version: '2.0.1' } : {}),
+    ...(godotArenaNativePreview ? { version: '2.0.2' } : {}),
 
     orientation: 'default',
     scheme,
@@ -192,6 +196,7 @@ module.exports = ({ config }) => {
       '@react-native-firebase/messaging',
 
       './plugins/withBuklodWebRTC.js',
+      ...(godotArenaNativePreview ? ['./plugins/withBuklodGodotArenaPack.js'] : []),
       './plugins/withBuklodPttHardwareFoundation.js',
 
 
@@ -409,6 +414,7 @@ module.exports = ({ config }) => {
     // Keep Expo runtime 1.3.2 for existing V28/V29 production OTA compatibility. Classroom has its independent runtime.
     runtimeVersion: isClassroom ? '1.3.0' : (genesisNativePreview ? '2.0.0-genesis-preview' : '1.3.2'),
     ...(sosNativePreview ? { runtimeVersion: '2.0.1-genesis-sos' } : {}),
+    ...(godotArenaNativePreview ? { runtimeVersion: '2.0.2-genesis-godot-arena' } : {}),
   };
 };
 

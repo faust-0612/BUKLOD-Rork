@@ -1,0 +1,590 @@
+{
+  "assets": {
+    "fullbody/ace_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/ace_attack-4dd4943de7ed.webp"
+    },
+    "fullbody/ace_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/ace_idle-46bbf9e40ec2.webp"
+    },
+    "fullbody/ace_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/ace_skill-d101d00e08b4.webp"
+    },
+    "fullbody/ace_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/ace_walk-d6beb0fc06af.webp"
+    },
+    "fullbody/angel_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/angel_attack-dc5d24d927d1.webp"
+    },
+    "fullbody/angel_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/angel_idle-d10432d7dcd6.webp"
+    },
+    "fullbody/angel_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/angel_skill-bc28bc173612.webp"
+    },
+    "fullbody/angel_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/angel_walk-3fda88fe6535.webp"
+    },
+    "fullbody/christian_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/christian_attack-db2198ff062c.webp"
+    },
+    "fullbody/christian_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/christian_idle-70572b185452.webp"
+    },
+    "fullbody/christian_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/christian_skill-74d6c5c9879c.webp"
+    },
+    "fullbody/christian_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/christian_walk-244f03ac1f01.webp"
+    },
+    "fullbody/ellusur_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/ellusur_attack-6592845fac0d.webp"
+    },
+    "fullbody/ellusur_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/ellusur_idle-c4ec26d59dd0.webp"
+    },
+    "fullbody/ellusur_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/ellusur_skill-2700a468065f.webp"
+    },
+    "fullbody/ellusur_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/ellusur_walk-ef66b5a7e9bf.webp"
+    },
+    "fullbody/jawo_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/jawo_attack-b92c62f615b9.webp"
+    },
+    "fullbody/jawo_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/jawo_idle-ef37cfc47f01.webp"
+    },
+    "fullbody/jawo_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/jawo_skill-86e67961b09e.webp"
+    },
+    "fullbody/jawo_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/jawo_walk-9b55b9ed5679.webp"
+    },
+    "fullbody/lhen_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/lhen_attack-2378cf44d285.webp"
+    },
+    "fullbody/lhen_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/lhen_idle-73b9ec672c55.webp"
+    },
+    "fullbody/lhen_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/lhen_skill-1dee20da5fbb.webp"
+    },
+    "fullbody/lhen_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/lhen_walk-7dd120a65fb4.webp"
+    },
+    "fullbody/mitch_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/mitch_attack-da094ca7f7ad.webp"
+    },
+    "fullbody/mitch_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/mitch_idle-f3a2193e7510.webp"
+    },
+    "fullbody/mitch_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/mitch_skill-e0eef5c843e0.webp"
+    },
+    "fullbody/mitch_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/mitch_walk-4bb65eabd7a0.webp"
+    },
+    "fullbody/niel_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/niel_attack-dc88dbb769d9.webp"
+    },
+    "fullbody/niel_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/niel_idle-4648b9cab6ef.webp"
+    },
+    "fullbody/niel_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/niel_skill-b7046284387d.webp"
+    },
+    "fullbody/niel_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/niel_walk-ec989bc4dad3.webp"
+    },
+    "fullbody/phan_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/phan_attack-3ea6ca4b36a5.webp"
+    },
+    "fullbody/phan_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/phan_idle-7968c0b511d7.webp"
+    },
+    "fullbody/phan_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/phan_skill-da2c799d50ce.webp"
+    },
+    "fullbody/phan_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/phan_walk-a4e542d566e4.webp"
+    },
+    "fullbody/quin_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/quin_attack-de8f2bfa026c.webp"
+    },
+    "fullbody/quin_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/quin_idle-1e0a54b3801e.webp"
+    },
+    "fullbody/quin_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/quin_skill-ac87c0fa2a66.webp"
+    },
+    "fullbody/quin_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/quin_walk-ed32c12bb66f.webp"
+    },
+    "fullbody/trudice_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/trudice_attack-91088120f0fa.webp"
+    },
+    "fullbody/trudice_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/trudice_idle-78d87b343790.webp"
+    },
+    "fullbody/trudice_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/trudice_skill-8f6e4c56da3f.webp"
+    },
+    "fullbody/trudice_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/trudice_walk-84ab5fbf6d27.webp"
+    },
+    "fullbody/van_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/van_attack-d4feff79d662.webp"
+    },
+    "fullbody/van_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/van_idle-be582800a369.webp"
+    },
+    "fullbody/van_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/van_skill-b71ee37e2fb8.webp"
+    },
+    "fullbody/van_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/van_walk-89aefbac3af1.webp"
+    },
+    "fullbody/vhen_attack": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/vhen_attack-f44284c2bc54.webp"
+    },
+    "fullbody/vhen_idle": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/vhen_idle-c25e6c994dc0.webp"
+    },
+    "fullbody/vhen_skill": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/vhen_skill-9113bcb9162e.webp"
+    },
+    "fullbody/vhen_walk": {
+      "columns": 4,
+      "frame_height": 384,
+      "frame_ms": 125,
+      "frame_width": 256,
+      "frames": 8,
+      "rows": 2,
+      "source": "assets/season2/arena/generated/fullbody/vhen_walk-df85593f361b.webp"
+    },
+    "sprite/ace": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/ace-bb7391617315.webp"
+    },
+    "sprite/angel": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/angel-ef5f9ce132ae.webp"
+    },
+    "sprite/christian": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/christian-59754f011d74.webp"
+    },
+    "sprite/ellusur": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/ellusur-3e505da03037.webp"
+    },
+    "sprite/jawo": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/jawo-0c166b1cf791.webp"
+    },
+    "sprite/lhen": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/lhen-5cbbffc3c860.webp"
+    },
+    "sprite/mitch": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/mitch-1e1c801adfe6.webp"
+    },
+    "sprite/niel": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/niel-f4a2b7d93f3c.webp"
+    },
+    "sprite/phan": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/phan-579c1ac69be4.webp"
+    },
+    "sprite/quin": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/quin-e4768d7fe0ee.webp"
+    },
+    "sprite/trudice": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/trudice-8bacb802830e.webp"
+    },
+    "sprite/van": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/van-bea489cdaa65.webp"
+    },
+    "sprite/vhen": {
+      "columns": 1,
+      "frame_height": 128,
+      "frame_ms": 125,
+      "frame_width": 128,
+      "frames": 1,
+      "rows": 1,
+      "source": "assets/season2/arena/generated/sprite/vhen-d446b5b7acb8.webp"
+    }
+  },
+  "schema": 1
+}

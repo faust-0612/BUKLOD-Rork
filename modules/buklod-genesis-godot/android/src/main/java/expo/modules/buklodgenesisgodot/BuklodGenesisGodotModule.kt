@@ -74,6 +74,38 @@ class BuklodGenesisGodotModule : Module() {
   }
   override fun definition() = ModuleDefinition {
     Name("BuklodGenesisGodot")
+    // Native match-only game; the main-pack is inside the signed staging APK,
+    // never loaded from a JS-selected external path or remote URL.
+    AsyncFunction("openBundledArena") { promise: Promise ->
+      val activity = appContext.currentActivity
+      if (activity == null || activity.isFinishing || activity.isDestroyed ||
+          activity.packageName != "org.mzbministry.buklod.staging") {
+        promise.resolve(false)
+      } else {
+        try {
+          val hasAsset = activity.assets.open("godot/empire-arena.zip").use { it.read() >= 0 }
+          if (!hasAsset) {
+            promise.resolve(false)
+          } else {
+            activity.runOnUiThread {
+              try {
+                if (activity.isFinishing || activity.isDestroyed) {
+                  promise.resolve(false)
+                } else {
+                  activity.startActivity(Intent(activity, GenesisGodotActivity::class.java)
+                    .putExtra(GenesisGodotActivity.EXTRA_BUNDLED_ARENA, true))
+                  promise.resolve(true)
+                }
+              } catch (_: Exception) {
+                promise.resolve(false)
+              }
+            }
+          }
+        } catch (_: Exception) {
+          promise.resolve(false)
+        }
+      }
+    }
     AsyncFunction("openApprovedPack") { privateFileUri: String, expectedSha256: String,
       promise: Promise ->
       val activity = appContext.currentActivity
