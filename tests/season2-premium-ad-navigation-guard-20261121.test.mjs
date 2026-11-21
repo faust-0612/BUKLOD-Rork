@@ -22,7 +22,8 @@ test('Premium Genesis map honors auth/compliance/mandatory-update before guide a
   const at=map.indexOf(token);
   assert.ok(at>=0&&at<mapIndex,'Auth/privacy gate must precede map: '+token);
  }
- assert.doesNotMatch(map,/BuklodFirstViewAd/);
+ assert.match(map,/BuklodAdMobBanner/);
+ assert.match(map,/placementId="genesis_entry_footer_banner"/);
  const home=read('src/app/(tabs)/hub.tsx');
  assert.match(home,/BuklodFirstViewAd placement="home" placementId="new_home_first_view"/);
  assert.doesNotMatch(home,/<Redirect href="\/buklod-map"/);

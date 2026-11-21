@@ -165,6 +165,28 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "season2-genesis-sos-preview": {
+      "extends": "season2-genesis-preview",
+      "channel": "season2-genesis-preview",
+      "environment": "preview",
+      "distribution": "internal",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW": "true",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging",
+        "EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW": "true",
+        "EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL": "true",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS",
+        "EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED": "false",
+        "EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3": "true"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

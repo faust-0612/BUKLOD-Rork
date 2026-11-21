@@ -8,6 +8,7 @@ import {router} from 'expo-router';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {communityFacilitySummary,getCommunityZones,listCommunityFacilities} from './communityFacilityDirectory.mjs';
 type World='village'|'home';
+type IconName=React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const PAGE_SIZE=16;
 export default function Season2CommunityFacilities({world}:{world:World}) {
   const {activeScope}=useBuklodScope();
@@ -20,6 +21,7 @@ export default function Season2CommunityFacilities({world}:{world:World}) {
   const zones=useMemo(()=>getCommunityZones(world,showFaith),[world,showFaith]);
   const stats=useMemo(()=>communityFacilitySummary(world,showFaith),[world,showFaith]);
   const validZone=zone==='all'||zones.some(z=>z.id===zone)?zone:'all';
+  const zoneIcons=useMemo(()=>new Map(zones.map(z=>[z.id,z.icon])),[zones]);
   const results=useMemo(()=>expanded?listCommunityFacilities({world,zone:validZone,query,showFaith}):[],[expanded,world,validZone,query,showFaith]);
   const visible=results.slice(0,limit);
   const selectZone=(next:string)=>{setZone(next);setLimit(PAGE_SIZE);};
@@ -35,13 +37,13 @@ export default function Season2CommunityFacilities({world}:{world:World}) {
       accessibilityLabel={expanded?'Close community facilities directory':'Explore all community facilities'}
       accessibilityState={{expanded}} onPress={()=>setExpanded(v=>!v)} style={styles.heading}>
       <View style={styles.titleArea}>
-        <Text style={styles.title}>{world==='village'?'VILLAGE FACILITIES & SERVICES':'PERSONAL HOME FACILITIES'}</Text>
+        <Text style={styles.title}>{world==='village'?'EXPLORE YOUR COMMUNITY':'EXPLORE YOUR HOME'}</Text>
         <Text style={styles.subtitle}>{stats.total} mapped facilities · {stats.linked} linked · {stats.planned} planned</Text>
       </View>
       <MaterialCommunityIcons name={expanded?'chevron-up':'chevron-down'} size={23} color="#FFE4AC"/>
     </Pressable>
     {expanded ? <>
-      <Text style={styles.note}>Linked = opens an existing BUKLOD feature, not a claim that every service is fully launched. Planned = information only, no fake building or payment.</Text>
+      <Text style={styles.note}>One-tap destinations open established BUKLOD tools with their existing permissions. Coming-soon services are disabled; no fictional buildings or payments.</Text>
       <TextInput accessibilityLabel="Search community facilities" maxLength={80}
         value={query} onChangeText={value=>{setQuery(value);setLimit(PAGE_SIZE);}}
         placeholder="Hanapin: paaralan, kalsada, health, tulong..." placeholderTextColor="#9BB5AC"
@@ -58,24 +60,24 @@ export default function Season2CommunityFacilities({world}:{world:World}) {
         ))}
       </ScrollView>
       <Text style={styles.counter}>{results.length} matching facilities{results.length>limit?' · first '+limit+' displayed':''}</Text>
-      {visible.map(item=>(
-        <View key={item.id} style={styles.facility}>
+      {visible.map(item=>{
+        const available=item.status==='linked'&&Boolean(item.route);
+        return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={(available?'Open ':'Planned: ')+item.label}
+          accessibilityHint={available?'Open the authorized BUKLOD feature':'This facility has not launched'}
+          accessibilityState={{disabled:!available}} disabled={!available}
+          onPress={()=>openLinked(item.route)}
+          style={({pressed})=>[styles.facility,!available&&styles.facilityPlanned,pressed&&styles.facilityPressed]}>
+          <View style={styles.facilityIcon}><MaterialCommunityIcons name={(zoneIcons.get(item.zone)||'home-city-outline') as IconName} size={22} color={available?'#F8DC9E':'#A4BBB2'}/></View>
           <View style={styles.facilityBody}>
             <Text style={styles.facilityTitle}>{item.label}</Text>
-            <Text style={styles.facilityDesc}>{item.description}</Text>
-            <Text style={item.status==='planned'?styles.planned:styles.linked}>
-              {item.status==='planned'?'PLANNED · not available':'EXISTING ROUTE · feature permissions apply'}
-            </Text>
+            <Text numberOfLines={2} style={styles.facilityDesc}>{item.description}</Text>
           </View>
-          {item.status==='linked'&&item.route ? (
-            <Pressable accessibilityRole="button" accessibilityLabel={'Open '+item.label}
-              accessibilityHint="Opens the existing authorized feature in one tap"
-              style={styles.open} onPress={()=>openLinked(item.route)}>
-              <MaterialCommunityIcons name="arrow-right" size={23} color="#FFE8B5"/>
-            </Pressable>
-          ):<MaterialCommunityIcons name="lock-clock" size={20} color="#94B2A7"/>}
-        </View>
-      ))}
+          <View style={styles.facilityEnd}>
+            <MaterialCommunityIcons name={available?'arrow-top-right':'lock-clock'} size={19} color={available?'#FCE9BD':'#A9B8B0'}/>
+            <Text style={available?styles.linked:styles.planned}>{available?'OPEN':'SOON'}</Text>
+          </View>
+        </Pressable>;
+      })}
       {results.length===0?<Text style={styles.note}>Walang tugmang facility. Subukang ibang salita o All areas.</Text>:null}
       {results.length>limit?<Pressable accessibilityRole="button"
         accessibilityLabel="Show more matching facilities" style={styles.more}
@@ -86,7 +88,7 @@ export default function Season2CommunityFacilities({world}:{world:World}) {
   </View>;
 }
 const styles=StyleSheet.create({
-  panel:{backgroundColor:'#112B30',borderWidth:1,borderColor:'#62847B',borderRadius:15,padding:11,gap:8},
+  panel:{backgroundColor:'#112B30',borderWidth:1,borderColor:'#62847B',borderRadius:15,padding:11,gap:9},
   heading:{flexDirection:'row',alignItems:'center',minHeight:48,gap:7},
   titleArea:{flex:1,minWidth:0,gap:3},
   title:{fontSize:13,fontWeight:'900',color:'#FFE8B5'},
@@ -99,11 +101,15 @@ const styles=StyleSheet.create({
   chipText:{fontSize:11,color:'#F3F5E8',fontWeight:'700'},
   chipTextSelected:{color:'#153C33'},
   counter:{color:'#A8CABC',fontSize:10,fontWeight:'800'},
-  facility:{borderTopWidth:StyleSheet.hairlineWidth,borderColor:'#637E79',paddingVertical:9,minHeight:60,flexDirection:'row',alignItems:'center',gap:10},
+  facility:{borderWidth:1,borderColor:'#42675D',borderRadius:13,backgroundColor:'#1C3C3D',padding:9,minHeight:70,flexDirection:'row',alignItems:'center',gap:10},
+  facilityPlanned:{backgroundColor:'#193137',borderColor:'#375358'},
+  facilityPressed:{backgroundColor:'#2B554A',borderColor:'#E0C38C'},
+  facilityIcon:{width:44,height:44,alignItems:'center',justifyContent:'center',backgroundColor:'#305449',borderRadius:12},
+  facilityEnd:{alignItems:'center',justifyContent:'center',minWidth:43,gap:3},
   facilityBody:{flex:1,minWidth:0,gap:3},
-  facilityTitle:{fontWeight:'800',color:'#FFFFFF',fontSize:13},
+  facilityTitle:{fontWeight:'900',color:'#FFF4DD',fontSize:13},
   facilityDesc:{color:'#CFDED8',fontSize:11,lineHeight:15},
-  linked:{fontSize:9,color:'#A3E0C7',fontWeight:'800'},
+  linked:{fontSize:9,color:'#A3E0C7',fontWeight:'900'},
   planned:{fontSize:9,color:'#E6CE9C',fontWeight:'800'},
   open:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center',borderRadius:10,backgroundColor:'#2A564E'},
   more:{minHeight:44,alignItems:'center',justifyContent:'center',backgroundColor:'#275348',borderRadius:10},

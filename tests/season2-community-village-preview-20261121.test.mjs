@@ -35,13 +35,15 @@ test('Separate premium nature scenes preserve real member service destinations',
  assert.equal(hotspots.hotspots.length,9);
 });
 
-test('Five progressive construction stages and independent Levels 1–10 are preview only',()=>{
+test('Five progressive construction stages and independent Levels 1–10 preserve a non-authoritative blueprint mode',()=>{
  for(const label of ['Materials','Posts / Foundation','Framework','Structure','Finishing'])
   assert.ok(world.includes(label),label);
  assert.match(world,/clampDevelopmentLevel/);
  assert.match(world,/previewLevels,setPreviewLevels/);
  assert.match(world,/previewStages,setPreviewStages/);
- assert.match(world,/visual previews only/);
+ assert.match(world,/PREVIEW|BLUEPRINT/);
+ assert.match(world,/EstateConstructionConsole/);
+ assert.match(world,/liveView&&verified/);
  assert.doesNotMatch(world,/(?:supabase|service_role|\.rpc\(|awardBp|claimBp|awardDiamond|sendBp|withdraw|fetch\()/i);
 });
 

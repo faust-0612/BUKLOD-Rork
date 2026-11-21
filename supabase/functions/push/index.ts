@@ -47,7 +47,7 @@ function errorText(error: unknown) {
  *   reloaded with supabaseAdmin and never trusted from request JSON.
  * - push_sent_at keeps normal webhook replays idempotent.
  * - Only canonical community_emergency rows receive emergency treatment.
- * - Android devices are routed to buklod-emergency-v1 ONLY after that exact
+ * - Android devices are routed to buklod-emergency-v2 ONLY after that exact
  *   Expo token has registered emergency_alert_mode_version >= 2. Older or
  *   unopened clients keep buklod-activity-v2 so an OTA rollout cannot hide SOS.
  * - iOS Emergency SOS uses Time Sensitive delivery. Emergency actions are
@@ -231,7 +231,7 @@ export default {
       tokenRows.forEach((row, tokenIndex) => {
         const expoPushToken = String(row.expo_push_token)
         const platform = String(row.platform ?? '').toLowerCase()
-        const r2Ready = Number(row.emergency_alert_mode_version ?? 1) >= 2
+        const r2Ready = Number(row.emergency_alert_mode_version ?? 1) >= 3
         const androidEmergencyReady = isCommunityEmergency && platform === 'android' && r2Ready
         const androidPttSosReady = notification.kind === 'ptt_sos' && platform === 'android' && r2Ready
         const categoryReady = isCommunityEmergency && r2Ready && (platform === 'android' || platform === 'ios')
@@ -261,7 +261,7 @@ export default {
           const headlessCollapseId = `${pttCollapseId}-headless`
           const pttChannelId =
             notification.kind === 'ptt_sos'
-              ? (androidPttSosReady ? 'buklod-emergency-v1' : 'buklod-activity-v2')
+              ? (androidPttSosReady ? 'buklod-emergency-v2' : 'buklod-activity-v2')
               : 'buklod-activity-v2'
 
           // VISIBLE PTT push — must remain distinct from headless collapse identity.
@@ -301,9 +301,9 @@ export default {
 
         messages.push({
           to: expoPushToken,
-          sound: 'default',
+          sound: isCommunityEmergency && androidEmergencyReady ? 'buklod_alert.wav' : 'default',
           priority: 'high',
-          channelId: androidEmergencyReady ? 'buklod-emergency-v1' : 'buklod-activity-v2',
+          channelId: androidEmergencyReady ? 'buklod-emergency-v2' : 'buklod-activity-v2',
           categoryId: categoryReady ? 'buklod_emergency' : isConnectMessage ? 'buklod_message_reply' : undefined,
           interruptionLevel: isCommunityEmergency && platform === 'ios' ? 'time-sensitive' : undefined,
           ttl: isCommunityEmergency ? 600 : undefined,

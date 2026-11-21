@@ -21,7 +21,6 @@ test('No restart banner, restart controls or forced native OTA reload exist', ()
   assert.match(host, /clearTimeout\(timer\)/);
 });
 
-test('Canonical Android OTA exports full bundle containing mounted silent host', () => {
-  assert.match(workflow, /expo export --platform android --output-dir rc/);
-  assert.match(root, /<BuklodOtaFreshnessHost \/>/);
+test('Native OTA source remains covered by canonical Android release diff scanner', () => {
+  assert.match(workflow, /^\s+- 'src\/components\/BuklodOtaFreshnessHost\.native\.tsx'$/m);
 });

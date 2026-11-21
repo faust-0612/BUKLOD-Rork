@@ -19,6 +19,7 @@ import BuklodPttConversation from '@/components/BuklodPttConversation';
 import { useNetwork } from '@/providers/NetworkProvider';
 import {
   loadBuklodPttScopes,
+  supabase,
   type BuklodPttKind,
   type BuklodPttScope,
 } from '@/ptt/buklodPttCore';
@@ -36,13 +37,13 @@ import {
 } from '@/ptt/buklodPttRuntime';
 import {
   hasSeenBuklodPttOnboarding,
-  loadBuklodPttRouteMode,
+  loadBuklodPttUserSettings,
   markBuklodPttOnboardingSeen,
-  openBluetoothSettings,
-  openWifiSettings,
   refreshBuklodPttSetup,
   resolveBuklodPttRoute,
-  saveBuklodPttRouteMode,
+  saveBuklodPttUserSettings,
+  subscribeBuklodPttUserSettings,
+  type BuklodPttUserSettings,
   type BuklodPttRouteMode,
   type BuklodPttSetupSnapshot,
 } from '@/ptt/buklodPttSetup';
@@ -84,11 +85,15 @@ function LiveHoldButton({
   runtime,
   talkMode,
   enabled,
+  targetMatched,
+  disabledLabel,
   onNeedConnect,
 }: {
   runtime: BuklodPttRuntimeState;
   talkMode: BuklodPttKind;
   enabled: boolean;
+  targetMatched: boolean;
+  disabledLabel: string;
   onNeedConnect: () => Promise<boolean>;
 }) {
   const connection = runtime.connection;
@@ -127,7 +132,7 @@ function LiveHoldButton({
     remoteSpeaker?.name || remoteSpeaker?.user?.name || 'Another member';
 
   const label = !enabled
-    ? 'SETUP NEEDED'
+    ? disabledLabel
     : tx
       ? 'TRANSMITTING...'
       : held || runtime.requestingFloor
@@ -139,7 +144,7 @@ function LiveHoldButton({
             : 'HOLD TO TALK';
 
   const hint = !enabled
-    ? 'Finish setup above, then hold to speak.'
+    ? 'Select Start listening or finish the requirements above.'
     : blocked
       ? 'Wait for them to finish, or use Priority / SOS.'
       : remoteSpeaker && !tx
@@ -148,7 +153,7 @@ function LiveHoldButton({
 
   const down = async () => {
     if (!enabled || blocked) return;
-    if (!runtime.connection) {
+    if (!runtime.connection || !targetMatched) {
       const ok = await onNeedConnect();
       if (!ok || !heldRef.current) return;
     }
@@ -218,6 +223,10 @@ export default function BuklodPttScreen() {
   const network = useNetwork();
 
   const [scopes, setScopes] = useState<BuklodPttScope[]>([]);
+  const [userId, setUserId] = useState('');
+  const [preferences, setPreferences] = useState<BuklodPttUserSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [selectionUnsaved, setSelectionUnsaved] = useState(false);
   const [scope, setScope] = useState<BuklodPttScope | null>(null);
   const [channel, setChannel] = useState(1);
   const [showChannels, setShowChannels] = useState(false);
@@ -228,7 +237,7 @@ export default function BuklodPttScreen() {
   const [showSetupDetails, setShowSetupDetails] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [nearbyPeers] = useState<NearbyPeer[]>([]);
-  const [nearbySearching, setNearbySearching] = useState(false);
+  const nearbySearching = false;
   const [setup, setSetup] = useState<BuklodPttSetupSnapshot | null>(null);
   const [runtime, setRuntime] = useState(getBuklodPttRuntimeState());
   const [chatOpen, setChatOpen] = useState(false);
@@ -236,6 +245,24 @@ export default function BuklodPttScreen() {
   const chatOffsetRef = useRef(0);
   const connectLock = useRef(false);
   const connectPromiseRef = useRef<Promise<boolean> | null>(null);
+  const autoJoinKeyRef = useRef('');
+  const saveLockRef = useRef(false);
+  const targetMatched = Boolean(runtime.connection && scope &&
+    runtime.connection.scope.id === scope.id && runtime.connection.channel === channel);
+  const persistPreferences = useCallback(async (next: BuklodPttUserSettings) => {
+    if (!userId) throw new Error('PTT settings are not loaded.');
+    if (saveLockRef.current) throw new Error('Another PTT setting is still saving.');
+    saveLockRef.current = true;
+    setSaving(true);
+    try {
+      await saveBuklodPttUserSettings(userId, next);
+      setPreferences(next);
+      setSelectionUnsaved(false);
+    } finally {
+      saveLockRef.current = false;
+      setSaving(false);
+    }
+  }, [userId]);
 
   const refreshSetup = useCallback(async () => {
     const next = await refreshBuklodPttSetup();
@@ -244,41 +271,43 @@ export default function BuklodPttScreen() {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     const unsubscribe = subscribeBuklodPttRuntime(setRuntime);
-    void bootstrapBuklodPttRuntime();
-
+    void bootstrapBuklodPttRuntime().catch(() => undefined);
     void (async () => {
-      const [savedMode, seen] = await Promise.all([
-        loadBuklodPttRouteMode(),
-        hasSeenBuklodPttOnboarding(),
-        refreshSetup(),
-      ]);
-      setRouteMode(savedMode);
-      if (!seen) setShowOnboarding(true);
-
       try {
-        const rows = await loadBuklodPttScopes();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) throw new Error('Sign in to restore PTT settings.');
+        const [saved, rows, seen] = await Promise.all([
+          loadBuklodPttUserSettings(session.user.id),
+          loadBuklodPttScopes(),
+          hasSeenBuklodPttOnboarding(),
+          refreshSetup(),
+        ]);
+        if (!mounted) return;
+        const live = getBuklodPttRuntimeState();
+        const selected = rows.find(s => s.id === saved.scopeId) ||
+          (!live.priorityReceiving ? rows.find(s => s.id === live.connection?.scope.id) : null) ||
+          rows[0] || null;
+        setUserId(session.user.id);
         setScopes(rows);
-        const current = getBuklodPttRuntimeState().connection;
-        if (current) {
-          setScope(current.scope);
-          setChannel(current.channel);
-        } else {
-          setScope(rows[0] ?? null);
-        }
+        setScope(selected);
+        setChannel(selected?.id === saved.scopeId ? saved.channel : (live.connection?.channel || 1));
+        setRouteMode(saved.routeMode);
+        setTalkMode(saved.talkMode);
+        setPreferences({ ...saved, scopeId: selected?.id ?? '',
+          channel: selected?.id === saved.scopeId ? saved.channel : (live.connection?.channel || 1) });
+        if (!seen) setShowOnboarding(true);
       } catch (error: any) {
-        Alert.alert(
-          'BUKLOD PTT',
-          error?.message || 'Could not load your talk groups.',
-        );
+        if (mounted) Alert.alert('BUKLOD PTT', error?.message || 'Could not restore PTT settings.');
       }
     })();
-
     const appSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') void refreshSetup();
     });
-
     return () => {
+      mounted = false;
+      setBuklodPttArmedKind('NORMAL'); // emergency is never left armed on navigation.
       unsubscribe();
       appSub.remove();
     };
@@ -289,11 +318,18 @@ export default function BuklodPttScreen() {
   }, [talkMode]);
 
   useEffect(() => {
-    const current = runtime.connection;
-    if (!current) return;
-    setScope(current.scope);
-    setChannel(current.channel);
-  }, [runtime.connection]);
+    if (!userId) return;
+    // Notification Stop can happen outside the screen. Reflect that real,
+    // persisted change immediately rather than showing stale selected chips.
+    return subscribeBuklodPttUserSettings(userId, (saved) => {
+      setPreferences(saved);
+      setRouteMode(saved.routeMode);
+      setChannel(saved.channel);
+      const permitted = scopes.find(s => s.id === saved.scopeId);
+      if (permitted) setScope(permitted);
+      if (!saved.listening) setTalkMode(saved.talkMode);
+    });
+  }, [userId, scopes]);
 
   const effectiveRoute = useMemo(
     () =>
@@ -316,6 +352,7 @@ export default function BuklodPttScreen() {
   );
 
   const internetReady =
+    Boolean(preferences?.listening) &&
     Boolean(setup?.microphone) &&
     (setup?.internet ?? network.online) &&
     Boolean(scope);
@@ -335,14 +372,19 @@ export default function BuklodPttScreen() {
   }, [setup, effectiveRoute]);
 
   const statusCard: StatusCard = useMemo(() => {
-    if (!setup) {
+    if (!setup || !preferences) {
       return {
         tone: 'info',
-        title: 'Checking PTT setup…',
+        title: 'Restoring PTT settings…',
         detail: 'Please wait a moment.',
       };
     }
 
+    if (!preferences.listening && !runtime.priorityReceiving) {
+      return runtime.connection
+        ? { tone: 'warn', title: 'Stopping PTT connection', detail: 'A live channel is still present. Stop listening must finish before PTT is paused.' }
+        : { tone: 'info', title: 'PTT listening paused', detail: 'Your saved channel is retained. Tap Start listening to resume.' };
+    }
     if (!setup.microphone) {
       return {
         tone: 'bad',
@@ -359,11 +401,18 @@ export default function BuklodPttScreen() {
           detail: 'Turn on mobile data or Wi-Fi internet to use Internet PTT.',
         };
       }
-      if (runtime.connection) {
+      if (targetMatched) {
         return {
           tone: 'ready',
-          title: 'Internet PTT Ready',
-          detail: `${runtime.connection.scope.name} · Channel ${runtime.connection.channel}`,
+          title: 'Internet PTT connected',
+          detail: `${runtime.connection!.scope.name} · Channel ${runtime.connection!.channel} · Listening`,
+        };
+      }
+      if (runtime.connection) {
+        return {
+          tone: 'warn',
+          title: 'Different channel connected',
+          detail: `Active: ${runtime.connection.scope.name} CH${runtime.connection.channel}. Saved: ${scope?.name || 'No group'} CH${channel}.`,
         };
       }
       if (busy) {
@@ -380,55 +429,28 @@ export default function BuklodPttScreen() {
       };
     }
 
-    // NEARBY path
-    if (setup.wifiOn === false) {
-      return {
-        tone: 'bad',
-        title: 'Wi-Fi is off',
-        detail: 'Turn on Wi-Fi for Offline Nearby PTT.',
-      };
-    }
-    if (!setup.nearby) {
-      return {
-        tone: 'bad',
-        title: 'Nearby devices permission needed',
-        detail: 'Allow nearby devices so BUKLOD can find members around you.',
-      };
-    }
-    if (nearbySearching) {
-      return {
-        tone: 'warn',
-        title: 'Searching for nearby users…',
-        detail: 'Keep Wi-Fi and Bluetooth on while we look around you.',
-      };
-    }
-    if (nearbyPeers.length > 0) {
-      return {
-        tone: 'ready',
-        title: 'Nearby PTT Ready',
-        detail: `${nearbyPeers.length} nearby BUKLOD users found`,
-      };
-    }
+    // A Nearby preference is not proof of a working device-to-device call.
     return {
       tone: 'warn',
-      title: 'No nearby users found',
-      detail: 'You can switch to Internet PTT to talk over data or Wi-Fi internet.',
+      title: 'Offline Nearby unavailable',
+      detail: 'Saved as a preference only. This build has no verified nearby voice transport. Choose Internet or Auto.',
     };
   }, [
-    setup,
-    effectiveRoute,
-    runtime.connection,
-    busy,
-    nearbySearching,
-    nearbyPeers.length,
+    setup, preferences, effectiveRoute, runtime.connection, targetMatched,
+    scope, channel, busy,
   ]);
 
   const chooseRoute = async (next: BuklodPttRouteMode) => {
-    setRouteMode(next);
-    await saveBuklodPttRouteMode(next);
-    if (next === 'NEARBY' || (next === 'AUTO' && !network.online)) {
-      setNearbySearching(true);
-      setTimeout(() => setNearbySearching(false), 2200);
+    if (!preferences || saving || next === routeMode) return;
+    if (next === 'NEARBY') {
+      Alert.alert('Offline Nearby unavailable', 'Nearby device-to-device PTT is not working in this build. Choose Auto or Internet.');
+      return;
+    }
+    try {
+      await persistPreferences({ ...preferences, routeMode: next });
+      setRouteMode(next);
+    } catch (error: any) {
+      Alert.alert('Mode not saved', error?.message || 'Previous selection remains.');
     }
   };
 
@@ -436,7 +458,7 @@ export default function BuklodPttScreen() {
     // Auto-join can already be running when the member presses PTT.
     // Reuse that promise so a held button starts talking once join succeeds.
     if (connectPromiseRef.current) return connectPromiseRef.current;
-    if (!scope) return Promise.resolve(false);
+    if (!scope || !preferences?.listening) return Promise.resolve(false);
 
     const attempt = (async () => {
       try {
@@ -455,8 +477,14 @@ export default function BuklodPttScreen() {
 
         connectLock.current = true;
         setBusy(true);
-        await connectBuklodPttRuntime(scope, channel);
-        return true;
+        await bootstrapBuklodPttRuntime();
+        if (getBuklodPttRuntimeState().priorityReceiving) return false;
+        const current = getBuklodPttRuntimeState().connection;
+        if (current?.scope.id !== scope.id || current?.channel !== channel) {
+          await connectBuklodPttRuntime(scope, channel);
+        }
+        const applied = getBuklodPttRuntimeState().connection;
+        return applied?.scope.id === scope.id && applied?.channel === channel;
       } catch (error: any) {
         Alert.alert(
           'Could not connect',
@@ -480,58 +508,103 @@ export default function BuklodPttScreen() {
       },
     );
     return attempt;
-  }, [scope, channel, setup, refreshSetup, network.online]);
+  }, [scope, channel, preferences?.listening, setup, refreshSetup, network.online]);
 
-  // Auto-join Internet when ready so the user only holds to talk.
+  // Explicit Stop persists, including across app restarts. Automatic joins are
+  // attempted once per saved target, not retried endlessly on each render.
   useEffect(() => {
-    if (effectiveRoute !== 'INTERNET') return;
-    if (!internetReady) return;
-    if (runtime.connection || busy || connectLock.current) return;
+    if (!preferences?.listening) {
+      autoJoinKeyRef.current = '';
+      return;
+    }
+    if (effectiveRoute !== 'INTERNET' || !internetReady || !scope) return;
+    if (targetMatched || runtime.priorityReceiving || busy || connectLock.current) return;
+    const key = `${scope.id}:${channel}:${routeMode}`;
+    if (autoJoinKeyRef.current === key) return;
+    autoJoinKeyRef.current = key;
     void connectInternet();
-  }, [
-    effectiveRoute,
-    internetReady,
-    runtime.connection,
-    busy,
-    connectInternet,
-  ]);
+  }, [preferences?.listening, effectiveRoute, internetReady, scope, channel, routeMode,
+    targetMatched, runtime.priorityReceiving, busy, connectInternet]);
 
-  const chooseTarget = async (
-    nextScope: BuklodPttScope,
-    nextChannel: number,
-  ) => {
-    if (busy) return;
-    const live = runtime.connection;
-    setScope(nextScope);
-    setChannel(nextChannel);
+  const chooseTarget = async (nextScope: BuklodPttScope, nextChannel: number) => {
+    if (!preferences || busy || saving) return;
+    if (runtime.priorityReceiving) {
+      Alert.alert('Incoming priority PTT', 'Wait until the priority or SOS call ends before switching channels.');
+      return;
+    }
+    if (scope?.id === nextScope.id && channel === nextChannel) {
+      setShowChannels(false);
+      return;
+    }
+    const next = { ...preferences, scopeId: nextScope.id, channel: nextChannel };
     setShowChannels(false);
-
-    if (!live) return;
-    if (live.scope.id === nextScope.id && live.channel === nextChannel) return;
-
-    setBusy(true);
+    if (runtime.connection) {
+      setBusy(true);
+      try {
+        await selectBuklodPttTarget(nextScope, nextChannel);
+        const applied = getBuklodPttRuntimeState().connection;
+        if (applied?.scope.id !== nextScope.id || applied?.channel !== nextChannel) {
+          throw new Error('New channel was not connected.');
+        }
+        try {
+          await persistPreferences(next);
+        } catch (error: any) {
+          // Runtime switched successfully, so reflect it, but never say Saved.
+          setPreferences(next);
+          setScope(nextScope);
+          setChannel(nextChannel);
+          setSelectionUnsaved(true);
+          throw new Error('Now connected, but the channel was NOT saved for next time: ' +
+            (error?.message || 'storage failure'));
+        }
+        setScope(nextScope);
+        setChannel(nextChannel);
+      } catch (error: any) {
+        Alert.alert('PTT channel change', error?.message || 'The selected channel was not applied.');
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     try {
-      await selectBuklodPttTarget(nextScope, nextChannel);
+      await persistPreferences(next);
+      setScope(nextScope);
+      setChannel(nextChannel);
     } catch (error: any) {
-      setScope(live.scope);
-      setChannel(live.channel);
-      Alert.alert(
-        'BUKLOD PTT',
-        error?.message || 'Could not change channel. Try again.',
-      );
+      Alert.alert('Channel not saved', error?.message || 'Previous choice remains.');
+    }
+  };
+
+  const disconnect = async () => {
+    if (!preferences || busy || saving) return;
+    try {
+      await persistPreferences({ ...preferences, listening: false });
+      setBusy(true);
+      await disconnectBuklodPttRuntime();
+      if (talkMode === 'SOS') setTalkMode(preferences.talkMode);
+    } catch (error: any) {
+      Alert.alert('PTT stop failed', error?.message || 'Please retry.');
     } finally {
       setBusy(false);
     }
   };
 
-  const disconnect = async () => {
-    if (busy) return;
-    setBusy(true);
+  const startListening = async () => {
+    if (!preferences || busy || saving) return;
     try {
-      await disconnectBuklodPttRuntime();
-      setTalkMode('NORMAL');
-    } finally {
-      setBusy(false);
+      await persistPreferences({ ...preferences, listening: true });
+    } catch (error: any) {
+      Alert.alert('PTT start failed', error?.message || 'Your setting was not saved.');
+    }
+  };
+
+  const chooseTalkMode = async (next: 'NORMAL' | 'PRIORITY') => {
+    if (!preferences || busy || saving) return;
+    try {
+      await persistPreferences({ ...preferences, talkMode: next });
+      setTalkMode(next);
+    } catch (error: any) {
+      Alert.alert('Talk mode not saved', error?.message || 'Previous mode remains.');
     }
   };
 
@@ -562,15 +635,13 @@ export default function BuklodPttScreen() {
   };
 
   const holdEnabled =
-    effectiveRoute === 'INTERNET'
-      ? Boolean(setup?.microphone) && (setup?.internet ?? network.online) && Boolean(scope)
-      : nearbyPeers.length > 0 && Boolean(setup?.microphone);
+    Boolean(preferences?.listening) &&
+    effectiveRoute === 'INTERNET' &&
+    Boolean(setup?.microphone) &&
+    (setup?.internet ?? network.online) &&
+    Boolean(scope);
 
-  const showNearbyFallback =
-    effectiveRoute === 'NEARBY' &&
-    !nearbySearching &&
-    nearbyPeers.length === 0 &&
-    Boolean(setup);
+  const showNearbyFallback = effectiveRoute === 'NEARBY' && Boolean(setup);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#030A10' }}>
@@ -637,22 +708,8 @@ export default function BuklodPttScreen() {
                   </Pressable>
                 ) : null,
               )}
-              {effectiveRoute === 'NEARBY' ? (
-                <>
-                  <Pressable
-                    onPress={() => void runSetupAction('wifi-open', openWifiSettings)}
-                    style={styles.setupBtnSecondary}
-                  >
-                    <Text style={styles.setupBtnSecondaryText}>TURN ON WI-FI</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => void runSetupAction('bt-open', openBluetoothSettings)}
-                    style={styles.setupBtnSecondary}
-                  >
-                    <Text style={styles.setupBtnSecondaryText}>TURN ON BLUETOOTH</Text>
-                  </Pressable>
-                </>
-              ) : null}
+              {/* Offline Nearby is not a working transport; avoid fake setup
+                  buttons that imply turning Wi-Fi/Bluetooth will activate it. */}
             </View>
           ) : null}
 
@@ -675,7 +732,7 @@ export default function BuklodPttScreen() {
           ) : null}
 
           {/* 2. Mode */}
-          <Text style={styles.sectionLabel}>CONNECTION MODE</Text>
+          <Text style={styles.sectionLabel}>CONNECTION MODE · SAVED PREFERENCE</Text>
           <View style={styles.modeRow}>
             {(
               [
@@ -684,30 +741,33 @@ export default function BuklodPttScreen() {
                 ['NEARBY', 'OFFLINE NEARBY'],
               ] as const
             ).map(([value, label]) => {
-              const on = routeMode === value;
+              const preferred = Boolean(preferences) && routeMode === value;
+              const on = preferred && targetMatched && effectiveRoute === 'INTERNET';
               return (
                 <Pressable
                   key={value}
+                  disabled={!preferences || saving}
                   onPress={() => void chooseRoute(value)}
                   style={[styles.modeChip, on && styles.modeChipOn]}
                 >
                   <Text style={[styles.modeChipText, on && styles.modeChipTextOn]}>
-                    {label}
+                    {label}{preferred && !on ? ' · SAVED ONLY' : ''}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
           <Text style={styles.autoExplain}>
-            AUTO chooses the best available connection: Nearby when possible,
-            Internet when needed.
+            This is your saved preference, not a live connection. Only the green
+            Connected status confirms an active channel. Auto uses Internet; Offline
+            Nearby is not yet functional in this build.
           </Text>
 
           {/* 3. Channel */}
           <Text style={styles.sectionLabel}>CHANNEL</Text>
           <View style={styles.channelCard}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.channelTitle}>CHANNEL {channel}</Text>
+              <Text style={styles.channelTitle}>CHANNEL {channel} · {targetMatched ? (selectionUnsaved ? 'LIVE / NOT SAVED' : 'LIVE') : 'SAVED / NOT CONNECTED'}</Text>
               <Text style={styles.channelSub}>{channelSubtitle(scope)}</Text>
             </View>
             <Pressable
@@ -725,14 +785,14 @@ export default function BuklodPttScreen() {
               {Array.from({ length: 10 }, (_, i) => i + 1).map((ch) => (
                 <Pressable
                   key={ch}
-                  disabled={busy || !scope}
+                  disabled={busy || saving || !scope}
                   onPress={() => scope && void chooseTarget(scope, ch)}
-                  style={[styles.channelCell, channel === ch && styles.channelCellOn]}
+                  style={[styles.channelCell, targetMatched && channel === ch && styles.channelCellOn]}
                 >
                   <Text
                     style={[
                       styles.channelCellText,
-                      channel === ch && styles.channelCellTextOn,
+                      targetMatched && channel === ch && styles.channelCellTextOn,
                     ]}
                   >
                     {ch}
@@ -748,11 +808,11 @@ export default function BuklodPttScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.scopeRow}>
                   {scopes.map((item) => {
-                    const selected = item.id === scope?.id;
+                    const selected = targetMatched && item.id === scope?.id;
                     return (
                       <Pressable
                         key={item.id}
-                        disabled={busy}
+                        disabled={busy || saving}
                         onPress={() => void chooseTarget(item, channel)}
                         style={[styles.scopeChip, selected && styles.scopeChipOn]}
                       >
@@ -773,7 +833,7 @@ export default function BuklodPttScreen() {
               <Text style={styles.nearbyTitle}>
                 {nearbySearching
                   ? 'Searching for nearby BUKLOD users…'
-                  : `${nearbyPeers.length} nearby BUKLOD users found`}
+                  : 'Offline Nearby transport is unavailable in this build'}
               </Text>
               {nearbyPeers.map((peer) => (
                 <Text key={peer.id} style={styles.nearbyPeer}>
@@ -782,7 +842,7 @@ export default function BuklodPttScreen() {
               ))}
               {!nearbySearching && nearbyPeers.length === 0 ? (
                 <Text style={styles.nearbyPeer}>
-                  No one nearby right now. Keep Wi-Fi and Bluetooth on, or use Internet.
+                  A saved Offline Nearby preference does not mean a voice connection.
                 </Text>
               ) : null}
             </View>
@@ -791,7 +851,7 @@ export default function BuklodPttScreen() {
           {showNearbyFallback ? (
             <View style={styles.fallbackCard}>
               <Text style={styles.fallbackText}>
-                No nearby users found. Switch to Internet PTT?
+                Offline Nearby is not connected. Use Internet instead.
               </Text>
               <Pressable
                 onPress={() => void chooseRoute('INTERNET')}
@@ -808,13 +868,16 @@ export default function BuklodPttScreen() {
               runtime={runtime}
               talkMode={talkMode}
               enabled={holdEnabled}
+              targetMatched={targetMatched}
+              disabledLabel={!preferences?.listening ? 'START LISTENING' : effectiveRoute === 'NEARBY' ? 'NEARBY UNAVAILABLE' : 'SETUP NEEDED'}
               onNeedConnect={connectInternet}
             />
 
             <Text style={styles.sectionLabel}>TALK PRIORITY</Text>
             <View style={styles.talkModeRow}>
               <Pressable
-                onPress={() => setTalkMode('NORMAL')}
+                disabled={!preferences || saving}
+                onPress={() => void chooseTalkMode('NORMAL')}
                 style={[styles.talkMode, talkMode === 'NORMAL' && styles.talkModeOn]}
               >
                 <Text style={[styles.talkModeText, talkMode === 'NORMAL' && styles.talkModeTextOn]}>
@@ -822,7 +885,8 @@ export default function BuklodPttScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => setTalkMode('PRIORITY')}
+                disabled={!preferences || saving}
+                onPress={() => void chooseTalkMode('PRIORITY')}
                 style={[styles.talkMode, talkMode === 'PRIORITY' && styles.talkModePriority]}
               >
                 <Text style={[styles.talkModeText, talkMode === 'PRIORITY' && styles.talkModeTextOn]}>
@@ -839,9 +903,15 @@ export default function BuklodPttScreen() {
               </Pressable>
             </View>
 
-            {runtime.connection ? (
-              <Pressable onPress={() => void disconnect()} style={styles.stopBtn}>
-                <Text style={styles.stopBtnText}>Stop listening</Text>
+            {preferences ? (
+              <Pressable
+                disabled={busy || saving}
+                onPress={() => void (preferences.listening ? disconnect() : startListening())}
+                style={styles.stopBtn}
+              >
+                <Text style={styles.stopBtnText}>
+                  {preferences.listening ? 'Stop listening' : 'Start listening'}
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -854,7 +924,7 @@ export default function BuklodPttScreen() {
             <BuklodPttConversation
               scopeId={scope.id}
               channel={channel}
-              connection={runtime.connection}
+              connection={targetMatched ? runtime.connection : null}
             />
             </View>
           ) : null}
@@ -888,8 +958,8 @@ export default function BuklodPttScreen() {
             <Text style={styles.modalStep}>3. Hold PTT to speak</Text>
             <Text style={styles.modalStep}>4. Release to listen</Text>
             <Text style={styles.modalNote}>
-              Offline Nearby needs Wi-Fi/Bluetooth. Internet PTT needs data or Wi-Fi
-              internet.
+              PTT remembers your last channel, listening switch and ordinary talk mode.
+              Offline Nearby direct-device voice is not active in this build.
             </Text>
             <Pressable
               style={styles.modalBtn}
