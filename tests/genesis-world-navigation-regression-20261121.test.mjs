@@ -13,7 +13,8 @@ test('preview-only auth entry selects World, regular production entry stays the 
 test('World replaces cluttered Home only under Genesis preview, preserving original tabs and AdMob',()=>{
   const home=src('src/app/(tabs)/hub.tsx');
   assert.match(home,/if \(genesisPreview\) \{/);
-  assert.match(home,/<GenesisWorld \/>/);
+  assert.match(home,/<Redirect href="\/buklod-map" \/>/);
+  assert.doesNotMatch(home,/<GenesisWorld \/>/);
   assert.match(home,/BuklodFirstViewAd/);
   assert.match(home,/BuklodNativeSponsoredCard/);
   const layout=src('src/app/(tabs)/_layout.tsx');
@@ -52,10 +53,13 @@ test('existing source-owned audio and sponsors stay permissioned and mounted wit
   assert.match(map,/BuklodScreenBottomBanner/);
 });
 
-test('first paint exposes World map before community bulletins without moving the existing first-view ad',()=>{
-  const world=src('src/components/world/BuklodGenesisWorldHome.tsx');
-  const firstAd=world.indexOf('<BuklodFirstViewAd placement="home"');
-  const map=world.indexOf('<WorldCanvas active={active}');
-  const board=world.indexOf('<BuklodSystemAnnouncementBoard slot="public_home"');
-  assert.ok(firstAd>=0&&map>firstAd&&board>map);
+test('Genesis Home redirects to the single approved Valley and retains first-view ad before map',()=>{
+  const home=src('src/app/(tabs)/hub.tsx');
+  const map=src('src/app/buklod-map.tsx');
+  assert.match(home,/<Redirect href="\/buklod-map" \/>/);
+  const firstAd=map.indexOf('<BuklodFirstViewAd placement="home"');
+  const valley=map.indexOf('<GenesisValleyMap');
+  const guide=map.indexOf('<GenesisWorldGuide');
+  assert.ok(firstAd>=0&&valley>firstAd&&guide>valley);
+  assert.match(map,/if \(!isGenesisPreviewBuild\(\)\)/);
 });
