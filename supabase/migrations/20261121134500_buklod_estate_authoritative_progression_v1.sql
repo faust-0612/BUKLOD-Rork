@@ -84,7 +84,7 @@ begin
    select 1 from public.buklod_scopes s
    join public.buklod_scope_memberships m on m.scope_id=s.id
    where s.id=p_id and s.scope_type in ('CLUSTER','ORGANIZATION','SUB_ORGANIZATION')
-     and s.archived_at is null and m.user_id=v_user and m.membership_status='ACTIVE'
+     and s.status='ACTIVE' and s.archived_at is null and m.user_id=v_user and m.membership_status='ACTIVE'
  ) into v_is_member;
  if not v_is_member then return false; end if;
  if not p_write then return true; end if;
@@ -225,7 +225,9 @@ begin
  insert into public.buklod_estate_wallet_v1(owner_kind,owner_id) values ('USER',u) on conflict do nothing;
  select * into w from public.buklod_estate_wallet_v1 where owner_kind='USER' and owner_id=u for update;
  if exists(select 1 from public.buklod_estate_event_v1 where source_key='scope-donate:'||u||':'||p_operation_key) then
-    if not exists(select 1 from public.buklod_estate_event_v1 where source_key='scope-donate:'||u||':'||p_operation_key and owner_id=p_scope_id)
+    if not exists(select 1 from public.buklod_estate_event_v1
+      where source_key='scope-donate:'||u||':'||p_operation_key and owner_id=p_scope_id
+      and actor_id=u and development_xp=p_xp and timber=p_timber and stone=p_stone and metal=p_metal)
     then raise exception 'Operation key already used for another scope' using errcode='23505'; end if;
     return public.get_buklod_estate_snapshot_v1('SCOPE',p_scope_id,'cluster');
  end if;
