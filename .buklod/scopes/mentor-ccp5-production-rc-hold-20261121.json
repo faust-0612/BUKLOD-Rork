@@ -30,7 +30,10 @@
     "tests/mentor-report-selector-access-20261121.test.mjs",
     "docs/incidents/20261121_live_mentor_ccp5_access_and_receipt.md",
     "supabase/tests/mentor_capability_release_guard_20261121.sql",
-    ".buklod/scopes/mentor-ccp5-production-rc-hold-20261121.json"
+    ".buklod/scopes/mentor-ccp5-production-rc-hold-20261121.json",
+    "tests/fixtures/mentor-capability-postgres17-20261121.sql",
+    "tests/fixtures/mentor-capability-postgres17-verification-20261121.sql",
+    ".github/workflows/mentor-ccp5-isolated-postgres-qa-20261121.yml"
   ],
   "regressionTests": [
     "tests/mentor-report-selector-access-20261121.test.mjs",
@@ -41,7 +44,8 @@
     "Preserve all historical mentor assignments and teaching reports; no backfill/automatic BP awards.",
     "Preserve private photo storage, verified learner roster, and idempotent report RPC.",
     "Maintain system-admin protections and all app-wide AdMob navigation and compact-spacing gates.",
-    "No new native dependencies or changes to app.config.js, eas.json, package-lock.json."
+    "No new native dependencies or changes to app.config.js, eas.json, package-lock.json.",
+    "An isolated PG17 workflow verifies backend SQL with fixture identities only; it never uses BUKLOD Supabase production credentials or publishes an OTA."
   ],
   "acceptanceChecks": [
     "Main-isolated source diff includes only declared paths and native config is unchanged.",
@@ -49,7 +53,8 @@
     "Isolated SQL migrations execute and database test passes, including real authenticated/RLS, system-admin, protected-account, idempotency and concurrency scenarios.",
     "Staging Android RC confirms learner receipt, CCP5 lesson 2 selection and private evidence report, weak network and duplicate-request recovery.",
     "Signed installed production APK runtime/channel/project and update source SHA verified; AdMob first view and instant navigation unchanged.",
-    "Apply reviewed DB schema before OTA, freeze exact RC and verify publication ID plus post-release device behavior."
+    "Apply reviewed DB schema before OTA, freeze exact RC and verify publication ID plus post-release device behavior.",
+    "Disposable PG17 workflow passes reviewed schema, RLS/ACL, role guard, protected-account, idempotency and revoke assertions before any migration is applied to production."
   ],
   "releaseMode": "production-android-source-rc-hold",
   "publicationStatus": "BLOCKED_PENDING_ISOLATED_DB_CI_ANDROID_AND_RUNTIME_VERIFICATION",
