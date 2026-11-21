@@ -56,12 +56,15 @@
     "realRankedVoiceServerNotAvailable": true,
     "adsNavigationAudioRegressionsMandatory": true,
     "productionUnchanged": true,
-    "noEasUpdatePublishedFromThisManifest": true
+    "noEasUpdatePublishedFromThisManifest": true,
+    "season2ProductionApkAabOtaProhibited": true,
+    "ownerReauthorizationRequiredForAnyFutureSeason2Production": true
   },
   "notes": [
     "All listed app source paths and supplied tests/assets are included for review; this is not permission to enable SOS under old 2.0 runtime.",
     "Do not apply SQL to the shared live project as a staging test. Do not deploy push Edge Function from this source without backend authorization and isolation.",
     "Third-party asset/voice packs and unverified external community transactions are not approved for automatic release.",
-    "New SOS native audio notification channel requires build-time packaging; Expo OTA cannot add it to an already installed 2.0 APK."
+    "New SOS native audio notification channel requires build-time packaging; Expo OTA cannot add it to an already installed 2.0 APK.",
+    "Owner directive 2026-11-22: no Season 2 features in production APK, AAB or OTA; December date or an old approval record cannot automatically lift this hold. Non-Season-2 production maintenance may proceed independently through existing release gates."
   ]
 }
