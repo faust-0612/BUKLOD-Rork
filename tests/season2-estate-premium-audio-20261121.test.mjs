@@ -99,4 +99,5 @@ test('verified construction FX animate wood, stone, metal and crystal resources 
  assert.match(render,/timber-material/);
  assert.match(render,/stone-material/);
  assert.match(render,/s<4/);
+ assert.ok(render.indexOf('M20 172 L201 95')<render.indexOf('timber-material'),'resources must render above the ground plane');
 });

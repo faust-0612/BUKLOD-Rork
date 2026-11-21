@@ -54,6 +54,7 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
     <LinearGradient id="structure-wall" x1="0" x2="1" y1="0" y2="1"><Stop offset="0" stopColor={p.wall}/><Stop offset="1" stopColor={p.dark}/></LinearGradient>
    </Defs>
    <Ellipse cx="202" cy="216" rx="166" ry="28" fill="#061E1C" opacity=".65"/>
+   <Path d="M20 172 L201 95 L380 172 L203 244 Z" fill={cosmetics.ground==='stone'?'#758078':'url(#lot-earth)'} stroke="#D5C08B" strokeWidth="3"/>
    {/* Materials are illustrated at every in-progress stage; each next stage
        visually assembles them into the structure rather than showing a number alone. */}
    {s<4&&<G opacity={s===3?.65:1}>
@@ -72,7 +73,6 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
      {s>=2&&<G><Path d="M145 169 L201 132 L257 168 L257 218 L201 241 L145 218 Z" fill="none" stroke="#F4D4A1" strokeWidth="4"/><Path d="M145 169 L257 168 M201 132 L201 241" stroke="#B8D6B8" strokeWidth="2.5" strokeDasharray="6 4"/></G>}
      {s===3&&<G><Path d="M154 159 L201 131 L248 160 L248 207 L201 227 L154 207 Z" fill="#BAAB82" opacity=".7" stroke="#F4E1B9" strokeWidth="2"/><Path d="M149 157 L199 120 L252 157" fill="none" stroke="#8B6753" strokeWidth="6"/></G>}
    </G>}
-   <Path d="M20 172 L201 95 L380 172 L203 244 Z" fill={cosmetics.ground==='stone'?'#758078':'url(#lot-earth)'} stroke="#D5C08B" strokeWidth="3"/>
    {cosmetics.ground==='flower'&&[55,90,318,349].map((x,i)=><G key={i}><Circle cx={x} cy={178+i%2*29} r="12" fill="#426D50"/><Circle cx={x+3} cy={174+i%2*29} r="5" fill="#E9A1B7"/></G>)}
    {cosmetics.ground==='stone'&&<Path d="M202 240 L200 177 L220 175 L229 239" fill="#C7BBA0" stroke="#9C957F" strokeWidth="1"/>}
    {cosmetics.path==='brick'&&<Path d="M198 245 L187 203 L209 184 L231 203 L218 243" fill="#BE886F" stroke="#F2D8B5" strokeWidth="2"/>}
