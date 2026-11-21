@@ -101,3 +101,16 @@ test('verified construction FX animate wood, stone, metal and crystal resources 
  assert.match(render,/s<4/);
  assert.ok(render.indexOf('M20 172 L201 95')<render.indexOf('timber-material'),'resources must render above the ground plane');
 });
+
+test('late scope RPC responses cannot overwrite a new estate design or contribution wallet',()=>{
+ const c=consoleSource;
+ const awaited=c.indexOf('const snapshot=await fn()');
+ const guard=c.indexOf('if(request!==actionSeq.current)return',awaited);
+ const saved=c.indexOf('onApplyRef.current(snapshot.cosmetics)',awaited);
+ const donated=c.indexOf('setDonation({...ZERO})',awaited);
+ assert.ok(awaited>=0&&guard>awaited&&saved>guard&&donated>guard);
+ assert.doesNotMatch(c,/onApplyRef.current\(next.cosmetics\)/);
+ assert.doesNotMatch(c,/setPersonalWallet\(mine\?\.wallet/);
+ assert.match(c,/if\(request===actionSeq.current\)setPersonalWallet\(mine.wallet\)/);
+ assert.match(c,/onMomentRef.current\?\.\(resolvedCue\)/);
+});

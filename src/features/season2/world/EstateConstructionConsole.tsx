@@ -81,7 +81,18 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
     const snapshot=await fn();
     if(request!==actionSeq.current)return;
     apply(snapshot);setMessage(done);setNow(Date.now());
-    if(cue)onMomentRef.current?.(typeof cue==='function'?cue(snapshot):cue);
+    // A late response from a previous property cannot mutate this one.
+    const resolvedCue=typeof cue==='function'?cue(snapshot):cue;
+    if(resolvedCue==='apply')onApplyRef.current(snapshot.cosmetics);
+    if(resolvedCue==='contribute'){
+      setDonation({...ZERO});
+      if(kind==='SCOPE'&&userId){
+        void fetchVerifiedEstate({kind:'USER',ownerId:userId,track:'lot'}).then(mine=>{
+          if(request===actionSeq.current)setPersonalWallet(mine.wallet);
+        }).catch(()=>undefined);
+      }
+    }
+    if(resolvedCue)onMomentRef.current?.(resolvedCue);
   }catch(e){
     if(request===actionSeq.current){setError(e instanceof Error?e.message:'Could not verify estate action.');onMomentRef.current?.('error');}
   }finally{
@@ -103,8 +114,7 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
  };
  const save=()=>{if(!verified||!verified.can_build)return;
   void act(async()=>{
-   const next=await saveVerifiedEstateDesign({kind,ownerId,track},design);
-   onApplyRef.current(next.cosmetics);return next;
+   return saveVerifiedEstateDesign({kind,ownerId,track},design);
   },'Design saved to your account or scope.','apply');
  };
  const donate=()=>{if(kind!=='SCOPE'||!ownerId||!userId||!personalWallet)return;
@@ -116,9 +126,7 @@ export default function EstateConstructionConsole({identity,userId,design,onVeri
   void act(async()=>{
    const next=await contributeVerifiedEstate(ownerId,operationKey!,amount);
    if(donationKey.current===operationKey)donationKey.current=null;
-   const mine=await fetchVerifiedEstate({kind:'USER',ownerId:userId,track:'lot'}).catch(()=>null);
-   setPersonalWallet(mine?.wallet??null);
-   setDonation({...ZERO});return next;
+   return next;
   },'Earned materials transferred to your community. No BP was created.','contribute');
  };
  if(!ownerId)return <View style={styles.panel}><Text style={styles.title}>CONSTRUCTION CONTROL</Text><Text style={styles.hint}>Choose an active verified Cluster or Organization first.</Text></View>;
