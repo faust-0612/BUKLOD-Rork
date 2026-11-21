@@ -28,7 +28,8 @@
     "13 canon characters resolve to existing bundled art with new versioned image registry",
     "Source tests and scope-lock checks pass before staging build",
     "Real Android visual/latency/controls and full online PvP remain explicitly unverified",
-    "Battle camera and minimap bound to the same deterministic world coordinates; siege/build/loot and repair actions available from in-app tactics only when legal."
+    "Battle camera and minimap bound to the same deterministic world coordinates; siege/build/loot and repair actions available from in-app tactics only when legal.",
+    "The 3 existing BUKLOD Realm scene PNGs are mirrored in DEV with actual bytes, verified SHA-256 and Metro static registration; owner manual Library downloads are not required."
   ],
   "riskAreas": [
     "app-runtime",
@@ -37,7 +38,8 @@
   "regressionTests": [
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
-    "tests/empire-arena-v2-presentation-20261121.test.mjs"
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "tests/empire-arena-v2-packaged-art-20261121.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -51,7 +53,14 @@
     "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
     "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs",
     "src/features/games/empire/arenaPracticePresentation.mjs",
-    "tests/empire-arena-v2-presentation-20261121.test.mjs"
+    "tests/empire-arena-v2-presentation-20261121.test.mjs",
+    "assets/season2/arena/generated-manifest.json",
+    "assets/season2/arena/generated/scene/aurora_foundry-b724e6a41e12.png",
+    "assets/season2/arena/generated/scene/genesis_rift-93a5185cde9f.png",
+    "assets/season2/arena/generated/scene/verdant_fracture-268f1aad617a.png",
+    "scripts/vendor-buklod-arena-scenes.mjs",
+    ".github/workflows/buklod-arena-dev-art-vendor.yml",
+    "tests/empire-arena-v2-packaged-art-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -62,7 +71,8 @@
       ],
       "tests": [
         "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
-        "tests/empire-arena-v2-presentation-20261121.test.mjs"
+        "tests/empire-arena-v2-presentation-20261121.test.mjs",
+        "tests/empire-arena-v2-packaged-art-20261121.test.mjs"
       ]
     },
     {
