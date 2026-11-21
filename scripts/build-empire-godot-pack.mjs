@@ -9,7 +9,6 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { deflateRawSync } from 'node:zlib';
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { HEROES, MODES, COSTS, BUFFS, STARTER_HERO_KITS, ARENA_MAPS, BUILD_COSTS } from '../experiments/empire-arena-v2/arena-v2-engine.mjs';
@@ -58,15 +57,11 @@ for (const match of visualManifest.matchAll(/'(fullbody|scene|sprite):([^']+)':\
   assert.ok((group === 'scene' && ext === '.png') || (group !== 'scene' && ext === '.webp'),
     'Unexpected asset format for ' + group);
   assert.match(key, /^[a-z0-9_]+$/, 'Unsafe asset key');
-  // Approved source WebPs are ANIM WebP, unsupported by Godot's static WebP
-  // decoder. Extract only frame one into a portable native PNG visual preview.
-  // Original animations stay intact in the React Native asset inventory.
-  const bytes = ext === '.webp'
-    ? execFileSync('ffmpeg', [
-      '-hide_banner', '-loglevel', 'error', '-i', filename,
-      '-frames:v', '1', '-f', 'image2pipe', '-vcodec', 'png', '-'
-    ], { timeout: 25000, maxBuffer: 8 * 1024 * 1024 })
-    : readFileSync(filename);
+  // Animated WebP cannot decode in Godot 4.7.2. Native atlases have
+  // already been exported and reviewed as repository source files, not
+  // generated with external codecs during EAS/native prebuild.
+  const vendored = path.join(project, 'art', group, key + '.png');
+  const bytes = readFileSync(group === 'scene' ? filename : vendored);
   assert.ok(bytes.length > 100 &&
     bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
     'Native Arena art PNG validation failed for ' + key);
@@ -75,6 +70,10 @@ for (const match of visualManifest.matchAll(/'(fullbody|scene|sprite):([^']+)':\
 }
 assert.deepEqual(artCounts, { fullbody: 52, scene: 3, sprite: 13 },
   'Never publish a partial hero-animation/map art inventory into Godot');
+const artManifest = JSON.parse(readFileSync(path.join(project, 'art/art_manifest.json'), 'utf8'));
+assert.equal(Object.keys(artManifest.assets || {}).length, 65, 'Missing approved art atlas metadata');
+entries.push({ name: 'art/art_manifest.json',
+  bytes: readFileSync(path.join(project, 'art/art_manifest.json')) });
 
 const entryNames = new Set(entries.map(x => x.name));
 for (const name of ['project.godot', 'scenes/Arena.tscn', 'scripts/arena_root.gd',
