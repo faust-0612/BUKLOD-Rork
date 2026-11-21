@@ -34,7 +34,6 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
   useEffect(() => {
     if (active) {
       breath.value = withRepeat(withTiming(1, { duration: 840, easing: Easing.inOut(Easing.sin) }), -1, true);
-      motion.value = withTiming(moving ? 1 : 0, { duration: 120 });
     } else {
       cancelAnimation(breath);
       cancelAnimation(motion);
@@ -42,7 +41,10 @@ export const ArenaAnimatedActor = memo(function ArenaAnimatedActor({
       motion.value = 0;
     }
     return () => { cancelAnimation(breath); cancelAnimation(motion); };
-  }, [active, moving, breath, motion]);
+  }, [active, breath, motion]);
+  useEffect(() => {
+    if (active) motion.value = withTiming(moving ? 1 : 0, { duration: 180 });
+  }, [active, moving, motion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
