@@ -4,7 +4,7 @@
  * Actual development must come from separately verified server records/RPCs.
  */
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Animated,PanResponder,Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions} from 'react-native';
+import {Animated,PanResponder,Platform,Pressable,ScrollView,StatusBar,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {LinearGradient} from 'expo-linear-gradient';
@@ -71,6 +71,7 @@ export function constructionStageLabel(index:number) {
 export default function Season2DevelopmentMap({world}:{world:World}) {
   const {width} = useWindowDimensions();
   const insets=useSafeAreaInsets();
+  const topSafeArea=Math.max(insets.top,Platform.OS==='android'?(StatusBar.currentHeight??0):0);
   const {profile} = useAuth();
   const {activeScope,scopes} = useBuklodScope();
   // Community previews belong to one verified member scope, not to the global Wall.
@@ -203,7 +204,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const decoration = useMemo(()=>[0,1,2,3,4,5],[]);
   return (
     <View style={styles.root}>
-      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content,{paddingTop:Math.max(12,insets.top+8),paddingBottom:Math.max(30,insets.bottom+28)}]} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content,{paddingTop:Math.max(12,topSafeArea+8),paddingBottom:Math.max(30,insets.bottom+28)}]} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD world map"
             onPress={()=>router.replace('/buklod-map' as any)} style={styles.return}>
