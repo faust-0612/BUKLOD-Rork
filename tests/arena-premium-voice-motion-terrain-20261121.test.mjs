@@ -28,9 +28,11 @@ test('announcer honors app audio focus, installed device engine and independent 
   const runtime=read('src/features/games/empire/ArenaVoiceRuntime.ts');
   assert.match(route,/setArenaVoiceFocus\(true\)/);
   assert.match(route,/setArenaVoiceFocus\(false\)/);
-  assert.match(route,/setVoiceEnabled\(v => !v\)/);
-  assert.match(route,/playArenaVoiceAnnouncements\(drained.cues, voiceEnabled\)/);
-  assert.match(route,/playArenaVoiceAnnouncements\(drain.cues,voiceEnabled\)/);
+  assert.match(route,/setVoiceEnabled\(!voiceEnabled\)/);
+  assert.match(route,/stopArenaVoiceAnnouncements\(\)/);
+  assert.match(route,/if \(voiceEnabled\) playArenaVoiceAnnouncements\(drained.cues, true\)/);
+  assert.match(route,/if \(voiceEnabled\) playArenaVoiceAnnouncements\(drain.cues,true\)/);
+  assert.match(route,/if \(sfxEnabled\) for \(const cue of drain.cues\)/);
   for(const token of ['AppState.currentState','isBuklodGameSoundEnabled',
     'getBuklodGameSoundVolume','subscribeBuklodAudioFocus','Speech.speak','Speech.stop',
     "Platform.OS==='web'"])assert.ok(runtime.includes(token),token);
