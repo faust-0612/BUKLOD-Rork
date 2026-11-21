@@ -4,6 +4,9 @@
 class_name BuklodArenaSimulation
 extends RefCounted
 
+const HERO_IDENTITY_SCRIPT = preload("res://scripts/hero_identity.gd")
+const SPECIAL_HERO_ACTIONS = preload("res://scripts/special_hero_actions.gd")
+
 const STEP := 0.1
 const PICKUP_CAP := 24
 const PICKUP_LIFETIME := 45.0
@@ -14,8 +17,10 @@ const MAX_RELICS := 36
 var config: Dictionary = {}
 var state: Dictionary = {}
 var rng := RandomNumberGenerator.new()
+var hero_catalog: RefCounted
 
 func _init() -> void:
+	hero_catalog = HERO_IDENTITY_SCRIPT.new()
 	var path := "res://data/catalog.json"
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
@@ -29,7 +34,9 @@ func _init() -> void:
 
 func available() -> bool:
 	return config.has("heroes") and config.has("maps") and config.has("pickups") \
-		and config["heroes"].size() == 13 and config["pickups"].size() == 300
+		and config["heroes"].size() == 13 and config["pickups"].size() == 300 \
+		and hero_catalog != null and hero_catalog.available() \
+		and config["heroes"].keys().all(func(id): return hero_catalog.approved.has(id))
 
 func begin(mode: String = "cluster", hero: String = "phan",
 		map_id: String = "genesis_rift", solo: bool = false,
@@ -172,6 +179,19 @@ func _enemies(p: Dictionary, r: float) -> Array:
 				output.append(a)
 	output.sort_custom(func(a, b): return _dist(a, p) < _dist(b, p))
 	return output
+
+func _line_blocked(start: Vector2, finish: Vector2) -> bool:
+	var path: Vector2 = finish - start
+	var length_sq: float = path.length_squared()
+	if length_sq < 0.001:
+		return false
+	for obstacle in state.get("cover", []):
+		var center: Vector2 = obstacle["pos"]
+		var ratio: float = clampf((center - start).dot(path) / length_sq, 0.0, 1.0)
+		var closest: Vector2 = start + path * ratio
+		if closest.distance_to(center) < float(obstacle["radius"]) + 0.25:
+			return true
+	return false
 
 func _blocked(pos: Vector2, radius: float = 1.0) -> bool:
 	if pos.x < 2 or pos.y < 2 or pos.x > state["w"] - 2 or pos.y > state["h"] - 2:
@@ -322,11 +342,11 @@ func _loot(p: Dictionary) -> bool:
 func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 	if not ["primary", "secondary", "ultimate"].has(slot):
 		return false
-	if slot == "secondary" and int(p["level"]) < 3:
+	# The owner's approved combat contract enables both skills and ultimate from
+	# the first playable match level; permanent unlock rules remain server-owned.
+	var skill: Dictionary = hero_catalog.skill(str(p["hero"]), slot)
+	if skill.is_empty():
 		return false
-	if slot == "ultimate" and int(p["level"]) < 6:
-		return false
-	var skill: Dictionary = config["starter"].get(p["hero"], {}).get(slot, {})
 	var cooldown: float = float(skill.get("cd", {"primary": 5800, "secondary": 11000, "ultimate": 38000}[slot])) / 1000.0
 	var mana_cost: float = {"primary": 18.0, "secondary": 14.0, "ultimate": 55.0}[slot]
 	if float(state["time"]) - float(p["cooldowns"][slot]) < cooldown or float(p["mana"]) < mana_cost:
@@ -369,7 +389,7 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 					ally["hp"] = minf(float(ally["max_hp"]), float(ally["hp"]) + 48.0)
 			accepted = true
 		"beacon_mark":
-			if not target.is_empty():
+			if not target.is_empty() and not _line_blocked(p["pos"], target["pos"]):
 				target["buffs"]["marked"] = {"until": float(state["time"]) + 5.0, "strength": 0.15}
 				accepted = true
 		"signal_shield", "restorative_beat", "field_patch":
@@ -386,7 +406,9 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 			p["buffs"]["triage"] = {"until": float(state["time"]) + 10.0, "strength": 1.0}
 			accepted = true
 		_:
-			if slot == "secondary":
+			if hero_catalog.EXTRA_HEROES.has(str(p["hero"])):
+				accepted = SPECIAL_HERO_ACTIONS.cast(self, p, identity, direction)
+			elif slot == "secondary":
 				accepted = _move(p, direction, 40.0)
 			elif style in ["heal", "supply", "guard"]:
 				for ally in _allies(p, 9.0):
@@ -434,7 +456,7 @@ func action(id: String, command: String, vector: Vector2 = Vector2.ZERO,
 			var radius: float = float(basic.get("range", 5.5))
 			var enemies := _enemies(p, radius)
 			var target: Dictionary = actor(target_id) if target_id != "" else enemies.front() if not enemies.is_empty() else {}
-			if target.is_empty() or _dist(p, target) > radius:
+			if target.is_empty() or _dist(p, target) > radius or _line_blocked(p["pos"], target["pos"]):
 				return false
 			p["cooldowns"]["attack"] = float(state["time"])
 			var damage: float = float(basic.get("damage", 20)) + (float(p["level"]) - 1.0) * 0.6
@@ -542,6 +564,9 @@ func _automation() -> void:
 		if not enemy.is_empty() and float(state["time"]) - float(unit["last_attack"]) >= 1.4:
 			unit["last_attack"] = float(state["time"])
 			_hit(unit, enemy, 4.0 if unit["kind"] == "villager" else 12.0)
+			continue
+		if unit["kind"] == "seed_turret":
+			# Native bounded station defense: never walk a temporary deployable.
 			continue
 		if unit["kind"] == "villager" and unit["command"] == "mine":
 			var resource: Dictionary = {}
@@ -670,6 +695,9 @@ func advance() -> void:
 	for cover in state["cover"].duplicate():
 		if cover.has("expires") and float(cover["expires"]) <= float(state["time"]):
 			state["cover"].erase(cover)
+	for unit in state["units"].duplicate():
+		if unit.has("expires") and float(unit["expires"]) <= float(state["time"]):
+			state["units"].erase(unit)
 	for p in state["players"].values():
 		if _alive(p):
 			p["mana"] = minf(float(p["max_mana"]), float(p["mana"]) + 0.33)
