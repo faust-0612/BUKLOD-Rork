@@ -215,3 +215,27 @@ test('canonical tower combat emits distinct real hit and local casualty alerts',
   assert.ok(dead,'tower KO must have engine-produced semantic metadata');
   assert.equal(cue(dead,{...ctx,players:s.players}),'self_down');
 });
+
+test('premium voice director announces real tactical events, never routine hit spam',async()=>{
+  const {ARENA_ANNOUNCEMENTS,selectArenaAnnouncement}=await import(
+    '../src/features/games/empire/arenaVoiceDirector.mjs');
+  for(const id of ['self_down','ally_down','enemy_down','tower_ally','tower_enemy',
+    'seal_ally','seal_enemy','build_complete','tower_upgrade','item_pickup',
+    'item_equip','buff_forest','buff_golden','buff_stone','buff_lumen','buff_wisp',
+    'buff_forager','hero_respawn','level_up','victory','defeat']){
+    assert.ok(ARENA_ANNOUNCEMENTS[id]?.text,id+' missing spoken line');
+  }
+  assert.equal(ARENA_ANNOUNCEMENTS.impact,undefined,'normal hit must not trigger speech');
+  assert.equal(ARENA_ANNOUNCEMENTS.mining_wood,undefined,'farming cannot spam speech');
+  const priority=selectArenaAnnouncement([{id:'item_pickup'},{id:'seal_ally'}],0,10000);
+  assert.equal(priority.id,'seal_ally','urgent defense overrides pickup');
+  assert.equal(selectArenaAnnouncement([{id:'seal_ally'}],9000,10000),null,
+    'announcer enforces minimum interval');
+  const runtime=load('src/features/games/empire/ArenaVoiceRuntime.ts');
+  assert.ok(runtime.includes('isBuklodGameSoundEnabled'));
+  assert.ok(runtime.includes('AppState.currentState'));
+  assert.ok(runtime.includes('setArenaVoiceFocus'));
+  assert.ok(runtime.includes('Speech.stop()'));
+  assert.ok(runtime.includes("Platform.OS==='web'"));
+  assert.ok(runtime.includes("language:'en-US'"));
+});
