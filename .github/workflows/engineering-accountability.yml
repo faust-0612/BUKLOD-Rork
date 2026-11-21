@@ -30,6 +30,12 @@ jobs:
           PR_BASE: ${{ github.base_ref || 'main' }}
         run: |
           case "$PR_HEAD" in
+            # Explicit isolated Arena HUD workstream. This does NOT grant OTA or
+            # production release rights; only enables exact-path regression checks.
+            dev/arena-responsive-zoom-navigation-fix-20261121)
+              if [ "$PR_BASE" = "dev/season2-map-first-conso-intake-20261121" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/arena-premium-hud-20261121.json" >> "$GITHUB_ENV"
+              fi;;
             integration/nov16-current-wall-ads-zoom-rc-safe)
               if [ "$PR_BASE" = "main" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov16-all-recent-wall-character-ads-rc.json" >> "$GITHUB_ENV"

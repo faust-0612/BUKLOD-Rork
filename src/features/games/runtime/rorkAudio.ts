@@ -35,8 +35,23 @@ const voiceCount: Partial<Record<RorkAudioKey, number>> = {
 const pools = new Map<RorkAudioKey, Player[]>();
 const cursors = new Map<RorkAudioKey, number>();
 const lastPlayedAt = new Map<RorkAudioKey, number>();
+const arenaCuePlayedAt = new Map<string, number>();
 const startedVoices = new WeakSet<Player>();
 let focusedKingdomViews = 0;
+let arenaAudioInterrupted = false;
+let arenaVoiceDucking = false;
+let arenaAmbience: Player | null = null;
+
+/** Voice intelligibility: spoken calls temporarily lower *Arena* background
+ * music and impact loudness, never unrelated Connect/video/call playback. */
+export function setArenaVoiceDucking(active:boolean){
+  arenaVoiceDucking=Boolean(active);
+  if(arenaAmbience){
+    try {
+      arenaAmbience.volume=Math.min(.16,getBuklodGameSoundVolume()*.55)*(arenaVoiceDucking ? 0.23 : 1);
+    }catch{/* no interruption to gameplay */}
+  }
+}
 
 function releaseKingdomSfx() {
   for (const voices of pools.values()) {
@@ -48,10 +63,14 @@ function releaseKingdomSfx() {
   pools.clear();
   cursors.clear();
   lastPlayedAt.clear();
+  arenaCuePlayedAt.clear();
 }
 
-function prewarmKingdomSfx() {
-  for (const key of ['ui_tap', 'pickup', 'build_hit', 'success', 'retry', 'unlock'] as const) poolFor(key);
+function prewarmKingdomSfx(arena = false) {
+  // Extra voices are prewarmed only for the immersive Arena, not for every
+  // Kingdom screen. This protects Dashboard/Wall/Connect memory and navigation.
+  for (const key of ['ui_tap','pickup','build_hit','success','retry','unlock'] as const) poolFor(key);
+  if (arena) for (const key of ['ui_confirm','beat_combo','beat_hit','coins','game_enter','mission_go'] as const) poolFor(key);
 }
 
 // The Rork live-preview audio host is not a production asset origin and was
@@ -92,6 +111,7 @@ function poolFor(key: RorkAudioKey) {
 
 function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
   if (focusedKingdomViews === 0 || AppState.currentState !== 'active') return false;
+  if (arenaAudioInterrupted) return false;
   const now = Date.now();
   const last = lastPlayedAt.get(key) ?? 0;
   if (cooldownMs > 0 && now - last < cooldownMs) return false;
@@ -135,6 +155,56 @@ export function tryPlayRorkGameFeedback(event: BuklodGameFeedbackEvent, volume =
   return playKey(key, volume, cooldownMs);
 }
 
+/**
+ * Arena semantic SFX score. All sound sources are already bundled in
+ * kingdomPremiumAudioAssets.ts (CC0). This does not fetch music, award rewards,
+ * affect HP, or start audio when game focus is gone.
+ */
+export type ArenaSoundCue = {
+  id: string;
+  sound: string;
+  rate: number;
+  volume: number;
+  priority: number;
+  cooldown: number;
+};
+const ARENA_PACKAGED_SOUND_KEY: Readonly<Record<string, RorkAudioKey>> = {
+  build_hit:'build_hit', beat_combo:'beat_combo', beat_hit:'beat_hit',
+  victory:'success', victory_alt:'beat_combo', enter:'game_enter',
+  retry:'retry', pickup:'pickup', coins:'coins', unlock:'unlock',
+  ui_tap:'ui_tap', ui_confirm:'ui_confirm', mission_go:'mission_go',
+};
+export function tryPlayArenaEventCue(cue: ArenaSoundCue, enabled = true): boolean {
+  if (!enabled || focusedKingdomViews <= 0 || arenaAudioInterrupted || AppState.currentState !== 'active' || !isBuklodGameSoundEnabled()) return false;
+  if (!cue || !Object.prototype.hasOwnProperty.call(ARENA_PACKAGED_SOUND_KEY,cue.sound)) return false;
+  const key=ARENA_PACKAGED_SOUND_KEY[cue.sound];
+  const now=Date.now();
+  const previous=arenaCuePlayedAt.get(cue.id)??-Infinity;
+  if(now-previous<Math.max(0,Math.min(4000,Number(cue.cooldown)||0)))return false;
+  const voices=poolFor(key);
+  if(!voices.length)return false;
+  // Reserve the semantic gate only if a real pool voice exists.
+  arenaCuePlayedAt.set(cue.id,now);
+  const index=cursors.get(key)??0;
+  cursors.set(key,(index+1)%voices.length);
+  const player=voices[index%voices.length];
+  if(!player.isLoaded)return false;
+  try {
+    player.volume=Math.max(0,Math.min(.48,(Number(cue.volume)||.22)*.75*getBuklodGameSoundVolume()*(arenaVoiceDucking ? 0.27 : 1)));
+
+    player.playbackRate=Math.max(.7,Math.min(1.3,Number(cue.rate)||1));
+    if(!startedVoices.has(player)){
+      startedVoices.add(player);
+      player.play();
+    }else{
+      void player.seekTo(0).then(()=>{
+        if(focusedKingdomViews>0&&AppState.currentState==='active')player.play();
+      }).catch(()=>undefined);
+    }
+    return true;
+  }catch{return false}
+}
+
 export function playRorkSignatureSfx(gameId?: string | null, volume = 0.26) {
   const media = getRorkGameMedia(gameId);
   if (!media) return false;
@@ -151,7 +221,7 @@ const KINGDOM_AMBIENCE_SETTING_KEY = '@buklod_kingdom_cinematic_ambience_v1';
  * follows the existing game sound/quiet-hours settings. This is decorative:
  * audio loading/playback must never block real gameplay.
  */
-export function useRorkGameAmbience(gameId?: string | null) {
+export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: boolean }) {
   // Opt-in avoids surprising playback and the previously reported harsh intro.
   // Keep legacy interior-game audio behavior unchanged; only the main map is opt-in.
   const isKingdomMap = gameId === 'kingdom-map';
@@ -170,12 +240,24 @@ export function useRorkGameAmbience(gameId?: string | null) {
   useFocusEffect(useCallback(() => {
     if (!gameId) return;
     focusedKingdomViews += 1;
-    prewarmKingdomSfx();
+    if (options?.arena) { arenaAudioInterrupted = false; setArenaVoiceDucking(false); }
+    prewarmKingdomSfx(Boolean(options?.arena));
+    // An actual Connect call, ad, Reels/Wall video or PTT explicitly claiming
+    // media focus silences Arena effects, not just background music.
+    const releaseArenaFocus = options?.arena ? subscribeBuklodAudioFocus(owner => {
+      if (owner === 'buklod-empire-arena') return;
+      arenaAudioInterrupted = true;
+      for (const voices of pools.values()) for (const player of voices) {
+        try { player.pause(); } catch { /* optional effect */ }
+      }
+    }) : () => undefined;
     return () => {
+      releaseArenaFocus();
+      if (options?.arena) { arenaAudioInterrupted = false; setArenaVoiceDucking(false); }
       focusedKingdomViews = Math.max(0, focusedKingdomViews - 1);
       if (focusedKingdomViews === 0) releaseKingdomSfx();
     };
-  }, [gameId]));
+  }, [gameId, options?.arena]));
   // Expo Router can keep inactive game screens mounted in its stack. This
   // effect is owned by *navigation focus*, not just React mount lifetime.
   // On every blur (Home, Wall, Connect, another game) the Kingdom-only
@@ -192,11 +274,14 @@ export function useRorkGameAmbience(gameId?: string | null) {
     } catch { return; }
     if (!player) return;
     const audio = player;
+    if(options?.arena)arenaAmbience=audio;
     let active = true;
     // Genesis map music yields to any explicit ad, video, call or music focus
     // request. Never resume spontaneously while a competing source is active.
     let interruptedByOtherAudio = false;
-    if (isKingdomMap) setMusicSuspended(false);
+    if (isKingdomMap || options?.arena) setMusicSuspended(false);
+    // Keep the long-standing Genesis callback contract intact. Arena takes a
+    // separate, focus-owned subscription so non-Arena screens are unchanged.
     const releaseAudioFocus = isKingdomMap
       ? subscribeBuklodAudioFocus(owner => {
           if (owner === 'genesis-valley-map' || !active) return;
@@ -205,16 +290,24 @@ export function useRorkGameAmbience(gameId?: string | null) {
           try { audio.pause(); } catch { /* optional ambience */ }
         })
       : () => undefined;
+    const releaseArenaMusicFocus = options?.arena
+      ? subscribeBuklodAudioFocus(owner => {
+          if (owner === 'buklod-empire-arena' || !active) return;
+          interruptedByOtherAudio = true;
+          setMusicSuspended(true);
+          try { audio.pause(); } catch { /* optional Arena ambience */ }
+        })
+      : () => undefined;
     audio.loop = true;
     const sync = async () => {
       try {
         await getBuklodSoundSettings();
         if (!active) return;
-        if (AppState.currentState !== 'active' || !isBuklodGameSoundEnabled() || interruptedByOtherAudio) {
+        if (AppState.currentState !== 'active' || !isBuklodGameSoundEnabled() || interruptedByOtherAudio || arenaAudioInterrupted) {
           audio.pause();
           return;
         }
-        audio.volume = Math.min(0.16, getBuklodGameSoundVolume() * 0.55);
+        audio.volume = Math.min(0.16, getBuklodGameSoundVolume() * 0.55) * (options?.arena&&arenaVoiceDucking ? 0.23 : 1);
         if (audio.isLoaded) audio.play();
       } catch {
         // No impact to gameplay if sound assets, platform or autoplay fail.
@@ -235,13 +328,15 @@ export function useRorkGameAmbience(gameId?: string | null) {
       // Invalidate pending hydration/status callbacks before release to avoid
       // late replay of the loop after a rapid back/forward navigation.
       active = false;
+      if(options?.arena&&arenaAmbience===audio){arenaAmbience=null;setArenaVoiceDucking(false);}
       releaseAudioFocus();
+      releaseArenaMusicFocus();
       readyListener.remove();
       stateListener.remove();
       try { audio.pause(); } catch { /* already disposed or unavailable */ }
       try { audio.remove(); } catch { /* enhancement only */ }
     };
-  }, [gameId, musicEnabled, isKingdomMap]));
+  }, [gameId, musicEnabled, isKingdomMap, options?.arena]));
   return { musicEnabled, musicSuspended, toggleMusic: () => { setMusicSuspended(false); setMusicEnabled(value => {
     const next = !value;
     if (isKingdomMap) {
