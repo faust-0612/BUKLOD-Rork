@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
+  "objective": "Embed Arena V2 offline practice into the existing BUKLOD Main app, reuse canonical combat and art, and version generated artwork into the native visual baseline without owner-side downloading.",
+  "baseRef": "dev/empire-arena-v2-connected-world-preview-20261121",
+  "productionBaselineEvidence": "Only GitHub source and the existing DEV Arena V2 simulation inspected. No production APK, OTA or server artifact claimed verified.",
+  "productionChange": false,
+  "productionAuthorized": false,
+  "releaseAuthorized": false,
+  "releaseTarget": "DEV_SINGLE_APK_OFFLINE_PRACTICE_ONLY",
+  "chosenApproach": "Use preinstalled React Native/SVG/Expo Image/audio/orientation, reuse Arena V2 pure simulation, add one Expo route and Kingdom entry, and commit image bytes through a SHA-addressed generated asset manifest. No Godot native module or separate app in this slice.",
+  "selectionRationale": "Minimal native risk: current app already includes the rendering and audio modules. Reusing the existing deterministic engine avoids duplicate combat rules or wallet authority while preserving zero-cost tooling and a same-package Android experience.",
+  "alternativeApproaches": [
+    "Independent Godot APK or duplicate login (rejected; violates unified app requirement)",
+    "Ship concept graphics as unversioned remote mockups (rejected; fails visual baseline requirement)",
+    "Immediately enable real ranked multiplayer, trade SQL or Diamond awards without server validation (rejected)"
+  ],
+  "preserveBehaviors": [
+    "Existing Kingdom Map and official 13-station routing preserved; only a new Arena launch door is added",
+    "BUKLOD auth/character IDs, Circle Rank, server inventory, BP, QMP and Diamonds remain authoritative and unchanged",
+    "Active gameplay uses existing premium Kingdom audio without crossing into Wall or Connect screen audio",
+    "Existing ad slot remains; no ad overlays or new monetization in active Arena combat",
+    "Production users and native build/runtime receive no changes from this unmerged DEV branch"
+  ],
+  "acceptanceChecks": [
+    "Expo navigation from Kingdom Map to the in-app Arena route without external installation",
+    "Landscaped Arena input actions use the shared offline engine; orientation restored on leaving",
+    "13 canon characters resolve to existing bundled art with new versioned image registry",
+    "Source tests and scope-lock checks pass before staging build",
+    "Real Android visual/latency/controls and full online PvP remain explicitly unverified"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character"
+  ],
+  "regressionTests": [
+    "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
+    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-arena-inapp-dev-qa.yml",
+    "docs/empire-arena/BUKLOD_ARENA_IN_APP_VISUAL_BASELINE_20261121.md",
+    "scripts/ingest-buklod-visual-baseline.mjs",
+    "src/app/games/empire-arena.tsx",
+    "src/app/games/index.tsx",
+    "src/features/games/empire/arenaGeneratedAssets.ts",
+    "src/features/games/empire/arenaVisualBaseline.ts",
+    "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs",
+    "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New in-app Expo Arena route and generated image asset registry add a native-rendered practice surface; protect lifecycle and avoid production effects.",
+      "preservedBehaviors": [
+        "Existing BUKLOD profile, auth, Wall/Connect navigation, map, and live wallets are untouched."
+      ],
+      "tests": [
+        "tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Kingdom map receives a new entry to an in-app Arena and displays existing BUKLOD character assets without changing canonical stations or rank rights.",
+      "preservedBehaviors": [
+        "13 Kingdom station routes, Character Selection IDs, map ad slot and account-owned collectibles remain authoritative."
+      ],
+      "tests": [
+        "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs"
+      ]
+    }
+  ]
+}
