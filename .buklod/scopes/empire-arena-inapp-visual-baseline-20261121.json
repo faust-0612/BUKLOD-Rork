@@ -31,7 +31,8 @@
     "Battle camera and minimap bound to the same deterministic world coordinates; siege/build/loot and repair actions available from in-app tactics only when legal.",
     "The 3 existing BUKLOD Realm scene PNGs are mirrored in DEV with actual bytes, verified SHA-256 and Metro static registration; owner manual Library downloads are not required.",
     "Arena has source-owned 2.5D breathing/walking portrait motion fallback for 13 canonical identities; genuine rigged combat sprite art is a separately pending fidelity gate.",
-    "Arena reuses existing packaged CC0 premium Kingdom orchestration and local WAV SFX with per-screen music/effects toggles, bounded event cues, and focus-scoped release."
+    "Arena reuses existing packaged CC0 premium Kingdom orchestration and local WAV SFX with per-screen music/effects toggles, bounded event cues, and focus-scoped release.",
+    "All 13 canonical portraits have source-owned animated WebP 12-frame 2.5D avatar badges, generated automatically by DEV CI and committed by SHA to app registry. Not full-body combat sprites."
   ],
   "riskAreas": [
     "app-runtime",
@@ -79,7 +80,8 @@
     "assets/season2/arena/generated/sprite/quin-a4f61bd084ab.webp",
     "assets/season2/arena/generated/sprite/trudice-8bacb802830e.webp",
     "assets/season2/arena/generated/sprite/van-f37dac3f225a.webp",
-    "assets/season2/arena/generated/sprite/vhen-b611d9a37fac.webp"
+    "assets/season2/arena/generated/sprite/vhen-b611d9a37fac.webp",
+    "scripts/generate-buklod-arena-hero-motion.py"
   ],
   "lockedFeatureChanges": [
     {
