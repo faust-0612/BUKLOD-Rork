@@ -18,7 +18,7 @@ test('production intake holds all publication and retains the installed native r
   assert.equal(manifest.lastVerifiedProductionEvidence.notReverifiedInThisIntake, true);
 });
 
-test('all collected source files are exact, unchanged copies of their reviewed DEV source blobs', () => {
+test('all collected source or context-reconciled files are pinned to reviewed integration blobs', () => {
   const expected = manifest.collectedCode.flatMap(item => [
     ...item.sourceFiles, ...(item.testFiles ?? []), ...(item.sqlMigration ? [item.sqlMigration] : []),
   ]);
@@ -44,7 +44,7 @@ test('no Genesis/Season 2 assets or native build changes are carried into BUKLOD
 });
 
 test('all unmerged maintenance items are visible with explicit blockers or reconciliation tasks', () => {
-  const expected = [951,994,940,833,935,932,998,958,1038,821];
+  const expected = [951,940,833,935,932,998,958,1038,821];
   assert.deepEqual(new Set(manifest.pendingNonSeason2Candidates.map(x => x.pr)), new Set(expected));
   for (const candidate of manifest.pendingNonSeason2Candidates) {
     assert.ok(candidate.feature.length > 5);
@@ -79,4 +79,22 @@ test('background silent OTA source is collected without interactive reload or na
   assert.match(policy, /pendingNextLaunch = true/);
   assert.match(policy, /failureCooldownMs/);
   assert.doesNotMatch(policy, /reloadAsync\s*\(/);
+});
+
+test('Admin new-registration reporting is private, explicit and does not leak member details in push links', () => {
+  assert.ok(manifest.collectedCode.some(item => item.sourcePr === 994 &&
+    item.status === 'COLLECTED_DEV_LIVE_BACKEND_READ_ONLY_VERIFIED'));
+  const nav = read('src/lib/buklodNotificationNavigation.ts');
+  const admin = read('src/app/admin/index.tsx');
+  const screen = read('src/app/admin/new-users.tsx');
+  const sql = read('supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql');
+  assert.match(nav, /normalizedKind === 'admin_new_user'/);
+  assert.match(nav, /\/admin\/new-users/);
+  assert.match(admin, /Bagong Members · Registration Inbox/);
+  assert.match(screen, /<AdminGate>/);
+  assert.match(screen, /buklod_admin_recent_registrations_v1/);
+  assert.match(screen, /buklod_admin_registration_detail_v1/);
+  assert.match(sql, /not public\.buklod_is_system_admin\(\)/);
+  assert.match(sql, /revoke all on function public\.buklod_admin_registration_detail_v1\(uuid\) from PUBLIC,anon/);
+  assert.ok(manifest.previouslyVerifiedBackendReadOnlyCheck?.anonExecute === false);
 });
