@@ -10,12 +10,12 @@ import { dirname } from 'node:path';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const importer = join(ROOT, 'scripts/ingest-buklod-visual-baseline.mjs');
 const route = readFileSync(join(ROOT, 'src/app/games/empire-arena.tsx'), 'utf8');
-const index = readFileSync(join(ROOT, 'src/app/games/index.tsx'), 'utf8');
+const portal = readFileSync(join(ROOT, 'src/features/season2/genesis/GenesisKingdomPortal.tsx'), 'utf8');
 const baseline = readFileSync(join(ROOT, 'src/features/games/empire/arenaVisualBaseline.ts'), 'utf8');
 const engine = readFileSync(join(ROOT, 'experiments/empire-arena-v2/arena-v2-engine.mjs'), 'utf8');
 
 test('Arena is an Expo Router screen inside the ONE BUKLOD app, using original offline engine', () => {
-  assert.match(index, /router\.push\('\/games\/empire-arena'/);
+  assert.match(portal, /router\.push\('\/games\/empire-arena'/);
   assert.match(route, /createPractice/);
   assert.match(route, /command\(game, localSeat, action\)/);
   assert.match(route, /tick\(state\)/);
