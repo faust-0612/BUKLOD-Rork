@@ -65,8 +65,8 @@ test('No new native module or automatic guide voice is introduced; first-view ad
 
 test('premium Home opens the same approved map with no second schematic or duplicate nav',()=>{
   const hub=read('src/app/(tabs)/hub.tsx');
-  assert.match(hub,/<Redirect href="\\/buklod-map" \\/>/);
-  assert.doesNotMatch(hub,/<GenesisWorld \\/>/);
+  assert.match(hub,/<Redirect href="\/buklod-map" \/>/);
+  assert.doesNotMatch(hub,/<GenesisWorld \/>/);
   assert.match(gateway,/GenesisValleyMap/);
   assert.match(gateway,/BuklodFirstViewAd placement="home"/);
 });
