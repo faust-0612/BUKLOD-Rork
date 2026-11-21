@@ -3,9 +3,13 @@ on:
   push:
     branches:
       - dev/genesis-premium-personal-world-progress-20261121
+      - dev/genesis-estate-authoritative-build-20261121
     paths:
       - src/features/season2/world/**
       - tests/season2-premium-construction-plan.test.mjs
+      - tests/season2-estate-server-authority-20261121.test.mjs
+      - tests/season2-community-village-preview-20261121.test.mjs
+      - supabase/migrations/20261121134500_buklod_estate_authoritative_progression_v1.sql
       - .github/workflows/genesis-premium-personal-world-dev-qa.yml
 permissions:
   contents: read
@@ -29,8 +33,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Deterministic construction model and permission-safe preview
-        run: node --test tests/season2-premium-construction-plan.test.mjs
+      - name: Verified estate mechanics, scope security, design and safe blueprint tests
+        run: node --test tests/season2-premium-construction-plan.test.mjs tests/season2-estate-server-authority-20261121.test.mjs tests/season2-community-village-preview-20261121.test.mjs tests/season2-my-community-scope-customization-20261121.test.mjs
       - name: Locked dependency install + strict source typecheck
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
