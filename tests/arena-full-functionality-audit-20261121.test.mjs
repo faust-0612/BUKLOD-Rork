@@ -202,4 +202,8 @@ test('all animation/event subsystems remain bounded and nonauthoritative',()=>{
  assert.ok(audio.includes('focusedKingdomViews <= 0'));
  assert.ok(audio.includes('isBuklodGameSoundEnabled()'));
  assert.ok(audio.includes('prewarmKingdomSfx(Boolean(options?.arena))'));
+ assert.ok(audio.includes('arenaAudioInterrupted = true'),'Connect and calls interrupt Arena effects');
+ assert.ok(audio.includes("owner === 'buklod-empire-arena'"),'only Arena-owner audio keeps SFX focus');
+ assert.ok(audio.includes("try { player.pause(); }"),'active Arena voices pause immediately');
+ assert.ok(audio.includes("isKingdomMap || options?.arena"),'Arena ambient loop also honors call/video priority');
 });
