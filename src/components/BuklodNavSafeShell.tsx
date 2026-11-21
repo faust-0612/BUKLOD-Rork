@@ -90,7 +90,7 @@ export default function BuklodNavSafeShell({
   const immersiveConversation = isHiblaConversationPath(pathname);
   const genesisWorld = isGenesisPreviewBuild();
   // Preview keeps the SAME existing bottom nav; never duplicate it in World or Guide.
-  const navOccupied = immersiveArena || immersiveConversation ? 0 : rawNavOccupied;
+  const navOccupied = immersiveConversation ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
