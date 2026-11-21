@@ -30,6 +30,7 @@ test('admin cannot silently assign a non-mentor or enable a protected official',
   assert.match(admin,/if\(access!==true\)throw/);
   assert.match(admin,/admin_set_mentor_capability_v1/);
   assert.match(admin,/ACTIVATE VERIFIED MENTOR PERMISSION/);
+  assert.match(admin,/keyboardShouldPersistTaps="handled"/);
   assert.match(admin,/chosenMentor\?\.role==='system_admin'/);
   assert.match(roles,/public\.is_system_admin\(\)/);
   assert.match(roles,/buklod_foundation_protected_principals/);
