@@ -154,6 +154,21 @@
       "tests": [
         "tests/season2-full-conso-source-release-gate-20261121.test.mjs"
       ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "End indefinite Character Progression spinner from a hung read-only authenticated session/RPC; preserve the SHA-pinned R31/R40 visual selector and authoritative server unlock rules.",
+      "preservedBehaviors": [
+        "All Character levels and selected identity remain server-authoritative; no offline character advancement or unlock.",
+        "Existing 13 Character visual sprites, locked Special identity protection, permanent Circle Rank and collectibles unchanged.",
+        "Read deadline never writes to Supabase and never changes XP, BP, QMP, Character Diamonds, rewards or payout balances.",
+        "Timeout rejects and clears shared in-flight work; a late response cannot replace verified Character selection or re-award points."
+      ],
+      "tests": [
+        "tests/genesis-ota-character-timeout-20261121.test.mjs",
+        "tests/buklod-character-art-release-contract-20261116.test.mjs",
+        "tests/character-rc-modern-lock.test.mjs"
+      ]
     }
   ],
   "preserveBehaviors": [
