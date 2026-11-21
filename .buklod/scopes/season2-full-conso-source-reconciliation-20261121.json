@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
-  "objective": "Consolidate BUKLOD Genesis Season 2 premium portrait Welcome exactly from owner-approved artwork: nine special map doors incl. Special Events, external animated Guide and four correct activity prompts, existing five-item bottom navigation, all learning/faith/university/focus app destinations and verified Cluster/Organization community previews; preserve Home/Connect spacing, paid Supabase authority, AdMob and existing production unchanged.",
+  "objective": "Consolidate BUKLOD Genesis Season 2 premium portrait Welcome exactly from owner-approved artwork: nine special map doors incl. Special Events, external animated Guide and four correct activity prompts, existing five-item bottom navigation, all learning/faith/university/focus app destinations and verified Cluster/Organization community previews; preserve Home/Connect spacing, paid Supabase authority, AdMob and existing production unchanged. Correct the real Android blank-map regression from the R2 staging OTA with exact approved JPEGs, a fallback URI, and a no-image emergency interactive map.",
   "baseRef": "5a3de4ac4cc3e43dd2c404e4033c098d2d92c4d6",
   "productionBaselineEvidence": "Uses exact independently confirmed existing DEV head 5a3de4a and preserves immutable main/production. Signed staging Android APK and previously published OTA refer to earlier sources, not this new commit.",
-  "chosenApproach": "Bundle SHA-pinned local portrait and compact WebP artwork, overlay transparent one-tap targets on baked labels (no duplicate main tabs), use existing guarded Focus, Learning, Kingdom/Arena, Home, Church, Community and event routes, preserve faith alternatives and role-bound community previews, and exercise source/Metro/ad/navigation regressions before a staging-only RC. No new app/native module, database migration, reward mint or production OTA.",
+  "chosenApproach": "Bundle SHA-pinned local portrait and compact WebP artwork, overlay transparent one-tap targets on baked labels (no duplicate main tabs), use existing guarded Focus, Learning, Kingdom/Arena, Home, Church, Community and event routes, preserve faith alternatives and role-bound community previews, and exercise source/Metro/ad/navigation regressions before a staging-only RC. No new app/native module, database migration, reward mint or production OTA. R3 correction uses the approved JPG variant through React Native Image, a JS-bundled offline JPEG fallback, and a guarded emergency nine-door directory after decoder stalls/failures; original approved WebPs retained for byte-level provenance.",
   "selectionRationale": "No new native modules, paid services, or production backend writes; owner approved original 1672x941 image and only entry ad removal.",
   "alternativeApproaches": [
     "Overwrite approved map with a divergent Valley drawing (rejected)",
@@ -19,13 +19,19 @@
     "economy-integrity",
     "release-pipeline",
     "release-identity",
-    "navigation-scroll"
+    "navigation-scroll",
+    "media-decoding",
+    "offline-failover"
   ],
   "allowedPaths": [
     ".buklod/scopes/season2-full-conso-source-reconciliation-20261121.json",
+    ".github/workflows/genesis-r2-convert-portrait-webp-to-jpeg-20261121.yml",
+    ".github/workflows/genesis-r2-portrait-hotfix-qa-20261121.yml",
     ".github/workflows/season2-empire-arena-conso-qa-20261121.yml",
     "assets/season2/genesis/world/buklod-community-village-stage1.webp",
+    "assets/season2/genesis/world/buklod-genesis-portrait-9doors-720x670.jpg",
     "assets/season2/genesis/world/buklod-genesis-portrait-9doors-720x670.webp",
+    "assets/season2/genesis/world/buklod-genesis-portrait-welcome-720x995.jpg",
     "assets/season2/genesis/world/buklod-genesis-portrait-welcome-720x995.webp",
     "assets/season2/genesis/world/buklod-my-home-stage1.webp",
     "scripts/genesis-map-reconstruction-preflight.mjs",
@@ -46,8 +52,10 @@
     "src/components/BuklodPersistentBottomNav.tsx",
     "src/features/games/runtime/rorkAudio.ts",
     "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
+    "src/features/season2/genesis/GenesisReliablePortraitImage.tsx",
     "src/features/season2/genesis/genesisApprovedEntryHotspots.json",
     "src/features/season2/genesis/genesisMapDistricts.ts",
+    "src/features/season2/genesis/genesisPortraitFallback.generated.ts",
     "src/features/season2/world/BuklodMapGuideDock.tsx",
     "src/features/season2/world/BuklodMapHeader.tsx",
     "src/features/season2/world/BuklodSpecialDoorDirectory.tsx",
@@ -107,7 +115,8 @@
       ],
       "tests": [
         "tests/season2-final-conso-staging-20261121.test.mjs",
-        "tests/season2-premium-ad-navigation-guard-20261121.test.mjs"
+        "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
+        "tests/season2-approved-portrait-art-20261121.test.mjs"
       ]
     },
     {
@@ -142,7 +151,8 @@
     "No ranked Diamond transaction, no client-side BP/QMP/receipt mint, no new Supabase subscription",
     "First-view map only omits AdMob, normal Home/other monetization unaffected",
     "Audio follows Android focus, native sound settings and user lifecycle",
-    "Construction preview is separate from real server owned property and unbounded Mastery"
+    "Construction preview is separate from real server owned property and unbounded Mastery",
+    "R3 keeps approved nine doors, four guide bubble routes and existing bottom nav while ensuring a permanent blank panel cannot be terminal state"
   ],
   "acceptanceChecks": [
     "Exact source tests, TypeScript, Metro Android assets, native parity, AdMob/navigation regression and isolated RLS tests green",
@@ -153,7 +163,8 @@
     "Approved portrait and compact WebP images included offline with SHA256 size checks; no new host/egress dependency.",
     "All nine special map doors and four Guide suggestion routes match owner instruction; no duplicate Home/Wall/Connect/Cluster/Profile inside map.",
     "Special Events lists only existing RLS-visible events, uses existing RSVP/attendance and never mints BP; Show Faith off has equal learning access.",
-    "Staging EAS provider exact OTA receipt, compatible signed APK runtime and actual Android AdMob/navigation acceptance are mandatory before publication."
+    "Staging EAS provider exact OTA receipt, compatible signed APK runtime and actual Android AdMob/navigation acceptance are mandatory before publication.",
+    "R3 portrait JPEG bytes and JS-bundled rescue data URIs verified by approved-portrait-art test, with onError and bounded timeout leading to accessible nine-door fallback."
   ],
   "publicationStatus": "Consolidated Genesis DEV source contains bundled original portrait Welcome artwork, nine one-tap special feature doors, animated Guide visual and guarded real events. Exact-head CI and Metro export remain mandatory; no EAS OTA receipt or production deployment has been asserted.",
   "releaseMode": "staging-source-prepared-native-runtime-and-ota-proof-pending",
