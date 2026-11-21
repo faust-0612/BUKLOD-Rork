@@ -1,5 +1,17 @@
 # Genesis Season 2 — Map-first consolidation intake, HARD HOLD (2026-11-21)
 
+## 2026-11-21 OWNER UPDATE — EMPIRE ARENA IN THE SAME CONSOLIDATED OTA SOURCE
+
+This section supersedes earlier exclusion and independent-staging statements below. **Empire Arena is now included** in the EXISTING Genesis Season 2 conso source (in-app route `/games/empire-arena`, 13 canonical hero IDs, 52 fullbody motion clips, 13 portrait avatar motion clips and three versioned offline scene plates). The existing single BUKLOD Android app, existing `season2-genesis-preview` EAS channel/runtime, canonical paid Supabase project `yhanxndaqbmuzbdqlblu`, Kingdom premium nature-first visuals, AdMob slot and map-first navigation stay intact.
+
+- **No new staging backend, Supabase branch or subscription.** Existing paid BUKLOD backend remains authoritative. The staged build uses its existing publishable client key; no service key in the client.
+- **Do not deploy ranked SQL/service yet.** Real-time 1v1/3v3/5v5 authoritative service, private schema and concurrency tests are committed as source for the SAME eventual release, but `EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED=false` in the existing profile. No Diamond escrow, BP, QMP, payout or production RLS changes from Arena onboarding.
+- **Practice is accessible in the Season 2 map and Kingdom portal**, with guarded deep links and existing native local music/sound. Practice grants no permanent points or monetary outcomes.
+- Production code, live APK, live database and Google Play remain UNCHANGED. An Android Metro compilation, isolated server/PostgreSQL CI, signed compatible Android APK identity, first-view AdMob/nav performance checks and exact OTA source/channel receipts remain release gates. No artifact or actual OTA has been published by this source intake.
+- Approval of character graphics' visual fidelity and native device gameplay is still UNVERIFIED; generated procedural fullbody clips must not be misrepresented as studio-rigged animations.
+
+---
+
 Branch baseline: 44d07a65d5e19f4cfb8f70aaff4f9d24545eb097 (draft PR #1047). Status: DEV source, no EAS OTA/APK, no Supabase write, no production change.
 
 ## Integrated here
@@ -45,7 +57,7 @@ The /games/empire-arena route now checks session, profile/onboarding, consent, m
 
 Owner's four references supersede the earlier flower-heavy/feminine Kingdom scene: cinematic, mature classic-modern architecture in nature-rich landscapes; tropical coast and forests, waterfalls, alpine winter peaks, deep terrain and mist. The new original rendered environment panorama is 1536x864 WebP SHA256 `232c99e995fafde2e018a286f998a39917de32620ee502c8486ca58a1eabf8eb`, with low-RAM 960x540 SHA256 `5e7ed0af9568aa6f9cc8d6753015b3c8ac36fd4e070541d43f017d88975fcc95`. Both are compiled local assets in this DEV branch, no user download/third-party image service required. The 16:9 source composition remains intact on narrow screens. The original 13 character selection and earned rewards are preserved; art is an **environment** asset, not fake animated rig or backend ownership proof.
 
-**Arena excluded from premium Season 2 staging scope:** the portal button and deep-link mount require explicit `EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL=true`; default false. Existing experimental practice code remains in isolated DEV source only; do not include its multiplayer/diamonds requirements in visual-only candidate acceptance, and never imply multiplayer live.
+**SUPERSEDED by owner update above — prior Arena exclusion:** the portal button and deep-link mount require explicit `EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL=true`; default false. Existing experimental practice code remains in isolated DEV source only; do not include its multiplayer/diamonds requirements in visual-only candidate acceptance, and never imply multiplayer live.
 
 **Still NOT STAGING OTA READY:** this is a source/art preflight only; staging native runtime, active Expo/EAS channel/update group, exact destination bundle, ad-fill/navigation/codec regression and signed APK compatibility have not been verified. The World 5-stage visual authority and spendable BP/QMP/Character item RLS settlement lack isolated backend. Production/main/Play/OTA/Supabase unchanged. Physical visual verification waived by owner but unverified.
 
@@ -65,9 +77,9 @@ The Kingdom panoramic art now supports five direct-to-canonical-region selector 
 
 The `season2-premium-staging-ota-gate.mjs` checks only the original paid BUKLOD Supabase URL + publishable key and rejects service/secret keys, accidental redirects to another backend, or artifact backend mismatch. A valid signed EAS APK bound to that exact existing backend, targeted to `season2-genesis-preview` channel and runtime `2.0.0-genesis-preview`, plus objective native ad/nav/audio/privacy and no-unreleased-economy-writes evidence are still required before OTA-ready can be claimed. No new subscription has been purchased or requested. No production database writes or OTA publishing took place in this DEV source reconciliation.
 
-## Arena source isolation — final staging visual candidate scope
+## Historical Arena exclusion (SUPERSEDED; see owner update above)
 
-The approved instruction is **SKIP ARENA, INCLUDING BUNDLED CODE**. The candidate now removes new Expo Router `src/app/games/empire-arena.tsx`, the 13-hero Arena practice engine and experimental rendering/helper files, plus their app-specific tests and CI build dependency. The original experimental Arena remains preserved in its independent DEV branch/PR (#1053) and is not discarded from project history. No staging APK or OTA from THIS candidate is permitted to contain any Arena gameplay, combat/rank/diamond logic or button. The 13 canonical **Kingdom** character worlds, including their existing standalone mini-games and verified rewards remain intact. New source tests fail if an Arena route/engine is reintroduced.
+The PRIOR instruction (now superseded) was **SKIP ARENA, INCLUDING BUNDLED CODE**. The candidate now removes new Expo Router `src/app/games/empire-arena.tsx`, the 13-hero Arena practice engine and experimental rendering/helper files, plus their app-specific tests and CI build dependency. The original experimental Arena remains preserved in its independent DEV branch/PR (#1053) and is not discarded from project history. No staging APK or OTA from THIS candidate is permitted to contain any Arena gameplay, combat/rank/diamond logic or button. The 13 canonical **Kingdom** character worlds, including their existing standalone mini-games and verified rewards remain intact. New source tests fail if an Arena route/engine is reintroduced.
 
 The previous PR documentation describing an imported Arena engine is **superseded** for the staging visual candidate. No production/live service mutations. Signing and OTA readiness remain independently held.
 
