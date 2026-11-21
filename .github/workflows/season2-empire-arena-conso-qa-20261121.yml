@@ -4,6 +4,7 @@ on:
     branches:
       - integration/season2-empire-arena-conso-intake-20261121
       - integration/season2-genesis-full-conso-staging-20261121
+      - integration/genesis-arena-audio-feedback-20261122
   pull_request:
     branches:
       - dev/season2-map-first-conso-intake-20261121
@@ -44,6 +45,13 @@ jobs:
             tests/season2-premium-staging-ota-contract-20261121.test.mjs \
             tests/season2-android-bundle-compatibility-20261121.test.mjs \
             tests/season2-premium-ad-navigation-guard-20261121.test.mjs \
+            tests/arena-premium-voice-motion-terrain-20261121.test.mjs \
+            tests/arena-full-functionality-audit-20261121.test.mjs \
+            tests/arena-event-audio-graphics-20261121.test.mjs \
+            tests/arena-offline-solo-cpu-battle-20261121.test.mjs \
+            tests/arena-kingdom-game-premium-20261121.test.mjs \
+            tests/arena-protected-feature-lock-20261121.test.mjs \
+            tests/season2-arena-responsive-navigation-20261121.test.mjs \
             tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs \
             tests/empire-arena-v2-presentation-20261121.test.mjs \
             tests/empire-arena-v2-packaged-art-20261121.test.mjs \
