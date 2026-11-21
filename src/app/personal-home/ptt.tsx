@@ -42,6 +42,7 @@ import {
   refreshBuklodPttSetup,
   resolveBuklodPttRoute,
   saveBuklodPttUserSettings,
+  subscribeBuklodPttUserSettings,
   type BuklodPttUserSettings,
   type BuklodPttRouteMode,
   type BuklodPttSetupSnapshot,
@@ -315,6 +316,20 @@ export default function BuklodPttScreen() {
   useEffect(() => {
     setBuklodPttArmedKind(talkMode);
   }, [talkMode]);
+
+  useEffect(() => {
+    if (!userId) return;
+    // Notification Stop can happen outside the screen. Reflect that real,
+    // persisted change immediately rather than showing stale selected chips.
+    return subscribeBuklodPttUserSettings(userId, (saved) => {
+      setPreferences(saved);
+      setRouteMode(saved.routeMode);
+      setChannel(saved.channel);
+      const permitted = scopes.find(s => s.id === saved.scopeId);
+      if (permitted) setScope(permitted);
+      if (!saved.listening) setTalkMode(saved.talkMode);
+    });
+  }, [userId, scopes]);
 
   const effectiveRoute = useMemo(
     () =>
