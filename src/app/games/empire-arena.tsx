@@ -24,6 +24,7 @@ import {
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import { tryPlayRorkGameFeedback, playRorkSignatureSfx, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAssets';
+import { ArenaRankedSocket, isArenaRankedConfigured } from '@/features/games/empire/rankedClient';
 import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
 // @ts-ignore — source-only audio event filter; no network and no private data.
 import { drainArenaAudioEvents } from '@/features/games/empire/arenaPracticeAudio.mjs';
@@ -79,12 +80,13 @@ function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: bool
   </G>;
 }
 
-function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying }: {
-  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean;
+function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying, localSeat }: {
+  state: ArenaState; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean; localSeat: string;
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
   const [area, setArea] = useState({ width: 720, height: 360 });
-  const player = state.players.A0;
+  const player = state.players[localSeat];
+  const localTeam = player?.team ?? 'A';
   const camera = arenaCamera(state.w, state.h, player, area.width, area.height,
     state.w <= 160 ? 70 : state.w <= 240 ? 90 : 115);
   const effects = arenaVisualEffects(state.events, state.elapsed, 1100);
@@ -119,9 +121,9 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying 
       {state.towers.filter(life).map(t => <G key={t.id}><Rect x={t.x - 3} y={t.y - 3.5} width={6} height={7} rx={0.5} fill={t.team === 'A' ? '#497c9d' : '#a15f65'} stroke="#f9d68f" strokeWidth={0.5} /></G>)}
       {state.buildings.filter(life).map(b => <Rect key={b.id} x={b.x - 2.4} y={b.y - 2.4} width={4.8} height={4.8} rx={0.6} fill={b.team === 'A' ? '#6ebda9' : '#d48473'} stroke="#e8c989" strokeWidth={0.4} />)}
       {state.creatures.filter(life).map(c => <G key={c.id}><Circle cx={c.x} cy={c.y} r={3} fill="#b38ed6" stroke="#f2d6ff" strokeWidth={0.8} /><Circle cx={c.x} cy={c.y} r={1.1} fill="#f9e9b9" /></G>)}
-      {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === 'A'} />)}
-      {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== 'A0') onTarget(p.id); }}>
-        <ActorMark actor={p} friendly={p.team === 'A'} selected={p.id === selectedId || p.id === 'A0'} />
+      {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
+      {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
+        <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} />
 
       </G>)}
       {state.visualCue && state.elapsed - state.visualCue.time < 650 ? (() => {
@@ -173,7 +175,7 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying 
           ARENA_HERO_ART[p.hero as BuklodCharacterId];
         const size = clamp(area.width * 12 / camera.width, 47, 146);
         return <ArenaAnimatedActor key={'actor-' + p.id} actorId={p.id} image={image}
-          sprite={Boolean(fullbody || sprite)} friendly={p.team === 'A'} active={isPlaying}
+          sprite={Boolean(fullbody || sprite)} friendly={p.team === localTeam} active={isPlaying}
           moving={Boolean(p.lastMoveTick != null && p.lastMoveTick >= state.tick - 1)}
           x={(p.x - camera.x) * area.width / camera.width}
           y={(p.y - camera.y) * area.height / camera.height} size={size} />;
@@ -184,7 +186,7 @@ function ArenaField({ state, art, generatedArt, selectedId, onTarget, isPlaying 
         {lanes.map((fraction, i) => <Line key={'m-' + i} x1={4} y1={fraction * state.h} x2={state.w - 4} y2={fraction * state.h} stroke="#5f8491" strokeWidth={0.75} />)}
         <Rect x={camera.x} y={camera.y} width={camera.width} height={camera.height} fill="#c2e9fa" fillOpacity={0.12} stroke="#f1d48d" strokeWidth={0.9} />
         {Object.values(state.players).filter(life).map(p =>
-          <Circle key={'p-' + p.id} cx={p.x} cy={p.y} r={2.4} fill={p.team === 'A' ? '#7ffce8' : '#ff9f90'} />)}
+          <Circle key={'p-' + p.id} cx={p.x} cy={p.y} r={2.4} fill={p.team === localTeam ? '#7ffce8' : '#ff9f90'} />)}
         <Circle cx={player?.x ?? 17} cy={player?.y ?? state.h / 2} r={3} fill="#f7e090" stroke="#122329" strokeWidth={1} />
       </Svg>
     </View>
@@ -204,7 +206,9 @@ export default function EmpireArenaInApp() {
   const [hero, setHero] = useState<BuklodCharacterId>('phan');
   const [mode, setMode] = useState<Mode>('duel');
   const [mapId, setMapId] = useState<ArenaSceneId>('genesis_rift');
-  const [phase, setPhase] = useState<'menu' | 'playing' | 'paused' | 'result'>('menu');
+  const [phase, setPhase] = useState<'menu' | 'queued' | 'playing' | 'paused' | 'result'>('menu');
+  const [arenaKind, setArenaKind] = useState<'practice' | 'ranked'>('practice');
+  const [localSeat, setLocalSeat] = useState('A0');
   const [revision, setRevision] = useState(0);
   const [message, setMessage] = useState('Offline practice only • No BP, diamonds, XP, cash, or ranked effects.');
   const [target, setTarget] = useState<string | null>(null);
@@ -215,6 +219,7 @@ export default function EmpireArenaInApp() {
   const directionRef = useRef<Position>({ x: 0, y: 0 });
   const focused = useRef(false);
   const selected = useRef<string | null>(null);
+  const rankedRef = useRef<ArenaRankedSocket | null>(null);
   const lastAudioEventSeq = useRef(0);
   const { musicEnabled, toggleMusic } = useRorkGameAmbience(ARENA_SCENE_GAME_ID[mapId]);
 
@@ -242,6 +247,8 @@ export default function EmpireArenaInApp() {
     return () => {
       cancelled = true;
       focused.current = false;
+      rankedRef.current?.close();
+      rankedRef.current = null;
       directionRef.current = { x: 0, y: 0 };
       if (Platform.OS !== 'web') void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT).catch(() => undefined);
     };
@@ -272,6 +279,11 @@ export default function EmpireArenaInApp() {
       if (!focused.current || AppState.currentState !== 'active') return;
       const state = gameRef.current;
       if (!state || state.status !== 'active') return;
+      if (arenaKind === 'ranked') {
+        const d = directionRef.current;
+        if (Math.hypot(d.x, d.y) > 0.05) rankedRef.current?.sendAction({type:'move',dx:d.x,dy:d.y});
+        return;
+      }
       tick(state);
       const drained = drainArenaAudioEvents(state.events, lastAudioEventSeq.current,
         state.events[state.events.length - 1]?.seq ?? lastAudioEventSeq.current);
@@ -280,7 +292,7 @@ export default function EmpireArenaInApp() {
         tryPlayRorkGameFeedback(cue, cue === 'failure' || cue === 'success' ? 0.35 : 0.22);
       }
       const d = directionRef.current;
-      if (Math.hypot(d.x, d.y) > 0.05) command(state, 'A0', { type: 'move', dx: d.x, dy: d.y });
+      if (Math.hypot(d.x, d.y) > 0.05) command(state, localSeat, { type: 'move', dx: d.x, dy: d.y });
       setRevision(v => v + 1);
       if (state.status !== 'active') {
         directionRef.current = { x: 0, y: 0 };
@@ -288,7 +300,7 @@ export default function EmpireArenaInApp() {
       }
     }, STEP_MS as number);
     return () => clearInterval(timer);
-  }, [phase, sfxEnabled]);
+  }, [phase, sfxEnabled, arenaKind, localSeat]);
 
   const start = useCallback(() => {
     // Server-owned Diamond/item eligibility is NOT simulated with fabricated user data.
@@ -298,6 +310,8 @@ export default function EmpireArenaInApp() {
       snapshot: { characterLevel: 1, bpEligibleLevel: 1, itemVerifiedLevel: 1, diamonds: 0, verifiedItems: [] },
     });
     gameRef.current = state;
+    setLocalSeat('A0');
+    setArenaKind('practice');
     lastAudioEventSeq.current = state.events[state.events.length - 1]?.seq ?? 0;
     if (sfxEnabled) playRorkSignatureSfx(ARENA_SCENE_GAME_ID[mapId], 0.24);
     selected.current = null;
@@ -308,10 +322,80 @@ export default function EmpireArenaInApp() {
     setRevision(v => v + 1);
   }, [hero, mode, mapId, sfxEnabled]);
 
+  const startRanked = useCallback(async () => {
+    if (!user?.id || !isArenaRankedConfigured()) {
+      setMessage('Secure ranked backend is not available in this staging build.');
+      return;
+    }
+    rankedRef.current?.close();
+    const bridge = new ArenaRankedSocket({
+      onPacket(packet) {
+        if (packet.type === 'match_start' || packet.type === 'match_resume') {
+          const seat = typeof packet.slot === 'string' && /^[AB][0-4]$/.test(packet.slot)
+            ? packet.slot : null;
+          if (!seat || !packet.state || typeof packet.state !== 'object') return;
+          const match = packet.state as ArenaState;
+          if (!match.players?.[seat]) return;
+          gameRef.current = match;
+          setLocalSeat(seat);
+          lastAudioEventSeq.current = match.events?.at(-1)?.seq ?? 0;
+          setPhase('playing');
+          setMessage('Ranked match • server-authoritative actions • one earned Diamond at risk.');
+          setRevision(v => v + 1);
+        } else if (packet.type === 'snapshot' && packet.state && typeof packet.state === 'object') {
+          const match = packet.state as ArenaState;
+          if (gameRef.current && match.tick >= gameRef.current.tick) {
+            gameRef.current = match;
+            const latest = match.events?.at(-1)?.seq ?? lastAudioEventSeq.current;
+            const drain = drainArenaAudioEvents(match.events,lastAudioEventSeq.current,latest);
+            lastAudioEventSeq.current = drain.lastSeq;
+            if (sfxEnabled) for (const cue of drain.cues) tryPlayRorkGameFeedback(cue,0.22);
+            setRevision(v => v + 1);
+          }
+        } else if (packet.type === 'match_end' && packet.confirmed === true) {
+          if (gameRef.current) {
+            const team = packet.winner === 'A' || packet.winner === 'B' ? packet.winner : null;
+            gameRef.current.result = {winner:team, reason:'server_verified_ranked_outcome'};
+          }
+          setMessage('Ranked outcome confirmed by authoritative server and database.');
+          setPhase('result');
+          setRevision(v => v + 1);
+          rankedRef.current?.close();
+          rankedRef.current = null;
+        } else if (packet.type === 'match_aborted') {
+          setMessage('Match aborted by server. Reserved Diamond refunded by the backend.');
+          setPhase('result');
+          rankedRef.current?.close();
+          rankedRef.current = null;
+        } else if (packet.type === 'queued') {
+          setMessage('Waiting for verified opponents. Ranked match starts after server reserve.');
+        } else if (packet.type === 'error') {
+          setMessage('Arena server: ' + String(packet.code ?? 'unavailable').slice(0,48));
+        }
+      },
+      onError(message) { setMessage(message); }
+    });
+    rankedRef.current = bridge;
+    gameRef.current = null;
+    setArenaKind('ranked');
+    setPhase('queued');
+    setRevision(v => v + 1);
+    try { await bridge.connectAndQueue(mode,mapId,user.id); }
+    catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Ranked connection unavailable');
+      bridge.close();rankedRef.current=null;setPhase('menu');
+    }
+  }, [mode,mapId,user?.id,sfxEnabled]);
+
   const execute = useCallback((action: Record<string, unknown>, cue: 'impact' | 'collect' | 'move' = 'impact') => {
     const game = gameRef.current;
     if (!game || phase !== 'playing') return;
-    const worked = command(game, 'A0', action);
+    if (arenaKind === 'ranked') {
+      const accepted = rankedRef.current?.sendAction(action) ?? false;
+      if (!accepted) setMessage('Command not sent: Arena connection unavailable.');
+      return;
+    }
+    const worked = command(game, localSeat, action);
     if (worked) {
       const actionType = typeof action.type === 'string' ? action.type : '';
       if (['attack', 'skill', 'seal_attack', 'mine', 'loot', 'build'].includes(actionType)) {
@@ -328,20 +412,20 @@ export default function EmpireArenaInApp() {
     } else {
       setMessage('Action unavailable: get closer, check resources, level or cooldown.');
     }
-  }, [phase, sfxEnabled]);
+  }, [phase, sfxEnabled, arenaKind, localSeat]);
 
   const closestEnemy = (range: number) => {
     const game = gameRef.current;
-    const player = game?.players.A0;
+    const player = game?.players[localSeat];
     if (!game || !player) return undefined;
     const foes = [...Object.values(game.players), ...game.units, ...game.creatures, ...game.towers]
-      .filter(p => p.id !== 'A0' && life(p) && (p.team !== 'A' || !p.team));
+      .filter(p => p.id !== localSeat && life(p) && (p.team !== player.team || !p.team));
     const active = selected.current ? foes.find(p => p.id === selected.current && near(p, player) <= range) : undefined;
     return active ?? foes.filter(p => near(p, player) <= range).sort((a, b) => near(a, player) - near(b, player))[0];
   };
   const attack = () => execute({ type: 'attack', targetId: closestEnemy(5.5)?.id });
   const skill = (slot: 'primary' | 'secondary' | 'ultimate') => {
-    const game = gameRef.current, self = game?.players.A0;
+    const game = gameRef.current, self = game?.players[localSeat];
     if (!self) return;
     const enemy = closestEnemy(slot === 'ultimate' ? 10 : 8);
     const d = directionRef.current;
@@ -363,12 +447,12 @@ export default function EmpireArenaInApp() {
   const siege = () => execute({ type: 'seal_attack' });
   const collectLoot = () => {
     const match = gameRef.current;
-    const me = match?.players.A0;
+    const me = match?.players[localSeat];
     const nearby = arenaNearby(match, me);
     execute({ type: 'loot', id: nearby.loot?.id }, 'collect');
   };
   const buildTower = () => {
-    const match = gameRef.current, player = match?.players.A0;
+    const match = gameRef.current, player = match?.players[localSeat];
     if (!match || !player) return;
     const sign = player.team === 'A' ? 1 : -1;
     execute({ type: 'build', kind: 'watchtower',
@@ -381,10 +465,11 @@ export default function EmpireArenaInApp() {
     execute({ type, towerId: nearby.tower?.id }, 'collect');
   };
   const game = gameRef.current;
-  const me = game?.players.A0;
-  const opponent = game?.players.B0;
+  const me = game?.players[localSeat];
+  const ownTeam = me?.team ?? 'A';
+  const opponent = Object.values(game?.players ?? {}).find(p=>p.team && p.team !== ownTeam);
   const nearby = arenaNearby(game, me);
-  const resources = game?.teams.A.resources;
+  const resources = game?.teams[ownTeam].resources;
   const media = getRorkGameMedia(ARENA_SCENE_GAME_ID[mapId]);
   void revision; // Intentionally render every bounded fixed simulation step.
 
@@ -395,7 +480,7 @@ export default function EmpireArenaInApp() {
       <Image source={ARENA_GENERATED_ART['hero:' + hero] || ARENA_HERO_ART[hero]} style={styles.portrait} />
       <View style={styles.topText}>
         <Text numberOfLines={1} style={styles.header}>BUKLOD EMPIRE • ARENA</Text>
-        <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {phase === 'playing' ? 'PRACTICE LIVE' : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
+        <Text style={styles.sub}>{CHARACTER_DISPLAY_NAME[hero]} • {phase === 'playing' ? (arenaKind === 'ranked' ? 'RANKED LIVE' : 'PRACTICE LIVE') : phase.toUpperCase()} • {ARENA_VISUAL_BASELINE}</Text>
       </View>
       <Pressable onPress={toggleMusic} accessibilityRole="button" accessibilityLabel={musicEnabled ? 'Mute Arena music' : 'Enable Arena music'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'} size={17} color="#f9df9e" />
@@ -403,26 +488,36 @@ export default function EmpireArenaInApp() {
       <Pressable onPress={() => setSfxEnabled(value => !value)} accessibilityRole="button" accessibilityLabel={sfxEnabled ? 'Mute Arena effects' : 'Enable Arena effects'} style={styles.audioToggle}>
         <MaterialCommunityIcons name={sfxEnabled ? 'volume-high' : 'volume-off'} size={17} color="#f9df9e" />
       </Pressable>
-      {phase === 'playing' ? <Control icon="pause" title="PAUSE" onPress={() => setPhase('paused')} /> : phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : null}
+      {phase === 'playing' && arenaKind === 'practice' ? <Control icon="pause" title="PAUSE" onPress={() => setPhase('paused')} /> : phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : null}
     </View>
 
     {phase === 'menu' ? <View style={styles.menu}>
       <Text style={styles.title}>GENESIS WAR ARENA</Text>
-      <Text style={styles.description}>Your official BUKLOD character enters this Arena inside the same app. Choose a battlefield and play an offline training match. Live ranked matchmaking and account-owned gear are disabled until trusted backend verification.</Text>
+      <Text style={styles.description}>Play offline practice without affecting BP or Diamonds. Ranked PvP is enabled only on staging builds connected to a verified server with earned Diamond stakes.</Text>
       <Text style={styles.groupLabel}>BATTLE MODE</Text>
       <View style={styles.options}>{MODES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMode(m)} style={[styles.option, mode === m && styles.optionActive]}><Text style={styles.optionText}>{MODE_LABELS[m]}</Text></Pressable>)}</View>
       <Text style={styles.groupLabel}>BATTLEFIELD</Text>
       <View style={styles.options}>{SCENES.map(m => <Pressable key={m} accessibilityRole="button" onPress={() => setMapId(m)} style={[styles.option, mapId === m && styles.optionActive]}><Text style={styles.optionText}>{ARENA_MAPS[m].name}</Text></Pressable>)}</View>
       <Pressable accessibilityRole="button" onPress={start} style={styles.start}><MaterialCommunityIcons name="sword-cross" color="#102b31" size={20} /><Text style={styles.startText}>ENTER PRACTICE ARENA</Text></Pressable>
+      {isArenaRankedConfigured() ? <Pressable accessibilityRole="button" onPress={() => void startRanked()}
+        style={styles.start}><MaterialCommunityIcons name="shield-sword" color="#102b31" size={20} /><Text style={styles.startText}>SEARCH RANKED OPPONENTS</Text></Pressable>
+        : <Text style={styles.groupLabel}>Ranked PvP: awaiting trusted staging server and verified Diamond ledger</Text>}
     </View> : null}
 
-    {game && phase !== 'menu' ? <View style={styles.stage}>
+    {phase === 'queued' ? <View style={styles.menu}>
+      <Text style={styles.title}>RANKED MATCHMAKING</Text>
+      <Text style={styles.description}>{message}</Text>
+      <Pressable accessibilityRole="button" onPress={() => {
+        rankedRef.current?.leave();rankedRef.current=null;setPhase('menu');setArenaKind('practice');
+      }} style={styles.start}><Text style={styles.startText}>CANCEL QUEUE</Text></Pressable>
+    </View> : null}
+    {game && phase !== 'menu' && phase !== 'queued' ? <View style={styles.stage}>
       <View style={styles.hud}>
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>
         <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text>
         <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text>
       </View>
-      <ArenaField state={game} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
+      <ArenaField state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
       <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View>
       {phase === 'playing' ? <>
         <View style={styles.joystick} {...joystick.panHandlers}>
@@ -456,10 +551,10 @@ export default function EmpireArenaInApp() {
           <Text style={styles.tacticsHint}>Siege unlocks after enemy towers fall. Build near home and repair allied towers. No real rewards.</Text>
         </View> : null}
       </> : <View style={styles.overlay}>
-        <Text style={styles.overlayTitle}>{phase === 'paused' ? 'PAUSED' : game.result?.winner === 'A' ? 'VICTORY' : game.result?.winner === 'B' ? 'DEFEAT' : 'MATCH ENDED'}</Text>
-        <Text style={styles.description}>{phase === 'paused' ? 'Match time is frozen. Return to gameplay or abandon this practice.' : 'Offline practice only. No BP, diamonds, rank or inventory changes.'}</Text>
+        <Text style={styles.overlayTitle}>{phase === 'paused' ? 'PAUSED' : game.result?.winner === ownTeam ? 'VICTORY' : game.result?.winner && game.result.winner !== ownTeam ? 'DEFEAT' : 'MATCH ENDED'}</Text>
+        <Text style={styles.description}>{phase === 'paused' ? 'Match time is frozen. Return to gameplay or abandon this practice.' : arenaKind === 'ranked' ? 'Ranked outcome is settled by the server only. No BUKLOD BP or QMP is minted.' : 'Offline practice only. No BP, diamonds, rank or inventory changes.'}</Text>
         <View style={styles.options}>
-          {phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : <Control icon="restart" title="REPLAY" onPress={start} />}
+          {phase === 'paused' ? <Control icon="play" title="RESUME" onPress={() => setPhase('playing')} /> : arenaKind === 'ranked' ? <Control icon="home-map-marker" title="MENU" onPress={() => { gameRef.current=null;setArenaKind('practice');setPhase('menu'); }} /> : <Control icon="restart" title="REPLAY" onPress={start} />}
           <Control icon="home-map-marker" title="EXIT" onPress={() => { gameRef.current = null; setPhase('menu'); }} />
         </View>
       </View>}
