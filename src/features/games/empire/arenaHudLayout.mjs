@@ -10,10 +10,11 @@ export const ARENA_HUD_DEFAULT = Object.freeze({
   primary:  { x: 0.802, y: 0.65 },
   secondary:{ x: 0.835, y: 0.35 },
   ultimate: { x: 0.926, y: 0.32 },
-  mine:     { x: 0.505, y: 0.79 },
-  bank:     { x: 0.565, y: 0.79 },
-  train:    { x: 0.625, y: 0.79 },
-  tactics:  { x: 0.685, y: 0.79 },
+  // Shallow tactical arc keeps contextual tools easy to find but not in a row.
+  mine:     { x: 0.450, y: 0.80 },
+  bank:     { x: 0.520, y: 0.72 },
+  train:    { x: 0.590, y: 0.72 },
+  tactics:  { x: 0.660, y: 0.80 },
 });
 export const ARENA_HUD_KEYS = Object.freeze(Object.keys(ARENA_HUD_DEFAULT));
 
