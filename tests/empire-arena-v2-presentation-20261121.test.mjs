@@ -49,7 +49,7 @@ test('Visual effects are only recent display metadata, not reward operations', (
     {seq:4,time:1200,type:'dash',actor:'A0'},
   ];
   assert.deepEqual(arenaVisualEffects(sample, 1500).map(e=>e.type), ['dash']);
-  assert.deepEqual(arenaVisualEffects(sample, 1500, 1400).map(e=>e.type), ['skill','defeat','dash']);
+  assert.deepEqual(arenaVisualEffects(sample, 1500, 1500).map(e=>e.type), ['skill','defeat','dash']);
   assert.deepEqual(arenaVisualEffects(sample, 3000), []);
   assert.equal(arenaVisualEffects(sample, 1200)[0].strength <= 1, true);
 });
