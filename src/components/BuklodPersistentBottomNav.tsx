@@ -18,6 +18,7 @@ import {
 } from 'expo-router';
 
 import BuklodPressable from '@/components/BuklodPressable';
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 import {
   buklodInstantNavigate,
 } from '@/lib/buklodInstantNavigation';
@@ -62,7 +63,7 @@ const BASE_ITEMS: NavItem[] = [
 ];
 
 function routeKey(pathname: string): NavKey | null {
-  if (pathname === '/hub') return 'home';
+  if (pathname === '/hub' || pathname === '/buklod-map') return 'home';
   if (pathname === '/clusters') return 'cluster';
   if (pathname === '/buklod' || pathname.startsWith('/post/')) return 'community';
   if (pathname === '/messages' || pathname.startsWith('/messages/')) return 'connect';
@@ -144,7 +145,11 @@ BuklodPersistentBottomNav() {
 
   const { theme } = useBuklodTheme();
 
-  const items = BASE_ITEMS;
+  // Season 2 uses the owner-approved five-slot order. Season 1 keeps its original order.
+  const genesisNav = isGenesisPreviewBuild();
+  const items = genesisNav
+    ? [BASE_ITEMS[0],BASE_ITEMS[2],BASE_ITEMS[3],BASE_ITEMS[1],BASE_ITEMS[4]]
+    : BASE_ITEMS;
 
   /*
    * PATCH_172E_GLOBAL_BOTTOM_NAV
@@ -233,6 +238,7 @@ BuklodPersistentBottomNav() {
       ]}
     >
       {items.map(item => {
+        const displayLabel = genesisNav && item.key === 'community' ? 'Community' : item.label;
         const selected =
           active === item.key;
 
@@ -240,8 +246,8 @@ BuklodPersistentBottomNav() {
           <BuklodPressable
             key={item.key}
             accessibilityRole="button"
-            accessibilityLabel={item.label}
-            accessibilityHint={`Open ${item.label}`}
+            accessibilityLabel={displayLabel}
+            accessibilityHint={`Open ${displayLabel}`}
             instant
             onPressIn={() => {
               // Visual response begins on touch-down; navigation remains release-only.
@@ -290,7 +296,7 @@ BuklodPersistentBottomNav() {
 
 
             </View>
-            <Text allowFontScaling numberOfLines={2} style={{ fontSize: 12, lineHeight: 16, textAlign: 'center', color: selected ? theme.navIconActive : theme.navIconInactive }}>{item.label}</Text>
+            <Text allowFontScaling numberOfLines={2} style={{ fontSize: 12, lineHeight: 16, textAlign: 'center', color: selected ? theme.navIconActive : theme.navIconInactive }}>{displayLabel}</Text>
           </BuklodPressable>
         );
       })}

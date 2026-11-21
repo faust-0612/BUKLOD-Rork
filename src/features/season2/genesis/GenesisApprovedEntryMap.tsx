@@ -35,7 +35,9 @@ export default function GenesisApprovedEntryMap({
   const {width,height}=useWindowDimensions();
   const landscape=width>height&&height<540;
   const mapWidth=Math.max(270,Math.min((availableWidth??width)-20,900));
-  const mapHeight=landscape?Math.round(mapWidth*.64):Math.round(Math.max(392,Math.min(460,mapWidth*1.18)));
+  // Reserve first-view room for the large off-map guide and the real bottom navigation.
+  // Nine 44dp one-tap destinations still fit the five portrait landmark rows.
+  const mapHeight=landscape?Math.round(mapWidth*.64):Math.round(Math.max(315,Math.min(400,height*.43)));
   const badgeWidth=landscape?Math.min(138,Math.floor(mapWidth/3)-8):Math.min(146,Math.floor(mapWidth/2)-16);
   const [reduceMotion,setReduceMotion]=useState(true);
   const glow=useRef(new Animated.Value(.42)).current;
