@@ -78,6 +78,6 @@ test('every pilot inherits existing approved character-scene art and music witho
     assert.ok(media.includes(c.stationId.split('-')[0]+':'));
   }
   assert.match(media,/PILOT_PARENT/);
-  assert.match(audio,/All 39 mini-games must yield to ads/);
+  assert.match(audio,/All 39 focused/);
   assert.match(stage,/KingdomCinematicScene/);
 });
