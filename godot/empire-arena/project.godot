@@ -1,0 +1,21 @@
+; BUKLOD Empire Arena — embedded Godot Android 4.7.2 main pack.
+config_version=5
+
+[application]
+config/name="BUKLOD Empire Arena"
+run/main_scene="res://scenes/Arena.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+
+[physics]
+2d/default_gravity=0.0
