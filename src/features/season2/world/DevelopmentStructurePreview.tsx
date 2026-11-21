@@ -33,7 +33,7 @@ export default function DevelopmentStructurePreview({track,level,stage,mastery=0
  const wood=s>=1,frame=s>=2,walls=s>=3,finished=s>=4;
  const isHouse=track==='house',isVillage=track==='cluster';
  const growth=l>=4,large=l>=7,premium=l>=9;
- const features=visualDevelopmentFeatures(track,l,s);
+ const features=visualDevelopmentFeatures(track,l,s,mastery);
  const hasTier=(n:number)=>features.length>=n;
  return <View pointerEvents="none" style={StyleSheet.absoluteFillObject} accessible={false}>
   <Svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">

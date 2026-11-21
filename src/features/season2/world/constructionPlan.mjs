@@ -37,10 +37,9 @@ export function constructionPlan(track,level,stage,mastery=0) {
   });
 }
 export function nextMilestone(level,stage,mastery=0) {
-  const l=majorLevel(level),s=constructionStage(stage);
-  if(s<4)return {level:l,stage:s+1,mastery:0};
+  const l=majorLevel(level),s=constructionStage(stage),m=safeMastery(mastery);
+  if(s<4)return {level:l,stage:s+1,mastery:l===10?m:0};
   if(l<10)return {level:l+1,stage:0,mastery:0};
-  const m=Number.isFinite(Number(mastery))?Math.max(0,Math.trunc(Number(mastery))):0;
   return {level:10,stage:0,mastery:Math.min(Number.MAX_SAFE_INTEGER,m+1)};
 }
 export function safeCosmetics(value) {
@@ -59,9 +58,10 @@ export function safeCosmetics(value) {
  * The stage 0-3 blueprint only shows previous-tier amenities; stage 4 adds the
  * new tier. This is deliberately a DRAWING, never a claim about earned inventory.
  */
-export function visualDevelopmentFeatures(track,level,stage) {
+export function visualDevelopmentFeatures(track,level,stage,mastery=0) {
  if(!TRACKS.includes(track))throw new Error('Unknown construction track');
- const count=Math.max(0,majorLevel(level)-(constructionStage(stage)===4?0:1));
+ const l=majorLevel(level),s=constructionStage(stage);
+ const count=Math.max(0,l-(s===4||(l===10&&safeMastery(mastery)>0)?0:1));
  return Object.freeze(Array.from({length:count},(_,i)=>track+'-amenity-'+String(i+1).padStart(2,'0')));
 }
 

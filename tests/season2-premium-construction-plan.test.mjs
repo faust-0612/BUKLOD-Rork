@@ -19,6 +19,8 @@ test('five stages per major level lead to unbounded mastery, without granting an
  assert.deepEqual(nextMilestone(1,3),{level:1,stage:4,mastery:0});
  assert.deepEqual(nextMilestone(1,4),{level:2,stage:0,mastery:0});
  assert.deepEqual(nextMilestone(10,4,12),{level:10,stage:0,mastery:13});
+ assert.deepEqual(nextMilestone(10,0,13),{level:10,stage:1,mastery:13});
+ assert.equal(visualDevelopmentFeatures('house',10,0,13).length,10);
 });
 test('corrupt or foreign cosmetic storage is normalized',()=>{
  assert.deepEqual(safeCosmetics({finish:'malicious',roof:'none',ground:null}),{finish:'stone',roof:'gable',ground:'grass',fence:'wood',windows:'classic',lights:'warm'});

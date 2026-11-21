@@ -29,6 +29,8 @@ test('all three estate tracks have five stages and harder but bounded Mastery mi
   }
  }
  assert.deepEqual(nextMilestone(10,4,99),{level:10,stage:0,mastery:100});
+ assert.deepEqual(nextMilestone(10,0,100),{level:10,stage:1,mastery:100});
+ assert.equal(visualDevelopmentFeatures('lot',10,0,100).length,10);
  assert.equal(safeMastery(Number.MAX_SAFE_INTEGER),Number.MAX_SAFE_INTEGER);
 });
 test('six-part customization rejects unknown values and retains approved styles',()=>{
