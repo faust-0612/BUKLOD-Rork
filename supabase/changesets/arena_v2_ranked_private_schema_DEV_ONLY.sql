@@ -67,17 +67,31 @@ GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA buklod_arena TO servic
 GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA buklod_arena TO service_role;
 
 -- The server obtains account snapshot, not an app-supplied balance/level claim.
-CREATE OR REPLACE FUNCTION public.arena_v2_ranked_profile(p_user uuid)
+CREATE OR REPLACE FUNCTION public.arena_v2_ranked_profile(p_user uuid,p_hero text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, buklod_arena, public
 AS $fn$
-DECLARE v_diamonds integer; v_rating integer;
+DECLARE v_diamonds integer; v_rating integer; v_item_level integer:=1;
+  v_current integer; v_count integer;
 BEGIN
-  IF p_user IS NULL THEN RAISE EXCEPTION 'invalid_user'; END IF;
+  IF p_user IS NULL OR p_hero NOT IN
+    ('phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
+    THEN RAISE EXCEPTION 'invalid_user_or_hero'; END IF;
   SELECT balance INTO v_diamonds FROM buklod_arena.diamond_wallets WHERE user_id=p_user;
   SELECT rating INTO v_rating FROM buklod_arena.ratings WHERE user_id=p_user;
+  -- Canonical collectible proof: exactly 5 redeemed items per level,
+  -- with no skipping of any preceding level, up to 20.
+  FOR v_current IN 2..20 LOOP
+    SELECT count(DISTINCT item_index) INTO v_count
+    FROM public.buklod_character_collectible_state
+    WHERE user_id=p_user AND character_id=p_hero AND level_no=v_current
+      AND item_index BETWEEN 1 AND 5 AND redeemed_at IS NOT NULL;
+    EXIT WHEN v_count<5;
+    v_item_level:=v_current;
+  END LOOP;
   RETURN jsonb_build_object('user_id',p_user,'diamonds',coalesce(v_diamonds,0),
-    'rating',coalesce(v_rating,1000),'eligible',coalesce(v_diamonds,0)>0);
+    'rating',coalesce(v_rating,1000),'eligible',coalesce(v_diamonds,0)>0,
+    'verified_item_level',v_item_level);
 END; $fn$;
 
 -- One nontransferable Diamond per trusted, already claimed BP event;
@@ -252,13 +266,13 @@ END; $fn$;
 
 -- Absolute client deny: only trusted backend (service_role) can call privileged
 -- public RPCs, even though PostgreSQL defaults to EXECUTE for PUBLIC.
-REVOKE ALL ON FUNCTION public.arena_v2_ranked_profile(uuid) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.arena_v2_ranked_profile(uuid,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_award_verified_participation(uuid) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_open(uuid,text,text,jsonb) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_settle(uuid,text,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_abort(uuid,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.arena_v2_ranked_expire() FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_profile(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_profile(uuid,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_award_verified_participation(uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_open(uuid,text,text,jsonb) TO service_role;
 GRANT EXECUTE ON FUNCTION public.arena_v2_ranked_settle(uuid,text,text) TO service_role;
