@@ -766,7 +766,7 @@ function EmpireArenaInApp() {
       {game.solo ? <View style={styles.soloScore}>
         <Text style={styles.soloScoreText}>YOU {game.solo.wins.A} — {game.solo.wins.B} CPU</Text>
         <Text style={styles.soloScoreText}>ROUND {game.solo.round} • {Math.max(0,Math.ceil((SOLO_ROUND_MS-(game.elapsed-game.solo.roundStartedAt))/1000))}s</Text>
-        <Text style={styles.soloCpuName}>{CHARACTER_DISPLAY_NAME[game.solo.opponent as BuklodCharacterId]} • {SOLO_CPU_DIFFICULTIES[game.solo.difficulty]?.label} • {Math.ceil(game.players.B0?.hp||0)} HP</Text>
+        <Text style={styles.soloCpuName}>{CHARACTER_DISPLAY_NAME[game.solo.opponent as BuklodCharacterId]} • {SOLO_CPU_DIFFICULTIES[game.solo.difficulty as keyof typeof SOLO_CPU_DIFFICULTIES]?.label} • {Math.ceil(game.players.B0?.hp||0)} HP</Text>
       </View> : null}
       <View style={styles.hud}>
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>
