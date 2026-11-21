@@ -170,10 +170,11 @@ export default function BuklodNavSafeShell({
 
   // A single compact World portal replaces legacy persistent nav in staging.
   // Never overlap an active conversation, immersive reel, keyboard or auth gate.
+  const mapReturnRoots = ['/buklod','/messages','/hub','/me','/learn','/clusters','/organizations',
+    '/games','/points','/bayanihan','/bible','/life','/notifications','/profile',
+    '/personal-home','/settings','/support','/community-contribution','/children-stories'];
   const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !keyboardVisible &&
-    ['/buklod','/messages','/clusters','/me','/games','/learn','/bible',
-      '/bayanihan','/profile/focus-apps','/personal-home','/support/live',
-      '/profile/buklod-health','/community-contribution'].includes(normalizedPath);
+    normalizedPath !== '/buklod-map' && mapReturnRoots.some(route => normalizedPath === route || normalizedPath.startsWith(route + '/'));
 
   return (
     <View style={styles.root}>
@@ -202,8 +203,8 @@ export default function BuklodNavSafeShell({
       ) : null}
 
       {worldReturnEligible ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="Return to Genesis World map"
-          onPress={() => router.replace('/hub' as any)}
+        <Pressable accessibilityRole="button" accessibilityLabel="Return to BUKLOD Map"
+          onPress={() => router.replace('/buklod-map' as any)}
           hitSlop={8} style={[styles.worldReturn,{top:Math.max(insets.top,5)+5}]}>
           <MaterialCommunityIcons name="earth" size={20} color="#F7D8A2"/>
           <MaterialCommunityIcons name="arrow-left" size={15} color="#F7D8A2"/>

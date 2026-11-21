@@ -1,0 +1,83 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-map-first-conso-intake-20261121.json",
+  "objective": "Additive DEV-only map-first Genesis preview from held consolidated Season 2 source; preserve production Wall, AdMob, original routes, permissions and no writes.",
+  "baseRef": "44d07a65d5e19f4cfb8f70aaff4f9d24545eb097",
+  "productionBaselineEvidence": "GitHub main baseline observed; production Play/OTA artifact not independently verified. This commit is source-only; no prod, EAS, Supabase, or OTA modification.",
+  "chosenApproach": "Only forward-port pure map entry, 8 governed districts, music/animation and map-only return from divergent map branch. Keep approved Valley illustrated WebP in explicit asset-import hold; never include OTA publisher or activate ledger/backend.",
+  "riskAreas": [
+    "arena-multiplayer",
+    "asset-licensing",
+    "backend-isolation",
+    "earned-only-bp",
+    "finance-qmp",
+    "first-view-admob",
+    "navigation-auth",
+    "navigation-scroll",
+    "staging-native-runtime"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Register a staging-only map route without removing legacy or admin router gates.",
+      "preservedBehaviors": [
+        "Production/non-Genesis resolves to original Public Wall; maintenance, compliance, pilot and mandatory update continue to guard all routes."
+      ],
+      "tests": [
+        "tests/season2-map-first-conso-intake-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Preview-only first view is one map; suppress redundant bars and keep one scoped return affordance.",
+      "preservedBehaviors": [
+        "Production nav unaffected; legacy routes and focus-app permissions preserved; no immersion/call/keyboard overlay."
+      ],
+      "tests": [
+        "tests/season2-map-first-conso-intake-20261121.test.mjs",
+        "tests/genesis-world-navigation-regression-20261121.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-map-first-conso-intake-20261121.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/buklod-map.tsx",
+    "src/features/season2/genesis/genesisMapDistricts.ts",
+    "src/features/season2/genesis/GenesisMapOrbit.tsx",
+    "scripts/genesis-map-reconstruction-preflight.mjs",
+    "src/app/index.tsx",
+    "src/app/_layout.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "src/components/BuklodNavSafeShell.tsx",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-map-first-conso-intake-20261121.test.mjs",
+    "docs/season2/SEASON2_MAP_ASSET_RELEASE_HOLD_20261121.md",
+    ".buklod/scopes/season2-map-first-conso-intake-20261121.json"
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "acceptanceChecks": [
+    "Source gates and exact-head CI; regressions on existing ads/fast navigation.",
+    "Import actual user-supplied Welcoming Valley WebP and map precise 14 hotspots; source preview currently 8-node constellation fallback.",
+    "No native/Supabase changes or OTA publisher change. Premium asset bytes/licensing, 13 unique rigs, Arena true multiplayer, isolated economy ledger, signed Genesis native build remain hard HOLD.",
+    "Physical device visual check waived but unverified; signed Android/native/AdMob QA not waived.",
+    "No Stage→Production release until 2026-12-06 and authorization."
+  ],
+  "selectionRationale": "Owner requires map-first Season 2; leverage current native Expo image, SVG, audio, and fast tab persistence without changing production-branch behavior. Ad/user permissions preserved; new visual fallback is not falsely called final premium art.",
+  "preserveBehaviors": [
+    "Non-Genesis production and staging legacy routes retain original hub layout, old entry and old bar because guard is preview-only.",
+    "Signed-in Genesis entry respects auth, compliance, forced update, maintenance and PUBLIC-scope reset before entering World.",
+    "Every existing feature route remains in the World directory; privileged permissions remain in original Focus Apps and route guards.",
+    "First-view Home AdMob, second native sponsor, community sponsor and bottom banner remain mounted in Genesis; no false forced ad success.",
+    "No BP, QMP, Diamond, ownership or Marketplace server mutation; World preview labeled non-live.",
+    "Music starts only when opted in and foreground/focused; stops on audio focus interruption, navigation and background.",
+    "Live Play APK, production EAS/OTA and existing Supabase unchanged."
+  ],
+  "alternativeApproaches": [
+    "Directly whole-merge all open Market, Government, Arena and native PRs — rejected because of unsafe overlaps, staging/runtime divergence and DB migrations.",
+    "Replace live first view with cheap schematic green map — rejected because the owner requires premium illustrated World art.",
+    "Activate the proposed World QMP spending formula in production — rejected because the canonical Finance policy and migration gates are not reconciled."
+  ]
+}

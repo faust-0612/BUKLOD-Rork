@@ -5,7 +5,7 @@ const src=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('preview-only auth entry selects World, regular production entry stays the Public Wall',()=>{
   const boot=src('src/app/index.tsx');
-  assert.match(boot,/href=\{isGenesisPreviewBuild\(\) \? '\/\(tabs\)\/hub' : '\/\(tabs\)\/buklod'\}/);
+  assert.match(boot,/href=\{isGenesisPreviewBuild\(\) \? '\/buklod-map' : '\/\(tabs\)\/buklod'\}/);
   assert.match(boot,/requiresAcceptance/);
   assert.match(boot,/selectScope/);
   assert.match(boot,/bootReady/);
@@ -25,7 +25,7 @@ test('no legacy persistent navigation bar in Genesis and a compact return map ac
   assert.match(shell,/const genesisWorld = isGenesisPreviewBuild\(\)/);
   assert.match(shell,/!genesisWorld && !immersiveIgpat && !immersiveConversation/);
   assert.match(shell,/worldReturnEligible/);
-  assert.match(shell,/router\.replace\('\/hub'/);
+  assert.match(shell,/router\.replace\('\/buklod-map'/);
   assert.match(shell,/keyboardVisible/);
 });
 test('map-first future assets cannot falsely advertise active purchases or user rewards',()=>{
