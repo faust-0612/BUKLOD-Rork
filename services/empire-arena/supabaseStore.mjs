@@ -89,6 +89,9 @@ export class SupabaseArenaStore {
   async expire(){
     return await this.rpc('arena_v2_ranked_expire',{});
   }
+  async recover(){
+    return await this.rpc('arena_v2_ranked_recover_orphans',{});
+  }
 }
 
 export function deriveVerifiedArenaSnapshot(selection,profile){
