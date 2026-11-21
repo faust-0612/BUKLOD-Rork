@@ -1,0 +1,96 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/arena-premium-hud-20261121.json",
+  "objective": "BUKLOD Empire Arena premium native gameplay HUD, readable Genesis map graphics and 13 canon-identity actor visual feedback with customizable, ergonomically arranged round touch controls, bounded zoom, safe scene layout and per-device controller preferences. Offline staging practice only.",
+  "baseRef": "dev/season2-map-first-conso-intake-20261121",
+  "chosenApproach": "Use existing repo-tracked BUKLOD hero pose WebP, scene plates and licensed local sound packs, add original gradient+SVG-native combat sigils; keep canonical Arena simulation/server and currency authoritative, no new paid services, native module changes, wallet grants, or production OTA.",
+  "riskAreas": [
+    "android-landscape-fit",
+    "gesture-containment",
+    "admob-navigation",
+    "touch-hitboxes",
+    "performance-3g",
+    "hero-animation",
+    "show-faith",
+    "account-local-preferences",
+    "ranked-server-authority",
+    "economy-protection",
+    "audio-focus",
+    "asset-rights",
+    "no-production-writes",
+    "staging-RC"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/arena-premium-hud-20261121.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/components/BuklodNavSafeShell.tsx",
+    "src/app/games/empire-arena.tsx",
+    "src/features/games/empire/ArenaAnimatedActor.tsx",
+    "src/features/games/empire/ArenaCombatHud.tsx",
+    "src/features/games/empire/arenaHudLayout.mjs",
+    "tests/season2-arena-responsive-navigation-20261121.test.mjs",
+    "tests/arena-kingdom-game-premium-20261121.test.mjs",
+    "tests/arena-protected-feature-lock-20261121.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/season2-arena-responsive-navigation-20261121.test.mjs",
+    "tests/arena-kingdom-game-premium-20261121.test.mjs",
+    "tests/arena-protected-feature-lock-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Improve Arena native rendering and in-app adaptive layout only, without changing global gameplay authority.",
+      "preservedBehaviors": [
+        "Existing auth, updates, local gameplay and all BUKLOD feature screens remain available; no new service or backend dependency."
+      ],
+      "tests": [
+        "tests/arena-kingdom-game-premium-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Suppress legacy global bottom navigation, ad strip and floating map return only inside the immersive Arena route.",
+      "preservedBehaviors": [
+        "Production and every non-Arena screen retain their existing navigation, ads, and consent/update/authentication gates."
+      ],
+      "tests": [
+        "tests/season2-arena-responsive-navigation-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Present the authoritative 13 BUKLOD characters and offline Arena mechanics with richer battle visual feedback and ergonomic controls.",
+      "preservedBehaviors": [
+        "Canonical hero identities, existing 13-character item eligibility, original simulation, non-faith parity and no client-created BP, QMP, Diamond or inventory gains."
+      ],
+      "tests": [
+        "tests/arena-kingdom-game-premium-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Select a specific branch-only V2 scope manifest in existing Engineering Accountability CI without bypassing other feature protections.",
+      "preservedBehaviors": [
+        "Scope allowlist and changed-proof tests stay mandatory, unchanged production workflows and release approval still required."
+      ],
+      "tests": [
+        "tests/arena-protected-feature-lock-20261121.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Existing signed green-B staging build/package and Expo update runtime remain unchanged; no OTA.",
+    "No production baseline, RLS, AdMob rendering logic, or paid wallet changes.",
+    "Landscape screen transitions return to normal BUKLOD orientation; audio follows existing focus controls."
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "staging-source-candidate-hold",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "productionBaselineEvidence": "Compared source with existing consolidated Season 2 map-first DEV PR base; the current Google Play/live production build has not been re-verified in this workstream. No production calls or migrations performed.",
+  "acceptanceChecks": [
+    "Run the focused Node controls/camera/presentation tests and exact protected-scope CI.",
+    "Run Android Metro export and TypeScript compile on the exact PR head.",
+    "Staging physical landscape/pinch/tap/joystick, AdMob and 5v5 performance required before RC, and exact runtime OTA receipt before release."
+  ]
+}
