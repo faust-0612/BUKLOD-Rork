@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
-  "objective": "Embed Arena V2 offline practice into the existing BUKLOD Main app, reuse canonical combat and art, and version generated artwork into the native visual baseline without owner-side downloading.",
+  "objective": "Embed Arena V2 offline practice into the existing BUKLOD Main app, reuse canonical combat and art, and version generated artwork into the native visual baseline without owner-side downloading. Add isolated server-authoritative real-time ranked backend without enabling client-owned match decisions or touching production.",
   "baseRef": "dev/empire-arena-v2-connected-world-preview-20261121",
   "productionBaselineEvidence": "Only GitHub source and the existing DEV Arena V2 simulation inspected. No production APK, OTA or server artifact claimed verified.",
   "productionChange": false,
@@ -33,7 +33,8 @@
     "Arena has source-owned 2.5D breathing/walking portrait motion fallback for 13 canonical identities; genuine rigged combat sprite art is a separately pending fidelity gate.",
     "Arena reuses existing packaged CC0 premium Kingdom orchestration and local WAV SFX with per-screen music/effects toggles, bounded event cues, and focus-scoped release.",
     "All 13 canonical portraits have source-owned animated WebP 12-frame 2.5D avatar badges, generated automatically by DEV CI and committed by SHA to app registry. Not full-body combat sprites.",
-    "Procedurally matte and composite each of the 13 canonical full-body source illustrations into four transparent eight-frame WebP states: idle, walk, attack and skill. Actual visual fidelity remains unverified."
+    "Procedurally matte and composite each of the 13 canonical full-body source illustrations into four transparent eight-frame WebP states: idle, walk, attack and skill. Actual visual fidelity remains unverified.",
+    "Ranked database changeset is source-only until isolated PostgreSQL validates service-role-only RPCs, claimed-participation Diamond issuance, full-wallet transaction, and idempotent settlement."
   ],
   "riskAreas": [
     "app-runtime",
@@ -45,7 +46,8 @@
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
     "tests/empire-arena-v2-packaged-art-20261121.test.mjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
-    "tests/empire-arena-v2-animated-bundle-20261121.test.mjs"
+    "tests/empire-arena-v2-animated-bundle-20261121.test.mjs",
+    "tests/sql/arena_ranked_private_integrity.sql"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-arena-inapp-visual-baseline-20261121.json",
@@ -137,7 +139,11 @@
     "assets/season2/arena/generated/fullbody/vhen_attack-6474b25b262b.webp",
     "assets/season2/arena/generated/fullbody/vhen_idle-13b7c1400c75.webp",
     "assets/season2/arena/generated/fullbody/vhen_skill-b9b6eb75baf7.webp",
-    "assets/season2/arena/generated/fullbody/vhen_walk-8ba974987dfc.webp"
+    "assets/season2/arena/generated/fullbody/vhen_walk-8ba974987dfc.webp",
+    "supabase/changesets/arena_v2_ranked_private_schema_DEV_ONLY.sql",
+    "tests/sql/arena_ranked_disposable_setup.sql",
+    "tests/sql/arena_ranked_private_integrity.sql",
+    ".github/workflows/buklod-arena-ranked-dev-qa.yml"
   ],
   "lockedFeatureChanges": [
     {
@@ -162,6 +168,16 @@
       ],
       "tests": [
         "tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs"
+      ]
+    },
+    {
+      "id": "economy-wallet",
+      "reason": "Create private ranked-only Diamond, matchmaking reserve, rating, settlement, and recovery schema. Never modify BP/QMP/Circle Rank ledgers.",
+      "preservedBehaviors": [
+        "BP earning/trading lifetime accounting and QMP payout systems unchanged. Production schemas not applied."
+      ],
+      "tests": [
+        "tests/sql/arena_ranked_private_integrity.sql"
       ]
     }
   ]
