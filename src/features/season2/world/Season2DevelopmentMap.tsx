@@ -174,6 +174,15 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
   const sceneHeight = Math.max(310,Math.min(500,compact ? width*0.92 : width*0.50));
   const pan=useRef(new Animated.ValueXY()).current;
   const panBase=useRef({x:0,y:0});
+  useEffect(()=>{
+    // Clamp panning whenever dimensions or zoom change; reset at 100%.
+    const maxX=Math.max(0,width*(zoom-1)/2);
+    const maxY=Math.max(0,sceneHeight*(zoom-1)/2);
+    const x=Math.max(-maxX,Math.min(maxX,panBase.current.x));
+    const y=Math.max(-maxY,Math.min(maxY,panBase.current.y));
+    panBase.current={x,y};
+    pan.setValue({x,y});
+  },[zoom,width,sceneHeight,pan]);
   const mapPanResponder=useMemo(()=>PanResponder.create({
     onStartShouldSetPanResponder:()=>false,
     onMoveShouldSetPanResponder:(_,g)=>zoom>1&&(Math.abs(g.dx)>8||Math.abs(g.dy)>8),
