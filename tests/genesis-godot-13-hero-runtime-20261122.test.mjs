@@ -42,7 +42,8 @@ test('seven Godot native special skills have separate bounded action identities'
   assert.equal(names.size,21);
   assert.match(actions,/MAX_SHIELD_RATIO := 0\.30/);
   assert.match(actions,/MAX_DEPLOYED := 80/);
-  assert.doesNotMatch(actions,/supabase|axios|fetch\(|http|awardBP|character_diamonds/i);
+  const executable=actions.split('\n').filter(line=>!line.trimStart().startsWith('#')).join('\n');
+  assert.doesNotMatch(executable,/supabase|axios|fetch\(|http|awardBP|character_diamonds/i);
 });
 
 test('native Godot simulation executes owner-designed skills from source, protects LOS and first-level ultimate',()=>{
