@@ -341,7 +341,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           <View style={styles.levelRow}>
             <Text style={[styles.panelTitle,{flex:1}]}>{trackTitle}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="View my verified constructed estate"
-              onPress={()=>{estateFeedback.emit('preview');setLiveView(true);}} disabled={!verified>
+              onPress={()=>{estateFeedback.emit('preview');setLiveView(true);}} disabled={!verified}
               style={[styles.previewToggle,liveView&&verified&&styles.previewToggleActive]}>
               <Text style={styles.previewToggleText}>VERIFIED</Text>
             </Pressable>
