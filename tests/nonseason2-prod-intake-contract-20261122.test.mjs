@@ -44,7 +44,7 @@ test('no Genesis/Season 2 assets or native build changes are carried into BUKLOD
 });
 
 test('all unmerged maintenance items are visible with explicit blockers or reconciliation tasks', () => {
-  const expected = [1005,951,994,940,833,935,932,998,958,1038,821];
+  const expected = [951,994,940,833,935,932,998,958,1038,821];
   assert.deepEqual(new Set(manifest.pendingNonSeason2Candidates.map(x => x.pr)), new Set(expected));
   for (const candidate of manifest.pendingNonSeason2Candidates) {
     assert.ok(candidate.feature.length > 5);
@@ -65,4 +65,18 @@ test('mentoring permission, evidence and awarded BP cannot be bypassed by collec
   assert.match(mentoring, /attach_my_mentor_session_photo_r2/);
   assert.match(mentoring, /mentorEligible !== true/);
   assert.ok(manifest.collectedCode.some(item => item.sourcePr === 1081 && item.status === 'COLLECTED_DEV_BACKEND_HOLD'));
+});
+
+test('background silent OTA source is collected without interactive reload or native rebuild', () => {
+  assert.ok(manifest.collectedCode.some(item => item.sourcePr === 1005 &&
+    item.status === 'COLLECTED_DEV_NO_PRODUCTION_AUTHORIZATION'));
+  const host = read('src/components/BuklodOtaFreshnessHost.native.tsx');
+  const policy = read('src/lib/buklodSilentOtaPolicy.ts');
+  assert.match(host, /createSilentOtaDownloader/);
+  assert.match(host, /return null;/);
+  assert.doesNotMatch(host, /reloadAsync\s*\(/);
+  assert.match(policy, /inFlight: Promise<boolean> \| null/);
+  assert.match(policy, /pendingNextLaunch = true/);
+  assert.match(policy, /failureCooldownMs/);
+  assert.doesNotMatch(policy, /reloadAsync\s*\(/);
 });
