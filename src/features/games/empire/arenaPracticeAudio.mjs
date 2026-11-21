@@ -13,6 +13,7 @@ export const ARENA_MUSIC_ID = Object.freeze({
 const EVENT_AUDIO = Object.freeze({
   skill: 'unlock',
   dash: 'move',
+  damage: 'impact',
   defeat: 'impact',
   tower_destroyed: 'impact',
   seal_breached: 'impact',
@@ -35,6 +36,7 @@ export function arenaAudioCueForEvent(event, team = 'A', localSeat = 'A0') {
   if (!cue) return null;
   // A local defeat must be audible even when the enemy performed the hit.
   if (type === 'defeat' && event.to === localSeat) return 'failure';
+  if (type === 'damage') return event.to === localSeat || event.from === localSeat ? 'impact' : null;
   // Character-triggered effects from other players may be visually represented,
   // but user audio should not become a storm in 5v5.
   if (typeof event.actor === 'string' && event.actor !== localSeat && 
