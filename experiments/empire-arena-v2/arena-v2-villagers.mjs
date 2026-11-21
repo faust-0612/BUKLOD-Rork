@@ -27,7 +27,13 @@ const march=(s,unit,to,speed)=>{
  const step=Math.min(dist,speed);
  const x=Math.max(2,Math.min(s.w-2,unit.x+(to.x-unit.x)/dist*step));
  const y=Math.max(2,Math.min(s.h-2,unit.y+(to.y-unit.y)/dist*step));
- if(!s.cover.some(([cx,cy,r])=>Math.hypot(x-cx,y-cy)<r+.8)){unit.x=x;unit.y=y;}
+ if(!s.cover.some(([cx,cy,r])=>Math.hypot(x-cx,y-cy)<r+.8)){
+  if(Math.hypot(x-unit.x,y-unit.y)>.005){
+   unit.facing=x<unit.x?-1:1;
+   unit.lastMovedAt=s.elapsed;
+  }
+  unit.x=x;unit.y=y;
+ }
 };
 const carried=u=>RESOURCE_TYPES.reduce((n,k)=>n+Math.max(0,u.carry?.[k]||0),0);
 function findNode(s,u){
@@ -56,7 +62,7 @@ export function makeVillager(s,team,slot,id){
   x:b.x+(team==='A'?1:-1)*(slot%2),y:b.y+(slot-2.5)*2.7,
   hp:role==='guardian'?92:role==='healer'?74:72,maxHp:role==='guardian'?92:role==='healer'?74:72,alive:true,
   carry:{wood:0,gold:0,stone:0},targetNode:'mine'+(team==='A'?(slot%3):(slot%3)+3),
-  command:defaultJob,attackAt:-1e8,jobAt:-1e8,respawnAt:0};
+  command:defaultJob,facing:team==='A'?1:-1,lastMovedAt:-1e8,attackAt:-1e8,jobAt:-1e8,respawnAt:0};
 }
 export function issueVillagerOrder(s,team,order,unitId=null){
  if(!VILLAGER_FACTIONS[team]||!VILLAGER_JOBS.includes(order))return false;

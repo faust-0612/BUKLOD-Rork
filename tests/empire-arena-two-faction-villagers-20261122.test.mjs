@@ -93,3 +93,23 @@ test('simulated villagers remain deterministic and cannot settle account economy
  assert.equal(a.ranked,false);assert.equal(a.kind,'OFFLINE_PRACTICE');
  assert.equal(a.wallet,undefined);assert.equal(a.diamonds,undefined);
 });
+
+test('named villagers physically move, turn and expose grounded animation timestamps',()=>{
+ const s=practice();s.cover=[];s.elapsed=300;
+ const u=s.units.find(x=>x.id==='vA1');
+ const node=s.nodes.find(x=>x.id==='mine1');
+ u.command='mine';u.targetNode=node.id;
+ u.x=node.x-9;u.y=node.y;u.carry={wood:0,gold:0,stone:0};
+ const x=u.x;
+ stepVillager(s,u,()=>{});
+ assert.ok(u.x>x,'gatherer must advance toward mine');
+ assert.equal(u.facing,1);
+ assert.equal(u.lastMovedAt,300);
+ u.x=node.x+9;u.y=node.y;
+ s.elapsed+=100;
+ const x2=u.x;
+ stepVillager(s,u,()=>{});
+ assert.ok(u.x<x2,'worker must actually change map coordinates when facing left');
+ assert.equal(u.facing,-1);
+ assert.equal(u.lastMovedAt,400);
+});
