@@ -4,7 +4,8 @@ import {
 } from '@stream-io/video-client';
 
 import { supabase } from '@/lib/supabase';
-import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import { loadBuklodCanonicalDisplayName } from '@/lib/buklodCanonicalName';
+
 
 /* BUKLOD_WEB_CALLING_R1
  * Browser calls use Stream's official low-level browser client. The native
@@ -149,15 +150,7 @@ async function createClient(
 
   const streamUser: User = {
     id: authUser.id,
-    name: resolvePersonDisplayName(
-      {
-        full_name:
-          authUser.user_metadata?.full_name ??
-          authUser.user_metadata?.name,
-        username: authUser.email,
-      },
-      authUser.id,
-    ),
+    name: await loadBuklodCanonicalDisplayName(authUser.id),
   };
 
   return StreamVideoClient.getOrCreateInstance({

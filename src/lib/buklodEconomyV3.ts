@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { ensureBuklodProfitFirstIdentity } from '@/lib/buklodReferralV2';
+import { getMyBuklodLegalIdentityStatus } from '@/lib/buklodLegalIdentity';
 
 export type BuklodEconomyReferralItemV3 = {
   referral_id: string;
@@ -270,6 +271,10 @@ export async function requestMyBuklodWithdrawalV3(
   requestKey?: string,
 ) {
   await ensureBuklodProfitFirstIdentity();
+  const identity = await getMyBuklodLegalIdentityStatus();
+  if (identity.status !== 'VERIFIED') {
+    throw new Error('Government ID verification is required. Open Account > Verify Real Name before withdrawing.');
+  }
 
   return economyV3Rpc<{
     idempotent_replay: boolean;
