@@ -26,6 +26,30 @@ SIZE = (256, 384)
 MIN_MOTION_SUM = 2000
 
 
+def webp_animation_durations(binary: bytes):
+    """Read official RIFF WebP ANMF 24-bit millisecond timing from real file bytes.
+
+    Pillow decoders can report a zero per-frame duration for animated WebP
+    despite the actual encoded ANMF timing being correct. Trust source bytes.
+    """
+    if binary[:4] != b"RIFF" or binary[8:12] != b"WEBP":
+        raise AssertionError("Not a RIFF WebP file")
+    result = []
+    offset = 12
+    while offset + 8 <= len(binary):
+        tag = binary[offset:offset + 4]
+        length = int.from_bytes(binary[offset + 4:offset + 8], "little")
+        begin = offset + 8
+        if length < 0 or begin + length > len(binary):
+            raise AssertionError("Truncated WebP chunk")
+        if tag == b"ANMF":
+            if length < 16:
+                raise AssertionError("Truncated animated frame header")
+            result.append(int.from_bytes(binary[begin + 12:begin + 15], "little"))
+        offset = begin + length + (length & 1)
+    return result
+
+
 def assert_asset(entry: dict, hero: str, pose: str):
     path = ROOT / entry["file"]
     if not path.is_file():
@@ -35,6 +59,9 @@ def assert_asset(entry: dict, hero: str, pose: str):
         raise AssertionError(f"Asset size drift: {hero}/{pose}")
     if hashlib.sha256(binary).hexdigest() != entry["sha256"]:
         raise AssertionError(f"SHA-256 mismatch: {hero}/{pose}")
+    durations = webp_animation_durations(binary)
+    if len(durations) != 8 or not all(65 <= d <= 250 for d in durations):
+        raise AssertionError(f"Invalid WebP frame timings: {hero}/{pose}: {durations}")
     frames = []
     with Image.open(path) as movie:
         if movie.format != "WEBP" or movie.size != SIZE:
@@ -43,9 +70,6 @@ def assert_asset(entry: dict, hero: str, pose: str):
             raise AssertionError(f"Not a real eight-frame animation: {hero}/{pose}")
         for index in range(movie.n_frames):
             movie.seek(index)
-            delay = movie.info.get("duration", 0)
-            if not 65 <= delay <= 250:
-                raise AssertionError(f"Unsafe animation frame duration {hero}/{pose}: {delay}")
             frame = movie.convert("RGBA").copy()
             if frame.getchannel("A").getbbox() is None:
                 raise AssertionError(f"Empty transparent frame: {hero}/{pose}/{index}")
