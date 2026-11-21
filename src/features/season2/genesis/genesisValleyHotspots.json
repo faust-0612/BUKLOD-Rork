@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "referenceImage": "Buklod Community Map: A Welcoming Valley",
   "coordinateSystem": "normalized-image-top-left",
   "hotspots": [
@@ -45,9 +45,9 @@
     },
     {
       "id": "cluster-village",
-      "label": "Cluster Village",
+      "label": "Community Village",
       "districtId": "communities",
-      "route": "/clusters",
+      "route": "/season2/community-village",
       "icon": "account-group-outline",
       "x": 0.057,
       "y": 0.318,
@@ -95,9 +95,9 @@
     },
     {
       "id": "family-homes",
-      "label": "Family Homes",
+      "label": "My Home · Personal World",
       "districtId": "my-place",
-      "route": "/personal-home",
+      "route": "/season2/my-world",
       "icon": "home-heart",
       "x": 0.062,
       "y": 0.476,
@@ -154,5 +154,5 @@
       "faithOnly": false
     }
   ],
-  "positionAuthority": "Original 14 approved Valley gold-icon centers remain fixed; Character Kingdom is one clearly separate companion portal overlay near the Arena skyline (not a new building painted on baseline art)."
+  "positionAuthority": "Original 14 approved Valley gold-icon centers remain fixed; Character Kingdom is one clearly separate companion portal overlay near the Arena skyline (not a new building painted on baseline art). Community and Home door destinations are staged as dedicated development worlds, with existing feature permissions preserved."
 }
