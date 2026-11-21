@@ -83,10 +83,12 @@ export default function GenesisKingdomPortal() {
   const [mapMode,setMapMode]=useState<KingdomMapKind>('core');
   const [visibleSpecialIds,setVisibleSpecialIds]=useState<readonly string[]>([]);
   const [verifiedSpecialOwner,setVerifiedSpecialOwner]=useState<string|null>(null);
-  const allowedSpecialIds=verifiedSpecialOwner===userId?visibleSpecialIds:[];
   const [specialLoading,setSpecialLoading]=useState(false);
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
+  // This MUST follow userId initialization. Access before declaration throws
+  // on first render and blanks the entire Kingdom screen on Android.
+  const allowedSpecialIds=verifiedSpecialOwner===userId?visibleSpecialIds:[];
   const [stationProgress, setStationProgress] = useState<BuklodKingdomPreviewProgress>(emptyKingdomPreviewProgress());
   const [focused, setFocused] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');

@@ -43,3 +43,10 @@ test('No new progression authority or ad overlay, canonical 13 game routes and f
  assert.doesNotMatch(map,/supabase\.|grantBp|awardBp|setMyBuklodCharacterActive/);
  assert.match(portal,/GenesisRiveCharacter active=\{animate\}/);
 });
+
+test('Special-identity userId is initialized BEFORE account-scoped visibility guard',()=>{
+ const user=portal.indexOf('const userId = session?.user.id ?? null;');
+ const allowed=portal.indexOf('const allowedSpecialIds=verifiedSpecialOwner===userId?visibleSpecialIds:[];');
+ assert.ok(user>0&&allowed>user,'No TDZ render crash from referencing userId before initialization');
+ assert.match(portal,/setVisibleSpecialIds\(\[\]\);setVerifiedSpecialOwner\(null\)/);
+});
