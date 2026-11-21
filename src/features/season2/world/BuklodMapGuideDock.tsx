@@ -15,6 +15,12 @@ export const BUKLOD_ENTRY_DOORS:readonly Door[]=[
  {label:'Profile',route:'/me',icon:'account-circle-outline'},
  {label:'Cluster',route:'/clusters',icon:'account-group-outline'},
 ] as const;
+const SUGGESTIONS:readonly Door[]=[
+ {label:'Gusto mong may makasama?',route:'/clusters',icon:'account-group-outline'},
+ {label:'Maglaro?',route:'/games',icon:'gamepad-variant-outline'},
+ {label:'Matuto?',route:'/learn',icon:'book-open-variant'},
+ {label:'Makipag-usap?',route:'/buklod',icon:'message-text-outline'},
+] as const;
 const UTILITIES:readonly Door[]=[
  {label:'Settings Engine',route:'/settings',icon:'cog-outline'},
  {label:'My BUKLOD',route:'/season2/my-world',icon:'home-heart'},
@@ -50,10 +56,10 @@ export default function BuklodMapGuideDock({active}:{active:boolean}){
  return <View accessibilityLabel="BUKLOD character guide outside the World Map" style={styles.guide}>
   <View style={styles.row}>
    <Animated.View style={[styles.portrait,{transform:[{translateY:lift}]}]}>
-    <MaterialCommunityIcons name="account-circle-outline" size={46} color="#82BC9A" style={styles.fallback}/>
-    <BuklodActiveCharacterArt fallbackCharacter={DEFAULT_CHARACTER} height={58} viewportWidth={48} showEffects={false}/>
+    <MaterialCommunityIcons name="account-circle-outline" size={92} color="#82BC9A" style={styles.fallback}/>
+    <BuklodActiveCharacterArt fallbackCharacter={DEFAULT_CHARACTER} height={126} viewportWidth={108} showEffects={false}/>
     <Animated.View pointerEvents="none" style={[styles.wave,{transform:[{rotate:turn}]}]}>
-      <MaterialCommunityIcons name="hand-wave-outline" color="#FFF2C9" size={17}/>
+      <MaterialCommunityIcons name="hand-wave-outline" color="#FFF2C9" size={25}/>
     </Animated.View>
    </Animated.View>
    <View style={styles.greetingBlock}>
@@ -66,8 +72,8 @@ export default function BuklodMapGuideDock({active}:{active:boolean}){
    </Pressable>
   </View>
   {!minimized?<React.Fragment>
-   <View accessibilityLabel="Main BUKLOD navigation" style={styles.doors}>
-    {BUKLOD_ENTRY_DOORS.map(d=>door(d))}
+   <View accessibilityLabel="BUKLOD activity suggestions" style={styles.doors}>
+    {SUGGESTIONS.map(d=>door(d))}
    </View>
    <View style={styles.utilities}>
     {UTILITIES.map(d=>door(d,true))}
@@ -94,10 +100,10 @@ export default function BuklodMapGuideDock({active}:{active:boolean}){
 const styles=StyleSheet.create({
  guide:{width:'100%',padding:9,gap:7,backgroundColor:'rgba(10,43,36,.97)',borderRadius:16,borderWidth:1,borderColor:'#8CA77A'},
  row:{flexDirection:'row',alignItems:'center',gap:7},
- portrait:{width:51,height:60,justifyContent:'flex-end',overflow:'hidden'},
+ portrait:{width:110,height:130,justifyContent:'flex-end',overflow:'hidden'},
  fallback:{position:'absolute',left:3,top:5},wave:{position:'absolute',right:0,top:1},
  greetingBlock:{flex:1,minWidth:0,gap:3},
- greeting:{fontSize:13,lineHeight:18,fontWeight:'900',color:'#FFE6AD'},
+ greeting:{fontSize:16,lineHeight:21,fontWeight:'900',color:'#FFE6AD'},
  hint:{fontSize:10,lineHeight:14,color:'#E0EEE6'},
  collapse:{minWidth:38,minHeight:44,alignItems:'center',justifyContent:'center'},
  doors:{flexDirection:'row',flexWrap:'wrap',gap:6},

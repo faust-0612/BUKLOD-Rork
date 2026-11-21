@@ -125,7 +125,17 @@
       "y": 0.799,
       "icon": "sprout",
       "faithOnly": true
+    },
+    {
+      "id": "special-events",
+      "label": "Special Events",
+      "districtId": "events",
+      "route": "/season2/special-events",
+      "x": 0.44,
+      "y": 0.72,
+      "icon": "star-circle-outline",
+      "faithOnly": false
     }
   ],
-  "note": "Exact owner-approved landscape image. Visible icons are baked art; actual pressable target rectangles are bound separately and route through original auth guards."
+  "note": "Special Events is a distinct landmark; no duplicate bottom-nav destination. Existing server event visibility, attendance and reward rules remain authoritative."
 }

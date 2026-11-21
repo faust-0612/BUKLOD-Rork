@@ -1,6 +1,7 @@
 /** Offline, privacy-preserving navigation hints; not a paid AI endpoint. */
 export function resolveBuklodGuideDestination(input:string,showFaith:boolean) {
   const q=String(input||'').toLowerCase().slice(0,150);
+  if(/special event|event|pagtitipon|festival|paligsahan|tournament/.test(q))return {label:'Special Events',route:'/season2/special-events'};
   if(/arena|laban|battle|pvp|fight|combat/.test(q))return {label:'Empire Arena',route:'/games/empire-arena'};
   if(/character|kingdom|collectible|evolution|equipment|inventory/.test(q))return {label:'Character Kingdom',route:'/games'};
   if(/cluster|organi|barangay|community|komunidad|village|scope/.test(q))return {label:'Community Village',route:'/season2/community-village'};
