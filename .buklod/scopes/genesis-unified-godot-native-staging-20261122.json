@@ -70,8 +70,6 @@
   "regressionTests": [
     "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
     "tests/arena-full-functionality-audit-20261121.test.mjs",
-    "tests/empire-arena-v2-presentation-20261121.test.mjs",
-    "tests/arena-godot-native-migration-20261122.test.mjs",
     "tests/kingdom-unified-godot-native-20261122.test.mjs",
     "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs"
   ],
@@ -89,7 +87,8 @@
     "existing Expo runtime regression",
     "Kotlin/Gradle build",
     "signed debug APK cannot replace EAS certificate",
-    "unisolated SOS/World backend"
+    "unisolated SOS/World backend",
+    "release-identity"
   ],
   "releaseMode": "DEV_ONLY_NO_PRODUCTION_OR_OTA",
   "physicalDeviceVerification": "NOT_PERFORMED",
@@ -98,5 +97,12 @@
     "Godot 4.7.2 engine headless tests smoke, art and all three world artworks/sounds",
     "Gradle arm64 APK compile, Godot native library, pack SHA256, Android manifest/test ads",
     "Device-verified EAS signed staging build required separately once proper isolated backend and CI gates pass"
+  ],
+  "productionBaselineEvidence": "Production BUKLOD MAIN package org.mzbministry.buklod, runtime 1.3.2 and EAS production channel in existing app.config.js/eas.json remain unchanged. Existing signed Genesis staging source and live server use separate authority; no current production OTA or Play artifact is modified by this isolated branch.",
+  "selectionRationale": "Reuses precompiled and inspected Godot 4.7.2 Android AAR with one signed APK game archive, rather than re-exporting Godot into a separate app or converting every new animation to React Native; this preserves existing MAIN routes and the secure server-owned economy while enabling native gameplay.",
+  "alternativeApproaches": [
+    "Build a second standalone Godot APK (rejected: violates user requirement of one BUKLOD MAIN Android app and forks auth/navigation/data).",
+    "Convert all gameplay to React Native JavaScript (rejected: duplicates engine physics/rendering and loses native GDScript gameplay benefits).",
+    "Add unrelated game SDKs before determining missing capabilities (rejected: existing Godot and Stream/Expo native stack already covers required baseline)."
   ]
 }
