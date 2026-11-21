@@ -1,0 +1,60 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/season2-premium-home-workshop-20261121.json",
+  "objective": "Fix owner-reported BUKLOD Season 2 My Home and Village interface to deliver premium local artwork, safe-area layout, one-tap destinations, usable standalone building and gathering gameplay, personal account-scoped cosmetics and concrete 10x5 staged progression, without false live property, BP/QMP or production writes.",
+  "baseRef": "92712e5da90711a3ec3406ddabdf981bd738e2c4",
+  "productionBaselineEvidence": "Consolidated DEV PR 1054 base head 92712e5da90711a3ec3406ddabdf981bd738e2c4 verified as comparison. Existing signed staging package and runtime recorded in PR 1054, not modified. Main/Play production, EAS staging/production OTA mapping and paid shared Supabase untouched; current change is draft DEV only.",
+  "chosenApproach": "Reuse existing authored licensed Genesis home/village WebP assets from isolated DEV art branch, introduce a local-only validated gameplay and cosmetics engine with original procedural 2.5D React Native SVG architecture and safe-area guards, link the owner approved My Home sign to a separate scene, preserve existing real Bahay/Cluster routes and auth controls.",
+  "selectionRationale": "Separately authored stage-reactive diorama is a real visual response to completed in-game workshop stages instead of manual fake level toggles. Local finite resource hunt and serial per-user saves work without minting spendable BP, remote inventory or legal land title; all server-facing authority remains off until independently verified.",
+  "alternativeApproaches": [
+    "Activate untested shared-server property economy immediately: rejected; lacks RLS/concurrency evidence and would affect paid live Supabase.",
+    "Preview-only level +/- text cards: rejected as nonfunctional.",
+    "Duplicate independent APK/staging subscription: rejected.",
+    "Use generic new paid asset library: rejected; existing BUKLOD landscape WebP reused."
+  ],
+  "riskAreas": [
+    "android-safe-area",
+    "asset-memory",
+    "navigation-auth",
+    "one-tap-world-map",
+    "scene-cosmetics",
+    "local-asyncstorage-account-isolation",
+    "construction-ownership",
+    "no-real-bp-qmp",
+    "performance-admob-navigation",
+    "offline-game-consistency"
+  ],
+  "allowedPaths": [
+    "assets/season2/genesis/world/buklod-my-home-stage1.webp",
+    "assets/season2/genesis/world/buklod-community-village-stage1.webp",
+    "src/features/season2/world/worldWorkshopEngine.ts",
+    "src/features/season2/world/WorldConstructionDiorama.tsx",
+    "src/features/season2/world/Season2DevelopmentMap.tsx",
+    "src/features/season2/world/developmentAssetManifest.ts",
+    "src/app/season2/my-world.tsx",
+    "src/app/season2/community-village.tsx",
+    "src/app/community-village.tsx",
+    "src/features/season2/genesis/genesisApprovedEntryHotspots.json",
+    "tests/season2-premium-home-workshop-20261121.test.mjs",
+    ".buklod/scopes/season2-premium-home-workshop-20261121.json"
+  ],
+  "regressionTests": [
+    "tests/season2-premium-home-workshop-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add isolated guarded Season 2 local Home and Village workshop and richer asset render with the existing feature routes preserved.",
+      "preservedBehaviors": [
+        "No production runtime or EAS channel modifications; first-view and tab ads remain intact.",
+        "Existing BUKLOD Bahay family permissions and cluster scope ownership retained by actual services.",
+        "Real BP, lifetime Circle Rank, QMP, Character Diamonds and property records never written by workshop.",
+        "Only original 1672×941 owner-approved first-view art remains; authenticated and consented route gates apply.",
+        "Fast one-tap navigation retains working existing family, household, cluster, market and identity features."
+      ],
+      "tests": [
+        "tests/season2-premium-home-workshop-20261121.test.mjs"
+      ]
+    }
+  ]
+}
