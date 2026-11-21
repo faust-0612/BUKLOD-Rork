@@ -1,0 +1,155 @@
+name: BUKLOD FIS — standalone Expo web release
+
+on:
+  push:
+    branches:
+      - dev/buklod-fis-expo-20261115
+    paths:
+      - 'app.config.js'
+      - '.buklod/scopes/buklod-fis-expo-20261115.json'
+      - 'src/app/index.tsx'
+      - 'src/app/(auth)/login.tsx'
+      - 'src/app/admin/fis.tsx'
+      - 'src/lib/buklodFisReadModel.ts'
+      - '__tests__/buklodFisReadModel.test.ts'
+      - 'tests/buklod-fis-finance-20261115.test.mjs'
+      - 'tests/buklod-fis-auth-route-20261115.test.mjs'
+      - 'tests/buklod-fis-deploy-identity-20261115.test.mjs'
+      - 'tests/buklod-fis-router-boot-20261115.test.mjs'
+      - 'tests/buklod-fis-read-model-runtime-20261115.test.mjs'
+      - '.github/workflows/buklod_fis_expo_standalone_release.yml'
+  workflow_dispatch:
+
+# Never deploy from main or write to the BUKLOD Main Expo project.
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-fis-standalone-production
+  cancel-in-progress: false
+
+jobs:
+  qa_preview_promote:
+    name: FIS-only QA → immutable preview → production alias
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/buklod-fis-expo-20261115'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      BUKLOD_APP_TARGET: fis
+      EXPO_PUBLIC_BUKLOD_FIS: '1'
+      BUKLOD_WEB_OUTPUT: single
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      EAS_PROJECT_ID_FIS: de578117-37fb-4c4d-8fec-d472e08b117f
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Browser publishable key; no Supabase secret/service-role key is bundled.
+      EXPO_PUBLIC_SUPABASE_URL: https://yhanxndaqbmuzbdqlblu.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS
+
+    steps:
+      - name: Checkout exact FIS DEV SHA, never Main
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Fail closed on missing or shared Expo project identity
+        shell: bash
+        run: |
+          test -n "$EXPO_TOKEN" || { echo "::error::EXPO_TOKEN is not configured"; exit 1; }
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const cfg = require('./app.config.js')({ config: { extra: {} } });
+          const id = process.env.EAS_PROJECT_ID_FIS;
+          if (cfg.slug !== 'buklod-fis' ||
+              cfg.name !== 'BUKLOD FIS' ||
+              cfg.extra?.appTarget !== 'fis' ||
+              cfg.extra?.eas?.projectId !== id ||
+              cfg.web?.output !== 'single' ||
+              process.env.EXPO_PUBLIC_BUKLOD_FIS !== '1') {
+            throw new Error('FIS Expo project/source identity gate failed');
+          }
+          const index = fs.readFileSync('src/app/index.tsx', 'utf8');
+          const login = fs.readFileSync('src/app/(auth)/login.tsx', 'utf8');
+          const fis = fs.readFileSync('src/app/admin/fis.tsx', 'utf8');
+          if (!index.includes("EXPO_PUBLIC_BUKLOD_FIS === '1'") ||
+              !login.includes("EXPO_PUBLIC_BUKLOD_FIS === '1'") ||
+              !fis.includes('<AdminGate>')) {
+            throw new Error('Standalone FIS landing, login or authorization contract missing');
+          }
+          console.log('FIS-only identity and admin-route source checks passed');
+          NODE
+
+      - name: Verify source scope and protected feature release gates
+        env:
+          BUKLOD_BASE_REF: origin/main
+          BUKLOD_SCOPE_MANIFEST: .buklod/scopes/buklod-fis-expo-20261115.json
+        run: |
+          node scripts/protected-feature-lock.mjs
+          node scripts/engineering-regression-gate.mjs --run-focused-node-tests
+
+      - name: Verify TypeScript and focused FIS regression tests
+        run: |
+          npx tsc --noEmit
+          node --test tests/buklod-fis-finance-20261115.test.mjs tests/buklod-fis-auth-route-20261115.test.mjs tests/buklod-fis-deploy-identity-20261115.test.mjs tests/buklod-fis-router-boot-20261115.test.mjs tests/buklod-fis-read-model-runtime-20261115.test.mjs
+
+      - name: Verify Expo credentials on isolated FIS project
+        run: npx eas-cli@latest whoami --non-interactive
+
+      - name: Export FIS bundle using canonical Supabase public browser connection
+        shell: bash
+        run: |
+          test -n "$EXPO_PUBLIC_SUPABASE_URL"
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          npx expo export --platform web --output-dir dist --clear
+
+      - name: Verify web assets and protected FIS route
+        shell: bash
+        run: |
+          test -s dist/index.html
+          test -d dist/_expo/static/js/web
+          grep -R -F 'Finance Command Center' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'BUKLOD' dist/_expo/static/js/web >/dev/null
+
+      - name: Publish immutable FIS preview (no Main and no production mutation)
+        shell: bash
+        run: |
+          DEPLOY_ID="fis-${GITHUB_SHA:0:12}"
+          echo "FIS_DEPLOY_ID=$DEPLOY_ID" >> "$GITHUB_ENV"
+          npx eas-cli@latest deploy --dev-domain buklod-fis \
+            --id "$DEPLOY_ID" --export-dir dist --json --non-interactive > fis-preview-result.json
+          test -s fis-preview-result.json
+          curl --fail --silent --show-error --location \
+            --retry 3 --retry-all-errors --retry-delay 2 --max-time 30 \
+            "https://buklod-fis--${DEPLOY_ID}.expo.app/" -o /tmp/fis-preview.html
+          test -s /tmp/fis-preview.html
+          echo "FIS preview ready at https://buklod-fis--${DEPLOY_ID}.expo.app/"
+
+      - name: Promote the SAME verified FIS preview to production
+        shell: bash
+        run: |
+          npx eas-cli@latest deploy:alias --prod --id "$FIS_DEPLOY_ID" \
+            --json --non-interactive > fis-production-alias.json
+          test -s fis-production-alias.json
+          curl --fail --silent --show-error --location \
+            --retry 3 --retry-all-errors --retry-delay 2 --max-time 30 \
+            https://buklod-fis.expo.app/ -o /tmp/fis-production.html
+          test -s /tmp/fis-production.html
+          cmp /tmp/fis-preview.html /tmp/fis-production.html || {
+            echo "::error::Production HTML is not byte-identical to verified FIS preview"
+            exit 1
+          }
+          echo "FIS production URL: https://buklod-fis.expo.app/"
+          echo "FIS deployment identifier: $FIS_DEPLOY_ID"
+          echo "FIS source SHA: $GITHUB_SHA"
+          echo "BUKLOD Main: untouched; actual device verification: SKIPPED by owner"

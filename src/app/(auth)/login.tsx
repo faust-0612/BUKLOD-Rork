@@ -1352,7 +1352,7 @@ const chooseSuggestedLogin =
      * and remains the Public Community Wall.
      */
     router.replace(
-      '/(tabs)/buklod'
+      process.env.EXPO_PUBLIC_BUKLOD_FIS === '1' ? '/admin/fis' : '/(tabs)/buklod'
     );
 
 

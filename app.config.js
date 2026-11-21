@@ -7,9 +7,18 @@ module.exports = ({ config }) => {
   /* BUKLOD_CLASSROOM_APP_TARGET_R4 — standalone identity without mutating Main defaults */
   const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
   const isClassroom = appTarget === 'classroom';
+  // Standalone FIS release must never silently inherit BUKLOD Main's EAS project.
+  const isFis = appTarget === 'fis';
+  const fisProjectId = (process.env.EAS_PROJECT_ID_FIS || '').trim();
+  // Verified dedicated @faust_0612/buklod-fis Expo project; fail on any other project ID.
+  if (isFis && fisProjectId !== 'de578117-37fb-4c4d-8fec-d472e08b117f') {
+    throw new Error('BUKLOD FIS is pinned to Expo project de578117-37fb-4c4d-8fec-d472e08b117f; refusing any other project');
+  }
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
-  const projectId = isClassroom
+  const projectId = isFis
+    ? (fisProjectId || undefined)
+    : isClassroom
     ? classroomProjectId
     : (process.env.EAS_PROJECT_ID ||
        process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
@@ -27,15 +36,21 @@ module.exports = ({ config }) => {
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
-  const appName = isClassroom
+  const appName = isFis
+    ? 'BUKLOD FIS'
+    : isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
     : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
 
-  const packageId = isClassroom
+  const packageId = isFis
+    ? 'org.mzbministry.buklod.fis'
+    : isClassroom
     ? 'org.mzbministry.buklod.classroom'
     : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
 
-  const scheme = isClassroom
+  const scheme = isFis
+    ? 'buklod-fis'
+    : isClassroom
     ? 'buklod-classroom'
     : (isStaging ? 'buklod-staging' : 'buklod');
 
@@ -43,7 +58,8 @@ module.exports = ({ config }) => {
     ...config,
 
     name: appName,
-    slug: isClassroom ? 'buklod-classroom' : 'buklod',
+    owner: isFis ? 'faust_0612' : config.owner,
+    slug: isFis ? 'buklod-fis' : (isClassroom ? 'buklod-classroom' : 'buklod'),
     version: isClassroom ? '1.3.4' : '1.3.6',
 
     orientation: 'default',
@@ -372,12 +388,11 @@ module.exports = ({ config }) => {
         process.env.EXPO_PUBLIC_APP_ENV ||
         variant,
 
-      appTarget: isClassroom ? 'classroom' : 'main',
+      appTarget: isFis ? 'fis' : (isClassroom ? 'classroom' : 'main'),
 
-      eas:
-        projectId
-          ? { projectId }
-          : config.extra?.eas,
+      // Never inherit an existing Main project ID during FIS bootstrap.
+      eas: isFis ? (projectId ? { projectId } : undefined) :
+        (projectId ? { projectId } : config.extra?.eas),
     },
 
 
