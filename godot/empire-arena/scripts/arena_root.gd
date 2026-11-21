@@ -199,6 +199,18 @@ func _draw_actor(p: Dictionary) -> void:
 	draw_circle(pos + shift + Vector2(large * 0.18, -large * 0.36), 1.25, Color("#0c1f2c"))
 	if not is_hero:
 		var kind: String = str(p.get("kind", ""))
+		if kind == "villager" and p.has("villager_role"):
+			match str(p["villager_role"]):
+				"builder": color = Color("#f7bf7f")
+				"gatherer": color = Color("#9bdd90")
+				"guardian": color = Color("#89cdf4")
+				"healer": color = Color("#f8baca")
+				"researcher": color = Color("#c6aafa")
+				"supplier": color = Color("#f6df8c")
+			var label: String = str(p.get("villager_name", "")).substr(0, 16)
+			if label != "":
+				draw_string(ThemeDB.fallback_font, pos + Vector2(-large - 10, -large - 8),
+					label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.WHITE)
 		match kind:
 			"vanguard":
 				draw_arc(pos + shift, large + 2, -PI * 0.8, PI * 0.8, 20, Color("#f8edbd"), 2.0)
