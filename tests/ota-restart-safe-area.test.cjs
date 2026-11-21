@@ -21,6 +21,13 @@ test('No restart banner, restart controls or forced native OTA reload exist', ()
   assert.match(host, /clearTimeout\(timer\)/);
 });
 
-test('Native OTA source remains covered by canonical Android release diff scanner', () => {
-  assert.match(workflow, /^\s+- 'src\/components\/BuklodOtaFreshnessHost\.native\.tsx'$/m);
+test('silent OTA remains reviewed on staging and cannot trigger production', () => {
+  // Current production uses an exact main-only commit marker, not legacy paths filtering.
+  assert.match(workflow, /branches: \[main\]/);
+  assert.match(workflow, /startsWith\(github\.event\.head_commit\.message/);
+  assert.match(workflow, /buklod-season2-production-embargo\.cjs/);
+  const qa = fs.readFileSync('.github/workflows/genesis-all-updates-conso-qa-20261122.yml','utf8');
+  assert.ok(qa.includes('tests/buklod-silent-ota-policy.test.mjs'));
+  assert.ok(qa.includes('tests/ota-restart-safe-area.test.cjs'));
+  assert.doesNotMatch(qa, /eas-cli.*update --channel production|eas-cli.*build --profile production/);
 });
