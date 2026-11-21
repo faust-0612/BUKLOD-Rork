@@ -282,7 +282,7 @@ function automata(s){
   else if(s.elapsed-creature.roamAt>2200){creature.roamAt=s.elapsed;const theta=rand(s)*Math.PI*2,r=3+rand(s)*5;const dest={x:between(creature.home.x+Math.cos(theta)*r,3,s.w-3),y:between(creature.home.y+Math.sin(theta)*r,3,s.h-3)};moveToward(creature,dest,2.5,s)}
  }
  // Resurrections only BEFORE the Final Hunt begins.
- if(s.huntStarted===null)for(const p of Object.values(s.players)){if(!p.alive&&s.elapsed>=p.respawnAt){p.alive=true;p.hp=p.maxHp;p.mana=p.maxMana;p.shield=0;p.x=p.spawn.x;p.y=p.spawn.y;log(s,'respawn',{actor:p.id})}}
+ if(s.huntStarted===null)for(const p of Object.values(s.players)){if(!p.alive&&s.elapsed>=p.respawnAt){p.alive=true;p.hp=p.maxHp;p.mana=p.maxMana;p.shield=0;for(const kind of ['Haste','Fury','Guard','Regen']){p.effects['field'+kind]=0;p.effects['field'+kind+'Strength']=0;}p.x=p.spawn.x;p.y=p.spawn.y;log(s,'respawn',{actor:p.id})}}
  for(const trap of s.traps){if(trap.expires<=s.elapsed)continue;const foe=[...Object.values(s.players),...s.units].find(x=>x.team!==trap.team&&alive(x)&&distance(x,trap)<2.2);if(foe){foe.hp=Math.max(0,foe.hp-trap.damage);foe.lastDamage=s.elapsed;trap.expires=0;log(s,'trap_hit',{target:foe.id,team:trap.team,x:foe.x,y:foe.y});if(foe.hp===0){foe.alive=false;log(s,'trap_ko',{target:foe.id,team:foe.team??null,x:foe.x,y:foe.y});if(s.players[foe.id]){foe.deaths++;foe.respawnAt=s.elapsed+7500}}}}s.traps=s.traps.filter(t=>t.expires>s.elapsed);
  for(const item of s.loot)if(item.expires<=s.elapsed)item.expired=true;s.loot=s.loot.filter(x=>!x.expired);
 }

@@ -151,7 +151,7 @@ export function applyArenaPickupEffect(match,player,definition,{awardXp,shieldCa
    // Bounded extension: many pickups cannot create a permanent stacking buff.
    player.effects[key]=Math.min(now+60000,Math.max(now,active)+definition.durationMs);
    const strengthKey=key+'Strength';
-   player.effects[strengthKey]=Math.max(player.effects[strengthKey]||0,value);
+   player.effects[strengthKey]=active>now?Math.max(player.effects[strengthKey]||0,value):value;
    receipt.amount=value;
  }else return null;
  return receipt;

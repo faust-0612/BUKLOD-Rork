@@ -132,3 +132,26 @@ test('no invalid player, inactive game or fabricated definition can apply effect
  const falseHero=ARENA_PICKUP_BY_ID['h-angel-1-t1'];
  assert.equal(applyArenaPickupEffect(s,p,falseHero),null);
 });
+
+test('expired rare temporary buff cannot leak its power into a fresh weaker pickup',()=>{
+ const {s,p}=battle('jawo');
+ const rare=ARENA_PICKUP_BY_ID['u-haste-1-t3'],weak=ARENA_PICKUP_BY_ID['u-haste-1-t1'];
+ assert.ok(applyArenaPickupEffect(s,p,rare));
+ assert.ok(p.effects.fieldHasteStrength>weak.value);
+ s.elapsed=p.effects.fieldHaste+1;
+ assert.ok(applyArenaPickupEffect(s,p,weak));
+ assert.equal(p.effects.fieldHasteStrength,weak.value);
+});
+test('respawn clears all four match-only temporary boost strengths',()=>{
+ const {s,p}=battle('ace');
+ for(const type of ['Haste','Fury','Guard','Regen']){
+  p.effects['field'+type]=s.elapsed+50000;p.effects['field'+type+'Strength']=.2;
+ }
+ p.alive=false;p.hp=0;p.respawnAt=s.elapsed;
+ for(let i=0;i<5;i++)tick(s);
+ assert.equal(p.alive,true);
+ for(const type of ['Haste','Fury','Guard','Regen']){
+  assert.equal(p.effects['field'+type],0);
+  assert.equal(p.effects['field'+type+'Strength'],0);
+ }
+});
