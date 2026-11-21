@@ -30,6 +30,7 @@
     "tests/season2-premium-construction-plan.test.mjs"
   ],
   "allowedPaths": [
+    ".buklod/scopes/genesis-premium-personal-world-20261121.json",
     "src/features/season2/world/Season2DevelopmentMap.tsx",
     "src/features/season2/world/DevelopmentStructurePreview.tsx",
     "src/features/season2/world/constructionPlan.mjs",
