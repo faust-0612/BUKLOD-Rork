@@ -34,6 +34,10 @@ test('Exactly nine special doors, no duplicate main navigation and safe faith al
 test('Baked four suggestion bubbles are tappable without redrawing duplicate buttons',()=>{
  for(const route of ['/clusters','/season2/games','/season2/learnings','/buklod'])assert.ok(component.includes("route:'"+route+"'"),route);
  assert.match(component,/PROMPTS\.map/);
+ assert.match(component,/x:\.475,y:\.842/);
+ assert.match(component,/x:\.810,y:\.842/);
+ assert.match(component,/x:\.475,y:\.939/);
+ assert.match(component,/x:\.810,y:\.939/);
  assert.match(guide,/artworkEmbedded/);
  assert.match(entry,/<BuklodMapGuideDock active=\{focused\} artworkEmbedded \/>/);
 });

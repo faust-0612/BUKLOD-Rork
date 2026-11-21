@@ -37,10 +37,10 @@ const COMPACT_POSITIONS:Record<string,[number,number]>={
   'special-events':[.500,.910],
 };
 const PROMPTS=[
-  {label:'Gusto mong may makasama?',route:'/clusters',x:.475,y:.820},
-  {label:'Maglaro?',route:'/season2/games',x:.810,y:.820},
-  {label:'Matuto?',route:'/season2/learnings',x:.475,y:.916},
-  {label:'Makipag-usap?',route:'/buklod',x:.810,y:.916},
+  {label:'Gusto mong may makasama?',route:'/clusters',x:.475,y:.842},
+  {label:'Maglaro?',route:'/season2/games',x:.810,y:.842},
+  {label:'Matuto?',route:'/season2/learnings',x:.475,y:.939},
+  {label:'Makipag-usap?',route:'/buklod',x:.810,y:.939},
 ] as const;
 const PORTRAIT_RATIO=995/720;
 const COMPACT_RATIO=670/720;
@@ -117,7 +117,7 @@ export default function GenesisApprovedEntryMap({
          pressed&&styles.pressed,
        ]}/>):null}
      {!landscape?<Animated.View pointerEvents="none" style={[
-       styles.guideLife,{left:mapWidth*.11,top:mapHeight*.865,opacity:glow,
+       styles.guideLife,{left:mapWidth*.11,top:mapHeight*.925,opacity:glow,
        transform:[{translateY:glow.interpolate({inputRange:[.32,.84],outputRange:[3,-3]})},
          {rotate:glow.interpolate({inputRange:[.32,.84],outputRange:['-12deg','14deg']})}]},
      ]}>
