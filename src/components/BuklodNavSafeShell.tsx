@@ -175,6 +175,10 @@ export default function BuklodNavSafeShell({
   const mapReturnRoots = ['/buklod','/messages','/hub','/me','/learn','/clusters','/organizations',
     '/games','/points','/bayanihan','/bible','/life','/notifications','/profile',
     '/personal-home','/settings','/support','/community-contribution','/children-stories'];
+  // Keep the published Genesis navigation visibility contract intact while
+  // excluding the immersive Arena from all global overlays.
+  const publishedNavVisible = !immersiveIgpat && !immersiveConversation && rawNavOccupied > 0;
+  const arenaSafeNavVisible = !immersiveConversation && !immersiveArena && rawNavOccupied > 0;
   const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !immersiveArena && !keyboardVisible &&
     !normalizedPath.startsWith('/games') &&
     normalizedPath !== '/buklod-map' && mapReturnRoots.some(route => normalizedPath === route || normalizedPath.startsWith(route + '/'));
@@ -196,7 +200,7 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat && !immersiveArena ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!immersiveIgpat && !immersiveConversation && !immersiveArena && rawNavOccupied > 0 ? (
+      {publishedNavVisible && arenaSafeNavVisible ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
