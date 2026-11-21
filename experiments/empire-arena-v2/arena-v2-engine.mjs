@@ -134,7 +134,7 @@ export function command(s,playerId,action={}){
   const x=between(p.x+dx/mag*step,2,s.w-2),y=between(p.y+dy/mag*step,2,s.h-2);if(distance({x,y},p)>.6||s.cover.some(([cx,cy,r])=>Math.hypot(x-cx,y-cy)<r+1))return false;p.x=x;p.y=y;p.moves++;p.lastMoveTick=s.tick;return true}
  if(action.type==='mine'){if(s.elapsed-p.lastMine<700)return false;const node=s.nodes.find(x=>x.id===action.nodeId)||s.nodes.filter(n=>distance(p,n)<8).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!node||distance(p,node)>8||node.stock<=0)return false;
   const bagTotal=Object.values(p.bag).reduce((a,b)=>a+b,0);if(bagTotal>=65)return false;const base=Math.min(12,node.stock,65-bagTotal),buff=p.effects[{wood:'forest',gold:'golden',stone:'stone'}[node.type]]>s.elapsed?BUFFS[{wood:'forest',gold:'golden',stone:'stone'}[node.type]].rate:0;
-  const mastery=(HEROES[p.hero].role==='grower'||HEROES[p.hero].role==='engineer'?Math.min(.09,p.itemMastery*.02):0)+(gearOf(p).specialty.miningBonus||gearOf(p).specialty.resourceBonus||0);const mined=Math.min(node.stock,Math.round(base*(1+buff+mastery)));p.bag[node.type]+=mined;node.stock-=mined;p.lastMine=s.elapsed;p.mined+=mined;p.contributions++;if(p.hero==='vhen')p.hp=Math.min(p.maxHp,p.hp+1.5);if(p.mined%60<mined)awardXp(s,p,9,'mining');log(s,'mine',{actor:p.id,kind:node.type,amount:mined,nodeId:node.id,x:node.x,y:node.y});return true}
+  const mastery=(HEROES[p.hero].role==='grower'||HEROES[p.hero].role==='engineer'?Math.min(.09,p.itemMastery*.02):0)+(gearOf(p).specialty.miningBonus||gearOf(p).specialty.resourceBonus||0);const mined=Math.min(node.stock,65-bagTotal,Math.round(base*(1+buff+mastery)));p.bag[node.type]+=mined;node.stock-=mined;p.lastMine=s.elapsed;p.mined+=mined;p.contributions++;if(p.hero==='vhen')p.hp=Math.min(p.maxHp,p.hp+1.5);if(p.mined%60<mined)awardXp(s,p,9,'mining');log(s,'mine',{actor:p.id,kind:node.type,amount:mined,nodeId:node.id,x:node.x,y:node.y});return true}
  if(action.type==='deposit'){const depot={x:p.team==='A'?18:s.w-18,y:s.h/2};if(distance(p,depot)>13||!operational(s,p.team,'depot'))return false;const transferred={wood:p.bag.wood||0,gold:p.bag.gold||0,stone:p.bag.stone||0};if(!Object.values(transferred).some(v=>v>0))return false;for(const k of ['wood','gold','stone']){t.resources[k]+=transferred[k];p.bag[k]=0}log(s,'deposit',{actor:p.id,resources:transferred,x:depot.x,y:depot.y});return true}
  if(action.type==='train'){if(p.lastOrderTick===s.tick)return false;const kind=action.kind,c=COSTS[kind];if(!c||t.queue.length>=3||s.units.filter(x=>x.team===p.team&&x.alive&&x.kind!=='villager').length>=18||s.units.filter(x=>x.team===p.team&&x.alive&&x.kind==='villager').length>=6&&kind==='villager')return false;const depot={x:p.team==='A'?18:s.w-18,y:s.h/2};if(distance(p,depot)>18||!operational(s,p.team,'barracks')||!spend(t,c))return false;t.queue.push({kind,ready:s.elapsed+c.time*(t.tempoUntil>s.elapsed?.88:1)});p.lastOrderTick=s.tick;log(s,'train_order',{actor:p.id,kind});p.contributions++;return true}
  if(action.type==='order'){if(!['mine','escort','defend','push','retreat','patrol','repair'].includes(action.order))return false;for(const unit of s.units.filter(u=>u.team===p.team&&u.alive)){if(action.kind&&unit.kind!==action.kind)continue;unit.command=action.order;if(action.nodeId&&s.nodes.some(n=>n.id===action.nodeId))unit.targetNode=action.nodeId}log(s,'army_order',{team:p.team,order:action.order});return true}
@@ -198,9 +198,21 @@ export function command(s,playerId,action={}){
   else if(kind==='mana')p.mana=Math.min(p.maxMana,p.mana+45);
   else if(kind==='ward')p.shield=Math.min(shieldCap(p),p.shield+40);
   else if(kind==='edge')p.effects.edge=s.elapsed+50000;
-  else if(kind==='resources'){let limit=Math.max(0,65-Object.values(p.bag).reduce((a,b)=>a+b,0));for(const k of ['wood','gold','stone']){const n=Math.min(limit,item.resources[k]||0);p.bag[k]+=n;collectedResources[k]=n;limit-=n}}
-  else p.effects.lumen=s.elapsed+40000;
-  s.loot=s.loot.filter(x=>x.id!==item.id);log(s,'loot',{actor:p.id,kind,lootId:item.id,name:item.item?.name??kind,tier:item.item?.tier??1,resources:collectedResources,x:item.x,y:item.y});return true}
+  else if(kind==='resources'){
+    let limit=Math.max(0,65-Object.values(p.bag).reduce((a,b)=>a+b,0));
+    if(limit<=0)return false;
+    for(const k of ['wood','gold','stone']){
+      const n=Math.min(limit,Math.max(0,item.resources[k]||0));
+      p.bag[k]+=n;collectedResources[k]=n;limit-=n;
+    }
+    if(!Object.values(collectedResources).some(v=>v>0))return false;
+    // Keep uncollected stock in the same expiring ground drop. A full bag must
+    // never make another player's earned resources disappear.
+    for(const k of ['wood','gold','stone'])item.resources[k]=Math.max(0,(item.resources[k]||0)-collectedResources[k]);
+  }else p.effects.lumen=s.elapsed+40000;
+  const allCollected=kind!=='resources'||!Object.values(item.resources).some(v=>v>0);
+  if(allCollected)s.loot=s.loot.filter(x=>x.id!==item.id);
+  log(s,'loot',{actor:p.id,kind,lootId:item.id,name:item.item?.name??kind,tier:item.item?.tier??1,resources:collectedResources,x:item.x,y:item.y});return true}
 
  return false;
 }
