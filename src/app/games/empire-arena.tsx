@@ -70,6 +70,12 @@ type OfflinePracticeSetup = {
 const createArenaPractice = createPractice as unknown as (options: OfflinePracticeSetup) => ArenaState;
 const MODE_LABELS: Record<Mode, string> = { duel: '1v1', cluster: '3v3', grand: '5v5' };
 const SCENES: ArenaSceneId[] = ['genesis_rift', 'aurora_foundry', 'verdant_fracture'];
+// Official hero archetypes select an original readable combat glyph, not a
+// shared generic lightning sign or another game's copyrighted ability art.
+const PRIMARY_GLYPH_BY_STYLE: Record<string, CombatAction['icon']> = {
+  heal: 'heart-pulse', guard: 'shield-sword', supply: 'hand-heart',
+  blink: 'flash', burst: 'sword-cross', disrupt: 'lightning-bolt',
+};
 const MODES: Mode[] = ['duel', 'cluster', 'grand'];
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 const near = (a: Position, b: Position) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -595,7 +601,7 @@ function EmpireArenaInApp() {
   };
   const actions: CombatAction[] = [
     {id:'attack',label:'ATTACK',icon:'sword-cross',onPress:attack},
-    {id:'primary',label:'SKILL',icon:'lightning-bolt',onPress:()=>skill('primary'),
+    {id:'primary',label:'SKILL',icon:PRIMARY_GLYPH_BY_STYLE[HEROES[hero]?.style] || 'lightning-bolt',onPress:()=>skill('primary'),
       disabled:(me?.mana || 0)<18,cooldownMs:cooldownFor('primary')},
     {id:'secondary',label:'DASH',icon:'run-fast',onPress:()=>skill('secondary'),
       disabled:(me?.matchLevel||1)<3 || (me?.mana||0)<14,cooldownMs:cooldownFor('secondary')},
