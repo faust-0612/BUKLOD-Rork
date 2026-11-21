@@ -5,6 +5,7 @@
  * No secret is ever imported from the React Native app.
  */
 import { createClient } from '@supabase/supabase-js';
+import { claimEarnedDiamondsThenReadProfile } from './rankedParticipation.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEROES=new Set(['phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice']);
@@ -61,8 +62,8 @@ export class SupabaseArenaStore {
     // events. The private RPC is idempotent and daily-capped. No client-supplied
     // BP, Diamond, faith, or match result can create a reward.
     // Fail closed if the trusted claim/ledger schema is not deployed.
-    await this.rpc('arena_v2_claim_daily_diamonds',{p_user:userId});
-    const r=await this.rpc('arena_v2_ranked_profile',{p_user:userId,p_hero:hero});
+    const r=await claimEarnedDiamondsThenReadProfile(
+      this.rpc.bind(this),userId,hero);
     const diamonds=Number(r?.diamonds);
     const rating=Number(r?.rating);
     const itemLevel=Number(r?.verified_item_level);
