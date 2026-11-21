@@ -25,8 +25,8 @@
     },
     {
       "id": "kingdom-arena",
-      "label": "Kingdom Arena",
-      "districtId": "kingdom",
+      "label": "Empire Arena",
+      "districtId": "empire-arena",
       "route": "/games/empire-arena",
       "icon": "shield-sword-outline",
       "x": 0.806,
@@ -35,7 +35,7 @@
     },
     {
       "id": "cluster-village",
-      "label": "Cluster Village",
+      "label": "Community Village",
       "districtId": "communities",
       "route": "/clusters",
       "icon": "account-group-outline",
