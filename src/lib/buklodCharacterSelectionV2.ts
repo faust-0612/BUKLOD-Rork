@@ -327,7 +327,10 @@ export async function getMyBuklodCharacterSelectionV2(
 
   // Validate before any cached or in-flight result can be returned across
   // account boundaries; a healthy persisted session requires no network I/O.
-  await withBuklodCharacterReadDeadline(ensureCharacterSession(userId), CHARACTER_SESSION_DEADLINE_MS, 'session');
+  // Keep the canonical authenticated-session read inside a bounded wrapper;
+  // this preserves the legacy read-security contract without waiting forever.
+  const sessionRead = (async () => { await ensureCharacterSession(userId); })();
+  await withBuklodCharacterReadDeadline(sessionRead, CHARACTER_SESSION_DEADLINE_MS, 'session');
 
   // A forced refresh bypasses cache, but joins an already running refresh.
   const pending = inflight.get(userId);

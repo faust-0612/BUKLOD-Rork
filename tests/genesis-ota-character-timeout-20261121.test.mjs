@@ -8,7 +8,8 @@ const selection=read('src/lib/buklodCharacterSelectionV2.ts');
 const host=read('src/components/BuklodOtaFreshnessHost.native.tsx');
 const policy=read('src/lib/buklodSilentOtaPolicy.ts');
 test('Character session and RPC have bounded read-only deadlines',()=>{
- assert.match(selection,/withBuklodCharacterReadDeadline\(ensureCharacterSession\(userId\)/);
+ assert.match(selection,/const sessionRead = \(async \(\) => \{ await ensureCharacterSession\(userId\); \}\)\(\)/);
+ assert.match(selection,/withBuklodCharacterReadDeadline\(sessionRead/);
  assert.match(selection,/get_my_buklod_character_selection_v2/);
  assert.match(selection,/CHARACTER_SELECTION_DEADLINE_MS/);
  assert.match(deadlineSource,/Promise\.race/);
