@@ -70,8 +70,11 @@ export default function GenesisApprovedEntryMap({
           accessibilityLabel={'Enter '+door.label}
           accessibilityHint={door.faithOnly&&!showFaith?'Faith is hidden: opens the equivalent learning path':'Opens the guarded BUKLOD feature immediately'}
           onPress={()=>onOpen(door,door.faithOnly&&!showFaith?(door.fallbackRoute||'/learn'):door.route)}
-          style={[styles.door,touch(door.x,door.y,zoomed?54:44)]}
-        ><View pointerEvents="none" style={styles.pressHalo}/></Pressable>)}
+          style={[styles.door,touch(door.x,door.y,door.id==='special-events'?(zoomed?154:134):(zoomed?54:44))]}
+        >{door.id==='special-events'?<View pointerEvents="none" style={styles.eventSign}>
+          <MaterialCommunityIcons name="star-circle-outline" size={20} color="#FFE5A4"/>
+          <Text style={styles.eventText}>SPECIAL EVENTS</Text>
+        </View>:<View pointerEvents="none" style={styles.pressHalo}/>}</Pressable>)}
         {mapWidth>=770?<>
           <Pressable accessibilityRole="button" accessibilityLabel="Open BUKLOD destinations menu"
             onPress={onMenu} style={[styles.corner,touch(.041,.04,44)]}/>
@@ -113,6 +116,10 @@ const styles=StyleSheet.create({
   door:{position:'absolute',zIndex:2,alignItems:'center',justifyContent:'center'},
   pressHalo:{width:'100%',height:'100%',borderRadius:18,borderWidth:1,
     borderColor:'rgba(251,235,164,.16)',backgroundColor:'rgba(255,248,202,.025)'},
+  eventSign:{width:'100%',minHeight:44,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5,
+    backgroundColor:'rgba(7,44,36,.96)',borderWidth:1,borderColor:'#FFE1A2',borderRadius:18,
+    shadowColor:'#000',shadowOpacity:.35,shadowRadius:4,elevation:5},
+  eventText:{fontSize:10,fontWeight:'900',color:'#FFEBC1',letterSpacing:.3},
   corner:{position:'absolute',zIndex:3},
   compactShortcuts:{flexDirection:'row',justifyContent:'space-around',paddingHorizontal:5,backgroundColor:'#102F2A'},
   shortcut:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},
