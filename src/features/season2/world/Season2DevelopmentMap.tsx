@@ -20,6 +20,7 @@ import Season2CommunityFacilities from './Season2CommunityFacilities';
 import DevelopmentStructurePreview from './DevelopmentStructurePreview';
 import EstateConstructionConsole from './EstateConstructionConsole';
 import EstateMomentFX from './EstateMomentFX';
+import EstateCosmeticTile from './EstateCosmeticTile';
 import EstateGenesisAtmosphere from './EstateGenesisAtmosphere';
 import {useEstateFeedback,type EstateMoment} from './estateFeedback';
 import {type EstateCosmetics,type EstateSnapshot} from './estateProgressClient';
@@ -426,7 +427,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
               <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.name+' local preview'}
                 accessibilityState={{selected:look===item.id}} disabled={!canCustomizePreview} onPress={()=>chooseLook(item.id)}
                 style={[styles.look,look===item.id&&styles.activeLook]}>
-                <View style={[styles.swatch,{backgroundColor:item.tint}]}/>
+                <EstateCosmeticTile family="finish" choice={item.id} size={40}/>
                 <Text style={styles.lookText}>{item.name}</Text>
               </Pressable>
             ))}
@@ -435,14 +436,14 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           <View style={styles.optionRow}>
             {([{id:'gable',label:'Gable',icon:'home-roof'},{id:'hip',label:'Hip roof',icon:'home-outline'},{id:'terrace',label:'Flat deck',icon:'view-dashboard-outline'}] as const).map(item=>
               <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Preview '+item.label+' roof'} accessibilityState={{selected:roof===item.id}} disabled={!canCustomizePreview} onPress={()=>previewCustomize({roof:item.id})} style={[styles.option,roof===item.id&&styles.activeOption]}>
-                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+                <EstateCosmeticTile family="roof" choice={item.id}/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>WINDOWS & GLAZING</Text>
           <View style={styles.optionRow}>
             {([{id:'classic',label:'Classic',icon:'window-closed-variant'},{id:'panorama',label:'Panorama',icon:'window-maximize'},{id:'arched',label:'Heritage arch',icon:'arch'}] as const).map(item=>
               <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:windows===item.id}} disabled={!canCustomizePreview} onPress={()=>previewCustomize({windows:item.id})} style={[styles.option,windows===item.id&&styles.activeOption]}>
-                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+                <EstateCosmeticTile family="windows" choice={item.id}/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>ENTRY DOOR</Text>
@@ -452,7 +453,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
                 accessibilityState={{selected:doorStyle===item.id}} disabled={!canCustomizePreview}
                 onPress={()=>previewCustomize({door:item.id})}
                 style={[styles.option,doorStyle===item.id&&styles.activeOption]}>
-                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+                <EstateCosmeticTile family="door" choice={item.id}/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           </>:null}
@@ -461,14 +462,14 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           <View style={styles.optionRow}>
             {([{id:'grass',label:'Green lot',icon:'grass'},{id:'flower',label:'Flower garden',icon:'flower'},{id:'stone',label:'Stone paths',icon:'road-variant'}] as const).map(item=>
               <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Preview '+item.label} accessibilityState={{selected:ground===item.id}} disabled={!canCustomizePreview} onPress={()=>previewCustomize({ground:item.id})} style={[styles.option,ground===item.id&&styles.activeOption]}>
-                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+                <EstateCosmeticTile family="ground" choice={item.id}/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>FENCE & PERIMETER</Text>
           <View style={styles.optionRow}>
             {([{id:'wood',label:'Wood fence',icon:'fence'},{id:'iron',label:'Iron railing',icon:'gate'},{id:'hedge',label:'Green hedge',icon:'tree-outline'}] as const).map(item=>
               <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:fence===item.id}} disabled={!canCustomizePreview} onPress={()=>previewCustomize({fence:item.id})} style={[styles.option,fence===item.id&&styles.activeOption]}>
-                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+                <EstateCosmeticTile family="fence" choice={item.id}/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>PATH & PAVING</Text>
@@ -478,7 +479,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
                 accessibilityState={{selected:pathStyle===item.id}} disabled={!canCustomizePreview}
                 onPress={()=>previewCustomize({path:item.id})}
                 style={[styles.option,pathStyle===item.id&&styles.activeOption]}>
-                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+                <EstateCosmeticTile family="path" choice={item.id}/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           <Text style={styles.optionTitle}>YARD FEATURE</Text>
@@ -488,7 +489,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
                 accessibilityState={{selected:yardStyle===item.id}} disabled={!canCustomizePreview}
                 onPress={()=>previewCustomize({yard:item.id})}
                 style={[styles.option,yardStyle===item.id&&styles.activeOption]}>
-                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+                <EstateCosmeticTile family="yard" choice={item.id}/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           </>:null}
@@ -497,7 +498,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           <View style={styles.optionRow}>
             {([{id:'warm',label:'Warm lamps',icon:'lightbulb-outline'},{id:'starlight',label:'Starlight',icon:'star-four-points'},{id:'garden',label:'Garden lights',icon:'outdoor-lamp'}] as const).map(item=>
               <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={'Use '+item.label} accessibilityState={{selected:lights===item.id}} disabled={!canCustomizePreview} onPress={()=>previewCustomize({lights:item.id})} style={[styles.option,lights===item.id&&styles.activeOption]}>
-                <MaterialCommunityIcons name={item.icon as IconName} size={19} color="#F5E2BB"/><Text style={styles.optionText}>{item.label}</Text>
+                <EstateCosmeticTile family="lights" choice={item.id}/><Text style={styles.optionText}>{item.label}</Text>
               </Pressable>)}
           </View>
           </>:null}
@@ -570,7 +571,7 @@ const styles=StyleSheet.create({
   nextHint:{fontSize:10,lineHeight:16,color:'#A9D2C4'},
   optionTitle:{color:'#E9D7AC',fontSize:10,fontWeight:'900',marginTop:2},
   optionRow:{flexDirection:'row',gap:6},
-  option:{flex:1,minHeight:51,alignItems:'center',justifyContent:'center',gap:3,backgroundColor:'#273F41',borderRadius:10,borderColor:'#5A7471',borderWidth:1},
+  option:{flex:1,minHeight:67,alignItems:'center',justifyContent:'center',gap:3,backgroundColor:'#273F41',borderRadius:10,borderColor:'#5A7471',borderWidth:1},
   activeOption:{borderColor:'#F7CE85',backgroundColor:'#456054'},
   optionText:{fontSize:9,fontWeight:'800',color:'#FCF0D5'},
   mapNote:{color:'#B9D6CE',fontSize:10,lineHeight:15},

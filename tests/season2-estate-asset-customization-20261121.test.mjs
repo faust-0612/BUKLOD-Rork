@@ -107,3 +107,18 @@ test('nine customization families cover all 30 choices, apply through the studio
  assert.match(map,/setLiveView\(false\)/);
  assert.match(sql,/Unsupported cosmetic choice/);
 });
+
+test('every selectable design has a dedicated rendered 2.5D artwork tile, not only a generic icon',()=>{
+ const tile=read('src/features/season2/world/EstateCosmeticTile.tsx');
+ for(const family of ['finish','roof','ground','fence','windows','lights','door','path','yard']){
+   assert.match(map,new RegExp('<EstateCosmeticTile family="'+family+'" choice=\\{item.id\\}'));
+   assert.ok(tile.includes("family==='"+family+"'"),'visual branch '+family);
+ }
+ for(const option of ['stone','timber','garden','slate','clay','light','gable','hip','terrace','grass','flower',
+   'iron','hedge','classic','panorama','arched','warm','starlight','glass','gravel','pavers','brick','bench','pond','pergola']){
+   assert.ok(tile.includes(option),'illustrated option '+option);
+ }
+ assert.match(tile,/react-native-svg/);
+ assert.match(tile,/type Family=keyof EstateCosmetics/);
+ assert.match(map,/SAVE DESIGN TO SERVER/);
+});
