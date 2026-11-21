@@ -10,7 +10,9 @@ const read=p=>readFileSync(resolve(root,p),'utf8');
 test('Premium Kingdom nature landmarks are selectable canonical character worlds',()=>{
  const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
  assert.match(portal,/KINGDOM_NATURE_LANDMARKS\.map/);
- assert.match(portal,/onPress=\{\(\) => select\(realm\)\}/);
+ // Owner-approved one-tap station tap now enters the original game, not a second preview step.
+ assert.match(portal,/onPress=\{\(\) => enterStation\(realm\)\}/);
+ assert.match(portal,/router\.push\(\('\/games\/' \+ realm\.id\) as any\)/);
  for(const region of ['Living Forest','Kingdom Citadel','Winter Highlands','River Valley','Coastal District'])assert.ok(portal.includes(region),region);
  assert.match(portal,/accessibilityState=\{\{selected:isSelected\}\}/);
  assert.doesNotMatch(portal,/claimBp|awardBp|awardDiamond|supabase\.rpc/i);

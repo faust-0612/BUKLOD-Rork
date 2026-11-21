@@ -96,6 +96,7 @@
     "tests/season2-one-tap-kingdom-guide-20261121.test.mjs",
     "tests/season2-portrait-nav-abaka-20261121.test.mjs",
     "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
+    "tests/season2-premium-staging-ota-contract-20261121.test.mjs",
     "tests/season2-special-events-contract-20261121.test.mjs",
     "tests/season2-special-events-welcome-20261121.test.mjs"
   ],
@@ -118,7 +119,8 @@
     "tests/season2-special-events-contract-20261121.test.mjs",
     "tests/season2-special-events-welcome-20261121.test.mjs",
     "tests/genesis-ota-character-timeout-20261121.test.mjs",
-    "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs"
+    "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
+    "tests/season2-premium-staging-ota-contract-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -172,7 +174,8 @@
       ],
       "tests": [
         "tests/genesis-ota-character-timeout-20261121.test.mjs",
-        "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs"
+        "tests/genesis-kingdom-stations-ad-footer-20261121.test.mjs",
+        "tests/season2-premium-staging-ota-contract-20261121.test.mjs"
       ]
     },
     {
