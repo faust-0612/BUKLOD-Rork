@@ -1,0 +1,56 @@
+name: BUKLOD Arena DEV Scene Vendor
+on:
+  push:
+    branches:
+      - dev/empire-arena-v2-inapp-asset-baseline-20261121
+    paths:
+      - scripts/vendor-buklod-arena-scenes.mjs
+      - .github/workflows/buklod-arena-dev-art-vendor.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: buklod-arena-dev-scenes
+  cancel-in-progress: false
+
+jobs:
+  vendor-approved-art:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/empire-arena-v2-inapp-asset-baseline-20261121'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vendor exactly three existing BUKLOD Realm plates from approved public image endpoints
+        run: node scripts/vendor-buklod-arena-scenes.mjs
+      - name: Verify all original scene images are SHA-versioned and statically bundled
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const m = JSON.parse(fs.readFileSync('assets/season2/arena/generated-manifest.json','utf8'));
+          for (const key of ['scene:genesis_rift','scene:aurora_foundry','scene:verdant_fracture']) {
+            const found = m.assets.find(x=>x.key===key && x.status==='dev-baseline' && x.bytes>=512);
+            if (!found || !fs.existsSync(found.file)) throw new Error('Missing verified scene '+key);
+          }
+          const source = fs.readFileSync('src/features/games/empire/arenaGeneratedAssets.ts','utf8');
+          if (!source.includes("require('../../../../assets/season2/arena/generated/scene/"))
+            throw new Error('Metro image registry missing actual native asset imports');
+          NODE
+      - name: Commit DEV-only scene assets without touching production
+        run: |
+          git config user.name "buklod-scene-vendor[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/season2/arena src/features/games/empire/arenaGeneratedAssets.ts
+          if git diff --cached --quiet; then
+            echo "Asset baseline already current."
+            exit 0
+          fi
+          git commit -m "assets(arena): mirror approved Rork scene plates to DEV offline baseline"
+          # Fast-forward only. Never force or bypass concurrent DEV changes.
+          git push origin HEAD:refs/heads/dev/empire-arena-v2-inapp-asset-baseline-20261121
