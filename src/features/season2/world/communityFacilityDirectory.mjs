@@ -420,8 +420,8 @@ const ZONES = Object.freeze([
       [
         "prayer",
         "Prayer Groups",
-        "/prayer",
-        "Optional faith support and prayer",
+        null,
+        "Optional faith fellowship directory planned; no unverified prayer-group entry",
         true
       ],
       [

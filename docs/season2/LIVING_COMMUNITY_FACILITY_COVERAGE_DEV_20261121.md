@@ -18,3 +18,6 @@ The registry is an authoritative **navigation/coverage taxonomy** for DEV only. 
 
 ### Release protections
 No new native dependencies, no Supabase schema/migrations or mutation, no changes to existing AdMob banner placement, no production merge, APK or OTA. Staging compatibility, current native runtime, responsive Android visual checks, first-view ad/nav and scope/regression tests remain mandatory. Never declare consolidated OTA ready based solely on this DEV wave.
+
+## Learning route repair and unimplemented prayer group guard
+`/learn` existed as a map/guide destination but its folder only had a dynamic track and lesson page. Added a guarded public Learning Grove index with direct existing Focus Apps, classroom, children's stories, achievements, and optional faith content. It has no new data writes. The previous unimplemented `/prayer` facility now remains labeled planned/no-route, rather than sending a user to an undefined page or implicitly starting a prayer request.

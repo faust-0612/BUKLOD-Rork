@@ -13,6 +13,7 @@ test('complete community coverage stays partitioned by real village and personal
   assert.equal(village.linked+village.planned,village.total);
   assert.equal(home.linked+home.planned,home.total);
   assert.ok(COMMUNITY_FACILITY_ZONES.length>=15);
+  assert.equal(listCommunityFacilities({world:'village',showFaith:true}).find(x=>x.id==='prayer').route,null);
   assert.deepEqual(listCommunityFacilities({world:'unknown'}),[]);
   const ids=new Set();
   for(const f of [...listCommunityFacilities({world:'village'}),...listCommunityFacilities({world:'home'})]){
@@ -68,4 +69,15 @@ test('optional directory adds linked one-tap access without modifying approved e
   assert.match(map,/GenesisValleyMap/);
   assert.doesNotMatch(directory,/(supabase|awardPoints|mintBp|spendBp|service_role|withdrawQMP)/i);
   assert.doesNotMatch(world,/Season2CommunityFacilities.*(?:mintBp|spendBp)/);
+});
+
+test('Learning Grove resolves a previously missing map route without exposing restricted/faith screens',()=>{
+ const learning=source('src/app/learn/index.tsx');
+ assert.match(learning,/isGenesisPreviewBuild\(\)/);
+ assert.match(learning,/requiresAcceptance/);
+ assert.match(learning,/!session/);
+ assert.match(learning,/faithOnly.*showFaith/);
+ assert.match(learning,/\/profile\/focus-apps/);
+ assert.match(learning,/\/children-stories/);
+ assert.doesNotMatch(learning,/(supabase\.from|supabase\.rpc|mintBp|awardPoints|spendBp)/i);
 });

@@ -26,7 +26,8 @@
     "src/features/season2/world/Season2DevelopmentMap.tsx",
     "tests/season2-complete-community-facilities-20261121.test.mjs",
     "docs/season2/LIVING_COMMUNITY_FACILITY_COVERAGE_DEV_20261121.md",
-    "src/features/season2/world/guideDestinations.ts"
+    "src/features/season2/world/guideDestinations.ts",
+    "src/app/learn/index.tsx"
   ],
   "regressionTests": [
     "tests/season2-complete-community-facilities-20261121.test.mjs"
@@ -50,13 +51,15 @@
     "Approved local Stage1 Village/Home/Entry artworks remain exact, guide remains outside map",
     "Original scene one-tap doors, local preview level/stage, look previews and audio/media lifecycles unchanged",
     "New directory starts collapsed and paginated; planned facilities are disabled",
-    "No new native dependencies or paid services; live Supabase is not modified"
+    "No new native dependencies or paid services; live Supabase is not modified",
+    "Learning Grove index is auth/compliance/maintenance gated and faithfully hides optional faith-only destinations; no new curriculum or learner completion records."
   ],
   "acceptanceChecks": [
     "Run Node behavioral tests for complete taxonomy, linked/planned semantics, Show Faith, search and world isolation",
     "Check exact existing route integrity and TypeScript compile in isolated checkout",
     "Verify Android first-view AdMob, nav, memory, reduced motion, visual touch sizing, auth and permission regression before OTA",
-    "Keep real ledger/land construction disabled pending independent transaction/RLS/concurrency verification"
+    "Keep real ledger/land construction disabled pending independent transaction/RLS/concurrency verification",
+    "Verify repaired /learn entry is resolvable and every linked facility has a concrete route; previously unimplemented /prayer is not actionable."
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "releaseMode": "dev-staging-candidate-no-ota",
