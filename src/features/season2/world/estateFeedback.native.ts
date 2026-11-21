@@ -57,6 +57,7 @@ export function useEstateFeedback():Feedback{
  const [voiceAvailable,setVoiceAvailable]=useState(true);
  const onScreen=useRef(false),blocked=useRef(false),hydrated=useRef(false);
  const players=useRef(new Map<EstateMoment,Player>());
+ const pendingDecodes=useRef(new Map<EstateMoment,{remove:()=>void}>());
  const last=useRef(new Map<EstateMoment,number>());
  const speaker=useRef<{language:string;identifier?:string;fil:boolean}>({language:'en-US',fil:false});
  const voiceRef=useRef(false);
@@ -94,7 +95,15 @@ export function useEstateFeedback():Feedback{
     for(const player of players.current.values()){try{player.pause();}catch{/* optional */}}
     if(spokenByUs.current){spokenByUs.current=false;void Speech.stop().catch(()=>undefined);}
    });
+   const appStateSub=AppState.addEventListener('change',state=>{
+     if(state==='active')return;
+     for(const player of players.current.values()){try{player.pause();}catch{/* optional */}}
+     if(spokenByUs.current){spokenByUs.current=false;void Speech.stop().catch(()=>undefined);}
+   });
    return ()=>{
+    appStateSub.remove();
+    for(const subscription of pendingDecodes.current.values())subscription.remove();
+    pendingDecodes.current.clear();
     onScreen.current=false;blocked.current=false;hydrated.current=false;
     unsubscribe();
     if(spokenByUs.current){spokenByUs.current=false;void Speech.stop().catch(()=>undefined);}
@@ -106,7 +115,7 @@ export function useEstateFeedback():Feedback{
  },[]));
  const emit=useCallback((cue:EstateMoment)=>{
    if(!onScreen.current||blocked.current||AppState.currentState!=='active')return;
-   if(!hydrated.current||!isBuklodGameSoundEnabled())return;
+   if(!isBuklodGameSoundEnabled()&&hydrated.current)return;
    const current=new Date();
    // Respect BUKLOD quiet hours, never override Android sound or call focus.
    void getBuklodSoundSettings().then(settings=>{
@@ -122,19 +131,20 @@ export function useEstateFeedback():Feedback{
      }
      const live=player;
      try{
-      live.volume=Math.min(.55,Math.max(.05,getBuklodGameSoundVolume()*VOLUME[cue]));
+      live.volume=Math.min(.55,Math.max(0,getBuklodGameSoundVolume()*VOLUME[cue]));
       if(live.isLoaded){
        void live.seekTo(0).then(()=>{if(onScreen.current&&!blocked.current&&AppState.currentState==='active')live.play();}).catch(()=>undefined);
-      }else{
-       // Do not make a fake success noise before native decoding; first tap is optional.
+      }else if(!pendingDecodes.current.has(cue)){
+       // One bounded decoder listener per clip; clean up on screen blur.
        let subscription:{remove:()=>void}|null=null;
        subscription=live.addListener('playbackStatusUpdate',status=>{
         if(!status.isLoaded)return;
-        subscription?.remove();
+        subscription?.remove();pendingDecodes.current.delete(cue);
         if(onScreen.current&&!blocked.current&&AppState.currentState==='active'&&Date.now()-now<950){
           try{live.play();}catch{/* optional */}
         }
        });
+       if(subscription)pendingDecodes.current.set(cue,subscription);
       }
      }catch{/* gameplay never waits for a sound effect */}
      if(['claim','build_complete','apply','contribute','buy_success','unlock'].includes(cue)){

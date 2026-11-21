@@ -11,6 +11,7 @@ const map=read('src/features/season2/world/Season2DevelopmentMap.tsx');
 const consoleSource=read('src/features/season2/world/EstateConstructionConsole.tsx');
 const fx=read('src/features/season2/world/EstateMomentFX.tsx');
 const icons=read('src/features/season2/world/EstateResourceEmblem.tsx');
+const atmosphere=read('src/features/season2/world/EstateGenesisAtmosphere.tsx');
 
 test('13 original offline estate SFX are real bounded 24kHz stereo 16-bit PCM WAV, not broken placeholders',()=>{
  const hashes=new Set();
@@ -62,6 +63,8 @@ test('voice, permissions, focus, quiet hours, and optional audio failure remain 
  assert.match(native,/settings\.quietHours/);
  assert.match(native,/if\(!spoken\|\|!voiceRef\.current\)return/);
  assert.match(native,/Speech\.stop\(\)/);
+ assert.match(native,/AppState\.addEventListener\('change'/);
+ assert.match(native,/pendingDecodes\.current\.clear\(\)/);
  assert.match(web,/useEstateFeedback/);
  assert.match(map,/estateFeedback\.toggleVoice/);
  assert.match(map,/estateFeedback\.voiceEnabled/);
@@ -73,6 +76,10 @@ test('confirmation FX and resource imagery use bundled renderers and respect red
  }
  assert.match(fx,/AccessibilityInfo\.isReduceMotionEnabled/);
  assert.match(fx,/pointerEvents="none"/);
+ assert.match(atmosphere,/AccessibilityInfo\.isReduceMotionEnabled/);
+ assert.match(atmosphere,/useFocusEffect/);
+ assert.match(atmosphere,/loop\.stop\(\)/);
+ assert.match(map,/<EstateGenesisAtmosphere world=\{world\} level=\{level\}/);
  assert.match(map,/<EstateMomentFX event=\{estateMoment\}/);
  assert.match(consoleSource,/<EstateResourceEmblem kind=\{field\}/);
  assert.match(consoleSource,/<DevelopmentStructurePreview track=\{track\} level=\{verified\.level\}/);

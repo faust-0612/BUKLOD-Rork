@@ -9,6 +9,7 @@ on:
       - tests/season2-premium-construction-plan.test.mjs
       - tests/season2-estate-asset-customization-20261121.test.mjs
       - tests/season2-estate-premium-audio-20261121.test.mjs
+      - .buklod/scopes/genesis-estate-asset-customization-20261121.json
       - tests/season2-estate-server-authority-20261121.test.mjs
       - tests/season2-community-village-preview-20261121.test.mjs
       - supabase/migrations/20261121134500_buklod_estate_authoritative_progression_v1.sql
