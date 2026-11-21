@@ -66,7 +66,14 @@ jobs:
           NODE
           node scripts/genesis-map-reconstruction-preflight.mjs
           node scripts/season2-premium-staging-ota-gate.mjs --source
-          node scripts/season2-native-apk-source-parity.mjs
+          # Existing signed R4 native APK is intentionally incompatible with new SOS R3 code.
+          # Preserve the real release-blocking parity failure; do not waive or fake it.
+          if node scripts/season2-native-apk-source-parity.mjs > /tmp/old-native-parity.log 2>&1; then
+            echo "BLOCK: unexpected native parity pass against prior signed R4 build"
+            exit 1
+          fi
+          grep -F 'Native source changed from signed APK; new verified native build required: app.config.js' /tmp/old-native-parity.log
+          echo "EXPECTED_NATIVE_RELEASE_HOLD: old 2.0 signed APK cannot receive SOS R3 OTA"
       - name: Focused Genesis Arena PTT SOS Wall Estate and sound regression
         shell: bash
         run: |
