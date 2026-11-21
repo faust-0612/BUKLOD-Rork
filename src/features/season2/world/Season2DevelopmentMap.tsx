@@ -161,7 +161,8 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
     void AsyncStorage.setItem(cosmeticKey,JSON.stringify({finish:look,roof,ground,fence,windows,lights})).catch(()=>undefined);
   },[cosmeticLoadedKey,storageKey,cosmeticKey,look,roof,ground,fence,windows,lights,canCustomizePreview,ownerId,isPreview]);
   const chooseLook = useCallback((next:Look)=>{
-    if(canCustomizePreview)setLook(next);
+    if(!canCustomizePreview)return;
+    setLook(next);
   },[canCustomizePreview]);
   const title = world==='home' ? 'MY HOME · PERSONAL WORLD' : 'MY COMMUNITY · '+(chosenScope?.name??'Choose a Cluster or Organization');
   const desc = world==='home'
