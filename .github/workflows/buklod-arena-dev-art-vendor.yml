@@ -6,6 +6,7 @@ on:
     paths:
       - scripts/vendor-buklod-arena-scenes.mjs
       - scripts/generate-buklod-arena-hero-motion.py
+      - scripts/generate-buklod-arena-fullbody.py
       - src/features/games/empire/arenaVisualBaseline.ts
       - .github/workflows/buklod-arena-dev-art-vendor.yml
 
@@ -20,7 +21,7 @@ jobs:
   vendor-approved-art:
     if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/empire-arena-v2-inapp-asset-baseline-20261121'
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,11 +34,13 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install fixed-version open-source image encoder
-        run: python -m pip install --disable-pip-version-check --no-input Pillow==11.3.0
+        run: python -m pip install --disable-pip-version-check --no-input Pillow==11.3.0 numpy==1.26.4 opencv-python-headless==4.10.0.84
       - name: Vendor exactly three existing BUKLOD Realm plates from approved public image endpoints
         run: node scripts/vendor-buklod-arena-scenes.mjs
       - name: Produce 13 real animated WebP assets from approved repository portraits
         run: python scripts/generate-buklod-arena-hero-motion.py
+      - name: Build source-owned full-body idle/walk/attack/skill animation clips
+        run: python scripts/generate-buklod-arena-fullbody.py
       - name: Verify all original scene images are SHA-versioned and statically bundled
         run: |
           node - <<'NODE'
@@ -54,6 +57,13 @@ jobs:
             if (b.subarray(0,4).toString() !== 'RIFF' || b.subarray(8,12).toString() !== 'WEBP' || !b.includes(Buffer.from('ANIM')))
               throw new Error('Invalid real animated WebP for ' + id);
           }
+          for (const id of ['phan','quin','van','christian','lhen','ace','ellusur','jawo','mitch','niel','angel','vhen','trudice'])
+            for (const pose of ['idle','walk','attack','skill']) {
+              const entry = m.assets.find(x => x.key === 'fullbody:' + id + '_' + pose);
+              if (!entry || !fs.existsSync(entry.file)) throw new Error('Missing full-body pose '+id+'/'+pose);
+              const bytes = fs.readFileSync(entry.file);
+              if (!bytes.includes(Buffer.from('ANIM')) || bytes.subarray(8,12).toString() !== 'WEBP') throw new Error('Invalid animated full-body art '+id+'/'+pose);
+            }
           const source = fs.readFileSync('src/features/games/empire/arenaGeneratedAssets.ts','utf8');
           if (!source.includes("require('../../../../assets/season2/arena/generated/scene/"))
             throw new Error('Metro image registry missing actual native asset imports');
