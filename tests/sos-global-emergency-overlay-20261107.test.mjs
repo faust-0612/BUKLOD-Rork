@@ -35,7 +35,7 @@ test('Recipient push and tap route to the same global alert, old account payload
   assert.match(host, /\.eq\('user_id', owner\)/);
   assert.match(host, /\.eq\('kind', 'community_emergency'\)/);
   assert.match(host, /\.contains\('data', \{ help_request_id: incidentId \}\)/);
-  assert.match(host, /buklod_help_list_nearby/);
+  assert.match(host, /buklod_help_get_emergency_for_viewer/);
   assert.match(host, /row\.id === incidentId && row\.kind === 'EMERGENCY' && freshActive\(row\)/);
   assert.match(host, /origin === 'recipient' && item\.creator_id === owner/);
   assert.match(host, /if \(!incident\)/);
@@ -73,7 +73,7 @@ test('Only active proximity-authorized incidents can be displayed and responded 
   assert.match(host, /if \(!mine \|\| mine\.kind !== 'EMERGENCY'/);
   assert.match(host, /if \(ownEmergency\) return ownEmergency/);
   assert.doesNotMatch(host, /\.select\('.*latitude.*longitude/);
-  assert.match(host, /Exact location is protected/);
+  assert.match(host, /Exact location is reserved for ON MY WAY responders/);
   assert.match(locked, /Private raw coordinates/);
 });
 
@@ -112,7 +112,7 @@ test('Push is primary; bounded foreground polling and dedupe recover missed push
 test('Current canonical SOS notification fan-out, expiry, limited radius and no-double-push preserved',()=>{
   assert.match(push, /notification\.kind === 'community_emergency'/);
   assert.match(push, /emergency_alert_mode_version/);
-  assert.match(push, /androidEmergencyReady \? 'buklod-emergency-v1' : 'buklod-activity-v2'/);
+  assert.match(push, /androidEmergencyReady \? 'buklod-emergency-v2' : 'buklod-activity-v2'/);
   assert.match(push, /ttl: isCommunityEmergency \? 600/);
   const server=read('supabase/functions/buklod-help-alert/index.ts');
   assert.match(server, /within1>=3\?1:within3>=3\?3:5/);

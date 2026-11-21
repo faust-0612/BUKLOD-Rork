@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -99,7 +100,7 @@ export default function BuklodCommunityHelp(){
     }
   },[user?.id]);
 
-  const ensurePresence=useCallback(async(showErrors=true)=>{
+  const ensurePresence=useCallback(async(showErrors=true,emergency=false)=>{
     if(!user?.id)return null;
     try{
       const permission=await Location.requestForegroundPermissionsAsync();
@@ -107,7 +108,19 @@ export default function BuklodCommunityHelp(){
         if(showErrors)Alert.alert('Location needed','Nearby Help and SOS need location permission to match you with BUKLOD users nearby.');
         return null;
       }
-      const loc=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});
+      if(!await Location.hasServicesEnabledAsync()){
+        if(Platform.OS==='android') await Location.enableNetworkProviderAsync().catch(()=>undefined);
+        if(!await Location.hasServicesEnabledAsync()){
+          if(showErrors)Alert.alert('Turn on Location','Enable phone Location before sending SOS. No location means no emergency broadcast.');
+          return null;
+        }
+      }
+      const loc=await Location.getCurrentPositionAsync({
+        accuracy:emergency?Location.Accuracy.High:Location.Accuracy.Balanced,
+      });
+      if(!Number.isFinite(loc.coords.latitude)||!Number.isFinite(loc.coords.longitude)){
+        throw new Error('No current GPS position available.');
+      }
       const coords={latitude:loc.coords.latitude,longitude:loc.coords.longitude};
       const {error}=await supabase.rpc('buklod_help_update_presence',{
         p_latitude:coords.latitude,p_longitude:coords.longitude,p_enabled:true,
@@ -195,7 +208,7 @@ export default function BuklodCommunityHelp(){
         }
       }
 
-      const coords=await ensurePresence(true);
+      const coords=await ensurePresence(true,kind==='EMERGENCY');
       if(!coords)return;
       const {data,error}=await supabase.rpc('buklod_help_create_request',{
         p_kind:kind,p_category:category,p_message:message.trim(),
@@ -325,7 +338,7 @@ export default function BuklodCommunityHelp(){
         <TextInput value={message} onChangeText={v=>setMessage(v.slice(0,500))} editable={!busy} multiline
           placeholder={kind==='EMERGENCY'?'Short detail if you can type safely…':'What kind of help do you need?'} placeholderTextColor={colors.muted} style={s.input}/>
         {kind==='EMERGENCY'?<>
-          <Text style={s.privacy}>Exact location is used only for proximity matching. Nearby users receive approximate distance, not raw coordinates.</Text>
+          <Text style={s.privacy}>Phone Location must be ON to send. Nearby users initially see approximate distance. A nearby responder who marks ON MY WAY may open your rescue location in Maps until the SOS ends.</Text>
           <Pressable disabled={busy} delayLongPress={1800} onLongPress={()=>void submit()} style={({pressed})=>[s.hold,pressed&&s.pressed,busy&&{opacity:.55}]}>
             {busy?<ActivityIndicator color="#FFF"/>:<MaterialCommunityIcons name="gesture-tap-hold" size={20} color="#FFF"/>}<Text style={s.holdText}>{busy?'SENDING…':'HOLD TO SEND SOS'}</Text>
           </Pressable><Text style={s.holdHint}>Hold for about 2 seconds to prevent accidental emergency alerts.</Text>
