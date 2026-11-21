@@ -1,11 +1,11 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-estate-asset-customization-20261121.json",
-  "objective": "Complete and verify actual rendered Personal Lot, House and Cluster progression assets and nine functional, owner-scoped customization settings, with server-authoritative construction and no production changes.",
+  "objective": "Finish real BUKLOD Genesis estate visuals, real verified progression and nine-part customization, plus original, owned offline SFX, opt-in bilingual voice, responsive celebratory effects, and focus/quiet-hours safety; DEV only and no production changes.",
   "baseRef": "dev/genesis-premium-personal-world-progress-20261121",
   "productionBaselineEvidence": "The approved Genesis world base was inspected at f01dd05102bd4acd292549073c26ac22542902e3; DEV source-only comparison. No live Android/production APK/runtime/OTA proof claimed.",
-  "chosenApproach": "Reuse owned Genesis stage-one WebP underpaintings and install per-tier SVG scenes for all 30 permanent level IDs and 150 construction-stage compositions. Separate blueprint and earned stages; store per-property draft locally and save explicitly via validated Supabase RPC. New SQL remains DEV migration only.",
-  "selectionRationale": "Owner's catalog specifies 30 development tiers but its referenced PNG files are not installed. SVG tier compositions avoid falsely claiming missing PNGs, keep APK size bounded, support all supported customizations, and preserve the 1-tap original world map.",
+  "chosenApproach": "Reuse owned Genesis stage-one WebP underpaintings and install per-tier SVG scenes for all 30 permanent level IDs and 150 construction-stage compositions. Separate blueprint and earned stages; store per-property draft locally and save explicitly via validated Supabase RPC. New SQL remains DEV migration only. Add 13 offline original PCM stereo SFX mapped separately to navigation, preview, customize, apply, claim, market entry, purchase confirmed/rejected, construction start/finish, contribution, error and unlock. Add optional local Filipino/English TTS, native SVG material emblems and Genesis light/celebration effects. Purchase completion is intentionally not bound to a Palengke portal without verified checkout.",
+  "selectionRationale": "Owner's catalog specifies 30 development tiers but its referenced PNG files are not installed. SVG tier compositions avoid falsely claiming missing PNGs, keep APK size bounded, support all supported customizations, and preserve the 1-tap original world map. Native SVG and bundled WAV assets have actual bytes; existing MP3 preview hosts are not used and no network fetch is required for estate sounds.",
   "alternativeApproaches": [
     "Use 30 unverified PNG catalog filenames as runtime images; rejected because files do not exist.",
     "Deploy authoritative RPCs directly into shared live BUKLOD Supabase for smoke tests; rejected to protect production data.",
@@ -21,26 +21,54 @@
     "accessibility",
     "navigation",
     "admob-regression",
-    "production-release"
+    "production-release",
+    "audio-focus",
+    "voice-locale",
+    "sound-settings",
+    "quiet-hours",
+    "purchase-confirmation-integrity",
+    "reduced-motion",
+    "bundled-wav-decode",
+    "Android-memory-performance"
   ],
   "allowedPaths": [
     ".buklod/scopes/genesis-estate-asset-customization-20261121.json",
     ".github/workflows/genesis-premium-personal-world-dev-qa.yml",
+    "assets/sounds/estate-premium/apply.wav",
+    "assets/sounds/estate-premium/build_complete.wav",
+    "assets/sounds/estate-premium/build_start.wav",
+    "assets/sounds/estate-premium/buy_failure.wav",
+    "assets/sounds/estate-premium/buy_open.wav",
+    "assets/sounds/estate-premium/buy_success.wav",
+    "assets/sounds/estate-premium/claim.wav",
+    "assets/sounds/estate-premium/contribute.wav",
+    "assets/sounds/estate-premium/customize.wav",
+    "assets/sounds/estate-premium/error.wav",
+    "assets/sounds/estate-premium/navigation.wav",
+    "assets/sounds/estate-premium/preview.wav",
+    "assets/sounds/estate-premium/unlock.wav",
     "src/features/season2/world/DevelopmentStructurePreview.tsx",
     "src/features/season2/world/EstateConstructionConsole.tsx",
+    "src/features/season2/world/EstateGenesisAtmosphere.tsx",
+    "src/features/season2/world/EstateMomentFX.tsx",
+    "src/features/season2/world/EstateResourceEmblem.tsx",
     "src/features/season2/world/EstateTierArtwork.tsx",
     "src/features/season2/world/Season2DevelopmentMap.tsx",
     "src/features/season2/world/constructionPlan.d.mts",
     "src/features/season2/world/constructionPlan.mjs",
     "src/features/season2/world/developmentAssetManifest.ts",
+    "src/features/season2/world/estateFeedback.native.ts",
+    "src/features/season2/world/estateFeedback.ts",
+    "src/features/season2/world/estateFeedback.web.ts",
     "src/features/season2/world/estateProgressClient.ts",
     "supabase/migrations/20261121134500_buklod_estate_authoritative_progression_v1.sql",
+    "supabase/tests/buklod_estate_progression_authority_20261121.sql",
     "tests/season2-community-village-preview-20261121.test.mjs",
     "tests/season2-estate-asset-customization-20261121.test.mjs",
+    "tests/season2-estate-premium-audio-20261121.test.mjs",
     "tests/season2-estate-server-authority-20261121.test.mjs",
     "tests/season2-my-community-scope-customization-20261121.test.mjs",
-    "tests/season2-premium-construction-plan.test.mjs",
-    "supabase/tests/buklod_estate_progression_authority_20261121.sql"
+    "tests/season2-premium-construction-plan.test.mjs"
   ],
   "preserveBehaviors": [
     "Original approved Genesis entry map/one-tap doors and legacy BUKLOD Bahay, reminders, budget, garden and family routes remain unchanged.",
@@ -56,7 +84,8 @@
     "tests/season2-estate-server-authority-20261121.test.mjs",
     "tests/season2-my-community-scope-customization-20261121.test.mjs",
     "tests/season2-premium-construction-plan.test.mjs",
-    "supabase/tests/buklod_estate_progression_authority_20261121.sql"
+    "supabase/tests/buklod_estate_progression_authority_20261121.sql",
+    "tests/season2-estate-premium-audio-20261121.test.mjs"
   ],
   "acceptanceChecks": [
     "30 SVG level identities and 150 stage compositions represented in installed renderer.",
@@ -64,19 +93,25 @@
     "Client never labels unearned Finishing-stage graphics as verified property.",
     "Focused Node tests, TypeScript, compact layout, one-tap map and ad/navigation release regressions pass in DEV workflow.",
     "Migration is NOT applied to shared live Supabase; real device/staging SQL concurrency, RLS and signed OTA remain separate mandatory gates.",
-    "Isolated SQL regression in supabase/tests validates grants, RLS, owner/scope isolation, exact-once resource credits and builds, timer gates and persistence. Source added; execution against staging remains pending."
+    "Isolated SQL regression in supabase/tests validates grants, RLS, owner/scope isolation, exact-once resource credits and builds, timer gates and persistence. Source added; execution against staging remains pending.",
+    "All 13 stereo WAV files are locally bundled and RIFF/PCM-checked, have nonzero distinct audio signals and are referenced by the native focused player.",
+    "Claim, apply, construction and contribution success audio/FX execute after successful estate RPC; failure uses a separate cue, not a false success sound.",
+    "Native voice narration is opt-in, locale-sensitive (Filipino system voice or English fallback), focus/quiet-hours/master-games-sound gated and stopped on blur.",
+    "Actual Palengke purchase success remains unconnected until a verified real checkout transaction integration exists. Never play purchase-confirmed on entering its integration portal."
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Implement stage-aware vector asset renderer and nine-part interactive design studio without editing home/ads/nav architecture.",
+      "reason": "Create premium Genesis original vector material/atmosphere assets, native 13-clip offline audio feedback, verified-only success animations and optional voice without altering legacy navigation, ads or calls.",
       "preservedBehaviors": [
         "Approved map and functional household routes unchanged; customization and blueprint state cannot grant earned rank or unlocks.",
-        "Android safe areas and one-tap navigation remain preserved; legacy production is feature-gated."
+        "Android safe areas and one-tap navigation remain preserved; legacy production is feature-gated.",
+        "Background audio/video/voice/call focus and global sound/quiet-hours settings take precedence; no sound or speech may block gameplay or fake financial outcomes."
       ],
       "tests": [
         "tests/season2-estate-asset-customization-20261121.test.mjs",
-        "tests/season2-premium-construction-plan.test.mjs"
+        "tests/season2-premium-construction-plan.test.mjs",
+        "tests/season2-estate-premium-audio-20261121.test.mjs"
       ]
     },
     {
