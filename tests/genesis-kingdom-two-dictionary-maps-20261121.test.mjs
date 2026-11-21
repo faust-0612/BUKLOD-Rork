@@ -34,7 +34,7 @@ test('Locked Special identities, names, faces, captions and routes never render 
  assert.match(portal,/setVisibleSpecialIds\(\[\]\)/);
  assert.match(portal,/verifiedSpecialOwner===userId\?visibleSpecialIds:\[\]/);
  assert.match(portal,/setVerifiedSpecialOwner\(null\)/);
- assert.match(portal,/mapMode==='special'&&!visibleSpecialIds.includes\(realm.character\)/);
+ assert.match(portal,/mapMode==='special'&&!allowedSpecialIds.includes\(realm.character\)/);
 });
 test('No new progression authority or ad overlay, canonical 13 game routes and footer remain',()=>{
  assert.match(portal,/router.push\(\('\/games\/' \+ realm.id\) as any\)/);
