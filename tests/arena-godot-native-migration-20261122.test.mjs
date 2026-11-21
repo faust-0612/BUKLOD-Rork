@@ -118,7 +118,8 @@ test('Android staging uses bundled pack, fails closed for all other app identiti
         assert.equal(cfg.android.package, shouldEnable ? 'org.mzbministry.buklod.staging' :
           variant === 'production' ? 'org.mzbministry.buklod' : 'org.mzbministry.buklod.staging');
         assert.equal(cfg.runtimeVersion, shouldEnable ? '2.0.2-genesis-godot-arena' :
-          variant === 'production' ? '1.3.2' : '2.0.0-genesis-preview');
+          variant === 'production' ? '1.3.2' :
+          process.env.EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3 === 'true' ? '2.0.1-genesis-sos' : '2.0.0-genesis-preview');
         assert.equal(cfg.plugins.includes('./plugins/withBuklodGodotArenaPack.js'), shouldEnable);
       }
     }
