@@ -31,6 +31,7 @@ import { ARENA_GENERATED_ART } from '@/features/games/empire/arenaGeneratedAsset
 import { ArenaRankedSocket, isArenaRankedConfigured } from '@/features/games/empire/rankedClient';
 import { ArenaAnimatedActor } from '@/features/games/empire/ArenaAnimatedActor';
 import { ArenaActionFx } from '@/features/games/empire/ArenaActionFx';
+import { ArenaResourceHud, ArenaPickupTrails, ArenaRewardBanner } from '@/features/games/empire/ArenaMaterialFeedback';
 import { ArenaTerrainArt } from '@/features/games/empire/ArenaTerrainArt';
 import { ArenaBaseArt } from '@/features/games/empire/ArenaBaseArt';
 import { setArenaVoiceFocus, playArenaVoiceAnnouncements } from '@/features/games/empire/ArenaVoiceRuntime';
@@ -44,6 +45,8 @@ import { arenaActorPose } from '@/features/games/empire/arenaActorPose.mjs';
 import { drainArenaSoundscape, nearbyArenaBuffCue } from '@/features/games/empire/arenaSoundscape.mjs';
 // @ts-ignore - pure event-world geometry adapter, presentation only.
 import { arenaActionVisuals } from '@/features/games/empire/arenaActionVisuals.mjs';
+// @ts-ignore — pure event receipts, all positive quantities proved by Arena engine/server.
+import { arenaFeedbackReceipts, arenaResourceCounts } from '@/features/games/empire/arenaFeedbackReceipts.mjs';
 // @ts-ignore — pure JS helper shares the deterministic mobile/web viewport contract.
 import { arenaCamera, arenaVisualEffects, arenaNearby } from '@/features/games/empire/arenaPracticePresentation.mjs';
 import { ARENA_HERO_ART, ARENA_SCENE_GAME_ID, ARENA_VISUAL_BASELINE, type ArenaSceneId } from '@/features/games/empire/arenaVisualBaseline';
@@ -126,8 +129,8 @@ function ActorMark({ actor, friendly, selected }: { actor: Actor; friendly: bool
   </G>;
 }
 
-function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, isPlaying, localSeat, zoom, onPinchZoom }: {
-  state: ArenaState; sceneId: ArenaSceneId; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean; localSeat: string; zoom: number; onPinchZoom: (factor: number) => void;
+function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, isPlaying, localSeat, zoom, onPinchZoom, receipts }: {
+  state: ArenaState; sceneId: ArenaSceneId; art: string | undefined; generatedArt?: React.ComponentProps<typeof Image>['source']; selectedId: string | null; onTarget: (id: string) => void; isPlaying: boolean; localSeat: string; zoom: number; onPinchZoom: (factor: number) => void; receipts: React.ComponentProps<typeof ArenaPickupTrails>['receipts'];
 }) {
   const lanes = state.map.lanes || [0.19, 0.5, 0.81];
   const [area, setArea] = useState({ width: 720, height: 360 });
@@ -212,6 +215,7 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
       })() : null}
       <ArenaActionFx effects={actionFx} />
     </Svg>
+    <ArenaPickupTrails receipts={receipts} width={area.width} height={area.height} camera={camera}/>
     {Object.values(state.players)
       .filter(p => p.hero && (life(p) || state.events.slice(-35).some(e =>
         ['defeat','unit_ko','tower_ko','trap_ko','hazard_ko','storm_defeat'].includes(e.type) &&
@@ -620,6 +624,8 @@ function EmpireArenaInApp() {
   const opponent = Object.values(game?.players ?? {}).find(p=>p.team && p.team !== ownTeam);
   const nearby = arenaNearby(game, me);
   const resources = game?.teams[ownTeam].resources;
+  const arenaReceipts = game ? arenaFeedbackReceipts(game, localSeat) : [];
+  const materialCounts = arenaResourceCounts(game, localSeat);
   const media = getRorkGameMedia(ARENA_SCENE_GAME_ID[mapId]);
   // Cooldown numbers are derived from the canonical engine snapshot; this HUD
   // never grants abilities or fabricates ready-state timers.
@@ -769,10 +775,11 @@ function EmpireArenaInApp() {
       </View> : null}
       <View style={styles.hud}>
         <Text numberOfLines={1} style={styles.hudText}>HP {Math.ceil(me?.hp || 0)}/{Math.ceil(me?.maxHp || 1)}  •  MP {Math.ceil(me?.mana || 0)}  •  LV {me?.matchLevel || 1}</Text>
-        {!game.solo ? <Text numberOfLines={1} style={styles.hudText}>WOOD {Math.floor(resources?.wood || 0)} · GOLD {Math.floor(resources?.gold || 0)} · STONE {Math.floor(resources?.stone || 0)}</Text> : null}
+        {!game.solo ? <ArenaResourceHud stock={materialCounts.stock} carrying={materialCounts.carrying} receipts={arenaReceipts}/> : null}
         {!game.solo ? <Text numberOfLines={1} style={styles.hudText}>SEALS {Math.ceil(game.seals.A.hp)}:{Math.ceil(game.seals.B.hp)} · {Math.floor(game.elapsed / 60000)}:{String(Math.floor(game.elapsed / 1000) % 60).padStart(2, '0')}</Text> : null}
       </View>
-      <ArenaField zoom={zoom} onPinchZoom={changeZoom} sceneId={mapId} state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} />
+      <ArenaField zoom={zoom} onPinchZoom={changeZoom} sceneId={mapId} state={game} localSeat={localSeat} art={media?.background} generatedArt={ARENA_GENERATED_ART['scene:' + mapId]} isPlaying={phase === 'playing'} selectedId={target} onTarget={id => { selected.current = id; setTarget(id); }} receipts={arenaReceipts} />
+      <ArenaRewardBanner receipts={arenaReceipts}/>
       {!compactLandscape ? <View style={styles.info} pointerEvents="none"><Text numberOfLines={1} style={styles.infoText}>{message} • Enemy {opponent ? Math.max(0, Math.ceil(opponent.hp)) : '—'} HP</Text></View> : null}
       {phase === 'playing' ? <>
         <ArenaCombatHud width={hudArea.width} height={hudArea.height} positions={hudPositions}
