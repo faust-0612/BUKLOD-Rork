@@ -68,6 +68,8 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS=false node --test tests/arena-godot-native-migration-20261122.test.mjs
           node --test tests/genesis-unified-godot-native-contract-20261122.test.mjs tests/arena-full-functionality-audit-20261121.test.mjs tests/empire-arena-v2-presentation-20261121.test.mjs
+          node --test tests/kingdom-unified-godot-native-20261122.test.mjs tests/genesis-unified-production-runtime-isolation-20261122.test.mjs
+          node scripts/genesis-unified-signed-stage-preflight.mjs
           node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
           npx tsc --noEmit
       - name: Build deterministic packed world with original approved artwork and sound

@@ -22,36 +22,48 @@
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
     "experiments/empire-arena-v2/arena-starter-hero-kits.mjs",
     "experiments/empire-arena-v2/arena-v2-engine.mjs",
-    "src/app/games/empire-arena.tsx"
+    "src/app/games/empire-arena.tsx",
+    "tests/kingdom-unified-godot-native-20261122.test.mjs",
+    "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs",
+    "scripts/genesis-unified-signed-stage-preflight.mjs",
+    ".github/workflows/genesis-unified-staging-signed-rc-20261122.yml",
+    ".buklod/releases/genesis-unified-signed-rc-hold-20261122.json",
+    "eas.json"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Shared four-scene Godot native preview entrypoints behind staged 2.0.3 runtime",
+      "reason": "Staging-only native world launcher buttons protect auth/scope navigation and preserve original RN fallback",
       "preservedBehaviors": [
-        "BUKLOD MAIN same single package and authenticated route guards",
-        "Production native runtime and OTA untouched",
-        "Existing signed staging runtime never receives incompatible native OTA",
-        "AdMob first view, consent, video-offscreen, PTT/call audio and navigation preserved"
+        "Logged-in guards, no new bottom navigation tabs, and existing maps remain functional",
+        "AdMob existing placement and audio focus intact",
+        "All client preview actions cannot grant property/finance ownership"
       ],
       "tests": [
-        "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
-        "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+        "tests/genesis-unified-godot-native-contract-20261122.test.mjs"
       ]
     },
     {
-      "id": "arena-gameplay",
-      "reason": "Restore wall collision and LOS guarantees after owner-supplied hero kits",
+      "id": "kingdom-character",
+      "reason": "Existing BUKLOD Kingdom and Arena entrypoints extend to Godot runtime without replacing live 13-character backend",
       "preservedBehaviors": [
-        "No through-wall movement/damage",
-        "Blocked skill never consumes mana",
-        "New Quin beacon/route-dash identities remain distinct",
-        "All old practice actions remain discoverable",
-        "Ranked, BP, Diamonds and inventory stay backend-authoritative"
+        "13 current hero identities unchanged and character level/item gates remain authoritative",
+        "Original Kingdom and Arena content remains accessible while native conversion is incomplete"
       ],
       "tests": [
-        "tests/arena-full-functionality-audit-20261121.test.mjs",
-        "tests/empire-arena-v2-presentation-20261121.test.mjs"
+        "tests/kingdom-unified-godot-native-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Existing production native package/runtime preserved while dedicated 2.0.3 Genesis staging EAS profile and fail-closed preflight are added",
+      "preservedBehaviors": [
+        "Production package, signing config and runtime 1.3.2 unchanged",
+        "No automatic EAS build, Expo OTA or Play release",
+        "A separate isolated staging Supabase URL and key required for new World and SOS features"
+      ],
+      "tests": [
+        "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs"
       ]
     }
   ],
@@ -59,7 +71,9 @@
     "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
     "tests/arena-full-functionality-audit-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
-    "tests/arena-godot-native-migration-20261122.test.mjs"
+    "tests/arena-godot-native-migration-20261122.test.mjs",
+    "tests/kingdom-unified-godot-native-20261122.test.mjs",
+    "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "No repo main/prod edits",
