@@ -39,7 +39,8 @@
     "tests/sos-urgent-responder-20261121.test.mjs",
     "tests/sos-urgent-security-20261121.test.mjs",
     "tests/sos-urgent-release-20261121.test.mjs",
-    "supabase/tests/sos_urgent_responder_security_20261121.sql"
+    "supabase/tests/sos_urgent_responder_security_20261121.sql",
+    "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -81,7 +82,8 @@
     "ON_MY_WAY responder can explicitly open restricted GPS navigation with consent confirmation, including after an app tab change",
     "Disabled nearby alert setting remains off across background and foreground transitions",
     "All changed regression tests, TypeScript, staging RPC integration, native two-device QA, AdMob/nav regression gate and exact RC must pass before any merge/release",
-    "Read-only database contract test proves no direct authenticated writes or anonymous access to rescue/location RPCs."
+    "Read-only database contract test proves no direct authenticated writes or anonymous access to rescue/location RPCs.",
+    "The exact new native staging runtime 2.0.1-genesis-sos cannot publish to older 2.0.0-genesis-preview APKs; production 1.3.2 unchanged."
   ],
   "allowedPaths": [
     "app.config.js",
@@ -97,6 +99,8 @@
     "tests/sos-urgent-security-20261121.test.mjs",
     "tests/sos-urgent-release-20261121.test.mjs",
     ".buklod/scopes/sos-urgent-audible-rescue-20261121.json",
-    "supabase/tests/sos_urgent_responder_security_20261121.sql"
+    "supabase/tests/sos_urgent_responder_security_20261121.sql",
+    ".buklod/releases/genesis-ptt-sos-conso-staging-prep-20261122.json",
+    "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs"
   ]
 }
