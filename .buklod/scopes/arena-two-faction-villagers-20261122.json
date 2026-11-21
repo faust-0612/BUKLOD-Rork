@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/arena-two-faction-villagers-20261122.json",
   "objective": "Implement the two named Arena villager factions (Lux/Lightbearers and Tenebra/Shadowborne), six specialized roles with in-match resource-conserving AI, owner-scoped commands, fair mirrored recruits, event-driven audio and native in-app HUD. Offline Genesis practice only; no ranked server or wallet writes.",
-  "baseRef": "1f287e06876da84ce5c1594152932ce95bcefb08",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
   "chosenApproach": "Extend the existing canonical offline Arena deterministic engine and Expo screen rather than introduce a second authority, faction-dependent stat advantage or separate app.",
   "riskAreas": [
     "unit-ai",
@@ -63,7 +63,7 @@
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "releaseMode": "staging-source-candidate-hold",
   "physicalDeviceVerification": "NOT_PERFORMED",
-  "productionBaselineEvidence": "Existing main source remains production baseline; latest Genesis all-updates conso head 1f287e06876da84ce5c1594152932ce95bcefb08 is staging-only and held for native APK, separate DB, runtime and device checks. No current installed production artifact verified in this task.",
+  "productionBaselineEvidence": "Existing main source remains production baseline; latest Genesis all-updates conso head 1f287e06876da84ce5c1594152932ce95bcefb08 is staging-only and held for native APK, separate DB, runtime and device checks. No current installed production artifact verified in this task. Feature diff and scope validation use the named current integration head; newer conso governance-only commits are not part of this isolated feature change.",
   "acceptanceChecks": [
     "Run focused Node villager behavior and existing Arena logic regression tests.",
     "Run Engineering Accountability protected feature/scope CI on exact PR head.",
