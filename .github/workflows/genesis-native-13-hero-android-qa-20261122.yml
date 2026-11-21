@@ -1,4 +1,5 @@
 name: BUKLOD Genesis 13 Native Godot Heroes and Worlds Android QA (NO EAS/OTA/PROD)
+# Actual Godot headless and arm64 debug source proof; EAS signed release stays held.
 on:
   push:
     branches:
