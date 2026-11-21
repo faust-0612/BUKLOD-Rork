@@ -25,7 +25,7 @@ var art_cache: Dictionary = {}
 var actor_pose: Dictionary = {}
 var actor_last_pos: Dictionary = {}
 
-/** Raw WebP/PNG in the signed Godot main pack; bounded lazy GPU cache. */
+# Godot-decoded PNG previews in signed main pack; bounded lazy GPU cache.
 func _art(path: String) -> Texture2D:
 	if art_cache.has(path):
 		return art_cache[path]
@@ -188,7 +188,7 @@ func _draw_actor(p: Dictionary) -> void:
 	draw_circle(pos + shift + Vector2(large * 0.18, -large * 0.36), 1.25, Color("#0c1f2c"))
 	if is_hero:
 		var hero_id: String = str(p.get("hero", "phan"))
-		var portrait: Texture2D = _art("res://art/sprite/" + hero_id + ".webp")
+		var portrait: Texture2D = _art("res://art/sprite/" + hero_id + ".png")
 		if portrait != null:
 			var old_pos: Vector2 = actor_last_pos.get(p["id"], pos)
 			var walking: bool = old_pos.distance_to(pos) > 0.9
@@ -196,7 +196,7 @@ func _draw_actor(p: Dictionary) -> void:
 			var last_pose: Dictionary = actor_pose.get(p["id"], {})
 			var pose: String = str(last_pose.get("pose", "walk" if walking else "idle")) if float(last_pose.get("until", 0)) > frames else ("walk" if walking else "idle")
 			# Fullbody source contains four approved distinct poses, not fake frame indicators.
-			var frame_texture: Texture2D = _art("res://art/fullbody/" + hero_id + "_" + pose + ".webp")
+			var frame_texture: Texture2D = _art("res://art/fullbody/" + hero_id + "_" + pose + ".png")
 			if frame_texture != null:
 				portrait = frame_texture
 			draw_texture_rect(portrait,
