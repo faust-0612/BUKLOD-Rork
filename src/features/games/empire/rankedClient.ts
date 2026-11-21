@@ -73,7 +73,7 @@ export class ArenaRankedSocket {
           this.callbacks.onError('Ranked requires an earned Character Diamond. Participate to qualify.');
           socket.close();return;
         }
-        socket.send(JSON.stringify({type:'queue',mode:this.queue!.mode,mapId:this.queue!.mapId}));
+        if(packet.resumed!==true) socket.send(JSON.stringify({type:'queue',mode:this.queue!.mode,mapId:this.queue!.mapId}));
       }
       if(packet.type==='match_start'||packet.type==='match_resume')this.active=true;
       if(packet.type==='match_end'||packet.type==='match_aborted')this.active=false;
