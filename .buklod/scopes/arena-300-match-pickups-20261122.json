@@ -14,17 +14,6 @@
   ],
   "lockedFeatureChanges": [
     {
-      "id": "kingdom-character",
-      "reason": "Scoped Arena match-only item definitions and character eligibility; not permanent progression.",
-      "preservedBehaviors": [
-        "13 canonical heroes and their permanent collectible gates remain unchanged",
-        "No client-created BP/QMP/Diamond/Character XP and no ranked economy writes"
-      ],
-      "tests": [
-        "tests/arena-300-match-pickups-20261122.test.mjs"
-      ]
-    },
-    {
       "id": "app-runtime",
       "reason": "Additional local Arena loot visual component behavior only; existing navigation, ads and auth intact.",
       "preservedBehaviors": [
@@ -55,7 +44,9 @@
     "in-match currency caps",
     "anti-duplicate",
     "collision and proximity",
-    "capacity-limited drop population"
+    "capacity-limited drop population",
+    "existing Arena skill LOS behavior remains independently unverified by this feature PR",
+    "legacy presentation source-static check fails on upstream unchanged screen"
   ],
   "alternativeApproaches": [
     "Spawn 300 items simultaneously (rejected: mobile clutter and bandwidth/performance)",
