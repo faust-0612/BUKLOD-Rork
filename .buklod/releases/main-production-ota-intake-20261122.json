@@ -73,6 +73,25 @@
         "No independent nonproduction BUKLOD Supabase database exists",
         "Android authorized mentor and learner completion/receipt validation"
       ]
+    },
+    {
+      "feature": "Silent, background Expo OTA download; activate only at normal next cold start, without interrupting PTT/calls/forms",
+      "sourcePr": 1005,
+      "sourceSha": "eb655213cdf0c1fba45d69b969810378c2d1cc0e",
+      "portMode": "exact reviewed five-file patch: PR base blobs match current main on all three modified files",
+      "sourceFiles": [
+        "src/components/BuklodOtaFreshnessHost.native.tsx",
+        "src/lib/buklodSilentOtaPolicy.ts"
+      ],
+      "testFiles": [
+        "tests/buklod-mandatory-update-runtime.test.mjs",
+        "tests/buklod-silent-ota-policy.test.mjs",
+        "tests/ota-restart-safe-area.test.cjs"
+      ],
+      "status": "COLLECTED_DEV_NO_PRODUCTION_AUTHORIZATION",
+      "blockers": [
+        "Exact native production runtime 1.3.2 OTA download/resume/call/typing/weak-network behavior and mandatory update gate QA"
+      ]
     }
   ],
   "alreadyOnCanonicalMain": [
@@ -106,13 +125,6 @@
     }
   ],
   "pendingNonSeason2Candidates": [
-    {
-      "pr": 1005,
-      "feature": "Silent download and next-cold-start Expo OTA activation",
-      "sha": "eb655213cdf0c1fba45d69b969810378c2d1cc0e",
-      "status": "RECONCILE_SOURCE",
-      "blocker": "seven commits behind main and shared dashboard/OTA code"
-    },
     {
       "pr": 951,
       "feature": "Circle Rank sync and permanent Notes",
@@ -255,7 +267,8 @@
     "TypeScript, Node, Android Hermes bundle export, protected-feature/gov scope and source parity CI all green on one immutable RC SHA",
     "Use unchanged production native package and runtime 1.3.2; new Godot/SOS native modules require new signed Play APK and are excluded",
     "Publish only via canonical guarded single production workflow after verified RC, preserve rollback and independently verify live served artifact",
-    "Only announce a verified production OTA, never a staging or unverified DEV state"
+    "Only announce a verified production OTA, never a staging or unverified DEV state",
+    "Silent OTA must prefetch in background and activate on next natural cold start only; never reload during PTT, calls, input, upload or offline work; native forced-update gate remains authoritative"
   ],
   "state": "PARTIALLY_COLLECTED_DEV_WITH_EXPLICIT_BLOCKERS",
   "otaPublished": false,
@@ -276,6 +289,11 @@
     "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql": "4898f3441a9b62796e62df0476166d726ac16943",
     "supabase/tests/mentor_full_published_catalog_security_20261122.sql": "4a322fbfb4872b5e4bc62fee67b2c86a6a601e7a",
     "tests/lesson-checking-mentor-options-20261122.test.mjs": "d5c3ece1abfe95c9606f38af0f27c7425182cf5f",
-    "tests/mentor-catalog-auth-permission-20261122.test.mjs": "6abadecc8bcf242554f792d959e47d2af2932585"
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs": "6abadecc8bcf242554f792d959e47d2af2932585",
+    "src/components/BuklodOtaFreshnessHost.native.tsx": "dfc1d2a2dea4010ae33b7ba8491485addf64688e",
+    "src/lib/buklodSilentOtaPolicy.ts": "3d03929768b2515d700ac20ce0a698f6da28a82c",
+    "tests/buklod-mandatory-update-runtime.test.mjs": "676e826b788bfcd4dae4be1b8b4f90b5cb5ed9a7",
+    "tests/buklod-silent-ota-policy.test.mjs": "a069d3de072e08e7aaf8434214076e822280a8f5",
+    "tests/ota-restart-safe-area.test.cjs": "6ac38210a2bf4c31f27e8542cd7bbf02bded79d3"
   }
 }
