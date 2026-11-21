@@ -79,6 +79,9 @@ test('Arena audio remains on existing focus-scoped sound provider, never preview
 
 test('local SFX follow the assigned multiplayer seat, never an assumed A0 or neighboring 5v5 actor', () => {
   assert.equal(arenaAudioCueForEvent({type:'skill',actor:'B2'}, 'B', 'B2'), 'unlock');
+  assert.equal(arenaAudioCueForEvent({type:'damage',from:'B2',to:'A0'}, 'B', 'B2'), 'impact');
+  assert.equal(arenaAudioCueForEvent({type:'damage',from:'A0',to:'B2'}, 'B', 'B2'), 'impact');
+  assert.equal(arenaAudioCueForEvent({type:'damage',from:'A0',to:'B1'}, 'B', 'B2'), null);
   assert.equal(arenaAudioCueForEvent({type:'skill',actor:'A0'}, 'B', 'B2'), null);
   assert.equal(arenaAudioCueForEvent({type:'defeat',actor:'A0',to:'B2'}, 'B', 'B2'), 'failure');
   const events = [
