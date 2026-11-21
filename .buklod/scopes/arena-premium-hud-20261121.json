@@ -65,6 +65,7 @@
     "tests/arena-event-audio-graphics-20261121.test.mjs",
     "tests/arena-kingdom-game-premium-20261121.test.mjs",
     "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
+    "tests/arena-premium-voice-motion-terrain-20261121.test.mjs",
     "tests/arena-protected-feature-lock-20261121.test.mjs",
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
@@ -77,7 +78,8 @@
     "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
     "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
-    "tests/arena-event-audio-graphics-20261121.test.mjs"
+    "tests/arena-event-audio-graphics-20261121.test.mjs",
+    "tests/arena-premium-voice-motion-terrain-20261121.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -91,7 +93,8 @@
         "tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs",
         "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
         "tests/empire-arena-v2-presentation-20261121.test.mjs",
-        "tests/arena-event-audio-graphics-20261121.test.mjs"
+        "tests/arena-event-audio-graphics-20261121.test.mjs",
+        "tests/arena-premium-voice-motion-terrain-20261121.test.mjs"
       ]
     },
     {
@@ -113,7 +116,8 @@
       "tests": [
         "tests/arena-kingdom-game-premium-20261121.test.mjs",
         "tests/arena-offline-solo-cpu-battle-20261121.test.mjs",
-        "tests/arena-event-audio-graphics-20261121.test.mjs"
+        "tests/arena-event-audio-graphics-20261121.test.mjs",
+        "tests/arena-premium-voice-motion-terrain-20261121.test.mjs"
       ]
     },
     {
