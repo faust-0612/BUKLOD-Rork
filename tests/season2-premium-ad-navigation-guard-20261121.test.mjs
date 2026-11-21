@@ -25,14 +25,15 @@ test('Premium Genesis map honors auth/compliance/mandatory-update before first v
  assert.match(map,/GenesisValleyMap[\s\S]*selectedHotspotId/);
  assert.match(map,/router\.push\(\(selectedHotspot\?\.route/);
 });
-test('Kingdom retains canonical footer AdMob and official character navigation, with no Arena route',()=>{
+test('Kingdom retains AdMob and launches in-app Arena only through Genesis portal',()=>{
  const games=read('src/app/games/index.tsx');
  const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
  assert.match(games,/BuklodKingdomAdSlot placementId="kingdom_map_footer" kind="banner"/);
  assert.match(games,/genesisPreview \? <GenesisKingdomPortal \/> : <BuklodKingdomMap \/>/);
  assert.match(portal,/GENESIS_REALMS/);
  assert.match(portal,/onPress=\{\(\)=>\{ void pulseGenesisTouch/);
- assert.doesNotMatch(portal,/empire-arena|onPress.*awardBp|supabase\.rpc/);
+ assert.match(portal,/router\.push\('\/games\/empire-arena'/);
+ assert.doesNotMatch(portal,/onPress.*awardBp|supabase\.rpc/);
 });
 test('Audio focus/first-view prewarm protection remains bounded when switching dashboards',()=>{
  const audio=read('src/features/games/runtime/rorkAudio.ts');

@@ -1,0 +1,80 @@
+name: BUKLOD Season 2 + Empire Arena Single Conso Source QA (NO OTA)
+on:
+  push:
+    branches:
+      - integration/season2-empire-arena-conso-intake-20261121
+  pull_request:
+    branches:
+      - dev/season2-map-first-conso-intake-20261121
+permissions:
+  contents: read
+concurrency:
+  group: season2-empire-conso-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify no new staging infrastructure and validate exact Season 2 scope
+        run: node --test tests/season2-empire-arena-conso-intake-20261121.test.mjs
+      - name: Validate existing conso map, Kingdom, ads, audio and original Arena contracts
+        run: |
+          node scripts/genesis-map-reconstruction-preflight.mjs
+          node scripts/season2-premium-staging-ota-gate.mjs --source
+          node scripts/season2-native-apk-source-parity.mjs
+          node --test \
+            tests/season2-map-first-conso-intake-20261121.test.mjs \
+            tests/genesis-world-navigation-regression-20261121.test.mjs \
+            tests/genesis-valley-asset-interaction-20261121.test.mjs \
+            tests/genesis-valley-audio-focus-20261121.test.mjs \
+            tests/season2-premium-nature-kingdom-20261121.test.mjs \
+            tests/season2-premium-staging-ota-contract-20261121.test.mjs \
+            tests/season2-android-bundle-compatibility-20261121.test.mjs \
+            tests/season2-premium-ad-navigation-guard-20261121.test.mjs \
+            tests/empire-arena-v2-inapp-visual-baseline-20261121.test.mjs \
+            tests/empire-arena-v2-presentation-20261121.test.mjs \
+            tests/empire-arena-v2-packaged-art-20261121.test.mjs \
+            tests/empire-arena-v2-animated-bundle-20261121.test.mjs \
+            tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs \
+            tests/empire-arena-v2-ranked-seat-20261121.test.mjs \
+            tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs \
+            tests/empire-arena-v2-actor-pose-20261121.test.mjs \
+            tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs
+      - name: Prevent first-view ads and instant navigation regressions
+        run: |
+          node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+          node --experimental-strip-types --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+      - name: Pure ranked server tests (NO Supabase writes)
+        run: node --test services/empire-arena/tests/core.test.mjs
+
+  android-metro-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked application dependencies (no build or publisher changes)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Exact TypeScript app integration
+        run: npx tsc --noEmit
+      - name: Existing signed staging APK native source parity
+        run: node scripts/season2-native-apk-source-parity.mjs
+      - name: Compile actual Genesis + Empire Android Metro JS and local animation assets
+        run: node scripts/season2-android-bundle-compatibility.mjs --compile
+      - name: Explicitly distinguish bundle from OTA and signed native APK
+        run: echo "No EAS credentials, no new staging, no OTA, no APK or production deployment; Metro only."

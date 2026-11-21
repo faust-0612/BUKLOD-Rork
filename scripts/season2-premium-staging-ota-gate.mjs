@@ -32,7 +32,8 @@ const env=profile?.env||{};
 if(!profile)fail.push('Missing Genesis preview EAS build profile');
 if(profile?.channel!==channel||profile?.environment!=='preview'||profile?.android?.buildType!=='apk'||profile?.distribution!=='internal')fail.push('Staging EAS channel/environment/APK profile mismatch');
 if(env.APP_VARIANT!=='staging'||env.EXPO_PUBLIC_APP_ENV!=='staging'||env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW!=='true')fail.push('Not a Genesis-only staging build');
-if(env.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL!=='false')fail.push('Arena must be disabled in this staging candidate');
+if(env.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL!=='true')fail.push('Arena must be included in reviewed Genesis conso source');
+if(env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED!=='false')fail.push('Ranked Diamond settlement must remain off until existing paid backend has been deployed and verified');
 // Shared paid Supabase is the approved BUKLOD app backend. This profile is not a
 // sandbox. Keep original server RLS/reward entitlements authoritative: source-only
 // staging visuals must not create new production ledgers or migrate live schema.
@@ -49,9 +50,14 @@ if(!appConfig.includes("genesisNativePreview ? './assets/season2/genesis/genesis
  fail.push('Genesis staging native green B splash/icon must match verified signed APK');
 if(!read('src/app/games/index.tsx').includes('BuklodKingdomAdSlot'))fail.push('Kingdom ad slot missing');
 if(!read('src/app/buklod-map.tsx').includes('BuklodFirstViewAd'))fail.push('First-view ad protected source missing');
-if(existsSync(resolve(root,'src/app/games/empire-arena.tsx'))||
-   existsSync(resolve(root,'experiments/empire-arena-v2/arena-v2-engine.mjs')))
- fail.push('Arena route/engine must not enter premium staging application bundle');
+if(!existsSync(resolve(root,'src/app/games/empire-arena.tsx'))||
+   !existsSync(resolve(root,'experiments/empire-arena-v2/arena-v2-engine.mjs')))
+ fail.push('Season 2 conso must include in-app Arena route and engine');
+if(!read('src/app/games/empire-arena.tsx').includes('EmpireArenaRouteGuard')||
+   !read('src/features/season2/genesis/GenesisKingdomPortal.tsx').includes('/games/empire-arena'))
+ fail.push('Arena auth-guard or Kingdom navigation missing');
+if(!existsSync(resolve(root,'assets/season2/arena/generated-manifest.json')))
+ fail.push('Source-owned Arena fullbody animation asset manifest missing');
 const variants=[
  ['assets/season2/genesis/kingdom/kingdom-nature-panorama.webp','232c99e995fafde2e018a286f998a39917de32620ee502c8486ca58a1eabf8eb'],
  ['assets/season2/genesis/kingdom/kingdom-nature-panorama-compact.webp','5e7ed0af9568aa6f9cc8d6753015b3c8ac36fd4e070541d43f017d88975fcc95'],

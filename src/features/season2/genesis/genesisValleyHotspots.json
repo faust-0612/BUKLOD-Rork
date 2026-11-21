@@ -27,7 +27,7 @@
       "id": "kingdom-arena",
       "label": "Kingdom Arena",
       "districtId": "kingdom",
-      "route": "/games",
+      "route": "/games/empire-arena",
       "icon": "shield-sword-outline",
       "x": 0.806,
       "y": 0.224,

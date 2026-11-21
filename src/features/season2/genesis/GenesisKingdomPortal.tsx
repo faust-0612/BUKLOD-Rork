@@ -139,6 +139,16 @@ export default function GenesisKingdomPortal() {
         </Pressable>
       </View>
       <View style={styles.actions}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Enter BUKLOD Empire Arena inside the Kingdom"
+          onPress={()=>{ void pulseGenesisTouch('selection'); router.push('/games/empire-arena' as any); }}
+          style={styles.action}>
+          <MaterialCommunityIcons name="shield-sword" size={23} color="#FFD99C"/>
+          <View style={{flex:1}}>
+            <Text style={styles.actionTitle}>Empire Arena</Text>
+            <Text style={styles.actionSub}>Landscape 1v1 / 3v3 / 5v5 · animated battles · offline practice</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" color="#FFE3A3" size={24}/>
+        </Pressable>
         <Pressable accessibilityRole="switch" accessibilityLabel="Genesis cinematic ambience"
           accessibilityState={{checked:musicEnabled}} onPress={toggleMusic}
           style={[styles.action,styles.soundAction]}>

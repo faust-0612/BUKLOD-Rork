@@ -57,7 +57,8 @@ assert.equal(preview?.env?.EXPO_PUBLIC_APP_ENV,'staging');
 assert.equal(preview?.env?.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW,'true');
 assert.equal(preview?.env?.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
 assert.match(preview?.env?.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'',/^sb_publishable_[A-Za-z0-9_-]+$/);
-assert.equal(preview?.env?.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL,'false');
+assert.equal(preview?.env?.EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL,'true');
+assert.equal(preview?.env?.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
 assert.equal(production?.channel,'production');
 assert.notEqual(preview?.channel,production?.channel);
 console.log(JSON.stringify({

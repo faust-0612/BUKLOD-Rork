@@ -35,11 +35,14 @@ test('Season 2 Kingdom is a local nature-first panorama, not generic floral/remo
  assert.match(games,/genesisPreview \? <GenesisKingdomPortal \/> : <BuklodKingdomMap \/>/);
  assert.match(games,/BuklodKingdomAdSlot/);
 });
-test('Arena is entirely absent from this premium visual staging source, with canonical production Kingdom intact',()=>{
+test('Season 2 includes in-app Arena practice and preserves canonical production Kingdom',()=>{
  const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
- assert.doesNotMatch(portal,/empire-arena|EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL|Empire Arena/);
- assert.equal(requireArenaRouteExists(),false,'No Arena Expo Router entry must be packaged');
- assert.equal(requireArenaEngineExists(),false,'No Arena engine code in this candidate');
+ const arena=read('src/app/games/empire-arena.tsx');
+ assert.match(portal,/\/games\/empire-arena/);
+ assert.equal(requireArenaRouteExists(),true,'Arena route is bundled in the existing app');
+ assert.equal(requireArenaEngineExists(),true,'The deterministic practice engine is bundled');
+ assert.match(arena,/EmpireArenaRouteGuard/);
+ assert.match(arena,/isGenesisPreviewBuild\(\)/);
  assert.doesNotMatch(portal,/supabase\.|\.rpc\(|awardBp|awardDiamond|eas update/i);
 });
 function requireArenaRouteExists(){return existsSync(resolve(root,'src/app/games/empire-arena.tsx'));}
