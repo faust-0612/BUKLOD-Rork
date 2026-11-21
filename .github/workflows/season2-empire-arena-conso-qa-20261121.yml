@@ -48,7 +48,8 @@ jobs:
             tests/empire-arena-v2-ranked-seat-20261121.test.mjs \
             tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs \
             tests/empire-arena-v2-actor-pose-20261121.test.mjs \
-            tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs
+            tests/kingdom-empire-arena-inapp-regression-20261121.test.mjs \
+            tests/kingdom-season2-endless-economy-20261121.test.mjs
       - name: Prevent first-view ads and instant navigation regressions
         run: |
           node --test tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs

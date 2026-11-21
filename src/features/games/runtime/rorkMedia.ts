@@ -97,10 +97,39 @@ const PILOT_PARENT: Readonly<Record<string, keyof typeof RORK_GAME_MEDIA>> = {
   vhen: 'vhen-farm-to-market',
   elesur: 'elesur-village-builder',
 };
+const KINGDOM_PILOT_SCENIC_IDS = new Set<string>([
+  'phan-trade-master',
+  'phan-market-match',
+  'quin-guessing-quest',
+  'quin-code-breaker',
+  'van-sudoku-master',
+  'van-mind-challenge',
+  'christian-bible-crown',
+  'christian-scripture-word-search',
+  'lhen-melody-memory',
+  'lhen-beat-composer',
+  'jawo-trail-maze',
+  'jawo-nature-match',
+  'trudice-picture-pairs',
+  'trudice-word-garden',
+  'ace-chess-master',
+  'ace-tower-tactics',
+  'mitch-block-forge',
+  'mitch-color-merge',
+  'niel-expedition-puzzle',
+  'niel-word-explorer',
+  'angel-number-vault',
+  'angel-treasure-merge',
+  'vhen-harvest-match',
+  'vhen-farm-merge',
+  'elesur-domino-village',
+  'elesur-bridge-puzzle'
+]);
 export function getRorkGameMedia(gameId?: string | null) {
   if (!gameId) return null;
   const exact = RORK_GAME_MEDIA[gameId];
   if (exact) return exact;
+  if (!KINGDOM_PILOT_SCENIC_IDS.has(gameId)) return null;
   // Explicitly scoped to the reviewed 39-game catalog: avoid accidentally
   // providing game audio or premium scene backgrounds to arbitrary routes.
   const prefix = gameId.split('-')[0];
