@@ -17,6 +17,8 @@ const changed = [
   'src/features/games/empire/ArenaAnimatedActor.tsx',
   'src/features/games/empire/ArenaCombatHud.tsx',
   'src/features/games/empire/arenaHudLayout.mjs',
+  'src/features/games/empire/arenaPracticeAudio.mjs',
+  'tests/empire-arena-v2-premium-audio-motion-20261121.test.mjs',
   'tests/season2-arena-responsive-navigation-20261121.test.mjs',
   'tests/arena-kingdom-game-premium-20261121.test.mjs',
   'tests/arena-protected-feature-lock-20261121.test.mjs',
