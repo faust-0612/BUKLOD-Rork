@@ -90,6 +90,16 @@ export function bsoCaseIntervention(item:BsocTriageInput):BsocIntervention{
   memberDraft:'Pakisabi kung anong button saang screen ang pinindot, oras, app version at kung nauulit ang SYS-500 pagkatapos buksang muli ang app. '+keep,
   closureGate:'Isolate render root cause, targeted test on affected runtime, verify exact deployed fix and get member confirmation.'
  };
+ // A single request timeout/failure with no correlated provider evidence
+ // is a connectivity/auth observation, not an urgent account incident.
+ // Do not demote explicit invalid session/account-recovery/security reports.
+ if(/AUTH_REQUEST_(TIMEOUT|FAILED)/.test(s)&&
+    !/ACCOUNT_LOCKED|INVALID_SESSION|AUTH_PROVIDER_OUTAGE|SECURITY_/.test(s))return {
+  category:'auth',urgency:'investigate',owner:'Connectivity and auth diagnostics',
+  firstCheck:'Check connection quality, timestamp, retry result, affected build and auth service metrics. Escalate only on repeated verified failures across healthy connections or users.',
+  memberDraft:'Maaaring mahina o naputol ang signal sa pag-login. Subukang muli kapag stable ang internet. Hindi ito awtomatikong account failure. '+keep,
+  closureGate:'Verified successful sign-in or reliable provider-side incident evidence; preserve unrelated pending offline submissions.'
+ };
  if(/AUTH_SESSION_STALE|AUTH_REQUEST_FAILED|INVALID_SESSION|LOGIN|TOKEN_REFRESH/.test(s))return {
   category:'auth',urgency:'priority',owner:'Auth/session engineering',
   firstCheck:'Compare token refresh results, device clock, connectivity and auth health; do not bypass RLS or assume outage from one error.',
