@@ -29,8 +29,8 @@ export default function BuklodMapScreen() {
   const {width:windowWidth,height:windowHeight}=useWindowDimensions();
   const landscape=windowWidth>windowHeight && windowHeight<=520;
   const [focused, setFocused] = useState(false);
-  const [selectedId, setSelectedId] = useState('community');
-  const [selectedHotspotId, setSelectedHotspotId] = useState('community-hall');
+  const [selectedId, setSelectedId] = useState('kingdom');
+  const [selectedHotspotId, setSelectedHotspotId] = useState('character-kingdom');
   const [showDirectory, setShowDirectory] = useState(false);
   const lastDoorTap = useRef(0);
   // The default is silent until real authentication, consent, runtime and onboarding gates pass.
@@ -71,10 +71,7 @@ export default function BuklodMapScreen() {
         setSelectedId(door.districtId);
         router.push(route as any);
       }}
-      onMenu={() => setShowDirectory(true)}
-      onProfile={() => router.push('/me' as any)}
-      onNotifications={() => router.push('/notifications' as any)}
-      onSearch={() => router.push('/feature-search' as any)}
+      onMenu={() => setShowDirectory(value => !value)}
     />
   );
 
@@ -100,20 +97,12 @@ export default function BuklodMapScreen() {
           {landscape ? (
             <>
               <View style={styles.landscapeMapColumn}>{mapNode}</View>
-              <View style={styles.landscapeGuideColumn}>
-                <Text style={styles.welcomeTitle}>Welcome sa BUKLOD!</Text>
-                <Text style={styles.welcomeNote}>Maligayang pagdating. Saan tayo magsisimula ngayon?</Text>
-                <BuklodMapGuideDock active={focused} />
-              </View>
+              <View style={styles.landscapeGuideColumn}><BuklodMapGuideDock active={focused}/></View>
             </>
           ) : (
             <>
-              <View style={styles.welcomeTextBlock}>
-                <Text style={styles.welcomeTitle}>Welcome sa BUKLOD!</Text>
-                <Text style={styles.welcomeNote}>Maligayang pagdating. Saan tayo magsisimula ngayon?</Text>
-              </View>
-              <BuklodMapGuideDock active={focused} />
               {mapNode}
+              <BuklodMapGuideDock active={focused} />
             </>
           )}
         </View>
@@ -124,7 +113,7 @@ export default function BuklodMapScreen() {
           <Text style={styles.selectedCaptionNote}>Direktang pasok sa isang tap. Optional lamang ang ibang links sa ibaba.</Text>
         </View>
 
-        <View style={styles.districtPanel}>
+        {showDirectory ? <View style={styles.districtPanel}>
           <View style={styles.panelHeading}>
             <MaterialCommunityIcons name={district.icon as any} size={27} color={district.accent}/>
             <View style={{flex:1}}>
@@ -147,7 +136,7 @@ export default function BuklodMapScreen() {
               <MaterialCommunityIcons name="chevron-right" size={22} color="#DAECFF"/>
             </Pressable>
           ))}
-        </View>
+        </View> : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={showDirectory ? 'Close accessible destination directory' : 'Show all BUKLOD destinations'}

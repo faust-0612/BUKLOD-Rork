@@ -10,7 +10,7 @@ const env=JSON.parse(read('eas.json')).build['season2-genesis-preview'].env;
 
 test('The ONE BUKLOD Genesis map and Kingdom portal both reach the same in-app Arena',()=>{
  const map=JSON.parse(read('src/features/season2/genesis/genesisApprovedEntryHotspots.json'));
- const arena=map.hotspots.filter(x=>x.id==='empire-arena');
+ const arena=map.hotspots.filter(x=>x.id==='hero-arena');
  assert.equal(arena.length,1);
  assert.equal(arena[0].route,'/games/empire-arena');
  const district=read('src/features/season2/genesis/genesisMapDistricts.ts');

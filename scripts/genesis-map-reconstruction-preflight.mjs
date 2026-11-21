@@ -17,11 +17,11 @@ check('Staging-only authentication-gated map landing',()=>{
  assert.match(map,/requiresAcceptance/);
  assert.match(map,/maintenance_mode/);
 });
-check('Old navigation bars suppressed ONLY in preview',()=>{
+check('Genesis has one bottom nav with old duplicate dashboard headers hidden',()=>{
  const tab=read('src/app/(tabs)/_layout.tsx');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
  assert.match(tab,/!desktopWebShell && !isGenesisPreviewBuild\(\)/);
- assert.match(shell,/!genesisWorld && !immersiveIgpat/);
+ assert.match(shell,/!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0/);
  assert.match(shell,/Return to BUKLOD Map/);
  assert.match(shell,/normalizedPath !== '\/buklod-map'/);
  assert.match(tab,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar/);
@@ -61,7 +61,7 @@ check('Bundled local Galaxy and approved CC0 music',()=>{
  assert.match(map,/<BuklodMapGuideDock active=\{focused\} \/>/);
  assert.match(map,/GenesisApprovedEntryMap/);
  const approved=read('src/features/season2/genesis/GenesisApprovedEntryMap.tsx');
- assert.match(approved,/buklod-approved-entry-map-1672x941\.webp/);
+ assert.match(approved,/kingdom-nature-panorama\.webp/);
  assert.match(map,/router\.push\(route as any\)/);
  for(const p of ['assets/season2/genesis/world/buklod-approved-entry-map-1672x941.webp','assets/season2/genesis/world/approved-entry-map-manifest.json'])assert.ok(existsSync(resolve(root,p)),p);
 });

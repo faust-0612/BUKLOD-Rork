@@ -1,157 +1,264 @@
 /**
- * Genesis Special Events gateway.
- * Public entry; event visibility, RSVP, check-in, and reward authority remain
- * with their existing server-backed features. This page never awards BP.
+ * BUKLOD Special Events — premium animated foyer over EXISTING RLS-scoped
+ * events, RSVP and verified attendance. No client reward or forged signup.
  */
 import React,{useCallback,useEffect,useRef,useState} from 'react';
-import {AccessibilityInfo,ActivityIndicator,Animated,AppState,Pressable,ScrollView,StyleSheet,Text,View} from 'react-native';
-import {useFocusEffect,router} from 'expo-router';
-import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {
+ AccessibilityInfo,ActivityIndicator,Animated,AppState,Pressable,RefreshControl,
+ ScrollView,StyleSheet,Text,View,
+} from 'react-native';
 import {Image as ExpoImage} from 'expo-image';
 import {LinearGradient} from 'expo-linear-gradient';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {supabase} from '@/lib/supabase';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {Redirect,router,useFocusEffect} from 'expo-router';
 import {useAuth} from '@/providers/AuthProvider';
+import {useCompliance} from '@/providers/ComplianceProvider';
+import {useRuntimeConfig} from '@/providers/RuntimeConfigProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
+import {getBuklodCitySnapshot} from '@/lib/buklodCity';
+import {supabase} from '@/lib/supabase';
+import BuklodHomeCheckinToday from '@/components/BuklodHomeCheckinToday';
+import BuklodMapHeader from '@/features/season2/world/BuklodMapHeader';
+import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {
+ deriveSpecialEventState,normalizeSpecialEventRows,safeEventLabel,
+ type SpecialEventItem,type SpecialEventState,
+} from '@/features/season2/world/specialEventsLogic';
 
-const LANDSCAPE=require('../../../assets/season2/genesis/kingdom/kingdom-nature-panorama.webp');
-type EventRow={id:string;title:string;event_type:string;starts_at:string;ends_at:string|null;location:string|null;requires_rsvp:boolean|null};
-type Icon=React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-type Category={id:string;title:string;description:string;icon:Icon;route:string;faith:boolean};
-const CATEGORIES:readonly Category[]=[
- {id:'live',title:'Live Gatherings',description:'Tunay na event, RSVP at attendance',icon:'calendar-star',route:'/church',faith:false},
- {id:'challenges',title:'Bible Challenges',description:'Flash at monthly quiz challenges',icon:'book-open-page-variant-outline',route:'/faith/bible-events',faith:true},
- {id:'village',title:'Community Activities',description:'Mga gawain at proyekto ng komunidad',icon:'account-group-outline',route:'/season2/community-village',faith:false},
- {id:'kingdom',title:'Kingdom Games',description:'Mga laro at event sa Character Kingdom',icon:'castle',route:'/games',faith:false},
- {id:'arena',title:'Hero Arena',description:'Practice at competitive events kung available',icon:'shield-sword-outline',route:'/games/empire-arena',faith:false},
+const PROGRAMS=[
+ {id:'community',label:'Community & Bayanihan',description:'Bayanihan, outreach at volunteer events.',route:'/bayanihan',icon:'hand-heart-outline'},
+ {id:'games',label:'Kingdom & Hero Arena',description:'Mga laro, practice at competitive community challenges.',route:'/season2/games',icon:'shield-sword-outline'},
+ {id:'learning',label:'Learning Festivals',description:'Readings, KL, stories at learning programs.',route:'/season2/learnings',icon:'book-open-page-variant-outline'},
+ {id:'academic',label:'University Activities',description:'Classes, quiz at faculty programs.',route:'/season2/university',icon:'school-outline'},
+ {id:'faith',label:'Church Events',description:'Prayer, ministry, ABAKA at Bible events.',route:'/church',icon:'church',faithOnly:true},
+] as const;
+type Filter='all'|'live'|'upcoming'|'programs';
+const FILTERS:readonly {id:Filter;label:string}[]=[
+ {id:'all',label:'Lahat'}, {id:'live',label:'Ngayon'},
+ {id:'upcoming',label:'Paparating'}, {id:'programs',label:'Mga Programa'},
 ];
-function fmt(date:string){const d=new Date(date);return Number.isFinite(d.getTime())?
- d.toLocaleString('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Date unavailable';}
-export default function GenesisSpecialEvents(){
- const {user}=useAuth();
+
+export default function BuklodSpecialEvents(){
+ const {session,loading:authLoading,profile}=useAuth();
+ const {requiresAcceptance}=useCompliance();
+ const {config,featureEnabled}=useRuntimeConfig();
  const {activeScope}=useBuklodScope();
- const insets=useSafeAreaInsets();
- const [events,setEvents]=useState<EventRow[]>([]);
- const [loading,setLoading]=useState(true);
- const [error,setError]=useState('');
- const [reduceMotion,setReduceMotion]=useState(true);
- const [foreground,setForeground]=useState(AppState.currentState==='active');
- const [focused,setFocused]=useState(false);
- const sparkle=useRef(new Animated.Value(0)).current;
- const live=useRef(false);
  const showFaith=Boolean(activeScope?.show_faith_content);
+ const churchEnabled=showFaith&&featureEnabled('church_life');
+ const [focused,setFocused]=useState(false);
+ const [foreground,setForeground]=useState(AppState.currentState==='active');
+ const [reduceMotion,setReduceMotion]=useState(true);
+ const [events,setEvents]=useState<SpecialEventItem[]>([]);
+ const [busy,setBusy]=useState(false);
+ const [problem,setProblem]=useState('');
+ const [filter,setFilter]=useState<Filter>('all');
+ const pulse=useRef(new Animated.Value(.55)).current;
+ const refreshed=useRef(0);
+ const requestId=useRef(0);
  useEffect(()=>{
-   let mounted=true;
-   void AccessibilityInfo.isReduceMotionEnabled().then(v=>{if(mounted)setReduceMotion(v);}).catch(()=>undefined);
-   const a=AppState.addEventListener('change',s=>setForeground(s==='active'));
-   return()=>{mounted=false;a.remove();};
+  let live=true;
+  const app=AppState.addEventListener('change',s=>setForeground(s==='active'));
+  void AccessibilityInfo.isReduceMotionEnabled().then(v=>{if(live)setReduceMotion(v);}).catch(()=>undefined);
+  const motion=AccessibilityInfo.addEventListener('reduceMotionChanged',setReduceMotion);
+  return()=>{live=false;app.remove();motion.remove();};
  },[]);
  useEffect(()=>{
-   sparkle.stopAnimation();
-   if(reduceMotion||!foreground||!focused){sparkle.setValue(0);return;}
-   const loop=Animated.loop(Animated.sequence([
-     Animated.timing(sparkle,{toValue:1,duration:1750,useNativeDriver:true}),
-     Animated.timing(sparkle,{toValue:0,duration:1750,useNativeDriver:true}),
-   ]));
-   loop.start();
-   return()=>{loop.stop();sparkle.stopAnimation();};
- },[reduceMotion,foreground,focused,sparkle]);
- const refresh=useCallback(async()=>{
-   if(!user){setEvents([]);setLoading(false);setError('Mag-sign in para makita ang mga event na available sa iyo.');return;}
-   setLoading(true);setError('');
-   try{
-     const now=new Date().toISOString();
-     // RLS owns visibility. No service role, global admin bypass, or synthetic events.
-     const {data,error:queryError}=await supabase.from('church_events')
-       .select('id,title,event_type,starts_at,ends_at,location,requires_rsvp')
-       .eq('is_cancelled',false).gte('starts_at',now).order('starts_at',{ascending:true}).limit(12);
-     if(queryError)throw queryError;
-     if(live.current)setEvents((data||[]) as EventRow[]);
-   }catch(e){if(live.current)setError('Hindi ma-load ang live events. Subukan muli kapag may koneksiyon.');}
-   finally{if(live.current)setLoading(false);}
- },[user?.id]);
+  pulse.stopAnimation();
+  if(!focused||!foreground||reduceMotion){pulse.setValue(.55);return;}
+  const seq=Animated.loop(Animated.sequence([
+   Animated.timing(pulse,{toValue:1,duration:1500,useNativeDriver:true}),
+   Animated.timing(pulse,{toValue:.55,duration:1500,useNativeDriver:true}),
+  ]));
+  seq.start();return()=>{seq.stop();};
+ },[pulse,focused,foreground,reduceMotion]);
+
+ const load=useCallback(async()=>{
+  if(!session?.user?.id)return;
+  const id=++requestId.current;
+  setBusy(true);setProblem('');
+  const result=await Promise.allSettled([
+   getBuklodCitySnapshot(),
+   churchEnabled
+    ?supabase.from('church_events')
+      .select('id,title,event_type,starts_at,ends_at,location,is_cancelled,requires_rsvp')
+      .eq('is_cancelled',false)
+      .gte('starts_at',new Date(Date.now()-7*86400000).toISOString())
+      .order('starts_at',{ascending:true}).limit(25)
+    :Promise.resolve({data:[],error:null}),
+  ]);
+  if(id!==requestId.current)return;
+  const joined:SpecialEventItem[]=[];
+  let failed=0;
+  if(result[0].status==='fulfilled'){
+   for(const point of result[0].value.items.filter(p=>p.kind==='EVENT').slice(0,40)){
+    if(!showFaith&&point.category==='faith')continue;
+    if(point.status&&['CANCELLED','DELETED','INACTIVE'].includes(point.status.toUpperCase()))continue;
+    joined.push({
+     key:'city:'+point.id,id:point.id,
+     title:safeEventLabel(point.title,120),description:safeEventLabel(point.description,180),
+     category:safeEventLabel(point.category,40)||'Community',
+     startsAt:point.startsAt??null,endsAt:point.endsAt??null,
+     location:safeEventLabel(point.locality,90),source:'city',route:null,
+     verified:point.verified===true,
+    });
+   }
+  }else failed++;
+  if(result[1].status==='fulfilled'&&!result[1].value.error){
+   for(const row of result[1].value.data??[]){
+    joined.push({
+     key:'church:'+row.id,id:row.id,title:safeEventLabel(row.title,120),
+     description:null,category:safeEventLabel(row.event_type,40)||'Church Event',
+     startsAt:row.starts_at??null,endsAt:row.ends_at??null,
+     location:safeEventLabel(row.location,90),source:'church',
+     route:'/church/event/'+row.id,verified:false,requiresRsvp:row.requires_rsvp===true,
+    });
+   }
+  }else failed++;
+  const now=Date.now();
+  setEvents(previous=>failed===2?previous:normalizeSpecialEventRows(joined,now));
+  setProblem(failed?'Hindi ma-load ang lahat ng event sources. I-refresh para subukan muli.':'');
+  setBusy(false);refreshed.current=Date.now();
+ },[session?.user?.id,showFaith,churchEnabled]);
  useFocusEffect(useCallback(()=>{
-   live.current=true;setFocused(true);void refresh();
-   return()=>{live.current=false;setFocused(false);};
- },[refresh]));
- const categories=CATEGORIES.filter(c=>!c.faith||showFaith);
- return <ScrollView style={styles.page} contentContainerStyle={{paddingTop:Math.max(insets.top,10)+8,paddingBottom:Math.max(insets.bottom,14)+30}}>
-   <View style={styles.heading}>
-     <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD World" onPress={()=>router.back()} style={styles.back}>
-       <MaterialCommunityIcons name="arrow-left" size={24} color="#F7E9C9"/>
-     </Pressable>
-     <View style={{flex:1}}><Text style={styles.eyebrow}>BUKLOD · GENESIS</Text><Text style={styles.title}>SPECIAL EVENTS</Text></View>
-     <MaterialCommunityIcons name="star-four-points-circle-outline" size={28} color="#F5DC9A"/>
+  setFocused(true);
+  if(Date.now()-refreshed.current>60000)void load();
+  return()=>{setFocused(false);requestId.current++;};
+ },[load]));
+ useEffect(()=>{setEvents([]);refreshed.current=0;},[session?.user?.id,showFaith]);
+ if(!isGenesisPreviewBuild())return <Redirect href="/(tabs)/buklod"/>;
+ if(authLoading&&!session)return <View style={s.page}/>;
+ if(!session)return <Redirect href="/(auth)/login"/>;
+ if(config?.maintenance_mode)return <Redirect href="/system/maintenance"/>;
+ if(config?.update_required)return <Redirect href="/system/update-required"/>;
+ if(config?.pilot_access_required&&!config?.pilot_access_granted)return <Redirect href="/system/pilot-access"/>;
+ if(requiresAcceptance)return <Redirect href="/privacy/consent"/>;
+ if(!profile)return <Redirect href="/onboarding"/>;
+ const now=Date.now();
+ const displayed=events.filter(e=>{
+  const status=deriveSpecialEventState(e,now);
+  return filter==='all'||filter==='programs'||filter===status;
+ });
+ const liveCount=events.filter(e=>deriveSpecialEventState(e,now)==='live').length;
+ const programs=PROGRAMS.filter(p=>!('faithOnly' in p)||showFaith);
+ return <View style={s.page}>
+  <BuklodMapHeader/>
+  <ScrollView style={{flex:1}} contentContainerStyle={s.content}
+    refreshControl={<RefreshControl refreshing={busy} onRefresh={()=>void load()} tintColor="#F2DCA5"/>}
+    showsVerticalScrollIndicator={false}>
+   <View style={s.hero}>
+    <ExpoImage source={require('../../../assets/season2/genesis/world/buklod-community-map-compact.webp')}
+      contentFit="cover" style={StyleSheet.absoluteFillObject}/>
+    <LinearGradient colors={['rgba(4,22,31,.35)','rgba(5,24,35,.82)','rgba(5,20,34,.96)']}
+      style={StyleSheet.absoluteFillObject}/>
+    <Animated.View pointerEvents="none" style={[s.star,{opacity:pulse,transform:[{scale:pulse.interpolate({inputRange:[.55,1],outputRange:[.9,1.12]})}]}]}>
+      <MaterialCommunityIcons name="star-four-points" color="#FFEEB6" size={48}/>
+    </Animated.View>
+    <View style={s.heroCopy}>
+     <MaterialCommunityIcons name="star-circle" size={32} color="#FFE0A0"/>
+     <Text style={s.heroTitle}>Special Events</Text>
+     <Text style={s.heroSub}>Mga programa, hamon at bagong karanasan sa BUKLOD.</Text>
+     <Text style={s.heroProof}>{liveCount>0?liveCount+' live event'+(liveCount>1?'s':''):'Makilahok sa mga tunay na naka-schedule na event'}</Text>
+    </View>
    </View>
-   <View style={styles.hero}>
-     <ExpoImage source={LANDSCAPE} contentFit="cover" style={StyleSheet.absoluteFillObject}/>
-     <LinearGradient colors={['rgba(5,26,30,.10)','rgba(4,22,27,.93)']} style={StyleSheet.absoluteFillObject}/>
-     <Animated.View pointerEvents="none" style={[styles.sparkle,{opacity:sparkle.interpolate({inputRange:[0,1],outputRange:[.22,.75]}),
-       transform:[{scale:sparkle.interpolate({inputRange:[0,1],outputRange:[.92,1.12]})}]}]}>
-       <MaterialCommunityIcons name="star-four-points" color="#FFE4A0" size={38}/>
-     </Animated.View>
-     <View style={styles.heroCopy}><Text style={styles.heroTitle}>Sama-sama sa bagong karanasan!</Text>
-       <Text style={styles.heroSubtitle}>Tunay na mga pagtitipon, hamon, laro at community activities.</Text>
-     </View>
-   </View>
-   <View style={styles.sectionHeader}><MaterialCommunityIcons name="calendar-clock" color="#EED49B" size={22}/>
-     <Text style={styles.sectionTitle}>Mga paparating na event</Text>
-     <Pressable accessibilityRole="button" accessibilityLabel="Refresh upcoming events" onPress={()=>void refresh()} style={styles.refresh}>
-       <MaterialCommunityIcons name="refresh" size={21} color="#EED49B"/>
-     </Pressable>
-   </View>
-   {loading?<ActivityIndicator color="#EED49B" accessibilityLabel="Loading events"/>:null}
-   {!!error?<Text accessibilityRole="alert" style={styles.message}>{error}</Text>:null}
-   {!loading&&!error&&!events.length?<View style={styles.empty}><MaterialCommunityIcons name="calendar-blank-outline" color="#EED49B" size={25}/>
-     <Text style={styles.emptyText}>Wala pang naka-schedule na event na available sa iyo.</Text></View>:null}
-   {events.map(e=><Pressable key={e.id} accessibilityRole="button" accessibilityLabel={'View event '+e.title}
-     onPress={()=>router.push(('/church/event/'+encodeURIComponent(e.id)) as any)} style={({pressed})=>[styles.event,pressed&&{opacity:.7}]}>
-     <View style={styles.eventIcon}><MaterialCommunityIcons name="calendar-star" size={22} color="#FFE6AE"/></View>
-     <View style={{flex:1,minWidth:0}}><Text style={styles.eventTitle} numberOfLines={2}>{e.title}</Text>
-       <Text style={styles.eventDetail}>{fmt(e.starts_at)}{e.location?' · '+e.location:''}</Text>
-       {e.requires_rsvp?<Text style={styles.rsvp}>RSVP sa event details</Text>:null}
-     </View>
-     <MaterialCommunityIcons name="chevron-right" size={22} color="#EED49B"/>
-   </Pressable>)}
-   <View style={styles.sectionHeader}><MaterialCommunityIcons name="compass-rose" color="#EED49B" size={22}/>
-     <Text style={styles.sectionTitle}>Tuklasin ang events</Text></View>
-   <View style={styles.grid}>{categories.map(c=><Pressable key={c.id} accessibilityRole="button" accessibilityLabel={'Open '+c.title}
-     onPress={()=>router.push(c.route as any)} style={({pressed})=>[styles.category,pressed&&{opacity:.7}]}>
-     <View style={styles.categoryIcon}><MaterialCommunityIcons name={c.icon} size={27} color="#FFE0A3"/></View>
-     <Text style={styles.categoryTitle}>{c.title}</Text>
-     <Text style={styles.categoryText}>{c.description}</Text>
+   <View style={s.filters}>{FILTERS.map(f=><Pressable key={f.id} accessibilityRole="button"
+      accessibilityState={{selected:filter===f.id}} onPress={()=>setFilter(f.id)}
+      style={[s.filter,filter===f.id&&s.filterOn]}>
+      <Text style={[s.filterText,filter===f.id&&s.filterTextOn]}>{f.label}</Text>
    </Pressable>)}</View>
-   <Text style={styles.disclaimer}>Attendance, rankings, BP at rewards ay mula lamang sa verified server events. Walang automatic reward sa pagbisita sa page.</Text>
- </ScrollView>;
+   <BuklodHomeCheckinToday/>
+   {filter!=='programs'?<View style={s.section}>
+    <Text style={s.sectionTitle}>Tunay na Events</Text>
+    <Text style={s.hint}>Mga visible na anunsiyo mula sa authorized BUKLOD sources. RSVP at check-in ay sa original verified event flow lamang. Walang BP o Diamonds sa simpleng pagbisita sa event page.</Text>
+    {busy&&events.length===0?<ActivityIndicator color="#F5DEA5"/>:null}
+    {!!problem?<Text accessibilityRole="alert" style={s.error}>{problem}</Text>:null}
+    {displayed.map(event=>{
+     const phase:SpecialEventState=deriveSpecialEventState(event,now);
+     return <View key={event.key} style={s.event}>
+      <View style={s.eventHead}>
+       <MaterialCommunityIcons name={phase==='live'?'broadcast':'calendar-star'} color="#FFE2AA" size={23}/>
+       <Text style={s.eventType}>{event.category}</Text>
+       <Text style={[s.state,phase==='live'&&s.stateLive]}>
+        {phase==='live'?'LIVE':phase==='upcoming'?'PAPARATING':phase==='ended'?'TAPOS NA':'SCHEDULE CHECK'}
+       </Text>
+      </View>
+      <Text style={s.eventName}>{event.title}</Text>
+      {event.startsAt?<Text style={s.eventMeta}>
+       <MaterialCommunityIcons name="calendar-clock" color="#BEDCCF" size={15}/> {' '}
+       {new Date(event.startsAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'})}
+      </Text>:null}
+      {!!event.location?<Text style={s.eventMeta}>{event.location}</Text>:null}
+      {!!event.description?<Text style={s.eventDescription}>{event.description}</Text>:null}
+      {event.route?<Pressable accessibilityRole="button" accessibilityLabel={'RSVP / event details: '+event.title}
+       onPress={()=>router.push(event.route as any)} style={s.eventAction}>
+       <Text style={s.eventActionText}>{event.requiresRsvp?'Detalye / RSVP':'Detalye ng Event'}</Text>
+       <MaterialCommunityIcons name="arrow-right" color="#FFEECC" size={18}/>
+      </Pressable>:<Text style={s.eventFootnote}>Community announcement · hindi pa available ang in-app RSVP link</Text>}
+     </View>;
+    })}
+    {!busy&&displayed.length===0?<Text style={s.empty}>
+      Walang kumpirmadong event sa kategoryang ito ngayon. Tingnan ang Mga Programa o mag-refresh.
+     </Text>:null}
+   </View>:null}
+   <View style={s.section}>
+    <Text style={s.sectionTitle}>Mga Programa</Text>
+    <Text style={s.hint}>Mga tunay na feature na maaaring mag-host ng activity. Hindi nangangahulugang may aktibong event sa lahat.</Text>
+    {programs.map(item=><Pressable key={item.id} accessibilityRole="button"
+      accessibilityLabel={'Open '+item.label} onPress={()=>router.push(item.route as any)}
+      style={({pressed})=>[s.program,pressed&&s.pressed]}>
+      <MaterialCommunityIcons name={item.icon as any} size={23} color="#FFDC91"/>
+      <View style={{flex:1,minWidth:0}}>
+       <Text style={s.programName}>{item.label}</Text>
+       <Text style={s.programDesc}>{item.description}</Text>
+      </View>
+      <MaterialCommunityIcons name="chevron-right" size={20} color="#CDE6D4"/>
+    </Pressable>)}
+   </View>
+   <Pressable accessibilityRole="button" accessibilityLabel="Return to BUKLOD World Map"
+    onPress={()=>router.push('/buklod-map' as any)} style={s.back}>
+    <MaterialCommunityIcons name="map-outline" size={18} color="#FFE8AD"/>
+    <Text style={s.backText}>Bumalik sa BUKLOD Map</Text>
+   </Pressable>
+  </ScrollView>
+ </View>;
 }
-const styles=StyleSheet.create({
- page:{flex:1,backgroundColor:'#061C22',paddingHorizontal:13},
- heading:{flexDirection:'row',alignItems:'center',gap:10,marginBottom:10},
- back:{minHeight:44,minWidth:44,justifyContent:'center',alignItems:'center'},
- eyebrow:{fontSize:10,fontWeight:'900',color:'#B7E1C8',letterSpacing:1.4},
- title:{fontSize:23,fontWeight:'900',color:'#FFE2A7'},
- hero:{height:220,borderRadius:18,overflow:'hidden',borderWidth:1,borderColor:'#B4A47D',marginBottom:15},
- sparkle:{position:'absolute',top:18,right:22},
- heroCopy:{position:'absolute',bottom:15,left:15,right:15,gap:4},
- heroTitle:{color:'#FFF4D9',fontSize:23,fontWeight:'900'},
- heroSubtitle:{color:'#E5F6E9',fontSize:12,lineHeight:17},
- sectionHeader:{flexDirection:'row',alignItems:'center',gap:8,marginTop:7,marginBottom:9},
- sectionTitle:{fontSize:17,fontWeight:'900',color:'#FBE3B2',flex:1},
- refresh:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},
- message:{color:'#F6D4B5',fontSize:12,padding:12},
- empty:{flexDirection:'row',gap:9,alignItems:'center',backgroundColor:'#143B3C',borderRadius:12,padding:14,marginBottom:12},
- emptyText:{color:'#E5F2E8',fontSize:12,flex:1},
- event:{flexDirection:'row',gap:10,alignItems:'center',padding:12,marginBottom:8,borderRadius:13,
-  backgroundColor:'#153E3B',borderColor:'#638B73',borderWidth:1},
- eventIcon:{width:42,height:42,borderRadius:13,backgroundColor:'#275B4C',justifyContent:'center',alignItems:'center'},
- eventTitle:{color:'#FFFFFF',fontSize:14,fontWeight:'900'},
- eventDetail:{color:'#D5E8DD',fontSize:11,marginTop:4},
- rsvp:{color:'#FFE3AA',fontSize:10,marginTop:4,fontWeight:'800'},
- grid:{flexDirection:'row',flexWrap:'wrap',gap:9},
- category:{width:'47%',flexGrow:1,minHeight:125,borderRadius:14,backgroundColor:'#153B37',
-  borderWidth:1,borderColor:'#66886F',padding:12,gap:5},
- categoryIcon:{width:43,height:43,backgroundColor:'#2A5B48',borderRadius:13,alignItems:'center',justifyContent:'center'},
- categoryTitle:{fontSize:13,color:'#FDE5B5',fontWeight:'900'},
- categoryText:{fontSize:11,color:'#E0F0E5',lineHeight:15},
- disclaimer:{fontSize:10,color:'#9CC5B5',lineHeight:15,marginTop:15},
+const s=StyleSheet.create({
+ page:{flex:1,backgroundColor:'#071729'},content:{paddingHorizontal:11,paddingTop:8,paddingBottom:30,gap:11},
+ hero:{minHeight:230,borderRadius:19,overflow:'hidden',justifyContent:'flex-end',
+   backgroundColor:'#154437',borderColor:'#E2C98A',borderWidth:1},
+ star:{position:'absolute',right:16,top:18},
+ heroCopy:{padding:17,gap:6},heroTitle:{color:'#FFE2A3',fontSize:27,fontWeight:'900'},
+ heroSub:{fontSize:12,color:'#F1F8EF',lineHeight:18},
+ heroProof:{fontSize:11,fontWeight:'800',color:'#BCEED6',marginTop:3},
+ filters:{flexDirection:'row',gap:6},filter:{flex:1,alignItems:'center',justifyContent:'center',
+   paddingVertical:10,minHeight:44,borderRadius:14,borderColor:'#496C67',borderWidth:1,
+   backgroundColor:'#123037'},
+ filterOn:{backgroundColor:'#315A42',borderColor:'#EED394'},
+ filterText:{color:'#D2E6E0',fontSize:11,fontWeight:'800'},
+ filterTextOn:{color:'#FFE9B8'},
+ section:{gap:8,backgroundColor:'#0D2931',borderRadius:16,padding:11,borderWidth:1,
+   borderColor:'#3B5B50'},
+ sectionTitle:{fontSize:18,fontWeight:'900',color:'#FFDE9B'},
+ hint:{fontSize:11,lineHeight:16,color:'#C9DED9'},
+ event:{gap:6,padding:11,backgroundColor:'#163B3C',borderRadius:13,
+   borderWidth:1,borderColor:'#56796A'},
+ eventHead:{flexDirection:'row',alignItems:'center',gap:7},
+ eventType:{fontSize:11,fontWeight:'900',color:'#D7EDC5',flex:1},
+ state:{fontSize:9,fontWeight:'900',color:'#D3DDB2',padding:5,borderRadius:8,
+   backgroundColor:'#28464A'},stateLive:{backgroundColor:'#0D7D54',color:'#FFFFFF'},
+ eventName:{fontSize:15,fontWeight:'900',color:'#FFF5DC'},
+ eventMeta:{fontSize:11,color:'#D0E3DB'},
+ eventDescription:{fontSize:11,lineHeight:16,color:'#D8EAE5'},
+ eventAction:{alignSelf:'flex-start',minHeight:44,backgroundColor:'#21654B',borderRadius:11,
+   flexDirection:'row',alignItems:'center',gap:7,paddingHorizontal:14,marginTop:4},
+ eventActionText:{color:'#FFF0D2',fontWeight:'900',fontSize:12},
+ eventFootnote:{fontSize:10,color:'#B2CBC4',marginTop:4},
+ empty:{fontSize:12,color:'#D9E5DD',padding:12,backgroundColor:'#173A41',borderRadius:10},
+ error:{fontSize:11,color:'#FFE5A0',padding:8},
+ program:{minHeight:67,padding:10,flexDirection:'row',gap:10,alignItems:'center',
+   backgroundColor:'#1A3A3B',borderRadius:13,borderWidth:1,borderColor:'#50766C'},
+ programName:{fontSize:13,fontWeight:'900',color:'#FFE5A8'},
+ programDesc:{fontSize:11,lineHeight:15,color:'#D0E3D6',marginTop:2},
+ pressed:{opacity:.75},back:{minHeight:45,backgroundColor:'#174D45',borderRadius:12,
+   flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},
+ backText:{color:'#FFE7AF',fontWeight:'900'},
 });

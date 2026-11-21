@@ -89,7 +89,8 @@ export default function BuklodNavSafeShell({
     !isBuklodScopedWorkspacePath(pathname);
   const immersiveConversation = isHiblaConversationPath(pathname);
   const genesisWorld = isGenesisPreviewBuild();
-  const navOccupied = genesisWorld || immersiveConversation ? 0 : rawNavOccupied;
+  // Preview keeps the SAME existing bottom nav; never duplicate it in World or Guide.
+  const navOccupied = immersiveConversation ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
@@ -193,7 +194,7 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!genesisWorld && !immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
+      {!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
@@ -205,7 +206,7 @@ export default function BuklodNavSafeShell({
       {worldReturnEligible ? (
         <Pressable accessibilityRole="button" accessibilityLabel="Return to BUKLOD Map"
           onPress={() => router.replace('/buklod-map' as any)}
-          hitSlop={8} style={[styles.worldReturn,{top:Math.max(insets.top,5)+5}]}>
+          hitSlop={8} style={[styles.worldReturn,{bottom:Math.max(navOccupied,0)+11}]}>
           <MaterialCommunityIcons name="earth" size={20} color="#F7D8A2"/>
           <MaterialCommunityIcons name="arrow-left" size={15} color="#F7D8A2"/>
         </Pressable>
@@ -235,7 +236,7 @@ export default function BuklodNavSafeShell({
 
 const styles = StyleSheet.create({
   worldReturn: {
-    position: 'absolute', right: 10, zIndex: 1000, minWidth: 48, minHeight: 42,
+    position: 'absolute', right: 10, zIndex: 1000, minWidth: 44, minHeight: 44,
     borderRadius: 22, backgroundColor: 'rgba(7,20,42,0.88)',
     borderColor: 'rgba(239,211,158,0.6)', borderWidth: 1,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4,

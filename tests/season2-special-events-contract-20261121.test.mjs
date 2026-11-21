@@ -19,7 +19,7 @@ test('Events use RLS-governed live data and existing detail/RSVP',()=>{
 test('Motion is bounded to active foreground and respects reduced motion',()=>{
  assert.match(page,/AccessibilityInfo\.isReduceMotionEnabled/);
  assert.match(page,/AppState\.addEventListener/);
- assert.match(page,/reduceMotion\|\|!foreground/);
+ assert.match(page,/!focused\|\|!foreground\|\|reduceMotion/);
  assert.match(page,/loop\.stop\(\)/);
 });
 test('Guide prompts follow the four owner approved actions',()=>{

@@ -16,17 +16,17 @@ test('Genesis starts at approved map but Home stays independently reachable',()=
  assert.doesNotMatch(home,/<Redirect href="\/buklod-map" \/>/);
  assert.match(entry,/<BuklodMapHeader \/>/);
  assert.match(entry,/<GenesisApprovedEntryMap/);
- assert.match(src('src/features/season2/world/BuklodMapGuideDock.tsx'),/label:'Home',route:'\/hub'/);
+ assert.match(src('src/features/season2/world/BuklodMapGuideDock.tsx'),/label:'Maglaro\?',icon:'gamepad-variant-outline',route:'\/season2\/games'/);
  assert.match(home,/BuklodFirstViewAd/);
  assert.match(home,/BuklodNativeSponsoredCard/);
  const layout=src('src/app/(tabs)/_layout.tsx');
  assert.match(layout,/!isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader/);
  assert.match(layout,/BuklodDashboardAdWarmup/);
 });
-test('no legacy persistent navigation bar in Genesis and a compact return map action persists',()=>{
+test('the same persistent bottom navigation is kept in Genesis; map return is still reachable',()=>{
   const shell=src('src/components/BuklodNavSafeShell.tsx');
   assert.match(shell,/const genesisWorld = isGenesisPreviewBuild\(\)/);
-  assert.match(shell,/!genesisWorld && !immersiveIgpat && !immersiveConversation/);
+  assert.match(shell,/!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0/);
   assert.match(shell,/worldReturnEligible/);
   assert.match(shell,/router\.replace\('\/buklod-map'/);
   assert.match(shell,/keyboardVisible/);
@@ -57,12 +57,12 @@ test('existing source-owned audio and sponsors stay permissioned and mounted wit
 
 test('Approved World Map removes entry ad only; guide and Home monetization remain',()=>{
  const home=src('src/app/(tabs)/hub.tsx'),map=src('src/app/buklod-map.tsx');
- const portrait=map.slice(map.indexOf('style={styles.welcomeTextBlock}'));
+ const portrait=map.slice(map.indexOf('portraitFirstView'));
  assert.match(home,/BuklodFirstViewAd placement="home"/);
  assert.doesNotMatch(home,/<Redirect href="\/buklod-map"/);
  assert.doesNotMatch(map,/BuklodFirstViewAd|toggleMusic|Music on/);
- assert.ok(portrait.indexOf('<BuklodMapGuideDock')>=0 &&
-  portrait.indexOf('<BuklodMapGuideDock')<portrait.indexOf('{mapNode}'));
+ assert.ok(portrait.lastIndexOf('{mapNode}')>=0 &&
+  portrait.lastIndexOf('{mapNode}')<portrait.lastIndexOf('<BuklodMapGuideDock'));
  assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
  assert.match(map,/if \(!isGenesisPreviewBuild\(\)\)/);
 });
