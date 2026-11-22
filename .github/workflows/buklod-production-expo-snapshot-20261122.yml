@@ -1,0 +1,39 @@
+name: BUKLOD Production Expo Runtime Read-Only Evidence (No OTA)
+on:
+  push:
+    branches:
+      - integration/main-prod-ad-recovery-cluster-conso-20261122
+    paths:
+      - .github/workflows/buklod-production-expo-snapshot-20261122.yml
+      - scripts/buklod-production-expo-snapshot-20261122.cjs
+      - tests/buklod-production-expo-snapshot-20261122.test.cjs
+      - .buklod/scopes/main-prod-ad-recovery-cluster-conso-20261122.json
+permissions:
+  contents: read
+concurrency:
+  group: buklod-prod-runtime-readonly-20261122
+  cancel-in-progress: true
+jobs:
+  read-expo-manifest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run read-only manifest parser security tests
+        run: node --test tests/buklod-production-expo-snapshot-20261122.test.cjs
+      - name: Read current served Expo Android production update (no token)
+        run: node scripts/buklod-production-expo-snapshot-20261122.cjs
+      - name: Store short-lived baseline evidence for RC; do not publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-prod-expo-snapshot-readonly
+          path: ota-evidence/production-baseline-readonly-20261122.json
+          retention-days: 3
+          if-no-files-found: error
