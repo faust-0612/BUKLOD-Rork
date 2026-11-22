@@ -28,6 +28,7 @@ export default function BuklodImciTagalogGuide({ onUrgencyChange }: Props) {
   const emergency = outcome === 'emergency';
   const answered = questions.filter(q => answers[q.id] !== undefined);
   const handoff = questions.filter(q => answers[q.id] === 'yes' || answers[q.id] === 'unsure');
+  const firstDangerIndex = questions.findIndex(q => q.level === 'danger' && (answers[q.id] === 'yes' || answers[q.id] === 'unsure'));
 
   useEffect(() => { onUrgencyChange(emergency); }, [emergency, onUrgencyChange]);
 
@@ -173,8 +174,8 @@ export default function BuklodImciTagalogGuide({ onUrgencyChange }: Props) {
           ) : null}
           {emergency ? (
             <View style={styles.actions}>
-              <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={() => setIndex(value => Math.max(0, value - 1))}>
-                <Text style={styles.secondaryText}>Tingnan ang tanong</Text>
+              <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={() => setIndex(Math.max(0, firstDangerIndex))}>
+                <Text style={styles.secondaryText}>Baguhin ang danger sign</Text>
               </Pressable>
               <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={reset}>
                 <Text style={styles.secondaryText}>Simulang muli</Text>
