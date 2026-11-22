@@ -234,12 +234,29 @@ func _hit(p: Dictionary, target: Dictionary, damage: float) -> bool:
 		incoming *= 1.0 + clampf(float(attacker_buffs["fury"]["strength"]), 0.0, 0.3)
 	if float(defender_buffs.get("guard", {}).get("until", 0)) > now:
 		incoming *= 1.0 - clampf(float(defender_buffs["guard"]["strength"]), 0.0, 0.4)
+	if float(defender_buffs.get("vulnerable", {}).get("until", 0)) > now:
+		incoming *= 1.0 + clampf(float(defender_buffs["vulnerable"]["strength"]), 0.0, 0.2)
+	if p.get("hero", "") == "jawo" and now - float(p.get("rhythm_hit_at", -100.0)) <= 4.0:
+		incoming *= 1.0 + 0.03 * clampf(float(p.get("rhythm", 0)), 0.0, 5.0)
 	var absorbed: float = minf(float(target.get("shield", 0.0)), incoming)
 	target["shield"] = maxf(0.0, float(target.get("shield", 0.0)) - absorbed)
 	var actual: float = maxf(0.0, incoming - absorbed)
 	target["hp"] = maxf(0.0, float(target["hp"]) - actual)
 	p["hits"] = int(p.get("hits", 0)) + 1
 	_log("damage", {"from": p["id"], "to": target["id"], "amount": actual, "pos": target["pos"]})
+	# The Library's passive identities attach only to their real hero in this match.
+	if p.get("hero", "") == "jawo" and now - float(p.get("rhythm_hit_at", -100.0)) >= 0.4:
+		p["rhythm"] = mini(5, int(p.get("rhythm", 0)) + 1)
+		p["rhythm_hit_at"] = now
+	if p.get("hero", "") == "mitch":
+		target["buffs"] = target.get("buffs", {})
+		target["buffs"]["vulnerable"] = {"strength": 0.10, "until": now + 3.0}
+	# Trudice reflects at most 30% of real incoming HP damage without
+	# recursively calling _hit or minting a kill, XP, loot or ranked result.
+	if target.get("hero", "") == "trudice" and actual > 0 and \
+			float(defender_buffs.get("reflect", {}).get("until", 0)) > now:
+		p["hp"] = maxf(1.0, float(p["hp"]) -
+			actual * clampf(float(defender_buffs["reflect"]["strength"]), 0.0, 0.30))
 	if float(target["hp"]) > 0.0:
 		return true
 	target["alive"] = false
@@ -349,6 +366,8 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 		cooldown *= 1.0 - clampf(float(cdr.get("strength", 0.0)), 0.0, 0.25)
 	if p["hero"] == "angel":
 		cooldown *= 0.90
+	if p["hero"] == "trudice" and float(p.get("insight_until", 0.0)) > float(state["time"]):
+		cooldown *= 1.0 - 0.05 * float(mini(3, int(p.get("insight", 0))))
 	var mana_cost: float = {"primary": 18.0, "secondary": 14.0, "ultimate": 55.0}[slot]
 	if float(state["time"]) - float(p["cooldowns"][slot]) < cooldown or float(p["mana"]) < mana_cost:
 		return false
@@ -426,6 +445,15 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 		return false
 	p["mana"] = float(p["mana"]) - mana_cost
 	p["cooldowns"][slot] = float(state["time"])
+	# Enemy casts trigger Trudice's 6s Lesson Learned insight (max three).
+	for spectator in state["players"].values():
+		if spectator.get("hero", "") == "trudice" and spectator["team"] != p["team"] \
+				and _alive(spectator) and _dist(spectator, p) <= 17.5:
+			var existing: int = int(spectator.get("insight", 0)) if \
+				float(spectator.get("insight_until", 0.0)) > float(state["time"]) else 0
+			spectator["insight"] = mini(3, existing + 1)
+			spectator["insight_until"] = float(state["time"]) + 6.0
+			p["buffs"]["revealed"] = {"strength": 1.0, "until": float(state["time"]) + 2.0}
 	_log("skill", {"actor": p["id"], "slot": slot, "skill_id": identity, "pos": p["pos"]})
 	return true
 
@@ -444,10 +472,13 @@ func action(id: String, command: String, vector: Vector2 = Vector2.ZERO,
 				return false
 			var kit_speed: float = float(config["starter"].get(p["hero"], {}).get("speed", 210)) / 210.0
 			var move_speed: float = 4.4 * kit_speed
-			if p["hero"] == "jawo":
-				move_speed *= 1.0 + 0.02 * float(p.get("rhythm", 0))
-			if p["hero"] == "ellusur":
-				move_speed *= 1.10
+			if p["hero"] == "jawo" and float(state["time"]) - float(p.get("rhythm_hit_at", -100.0)) <= 4.0:
+				move_speed *= 1.0 + 0.02 * clampf(float(p.get("rhythm", 0)), 0.0, 5.0)
+			for ally in state["players"].values():
+				if ally.get("hero", "") == "ellusur" and ally["team"] == p["team"] \
+						and _alive(ally) and _dist(ally, p) <= 8.75:
+					move_speed *= 1.10
+					break
 			if float(p["buffs"].get("haste", {}).get("until", 0.0)) > float(state["time"]):
 				move_speed *= 1.0 + minf(0.25, float(p["buffs"]["haste"]["strength"]))
 			if float(p["buffs"].get("slow", {}).get("until", 0.0)) > float(state["time"]):
@@ -604,10 +635,12 @@ func _automation() -> void:
 			continue
 		var goal := Vector2(state["w"] - 14 if unit["team"] == "A" else 14, state["h"] * 0.5)
 		_move(unit, goal - unit["pos"], 4.3 if unit["kind"] != "siege" else 2.6)
+	# Release expired temporary structures to bound per-match CPU and memory.
+	for tower in state["towers"].duplicate():
+		if tower.get("temporary", false) and (not _alive(tower) or \
+				float(tower["expires"]) <= float(state["time"])):
+			state["towers"].erase(tower)
 	for tower in state["towers"]:
-		if tower.get("temporary", false) and float(tower["expires"]) <= float(state["time"]):
-			tower["alive"] = false
-			continue
 		if not _alive(tower) or float(state["time"]) - float(tower["last_attack"]) < 1.4:
 			continue
 		var candidates: Array = []
