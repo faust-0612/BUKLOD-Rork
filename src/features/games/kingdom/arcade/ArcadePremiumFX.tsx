@@ -1,0 +1,97 @@
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, LinearGradient as VectorGradient, Path, Rect, Stop } from 'react-native-svg';
+import type { ArcadeMode } from './arcadeCore';
+
+/**
+ * Lightweight local vector scenery with native-driver motion. Deliberately
+ * capped at 11 scenery nodes + 8 burst sparks; zero remote images/requests.
+ * It is a visual layer only and never intercepts gameplay controls.
+ */
+export function ArcadePremiumFX({accent, mode, active, eventSeq, outcome, stage}:{
+  accent:string; mode:ArcadeMode; active:boolean; eventSeq:number;
+  outcome:'move'|'collect'|'impact'|'unlock'; stage:number;
+}) {
+  const drift=useRef(new Animated.Value(0)).current;
+  const burst=useRef(new Animated.Value(0)).current;
+  const started=useRef(false);
+  const stars=useMemo(()=>Array.from({length:11},(_,i)=>({
+    x:18+(i*97)%345,y:20+(i*71)%440,r:1.3+(i%3)*.7,
+  })),[]);
+  const particles=useMemo(()=>Array.from({length:8},(_,i)=>({
+    angle:(Math.PI*2*i)/8,
+    distance:46+(i%3)*17,
+  })),[]);
+  useEffect(()=>{
+    if(!active){drift.stopAnimation();return;}
+    const loop=Animated.loop(Animated.timing(drift,{
+      toValue:1,duration:7000,easing:Easing.linear,useNativeDriver:true,
+    }));
+    loop.start();
+    return ()=>loop.stop();
+  },[active,drift]);
+  useEffect(()=>{
+    if(!started.current){started.current=true;return;}
+    if(!active || (outcome!=='collect'&&outcome!=='impact'&&outcome!=='unlock'))return;
+    burst.stopAnimation();
+    burst.setValue(0);
+    Animated.timing(burst,{
+      toValue:1,duration:outcome==='impact'?380:850,
+      easing:Easing.out(Easing.cubic),useNativeDriver:true,
+    }).start();
+  },[eventSeq,active,outcome,burst]);
+  const offset=drift.interpolate({inputRange:[0,1],outputRange:[0,-24]});
+  const opacity=burst.interpolate({inputRange:[0,.2,1],outputRange:[0,.85,0]});
+  const palette=mode==='rhythm'
+    ? (['#090f29','#24224b','#56316e'] as const)
+    : mode==='catch'||mode==='stack'
+      ? (['#0a1a30','#233454','#4d4568'] as const)
+      : (['#08172a','#17334a','#2a4d50'] as const);
+  return <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+    <LinearGradient colors={palette} style={StyleSheet.absoluteFillObject}/>
+    <Animated.View style={[styles.sky,{transform:[{translateY:offset}]}]}>
+      <Svg width="100%" height="100%" viewBox="0 0 380 520" preserveAspectRatio="xMidYMid slice">
+        <Defs>
+          <VectorGradient id="arcade-horizon" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={accent} stopOpacity=".04"/>
+            <Stop offset=".55" stopColor={accent} stopOpacity=".14"/>
+            <Stop offset="1" stopColor={accent} stopOpacity=".05"/>
+          </VectorGradient>
+        </Defs>
+        <Circle cx="320" cy="95" r="82" fill={accent} opacity=".10"/>
+        <Circle cx="320" cy="95" r="58" fill={accent} opacity=".08"/>
+        {stars.map((p,i)=><Circle key={i} cx={p.x} cy={p.y} r={p.r} fill="#fff4da" opacity={.2+(i%4)*.12}/>)}
+        <Path d="M0 370 Q88 300 190 360 T380 345 L380 520 L0 520 Z" fill="url(#arcade-horizon)"/>
+        <Path d="M0 445 Q96 387 187 432 T380 413 L380 520 L0 520 Z" fill={accent} opacity=".08"/>
+        {mode==='rhythm' ? Array.from({length:6},(_,i)=>
+          <Rect key={'eq'+i} x={25+i*58} y={370-(i%3)*18} width="25" height={65+(i%3)*23}
+            rx="8" fill={accent} opacity=".17"/>) : null}
+        {mode==='lane'||mode==='runner'||mode==='defend' ?
+          <Path d="M190 260 L20 520 M190 260 L360 520" stroke={accent} strokeWidth="2" opacity=".26" /> : null}
+        <Path d="M-40 210 Q180 157 420 208" stroke={accent} strokeWidth="1.8" opacity=".22" fill="none"/>
+      </Svg>
+    </Animated.View>
+    <View style={styles.horizonGlow}>
+      <LinearGradient colors={['transparent',accent+'22','transparent']} style={StyleSheet.absoluteFillObject}/>
+    </View>
+    {particles.map((p,i)=><Animated.View key={i} style={[styles.spark,{
+      backgroundColor:outcome==='impact'?'#ff8e83':accent,
+      opacity,
+      left:'50%',top:'44%',
+      transform:[
+        {translateX:burst.interpolate({inputRange:[0,1],outputRange:[0,Math.cos(p.angle)*p.distance]})},
+        {translateY:burst.interpolate({inputRange:[0,1],outputRange:[0,Math.sin(p.angle)*p.distance]})},
+        {scale:burst.interpolate({inputRange:[0,.25,1],outputRange:[.2,1.1,.1]})},
+      ],
+    }]}/>)}
+    <View style={[styles.levelStripe,{borderTopColor:accent+'55'}]}/>
+  </View>;
+}
+const styles=StyleSheet.create({
+  sky:{...StyleSheet.absoluteFillObject,bottom:-26},
+  horizonGlow:{position:'absolute',top:'25%',left:0,right:0,height:130},
+  spark:{position:'absolute',width:8,height:8,borderRadius:4,
+    shadowOpacity:.9,shadowRadius:7,shadowColor:'#fff'},
+  levelStripe:{position:'absolute',bottom:0,left:0,right:0,borderTopWidth:1,height:2},
+});
