@@ -118,7 +118,7 @@ async function fetchCredentials(
       ''
     ).trim();
 
-    if (!error && token && apiKey) {
+    if (!error && token && apiKey && !isBuklodCallJwtExpired(token)) {
       cachedCredentials = {
         token,
         apiKey,
