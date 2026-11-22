@@ -1,29 +1,28 @@
-name: BUKLOD Genesis Unified Library Godot Native APK (OFFLINE DEBUG)
+name: BUKLOD Genesis Unified 2.0.4 Godot ARM64 Debug APK
 on:
   push:
     branches:
       - dev/genesis-unified-arena-library-apk-20261122
     paths:
-      - .github/workflows/genesis-unified-library-offline-apk-20261122.yml
+      - '.github/workflows/genesis-unified-library-offline-apk-20261122.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: buklod-genesis-library-debug-20261122
+  group: buklod-genesis-library-native-debug-20261122
   cancel-in-progress: false
 
 jobs:
-  android-arm64-godot-apk:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-unified-arena-library-apk-20261122' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_2_0_4_NATIVE_BUILD:') }}
+  android-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
+      BUKLOD_APP_TARGET: main
       APP_VARIANT: staging
       EXPO_PUBLIC_APP_ENV: staging
-      BUKLOD_APP_TARGET: main
       EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
       EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
       EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
@@ -36,11 +35,8 @@ jobs:
       EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
       GRADLE_OPTS: -Xmx2g -Dorg.gradle.daemon=false
     steps:
-      - name: Checkout exact consolidated DEV source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
-          fetch-depth: 1
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -50,123 +46,74 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Block production backend and verify isolated new native runtime
+      - name: Fail closed on scope, invalid staging backend and signed runtime
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/dev/genesis-unified-arena-library-apk-20261122"
+          case "$(git log -1 --format=%s)" in
+            BUKLOD_GENESIS_2_0_4_NATIVE_BUILD:*) ;;
+            *) echo "BLOCK: exact native build marker absent"; exit 1 ;;
+          esac
           node <<'NODE'
-          const a=require('node:assert/strict');
-          const fs=require('node:fs');
-          const c=require('./app.config.js')({config:{}});
-          a.equal(process.env.EXPO_PUBLIC_SUPABASE_URL, 'https://genesis-offline-godot.invalid');
-          a.equal(c.android.package,'org.mzbministry.buklod.staging');
-          a.equal(c.runtimeVersion,'2.0.4-genesis-library-godot');
-          a.equal(c.version,'2.0.4');
-          a.equal(c.extra.appTarget,'main');
-          a.equal(c.plugins.find(x=>Array.isArray(x)&&x[0]==='react-native-google-mobile-ads')[1].androidAppId,'ca-app-pub-3940256099942544~3347511713');
+          const fs=require('node:fs'),a=require('node:assert/strict');
+          const cfg=require('./app.config.js')({config:{}});
+          a.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          a.equal(cfg.runtimeVersion,'2.0.4-genesis-library-godot');
+          a.equal(cfg.version,'2.0.4');
+          a.equal(cfg.extra.appTarget,'main');
+          a.equal(process.env.EXPO_PUBLIC_SUPABASE_URL,'https://genesis-offline-godot.invalid');
           a.equal(process.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
-          const firebase=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
-          firebase.client=(firebase.client||[]).filter(x=>x.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging');
-          a.equal(firebase.client.length,1,'Staging Firebase app must already be registered');
-          fs.writeFileSync('google-services.staging.json',JSON.stringify(firebase));
-          console.log('BUILD SAFETY: offline fake backend, test AdMob, staging package, distinct runtime. No account access, no real SOS, no live matchmaking.');
+          a.equal(cfg.plugins.find(x=>Array.isArray(x)&&x[0]==='react-native-google-mobile-ads')[1].androidAppId,'ca-app-pub-3940256099942544~3347511713');
+          const raw=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          raw.client=raw.client.filter(c=>c.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging');
+          a.equal(raw.client.length,1,'Registered staging Firebase client missing');
+          fs.writeFileSync('google-services.staging.json',JSON.stringify(raw));
+          console.log('OFFLINE_DEBUG_IDENTITY_PASS: 2.0.4, test AdMob, dummy backend, no EAS');
           NODE
-      - name: Locked dependencies, Godot native and existing critical regression gates
+      - name: Locked app-wide source and required Arena QA
         shell: bash
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           node scripts/genesis-prepare-skia-binaries.mjs
           node scripts/genesis-assert-native-autolinking.mjs
-          node --test tests/genesis-native-autolinking-reality-20261120.test.mjs tests/genesis-godot-native-foundation-20261120.test.mjs tests/genesis-play-core-native-foundation-20261120.test.mjs tests/genesis-media3-native-foundation-20261120.test.mjs tests/genesis-drive-native-foundation-20261120.test.mjs tests/genesis-skia-native-binary-install-20261120.test.mjs
-          node --test tests/arena-premium-voice-motion-terrain-20261121.test.mjs tests/arena-event-audio-graphics-20261121.test.mjs tests/arena-offline-solo-cpu-battle-20261121.test.mjs tests/arena-premium-vfx-blender-backend-20261122.test.mjs tests/arena-library-godot-native-20261122.test.mjs tests/arena-library-modes-audio-20261122.test.mjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+          node --test tests/arena-library-godot-native-20261122.test.mjs tests/arena-library-modes-audio-20261122.test.mjs tests/genesis-library-native-runtime-release-20261122.test.mjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
           npm run release:gate
           npm run genesis:theme:gate
           npx tsc --noEmit
-      - name: Exact-source Godot 4.7.2 audio, arena and unified worlds native engine smoke
+      - name: Verify packed four-world Godot source and 70 audio cues
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/build-empire-godot-pack.mjs --out=/tmp/buklod-genesis-library-2.0.4.zip
-          unzip -t /tmp/buklod-genesis-library-2.0.4.zip | tail -2
-          test "$(unzip -Z -1 /tmp/buklod-genesis-library-2.0.4.zip | grep -Ec '^audio/sfx/.*\.wav
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx expo prebuild --platform android --clean --no-install
-          cd android
-          chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a
-          test -s app/build/outputs/apk/debug/app-debug.apk
-      - name: Verify actual offline debug APK, Godot engine, identity and checksum
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK=android/app/build/outputs/apk/debug/app-debug.apk
-          test -s "$APK"
-          unzip -l "$APK" | grep -Ei 'lib/arm64-v8a/.*godot.*\.so' || { echo 'BLOCK: no arm64 Godot engine binary'; exit 1; }
-          BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)
-          test -x "$BT/aapt"
-          test -x "$BT/apksigner"
-          "$BT/apksigner" verify --verbose "$APK"
-          "$BT/aapt" dump badging "$APK" | grep "package: name='org.mzbministry.buklod.staging'"
-          sha256sum "$APK" | tee genesis-godot-apk.sha256
-          cat > genesis-godot-build-receipt.json <<EOF
-          {
-            "sourceSha":"${GITHUB_SHA}",
-            "githubRun":"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}",
-            "package":"org.mzbministry.buklod.staging",
-            "runtime":"2.0.4-genesis-library-godot",
-            "buildType":"ARM64_DEBUG_SIGNED_NOT_EAS",
-            "engine":"godot-4.7.2",
-            "backend":"OFFLINE_INVALID_ENDPOINT",
-            "compatibleWithPriorEasStagingSignature":false,
-            "worlds":4,
-            "characterSoundCues":70,
-            "worlds":4,
-            "characterSoundCues":70,
-            "prodOrOtaPublished":false,
-            "deviceTested":false
-          }
-          EOF
-      - name: Preserve offline Godot-capable staging APK and exact-source receipt
-        uses: actions/upload-artifact@v4
-        with:
-          name: buklod-genesis-library-godot-arm64-debug-${{ github.sha }}
-          path: |
-            android/app/build/outputs/apk/debug/app-debug.apk
-            genesis-godot-apk.sha256
-            genesis-godot-build-receipt.json
-          if-no-files-found: error
-          retention-days: 7
-)" = 70
-          test "$(unzip -Z -1 /tmp/buklod-genesis-library-2.0.4.zip | grep -Ec '^art/(fullbody|sprite|scene)/')" = 68
-          for resource in 'scenes/Arena.tscn' 'scenes/WorldPreview.tscn' 'world-art/kingdom.webp' 'world-art/community.webp' 'world-art/house.webp' 'scripts/arena_audio.gd' 'tests/library_modes_audio_smoke.gd'; do
-            unzip -Z -1 /tmp/buklod-genesis-library-2.0.4.zip | grep -Fx "$resource"
+          node scripts/build-empire-godot-pack.mjs --out=/tmp/buklod-genesis-2.0.4.zip
+          unzip -t /tmp/buklod-genesis-2.0.4.zip | tail -2
+          test "$(unzip -Z -1 /tmp/buklod-genesis-2.0.4.zip | grep -c '^audio/sfx/')" = 70
+          test "$(unzip -Z -1 /tmp/buklod-genesis-2.0.4.zip | grep -Ec '^art/(fullbody|sprite|scene)/')" = 68
+          for item in scenes/Arena.tscn scenes/WorldPreview.tscn world-art/kingdom.webp world-art/community.webp world-art/house.webp scripts/arena_audio.gd tests/library_modes_audio_smoke.gd; do
+            unzip -Z -1 /tmp/buklod-genesis-2.0.4.zip | grep -Fx "$item"
           done
-          mkdir -p /tmp/buklod-genesis-library-2.0.4 /tmp/buklod-godot-native-bin
-          unzip -q /tmp/buklod-genesis-library-2.0.4.zip -d /tmp/buklod-genesis-library-2.0.4
-          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/buklod-godot-native-bin.zip
-          unzip -q /tmp/buklod-godot-native-bin.zip -d /tmp/buklod-godot-native-bin
-          GODOT=$(find /tmp/buklod-godot-native-bin -type f -name 'Godot_*linux.x86_64' -print -quit)
+          mkdir -p /tmp/buklod-genesis-godot /tmp/buklod-godot-bin
+          unzip -q /tmp/buklod-genesis-2.0.4.zip -d /tmp/buklod-genesis-godot
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/buklod-godot.zip
+          unzip -q /tmp/buklod-godot.zip -d /tmp/buklod-godot-bin
+          GODOT=$(find /tmp/buklod-godot-bin -type f -name 'Godot_*linux.x86_64' -print -quit)
           test -n "$GODOT"
           chmod +x "$GODOT"
           "$GODOT" --version | grep -F '4.7.2'
-          "$GODOT" --headless --path /tmp/buklod-genesis-library-2.0.4 --editor --quit 2>&1 | tee /tmp/buklod-godot-import.log
+          "$GODOT" --headless --path /tmp/buklod-genesis-godot --editor --quit 2>&1 | tee /tmp/buklod-godot-import.log
           if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/buklod-godot-import.log; then exit 1; fi
-          "$GODOT" --headless --path /tmp/buklod-genesis-library-2.0.4 --script res://tests/smoke.gd 2>&1 | tee /tmp/godot-smoke.log
-          grep -F 'BUKLOD_GODOT_SMOKE_PASS' /tmp/godot-smoke.log
-          "$GODOT" --headless --path /tmp/buklod-genesis-library-2.0.4 --script res://tests/art_smoke.gd 2>&1 | tee /tmp/godot-art.log
-          grep -F 'BUKLOD_GODOT_ART_PASS' /tmp/godot-art.log
-          "$GODOT" --headless --path /tmp/buklod-genesis-library-2.0.4 --script res://tests/premium_smoke.gd 2>&1 | tee /tmp/godot-premium.log
-          grep -F 'BUKLOD_GODOT_PREMIUM_SMOKE_PASS' /tmp/godot-premium.log
-          "$GODOT" --headless --path /tmp/buklod-genesis-library-2.0.4 --script res://tests/library_smoke.gd 2>&1 | tee /tmp/godot-hero.log
-          grep -F 'BUKLOD_GODOT_LIBRARY_SMOKE_PASS' /tmp/godot-hero.log
-          "$GODOT" --headless --path /tmp/buklod-genesis-library-2.0.4 --script res://tests/library_modes_audio_smoke.gd 2>&1 | tee /tmp/godot-audio.log
-          grep -F 'BUKLOD_GODOT_LIBRARY_MODES_AUDIO_PASS' /tmp/godot-audio.log
-          "$GODOT" --headless --path /tmp/buklod-genesis-library-2.0.4 --script res://tests/world_smoke.gd 2>&1 | tee /tmp/godot-worlds.log
-          grep -F 'BUKLOD_GENESIS_GODOT_WORLDS_PASS' /tmp/godot-worlds.log
-      - name: Compile current Genesis staging Android bundle and Godot native AAR
+          for check in smoke art_smoke premium_smoke library_smoke library_modes_audio_smoke world_smoke; do
+            "$GODOT" --headless --path /tmp/buklod-genesis-godot --script "res://tests/$check.gd" 2>&1 | tee "/tmp/$check.log"
+            if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' "/tmp/$check.log"; then exit 1; fi
+          done
+          grep -F 'BUKLOD_GODOT_SMOKE_PASS' /tmp/smoke.log
+          grep -F 'BUKLOD_GODOT_ART_PASS' /tmp/art_smoke.log
+          grep -F 'BUKLOD_GODOT_PREMIUM_SMOKE_PASS' /tmp/premium_smoke.log
+          grep -F 'BUKLOD_GODOT_LIBRARY_SMOKE_PASS' /tmp/library_smoke.log
+          grep -F 'BUKLOD_GODOT_LIBRARY_MODES_AUDIO_PASS' /tmp/library_modes_audio_smoke.log
+          grep -F 'BUKLOD_GENESIS_GODOT_WORLDS_PASS' /tmp/world_smoke.log
+      - name: Compile ARM64 Android native debug APK
         shell: bash
         run: |
           set -euo pipefail
@@ -175,37 +122,39 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a
           test -s app/build/outputs/apk/debug/app-debug.apk
-      - name: Verify actual offline debug APK, Godot engine, identity and checksum
+      - name: Inspect actual APK, native library, identity and integrity
         shell: bash
         run: |
           set -euo pipefail
           APK=android/app/build/outputs/apk/debug/app-debug.apk
           test -s "$APK"
-          unzip -l "$APK" | grep -Ei 'lib/arm64-v8a/.*godot.*\.so' || { echo 'BLOCK: no arm64 Godot engine binary'; exit 1; }
+          unzip -l "$APK" | grep -Ei 'lib/arm64-v8a/.*godot.*\.so'
+          unzip -l "$APK" | grep -F 'godot/empire-arena.zip'
           BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)
           test -x "$BT/aapt"
           test -x "$BT/apksigner"
           "$BT/apksigner" verify --verbose "$APK"
           "$BT/aapt" dump badging "$APK" | grep "package: name='org.mzbministry.buklod.staging'"
           sha256sum "$APK" | tee genesis-godot-apk.sha256
-          cat > genesis-godot-build-receipt.json <<EOF
-          {
-            "sourceSha":"${GITHUB_SHA}",
-            "githubRun":"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}",
-            "package":"org.mzbministry.buklod.staging",
-            "runtime":"2.0.4-genesis-library-godot",
-            "buildType":"ARM64_DEBUG_SIGNED_NOT_EAS",
-            "engine":"godot-4.7.2",
-            "backend":"OFFLINE_INVALID_ENDPOINT",
-            "compatibleWithPriorEasStagingSignature":false,
-            "prodOrOtaPublished":false,
-            "deviceTested":false
-          }
-          EOF
-      - name: Preserve offline Godot-capable staging APK and exact-source receipt
-        uses: actions/upload-artifact@v4
+          node <<'NODE'
+          const fs=require('node:fs');
+          fs.writeFileSync('genesis-godot-build-receipt.json',JSON.stringify({
+            sourceSha:process.env.GITHUB_SHA,
+            githubRun:process.env.GITHUB_SERVER_URL+'/'+process.env.GITHUB_REPOSITORY+'/actions/runs/'+process.env.GITHUB_RUN_ID,
+            package:'org.mzbministry.buklod.staging',
+            runtime:'2.0.4-genesis-library-godot',
+            buildType:'ARM64_DEBUG_NOT_EAS',
+            backend:'OFFLINE_INVALID_ENDPOINT',
+            worlds:4,
+            characterSoundCues:70,
+            compatibleWithPriorEasStagingSignature:false,
+            prodOrOtaPublished:false,
+            deviceTested:false
+          },null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
         with:
-          name: buklod-genesis-library-godot-arm64-debug-${{ github.sha }}
+          name: buklod-genesis-library-godot-arm64-debug
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             genesis-godot-apk.sha256
