@@ -24,6 +24,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+import BuklodCrossWorldAchievements from '@/components/games/BuklodCrossWorldAchievements';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 
 import {
@@ -531,6 +532,7 @@ export default function BuklodKingdomMap() {
           </View>
         </ScrollView>
       </ScrollView>
+      <BuklodCrossWorldAchievements world="kingdom" />
     </View>
   );
 }
