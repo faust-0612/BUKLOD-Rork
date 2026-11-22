@@ -54,8 +54,8 @@
   ],
   "lockedFeatureChanges": [
     {
-      "id": "health-only",
-      "reason": "Port only independent educational IMCI+AJA into existing staging-native in-app Health Center",
+      "id": "app-runtime",
+      "reason": "Authorized isolated BUKLOD MAIN Health Center runtime integration replacing the R4 six-step IMCI educational stub; preserves all other R4 app and native runtime features.",
       "preservedBehaviors": [
         "Native package/runtime/config unchanged, credentials/AI gated, emergency ad suppression, no other Season2 code touched"
       ],
