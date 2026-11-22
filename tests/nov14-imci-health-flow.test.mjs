@@ -22,6 +22,9 @@ test('IMCI Tagalog guide uses separate infant, under-five and older age pathways
   assert.ok(getImciQuestions('child').some(q => q.id === 'child_drink'));
   assert.ok(getImciQuestions('older').some(q => q.id === 'older_response'));
   assert.match(guide, /Ang IMCI na ito ay para sa wala pang 5 taong gulang/);
+  assert.match(guide, /const \[hasAge, setHasAge\] = useState\(false\)/);
+  assert.match(guide, /setHasAge\(true\)/);
+  assert.match(guide, /\{hasAge \? \(<>/);
 });
 
 test('Yes or unsure on a danger sign interrupts routine screening and escalates immediately', () => {
