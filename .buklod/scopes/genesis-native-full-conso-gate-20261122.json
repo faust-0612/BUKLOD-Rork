@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-native-full-conso-gate-20261122.json",
-  "objective": "Declare the exact cumulative staging-only, four-world Godot native source (Arena, Kingdom, Community, House) including premium shader, approved Blender art and server escrow guard, with protected regression proof. Do not release unsigned native or unauthorized production.",
+  "objective": "Complete exact-native Genesis source reconciliation: Arena, Kingdom, Community, House + premium Godot/Blender/escrow, and inherited AdMob native-fallback, Cluster Admin-only event review/10BP, mentoring lesson/capability and safe production JS compatibility without publishing unsupported OTA.",
   "baseRef": "dev/arena-godot-native-migration-20261122",
   "releaseMode": "consolidated-staging-source-hold",
   "releaseStatus": "DEV_SOURCE_ONLY_NEW_SIGNED_GODOT_APK_AND_ISOLATED_BACKEND_REQUIRED",
@@ -9,37 +9,58 @@
   "signedReleaseReady": false,
   "physicalDeviceQA": "WAIVED_BY_OWNER_UNTESTED",
   "componentScopePaths": [
+    ".buklod/scopes/genesis-native-ad-cluster-conso-20261122.json",
     ".buklod/scopes/genesis-native-premium-conso-20261122.json",
     ".buklod/scopes/genesis-unified-eas-signature-guard-20261122.json",
     ".buklod/scopes/genesis-unified-godot-native-staging-20261122.json"
   ],
-  "productionBaselineEvidence": "Read-only production Expo Android served manifest verified 2026-11-22T02:51:58Z: update 01a1fcb7-bee4-71cc-8c60-e732c0a255fa, channel production, runtime 1.3.2, launch bundle hash 3CTOmRqorDvy9IYEsCI7DWRwuOWGbe7GAKt2rBnJkwg. Production package org.mzbministry.buklod; canonical main ecd34228dd24f07a47ba397bb1c29199aac51779 is SOURCE baseline, not proven served artifact SHA. Godot staged package org.mzbministry.buklod.staging uses separate native runtime 2.0.3-genesis-unified-godot. No production APK, Play, EAS OTA or Supabase migration applied.",
-  "chosenApproach": "Keep exact PR #1080 unified native four-world source and merged PR #1090 premium graphics, new Godot geography and authoritative escrow-disconnect fix. Require all three changed component manifests explicitly, exact path allowlist, changed regression proofs and staging-only checks for a nonpublishing signed-RC preparation.",
-  "selectionRationale": "Single recorded source gate protects regression integrity and does not silently drop post-merge premium VFX, four-world native engine, original assets or secure escrow behavior. Native bytecode requires new signed staging Android binary; a production 1.3.2 OTA is incompatible.",
+  "productionBaselineEvidence": "Read-only production Expo Android served manifest verified 2026-11-22T02:51:58Z: update 01a1fcb7-bee4-71cc-8c60-e732c0a255fa, channel production, runtime 1.3.2, launch bundle hash 3CTOmRqorDvy9IYEsCI7DWRwuOWGbe7GAKt2rBnJkwg. Production package org.mzbministry.buklod; canonical main ecd34228dd24f07a47ba397bb1c29199aac51779 is SOURCE baseline, not proven served artifact SHA. Godot staged package org.mzbministry.buklod.staging uses separate native runtime 2.0.3-genesis-unified-godot. No production APK, Play, EAS OTA or Supabase migration applied. Production AdMob native timeout fallback was previously 20% native slot load; latest production candidate PR #1087 source passed Android/TS isolated checks and has not been published. This signed native source preserves no AdMob live ID changes.",
+  "chosenApproach": "Carry approved source-only Godot native 2.0.3 staging code and specific verified missing non-Season2 production JS fixes. Enumerate all four changed component scopes, every changed source path, all changed regression proofs; exact branch and native-ancestor gates remain mandatory, no native release or DB grant before signed staging and isolated backend.",
+  "selectionRationale": "Consolidating AdMob first-view retries, Cluster Admin attendance and permissioned mentoring into the same native source prevents loss of already verified non-native fixes when shipping a future native Godot binary. Preserve correct Genesis SOS notification parser and PTT settings instead of blind merges.",
   "alternativeApproaches": [
     "Treat each inherited manifest as a separate release: rejected because it would omit some integrated native assets or protect only fragments of the cumulative code.",
     "Bypass protected CI because Godot headless tests passed: rejected; source governance must still prove complete scope and release identity.",
     "Put the new Godot pack directly on Expo production 1.3.2 OTA: rejected; native runtime and signed package mismatch."
   ],
   "riskAreas": [
-    "release-identity",
-    "native-gameplay",
-    "native-abi",
-    "auth-and-scope",
-    "escrow-security",
     "AdMob-first-view",
-    "Android-call-audio-focus"
+    "Android-call-audio-focus",
+    "ads-monetization",
+    "auth-and-scope",
+    "backend-security",
+    "escrow-security",
+    "faith-cluster",
+    "mentor-reporting",
+    "native-abi",
+    "native-gameplay",
+    "navigation-scroll",
+    "release-identity"
   ],
   "regressionTests": [
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+    "tests/arena-full-functionality-audit-20261121.test.mjs",
+    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
     "tests/genesis-native-conso-governance-20261122.test.mjs",
-    "tests/protected-feature-lock.test.mjs",
     "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
-    "tests/kingdom-unified-godot-native-20261122.test.mjs",
     "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs",
-    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs"
+    "tests/genesis-unified-verify-signed-apk-20261122.test.mjs",
+    "tests/kingdom-unified-godot-native-20261122.test.mjs",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/releases/genesis-unified-signed-rc-hold-20261122.json",
+    ".buklod/scopes/genesis-native-ad-cluster-conso-20261122.json",
+    ".buklod/scopes/genesis-native-full-conso-gate-20261122.json",
     ".buklod/scopes/genesis-native-premium-conso-20261122.json",
     ".buklod/scopes/genesis-unified-eas-signature-guard-20261122.json",
     ".buklod/scopes/genesis-unified-godot-native-staging-20261122.json",
@@ -74,17 +95,43 @@
     "scripts/genesis-unified-verify-signed-apk.mjs",
     "services/empire-arena/core.mjs",
     "services/empire-arena/tests/core.test.mjs",
+    "src/app/_layout.tsx",
+    "src/app/admin/points-r2-monitor.tsx",
+    "src/app/clusters/home-checkin-review.tsx",
+    "src/app/clusters/scope-manage.tsx",
+    "src/app/faith/mentor-evidence.tsx",
     "src/app/games/empire-arena.tsx",
+    "src/app/learn/[id].tsx",
+    "src/app/learn/lesson.tsx",
+    "src/app/mentoring/index.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodHomeCheckinToday.tsx",
+    "src/components/LearningQuestionResponse.tsx",
     "src/features/season2/world/Season2DevelopmentMap.tsx",
+    "src/lib/buklodAdminPriority.ts",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/lib/buklodNativeAdRecovery.ts",
+    "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql",
+    "supabase/migrations/20261122090000_cluster_scoped_home_checkin_review_v1.sql",
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
     "tests/arena-full-functionality-audit-20261121.test.mjs",
     "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
     "tests/genesis-native-conso-governance-20261122.test.mjs",
     "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
     "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs",
     "tests/genesis-unified-verify-signed-apk-20261122.test.mjs",
     "tests/kingdom-unified-godot-native-20261122.test.mjs",
-    "tests/protected-feature-lock.test.mjs",
-    ".buklod/scopes/genesis-native-full-conso-gate-20261122.json"
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -130,6 +177,40 @@
       "tests": [
         "tests/protected-feature-lock.test.mjs"
       ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Register the exact Cluster Admin review route as one additional stack entry without disrupting the Genesis routes, session, native worlds, or app boot.",
+      "preservedBehaviors": [
+        "Original Genesis Home, Wall, Profile, PTT, Connect and Godot Arena/Kingdom/Community/House retain navigation and session state.",
+        "Scoped permissions and review screen remain authenticated; no new public admin route."
+      ],
+      "tests": [
+        "tests/buklod-cluster-checkin-navigation-scroll.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Adopt pending Home Check In Today queue and active exact-cluster admin verification with 10BP one-time ledger source and full mentor lesson catalog.",
+      "preservedBehaviors": [
+        "Members still submit live Cluster event check-ins and must wait for legitimate scoped review; no automatic approval.",
+        "Existing faith choice, lessons, original approved attendance, per-scope organization/Cluster role and mentoring records remain intact."
+      ],
+      "tests": [
+        "tests/buklod-cluster-home-checkin-review.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Carry reviewed Cluster Home attendance and full published mentor catalog migration/RLS contracts as source only; do not mutate shared production Supabase.",
+      "preservedBehaviors": [
+        "No actual migration, member BP grant or RLS change deployed by source consolidation.",
+        "Row-lock, active role, no self-approval, idempotent unique ledger source and server-owned mentor permissions remain testable and intact."
+      ],
+      "tests": [
+        "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+        "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
+      ]
     }
   ],
   "preserveBehaviors": [
@@ -138,13 +219,17 @@
     "Keep 13 heroes, 300 temporary pickups, map geography and 68 approved native animation/sprite/scene assets.",
     "Keep native premium VFX, shaders and 3D Blender export as original authored assets without enabling unsafe ranked rewards.",
     "Keep existing original anti-cheat and escrow rollback if an arena participant disconnects before reservation completes.",
-    "Physical Android verification waiver is only a recorded UNTESTED exception, never proof of signed binary or rendered functionality."
+    "Physical Android verification waiver is only a recorded UNTESTED exception, never proof of signed binary or rendered functionality.",
+    "Inherited production-scope AdMob 3-distinct-native-failures/60s temporary banner fallback honors consent, request cooldown and real SDK impression provenance.",
+    "Exact-Cluster Admin-only home event verification and nonpunitive lesson/mentoring catalog flow are source-only, not active on production Supabase until isolated RLS/role testing."
   ],
   "acceptanceChecks": [
     "Exactly enumerate the 3 component scope manifests, all changed paths and root regression proofs relative to dev/arena-godot-native-migration-20261122.",
     "Real Godot 4.7.2 headless gameplay, premium effects and native resource pack test remains green.",
     "Original Blender GLB/export and trusted ranked escrow isolation tests stay green.",
     "Actual signed staging APK must first pass the source-held feature completeness, isolated backend, stable signer and package runtime gates.",
-    "Never merge Godot-native staging into production 1.3.2 OTA or issue a forced Play update before a verified new native production build is live."
-  ]
+    "Never merge Godot-native staging into production 1.3.2 OTA or issue a forced Play update before a verified new native production build is live.",
+    "Production-source AdMob/Cluster/mentoring regressions and disposable PostgreSQL contracts pass across the same new native source before any signed Android staging build."
+  ],
+  "fullConsoIntegrity": "FOUR_WORLD_GODOT_PLUS_ADS_CLUSTER_MENTOR_SOURCE_ONLY; SIGNED_RELEASE_READY_FALSE"
 }
