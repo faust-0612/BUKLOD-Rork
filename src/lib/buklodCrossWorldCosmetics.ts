@@ -25,17 +25,17 @@ export type BuklodCrossWorldSnapshot={
 };
 
 export const CROSS_WORLD_COSMETIC_CATALOG:Readonly<Record<
-  BuklodCrossWorldCosmeticKey,{name:string;destination:BuklodCrossWorldDestination}
+  BuklodCrossWorldCosmeticKey,{name:string;destination:BuklodCrossWorldDestination;requiredChecks:1|10|25}
 >>={
-  house_artisan_planter:{name:'Artisan Planter',destination:'house'},
-  arena_apprentice_banner:{name:'Apprentice Banner',destination:'arena'},
-  kingdom_prospect_lantern:{name:'Prospect Lantern',destination:'kingdom'},
-  house_heritage_pergola:{name:'Heritage Pergola',destination:'house'},
-  arena_kingdom_banner:{name:'Kingdom Banner',destination:'arena'},
-  kingdom_honor_beacon:{name:'Honor Beacon',destination:'kingdom'},
-  house_verified_fountain:{name:'Kingdom Fountain',destination:'house'},
-  arena_verified_veteran_emblem:{name:'Veteran Emblem',destination:'arena'},
-  kingdom_masterwork_arch:{name:'Masterwork Arch',destination:'kingdom'},
+  house_artisan_planter:{name:'Artisan Planter',destination:'house',requiredChecks:1},
+  arena_apprentice_banner:{name:'Apprentice Banner',destination:'arena',requiredChecks:1},
+  kingdom_prospect_lantern:{name:'Prospect Lantern',destination:'kingdom',requiredChecks:1},
+  house_heritage_pergola:{name:'Heritage Pergola',destination:'house',requiredChecks:10},
+  arena_kingdom_banner:{name:'Kingdom Banner',destination:'arena',requiredChecks:10},
+  kingdom_honor_beacon:{name:'Honor Beacon',destination:'kingdom',requiredChecks:10},
+  house_verified_fountain:{name:'Kingdom Fountain',destination:'house',requiredChecks:25},
+  arena_verified_veteran_emblem:{name:'Veteran Emblem',destination:'arena',requiredChecks:25},
+  kingdom_masterwork_arch:{name:'Masterwork Arch',destination:'kingdom',requiredChecks:25},
 };
 const KEYS=Object.keys(CROSS_WORLD_COSMETIC_CATALOG) as BuklodCrossWorldCosmeticKey[];
 const allowed=new Set(KEYS);
@@ -64,7 +64,8 @@ export function normalizeCrossWorldCosmeticSnapshot(raw:unknown):BuklodCrossWorl
     const key=item.key as BuklodCrossWorldCosmeticKey;
     const target=CROSS_WORLD_COSMETIC_CATALOG[key];
     if(item.destination!==target.destination||
-      !/^kingdom:verified_checks:(1|10|25)$/.test(item.source_key)||
+      item.source_key!=='kingdom:verified_checks:'+target.requiredChecks||
+      Number(v.verified_checks)<target.requiredChecks||
       unique.has(key))return null;
     unique.add(key);
     items.push({key,destination:target.destination,
