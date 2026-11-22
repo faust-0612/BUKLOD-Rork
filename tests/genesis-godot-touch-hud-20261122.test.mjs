@@ -23,3 +23,12 @@ test('inherited Godot scene contains actual multi-touch behavioral smoke', () =>
   assert.match(smoke, /cooldown_snapshot\("A0"\)/);
   assert.match(smoke, /BUKLOD_GODOT_TOUCH_PASS/);
 });
+
+test('inherited Arena premium Godot CI workflow has no malformed duplicated trailing job', () => {
+  const workflow = get('.github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml');
+  assert.equal((workflow.match(/- name: Compile real Godot 4\.7\.2 project/g) || []).length, 1);
+  assert.equal((workflow.match(/- name: Enforce DEV-only, no native build/g) || []).length, 1);
+  assert.doesNotMatch(workflow, /^\)" = 70/m);
+  assert.match(workflow, /BUKLOD_GODOT_LIBRARY_MODES_AUDIO_PASS/);
+  assert.ok(workflow.trimEnd().endsWith("No APK, EAS, OTA, production, or live Supabase mutation.'"));
+});

@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-godot-touch-hud-20261122.json",
-  "objective": "Offline Godot Arena game scene touch controls, shared combat-clock HUD cooldown rings, shield and minimap with real two-finger scene QA.",
+  "objective": "Offline Godot Arena game scene touch controls, shared combat-clock HUD cooldown rings, shield and minimap with real two-finger scene QA. Also repair the inherited malformed Godot premium QA YAML without relaxing its existing checks.",
   "baseRef": "7ab1c74704b70936e5d70fe2af6c58c599c3fdfa",
-  "chosenApproach": "Isolated addition to the existing BUKLOD MAIN four-world Genesis 2.0.4 source, no parallel engine. Single combat timing authority, read-only Godot UI and inherited scene tests.",
+  "chosenApproach": "Isolated addition to the existing BUKLOD MAIN four-world Genesis 2.0.4 source, no parallel engine. Single combat timing authority, read-only Godot UI and inherited scene tests. Remove only the duplicate, corrupt YAML tail after the original final DEV-only release protection step; retain all earlier test steps and branch restrictions.",
   "allowedPaths": [
     ".buklod/scopes/genesis-godot-touch-hud-20261122.json",
     ".github/workflows/genesis-godot-touch-hud-qa-20261122.yml",
@@ -12,7 +12,8 @@
     "godot/empire-arena/scripts/arena_root.gd",
     "godot/empire-arena/scenes/ArenaTouchTest.tscn",
     "godot/empire-arena/tests/hud_touch_smoke.gd",
-    "tests/genesis-godot-touch-hud-20261122.test.mjs"
+    "tests/genesis-godot-touch-hud-20261122.test.mjs",
+    ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml"
   ],
   "lockedFeatureChanges": [],
   "regressionTests": [
@@ -28,7 +29,8 @@
   "riskAreas": [
     "Headless Godot parse and test required",
     "Physical Android gestures, audio and AdMob remain unverified",
-    "No APK signer proof or separate isolated staging backend"
+    "No APK signer proof or separate isolated staging backend",
+    "Inherited Godot premium workflow malformed tail prevented CI jobs from starting; validate corrected workflow syntax and retain original validations."
   ],
   "productionBaselineEvidence": "PR #1100 staging DEV source exact parent 7ab1c74704b70936e5d70fe2af6c58c599c3fdfa; production org.mzbministry.buklod runtime 1.3.2 unchanged, no verified new signed APK or OTA.",
   "acceptanceChecks": [
