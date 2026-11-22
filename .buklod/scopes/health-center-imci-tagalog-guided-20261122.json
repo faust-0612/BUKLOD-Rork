@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/health-center-imci-tagalog-guided-20261122.json",
-  "objective": "Owner-authorized DEV improvement to BUKLOD Health Center: make educational IMCI caregiver prompts fully guided in Tagalog, age-aware, and conservative for emergency escalation without enabling unverified clinical services.",
+  "objective": "Owner-authorized DEV-only expansion: comprehensive educational IMCI caregiver questions and private AJA 2.0-inspired adolescent HEEADSSS guide inside BUKLOD MAIN.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: exact GitHub main source commit 088df3cc1265a097744f78f4f24aaa3ae5ad3586 was read through GitHub, including the protected NOV22 production marker; the marker independently records an earlier read-only served production runtime 1.3.2 update ID 01a1fcb7-bee4-71cc-8c60-e732c0a255fa at 2026-11-22T02:51:58Z, PRE-promotion. No current production-served baseline, Android install or new source runtime was verified for this DEV work. main is explicitly NOT asserted to equal the live artifact. No OTA or production authorization.",
-  "chosenApproach": "In-app, privacy-first educational IMCI question flow with age-specific prompts, clear progress, local-only answers and caregiver handoff notes. Inline clinical red flags immediately block nonurgent AI/ads and show ER/911 guidance. Existing separately gated Health Center PWA and authentication remain untouched.",
+  "chosenApproach": "Expand IMCI under-two-month and under-five integrated checks while keeping formal classification and treatment for licensed clinicians. Add separate AJA 2.0 ages 10–19 consent-first, local-only, collapsible guide with emergency danger escalation and ad/AI blocking; mirror the standalone PWA guides.",
   "selectionRationale": "The existing English-only six-step IMCI description was static and failed to guide caregivers, while AI consultation and professional enrollment remain backend-gated. A small in-app local-first flow is useful without inventing clinician services or persisting sensitive data.",
   "alternativeApproaches": [
     "Auto-classify IMCI disease or prescribe treatments: rejected because clinician assessment and currently adopted Philippine chart validation are required.",
@@ -25,7 +25,9 @@
     "No health answers sent to network, analytics, external URL queries, or persistent storage.",
     "Regression proof: changed scoped health flow and existing Health Center consultation/ad tests; protected feature gate passes.",
     "Source compile, real device rendering, and Philippine clinician review are mandatory before release approval; remain unverified until evidenced.",
-    "Minimal PR-only Node 22 CI executes both changed Health Center regression tests without new package installations; no publishing."
+    "Minimal PR-only Node 22 CI executes both changed Health Center regression tests without new package installations; no publishing.",
+    "Adolescent AJA ages 10–19, privacy consent before sensitive HEEADSSS topics, no persistence or network, 911 alert on immediate self-harm/violence risk, safe handoff topic categories.",
+    "BUKLOD in-app IMCI and AJA should block consultation and ad on positive immediate danger signs, retain all other application paths."
   ],
   "riskAreas": [
     "medical-information",
@@ -46,7 +48,9 @@
     "src/app/profile/buklod-health.tsx",
     "tests/nov14-imci-health-flow.test.mjs",
     "tests/health-center-consultation-card-20261110.test.mjs",
-    ".github/workflows/buklod-health-imci-tagalog-dev-qa.yml"
+    ".github/workflows/buklod-health-imci-tagalog-dev-qa.yml",
+    "src/lib/buklodAjaTagalog.ts",
+    "src/components/health/BuklodAjaTagalogGuide.tsx"
   ],
   "lockedFeatureChanges": [
     {
@@ -62,5 +66,5 @@
     }
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
-  "releaseStatus": "Draft PR, pending targeted CI, TypeScript/Android QA, latest local Philippine IMCI clinician review and explicit staging consolidation. Production unchanged."
+  "releaseStatus": "DEV-only; no OTA. Focused CI and Philippine clinician chart review required; physical Android verification waived, not performed."
 }
