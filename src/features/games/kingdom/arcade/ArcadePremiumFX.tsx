@@ -17,8 +17,8 @@ export function ArcadePremiumFX({accent, mode, active, eventSeq, outcome, stage}
   const burst=useRef(new Animated.Value(0)).current;
   const started=useRef(false);
   const stars=useMemo(()=>Array.from({length:11},(_,i)=>({
-    x:18+(i*97)%345,y:20+(i*71)%440,r:1.3+(i%3)*.7,
-  })),[]);
+    x:18+(i*97+stage*17)%345,y:20+(i*71+stage*29)%440,r:1.3+(i%3)*.7,
+  })),[stage]);
   const particles=useMemo(()=>Array.from({length:8},(_,i)=>({
     angle:(Math.PI*2*i)/8,
     distance:46+(i%3)*17,
