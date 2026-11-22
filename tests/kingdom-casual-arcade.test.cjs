@@ -59,6 +59,16 @@ test('rapid duplicate taps and stack drops cannot inflate scores', () => {
   assert.equal(actArcade(tower,'drop').score,tower.score);
 });
 
+test('memory search requires clue observation before the player can choose', () => {
+  let s=startArcade('search',41);
+  const shown=s.cell;
+  s=actArcade(s,'cell',shown);
+  assert.equal(s.score,0,'tapping during the visible clue cannot score');
+  for(let n=0;n<4;n++)s=tickArcade(s);
+  s=actArcade(s,'cell',shown);
+  assert.ok(s.score>0,'correct recalled position scores after clue disappears');
+});
+
 test('runner requires timed jumping, prevents repeated unlimited jumps, and respects lane bounds', () => {
   let s=startArcade('runner',10);
   s=actArcade(s,'left');
