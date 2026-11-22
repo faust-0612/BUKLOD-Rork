@@ -13,10 +13,17 @@ begin
     or position('attendance_close_at' in v)=0
     or position('on conflict' in lower(v))=0 then
    raise exception 'Home Check-in missing active event membership or idempotent checks';end if;
+ select pg_get_functiondef('public.cluster_review_buklod_home_checkin_v1(uuid,boolean,text)'::regprocedure) into v;
+ if position('buklod_cluster_can_review_home_checkin_v1' in v)=0 or position('for update' in lower(v))=0
+  or position('buklod_points_ledger' in v)=0 or position('on conflict' in lower(v))=0 then
+  raise exception 'Cluster review missing exact-scope authorization, transaction lock, or idempotent ledger';end if;
+ select pg_get_functiondef('public.buklod_cluster_can_review_home_checkin_v1(uuid)'::regprocedure) into v;
+ if position('CLUSTER_ADMIN' in v)=0 or position('membership_status' in v)=0
+  or position('revoked_at is null' in lower(v))=0 then
+  raise exception 'Cluster Admin verification guard missing active role/membership';end if;
  select pg_get_functiondef('public.admin_review_buklod_home_checkin_r3(uuid,boolean,text)'::regprocedure) into v;
- if position('is_system_admin' in v)=0 or position('for update' in lower(v))=0
-  or position('buklod_points_ledger' in v)=0 then
-  raise exception 'Admin attendance approval missing authorization or ledger transaction';end if;
+ if position('belongs to the exact Cluster Admin' in v)=0 then
+  raise exception 'Legacy System Admin approval must be disabled';end if;
  select pg_get_functiondef('public.get_my_buklod_bible_quiz_r3(text)'::regprocedure) into v;
  if position('pg_advisory_xact_lock' in v)=0 or position('limit 5' in lower(v))=0 then
    raise exception 'Daily Bible Quiz does not enforce five locked questions';end if;
@@ -65,7 +72,7 @@ begin
   'public.submit_my_buklod_kingdom_result_v2(text,text,text,integer,integer,integer)','EXECUTE') then
   raise exception 'Client-declared game wins can still directly mint Kingdom XP or collectibles';
  end if;
- raise notice 'Points R3 Home Quiz / Check-in / Mentoring / KL contracts: PASS';
+ raise notice 'Points R3 Home Quiz / Cluster Admin Check-in / Mentoring / KL contracts: PASS';
 end;
 $contract$;
 rollback;

@@ -1,0 +1,109 @@
+name: BUKLOD MAIN Ad + Cluster Android RC QA (No Publish)
+
+on:
+  pull_request:
+    branches:
+      - integration/nonseason2-production-ota-intake-20261122
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "supabase/**"
+      - ".buklod/scopes/main-prod-ad-recovery-cluster-conso-20261122.json"
+      - ".github/workflows/buklod-main-ad-cluster-rc-android-qa-20261122.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-main-ad-cluster-rc-qa-20261122
+  cancel-in-progress: true
+
+jobs:
+  android-rc-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS: "false"
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGDATABASE: postgres
+      PGUSER: postgres
+      PGPASSWORD: disposable-ci-only
+    steps:
+      - name: Checkout exact consolidated source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Configure Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked JS dependencies
+        run: npm ci --ignore-scripts
+      - name: Check native JS TypeScript
+        run: npx tsc --noEmit
+      - name: Assert non-Season 2 production runtime boundary
+        run: |
+          node - <<'NODE'
+          const guard = require('./scripts/buklod-season2-production-embargo.cjs');
+          const files = guard.runtimeEvidence();
+          const verdict = guard.evaluateRelease({
+            target: 'production', now: new Date(),
+            sourceSha: process.env.GITHUB_SHA, season2Files: files,
+          });
+          if (!verdict.allowed) {
+            throw Error('Forbidden Season 2 production runtime: ' +
+              files.map(v => v.file).join(', '));
+          }
+          console.log('NONSEASON2_RUNTIME_BOUNDARY_PASS', verdict.reason);
+          NODE
+      - name: Test native ads, Cluster Admin, navigation and AdMob lifecycle
+        run: |
+          node --experimental-strip-types --test \
+            tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs \
+            tests/buklod-cluster-home-checkin-review.test.cjs \
+            tests/buklod-cluster-checkin-navigation-scroll.test.cjs \
+            tests/buklod-cluster-checkin-ads-monetization.test.cjs \
+            tests/buklod-points-r3-classroom-quiz-attendance.test.mjs \
+            tests/cluster-connect-notifications-points-20261108.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/buklod-ads-production-release-contract-20261111.test.mjs
+      - name: Disposable Postgres 17 role, queue and BP-ledger exercise
+        run: |
+          psql --version
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql
+      - name: Read-only currently served production Expo update fingerprint
+        run: |
+          node --test tests/buklod-production-expo-snapshot-20261122.test.cjs
+          node scripts/buklod-production-expo-snapshot-20261122.cjs
+      - name: Preserve non-publisher production baseline evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-main-prod-manifest-readonly-rc
+          path: ota-evidence/production-baseline-readonly-20261122.json
+          retention-days: 3
+          if-no-files-found: error
+      - name: Compile native-compatible Android JS without Expo publishing
+        run: npx expo export --platform android --output-dir build/main-ad-cluster-rc-android
+      - name: Verify Android bundle exists
+        run: |
+          test -d build/main-ad-cluster-rc-android
+          test "$(find build/main-ad-cluster-rc-android -type f | wc -l)" -gt 1
+          echo "BUKLOD_AD_CLUSTER_ANDROID_SOURCE_RC_PASS"

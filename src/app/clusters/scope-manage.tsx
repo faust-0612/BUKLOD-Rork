@@ -183,6 +183,12 @@ export default function ClusterScopeManageScreen() {
       onPress: () => open('/clusters/home-content'),
     },
     {
+      title: 'Verify Check-ins (+10 BP)',
+      subtitle:
+        'Review pending Check In Today submissions for this Cluster only.',
+      onPress: () => open('/clusters/home-checkin-review'),
+    },
+    {
       title: 'Events & Attendance',
       subtitle:
         'Open attendance tools for this exact Cluster scope.',
