@@ -168,6 +168,7 @@ import { shouldReportCommunityFeedFailure } from '@/lib/communityFeedTelemetry';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
 import {
   hydratePersonNamesOnRows,
+  needsPersonNameHydration,
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
 import BuklodCommunityCommentThread from '@/components/BuklodCommunityCommentThread';
@@ -1373,6 +1374,8 @@ function LegacyPublicBuklodScreen(){
  const commentAccountIdRef=useRef(String(user?.id??''));
  commentAccountIdRef.current=String(user?.id??'');
  const commentLoadSeqRef=useRef(0);
+ const commentWarmCacheRef=useRef(new Map<string,{savedAt:number;rows:any[]}>());
+ const commentReactionChangeSeqRef=useRef(0);
  const commentSendInFlightRef=useRef(false);
  const draftOwnerRef=useRef<string|null>(null);
  // Persist ONLY small plain text through SecureStore (not attachments, mentions,
@@ -1399,6 +1402,8 @@ function LegacyPublicBuklodScreen(){
   draftOwnerRef.current=null;
   ++commentLoadSeqRef.current;
   commentDraftsRef.current.clear();
+  commentWarmCacheRef.current.clear();
+  ++commentReactionChangeSeqRef.current;
   setCommentOpen(false);
   setCommentPost(null);
   setComments([]);
@@ -3741,45 +3746,98 @@ const load=useCallback(async(options?:{
      activeCommentPostIdRef.current===targetId &&
      commentAccountIdRef.current===requestAccountId
     );
-    if(!options?.silent)setCommentLoading(true);
+    const cacheKey=requestAccountId+':'+targetId;
+    const cached=options?.silent?undefined:commentWarmCacheRef.current.get(cacheKey);
+    const hasWarmCopy=!!cached && Date.now()-cached.savedAt<15000;
+    if(hasWarmCopy && cached)setComments(cached.rows);
+    if(!options?.silent)setCommentLoading(!hasWarmCopy);
     setCommentLoadError(null);
     try{
-     const [commentsResult,reactionsResult]=await Promise.all([
-      communityReadRpc('get_buklod_post_comments_v4',{p_post_id:targetId}),
-      communityReadRpc('get_buklod_comment_reactions_v1',{p_post_id:targetId}),
-     ]);
+     // Text is authoritative and paints FIRST. Optional metadata is not a gate.
+     const commentsResult=await communityReadRpc(
+      'get_buklod_post_comments_v4',{p_post_id:targetId},10000
+     );
      if(!isCurrent())return;
      if(commentsResult.error)throw commentsResult.error;
      const rows=(commentsResult.data??[]) as any[];
-     // Independent enrichments run together, with bounded fallbacks.
-     const [hydratedRows,clusterMap]=await Promise.all([
-      withBuklodTimeout(
-       hydratePersonNamesOnRows(rows,'user_id','commenter_name'),
-       5000,'Community comment names'
-      ).catch(()=>rows),
+     const baseRows=rows.map((row:any)=>({
+      ...row,
+      cluster_name:null,
+      is_owner:row.user_id===user?.id,
+      reaction_counts:{},
+      my_reaction:null,
+     }));
+     setComments(baseRows);
+     // In-memory only, account-scoped, short expiry and bounded capacity.
+     commentWarmCacheRef.current.set(cacheKey,{savedAt:Date.now(),rows:baseRows});
+     if(commentWarmCacheRef.current.size>6){
+      const oldest=commentWarmCacheRef.current.keys().next().value;
+      if(oldest)commentWarmCacheRef.current.delete(oldest);
+     }
+     if(!options?.silent)setCommentLoading(false);
+     if(!rows.length)return;
+
+     // Start the reaction read AFTER first paint. Its failure is nonfatal.
+     const reactionChangeAtStart=commentReactionChangeSeqRef.current;
+     void communityReadRpc(
+      'get_buklod_comment_reactions_v1',{p_post_id:targetId},7000
+     ).then(result=>{
+      if(!isCurrent() || result.error ||
+         reactionChangeAtStart!==commentReactionChangeSeqRef.current)return;
+      const reactionMap=new Map<string,any>();
+      for(const row of (result.data??[])){
+       reactionMap.set(String(row.comment_id),row);
+      }
+      setComments(current=>current.map((row:any)=>{
+       const reaction=reactionMap.get(String(row.id));
+       return reaction?{
+        ...row,
+        reaction_counts:reaction.reaction_counts??{},
+        my_reaction:reaction.my_reaction??null,
+       }:row;
+      }));
+     }).catch(()=>undefined);
+
+     // The comments RPC already carries names; only hydrate missing names.
+     // Background metadata must preserve body edits and optimistic reactions.
+     const missingNames=rows.some((row:any)=>
+      needsPersonNameHydration(row.commenter_name)
+     );
+     void Promise.all([
+      missingNames
+       ? withBuklodTimeout(
+          hydratePersonNamesOnRows(rows,'user_id','commenter_name'),
+          5000,'Community comment names'
+         ).catch(()=>rows)
+       : Promise.resolve(rows),
       withBuklodTimeout(
        getClusterLabels(rows.map((row:any)=>row.user_id)),
        5000,'Community comment clusters'
       ).catch(()=>({} as Record<string,string>)),
-     ]);
-     if(!isCurrent())return;
-     const reactionMap=new Map<string,any>();
-     for(const row of (reactionsResult.data??[])){
-      reactionMap.set(String(row.comment_id),row);
-     }
-     setComments(hydratedRows.map((row:any)=>{
-      const reaction=reactionMap.get(String(row.id));
-      return {
+     ]).then(([hydratedRows,clusterMap])=>{
+      if(!isCurrent())return;
+      const names=new Map<string,string>();
+      for(const row of hydratedRows){
+       names.set(String(row.id),String(row.commenter_name??''));
+      }
+      setComments(current=>current.map((row:any)=>({
        ...row,
-       cluster_name:clusterMap[row.user_id]??null,
-       is_owner:row.user_id===user?.id,
-       reaction_counts:reaction?.reaction_counts??{},
-       my_reaction:reaction?.my_reaction??null,
-      };
-     }));
+       commenter_name:names.get(String(row.id))||row.commenter_name,
+       cluster_name:clusterMap[row.user_id]??row.cluster_name??null,
+      })));
+     }).catch(()=>undefined);
     }catch(error:any){
      if(!isCurrent())return;
      const category=buildBuklodUserFeedback(error).category;
+     // Do not keep previously permitted content visible after explicit denial.
+     const accessRevoked=category==='AUTH_ERROR'||
+      /post is not visible|permission denied|not authorized|forbidden/i.test(
+       String(error?.message??'')
+      );
+     if(accessRevoked){
+      commentWarmCacheRef.current.delete(cacheKey);
+      setComments([]);
+     }
      setCommentLoadError(
       wallNetworkStatus==='offline'
        ? 'No internet connection. Check your signal and tap Retry.'
@@ -3982,6 +4040,7 @@ const load=useCallback(async(options?:{
        .catch(error=>console.warn('Community new comment preview:',error?.message??error));
     }
     commentDraftsRef.current.delete(authorId+':'+postId);
+    commentWarmCacheRef.current.delete(authorId+':'+postId);
     if(authorId)void clearWallCommentTextDraft(authorId,postId).catch(()=>undefined);
     if(
      activeCommentPostIdRef.current===postId &&
@@ -4046,6 +4105,7 @@ const load=useCallback(async(options?:{
      ? null
      : reaction;
 
+   ++commentReactionChangeSeqRef.current;
    setComments(
     current=>
      current.map(
@@ -4140,6 +4200,7 @@ const load=useCallback(async(options?:{
    }
 
    if(commentPost?.id){
+    commentWarmCacheRef.current.delete(String(user?.id??'')+':'+String(commentPost.id));
     await loadComments(commentPost.id);
    }
   };
@@ -4158,6 +4219,7 @@ const load=useCallback(async(options?:{
    }
 
    if(commentPost?.id){
+    commentWarmCacheRef.current.delete(String(user?.id??'')+':'+String(commentPost.id));
     await Promise.all([
      loadComments(commentPost.id),
      load()
@@ -7017,7 +7079,7 @@ const communityFeedRows =
           commentPost.user_id,
          )}
          {' · '}
-         {commentLoading&&!comments.length?'…':comments.length}
+         {commentLoading&&!comments.length?'…':commentLoadError&&!comments.length?'—':comments.length}
          {' '}
          {comments.length===1
           ? 'comment'
