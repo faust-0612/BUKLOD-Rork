@@ -20,7 +20,7 @@ No production source, OTA, SQL, user Diamonds, or ranked result is changed.
 \`scripts/generate-arena-blender-kit.py\` creates a local editable .blend
 and portable .glb containing modular Genesis plaza, foundry, vegetation,
 team-specific towers/seals/villagers and resource crystals with keyed
-walking/idle loops. Run on an approved Blender 4.x host:
+walking/idle loops. Run on an approved Blender 4.x/5.x host:
 
 \`\`\`bash
 blender -b --python scripts/generate-arena-blender-kit.py
@@ -48,7 +48,7 @@ or player ranking. No new paid host or live Supabase schema is authorized.
   tests/arena-premium-vfx-blender-backend-20261122.test.mjs\`
 - Native engine: \`godot --headless --path godot/empire-arena
   -s res://tests/premium_smoke.gd\`
-- Blender 4.x source/export: check .blend and .glb generated, geometry,
+- Blender 4.x/5.x source/export: check .blend and .glb generated, geometry,
   UV/materials, looping motion, view fidelity and Android FPS/memory.
 - Existing Godot offline pack/art smoke, Android Gradle compile, signed
   exact-SHA staging RC, physical landscape navigation, audio/AdMob,

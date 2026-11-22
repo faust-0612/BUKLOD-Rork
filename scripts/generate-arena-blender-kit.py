@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Original BUKLOD Genesis Arena environment kit for Blender 4.x.
+"""Original BUKLOD Genesis Arena environment kit for Blender 4.x/5.x.
 Run with: blender -b --python scripts/generate-arena-blender-kit.py
 Creates editable .blend and exportable .glb. No downloads, paid tools, or
 replacement of the 13 owner-approved character illustrations.
@@ -151,9 +151,10 @@ for kind, x, y in [("wood", -7, 3), ("gold", 0, -7), ("stone", 7, 3)]:
 
 bpy.context.scene.frame_start = 1
 bpy.context.scene.frame_end = 33
-# Blender 4.0/4.1 use the legacy EEVEE enum; 4.2+ use EEVEE Next.
-bpy.context.scene.render.engine = ("BLENDER_EEVEE_NEXT"
-    if bpy.app.version >= (4, 2, 0) else "BLENDER_EEVEE")
+# Material/glTF export needs no render engine override. Blender 4.x/5.x
+# have changed their EEVEE enum names; retain the host's safe default.
+if bpy.app.version < (4, 0, 0):
+    raise RuntimeError("BUKLOD source requires Blender 4.0 or newer")
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT / "Buklod_Genesis_Arena_Kit.blend"))
 bpy.ops.export_scene.gltf(
     filepath=str(OUT / "Buklod_Genesis_Arena_Kit.glb"),

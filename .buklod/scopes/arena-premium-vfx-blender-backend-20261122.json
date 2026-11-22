@@ -34,7 +34,7 @@
   ],
   "riskAreas": [
     "Godot 4.7.2 shader parser/runtime not accessible in this execution",
-    "Blender 4.x not available; exports are authored source only",
+    "Blender 4.x/5.x not available; exports are authored source only",
     "Android GPU/texture budget",
     "Match startup refund must be confirmed by private RPC",
     "New DEV work must reconcile with parallel Arena map/minion branches",
@@ -52,10 +52,10 @@
   "acceptanceChecks": [
     "Run new PR-scoped Godot 4.7.2 native shader/animation smoke and reproducible pack via isolated GitHub Actions headless job",
     "Compile Godot 4.7.2 scene and shader headlessly and physically render on Android",
-    "Export Blender kit on Blender 4.x and compare to owner-approved imagery",
+    "Export Blender kit on Blender 4.x/5.x and compare to owner-approved imagery",
     "Pass Node server disconnect escrow behavioral regression",
     "Build exact signed staging RC and independently verify AdMob/nav/landscape/reentry",
-    "Headless Blender 4.x scene creation and glTF 2.0 validation with real animated village geometry, and GitHub CI artifact receipt"
+    "Headless Blender 4.x/5.x scene creation and glTF 2.0 validation with real animated village geometry, and GitHub CI artifact receipt"
   ],
   "selectionRationale": "The existing Godot native Arena already preserves the 13 approved hero atlases and a separate authoritative ranked Node coordinator. Layering bounded shader events and pose state onto that approved scene, authoring Blender geometry separately, and hardening the escrow disconnect path is the least invasive route; no client-side rank authority, production changes, or new paid infrastructure are required."
 }

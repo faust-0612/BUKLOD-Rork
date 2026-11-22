@@ -18,12 +18,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Install distribution Blender 4.x only; no external assets
+      - name: Install distribution Blender 4.x or 5.x only; no external assets
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends blender
-          blender --version | head -1 | grep -E 'Blender 4\.'
+          blender --version | head -1 | grep -E 'Blender [45]\.'
       - name: Generate actual editable BUKLOD Blender assets and animated glTF 2.0
         run: |
           set -euo pipefail
