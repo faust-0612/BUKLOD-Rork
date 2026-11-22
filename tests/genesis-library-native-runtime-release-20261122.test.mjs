@@ -81,3 +81,27 @@ test('signed APK verifier enforces same EAS certificate, all ABIs, 4 worlds and 
  assert.match(code,/Existing staging signer override differs/i);
  assert.match(code,/deviceQA:'PENDING'/);
 });
+
+test('locally signed staging fallback is EAS signing with remote original certificate, not a debug APK',()=>{
+ const source=readFileSync(new URL('../.github/workflows/genesis-library-eas-local-signed-apk-20261122.yml',import.meta.url),'utf8');
+ assert.match(source,/BUKLOD_GENESIS_2_0_4_LOCAL_SIGNED_BUILD:/);
+ assert.match(source,/build --platform android --profile season2-genesis-library-staging --local --non-interactive/);
+ assert.match(source,/p.android.credentialsSource='remote'/);
+ assert.match(source,/p.autoIncrement=false/);
+ assert.match(source,/versionCode: isStaging \? \(libraryArenaNativePreview \? 16 : undefined\)/);
+ assert.match(source,/EXPO_TOKEN: \$\{\{ secrets\.EXPO_TOKEN \}\}/);
+ assert.match(source,/git diff --quiet/);
+ assert.match(source,/LOCAL_SIGNED_APK_ACCEPTANCE_PASS|LOCAL SIGNED APK ACCEPTANCE PASS/);
+ assert.match(source,/actions\/upload-artifact@v4/);
+ assert.doesNotMatch(source,/\beas\s+(?:update|submit|channel:edit|branch:publish)\b|\bexpo\s+publish\b/);
+});
+test('local signed APK verifier fails closed on any wrong signer, stale version or altered Godot pack',()=>{
+ const source=readFileSync(new URL('../scripts/genesis-library-verify-local-signed-apk.mjs',import.meta.url),'utf8');
+ assert.match(source,/inspectUnifiedSignedApk/);
+ assert.match(source,/EXISTING_EAS_STAGING_CERT_SHA256/);
+ assert.match(source,/versionCode>=16/);
+ assert.match(source,/embedded,canonical/);
+ assert.match(source,/genesis-library-verify-signed-apk\.mjs/);
+ assert.match(source,/deviceQA:'NOT_PERFORMED'/);
+ assert.match(source,/otaPublished:false/);
+});
