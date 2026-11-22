@@ -9,6 +9,7 @@ import {
 import {
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
+import { isBuklodCallJwtExpired } from '@/lib/buklodCallJwt';
 import {
   getBuildStreamApiKey,
   readCachedStreamApiKey,
@@ -47,7 +48,7 @@ let cachedStreamToken:
     null;
 
 let refreshMutex:
-  Promise<string | null> | null =
+  Promise<string> | null =
     null;
 
 let inFlightToken:
@@ -105,28 +106,6 @@ subscribeBuklodStreamVideoClient(
   };
 }
 
-function isJwtExpired(
-  jwt: string,
-  skewSeconds = 90
-) {
-  try {
-    const payload = JSON.parse(
-      globalThis.atob(
-        jwt.split('.')[1] ?? ''
-      )
-    );
-    const exp = Number(payload?.exp ?? 0);
-
-    if (!Number.isFinite(exp) || exp <= 0) {
-      return false;
-    }
-
-    return exp * 1000 < Date.now() + skewSeconds * 1000;
-  } catch {
-    return false;
-  }
-}
-
 function supabaseAnonKey() {
   return String(
     process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
@@ -157,40 +136,30 @@ async function getCallAccessToken(
   if (
     !forceRefresh &&
     current &&
-    !isJwtExpired(current)
+    !isBuklodCallJwtExpired(current)
   ) {
     return current;
   }
 
   const pendingRefresh =
     refreshMutex ??
-    (refreshMutex =
-      (async () => {
-        try {
-          const refreshed =
-            await supabase.auth.refreshSession();
-
-          return (
-            refreshed.data.session?.access_token ??
-            current ??
-            null
-          );
-        } catch {
-          return current || null;
-        } finally {
-          refreshMutex = null;
+    (refreshMutex = (async () => {
+      try {
+        const refreshed = await supabase.auth.refreshSession();
+        const next = refreshed.data.session?.access_token;
+        if (refreshed.error || !next || isBuklodCallJwtExpired(next)) {
+          throw new Error('CALL_SESSION_EXPIRED');
         }
-      })());
+        return next;
+      } catch {
+        // Do not silently reuse the expired access token after a failed refresh.
+        throw new Error('CALL_SESSION_EXPIRED');
+      } finally {
+        refreshMutex = null;
+      }
+    })());
 
-  const next = await pendingRefresh;
-
-  if (!next) {
-    throw new Error(
-      'Could not start the call. Try again in a moment.'
-    );
-  }
-
-  return next;
+  return pendingRefresh;
 }
 
 function rememberTokenPayload(payload: {
@@ -213,7 +182,7 @@ function readCachedTokenPayload(): {
     !cachedStreamToken ||
     Date.now() - cachedStreamToken.at >
       STREAM_TOKEN_TTL_MS ||
-    isJwtExpired(cachedStreamToken.token)
+    isBuklodCallJwtExpired(cachedStreamToken.token)
   ) {
     return null;
   }
@@ -374,15 +343,6 @@ async function fetchStreamTokenPayload():
         }
       }
 
-      const stale = cachedStreamToken;
-
-      if (stale?.token && stale.api_key) {
-        return {
-          token: stale.token,
-          api_key: stale.api_key,
-        };
-      }
-
       throw (
         lastError ??
         new Error(
@@ -466,23 +426,9 @@ async function createClientForUser(
       user:
         streamUser,
 
-      tokenProvider:
-        async () => {
-          try {
-            return await streamTokenProvider();
-          } catch {
-            const cached =
-              readCachedTokenPayload();
-
-            if (cached?.token) {
-              return cached.token;
-            }
-
-            throw new Error(
-              'Could not start the call. Try again in a moment.'
-            );
-          }
-        },
+      // Stream invokes this again whenever the WebSocket JWT expires.
+      // Never return an expired cached credential on a token-service failure.
+      tokenProvider: streamTokenProvider,
 
       options: {
         rejectCallWhenBusy:
