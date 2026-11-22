@@ -17,6 +17,10 @@ test('all three game worlds show the same opt-in verified receipt component',()=
   assert.match(panel,/if\(!expanded\|\|!userId\)return/);
   assert.match(panel,/claimMyBuklodCrossWorldCosmetics/);
   assert.match(panel,/No rewards were assumed/);
+  assert.match(panel,/requestVersion\.current\+=1/);
+  assert.match(panel,/version===requestVersion\.current/);
+  assert.match(arena,/router\.push\('\/personal-home'/);
+  assert.match(kingdom,/router\.push\('\/personal-home'/);
 });
 
 test('schema is private and denies table access to public clients',()=>{
@@ -73,7 +77,8 @@ test('client fail-closed checks replay, foreign account and malformed server sta
   assert.match(client,/unique\.has\(key\)/);
   assert.match(client,/v\.display_only!==true\|\|v\.tradeable!==false/);
   assert.match(client,/arena_stat_bonus!==0/);
-  assert.match(client,/!\/\^kingdom:verified_checks:/);
+  assert.match(client,/item\.source_key!=='kingdom:verified_checks:'\+target\.requiredChecks/);
+  assert.match(client,/Number\(v\.verified_checks\)<target\.requiredChecks/);
   assert.match(client,/return normalizeCrossWorldCosmeticSnapshot\(data\)\?\?empty\(\)/);
   assert.match(client,/claim_my_buklod_crossworld_cosmetics_v1/);
   assert.doesNotMatch(client,/AsyncStorage|localStorage|setItem/);
