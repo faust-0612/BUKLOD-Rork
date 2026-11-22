@@ -1,4 +1,5 @@
 name: BUKLOD Genesis Library EAS-signed staging APK (BUILD ONLY)
+# Build signed installable BUKLOD MAIN staging artifact, no OTA/Play/distribution.
 on:
   push:
     branches:
