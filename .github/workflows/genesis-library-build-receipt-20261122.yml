@@ -74,7 +74,7 @@ jobs:
           }
 
           const local=(all.workflow_runs||[]).find(run=>
-            run.head_sha==='9ce65992c53596564672e2cda250898728c7db0b' &&
+            run.head_sha==='c413c1ec2e23f151af0123cefbd4209fbf612d1f' &&
             String(run.path||'').includes('genesis-library-eas-local-signed-apk-20261122.yml'));
           if(!local){
             console.log('LOCAL_EAS_STAGING_TRIGGER_NOT_FOUND');
