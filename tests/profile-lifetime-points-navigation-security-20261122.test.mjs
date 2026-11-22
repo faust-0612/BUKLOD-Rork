@@ -14,6 +14,7 @@ test('own Profile uses canonical earned lifetime BP with large golden card', () 
   assert.match(own, /<BuklodLifetimePointsHero points=\{lifetimePoints\} \/>/);
   assert.match(own, /!isBuklodOfficial && !!profile\?\.id/);
   assert.match(own, /useProfileFocusEffect\(useProfileFocusCallback\(\(\) => \{/);
+  assert.match(own, /Hide private details and activity\. Points, rank, cluster, note and photos stay visible\./);
   assert.match(hero, /testID="profile-lifetime-gold-card"/);
   assert.match(hero, /fontSize: 42/);
   assert.match(hero, /color: '#986100'/);

@@ -1509,7 +1509,7 @@ export default function MeScreen() {
                   color: theme.textMuted,
                 }}
               >
-                Hide your profile details from other members
+                Hide private details and activity. Points, rank, cluster, note and photos stay visible.
               </Text>
             </View>
 
