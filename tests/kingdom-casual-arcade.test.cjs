@@ -101,12 +101,17 @@ test('arcades stay in local game-only records; original verified mastery untouch
   const screen=read('src/features/games/kingdom/arcade/ArcadeGameV1.tsx');
   const center=read('src/features/games/kingdom/platform/KingdomInteriorCenter.tsx');
   const cinema=read('src/features/games/kingdom/platform/KingdomCinematicScenes.ts');
+  const language=read('src/features/games/runtime/BuklodGameLanguage.tsx');
   assert.match(screen,/reward:\{xp:0,kingdomXp:0\}/);
   assert.match(center,/active\.kind !== 'arcade' && masteryEligibility/);
   assert.match(center,/if \(result\.status === 'won' && active\.kind !== 'arcade'\)/);
   assert.match(center,/active\.kind !== 'arcade' \? <Pressable/);
   assert.match(center,/arcadeGamesForCharacter\(character\)/);
   assert.match(cinema,/KINGDOM_ARCADE_GAMES\.find/);
+  assert.match(center,/setGuideGameId\(active\?\.kind === 'arcade' \? active\.id : undefined\)/);
+  assert.match(language,/ARCADE_CONTROLS/);
+  assert.match(language,/overrideGameId \?\? gameId/);
+  assert.match(language,/controlsTl: ARCADE_CONTROLS\[arcade\.mode\]\[1\]/);
   assert.match(screen,/setInterval\(/);
   assert.match(screen,/clearInterval\(/);
   assert.match(screen,/AppState\.addEventListener/);
