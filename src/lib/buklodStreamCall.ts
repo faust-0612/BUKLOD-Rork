@@ -83,7 +83,7 @@ export function formatBuklodCallStartError(
     lower.includes('call_session_expired') ||
     (lower.includes('ws failed') && lower.includes('401'))
   ) {
-    return 'Your calling session expired. Reopen BUKLOD and try again. If it continues, sign in again.';
+    return 'Nag-expire ang calling session. Buksan muli ang BUKLOD at subukan ulit. Kung magpatuloy, mag-sign in muli.';
   }
 
   if (
