@@ -85,6 +85,10 @@ jobs:
           npm run release:gate
           npm run genesis:theme:gate
           npx tsc --noEmit
+      - name: Block premium signed APK until original Library Arena art is render-wired
+        run: |
+          set -euo pipefail
+          node scripts/genesis-arena-visual-readiness-20261122.mjs --strict
       - name: Runner-only staging account credentials, original keystore and installable versionCode
         shell: bash
         run: |

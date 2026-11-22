@@ -100,6 +100,10 @@ jobs:
           node --test tests/genesis-library-native-runtime-release-20261122.test.mjs tests/arena-library-godot-native-20261122.test.mjs tests/arena-library-modes-audio-20261122.test.mjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
           npm run release:gate
           npx tsc --noEmit
+      - name: Block premium signed APK until original Library Arena art is render-wired
+        run: |
+          set -euo pipefail
+          node scripts/genesis-arena-visual-readiness-20261122.mjs --strict
       - name: Runner-only EAS staging config using already-authorized paid MAIN backend
         shell: bash
         run: |

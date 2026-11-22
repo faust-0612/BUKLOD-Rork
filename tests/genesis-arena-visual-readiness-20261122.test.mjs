@@ -50,3 +50,14 @@ test('Premium Godot workflow contains exactly one valid no-release guard',()=>{
  assert.equal((workflow.match(/- name: Enforce DEV-only, no native build or online ranked\/production release/g)||[]).length,1);
  assert.doesNotMatch(workflow,/^\)" = 70$/m);
 });
+
+test('Both full signed native build paths refuse missing Library graphics BEFORE sign/credit steps',()=>{
+ for(const name of ['genesis-library-eas-signed-apk-20261122.yml',
+                    'genesis-library-eas-local-signed-apk-20261122.yml']){
+  const workflow=readFileSync(new URL('../.github/workflows/'+name,import.meta.url),'utf8');
+  const gate=workflow.indexOf('node scripts/genesis-arena-visual-readiness-20261122.mjs --strict');
+  assert.ok(gate>0,name+' missing fail-closed visual release check');
+  assert.ok(gate<workflow.indexOf('- name: Runner-only'),name+' would spend release resources before asset check');
+  assert.equal((workflow.match(/genesis-arena-visual-readiness-20261122\.mjs --strict/g)||[]).length,1);
+ }
+});

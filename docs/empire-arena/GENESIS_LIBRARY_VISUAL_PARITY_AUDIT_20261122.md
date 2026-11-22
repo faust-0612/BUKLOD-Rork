@@ -29,4 +29,6 @@
 5. Require Android launch/return, real asset visibility, shader/frame pacing, battery/thermal/GPU memory, dark UI, screen orientation, AdMob first-view and tab responsiveness, PTT/audio focus, 3G network/offline and old-production-fix reconciliation before RC. Physical device verification can be marked *waived/unverified*, **never passed**.
 6. Keep draft DEV until all blockers resolved. Do not merge into production, publish OTA or announce release. A currently compiling older-source signed staging APK cannot magically include subsequently added Library images.
 
+Both future signed full APK workflows call the strict visual-readiness gate before runner credentials or signing; this is intended to HOLD any incomplete new APK. The already-started earlier-source CI run is unaffected by this isolated draft branch.
+
 The companion read-only audit is `node scripts/genesis-arena-visual-readiness-20261122.mjs`; `--strict` intentionally fails while source graphics are incomplete. This is an implementation blocker report, not an APK creation command.
