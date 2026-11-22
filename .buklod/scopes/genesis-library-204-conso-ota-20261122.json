@@ -74,13 +74,14 @@
   ],
   "regressionTests": [
     "tests/buklod-call-token-expiry-20261122.test.mjs",
-    "tests/wall-comment-ad-preservation-20261122.test.mjs",
     "tests/community-wall-layout-stability-20261122.test.mjs",
     "tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs",
     "tests/genesis-arena-game-touch-readability-20261122.test.mjs",
     "tests/genesis-conso-video-regression-gate-20261122.test.mjs",
     "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs",
-    "tests/genesis-library-204-ota-source-parity-20261122.test.mjs"
+    "tests/genesis-entry-ptt-audio-continuity-20261122.test.mjs",
+    "tests/genesis-library-204-ota-source-parity-20261122.test.mjs",
+    "tests/wall-comment-ad-preservation-20261122.test.mjs"
   ],
   "riskAreas": [
     "wall-media",
