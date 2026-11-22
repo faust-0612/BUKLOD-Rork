@@ -42,6 +42,14 @@ test('boot, privacy screen and writes preserve authentication boundaries', () =>
   assert.match(compliance, /if \(!allRequiredPoliciesAccepted\(verified\)\)/);
   assert.match(compliance, /if \(cacheKey\) await AsyncStorage\.setItem\(cacheKey, 'true'\)/);
   assert.match(consent, /result\.needsLogin/);
+  assert.match(compliance, /if \(sessionError\) throw sessionError/);
+  assert.match(compliance, /if \(identityError\) throw identityError/);
+  assert.match(compliance, /const confirmed = await readRequiredPolicies\(targetUserId\)/);
+  assert.match(compliance, /generation !== generationRef\.current/);
+  assert.match(compliance, /BuklodRequestTimeoutError/);
+  assert.match(consent, /useThemedShared\(\)/);
+  assert.match(consent, /theme\.textPrimary/);
+  assert.match(consent, /theme\.surface/);
   for (const path of ['src/app/index.tsx', 'src/app/index.web.tsx', 'src/app/(tabs)/_layout.tsx']) {
     assert.match(fs.readFileSync(path, 'utf8'), /loading && !session/);
     assert.doesNotMatch(fs.readFileSync(path, 'utf8'), /loading && !session && !profile/);
