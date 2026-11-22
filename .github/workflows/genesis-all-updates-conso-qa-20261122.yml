@@ -106,6 +106,7 @@ jobs:
             tests/sos-urgent-responder-20261121.test.mjs \
             tests/sos-urgent-security-20261121.test.mjs \
             tests/todays-best-wall-header-20261120.test.mjs \
+            tests/video-thumbnail-first-frame-20261122.test.mjs \
             tests/todays-best-wall-navigation-20261120.test.mjs \
             tests/season2-estate-asset-customization-20261121.test.mjs \
             tests/season2-estate-premium-audio-20261121.test.mjs \
