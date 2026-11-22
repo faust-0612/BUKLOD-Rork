@@ -213,6 +213,19 @@ func _draw_actor(p: Dictionary) -> void:
 			Color("#6af7ca") if team == "A" else Color("#ff9b8c"), 2.0)
 		draw_string(ThemeDB.fallback_font, pos + Vector2(-18, -large - 16),
 			str(p["hero"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	# Show the owner's distinct five minion identities and named village workers.
+	# Visual identity follows the same single simulation actor; no duplicate AI.
+	if p.get("library_minion", false):
+		var role: String = str(p.get("kind", "unit"))
+		var ring_color: Color = Color("#f8dc79") if role == "healer" else \
+			Color("#b7c0ff") if role == "mage" else Color("#f19d72") if role == "siege" else \
+			Color("#75dcff") if role == "gunner" else Color("#c6f5b0")
+		draw_arc(pos, large + 3.0, 0.0, TAU, 16, ring_color, 2.0)
+		draw_string(ThemeDB.fallback_font, pos + Vector2(-17, -large - 7),
+			role.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ring_color)
+	elif p.has("library_name"):
+		draw_string(ThemeDB.fallback_font, pos + Vector2(-18, -large - 7),
+			str(p["library_name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color.WHITE)
 	var ratio: float = clampf(float(p.get("hp", 1)) / maxf(1, float(p.get("max_hp", 1))), 0.0, 1.0)
 	draw_rect(Rect2(pos + Vector2(-large, large + 6), Vector2(large * 2, 3.0)), Color("#542e33"))
 	draw_rect(Rect2(pos + Vector2(-large, large + 6), Vector2(large * 2 * ratio, 3.0)),
