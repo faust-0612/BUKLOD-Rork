@@ -88,6 +88,8 @@ collect(project);
 // preserve event identity without network downloads or a hidden subscription.
 const audioEntries = arenaSfxEntries();
 assert.equal(audioEntries.length, 70);
+entries.push({name:'data/audio_manifest.json',
+  bytes:Buffer.from(JSON.stringify({schema:1,prototype:true,ids:ARENA_SFX_IDS}))});
 for (const cue of audioEntries) {
   assert.ok(cue.bytes.length > 44 && cue.bytes.subarray(0,4).toString() === 'RIFF');
   assert.ok(!entries.some(x => x.name === cue.name), 'Duplicate Arena native audio cue');
