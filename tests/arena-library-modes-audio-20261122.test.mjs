@@ -5,6 +5,12 @@ import {ARENA_SFX_IDS, HERO_CUES, arenaSfxEntries} from '../scripts/arena-librar
 const source=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 test('all 13 Library hero identities and precisely 70 self-contained WAV cues',()=>{
   assert.equal(Object.keys(HERO_CUES).length,13);
+  assert.deepEqual(Object.keys(HERO_CUES).sort(),[
+    'ace','angel','christian','elesur','jawo','lhen','mitch','niel',
+    'phan','quin','trudice','van','vhen'
+  ].sort(),'All 13 original Character Code sound identities must survive');
+  assert.ok(Object.values(HERO_CUES).every(skills=>skills.length===3),
+    'Each hero must retain two skills plus an ultimate signature');
   assert.equal(ARENA_SFX_IDS.length,70);
   assert.equal(new Set(ARENA_SFX_IDS).size,70);
   const entries=arenaSfxEntries();
