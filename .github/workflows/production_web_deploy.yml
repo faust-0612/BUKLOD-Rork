@@ -136,6 +136,9 @@ jobs:
       - name: Verify BUKLOD browser PTT floor and privacy contracts
         run: node --test tests/buklod-ptt-web-contract.test.mjs tests/buklod-ptt-web-release.test.mjs
 
+      - name: DZAS browser radio recovery regression gate
+        run: node --test tests/dzas-signal-deck-implementation.test.mjs tests/bible-radio-visual.test.cjs
+
       - name: TypeScript QA
         run: npx tsc --noEmit
 
