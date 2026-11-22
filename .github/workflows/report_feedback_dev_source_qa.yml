@@ -1,0 +1,49 @@
+name: BUKLOD Report DEV - Auto Feedback Source QA (No Deploy)
+
+on:
+  push:
+    branches:
+      - dev/report-auto-feedback-weekly-20261122
+    paths:
+      - '.github/workflows/report_feedback_dev_source_qa.yml'
+      - 'src/lib/buklodReportAutoFeedback.ts'
+      - 'scripts/test-report-auto-feedback.cjs'
+      - 'src/components/BuklodReportAutoFeedbackCard.tsx'
+      - 'src/components/BuklodReportAssignmentForm.tsx'
+      - 'src/components/BuklodWeeklyReportForm.tsx'
+      - 'src/app/reports/definitions.tsx'
+
+permissions:
+  contents: read
+
+jobs:
+  source-only-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: '1'
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_APP_TARGET: report
+      REPORT_RELEASE_TARGET: web
+      REPORT_EAS_PROJECT_ID: cc69b3c0-a5df-4b69-a84c-887c36242fdd
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_report_qa_stub_no_backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Unit test report advisory engine
+        run: node scripts/test-report-auto-feedback.cjs
+      - name: TypeScript Report app
+        run: npx tsc -p tsconfig.report.json --noEmit
+      - name: Report web export smoke - no deploy
+        run: |
+          npx expo export --platform web --output-dir dist-report-qa --clear
+          test -s dist-report-qa/index.html
+          grep -R -F 'AUTO FEEDBACK' dist-report-qa/_expo/static/js/web >/dev/null
+      - name: Assert release boundary
+        run: echo 'DEV QA only. No production credentials, backend writes, EAS publish, or OTA.'

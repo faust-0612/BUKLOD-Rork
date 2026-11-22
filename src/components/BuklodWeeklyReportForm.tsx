@@ -30,6 +30,7 @@ import {
   type ReportImportProposal,
 } from '@/lib/buklodReportFiles';
 import { colors } from '@/lib/theme';
+import BuklodReportAutoFeedbackCard from '@/components/BuklodReportAutoFeedbackCard';
 import { supabase } from '@/lib/supabase';
 
 const ACTIVITIES = [
@@ -804,6 +805,8 @@ export default function BuklodWeeklyReportForm({ scopeId, assignmentId, onSubmit
           <ExportButton icon="file-pdf-box" label="PDF / PRINT" onPress={() => exportAction('PDF')} />
         </View>
       </View>
+
+      <BuklodReportAutoFeedbackCard content={content} deadlineAt={context?.deadline_at} submitted={readOnly} />
 
       {error ? <View style={styles.errorCard}><Text style={styles.errorText}>{error}</Text></View> : null}
 
