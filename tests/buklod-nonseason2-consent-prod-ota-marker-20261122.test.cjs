@@ -12,7 +12,7 @@ test('consent-only source and unchanged production app runtime',()=>{
  assert.equal(marker.productionAuthorized,true);
  assert.equal(marker.productionTarget,'BUKLOD_MAIN_ANDROID');
  assert.equal(marker.releaseMode,'EXISTING_NATIVE_JS_OTA_ONLY');
- assert.equal(marker.sourceCommitBeforeMarker,'90167a90ab7f42de34fa57db6874f9e064826ad3');
+ assert.equal(marker.sourceCommitBeforeMarker,'6960452f4317c9cf6e8ce32b77d5dbf8f8d1dff6');
  assert.equal(marker.sourceScopePR,1103);
  assert.equal(marker.proof.sourceQaHead,'df15ace207a885b90ce67330daa203525c616269');
  assert.equal(marker.proof.approvedMainRCWorkflows.length,5);
@@ -43,6 +43,10 @@ test('consent fix scope is source reviewed and no native/Season 2/clinical chang
  assert.equal(scope.regressionTests.length,1);
  for(const p of marker.proof.approvedSourceDiffPaths)
    assert.ok(/^(?:src\/(?:app\/privacy\/consent\.tsx|providers\/ComplianceProvider\.tsx)|tests\/auth-consent-boot-recovery\.test\.mjs|\.buklod\/scopes\/consent-verification-contrast-20261122\.json|\.github\/workflows\/buklod-consent-prod-rc-no-publish-20261122\.yml)$/.test(p),p);
+ assert.equal(marker.proof.webOnlyMainIntake.currentMainSha,marker.sourceCommitBeforeMarker);
+ assert.equal(marker.proof.webOnlyMainIntake.webDeploymentAuthorized,false);
+ assert.equal(marker.proof.webOnlyMainIntake.nativeAndAndroidSourceFilesChanged,false);
+ assert.equal(marker.proof.webOnlyMainIntake.nonAndroidFiles.length,6);
  assert.equal(marker.proof.backend.backendMutationAuthorized,false);
  assert.equal(marker.proof.backend.migrationRequired,false);
 });
