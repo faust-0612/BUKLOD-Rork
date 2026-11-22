@@ -178,15 +178,17 @@ function MaritesVideoStandby({ uri, posterUri }: { uri: string; posterUri?: stri
 }
 
 function MaritesQuickVideo({
-  uri, posterUri, autoPlay = false, muted = false, inline = false,
+  uri, posterUri, autoPlay = false, muted = false, inline = false, enabled = true,
 }: {
   uri: string;
   posterUri?: string | null;
   autoPlay?: boolean;
   muted?: boolean;
   inline?: boolean;
+  enabled?: boolean;
 }) {
   const active = useMaritesPlaybackActive();
+  const canPlay = active && enabled;
   const poster = useMaritesVideoPoster(uri, posterUri);
   const source = useMemo(
     () => Platform.OS !== 'web' && /^https?:\/\//i.test(uri)
@@ -220,14 +222,14 @@ function MaritesQuickVideo({
   useEffect(() => {
     player.muted = muted;
     player.loop = autoPlay;
-    if (autoPlay && active && !userPaused) player.play();
+    if (autoPlay && canPlay && !userPaused) player.play();
     else player.pause();
-  }, [player, autoPlay, muted, active, userPaused]);
+  }, [player, autoPlay, muted, canPlay, userPaused]);
 
   // The same near-viewport player can produce a small first-frame poster.
   // No extra decoder/player mounts, unbounded preloads, or persistent signed links.
   useEffect(() => {
-    if (Platform.OS === 'web' || posterUri || getCommunityVideoPoster(uri) || !active) return;
+    if (Platform.OS === 'web' || posterUri || getCommunityVideoPoster(uri) || !canPlay) return;
     if (autoPlay ? !firstFrameRendered : status !== 'readyToPlay') return;
     const timer = setTimeout(() => {
       if (!beginCommunityVideoPosterGeneration(uri)) return;
@@ -240,15 +242,15 @@ function MaritesQuickVideo({
         .finally(() => releaseCommunityVideoPosterGeneration(uri));
     }, autoPlay ? 1_500 : 250);
     return () => clearTimeout(timer);
-  }, [active, autoPlay, firstFrameRendered, player, posterUri, status, uri]);
+  }, [canPlay, autoPlay, firstFrameRendered, player, posterUri, status, uri]);
 
   // A normal subsecond startup is not an error and should not obscure the poster.
   useEffect(() => {
     setSlow(false);
-    if (firstFrameRendered || status === 'error' || !active) return;
+    if (firstFrameRendered || status === 'error' || !canPlay) return;
     const timer = setTimeout(() => setSlow(true), 950);
     return () => clearTimeout(timer);
-  }, [status, firstFrameRendered, uri, active]);
+  }, [status, firstFrameRendered, uri, canPlay]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#172822' }}>
@@ -281,7 +283,7 @@ function MaritesQuickVideo({
           <Text style={{ color: '#FFFFFF', marginTop: 8, fontSize: 12 }}>Video unavailable</Text>
         </View>
       ) : null}
-      {active && slow && !firstFrameRendered && status !== 'error' ? (
+      {canPlay && slow && !firstFrameRendered && status !== 'error' ? (
         <View pointerEvents="none" style={{
           position: 'absolute', top: 12, right: 12, padding: 6,
           borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.28)',
@@ -2350,7 +2352,7 @@ export default function BuklodMaritesBoard({
                   !photoUris.length &&
                   isMaritesEmojiOnlyBody(body);
 
-                if (viewStory.video_uri) return <MaritesQuickVideo key={viewStory.id} uri={viewStory.video_uri} posterUri={viewStory.video_preview_uri} autoPlay muted={viewerMusicStatus.playing} />;
+                if (viewStory.video_uri) return <MaritesQuickVideo key={viewStory.id} uri={viewStory.video_uri} posterUri={viewStory.video_preview_uri} autoPlay enabled={playbackActive && !playbackBlocked && !composerOpen && !musicPickerOpen} muted={viewerMusicStatus.playing} />;
                 if (photoUris.length) {
                   if (photoUris.length === 1) {
                     return (
