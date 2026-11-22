@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
-  Animated, Pressable, StyleSheet, Text, View,
+  Animated, AppState, Pressable, StyleSheet, Text, View,
 } from 'react-native';
 import type { BuklodGameResult } from '@/features/games/types';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
@@ -34,6 +35,17 @@ export function ArcadeGameV1({game,onFinish}:Props) {
     animation.start();
     return ()=>animation.stop();
   },[glow]);
+
+  // App backgrounding or navigating away must never consume lives offscreen.
+  useEffect(()=>{
+    const listener=AppState.addEventListener('change',state=>{
+      if(state!=='active')setPhase(previous=>previous==='playing'?'paused':previous);
+    });
+    return ()=>listener.remove();
+  },[]);
+  useFocusEffect(useCallback(()=>()=>{
+    setPhase(previous=>previous==='playing'?'paused':previous);
+  },[]));
 
   useEffect(()=>{
     if(phase!=='playing'||run.status!=='playing')return;
