@@ -25,7 +25,7 @@ test('Marites cards and fullscreen videos use poster-first texture rendering wit
   assert.match(board, /surfaceType="textureView"/);
   assert.match(board, /onFirstFrameRender=\{\(\) => setFirstFrameRendered\(true\)\}/);
   assert.match(board, /poster && !firstFrameRendered/);
-  assert.match(board, /active && slow && !firstFrameRendered && status !== 'error'/);
+  assert.match(board, /canPlay && slow && !firstFrameRendered && status !== 'error'/);
   assert.match(board, /if \(viewStory.video_uri\) return <MaritesQuickVideo[^\n]+autoPlay/);
   assert.match(board, /enabled=\{playbackActive && !playbackBlocked/);
   assert.doesNotMatch(board, /name="play-circle-outline" size=\{44\}/);
