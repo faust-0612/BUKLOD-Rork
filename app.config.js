@@ -192,6 +192,7 @@ module.exports = ({ config }) => {
         'expo-notifications',
         {
           enableBackgroundRemoteNotifications: true,
+          sounds: ['./assets/sounds/buklod_alert.wav'],
         },
       ],
 

@@ -21,7 +21,7 @@ The following behavior is the minimum protected baseline and must not be removed
 2. **Two surfaces** — ordinary `Need Help` and protected `Emergency SOS` remain distinct.
 3. **Foreground-only location** — no background location or foreground-location service is enabled by this feature.
 4. **Explicit nearby-alert opt-in** — users can enable nearby safety alerts and can turn them off; disabling removes the stored presence row.
-5. **Private raw coordinates** — exact coordinates are for server-side proximity matching; nearby users receive approximate distance, not raw coordinates.
+5. **Private raw coordinates / reviewed R3 exception** — nearby feed and push recipients receive approximate distance, not raw coordinates. On an explicit SOS send, the sender is told that authenticated, fresh-nearby responders who choose ON MY WAY may request the rescue destination through a narrowly scoped server RPC. Location sharing ends when the emergency expires or resolves. This approved exception does not provide a general public location API.
 6. **Canonical RPC write/read path** — presence, request creation, nearby listing, responses and resolution continue through the `buklod_help_*` RPC family.
 7. **Anti-abuse baseline** — one active emergency per creator, send cooldown, bounded expiry and bounded radius remain enforced server-side.
 8. **Responder proximity check** — responders require recent opted-in presence and must be within the request radius.
@@ -32,6 +32,15 @@ The following behavior is the minimum protected baseline and must not be removed
 13. **No points/reward gate** — Emergency SOS is safety functionality and must not require points, rank, organization membership or a paid entitlement.
 14. **No claim of government Cell Broadcast** — this remains BUKLOD app/push nearby alerting, not NDRRMC/telecom Cell Broadcast.
 15. **Official-services warning remains** — BUKLOD SOS does not replace official emergency services.
+
+## R3 emergency sound and responder navigation contract (DEV; not yet production)
+
+- The sender must grant foreground location permission and have phone Location Services enabled before SOS creation. GPS position is captured in the foreground; no background tracking is enabled.
+- The receiving member's **in-app** emergency Modal covers the current BUKLOD route. Background/killed-app delivery uses the OS push notification; the app does not take over the operating system.
+- On Android native builds that package `assets/sounds/buklod_alert.wav`, capability-gated `buklod-emergency-v2` provides a distinct alert tone and vibration. Earlier APKs retain `buklod-activity-v2` fallback; Android sound policy, DND, notification permissions and user-controlled channel settings remain authoritative.
+- To navigate to the sender, a recipient must have a canonical notice, current nearby opt-in, a live emergency, and an accepted ON MY WAY response. A separate authenticated RPC returns the coordinates only on deliberate navigation. Opening Maps requires a user confirmation.
+- Direct authenticated writes to raw SOS request/response/presence tables are revoked; privileged audited RPC paths remain. Foreground presence refresh never creates or re-enables a disabled opt-in.
+- This extension requires a new native APK, matching backend migration and push Edge Function, reviewed RC, and controlled production activation. GitHub source alone does not verify OTA delivery, push sound, or live navigation.
 
 ## Change rule
 

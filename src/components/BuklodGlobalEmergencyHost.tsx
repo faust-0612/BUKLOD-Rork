@@ -14,7 +14,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import {
-  ActivityIndicator, Alert, AppState, Modal, Pressable,
+  ActivityIndicator, Alert, AppState, Linking, Modal, Pressable,
   ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { supabase } from '@/lib/supabase';
 import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
+import { playBuklodCue } from '@/lib/buklodSounds';
 import {
   isBuklodEmergencyId,
   subscribeBuklodEmergencySignal,
@@ -92,6 +93,7 @@ export default function BuklodGlobalEmergencyHost() {
   const owner = user?.id ?? null;
   const [shown, setShown] = useState<DisplayState | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const accountEpoch = useRef(0);
   const dismissed = useRef<Set<string>>(new Set());
@@ -152,10 +154,10 @@ export default function BuklodGlobalEmergencyHost() {
         on_my_way_count: null, confirm_count: null, my_response: null,
       };
     }
-    // This RPC enforces recent opted-in presence and <= server-approved radius.
-    // For recipients its absence must fail closed, not trust the push contents.
+    // Target by ID: generic feed caps at 30 and can drop this incident.
+    // The server enforces canonical recipient notification plus proximity.
     const { data: nearby, error: nearbyError } = await supabase.rpc(
-      'buklod_help_list_nearby', { p_limit: 50 },
+      'buklod_help_get_emergency_for_viewer', { p_request_id: incidentId },
     );
     if (nearbyError) {
       if (ownEmergency) return ownEmergency; // Owner can still resolve if presence is stale.
@@ -194,6 +196,9 @@ export default function BuklodGlobalEmergencyHost() {
           : current);
         return;
       }
+      // No foreground push was received; an inbox-recovered emergency still
+      // gets an audible cue. Push-delivered alerts use Android channel sound.
+      if (quiet && !minimized) void playBuklodCue('alert');
       setShown(current => {
         // A different active alert has priority until the person minimizes it.
         if (quiet && current?.verified && !current.minimized && current.incidentId !== id) return current;
@@ -218,6 +223,40 @@ export default function BuklodGlobalEmergencyHost() {
   useEffect(() => subscribeBuklodEmergencySignal(signal => {
     void offer(signal);
   }), [offer]);
+
+  // Refresh opted-in presence on ANY BUKLOD screen while foregrounded.
+  // No background tracking or silent permission prompt; the server only
+  // updates an existing enabled record (a disabled record stays disabled).
+  useEffect(() => {
+    if (!owner || !foreground || Boolean(config?.update_required) || Boolean(config?.maintenance_mode)) return;
+    let stopped = false;
+    let inFlight = false;
+    const epoch = accountEpoch.current;
+    const refreshOptedInPresence = async () => {
+      if (stopped || inFlight) return;
+      inFlight = true;
+      try {
+        const { data, error } = await supabase.from('buklod_help_presence')
+          .select('safety_alerts_enabled').eq('user_id', owner).maybeSingle();
+        if (stopped || error || !data?.safety_alerts_enabled) return;
+        const permission = await Location.getForegroundPermissionsAsync();
+        if (!permission.granted || !await Location.hasServicesEnabledAsync()) return;
+        const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (stopped || accountEpoch.current !== epoch || currentOwner.current !== owner) return;
+        await supabase.rpc('buklod_help_refresh_opted_in_presence', {
+          p_latitude: position.coords.latitude,
+          p_longitude: position.coords.longitude,
+        });
+      } catch {
+        // Presence is best-effort; never automatically re-enable location.
+      } finally {
+        inFlight = false;
+      }
+    };
+    void refreshOptedInPresence();
+    const timer = setInterval(() => { void refreshOptedInPresence(); }, 10 * 60 * 1000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [owner, foreground, config?.update_required, config?.maintenance_mode]);
 
   const scanInbox = useCallback(async () => {
     if (!owner || !foreground || inboxInFlight.current ||
@@ -358,6 +397,41 @@ export default function BuklodGlobalEmergencyHost() {
     ]);
   }, [owner, shown, submitting, offer]);
 
+  const navigateToSender = useCallback(async () => {
+    if (!owner || !shown?.verified || shown.ownerId !== owner ||
+        shown.origin !== 'recipient' || shown.emergency?.my_response !== 'ON_MY_WAY' ||
+        navigating) return;
+    const epoch = accountEpoch.current;
+    setNavigating(true);
+    try {
+      const { data, error } = await supabase.rpc('buklod_help_get_rescue_coordinates', {
+        p_request_id: shown.incidentId,
+      });
+      if (error) throw error;
+      if (currentOwner.current !== owner || accountEpoch.current !== epoch) return;
+      const point = (data as Array<{ latitude: number; longitude: number }> | null)?.[0];
+      if (!point || !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude) ||
+          Math.abs(point.latitude) > 90 || Math.abs(point.longitude) > 180) {
+        throw new Error('Rescue location is unavailable or your access has expired.');
+      }
+      const destination = `${point.latitude},${point.longitude}`;
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+      Alert.alert('Navigate to SOS location?',
+        'Google Maps will receive the sender-provided rescue location. Navigate only when safe.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Maps', onPress: () => {
+            void Linking.openURL(url).catch(() => Alert.alert('Maps unavailable', 'Could not open your map application.'));
+          } },
+        ]);
+    } catch (error: any) {
+      Alert.alert('Cannot access SOS location',
+        String(error?.message ?? 'Confirm your nearby alert and ON MY WAY response.'));
+    } finally {
+      setNavigating(false);
+    }
+  }, [owner, shown, navigating]);
+
   const resolve = useCallback(() => {
     if (!shown?.verified || shown.ownerId !== owner || shown.origin !== 'sender' || submitting) return;
     const id = shown.incidentId;
@@ -477,7 +551,7 @@ export default function BuklodGlobalEmergencyHost() {
                     <Text style={styles.locationText}>
                       {shown?.origin === 'sender'
                         ? 'Your precise location is protected for nearby matching.'
-                        : formatDistance(event.distance_km) + ' · Exact location is protected.'}
+                        : formatDistance(event.distance_km) + ' · Exact location is reserved for ON MY WAY responders.'}
                     </Text>
                   </View>
                   <View style={styles.metrics}>
@@ -533,6 +607,17 @@ export default function BuklodGlobalEmergencyHost() {
                           <Text style={styles.report}>Report possible false alert</Text>
                         </Pressable>
                       </View>
+                      {event.my_response === 'ON_MY_WAY' ? (
+                        <Pressable accessibilityRole="button"
+                          accessibilityLabel="Navigate to SOS location"
+                          disabled={navigating || submitting}
+                          onPress={() => { void navigateToSender(); }}
+                          style={styles.primary}>
+                          {navigating ? <ActivityIndicator color="#FFFFFF"/> :
+                            <MaterialCommunityIcons name="map-marker-path" size={20} color="#FFFFFF"/>}
+                          <Text style={styles.primaryText}>NAVIGATE TO SOS LOCATION</Text>
+                        </Pressable>
+                      ) : null}
                       {event.my_response ? (
                         <Text style={styles.ack}>Your response: {event.my_response.replaceAll('_',' ')}</Text>
                       ) : null}
