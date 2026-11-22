@@ -19,6 +19,7 @@ const CHOICES: { id: ImciAnswer; label: string }[] = [
 export default function BuklodImciTagalogGuide({ onUrgencyChange }: Props) {
   const [expanded, setExpanded] = useState(true);
   const [age, setAge] = useState<ImciAge>('child');
+  const [hasAge, setHasAge] = useState(false);
   const [answers, setAnswers] = useState<Record<string, ImciAnswer>>({});
   const [index, setIndex] = useState(0);
   const questions = getImciQuestions(age);
@@ -34,6 +35,7 @@ export default function BuklodImciTagalogGuide({ onUrgencyChange }: Props) {
 
   const chooseAge = (nextAge: ImciAge) => {
     setAge(nextAge);
+    setHasAge(true);
     setAnswers({});
     setIndex(0);
   };
@@ -67,19 +69,20 @@ export default function BuklodImciTagalogGuide({ onUrgencyChange }: Props) {
                 key={option.id}
                 accessibilityRole="button"
                 accessibilityLabel={option.label}
-                accessibilityState={{ selected: age === option.id }}
+                accessibilityState={{ selected: hasAge && age === option.id }}
                 onPress={() => chooseAge(option.id)}
-                style={[styles.ageChip, age === option.id && styles.ageSelected]}
+                style={[styles.ageChip, hasAge && age === option.id && styles.ageSelected]}
               >
-                <Text style={[styles.ageText, age === option.id && styles.ageTextSelected]}>{option.label}</Text>
+                <Text style={[styles.ageText, hasAge && age === option.id && styles.ageTextSelected]}>{option.label}</Text>
               </Pressable>
             ))}
           </View>
-          <Text style={styles.muted}>{IMCI_AGE_OPTIONS.find(option => option.id === age)?.subtitle}</Text>
-          {age === 'older' ? (
+          <Text style={styles.muted}>{hasAge ? IMCI_AGE_OPTIONS.find(option => option.id === age)?.subtitle : 'Pumili muna ng edad bago sagutin ang mga tanong.'}</Text>
+          {hasAge && age === 'older' ? (
             <Text style={styles.hint}>Ang IMCI na ito ay para sa wala pang 5 taong gulang. Safety check lang ang susunod para sa mas matandang bata; kailangan pa rin ng angkop na pediatric assessment.</Text>
           ) : null}
 
+          {hasAge ? (<>
           <View style={styles.rule} />
           <View style={styles.progressHeader}>
             <Text style={styles.subheading}>2. Sagutin ang mga tanong</Text>
@@ -182,6 +185,8 @@ export default function BuklodImciTagalogGuide({ onUrgencyChange }: Props) {
               </Pressable>
             </View>
           ) : null}
+
+          </>) : null}
 
           <Text style={styles.muted}>
             Walang iniimbak o ipinapadalang sagot. Ang lokal na chart na ginagamit ng lisensiyadong health worker ang dapat sundin para sa pormal na IMCI classification at treatment.
