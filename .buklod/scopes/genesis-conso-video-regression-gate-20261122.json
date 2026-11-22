@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-conso-video-regression-gate-20261122.json",
+  "objective": "Make thumbnail-first video playback regressions a mandatory nonpublishing Genesis consolidated staging source QA gate.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "verified: Genesis consolidated staging intake GitHub source SHA ec45af5ec56b7d5309f2633b5d1cf6bd2596c621 reviewed on 2026-11-22, including video merge #1112. GitHub source not a staging OTA receipt, production deployment or native APK verification.",
+  "chosenApproach": "Add one existing scoped Node source regression test to the current Genesis no-publish source QA test list, leaving all existing source, SOS native-release hold, CI secrets, branch filters and Android compatibility checks unchanged.",
+  "selectionRationale": "Ensure the merged video first-frame poster and Marites private preview behavior is exercised on every consolidated staging source push rather than just existing as an unexecuted test.",
+  "riskAreas": [
+    "qa-regression",
+    "video-first-frame",
+    "staging-release-hold"
+  ],
+  "allowedPaths": [
+    ".github/workflows/genesis-all-updates-conso-qa-20261122.yml",
+    ".buklod/scopes/genesis-conso-video-regression-gate-20261122.json",
+    "tests/genesis-conso-video-regression-gate-20261122.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-conso-video-regression-gate-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "Keep exact staging CI push trigger, nonpublishing release hold, no bypass of old APK/native parity failure.",
+    "Preserve existing ad, PTT/SOS, Kingdom, Genesis, Today’s Best and Android-compile tests, source scopes and runtime values."
+  ],
+  "acceptanceChecks": [
+    "New workflow gate test is included in the existing Node command and fails if the video source regression, native release hold or ad navigation tests are removed.",
+    "Existing complete Node QA list remains in place; one additional video regression test is executed.",
+    "Workflow contains no publish, EAS update, native install or production job; only source QA changes.",
+    "Engineering Accountability V2 scope gate passes and source CI required checks verified before integration."
+  ],
+  "releaseMode": "NONPUBLISHING_STAGING_SOURCE_QA_ONLY",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "alternativeApproaches": [
+    "Leave the video test unexecuted in CI: rejected because silent first-frame regressions could reach the consolidation.",
+    "Alter production or native release workflows: rejected because only existing no-publish Genesis source QA needs this enforcement."
+  ]
+}
