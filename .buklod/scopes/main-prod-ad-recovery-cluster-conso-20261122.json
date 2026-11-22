@@ -30,7 +30,10 @@
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
     ".buklod/scopes/main-prod-ad-recovery-cluster-conso-20261122.json",
     ".github/workflows/buklod-main-ad-cluster-rc-android-qa-20261122.yml",
-    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql"
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+    "scripts/buklod-production-expo-snapshot-20261122.cjs",
+    "tests/buklod-production-expo-snapshot-20261122.test.cjs",
+    ".github/workflows/buklod-production-expo-snapshot-20261122.yml"
   ],
   "riskAreas": [
     "ads-monetization",
@@ -46,7 +49,8 @@
     "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
     "supabase/tests/buklod_points_r3_home_earning_contract.sql",
-    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql"
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+    "tests/buklod-production-expo-snapshot-20261122.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -93,6 +97,17 @@
         "supabase/tests/buklod_points_r3_home_earning_contract.sql",
         "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add bounded, no-secrets/no-token read-only Expo production manifest fingerprint CI; it does not publish, change production, freeze a binary or bypass the canonical production release gate.",
+      "preservedBehaviors": [
+        "The existing main-only explicit marker publisher, exact runtime/ABI and live AdMob checks remain the only authorized OTA deployment route.",
+        "Production package org.mzbministry.buklod, runtime 1.3.2 and currently served Expo channel are read-only and unchanged."
+      ],
+      "tests": [
+        "tests/buklod-production-expo-snapshot-20261122.test.cjs"
+      ]
     }
   ],
   "acceptanceChecks": [
@@ -112,14 +127,15 @@
       "No direct production data, AdMob unit, Supabase migration, Android binary or EAS update changes."
     ],
     "pending": [
-      "Disposable PostgreSQL 17 RPC role/ledger and Android JS export workflow on exact source SHA",
-      "Real signed Android device first-view/ad-fill/instant navigation runtime proof",
-      "Independent current live production EAS update ID and bundle hash",
-      "Paid Supabase exact-schema isolated migration actor/load tests (CI disposable fixture only verifies selected table-contract semantics)"
-    ]
+      "Current served Expo production manifest/update ID/bundle hash via read-only CI",
+      "Actual signed new native production APK/AAB with changed runtime and Google Play availability BEFORE an OTA requiring new native code",
+      "Exact Supabase migration authority/RLS on isolated equivalent backend prior to production apply",
+      "Post-publication served bundle hash and relevant live AdMob load/fill evidence (remote telemetry, not waived device QA)"
+    ],
+    "physicalDeviceQA": "WAIVED_BY_OWNER_2026-11-22_NOT_TESTED_DO_NOT_MARK_PASS"
   },
   "release": {
-    "state": "DEV SOURCE CONSOLIDATED, RELEASE HOLD",
+    "state": "SOURCE_RC_VERIFIED; SIGNED_NEW_NATIVE_BINARY_AND_RELEASE_SEQUENCE_PENDING; PHYSICAL_DEVICE_QA_WAIVED_NOT_PASSED",
     "productionMigrated": false,
     "stagingOtaPublished": false,
     "productionOtaPublished": false,
