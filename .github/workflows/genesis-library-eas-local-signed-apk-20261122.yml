@@ -16,10 +16,14 @@ jobs:
   local-eas-signed:
     if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_2_0_4_LOCAL_SIGNED_BUILD:')
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 105
     env:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
+      # Release lint exhausted the Expo template's 512m JVM Metaspace on run 45010573841.
+      # Set daemon JVM args via Gradle's supported system property (not app source).
+      # Bounded heap + disabled parallel projects keep RAM under the GitHub runner.
+      GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx2304m -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8" -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2 -Dorg.gradle.daemon=false'
       APP_VARIANT: staging
       EXPO_PUBLIC_APP_ENV: staging
       BUKLOD_APP_TARGET: main
@@ -128,7 +132,10 @@ jobs:
         run: |
           set -euo pipefail
           npx --yes eas-cli@27.9.0 whoami --non-interactive >/dev/null
-          npx --yes eas-cli@27.9.0 build --platform android --profile season2-genesis-library-staging --local --non-interactive --output="$SIGNED_APK"
+          # Avoid another 3-hour hung Gradle daemon if a resource failure recurs.
+          test "${GRADLE_OPTS#*MaxMetaspaceSize=1536m}" != "$GRADLE_OPTS" || { echo 'BLOCK: Gradle Metaspace tuning missing'; exit 1; }
+          echo "GRADLE_JVM_MEMORY_CONFIGURED: heap=2304m metaspace=1536m workers=2 parallel=false"
+          timeout --signal=TERM --kill-after=30s 85m npx --yes eas-cli@27.9.0 build --platform android --profile season2-genesis-library-staging --local --non-interactive --output="$SIGNED_APK"
           test -s "$SIGNED_APK"
       - name: Verify original EAS certificate, versionCode, four worlds and APK provenance
         shell: bash

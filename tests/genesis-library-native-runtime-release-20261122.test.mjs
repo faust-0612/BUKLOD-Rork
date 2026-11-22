@@ -105,3 +105,14 @@ test('local signed APK verifier fails closed on any wrong signer, stale version 
  assert.match(source,/deviceQA:'NOT_PERFORMED'/);
  assert.match(source,/otaPublished:false/);
 });
+
+test('local EAS release build avoids known Gradle 512m Metaspace OOM and unbounded parallel workers',()=>{
+ const source=readFileSync(new URL('../.github/workflows/genesis-library-eas-local-signed-apk-20261122.yml',import.meta.url),'utf8');
+ assert.match(source,/GRADLE_OPTS: '-Dorg\.gradle\.jvmargs="/);
+ assert.match(source,/MaxMetaspaceSize=1536m/);
+ assert.match(source,/-Xmx2304m/);
+ assert.match(source,/org\.gradle\.workers\.max=2/);
+ assert.match(source,/org\.gradle\.parallel=false/);
+ assert.match(source,/timeout --signal=TERM --kill-after=30s 85m npx --yes eas-cli@27\.9\.0 build/);
+ assert.doesNotMatch(source,/MaxMetaspaceSize=512m/);
+});
