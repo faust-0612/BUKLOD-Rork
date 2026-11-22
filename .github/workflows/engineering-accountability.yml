@@ -37,7 +37,7 @@ jobs:
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/genesis-all-updates-conso-20261122.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_CONSOLIDATED_STAGING_SCOPE_GATE=true" >> "$GITHUB_ENV"
               fi;;
-            integration/genesis-unified-godot-native-staging-20261122|integration/genesis-native-governance-rc-20261122)
+            integration/genesis-unified-godot-native-staging-20261122|integration/genesis-native-governance-rc-20261122|integration/genesis-native-complete-conso-rc-20261122)
               # This is ONE explicitly scoped source-only Godot staging RC.
               # Never permit this on main, release branches or a different base.
               if [ "$PR_BASE" = "dev/arena-godot-native-migration-20261122" ]; then
