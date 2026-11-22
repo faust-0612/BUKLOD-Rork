@@ -19,7 +19,8 @@
     "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs",
     "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs",
     "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs",
-    ".buklod/scopes/genesis-restored-topbar-navigation-safearea-20261122.json"
+    ".buklod/scopes/genesis-restored-topbar-navigation-safearea-20261122.json",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
   ],
   "preserveBehaviors": [
     "App remains authenticated and scoped navigation boundaries unchanged.",
@@ -28,7 +29,8 @@
     "Home/Profile daily encouragement remain inside page scroll; no pinned second message.",
     "No AdMob unit, first-view ad, header sponsor logic, bottom banner, subscription or consent behavior changed.",
     "Desktop public shell continues to own desktop header; prevent duplicate.",
-    "No APK, OTA, Supabase schema, API or production mutation."
+    "No APK, OTA, Supabase schema, API or production mutation.",
+    "The legacy shared-header scroll contract now asserts that safe-area padding is provided by headerTopInset, not by separate scene padding."
   ],
   "acceptanceChecks": [
     "Focused Node top-bar/restored safe-area regression source tests PASS.",
@@ -38,7 +40,8 @@
   "regressionTests": [
     "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs",
     "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs",
-    "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs"
+    "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -56,16 +59,6 @@
       "reason": "Reuse protected global hamburger/search/notification routing in Genesis.",
       "preservedBehaviors": [
         "Auth/compliance/scope guards retained and search, notifications remain accessible."
-      ],
-      "tests": [
-        "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs"
-      ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "Restored existing header includes current wide-screen sponsored header; no ad logic changes.",
-      "preservedBehaviors": [
-        "All existing ad lifecycle, no-fill, first-view, finance/points unchanged."
       ],
       "tests": [
         "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs"
