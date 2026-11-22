@@ -33,3 +33,16 @@ test('Web-only DZAS fallback is isolated from existing native player and real Ad
   assert.match(player, /shouldPlayInBackground: true/);
   assert.match(player, /requestBuklodAudioFocus\('dzas'\)/);
 });
+
+test('Branch-only DZAS web RC compiles Expo bundle without publishing or touching native OTA', () => {
+  const workflow = read('.github/workflows/dzas-web-rc-compile-20261122.yml');
+  assert.match(workflow, /name: BUKLOD DZAS Web RC Compile \(NO PUBLISH\)/);
+  assert.match(workflow, /fix\/dzas-web-audio-fallback-20261122/);
+  assert.match(workflow, /node --test tests\/dzas-signal-deck-implementation\.test\.mjs/);
+  assert.match(workflow, /node --test tests\/dzas-web-production-deploy\.test\.mjs/);
+  assert.match(workflow, /npx tsc --noEmit/);
+  assert.match(workflow, /npx expo export --platform web --output-dir dist --clear/);
+  assert.match(workflow, /git rev-parse HEAD/);
+  assert.doesNotMatch(workflow, /eas-cli|eas deploy|eas update|--prod|vercel deploy|expo publish/);
+  assert.doesNotMatch(workflow, /EXPO_TOKEN|SUPABASE_SERVICE_ROLE|AD_MOB/);
+});
