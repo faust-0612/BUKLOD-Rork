@@ -48,10 +48,10 @@ test('approved UI fixes are present without deleting home ads and major tabs',()
 test('staging OTA publication workflow is staged-only and immutable-runtime verified',()=>{
  const workflow=read('.github/workflows/genesis-library-204-staging-ota-publish.yml');
  assert.match(workflow,/season2-genesis-library-preview/);
- assert.match(workflow,/2\\.0\\.4-genesis-library-godot/);
+ assert.match(workflow,/2\.0\.4-genesis-library-godot/);
  assert.match(workflow,/c413c1ec2e23f151af0123cefbd4209fbf612d1f/);
  assert.match(workflow,/channel:view production/);
  assert.match(workflow,/update --channel/);
  assert.match(workflow,/--platform android/);
- assert.doesNotMatch(workflow,/\\beas\\s+submit\\b|\\beas\\s+build\\b|\\bexpo\\s+publish\\b/);
+ assert.doesNotMatch(workflow,/\beas\s+submit\b|\beas\s+build\b|\bexpo\s+publish\b/);
 });

@@ -1,5 +1,10 @@
 name: BUKLOD Genesis 2.0.4 consolidated staging OTA source QA
 on:
+  push:
+    branches:
+      - release/genesis-library-204-conso-ota-20261122
+    paths:
+      - '.github/workflows/genesis-library-204-staging-ota-qa.yml'
   pull_request:
     branches:
       - audit/genesis-library-204-installed-apk-source-20261122
@@ -15,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   staging-ota-source:
-    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'release/genesis-library-204-conso-ota-20261122'
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && ((github.event_name == 'push' && github.ref == 'refs/heads/release/genesis-library-204-conso-ota-20261122') || (github.event_name == 'pull_request' && github.head_ref == 'release/genesis-library-204-conso-ota-20261122'))
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
