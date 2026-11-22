@@ -5,10 +5,14 @@
   "baseRef": "integration/genesis-unified-godot-native-staging-20261122",
   "chosenApproach": "Exact-base Git tree overlay of audited Arena-only gameplay additions into unified 2.0.3 Godot four-world pack, preserving owner-approved original world media, bump staging runtime to 2.0.4, and trigger one offline invalid-backend arm64 debug APK compile to isolate native issues before any EAS signer or release.",
   "allowedPaths": [
+    ".buklod/scopes/genesis-unified-arena-library-apk-20261122.json",
     ".github/workflows/arena-blender-asset-export-dev-20261122.yml",
     ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
+    ".github/workflows/genesis-library-build-receipt-20261122.yml",
     ".github/workflows/genesis-unified-library-offline-apk-20261122.yml",
+    "app.config.js",
     "docs/BUKLOD_ARENA_PREMIUM_VISUAL_BACKEND_DEV_20261122.md",
+    "eas.json",
     "godot/empire-arena/library/arena_intake_20261122.json",
     "godot/empire-arena/scripts/arena_audio.gd",
     "godot/empire-arena/scripts/arena_effects.gd",
@@ -29,10 +33,7 @@
     "tests/arena-library-godot-native-20261122.test.mjs",
     "tests/arena-library-modes-audio-20261122.test.mjs",
     "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
-    "tests/genesis-library-native-runtime-release-20261122.test.mjs",
-    "app.config.js",
-    "eas.json",
-    ".buklod/scopes/genesis-unified-arena-library-apk-20261122.json"
+    "tests/genesis-library-native-runtime-release-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
