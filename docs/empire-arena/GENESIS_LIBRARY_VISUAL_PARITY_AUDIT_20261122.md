@@ -32,3 +32,6 @@
 Both future signed full APK workflows call the strict visual-readiness gate before runner credentials or signing; this is intended to HOLD any incomplete new APK. The already-started earlier-source CI run is unaffected by this isolated draft branch.
 
 The companion read-only audit is `node scripts/genesis-arena-visual-readiness-20261122.mjs`; `--strict` intentionally fails while source graphics are incomplete. This is an implementation blocker report, not an APK creation command.
+
+## Ingestion and runtime wiring added
+The DEV source now resolves the exact 300 `item_id` values to a 1920x1440 atlas and maps original 8 Solar/Nebula minion artworks onto the existing five logical minion roles. The importer `scripts/ingest-buklod-arena-library-art.py` deterministically creates image assets from the original Library ZIPs without modifying the game's authoritative simulation. Those source image binaries are **NOT** in the GitHub branch: the signed-build release hold is intentionally active until the original 12-file handoff is imported into the actual source. Do not claim a finished APK or full premium terrain/structures until proven.

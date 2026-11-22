@@ -6,7 +6,7 @@
  * This is a native 2D offline PRACTICE pack, not a ranked game/client.
  */
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync, writeFileSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
@@ -127,6 +127,46 @@ const artManifest = JSON.parse(readFileSync(path.join(project, 'art/art_manifest
 assert.equal(Object.keys(artManifest.assets || {}).length, 65, 'Missing approved art atlas metadata');
 entries.push({ name: 'art/art_manifest.json',
   bytes: readFileSync(path.join(project, 'art/art_manifest.json')) });
+
+
+/* User Library original game art, matched to authenticated match-only IDs.
+ * The archived files must have been explicitly ingested into the repository.
+ * On older source / untrusted archives, retain the source-only preview, but
+ * strict signed-release preflight blocks until complete binaries are rendered.
+ */
+const minionAssetKeys=[
+  'solar_vanguard','solar_ranger','solar_mender','solar_siege_breaker',
+  'nebula_vanguard','nebula_ranger','nebula_mender','nebula_siege_breaker',
+];
+const extraArtNames=[
+  'art/drops/atlas.png','art/drops/atlas.json',
+  ...minionAssetKeys.map(id=>'art/minions/'+id+'.png'),
+];
+const libraryPresent=extraArtNames.map(name=>existsSync(path.join(project,name)));
+if(libraryPresent.some(Boolean)){
+  assert.ok(libraryPresent.every(Boolean),
+    'Partial original BUKLOD Library spritepack; refuse incomplete visuals');
+  const sheet=JSON.parse(readFileSync(path.join(project,'art/drops/atlas.json'),'utf8'));
+  assert.equal(sheet.schema,1);
+  assert.equal(sheet.count,300);
+  assert.equal(sheet.columns,20);
+  assert.equal(sheet.rows,15);
+  assert.equal(sheet.cellSize,96);
+  assert.deepEqual(new Set(Object.keys(sheet.items)),new Set(catalog.pickups.map(x=>x.id)),
+    'Source Library icon IDs must match the exact gameplay item catalog');
+  const atlasPng=readFileSync(path.join(project,'art/drops/atlas.png'));
+  assert.equal(atlasPng.readUInt32BE(16),1920);
+  assert.equal(atlasPng.readUInt32BE(20),1440);
+  for(const name of extraArtNames){
+    const bytes=readFileSync(path.join(project,name));
+    assert.ok(bytes.length>100 && bytes.length<4*1024*1024);
+    if(name.endsWith('.png')){
+      assert.ok(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),
+        'Approved user Library asset is not PNG: '+name);
+    }
+    entries.push({name,bytes});
+  }
+}
 
 // The same native pack includes owner-approved Kingdom, Community and House
 // visuals/SFX already in BUKLOD MAIN (no network download or external license).

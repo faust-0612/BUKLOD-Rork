@@ -25,6 +25,46 @@ var accumulator := 0.0
 var event_cursor := -1
 var flashes: Array[Dictionary] = []
 var art_cache: Dictionary = {}
+var drop_index_ready := false
+var drop_atlas_index: Dictionary = {}
+const DROP_CELL := 96.0
+
+# Original Library artwork is optional for legacy preview, but a mandatory
+# exact-ID asset in signed Genesis library builds (preflight fails closed).
+func _minion_art_id(actor: Dictionary) -> String:
+	var role: String = str(actor.get("kind", ""))
+	var visual_role: String = ""
+	match role:
+		"infantry", "warrior", "guardian":
+			visual_role = "vanguard"
+		"gunner", "mage", "archer", "scout":
+			visual_role = "ranger"
+		"healer":
+			visual_role = "mender"
+		"siege":
+			visual_role = "siege_breaker"
+		_:
+			return ""
+	var faction: String = "solar" if actor.get("team", "A") == "A" else "nebula"
+	return faction + "_" + visual_role
+
+func _load_drop_atlas_index() -> void:
+	if drop_index_ready:
+		return
+	drop_index_ready = true
+	const INDEX_PATH := "res://art/drops/atlas.json"
+	if not FileAccess.file_exists(INDEX_PATH):
+		return
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(INDEX_PATH))
+	if not parsed is Dictionary:
+		return
+	if int(parsed.get("schema", 0)) != 1 or int(parsed.get("count", 0)) != 300:
+		return
+	var items: Variant = parsed.get("items", {})
+	if not items is Dictionary or items.size() != 300:
+		return
+	drop_atlas_index = items
+
 var animator
 var effect_layer
 var audio_layer: Node
@@ -197,12 +237,24 @@ func _draw_actor(p: Dictionary) -> void:
 	var breath: float = sin(frames * (3.0 if is_hero else 5.0) + float(pos.x) * 0.15)
 	var shift := Vector2(0, breath * 1.2)
 	draw_circle(pos + Vector2(0, 8), large * 1.1, Color(0, 0, 0, 0.35))
-	draw_circle(pos + shift, large, color.darkened(0.35))
-	draw_circle(pos + shift - Vector2(0, large * 0.33), large * 0.62, color)
-	draw_line(pos + shift + Vector2(-large, 2), pos + shift + Vector2(-large * 1.55, 5 + breath * 2), color, 3.0)
-	draw_line(pos + shift + Vector2(large, 2), pos + shift + Vector2(large * 1.55, 5 - breath * 2), color, 3.0)
-	draw_circle(pos + shift - Vector2(large * 0.18, large * 0.36), 1.25, Color("#0c1f2c"))
-	draw_circle(pos + shift + Vector2(large * 0.18, -large * 0.36), 1.25, Color("#0c1f2c"))
+	var minion_texture: Texture2D = null
+	if p.get("library_minion", false):
+		var minion_id: String = _minion_art_id(p)
+		if not minion_id.is_empty():
+			minion_texture = _art("res://art/minions/" + minion_id + ".png")
+	if minion_texture != null:
+		# Faction-specific approved Solar/Nebula portrait; AI role is unchanged.
+		draw_texture_rect(minion_texture,
+			Rect2(pos + shift + Vector2(-large * 2.0, -large * 2.4),
+			Vector2(large * 4.0, large * 4.0)), false, Color(1, 1, 1, 0.98))
+	else:
+		draw_circle(pos + shift, large, color.darkened(0.35))
+	if minion_texture == null:
+		draw_circle(pos + shift - Vector2(0, large * 0.33), large * 0.62, color)
+		draw_line(pos + shift + Vector2(-large, 2), pos + shift + Vector2(-large * 1.55, 5 + breath * 2), color, 3.0)
+		draw_line(pos + shift + Vector2(large, 2), pos + shift + Vector2(large * 1.55, 5 - breath * 2), color, 3.0)
+		draw_circle(pos + shift - Vector2(large * 0.18, large * 0.36), 1.25, Color("#0c1f2c"))
+		draw_circle(pos + shift + Vector2(large * 0.18, -large * 0.36), 1.25, Color("#0c1f2c"))
 	if is_hero:
 		var hero_id: String = str(p.get("hero", "phan"))
 		var portrait: Texture2D = _art("res://art/sprite/" + hero_id + ".png")
@@ -302,12 +354,23 @@ func _draw_world() -> void:
 		_draw_actor(unit)
 	for hero in s["players"].values():
 		_draw_actor(hero)
+	_load_drop_atlas_index()
+	var drop_atlas: Texture2D = _art("res://art/drops/atlas.png") if not drop_atlas_index.is_empty() else null
 	for drop in s["loot"]:
 		var pos: Vector2 = drop["pos"] * PX
 		var pulse: float = 8.0 + sin(frames * 6 + pos.x) * 3.0
 		draw_circle(pos, pulse + 7, Color(0.99, 0.76, 0.35, 0.22))
-		draw_colored_polygon(PackedVector2Array([pos + Vector2(0, -pulse), pos + Vector2(pulse, 0),
-			pos + Vector2(0, pulse), pos + Vector2(-pulse, 0)]), Color("#ffdc74"))
+		var icon_pos: Array = drop_atlas_index.get(str(drop.get("item_id", "")), [])
+		if drop_atlas != null and icon_pos.size() == 2:
+			# Original user Library drop identity maps to this exact real icon.
+			var icon_cell := Vector2(int(icon_pos[0]) * DROP_CELL, int(icon_pos[1]) * DROP_CELL)
+			var size: float = pulse * 2.4
+			draw_texture_rect_region(drop_atlas,
+				Rect2(pos - Vector2.ONE * size * 0.5, Vector2.ONE * size),
+				Rect2(icon_cell, Vector2.ONE * DROP_CELL))
+		else:
+			draw_colored_polygon(PackedVector2Array([pos + Vector2(0, -pulse), pos + Vector2(pulse, 0),
+				pos + Vector2(0, pulse), pos + Vector2(-pulse, 0)]), Color("#ffdc74"))
 	for team in ["A", "B"]:
 		var seal: Dictionary = s["seals"][team]
 		var pos: Vector2 = Vector2(14 if team == "A" else s["w"] - 14, s["h"] * 0.5) * PX

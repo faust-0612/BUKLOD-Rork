@@ -19,7 +19,11 @@
     ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
     ".github/workflows/genesis-library-eas-signed-apk-20261122.yml",
     ".github/workflows/genesis-library-eas-local-signed-apk-20261122.yml",
-    "tests/genesis-arena-game-native-entry-20261122.test.mjs"
+    "tests/genesis-arena-game-native-entry-20261122.test.mjs",
+    "godot/empire-arena/scripts/arena_root.gd",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/ingest-buklod-arena-library-art.py",
+    "tests/genesis-arena-library-art-contract-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -43,13 +47,15 @@
         "The new library-native entry has bounded one-shot lifetime, no recursive launch"
       ],
       "tests": [
-        "tests/genesis-arena-game-native-entry-20261122.test.mjs"
+        "tests/genesis-arena-game-native-entry-20261122.test.mjs",
+        "tests/genesis-arena-library-art-contract-20261122.test.mjs"
       ]
     }
   ],
   "regressionTests": [
     "tests/genesis-arena-visual-readiness-20261122.test.mjs",
-    "tests/genesis-arena-game-native-entry-20261122.test.mjs"
+    "tests/genesis-arena-game-native-entry-20261122.test.mjs",
+    "tests/genesis-arena-library-art-contract-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "Older Genesis staging and production route/Expo runtime isolation",
@@ -63,7 +69,8 @@
     "Native missing 300 icons/8 minions/structures remains a hard release blocker",
     "No new signed artifact is generated; previously started signed build uses an older SHA and is not this visual source",
     "Inherited premium Godot workflow malformed trailing duplication blocked reliable CI; adopt previously verified PR #1121 exact YAML normalization without removing any valid step.",
-    "Both signed build routes intentionally HOLD until new asset/pack/render art parity; must not merge while missing Library binaries unless deliberately holding new signed builds."
+    "Both signed build routes intentionally HOLD until new asset/pack/render art parity; must not merge while missing Library binaries unless deliberately holding new signed builds.",
+    "Renderer path and builder logic are staged but approved binary assets must be imported into GitHub source before any signed candidate; physical GPU visual evidence remains required"
   ],
   "productionBaselineEvidence": "No main edit. Main production runtime 1.3.2 and existing signed Play app are out of scope. New staging development based on PR #1100 exact 351bbad6eb138692fb3197aa42ecb395110d160c.",
   "acceptanceChecks": [
@@ -72,7 +79,9 @@
     "Native-first route only when library 2.0.4 build and Godot flag both enabled",
     "No activity reopening loop; RN fallback intact; unchanged production guard",
     "Inherited premium Godot workflow has valid unique terminal no-release guard",
-    "Both future signed staging APK build routes fail closed before keystore/signing or paid EAS use if original art not rendered"
+    "Both future signed staging APK build routes fail closed before keystore/signing or paid EAS use if original art not rendered",
+    "All 300 canonical gameplay IDs exactly equal atlas item IDs and native pack copies 8 named faction PNGs when provided",
+    "Real native art renderer resolves 5 minion AI roles to original 4 visual archetypes per faction; no AI, wallet or rank changes"
   ],
-  "chosenApproach": "Use existing BUKLOD main React Native-authenticated route and new library-only one-shot Godot entry, preserve old native runtimes and fallback; audit exact original assets and fail closed before any subsequent signed APK build until minion/drop/structure graphics are truly rendered."
+  "chosenApproach": "Use existing BUKLOD main React Native-authenticated route and new library-only one-shot Godot entry, preserve old native runtimes and fallback; audit exact original assets and fail closed before any subsequent signed APK build until minion/drop/structure graphics are truly rendered. Prewire runtime minion role art and exact match-only pickup ID atlas, while retaining old practice fallbacks; signed APK remains blocked until actual approved Library binaries exist in the canonical source."
 }

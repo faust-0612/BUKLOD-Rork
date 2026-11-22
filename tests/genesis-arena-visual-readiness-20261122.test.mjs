@@ -61,3 +61,16 @@ test('Both full signed native build paths refuse missing Library graphics BEFORE
   assert.equal((workflow.match(/genesis-arena-visual-readiness-20261122\.mjs --strict/g)||[]).length,1);
  }
 });
+
+test('Native Godot scene uses source-owned item identity atlas and both faction minion images only when assets exist',()=>{
+ const script=readFileSync(new URL('../godot/empire-arena/scripts/arena_root.gd',import.meta.url),'utf8');
+ const pack=readFileSync(new URL('../scripts/build-empire-godot-pack.mjs',import.meta.url),'utf8');
+ assert.match(script,/_minion_art_id\(/);
+ assert.match(script,/res:\/\/art\/minions\//);
+ assert.match(script,/res:\/\/art\/drops\/atlas\.png/);
+ assert.match(script,/drop\.get\("item_id", ""\)/);
+ assert.match(script,/draw_texture_rect_region\(drop_atlas,/);
+ assert.match(pack,/Partial original BUKLOD Library spritepack/);
+ assert.match(pack,/assert\.deepEqual\(new Set\(Object\.keys\(sheet\.items\)\),new Set\(catalog\.pickups\.map\(x=>x\.id\)\)/);
+ assert.match(pack,/libraryPresent\.every\(Boolean\)/);
+});
