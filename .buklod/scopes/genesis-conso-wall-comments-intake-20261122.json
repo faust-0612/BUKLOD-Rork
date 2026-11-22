@@ -43,13 +43,13 @@
     "Never treat this DEV integration or source CI as proof of signed staging APK or completed OTA publication.",
     "Keep PR #1074 signed SOS APK runtime 2.0.1, isolated staging Supabase, real-device rescue QA and current production Season 2 embargo intact.",
     "Run compact date-time formatter Jest tests, wall-comment-navigation-compact and comment-ad-preservation Node tests, TypeScript/Android Metro + full staging QA before merge/release.",
-    "Dedicated existing AdMob protection test must pass after compact Thread updates, and real Android first-view fill remains an independent release gate."
+    "Dedicated existing AdMob protection test must pass after compact Thread updates, and real Android first-view fill remains an independent release gate.",
+    "The Jest formatter test remains in allowedPaths and runs in Jest/TypeScript QA; only runnable tests/*.test.mjs files appear in engineering regressionTests list."
   ],
   "regressionTests": [
     "tests/wall-network-feedback-20261117.test.mjs",
     "tests/wall-comments-progressive-loading-20261122.test.mjs",
     "tests/wall-comment-navigation-progressive-20261122.test.mjs",
-    "src/lib/__tests__/compactCommentDateTime.test.ts",
     "tests/wall-comment-ad-preservation-20261122.test.mjs",
     "tests/wall-comment-navigation-compact-20261122.test.mjs"
   ],
