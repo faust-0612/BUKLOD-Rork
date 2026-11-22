@@ -67,13 +67,16 @@ jobs:
           channel_rc=$?
           npx --yes eas-cli@27.9.0 update:list --all --json --non-interactive > /tmp/eas-updates.json 2>/tmp/eas-updates-err.txt
           update_rc=$?
+          npx --yes eas-cli@27.9.0 update:view 7411bd8d-5c80-47c5-b120-e52570768ce5 --json --non-interactive > /tmp/eas-group.json 2>/tmp/eas-group-err.txt
+          group_rc=$?
           set -e
-          export CHANNEL_RC="$channel_rc" UPDATE_RC="$update_rc"
+          export CHANNEL_RC="$channel_rc" UPDATE_RC="$update_rc" GROUP_RC="$group_rc"
           node <<'NODE'
           const fs=require('node:fs');
           function read(p){try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{return null}}
           const channel=read('/tmp/eas-channel.json');
           const updates=read('/tmp/eas-updates.json');
+          const group=read('/tmp/eas-group.json');
           const page=Array.isArray(updates?.currentPage)?updates.currentPage:Array.isArray(updates?.updates)?updates.updates:Array.isArray(updates)?updates:[];
           const normalize=u=>({
             id:u.group||u.id||null,
@@ -101,12 +104,42 @@ jobs:
             updateError:errorOf('/tmp/eas-updates-err.txt'),
             updateQueryExit:Number(process.env.UPDATE_RC),
             channelName:channel?.name||null,
+            channelItems:(Array.isArray(channel?.currentPage)?channel.currentPage:[]).slice(0,15).map(x=>({
+              name:x?.name||x?.branch?.name||x?.branchName||null,
+              branch:x?.branch?.name||x?.branchName||null,
+              group:x?.group||null,
+              keys:x&&typeof x==='object'?Object.keys(x).slice(0,12):[],
+            })),
             channelKeys:channel&&typeof channel==='object'?Object.keys(channel).slice(0,15):[],
             linkedBranches:channel?.branches?.map?.(x=>x.name||null)||null,
             updateKeys:updates&&typeof updates==='object'?Object.keys(updates).slice(0,15):[],
             updateCountOnReturnedPage:page.length,
             runtimeMatches:matches.slice(0,15),
-            queriesSucceeded:Number(process.env.CHANNEL_RC)===0 && Number(process.env.UPDATE_RC)===0,
+            matchedUpdateMetadata:page.filter(u=>(u.runtimeVersion||u.runtime?.version)==='2.0.4-genesis-library-godot').slice(0,8).map(u=>({
+              groupId:u.group||u.id||null,
+              branch:u.branch?.name||u.branchName||u.branch||null,
+              runtimeVersion:u.runtimeVersion||u.runtime?.version||null,
+              message:u.message||null,
+              createdAt:u.createdAt||null,
+              gitCommitHash:u.gitCommitHash||u.gitCommit?.hash||null,
+              keys:Object.keys(u).slice(0,20),
+            })),
+            groupQueryExit:Number(process.env.GROUP_RC),
+            groupError:errorOf('/tmp/eas-group-err.txt'),
+            groupKeys:group&&typeof group==='object'?Object.keys(group).slice(0,20):[],
+            groupMeta:group?{
+              id:group.group||group.id||null,
+              message:group.message||null,
+              branch:group.branch?.name||group.branchName||null,
+              updates:Array.isArray(group.updates)?group.updates.slice(0,6).map(u=>({
+                id:u.id||null,
+                runtimeVersion:u.runtimeVersion||u.runtime?.version||null,
+                platform:u.platform||null,
+                message:u.message||null,
+                gitCommitHash:u.gitCommitHash||null,
+              })):null,
+            }:null,
+            queriesSucceeded:Number(process.env.CHANNEL_RC)===0 && Number(process.env.UPDATE_RC)===0 && Number(process.env.GROUP_RC)===0,
             publishedByThisWorkflow:false,
             productionUntouched:true
           };
