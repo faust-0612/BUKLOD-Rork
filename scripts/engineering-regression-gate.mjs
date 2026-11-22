@@ -52,7 +52,9 @@ export function assessChanges(changedPaths, manifest = null, { consolidatedRc = 
   const cumulativeScope = consolidatedRc && (
     manifest?.releaseMode === 'consolidated-main-rc' ||
     (manifest?.releaseMode === 'consolidated-staging-source-hold' &&
-      manifest?.releaseStatus === 'DEV_SOURCE_ONLY_NEW_SIGNED_SOS_APK_AND_ISOLATED_BACKEND_REQUIRED')
+      ['DEV_SOURCE_ONLY_NEW_SIGNED_SOS_APK_AND_ISOLATED_BACKEND_REQUIRED',
+       'DEV_SOURCE_ONLY_NEW_SIGNED_GODOT_APK_AND_ISOLATED_BACKEND_REQUIRED']
+         .includes(manifest?.releaseStatus))
   );
   if (scopeChanges.length) {
     if (scopeChanges.length !== 1 && !cumulativeScope) failures.push('Only one new scope manifest is permitted per isolated PR.');
@@ -112,11 +114,21 @@ function runCli() {
     process.env.GITHUB_HEAD_REF === 'integration/genesis-all-updates-conso-staging-20261122' &&
     base === 'integration/season2-genesis-full-conso-staging-20261121' &&
     process.env.BUKLOD_SCOPE_MANIFEST === '.buklod/scopes/genesis-all-updates-conso-20261122.json';
+  // Exact Godot source branch only. This expands proof enumeration, not
+  // production publication or any release permission. Every changed scope
+  // must still be declared, and each protected area needs changed tests.
+  const nativeGodotSourceHold =
+    process.env.BUKLOD_CONSOLIDATED_STAGING_SCOPE_GATE === 'true' &&
+    ['integration/genesis-unified-godot-native-staging-20261122',
+     'integration/genesis-native-governance-rc-20261122',
+     'integration/genesis-native-complete-conso-rc-20261122'].includes(process.env.GITHUB_HEAD_REF) &&
+    base === 'dev/arena-godot-native-migration-20261122' &&
+    process.env.BUKLOD_SCOPE_MANIFEST === '.buklod/scopes/genesis-native-full-conso-gate-20261122.json';
   const cumulativeMainRc =
     process.env.BUKLOD_CONSOLIDATED_RC_GATE === 'true' &&
     base === 'main' &&
     ['integration/buklod-nov10-single-source-ota', 'integration/buklod-nov11-postprod-conso-ota', 'integration/buklod-nov11-complete-source-hold-20261111', 'integration/buklod-nov11-reconciled-ota-candidate', 'integration/buklod-nov11-igpat-marites-wonder-qmp-kingdommap-rc', 'release/buklod-prod-rc-staging-20261114', 'integration/nov16-current-wall-ads-zoom-rc-safe'].includes(process.env.GITHUB_HEAD_REF);
-  const cumulativeRc = cumulativeMainRc || stagingSourceHold;
+  const cumulativeRc = cumulativeMainRc || stagingSourceHold || nativeGodotSourceHold;
   const manifestPath = process.env.BUKLOD_SCOPE_MANIFEST;
   if (changedScope.length === 1 || (cumulativeRc && changedScope.includes(manifestPath))) {
     const selected = changedScope.length === 1 ? changedScope[0] : manifestPath;
@@ -124,8 +136,10 @@ function runCli() {
     catch { console.error('REGRESSION BLOCK: invalid selected scope JSON'); process.exitCode = 1; return; }
   }
   if (cumulativeRc && changedScope.length > 1) {
-    if (manifest?.releaseMode !== (stagingSourceHold ? 'consolidated-staging-source-hold' : 'consolidated-main-rc') || manifest?.scopeManifestPath !== manifestPath ||
-        (stagingSourceHold && manifest?.releaseStatus !== 'DEV_SOURCE_ONLY_NEW_SIGNED_SOS_APK_AND_ISOLATED_BACKEND_REQUIRED')) {
+    if (manifest?.releaseMode !== ((stagingSourceHold || nativeGodotSourceHold) ? 'consolidated-staging-source-hold' : 'consolidated-main-rc') ||
+        manifest?.scopeManifestPath !== manifestPath ||
+        (stagingSourceHold && manifest?.releaseStatus !== 'DEV_SOURCE_ONLY_NEW_SIGNED_SOS_APK_AND_ISOLATED_BACKEND_REQUIRED') ||
+        (nativeGodotSourceHold && manifest?.releaseStatus !== 'DEV_SOURCE_ONLY_NEW_SIGNED_GODOT_APK_AND_ISOLATED_BACKEND_REQUIRED')) {
       console.error('REGRESSION BLOCK: invalid consolidated release manifest selection'); process.exitCode = 1; return;
     }
     for (const scopedPath of changedScope.filter(p => p !== manifestPath)) {

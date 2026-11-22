@@ -1,0 +1,66 @@
+name: BUKLOD Arena Blender Original Asset Kit DEV Export
+on:
+  pull_request:
+    paths:
+      - 'scripts/generate-arena-blender-kit.py'
+      - 'tests/arena-premium-vfx-blender-backend-20261122.test.mjs'
+      - '.github/workflows/arena-blender-asset-export-dev-20261122.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  original-blender-asset-export:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install distribution Blender 4.x or 5.x only; no external assets
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends blender python3-numpy
+          blender --version | head -1 | grep -E 'Blender [45]\.'
+          blender --background --factory-startup --python-expr 'import numpy; print("BUKLOD_BLENDER_NUMPY_READY",numpy.__version__)' 2>&1 | grep -F 'BUKLOD_BLENDER_NUMPY_READY'
+      - name: Generate actual editable BUKLOD Blender assets and animated glTF 2.0
+        run: |
+          set -euo pipefail
+          blender --background --factory-startup --python scripts/generate-arena-blender-kit.py \
+            2>&1 | tee /tmp/buklod-blender-export.log
+          grep -F 'BUKLOD_BLENDER_KIT_EXPORTED' /tmp/buklod-blender-export.log
+          test -s godot/empire-arena/art3d/Buklod_Genesis_Arena_Kit.blend
+          test -s godot/empire-arena/art3d/Buklod_Genesis_Arena_Kit.glb
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, struct
+          glb=Path('godot/empire-arena/art3d/Buklod_Genesis_Arena_Kit.glb').read_bytes()
+          magic, version, total=struct.unpack_from('<4sII',glb,0)
+          assert magic==b'glTF' and version==2 and total==len(glb), 'Invalid glTF 2.0 binary'
+          length,ctype=struct.unpack_from('<I4s',glb,12)
+          assert ctype==b'JSON', 'glTF first chunk must be JSON'
+          data=json.loads(glb[20:20+length])
+          names={node.get('name','') for node in data.get('nodes',[])}
+          assert any(x.startswith('tower_A') for x in names), 'Missing A tower'
+          assert any(x.startswith('tower_B') for x in names), 'Missing B tower'
+          assert any(x.startswith('villager_A') for x in names), 'Missing A villager'
+          assert any(x.startswith('villager_B') for x in names), 'Missing B villager'
+          assert len(data.get('meshes',[])) >= 15, 'Missing environment geometry'
+          assert len(data.get('animations',[])) >= 1, 'Missing keyed living villagers'
+          print('BUKLOD_BLENDER_GLTF_PASS:',len(data['meshes']),
+                'meshes,',len(data['animations']),'animation clips,',len(names),'nodes')
+          PY
+          sha256sum godot/empire-arena/art3d/Buklod_Genesis_Arena_Kit.{blend,glb} | tee /tmp/buklod-blender-sha256.txt
+      - name: Preserve actual original Blender and Godot-importable art assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-genesis-original-blender-kit-dev
+          path: |
+            godot/empire-arena/art3d/Buklod_Genesis_Arena_Kit.blend
+            godot/empire-arena/art3d/Buklod_Genesis_Arena_Kit.glb
+          if-no-files-found: error
+          retention-days: 7
+      - name: DEV-only source, not a mobile release
+        run: echo 'Source-controlled Blender authoring + CI output only, not yet embedded in Android APK. No live data or production actions.'

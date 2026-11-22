@@ -106,6 +106,39 @@ class BuklodGenesisGodotModule : Module() {
         }
       }
     }
+    // Preview worlds are selected only through a fixed native enum. Any
+    // untrusted scope/profile/ledger values stay outside this engine process.
+    AsyncFunction("openBundledWorld") { world: String, promise: Promise ->
+      val activity = appContext.currentActivity
+      if (world !in setOf("kingdom", "community", "house") ||
+          activity == null || activity.isFinishing || activity.isDestroyed ||
+          activity.packageName != "org.mzbministry.buklod.staging") {
+        promise.resolve(false)
+      } else {
+        try {
+          val available = activity.assets.open("godot/empire-arena.zip").use { it.read() >= 0 }
+          if (!available) {
+            promise.resolve(false)
+          } else {
+            activity.runOnUiThread {
+              try {
+                if (activity.isFinishing || activity.isDestroyed) {
+                  promise.resolve(false)
+                } else {
+                  activity.startActivity(Intent(activity, GenesisGodotActivity::class.java)
+                    .putExtra(GenesisGodotActivity.EXTRA_BUNDLED_WORLD, world))
+                  promise.resolve(true)
+                }
+              } catch (_: Exception) {
+                promise.resolve(false)
+              }
+            }
+          }
+        } catch (_: Exception) {
+          promise.resolve(false)
+        }
+      }
+    }
     AsyncFunction("openApprovedPack") { privateFileUri: String, expectedSha256: String,
       promise: Promise ->
       val activity = appContext.currentActivity

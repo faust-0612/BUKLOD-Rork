@@ -121,3 +121,26 @@ test('Database reserve failure never starts a ranked match or gives counterfeit 
   assert.equal(h.coordinator.occupied.size,0);
   assert.ok(a.events.some(e=>e.type==='error'&&e.code==='match_setup_failed'));
 });
+
+
+test('Escrow reservation cancels and refunds when a participant disconnects mid-allocation',async()=>{
+  const h=harness(),a=fakeSession(41),b=fakeSession(42);
+  let releaseReservation;
+  h.coordinator.store.open=async x=>{
+    h.calls.open.push(x);
+    await new Promise(resolve=>{releaseReservation=resolve;});
+    return {accepted:true};
+  };
+  await h.coordinator.enqueue(a,'duel','genesis_rift');
+  const pending=h.coordinator.enqueue(b,'duel','genesis_rift');
+  assert.equal(typeof releaseReservation,'function','Escrow began asynchronously');
+  assert.equal(h.coordinator.occupied.get(a.userId).kind,'allocating');
+  h.coordinator.disconnect(a);
+  releaseReservation();
+  await pending;
+  assert.equal(h.calls.open.length,1);
+  assert.equal(h.calls.abort.length,1,'Escrow refunded via trusted server');
+  assert.equal(h.coordinator.matches.size,0,'No ghost live match');
+  assert.equal(h.coordinator.occupied.size,0,'Both seats become available');
+  assert.ok(b.events.some(x=>x.type==='error'&&x.code==='match_setup_failed'));
+});

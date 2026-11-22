@@ -12,6 +12,7 @@ import java.util.List;
 public final class GenesisGodotActivity extends GodotActivity {
   static final String EXTRA_APPROVED_PACK = "buklod_genesis_approved_pack";
   static final String EXTRA_BUNDLED_ARENA = "buklod_native_arena";
+  static final String EXTRA_BUNDLED_WORLD = "buklod_native_world";
   private static final String BUNDLED_ARENA_ASSET = "godot/empire-arena.zip";
 
   @Override
@@ -26,6 +27,24 @@ public final class GenesisGodotActivity extends GodotActivity {
         result.add(BUNDLED_ARENA_ASSET);
       } catch (java.io.IOException ignored) {
         // Fail closed. The Expo entrypoint checks asset presence before launch.
+      }
+      return result;
+    }
+    String world = getIntent().getStringExtra(EXTRA_BUNDLED_WORLD);
+    if (world != null) {
+      if (!world.equals("kingdom") && !world.equals("community") && !world.equals("house")) {
+        return result;
+      }
+      try (java.io.InputStream resource = getAssets().open(BUNDLED_ARENA_ASSET)) {
+        if (resource.read() < 0) return result;
+        result.add("--main-pack");
+        result.add(BUNDLED_ARENA_ASSET);
+        result.add("--scene");
+        result.add("res://scenes/WorldPreview.tscn");
+        result.add("--");
+        result.add("--buklod-world=" + world);
+      } catch (java.io.IOException ignored) {
+        // No fallback to internet or untrusted scene paths.
       }
       return result;
     }

@@ -1,0 +1,71 @@
+name: BUKLOD Arena Premium Godot Visual DEV QA
+on:
+  pull_request:
+    paths:
+      - 'godot/empire-arena/**'
+      - 'scripts/build-empire-godot-pack.mjs'
+      - 'scripts/generate-arena-blender-kit.py'
+      - 'tests/arena-premium-vfx-blender-backend-20261122.test.mjs'
+      - '.github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  approved-offline-renderer-smoke:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: '1'
+      BUKLOD_ARENA_RANKED_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse Blender 4.x authoring source and run focused DEV regression
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import ast, pathlib
+          source = pathlib.Path('scripts/generate-arena-blender-kit.py')
+          ast.parse(source.read_text(encoding='utf8'), filename=str(source))
+          print('Blender kit Python source parse PASS; actual Blender export not executed')
+          PY
+          node --test tests/arena-premium-vfx-blender-backend-20261122.test.mjs
+      - name: Build deterministic Godot practice pack and inspect 68 approved assets
+        run: |
+          set -euo pipefail
+          node scripts/build-empire-godot-pack.mjs --out=/tmp/buklod-premium-godot.zip
+          unzip -t /tmp/buklod-premium-godot.zip | tail -2
+          test "$(unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Ec '^art/(fullbody|sprite|scene)/')" = 68
+          for entry in scripts/arena_effects.gd scripts/hero_animation.gd shaders/arena_impact.gdshader tests/premium_smoke.gd; do
+            unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Fx "$entry"
+          done
+          mkdir -p /tmp/buklod-premium-game
+          unzip -q /tmp/buklod-premium-godot.zip -d /tmp/buklod-premium-game
+      - name: Compile real Godot 4.7.2 project and run native gameplay plus premium smoke
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            -o /tmp/buklod-godot-bin.zip
+          mkdir -p /tmp/buklod-godot-bin
+          unzip -q /tmp/buklod-godot-bin.zip -d /tmp/buklod-godot-bin
+          GODOT=$(find /tmp/buklod-godot-bin -type f -name 'Godot_*linux.x86_64' -print -quit)
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          "$GODOT" --version | grep -F '4.7.2'
+          "$GODOT" --headless --path /tmp/buklod-premium-game --editor --quit 2>&1 | tee /tmp/buklod-premium-compile.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/buklod-premium-compile.log; then exit 1; fi
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/smoke.gd 2>&1 | tee /tmp/buklod-game-smoke.log
+          grep -F 'BUKLOD_GODOT_SMOKE_PASS' /tmp/buklod-game-smoke.log
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/art_smoke.gd 2>&1 | tee /tmp/buklod-art-smoke.log
+          grep -F 'BUKLOD_GODOT_ART_PASS' /tmp/buklod-art-smoke.log
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/premium_smoke.gd 2>&1 | tee /tmp/buklod-premium-smoke.log
+          grep -F 'BUKLOD_GODOT_PREMIUM_SMOKE_PASS' /tmp/buklod-premium-smoke.log
+      - name: Enforce DEV-only, no native build or online ranked/production release
+        run: echo 'Godot headless/pack smoke only; Blender GLB and Android physical test remain required. No APK, EAS, OTA, production, or live Supabase mutation.'

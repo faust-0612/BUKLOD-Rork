@@ -82,7 +82,7 @@ function pushSafe(s,p,target,dx,dy,amount,skillStep){
 export function castStarterSkill(s,p,slot,action,ctx){
   const kit=STARTER_HERO_KITS[p.hero];if(!kit||!kit[slot]||!live(p))return null;
   if((p.effects.kitStunUntil||0)>s.elapsed)return null;
-  const now=s.elapsed,dir=direction(p,action),{hit,skillStep,log,shieldCap}=ctx;
+  const now=s.elapsed,dir=direction(p,action),{hit,skillStep,log,shieldCap,lineBlocked}=ctx;
   const intended=people(s).find(q=>q.id===action.targetId&&live(q));
   const nearFriend=(r)=>intended&&intended.team===p.team&&dist(p,intended)<=r?intended:
     allies(s,p,r).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
@@ -121,7 +121,7 @@ export function castStarterSkill(s,p,slot,action,ctx){
       if(accepted){setBuff(p,'Speed',.3,now+3000,now);record(log,s,'dash',p)}
       break;
     case 'beacon_mark': {
-      const q=nearEnemy(11.25);if(!q)break;
+      const q=nearEnemy(11.25);if(!q||lineBlocked(s,p,q))break;
       enemies(s,p,14).filter(a=>dist(a,q)<3).forEach(a=>{
         a.effects.kitMarkedUntil=now+5000;a.effects.kitMark=.15;
         a.effects.kitRevealedUntil=now+5000

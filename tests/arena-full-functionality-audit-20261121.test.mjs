@@ -92,23 +92,23 @@ test('actual damage feedback is HP lost, not overkill or unmitigated attack numb
  assert.equal(b.hp,0);
 });
 
-test('no dash/blink may tunnel through blocking rock or charge mana on blocked cast',()=>{
+test('Quin route dash cannot tunnel through blocking rock; beacon without target costs no mana',()=>{
  const s=practice('quin'),p=s.players.A0;
  const x=s.w/2,y=s.h/2;
  s.cover=[[x,y,2]];
  p.x=x-3.08;p.y=y;p.matchLevel=6;p.mana=120;
  const before=p.x,mp=p.mana,cd=p.cooldowns.secondary;
- assert.equal(command(s,p.id,{type:'skill',slot:'secondary',dx:1,dy:0}),false);
- assert.equal(p.x,before);assert.equal(p.mana,mp);assert.equal(p.cooldowns.secondary,cd);
  assert.equal(command(s,p.id,{type:'skill',slot:'primary',dx:1,dy:0}),false);
+ assert.equal(p.x,before);assert.equal(p.mana,mp);assert.equal(p.cooldowns.secondary,cd);
+ assert.equal(command(s,p.id,{type:'skill',slot:'secondary',dx:1,dy:0}),false);
  assert.equal(p.x,before);assert.equal(p.mana,mp);
  const unblocked=practice('quin');
  unblocked.players.A0.matchLevel=6;
- assert.equal(command(unblocked,'A0',{type:'skill',slot:'secondary',dx:1,dy:0}),true);
+ assert.equal(command(unblocked,'A0',{type:'skill',slot:'primary',dx:1,dy:0}),true);
 });
 
-test('hostile skill obeys line-of-sight and does not hit through solid terrain',()=>{
- const s=practice('ace'),a=s.players.A0,b=s.players.B0,x=s.w/2,y=s.h/2;
+test('Niel hostile skill obeys line-of-sight and does not hit through solid terrain',()=>{
+ const s=practice('niel'),a=s.players.A0,b=s.players.B0,x=s.w/2,y=s.h/2;
  s.cover=[[x,y,1]];
  a.x=x-2.4;a.y=y;b.x=x+2.4;b.y=y;
  const before=b.hp;
@@ -214,4 +214,16 @@ test('all animation/event subsystems remain bounded and nonauthoritative',()=>{
  assert.ok(voice.includes('setArenaVoiceDucking(false)'));
  assert.ok(voice.includes('speechGeneration'));
  assert.ok(voice.includes('endSpeech(generation)'));
+});
+
+test('Quin beacon mark does not pass through hard cover or charge for blocked cast',()=>{
+ const s=practice('quin'),p=s.players.A0,target=s.players.B0;
+ p.matchLevel=6;p.mana=120;target.x=p.x+6;target.y=p.y;
+ s.cover=[[p.x+3,p.y,1.2]];
+ const mana=p.mana,cd=p.cooldowns.secondary;
+ assert.equal(command(s,p.id,{type:'skill',slot:'secondary',targetId:target.id}),false);
+ assert.equal(p.mana,mana);assert.equal(p.cooldowns.secondary,cd);
+ s.cover=[];
+ assert.equal(command(s,p.id,{type:'skill',slot:'secondary',targetId:target.id}),true);
+ assert.ok(target.effects.kitMarkedUntil>s.elapsed);
 });

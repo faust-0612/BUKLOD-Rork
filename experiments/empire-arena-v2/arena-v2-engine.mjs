@@ -184,7 +184,7 @@ export function command(s,playerId,action={}){
   const slot=action.slot;if(!['primary','secondary','ultimate'].includes(slot)||slot==='secondary'&&p.matchLevel<3||slot==='ultimate'&&p.matchLevel<6)return false;
   const cd=(starterSkillCooldown(p.hero,slot)??{primary:5800,secondary:11000,ultimate:38000}[slot])/(1+Math.min(.2,p.itemMastery*.04)+gearOf(p).cooldown);const manaCost={primary:18,secondary:14,ultimate:55}[slot];if(s.elapsed-p.cooldowns[slot]<cd||p.mana<manaCost)return false;
   const hero=HEROES[p.hero],target=action.targetId?owner(s,action.targetId):closeEnemy(s,p,8);
-  const kitResult=STARTER_HERO_KITS[p.hero]?castStarterSkill(s,p,slot,action,{hit,skillStep,log,shieldCap}):null;
+  const kitResult=STARTER_HERO_KITS[p.hero]?castStarterSkill(s,p,slot,action,{hit,skillStep,log,shieldCap,lineBlocked}):null;
   let success=Boolean(kitResult);
   if(!STARTER_HERO_KITS[p.hero]){
   if(slot==='secondary'){const dx=Number(action.dx)||1,dy=Number(action.dy)||0;success=skillStep(s,p,dx,dy,4);if(success)log(s,'dash',{actor:p.id,x:p.x,y:p.y})}

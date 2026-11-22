@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
+import {openBundledBuklodWorld,type BuklodGodotWorld} from '../../../../modules/buklod-genesis-godot';
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
 import {getDevelopmentAsset,getDevelopmentStageAsset} from './developmentAssetManifest';
 import Season2CommunityFacilities from './Season2CommunityFacilities';
@@ -247,6 +248,22 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
     onPanResponderTerminate:()=>{pan.flattenOffset();pan.setValue(panBase.current);},
   }),[zoom,width,sceneHeight,pan]);
   const decoration = useMemo(()=>[0,1,2,3,4,5],[]);
+  const nativeWorldPreview = Platform.OS==='android' &&
+    process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW==='true' &&
+    process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS==='true';
+  const [nativeWorldOpening,setNativeWorldOpening]=useState(false);
+  const [nativeWorldError,setNativeWorldError]=useState('');
+  const openNativeWorld = async (target:BuklodGodotWorld)=>{
+    if (!nativeWorldPreview || nativeWorldOpening) return;
+    setNativeWorldOpening(true);setNativeWorldError('');
+    try {
+      if (!(await openBundledBuklodWorld(target))) {
+        setNativeWorldError('Native world unavailable; original BUKLOD world remains usable.');
+      }
+    } catch {
+      setNativeWorldError('Unable to enter native world. Original BUKLOD world remains usable.');
+    } finally {setNativeWorldOpening(false);}
+  };
   return (
     <View style={styles.root}>
       <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={[styles.content,{paddingTop:Math.max(12,topSafeArea+8),paddingBottom:Math.max(30,insets.bottom+28)}]} showsVerticalScrollIndicator={false}>
@@ -261,6 +278,19 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
             <Text style={styles.subtitle}>{desc}</Text>
           </View>
         </View>
+        {nativeWorldPreview?<View style={{flexDirection:'row',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+          <Pressable accessibilityRole="button" accessibilityLabel={'Explore Godot '+(world==='home'?'House':'Community')+' preview'} disabled={nativeWorldOpening}
+            onPress={()=>void openNativeWorld(world==='home'?'house':'community')}
+            style={{borderRadius:12,borderWidth:1,borderColor:'#8CE0BC',paddingHorizontal:14,paddingVertical:9,backgroundColor:'#173D37'}}>
+            <Text style={{color:'#F1FFEB',fontWeight:'800'}}>GODOT {world==='home'?'HOUSE':'COMMUNITY'} PREVIEW</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Explore Godot Kingdom preview" disabled={nativeWorldOpening}
+            onPress={()=>void openNativeWorld('kingdom')}
+            style={{borderRadius:12,borderWidth:1,borderColor:'#8CE0BC',paddingHorizontal:14,paddingVertical:9,backgroundColor:'#173D37'}}>
+            <Text style={{color:'#F1FFEB',fontWeight:'800'}}>GODOT KINGDOM PREVIEW</Text>
+          </Pressable>
+          {nativeWorldError?<Text style={{color:'#FFE9BB'}}>{nativeWorldError}</Text>:null}
+        </View>:null}
         {world==='village'?<View style={styles.scopePanel}>
           <Text style={styles.panelTitle}>My Community · Verified scope</Text>
           {!communityScopes.length?<Pressable accessibilityRole="button" accessibilityLabel="Discover Clusters"

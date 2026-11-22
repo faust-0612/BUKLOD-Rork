@@ -34,3 +34,21 @@ export async function openBundledEmpireArena(): Promise<boolean> {
     return false;
   }
 }
+
+/** Native only, additional guarded worlds in the same BUKLOD MAIN APK.
+ * Never accepts a server URL, script source, path, or economy mutation.
+ */
+export type BuklodGodotWorld = 'kingdom' | 'community' | 'house';
+export async function openBundledBuklodWorld(world: BuklodGodotWorld): Promise<boolean> {
+  if (Platform.OS !== 'android' ||
+      process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW !== 'true' ||
+      process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED !== 'true' ||
+      process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS !== 'true' ||
+      !(['kingdom','community','house'] as string[]).includes(world)) return false;
+  try {
+    const api = requireOptionalNativeModule<{openBundledWorld: (w: string) => Promise<boolean>}>('BuklodGenesisGodot');
+    return (await api?.openBundledWorld(world)) ?? false;
+  } catch {
+    return false;
+  }
+}

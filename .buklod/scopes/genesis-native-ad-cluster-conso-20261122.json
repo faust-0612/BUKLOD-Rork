@@ -1,0 +1,132 @@
+{
+  "contractVersion": 2,
+  "objective": "Carry latest verified non-Season 2 production candidate ad first-view timeout recovery, exact Cluster Admin Check In Today verification and safe lesson/mentoring improvements into the SINGLE four-world native Godot staging source without replacing Genesis dashboard, PTT, SOS or existing native runtime.",
+  "baseRef": "integration/genesis-unified-godot-native-staging-20261122",
+  "productionBaselineEvidence": "Live production BUKLOD Main app org.mzbministry.buklod runtime 1.3.2 served Expo update 01a1fcb7-bee4-71cc-8c60-e732c0a255fa with bundle hash 3CTOmRqorDvy9IYEsCI7DWRwuOWGbe7GAKt2rBnJkwg on 2026-11-22T02:51:58Z, source SHA not established. Production Supabase yhanxndaqbmuzbdqlblu remains unmodified, new Cluster review RPC absent and older system-admin review RPC still installed. Native staging source runtime 2.0.3-genesis-unified-godot on package org.mzbministry.buklod.staging; this PR adds code only, does not publish EAS OTA.",
+  "chosenApproach": "Forward-port exact reviewed, bounded source changes from PR #1087 into canonical unified Godot staging source. For target files identical to main, copy exact reviewed production candidate blobs; for divergent Genesis routes/dashboard use minimal route+button insertion; for mentor evidence/lesson validation deliberately adopt newer server-verified receipt and permission-checked catalog; preserve staging PTT, SOS, admin new-user inbox and more correct UUID notification parser.",
+  "selectionRationale": "One native staging APK source should contain original AdMob fail-safe, Cluster Admin check-in correction and accessible mentoring, without bringing in untested native/production server authority. Explicit scope and tests prevent regression and isolate source from shared live backend.",
+  "alternativeApproaches": [
+    "Merge the entire production source branch into Godot staging blindly: rejected due conflicting Genesis routes, notification parser and native package/runtime.",
+    "Ship old native Godot staging with ad/attendance fixes omitted: rejected due known first-view ad timeout and admin-ownership regression.",
+    "Apply new Cluster Admin/mentor catalog SQL directly to shared production for staging tests: rejected because privilege and user data integrity must be preserved."
+  ],
+  "allowedPaths": [
+    "src/app/_layout.tsx",
+    "src/app/admin/points-r2-monitor.tsx",
+    "src/app/clusters/home-checkin-review.tsx",
+    "src/app/clusters/scope-manage.tsx",
+    "src/app/faith/mentor-evidence.tsx",
+    "src/app/learn/[id].tsx",
+    "src/app/learn/lesson.tsx",
+    "src/app/mentoring/index.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodHomeCheckinToday.tsx",
+    "src/components/LearningQuestionResponse.tsx",
+    "src/lib/buklodAdminPriority.ts",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/lib/buklodNativeAdRecovery.ts",
+    "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql",
+    "supabase/migrations/20261122090000_cluster_scoped_home_checkin_review_v1.sql",
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    ".buklod/scopes/genesis-native-ad-cluster-conso-20261122.json"
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "faith-cluster",
+    "ads-monetization",
+    "backend-security",
+    "mentor-reporting"
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preserve BUKLOD native host, account lifecycle, in-app four-world navigation and original AdMob behavior while applying JS-only first-view recovery and scoped verification.",
+      "preservedBehaviors": [
+        "Staging native runtime 2.0.3 and Godot pack remain unmodified by this work; production runtime 1.3.2 unchanged.",
+        "Existing member check-in, PTT, SOS and wall content remain accessible."
+      ],
+      "tests": [
+        "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Add exact-scope Cluster Admin review stack entry without overwriting Genesis-specific app navigation.",
+      "preservedBehaviors": [
+        "All original home, Wall, Profile, Connect, Kingdom, Arena and Godot staging routes remain available.",
+        "Non-admins still fail closed and PTT routes preserve session identity."
+      ],
+      "tests": [
+        "tests/buklod-cluster-checkin-navigation-scroll.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cluster Home/Manage now expose verification only to exact authorized active Cluster Admin while preserving previously submitted attendance and mentoring scope.",
+      "preservedBehaviors": [
+        "All live event attendance forms and 29-member Cluster snapshots retain their existing submit/visibility behavior.",
+        "Show Faith, lessons, Mentor evidence and current per-scope roles stay server-owned and compatible."
+      ],
+      "tests": [
+        "tests/buklod-cluster-home-checkin-review.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add isolated-scoped Cluster review and mentor catalog SQL migrations with row lock, active role checks, one-time points and rejection audits.",
+      "preservedBehaviors": [
+        "No production Supabase or payout ledger mutations, BP/diamonds, payouts or historical check-ins are changed.",
+        "Normal member submissions, atomic unique ledger source and checked-in-at fields remain intact."
+      ],
+      "tests": [
+        "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+        "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Godot 4.7.2 native Arena, Kingdom, Community and House remain inside one BUKLOD MAIN staging app; no standalone APK.",
+    "13 original heroes, 300 match-only pickups, approved art, shader audio, premium VFX and ranked server escrow guards preserved.",
+    "AdMob real SDK impression accounting, consent, passive request cooldown, first-view prefetch, native ad lifecycle and protected route gating remain.",
+    "Stage has up-to-date PTT settings and Stop, admin new-user inbox, OTA next cold-start and native SOS source; do not overwrite better staged UUID parsing.",
+    "Lesson and mentoring responses are reviewed without permanent failed grades, unlimited retry, trusted receipt and active mentor capability check.",
+    "Source diff is staging only; physical-device verification waived by owner but remains UNTESTED. Signed EAS APK, Play and production OTA are not claimed."
+  ],
+  "acceptanceChecks": [
+    "Protected exact-path governance and all changed regression proofs pass on this PR head.",
+    "Godot/RN TypeScript, Android Metro, first-view ad fallback, Cluster Admin access and mentor catalog source tests pass.",
+    "Isolated PostgreSQL 17 contract proves no self-approval, no cross-cluster access, revoked/left admin denied, one +10BP ledger idempotency.",
+    "Latest production NativeAd 3-distinct-failure fallback and banner safe recovery do not bypass consent, cooldown, impression or test IDs.",
+    "Do not apply new SQL to shared Supabase production until exact staged authenticated/RLS/security verification; no auto-BP grant.",
+    "Physical device QA waived only for this request (UNTESTED); no signed native APK or OTA publish before native runtime, package, user update and source completeness gates."
+  ],
+  "verification": {
+    "physicalDeviceQA": "WAIVED_BY_OWNER_NOT_PASSED_2026_11_22",
+    "backend": "NOT_DEPLOYED",
+    "signedNativeAPK": "NOT_BUILT_OR_RELEASED",
+    "productionOTA": "NOT_PUBLISHED"
+  }
+}
