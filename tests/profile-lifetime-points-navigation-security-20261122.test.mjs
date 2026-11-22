@@ -16,6 +16,7 @@ test('own Profile uses canonical earned lifetime BP with large golden card', () 
   assert.match(own, /useProfileFocusEffect\(useProfileFocusCallback\(\(\) => \{/);
   assert.match(hero, /testID="profile-lifetime-gold-card"/);
   assert.match(hero, /fontSize: 42/);
+  assert.match(hero, /color: '#986100'/);
   assert.match(hero, /colors=\{\['#FFF8DB', '#F9DF96', '#F1CA68'\]\}/);
   assert.match(hero, /Number\.isSafeInteger\(points\)/);
   assert.match(hero, /const formatted = verified \? numberFormat\.format\(points\) : '—'/);

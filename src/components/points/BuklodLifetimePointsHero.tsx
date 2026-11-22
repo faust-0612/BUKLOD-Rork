@@ -77,7 +77,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   value: {
-    color: '#6B4311',
+    color: '#986100',
+    textShadowColor: 'rgba(255,255,255,0.7)',
+    textShadowRadius: 1,
     fontSize: 42,
     lineHeight: 50,
     fontWeight: '900',
