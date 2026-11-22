@@ -97,6 +97,103 @@ test('defender and rhythm controls remove the right approaching object',()=>{
   assert.ok(s.score>0);
 });
 
+
+test('endless challenge tiers grow, remain playable, and avoid repeating nearby procedural layouts',()=>{
+  const {stageConfig,arcadeStagePoints,CHALLENGES,MAX_STAGE}=rules;
+  assert.equal(CHALLENGES.length,8);
+  assert.equal(stageConfig('catch',1).goal<stageConfig('catch',50).goal,true);
+  assert.ok(stageConfig('catch',MAX_STAGE).goal<=30);
+  assert.ok(stageConfig('rhythm',MAX_STAGE).spawnInterval>=3);
+  assert.ok(stageConfig('runner',MAX_STAGE).speed<=0.82);
+  assert.ok(arcadeStagePoints(500)>arcadeStagePoints(10));
+  assert.notEqual(startArcade('runner',33,5).seed,startArcade('runner',33,6).seed);
+  let s=startArcade('rhythm',17,25);
+  for(let i=0;i<180;i++){
+    s=tickArcade({...s,lives:4,remaining:1000});
+    const recent=s.lastPatterns;
+    assert.equal(new Set(recent).size,recent.length,'no short-range spawn repeat');
+  }
+  assert.ok(s.entitySeq>8);
+});
+
+test('game-only points and score rise across stage clears without double-settling',()=>{
+  let s=startArcade('tap',91,12);
+  const initial=s.score;
+  for(let i=0;i<90&&s.status==='playing';i++){
+    s=actArcade(s,'cell',s.cell);
+    for(let j=0;j<3&&s.status==='playing';j++)s=tickArcade(s);
+  }
+  assert.equal(s.status,'clear');
+  assert.ok(s.score>initial);
+  assert.ok(s.stageBonus>0);
+  assert.ok(s.stagePoints>=s.stageBonus);
+  const result=tickArcade(s);
+  assert.deepEqual(result,s,'clear state cannot grant stage bonus twice');
+  const next=nextArcadeStage(s);
+  assert.equal(next.stage,13);
+  assert.ok(next.multiplier>=s.multiplier);
+  assert.equal(next.score,s.score);
+  assert.equal(next.stagePoints,0);
+});
+
+test('account-local arcade mastery unlocks each stage exactly once without replay farming',()=>{
+  const {blankArcadeProgress,normalizeArcadeProgress,clearArcadeStage}=
+    require('../src/features/games/kingdom/arcade/arcadeProgressCore.js');
+  const id='angel-treasure-rush';
+  const blank=blankArcadeProgress(id);
+  assert.equal(blank.unlockedStage,1);
+  assert.equal(blank.lifetimeArcadePoints,0);
+  const first=clearArcadeStage(blank,id,1,300,'run-abc123.stage:1','2026-11-22T12:00:00Z');
+  assert.equal(first.unlockedStage,2);
+  assert.ok(first.lifetimeArcadePoints>0);
+  assert.equal(first.clearCount,1);
+  const dupe=clearArcadeStage(first,id,1,900,'run-abc123.stage:1','2026-11-22T12:01:00Z');
+  assert.equal(dupe.lifetimeArcadePoints,first.lifetimeArcadePoints);
+  const replay=clearArcadeStage(dupe,id,1,999,'run-abc124.stage:1','2026-11-22T12:02:00Z');
+  assert.equal(replay.lifetimeArcadePoints,first.lifetimeArcadePoints);
+  assert.equal(replay.bestRunScore,999);
+  assert.throws(()=>clearArcadeStage(replay,id,4,1000,'run-skip123.stage:4','now'),/Stage must be unlocked/);
+  const second=clearArcadeStage(replay,id,2,1100,'run-abc125.stage:2','2026-11-22T12:03:00Z');
+  assert.equal(second.unlockedStage,3);
+  assert.equal(second.lifetimeArcadePoints,
+    first.lifetimeArcadePoints+rules.arcadeStagePoints(2));
+  const foreign=normalizeArcadeProgress('angel-vault-escape',second);
+  assert.equal(foreign.unlockedStage,1,'game IDs isolate mastery');
+});
+
+test('invalid stage receipts, corrupted progress and duplicate checkpoint records fail closed',()=>{
+  const {blankArcadeProgress,normalizeArcadeProgress,clearArcadeStage}=
+    require('../src/features/games/kingdom/arcade/arcadeProgressCore.js');
+  const id='angel-treasure-rush';
+  const bad=normalizeArcadeProgress(id,{version:1,gameId:id,unlockedStage:99999999,
+    lifetimeArcadePoints:-1,bestRunScore:Infinity,clearCount:NaN});
+  assert.equal(bad.unlockedStage,1);
+  assert.equal(bad.lifetimeArcadePoints,0);
+  assert.equal(bad.bestRunScore,0);
+  assert.throws(()=>clearArcadeStage(blankArcadeProgress(id),id,1,10,'short','now'),/receipt/);
+  assert.throws(()=>clearArcadeStage(blankArcadeProgress(id),id,2,10,'run-abcdef.stage:2','now'),/unlocked/);
+  assert.throws(()=>rules.startArcade('tap',1,Number.MAX_SAFE_INTEGER),/stage/);
+});
+
+test('premium arcade effects are bounded, local and never own a BP minting path',()=>{
+  const screen=read('src/features/games/kingdom/arcade/ArcadeGameV1.tsx');
+  const visuals=read('src/features/games/kingdom/arcade/ArcadePremiumFX.tsx');
+  const progress=read('src/features/games/kingdom/arcade/arcadeProgressStore.ts');
+  assert.match(screen,/readArcadeProgress/);
+  assert.match(screen,/checkpointArcadeStage/);
+  assert.match(screen,/STATION_SFX/);
+  assert.match(screen,/playRorkSignatureSfx/);
+  assert.match(screen,/ArcadeMovingItem/);
+  assert.match(screen,/ArcadePremiumFX/);
+  assert.match(screen,/ownerRef\\.current!==ownerId/);
+  assert.match(screen,/setPhase\\('ready'\\)/);
+  assert.match(visuals,/useNativeDriver:true/);
+  assert.match(visuals,/react-native-svg/);
+  assert.match(visuals,/Array\\.from\\(\\{length:8\\}/);
+  assert.match(progress,/@buklod\\/kingdom\\/arcade-stage-v1/);
+  assert.doesNotMatch(progress,/rpc\\(|supabase\\.from\\(/i);
+});
+
 test('arcades stay in local game-only records; original verified mastery untouched',()=>{
   const screen=read('src/features/games/kingdom/arcade/ArcadeGameV1.tsx');
   const center=read('src/features/games/kingdom/platform/KingdomInteriorCenter.tsx');
