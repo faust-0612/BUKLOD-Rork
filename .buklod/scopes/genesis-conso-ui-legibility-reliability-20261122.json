@@ -39,12 +39,8 @@
     "No production publication or approval of Season 2 and no fake staging OTA announcement."
   ],
   "regressionTests": [
-    "tests/genesis-arena-game-touch-readability-20261122.test.mjs",
     "tests/genesis-conso-ui-legibility-reliability-20261122.test.mjs",
-    "tests/season2-arena-responsive-navigation-20261121.test.mjs",
-    "tests/season2-estate-asset-customization-20261121.test.mjs",
-    "tests/genesis-world-navigation-regression-20261121.test.mjs",
-    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs"
+    "tests/genesis-arena-game-touch-readability-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -72,5 +68,10 @@
     "Node focused UI regression suite and existing map/Arena/theme/no-AdMob regression tests pass.",
     "TypeScript, protected feature gate, compact UI gate and production embargo remain passing.",
     "Physical Android light/dark screenshots, touchscreen checks, real ad/nav and exact staging RC receipt remain required before OTA."
+  ],
+  "alternativeApproaches": [
+    "Force global light-theme Cards rejected because it breaks Wall, Connect and AdMob appearance.",
+    "Trust a local-only announcement save rejected because other members cannot see it and UI would falsely claim success.",
+    "Broaden to all app screens in one release rejected because it would threaten unrelated navigation, ads and gameplay; use a source-scoped correction with independent regression coverage."
   ]
 }
