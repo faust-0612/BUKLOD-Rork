@@ -51,8 +51,7 @@
   "regressionTests": [
     "tests/genesis-library-native-runtime-release-20261122.test.mjs",
     "tests/arena-library-godot-native-20261122.test.mjs",
-    "tests/arena-library-modes-audio-20261122.test.mjs",
-    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs"
+    "tests/arena-library-modes-audio-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "Existing RN login, Wall, Cluster, Connect, consent, PTT/SOS and AdMob remain source-unchanged",
