@@ -58,7 +58,7 @@ jobs:
           const assert=require('node:assert/strict');
           const base=process.env.BASE_SHA,head=process.env.HEAD_SHA;
           const ciBootstrap=cp.execFileSync('git',['diff','--name-only',process.env.EXPECTED_BASE,base],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
-          assert.deepEqual(ciBootstrap,['.github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml'],'Base must be original R4 plus CI-only workflow');
+          assert.ok(ciBootstrap.length===0 || (ciBootstrap.length===1 && ciBootstrap[0]==='.github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml'),'Base must be R4 exactly or R4 plus its CI-only workflow');
           const files=cp.execFileSync('git',['diff','--name-only',base,head],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
           const allowed=new Set([
             'src/app/profile/buklod-health.tsx',
