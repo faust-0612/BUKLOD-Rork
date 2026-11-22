@@ -4,6 +4,8 @@
 class_name BuklodArenaSimulation
 extends RefCounted
 
+const LIBRARY_SKILLS = preload("res://scripts/arena_library_skills.gd")
+const LIBRARY_ACTORS = preload("res://scripts/arena_library_actors.gd")
 const STEP := 0.1
 const PICKUP_CAP := 24
 const PICKUP_LIFETIME := 45.0
@@ -29,7 +31,9 @@ func _init() -> void:
 
 func available() -> bool:
 	return config.has("heroes") and config.has("maps") and config.has("pickups") \
-		and config["heroes"].size() == 13 and config["pickups"].size() == 300
+		and config["heroes"].size() == 13 and config["pickups"].size() == 300 \
+		and config.has("library") and config["library"].get("practiceOnly", false) \
+		and config["library"]["heroes"].size() == 7
 
 func begin(mode: String = "cluster", hero: String = "phan",
 		map_id: String = "genesis_rift", solo: bool = false,
@@ -103,9 +107,7 @@ func begin(mode: String = "cluster", hero: String = "phan",
 						h * 0.5 + (-8.0 if definition == "barracks" else 8.0)),
 					"hp": float(config["buildings"][definition]["hp"]),
 					"alive": true, "progress": 1.0, "status": "operational"})
-			for i in range(2):
-				state["units"].append(_new_unit("v" + team + str(i), team, "villager",
-					Vector2(21.0 if team == "A" else w - 21.0, h * 0.5 + (6.0 if i else -6.0))))
+			LIBRARY_ACTORS.seed_villagers(self, team)
 		for site in ["A", "B", "CENTER"]:
 			for i in range(3):
 				var type: String = ["wood", "gold", "stone"][i]
@@ -184,6 +186,8 @@ func _blocked(pos: Vector2, radius: float = 1.0) -> bool:
 func _move(a: Dictionary, delta: Vector2, speed: float) -> bool:
 	if not _alive(a) or delta.length_squared() < 0.0025:
 		return false
+	if a.get("kind", "") == "hero" and float(a.get("buffs", {}).get("stun", {}).get("until", 0)) > float(state["time"]):
+		return false
 	var direction := delta.normalized()
 	var distance := speed * STEP
 	# Sweep through the terrain; blink and dash cannot bypass world collision.
@@ -218,9 +222,21 @@ func _xp(a: Dictionary, amount: float) -> void:
 func _hit(p: Dictionary, target: Dictionary, damage: float) -> bool:
 	if not _alive(p) or not _alive(target) or p["team"] == target["team"]:
 		return false
-	var absorbed: float = minf(float(target.get("shield", 0.0)), damage)
+	# Library debuffs/defense are resolved in the one practice damage path.
+	# Untrusted effects never bypass damage caps or award persistent currency.
+	var incoming: float = clampf(damage, 0.0, 300.0)
+	var attacker_buffs: Dictionary = p.get("buffs", {})
+	var defender_buffs: Dictionary = target.get("buffs", {})
+	var now: float = float(state["time"])
+	if float(attacker_buffs.get("weaken", {}).get("until", 0)) > now:
+		incoming *= 1.0 - clampf(float(attacker_buffs["weaken"]["strength"]), 0.0, 0.3)
+	if float(attacker_buffs.get("fury", {}).get("until", 0)) > now:
+		incoming *= 1.0 + clampf(float(attacker_buffs["fury"]["strength"]), 0.0, 0.3)
+	if float(defender_buffs.get("guard", {}).get("until", 0)) > now:
+		incoming *= 1.0 - clampf(float(defender_buffs["guard"]["strength"]), 0.0, 0.4)
+	var absorbed: float = minf(float(target.get("shield", 0.0)), incoming)
 	target["shield"] = maxf(0.0, float(target.get("shield", 0.0)) - absorbed)
-	var actual: float = maxf(0.0, damage - absorbed)
+	var actual: float = maxf(0.0, incoming - absorbed)
 	target["hp"] = maxf(0.0, float(target["hp"]) - actual)
 	p["hits"] = int(p.get("hits", 0)) + 1
 	_log("damage", {"from": p["id"], "to": target["id"], "amount": actual, "pos": target["pos"]})
@@ -328,6 +344,11 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 		return false
 	var skill: Dictionary = config["starter"].get(p["hero"], {}).get(slot, {})
 	var cooldown: float = float(skill.get("cd", {"primary": 5800, "secondary": 11000, "ultimate": 38000}[slot])) / 1000.0
+	var cdr: Dictionary = p["buffs"].get("cooldown", {})
+	if float(cdr.get("until", 0)) > float(state["time"]):
+		cooldown *= 1.0 - clampf(float(cdr.get("strength", 0.0)), 0.0, 0.25)
+	if p["hero"] == "angel":
+		cooldown *= 0.90
 	var mana_cost: float = {"primary": 18.0, "secondary": 14.0, "ultimate": 55.0}[slot]
 	if float(state["time"]) - float(p["cooldowns"][slot]) < cooldown or float(p["mana"]) < mana_cost:
 		return false
@@ -386,7 +407,9 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 			p["buffs"]["triage"] = {"until": float(state["time"]) + 10.0, "strength": 1.0}
 			accepted = true
 		_:
-			if slot == "secondary":
+			if config["library"]["heroes"].has(p["hero"]):
+				accepted = LIBRARY_SKILLS.cast(self, p, identity, direction)
+			elif slot == "secondary":
 				accepted = _move(p, direction, 40.0)
 			elif style in ["heal", "supply", "guard"]:
 				for ally in _allies(p, 9.0):
@@ -413,12 +436,18 @@ func action(id: String, command: String, vector: Vector2 = Vector2.ZERO,
 	var p := actor(id)
 	if not _alive(p) or p.get("kind") != "hero":
 		return false
+	if float(p["buffs"].get("stun", {}).get("until", 0.0)) > float(state["time"]):
+		return false
 	match command:
 		"move":
 			if int(p["last_move_tick"]) == int(state["tick"]):
 				return false
 			var kit_speed: float = float(config["starter"].get(p["hero"], {}).get("speed", 210)) / 210.0
 			var move_speed: float = 4.4 * kit_speed
+			if p["hero"] == "jawo":
+				move_speed *= 1.0 + 0.02 * float(p.get("rhythm", 0))
+			if p["hero"] == "ellusur":
+				move_speed *= 1.10
 			if float(p["buffs"].get("haste", {}).get("until", 0.0)) > float(state["time"]):
 				move_speed *= 1.0 + minf(0.25, float(p["buffs"]["haste"]["strength"]))
 			if float(p["buffs"].get("slow", {}).get("until", 0.0)) > float(state["time"]):
@@ -522,6 +551,7 @@ func _start_hunt(reason: String) -> void:
 	_log("final_hunt", {"reason": reason})
 
 func _automation() -> void:
+	LIBRARY_ACTORS.advance_waves(self)
 	for team in ["A", "B"]:
 		var queue: Array = state["team"][team]["queue"]
 		while not queue.is_empty() and float(queue.front()["at"]) <= float(state["time"]):
@@ -533,7 +563,13 @@ func _automation() -> void:
 	for node in state["nodes"]:
 		node["stock"] = minf(float(node["capacity"]), float(node["stock"]) + 0.065)
 	for unit in state["units"]:
+		if unit.has("library_job"):
+			LIBRARY_ACTORS.advance_villager(self, unit)
+			continue
 		if not _alive(unit): continue
+		if unit.get("library_minion", false):
+			LIBRARY_ACTORS.advance_minion(self, unit)
+			continue
 		var enemy: Dictionary = {}
 		for target in state["players"].values():
 			if _alive(target) and target["team"] != unit["team"] and _dist(unit, target) < 5.0:
@@ -569,6 +605,9 @@ func _automation() -> void:
 		var goal := Vector2(state["w"] - 14 if unit["team"] == "A" else 14, state["h"] * 0.5)
 		_move(unit, goal - unit["pos"], 4.3 if unit["kind"] != "siege" else 2.6)
 	for tower in state["towers"]:
+		if tower.get("temporary", false) and float(tower["expires"]) <= float(state["time"]):
+			tower["alive"] = false
+			continue
 		if not _alive(tower) or float(state["time"]) - float(tower["last_attack"]) < 1.4:
 			continue
 		var candidates: Array = []
@@ -579,7 +618,8 @@ func _automation() -> void:
 		candidates.sort_custom(func(a, b): return _dist(tower, a) < _dist(tower, b))
 		if not candidates.is_empty():
 			tower["last_attack"] = float(state["time"])
-			_hit(tower, candidates.front(), 11.0 + float(tower["level"]) * 4.0)
+			_hit(tower, candidates.front(),
+				float(tower.get("damage", 11.0 + float(tower["level"]) * 4.0)))
 			_log("tower_hit", {"tower": tower["id"], "pos": candidates.front()["pos"]})
 	for building in state["buildings"]:
 		if not _alive(building) or building["status"] != "building":
