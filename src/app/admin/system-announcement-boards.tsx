@@ -45,7 +45,7 @@ function BoardEditor({
 }) {
   const { profile } = useAuth();
   const { theme, paletteId } = useBuklodTheme();
-  const shared = useThemedShared();
+  const themedShared = useThemedShared();
   const dark = isBuklodDarkPaletteId(paletteId);
   const announcementTone = useMemo(() => getBuklodCardTone('amber', dark), [dark]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +189,7 @@ function BoardEditor({
   return (
     <Card>
       <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={[shared.muted, styles.subtitle]}>{subtitle}</Text>
+      <Text style={[themedShared.muted, styles.subtitle]}>{subtitle}</Text>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Show board</Text>
         <Switch
@@ -242,13 +242,13 @@ function BoardEditor({
 
 export default function SystemAnnouncementBoardsAdminScreen() {
   const { theme } = useBuklodTheme();
-  const shared = useThemedShared();
+  const themedShared = useThemedShared();
   const insets = useSafeAreaInsets();
 
   return (
     <AdminGate>
       <ScrollView
-        style={shared.screen}
+        style={themedShared.screen}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 12,
@@ -260,8 +260,8 @@ export default function SystemAnnouncementBoardsAdminScreen() {
         <Text style={{
           fontSize: 11, fontWeight: '900', letterSpacing: 1.2, color: theme.textPrimary,
         }}>HOME & PROFILES</Text>
-        <Text style={shared.h1}>Announcement Boards</Text>
-        <Text style={[shared.muted, { marginBottom: 4 }]}>
+        <Text style={themedShared.h1}>Announcement Boards</Text>
+        <Text style={[themedShared.muted, { marginBottom: 4 }]}>
           Boards appear only when they have a saved message and are enabled.
         </Text>
         <BoardEditor
