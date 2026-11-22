@@ -54,6 +54,7 @@ test('server guards profile lock, authentication, Official account and exposes o
   assert.match(sql, /'username', null, 'member_since', null/);
   assert.match(sql, /'avatar_url', NULLIF\(btrim\(profile_row\.avatar_url\)/);
   assert.match(sql, /'cluster_labels', clusters/);
+  assert.match(sql, /st\.quick_note_expires_at IS NULL OR st\.quick_note_expires_at > now\(\)/);
   assert.match(sql, /b\.lifetime_points/);
   assert.doesNotMatch(sql, /b\.available_points|buklod_points_ledger|earnings_ledger/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_buklod_member_lifetime_points_v1\(uuid\)\s+TO authenticated, service_role/);

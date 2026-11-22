@@ -90,7 +90,10 @@ BEGIN
   locked := COALESCE(locked, false);
 
   SELECT NULLIF(btrim(st.quick_note), '') INTO quick_note
-  FROM public.buklod_profile_status st WHERE st.user_id = target LIMIT 1;
+  FROM public.buklod_profile_status st
+  WHERE st.user_id = target
+    AND (st.quick_note_expires_at IS NULL OR st.quick_note_expires_at > now())
+  LIMIT 1;
 
   SELECT COALESCE(jsonb_agg(c.name ORDER BY c.name), '[]'::jsonb)
     INTO clusters
