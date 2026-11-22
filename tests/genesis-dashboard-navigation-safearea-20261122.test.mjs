@@ -9,13 +9,14 @@ const home = read('src/app/(tabs)/hub.tsx');
 const profile = read('src/app/(tabs)/me.tsx');
 
 test('Genesis status bar protects Home/Profile routes without touching auth, managed scopes or production routing', () => {
-  assert.match(layout, /isGenesisPreviewBuild\(\)[\s\S]*?\['\/buklod', '\/messages', '\/hub', '\/me'\]/);
-  assert.ok(layout.includes("normalizeBuklodPathname(pathname)"));
+  assert.match(layout, /!desktopWebShell \? <SwipeDashboardHeader \/> : null/);
+  assert.match(layout, /const headerTopInset = genesisPreview && Platform\.OS === 'android'/);
   assert.ok(layout.includes('StatusBar.currentHeight'));
+  assert.ok(!layout.includes('genesisDashboardTopInset'));
   for (const guard of ["if (!session)", "if (requiresAcceptance)", "if (!profile)", "pathname === '/home'", "BuklodAndroidDashboardTabs"]) {
     assert.ok(layout.includes(guard), 'Protected navigation gate: ' + guard);
   }
-  assert.match(layout, /!desktopWebShell && !isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader \/>/);
+  assert.match(layout, /!desktopWebShell \? <SwipeDashboardHeader \/> : null/);
 });
 
 test('Embedded encouragement follows Home and Profile scroll and keeps existing tab reporting', () => {

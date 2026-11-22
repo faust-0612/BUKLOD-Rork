@@ -1,0 +1,83 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-restored-topbar-navigation-safearea-20261122.json",
+  "objective": "Restore familiar BUKLOD dashboard top bar in Genesis mobile and retain one safe-area owner; keep Home/Profile encouragement scrollable and app navigation/ads unaffected.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "Production shared top bar exists in src/app/(tabs)/_layout.tsx; Genesis integration HEAD at 3df0f49eb08b91a2eef9316c960e019a193075b4 disabled this component and instead added tab-scene top insets.",
+  "chosenApproach": "Reuse existing production-grade SwipeDashboardHeader for Genesis native without cloning UI. Move Android OTA cutout fallback into header's own top padding, delete Genesis-only scene inset, update previous safe-area tests and add protected topbar navigation QA.",
+  "selectionRationale": "One shared header prevents duplicated menus, notifications and content insets. Existing focus/subscription, sponsored header and accessibility controls remain authoritative. The previous Genesis no-header tests would otherwise falsely block the intentional restoration.",
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "navigation-scroll",
+    "android-safe-area",
+    "ads-finance-points",
+    "desktop-responsive"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/_layout.tsx",
+    "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs",
+    "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs",
+    "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs",
+    ".buklod/scopes/genesis-restored-topbar-navigation-safearea-20261122.json"
+  ],
+  "preserveBehaviors": [
+    "App remains authenticated and scoped navigation boundaries unchanged.",
+    "Existing production header presentation and spacing unchanged except Genesis-specific Android cutout fallback.",
+    "Mobile Genesis Home, Profile, Wall and Connect display one header without duplicate status padding.",
+    "Home/Profile daily encouragement remain inside page scroll; no pinned second message.",
+    "No AdMob unit, first-view ad, header sponsor logic, bottom banner, subscription or consent behavior changed.",
+    "Desktop public shell continues to own desktop header; prevent duplicate.",
+    "No APK, OTA, Supabase schema, API or production mutation."
+  ],
+  "acceptanceChecks": [
+    "Focused Node top-bar/restored safe-area regression source tests PASS.",
+    "Protected feature gate and exact-head TypeScript/web/Metro and AdMob-nav regression CI PASS.",
+    "Android device: status bar clearance, overlay navigation, header taps, search/notifications, compact scrolling, ads on first view and no double inset PASS before staging publish."
+  ],
+  "regressionTests": [
+    "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs",
+    "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs",
+    "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Restore shared top navigation and eliminate duplicated Genesis safe-area scene inset.",
+      "preservedBehaviors": [
+        "Native tab state, route stack, status bar and ad warmup unchanged."
+      ],
+      "tests": [
+        "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Reuse protected global hamburger/search/notification routing in Genesis.",
+      "preservedBehaviors": [
+        "Auth/compliance/scope guards retained and search, notifications remain accessible."
+      ],
+      "tests": [
+        "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Restored existing header includes current wide-screen sponsored header; no ad logic changes.",
+      "preservedBehaviors": [
+        "All existing ad lifecycle, no-fill, first-view, finance/points unchanged."
+      ],
+      "tests": [
+        "tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Copy screenshot as a new fixed overlay rejected: overlapping status bar and scroll content.",
+    "Keep special Genesis scene padding alongside header rejected: creates duplicate clearance."
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "publicationStatus": "CONSOLIDATED_DEV_INTAKE_PENDING_GATES",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "releaseTarget": "next verified full Genesis staging RC"
+}
