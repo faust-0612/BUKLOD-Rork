@@ -22,7 +22,8 @@
     "src/components/BuklodDashboardContextBar.tsx",
     "src/components/BuklodPublicDailyMessageBar.tsx",
     "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs",
-    ".buklod/scopes/genesis-dashboard-safearea-encouragement-scroll-20261122.json"
+    ".buklod/scopes/genesis-dashboard-safearea-encouragement-scroll-20261122.json",
+    "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "Non-Genesis production header spacing remains unchanged.",
@@ -38,7 +39,8 @@
     "Before a consolidated staging OTA, exact-head TS/Metro, ad/nav, web and physical Android cutout/status/scroll checks must pass."
   ],
   "regressionTests": [
-    "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs"
+    "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs",
+    "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -58,7 +60,7 @@
         "Authenticated tab routing, first-view ad warmup and profile visibility unchanged."
       ],
       "tests": [
-        "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs"
+        "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs"
       ]
     }
   ],
