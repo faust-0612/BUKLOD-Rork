@@ -5,6 +5,7 @@ extends Node2D
 const SIM_SCRIPT = preload("res://scripts/arena_simulation.gd")
 const FX_SCRIPT = preload("res://scripts/arena_effects.gd")
 const ANIM_SCRIPT = preload("res://scripts/hero_animation.gd")
+const AUDIO_SCRIPT = preload("res://scripts/arena_audio.gd")
 const PX := 10.0
 const HEROSUIT := [Color("#7bf2cb"), Color("#75c9ff"), Color("#ffc68b"),
 	Color("#d6b7ff"), Color("#f7ed8f"), Color("#ff9aa8"),
@@ -26,6 +27,7 @@ var flashes: Array[Dictionary] = []
 var art_cache: Dictionary = {}
 var animator
 var effect_layer
+var audio_layer: Node
 
 # Godot-decoded PNG previews in signed main pack; bounded lazy GPU cache.
 func _art(path: String) -> Texture2D:
@@ -47,6 +49,8 @@ func _ready() -> void:
 	animator = ANIM_SCRIPT.new()
 	effect_layer = FX_SCRIPT.new()
 	add_child(effect_layer)
+	audio_layer = AUDIO_SCRIPT.new()
+	add_child(audio_layer)
 	hud.start_requested.connect(_start)
 	hud.command_requested.connect(_command)
 	hud.direction_changed.connect(_move)
@@ -60,6 +64,8 @@ func _ready() -> void:
 
 func _exit() -> void:
 	# GodotActivity returns to the React Native host; no app-wide termination.
+	if audio_layer != null:
+		audio_layer.stop_all()
 	get_tree().quit(0)
 
 func _start(mode: String, hero: String, map_id: String, solo: bool, foe: String) -> void:
@@ -74,6 +80,7 @@ func _start(mode: String, hero: String, map_id: String, solo: bool, foe: String)
 	flashes.clear()
 	animator.reset()
 	effect_layer.clear()
+	audio_layer.stop_all()
 	camera.position = (sim.actor("A0")["pos"] as Vector2) * PX
 	_update_zoom()
 	hud.set_snapshot(sim.state)
@@ -83,6 +90,8 @@ func _pause() -> void:
 	paused = not paused
 	hud.paused = paused
 	hud.notify("PAUSED" if paused else "RESUMED")
+	if paused and audio_layer != null:
+		audio_layer.stop_all()
 
 func _move(direction: Vector2) -> void:
 	input_vector = direction
@@ -120,6 +129,10 @@ func _command(name: String) -> void:
 	if not accepted:
 		hud.notify("Action unavailable: range, cooldown, resources or level")
 	else:
+		if cmd == "attack" or cmd in ["primary", "secondary", "ultimate"]:
+			var me: Dictionary = sim.actor("A0")
+			var kit: Dictionary = sim.config["starter"].get(me.get("hero", ""), {})
+			audio_layer.play_command(str(me.get("hero", "")), cmd, kit)
 		hud.set_snapshot(sim.state)
 
 func _physics_process(delta: float) -> void:
@@ -146,6 +159,8 @@ func _read_events() -> void:
 			continue
 		event_cursor = int(event["id"])
 		animator.handle_event(event, frames)
+		if audio_layer != null:
+			audio_layer.play_match_event(event)
 		if event.has("pos") and event["pos"] is Vector2:
 			flashes.append({"pos": event["pos"], "time": frames, "type": event["type"]})
 			effect_layer.play_event(str(event["type"]), event["pos"])
@@ -213,6 +228,19 @@ func _draw_actor(p: Dictionary) -> void:
 			Color("#6af7ca") if team == "A" else Color("#ff9b8c"), 2.0)
 		draw_string(ThemeDB.fallback_font, pos + Vector2(-18, -large - 16),
 			str(p["hero"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	# Show the owner's distinct five minion identities and named village workers.
+	# Visual identity follows the same single simulation actor; no duplicate AI.
+	if p.get("library_minion", false):
+		var role: String = str(p.get("kind", "unit"))
+		var ring_color: Color = Color("#f8dc79") if role == "healer" else \
+			Color("#b7c0ff") if role == "mage" else Color("#f19d72") if role == "siege" else \
+			Color("#75dcff") if role == "gunner" else Color("#c6f5b0")
+		draw_arc(pos, large + 3.0, 0.0, TAU, 16, ring_color, 2.0)
+		draw_string(ThemeDB.fallback_font, pos + Vector2(-17, -large - 7),
+			role.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ring_color)
+	elif p.has("library_name"):
+		draw_string(ThemeDB.fallback_font, pos + Vector2(-18, -large - 7),
+			str(p["library_name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color.WHITE)
 	var ratio: float = clampf(float(p.get("hp", 1)) / maxf(1, float(p.get("max_hp", 1))), 0.0, 1.0)
 	draw_rect(Rect2(pos + Vector2(-large, large + 6), Vector2(large * 2, 3.0)), Color("#542e33"))
 	draw_rect(Rect2(pos + Vector2(-large, large + 6), Vector2(large * 2 * ratio, 3.0)),

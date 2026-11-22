@@ -40,8 +40,8 @@ func _run() -> void:
 	if not _check(g and sim.state["players"].size() == 6, "3v3 roster"):
 		quit(7)
 		return
-	if not _check(sim.state["towers"].size() == 6 and sim.state["units"].size() == 4 and
-			sim.state["nodes"].size() == 9, "RTS structures/resources/villagers initialized"):
+	if not _check(sim.state["towers"].size() == 6 and sim.state["units"].size() == 12 and
+			sim.state["nodes"].size() == 9, "RTS structures/resources/12 named villagers initialized"):
 		quit(8)
 		return
 	var mine_target: Dictionary = sim.state["nodes"].front()

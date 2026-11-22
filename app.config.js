@@ -41,6 +41,8 @@ module.exports = ({ config }) => {
   // guarded Genesis world scene entrypoints. Never changes production.
   const unifiedGodotWorldsPreview = godotArenaNativePreview &&
     process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS === 'true';
+  const libraryArenaNativePreview = unifiedGodotWorldsPreview &&
+    process.env.EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE === 'true';
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
@@ -65,6 +67,7 @@ module.exports = ({ config }) => {
     ...(sosNativePreview ? { version: '2.0.1' } : {}),
     ...(godotArenaNativePreview ? { version: '2.0.2' } : {}),
     ...(unifiedGodotWorldsPreview ? { version: '2.0.3' } : {}),
+    ...(libraryArenaNativePreview ? { version: '2.0.4' } : {}),
 
     orientation: 'default',
     scheme,
@@ -421,6 +424,7 @@ module.exports = ({ config }) => {
     ...(sosNativePreview ? { runtimeVersion: '2.0.1-genesis-sos' } : {}),
     ...(godotArenaNativePreview ? { runtimeVersion: '2.0.2-genesis-godot-arena' } : {}),
     ...(unifiedGodotWorldsPreview ? { runtimeVersion: '2.0.3-genesis-unified-godot' } : {}),
+    ...(libraryArenaNativePreview ? { runtimeVersion: '2.0.4-genesis-library-godot' } : {}),
   };
 };
 
