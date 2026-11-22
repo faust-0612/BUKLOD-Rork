@@ -70,5 +70,30 @@ jobs:
           grep -F 'BUKLOD_GODOT_PREMIUM_SMOKE_PASS' /tmp/buklod-premium-smoke.log
           "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/library_smoke.gd 2>&1 | tee /tmp/buklod-library-smoke.log
           grep -F 'BUKLOD_GODOT_LIBRARY_SMOKE_PASS' /tmp/buklod-library-smoke.log
+      - name: App-wide DEV QA - full Jest, release and Genesis theme contracts
+        if: github.head_ref == 'dev/arena-library-codes-runtime-integration-20261122'
+        timeout-minutes: 14
+        env:
+          CI: '1'
+          EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+        run: |
+          set -euo pipefail
+          # This is read-only QA. No EAS, OTA, Supabase connection, App Store
+          # changes, production secrets, or backend writes are permitted.
+          npm ci --ignore-scripts --no-audit --no-fund
+          echo 'BUKLOD APP-WIDE QA: full Jest suite'
+          npm test -- --ci --watch=false
+          echo 'BUKLOD APP-WIDE QA: source release contracts'
+          npm run release:gate
+          echo 'BUKLOD APP-WIDE QA: Genesis official single-season theme'
+          npm run genesis:theme:gate
+          echo 'BUKLOD APP-WIDE QA: native minimum-version, finance and app-wide ad contracts'
+          node --test \
+            tests/buklod-mandatory-update-runtime.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/buklod-ads-production-release-contract-20261111.test.mjs \
+            tests/buklod-admob-fill-finance-release-20261111.test.mjs
+          echo 'BUKLOD_APP_WIDE_SOURCE_QA_PASS: Jest / release / Genesis / native update / ad finance'
+
       - name: Enforce DEV-only, no native build or online ranked/production release
         run: echo 'Godot headless/pack smoke only; Blender GLB and Android physical test remain required. No APK, EAS, OTA, production, or live Supabase mutation.'
