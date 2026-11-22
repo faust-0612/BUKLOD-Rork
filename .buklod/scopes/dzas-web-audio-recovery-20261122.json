@@ -4,7 +4,7 @@
   "objective": "Restore BUKLOD MAIN DZAS radio browser playback recovery after two owner screenshots showed unsupported audio source errors; preserve native player and protect Expo Hosting release governance.",
   "baseRef": "088df3cc1265a097744f78f4f24aaa3ae5ad3586",
   "productionBaselineEvidence": "Verified source-only: GitHub main 088df3cc1265a097744f78f4f24aaa3ae5ad3586 still has one Icecast browser URL and an unrelated native Zeno endpoint. The two owner screenshots on Nov 22 2026 show unsupported-source messages. Current production web is Expo Hosting https://buklod.expo.app as specified in docs/BUKLOD_DESKTOP_WEB_SOURCE.md, NOT Vercel. Browser audio transport endpoints were not independently playable from tool sandbox (curl DNS unavailable). No verified live web deployment or runtime playback exists for this patch.",
-  "chosenApproach": "Isolate browser-only HTMLAudioElement startup with de-duplicated HTTPS source candidates, bounded 12-second per-source startup, cancellation and real playing-event confirmation. Preserve all native media, account, ad, and navigation behaviors. Add focused Node assertions and wire DZAS tests into existing source-verified Expo web release pipeline while preserving production embargo/identity gates.",
+  "chosenApproach": "Isolate browser-only HTMLAudioElement startup with de-duplicated HTTPS source candidates, bounded 12-second per-source startup, cancellation and real playing-event confirmation. Preserve all native media, account, ad, and navigation behaviors. Add focused Node assertions and wire DZAS tests into existing source-verified Expo web release pipeline while preserving production embargo/identity gates. Use a single secrets-free, nonpublishing web-only RC compile workflow on the feature branch; never enable another production publisher.",
   "selectionRationale": "A single stale/unavailable source previously surfaced an unhelpful browser error and never attempted the existing native DZAS stream. Sequential fallback avoids parallel audio, unbounded retries or extra infrastructure; mandatory release gate regression tests protect later deployments without triggering release.",
   "alternativeApproaches": [
     "Use the plain HTTP port-8000 directory stream: rejected because mixed-content and insecure redirects cannot be allowed in the HTTPS browser app.",
@@ -22,7 +22,8 @@
     "src/app/personal-home/radio.web.tsx",
     "tests/dzas-signal-deck-implementation.test.mjs",
     "tests/dzas-web-production-deploy.test.mjs",
-    ".github/workflows/production_web_deploy.yml"
+    ".github/workflows/production_web_deploy.yml",
+    ".github/workflows/dzas-web-rc-compile-20261122.yml"
   ],
   "regressionTests": [
     "tests/dzas-signal-deck-implementation.test.mjs",
@@ -63,7 +64,8 @@
     "Focused DZAS visual and audio fallback tests and web release boundary Node assertions pass.",
     "Protected feature-lock and engineering regression checks pass with exact changed-path manifest.",
     "TypeScript/web export and web RC preview pass with actual audio in Android Chrome, and fallback verified when one source fails.",
-    "Prior to production web release, verify exact Expo Hosting deployed artifact and live playback; no Android OTA or Season 2 changes."
+    "Prior to production web release, verify exact Expo Hosting deployed artifact and live playback; no Android OTA or Season 2 changes.",
+    "An isolated branch-specific, secrets-free Expo Web export CI produces a source-SHA-bound web artifact digest (no production publication)."
   ],
   "releaseMode": "DEV_ONLY_WEB_RC_CANDIDATE_NO_PUBLISH",
   "publicationStatus": "NOT_PUBLISHED_PENDING_VERIFIED_EXPO_WEB_RC",
