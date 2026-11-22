@@ -9,7 +9,8 @@ test('Wall and fullscreen retain their poster until a real decoded frame; autopl
   assert.match(video, /!firstFrameRendered \? \(\s*<View pointerEvents="none" style=\{styles.firstFrameFallback\}/);
   assert.match(video, /\(posterSource \|\| posterUri\) && !firstFrameRendered/);
   assert.match(video, /const centerVisible = firstFrameRendered && playerStatus !== 'error'/);
-  assert.match(video, /\{!autoPlay \? \(\s*<MaterialCommunityIcons/);
+  assert.match(video, /const showManualPlay = !autoPlay && !fullscreen && !onOpenFullscreen/);
+  assert.match(video, /\{showManualPlay \? \(\s*<MaterialCommunityIcons/);
   assert.match(video, /surfaceType="textureView"/);
   assert.match(video, /ImaCommunityVideo/);
   assert.match(video, /COMMUNITY_VIDEO_CACHE_BUDGET_BYTES/);
