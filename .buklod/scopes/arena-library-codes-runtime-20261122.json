@@ -1,0 +1,56 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/arena-library-codes-runtime-20261122.json",
+  "objective": "Reconcile owner-supplied BUKLOD Arena Library 7 special hero kits, 5 minion roles, 2 named worker factions into the single existing embedded Godot offline practice Arena while preserving the authoritative ranked backend, user inventory, and all non-Arena application features.",
+  "baseRef": "dev/arena-premium-vfx-blender-backend-20261122",
+  "chosenApproach": "Normalize uploaded GDScript data to bounded practice-only Godot configuration, adapt effects into existing simulation, keep authoritative Node ranked match coordinator separate, and verify via real Godot CI smoke.",
+  "allowedPaths": [
+    ".buklod/scopes/arena-library-codes-runtime-20261122.json",
+    ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
+    "godot/empire-arena/library/arena_intake_20261122.json",
+    "godot/empire-arena/scripts/arena_library_actors.gd",
+    "godot/empire-arena/scripts/arena_library_skills.gd",
+    "godot/empire-arena/scripts/arena_root.gd",
+    "godot/empire-arena/scripts/arena_simulation.gd",
+    "godot/empire-arena/tests/library_smoke.gd",
+    "godot/empire-arena/tests/smoke.gd",
+    "scripts/build-empire-godot-pack.mjs",
+    "tests/arena-library-godot-native-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "regressionTests": [
+    "tests/arena-library-godot-native-20261122.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Never mutate live users, BP, QMP, Diamond balances or ranked results in Godot",
+    "Main Android application remains the only Arena entry, no standalone app",
+    "All 13 existing approved hero graphics, 300 pickups and three maps remain intact",
+    "Keep AdMob, navigation, login, profile, Community and other non-game features unchanged",
+    "Existing Node match coordinator remains ranked authoritative, not the client",
+    "Native offline battle should not send HTTP or write to Supabase"
+  ],
+  "riskAreas": [
+    "Native Godot 4.7.2 script execution and bounded memory",
+    "Hero attack, cooldown and stun impact on offline practice",
+    "Minion cap, waves and villager job behavior",
+    "ABI/runtime and physical Android first-view performance",
+    "Ranked network remains disconnected from Godot; no live ranked release"
+  ],
+  "alternativeApproaches": [
+    "Run uploaded minion.gd and villager_system.gd independently of Arena simulation (rejected: conflicting combat authorities)",
+    "Ship fresh native APK before authoritative ranked networking and phone QA (rejected: release gates)"
+  ],
+  "productionBaselineEvidence": "BUKLOD MAIN production remained untouched; authoritative production Android runtime/fingerprint not verified. DEV parent dev/arena-premium-vfx-blender-backend-20261122 checked and protected.",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "acceptanceChecks": [
+    "Run deterministic native Godot pack with approved 13 hero / 300 pickup inventory",
+    "Run Node validation and Godot headless smoke for all seven Library ability kits, minions, villagers",
+    "Check both practice first render, existing game smoke and no reward settlement",
+    "Verify exact signed Android staging RC runtime/AdMob/navigation/weak-network behavior on device",
+    "Verify server-authoritative bridge and ranked escrow before any online ranking claims",
+    "Never publish production OTA or AAB without real signed native and production evidence"
+  ],
+  "selectionRationale": "Preserve existing Godot pack and Node authoritative competitive engine, translate only missing owner Library behaviors into the live practice loop, and restrict changes to DEV to protect all production surfaces."
+}
