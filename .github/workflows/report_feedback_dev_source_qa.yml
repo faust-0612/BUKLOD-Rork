@@ -7,7 +7,7 @@ on:
     paths:
       - '.github/workflows/report_feedback_dev_source_qa.yml'
       - 'src/lib/buklodReportAutoFeedback.ts'
-      - 'src/lib/__tests__/buklodReportAutoFeedback.test.ts'
+      - 'scripts/test-report-auto-feedback.cjs'
       - 'src/components/BuklodReportAutoFeedbackCard.tsx'
       - 'src/components/BuklodReportAssignmentForm.tsx'
       - 'src/components/BuklodWeeklyReportForm.tsx'
@@ -37,7 +37,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - name: Unit test report advisory engine
-        run: npx jest src/lib/__tests__/buklodReportAutoFeedback.test.ts --runInBand --ci
+        run: node scripts/test-report-auto-feedback.cjs
       - name: TypeScript Report app
         run: npx tsc -p tsconfig.report.json --noEmit
       - name: Report web export smoke - no deploy

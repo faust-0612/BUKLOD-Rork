@@ -31,6 +31,10 @@ function textValue(value: unknown): string {
   return value == null ? '' : String(value).trim();
 }
 
+function validDecimal(value: string): boolean {
+  return /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/.test(value) && Number.isFinite(Number(value));
+}
+
 function validWholeNumber(value: string): boolean {
   if (!/^(0|[1-9][0-9]*)$/.test(value)) return false;
   const parsed = Number(value);
@@ -58,8 +62,8 @@ export function evaluateReportFeedback(input: ReportFeedbackInput): ReportFeedba
         issues.push('Sagutan ang required field: ' + field.label + '.');
         continue;
       }
-      if (value && field.type === 'number' && !validWholeNumber(value)) {
-        issues.push('I-check ang bilang sa ' + field.label + ': gumamit ng whole number na 0 o mas mataas.');
+      if (value && field.type === 'number' && !validDecimal(value)) {
+        issues.push('I-check ang bilang sa ' + field.label + ': maglagay ng wastong numeric value.');
       }
       if (value && field.type === 'long_text' && value.length < 15) {
         suggestions.push('Dagdagan ng maikling detalye ang ' + field.label + ' para madaling ma-review.');
