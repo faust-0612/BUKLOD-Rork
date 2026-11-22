@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-arena-native-first-visual-readiness-20261122.json",
+  "objective": "Close observed older React Native preview landing on new Genesis Library APK, audit specific Library minion/drop/structure visual deficits without publishing an incomplete signed APK.",
+  "baseRef": "351bbad6eb138692fb3197aa42ecb395110d160c",
+  "selectionRationale": "Owner screenshots show React Native PRACTICE LIVE fallback despite existing Godot native runtime source, while exact original Library 300 drops/8 minions are not copied by the Godot pack. New-library-only native-first route fixes the obvious entry discrepancy; fail-closed source audit makes missing art explicit rather than falsely certifying AAA visuals.",
+  "alternativeApproaches": [
+    "Immediately replace all Arena RN routes with native Godot: rejected due older signed runtime/prod and auth fallbacks.",
+    "Wallpaper the Library infographic as a battlefield: rejected; concept is not collision-aligned playable tile art.",
+    "Treat 300 match ID catalog and prototype WAVs as proof of live icon/voice rendering: rejected.",
+    "Publish an updated signed APK without physical art/device verification: rejected."
+  ],
+  "allowedPaths": [
+    "src/app/games/empire-arena.tsx",
+    "scripts/genesis-arena-visual-readiness-20261122.mjs",
+    "tests/genesis-arena-visual-readiness-20261122.test.mjs",
+    "docs/empire-arena/GENESIS_LIBRARY_VISUAL_PARITY_AUDIT_20261122.md",
+    ".buklod/scopes/genesis-arena-native-first-visual-readiness-20261122.json"
+  ],
+  "lockedFeatureChanges": [],
+  "regressionTests": [
+    "tests/genesis-arena-visual-readiness-20261122.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Older Genesis staging and production route/Expo runtime isolation",
+    "Auth, consent, pilot/update and private account gates",
+    "Existing React Native fallback when Godot unavailable and no release on this feature branch",
+    "Existing ranked-disabled state, no Diamond, BP, QMP or Character mutation",
+    "Existing all 13 hero and offline gameplay and audio/UI regression protections"
+  ],
+  "riskAreas": [
+    "Android activity auto-open on new signed 2.0.4 requires device orientation and audio/PTT testing",
+    "Native missing 300 icons/8 minions/structures remains a hard release blocker",
+    "No new signed artifact is generated; previously started signed build uses an older SHA and is not this visual source"
+  ],
+  "productionBaselineEvidence": "No main edit. Main production runtime 1.3.2 and existing signed Play app are out of scope. New staging development based on PR #1100 exact 351bbad6eb138692fb3197aa42ecb395110d160c.",
+  "acceptanceChecks": [
+    "Static Node audit acknowledges current 52/13/3 present, reports missing Library 8/300/structure art",
+    "Strict visual release gate fails on missing runtime assets",
+    "Native-first route only when library 2.0.4 build and Godot flag both enabled",
+    "No activity reopening loop; RN fallback intact; unchanged production guard"
+  ]
+}

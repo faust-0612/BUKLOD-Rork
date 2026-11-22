@@ -291,8 +291,16 @@ function EmpireArenaInApp() {
   const [godotOpening, setGodotOpening] = useState(false);
   const godotNativeEnabled = Platform.OS === 'android' &&
     process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED === 'true';
+  // Only the new signed 2.0.4 library-runtime APK enters its bundled Godot
+  // Arena first. Older Genesis and production native runtimes keep the
+  // existing guarded React Native practice, with zero new game authority.
+  const nativeFirstLibrary = godotNativeEnabled &&
+    process.env.EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE === 'true';
+  const nativeLaunchInFlight = useRef(false);
+  const nativeAutoAttempted = useRef(false);
   const launchNativeGodot = useCallback(async () => {
-    if (!godotNativeEnabled || godotOpening) return;
+    if (!godotNativeEnabled || nativeLaunchInFlight.current) return;
+    nativeLaunchInFlight.current = true;
     setGodotOpening(true);
     try {
       const started = await openBundledEmpireArena();
@@ -300,9 +308,10 @@ function EmpireArenaInApp() {
     } catch {
       setMessage('Could not enter native Godot Arena. Existing practice remains accessible.');
     } finally {
+      nativeLaunchInFlight.current = false;
       setGodotOpening(false);
     }
-  }, [godotNativeEnabled, godotOpening]);
+  }, [godotNativeEnabled]);
   const [arenaKind, setArenaKind] = useState<'practice' | 'ranked'>('practice');
   const [localSeat, setLocalSeat] = useState('A0');
   const localSeatRef = useRef('A0');
@@ -384,8 +393,18 @@ function EmpireArenaInApp() {
     if (Platform.OS !== 'web') void (async () => {
       try {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-        if (cancelled) await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
+        if (cancelled) {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
+          return;
+        }
       } catch { /* Keep game accessible if a device disallows orientation locks. */ }
+      // Open the native Godot scene once for the new *library* APK, after auth,
+      // consent and orientation. A failed/unavailable pack falls back to the
+      // same working React Native menu. Re-focus cannot create a launch loop.
+      if (!cancelled && nativeFirstLibrary && !nativeAutoAttempted.current) {
+        nativeAutoAttempted.current = true;
+        void launchNativeGodot();
+      }
     })();
     return () => {
       cancelled = true;
@@ -396,7 +415,7 @@ function EmpireArenaInApp() {
       directionRef.current = { x: 0, y: 0 };
       if (Platform.OS !== 'web') void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT).catch(() => undefined);
     };
-  }, []));
+  }, [nativeFirstLibrary, launchNativeGodot]));
 
   const joystick = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
