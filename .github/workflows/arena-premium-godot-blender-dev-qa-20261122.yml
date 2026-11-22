@@ -1,5 +1,10 @@
 name: BUKLOD Arena Premium Godot Visual DEV QA
 on:
+  # DEV-only source check; PR-triggered runs can be throttled on rapid edits.
+  # This branch-specific push gate never signs Android or publishes an OTA.
+  push:
+    branches:
+      - dev/arena-library-codes-runtime-integration-20261122
   pull_request:
     paths:
       - 'godot/empire-arena/**'
