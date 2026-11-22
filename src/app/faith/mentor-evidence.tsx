@@ -203,8 +203,8 @@ export default function MentorTeachingPhotoEvidence() {
   // Keep every server-backed requirement, but never silently ignore a tap when
   // one is incomplete. The input screen can be long and fields may be offscreen.
   const missingReportRequirements = [
-    mentorEligible === false
-      ? 'Your active mentor permission must be verified by an administrator before reporting.'
+    mentorEligible !== true
+      ? 'Your active mentor permission must be verified before reporting.'
       : !selectedLesson ? 'Select the lesson from the list (typing in search does not select it).' : null,
     selectedDisciples.length < 1 ? 'Select at least one assigned learner.' : null,
     selectedDisciples.length > MAX_LEARNERS ? `Select no more than ${MAX_LEARNERS} learners.` : null,
@@ -348,8 +348,9 @@ export default function MentorTeachingPhotoEvidence() {
   const canCreate = mentorEligible === true && !loading && !busy && !retrySessionId && missingReportRequirements.length === 0;
   // Match "CCP5" and "CCP 5" without loosening server-side mentor authorization.
   const searchKey = (value: string) => value.toLocaleLowerCase().replace(/[\s_-]+/g, '');
+  // Show every matching, server-authorized lesson; never silently truncate at 20.
   const visibleLessons = lessons.filter(lesson =>
-    searchKey(lesson.title).includes(searchKey(lessonSearch.trim()))).slice(0, 20);
+    searchKey(lesson.title).includes(searchKey(lessonSearch.trim())));
 
   return <SafeAreaView style={s.root}>
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
@@ -371,6 +372,7 @@ export default function MentorTeachingPhotoEvidence() {
         <TextInput style={s.field} value={lessonSearch} onChangeText={setLessonSearch}
           placeholder="Search BUKLOD / CCP / Discipleship lesson"
           placeholderTextColor="#859688" />
+        {mentorEligible === true && !loading && <Text style={s.meta}>Showing {visibleLessons.length} of {lessons.length} reportable BUKLOD lessons. Search or scroll to select any available lesson.</Text>}
         {visibleLessons.map(lesson => <Pressable key={lesson.id} accessibilityRole="button"
           accessibilityState={{ selected: selectedLesson === lesson.id }}
           style={[s.choice, selectedLesson === lesson.id && s.selected]}
