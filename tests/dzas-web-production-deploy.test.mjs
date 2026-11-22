@@ -9,6 +9,7 @@ test('BUKLOD Main Expo web production deploy keeps protected source, environment
   assert.match(workflow, /name: BUKLOD Production Web Deploy/);
   assert.match(workflow, /branches: \[main\]/);
   assert.match(workflow, /github\.event\.head_commit\.message/);
+  assert.match(workflow, /BUKLOD_DZAS_WEB_ONLY_PROD_20261122:/);
   assert.match(workflow, /node scripts\/buklod-season2-production-embargo\.cjs --production/);
   assert.match(workflow, /Expo credential preflight/);
   assert.match(workflow, /EXPECTED_MAIN_URL=/);
@@ -16,6 +17,9 @@ test('BUKLOD Main Expo web production deploy keeps protected source, environment
   assert.match(workflow, /node --test tests\/dzas-signal-deck-implementation\.test\.mjs tests\/dzas-web-production-deploy\.test\.mjs/);
   assert.match(workflow, /npx tsc --noEmit/);
   assert.match(workflow, /Verify exact production source SHA/);
+  const android = read('.github/workflows/production_android_ota.yml');
+  assert.doesNotMatch(android, /BUKLOD_DZAS_WEB_ONLY_PROD_20261122/);
+
 });
 
 test('Web-only DZAS fallback is isolated from existing native player and real AdMob', () => {
