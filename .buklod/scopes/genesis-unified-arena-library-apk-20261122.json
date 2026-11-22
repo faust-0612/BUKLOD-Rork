@@ -62,6 +62,7 @@
     "Signed EAS staging APK requires actual identity, isolated backend, ad and navigation QA before release"
   ],
   "riskAreas": [
+    "release-identity",
     "Untrusted shared Supabase live account data, so offline debug intentionally uses invalid endpoint",
     "Unverified physical arm64 GPU/audio focus/native activity return despite source tests",
     "Old debug signer incompatible with existing EAS-signed staging installation",
