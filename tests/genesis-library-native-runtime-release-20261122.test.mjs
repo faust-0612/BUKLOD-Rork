@@ -54,3 +54,30 @@ test('native pack retains all three original unified worlds and Arena Library au
  assert.match(audioSmoke,/BUKLOD_GODOT_LIBRARY_MODES_AUDIO_PASS/);
  assert.match(source,/ranked: false, serverAccess: false/);
 });
+
+test('signed staging build workflow is build-only and requires successful exact native proof before EAS',()=>{
+ const source=readFileSync(new URL('../.github/workflows/genesis-library-eas-signed-apk-20261122.yml',import.meta.url),'utf8');
+ assert.match(source,/BUKLOD_GENESIS_2_0_4_SIGNED_BUILD:/);
+ assert.match(source,/NATIVE_PROOF_SHA/);
+ assert.match(source,/j\.conclusion,'success'/);
+ assert.match(source,/git diff --quiet/);
+ assert.match(source,/season2-genesis-library-staging/);
+ assert.match(source,/EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'/);
+ assert.match(source,/EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW/);
+ assert.match(source,/genesis-library-verify-signed-apk\.mjs/);
+ assert.match(source,/secrets\.EXPO_TOKEN/);
+ assert.doesNotMatch(source,/\beas\s+(?:update|submit|channel:edit|branch:publish)\b|\bexpo\s+publish\b/);
+});
+test('signed APK verifier enforces same EAS certificate, all ABIs, 4 worlds and 70 sound cues',()=>{
+ const code=readFileSync(new URL('../scripts/genesis-library-verify-signed-apk.mjs',import.meta.url),'utf8');
+ assert.match(code,/2\.0\.4-genesis-library-godot/);
+ assert.match(code,/season2-genesis-library-preview/);
+ assert.match(code,/EXISTING_EAS_STAGING_CERT_SHA256/);
+ assert.match(code,/expectedSigner/);
+ assert.match(code,/EXPECTED_ABIS/);
+ assert.match(code,/AUDIO_CUES = 70/);
+ assert.match(code,/scripts\/arena_library_skills\.gd/);
+ assert.match(code,/world-art\/community.webp/);
+ assert.match(code,/original EAS staging signing certificate/i);
+ assert.match(code,/deviceQA:'PENDING'/);
+});
