@@ -36,5 +36,11 @@
     "Deterministic zipped Godot 4.7.2 project",
     "Actual headless Godot scene and joystick+skill test",
     "No APK or OTA release"
+  ],
+  "selectionRationale": "Extend the existing verified four-world Godot staging branch with the smallest safe changes: UI does not invent cooldown state, native two-finger behavior is proven by actual Godot headless tests, and no production or native release files are touched.",
+  "alternativeApproaches": [
+    "Build a separate offline Arena Godot project or APK: rejected; would fork the existing BUKLOD MAIN native runtime and lose four-world parity.",
+    "Implement a JavaScript-only fake HUD overlay: rejected; cooldown and match state would diverge from Godot simulation.",
+    "Push an unverified native staging OTA: rejected; signed APK, backend isolation, native asset export and device acceptance remain hard gates."
   ]
 }
