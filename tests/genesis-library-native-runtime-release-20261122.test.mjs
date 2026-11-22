@@ -78,6 +78,6 @@ test('signed APK verifier enforces same EAS certificate, all ABIs, 4 worlds and 
  assert.match(code,/AUDIO_CUES = 70/);
  assert.match(code,/scripts\/arena_library_skills\.gd/);
  assert.match(code,/world-art\/community.webp/);
- assert.match(code,/original EAS staging signing certificate/i);
+ assert.match(code,/Existing staging signer override differs/i);
  assert.match(code,/deviceQA:'PENDING'/);
 });
