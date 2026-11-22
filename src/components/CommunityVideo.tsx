@@ -296,6 +296,8 @@ function InactiveCommunityVideo({
 }: Props & { poster?: any }) {
   const knownDuration =
     Number(expectedDurationSeconds ?? 0) || 0;
+  // Fullscreen swipe targets and tappable feed posters aren't manual-play cards.
+  const showManualPlay = !autoPlay && !fullscreen && !onOpenFullscreen;
 
   return (
     <View
@@ -319,7 +321,7 @@ function InactiveCommunityVideo({
             <View style={styles.posterScrim} />
           </>
         ) : null}
-        {!autoPlay ? (
+        {showManualPlay ? (
           <MaterialCommunityIcons
             name={poster ? 'play' : 'play-circle-outline'}
             size={poster ? 32 : 58}
@@ -327,7 +329,7 @@ function InactiveCommunityVideo({
             style={poster ? styles.posterPlayBadge : undefined}
           />
         ) : null}
-        {!poster && !autoPlay ? (
+        {!poster && showManualPlay ? (
           <>
             <Text style={styles.inactiveLabel}>
               Video · I-tap para i-play
@@ -1127,7 +1129,8 @@ function ExpoCommunityVideoPlayback({
   // Do not confuse automatic initialization with a manual Play state.
   // Never display a center play badge over a clip that is still preparing.
   const centerVisible = firstFrameRendered && playerStatus !== 'error' &&
-    (showCenter || (!playing && (!autoPlay || userPausedRef.current)));
+    (showCenter || (!playing && (userPausedRef.current ||
+      (!autoPlay && active && !fullscreen && !onOpenFullscreen))));
   const chromeVisible = !fullscreen || !playing || showCenter;
   const frameHeight = !fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio && measuredWidth > 0
     ? communityVideoFrameHeight(measuredWidth, videoAspectRatio, height)
