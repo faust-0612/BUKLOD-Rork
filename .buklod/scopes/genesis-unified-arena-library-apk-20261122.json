@@ -1,0 +1,89 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-unified-arena-library-apk-20261122.json",
+  "objective": "Prepare one BUKLOD MAIN Genesis native 2.0.4 staging APK by reconciling the complete owner Library Arena GDScript into existing four-world Godot runtime and 70 safe prototype cue names while preserving app, paid backend account isolation, existing signed staging signature, and all production paths.",
+  "baseRef": "integration/genesis-unified-godot-native-staging-20261122",
+  "chosenApproach": "Exact-base Git tree overlay of audited Arena-only gameplay additions into unified 2.0.3 Godot four-world pack, preserving owner-approved original world media, bump staging runtime to 2.0.4, and trigger one offline invalid-backend arm64 debug APK compile to isolate native issues before any EAS signer or release.",
+  "allowedPaths": [
+    ".github/workflows/arena-blender-asset-export-dev-20261122.yml",
+    ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
+    ".github/workflows/genesis-unified-library-offline-apk-20261122.yml",
+    "docs/BUKLOD_ARENA_PREMIUM_VISUAL_BACKEND_DEV_20261122.md",
+    "godot/empire-arena/library/arena_intake_20261122.json",
+    "godot/empire-arena/scripts/arena_audio.gd",
+    "godot/empire-arena/scripts/arena_effects.gd",
+    "godot/empire-arena/scripts/arena_hud.gd",
+    "godot/empire-arena/scripts/arena_library_actors.gd",
+    "godot/empire-arena/scripts/arena_library_skills.gd",
+    "godot/empire-arena/scripts/arena_root.gd",
+    "godot/empire-arena/scripts/arena_simulation.gd",
+    "godot/empire-arena/scripts/hero_animation.gd",
+    "godot/empire-arena/shaders/arena_impact.gdshader",
+    "godot/empire-arena/tests/library_modes_audio_smoke.gd",
+    "godot/empire-arena/tests/library_smoke.gd",
+    "godot/empire-arena/tests/premium_smoke.gd",
+    "godot/empire-arena/tests/smoke.gd",
+    "scripts/arena-library-audio-pack.mjs",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/generate-arena-blender-kit.py",
+    "tests/arena-library-godot-native-20261122.test.mjs",
+    "tests/arena-library-modes-audio-20261122.test.mjs",
+    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
+    "tests/genesis-library-native-runtime-release-20261122.test.mjs",
+    "app.config.js",
+    "eas.json",
+    ".buklod/scopes/genesis-unified-arena-library-apk-20261122.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "New 2.0.4 staging-only native library resources and isolated internal EAS profile change only app.config and eas.json; preserve every production release identity and signer.",
+      "preservedBehaviors": [
+        "BUKLOD MAIN production remains org.mzbministry.buklod with runtime 1.3.2 and channel production",
+        "Older staging 2.0.0/2.0.3 binaries never receive incompatible 2.0.4 resources by OTA",
+        "No EAS signing, Play publication, Supabase migration, ranked settlements or new paid subscription from this debug build"
+      ],
+      "tests": [
+        "tests/genesis-library-native-runtime-release-20261122.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/genesis-library-native-runtime-release-20261122.test.mjs",
+    "tests/arena-library-godot-native-20261122.test.mjs",
+    "tests/arena-library-modes-audio-20261122.test.mjs",
+    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Existing RN login, Wall, Cluster, Connect, consent, PTT/SOS and AdMob remain source-unchanged",
+    "Single BUKLOD MAIN app with Godot Arena/Kingdom/Community/House native previews",
+    "13 hero identities, 300 match-only pickups, 68 owner approved assets, 7 original world media resources",
+    "Godot client does not issue server-authoritative BP, QMP, Diamond, ranked results, or account writes",
+    "Signed EAS staging APK requires actual identity, isolated backend, ad and navigation QA before release"
+  ],
+  "riskAreas": [
+    "Untrusted shared Supabase live account data, so offline debug intentionally uses invalid endpoint",
+    "Unverified physical arm64 GPU/audio focus/native activity return despite source tests",
+    "Old debug signer incompatible with existing EAS-signed staging installation",
+    "Godot 4.7.2 WAV and all four-world resource pack decoding",
+    "Missing locked Jest dependencies block full app-wide release QA",
+    "No online ranked backend client bridge in offline pack"
+  ],
+  "releaseMode": "DEV_ONLY_OFFLINE_ANDROID_DEBUG_NOT_EAS_OR_OTA",
+  "publicationStatus": "NO_APK_VERIFIED_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "acceptanceChecks": [
+    "Godot import+headless 4 world and 70 prototype WAV decode tests",
+    "Node focused Arena and native runtime contract plus source release and Genesis gates",
+    "Android ARM64 Gradle APK assembleDebug with explicit dummy Supabase backend/test AdMob",
+    "Verify exact source SHA, Android package, ABIs, Godot native library, packed resources and APK signature/hash",
+    "Require new separately authorized EAS signed functional staging RC, AdMob/navig/device evidence before distribution"
+  ],
+  "productionBaselineEvidence": "Authoritative production org.mzbministry.buklod runtime 1.3.2 and channel production preserved from current unified Genesis source. New isolated branch derives from c4c0fb804e4d079d894b03023187f2092032ba9c; no production merges or backend writes.",
+  "selectionRationale": "No standalone game, no double combat authority, keep newer native unified world resources while adding current Library hero/minion/audio logic; one scoped debug build before paid remote staging signing.",
+  "alternativeApproaches": [
+    "Arena-only binary: rejected because it loses existing unified Kingdom/Community/House native previews",
+    "Reuse staging 2.0.0 OTA: rejected because native Godot pack changed",
+    "Bypass sandbox Supabase/SOS security just to issue an EAS signed APK: rejected"
+  ]
+}
