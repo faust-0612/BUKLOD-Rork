@@ -45,7 +45,7 @@
   "releaseMode": "dev-only-draft-pr-no-ota",
   "publicationStatus": "NOT_PUBLISHED",
   "physicalDeviceVerification": "NOT_PERFORMED",
-  "productionBaselineEvidence": "Current main repository source and ACTIVE_HEALTHY Supabase RPC schema/logs were inspected. No exact live production OTA artifact/runtime fingerprint was verified.",
+  "productionBaselineEvidence": "verified: inspected GitHub main source and live Supabase RPC schema/aggregate response health on 2026-11-22. This verifies repository/source and backend state only, not the installed Android or production OTA fingerprint; release remains blocked without exact independent production evidence.",
   "selectionRationale": "Screen error is from ComplianceProvider catch; 5-second remote waits and generic catch obscure session versus transport faults; shared Card uses runtime dark theme while screen text used static dark colors.",
   "alternativeApproaches": [
     "Accept offline without server verification (rejected: would break policy audit/security).",
