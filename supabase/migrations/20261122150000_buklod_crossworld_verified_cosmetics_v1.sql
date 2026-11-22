@@ -7,9 +7,9 @@
 create table if not exists private.buklod_crossworld_cosmetic_receipts_v1 (
   user_id uuid not null references auth.users(id) on delete cascade,
   cosmetic_key text not null check (cosmetic_key in (
-    'house_artisan_planter', 'arena_apprentice_banner',
-    'house_heritage_pergola', 'arena_kingdom_banner',
-    'house_verified_fountain', 'arena_verified_veteran_emblem'
+    'house_artisan_planter', 'arena_apprentice_banner', 'kingdom_prospect_lantern',
+    'house_heritage_pergola', 'arena_kingdom_banner', 'kingdom_honor_beacon',
+    'house_verified_fountain', 'arena_verified_veteran_emblem', 'kingdom_masterwork_arch'
   )),
   source_key text not null check (
     source_key in ('kingdom:verified_checks:1','kingdom:verified_checks:10',
@@ -88,9 +88,9 @@ begin
   select v_uid, v.cosmetic_key,
     'kingdom:verified_checks:' || v.threshold::text
   from (values
-    (1,'house_artisan_planter'), (1,'arena_apprentice_banner'),
-    (10,'house_heritage_pergola'), (10,'arena_kingdom_banner'),
-    (25,'house_verified_fountain'), (25,'arena_verified_veteran_emblem')
+    (1,'house_artisan_planter'), (1,'arena_apprentice_banner'), (1,'kingdom_prospect_lantern'),
+    (10,'house_heritage_pergola'), (10,'arena_kingdom_banner'), (10,'kingdom_honor_beacon'),
+    (25,'house_verified_fountain'), (25,'arena_verified_veteran_emblem'), (25,'kingdom_masterwork_arch')
   ) as v(threshold,cosmetic_key)
   where v_count>=v.threshold
   on conflict (user_id,cosmetic_key) do nothing;
@@ -111,4 +111,4 @@ grant execute on function public.claim_my_buklod_crossworld_cosmetics_v1()
 comment on table private.buklod_crossworld_cosmetic_receipts_v1 is
   'Display-only, non-tradable milestone receipts, not Character item ownership or a spendable ledger.';
 comment on function public.claim_my_buklod_crossworld_cosmetics_v1() is
-  'Idempotently grants six bounded cross-world showcase visuals from existing first 3/3 server-verified Kingdom checks (1/10/25). No client-supplied score, item or recipient; no BP, Diamond, QMP or Arena effect.';
+  'Idempotently grants nine bounded cross-world showcase visuals from existing first 3/3 server-verified Kingdom checks (1/10/25). No client-supplied score, item or recipient; no BP, Diamond, QMP or Arena effect.';
