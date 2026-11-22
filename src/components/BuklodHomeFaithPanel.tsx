@@ -81,6 +81,7 @@ type FaithActionProps = {
   label: string;
   title: string;
   meta: string;
+  compactCaption?: string;
   icon: any;
   tone: FaithTone;
   onPress: () => void;
@@ -120,6 +121,7 @@ function FaithAction({
   label,
   title,
   meta,
+  compactCaption,
   icon,
   tone,
   onPress,
@@ -142,6 +144,11 @@ function FaithAction({
     Prayer: '#E74F82', ABAKA: '#8B50E9', Hymns: '#09B8C6',
   };
   const compactColor = tileColor[label] ?? styleTone.accent;
+  // Resource accents stay identifiable in both compact and detailed scoped doors.
+  const doorAccent =
+    label === 'Daily Reading' || label === 'Word' || label === 'ABAKA'
+      ? compactColor
+      : styleTone.accent;
 
   const pressTo = (
     value: number,
@@ -188,8 +195,8 @@ function FaithAction({
           compact && styles.compactCard,
           {
             backgroundColor: compact ? compactColor : styleTone.surface,
-            borderColor: compact ? compactColor : `${styleTone.accent}22`,
-            minHeight: compact ? 96 : 72,
+            borderColor: compact ? compactColor : `${doorAccent}33`,
+            minHeight: compact ? 108 : 72,
           },
           pressed && {
             opacity: 0.90,
@@ -201,7 +208,7 @@ function FaithAction({
             styles.accentRail,
             {
               backgroundColor:
-                styleTone.accent,
+                doorAccent,
             },
           ]}
         />}
@@ -218,14 +225,14 @@ function FaithAction({
             <MaterialCommunityIcons
               name={icon}
               size={compact ? 26 : 19}
-              color={compact ? '#FFFFFF' : styleTone.accent}
+              color={compact ? '#FFFFFF' : doorAccent}
             />
           </View>
 
           {!compact && <MaterialCommunityIcons
             name={locked ? 'lock-outline' : 'arrow-top-right'}
             size={16}
-            color={`${styleTone.accent}99`}
+            color={`${doorAccent}99`}
           />}
           {compact && locked ? <MaterialCommunityIcons name="lock-outline" size={12} color="#FFFFFF" /> : null}
         </View>
@@ -235,13 +242,19 @@ function FaithAction({
           style={[
             styles.eyebrow,
             {
-              color: compact ? '#FFFFFF' : styleTone.accent,
+              color: compact ? '#FFFFFF' : doorAccent,
             },
             compact && styles.compactEyebrow,
           ]}
         >
           {label.toUpperCase()}
         </Text>
+
+        {compact && compactCaption ? (
+          <Text numberOfLines={1} style={styles.compactCaption}>
+            {locked ? 'Cluster required' : loading ? 'Loading…' : compactCaption}
+          </Text>
+        ) : null}
 
         {loading ? (
           <View style={styles.loadingBox}>
@@ -588,6 +601,7 @@ export default function BuklodHomeFaithPanel({
         <FaithAction
           compact={compact}
           label="Daily Reading"
+          compactCaption={displayedReading?.bible_reference ?? "Today's reading"}
           title={
             displayedReading
               ?.bible_reference ||
@@ -660,6 +674,7 @@ export default function BuklodHomeFaithPanel({
         <FaithAction
           compact={compact}
           label="Word"
+          compactCaption="Daily devotional"
           title="Daily devotional"
           meta={
             Boolean(scopeId) && !savedActiveCluster && (accessLoading || !access)
@@ -714,8 +729,9 @@ export default function BuklodHomeFaithPanel({
         <FaithAction
           compact={compact}
           label="ABAKA"
+          compactCaption="A–Z lessons"
           title="ABAKA ng Bagong Likha"
-          meta="Sunday school • A–Z • +8 BP per verified lesson"
+          meta="Sunday school • A–Z • +5 BP per verified lesson"
           icon="school-outline"
           tone="bible"
           onPress={() =>
@@ -755,10 +771,11 @@ const styles =
     compactSection: { marginHorizontal: 0, marginTop: 0, marginBottom: 0, padding: 10, borderRadius: 15 },
     /* Scoped Show Faith: two responsive rows of three large cards. */
     compactShell: { flexGrow: 1, flexShrink: 0, flexBasis: '30%' as any, minWidth: 0 },
-    compactCard: { minHeight: 96, paddingHorizontal: 6, paddingVertical: 10,
+    compactCard: { minHeight: 108, paddingHorizontal: 6, paddingVertical: 10,
       alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
     compactCardTop: { justifyContent: 'center', marginBottom: 1 },
     compactEyebrow: { textAlign: 'center', fontSize: 11, lineHeight: 15, letterSpacing: 0, marginBottom: 0 },
+    compactCaption: { marginTop: 3, width: '100%', textAlign: 'center', color: '#FFFFFF', opacity: 0.92, fontSize: 9, lineHeight: 12, fontWeight: '700' },
     section: {
       marginTop: 6,
       marginHorizontal: 12,
