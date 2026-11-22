@@ -6,6 +6,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import BuklodImciTagalogGuide from '@/components/health/BuklodImciTagalogGuide';
+import BuklodAjaTagalogGuide from '@/components/health/BuklodAjaTagalogGuide';
 import {
   BUKLOD_HEALTH_CENTER_URL,
   BUKLOD_HEALTH_CONSULTATION_URL,
@@ -44,6 +45,7 @@ const CONCERN_HELP: Record<Concern, { title: string; text: string }> = {
 export default function BuklodHealthPortal() {
   const [concern, setConcern] = useState<Concern>('general');
   const [imciUrgent, setImciUrgent] = useState(false);
+  const [ajaUrgent, setAjaUrgent] = useState(false);
   const [urgency, setUrgency] = useState<Urgency>('unanswered');
   const [opening, setOpening] = useState<Door | null>(null);
   const [error, setError] = useState(false);
@@ -59,7 +61,7 @@ export default function BuklodHealthPortal() {
         await launchBuklodHealthCenter(url => Linking.openURL(url));
        } else if (door === 'professional' && BUKLOD_HEALTH_PROFESSIONALS_READY) {
         await launchBuklodHealthProfessionals(url => Linking.openURL(url));
-      } else if (urgency === 'none' && !imciUrgent && BUKLOD_HEALTH_CONSULTATION_READY) {
+      } else if (urgency === 'none' && !imciUrgent && !ajaUrgent && BUKLOD_HEALTH_CONSULTATION_READY) {
         await launchBuklodHealthConsultation(url => Linking.openURL(url));
       }
     } catch {
@@ -68,7 +70,7 @@ export default function BuklodHealthPortal() {
       openingRef.current = false;
       setOpening(null);
     }
-  }, [urgency, imciUrgent]);
+  }, [urgency, imciUrgent, ajaUrgent]);
 
   const urgent = urgency === 'urgent';
 
@@ -97,8 +99,9 @@ export default function BuklodHealthPortal() {
         </View>
 
         <BuklodImciTagalogGuide onUrgencyChange={setImciUrgent} />
+        <BuklodAjaTagalogGuide onUrgencyChange={setAjaUrgent} />
 
-        {!imciUrgent ? (
+        {!imciUrgent && !ajaUrgent ? (
           <>
         <View style={styles.guideCard}>
           <Text style={styles.sectionHeading}>Anong tulong ang kailangan mo?</Text>
@@ -177,7 +180,7 @@ export default function BuklodHealthPortal() {
           </>
         ) : null}
 
-        {!urgent && !imciUrgent ? (
+        {!urgent && !imciUrgent && !ajaUrgent ? (
           <View style={styles.guideCard}>
             <Text style={styles.sectionHeading}>Pribadong AI Health Guide</Text>
             <Text style={styles.body}>
@@ -187,12 +190,12 @@ export default function BuklodHealthPortal() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Continue to AI Health Guide"
-              accessibilityState={{ disabled: urgency !== 'none' || imciUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null, busy: opening === 'consult' }}
-              disabled={urgency !== 'none' || imciUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null}
+              accessibilityState={{ disabled: urgency !== 'none' || imciUrgent || ajaUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null, busy: opening === 'consult' }}
+              disabled={urgency !== 'none' || imciUrgent || ajaUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null}
               onPress={() => void openDoor('consult')}
               style={({ pressed }) => [
                 styles.primaryButton,
-                (urgency !== 'none' || imciUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null) && styles.disabledButton,
+                (urgency !== 'none' || imciUrgent || ajaUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null) && styles.disabledButton,
                 pressed && styles.pressed,
               ]}
             >
@@ -209,7 +212,7 @@ export default function BuklodHealthPortal() {
           </View>
         ) : null}
 
-        {!urgent && !imciUrgent ? <View style={styles.standaloneCard}>
+        {!urgent && !imciUrgent && !ajaUrgent ? <View style={styles.standaloneCard}>
           <View style={styles.standaloneHeading}>
             <MaterialCommunityIcons name="hospital-building" size={27} color="#126946" />
             <View style={styles.standaloneText}>
@@ -231,7 +234,7 @@ export default function BuklodHealthPortal() {
           <Text selectable style={styles.url}>{BUKLOD_HEALTH_CENTER_URL}</Text>
         </View> : null}
 
-        {!urgent && !imciUrgent ? (
+        {!urgent && !imciUrgent && !ajaUrgent ? (
           <View style={styles.professionalCard}>
             <MaterialCommunityIcons name="badge-account-outline" size={23} color="#416755" />
             <View style={styles.professionalBody}>
@@ -267,7 +270,7 @@ export default function BuklodHealthPortal() {
           </Text>
         </View>
 
-        {urgency === 'none' && !imciUrgent ? (
+        {urgency === 'none' && !imciUrgent && !ajaUrgent ? (
           <View style={styles.adPlacement} accessibilityLabel="Advertisement placement">
             <BuklodAdMobBanner
               placement="focus"
@@ -279,7 +282,7 @@ export default function BuklodHealthPortal() {
             />
           </View>
         ) : null}
-        {urgency === 'none' && !imciUrgent ? (
+        {urgency === 'none' && !imciUrgent && !ajaUrgent ? (
           <Text style={styles.adNote}>
             Hiwalay ang patalastas sa gabay at hindi nito naaapektuhan ang emergency access o payong pangkalusugan.
           </Text>
