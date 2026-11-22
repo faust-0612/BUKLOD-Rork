@@ -90,6 +90,11 @@ export default function BuklodAjaTagalogGuide({ onUrgencyChange }: Props) {
             <Pressable accessibilityRole="button" style={styles.call} onPress={() => { void Linking.openURL('tel:911').catch(() => {}); }}>
               <Text style={styles.callText}>Tumawag sa 911</Text>
             </Pressable>
+            <Text style={styles.dangerText}>Dagdag na suporta: NCMH mental health crisis hotline 1553 at MAKABATA child protection 1383. Hindi ito kapalit ng 911 sa agarang panganib.</Text>
+            <View style={styles.rowWrap}>
+              <Pressable accessibilityRole="button" style={styles.secondary} onPress={() => { void Linking.openURL('tel:1553').catch(() => {}); }}><Text style={styles.secondaryText}>NCMH 1553</Text></Pressable>
+              <Pressable accessibilityRole="button" style={styles.secondary} onPress={() => { void Linking.openURL('tel:1383').catch(() => {}); }}><Text style={styles.secondaryText}>MAKABATA 1383</Text></Pressable>
+            </View>
             <Pressable accessibilityRole="button" style={styles.secondary} onPress={editDanger}><Text style={styles.secondaryText}>Baguhin ang sagot sa danger sign</Text></Pressable>
           </View> : <View style={styles.actions}>
             <Pressable accessibilityRole="button" disabled={index === 0} style={[styles.secondary, index === 0 && styles.disabled]}
