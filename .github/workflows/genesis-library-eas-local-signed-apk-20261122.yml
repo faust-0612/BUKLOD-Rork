@@ -1,4 +1,5 @@
 name: BUKLOD MAIN Genesis 2.0.4 Local EAS Signed Staging APK
+# No Expo cloud quota or new subscriptions; use remotely managed original staging signer.
 on:
   push:
     branches:
