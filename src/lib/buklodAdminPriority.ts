@@ -217,19 +217,16 @@ export async function fetchAdminPriorityRequests(full = false): Promise<AdminPri
     {
       name: 'Points and mentoring reviews',
       load: async () => {
-        const [achievements, mentoring, checkins] = await Promise.all([
+        const [achievements, mentoring] = await Promise.all([
           (supabase as any).rpc('admin_get_buklod_r2_rewards_monitor_v1'),
           (supabase as any).rpc('admin_get_buklod_r2_mentor_evidence_v1'),
-          (supabase as any).rpc('admin_get_buklod_home_checkin_queue_r3'),
         ]);
         errorIf(achievements.error);
         errorIf(mentoring.error);
-        errorIf(checkins.error);
         const overview = achievements.data || {};
         const nominations: any[] = Array.isArray(overview.recent_nominations)
           ? overview.recent_nominations.filter((r: any) => r.status === 'pending') : [];
         const photos: any[] = Array.isArray(mentoring.data) ? mentoring.data : [];
-        const attendance: any[] = Array.isArray(checkins.data) ? checkins.data : [];
         return {
           items: [
             ...nominations.map(n => row('approvals', 'Major achievements', n.id,
@@ -241,9 +238,6 @@ export async function fetchAdminPriorityRequests(full = false): Promise<AdminPri
                 'Mentoring: ' + p.lesson, 'Photo evidence submitted for verification',
                 p.status, p.session_date, '/admin/points-r2-monitor', 'high'
               )),
-            ...attendance.map(a => row('approvals', 'Home attendance', a.id,
-              'Check-in: ' + a.event, 'Member attendance verification',
-              a.status, a.checked_in_at, '/admin/points-r2-monitor', 'normal')),
           ],
           capped: Number(overview.nominations?.pending || 0) > nominations.length,
         };
