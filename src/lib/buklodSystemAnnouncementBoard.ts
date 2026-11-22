@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { supabase } from '@/lib/supabase';
 
 export type SystemAnnouncementSlot = 'public_home' | 'profile';
@@ -11,33 +9,18 @@ export type SystemAnnouncementBoard = {
   updated_at: string | null;
 };
 
-const LOCAL_BOARDS_KEY = 'buklod:system-announcement-boards:v1';
-
 function mapRow(
   row: Record<string, unknown> | null | undefined
 ): SystemAnnouncementBoard | null {
-  if (!row) {
-    return null;
-  }
-
+  if (!row) return null;
   const slot = String(row.slot ?? '') as SystemAnnouncementSlot;
-
-  if (slot !== 'public_home' && slot !== 'profile') {
-    return null;
-  }
-
+  if (slot !== 'public_home' && slot !== 'profile') return null;
   return {
     slot,
     message: String(row.message ?? ''),
-    is_active: row.is_active !== false,
+    is_active: row.is_active === true,
     updated_at: row.updated_at ? String(row.updated_at) : null,
   };
-}
-
-function isMissingTableError(message: string) {
-  return /relation.*does not exist|schema cache|could not find the table/i.test(
-    message
-  );
 }
 
 export function isAnnouncementVisible(
@@ -46,36 +29,11 @@ export function isAnnouncementVisible(
   return !!board?.is_active && !!board.message.trim();
 }
 
-async function loadLocalBoards(): Promise<
-  Partial<Record<SystemAnnouncementSlot, SystemAnnouncementBoard>>
-> {
-  const raw = await AsyncStorage.getItem(LOCAL_BOARDS_KEY);
-
-  if (!raw) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Record<
-      string,
-      SystemAnnouncementBoard
-    >;
-
-    return parsed;
-  } catch {
-    return {};
-  }
-}
-
-async function saveLocalBoard(board: SystemAnnouncementBoard) {
-  const current = await loadLocalBoards();
-  current[board.slot] = board;
-  await AsyncStorage.setItem(
-    LOCAL_BOARDS_KEY,
-    JSON.stringify(current)
-  );
-}
-
+/**
+ * Public announcements must come from the authoritative server.
+ * The former AsyncStorage fallback could falsely display a locally saved,
+ * unshared board when the database table was absent.
+ */
 export async function loadSystemAnnouncementBoard(
   slot: SystemAnnouncementSlot
 ): Promise<SystemAnnouncementBoard | null> {
@@ -85,59 +43,27 @@ export async function loadSystemAnnouncementBoard(
     .eq('slot', slot)
     .maybeSingle();
 
-  if (!error) {
-    const board = mapRow(data as Record<string, unknown>);
-
-    if (isAnnouncementVisible(board) && board) {
-      await saveLocalBoard(board);
-      return board;
-    }
-
-    return null;
-  }
-
-  if (isMissingTableError(String(error.message ?? ''))) {
-    const local = await loadLocalBoards();
-    const board = local[slot] ?? null;
-    return isAnnouncementVisible(board) ? board : null;
-  }
-
-  throw error;
+  if (error) throw error;
+  const board = mapRow(data as Record<string, unknown> | null);
+  return isAnnouncementVisible(board) ? board : null;
 }
 
 export async function loadSystemAnnouncementBoardForAdmin(
   slot: SystemAnnouncementSlot
-): Promise<SystemAnnouncementBoard | null> {
+): Promise<SystemAnnouncementBoard> {
   const { data, error } = await supabase
     .from('buklod_system_announcement_boards')
     .select('slot, message, is_active, updated_at')
     .eq('slot', slot)
     .maybeSingle();
 
-  if (!error) {
-    return (
-      mapRow(data as Record<string, unknown>) ?? {
-        slot,
-        message: '',
-        is_active: true,
-        updated_at: null,
-      }
-    );
-  }
-
-  if (isMissingTableError(String(error.message ?? ''))) {
-    const local = await loadLocalBoards();
-    return (
-      local[slot] ?? {
-        slot,
-        message: '',
-        is_active: true,
-        updated_at: null,
-      }
-    );
-  }
-
-  throw error;
+  if (error) throw error;
+  return mapRow(data as Record<string, unknown> | null) ?? {
+    slot,
+    message: '',
+    is_active: true,
+    updated_at: null,
+  };
 }
 
 export async function saveSystemAnnouncementBoard(input: {
@@ -145,8 +71,12 @@ export async function saveSystemAnnouncementBoard(input: {
   message: string;
   is_active: boolean;
   updated_by?: string | null;
-}) {
+}): Promise<SystemAnnouncementBoard> {
   const cleanMessage = input.message.trim().slice(0, 2000);
+  if (input.is_active && !cleanMessage) {
+    throw new Error('An enabled announcement must contain a message.');
+  }
+
   const payload = {
     slot: input.slot,
     message: cleanMessage,
@@ -155,28 +85,22 @@ export async function saveSystemAnnouncementBoard(input: {
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase
+  // Only report success when PostgREST returns the authoritative row.
+  // In particular, missing tables, RLS rejections and disconnected clients
+  // must never silently turn a public announcement into local-only storage.
+  const { data, error } = await supabase
     .from('buklod_system_announcement_boards')
-    .upsert(payload, { onConflict: 'slot' });
+    .upsert(payload, { onConflict: 'slot' })
+    .select('slot, message, is_active, updated_at')
+    .single();
 
-  if (error) {
-    if (isMissingTableError(String(error.message ?? ''))) {
-      await saveLocalBoard({
-        slot: input.slot,
-        message: cleanMessage,
-        is_active: input.is_active,
-        updated_at: payload.updated_at,
-      });
-      return;
-    }
-
-    throw error;
+  if (error) throw error;
+  const saved = mapRow(data as Record<string, unknown> | null);
+  if (!saved ||
+      saved.slot !== input.slot ||
+      saved.message !== cleanMessage ||
+      saved.is_active !== input.is_active) {
+    throw new Error('Could not verify the announcement on the server. Check before retrying.');
   }
-
-  await saveLocalBoard({
-    slot: input.slot,
-    message: cleanMessage,
-    is_active: input.is_active,
-    updated_at: payload.updated_at,
-  });
+  return saved;
 }
