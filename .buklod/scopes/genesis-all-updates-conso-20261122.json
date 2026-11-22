@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-all-updates-conso-20261122.json",
-  "objective": "Reconciling all owner-approved Genesis Season 2 and Empire Arena staging candidates into one source line while keeping the native SOS and shared-backend release gates closed.",
+  "objective": "Reconciling all owner-approved Genesis Season 2 and Empire Arena staging candidates into one source line while keeping the native SOS and shared-backend release gates closed. Include non-native continuity of Genesis Entry Map ambient audio while Stream PTT is connected or speaking.",
   "baseRef": "integration/season2-genesis-full-conso-staging-20261121",
   "productionBaselineEvidence": "Previously published Genesis R4 staging source 7bbb44fcb331ce14785ce43d70969d955f9e61e7 (EAS group dc98677b-6f82-42ca-9146-d7810478513c); production unchanged. Source-only verification: no new signed 2.0.1 SOS staging APK or isolated SOS/Estate backend verified.",
-  "chosenApproach": "Single constrained additive source reconciliation from previously reviewed Arena, PTT/SOS, Today’s Best, original Guide/cosmic motion, Estate and silent OTA changes; retain exact feature-specific regression guards and explicit native/backend hold.",
+  "chosenApproach": "Single constrained additive source reconciliation from previously reviewed Arena, PTT/SOS, Today’s Best, original Guide/cosmic motion, Estate and silent OTA changes; retain exact feature-specific regression guards and explicit native/backend hold. Add isolated PTT voice-activity telemetry to the existing process-local audio-focus module, duck the Genesis loop without seeking or restarting, and use Android mixWithOthers for that decorative entry loop; maintain Stream floor and microphone authority.",
   "selectionRationale": "A shared V2 manifest covers multiple independently governed source scopes with explicit changed-file evidence; per-feature manifests remain unchanged and do not authorize release.",
   "releaseStatus": "DEV_SOURCE_ONLY_NEW_SIGNED_SOS_APK_AND_ISOLATED_BACKEND_REQUIRED",
   "releaseGates": {
@@ -13,7 +13,8 @@
     "realAndroidSOS": "NOT_VERIFIED",
     "stagingOta": "NOT_PUBLISHED",
     "production": "UNCHANGED",
-    "rankedTeamVoice": "DISABLED"
+    "rankedTeamVoice": "DISABLED",
+    "genesisPttAudioDeviceQA": "NOT_VERIFIED"
   },
   "riskAreas": [
     "audio-focus",
@@ -117,6 +118,7 @@
     "src/features/season2/world/estateFeedback.ts",
     "src/features/season2/world/estateFeedback.web.ts",
     "src/features/season2/world/estateProgressClient.ts",
+    "src/lib/buklodAudioFocus.ts",
     "src/lib/buklodSilentOtaPolicy.ts",
     "src/lib/buklodVisual.ts",
     "src/lib/pushNotifications.ts",
@@ -141,6 +143,7 @@
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
     "tests/genesis-all-updates-scope-integrity-20261122.test.mjs",
     "tests/genesis-dimensional-entry-map-motion-20261121.test.mjs",
+    "tests/genesis-entry-ptt-audio-continuity-20261122.test.mjs",
     "tests/genesis-original-guide-ad-20261121.test.mjs",
     "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs",
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
@@ -178,6 +181,7 @@
     "tests/empire-arena-v2-presentation-20261121.test.mjs",
     "tests/genesis-all-updates-scope-integrity-20261122.test.mjs",
     "tests/genesis-dimensional-entry-map-motion-20261121.test.mjs",
+    "tests/genesis-entry-ptt-audio-continuity-20261122.test.mjs",
     "tests/genesis-original-guide-ad-20261121.test.mjs",
     "tests/genesis-ptt-sos-conso-runtime-20261122.test.mjs",
     "tests/genesis-world-navigation-regression-20261121.test.mjs",
@@ -291,12 +295,14 @@
     "New signed 2.0.1-genesis-sos staging APK with the installed native emergency channel and audio asset is independently verified BEFORE matching SOS OTA.",
     "Isolated staging Supabase migration and Edge Function are separately authenticated and RLS tested; shared paid production backend receives no staging mutation.",
     "Exact-source AdMob/navigation/voice focus regressions, strict TypeScript, Android bundle and native-device rescue flow pass before staging release.",
-    "Season 2 production embargo remains active and no signed production AAB/OTA is created."
+    "Season 2 production embargo remains active and no signed production AAB/OTA is created.",
+    "Genesis Entry audio coexists with monitored PTT voice (TX, normal RX, SOS/priority RX) without repeat player restarts, and keeps the separate native SOS/isolated backend release hold."
   ],
   "preserveBehaviors": [
     "Production package, EAS channel mapping and paid database remain untouched; staging source cannot override native runtime compatibility.",
     "Keep original 5-tab navigation, Wall/Connect content, current ads and audio focus, protected economy ledger and signed media.",
-    "Defensive emergency privacy requires GPS only on consented request and exact coordinates only to current authorized responders."
+    "Defensive emergency privacy requires GPS only on consented request and exact coordinates only to current authorized responders.",
+    "PTT mic capture, active-call audio routing, emergency volume, existing AdMob and navigation lifecycle stay untouched; Android handset playback must pass before staging OTA."
   ],
   "alternativeApproaches": [
     "Replace every per-feature scope manifest with one synthetic artifact: rejected because it destroys source provenance and independent review evidence.",
