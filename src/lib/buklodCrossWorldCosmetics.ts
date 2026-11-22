@@ -8,9 +8,9 @@ import {supabase} from '@/lib/supabase';
 
 export type BuklodCrossWorldDestination='kingdom'|'arena'|'house';
 export type BuklodCrossWorldCosmeticKey =
-  'house_artisan_planter'|'arena_apprentice_banner'|
-  'house_heritage_pergola'|'arena_kingdom_banner'|
-  'house_verified_fountain'|'arena_verified_veteran_emblem';
+  'house_artisan_planter'|'arena_apprentice_banner'|'kingdom_prospect_lantern'|
+  'house_heritage_pergola'|'arena_kingdom_banner'|'kingdom_honor_beacon'|
+  'house_verified_fountain'|'arena_verified_veteran_emblem'|'kingdom_masterwork_arch';
 export type BuklodCrossWorldReceipt={
   key:BuklodCrossWorldCosmeticKey;
   destination:BuklodCrossWorldDestination;
@@ -29,10 +29,13 @@ export const CROSS_WORLD_COSMETIC_CATALOG:Readonly<Record<
 >>={
   house_artisan_planter:{name:'Artisan Planter',destination:'house'},
   arena_apprentice_banner:{name:'Apprentice Banner',destination:'arena'},
+  kingdom_prospect_lantern:{name:'Prospect Lantern',destination:'kingdom'},
   house_heritage_pergola:{name:'Heritage Pergola',destination:'house'},
   arena_kingdom_banner:{name:'Kingdom Banner',destination:'arena'},
+  kingdom_honor_beacon:{name:'Honor Beacon',destination:'kingdom'},
   house_verified_fountain:{name:'Kingdom Fountain',destination:'house'},
   arena_verified_veteran_emblem:{name:'Veteran Emblem',destination:'arena'},
+  kingdom_masterwork_arch:{name:'Masterwork Arch',destination:'kingdom'},
 };
 const KEYS=Object.keys(CROSS_WORLD_COSMETIC_CATALOG) as BuklodCrossWorldCosmeticKey[];
 const allowed=new Set(KEYS);
@@ -49,7 +52,7 @@ export function normalizeCrossWorldCosmeticSnapshot(raw:unknown):BuklodCrossWorl
   if(!v||v.ok!==true||v.version!==1||v.source!=='server'||
     v.display_only!==true||v.tradeable!==false||v.bp_awarded!==0||
     v.arena_stat_bonus!==0||!Array.isArray(v.items)||
-    !Number.isSafeInteger(v.verified_checks)||Number(v.verified_checks)<0)return null;
+    (typeof v.verified_checks!=='number'||!Number.isSafeInteger(v.verified_checks)||v.verified_checks<0))return null;
 
   const unique=new Set<string>();
   const items:BuklodCrossWorldReceipt[]=[];
