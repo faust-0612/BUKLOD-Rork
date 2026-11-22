@@ -235,7 +235,7 @@ async function requestStreamToken(
       BUILD_STREAM_API_KEY ||
       '';
 
-    if (!token || !apiKey) {
+    if (!token || !apiKey || isBuklodCallJwtExpired(token)) {
       return null;
     }
 
