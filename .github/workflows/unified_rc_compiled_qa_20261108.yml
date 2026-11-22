@@ -160,6 +160,9 @@ jobs:
         run: |
           node --test tests/dzas-signal-deck-implementation.test.mjs tests/dzas-web-production-deploy.test.mjs
           node --test tests/dzas-web-production-deploy.test.mjs
+      - name: Check Season 2 exclusion for candidate web source
+        run: |
+          node -e "const e=require('./scripts/buklod-season2-production-embargo.cjs').runtimeEvidence(); if(e.length){console.error('BLOCK: Season2 code in web production source',e.map(x=>x.file));process.exit(1)} console.log('Season2 runtime excluded: VERIFIED')"
       - name: Compile-check TypeScript
         run: npx tsc --noEmit
       - name: Compile Expo web only
