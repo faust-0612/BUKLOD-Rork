@@ -308,6 +308,7 @@ export default function MentoringScreen() {
 
     try {
       const nextAnswerValidations = emptyValidationRow();
+      let allAnswersAcceptable = true;
 
       for (let index = 0; index < finalAnswers.length; index += 1) {
         const result = await validateBuklodResponse({
@@ -324,17 +325,9 @@ export default function MentoringScreen() {
 
         nextAnswerValidations[index] = result;
 
-        if (!isValidationAcceptable(result)) {
-          setAnswerValidations((current) => ({
-            ...current,
-            [row.release_id]: nextAnswerValidations,
-          }));
-          setReflectionValidations((current) => ({
-            ...current,
-            [row.release_id]: null,
-          }));
-          return false;
-        }
+        // Inspect all questions and the reflection in one checking cycle.
+        // An imperfect answer remains revisable and never becomes a permanent failed grade.
+        if (!isValidationAcceptable(result)) allAnswersAcceptable = false;
       }
 
       const reflectionResult = await validateBuklodResponse({
@@ -355,7 +348,7 @@ export default function MentoringScreen() {
         [row.release_id]: reflectionResult,
       }));
 
-      return isValidationAcceptable(reflectionResult);
+      return allAnswersAcceptable && isValidationAcceptable(reflectionResult);
     } finally {
       setValidatingId(null);
     }
@@ -431,7 +424,7 @@ export default function MentoringScreen() {
     if (!validated) {
       return Alert.alert(
         'Review your answers',
-        'Please improve your answers using the guidance shown, then try again.',
+        'Review the guidance for all four questions and your reflection, then try again. Revisions are unlimited; no permanent failed grade.',
       );
     }
 
