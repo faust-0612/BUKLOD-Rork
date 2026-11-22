@@ -62,3 +62,12 @@ test('Cluster can reach the scoped review screen with exact scope params', () =>
   assert.match(cluster, /reason\.length < 8/);
   assert.match(layout, /name="clusters\/home-checkin-review"/);
 });
+
+test('review success reflects exact server decision and avoids synthetic +10 BP claims', () => {
+  assert.match(cluster, /data: reviewResult, error: reviewError/);
+  assert.match(cluster, /reviewResult\.status !== \(approve \? 'approved' : 'rejected'\)/);
+  assert.match(cluster, /reviewResult\.credited === true/);
+  assert.match(cluster, /Number\.isFinite\(award\) && award > 0/);
+  assert.match(cluster, /No new BP credit was issued/);
+  assert.doesNotMatch(cluster, /Eligible \+10 BP was processed once/);
+});
