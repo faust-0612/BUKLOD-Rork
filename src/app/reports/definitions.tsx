@@ -47,6 +47,12 @@ function displayTitle(row: ReportDefinitionRow) {
   return String(requirements.template_label ?? '').trim() || row.title;
 }
 
+function autoScheduleActive(row: ReportDefinitionRow) {
+  const settings = objectValue(row.recurrence_config);
+  const auto = objectValue(settings.auto_collection);
+  return (row.recurrence_kind === 'WEEKLY' || row.recurrence_kind === 'MONTHLY') && auto.enabled === true;
+}
+
 function category(row: ReportDefinitionRow) {
   const requirements = objectValue(row.content_requirements);
   if (String(requirements.template_key ?? '') === 'MZB_MINISTERIAL_REPORT_V1') return 'MINISTRY';
@@ -271,7 +277,7 @@ export default function BuklodReportDeadlineManagerScreen() {
             ) : visibleRows.map((row) => (
               <View key={row.id} style={[styles.reportRow, row.status === 'ARCHIVED' && styles.archived]}>
                 <View style={styles.reportIcon}><MaterialCommunityIcons name="file-document-outline" size={20} color={colors.greenDark} /></View>
-                <View style={{ flex: 1 }}><Text style={styles.category}>{category(row)}</Text><Text style={styles.rowTitle}>{displayTitle(row)}</Text><Text style={styles.rowMeta}>{row.recurrence_kind} · {row.status}</Text></View>
+                <View style={{ flex: 1 }}><Text style={styles.category}>{category(row)}</Text><Text style={styles.rowTitle}>{displayTitle(row)}</Text><Text style={styles.rowMeta}>{row.recurrence_kind} · {row.status} · {autoScheduleActive(row) ? 'AUTO NOTIFY ON' : 'AUTO NOTIFY OFF'}</Text></View>
                 {row.status !== 'ARCHIVED' ? (
                   <Pressable onPress={() => void startPublish(row)} style={styles.bellButton} accessibilityLabel={`Publish deadline for ${displayTitle(row)}`}>
                     <MaterialCommunityIcons name="bell-plus-outline" size={21} color="#FFFFFF" />

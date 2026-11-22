@@ -12,6 +12,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import BuklodWeeklyReportForm from '@/components/BuklodWeeklyReportForm';
+import BuklodReportAutoFeedbackCard from '@/components/BuklodReportAutoFeedbackCard';
 import { pickReportEvidencePhoto, uploadReportEvidencePhoto, type ReportEvidencePhoto, type ReportPhotoAsset } from '@/lib/buklodReportFiles';
 import { setPreferredReportAssignment } from '@/lib/buklodReportDomain';
 import { supabase } from '@/lib/supabase';
@@ -353,6 +354,8 @@ export default function BuklodReportAssignmentForm({ scopeId, assignmentId, onSu
           </Pressable>
         ) : null}
       </View>
+
+      <BuklodReportAutoFeedbackCard content={{ answers, evidence_photos: evidencePhotos }} fields={fields} deadlineAt={context.deadline_at} submitted={readOnly} />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {savedLabel ? <Text style={styles.savedText}>{savedLabel}</Text> : null}
