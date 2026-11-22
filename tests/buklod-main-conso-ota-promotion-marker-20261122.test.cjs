@@ -35,3 +35,13 @@ test('one guarded canonical main-only publisher, no direct false production succ
  assert.equal(promotion.proof.liveBackend.pendingCheckinsIntact,15);
  assert.equal(promotion.proof.liveBackend.historicalAttendanceCreditsIntact,25);
 });
+
+test('verified first OTA survives safely suppressing a duplicate publisher through main-SHA lease',()=>{
+ const guard=JSON.parse(readFileSync('.buklod/scopes/buklod-stop-redundant-ota-20261122.json','utf8'));
+ assert.equal(guard.contractVersion,2);
+ assert.match(guard.productionBaselineEvidence,/VERIFIED ANDROID PRODUCTION OTA 01a201d4-de9e-7de7-a54f-d1654090421c/);
+ assert.match(guard.chosenApproach,/NON-RELEASE message/);
+ assert.match(productionFlow,/git ls-remote origin refs\/heads\/main/);
+ assert.match(productionFlow,/test "\$\(git ls-remote origin refs\/heads\/main/);
+ assert.match(productionFlow,/BUKLOD_ANDROID_ONLY_PROD_20261114:/);
+});
