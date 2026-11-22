@@ -91,4 +91,20 @@ jobs:
             console.log('BUKLOD_LOCAL_EAS_SIGNED_STAGING_READBACK '+JSON.stringify(state));
           }
 
+          const otaAudit=(all.workflow_runs||[]).find(run=>
+            run.head_sha==='a250d151468311c9a7c49bc195547e3fdc7b71ee' &&
+            String(run.path||'').includes('genesis-library-ota-readonly-audit-20261123.yml'));
+          if(!otaAudit){
+            console.log('BUKLOD_OTA_PROVIDER_AUDIT_NOT_FOUND');
+          }else{
+            const report={runId:otaAudit.id,status:otaAudit.status,
+              conclusion:otaAudit.conclusion,url:otaAudit.html_url,sourceSha:otaAudit.head_sha};
+            const jobs=await read('/actions/runs/'+otaAudit.id+'/jobs?per_page=100');
+            report.jobs=(jobs.jobs||[]).map(j=>({id:j.id,status:j.status,
+              conclusion:j.conclusion,failedSteps:(j.steps||[]).filter(x=>x.conclusion==='failure').map(x=>x.name)}));
+            const arts=await read('/actions/runs/'+otaAudit.id+'/artifacts?per_page=100');
+            report.artifacts=(arts.artifacts||[]).map(x=>({id:x.id,name:x.name,size:x.size_in_bytes,expired:x.expired}));
+            console.log('BUKLOD_EXPO_CHANNEL_READONLY_AUDIT_RUN '+JSON.stringify(report));
+          }
+
           NODE
