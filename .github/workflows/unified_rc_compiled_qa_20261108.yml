@@ -131,3 +131,53 @@ jobs:
           printf 'WEB_FILES=%s\n' "$(find /tmp/buklod-rc-web -type f | wc -l)"
           cat /tmp/buklod-rc-identity.json
           node -e "const fs=require('node:fs'); const cp=require('node:child_process'); const saved=JSON.parse(fs.readFileSync('/tmp/buklod-rc-identity.json','utf8')); const source=cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(); if(saved.sha!==source){console.error('RC identity SHA mismatch');process.exit(1)}"
+
+  # Isolated DZAS browser-only compile. No EAS token, Android export or publisher.
+  dzas-web-compile:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/dzas-web-audio-fallback-20261122'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      # Fake RC-only values never uploaded or published.
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_DZAS_WEB_RC_ONLY
+      EXPO_PUBLIC_APP_ENV: staging
+    steps:
+      - name: Checkout exact reviewed DZAS candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Node 22 + npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies for web build
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Test DZAS web audio and protected release boundaries
+        run: |
+          node --test tests/dzas-signal-deck-implementation.test.mjs tests/dzas-web-production-deploy.test.mjs
+          node --test tests/dzas-web-production-deploy.test.mjs
+      - name: Check Season 2 exclusion for candidate web source
+        run: |
+          node -e "const e=require('./scripts/buklod-season2-production-embargo.cjs').runtimeEvidence(); if(e.length){console.error('BLOCK: Season2 code in web production source',e.map(x=>x.file));process.exit(1)} console.log('Season2 runtime excluded: VERIFIED')"
+      - name: Compile-check TypeScript
+        run: npx tsc --noEmit
+      - name: Compile Expo web only
+        run: npx expo export --platform web --output-dir dist --clear
+      - name: Confirm SHA-bound bundle without publish
+        shell: bash
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          test -s dist/index.html
+          test -n "$(find dist -type f -name '*.js' -print -quit)"
+          git diff --exit-code
+          echo "DZAS_WEB_RC_COMPILED_SHA=$EXPECTED_SOURCE_SHA"
+          echo "EXPO_WEB_FILES=$(find dist -type f | wc -l)"
+          echo "ENTRY_SHA256=$(sha256sum dist/index.html | cut -d' ' -f1)"
+          echo 'NO_PUBLISH=TRUE; ANDROID_OTA=UNCHANGED; EXPO_HOSTING=UNCHANGED'
