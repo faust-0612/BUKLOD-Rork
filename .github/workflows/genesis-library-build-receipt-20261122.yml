@@ -1,0 +1,58 @@
+name: BUKLOD Genesis Library Native APK Read-Only Build Receipt
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/genesis-library-build-receipt-20261122.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect-build:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'dev/genesis-unified-arena-library-apk-20261122'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect exact GitHub Actions native APK build without rerunning it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: 1a01ce5f3a8fb5289e015bf3f1a67e770c1680a2
+        run: |
+          node --input-type=module <<'NODE'
+          const repo=process.env.GITHUB_REPOSITORY;
+          const expected=process.env.EXPECTED_SHA;
+          const headers={
+            'Authorization':'Bearer '+process.env.GH_TOKEN,
+            'Accept':'application/vnd.github+json',
+            'X-GitHub-Api-Version':'2022-11-28',
+            'User-Agent':'buklod-native-apk-readonly-receipt'
+          };
+          async function read(path){
+            const response=await fetch('https://api.github.com/repos/'+repo+path,{headers});
+            if(!response.ok)throw Error('GitHub read-only API HTTP '+response.status+' at '+path);
+            return response.json();
+          }
+          const all=await read('/actions/runs?branch=dev%2Fgenesis-unified-arena-library-apk-20261122&event=push&per_page=100');
+          const found=(all.workflow_runs||[]).find(run=>
+            run.head_sha===expected &&
+            (String(run.path||'').includes('genesis-unified-library-offline-apk-20261122.yml') ||
+             String(run.name||'').includes('Unified Library Godot')));
+          if(!found){
+            console.log('NO_NATIVE_BUILD_RUN_FOUND_FOR_EXACT_PUSH_SHA: '+expected);
+            process.exitCode=1;
+          }else{
+            const receipt={sourceSha:expected,buildRunId:found.id,status:found.status,
+              conclusion:found.conclusion,runUrl:found.html_url,createdAt:found.created_at,
+              completedAt:found.updated_at,platform:'android',
+              signing:'DEBUG_NOT_EAS',publishOta:false,production:false};
+            if(found.status==='completed'&&found.conclusion==='success'){
+              const assets=await read('/actions/runs/'+found.id+'/artifacts?per_page=100');
+              receipt.artifacts=(assets.artifacts||[]).map(a=>({name:a.name,size:a.size_in_bytes,expired:a.expired}));
+            }
+            console.log('BUKLOD_EXACT_NATIVE_BUILD_READBACK '+JSON.stringify(receipt));
+            if(process.env.GITHUB_STEP_SUMMARY)
+              (await import('node:fs')).appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                '### BUKLOD Genesis 2.0.4 native build\n\n'+
+                'Run: '+receipt.runUrl+'\n\nStatus: '+receipt.status+
+                '\n\nConclusion: '+receipt.conclusion+'\n\nSource: '+receipt.sourceSha+'\n');
+          }
+          NODE
