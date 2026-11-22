@@ -5,7 +5,7 @@ export type ArcadeChallenge = 'discovery'|'precision'|'rush'|'rescue'|'combo'|'s
 export type ArcadeState = {
   mode:ArcadeMode; seed:number; stage:number; score:number; stagePoints:number;
   stageHits:number;goal:number; challenge:ArcadeChallenge; multiplier:number;
-  stageBonus:number;perfects:number;bestCombo:number;
+  stageBonus:number;perfects:number;bestCombo:number;rescueGranted:boolean;
   lives:number; combo:number; lane:number; jumpUntil:number; jumpCooldownUntil:number;
   lastActionTick:number;ticks:number;remaining:number;
   entities:ArcadeEntity[];entitySeq:number;lastPatterns:string[];
