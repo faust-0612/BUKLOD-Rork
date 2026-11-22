@@ -3,6 +3,8 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as VectorGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { ArcadeMode, ArcadeEntity } from './arcadeCore';
+import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
+import BuklodSpecialCharacterArtV2 from '@/components/points/BuklodSpecialCharacterArtV2';
 
 /**
  * Lightweight local vector scenery with native-driver motion. Deliberately
@@ -87,6 +89,22 @@ export function ArcadePremiumFX({accent, mode, active, eventSeq, outcome, stage}
     }]}/>)}
     <View style={[styles.levelStripe,{borderTopColor:accent+'55'}]}/>
   </View>;
+}
+
+
+const CORE_HEROES=['phan','quin','van','christian','lhen'] as const;
+const SPECIAL_HEROES=['jawo','trudice','ace','mitch','niel','angel','vhen','ellusur'] as const;
+/** Approved BUKLOD sprite art, not emoji substitutes or third-party characters. */
+export function ArcadeHeroSprite({character,dim=51}: {character:string;dim?:number}) {
+  if(CORE_HEROES.some(key=>key===character))return (
+    <BuklodProgressiveCharacterArt characterId={character as (typeof CORE_HEROES)[number]}
+      level={1} height={dim} viewportWidth={dim}/>
+  );
+  if(SPECIAL_HEROES.some(key=>key===character))return (
+    <BuklodSpecialCharacterArtV2 characterId={character as (typeof SPECIAL_HEROES)[number]}
+      height={dim} viewportWidth={dim}/>
+  );
+  return null;
 }
 
 /** Native-driver collectible motion; capped at nine active items per arcade run. */
