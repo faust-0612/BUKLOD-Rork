@@ -1,0 +1,51 @@
+name: BUKLOD Godot Arena Touch HUD DEV QA (no APK or OTA)
+on:
+  push:
+    branches:
+      - dev/genesis-godot-touch-hud-20261122
+    paths:
+      - godot/empire-arena/**
+      - tests/genesis-godot-touch-hud-20261122.test.mjs
+      - .github/workflows/genesis-godot-touch-hud-qa-20261122.yml
+permissions:
+  contents: read
+concurrency:
+  group: buklod-godot-touch-hud-20261122
+  cancel-in-progress: true
+jobs:
+  scene-and-touch:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Focused source contract and offline Godot pack
+        run: |
+          set -euo pipefail
+          node --test tests/genesis-godot-touch-hud-20261122.test.mjs
+          node scripts/build-empire-godot-pack.mjs --out=/tmp/buklod-touch.zip
+          unzip -t /tmp/buklod-touch.zip | tail -2
+          mkdir -p /tmp/godot-touch-project
+          unzip -q /tmp/buklod-touch.zip -d /tmp/godot-touch-project
+      - name: Godot 4.7.2 real import and two-finger scene behavioral tests
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          mkdir -p /tmp/godot-bin
+          unzip -q /tmp/godot.zip -d /tmp/godot-bin
+          GODOT=$(find /tmp/godot-bin -type f -name 'Godot_*linux.x86_64' -print -quit)
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          "$GODOT" --headless --path /tmp/godot-touch-project --editor --quit 2>&1 | tee /tmp/import.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/import.log; then exit 1; fi
+          for spec in smoke hud_touch_smoke; do
+            "$GODOT" --headless --path /tmp/godot-touch-project --script "res://tests/$spec.gd" > "/tmp/$spec.log" 2>&1 || { cat "/tmp/$spec.log"; exit 1; }
+            tail -12 "/tmp/$spec.log"
+          done
+          grep -F BUKLOD_GODOT_SMOKE_PASS /tmp/smoke.log
+          grep -F BUKLOD_GODOT_TOUCH_PASS /tmp/hud_touch_smoke.log

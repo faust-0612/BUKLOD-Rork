@@ -352,6 +352,38 @@ func _loot(p: Dictionary) -> bool:
 		return true
 	return false
 
+# Match-only combat cooldown authority shared by execution and read-only HUD.
+func _cooldown_seconds(p: Dictionary, slot: String) -> float:
+	if slot == "attack":
+		var basic: Dictionary = config["starter"].get(p["hero"], {}).get("basic", {})
+		return float(basic.get("cooldown", 800)) / 1000.0
+	var skill: Dictionary = config["starter"].get(p["hero"], {}).get(slot, {})
+	var cooldown: float = float(skill.get("cd", {"primary": 5800, "secondary": 11000, "ultimate": 38000}[slot])) / 1000.0
+	var cdr: Dictionary = p["buffs"].get("cooldown", {})
+	if float(cdr.get("until", 0.0)) > float(state["time"]):
+		cooldown *= 1.0 - clampf(float(cdr.get("strength", 0.0)), 0.0, 0.25)
+	if p["hero"] == "angel":
+		cooldown *= 0.90
+	if p["hero"] == "trudice" and float(p.get("insight_until", 0.0)) > float(state["time"]):
+		cooldown *= 1.0 - 0.05 * float(mini(3, int(p.get("insight", 0))))
+	return maxf(0.05, cooldown)
+
+func cooldown_snapshot(id: String) -> Dictionary:
+	if state.is_empty():
+		return {}
+	var p: Dictionary = actor(id)
+	if p.is_empty() or not p.has("cooldowns"):
+		return {}
+	var result: Dictionary = {}
+	for slot in ["attack", "primary", "secondary", "ultimate"]:
+		var duration: float = _cooldown_seconds(p, slot)
+		var elapsed: float = float(state["time"]) - float(p["cooldowns"].get(slot, -100000.0))
+		var remaining: float = clampf(duration - elapsed, 0.0, duration)
+		var requirement: int = 6 if slot == "ultimate" else 3 if slot == "secondary" else 1
+		result[slot] = {"duration": duration, "remaining": remaining,
+			"locked": int(p["level"]) < requirement, "level_requirement": requirement}
+	return result
+
 func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 	if not ["primary", "secondary", "ultimate"].has(slot):
 		return false
@@ -360,14 +392,7 @@ func _skill(p: Dictionary, slot: String, direction: Vector2) -> bool:
 	if slot == "ultimate" and int(p["level"]) < 6:
 		return false
 	var skill: Dictionary = config["starter"].get(p["hero"], {}).get(slot, {})
-	var cooldown: float = float(skill.get("cd", {"primary": 5800, "secondary": 11000, "ultimate": 38000}[slot])) / 1000.0
-	var cdr: Dictionary = p["buffs"].get("cooldown", {})
-	if float(cdr.get("until", 0)) > float(state["time"]):
-		cooldown *= 1.0 - clampf(float(cdr.get("strength", 0.0)), 0.0, 0.25)
-	if p["hero"] == "angel":
-		cooldown *= 0.90
-	if p["hero"] == "trudice" and float(p.get("insight_until", 0.0)) > float(state["time"]):
-		cooldown *= 1.0 - 0.05 * float(mini(3, int(p.get("insight", 0))))
+	var cooldown: float = _cooldown_seconds(p, slot)
 	var mana_cost: float = {"primary": 18.0, "secondary": 14.0, "ultimate": 55.0}[slot]
 	if float(state["time"]) - float(p["cooldowns"][slot]) < cooldown or float(p["mana"]) < mana_cost:
 		return false
@@ -488,8 +513,7 @@ func action(id: String, command: String, vector: Vector2 = Vector2.ZERO,
 			return moved
 		"attack":
 			var basic: Dictionary = config["starter"].get(p["hero"], {}).get("basic", {})
-			var cooldown: float = float(basic.get("cooldown", 800)) / 1000.0
-			if float(state["time"]) - float(p["cooldowns"]["attack"]) < cooldown:
+			if float(state["time"]) - float(p["cooldowns"]["attack"]) < _cooldown_seconds(p, "attack"):
 				return false
 			var radius: float = float(basic.get("range", 5.5))
 			var enemies := _enemies(p, radius)
