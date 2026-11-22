@@ -4,6 +4,8 @@
  * 300 temporary pickups and all canonical gameplay constants are imported
  * from their reviewed JS sources; no duplicate hand-maintained rosters.
  * This is a native 2D offline PRACTICE pack, not a ranked game/client.
+ * Consolidated native RC: Arena + Kingdom + Community + House share one
+ * immutable offline Godot archive. This script does not publish an OTA.
  */
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
