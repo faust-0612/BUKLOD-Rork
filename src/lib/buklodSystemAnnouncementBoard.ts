@@ -31,7 +31,7 @@ export function isAnnouncementVisible(
 
 /**
  * Public announcements must come from the authoritative server.
- * The former AsyncStorage fallback could falsely display a locally saved,
+ * The former device-local fallback could falsely display a locally saved,
  * unshared board when the database table was absent.
  */
 export async function loadSystemAnnouncementBoard(
