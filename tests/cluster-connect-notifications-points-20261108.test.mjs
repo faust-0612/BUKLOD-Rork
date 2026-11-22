@@ -11,6 +11,9 @@ const files=read('src/lib/buklodScopeHomeAssets.ts');
 const profile=read('src/components/BuklodScopeProfilePhoto.tsx');
 const attendance=read('src/components/BuklodHomeCheckinToday.tsx');
 const checkinSQL=read('supabase/migrations/20261107231000_buklod_points_r3_home_checkin.sql');
+const clusterReviewSql=read('supabase/migrations/20261122090000_cluster_scoped_home_checkin_review_v1.sql');
+const clusterReviewScreen=read('src/app/clusters/home-checkin-review.tsx');
+const appRoutes=read('src/app/_layout.tsx');
 const points=read('src/components/points/BuklodPointsRewardsScreen.tsx');
 const economy=read('src/components/points/BuklodEconomyDashboard.tsx');
 const rank=read('src/components/points/BuklodPointsStage.tsx');
@@ -44,7 +47,10 @@ test('Cluster attendance is gated to an active official event and admin review',
  assert.match(checkinSQL,/attendance_close_at/);
  assert.match(checkinSQL,/membership_status='ACTIVE'/);
  assert.match(checkinSQL,/status='pending'/);
- assert.match(checkinSQL,/admin_review_buklod_home_checkin_r3/);
+ assert.match(clusterReviewSql,/cluster_review_buklod_home_checkin_v1/);
+ assert.match(clusterReviewScreen,/readClusterScopeId/);
+ assert.match(clusterReviewScreen,/cluster_get_buklod_home_checkin_queue_v1/);
+ assert.match(appRoutes,/name="clusters\/home-checkin-review"/);
 });
 
 test('Cluster Home file/media lifecycle keeps admin-only private object policies and linked references',()=>{
