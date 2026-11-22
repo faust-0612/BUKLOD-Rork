@@ -12,7 +12,8 @@
     "navigation-auth",
     "weak-network",
     "comment-permissions",
-    "ad-preservation"
+    "ad-preservation",
+    "ads-finance-points"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -41,7 +42,8 @@
     "Engineering protected-feature and navigation regression gates, TypeScript/Android Metro and AdMob first-view must pass before release.",
     "Never treat this DEV integration or source CI as proof of signed staging APK or completed OTA publication.",
     "Keep PR #1074 signed SOS APK runtime 2.0.1, isolated staging Supabase, real-device rescue QA and current production Season 2 embargo intact.",
-    "Run compact date-time formatter Jest tests, wall-comment-navigation-compact and comment-ad-preservation Node tests, TypeScript/Android Metro + full staging QA before merge/release."
+    "Run compact date-time formatter Jest tests, wall-comment-navigation-compact and comment-ad-preservation Node tests, TypeScript/Android Metro + full staging QA before merge/release.",
+    "Dedicated existing AdMob protection test must pass after compact Thread updates, and real Android first-view fill remains an independent release gate."
   ],
   "regressionTests": [
     "tests/wall-network-feedback-20261117.test.mjs",
@@ -74,6 +76,17 @@
       "tests": [
         "tests/wall-comment-navigation-progressive-20261122.test.mjs",
         "tests/wall-comment-navigation-compact-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Protected feature classifier includes the shared community comment thread presentation file; guard exact Android-only consent-sensitive AdMob placement while reducing visual density.",
+      "preservedBehaviors": [
+        "Community comment inline AdMob remains in the same organic reply-tree position, still gated on Android platform, post visibility and error state, with adaptive format, viewport requirement and sponsor label.",
+        "No advertising policy, payouts, points, finance ledgers or ad SDK modules are changed."
+      ],
+      "tests": [
+        "tests/wall-comment-ad-preservation-20261122.test.mjs"
       ]
     }
   ],
