@@ -182,9 +182,9 @@ const styles = StyleSheet.create({
     alignItems:'center',justifyContent:'center',overflow:'hidden',
     shadowColor:'#fbd7a1',shadowOpacity:.4,shadowRadius:7,elevation:4,
   },
-  buttonLabel: {position:'absolute',bottom:2,fontSize:8,fontWeight:'900',
+  buttonLabel: {position:'absolute',bottom:2,fontSize:10,fontWeight:'900',
     color:'#fff1d6',letterSpacing:.2,textShadowColor:'#061420',textShadowRadius:3},
-  utilityLabel: {fontSize:7,bottom:0},
+  utilityLabel: {fontSize:10,bottom:0},
   cooldown: {position:'absolute',left:0,right:0,top:0,bottom:0,
     borderRadius:100,backgroundColor:'rgba(3,10,24,.66)',
     alignItems:'center',justifyContent:'center'},
@@ -195,5 +195,5 @@ const styles = StyleSheet.create({
   joyRing: {width:82,height:82,borderRadius:43,alignItems:'center',justifyContent:'center',
     borderColor:'#a5d9d2',borderWidth:1.5,overflow:'hidden'},
   joyHandle: {width:29,height:29,borderRadius:16,borderColor:'#fff0c3',borderWidth:2},
-  joyLabel: {position:'absolute',bottom:0,fontSize:8,fontWeight:'900',color:'#faf0d4'},
+  joyLabel: {position:'absolute',bottom:0,fontSize:10,fontWeight:'900',color:'#faf0d4'},
 });
