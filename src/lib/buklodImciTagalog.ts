@@ -16,6 +16,7 @@ export type ImciQuestion = {
   question: string;
   explanation: string;
   level: ImciLevel;
+  topic?: string;
 };
 
 const INFANT: ImciQuestion[] = [
@@ -29,6 +30,14 @@ const INFANT: ImciQuestion[] = [
   { id: 'infant_jaundice', level: 'priority', question: 'Nanilaw ba ang balat o mata ng sanggol matapos ang unang araw?', explanation: 'Ipasuri ang paninilaw sa health professional; lalo nang huwag maghintay kung lumalala.' },
   { id: 'infant_navel', level: 'priority', question: 'May nana o pamumula ba sa pusod, o may mga pigsa o pantal na may nana?', explanation: 'Maaaring kailanganin ng medikal na pagsusuri ang posibleng impeksiyon.' },
   { id: 'infant_feeding', level: 'information', question: 'May tanong ka ba tungkol sa pagpapasuso, timbang, o iskedyul ng bakuna?', explanation: 'Maaaring humingi ng tulong sa midwife, nurse, o doktor.' },
+  { id: 'infant_umbilical_discharge', topic: "Posibleng impeksiyon", level: 'priority', question: "May paglabas ba ng nana sa pusod o lumalaking pamumula sa paligid nito?", explanation: "Kailangang matingnan sa health facility; agarang referral kung may lagnat o pananamlay." },
+  { id: 'infant_skin_pustules', topic: "Posibleng impeksiyon", level: 'priority', question: "May malalaking o maraming butlig na may nana sa balat?", explanation: "Masuri ang impeksiyon sa bata." },
+  { id: 'infant_eyes', topic: "Ibang sintomas", level: 'priority', question: "May pamamaga o nana sa mata?", explanation: "Ipa-check ang mata sa health professional." },
+  { id: 'infant_vomiting', topic: "Pagkain", level: 'priority', question: "Madalas ba ang pagsuka o may pagbabago sa normal na pagdede?", explanation: "Magpa-assess lalo na kung nauubusan ng ihi o hirap dumede." },
+  { id: 'infant_urine', topic: "Pagdede at tubig sa katawan", level: 'priority', question: "Kapansin-pansin bang mas kakaunti ang basang lampin o ihi kaysa karaniwan?", explanation: "Kailangang masuri ang feeding at hydration." },
+  { id: 'infant_weight', topic: "Paglaki", level: 'information', question: "May alalahanin ba sa pagdagdag ng timbang o naitalang mababang timbang?", explanation: "Dalhin ang timbang/growth record sa clinician." },
+  { id: 'infant_feeding_support', topic: "Pagdede", level: 'information', question: "Kailangan ba ng tulong sa wastong latch, dalas ng breastfeeding, o feeding support?", explanation: "Humingi ng counseling sa trained health worker." },
+  { id: 'infant_postnatal', topic: "Follow-up", level: 'information', question: "Kailangan ba ng newborn checkup, postnatal follow-up, o bakuna?", explanation: "Magpa-schedule sa primary care clinic." },
 ];
 
 const CHILD: ImciQuestion[] = [
@@ -45,6 +54,20 @@ const CHILD: ImciQuestion[] = [
   { id: 'child_rash', level: 'priority', question: 'May pantal ba na kasabay ng lagnat, o kakaibang pamumutla?', explanation: 'Ipatingin para masuri ang ibang dahilan ng sintomas at posibleng anemia o impeksiyon.' },
   { id: 'child_growth', level: 'information', question: 'May alalahanin ba sa pagkain, paglaki, o timbang?', explanation: 'Maaaring ipasuri ang nutrisyon at growth chart.' },
   { id: 'child_vaccine', level: 'information', question: 'May tanong ba tungkol sa bakuna o vitamin supplements?', explanation: 'Dalhin ang child health record sa barangay health center.' },
+  { id: 'child_noisy_breath', topic: "Paghinga", level: 'priority', question: "May kakaibang ingay sa paghinga kahit nakapahinga?", explanation: "Kailangan ng pisikal na pag-assess ng paghinga." },
+  { id: 'child_long_cough', topic: "Paghinga", level: 'priority', question: "Mahigit dalawang linggo na bang may ubo o hirap sa paghinga?", explanation: "Ipatingin ang tagal ng sintomas at posibleng exposure." },
+  { id: 'child_long_diarrhea', topic: "Pagtatae", level: 'priority', question: "May pagtatae bang tumatagal nang dalawang linggo o higit pa?", explanation: "Kailangan ng pagsusuri; huwag basta mag-self-medicate." },
+  { id: 'child_repeated_vomiting', topic: "Pagtatae / pagkain", level: 'priority', question: "Madalas bang sumusuka kasabay ng pagtatae o hirap uminom?", explanation: "Posibleng dehydration; kung lahat ng iniinom ay isinusuka, emergency." },
+  { id: 'child_long_fever', topic: "Lagnat", level: 'priority', question: "Umuulit o tumatagal ba ang lagnat nang higit sa karaniwan?", explanation: "Ipatingin sa clinician upang matukoy ang naaangkop na assessment." },
+  { id: 'child_rash_measles', topic: "Lagnat at pantal", level: 'priority', question: "May lagnat at malawakang pantal, pamumula ng mata, o sipon?", explanation: "Kumonsulta agad at ipaalam ang sintomas bago pumasok sa clinic." },
+  { id: 'child_ear_swelling', topic: "Tainga", level: 'priority', question: "May pamamaga o matinding sakit sa likod ng tainga?", explanation: "Ipa-assess agad, mas mainam sa araw na ito." },
+  { id: 'child_ear_duration', topic: "Tainga", level: 'priority', question: "May matagal na paglabas ng likido o nana sa tainga?", explanation: "Ipa-check ang tainga at tagal ng paglabas." },
+  { id: 'child_both_feet_swollen', topic: "Nutrisyon", level: 'priority', question: "Kapansin-pansin bang namamaga ang magkabilang paa o may matinding pagpayat?", explanation: "Kailangan ng agarang assessment ng nutrisyon; huwag ipagpaliban." },
+  { id: 'child_pallor', topic: "Anemia / nutrisyon", level: 'priority', question: "Napakaputla ba ng palad o kapansin-pansing maputla ang bata?", explanation: "Maaaring kailangan ng pagsusuri para sa anemia o iba pang dahilan." },
+  { id: 'child_feeding_problem', topic: "Feeding", level: 'information', question: "May problema sa dami, dalas, o kalidad ng pagkain at pag-inom?", explanation: "Maaaring humingi ng individualized nutrition counseling." },
+  { id: 'child_growth_chart', topic: "Paglaki", level: 'information', question: "May growth monitoring record ba na kailangan ipa-review?", explanation: "Dalhin ang updated growth chart sa health center." },
+  { id: 'child_immunization_gap', topic: "Bakuna", level: 'information', question: "May hindi tiyak o posibleng naantalang bakuna ayon sa vaccination card?", explanation: "Ipa-check ang record sa immunization center." },
+  { id: 'child_followup', topic: "Follow-up", level: 'information', question: "May nagdaang gamutan o dating sakit na kailangan ng follow-up?", explanation: "Dalhin ang medical records at follow-up instructions." },
 ];
 
 const OLDER: ImciQuestion[] = [
