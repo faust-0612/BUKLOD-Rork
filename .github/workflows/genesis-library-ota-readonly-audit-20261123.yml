@@ -1,0 +1,106 @@
+name: BUKLOD Genesis 2.0.4 OTA Read-Only Expo Provider Audit
+on:
+  push:
+    branches:
+      - dev/genesis-unified-arena-library-apk-20261122
+    paths:
+      - '.github/workflows/genesis-library-ota-readonly-audit-20261123.yml'
+permissions:
+  contents: read
+jobs:
+  inspect-eas:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_2_0_4_READONLY_OTA_AUDIT:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      BUKLOD_APP_TARGET: main
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE: 'true'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact APK package, runtime, channel, EAS project ID (no mutation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN" || { echo 'BLOCK: Expo read access unavailable'; exit 1; }
+          node <<'NODE'
+          const a=require('node:assert/strict');
+          const cfg=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          const p=eas.build['season2-genesis-library-staging'];
+          a.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          a.equal(cfg.runtimeVersion,'2.0.4-genesis-library-godot');
+          a.equal(cfg.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.equal(p.channel,'season2-genesis-library-preview');
+          a.equal(p.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
+          console.log('BUKLOD_OTA_IDENTITY_READONLY_PASS',JSON.stringify({
+            package:cfg.android.package,projectId:cfg.extra.eas.projectId,
+            runtime:cfg.runtimeVersion,channel:p.channel
+          }));
+          NODE
+      - name: Query real EAS channel and available OTA group metadata without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 whoami --non-interactive > /dev/null
+          set +e
+          npx --yes eas-cli@27.9.0 channel:view season2-genesis-library-preview --json --non-interactive > /tmp/eas-channel.json 2>/tmp/eas-channel-err.txt
+          channel_rc=$?
+          npx --yes eas-cli@27.9.0 update:list --all --json --non-interactive > /tmp/eas-updates.json 2>/tmp/eas-updates-err.txt
+          update_rc=$?
+          set -e
+          export CHANNEL_RC="$channel_rc" UPDATE_RC="$update_rc"
+          node <<'NODE'
+          const fs=require('node:fs');
+          function read(p){try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{return null}}
+          const channel=read('/tmp/eas-channel.json');
+          const updates=read('/tmp/eas-updates.json');
+          const page=Array.isArray(updates?.currentPage)?updates.currentPage:Array.isArray(updates?.updates)?updates.updates:Array.isArray(updates)?updates:[];
+          const normalize=u=>({
+            id:u.group||u.id||null,
+            runtime:u.runtimeVersion||u.runtime?.version||null,
+            platform:u.platform||null,
+            branch:u.branch?.name||u.branchName||u.branch||null,
+            createdAt:u.createdAt||null
+          });
+          const matches=page.map(normalize).filter(u=>u.runtime==='2.0.4-genesis-library-godot');
+          const data={
+            method:'READ_ONLY_REAL_EXPO_CHANNEL',
+            expectedProjectId:'23dad7d0-389a-406e-8dec-08965dab85d8',
+            expectedChannel:'season2-genesis-library-preview',
+            expectedRuntime:'2.0.4-genesis-library-godot',
+            channelQueryExit:Number(process.env.CHANNEL_RC),
+            updateQueryExit:Number(process.env.UPDATE_RC),
+            channelName:channel?.name||null,
+            channelKeys:channel&&typeof channel==='object'?Object.keys(channel).slice(0,15):[],
+            linkedBranches:channel?.branches?.map?.(x=>x.name||null)||null,
+            updateKeys:updates&&typeof updates==='object'?Object.keys(updates).slice(0,15):[],
+            updateCountOnReturnedPage:page.length,
+            runtimeMatches:matches.slice(0,15),
+            queriesSucceeded:Number(process.env.CHANNEL_RC)===0 && Number(process.env.UPDATE_RC)===0,
+            publishedByThisWorkflow:false,
+            productionUntouched:true
+          };
+          fs.writeFileSync('genesis-2.0.4-eas-ota-readonly-audit.json',JSON.stringify(data,null,2)+'\n');
+          console.log('BUKLOD_GENESIS_2_0_4_OTA_PROVIDER_AUDIT '+JSON.stringify(data));
+          if(!data.queriesSucceeded)process.exitCode=1;
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: genesis-2-0-4-ota-readonly-provider-audit
+          path: genesis-2.0.4-eas-ota-readonly-audit.json
+          if-no-files-found: ignore
+          retention-days: 7
