@@ -283,6 +283,7 @@ function VideoTapSurface({
 
 function InactiveCommunityVideo({
   height = 380,
+  autoPlay = false,
   poster,
   expectedDurationSeconds,
   fullscreen = false,
@@ -318,13 +319,15 @@ function InactiveCommunityVideo({
             <View style={styles.posterScrim} />
           </>
         ) : null}
-        <MaterialCommunityIcons
-          name={poster ? 'play' : 'play-circle-outline'}
-          size={poster ? 32 : 58}
-          color="#FFFFFF"
-          style={poster ? styles.posterPlayBadge : undefined}
-        />
-        {!poster ? (
+        {!autoPlay ? (
+          <MaterialCommunityIcons
+            name={poster ? 'play' : 'play-circle-outline'}
+            size={poster ? 32 : 58}
+            color="#FFFFFF"
+            style={poster ? styles.posterPlayBadge : undefined}
+          />
+        ) : null}
+        {!poster && !autoPlay ? (
           <>
             <Text style={styles.inactiveLabel}>
               Video · I-tap para i-play
@@ -1122,7 +1125,8 @@ function ExpoCommunityVideoPlayback({
       ? Math.min(1, Math.max(0, currentTime / knownDuration))
       : 0;
   // Do not confuse automatic initialization with a manual Play state.
-  const centerVisible = playerStatus !== 'error' &&
+  // Never display a center play badge over a clip that is still preparing.
+  const centerVisible = firstFrameRendered && playerStatus !== 'error' &&
     (showCenter || (!playing && (!autoPlay || userPausedRef.current)));
   const chromeVisible = !fullscreen || !playing || showCenter;
   const frameHeight = !fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio && measuredWidth > 0
@@ -1162,6 +1166,12 @@ function ExpoCommunityVideoPlayback({
         }}
         allowsPictureInPicture={false}
       />
+
+      {/* Keep the Android video surface covered until its actual first decoded frame.
+          The poster sits above this fallback; neither exposes a black texture flash. */}
+      {!firstFrameRendered ? (
+        <View pointerEvents="none" style={styles.firstFrameFallback} />
+      ) : null}
 
       {(posterSource || posterUri) && !firstFrameRendered ? (
         <ExpoImage
@@ -1399,10 +1409,14 @@ const styles =
       fontSize: 11,
     },
 
+    firstFrameFallback: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: '#172822',
+    },
     inactiveVideo: {
       width: '100%',
       height: '100%',
-      backgroundColor: '#151515',
+      backgroundColor: '#172822',
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 28,
