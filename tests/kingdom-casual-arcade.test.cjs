@@ -136,6 +136,33 @@ test('game-only points and score rise across stage clears without double-settlin
   assert.equal(next.stagePoints,0);
 });
 
+
+test('all eight mission modifiers change actual game rules and grant bounded rescue recovery',()=>{
+  const {stageConfig}=rules;
+  const stageFor=(mode,challenge)=>{
+    for(let n=1;n<=8;n++)if(stageConfig(mode,n).challenge===challenge)return n;
+    throw Error('missing challenge');
+  };
+  const rush=stageConfig('runner',stageFor('runner','rush'));
+  const endurance=stageConfig('runner',stageFor('runner','endurance'));
+  const storm=stageConfig('runner',stageFor('runner','storm'));
+  const treasure=stageConfig('runner',stageFor('runner','treasure'));
+  assert.ok(rush.duration<endurance.duration);
+  assert.ok(storm.hazardRate<treasure.hazardRate);
+  assert.ok(rush.speed>0);
+  const rescueLevel=stageFor('tap','rescue');
+  let s=startArcade('tap',88,rescueLevel,0,2);
+  while(s.status==='playing'&&!s.rescueGranted){
+    s=actArcade(s,'cell',s.cell);
+    for(let i=0;i<3&&s.status==='playing';i++)s=tickArcade(s);
+  }
+  assert.equal(s.rescueGranted,true);
+  assert.equal(s.lives,3,'one-time rescue life');
+  const after=s.lives;
+  s=actArcade(s,'cell',s.cell);
+  assert.equal(s.lives,after,'rescue heal does not repeat');
+});
+
 test('account-local arcade mastery unlocks each stage exactly once without replay farming',()=>{
   const {blankArcadeProgress,normalizeArcadeProgress,clearArcadeStage}=
     require('../src/features/games/kingdom/arcade/arcadeProgressCore.js');
@@ -189,6 +216,9 @@ test('premium arcade effects are bounded, local and never own a BP minting path'
   assert.match(screen,/setPhase\\('ready'\\)/);
   assert.match(visuals,/useNativeDriver:true/);
   assert.match(visuals,/react-native-svg/);
+  assert.match(visuals,/BuklodProgressiveCharacterArt/);
+  assert.match(visuals,/BuklodSpecialCharacterArtV2/);
+  assert.match(screen,/ArcadeHeroSprite/);
   assert.match(visuals,/Array\\.from\\(\\{length:8\\}/);
   assert.match(progress,/@buklod\\/kingdom\\/arcade-stage-v1/);
   assert.doesNotMatch(progress,/rpc\\(|supabase\\.from\\(/i);
