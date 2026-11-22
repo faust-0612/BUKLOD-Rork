@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { HEROES, MODES, COSTS, BUFFS, STARTER_HERO_KITS, ARENA_MAPS, BUILD_COSTS } from '../experiments/empire-arena-v2/arena-v2-engine.mjs';
 import { ARENA_PICKUP_CATALOG } from '../experiments/empire-arena-v2/arena-v2-pickups.mjs';
+import { ARENA_SFX_IDS, arenaSfxEntries } from './arena-library-audio-pack.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const project = path.join(root, 'godot/empire-arena');
@@ -21,6 +22,44 @@ const output = process.argv.find(x => x.startsWith('--out='))?.slice(6) ||
 const catalog = { schema: 1, arena: 'OFFLINE_PRACTICE', engine: 'Godot 4.7.2',
   heroes: HEROES, starter: STARTER_HERO_KITS, modes: MODES, maps: ARENA_MAPS,
   costs: COSTS, buildings: BUILD_COSTS, buffs: BUFFS, pickups: ARENA_PICKUP_CATALOG };
+// Owner Library data becomes bounded, practice-only match configuration.
+// Never run the uploaded Node2D combat scripts alongside this authority.
+const libraryIntake = JSON.parse(readFileSync(path.join(project,
+  'library/arena_intake_20261122.json'), 'utf8'));
+assert.equal(libraryIntake.schema, 1);
+assert.equal(libraryIntake.practiceOnly, true);
+assert.equal(Object.keys(libraryIntake.heroes).length, 7);
+assert.equal(Object.keys(libraryIntake.minions).length, 5);
+assert.equal(Object.keys(libraryIntake.villagers).length, 2);
+assert.deepEqual(new Set(Object.keys(libraryIntake.heroes)), new Set(Object.keys(HEROES)
+  .filter(id => !Object.hasOwn(STARTER_HERO_KITS, id))));
+assert.ok(Object.entries(libraryIntake.heroes).every(([id, kit]) =>
+  Object.hasOwn(HEROES, id) && Number.isInteger(kit.unlockRank) &&
+  Number.isFinite(kit.basic.damage) && kit.basic.damage > 0 &&
+  ['primary','secondary','ultimate'].every(slot =>
+    typeof kit[slot].id === 'string' && kit[slot].cd > 0)));
+assert.ok(libraryIntake.waves.length >= 3 && libraryIntake.waves.every(w =>
+  w.units.every(role => Object.hasOwn(libraryIntake.minions, role))));
+assert.ok(Object.values(libraryIntake.villagers).every(f => f.villagers.length === 6));
+catalog.library = libraryIntake;
+catalog.starter = { ...STARTER_HERO_KITS, ...libraryIntake.heroes };
+// Owner Library's four game choices stay OFFLINE practice. Never use the
+// original ranked=true flags to mint server outcomes on a client.
+catalog.modes = {
+  ...MODES,
+  classic_conquest: {...MODES.grand, minutes: 15, offline: true},
+  genesis_rift: {...MODES.cluster, minutes: 8, offline: true},
+  dominion_frontier: {...MODES.grand, minutes: 20, offline: true},
+  special_event: {...MODES.grand, minutes: 20, offline: true},
+};
+catalog.libraryModes = {
+  classic_conquest: {playersPerTeam:5, ranked:false, pve:false, lanes:['top','mid','bottom'], waveSeconds:30},
+  genesis_rift: {playersPerTeam:3, ranked:false, pve:false, lanes:['mid'], waveSeconds:20, lightCore:true},
+  dominion_frontier: {playersPerTeam:5, ranked:false, pve:true, lanes:['mid'], waveSeconds:25},
+  special_event: {playersPerTeam:5, ranked:false, pve:false, lanes:['top','mid','bottom'], waveSeconds:30},
+};
+
+
 assert.equal(Object.keys(catalog.heroes).length, 13);
 assert.equal(Object.keys(catalog.maps).length, 3);
 assert.equal(catalog.pickups.length, 300);
@@ -42,6 +81,20 @@ function collect(dir, prefix = '') {
   }
 }
 collect(project);
+
+// Embed exactly the 70 character skill, ultimate and team-event audio cues
+// from the Library's 2026-11-22 file inventory. Original uploaded audio
+// requires separate binary-art reconciliation; these procedural placeholders
+// preserve event identity without network downloads or a hidden subscription.
+const audioEntries = arenaSfxEntries();
+assert.equal(audioEntries.length, 70);
+entries.push({name:'data/audio_manifest.json',
+  bytes:Buffer.from(JSON.stringify({schema:1,prototype:true,ids:ARENA_SFX_IDS}))});
+for (const cue of audioEntries) {
+  assert.ok(cue.bytes.length > 44 && cue.bytes.subarray(0,4).toString() === 'RIFF');
+  assert.ok(!entries.some(x => x.name === cue.name), 'Duplicate Arena native audio cue');
+  entries.push(cue);
+}
 
 // Carry the SAME approved bitmap assets already shipped by the existing BUKLOD
 // Arena source. No mockup replacement, stock image, new license or asset URL.
@@ -76,10 +129,13 @@ entries.push({ name: 'art/art_manifest.json',
   bytes: readFileSync(path.join(project, 'art/art_manifest.json')) });
 
 const entryNames = new Set(entries.map(x => x.name));
+assert.equal(ARENA_SFX_IDS.filter(id => entryNames.has('audio/sfx/'+id+'.wav')).length,70);
 for (const name of ['project.godot', 'scenes/Arena.tscn', 'scripts/arena_root.gd',
   'scripts/arena_hud.gd', 'scripts/arena_simulation.gd',
   'scripts/arena_effects.gd', 'scripts/hero_animation.gd',
-  'shaders/arena_impact.gdshader', 'data/catalog.json']) {
+  'shaders/arena_impact.gdshader',
+  'scripts/arena_library_skills.gd', 'scripts/arena_library_actors.gd',
+  'data/catalog.json', 'scripts/arena_audio.gd']) {
   assert.ok(entryNames.has(name), 'Missing Godot Arena pack resource: ' + name);
 }
 const table = new Uint32Array(256);
@@ -137,4 +193,4 @@ writeFileSync(output, zip);
 const hash = createHash('sha256').update(zip).digest('hex');
 console.log(JSON.stringify({ result: 'BUKLOD_GODOT_OFFLINE_PACK_BUILT', output,
   sha256: hash, bytes: zip.length, entries: entries.length, heroes: 13, pickups: 300,
-  ranked: false, serverAccess: false, art: artCounts }, null, 2));
+  ranked: false, serverAccess: false, art: artCounts, sfxCues:70, offlineModes:4 }, null, 2));
