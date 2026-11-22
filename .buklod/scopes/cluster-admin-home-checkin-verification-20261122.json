@@ -1,0 +1,86 @@
+{
+  "contractVersion": 2,
+  "objective": "Move BUKLOD Check In Today verification of Cluster event attendance from System Admin to active exact-Cluster admins while preserving reward and RLS integrity.",
+  "baseRef": "main",
+  "status": "DEV draft PR, backend migration not applied; production remains unchanged",
+  "allowedPaths": [
+    "src/app/_layout.tsx",
+    "src/app/admin/points-r2-monitor.tsx",
+    "src/app/clusters/home-checkin-review.tsx",
+    "src/app/clusters/scope-manage.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodHomeCheckinToday.tsx",
+    "src/lib/buklodAdminPriority.ts",
+    "supabase/migrations/20261122090000_cluster_scoped_home_checkin_review_v1.sql",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    ".buklod/scopes/cluster-admin-home-checkin-verification-20261122.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Member check-in states and in-app management now route to the exact Cluster Admin review screen without changing Android ABI or event submission semantics.",
+      "preservedBehaviors": [
+        "BUKLOD Main existing Home, scoped Cluster tools, member submissions, AdMob lifecycle, and session restoration remain unchanged."
+      ],
+      "tests": [
+        "tests/buklod-cluster-home-checkin-review.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Register a new exact-Cluster review route with route scope aliases and backend JWT checks, without redirecting users to the global System Admin queue.",
+      "preservedBehaviors": [
+        "Member deep links, global tab navigation, authenticated sessions, and existing Cluster manage routing remain intact."
+      ],
+      "tests": [
+        "tests/cluster-connect-notifications-points-20261108.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Cluster Admin manages only its own live event Check In Today verifications; queue and member identity stay restricted to matching Cluster scope.",
+      "preservedBehaviors": [
+        "Cluster attendance snapshot, QR/manual attendance modules, existing event creation, member visibility, and unrelated lesson/faith functions remain intact."
+      ],
+      "tests": [
+        "tests/buklod-cluster-home-checkin-review.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Replace System Admin-only attendance approval with server-authoritative exact-Cluster active membership and active role, preserving transactional unique ledger credits and audit.",
+      "preservedBehaviors": [
+        "Existing pending member claims are preserved, credit source keys remain idempotent, no unrelated ledger schema or RLS change is made."
+      ],
+      "tests": [
+        "supabase/tests/buklod_points_r3_home_earning_contract.sql"
+      ]
+    }
+  ],
+  "verification": {
+    "completed": [
+      "Read-only live scope/event/membership check confirms two eligible reviewers and one pending claim.",
+      "Thirteen static source assertions passed, code paths contain no global admin approval."
+    ],
+    "pending": [
+      "TypeScript and focused Node CI results",
+      "RC database actor/outsider/duplicate review contract execution",
+      "RC Android navigation and ad regression acceptance"
+    ]
+  },
+  "release": {
+    "productionMigrated": false,
+    "stagingOtaPublished": false,
+    "productionOtaPublished": false,
+    "nativeBuildRequired": false
+  }
+}
