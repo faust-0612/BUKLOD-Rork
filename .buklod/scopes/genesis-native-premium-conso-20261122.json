@@ -17,8 +17,7 @@
     "android-audio-navigation"
   ],
   "regressionTests": [
-    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
-    "services/empire-arena/tests/core.test.mjs"
+    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs"
   ],
   "allowedPaths": [
     ".github/workflows/arena-blender-asset-export-dev-20261122.yml",
@@ -56,7 +55,8 @@
     "physicalDeviceQA": "WAIVED_BY_OWNER_2026-11-22_NOT_TESTED",
     "sourceCI": "PENDING_EXACT_SHA",
     "nativeAPK": "NOT_SIGNED",
-    "productionOTA": "NOT_PUBLISHED"
+    "productionOTA": "NOT_PUBLISHED",
+    "serverEscrowTest": "services/empire-arena/tests/core.test.mjs is executed by arena-ranked CI; not a root protected-scope Node test path"
   },
   "release": {
     "environment": "DEV_STAGING_ONLY",
