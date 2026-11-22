@@ -1,0 +1,55 @@
+name: BUKLOD Genesis 2.0.4 staging OTA remote receipt READ-ONLY
+on:
+  pull_request:
+    branches:
+      - audit/genesis-library-204-installed-apk-source-20261122
+    paths:
+      - '.github/workflows/genesis-library-204-ota-readback-20261122.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  readback:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'audit/genesis-library-204-ota-readback-20261122'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read publisher workflow, EAS signed-source launch and exact OTA status without mutation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: 63f97c4092c1214c8f0b0eb5558d1183c6f189d4
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const repo=process.env.GITHUB_REPOSITORY;
+          const sha=process.env.RELEASE_SHA;
+          const headers={Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json','User-Agent':'buklod-204-ota-readonly'};
+          async function read(path){
+            const r=await fetch('https://api.github.com/repos/'+repo+path,{headers});
+            assert.equal(r.status,200,'GitHub read failed: '+path);
+            return r.json();
+          }
+          const all=await read('/actions/runs?branch=release%2Fgenesis-library-204-conso-ota-20261122&event=push&per_page=100');
+          const found=(all.workflow_runs||[]).find(run=>
+             run.head_sha===sha &&
+             (String(run.path||'').includes('genesis-library-204-staging-ota-publish.yml') ||
+              String(run.name||'').includes('Genesis 2.0.4 Android STAGING OTA verified publish')));
+          if(!found){
+            console.log('BUKLOD_204_STAGING_OTA_PUBLISH_RUN_MISSING',JSON.stringify({sha}));
+            process.exitCode=1;
+          }else{
+            const jobs=await read('/actions/runs/'+found.id+'/jobs?per_page=100');
+            const arts=await read('/actions/runs/'+found.id+'/artifacts?per_page=100');
+            const result={sourceSha:found.head_sha,runId:found.id,url:found.html_url,status:found.status,
+             conclusion:found.conclusion,
+             jobs:(jobs.jobs||[]).map(j=>({id:j.id,name:j.name,status:j.status,conclusion:j.conclusion,
+              failed:(j.steps||[]).filter(s=>s.conclusion==='failure').map(s=>s.name),
+              active:(j.steps||[]).filter(s=>s.status==='in_progress').map(s=>s.name),
+              passed:(j.steps||[]).filter(s=>s.conclusion==='success').map(s=>s.name)})),
+             artifacts:(arts.artifacts||[]).map(a=>({name:a.name,id:a.id,size:a.size_in_bytes,expired:a.expired}))};
+            console.log('BUKLOD_GENESIS_204_OTA_READBACK',JSON.stringify(result));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### BUKLOD Genesis 2.0.4 staging OTA\n\n'+
+              '- Run: '+result.url+'\n- Result: '+result.status+' / '+result.conclusion+'\n- Artifacts: '+result.artifacts.length+'\n');
+          }
+          NODE
