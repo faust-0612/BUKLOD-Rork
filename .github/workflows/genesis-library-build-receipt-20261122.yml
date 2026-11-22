@@ -92,7 +92,7 @@ jobs:
           }
 
           const otaAudit=(all.workflow_runs||[]).find(run=>
-            run.head_sha==='10443337c050b7cdfa6402e880a6df18a70aa336' &&
+            run.head_sha==='94ee0bb2ced3ed6be98356bb75ba8aafd6ef91e2' &&
             String(run.path||'').includes('genesis-library-ota-readonly-audit-20261123.yml'));
           if(!otaAudit){
             console.log('BUKLOD_OTA_PROVIDER_AUDIT_NOT_FOUND');
