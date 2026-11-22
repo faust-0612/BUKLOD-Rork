@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout exact PR source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Use locked Node 22 environment
         uses: actions/setup-node@v4
         with:
