@@ -163,7 +163,7 @@ export function ArcadeGameV1({game,onFinish}:Props) {
         const highlighted=index===run.cell&&reveal;
         return <Pressable key={index} accessibilityRole="button"
           accessibilityLabel={t('Tile','Puwesto')+' '+(index+1)}
-          disabled={!canControl}
+          disabled={!canControl || (game.mode==='search' && run.ticks<run.flashUntil)}
           onPress={()=>input('cell',index)}
           style={[s.tile,highlighted&&{backgroundColor:game.accent+'77',borderColor:game.accent}]}>
           <Text style={s.tileText}>{highlighted?game.good[0]:'✦'}</Text>
