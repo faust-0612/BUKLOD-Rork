@@ -32,6 +32,11 @@ test('stale responses cannot alter another post, account or optimistic reaction'
  assert.match(wall,/\+\+commentReactionChangeSeqRef\.current;[\s\S]*?setComments\(/);
  assert.match(loader,/if\(!isCurrent\(\)\)return/);
 });
+test('explicit authorization denial purges stale content',()=>{
+ assert.match(loader,/category==='AUTH_ERROR'/);
+ assert.match(loader,/commentWarmCacheRef\.current\.delete\(cacheKey\)/);
+ assert.match(loader,/if\(accessRevoked\)\{[\s\S]*?setComments\(\[\]\)/);
+});
 test('nonessential failures never suppress comment text or display false zero',()=>{
  assert.match(loader,/if\(!isCurrent\(\) \|\| result\.error/);
  assert.match(loader,/setComments\(baseRows\)/);

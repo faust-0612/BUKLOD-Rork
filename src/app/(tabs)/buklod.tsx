@@ -3828,6 +3828,15 @@ const load=useCallback(async(options?:{
     }catch(error:any){
      if(!isCurrent())return;
      const category=buildBuklodUserFeedback(error).category;
+     // Do not keep previously permitted content visible after explicit denial.
+     const accessRevoked=category==='AUTH_ERROR'||
+      /post is not visible|permission denied|not authorized|forbidden/i.test(
+       String(error?.message??'')
+      );
+     if(accessRevoked){
+      commentWarmCacheRef.current.delete(cacheKey);
+      setComments([]);
+     }
      setCommentLoadError(
       wallNetworkStatus==='offline'
        ? 'No internet connection. Check your signal and tap Retry.'
