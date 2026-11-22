@@ -67,7 +67,7 @@ jobs:
           channel_rc=$?
           npx --yes eas-cli@27.9.0 update:list --all --json --non-interactive > /tmp/eas-updates.json 2>/tmp/eas-updates-err.txt
           update_rc=$?
-          npx --yes eas-cli@27.9.0 update:view 7411bd8d-5c80-47c5-b120-e52570768ce5 --json --non-interactive > /tmp/eas-group.json 2>/tmp/eas-group-err.txt
+          npx --yes eas-cli@27.9.0 update:view 7411bd8d-5c80-47c5-b120-e52570768ce5 --json > /tmp/eas-group.json 2>/tmp/eas-group-err.txt
           group_rc=$?
           set -e
           export CHANNEL_RC="$channel_rc" UPDATE_RC="$update_rc" GROUP_RC="$group_rc"
