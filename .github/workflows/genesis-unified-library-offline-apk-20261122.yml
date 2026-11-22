@@ -4,7 +4,7 @@ on:
     branches:
       - dev/genesis-unified-arena-library-apk-20261122
     paths:
-      - genesis-unified-library-offline-apk-20261122.yml
+      - .github/workflows/genesis-unified-library-offline-apk-20261122.yml
 
 permissions:
   contents: read
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   android-arm64-godot-apk:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-godot-staging-apk-20261122' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_2_0_4_NATIVE_BUILD:') }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-unified-arena-library-apk-20261122' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_2_0_4_NATIVE_BUILD:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -123,6 +123,8 @@ jobs:
             "compatibleWithPriorEasStagingSignature":false,
             "worlds":4,
             "characterSoundCues":70,
+            "worlds":4,
+            "characterSoundCues":70,
             "prodOrOtaPublished":false,
             "deviceTested":false
           }
@@ -203,7 +205,7 @@ jobs:
       - name: Preserve offline Godot-capable staging APK and exact-source receipt
         uses: actions/upload-artifact@v4
         with:
-          name: buklod-genesis-godot-offline-arm64-debug-${{ github.sha }}
+          name: buklod-genesis-library-godot-arm64-debug-${{ github.sha }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             genesis-godot-apk.sha256
