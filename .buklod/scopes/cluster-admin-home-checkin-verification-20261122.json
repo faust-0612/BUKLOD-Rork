@@ -16,13 +16,18 @@
     "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
     "supabase/tests/buklod_points_r3_home_earning_contract.sql",
-    ".buklod/scopes/cluster-admin-home-checkin-verification-20261122.json"
+    ".buklod/scopes/cluster-admin-home-checkin-verification-20261122.json",
+    "src/lib/buklodGlobalAdController.ts",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs"
   ],
   "regressionTests": [
     "tests/buklod-cluster-home-checkin-review.test.cjs",
     "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
-    "supabase/tests/buklod_points_r3_home_earning_contract.sql"
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -32,7 +37,8 @@
         "BUKLOD Main existing Home, scoped Cluster tools, member submissions, AdMob lifecycle, and session restoration remain unchanged."
       ],
       "tests": [
-        "tests/buklod-cluster-home-checkin-review.test.cjs"
+        "tests/buklod-cluster-home-checkin-review.test.cjs",
+        "tests/buklod-cluster-checkin-ads-monetization.test.cjs"
       ]
     },
     {
@@ -42,7 +48,7 @@
         "Member deep links, global tab navigation, authenticated sessions, and existing Cluster manage routing remain intact."
       ],
       "tests": [
-        "tests/cluster-connect-notifications-points-20261108.test.mjs"
+        "tests/buklod-cluster-checkin-navigation-scroll.test.cjs"
       ]
     },
     {
@@ -82,5 +88,33 @@
     "stagingOtaPublished": false,
     "productionOtaPublished": false,
     "nativeBuildRequired": false
-  }
+  },
+  "productionBaselineEvidence": "2026-11-22 read-only Supabase production audit: Mission Worker Cluster cde99c79-549d-4398-8be5-36820f85c39c is ACTIVE, two eligible exact Cluster Admin reviewers, one pending Home Check In Today for BUKLOD CONFERENCE; the legacy Home check-in queue and review functions use System Admin-only authorization. Current production database and OTA unchanged.",
+  "chosenApproach": "Use additive exact-scope Cluster Admin JSONB queue and transactional review RPCs, migrate old global read to empty and old global review to deny, preserve existing pending claims and ledger key, add scoped Manage/Attendance Snapshot UI and dedicated navigation/ad-safety regressions. Keep production unchanged until one integrated release.",
+  "selectionRationale": "Centralizing authorization in server-verified active Cluster membership and role (instead of client-only admin flags or global system admin) prevents cross-Cluster disclosure and improper rewards while minimizing changes to live submit and points credit mechanisms.",
+  "acceptanceChecks": [
+    "Exact-Cluster ACTIVE role + membership gates all queue and review calls, including cross-Cluster and revoked-admin attempts.",
+    "Existing pending Check In Today claim remains pending until authorized Cluster Admin verifies actual presence.",
+    "+10 BP follows existing active reward rule; review and unique ledger source prevent double credit or concurrent duplicate decisions.",
+    "No self-approval; review note and reviewer audit are persisted.",
+    "System Admin queue and BP approval removed, mentoring review and aggregate pipeline unaffected.",
+    "Sensitive attendance route excludes interstitial overlays; existing AdMob inventory and prefetch on other routes remain intact.",
+    "Production backend migration, Android OTA and native build unchanged until RC verification."
+  ],
+  "preserveBehaviors": [
+    "Submission via live Cluster attendance event remains one per active member/event, with offline/weak-network retry behavior unaffected.",
+    "Event reports, QR/manual attendance, login/session, Public Wall, bottom navigation, profile and scoped Cluster Home remain operational.",
+    "AdMob fill, prefetch, cooldown, consent, global ad protection, and separate financial ledgers are preserved.",
+    "System Admin still sees authorized aggregate performance metrics and unrelated mentor/milestone approvals."
+  ],
+  "alternativeApproaches": [
+    "Retain global System Admin approval and only add a Cluster Admin front-end proxy: rejected because backend policy remains wrong and enables global data disclosure.",
+    "Grant every Cluster member review rights: rejected because it would expose private attendance evidence and permit reward fraud.",
+    "Add exact-scope server-owned Cluster Admin review RPC and remove legacy System Admin authority: selected for least-privilege, role isolation and maintainable audit."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "faith-cluster",
+    "ads-monetization"
+  ]
 }
