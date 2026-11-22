@@ -137,7 +137,7 @@ jobs:
         run: node --test tests/buklod-ptt-web-contract.test.mjs tests/buklod-ptt-web-release.test.mjs
 
       - name: DZAS browser radio recovery regression gate
-        run: node --test tests/dzas-signal-deck-implementation.test.mjs tests/bible-radio-visual.test.cjs
+        run: node --test tests/dzas-signal-deck-implementation.test.mjs tests/dzas-web-production-deploy.test.mjs
 
       - name: TypeScript QA
         run: npx tsc --noEmit
