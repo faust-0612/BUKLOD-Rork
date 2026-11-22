@@ -77,18 +77,24 @@ jobs:
           CI: '1'
           EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
         run: |
+          set +e
           set -uo pipefail
-          # Execute every independent QA check even if one fails; surface every
-          # actual release blocker in one CI cycle. No service or deploy writes.
-          npm ci --ignore-scripts --no-audit --no-fund
-          install_status=$?
-          if [ "$install_status" -eq 0 ]; then
-            echo 'BUKLOD APP-WIDE QA: full Jest suite'
-            npm test -- --ci --watch=false
-            jest_status=$?
+          # Execute all read-only contract checks even if the legacy Jest
+          # runner is unavailable. Do not install non-locked dependencies.
+          node -e "const p=require('./package-lock.json');process.exit(p.packages?.['node_modules/jest']?0:1)"
+          jest_declared=$?
+          if [ "$jest_declared" -eq 0 ]; then
+            npm ci --ignore-scripts --no-audit --no-fund
+            install_status=$?
+            if [ "$install_status" -eq 0 ]; then
+              npm test -- --ci --watch=false
+              jest_status=$?
+            else
+              jest_status=1
+            fi
           else
-            echo 'Dependency installation failed; Jest cannot execute'
-            jest_status=1
+            echo '::error::Full Jest QA unavailable: jest is not declared in package.json/package-lock.json. Explicit test-tooling repair required.'
+            jest_status=127
           fi
           echo 'BUKLOD APP-WIDE QA: source release contracts'
           npm run release:gate
@@ -96,7 +102,7 @@ jobs:
           echo 'BUKLOD APP-WIDE QA: Genesis official single-season theme'
           npm run genesis:theme:gate
           genesis_status=$?
-          echo 'BUKLOD APP-WIDE QA: native minimum-version, finance and app-wide ad contracts'
+          echo 'BUKLOD APP-WIDE QA: native update / finance / app-wide ads'
           node --test \
             tests/buklod-mandatory-update-runtime.test.mjs \
             tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
