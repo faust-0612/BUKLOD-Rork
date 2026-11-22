@@ -122,3 +122,20 @@ test('Nov17 quiet connection feedback has exact protected scope',()=>{
  assert.deepEqual(result.impacted,['app-runtime','navigation-auth','governance-lock']);
  assert.equal(scope.publicationStatus,'DEV_ONLY_NO_OTA');
 });
+
+test('unified Godot staging multi-scope gate is exact-base and never authorizes production',()=>{
+  const workflow=readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+  const gate=readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8');
+  assert.match(workflow,/integration\/genesis-unified-godot-native-staging-20261122/);
+  assert.match(workflow,/PR_BASE.*dev\/arena-godot-native-migration-20261122/);
+  assert.match(workflow,/BUKLOD_SCOPE_MANIFEST=\.buklod\/scopes\/genesis-native-full-conso-gate-20261122\.json/);
+  assert.match(gate,/nativeGodotSourceHold/);
+  assert.match(gate,/DEV_SOURCE_ONLY_NEW_SIGNED_GODOT_APK_AND_ISOLATED_BACKEND_REQUIRED/);
+  const scope=JSON.parse(readFileSync(new URL('../.buklod/scopes/genesis-native-full-conso-gate-20261122.json',import.meta.url),'utf8'));
+  assert.equal(scope.baseRef,'dev/arena-godot-native-migration-20261122');
+  assert.equal(scope.releaseMode,'consolidated-staging-source-hold');
+  assert.equal(scope.productionOtaAuthorized,false);
+  assert.equal(scope.signedReleaseReady,false);
+  const production=readFileSync(new URL('../.github/workflows/production_android_ota.yml',import.meta.url),'utf8');
+  assert.doesNotMatch(production,/BUKLOD_UNIFIED_GODOT_QA/);
+});
