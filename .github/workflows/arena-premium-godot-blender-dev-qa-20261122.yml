@@ -7,6 +7,8 @@ on:
       - 'scripts/generate-arena-blender-kit.py'
       - 'tests/arena-premium-vfx-blender-backend-20261122.test.mjs'
       - 'tests/arena-library-godot-native-20261122.test.mjs'
+      - 'tests/arena-library-modes-audio-20261122.test.mjs'
+      - 'scripts/arena-library-audio-pack.mjs'
       - '.github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml'
 
 permissions:
@@ -36,13 +38,93 @@ jobs:
           ast.parse(source.read_text(encoding='utf8'), filename=str(source))
           print('Blender kit Python source parse PASS; actual Blender export not executed')
           PY
-          node --test tests/arena-premium-vfx-blender-backend-20261122.test.mjs tests/arena-library-godot-native-20261122.test.mjs
+          node --test tests/arena-premium-vfx-blender-backend-20261122.test.mjs tests/arena-library-godot-native-20261122.test.mjs tests/arena-library-modes-audio-20261122.test.mjs
       - name: Build deterministic Godot practice pack and inspect 68 approved assets
         run: |
           set -euo pipefail
           node scripts/build-empire-godot-pack.mjs --out=/tmp/buklod-premium-godot.zip
           unzip -t /tmp/buklod-premium-godot.zip | tail -2
           test "$(unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Ec '^art/(fullbody|sprite|scene)/')" = 68
+          test "$(unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Ec '^audio/sfx/.*\\.wav
+          for entry in scripts/arena_effects.gd scripts/hero_animation.gd shaders/arena_impact.gdshader tests/premium_smoke.gd; do
+            unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Fx "$entry"
+          done
+          mkdir -p /tmp/buklod-premium-game
+          unzip -q /tmp/buklod-premium-godot.zip -d /tmp/buklod-premium-game
+      - name: Compile real Godot 4.7.2 project and run native gameplay plus premium smoke
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            -o /tmp/buklod-godot-bin.zip
+          mkdir -p /tmp/buklod-godot-bin
+          unzip -q /tmp/buklod-godot-bin.zip -d /tmp/buklod-godot-bin
+          GODOT=$(find /tmp/buklod-godot-bin -type f -name 'Godot_*linux.x86_64' -print -quit)
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          "$GODOT" --version | grep -F '4.7.2'
+          "$GODOT" --headless --path /tmp/buklod-premium-game --editor --quit 2>&1 | tee /tmp/buklod-premium-compile.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/buklod-premium-compile.log; then exit 1; fi
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/smoke.gd 2>&1 | tee /tmp/buklod-game-smoke.log
+          grep -F 'BUKLOD_GODOT_SMOKE_PASS' /tmp/buklod-game-smoke.log
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/art_smoke.gd 2>&1 | tee /tmp/buklod-art-smoke.log
+          grep -F 'BUKLOD_GODOT_ART_PASS' /tmp/buklod-art-smoke.log
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/premium_smoke.gd 2>&1 | tee /tmp/buklod-premium-smoke.log
+          grep -F 'BUKLOD_GODOT_PREMIUM_SMOKE_PASS' /tmp/buklod-premium-smoke.log
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/library_smoke.gd 2>&1 | tee /tmp/buklod-library-smoke.log
+          grep -F 'BUKLOD_GODOT_LIBRARY_SMOKE_PASS' /tmp/buklod-library-smoke.log
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/library_modes_audio_smoke.gd 2>&1 | tee /tmp/buklod-library-audio.log
+          grep -F 'BUKLOD_GODOT_LIBRARY_MODES_AUDIO_PASS' /tmp/buklod-library-audio.log
+      - name: App-wide DEV QA - full Jest, release and Genesis theme contracts
+        if: github.head_ref == 'dev/arena-library-codes-runtime-integration-20261122'
+        timeout-minutes: 14
+        env:
+          CI: '1'
+          EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+        run: |
+          set +e
+          set -uo pipefail
+          # Execute all read-only contract checks even if the legacy Jest
+          # runner is unavailable. Do not install non-locked dependencies.
+          node -e "const p=require('./package-lock.json');process.exit(p.packages?.['node_modules/jest']?0:1)"
+          jest_declared=$?
+          if [ "$jest_declared" -eq 0 ]; then
+            npm ci --ignore-scripts --no-audit --no-fund
+            install_status=$?
+            if [ "$install_status" -eq 0 ]; then
+              npm test -- --ci --watch=false
+              jest_status=$?
+            else
+              jest_status=1
+            fi
+          else
+            echo '::error::Full Jest QA unavailable: jest is not declared in package.json/package-lock.json. Explicit test-tooling repair required.'
+            jest_status=127
+          fi
+          echo 'BUKLOD APP-WIDE QA: source release contracts'
+          npm run release:gate
+          release_status=$?
+          echo 'BUKLOD APP-WIDE QA: Genesis official single-season theme'
+          npm run genesis:theme:gate
+          genesis_status=$?
+          echo 'BUKLOD APP-WIDE QA: native update / finance / app-wide ads'
+          node --test \
+            tests/buklod-mandatory-update-runtime.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/buklod-ads-production-release-contract-20261111.test.mjs \
+            tests/buklod-admob-fill-finance-release-20261111.test.mjs
+          cross_status=$?
+          echo "BUKLOD_APPWIDE_QA_RESULTS jest=$jest_status release=$release_status genesis=$genesis_status cross=$cross_status"
+          if [ "$jest_status" -ne 0 ] || [ "$release_status" -ne 0 ] || \
+             [ "$genesis_status" -ne 0 ] || [ "$cross_status" -ne 0 ]; then
+            echo '::error::BUKLOD app-wide QA incomplete: one or more test gates failed'
+            exit 1
+          fi
+          echo 'BUKLOD_APP_WIDE_SOURCE_QA_PASS: Jest / release / Genesis / native update / ad finance'
+
+      - name: Enforce DEV-only, no native build or online ranked/production release
+        run: echo 'Godot headless/pack smoke only; Blender GLB and Android physical test remain required. No APK, EAS, OTA, production, or live Supabase mutation.'
+)" = 70
           for entry in scripts/arena_effects.gd scripts/hero_animation.gd shaders/arena_impact.gdshader tests/premium_smoke.gd; do
             unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Fx "$entry"
           done
