@@ -13,10 +13,12 @@
     "src/providers/ComplianceProvider.tsx",
     "src/app/privacy/consent.tsx",
     "tests/auth-consent-boot-recovery.test.mjs",
-    ".buklod/scopes/consent-verification-contrast-20261122.json"
+    ".buklod/scopes/consent-verification-contrast-20261122.json",
+    ".github/workflows/buklod-consent-prod-rc-no-publish-20261122.yml"
   ],
   "regressionTests": [
-    "tests/auth-consent-boot-recovery.test.mjs"
+    "tests/auth-consent-boot-recovery.test.mjs",
+    ".github/workflows/buklod-consent-prod-rc-no-publish-20261122.yml"
   ],
   "lockedFeatureChanges": [
     {
@@ -57,6 +59,7 @@
     "NO Season 2/Genesis/Godot feature paths or build flags.",
     "All production ad/first-view/nav/typecheck/consent acceptance QA must pass on exact head.",
     "Do not activate EAS publisher outside reviewed main-only production marker.",
-    "Signed provider receipt and served bundle hash mandatory before claiming production success."
+    "Signed provider receipt and served bundle hash mandatory before claiming production success.",
+    "Focused PR CI workflow must execute consent/auth/AdMob/native compatibility and Season2 production embargo tests before release."
   ]
 }
