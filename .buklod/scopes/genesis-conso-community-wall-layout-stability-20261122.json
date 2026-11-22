@@ -1,0 +1,96 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-conso-community-wall-layout-stability-20261122.json",
+  "objective": "Stop Community Wall posts jumping during photo decode, late multi-photo hydration and recent-comment preview loading without changing native ads or protected Genesis staging behavior.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "GitHub main source 7b224c39624827282c3cbf003060317045b0a73f; known already published Genesis R4 staging source 7bbb44fcb331ce14785ce43d70969d955f9e61e7. Neither existing staging nor production is changed by this DEV branch.",
+  "chosenApproach": "Apply small isolated feed-only stable media geometry switches to shared CommunityPhotoCollage, opt in for Public and scoped Wall only, and reserve pending latest-comment preview height based on authoritative comment count. Keep existing FlashList scroll anchoring policy and AdMob SDK untouched.",
+  "selectionRationale": "Photo onLoad previously changed card height from 310 to decoded aspect-dependent size; late 1-to-many photo metadata also changed a card from 310 to 280. Latest-comment RPC injected additional row content after first paint. A bounded feed-only frame and pending preview slot remove those two deterministic layout reflows without pausing media hydration, changing media authorization, modifying AdMob inventory, or replacing the consolidated Genesis source.",
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-scroll",
+    "navigation-auth",
+    "cluster-faith",
+    "weak-network",
+    "comment-preview",
+    "ad-preservation"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodCommunityPostEngagement.tsx",
+    "tests/community-wall-layout-stability-20261122.test.mjs",
+    "tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs",
+    ".buklod/scopes/genesis-conso-community-wall-layout-stability-20261122.json"
+  ],
+  "preserveBehaviors": [
+    "Public, Organization and Cluster media remains private/signed, full image available and tap-to-view unchanged.",
+    "Composer, post detail and full-screen viewers retain original source aspect layout; only the scrollable Wall opts into fixed feed framing.",
+    "Existing FlashList and FlatList keys, pagination, pull refresh and focus transitions stay unchanged.",
+    "All ad unit IDs, consent, eligibility, preload, native/banner fallback, lifecycle, viewability/impressions and no-fill logic are untouched.",
+    "Comment RPC, reply permissions, counts, ordering, actions, cache and latest preview hydration remain unchanged."
+  ],
+  "acceptanceChecks": [
+    "Focused Node regression contracts pass for public/scoped media height, comment preview footprint and unchanged list/ad wiring.",
+    "Engineering Accountability objective-scope, protected feature locks and navigation/media regression gates pass on exact PR head.",
+    "Native Android device verifies photo and comment scroll stability under slow network, with video first-frame and all AdMob fill/impression gates before any consolidated staging release.",
+    "No build/new native or staging/production OTA is authorized by this intake PR; continue PR #1074 hold until all independent blockers resolve."
+  ],
+  "regressionTests": [
+    "tests/community-wall-layout-stability-20261122.test.mjs",
+    "tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Reserve Community Wall photo and comment layout before media and recent-preview hydration while preserving feed runtime behavior.",
+      "preservedBehaviors": [
+        "Unchanged video, photo, reactions, comments, ad SDK, navigation, account isolation and backend authorization."
+      ],
+      "tests": [
+        "tests/community-wall-layout-stability-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Pinned media frame in Wall feeds prevents image decode and one-to-many metadata hydration from shifting the scroll viewport.",
+      "preservedBehaviors": [
+        "Original authorized pixels remain available uncropped and full-screen; photo upload, caching, signed URL and quality paths are unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-layout-stability-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Public Wall uses the same FlashList, key extraction, scroll callbacks and navigation policy after photo and comment sizing changes.",
+      "preservedBehaviors": [
+        "Existing pull refresh, pagination, profile navigation, deep linking, account isolation, and ad/video scroll viewability are unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Scoped Organization and Cluster community feed now pins image geometry but retains its canonical FlatList and scope authorization paths.",
+      "preservedBehaviors": [
+        "Organization and Cluster memberships, RLS, post permissions, events, Bible and scope feed logic remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Enable FlashList maintainVisibleContentPosition globally (rejected: conflicts with existing explicit regression contracts and unverified AdMob scrolling behavior).",
+    "Block Wall first paint until all photo and comment metadata resolves (rejected: unacceptable weak-network latency).",
+    "Expand or collapse NativeAd SDK pending slots (deferred: potentially harms ad fill and first-view rendering, requires separate ad QA)."
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "publicationStatus": "CONSOLIDATED_DEV_INTAKE_PENDING_GATES",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "releaseTarget": "next verified full Genesis staging RC"
+}
