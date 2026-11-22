@@ -3,22 +3,19 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ts = require('typescript');
+const { stripTypeScriptTypes } = require('node:module');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const source = read('src/lib/buklodNativeAdRecovery.ts');
 
 function health() {
-  const code = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2020,
-    },
-  }).outputText;
-  const exports = {};
-  vm.runInNewContext(code, { exports, Map, Set, Math, Date, Object }, { timeout: 1000 });
-  return exports;
+  // Engineering scope gates deliberately run without npm install. Node 22
+  // already strips erasable TypeScript types; do not require dependencies here.
+  const stripped = stripTypeScriptTypes(source, { mode: 'strip' });
+  const code = stripped.replace(/^export\\s+/gm, '') +
+    '\n({ noteNativeRequestFailed, noteNativeRequestSucceeded, preferBannerAfterNativeFailures })';
+  return vm.runInNewContext(code, { Map, Set, Math, Date, Object }, { timeout: 1000 });
 }
 
 test('one repeatedly failing native placement retains scoped banner fallback without muting healthy peers', () => {
