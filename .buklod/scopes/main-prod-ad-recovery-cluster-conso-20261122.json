@@ -42,12 +42,13 @@
     "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
     "tests/buklod-cluster-home-checkin-review.test.cjs",
     "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
-    "tests/cluster-connect-notifications-points-20261108.test.mjs"
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql"
   ],
   "lockedFeatureChanges": [
     {
-      "id": "ads-monetization",
-      "reason": "Improve native AdMob first-view fallback only under short-window cross-placement SDK failures; no ad IDs, metrics, native modules, consent, or monetization policy are changed.",
+      "id": "app-runtime",
+      "reason": "Protect BUKLOD MAIN runtime and in-app AdMob native view lifecycle: existing SDK objects, native first-view loading and runtime compatibility are preserved while a bounded session-local, multi-placement timeout circuit shortens unhealthy fallback.",
       "preservedBehaviors": [
         "Existing real SDK impressions and error telemetry, AdMob fill lifecycle, max two prewarmed creatives, 2-minute shared request cooldown, route/foreground/consent safeguards, banner-only fallback and rewards remain unchanged."
       ],
@@ -85,7 +86,8 @@
       ],
       "tests": [
         "tests/buklod-cluster-home-checkin-review.test.cjs",
-        "tests/cluster-connect-notifications-points-20261108.test.mjs"
+        "tests/cluster-connect-notifications-points-20261108.test.mjs",
+        "supabase/tests/buklod_points_r3_home_earning_contract.sql"
       ]
     }
   ],
