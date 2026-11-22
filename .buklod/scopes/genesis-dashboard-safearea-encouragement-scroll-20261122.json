@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-dashboard-safearea-encouragement-scroll-20261122.json",
+  "objective": "Restore status-bar clearance on Genesis Home and Profile, and a single naturally scrollable daily encouragement card on each screen without changing production or Android native runtime.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "Production main inspected at 7b224c39624827282c3cbf003060317045b0a73f; current Genesis staging integration captured at fa852939753737406240a7ee0cdf7ec424569513. Published R4 staging source 7bbb44fcb331ce14785ce43d70969d955f9e61e7 is not mutated.",
+  "chosenApproach": "Extend existing Genesis-only top safe-area inset to Home and Profile with Android StatusBar fallback. Move existing encouragement component from shared fixed context header into Home/Profile ScrollViews, preserving the desktop-header singleton.",
+  "selectionRationale": "Genesis shared header is intentionally hidden, but its existing native safe-area exception covered only Wall and Connect. Home and Profile content therefore appeared beneath system status chrome. Their encouragement card was also absent from Genesis because the shared context bar is disabled. Rendering it in the page scroll fixes both issues without another sticky header.",
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "profile-ui",
+    "home-ui",
+    "ad-preservation",
+    "android-safe-area",
+    "web-responsive"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/components/BuklodDashboardContextBar.tsx",
+    "src/components/BuklodPublicDailyMessageBar.tsx",
+    "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs",
+    ".buklod/scopes/genesis-dashboard-safearea-encouragement-scroll-20261122.json",
+    "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Non-Genesis production header spacing remains unchanged.",
+    "No AdMob units, first-view warmup, consent, slots, bottom banner or navigation stack are removed.",
+    "Home and Profile retain existing announcements, rank, posts, QMP, character, profile photos, ads and scroll callbacks.",
+    "Web desktop uses existing single header message; web/mobile and native use one in-page card.",
+    "No native change, backend write, staging OTA or production publication is part of this branch."
+  ],
+  "acceptanceChecks": [
+    "Source assertion verifies both native Home/Profile status clearance and Android fallback.",
+    "Home and Profile scroll content contains their own encouragement cards, not a pinned shared context bar.",
+    "Desktop cards do not duplicate header encouragement; protected ads/navigation remain wired.",
+    "Before a consolidated staging OTA, exact-head TS/Metro, ad/nav, web and physical Android cutout/status/scroll checks must pass."
+  ],
+  "regressionTests": [
+    "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs",
+    "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Status inset of Genesis tab shell expanded to Home and Profile.",
+      "preservedBehaviors": [
+        "Production header unchanged and no duplicate inset on Wall/Connect."
+      ],
+      "tests": [
+        "tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Relocate Home/Profile daily card into scroll content while retaining session and navigation policy.",
+      "preservedBehaviors": [
+        "Authenticated tab routing, first-view ad warmup and profile visibility unchanged."
+      ],
+      "tests": [
+        "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Fixed 24px header padding rejected for cutouts and device status bar differences.",
+    "Global SafeAreaView wrapping rejected for production double-inset risk.",
+    "Keep the encouragement card pinned above scroll rejected: it consumes content space and obstructs the user objective."
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "publicationStatus": "CONSOLIDATED_DEV_INTAKE_PENDING_GATES",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "releaseTarget": "next verified full Genesis staging RC"
+}

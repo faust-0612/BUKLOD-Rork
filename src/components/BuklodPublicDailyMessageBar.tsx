@@ -39,9 +39,11 @@ import {
 export default function BuklodPublicDailyMessageBar({
   forceVisible = false,
   compact = false,
+  embedded = false,
 }: {
   forceVisible?: boolean;
   compact?: boolean;
+  embedded?: boolean;
 }) {
   /* PATCH_186F_ENCOURAGEMENT_THROUGH_PROFILE */
   const {
@@ -128,7 +130,7 @@ export default function BuklodPublicDailyMessageBar({
   }
 
   return (
-    <View style={[styles.shell, compact && styles.compactShell]}>
+    <View style={[styles.shell, compact && styles.compactShell, embedded && styles.embeddedShell]}>
       <View style={[styles.icon, compact && styles.compactIcon]}>
         <MaterialCommunityIcons
           name={
@@ -195,6 +197,13 @@ function createStyles(
     shadowRadius: 4,
     shadowOffset: {width:0,height:2},
     elevation: 1,
+  },
+
+  // When rendered inside a scrollable screen, follow the screen's gutters.
+  embeddedShell: {
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 0,
   },
 
   // Desktop header card: 2-line micro-card, not a second content bar.

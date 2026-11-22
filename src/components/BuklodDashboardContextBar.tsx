@@ -45,6 +45,9 @@ export default function BuklodDashboardContextBar() {
     pathname.endsWith('/profile') ||
     pathname.includes('/me/') ||
     pathname.includes('/profile/');
+  const homeRoute =
+    pathname === '/hub' || pathname === '/home' ||
+    pathname.endsWith('/hub') || pathname.endsWith('/home');
   const messagesRoute =
     pathname === '/messages' ||
     pathname.startsWith('/messages/');
@@ -66,16 +69,10 @@ export default function BuklodDashboardContextBar() {
     return null;
   }
 
-  // The encouragement remains in Home/Profile. It should not add a large
-  // above-the-fold card to either social or messaging feed.
-  if (messagesRoute || communityRoute) return null;
-
-  if (profileRoute) {
-    /* PATCH_186F_ENCOURAGEMENT_THROUGH_PROFILE */
-    return (
-      <BuklodPublicDailyMessageBar forceVisible compact={scrollCompact} />
-    );
-  }
+  // Home/Profile render the same daily card inside their own ScrollViews,
+  // so it scrolls away naturally and never becomes pinned dashboard chrome.
+  // Wall/Connect remain free of a large above-the-fold card.
+  if (messagesRoute || communityRoute || profileRoute || homeRoute) return null;
 
   if (messagesRoute && activeScope?.scope_type === 'PUBLIC') {
     return <BuklodPublicDailyMessageBar compact={scrollCompact} />;
