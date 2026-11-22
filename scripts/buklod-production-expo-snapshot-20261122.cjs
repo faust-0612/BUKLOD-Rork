@@ -9,7 +9,7 @@ function parseManifest(raw, filters, status) {
   if (status !== 200) throw Error('Expo production manifest HTTP '+status);
   let m;
   try { m=JSON.parse(raw); } catch {
-    const line=raw.split(/\\r?\\n/).find(x=>x.startsWith('{"id"'));
+    const line=raw.split(/\r?\n/).find(x=>x.startsWith('{"id"'));
     if (!line) throw Error('Expo manifest missing JSON body');
     m=JSON.parse(line);
   }
