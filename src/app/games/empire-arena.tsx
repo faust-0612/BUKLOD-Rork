@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, G, Line, Path, Rect, Defs, RadialGradient as SvgRadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useAuth } from '@/providers/AuthProvider';
+import BuklodCrossWorldAchievements from '@/components/games/BuklodCrossWorldAchievements';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
@@ -756,6 +757,7 @@ function EmpireArenaInApp() {
     {phase === 'menu' ? <ScrollView style={styles.menuScroll} contentContainerStyle={[styles.menu, compactLandscape && styles.menuCompact]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>GENESIS WAR ARENA</Text>
       <Text style={styles.description}>Fight BUKLOD computer characters without signal. Real attacks, skills, knockouts and winner. No BP or Diamond change.</Text>
+      <BuklodCrossWorldAchievements world="arena" />
       {godotNativeEnabled ? <Pressable accessibilityRole="button"
         accessibilityLabel="Launch native Godot Empire Arena inside BUKLOD"
         disabled={godotOpening} onPress={() => void launchNativeGodot()}
