@@ -162,6 +162,8 @@ export type MaritesStory = {
   /** Storage paths aligned with photo_uris for community stories. */
   photo_paths?: string[];
   video_uri?: string | null;
+  /** Private, signed preview for a Quick Video. Never persisted as a credential. */
+  video_preview_uri?: string | null;
   /** Local offline metadata; shared stories load soundtracks on Full View. */
   music_track?: BuklodPostMusicTrack | null;
   music_clip_start_seconds?: number | null;
@@ -264,6 +266,7 @@ function normalizeStory(row: Record<string, unknown>): MaritesStory | null {
     photo_uris: mergedPhotos.slice(0, MARITES_MAX_PHOTOS),
     photo_uri: mergedPhotos[0] ?? null,
     video_uri: row.video_uri ? String(row.video_uri) : null,
+    video_preview_uri: row.video_preview_uri ? String(row.video_preview_uri) : null,
     music_track: row.music_track && typeof row.music_track === 'object' &&
       typeof (row.music_track as BuklodPostMusicTrack).id === 'string' &&
       typeof (row.music_track as BuklodPostMusicTrack).audio_path === 'string'
@@ -562,6 +565,7 @@ function mapCommunityPostToMaritesStory(
   const photoUris = communityPostPhotoUris(post);
   const videoItem = (Array.isArray(post.media_items) ? post.media_items : []).find((item: any) => String(item?.media_mime_type ?? '').toLowerCase().startsWith('video/'));
   const videoUri = String(videoItem?.media_url || (String(post.media_mime_type ?? '').toLowerCase().startsWith('video/') ? post.media_url : '') || '').trim();
+  const videoPreviewUri = String(videoItem?.preview_url || (String(post.media_mime_type ?? '').toLowerCase().startsWith('video/') ? post.preview_url : '') || '').trim();
   const body = stripMaritesPostMarker(
     repairMojibakeText(String(post.body ?? ''))
   ).trim();
@@ -584,6 +588,7 @@ function mapCommunityPostToMaritesStory(
     photo_uri: photoUris[0] ?? null,
     photo_paths: communityPostPhotoPaths(post),
     video_uri: videoUri || null,
+    video_preview_uri: videoPreviewUri || null,
     mentions: Array.isArray(post.mentions)
       ? post.mentions.map((item) => String(item))
       : [],
@@ -1201,6 +1206,8 @@ export async function publishMaritesStory(input: {
     media_path: string;
     media_mime_type: string;
     media_size_bytes: number;
+    preview_path?: string;
+    preview_bytes?: number;
   }> = [];
 
   let createdPostId: string | null = null;
@@ -1210,8 +1217,14 @@ export async function publishMaritesStory(input: {
     if (input.video) {
       const { uploadCommunityVideoFile } = await import('@/lib/uploadCommunityVideoFile');
       videoPath = `${input.userId}/marites-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
-      await uploadCommunityVideoFile({ path: videoPath, uri: input.video.uri, contentType: input.video.mimeType });
-      uploaded.push({ media_path: videoPath, media_mime_type: input.video.mimeType, media_size_bytes: 0 });
+      const preview = await uploadCommunityVideoFile({
+        path: videoPath, uri: input.video.uri,
+        contentType: input.video.mimeType, generateWallPreview: true,
+      });
+      uploaded.push({
+        media_path: videoPath, media_mime_type: input.video.mimeType,
+        media_size_bytes: 0, ...preview,
+      });
     }
     for (let index = 0; index < photoUris.length; index += 1) {
       const encoded = await encodeMaritesPhotoBase64(
@@ -1311,12 +1324,15 @@ export async function publishMaritesStory(input: {
     // Immediately use the same provider-aware source as feed refreshes.
     // A newly uploaded AWS video has no object in Supabase to sign.
     let publishedVideoUrl: string | null = null;
+    let publishedVideoPreviewUrl: string | null = null;
     if (input.video) {
       try {
         const rows = await loadCommunityPostMediaByPostIds([createdPostId]);
-        publishedVideoUrl = rows[createdPostId]?.find(
+        const publishedVideo = rows[createdPostId]?.find(
           (row) => String(row.media_mime_type ?? '').startsWith('video/'),
-        )?.media_url ?? null;
+        );
+        publishedVideoUrl = publishedVideo?.media_url ?? null;
+        publishedVideoPreviewUrl = publishedVideo?.preview_url ?? null;
       } catch {
         // Publication already committed; next feed refresh can recover URL.
       }
@@ -1332,6 +1348,7 @@ export async function publishMaritesStory(input: {
       photo_uri: input.video ? null : (signedPhotos.find(Boolean) ?? null),
       photo_paths: input.video ? [] : uploaded.map((item) => item.media_path),
       video_uri: input.video ? (publishedVideoUrl || input.video.uri) : null,
+      video_preview_uri: input.video ? publishedVideoPreviewUrl : null,
       music_track: input.musicTrack ?? null,
       music_clip_start_seconds: localStory.music_clip_start_seconds,
       mentions: [],
