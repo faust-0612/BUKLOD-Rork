@@ -6,6 +6,7 @@ on:
       - 'scripts/build-empire-godot-pack.mjs'
       - 'scripts/generate-arena-blender-kit.py'
       - 'tests/arena-premium-vfx-blender-backend-20261122.test.mjs'
+      - 'tests/arena-library-godot-native-20261122.test.mjs'
       - '.github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml'
 
 permissions:
@@ -35,7 +36,7 @@ jobs:
           ast.parse(source.read_text(encoding='utf8'), filename=str(source))
           print('Blender kit Python source parse PASS; actual Blender export not executed')
           PY
-          node --test tests/arena-premium-vfx-blender-backend-20261122.test.mjs
+          node --test tests/arena-premium-vfx-blender-backend-20261122.test.mjs tests/arena-library-godot-native-20261122.test.mjs
       - name: Build deterministic Godot practice pack and inspect 68 approved assets
         run: |
           set -euo pipefail
@@ -67,5 +68,7 @@ jobs:
           grep -F 'BUKLOD_GODOT_ART_PASS' /tmp/buklod-art-smoke.log
           "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/premium_smoke.gd 2>&1 | tee /tmp/buklod-premium-smoke.log
           grep -F 'BUKLOD_GODOT_PREMIUM_SMOKE_PASS' /tmp/buklod-premium-smoke.log
+          "$GODOT" --headless --path /tmp/buklod-premium-game --script res://tests/library_smoke.gd 2>&1 | tee /tmp/buklod-library-smoke.log
+          grep -F 'BUKLOD_GODOT_LIBRARY_SMOKE_PASS' /tmp/buklod-library-smoke.log
       - name: Enforce DEV-only, no native build or online ranked/production release
         run: echo 'Godot headless/pack smoke only; Blender GLB and Android physical test remain required. No APK, EAS, OTA, production, or live Supabase mutation.'
