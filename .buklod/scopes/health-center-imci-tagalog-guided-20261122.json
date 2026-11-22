@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/health-center-imci-tagalog-guided-20261122.json",
+  "objective": "Owner-authorized DEV improvement to BUKLOD Health Center: make educational IMCI caregiver prompts fully guided in Tagalog, age-aware, and conservative for emergency escalation without enabling unverified clinical services.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Starting source main 088df3cc1265a097744f78f4f24aaa3ae5ad3586 (Nov 22, 2026). Live production app, new source runtime and exact Android rendering NOT verified by this workstream; no release authorized.",
+  "chosenApproach": "In-app, privacy-first educational IMCI question flow with age-specific prompts, clear progress, local-only answers and caregiver handoff notes. Inline clinical red flags immediately block nonurgent AI/ads and show ER/911 guidance. Existing separately gated Health Center PWA and authentication remain untouched.",
+  "selectionRationale": "The existing English-only six-step IMCI description was static and failed to guide caregivers, while AI consultation and professional enrollment remain backend-gated. A small in-app local-first flow is useful without inventing clinician services or persisting sensitive data.",
+  "alternativeApproaches": [
+    "Auto-classify IMCI disease or prescribe treatments: rejected because clinician assessment and currently adopted Philippine chart validation are required.",
+    "Store child symptoms in Supabase: rejected because no clinical purpose, consent, permissions or private health record backend is certified.",
+    "Activate AI/doctor portal flags prematurely: rejected until separate authenticated backend and health-professional verification."
+  ],
+  "preserveBehaviors": [
+    "Do not change BUKLOD login, auth tokens, personal medical records or full Health Center external URL paths.",
+    "Keep AI consultation and professional enrollment disabled unless environment-specific backend proof explicitly activates them.",
+    "Preserve emergency 911 link and suppress advice/ads when the adult or IMCI screen is urgent.",
+    "Do not alter existing Home navigation, advertisements outside this nonurgent Health Center placement, or non-health app features.",
+    "No native dependencies, server-side writes, SQL migrations, OTA releases, or production changes."
+  ],
+  "acceptanceChecks": [
+    "Tagalog IMCI age bands: under two months, two months to under five years, five years plus safety-only.",
+    "Yes or unsure on a danger sign => immediate emergency stop and local 911 referral; priority signs => clinician review; no clinical diagnosis or medicine dosing.",
+    "Questions are handled one by one with accessible answer buttons, back, retry, progress and handoff summary.",
+    "No health answers sent to network, analytics, external URL queries, or persistent storage.",
+    "Regression proof: changed scoped health flow and existing Health Center consultation/ad tests; protected feature gate passes.",
+    "Source compile, real device rendering, and Philippine clinician review are mandatory before release approval; remain unverified until evidenced."
+  ],
+  "riskAreas": [
+    "medical-information",
+    "caregiver-safety",
+    "health-privacy",
+    "accessibility",
+    "ad-gating",
+    "existing-PWA-launcher"
+  ],
+  "regressionTests": [
+    "tests/nov14-imci-health-flow.test.mjs",
+    "tests/health-center-consultation-card-20261110.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/health-center-imci-tagalog-guided-20261122.json",
+    "src/lib/buklodImciTagalog.ts",
+    "src/components/health/BuklodImciTagalogGuide.tsx",
+    "src/app/profile/buklod-health.tsx",
+    "tests/nov14-imci-health-flow.test.mjs",
+    "tests/health-center-consultation-card-20261110.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add owner-requested Tagalog IMCI caregiver UI and reconcile existing health screening gates without changing backend privileges, data storage, release or native runtime behavior.",
+      "preservedBehaviors": [
+        "Health Center remains accessible from its original route, with the same three fixed links, default-disabled consultation/professional flags, adult emergency screening and nonurgent ad policy."
+      ],
+      "tests": [
+        "tests/nov14-imci-health-flow.test.mjs",
+        "tests/health-center-consultation-card-20261110.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseStatus": "Draft PR, pending targeted CI, TypeScript/Android QA, latest local Philippine IMCI clinician review and explicit staging consolidation. Production unchanged."
+}
