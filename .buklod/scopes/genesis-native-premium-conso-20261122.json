@@ -33,7 +33,8 @@
     "services/empire-arena/core.mjs",
     "services/empire-arena/tests/core.test.mjs",
     "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
-    ".buklod/scopes/genesis-native-premium-conso-20261122.json"
+    ".buklod/scopes/genesis-native-premium-conso-20261122.json",
+    ".github/workflows/genesis-unified-godot-native-qa-20261122.yml"
   ],
   "lockedFeatureChanges": [],
   "preserveBehaviors": [
@@ -49,14 +50,16 @@
     "Trusted escrow disconnect test checks abort refund and prevents ghost ranked matches.",
     "Unique four-world embedded Android staging native pack remains complete; actual EAS-signed APK needs isolated staging backend, stable signing and production-safe runtime guard.",
     "Physical Android device QA is waived by the owner for this attempt but remains UNTESTED; never claim passed.",
-    "Production native and Supabase backend remain unchanged, and staging only."
+    "Production native and Supabase backend remain unchanged, and staging only.",
+    "Exact new premium native source should trigger existing nonpublishing Android Gradle/Godot offline QA after a guarded merge to the canonical staging branch."
   ],
   "verification": {
     "physicalDeviceQA": "WAIVED_BY_OWNER_2026-11-22_NOT_TESTED",
     "sourceCI": "PENDING_EXACT_SHA",
     "nativeAPK": "NOT_SIGNED",
     "productionOTA": "NOT_PUBLISHED",
-    "serverEscrowTest": "services/empire-arena/tests/core.test.mjs is executed by arena-ranked CI; not a root protected-scope Node test path"
+    "serverEscrowTest": "services/empire-arena/tests/core.test.mjs is executed by arena-ranked CI; not a root protected-scope Node test path",
+    "offlineAndroidNativeQA": "PENDING_GUARDED_INTEGRATION_STAGING_CI"
   },
   "release": {
     "environment": "DEV_STAGING_ONLY",
