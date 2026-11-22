@@ -49,6 +49,7 @@ export function ArcadeGameV1({game,onFinish}:Props) {
   const [progressNotice,setProgressNotice] = useState('');
   const [checkpointState,setCheckpointState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
   const checkpointRef=useRef('');
+  const scopedKeyRef=useRef((ownerId??'guest')+':'+game.id);
 
   const [run,setRun] = useState<ArcadeState>(()=>startArcade(game.mode,17));
   const [phase,setPhase] = useState<Phase>('ready');
@@ -56,6 +57,18 @@ export function ArcadeGameV1({game,onFinish}:Props) {
   const saved = useRef(false);
   const touchX = useRef(0);
   const glow = useRef(new Animated.Value(1)).current;
+
+  useEffect(()=>{
+    const key=(ownerId??'guest')+':'+game.id;
+    if(scopedKeyRef.current===key)return;
+    // A sign-out/account switch must not transfer an in-flight run or receipt.
+    scopedKeyRef.current=key;
+    receipt.current='';
+    saved.current=false;
+    checkpointRef.current='';
+    setRun(startArcade(game.mode,17));
+    setPhase('ready');
+  },[ownerId,game.id,game.mode]);
 
   useEffect(()=>{
     let live=true;
@@ -315,14 +328,14 @@ export function ArcadeGameV1({game,onFinish}:Props) {
       {!!progressNotice ? <Text style={s.saveNotice}>{progressNotice}</Text>:null}
       {checkpointState==='error'?<Pressable accessibilityRole="button" style={s.secondaryButton}
         onPress={()=>checkpoint(true)}><Text style={s.secondaryText}>{t('RETRY LOCAL SAVE','ULITIN ANG SAVE')}</Text></Pressable>:null}
-      <Pressable accessibilityRole="button" disabled={checkpointState==='saving'}
-        style={[s.mainButton,{backgroundColor:game.accent},checkpointState==='saving'&&s.disabled]}
+      <Pressable accessibilityRole="button" disabled={checkpointState==='saving'||(!!ownerId&&checkpointState==='error')}
+        style={[s.mainButton,{backgroundColor:game.accent},(checkpointState==='saving'||(!!ownerId&&checkpointState==='error'))&&s.disabled]}
         onPress={()=>{checkpointRef.current='';setCheckpointState('idle');setProgressNotice('');
           setRun(previous=>nextArcadeStage(previous));setPhase('playing');}}>
         <Text style={s.darkText}>{t('NEXT STAGE','SUSUNOD NA YUGTO')} {run.stage+1} ▶</Text>
       </Pressable>
-      <Pressable accessibilityRole="button" disabled={checkpointState==='saving'}
-        style={[s.secondaryButton,checkpointState==='saving'&&s.disabled]} onPress={finish}>
+      <Pressable accessibilityRole="button" disabled={checkpointState==='saving'||(!!ownerId&&checkpointState==='error')}
+        style={[s.secondaryButton,(checkpointState==='saving'||(!!ownerId&&checkpointState==='error'))&&s.disabled]} onPress={finish}>
         <Text style={s.secondaryText}>{t('SAVE MY RUN','I-SAVE ANG LARO')}</Text>
       </Pressable>
     </View>:null}
