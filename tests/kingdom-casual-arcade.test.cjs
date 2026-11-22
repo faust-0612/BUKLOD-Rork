@@ -212,16 +212,16 @@ test('premium arcade effects are bounded, local and never own a BP minting path'
   assert.match(screen,/playRorkSignatureSfx/);
   assert.match(screen,/ArcadeMovingItem/);
   assert.match(screen,/ArcadePremiumFX/);
-  assert.match(screen,/ownerRef\\.current!==ownerId/);
-  assert.match(screen,/setPhase\\('ready'\\)/);
+  assert.ok(screen.includes('ownerRef.current!==ownerId'));
+  assert.ok(screen.includes("setPhase('ready')"));
   assert.match(visuals,/useNativeDriver:true/);
   assert.match(visuals,/react-native-svg/);
   assert.match(visuals,/BuklodProgressiveCharacterArt/);
   assert.match(visuals,/BuklodSpecialCharacterArtV2/);
   assert.match(screen,/ArcadeHeroSprite/);
-  assert.match(visuals,/Array\\.from\\(\\{length:8\\}/);
-  assert.match(progress,/@buklod\\/kingdom\\/arcade-stage-v1/);
-  assert.doesNotMatch(progress,/rpc\\(|supabase\\.from\\(/i);
+  assert.ok(visuals.includes('Array.from({length:8}'));
+  assert.ok(progress.includes('@buklod/kingdom/arcade-stage-v1/'));
+  assert.ok(!progress.includes('supabase.from(') && !progress.includes('.rpc('));
 });
 
 test('arcades stay in local game-only records; original verified mastery untouched',()=>{
