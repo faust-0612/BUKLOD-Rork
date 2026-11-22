@@ -1,6 +1,9 @@
 name: BUKLOD MAIN Health IMCI AJA Genesis R4 Staging RC QA (NO OTA)
 
 on:
+  push:
+    branches:
+      - rc/health-imci-aja-staging-r4-20261122
   pull_request:
     branches:
       - staging/health-imci-aja-r4-baseline-20261122
@@ -19,12 +22,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: health-imci-aja-r4-rc-${{ github.event.pull_request.number }}
+  group: health-imci-aja-r4-rc-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   staging-rc-no-publish:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -50,8 +53,8 @@ jobs:
       - name: Verify published R4 base and strict Health-only scope (no native or other Season2 files)
         env:
           EXPECTED_BASE: 7bbb44fcb331ce14785ce43d70969d955f9e61e7
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '7bbb44fcb331ce14785ce43d70969d955f9e61e7' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           node <<'NODE'
           const cp=require('node:child_process');
