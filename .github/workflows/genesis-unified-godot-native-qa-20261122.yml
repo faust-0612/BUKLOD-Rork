@@ -5,6 +5,11 @@ on:
       - integration/genesis-unified-godot-native-staging-20261122
     paths:
       - .github/workflows/genesis-unified-godot-native-qa-20261122.yml
+      - godot/empire-arena/**
+      - scripts/build-empire-godot-pack.mjs
+      - scripts/generate-arena-blender-kit.py
+      - modules/buklod-genesis-godot/**
+      - app.config.js
 permissions:
   contents: read
 concurrency:
