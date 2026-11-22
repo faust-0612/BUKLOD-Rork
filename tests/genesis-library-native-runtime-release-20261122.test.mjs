@@ -110,9 +110,19 @@ test('local EAS release build avoids known Gradle 512m Metaspace OOM and unbound
  const source=readFileSync(new URL('../.github/workflows/genesis-library-eas-local-signed-apk-20261122.yml',import.meta.url),'utf8');
  assert.match(source,/GRADLE_OPTS: '-Dorg\.gradle\.jvmargs="/);
  assert.match(source,/MaxMetaspaceSize=1536m/);
- assert.match(source,/-Xmx2304m/);
- assert.match(source,/org\.gradle\.workers\.max=2/);
+ assert.match(source,/-Xmx4096m/);
+ assert.match(source,/org\.gradle\.workers\.max=1/);
  assert.match(source,/org\.gradle\.parallel=false/);
  assert.match(source,/timeout --signal=TERM --kill-after=30s 85m npx --yes eas-cli@27\.9\.0 build/);
- assert.doesNotMatch(source,/MaxMetaspaceSize=512m/);
+ assert.doesNotMatch(source,/MaxMetaspaceSize=512m|-Xmx2304m/);
+});
+
+test('R8 Java heap recovery keeps minification, release lint and keystore verification enabled',()=>{
+ const workflow=readFileSync(new URL('../.github/workflows/genesis-library-eas-local-signed-apk-20261122.yml',import.meta.url),'utf8');
+ assert.match(workflow,/R8 \+ Rive release lint exhausted 2304m heap/);
+ assert.match(workflow,/-Xmx4096m/);
+ assert.match(workflow,/org\.gradle\.workers\.max=1/);
+ assert.match(workflow,/MEM_MIB/);
+ assert.match(workflow,/genesis-library-verify-local-signed-apk\.mjs/);
+ assert.doesNotMatch(workflow,/enableMinifyInReleaseBuilds.*false|enableProguardInReleaseBuilds.*false|lintVital.*skip|SKIP_R8/);
 });

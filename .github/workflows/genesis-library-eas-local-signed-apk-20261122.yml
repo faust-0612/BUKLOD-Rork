@@ -20,10 +20,11 @@ jobs:
     env:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
-      # Release lint exhausted the Expo template's 512m JVM Metaspace on run 45010573841.
+      # Initial run 45010573841 exhausted 512m Metaspace; tuned run 45027026167
+      # confirmed 1536m Metaspace but R8 + Rive release lint exhausted 2304m heap.
       # Set daemon JVM args via Gradle's supported system property (not app source).
-      # Bounded heap + disabled parallel projects keep RAM under the GitHub runner.
-      GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx2304m -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8" -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2 -Dorg.gradle.daemon=false'
+      # Keep R8+release lint enabled, increase heap, serialize worker tasks.
+      GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8" -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=1 -Dorg.gradle.daemon=false'
       APP_VARIANT: staging
       EXPO_PUBLIC_APP_ENV: staging
       BUKLOD_APP_TARGET: main
@@ -134,7 +135,15 @@ jobs:
           npx --yes eas-cli@27.9.0 whoami --non-interactive >/dev/null
           # Avoid another 3-hour hung Gradle daemon if a resource failure recurs.
           test "${GRADLE_OPTS#*MaxMetaspaceSize=1536m}" != "$GRADLE_OPTS" || { echo 'BLOCK: Gradle Metaspace tuning missing'; exit 1; }
-          echo "GRADLE_JVM_MEMORY_CONFIGURED: heap=2304m metaspace=1536m workers=2 parallel=false"
+          echo "GRADLE_JVM_MEMORY_CONFIGURED: heap=4096m metaspace=1536m workers=1 parallel=false"
+          # Diagnose GitHub runner capacity before a costly Gradle/R8 build.
+          free -m
+          df -h /
+          MEM_MIB="$(awk '/MemTotal:/{printf "%d", $2 / 1024}' /proc/meminfo)"
+          if [ "$MEM_MIB" -lt 6500 ]; then
+            echo "BLOCK: Runner RAM below required 6500 MiB for bounded R8+Rive build"
+            exit 1
+          fi
           timeout --signal=TERM --kill-after=30s 85m npx --yes eas-cli@27.9.0 build --platform android --profile season2-genesis-library-staging --local --non-interactive --output="$SIGNED_APK"
           test -s "$SIGNED_APK"
       - name: Verify original EAS certificate, versionCode, four worlds and APK provenance
