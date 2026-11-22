@@ -1,0 +1,56 @@
+# Isolated source-SHA-bound web RC compile. NEVER publishes or uses production tokens.
+name: BUKLOD DZAS Web RC Compile (NO PUBLISH)
+on:
+  push:
+    branches:
+      - fix/dzas-web-audio-fallback-20261122
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-dzas-web-rc
+  cancel-in-progress: true
+
+jobs:
+  web-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      # Intentionally fake build-only browser values; never deployed to anyone.
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_DZAS_WEB_RC_ONLY
+      EXPO_PUBLIC_APP_ENV: staging
+    steps:
+      - name: Exact candidate source checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Pin Node.js and lockfile cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exactly locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: DZAS focused browser and production-boundary contracts
+        run: |
+          node --test tests/dzas-signal-deck-implementation.test.mjs tests/bible-radio-visual.test.cjs
+          node --test tests/dzas-web-production-deploy.test.mjs
+      - name: TypeScript compile checks
+        run: npx tsc --noEmit
+      - name: Compile browser bundle only
+        run: npx expo export --platform web --output-dir dist --clear
+      - name: Verify exact source and compiled artifact, without publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/index.html
+          test -n "$(find dist -type f -name '*.js' -print -quit)"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          echo "DZAS_WEB_RC_COMPILED_SHA=$GITHUB_SHA"
+          echo "WEB_FILES=$(find dist -type f | wc -l)"
+          echo "WEB_ENTRY_SHA256=$(sha256sum dist/index.html | cut -d' ' -f1)"
+          echo 'RC_COMPILE_ONLY=TRUE; EXPO_HOSTING_PRODUCTION=UNCHANGED'
