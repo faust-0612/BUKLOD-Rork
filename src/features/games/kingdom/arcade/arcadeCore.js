@@ -100,6 +100,7 @@ function actArcade(previous, action, value) {
   }
   if ((s.mode === 'tap' || s.mode === 'search') && action === 'cell') {
     if (!Number.isInteger(value) || value < 0 || value > 8 || s.ticks - s.lastActionTick < 3) return previous;
+    if (s.mode === 'search' && s.ticks < s.flashUntil) return previous;
     s.lastActionTick = s.ticks;
     if (value === s.cell) award(s, true);
     else hurt(s);
