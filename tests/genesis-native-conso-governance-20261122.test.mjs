@@ -11,6 +11,7 @@ test('one exact staged native source gate declares all imported component scopes
   assert.equal(manifest.releaseMode,'consolidated-staging-source-hold');
   assert.equal(manifest.releaseStatus,'DEV_SOURCE_ONLY_NEW_SIGNED_GODOT_APK_AND_ISOLATED_BACKEND_REQUIRED');
   const expected=[
+    '.buklod/scopes/genesis-native-ad-cluster-conso-20261122.json',
     '.buklod/scopes/genesis-unified-godot-native-staging-20261122.json',
     '.buklod/scopes/genesis-unified-eas-signature-guard-20261122.json',
     '.buklod/scopes/genesis-native-premium-conso-20261122.json',
@@ -39,12 +40,15 @@ test('all necessary native art, Android bridge, audio and escrow source paths ar
     'godot/empire-arena/scripts/arena_effects.gd','godot/empire-arena/shaders/arena_impact.gdshader',
     'modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java',
     'services/empire-arena/core.mjs',
+    'src/lib/buklodNativeAdRecovery.ts', 'src/app/clusters/home-checkin-review.tsx',
+    'src/components/LearningQuestionResponse.tsx',
+    'supabase/migrations/20261122090000_cluster_scoped_home_checkin_review_v1.sql',
     'tests/protected-feature-lock.test.mjs',
     '.github/workflows/engineering-accountability.yml']) {
     assert.ok(manifest.allowedPaths.includes(key),'Unprotected native asset or security file: '+key);
   }
   const lockIds=new Set(manifest.lockedFeatureChanges.map(x=>x.id));
-  for(const id of ['app-runtime','kingdom-character','production-release','governance-lock'])assert.ok(lockIds.has(id),id);
+  for(const id of ['app-runtime','kingdom-character','production-release','governance-lock','navigation-auth','cluster-faith','backend-security'])assert.ok(lockIds.has(id),id);
   assert.equal(manifest.physicalDeviceQA,'WAIVED_BY_OWNER_UNTESTED');
   assert.match(read('scripts/genesis-unified-signed-stage-preflight.mjs'),/signedReleaseReady,true/);
 });
