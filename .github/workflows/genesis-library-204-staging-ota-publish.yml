@@ -35,7 +35,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       APK_SHA: c413c1ec2e23f151af0123cefbd4209fbf612d1f
       APK_PROOF_RUN: '45031011586'
-      RC_SHA: __OTA_RC_SOURCE__
+      RC_SHA: 68d16a4fa909d6ce8c5a59ac6a59d9aa2ff43f85
       CHANNEL: season2-genesis-library-preview
       RUNTIME: 2.0.4-genesis-library-godot
       PACKAGE_NAME: org.mzbministry.buklod.staging
@@ -98,10 +98,23 @@ jobs:
               a.ok(passed.includes(name),'Prior original signing proof missing '+name);
             const artifact=await get('/actions/runs/'+apk.id+'/artifacts?per_page=100');
             a.ok((artifact.artifacts||[]).some(x=>x.name==='buklod-genesis-2.0.4-eas-local-signed-staging-apk'&&!x.expired&&x.size_in_bytes>100000000));
-            const runs=await get('/actions/runs?branch=release%2Fgenesis-library-204-conso-ota-20261122&event=pull_request&per_page=100');
-            const qa=(runs.workflow_runs||[]).find(x=>x.head_sha===process.env.RC_SHA&&x.name==='BUKLOD Genesis 2.0.4 consolidated staging OTA source QA');
-            a.ok(qa&&qa.status==='completed'&&qa.conclusion==='success','Exact signed-source OTA QA not passed');
-            console.log('SIGNED_NATIVE_AND_RC_QA_PASS',JSON.stringify({apkRun:apk.id,source:apk.head_sha,qaRun:qa.id}));
+            // Query exact independent successful PR QA runs for the frozen RC source.
+            const required=[
+              {id:45038775629,name:'Engineering Accountability'},
+              {id:45038775608,name:'BUKLOD Main - Report Door and Legacy Integration PR QA'},
+              {id:45038775642,name:'BUKLOD Arena In-App DEV QA'}
+            ];
+            for(const item of required){
+              const run=await get('/actions/runs/'+item.id);
+              a.equal(run.head_sha,process.env.RC_SHA,'RC source changed since QA '+item.name);
+              a.equal(run.name,item.name);
+              a.equal(run.status,'completed','Required QA unfinished '+item.name);
+              a.equal(run.conclusion,'success','Required QA failed '+item.name);
+              const children=await get('/actions/runs/'+run.id+'/jobs?per_page=100');
+              a.ok((children.jobs||[]).length>0,'Missing QA jobs '+item.name);
+              a.ok((children.jobs||[]).every(x=>x.conclusion==='success'),'Not all jobs passed '+item.name);
+            }
+            console.log('SIGNED_NATIVE_AND_RC_QA_PASS',JSON.stringify({apkRun:apk.id,source:apk.head_sha,requiredQARuns:required.map(x=>x.id),rc:process.env.RC_SHA}));
           })().catch(e=>{console.error('OTA_PREP_BLOCK',e.message);process.exitCode=1});
           NODE
       - name: Locked mandatory AdMob, navigation, video, comments, security and TypeScript QA
