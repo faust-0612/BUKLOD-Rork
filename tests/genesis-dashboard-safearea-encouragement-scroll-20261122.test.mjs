@@ -9,11 +9,13 @@ const profile = source('src/app/(tabs)/me.tsx');
 const context = source('src/components/BuklodDashboardContextBar.tsx');
 const card = source('src/components/BuklodPublicDailyMessageBar.tsx');
 
-test('Genesis native primary dashboards clear the real status bar without modifying production shell', () => {
-  assert.match(layout, /Platform\.OS !== 'web'[\s\S]*?isGenesisPreviewBuild\(\)/);
-  assert.match(layout, /\['\/buklod', '\/messages', '\/hub', '\/me'\]/);
-  assert.match(layout, /Math\.max\(0, insets\.top, Platform\.OS === 'android' \? \(StatusBar\.currentHeight \?\? 0\) : 0\) \+ 4/);
-  assert.match(layout, /!isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader \/>/);
+test('Restored Genesis shared top bar owns safe area without double scene inset', () => {
+  assert.match(layout, /const headerTopInset = genesisPreview && Platform\.OS === 'android'/);
+  assert.match(layout, /Math\.max\(insets\.top, StatusBar\.currentHeight \?\? 0\)/);
+  assert.match(layout, /paddingTop: headerTopInset/);
+  assert.match(layout, /minHeight: \(scrollCompact \? 48 : 56\) \+ headerTopInset/);
+  assert.match(layout, /!desktopWebShell \? <SwipeDashboardHeader \/> : null/);
+  assert.doesNotMatch(layout, /genesisDashboardTopInset/);
 });
 
 test('Home and Profile own one scrollable daily message each; shared layout does not pin them', () => {

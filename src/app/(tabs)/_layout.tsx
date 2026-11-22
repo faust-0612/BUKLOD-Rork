@@ -59,10 +59,15 @@ function SwipeDashboardHeader() {
 
   const insets =
     useSafeAreaInsets();
+  // The restored header owns the device status bar, including the Android
+  // cutout case where the safe-area provider briefly returns zero on OTA boot.
+  // Keep the normal production header inset unchanged.
+  const genesisPreview = isGenesisPreviewBuild();
+  const headerTopInset = genesisPreview && Platform.OS === 'android'
+    ? Math.max(insets.top, StatusBar.currentHeight ?? 0)
+    : insets.top;
   const { width: headerWidth, fontScale: headerFontScale } = useWindowDimensions();
   const showTagline = headerWidth >= 460 && headerFontScale <= 1.25;
-  const genesisPreview = isGenesisPreviewBuild();
-
   const { theme } = useBuklodTheme();
   const { unreadCount, refreshUnread } = useNotifications();
   const [navigationMenuOpen, setNavigationMenuOpen] = useState(false);
@@ -138,8 +143,8 @@ function SwipeDashboardHeader() {
     <>
     <View
       style={{
-        paddingTop: insets.top,
-        minHeight: (scrollCompact ? 48 : 56) + insets.top,
+        paddingTop: headerTopInset,
+        minHeight: (scrollCompact ? 48 : 56) + headerTopInset,
         backgroundColor: genesisPreview ? GENESIS_PALETTE.cosmos : (publicMinimal ? '#0B2048' : theme.headerSurface),
         flexDirection: 'row',
         alignItems: 'center',
@@ -283,7 +288,6 @@ function SwipeDashboardHeader() {
 export default function TabsLayout() {
   const { theme } = useBuklodTheme();
   const pathname = usePathname();
-  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { activeScope } = useBuklodScope();
   const showPrayer = Boolean(
@@ -406,16 +410,8 @@ export default function TabsLayout() {
       width,
     );
 
-  // Genesis omits the shared header, so each primary tab must clear the
-  // Android/iOS status bar. Native inset wins for cutouts; Android StatusBar
-  // height is a fallback when the inset reports zero during OTA restoration.
-  // Production and browser shell spacing remain unchanged.
-  const genesisDashboardTopInset =
-    Platform.OS !== 'web' &&
-    isGenesisPreviewBuild() &&
-    ['/buklod', '/messages', '/hub', '/me'].includes(normalizeBuklodPathname(pathname))
-      ? Math.max(0, insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 4
-      : 0;
+  // The shared dashboard top bar is restored for Genesis native screens.
+  // It owns top status-bar clearance; never add a second scene inset.
 
   // Non-auth Train A: Android reuses frozen dashboard instances; Web/iOS keep Stack.
   // Session, compliance and existing profile checks above remain exactly as main.
@@ -459,7 +455,7 @@ export default function TabsLayout() {
           backgroundColor: theme.canvas,
         }}
       >
-        {!desktopWebShell && !isGenesisPreviewBuild() ? <SwipeDashboardHeader /> : null}
+        {!desktopWebShell ? <SwipeDashboardHeader /> : null}
 
         <View
           style={
@@ -481,7 +477,6 @@ export default function TabsLayout() {
             style={{
               flex: 1,
               minWidth: 0,
-              paddingTop: genesisDashboardTopInset,
             }}
           >
             <BuklodDashboardAdWarmup />

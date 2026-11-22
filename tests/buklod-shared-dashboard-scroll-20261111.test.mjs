@@ -5,8 +5,9 @@ const source = file => readFileSync(file, 'utf8');
 
 test('shared mobile header retains status bar, logo, notifications, and smaller scroll mode', () => {
   const tabs = source('src/app/(tabs)/_layout.tsx');
-  assert.match(tabs, /paddingTop: insets\.top/);
-  assert.match(tabs, /minHeight: \(scrollCompact \? 48 : 56\) \+ insets\.top/);
+  assert.match(tabs, /paddingTop: headerTopInset/);
+  assert.match(tabs, /minHeight: \(scrollCompact \? 48 : 56\) \+ headerTopInset/);
+  assert.match(tabs, /Math\.max\(insets\.top, StatusBar\.currentHeight \?\? 0\)/);
   assert.match(tabs, /buklod-main-canonical\.png/);
   assert.match(tabs, /subscribeBuklodDashboardScroll/);
   assert.match(tabs, /unreadCount > 0/);
