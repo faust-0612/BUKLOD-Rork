@@ -1,0 +1,150 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-full-conso-gate-20261122.json",
+  "objective": "Declare the exact cumulative staging-only, four-world Godot native source (Arena, Kingdom, Community, House) including premium shader, approved Blender art and server escrow guard, with protected regression proof. Do not release unsigned native or unauthorized production.",
+  "baseRef": "dev/arena-godot-native-migration-20261122",
+  "releaseMode": "consolidated-staging-source-hold",
+  "releaseStatus": "DEV_SOURCE_ONLY_NEW_SIGNED_GODOT_APK_AND_ISOLATED_BACKEND_REQUIRED",
+  "productionOtaAuthorized": false,
+  "signedReleaseReady": false,
+  "physicalDeviceQA": "WAIVED_BY_OWNER_UNTESTED",
+  "componentScopePaths": [
+    ".buklod/scopes/genesis-native-premium-conso-20261122.json",
+    ".buklod/scopes/genesis-unified-eas-signature-guard-20261122.json",
+    ".buklod/scopes/genesis-unified-godot-native-staging-20261122.json"
+  ],
+  "productionBaselineEvidence": "Read-only production Expo Android served manifest verified 2026-11-22T02:51:58Z: update 01a1fcb7-bee4-71cc-8c60-e732c0a255fa, channel production, runtime 1.3.2, launch bundle hash 3CTOmRqorDvy9IYEsCI7DWRwuOWGbe7GAKt2rBnJkwg. Production package org.mzbministry.buklod; canonical main ecd34228dd24f07a47ba397bb1c29199aac51779 is SOURCE baseline, not proven served artifact SHA. Godot staged package org.mzbministry.buklod.staging uses separate native runtime 2.0.3-genesis-unified-godot. No production APK, Play, EAS OTA or Supabase migration applied.",
+  "chosenApproach": "Keep exact PR #1080 unified native four-world source and merged PR #1090 premium graphics, new Godot geography and authoritative escrow-disconnect fix. Require all three changed component manifests explicitly, exact path allowlist, changed regression proofs and staging-only checks for a nonpublishing signed-RC preparation.",
+  "selectionRationale": "Single recorded source gate protects regression integrity and does not silently drop post-merge premium VFX, four-world native engine, original assets or secure escrow behavior. Native bytecode requires new signed staging Android binary; a production 1.3.2 OTA is incompatible.",
+  "alternativeApproaches": [
+    "Treat each inherited manifest as a separate release: rejected because it would omit some integrated native assets or protect only fragments of the cumulative code.",
+    "Bypass protected CI because Godot headless tests passed: rejected; source governance must still prove complete scope and release identity.",
+    "Put the new Godot pack directly on Expo production 1.3.2 OTA: rejected; native runtime and signed package mismatch."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "native-gameplay",
+    "native-abi",
+    "auth-and-scope",
+    "escrow-security",
+    "AdMob-first-view",
+    "Android-call-audio-focus"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-conso-governance-20261122.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
+    "tests/kingdom-unified-godot-native-20261122.test.mjs",
+    "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs",
+    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/releases/genesis-unified-signed-rc-hold-20261122.json",
+    ".buklod/scopes/genesis-native-premium-conso-20261122.json",
+    ".buklod/scopes/genesis-unified-eas-signature-guard-20261122.json",
+    ".buklod/scopes/genesis-unified-godot-native-staging-20261122.json",
+    ".github/workflows/arena-blender-asset-export-dev-20261122.yml",
+    ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/genesis-unified-eas-binary-proof-dev-20261122.yml",
+    ".github/workflows/genesis-unified-godot-native-qa-20261122.yml",
+    ".github/workflows/genesis-unified-staging-signed-rc-20261122.yml",
+    "app.config.js",
+    "docs/BUKLOD_ARENA_PREMIUM_VISUAL_BACKEND_DEV_20261122.md",
+    "eas.json",
+    "experiments/empire-arena-v2/arena-starter-hero-kits.mjs",
+    "experiments/empire-arena-v2/arena-v2-engine.mjs",
+    "godot/empire-arena/README_UNIFIED_WORLDS.md",
+    "godot/empire-arena/scenes/WorldPreview.tscn",
+    "godot/empire-arena/scripts/arena_effects.gd",
+    "godot/empire-arena/scripts/arena_geography.gd",
+    "godot/empire-arena/scripts/arena_root.gd",
+    "godot/empire-arena/scripts/hero_animation.gd",
+    "godot/empire-arena/scripts/world_preview.gd",
+    "godot/empire-arena/shaders/arena_impact.gdshader",
+    "godot/empire-arena/tests/premium_smoke.gd",
+    "godot/empire-arena/tests/world_smoke.gd",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/BuklodGenesisGodotModule.kt",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java",
+    "modules/buklod-genesis-godot/index.ts",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/engineering-regression-gate.mjs",
+    "scripts/generate-arena-blender-kit.py",
+    "scripts/genesis-unified-signed-stage-preflight.mjs",
+    "scripts/genesis-unified-verify-signed-apk.mjs",
+    "services/empire-arena/core.mjs",
+    "services/empire-arena/tests/core.test.mjs",
+    "src/app/games/empire-arena.tsx",
+    "src/features/season2/world/Season2DevelopmentMap.tsx",
+    "tests/arena-full-functionality-audit-20261121.test.mjs",
+    "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
+    "tests/genesis-native-conso-governance-20261122.test.mjs",
+    "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
+    "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs",
+    "tests/genesis-unified-verify-signed-apk-20261122.test.mjs",
+    "tests/kingdom-unified-godot-native-20261122.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    ".buklod/scopes/genesis-native-full-conso-gate-20261122.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Four in-app native world entrypoints and existing BUKLOD RN app are present in the bounded staging-only runtime; no live source or account ownership grants.",
+      "preservedBehaviors": [
+        "Four-world native preview and old RN Arena route remain recoverable without producing cash, BP, diamonds or owned property.",
+        "Existing AdMob consent/first-view and RN navigation stay in the app, and the original production native ABI remains untouched."
+      ],
+      "tests": [
+        "tests/genesis-unified-godot-native-contract-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "The new Kingdom, Community, House and Arena native bridge preserve the original thirteen canonical hero identities, match-only inventory and separate authoritative progression.",
+      "preservedBehaviors": [
+        "Godot WorldPreview does not mint BP or bypass item gates, ranks, Show Faith or server role checks.",
+        "Original Arena engine, 13 heroic identities and 300 temporary pickups remain packaged without duplicate reward authority."
+      ],
+      "tests": [
+        "tests/kingdom-unified-godot-native-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Stage a new 2.0.3 signed native runtime only after separate backend/signing/gameplay readiness; production 1.3.2 channel, source and Play remain unchanged.",
+      "preservedBehaviors": [
+        "Production app package org.mzbministry.buklod version 1.3.6 native 1.3.2 receives no incompatible Godot pack.",
+        "EAS production publisher remains main-only and requires exact frozen RC, production AdMob and served bundle proof."
+      ],
+      "tests": [
+        "tests/genesis-unified-production-runtime-isolation-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Add a strict exact GitHub PR base/branch matcher for the cumulative signed-staging source-governance contract; no broad CI bypass or relaxed production gate.",
+      "preservedBehaviors": [
+        "All other branch scope gates and protected-area regression requirements remain unchanged.",
+        "Production source, build marker, feature locks, native release identity and existing CI runners still fail closed."
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Maintain the canonical 4.7.2 Godot staging Arena, Kingdom, Personal Community and House native entry points and 2.0.3 runtime.",
+    "Do not change active production 1.3.2 native app, AdMob inventory, member points/diamonds, registration roles, video/calls, or current users.",
+    "Keep 13 heroes, 300 temporary pickups, map geography and 68 approved native animation/sprite/scene assets.",
+    "Keep native premium VFX, shaders and 3D Blender export as original authored assets without enabling unsafe ranked rewards.",
+    "Keep existing original anti-cheat and escrow rollback if an arena participant disconnects before reservation completes.",
+    "Physical Android verification waiver is only a recorded UNTESTED exception, never proof of signed binary or rendered functionality."
+  ],
+  "acceptanceChecks": [
+    "Exactly enumerate the 3 component scope manifests, all changed paths and root regression proofs relative to dev/arena-godot-native-migration-20261122.",
+    "Real Godot 4.7.2 headless gameplay, premium effects and native resource pack test remains green.",
+    "Original Blender GLB/export and trusted ranked escrow isolation tests stay green.",
+    "Actual signed staging APK must first pass the source-held feature completeness, isolated backend, stable signer and package runtime gates.",
+    "Never merge Godot-native staging into production 1.3.2 OTA or issue a forced Play update before a verified new native production build is live."
+  ]
+}
