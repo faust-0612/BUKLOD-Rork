@@ -24,7 +24,8 @@
     "src/lib/dateTime.ts",
     "src/lib/__tests__/compactCommentDateTime.test.ts",
     "tests/wall-comment-navigation-compact-20261122.test.mjs",
-    ".buklod/scopes/wall-comment-density-20261122.json"
+    ".buklod/scopes/wall-comment-density-20261122.json",
+    "tests/wall-comment-ad-preservation-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "Preserve comment data, ordering, replies, reactions and summaries.",
@@ -35,10 +36,12 @@
     "Run focused Node layout/action regression checks.",
     "Run Jest formatter unit tests and compile/test CI checks.",
     "Run mandatory engineering protected-feature/scope gate without bypass.",
-    "No new native, backend, Season 2, or staging/production OTA publishing in this change."
+    "No new native, backend, Season 2, or staging/production OTA publishing in this change.",
+    "A separate Node ad-specific contract proves the comment sheet still injects the same AdMob placement at the same organic thread boundary."
   ],
   "regressionTests": [
-    "tests/wall-comment-navigation-compact-20261122.test.mjs"
+    "tests/wall-comment-navigation-compact-20261122.test.mjs",
+    "tests/wall-comment-ad-preservation-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -59,6 +62,16 @@
       ],
       "tests": [
         "tests/wall-comment-navigation-compact-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The shared comment thread is in the protected ad/reward source path classification, so preserve exact inline sponsored-banner placement and presentation-only behavior.",
+      "preservedBehaviors": [
+        "The existing Android-only public Wall comments inline AdMob banner placement, viewport requirement, showLabel, format and comment rendering are preserved; finance and ad policy code is not edited."
+      ],
+      "tests": [
+        "tests/wall-comment-ad-preservation-20261122.test.mjs"
       ]
     }
   ],
