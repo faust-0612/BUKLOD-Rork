@@ -71,11 +71,14 @@ static func _spawn_minion(sim: BuklodArenaSimulation, team: String, kind: String
 
 static func advance_waves(sim: BuklodArenaSimulation) -> void:
 	if sim.state.get("solo", false): return
+	var rules: Dictionary = sim.config.get("libraryModes", {}).get(sim.state["mode"], {})
+	var interval: float = clampf(float(rules.get("waveSeconds", WAVE_SECONDS)), 15.0, 60.0)
+	var lanes: Array = [1] if rules.get("lanes", []).size() == 1 else [0, 1, 2]
 	if not sim.state.has("library_next_wave"):
-		sim.state["library_next_wave"] = WAVE_SECONDS
+		sim.state["library_next_wave"] = interval
 		sim.state["library_wave_index"] = 0
 	if float(sim.state["time"]) < float(sim.state["library_next_wave"]): return
-	sim.state["library_next_wave"] = float(sim.state["library_next_wave"]) + WAVE_SECONDS
+	sim.state["library_next_wave"] = float(sim.state["library_next_wave"]) + interval
 	sim.state["library_wave_index"] = int(sim.state["library_wave_index"]) + 1
 	# Remove defeated minions before capacity checking; never remove villager identity.
 	for unit in sim.state["units"].duplicate():
@@ -93,7 +96,7 @@ static func advance_waves(sim: BuklodArenaSimulation) -> void:
 		# improvement per researched tier; it never grants permanent BP.
 		var research: float = clampf(float(sim.state["team"][team].get("library_research", 0)), 0.0, 5.0)
 		var team_power: float = minf(1.7, power * (1.0 + research * 0.02))
-		for lane in range(3):
+		for lane in lanes:
 			for kind in composition:
 				if _spawn_minion(sim, team, str(kind), lane, team_power):
 					total += 1
