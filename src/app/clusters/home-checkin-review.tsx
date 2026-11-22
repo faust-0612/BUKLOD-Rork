@@ -75,20 +75,28 @@ export default function ClusterHomeCheckinReview() {
     setBusy(item.id);
     setError('');
     try {
-      const { error: reviewError } = await (supabase as any).rpc(
+      const { data: reviewResult, error: reviewError } = await (supabase as any).rpc(
         'cluster_review_buklod_home_checkin_v1', {
           p_checkin_id: item.id, p_approve: approve, p_reason: reason,
         }
       );
       if (reviewError) throw reviewError;
+      if (!reviewResult || reviewResult.status !== (approve ? 'approved' : 'rejected')) {
+        throw new Error('Attendance review was not confirmed by the server. Refresh the queue.');
+      }
       setNotes(current => {
         const next = { ...current };
         delete next[item.id];
         return next;
       });
       await refresh();
+      const award = Number(reviewResult.points);
       Alert.alert('Attendance reviewed',
-        approve ? 'Verified. Eligible +10 BP was processed once.' : 'Check-in rejected with your note.');
+        approve
+          ? reviewResult.credited === true && Number.isFinite(award) && award > 0
+            ? `Verified. ${award} BP was recorded in the member ledger.`
+            : 'Attendance verified. No new BP credit was issued (already credited or ineligible).'
+          : 'Check-in rejected with your note.');
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Review failed. Try refreshing.';
       setError(message);

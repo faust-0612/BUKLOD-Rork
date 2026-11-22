@@ -1,0 +1,84 @@
+name: BUKLOD Genesis 2.0.4 consolidated staging OTA source QA
+on:
+  push:
+    branches:
+      - release/genesis-library-204-conso-ota-20261122
+    paths:
+      - '.github/workflows/genesis-library-204-staging-ota-qa.yml'
+  pull_request:
+    branches:
+      - audit/genesis-library-204-installed-apk-source-20261122
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '.buklod/scopes/genesis-library-204-conso-ota-20261122.json'
+      - '.github/workflows/genesis-library-204-staging-ota-*.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-genesis-library-204-ota-qa
+  cancel-in-progress: true
+jobs:
+  staging-ota-source:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && ((github.event_name == 'push' && github.ref == 'refs/heads/release/genesis-library-204-conso-ota-20261122') || (github.event_name == 'pull_request' && github.head_ref == 'release/genesis-library-204-conso-ota-20261122'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW: 'true'
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify exactly installed Godot 2.0.4 native source; no fresh APK required
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .buklod/scopes/genesis-library-204-conso-ota-20261122.json
+          git merge-base --is-ancestor c413c1ec2e23f151af0123cefbd4209fbf612d1f HEAD
+          test -z "$(git diff --name-only c413c1ec2e23f151af0123cefbd4209fbf612d1f HEAD -- app.config.js eas.json package.json package-lock.json godot modules plugins scripts/build-empire-godot-pack.mjs scripts/arena-library-audio-pack.mjs assets/season2/arena)"
+          echo 'JS-only change parity against signed APK 2.0.4 verified'
+      - name: Offline bounded source QA: Wall, ads, nav, video, PTT, comments, consent, Godot and theme
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test \
+            tests/genesis-library-204-ota-source-parity-20261122.test.mjs \
+            tests/genesis-library-native-runtime-release-20261122.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs \
+            tests/community-wall-layout-stability-20261122.test.mjs \
+            tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs \
+            tests/genesis-conso-ui-legibility-reliability-20261122.test.mjs \
+            tests/genesis-conso-video-regression-gate-20261122.test.mjs \
+            tests/genesis-dashboard-navigation-safearea-20261122.test.mjs \
+            tests/genesis-dashboard-safearea-encouragement-scroll-20261122.test.mjs \
+            tests/genesis-restored-topbar-navigation-safearea-20261122.test.mjs \
+            tests/video-thumbnail-first-frame-20261122.test.mjs \
+            tests/genesis-entry-ptt-audio-continuity-20261122.test.mjs \
+            tests/buklod-call-token-expiry-20261122.test.mjs \
+            tests/wall-comment-navigation-compact-20261122.test.mjs \
+            tests/wall-comments-progressive-loading-20261122.test.mjs
+          npm run release:gate
+          npm run genesis:theme:gate
+          npx tsc --noEmit
+          echo 'BUKLOD_GENESIS_204_CONSO_OTA_SOURCE_QA_PASS (NOT PUBLISHED)'

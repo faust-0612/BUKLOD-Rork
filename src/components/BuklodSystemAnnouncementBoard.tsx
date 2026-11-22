@@ -1,6 +1,5 @@
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -19,6 +18,7 @@ import {
   type SystemAnnouncementSlot,
 } from '@/lib/buklodSystemAnnouncementBoard';
 import { colors } from '@/lib/theme';
+import { readableAccentOnSurface } from '@/lib/buklodTheme';
 import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
@@ -40,32 +40,31 @@ export function BuklodSystemAnnouncementBoard({
 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [loadError, setLoadError] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-
-    try {
-      const board = await loadSystemAnnouncementBoard(slot);
-      setMessage(board?.message?.trim() ?? '');
-    } catch (error) {
-      console.warn(
-        'System announcement board:',
-        String((error as Error)?.message ?? error)
-      );
-      setMessage('');
-    } finally {
-      setLoading(false);
-    }
-  }, [slot]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
+  // A single focus-scoped request replaces duplicate mount + focus fetches.
+  // Refetch without hiding previously rendered content to prevent blank flashes.
   useFocusEffect(
     useCallback(() => {
-      void load();
-    }, [load])
+      let active = true;
+      void (async () => {
+        try {
+          const board = await loadSystemAnnouncementBoard(slot);
+          if (!active) return;
+          setMessage(board?.message?.trim() ?? '');
+          setLoadError(false);
+        } catch (error) {
+          console.warn(
+            'System announcement board:',
+            String((error as Error)?.message ?? error)
+          );
+          if (active) setLoadError(true);
+        } finally {
+          if (active) setLoading(false);
+        }
+      })();
+      return () => { active = false; };
+    }, [slot])
   );
 
   const styles = useMemo(
@@ -74,7 +73,7 @@ export function BuklodSystemAnnouncementBoard({
         wrap: {
           marginHorizontal: 0,
           marginTop: slot === 'public_home' ? 1 : 0,
-          marginBottom: slot === 'public_home' ? 2 : 10,
+          marginBottom: slot === 'public_home' ? 2 : 6,
         },
         board: {
           borderRadius: slot === 'public_home' ? 14 : 16,
@@ -96,7 +95,7 @@ export function BuklodSystemAnnouncementBoard({
           letterSpacing: 1.1,
           color:
             slot === 'public_home'
-              ? theme.accent
+              ? readableAccentOnSurface(theme)
               : announcementTone.ink,
           marginBottom: slot === 'public_home' ? 4 : 6,
         },
@@ -113,7 +112,7 @@ export function BuklodSystemAnnouncementBoard({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 6,
-          minHeight: 36,
+          minHeight: 44,
           alignSelf: 'center',
           paddingHorizontal: 12,
           borderRadius: 10,
@@ -142,7 +141,7 @@ export function BuklodSystemAnnouncementBoard({
           fontSize: 12,
           lineHeight: 18,
           fontWeight: '700',
-          color: theme.textMuted,
+          color: announcementTone.ink,
           textAlign: 'center',
         },
       }),
@@ -154,6 +153,7 @@ export function BuklodSystemAnnouncementBoard({
   }
 
   if (!message) {
+    if (loadError) return null;
     if (!canEdit) {
       return null;
     }
