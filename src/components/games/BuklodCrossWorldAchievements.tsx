@@ -3,7 +3,7 @@
  * Zero first-paint network work, no advertisements, no auto-mint, and no
  * claims that a display receipt is equipped inventory.
  */
-import React, {useEffect,useState} from 'react';
+import React, {useEffect,useRef,useState} from 'react';
 import {ActivityIndicator,Pressable,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {useAuth} from '@/providers/AuthProvider';
@@ -22,30 +22,34 @@ export default function BuklodCrossWorldAchievements({
   const [snapshot,setSnapshot]=useState<BuklodCrossWorldSnapshot|null>(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
+  const requestVersion=useRef(0);
 
   useEffect(()=>{
-    setSnapshot(null);setError('');setExpanded(false);
+    requestVersion.current+=1;
+    setSnapshot(null);setError('');setBusy(false);setExpanded(false);
   },[userId]);
 
   useEffect(()=>{
     if(!expanded||!userId)return;
     let active=true;
+    const version=++requestVersion.current;
     setBusy(true);
     void getMyBuklodCrossWorldCosmetics(userId).then(next=>{
-      if(active)setSnapshot(next);
-    }).finally(()=>{if(active)setBusy(false);});
+      if(active&&version===requestVersion.current)setSnapshot(next);
+    }).finally(()=>{if(active&&version===requestVersion.current)setBusy(false);});
     return()=>{active=false;};
   },[expanded,userId]);
 
   const sync=async()=>{
     if(!userId||busy)return;
+    const version=++requestVersion.current;
     setBusy(true);setError('');
     try{
       const next=await claimMyBuklodCrossWorldCosmetics(userId);
-      setSnapshot(next);
+      if(version===requestVersion.current)setSnapshot(next);
     }catch{
-      setError('Could not verify rewards. Nothing was granted locally.');
-    }finally{setBusy(false);}
+      if(version===requestVersion.current)setError('Could not verify rewards. Nothing was granted locally.');
+    }finally{if(version===requestVersion.current)setBusy(false);}
   };
   const owned=snapshot?.status==='verified'
     ?snapshot.items.filter(item=>item.destination===world):[];
