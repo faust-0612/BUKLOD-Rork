@@ -28,7 +28,9 @@
     "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
     "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
-    ".buklod/scopes/main-prod-ad-recovery-cluster-conso-20261122.json"
+    ".buklod/scopes/main-prod-ad-recovery-cluster-conso-20261122.json",
+    ".github/workflows/buklod-main-ad-cluster-rc-android-qa-20261122.yml",
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql"
   ],
   "riskAreas": [
     "ads-monetization",
@@ -43,7 +45,8 @@
     "tests/buklod-cluster-home-checkin-review.test.cjs",
     "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
-    "supabase/tests/buklod_points_r3_home_earning_contract.sql"
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -87,7 +90,8 @@
       "tests": [
         "tests/buklod-cluster-home-checkin-review.test.cjs",
         "tests/cluster-connect-notifications-points-20261108.test.mjs",
-        "supabase/tests/buklod_points_r3_home_earning_contract.sql"
+        "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+        "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql"
       ]
     }
   ],
@@ -108,10 +112,10 @@
       "No direct production data, AdMob unit, Supabase migration, Android binary or EAS update changes."
     ],
     "pending": [
-      "Actual focused and complete CI on this exact integration SHA",
-      "Isolated database actor/security and concurrent credit tests",
-      "Signed production-native compatible RC and on-device AdMob/tab regression",
-      "Current live production EAS source fingerprint and OTA publisher capability"
+      "Disposable PostgreSQL 17 RPC role/ledger and Android JS export workflow on exact source SHA",
+      "Real signed Android device first-view/ad-fill/instant navigation runtime proof",
+      "Independent current live production EAS update ID and bundle hash",
+      "Paid Supabase exact-schema isolated migration actor/load tests (CI disposable fixture only verifies selected table-contract semantics)"
     ]
   },
   "release": {
