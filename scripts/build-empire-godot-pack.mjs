@@ -21,6 +21,28 @@ const output = process.argv.find(x => x.startsWith('--out='))?.slice(6) ||
 const catalog = { schema: 1, arena: 'OFFLINE_PRACTICE', engine: 'Godot 4.7.2',
   heroes: HEROES, starter: STARTER_HERO_KITS, modes: MODES, maps: ARENA_MAPS,
   costs: COSTS, buildings: BUILD_COSTS, buffs: BUFFS, pickups: ARENA_PICKUP_CATALOG };
+// Owner Library data becomes bounded, practice-only match configuration.
+// Never run the uploaded Node2D combat scripts alongside this authority.
+const libraryIntake = JSON.parse(readFileSync(path.join(project,
+  'library/arena_intake_20261122.json'), 'utf8'));
+assert.equal(libraryIntake.schema, 1);
+assert.equal(libraryIntake.practiceOnly, true);
+assert.equal(Object.keys(libraryIntake.heroes).length, 7);
+assert.equal(Object.keys(libraryIntake.minions).length, 5);
+assert.equal(Object.keys(libraryIntake.villagers).length, 2);
+assert.deepEqual(new Set(Object.keys(libraryIntake.heroes)), new Set(Object.keys(HEROES)
+  .filter(id => !Object.hasOwn(STARTER_HERO_KITS, id))));
+assert.ok(Object.entries(libraryIntake.heroes).every(([id, kit]) =>
+  Object.hasOwn(HEROES, id) && Number.isInteger(kit.unlockRank) &&
+  Number.isFinite(kit.basic.damage) && kit.basic.damage > 0 &&
+  ['primary','secondary','ultimate'].every(slot =>
+    typeof kit[slot].id === 'string' && kit[slot].cd > 0)));
+assert.ok(libraryIntake.waves.length >= 3 && libraryIntake.waves.every(w =>
+  w.units.every(role => Object.hasOwn(libraryIntake.minions, role))));
+assert.ok(Object.values(libraryIntake.villagers).every(f => f.villagers.length === 6));
+catalog.library = libraryIntake;
+catalog.starter = { ...STARTER_HERO_KITS, ...libraryIntake.heroes };
+
 assert.equal(Object.keys(catalog.heroes).length, 13);
 assert.equal(Object.keys(catalog.maps).length, 3);
 assert.equal(catalog.pickups.length, 300);
@@ -79,7 +101,9 @@ const entryNames = new Set(entries.map(x => x.name));
 for (const name of ['project.godot', 'scenes/Arena.tscn', 'scripts/arena_root.gd',
   'scripts/arena_hud.gd', 'scripts/arena_simulation.gd',
   'scripts/arena_effects.gd', 'scripts/hero_animation.gd',
-  'shaders/arena_impact.gdshader', 'data/catalog.json']) {
+  'shaders/arena_impact.gdshader',
+  'scripts/arena_library_skills.gd', 'scripts/arena_library_actors.gd',
+  'data/catalog.json']) {
   assert.ok(entryNames.has(name), 'Missing Godot Arena pack resource: ' + name);
 }
 const table = new Uint32Array(256);
