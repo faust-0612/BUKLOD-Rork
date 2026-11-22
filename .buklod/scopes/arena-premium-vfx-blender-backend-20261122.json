@@ -16,7 +16,8 @@
     "services/empire-arena/core.mjs",
     "services/empire-arena/tests/core.test.mjs",
     "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
-    "docs/BUKLOD_ARENA_PREMIUM_VISUAL_BACKEND_DEV_20261122.md"
+    "docs/BUKLOD_ARENA_PREMIUM_VISUAL_BACKEND_DEV_20261122.md",
+    ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml"
   ],
   "lockedFeatureChanges": [],
   "regressionTests": [
@@ -47,6 +48,7 @@
   "releaseMode": "DEV_ONLY_NO_OTA",
   "physicalDeviceVerification": "NOT_PERFORMED",
   "acceptanceChecks": [
+    "Run new PR-scoped Godot 4.7.2 native shader/animation smoke and reproducible pack via isolated GitHub Actions headless job",
     "Compile Godot 4.7.2 scene and shader headlessly and physically render on Android",
     "Export Blender kit on Blender 4.x and compare to owner-approved imagery",
     "Pass Node server disconnect escrow behavioral regression",
