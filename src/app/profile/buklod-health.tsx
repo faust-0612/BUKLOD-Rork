@@ -194,7 +194,7 @@ export default function BuklodHealthPortal() {
             >
               {opening === 'consult' ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="message-text" size={20} color="#FFFFFF" />}
               <Text style={styles.primaryButtonText}>
-                {opening === 'consult' ? 'Opening secure guide…' : BUKLOD_HEALTH_CONSULTATION_READY ? 'Continue to AI Health Guide' : 'AI Health Guide activation pending'}
+                {opening === 'consult' ? 'Binubuksan ang pribadong gabay…' : BUKLOD_HEALTH_CONSULTATION_READY ? 'Magpatuloy sa AI Health Guide' : 'Hindi pa aktibo ang AI consultation'}
               </Text>
             </Pressable>
             {urgency === 'unanswered' ? (
@@ -209,7 +209,7 @@ export default function BuklodHealthPortal() {
           <View style={styles.standaloneHeading}>
             <MaterialCommunityIcons name="hospital-building" size={27} color="#126946" />
             <View style={styles.standaloneText}>
-              <Text style={styles.sectionHeading}>Full Health Center</Text>
+              <Text style={styles.sectionHeading}>Full Health Center · Buong Serbisyo</Text>
               <Text style={styles.hint}>Mga gamot · vital signs · appointment · health records</Text>
             </View>
           </View>
@@ -231,9 +231,9 @@ export default function BuklodHealthPortal() {
           <View style={styles.professionalCard}>
             <MaterialCommunityIcons name="badge-account-outline" size={23} color="#416755" />
             <View style={styles.professionalBody}>
-              <Text style={styles.professionalTitle}>Licensed health professional?</Text>
+              <Text style={styles.professionalTitle}>Lisensiyadong health professional ka ba?</Text>
               <Text style={styles.hint}>
-                Learn about educational contributions. License verification, independent review and privacy controls are required before participation.
+                Para sa mga propesyonal na gustong mag-ambag ng edukasyong pangkalusugan. Kailangan munang ma-verify ang lisensiya, privacy controls, at independent review bago maging aktibo.
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -243,7 +243,7 @@ export default function BuklodHealthPortal() {
                 onPress={() => void openDoor('professional')}
                 style={styles.professionalLink}
               >
-                <Text style={styles.professionalLinkText}>{BUKLOD_HEALTH_PROFESSIONALS_READY ? 'Contributor information' : 'Contributor registration pending'}</Text>
+                <Text style={styles.professionalLinkText}>{BUKLOD_HEALTH_PROFESSIONALS_READY ? 'Impormasyon para sa professional' : 'Hindi pa aktibo ang rehistrasyon'}</Text>
                 <MaterialCommunityIcons name="arrow-right" size={16} color="#126946" />
               </Pressable>
             </View>
@@ -252,16 +252,14 @@ export default function BuklodHealthPortal() {
 
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>
-            Could not open the requested link. Check your connection, or open the standalone website directly.
-            AI and professional features may not yet be activated.
+            Hindi mabuksan ang link. Suriin ang internet connection o buksan nang direkta ang Health Center website. Maaaring hindi pa aktibo ang AI at professional services.
           </Text>
         ) : null}
 
         <View style={styles.notice}>
           <MaterialCommunityIcons name="shield-lock-outline" size={21} color="#126946" />
           <Text style={styles.noticeText}>
-            Privacy: This screen does not save your answers or share BUKLOD login tokens, concerns or medical records.
-            The full Health Center has separate access controls.
+            Pribado: Hindi iniimbak ng screen na ito ang mga sagot mo o ipinapadala ang BUKLOD login, sintomas, at medical records. May hiwalay na pahintulot at access controls ang buong Health Center.
           </Text>
         </View>
 
@@ -279,10 +277,10 @@ export default function BuklodHealthPortal() {
         ) : null}
         {urgency === 'none' && !imciUrgent ? (
           <Text style={styles.adNote}>
-            Advertisement is separate from health guidance and does not determine recommendations or emergency access.
+            Hiwalay ang patalastas sa gabay at hindi nito naaapektuhan ang emergency access o payong pangkalusugan.
           </Text>
         ) : null}
-        <Text selectable style={styles.assistiveUrl}>AI Guide URL: {BUKLOD_HEALTH_CONSULTATION_URL}</Text>
+        <Text selectable style={styles.assistiveUrl}>Link ng AI Guide: {BUKLOD_HEALTH_CONSULTATION_URL}</Text>
       </BuklodPortalScrollView>
     </>
   );
