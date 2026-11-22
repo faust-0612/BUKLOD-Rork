@@ -1,0 +1,425 @@
+{
+  "schema": 1,
+  "practiceOnly": true,
+  "source": "BUKLOD Library /Character code • 2026-11-22",
+  "units": "one Arena unit is ~40 source pixels; match-only effects",
+  "heroes": {
+    "jawo": {
+      "name": "Jawo",
+      "title": "The Verdant Bard",
+      "role": "Agile Disruptor",
+      "element": "Nature/Resonance",
+      "unlockRank": 7,
+      "speed": 230,
+      "basic": {
+        "damage": 21,
+        "range": 9,
+        "cooldown": 800
+      },
+      "primary": {
+        "id": "vine_riff",
+        "cd": 8000
+      },
+      "secondary": {
+        "id": "echo_skip",
+        "cd": 12000
+      },
+      "ultimate": {
+        "id": "canopy_crescendo",
+        "cd": 100000
+      },
+      "passive": "natural_rhythm",
+      "suits": [
+        "Starter Suit",
+        "Evolved Suit",
+        "Identity Suit",
+        "Impact Suit",
+        "Legacy Suit"
+      ]
+    },
+    "mitch": {
+      "name": "Mitch",
+      "title": "The Mural Weaver",
+      "role": "Terrain Controller",
+      "element": "Art/Light/Terrain",
+      "unlockRank": 8,
+      "speed": 205,
+      "basic": {
+        "damage": 22,
+        "range": 9,
+        "cooldown": 800
+      },
+      "primary": {
+        "id": "pigment_bolt",
+        "cd": 8000
+      },
+      "secondary": {
+        "id": "mosaic_wall",
+        "cd": 12000
+      },
+      "ultimate": {
+        "id": "living_canvas",
+        "cd": 100000
+      },
+      "passive": "color_theory",
+      "suits": [
+        "Starter Suit",
+        "Evolved Suit",
+        "Identity Suit",
+        "Impact Suit",
+        "Legacy Suit"
+      ]
+    },
+    "niel": {
+      "name": "Niel",
+      "title": "The Dawn Herald",
+      "role": "Vanguard/Initiator",
+      "element": "Light/Resolve",
+      "unlockRank": 9,
+      "speed": 210,
+      "basic": {
+        "damage": 30,
+        "range": 2.5,
+        "cooldown": 800
+      },
+      "primary": {
+        "id": "echo_lance",
+        "cd": 8000
+      },
+      "secondary": {
+        "id": "conviction_dash",
+        "cd": 12000
+      },
+      "ultimate": {
+        "id": "call_of_the_dawn",
+        "cd": 100000
+      },
+      "passive": "shared_resolve",
+      "suits": [
+        "Starter Suit",
+        "Evolved Suit",
+        "Identity Suit",
+        "Impact Suit",
+        "Legacy Suit"
+      ]
+    },
+    "trudice": {
+      "name": "Trudice",
+      "title": "The Story Strategist",
+      "role": "Counterplay Specialist",
+      "element": "Knowledge/Strategy",
+      "unlockRank": 13,
+      "speed": 210,
+      "basic": {
+        "damage": 19,
+        "range": 9.5,
+        "cooldown": 800
+      },
+      "primary": {
+        "id": "question_sigil",
+        "cd": 10000
+      },
+      "secondary": {
+        "id": "turning_page",
+        "cd": 14000
+      },
+      "ultimate": {
+        "id": "grand_lesson",
+        "cd": 100000
+      },
+      "passive": "lesson_learned",
+      "suits": [
+        "Starter Suit",
+        "Evolved Suit",
+        "Identity Suit",
+        "Impact Suit",
+        "Legacy Suit"
+      ]
+    },
+    "vhen": {
+      "name": "Vhen",
+      "title": "The Grove Mechanist",
+      "role": "Engineer/Summoner",
+      "element": "Agri-Tech/Ecosystem",
+      "unlockRank": 11,
+      "speed": 205,
+      "basic": {
+        "damage": 19,
+        "range": 8.5,
+        "cooldown": 800
+      },
+      "primary": {
+        "id": "seed_turret",
+        "cd": 10000
+      },
+      "secondary": {
+        "id": "irrigation_snare",
+        "cd": 14000
+      },
+      "ultimate": {
+        "id": "harvest_engine",
+        "cd": 100000
+      },
+      "passive": "rooted_growth",
+      "suits": [
+        "Starter Suit",
+        "Evolved Suit",
+        "Identity Suit",
+        "Impact Suit",
+        "Legacy Suit"
+      ]
+    },
+    "angel": {
+      "name": "Angel",
+      "title": "The Ledger Sentinel",
+      "role": "Shield/Resource Specialist",
+      "element": "Protection/Balance",
+      "unlockRank": 10,
+      "speed": 200,
+      "basic": {
+        "damage": 19,
+        "range": 2,
+        "cooldown": 900
+      },
+      "primary": {
+        "id": "ledger_shield",
+        "cd": 8000
+      },
+      "secondary": {
+        "id": "balance_field",
+        "cd": 14000
+      },
+      "ultimate": {
+        "id": "equal_measure",
+        "cd": 100000
+      },
+      "passive": "fair_allocation",
+      "suits": [
+        "Starter Suit",
+        "Evolved Suit",
+        "Identity Suit",
+        "Impact Suit",
+        "Legacy Suit"
+      ]
+    },
+    "ellusur": {
+      "name": "ELESUR",
+      "title": "The Beacon Shepherd",
+      "role": "Guide/Support",
+      "element": "Light/Sanctuary",
+      "unlockRank": 6,
+      "speed": 215,
+      "basic": {
+        "damage": 19,
+        "range": 9.5,
+        "cooldown": 900
+      },
+      "primary": {
+        "id": "guiding_path",
+        "cd": 10000
+      },
+      "secondary": {
+        "id": "seed_sanctuary",
+        "cd": 14000
+      },
+      "ultimate": {
+        "id": "beacon_of_service",
+        "cd": 100000
+      },
+      "passive": "teach_by_example",
+      "suits": [
+        "The Mentor's Garb",
+        "The Guiding Cloak",
+        "The Sanctuary Keeper",
+        "The Beacon Warden",
+        "The Light of BUKLOD"
+      ]
+    }
+  },
+  "minions": {
+    "infantry": {
+      "hp": 109,
+      "damage": 10,
+      "speed": 2.25,
+      "range": 1.05,
+      "cooldown": 1,
+      "heal": 0,
+      "radius": 0,
+      "structureMultiplier": 1
+    },
+    "mage": {
+      "hp": 65,
+      "damage": 19,
+      "speed": 2.25,
+      "range": 5.75,
+      "cooldown": 1.6,
+      "heal": 0,
+      "radius": 0,
+      "structureMultiplier": 1
+    },
+    "gunner": {
+      "hp": 68,
+      "damage": 12,
+      "speed": 2.63,
+      "range": 6.75,
+      "cooldown": 0.9,
+      "heal": 0,
+      "radius": 0,
+      "structureMultiplier": 1
+    },
+    "siege": {
+      "hp": 238,
+      "damage": 17,
+      "speed": 1.5,
+      "range": 4.25,
+      "cooldown": 2.2,
+      "heal": 0,
+      "radius": 0,
+      "structureMultiplier": 3
+    },
+    "healer": {
+      "hp": 102,
+      "damage": 0,
+      "speed": 2,
+      "range": 4.25,
+      "cooldown": 1.5,
+      "heal": 11,
+      "radius": 4.25,
+      "structureMultiplier": 1
+    }
+  },
+  "waves": [
+    {
+      "from": 0,
+      "units": [
+        "infantry",
+        "infantry",
+        "gunner"
+      ]
+    },
+    {
+      "from": 180,
+      "units": [
+        "infantry",
+        "infantry",
+        "gunner",
+        "mage",
+        "healer"
+      ]
+    },
+    {
+      "from": 480,
+      "units": [
+        "infantry",
+        "infantry",
+        "gunner",
+        "mage",
+        "healer"
+      ]
+    }
+  ],
+  "villagers": {
+    "lux": {
+      "name": "Team Lux",
+      "title": "The Lightbearers",
+      "identity": "Builders of Life, Unity and Restoration",
+      "villagers": [
+        {
+          "id": "aron",
+          "name": "Aron",
+          "title": "The Builder",
+          "effect": "build",
+          "interval": 20
+        },
+        {
+          "id": "lira",
+          "name": "Lira",
+          "title": "The Gatherer",
+          "effect": "gather",
+          "interval": 5
+        },
+        {
+          "id": "daren",
+          "name": "Daren",
+          "title": "The Guardian",
+          "effect": "train",
+          "interval": 45,
+          "role": "infantry",
+          "count": 2
+        },
+        {
+          "id": "serah",
+          "name": "Serah",
+          "title": "The Healer",
+          "effect": "heal",
+          "interval": 3
+        },
+        {
+          "id": "kiel",
+          "name": "Kiel",
+          "title": "The Researcher",
+          "effect": "research",
+          "interval": 30
+        },
+        {
+          "id": "miko",
+          "name": "Miko",
+          "title": "The Supplier",
+          "effect": "supply",
+          "interval": 40
+        }
+      ]
+    },
+    "tenebra": {
+      "name": "Team Tenebra",
+      "title": "The Shadowborne",
+      "identity": "Conquerors of Chaos and Dominion",
+      "villagers": [
+        {
+          "id": "rogar",
+          "name": "Rogar",
+          "title": "The Warlord",
+          "effect": "build",
+          "interval": 20
+        },
+        {
+          "id": "velin",
+          "name": "Velin",
+          "title": "The Harvester",
+          "effect": "gather",
+          "interval": 5
+        },
+        {
+          "id": "kael",
+          "name": "Kael",
+          "title": "The Enforcer",
+          "effect": "train",
+          "interval": 45,
+          "role": "infantry",
+          "count": 1
+        },
+        {
+          "id": "mora",
+          "name": "Mora",
+          "title": "The Reviver",
+          "effect": "revive",
+          "interval": 40
+        },
+        {
+          "id": "zed",
+          "name": "Zed",
+          "title": "The Alchemist",
+          "effect": "craft",
+          "interval": 50
+        },
+        {
+          "id": "taro",
+          "name": "Taro",
+          "title": "The Scavenger",
+          "effect": "scavenge",
+          "interval": 6
+        }
+      ]
+    }
+  }
+}
