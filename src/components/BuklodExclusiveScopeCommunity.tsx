@@ -3708,6 +3708,7 @@ return (
               <View style={styles.postPhotos}>
               <BuklodCommunityPhotoCollage
                 showLayoutPicker
+                stableFeedFrame
                 items={communityPhotoCollageItems(
                   item.media_items,
                   {
