@@ -758,6 +758,18 @@ function EmpireArenaInApp() {
       <Text style={styles.title}>GENESIS WAR ARENA</Text>
       <Text style={styles.description}>Fight BUKLOD computer characters without signal. Real attacks, skills, knockouts and winner. No BP or Diamond change.</Text>
       <BuklodCrossWorldAchievements world="arena" />
+      <View style={{flexDirection:'row',gap:8,flexWrap:'wrap'}}>
+        <Pressable accessibilityRole="button" accessibilityLabel="One tap to Character Kingdom"
+          onPress={()=>router.push('/games' as any)}
+          style={{minHeight:34,minWidth:130,borderRadius:8,backgroundColor:'#154C50',alignItems:'center',justifyContent:'center'}}>
+          <Text style={{color:'#F5E4BD',fontWeight:'800',fontSize:11}}>KINGDOM</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="One tap to My House"
+          onPress={()=>router.push('/personal-home' as any)}
+          style={{minHeight:34,minWidth:130,borderRadius:8,backgroundColor:'#154C50',alignItems:'center',justifyContent:'center'}}>
+          <Text style={{color:'#F5E4BD',fontWeight:'800',fontSize:11}}>MY HOUSE</Text>
+        </Pressable>
+      </View>
       {godotNativeEnabled ? <Pressable accessibilityRole="button"
         accessibilityLabel="Launch native Godot Empire Arena inside BUKLOD"
         disabled={godotOpening} onPress={() => void launchNativeGodot()}
