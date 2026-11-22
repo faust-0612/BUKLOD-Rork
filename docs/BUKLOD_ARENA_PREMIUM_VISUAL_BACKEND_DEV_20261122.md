@@ -54,3 +54,5 @@ or player ranking. No new paid host or live Supabase schema is authorized.
   exact-SHA staging RC, physical landscape navigation, audio/AdMob,
   weak-network reentry and multiplayer escrow/refund tests.
 - Production remains untouched. No promotion from DEV without gates.
+
+The minimal distribution Blender 5.0 CI install requires the explicit `python3-numpy` dependency for glTF export; no extra APK or production library is installed.

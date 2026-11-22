@@ -22,8 +22,9 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends blender
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends blender python3-numpy
           blender --version | head -1 | grep -E 'Blender [45]\.'
+          blender --background --factory-startup --python-expr 'import numpy; print("BUKLOD_BLENDER_NUMPY_READY",numpy.__version__)' 2>&1 | grep -F 'BUKLOD_BLENDER_NUMPY_READY'
       - name: Generate actual editable BUKLOD Blender assets and animated glTF 2.0
         run: |
           set -euo pipefail
