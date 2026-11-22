@@ -624,6 +624,7 @@ function ExpoCommunityVideoPlayback({
   fullscreen = false,
   edgeToEdge = false,
   active = true,
+  preload = false,
   controlsBottomInset = 0,
   onOpenFullscreen,
   onFullscreenSwipe,
@@ -721,6 +722,24 @@ function ExpoCommunityVideoPlayback({
       }
     };
   }, [uri]);
+
+  // The one admitted near-viewport decoder may capture an old video's
+  // first frame before the next swipe. Never launch a second native player.
+  useEffect(() => {
+    if (Platform.OS === 'web' || active || !preload || posterSource || posterUri ||
+        playerStatus !== 'readyToPlay') return;
+    const timer = setTimeout(() => {
+      if (!beginCommunityVideoPosterGeneration(uri)) return;
+      void Promise.resolve()
+        .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 480, maxHeight: 480 }))
+        .then(thumbnails => {
+          if (thumbnails?.[0]) publishCommunityVideoPoster(uri, thumbnails[0]);
+        })
+        .catch(() => undefined)
+        .finally(() => releaseCommunityVideoPosterGeneration(uri));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [active, preload, uri, posterUri, posterSource, player, playerStatus]);
 
   // Do not show a buffering alert for every ordinary, sub-second startup.
   useEffect(() => {
