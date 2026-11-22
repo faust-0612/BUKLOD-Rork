@@ -24,7 +24,8 @@
     "Questions are handled one by one with accessible answer buttons, back, retry, progress and handoff summary.",
     "No health answers sent to network, analytics, external URL queries, or persistent storage.",
     "Regression proof: changed scoped health flow and existing Health Center consultation/ad tests; protected feature gate passes.",
-    "Source compile, real device rendering, and Philippine clinician review are mandatory before release approval; remain unverified until evidenced."
+    "Source compile, real device rendering, and Philippine clinician review are mandatory before release approval; remain unverified until evidenced.",
+    "Minimal PR-only Node 22 CI executes both changed Health Center regression tests without new package installations; no publishing."
   ],
   "riskAreas": [
     "medical-information",
@@ -44,7 +45,8 @@
     "src/components/health/BuklodImciTagalogGuide.tsx",
     "src/app/profile/buklod-health.tsx",
     "tests/nov14-imci-health-flow.test.mjs",
-    "tests/health-center-consultation-card-20261110.test.mjs"
+    "tests/health-center-consultation-card-20261110.test.mjs",
+    ".github/workflows/buklod-health-imci-tagalog-dev-qa.yml"
   ],
   "lockedFeatureChanges": [
     {
