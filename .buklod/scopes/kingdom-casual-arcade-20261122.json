@@ -53,5 +53,47 @@
     "No new backend or metadata migrations",
     "No production, OTA or native release from DEV branch",
     "Do not silently replace old 39 game definitions or protected primary maps"
+  ],
+  "productionBaselineEvidence": "GitHub protected main source 7b224c39624827282c3cbf003060317045b0a73f; active 39-game catalog and existing original Kingdom stations inspected. DEV-only branch is not an authorized production or staging OTA.",
+  "chosenApproach": "Preserve all 39 original/expert game IDs and 13 in-app Kingdom routes; add a guarded arcade-first layer with 26 themed games and a shared, offline gameplay state machine.",
+  "selectionRationale": "A shared eight-mode engine allows real playable controls, scalable difficulty and consistent account isolation without any new native dependencies or destructive changes to Kingdom, reward authority or home navigation.",
+  "acceptanceChecks": [
+    "Confirm exactly two new playable arcade games per each of 13 existing character stations; previous original 39 remain selectable",
+    "Pass node --test tests/kingdom-casual-arcade.test.cjs and npm run game:contract",
+    "Pass TypeScript check, regression checks, and Android staging runtime UI/ad/nav QA before any release",
+    "Never mint BP, XP, cash or collectibles from client arcade results"
+  ],
+  "preserveBehaviors": [
+    "Original game route IDs, map doors, previous 39 games and existing progression remain unchanged",
+    "Server-verified real Points and mastery logic remains authoritative and inaccessible from new arcade local previews",
+    "Approved Android character visuals, user auth, local record account isolation, AdMob placement and app navigation remain intact",
+    "Current production BUKLOD MAIN Expo channel and runtime stay unchanged"
+  ],
+  "alternativeApproaches": [
+    "Delete old 39 games and fully replace with only casual titles: rejected because it destroys expert progress and existing game routes",
+    "Build new standalone native/Godot arcade APK: rejected because Kingdom belongs inside BUKLOD MAIN and would require unauthorized native release",
+    "Add 26 themed configurations on the shared eight-mode client arcade engine while keeping expert catalog: selected to reduce incompatibility and allow focused QA"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character",
+    "gameplay",
+    "local-preview"
+  ],
+  "regressionTests": [
+    "tests/kingdom-casual-arcade.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New opt-in playable arcade runtime integrated at all existing Kingdom character stations without changing the protected Android native package or money issuance.",
+      "preservedBehaviors": [
+        "Retains existing BUKLOD app runtime and 13 original Kingdom map destinations",
+        "All BP, financial rewards and masteries remain server-authoritative and cannot be minted from arcade preview scores"
+      ],
+      "tests": [
+        "tests/kingdom-casual-arcade.test.cjs"
+      ]
+    }
   ]
 }
