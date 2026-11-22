@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "productionAuthorized": true,
+  "productionTarget": "BUKLOD_MAIN_ANDROID",
+  "releaseMode": "EXISTING_NATIVE_JS_OTA_ONLY",
+  "sourceCommitBeforeMarker": "6960452f4317c9cf6e8ce32b77d5dbf8f8d1dff6",
+  "sourceScopePR": 1103,
+  "sourceBranch": "rc/nonseason2-consent-ota-20261122",
+  "expoProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+  "androidPackage": "org.mzbministry.buklod",
+  "nativeVersion": "1.3.6",
+  "nativeVersionCode": 30,
+  "expoRuntimeVersion": "1.3.2",
+  "channel": "production",
+  "nativeBuildAuthorized": false,
+  "playReleaseAuthorized": false,
+  "season2ProductionAuthorized": false,
+  "physicalDeviceQA": "WAIVED_BY_OWNER_NOT_PERFORMED",
+  "proof": {
+    "sourceQaHead": "df15ace207a885b90ce67330daa203525c616269",
+    "approvedMainRCWorkflows": [
+      "45012193829",
+      "45012193708",
+      "45012193804",
+      "45012193834",
+      "45012193740"
+    ],
+    "approvedSourceDiffPaths": [
+      "src/app/privacy/consent.tsx",
+      "src/providers/ComplianceProvider.tsx",
+      "tests/auth-consent-boot-recovery.test.mjs",
+      ".buklod/scopes/consent-verification-contrast-20261122.json",
+      ".github/workflows/buklod-consent-prod-rc-no-publish-20261122.yml"
+    ],
+    "sourceOnlyChanges": [
+      "bounded_policy_verification_timeouts",
+      "server_authenticated_policy_write_readback",
+      "privacy_consent_theme_contrast"
+    ],
+    "lastVerifiedProviderPublish": {
+      "channel": "production",
+      "runtimeVersion": "1.3.2",
+      "recordedAtUtc": "2026-11-22T06:02:24Z",
+      "updateId": "01a201d9-3b7e-7881-b003-79452dd1a015",
+      "publisherRunId": "44991680816",
+      "sourceCommit": "088df3cc1265a097744f78f4f24aaa3ae5ad3586",
+      "note": "Prior served update; actual publisher must read fresh baseline before new OTA and verify next exact update ID and launch hash."
+    },
+    "backend": {
+      "migrationRequired": false,
+      "backendMutationAuthorized": false,
+      "verifiedFunctions": [
+        "public.accept_required_policy(uuid,text)",
+        "public.current_required_policies()"
+      ],
+      "note": "RPC is server-authenticated, account-bound and idempotent; client cannot mark accepted without server readback."
+    },
+    "noNewNative": true,
+    "noUnauthorizedSeason2": true,
+    "providerReleaseEvidenceRequired": [
+      "exact_runtime",
+      "production_channel",
+      "published_update_id",
+      "served_bundle_hash",
+      "source_commit"
+    ],
+    "webOnlyMainIntake": {
+      "priorSourceSha": "90167a90ab7f42de34fa57db6874f9e064826ad3",
+      "currentMainSha": "6960452f4317c9cf6e8ce32b77d5dbf8f8d1dff6",
+      "nonAndroidFiles": [
+        ".buklod/scopes/dzas-web-audio-recovery-20261122.json",
+        ".github/workflows/production_web_deploy.yml",
+        ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+        "src/app/personal-home/radio.web.tsx",
+        "tests/dzas-signal-deck-implementation.test.mjs",
+        "tests/dzas-web-production-deploy.test.mjs"
+      ],
+      "webDeploymentAuthorized": false,
+      "nativeAndAndroidSourceFilesChanged": false,
+      "webReleaseTriggerExcluded": "BUKLOD_ANDROID_ONLY_PROD_20261114:",
+      "publisherMustVerifyAndroidRc": true
+    }
+  },
+  "publisherPolicy": "One protected main-only reviewed BUKLOD_ANDROID_ONLY_PROD_20261114: merge triggers canonical .github/workflows/production_android_ota.yml. No direct EAS CLI from chat, branch or alternate workflow. Full embargo, AdMob env, runtime ABI, freeze and provider readback mandatory.",
+  "publicationStatus": "NOT_YET_PUBLISHED"
+}

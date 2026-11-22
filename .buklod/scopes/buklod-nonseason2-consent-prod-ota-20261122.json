@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-nonseason2-consent-prod-ota-20261122.json",
+  "objective": "Publish only the already main-merged, exact-head QA-verified NON-Season2 BUKLOD MAIN privacy consent verification and dark-contrast JS-only fix using the existing Android 1.3.2 runtime and protected production Android OTA workflow; never build native or promote Genesis/Godot.",
+  "baseRef": "6960452f4317c9cf6e8ce32b77d5dbf8f8d1dff6",
+  "productionBaselineEvidence": "verified: exact protected main source 6960452f4317c9cf6e8ce32b77d5dbf8f8d1dff6 from QA PR #1103 (5/5 GitHub workflows success). Prior EAS published Android update 01a201d9-3b7e-7881-b003-79452dd1a015, runtime 1.3.2, 2026-11-22T06:02:24Z; publisher must recapture latest served baseline and verify new launch hash. Reconciled newer current main 6960452f4317c9cf6e8ce32b77d5dbf8f8d1dff6 web-only DZAS files; no new native, no web publisher on Android marker; Android source export must still pass canonical protected workflow.",
+  "chosenApproach": "Dedicated reviewed source-independent metadata marker on main; only squash merge with BUKLOD_ANDROID_ONLY_PROD_20261114: triggers existing protected .github/workflows/production_android_ota.yml; require source checksum, Expo runtime identity, production AdMob, Season2 embargo, frozen RC and observed provider receipt.",
+  "selectionRationale": "Prior consolidated production OTA already served; only the new reviewed consent JS fix is eligible for another update. Avoid duplicate source publication, native rebuild, web-only clinical/unverified changes and any Season2 promotion.",
+  "allowedPaths": [
+    ".buklod/scopes/buklod-nonseason2-consent-prod-ota-20261122.json",
+    ".buklod/releases/buklod-nonseason2-consent-prod-ota-20261122.json",
+    "tests/buklod-nonseason2-consent-prod-ota-marker-20261122.test.cjs"
+  ],
+  "riskAreas": [
+    "release-identity",
+    "production-ota",
+    "app-runtime",
+    "AdMob",
+    "privacy"
+  ],
+  "regressionTests": [
+    "tests/buklod-nonseason2-consent-prod-ota-marker-20261122.test.cjs"
+  ],
+  "lockedFeatureChanges": [],
+  "alternativeApproaches": [
+    "Direct EAS CLI or branch OTA bypassing reviewed main marker: rejected.",
+    "Include Godot/Genesis or newer native runtime: rejected.",
+    "Include clinically unreviewed Health IMCI or unverified web changes: rejected.",
+    "Duplicate previously published AdMob/Cluster/PTT consolidated source: rejected."
+  ],
+  "preserveBehaviors": [
+    "Exactly three metadata/test files; app source, native package, update URL, Expo runtime, dependencies, permissions and AdMob units unchanged by this PR.",
+    "No Supabase SQL migrations, balance changes, BP issuance, native build, EAS channel change, Season2 release or Play store deployment.",
+    "Physical device QA waived earlier by owner but not represented as passed; protected source/AdMob/nav tests and exact provider release receipt are still required.",
+    "Only one main-merge production marker should publish; no automated release from this PR branch.",
+    "New main web-only DZAS source and guarded web workflow exist but are NOT authorized for Expo Hosting publication by the Android-only marker."
+  ],
+  "acceptanceChecks": [
+    "Review marker evidence and exact nonSeason2 source against main 6960452f4317c9cf6e8ce32b77d5dbf8f8d1dff6 and five passing PR #1103 workflows.",
+    "Pass focused marker and scope CI tests and ensure no native or season2 diff.",
+    "Only squash merge with BUKLOD_ANDROID_ONLY_PROD_20261114: prefix on main.",
+    "Inspect actual protected production_android_ota run and publisher launch fingerprint and output update ID before declaring live."
+  ],
+  "releaseMode": "single-reviewed-production-marker-existing-native-only",
+  "publicationStatus": "NOT_PUBLISHED_UNTIL_EXPO_PROVIDER_READBACK"
+}
