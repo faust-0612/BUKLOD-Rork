@@ -73,11 +73,14 @@
     "tests/wall-network-feedback-20261117.test.mjs"
   ],
   "regressionTests": [
-    "tests/genesis-library-204-ota-source-parity-20261122.test.mjs",
-    "tests/genesis-conso-video-regression-gate-20261122.test.mjs",
+    "tests/buklod-call-token-expiry-20261122.test.mjs",
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
     "tests/community-wall-layout-stability-20261122.test.mjs",
+    "tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs",
+    "tests/genesis-arena-game-touch-readability-20261122.test.mjs",
+    "tests/genesis-conso-video-regression-gate-20261122.test.mjs",
     "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs",
-    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs"
+    "tests/genesis-library-204-ota-source-parity-20261122.test.mjs"
   ],
   "riskAreas": [
     "wall-media",
@@ -94,13 +97,88 @@
   ],
   "lockedFeatureChanges": [
     {
-      "id": "production-release",
-      "reason": "Only the new staging OTA workflow/source is authorized; production channel and native identity remain untouched.",
+      "id": "app-runtime",
+      "reason": "Consolidate previously approved 2026-11-22 JS-only app-runtime fixes onto exact installed Godot 2.0.4 native source while protecting current shared behavior and source parity.",
       "preservedBehaviors": [
-        "No new Android manifest/ABI/Godot AAR/plugins or keystore in an Expo JS update",
-        "Production channel mapping, app id org.mzbministry.buklod and 1.3.2 runtime unchanged",
-        "No live BP/QMP/Diamond/ranked grant logic or Supabase schema writes via OTA",
-        "AdMob first-view and instant dashboard/tab navigation protected"
+        "Existing 2.0.4 Godot native bridge, auth scope boundaries, ads lifecycle and user content remain present.",
+        "No live economy/points writes, no production OTA, no native-ABI changes in this staging JS bundle"
+      ],
+      "tests": [
+        "tests/genesis-library-204-ota-source-parity-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Consolidate previously approved 2026-11-22 JS-only wall-media fixes onto exact installed Godot 2.0.4 native source while protecting current shared behavior and source parity.",
+      "preservedBehaviors": [
+        "Existing 2.0.4 Godot native bridge, auth scope boundaries, ads lifecycle and user content remain present.",
+        "No live economy/points writes, no production OTA, no native-ABI changes in this staging JS bundle"
+      ],
+      "tests": [
+        "tests/community-wall-layout-stability-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Consolidate previously approved 2026-11-22 JS-only navigation-auth fixes onto exact installed Godot 2.0.4 native source while protecting current shared behavior and source parity.",
+      "preservedBehaviors": [
+        "Existing 2.0.4 Godot native bridge, auth scope boundaries, ads lifecycle and user content remain present.",
+        "No live economy/points writes, no production OTA, no native-ABI changes in this staging JS bundle"
+      ],
+      "tests": [
+        "tests/genesis-dashboard-navigation-safearea-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Consolidate previously approved 2026-11-22 JS-only connect-ptt-calls fixes onto exact installed Godot 2.0.4 native source while protecting current shared behavior and source parity.",
+      "preservedBehaviors": [
+        "Existing 2.0.4 Godot native bridge, auth scope boundaries, ads lifecycle and user content remain present.",
+        "No live economy/points writes, no production OTA, no native-ABI changes in this staging JS bundle"
+      ],
+      "tests": [
+        "tests/buklod-call-token-expiry-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Consolidate previously approved 2026-11-22 JS-only ads-finance-points fixes onto exact installed Godot 2.0.4 native source while protecting current shared behavior and source parity.",
+      "preservedBehaviors": [
+        "Existing 2.0.4 Godot native bridge, auth scope boundaries, ads lifecycle and user content remain present.",
+        "No live economy/points writes, no production OTA, no native-ABI changes in this staging JS bundle"
+      ],
+      "tests": [
+        "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Consolidate previously approved 2026-11-22 JS-only cluster-faith fixes onto exact installed Godot 2.0.4 native source while protecting current shared behavior and source parity.",
+      "preservedBehaviors": [
+        "Existing 2.0.4 Godot native bridge, auth scope boundaries, ads lifecycle and user content remain present.",
+        "No live economy/points writes, no production OTA, no native-ABI changes in this staging JS bundle"
+      ],
+      "tests": [
+        "tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Consolidate previously approved 2026-11-22 JS-only kingdom-character fixes onto exact installed Godot 2.0.4 native source while protecting current shared behavior and source parity.",
+      "preservedBehaviors": [
+        "Existing 2.0.4 Godot native bridge, auth scope boundaries, ads lifecycle and user content remain present.",
+        "No live economy/points writes, no production OTA, no native-ABI changes in this staging JS bundle"
+      ],
+      "tests": [
+        "tests/genesis-arena-game-touch-readability-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "This branch authorizes only one fail-closed Android staging 2.0.4 OTA publisher; production and signing are unchanged.",
+      "preservedBehaviors": [
+        "Production EAS branch, app id, 1.3.2 runtime, Play package, and APK signer stay untouched.",
+        "No new Android Godot native code or backend migration is published"
       ],
       "tests": [
         "tests/genesis-library-204-ota-source-parity-20261122.test.mjs"
