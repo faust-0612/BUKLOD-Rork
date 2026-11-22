@@ -68,6 +68,8 @@ func _verify() -> void:
 			_fail("Mitch color theory passive did not mark an enemy", 21)
 			return
 		if hero_id == "trudice":
+			# Clear only the stun inflicted earlier in this same smoke scenario.
+			foe["buffs"].erase("stun")
 			foe["pos"] = (me["pos"] as Vector2) + Vector2(2, 0)
 			foe["cooldowns"]["primary"] = -1000.0
 			if not sim.action("B0", "primary", Vector2.LEFT, "A0") or \
