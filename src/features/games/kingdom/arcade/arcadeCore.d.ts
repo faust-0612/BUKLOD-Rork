@@ -3,7 +3,7 @@ export type ArcadeStatus = 'playing'|'clear'|'lost';
 export type ArcadeEntity = {id:number;lane:number;y:number;good:boolean;variant:number};
 export type ArcadeState = {
   mode: ArcadeMode; seed:number; stage:number; score:number; stageHits:number; goal:number;
-  lives:number; combo:number; lane:number; jumpUntil:number; ticks:number; remaining:number;
+  lives:number; combo:number; lane:number; jumpUntil:number; jumpCooldownUntil:number; lastActionTick:number; ticks:number; remaining:number;
   entities:ArcadeEntity[]; entitySeq:number; marker:number; markerDirection:number;target:number;
   cell:number;flashUntil:number;deadline:number;eventSeq:number;outcome:'move'|'collect'|'impact';
   status: ArcadeStatus;
