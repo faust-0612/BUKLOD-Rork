@@ -17,8 +17,7 @@
     ".github/workflows/buklod-consent-prod-rc-no-publish-20261122.yml"
   ],
   "regressionTests": [
-    "tests/auth-consent-boot-recovery.test.mjs",
-    ".github/workflows/buklod-consent-prod-rc-no-publish-20261122.yml"
+    "tests/auth-consent-boot-recovery.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
