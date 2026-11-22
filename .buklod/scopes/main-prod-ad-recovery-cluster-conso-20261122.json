@@ -120,5 +120,13 @@
     "stagingOtaPublished": false,
     "productionOtaPublished": false,
     "nativeBuildRequired": false
-  }
+  },
+  "preserveBehaviors": [
+    "Existing ADMOB_NATIVE SDK request/loaded/impression attribution remains callback-authentic; no fabricated earnings or impressions.",
+    "Public Wall, Home, Connect, Profile and Cluster native ad placements retain 2-minute shared request cooldown, first-view prewarm size-two cap, SDK consent, viewport and foreground gates.",
+    "Production org.mzbministry.buklod native runtime 1.3.2 remains unmodified; all Season 2/Godot staging changes excluded.",
+    "Exact Cluster Admin only can review Home Check In Today once backend RPC is safely activated; existing check-ins remain pending until human verification.",
+    "Existing PTT saved settings, mentor reporting options, live registrations/admin inbox, and silent safe next-cold-start OTA inherited from parent remain unchanged.",
+    "Home/Wall/Connect/Cluster navigation remains responsive without introducing ad overlays over protected attendance verification."
+  ]
 }
