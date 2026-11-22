@@ -173,6 +173,7 @@ export default function BuklodCommunityCommentComposer({
         <Pressable
           accessibilityLabel="Add photo"
           disabled={busy || pickingPhoto}
+          hitSlop={4}
           onPress={() => void pickPhoto()}
           style={styles.tool}
         >
@@ -190,6 +191,7 @@ export default function BuklodCommunityCommentComposer({
         <Pressable
           accessibilityLabel="Add GIF"
           disabled={busy}
+          hitSlop={4}
           onPress={() => setGifOpen(true)}
           style={styles.tool}
         >
@@ -203,6 +205,7 @@ export default function BuklodCommunityCommentComposer({
         <Pressable
           accessibilityLabel="Add reaction"
           disabled={busy}
+          hitSlop={4}
           onPress={() => setReactionOpen(current => !current)}
           style={[styles.tool, reactionOpen && styles.toolOn]}
         >
@@ -441,7 +444,7 @@ const styles = StyleSheet.create({
   expandedToolsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 8,
     paddingTop: 0,
   },
   toolsHint: {
@@ -453,12 +456,12 @@ const styles = StyleSheet.create({
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 5,
+    gap: 8,
   },
   tool: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
