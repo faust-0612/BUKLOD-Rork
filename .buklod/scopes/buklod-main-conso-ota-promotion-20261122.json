@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-main-conso-ota-promotion-20261122.json",
+  "objective": "Promote the already main-merged, CI-verified BUKLOD MAIN 1.3.2 native-compatible consolidated source through one protected production Expo Android OTA release marker; publish only after the existing canonical workflow re-verifies current EAS production baseline, AdMob environment, native ABI, frozen RC and served update ID/hash. No new native build or Season2.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: source code main 27c8e51ed2d7237483107b6c1ded8fbe5a410ce5, exact earlier main PR #1096 source 497ee5913180d1bf22ed1f36d1a6e982b5838c40 and 4/4 CI; Supabase protected mentor/Cluster Admin RPCs live with 15 pending claims and 25 existing attendance credits unchanged; Expo provider read-only baseline 2026-11-22T02:51:58Z update 01a1fcb7-bee4-71cc-8c60-e732c0a255fa runtime 1.3.2. Publisher must independently recheck current served baseline and verify actual new bundle hash.",
+  "chosenApproach": "Use a dedicated reviewed release-marker PR with only metadata/test/governance documents on top of already verified main source. Its protected main merge with exact BUKLOD_ANDROID_ONLY_PROD_20261114: prefix is the sole trigger for existing canonical Expo publish workflow. Do not enable manual dispatch, edit publisher, build any APK or use a parallel branch publisher.",
+  "selectionRationale": "The previous source promotion merge to main produced no observable production Android OTA run. A separately reviewed exact-release marker is a safer explicit production trigger than directly mutating publisher workflow or claiming an unobserved OTA. Production remains on its current bundle until publisher verifies its immutable RC and served update.",
+  "allowedPaths": [
+    ".buklod/scopes/buklod-main-conso-ota-promotion-20261122.json",
+    ".buklod/releases/buklod-main-conso-ota-promotion-20261122.json",
+    "tests/buklod-main-conso-ota-promotion-marker-20261122.test.cjs"
+  ],
+  "riskAreas": [
+    "release-identity",
+    "production-ota",
+    "app-runtime",
+    "AdMob",
+    "backend"
+  ],
+  "regressionTests": [
+    "tests/buklod-main-conso-ota-promotion-marker-20261122.test.cjs"
+  ],
+  "lockedFeatureChanges": [],
+  "alternativeApproaches": [
+    "Assume previous main squash merge already published an OTA without GitHub/EAS receipts: rejected; verified production requires a served Expo update ID and bundle hash.",
+    "Create new APK/AAB or runtime 2.x with Godot: rejected as explicitly waived and ABI-incompatible with existing installed 1.3.2.",
+    "Bypass the protected publisher and run direct Expo commands with guessed credentials: rejected; violates one-OTA protected release gate.",
+    "Create one exact reviewed release-only metadata marker and let canonical main-only workflow publish/verify: selected."
+  ],
+  "preserveBehaviors": [
+    "Source files, native package/runtime, AdMob unit configuration, database schema and all protected app surfaces are unchanged by the release-marker PR.",
+    "No fresh BP, attendance approval, new member PII, points finance or triggers are mutated by this PR; previously deployed authorized backend remains active.",
+    "Season 2/Godot stay staging-only, production Expo runtime stays 1.3.2 and versionCode stays 30.",
+    "Physical Android device verification was explicitly waived, never claimed passed; full source/AdMob gates and publisher readback still required.",
+    "No production update is claimed from successful PR merge; exact EAS served update ID and launch bundle hash must be observed."
+  ],
+  "acceptanceChecks": [
+    "Review marker authorization and exact source SHA/production identity against code and backend proof.",
+    "Check all focused CI/PR governance tests before merging.",
+    "Squash-merge with exact production marker; inspect actual production_android_ota workflow run/job steps.",
+    "Only claim released if publisher verifies immutable RC, provider production runtime 1.3.2, newly issued Android update ID and served bundle hash.",
+    "Fail closed if workflow does not trigger; do not invent Expo receipts, or apply any new native build."
+  ],
+  "releaseMode": "single-reviewed-release-marker-for-existing-native-only",
+  "publicationStatus": "NOT_PUBLISHED_UNTIL_EAS_SERVE_VERIFIED"
+}
