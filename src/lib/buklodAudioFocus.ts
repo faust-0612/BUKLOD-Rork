@@ -11,3 +11,24 @@ export function subscribeBuklodAudioFocus(listener: Listener) {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
 }
+
+// Transient PTT voice activity is not a permanent audio-focus takeover.
+const pttVoiceListeners = new Set<(active: boolean) => void>();
+let pttVoiceActive = false;
+
+export function isBuklodPttVoiceActive() { return pttVoiceActive; }
+
+export function setBuklodPttVoiceActive(active: boolean) {
+  const value = Boolean(active);
+  if (pttVoiceActive === value) return;
+  pttVoiceActive = value;
+  for (const listener of [...pttVoiceListeners]) {
+    try { listener(value); } catch { /* optional audio client isolation */ }
+  }
+}
+
+export function subscribeBuklodPttVoiceActivity(listener: (active: boolean) => void) {
+  pttVoiceListeners.add(listener);
+  listener(pttVoiceActive);
+  return () => { pttVoiceListeners.delete(listener); };
+}
