@@ -18,12 +18,38 @@
     ".buklod/scopes/genesis-arena-native-first-visual-readiness-20261122.json",
     ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
     ".github/workflows/genesis-library-eas-signed-apk-20261122.yml",
-    ".github/workflows/genesis-library-eas-local-signed-apk-20261122.yml"
+    ".github/workflows/genesis-library-eas-local-signed-apk-20261122.yml",
+    "tests/genesis-arena-game-native-entry-20261122.test.mjs"
   ],
-  "lockedFeatureChanges": [],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preserve old BUKLOD runtime and route guards while enabling native Godot-first Arena only on the new staging library-native build; no old runtime or finance write.",
+      "preservedBehaviors": [
+        "Production and older staging/Expo-native runtimes are unmodified",
+        "Auth, consent, update, pilot and maintenance gates remain ahead of launching native game",
+        "Fallback to existing React Native preview when native Godot pack fails"
+      ],
+      "tests": [
+        "tests/genesis-arena-visual-readiness-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "The Arena screen is a game route, so protect Character/Game ownership, 13 canonical heroes, ranked-disabled and per-account progression while auto-entering the native offline library practice.",
+      "preservedBehaviors": [
+        "Character System owns verified rank/XP/items and Arena cannot mint BP, Diamond or QMP",
+        "All canonical 13 hero identities and old in-app practice remain accessible",
+        "The new library-native entry has bounded one-shot lifetime, no recursive launch"
+      ],
+      "tests": [
+        "tests/genesis-arena-game-native-entry-20261122.test.mjs"
+      ]
+    }
+  ],
   "regressionTests": [
     "tests/genesis-arena-visual-readiness-20261122.test.mjs",
-    "tests/genesis-arena-visual-readiness-20261122.test.mjs"
+    "tests/genesis-arena-game-native-entry-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "Older Genesis staging and production route/Expo runtime isolation",
