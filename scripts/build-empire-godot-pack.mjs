@@ -37,7 +37,7 @@ function collect(dir, prefix = '') {
       collect(full, prefix + name + '/');
       continue;
     }
-    if (!/\.gd$|\.tscn$|^project\.godot$/.test(name)) continue;
+    if (!/\.gd$|\.gdshader$|\.tscn$|^project\.godot$/.test(name)) continue;
     entries.push({ name: prefix + name, bytes: readFileSync(full) });
   }
 }
@@ -77,7 +77,9 @@ entries.push({ name: 'art/art_manifest.json',
 
 const entryNames = new Set(entries.map(x => x.name));
 for (const name of ['project.godot', 'scenes/Arena.tscn', 'scripts/arena_root.gd',
-  'scripts/arena_hud.gd', 'scripts/arena_simulation.gd', 'data/catalog.json']) {
+  'scripts/arena_hud.gd', 'scripts/arena_simulation.gd',
+  'scripts/arena_effects.gd', 'scripts/hero_animation.gd',
+  'shaders/arena_impact.gdshader', 'data/catalog.json']) {
   assert.ok(entryNames.has(name), 'Missing Godot Arena pack resource: ' + name);
 }
 const table = new Uint32Array(256);
