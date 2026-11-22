@@ -74,7 +74,7 @@
   ],
   "regressionTests": [
     "tests/buklod-call-token-expiry-20261122.test.mjs",
-    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/wall-comment-ad-preservation-20261122.test.mjs",
     "tests/community-wall-layout-stability-20261122.test.mjs",
     "tests/community-wall-navigation-scope-layout-stability-20261122.test.mjs",
     "tests/genesis-arena-game-touch-readability-20261122.test.mjs",
@@ -148,7 +148,7 @@
         "No live economy/points writes, no production OTA, no native-ABI changes in this staging JS bundle"
       ],
       "tests": [
-        "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs"
+        "tests/wall-comment-ad-preservation-20261122.test.mjs"
       ]
     },
     {
