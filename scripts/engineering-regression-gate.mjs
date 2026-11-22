@@ -120,7 +120,8 @@ function runCli() {
   const nativeGodotSourceHold =
     process.env.BUKLOD_CONSOLIDATED_STAGING_SCOPE_GATE === 'true' &&
     ['integration/genesis-unified-godot-native-staging-20261122',
-     'integration/genesis-native-governance-rc-20261122'].includes(process.env.GITHUB_HEAD_REF) &&
+     'integration/genesis-native-governance-rc-20261122',
+     'integration/genesis-native-complete-conso-rc-20261122'].includes(process.env.GITHUB_HEAD_REF) &&
     base === 'dev/arena-godot-native-migration-20261122' &&
     process.env.BUKLOD_SCOPE_MANIFEST === '.buklod/scopes/genesis-native-full-conso-gate-20261122.json';
   const cumulativeMainRc =
