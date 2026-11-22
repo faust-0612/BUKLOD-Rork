@@ -1,0 +1,118 @@
+name: BUKLOD MAIN Health IMCI AJA Genesis R4 Staging RC QA (NO OTA)
+
+on:
+  pull_request:
+    branches:
+      - staging/health-imci-aja-r4-baseline-20261122
+    paths:
+      - 'src/app/profile/buklod-health.tsx'
+      - 'src/components/health/BuklodImciTagalogGuide.tsx'
+      - 'src/components/health/BuklodAjaTagalogGuide.tsx'
+      - 'src/lib/buklodImciTagalog.ts'
+      - 'src/lib/buklodAjaTagalog.ts'
+      - 'tests/nov14-imci-health-flow.test.mjs'
+      - 'tests/health-center-consultation-card-20261110.test.mjs'
+      - '.buklod/scopes/health-imci-aja-genesis-r4-staging-rc-20261122.json'
+      - '.github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health-imci-aja-r4-rc-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  staging-rc-no-publish:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_HEALTH_CONSULTATION_ENABLED: 'false'
+      EXPO_PUBLIC_HEALTH_PROFESSIONAL_PORTAL_ENABLED: 'false'
+    steps:
+      - name: Checkout pinned staging RC
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify published R4 base and strict Health-only scope (no native or other Season2 files)
+        env:
+          EXPECTED_BASE: 7bbb44fcb331ce14785ce43d70969d955f9e61e7
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node <<'NODE'
+          const cp=require('node:child_process');
+          const assert=require('node:assert/strict');
+          const base=process.env.BASE_SHA,head=process.env.HEAD_SHA;
+          const ciBootstrap=cp.execFileSync('git',['diff','--name-only',process.env.EXPECTED_BASE,base],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          assert.deepEqual(ciBootstrap,['.github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml'],'Base must be original R4 plus CI-only workflow');
+          const files=cp.execFileSync('git',['diff','--name-only',base,head],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          const allowed=new Set([
+            'src/app/profile/buklod-health.tsx',
+            'src/components/health/BuklodImciTagalogGuide.tsx',
+            'src/components/health/BuklodAjaTagalogGuide.tsx',
+            'src/lib/buklodImciTagalog.ts',
+            'src/lib/buklodAjaTagalog.ts',
+            'tests/nov14-imci-health-flow.test.mjs',
+            'tests/health-center-consultation-card-20261110.test.mjs',
+            '.buklod/scopes/health-imci-aja-genesis-r4-staging-rc-20261122.json',
+            '.github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml',
+          ]);
+          assert.ok(files.length>=7,'Missing IMCI AJA scope');
+          for(const file of files)assert.ok(allowed.has(file),'Unauthorized staging release diff: '+file);
+          for(const file of ['app.config.js','eas.json','package.json','package-lock.json','src/lib/buklodHealthCenterLauncher.ts'])assert.ok(!files.includes(file),'Native/provider contract modified: '+file);
+          assert.equal(process.env.EXPO_PUBLIC_HEALTH_CONSULTATION_ENABLED,'false');
+          console.log('Health-only exact R4 diff:',files.join(', '));
+          NODE
+
+      - name: Verify staging package, project and native runtime are unchanged
+        run: |
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const config=require('./app.config.js')({config:{}});
+          assert.equal(config.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(config.runtimeVersion,'2.0.0-genesis-preview');
+          assert.equal(config.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          console.log('BUKLOD MAIN staging native identity verified (no native changes)');
+          NODE
+
+      - name: Health IMCI + AJA privacy, triage, ad and navigation regression
+        run: |
+          node --experimental-strip-types --test tests/nov14-imci-health-flow.test.mjs tests/health-center-consultation-card-20261110.test.mjs
+          node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+
+      - name: Install immutable dependency tree
+        run: npm ci --ignore-scripts
+
+      - name: Main TypeScript compilation
+        run: npx tsc --noEmit
+
+      - name: Expo Android JS export (NOT an OTA, APK, or native build)
+        run: npx expo export --platform android --output-dir /tmp/buklod-health-imci-aja-r4-android
+
+      - name: Archive small source/JS export checksum evidence
+        env:
+          RC_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mkdir -p /tmp/health-imci-aja-rc
+          printf 'source_sha=%s\nbase_sha=%s\nchannel=season2-genesis-preview\nruntime=2.0.0-genesis-preview\npackage=org.mzbministry.buklod.staging\npublished=false\n' "${RC_HEAD_SHA}" "7bbb44fcb331ce14785ce43d70969d955f9e61e7" > /tmp/health-imci-aja-rc/rc-evidence.txt
+          find /tmp/buklod-health-imci-aja-r4-android -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/health-imci-aja-rc/android-js-export-sha256.txt
+      - name: Publish checksum-only CI artifact (no OTA)
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-health-imci-aja-r4-rc-evidence
+          path: /tmp/health-imci-aja-rc/
+          retention-days: 5
