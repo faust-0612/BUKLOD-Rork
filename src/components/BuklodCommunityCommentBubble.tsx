@@ -44,6 +44,7 @@ import {
 import {
   resolveCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
+import { formatCompactCommentDateTime } from '@/lib/dateTime';
 
 export type BuklodCommunityCommentModel = {
   id: string;
@@ -84,24 +85,22 @@ function createStyles(theme: BuklodThemeRoles) {
       minWidth: 0,
     },
     bubble: {
-      borderWidth: 1,
-      borderColor: theme.border,
-      borderRadius: 14,
-      paddingHorizontal: 8,
-      paddingVertical: 8,
-      backgroundColor: theme.surfaceElevated,
-    },
-    replyBubble: {
+      borderRadius: 12,
+      paddingHorizontal: 9,
+      paddingVertical: 6,
       backgroundColor: theme.surfaceMuted,
     },
+    replyBubble: {
+      backgroundColor: theme.accentSoft,
+    },
     author: {
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '900',
       color: theme.textPrimary,
     },
     meta: {
-      marginTop: 2,
-      fontSize: 12,
+      marginTop: 1,
+      fontSize: 11,
       color: theme.textMuted,
     },
     timeInBubble: {
@@ -110,9 +109,9 @@ function createStyles(theme: BuklodThemeRoles) {
       color: theme.textMuted,
     },
     body: {
-      marginTop: 6,
-      fontSize: 16,
-      lineHeight: 23,
+      marginTop: 2,
+      fontSize: 15,
+      lineHeight: 20,
       color: theme.textPrimary,
     },
     media: {
@@ -133,24 +132,25 @@ function createStyles(theme: BuklodThemeRoles) {
       color: theme.accent,
     },
     footer: {
-      marginTop: 4,
+      marginTop: 1,
       paddingLeft: 4,
       flexDirection: 'row',
       alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: 10,
+      gap: 6,
     },
     footerActions: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      flexShrink: 1,
+      minWidth: 0,
+      gap: 7,
     },
     footerReactions: {
-      flexGrow: 1,
+      flex: 1,
       minWidth: 0,
     },
     actionLink: {
-      fontSize: 19,
+      fontSize: 17,
       fontWeight: '800',
       color: theme.textMuted,
       paddingVertical: 2,
@@ -159,14 +159,14 @@ function createStyles(theme: BuklodThemeRoles) {
       color: theme.accent,
     },
     replyLink: {
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: '800',
       color: theme.textMuted,
       paddingVertical: 2,
     },
     footerTime: {
-      fontSize: 12,
-      fontWeight: '700',
+      fontSize: 11,
+      fontWeight: '600',
       color: theme.textMuted,
     },
     modalBackdrop: {
@@ -324,6 +324,10 @@ export function BuklodCommunityCommentBubble({
   const canEdit = isAuthor;
   const canDelete = isAuthor || Boolean(comment.can_manage);
   const canReport = Boolean(currentUserId && !isAuthor);
+  // Only display meaningful cluster membership, never the missing-data label.
+  const visibleMeta = String(metaLine ?? '').trim();
+  const showMeta = Boolean(visibleMeta && !/^no cluster$/i.test(visibleMeta));
+  const compactTime = formatCompactCommentDateTime(comment.created_at) || timeLabel;
 
   const openEdit = () => {
     setEditBody(parsedBody.caption);
@@ -465,15 +469,15 @@ export function BuklodCommunityCommentBubble({
             accessibilityRole="button"
             accessibilityLabel="More comment actions"
             accessibilityHint="Open Reply, Edit, Delete, and other available comment actions"
-            style={{ minWidth: 38, minHeight: 38, alignItems: 'center', justifyContent: 'center' }}
+            style={{ minWidth: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={[styles.actionLink, { fontSize: 22 }]}>•••</Text>
+            <Text style={[styles.actionLink, { fontSize: 19 }]}>•••</Text>
           </Pressable>
         </View>
 
-        {!!metaLine && (
+        {showMeta && (
           <Text style={styles.meta}>
-            {metaLine}
+            {visibleMeta}
           </Text>
         )}
 
@@ -506,7 +510,7 @@ export function BuklodCommunityCommentBubble({
             accessibilityRole="button"
             accessibilityLabel="React to comment"
             accessibilityHint="Long press to choose a different reaction"
-            style={{minWidth:38,minHeight:38,alignItems:'center',justifyContent:'center'}}
+            style={{minWidth:32,minHeight:32,alignItems:'center',justifyContent:'center'}}
           >
             <Text
               style={[
@@ -526,14 +530,15 @@ export function BuklodCommunityCommentBubble({
             hitSlop={BUKLOD_HIT_SLOP}
             accessibilityRole="button"
             accessibilityLabel="Reply"
+            style={{ minHeight: 32, justifyContent: 'center' }}
           >
             <Text style={styles.replyLink}>
               Reply
             </Text>
           </Pressable>
 
-          <Text style={styles.footerTime}>
-            {timeLabel}
+          <Text style={styles.footerTime} numberOfLines={1}>
+            {compactTime}
           </Text>
         </View>
 

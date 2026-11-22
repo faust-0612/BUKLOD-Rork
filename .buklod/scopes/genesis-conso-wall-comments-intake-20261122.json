@@ -1,11 +1,11 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-conso-wall-comments-intake-20261122.json",
-  "objective": "Owner-approved Wall comments progressive first paint, weak-network recovery and scoped warm cache inside consolidated Genesis staging source, without releasing unsafe native/SOS backend.",
+  "objective": "Include BOTH fast Wall comment first-paint and compact Facebook-like comment density in the NEXT verified BUKLOD Genesis consolidated staging source, without weakening native, backend, account isolation or Ads gates.",
   "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
   "productionBaselineEvidence": "Protected production main 7b224c39624827282c3cbf003060317045b0a73f; Genesis staging R4 7bbb44fcb331ce14785ce43d70969d955f9e61e7 unchanged.",
-  "chosenApproach": "Cherry-apply only PR #1109 JS comment-loader and cache/guard changes to the existing Genesis consolidated Wall source, preserving all other features.",
-  "selectionRationale": "Replacing the full Wall source would overwrite already integrated Season 2 features. Source-local patches preserve them, and no database optimization is needed based on read-only RPC diagnostics.",
+  "chosenApproach": "Cherry-apply only PR #1109 JS comment-loader and cache/guard changes to the existing Genesis consolidated Wall source, preserving all other features. Port compact comment UI via a non-overlapping three-way reconciliation of main/Genesis/compact composer source, preserving Genesis-specific GIF/mention behavior.",
+  "selectionRationale": "Replacing the full Wall source would overwrite already integrated Season 2 features. Source-local patches preserve them, and no database optimization is needed based on read-only RPC diagnostics. Compact component files matched production main except composer, whose five conso-specific changes are preserved together with ten disjoint compact styling edits.",
   "riskAreas": [
     "app-runtime",
     "navigation-scroll",
@@ -19,44 +19,61 @@
     "tests/wall-network-feedback-20261117.test.mjs",
     "tests/wall-comments-progressive-loading-20261122.test.mjs",
     "tests/wall-comment-navigation-progressive-20261122.test.mjs",
-    ".buklod/scopes/genesis-conso-wall-comments-intake-20261122.json"
+    ".buklod/scopes/genesis-conso-wall-comments-intake-20261122.json",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommunityCommentThread.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/app/(tabs)/buklodCommunityStyles.ts",
+    "src/lib/dateTime.ts",
+    "src/lib/__tests__/compactCommentDateTime.test.ts",
+    "tests/wall-comment-ad-preservation-20261122.test.mjs",
+    "tests/wall-comment-navigation-compact-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "Existing RLS-checked comment RPC and post/user ownership checks remain authoritative.",
     "Preserve Genesis, Arena, PTT/SOS, Estate, Ads, navigation and native/backend hold independently.",
     "Preserve comments replies, reactions, media/GIF/emoji, send/edit/delete/reports, sorted threads and feedback.",
-    "Account/post isolated 15-second six-thread memory cache; explicit denial purges stale data; async results cannot override different account or post."
+    "Account/post isolated 15-second six-thread memory cache; explicit denial purges stale data; async results cannot override different account or post.",
+    "Preserve all visual UI actions while reducing bubble, header, action, reply and composer height; retain full timestamp in detail view and original AdMob inline placement."
   ],
   "acceptanceChecks": [
     "Source PR #1109 Engineering Accountability and Report Door CI passed; rerun focused QA on this exact consolidated intake SHA.",
     "Engineering protected-feature and navigation regression gates, TypeScript/Android Metro and AdMob first-view must pass before release.",
     "Never treat this DEV integration or source CI as proof of signed staging APK or completed OTA publication.",
-    "Keep PR #1074 signed SOS APK runtime 2.0.1, isolated staging Supabase, real-device rescue QA and current production Season 2 embargo intact."
+    "Keep PR #1074 signed SOS APK runtime 2.0.1, isolated staging Supabase, real-device rescue QA and current production Season 2 embargo intact.",
+    "Run compact date-time formatter Jest tests, wall-comment-navigation-compact and comment-ad-preservation Node tests, TypeScript/Android Metro + full staging QA before merge/release."
   ],
   "regressionTests": [
     "tests/wall-network-feedback-20261117.test.mjs",
     "tests/wall-comments-progressive-loading-20261122.test.mjs",
-    "tests/wall-comment-navigation-progressive-20261122.test.mjs"
+    "tests/wall-comment-navigation-progressive-20261122.test.mjs",
+    "src/lib/__tests__/compactCommentDateTime.test.ts",
+    "tests/wall-comment-ad-preservation-20261122.test.mjs",
+    "tests/wall-comment-navigation-compact-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
       "reason": "Comments now paint on authoritative RPC return while reactions and labels load asynchronously, with bounded account-scoped warm content cache.",
       "preservedBehaviors": [
-        "Keep comment reactions, account permissions, photo/GIF sends, edits, deletions, retries and AdMob placement stable."
+        "Keep comment reactions, account permissions, photo/GIF sends, edits, deletions, retries and AdMob placement stable.",
+        "Compact visuals preserve thread, replies, profile tap, composer GIF/photo/emoji/mention and unchanged AdMob comment placement."
       ],
       "tests": [
-        "tests/wall-comments-progressive-loading-20261122.test.mjs"
+        "tests/wall-comments-progressive-loading-20261122.test.mjs",
+        "tests/wall-comment-navigation-compact-20261122.test.mjs"
       ]
     },
     {
       "id": "navigation-auth",
       "reason": "Public Wall tab state introduces account/post-specific memory cache and stale-request guards; check authorization and navigation transitions.",
       "preservedBehaviors": [
-        "Cache purges on account change/access denial; no cross-post leaks; preserved deep links, navigation and comment sheet close."
+        "Cache purges on account change/access denial; no cross-post leaks; preserved deep links, navigation and comment sheet close.",
+        "Compact visuals preserve thread, replies, profile tap, composer GIF/photo/emoji/mention and unchanged AdMob comment placement."
       ],
       "tests": [
-        "tests/wall-comment-navigation-progressive-20261122.test.mjs"
+        "tests/wall-comment-navigation-progressive-20261122.test.mjs",
+        "tests/wall-comment-navigation-compact-20261122.test.mjs"
       ]
     }
   ],
@@ -72,6 +89,6 @@
     "parentSha": "d3b618f37bf91d9906d2c99f14b2f73202fd1891",
     "fixPullRequest": 1109,
     "fixSha": "2f446c2f835a67cfacbfc803a5b32ceb8eac51d6",
-    "compactCommentDensity": "separately tracked; not claimed as merged"
+    "compactCommentDensity": "INTEGRATED into DEV intake via 3-way change reconciliation from dev/wall-compact-comment-density-20261122; no wholesale overwrite of Genesis composer."
   }
 }

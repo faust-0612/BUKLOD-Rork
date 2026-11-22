@@ -191,6 +191,7 @@ export default function BuklodCommunityCommentComposer({
         <Pressable
           accessibilityLabel="Add photo"
           disabled={busy || pickingPhoto}
+          hitSlop={4}
           onPress={() => void pickPhoto()}
           style={styles.tool}
         >
@@ -208,6 +209,7 @@ export default function BuklodCommunityCommentComposer({
         <Pressable
           accessibilityLabel="Add GIF"
           disabled={busy}
+          hitSlop={4}
           onPress={() => setGifOpen(true)}
           style={styles.tool}
         >
@@ -230,6 +232,7 @@ export default function BuklodCommunityCommentComposer({
         <Pressable
           accessibilityLabel="Add reaction"
           disabled={busy}
+          hitSlop={4}
           onPress={() => setReactionOpen(current => !current)}
           style={[styles.tool, reactionOpen && styles.toolOn]}
         >
@@ -332,7 +335,6 @@ export default function BuklodCommunityCommentComposer({
           </View>
           <View style={styles.expandedToolsRow}>
             {mediaButtons}
-            <Text style={styles.toolsHint}>Photo · GIF · Emoji</Text>
           </View>
         </View>
       ) : (
@@ -415,9 +417,9 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.line,
     backgroundColor: colors.white,
-    paddingTop: 7,
+    paddingTop: 4,
     paddingHorizontal: 6,
-    gap: 5,
+    gap: 3,
   },
   previewRow: {
     alignSelf: 'flex-start',
@@ -466,7 +468,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   stacked: {
-    gap: 5,
+    gap: 3,
   },
   expandedInputRow: {
     flexDirection: 'row',
@@ -476,8 +478,8 @@ const styles = StyleSheet.create({
   expandedToolsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    paddingTop: 2,
+    gap: 8,
+    paddingTop: 0,
   },
   toolsHint: {
     color: colors.muted,
@@ -488,7 +490,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 5,
+    gap: 8,
   },
   tool: {
     width: 36,
@@ -507,7 +509,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     minWidth: 0,
-    minHeight: 48,
+    minHeight: 44,
     maxHeight: 150,
     paddingHorizontal: 8,
     paddingVertical: 8,
