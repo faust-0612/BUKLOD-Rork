@@ -13,7 +13,7 @@ test('BUKLOD Main Expo web production deploy keeps protected source, environment
   assert.match(workflow, /Expo credential preflight/);
   assert.match(workflow, /EXPECTED_MAIN_URL=/);
   assert.match(workflow, /DZAS browser radio recovery regression gate/);
-  assert.match(workflow, /node --test tests\/dzas-signal-deck-implementation\.test\.mjs tests\/bible-radio-visual\.test\.cjs/);
+  assert.match(workflow, /node --test tests\/dzas-signal-deck-implementation\.test\.mjs tests\/dzas-web-production-deploy\.test\.mjs/);
   assert.match(workflow, /npx tsc --noEmit/);
   assert.match(workflow, /Verify exact production source SHA/);
 });
