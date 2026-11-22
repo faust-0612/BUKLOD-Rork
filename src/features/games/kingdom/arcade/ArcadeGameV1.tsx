@@ -8,7 +8,7 @@ import type { BuklodGameResult } from '@/features/games/types';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import type { ArcadeSpec } from './arcadeCatalog';
-import { ArcadePremiumFX, ArcadeMovingItem } from './ArcadePremiumFX';
+import { ArcadePremiumFX, ArcadeMovingItem, ArcadeHeroSprite } from './ArcadePremiumFX';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 import { readArcadeProgress, checkpointArcadeStage } from './arcadeProgressStore';
 import { blankArcadeProgress, type ArcadeProgressRecord } from './arcadeProgressCore';
@@ -269,7 +269,9 @@ export function ArcadeGameV1({game,onFinish}:Props) {
           item={item} icon={iconFor(item.good,item.variant)} accent={game.accent}/>)}
         {['catch','lane','runner'].includes(game.mode) ? <View pointerEvents="none"
           style={[s.player,{left:(run.lane*33.333+4)+'%' as `${number}%`,borderColor:game.accent}]}>
-          <Text style={s.playerIcon}>{run.jumpUntil>=run.ticks && game.mode==='runner'?'⬆️':game.hero}</Text>
+          <ArcadeHeroSprite character={game.character} dim={48}/>
+          {run.jumpUntil>=run.ticks&&game.mode==='runner'?
+            <Text style={s.jumpFlag}>⬆️</Text>:null}
         </View>:null}
       </View>:null}
 
@@ -400,7 +402,7 @@ const s=StyleSheet.create({
   entity:{position:'absolute',width:'26%',height:52,borderRadius:15,alignItems:'center',justifyContent:'center'},
   entityIcon:{fontSize:30},player:{position:'absolute',top:'81%',width:'26%',height:55,borderRadius:18,
     backgroundColor:'#18253b',borderWidth:2,alignItems:'center',justifyContent:'center'},
-  playerIcon:{fontSize:29},hitLine:{position:'absolute',top:'73%',left:0,right:0,borderBottomWidth:3,borderColor:'#f2da87',alignItems:'center'},
+  playerIcon:{fontSize:29},jumpFlag:{position:'absolute',top:-24,fontSize:19},hitLine:{position:'absolute',top:'73%',left:0,right:0,borderBottomWidth:3,borderColor:'#f2da87',alignItems:'center'},
   hitText:{color:'#ffe8a6',fontWeight:'900',fontSize:9},
   controls:{flexDirection:'row',gap:8,justifyContent:'center'},
   control:{flex:1,maxWidth:160,minHeight:49,borderWidth:2,borderRadius:12,backgroundColor:'#29445d',
