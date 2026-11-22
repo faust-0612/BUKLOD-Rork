@@ -45,7 +45,7 @@ jobs:
           node scripts/build-empire-godot-pack.mjs --out=/tmp/buklod-premium-godot.zip
           unzip -t /tmp/buklod-premium-godot.zip | tail -2
           test "$(unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Ec '^art/(fullbody|sprite|scene)/')" = 68
-          test "$(unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Ec '^audio/sfx/.*\\.wav
+          test "$(unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Ec '^audio/sfx/.*\.wav$')" = 70
           for entry in scripts/arena_effects.gd scripts/hero_animation.gd shaders/arena_impact.gdshader tests/premium_smoke.gd; do
             unzip -Z -1 /tmp/buklod-premium-godot.zip | grep -Fx "$entry"
           done
