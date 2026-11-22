@@ -21,14 +21,18 @@ function stageConfig(mode,stage) {
   const level=clamp(Math.trunc(stage)||1,1,MAX_STAGE);
   // Goal and speed have playability caps; mastery/score and modifier keep growing.
   const challenge=CHALLENGES[(level-1+MODES.indexOf(mode))%CHALLENGES.length];
+  const baseDuration=clamp(310-Math.floor(level/2),260,310);
+  const baseSpeed=Math.min(0.75,0.23+level*0.022);
   return {
-    goal: Math.min(30,7+Math.floor(level*0.9)),
-    duration: clamp(310-Math.floor(level/2),260,310),
-    spawnInterval:clamp(9-Math.floor(level/3),3,9),
-    speed: Math.min(0.82,0.23+level*0.024),
-    multiplier: 1+Math.floor((level-1)/4),
+    goal:Math.min(30,7+Math.floor(level*0.9)+(challenge==='treasure'?2:0)),
+    duration:challenge==='rush'?Math.max(225,baseDuration-30):
+      challenge==='endurance'?Math.min(340,baseDuration+25):baseDuration,
+    spawnInterval:clamp(9-Math.floor(level/3)-(challenge==='rush'?1:0),3,9),
+    speed:Math.min(0.82,baseSpeed+(challenge==='rush'?.07:challenge==='storm'?.04:0)),
+    multiplier:Math.min(1000,1+Math.floor((level-1)/4)),
     challenge,
-    hazardRate:challenge==='storm'?3:challenge==='rescue'?7:5,
+    hazardRate:challenge==='storm'?3:challenge==='rescue'?8:
+      challenge==='treasure'?9:5,
   };
 }
 function startArcade(mode,seed,stage=1,total=0,lives=3) {
@@ -39,7 +43,7 @@ function startArcade(mode,seed,stage=1,total=0,lives=3) {
     mode, seed:(seed>>>0)||0x6d2b79f5,stage,
     score:clamp(Number(total)||0,0,MAX_SCORE),
     stagePoints:0,stageHits:0,goal:config.goal,challenge:config.challenge,
-    multiplier:config.multiplier,stageBonus:0,perfects:0,bestCombo:0,
+    multiplier:config.multiplier,stageBonus:0,perfects:0,bestCombo:0,rescueGranted:false,
     lives:clamp(lives,1,4),combo:0,lane:1,
     jumpUntil:0,jumpCooldownUntil:0,lastActionTick:-20,
     ticks:0,remaining:config.duration,
@@ -61,11 +65,19 @@ function award(s,perfect=false) {
   s.bestCombo=Math.max(s.bestCombo,s.combo);
   if(perfect)s.perfects++;
   const multiplier=Math.min(1000,s.multiplier);
-  const points=(perfect?17:12)*multiplier + Math.min(55,s.combo*3);
+  const precision=perfect&&s.challenge==='precision'?1.8:1;
+  const combo=s.challenge==='combo'?Math.min(100,s.combo*5):Math.min(55,s.combo*3);
+  const points=Math.round((perfect?17:12)*multiplier*precision + combo
+    +(s.challenge==='treasure'?8:0));
   s.stagePoints=clamp(s.stagePoints+points,0,MAX_SCORE);
   s.score=clamp(s.score+points,0,MAX_SCORE);
   s.stageHits++;
-  s.outcome=(s.combo%6===0?'unlock':'collect');
+  if(s.challenge==='rescue'&&!s.rescueGranted&&s.stageHits>=Math.floor(s.goal/2)){
+    s.rescueGranted=true;
+    s.lives=Math.min(4,s.lives+1);
+  }
+  s.outcome=(s.combo%6===0||s.rescueGranted&&s.stageHits===Math.floor(s.goal/2)
+    ?'unlock':'collect');
   s.eventSeq++;
 }
 function hurt(s) {
