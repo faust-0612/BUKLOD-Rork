@@ -4,6 +4,7 @@ import {
 } from '@stream-io/video-client';
 
 import { supabase } from '@/lib/supabase';
+import { isBuklodCallJwtExpired } from '@/lib/buklodCallJwt';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 
 /* BUKLOD_WEB_CALLING_R1
@@ -50,27 +51,27 @@ export function getCachedBuklodStreamVideoClient() {
 
 async function getSessionAccessToken(
   forceRefresh = false
-) {
+): Promise<string> {
   if (forceRefresh) {
     try {
-      const refreshed =
-        await supabase.auth.refreshSession();
-
-      if (refreshed.data.session?.access_token) {
-        return refreshed.data.session.access_token;
+      const refreshed = await supabase.auth.refreshSession();
+      const token = refreshed.data.session?.access_token;
+      if (refreshed.error || !token || isBuklodCallJwtExpired(token)) {
+        throw new Error('CALL_SESSION_EXPIRED');
       }
+      return token;
     } catch {
-      // Fall through to the current session.
+      throw new Error('CALL_SESSION_EXPIRED');
     }
   }
 
-  const { data, error } =
-    await supabase.auth.getSession();
-
+  const { data, error } = await supabase.auth.getSession();
   if (error || !data.session?.access_token) {
     throw new Error('Sign in again to use BUKLOD calling.');
   }
-
+  if (isBuklodCallJwtExpired(data.session.access_token)) {
+    return getSessionAccessToken(true);
+  }
   return data.session.access_token;
 }
 
@@ -80,7 +81,8 @@ async function fetchCredentials(
   if (
     !forceRefresh &&
     cachedCredentials &&
-    Date.now() - cachedCredentials.at < TOKEN_CACHE_MS
+    Date.now() - cachedCredentials.at < TOKEN_CACHE_MS &&
+    !isBuklodCallJwtExpired(cachedCredentials.token)
   ) {
     return {
       token: cachedCredentials.token,
