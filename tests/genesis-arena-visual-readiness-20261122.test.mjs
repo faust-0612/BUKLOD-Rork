@@ -44,3 +44,9 @@ test('Only new 2.0.4 library build uses guarded native-first Arena entry',()=>{
  assert.match(screen,/if \(!isGenesisPreviewBuild\(\)\) return <Redirect/);
  assert.doesNotMatch(screen,/EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED = 'true'/);
 });
+
+test('Premium Godot workflow contains exactly one valid no-release guard',()=>{
+ const workflow=readFileSync(new URL('../.github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml',import.meta.url),'utf8');
+ assert.equal((workflow.match(/- name: Enforce DEV-only, no native build or online ranked\/production release/g)||[]).length,1);
+ assert.doesNotMatch(workflow,/^\)" = 70$/m);
+});

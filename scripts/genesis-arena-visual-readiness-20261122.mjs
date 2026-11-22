@@ -38,7 +38,10 @@ export function inspectVisualReadiness(){
     reactBattlefieldPlates:[...assets.matchAll(/'scene:[a-z_]+'/g)].length,
     godotHeroPoses:count('godot/empire-arena/art/fullbody',/^[a-z]+_(idle|walk|attack|skill)\.png$/),
     godotHeroSprites:count('godot/empire-arena/art/sprite',/^[a-z]+\.png$/),
-    godotBattlefieldPlates:count('godot/empire-arena/art/scene',/^[a-z_]+\.png$/),
+    // Scene PNGs are packed directly from the 3 signed RN scene plates; the
+    // native source does not maintain a duplicate art/scene folder.
+    godotBattlefieldPlates:builder.includes("group === 'scene' ? filename : vendored") &&
+      builder.includes('artCounts, { fullbody: 52, scene: 3, sprite: 13 }') ? 3 : 0,
     libraryMinionPortraits:MINION_IDS.filter(id=>file('godot/empire-arena/art/minions/'+id+'.png')).length,
     // Accept either 300 independent PNG or one indexed sprite atlas (no dummy).
     libraryDropIcons:count('godot/empire-arena/art/drops',/^[uh]-[a-z0-9_-]+\.png$/),
