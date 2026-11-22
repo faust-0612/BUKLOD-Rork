@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { useAuth } from '@/providers/AuthProvider';
 import {
   Animated, AppState, Pressable, StyleSheet, Text, View,
 } from 'react-native';
@@ -7,8 +8,12 @@ import type { BuklodGameResult } from '@/features/games/types';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import type { ArcadeSpec } from './arcadeCatalog';
+import { ArcadePremiumFX, ArcadeMovingItem } from './ArcadePremiumFX';
+import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
+import { readArcadeProgress, checkpointArcadeStage } from './arcadeProgressStore';
+import { blankArcadeProgress, type ArcadeProgressRecord } from './arcadeProgressCore';
 import {
-  actArcade, nextArcadeStage, startArcade, tickArcade, type ArcadeState,
+  actArcade, arcadeStagePoints, nextArcadeStage, startArcade, tickArcade, type ArcadeState,
 } from './arcadeCore';
 
 type Props = { game: ArcadeSpec; onFinish: (result:BuklodGameResult,sessionId:string)=>void };
@@ -17,15 +22,83 @@ const LANES = [0,1,2] as const;
 const CELLS = [0,1,2,3,4,5,6,7,8] as const;
 const TICK_MS = 160;
 const TRACK_MODES = new Set(['catch','lane','runner','rhythm','defend']);
+const STATION_SFX: Record<string,string> = {
+  angel:'angel-kingdom-treasury',jawo:'jawo-forest-trail',
+  mitch:'mitch-restore-mural',niel:'niel-mission-trail',
+  vhen:'vhen-farm-to-market',ellusur:'elesur-village-builder',
+  ace:'ace-rescue-grid',phan:'phan-enterprise-builder',
+  quin:'quin-discovery-expedition',van:'van-living-city-dispatch',
+  christian:'christian-civic-leadership',lhen:'lhen-rhythm-journey',
+  trudice:'trudice-playground-memory',
+};
+const CHALLENGE_TL: Record<string,string> = {
+  discovery:'Tuklas',precision:'Tumpak',rush:'Bilis',
+  rescue:'Sagip',combo:'Combo',storm:'Bagyo',
+  treasure:'Yaman',endurance:'Tibay',
+};
+
 
 export function ArcadeGameV1({game,onFinish}:Props) {
   const {t} = useBuklodGameLanguage();
+  const {user} = useAuth();
+  const ownerId = user?.id ?? null;
+  const ownerRef = useRef(ownerId);
+  ownerRef.current = ownerId;
+  const [progress,setProgress] = useState<ArcadeProgressRecord>(()=>blankArcadeProgress(game.id));
+  const [progressLoading,setProgressLoading] = useState(!!ownerId);
+  const [progressNotice,setProgressNotice] = useState('');
+  const [checkpointState,setCheckpointState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
+  const checkpointRef=useRef('');
+
   const [run,setRun] = useState<ArcadeState>(()=>startArcade(game.mode,17));
   const [phase,setPhase] = useState<Phase>('ready');
   const receipt = useRef('');
   const saved = useRef(false);
   const touchX = useRef(0);
   const glow = useRef(new Animated.Value(1)).current;
+
+  useEffect(()=>{
+    let live=true;
+    setProgress(blankArcadeProgress(game.id));
+    setCheckpointState('idle');
+    setProgressNotice('');
+    setProgressLoading(!!ownerId);
+    if(!ownerId)return;
+    void readArcadeProgress(ownerId,game.id).then(value=>{
+      if(live){setProgress(value);setProgressLoading(false);}
+    }).catch(()=>{
+      if(live){setProgressLoading(false);
+        setProgressNotice(t('Unable to load saved levels. Playing from stage 1.',
+          'Hindi nabasa ang saved levels. Magsisimula sa unang yugto.'));}
+    });
+    return ()=>{live=false;};
+  },[ownerId,game.id,t]);
+
+  const checkpoint=useCallback((force=false)=>{
+    if(run.status!=='clear' || !ownerId)return;
+    const key=receipt.current+'.stage:'+run.stage;
+    if(!force && checkpointRef.current===key)return;
+    checkpointRef.current=key;
+    setCheckpointState('saving');
+    void checkpointArcadeStage(ownerId,game.id,run.stage,Math.round(run.score),key)
+      .then(value=>{
+        if(ownerRef.current!==ownerId)return;
+        setProgress(value);
+        setCheckpointState('saved');
+        setProgressNotice(t('Stage saved locally. Game mastery points are not real BUKLOD Points.',
+          'Na-save ang yugto. Ang game mastery points ay hindi totoong BUKLOD Points.'));
+      }).catch(()=>{
+        if(ownerRef.current!==ownerId)return;
+        setCheckpointState('error');
+        setProgressNotice(t('Stage save failed. Retry to protect your progress.',
+          'Hindi na-save ang yugto. Subukang muli para hindi mawala ang progreso.'));
+      });
+  },[ownerId,game.id,run.status,run.stage,run.score,t]);
+
+  useEffect(()=>{
+    if(phase==='clear')checkpoint();
+  },[phase,checkpoint]);
+
 
   useEffect(()=>{
     const animation = Animated.loop(Animated.sequence([
@@ -61,6 +134,7 @@ export function ArcadeGameV1({game,onFinish}:Props) {
   useEffect(()=>{
     if(run.eventSeq===0)return;
     if(run.outcome==='collect')void playBuklodGameFeedback('collect');
+    else if(run.outcome==='unlock')void playBuklodGameFeedback('unlock');
     else if(run.outcome==='impact')void playBuklodGameFeedback('impact');
   },[run.eventSeq,run.outcome]);
 
@@ -72,7 +146,11 @@ export function ArcadeGameV1({game,onFinish}:Props) {
   const begin=()=>{
     saved.current=false;
     receipt.current='arc-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
-    setRun(startArcade(game.mode,Date.now()>>>0));
+    checkpointRef.current='';
+    setCheckpointState('idle');
+    void playRorkSignatureSfx(STATION_SFX[game.character]);
+    // Resume the latest LOCAL unlocked stage. This never grants real points.
+    setRun(startArcade(game.mode,Date.now()>>>0,progress.unlockedStage));
     setPhase('playing');
   };
 
@@ -110,6 +188,9 @@ export function ArcadeGameV1({game,onFinish}:Props) {
     : t(game.instructionEn,game.instructionTl);
 
   return <View style={[s.shell,{borderColor:game.accent}]}>
+    <ArcadePremiumFX accent={game.accent} mode={game.mode}
+      stage={run.stage} active={phase==='playing'}
+      eventSeq={run.eventSeq} outcome={run.outcome}/>
     <View style={s.heading}>
       <Animated.View style={[s.heroCircle,{borderColor:game.accent,transform:[{scale:glow}]}]}>
         <Text style={s.hero}>{game.icon}</Text>
@@ -121,6 +202,10 @@ export function ArcadeGameV1({game,onFinish}:Props) {
       </View>
     </View>
 
+    <View style={s.masteryBar}>
+      <Text style={s.masteryLabel}>🏅 {t('UNLOCKED','NA-UNLOCK')}: {progress.unlockedStage}</Text>
+      <Text style={s.masteryLabel}>✨ {t('ARCADE MASTERY','MASTERY NG LARO')}: {progress.lifetimeArcadePoints.toLocaleString()}</Text>
+    </View>
     <View style={s.hud}>
       <View style={s.hudItem}><Text style={s.hudLabel}>{t('STAGE','YUGTO')}</Text>
         <Text style={s.hudValue}>{run.stage} ∞</Text></View>
@@ -133,7 +218,11 @@ export function ArcadeGameV1({game,onFinish}:Props) {
     </View>
     <View style={s.progressBack}><View style={[s.progressFill,{backgroundColor:game.accent,
       width:(100*Math.min(1,run.stageHits/run.goal))+'%' as `${number}%`}]} /></View>
-    <Text style={s.progressText}>{t('Stage goal','Target')}: {run.stageHits}/{run.goal} • {t('Combo','Sunod-sunod')}: x{run.combo}</Text>
+    <View style={s.progressMeta}>
+      <Text style={s.progressText}>{t('Stage goal','Target')}: {run.stageHits}/{run.goal} • {t('Combo','Sunod-sunod')}: x{run.combo}</Text>
+      <Text style={s.progressBadge}>⚡ {t('Multiplier','Multiplier')} x{run.multiplier} • {t(run.challenge.toUpperCase(),CHALLENGE_TL[run.challenge]||run.challenge)}</Text>
+      <Text style={s.progressText}>+{run.stagePoints.toLocaleString()} {t('stage game score','game score ng yugto')}</Text>
+    </View>
 
     {phase==='ready' ? <View style={s.overlay}>
       <Text style={s.overlayIcon}>{game.hero}</Text>
@@ -143,7 +232,11 @@ export function ArcadeGameV1({game,onFinish}:Props) {
         'Easy controls, harder stages. Complete each stage to unlock endless play. No real points or cash are awarded.',
         'Madaling controls, pahirap nang pahirap. Kumpletuhin ang mga yugto para sa walang katapusang laro. Walang totoong points o cash reward.'
       )}</Text>
-      <Pressable accessibilityRole="button" style={[s.mainButton,{backgroundColor:game.accent}]} onPress={begin}>
+      {!!progressNotice?<Text style={s.saveNotice}>{progressNotice}</Text>:null}
+      <Text style={s.overlayText}>{progressLoading?t('Loading your unlocked stages...', 'Binabasa ang mga nabuksang yugto...')
+        :t('Resume from stage','Ituloy mula sa yugto')+' '+progress.unlockedStage}</Text>
+      <Pressable accessibilityRole="button" disabled={progressLoading}
+        style={[s.mainButton,{backgroundColor:game.accent},progressLoading&&s.disabled]} onPress={begin}>
         <Text style={s.darkText}>{t('▶ PLAY NOW','▶ MAGLARO')}</Text>
       </Pressable>
     </View> : null}
@@ -159,11 +252,8 @@ export function ArcadeGameV1({game,onFinish}:Props) {
           {LANES.map(lane=><View key={lane} style={[s.trackLane,lane===1&&s.centerLane]} />)}
         </View>
         {game.mode==='rhythm' ? <View style={s.hitLine}><Text style={s.hitText}>♪ PERFECT ♪</Text></View>:null}
-        {run.entities.map(item=><View pointerEvents="none" key={item.id}
-          style={[s.entity,{top:(Math.min(80,item.y/6*82))+'%' as `${number}%`,
-            left:(item.lane*33.333+4)+'%' as `${number}%`,backgroundColor:game.accent+'33'}]}>
-          <Text style={s.entityIcon}>{iconFor(item.good,item.variant)}</Text>
-        </View>)}
+        {run.entities.map(item=><ArcadeMovingItem key={item.id}
+          item={item} icon={iconFor(item.good,item.variant)} accent={game.accent}/>)}
         {['catch','lane','runner'].includes(game.mode) ? <View pointerEvents="none"
           style={[s.player,{left:(run.lane*33.333+4)+'%' as `${number}%`,borderColor:game.accent}]}>
           <Text style={s.playerIcon}>{run.jumpUntil>=run.ticks && game.mode==='runner'?'⬆️':game.hero}</Text>
@@ -220,11 +310,19 @@ export function ArcadeGameV1({game,onFinish}:Props) {
       <Text style={s.overlayIcon}>🏆</Text>
       <Text style={s.bigTitle}>{t('STAGE CLEARED!','NATAPOS ANG YUGTO!')}</Text>
       <Text style={s.overlayText}>{t('Keep playing for a harder stage and higher mastery score.','Ituloy sa mas mahirap na yugto para sa mas mataas na score.')}</Text>
-      <Pressable accessibilityRole="button" style={[s.mainButton,{backgroundColor:game.accent}]}
-        onPress={()=>{setRun(previous=>nextArcadeStage(previous));setPhase('playing');}}>
+      <Text style={s.rewardText}>+{arcadeStagePoints(run.stage).toLocaleString()} {t('FIRST-CLEAR GAME MASTERY','MASTERY SA UNANG PANALO')}</Text>
+      <Text style={s.progressBadge}>{t('Stage bonus','Stage bonus')}: +{run.stageBonus.toLocaleString()} • {t('Best combo','Best combo')}: x{run.bestCombo}</Text>
+      {!!progressNotice ? <Text style={s.saveNotice}>{progressNotice}</Text>:null}
+      {checkpointState==='error'?<Pressable accessibilityRole="button" style={s.secondaryButton}
+        onPress={()=>checkpoint(true)}><Text style={s.secondaryText}>{t('RETRY LOCAL SAVE','ULITIN ANG SAVE')}</Text></Pressable>:null}
+      <Pressable accessibilityRole="button" disabled={checkpointState==='saving'}
+        style={[s.mainButton,{backgroundColor:game.accent},checkpointState==='saving'&&s.disabled]}
+        onPress={()=>{checkpointRef.current='';setCheckpointState('idle');setProgressNotice('');
+          setRun(previous=>nextArcadeStage(previous));setPhase('playing');}}>
         <Text style={s.darkText}>{t('NEXT STAGE','SUSUNOD NA YUGTO')} {run.stage+1} ▶</Text>
       </Pressable>
-      <Pressable accessibilityRole="button" style={s.secondaryButton} onPress={finish}>
+      <Pressable accessibilityRole="button" disabled={checkpointState==='saving'}
+        style={[s.secondaryButton,checkpointState==='saving'&&s.disabled]} onPress={finish}>
         <Text style={s.secondaryText}>{t('SAVE MY RUN','I-SAVE ANG LARO')}</Text>
       </Pressable>
     </View>:null}
@@ -254,9 +352,17 @@ export function ArcadeGameV1({game,onFinish}:Props) {
 }
 
 const s=StyleSheet.create({
-  shell:{width:'100%',maxWidth:820,alignSelf:'center',borderWidth:1,borderRadius:18,backgroundColor:'#102237',
+  shell:{width:'100%',maxWidth:820,alignSelf:'center',position:'relative',borderWidth:1,borderRadius:18,backgroundColor:'#102237',
     padding:12,gap:10,overflow:'hidden'},
-  heading:{flexDirection:'row',alignItems:'center',gap:12},heroCircle:{width:66,height:66,alignItems:'center',
+  heading:{flexDirection:'row',alignItems:'center',gap:12},
+  masteryBar:{flexDirection:'row',flexWrap:'wrap',gap:9,justifyContent:'space-between',
+    borderWidth:1,borderColor:'#e6dca144',backgroundColor:'#12243ac9',borderRadius:10,padding:9},
+  masteryLabel:{fontSize:11,fontWeight:'900',color:'#ffe6b4'},
+  progressMeta:{alignItems:'center',gap:3},
+  progressBadge:{fontSize:11,color:'#f4dd9c',fontWeight:'900',textAlign:'center'},
+  rewardText:{fontSize:15,fontWeight:'900',color:'#f9dd92',textAlign:'center'},
+  saveNotice:{fontSize:11,lineHeight:17,color:'#f9ebc5',textAlign:'center'},
+  disabled:{opacity:.5},heroCircle:{width:66,height:66,alignItems:'center',
     justifyContent:'center',borderWidth:2,borderRadius:36,backgroundColor:'#32435a'},
   hero:{fontSize:32},headingCopy:{flex:1,gap:2},kicker:{fontSize:10,letterSpacing:1.1,fontWeight:'900',color:'#e0d3ad'},
   title:{fontSize:23,fontWeight:'900',color:'#fff4db'},help:{fontSize:12,lineHeight:17,color:'#e2e9f1'},
