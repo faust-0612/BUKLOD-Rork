@@ -61,8 +61,23 @@ func _verify() -> void:
 			if not sim.action("A0", slot, Vector2.RIGHT, "B0"):
 				_fail("Library skill rejected unexpectedly: " + hero_id + "/" + slot, 17)
 				return
+		if hero_id == "jawo" and int(me.get("rhythm", 0)) < 1:
+			_fail("Jawo passive rhythm did not activate on a real hit", 20)
+			return
+		if hero_id == "mitch" and not foe["buffs"].has("vulnerable"):
+			_fail("Mitch color theory passive did not mark an enemy", 21)
+			return
+		if hero_id == "trudice":
+			foe["pos"] = (me["pos"] as Vector2) + Vector2(2, 0)
+			foe["cooldowns"]["primary"] = -1000.0
+			if not sim.action("B0", "primary", Vector2.LEFT, "A0") or \
+					int(me.get("insight", 0)) < 1:
+				_fail("Trudice insight did not react to an enemy cast", 22)
+				return
 		library_actors.advance_villager(sim,
 			sim.state["units"].filter(func(u): return u.has("library_job")).front())
+		# Library research must actually benefit faction A without touching ranked ledgers.
+		sim.state["team"]["A"]["library_research"] = 3
 		sim.state["time"] = 30.0
 		library_actors.advance_waves(sim)
 		var minions := 0
@@ -72,10 +87,23 @@ func _verify() -> void:
 		if minions < 6 or minions > library_actors.MAX_ACTIVE_MINIONS:
 			_fail("Library minion spawning broken or unbounded", 18)
 			return
+		var team_a: Array = sim.state["units"].filter(func(u):
+			return u.get("library_minion", false) and u["team"] == "A")
+		var team_b: Array = sim.state["units"].filter(func(u):
+			return u.get("library_minion", false) and u["team"] == "B")
+		if team_a.is_empty() or team_b.is_empty() or \
+				float(team_a.front()["hp"]) <= float(team_b.front()["hp"]):
+			_fail("Village research did not strengthen minion wave", 23)
+			return
 		for i in range(30):
 			sim.advance()
 		if sim.state["status"] not in ["active", "finished", "void"]:
 			_fail("Native match entered invalid state", 19)
 			return
+		if hero_id == "vhen":
+			for tower in sim.state["towers"]:
+				if tower.get("temporary", false):
+					_fail("Expired Vhen turret was not released from match state", 24)
+					return
 	print("BUKLOD_GODOT_LIBRARY_SMOKE_PASS: seven hero kits / five minion roles / two village factions / bounded match-only combat")
 	quit(0)
