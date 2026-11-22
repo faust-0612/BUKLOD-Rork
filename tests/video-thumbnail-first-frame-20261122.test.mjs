@@ -12,6 +12,8 @@ test('Wall and fullscreen retain their poster until a real decoded frame; autopl
   assert.match(video, /const showManualPlay = !autoPlay && !fullscreen && !onOpenFullscreen/);
   assert.match(video, /\{showManualPlay \? \(\s*<MaterialCommunityIcons/);
   assert.match(video, /surfaceType="textureView"/);
+  assert.match(video, /!preload \|\| posterSource \|\| posterUri/);
+  assert.match(video, /player\.generateThumbnailsAsync\(0\.1, \{ maxWidth: 480/);
   assert.match(video, /ImaCommunityVideo/);
   assert.match(video, /COMMUNITY_VIDEO_CACHE_BUDGET_BYTES/);
 });
@@ -25,6 +27,7 @@ test('Marites cards and fullscreen videos use poster-first texture rendering wit
   assert.match(board, /poster && !firstFrameRendered/);
   assert.match(board, /active && slow && !firstFrameRendered && status !== 'error'/);
   assert.match(board, /if \(viewStory.video_uri\) return <MaritesQuickVideo[^\n]+autoPlay/);
+  assert.match(board, /enabled=\{playbackActive && !playbackBlocked/);
   assert.doesNotMatch(board, /name="play-circle-outline" size=\{44\}/);
   assert.match(board, /subscribeCommunityVideoPoster/);
   assert.match(board, /generateThumbnailsAsync\(0\.1, \{ maxWidth: 480/);
