@@ -1,0 +1,83 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/lesson-checking-mentor-catalog-20261122.json",
+  "objective": "Make BUKLOD Lesson and mentoring-release checking non-punitive with unlimited guided revisions, and make all published content-ready BUKLOD lesson options available in the authorized mentor teaching report selector.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source head ecd34228dd24f07a47ba397bb1c29199aac51779 read on 2026-11-22 before the isolated DEV branch was created; no installed production APK/OTA runtime fingerprint was asserted or changed.",
+  "chosenApproach": "Keep authoritative server evaluation and reward guards; surface feedback for all fields, never display a permanent lesson failure, keep editable retries; remove client 20-item catalog truncation; broaden only the authorized SQL catalog to published content-ready learning_tracks.",
+  "selectionRationale": "The source limited visible mentor options to twenty, the catalog to CCP/discipleship, and review checking returned after its first imperfect answer. Backend completion and learning verification must not be bypassed.",
+  "riskAreas": [
+    "app-runtime",
+    "backend-security",
+    "learning",
+    "mentoring",
+    "lesson-report-selection",
+    "points-integrity"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/lesson-checking-mentor-catalog-20261122.json",
+    "src/app/faith/mentor-evidence.tsx",
+    "src/components/LearningQuestionResponse.tsx",
+    "src/app/learn/[id].tsx",
+    "src/app/learn/lesson.tsx",
+    "src/app/mentoring/index.tsx",
+    "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
+  ],
+  "regressionTests": [
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Update only the lesson review presentation and mentoring lesson picker without modifying app navigation, ads, authentication or verified earning authority.",
+      "preservedBehaviors": [
+        "All lesson responses remain subject to server verification and a durable response receipt; no points are deducted for a retry and none are invented for an unapproved lesson.",
+        "Mentor teaching reports still require an explicitly authorized mentor, active assigned learners, an idempotent session key, private consented photo evidence and System Admin review.",
+        "No native modules, navigation layout, pricing, AdMob placements or APK runtime are changed."
+      ],
+      "tests": [
+        "tests/lesson-checking-mentor-options-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Broaden mentor-visible published BUKLOD lesson titles while retaining mandatory server-side mentor authorization and least-privilege function execution ACL.",
+      "preservedBehaviors": [
+        "Unauthorized callers and ordinary members cannot gain mentor capabilities or record rewarded mentoring sessions by changing client search terms.",
+        "Only published and content-ready canonical learning lessons appear, and photo evidence and verified-assignment gates remain server-authoritative.",
+        "No historical approvals, RLS policies, existing BP ledger, QMP, review records or private storage objects are mutated by this migration."
+      ],
+      "tests": [
+        "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+        "supabase/tests/mentor_full_published_catalog_security_20261122.sql"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No permanent fail grade: imperfect answers remain editable with unlimited attempts, but verified approval remains necessary for completion and rewards.",
+    "No automatic role or reward grants and no exposure of unpublished/unfinished curriculum.",
+    "No direct change to production database, Play build, OTA or external deployment.",
+    "The user's photo permission, assigned learners and System Admin review cannot be bypassed."
+  ],
+  "acceptanceChecks": [
+    "Run focused Node and SQL contracts on exact branch SHA plus existing mentor selector/reward tests; execute SQL on an isolated database only.",
+    "Run source, engineering accountability and protected-feature anti-regression gates.",
+    "Apply and RLS-test SQL only on an isolated nonproduction PostgreSQL test environment, verifying an unauthenticated and ordinary member receives no catalog, and a permitted mentor can select all published ready lessons.",
+    "Verify real Android weak-network lesson completion, editing, retry, refresh, catalog search/scroll, photo consent, mentor record idempotency and unrelated Ads/navigation/spacing gates before any consolidated RC.",
+    "Keep production unchanged until verified consolidated release."
+  ],
+  "releaseMode": "ISOLATED_DEV_SOURCE_ONLY",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "stagingDatabaseVerification": "NOT_AVAILABLE",
+  "alternativeApproaches": [
+    "Auto-pass all answers and hide failure: rejected because verification and points integrity would be bypassed.",
+    "Expand client options but retain CCP-only server catalog: rejected because published, content-ready general lessons stay inaccessible.",
+    "All-field feedback, unlimited corrections and an authorized full published-ready mentor catalog: selected because verification and private evidence are preserved."
+  ]
+}
