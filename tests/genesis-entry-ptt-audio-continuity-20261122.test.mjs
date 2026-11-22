@@ -26,3 +26,18 @@ test('Genesis player mixes on Android, ducks without restart, and unsubscribes o
   assert.match(audio, /releasePttActivity\(\)/);
   assert.match(audio, /active = false/);
 });
+
+test('consolidated source guard preserves PTT audio fix and native release hold', () => {
+  const m = JSON.parse(read('.buklod/scopes/genesis-all-updates-conso-20261122.json'));
+  const qa = read('.github/workflows/genesis-all-updates-conso-qa-20261122.yml');
+  for (const p of [
+    'src/lib/buklodAudioFocus.ts',
+    'src/ptt/buklodPttRuntime.ts',
+    'src/features/games/runtime/rorkAudio.ts',
+    'tests/genesis-entry-ptt-audio-continuity-20261122.test.mjs',
+  ]) assert.ok(m.allowedPaths.includes(p), p);
+  assert.ok(m.regressionTests.includes('tests/genesis-entry-ptt-audio-continuity-20261122.test.mjs'));
+  assert.match(qa, /tests\/genesis-entry-ptt-audio-continuity-20261122\.test\.mjs/);
+  assert.equal(m.releaseMode, 'consolidated-staging-source-hold');
+  assert.equal(m.releaseGates.genesisPttAudioDeviceQA, 'NOT_VERIFIED');
+});
