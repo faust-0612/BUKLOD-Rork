@@ -24,10 +24,12 @@ import { BuklodCommunityPhotoCollage } from '@/components/BuklodCommunityPhotoCo
 import { CommunityVideo } from '@/components/CommunityVideo';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import BuklodLifetimePointsHero from '@/components/points/BuklodLifetimePointsHero';
 import { Button } from '@/components/UI';
 import {
   loadMemberCommunityPosts,
   loadMemberPublicProfile,
+  loadMemberPublicLifetimePoints,
   openMemberConnect,
   type MemberPublicPost,
   type MemberPublicProfile,
@@ -63,6 +65,10 @@ export default function MemberPublicProfileScreen() {
   const [posts, setPosts] = useState<MemberPublicPost[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isOfficialProfile, setIsOfficialProfile] = useState(false);
+  const [lifetimeSnapshot, setLifetimeSnapshot] = useState<{
+    userId: string;
+    points: number | null;
+  } | null>(null);
 
   const load = useCallback(async () => {
     if (!memberId) {
@@ -76,6 +82,7 @@ export default function MemberPublicProfileScreen() {
     setLoading(true);
     setError(null);
     setIsOfficialProfile(false);
+    setLifetimeSnapshot(null);
 
     try {
       const next = await loadMemberPublicProfile(memberId);
@@ -100,6 +107,12 @@ export default function MemberPublicProfileScreen() {
         return;
       }
 
+      // This RPC checks auth, privacy lock, active membership, and Official
+      // exclusion on the server; failure never becomes a fabricated zero.
+      void loadMemberPublicLifetimePoints(next.user_id)
+        .then(points => setLifetimeSnapshot({ userId: next.user_id, points }))
+        .catch(() => setLifetimeSnapshot({ userId: next.user_id, points: null }));
+
       const rows = await loadMemberCommunityPosts(
         next.user_id,
         user?.id ?? null,
@@ -123,6 +136,9 @@ export default function MemberPublicProfileScreen() {
   }, [load]);
 
   const title = profile?.display_name || routeName || 'Member Profile';
+  const publicLifetimePoints =
+    profile?.user_id === memberId && lifetimeSnapshot?.userId === memberId
+      ? lifetimeSnapshot.points : null;
 
   const styles = useMemo(
     () =>
@@ -335,6 +351,9 @@ export default function MemberPublicProfileScreen() {
           </View>
         ) : profile?.is_self ? (
           <>
+          {!isOfficialProfile && (
+            <BuklodLifetimePointsHero points={publicLifetimePoints} />
+          )}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>YOUR PROFILE</Text>
             <Text style={styles.cardBody}>
@@ -383,6 +402,9 @@ export default function MemberPublicProfileScreen() {
               )}
             </View>
 
+            {!isOfficialProfile && (
+              <BuklodLifetimePointsHero points={publicLifetimePoints} />
+            )}
             <BuklodSystemAnnouncementBoard slot="profile" />
 
             {!!profile.quick_note && (
@@ -415,8 +437,9 @@ export default function MemberPublicProfileScreen() {
             <View style={styles.card}>
               <Text style={styles.cardTitle}>PRIVATE BY DESIGN</Text>
               <Text style={styles.cardBody}>
-                Contact details, address, earnings, and exact points are not
-                shown on member profiles.
+                Contact details, address, and earnings stay private.
+                Lifetime Points above show verified earned points only,
+                not a redeemable balance or cash amount.
               </Text>
             </View>
 

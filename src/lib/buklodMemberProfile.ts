@@ -311,6 +311,29 @@ export async function loadMemberPublicProfile(
   return loadMemberPublicProfileDirect(id);
 }
 
+
+/**
+ * Lifetime earned BP for a profile the viewer is permitted to see.
+ * Never query the balances table from the client: the RPC enforces the
+ * subject's profile lock, auth and Official exclusion server-side.
+ */
+export async function loadMemberPublicLifetimePoints(
+  userId: string,
+): Promise<number | null> {
+  const id = String(userId ?? '').trim();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    return null;
+  }
+  const { data, error } = await (supabase as any).rpc(
+    'get_buklod_member_lifetime_points_v1',
+    { p_user_id: id },
+  );
+  if (error) throw error;
+  if (data == null) return null;
+  const points = Number(data);
+  return Number.isSafeInteger(points) && points >= 0 ? points : null;
+}
+
 export async function loadMyProfileLocked(): Promise<boolean> {
   const { data, error } = await (supabase as any).rpc(
     'get_my_profile_locked_v1',

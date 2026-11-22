@@ -26,6 +26,7 @@ import {
   ProfilePressable,
 } from '@/components/BuklodProfileMotion';
 import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
+import BuklodLifetimePointsHero from '@/components/points/BuklodLifetimePointsHero';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
@@ -500,29 +501,34 @@ export default function MeScreen() {
 
 
   const [lifetimePoints, setLifetimePoints] =
-    useState(0);
+    useState<number | null>(null);
+  const lifetimeOwnerRef = useProfileScrollRef<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const loadPoints = async () => {
-      try {
-        const dashboard = await loadBuklodPointsDashboard();
-        if (!mounted || !dashboard) return;
-        setLifetimePoints(
-          dashboard.lifetime_points ?? dashboard.total_points,
-        );
-      } catch {
-        if (!mounted) return;
-      }
-    };
-
-    void loadPoints();
-
-    return () => {
-      mounted = false;
-    };
-  }, [profile?.id]);
+  // Profile points use the same verified dashboard as rank/character.
+  // Revalidate on focus (including after claiming rewards); never carry one
+  // account's lifetime total into another account's profile.
+  useProfileFocusEffect(useProfileFocusCallback(() => {
+    const ownerId = profile?.id ?? null;
+    let active = true;
+    if (lifetimeOwnerRef.current !== ownerId) {
+      lifetimeOwnerRef.current = ownerId;
+      setLifetimePoints(null);
+    }
+    if (ownerId) {
+      void loadBuklodPointsDashboard().then(dashboard => {
+        const points = dashboard?.lifetime_points;
+        if (active && lifetimeOwnerRef.current === ownerId) {
+          setLifetimePoints(
+            typeof points === 'number' &&
+            Number.isSafeInteger(points) && points >= 0 ? points : null,
+          );
+        }
+      }).catch(() => {
+        // Keep an already verified total for this account through outages.
+      });
+    }
+    return () => { active = false; };
+  }, [profile?.id]));
 
   useEffect(() => {
     let mounted = true;
@@ -1878,6 +1884,13 @@ export default function MeScreen() {
         </View>
       </View>
 
+      {/* Server-backed earned lifetime BP; never monthly rank or redeemable balance. */}
+      {!isBuklodOfficial && !!profile?.id && (
+        <View style={styles.sectionPad}>
+          <BuklodLifetimePointsHero points={lifetimePoints} />
+        </View>
+      )}
+
       {/* Signed-in member rank is visible for regular and BUKLOD Official profiles. */}
       <View style={{marginHorizontal:buklodVisual.space.screen,padding:10,borderRadius:13,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:6}}>
         <Text allowFontScaling style={{color:theme.textPrimary,fontSize:15,fontWeight:'900'}}>MY OVERALL & MONTHLY RANK</Text>
@@ -1903,7 +1916,7 @@ export default function MeScreen() {
 
       {!isBuklodOfficial && (
         <BuklodProfileCharacterCard
-          lifetimePoints={lifetimePoints}
+          lifetimePoints={lifetimePoints ?? 0}
           rankName={circleRank}
         />
       )}
