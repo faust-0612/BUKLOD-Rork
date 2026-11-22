@@ -1,0 +1,37 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-stop-redundant-ota-20261122.json",
+  "objective": "After verified production OTA from successful publisher run 44991320828, advance main with NO app source/native change so a redundant queued publisher run 44991680816 fails its existing main-SHA lease before a second EAS update.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: protected production publisher workflow run 44991320828 completed success at main source 27c8e51ed2d7237483107b6c1ded8fbe5a410ce5; logs record VERIFIED ANDROID PRODUCTION OTA 01a201d4-de9e-7de7-a54f-d1654090421c runtime 1.3.2 and served bundle hash parity. Redundant run 44991680816 started at metadata-only source 088df3cc1265a097744f78f4f24aaa3ae5ad3586 and has not yet been verified as published. Existing canonical workflow checks current main SHA before publish.",
+  "chosenApproach": "Guarded emergency PR limited to scope metadata and one release regression test; squash merge to main with NON-RELEASE message to advance ref and invoke production publisher main-SHA final lease for the already running redundant release; do not directly modify protected main, alter publisher workflow or cancel production auth.",
+  "selectionRationale": "Direct main metadata write was rejected by protected branch rules; an ordinary reviewed PR preserves protection and uses the existing exact-SHA pre-publish guard to prevent wasteful duplicate OTA.",
+  "allowedPaths": [
+    ".buklod/scopes/buklod-stop-redundant-ota-20261122.json",
+    "tests/buklod-main-conso-ota-promotion-marker-20261122.test.cjs"
+  ],
+  "riskAreas": [
+    "production-ota",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/buklod-main-conso-ota-promotion-marker-20261122.test.cjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "The verified OTA update 01a201d4-de9e-7de7-a54f-d1654090421c stays published on production runtime 1.3.2; no app/runtime/native, SQL or ad changes.",
+    "No added EAS publication: non-marker main commit must not run publish, and the old workflow must fail if HEAD advanced.",
+    "Existing production CLI credential and EAS environment remain private/unchanged."
+  ],
+  "alternativeApproaches": [
+    "Publish second identical update: rejected as duplicate cost/egress and unnecessary work.",
+    "Directly mutate protected main branch: rejected by branch protection.",
+    "New reviewed no-app-code merge to revoke old publisher main-SHA lease: chosen."
+  ],
+  "acceptanceChecks": [
+    "Engineering PR gate passes and merge result advances main with a non-production marker.",
+    "Old 44991680816 run must fail prepublish when it checks current main SHA, unless already published; verify actual EAS provider receipt.",
+    "No new mobile source, package, runtime, SQL changes."
+  ],
+  "publicationStatus": "FIRST_OTA_VERIFIED_SECOND_DUPLICATE_PREVENTION_PENDING"
+}
