@@ -158,7 +158,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Test DZAS web audio and protected release boundaries
         run: |
-          node --test tests/dzas-signal-deck-implementation.test.mjs tests/bible-radio-visual.test.cjs
+          node --test tests/dzas-signal-deck-implementation.test.mjs tests/dzas-web-production-deploy.test.mjs
           node --test tests/dzas-web-production-deploy.test.mjs
       - name: Compile-check TypeScript
         run: npx tsc --noEmit
