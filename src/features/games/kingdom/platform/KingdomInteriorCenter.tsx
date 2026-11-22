@@ -43,7 +43,7 @@ export function KingdomInteriorCenter({
   character, subtitleEn, subtitleTl, options, compactGameId, onActiveGameChange,
 }: KingdomInteriorProps) {
   const { user } = useAuth();
-  const { t } = useBuklodGameLanguage();
+  const { t, setGuideGameId } = useBuklodGameLanguage();
   const arcadeOptions = useMemo<KingdomInteriorOption[]>(() =>
     arcadeGamesForCharacter(character).map(game => ({
       id: game.id, title: '🎮 ' + game.title,
@@ -61,6 +61,13 @@ export function KingdomInteriorCenter({
   ownerRef.current = user?.id ?? null;
   gameRef.current = activeId;
   const active = availableOptions.find(option => option.id === activeId) ?? availableOptions[0];
+  useEffect(() => {
+    // Keep the global EN/TL guide matched to arcade selections. Existing
+    // expert/original guides retain the prior station behavior.
+    setGuideGameId(active?.kind === 'arcade' ? active.id : undefined);
+    return () => setGuideGameId(undefined);
+  }, [active?.id, active?.kind, setGuideGameId]);
+
 
   useEffect(() => {
     let mounted = true;
