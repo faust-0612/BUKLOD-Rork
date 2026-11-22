@@ -1,0 +1,176 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-main-conso-ota-only-20261122.json",
+  "objective": "Complete a single BUKLOD MAIN existing-native runtime 1.3.2 consolidated production OTA for first-view AdMob timeout recovery, exact-Cluster Admin Home Check In Today verification, safe PTT saved preferences, full authorized mentoring lesson choices, nonpunitive learning, silent next-cold-start OTA and privacy-gated System Admin registration inbox. NO NEW NATIVE or Season2.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Verified code main ecd34228dd24f07a47ba397bb1c29199aac51779, live EAS production provider snapshot 2026-11-22T02:51:58Z update 01a1fcb7-bee4-71cc-8c60-e732c0a255fa runtime 1.3.2 launch hash 3CTOmRqorDvy9IYEsCI7DWRwuOWGbe7GAKt2rBnJkwg (not source SHA); known distinct prior live mentor hotfix source 98fda684f8a322ba0095adda06899534fdcfa6fe preserved in final mentor-evidence form and already-main tests/mentor-report-submit-feedback-20261120.test.mjs. Exact source and served baseline to be captured by canonical OTA publisher.",
+  "chosenApproach": "Forward-port exactly the 26 compatible source/SQL files and 20 focused changed regressions from separately CI-reviewed PR #1087 and parent #1082 onto canonical main, as one auditable branch and one V2 protected scope. All native package configs/dependencies/plugins/assets unchanged. Apply only missing safe production SQL migrations in a coordinated release and use existing main-only marker OTA pipeline to freeze and verify exact runtime 1.3.2 Android bundle; no new native APK or manual device test.",
+  "selectionRationale": "Main and prior production mentor isolated source diverged; entire branch merges risk overwriting a live mentor-submit fix. Scoped source forward-port preserves the behavior while excluding DEV-only workflows, Genesis and 2.x-native modules. New native binaries cannot be delivered through OTA. Hard AdMob, role and BP authorization gates still apply.",
+  "allowedPaths": [
+    "src/app/_layout.tsx",
+    "src/app/admin/index.tsx",
+    "src/app/admin/new-users.tsx",
+    "src/app/admin/points-r2-monitor.tsx",
+    "src/app/clusters/home-checkin-review.tsx",
+    "src/app/clusters/scope-manage.tsx",
+    "src/app/faith/mentor-evidence.tsx",
+    "src/app/learn/[id].tsx",
+    "src/app/learn/lesson.tsx",
+    "src/app/mentoring/index.tsx",
+    "src/app/personal-home/ptt.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodHomeCheckinToday.tsx",
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
+    "src/components/LearningQuestionResponse.tsx",
+    "src/lib/buklodAdminPriority.ts",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/lib/buklodNativeAdRecovery.ts",
+    "src/lib/buklodNotificationNavigation.ts",
+    "src/lib/buklodSilentOtaPolicy.ts",
+    "src/ptt/buklodPttDutyNotification.ts",
+    "src/ptt/buklodPttRuntime.ts",
+    "src/ptt/buklodPttSetup.ts",
+    "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
+    "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql",
+    "supabase/migrations/20261122090000_cluster_scoped_home_checkin_review_v1.sql",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+    "tests/admin-new-registration-inbox-20261119.test.cjs",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "tests/admin-registration-security-20261119.test.cjs",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/buklod-ptt-preferences-and-switching.test.mjs",
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs",
+    ".buklod/scopes/buklod-main-conso-ota-only-20261122.json"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "backend-security",
+    "navigation-scroll",
+    "faith-cluster",
+    "ads-monetization",
+    "mentoring",
+    "ptt",
+    "authentication",
+    "admin-privacy",
+    "silent-ota",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+    "tests/admin-new-registration-inbox-20261119.test.cjs",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "tests/admin-registration-security-20261119.test.cjs",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/buklod-ptt-preferences-and-switching.test.mjs",
+    "tests/buklod-silent-ota-policy.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "tests/lesson-checking-mentor-options-20261122.test.mjs",
+    "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs"
+  ],
+  "alternativeApproaches": [
+    "Publish existing Genesis/Godot runtime 2.x into 1.3.2 production OTA: rejected; native ABI incompatible and user directed skip new native.",
+    "Fast merge wholesale staging/prod-intake branches: rejected; includes development-only workflows and manifest scopes, risks live mentor submit regression, and bypasses one-source governance.",
+    "Manually disable production ads or flood NativeAd retries: rejected; loses revenue or worsens Google fill.",
+    "Use an isolated main-derived, exact-path protected RC plus canonical main-only publish after tests: chosen; preserves runtime/ads and one OTA."
+  ],
+  "preserveBehaviors": [
+    "Full existing native runtime 1.3.2, package org.mzbministry.buklod, versionCode 30, AdMob native app ID and Expo project remain unchanged; no app.config, package, native plugin or Godot modules added.",
+    "Existing mentor submit photo retry, accurate missing-field feedback, server-issued evidence receipt, duplicate suppression and real System Admin approval retained from last known separately published mentor source.",
+    "Pending Home Check In Today claims preserved, no automatic review or BP credit; active exact Cluster Admin role required; legacy System Admin check-in approval retired only through gated backend migration.",
+    "Ledger uniqueness by (user_id,source_key), claim_state and current user balance/achievement triggers remain authoritative; no off-ledger points or repeated rewards.",
+    "Consented AdMob request/loaded/render/impression events, banner fallback under native SDK degradation, native creative prewarm cap and protected routes; no synthetic revenue, no full-screen interruption during nav.",
+    "PTT saved/listening preferences, explicit Stop, call/voice network reliability, existing tabs and screen speed unchanged.",
+    "Silent OTA activation only at safe next cold launch, no call/upload/draft disruption or forced native APK update.",
+    "User waived physical device testing only; do not claim that ad fill or Android native runtime was observed on device."
+  ],
+  "acceptanceChecks": [
+    "Only one modified V2 scope, changed path allowlist exactly matches consolidated source diff from canonical main.",
+    "Source CI: Engineering Accountability, protected regression gates, AdMob source checks, PTT and media, admin/Cluster/mentoring tests, TypeScript and Android Metro JS export pass on exact merge candidate.",
+    "Native ABI unchanged, Android package org.mzbministry.buklod and Expo runtime 1.3.2 preserved; no Season2 asset/import.",
+    "Protect live mentor submit hotfix markers using existing tests/mentor-report-submit-feedback-20261120.test.mjs and exact source diff.",
+    "Existing live Supabase schemas/RLS/grants and migration dependencies checked, isolated role/BP test passed before any approved production migration.",
+    "Post-SQL permissions deny anonymous/outsider/cross-cluster, preserve all pending claims and source-key uniqueness; permission test uses actor auth claims, no member PII.",
+    "Main-only protected production OTA freeze obtains current live served update ID/hash and checks exact SHA/native/AdMob production EAS env before publishing.",
+    "Verify exact published Android update ID, channel, runtime and served bundle hash. If any release gate fails, stop production publish; no inferred success."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Keep production Android native ABI and preexisting app functions while integrating source-only PTT, lessons, attendance, native AdMob error recovery and safe next-launch OTA.",
+      "preservedBehaviors": [
+        "Runtime 1.3.2 native ABI and all canonical tabs, ad lifecycle, mentoring evidence and PTT states are preserved."
+      ],
+      "tests": [
+        "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+        "tests/buklod-ptt-preferences-and-switching.test.mjs",
+        "tests/buklod-silent-ota-policy.test.mjs",
+        "tests/ota-restart-safe-area.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Add exact-Cluster Admin attendance route and privacy-scoped System Admin new registrations while retaining current navigation/auth safe areas and boot flows.",
+      "preservedBehaviors": [
+        "Only authorized admins can see protected routes; existing Wall, Connect, Profile and quick Home navigation remain functional."
+      ],
+      "tests": [
+        "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+        "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+        "tests/admin-registration-notification-route-20261119.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Move Home Check In Today review to exact active Cluster admin and maintain per-event evidence, member membership, pending rows and reward audit.",
+      "preservedBehaviors": [
+        "Event QR/manual attendance and server-owned check-in/point rules are unchanged; pending claims cannot be globally approved."
+      ],
+      "tests": [
+        "tests/buklod-cluster-home-checkin-review.test.cjs",
+        "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+        "tests/cluster-connect-notifications-points-20261108.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Keep migration code for existing Admin inbox and new exact-Cluster attendance/mentor catalog RPCs with Supabase actor authorization, scope isolation and ledger idempotency.",
+      "preservedBehaviors": [
+        "No anonymous grants, no member PII in notifications, no unverified learning content and no duplicate +10 BP award."
+      ],
+      "tests": [
+        "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+        "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+        "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+        "supabase/tests/admin_new_registration_security_20261119.sql",
+        "tests/admin-registration-security-20261119.test.cjs"
+      ]
+    }
+  ],
+  "physicalDeviceQA": "WAIVED_BY_OWNER_2026-11-22_NOT_TESTED_NOT_PASSED",
+  "releaseMode": "single-main-native-compatible-ota",
+  "backendActivation": "MIGRATIONS_NOT_YET_APPLIED",
+  "publicationStatus": "NO_OTA_UNTIL_EXACT_RC_AND_BACKEND_PASS"
+}

@@ -448,6 +448,7 @@ function RootLayout() {
                 <Stack.Screen name="admin/content-reports" />
                 <Stack.Screen name="admin/system-announcement-boards" />
                 <Stack.Screen name="admin/daily-engagement" />
+                <Stack.Screen name="clusters/home-checkin-review" />
                 <Stack.Screen name="scope/attendance/index" />
                 <Stack.Screen name="scope/attendance/report" />
                 <Stack.Screen name="organizations/events-attendance" />

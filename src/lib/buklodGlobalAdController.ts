@@ -76,6 +76,7 @@ const SENSITIVE_PREFIXES = [
   '/organizations/settings',
   '/organizations/manage',
   '/clusters/manage',
+  '/clusters/home-checkin-review',
   '/clusters/settings',
   '/premium',
   '/mzb/admin',
