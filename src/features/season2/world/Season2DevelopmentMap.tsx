@@ -20,6 +20,7 @@ import {getDevelopmentAsset,getDevelopmentStageAsset} from './developmentAssetMa
 import Season2CommunityFacilities from './Season2CommunityFacilities';
 import DevelopmentStructurePreview from './DevelopmentStructurePreview';
 import EstateConstructionConsole from './EstateConstructionConsole';
+import BuklodCrossWorldAchievements from '@/components/games/BuklodCrossWorldAchievements';
 import EstateMomentFX from './EstateMomentFX';
 import EstateCosmeticTile from './EstateCosmeticTile';
 import EstateGenesisAtmosphere from './EstateGenesisAtmosphere';
@@ -388,6 +389,7 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
           Sample Kingdom M10: {quoteKingdomMastery(10).requiredXp?.toLocaleString()} XP required.
           BP, Diamonds, ranked power and House construction remain independently server-verified.
         </Text>:null}
+        {world==='home'?<BuklodCrossWorldAchievements world="house"/>:null}
         <Season2CommunityFacilities world={world}/>
         <View style={styles.panel}>
           <View style={styles.levelRow}>
