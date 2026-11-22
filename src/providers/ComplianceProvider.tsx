@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
-import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { BuklodRequestTimeoutError, withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { hasMatchingPolicySession, allRequiredPoliciesAccepted } from '@/lib/buklodPolicyAuthGuard';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -34,7 +34,8 @@ const ComplianceContext = createContext<ComplianceValue>({
   acceptAll: async () => ({}),
 });
 
-const COMPLIANCE_TIMEOUT_MS = 5000;
+const COMPLIANCE_TIMEOUT_MS = 8000;
+const ACCEPTANCE_TIMEOUT_MS = 12000;
 const SESSION_MESSAGE = 'Your BUKLOD session has expired. Please sign in again.';
 
 class PolicySessionUnavailable extends Error {
@@ -64,7 +65,10 @@ async function readRequiredPolicies(expectedUserId: string): Promise<RequiredPol
     COMPLIANCE_TIMEOUT_MS,
     'BUKLOD policy session'
   );
-  if (sessionError || !hasMatchingPolicySession(auth.session, expectedUserId)) {
+  // A failed token refresh can be temporary; do not mislabel it as a
+  // permanently expired session or send a member into a login loop.
+  if (sessionError) throw sessionError;
+  if (!hasMatchingPolicySession(auth.session, expectedUserId)) {
     throw new PolicySessionUnavailable();
   }
 
@@ -150,29 +154,48 @@ export function ComplianceProvider({ children }: { children: React.ReactNode }) 
       // Verify identity with Auth server BEFORE an authenticated write.
       const { data: identity, error: identityError } = await withBuklodTimeout(
         supabase.auth.getUser(),
-        COMPLIANCE_TIMEOUT_MS,
+        ACCEPTANCE_TIMEOUT_MS,
         'BUKLOD policy identity'
       );
-      if (identityError || identity.user?.id !== targetUserId) {
+      if (identityError) throw identityError;
+      if (identity.user?.id !== targetUserId) {
         throw new PolicySessionUnavailable();
       }
 
       const appVersion = Constants.expoConfig?.version ?? null;
       for (const policy of required.filter(row => !row.accepted)) {
-        const { error } = await withBuklodTimeout(
-          supabase.rpc('accept_required_policy', {
-            p_policy_version_id: policy.policy_version_id,
-            p_app_version: appVersion,
-          }),
-          COMPLIANCE_TIMEOUT_MS,
-          'BUKLOD policy acceptance'
-        );
-        if (error) throw error;
+        // A timeout can happen AFTER the database committed. Read back the
+        // authenticated server state before reporting a failed acknowledgement.
+        // The RPC is idempotent, but never bypass server verification.
+        let writeError: unknown = null;
+        try {
+          const { error } = await withBuklodTimeout(
+            supabase.rpc('accept_required_policy', {
+              p_policy_version_id: policy.policy_version_id,
+              p_app_version: appVersion,
+            }),
+            ACCEPTANCE_TIMEOUT_MS,
+            'BUKLOD policy acceptance'
+          );
+          if (error) throw error;
+        } catch (error) {
+          writeError = error;
+        }
+        if (writeError) {
+          const confirmed = await readRequiredPolicies(targetUserId)
+            .then(rows => rows.some(row =>
+              row.policy_version_id === policy.policy_version_id && row.accepted))
+            .catch(() => false);
+          if (!confirmed) throw writeError;
+        }
       }
 
       // The server is authoritative: do not cache accepted=true or route away
       // until every currently required policy is actually confirmed accepted.
       const verified = await readRequiredPolicies(targetUserId);
+      if (generation !== generationRef.current) {
+        return { error: 'Your connection changed while saving. Please tap Continue again.' };
+      }
       if (!allRequiredPoliciesAccepted(verified)) {
         if (generation === generationRef.current) setPolicies(verified);
         return { error: 'Acknowledgement was not confirmed. Please try again.' };
@@ -183,12 +206,16 @@ export function ComplianceProvider({ children }: { children: React.ReactNode }) 
       }
       return {};
     } catch (error) {
+      const message = String((error as Error)?.message ?? error);
       const needsLogin = error instanceof PolicySessionUnavailable ||
-        /authentication required|jwt expired|invalid jwt/i.test(String((error as Error)?.message ?? ''));
-      console.warn('BUKLOD policy acceptance:', String((error as Error)?.message ?? error));
+        /authentication required|jwt expired|invalid jwt|refresh token not found|session expired/i.test(message);
+      const temporary = error instanceof BuklodRequestTimeoutError ||
+        /network request failed|failed to fetch|fetch failed|timed out|timeout|connection lost|etimedout/i.test(message);
+      console.warn('BUKLOD policy acceptance:', message);
       return {
         error: needsLogin ? SESSION_MESSAGE
-          : 'Could not verify your acknowledgement. Check your connection and try again.',
+          : temporary ? 'The server did not respond in time. Check your internet and tap Continue again.'
+          : 'BUKLOD could not confirm the policy acknowledgement. Please try again.',
         needsLogin,
       };
     } finally {

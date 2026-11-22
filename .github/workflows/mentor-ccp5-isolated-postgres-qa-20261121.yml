@@ -1,0 +1,59 @@
+name: Mentor CCP5 Ephemeral PostgreSQL 17 QA (No OTA)
+on:
+  push:
+    branches:
+      - release/mentor-ccp5-prod-rc-hold-20261121
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261121132000_mentor_report_catalog_titles_and_role_clarity.sql'
+      - 'supabase/migrations/20261121141000_admin_mentor_capability_review_audit_v1.sql'
+      - 'supabase/tests/mentor_capability_release_guard_20261121.sql'
+      - 'tests/fixtures/mentor-capability-postgres17-20261121.sql'
+      - 'tests/fixtures/mentor-capability-postgres17-verification-20261121.sql'
+      - '.github/workflows/mentor-ccp5-isolated-postgres-qa-20261121.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-mentor-sql:
+    if: github.event_name == 'push' || github.head_ref == 'release/mentor-ccp5-prod-rc-hold-20261121'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check isolated scope and zero real credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.ref_name }}" = 'release/mentor-ccp5-prod-rc-hold-20261121' || test "${{ github.head_ref }}" = 'release/mentor-ccp5-prod-rc-hold-20261121'
+      - name: Replay production SQL in disposable local PostgreSQL only
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v psql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/mentor-capability-postgres17-20261121.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261121132000_mentor_report_catalog_titles_and_role_clarity.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261121141000_admin_mentor_capability_review_audit_v1.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/mentor_capability_release_guard_20261121.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/mentor-capability-postgres17-verification-20261121.sql
+          if psql -X -v ON_ERROR_STOP=1 -c 'set role anon; select public.admin_set_mentor_capability_v1(null,true,''not authorized from anonymous'',gen_random_uuid());'; then
+            echo 'FAIL: anonymous invoke unexpectedly allowed'
+            exit 1
+          fi
+          echo 'PASS: ephemeral PG17 syntax, audited role changes, protected identity, idempotency, ACL and deny tests'
