@@ -1,0 +1,122 @@
+{
+  "contractVersion": 2,
+  "objective": "Integrate BUKLOD MAIN production-compatible AdMob native first-view timeout recovery and exact Cluster Admin Check In Today review into the existing non-Season 2 production-intake source, without deploying unsafe or unverified changes.",
+  "baseRef": "integration/nonseason2-production-ota-intake-20261122",
+  "productionBaselineEvidence": "verified: Live production Supabase 2026-11-22 ~09:26-09:29 Asia/Manila, app 1.3.6 build30 runtime1.3.2 ADMob Native had 260 requests, 51 loads and 112 native load timeouts during rolling 60m; banner 95 requests/60 loads; new cluster-review functions not installed and Mission Worker one check-in pending. Main ecd34228dd24f07a47ba397bb1c29199aac51779 is code baseline only; independently recorded prior EAS production source 98fda684f8a322ba0095adda06899534fdcfa6fe is not freshly fingerprint-verified. Owner explicitly requested a consolidated production release; this is DEV/RC preparation, not release proof.",
+  "chosenApproach": "Use one bounded session-local shared NativeAd failure circuit after three distinct placement failures in 60s (2m banner preference, immediate recovery on actual native SDK success). Keep per-placement 2-failure/5m logic, native prewarm cap, consent, cooldown, impression event provenance. Carry exact-Cluster attendance authorization and UI from previously verified PR #1086 into nonseason2 production intake PR #1082; DO NOT apply SQL or publish until isolated DB and real Android/OTA gates.",
+  "selectionRationale": "Cross-dashboard native timeouts indicate common SDK/network/inventory degradation; shared bounded fallback lowers repeated first-view delay without extra ad requests. Backend Cluster Admin role is enforced on exact scope server-side, not client-only or System Admin.",
+  "alternativeApproaches": [
+    "Disable AdMob production units or ads_all kill switch: rejected because it immediately eliminates legitimate inventory and revenue.",
+    "Retry all native placements aggressively or parallel-load both banner and native: rejected due duplicate demand, policy/fill and navigation-regression risk.",
+    "Publish Genesis/Godot 2.0.x directly to production 1.3.2 runtime: rejected because incompatible native module/ABI and active Season 2 release safety requirements."
+  ],
+  "allowedPaths": [
+    "src/app/_layout.tsx",
+    "src/app/admin/points-r2-monitor.tsx",
+    "src/app/clusters/home-checkin-review.tsx",
+    "src/app/clusters/scope-manage.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodHomeCheckinToday.tsx",
+    "src/lib/buklodAdminPriority.ts",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/lib/buklodNativeAdRecovery.ts",
+    "supabase/migrations/20261122090000_cluster_scoped_home_checkin_review_v1.sql",
+    "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    ".buklod/scopes/main-prod-ad-recovery-cluster-conso-20261122.json"
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "navigation-scroll",
+    "faith-cluster",
+    "backend-security"
+  ],
+  "regressionTests": [
+    "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+    "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+    "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "ads-monetization",
+      "reason": "Improve native AdMob first-view fallback only under short-window cross-placement SDK failures; no ad IDs, metrics, native modules, consent, or monetization policy are changed.",
+      "preservedBehaviors": [
+        "Existing real SDK impressions and error telemetry, AdMob fill lifecycle, max two prewarmed creatives, 2-minute shared request cooldown, route/foreground/consent safeguards, banner-only fallback and rewards remain unchanged."
+      ],
+      "tests": [
+        "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+        "tests/buklod-cluster-checkin-ads-monetization.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Expose attendance verification from existing Cluster manage and attendance snapshot to exact-scope authorized Cluster admins without replacing or slowing canonical tabs.",
+      "preservedBehaviors": [
+        "Persistent native tabs, login, route/keyboard/scroll safety, member check-in, profile/Wall/Connect and screen-focus ad isolation remain intact."
+      ],
+      "tests": [
+        "tests/buklod-cluster-checkin-navigation-scroll.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Move attendance review to active exact-Cluster ADMIN/CLUSTER_ADMIN roles with pending queue scoped to the actual event.",
+      "preservedBehaviors": [
+        "Attendance source, QR/manual confirmation, existing pending claims, approved member scope, BP calculation and unrelated mentoring/lesson flows remain intact."
+      ],
+      "tests": [
+        "tests/buklod-cluster-home-checkin-review.test.cjs",
+        "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Introduce server-owned Cluster Admin transactional queue/review RPCs and remove global System Admin home-checkin approval authority after gated migration.",
+      "preservedBehaviors": [
+        "No production SQL deployed in DEV; exact membership and active role, no self-approval, one-time ledger credit, reviewer audit, old security policies and unrelated admin powers unchanged."
+      ],
+      "tests": [
+        "tests/buklod-cluster-home-checkin-review.test.cjs",
+        "tests/cluster-connect-notifications-points-20261108.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Source/TypeScript, focused six tests, full AdMob source regression, navigation and UI tests pass on exact consolidated SHA.",
+    "NativeAd circuit activates only for >=3 distinct placement failures in rolling 60s, auto-recovers after 2min or on genuine SDK success, no synthetic impression or extra SDK request.",
+    "Same placement 2 failures retain existing fallback; mixed-slot faults do not permanently suppress healthy inventory or licensed banner fallback.",
+    "Isolated Supabase RC verifies cross-cluster denial, active admin, status revocation, self-approval denial, event boundary, atomic single BP credit, retry and concurrent review; current live project untouched until verified release.",
+    "Prior nonseason2 PTT, lesson, silent OTA, admin registration changes retained as unchanged inherited parent source.",
+    "Production native package org.mzbministry.buklod and runtime 1.3.2 unchanged; Genesis/Godot 2.0+ staging-only code excluded.",
+    "Android signed/prebuilt RC, current served EAS source fingerprint, on-device first-view fill + instant tab navigation/AdMob, and existing native module compatibility independently verified.",
+    "Publish via canonical protected production pipeline only after gates, then verify exact EAS update ID and served bundle; do not send release announcement before verified live production."
+  ],
+  "verification": {
+    "completed": [
+      "Read-only live 15/30/60m telemetry by app/build/runtime and format; AdMob failures concentrated in native first-view and Wall feed.",
+      "Existing nonseason2 production-intake branch reconciled with exact Cluster Admin PR source and additive native-failure recovery helper.",
+      "No direct production data, AdMob unit, Supabase migration, Android binary or EAS update changes."
+    ],
+    "pending": [
+      "Actual focused and complete CI on this exact integration SHA",
+      "Isolated database actor/security and concurrent credit tests",
+      "Signed production-native compatible RC and on-device AdMob/tab regression",
+      "Current live production EAS source fingerprint and OTA publisher capability"
+    ]
+  },
+  "release": {
+    "state": "DEV SOURCE CONSOLIDATED, RELEASE HOLD",
+    "productionMigrated": false,
+    "stagingOtaPublished": false,
+    "productionOtaPublished": false,
+    "nativeBuildRequired": false
+  }
+}
