@@ -77,22 +77,38 @@ jobs:
           CI: '1'
           EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
         run: |
-          set -euo pipefail
-          # This is read-only QA. No EAS, OTA, Supabase connection, App Store
-          # changes, production secrets, or backend writes are permitted.
+          set -uo pipefail
+          # Execute every independent QA check even if one fails; surface every
+          # actual release blocker in one CI cycle. No service or deploy writes.
           npm ci --ignore-scripts --no-audit --no-fund
-          echo 'BUKLOD APP-WIDE QA: full Jest suite'
-          npm test -- --ci --watch=false
+          install_status=$?
+          if [ "$install_status" -eq 0 ]; then
+            echo 'BUKLOD APP-WIDE QA: full Jest suite'
+            npm test -- --ci --watch=false
+            jest_status=$?
+          else
+            echo 'Dependency installation failed; Jest cannot execute'
+            jest_status=1
+          fi
           echo 'BUKLOD APP-WIDE QA: source release contracts'
           npm run release:gate
+          release_status=$?
           echo 'BUKLOD APP-WIDE QA: Genesis official single-season theme'
           npm run genesis:theme:gate
+          genesis_status=$?
           echo 'BUKLOD APP-WIDE QA: native minimum-version, finance and app-wide ad contracts'
           node --test \
             tests/buklod-mandatory-update-runtime.test.mjs \
             tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
             tests/buklod-ads-production-release-contract-20261111.test.mjs \
             tests/buklod-admob-fill-finance-release-20261111.test.mjs
+          cross_status=$?
+          echo "BUKLOD_APPWIDE_QA_RESULTS jest=$jest_status release=$release_status genesis=$genesis_status cross=$cross_status"
+          if [ "$jest_status" -ne 0 ] || [ "$release_status" -ne 0 ] || \
+             [ "$genesis_status" -ne 0 ] || [ "$cross_status" -ne 0 ]; then
+            echo '::error::BUKLOD app-wide QA incomplete: one or more test gates failed'
+            exit 1
+          fi
           echo 'BUKLOD_APP_WIDE_SOURCE_QA_PASS: Jest / release / Genesis / native update / ad finance'
 
       - name: Enforce DEV-only, no native build or online ranked/production release
