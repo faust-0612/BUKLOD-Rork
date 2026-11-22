@@ -1,0 +1,110 @@
+name: BUKLOD Genesis Library Native APK Read-Only Build Receipt
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/genesis-library-build-receipt-20261122.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect-build:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'dev/genesis-unified-arena-library-apk-20261122'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect exact GitHub Actions native APK build without rerunning it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ab54ae08cd4bc27abcae2fe6bb9679466d05a9f0
+        run: |
+          node --input-type=module <<'NODE'
+          const repo=process.env.GITHUB_REPOSITORY;
+          const expected=process.env.EXPECTED_SHA;
+          const headers={
+            'Authorization':'Bearer '+process.env.GH_TOKEN,
+            'Accept':'application/vnd.github+json',
+            'X-GitHub-Api-Version':'2022-11-28',
+            'User-Agent':'buklod-native-apk-readonly-receipt'
+          };
+          async function read(path){
+            const response=await fetch('https://api.github.com/repos/'+repo+path,{headers});
+            if(!response.ok)throw Error('GitHub read-only API HTTP '+response.status+' at '+path);
+            return response.json();
+          }
+          const all=await read('/actions/runs?branch=dev%2Fgenesis-unified-arena-library-apk-20261122&event=push&per_page=100');
+          const found=(all.workflow_runs||[]).find(run=>
+            run.head_sha===expected &&
+            (String(run.path||'').includes('genesis-unified-library-offline-apk-20261122.yml') ||
+             String(run.name||'').includes('Unified Library Godot')));
+          if(!found){
+            console.log('NO_NATIVE_BUILD_RUN_FOUND_FOR_EXACT_PUSH_SHA: '+expected);
+            process.exitCode=1;
+          }else{
+            const receipt={sourceSha:expected,buildRunId:found.id,status:found.status,
+              conclusion:found.conclusion,runUrl:found.html_url,createdAt:found.created_at,
+              completedAt:found.updated_at,platform:'android',
+              signing:'DEBUG_NOT_EAS',publishOta:false,production:false};
+            if(found.status==='completed'&&found.conclusion==='success'){
+              const assets=await read('/actions/runs/'+found.id+'/artifacts?per_page=100');
+              receipt.artifacts=(assets.artifacts||[]).map(a=>({name:a.name,size:a.size_in_bytes,expired:a.expired}));
+            }
+            console.log('BUKLOD_EXACT_NATIVE_BUILD_READBACK '+JSON.stringify(receipt));
+            if(process.env.GITHUB_STEP_SUMMARY)
+              (await import('node:fs')).appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                '### BUKLOD Genesis 2.0.4 native build\n\n'+
+                'Run: '+receipt.runUrl+'\n\nStatus: '+receipt.status+
+                '\n\nConclusion: '+receipt.conclusion+'\n\nSource: '+receipt.sourceSha+'\n');
+          }
+          const signed=(all.workflow_runs||[]).find(run=>
+            run.head_sha==='e7be6926d7ae4f97b166187facd18be70bee059b' &&
+            String(run.path||'').includes('genesis-library-eas-signed-apk-20261122.yml'));
+          if(!signed){
+            console.log('EAS_SIGNED_STAGING_TRIGGER_NOT_FOUND_YET');
+          }else{
+            const summary={runId:signed.id,status:signed.status,conclusion:signed.conclusion,
+              url:signed.html_url,sourceSha:signed.head_sha};
+            const jobs=await read('/actions/runs/'+signed.id+'/jobs?per_page=100');
+            summary.steps=(jobs.jobs||[]).flatMap(j=>(j.steps||[]).filter(s=>
+              s.status==='in_progress'||s.conclusion==='failure').map(s=>s.name));
+            const artifacts=await read('/actions/runs/'+signed.id+'/artifacts?per_page=100');
+            summary.artifacts=(artifacts.artifacts||[]).map(a=>({
+              id:a.id,name:a.name,size:a.size_in_bytes,expired:a.expired
+            }));
+            console.log('BUKLOD_SIGNED_STAGING_BUILD_READBACK '+JSON.stringify(summary));
+          }
+
+          const local=(all.workflow_runs||[]).find(run=>
+            run.head_sha==='c413c1ec2e23f151af0123cefbd4209fbf612d1f' &&
+            String(run.path||'').includes('genesis-library-eas-local-signed-apk-20261122.yml'));
+          if(!local){
+            console.log('LOCAL_EAS_STAGING_TRIGGER_NOT_FOUND');
+          }else{
+            const state={runId:local.id,status:local.status,conclusion:local.conclusion,
+              url:local.html_url,sourceSha:local.head_sha};
+            const jobs=await read('/actions/runs/'+local.id+'/jobs?per_page=100');
+            state.steps=(jobs.jobs||[]).flatMap(j=>(j.steps||[]).filter(s=>
+              s.status==='in_progress'||s.conclusion==='failure').map(s=>s.name));
+            const artifacts=await read('/actions/runs/'+local.id+'/artifacts?per_page=100');
+            state.artifacts=(artifacts.artifacts||[]).map(a=>({
+              id:a.id,name:a.name,size:a.size_in_bytes,expired:a.expired
+            }));
+            console.log('BUKLOD_LOCAL_EAS_SIGNED_STAGING_READBACK '+JSON.stringify(state));
+          }
+
+          const otaAudit=(all.workflow_runs||[]).find(run=>
+            run.head_sha==='b4b36a5f88466622162232534bc95947d92d8f32' &&
+            String(run.path||'').includes('genesis-library-ota-readonly-audit-20261123.yml'));
+          if(!otaAudit){
+            console.log('BUKLOD_OTA_PROVIDER_AUDIT_NOT_FOUND');
+          }else{
+            const report={runId:otaAudit.id,status:otaAudit.status,
+              conclusion:otaAudit.conclusion,url:otaAudit.html_url,sourceSha:otaAudit.head_sha};
+            const jobs=await read('/actions/runs/'+otaAudit.id+'/jobs?per_page=100');
+            report.jobs=(jobs.jobs||[]).map(j=>({id:j.id,status:j.status,
+              conclusion:j.conclusion,failedSteps:(j.steps||[]).filter(x=>x.conclusion==='failure').map(x=>x.name)}));
+            const arts=await read('/actions/runs/'+otaAudit.id+'/artifacts?per_page=100');
+            report.artifacts=(arts.artifacts||[]).map(x=>({id:x.id,name:x.name,size:x.size_in_bytes,expired:x.expired}));
+            console.log('BUKLOD_EXPO_CHANNEL_READONLY_AUDIT_RUN '+JSON.stringify(report));
+          }
+
+          NODE

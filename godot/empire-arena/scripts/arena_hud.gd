@@ -10,11 +10,11 @@ signal pause_requested
 const HEROES := ["phan", "quin", "van", "christian", "lhen", "ace", "ellusur",
 	"jawo", "mitch", "niel", "angel", "vhen", "trudice"]
 const MAPS := ["genesis_rift", "aurora_foundry", "verdant_fracture"]
-const MODES := ["duel", "cluster", "grand"]
+const MODES := ["classic_conquest", "genesis_rift", "dominion_frontier", "special_event"]
 var hero_index := 0
 var foe_index := 5
 var map_index := 0
-var mode_index := 1
+var mode_index := 0
 var offline_solo := true
 var playing := false
 var paused := false
@@ -67,7 +67,7 @@ func _draw() -> void:
 		_panel(Rect2(w * 0.13, h * 0.27, w * 0.33, 43), "<   HERO: " + HEROES[hero_index].to_upper() + "   >")
 		_panel(Rect2(w * 0.54, h * 0.27, w * 0.33, 43), "<   CPU: " + HEROES[foe_index].to_upper() + "   >")
 		_panel(Rect2(w * 0.13, h * 0.43, w * 0.33, 43), "<   MAP: " + MAPS[map_index].replace("_", " ").to_upper() + "   >")
-		_panel(Rect2(w * 0.54, h * 0.43, w * 0.33, 43), "<   MODE: " + ("SOLO CPU" if offline_solo else MODES[mode_index].to_upper()) + "   >")
+		_panel(Rect2(w * 0.54, h * 0.43, w * 0.33, 43), "<   MODE: " + ("SOLO CPU" if offline_solo else MODES[mode_index].replace("_", " ").to_upper()) + "   >")
 		_panel(Rect2(w * 0.35, h * 0.67, w * 0.3, 55), "ENTER GODOT BATTLE", Color(0.09, 0.48, 0.37, 0.98))
 		_panel(Rect2(10, 8, 80, 30), "BACK")
 		return
@@ -125,10 +125,13 @@ func _menu_tap(at: Vector2) -> void:
 	elif at.x >= w * 0.13 and at.x <= w * 0.46 and at.y >= h * 0.43 and at.y <= h * 0.43 + 43:
 		map_index = (map_index + 1) % MAPS.size()
 	elif at.x >= w * 0.54 and at.x <= w * 0.87 and at.y >= h * 0.43 and at.y <= h * 0.43 + 43:
-		if offline_solo: offline_solo = false
+		if offline_solo:
+			offline_solo = false
+			mode_index = 0
 		else:
 			mode_index = (mode_index + 1) % MODES.size()
-			if mode_index == 1: offline_solo = true
+			if mode_index == 0:
+				offline_solo = true
 	elif at.x >= w * 0.35 and at.x <= w * 0.65 and at.y >= h * 0.67 and at.y <= h * 0.67 + 55:
 		playing = true
 		show_result = false

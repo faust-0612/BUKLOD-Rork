@@ -1,0 +1,164 @@
+name: BUKLOD Genesis Library EAS-signed staging APK (BUILD ONLY)
+# Build signed installable BUKLOD MAIN staging artifact, no OTA/Play/distribution.
+on:
+  push:
+    branches:
+      - dev/genesis-unified-arena-library-apk-20261122
+    paths:
+      - '.github/workflows/genesis-library-eas-signed-apk-20261122.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-genesis-2-0-4-eas-build-artifact
+  cancel-in-progress: false
+jobs:
+  signed-apk:
+    if: startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_2_0_4_SIGNED_BUILD:') && github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW: 'true'
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      NATIVE_PROOF_SHA: ab54ae08cd4bc27abcae2fe6bb9679466d05a9f0
+      NATIVE_PROOF_RUN: '44995660935'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Require prior native compile proof and no native drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN" || { echo 'BLOCK: EAS signing token absent'; exit 1; }
+          git diff --quiet "$NATIVE_PROOF_SHA" HEAD -- app.config.js eas.json godot/empire-arena scripts/build-empire-godot-pack.mjs scripts/arena-library-audio-pack.mjs modules/buklod-genesis-godot plugins/withBuklodGodotArenaPack.js
+          node <<'NODE'
+          const a=require('node:assert/strict');
+          (async()=>{
+            const r=await fetch('https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY+'/actions/runs/'+process.env.NATIVE_PROOF_RUN,{
+              headers:{Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json','User-Agent':'buklod-godot-native-proof'}
+            });
+            a.equal(r.status,200);
+            const j=await r.json();
+            a.equal(j.head_sha,process.env.NATIVE_PROOF_SHA);
+            a.equal(j.status,'completed');
+            a.equal(j.conclusion,'success','Native APK source compile must succeed before EAS credit use');
+            console.log('NATIVE_SOURCE_PROOF_PASS',j.id);
+          })().catch(e=>{console.error('BUILD HOLD',e.message);process.exitCode=1});
+          NODE
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const cfg=require('./app.config.js')({config:{}});
+          const eas=JSON.parse(fs.readFileSync('eas.json','utf8'));
+          a.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          a.equal(cfg.runtimeVersion,'2.0.4-genesis-library-godot');
+          a.equal(cfg.version,'2.0.4');
+          a.equal(cfg.extra.appTarget,'main');
+          a.equal(cfg.plugins.find(p=>Array.isArray(p)&&p[0]==='react-native-google-mobile-ads')[1].androidAppId,'ca-app-pub-3940256099942544~3347511713');
+          a.equal(eas.build.production.channel,'production');
+          const p=eas.build['season2-genesis-library-staging'];
+          a.equal(p.extends,'season2-genesis-unified-worlds-staging');
+          a.equal(p.channel,'season2-genesis-library-preview');
+          a.equal(p.android.buildType,'apk');
+          a.equal(p.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
+          a.equal(p.env.EXPO_PUBLIC_SUPABASE_URL,undefined);
+          const backend=eas.build['season2-genesis-preview'].env;
+          a.equal(backend.EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW,'true');
+          a.equal(backend.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
+          a.match(backend.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,/^sb_publishable_[a-zA-Z0-9_-]+$/);
+          const firebase=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          firebase.client=firebase.client.filter(x=>x.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging');
+          a.equal(firebase.client.length,1);
+          fs.writeFileSync('google-services.staging.json',JSON.stringify(firebase));
+          console.log('FULL_BUKLOD_NATIVE_STAGING_IDENTITY_PASS: release remains held for device and backend safety QA');
+          NODE
+      - name: Locked critical regression checks
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/genesis-prepare-skia-binaries.mjs
+          node scripts/genesis-assert-native-autolinking.mjs
+          node --test tests/genesis-library-native-runtime-release-20261122.test.mjs tests/arena-library-godot-native-20261122.test.mjs tests/arena-library-modes-audio-20261122.test.mjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+          npm run release:gate
+          npx tsc --noEmit
+      - name: Runner-only EAS staging config using already-authorized paid MAIN backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict');
+          const p='eas.json',e=JSON.parse(fs.readFileSync(p,'utf8'));
+          const target=e.build['season2-genesis-library-staging'];
+          const prior=e.build['season2-genesis-preview'].env;
+          a.equal(target.env.EXPO_PUBLIC_SUPABASE_URL,undefined);
+          a.equal(prior.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
+          target.env.EXPO_PUBLIC_SUPABASE_URL=prior.EXPO_PUBLIC_SUPABASE_URL;
+          target.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=prior.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+          target.env.EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW='true';
+          target.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED='false';
+          e.cli.appVersionSource='remote';
+          fs.writeFileSync(p,JSON.stringify(e,null,2)+'\n');
+          console.log('Runner-only account backend injected; NO Supabase mutation performed by build');
+          NODE
+      - name: EAS sign internal staging APK only (NO OTA or Play)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 whoami --non-interactive >/dev/null
+          npx --yes eas-cli@27.9.0 build --platform android --profile season2-genesis-library-staging --non-interactive --wait --json > /tmp/buklod-eas-build.json
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const raw=JSON.parse(fs.readFileSync('/tmp/buklod-eas-build.json','utf8'));
+          const b=Array.isArray(raw)?raw[0]:raw;
+          a.equal(String(b.status).toLowerCase(),'finished');
+          a.equal(String(b.platform).toLowerCase(),'android');
+          a.equal(b.gitCommitHash,process.env.GITHUB_SHA);
+          a.equal(b.appIdentifier,'org.mzbministry.buklod.staging');
+          a.equal(b.runtime?.version,'2.0.4-genesis-library-godot');
+          a.equal(b.updateChannel?.name,'season2-genesis-library-preview');
+          a.match(String(b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl||''),/^https:\/\//);
+          fs.writeFileSync('buklod-library-eas-receipt.json',JSON.stringify({
+            sourceSha:process.env.GITHUB_SHA,buildSourceSha:b.gitCommitHash,buildId:b.id,
+            status:b.status,package:'org.mzbministry.buklod.staging',
+            buildProfile:'season2-genesis-library-staging',
+            buildRuntime:b.runtime.version,runtime:'2.0.4-genesis-library-godot',
+            channel:'season2-genesis-library-preview',
+            artifactUrl:b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl,
+            deviceQA:'PENDING',otaPublished:false,productionChanged:false,
+            stagingRelease:'HOLD_UNTIL_ACCOUNT_SOS_GAME_ADS_QA'
+          },null,2));
+          console.log('EAS_SIGNED_BUILD_RECEIPT_CREATED',b.id);
+          NODE
+      - name: Verify original staging signer, APK ABI, exact-source Godot and 70 WAV cues
+        run: |
+          set -euo pipefail
+          node scripts/genesis-library-verify-signed-apk.mjs --receipt=buklod-library-eas-receipt.json --output=buklod-library-verified-apk.json
+      - name: Keep audit receipts (never publish OTA)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-genesis-library-eas-signed-build-only-receipt
+          path: |
+            buklod-library-eas-receipt.json
+            buklod-library-verified-apk.json
+          retention-days: 14
+          if-no-files-found: ignore

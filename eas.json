@@ -208,6 +208,20 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "season2-genesis-library-staging": {
+      "extends": "season2-genesis-unified-worlds-staging",
+      "channel": "season2-genesis-library-preview",
+      "distribution": "internal",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE": "true",
+        "EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED": "false"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
