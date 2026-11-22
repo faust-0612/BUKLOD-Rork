@@ -15,7 +15,7 @@ jobs:
       - name: Inspect exact GitHub Actions native APK build without rerunning it
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: 1a01ce5f3a8fb5289e015bf3f1a67e770c1680a2
+          EXPECTED_SHA: ab54ae08cd4bc27abcae2fe6bb9679466d05a9f0
         run: |
           node --input-type=module <<'NODE'
           const repo=process.env.GITHUB_REPOSITORY;
