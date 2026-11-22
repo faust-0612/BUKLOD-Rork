@@ -291,9 +291,9 @@ export function ArcadeGameV1({game,onFinish}:Props) {
         <Text style={s.stackHint}>{t('Keep the tower balanced.','Panatilihing balanse ang tore.')}</Text>
         <View style={s.stackCells}>{[0,1,2,3,4].map(index=><View key={index}
           style={[s.stackCell,index===run.target&&{borderColor:game.accent,borderWidth:3}]}>
-          <Text style={s.stackEmoji}>{index===run.marker?'🧱':index===run.target?'⬇️':'·'}</Text>
+          <Text style={s.stackEmoji}>{index===run.marker?(game.good[run.stageHits%game.good.length]||game.icon):index===run.target?'⬇️':'·'}</Text>
         </View>)}</View>
-        <Text style={s.stackTower}>{'🏗️'.repeat(Math.min(6,Math.floor(run.stageHits/2)+1))}</Text>
+        <Text style={s.stackTower}>{Array.from({length:Math.min(6,Math.floor(run.stageHits/2)+1)},(_,i)=>game.good[i%game.good.length]||game.icon).join(' ')}</Text>
       </View>:null}
 
       {game.mode==='rhythm'||game.mode==='defend' ? <View style={s.controls}>
