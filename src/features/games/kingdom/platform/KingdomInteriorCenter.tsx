@@ -101,7 +101,7 @@ export function KingdomInteriorCenter({
   if (!active) return null;
   const compact = active.id === compactGameId;
   return (
-    <ScrollView contentContainerStyle={[styles.page, !!compactGameId && styles.pageBelowGameControls]} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.page, compact && styles.pageBelowGameControls]} keyboardShouldPersistTaps="handled">
       <View style={styles.shell}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Back to Kingdom map', 'Bumalik sa mapa ng Kingdom')}
           onPress={() => router.replace('/games' as any)} style={styles.mapBack}>
