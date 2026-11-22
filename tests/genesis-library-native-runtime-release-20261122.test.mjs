@@ -49,6 +49,8 @@ test('EAS stage remains a distinct internal channel without embedded credentials
 });
 test('native pack retains all three original unified worlds and Arena Library audio',()=>{
  const source=readFileSync(new URL('../scripts/build-empire-godot-pack.mjs',import.meta.url),'utf8');
- for(const key of ['arenaSfxEntries','classic_conquest','genesis_rift','dominion_frontier','special_event','world-art/kingdom.webp','world-art/community.webp','world-art/house.webp','world-audio/claim.wav','scenes/WorldPreview.tscn','tests/world_smoke.gd','tests/library_modes_audio_smoke.gd'])assert.ok(source.includes(key),'Missing '+key);
+ for(const key of ['arenaSfxEntries','classic_conquest','genesis_rift','dominion_frontier','special_event','world-art/kingdom.webp','world-art/community.webp','world-art/house.webp','world-audio/claim.wav','scenes/WorldPreview.tscn','tests/world_smoke.gd'])assert.ok(source.includes(key),'Missing '+key);
+ const audioSmoke=readFileSync(new URL('../godot/empire-arena/tests/library_modes_audio_smoke.gd',import.meta.url),'utf8');
+ assert.match(audioSmoke,/BUKLOD_GODOT_LIBRARY_MODES_AUDIO_PASS/);
  assert.match(source,/ranked: false, serverAccess: false/);
 });
