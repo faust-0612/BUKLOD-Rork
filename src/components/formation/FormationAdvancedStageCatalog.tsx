@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -12,7 +12,6 @@ import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button, shared } from '@/components/UI';
-import { ReadableFaithCard as Card } from '@/components/education/ReadableFaithSurface';
 import {
   formationCopy,
   friendlyLessonBlockingReason,
@@ -33,6 +32,7 @@ type Props = {
   catalog: FormationStageCatalog | null;
   stageLocked?: boolean;
   loading?: boolean;
+  openRequest?: number;
 };
 
 function openLesson(
@@ -46,6 +46,11 @@ function openLesson(
       formationCopy.lessonUnavailableTitle,
       formationCopy.lessonStageLockedGuide,
     );
+    return;
+  }
+
+  if (!accessResolved) {
+    Alert.alert(formationCopy.lessonOpeningTitle, 'Checking lesson access. Try again when the check finishes.');
     return;
   }
 
@@ -121,9 +126,7 @@ function LessonRows({
     <>
       {lessons.map((lesson) => {
         const access = lessonAccessByTrackLessonId.get(lesson.track_lesson_id);
-        const lessonLocked =
-          stageLocked ||
-          (accessResolved && (!access || !access.allowed));
+        const lessonLocked = stageLocked || !accessResolved || !access?.allowed;
         const openable = lesson.member_visible && !lessonLocked;
 
         return (
@@ -146,6 +149,8 @@ function LessonRows({
                 <Text style={styles.lessonMeta}>Pending review / release</Text>
               ) : stageLocked ? (
                 <Text style={styles.lessonMeta}>Stage locked</Text>
+              ) : !accessResolved ? (
+                <Text style={styles.lessonMeta}>Checking lesson access...</Text>
               ) : lessonLocked ? (
                 <Text style={styles.lessonMeta}>
                   {friendlyLessonBlockingReason(access?.blocking_reason)}
@@ -222,7 +227,7 @@ function CatalogSummary({
       <View style={styles.summaryRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.summaryEyebrow}>
-            BUKLOD {stageCode} · {STAGE_PHASES[stageCode]}
+            ADVANCED LESSONS
           </Text>
           <Text style={styles.summaryTitle}>
             {visibleCount} of {totalCount} lessons available
@@ -243,7 +248,7 @@ function CatalogSummary({
           ) : null}
         </View>
         <MaterialCommunityIcons
-          name="chevron-up"
+          name="chevron-right"
           size={22}
           color={colors.greenDark}
         />
@@ -257,13 +262,22 @@ export default function FormationAdvancedStageCatalog({
   catalog,
   stageLocked = false,
   loading = false,
+  openRequest = 0,
 }: Props) {
   const [lessonAccessByTrackLessonId, setLessonAccessByTrackLessonId] =
     useState<Map<string, FormationLessonAccess>>(new Map());
   const [accessResolved, setAccessResolved] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const handledOpenRequest = useRef(0);
 
   const locked = stageLocked || catalog?.is_locked === true;
+
+  useEffect(() => {
+    if (catalog && openRequest > handledOpenRequest.current) {
+      handledOpenRequest.current = openRequest;
+      setDrawerOpen(true);
+    }
+  }, [catalog, openRequest]);
 
   useEffect(() => {
     if (!catalog || locked) {
@@ -308,15 +322,11 @@ export default function FormationAdvancedStageCatalog({
   }, [catalog, locked]);
 
   if (loading) {
-    return (
-      <Card>
-        <Text style={shared.muted}>Loading formation lessons...</Text>
-      </Card>
-    );
+    return <Text style={styles.notAvailable}>Loading formation lessons...</Text>;
   }
 
   if (!catalog) {
-    return null;
+    return <Text style={styles.notAvailable}>Advanced lesson catalog is unavailable right now.</Text>;
   }
 
   const hasCatalogContent =
@@ -327,13 +337,7 @@ export default function FormationAdvancedStageCatalog({
   const hasVisibleLessons = catalog.counts.member_visible > 0;
 
   if (!hasCatalogContent) {
-    return (
-      <Card>
-        <Text style={styles.notAvailable}>
-          Mentoring lessons for this stage are released periodically.
-        </Text>
-      </Card>
-    );
+    return <Text style={styles.notAvailable}>No published lessons are available for this stage yet.</Text>;
   }
 
   return (
@@ -346,22 +350,18 @@ export default function FormationAdvancedStageCatalog({
         </View>
       ) : null}
 
-      <Card>
-        <CatalogSummary
-          stageCode={stageCode}
-          catalog={catalog}
-          locked={locked}
-          onOpen={() => setDrawerOpen(true)}
-        />
-      </Card>
+      <CatalogSummary
+        stageCode={stageCode}
+        catalog={catalog}
+        locked={locked}
+        onOpen={() => setDrawerOpen(true)}
+      />
 
       {!hasVisibleLessons ? (
-        <Card>
-          <Text style={shared.muted}>
-            Lessons are being prepared. Published lessons will appear here when
-            they are released for your track.
-          </Text>
-        </Card>
+        <Text style={styles.notAvailable}>
+          Lessons are being prepared. Published lessons will appear here when
+          they are released for your track.
+        </Text>
       ) : null}
 
       <Modal
