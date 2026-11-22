@@ -154,7 +154,6 @@ export default function MemberPublicProfileScreen() {
           alignItems: 'center',
           gap: 7,
           paddingVertical: 7,
-          overflow: 'hidden',
         },
         cover: {
           width: '100%',
