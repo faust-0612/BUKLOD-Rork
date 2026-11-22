@@ -2,10 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from 'react';
 import DzasSignalDeck from '@/components/dzas/DzasSignalDeck';
 
-const DZAS_STREAM_URL = String(
-  process.env.EXPO_PUBLIC_DZAS_STREAM_URL ||
-    'https://sg-icecast.eradioportal.com:8443/febc_dzas',
-).trim();
+// Prefer the stream already used by native; retain the legacy web Icecast
+// source as fallback. Explicit HTTPS deployment overrides are tried first.
+const DZAS_STREAM_URLS = Array.from(new Set([
+  String(process.env.EXPO_PUBLIC_DZAS_STREAM_URL || '').trim(),
+  'https://stream.zeno.fm/rrw3tw8yheruv',
+  'https://sg-icecast.eradioportal.com:8443/febc_dzas',
+].filter((url) => /^https:\/\/[^\s]+$/i.test(url))));
+const START_TIMEOUT_MS = 12000;
 
 const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
 
@@ -19,6 +23,8 @@ const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
 export default function BuklodRadioWebScreen() {
   const audioRef = useRef<any>(null);
   const mountedRef = useRef(true);
+  const playbackRequestRef = useRef(0);
+  const cancelStartupRef = useRef<null | (() => void)>(null);
 
   const [favorite, setFavorite] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -66,7 +72,7 @@ export default function BuklodRadioWebScreen() {
     };
 
     const onPause = () => {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || cancelStartupRef.current) return;
       setPlaying(false);
       setBusy(false);
       setStatusText('Paused');
@@ -92,20 +98,12 @@ export default function BuklodRadioWebScreen() {
     };
 
     const onError = () => {
-      if (!mountedRef.current) return;
-
-      const mediaError = audio.error;
-      const code = Number(mediaError?.code || 0);
-
+      // Startup errors are handled by bounded source fallback instead.
+      if (!mountedRef.current || cancelStartupRef.current) return;
       setPlaying(false);
       setBusy(false);
-      setStatusText('Stream error');
-
-      setError(
-        code
-          ? `Hindi ma-play ng browser ang DZAS stream ngayon (media error ${code}). Tap Retry.`
-          : 'Hindi ma-play ng browser ang DZAS stream ngayon. Tap Retry.',
-      );
+      setStatusText('Stream interrupted');
+      setError('Naputol ang DZAS stream. Tap Retry o Source para sa official station.');
     };
 
     audio.addEventListener('playing', onPlaying);
@@ -117,6 +115,8 @@ export default function BuklodRadioWebScreen() {
 
     return () => {
       mountedRef.current = false;
+      playbackRequestRef.current += 1;
+      cancelStartupRef.current?.();
 
       audio.removeEventListener('playing', onPlaying);
       audio.removeEventListener('pause', onPause);
@@ -162,81 +162,100 @@ export default function BuklodRadioWebScreen() {
     }
   };
 
-  const play = async (forceReload = false) => {
-    const audio = audioRef.current;
+  // Per-source timeout, deterministic cleanup, and cancellation on pause/unmount.
+  const startSource = (audio: any, url: string): Promise<void> =>
+    new Promise<void>((resolve, reject) => {
+      let settled = false;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      const finish = (reason?: Error) => {
+        if (settled) return;
+        settled = true;
+        if (timeout) clearTimeout(timeout);
+        audio.removeEventListener('playing', onPlaying);
+        audio.removeEventListener('error', onError);
+        if (cancelStartupRef.current === cancel) cancelStartupRef.current = null;
+        if (reason) reject(reason);
+        else resolve();
+      };
+      const onPlaying = () => finish();
+      const onError = () =>
+        finish(new Error('Source rejected (media error ' + Number(audio.error?.code || 0) + ').'));
+      const cancel = () => finish(new Error('Playback cancelled.'));
 
-    if (!audio || !DZAS_STREAM_URL) {
-      setError('Walang available DZAS browser stream.');
-      return;
-    }
+      audio.addEventListener('playing', onPlaying);
+      audio.addEventListener('error', onError);
+      cancelStartupRef.current = cancel;
+      timeout = setTimeout(() => finish(new Error('Stream startup timed out.')), START_TIMEOUT_MS);
 
-    setBusy(true);
-    setError('');
-    setStatusText('Connecting...');
-
-    try {
-      /*
-       * Keep play() directly inside the user-triggered action so Android/iOS
-       * browser/PWA autoplay policies recognize this as an intentional start.
-       */
-      const needsSource =
-        forceReload ||
-        audio.getAttribute('src') !==
-          DZAS_STREAM_URL;
-
-      if (needsSource) {
-        try {
-          audio.pause();
-        } catch {
-          // no-op
-        }
-
-        audio.src = DZAS_STREAM_URL;
+      try {
+        audio.pause();
+        audio.src = url;
         audio.preload = 'none';
         audio.volume = 1;
         audio.muted = false;
         audio.load();
-      } else {
-        audio.volume = 1;
-        audio.muted = false;
+        // First attempt begins synchronously during the user tap.
+        const started = audio.play();
+        if (started && typeof started.catch === 'function') {
+          void started.catch((reason: unknown) =>
+            finish(reason instanceof Error ? reason : new Error(String(reason))),
+          );
+        }
+      } catch (reason) {
+        finish(reason instanceof Error ? reason : new Error(String(reason)));
       }
+    });
 
-      setMediaSession();
+  const play = async (forceReload = false) => {
+    const audio = audioRef.current;
+    if (!audio || DZAS_STREAM_URLS.length === 0) {
+      setError('Walang available na DZAS browser stream. Tap Source para sa official station.');
+      return;
+    }
+    if (!forceReload && !audio.paused && !audio.error) return;
 
-      const promise = audio.play();
+    playbackRequestRef.current += 1;
+    const requestId = playbackRequestRef.current;
+    cancelStartupRef.current?.();
+    setBusy(true);
+    setError('');
+    setStatusText('Connecting...');
+    setMediaSession();
 
-      if (
-        promise &&
-        typeof promise.then === 'function'
-      ) {
-        await promise;
-      }
-
-      if (mountedRef.current) {
+    let permissionBlocked = false;
+    for (const url of DZAS_STREAM_URLS) {
+      if (!mountedRef.current || requestId !== playbackRequestRef.current) return;
+      try {
+        await startSource(audio, url);
+        if (!mountedRef.current || requestId !== playbackRequestRef.current) return;
         setPlaying(!audio.paused);
         setBusy(false);
         setStatusText(audio.paused ? 'Ready' : 'LIVE');
+        return;
+      } catch (reason: any) {
+        if (!mountedRef.current || requestId !== playbackRequestRef.current) return;
+        // Source switching cannot resolve browser gesture/permission denial.
+        if (reason?.name === 'NotAllowedError') {
+          permissionBlocked = true;
+          break;
+        }
       }
-    } catch (playError: any) {
-      if (!mountedRef.current) return;
-
-      const message = String(playError?.message || '').trim();
-
-      setPlaying(false);
-      setBusy(false);
-      setStatusText('Could not play');
-      setError(
-        message ||
-          'Hindi mabuksan ang DZAS audio stream. Tap Retry o buksan ang official DZAS site.',
-      );
     }
+    if (!mountedRef.current || requestId !== playbackRequestRef.current) return;
+    audio.pause();
+    setPlaying(false);
+    setBusy(false);
+    setStatusText('Stream unavailable');
+    setError(permissionBlocked
+      ? 'Kailangan ng browser ng bagong Play tap. Tap Retry para subukan muli.'
+      : 'Hindi ma-play ang DZAS stream sa mga available na source. Tap Retry o Source para sa official DZAS station.');
   };
 
   const pause = () => {
+    playbackRequestRef.current += 1;
+    cancelStartupRef.current?.();
     const audio = audioRef.current;
-
     if (!audio) return;
-
     try {
       audio.pause();
       setPlaying(false);
