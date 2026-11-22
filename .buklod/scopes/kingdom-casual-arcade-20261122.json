@@ -1,0 +1,57 @@
+{
+  "contractVersion": 2,
+  "objective": "BUKLOD MAIN Character Kingdom casual arcade overhaul: 26 playable quick-play games, two per each of 13 characters, alongside unmodified original 39 catalog.",
+  "baseRef": "7b224c39624827282c3cbf003060317045b0a73f",
+  "target": "DEV_ONLY_PREVIEW",
+  "releaseAuthorized": false,
+  "nativeBuildAuthorized": false,
+  "productionOTA": false,
+  "backendMutation": false,
+  "characterPointMinting": false,
+  "newDependencies": false,
+  "featureFlags": "New arcade layer at character station entry, not a replacement for game catalog or routes",
+  "gameModes": [
+    "catch",
+    "lane",
+    "runner",
+    "rhythm",
+    "defend",
+    "tap",
+    "search",
+    "stack"
+  ],
+  "newGames": 26,
+  "existingGamesPreserved": 39,
+  "newFeatures": [
+    "account-bound local arcade mastery",
+    "simple tap/swipe controls with accessible buttons",
+    "pause/resume and offline deterministic rules",
+    "stage-by-stage progression without fixed final stage",
+    "reactive sounds and existing approved native character cinematics",
+    "expert/original games retained behind arcade options"
+  ],
+  "allowedPaths": [
+    "src/features/games/kingdom/arcade/arcadeCatalog.ts",
+    "src/features/games/kingdom/arcade/arcadeCore.js",
+    "src/features/games/kingdom/arcade/arcadeCore.d.ts",
+    "src/features/games/kingdom/arcade/ArcadeGameV1.tsx",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "src/features/games/kingdom/platform/KingdomCinematicScenes.ts",
+    "package.json",
+    "tests/kingdom-casual-arcade.test.cjs",
+    ".buklod/scopes/kingdom-casual-arcade-20261122.json"
+  ],
+  "criticalGates": [
+    "node --test tests/kingdom-casual-arcade.test.cjs",
+    "npm run game:contract",
+    "TypeScript build/typecheck",
+    "native preview QA and AdMob/tab responsiveness regression before OTA"
+  ],
+  "constraints": [
+    "No new native modules or external assets; use existing character rigs, game feedback and React Native components",
+    "No new BP, XP, cash, collectible or rank rewards",
+    "No new backend or metadata migrations",
+    "No production, OTA or native release from DEV branch",
+    "Do not silently replace old 39 game definitions or protected primary maps"
+  ]
+}
