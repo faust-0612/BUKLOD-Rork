@@ -5,6 +5,7 @@
  * This package is NOT a standalone Android application.
  */
 import { randomUUID } from 'node:crypto';
+import { verifiedArenaBracket, selectFairArenaGroup } from './matchmaking.mjs';
 import { createPractice, command, tick, STEP_MS, MODES, HEROES, ARENA_MAPS } from '../../experiments/empire-arena-v2/arena-v2-engine.mjs';
 
 const MAX_QUEUE=300, MAX_MATCHES=60, SNAPSHOT_EVERY=2, DISCONNECT_GRACE_MS=20_000;
@@ -91,17 +92,23 @@ export class ArenaMatchCoordinator {
     if(this.matches.size>=MAX_MATCHES)throw Error('arena_at_capacity');
     const total=[...this.queues.values()].reduce((n,q)=>n+q.length,0);
     if(total>=MAX_QUEUE)throw Error('queue_capacity');
-    const key=mode+':'+mapId;
+    // Session level and rating come from verified server-side Supabase responses.
+    // No auto-widening of level bands, even after a long queue delay.
+    const bracket=verifiedArenaBracket(session);
+    const key=mode+':'+mapId+':'+bracket;
     const bucket=this.queues.get(key)||[];
     this.queues.set(key,bucket);
     bucket.push({session,joinedAt:this.clock()});
     this.occupied.set(session.userId,{kind:'queued',key});
     send(session,{type:'queued',mode,mapId,position:bucket.length});
-    if(bucket.length>=2*MODES[mode].n){
-      const group=bucket.splice(0,2*MODES[mode].n);
-      if(!bucket.length)this.queues.delete(key);
+    const group=selectFairArenaGroup(bucket,2*MODES[mode].n);
+    if(group){
+      const chosen=new Set(group);
+      const remaining=bucket.filter(item=>!chosen.has(item));
+      if(remaining.length)this.queues.set(key,remaining);
+      else this.queues.delete(key);
       for(const {session:s} of group)this.occupied.set(s.userId,{kind:'allocating'});
-      // Deliberately await one trusted, transactionally reserved match.
+      // Only the trusted server reserves Diamonds and assigns seats.
       await this.startMatch(group,mode,mapId);
     }
   }

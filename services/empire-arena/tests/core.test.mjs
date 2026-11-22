@@ -7,7 +7,7 @@ const snapshot=(n=1)=>({characterLevel:n,bpEligibleLevel:n,itemVerifiedLevel:n,
   diamonds:Math.max(1,n*4),verifiedItems:[]});
 function fakeSession(i,hero='phan',s=snapshot()){
   const events=[];
-  return {userId:uuid(i),hero,eligible:true,verified:true,profile:{diamonds:s.diamonds},
+  return {userId:uuid(i),hero,eligible:true,verified:true,profile:{diamonds:s.diamonds,rating:1200},
     snapshot:s,disconnectedAt:null,send:message=>events.push(message),events};
 }
 function harness(){

@@ -1,0 +1,35 @@
+name: BUKLOD Arena Ranked Fair Matchmaking DEV (no deploy)
+on:
+  push:
+    branches:
+      - dev/genesis-arena-ranked-fair-matchmaking-20261122
+    paths:
+      - services/empire-arena/**
+      - .github/workflows/genesis-arena-ranked-fair-matchmaking-20261122.yml
+  pull_request:
+    paths:
+      - services/empire-arena/**
+      - .github/workflows/genesis-arena-ranked-fair-matchmaking-20261122.yml
+permissions:
+  contents: read
+concurrency:
+  group: buklod-arena-fair-matchmaking-20261122
+  cancel-in-progress: true
+jobs:
+  ranked-isolated:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Private Arena Node package dependencies and WSS tests
+        run: |
+          set -euo pipefail
+          npm ci --prefix services/empire-arena --ignore-scripts --no-audit --no-fund
+          node --test services/empire-arena/tests/core.test.mjs services/empire-arena/tests/matchmaking.test.mjs services/empire-arena/tests/gateway.test.mjs
+          echo 'DEV server-only tests: NO live WSS host, wallets, SQL, EAS or OTA'

@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-arena-ranked-fair-matchmaking-20261122.json",
+  "objective": "Implement fair server-owned ranked matchmaking across permanent hero L1-L20 bands and rating, without activating ranked players or producing new BUKLOD app builds.",
+  "baseRef": "695cef5c948cabd35404ecff8a46f5153c16bae3",
+  "chosenApproach": "Extend existing ArenaMatchCoordinator with pure server-side bracket/cohort selection; never trust a client-provided rating, char level, item, Diamond, winner or seat. Keep bounded original queue, websocket, escrow and settlement.",
+  "selectionRationale": "Current matchmaking FIFO pairs verified accounts regardless of permanent character level or Arena rating. Adding a small pure selector fixes a measurable unfair pairing and is independent of the unfinished Godot ranked client bridge.",
+  "alternativeApproaches": [
+    "Standalone matchmaking microservice duplicates current trusted Node service, rejected.",
+    "Client-side rating checks allow tampering and diverge from private wallet authority, rejected.",
+    "Dynamic cross-bracket widening on wait timeout risks beginner farming and violates canonical design, rejected."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-arena-ranked-fair-matchmaking-20261122.json",
+    ".github/workflows/genesis-arena-ranked-fair-matchmaking-20261122.yml",
+    "services/empire-arena/core.mjs",
+    "services/empire-arena/matchmaking.mjs",
+    "services/empire-arena/tests/core.test.mjs",
+    "services/empire-arena/tests/matchmaking.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "regressionTests": [
+    "services/empire-arena/tests/core.test.mjs",
+    "services/empire-arena/tests/matchmaking.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "All existing verified Node WSS auth/session restrictions and action/rate controls",
+    "Server-only escrow, idempotent refunds, Diamond ledger, abort and settle",
+    "No production/RLS/wallet writes, auth credentials or account permission changes",
+    "No new native runtime, Android application, OTA, ranked enablement or staging backend",
+    "Exact 13 hero identities and 1v1/3v3/5v5 fixed roster sizes"
+  ],
+  "riskAreas": [
+    "Rating-range cohorts could increase high-skill wait times but must not compromise fairness",
+    "Backend unavailable in production, this source test is not real online match proof",
+    "Private Supabase profile rating must remain verified at handshake; transport tests must continue passing"
+  ],
+  "productionBaselineEvidence": "Production package org.mzbministry.buklod runtime 1.3.2 remains unchanged; safe feature-only base PR #1121 head 695cef5c948cabd35404ecff8a46f5153c16bae3. This branch has no production deployment, trusted staging backend, signed APK or client registration proof.",
+  "acceptanceChecks": [
+    "1–20 bracket boundary tests, rating-spread, outlier, missing claim rejection",
+    "1v1 3v3 5v5 pairing",
+    "Existing gameplay server and real WebSocket gateway tests",
+    "Protect all release gates and no prod push"
+  ]
+}
