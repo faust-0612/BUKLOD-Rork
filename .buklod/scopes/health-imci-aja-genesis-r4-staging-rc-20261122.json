@@ -66,5 +66,6 @@
   ],
   "publicationStatus": "RC_PREPARATION_NO_OTA",
   "releaseStatus": "Staging RC PR prepared; mandatory CI and EAS live receipt plus app-wide ad/nav validation required prior to actual staging OTA. No publishing, no new native APK, no production changes. User waived physical actual verification historically; waived is not passed.",
-  "selectionRationale": "Existing Genesis R4 only exposes a static 6-step under-five description; owner requires operational IMCI and confidential AJA without changing the existing signed staging native runtime or other Season 2 systems. The already source-tested DEV modules can be imported into R4 with a tightly scoped, source-only change; educational clinical boundaries remain enforced."
+  "selectionRationale": "Existing Genesis R4 only exposes a static 6-step under-five description; owner requires operational IMCI and confidential AJA without changing the existing signed staging native runtime or other Season 2 systems. The already source-tested DEV modules can be imported into R4 with a tightly scoped, source-only change; educational clinical boundaries remain enforced.",
+  "ciBootstrapEvidence": "Review-only baseline branch staging/health-imci-aja-r4-baseline-20261122 retains exact R4 product source 7bbb44fcb331ce14785ce43d70969d955f9e61e7 and adds ONLY .github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml. CI harness synchronized at 5c8ced4054a72d078b7fa16cca0335d8673396fe; zero runtime changes."
 }
