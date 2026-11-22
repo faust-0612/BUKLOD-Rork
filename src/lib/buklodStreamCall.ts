@@ -74,6 +74,18 @@ export function formatBuklodCallStartError(
   const lower =
     message.toLowerCase();
 
+  // Never show raw Stream WebSocket/JWT JSON to a member.
+  if (
+    lower.includes('autherrortokenexpired') ||
+    lower.includes('jwtauth error') ||
+    lower.includes('token is expired') ||
+    lower.includes('token has expired') ||
+    lower.includes('call_session_expired') ||
+    (lower.includes('ws failed') && lower.includes('401'))
+  ) {
+    return 'Your calling session expired. Reopen BUKLOD and try again. If it continues, sign in again.';
+  }
+
   if (
     lower.includes(
       'not configured in this app build'
