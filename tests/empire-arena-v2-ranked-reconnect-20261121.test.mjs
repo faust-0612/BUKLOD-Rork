@@ -13,7 +13,7 @@ const uuid=i=>'00000000-0000-4000-8000-'+String(i).padStart(12,'0');
 const session=(i,eligible=true)=>{
   const out=[];
   return {userId:uuid(i),hero:i===1?'phan':'quin',eligible,verified:true,
-    profile:{diamonds:eligible?1:0},
+    profile:{diamonds:eligible?1:0,rating:1200},
     snapshot:eligible?{characterLevel:1,bpEligibleLevel:1,itemVerifiedLevel:1,
       diamonds:1,verifiedItems:[]}:null,
     disconnectedAt:null,send:event=>out.push(event),events:out};

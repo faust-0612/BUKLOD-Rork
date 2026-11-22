@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/genesis-arena-ranked-fair-matchmaking-20261122.json",
   "objective": "Implement fair server-owned ranked matchmaking across permanent hero L1-L20 bands and rating, without activating ranked players or producing new BUKLOD app builds.",
   "baseRef": "695cef5c948cabd35404ecff8a46f5153c16bae3",
-  "chosenApproach": "Extend existing ArenaMatchCoordinator with pure server-side bracket/cohort selection; never trust a client-provided rating, char level, item, Diamond, winner or seat. Keep bounded original queue, websocket, escrow and settlement.",
+  "chosenApproach": "Extend existing ArenaMatchCoordinator with pure server-side bracket/cohort selection; never trust a client-provided rating, char level, item, Diamond, winner or seat. Keep bounded original queue, websocket, escrow and settlement. Update old session fixtures to match the already-required trusted rating claim; add top-level behavioral coverage required by the repository accountability gate.",
   "selectionRationale": "Current matchmaking FIFO pairs verified accounts regardless of permanent character level or Arena rating. Adding a small pure selector fixes a measurable unfair pairing and is independent of the unfinished Godot ranked client bridge.",
   "alternativeApproaches": [
     "Standalone matchmaking microservice duplicates current trusted Node service, rejected.",
@@ -16,12 +16,13 @@
     "services/empire-arena/core.mjs",
     "services/empire-arena/matchmaking.mjs",
     "services/empire-arena/tests/core.test.mjs",
-    "services/empire-arena/tests/matchmaking.test.mjs"
+    "services/empire-arena/tests/matchmaking.test.mjs",
+    "tests/empire-arena-v2-ranked-reconnect-20261121.test.mjs",
+    "tests/genesis-arena-ranked-fair-matchmaking-20261122.test.mjs"
   ],
   "lockedFeatureChanges": [],
   "regressionTests": [
-    "services/empire-arena/tests/core.test.mjs",
-    "services/empire-arena/tests/matchmaking.test.mjs"
+    "tests/genesis-arena-ranked-fair-matchmaking-20261122.test.mjs"
   ],
   "preserveBehaviors": [
     "All existing verified Node WSS auth/session restrictions and action/rate controls",
@@ -40,6 +41,7 @@
     "1–20 bracket boundary tests, rating-spread, outlier, missing claim rejection",
     "1v1 3v3 5v5 pairing",
     "Existing gameplay server and real WebSocket gateway tests",
-    "Protect all release gates and no prod push"
+    "Protect all release gates and no prod push",
+    "Legacy authenticated Diamond-held reattachment regression still passes with verified profile rating fixture"
   ]
 }
