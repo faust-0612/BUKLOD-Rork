@@ -73,4 +73,22 @@ jobs:
             console.log('BUKLOD_SIGNED_STAGING_BUILD_READBACK '+JSON.stringify(summary));
           }
 
+          const local=(all.workflow_runs||[]).find(run=>
+            run.head_sha==='d963d4ccc29bb970262e1dcb3ecae152ec2e7b05' &&
+            String(run.path||'').includes('genesis-library-eas-local-signed-apk-20261122.yml'));
+          if(!local){
+            console.log('LOCAL_EAS_STAGING_TRIGGER_NOT_FOUND');
+          }else{
+            const state={runId:local.id,status:local.status,conclusion:local.conclusion,
+              url:local.html_url,sourceSha:local.head_sha};
+            const jobs=await read('/actions/runs/'+local.id+'/jobs?per_page=100');
+            state.steps=(jobs.jobs||[]).flatMap(j=>(j.steps||[]).filter(s=>
+              s.status==='in_progress'||s.conclusion==='failure').map(s=>s.name));
+            const artifacts=await read('/actions/runs/'+local.id+'/artifacts?per_page=100');
+            state.artifacts=(artifacts.artifacts||[]).map(a=>({
+              id:a.id,name:a.name,size:a.size_in_bytes,expired:a.expired
+            }));
+            console.log('BUKLOD_LOCAL_EAS_SIGNED_STAGING_READBACK '+JSON.stringify(state));
+          }
+
           NODE
