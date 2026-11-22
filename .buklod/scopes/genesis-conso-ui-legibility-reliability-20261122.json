@@ -29,6 +29,7 @@
     "src/features/games/empire/ArenaCombatHud.tsx",
     "src/features/season2/world/Season2DevelopmentMap.tsx",
     "src/lib/buklodSystemAnnouncementBoard.ts",
+    "tests/genesis-arena-game-touch-readability-20261122.test.mjs",
     "tests/genesis-conso-ui-legibility-reliability-20261122.test.mjs"
   ],
   "preserveBehaviors": [
@@ -38,6 +39,7 @@
     "No production publication or approval of Season 2 and no fake staging OTA announcement."
   ],
   "regressionTests": [
+    "tests/genesis-arena-game-touch-readability-20261122.test.mjs",
     "tests/genesis-conso-ui-legibility-reliability-20261122.test.mjs",
     "tests/season2-arena-responsive-navigation-20261121.test.mjs",
     "tests/season2-estate-asset-customization-20261121.test.mjs",
@@ -56,23 +58,13 @@
       ]
     },
     {
-      "id": "navigation-auth",
-      "reason": "Respect status bar and interactive map controls without moving doors or changing auth.",
-      "preservedBehaviors": [
-        "Preserve every navigable entry point and all admin role checks."
-      ],
-      "tests": [
-        "tests/genesis-conso-ui-legibility-reliability-20261122.test.mjs"
-      ]
-    },
-    {
       "id": "kingdom-character",
       "reason": "Readable controls and enlarged touch targets only in existing arena/world presentation styles.",
       "preservedBehaviors": [
         "No combat, achievement, ranking, point or wallet logic changed."
       ],
       "tests": [
-        "tests/genesis-conso-ui-legibility-reliability-20261122.test.mjs"
+        "tests/genesis-arena-game-touch-readability-20261122.test.mjs"
       ]
     }
   ],
