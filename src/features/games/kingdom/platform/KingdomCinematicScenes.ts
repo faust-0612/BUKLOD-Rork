@@ -1,3 +1,5 @@
+import { KINGDOM_ARCADE_GAMES } from '../arcade/arcadeCatalog';
+
 /**
  * Canonical 39-scene visual choreography catalog, isolated from rewards.
  * Each entry has a distinct deterministic seed and an intentional genre-
@@ -90,5 +92,24 @@ export const KINGDOM_CINEMATIC_SCENES: Readonly<Record<string, KingdomSceneProfi
   'elesur-bridge-puzzle': { title: "Bridge Puzzle", character: 'ellusur', glyph: "🌉", shape: 'circuit', motion: 'trace', accent: '#b7f0cc', shade: '#367365', seed: 1419, cycleMs: 5990, density: 6 },
 };
 export function getKingdomCinematicScene(gameId: string): KingdomSceneProfile | null {
-  return KINGDOM_CINEMATIC_SCENES[gameId] ?? null;
+  const existing = KINGDOM_CINEMATIC_SCENES[gameId];
+  if (existing) return existing;
+  // Keep the approved original character art and native Skia motion for every
+  // casual arcade title. Unknown IDs never create a fake character or scene.
+  const arcade = KINGDOM_ARCADE_GAMES.find(game => game.id === gameId);
+  if (!arcade) return null;
+  const foundation = Object.values(KINGDOM_CINEMATIC_SCENES)
+    .find(scene => scene.character === arcade.character);
+  if (!foundation) return null;
+  const shape: KingdomSceneShape = arcade.mode === 'rhythm' ? 'equalizer'
+    : arcade.mode === 'stack' ? 'pillars'
+    : arcade.mode === 'search' ? 'runes'
+    : arcade.mode === 'tap' ? 'tiles'
+    : arcade.mode === 'defend' ? 'rays' : 'lanes';
+  const motion: KingdomSceneMotion = arcade.mode === 'rhythm' ? 'wave'
+    : arcade.mode === 'stack' ? 'rise'
+    : arcade.mode === 'search' ? 'scan'
+    : arcade.mode === 'defend' ? 'pulse' : 'flow';
+  return { ...foundation, title: arcade.title, glyph: arcade.icon,
+    shape, motion, accent: arcade.accent, density: 5 };
 }
