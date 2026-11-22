@@ -23,6 +23,7 @@ import FormationAdvancedStageCatalog from '@/components/formation/FormationAdvan
 import BuklodScopeLessonLicensesCard from '@/components/BuklodScopeLessonLicensesCard';
 import BuklodClusterMembershipGate from '@/components/BuklodClusterMembershipGate';
 import { mergeFormationStageProgress } from '@/lib/buklodLessonStages';
+import { STAGE_SUBTITLES } from '@/lib/formationCopy';
 import { loadFormationStageCatalog } from '@/lib/buklodFormationProgress';
 import type { FormationStageCatalog } from '@/types/buklodFormation';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -476,7 +477,8 @@ export function BuklodLearningContent({
 
       const journeyStage = journeyStageByCode.get(stageCode);
       if (!journeyStage) {
-        return false;
+        // When the authoritative engine is on, missing access data is not an unlock.
+        return true;
       }
 
       return (
@@ -525,8 +527,8 @@ export function BuklodLearningContent({
       stage.stage_code === 107
     ) {
       return {
-        label: 'ONGOING MENTORING',
-        style: styles.statusOngoing,
+        label: 'ADVANCED FORMATION CATALOG',
+        style: styles.statusMuted,
       };
     }
 
@@ -575,11 +577,11 @@ export function BuklodLearningContent({
       {/* PATCH_162A_SPONSOR_LEARN */}
 
       <Text style={shared.body}>
-        Study at your own pace. You may read
-        lessons from later stages without waiting
-        for previous agreements. Official lesson
-        completion follows BUKLOD AI checking.
-        No Pastor or Admin approval is required.
+        BUKLOD 101–107 is one formation journey.
+        Follow the stages in order. Lessons receive
+        AI checking, and approved progress is saved.
+        Responses that need revision can be corrected
+        and resubmitted.
       </Text>
 
       {/* PATCH_185B_PROGRESS_ADMIN_BUTTON */}
@@ -786,6 +788,18 @@ export function BuklodLearningContent({
           advancedCatalogLoading={advancedCatalogLoading}
           isFormationStageLocked={isFormationStageLocked}
         />
+      ) : !formationJourney.loading &&
+        (!formationJourney.engineAvailable || formationJourney.engineEnabled) ? (
+        <Card>
+          <Text style={styles.stagePhase}>Formation journey unavailable</Text>
+          <Text style={shared.muted}>
+            {formationJourney.error ?? 'We could not verify your lesson doors right now.'}
+          </Text>
+          <Button title="RETRY FORMATION" onPress={() => {
+            void formationJourney.refresh();
+            void load();
+          }} />
+        </Card>
       ) : (
         <>
       {(loading || formationJourney.loading) && (
@@ -846,7 +860,7 @@ export function BuklodLearningContent({
                 </View>
 
                 <Text style={styles.stageName}>
-                  {stage.stage_title}
+                  {STAGE_SUBTITLES[stage.stage_code] ?? stage.stage_title}
                 </Text>
 
                 {!!meta?.description && (
@@ -1086,7 +1100,7 @@ export function BuklodLearningContent({
                     >
                       {stage.stage_code === 106 ||
                       stage.stage_code === 107
-                        ? 'Mentoring lessons for this stage are released periodically.'
+                        ? 'Advanced lesson catalog is temporarily unavailable. Retry when connected.'
                         : 'No published lesson track is available for this stage yet.'}
                     </Text>
                   </>
