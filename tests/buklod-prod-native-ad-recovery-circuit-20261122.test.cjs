@@ -13,7 +13,7 @@ function health() {
   // Engineering scope gates deliberately run without npm install. Node 22
   // already strips erasable TypeScript types; do not require dependencies here.
   const stripped = stripTypeScriptTypes(source, { mode: 'strip' });
-  const code = stripped.replace(/^export\\s+/gm, '') +
+  const code = stripped.replace(/^export\s+/gm, '') +
     '\n({ noteNativeRequestFailed, noteNativeRequestSucceeded, preferBannerAfterNativeFailures })';
   return vm.runInNewContext(code, { Map, Set, Math, Date, Object }, { timeout: 1000 });
 }
