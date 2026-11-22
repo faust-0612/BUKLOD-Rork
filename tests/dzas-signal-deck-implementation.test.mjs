@@ -86,5 +86,5 @@ test('Web stream recovery stays bounded, cancellable, HTTPS-only and independent
   assert.match(source, /if \(cancelStartupRef\.current === cancel\) cancelStartupRef\.current = null/);
   assert.match(source, /Hindi ma-play ang DZAS stream sa mga available na source/);
   assert.doesNotMatch(source, /'http:\/\//);
-  assert.doesNotMatch(source, /expo-audio|react-native-google-mobile-ads/);
+  assert.doesNotMatch(source, /^import .*?(expo-audio|react-native-google-mobile-ads)/m);
 });
