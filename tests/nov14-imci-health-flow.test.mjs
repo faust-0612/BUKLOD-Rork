@@ -8,6 +8,8 @@ const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'ut
 const screen = read('src/app/profile/buklod-health.tsx');
 const guide = read('src/components/health/BuklodImciTagalogGuide.tsx');
 const library = read('src/lib/buklodImciTagalog.ts');
+const ajaGuide = read('src/components/health/BuklodAjaTagalogGuide.tsx');
+const ajaLibrary = read('src/lib/buklodAjaTagalog.ts');
 
 const js = stripTypeScriptTypes(library).replace(/^export /gm, '');
 const { getImciQuestions, getImciOutcome, IMCI_AGE_OPTIONS } =
@@ -62,11 +64,44 @@ test('One-question-at-a-time guided answers are volatile and never sent to the e
 test('Main Health Center foregrounds IMCI and blocks consultations and ads on urgent child signs', () => {
   assert.match(screen, /<BuklodImciTagalogGuide onUrgencyChange=\{setImciUrgent\}/);
   assert.ok(screen.indexOf('<BuklodImciTagalogGuide') < screen.indexOf('Anong tulong ang kailangan mo?'));
-  assert.match(screen, /!imciUrgent && BUKLOD_HEALTH_CONSULTATION_READY/);
-  assert.match(screen, /urgency === 'none' && !imciUrgent/);
+  assert.match(screen, /!imciUrgent && !ajaUrgent && BUKLOD_HEALTH_CONSULTATION_READY/);
+  assert.match(screen, /urgency === 'none' && !imciUrgent && !ajaUrgent/);
   assert.match(screen, /!BUKLOD_HEALTH_CONSULTATION_READY/);
   assert.match(screen, /launchBuklodHealthCenter/);
   assert.match(screen, /Full Health Center/);
   assert.match(screen, /Online Consultation/);
   assert.match(screen, /CONCERN_HELP\[concern\]/);
+});
+
+test('Expanded in-app IMCI covers infant and under-five symptoms, nutrition and follow-up', () => {
+  const infant = getImciQuestions('young_infant');
+  const child = getImciQuestions('child');
+  assert.ok(infant.length >= 18);
+  assert.ok(child.length >= 27);
+  for (const id of ['infant_umbilical_discharge','infant_skin_pustules','infant_urine','infant_feeding_support','infant_postnatal']) assert.ok(infant.some(q => q.id === id), id);
+  for (const id of ['child_long_cough','child_long_diarrhea','child_rash_measles','child_both_feet_swollen','child_pallor','child_immunization_gap','child_followup']) assert.ok(child.some(q => q.id === id), id);
+  assert.equal(getImciOutcome('young_infant', { infant_urine: 'unsure' }), 'consult');
+  assert.equal(getImciOutcome('child', { child_long_diarrhea: 'yes' }), 'consult');
+  assert.match(guide, /delete next\[id\]/);
+});
+
+test('In-app AJA has ages 10–19, consent, HEEADSSS, volatile answers and immediate safety guard', () => {
+  const src = stripTypeScriptTypes(ajaLibrary).replace(/^export /gm, '');
+  const { AJA_BANDS, AJA_QUESTIONS, ajaDisposition, ajaHandoffTopics } =
+    runInNewContext(src + '\n({ AJA_BANDS, AJA_QUESTIONS, ajaDisposition, ajaHandoffTopics })', {});
+  assert.equal(AJA_BANDS.length, 2);
+  assert.ok(AJA_QUESTIONS.length >= 20);
+  for (const s of ['Tahanan','Pag-aaral','Pagkain','Substances','Pagdadalaga at pagbibinata','Emosyon','Kaligtasan']) assert.ok(AJA_QUESTIONS.some(q => q.section === s),s);
+  assert.equal(ajaDisposition({ imminent_selfharm: 'unsure' }), 'emergency');
+  assert.equal(ajaDisposition({ imminent_violence: 'yes' }), 'emergency');
+  assert.equal(ajaDisposition({}), 'consult');
+  assert.equal(ajaDisposition({ consciousness: 'no', imminent_selfharm: 'no', imminent_violence: 'no' }), 'review');
+  assert.ok(Array.from(ajaHandoffTopics({ low_mood: 'yes' })).includes('Emosyon'));
+  assert.match(ajaGuide, /useState<AjaBand \| null>\(null\)/);
+  assert.match(ajaGuide, /setConsent/);
+  assert.match(ajaGuide, /'tel:911'/);
+  assert.match(ajaGuide, /delete next\[id\]/);
+  assert.doesNotMatch(ajaGuide + ajaLibrary, /AsyncStorage|localStorage|supabase|fetch\(/);
+  assert.match(screen, /<BuklodAjaTagalogGuide onUrgencyChange=\{setAjaUrgent\}/);
+  assert.match(screen, /!imciUrgent && !ajaUrgent/);
 });
