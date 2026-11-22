@@ -90,37 +90,49 @@
   ],
   "regressionTests": [
     "tests/genesis-production-fix-reconciliation-20261122.test.mjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
     "supabase/tests/admin_new_registration_security_20261119.sql"
   ],
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Safely port main fixes without changing native runtime or production state.",
+      "reason": "Carry production source safely without disturbing Genesis native or app state.",
       "preservedBehaviors": [
-        "Preserve Genesis native/SOS and current production runtime identities."
+        "Preserve current Genesis native runtime and production release identities."
       ],
       "tests": [
         "tests/genesis-production-fix-reconciliation-20261122.test.mjs"
       ]
     },
     {
-      "id": "faith-cluster",
-      "reason": "Keep exact cluster admin and mentor RLS-authorized review.",
+      "id": "navigation-auth",
+      "reason": "Carry production system admin and authenticated consent flows without unsafe navigation.",
       "preservedBehaviors": [
-        "Never bypass per-user/server authorization."
+        "Keep route ownership and verified admin-only navigation with correct UUID routing."
       ],
       "tests": [
-        "tests/genesis-production-fix-reconciliation-20261122.test.mjs"
+        "tests/admin-registration-notification-route-20261119.test.cjs"
       ]
     },
     {
-      "id": "ads-monetization",
-      "reason": "Preserve first-view health circuit and monetization authorization.",
+      "id": "cluster-faith",
+      "reason": "Port exact-scope Cluster Admin check-in and faith learning revisions without expanding permissions.",
       "preservedBehaviors": [
-        "No counterfeit or duplicate ad impressions."
+        "Preserve RLS-protected exact cluster review, idempotent points, and lesson access."
       ],
       "tests": [
-        "tests/genesis-production-fix-reconciliation-20261122.test.mjs"
+        "tests/buklod-cluster-home-checkin-review.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Stage database migrations as source only while retaining server-side authorization and auditing.",
+      "preservedBehaviors": [
+        "Never apply staging SQL to live Supabase or bypass user- and role-specific RLS."
+      ],
+      "tests": [
+        "supabase/tests/admin_new_registration_security_20261119.sql"
       ]
     }
   ],
