@@ -94,7 +94,7 @@ export default function BuklodImciTagalogGuide({ onUrgencyChange }: Props) {
 
           {!finished && current ? (
             <View style={styles.questionCard}>
-              <Text style={styles.step}>Tanong {index + 1} sa {questions.length}</Text>
+              <Text style={styles.step}>{current.topic || (current.level === 'danger' ? 'Unang pagsusuri ng panganib' : current.level === 'priority' ? 'Mga sintomas' : 'Pag-iwas at follow-up')} · Tanong {index + 1} sa {questions.length}</Text>
               <Text style={styles.question}>{current.question}</Text>
               <Text style={styles.muted}>{current.explanation}</Text>
               <View style={styles.choices}>
@@ -177,7 +177,7 @@ export default function BuklodImciTagalogGuide({ onUrgencyChange }: Props) {
           ) : null}
           {emergency ? (
             <View style={styles.actions}>
-              <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={() => setIndex(Math.max(0, firstDangerIndex))}>
+              <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={() => { if (firstDangerIndex >= 0) { const id = questions[firstDangerIndex].id; setAnswers(previous => { const next = { ...previous }; delete next[id]; return next; }); setIndex(firstDangerIndex); } }}>
                 <Text style={styles.secondaryText}>Baguhin ang danger sign</Text>
               </Pressable>
               <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={reset}>
