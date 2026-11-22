@@ -6,6 +6,7 @@ import { StreamVideoRN } from '@/lib/streamVideoSdk';
 import {
   getBuklodPttRuntimeState,
   pttUp,
+  stopBuklodPttListening,
   subscribeBuklodPttRuntime,
   type BuklodPttRuntimeState,
 } from './buklodPttRuntime';
@@ -207,7 +208,11 @@ export function handleBuklodPttDutyResponse(response: {
   const action = String(response?.actionIdentifier || '');
 
   if (action === STOP_ACTION) {
+    // A user-facing Stop means stop monitoring, not only release the mic.
+    // Persist the user's choice so app restart cannot silently rejoin.
     void pttUp().catch(() => undefined);
+    void stopBuklodPttListening().catch((error) =>
+      console.warn('PTT notification Stop could not be saved', error));
     return true;
   }
 
