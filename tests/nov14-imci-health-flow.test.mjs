@@ -21,7 +21,7 @@ test('IMCI Tagalog guide uses separate infant, under-five and older age pathways
   assert.ok(getImciQuestions('young_infant').some(q => q.id === 'infant_feed'));
   assert.ok(getImciQuestions('child').some(q => q.id === 'child_drink'));
   assert.ok(getImciQuestions('older').some(q => q.id === 'older_response'));
-  assert.match(guide, /hindi under-five IMCI/);
+  assert.match(guide, /Ang IMCI na ito ay para sa wala pang 5 taong gulang/);
 });
 
 test('Yes or unsure on a danger sign interrupts routine screening and escalates immediately', () => {
