@@ -1,0 +1,37 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-ptt-runtime-harness-reconciliation-20261122.json",
+  "objective": "Restore Genesis consolidated PTT runtime VM regression harness parity after production preference tests were retained and Season 2 audio-focus code added.",
+  "baseRef": "fa852939753737406240a7ee0cdf7ec424569513",
+  "productionBaselineEvidence": "BUKLOD Genesis consolidated DEV source fa8529397537 (PR #1122 source-only merge); Genesis source QA run 45030539795 reported exactly two ReferenceError failures for absent setBuklodPttVoiceActive VM mock, while 181 other tests passed. No staging OTA or native test performed.",
+  "chosenApproach": "Inject a minimal deterministic voice-focus mock into the existing VM runtime test harness; keep all real PTT runtime and normal receiving audio-focus behavior unchanged, and retain both failing test scenarios.",
+  "selectionRationale": "The VM strips source imports and must inject externally imported runtime functions. Editing actual production PTT behavior or skipping tests would be wrong.",
+  "releaseMode": "DEV_ONLY_TEST_HARNESS_RECONCILIATION_NO_PUBLISH",
+  "riskAreas": [
+    "connect-ptt-calls",
+    "app-runtime",
+    "native-runtime"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-ptt-runtime-harness-reconciliation-20261122.json",
+    "tests/buklod-ptt-preferences-and-switching.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-ptt-preferences-and-switching.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "Genesis entry audio ducks consistently while PTT voice activity is real; no runtime code altered.",
+    "PTT target-switch state and serialized stop tests remain fully enabled.",
+    "No production branch, Supabase, signed staging APK, or OTA update altered."
+  ],
+  "acceptanceChecks": [
+    "Focused PTT runtime VM tests pass; preserve all 8 existing cases.",
+    "Genesis all-updates source QA passes full list and Android compile (source-only).",
+    "No real native audio/AdMob/permission release claimed before independent testing."
+  ],
+  "alternativeApproaches": [
+    "Delete/skip old production PTT tests rejected because they catch regressions.",
+    "Remove Genesis audio-focus calls rejected because it regresses entry sound while PTT is active."
+  ]
+}
