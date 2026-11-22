@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as VectorGradient, Path, Rect, Stop } from 'react-native-svg';
-import type { ArcadeMode } from './arcadeCore';
+import type { ArcadeMode, ArcadeEntity } from './arcadeCore';
 
 /**
  * Lightweight local vector scenery with native-driver motion. Deliberately
@@ -88,8 +88,36 @@ export function ArcadePremiumFX({accent, mode, active, eventSeq, outcome, stage}
     <View style={[styles.levelStripe,{borderTopColor:accent+'55'}]}/>
   </View>;
 }
+
+/** Native-driver collectible motion; capped at nine active items per arcade run. */
+export function ArcadeMovingItem({item,icon,accent,ms=160}:{
+  item:ArcadeEntity;icon:string;accent:string;ms?:number;
+}) {
+  const y=useRef(new Animated.Value(item.y)).current;
+  const scale=useRef(new Animated.Value(.5)).current;
+  useEffect(()=>{
+    Animated.spring(scale,{toValue:1,tension:115,friction:11,useNativeDriver:true}).start();
+  },[scale]);
+  useEffect(()=>{
+    Animated.timing(y,{toValue:item.y,duration:ms,easing:Easing.linear,useNativeDriver:true}).start();
+  },[item.y,ms,y]);
+  const yPixels=y.interpolate({inputRange:[0,6],outputRange:[0,270],extrapolate:'clamp'});
+  const left=item.lane===0?'4%':item.lane===1?'37%':'70%';
+  return <Animated.View pointerEvents="none" style={[styles.movingItem,{
+    left:left as any,borderColor:accent,transform:[{translateY:yPixels},{scale}],
+  }]}>
+    <LinearGradient colors={[accent+'88',accent+'22','#0b1836ee']} style={styles.itemGradient}/>
+    <Animated.Text style={styles.movingGlyph}>{icon}</Animated.Text>
+  </Animated.View>;
+}
+
 const styles=StyleSheet.create({
   sky:{...StyleSheet.absoluteFillObject,bottom:-26},
+  movingItem:{position:'absolute',top:0,width:'26%',height:52,borderRadius:17,
+    borderWidth:1.5,overflow:'hidden',alignItems:'center',justifyContent:'center',
+    shadowColor:'#ffffff',shadowOpacity:.3,shadowRadius:6},
+  itemGradient:{...StyleSheet.absoluteFillObject,borderRadius:17},
+  movingGlyph:{fontSize:30,includeFontPadding:false},
   horizonGlow:{position:'absolute',top:'25%',left:0,right:0,height:130},
   spark:{position:'absolute',width:8,height:8,borderRadius:4,
     shadowOpacity:.9,shadowRadius:7,shadowColor:'#fff'},
