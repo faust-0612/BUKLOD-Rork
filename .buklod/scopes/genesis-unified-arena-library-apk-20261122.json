@@ -9,6 +9,7 @@
     ".github/workflows/arena-blender-asset-export-dev-20261122.yml",
     ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
     ".github/workflows/genesis-library-build-receipt-20261122.yml",
+    ".github/workflows/genesis-library-eas-signed-apk-20261122.yml",
     ".github/workflows/genesis-unified-library-offline-apk-20261122.yml",
     "app.config.js",
     "docs/BUKLOD_ARENA_PREMIUM_VISUAL_BACKEND_DEV_20261122.md",
@@ -30,6 +31,7 @@
     "scripts/arena-library-audio-pack.mjs",
     "scripts/build-empire-godot-pack.mjs",
     "scripts/generate-arena-blender-kit.py",
+    "scripts/genesis-library-verify-signed-apk.mjs",
     "tests/arena-library-godot-native-20261122.test.mjs",
     "tests/arena-library-modes-audio-20261122.test.mjs",
     "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
@@ -68,7 +70,8 @@
     "Old debug signer incompatible with existing EAS-signed staging installation",
     "Godot 4.7.2 WAV and all four-world resource pack decoding",
     "Missing locked Jest dependencies block full app-wide release QA",
-    "No online ranked backend client bridge in offline pack"
+    "No online ranked backend client bridge in offline pack",
+    "EAS signing cannot substitute physical Android/AdMob/PTT QA; existing production Supabase account is used for normal staging only, but experimental SOS/Kingdom/Arena updates remain release held"
   ],
   "releaseMode": "DEV_ONLY_OFFLINE_ANDROID_DEBUG_NOT_EAS_OR_OTA",
   "publicationStatus": "NO_APK_VERIFIED_NO_OTA",
@@ -78,7 +81,8 @@
     "Node focused Arena and native runtime contract plus source release and Genesis gates",
     "Android ARM64 Gradle APK assembleDebug with explicit dummy Supabase backend/test AdMob",
     "Verify exact source SHA, Android package, ABIs, Godot native library, packed resources and APK signature/hash",
-    "Require new separately authorized EAS signed functional staging RC, AdMob/navig/device evidence before distribution"
+    "Require new separately authorized EAS signed functional staging RC, AdMob/navig/device evidence before distribution",
+    "Exact-source native ARM64 compile must be success before any EAS signing credit is used; verify signer pinned to original staging certificate; check all ABIs and embedded Godot archive; no Expo OTA or Play upload"
   ],
   "productionBaselineEvidence": "Authoritative production org.mzbministry.buklod runtime 1.3.2 and channel production preserved from current unified Genesis source. New isolated branch derives from c4c0fb804e4d079d894b03023187f2092032ba9c; no production merges or backend writes.",
   "selectionRationale": "No standalone game, no double combat authority, keep newer native unified world resources while adding current Library hero/minion/audio logic; one scoped debug build before paid remote staging signing.",
