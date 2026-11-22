@@ -15,6 +15,14 @@ static func _buff(p: Dictionary, key: String, value: float, until: float) -> voi
 		"until": maxf(until, float(previous.get("until", 0.0)))
 	}
 
+static func _control_resist(sim: BuklodArenaSimulation, target: Dictionary) -> float:
+	# Niel's Shared Resolve aura lowers control duration for nearby allies.
+	for ally in sim.state["players"].values():
+		if ally.get("hero", "") == "niel" and ally["team"] == target["team"] \
+				and sim._alive(ally) and sim._dist(ally, target) <= 8.75:
+			return 0.20
+	return 0.0
+
 static func _hit_nearest(sim: BuklodArenaSimulation, p: Dictionary, distance: float, damage: float,
 		slow: float = 0.0) -> bool:
 	var enemies: Array = sim._enemies(p, distance)
@@ -132,7 +140,8 @@ static func cast(sim: BuklodArenaSimulation, p: Dictionary,
 			if struck:
 				var targets: Array = sim._enemies(p, 11.0)
 				if not targets.is_empty():
-					_buff(targets.front(), "stun", 1.0, _now(sim) + 1.0)
+					_buff(targets.front(), "stun", 1.0,
+						_now(sim) + 1.0 * (1.0 - _control_resist(sim, targets.front())))
 			return struck
 		"turning_page":
 			_buff(p, "guard", 0.40, _now(sim) + 3.0)
