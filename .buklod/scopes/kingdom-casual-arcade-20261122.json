@@ -28,7 +28,8 @@
     "pause/resume and offline deterministic rules",
     "stage-by-stage progression without fixed final stage",
     "reactive sounds and existing approved native character cinematics",
-    "expert/original games retained behind arcade options"
+    "expert/original games retained behind arcade options",
+    "Global EN/TL guide always matches selected arcade game, with beginner instructions for each control mode"
   ],
   "allowedPaths": [
     "src/features/games/kingdom/arcade/arcadeCatalog.ts",
@@ -39,7 +40,8 @@
     "src/features/games/kingdom/platform/KingdomCinematicScenes.ts",
     "package.json",
     "tests/kingdom-casual-arcade.test.cjs",
-    ".buklod/scopes/kingdom-casual-arcade-20261122.json"
+    ".buklod/scopes/kingdom-casual-arcade-20261122.json",
+    "src/features/games/runtime/BuklodGameLanguage.tsx"
   ],
   "criticalGates": [
     "node --test tests/kingdom-casual-arcade.test.cjs",
@@ -61,7 +63,8 @@
     "Confirm exactly two new playable arcade games per each of 13 existing character stations; previous original 39 remain selectable",
     "Pass node --test tests/kingdom-casual-arcade.test.cjs and npm run game:contract",
     "Pass TypeScript check, regression checks, and Android staging runtime UI/ad/nav QA before any release",
-    "Never mint BP, XP, cash or collectibles from client arcade results"
+    "Never mint BP, XP, cash or collectibles from client arcade results",
+    "Opening GUIDE on any arcade displays the selected title and correct English/Tagalog controls"
   ],
   "preserveBehaviors": [
     "Original game route IDs, map doors, previous 39 games and existing progression remain unchanged",
