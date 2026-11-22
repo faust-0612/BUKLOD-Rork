@@ -50,7 +50,7 @@ test('Cluster attendance is gated to an active official event and admin review',
  assert.match(clusterReviewSql,/cluster_review_buklod_home_checkin_v1/);
  assert.match(clusterReviewScreen,/readClusterScopeId/);
  assert.match(clusterReviewScreen,/cluster_get_buklod_home_checkin_queue_v1/);
- assert.match(appRoutes,/name="clusters\\/home-checkin-review"/);
+ assert.match(appRoutes,/name="clusters\/home-checkin-review"/);
 });
 
 test('Cluster Home file/media lifecycle keeps admin-only private object policies and linked references',()=>{
