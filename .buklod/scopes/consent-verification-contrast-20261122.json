@@ -1,0 +1,55 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/consent-verification-contrast-20261122.json",
+  "objective": "Correct Android privacy acknowledgement false failures on weak or delayed connections and restore readable themed consent cards.",
+  "baseRef": "main",
+  "chosenApproach": "Preserve authentication and Supabase policy read-back, distinguish transient transport failures from expired sessions, confirm ambiguous RPC commits, and use semantic foreground/background theme roles.",
+  "riskAreas": [
+    "app-runtime",
+    "auth-privacy",
+    "dark-contrast"
+  ],
+  "allowedPaths": [
+    "src/providers/ComplianceProvider.tsx",
+    "src/app/privacy/consent.tsx",
+    "tests/auth-consent-boot-recovery.test.mjs",
+    ".buklod/scopes/consent-verification-contrast-20261122.json"
+  ],
+  "regressionTests": [
+    "tests/auth-consent-boot-recovery.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Fix the existing required consent gate and unreadable dark cards while retaining the authoritative server acceptance contract.",
+      "preservedBehaviors": [
+        "Never accept policies from a stale or unrelated SDK user; all required policy versions must be confirmed by Supabase before leaving the consent route.",
+        "Preserve offline read-only cache rules, existing authenticated root routing, Ads, Wall, Connect, finances and all unrelated areas."
+      ],
+      "tests": [
+        "tests/auth-consent-boot-recovery.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No backend migration, RLS changes, auth bypass, new permissions, native additions or changes to ad/tab navigation.",
+    "RPC write remains idempotent; an uncertain response is checked against server-confirmed acceptance rather than blindly treated as success.",
+    "Do not auto-publish any OTA or Android build."
+  ],
+  "acceptanceChecks": [
+    "Existing consent auth guard/source tests pass.",
+    "Targeted typecheck and source gate pass in PR CI.",
+    "Android light/dark screenshots and authenticated write/retry behavior need verified RC before merge/release.",
+    "Ad placement and dashboard navigation release gates remain mandatory."
+  ],
+  "releaseMode": "dev-only-draft-pr-no-ota",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "productionBaselineEvidence": "verified: inspected GitHub main source and live Supabase RPC schema/aggregate response health on 2026-11-22. This verifies repository/source and backend state only, not the installed Android or production OTA fingerprint; release remains blocked without exact independent production evidence.",
+  "selectionRationale": "Screen error is from ComplianceProvider catch; 5-second remote waits and generic catch obscure session versus transport faults; shared Card uses runtime dark theme while screen text used static dark colors.",
+  "alternativeApproaches": [
+    "Accept offline without server verification (rejected: would break policy audit/security).",
+    "Modify policy RPC grants or database RLS (rejected: server RPCs showed successful authenticated traffic).",
+    "Globally replace theme colors in shared UI (rejected: high risk to unrelated screens)."
+  ]
+}
