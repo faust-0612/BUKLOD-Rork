@@ -39,7 +39,8 @@
     "ads-monetization",
     "navigation-scroll",
     "faith-cluster",
-    "backend-security"
+    "backend-security",
+    "release-identity"
   ],
   "regressionTests": [
     "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
