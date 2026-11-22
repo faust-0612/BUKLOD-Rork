@@ -76,12 +76,22 @@ jobs:
             createdAt:u.createdAt||null
           });
           const matches=page.map(normalize).filter(u=>u.runtime==='2.0.4-genesis-library-godot');
+          const errorOf=p=>{
+            let error='';
+            try{error=fs.readFileSync(p,'utf8');}catch{return 'stderr_not_available'}
+            error=error.replace(/sb_publishable_[A-Za-z0-9_-]+/g,'[REDACTED_PUBLIC_KEY]')
+              .replace(/sb_secret_[A-Za-z0-9_-]+/g,'[REDACTED_SECRET]')
+              .replace(/Bearer\\s+[^\\s]+/gi,'Bearer [REDACTED]');
+            return error.trim().slice(-850);
+          };
           const data={
             method:'READ_ONLY_REAL_EXPO_CHANNEL',
             expectedProjectId:'23dad7d0-389a-406e-8dec-08965dab85d8',
             expectedChannel:'season2-genesis-library-preview',
             expectedRuntime:'2.0.4-genesis-library-godot',
             channelQueryExit:Number(process.env.CHANNEL_RC),
+            channelError:errorOf('/tmp/eas-channel-err.txt'),
+            updateError:errorOf('/tmp/eas-updates-err.txt'),
             updateQueryExit:Number(process.env.UPDATE_RC),
             channelName:channel?.name||null,
             channelKeys:channel&&typeof channel==='object'?Object.keys(channel).slice(0,15):[],
