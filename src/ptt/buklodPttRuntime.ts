@@ -1,4 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { loadBuklodPttUserSettings, saveBuklodPttUserSettings } from './buklodPttSetup';
 import { hasBuklodPttCaptionConsent, persistOwnBuklodPttCaption } from './buklodPttConversation';
 
 import {
@@ -71,6 +72,8 @@ let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let priorityGuardTimer: ReturnType<typeof setInterval> | null = null;
 let previousTarget: { scope: BuklodPttScope; channel: number } | null = null;
 let bootPromise: Promise<void> | null = null;
+// A foreground target switch must never race a bootstrap/notification join.
+let targetSwitchTail: Promise<void> = Promise.resolve();
 let holdToken = 0;
 // Serialize overlapping holds/releases so a late floor grant cannot revoke a
 // subsequent transmission on the same channel.
@@ -215,63 +218,61 @@ async function connectTarget(
   scope: BuklodPttScope,
   channel: number,
   options?: { monitor?: boolean },
-) {
-  const current = state.connection;
-
-  if (
-    current &&
-    current.scope.id === scope.id &&
-    current.channel === channel
-  ) {
-    if (options?.monitor) {
-      await setBuklodPttMonitor(scope.id, channel, true);
+): Promise<BuklodPttConnection> {
+  const join = targetSwitchTail.catch(() => undefined).then(async () => {
+    const current = state.connection;
+    if (current?.scope.id === scope.id && current.channel === channel) {
+      if (options?.monitor) await setBuklodPttMonitor(scope.id, channel, true);
+      return current;
     }
-    return current;
-  }
 
-  await pttUp().catch(() => undefined);
+    await pttUp().catch(() => undefined);
+    // Join the replacement while the prior muted connection remains valid.
+    // Failure must not leave a disconnected call advertised as READY.
+    const next = await connectBuklodPtt(scope, channel);
+    try {
+      if (options?.monitor) {
+        await setBuklodPttMonitor(scope.id, channel, true);
+      }
+      if (current !== state.connection) {
+        throw new Error('PTT changed during channel switch.');
+      }
+    } catch (error) {
+      await disconnectBuklodPtt(next).catch(() => undefined);
+      throw error;
+    }
 
-  if (current) {
-    detachCaptionListener();
-    recentlyReleased = null;
-    await disconnectBuklodPtt(current);
-  }
+    if (current) {
+      detachCaptionListener();
+      recentlyReleased = null;
+      await disconnectBuklodPtt(current).catch(() => undefined);
+      // A failed cleanup must not invalidate the confirmed new channel.
+      if (options?.monitor && !state.priorityReceiving) {
+        await setBuklodPttMonitor(current.scope.id, current.channel, false)
+          .catch(() => undefined);
+      }
+    }
 
-  const next = await connectBuklodPtt(scope, channel);
-
-  if (options?.monitor) {
-    await setBuklodPttMonitor(scope.id, channel, true);
-  }
-
-  state = {
-    ...state,
-    connection: next,
-    transmitting: false,
-    requestingFloor: false,
-    txKind: null,
-    transmissionId: null,
-  };
-  attachCaptionListener(next);
-  emit();
-  return next;
+    state = {
+      ...state,
+      connection: next,
+      transmitting: false,
+      requestingFloor: false,
+      txKind: null,
+      transmissionId: null,
+    };
+    attachCaptionListener(next);
+    emit();
+    return next;
+  });
+  targetSwitchTail = join.then(() => undefined, () => undefined);
+  return join;
 }
 
 export async function connectBuklodPttRuntime(
   scope: BuklodPttScope,
   channel: number,
 ) {
-  const old = state.connection;
-
-  if (
-    old &&
-    (old.scope.id !== scope.id || old.channel !== channel) &&
-    !state.priorityReceiving
-  ) {
-    try {
-      await setBuklodPttMonitor(old.scope.id, old.channel, false);
-    } catch {}
-  }
-
   return connectTarget(scope, channel, { monitor: true });
 }
 
@@ -295,6 +296,10 @@ export async function selectBuklodPttTarget(
 }
 
 export async function disconnectBuklodPttRuntime() {
+  // Mute immediately before awaiting joins, then mute again after any late
+  // join so Stop always wins without leaving an active microphone.
+  await pttUp().catch(() => undefined);
+  await targetSwitchTail.catch(() => undefined);
   await pttUp().catch(() => undefined);
   stopPriorityGuard();
   await disconnectCurrent({ disableMonitor: true });
@@ -306,6 +311,22 @@ export async function disconnectBuklodPttRuntime() {
     priorityValue: 0,
   };
   emit();
+}
+
+export async function stopBuklodPttListening() {
+  // Stop the transport even if local storage cannot persist the preference.
+  // The caller receives a genuine failure and must not claim Stop is saved.
+  let persistenceError: unknown = null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) throw new Error('PTT member session is unavailable.');
+    const saved = await loadBuklodPttUserSettings(session.user.id);
+    await saveBuklodPttUserSettings(session.user.id, { ...saved, listening: false });
+  } catch (error) {
+    persistenceError = error;
+  }
+  await disconnectBuklodPttRuntime();
+  if (persistenceError) throw persistenceError;
 }
 
 async function dropFloor(transmissionId: string | null | undefined) {
@@ -589,6 +610,13 @@ async function restoreLastMonitoredChannel(scopes: BuklodPttScope[]) {
   } = await supabase.auth.getSession();
 
   if (!session?.user?.id) return;
+  let savedSettings;
+  try {
+    savedSettings = await loadBuklodPttUserSettings(session.user.id);
+    if (!savedSettings.listening || savedSettings.routeMode === 'NEARBY') return;
+  } catch {
+    return; // Do not override a saved Stop if local state cannot be read.
+  }
 
   const { data, error } = await supabase
     .from('buklod_ptt_monitors')
@@ -601,8 +629,10 @@ async function restoreLastMonitoredChannel(scopes: BuklodPttScope[]) {
 
   if (error || !data?.scope_id || !data?.channel) return;
 
-  const scope = scopes.find((item) => item.id === String(data.scope_id));
-  const channel = Number(data.channel);
+  const preferredScope = scopes.find((item) => item.id === savedSettings.scopeId);
+  const scope = preferredScope ??
+    scopes.find((item) => item.id === String(data.scope_id));
+  const channel = preferredScope ? savedSettings.channel : Number(data.channel);
 
   if (!scope || channel < 1 || channel > 10) return;
 
@@ -658,6 +688,14 @@ export async function shutdownBuklodPttRuntime() {
 
 async function listenForIncomingPtt(data: any) {
   if (state.priorityReceiving || state.transmitting) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) return;
+  try {
+    const saved = await loadBuklodPttUserSettings(session.user.id);
+    if (!saved.listening || saved.routeMode === 'NEARBY') return;
+  } catch {
+    return;
+  }
 
   const channel = Number(data?.channel || 0);
   const scopeId = String(data?.scope_id || '');
