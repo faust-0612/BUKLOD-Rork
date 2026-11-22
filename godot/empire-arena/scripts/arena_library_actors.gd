@@ -89,12 +89,16 @@ static func advance_waves(sim: BuklodArenaSimulation) -> void:
 	var power: float = minf(1.7, 1.0 + float(sim.state["time"]) / 60.0 * 0.04)
 	var total := 0
 	for team in ["A", "B"]:
+		# The research villager's work provides a capped, match-only 2% stat
+		# improvement per researched tier; it never grants permanent BP.
+		var research: float = clampf(float(sim.state["team"][team].get("library_research", 0)), 0.0, 5.0)
+		var team_power: float = minf(1.7, power * (1.0 + research * 0.02))
 		for lane in range(3):
 			for kind in composition:
-				if _spawn_minion(sim, team, str(kind), lane, power):
+				if _spawn_minion(sim, team, str(kind), lane, team_power):
 					total += 1
 			if sim.state["time"] >= 480.0 and index % 6 == 0:
-				if _spawn_minion(sim, team, "siege", lane, power):
+				if _spawn_minion(sim, team, "siege", lane, team_power):
 					total += 1
 	if total > 0:
 		sim._log("library_minion_wave", {"wave": index, "count": total})
