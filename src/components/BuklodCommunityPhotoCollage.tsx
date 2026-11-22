@@ -8,6 +8,7 @@ import {
   View,
   type ImageStyle,
   type LayoutChangeEvent,
+  useWindowDimensions,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -42,6 +43,8 @@ type Props = {
   imageStyle?: StyleProp<ImageStyle>;
   contentFit?: 'cover' | 'contain';
   preserveSinglePhotoAspectRatio?: boolean;
+  /** Wall feed cards must not change height when an image finishes downloading. */
+  stableFeedFrame?: boolean;
   onPressPhoto?: (
     index: number,
     items: CommunityPhotoCollageItem[]
@@ -174,9 +177,11 @@ export function BuklodCommunityPhotoCollage({
   imageStyle,
   contentFit = 'cover',
   preserveSinglePhotoAspectRatio = true,
+  stableFeedFrame = false,
   onPressPhoto,
   onLongPressPhoto,
 }: Props) {
+  const { width: viewportWidth } = useWindowDimensions();
   const photos = communityPhotoCollageItems(items);
   const count = photos.length;
   const [measuredWidth, setMeasuredWidth] = useState(
@@ -215,10 +220,16 @@ export function BuklodCommunityPhotoCollage({
     ? communitySinglePhotoFrame(collageWidth, singleAspectRatio)
     : null;
   const singlePhotoHeight = height ?? singlePhotoFrame?.height ?? 310;
-  const singlePhotoFit = singlePhotoFrame?.contentFit ?? contentFit;
+  // A shared deterministic height prevents late one-to-many media hydration
+  // and original-image decode from shifting Wall feed scroll position.
+  const stableHeight = Math.min(440, Math.max(300, Math.round(viewportWidth * 0.95)));
+  const singlePhotoFit = stableFeedFrame && height == null
+    ? 'contain'
+    : singlePhotoFrame?.contentFit ?? contentFit;
 
-  const collageHeight =
-    count === 1
+  const collageHeight = stableFeedFrame && height == null
+    ? stableHeight
+    : count === 1
       ? singlePhotoHeight
       : (height ?? 280);
 
@@ -267,6 +278,7 @@ export function BuklodCommunityPhotoCollage({
           onLoad={(event: any) => {
             if (
               !preserveSinglePhotoAspectRatio ||
+              stableFeedFrame ||
               height != null
             ) {
               return;
