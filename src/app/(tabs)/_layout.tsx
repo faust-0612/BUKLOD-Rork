@@ -20,6 +20,7 @@ import {
   Image,
   Platform,
   Pressable,
+  StatusBar,
   Text,
   useWindowDimensions,
   View,
@@ -405,14 +406,15 @@ export default function TabsLayout() {
       width,
     );
 
-  // Genesis preview omits the shared dashboard header. Only the Wall and
-  // Connect require the missing status-bar clearance; World Home already
-  // includes its own safe-area inset. Keep production layouts unchanged.
+  // Genesis omits the shared header, so each primary tab must clear the
+  // Android/iOS status bar. Native inset wins for cutouts; Android StatusBar
+  // height is a fallback when the inset reports zero during OTA restoration.
+  // Production and browser shell spacing remain unchanged.
   const genesisDashboardTopInset =
     Platform.OS !== 'web' &&
     isGenesisPreviewBuild() &&
-    ['/buklod', '/messages'].includes(normalizeBuklodPathname(pathname))
-      ? Math.max(0, insets.top) + 4
+    ['/buklod', '/messages', '/hub', '/me'].includes(normalizeBuklodPathname(pathname))
+      ? Math.max(0, insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 4
       : 0;
 
   // Non-auth Train A: Android reuses frozen dashboard instances; Web/iOS keep Stack.
