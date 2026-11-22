@@ -89,6 +89,7 @@ jobs:
             tests/season2-special-events-welcome-20261121.test.mjs \
             tests/season2-community-village-preview-20261121.test.mjs \
             tests/genesis-valley-audio-focus-20261121.test.mjs \
+            tests/genesis-entry-ptt-audio-continuity-20261122.test.mjs \
             tests/genesis-dimensional-entry-map-motion-20261121.test.mjs \
             tests/genesis-original-guide-ad-20261121.test.mjs \
             tests/arena-premium-voice-motion-terrain-20261121.test.mjs \
