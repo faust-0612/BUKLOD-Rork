@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import {
@@ -13,97 +14,164 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { AdminGate } from '@/components/AdminGate';
-import { Button, Card, shared } from '@/components/UI';
+import { Button, Card, useThemedShared } from '@/components/UI';
+import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import {
   loadSystemAnnouncementBoardForAdmin,
   saveSystemAnnouncementBoard,
   type SystemAnnouncementSlot,
 } from '@/lib/buklodSystemAnnouncementBoard';
-import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 type BoardDraft = {
   message: string;
   is_active: boolean;
 };
 
+const EMPTY_BOARD: BoardDraft = { message: '', is_active: true };
+
 function BoardEditor({
   slot,
   title,
   subtitle,
-  profilePreview,
 }: {
   slot: SystemAnnouncementSlot;
   title: string;
   subtitle: string;
-  profilePreview?: boolean;
 }) {
   const { profile } = useAuth();
+  const { theme, paletteId } = useBuklodTheme();
+  const themedShared = useThemedShared();
+  const dark = isBuklodDarkPaletteId(paletteId);
+  const announcementTone = useMemo(() => getBuklodCardTone('amber', dark), [dark]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [draft, setDraft] = useState<BoardDraft>({
-    message: '',
-    is_active: true,
-  });
+  const [draft, setDraft] = useState<BoardDraft>(EMPTY_BOARD);
+  const [saved, setSaved] = useState<BoardDraft>(EMPTY_BOARD);
+  const isPublic = slot === 'public_home';
+  const dirty = draft.message !== saved.message || draft.is_active !== saved.is_active;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const styles = useMemo(
+    () => StyleSheet.create({
+      cardTitle: {
+        fontSize: 17,
+        fontWeight: '900',
+        color: theme.textPrimary,
+        marginBottom: 3,
+      },
+      subtitle: { color: theme.textSecondary, marginBottom: 10 },
+      switchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+        minHeight: 44,
+      },
+      switchLabel: { fontSize: 14, fontWeight: '800', color: theme.textPrimary },
+      input: {
+        minHeight: 96,
+        maxHeight: 220,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 12,
+        backgroundColor: theme.inputSurface,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 15,
+        lineHeight: 22,
+        color: theme.textPrimary,
+        textAlignVertical: 'top',
+      },
+      counterRow: {
+        marginTop: 5,
+        marginBottom: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 8,
+      },
+      counter: { fontSize: 11, fontWeight: '700', color: theme.textMuted },
+      unsaved: { fontSize: 11, fontWeight: '800', color: theme.textPrimary },
+      preview: {
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: isPublic ? theme.border : announcementTone.border,
+        backgroundColor: isPublic ? theme.cardSurface : announcementTone.surface,
+        paddingHorizontal: 13,
+        paddingVertical: 10,
+        marginBottom: 10,
+      },
+      previewLabel: {
+        fontSize: isPublic ? 11 : 10,
+        fontWeight: '900',
+        letterSpacing: 1.1,
+        color: isPublic ? theme.textPrimary : announcementTone.ink,
+        marginBottom: isPublic ? 4 : 6,
+      },
+      previewMessage: {
+        fontSize: isPublic ? 18 : 15,
+        lineHeight: isPublic ? 24 : 22,
+        fontWeight: isPublic ? '900' : '800',
+        color: theme.textPrimary,
+      },
+    }),
+    [theme, announcementTone, isPublic]
+  );
 
+  const load = useCallback(async (initial = false) => {
+    if (initial) setLoading(true);
     try {
       const board = await loadSystemAnnouncementBoardForAdmin(slot);
-      setDraft({
+      const next = {
         message: board?.message ?? '',
         is_active: board?.is_active !== false,
-      });
+      };
+      setDraft(next);
+      setSaved(next);
     } catch (error: unknown) {
       Alert.alert(
         'Announcement Board',
-        error instanceof Error
-          ? error.message
-          : 'Could not load announcement board.'
+        error instanceof Error ? error.message : 'Could not load announcement board.'
       );
     } finally {
-      setLoading(false);
+      if (initial) setLoading(false);
     }
   }, [slot]);
 
   useEffect(() => {
-    void load();
+    void load(true);
   }, [load]);
 
   const save = async () => {
+    if (saving) return;
     const cleanMessage = draft.message.trim();
-
     if (draft.is_active && !cleanMessage) {
-      Alert.alert(
-        'Announcement Board',
-        'Enter a message or turn the board off.'
-      );
+      Alert.alert('Announcement Board', 'Enter a message or turn the board off.');
       return;
     }
 
     setSaving(true);
-
     try {
-      await saveSystemAnnouncementBoard({
+      const confirmed = await saveSystemAnnouncementBoard({
         slot,
         message: cleanMessage,
         is_active: draft.is_active,
         updated_by: profile?.id ?? null,
       });
-
-      Alert.alert(
-        'Saved',
-        'Announcement board updated. Members will see it once a message is saved and the board is turned on.'
-      );
-      await load();
+      const next = { message: confirmed.message, is_active: confirmed.is_active };
+      setDraft(next);
+      setSaved(next);
+      Alert.alert('Saved', isPublic
+        ? 'Public Home announcement verified on the server.'
+        : 'Profile announcement verified on the server.');
     } catch (error: unknown) {
       Alert.alert(
-        'Announcement Board',
-        error instanceof Error
-          ? error.message
-          : 'Could not save announcement board.'
+        'Announcement Not Saved',
+        error instanceof Error ? error.message : 'Could not verify the server update. Your draft is kept.'
       );
     } finally {
       setSaving(false);
@@ -113,7 +181,7 @@ function BoardEditor({
   if (loading) {
     return (
       <Card>
-        <ActivityIndicator color={colors.green} />
+        <ActivityIndicator color={theme.accent} />
       </Card>
     );
   }
@@ -121,73 +189,51 @@ function BoardEditor({
   return (
     <Card>
       <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={[shared.muted, { marginBottom: 12 }]}>
-        {subtitle}
-      </Text>
-
+      <Text style={[themedShared.muted, styles.subtitle]}>{subtitle}</Text>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Show board</Text>
         <Switch
+          accessibilityLabel={isPublic ? 'Show Public Home Board' : 'Show Profile Board'}
+          disabled={saving}
           value={draft.is_active}
           onValueChange={(value) =>
-            setDraft((current) => ({
-              ...current,
-              is_active: value,
-            }))
+            setDraft((current) => ({ ...current, is_active: value }))
           }
+          trackColor={{ false: theme.border, true: theme.accentSoft }}
+          thumbColor={draft.is_active ? theme.accent : theme.textMuted}
         />
       </View>
-
       <TextInput
+        accessibilityLabel={isPublic ? 'Public Home announcement message' : 'Profile announcement message'}
         value={draft.message}
+        editable={!saving}
         onChangeText={(value) =>
-          setDraft((current) => ({
-            ...current,
-            message: value.slice(0, 2000),
-          }))
+          setDraft((current) => ({ ...current, message: value.slice(0, 2000) }))
         }
         placeholder="Type announcement message…"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={theme.textMuted}
+        selectionColor={theme.accent}
         multiline
         style={styles.input}
       />
-
-      <Text style={styles.counter}>
-        {draft.message.length}/2000
-      </Text>
-
+      <View style={styles.counterRow}>
+        <Text style={styles.unsaved}>{dirty ? 'Unsaved changes' : 'No unsaved changes'}</Text>
+        <Text style={styles.counter}>{draft.message.length}/2000</Text>
+      </View>
       {!!draft.message.trim() && (
-        <View
-          style={[
-            styles.preview,
-            profilePreview && styles.previewProfile,
-          ]}
-        >
-          <Text
-            style={[
-              styles.previewLabel,
-              profilePreview && styles.previewLabelProfile,
-            ]}
-          >
-            {slot === 'public_home' ? 'ANNOUNCEMENT' : 'FROM BUKLOD'}
+        <View style={styles.preview}>
+          <Text style={styles.previewLabel}>
+            {isPublic ? 'ANNOUNCEMENT' : 'FROM BUKLOD'}
           </Text>
-          <Text
-            style={[
-              styles.previewMessage,
-              profilePreview && styles.previewMessageProfile,
-            ]}
-          >
-            {draft.message.trim()}
-          </Text>
+          <Text style={styles.previewMessage}>{draft.message.trim()}</Text>
         </View>
       )}
-
       <Button
-        title={saving ? 'SAVING…' : 'SAVE ANNOUNCEMENT'}
+        title={saving
+          ? 'SAVING…'
+          : isPublic ? 'SAVE HOME BOARD' : 'SAVE PROFILE BOARD'}
         onPress={() => {
-          if (!saving) {
-            void save();
-          }
+          if (!saving) void save();
         }}
       />
     </Card>
@@ -195,119 +241,40 @@ function BoardEditor({
 }
 
 export default function SystemAnnouncementBoardsAdminScreen() {
+  const { theme } = useBuklodTheme();
+  const themedShared = useThemedShared();
+  const insets = useSafeAreaInsets();
+
   return (
     <AdminGate>
       <ScrollView
-        style={shared.screen}
-        contentContainerStyle={styles.content}
+        style={themedShared.screen}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingHorizontal: 12,
+          paddingTop: Math.max(14, insets.top + 8),
+          paddingBottom: Math.max(20, insets.bottom + 18),
+          gap: 12,
+        }}
       >
-        <Text style={styles.eyebrow}>HOME & PROFILES</Text>
-        <Text style={shared.h1}>Announcement Boards</Text>
-        <Text style={[shared.muted, { marginBottom: 16 }]}>
-          These boards only appear when there is a message and the board is
-          turned on.
+        <Text style={{
+          fontSize: 11, fontWeight: '900', letterSpacing: 1.2, color: theme.textPrimary,
+        }}>HOME & PROFILES</Text>
+        <Text style={themedShared.h1}>Announcement Boards</Text>
+        <Text style={[themedShared.muted, { marginBottom: 4 }]}>
+          Boards appear only when they have a saved message and are enabled.
         </Text>
-
         <BoardEditor
           slot="public_home"
           title="Public Home Board"
-          subtitle="Large, bold announcement on the public Home screen."
+          subtitle="Large announcement on the public Home screen."
         />
-
         <BoardEditor
           slot="profile"
           title="Profile Board"
-          subtitle="Separate message shown on all member profiles."
-          profilePreview
+          subtitle="Separate message shown on member profiles."
         />
       </ScrollView>
     </AdminGate>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    padding: 18,
-    gap: 16,
-    paddingBottom: 40,
-  },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-    color: colors.greenDark,
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  switchLabel: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  input: {
-    minHeight: 120,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.text,
-    textAlignVertical: 'top',
-  },
-  counter: {
-    marginTop: 6,
-    marginBottom: 12,
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
-    textAlign: 'right',
-  },
-  preview: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.greenDark,
-    backgroundColor: '#F4FBF7',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 14,
-  },
-  previewProfile: {
-    borderColor: '#D8E7DE',
-    backgroundColor: '#FFFFFF',
-  },
-  previewLabel: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1.1,
-    color: colors.greenDark,
-    marginBottom: 8,
-  },
-  previewLabelProfile: {
-    fontSize: 10,
-    marginBottom: 6,
-    color: '#6B7280',
-  },
-  previewMessage: {
-    fontSize: 22,
-    lineHeight: 30,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  previewMessageProfile: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '800',
-  },
-});

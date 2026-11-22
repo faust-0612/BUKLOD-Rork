@@ -87,7 +87,7 @@ export default function BuklodMapScreen() {
       <ScrollView
         style={styles.scroll}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.content, landscape&&styles.landscapeContent, { paddingTop: 6, paddingBottom: Math.max(6, insets.bottom) + 8 }]}
+        contentContainerStyle={[styles.content, landscape&&styles.landscapeContent, { paddingTop: Math.max(6, insets.top + 6), paddingBottom: Math.max(6, insets.bottom) + 8 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={landscape ? styles.landscapeFirstRow : styles.portraitFirstView}>
