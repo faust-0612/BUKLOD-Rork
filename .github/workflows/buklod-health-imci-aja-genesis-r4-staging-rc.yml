@@ -1,9 +1,6 @@
 name: BUKLOD MAIN Health IMCI AJA Genesis R4 Staging RC QA (NO OTA)
 
 on:
-  push:
-    branches:
-      - rc/health-imci-aja-staging-r4-20261122
   pull_request:
     branches:
       - staging/health-imci-aja-r4-baseline-20261122
@@ -22,12 +19,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: health-imci-aja-r4-rc-${{ github.ref }}
+  group: health-imci-aja-r4-rc-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   staging-rc-no-publish:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -53,14 +50,15 @@ jobs:
       - name: Verify published R4 base and strict Health-only scope (no native or other Season2 files)
         env:
           EXPECTED_BASE: 7bbb44fcb331ce14785ce43d70969d955f9e61e7
-          BASE_SHA: ${{ github.event.pull_request.base.sha || '7bbb44fcb331ce14785ce43d70969d955f9e61e7' }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           node <<'NODE'
           const cp=require('node:child_process');
           const assert=require('node:assert/strict');
           const base=process.env.BASE_SHA,head=process.env.HEAD_SHA;
-          assert.equal(base,process.env.EXPECTED_BASE,'Staging R4 baseline moved; reconcile before release');
+          const ciBootstrap=cp.execFileSync('git',['diff','--name-only',process.env.EXPECTED_BASE,base],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          assert.deepEqual(ciBootstrap,['.github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml'],'Base must be original R4 plus CI-only workflow');
           const files=cp.execFileSync('git',['diff','--name-only',base,head],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
           const allowed=new Set([
             'src/app/profile/buklod-health.tsx',
@@ -106,9 +104,11 @@ jobs:
         run: npx expo export --platform android --output-dir /tmp/buklod-health-imci-aja-r4-android
 
       - name: Archive small source/JS export checksum evidence
+        env:
+          RC_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           mkdir -p /tmp/health-imci-aja-rc
-          printf 'source_sha=%s\nbase_sha=%s\nchannel=season2-genesis-preview\nruntime=2.0.0-genesis-preview\npackage=org.mzbministry.buklod.staging\npublished=false\n' "${GITHUB_SHA}" "7bbb44fcb331ce14785ce43d70969d955f9e61e7" > /tmp/health-imci-aja-rc/rc-evidence.txt
+          printf 'source_sha=%s\nbase_sha=%s\nchannel=season2-genesis-preview\nruntime=2.0.0-genesis-preview\npackage=org.mzbministry.buklod.staging\npublished=false\n' "${RC_HEAD_SHA}" "7bbb44fcb331ce14785ce43d70969d955f9e61e7" > /tmp/health-imci-aja-rc/rc-evidence.txt
           find /tmp/buklod-health-imci-aja-r4-android -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/health-imci-aja-rc/android-js-export-sha256.txt
       - name: Publish checksum-only CI artifact (no OTA)
         uses: actions/upload-artifact@v4
