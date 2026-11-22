@@ -1,0 +1,74 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-comment-density-20261122.json",
+  "objective": "Reduce BUKLOD public Wall comment vertical spacing and preserve functional comment behavior.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source 90167a90ab7f42de34fa57db6874f9e064826ad3 observed Nov 22 2026; source-only, not live OTA proof.",
+  "chosenApproach": "Compact shared comment bubble, thread, footer, toolbar and sheet. Hide No Cluster when no cluster exists, and display shorter Manila-local footer timestamps while retaining full date details.",
+  "selectionRationale": "Screenshots show oversized bubble, repeated absent-cluster label and long timestamp causing excess vertical space. Presentation-only fixes minimize regression risk.",
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "navigation-scroll",
+    "wall-layout",
+    "touch-accessibility",
+    "replies",
+    "media",
+    "ad-preservation"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommunityCommentThread.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/app/(tabs)/buklodCommunityStyles.ts",
+    "src/lib/dateTime.ts",
+    "src/lib/__tests__/compactCommentDateTime.test.ts",
+    "tests/wall-comment-navigation-compact-20261122.test.mjs",
+    ".buklod/scopes/wall-comment-density-20261122.json"
+  ],
+  "preserveBehaviors": [
+    "Preserve comment data, ordering, replies, reactions and summaries.",
+    "Preserve media, mentions, GIF/photo/emoji compose, edit/delete/report and profile interactions.",
+    "Preserve native runtime, navigation callbacks, AdMob placement, authentication and permissions; no release changes."
+  ],
+  "acceptanceChecks": [
+    "Run focused Node layout/action regression checks.",
+    "Run Jest formatter unit tests and compile/test CI checks.",
+    "Run mandatory engineering protected-feature/scope gate without bypass.",
+    "No new native, backend, Season 2, or staging/production OTA publishing in this change."
+  ],
+  "regressionTests": [
+    "tests/wall-comment-navigation-compact-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Presentation-only changes to comment bubble, sheet, thread and composer while retaining all runtime and media callbacks.",
+      "preservedBehaviors": [
+        "All existing reactions, menu actions, media, ads, content integrity, sessions and navigation continue unchanged."
+      ],
+      "tests": [
+        "tests/wall-comment-navigation-compact-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "The scoped Wall tab comment-sheet styles change but routing, profile taps, and authenticated ownership checks do not.",
+      "preservedBehaviors": [
+        "Wall navigation, comment modal close, author profile links and edit/delete permissions remain intact."
+      ],
+      "tests": [
+        "tests/wall-comment-navigation-compact-20261122.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Remove actions and reaction summaries (rejected; loses capability).",
+    "Shorten the entire comments sheet (rejected; increases scrolling).",
+    "Rewrite the comment data layer (rejected; unnecessary risk)."
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "releaseTarget": "future independent release review, not an automatic publication",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
