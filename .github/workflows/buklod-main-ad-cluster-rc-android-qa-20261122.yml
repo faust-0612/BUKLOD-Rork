@@ -89,6 +89,17 @@ jobs:
         run: |
           psql --version
           psql -v ON_ERROR_STOP=1 -f supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql
+      - name: Read-only currently served production Expo update fingerprint
+        run: |
+          node --test tests/buklod-production-expo-snapshot-20261122.test.cjs
+          node scripts/buklod-production-expo-snapshot-20261122.cjs
+      - name: Preserve non-publisher production baseline evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-main-prod-manifest-readonly-rc
+          path: ota-evidence/production-baseline-readonly-20261122.json
+          retention-days: 3
+          if-no-files-found: error
       - name: Compile native-compatible Android JS without Expo publishing
         run: npx expo export --platform android --output-dir build/main-ad-cluster-rc-android
       - name: Verify Android bundle exists
