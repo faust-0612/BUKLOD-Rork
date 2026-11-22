@@ -64,16 +64,6 @@
       ]
     },
     {
-      "id": "ads-finance-points",
-      "reason": "Display only earned lifetime BP, not spendable balance, monthly rank, QMP, cash or ad revenue while preserving earnings logic.",
-      "preservedBehaviors": [
-        "Rewards, points claims, balance redemptions, ads and finance APIs and data stay unchanged."
-      ],
-      "tests": [
-        "tests/profile-lifetime-points-navigation-security-20261122.test.mjs"
-      ]
-    },
-    {
       "id": "backend-security",
       "reason": "Add an authenticated privacy-checked lifetime BP read RPC and restrict legacy direct read helper grants to prevent locked-profile disclosure.",
       "preservedBehaviors": [
