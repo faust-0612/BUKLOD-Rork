@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/health-imci-aja-genesis-r4-staging-rc-20261122.json",
+  "objective": "Prepare isolated BUKLOD MAIN native-in-app IMCI and AJA Tagalog staging OTA RC without publishing, replacing the six-step staging educational stub and preserving all existing Genesis/Empire features.",
+  "baseRef": "7bbb44fcb331ce14785ce43d70969d955f9e61e7",
+  "productionBaselineEvidence": "Latest GitHub main source 7b224c39624827282c3cbf003060317045b0a73f verified as source only; NOT current served production OTA. No production source or Expo channel touched.",
+  "stagingBaselineEvidence": "R4 reported as previously published: exact source 7bbb44fcb331ce14785ce43d70969d955f9e61e7; publication commit 1eb38e7cec2f0befad73180ab02b2ac04ed60df4; OTA update 01a1fe43-1042-77d5-be8e-72e25680f004. Channel season2-genesis-preview, runtime 2.0.0-genesis-preview, package org.mzbministry.buklod.staging. EAS live readback and exact binary install not performed in this RC; refresh before any OTA.",
+  "chosenApproach": "Create a new staging-only PR against an immutable GitHub baseline branch pointing at reported published R4 source. Copy exact four clinical education components from BUKLOD MAIN DEV PR #1102 and surgically replace only R4's incomplete static six-step IMCI card with IMCI+AJA interactive panels. Keep remaining R4 Health shell, separate Health Center links, native runtime, Genesis/Empire sources, ads behavior and credentials untouched; adapt two existing regression tests. AI remains off.",
+  "alternativeApproaches": [
+    "Use original main production runtime 1.3.2 to publish into 2.0.0-genesis-preview: rejected, incompatible native/runtime and would overwrite Genesis R4 UI.",
+    "Merge full DEV PR #1102 into staging: rejected; it diverged from main and risks overwriting newer Genesis-specific code.",
+    "Publish without verified staging RC and OTA readback: rejected; only source preparation is authorized."
+  ],
+  "preserveBehaviors": [
+    "Keep all R4 Genesis & Empire Arena assets/flows and native config unchanged.",
+    "Maintain exact staging package/org.mzbministry.buklod.staging runtime 2.0.0-genesis-preview, channel season2-genesis-preview.",
+    "Keep AdMob nonurgent placement and suppress it on IMCI/AJA emergency warnings.",
+    "Keep BUKLOD login, SOS, auth, Wall, Connect, Kingdom, other app features unchanged.",
+    "No Gemini/AI consultation; no professional portal activation, credentials, clinical diagnoses, prescriptions or chart classification.",
+    "No patient response persistence or BUKLOD network transfer."
+  ],
+  "acceptanceChecks": [
+    "Current PR difference against pinned reported staging R4 baseline limited to nine explicitly allowed paths.",
+    "IMCI guided caregiver questions: 18 infant, 27 under-five, 4 older-child safety-only; urgent yes/unsure stops routine and shows 911.",
+    "AJA 10-19 years, consent, optional confidential HEEADSSS, imminent self-harm/abuse referral and NCMH/MAKABATA contact information.",
+    "TypeScript, changed source privacy/triage regression tests, unchanged app-wide AdMob lock suite, and Android JS export pass on exact RC SHA.",
+    "Verify no native dependency/app.config/eas.json/package lock changes.",
+    "No OTA before verified RC evidence, current EAS channel/runtime/bundle readback, protected production mapping, and required Android AdMob/nav release gates."
+  ],
+  "riskAreas": [
+    "pediatric-caregiver-safety",
+    "adolescent-privacy",
+    "emergency-escalation",
+    "client-side-persistence",
+    "ads-gating",
+    "Genesis-staging-compatibility",
+    "no-native-runtime-change"
+  ],
+  "regressionTests": [
+    "tests/nov14-imci-health-flow.test.mjs",
+    "tests/health-center-consultation-card-20261110.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/profile/buklod-health.tsx",
+    "src/components/health/BuklodImciTagalogGuide.tsx",
+    "src/components/health/BuklodAjaTagalogGuide.tsx",
+    "src/lib/buklodImciTagalog.ts",
+    "src/lib/buklodAjaTagalog.ts",
+    "tests/nov14-imci-health-flow.test.mjs",
+    "tests/health-center-consultation-card-20261110.test.mjs",
+    ".buklod/scopes/health-imci-aja-genesis-r4-staging-rc-20261122.json",
+    ".github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Authorized isolated BUKLOD MAIN Health Center runtime integration replacing the R4 six-step IMCI educational stub; preserves all other R4 app and native runtime features.",
+      "preservedBehaviors": [
+        "Native package/runtime/config unchanged, credentials/AI gated, emergency ad suppression, no other Season2 code touched"
+      ],
+      "tests": [
+        "tests/nov14-imci-health-flow.test.mjs",
+        "tests/health-center-consultation-card-20261110.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "RC_PREPARATION_NO_OTA",
+  "releaseStatus": "Staging RC PR prepared; mandatory CI and EAS live receipt plus app-wide ad/nav validation required prior to actual staging OTA. No publishing, no new native APK, no production changes. User waived physical actual verification historically; waived is not passed.",
+  "selectionRationale": "Existing Genesis R4 only exposes a static 6-step under-five description; owner requires operational IMCI and confidential AJA without changing the existing signed staging native runtime or other Season 2 systems. The already source-tested DEV modules can be imported into R4 with a tightly scoped, source-only change; educational clinical boundaries remain enforced.",
+  "ciBootstrapEvidence": "Review-only baseline branch staging/health-imci-aja-r4-baseline-20261122 retains exact R4 product source 7bbb44fcb331ce14785ce43d70969d955f9e61e7 and adds ONLY .github/workflows/buklod-health-imci-aja-genesis-r4-staging-rc.yml. CI harness synchronized at 5c8ced4054a72d078b7fa16cca0335d8673396fe; zero runtime changes."
+}
