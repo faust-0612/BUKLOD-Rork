@@ -5018,6 +5018,7 @@ const load=useCallback(async(options?:{
             <View style={{marginHorizontal:-8,marginTop:8}}>
              <BuklodCommunityPhotoCollage
               showLayoutPicker
+              stableFeedFrame
               items={communityPhotoCollageItems(
                item?.media_items,
                null
@@ -5061,6 +5062,7 @@ const load=useCallback(async(options?:{
     <View style={{marginHorizontal:-8}}>
      <BuklodCommunityPhotoCollage
       showLayoutPicker
+      stableFeedFrame
       items={media}
       contentFit="cover"
       preserveSinglePhotoAspectRatio
