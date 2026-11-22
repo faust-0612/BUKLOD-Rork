@@ -98,6 +98,8 @@ export default function BuklodHealthPortal() {
 
         <BuklodImciTagalogGuide onUrgencyChange={setImciUrgent} />
 
+        {!imciUrgent ? (
+          <>
         <View style={styles.guideCard}>
           <Text style={styles.sectionHeading}>Anong tulong ang kailangan mo?</Text>
           <Text style={styles.hint}>Pumili ng paksa. Hindi ipinapadala ang pinili mo sa BUKLOD o sa ibang website.</Text>
@@ -172,6 +174,8 @@ export default function BuklodHealthPortal() {
             </View>
           ) : null}
         </View>
+          </>
+        ) : null}
 
         {!urgent && !imciUrgent ? (
           <View style={styles.guideCard}>
