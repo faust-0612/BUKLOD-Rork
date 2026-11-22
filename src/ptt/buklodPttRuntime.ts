@@ -1,4 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { setBuklodPttVoiceActive } from '@/lib/buklodAudioFocus';
 import { loadBuklodPttUserSettings, saveBuklodPttUserSettings } from './buklodPttSetup';
 import { hasBuklodPttCaptionConsent, persistOwnBuklodPttCaption } from './buklodPttConversation';
 
@@ -81,6 +82,32 @@ let floorRequestPromise: Promise<void> | null = null;
 let floorReleasePromise: Promise<void> | null = null;
 let captionUnsubscribe: (() => void) | null = null;
 let recentlyReleased: { id: string; scopeId: string; channel: number; at: number } | null = null;
+let normalReceivingTransmissionId: string | null = null;
+let normalReceivingTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// A dropped PTT_END must never keep ambient audio ducked indefinitely.
+// This guard changes only the decorative-audio signal, never the PTT floor.
+function clearNormalReceiving(expectedId?: string) {
+  if (expectedId && normalReceivingTransmissionId !== expectedId) return;
+  if (normalReceivingTimeout) clearTimeout(normalReceivingTimeout);
+  normalReceivingTimeout = null;
+  if (!normalReceivingTransmissionId) return;
+  normalReceivingTransmissionId = null;
+  emit();
+}
+
+function handleNormalReceivingStart(signal: PttSignal) {
+  const connection = state.connection;
+  const id = String(signal.transmission_id || '');
+  if (!connection || !id || String(signal.kind || '').toUpperCase() !== 'NORMAL') return;
+  if (String(signal.scope_id || '') !== connection.scope.id ||
+      Number(signal.channel) !== connection.channel ||
+      String(signal.sender_user_id || '') === connection.userId) return;
+  if (normalReceivingTimeout) clearTimeout(normalReceivingTimeout);
+  normalReceivingTransmissionId = id;
+  normalReceivingTimeout = setTimeout(() => clearNormalReceiving(id), 90000);
+  emit();
+}
 
 function detachCaptionListener() {
   try { captionUnsubscribe?.(); } catch {}
@@ -122,6 +149,10 @@ function attachCaptionListener(connection: BuklodPttConnection) {
 }
 
 function emit() {
+  setBuklodPttVoiceActive(Boolean(
+    state.requestingFloor || state.transmitting ||
+    state.priorityReceiving || normalReceivingTransmissionId
+  ));
   const copy = { ...state };
   listeners.forEach((listener) => {
     try {
@@ -201,6 +232,7 @@ async function disconnectCurrent(options?: { disableMonitor?: boolean }) {
   }
 
   detachCaptionListener();
+  clearNormalReceiving();
   recentlyReleased = null;
   await disconnectBuklodPtt(current);
   state = {
@@ -253,6 +285,7 @@ async function connectTarget(
       }
     }
 
+    clearNormalReceiving();
     state = {
       ...state,
       connection: next,
@@ -590,12 +623,14 @@ function attachScopeSignalChannel(scope: BuklodPttScope) {
 
       if (kind === 'PRIORITY' || kind === 'SOS') {
         void handlePriorityStart(payload).catch(() => undefined);
+      } else if (kind === 'NORMAL') {
+        handleNormalReceivingStart(payload);
       }
     })
     .on('broadcast', { event: 'PTT_END' }, (message: any) => {
-      void handlePriorityEnd(
-        (message?.payload ?? message) as PttSignal,
-      ).catch(() => undefined);
+      const payload = (message?.payload ?? message) as PttSignal;
+      if (payload.transmission_id) clearNormalReceiving(String(payload.transmission_id));
+      void handlePriorityEnd(payload).catch(() => undefined);
     })
     .subscribe();
 
@@ -673,6 +708,7 @@ export async function bootstrapBuklodPttRuntime() {
 
 export async function shutdownBuklodPttRuntime() {
   stopPriorityGuard();
+  clearNormalReceiving();
   await disconnectBuklodPttRuntime().catch(() => undefined);
 
   for (const channel of signalChannels.values()) {

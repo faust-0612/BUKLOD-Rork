@@ -126,6 +126,7 @@ function runtimeHarness() {
     loadBuklodPttUserSettings: async () => ({ listening: true }),
     hasBuklodPttCaptionConsent: async () => false,
     persistOwnBuklodPttCaption: async () => {},
+    setBuklodPttVoiceActive: (active) => { operations.push('voice:' + Boolean(active)); },
     console, setInterval, clearInterval, Date, Set, Map, Promise,
   };
   const api = runInNewContext(compile(readSource('src/ptt/buklodPttRuntime.ts')) +

@@ -24,7 +24,7 @@ import {
   Button,
   Card,
   SectionTitle,
-  shared,
+  useThemedShared,
 } from '@/components/UI';
 
 import {
@@ -34,6 +34,7 @@ import {
 import {
   useCompliance,
 } from '@/providers/ComplianceProvider';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 /*
  * PATCH_173A_R4_SUBTLE_RECOGNITION
@@ -63,6 +64,8 @@ const developerPhoto =
   );
 
 export default function PrivacyConsentScreen() {
+  const { theme } = useBuklodTheme();
+  const themedShared = useThemedShared();
   const insets =
     useSafeAreaInsets();
 
@@ -120,10 +123,10 @@ export default function PrivacyConsentScreen() {
   return (
     <ScrollView
       style={
-        shared.screen
+        themedShared.screen
       }
       contentContainerStyle={[
-        shared.content,
+        themedShared.content,
         {
           paddingTop:
             Math.max(
@@ -171,7 +174,7 @@ export default function PrivacyConsentScreen() {
 
       <Text
         style={
-          shared.h1
+          themedShared.h1
         }
       >
         Before you continue
@@ -179,7 +182,7 @@ export default function PrivacyConsentScreen() {
 
       <Text
         style={[
-          shared.muted,
+          themedShared.muted,
           styles.lead,
         ]}
       >
@@ -192,17 +195,13 @@ export default function PrivacyConsentScreen() {
 
       <Card>
         <Text
-          style={
-            styles.cardTitle
-          }
+          style={[styles.cardTitle, { color: theme.textPrimary }]}
         >
           Public / Personal BUKLOD
         </Text>
 
         <Text
-          style={
-            styles.body
-          }
+          style={[styles.body, { color: theme.textPrimary }]}
         >
           The persistent bottom navigation belongs to your global/Public BUKLOD environment. Global navigation opens your personal BUKLOD destinations rather than keeping you inside a managed Organization workspace.
         </Text>
@@ -210,17 +209,13 @@ export default function PrivacyConsentScreen() {
 
       <Card>
         <Text
-          style={
-            styles.cardTitle
-          }
+          style={[styles.cardTitle, { color: theme.textPrimary }]}
         >
           Organizations & Sub-organizations
         </Text>
 
         <Text
-          style={
-            styles.body
-          }
+          style={[styles.body, { color: theme.textPrimary }]}
         >
           Organization and Sub-organization workspaces use their own scoped Home, Community, and Connect navigation. Content and actions there remain tied to the active managed scope.
         </Text>
@@ -228,17 +223,13 @@ export default function PrivacyConsentScreen() {
 
       <Card>
         <Text
-          style={
-            styles.cardTitle
-          }
+          style={[styles.cardTitle, { color: theme.textPrimary }]}
         >
           Clusters
         </Text>
 
         <Text
-          style={
-            styles.body
-          }
+          style={[styles.body, { color: theme.textPrimary }]}
         >
           Cluster workspaces keep their own managed context. The global bottom navigation is not part of the Cluster workspace while you are working inside that scope.
         </Text>
@@ -250,9 +241,7 @@ export default function PrivacyConsentScreen() {
 
       <Card>
         <Text
-          style={
-            styles.body
-          }
+          style={[styles.body, { color: theme.textPrimary }]}
         >
           Your acknowledgement is saved using the existing BUKLOD compliance process. After acceptance, the current root routing flow determines the correct destination based on your account, membership, and active scope.
         </Text>
@@ -265,7 +254,7 @@ export default function PrivacyConsentScreen() {
       >
         <Text
           style={{
-            color: colors.greenDark,
+            color: theme.accent,
             fontWeight: '800',
             textDecorationLine: 'underline',
           }}
@@ -280,7 +269,7 @@ export default function PrivacyConsentScreen() {
       >
         <Text
           style={{
-            color: colors.greenDark,
+            color: theme.accent,
             fontWeight: '800',
             textDecorationLine: 'underline',
           }}
@@ -308,9 +297,7 @@ export default function PrivacyConsentScreen() {
 
       {/* Recognition only - intentionally quiet and compact. */}
       <View
-        style={
-          styles.recognition
-        }
+        style={[styles.recognition, { backgroundColor: theme.surface, borderColor: theme.border }]}
       >
         <Image
           source={
@@ -328,25 +315,19 @@ export default function PrivacyConsentScreen() {
           }
         >
           <Text
-            style={
-              styles.recognitionLabel
-            }
+            style={[styles.recognitionLabel, { color: theme.textMuted }]}
           >
             Developer
           </Text>
 
           <Text
-            style={
-              styles.developerName
-            }
+            style={[styles.developerName, { color: theme.textPrimary }]}
           >
             Faustino Jr. M. Gabut
           </Text>
 
           <Text
-            style={
-              styles.ministryLine
-            }
+            style={[styles.ministryLine, { color: theme.textMuted }]}
           >
             MZB Ministry
           </Text>
