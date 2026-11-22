@@ -32,11 +32,12 @@ test('Marites cards and fullscreen videos use poster-first texture rendering wit
 test('Quick Video upload uses existing private bounded preview path, not a public thumbnail URL', () => {
   const marites = read('src/lib/buklodMaritesBoard.ts');
   const upload = read('src/lib/uploadCommunityVideoFile.ts');
+  const preview = read('src/lib/communityVideoPreview.ts');
   assert.match(marites, /video_preview_uri\?: string \| null/);
   assert.match(marites, /videoItem\?\.preview_url/);
   assert.match(marites, /generateWallPreview: true/);
   assert.match(marites, /preview_path\?: string/);
   assert.match(marites, /publishedVideoPreviewUrl = publishedVideo\?\.preview_url/);
   assert.match(upload, /communityVideoUploadPreviewPath/);
-  assert.match(upload, /COMMUNITY_VIDEO_PREVIEW_MAX_BYTES/);
+  assert.match(preview, /COMMUNITY_VIDEO_PREVIEW_MAX_BYTES = 125_000/);
 });
