@@ -55,4 +55,22 @@ jobs:
                 'Run: '+receipt.runUrl+'\n\nStatus: '+receipt.status+
                 '\n\nConclusion: '+receipt.conclusion+'\n\nSource: '+receipt.sourceSha+'\n');
           }
+          const signed=(all.workflow_runs||[]).find(run=>
+            run.head_sha==='e7be6926d7ae4f97b166187facd18be70bee059b' &&
+            String(run.path||'').includes('genesis-library-eas-signed-apk-20261122.yml'));
+          if(!signed){
+            console.log('EAS_SIGNED_STAGING_TRIGGER_NOT_FOUND_YET');
+          }else{
+            const summary={runId:signed.id,status:signed.status,conclusion:signed.conclusion,
+              url:signed.html_url,sourceSha:signed.head_sha};
+            const jobs=await read('/actions/runs/'+signed.id+'/jobs?per_page=100');
+            summary.steps=(jobs.jobs||[]).flatMap(j=>(j.steps||[]).filter(s=>
+              s.status==='in_progress'||s.conclusion==='failure').map(s=>s.name));
+            const artifacts=await read('/actions/runs/'+signed.id+'/artifacts?per_page=100');
+            summary.artifacts=(artifacts.artifacts||[]).map(a=>({
+              id:a.id,name:a.name,size:a.size_in_bytes,expired:a.expired
+            }));
+            console.log('BUKLOD_SIGNED_STAGING_BUILD_READBACK '+JSON.stringify(summary));
+          }
+
           NODE
