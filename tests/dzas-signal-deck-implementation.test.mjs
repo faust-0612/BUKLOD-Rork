@@ -61,7 +61,7 @@ test('Native waits for loaded source and confirmed playback before resolving fir
 });
 
 test('Web keeps browser user-gesture audio and cleanup, with no native AdMob import', () => {
-  assert.match(web, /const promise = audio\.play\(\)/);
+  assert.match(web, /const started = audio\.play\(\)/);
   assert.match(web, /audio\.addEventListener\('error'/);
   assert.match(web, /audio\.removeEventListener\('playing'/);
   assert.match(web, /onPlay=\{\(\) => void play\(false\)\}/);
@@ -72,19 +72,19 @@ test('Web keeps browser user-gesture audio and cleanup, with no native AdMob imp
 test('Web stream recovery stays bounded, cancellable, HTTPS-only and independent of native player', () => {
   const source = read('src/app/personal-home/radio.web.tsx');
   assert.match(source, /EXPO_PUBLIC_DZAS_STREAM_URL/);
-  assert.match(source, /stream\\.zeno\\.fm\\/rrw3tw8yheruv/);
-  assert.match(source, /sg-icecast\\.eradioportal\\.com:8443\\/febc_dzas/);
+  assert.match(source, /stream\.zeno\.fm\/rrw3tw8yheruv/);
+  assert.match(source, /sg-icecast\.eradioportal\.com:8443\/febc_dzas/);
   assert.match(source, /START_TIMEOUT_MS = 12000/);
-  assert.match(source, /new Set\\(/);
-  assert.match(source, /cancelStartupRef\\.current\\?\\.\\(\\)/);
-  assert.match(source, /playbackRequestRef\\.current \\+= 1/);
-  assert.match(source, /for \\(const url of DZAS_STREAM_URLS\\)/);
-  assert.match(source, /reason\\?\\.name === 'NotAllowedError'/);
-  assert.match(source, /audio\\.addEventListener\\('playing', onPlaying\\)/);
-  assert.match(source, /audio\\.addEventListener\\('error', onError\\)/);
-  assert.match(source, /const started = audio\\.play\\(\\)/);
-  assert.match(source, /if \\(cancelStartupRef\\.current === cancel\\) cancelStartupRef\\.current = null/);
+  assert.match(source, /new Set\(/);
+  assert.match(source, /cancelStartupRef\.current\?\.\(\)/);
+  assert.match(source, /playbackRequestRef\.current \+= 1/);
+  assert.match(source, /for \(const url of DZAS_STREAM_URLS\)/);
+  assert.match(source, /reason\?\.name === 'NotAllowedError'/);
+  assert.match(source, /audio\.addEventListener\('playing', onPlaying\)/);
+  assert.match(source, /audio\.addEventListener\('error', onError\)/);
+  assert.match(source, /const started = audio\.play\(\)/);
+  assert.match(source, /if \(cancelStartupRef\.current === cancel\) cancelStartupRef\.current = null/);
   assert.match(source, /Hindi ma-play ang DZAS stream sa mga available na source/);
-  assert.doesNotMatch(source, /'http:\\/\\//);
+  assert.doesNotMatch(source, /'http:\/\//);
   assert.doesNotMatch(source, /expo-audio|react-native-google-mobile-ads/);
 });
