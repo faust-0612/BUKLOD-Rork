@@ -47,9 +47,25 @@ BEGIN
   WHERE p.is_active = true AND p.id<>v_member
     AND NOT private.buklod_is_platform_official_v1(p.id)
   LIMIT 1;
-  IF v_locked IS NOT NULL
-    AND public.get_buklod_member_lifetime_points_v1(v_locked) IS NOT NULL THEN
-      RAISE EXCEPTION 'Locked profile points leaked to another member';
+  IF v_locked IS NULL THEN
+    RAISE EXCEPTION 'Missing locked profile fixture';
+  END IF;
+  SELECT GREATEST(0,COALESCE(b.lifetime_points,0)) INTO v_expected
+  FROM public.buklod_user_points_balances b WHERE b.user_id=v_locked;
+  IF public.get_buklod_member_lifetime_points_v1(v_locked)
+      IS DISTINCT FROM COALESCE(v_expected,0) THEN
+    RAISE EXCEPTION 'Locked profile must display authoritative public lifetime BP';
+  END IF;
+  -- Locked profile returns only approved public identity plus its score/ranks.
+  IF (public.get_buklod_member_public_profile_v1(v_locked)->>'is_locked')::boolean IS DISTINCT FROM true
+     OR (public.get_buklod_member_public_profile_v1(v_locked)->>'can_view_details')::boolean IS DISTINCT FROM false
+     OR public.get_buklod_member_public_profile_v1(v_locked)->>'username' IS NOT NULL
+     OR public.get_buklod_member_public_profile_v1(v_locked)->>'member_since' IS NOT NULL
+     OR jsonb_array_length(public.get_buklod_member_public_profile_v1(v_locked)->'shared_scope_labels') <> 0
+     OR NOT (public.get_buklod_member_public_profile_v1(v_locked) ?& ARRAY[
+       'avatar_url','background_url','quick_note','cluster_labels','circle_rank','all_time_rank'
+     ]) THEN
+    RAISE EXCEPTION 'Locked profile public/private contract not respected';
   END IF;
   SELECT user_id INTO v_official
   FROM private.buklod_official_identity_snapshot_v1

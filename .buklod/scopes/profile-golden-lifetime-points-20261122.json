@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/profile-golden-lifetime-points-20261122.json",
-  "objective": "Display large gold verified lifetime earned BUKLOD Points on own Profile and authorized View Profile without leaking private profile, economy, Official or identity data.",
+  "objective": "Show large golden verified lifetime Points, Circle/All-time Rank, active cluster membership, public note, avatar, and background on both normal and locked BUKLOD member profiles without disclosing private activity or contacts.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: main source 7b224c39624827282c3cbf003060317045b0a73f inspected Nov 22 2026; source-only, no served OTA fingerprint asserted.",
-  "chosenApproach": "Reusable gold hero uses exact lifetime_points. Own Profile reads authenticated dashboard on focus; View Profile reads a minimal authenticated security-definer RPC with locked-profile and Official exclusion. Stop public direct helper grants that bypass privacy, preserving historical balances.",
+  "chosenApproach": "Reuse existing profile RPC to return a strictly whitelisted public identity bundle regardless of lock, while preserving private-field flags/omissions on locked profiles. Reuse golden lifetime hero and guard the scores RPC with auth, active-member and Official exclusions. No new native module.",
   "selectionRationale": "Current Profile knows lifetime points but not prominently; View Profile explicitly hides exact points. Reusing authoritative balance while enforcing server privacy avoids monthly, redeemable and fake zero values.",
   "riskAreas": [
     "app-runtime",
@@ -27,16 +27,17 @@
     ".buklod/scopes/profile-golden-lifetime-points-20261122.json"
   ],
   "preserveBehaviors": [
-    "Existing Circle Rank, monthly/all-time rank, rewards, claims and available balances remain unchanged.",
-    "Profile privacy locks hide other members' points and Official never displays member BP; own profile always uses authenticated data.",
-    "No edits to RLS policies, ledger awards, AdMob, referral logic, release channels, native modules, or database balances."
+    "Profile lock still hides username, join details, shared-scope history and private activities or posts; only the owner-approved public identity and metrics remain visible.",
+    "Profile photo, background, note, active cluster membership, Circle Rank, all-time rank, and earned Lifetime BP are readable even when locked.",
+    "All reward accounting, redeemed/available points, ledger, QMP, posts, ads, admin official isolation and navigation remain unchanged."
   ],
   "acceptanceChecks": [
     "New guarded SQL RPC returns authoritative exact lifetime_points only for authorized active visible members.",
     "SQL post-migration rollback-only test checks auth, locked profile, Official exclusion, absent accounts, and grants.",
     "Node contract confirms gold hero, no fabricated zero, focus refresh, data sources, navigation and privacy.",
     "TypeScript, low-cost regression and engineering scope-lock CI required; no merge or OTA until passing.",
-    "No production Supabase migration or production/staging OTA executed by this code-only PR."
+    "No production Supabase migration or production/staging OTA executed by this code-only PR.",
+    "Locked-profile SQL rollback test verifies authorized public BP and field-by-field public-vs-private response boundaries."
   ],
   "regressionTests": [
     "tests/profile-lifetime-points-navigation-security-20261122.test.mjs",
@@ -78,7 +79,8 @@
   "alternativeApproaches": [
     "Use raw client SELECT for public lifetime balances (rejected due to RLS/privacy and broader data exposure).",
     "Use rank or leaderboard points as a lifetime substitute (rejected due to incorrect data semantics).",
-    "Call existing public direct lifetime helpers (rejected because they lack authentication/profile-lock enforcement)."
+    "Call existing public direct lifetime helpers (rejected because they lack authentication/profile-lock enforcement).",
+    "Disable all locks to show profile content (rejected: would leak sensitive information)."
   ],
   "releaseMode": "dev-only-gated-no-ota",
   "releaseTarget": "future explicitly verified consolidated OTA after migration and runtime QA",
