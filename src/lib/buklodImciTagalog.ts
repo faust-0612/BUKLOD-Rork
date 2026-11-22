@@ -26,6 +26,7 @@ const INFANT: ImciQuestion[] = [
   { id: 'infant_response', level: 'danger', question: 'Halos hindi ba gumagalaw, napakahina, o mahirap gisingin ang sanggol?', explanation: 'Hindi normal ang kawalan ng reaksyon o halos walang galaw.' },
   { id: 'infant_yellow', level: 'danger', question: 'Nanilaw ba sa unang 24 oras mula kapanganakan, o naninilaw ang palad o talampakan?', explanation: 'Ang mga palatandaang ito ay kailangang matingnan agad sa ospital.' },
   { id: 'infant_stool', level: 'priority', question: 'May pagtatae ba o napansin ang pagbabago sa pagdumi?', explanation: 'Ipatingin ang sanggol sa health worker; huwag magbigay ng gamot nang walang payo.' },
+  { id: 'infant_jaundice', level: 'priority', question: 'Nanilaw ba ang balat o mata ng sanggol matapos ang unang araw?', explanation: 'Ipasuri ang paninilaw sa health professional; lalo nang huwag maghintay kung lumalala.' },
   { id: 'infant_navel', level: 'priority', question: 'May nana o pamumula ba sa pusod, o may mga pigsa o pantal na may nana?', explanation: 'Maaaring kailanganin ng medikal na pagsusuri ang posibleng impeksiyon.' },
   { id: 'infant_feeding', level: 'information', question: 'May tanong ka ba tungkol sa pagpapasuso, timbang, o iskedyul ng bakuna?', explanation: 'Maaaring humingi ng tulong sa midwife, nurse, o doktor.' },
 ];
@@ -36,10 +37,12 @@ const CHILD: ImciQuestion[] = [
   { id: 'child_seizure', level: 'danger', question: 'Nagkaroon ba ng kombulsyon o pangingisay habang may sakit?', explanation: 'Kahit huminto ang pangingisay, kailangang magpatingin agad.' },
   { id: 'child_response', level: 'danger', question: 'Napakahina, hindi karaniwang inaantok, mahirap gisingin, o walang malay?', explanation: 'Ang pagbabago sa kamalayan ay isang danger sign.' },
   { id: 'child_breath', level: 'danger', question: 'May matinding hirap sa paghinga, malalim na pag-urong ng dibdib, o maingay na paghinga kahit kalmado?', explanation: 'Huwag hintayin ang iba pang tanong kung hirap huminga ang bata.' },
+  { id: 'child_cough', level: 'priority', question: 'May ubo ba o hindi pangkaraniwang bilis ng paghinga?', explanation: 'Ipa-check ang paghinga sa health worker, lalo na kung tumatagal o lumalala ang ubo.' },
   { id: 'child_diarrhea', level: 'priority', question: 'May pagtatae ba, lalo na kung umuunti ang ihi o hirap uminom?', explanation: 'Suriin ng health worker ang posibleng dehydration; huwag ipagpaliban kung lumalala.' },
   { id: 'child_blood', level: 'priority', question: 'May dugo ba sa dumi?', explanation: 'Kailangang suriin ng health professional sa lalong madaling panahon.' },
   { id: 'child_fever', level: 'priority', question: 'May lagnat ba o pabalik-balik na mainit ang katawan?', explanation: 'Mahalaga ang tagal ng lagnat at ibang sintomas; kumonsulta kung may sakit ang bata.' },
   { id: 'child_ear', level: 'priority', question: 'Masakit ba ang tainga o may lumalabas na likido o nana?', explanation: 'Ipatingin para masuri ang tainga.' },
+  { id: 'child_rash', level: 'priority', question: 'May pantal ba na kasabay ng lagnat, o kakaibang pamumutla?', explanation: 'Ipatingin para masuri ang ibang dahilan ng sintomas at posibleng anemia o impeksiyon.' },
   { id: 'child_growth', level: 'information', question: 'May alalahanin ba sa pagkain, paglaki, o timbang?', explanation: 'Maaaring ipasuri ang nutrisyon at growth chart.' },
   { id: 'child_vaccine', level: 'information', question: 'May tanong ba tungkol sa bakuna o vitamin supplements?', explanation: 'Dalhin ang child health record sa barangay health center.' },
 ];
