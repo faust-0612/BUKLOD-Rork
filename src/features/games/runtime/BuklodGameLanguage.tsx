@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { KINGDOM_ARCADE_GAMES } from '@/features/games/kingdom/arcade/arcadeCatalog';
+import type { ArcadeMode } from '@/features/games/kingdom/arcade/arcadeCore';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -18,6 +20,7 @@ type ContextValue = {
   setLanguage: (language: BuklodGameLanguage) => void;
   t: (english: string, tagalog: string) => string;
   gameId?: string;
+  setGuideGameId: (gameId?: string) => void;
 };
 
 const STORAGE_KEY = 'buklod.game.language.v1';
@@ -25,6 +28,7 @@ const GameLanguageContext = createContext<ContextValue>({
   language: 'en',
   setLanguage: () => undefined,
   t: (english) => english,
+  setGuideGameId: () => undefined,
 });
 
 const GUIDES: Record<string, Guide> = {
@@ -123,6 +127,8 @@ const GUIDES: Record<string, Guide> = {
 
 export function BuklodGameLanguageProvider({ gameId, children }: { gameId?: string; children: React.ReactNode }) {
   const [language, setLanguageState] = useState<BuklodGameLanguage>('en');
+  const [overrideGameId, setGuideGameId] = useState<string | undefined>(undefined);
+  useEffect(() => { setGuideGameId(undefined); }, [gameId]);
 
   useEffect(() => {
     let mounted = true;
@@ -140,9 +146,10 @@ export function BuklodGameLanguageProvider({ gameId, children }: { gameId?: stri
   const value = useMemo<ContextValue>(() => ({
     language,
     setLanguage,
-    gameId,
+    gameId: overrideGameId ?? gameId,
+    setGuideGameId,
     t: (english, tagalog) => language === 'tl' ? tagalog : english,
-  }), [gameId, language]);
+  }), [gameId, overrideGameId, language]);
 
   return <GameLanguageContext.Provider value={value}>{children}</GameLanguageContext.Provider>;
 }
@@ -151,10 +158,29 @@ export function useBuklodGameLanguage() {
   return useContext(GameLanguageContext);
 }
 
+const ARCADE_CONTROLS: Record<ArcadeMode, readonly [string,string]> = {
+  catch: ['Tap left or right to catch helpful items. Avoid hazards as they fall.', 'I-tap ang kaliwa o kanan para sumalo. Iwasan ang bumabagsak na panganib.'],
+  lane: ['Swipe or use the arrows to switch between three lanes and avoid obstacles.', 'Mag-swipe o gamitin ang mga arrow para lumipat sa tatlong lane at umiwas sa harang.'],
+  runner: ['Use the arrows to switch lanes. Tap JUMP just before a hazard arrives; jumping has a cooldown.', 'Gamitin ang arrow para lumipat ng lane. Pindutin ang TALON bago dumating ang harang; may pahinga ang pagtalon.'],
+  rhythm: ['Tap lane 1, 2 or 3 when a music note nears the gold line. Early taps break the combo.', 'I-tap ang lane 1, 2 o 3 kapag malapit na sa gintong linya ang nota. Nawawala ang combo kapag maaga.'],
+  defend: ['Tap the correct lane to stop an enemy before it reaches the fortress.', 'I-tap ang lane ng kaaway bago makarating sa kuta.'],
+  tap: ['Tap the highlighted square quickly. Each wrong square costs a life.', 'I-tap agad ang kumikislap na kahon. Isang buhay ang mababawas sa maling pindot.'],
+  search: ['Memorize the highlighted square, wait until it disappears, then tap the remembered position.', 'Tandaan ang kumikislap na kahon, hintaying mawala, saka i-tap ang naalala mong puwesto.'],
+  stack: ['Watch the moving block and tap DROP when it aligns with the highlighted foundation.', 'Panoorin ang gumagalaw na bloke at pindutin ang IBAGSAK kapag nakatapat sa pundasyon.'],
+};
+
 export function BuklodGameLanguageControl() {
   const { language, setLanguage, gameId } = useBuklodGameLanguage();
   const [guideOpen, setGuideOpen] = useState(false);
-  const guide = gameId ? GUIDES[gameId] : undefined;
+  const arcade = gameId ? KINGDOM_ARCADE_GAMES.find(item => item.id === gameId) : undefined;
+  const guide = gameId ? (GUIDES[gameId] ?? (arcade ? {
+    titleEn: arcade.title,
+    titleTl: arcade.title,
+    objectiveEn: arcade.descriptionEn,
+    objectiveTl: arcade.descriptionTl,
+    controlsEn: ARCADE_CONTROLS[arcade.mode][0],
+    controlsTl: ARCADE_CONTROLS[arcade.mode][1],
+  } : undefined)) : undefined;
 
   return (
     <View style={styles.anchor} pointerEvents="box-none">
