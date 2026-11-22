@@ -63,7 +63,7 @@ test('One-question-at-a-time guided answers are volatile and never sent to the e
 
 test('Main Health Center foregrounds IMCI and blocks consultations and ads on urgent child signs', () => {
   assert.match(screen, /<BuklodImciTagalogGuide onUrgencyChange=\{setImciUrgent\}/);
-  assert.ok(screen.indexOf('<BuklodImciTagalogGuide') < screen.indexOf('Anong tulong ang kailangan mo?'));
+  assert.ok(screen.indexOf('<BuklodImciTagalogGuide') < screen.indexOf('What can we help with?'));
   assert.match(screen, /!imciUrgent && !ajaUrgent && BUKLOD_HEALTH_CONSULTATION_READY/);
   assert.match(screen, /urgency === 'none' && !imciUrgent && !ajaUrgent/);
   assert.match(screen, /!BUKLOD_HEALTH_CONSULTATION_READY/);
