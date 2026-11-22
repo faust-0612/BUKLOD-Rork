@@ -45,11 +45,11 @@ test('Online consultation is gated by explicit urgent check; urgent mode has eme
   const portal = read('src/app/profile/buklod-health.tsx');
   assert.match(portal, /useState<Urgency>\('unanswered'\)/);
   assert.match(portal, /urgency === 'none'/);
-  assert.match(portal, /urgency !== 'none' \|\| !BUKLOD_HEALTH_CONSULTATION_READY \|\| opening !== null/);
+  assert.match(portal, /urgency !== 'none' \|\| imciUrgent \|\| ajaUrgent \|\| !BUKLOD_HEALTH_CONSULTATION_READY \|\| opening !== null/);
   assert.match(portal, /if \(door === 'standalone'\)/);
-  assert.match(portal, /else if \(urgency === 'none' && BUKLOD_HEALTH_CONSULTATION_READY\)/);
+  assert.match(portal, /else if \(urgency === 'none' && !imciUrgent && !ajaUrgent && BUKLOD_HEALTH_CONSULTATION_READY\)/);
   assert.match(portal, /Call 911 \(PH\)/);
-  assert.match(portal, /!urgent \? \(/);
+  assert.match(portal, /!urgent && !imciUrgent && !ajaUrgent \? \(/);
   assert.match(portal, /launchBuklodHealthConsultation/);
   assert.doesNotMatch(portal, /AsyncStorage|supabase\.from|supabase\.auth|fetch\(/);
 });
@@ -59,7 +59,7 @@ test('Only one ad placement exists for Health screen, after nonurgent screening'
   const strip = read('src/components/BuklodFocusAppAdStrip.tsx');
   const healthLines = strip.split('\n').filter(line => line.trim().startsWith("'/profile/buklod-health'"));
   assert.equal(healthLines.length, 0, 'no duplicate global focus banner for Health');
-  assert.match(portal, /urgency === 'none' \? \([\s\S]*?<BuklodAdMobBanner/);
+  assert.match(portal, /urgency === 'none' && !imciUrgent && !ajaUrgent \? \([\s\S]*?<BuklodAdMobBanner/);
   assert.match(portal, /placement="focus"/);
   assert.match(portal, /requireViewport/);
   assert.match(portal, /showLabel/);
@@ -79,6 +79,6 @@ test('No AI or professional browser handoff before HC standalone backend activat
   assert.match(source, /EXPO_PUBLIC_HEALTH_PROFESSIONAL_PORTAL_ENABLED/);
   assert.match(portal, /!BUKLOD_HEALTH_CONSULTATION_READY/);
   assert.match(portal, /!BUKLOD_HEALTH_PROFESSIONALS_READY/);
-  assert.match(portal, /AI Health Guide activation pending/);
+  assert.match(portal, /AI consultation is not yet active/);
   assert.match(portal, /Contributor registration pending/);
 });
