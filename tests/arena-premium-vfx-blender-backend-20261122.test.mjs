@@ -42,6 +42,7 @@ test('Blender kit is authored and Python-parsable, with separate team assets and
   for(const part of ['make_tower','make_seal','make_resource','make_tree','make_villager','export_scene.gltf'])
     assert.ok(source.includes(part));
   assert.match(source,/for team, x in \[\("A", -11\), \("B", 11\)\]/);
+  assert.match(source,/bpy\.app\.version/,'Blender 4.0 through 4.x rendering engine compatibility');
   assert.match(source,/no/i);
   assert.doesNotMatch(source,/http:\/\/|https:\/\/|service_role|supabase\/|bpy\.ops\.object\.delete\(.*production/);
   const python=spawnSync('python3',['-c',

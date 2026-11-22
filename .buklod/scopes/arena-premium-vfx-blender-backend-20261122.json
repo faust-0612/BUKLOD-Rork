@@ -17,7 +17,8 @@
     "services/empire-arena/tests/core.test.mjs",
     "tests/arena-premium-vfx-blender-backend-20261122.test.mjs",
     "docs/BUKLOD_ARENA_PREMIUM_VISUAL_BACKEND_DEV_20261122.md",
-    ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml"
+    ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
+    ".github/workflows/arena-blender-asset-export-dev-20261122.yml"
   ],
   "lockedFeatureChanges": [],
   "regressionTests": [
@@ -36,7 +37,8 @@
     "Blender 4.x not available; exports are authored source only",
     "Android GPU/texture budget",
     "Match startup refund must be confirmed by private RPC",
-    "New DEV work must reconcile with parallel Arena map/minion branches"
+    "New DEV work must reconcile with parallel Arena map/minion branches",
+    "GitHub Actions apt Blender package/runtime version and export animation format"
   ],
   "alternativeApproaches": [
     "Replace approved 13 characters with procedural Blender people (rejected: visual identity regression)",
@@ -52,7 +54,8 @@
     "Compile Godot 4.7.2 scene and shader headlessly and physically render on Android",
     "Export Blender kit on Blender 4.x and compare to owner-approved imagery",
     "Pass Node server disconnect escrow behavioral regression",
-    "Build exact signed staging RC and independently verify AdMob/nav/landscape/reentry"
+    "Build exact signed staging RC and independently verify AdMob/nav/landscape/reentry",
+    "Headless Blender 4.x scene creation and glTF 2.0 validation with real animated village geometry, and GitHub CI artifact receipt"
   ],
   "selectionRationale": "The existing Godot native Arena already preserves the 13 approved hero atlases and a separate authoritative ranked Node coordinator. Layering bounded shader events and pose state onto that approved scene, authoring Blender geometry separately, and hardening the escrow disconnect path is the least invasive route; no client-side rank authority, production changes, or new paid infrastructure are required."
 }

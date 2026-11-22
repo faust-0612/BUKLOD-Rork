@@ -151,7 +151,9 @@ for kind, x, y in [("wood", -7, 3), ("gold", 0, -7), ("stone", 7, 3)]:
 
 bpy.context.scene.frame_start = 1
 bpy.context.scene.frame_end = 33
-bpy.context.scene.render.engine = "BLENDER_EEVEE_NEXT"
+# Blender 4.0/4.1 use the legacy EEVEE enum; 4.2+ use EEVEE Next.
+bpy.context.scene.render.engine = ("BLENDER_EEVEE_NEXT"
+    if bpy.app.version >= (4, 2, 0) else "BLENDER_EEVEE")
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT / "Buklod_Genesis_Arena_Kit.blend"))
 bpy.ops.export_scene.gltf(
     filepath=str(OUT / "Buklod_Genesis_Arena_Kit.glb"),
