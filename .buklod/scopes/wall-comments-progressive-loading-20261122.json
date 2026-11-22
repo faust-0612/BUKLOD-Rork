@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-comments-progressive-loading-20261122.json",
+  "objective": "Make public Wall comments render on initial data response instead of blocking on reaction, name and cluster metadata, and preserve account-scoped security under weak networks.",
+  "baseRef": "dev/wall-compact-comment-density-20261122",
+  "productionBaselineEvidence": "Read-only inspection of protected main commit 7b224c39624827282c3cbf003060317045b0a73f on 2026-11-22, not proof of live OTA content.",
+  "chosenApproach": "Render authorized comment RPC rows first, enrich reactions and labels asynchronously, keep a six-entry 15-second account-specific presentation cache, and purge authorization-revoked cache.",
+  "selectionRationale": "The existing comments UI awaited parallel reactions and 5-second enrichments before painting returned text, adding avoidable latency and turning ancillary failures into visible delays.",
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "navigation-auth",
+    "comment-replies",
+    "weak-network",
+    "ad-preservation",
+    "privacy"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "tests/wall-network-feedback-20261117.test.mjs",
+    "tests/wall-comments-progressive-loading-20261122.test.mjs",
+    "tests/wall-comment-navigation-progressive-20261122.test.mjs",
+    ".buklod/scopes/wall-comments-progressive-loading-20261122.json"
+  ],
+  "preserveBehaviors": [
+    "Retain user/post authorization via get_buklod_post_comments_v4 and the existing sender/owner permissions.",
+    "Retain replies, original ordering, reactions, reports, delete/edit, GIF and photo composer, profile routing and authenticated display.",
+    "Keep public Wall comments AdMob placement, viewport rules, offline/retry feedback, prior layout compactness, feed navigation and no forced full feed refresh.",
+    "Never expose cached comments after account switch or access denial; no storage persistence of comment content."
+  ],
+  "acceptanceChecks": [
+    "Node regression contracts must pass on CI, including navigation/ownership/first-paint/weak-network and ad-preservation checks.",
+    "Protected-feature-lock and engineering-regression-gate must accept this isolated manifest without bypass.",
+    "No Supabase schema/RLS, package native, release, OTA publishing or unrelated web change.",
+    "Manual Android latency/runtime behavior remains unverified until separately performed."
+  ],
+  "regressionTests": [
+    "tests/wall-network-feedback-20261117.test.mjs",
+    "tests/wall-comments-progressive-loading-20261122.test.mjs",
+    "tests/wall-comment-navigation-progressive-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Change the public Wall comment loader's asynchronous sequencing and memory cache while preserving rendering, ads and composer behavior.",
+      "preservedBehaviors": [
+        "Comment text is still loaded under existing authorized RPC; reactions remain functional, retries stay available and data is not persisted across sign-ins."
+      ],
+      "tests": [
+        "tests/wall-comments-progressive-loading-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "The primary public Wall tab module is protected navigation/auth surface; account, post and request identity checks need regression proof.",
+      "preservedBehaviors": [
+        "All account switches invalidate comment cache, post IDs remain isolated, profile/navigation callbacks are preserved, and explicit permission denial purges warm content."
+      ],
+      "tests": [
+        "tests/wall-comment-navigation-progressive-20261122.test.mjs"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Create a privileged unified comments-and-reactions RPC (rejected: changes backend/security without evidence and adds risk).",
+    "Increase timeouts without reordering hydration (rejected: does not improve first text paint).",
+    "Store comment content in persistent offline cache (rejected: unnecessary privacy and account-isolation risk)."
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "releaseTarget": "future staging candidate after full gates",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
