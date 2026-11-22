@@ -109,4 +109,7 @@ test('arcades stay in local game-only records; original verified mastery untouch
   assert.match(cinema,/KINGDOM_ARCADE_GAMES\.find/);
   assert.match(screen,/setInterval\(/);
   assert.match(screen,/clearInterval\(/);
+  assert.match(screen,/AppState\.addEventListener/);
+  assert.match(screen,/useFocusEffect/);
+  assert.match(center,/compact && styles\.pageBelowGameControls/);
 });
