@@ -30,6 +30,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+      - name: Resolve locked Expo config plugins for EAS read-only project queries
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          test -d node_modules/expo-background-task || { echo 'BLOCK: expo-background-task plugin missing after npm ci'; exit 1; }
       - name: Verify exact APK package, runtime, channel, EAS project ID (no mutation)
         shell: bash
         run: |
