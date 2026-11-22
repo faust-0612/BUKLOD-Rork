@@ -511,7 +511,7 @@ export default function BuklodKingdomMap() {
             </View>
 
             <DecorativeLabel left={360} top={185} icon="target" label="TRAINING GROUNDS" stage={stage} minimumStage={2} />
-            <DecorativeLabel left={835} top={510} icon="stadium" label="IGPAT ARENA" stage={stage} minimumStage={3} />
+            <DecorativeLabel left={835} top={510} icon="stadium" label="EMPIRE ARENA" stage={stage} minimumStage={3} />
             <DecorativeLabel left={735} top={145} icon="castle" label="MENTOR TOWER" stage={stage} minimumStage={3} />
 
             {STATIONS.map((station, index) => (
@@ -532,6 +532,18 @@ export default function BuklodKingdomMap() {
           </View>
         </ScrollView>
       </ScrollView>
+      <View style={{flexDirection:'row',gap:8,paddingHorizontal:10}}>
+        <Pressable accessibilityRole="button" accessibilityLabel="One tap to My House"
+          onPress={()=>router.push('/personal-home' as any)}
+          style={{flex:1,minHeight:34,alignItems:'center',justifyContent:'center',borderRadius:8,backgroundColor:'#184C4D'}}>
+          <Text style={{color:'#F7E7BE',fontWeight:'800',fontSize:11}}>MY HOUSE</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="One tap to Empire Arena"
+          onPress={()=>router.push('/games/empire-arena' as any)}
+          style={{flex:1,minHeight:34,alignItems:'center',justifyContent:'center',borderRadius:8,backgroundColor:'#184C4D'}}>
+          <Text style={{color:'#F7E7BE',fontWeight:'800',fontSize:11}}>EMPIRE ARENA</Text>
+        </Pressable>
+      </View>
       <BuklodCrossWorldAchievements world="kingdom" />
     </View>
   );
