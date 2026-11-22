@@ -73,5 +73,6 @@
     "No activity reopening loop; RN fallback intact; unchanged production guard",
     "Inherited premium Godot workflow has valid unique terminal no-release guard",
     "Both future signed staging APK build routes fail closed before keystore/signing or paid EAS use if original art not rendered"
-  ]
+  ],
+  "chosenApproach": "Use existing BUKLOD main React Native-authenticated route and new library-only one-shot Godot entry, preserve old native runtimes and fallback; audit exact original assets and fail closed before any subsequent signed APK build until minion/drop/structure graphics are truly rendered."
 }
