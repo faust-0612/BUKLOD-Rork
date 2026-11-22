@@ -150,6 +150,17 @@ export function resolveBuklodNotificationTarget(
     return {path:'/messages'};
   }
 
+  // Registration push contains no PII, only an opaque ID. AdminGate and
+  // the server-side detail RPC independently enforce System Admin access.
+  if (normalizedKind === 'admin_new_user') {
+    const id = clean(payload.user_id);
+    return {
+      path: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+        ? '/admin/new-users?user_id=' + encodeURIComponent(id)
+        : '/admin/new-users',
+    };
+  }
+
   // BSOC links carry a case ID but only fixed support routes are accepted.
   // The inbox/member screen independently verifies role and case ownership.
   if (normalizedKind === 'bsoc_support') {
