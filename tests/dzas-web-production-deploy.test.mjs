@@ -45,6 +45,8 @@ test('DZAS web RC runs inside existing compile workflow without publishing or na
   assert.match(job, /github\.head_ref == 'fix\/dzas-web-audio-fallback-20261122'/);
   assert.match(job, /node --test tests\/dzas-signal-deck-implementation\.test\.mjs/);
   assert.match(job, /node --test tests\/dzas-web-production-deploy\.test\.mjs/);
+  assert.match(job, /Check Season 2 exclusion for candidate web source/);
+  assert.match(job, /buklod-season2-production-embargo\.cjs/);
   assert.match(job, /npx tsc --noEmit/);
   assert.match(job, /npx expo export --platform web --output-dir dist --clear/);
   assert.match(job, /git rev-parse HEAD/);
