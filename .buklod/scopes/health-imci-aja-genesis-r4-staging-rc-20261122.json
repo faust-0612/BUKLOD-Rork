@@ -23,7 +23,7 @@
     "Current PR difference against pinned reported staging R4 baseline limited to nine explicitly allowed paths.",
     "IMCI guided caregiver questions: 18 infant, 27 under-five, 4 older-child safety-only; urgent yes/unsure stops routine and shows 911.",
     "AJA 10-19 years, consent, optional confidential HEEADSSS, imminent self-harm/abuse referral and NCMH/MAKABATA contact information.",
-    "TypeScript, source privacy/triage/ad regressions, Android JS export pass on exact RC SHA.",
+    "TypeScript, changed source privacy/triage regression tests, unchanged app-wide AdMob lock suite, and Android JS export pass on exact RC SHA.",
     "Verify no native dependency/app.config/eas.json/package lock changes.",
     "No OTA before verified RC evidence, current EAS channel/runtime/bundle readback, protected production mapping, and required Android AdMob/nav release gates."
   ],
@@ -38,8 +38,7 @@
   ],
   "regressionTests": [
     "tests/nov14-imci-health-flow.test.mjs",
-    "tests/health-center-consultation-card-20261110.test.mjs",
-    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
+    "tests/health-center-consultation-card-20261110.test.mjs"
   ],
   "allowedPaths": [
     "src/app/profile/buklod-health.tsx",
@@ -66,5 +65,6 @@
     }
   ],
   "publicationStatus": "RC_PREPARATION_NO_OTA",
-  "releaseStatus": "Staging RC PR prepared; mandatory CI and EAS live receipt plus app-wide ad/nav validation required prior to actual staging OTA. No publishing, no new native APK, no production changes. User waived physical actual verification historically; waived is not passed."
+  "releaseStatus": "Staging RC PR prepared; mandatory CI and EAS live receipt plus app-wide ad/nav validation required prior to actual staging OTA. No publishing, no new native APK, no production changes. User waived physical actual verification historically; waived is not passed.",
+  "selectionRationale": "Existing Genesis R4 only exposes a static 6-step under-five description; owner requires operational IMCI and confidential AJA without changing the existing signed staging native runtime or other Season 2 systems. The already source-tested DEV modules can be imported into R4 with a tightly scoped, source-only change; educational clinical boundaries remain enforced."
 }
