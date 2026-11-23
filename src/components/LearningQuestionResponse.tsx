@@ -243,6 +243,9 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
     if (submissionLock.current) return;
     submissionLock.current = true;
     setBusy(true);
+    // If checking fails before official completion, persist an authorized draft only.
+    // Never overwrite a possibly committed completion after its RPC is attempted.
+    let completionRpcStarted = false;
 
     try {
       const validated = await validateAllFields(normalized, reflectionText);
@@ -254,6 +257,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         return;
       }
 
+      completionRpcStarted = true;
       const { data, error } = await (supabase as any).rpc('complete_my_formation_lesson_v2', {
         p_enrollment_id: enrollmentId,
         p_lesson_id: lesson.id,
@@ -298,9 +302,31 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         }
       }
     } catch (error: any) {
+      let draftSaved = false;
+      if (!completionRpcStarted) {
+        // This RPC is authorization-bound and stores answers without approval or points.
+        try {
+          const { data: draftId, error: draftError } = await (supabase as any).rpc('submit_learning_lesson_response_v1', {
+            p_enrollment_id: enrollmentId,
+            p_lesson_id: lesson.id,
+            p_question_answers: normalized,
+            p_reflection: reflectionText,
+          });
+          if (!draftError && typeof draftId === 'string') {
+            draftSaved = true;
+            setPreviouslySubmitted(true);
+            setReviewNeeded(true);
+          }
+        } catch {
+          // Preserve the on-screen inputs even when the draft endpoint is unavailable.
+        }
+      }
       const message = error?.message ?? 'Unable to verify this response. Your text remains available; check your connection and retry.';
-      setLoadWarning(message);
-      Alert.alert('Could Not Complete Lesson', message);
+      const warning = draftSaved
+        ? `${message} Your answers and reflection were saved as a draft. The lesson is not completed yet.`
+        : message;
+      setLoadWarning(warning);
+      Alert.alert('Could Not Complete Lesson', warning);
     } finally {
       submissionLock.current = false;
       setBusy(false);

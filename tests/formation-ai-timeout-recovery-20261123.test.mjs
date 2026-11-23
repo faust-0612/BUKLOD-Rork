@@ -27,6 +27,10 @@ test('lesson error handling preserves answers and real model validation on every
   assert.match(lesson, /!cachedReflection\.failOpen && cachedReflection\.attemptId/);
   assert.match(lesson, /setAnswerValidations\(\[\.\.\.nextAnswerValidations\]\)/);
   assert.match(lesson, /const validated = await validateAllFields\(normalized, reflectionText\)/);
+  assert.match(lesson, /completionRpcStarted = true/);
+  assert.match(lesson, /if \(!completionRpcStarted\)/);
+  assert.match(lesson, /submit_learning_lesson_response_v1/);
+  assert.match(lesson, /The lesson is not completed yet/);
   assert.match(lesson, /complete_my_formation_lesson_v2/);
   assert.match(lesson, /submissionLock\.current = false/);
 });
