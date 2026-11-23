@@ -60,5 +60,20 @@
     "image decoder fallback",
     "expo asset bundling",
     "hero sprite frame budget"
+  ],
+  "selectionRationale": "The repository already owns a short original opening WAV, 13 approved 8-frame Godot character sheets and three guide poses. Reusing these assets repairs missing visual and audio functionality without inventing a new identity, native SDK, reward authority or remote download.",
+  "preserveBehaviors": [
+    "Current production BUKLOD MAIN runtime, package, signing and verified Season 1 features are unaffected",
+    "Existing authentication, consent, audio-focus, PTT, quiet-hours and opt-out policy remains authoritative",
+    "Rive rigs still require separately approved local rig assets; real frame sprites are a controlled local fallback",
+    "AdMob and navigation sources are unchanged and are mandatory RC regression gates",
+    "All 13 character identities, progression and points remain owned by existing systems",
+    "The approved portrait map remains the first-choice source; offline recovery remains intact"
+  ],
+  "alternativeApproaches": [
+    "Enable unapproved remote Rive animations (rejected due provenance/privacy and new loading dependencies).",
+    "Play opening music on splash before consent or over map music (rejected due user audio policy and overlapping streams).",
+    "Ship a new standalone Godot APK or native SDK for a view-layer bug (rejected; local frames and expo-audio already exist).",
+    "Push directly to the existing production channel (rejected: not device tested and source/RC parity unverified)."
   ]
 }
