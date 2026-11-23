@@ -1,29 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
 
-const require = createRequire(import.meta.url);
-const ts = require('typescript');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-function loadTs(file, mocks) {
-  const { outputText, diagnostics } = ts.transpileModule(readFileSync(file, 'utf8'), {
-    fileName: file,
-    reportDiagnostics: true,
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-      jsx: ts.JsxEmit.ReactJSX,
-    },
-  });
-  assert.equal((diagnostics ?? []).filter(d => d.category === ts.DiagnosticCategory.Error).length, 0);
-  const exports = {};
-  vm.runInNewContext(outputText, {
-    exports, require: name => mocks[name] ?? {}, console, setTimeout, clearTimeout, Date, Math,
-  }, { filename: file });
-  return exports;
+/* Dependency-free behavioral harness for the CI source gate:
+   strip TS with the Node 22 built-in instead of requiring npm-installed typescript. */
+function loadTs(file, mocks, exportsToRead) {
+  const source = readFileSync(file, 'utf8')
+    .replace(/^\s*import\s+[\s\S]*?\sfrom\s+['"][^'"]+['"];?/gm, '')
+    .replace(/await import\('@\/lib\/uploadCommunityVideoFile'\)/g, 'globalThis.__uploadMocks');
+  const stripped = stripTypeScriptTypes(source, { mode: 'transform' })
+    .replace(/^\s*export\s+(?=(?:async\s+)?(?:function|const|class)\b)/gm, '')
+    .replace(/^\s*export\s*\{\s*\}\s*;?\s*$/gm, '');
+  const context = {
+    ...mocks, __uploadMocks: mocks.__uploadMocks ?? {},
+    console, setTimeout, clearTimeout, Date, Math,
+  };
+  vm.runInNewContext(
+    stripped + '\n;globalThis.__result = {' + exportsToRead.join(',') + '};',
+    context, { filename: file },
+  );
+  return context.__result;
 }
 
 function modelFixture({ failPhoto = null } = {}) {
@@ -40,7 +40,7 @@ function modelFixture({ failPhoto = null } = {}) {
       attachCommunityPostMedia: async (id, media) => attached.push({ id, paths: media.map(m => m.media_path) }),
       discardIncompleteCommunityPost: async data => discarded.push(data),
     },
-    '@/lib/uploadCommunityVideoFile': {
+    __uploadMocks: {
       mapWithConcurrency: (items, limit, mapper) => {
         assert.equal(limit, 3);
         return Promise.all(items.map((item, index) => mapper(item, index)));
@@ -66,7 +66,14 @@ function modelFixture({ failPhoto = null } = {}) {
       },
     },
   };
-  const model = loadTs('src/lib/buklodMaritesBoard.ts', mocks);
+  const model = loadTs('src/lib/buklodMaritesBoard.ts', {
+    ...mocks,
+    Platform: { OS: 'android' },
+    repairMojibakeText: mocks['@/lib/repairMojibakeText'].repairMojibakeText,
+    supabase: mocks['@/lib/supabase'].supabase,
+    attachCommunityPostMedia: mocks['@/lib/buklodCommunityPostMedia'].attachCommunityPostMedia,
+    discardIncompleteCommunityPost: mocks['@/lib/buklodCommunityPostMedia'].discardIncompleteCommunityPost,
+  }, ['publishMaritesStory']);
   return { model, completed, attached, discarded, progress, getPostCreates: () => postCreates };
 }
 
@@ -113,9 +120,9 @@ test('Marites waits for all photo attempts before cleaning partial uploads and n
 test('Shared uploader preserves concurrency policy on weak network and result ordering on normal network', async () => {
   let quality = 'normal';
   const module = loadTs('src/lib/uploadCommunityVideoFile.ts', {
-    '@/lib/buklodNetworkQuality': { classifyNetworkQuality: () => quality },
-    'react-native': { Platform: { OS: 'android' } },
-  });
+    classifyNetworkQuality: () => quality,
+    Platform: { OS: 'android' },
+  }, ['mapWithConcurrency']);
   const batch = async () => {
     let active = 0, peak = 0;
     const values = await module.mapWithConcurrency([0, 1, 2, 3], 3, async n => {
