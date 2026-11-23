@@ -25,8 +25,21 @@
         "AdMob uses test application ID in QA"
       ],
       "tests": [
-        "tests/genesis-media-qa-identity-20261123.test.mjs",
-        "tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs"
+        "tests/genesis-media-qa-identity-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "A gated QA-only app.config.js changes package, runtime and update settings exclusively for standalone local testing; all production and staging defaults, signer, channels and release processes remain intact.",
+      "preservedBehaviors": [
+        "The existing production package org.mzbministry.buklod and runtime 1.3.2 remain unchanged without opt-in flags",
+        "The existing signed staging package org.mzbministry.buklod.staging and runtime 2.0.4-genesis-library-godot remain unchanged without opt-in",
+        "QA uses org.mzbministry.buklod.genesis.qa and no OTA update URL",
+        "No EAS or Play production/staging submission, no production deploy or OTA publication",
+        "Release-bundled Android QA artifact uses test-only signing, never the registered EAS keystore"
+      ],
+      "tests": [
+        "tests/genesis-media-qa-identity-20261123.test.mjs"
       ]
     }
   ],
