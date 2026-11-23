@@ -108,7 +108,7 @@ func _zoom(factor: float) -> void:
 
 func _update_zoom() -> void:
 	var width := maxf(320, get_viewport_rect().size.x)
-	var base: float = clampf(width / 900.0, 0.5, 1.1)
+	var base: float = clampf(width / 900.0, 0.85, 1.55)
 	camera.zoom = Vector2.ONE * base * scale_zoom
 
 func _command(name: String) -> void:

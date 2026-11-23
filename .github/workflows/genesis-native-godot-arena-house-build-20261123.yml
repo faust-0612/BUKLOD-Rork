@@ -11,6 +11,7 @@ on:
       - 'native-genesis/prepare-pack-local.sh'
       - 'scripts/build-empire-godot-pack.mjs'
       - 'tests/genesis-world-interactive-godot-20261123.test.mjs'
+      - 'tests/genesis-fullscreen-landscape-20261123.test.mjs'
 
 permissions:
   contents: read
@@ -41,7 +42,7 @@ jobs:
       - name: Fail early on source regressions
         run: |
           set -euo pipefail
-          node --test tests/genesis-native-local-only-gate-20261123.test.mjs tests/genesis-native-android-host-20261123.test.mjs tests/genesis-world-interactive-godot-20261123.test.mjs
+          node --test tests/genesis-native-local-only-gate-20261123.test.mjs tests/genesis-native-android-host-20261123.test.mjs tests/genesis-world-interactive-godot-20261123.test.mjs tests/genesis-fullscreen-landscape-20261123.test.mjs
           test "$(grep -c '    implementation("org.godotengine:godot:4.7.2.stable")' native-genesis/android/app/build.gradle.kts)" -eq 1
       - name: Rebuild original Arena hero art / 70 audio and Kingdom House main pack
         run: |
