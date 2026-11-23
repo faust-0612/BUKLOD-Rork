@@ -369,7 +369,6 @@ function InactiveCommunityVideo({
 function ImaCommunityVideo({
   uri,
   height = 380,
-  audioVolume = 1,
   autoPlay = false,
   expectedDurationSeconds,
   fullscreen = false,
@@ -617,6 +616,7 @@ function ExpoCommunityVideoPlayback({
   uri,
   playbackKey,
   height = 380,
+  audioVolume = 1,
   autoPlay = false,
   expectedDurationSeconds,
   fullscreen = false,
