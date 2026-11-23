@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-restored-topbar-preflight-20261123.json",
+  "objective": "Unblock consolidated Genesis read-only QA by reconciling stale map/header assertions to the already-restored, owner-approved Android top bar; do not touch working AdMob runtime.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "Genesis consolidated source 88d43d7ca8cba2e6a3d55497c86e9b53dfe3c75b. Genesis source QA 45118619752 failed at stale !desktopWebShell && !isGenesisPreviewBuild() preflight, whereas layout renders one top bar on Genesis native and hides duplicate context bar. Production main 7b224c39624827282c3cbf003060317045b0a73f unchanged.",
+  "chosenApproach": "Test-only preflight and existing map regression updates plus dedicated proof of one restored status-bar-safe Genesis header, one bottom navigation and unchanged ad prewarm.",
+  "selectionRationale": "The approved top bar is already in runtime source; changing the app to hide it would reverse prior owner UI intent. Align strict contracts to current safe behavior instead of bypassing assertions or relaxing release blockers.",
+  "alternativeApproaches": [
+    "Hide the restored Genesis top header again to match stale tests: rejected because it regresses approved UI and status-bar clearance.",
+    "Skip the map preflight or remove top-nav checks: rejected because it loses regression protection.",
+    "Update focused assertions and add a dedicated contract of restored status-safe top bar, single nav and AdMob warmup: selected."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "release-safety",
+    "ad-preservation"
+  ],
+  "allowedPaths": [
+    "scripts/genesis-map-reconstruction-preflight.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-map-first-conso-intake-20261121.test.mjs",
+    "tests/genesis-restored-topbar-preflight-20261123.test.mjs",
+    ".buklod/scopes/genesis-restored-topbar-preflight-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-restored-topbar-preflight-20261123.test.mjs",
+    "tests/genesis-world-navigation-regression-20261121.test.mjs",
+    "tests/season2-map-first-conso-intake-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "Never change live runtime source, AdMob source, permissions, SDK units or platform dependencies.",
+    "Keep Genesis native header status-bar inset and no duplicate context bar.",
+    "One global persistent bottom nav, immersive Arena and conversations protected.",
+    "AdMob first-view warmup and frozen-tab performance unchanged.",
+    "No new native build, staging/production OTA, Play, or Supabase mutation."
+  ],
+  "acceptanceChecks": [
+    "Execute map preflight and focused Node contracts on exact source.",
+    "Confirm full Genesis source QA and Android Metro as independent gates.",
+    "Maintain separate Genesis signed native SOS and backend release hold, and production unchanged."
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "publicationStatus": "QA_RECONCILIATION_PROPOSAL",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

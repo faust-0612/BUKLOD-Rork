@@ -25,7 +25,7 @@ test('Genesis keeps its one persistent bottom nav and the map return action with
  const tabs=read('src/app/(tabs)/_layout.tsx');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
  const map=read('src/app/buklod-map.tsx');
- assert.match(tabs,/!isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader/);
+ assert.match(tabs,/!desktopWebShell \? <SwipeDashboardHeader \/> : null/);
  assert.match(tabs,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar/);
  assert.match(shell,/!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0/);
  assert.match(shell,/normalizedPath !== '\/buklod-map'/);
