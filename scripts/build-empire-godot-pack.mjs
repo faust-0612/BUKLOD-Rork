@@ -210,9 +210,24 @@ if (process.env.BUKLOD_GENESIS_PRIVATE_FX === 'true') {
     'Private FX requires bounded real license statements');
 
   const checkHash=x=>assert.match(x,/^[a-f0-9]{64}$/);
+  assert.ok(Array.isArray(fxManifest.sourceArchives)&&
+    fxManifest.sourceArchives.length>=1&&fxManifest.sourceArchives.length<=16,
+    'Private FX source provenance missing');
+  const sourceMap=new Map();
+  for(const source of fxManifest.sourceArchives){
+    assert.match(source.file,/^[A-Za-z0-9_.() -]+\\.zip$/);
+    checkHash(source.sha256);
+    assert.ok(!sourceMap.has(source.file),'duplicate FX source archive');
+    sourceMap.set(source.file,source.sha256);
+  }
+  const licenseMap=new Map();
+
   for (const proof of fxManifest.licenseProof) {
     assert.match(proof.file,/^licenses\/[a-z0-9_-]+\.txt$/);
     checkHash(proof.sha256);
+    assert.ok(sourceMap.has(proof.source),'license must map to registered source');
+    assert.ok(!licenseMap.has(proof.file),'duplicate FX license proof');
+    licenseMap.set(proof.file,proof.source);
     const bytes=readFileSync(path.join(fxRoot,proof.file));
     assert.equal(createHash('sha256').update(bytes).digest('hex'),proof.sha256);
     assert.ok(bytes.length>25&&bytes.length<50000,'Missing license contents');
@@ -221,6 +236,10 @@ if (process.env.BUKLOD_GENESIS_PRIVATE_FX === 'true') {
   const seen=new Set();
   let totalFx=0;
   for (const fx of fxManifest.assets) {
+    assert.equal(sourceMap.get(fx.source),fx.sourceSha256,
+      'FX source archive checksum must be attested');
+    assert.equal(licenseMap.get(fx.licenseFile),fx.source,
+      'FX license must specifically cover the original source archive');
     assert.match(fx.id,/^[a-z0-9_]{5,100}$/);
     assert.equal(fx.file,'private-fx/'+fx.id+'.png');
     assert.ok(!seen.has(fx.id),'Duplicate private animation');seen.add(fx.id);
