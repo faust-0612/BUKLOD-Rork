@@ -558,6 +558,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="certificate-outline"
+                title="Academy Completion Recipients"
+                subtitle="Search issued certificates, diplomas, bachelor's- and master's-level completions"
+                path="/admin/academy-recipients"
+              />
+
+              <AdminRow
                 icon="clipboard-check-outline"
                 title="Learning Progress Approval"
                 subtitle="Final System Admin review after Pastor validation"
