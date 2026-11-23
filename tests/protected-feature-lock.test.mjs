@@ -122,3 +122,33 @@ test('Nov17 quiet connection feedback has exact protected scope',()=>{
  assert.deepEqual(result.impacted,['app-runtime','navigation-auth','governance-lock']);
  assert.equal(scope.publicationStatus,'DEV_ONLY_NO_OTA');
 });
+
+test('Connect staging-only latest-activity scope enforces notification, chat and governance locks', () => {
+  const scope = JSON.parse(readFileSync(new URL('../.buklod/scopes/connect-inbox-staging-20261123.json', import.meta.url), 'utf8'));
+  const paths = [
+    'src/app/(tabs)/messages.tsx',
+    'src/components/BuklodConnectThread.tsx',
+    'src/providers/NotificationProvider.tsx',
+    'src/lib/connectInboxActivity.ts',
+    'src/lib/connectInboxSignal.ts',
+    'src/lib/connectInboxSearch.ts',
+    '__tests__/connectInboxSearch.test.ts',
+    'src/hooks/useBuklodConnectUnread.ts',
+    '__tests__/connectInboxActivity.test.ts',
+    '__tests__/connectInboxSignal.test.ts',
+    'tests/connect-inbox-realtime-staging-20261123.test.mjs',
+    'tests/connect-inbox-notification-navigation-20261123.test.mjs',
+    'tests/connect-inbox-ads-guard-20261123.test.mjs',
+    'tests/messenger-inbox-density-20261117.test.mjs',
+    'tests/protected-feature-lock.test.mjs',
+    '.github/workflows/engineering-accountability.yml',
+    '.buklod/scopes/connect-inbox-staging-20261123.json',
+  ];
+  const result = assessProtectedFeatureLock(paths.map(path => ({ status: 'M', path })), scope);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.impacted, ['app-runtime', 'navigation-auth', 'connect-ptt-calls', 'ads-finance-points', 'governance-lock']);
+  assert.equal(scope.publicationStatus, 'DEV_ONLY_STAGING_RC_PENDING');
+  const workflow = readFileSync(new URL('../.github/workflows/engineering-accountability.yml', import.meta.url), 'utf8');
+  assert.ok(workflow.includes('dev/connect-inbox-latest-activity-20261123'));
+  assert.ok(workflow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-inbox-staging-20261123.json'));
+});

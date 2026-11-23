@@ -96,13 +96,23 @@ import {
 import { HIBLA } from '@/lib/connectHibla';
 import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import { partitionConnectInboxThreads } from '@/lib/connectInboxClassification';
+import { matchesConnectInboxSearch } from '@/lib/connectInboxSearch';
+import {
+  applyConnectInboxRealtimeActivity,
+  sortConnectInboxByActivity,
+} from '@/lib/connectInboxActivity';
 import { communityUnreadTabCounts } from '@/lib/connectInboxBadgeTotals';
 import { invalidateBuklodConnectUnreadCaches } from '@/lib/buklodR4RequestShield';
+import {
+  connectInboxRevision,
+  subscribeConnectInboxChanged,
+} from '@/lib/connectInboxSignal';
 
 type PersonalThread = {
   thread_id: string;
   other_user_id: string;
   other_user_name: string;
+  other_avatar_url?: string | null;
   last_message: string | null;
   last_message_at: string | null;
   unread_count: number;
@@ -699,9 +709,13 @@ function ConnectScreenInner({
     '/connect/community/[scopeId]';
 
   const loadSequenceRef = useRef(0);
+  const inboxFocusedRef = useRef(false);
+  const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Focus changes within a warm inbox must not replay four network requests.
   // Realtime and periodic refreshes remain active independently.
-  const lastInboxSyncRef = useRef<{ context: string; at: number }>({ context: '', at: 0 });
+  const lastInboxSyncRef = useRef<{ context: string; at: number; revision: number }>({
+    context: '', at: 0, revision: -1,
+  });
   const load = useCallback(async () => {
     if (!profileId) {
       return;
@@ -714,6 +728,7 @@ function ConnectScreenInner({
     // A slower previous refresh must never restore an already-read badge.
     const sequence = ++loadSequenceRef.current;
     const requestedContext = connectContext;
+    const requestedRevision = connectInboxRevision(profileId);
     const [p, r, suggested, requests] = await Promise.all([
       withBuklodTimeout<any>(
         (supabase as any).rpc(
@@ -776,7 +791,7 @@ function ConnectScreenInner({
     if (connectContextRef.current !== requestedContext || sequence !== loadSequenceRef.current) return;
 
     if (!p.error && !r.error) {
-      lastInboxSyncRef.current = { context: requestedContext, at: Date.now() };
+      lastInboxSyncRef.current = { context: requestedContext, at: Date.now(), revision: requestedRevision };
     }
 
     if (!p.error) {
@@ -864,16 +879,50 @@ function ConnectScreenInner({
       .sort()
       .join(',');
 
-  // Reuse a warm authorized inbox during rapid tab changes. An actual
-  // stale snapshot, first entry, reconnect, polling or realtime still syncs.
+  // Notifications/sends received while this route was hidden are remembered
+  // with an account-scoped revision. Never render stale data on fast return.
   useFocusEffect(useCallback(() => {
-    if (!profileId || !connectOnline) return;
-    const synced = lastInboxSyncRef.current;
-    if (synced.context !== connectContext ||
-        Date.now() - synced.at >= 15_000) {
-      void loadRef.current();
+    inboxFocusedRef.current = true;
+    if (profileId && connectOnline) {
+      const synced = lastInboxSyncRef.current;
+      if (synced.context !== connectContext ||
+          synced.revision !== connectInboxRevision(profileId) ||
+          Date.now() - synced.at >= 15_000) {
+        void loadRef.current();
+      }
     }
+    return () => { inboxFocusedRef.current = false; };
   }, [profileId, connectContext, connectOnline]));
+
+  const refreshInboxOnSignal = useCallback(() => {
+    if (!inboxFocusedRef.current || !connectOnline || refreshDebounceRef.current) return;
+    refreshDebounceRef.current = setTimeout(() => {
+      refreshDebounceRef.current = null;
+      if (inboxFocusedRef.current) void loadRef.current();
+    }, 180);
+  }, [connectOnline]);
+
+  useEffect(() => () => {
+    if (refreshDebounceRef.current) {
+      clearTimeout(refreshDebounceRef.current);
+      refreshDebounceRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!profileId) return;
+    return subscribeConnectInboxChanged(changedProfile => {
+      if (changedProfile !== profileId) return;
+      // No global message subscription needed for a first-contact push.
+      // The authenticated RPC retrieves eligible threads and requests.
+      invalidateBuklodConnectUnreadCaches('both');
+      // Invalidate a snapshot already in flight; otherwise its older result
+      // can briefly undo the latest activity before the debounced reload.
+      ++loadSequenceRef.current;
+      lastInboxSyncRef.current.at = 0;
+      refreshInboxOnSignal();
+    });
+  }, [profileId, refreshInboxOnSignal]);
 
   // Inbox polling is only useful while Connect is visible. Background
   // badges still arrive through the existing realtime/notification paths.
@@ -921,10 +970,29 @@ function ConnectScreenInner({
 
       const release = acquireSharedRealtimeSubscription(
         registryKey,
-        () => {
+        (payload: any) => {
+          // Reorder a known thread/room before the inbox RPC roundtrip. The
+          // authenticated RPC remains the source of truth for unread counts.
+          const incoming = payload?.new;
+          const activityId = String(
+            kind === 'direct' ? incoming?.thread_id ?? '' : incoming?.scope_id ?? ''
+          ).trim();
+          if (activityId) {
+            if (kind === 'direct') {
+              setPersonal(current => applyConnectInboxRealtimeActivity(
+                current, item => item.thread_id === activityId, incoming,
+              ));
+            } else {
+              setRooms(current => applyConnectInboxRealtimeActivity(
+                current, item => item.scope_id === activityId, incoming,
+              ));
+            }
+          }
           // Realtime inserts must bypass the 10s inbox snapshot TTL.
           invalidateBuklodConnectUnreadCaches(kind);
-          void loadRef.current();
+          ++loadSequenceRef.current;
+          lastInboxSyncRef.current.at = 0;
+          refreshInboxOnSignal();
         },
         emit => {
           const channelName =
@@ -972,6 +1040,7 @@ function ConnectScreenInner({
     profileId,
     personalRealtimeKey,
     scopeRealtimeKey,
+    refreshInboxOnSignal,
   ]);
 
   useEffect(() => {
@@ -1202,25 +1271,33 @@ function ConnectScreenInner({
     } as any);
   };
 
-  const visibleRooms = forcedScopeId
-    ? rooms.filter(room => room.scope_id === forcedScopeId)
-    : rooms;
-
-  const filteredRooms = visibleRooms.filter(room =>
-    matchesCommunityFilter(room, communityFilter)
+  const filteredRooms = useMemo(
+    () => sortConnectInboxByActivity(rooms.filter(room =>
+      (!forcedScopeId || room.scope_id === forcedScopeId) &&
+      matchesCommunityFilter(room, communityFilter) &&
+      matchesConnectInboxSearch(room, query)
+    )),
+    [rooms, forcedScopeId, communityFilter, query],
   );
 
+  const sortedPersonal = useMemo(
+    () => sortConnectInboxByActivity(personal),
+    [personal],
+  );
   const isSearching = query.trim().length >= 2;
   const { requests: requestThreads, personal: regularThreads } =
-    partitionConnectInboxThreads(personal, requestThreadIds);
-  // A single chronological inbox avoids the duplicated unread priority card.
-  const personalListData = (
-    isSearching
-      ? people
-      : tab === 'requests'
-        ? requestThreads
-        : regularThreads
-  ) as any[];
+    partitionConnectInboxThreads(sortedPersonal, requestThreadIds);
+  // Search stays within the active inbox tab. Other users remain discoverable
+  // in Personal, without duplicating existing threads or exposing Requests.
+  const currentThreads = tab === 'requests' ? requestThreads : regularThreads;
+  const personalListData = isSearching
+    ? [
+        ...currentThreads.filter(thread => matchesConnectInboxSearch(thread, query)),
+        ...(tab === 'requests'
+          ? []
+          : people.filter(person => !personal.some(thread => thread.other_user_id === person.user_id))),
+      ]
+    : currentThreads;
 
   const { cluster: clusterUnread, org: orgUnread } =
     communityUnreadTabCounts(rooms);
@@ -1237,7 +1314,7 @@ function ConnectScreenInner({
             inputRef={searchInputRef}
             value={query}
             onChangeText={setQuery}
-            placeholder={isSearching ? 'Hanapin ang miyembro…' : 'Hanapin ang usapan'}
+            placeholder="Hanapin ang usapan o miyembro"
           />
           <ConnectThemeSelectorButton />
         </View>
@@ -1325,8 +1402,8 @@ function ConnectScreenInner({
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
                 {tab === 'community'
-                  ? 'No community rooms yet'
-                  : isSearching ? 'No user found'
+                  ? (isSearching ? 'Walang tumugmang usapan' : 'No community rooms yet')
+                  : isSearching ? 'Walang tumugmang usapan o miyembro'
                     : tab === 'requests' ? 'Walang message requests'
                       : 'No personal conversations yet'}
               </Text>
@@ -1369,12 +1446,11 @@ function ConnectScreenInner({
                 <ConnectInboxRow
                   userId={isPerson ? item.user_id : item.other_user_id}
                   name={isPerson ? item.full_name : item.other_user_name}
-                  avatarUri={isPerson ? item.avatar_url : null}
+                  avatarUri={isPerson ? item.avatar_url : item.other_avatar_url ?? null}
                   preview={isPerson ? 'Start personal conversation' : connectMessagePreview(item.last_message)}
                   timeLabel={!isPerson ? formatInboxTime(item.last_message_at) : undefined}
                   unreadCount={unread}
                   isSearchResult={isPerson}
-                  showSentIndicator={!isPerson && unread === 0 && !!item.last_message_at}
                   onPressRow={() => isPerson
                     ? openPerson(item.user_id, item.full_name)
                     : openPersonalThread(item.thread_id, item)}
