@@ -692,10 +692,18 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     let freshGroups: BuklodClaimGroup[] | null = null;
     let freshClaims: BuklodClaimCard[] | null = null;
     // Issue independent reads together instead of stacking four network waits.
-    const dashboardRequest = loadBuklodPointsDashboard();
-    const groupsRequest = loadBuklodClaimGroups();
-    const claimsRequest = loadBuklodClaimCards();
-    const bonusRequest = loadBuklodAdBonusStatus();
+    const dashboardRequest = loadBuklodPointsDashboard().then(
+      value => ({ value, error: null }), error => ({ value: null, error }),
+    );
+    const groupsRequest = loadBuklodClaimGroups().then(
+      value => ({ value, error: null }), error => ({ value: null, error }),
+    );
+    const claimsRequest = loadBuklodClaimCards().then(
+      value => ({ value, error: null }), error => ({ value: null, error }),
+    );
+    const bonusRequest = loadBuklodAdBonusStatus().then(
+      value => ({ value, error: null }), error => ({ value: null, error }),
+    );
     const [rankResult, historyResult, evaluationResult] = await Promise.all([
       supabase.rpc('get_my_buklod_rank_dashboard'),
       supabase
@@ -713,7 +721,9 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     try {
       setDashboardError('');
       setDashboardSupportCode(null);
-      const nextDashboard = await dashboardRequest;
+      const result = await dashboardRequest;
+      if (result.error) throw result.error;
+      const nextDashboard = result.value;
       setDashboard(nextDashboard);
       freshDashboard = nextDashboard;
     } catch (error) {
@@ -743,7 +753,9 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     }
 
     try {
-      const groups = await groupsRequest;
+      const result = await groupsRequest;
+      if (result.error) throw result.error;
+      const groups = result.value ?? [];
       setClaimGroups(groups);
       freshGroups = groups;
     } catch (error) {
@@ -754,7 +766,9 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     }
 
     try {
-      const cards = await claimsRequest;
+      const result = await claimsRequest;
+      if (result.error) throw result.error;
+      const cards = result.value ?? [];
       setClaimCards(cards);
       setHasMoreClaims(cards.length === 100);
       freshClaims = cards;
@@ -763,7 +777,9 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
       setClaimError('Could not load individual claim buttons. Refresh to try again.');
     }
     try {
-      setBonusStatus(await bonusRequest);
+      const result = await bonusRequest;
+      if (result.error) throw result.error;
+      setBonusStatus(result.value);
     } catch {
       // Feature flag absent or SSV rollout not ready: never offer fake points.
       setBonusStatus(null);
