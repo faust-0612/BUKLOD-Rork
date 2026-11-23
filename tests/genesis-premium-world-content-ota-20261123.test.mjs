@@ -1,0 +1,53 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read = p => readFileSync(new URL('../'+p, import.meta.url), 'utf8');
+test('Arena prioritizes owner-supplied sprite and map art over primitive stand-in graphics',()=>{
+ const arena=read('godot/empire-arena/scripts/arena_root.gd');
+ assert.match(arena,/var large := 18\.0 if is_hero else 7\.0/);
+ assert.match(arena,/if not is_hero:\s*draw_circle\(pos \+ shift/);
+ assert.match(arena,/fullbody\/.*_pose|fullbody\/.*pose|hero_id \+ "_" \+ pose/);
+ assert.match(arena,/draw_texture_rect_region\(frame_texture/);
+ assert.match(arena,/Vector2\(large \* 3\.9, large \* 3\.9\)/);
+ assert.match(arena,/scenery, Rect2\(Vector2\.ZERO, Vector2\(w, h\)\)/);
+ assert.match(arena,/0\.98\)\)/);
+ assert.doesNotMatch(arena,/ranked_reward|grant_bp|supabase\.from|service_role/i);
+});
+test('Kingdom has 13 authored animated character atlases, not triangle substitutes',()=>{
+ const parent=read('godot/empire-arena/scripts/world_preview.gd');
+ const explore=read('godot/empire-arena/scripts/world_explore_controller.gd');
+ assert.match(explore,/const HERO_IDS := \[/);
+ assert.match(explore,/HERO_IDS\.size\(\)/);
+ assert.match(explore,/art\/fullbody\/.*_idle\.png/);
+ assert.match(explore,/load_png_from_buffer/);
+ assert.match(explore,/sprite\.hframes = 4/);
+ assert.match(explore,/sprite\.vframes = 2/);
+ assert.match(explore,/resident_actors\.append\(_sprite\(HERO_IDS\[i\]/);
+ assert.doesNotMatch(parent,/draw_colored_polygon\(PackedVector2Array\(\[pos \+ Vector2\(-20, 14\)/);
+});
+test('Tap-to-move preserves GUI and physical arrival before House stage changes',()=>{
+ const world=read('godot/empire-arena/scripts/world_explore_controller.gd');
+ assert.match(world,/func _unhandled_input\(event: InputEvent\)/);
+ assert.doesNotMatch(world,/func _input\(event: InputEvent\)/);
+ assert.match(world,/pending_house = true/);
+ assert.match(world,/avatar_position\.distance_to\(avatar_target\) <= ARRIVAL_RADIUS/);
+ assert.match(world,/func _arrive\(\)/);
+ assert.match(world,/get_parent\(\)\.advance_preview_stage\(\)/);
+ assert.match(world,/next_interaction_time = elapsed \+ INTERACTION_COOLDOWN/);
+ assert.match(world,/server_settlement": false/);
+ const parent=read('godot/empire-arena/scripts/world_preview.gd');
+ assert.match(parent,/func world_interaction\(cue: String, message: String\)/);
+ assert.match(parent,/AudioStreamWAV\.load_from_buffer/);
+ assert.doesNotMatch(parent,/func _unhandled_input\(event: InputEvent\)/);
+});
+test('Game pack is the same deterministic approved art and audio source used by OTA',()=>{
+ const pack=read('scripts/build-empire-godot-pack.mjs');
+ const ota=read('scripts/genesis-prepare-godot-ota-pack.mjs');
+ assert.match(pack,/fullbody: 52, scene: 3, sprite: 13/);
+ assert.match(pack,/audioEntries\.length, 70/);
+ assert.match(pack,/prototype:true/);
+ assert.match(pack,/world-art\/kingdom\.webp/);
+ assert.match(pack,/world-art\/house\.webp/);
+ assert.match(ota,/scripts\/build-empire-godot-pack\.mjs/);
+ assert.match(ota,/GENESIS_GODOT_OTA_PACK_PREPARED/);
+});

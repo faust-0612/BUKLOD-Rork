@@ -1,0 +1,62 @@
+{
+  "contractVersion": 2,
+  "objective": "Produce premium visual and interaction content candidate for already verified 2.0.6 Godot bridge: Arena readable hero art & map, Kingdom/House interactive walk-on-arrival",
+  "baseSignedStaging": "f1bca8319113402caffe99bd78c7ed0e963f963f",
+  "target": {
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "2.0.6-genesis-godot-ota",
+    "engine": "4.7.2",
+    "distribution": "CONTENT_OTA_DEV_CANDIDATE_NO_PUBLISH"
+  },
+  "referenceLibrary": [
+    {
+      "path": "/Buklod Character System Assets",
+      "use": "visual quality reference and ownership mapping, actual shipped sprites remain 13 audited repo atlases",
+      "status": "reference only; uploaded screenshots not 3D meshes"
+    },
+    {
+      "path": "/Sound and voice effects",
+      "use": "premium audio integration candidate; license approval needed before use",
+      "status": "not embedded; current Arena audio is generated placeholders"
+    },
+    {
+      "file": "BUKLOD Kingdom World Map.png",
+      "use": "visual reference for geographic theme",
+      "status": "reference only"
+    },
+    {
+      "file": "BUKLODs Enchanted Kingdom Map.png",
+      "use": "visual reference for navigation density",
+      "status": "reference only"
+    }
+  ],
+  "changes": [
+    "larger Arena hero atlas and clearer real backdrop",
+    "no primitive hero body when atlas renders",
+    "actual 13 owner-supplied atlases in Kingdom",
+    "tap-to-walk with arrival-gated station visits and House build stages",
+    "unhandled input isolation from top-level UI",
+    "buffer decoding of embedded WAV for offline native game"
+  ],
+  "tests": [
+    "node --test tests/genesis-premium-world-content-ota-20261123.test.mjs",
+    "godot --headless ...premium_content_smoke.gd",
+    "canonical source pack hash/zip integrity"
+  ],
+  "knownLimitations": [
+    "2D upgrade only, NOT Mobile Legends grade 3D",
+    "not a production/published OTA",
+    "premium licensed external audio packs not yet integrated",
+    "device screenshot FPS and interaction not verified",
+    "no server-side rewards / ranks / ownership"
+  ],
+  "allowedPaths": [
+    "godot/empire-arena/scripts/arena_root.gd",
+    "godot/empire-arena/scripts/world_preview.gd",
+    "godot/empire-arena/scripts/world_explore_controller.gd",
+    "godot/empire-arena/tests/premium_content_smoke.gd",
+    "tests/genesis-premium-world-content-ota-20261123.test.mjs",
+    ".github/workflows/genesis-206-premium-content-ota-qa-20261123.yml",
+    ".buklod/scopes/genesis-206-premium-content-ota-20261123.json"
+  ]
+}

@@ -1,0 +1,61 @@
+name: Genesis 2.0.6 premium Godot content — offline DEV QA (no OTA publish)
+on:
+  push:
+    branches:
+      - dev/genesis-206-premium-arena-kingdom-house-ota-20261123
+    paths:
+      - '.github/workflows/genesis-206-premium-content-ota-qa-20261123.yml'
+permissions:
+  contents: read
+concurrency:
+  group: genesis-206-premium-content-proof
+  cancel-in-progress: true
+jobs:
+  godot-content:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Immutable native compatibility and focused regressions
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor f1bca8319113402caffe99bd78c7ed0e963f963f HEAD
+          test -z "$(git diff --name-only f1bca8319113402caffe99bd78c7ed0e963f963f HEAD -- modules app.config.js eas.json package.json package-lock.json src plugins)"
+          node --test tests/genesis-premium-world-content-ota-20261123.test.mjs
+          node scripts/genesis-prepare-godot-ota-pack.mjs
+          test -s assets/season2/genesis/ota/empire-arena.zip
+          unzip -t assets/season2/genesis/ota/empire-arena.zip | tail -n 2
+      - name: Godot 4.7.2 exact packed world, animation and interaction smoke
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/buklod-premium-godot /tmp/buklod-premium-pack
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            -o /tmp/buklod-premium-godot.zip
+          unzip -q /tmp/buklod-premium-godot.zip -d /tmp/buklod-premium-godot
+          GODOT="$(find /tmp/buklod-premium-godot -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          "$GODOT" --version | grep -F '4.7.2'
+          PACK="$PWD/assets/season2/genesis/ota/empire-arena.zip"
+          unzip -q "$PACK" -d /tmp/buklod-premium-pack
+          "$GODOT" --headless --path /tmp/buklod-premium-pack --editor --import --quit 2>&1 | tee /tmp/buklod-premium-import.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/buklod-premium-import.log; then exit 1; fi
+          for test_script in art_smoke.gd premium_smoke.gd world_smoke.gd premium_content_smoke.gd; do
+            "$GODOT" --headless --path /tmp/buklod-premium-pack -s "res://tests/$test_script" 2>&1 | tee "/tmp/buklod-$test_script.log"
+            if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' "/tmp/buklod-$test_script.log"; then exit 1; fi
+          done
+          "$GODOT" --headless --main-pack "$PACK" --quit-after 12 2>&1 | tee /tmp/buklod-premium-packed.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/buklod-premium-packed.log; then exit 1; fi
+          echo 'BUKLOD_206_PREMIUM_CONTENT_DEV_QA_PASS_NO_OTA_PUBLISHED'
