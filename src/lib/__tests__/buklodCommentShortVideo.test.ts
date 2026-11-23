@@ -2,7 +2,18 @@ import { encodeBuklodCommentMediaBody, parseBuklodCommentMediaBody, buklodCommen
 import { BUKLOD_COMMENT_VIDEO_MAX_BYTES, inspectBuklodCommentVideoSelection,
   validateBuklodCommentVideoMetadata, buklodCommentVideoFormat } from '@/lib/buklodCommentVideo';
 
+import { subscribeBuklodCommentVideoStop, stopBuklodCommentVideos } from '@/lib/buklodCommentVideoPlaybackSignal';
+
 describe('BUKLOD short video comments', () => {
+  test('scroll/play signal pauses subscribed comment videos and unsubscribes safely', () => {
+    const stop = jest.fn();
+    const unsubscribe = subscribeBuklodCommentVideoStop(stop);
+    stopBuklodCommentVideos();
+    expect(stop).toHaveBeenCalledTimes(1);
+    unsubscribe();
+    stopBuklodCommentVideos();
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
   test('encodes and parses a private video and caption', () => {
     const media = { kind: 'video' as const, ref: 'user/comment-video-12.mp4' };
     expect(parseBuklodCommentMediaBody(encodeBuklodCommentMediaBody(media, 'Salamat po'))).toEqual({

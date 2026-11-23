@@ -14,7 +14,8 @@
     "Duration/size validated before upload",
     "Public/scoped upload paths remain private",
     "Manual playback and signed URL retry",
-    "No new native modules or production OTA"
+    "No new native modules or production OTA",
+    "Scroll pauses every comment video and only one player can run at a time."
   ],
   "regressionTests": [
     "src/lib/__tests__/buklodCommentShortVideo.test.ts"
@@ -29,7 +30,8 @@
     "src/app/(tabs)/buklod.tsx",
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "src/lib/__tests__/buklodCommentShortVideo.test.ts",
-    ".buklod/scopes/short-video-comments-20261123.json"
+    ".buklod/scopes/short-video-comments-20261123.json",
+    "src/lib/buklodCommentVideoPlaybackSignal.ts"
   ],
   "lockedFeatureChanges": [
     {

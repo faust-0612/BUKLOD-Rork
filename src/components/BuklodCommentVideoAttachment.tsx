@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { subscribeBuklodCommentVideoStop, stopBuklodCommentVideos } from '@/lib/buklodCommentVideoPlaybackSignal';
 
 /** Player mounts only on tap; never auto-downloads or autoplays in the feed. */
 function ActiveCommentVideo({ uri, onError }: { uri: string; onError: () => void }) {
+  const [firstFrame, setFirstFrame] = useState(false);
   const player = useVideoPlayer({ uri }, instance => {
     instance.loop = false;
     instance.audioMixingMode = 'mixWithOthers';
@@ -20,8 +22,16 @@ function ActiveCommentVideo({ uri, onError }: { uri: string; onError: () => void
     return () => { status.remove(); app.remove(); player.pause(); };
   }, [player, onError]);
   return (
-    <VideoView player={player} style={styles.video} nativeControls
-      contentFit="contain" surfaceType="textureView" allowsPictureInPicture={false} />
+    <View style={styles.container}>
+      <VideoView player={player} style={styles.video} nativeControls
+        onFirstFrameRender={() => setFirstFrame(true)}
+        contentFit="contain" surfaceType="textureView" allowsPictureInPicture={false} />
+      {!firstFrame && (
+        <View pointerEvents="none" style={styles.loadingOverlay}>
+          <Text style={styles.label}>Loading video…</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -32,32 +42,33 @@ export default function BuklodCommentVideoAttachment({ uri, onRetry }: {
   const [active, setActive] = useState(false);
   const [failed, setFailed] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  useEffect(() => subscribeBuklodCommentVideoStop(() => setActive(false)), []);
   const playbackError = useCallback(() => { setFailed(true); setActive(false); }, []);
   const retry = async () => {
     if (retrying) return;
     setRetrying(true);
     try {
       const fresh = await onRetry();
-      if (fresh) { setFailed(false); setActive(true); }
+      if (fresh) { stopBuklodCommentVideos(); setFailed(false); setActive(true); }
     } catch {
       // Keep manual retry available on weak networks or expired URLs.
     } finally { setRetrying(false); }
   };
   return (
     <View style={styles.container}>
-      {active && !failed ? (
+      {active && !failed && !!uri ? (
         <ActiveCommentVideo uri={uri} onError={playbackError} />
       ) : (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={failed ? 'Retry short video comment' : 'Play short video comment'}
-          onPress={failed ? () => void retry() : () => setActive(true)}
+          accessibilityLabel={failed || !uri ? 'Retry short video comment' : 'Play short video comment'}
+          onPress={failed || !uri ? () => void retry() : () => { stopBuklodCommentVideos(); setActive(true); }}
           disabled={retrying}
           style={styles.cover}
         >
-          <MaterialCommunityIcons name={failed ? 'refresh' : 'play-circle-outline'} color="#FFFFFF" size={44} />
+          <MaterialCommunityIcons name={failed || !uri ? 'refresh' : 'play-circle-outline'} color="#FFFFFF" size={44} />
           <Text style={styles.label}>
-            {retrying ? 'Refreshing video…' : failed ? 'Video unavailable · Tap to retry' : 'Play short video'}
+            {retrying ? 'Refreshing video…' : failed || !uri ? 'Video unavailable · Tap to retry' : 'Play short video'}
           </Text>
         </Pressable>
       )}
@@ -69,4 +80,5 @@ const styles = StyleSheet.create({
   cover: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   label: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', textAlign: 'center' },
   video: { width: '100%', height: '100%' },
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: '#273735' },
 });

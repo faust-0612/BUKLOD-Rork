@@ -145,6 +145,7 @@ import {
   encodeBuklodCommentMediaBody,
 } from '@/lib/buklodCommentMediaBody';
 import { uploadBuklodCommentVideo } from '@/lib/buklodCommentVideo';
+import { stopBuklodCommentVideos } from '@/lib/buklodCommentVideoPlaybackSignal';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -4910,6 +4911,7 @@ return (
             <ScrollView
               ref={focusCommentScrollRef}
               style={styles.commentsScroll}
+              onScrollBeginDrag={stopBuklodCommentVideos}
               contentContainerStyle={styles.commentsContent}
               keyboardShouldPersistTaps="handled"
             >

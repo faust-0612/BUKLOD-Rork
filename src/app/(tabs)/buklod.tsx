@@ -176,6 +176,7 @@ import {
   buklodCommentHasSendableContent,
 } from '@/lib/buklodCommentMediaBody';
 import { uploadBuklodCommentVideo } from '@/lib/buklodCommentVideo';
+import { stopBuklodCommentVideos } from '@/lib/buklodCommentVideoPlaybackSignal';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -7046,6 +7047,7 @@ const communityFeedRows =
      <ScrollView
       style={{flex:1}}
       keyboardShouldPersistTaps="handled"
+      onScrollBeginDrag={stopBuklodCommentVideos}
       contentContainerStyle={s.communityCommentList}
      >
       {!!commentLoadError&&(

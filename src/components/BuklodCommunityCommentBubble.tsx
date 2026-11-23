@@ -480,11 +480,11 @@ export function BuklodCommunityCommentBubble({
           </Text>
         )}
 
-        {!!mediaUri && (
+        {(!!mediaUri || parsedBody.media?.kind === 'video') && (
           <View style={styles.media}>
             {parsedBody.media?.kind === 'video' ? (
               <BuklodCommentVideoAttachment
-                uri={mediaUri}
+                uri={mediaUri || ''}
                 onRetry={async () => {
                   const path = parsedBody.media?.ref;
                   if (!path || /^https?:\/\//i.test(path)) return null;
