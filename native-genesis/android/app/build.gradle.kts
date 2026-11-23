@@ -45,4 +45,5 @@ android {
 dependencies {
     implementation("org.godotengine:godot:4.7.2.stable")
     implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.fragment:fragment:1.8.9")
 }
