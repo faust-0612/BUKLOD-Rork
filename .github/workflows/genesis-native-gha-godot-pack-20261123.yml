@@ -1,5 +1,6 @@
 name: BUKLOD Genesis - real Godot PCK export and four-world smoke (DEV)
 # Resource-preservation recheck: exported PCK dropped dynamic raw WebP/WAV lookups.
+# Godot lifecycle cleanup recheck: PCK resource references survived immediate SceneTree.quit.
 # One-shot verified-source Godot pack only; never assemble or publish Android APK.
 on:
   push:

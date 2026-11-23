@@ -38,5 +38,12 @@ func _run() -> void:
 			push_error("BUKLOD_WORLD_SOUND_FAIL: " + name)
 			quit(7)
 			return
+	# Do not quit while test-owned audio, nodes and resources are still referenced.
+	# Godot 4.7 reports an ERROR on such premature shutdown even when checks passed.
+	if world.audio != null:
+		world.audio.stop()
+	root.remove_child(world)
+	world.free()
+	script = null
 	print("BUKLOD_GENESIS_GODOT_WORLDS_PASS: kingdom / community / house / level-substage / existing media")
-	quit(0)
+	call_deferred("quit", 0)

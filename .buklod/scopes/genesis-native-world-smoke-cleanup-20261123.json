@@ -1,0 +1,66 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-world-smoke-cleanup-20261123.json",
+  "objective": "Fix actual Godot packed world smoke teardown resource leak: 2 resources still in use when immediate SceneTree.quit triggers engine shutdown, preserving strict ERROR detection.",
+  "baseRef": "dd7dc8cf4c043c8ff45f2d3479bb900fa6d70453",
+  "productionBaselineEvidence": "Run 45142857395 exported real 34,970,724-byte GDPC pack with Arena ready/smoke passing and no missing WebP/WAV log errors; packed world smoke emitted 'ERROR: 2 resources still in use at exit'. Main source SHA 7b224c39624827282c3cbf003060317045b0a73f remains only source snapshot; no deployed/runtime verification.",
+  "chosenApproach": "Release test-owned AudioStreamPlayer, WorldPreview node and loaded GDScript reference, then defer SceneTree.quit until GDScript stack returns; still reject every engine ERROR and inspect all packed resources. Re-run only bounded, isolated Godot CI diagnostic.",
+  "selectionRationale": "Immediate quit while test-owned world/audio/script references remain is an artificial smoke shutdown error, not reason to suppress engine errors. Explicit teardown and deferred quit ensures actual lifecycle correctness.",
+  "allowedPaths": [
+    "godot/empire-arena/tests/world_smoke.gd",
+    "tests/genesis-native-godot-pack-export-20261123.test.mjs",
+    ".github/workflows/genesis-native-gha-godot-pack-20261123.yml",
+    ".buklod/scopes/genesis-native-world-smoke-cleanup-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "kingdom-character",
+      "reason": "Harden exported preview-world smoke lifecycle; no gameplay changes",
+      "preservedBehaviors": [
+        "All world images and audio still checked as imported resources",
+        "World previews have no reward authority",
+        "Arena and app untouched"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Strict packed-world resource leak gate remains active",
+      "preservedBehaviors": [
+        "No APK assembly, signing, upload or OTA",
+        "No production/staging changes"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "Godot SceneTree deferred quit may still retain world audio references",
+    "GitHub CI minutes",
+    "No Android-device gameplay proof"
+  ],
+  "preserveBehaviors": [
+    "Main/staging/prod unchanged",
+    "No Expo/EAS/Vercel",
+    "No errors ignored"
+  ],
+  "acceptanceChecks": [
+    "All existing source tests pass",
+    "PCK export and embedded Arena pass",
+    "All world media tests pass without any Godot ERROR",
+    "Asset SHA emitted only after all smoke tests pass"
+  ],
+  "alternativeApproaches": [
+    "Rejected: filtering out Godot ERROR lines to fake success",
+    "Rejected: removing live-resource checks"
+  ],
+  "releaseMode": "DEV_GODOT_PCK_LIFECYCLE_CI_ONLY_NO_APK",
+  "publicationStatus": "CI_RECHECK_PENDING",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

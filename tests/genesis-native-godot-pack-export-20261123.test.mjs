@@ -47,5 +47,9 @@ test('All three backdrops and four audio cues survive genuine PCK export as impo
  assert.match(gd,/WORLD_AUDIO\[name\] as AudioStream/);
  assert.match(smoke,/picture\.get_width\(\)/);
  assert.match(smoke,/clip\.get_length\(\)/);
+ assert.match(smoke,/world\.audio\.stop\(\)/);
+ assert.match(smoke,/world\.free\(\)/);
+ assert.match(smoke,/call_deferred\("quit", 0\)/);
+ assert.doesNotMatch(smoke,/\n\s*quit\(0\)/);
  for(const c of [gd,smoke])assert.doesNotMatch(c,/Image\.load_from_file|AudioStreamWAV\.load_from_file/);
 });
