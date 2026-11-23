@@ -64,3 +64,25 @@ test('Native-first route has persistent kill-switch after real Android process d
   assert.match(arena,/EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205 === 'true'/);
   assert.match(arena,/return <EmpireArenaInApp\/>;/);
 });
+
+test('Both Expo native splash and embedded Godot engine use same approved Genesis green B',()=>{
+ const config=read('app.config.js'),god=read('godot/empire-arena/project.godot');
+ const pack=read('scripts/build-empire-godot-pack.mjs');
+ assert.match(config,/expo-splash-screen/);
+ assert.match(config,/genesis-green-b-transparent\.png/);
+ assert.match(god,/image="res:\/\/splash\/buklod-green-b\.png"/);
+ assert.match(god,/show_image=true/);
+ assert.match(pack,/splash\/buklod-green-b\.png/);
+ assert.match(pack,/nativeSplash\.subarray\(0,8\)/);
+});
+test('Cloud EAS staging build inherits all native flags, canonical backend, original signer and single versionCode',()=>{
+ const profile=eas.build['season2-genesis-launch-recovery-staging'];
+ assert.equal(profile.autoIncrement,false);
+ assert.equal(profile.android.credentialsSource,'remote');
+ assert.equal(profile.channel,'season2-genesis-library-205-preview');
+ assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
+ assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,eas.build['season2-genesis-preview'].env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+ for(const x of ['EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED','EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS','EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3']){
+  assert.equal(eas.build['season2-genesis-unified-worlds-staging'].env[x],'true');
+ }
+});
