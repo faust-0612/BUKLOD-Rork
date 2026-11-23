@@ -20,7 +20,8 @@
     "points-ledger",
     "app-runtime",
     "signed-url-sharing",
-    "ota-compatibility"
+    "ota-compatibility",
+    "faith-cluster"
   ],
   "allowedPaths": [
     ".buklod/scopes/saliksik-manuscript-completion-r3-20261124.json",
