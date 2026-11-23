@@ -639,44 +639,47 @@ export function getConnectGifCatalogItem(
 export async function downloadConnectCatalogGif(
   item: ConnectGifCatalogItem
 ): Promise<ConnectPickedFile> {
-  const cacheDir =
-    FileSystem.cacheDirectory;
-
-  if (!cacheDir) {
-    throw new Error(
-      'Could not prepare GIF download.'
-    );
-  }
+  const cacheDir = FileSystem.cacheDirectory;
+  if (!cacheDir) throw new Error('Could not prepare GIF download.');
 
   const safeId = String(item.id)
     .replace(/[^a-zA-Z0-9_-]/g, '-')
     .slice(0, 80);
-  const target =
-    `${cacheDir}connect-gif-${safeId}-${Date.now()}.gif`;
-  const result = await FileSystem.downloadAsync(
-    item.url,
-    target
-  );
+  const name = `${safeId || 'reaction'}.gif`;
+  const target = `${cacheDir}connect-gif-${name}`;
 
-  const nativeFile = new File(result.uri);
-  const size = Number(nativeFile.size ?? 0);
-
-  if (!size) {
-    throw new Error(
-      'Could not download that GIF. Check your connection and try again.'
-    );
+  // Stable bounded cache: resending a reaction does not fetch it again.
+  // The OS can still purge temporary files at any time.
+  const old = await FileSystem.getInfoAsync(target);
+  if (old.exists) {
+    const size = 'size' in old ? Number(old.size ?? 0) : 0;
+    const age = Date.now() - Number(old.modificationTime ?? 0) * 1000;
+    if (size > 0 && size <= MAX_FILE_BYTES && age >= 0 &&
+        age < 24 * 60 * 60 * 1000) {
+      return { uri: target, name, mimeType: 'image/gif', size };
+    }
+    await FileSystem.deleteAsync(target, { idempotent: true }).catch(() => undefined);
   }
 
-  if (size > MAX_FILE_BYTES) {
-    throw new Error(
-      'Maximum attachment size is 25 MB.'
-    );
-  }
+  const temporary = `${target}.${Date.now()}-${Math.random().toString(36).slice(2)}.part`;
+  try {
+    const result = await FileSystem.downloadAsync(item.url, temporary);
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error('GIF download unavailable. Try another reaction.');
+    }
 
-  return {
-    uri: result.uri,
-    name: `${safeId || 'reaction'}.gif`,
-    mimeType: 'image/gif',
-    size,
-  };
+    const size = Number(new File(result.uri).size ?? 0);
+    if (!size) {
+      throw new Error('Could not download that GIF. Check your connection.');
+    }
+    if (size > MAX_FILE_BYTES) {
+      throw new Error('Maximum attachment size is 25 MB.');
+    }
+    await FileSystem.moveAsync({ from: result.uri, to: target });
+    return { uri: target, name, mimeType: 'image/gif', size };
+  } catch (error) {
+    throw error;
+  } finally {
+    await FileSystem.deleteAsync(temporary, { idempotent: true }).catch(() => undefined);
+  }
 }
