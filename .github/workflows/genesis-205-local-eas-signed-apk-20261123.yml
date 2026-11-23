@@ -1,0 +1,161 @@
+name: BUKLOD MAIN Genesis 2.0.5 EAS Local Original-Signed STAGING APK
+# EAS original staging keystore, full native 4-world Godot, no cloud build quota.
+# ZERO OTA / Play publication. Android handset test intentionally not claimed.
+on:
+  push:
+    branches:
+      - dev/genesis-godot-launch-recovery-20261123
+    paths:
+      - '.github/workflows/genesis-205-local-eas-signed-apk-20261123.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-genesis-205-one-local-eas-staging-apk
+  cancel-in-progress: false
+jobs:
+  gated-local-eas-original-signed:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'GENESIS_GODOT_205_LOCAL_EAS_SIGNED_BUILD:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8" -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=1 -Dorg.gradle.daemon=false'
+      BUKLOD_APP_TARGET: main
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205: 'true'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW: 'true'
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      SIGNED_APK: /tmp/buklod-genesis-2.0.5-original-eas-signed.apk
+      STRICT_PROOF_SHA: 4979302c0a0ffbf99b71858101e175a1846ba437
+      STRICT_PROOF_RUN: '45115377092'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prove exact Godot startup and gameplay smoke source has not drifted
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          git merge-base --is-ancestor "$STRICT_PROOF_SHA" HEAD
+          git diff --quiet "$STRICT_PROOF_SHA" HEAD -- app.config.js eas.json \
+            godot/empire-arena scripts/build-empire-godot-pack.mjs scripts/arena-library-audio-pack.mjs \
+            modules/buklod-genesis-godot plugins/withBuklodGodotArenaPack.js \
+            src/app/games/empire-arena.tsx assets/season2/genesis \
+            package.json package-lock.json
+          node <<'NODE'
+          const a=require('node:assert/strict');
+          (async()=>{
+            const url='https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY+
+              '/actions/runs/'+process.env.STRICT_PROOF_RUN;
+            const r=await fetch(url,{headers:{Authorization:'Bearer '+process.env.GH_TOKEN,
+              Accept:'application/vnd.github+json','User-Agent':'buklod-native-v205-canonical-proof'}});
+            a.equal(r.status,200,'Cannot independently read strict Godot proof');
+            const run=await r.json();
+            a.equal(run.head_sha,process.env.STRICT_PROOF_SHA);
+            a.equal(run.status,'completed');
+            a.equal(run.conclusion,'success','Strict packed Godot Arena/4 world gameplay QA not successful');
+            console.log('EXACT_205_STRICT_GODOT_GAMEPLAY_PROOF_PASS',run.id);
+          })().catch(e=>{console.error('STRICT_GODOT_PROOF_BLOCK',e.message);process.exitCode=1});
+          NODE
+      - name: Guard all required native modules, signed Expo identity, splash, critical ads and nav
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/genesis-205-native-release-gate.mjs
+          node scripts/genesis-prepare-skia-binaries.mjs
+          node scripts/genesis-assert-native-autolinking.mjs
+          node --test \
+            tests/genesis-205-local-signed-binary-20261123.test.mjs \
+            tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs \
+            tests/genesis-godot-game-release-identity-20261123.test.mjs \
+            tests/genesis-godot-game-runtime-guard-20261123.test.mjs \
+            tests/genesis-library-native-runtime-release-20261122.test.mjs \
+            tests/arena-library-godot-native-20261122.test.mjs \
+            tests/arena-library-modes-audio-20261122.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs
+          npm run release:gate
+          npm run genesis:theme:gate
+          npx tsc --noEmit
+      - name: Require original staging signer, local code17 and original Firebase client
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const config=require('./app.config.js')({config:{}),eas=require('./eas.json');
+          a.equal(config.android.package,'org.mzbministry.buklod.staging');
+          a.equal(config.android.versionCode,17);
+          a.equal(config.version,'2.0.5');
+          a.equal(config.runtimeVersion,'2.0.5-genesis-godot-launch');
+          const profile=eas.build['season2-genesis-launch-recovery-staging'];
+          a.equal(profile.android.credentialsSource,'remote');
+          a.equal(profile.autoIncrement,false);
+          a.equal(profile.channel,'season2-genesis-library-205-preview');
+          a.equal(eas.cli.appVersionSource,'local');
+          a.equal(eas.build.production.channel,'production');
+          const google=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          google.client=google.client.filter(x=>x.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging');
+          a.equal(google.client.length,1,'No original staged Firebase Android app client');
+          fs.writeFileSync('google-services.staging.json',JSON.stringify(google));
+          console.log('GENESIS_205_OLD_REMOTE_EAS_KEYSTORE_LOCAL_SIGNING_READY');
+          NODE
+      - name: Build complete original-EAS-signed Android 2.0.5 APK locally WITHOUT Expo cloud credits
+        shell: bash
+        run: |
+          set -euo pipefail
+          free -m
+          df -h /
+          MEM_MIB="$(awk '/MemTotal:/{printf "%d", $2 / 1024}' /proc/meminfo)"
+          if [ "$MEM_MIB" -lt 6500 ]; then
+            echo "BLOCK: hosted runner insufficient for required R8/Rive release compile"
+            exit 1
+          fi
+          echo "GRADLE_RELEASE_BUILD heap=4096MiB metaspace=1536MiB workers=1; R8+release lint retained"
+          npx --yes eas-cli@27.9.0 whoami --non-interactive >/dev/null
+          timeout --signal=TERM --kill-after=30s 90m \
+            npx --yes eas-cli@27.9.0 build --platform android \
+              --profile season2-genesis-launch-recovery-staging \
+              --local --non-interactive --output="$SIGNED_APK"
+          test -s "$SIGNED_APK"
+      - name: Verify signed APK code17, original signing cert, 4 Godot worlds and exact native pack bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/genesis-205-verify-local-eas-signed-apk.mjs \
+            --apk="$SIGNED_APK" --receipt=buklod-genesis-205-original-eas-signed-receipt.json
+          sha256sum "$SIGNED_APK" > buklod-genesis-205-signed-apk.sha256
+          echo 'BUKLOD_GENESIS_205_EXPO_EAS_LOCAL_SIGNED_APK_BINARY_PASS; DEVICE_QA_SKIPPED'
+      - name: Upload exact signed APK plus cryptographic and source receipt; NO Play or OTA
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-genesis-2.0.5-eas-original-signed-staging-apk
+          path: |
+            /tmp/buklod-genesis-2.0.5-original-eas-signed.apk
+            buklod-genesis-205-original-eas-signed-receipt.json
+            buklod-genesis-205-signed-apk.sha256
+          if-no-files-found: error
+          retention-days: 14
