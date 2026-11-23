@@ -16,6 +16,7 @@ type SeriesCatalog = {
 type Progress = {
   completed_numbers: number[]; next_chapter_number: number;
   enabled: boolean;
+  series_unlocked?: boolean;
 };
 type SeriesCard = SeriesCatalog & { knownReleased: number };
 
@@ -113,6 +114,7 @@ export default function KlDashboardHome({ onOpenSeries }: {
             });
             const value = response.data as {
               ok?: boolean; enabled?: boolean; next_chapter_number?: number;
+              series_unlocked?: boolean;
               completed_numbers?: number[];
             } | null;
             if (response.error || value?.ok !== true ||
@@ -122,6 +124,7 @@ export default function KlDashboardHome({ onOpenSeries }: {
               number: card.season_number,
               value: {
                 enabled: value.enabled === true,
+                series_unlocked: value.series_unlocked !== false,
                 next_chapter_number: Number(value.next_chapter_number),
                 completed_numbers: value.completed_numbers.filter(
                   n => Number.isInteger(n) && n >= 1 && n <= 30,
@@ -185,7 +188,9 @@ export default function KlDashboardHome({ onOpenSeries }: {
             <Text style={styles.continueTitle} numberOfLines={2}>{reading.title}</Text>
             <Text style={styles.continueSub}>
               {progress[reading.season_number]?.enabled
-                ? `Susunod: Kabanata ${Math.min(30, progress[reading.season_number].next_chapter_number)}`
+                ? progress[reading.season_number].series_unlocked === false
+                  ? 'Tapusin muna ang naunang serye'
+                  : `Susunod: Kabanata ${Math.min(30, progress[reading.season_number].next_chapter_number)}`
                 : 'Buksan ang mga kabanata'}
             </Text>
           </View>
@@ -246,7 +251,7 @@ export default function KlDashboardHome({ onOpenSeries }: {
 
       <View style={styles.help}>
         <Text style={styles.sectionHeading}>Paano gumagana?</Text>
-        <Text style={styles.secondary}>Basahin ang kabanata at sagutan ang reading questions. Sa Season 2, kailangang 3/3 ang tama upang ma-verify at mabuksan ang susunod na kabanata. Ang mga hindi pa inilalabas ng admin ay nananatiling pribado.</Text>
+        <Text style={styles.secondary}>Basahin ang kabanata at sagutan ang reading questions. Sa Season 2, kailangang 3/3 ang tama at mag-iwan ng sariling 20+ karakter na comment pagkatapos ng quiz bago mabuksan ang susunod na kabanata. Awtomatiko ang pag-verify; walang admin quiz review. Ang mga hindi pa inilalabas ng admin ay nananatiling pribado.</Text>
       </View>
       {!loaded && loading ? <Text style={styles.secondary}>Binubuksan ang KL library…</Text> : null}
     </ScrollView>

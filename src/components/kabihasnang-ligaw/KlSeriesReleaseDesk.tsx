@@ -8,10 +8,7 @@ import {
   parseKlAdminChapters, type KlAdminChapterRow,
 } from '@/lib/kabihasnang-ligaw/releasePreflight';
 
-type Question = {
-  question: string; options: string[]; correct_index: number; evidence: string;
-};
-type QuizReview = { status?: string; questions?: Question[]; count?: number; ok?: boolean };
+type QuizReview = { status?: string };
 type QuizContext = { quiz_status?: string };
 
 function Action({ title, disabled, onPress }: {
@@ -108,6 +105,32 @@ export default function KlSeriesReleaseDesk({ episodeId, seasonNumber, episodeNu
     }).finally(() => { actionLock.current = false; setBusy(false); });
   };
 
+  // Approved manuscript -> prepare its evidence-validated question bank automatically.
+  // No administrator answer review or manual quiz approval is required.
+  const ensureQuizReady = async () => {
+    const { data: before, error: contextError } = await supabase.rpc(
+      'kl_quiz_admin_context_v1', { p_episode_id: episodeId },
+    );
+    if (contextError) throw contextError;
+    if ((before as QuizContext | null)?.quiz_status === 'ready') {
+      setQuiz({ status: 'ready' });
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke('kl-generate-reading-quiz', {
+      body: { episode_id: episodeId },
+    });
+    if (error || (data as { ok?: boolean; status?: string } | null)?.status !== 'ready') {
+      throw error ?? new Error('Automatic question generation is pending. Hindi pa safe mag-release.');
+    }
+    const { data: verified, error: verifiedError } = await supabase.rpc(
+      'kl_quiz_admin_context_v1', { p_episode_id: episodeId },
+    );
+    if (verifiedError || (verified as QuizContext | null)?.quiz_status !== 'ready') {
+      throw verifiedError ?? new Error('Hindi pa verified sa server ang generated questions.');
+    }
+    setQuiz({ status: 'ready' });
+  };
+
   const decide = (action: 'approve' | 'reject' | 'release' | 'schedule') => {
     run('Sinusuri ang chapter', async () => {
       const latest = await fresh();
@@ -122,9 +145,9 @@ export default function KlSeriesReleaseDesk({ episodeId, seasonNumber, episodeNu
           const blockers = klReleaseBlockers(latest);
           if (blockers.length) throw new Error(blockers.join(' '));
         }
-        const { data, error } = await supabase.rpc('kl_quiz_admin_context_v1', { p_episode_id: episodeId });
-        if (error || (data as QuizContext | null)?.quiz_status !== 'ready')
-          throw new Error('Hindi pa ready ang 5 manuscript-backed quiz questions.');
+        // Server validates five manuscript-grounded questions; never ask the
+        // admin to review or approve individual quiz answers.
+        await ensureQuizReady();
         if (action === 'schedule') {
           const at = Date.parse(scheduleDate + 'T06:00:00+08:00');
           if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduleDate) || !Number.isFinite(at) || at < Date.now())
@@ -143,6 +166,16 @@ export default function KlSeriesReleaseDesk({ episodeId, seasonNumber, episodeNu
 
       const updated = await fresh();
       setRow(updated);
+      let autoQuizStatus = '';
+      if (action === 'approve') {
+        try {
+          await ensureQuizReady();
+          autoQuizStatus = ' Awtomatikong naihanda ang 5 reading questions.';
+        } catch {
+          setQuiz({ status: 'pending' });
+          autoQuizStatus = ' Naka-approve ang manuscript pero pending pa ang auto-generated questions; ire-retry sa release.';
+        }
+      }
       if (action === 'release') {
         if (!isKlChapterReleased(updated)) throw new Error('Release accepted but not verified; refresh status.');
         const [library, catalog] = await Promise.all([
@@ -159,7 +192,7 @@ export default function KlSeriesReleaseDesk({ episodeId, seasonNumber, episodeNu
         setMessage('Verified: inilabas ang kabanata at nakalista na sa reader dashboard.');
       } else {
         setMessage(action === 'approve'
-          ? 'Approved sa server. Private pa rin hanggang ready ang quiz at i-release.'
+          ? 'Approved sa server; walang admin quiz review na kailangan.' + autoQuizStatus
           : action === 'schedule' ? 'Naka-schedule ayon sa server. Suriin ang release status.' :
             'Server confirmed rejection; naibalik para sa revision.');
       }
@@ -167,29 +200,11 @@ export default function KlSeriesReleaseDesk({ episodeId, seasonNumber, episodeNu
     });
   };
 
-  const prepareQuestions = () => run('Inihahanda ang 5 reading questions', async () => {
+  const retryQuizPreparation = () => run('Awtomatikong inihahanda ang questions', async () => {
     const latest = await fresh();
     if (latest.status !== 'approved') throw new Error('Approve muna ang manuscript.');
-    const { data, error } = await supabase.functions.invoke('kl-generate-reading-quiz', {
-      body: { episode_id: episodeId },
-    });
-    if (error || (data as { ok?: boolean; status?: string } | null)?.status !== 'ready')
-      throw error ?? new Error('Questions are not yet ready; retry or inspect model configuration.');
-    setQuiz({ status: 'ready' });
-    setMessage('5 reading questions ready. Review the answers before release.');
-  });
-
-  const reviewQuestions = () => run('Kinukuha ang admin-only questions', async () => {
-    const { data, error } = await supabase.rpc('kl_quiz_admin_review_v1', { p_episode_id: episodeId });
-    const review = data as QuizReview | null;
-    if (error || review?.ok !== true || review.status !== 'ready' ||
-        review.count !== 5 || !Array.isArray(review.questions) || review.questions.length !== 5 ||
-        !review.questions.every(q => typeof q.question === 'string' &&
-          typeof q.evidence === 'string' && Array.isArray(q.options) && q.options.length === 4 &&
-          Number.isInteger(q.correct_index) && q.correct_index >= 0 && q.correct_index <= 3))
-      throw error ?? new Error('Hindi kumpleto o hindi verified ang admin-only question bank.');
-    setQuiz(review);
-    setMessage('5 verified questions; suriin ang sagot at manuscript evidence.');
+    await ensureQuizReady();
+    setMessage('5 manuscript-validated questions ready. Wala nang manual quiz approval.');
   });
 
   const released = isKlChapterReleased(row);
@@ -209,22 +224,9 @@ export default function KlSeriesReleaseDesk({ episodeId, seasonNumber, episodeNu
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
         <Action title="Approve manuscript" disabled={busy || loading || row.status === 'approved' ||
           !row.has_manuscript || !row.preview_ready} onPress={() => decide('approve')} />
-        <Action title="Generate / Retry 5 Questions" disabled={busy || loading ||
-          row.status !== 'approved'} onPress={prepareQuestions} />
-        <Action title="Review 5 Questions" disabled={busy || loading ||
-          quiz?.status !== 'ready'} onPress={reviewQuestions} />
+        {quiz?.status !== 'ready' ? <Action title="Retry auto-generate questions"
+          disabled={busy || loading || row.status !== 'approved'} onPress={retryQuizPreparation} /> : null}
       </View>
-      {quiz?.questions?.map((q, index) => (
-        <View key={index} style={{ padding: 10, borderRadius: 8, backgroundColor: '#2a4a4b', gap: 5 }}>
-          <Text style={{ color: '#fff', fontWeight: '700' }}>Tanong {index + 1}: {q.question}</Text>
-          {q.options.map((option, i) => (
-            <Text key={i} style={{ color: i === q.correct_index ? '#c4efa4' : '#d4dcd9' }}>
-              {i + 1}. {option}{i === q.correct_index ? ' ✓' : ''}
-            </Text>
-          ))}
-          <Text style={{ color: '#f0dea2' }}>Ebidensya: {q.evidence}</Text>
-        </View>
-      ))}
       <TextInput accessibilityLabel="Dahilan ng rejection" placeholder="Dahilan ng rejection"
         placeholderTextColor="#a7bbb7" value={reason} onChangeText={setReason}
         style={{ padding: 10, color: '#fff', borderWidth: 1, borderColor: '#637c78', borderRadius: 8 }} />
@@ -237,17 +239,16 @@ export default function KlSeriesReleaseDesk({ episodeId, seasonNumber, episodeNu
       <TextInput accessibilityLabel="Scheduled release date" value={scheduleDate}
         onChangeText={setScheduleDate} placeholder="YYYY-MM-DD" placeholderTextColor="#a7bbb7"
         style={{ padding: 10, color: '#fff', borderWidth: 1, borderColor: '#637c78', borderRadius: 8 }} />
-      <Action title="Schedule release" disabled={busy || row.status !== 'approved' ||
-        quiz?.status !== 'ready'} onPress={() => decide('schedule')} />
+      <Action title="Schedule release" disabled={busy || row.status !== 'approved'} onPress={() => decide('schedule')} />
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: releaseConfirm }}
         onPress={() => setReleaseConfirm(!releaseConfirm)}
         style={{ padding: 10, minHeight: 44 }}>
         <Text style={{ color: '#fff' }}>
-          {releaseConfirm ? '☑' : '☐'} Nakumpleto ang preview, approvals, at questions; kumpirmahin ang public release.
+          {releaseConfirm ? '☑' : '☐'} Nakumpleto ang preview at media approvals; ang questions ay awtomatikong ive-verify bago mag-release.
         </Text>
       </Pressable>
       <Action title="Release Now (server verified)" disabled={busy || !releaseConfirm ||
-        row.status !== 'approved' || quiz?.status !== 'ready'}
+        row.status !== 'approved'}
         onPress={() => decide('release')} />
     </> : null}
     {message ? <Text accessibilityRole="alert" style={{ color: '#ffdda3' }}>{message}</Text> : null}

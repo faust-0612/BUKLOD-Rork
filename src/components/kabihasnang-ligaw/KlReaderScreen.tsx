@@ -976,12 +976,16 @@ export default function KlReaderScreen({ onBackToDashboard }: { onBackToDashboar
               </View>
             ) : null}
             <KlReadingQuiz key={selectedDbId ?? 'unavailable'} episodeId={selectedDbId}
+              commentRequired={s2Progress?.ownerId === user?.id && s2Progress?.enabled === true}
               onVerified={() => setJourneyRefreshToken((token) => token + 1)} />
             {selected.episodeNumber === 30 ? (
               <KlSeriesReflection seasonNumber={1} refreshToken={journeyRefreshToken} />
             ) : null}
 
-            <KlLiveDiscussion episodeId={selectedDbId ?? klDatabaseId(selected.episodeNumber)} live={liveReleased} />
+            <KlLiveDiscussion episodeId={selectedDbId ?? klDatabaseId(selected.episodeNumber)}
+              live={liveReleased}
+              commentRequired={s2Progress?.ownerId === user?.id && s2Progress?.enabled === true}
+              onCommentPosted={() => setJourneyRefreshToken((token) => token + 1)} />
           </View>
         ) : (
           <View style={styles.list}>

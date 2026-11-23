@@ -89,7 +89,7 @@ export default function KlSeriesAdminPanel({ selectedSeason, onChooseSeries, bus
       <Text style={{ color: '#f1d39b', fontSize: 17, fontWeight: '800' }}>Mga Serye · Admin</Text>
       <Text style={{ color: '#ceded5', lineHeight: 19 }}>
         Itakda ang pamagat at description. Gumawa ng Chapter 1 sa editor sa ibaba,
-        saka manuscript, illustrations, preview, approval, 5 reading questions, at release.
+        saka manuscript, illustrations, preview, approval, awtomatikong pagbuo ng 5 reading questions, at release. Walang manual quiz review.
         Pag may released na kabanata, kusang lalabas ang serye sa KL Dashboard.
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>

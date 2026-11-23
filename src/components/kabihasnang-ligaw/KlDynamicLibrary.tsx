@@ -7,6 +7,7 @@ import {useAuth} from '@/providers/AuthProvider';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
 import KlChapterAudio from './KlChapterAudio';
 import KlReadingQuiz from './KlReadingQuiz';
+import KlLiveDiscussion from './KlLiveDiscussion';
 import KlSeriesReflection from './KlSeriesReflection';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
 import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks';
@@ -16,7 +17,7 @@ type Media={kind:string;placement:number;path:string;anchor?:string;side?:string
 export default function KlDynamicLibrary({seasonNumber,onBackToDashboard}:{seasonNumber?:number;onBackToDashboard?:()=>void}={}){
  const {user}=useAuth();
  const [chapters,setChapters]=useState<Chapter[]>([]);
- const [s2Access,setS2Access]=useState<Record<number,{enabled:boolean;next_chapter_number:number}>>({});
+ const [s2Access,setS2Access]=useState<Record<number,{enabled:boolean;next_chapter_number:number;series_unlocked:boolean}>>({});
  const [reflectionRefreshToken,setReflectionRefreshToken]=useState(0);
  const [chapter,setChapter]=useState<Chapter|null>(null);
  const [text,setText]=useState('');
@@ -34,20 +35,20 @@ export default function KlDynamicLibrary({seasonNumber,onBackToDashboard}:{seaso
   const seasons=[...new Set(list.map(c=>c.season_number))];
   const results=await Promise.all(seasons.map(async n=>{
    const {data,error}=await supabase.rpc('kl_s2_reader_progress_v1',{p_season_number:n});
-   const value=data as {ok?:boolean;enabled?:boolean;next_chapter_number?:number}|null;
+   const value=data as {ok?:boolean;enabled?:boolean;next_chapter_number?:number;series_unlocked?:boolean}|null;
    return !error&&value?.ok&&Number.isInteger(value.next_chapter_number)
-    ? {n,state:{enabled:value.enabled===true,next_chapter_number:Number(value.next_chapter_number)}} : null;
+    ? {n,state:{enabled:value.enabled===true,next_chapter_number:Number(value.next_chapter_number),series_unlocked:value.series_unlocked!==false}} : null;
   }));
   setS2Access(Object.fromEntries(results.filter((x):x is NonNullable<typeof x>=>x!==null)
     .map(x=>[x.n,x.state])));
  };
  const refresh=async()=>{const {data,error}=await supabase.rpc('kl_list_library_v1');if(error){setMessage(error.message);return;}if(Array.isArray(data)){const visible=(data as Chapter[]).filter(c=>seasonNumber==null||c.season_number===seasonNumber);setChapters(visible);void refreshProgress(visible);}};
  useEffect(()=>{void refresh();},[]);
- const chapterLocked=(c:Chapter)=>c.episode_number>0 &&
-   s2Access[c.season_number]?.enabled===true &&
-   c.episode_number>s2Access[c.season_number].next_chapter_number;
+ const chapterLocked=(c:Chapter)=>s2Access[c.season_number]?.enabled===true &&
+   (s2Access[c.season_number]?.series_unlocked===false ||
+    (c.episode_number>0 && c.episode_number>s2Access[c.season_number].next_chapter_number));
  const open=async(c:Chapter)=>{
- if(chapterLocked(c)){setMessage('Tapusin at ipa-verify muna ang naunang kabanata.');return;}
+ if(chapterLocked(c)){setMessage('Tapusin muna ang 3/3 quiz at 20+ karakter na comment sa naunang kabanata o serye.');return;}
  const sequence=++openSequence.current;
  setMessage('');setText('');setMedia([]);setUrls({});setMediaErrors({});setChapter(c);
  warmBuklodAdOpportunity('kl_chapter_success');
@@ -120,7 +121,11 @@ export default function KlDynamicLibrary({seasonNumber,onBackToDashboard}:{seaso
  {illustrationsAtParagraph(media,p,'after').map(image)}
  </View>)}
  <KlReadingQuiz key={chapter.id} episodeId={chapter.id}
+   commentRequired={s2Access[chapter.season_number]?.enabled===true}
    onVerified={()=>{setReflectionRefreshToken(n=>n+1);void refreshProgress(chapters);}}/>
+ <KlLiveDiscussion episodeId={chapter.id} live
+   commentRequired={s2Access[chapter.season_number]?.enabled===true}
+   onCommentPosted={()=>{setReflectionRefreshToken(n=>n+1);void refreshProgress(chapters);}}/>
  {chapter.episode_number===30?
    <KlSeriesReflection seasonNumber={chapter.season_number} refreshToken={reflectionRefreshToken}/>:null}
  </View>:chapters.map(c=><Pressable key={c.id} accessibilityRole="button"
@@ -128,7 +133,7 @@ export default function KlDynamicLibrary({seasonNumber,onBackToDashboard}:{seaso
  onPress={()=>void open(c)} style={{padding:10,backgroundColor:'#243849',
  opacity:chapterLocked(c)?0.65:1,borderRadius:8}}>
  <Text style={{color:'#fff'}}>{chapterLocked(c)?'🔒 ':'📖 '}S{c.season_number} · Kabanata {c.episode_number}: {c.title}</Text>
- {chapterLocked(c)?<Text style={{color:'#f1d39b'}}>Tapusin muna ang naunang kabanata</Text>:null}
+ {chapterLocked(c)?<Text style={{color:'#f1d39b'}}>Tapusin muna ang 3/3 quiz at mag-iwan ng 20+ karakter na comment sa naunang kabanata</Text>:null}
  </Pressable>)}
  {message?<Text accessibilityRole="alert" style={{color:'#fff'}}>{message}</Text>:null}
  </View>;

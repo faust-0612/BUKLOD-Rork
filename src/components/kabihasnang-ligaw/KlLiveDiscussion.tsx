@@ -26,9 +26,11 @@ import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 type Props = {
   episodeId: string;
   live: boolean;
+  onCommentPosted?: () => void;
+  commentRequired?: boolean;
 };
 
-export default function KlLiveDiscussion({ episodeId, live }: Props) {
+export default function KlLiveDiscussion({ episodeId, live, onCommentPosted, commentRequired = false }: Props) {
   const { user, profile } = useAuth();
   const [readers, setReaders] = useState<KlReaderPresence[]>([]);
   const [readerCount, setReaderCount] = useState(0);
@@ -104,6 +106,8 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
     }
     setDraft('');
     setComments((current) => [result.comment as KlEpisodeComment, ...current]);
+    onCommentPosted?.();
+    if (commentRequired) setNotice('Naitala ang comment. Sinusuri ang quiz at comment sa server para sa susunod na kabanata.');
   };
 
   return (
@@ -133,6 +137,10 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
 
       <View style={styles.card}>
         <Text style={styles.title}>{klCopy.commentsTitle}</Text>
+        {commentRequired ? <Text style={styles.meta}>
+          Pagkatapos ma-verify ang 3/3 quiz, mag-iwan ng sariling comment na 20+ karakter.
+          Parehong kailangang verified bago bumukas ang kasunod na kabanata.
+        </Text> : null}
         <Text style={styles.meta}>{klCopy.commentsHint}</Text>
         <TextInput
           value={draft}

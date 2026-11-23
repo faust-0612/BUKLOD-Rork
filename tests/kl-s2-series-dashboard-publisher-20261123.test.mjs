@@ -65,7 +65,8 @@ test('admin series creation does not publish chapters; release is verified indep
   assert.match(release, /klReleaseBlockers\(latest\)/);
   assert.match(release, /seasonTwoReady\(\)/);
   assert.match(release, /kl_quiz_admin_context_v1/);
-  assert.match(release, /kl_quiz_admin_review_v1/);
+  assert.doesNotMatch(release, /kl_quiz_admin_review_v1/);
+  assert.match(release, /ensureQuizReady/);
   assert.match(release, /kl-generate-reading-quiz/);
   assert.match(release, /releaseConfirm/);
   assert.match(release, /isKlChapterReleased\(updated\)/);
