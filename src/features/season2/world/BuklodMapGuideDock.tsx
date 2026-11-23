@@ -70,7 +70,6 @@ export default function BuklodMapGuideDock({active,artworkEmbedded=false}:{activ
         {translateY:float.interpolate({inputRange:[0,1],outputRange:[0,-5]})}
       ]}]}>
         <Animated.Image source={GUIDE_POSES[poseIndex]} resizeMode="cover" style={[styles.avatar,{opacity:poseFade}]}/>
-.View>
       </Animated.View>
       <View style={styles.content}>
         <View style={styles.welcomeLine}>
