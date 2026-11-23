@@ -10,7 +10,7 @@ const tus = readFileSync('src/lib/uploadCommunityResumableTus.ts', 'utf8');
 
 test('Marites photos take the existing direct-file Wall fast path, without Base64 or sequential Storage PUTs', () => {
   assert.match(marites, /await mapWithConcurrency\(/);
-  assert.match(marites, /uploadCommunityPhotoFile\(\{ path, uri \}\)/);
+  assert.match(marites, /uploadCommunityPhotoFile\(\{ path, uri, profile: 'story' \}\)/);
   assert.match(marites, /Platform\.OS === 'web' \? 2 : 3/);
   assert.doesNotMatch(marites, /encodeMaritesPhotoBase64/);
   assert.doesNotMatch(marites, /\.upload\(path, encoded\.decode/);
@@ -27,6 +27,15 @@ test('Marites multi-photo uploads finish their active work before rollback and p
   assert.match(batch, /if \(result\.media\) uploaded\.push\(result\.media\)/);
   assert.ok(batch.indexOf('if (failed?.error) throw failed.error') > batch.indexOf('for (const result of photoResults)'));
   assert.match(marites, /discardIncompleteCommunityPost\(\{[\s\S]*?mediaPaths: uploaded\.map\(/);
+});
+
+test('Story photo encoding is capped to 1280px and leaves regular Wall encoding intact', () => {
+  assert.match(shared, /const storyOptimized = hint\?\.profile === 'story'/);
+  assert.match(shared, /const longEdge = storyOptimized \? 1280 : 1440/);
+  assert.match(shared, /const jpegQuality = storyOptimized \? 0\.78 : 0\.82/);
+  assert.match(shared, /const passthroughMaxBytes = storyOptimized \? 800 \* 1024 : 2 \* 1024 \* 1024/);
+  assert.match(wall, /await uploadCommunityPhotoFile\(\{/);
+  assert.doesNotMatch(wall, /profile: 'story'/);
 });
 
 test('Marites reports real video and photo upload progress, while both feeds retain private video upload protections', () => {
