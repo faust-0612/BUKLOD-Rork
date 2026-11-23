@@ -259,3 +259,31 @@ end;
 $$;
 revoke all on function public.get_my_buklod_ad_points_receipt_v1(uuid) from public,anon;
 grant execute on function public.get_my_buklod_ad_points_receipt_v1(uuid) to authenticated;
+
+-- Official Admin-only runtime configuration; default remains disabled until SSV is set up.
+create or replace function public.admin_configure_buklod_ad_points_bonus_v1(
+  p_enabled boolean, p_reward_points integer default 5,
+  p_daily_limit integer default 20
+) returns jsonb language plpgsql security definer set search_path to ''
+as $$
+declare v_uid uuid := (select auth.uid());
+begin
+  if v_uid is null or not public.buklod_is_official_system_admin(v_uid) then
+    raise exception 'Only BUKLOD Official may configure rewarded Points';
+  end if;
+  if p_reward_points not between 1 and 20 or p_daily_limit not between 1 and 100 then
+    raise exception 'Invalid rewarded Points configuration';
+  end if;
+  update private.buklod_ad_points_config
+    set enabled=coalesce(p_enabled,false),
+        reward_points=p_reward_points, daily_limit=p_daily_limit,updated_at=now()
+    where singleton=true;
+  if not found then raise exception 'Reward configuration missing'; end if;
+  return jsonb_build_object('enabled',coalesce(p_enabled,false),
+    'points',p_reward_points,'daily_limit',p_daily_limit);
+end;
+$$;
+revoke all on function public.admin_configure_buklod_ad_points_bonus_v1(boolean,integer,integer)
+  from public,anon;
+grant execute on function public.admin_configure_buklod_ad_points_bonus_v1(boolean,integer,integer)
+  to authenticated;
