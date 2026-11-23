@@ -1,0 +1,681 @@
+{
+  "catalog_version": "BU-ACADEMIC-4-PROPOSED",
+  "issuer": "MZB Ministry Inc.",
+  "program": "BUKLOD University",
+  "signatory_printed_name": "Faustino Jr M Gabut, PhD",
+  "status": "DEV_ONLY_PENDING_VERIFIED_SOURCE_MAPPING",
+  "policy": "UC lifetime minimum AND direct prerequisite credential eligibility AND authoritative source completion gates",
+  "credentials": [
+    {
+      "code": "C-D01",
+      "title": "Christian Foundations - ABaKa",
+      "min_uc": 150,
+      "existing_evidence_gate": "Published ABaKa A-Z plus designated preliminaries if required by canonical curriculum",
+      "prerequisite_credentials": [],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-D02",
+      "title": "Christian Doctrine I",
+      "min_uc": 250,
+      "existing_evidence_gate": "ABaKa foundation + verified intermediate coverage of Scripture, God, humanity, sin, Christ, salvation",
+      "prerequisite_credentials": [
+        "C-D01"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-D03",
+      "title": "Christian Doctrine II",
+      "min_uc": 420,
+      "existing_evidence_gate": "Doctrine I + verified advanced topics including Spirit, church, ethics, discipleship, mission, hope",
+      "prerequisite_credentials": [
+        "C-D02"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-D04",
+      "title": "Systematic Theology Foundations",
+      "min_uc": 550,
+      "existing_evidence_gate": "all core doctrinal categories mapped to versioned ABaKa evidence and Scripture",
+      "prerequisite_credentials": [
+        "C-D03"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-D05",
+      "title": "Christology and Salvation",
+      "min_uc": 500,
+      "existing_evidence_gate": "Christology, atonement, grace, faith, discipleship evidence in ABaKa and BUKLOD 101-104",
+      "prerequisite_credentials": [
+        "C-D02"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-D06",
+      "title": "Ecclesiology and Church Covenants",
+      "min_uc": 550,
+      "existing_evidence_gate": "doctrinal church/ordinance/covenant evidence + official 101-104 milestones",
+      "prerequisite_credentials": [
+        "C-D02",
+        "C-F02"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-D07",
+      "title": "Christian Ethics and Spiritual Formation",
+      "min_uc": 600,
+      "existing_evidence_gate": "ABaKa ethical reasoning + verified Word/Reading/KL application evidence",
+      "prerequisite_credentials": [
+        "C-D03",
+        "C-S02"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-D08",
+      "title": "Advanced Doctrinal Reasoning",
+      "min_uc": 800,
+      "existing_evidence_gate": "advanced/deep ABaKa outcomes; at least two SALIKSIK doctrinal comparisons",
+      "prerequisite_credentials": [
+        "C-D04"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F01",
+      "title": "BUKLOD Foundations (101-103)",
+      "min_uc": 250,
+      "existing_evidence_gate": "101-103 all completed; official covenants/validation and documents as applicable",
+      "prerequisite_credentials": [],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F02",
+      "title": "Discipleship Formation (104)",
+      "min_uc": 450,
+      "existing_evidence_gate": "101-104 all completed, including ordered BUKLOD Training and Care Covenant",
+      "prerequisite_credentials": [
+        "C-F01"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F03",
+      "title": "Biblical Teaching & Children's Ministry",
+      "min_uc": 550,
+      "existing_evidence_gate": "Children's Story mastery + existing verified teaching-session evidence (consent-protected)",
+      "prerequisite_credentials": [
+        "C-S07"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F04",
+      "title": "Leadership Formation (105)",
+      "min_uc": 850,
+      "existing_evidence_gate": "official three-part 105 leadership curriculum fully verified; unresolved 30th-source gap blocks",
+      "prerequisite_credentials": [
+        "C-F02"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F05",
+      "title": "Christian Workers' Formation (106)",
+      "min_uc": 1050,
+      "existing_evidence_gate": "105 complete + member's **assigned** published 106 role-track requirements + validations",
+      "prerequisite_credentials": [
+        "C-F04"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F06",
+      "title": "Pastoral Ministry Formation (106)",
+      "min_uc": 1050,
+      "existing_evidence_gate": "actual 106 Pastor track; *not* ordination or clerical license",
+      "prerequisite_credentials": [
+        "C-F04"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F07",
+      "title": "Diaconal Service Formation (106)",
+      "min_uc": 1050,
+      "existing_evidence_gate": "actual 106 Deacon track",
+      "prerequisite_credentials": [
+        "C-F04"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F08",
+      "title": "Children's Teacher Formation (106)",
+      "min_uc": 1050,
+      "existing_evidence_gate": "actual 106 Children Teacher track",
+      "prerequisite_credentials": [
+        "C-F04",
+        "C-F03"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F09",
+      "title": "Missionary Formation (106)",
+      "min_uc": 1050,
+      "existing_evidence_gate": "actual 106 Woman Missionary / mission role pathway when appropriately assigned",
+      "prerequisite_credentials": [
+        "C-F04"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F10",
+      "title": "Ministry Head Formation (106)",
+      "min_uc": 1050,
+      "existing_evidence_gate": "actual 106 Ministry Head track",
+      "prerequisite_credentials": [
+        "C-F04"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-F11",
+      "title": "Mission Leadership Formation (107)",
+      "min_uc": 1300,
+      "existing_evidence_gate": "full 107 lessons, mission-readiness and applicable official verifications",
+      "prerequisite_credentials": [
+        "C-F05"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-R01",
+      "title": "SALIKSIK Research Literacy",
+      "min_uc": 650,
+      "existing_evidence_gate": "two distinct verifiable Bible-grounded designs or investigations",
+      "prerequisite_credentials": [],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-R02",
+      "title": "Biblical Exegetical Research",
+      "min_uc": 1000,
+      "existing_evidence_gate": "source-verified exegesis paper and context/evidence/rationale mastery",
+      "prerequisite_credentials": [
+        "C-R01"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-R03",
+      "title": "Comparative Theological Research",
+      "min_uc": 1200,
+      "existing_evidence_gate": "evidence-based two-view comparison with fair counterargument and citations",
+      "prerequisite_credentials": [
+        "C-R01"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-R04",
+      "title": "Applied Ministry Research",
+      "min_uc": 1300,
+      "existing_evidence_gate": "existing ministry evidence + approved SALIKSIK practical-research paper",
+      "prerequisite_credentials": [
+        "C-R01",
+        "C-F02"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S01",
+      "title": "Scripture Devotion",
+      "min_uc": 30,
+      "existing_evidence_gate": "20 unique verified Daily Reading assignments",
+      "prerequisite_credentials": [],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S02",
+      "title": "Word and Spiritual Reflection",
+      "min_uc": 50,
+      "existing_evidence_gate": "12 verified Word reflections and 12 Daily Reading records",
+      "prerequisite_credentials": [
+        "C-S01"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S03",
+      "title": "Bible Reading Foundations",
+      "min_uc": 100,
+      "existing_evidence_gate": "30 verified distinct chapters; OT and NT coverage",
+      "prerequisite_credentials": [],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S04",
+      "title": "Gospel and Life of Christ",
+      "min_uc": 180,
+      "existing_evidence_gate": "Gospel-book chapter coverage plus verified KL/ABaKa Christology evidence",
+      "prerequisite_credentials": [
+        "C-S03"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S05",
+      "title": "Old Testament Foundations",
+      "min_uc": 200,
+      "existing_evidence_gate": "Verified chapters across Torah, history, poetry and prophets",
+      "prerequisite_credentials": [
+        "C-S03"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S06",
+      "title": "New Testament Foundations",
+      "min_uc": 200,
+      "existing_evidence_gate": "Verified chapters across Gospel, Acts, epistles and apocalyptic literature",
+      "prerequisite_credentials": [
+        "C-S03"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S07",
+      "title": "Biblical Storytelling and Narratives",
+      "min_uc": 90,
+      "existing_evidence_gate": "10 verified Children's Stories + 8 KL chapters; never claim teaching qualification from reading alone",
+      "prerequisite_credentials": [],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S08",
+      "title": "KL Interpretation and Moral Reasoning",
+      "min_uc": 80,
+      "existing_evidence_gate": "Complete one currently published KL series with its quiz/comment gates",
+      "prerequisite_credentials": [],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "C-S09",
+      "title": "Bible Interpretation and Context",
+      "min_uc": 350,
+      "existing_evidence_gate": "cross-genre chapter evidence + verified SALIKSIK contextual exegesis",
+      "prerequisite_credentials": [
+        "C-S05",
+        "C-S06"
+      ],
+      "award_type": "certificate",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D01",
+      "title": "Diploma in Biblical Foundations",
+      "min_uc": 400,
+      "existing_evidence_gate": "101-103, ABaKa foundation, Bible OT/NT evidence",
+      "prerequisite_credentials": [
+        "C-F01",
+        "C-D01",
+        "C-S03"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D02",
+      "title": "Diploma in Christian Discipleship",
+      "min_uc": 650,
+      "existing_evidence_gate": "101-104 complete, verified reflections, Word + Daily Reading",
+      "prerequisite_credentials": [
+        "D01",
+        "C-F02",
+        "C-S02"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D03",
+      "title": "Diploma in Biblical Narrative and Interpretation",
+      "min_uc": 700,
+      "existing_evidence_gate": "KL completed series, Bible chapter coverage, Children's Story competence, SALIKSIK context analysis",
+      "prerequisite_credentials": [
+        "C-S07",
+        "C-S08",
+        "C-S09",
+        "C-R01"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D04",
+      "title": "Diploma in Christian Doctrine",
+      "min_uc": 800,
+      "existing_evidence_gate": "ABaKa foundation/intermediate and full foundational doctrinal coverage",
+      "prerequisite_credentials": [
+        "C-D04"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D05",
+      "title": "Diploma in Christian Education",
+      "min_uc": 900,
+      "existing_evidence_gate": "Children/KL evidence + teaching evidence from current features",
+      "prerequisite_credentials": [
+        "C-F03",
+        "C-S08"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D06",
+      "title": "Advanced Diploma in Christian Leadership",
+      "min_uc": 1150,
+      "existing_evidence_gate": "105 completely verified + leadership doctrine and reflection",
+      "prerequisite_credentials": [
+        "C-F04",
+        "C-D07",
+        "D02"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D07",
+      "title": "Advanced Diploma in Biblical Theology",
+      "min_uc": 1250,
+      "existing_evidence_gate": "ABaKa advanced + multi-genre Bible reading and exegetical SALIKSIK portfolio",
+      "prerequisite_credentials": [
+        "D04",
+        "C-S09",
+        "C-R02"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D08",
+      "title": "Diploma in Christian Ministry",
+      "min_uc": 1500,
+      "existing_evidence_gate": "assigned authorized 106 track + ministry/leadership evidence",
+      "prerequisite_credentials": [
+        "C-F05",
+        "D06"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "D09",
+      "title": "Diploma in Mission and Research Leadership",
+      "min_uc": 1800,
+      "existing_evidence_gate": "107 fully verified + research paper and mission-readiness evidence",
+      "prerequisite_credentials": [
+        "D08",
+        "C-F11",
+        "C-R03"
+      ],
+      "award_type": "diploma",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "B01",
+      "title": "Bachelor of Biblical Studies",
+      "min_uc": 1500,
+      "existing_evidence_gate": "multi-genre Scripture comprehension + one independently reviewed exegetical paper",
+      "prerequisite_credentials": [
+        "D02",
+        "C-F04",
+        "D03",
+        "C-R02"
+      ],
+      "award_type": "bachelors_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "B02",
+      "title": "Bachelor of Christian Education",
+      "min_uc": 1600,
+      "existing_evidence_gate": "verified Children's Story teaching and Biblical teaching-design portfolio",
+      "prerequisite_credentials": [
+        "D02",
+        "D05",
+        "C-F04",
+        "C-R01"
+      ],
+      "award_type": "bachelors_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "B03",
+      "title": "Bachelor of Theology",
+      "min_uc": 1750,
+      "existing_evidence_gate": "full doctrinal matrix + comparative theological paper",
+      "prerequisite_credentials": [
+        "D02",
+        "D04",
+        "D07",
+        "C-F04",
+        "C-R03"
+      ],
+      "award_type": "bachelors_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "B04",
+      "title": "Bachelor of Discipleship and Christian Formation",
+      "min_uc": 1650,
+      "existing_evidence_gate": "formation 101-105 + practical application evidence",
+      "prerequisite_credentials": [
+        "D02",
+        "D06",
+        "C-F04"
+      ],
+      "award_type": "bachelors_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "B05",
+      "title": "Bachelor of Christian Leadership",
+      "min_uc": 1850,
+      "existing_evidence_gate": "complete 105 + leadership application and documented ministry involvement; verified 106 track where required by specialization",
+      "prerequisite_credentials": [
+        "D06",
+        "C-F04"
+      ],
+      "award_type": "bachelors_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "B06",
+      "title": "Bachelor of Biblical Research",
+      "min_uc": 1850,
+      "existing_evidence_gate": "two different SALIKSIK research designs + exegetical and comparative papers",
+      "prerequisite_credentials": [
+        "D02",
+        "D07",
+        "C-F04",
+        "C-R03"
+      ],
+      "award_type": "bachelors_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "B07",
+      "title": "Bachelor of Ministry and Mission Studies",
+      "min_uc": 1900,
+      "existing_evidence_gate": "leadership and mission studies coverage with actual documented practice; 106 track must be verified",
+      "prerequisite_credentials": [
+        "D02",
+        "D08",
+        "C-F05"
+      ],
+      "award_type": "bachelors_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "M01",
+      "title": "Master of Biblical Theology",
+      "min_uc": 2400,
+      "existing_evidence_gate": "biblical-theology synthesis, OT/NT evidence, substantial SALIKSIK exegetical capstone",
+      "prerequisite_credentials": [
+        "B01",
+        "D09",
+        "C-D08"
+      ],
+      "award_type": "masters_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "M02",
+      "title": "Master of Christian Education",
+      "min_uc": 2500,
+      "existing_evidence_gate": "Children's Story/teaching record + educational-theology research and evidenced application",
+      "prerequisite_credentials": [
+        "B02",
+        "D09",
+        "C-D08"
+      ],
+      "award_type": "masters_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "M03",
+      "title": "Master of Theology and Ministry",
+      "min_uc": 2700,
+      "existing_evidence_gate": "105-107, 106 role practice + documented systematic/doctrinal and applied-theology paper",
+      "prerequisite_credentials": [
+        "B03",
+        "D09",
+        "C-D08"
+      ],
+      "award_type": "masters_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "M04",
+      "title": "Master of Missiology and Christian Leadership",
+      "min_uc": 2700,
+      "existing_evidence_gate": "107 mission readiness + SALIKSIK mission-practice research and leadership case portfolio",
+      "prerequisite_credentials": [
+        "B05",
+        "D09",
+        "C-D08"
+      ],
+      "award_type": "masters_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    },
+    {
+      "code": "M05",
+      "title": "Master of Theological Research",
+      "min_uc": 2900,
+      "existing_evidence_gate": "comparative/methodological portfolio + complete source-verified thesis-style research and defense",
+      "prerequisite_credentials": [
+        "B06",
+        "D09",
+        "C-D08",
+        "C-R03"
+      ],
+      "award_type": "masters_completion",
+      "uc_is_cumulative": true,
+      "prerequisites_are_qualification_not_pdf_download": true
+    }
+  ]
+}
