@@ -96,7 +96,7 @@ static func cast(sim, p: Dictionary,
 		"vine_riff":
 			return _area_hit(sim, p, 7.5, 42.0, 0.30)
 		"echo_skip":
-			var moved := sim._move(p, direction, 55.0)
+			var moved: bool = sim._move(p, direction, 55.0)
 			if moved:
 				_area_hit(sim, p, 3.5, 22.0, 0.35)
 			return moved
@@ -124,7 +124,7 @@ static func cast(sim, p: Dictionary,
 		"echo_lance":
 			return _hit_nearest(sim, p, 12.0, 50.0)
 		"conviction_dash":
-			var dashed := sim._move(p, direction, 55.0)
+			var dashed: bool = sim._move(p, direction, 55.0)
 			if dashed:
 				_area_hit(sim, p, 3.25, 46.0)
 				_buff(p, "guard", 0.25, _now(sim) + 3.0)
