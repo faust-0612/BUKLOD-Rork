@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
@@ -35,13 +36,15 @@ export default function BuklodAcademyDashboard(){
    const {data:auth,error:authError}=await supabase.auth.getUser();
    if(authError||!auth.user)throw new Error('Sign in to view your academic record');
    const user=auth.user.id;
-   const [sync,summaryResult,awardResult,ackResult]=await Promise.all([
-    (supabase as any).rpc('buklod_university_sync_my_uc_v1',{p_limit:100}),
+   const sync=await (supabase as any).rpc('buklod_university_sync_my_uc_v1',{p_limit:100});
+   if(sync.error)throw sync.error;
+   const evaluation=await (supabase as any).rpc('buklod_university_evaluate_my_awards_v1');
+   if(evaluation.error)throw evaluation.error;
+   const [summaryResult,awardResult,ackResult]=await Promise.all([
     (supabase as any).rpc('buklod_university_my_summary_v1'),
     (supabase as any).from('buklod_university_awards').select('id,credential_code,status,qualifying_uc,paper_status,issued_at').order('issued_at',{ascending:false}).limit(100),
     (supabase as any).from('buklod_university_notification_ack').select('award_id').limit(200),
    ]);
-   if(sync.error)throw sync.error;
    if(summaryResult.error)throw summaryResult.error;
    if(awardResult.error)throw awardResult.error;
    if(ackResult.error)throw ackResult.error;
@@ -94,10 +97,15 @@ export default function BuklodAcademyDashboard(){
    {!!error?<View style={s.notice}><Text style={s.error}>{error}</Text>
     <Pressable onPress={()=>void fetchData()} accessibilityRole="button"><Text style={s.action}>Retry</Text></Pressable></View>:null}
    {!busy&&!error&&summary?<View style={s.stats}>
-    <View><Text style={s.number}>{summary.total_uc||0}</Text><Text style={s.subtitle}>University Credits (UC)</Text></View>
+    <View><Text style={s.number}>{summary.total_uc||0}</Text><Text style={s.subtitle}>Academy Credits (UC)</Text></View>
     <View><Text style={s.number}>{summary.awards||0}</Text><Text style={s.subtitle}>Verified completions</Text></View>
    </View>:null}
    {!summary?.enabled&&!busy?<Text style={s.notice}>Academic recognition is in preparation; no credits or credentials will be fabricated.</Text>:null}
+   <Pressable accessibilityRole="button" onPress={()=>router.push('/academy/research' as any)}
+     style={{backgroundColor:'#E1EFE6',borderRadius:12,padding:12}}>
+    <Text style={{fontWeight:'900',color:'#275D45'}}>SALIKSIK — Theological Research</Text>
+    <Text style={{fontSize:11,color:'#607565',marginTop:3}}>Use Scripture to write original papers. Verified research contributes UC without adding lessons.</Text>
+   </Pressable>
    <Text style={s.section}>Academic completion pathways</Text>
    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filters}>
     {TIERS.map(t=><Pressable key={t} accessibilityRole="button" onPress={()=>setSelected(t)} style={[s.pill,t===selected&&s.selected]}>
