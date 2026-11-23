@@ -1,4 +1,5 @@
 name: BUKLOD Genesis Entry Music & Avatar Side-by-Side Android QA APK (No OTA)
+# One isolated installable release-bundled debug-key APK; no signed staging replacement.
 on:
   push:
     branches:
