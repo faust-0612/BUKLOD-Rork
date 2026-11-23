@@ -68,6 +68,12 @@ assert.ok(catalog.pickups.every(x => !x.transferable && x.temporary));
 assert.ok(output.endsWith('.zip'), 'Godot --main-pack requires a .zip archive');
 const data = Buffer.from(JSON.stringify(catalog), 'utf8');
 const entries = [{ name: 'data/catalog.json', bytes: data }];
+const splashSource = path.join(root,'assets/season2/genesis/genesis-green-b-transparent.png');
+const nativeSplash = readFileSync(splashSource);
+assert.ok(nativeSplash.length > 1024 &&
+  nativeSplash.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),
+  'Missing signed BUKLOD Genesis green-B native Godot splash asset');
+entries.push({name:'splash/buklod-green-b.png',bytes:nativeSplash});
 function collect(dir, prefix = '') {
   for (const name of readdirSync(dir).sort()) {
     const full = path.join(dir, name);
@@ -156,7 +162,7 @@ for (const name of ['project.godot', 'scenes/Arena.tscn', 'scripts/arena_root.gd
   'scripts/arena_effects.gd', 'scripts/hero_animation.gd',
   'shaders/arena_impact.gdshader',
   'scripts/arena_library_skills.gd', 'scripts/arena_library_actors.gd',
-  'data/catalog.json', 'scripts/arena_audio.gd',
+  'data/catalog.json', 'scripts/arena_audio.gd', 'splash/buklod-green-b.png',
   'scenes/WorldPreview.tscn', 'scripts/world_preview.gd', 'tests/world_smoke.gd',
   ...originalWorldMedia.map(x => x[0])]) {
   assert.ok(entryNames.has(name), 'Missing Godot Arena pack resource: ' + name);
