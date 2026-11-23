@@ -54,7 +54,7 @@ test('KL completion uses server 60 seconds and two spaced pings, cumulative read
 test('Wall samples and loops fixed 30-second music segment, account-safe URL cache and editor preview',()=>{
   assert.match(picker,/fixedLength=\{30\}/);
   assert.match(picker,/Preview selected 30s loop/);
-  assert.match(picker,/onSelect\(item,start,30\)/);
+  assert.match(picker,/onSelect\(currentTrack,start,30\);onClose\(\)/);
   assert.match(timeline,/n\.fixedLength\?'move'/);
   assert.match(wall,/wallClipLoopingRef\.current=true/);
   assert.match(wall,/player\.seekTo\(clip\.start\)/);
