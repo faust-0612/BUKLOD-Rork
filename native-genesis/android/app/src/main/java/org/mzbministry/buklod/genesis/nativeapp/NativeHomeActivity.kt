@@ -11,22 +11,50 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import java.io.File
-import java.security.MessageDigest
 
-/** Engineering host only. Not the migrated BUKLOD application. */
+/** DEV-only native lab; never claim login, payouts, full Kingdom or app parity. */
 class NativeHomeActivity : Activity() {
-    private var localPackVerified: Boolean = false
-    private var launchButton: Button? = null
-    override fun onResume() {
-        super.onResume()
-        if (localPackVerified) launchButton?.isEnabled = true
-    }
+    private val prefs by lazy { getSharedPreferences("genesis-native-launch-lab", MODE_PRIVATE) }
+    private var localPackVerified = false
+    private var worldButtons: List<Button> = emptyList()
+    private var resetAttemptButton: Button? = null
+    private var statusView: TextView? = null
+    private var gifAnimation: AnimatedImageDrawable? = null
+
     private fun label(text: String, size: Float): TextView = TextView(this).apply {
         this.text = text
         textSize = size
         setTextColor(Color.WHITE)
+    }
+
+    private fun hasUnconfirmedLaunch(): Boolean = prefs.getBoolean("pending_unconfirmed_launch", false)
+
+    private fun refreshLaunchButtons() {
+        val canLaunch = localPackVerified && !hasUnconfirmedLaunch()
+        worldButtons.forEach { it.isEnabled = canLaunch }
+        resetAttemptButton?.isEnabled = hasUnconfirmedLaunch()
+        if (hasUnconfirmedLaunch()) {
+            val lastWorld = prefs.getString("last_world", "unknown") ?: "unknown"
+            statusView?.text = "Previous $lastWorld attempt NOT verified. Manual reset required before retry."
+        } else if (!localPackVerified) {
+            statusView?.text = "Godot pack missing or SHA-256 mismatch; entry disabled"
+        } else {
+            statusView?.text = "Pack integrity checked; gameplay/device functionality NOT verified"
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        gifAnimation?.start()
+        refreshLaunchButtons()
+    }
+
+    override fun onStop() {
+        gifAnimation?.stop()
+        super.onStop()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,18 +66,38 @@ class NativeHomeActivity : Activity() {
             setBackgroundColor(Color.rgb(5, 10, 25))
         }
         panel.addView(label("BUKLOD GENESIS · NATIVE ENGINE LAB", 22f))
-        panel.addView(label("DEV only · App parity and premium gameplay NOT verified", 14f))
-        val launch = Button(this).apply { text = "Check local Godot pack"; isEnabled = false }
-        launchButton = launch
-        panel.addView(launch)
-        val feedback = label("Checking APK-bundled assets…", 14f)
-        panel.addView(feedback)
-        panel.addView(label("Keyboard GIF local input test (no message sent)", 14f))
+        panel.addView(label("DEV only · No full app parity or premium gameplay verification", 14f))
+        val status = label("Checking APK-bundled Godot pack…", 14f)
+        statusView = status
+        panel.addView(status)
+        val options = listOf(
+            "arena" to "Offline Arena (DEV gameplay)",
+            "kingdom" to "Kingdom (visual preview ONLY)",
+            "community" to "Personal Community (visual preview ONLY)",
+            "house" to "Personal House/Lot (visual preview ONLY)"
+        )
+        worldButtons = options.map { (id, title) ->
+            Button(this).apply {
+                text = title
+                isEnabled = false
+                setOnClickListener { launchWorld(id) }
+                panel.addView(this)
+            }
+        }
+        resetAttemptButton = Button(this).apply {
+            text = "Manually clear unconfirmed game entry (retry DEV)"
+            isEnabled = false
+            setOnClickListener {
+                prefs.edit().remove("pending_unconfirmed_launch").remove("last_world").apply()
+                refreshLaunchButtons()
+            }
+            panel.addView(this)
+        }
+        panel.addView(label("GIF keyboard preview · private/offline · does NOT send a message", 14f))
         val composer = GifAwareEditText(this).apply {
             hint = "Type or insert GIF from keyboard"
             setTextColor(Color.WHITE)
             setHintTextColor(Color.LTGRAY)
-            setSingleLine(false)
             minLines = 2
         }
         panel.addView(composer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -58,47 +106,46 @@ class NativeHomeActivity : Activity() {
         panel.addView(gifPreview, LinearLayout.LayoutParams(260, 260))
         composer.onGifReceived = { file: File ->
             runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
                 try {
+                    gifAnimation?.stop()
                     val drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(file))
                     gifPreview.setImageDrawable(drawable)
-                    if (drawable is AnimatedImageDrawable) drawable.start()
-                    feedback.text = "GIF received locally (not uploaded)"
+                    gifAnimation = drawable as? AnimatedImageDrawable
+                    gifAnimation?.start()
+                    statusView?.text = "GIF saved locally; no message uploaded"
                 } catch (_: Exception) {
-                    feedback.text = "GIF decoding failed"
+                    statusView?.text = "GIF decoding failed; no message uploaded"
                 }
             }
         }
-        setContentView(panel)
+        setContentView(ScrollView(this).apply { addView(panel) })
         Thread {
-            val hasValidPack = verifyEmbeddedPack()
+            val validPack = GenesisNativeContract.verifyBundledPack { assets.open(it) }
             runOnUiThread {
-                localPackVerified = hasValidPack
-                launch.isEnabled = hasValidPack
-                launch.text = if (hasValidPack) "Open offline Arena (DEV)" else "Godot pack unavailable"
-                feedback.text = if (hasValidPack) "Verified local pack SHA-256" else "Missing or invalid embedded pack"
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                localPackVerified = validPack
+                refreshLaunchButtons()
             }
         }.start()
-        launch.setOnClickListener {
-            launch.isEnabled = false
-            startActivity(Intent(this, GenesisGameActivity::class.java))
-        }
+        refreshLaunchButtons()
     }
 
-    private fun verifyEmbeddedPack(): Boolean {
-      return try {
-        val expected = assets.open("godot/empire-arena.sha256")
-            .bufferedReader().use { it.readText().trim().lowercase() }
-        if (!Regex("^[0-9a-f]{64}$").matches(expected)) return false
-        val md = MessageDigest.getInstance("SHA-256")
-        assets.open("godot/empire-arena.pck").use { input ->
-            val buf = ByteArray(64 * 1024)
-            while (true) {
-                val n = input.read(buf)
-                if (n < 0) break
-                md.update(buf, 0, n)
-            }
+    private fun launchWorld(world: String) {
+        if (!localPackVerified || hasUnconfirmedLaunch() || GenesisNativeContract.validWorld(world) == null) return
+        // Persist before launching separate Godot process; a crash/reopen must not auto-reenter.
+        if (!prefs.edit().putBoolean("pending_unconfirmed_launch", true)
+                .putString("last_world", world).commit()) {
+            statusView?.text = "Unable to persist launch safety marker"
+            return
         }
-        md.digest().joinToString("") { "%02x".format(it) } == expected
-      } catch (_: Exception) { false }
+        refreshLaunchButtons()
+        try {
+            startActivity(Intent(this, GenesisGameActivity::class.java).apply {
+                putExtra(GenesisNativeContract.WORLD_EXTRA, world)
+            })
+        } catch (_: RuntimeException) {
+            statusView?.text = "Android could not open Godot; manual reset required"
+        }
     }
 }

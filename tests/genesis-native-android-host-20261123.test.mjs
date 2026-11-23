@@ -23,12 +23,14 @@ test('Godot is embedded as app-private main-pack and not remotely downloaded or 
   const game=read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisGameActivity.kt');
   const host=read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/NativeHomeActivity.kt');
   assert.match(game,/class GenesisGameActivity\s*:\s*GodotActivity/);
-  assert.match(game,/--main-pack/);
-  assert.match(game,/res:\/\/godot\/empire-arena\.pck/);
-  assert.doesNotMatch(game,/https?:\/\/|getStringExtra|getExternalFilesDir/);
+  assert.match(read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisNativeContract.kt'),/--main-pack/);
+  assert.match(read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisNativeContract.kt'),/res:\/\/godot\/empire-arena\.pck/);
+  assert.doesNotMatch(game,/https?:\/\/|getExternalFilesDir/);
+  assert.match(game,/GenesisNativeContract\.validWorld/);
   assert.match(host,/SHA-256/);
-  assert.match(host,/MessageDigest/);
-  assert.match(host,/launch\.isEnabled = hasValidPack/);
+  assert.match(read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisNativeContract.kt'),/MessageDigest/);
+  assert.match(host,/worldButtons\.forEach/);
+  assert.match(host,/isEnabled = canLaunch/);
 });
 
 test('keyboard GIF content is copied locally with MIME, magic header, size and permission lifecycle checks',()=>{

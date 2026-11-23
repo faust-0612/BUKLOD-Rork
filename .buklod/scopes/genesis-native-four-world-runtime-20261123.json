@@ -1,0 +1,33 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-four-world-runtime-20261123.json",
+  "objective": "Native-only DEV: hardened four-world Godot launch on an independent Android host with bounded IME GIF import, startup fail-safe and deterministic local PCK integrity checks; preserve all MAIN/production features without publishing.",
+  "baseRef": "4b5660db61c24f481b2851b88603b1e301beda57",
+  "productionBaselineEvidence": "MAIN source 7b224c39624827282c3cbf003060317045b0a73f verified as repository ref, NOT deployed runtime evidence. MAIN has 7 commits absent on Genesis DEV, covering admin inbox, consent, PTT, attendance and ads. Entire native parity remains unverified; no production promotion.",
+  "chosenApproach": "Keep original production/Expo code untouched; extend only separate no-Expo native-genesis lab with pure JVM-testable scene/pack policy, whitelist-based 4-world launch, persisted anti-relaunch barrier and bounded rich-content importer. Correct PCK-vs-ZIP binary verifier contract. All cloud build/publish paths remain forbidden.",
+  "selectionRationale": "The previous APK crashed on Godot launch. An independent host cannot be marked functional until actual Android device QA. Enforcing strict asset identity and manual reset protects users from repeated crash launches, while JVM smoke confirms important code behavior despite unavailable Android SDK.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-native-four-world-runtime-20261123.json",
+    "native-genesis/README.md",
+    "native-genesis/MAIN_CARRYOVER_20261123.md",
+    "native-genesis/android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisNativeContract.kt",
+    "native-genesis/android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisGameActivity.kt",
+    "native-genesis/android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/NativeHomeActivity.kt",
+    "native-genesis/android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GifInputHandler.kt",
+    "scripts/genesis-native-local-only-gate.mjs",
+    "tests/genesis-native-game-core-20261123.test.mjs",
+    "tests/native/GenesisNativeContractSmoke.kt",
+    "tests/genesis-native-android-host-20261123.test.mjs"
+  ],
+  "regressionTests": ["tests/genesis-native-game-core-20261123.test.mjs", "tests/genesis-native-android-host-20261123.test.mjs"],
+  "lockedFeatureChanges": [
+    {"id": "app-runtime", "reason": "Isolated native preview world selector plus fail-safe crash marker, no change to MAIN app", "preservedBehaviors": ["Main/staging package identities and released runtime untouched", "Godot pack strictly bundled with SHA-256 check", "No auto-relaunch after unconfirmed Godot entry"], "tests": ["tests/genesis-native-game-core-20261123.test.mjs"]},
+    {"id": "production-release", "reason": "Correct binary source gate to native host PCK and retain fail-closed release", "preservedBehaviors": ["Zero cloud build/OTA", "No production backend keys or promotion", "No assertion of complete 800MB APK"], "tests": ["tests/genesis-native-game-core-20261123.test.mjs"]}
+  ],
+  "riskAreas": ["Android SDK unavailable", "Godot Android runtime not device tested", "App remains incomplete", "IME content path not Android device verified", "GodotActivity separate-process lifecycle", "MAIN production backports not yet implemented in separate host"],
+  "preserveBehaviors": ["Production, staging, source main untouched", "All MAIN user/auth/ads/points controls retain their present implementation", "No remote PCK, no signed binary and no false verified badge"],
+  "acceptanceChecks": ["8 local source and Kotlin JVM smoke tests pass", "Gate remains FAIL due to real backend/assets/parity/toolchain blockers", "Independent native Android compile/device/runtime still required", "Source SHA and return path verified in DEV after commit"],
+  "releaseMode": "DEV_ONLY_NO_NATIVE_APK_NO_OTA_NO_CLOUD",
+  "publicationStatus": "SOURCE_READY_FOR_DEV_REVIEW_NATIVE_COMPILE_NOT_POSSIBLE_HERE",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

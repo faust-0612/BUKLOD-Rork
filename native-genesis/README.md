@@ -68,3 +68,12 @@ Current source and 11 Node checks: examined; Android SDK, Godot editor, wrapper,
 APK, app startup, Gboard GIF delivery, green-B splash, ads and device UI: NOT VERIFIED.
 No owner auth, Cluster, Wall, Connect, Bible, economy, ad SDK or full 39-game
 integration is claimed. A temporary lab launcher is deliberately gated.
+
+## Native next increment — 23 November 2026 (DEV, not Android build)
+
+- Four fixed local engine choices: Arena development gameplay; Kingdom, Personal Community and House **visual previews**. Only in-APK `empire-arena.pck` and verified SHA-256 are eligible. Every other scene string is rejected by a shared, Android-independent Kotlin contract.
+- Native launcher persists `pending_unconfirmed_launch` synchronously **before** starting a private Godot process. Returning from/crashing that process never counts as successful gameplay. The user must explicitly reset this DEV safety marker to retry. There is no forced relaunch or unverified success claim.
+- GIF input uses a single bounded worker (maximum two queued tasks), MIME/size/magic checks, temporary content permissions, atomic app-cache copy, and a ten-file preview cache. There is no network upload or member message send.
+- `scripts/genesis-native-local-only-gate.mjs` now checks `assets/godot/empire-arena.pck` rather than the previous ZIP filename; this matches `prepare-pack-local.sh` and the Godot Activity. It still rejects the missing backend/asset parity and absent Android toolchain.
+- The essential launcher/pack policy is **actually compiled with `kotlinc` on JVM and executed** in `tests/native/GenesisNativeContractSmoke.kt`; that is not an Android compile, Godot runtime test, or proof of premium gameplay.
+- `MAIN_CARRYOVER_20261123.md` records outstanding MAIN features; no production release, OTA, or full BUKLOD replacement is authorized.
