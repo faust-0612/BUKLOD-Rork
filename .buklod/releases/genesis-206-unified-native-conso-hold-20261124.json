@@ -11,8 +11,12 @@
     "nativeHostSource": "ba971ed0a30cce0ddb43157c420940fbb4792456",
     "productionMain": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
     "mergeBase": "551e54602addd6f7bbe7bcdddd1589d35424c964",
-    "mainCommitsNotCarried": 12,
-    "policy": "Must be ancestor-reconciled after preserving newer Genesis changes; do not overwrite DEV or cherry-pick blind"
+    "mainCommitsNotCarried": 0,
+    "policy": "Must be ancestor-reconciled after preserving newer Genesis changes; do not overwrite DEV or cherry-pick blind",
+    "reconciledMainAncestry": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+    "carryoverAudit": ".buklod/reconciliations/genesis-206-mainline-carryover-20261124.json",
+    "exactMainPaths": 86,
+    "reviewedNewerGenesisPaths": 8
   },
   "nativeTarget": {
     "package": "org.mzbministry.buklod.genesis.nativeapp",
@@ -52,7 +56,7 @@
     "Notifications, PTT and OS audio focus"
   ],
   "blockers": [
-    "12 mainline commits are not an ancestor of this Genesis branch",
+    "Production source lineage reconciled but compiled native, runtime AdMob/nav, device/gameplay/rollback and private-asset distribution gates remain unverified",
     "Current content branch uses Expo/React Native, not full Expo-free Android source",
     "Native Kotlin/Godot Android project exists only on separate DEV branch, parity remains unverified",
     "Native host requires signed embedded .pck; reviewed 54.6MB candidate is .zip, not a tested exported .pck",
@@ -73,5 +77,5 @@
   },
   "testCommand": "node --test tests/genesis-206-unified-native-ota-gate-20261124.test.mjs",
   "readOnlyGate": "node scripts/genesis-206-unified-native-ota-gate.mjs",
-  "nextMilestone": "Native source integration and correct Godot PCK export + full-app parity, mainline merge reconciliation, exact signed local Android build, actual device RC QA; only then separately authorize content delivery"
+  "nextMilestone": "No-Expo native host full parity and exported PCK still required; CI source tests before RC; physical Android signed APK verify, no publishing without release gates"
 }

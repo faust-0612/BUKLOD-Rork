@@ -1,0 +1,625 @@
+{
+  "schema": 1,
+  "status": "SOURCE_MERGE_94_PATH_REVIEWED_DEV_ONLY",
+  "mainCommit": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "genesisBeforeMerge": "7d0a9103452b3319be2e2b3948b5a38075cfc79e",
+  "comparisonMergeBase": "551e54602addd6f7bbe7bcdddd1589d35424c964",
+  "fileCount": 94,
+  "exactCount": 86,
+  "intentionalDivergences": 8,
+  "files": [
+    {
+      "path": ".buklod/releases/buklod-main-connect-latest-nonseason2-ota-20261123.json",
+      "mainBlob": "1061b15babd697d72d636d444fc169bbfb247a0e",
+      "genesisBlob": "1061b15babd697d72d636d444fc169bbfb247a0e",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/releases/buklod-main-connect-prod-promotion-20261123.json",
+      "mainBlob": "b59e5a1b57f9760d13640c47d19df3b5123d46a3",
+      "genesisBlob": "b59e5a1b57f9760d13640c47d19df3b5123d46a3",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/releases/buklod-main-conso-ota-promotion-20261122.json",
+      "mainBlob": "4bda24aeff3b28cd0b09937a3836aca90b56b9e4",
+      "genesisBlob": "4bda24aeff3b28cd0b09937a3836aca90b56b9e4",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/releases/buklod-nonseason2-consent-prod-ota-20261122.json",
+      "mainBlob": "52227b955d98e75ed6bc852f6053a280d10d2f2d",
+      "genesisBlob": "52227b955d98e75ed6bc852f6053a280d10d2f2d",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/releases/kl-ai-timeout-production-ota-20261123.json",
+      "mainBlob": "661cb4edc655a919e232fe6d76f6fd435633f954",
+      "genesisBlob": "661cb4edc655a919e232fe6d76f6fd435633f954",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/buklod-main-connect-prod-promotion-20261123.json",
+      "mainBlob": "23afc95ce99267802f5643357de94422b3056159",
+      "genesisBlob": "23afc95ce99267802f5643357de94422b3056159",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/buklod-main-connect-prod-rc-20261123.json",
+      "mainBlob": "814525d4ed006bd2dcc72ec8df13cecb21091fdf",
+      "genesisBlob": "814525d4ed006bd2dcc72ec8df13cecb21091fdf",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/buklod-main-conso-ota-only-20261122.json",
+      "mainBlob": "e5f1a905d5dfe72d35ef55e9de6be2936192afea",
+      "genesisBlob": "e5f1a905d5dfe72d35ef55e9de6be2936192afea",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/buklod-main-conso-ota-promotion-20261122.json",
+      "mainBlob": "6dfde35086c6587b0010f7c44cb2fc7776642e62",
+      "genesisBlob": "6dfde35086c6587b0010f7c44cb2fc7776642e62",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/buklod-nonseason2-consent-prod-ota-20261122.json",
+      "mainBlob": "d6d7c4578dbddd401ddace12d9fe4973a751cef8",
+      "genesisBlob": "d6d7c4578dbddd401ddace12d9fe4973a751cef8",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/connect-cluster-open-latest-20261123.json",
+      "mainBlob": "8e1cbac62dbb8e6cdb64b2fee7fb1bc45b54ded1",
+      "genesisBlob": "8e1cbac62dbb8e6cdb64b2fee7fb1bc45b54ded1",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/consent-verification-contrast-20261122.json",
+      "mainBlob": "98ce2b0faf29616ee5a72da02a930084dfbeb089",
+      "genesisBlob": "98ce2b0faf29616ee5a72da02a930084dfbeb089",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/dzas-web-audio-recovery-20261122.json",
+      "mainBlob": "b6c602a1a987418af7e7af1e4ec2d27c4ad10a8f",
+      "genesisBlob": "b6c602a1a987418af7e7af1e4ec2d27c4ad10a8f",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/kl-ai-timeout-production-ota-20261123.json",
+      "mainBlob": "673a230a943d207de29d19be033a2cf548ff5495",
+      "genesisBlob": "673a230a943d207de29d19be033a2cf548ff5495",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/kl-ai-timeout-recovery-20261123.json",
+      "mainBlob": "1a954c39e795fb1ed3cd72995d2610bc5cb3c476",
+      "genesisBlob": "1a954c39e795fb1ed3cd72995d2610bc5cb3c476",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/mentor-ccp5-production-rc-hold-20261121.json",
+      "mainBlob": "f77550cfaf8ee3198d1a931a5ed86fe0d9b727fe",
+      "genesisBlob": "f77550cfaf8ee3198d1a931a5ed86fe0d9b727fe",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".buklod/scopes/mentor-submit-prod-backport-20261120.json",
+      "mainBlob": "c8b741b0b0712ea5c3b41b9a13cd21ffc7f79f4c",
+      "genesisBlob": "c8b741b0b0712ea5c3b41b9a13cd21ffc7f79f4c",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".github/workflows/buklod-consent-prod-rc-no-publish-20261122.yml",
+      "mainBlob": "a6e0277175925cb1f4ae83f0b578c886c66b8de6",
+      "genesisBlob": "a6e0277175925cb1f4ae83f0b578c886c66b8de6",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".github/workflows/mentor-ccp5-isolated-postgres-qa-20261121.yml",
+      "mainBlob": "fd39520c8e6170a3ca8f2437ff7dc5dc801b795e",
+      "genesisBlob": "fd39520c8e6170a3ca8f2437ff7dc5dc801b795e",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".github/workflows/production_web_deploy.yml",
+      "mainBlob": "230b750192cb9bd1aea8dbf30e65125651f7c23b",
+      "genesisBlob": "230b750192cb9bd1aea8dbf30e65125651f7c23b",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+      "mainBlob": "62279310928311096a5d427193d843378b4e44cf",
+      "genesisBlob": "62279310928311096a5d427193d843378b4e44cf",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "docs/incidents/20261121_live_mentor_ccp5_access_and_receipt.md",
+      "mainBlob": "4b6b6e7c2523a074c572a0492ae021547d88599d",
+      "genesisBlob": "4b6b6e7c2523a074c572a0492ae021547d88599d",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/_layout.tsx",
+      "mainBlob": "088332d90cb38529fa5d91ed398b1dbccadb530b",
+      "genesisBlob": "a50e151216bb82ed7591236bf6bba21d3abe5ed1",
+      "resolution": "GENESIS_REVIEWED_SUPERSET",
+      "reason": "Genesis layout includes MAIN cluster check-in review route plus additional Season2 screens; retain Genesis router",
+      "proof": [
+        "<Stack.Screen name=\"clusters/home-checkin-review\" />"
+      ]
+    },
+    {
+      "path": "src/app/admin/index.tsx",
+      "mainBlob": "31e6dff038ffb1aaace39734ce6c88c20a307877",
+      "genesisBlob": "31e6dff038ffb1aaace39734ce6c88c20a307877",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/admin/learning/mentors.tsx",
+      "mainBlob": "66387a602241d46103052decb39e33a530fe2ff5",
+      "genesisBlob": "66387a602241d46103052decb39e33a530fe2ff5",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/admin/new-users.tsx",
+      "mainBlob": "ca5bfc1f56250a536fa10aeda5a108e0f8e28831",
+      "genesisBlob": "ca5bfc1f56250a536fa10aeda5a108e0f8e28831",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/admin/points-r2-monitor.tsx",
+      "mainBlob": "f6beb0991a4e5a890724661f25cfed675559d076",
+      "genesisBlob": "f6beb0991a4e5a890724661f25cfed675559d076",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/clusters/home-checkin-review.tsx",
+      "mainBlob": "78762847390cd74477f12cdb56142c396881444c",
+      "genesisBlob": "78762847390cd74477f12cdb56142c396881444c",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/clusters/scope-manage.tsx",
+      "mainBlob": "607c6c14f99dfb2cf46c1aa788ef3e3777968433",
+      "genesisBlob": "607c6c14f99dfb2cf46c1aa788ef3e3777968433",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/faith/mentor-evidence.tsx",
+      "mainBlob": "315a766d776ea88d7ea013fbbbf772cd34c4c65d",
+      "genesisBlob": "315a766d776ea88d7ea013fbbbf772cd34c4c65d",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/learn/[id].tsx",
+      "mainBlob": "de0538561da6d6765eced38ef37dce7810084d2d",
+      "genesisBlob": "de0538561da6d6765eced38ef37dce7810084d2d",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/learn/lesson.tsx",
+      "mainBlob": "2e08be27d2e80969aeec2602007705c6870b1c70",
+      "genesisBlob": "2e08be27d2e80969aeec2602007705c6870b1c70",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/mentoring/index.tsx",
+      "mainBlob": "55bdbaaa8c9ab69a1c1b2a09c0c8ab9320a361f0",
+      "genesisBlob": "55bdbaaa8c9ab69a1c1b2a09c0c8ab9320a361f0",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/personal-home/ptt.tsx",
+      "mainBlob": "5b2204ed90622e0b5185d2af50dc282e3caab465",
+      "genesisBlob": "5b2204ed90622e0b5185d2af50dc282e3caab465",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/personal-home/radio.web.tsx",
+      "mainBlob": "f1a8141b4e73739db45e982b05151ffb6f718117",
+      "genesisBlob": "f1a8141b4e73739db45e982b05151ffb6f718117",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/app/privacy/consent.tsx",
+      "mainBlob": "650592ee92c4ae67cef41b46e3d9710354b3200f",
+      "genesisBlob": "650592ee92c4ae67cef41b46e3d9710354b3200f",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+      "mainBlob": "d1a5e662a3ae39890afda60dbadf819103676fa6",
+      "genesisBlob": "59d22da82f10f181ddbc093d969f230483845c69",
+      "resolution": "GENESIS_REVIEWED_SUPERSET",
+      "reason": "Cluster-admin check-in review remains with expanded Genesis UI; retain full Genesis card",
+      "proof": [
+        "Verify pending check-ins",
+        "'/clusters/home-checkin-review'"
+      ]
+    },
+    {
+      "path": "src/components/BuklodConnectThread.tsx",
+      "mainBlob": "a487bb5eb1dd75dbacde6557b34a7b76f0873186",
+      "genesisBlob": "90b9d049e2e6af33ded76c660579869f41669eb0",
+      "resolution": "GENESIS_REVIEWED_SUPERSET",
+      "reason": "MAIN newest-on-open / user-upward paging fixes reconciled with newer Genesis keyboard/scroll ownership logic",
+      "proof": [
+        "const userScrolledUpRef = useRef(false)",
+        "contentOffset.y < previousOffset - 2",
+        "userScrolledUpRef.current = false;",
+        "pendingLatestScrollRef.current = true"
+      ]
+    },
+    {
+      "path": "src/components/BuklodHomeCheckinToday.tsx",
+      "mainBlob": "2874344a1ef2b8cb4ddf933af2c330fcb6293685",
+      "genesisBlob": "2874344a1ef2b8cb4ddf933af2c330fcb6293685",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/components/BuklodOtaFreshnessHost.native.tsx",
+      "mainBlob": "dfc1d2a2dea4010ae33b7ba8491485addf64688e",
+      "genesisBlob": "dfc1d2a2dea4010ae33b7ba8491485addf64688e",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/components/LearningQuestionResponse.tsx",
+      "mainBlob": "9428f3d240d415b2cb0d043ad77d0ec59578aa1e",
+      "genesisBlob": "9428f3d240d415b2cb0d043ad77d0ec59578aa1e",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/lib/buklodAdminPriority.ts",
+      "mainBlob": "9eaecb35f7bdf304c1e24f2401254b98df102b49",
+      "genesisBlob": "9eaecb35f7bdf304c1e24f2401254b98df102b49",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/lib/buklodAiResponseValidation.ts",
+      "mainBlob": "2c40c546b550b2a6dbc004dc0302685d696770ee",
+      "genesisBlob": "2c40c546b550b2a6dbc004dc0302685d696770ee",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/lib/buklodGlobalAdController.ts",
+      "mainBlob": "c16c03820bddb7d0ab00b7d4877a5a65802e9ea0",
+      "genesisBlob": "c16c03820bddb7d0ab00b7d4877a5a65802e9ea0",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/lib/buklodNativeAdRecovery.ts",
+      "mainBlob": "ebd6b24137969716bccfae8884dfc9d4ce066cec",
+      "genesisBlob": "ebd6b24137969716bccfae8884dfc9d4ce066cec",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/lib/buklodNotificationNavigation.ts",
+      "mainBlob": "85532675919a3a421a48b7f9833cda2bf3f707c3",
+      "genesisBlob": "bb1c5587c3d238ef082c8b98a0cad2627ea4c529",
+      "resolution": "GENESIS_REVIEWED_SUPERSET",
+      "reason": "MAIN registration push path retained and hardened to validated UUID, with AdminGate server authorization",
+      "proof": [
+        "normalizedKind === 'admin_new_user'",
+        "'/admin/new-users?user_id='"
+      ]
+    },
+    {
+      "path": "src/lib/buklodSilentOtaPolicy.ts",
+      "mainBlob": "3d03929768b2515d700ac20ce0a698f6da28a82c",
+      "genesisBlob": "3d03929768b2515d700ac20ce0a698f6da28a82c",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/providers/ComplianceProvider.tsx",
+      "mainBlob": "85368c25b6c92504de7ae54b63975e48ee3f9354",
+      "genesisBlob": "85368c25b6c92504de7ae54b63975e48ee3f9354",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/ptt/buklodPttDutyNotification.ts",
+      "mainBlob": "6a496e879654fc2255632e2183ff1c808048c69e",
+      "genesisBlob": "6a496e879654fc2255632e2183ff1c808048c69e",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "src/ptt/buklodPttRuntime.ts",
+      "mainBlob": "63fc12379d27d11d0bbce356ccd9148f77979049",
+      "genesisBlob": "8ce940a0121ddedaf0029ba0d2b137cb76d31584",
+      "resolution": "GENESIS_REVIEWED_SUPERSET",
+      "reason": "MAIN serialized connect and Stop-precedence kept; Genesis additionally owns normal/PTT audio focus lifecycle",
+      "proof": [
+        "targetSwitchTail",
+        "stopBuklodPttListening",
+        "handleNormalReceivingStart",
+        "clearNormalReceiving"
+      ]
+    },
+    {
+      "path": "src/ptt/buklodPttSetup.ts",
+      "mainBlob": "3185d045074e27500fc14c50b3c75b1f450e56e9",
+      "genesisBlob": "3185d045074e27500fc14c50b3c75b1f450e56e9",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/functions/buklod-ai-validate-response/index.ts",
+      "mainBlob": "95dca22ae1d162d602bf19c7bf58798e5cd88b94",
+      "genesisBlob": "95dca22ae1d162d602bf19c7bf58798e5cd88b94",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
+      "mainBlob": "109df32c7383166f99ea3f8cd799d65897f63b3c",
+      "genesisBlob": "109df32c7383166f99ea3f8cd799d65897f63b3c",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/migrations/20261121132000_mentor_report_catalog_titles_and_role_clarity.sql",
+      "mainBlob": "5baa42626884469598fa4e1111631bb68494aa00",
+      "genesisBlob": "5baa42626884469598fa4e1111631bb68494aa00",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/migrations/20261121141000_admin_mentor_capability_review_audit_v1.sql",
+      "mainBlob": "aa76d9d475934131d7b867bd9abd29a0676290d2",
+      "genesisBlob": "aa76d9d475934131d7b867bd9abd29a0676290d2",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/migrations/20261122065000_mentor_full_published_catalog_v1.sql",
+      "mainBlob": "4898f3441a9b62796e62df0476166d726ac16943",
+      "genesisBlob": "4898f3441a9b62796e62df0476166d726ac16943",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/migrations/20261122090000_cluster_scoped_home_checkin_review_v1.sql",
+      "mainBlob": "087f5828eeba2e60c342a13f6a63c396b5d9d3e4",
+      "genesisBlob": "087f5828eeba2e60c342a13f6a63c396b5d9d3e4",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/tests/admin_new_registration_security_20261119.sql",
+      "mainBlob": "17be4810666114bd05ea57a9a9bfe9cc0bd29b5f",
+      "genesisBlob": "17be4810666114bd05ea57a9a9bfe9cc0bd29b5f",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/tests/buklod_cluster_admin_isolated_rc_20261122.sql",
+      "mainBlob": "d485483903f4439c1b6649473a0abaa61c4c09fe",
+      "genesisBlob": "d485483903f4439c1b6649473a0abaa61c4c09fe",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql",
+      "mainBlob": "3d10fa1afde045c2bc1928de183b90443bd4565e",
+      "genesisBlob": "3d10fa1afde045c2bc1928de183b90443bd4565e",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/tests/buklod_points_r3_home_earning_contract.sql",
+      "mainBlob": "98d26caa7fb5bad16a3eabfc4b3f2be929236005",
+      "genesisBlob": "98d26caa7fb5bad16a3eabfc4b3f2be929236005",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/tests/mentor_capability_release_guard_20261121.sql",
+      "mainBlob": "1ea07c529e5bd308d1de59665d1994ec4279502b",
+      "genesisBlob": "1ea07c529e5bd308d1de59665d1994ec4279502b",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "supabase/tests/mentor_full_published_catalog_security_20261122.sql",
+      "mainBlob": "4a322fbfb4872b5e4bc62fee67b2c86a6a601e7a",
+      "genesisBlob": "4a322fbfb4872b5e4bc62fee67b2c86a6a601e7a",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/admin-new-registration-inbox-20261119.test.cjs",
+      "mainBlob": "a4530f820fc855ad10f84ffcd185cec2ebbb0155",
+      "genesisBlob": "a4530f820fc855ad10f84ffcd185cec2ebbb0155",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+      "mainBlob": "c9dd1cb484ff5611abf02f9fc9b522000cf25bae",
+      "genesisBlob": "c9dd1cb484ff5611abf02f9fc9b522000cf25bae",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/admin-registration-notification-route-20261119.test.cjs",
+      "mainBlob": "f6bf9afb2ca50c711b109617b9fb331217471fd7",
+      "genesisBlob": "f6bf9afb2ca50c711b109617b9fb331217471fd7",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/admin-registration-security-20261119.test.cjs",
+      "mainBlob": "58e42a0cf53ccf127498e13b4838b28d75271827",
+      "genesisBlob": "58e42a0cf53ccf127498e13b4838b28d75271827",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/auth-consent-boot-recovery.test.mjs",
+      "mainBlob": "f19a170d7baaae10cd7ed656b8b643f35664198e",
+      "genesisBlob": "f19a170d7baaae10cd7ed656b8b643f35664198e",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-cluster-checkin-ads-monetization.test.cjs",
+      "mainBlob": "ef9bb4d4397e1c5a945955ceb35e554990d3b841",
+      "genesisBlob": "ef9bb4d4397e1c5a945955ceb35e554990d3b841",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-cluster-checkin-navigation-scroll.test.cjs",
+      "mainBlob": "4be775a310feb4ac1dbf6331072daf875efe494b",
+      "genesisBlob": "4be775a310feb4ac1dbf6331072daf875efe494b",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-cluster-home-checkin-review.test.cjs",
+      "mainBlob": "99784dbc43f846bbf90d93530e3d660410c8cd3c",
+      "genesisBlob": "99784dbc43f846bbf90d93530e3d660410c8cd3c",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-main-connect-prod-promotion-marker-20261123.test.cjs",
+      "mainBlob": "f5f67694ecb30b61cbc1aa8e514bede1203aaf24",
+      "genesisBlob": "f5f67694ecb30b61cbc1aa8e514bede1203aaf24",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-main-connect-prod-rc-20261123.test.cjs",
+      "mainBlob": "65ea432d339fafbc9c12726289183c2a24f23ca7",
+      "genesisBlob": "65ea432d339fafbc9c12726289183c2a24f23ca7",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-main-conso-ota-promotion-marker-20261122.test.cjs",
+      "mainBlob": "d10dd4e0ddda0d7dd56e67189670259c837fac6a",
+      "genesisBlob": "d10dd4e0ddda0d7dd56e67189670259c837fac6a",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-mandatory-update-runtime.test.mjs",
+      "mainBlob": "676e826b788bfcd4dae4be1b8b4f90b5cb5ed9a7",
+      "genesisBlob": "59b01f4d656d83aba62d83e5b868100711668b76",
+      "resolution": "GENESIS_REVIEWED_SUPERSET",
+      "reason": "Genesis test explicitly accounts for separate 2.0 preview / SOS native runtimes while retaining production runtime protection",
+      "proof": [
+        "genesisNativePreview",
+        "sosNativePreview"
+      ]
+    },
+    {
+      "path": "tests/buklod-nonseason2-consent-prod-ota-marker-20261122.test.cjs",
+      "mainBlob": "e9e32c261434497927c85ddd711d9fa95b67a840",
+      "genesisBlob": "e9e32c261434497927c85ddd711d9fa95b67a840",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-points-r3-classroom-quiz-attendance.test.mjs",
+      "mainBlob": "fb9c79ef324a4ec4ae3ea17f5775bfea128cf294",
+      "genesisBlob": "fb9c79ef324a4ec4ae3ea17f5775bfea128cf294",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs",
+      "mainBlob": "c28a25a1b78051bb4fa8ad14555f59e0781456d1",
+      "genesisBlob": "c28a25a1b78051bb4fa8ad14555f59e0781456d1",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/buklod-ptt-preferences-and-switching.test.mjs",
+      "mainBlob": "d9c52cdd8265d500cdf0378888b081b92bde49f7",
+      "genesisBlob": "f317ffab0181bcd93d23729cd4a5a0864b018672",
+      "resolution": "GENESIS_REVIEWED_SUPERSET",
+      "reason": "Genesis retains all MAIN PTT tests with extra explicit audio-focus simulation",
+      "proof": [
+        "setBuklodPttVoiceActive"
+      ]
+    },
+    {
+      "path": "tests/buklod-silent-ota-policy.test.mjs",
+      "mainBlob": "a069d3de072e08e7aaf8434214076e822280a8f5",
+      "genesisBlob": "a069d3de072e08e7aaf8434214076e822280a8f5",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/cluster-connect-notifications-points-20261108.test.mjs",
+      "mainBlob": "5eaa2293e66144ea503c676f902f0695146f9f71",
+      "genesisBlob": "5eaa2293e66144ea503c676f902f0695146f9f71",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/connect-cluster-ads-isolation-20261123.test.mjs",
+      "mainBlob": "5ca223e8945220c1802eafd990922d73b614bba3",
+      "genesisBlob": "5ca223e8945220c1802eafd990922d73b614bba3",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/connect-cluster-open-latest-20261123.test.mjs",
+      "mainBlob": "79a6f0c130ed620f1eb36bb05f4ac68b168f8c68",
+      "genesisBlob": "79a6f0c130ed620f1eb36bb05f4ac68b168f8c68",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/dzas-signal-deck-implementation.test.mjs",
+      "mainBlob": "30a7c125ab50bc00ccae7ea852ca34806db9103c",
+      "genesisBlob": "30a7c125ab50bc00ccae7ea852ca34806db9103c",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/dzas-web-production-deploy.test.mjs",
+      "mainBlob": "3e45b1d48828b8ccde772a2dacc3cc7a52252588",
+      "genesisBlob": "3e45b1d48828b8ccde772a2dacc3cc7a52252588",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/fixtures/mentor-capability-postgres17-20261121.sql",
+      "mainBlob": "43a433dedbfd7108b61dead4c4c6fa27c5709512",
+      "genesisBlob": "43a433dedbfd7108b61dead4c4c6fa27c5709512",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/fixtures/mentor-capability-postgres17-verification-20261121.sql",
+      "mainBlob": "12d791e09dbff6dc26d77eb479a5c65a6ae108ac",
+      "genesisBlob": "12d791e09dbff6dc26d77eb479a5c65a6ae108ac",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/formation-ai-timeout-recovery-20261123.test.mjs",
+      "mainBlob": "4cc438fe0c7fca83afd14bcde8a99d43446a0d1d",
+      "genesisBlob": "4cc438fe0c7fca83afd14bcde8a99d43446a0d1d",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/kl-ai-timeout-production-ota-20261123.test.cjs",
+      "mainBlob": "e3a2e4142781d0069e1a66aaff9d926440ed2a8f",
+      "genesisBlob": "e3a2e4142781d0069e1a66aaff9d926440ed2a8f",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/lesson-checking-mentor-options-20261122.test.mjs",
+      "mainBlob": "d5c3ece1abfe95c9606f38af0f27c7425182cf5f",
+      "genesisBlob": "d5c3ece1abfe95c9606f38af0f27c7425182cf5f",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/mentor-catalog-auth-permission-20261122.test.mjs",
+      "mainBlob": "6abadecc8bcf242554f792d959e47d2af2932585",
+      "genesisBlob": "6abadecc8bcf242554f792d959e47d2af2932585",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/mentor-report-selector-access-20261121.test.mjs",
+      "mainBlob": "86ce208b17ac0a8bb02100f97cdefbc33fccdce0",
+      "genesisBlob": "86ce208b17ac0a8bb02100f97cdefbc33fccdce0",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/mentor-report-submit-feedback-20261120.test.mjs",
+      "mainBlob": "b384e89d9bba09a6c445bd41371f56e504cc0799",
+      "genesisBlob": "b384e89d9bba09a6c445bd41371f56e504cc0799",
+      "resolution": "EXACT_MAIN_BLOB"
+    },
+    {
+      "path": "tests/ota-restart-safe-area.test.cjs",
+      "mainBlob": "6ac38210a2bf4c31f27e8542cd7bbf02bded79d3",
+      "genesisBlob": "1694a0ca3582a7d88c430b2634fed3232fb017d3",
+      "resolution": "GENESIS_REVIEWED_SUPERSET",
+      "reason": "MAIN canonical publisher test and Genesis staging no-production OTA test are both retained",
+      "proof": [
+        "Canonical production exporter packages",
+        "silent OTA remains reviewed on staging"
+      ]
+    }
+  ],
+  "releaseNotes": [
+    "Manual 2-parent merge retains latest Genesis implementation for eight deliberate conflicts only",
+    "Production version markers and SQL source files were carried forward verbatim; no SQL was applied",
+    "This reconciliation is NOT native parity/device testing or staging OTA release",
+    "All 8 source divergences remain locked until cross-feature regressions run; do not silently replace them with older MAIN"
+  ],
+  "productionUnchanged": true
+}
