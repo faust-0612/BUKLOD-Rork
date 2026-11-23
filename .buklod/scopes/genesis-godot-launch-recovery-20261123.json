@@ -15,11 +15,13 @@
     "app.config.js",
     "eas.json",
     "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
-    "tests/genesis-godot-game-runtime-guard-20261123.test.mjs"
+    "tests/genesis-godot-game-runtime-guard-20261123.test.mjs",
+    "tests/genesis-godot-game-release-identity-20261123.test.mjs"
   ],
   "regressionTests": [
     "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
-    "tests/genesis-godot-game-runtime-guard-20261123.test.mjs"
+    "tests/genesis-godot-game-runtime-guard-20261123.test.mjs",
+    "tests/genesis-godot-game-release-identity-20261123.test.mjs"
   ],
   "riskAreas": [
     "Android Godot Activity crash on launch",
@@ -29,7 +31,8 @@
     "Native-only changes require replacement staging APK",
     "AdMob/tab navigation regression",
     "Application boot-loop and local state",
-    "Protected production and shared paid backend"
+    "Protected production and shared paid backend",
+    "release-identity"
   ],
   "lockedFeatureChanges": [
     {
@@ -65,7 +68,8 @@
         "Preserve offline React Native practice as a manual fallback after native crash/re-entry."
       ],
       "tests": [
-        "tests/genesis-godot-game-runtime-guard-20261123.test.mjs"
+        "tests/genesis-godot-game-runtime-guard-20261123.test.mjs",
+        "tests/genesis-godot-game-release-identity-20261123.test.mjs"
       ]
     }
   ],
@@ -92,5 +96,6 @@
   ],
   "releaseMode": "DEV_ONLY_NATIVE_APK_CANDIDATE_NO_OTA",
   "publicationStatus": "NOT_PUBLISHED",
-  "physicalDeviceVerification": "FAILED_ON_ORIGINAL_2_0_4_OWNER_DEVICE_GODOT_BUTTON;_NEW_2_0_5_NOT_BUILT_OR_TESTED"
+  "physicalDeviceVerification": "FAILED_ON_ORIGINAL_2_0_4_OWNER_DEVICE_GODOT_BUTTON;_NEW_2_0_5_NOT_BUILT_OR_TESTED",
+  "productionBaselineEvidence": "Base is the exact published 2.0.4 Genesis consolidated source commit 63f97c4092c1214c8f0b0eb5558d1183c6f189d4 on release/genesis-library-204-conso-ota-20261122, corresponding to EAS 2.0.4 group 7411bd8d-5c80-47c5-b120-e52570768ce5. Previous native APK run 45031011586 passed signing/pack checks, but Godot launch crashed on owner device. This DEV branch makes no production or 2.0.4 channel change; verified physical device startup still missing."
 }
