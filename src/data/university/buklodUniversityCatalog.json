@@ -1,9 +1,9 @@
 {
-  "catalog_version": "BU-ACADEMIC-4-PROPOSED",
+  "catalog_version": "BU-ACADEMY-5-DEV",
   "issuer": "MZB Ministry Inc.",
-  "program": "BUKLOD University",
+  "program": "BUKLOD Academy of Higher Learning",
   "signatory_printed_name": "Faustino Jr M Gabut, PhD",
-  "status": "DEV_ONLY_PENDING_VERIFIED_SOURCE_MAPPING",
+  "status": "DEV_ONLY_PENDING_SOURCE_EVIDENCE_AND_LEGAL_REVIEW",
   "policy": "UC lifetime minimum AND direct prerequisite credential eligibility AND authoritative source completion gates",
   "credentials": [
     {
@@ -677,5 +677,6 @@
       "uc_is_cumulative": true,
       "prerequisites_are_qualification_not_pdf_download": true
     }
-  ]
+  ],
+  "legal_descriptor": "Independent non-formal theological learning and formation program of MZB Ministry Inc."
 }
