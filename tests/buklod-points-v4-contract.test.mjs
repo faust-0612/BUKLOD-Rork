@@ -48,7 +48,7 @@ test('Child quiz is authoritative server-side, 144 unique four-question sets',()
     "v_count>=4",
     "'children_story:v4:'",
   ]) assert.ok(sql.includes(needle),needle);
-  assert.match(sql,/user_id=\(select auth.uid\(\)\)/);
+  assert.match(sql,/using \(\(select auth.uid\(\)\)=user_id\)/);
 });
 test('Private child teaching requires adult consent, date, photo evidence and one real completion per source',()=>{
   const sql=migrations.teaching;
