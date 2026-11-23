@@ -58,7 +58,7 @@
     "Read-only SQL regression confirms admin RPC privileges and manuscript-change approval trigger remain protected."
   ],
   "publicationStatus": "DEV_SOURCE_ONLY_NO_LIVE_BACKEND_DEPLOY",
-  "productionBaselineEvidence": "Main source baseline 993fba1b405a4c1a50d1d377e223f024f46a076b; live Supabase yhanxndaqbmuzbdqlblu read-only checks Nov 23 2026 show K11 approved, quiz pending, manuscript hash current, five stored records with one invalid evidence; Edge upstream 503 recorded 43 times. No production runtime/OTA change verified.",
+  "productionBaselineEvidence": "verified: GitHub repository main source baseline 993fba1b405a4c1a50d1d377e223f024f46a076b read back Nov 23 2026; separately verified: live Supabase project yhanxndaqbmuzbdqlblu read-only chapter/status/auth trigger state and 43 upstream Gemini 503 errors. Verified source/database metadata only, NOT a verified deployed Android OTA fingerprint. Production source/release state is not inferred from main.",
   "alternativeApproaches": [
     "Mark pending stale quiz READY (rejected: one stored evidence excerpt is not in current manuscript).",
     "Repeat same overloaded 503 model multiple times (rejected: cost and latency).",
