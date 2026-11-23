@@ -33,7 +33,7 @@ function modelFixture({ failPhoto = null } = {}) {
   const progress = [];
   let postCreates = 0;
   const mocks = {
-    '@react-native-async-storage/async-storage': { getItem: async () => null },
+    '@react-native-async-storage/async-storage': { getItem: async () => null, setItem: async () => {} },
     'react-native': { Platform: { OS: 'android' } },
     '@/lib/repairMojibakeText': { repairMojibakeText: value => value },
     '@/lib/buklodCommunityPostMedia': {
@@ -69,6 +69,8 @@ function modelFixture({ failPhoto = null } = {}) {
   const model = loadTs('src/lib/buklodMaritesBoard.ts', {
     ...mocks,
     Platform: { OS: 'android' },
+    FileSystem: { documentDirectory: null },
+    AsyncStorage: mocks['@react-native-async-storage/async-storage'],
     repairMojibakeText: mocks['@/lib/repairMojibakeText'].repairMojibakeText,
     supabase: mocks['@/lib/supabase'].supabase,
     attachCommunityPostMedia: mocks['@/lib/buklodCommunityPostMedia'].attachCommunityPostMedia,
@@ -100,14 +102,14 @@ test('Marites uploads photos concurrently, publishes only after settlement, and 
 
 test('Marites waits for all photo attempts before cleaning partial uploads and never creates an incomplete post', async () => {
   const f = modelFixture({ failPhoto: 'photo-2' });
-  await assert.rejects(
-    f.model.publishMaritesStory({
-      userId: 'member-1', authorName: 'Member', body: 'Draft',
-      photoUris: ['photo-1', 'photo-2'],
-      onProgress: status => f.progress.push(status),
-    }),
-    /Photo network error/,
-  );
+  const result = await f.model.publishMaritesStory({
+    userId: 'member-1', authorName: 'Member', body: 'Draft',
+    photoUris: ['photo-1', 'photo-2'],
+    onProgress: status => f.progress.push(status),
+  });
+  // Existing product policy is device-local fallback, not a discarded draft.
+  assert.equal(result.shared, false);
+  assert.equal(result.story.source, 'local');
   assert.equal(f.completed.length, 1);
   assert.equal(f.getPostCreates(), 0);
   assert.equal(f.attached.length, 0);
