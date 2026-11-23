@@ -106,7 +106,7 @@ jobs:
           set -euo pipefail
           node <<'NODE'
           const a=require('node:assert/strict'),fs=require('node:fs');
-          const config=require('./app.config.js')({config:{}),eas=require('./eas.json');
+          const config=require('./app.config.js')({config:{}}),eas=require('./eas.json');
           a.equal(config.android.package,'org.mzbministry.buklod.staging');
           a.equal(config.android.versionCode,17);
           a.equal(config.version,'2.0.5');
