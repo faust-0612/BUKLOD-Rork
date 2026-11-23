@@ -119,8 +119,8 @@ test('Explicit rights-gated owner WAV and PNG stage with exact SHA into private 
  const stageDir=path.join(temp,'PrivateBuild');
  try{
    mkdirSync(path.join(inputDir,'Sound'),{recursive:true});
-   const wav=Buffer.alloc(60);
-   wav.write('RIFF',0);wav.writeUInt32LE(52,4);wav.write('WAVE',8);
+   const wav=Buffer.alloc(160);
+   wav.write('RIFF',0);wav.writeUInt32LE(152,4);wav.write('WAVE',8);
    const png=Buffer.alloc(112);
    Buffer.from([137,80,78,71,13,10,26,10]).copy(png);
    const wfile='Sound/recording.wav',pfile='Sound/effect.png';
