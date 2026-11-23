@@ -246,7 +246,7 @@ export default function KlDashboardHome({ onOpenSeries }: {
 
       <View style={styles.help}>
         <Text style={styles.sectionHeading}>Paano gumagana?</Text>
-        <Text style={styles.secondary}>Basahin ang kabanata at sagutan ang reading questions. Sa Season 2, kailangang 3/3 ang tama upang ma-verify at mabuksan ang susunod na kabanata. Ang mga hindi pa inilalabas ng admin ay nananatiling pribado.</Text>
+        <Text style={styles.secondary}>Basahin ang kabanata at sagutan ang reading questions. Sa Season 2, kailangang 3/3 ang tama at mag-iwan ng sariling 20+ karakter na comment pagkatapos ng quiz bago mabuksan ang susunod na kabanata. Awtomatiko ang pag-verify; walang admin quiz review. Ang mga hindi pa inilalabas ng admin ay nananatiling pribado.</Text>
       </View>
       {!loaded && loading ? <Text style={styles.secondary}>Binubuksan ang KL library…</Text> : null}
     </ScrollView>
