@@ -1,0 +1,44 @@
+name: Genesis 2.0.6 consolidated MAIN carryover — DEV source QA only
+on:
+  push:
+    branches:
+      - dev/genesis-206-private-library-import-gate-20261124
+    paths:
+      - '.github/workflows/genesis-206-conso-production-carryover-qa-20261124.yml'
+permissions:
+  contents: read
+concurrency:
+  group: genesis-206-conso-carryover-source
+  cancel-in-progress: true
+jobs:
+  source-reconciliation:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ensure DEV source and no external publishing
+        run: |
+          set -euo pipefail
+          test "${{ github.ref_name }}" = 'dev/genesis-206-private-library-import-gate-20261124'
+          test -f scripts/genesis-206-unified-native-ota-gate.mjs
+          test -f .buklod/releases/genesis-206-unified-native-conso-hold-20261124.json
+          node --check scripts/genesis-206-unified-native-ota-gate.mjs
+          node --check scripts/genesis-private-library-intake.mjs
+      - name: Run strict non-publishing production carryover and Godot release hold regressions
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/genesis-206-unified-native-ota-gate-20261124.test.mjs \
+            tests/connect-cluster-open-latest-20261123.test.mjs \
+            tests/connect-cluster-ads-isolation-20261123.test.mjs \
+            tests/formation-ai-timeout-recovery-20261123.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs
+          echo 'BUKLOD_GENESIS_206_MAIN_CARRYOVER_DEV_ONLY_TESTS_PASSED_NO_OTA'
