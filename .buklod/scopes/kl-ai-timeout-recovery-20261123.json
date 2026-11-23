@@ -22,7 +22,8 @@
     "Existing enrollment/lesson authorization, server-only points, chapter locks, five-field checking and accepted-answer thresholds remain authoritative.",
     "Input text stays on screen; authorized draft writes do not falsely claim completion and never occur after the completion RPC has been attempted.",
     "Ads still appear only as a best-effort after the verified database completion and never block saving or checking.",
-    "No new Android native dependencies, OTA, Godot, web deployment, database migrations or production Edge Function writes."
+    "No new Android native dependencies, OTA, Godot, web deployment, database migrations or production Edge Function writes.",
+    "An already saved or potentially approved learning_lesson_responses row is never overwritten by the new recovery-only draft path."
   ],
   "allowedPaths": [
     "supabase/functions/buklod-ai-validate-response/index.ts",
@@ -42,7 +43,8 @@
     "On upstream failure before completion, the authorized draft RPC saves answers without points, and the client never reports a completed lesson.",
     "Offline/network/401/403/409 and duplicate tap cases do not bypass authorization; a confirmed server approval stays authoritative.",
     "Supabase SQL guard validates live backend's account-bound, non-fail-open, model-scored source proof; mandatory engineering source CI and Android/ad/navigation gates are required before any RC.",
-    "No production backend deployment, OTA, web, Godot or Vercel publication from this isolated DEV PR."
+    "No production backend deployment, OTA, web, Godot or Vercel publication from this isolated DEV PR.",
+    "When an existing saved response is loaded, an AI outage never overwrites it as a new draft."
   ],
   "lockedFeatureChanges": [
     {

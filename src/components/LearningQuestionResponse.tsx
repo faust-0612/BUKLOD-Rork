@@ -303,7 +303,8 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       }
     } catch (error: any) {
       let draftSaved = false;
-      if (!completionRpcStarted) {
+      if (!completionRpcStarted && !previouslySubmitted) {
+        // Never replace an existing (potentially approved) lesson response with a draft.
         // This RPC is authorization-bound and stores answers without approval or points.
         try {
           const { data: draftId, error: draftError } = await (supabase as any).rpc('submit_learning_lesson_response_v1', {
