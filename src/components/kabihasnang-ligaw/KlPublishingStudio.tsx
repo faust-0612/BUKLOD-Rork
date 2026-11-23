@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import KlAdminMediaUpload from './KlAdminMediaUpload';
 import KlAdminPreview from './KlAdminPreview';
 import KlSeriesAdminPanel from './KlSeriesAdminPanel';
+import KlSeriesReleaseDesk from './KlSeriesReleaseDesk';
 import { klPreviewReadyForEpisode } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -419,6 +420,13 @@ export default function KlPublishingStudio() {
           ) : null}
           </>
           )}
+          {saved ? <KlSeriesReleaseDesk key={id + ':' + approvalRefreshToken}
+            episodeId={id} seasonNumber={Number(season)}
+            episodeNumber={Number(chapter)}
+            onChanged={() => { void refresh().catch(() => undefined); }} /> :
+            <Text style={{ color: '#f1d39b' }}>
+              I-save muna ang manuscript bago mag-review, approve, at release.
+            </Text>}
         </>
       ) : null}
     </View>
