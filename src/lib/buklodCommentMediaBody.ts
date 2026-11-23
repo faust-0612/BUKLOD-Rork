@@ -1,19 +1,23 @@
 /**
- * Encode optional photo/GIF attachments into a comment body so text-only
+ * Encode optional photo/GIF/short-video attachments into a comment body so text-only
  * `add_buklod_post_comment_v4` can still carry media without a schema change.
  *
  * Format: [[BUKLOD_COMMENT_MEDIA:v1:<kind>:<payload>]]\n<caption>
- * kind = image (storage path) | gif (https URL)
+ * kind = image/gif/video (private storage path), or gif (catalog HTTPS URL)
  */
 
 const PREFIX = '[[BUKLOD_COMMENT_MEDIA:v1:';
 
-export type BuklodCommentMediaKind = 'image' | 'gif';
+export type BuklodCommentMediaKind = 'image' | 'gif' | 'video';
 
 export type BuklodCommentMedia = {
   kind: BuklodCommentMediaKind;
-  /** Storage path for image, or https URL for gif. */
+  /** Private storage path after upload; local URI before upload, or catalog GIF URL. */
   ref: string;
+  /** Selection-only metadata, not encoded into stored comments. */
+  mimeType?: string;
+  durationSeconds?: number;
+  sizeBytes?: number;
 };
 
 export function parseBuklodCommentMediaBody(body?: string | null): {
@@ -22,7 +26,7 @@ export function parseBuklodCommentMediaBody(body?: string | null): {
 } {
   const raw = String(body ?? '');
   const match = raw.match(
-    /^\[\[BUKLOD_COMMENT_MEDIA:v1:(image|gif):([^\]]*)\]\](?:\n|(?=$))/,
+    /^\[\[BUKLOD_COMMENT_MEDIA:v1:(image|gif|video):([^\]]*)\]\](?:\n|(?=$))/,
   );
 
   if (!match) {

@@ -1,0 +1,84 @@
+name: BUKLOD Genesis 2.0.5 consolidated JS-only staging RC preflight NO OTA
+on:
+  pull_request:
+    branches:
+      - dev/genesis-godot-launch-recovery-20261123
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '.buklod/scopes/genesis-205-conso-staging-20261123.json'
+      - '.github/workflows/genesis-205-conso-source-qa-20261123.yml'
+permissions:
+  contents: read
+concurrency:
+  group: genesis-205-conso-source-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  android-js-preflight:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'integration/genesis-205-conso-staging-ota-prep-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW: 'true'
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      APK_SOURCE_SHA: 435e071da41c83071f545c9b209acb562863f7d2
+      EXPECTED_CHANNEL: season2-genesis-library-205-preview
+      EXPECTED_RUNTIME: 2.0.5-genesis-godot-launch
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Fail closed on changed Godot/native/config/SDK package since signed 2.0.5 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$APK_SOURCE_SHA^{commit}"
+          git merge-base --is-ancestor "$APK_SOURCE_SHA" HEAD
+          test -z "$(git diff --name-only "$APK_SOURCE_SHA" HEAD -- app.config.js eas.json package.json package-lock.json godot modules plugins android ios assets/season2/arena scripts/build-empire-godot-pack.mjs)"
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const app=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.android.versionCode,17);
+          assert.equal(app.version,'2.0.5');
+          assert.equal(app.runtimeVersion,process.env.EXPECTED_RUNTIME);
+          assert.equal(eas.build['season2-genesis-launch-recovery-staging'].channel,process.env.EXPECTED_CHANNEL);
+          assert.equal(eas.build.production.channel,'production');
+          assert.equal(process.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
+          const scoped=require('./.buklod/scopes/genesis-205-conso-staging-20261123.json');
+          assert.equal(scoped.publicationStatus,'DEV_PREP_NO_OTA');
+          console.log('GENESIS_205_EXACT_NATIVE_SOURCE_COMPATIBLE_NO_PUBLISH');
+          NODE
+      - name: Install locked source dependencies without native scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Test protected call, Wall owner E2E, AdMob, navigation and immutable staging source
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --test             tests/connect-call-feedback-20261123.test.mjs             tests/connect-call-ads-safety-20261123.test.mjs             tests/community-wall-post-owner-e2e.test.mjs             tests/community-wall-scope-privacy-navigation.test.mjs             tests/genesis-205-conso-staging-20261123.test.mjs tests/short-video-comment-navigation-scope.test.mjs             tests/connect-call-end-recovery-20261107.test.mjs             tests/dashboard-ad-navigation-prewarm-20261116.test.mjs             tests/ad-dashboard-focus-performance-20261116.test.mjs             tests/buklod-prod-native-ad-recovery-circuit-20261122.test.cjs             tests/genesis-conso-video-regression-gate-20261122.test.mjs             tests/community-wall-layout-stability-20261122.test.mjs             tests/genesis-entry-ptt-audio-continuity-20261122.test.mjs
+          npm run release:gate
+          npx tsc --noEmit
+      - name: Android 2.0.5 JS Metro export, no EAS token or publishing
+        run: |
+          set -euo pipefail
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/genesis-205-conso-preflight --clear
+          test -s /tmp/genesis-205-conso-preflight/metadata.json
+          echo 'BUKLOD_GENESIS_205_CONSO_SOURCE_QA_PASS__NOT_PUBLISHED'
