@@ -39,8 +39,18 @@ func _ready() -> void:
 	Engine.max_fps = 30
 	_load_backdrop()
 	_create_controls()
+	# Test actual PCK textures and audio when the native world scene initializes.
+	if image_texture == null or image_texture.get_width() < 2 or image_texture.get_height() < 2:
+		push_error("BUKLOD_GENESIS_WORLD_BACKDROP_INVALID: " + world_id)
+		return
+	for cue in ["navigation", "build_start", "build_complete", "claim"]:
+		var stream: AudioStream = WORLD_AUDIO[cue] as AudioStream
+		if stream == null or stream.get_length() <= 0.0:
+			push_error("BUKLOD_GENESIS_WORLD_AUDIO_INVALID: " + cue)
+			return
 	set_process(true)
 	queue_redraw()
+	print("BUKLOD_GENESIS_NATIVE_WORLD_READY:" + world_id)
 
 func _load_backdrop() -> void:
 	# Exported PCKs retain imported Resource references, not raw source WebP bytes.

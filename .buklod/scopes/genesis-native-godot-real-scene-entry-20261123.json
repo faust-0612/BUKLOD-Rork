@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-godot-real-scene-entry-20261123.json",
+  "objective": "Verify exported Godot preview worlds by entering each actual packed WorldPreview scene and validating resource readiness, not synthetic SceneTree shutdown.",
+  "baseRef": "31fceac869a55fe1ea99e4a00ed138e84b3868e1",
+  "productionBaselineEvidence": "Run 45143103559 on SHA 31fceac exported valid PCK and passed Arena; world_smoke exited with 2 resources still in use due synthetic SceneTree script lifecycle. Existing Android compile run 45141648091 passed. MAIN SHA 7b224c39624827282c3cbf003060317045b0a73f source only, no live evidence.",
+  "chosenApproach": "Add image/audio readiness validation to WorldPreview._ready, test each of three exported scenes using --main-pack --scene and --quit-after, fail on any engine ERROR and missing sentinel. Keep Arena battle smoke and source tests.",
+  "selectionRationale": "Real exported scene startup and normal scene-tree teardown tests Android-relevant behavior without false synthetic script resource-retention errors. Preserve strict error gate and resource assertions.",
+  "allowedPaths": [
+    "godot/empire-arena/scripts/world_preview.gd",
+    "native-genesis/prepare-pack-local.sh",
+    "tests/genesis-native-godot-pack-export-20261123.test.mjs",
+    ".github/workflows/genesis-native-gha-godot-pack-20261123.yml",
+    ".buklod/scopes/genesis-native-godot-real-scene-entry-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "kingdom-character",
+      "reason": "Assert complete imported world preview image/audio availability on native scene entry",
+      "preservedBehaviors": [
+        "No economy, ownership, or rewards changes",
+        "No Arena engine changes",
+        "World previews remain preview"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Use actual exported-scene smoke with strict error gate",
+      "preservedBehaviors": [
+        "No APK, signing, upload or OTA",
+        "No production or staging source changes"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "Godot packed scene launch commandline parse",
+    "Headless imported resource validity",
+    "CI minute consumption",
+    "Native Android device still unverified"
+  ],
+  "preserveBehaviors": [
+    "Production MAIN and staging untouched",
+    "No Expo/EAS/Vercel",
+    "Release gate stays closed"
+  ],
+  "acceptanceChecks": [
+    "Node tests pass",
+    "Genuine GDPC PCK and Arena smoke pass",
+    "Three packed world scenes emit resource-ready status without ERROR",
+    "SHA emitted after all smoke tests"
+  ],
+  "alternativeApproaches": [
+    "Rejected: suppress Godot errors",
+    "Rejected: source-only previews without real pack launch"
+  ],
+  "releaseMode": "DEV_GODOT_PACK_REAL_WORLD_SCENES_ONLY",
+  "publicationStatus": "GITHUB_QA_PENDING",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

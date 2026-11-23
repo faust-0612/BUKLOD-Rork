@@ -57,15 +57,27 @@ if ! bounded "$GODOT" --headless --main-pack "$TMP/empire-arena.pck" --quit-afte
 fi
 check_log "$TMP/arena.log"
 grep -F 'BUKLOD_GODOT_ARENA_SCENE_READY' "$TMP/arena.log"
-for target in "smoke.gd|BUKLOD_GODOT_SMOKE_PASS" "world_smoke.gd|BUKLOD_GENESIS_GODOT_WORLDS_PASS"; do
-  script="$(printf '%s' "$target" | cut -d'|' -f1)"
-  sentinel="$(printf '%s' "$target" | cut -d'|' -f2)"
-  if ! bounded "$GODOT" --headless --main-pack "$TMP/empire-arena.pck" --script "res://tests/$script" > "$TMP/$script.log" 2>&1; then
-    cat "$TMP/$script.log"; exit 1
+# Existing Arena packed simulation smoke continues to assert 13 heroes and combat.
+if ! bounded "$GODOT" --headless --main-pack "$TMP/empire-arena.pck" --script "res://tests/smoke.gd" > "$TMP/smoke.gd.log" 2>&1; then
+  cat "$TMP/smoke.gd.log"; exit 1
+fi
+check_log "$TMP/smoke.gd.log"
+grep -F "BUKLOD_GODOT_SMOKE_PASS" "$TMP/smoke.gd.log"
+# Enter real exported world scenes as Android does, not a synthetic SceneTree
+# script retaining imported audio/texture resources on immediate CLI exit.
+for world in kingdom community house; do
+  if ! bounded "$GODOT" --headless --main-pack "$TMP/empire-arena.pck" \
+      --scene "res://scenes/WorldPreview.tscn" --quit-after 20 -- "--buklod-world=$world" > "$TMP/$world.scene.log" 2>&1; then
+    cat "$TMP/$world.scene.log"; exit 1
   fi
-  check_log "$TMP/$script.log"
-  grep -F "$sentinel" "$TMP/$script.log"
+  check_log "$TMP/$world.scene.log"
+  grep -F "BUKLOD_GENESIS_NATIVE_WORLD_READY:$world" "$TMP/$world.scene.log" || {
+    cat "$TMP/$world.scene.log"
+    echo "BLOCK: packed $world scene did not validate art/audio" >&2
+    exit 1
+  }
 done
+echo "BUKLOD_GENESIS_GODOT_WORLDS_PASS: all three exported scenes verified"
 cp "$TMP/empire-arena.pck" "$DEST/empire-arena.pck"
 sha256sum "$DEST/empire-arena.pck" | awk '{print $1}' > "$DEST/empire-arena.sha256"
 python3 - "$DEST" <<'PY'

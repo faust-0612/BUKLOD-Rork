@@ -53,3 +53,15 @@ test('All three backdrops and four audio cues survive genuine PCK export as impo
  assert.doesNotMatch(smoke,/\n\s*quit\(0\)/);
  for(const c of [gd,smoke])assert.doesNotMatch(c,/Image\.load_from_file|AudioStreamWAV\.load_from_file/);
 });
+
+test('native Godot world scene-entry verification checks imported art/audio before signalling readiness',()=>{
+ const gd=readFileSync(new URL('../godot/empire-arena/scripts/world_preview.gd',import.meta.url),'utf8');
+ assert.ok(gd.includes('BUKLOD_GENESIS_WORLD_BACKDROP_INVALID'));
+ assert.ok(gd.includes('BUKLOD_GENESIS_WORLD_AUDIO_INVALID'));
+ assert.ok(gd.includes('BUKLOD_GENESIS_NATIVE_WORLD_READY:'));
+ assert.ok(gd.indexOf('BUKLOD_GENESIS_NATIVE_WORLD_READY:')>gd.indexOf('BUKLOD_GENESIS_WORLD_AUDIO_INVALID'));
+ assert.ok(script.includes('--scene "res://scenes/WorldPreview.tscn"'));
+ assert.ok(script.includes('for world in kingdom community house'));
+ assert.ok(script.includes('check_log "$TMP/$world.scene.log"'));
+ assert.ok(!script.includes('--script "res://tests/world_smoke.gd"'));
+});
