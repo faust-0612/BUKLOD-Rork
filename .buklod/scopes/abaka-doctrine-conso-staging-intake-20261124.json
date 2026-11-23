@@ -1,0 +1,78 @@
+{
+  "contractVersion": 2,
+  "objective": "Intake the completed ABaKa continuing doctrinal catalog, reviewed admin authoring, tier-based BP and protected verified progress into Genesis consolidated staging source only.",
+  "baseRef": "integration/genesis-205-conso-staging-ota-prep-20261123",
+  "productionBaselineEvidence": "verified: 2026-11-24 compared current GitHub main 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 with existing Genesis staging source 77a4599a20d1833c94d3a1837d9f1d350fe58bd9. Live installed Android runtime and exact staged OTA have not been proved from these source refs. MAIN Supabase yhanxndaqbmuzbdqlblu shares production data and must remain read-only.",
+  "chosenApproach": "Use the existing Genesis themed ABaKa directory rather than overwrite it with Main UI; import the vetted Main doctrinal progression, private backend grading, and isolated editor/publisher RPCs via new staged migrations.",
+  "selectionRationale": "This keeps the running Season 2 UI, navigation and native/ads source while enabling a server-owned unbounded authored catalog and preserving completed legacy A–Z reward records.",
+  "alternativeApproaches": [
+    "Replace Genesis ABaKa with the old Main list screen (rejected because it would regress Genesis identity, consent, navigation and curated design).",
+    "Send new graded lessons to the existing live shared Supabase (rejected because it mutates production and breaches staging isolation)."
+  ],
+  "riskAreas": [
+    "backend-security",
+    "app-runtime",
+    "education",
+    "points",
+    "staging-only"
+  ],
+  "preserveBehaviors": [
+    "Existing Genesis church navigation, opt-out, compliance, maintenance and signed-in route gates remain active.",
+    "Bundled ABaKa A–Z uses the original completion RPC and offline retry, historical credits and manual BUKLOD Points claiming.",
+    "New published lessons use a separate RPC with server-side tier, quiz, reflection, prerequisite, daily cap and one unique ledger record per lesson.",
+    "Ads first view, tab navigation, call/notification/native sources, Godot and all unrelated Season 2 files remain untouched.",
+    "Admin RPCs require system-admin authorization; unpublished drafts/private answer keys are never given to members or anon."
+  ],
+  "allowedPaths": [
+    "src/data/faith/abcLessons.ts",
+    "src/data/faith/abcDoctrinalCatalog.ts",
+    "src/app/faith/abc/index.tsx",
+    "src/app/faith/abc/[lessonId].tsx",
+    "src/app/faith/abc/admin.tsx",
+    "supabase/migrations/20261124005500_abaka_continuing_doctrine_rewards.sql",
+    "supabase/migrations/20261124020500_abaka_doctrine_admin_authoring.sql",
+    "supabase/tests/abaka_doctrine_rewards_security_20261124.sql",
+    "supabase/tests/abaka_doctrine_admin_authoring_20261124.sql",
+    "tests/abaka-doctrine-catalog.test.cjs",
+    "tests/abaka-doctrine-genesis-integration-20261124.test.cjs",
+    "docs/faith/abaka-continuing-doctrine-20261124.md",
+    ".buklod/releases/abaka-doctrine-conso-staging-intake-20261124.json",
+    ".buklod/scopes/abaka-doctrine-conso-staging-intake-20261124.json"
+  ],
+  "regressionTests": [
+    "tests/abaka-doctrine-catalog.test.cjs",
+    "tests/abaka-doctrine-genesis-integration-20261124.test.cjs",
+    "supabase/tests/abaka_doctrine_rewards_security_20261124.sql",
+    "supabase/tests/abaka_doctrine_admin_authoring_20261124.sql"
+  ],
+  "acceptanceChecks": [
+    "TypeScript compile full Genesis integration source and run two ABaKa focused Node contract suites.",
+    "Apply SQL migrations in isolated paid-confirmed staging Supabase, never shared MAIN, then execute both security contract SQL tests, adversarial member/admin checks, concurrency and claim tests.",
+    "Check published-only RLS/answer key privacy and editor-generated draft -> approved publication -> reader unlock -> manually claimed points.",
+    "Reconcile all incoming MAIN and approved staging DEV changes into exact RC source and validate app-wide AdMob/nav/spacing regression blockers.",
+    "Publish to staging only against verified installed Android runtime/native package and provider readback. Production and Play remain held."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "The Genesis ABaKa church-facing directory and detail page are extended for an open-ended doctrine catalog, staged administrator publishing and verified tier rewards.",
+      "preservedBehaviors": [
+        "Keep existing Genesis opt-out, compliance, family-safe route, offline bundled lessons, account-isolated progress, Android ads and nav behavior."
+      ],
+      "tests": [
+        "tests/abaka-doctrine-genesis-integration-20261124.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add a private answer key, staged role-checked admin draft/publish RPCs, secure progress verification and points-ledger idempotence.",
+      "preservedBehaviors": [
+        "Retain old ABC RPC, RLS and ledger uniqueness; prevent client publication and never backfill historical credits."
+      ],
+      "tests": [
+        "supabase/tests/abaka_doctrine_rewards_security_20261124.sql",
+        "supabase/tests/abaka_doctrine_admin_authoring_20261124.sql"
+      ]
+    }
+  ]
+}

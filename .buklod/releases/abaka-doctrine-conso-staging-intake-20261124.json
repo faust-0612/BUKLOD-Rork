@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "kind": "BUKLOD_ABAKA_DOCTRINE_GENESIS_CONSO_STAGING_INTAKE",
+  "status": "DEV_SOURCE_INTEGRATION_QA_AND_BACKEND_RELEASE_HOLD",
+  "date": "2026-11-24",
+  "baseline": {
+    "stageBranch": "integration/genesis-205-conso-staging-ota-prep-20261123",
+    "stageSha": "77a4599a20d1833c94d3a1837d9f1d350fe58bd9",
+    "mainSha": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04"
+  },
+  "featureSource": {
+    "devPr": 1155,
+    "devHead": "3705db282f8f717feee45f2818ea6daf7aacbda1",
+    "newAdminStudio": true,
+    "genesisDirectoryPreserved": true
+  },
+  "content": {
+    "initialPublishedDoctrineLessons": 4,
+    "continuing": true,
+    "adminDraftApprovalRequired": true,
+    "offlineCachedReading": true
+  },
+  "rewardPolicy": {
+    "foundation": 8,
+    "intermediate": 12,
+    "advanced": 18,
+    "deep": 25,
+    "continuingDoctrineDailyLimit": 50,
+    "manualClaim": true,
+    "noRetroactiveCredits": true
+  },
+  "requiredForStagingOTA": [
+    "Isolated staging Supabase must be established with explicit cost approval; never apply migrations to live yhanxndaqbmuzbdqlblu.",
+    "Migrations must pass RLS, private quiz, admin authorization, ledger and concurrency tests on exact isolated staging.",
+    "Verify exact signed staging APK native/runtime compatibility and relevant stage profile, not old R4 runtime.",
+    "Reconcile approved MAIN DEV/RC changes and pass exact source SHA, AdMob first-view and tab-navigation gates.",
+    "Verify staged EAS update ID, JS bundle hash and provider readback on staging channel before publication can be claimed."
+  ],
+  "productionHold": {
+    "season2ProductionProhibited": true,
+    "anyProductionAnnouncement": false,
+    "productionBackendUnchanged": true
+  },
+  "noPublish": true
+}
