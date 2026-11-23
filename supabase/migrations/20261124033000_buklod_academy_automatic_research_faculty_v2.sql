@@ -147,3 +147,34 @@ begin
 end;$$;
 revoke all on function public.buklod_academy_my_research_v2(integer) from public,anon;
 grant execute on function public.buklod_academy_my_research_v2(integer) to authenticated;
+
+-- Bounded AI spend per authenticated learner. Reserve requests transactionally.
+create table if not exists public.buklod_academy_ai_usage (
+ id uuid primary key default gen_random_uuid(),
+ user_id uuid not null references auth.users(id) on delete cascade,
+ action text not null check(action in ('review','coach')),
+ created_at timestamptz not null default now()
+);
+create index if not exists buklod_academy_ai_usage_idx on public.buklod_academy_ai_usage(user_id,action,created_at desc);
+alter table public.buklod_academy_ai_usage enable row level security;
+revoke all on public.buklod_academy_ai_usage from anon,authenticated;
+
+create or replace function public.buklod_academy_reserve_ai_request_v2(p_user uuid,p_action text)
+returns boolean language plpgsql security definer set search_path='' as $$
+declare max_requests integer; current_requests integer;
+begin
+ if (select auth.role()) <> 'service_role' then
+  raise exception 'Trusted reviewer required' using errcode='42501';
+ end if;
+ if p_user is null or p_action not in ('review','coach') then return false;end if;
+ max_requests:=case when p_action='review' then 12 else 8 end;
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_user::text||':'||p_action));
+ select count(*)::integer into current_requests
+ from public.buklod_academy_ai_usage
+ where user_id=p_user and action=p_action and created_at>now()-interval '1 hour';
+ if current_requests>=max_requests then return false;end if;
+ insert into public.buklod_academy_ai_usage(user_id,action) values(p_user,p_action);
+ return true;
+end;$$;
+revoke all on function public.buklod_academy_reserve_ai_request_v2(uuid,text) from public,anon,authenticated;
+grant execute on function public.buklod_academy_reserve_ai_request_v2(uuid,text) to service_role;
