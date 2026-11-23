@@ -76,7 +76,67 @@ begin
  if p_photo_storage_path is null or
     pg_catalog.left(p_photo_storage_path,char_length(v_user::text)+1)<>v_user::text||'/' or
     p_photo_storage_path like '%..%' or
-    lower(p_photo_storage_path) !~ '\\.(jpg|jpeg|png|webp)$' then
+    lower(p_photo_storage_path) !~ '\.(jpg|jpeg|png|webp) then
+   raise exception 'Upload a private JPEG/PNG/WebP evidence photo first';
+ end if;
+ if not exists(select 1 from storage.objects o
+   where o.bucket_id='buklod-children-teaching-evidence'
+     and o.name=p_photo_storage_path) then
+   raise exception 'Private evidence photo not found';
+ end if;
+ perform pg_catalog.pg_advisory_xact_lock(
+   pg_catalog.hashtext('buklod-children-teaching-v4'),
+   pg_catalog.hashtext(v_user::text));
+ select s.id into v_id from public.buklod_child_teaching_sessions_v4 s
+ where s.user_id=v_user and s.story_id=p_story_id and
+   s.taught_on=p_taught_on and s.audience_kind=p_audience_kind;
+ if v_id is not null then
+   return jsonb_build_object('status','already_approved','awarded_points',0,
+                             'session_id',v_id);
+ end if;
+ select count(*)::integer into v_count
+ from public.buklod_child_teaching_sessions_v4 s
+ where s.user_id=v_user and (s.created_at at time zone 'Asia/Manila')::date=v_day;
+ select count(*)::integer into v_week_count
+ from public.buklod_child_teaching_sessions_v4 s
+ where s.user_id=v_user and
+ (s.created_at at time zone 'Asia/Manila')::date>=
+ date_trunc('week',now() at time zone 'Asia/Manila')::date;
+ if v_count>=2 or v_week_count>=7 then
+   return jsonb_build_object('status','reward_limit','awarded_points',0);
+ end if;
+ select base_points into v_pts from public.buklod_point_rules
+ where activity_type='child_teaching_session' and is_active=true
+ and base_points=10 and max_points_per_event>=10;
+ if v_pts is null then
+   return jsonb_build_object('status','rule_unavailable','awarded_points',0);
+ end if;
+ insert into public.buklod_child_teaching_sessions_v4(
+    user_id,story_id,audience_kind,audience_description,taught_on,
+    growth_narrative,photo_storage_path,consent_attested)
+ values(v_user,p_story_id,p_audience_kind,pg_catalog.btrim(p_audience_description),
+        p_taught_on,pg_catalog.btrim(p_growth_narrative),p_photo_storage_path,true)
+ returning id into v_id;
+ insert into public.buklod_points_ledger(
+ user_id,direction,points,activity_type,source_key,source_id,description)
+ values(v_user,'credit',v_pts,'child_teaching_session',
+        'child_teaching:v4:'||v_id::text,v_id,'Verified children story teaching session')
+ on conflict(user_id,source_key) do nothing returning id into v_ledger_id;
+ if v_ledger_id is null then raise exception 'Could not mint verified teaching reward'; end if;
+ return jsonb_build_object('status','approved','session_id',v_id,
+                           'awarded_points',v_pts,'claim_state','pending');
+end;
+$teach$;
+revoke all on function public.submit_my_child_teaching_v4(
+ text,text,text,date,text,text,boolean) from public,anon,authenticated;
+grant execute on function public.submit_my_child_teaching_v4(
+ text,text,text,date,text,text,boolean) to authenticated;
+update public.buklod_point_rules
+set is_active=true,updated_at=now()
+where activity_type='child_teaching_session' and base_points=10;
+comment on table public.buklod_child_teaching_sessions_v4 is
+ 'Private photo evidence and adult growth reflection, no child names or public media; approved by server completeness checks.';
+ then
    raise exception 'Upload a private JPEG/PNG/WebP evidence photo first';
  end if;
  if not exists(select 1 from storage.objects o
