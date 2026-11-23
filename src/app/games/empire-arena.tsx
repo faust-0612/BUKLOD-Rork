@@ -36,6 +36,7 @@ import { ArenaTerrainArt } from '@/features/games/empire/ArenaTerrainArt';
 import { ArenaBaseArt } from '@/features/games/empire/ArenaBaseArt';
 import { setArenaVoiceFocus, playArenaVoiceAnnouncements, stopArenaVoiceAnnouncements } from '@/features/games/empire/ArenaVoiceRuntime';
 import { ArenaStructureArt, ArenaWildlifeArt, ArenaResourceLootArt } from '@/features/games/empire/ArenaWorldArt';
+import { ArenaMinionArt } from '@/features/games/empire/ArenaMinionArt';
 import { ArenaCombatHud, type ArenaHudKey, type ArenaHudLayout, type HudPoint, type CombatAction } from '@/features/games/empire/ArenaCombatHud';
 // @ts-ignore — pure, versioned, per-device preferences. Never a source of Arena game authority.
 import { ARENA_HUD_DEFAULT, sanitizeArenaHudLayout, serializeArenaHudLayout } from '@/features/games/empire/arenaHudLayout.mjs';
@@ -61,6 +62,7 @@ type Mode = 'duel' | 'cluster' | 'grand';
 type Team = 'A' | 'B';
 type Position = { x: number; y: number };
 type Actor = Position & { id: string; team?: Team | null; hp: number; maxHp: number; alive?: boolean; hero?: string; kind?: string; matchLevel?: number; mana?: number; maxMana?: number; bag?: Record<string, number>; stock?: number; itemMastery?: number; cooldowns?: Record<'primary' | 'secondary' | 'ultimate', number>; gear?: Record<string, unknown>; lastMoveTick?: number; lastAttacked?: number };
+type MinionActor = Actor & {team:Team;kind:string;attackAt?:number;healAt?:number;deathAt?:number;shield?:number};
 type ArenaState = {
   w: number; h: number; status: string; elapsed: number; tick: number; mode?: Mode; kind?: string;
   solo?: { difficulty: string; round: number; wins: Record<Team, number>; draws: number;
@@ -68,7 +70,7 @@ type ArenaState = {
     opponent: string; playerHero: string; };
   map: { lanes: number[]; colors: string[] };
   players: Record<string, Actor>;
-  towers: Actor[]; units: Actor[]; creatures: Actor[]; buildings: Actor[];
+  towers: Actor[]; units: Actor[]; minions?: MinionActor[]; creatures: Actor[]; buildings: Actor[];
   nodes: (Position & { id: string; type: string; stock: number })[];
   loot: (Position & { id: string; expires?: number })[];
   teams: Record<Team, { resources: { wood: number; gold: number; stone: number }; kills: number }>;
@@ -82,6 +84,7 @@ type OfflinePracticeSetup = {
   mode: Mode;
   mapId: ArenaSceneId;
   hero: BuklodCharacterId;
+  minionWaves?: boolean;
   snapshot: { characterLevel: number; bpEligibleLevel: number; itemVerifiedLevel: number; diamonds: number; verifiedItems: string[] };
 };
 const createArenaPractice = createPractice as unknown as (options: OfflinePracticeSetup) => ArenaState;
@@ -194,6 +197,8 @@ function ArenaField({ state, sceneId, art, generatedArt, selectedId, onTarget, i
         seals={state.seals} localTeam={localTeam} /> : null}
       <ArenaStructureArt towers={state.towers} buildings={state.buildings} elapsed={state.elapsed} />
       <ArenaWildlifeArt creatures={state.creatures} elapsed={state.elapsed} />
+      <ArenaMinionArt minions={state.minions||[]} elapsed={state.elapsed} localTeam={localTeam}
+        view={{x:camera.x,y:camera.y,width:camera.width,height:camera.height}} />
       {state.units.map(u => <ActorMark key={u.id} actor={u} friendly={u.team === localTeam} />)}
       {Object.values(state.players).map(p => <G key={p.id} onPress={() => { if (p.id !== localSeat) onTarget(p.id); }}>
         <ActorMark actor={p} friendly={p.team === localTeam} selected={p.id === selectedId || p.id === localSeat} />
@@ -436,7 +441,7 @@ function EmpireArenaInApp() {
     // Server-owned Diamond/item eligibility is NOT simulated with fabricated user data.
     // Level-1 equalized offline practice is separate from permanent profile progression.
     const state = createArenaPractice({
-      mode, mapId, hero,
+      mode, mapId, hero, minionWaves:true,
       snapshot: { characterLevel: 1, bpEligibleLevel: 1, itemVerifiedLevel: 1, diamonds: 0, verifiedItems: [] },
     });
     gameRef.current = state;

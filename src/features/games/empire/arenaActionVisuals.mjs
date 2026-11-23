@@ -2,15 +2,15 @@
  * This is an entirely visual event adapter (does not change gameplay).
  */
 export const ARENA_EFFECT_KIND=Object.freeze({
- damage:'hit',unit_hit:'hit',tower_hit:'hit',boss_hit:'hit',
- defeat:'death',unit_ko:'death',tower_ko:'death',trap_ko:'death',
+ damage:'hit',unit_hit:'hit',tower_hit:'hit',boss_hit:'hit',minion_hit:'hit',minion_siege_hit:'hit',
+ defeat:'death',unit_ko:'death',minion_ko:'death',tower_ko:'death',trap_ko:'death',
  boss_ko:'death',hazard_ko:'death',storm_defeat:'death',
  skill:'ability',dash:'dash',tower_destroyed:'tower_break',
  building_destroyed:'building_break',seal_breached:'seal_break',
  seal_restored:'seal_restore',tower_upgrade:'upgrade',
  tower_upgrade_start:'build',tower_repair:'repair',villager_repair:'repair',
  construction_start:'build',construction_complete:'built',rebuild_start:'build',
- buff:'buff',equipment_drop:'loot',loot:'loot',item_consumed:'item',
+ buff:'buff',minion_heal:'buff',minion_wave:'buff',equipment_drop:'loot',loot:'loot',item_consumed:'item',
  equipment_equip:'item',mine:'mining',map_hazard:'hazard',trap_hit:'trap',
  level_up:'level_up',boss_defeat:'boss_down',solo_round_end:'round',
 });
@@ -19,7 +19,7 @@ const finite=(n)=>typeof n==='number'&&Number.isFinite(n);
 function locate(state,id){
   if(typeof id!=='string')return null;
   const player=state?.players?.[id];if(player)return player;
-  for(const key of ['towers','buildings','units','creatures','nodes','loot']) {
+  for(const key of ['towers','buildings','units','minions','creatures','nodes','loot']) {
     const found=state?.[key]?.find?.(a=>a.id===id);
     if(found)return found;
   }

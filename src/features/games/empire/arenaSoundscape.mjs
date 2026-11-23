@@ -8,6 +8,11 @@
  */
 export const ARENA_SOUND_CUE = Object.freeze({
   impact:         {sound:'build_hit', rate:1.05,volume:.20,priority:1,cooldown:165},
+  minion_wave:    {sound:'enter',rate:.90,volume:.14,priority:1,cooldown:6500},
+  minion_clash:   {sound:'beat_hit',rate:1.30,volume:.11,priority:1,cooldown:1000},
+  minion_mend:    {sound:'pickup',rate:1.21,volume:.13,priority:1,cooldown:2100},
+  minion_siege:   {sound:'build_hit',rate:.75,volume:.24,priority:2,cooldown:2200},
+  minion_down:    {sound:'beat_hit',rate:.83,volume:.13,priority:1,cooldown:1500},
   skill:          {sound:'unlock', rate:1.08,volume:.29,priority:2,cooldown:200},
   dash:           {sound:'ui_tap',rate:1.10,volume:.16,priority:1,cooldown:550},
   ally_down:      {sound:'retry',rate:.88,volume:.43,priority:6,cooldown:100},
@@ -64,7 +69,7 @@ const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const typeOf=e=>typeof e?.type==='string'?e.type:'';
 const playerTeam=(id,ctx)=>{
   if(typeof id!=='string')return null;
-  const p=ctx.players?.[id] ?? ctx.units?.find?.(u=>u.id===id) ??
+  const p=ctx.players?.[id] ?? ctx.minions?.find?.(u=>u.id===id) ?? ctx.units?.find?.(u=>u.id===id) ??
     ctx.towers?.find?.(t=>t.id===id) ?? ctx.buildings?.find?.(b=>b.id===id);
   if(p?.team==='A'||p?.team==='B')return p.team;
   // Canonical Arena seating is A0..A4/B0..B4. Never infer team from arbitrary IDs.
@@ -108,6 +113,14 @@ function cueFor(e,ctx){
   if(type==='both_seals_breached')return key('final_hunt');
   if(type==='seal_restored')return ownsEvent?'seal_restored':null;
   if(type==='final_hunt')return 'final_hunt';
+  if(type==='minion_wave')return 'minion_wave';
+  if(type==='minion_ko')return target===seat?'self_down':e.team===own?'minion_down':null;
+  if(type==='minion_siege_hit')return e.team===own?'minion_siege':null;
+  if(type==='minion_hit'||type==='minion_heal'){
+    const player=ctx.players?.[seat];
+    const near=player&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Math.hypot(player.x-e.x,player.y-e.y)<12;
+    return near?type==='minion_heal'&&e.team===own?'minion_mend':type==='minion_hit'?'minion_clash':null:null;
+  }
   if(type==='damage'||type==='unit_hit'||type==='tower_hit'||type==='boss_hit')return ownAction||target===seat?'impact':null;
   if(type==='skill')return ownAction?'skill':null;
   if(type==='dash')return ownAction?'dash':null;
@@ -136,7 +149,7 @@ function cueFor(e,ctx){
 }
 export function arenaCueForEvent(event,context={}) {
   if(!event||typeof event!=='object')return null;
-  const ctx={team:'A',seat:'A0',players:{},units:[],...context};
+  const ctx={team:'A',seat:'A0',players:{},units:[],minions:[],...context};
   const id=cueFor(event,ctx);
   return id?Object.freeze({id,...ARENA_SOUND_CUE[id]}):null;
 }
@@ -165,7 +178,7 @@ export function drainArenaSoundscape(events,previousSeq,currentSeq,context={},li
   return {lastSeq:end,cues:selected};
 }
 export const ARENA_VISUAL_EVENT_TYPES=Object.freeze(new Set([
-  'damage','defeat','unit_ko','tower_ko','boss_ko','trap_ko','storm_defeat','tower_destroyed','building_destroyed',
+  'damage','defeat','unit_ko','minion_hit','minion_siege_hit','minion_ko','minion_heal','minion_wave','tower_ko','boss_ko','trap_ko','storm_defeat','tower_destroyed','building_destroyed',
   'seal_breached','seal_restored','construction_start','construction_complete',
   'tower_upgrade_start','tower_upgrade','tower_repair','villager_repair',
   'equipment_drop','equipment_equip','loot','item_consumed','buff',
