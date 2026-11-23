@@ -1,0 +1,97 @@
+{
+  "contractVersion": 2,
+  "objective": "Make BUKLOD Main Wall music picker compact, scrub immediately and smoothly, confirm clip in-place and allow independent original-video/music volume together without changing media file or sponsored ads.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "GitHub main source SHA 7b224c39624827282c3cbf003060317045b0a73f inspected and isolated on dev/wall-music-scrub-mix-20261123. This is source ancestry only, NOT verified on-device, live Supabase migration, released RC or OTA. Existing production, ads, points, privacy and all other features left untouched.",
+  "chosenApproach": "Rebalance the height of the existing picker; render drag position locally and queue bounded seeks while dragging, commit segment only on release and approve with fixed footer action. Use one existing shared expo-audio Wall player and existing expo-video player; mix outputs with independent 0..1 volumes, lazily mount composer video preview, persist two nullable per-post columns under original post-creative RLS; legacy null volumes fall back to 100%. Preserve Marites picker with optional props. No new native package or transcoding.",
+  "selectionRationale": "Separate streamed catalog music and original video audio avoids duplicate uploads or native package rebuild, limits memory use and preserves approved songs, media authorization, fixed 30-second clip, offscreen pause, ads and playback resource ownership.",
+  "alternativeApproaches": [
+    "Server-side transcoding of merged MP4 per post (rejected due cost, storage and rights)",
+    "Rendering video/music players for every offscreen feed card (rejected due bandwidth, device and audio focus)",
+    "Rewriting feed/video engine or replacing audio focus manager (rejected due ad, fullscreen and PTT regression risk)"
+  ],
+  "acceptanceChecks": [
+    "Bottom song list remains visibly larger and row preview selection does not exit picker",
+    "Dragging updates local waveform instantly and requests bounded seeks while the 30s loop plays; exact segment saved on release",
+    "Use this 30s segment confirms directly from the editor without reselecting track",
+    "Composer independent music/video volume controls can produce concurrent audible output without re-encoding original video",
+    "Post and fullscreen use stored nullable volumes; existing posts with null volumes still play unchanged",
+    "No audio continuing after post scroll-away, tab blur, new video/ad slide, preview close or failed URL",
+    "Existing Marites picker still compiles without new props",
+    "New nullable columns must be applied/verified on authorized Supabase BEFORE any client querying them; no direct production application",
+    "Focused tests, full TS/Android/Expo compile, ads/PTT/navigation regression and on-device verification required before RC and OTA"
+  ],
+  "preserveBehaviors": [
+    "Audience-scoped post visibility, author-only creative writes and Supabase RLS policies unchanged; no arbitrary audio upload",
+    "One shared Wall music player, signed music URL caching, 30s clip timing, weak-network cleanup and strict offscreen lifecycle",
+    "Unmodified paid and AdMob ad rendering, IMA playback, first-view fill, scroll/route instant navigation and sponsorship eligibility",
+    "PTT, DZAS radio, calls, Marites full-view-only soundtrack and existing audio focus ownership preserved",
+    "Existing historical posts/media, rank, points, payouts and legacy nullable music data remain valid",
+    "Production source/OTA and runtime versions unchanged; migrations never applied by source branch"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/wall-music-mixer-scrub-20261123.test.mjs",
+    "tests/wall-music-security-navigation-20261123.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodPostMusicPicker.tsx",
+    "src/components/BuklodMusicClipTimeline.tsx",
+    "src/components/BuklodMusicVideoMixPreview.tsx",
+    "src/lib/buklodPostCreatives.ts",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/CommunityVideo.tsx",
+    "src/components/CommunityVideo.web.tsx",
+    "supabase/migrations/20261123133500_buklod_post_audio_mix_v1_20261123.sql",
+    "tests/wall-music-mixer-scrub-20261123.test.mjs",
+    "tests/wall-music-security-navigation-20261123.test.mjs",
+    ".buklod/scopes/wall-music-live-mix-20261123.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared React Native/Expo composer and player change to make accessible audio mixing and clip UX work.",
+      "preservedBehaviors": [
+        "Native and web app runtime and existing signed media playback remain backwards compatible."
+      ],
+      "tests": [
+        "tests/wall-music-mixer-scrub-20261123.test.mjs",
+        "tests/wall-music-security-navigation-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Modify Wall music picker/timeline and video player volumes without changing paid media or uploader contracts.",
+      "preservedBehaviors": [
+        "Post media, IMA ads, fullscreen player, signed URLs and offscreen pause contracts preserved."
+      ],
+      "tests": [
+        "tests/wall-music-mixer-scrub-20261123.test.mjs",
+        "tests/wall-music-security-navigation-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Wall tab source handles fullscreen soundtrack ownership and stops clip on view or tab changes.",
+      "preservedBehaviors": [
+        "Tab navigation, authentication, post audience scope and on-blur resource cleanup preserved."
+      ],
+      "tests": [
+        "tests/wall-music-security-navigation-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add optional author-owned per-post numeric balance metadata to existing access-controlled creative schema.",
+      "preservedBehaviors": [
+        "Existing RLS and ownership permissions stay unchanged, with numeric constraints and historical compatibility."
+      ],
+      "tests": [
+        "tests/wall-music-security-navigation-20261123.test.mjs"
+      ]
+    }
+  ]
+}
