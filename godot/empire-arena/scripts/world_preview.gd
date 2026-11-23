@@ -37,8 +37,13 @@ func _ready() -> void:
 	queue_redraw()
 
 func _load_backdrop() -> void:
-	var bitmap: Image = Image.load_from_file(str(WORLD_ART[world_id]))
-	if bitmap != null and not bitmap.is_empty():
+	# Godot main ZIP contains original WebP bytes, not imported .ctex files.
+	# Decode that verified bundled source explicitly on Android.
+	var webp_bytes: PackedByteArray = FileAccess.get_file_as_bytes(str(WORLD_ART[world_id]))
+	if webp_bytes.is_empty():
+		return
+	var bitmap: Image = Image.new()
+	if bitmap.load_webp_from_buffer(webp_bytes) == OK and not bitmap.is_empty():
 		image_texture = ImageTexture.create_from_image(bitmap)
 
 func _create_controls() -> void:

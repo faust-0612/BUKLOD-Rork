@@ -42,19 +42,19 @@ func notify(message: String) -> void:
 	if event_messages.size() > 3: event_messages.pop_back()
 	queue_redraw()
 
-func _text(at: Vector2, value: String, size: int = 18, color: Color = Color.WHITE) -> void:
+func _text(at: Vector2, value: String, size: int = 20, color: Color = Color.WHITE) -> void:
 	draw_string(ThemeDB.fallback_font, at, value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 
 func _panel(rect: Rect2, label: String, fill: Color = Color(0.06, 0.16, 0.23, 0.86)) -> void:
 	draw_rect(rect, fill, true)
 	draw_rect(rect, Color(0.65, 0.92, 0.83, 0.6), false, 1.0)
-	_text(rect.position + Vector2(12, rect.size.y * 0.67), label, 17, Color(0.94, 0.99, 0.94))
+	_text(rect.position + Vector2(12, rect.size.y * 0.67), label, 20, Color(0.94, 0.99, 0.94))
 
 func _button_at(x: float, y: float, label: String, radius: float = 29.0,
 		fill: Color = Color(0.11, 0.28, 0.37, 0.87)) -> void:
 	draw_circle(Vector2(x, y), radius, fill)
 	draw_arc(Vector2(x, y), radius, 0, TAU, 40, Color(0.5, 0.95, 0.8, 0.9), 2.0)
-	_text(Vector2(x - 23, y + 6), label, 15)
+	_text(Vector2(x - 23, y + 7), label, 19)
 
 func _draw() -> void:
 	var w: float = size.x
@@ -63,7 +63,7 @@ func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.05, 0.11, 0.9))
 		draw_circle(Vector2(w * 0.5, h * 0.38), minf(w, h) * 0.43, Color(0.17, 0.3, 0.49, 0.27))
 		_text(Vector2(w * 0.13, h * 0.13), "BUKLOD EMPIRE ARENA  •  GODOT 4", 24, Color(0.96, 0.84, 0.48))
-		_text(Vector2(w * 0.13, h * 0.20), "NATIVE OFFLINE GAMEPLAY • NO BP / DIAMOND / RANKED REWARDS", 12, Color(0.63, 0.88, 0.85))
+		_text(Vector2(w * 0.13, h * 0.20), "NATIVE OFFLINE GAMEPLAY • NO BP / DIAMOND / RANKED REWARDS", 17, Color(0.63, 0.88, 0.85))
 		_panel(Rect2(w * 0.13, h * 0.27, w * 0.33, 43), "<   HERO: " + HEROES[hero_index].to_upper() + "   >")
 		_panel(Rect2(w * 0.54, h * 0.27, w * 0.33, 43), "<   CPU: " + HEROES[foe_index].to_upper() + "   >")
 		_panel(Rect2(w * 0.13, h * 0.43, w * 0.33, 43), "<   MAP: " + MAPS[map_index].replace("_", " ").to_upper() + "   >")
@@ -77,22 +77,22 @@ func _draw() -> void:
 	var max_hp: float = maxf(1, float(p.get("max_hp", 1)))
 	var mana: float = float(p.get("mana", 0))
 	var max_mana: float = maxf(1, float(p.get("max_mana", 1)))
-	_panel(Rect2(10, 8, 76, 34), "EXIT")
-	_panel(Rect2(91, 8, 77, 34), "PAUSE" if not paused else "PLAY")
-	draw_rect(Rect2(180, 10, 192, 12), Color(0.23, 0.17, 0.22, 0.86))
-	draw_rect(Rect2(180, 10, 192 * clampf(hp / max_hp, 0, 1), 12), Color(0.34, 0.92, 0.58))
-	draw_rect(Rect2(180, 26, 192, 9), Color(0.16, 0.2, 0.3))
-	draw_rect(Rect2(180, 26, 192 * clampf(mana / max_mana, 0, 1), 9), Color(0.43, 0.73, 1.0))
-	_text(Vector2(384, 22), "HP " + str(ceili(hp)) + "  MP " + str(ceili(mana)) + "  LV " + str(p.get("level", 1)), 13)
+	_panel(Rect2(10, 8, 98, 46), "EXIT")
+	_panel(Rect2(116, 8, 106, 46), "PAUSE" if not paused else "PLAY")
+	draw_rect(Rect2(234, 12, 192, 12), Color(0.23, 0.17, 0.22, 0.86))
+	draw_rect(Rect2(234, 12, 192 * clampf(hp / max_hp, 0, 1), 12), Color(0.34, 0.92, 0.58))
+	draw_rect(Rect2(234, 29, 192, 10), Color(0.16, 0.2, 0.3))
+	draw_rect(Rect2(234, 29, 192 * clampf(mana / max_mana, 0, 1), 10), Color(0.43, 0.73, 1.0))
+	_text(Vector2(441, 24), "HP " + str(ceili(hp)) + "  MP " + str(ceili(mana)) + "  LV " + str(p.get("level", 1)), 18)
 	if status.get("solo", false):
-		_text(Vector2(384, 37), "ROUND " + str(status.get("solo_round", 1)) + "   YOU " +
+		_text(Vector2(441, 45), "ROUND " + str(status.get("solo_round", 1)) + "   YOU " +
 			str(status.get("solo_wins", {}).get("A", 0)) + " : " +
-			str(status.get("solo_wins", {}).get("B", 0)) + " CPU  HP " + str(ceili(float(enemy.get("hp", 0)))), 13)
+			str(status.get("solo_wins", {}).get("B", 0)) + " CPU  HP " + str(ceili(float(enemy.get("hp", 0)))), 18)
 	else:
 		var pool: Dictionary = status.get("team", {}).get("A", {})
-		_text(Vector2(384, 37), "WOOD " + str(roundi(float(pool.get("wood", 0)))) +
+		_text(Vector2(441, 45), "WOOD " + str(roundi(float(pool.get("wood", 0)))) +
 			"   GOLD " + str(roundi(float(pool.get("gold", 0)))) +
-			"   STONE " + str(roundi(float(pool.get("stone", 0)))), 13)
+			"   STONE " + str(roundi(float(pool.get("stone", 0)))), 18)
 	_button_at(103, h - 89, "+", 72, Color(0.1, 0.24, 0.32, 0.42))
 	draw_circle(Vector2(103, h - 89) + move_direction * 35.0, 26.0, Color(0.48, 0.95, 0.82, 0.65))
 	_button_at(w - 92, h - 92, "ATK", 39, Color(0.64, 0.23, 0.21, 0.88))
@@ -105,9 +105,9 @@ func _draw() -> void:
 		_button_at(w - 363, h - 80, "UNIT", 26)
 		_button_at(w - 357, h - 146, "BUILD", 27)
 	_text(Vector2(w * 0.48, h - 12), status.get("map", "").replace("_", " ").to_upper() +
-		"  •  " + str(int(status.get("time", 0))) + "s", 13)
+		"  •  " + str(int(status.get("time", 0))) + "s", 18)
 	if not event_messages.is_empty():
-		_text(Vector2(180, 65), event_messages.front(), 14, Color(1, 0.89, 0.54))
+		_text(Vector2(234, 80), event_messages.front(), 18, Color(1, 0.89, 0.54))
 	if show_result:
 		draw_rect(Rect2(w * 0.29, h * 0.30, w * 0.42, h * 0.33), Color(0.03, 0.11, 0.19, 0.96))
 		_text(Vector2(w * 0.35, h * 0.43), "RESULT: " + str(status.get("winner", "DRAW")), 25, Color(0.99, 0.85, 0.45))
@@ -116,7 +116,7 @@ func _draw() -> void:
 func _menu_tap(at: Vector2) -> void:
 	var w: float = size.x
 	var h: float = size.y
-	if at.y < 44 and at.x < 100:
+	if at.y < 56 and at.x < 112:
 		exit_requested.emit()
 	elif at.x >= w * 0.13 and at.x <= w * 0.46 and at.y >= h * 0.27 and at.y <= h * 0.27 + 43:
 		hero_index = (hero_index + 1) % HEROES.size()
@@ -146,8 +146,8 @@ func _game_tap(at: Vector2) -> void:
 		show_result = false
 		queue_redraw()
 		return
-	if at.y < 45 and at.x < 87: exit_requested.emit(); return
-	if at.y < 45 and at.x < 174: pause_requested.emit(); return
+	if at.y < 56 and at.x < 112: exit_requested.emit(); return
+	if at.y < 56 and at.x < 230: pause_requested.emit(); return
 	for b in [
 		{"id": "attack", "p": Vector2(w - 92, h - 92), "r": 43.0},
 		{"id": "primary", "p": Vector2(w - 194, h - 69), "r": 34.0},
