@@ -127,7 +127,11 @@ if (process.env.BUKLOD_GENESIS_PRIVATE_ASSETS === 'true') {
   assert.equal(manifest.source,'PRIVATE_LIBRARY_LOCAL_ONLY');
   assert.equal(manifest.rightsStatus,'verified');
   assert.equal(manifest.releaseAuthority,'DEV_PREVIEW_ONLY');
-  assert.ok(Array.isArray(manifest.models)&&manifest.models.length>0&&manifest.models.length<=16);
+  assert.ok(Array.isArray(manifest.models)&&manifest.models.length<=16);
+  assert.ok(Array.isArray(manifest.audio)&&manifest.audio.length<=100);
+  assert.ok(Array.isArray(manifest.visuals)&&manifest.visuals.length<=100);
+  assert.ok(manifest.models.length+manifest.audio.length+manifest.visuals.length>0,
+    'Empty private source pack rejected');
   let privateBytes=0;
   const ids=new Set();
   for(const model of manifest.models) {
@@ -149,10 +153,42 @@ if (process.env.BUKLOD_GENESIS_PRIVATE_ASSETS === 'true') {
     assert.ok(privateBytes<130*1024*1024,'private content exceeds OTA budget');
     entries.push({name:'3d/private/'+model.id+'.glb',bytes});
   }
+  // Other owner Library audio/VFX can be integrated ONLY after exact SHA and
+  // distribution-rights checks; never fetch/upload private files via public CI.
+  for(const [type,items] of [['audio',manifest.audio],['visual',manifest.visuals]]) {
+    for(const item of items) {
+      assert.match(item.id,/^private_[a-z0-9_]{2,64}$/);
+      assert.ok(!ids.has(item.id),'duplicate private content identity');
+      ids.add(item.id);
+      assert.equal(item.rightsStatus,'verified');
+      assert.ok(['CC0-1.0','CC-BY-4.0','BUKLOD-OWNED','COMMERCIAL-LICENSE'].includes(item.license));
+      assert.match(item.licenseEvidenceSha256,/^[a-f0-9]{64}$/);
+      assert.match(item.sha256,/^[a-f0-9]{64}$/);
+      assert.ok(type==='audio' ? item.ext==='.wav' : ['.png','.webp'].includes(item.ext));
+      const source=path.join(approvedRoot,'approved',item.id+item.ext);
+      const bytes=readFileSync(source);
+      assert.equal(bytes.length,item.bytes);
+      assert.equal(createHash('sha256').update(bytes).digest('hex'),item.sha256);
+      if(item.ext==='.wav') {
+        assert.ok(bytes.length>=44 && bytes.toString('ascii',0,4)==='RIFF' &&
+          bytes.toString('ascii',8,12)==='WAVE','Invalid private WAV');
+      } else if(item.ext==='.png') {
+        assert.ok(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])));
+      } else {
+        assert.ok(bytes.toString('ascii',0,4)==='RIFF'&&
+          bytes.toString('ascii',8,12)==='WEBP');
+      }
+      privateBytes+=bytes.length;
+      assert.ok(privateBytes<130*1024*1024,'private OTA audio and VFX budget exceeded');
+      entries.push({name:(type==='audio'?'audio/private/':'vfx/private/')+
+        item.id+item.ext,bytes});
+    }
+  }
   entries.push({name:'data/private_3d_manifest.json',
     bytes:Buffer.from(JSON.stringify(manifest))});
   console.log('BUKLOD_206_PRIVATE_3D_LICENSED_GLB_IMPORTED '+JSON.stringify({
-    models:manifest.models.length,bytes:privateBytes}));
+    models:manifest.models.length,audio:manifest.audio.length,
+    visuals:manifest.visuals.length,bytes:privateBytes}));
 }
 
 // Optional user Library 2D animation/VFX atlases. The local importer must
