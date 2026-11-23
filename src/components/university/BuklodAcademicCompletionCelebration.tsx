@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { playBuklodCue, type BuklodSoundCue } from '@/lib/buklodSounds';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import {
   getBuklodAcademicCompletionPresentation,
@@ -38,6 +39,7 @@ export default function BuklodAcademicCompletionCelebration({
   const burst = useRef(new Animated.Value(0)).current;
   const paperY = useRef(new Animated.Value(24)).current;
   const paperOpacity = useRef(new Animated.Value(0)).current;
+  const lastSoundAward = useRef<string | null>(null);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', next => {
@@ -79,7 +81,12 @@ export default function BuklodAcademicCompletionCelebration({
       ]),
     ]);
     sequence.start();
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    if (lastSoundAward.current !== award?.awardId) {
+      lastSoundAward.current = award?.awardId ?? null;
+      const cue: BuklodSoundCue = ('university_' + award?.tier) as BuklodSoundCue;
+      void playBuklodCue(cue).catch(() => undefined);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    }
     return () => sequence.stop();
   }, [award?.awardId, displayed, preset, reduceMotion, opacity, crestScale, crestSpin, burst, paperY, paperOpacity]);
 
