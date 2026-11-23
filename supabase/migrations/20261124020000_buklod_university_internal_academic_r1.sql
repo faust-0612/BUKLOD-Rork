@@ -1,9 +1,9 @@
--- BUKLOD University first-stage academic engine. DEV/STAGING ONLY.
+-- BUKLOD Academy of Higher Learning first-stage academic engine. DEV/STAGING ONLY.
 -- Default OFF; no existing BP, claim, ads, rank, or payout objects changed.
 create table if not exists public.buklod_university_config (
  singleton boolean primary key default true check(singleton),
  enabled boolean not null default false,
- catalog_version text not null default 'BU-ACADEMIC-4',
+ catalog_version text not null default 'BU-ACADEMY-5',
  updated_at timestamptz not null default now()
 );
 insert into public.buklod_university_config(singleton,enabled) values(true,false) on conflict(singleton) do nothing;
@@ -15,7 +15,7 @@ create table if not exists public.buklod_university_credentials (
  min_uc integer not null check(min_uc>0),
  prerequisites text[] not null default '{}',
  evidence_requirement text not null,
- policy_version text not null default 'BU-ACADEMIC-4',
+ policy_version text not null default 'BU-ACADEMY-5',
  active boolean not null default true
 );
 insert into public.buklod_university_credentials
@@ -85,7 +85,7 @@ create table if not exists public.buklod_university_uc_ledger (
  source_ledger_id uuid references public.buklod_points_ledger(id),
  uc integer not null check(uc>0 and uc<=200),
  verified_at timestamptz not null,
- policy_version text not null default 'BU-ACADEMIC-4',
+ policy_version text not null default 'BU-ACADEMY-5',
  created_at timestamptz not null default now(),
  unique(user_id,source_module,source_key)
 );
@@ -108,7 +108,7 @@ create table if not exists public.buklod_university_awards (
  credential_code text not null references public.buklod_university_credentials(code),
  status text not null default 'ISSUED' check(status in ('ISSUED','ON_HOLD','REVOKED')),
  qualifying_uc integer not null check(qualifying_uc>=0),
- policy_version text not null default 'BU-ACADEMIC-4',
+ policy_version text not null default 'BU-ACADEMY-5',
  paper_status text not null default 'PENDING' check(paper_status in ('PENDING','READY','FAILED')),
  paper_path text,
  paper_sha256 text,
