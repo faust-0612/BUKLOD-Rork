@@ -16,6 +16,7 @@ type SeriesCatalog = {
 type Progress = {
   completed_numbers: number[]; next_chapter_number: number;
   enabled: boolean;
+  series_unlocked?: boolean;
 };
 type SeriesCard = SeriesCatalog & { knownReleased: number };
 
@@ -113,6 +114,7 @@ export default function KlDashboardHome({ onOpenSeries }: {
             });
             const value = response.data as {
               ok?: boolean; enabled?: boolean; next_chapter_number?: number;
+              series_unlocked?: boolean;
               completed_numbers?: number[];
             } | null;
             if (response.error || value?.ok !== true ||
@@ -122,6 +124,7 @@ export default function KlDashboardHome({ onOpenSeries }: {
               number: card.season_number,
               value: {
                 enabled: value.enabled === true,
+                series_unlocked: value.series_unlocked !== false,
                 next_chapter_number: Number(value.next_chapter_number),
                 completed_numbers: value.completed_numbers.filter(
                   n => Number.isInteger(n) && n >= 1 && n <= 30,
@@ -185,7 +188,9 @@ export default function KlDashboardHome({ onOpenSeries }: {
             <Text style={styles.continueTitle} numberOfLines={2}>{reading.title}</Text>
             <Text style={styles.continueSub}>
               {progress[reading.season_number]?.enabled
-                ? `Susunod: Kabanata ${Math.min(30, progress[reading.season_number].next_chapter_number)}`
+                ? progress[reading.season_number].series_unlocked === false
+                  ? 'Tapusin muna ang naunang serye'
+                  : `Susunod: Kabanata ${Math.min(30, progress[reading.season_number].next_chapter_number)}`
                 : 'Buksan ang mga kabanata'}
             </Text>
           </View>
