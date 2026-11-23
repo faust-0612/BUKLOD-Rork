@@ -1,0 +1,35 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-manual-github-build-20261123.json",
+  "objective": "Prepare zero-unnecessary-credit manual GitHub Actions native Android build route, with strict readiness gating and no fake APK",
+  "baseRef": "ba971ed0a30cce0ddb43157c420940fbb4792456",
+  "allowedPaths": [
+    ".github/workflows/genesis-native-manual-gated-build-20261123.yml",
+    "tests/genesis-native-manual-gated-build-20261123.test.mjs",
+    ".buklod/scopes/genesis-native-manual-github-build-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-manual-gated-build-20261123.test.mjs",
+    "tests/genesis-native-local-only-gate-20261123.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "No changes to MAIN, staging, OTA, signing identities or protected ad lifecycle",
+    "No Android SDK/Godot download until all source gates pass",
+    "No APK artifact or deployment before verified game and binary"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Manual gated workflow only",
+      "preservedBehaviors": [
+        "No production or staging release"
+      ],
+      "tests": [
+        "tests/genesis-native-manual-gated-build-20261123.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "MANUAL_GITHUB_ACTIONS_DEV_ONLY",
+  "publicationStatus": "WORKFLOW_SOURCE_ONLY_NO_RUN_NO_APK",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
