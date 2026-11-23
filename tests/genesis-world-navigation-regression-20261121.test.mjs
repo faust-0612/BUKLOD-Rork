@@ -20,7 +20,8 @@ test('Genesis starts at approved map but Home stays independently reachable',()=
  assert.match(home,/BuklodFirstViewAd/);
  assert.match(home,/BuklodNativeSponsoredCard/);
  const layout=src('src/app/(tabs)/_layout.tsx');
- assert.match(layout,/!isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader/);
+ assert.match(layout,/!desktopWebShell \? <SwipeDashboardHeader \/> : null/);
+ assert.match(layout,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar/);
  assert.match(layout,/BuklodDashboardAdWarmup/);
 });
 test('the same persistent bottom navigation is kept in Genesis; map return is still reachable',()=>{
