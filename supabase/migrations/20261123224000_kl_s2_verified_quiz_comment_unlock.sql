@@ -86,6 +86,32 @@ BEGIN
   IF p_season_number NOT BETWEEN 1 AND 12 THEN
     RETURN jsonb_build_object('ok',false,'reason','invalid_series');
   END IF;
+  -- Season 1 baseline: a legacy timed completion still counts for dashboard
+  -- progress until the separately authorized Season 2 rollout is enabled.
+  -- This branch never applies the new comment requirement prematurely.
+  IF NOT private.kl_s2_rewards_enabled_v1() THEN
+    SELECT coalesce(array_agg(n ORDER BY n),'{}'::integer[])
+      INTO v_quiz_passed FROM pg_catalog.generate_series(1,30) n
+      WHERE EXISTS (
+        SELECT 1 FROM public.kl_episodes e
+        JOIN public.kl_reading_sessions s
+          ON s.episode_id=e.id AND s.user_id=v_user
+          AND s.completed_at IS NOT NULL
+        WHERE e.season_number=p_season_number AND e.episode_number=n
+          AND e.status='approved' AND e.approved_at IS NOT NULL
+          AND e.release_at IS NOT NULL AND e.release_at<=now()
+      );
+    SELECT min(n) INTO v_next FROM pg_catalog.generate_series(1,30) n
+      WHERE NOT (n=ANY(v_quiz_passed));
+    RETURN jsonb_build_object(
+      'ok',true,'enabled',false,
+      'completed_numbers',to_jsonb(v_quiz_passed),
+      'commented_numbers','[]'::jsonb,
+      'next_chapter_number',coalesce(v_next,31),
+      'series_unlocked',true,
+      'awaiting_comment_number',null,'comment_minimum_characters',20
+    );
+  END IF;
   SELECT coalesce(array_agg(n ORDER BY n),'{}'::integer[])
     INTO v_quiz_passed
   FROM pg_catalog.generate_series(1,30) n
