@@ -20,7 +20,8 @@ test('Genesis starts at approved map but Home stays independently reachable',()=
  assert.match(home,/BuklodFirstViewAd/);
  assert.match(home,/BuklodNativeSponsoredCard/);
  const layout=src('src/app/(tabs)/_layout.tsx');
- assert.match(layout,/!isGenesisPreviewBuild\(\) \? <SwipeDashboardHeader/);
+ assert.match(layout,/!desktopWebShell \? <SwipeDashboardHeader \/> : null/);
+ assert.match(layout,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar/);
  assert.match(layout,/BuklodDashboardAdWarmup/);
 });
 test('the same persistent bottom navigation is kept in Genesis; map return is still reachable',()=>{
@@ -55,12 +56,14 @@ test('existing source-owned audio and sponsors stay permissioned and mounted wit
   assert.match(map,/BuklodScreenBottomBanner/);
 });
 
-test('Approved World Map removes entry ad only; guide and Home monetization remain',()=>{
+test('Approved World Map keeps guide and restores one passive ad below it without touching Home monetization',()=>{
  const home=src('src/app/(tabs)/hub.tsx'),map=src('src/app/buklod-map.tsx');
  const portrait=map.slice(map.indexOf('portraitFirstView'));
  assert.match(home,/BuklodFirstViewAd placement="home"/);
  assert.doesNotMatch(home,/<Redirect href="\/buklod-map"/);
- assert.doesNotMatch(map,/BuklodFirstViewAd|toggleMusic|Music on/);
+ assert.match(map,/BuklodAdMobBanner/);
+ assert.match(map,/genesis_entry_footer_banner/);
+ assert.doesNotMatch(map,/toggleMusic|Music on/);
  assert.ok(portrait.lastIndexOf('{mapNode}')>=0 &&
   portrait.lastIndexOf('{mapNode}')<portrait.lastIndexOf('<BuklodMapGuideDock'));
  assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);

@@ -49,13 +49,14 @@ test('Visual effects are only recent display metadata, not reward operations', (
     {seq:4,time:1200,type:'dash',actor:'A0'},
   ];
   assert.deepEqual(arenaVisualEffects(sample, 1500).map(e=>e.type), ['dash']);
-  assert.deepEqual(arenaVisualEffects(sample, 1500, 1500).map(e=>e.type), ['skill','defeat','dash']);
+  assert.deepEqual(arenaVisualEffects(sample, 1500, 1500).map(e=>e.type), ['skill','defeat','deposit','dash']);
   assert.deepEqual(arenaVisualEffects(sample, 3000), []);
+  assert.equal(arenaVisualEffects([{seq:9,time:3000,type:'damage',from:'B0',to:'A0'}],3050).length,1,'CPU hits produce visible native feedback');
   assert.equal(arenaVisualEffects(sample, 1200)[0].strength <= 1, true);
 });
 
 test('Native in-app Arena exposes every core combat and economic PRACTICE action', () => {
-  for(const word of ['arenaCamera(', 'arenaNearby(', 'arenaVisualEffects(', 'minimap','type: \'seal_attack\'', 'type: \'loot\'', 'type: \'build\'', 'type: \'train\'', 'type: \'order\'', 'type: \'deposit\'', 'type: \'mine\'', 'type: \'attack\'', 'type: \'skill\'']){
+  for(const word of ['arenaCamera(', 'arenaNearby(', 'arenaActionVisuals(', 'minimap','type: \'seal_attack\'', 'type: \'loot\'', 'type: \'build\'', 'type: \'train\'', 'type: \'order\'', 'type: \'deposit\'', 'type: \'mine\'', 'type: \'attack\'', 'type: \'skill\'']){
     assert.ok(native.includes(word), 'Missing in-app command '+word);
   }
   assert.match(native, /towerAction\('tower_repair'\)/);

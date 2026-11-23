@@ -1,4 +1,5 @@
 import { buklodVisual } from '@/lib/buklodVisual';
+import { Image as ExpoImage } from 'expo-image';
 import React, {
   useCallback,
   useEffect,
@@ -94,6 +95,13 @@ import {
 } from '@/lib/buklodPersonDisplay';
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import {
+  beginCommunityVideoPosterGeneration,
+  getCommunityVideoPoster,
+  publishCommunityVideoPoster,
+  releaseCommunityVideoPosterGeneration,
+  subscribeCommunityVideoPoster,
+} from '@/lib/communityVideoPosterCache';
 import { useFocusEffect } from 'expo-router';
 import { selectVisibleMaritesVideo, selectNearbyMaritesVideo, quickVideoDurationSeconds, maritesStorySwipeStep } from '@/lib/buklodMaritesPlayback';
 import {noteBuklodVideoScroll, subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
@@ -138,9 +146,50 @@ function useMaritesPlaybackActive() {
   return focused && foreground;
 }
 
-function MaritesQuickVideo({ uri, autoPlay = false, muted = false, inline = false }: { uri: string; autoPlay?: boolean; muted?: boolean; inline?: boolean }) {
+function useMaritesVideoPoster(uri: string, posterUri?: string | null) {
+  const key = `${uri}|${posterUri ?? ''}`;
+  const posterForUri = () => posterUri ? { uri: posterUri } : getCommunityVideoPoster(uri);
+  const [entry, setEntry] = useState<{ key: string; source: any }>(
+    () => ({ key, source: posterForUri() }),
+  );
+  useEffect(() => {
+    setEntry({ key, source: posterForUri() });
+    if (posterUri) return;
+    return subscribeCommunityVideoPoster(uri, source => setEntry({ key, source }));
+  }, [key, uri, posterUri]);
+  // A signed URL update must never briefly display the previous clip's poster.
+  return entry.key === key ? entry.source : posterForUri();
+}
+
+function MaritesVideoStandby({ uri, posterUri }: { uri: string; posterUri?: string | null }) {
+  const poster = useMaritesVideoPoster(uri, posterUri);
+  return (
+    <View style={{ flex: 1, backgroundColor: '#172822' }}>
+      {poster ? (
+        <ExpoImage
+          source={poster}
+          style={StyleSheet.absoluteFillObject}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function MaritesQuickVideo({
+  uri, posterUri, autoPlay = false, muted = false, inline = false, enabled = true,
+}: {
+  uri: string;
+  posterUri?: string | null;
+  autoPlay?: boolean;
+  muted?: boolean;
+  inline?: boolean;
+  enabled?: boolean;
+}) {
   const active = useMaritesPlaybackActive();
-  // Cache only remote video bytes; preserve local picker and browser playback.
+  const canPlay = active && enabled;
+  const poster = useMaritesVideoPoster(uri, posterUri);
   const source = useMemo(
     () => Platform.OS !== 'web' && /^https?:\/\//i.test(uri)
       ? { uri, useCaching: true }
@@ -155,45 +204,106 @@ function MaritesQuickVideo({ uri, autoPlay = false, muted = false, inline = fals
     instance.muted = muted;
   });
   const [status, setStatus] = useState<string>(() => player.status);
+  const [firstFrameRendered, setFirstFrameRendered] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
   const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    setFirstFrameRendered(false);
+    setUserPaused(false);
+  }, [uri]);
   useEffect(() => {
     setStatus(player.status);
-    const subscription = player.addListener('statusChange', event => {
-      setStatus(event.status);
-    });
-    return () => subscription.remove();
+    const statusSub = player.addListener('statusChange', event => setStatus(event.status));
+    const playingSub = player.addListener('playingChange', event => setPlaying(Boolean(event.isPlaying)));
+    return () => { statusSub.remove(); playingSub.remove(); };
   }, [player]);
   useEffect(() => {
     player.muted = muted;
     player.loop = autoPlay;
-    if (autoPlay && active) player.play();
+    if (autoPlay && canPlay && !userPaused) player.play();
     else player.pause();
-  }, [player, autoPlay, muted, active]);
+  }, [player, autoPlay, muted, canPlay, userPaused]);
+
+  // The same near-viewport player can produce a small first-frame poster.
+  // No extra decoder/player mounts, unbounded preloads, or persistent signed links.
+  useEffect(() => {
+    if (Platform.OS === 'web' || posterUri || getCommunityVideoPoster(uri) || !canPlay) return;
+    if (autoPlay ? !firstFrameRendered : status !== 'readyToPlay') return;
+    const timer = setTimeout(() => {
+      if (!beginCommunityVideoPosterGeneration(uri)) return;
+      void Promise.resolve()
+        .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 480, maxHeight: 480 }))
+        .then(frames => {
+          if (frames?.[0]) publishCommunityVideoPoster(uri, frames[0]);
+        })
+        .catch(() => undefined)
+        .finally(() => releaseCommunityVideoPosterGeneration(uri));
+    }, autoPlay ? 1_500 : 250);
+    return () => clearTimeout(timer);
+  }, [canPlay, autoPlay, firstFrameRendered, player, posterUri, status, uri]);
+
+  // A normal subsecond startup is not an error and should not obscure the poster.
   useEffect(() => {
     setSlow(false);
-    if (status === 'readyToPlay' || status === 'error' || !active) return;
-    const timer = setTimeout(() => setSlow(true), 10_000);
+    if (firstFrameRendered || status === 'error' || !canPlay) return;
+    const timer = setTimeout(() => setSlow(true), 950);
     return () => clearTimeout(timer);
-  }, [status, uri, active]);
-  // A failed/expired URL used to look exactly like an empty black story.
-  // Keep the video mounted only while visible, but always surface its state.
+  }, [status, firstFrameRendered, uri, canPlay]);
+
   return (
-    <View style={{ flex: 1, backgroundColor: '#151515' }}>
-      <VideoView player={player} nativeControls={!inline && !autoPlay && active} contentFit="contain" style={{ width: '100%', height: '100%' }} />
-      {(status === 'error' || (active && status !== 'readyToPlay')) && (
-        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: 12, backgroundColor: 'rgba(0,0,0,0.35)' }}>
-          {status === 'error' ? (
-            <MaterialCommunityIcons name="alert-circle-outline" size={27} color="#FFFFFF" />
-          ) : !slow ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <MaterialCommunityIcons name="wifi-alert" size={27} color="#FFFFFF" />
-          )}
-          <Text style={{ color: '#FFFFFF', marginTop: 8, textAlign: 'center', fontSize: 12, fontWeight: '700' }}>
-            {status === 'error' ? 'Video unavailable' : slow ? 'Video is taking longer to load' : 'Loading video…'}
-          </Text>
+    <View style={{ flex: 1, backgroundColor: '#172822' }}>
+      <VideoView
+        player={player}
+        nativeControls={!inline && !autoPlay && active}
+        surfaceType="textureView"
+        contentFit="contain"
+        style={{ width: '100%', height: '100%' }}
+        onFirstFrameRender={() => setFirstFrameRendered(true)}
+      />
+      {!firstFrameRendered ? (
+        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, backgroundColor: '#172822' }} />
+      ) : null}
+      {poster && !firstFrameRendered ? (
+        <ExpoImage
+          pointerEvents="none"
+          source={poster}
+          style={StyleSheet.absoluteFillObject}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+        />
+      ) : null}
+      {status === 'error' ? (
+        <View pointerEvents="none" style={{
+          ...StyleSheet.absoluteFillObject, alignItems: 'center',
+          justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)',
+        }}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={27} color="#FFFFFF" />
+          <Text style={{ color: '#FFFFFF', marginTop: 8, fontSize: 12 }}>Video unavailable</Text>
         </View>
-      )}
+      ) : null}
+      {canPlay && slow && !firstFrameRendered && status !== 'error' ? (
+        <View pointerEvents="none" style={{
+          position: 'absolute', top: 12, right: 12, padding: 6,
+          borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.28)',
+        }}>
+          <ActivityIndicator color="#FFFFFF" size="small" />
+        </View>
+      ) : null}
+      {!inline && autoPlay && firstFrameRendered ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={playing ? 'Pause video' : 'Resume video'}
+          onPress={() => setUserPaused(current => !current)}
+          style={{
+            position: 'absolute', left: 12, bottom: 156, padding: 8,
+            borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.36)',
+          }}
+        >
+          <MaterialCommunityIcons name={playing ? 'pause' : 'play'} size={20} color="#FFFFFF" />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -266,7 +376,7 @@ function createStyles(
       flexShrink: 1,
     },
     title: {
-      fontSize: 12,
+      fontSize: 16,
       fontWeight: '900',
       letterSpacing: 0.7,
       color: colors.greenDark,
@@ -794,7 +904,9 @@ function MaritesStoryCard({
       onPress={onPress}
       style={StyleSheet.absoluteFill}
     >
-      {hasVideo && <View style={styles.storyPhotoFill}>{prepareVideo ? <MaritesQuickVideo uri={story.video_uri!} autoPlay={autoPlayVideo} muted inline /> : <View style={{ flex: 1, backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /></View>}</View>}
+      {hasVideo && <View style={styles.storyPhotoFill}>{prepareVideo
+        ? <MaritesQuickVideo uri={story.video_uri!} posterUri={story.video_preview_uri} autoPlay={autoPlayVideo} muted inline />
+        : <MaritesVideoStandby uri={story.video_uri!} posterUri={story.video_preview_uri} />}</View>}
       {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
@@ -1714,7 +1826,7 @@ export default function BuklodMaritesBoard({
 
     if (!body && !photoUris.length && !quickVideo) {
       Alert.alert(
-        'Marites Story',
+        "Today's Best",
         'Add a short message or photo first.'
       );
       return;
@@ -1722,7 +1834,7 @@ export default function BuklodMaritesBoard({
 
     if (!user?.id) {
       Alert.alert(
-        'Marites Story',
+        "Today's Best",
         'Sign in to share a story.'
       );
       return;
@@ -1730,7 +1842,7 @@ export default function BuklodMaritesBoard({
 
     if (body.length > MARITES_MAX_CHARS) {
       Alert.alert(
-        'Marites Story',
+        "Today's Best",
         `Keep it short — ${MARITES_MAX_CHARS} characters max.`
       );
       return;
@@ -1772,16 +1884,16 @@ export default function BuklodMaritesBoard({
 
       if (!shared) {
         Alert.alert(
-          'Marites Story',
+          "Today's Best",
           'Saved on this device. Shared board needs a community connection — try again when online.'
         );
       }
 
       resetComposer();
-      if (musicError) Alert.alert('Marites Music', 'Your story was posted, but the music could not be saved. Please try another track for a new story.\n' + musicError);
+      if (musicError) Alert.alert('Story Music', 'Your story was posted, but the music could not be saved. Please try another track for a new story.\n' + musicError);
     } catch (error) {
       Alert.alert(
-        'Marites Story',
+        "Today's Best",
         String(
           (error as Error)?.message ??
             'Could not save your story.'
@@ -1911,7 +2023,7 @@ export default function BuklodMaritesBoard({
     <View style={styles.section}>
       <View style={styles.headingRow}>
         <Text style={styles.title}>
-          MARITES STORY
+          Today's Best
         </Text>
         <View style={styles.headingActions}>
           <Text
@@ -1922,7 +2034,7 @@ export default function BuklodMaritesBoard({
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Share Marites update"
+            accessibilityLabel="Share to Today's Best"
             hitSlop={6}
             onPress={() => setComposerOpen(true)}
             style={({ pressed }) => [
@@ -2040,7 +2152,7 @@ export default function BuklodMaritesBoard({
             >
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>
-                New Marites Story
+                Share to Today's Best
               </Text>
               <Pressable onPress={resetComposer}>
                 <MaterialCommunityIcons
@@ -2168,7 +2280,7 @@ export default function BuklodMaritesBoard({
 
             <View style={styles.localBadge}>
               <Text style={styles.localBadgeText}>
-                Stories appear only in Marites Story.
+                Stories appear only in Today's Best.
               </Text>
             </View>
             </ScrollView>
@@ -2240,7 +2352,7 @@ export default function BuklodMaritesBoard({
                   !photoUris.length &&
                   isMaritesEmojiOnlyBody(body);
 
-                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} muted={viewerMusicStatus.playing} />;
+                if (viewStory.video_uri) return <MaritesQuickVideo key={viewStory.id} uri={viewStory.video_uri} posterUri={viewStory.video_preview_uri} autoPlay enabled={playbackActive && !playbackBlocked && !composerOpen && !musicPickerOpen} muted={viewerMusicStatus.playing} />;
                 if (photoUris.length) {
                   if (photoUris.length === 1) {
                     return (

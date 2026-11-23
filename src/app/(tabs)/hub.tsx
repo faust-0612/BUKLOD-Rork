@@ -3,7 +3,7 @@ import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH } from '@/lib/buklodWebResponsivePolicy';
+import { BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH, shouldUseBuklodPublicDesktopShell } from '@/lib/buklodWebResponsivePolicy';
 import { router, Redirect, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
@@ -11,6 +11,7 @@ import {noteBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
+import BuklodPublicDailyMessageBar from '@/components/BuklodPublicDailyMessageBar';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
@@ -48,6 +49,8 @@ export default function BuklodLightHome() {
   const [desktopToolsOpen, setDesktopToolsOpen] = useState(false);
   const { width } = useWindowDimensions();
   const desktopDashboard = Platform.OS === 'web' && width >= BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH;
+  // Desktop header owns its micro-card; phone/tablet Home owns a scrollable card.
+  const showInlineEncouragement = !(Platform.OS === 'web' && shouldUseBuklodPublicDesktopShell('/hub', width));
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
@@ -80,6 +83,7 @@ export default function BuklodLightHome() {
           </Text>
         </LinearGradient>
         )}
+        {showInlineEncouragement ? <BuklodPublicDailyMessageBar forceVisible embedded /> : null}
         {/* Desktop Home: approved paid ads share a persistent placement,
             independent of AdMob/legacy sidebar sponsors. */}
         <BuklodSystemAnnouncementBoard slot="public_home" />
@@ -141,6 +145,7 @@ export default function BuklodLightHome() {
         <MaterialCommunityIcons name="sprout-outline" size={22} color={theme.accent} />
       </View>
       )}
+      {showInlineEncouragement ? <BuklodPublicDailyMessageBar forceVisible embedded /> : null}
       <BuklodExecutiveQuickAccess active={focused && foreground} />
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}

@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-conso-video-thumbnail-firstframe-20261122.json",
+  "objective": "Include verified-source thumbnail-first Wall and Today's Best/Marites video playback in the existing Genesis Season 2 consolidated staging OTA intake without publishing or altering the staging native runtime.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "verified: read-only current consolidated Genesis staging source baseline d3b618f37bf91d9906d2c99f14b2f73202fd1891 and current production main 7b224c39624827282c3cbf003060317045b0a73f checked 2026-11-22. This is GitHub source evidence, not a verified installed APK, served EAS OTA or production fingerprint.",
+  "chosenApproach": "Apply only PR #1110 first-frame thumbnail and private Marites preview code on top of current Genesis consolidated staging source. Three exact app files + one focused regression test. Preserve the 11 preexisting Today's Best/title/heading text-size changes and all other 443+ cumulative staging changes. Existing private media preview sidecar and authorized RPC used. No native or ads change.",
+  "selectionRationale": "Avoid overwriting staging-specific Today's Best UI with unrebased main files and avoid accidental native/production release.",
+  "riskAreas": [
+    "wall-media",
+    "app-runtime",
+    "video-scroll",
+    "fullscreen-first-frame",
+    "protected-ads"
+  ],
+  "allowedPaths": [
+    "src/components/CommunityVideo.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/lib/buklodMaritesBoard.ts",
+    "tests/video-thumbnail-first-frame-20261122.test.mjs",
+    ".buklod/scopes/genesis-conso-video-thumbnail-firstframe-20261122.json"
+  ],
+  "regressionTests": [
+    "tests/video-thumbnail-first-frame-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "First frame video player React Native rendering and Marites fullscreen autoplay changes while preserving existing app runtime and screen focus/scroll cancellation.",
+      "preservedBehaviors": [
+        "Preserve expo-video native ABI, screen route flow, Android foreground focus/scroll pause, AdMob IMA player handoff and consent settings.",
+        "No new native packages, binary, Godot code, points or backend RLS/financial changes."
+      ],
+      "tests": [
+        "tests/video-thumbnail-first-frame-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Keep a private thumbnail until actual video first frame on Wall and Marites; propagate bounded author-only Marites preview metadata.",
+      "preservedBehaviors": [
+        "Preserve original private video URL authorization, best-effort upload fallback, existing 72-hour Today's Best and signed media access.",
+        "Preserve existing Today's Best text and font size, story upload/composer interactions and current ad placements."
+      ],
+      "tests": [
+        "tests/video-thumbnail-first-frame-20261122.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "All 11 pre-existing Today's Best UI changes in consolidated staging MaritesBoard are retained.",
+    "All other consolidated staging app/asset/native/Kingdom/House/Arena/Health features and ad placements remain untouched.",
+    "Poster generation is bounded and uses currently admitted player; never an extra prebuffer player."
+  ],
+  "acceptanceChecks": [
+    "Source diff only includes three video modules, one source test, one scope manifest.",
+    "Exact branch-parent source checks prove all 11 Today's Best UI edits remain.",
+    "Engineering Accountability protected-feature lock and TypeScript/targeted media/scroll/ad tests must pass before integration.",
+    "No staging or production OTA publication here; staging RC + package/runtime/channel compatibility and served-OTA ID still require independent verification."
+  ],
+  "alternativeApproaches": [
+    "Cherry-pick the entire PR #1110 branch history: rejected because that branch carries main history not identical to Genesis consolidated staging.",
+    "Overwrite staging MaritesBoard with DEV branch file: rejected because it would remove Today's Best approved 11 edits.",
+    "Publish staging/production OTA now: rejected until exact runtime checks and staging release gates."
+  ],
+  "releaseMode": "GENESIS_CONSO_STAGING_SOURCE_INTAKE_NO_OTA",
+  "releaseTarget": "Existing Genesis consolidated staging Android channel; no new native build",
+  "publicationStatus": "DEV_CONSO_PR_NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

@@ -12,7 +12,7 @@ import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import GenesisCosmicSky from '@/features/season2/genesis/GenesisCosmicSky';
 import GenesisApprovedEntryMap from '@/features/season2/genesis/GenesisApprovedEntryMap';
-import approvedEntry from '@/features/season2/genesis/genesisApprovedEntryHotspots.json';
+import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import BuklodMapHeader from '@/features/season2/world/BuklodMapHeader';
 import BuklodMapGuideDock from '@/features/season2/world/BuklodMapGuideDock';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
@@ -30,7 +30,6 @@ export default function BuklodMapScreen() {
   const landscape=windowWidth>windowHeight && windowHeight<=520;
   const [focused, setFocused] = useState(false);
   const [selectedId, setSelectedId] = useState('kingdom');
-  const [selectedHotspotId, setSelectedHotspotId] = useState('character-kingdom');
   const [showDirectory, setShowDirectory] = useState(false);
   const lastDoorTap = useRef(0);
   // The default is silent until real authentication, consent, runtime and onboarding gates pass.
@@ -48,7 +47,6 @@ export default function BuklodMapScreen() {
   const district = useMemo(() => getBuklodMapDistrict(selectedId), [selectedId]);
   const showFaith = Boolean(activeScope?.show_faith_content);
   const entries = visibleBuklodMapDestinations(district, showFaith);
-  const selectedHotspot = approvedEntry.hotspots.find(h => h.id === selectedHotspotId);
 
   // Protect the same boundaries as /index and /_layout, including old clients.
   if (!isGenesisPreviewBuild()) return <Redirect href="/(tabs)/buklod" />;
@@ -67,7 +65,6 @@ export default function BuklodMapScreen() {
         const now = Date.now();
         if (now - lastDoorTap.current < 650) return;
         lastDoorTap.current = now;
-        setSelectedHotspotId(door.id);
         setSelectedId(door.districtId);
         router.push(route as any);
       }}
@@ -90,7 +87,7 @@ export default function BuklodMapScreen() {
       <ScrollView
         style={styles.scroll}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.content, landscape&&styles.landscapeContent, { paddingTop: 8, paddingBottom: Math.max(20, insets.bottom) + 32 }]}
+        contentContainerStyle={[styles.content, landscape&&styles.landscapeContent, { paddingTop: Math.max(6, insets.top + 6), paddingBottom: Math.max(6, insets.bottom) + 8 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={landscape ? styles.landscapeFirstRow : styles.portraitFirstView}>
@@ -106,13 +103,6 @@ export default function BuklodMapScreen() {
             </>
           )}
         </View>
-        <View style={styles.mapSelectedCaption}>
-          <Text style={styles.selectedCaptionText}>
-            {selectedHotspot ? selectedHotspot.label : district.title}
-          </Text>
-          <Text style={styles.selectedCaptionNote}>Direktang pasok sa isang tap. Optional lamang ang ibang links sa ibaba.</Text>
-        </View>
-
         {showDirectory ? <View style={styles.districtPanel}>
           <View style={styles.panelHeading}>
             <MaterialCommunityIcons name={district.icon as any} size={27} color={district.accent}/>
@@ -137,16 +127,6 @@ export default function BuklodMapScreen() {
             </Pressable>
           ))}
         </View> : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={showDirectory ? 'Close accessible destination directory' : 'Show all BUKLOD destinations'}
-          accessibilityState={{expanded: showDirectory}}
-          onPress={() => setShowDirectory(value => !value)}
-          style={({pressed}) => [styles.directoryToggle, pressed && styles.entryPressed]}
-        >
-          <Text style={styles.directoryTitle}>ALL DESTINATIONS · ACCESSIBLE DIRECTORY</Text>
-          <MaterialCommunityIcons name={showDirectory ? 'chevron-up' : 'chevron-down'} color="#FFE3A8" size={21}/>
-        </Pressable>
         {showDirectory ? (
           <View style={styles.directory}>
             {BUKLOD_MAP_DISTRICTS.map(area => (
@@ -168,7 +148,17 @@ export default function BuklodMapScreen() {
             ))}
           </View>
         ) : null}
-        <Text style={styles.footer}>Iisang mapa para sa lahat ng destinasyon. Ang permissions, verified rewards, at privacy ay pinamamahalaan pa rin sa bawat feature.</Text>
+        <View style={styles.genesisAdFoot} accessibilityLabel="Sponsored content below the Genesis map">
+          <BuklodAdMobBanner
+            placement="home"
+            placementId="genesis_entry_footer_banner"
+            diagnosticName="legacy_home_banner"
+            format="mediumRectangle"
+            compact
+            requireViewport
+            showLabel
+          />
+        </View>
       </ScrollView>
     </View>
   );
@@ -180,12 +170,13 @@ const styles = StyleSheet.create({
   dimmer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2,9,24,.60)' },
   underpainting: { opacity: .78 },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 14, width: '100%', maxWidth: 700, alignSelf: 'center' },
+  content: { flexGrow: 1, paddingHorizontal: 14, width: '100%', maxWidth: 700, alignSelf: 'center' },
+  genesisAdFoot:{marginTop:'auto',paddingTop:8,width:'100%',alignItems:'center',minHeight:8},
   landscapeContent:{maxWidth:1100,paddingHorizontal:6},
   landscapeFirstRow:{flexDirection:'row',alignItems:'flex-start',gap:8},
   landscapeMapColumn:{flex:6,minWidth:0,alignItems:'center'},
   landscapeGuideColumn:{flex:4,minWidth:0,paddingTop:3,gap:5},
-  portraitFirstView:{gap:8},
+  portraitFirstView:{gap:4},
   welcomeTextBlock:{paddingHorizontal:4,paddingTop:2,paddingBottom:2},
   welcomeTitle:{fontSize:19,lineHeight:25,fontWeight:'900',color:'#FFE2AF'},
   welcomeNote:{fontSize:12,lineHeight:17,color:'#DAE9F7'},

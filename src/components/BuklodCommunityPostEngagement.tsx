@@ -157,17 +157,23 @@ export function BuklodCommunityPostEngagement({
         ) : null}
       </View>
 
-      {showCommentPreview && commentPreview ? (
-        <BuklodCommunityCommentPreview
-          preview={commentPreview}
-          onPress={onOpenComments}
-        />
+      {showCommentPreview && (commentPreview || totalComments > 0) ? (
+        // Prevent a late comment preview fetch from shifting every Wall card.
+        <View style={styles.commentPreviewSlot}>
+          {commentPreview ? (
+            <BuklodCommunityCommentPreview
+              preview={commentPreview}
+              onPress={onOpenComments}
+            />
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  commentPreviewSlot: { minHeight: 94 },
   wrap: {
     width: '100%',
   },

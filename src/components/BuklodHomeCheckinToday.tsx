@@ -66,7 +66,7 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
   try{
    const{data,error}=await(supabase as any).rpc('submit_my_buklod_home_checkin_r3',{p_event_id:item.event_id});
    if(error)throw error;
-   setMessage(`Check-in received for ${data.event}. Awaiting Admin verification for +10 BP.`);
+   setMessage(`Check-in received for ${data.event}. Awaiting Cluster Admin verification for +10 BP.`);
    await load();showBuklodAdOpportunity('points_submission_success');
   }catch(e){setMessage(e instanceof Error?e.message:'Could not check in. Try again.');}
   finally{setBusy(null)}
@@ -78,7 +78,7 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
    <MaterialCommunityIcons name="calendar-check" color="#1B7843" size={22}/>
    <View style={{flex:1}}>
     <Text style={styles.title}>Check In Today</Text>
-    <Text style={styles.caption}>Only during a live Cluster event · +10 BP after Admin verification</Text>
+    <Text style={styles.caption}>Only during a live Cluster event · +10 BP after Cluster Admin verification</Text>
    </View>
   </View>
   {loading&&<ActivityIndicator color="#167944"/>}
@@ -87,11 +87,11 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
    <Text style={styles.eventTitle}>{item.title} · {item.scope_name}</Text>
    <Text style={styles.details}>Venue: {item.location}</Text>
    <Text style={styles.details}>When: {new Date(item.starts_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'})}</Text>
-   <Text style={styles.details}>After check-in, the Admin sees the recorded time and event location. One reward per event, no separate attendance app.</Text>
+   <Text style={styles.details}>After check-in, your Cluster Admin sees the recorded time and event location. One reward per event, no separate attendance app.</Text>
    <Pressable accessibilityRole="button" disabled={busy!==null||!!item.checkin_status}
     onPress={()=>void submit(item)} style={[styles.button,(!!item.checkin_status||!!busy)&&styles.disabled]}>
     <Text style={styles.buttonText}>{item.checkin_status==='approved'?'Verified · Points recorded':
-     item.checkin_status==='pending'?'Pending Admin verification':
+     item.checkin_status==='pending'?'Pending Cluster Admin verification':
      item.checkin_status==='rejected'?'Not approved':busy===item.event_id?'Checking in...':'Check In Today · +10 BP'}</Text>
    </Pressable>
   </View>)}

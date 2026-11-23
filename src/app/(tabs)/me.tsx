@@ -11,6 +11,8 @@ import BuklodProfilePostCards from '@/components/BuklodProfilePostCards';
 import BuklodProfileTopTenRankings from '@/components/BuklodProfileTopTenRankings';
 import BuklodProfileActivityCards from '@/components/BuklodProfileActivityCards';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
+import BuklodPublicDailyMessageBar from '@/components/BuklodPublicDailyMessageBar';
+import { shouldUseBuklodPublicDesktopShell } from '@/lib/buklodWebResponsivePolicy';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
 import {
   BuklodTappableAvatar,
@@ -58,6 +60,7 @@ import React, { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -371,7 +374,7 @@ export default function MeScreen() {
     return()=>setGenesisFocused(false);
   },[]));
   const { theme, shared } = useBuklodPresentation();
-  const { fontScale: profileFontScale } = useWindowDimensions();
+  const { width: profileWidth, fontScale: profileFontScale } = useWindowDimensions();
   const params =
     useLocalSearchParams<{
       returnScopeId?:
@@ -1902,6 +1905,13 @@ export default function MeScreen() {
         </View>
         <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Points standings, not payout amounts. Monthly ranks follow the calendar month.</Text>
       </View>
+
+      {/* Daily message follows Profile scroll, never overlays the cover or status bar. */}
+      {!(Platform.OS === 'web' && shouldUseBuklodPublicDesktopShell('/me', profileWidth)) ? (
+        <View style={styles.sectionPad}>
+          <BuklodPublicDailyMessageBar forceVisible embedded />
+        </View>
+      ) : null}
 
       {/* BUKLOD Official also owns real posts: show them before its admin bulletin. */}
       {isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}

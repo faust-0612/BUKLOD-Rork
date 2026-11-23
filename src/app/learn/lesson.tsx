@@ -447,9 +447,9 @@ export default function LessonDetail() {
 
       case 'rejected':
         return {
-          title: 'REVISION NEEDED',
+          title: 'REVISE & TRY AGAIN',
           detail:
-            'Improve the required response and complete the lesson again. BUKLOD will recheck it automatically.',
+            'No permanent fail or points penalty. Improve the response and retry as often as needed; BUKLOD checks it again automatically.',
         };
 
       default:

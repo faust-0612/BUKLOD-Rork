@@ -32,7 +32,7 @@ test('network timeouts and disconnections show quiet, temporary information',()=
  assert.match(reporter,/tone:'error' as const/);
 });
 test('comment contents, retry and true-error support stay available',()=>{
- assert.match(loader,/setComments\(hydratedRows\.map/);
+ assert.match(loader,/setComments\(baseRows\)/);
  assert.match(loader,/No internet connection\. Check your signal and tap Retry/);
  assert.match(loader,/Limited connection\. Tap Retry when your signal improves/);
  assert.match(loader,/Comments are taking longer than usual\. Tap Retry/);

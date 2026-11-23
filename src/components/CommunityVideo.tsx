@@ -283,6 +283,7 @@ function VideoTapSurface({
 
 function InactiveCommunityVideo({
   height = 380,
+  autoPlay = false,
   poster,
   expectedDurationSeconds,
   fullscreen = false,
@@ -295,6 +296,8 @@ function InactiveCommunityVideo({
 }: Props & { poster?: any }) {
   const knownDuration =
     Number(expectedDurationSeconds ?? 0) || 0;
+  // Fullscreen swipe targets and tappable feed posters aren't manual-play cards.
+  const showManualPlay = !autoPlay && !fullscreen && !onOpenFullscreen;
 
   return (
     <View
@@ -318,13 +321,15 @@ function InactiveCommunityVideo({
             <View style={styles.posterScrim} />
           </>
         ) : null}
-        <MaterialCommunityIcons
-          name={poster ? 'play' : 'play-circle-outline'}
-          size={poster ? 32 : 58}
-          color="#FFFFFF"
-          style={poster ? styles.posterPlayBadge : undefined}
-        />
-        {!poster ? (
+        {showManualPlay ? (
+          <MaterialCommunityIcons
+            name={poster ? 'play' : 'play-circle-outline'}
+            size={poster ? 32 : 58}
+            color="#FFFFFF"
+            style={poster ? styles.posterPlayBadge : undefined}
+          />
+        ) : null}
+        {!poster && showManualPlay ? (
           <>
             <Text style={styles.inactiveLabel}>
               Video · I-tap para i-play
@@ -619,6 +624,7 @@ function ExpoCommunityVideoPlayback({
   fullscreen = false,
   edgeToEdge = false,
   active = true,
+  preload = false,
   controlsBottomInset = 0,
   onOpenFullscreen,
   onFullscreenSwipe,
@@ -716,6 +722,24 @@ function ExpoCommunityVideoPlayback({
       }
     };
   }, [uri]);
+
+  // The one admitted near-viewport decoder may capture an old video's
+  // first frame before the next swipe. Never launch a second native player.
+  useEffect(() => {
+    if (Platform.OS === 'web' || active || !preload || posterSource || posterUri ||
+        playerStatus !== 'readyToPlay') return;
+    const timer = setTimeout(() => {
+      if (!beginCommunityVideoPosterGeneration(uri)) return;
+      void Promise.resolve()
+        .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 480, maxHeight: 480 }))
+        .then(thumbnails => {
+          if (thumbnails?.[0]) publishCommunityVideoPoster(uri, thumbnails[0]);
+        })
+        .catch(() => undefined)
+        .finally(() => releaseCommunityVideoPosterGeneration(uri));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [active, preload, uri, posterUri, posterSource, player, playerStatus]);
 
   // Do not show a buffering alert for every ordinary, sub-second startup.
   useEffect(() => {
@@ -1122,8 +1146,10 @@ function ExpoCommunityVideoPlayback({
       ? Math.min(1, Math.max(0, currentTime / knownDuration))
       : 0;
   // Do not confuse automatic initialization with a manual Play state.
-  const centerVisible = playerStatus !== 'error' &&
-    (showCenter || (!playing && (!autoPlay || userPausedRef.current)));
+  // Never display a center play badge over a clip that is still preparing.
+  const centerVisible = firstFrameRendered && playerStatus !== 'error' &&
+    (showCenter || (!playing && (userPausedRef.current ||
+      (!autoPlay && active && !fullscreen && !onOpenFullscreen))));
   const chromeVisible = !fullscreen || !playing || showCenter;
   const frameHeight = !fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio && measuredWidth > 0
     ? communityVideoFrameHeight(measuredWidth, videoAspectRatio, height)
@@ -1162,6 +1188,12 @@ function ExpoCommunityVideoPlayback({
         }}
         allowsPictureInPicture={false}
       />
+
+      {/* Keep the Android video surface covered until its actual first decoded frame.
+          The poster sits above this fallback; neither exposes a black texture flash. */}
+      {!firstFrameRendered ? (
+        <View pointerEvents="none" style={styles.firstFrameFallback} />
+      ) : null}
 
       {(posterSource || posterUri) && !firstFrameRendered ? (
         <ExpoImage
@@ -1399,10 +1431,14 @@ const styles =
       fontSize: 11,
     },
 
+    firstFrameFallback: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: '#172822',
+    },
     inactiveVideo: {
       width: '100%',
       height: '100%',
-      backgroundColor: '#151515',
+      backgroundColor: '#172822',
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 28,

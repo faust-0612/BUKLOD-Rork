@@ -63,6 +63,6 @@ export function processEmpireBuilds(s,log,onWatchtower,onRestored){
  for(const t of s.towers){if(!t.alive||!t.upgrading)continue;
   if(nearbyEnemy(s,t.team,t)||s.elapsed-t.lastDamage<3200||!friendlyBuilder(s,t.team,t))continue;
   const u=t.upgrading;u.ms=Math.min(u.duration,u.ms+500);u.progress=u.ms/u.duration;u.stage=constructionStage(u.progress);
-  if(u.progress===1){t.level++;t.maxHp+=110;t.hp=Math.min(t.maxHp,t.hp+140);t.structureXp=Math.max(0,t.structureXp-u.requiredXp);t.upgrading=null;log(s,'tower_upgrade',{tower:t.id,level:t.level})}
+  if(u.progress===1){t.level++;t.maxHp+=110;t.hp=Math.min(t.maxHp,t.hp+140);t.structureXp=Math.max(0,t.structureXp-u.requiredXp);t.upgrading=null;log(s,'tower_upgrade',{team:t.team,tower:t.id,level:t.level,x:t.x,y:t.y})}
  }
 }

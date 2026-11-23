@@ -32,7 +32,14 @@ export function arenaScreenToWorld(x, y, screenWidth, screenHeight, camera) {
 /** Light, strictly visual-only effects. Authoritative hit/skill outcomes are in Arena engine. */
 export function arenaVisualEffects(events, elapsed, ttl = 1100) {
   if (!Array.isArray(events)) return [];
-  const valid = new Set(['skill', 'dash', 'defeat', 'tower_destroyed', 'seal_breached', 'buff', 'level_up', 'equipment_drop', 'unit_spawn']);
+  const valid = new Set([
+    'skill','dash','damage','defeat','unit_ko','tower_ko','boss_ko','trap_ko',
+    'tower_hit','boss_hit','tower_destroyed','building_destroyed','seal_breached','seal_restored',
+    'construction_start','construction_complete','rebuild_start','tower_upgrade_start','tower_upgrade',
+    'tower_repair','villager_repair','buff','level_up','equipment_drop','equipment_equip',
+    'item_consumed','loot','mine','deposit','unit_spawn','map_hazard','trap_hit',
+    'final_hunt','solo_round_end','solo_round_start',
+  ]);
   return events.filter(e => e && valid.has(e.type) && Number.isFinite(e.time) &&
     e.time <= elapsed && elapsed - e.time < ttl)
     .slice(-14)

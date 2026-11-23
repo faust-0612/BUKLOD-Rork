@@ -1,0 +1,69 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-call-token-expiry-20261122.json",
+  "objective": "Repair BUKLOD MAIN Genesis Organization/Cluster audio and video call authentication after Stream JWT expiration without altering PTT, consent, ads, navigation, native runtime, or production.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "Owner screenshot 2026-11-22 21:24 PHT shows Stream WS code 40 HTTP 401 AuthErrorTokenExpired during Organization Audio Call; production runtime/OTA not verified and remains untouched.",
+  "chosenApproach": "Reject expired or uninspectable Stream/Supabase JWTs, refresh once through Supabase session provider, never fall back to stale Stream tokens, retain SDK tokenProvider, and show actionable Tagalog guidance.",
+  "selectionRationale": "Stream token endpoint issues one-hour credentials while the existing native client caches by age and previously fell back to stale tokens after refresh failure.",
+  "alternativeApproaches": [
+    "Increase token expiry without fixing stale credentials (rejected).",
+    "Disable Stream JWT validation or bypass permissions (rejected).",
+    "Force disconnect live PTT or native rebuild (rejected)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "connect-ptt-calls",
+    "authentication-session",
+    "stream-video-call",
+    "staging-only"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodCallJwt.ts",
+    "src/lib/buklodStreamVideoClient.ts",
+    "src/lib/buklodStreamVideoClient.web.ts",
+    "src/lib/buklodStreamCall.ts",
+    "src/lib/__tests__/buklodCallJwt.test.ts",
+    "tests/buklod-call-token-expiry-20261122.test.mjs",
+    ".buklod/scopes/genesis-call-token-expiry-20261122.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-call-token-expiry-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Repair authentication timing in shared Stream call clients, preserving all unrelated feature state and runtime paths.",
+      "preservedBehaviors": [
+        "No media, navigation, account onboarding, AdMob, points, offline data, release gate, or native configuration changed."
+      ],
+      "tests": [
+        "tests/buklod-call-token-expiry-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Prevent expired or uninspectable JWTs from reaching video/audio WebSocket setup and translate expiry failures safely.",
+      "preservedBehaviors": [
+        "Existing membership-based scope permission checks, PTT isolation, incoming ringing and active-call restoration remain unchanged."
+      ],
+      "tests": [
+        "tests/buklod-call-token-expiry-20261122.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Stream calls continue using server-generated user credentials and existing SDK tokenProvider.",
+    "Existing call ID rotation, roster permission checks, PTT sound priorities, and incoming call handling unchanged.",
+    "Current production and staging OTA remain unchanged pending independently verified RC gates."
+  ],
+  "acceptanceChecks": [
+    "Run Node source/auth regression tests and Jest helper tests.",
+    "Protected feature scope and engineering regression gate pass.",
+    "AdMob first-view/tab switching, PTT, RingingCalls and expired-session Android lifecycle tested before RC.",
+    "No production announcement or staging OTA until consolidated release gates independently pass."
+  ],
+  "releaseMode": "DEV_INTAKE_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "publicationStatus": "NOT_PUBLISHED"
+}

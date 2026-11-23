@@ -10,6 +10,8 @@ import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import {GENESIS_PORTRAIT_RESCUE_URI,GENESIS_COMPACT_RESCUE_URI} from './genesisPortraitFallback.generated';
 
+import GenesisDimensionalMapEffects from './GenesisDimensionalMapEffects';
+
 const NATIVE_PORTRAIT=require('../../../../assets/season2/genesis/world/buklod-genesis-portrait-welcome-720x995.jpg');
 const NATIVE_COMPACT=require('../../../../assets/season2/genesis/world/buklod-genesis-portrait-9doors-720x670.jpg');
 type Door={id:string;districtId:string;label:string;route:string;fallbackRoute?:string;faithOnly:boolean;icon:string};
@@ -51,6 +53,7 @@ export default function GenesisReliablePortraitImage({
     style={[StyleSheet.absoluteFillObject,{width,height}]}
     onLoad={()=>setLoaded(true)} onError={onFailed}
     accessibilityLabel="Premium Genesis visual world with nine special landmarks, guide and welcome"/>:null}
+  {mode!=='safe'&&loaded?<GenesisDimensionalMapEffects active={active} landscape={landscape}/>:null}
   {mode!=='safe'&&!loaded?<View pointerEvents="none" style={styles.loading}>
     <MaterialCommunityIcons name="image-filter-hdr" size={27} color="#F5DC98"/>
     <Text style={styles.loadingText}>Inihahanda ang BUKLOD World...</Text>

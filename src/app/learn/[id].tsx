@@ -366,7 +366,7 @@ export default function TrackDetail() {
 
     if (item?.official_status === 'rejected') {
       return {
-        label: 'Review Required',
+        label: 'Revise & Retry',
         style: styles.rejected,
       };
     }
@@ -550,7 +550,7 @@ export default function TrackDetail() {
                 {rejectedCount > 0 && (
                   <Text style={styles.reviewText}>
                     {rejectedCount} lesson
-                    {rejectedCount === 1 ? '' : 's'} need a revised response.
+                    {rejectedCount === 1 ? '' : 's'} ready for a revised attempt — no permanent fail.
                   </Text>
                 )}
 

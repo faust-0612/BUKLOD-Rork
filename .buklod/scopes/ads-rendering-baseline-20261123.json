@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/ads-rendering-baseline-20261123.json",
+  "objective": "Lock owner-observed healthy BUKLOD MAIN ad rendering across Genesis consolidated development and future production RCs without changing SDK behavior.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "Main source 7b224c39624827282c3cbf003060317045b0a73f; consolidated Genesis source 3b3d28db101abb59654a10ca77257f6fab243991. Owner reports live ads render well Nov 23, 2026; on-device version, precise fill and impression metrics not independently verified.",
+  "chosenApproach": "Pure regression tests imported into existing always-on PR/compiled RC/production ads lock and Genesis source QA. No runtime changes or deployment.",
+  "riskAreas": [
+    "ads-finance-points",
+    "navigation-scroll",
+    "ad-preservation",
+    "release-safety"
+  ],
+  "allowedPaths": [
+    "tests/buklod-ads-rendering-baseline-20261123.test.mjs",
+    ".buklod/scopes/ads-rendering-baseline-20261123.json",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-ads-rendering-baseline-20261123.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "Keep existing NativeAd-first/Banner fallback, 8px pending probes and healthy 392px native creative.",
+    "Preserve loaded ads on scroll, prevent background dashboard requests, bound prewarming and honor cooldowns.",
+    "Consent, route, safety lock and SDK-only impression reporting unchanged.",
+    "Do not alter live placement IDs, revenue, native dependencies, APKs, EAS channels or backend."
+  ],
+  "acceptanceChecks": [
+    "Node source contracts run from existing PR, production OTA, compiled RC and Genesis conso source QA.",
+    "TypeScript/Metro, signed native, real-device ad fills, first-view and instant navigation acceptance remain independent mandatory release gates.",
+    "No staging or production OTA caused by this test-only PR."
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "publicationStatus": "GUARD_PROPOSAL",
+  "physicalDeviceVerification": "OWNER_OBSERVATION_ONLY",
+  "selectionRationale": "Retain the currently healthy NativeAd/BannerAd implementation untouched and require deterministic source contracts at existing PR, Genesis and production RC gates; actual on-device AdMob fill remains a separate mandatory release check.",
+  "alternativeApproaches": [
+    "Change ad SDK/lifecycle to force immediate loads: rejected because working live render behavior could regress or violate cooldown.",
+    "Add only a text policy: rejected because it cannot fail a future regression in CI.",
+    "Add test-only contracts to existing mandatory suites: selected because it protects behavior without mutating the live product."
+  ]
+}

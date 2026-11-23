@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-premium-topbar-assertion-20261123.json",
+  "objective": "Align one stale Genesis ad/navigation source-test assertion to already approved restored shared top bar so consolidated QA can validate the actual app without changing AdMob or native rendering.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "Genesis source QA run 45119215666 on exact commit 62bfe27a75e0327cff4de0b5ee816b830327ad8b: 151st test failed because it expected obsolete genesisDashboardTopInset while restored SwipeDashboardHeader now owns native Android safe-area inset. Production main 7b224c39624827282c3cbf003060317045b0a73f unchanged.",
+  "chosenApproach": "Update only the existing test to assert one shared status-safe Genesis header, no duplicate context bar, a single ads prewarm host and frozen tab navigation; do not weaken ads/production release controls.",
+  "selectionRationale": "The restored header and its headerTopInset already exist and previously passed focused navigation QA; mutating working runtime code to satisfy obsolete tests would regress owner-requested UI and ad/navigation performance.",
+  "alternativeApproaches": [
+    "Reintroduce old route-specific Wall/Connect top padding: rejected because the restored shared header already owns clearance and double pads those screens.",
+    "Skip the failing Genesis premium ad/navigation guard: rejected because this loses ad prewarm and navigation regression evidence.",
+    "Reconcile the one stale assertion with stronger actual source contracts: selected."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "ad-preservation",
+    "release-safety"
+  ],
+  "allowedPaths": [
+    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs",
+    ".buklod/scopes/genesis-premium-topbar-assertion-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/season2-premium-ad-navigation-guard-20261121.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "Genesis native Android status bar remains cleared once by shared header without double padding.",
+    "No duplicate context bar on Genesis, Home remains independently controlled.",
+    "Ad prewarm, real SDK impressions, consent and cooldowns unchanged.",
+    "Android frozen-tab navigation unaffected; no AdMob SDK, native, runtime or backend modifications.",
+    "No staging OTA, production OTA or APK authorized."
+  ],
+  "acceptanceChecks": [
+    "Exact-head PR Engineering Accountability and Main-side compatibility CI pass.",
+    "Consolidated Genesis source QA and Android Metro compile remain required before any RC.",
+    "No changes to main/production channel or Supabase and no native release bypass."
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "publicationStatus": "QA_TEST_CORRECTION",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
