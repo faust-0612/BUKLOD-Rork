@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-godot-launch-recovery-20261123.json",
-  "objective": "Correct the installed Genesis 2.0.4 native Godot launch crash and the unwanted double-entry React Native practice UX in a new isolated 2.0.5 staging native RC without touching production or live 2.0.4 channel.",
+  "objective": "Consolidated full BUKLOD MAIN staging Expo EAS 2.0.5 signed Android APK: direct native Godot Arena entry, isolated crash recovery, Godot+Expo green-B native splash, embedded Arena/Kingdom/Community/House assets, 13 identities and 300 pickups; never call it fully functional without native device proof.",
   "baseRef": "release/genesis-library-204-conso-ota-20261122",
-  "chosenApproach": "Keep exact successful 2.0.4 consolidated OTA source as base. Add new Godot resource URL launch path, native-library-specific R8 JNI preservation, native-first protected route with persisted crash-loop guard, and isolated staging APK runtime/channel. No direct OTA of native code or production deployment.",
+  "chosenApproach": "Preserve published 2.0.4 consolidated JS staging baseline while updating only the 2.0.5 native Godot Android startup and R8, adding both Expo/Godot native splash, explicit signed EAS cloud build profile with original keystore and backend identity. Run fail-closed native inventory/pack/Godot headless/AdMob/nav/theme/TS CI gates and submit exactly one EAS cloud build. No production or 2.0.4 OTA publishing.",
   "selectionRationale": "Current 2.0.4 device button crashes; automatically entering the same crash on installed binary would create a loop. A separate signed 2.0.5 and a persisted recovery barrier are required before native-first becomes eligible.",
   "allowedPaths": [
     ".buklod/scopes/genesis-godot-launch-recovery-20261123.json",
@@ -16,7 +16,11 @@
     "eas.json",
     "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
     "tests/genesis-godot-game-runtime-guard-20261123.test.mjs",
-    "tests/genesis-godot-game-release-identity-20261123.test.mjs"
+    "tests/genesis-godot-game-release-identity-20261123.test.mjs",
+    "godot/empire-arena/project.godot",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/genesis-205-native-release-gate.mjs",
+    ".github/workflows/genesis-205-native-eas-cloud-build-20261123.yml"
   ],
   "regressionTests": [
     "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
@@ -32,7 +36,12 @@
     "AdMob/tab navigation regression",
     "Application boot-loop and local state",
     "Protected production and shared paid backend",
-    "release-identity"
+    "release-identity",
+    "kingdom-character",
+    "app-runtime",
+    "native-splash",
+    "cloud-EAS-build",
+    "Android Godot pack integrity"
   ],
   "lockedFeatureChanges": [
     {
@@ -88,14 +97,19 @@
     "Emulator and real Infinix device verifies Arena first frame, control input, return and repeated entry",
     "Crash-loop marker successfully blocks forced relaunch on simulated process death",
     "Staging owner acceptance required before any OTA; verify native regression and production-fix parity",
-    "Never publish any 2.0.5 JS to 2.0.4 EAS channel"
+    "Never publish any 2.0.5 JS to 2.0.4 EAS channel",
+    "GitHub CI checks Godot source splash image exists in signed zip and Expo app splash uses matching green B",
+    "Godot 4.7.2 headless pack main-scene smoke succeeds before requesting EAS credit",
+    "Expo EAS Cloud Android internal build id is real and profile matches installed staging package with code17 and matching signer",
+    "Staging EAS build artifact verified and shared only after build status FINISHED, no fake verified 100% assertion",
+    "No guaranteed Godot launch or full game behavior asserted when owner elected to skip physical device verification"
   ],
   "alternativeApproaches": [
     "Rejected: publish direct-to-Godot JavaScript OTA to crashing 2.0.4 native engine; risk of immediate app crash loop",
     "Rejected: disable R8 globally; forfeits app hardening and release gates"
   ],
   "releaseMode": "DEV_ONLY_NATIVE_APK_CANDIDATE_NO_OTA",
-  "publicationStatus": "NOT_PUBLISHED",
-  "physicalDeviceVerification": "FAILED_ON_ORIGINAL_2_0_4_OWNER_DEVICE_GODOT_BUTTON;_NEW_2_0_5_NOT_BUILT_OR_TESTED",
+  "publicationStatus": "DEV_SOURCE_UPDATED_CLOUD_BUILD_PENDING_QA;_NO_NEW_APK_OR_OTA",
+  "physicalDeviceVerification": "SKIP_USER_REQUEST;_CURRENT_2_0_4_GODOT_LAUNCH_REPORTED_CRASH;_NEW_2_0_5_UNTESTED",
   "productionBaselineEvidence": "Base is the exact published 2.0.4 Genesis consolidated source commit 63f97c4092c1214c8f0b0eb5558d1183c6f189d4 on release/genesis-library-204-conso-ota-20261122, corresponding to EAS 2.0.4 group 7411bd8d-5c80-47c5-b120-e52570768ce5. Previous native APK run 45031011586 passed signing/pack checks, but Godot launch crashed on owner device. This DEV branch makes no production or 2.0.4 channel change; verified physical device startup still missing."
 }
