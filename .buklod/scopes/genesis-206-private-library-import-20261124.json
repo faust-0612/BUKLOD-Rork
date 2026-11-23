@@ -1,6 +1,6 @@
 {
   "contractVersion": 2,
-  "objective": "Implement private Library 3D models and archive format intake with license/metadata checks, preserving 22 approved CC0 fallback and no production changes",
+  "objective": "Full recursive private Library intake, rights-approved SHA-pinned GLB/WAV/PNG/WebP staging, no public binary disclosure and no unverified OTA",
   "branch": "dev/genesis-206-private-library-import-gate-20261124",
   "base": "0ddcad334a1facabb10aa9913a86e3dee0421224",
   "privateAssets": {
@@ -11,7 +11,7 @@
     "rar": 1,
     "rights": "not independently verified",
     "fileService": "materialization verified; container binary execution currently unavailable",
-    "release": "private binary assets not yet in OTA pack"
+    "release": "No actual private Library bytes in verified OTA; container execution unavailable, licenses not fully reviewed"
   },
   "buildGuards": [
     "Explicit BUKLOD_GENESIS_PRIVATE_ASSETS feature gate",
@@ -22,11 +22,17 @@
     "Commercial redistribution evidence from local rights manifest",
     "Godot 4.7.2 GLTFDocument real runtime import",
     "APK pack hard size limit 256MB",
-    "No production/points/backend changes"
+    "No production/points/backend changes",
+    "Recursive local Library discovery; reject symlinks, traversal and unbounded source entries",
+    "Approved WAV/PNG/WebP intake from direct and selected ZIP entries",
+    "Deny private binary commits to public repository",
+    "130 MiB private content and 256 MiB native main pack limits"
   ],
   "tests": [
     "node --test tests/genesis-private-library-import-gate-20261124.test.mjs",
-    "Godot 4.7.2 existing 22 CC0 regressions and optional private pack smoke"
+    "Godot 4.7.2 existing 22 CC0 regressions and optional private pack smoke",
+    "Synthetic nested Library discovery",
+    "Synthetic signed WAV and VFX inclusion with SHA"
   ],
-  "outcome": "DEV_ONLY_IMPORT_PIPELINE_NOT_FULL_PRIVATE_INGESTION"
+  "outcome": "DEV_IMPORT_PIPELINE_ONLY_NO_PRIVATE_BINARY_RELEASE"
 }

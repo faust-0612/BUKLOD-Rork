@@ -9,3 +9,8 @@ To stage a model for the game content pack, provide an **outside-the-repository*
 No Library file IDs, authentication tokens, signed URLs, proof scans, unreviewed archive contents or private binary source assets belong in GitHub or GitHub Actions logs. The app always keeps the existing 22 independently verified CC0 3D models/2 rigged actors as fallback. The local owner preview and the staging OTA publication are separate release gates.
 
 **Current availability:** The file service successfully materialized a subset into the session's private working container, but the container execution interface is returning ClientError. Thus the private binaries are **not yet validated, staged, or included in a verified pack**. Do not claim otherwise.
+
+## Complete local Library audit
+The importer now recursively discovers compatible GLB/GLTF/FBX/Blender, ZIP/RAR/UnityPackage, audio and VFX sources in locally materialized subfolders. Discovered sources stay in a **private inspection report**, not public GitHub. Only exact source SHA-256 and independently documented redistribution rights allow staging of GLB, WAV, PNG and WebP. Selected ZIP entries require allowlisting. Unity, FBX, Blender and RAR need conversion and separate rights reviews.
+
+The Android Godot bridge accepts one pack below 256 MiB, and this importer limits approved private assets to 130 MiB per pack. The 2+ GB original collection cannot be embedded wholesale in one OTA. The 22 independently approved CC0 3D meshes and 70 recording-based cues remain the safe fallback. **No private Library binaries have yet been imported or published by this workflow.**
