@@ -20,3 +20,8 @@
 
 ## Extend content safely
 Insert new original `public.buklod_abc_doctrinal_lessons` rows with a unique `doctrine-0005` etc. ID, series key/position, title, difficulty, prerequisite, body blocks, question and exactly four options. Insert the correct choice into `private.buklod_abc_doctrinal_answers`. Keep `published=false` until doctrinal and editorial review, then set `published=true` and `published_at=now()` **through authorized backend admin operations**. No application rebuild is required to show additional published rows.
+
+## Quiz anti-farming hardening (2026-11-24)
+- Wrong answers return a non-completion result; the UI does not mark a failed quiz complete or show a successful ad. Server counts incorrect attempts per account and lesson, with a 10-minute cooldown after three wrong submissions. These failed-attempt records live in a private table, not client metadata.
+- A per-account, normalized fingerprint prevents an identical reflection from earning progress across more than one continuing-doctrine lesson. No reflection raw text is kept in this anti-copy registry. Meaningfulness still requires a future human/AI rubric for higher assurance; these are bounded heuristics, not doctrinal certification.
+- Admin cannot unpublish a prerequisite while a dependent lesson remains published; downstream lessons must be unpublished first.

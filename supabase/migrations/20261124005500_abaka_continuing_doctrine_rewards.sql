@@ -35,6 +35,25 @@ create table if not exists private.buklod_abc_doctrinal_answers (
   correct_option text not null check (correct_option in ('A','B','C','D'))
 );
 revoke all on private.buklod_abc_doctrinal_answers from public, anon, authenticated;
+
+create table if not exists private.buklod_abc_doctrine_quiz_attempts (
+ user_id uuid not null references public.profiles(id) on delete cascade,
+ lesson_id text not null references public.buklod_abc_doctrinal_lessons(lesson_id) on delete cascade,
+ failed_count integer not null default 0 check(failed_count between 0 and 3),
+ blocked_until timestamptz,
+ updated_at timestamptz not null default now(),
+ primary key(user_id,lesson_id)
+);
+create table if not exists private.buklod_abc_doctrine_reflection_hashes (
+ user_id uuid not null references public.profiles(id) on delete cascade,
+ lesson_id text not null references public.buklod_abc_doctrinal_lessons(lesson_id) on delete cascade,
+ content_hash text not null check(length(content_hash)=32),
+ created_at timestamptz not null default now(),
+ primary key(user_id,content_hash),
+ unique(user_id,lesson_id)
+);
+revoke all on private.buklod_abc_doctrine_quiz_attempts from public,anon,authenticated;
+revoke all on private.buklod_abc_doctrine_reflection_hashes from public,anon,authenticated;
 -- No direct client permission to the private schema/table; only this trusted RPC checks answers.
 
 alter table public.buklod_abc_growth_progress
@@ -102,6 +121,11 @@ declare
   item record;
   previous record;
   correct text;
+  failures integer := 0;
+  previous_block timestamptz;
+  next_block timestamptz;
+  attempts_updated_at timestamptz;
+  reflection_hash text;
   points_for_level integer;
   today_points integer;
   award integer;
@@ -140,8 +164,32 @@ begin
   select correct_option into correct from private.buklod_abc_doctrinal_answers
    where lesson_id=normalized_id;
   if correct is null then raise exception 'Assessment unavailable'; end if;
-  if chosen <> correct then raise exception 'Hindi pa tama ang quiz. Basahin muli ang mga talata at subukan ulit.'; end if;
-
+  select a.failed_count,a.blocked_until,a.updated_at
+    into failures,previous_block,attempts_updated_at
+  from private.buklod_abc_doctrine_quiz_attempts a
+  where a.user_id=actor and a.lesson_id=normalized_id for update;
+  if previous_block is not null and previous_block > now() then
+    return jsonb_build_object('lesson_id',normalized_id,'completed',false,
+      'reason','quiz_cooldown','retry_after_seconds',
+      greatest(1,ceil(extract(epoch from previous_block-now()))::integer));
+  end if;
+  if chosen <> correct then
+    failures := case
+      when previous_block is not null and previous_block <= now() then 1
+      when attempts_updated_at is null or attempts_updated_at < now()-interval '1 hour' then 1
+      else least(3,coalesce(failures,0)+1) end;
+    next_block := case when failures >= 3 then now()+interval '10 minutes' else null end;
+    insert into private.buklod_abc_doctrine_quiz_attempts
+      (user_id,lesson_id,failed_count,blocked_until,updated_at)
+    values(actor,normalized_id,failures,next_block,now())
+    on conflict(user_id,lesson_id) do update set
+      failed_count=excluded.failed_count,
+      blocked_until=excluded.blocked_until,
+      updated_at=now();
+    return jsonb_build_object('lesson_id',normalized_id,'completed',false,
+      'reason','quiz_incorrect','remaining_attempts',greatest(0,3-failures),
+      'retry_after_seconds',case when next_block is not null then 600 else 0 end);
+  end if;
   -- Lightweight rubric; reflection is checked transiently and is never stored in this table.
   if length(reflection_text) < 80 or length(reflection_text) > 2000 or
      (select count(distinct lower(word))
@@ -150,6 +198,16 @@ begin
     raise exception 'Kailangan ng sariling reflection: 80–2000 characters at 8 magkakaibang salita.';
   end if;
 
+  -- Compare only normalized hashes; reflection text stays private to the device.
+  reflection_hash := pg_catalog.md5(lower(
+    pg_catalog.regexp_replace(reflection_text,'[^[:alnum:]]+','','g')));
+  insert into private.buklod_abc_doctrine_reflection_hashes
+    (user_id,lesson_id,content_hash)
+  values(actor,normalized_id,reflection_hash)
+  on conflict(user_id,content_hash) do nothing;
+  if not found then
+    raise exception 'Same reflection already used. Please provide original learning and application.';
+  end if;
   select r.is_active into credit_enabled from public.buklod_point_rules r
    where r.activity_type='abc_growth_lesson';
   if credit_enabled is distinct from true then raise exception 'Points rule is unavailable'; end if;

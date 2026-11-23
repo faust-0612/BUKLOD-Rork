@@ -36,6 +36,9 @@ test('published doctrinal content is paged and details are server-validated',()=
  assert.match(detail,/if \(!lesson\.assessment && !pendingSync/);
  assert.ok(core.includes("seriesTitle?: string"));
  assert.ok(sql.includes("pg_advisory_xact_lock"));
+ assert.ok(sql.includes("quiz_cooldown"));
+ assert.ok(sql.includes("private.buklod_abc_doctrine_reflection_hashes"));
+ assert.ok(detail.includes("data?.completed !== true"));
  assert.ok(sql.includes("today_points + points_for_level <= 50"));
 });
 test('admin editor never writes directly to tables and stays server authorized',()=>{

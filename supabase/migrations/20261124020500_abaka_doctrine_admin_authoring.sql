@@ -195,6 +195,13 @@ begin
     return jsonb_build_object('lesson_id',lesson_row.lesson_id,'published',lesson_row.published,'unchanged',true);
   end if;
 
+  if not p_publish and exists(
+     select 1 from public.buklod_abc_doctrinal_lessons d
+     where d.prerequisite_id=lesson_row.lesson_id and d.published=true
+  ) then
+    raise exception 'Unpublish dependent lessons before unpublishing this prerequisite';
+  end if;
+
   if p_publish then
     if not exists(select 1 from private.buklod_abc_doctrinal_answers
          where lesson_id=lesson_row.lesson_id) then

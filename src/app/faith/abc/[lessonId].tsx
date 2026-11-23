@@ -621,6 +621,16 @@ BuklodAbcLessonDetailScreen() {
         if (error) {
           throw error;
         }
+        if (lesson.assessment && data?.completed !== true) {
+          const seconds = Math.max(0, Number(data?.retry_after_seconds ?? 0));
+          Alert.alert(
+            data?.reason === 'quiz_cooldown' ? 'Quiz cooldown' : 'Hindi pa tama ang sagot',
+            'Balikan ang mga Bible passage bago subukan muli.' +
+            (seconds > 0 ? ' Maaari kang sumubok muli pagkalipas ng ' +
+              Math.ceil(seconds / 60) + ' minuto.' : '')
+          );
+          return;
+        }
 
         const points =
           Number(

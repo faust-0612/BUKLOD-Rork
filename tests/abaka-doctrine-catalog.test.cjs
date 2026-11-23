@@ -26,6 +26,11 @@ test('points derived server-side from difficulty and bounded per account per day
   assert.match(sql, /prerequisite_id/);
   assert.match(sql, /count\(distinct lower\(word\)\)/);
   assert.match(sql, /already_completed',true/);
+  assert.match(sql, /quiz_cooldown/);
+  assert.match(sql, /private\.buklod_abc_doctrine_quiz_attempts/);
+  assert.match(sql, /private\.buklod_abc_doctrine_reflection_hashes/);
+  assert.match(sql, /reflection_hash := pg_catalog.md5/);
+  assert.match(detail, /data\?\.completed !== true/);
 });
 test('client uses published catalog, verified assessment and actual ledger credits', () => {
   assert.match(list, /loadPublishedDoctrinalLessons/);

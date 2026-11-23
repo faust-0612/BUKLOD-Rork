@@ -52,6 +52,17 @@ begin
     raise exception 'Doctrinal server validation, cap or ledger idempotence missing';
   end if;
 
+  if to_regclass('private.buklod_abc_doctrine_quiz_attempts') is null or
+     to_regclass('private.buklod_abc_doctrine_reflection_hashes') is null or
+     has_table_privilege('authenticated','private.buklod_abc_doctrine_quiz_attempts','SELECT') or
+     has_table_privilege('authenticated','private.buklod_abc_doctrine_reflection_hashes','INSERT') then
+    raise exception 'Private quiz throttling and reflection anti-copy registry unavailable';
+  end if;
+  if position('quiz_cooldown' in v_body)=0 or
+     position('reflection_hash := pg_catalog.md5' in v_body)=0 then
+    raise exception 'Quiz cooldown or repeated reflection protection missing';
+  end if;
+
   if not (select exists(
     select 1 from pg_constraint
     where conrelid='public.buklod_abc_growth_progress'::regclass
