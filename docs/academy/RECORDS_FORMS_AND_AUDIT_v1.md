@@ -25,7 +25,7 @@ Every operational record requires: `record_id`, `form_version`, creator, approve
 | Case ID / learner's protected identifier | TO COMPLETE |
 | Date, concern and learning module | TO COMPLETE |
 | Privacy/minor sensitivity classification | TO COMPLETE |
-| Initial acknowledgement/assigned reviewer | TO COMPLETE |
+| Automatic acknowledgement/system reviewer identifier | TO COMPLETE |
 | Source IDs, evidence and review outcome | TO COMPLETE |
 | Learner response, appeal route and close date | TO COMPLETE |
 | Root cause / related cases needing correction | TO COMPLETE |
@@ -40,7 +40,7 @@ Every operational record requires: `record_id`, `form_version`, creator, approve
 | Root cause analysis and affected user scope | TO COMPLETE |
 | Corrective action owner and due date | TO COMPLETE |
 | Fix/retest evidence and effectiveness date | TO COMPLETE |
-| Final reviewer approval and follow-up | TO COMPLETE |
+| Automated CAPA verification and founder systemic policy follow-up | TO COMPLETE |
 
 ## F-04 — Internal audit worksheet
 

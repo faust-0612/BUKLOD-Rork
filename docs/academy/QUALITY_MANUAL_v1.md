@@ -55,7 +55,7 @@ Initial **targets only**, not achieved statistics: zero unverified/duplicate UC;
 | Fake or prematurely issued academic award | OFF feature flag, server-only source + prerequisite/evidence check | Pilot DEV-only; must test end-to-end |
 | Unpublished 105/106/107 counted as completed | Require official publication and role-specific verified history | Blocking gap in source inventory |
 | Academic equivalency misunderstanding | Non-formal naming, disclosure on every credential, legal review | Legal review pending |
-| AI hallucination / research plagiarism | Canonical citations, rubric validation, second reviewer for high stakes, appeal | Partial DEV scope; not live |
+| AI hallucination / research plagiarism | Canonical citations, rubric validation, second automated adversarial check for high stakes, appeal | Partial DEV scope; not live |
 | Child/minor privacy exposure | Data minimization, access segregation, verified consent | Requires source-to-paper privacy test |
 | Schema/RLS or production regression | Isolated DEV, no production migration, risk-based security and release gate | Must complete before any rollout |
 | Missing audit evidence | Typed registers, review owners, recorded dates and verified artifact hashes | Templates only until pilot starts |

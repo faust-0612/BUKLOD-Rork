@@ -32,7 +32,7 @@ The framework records **16 theological/educational competency domains**: Scriptu
 
 ### C-S01 — Scripture Devotion (30 cumulative UC)
 
-**Module source:** Daily Reading; **delivery:** existing reading, reflection and reviewer flow. **Outcomes:** after 20 unique assigned and approved readings the learner can describe central passage meaning and provide an original, relevant reflection. **Assessment:** review of each assignment and unique source record; original reflective response; verified identity and timestamp. **Completion:** at least 20 distinct approved assignments, at least 30 cumulative verified UC and publication/eligibility rules from canonical catalog. **Records:** assignment ID, reviewer state/version, member ID, credit event, final gate decision. **No diploma** for individual daily completion.
+**Module source:** Daily Reading; **delivery:** existing reading, reflection and source-verification flow. **Outcomes:** after 20 unique assigned and approved readings the learner can describe central passage meaning and provide an original, relevant reflection. **Assessment:** review of each assignment and unique source record; original reflective response; verified identity and timestamp. **Completion:** at least 20 distinct approved assignments, at least 30 cumulative verified UC and publication/eligibility rules from canonical catalog. **Records:** assignment ID, automated verifier state/version, member ID, credit event, final gate decision. **No diploma** for individual daily completion.
 
 ### C-D01 — Christian Foundations — ABaKa (150 cumulative UC)
 

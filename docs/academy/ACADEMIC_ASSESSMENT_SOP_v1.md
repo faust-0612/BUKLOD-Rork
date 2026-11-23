@@ -28,7 +28,7 @@
 ## D. Learner support, complaints, appeals and correction
 
 - Offer concise explanations of 'What counted', 'What's missing', accessibility assistance and a protected appeal form accessible from the academy record.
-- Complaint record: case number, member, category, date, disputed source/rubric, supporting evidence, responsible reviewer, acknowledgement, decision, learner notice and resolution timestamp. Prefer a reviewer independent from original decision.
+- Complaint record: case number, member, category, date, disputed source/rubric, supporting evidence, responsible reviewer, acknowledgement, decision, learner notice and resolution timestamp. Use a fresh independent automated re-evaluation against the same approved rubric, preserve an appeal audit trail, and escalate systemic policy defects to founder oversight without an individual award approval gate.
 - Set an owner-defined and automatically monitored SLA; proposed pilot: acknowledgement within five working days. No automatic penalty for filing an appeal.
 - If a source error is deterministically confirmed, make an authenticated audited correction event to UC/credential history; no fabricated backfill. Follow-up must test whether similar historical learners are affected.
 - Permit accessibility accommodations without bypassing the same learning outcome and core assessment requirements. Protect minors and sensitive research. Publish retention periods only after privacy/legal approval.

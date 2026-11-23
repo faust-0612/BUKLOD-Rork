@@ -11,6 +11,25 @@ const syllabus=JSON.parse(fs.readFileSync(path.join(ROOT,'src/data/academy/bahlQ
 const strict=process.argv.includes('--strict');
 const today=new Date();
 const errors=[];
+const human=data.human_oversight_policy;
+if(!human||human.per_learner_manual_approval!==false)
+ errors.push('Academy owner oversight must not create per-learner manual approval.');
+if(!human||human.independent_iso_audit_still_required!==true)
+ errors.push('Real independent audit requirement must not be silently removed.');
+const readSource=p=>fs.readFileSync(path.join(ROOT,p),'utf8');
+const adminSource=readSource('src/app/admin/academy-research-review.tsx');
+const learnerSource=readSource('src/app/academy/research.tsx');
+const aiSource=readSource('supabase/functions/buklod-academy-research-ai-v2/index.ts');
+const snapshotSql=readSource('supabase/migrations/20261124034000_buklod_academy_quality_overview_v1.sql');
+if(/buklod_academy_review_research_v1|Verify & grant UC|p_approved/.test(adminSource))
+ errors.push('Legacy manual academic approval returned to admin UI.');
+if(!/buklod-academy-research-ai-v2/.test(learnerSource)||!/buklod_academy_my_research_v2/.test(learnerSource))
+ errors.push('Missing automatic learner review and saved-review recovery.');
+if(!/SECOND independent adversarial evaluator/.test(aiSource)||!/Math.min\\(total,secondary.score\\)/.test(aiSource))
+ errors.push('Missing advanced capstone independent automated cross-check.');
+if(!/public.is_system_admin\\(\\)/.test(snapshotSql)||!/revoke all on function/.test(snapshotSql))
+ errors.push('Founder quality metrics require restricted admin access.');
+
 const seen=new Set();
 const verified=[];
 function error(s){errors.push(s)}

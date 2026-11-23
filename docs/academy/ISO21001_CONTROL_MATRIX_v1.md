@@ -8,7 +8,7 @@
 
 ## ISO quality is a behavior to demonstrate, not a logo to display
 
-A curriculum, test suite and quality manual are a **design**. The EOMS is only working when authentic learners complete approved modules, teachers/reviewers apply consistent assessments, source evidence and documents remain controlled, complaints and appeals are decided fairly, audit findings are corrected, and MZB leadership reviews real results. This pack intentionally prevents claiming 'ISO-quality guaranteed' while those controls are unproven.
+A curriculum, test suite and quality manual are a **design**. The EOMS is only working when authentic learners complete approved modules, source-bound automation applies consistent approved assessments, source evidence and documents remain controlled, complaints and appeals are decided fairly, audit findings are corrected, and MZB leadership reviews real results. This pack intentionally prevents claiming 'ISO-quality guaranteed' while those controls are unproven.
 
 ## Clause-family traceability
 
@@ -41,7 +41,7 @@ For **each required control**, mark `VERIFIED` only after adding an accepted evi
 ## Least-cost execution (without registration)
 
 1. **Design (complete as draft):** keep this register, curriculum crosswalk, quality manual, assessment SOP and standard naming disclaimers under version control; test structure for drift.
-2. **Govern:** formally assign MZB Academic Quality Lead, reviewer/auditor, learner-support and privacy roles. Approve quality policy and EOMS scope.
+2. **Govern:** document founder-controlled institutional scope, automated assessor ownership, and a designated independent auditor only when conducting a real internal ISO audit. Approve quality policy and EOMS scope.
 3. **Prove three pilots:** compare actual approved lesson IDs and grading rules; run identical competency checks, dup/forgery negative tests, accessibility reviews and confidential appeals.
 4. **Measure actual outcomes:** track only protected aggregate/authorized learner evidence; reject absent or unverifiable sample results. Record real complaints and completed corrective actions.
 5. **Independent internal audit and executive review:** impartial audit of actual operating evidence and sign management review with dated actions.
