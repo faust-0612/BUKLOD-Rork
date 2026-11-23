@@ -64,3 +64,12 @@ test('missed push can use existing unread fallback without aggressive inbox poll
   assert.match(scale, /messagesInboxPollMs: 300_000/);
   assert.doesNotMatch(inbox, /setInterval\([^\n]*1000/);
 });
+
+test('search filters authorized conversations and only shows people not in a known thread', () => {
+  const search = read('src/lib/connectInboxSearch.ts');
+  assert.match(inbox, /matchesConnectInboxSearch\(room, query\)/);
+  assert.match(inbox, /currentThreads\.filter\(thread => matchesConnectInboxSearch\(thread, query\)\)/);
+  assert.match(inbox, /people\.filter\(person => !personal\.some\(thread => thread\.other_user_id === person\.user_id\)\)/);
+  assert.match(search, /item\.other_user_name, item\.scope_name, item\.last_message/);
+  assert.match(inbox, /tab === 'requests'\s*\? \[\]/);
+});
