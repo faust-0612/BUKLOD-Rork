@@ -4,7 +4,15 @@ on:
     paths:
       - "supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql"
       - "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql"
+      - "supabase/migrations/20261124035000_saliksik_complete_manuscript_unlock_r3.sql"
+      - "supabase/functions/saliksik-manuscript-v1/**"
       - "supabase/tests/saliksik_written_master_r2.sql"
+      - "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql"
+      - "tests/saliksik-manuscript-unlock-20261124.test.mjs"
+      - "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs"
+      - "src/lib/saliksikClient.ts"
+      - "src/app/scope/saliksik.tsx"
+      - "src/app/admin/saliksik-library.tsx"
       - "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql"
       - "tests/fixtures/saliksik_pg_*.sql"
       - ".github/workflows/saliksik-sql-qa.yml"
@@ -35,6 +43,8 @@ jobs:
       PGDATABASE: saliksik_qa
     steps:
       - uses: actions/checkout@v4
+      - name: Verify member download source contracts
+        run: node --test tests/saliksik-manuscript-unlock-20261124.test.mjs tests/saliksik-cluster-faith-manuscript-20261124.test.mjs
       - name: Seed isolated BUKLOD contract
         run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/saliksik_pg_seed.sql
       - name: Apply unchanged SALIKSIK release migration
@@ -47,3 +57,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/saliksik_written_master_r2.sql
       - name: Execute real Postgres admin/member/ledger workflow
         run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/saliksik_pg_integration.sql
+      - name: Apply completion-gated manuscript unlock migration R3
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261124035000_saliksik_complete_manuscript_unlock_r3.sql
+      - name: Test member entitlement, rights gates, original privacy and no changed Points
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/saliksik_complete_manuscript_unlock_r3.sql

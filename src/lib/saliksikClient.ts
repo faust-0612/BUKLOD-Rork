@@ -4,6 +4,7 @@ import { File } from 'expo-file-system';
 import type { DocumentPickerAsset } from 'expo-document-picker';
 import { supabase } from '@/lib/supabase';
 
+export type SaliksikManuscriptDownload = { ok:true; kind:'complete_original'|'complete_study_manuscript'; name:string; download_url:string; };
 export type SaliksikSource = {
  id: string; title: string; file_name: string; status: string;
  created_at: string; attempts: number; last_error: string|null;
@@ -183,4 +184,42 @@ export async function saliksikAdminMasterReview(
   p_submission_id:submissionId,p_scores:scores,p_citations_verified:citationsVerified,
   p_feedback:feedback.trim(),
  });
+}
+
+/**
+ * The Edge server checks the live user's nine-part completion and manuscript rights;
+ * the client never receives the permanent private storage path.
+ * Claiming pending Points is NOT required to download an earned manuscript.
+ */
+export async function saliksikRequestCompleteManuscript(
+ collectionId:string
+):Promise<SaliksikManuscriptDownload>{
+ if(!/^[0-9a-f-]{36}$/i.test(collectionId))throw new Error('Invalid manuscript collection');
+ const {data,error}=await supabase.functions.invoke('saliksik-manuscript-v1',{
+  body:{collection_id:collectionId},
+ });
+ if(error)throw new Error(fail(error));
+ if(!data?.ok||typeof data.download_url!=='string'||
+    !/^https:\/\//i.test(data.download_url) ||
+    !['complete_original','complete_study_manuscript'].includes(data.kind)){
+  throw new Error(String(data?.reason||'Manuscript is unavailable until verified completion'));
+ }
+ return data as SaliksikManuscriptDownload;
+}
+
+export async function saliksikAdminOriginalDownloadRights():Promise<Record<string,boolean>>{
+ await assertAdmin();
+ return rpc('saliksik_admin_original_rights_v1');
+}
+export async function saliksikAdminSetOriginalDownloadRights(
+ sourceId:string, allowed:boolean
+):Promise<void>{
+ await assertAdmin();
+ const statement=allowed
+  ? 'Source owner confirms redistribution rights for verified-completion member manuscript download.'
+  : 'Original manuscript redistribution rights revoked; compiled study manuscript remains accessible.';
+ const out=await rpc<{ok:boolean}>('saliksik_admin_set_original_rights_v1',{
+  p_source_id:sourceId,p_allowed:allowed,p_basis:statement,
+ });
+ if(!out?.ok)throw new Error('Original manuscript rights change was not confirmed');
 }
