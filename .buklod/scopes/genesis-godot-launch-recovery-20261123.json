@@ -24,7 +24,9 @@
     ".github/workflows/genesis-205-expo-cloud-readonly-receipt-20261123.yml",
     "tests/genesis-library-native-runtime-release-20261122.test.mjs",
     "godot/empire-arena/scripts/arena_root.gd",
-    ".github/workflows/genesis-205-godot-strict-headless-qa-20261123.yml"
+    ".github/workflows/genesis-205-godot-strict-headless-qa-20261123.yml",
+    "godot/empire-arena/scripts/arena_library_actors.gd",
+    "godot/empire-arena/scripts/arena_library_skills.gd"
   ],
   "regressionTests": [
     "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
@@ -47,7 +49,8 @@
     "native-splash",
     "cloud-EAS-build",
     "Android Godot pack integrity",
-    "Native runtime GDScript dynamic class lookup and typed resolver"
+    "Native runtime GDScript dynamic class lookup and typed resolver",
+    "Cyclic typed Godot simulation and static Library minion/skill scene dependency"
   ],
   "lockedFeatureChanges": [
     {
@@ -111,7 +114,8 @@
     "Staging EAS build artifact verified and shared only after build status FINISHED, no fake verified 100% assertion",
     "No guaranteed Godot launch or full game behavior asserted when owner elected to skip physical device verification",
     "Strict Godot ZIP startup test must emit BUKLOD_GODOT_ARENA_SCENE_READY and reject ANY SCRIPT ERROR/Parse Error even if process exits 0",
-    "Fail-closed Godot 4.7.2 headless zip scene startup requires explicit scene-ready sentinel and no SCRIPT ERROR despite zero exit status, plus four gameplay/world smoke scripts must emit unique success sentinel"
+    "Fail-closed Godot 4.7.2 headless zip scene startup requires explicit scene-ready sentinel and no SCRIPT ERROR despite zero exit status, plus four gameplay/world smoke scripts must emit unique success sentinel",
+    "All scripts in Godot main pack compile without GDScript cyclic class member resolver errors, including Library hero skills and village minions"
   ],
   "alternativeApproaches": [
     "Rejected: publish direct-to-Godot JavaScript OTA to crashing 2.0.4 native engine; risk of immediate app crash loop",
