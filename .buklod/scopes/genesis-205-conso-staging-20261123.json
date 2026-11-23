@@ -25,7 +25,8 @@
     "Existing AdMob consent/first-view/fill, instant Home/Wall/Connect navigation, signed media URLs, privacy, PTT and dark mode remain protected.",
     "Incoming call ringtone/FCM and call push are native owned; a server ring alone never claims delivery/recipient audible ringing.",
     "Privacy and delete require existing server authorization, no media loss, and stable scroll positions; caller status and ringback stop safely on accept/cancel.",
-    "No production, Play, EAS OTA, database schema/function, security credential, ad placement or season2 embargo changes."
+    "No production, Play, EAS OTA, database schema/function, security credential, ad placement or season2 embargo changes.",
+    "Private 30-second video comments preserve account/Cluster authorization; GIF/Genesis photo-import controls are untouched."
   ],
   "allowedPaths": [
     ".buklod/scopes/genesis-205-conso-staging-20261123.json",
@@ -33,33 +34,42 @@
     "docs/releases/GENESIS_205_CONSO_STAGING_INTAKE_20261123.md",
     "src/app/(tabs)/buklod.tsx",
     "src/app/post/[id].tsx",
+    "src/components/BuklodCommentVideoAttachment.tsx",
     "src/components/BuklodConnectThread.tsx",
     "src/components/BuklodContentOverflowMenu.tsx",
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "src/components/BuklodMaritesBoard.tsx",
     "src/components/RingingCalls.tsx",
+    "src/lib/__tests__/buklodCommentShortVideo.test.ts",
     "src/lib/buklodCallFeedback.ts",
     "src/lib/buklodCallLifecycle.ts",
+    "src/lib/buklodCommentVideo.ts",
+    "src/lib/buklodCommentVideoPlaybackSignal.ts",
+    "src/lib/buklodCommentVideoValidation.ts",
     "src/lib/buklodCommunityPostOwnerActions.ts",
     "tests/community-wall-post-owner-e2e.test.mjs",
     "tests/community-wall-scope-privacy-navigation.test.mjs",
     "tests/connect-call-ads-safety-20261123.test.mjs",
     "tests/connect-call-feedback-20261123.test.mjs",
-    "tests/genesis-205-conso-staging-20261123.test.mjs"
+    "tests/genesis-205-conso-staging-20261123.test.mjs",
+    "tests/short-video-comment-navigation-scope.test.mjs"
   ],
   "regressionTests": [
     "tests/community-wall-post-owner-e2e.test.mjs",
     "tests/community-wall-scope-privacy-navigation.test.mjs",
     "tests/connect-call-ads-safety-20261123.test.mjs",
     "tests/connect-call-feedback-20261123.test.mjs",
-    "tests/genesis-205-conso-staging-20261123.test.mjs"
+    "tests/genesis-205-conso-staging-20261123.test.mjs",
+    "tests/short-video-comment-navigation-scope.test.mjs",
+    "src/lib/__tests__/buklodCommentShortVideo.test.ts"
   ],
   "acceptanceChecks": [
     "Require exact-head TS, source/Node regression, Android JS Metro export, protected engineering and ads/tab navigation gates.",
     "Before any staging OTA compare source to signed APK SHA 435e071da41c83071f545c9b209acb562863f7d2 and fail on native/config/dependency/Godot divergence.",
     "Require exact remote channel map, 2.0.5 runtime, staging package, Android-only OTA ID/group/source receipt with production branch unchanged; no staging announcement.",
     "Verify actual 2.0.5 Android Godot boot/exit, AdMob and two-device incoming/outgoing/ringtone/weak network/busy/decline/no-answer behavior; until then RC HOLD.",
-    "Reconcile backend-dependent/unresolved feature branches independently, don't enable missing RPCs or experimental ranked rewards."
+    "Reconcile backend-dependent/unresolved feature branches independently, don't enable missing RPCs or experimental ranked rewards.",
+    "New comment picker/playback and signed URL retry must pass integrated Android video tests; live phone verification not yet performed."
   ],
   "lockedFeatureChanges": [
     {
@@ -117,10 +127,12 @@
       "reason": "Shared Cluster/Scope Community route owner privacy and delete actions must preserve organization membership boundaries, audience and faith scope.",
       "preservedBehaviors": [
         "Cluster-only posts stay inside authorized Cluster membership; scoped privacy and Media RLS remain unchanged.",
-        "Faith lessons and member-specific content are unaffected by public Wall owner UI changes."
+        "Faith lessons and member-specific content are unaffected by public Wall owner UI changes.",
+        "Video comments remain bound to exact authorized scope and never leak across audience."
       ],
       "tests": [
-        "tests/community-wall-scope-privacy-navigation.test.mjs"
+        "tests/community-wall-scope-privacy-navigation.test.mjs",
+        "tests/short-video-comment-navigation-scope.test.mjs"
       ]
     }
   ],

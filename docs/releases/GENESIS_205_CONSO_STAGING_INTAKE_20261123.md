@@ -13,7 +13,7 @@ Date: 2026-11-23 (PHT) | Status: DEV candidate, not published
 | Existing 2.0.4 approved Wall, video first-frame, comments, ads, navigation, theme, PTT, consent and call JWT corrections | [PR #1128](https://github.com/faust-0612/BUKLOD-Rork/pull/1128) native ancestry | Inherited |
 | Outgoing call delivery feedback, ringback readiness, single busy/decline/missed outcome handler | [PR #1140](https://github.com/faust-0612/BUKLOD-Rork/pull/1140) | Ported to 2.0.5; device evidence still pending |
 | Wall post edit/privacy/delete and media preserving transitions | [PR #1138](https://github.com/faust-0612/BUKLOD-Rork/pull/1138) (parallel Genesis [#1139](https://github.com/faust-0612/BUKLOD-Rork/pull/1139)) | Strict per-hunk port to 2.0.5; no duplicate re-application |
-| Short-video comments/replies | [PR #1133](https://github.com/faust-0612/BUKLOD-Rork/pull/1133) | HOLD — diverged bubble and composer source; not safe for full-file replacement |
+| Short-video comments/replies | [PR #1133](https://github.com/faust-0612/BUKLOD-Rork/pull/1133) | Ported using strict source hunks and Genesis-aware imports; on-device acceptance still pending |
 | Music picker, scrub, direct confirm, dual-track mix | [PR #1135](https://github.com/faust-0612/BUKLOD-Rork/pull/1135) | HOLD — migration `20261123133500_buklod_post_audio_mix_v1_20261123.sql` and private RLS/backend proof not completed |
 | Public golden lifetime points and locked profiles | [PR #1106](https://github.com/faust-0612/BUKLOD-Rork/pull/1106) | HOLD — missing backend migration and verified account isolation |
 | Cluster Admin attendance and full mentor lesson catalog | [PR #1087](https://github.com/faust-0612/BUKLOD-Rork/pull/1087) | HOLD — cluster review and mentor catalog RPCs absent from shared backend |
