@@ -38,7 +38,8 @@
     "tests/wall-music-security-navigation-20261123.test.mjs",
     "supabase/tests/buklod_post_audio_mix_v1.sql",
     "tests/wall-media-navigation-polish-20261108.test.mjs",
-    "tests/wall-post-music-motion-contract.test.mjs"
+    "tests/wall-post-music-motion-contract.test.mjs",
+    "tests/kl-reader-ota-referral-points-20261109.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodPostMusicPicker.tsx",
@@ -54,7 +55,8 @@
     ".buklod/scopes/wall-music-live-mix-20261123.json",
     "supabase/tests/buklod_post_audio_mix_v1.sql",
     "tests/wall-media-navigation-polish-20261108.test.mjs",
-    "tests/wall-post-music-motion-contract.test.mjs"
+    "tests/wall-post-music-motion-contract.test.mjs",
+    "tests/kl-reader-ota-referral-points-20261109.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -78,7 +80,8 @@
         "tests/wall-music-mixer-scrub-20261123.test.mjs",
         "tests/wall-music-security-navigation-20261123.test.mjs",
         "tests/wall-media-navigation-polish-20261108.test.mjs",
-        "tests/wall-post-music-motion-contract.test.mjs"
+        "tests/wall-post-music-motion-contract.test.mjs",
+        "tests/kl-reader-ota-referral-points-20261109.test.mjs"
       ]
     },
     {
