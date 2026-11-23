@@ -107,6 +107,7 @@ type PersonalThread = {
   thread_id: string;
   other_user_id: string;
   other_user_name: string;
+  other_avatar_url?: string | null;
   last_message: string | null;
   last_message_at: string | null;
   unread_count: number;
@@ -1394,12 +1395,11 @@ function ConnectScreenInner({
                 <ConnectInboxRow
                   userId={isPerson ? item.user_id : item.other_user_id}
                   name={isPerson ? item.full_name : item.other_user_name}
-                  avatarUri={isPerson ? item.avatar_url : null}
+                  avatarUri={isPerson ? item.avatar_url : item.other_avatar_url ?? null}
                   preview={isPerson ? 'Start personal conversation' : connectMessagePreview(item.last_message)}
                   timeLabel={!isPerson ? formatInboxTime(item.last_message_at) : undefined}
                   unreadCount={unread}
                   isSearchResult={isPerson}
-                  showSentIndicator={!isPerson && unread === 0 && !!item.last_message_at}
                   onPressRow={() => isPerson
                     ? openPerson(item.user_id, item.full_name)
                     : openPersonalThread(item.thread_id, item)}
