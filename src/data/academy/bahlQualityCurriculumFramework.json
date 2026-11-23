@@ -30,7 +30,8 @@
         "member and source IDs",
         "unique assignment ID"
       ],
-      "protection": "Never award for assignment view or unreviewed reflection"
+      "protection": "Never award for assignment view or unreviewed reflection",
+      "backend_registry_readiness": "DEV_VERIFIED"
     },
     {
       "id": "word",
@@ -46,7 +47,8 @@
         "unique devotional/day ID",
         "linked canonical ledger"
       ],
-      "protection": "Do not double-count the same Daily Reading evidence as Word"
+      "protection": "Do not double-count the same Daily Reading evidence as Word",
+      "backend_registry_readiness": "DEV_VERIFIED"
     },
     {
       "id": "bible_reading",
@@ -61,7 +63,8 @@
         "book/chapter/version",
         "approved chapter reflection or comprehension"
       ],
-      "protection": "Opening or scrolling a chapter is never academic verification"
+      "protection": "Opening or scrolling a chapter is never academic verification",
+      "backend_registry_readiness": "PENDING_SOURCE"
     },
     {
       "id": "children_story",
@@ -77,10 +80,11 @@
         "passed comprehension attempt",
         "optional approved teaching-session record"
       ],
-      "protection": "Never expose child's identity, photo or group details on public certificates"
+      "protection": "Never expose child's identity, photo or group details on public certificates",
+      "backend_registry_readiness": "PENDING_SOURCE"
     },
     {
-      "id": "kingdom_library",
+      "id": "kl",
       "existing": "KL chapters, quiz sets, attempts and required chapter comments",
       "uc": 5,
       "status": "SOURCE_ID_MAPPING_REQUIRED",
@@ -93,7 +97,8 @@
         "passed quiz",
         "required comment"
       ],
-      "protection": "No credit for mere read-time or chapter unlocking"
+      "protection": "No credit for mere read-time or chapter unlocking",
+      "backend_registry_readiness": "PENDING_SOURCE"
     },
     {
       "id": "abaka_foundation",
@@ -108,7 +113,8 @@
         "passed final assessment",
         "server source verification"
       ],
-      "protection": "A-Z coverage must map to actual published curriculum; no synthetic catch-up"
+      "protection": "A-Z coverage must map to actual published curriculum; no synthetic catch-up",
+      "backend_registry_readiness": "DEV_VERIFIED"
     },
     {
       "id": "abaka_intermediate",
@@ -123,7 +129,8 @@
         "tier/rubric version",
         "approved assessment"
       ],
-      "protection": "Unpublished or draft doctrinal units are ineligible"
+      "protection": "Unpublished or draft doctrinal units are ineligible",
+      "backend_registry_readiness": "PENDING_SOURCE"
     },
     {
       "id": "abaka_advanced",
@@ -138,7 +145,8 @@
         "tier/rubric version",
         "approved assessment"
       ],
-      "protection": "Reject duplicated or unverifiable work"
+      "protection": "Reject duplicated or unverifiable work",
+      "backend_registry_readiness": "PENDING_SOURCE"
     },
     {
       "id": "abaka_deep",
@@ -153,7 +161,8 @@
         "rubric",
         "source-based evaluation"
       ],
-      "protection": "Disputed doctrinal conclusions go to human academic governance"
+      "protection": "Disputed doctrinal conclusions go to human academic governance",
+      "backend_registry_readiness": "PENDING_SOURCE"
     },
     {
       "id": "formation_101_104",
@@ -169,7 +178,8 @@
         "stage progress and signed/validated covenant if required",
         "approved completion"
       ],
-      "protection": "Cannot bypass sequential gates"
+      "protection": "Cannot bypass sequential gates",
+      "backend_registry_readiness": "PENDING_SOURCE"
     },
     {
       "id": "formation_105",
@@ -184,7 +194,8 @@
         "verified sequential stage",
         "application evidence"
       ],
-      "protection": "Known unverified lesson/source gap blocks leadership completion"
+      "protection": "Known unverified lesson/source gap blocks leadership completion",
+      "backend_registry_readiness": "BLOCKED_CONTENT"
     },
     {
       "id": "formation_106",
@@ -200,7 +211,8 @@
         "published role lessons",
         "official role validation"
       ],
-      "protection": "One assigned role track, not every specialty; never imply ordination"
+      "protection": "One assigned role track, not every specialty; never imply ordination",
+      "backend_registry_readiness": "BLOCKED_CONTENT"
     },
     {
       "id": "formation_107",
@@ -215,10 +227,11 @@
         "real mission project / verified practice",
         "required covenants"
       ],
-      "protection": "Incomplete mission or unpublished content cannot be credited"
+      "protection": "Incomplete mission or unpublished content cannot be credited",
+      "backend_registry_readiness": "BLOCKED_CONTENT"
     },
     {
-      "id": "saliksik",
+      "id": "saliksik_research",
       "existing": "DEV SALIKSIK research design, citation review, original paper and defense",
       "uc": null,
       "status": "SEPARATE_DEV_PR_NOT_LIVE",
@@ -234,7 +247,8 @@
         "independent reviewer decision",
         "defense where required"
       ],
-      "protection": "No UC for submission alone; high-stakes human governance for flagged issues"
+      "protection": "No UC for submission alone; high-stakes human governance for flagged issues",
+      "backend_registry_readiness": "DEV_BRIDGE"
     }
   ],
   "competency_matrix": [
@@ -244,7 +258,7 @@
       "source_ids": [
         "bible_reading",
         "abaka_foundation",
-        "saliksik"
+        "saliksik_research"
       ]
     },
     {
@@ -261,7 +275,7 @@
       "source_ids": [
         "abaka_intermediate",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ]
     },
     {
@@ -301,7 +315,7 @@
       "source_ids": [
         "daily_reading",
         "word",
-        "kingdom_library"
+        "kl"
       ]
     },
     {
@@ -317,7 +331,7 @@
       "domain": "Biblical genres, OT and NT interpretation",
       "source_ids": [
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ]
     },
     {
@@ -325,7 +339,7 @@
       "domain": "Christian education and storytelling",
       "source_ids": [
         "children_story",
-        "kingdom_library"
+        "kl"
       ]
     },
     {
@@ -350,21 +364,21 @@
       "domain": "Comparative and historical theology",
       "source_ids": [
         "abaka_deep",
-        "saliksik"
+        "saliksik_research"
       ]
     },
     {
       "code": "K15",
       "domain": "Research design, ethics and primary evidence",
       "source_ids": [
-        "saliksik"
+        "saliksik_research"
       ]
     },
     {
       "code": "K16",
       "domain": "Research communication, critique and defense",
       "source_ids": [
-        "saliksik"
+        "saliksik_research"
       ]
     }
   ],
@@ -383,11 +397,13 @@
         "abaka_advanced",
         "abaka_deep",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D01",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-D02",
@@ -403,11 +419,13 @@
         "abaka_advanced",
         "abaka_deep",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D02",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-D03",
@@ -423,11 +441,13 @@
         "abaka_advanced",
         "abaka_deep",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D03",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-D04",
@@ -443,11 +463,13 @@
         "abaka_advanced",
         "abaka_deep",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D04",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-D05",
@@ -463,11 +485,13 @@
         "abaka_advanced",
         "abaka_deep",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D05",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-D06",
@@ -483,11 +507,13 @@
         "abaka_advanced",
         "abaka_deep",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D06",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-D07",
@@ -503,11 +529,13 @@
         "abaka_advanced",
         "abaka_deep",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D07",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-D08",
@@ -523,11 +551,13 @@
         "abaka_advanced",
         "abaka_deep",
         "bible_reading",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D08",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F01",
@@ -546,7 +576,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F01",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F02",
@@ -565,7 +597,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F02",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F03",
@@ -584,7 +618,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F03",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F04",
@@ -603,7 +639,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F04",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F05",
@@ -622,7 +660,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F05",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F06",
@@ -641,7 +681,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F06",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F07",
@@ -660,7 +702,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F07",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F08",
@@ -679,7 +723,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F08",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F09",
@@ -698,7 +744,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F09",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F10",
@@ -717,7 +765,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F10",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-F11",
@@ -736,7 +786,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F11",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-R01",
@@ -747,13 +799,15 @@
         "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
         "abaka_advanced"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-R01",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-R02",
@@ -764,13 +818,15 @@
         "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
         "abaka_advanced"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-R02",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-R03",
@@ -781,13 +837,15 @@
         "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
         "abaka_advanced"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-R03",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-R04",
@@ -798,13 +856,15 @@
         "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
         "abaka_advanced"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-R04",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S01",
@@ -819,12 +879,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S01",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S02",
@@ -839,12 +901,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S02",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S03",
@@ -859,12 +923,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S03",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S04",
@@ -879,12 +945,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S04",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S05",
@@ -899,12 +967,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S05",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S06",
@@ -919,12 +989,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S06",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S07",
@@ -939,12 +1011,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S07",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S08",
@@ -959,12 +1033,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S08",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "C-S09",
@@ -979,12 +1055,14 @@
         "word",
         "bible_reading",
         "children_story",
-        "kingdom_library",
-        "saliksik"
+        "kl",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S09",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D01",
@@ -998,11 +1076,13 @@
         "bible_reading",
         "abaka_foundation",
         "formation_101_104",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D01",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D02",
@@ -1021,7 +1101,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D02",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D03",
@@ -1033,13 +1115,15 @@
       ],
       "source_candidates": [
         "children_story",
-        "kingdom_library",
+        "kl",
         "formation_101_104",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D03",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D04",
@@ -1053,11 +1137,13 @@
         "bible_reading",
         "abaka_foundation",
         "formation_101_104",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D04",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D05",
@@ -1069,13 +1155,15 @@
       ],
       "source_candidates": [
         "children_story",
-        "kingdom_library",
+        "kl",
         "formation_101_104",
-        "saliksik"
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D05",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D06",
@@ -1094,7 +1182,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D06",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D07",
@@ -1105,13 +1195,15 @@
         "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
         "abaka_advanced"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D07",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D08",
@@ -1130,7 +1222,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D08",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "D09",
@@ -1149,7 +1243,9 @@
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D09",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
     },
     {
       "code": "B01",
@@ -1164,11 +1260,29 @@
         "bible_reading",
         "abaka_foundation",
         "formation_101_104",
-        "saliksik"
+        "saliksik_research",
+        "formation_105",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B01",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
     },
     {
       "code": "B02",
@@ -1181,13 +1295,31 @@
       ],
       "source_candidates": [
         "children_story",
-        "kingdom_library",
+        "kl",
         "formation_101_104",
-        "saliksik"
+        "saliksik_research",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "daily_reading",
+        "word"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B02",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
     },
     {
       "code": "B03",
@@ -1199,13 +1331,33 @@
         "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
-        "abaka_advanced"
+        "abaka_advanced",
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B03",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
     },
     {
       "code": "B04",
@@ -1221,11 +1373,30 @@
         "formation_105",
         "formation_106",
         "formation_107",
-        "children_story"
+        "children_story",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B04",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
     },
     {
       "code": "B05",
@@ -1241,11 +1412,30 @@
         "formation_105",
         "formation_106",
         "formation_107",
-        "children_story"
+        "children_story",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B05",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
     },
     {
       "code": "B06",
@@ -1257,13 +1447,33 @@
         "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
-        "abaka_advanced"
+        "abaka_advanced",
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B06",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
     },
     {
       "code": "B07",
@@ -1279,11 +1489,30 @@
         "formation_105",
         "formation_106",
         "formation_107",
-        "children_story"
+        "children_story",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B07",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
     },
     {
       "code": "M01",
@@ -1296,13 +1525,40 @@
         "Document advanced capstone methodology, independent source validation, criticism and structured defense; hold unsupported results."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
-        "abaka_advanced"
+        "abaka_advanced",
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_deep",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M01",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
     },
     {
       "code": "M02",
@@ -1316,13 +1572,39 @@
       ],
       "source_candidates": [
         "children_story",
-        "kingdom_library",
+        "kl",
         "formation_101_104",
-        "saliksik"
+        "saliksik_research",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "daily_reading",
+        "word"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M02",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
     },
     {
       "code": "M03",
@@ -1339,11 +1621,36 @@
         "formation_105",
         "formation_106",
         "formation_107",
-        "children_story"
+        "children_story",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M03",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
     },
     {
       "code": "M04",
@@ -1360,11 +1667,36 @@
         "formation_105",
         "formation_106",
         "formation_107",
-        "children_story"
+        "children_story",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M04",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
     },
     {
       "code": "M05",
@@ -1377,13 +1709,40 @@
         "Document advanced capstone methodology, independent source validation, criticism and structured defense; hold unsupported results."
       ],
       "source_candidates": [
-        "saliksik",
+        "saliksik_research",
         "bible_reading",
-        "abaka_advanced"
+        "abaka_advanced",
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_deep",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
       ],
       "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M05",
       "prerequisite_ref": "canonical_catalog",
-      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION"
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
     }
   ],
   "pilot_programs": [
@@ -1482,5 +1841,6 @@
     "CHED-recognized",
     "degree granted",
     "professional license conferred"
-  ]
+  ],
+  "backend_source_registry": "supabase/migrations/20261124030000_buklod_academy_source_validator_registry.sql"
 }

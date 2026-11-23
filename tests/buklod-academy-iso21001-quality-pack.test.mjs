@@ -46,3 +46,23 @@ test('Document pack covers scope, published-source approval, privacy, internal a
  assert.match(docs[5],/NOT AUDIT-READY/);
  assert.ok(docs.every(d=>!/is ISO certified|ISO certification has been achieved/i.test(d)));
 });
+
+test('Academy framework source keys match canonical backend learning-source registry',()=>{
+ const sql=read('supabase/migrations/20261124030000_buklod_academy_source_validator_registry.sql');
+ assert.equal(quality.backend_source_registry,'supabase/migrations/20261124030000_buklod_academy_source_validator_registry.sql');
+ for(const source of quality.source_modules){
+  assert.match(sql,new RegExp('\\(\\x27'+source.id+'\\x27,'));
+  assert.ok(['DEV_VERIFIED','DEV_BRIDGE','PENDING_SOURCE','BLOCKED_CONTENT'].includes(source.backend_registry_readiness));
+ }
+ for(const p of quality.credential_profiles){
+  if(p.award_type==='bachelors_completion'){
+   assert.ok(p.required_common_source_families.includes('formation_105'));
+   assert.ok(p.required_common_source_families.includes('saliksik_research'));
+  }
+  if(p.award_type==='masters_completion'){
+   assert.ok(p.required_common_source_families.includes('formation_107'));
+   assert.ok(p.required_common_source_families.includes('formation_106'));
+   assert.ok(p.required_common_source_families.includes('saliksik_research'));
+  }
+ }
+});
