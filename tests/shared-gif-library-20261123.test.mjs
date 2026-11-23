@@ -21,7 +21,7 @@ function catalog({ env = {}, fetchFn = () => { throw new Error('Offline'); } } =
     .replace(/import \{\s*type ConnectPickedFile,\s*\} from '@\/lib\/buklodConnect';/, '');
   const js = stripTypeScriptTypes(stubbed, { mode: 'strip' })
     .replace(/^export\s+(?=const|function|async function)/gm, '') +
-    '\\nmodule.exports = { CONNECT_GIF_CATEGORIES, searchConnectGifs, getConnectGifCatalogItem };';
+    '\nmodule.exports = { CONNECT_GIF_CATEGORIES, searchConnectGifs, getConnectGifCatalogItem };';
   vm.runInNewContext(js, {
     module, exports: module.exports,
     process: { env }, fetch: fetchFn,
