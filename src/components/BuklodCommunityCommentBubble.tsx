@@ -493,13 +493,13 @@ export function BuklodCommunityCommentBubble({
                   return fresh;
                 }}
               />
-            ) : (
+            ) : mediaUri ? (
               <ExpoImage
                 source={{ uri: mediaUri }}
                 style={styles.mediaImage}
                 contentFit="cover"
               />
-            )}
+            ) : null}
           </View>
         )}
 
