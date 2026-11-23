@@ -96,6 +96,7 @@ import {
 import { HIBLA } from '@/lib/connectHibla';
 import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import { partitionConnectInboxThreads } from '@/lib/connectInboxClassification';
+import { matchesConnectInboxSearch } from '@/lib/connectInboxSearch';
 import {
   applyConnectInboxRealtimeActivity,
   sortConnectInboxByActivity,
@@ -1269,9 +1270,10 @@ function ConnectScreenInner({
   const filteredRooms = useMemo(
     () => sortConnectInboxByActivity(rooms.filter(room =>
       (!forcedScopeId || room.scope_id === forcedScopeId) &&
-      matchesCommunityFilter(room, communityFilter)
+      matchesCommunityFilter(room, communityFilter) &&
+      matchesConnectInboxSearch(room, query)
     )),
-    [rooms, forcedScopeId, communityFilter],
+    [rooms, forcedScopeId, communityFilter, query],
   );
 
   const sortedPersonal = useMemo(
@@ -1281,14 +1283,17 @@ function ConnectScreenInner({
   const isSearching = query.trim().length >= 2;
   const { requests: requestThreads, personal: regularThreads } =
     partitionConnectInboxThreads(sortedPersonal, requestThreadIds);
-  // A single newest-activity-first inbox avoids duplicate unread priority cards.
-  const personalListData = (
-    isSearching
-      ? people
-      : tab === 'requests'
-        ? requestThreads
-        : regularThreads
-  ) as any[];
+  // Search stays within the active inbox tab. Other users remain discoverable
+  // in Personal, without duplicating existing threads or exposing Requests.
+  const currentThreads = tab === 'requests' ? requestThreads : regularThreads;
+  const personalListData = isSearching
+    ? [
+        ...currentThreads.filter(thread => matchesConnectInboxSearch(thread, query)),
+        ...(tab === 'requests'
+          ? []
+          : people.filter(person => !personal.some(thread => thread.other_user_id === person.user_id))),
+      ]
+    : currentThreads;
 
   const { cluster: clusterUnread, org: orgUnread } =
     communityUnreadTabCounts(rooms);
@@ -1305,7 +1310,7 @@ function ConnectScreenInner({
             inputRef={searchInputRef}
             value={query}
             onChangeText={setQuery}
-            placeholder={isSearching ? 'Hanapin ang miyembro…' : 'Hanapin ang usapan'}
+            placeholder="Hanapin ang usapan o miyembro"
           />
           <ConnectThemeSelectorButton />
         </View>
@@ -1393,8 +1398,8 @@ function ConnectScreenInner({
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
                 {tab === 'community'
-                  ? 'No community rooms yet'
-                  : isSearching ? 'No user found'
+                  ? (isSearching ? 'Walang tumugmang usapan' : 'No community rooms yet')
+                  : isSearching ? 'Walang tumugmang usapan o miyembro'
                     : tab === 'requests' ? 'Walang message requests'
                       : 'No personal conversations yet'}
               </Text>
