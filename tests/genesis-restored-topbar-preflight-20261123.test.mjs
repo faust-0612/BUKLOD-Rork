@@ -27,9 +27,9 @@ test('map preflight and both map-first contracts track the restored header inste
     'tests/genesis-world-navigation-regression-20261121.test.mjs',
     'tests/season2-map-first-conso-intake-20261121.test.mjs',
   ]) {
-    assert.match(read(p), /!desktopWebShell \\? <SwipeDashboardHeader \\/> : null/);
+    assert.ok(read(p).includes(String.raw`!desktopWebShell \? <SwipeDashboardHeader \/> : null`), p);
   }
   assert.match(preflight, /headerTopInset/);
-  assert.match(preflight, /!desktopWebShell \\? <SwipeDashboardHeader/);
+  assert.ok(preflight.includes(String.raw`!desktopWebShell \? <SwipeDashboardHeader \/> : null`));
   assert.doesNotMatch(preflight, /!desktopWebShell && !isGenesisPreviewBuild/);
 });
