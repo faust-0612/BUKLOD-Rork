@@ -33,8 +33,11 @@ var audio_layer: Node
 func _art(path: String) -> Texture2D:
 	if art_cache.has(path):
 		return art_cache[path]
-	var bitmap: Image = Image.load_from_file(path)
-	if bitmap == null or bitmap.is_empty():
+	# The native APK ZIP ships source PNG bytes; exported Godot resource
+	# remapping is not assumed. This avoids missing hero/terrain art on Android.
+	var image_bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
+	var bitmap: Image = Image.new()
+	if image_bytes.is_empty() or bitmap.load_png_from_buffer(image_bytes) != OK or bitmap.is_empty():
 		art_cache[path] = null
 		return null
 	if art_cache.size() >= 24:

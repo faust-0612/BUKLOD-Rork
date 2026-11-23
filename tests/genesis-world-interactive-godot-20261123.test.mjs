@@ -34,3 +34,18 @@ test('ZIP pack transport aligns with compiled native APK GodotActivity contract'
  assert.match(gate,/assets\/godot\/empire-arena\.zip/);
  assert.doesNotMatch(prep,/--export-pack/);
 });
+
+
+test('Android embedded raw ZIP art decodes PNG/WebP buffers rather than editor-only image-file loads',()=>{
+ const arena=source('godot/empire-arena/scripts/arena_root.gd');
+ const world=source('godot/empire-arena/scripts/world_explore_controller.gd');
+ const preview=source('godot/empire-arena/scripts/world_preview.gd');
+ for(const sourceText of [arena,world]){
+   assert.match(sourceText,/FileAccess\.get_file_as_bytes/);
+   assert.match(sourceText,/load_png_from_buffer/);
+   assert.doesNotMatch(sourceText,/[^.]Image\.load_from_file\(/);
+ }
+ assert.match(preview,/FileAccess\.get_file_as_bytes/);
+ assert.match(preview,/load_webp_from_buffer/);
+ assert.doesNotMatch(preview,/Image\.load_from_file\(/);
+});
