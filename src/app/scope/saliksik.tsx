@@ -1,12 +1,13 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {
- ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,TextInput,View,
+ ActivityIndicator,Linking,Pressable,ScrollView,StyleSheet,Text,TextInput,View,
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router,useLocalSearchParams} from 'expo-router';
 import {
  saliksikCatalog,saliksikDetail,saliksikBegin,saliksikSubmit,
- saliksikMasterSubmit,saliksikMasterStatus,type SaliksikMasterSubmission,
+ saliksikMasterSubmit,saliksikMasterStatus,saliksikRequestCompleteManuscript,
+ type SaliksikMasterSubmission,
  type SaliksikInvestigation,type SaliksikDetail,
  type SaliksikSession,type SaliksikResult,
 } from '@/lib/saliksikClient';
@@ -99,6 +100,24 @@ export default function SaliksikInvestigationScreen(){
   catch(e){setError(errorText(e));}finally{setBusy(false);}
  };
  const close=()=>{setDetail(null);setSession(null);setResult(null);setMasterStatus(null);setMasterAnswers(['','','']);setAnswers([]);setError('');};
+ const downloadManuscript=async(collectionId:string)=>{
+  if(busy)return;
+  setBusy(true);setError('');
+  try{
+   const receipt=await saliksikRequestCompleteManuscript(collectionId);
+   await Linking.openURL(receipt.download_url);
+  }catch(e){setError(errorText(e));}finally{setBusy(false);}
+ };
+ // Display only; SQL rechecks final immutable nine-part series.
+ const collectionProgress=Array.from(new Set(catalog.map(x=>x.collection_id)))
+  .map(id=>{
+   const entries=catalog.filter(x=>x.collection_id===id);
+   return {
+    id,title:entries[0]?.collection_title??'SALIKSIK Manuscript',
+    done:entries.filter(x=>x.completed).length,
+    unlocked:entries.length===9&&entries.every(x=>x.completed),
+   };
+  });
  const current=catalog.find(x=>x.id===detail?.id);
  const remediation:Record<string,string>={
   understanding:'Read the main thesis in short sections and explain each in your own words.',
@@ -127,7 +146,27 @@ export default function SaliksikInvestigationScreen(){
      <Text style={styles.cardTitle}>Wala pang available na investigation.</Text>
      <Text style={styles.small}>Hindi pa nailalathala o na-activate ang SALIKSIK. Ipapakita ang mga verified investigations kapag ready na.</Text>
    </View>:null}
-   {catalog.map(item=><Pressable key={item.id} style={styles.card}
+   {collectionProgress.map(progress=><View key={'manuscript-'+progress.id} style={styles.card}>
+     <View style={styles.cardTop}>
+      <Text style={styles.tier}>COMPLETE MANUSCRIPT</Text>
+      <MaterialCommunityIcons name={progress.unlocked?'file-download-outline':'lock-outline'} color={green} size={24}/>
+     </View>
+     <Text style={styles.cardTitle}>{progress.title}</Text>
+     <Text style={styles.small}>{progress.done} of 9 verified investigations.</Text>
+     <Text style={styles.small}>{progress.unlocked
+      ? 'Unlocked: original manuscript when redistribution is authorized, or the complete published study manuscript.'
+      : 'Complete all nine investigations to download. No Points claim is required.'}</Text>
+     <Pressable accessibilityRole="button"
+      accessibilityLabel={'Download complete manuscript: '+progress.title}
+      accessibilityState={{disabled:!progress.unlocked||busy}}
+      disabled={!progress.unlocked||busy}
+      style={[styles.primary,(!progress.unlocked||busy)&&styles.disabled]}
+      onPress={()=>void downloadManuscript(progress.id)}>
+      <MaterialCommunityIcons name={progress.unlocked?'download':'lock'} size={20} color="#fff"/>
+      <Text style={styles.primaryText}>{progress.unlocked?'DOWNLOAD COMPLETE MANUSCRIPT':'COMPLETE ALL 9 TO UNLOCK'}</Text>
+     </Pressable>
+    </View>)}
+    {catalog.map(item=><Pressable key={item.id} style={styles.card}
      accessibilityRole="button" onPress={()=>void open(item)}>
      <View style={styles.cardTop}>
       <Text style={styles.tier}>{item.tier.toUpperCase()} • +{item.points} points</Text>
