@@ -65,4 +65,5 @@ test('approved points stay in ledger and cannot be farmed with client values',()
  assert.ok(sql.includes("count(distinct lower(word))"));
  assert.ok(sql.includes("existing public.buklod_abc_growth_progress%rowtype"));
  assert.ok(sql.includes("case when today_points + points_for_level <= 50 then points_for_level else 0 end"));
+ assert.ok(sql.includes("if public.buklod_is_system_admin() then award := 0; end if;"));
 });

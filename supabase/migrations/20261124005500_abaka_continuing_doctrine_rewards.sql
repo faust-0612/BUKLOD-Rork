@@ -228,6 +228,8 @@ begin
      and l.source_key like 'abc_growth:v1:doctrine-%'
      and l.created_at >= (pg_catalog.date_trunc('day', now() at time zone 'Asia/Manila') at time zone 'Asia/Manila');
   award := case when today_points + points_for_level <= 50 then points_for_level else 0 end;
+  -- Official System Admin accounts are excluded from BP, but may still study.
+  if public.buklod_is_system_admin() then award := 0; end if;
   if award > 0 then
     insert into public.buklod_points_ledger
       (user_id,direction,points,activity_type,source_key,source_id,description,awarded_by)
