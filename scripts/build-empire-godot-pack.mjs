@@ -137,6 +137,25 @@ entries.push({ name: 'art/art_manifest.json',
 // The same native pack includes owner-approved Kingdom, Community and House
 // visuals/SFX already in BUKLOD MAIN (no network download or external license).
 // These remain PREVIEWS; no property or reward authority is in the pack.
+// Use the original 42 approved, individually authored Kingdom items already
+// transferred from the owner's Library into the audited MAIN repository.
+// These are cosmetic previews ONLY, not client-owned inventory or rewards.
+const KINGDOM_ITEM_CLASSES = ['badge','bond','book','chest','crystal','light','relic'];
+let kingdomItemCount = 0;
+for(const category of KINGDOM_ITEM_CLASSES) {
+  for(let variant = 1; variant <= 6; variant++) {
+    const filename = category + '-' + variant + '.webp';
+    const image = readFileSync(path.join(root, 'assets/images/kingdom-classes', filename));
+    assert.ok(image.length > 500 && image.length < 500000 &&
+      image.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      image.subarray(8, 12).toString('ascii') === 'WEBP',
+      'Invalid reviewed Kingdom class art: ' + filename);
+    entries.push({name: 'kingdom-items/' + filename, bytes:image});
+    kingdomItemCount++;
+  }
+}
+assert.equal(kingdomItemCount,42,'Partial owner Kingdom item collection');
+
 const originalWorldMedia = [
   ['world-art/kingdom.webp', 'assets/season2/genesis/kingdom/kingdom-nature-panorama.webp', 'RIFF'],
   ['world-art/community.webp', 'assets/season2/genesis/world/buklod-community-village-stage1.webp', 'RIFF'],
@@ -222,4 +241,4 @@ writeFileSync(output, zip);
 const hash = createHash('sha256').update(zip).digest('hex');
 console.log(JSON.stringify({ result: 'BUKLOD_GODOT_OFFLINE_PACK_BUILT', output,
   sha256: hash, bytes: zip.length, entries: entries.length, heroes: 13, pickups: 300,
-  ranked: false, serverAccess: false, art: artCounts, sfxCues:70, offlineModes:4 }, null, 2));
+  ranked: false, serverAccess: false, art: artCounts, kingdomItems:kingdomItemCount, sfxCues:70, offlineModes:4 }, null, 2));

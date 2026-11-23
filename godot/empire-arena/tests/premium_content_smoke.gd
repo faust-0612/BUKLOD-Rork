@@ -59,5 +59,14 @@ func _run() -> void:
         push_error("House stage repeated without a new touch")
         quit(8)
         return
-    print("BUKLOD_GODOT_PREMIUM_WORLD_INTERACTION_PASS: kingdom arrival, house construction, no repeat, offline only")
+    for item_class in ["badge", "bond", "book", "chest", "crystal", "light", "relic"]:
+        for variant in range(1, 7):
+            var path: String = "res://kingdom-items/" + item_class + "-" + str(variant) + ".webp"
+            var raw: PackedByteArray = FileAccess.get_file_as_bytes(path)
+            var img := Image.new()
+            if raw.is_empty() or img.load_webp_from_buffer(raw) != OK or img.is_empty():
+                push_error("Missing approved owner collectible art " + path)
+                quit(9)
+                return
+    print("BUKLOD_GODOT_PREMIUM_WORLD_INTERACTION_PASS: kingdom arrival, house construction, 42 item icons, no reward writes")
     quit(0)

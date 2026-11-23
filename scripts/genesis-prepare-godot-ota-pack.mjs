@@ -30,6 +30,7 @@ for (const entry of [
 ]) assert.ok(files.includes(entry), 'Godot OTA pack missing ' + entry);
 assert.equal(files.filter(x => /^art\/(fullbody|sprite|scene)\/.*\.png$/.test(x)).length, 68);
 assert.equal(files.filter(x => /^audio\/sfx\/.*\.wav$/.test(x)).length, 70);
+assert.equal(files.filter(x => /^kingdom-items\/(badge|bond|book|chest|crystal|light|relic)-[1-6]\.webp$/.test(x)).length, 42);
 const sha256 = createHash('sha256').update(readFileSync(dest)).digest('hex');
 writeFileSync(manifest, `/** GENERATED from exact reviewed Genesis Godot source; do not edit manually. */
 export const GENESIS_GODOT_OTA_PACK = {
@@ -39,4 +40,4 @@ export const GENESIS_GODOT_OTA_PACK = {
   bytes: ${bytes},
 } as const;
 `);
-console.log('GENESIS_GODOT_OTA_PACK_PREPARED '+JSON.stringify({bytes,sha256,assets:68,cues:70}));
+console.log('GENESIS_GODOT_OTA_PACK_PREPARED '+JSON.stringify({bytes,sha256,assets:68,kingdomItems:42,cues:70}));

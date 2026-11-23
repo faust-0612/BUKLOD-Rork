@@ -9,6 +9,7 @@ const WORLD_ART := {
 	"house": "res://world-art/house.webp"
 }
 const WORLD_TITLES := {"kingdom": "KINGDOM", "community": "PERSONAL COMMUNITY", "house": "PERSONAL HOUSE & LOT"}
+const KINGDOM_ITEM_CLASSES := ["badge", "bond", "book", "chest", "crystal", "light", "relic"]
 const STAGES := ["Markers", "Foundation", "Framework", "Structure", "Finishing"]
 const MAX_LEVEL := 10
 
@@ -18,6 +19,7 @@ var preview_stage: int = 0
 var preview_mastery: int = 0
 var elapsed: float = 0.0
 var image_texture: Texture2D
+var collection_cache: Dictionary = {}
 var music_enabled: bool = true
 var max_quality: bool = false
 var audio: AudioStreamPlayer
@@ -47,6 +49,24 @@ func _load_backdrop() -> void:
 	var bitmap: Image = Image.new()
 	if bitmap.load_webp_from_buffer(webp_bytes) == OK and not bitmap.is_empty():
 		image_texture = ImageTexture.create_from_image(bitmap)
+
+## The 42 owner-approved WebP artifacts are decoded from the versioned ZIP.
+## Cosmetic art is never used to infer wallet, inventory or ownership.
+func _kingdom_item(index: int) -> Texture2D:
+	var category: String = KINGDOM_ITEM_CLASSES[index % KINGDOM_ITEM_CLASSES.size()]
+	var variant: int = 1 + (index / KINGDOM_ITEM_CLASSES.size()) % 6
+	var key: String = category + "-" + str(variant)
+	if collection_cache.has(key):
+		return collection_cache[key]
+	var raw: PackedByteArray = FileAccess.get_file_as_bytes("res://kingdom-items/" + key + ".webp")
+	if raw.is_empty():
+		return null
+	var bitmap := Image.new()
+	if bitmap.load_webp_from_buffer(raw) != OK or bitmap.is_empty():
+		return null
+	var image := ImageTexture.create_from_image(bitmap)
+	collection_cache[key] = image
+	return image
 
 func _create_controls() -> void:
 	var layer := CanvasLayer.new()
@@ -189,6 +209,10 @@ func _draw() -> void:
 			# These are subtle station shadows, not triangular stand-in characters.
 			draw_arc(pos + Vector2(0, 43), 39, 0, TAU, 36, Color(0.45, 0.94, 0.73, 0.54), 2.0)
 			draw_circle(pos + Vector2(0, 52), 25, Color(0.02, 0.08, 0.11, 0.28))
+			var badge: Texture2D = _kingdom_item(i)
+			if badge != null:
+				draw_texture_rect(badge, Rect2(pos + Vector2(32, -60), Vector2(46, 46)),
+					false, Color(1, 1, 1, 0.96))
 	elif world_id == "community":
 		for i in range(6):
 			var pos: Vector2 = Vector2(188 + (i % 3) * 430, 300 + (i / 3) * 210)
@@ -200,4 +224,8 @@ func _draw() -> void:
 	else:
 		draw_rect(Rect2(230, 240, 820, 315), Color(0.19, 0.45, 0.38, 0.32), false, 3)
 		_draw_structure(Vector2(640, 505), 110.0 + preview_level * 13.0, Color("#ecc9a0"))
+		if preview_stage >= 2:
+			var light: Texture2D = _kingdom_item(5)
+			if light != null:
+				draw_texture_rect(light, Rect2(766, 304, 56, 56), false, Color.WHITE)
 		draw_string(ThemeDB.fallback_font, Vector2(235, 225), "PRIVATE LOT / HOUSE - STAGE PREVIEW", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)

@@ -60,3 +60,13 @@ jobs:
           "$GODOT" --headless --main-pack "$PACK" --quit-after 12 2>&1 | tee /tmp/buklod-premium-packed.log
           if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/buklod-premium-packed.log; then exit 1; fi
           echo 'BUKLOD_206_PREMIUM_CONTENT_DEV_QA_PASS_NO_OTA_PUBLISHED'
+
+      - name: Upload verified DEV game content and hash for staging QA, NOT an OTA
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-genesis-206-premium-godot-content-dev-only
+          path: |
+            assets/season2/genesis/ota/empire-arena.zip
+            src/features/season2/genesis/godotPackManifest.generated.ts
+          if-no-files-found: error
+          retention-days: 7

@@ -51,3 +51,15 @@ test('Game pack is the same deterministic approved art and audio source used by 
  assert.match(ota,/scripts\/build-empire-godot-pack\.mjs/);
  assert.match(ota,/GENESIS_GODOT_OTA_PACK_PREPARED/);
 });
+
+test('Owner Library Kingdom collections are shipped as 42 real cosmetic WebP items',()=>{
+ const pack=read('scripts/build-empire-godot-pack.mjs');
+ const preview=read('godot/empire-arena/scripts/world_preview.gd');
+ assert.match(pack,/KINGDOM_ITEM_CLASSES = \['badge','bond','book','chest','crystal','light','relic'\]/);
+ assert.match(pack,/kingdomItemCount,42/);
+ assert.match(pack,/kingdom-items\/.*filename/);
+ assert.match(preview,/FileAccess\.get_file_as_bytes\("res:\/\/kingdom-items\//);
+ assert.match(preview,/load_webp_from_buffer/);
+ assert.match(preview,/var badge: Texture2D = _kingdom_item\(i\)/);
+ assert.doesNotMatch(preview,/grant_bp|create_inventory|update_wallet|purchase_property/);
+});

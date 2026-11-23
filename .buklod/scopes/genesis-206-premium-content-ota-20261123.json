@@ -28,6 +28,11 @@
       "file": "BUKLODs Enchanted Kingdom Map.png",
       "use": "visual reference for navigation density",
       "status": "reference only"
+    },
+    {
+      "path": "assets/images/kingdom-classes",
+      "use": "42 original user Library transferred WebP badges, collectibles, and decorative artifacts included in Godot ZIP",
+      "status": "verified source filenames; no server reward effects"
     }
   ],
   "changes": [
@@ -36,12 +41,14 @@
     "actual 13 owner-supplied atlases in Kingdom",
     "tap-to-walk with arrival-gated station visits and House build stages",
     "unhandled input isolation from top-level UI",
-    "buffer decoding of embedded WAV for offline native game"
+    "buffer decoding of embedded WAV for offline native game",
+    "Seven reviewed Kingdom collectible image classes, 42 WebP variants, render as cosmetic station/House graphics"
   ],
   "tests": [
     "node --test tests/genesis-premium-world-content-ota-20261123.test.mjs",
     "godot --headless ...premium_content_smoke.gd",
-    "canonical source pack hash/zip integrity"
+    "canonical source pack hash/zip integrity",
+    "pack includes exactly 42 Kingdom WebP assets"
   ],
   "knownLimitations": [
     "2D upgrade only, NOT Mobile Legends grade 3D",
@@ -57,6 +64,8 @@
     "godot/empire-arena/tests/premium_content_smoke.gd",
     "tests/genesis-premium-world-content-ota-20261123.test.mjs",
     ".github/workflows/genesis-206-premium-content-ota-qa-20261123.yml",
-    ".buklod/scopes/genesis-206-premium-content-ota-20261123.json"
+    ".buklod/scopes/genesis-206-premium-content-ota-20261123.json",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/genesis-prepare-godot-ota-pack.mjs"
   ]
 }
