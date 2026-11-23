@@ -1,0 +1,80 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-marites-upload-fastpath-conso-ota-20261124.json",
+  "objective": "Optimize photo/video posting responsiveness for Marites and Community/Local/Cluster Wall through their shared current-native uploader; deliver the source patch as intake for the NEXT consolidated BUKLOD MAIN OTA, not an immediate OTA.",
+  "releaseMode": "FUTURE_CONSOLIDATED_OTA_INTAKE_ONLY",
+  "baseRef": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "productionBaselineEvidence": "Verified via GitHub compare that the feature branch was based on canonical main source SHA 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 (source-only); current production OTA/runtime/device fingerprint was not read in this task, and physical verification was explicitly waived.",
+  "chosenApproach": "Reuse existing private Supabase signed direct-file uploader for Marites photos instead of repeated Base64 + sequential storage PUT; use shared adaptive network concurrency, optional story-specific 1280px/0.78 JPEG optimization without altering regular Wall defaults, media-order and rollback isolation, and visible photo/video progress. Preserve Wall's existing background publish/resumable video upload and all native dependencies/ads unchanged.",
+  "selectionRationale": "This is a source-only current-native fast path with no binary dependencies, new bucket, RLS migration, new background native service or release trigger. Marites previously blocked the composer and serialized full Base64 image encoding and upload; sharing an established uploader yields a smaller/faster path, while the regular Wall retains its proven strategy.",
+  "alternativeApproaches": [
+    "Add a new Android/native video compressor or ffmpeg for mandatory transcoding: rejected for this OTA because it requires a new native APK/runtime and device/ABI compatibility review; keep resumable original video upload.",
+    "Switch all media to public/unrestricted storage/CDN to skip signing: rejected for privacy and ownership isolation.",
+    "Unconditionally upload five photos in parallel on weak 3G connections: rejected because uplink saturation worsens tail latency and retry reliability.",
+    "Publish a standalone production OTA from feature branch: rejected because it bypasses consolidated verified RC and release gates."
+  ],
+  "allowedPaths": [
+    "src/lib/buklodMaritesBoard.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "src/components/BuklodMaritesBoard.tsx",
+    "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+    "tests/marites-wall-upload-behavior-20261124.test.mjs",
+    ".buklod/scopes/wall-marites-upload-fastpath-conso-ota-20261124.json"
+  ],
+  "regressionTests": [
+    "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+    "tests/marites-wall-upload-behavior-20261124.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Improve shared media upload only within the existing Android/native ABI without changing package/runtime, feed mechanics, ad allocation or navigation.",
+      "preservedBehaviors": [
+        "Existing media input MIME validation and authorized private signed uploads, Wall background publish, per-scope post privacy, current native module set and existing ads/navigation remain unchanged."
+      ],
+      "tests": [
+        "tests/marites-wall-upload-behavior-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Marites photo upload reuses existing Community Wall media engine with ordered parallel uploads, error cleanup, progress and opt-in 1280px JPEG profile.",
+      "preservedBehaviors": [
+        "Marites video max 30 seconds, Wall max-length policies, GIF preservation, signed media paths, photo ordering, offline story fallback, resumable video with offset recovery and collage preview behavior remain intact."
+      ],
+      "tests": [
+        "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+        "tests/marites-wall-upload-behavior-20261124.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "weak-network",
+    "draft-recovery",
+    "signed-private-media",
+    "ads-first-view-regression",
+    "consolidated-ota-identity"
+  ],
+  "preserveBehaviors": [
+    "Existing Supabase Storage bucket and owner authorization; never write unrelated users' objects or make media public.",
+    "No database migration, bucket policy update, package.json, native package, Expo plugin, audio/ads SDK or build number alteration.",
+    "Regular Community Wall photos retain 1440px/0.82 encoding and existing native <=2MiB JPEG pass-through; Marites alone opts into 1280px/0.78 and 800KiB pass-through.",
+    "Wall background job queue, TUS resumable video offset-safe recovery, photo previews, clean rollback and private signed viewing are unchanged.",
+    "Video transcoding/size reductions are not falsely claimed; native codec dependency not introduced.",
+    "AdMob first-view rendering, native ad lifecycle, dashboard navigation and offscreen video lifecycle retain their existing release-blocker status."
+  ],
+  "acceptanceChecks": [
+    "One exact V2 manifest and isolated changed paths; main branch reconciling exact source diff before integrating into consolidated candidate.",
+    "Behavioral tests cover parallel uploads, stable photo order, complete settlement before cleanup, weak-network concurrency and progress; static/source tests cover encoding opt-in and Wall preservation.",
+    "Existing AdMob, Wall first-frame, comments, media, privacy and navigation regression suites must stay green at consolidated RC.",
+    "TypeScript and Android Metro/export compile on exact RC; no new native modules, native config or database migration.",
+    "Owner explicitly waived physical Android verification ('skip actual ver') on 2026-11-24. Waiver does not turn unrun checks into passes.",
+    "Do not promote to production until protected consolidated DEV→RC→production OTA gates verify compatibility and exact served artifact; staging testing must not announce a production release."
+  ],
+  "targetRelease": "NEXT_APPROVED_BUKLOD_MAIN_CONSOLIDATED_OTA",
+  "ownerDeviceVerification": "WAIVED_NOT_PERFORMED",
+  "status": "DEV_SOURCE_READY_FOR_CONSO_INTAKE_NOT_RELEASED",
+  "productionPublished": false
+}
