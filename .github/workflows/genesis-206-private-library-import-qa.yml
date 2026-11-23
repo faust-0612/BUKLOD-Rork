@@ -40,11 +40,13 @@ jobs:
           set -euo pipefail
           git merge-base --is-ancestor 83e744e66c60a43917d6d048794d4d83de80bc3a HEAD
           test -z "$(git diff --name-only 83e744e66c60a43917d6d048794d4d83de80bc3a HEAD -- modules app.config.js eas.json package.json package-lock.json src plugins)"
-          # This public repository must not carry unreviewed owner Library binaries.
-          if git diff --name-only 83e744e66c60a43917d6d048794d4d83de80bc3a HEAD |
-            grep -Ei '\.(glb|zip|rar|unitypackage|wav|ogg|mp3|fbx|blend) \
-            tests/genesis-private-library-import-gate-20261124.test.mjs \
-            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+          # This public repository must not receive unreviewed private Library binaries.
+          if git diff --name-only 83e744e66c60a43917d6d048794d4d83de80bc3a HEAD | grep -Ei '\.(glb|zip|rar|unitypackage|wav|ogg|mp3|fbx|blend)$'; then
+            echo 'BLOCK: private Library bytes must remain outside public Git commits'
+            exit 1
+          fi
+          node --check scripts/genesis-private-library-intake.mjs
+          node --test tests/genesis-premium-world-content-ota-20261123.test.mjs tests/genesis-206-3d-import.test.mjs tests/genesis-private-library-import-gate-20261124.test.mjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
       - name: Build approved 22-model fallback; private Library remains offline
         run: |
           set -euo pipefail
