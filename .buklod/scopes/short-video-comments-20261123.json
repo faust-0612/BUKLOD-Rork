@@ -18,7 +18,8 @@
     "Scroll pauses every comment video and only one player can run at a time."
   ],
   "regressionTests": [
-    "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+    "src/lib/__tests__/buklodCommentShortVideo.test.ts",
+    "tests/short-video-comment-navigation-scope.test.mjs"
   ],
   "allowedPaths": [
     "src/lib/buklodCommentMediaBody.ts",
@@ -32,7 +33,8 @@
     "src/lib/__tests__/buklodCommentShortVideo.test.ts",
     ".buklod/scopes/short-video-comments-20261123.json",
     "src/lib/buklodCommentVideoPlaybackSignal.ts",
-    "src/lib/buklodCommentVideoValidation.ts"
+    "src/lib/buklodCommentVideoValidation.ts",
+    "tests/short-video-comment-navigation-scope.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -43,7 +45,7 @@
         "Preserve first-paint speed, AdMob and comment media compatibility"
       ],
       "tests": [
-        "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+        "tests/short-video-comment-navigation-scope.test.mjs"
       ]
     },
     {
@@ -53,7 +55,7 @@
         "Preserve account-bound comment sheet, existing routes and media signing"
       ],
       "tests": [
-        "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+        "tests/short-video-comment-navigation-scope.test.mjs"
       ]
     },
     {
@@ -63,7 +65,7 @@
         "Preserve Cluster/Org membership isolation, comment RPC and moderation"
       ],
       "tests": [
-        "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+        "tests/short-video-comment-navigation-scope.test.mjs"
       ]
     }
   ],

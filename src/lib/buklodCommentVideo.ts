@@ -11,7 +11,7 @@ export async function uploadBuklodCommentVideo(media: BuklodCommentMedia, pathBa
   if (media.kind !== 'video' || !isLocalMediaUri(media.ref)) throw new Error('Select a local short video before uploading.');
   const format = buklodCommentVideoFormat({ mimeType: media.mimeType, uri: media.ref });
   const nativeSizeLookup = Platform.OS === 'web' ? undefined : async (uri: string) => {
-    const info: any = await FileSystem.getInfoAsync(uri, { size: true });
+    const info: any = await FileSystem.getInfoAsync(uri);
     return { exists: Boolean(info?.exists), size: Number(info?.size ?? 0) };
   };
   let sizeBytes = await readVideoSizeBytes({ uri: media.ref, fileSize: media.sizeBytes }, nativeSizeLookup);
