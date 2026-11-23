@@ -32,6 +32,11 @@ for (const entry of [
 assert.equal(files.filter(x => /^art\/(fullbody|sprite|scene)\/.*\.png$/.test(x)).length, 68);
 assert.equal(files.filter(x => /^audio\/sfx\/.*\.wav$/.test(x)).length, 70);
 assert.equal(files.filter(x => /^kingdom-items\/(badge|bond|book|chest|crystal|light|relic)-[1-6]\.webp$/.test(x)).length, 42);
+if(process.env.BUKLOD_GENESIS_PREMIUM_3D === 'true') {
+  assert.equal(files.filter(x=>/^3d\/kenney\/[a-z0-9_]+\.glb$/.test(x)).length,20);
+  assert.ok(files.includes('scenes/PremiumWorld3D.tscn'));
+  assert.ok(files.includes('data/3d_manifest.json'));
+}
 const sha256 = createHash('sha256').update(readFileSync(dest)).digest('hex');
 writeFileSync(manifest, `/** GENERATED from exact reviewed Genesis Godot source; do not edit manually. */
 export const GENESIS_GODOT_OTA_PACK = {

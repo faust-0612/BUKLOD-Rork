@@ -125,6 +125,14 @@ func _create_controls() -> void:
 	ambient_button.custom_minimum_size = Vector2(140, 54)
 	ambient_button.pressed.connect(_toggle_ambience)
 	layer.add_child(ambient_button)
+	# This is a real GLB model preview; the existing 2D gameplay remains default.
+	if FileAccess.file_exists("res://3d/kenney/arena_hero_a.glb"):
+		var mode3d := Button.new()
+		mode3d.text = "EXPLORE 3D"
+		mode3d.position = Vector2(990, 630)
+		mode3d.custom_minimum_size = Vector2(220, 54)
+		mode3d.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/PremiumWorld3D.tscn"))
+		layer.add_child(mode3d)
 	_refresh_status()
 
 ## Manual ambient control; never autoplay in a second Android game process.

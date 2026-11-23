@@ -28,6 +28,7 @@ var art_cache: Dictionary = {}
 var animator
 var effect_layer
 var audio_layer: Node
+var preview3d_button: Button
 
 # Godot-decoded PNG previews in signed main pack; bounded lazy GPU cache.
 func _art(path: String) -> Texture2D:
@@ -60,11 +61,25 @@ func _ready() -> void:
 	hud.zoom_requested.connect(_zoom)
 	hud.pause_requested.connect(_pause)
 	hud.exit_requested.connect(_exit)
+	# 3D is an additional offline visual test, not the existing Arena simulation.
+	# Keep normal practice gameplay and touch HUD unchanged.
+	if FileAccess.file_exists("res://3d/kenney/arena_hero_a.glb"):
+		preview3d_button = Button.new()
+		preview3d_button.text = "3D ARENA VIEW"
+		preview3d_button.position = Vector2(1040, 635)
+		preview3d_button.custom_minimum_size = Vector2(200, 60)
+		preview3d_button.pressed.connect(_open_3d_world)
+		$CanvasLayer.add_child(preview3d_button)
 	print("BUKLOD_GODOT_ARENA_SCENE_READY")
 	if not sim.available():
 		hud.notify("FAILED: canonical 13-hero / 300-pickup data not bundled")
 	set_process(true)
 	set_physics_process(true)
+
+func _open_3d_world() -> void:
+	if running or not FileAccess.file_exists("res://3d/kenney/arena_hero_a.glb"):
+		return
+	get_tree().change_scene_to_file("res://scenes/PremiumWorld3D.tscn")
 
 func _exit() -> void:
 	# GodotActivity returns to the React Native host; no app-wide termination.
@@ -78,6 +93,8 @@ func _start(mode: String, hero: String, map_id: String, solo: bool, foe: String)
 		hud.playing = false
 		return
 	running = true
+	if preview3d_button != null:
+		preview3d_button.hide()
 	paused = false
 	hud.paused = false
 	event_cursor = -1
