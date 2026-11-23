@@ -1,0 +1,77 @@
+{
+  "schema": 2,
+  "title": "Genesis 2.0.6 unified native/consolidated OTA intake — release HOLD",
+  "date": "2026-11-24",
+  "status": "BLOCKED_BEFORE_RELEASE",
+  "objective": "Include all MAIN fixes and approved Genesis Godot private FX content in ONE independent Expo-free local-native Android staging candidate; never publish an Expo fallback or partial gameplay preview as complete",
+  "source": {
+    "contentBranch": "dev/genesis-206-private-library-import-gate-20261124",
+    "contentHeadAtIntake": "f59839de95d6f920c4c8295accb1e6dcddb297f3",
+    "nativeHostBranch": "dev/genesis-native-four-world-runtime-20261123",
+    "nativeHostSource": "ba971ed0a30cce0ddb43157c420940fbb4792456",
+    "productionMain": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+    "mergeBase": "551e54602addd6f7bbe7bcdddd1589d35424c964",
+    "mainCommitsNotCarried": 12,
+    "policy": "Must be ancestor-reconciled after preserving newer Genesis changes; do not overwrite DEV or cherry-pick blind"
+  },
+  "nativeTarget": {
+    "package": "org.mzbministry.buklod.genesis.nativeapp",
+    "kind": "local-native-no-expo",
+    "existingExpoStagingPackage": "org.mzbministry.buklod.staging",
+    "productionPackage": "org.mzbministry.buklod",
+    "requiresNewSignedApk": true,
+    "legacyExpoOtaPermitted": false,
+    "remoteDeployPermitted": false
+  },
+  "candidate": {
+    "file": "BUKLOD-Genesis-206-consolidated-private-FX-DEV-candidate-20261124.zip",
+    "bytes": 54631620,
+    "sha256": "d690cbab55010a58273a478984ec5aa787310634bdee04a050bded13de4c7a32",
+    "baseSha256": "8c65a05f0ac236d4c6b06220c64a4729816e706e0bdf2b2049d228bdc2421683",
+    "baseCIRun": 45225226623,
+    "publicCC0Models": 22,
+    "publicRiggedActors": 2,
+    "audioCues": 70,
+    "privateFxAtlases": 48,
+    "privateFxFrames": 925,
+    "sourceLicenseStatements": 8,
+    "private3dIncluded": 0
+  },
+  "privateRights": {
+    "status": "FX licenses reviewed for in-game use only; separate OTA distribution not independently cleared",
+    "unverifiedModelCount": 5,
+    "distribution": "Require owner rights evidence explicitly permitting the exact delivery method; never commit raw Library files to GitHub"
+  },
+  "carryoverAreas": [
+    "Connect latest message ordering, scroll preservation and ads separation",
+    "KL AI timeout and draft-safe source",
+    "Mentor reports, evidence flow and catalog permissions",
+    "Consent/privacy and auth recovery",
+    "AdMob native prewarm, fill and dashboard/tab speed",
+    "Admin inbox/new users, attendance and point contracts",
+    "Notifications, PTT and OS audio focus"
+  ],
+  "blockers": [
+    "12 mainline commits are not an ancestor of this Genesis branch",
+    "Current content branch uses Expo/React Native, not full Expo-free Android source",
+    "Native Kotlin/Godot Android project exists only on separate DEV branch, parity remains unverified",
+    "Native host requires signed embedded .pck; reviewed 54.6MB candidate is .zip, not a tested exported .pck",
+    "Full premium gameplay, 13 animated heroes and 39 Kingdom games are not verified",
+    "No native signed 800MB+ APK or isolated test backend evidence",
+    "Private third-party FX licensing does not yet establish OTA redistribution permission",
+    "Ad/nav/spacing, GIF, splash, offline, second-launch, rollback and physical Android QA not verified"
+  ],
+  "safety": {
+    "autoPublish": false,
+    "productionUnchanged": true,
+    "stagingUnchanged": true,
+    "requiresExactSigner": true,
+    "requiresDeviceProof": true,
+    "requiresOriginalProdFixes": true,
+    "requiresAdsNavGate": true,
+    "requiresOwnerVisualAcceptance": true
+  },
+  "testCommand": "node --test tests/genesis-206-unified-native-ota-gate-20261124.test.mjs",
+  "readOnlyGate": "node scripts/genesis-206-unified-native-ota-gate.mjs",
+  "nextMilestone": "Native source integration and correct Godot PCK export + full-app parity, mainline merge reconciliation, exact signed local Android build, actual device RC QA; only then separately authorize content delivery"
+}
