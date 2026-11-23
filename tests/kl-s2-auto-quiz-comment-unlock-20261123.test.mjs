@@ -60,10 +60,10 @@ test('progress waits for submitted reflection, including all 30 previous-series 
 });
 
 test('pre-activation Season 1 progress remains based on legacy completed sessions',()=>{
-  assert.match(sql,/IF NOT private\\.kl_s2_rewards_enabled_v1\\(\\) THEN/);
+  assert.match(sql,/IF NOT private\.kl_s2_rewards_enabled_v1\(\) THEN/);
   assert.match(sql,/This branch never applies the new comment requirement prematurely/);
   assert.match(sql,/'enabled',false/);
-  assert.match(sql,/s\\.completed_at IS NOT NULL/);
+  assert.match(sql,/s\.completed_at IS NOT NULL/);
 });
 
 test('S2 existing completed legacy sessions may reverify quiz instead of getting permanently stuck',()=>{
