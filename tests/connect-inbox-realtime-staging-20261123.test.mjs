@@ -53,3 +53,14 @@ test('first-view ads and sponsored cards remain anchored to their existing place
   assert.match(inbox, /<BuklodFirstViewAd/);
   assert.match(inbox, /<BuklodNativeSponsoredCard/);
 });
+
+test('missed push can use existing unread fallback without aggressive inbox polling', () => {
+  const hook = read('src/hooks/useBuklodConnectUnread.ts');
+  const scale = read('src/lib/performanceScale.ts');
+  assert.match(hook, /notifyConnectInboxChanged\(profileId\)/);
+  assert.match(hook, /activityIncreased/);
+  assert.match(hook, /SCALE_LIMITS\.connectUnreadPollMs/);
+  assert.match(scale, /connectUnreadPollMs: 90_000/);
+  assert.match(scale, /messagesInboxPollMs: 300_000/);
+  assert.doesNotMatch(inbox, /setInterval\([^\n]*1000/);
+});
