@@ -1,0 +1,143 @@
+name: BUKLOD Genesis Entry Music & Avatar Side-by-Side Android QA APK (No OTA)
+# One isolated installable release-bundled debug-key APK; no signed staging replacement.
+on:
+  push:
+    branches:
+      - dev/genesis-entry-media-device-qa-apk-20261123
+    paths:
+      - .github/workflows/genesis-entry-media-device-qa-apk-20261123.yml
+permissions:
+  contents: read
+concurrency:
+  group: buklod-genesis-20261123-isolated-media-qa-android
+  cancel-in-progress: false
+jobs:
+  build-qa-apk:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_MEDIA_QA_APK:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      BUKLOD_GENESIS_MEDIA_QA: 'true'
+      EXPO_PUBLIC_BUKLOD_MEDIA_QA: 'true'
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW: 'true'
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8" -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=1 -Dorg.gradle.daemon=false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Fail closed on exact branch, offline update channel, production identity and QA flags
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/dev/genesis-entry-media-device-qa-apk-20261123"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const cfg=require('./app.config.js')({config:{}});
+          a.equal(cfg.android.package,'org.mzbministry.buklod.genesis.qa');
+          a.equal(cfg.runtimeVersion,'2.0.4-genesis-media-qa-20261123');
+          a.equal(cfg.updates.enabled,false);
+          a.equal(cfg.extra.genesisMediaQa,true);
+          const e=JSON.parse(fs.readFileSync('eas.json','utf8'));
+          a.equal(e.build.production.channel,'production');
+          const stage=e.build['season2-genesis-preview'].env;
+          a.match(stage.EXPO_PUBLIC_SUPABASE_URL,/^https:\/\//);
+          a.match(stage.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,/^sb_publishable_/);
+          fs.appendFileSync(process.env.GITHUB_ENV,[
+            'EXPO_PUBLIC_SUPABASE_URL='+stage.EXPO_PUBLIC_SUPABASE_URL,
+            'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY='+stage.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+          ].join('\n')+'\n');
+          const firebase=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          const staging=(firebase.client||[]).filter(c=>c.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging');
+          a.equal(staging.length,1);
+          // Build-only QA identity; FCM is intentionally unregistered and token claims are blocked in JS.
+          const qaClient=JSON.parse(JSON.stringify(staging[0]));
+          qaClient.client_info.android_client_info.package_name=cfg.android.package;
+          firebase.client=[qaClient];
+          fs.writeFileSync('google-services.media-qa.json',JSON.stringify(firebase));
+          console.log('QA_ISOLATION_PASS package='+cfg.android.package+' OTA=disabled FCM_claim=disabled; test Ads only');
+          NODE
+      - name: Full source, media, focus/PTT, AdMob and navigation gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/genesis-prepare-skia-binaries.mjs
+          node scripts/genesis-assert-native-autolinking.mjs
+          node --test tests/genesis-media-qa-identity-20261123.test.mjs tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+          npm run genesis:theme:gate
+          npx tsc --noEmit
+          npx expo export --platform android --output-dir /tmp/buklod-genesis-media-qa-metro
+      - name: Prebuild the actual full Genesis native app with Godot, then assemble installable OFFLINE release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$ANDROID_HOME/platform-tools"
+          npx expo prebuild --platform android --clean --no-install
+          grep -Fq 'signingConfig signingConfigs.debug' android/app/build.gradle
+          cd android
+          chmod +x gradlew
+          timeout --signal=TERM --kill-after=30s 70m ./gradlew :app:assembleRelease --no-daemon --max-workers=1 -PreactNativeArchitectures=arm64-v8a
+          test -s app/build/outputs/apk/release/app-release.apk
+      - name: Inspect QA package, embedded JS and Godot, signature and content checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          test -x "$BT/aapt"
+          test -x "$BT/apksigner"
+          "$BT/apksigner" verify --verbose "$APK"
+          "$BT/aapt" dump badging "$APK" | grep "package: name='org.mzbministry.buklod.genesis.qa'"
+          unzip -Z -1 "$APK" | grep -q '^assets/index.android.bundle$'
+          unzip -Z -1 "$APK" | grep -q '^assets/godot/empire-arena.zip$'
+          unzip -Z -1 "$APK" | grep -Eq '^lib/arm64-v8a/.*godot.*\.so$'
+          sha256sum "$APK" > genesis-media-qa-apk.sha256
+          node <<'NODE'
+          const fs=require('node:fs');
+          fs.writeFileSync('genesis-media-qa-apk-receipt.json',JSON.stringify({
+            sourceSha:process.env.GITHUB_SHA,
+            runUrl:process.env.GITHUB_SERVER_URL+'/'+process.env.GITHUB_REPOSITORY+'/actions/runs/'+process.env.GITHUB_RUN_ID,
+            package:'org.mzbministry.buklod.genesis.qa',
+            version:'2.0.4',
+            runtime:'2.0.4-genesis-media-qa-20261123',
+            android:'arm64-v8a',
+            bundle:'release_embedded_no_metro',
+            signer:'Android debug key (isolated test build, not Play/EAS signer)',
+            firebasePush:'QA package not registered; push token claims disabled',
+            backend:'existing shared BUKLOD backend; tester must use test account',
+            otaEnabled:false,otaPublished:false,stagingChanged:false,productionChanged:false,
+            realDeviceAudioAvatarQA:'PENDING'
+          },null,2));
+          NODE
+          echo 'QA_APK_BINARIES_VERIFIED. No OTA, staging overwrite, EAS, Play or production release.'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buklod-genesis-entry-music-avatar-standalone-qa-arm64-apk
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            genesis-media-qa-apk.sha256
+            genesis-media-qa-apk-receipt.json
+          retention-days: 7
+          if-no-files-found: error

@@ -43,20 +43,25 @@ module.exports = ({ config }) => {
     process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS === 'true';
   const libraryArenaNativePreview = unifiedGodotWorldsPreview &&
     process.env.EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE === 'true';
+  // Full-app physical device QA; unique package, no updates, never a production identity.
+  const qaRequested = process.env.BUKLOD_GENESIS_MEDIA_QA === 'true';
+  const mediaQa = qaRequested && isStaging && libraryArenaNativePreview &&
+    process.env.EXPO_PUBLIC_BUKLOD_MEDIA_QA === 'true';
+  if (qaRequested && !mediaQa) throw new Error('Media QA requires an isolated Genesis 2.0.4 staging build with push disabled');
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
-    : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
+    : (mediaQa ? 'BUKLOD Genesis Media QA' : (isStaging ? 'BUKLOD Staging' : 'BUKLOD'));
 
   const packageId = isClassroom
     ? 'org.mzbministry.buklod.classroom'
-    : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
+    : (mediaQa ? 'org.mzbministry.buklod.genesis.qa' : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod'));
 
   const scheme = isClassroom
     ? 'buklod-classroom'
-    : (isStaging ? 'buklod-staging' : 'buklod');
+    : (mediaQa ? 'buklod-genesis-qa' : (isStaging ? 'buklod-staging' : 'buklod'));
 
   return {
     ...config,
@@ -104,12 +109,12 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : (isClassroom ? 28 : 30),
+      versionCode: mediaQa ? 1 : (isStaging ? undefined : (isClassroom ? 28 : 30)),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
         ? (classroomGoogleServicesFile || undefined)
-        : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
+        : (mediaQa ? './google-services.media-qa.json' : (isStaging ? './google-services.staging.json' : './google-services.production.json')),
 
       permissions: [
         'android.permission.CAMERA',
@@ -353,8 +358,8 @@ module.exports = ({ config }) => {
         {
           android: {
             minSdkVersion: 24,
-            enableProguardInReleaseBuilds: true,
-            enableShrinkResourcesInReleaseBuilds: true,
+            enableProguardInReleaseBuilds: !mediaQa,
+            enableShrinkResourcesInReleaseBuilds: !mediaQa,
             extraProguardRules: '-keep class com.google.android.gms.internal.consent_sdk.** { *; }',
           },
 
@@ -398,6 +403,7 @@ module.exports = ({ config }) => {
         variant,
 
       appTarget: isClassroom ? 'classroom' : 'main',
+      genesisMediaQa: mediaQa,
 
       eas:
         projectId
@@ -407,7 +413,7 @@ module.exports = ({ config }) => {
 
 
     updates:
-      projectId
+      mediaQa ? { enabled: false, checkAutomatically: 'NEVER' } : projectId
         ? {
             url:
               `https://u.expo.dev/${projectId}`,
@@ -425,6 +431,7 @@ module.exports = ({ config }) => {
     ...(godotArenaNativePreview ? { runtimeVersion: '2.0.2-genesis-godot-arena' } : {}),
     ...(unifiedGodotWorldsPreview ? { runtimeVersion: '2.0.3-genesis-unified-godot' } : {}),
     ...(libraryArenaNativePreview ? { runtimeVersion: '2.0.4-genesis-library-godot' } : {}),
+    ...(mediaQa ? { runtimeVersion: '2.0.4-genesis-media-qa-20261123' } : {}),
   };
 };
 
