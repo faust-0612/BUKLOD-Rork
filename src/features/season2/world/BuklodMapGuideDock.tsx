@@ -6,7 +6,11 @@ import {router} from 'expo-router';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {resolveBuklodGuideDestination} from './guideDestinations';
 
-const HUMAN_GUIDE = require('../../../../assets/buklod-guide/wave.png');
+const GUIDE_POSES = [
+  require('../../../../assets/buklod-guide/wave.png'),
+  require('../../../../assets/buklod-guide/celebrate.png'),
+  require('../../../../assets/buklod-guide/think.png'),
+] as const;
 type Icon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type SuggestedAction = {label:string;icon:Icon;route:string};
 const SUGGESTIONS:readonly SuggestedAction[]=[
@@ -27,27 +31,28 @@ export default function BuklodMapGuideDock({active,artworkEmbedded=false}:{activ
   const [answer,setAnswer]=useState<{label:string;route:string}|null>(null);
   const [reducedMotion,setReducedMotion]=useState(true);
   const float=useRef(new Animated.Value(0)).current;
-  const hand=useRef(new Animated.Value(0)).current;
+  const poseFade=useRef(new Animated.Value(1)).current;
+  const [poseIndex,setPoseIndex]=useState(0);
   useEffect(()=>{
     let live=true;
     void AccessibilityInfo.isReduceMotionEnabled().then(v=>{if(live)setReducedMotion(v);}).catch(()=>undefined);
     return ()=>{live=false;};
   },[]);
   useEffect(()=>{
-    float.stopAnimation();hand.stopAnimation();
-    if(!active||reducedMotion||artworkEmbedded){float.setValue(0);hand.setValue(0);return;}
+    float.stopAnimation();poseFade.stopAnimation();
+    if(!active||reducedMotion||artworkEmbedded){float.setValue(0);poseFade.setValue(1);setPoseIndex(0);return;}
     const bob=Animated.loop(Animated.sequence([
       Animated.timing(float,{toValue:1,duration:1450,useNativeDriver:true}),
       Animated.timing(float,{toValue:0,duration:1450,useNativeDriver:true}),
     ]));
-    const wave=Animated.loop(Animated.sequence([
-      Animated.timing(hand,{toValue:1,duration:360,useNativeDriver:true}),
-      Animated.timing(hand,{toValue:0,duration:360,useNativeDriver:true}),
-      Animated.delay(1900),
-    ]));
-    bob.start();wave.start();
-    return ()=>{bob.stop();wave.stop();};
-  },[active,artworkEmbedded,reducedMotion,float,hand]);
+    const poses=setInterval(()=>{
+      poseFade.setValue(.55);
+      setPoseIndex(index=>(index+1)%GUIDE_POSES.length);
+      Animated.timing(poseFade,{toValue:1,duration:260,useNativeDriver:true,isInteraction:false}).start();
+    },4400);
+    bob.start();
+    return()=>{bob.stop();clearInterval(poses);poseFade.stopAnimation();};
+  },[active,artworkEmbedded,reducedMotion,float,poseFade]);
   const find=()=>setAnswer(resolveBuklodGuideDestination(question,Boolean(activeScope?.show_faith_content)));
   const open=(route:string)=>router.push(route as any);
   const pick=(item:SuggestedAction,small=false)=><Pressable key={item.label}
@@ -64,12 +69,7 @@ export default function BuklodMapGuideDock({active,artworkEmbedded=false}:{activ
       <Animated.View style={[styles.avatarWrap,{transform:[
         {translateY:float.interpolate({inputRange:[0,1],outputRange:[0,-5]})}
       ]}]}>
-        <Image source={HUMAN_GUIDE} resizeMode="cover" style={styles.avatar}/>
-        <Animated.View pointerEvents="none" style={[styles.hand,{
-          transform:[{rotate:hand.interpolate({inputRange:[0,1],outputRange:['-14deg','17deg']})}],
-        }]}>
-          <MaterialCommunityIcons name="hand-wave-outline" color="#FFE2A3" size={21}/>
-        </Animated.View>
+        <Animated.Image source={GUIDE_POSES[poseIndex]} resizeMode="cover" style={[styles.avatar,{opacity:poseFade}]}/>
       </Animated.View>
       <View style={styles.content}>
         <View style={styles.welcomeLine}>
@@ -116,8 +116,6 @@ const styles=StyleSheet.create({
  avatarWrap:{width:127,height:138,borderRadius:20,overflow:'hidden',
    borderWidth:1,borderColor:'#F4DC9D',backgroundColor:'#E8EBD5'},
  avatar:{width:'100%',height:'100%'},
- hand:{position:'absolute',right:3,top:7,backgroundColor:'rgba(5,35,26,.70)',
-   borderRadius:14,padding:3},
  content:{flex:1,minWidth:0,gap:6},
  welcomeLine:{minHeight:47,flexDirection:'row',alignItems:'center',gap:3},
  greeting:{fontSize:17,lineHeight:21,fontWeight:'900',color:'#FFE5A8'},

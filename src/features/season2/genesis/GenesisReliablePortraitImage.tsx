@@ -23,13 +23,15 @@ const PROMPTS=[
 ] as const;
 const nextMode=(current:'native'|'embedded'|'safe')=>current==='native'?'embedded':'safe';
 export default function GenesisReliablePortraitImage({
-  landscape,width,height,active,showFaith,doors,onOpen,onMenu,
+  landscape,width,height,active,showFaith,doors,onOpen,onMenu,onImageReadyChange,
 }:{
   landscape:boolean;width:number;height:number;active:boolean;showFaith:boolean;
   doors:readonly Door[];onOpen:(door:Door,route:string)=>void;onMenu:()=>void;
+  onImageReadyChange?:(ready:boolean)=>void;
 }){
  const [mode,setMode]=useState<'native'|'embedded'|'safe'>('native');
  const [loaded,setLoaded]=useState(false);
+ useEffect(()=>{onImageReadyChange?.(mode!=='safe'&&loaded);},[mode,loaded,onImageReadyChange]);
  useEffect(()=>{setLoaded(false);setMode('native');},[landscape]);
  useEffect(()=>{
    if(!active||loaded||mode==='safe')return;

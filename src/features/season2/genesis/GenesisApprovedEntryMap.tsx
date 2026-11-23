@@ -56,6 +56,7 @@ export default function GenesisApprovedEntryMap({
  const mapWidth=clamp((availableWidth??width)-20,270,900);
  const mapHeight=Math.round(mapWidth*(landscape?COMPACT_RATIO:PORTRAIT_RATIO));
  const [reduceMotion,setReduceMotion]=useState(true);
+ const [imageReady,setImageReady]=useState(false);
  const glow=useRef(new Animated.Value(.32)).current;
  useEffect(()=>{
    let mounted=true;
@@ -89,8 +90,9 @@ export default function GenesisApprovedEntryMap({
  return <View style={styles.frame} accessibilityLabel="BUKLOD illustrated one-tap world and Welcome Guide">
    <View style={{width:mapWidth,height:mapHeight,alignSelf:'center',overflow:'hidden'}}>
      <GenesisReliablePortraitImage landscape={landscape} width={mapWidth} height={mapHeight}
-       active={active} showFaith={showFaith} doors={DOORS} onOpen={onOpen} onMenu={onMenu}/>
-     {!landscape?<GenesisOriginalGuideMotion active={active} landscape={landscape} width={mapWidth} height={mapHeight}/>:null}
+       active={active} showFaith={showFaith} doors={DOORS} onOpen={onOpen} onMenu={onMenu}
+       onImageReadyChange={setImageReady}/>
+     {!landscape&&imageReady?<GenesisOriginalGuideMotion active={active} landscape={landscape} width={mapWidth} height={mapHeight}/>:null}
      {DOORS.map(door=><Pressable
        key={door.id} accessibilityRole="button" accessibilityLabel={'Enter '+door.label}
        accessibilityHint={door.faithOnly&&!showFaith?'Show Faith is off: open equivalent learning path':'Opens the feature directly with existing permissions'}

@@ -261,7 +261,7 @@ export default function GenesisKingdomPortal() {
         <GenesisCosmicSky active={animate} transparent/>
         <GenesisOrbitHalo active={animate} size={Math.min(300, width * 0.72)} />
         <View pointerEvents="none" style={styles.heroArt}>
-          <GenesisRiveCharacter active={animate} width={188} height={214}
+          <GenesisRiveCharacter rigId={selected.character} active={animate} width={188} height={214}
             fallback={<RealmCharacter character={selected.character}/>} />
         </View>
         <View style={styles.heroCopy} pointerEvents="none">
