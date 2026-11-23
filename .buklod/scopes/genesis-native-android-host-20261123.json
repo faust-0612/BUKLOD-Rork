@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-android-host-20261123.json",
+  "objective": "Implement real independent Android Kotlin/Gradle native Godot host, native splash, keyboard GIF local content handling, and fail-closed release safeguards without touching BUKLOD main/staging or claiming full app completion.",
+  "baseRef": "816f7c27e59e5c074abfba0515cc9c7aea70d901",
+  "productionBaselineEvidence": "Source main was 7b224c39624827282c3cbf003060317045b0a73f, not installed runtime evidence. Main adds 7 commits covering consent, PTT, admin inbox, cluster check-in, AdMob retention and other fixes. They have NOT been forward-ported or proven in this incomplete native host; release remains blocked.",
+  "chosenApproach": "Separate native-genesis/android host with Godot Android AAR and app-private PCK, native Android 12 splash and IME GIF handler. Full parity gate remains negative until verified. No changes to main app or Expo/EAS source; no cloud build.",
+  "selectionRationale": "Godot officially documents GodotActivity embedding using org.godotengine:godot AAR and --main-pack. A separate Gradle-only project advances source migration and protects users from the crashing preview and wrong-package overwrite.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-native-android-host-20261123.json",
+    "native-genesis/README.md",
+    "native-genesis/build-local.sh",
+    "native-genesis/prepare-pack-local.sh",
+    "native-genesis/android/.gitignore",
+    "native-genesis/android/settings.gradle.kts",
+    "native-genesis/android/build.gradle.kts",
+    "native-genesis/android/gradle.properties",
+    "native-genesis/android/gradle/wrapper/gradle-wrapper.properties",
+    "native-genesis/android/app/build.gradle.kts",
+    "native-genesis/android/app/proguard-rules.pro",
+    "native-genesis/android/app/src/main/AndroidManifest.xml",
+    "native-genesis/android/app/src/main/res/values/themes.xml",
+    "native-genesis/android/app/src/main/res/values-v31/themes.xml",
+    "native-genesis/android/app/src/main/res/drawable/brand_mark.xml",
+    "native-genesis/android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisGameActivity.kt",
+    "native-genesis/android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GifInputHandler.kt",
+    "native-genesis/android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/NativeHomeActivity.kt",
+    "tests/genesis-native-android-host-20261123.test.mjs"
+  ],
+  "regressionTests": ["tests/genesis-native-android-host-20261123.test.mjs", "tests/genesis-native-local-only-gate-20261123.test.mjs"],
+  "lockedFeatureChanges": [
+    {"id":"app-runtime","reason":"Create isolated native Android source not wired to released app","preservedBehaviors":["No change to existing users or packages","No secrets or network permission in native host","Godot main pack app private"],"tests":["tests/genesis-native-android-host-20261123.test.mjs"]},
+    {"id":"production-release","reason":"Fail closed on absent native binaries and parity","preservedBehaviors":["No APK, OTA or cloud build","Existing signers and release identities untouched"],"tests":["tests/genesis-native-android-host-20261123.test.mjs"]}
+  ],
+  "riskAreas": ["Gradle compile not performed", "Godot Android Activity JNI/runtime", "Gboard URI grants", "splash art not final", "native source behind main", "AdMob first-view and nav unimplemented", "local signer unavailable"],
+  "preserveBehaviors": ["BUKLOD main/production/staging unchanged", "Gameplay authoritative rewards disabled until new backend", "No asset padding and no fake 800MB assertion"],
+  "acceptanceChecks": ["11 local static/contract Node checks", "Source gate remains negative for unverified app parity and missing approved assets", "Real Android compile, emulator and device runtime tests still required", "Full canonical main parity required before RC"],
+  "releaseMode": "DEV_ONLY_EXPO_FREE_NATIVE_HOST_NO_APK",
+  "publicationStatus": "SOURCE_IMPLEMENTED_NATIVE_COMPILE_UNVERIFIED_NO_RELEASE",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

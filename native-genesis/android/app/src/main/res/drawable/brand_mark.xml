@@ -1,0 +1,8 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+  <!-- Temporary DEV vector. Original approved green-B asset required for release. -->
+  <path android:fillColor="#71DD8A" android:pathData="M28,17 L53,17 C80,17 89,35 77,51 C94,67 81,91 55,91 L28,91 Z"/>
+  <path android:fillColor="#050A19" android:pathData="M43,32 L53,32 C66,32 69,45 54,46 L43,46 Z"/>
+  <path android:fillColor="#050A19" android:pathData="M43,62 L55,62 C71,62 71,77 55,77 L43,77 Z"/>
+</vector>

@@ -1,0 +1,24 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:usesCleartextTraffic="false"
+        android:label="BUKLOD Genesis Native DEV"
+        android:theme="@style/Theme.Genesis">
+        <activity
+            android:name=".NativeHomeActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".GenesisGameActivity"
+            android:exported="false"
+            android:process=":genesis_godot"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" />
+    </application>
+</manifest>

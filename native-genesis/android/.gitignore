@@ -1,0 +1,8 @@
+.gradle/
+build/
+app/build/
+local.properties
+*.jks
+*.keystore
+app/src/main/assets/godot/*.pck
+app/src/main/assets/godot/*.sha256
