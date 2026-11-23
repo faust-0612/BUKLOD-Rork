@@ -41,11 +41,28 @@ if(process.env.BUKLOD_GENESIS_PREMIUM_3D === 'true') {
 if(process.env.BUKLOD_GENESIS_PRIVATE_ASSETS === 'true') {
   const manifestText=execFileSync('unzip',['-p',dest,'data/private_3d_manifest.json'],{encoding:'utf8',maxBuffer:1024*1024});
   const approved=JSON.parse(manifestText);
-  assert.ok(approved.models.length>0&&approved.models.length<=16);
+  assert.ok(approved.models.length<=16);
+  assert.ok(Array.isArray(approved.audio)&&approved.audio.length<=100);
+  assert.ok(Array.isArray(approved.visuals)&&approved.visuals.length<=100);
+  assert.ok(approved.models.length+approved.audio.length+approved.visuals.length>0);
   const imported=files.filter(x=>/^3d\/private\/private_[a-z0-9_]+\.glb$/.test(x));
   assert.equal(imported.length,approved.models.length);
   for(const model of approved.models)
     assert.ok(files.includes('3d/private/'+model.id+'.glb'));
+  for(const [folder,items] of [['audio/private/',approved.audio],['vfx/private/',approved.visuals]]){
+    assert.equal(files.filter(x=>x.startsWith(folder)).length,items.length);
+    for(const item of items){
+      assert.match(item.id,/^private_[a-z0-9_]{2,64}$/);
+      assert.match(item.sha256,/^[0-9a-f]{64}$/);
+      const entry=folder+item.id+item.ext;
+      assert.ok(files.includes(entry),'Missing approved private asset '+item.id);
+      const data=execFileSync('unzip',['-p',dest,entry],
+        {timeout:45000,maxBuffer:16*1024*1024+1024});
+      assert.equal(data.length,item.bytes);
+      assert.equal(createHash('sha256').update(data).digest('hex'),item.sha256,
+        'Packed private file diverged from approved bytes');
+    }
+  }
 }
 if(process.env.BUKLOD_GENESIS_PRIVATE_FX === 'true') {
   const fxText=execFileSync('unzip',['-p',dest,'data/private_fx_manifest.json'],
