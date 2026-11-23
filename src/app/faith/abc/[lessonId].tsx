@@ -47,8 +47,11 @@ import {
   ABC_LESSONS,
   ABC_SOURCE,
   type AbcBlock,
+  type AbcLesson,
   type FaithBibleReference,
 } from '@/data/faith/abcLessons';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { DOCTRINE_DAILY_REWARD_CAP, DOCTRINE_LABELS, loadPublishedDoctrinalLesson } from '@/data/faith/abcDoctrinalCatalog';
 
 const COMPLETION_KEY =
   'buklod.faith.abc.completed.v1';
@@ -57,12 +60,13 @@ const FONT_KEY =
   'buklod.faith.abc.font.v1';
 
 const ABC_POINTS_PER_LESSON =
-  5;
+  8;
 
 type AbcRewardState =
   | 'pending'
   | 'claimed'
   | 'legacy'
+  | 'unrewarded'
   | null;
 
 function answerKey(
@@ -107,16 +111,41 @@ BuklodAbcLessonDetailScreen() {
       : params.lessonId;
 
   const accountAnswerKey = accountId && lessonId ? `${answerKey(lessonId)}.${accountId}` : null;
-  const lesson =
-    useMemo(
-      () =>
-        ABC_LESSONS.find(
-          item =>
-            item.id ===
-            lessonId
-        ) ?? null,
-      [lessonId]
-    );
+  const [doctrinalLesson, setDoctrinalLesson] = useState<AbcLesson | null>(null);
+  const [catalogResolved, setCatalogResolved] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setDoctrinalLesson(null);
+    setCatalogResolved(false);
+    if (!accountId || !lessonId?.startsWith('doctrine-')) {
+      setCatalogResolved(true);
+      return () => { active = false; };
+    }
+    void (async () => {
+      try {
+        const cached = await getOfflineCache<AbcLesson[]>('faith-abc-doctrine-catalog:v1', {
+          userId: accountId, allowStale: true,
+        });
+        if (active && Array.isArray(cached?.data)) {
+          setDoctrinalLesson(cached.data.find(item => item.id === lessonId) ?? null);
+        }
+        if (online) {
+          const item = await loadPublishedDoctrinalLesson(lessonId);
+          if (active) setDoctrinalLesson(item);
+        }
+      } catch {
+        // A downloaded lesson may still be read offline; award is always server-only.
+      } finally {
+        if (active) setCatalogResolved(true);
+      }
+    })();
+    return () => { active = false; };
+  }, [lessonId, accountId, online]);
+
+  const lesson = useMemo(
+    () => ABC_LESSONS.find(item => item.id === lessonId) ?? doctrinalLesson,
+    [lessonId, doctrinalLesson],
+  );
 
   const [
     answers,
@@ -148,6 +177,9 @@ BuklodAbcLessonDetailScreen() {
     useState<
       AbcRewardState
     >(null);
+
+  const [earnedPoints, setEarnedPoints] = useState(0);
+  const visiblePoints = completed ? earnedPoints : (lesson?.rewardPoints ?? ABC_POINTS_PER_LESSON);
 
   const [
     rewardBusy,
@@ -192,6 +224,7 @@ BuklodAbcLessonDetailScreen() {
             if (saved?.[lessonId]) {
               setCompleted(true);
               setRewardState('legacy');
+              setEarnedPoints(ABC_POINTS_PER_LESSON);
             }
           }).catch(() => undefined);
       }
@@ -210,6 +243,7 @@ BuklodAbcLessonDetailScreen() {
       setAnswers({});
       setCompleted(false);
       setRewardState(null);
+      setEarnedPoints(0);
       if (!lesson || !accountId || !accountCompletionKey || !accountAnswerKey) {
         setLoaded(true);
         return;
@@ -253,10 +287,9 @@ BuklodAbcLessonDetailScreen() {
           }
 
           setCompleted(true);
+          setEarnedPoints(Number(row.points ?? ABC_POINTS_PER_LESSON));
           setRewardState(
-            (row.claim_state ??
-              'legacy') as
-              AbcRewardState
+            (row.claim_state ?? 'legacy') as AbcRewardState
           );
         })();
       }
@@ -508,7 +541,7 @@ BuklodAbcLessonDetailScreen() {
     setPendingSync(true);
     Alert.alert(
       'Saved Offline · Pending Sync',
-      'Naka-save sa device ang completion. Ise-send ito kapag may internet. Ang +5 points ay magiging available lamang pagkatapos makumpirma ng server.'
+      'Naka-save sa device ang completion. Ise-send ito kapag may internet. Ang points ay magiging available lamang pagkatapos makumpirma ng server.'
     );
   };
 
@@ -549,6 +582,18 @@ BuklodAbcLessonDetailScreen() {
         return;
       }
 
+      if (lesson.assessment) {
+        if (!String(answers['__quiz_option'] ?? '').trim() ||
+            !String(answers['__reflection'] ?? '').trim()) {
+          Alert.alert('Kumpletuhin ang assessment', 'Piliin ang sagot sa quiz at magsulat ng sariling reflection bago i-complete.');
+          return;
+        }
+        if (!online) {
+          Alert.alert('Offline draft saved', 'Mababasa at masasagutan ang aralin offline. Kailangan ng koneksyon upang ma-verify ang quiz at maibigay ang points.');
+          return;
+        }
+      }
+
       setRewardBusy(true);
 
       try {
@@ -560,9 +605,15 @@ BuklodAbcLessonDetailScreen() {
           data,
           error,
         } = await withBuklodTimeout<any>(
-          (supabase as any).rpc('complete_my_abc_growth_lesson_v1', {
-            p_lesson_id: lesson.id,
-          }),
+          lesson.assessment
+            ? (supabase as any).rpc('complete_my_abc_doctrinal_lesson_v1', {
+                p_lesson_id: lesson.id,
+                p_answer: String(answers['__quiz_option'] ?? ''),
+                p_reflection: String(answers['__reflection'] ?? ''),
+              })
+            : (supabase as any).rpc('complete_my_abc_growth_lesson_v1', {
+                p_lesson_id: lesson.id,
+              }),
           8500,
           'ABC lesson completion'
         );
@@ -583,6 +634,7 @@ BuklodAbcLessonDetailScreen() {
             AbcRewardState;
 
         setCompleted(true);
+        setEarnedPoints(points);
         setRewardState(
           nextState
         );
@@ -596,7 +648,14 @@ BuklodAbcLessonDetailScreen() {
           await showBuklodAdOpportunity('abc_lesson_success');
         }
 
-        if (
+        if (points === 0) {
+          Alert.alert(
+            'Lesson completed!',
+            'Naitala ang progreso. Naabot ang ' + DOCTRINE_DAILY_REWARD_CAP +
+              ' BP daily cap sa continuing doctrine kaya walang bagong points ngayon. Maaari pa ring magpatuloy sa susunod na lesson.'
+          );
+        }
+        else if (
           nextState ===
           'pending'
         ) {
@@ -628,7 +687,7 @@ BuklodAbcLessonDetailScreen() {
         error: any
       ) {
         const message = String(error?.message ?? error ?? '');
-        if (!pendingSync && /network|fetch|offline|timed?\s*out|timeout|connection/i.test(message)) {
+        if (!lesson.assessment && !pendingSync && /network|fetch|offline|timed?\s*out|timeout|connection/i.test(message)) {
           try {
             await queueLessonCompletion();
             return;
@@ -843,6 +902,17 @@ BuklodAbcLessonDetailScreen() {
       );
     };
 
+  if (!catalogResolved && lessonId?.startsWith('doctrine-')) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <ActivityIndicator size="large" color="#2F7A4F" style={{ marginTop: 72 }} />
+        <Text style={{ textAlign: 'center', color: '#53705D', marginTop: 12 }}>
+          Loading doctrinal lesson...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
   if (!lesson) {
     return (
       <SafeAreaView
@@ -1045,11 +1115,11 @@ BuklodAbcLessonDetailScreen() {
                 styles.heroMeta
               }
             >
-              Source pages {lesson.sourcePages[0]}
-              {lesson.sourcePages[1] !==
-              lesson.sourcePages[0]
-                ? `–${lesson.sourcePages[1]}`
-                : ''} · {lesson.references.length} Bible references
+              {lesson.seriesTitle
+                ? lesson.seriesTitle + ' · ' + DOCTRINE_LABELS[lesson.difficulty ?? 'foundation']
+                : 'Source pages ' + lesson.sourcePages[0] +
+                  (lesson.sourcePages[1] !== lesson.sourcePages[0] ? '–' + lesson.sourcePages[1] : '')}
+              {' · '}{lesson.references.length} Bible references
             </Text>
           </View>
 
@@ -1178,7 +1248,7 @@ BuklodAbcLessonDetailScreen() {
                     styles.rewardTitle
                   }
                 >
-                  +5 BUKLOD Points
+                  {'+' + visiblePoints + ' BUKLOD Points'}
                 </Text>
 
                 <Text
@@ -1186,7 +1256,10 @@ BuklodAbcLessonDetailScreen() {
                     styles.rewardBody
                   }
                 >
-                  Sagutan ang lahat ng answer fields, tapos i-complete ang lesson. Isang beses lang ang reward sa bawat lesson.
+                  {lesson.assessment
+                    ? 'Sagutin ang multiple-choice quiz at magbigay ng makabuluhang reflection (80–2000 characters at 8 magkakaibang salita). ' +
+                      'Maaari kang mag-aral nang tuloy-tuloy; ' + DOCTRINE_DAILY_REWARD_CAP + ' BP ang daily reward cap sa continuing doctrine.'
+                    : 'Sagutan ang lahat ng answer fields, tapos i-complete ang lesson. Isang beses lang ang reward sa bawat lesson.'}
                 </Text>
 
                 {completed ? (
@@ -1197,8 +1270,8 @@ BuklodAbcLessonDetailScreen() {
                   >
                     {rewardState ===
                     'pending'
-                      ? '✓ Completed · 5 points Ready to Claim'
-                      : '✓ Completed · 5 points recorded'}
+                      ? '✓ Completed · ' + earnedPoints + ' points Ready to Claim'
+                      : '✓ Completed · ' + earnedPoints + ' points recorded'}
                   </Text>
                 ) : null}
               </View>
@@ -1208,6 +1281,49 @@ BuklodAbcLessonDetailScreen() {
           {lesson.blocks.map(
             renderBlock
           )}
+
+          {lesson.assessment ? (
+            <View style={styles.questionBlock}>
+              <Text style={styles.blockLabel}>DOCTRINAL KNOWLEDGE CHECK</Text>
+              <Text style={styles.questionText}>{lesson.assessment.prompt}</Text>
+              {lesson.assessment.options.map((option, index) => {
+                const choice = String.fromCharCode(65 + index);
+                const selected = answers['__quiz_option'] === choice;
+                return (
+                  <Pressable
+                    key={choice}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    onPress={() => setAnswer('__quiz_option', choice)}
+                    style={[
+                      styles.block,
+                      { padding: 10, marginTop: 7, borderWidth: 1,
+                        borderColor: selected ? '#2F7A4F' : '#D6E6DC',
+                        backgroundColor: selected ? '#E5F5EB' : '#FFFFFF' },
+                    ]}
+                  >
+                    <Text style={styles.bodyText}>{choice + '. ' + option}</Text>
+                  </Pressable>
+                );
+              })}
+              <Text style={[styles.blockLabel, { marginTop: 14 }]}>PERSONAL REFLECTION</Text>
+              <Text style={styles.bodyText}>
+                Ano ang natutuhan mo sa Biblia, at paano mo ito isasabuhay?
+                Hindi sapat ang paulit-ulit na salita.
+              </Text>
+              <TextInput
+                accessibilityLabel="Doctrinal lesson reflection"
+                multiline
+                value={answers['__reflection'] ?? ''}
+                onChangeText={value => setAnswer('__reflection', value)}
+                placeholder="Isulat ang iyong sariling pagninilay..."
+                placeholderTextColor="#8C9891"
+                textAlignVertical="top"
+                maxLength={2000}
+                style={styles.notesInput}
+              />
+            </View>
+          ) : null}
 
           <View
             style={
@@ -1286,7 +1402,7 @@ BuklodAbcLessonDetailScreen() {
                   ? 'ABAKA lesson completed'
                   : pendingSync
                     ? 'Saved offline; awaiting server confirmation'
-                    : 'Complete this ABAKA lesson and earn five BUKLOD Points'
+                    : 'Complete this ABAKA lesson and earn BUKLOD Points'
             }
             disabled={
               rewardBusy ||
@@ -1352,9 +1468,9 @@ BuklodAbcLessonDetailScreen() {
                   : completed
                     ? rewardState ===
                       'pending'
-                      ? 'Completed · +5 points ready to claim'
-                      : 'Completed · +5 BUKLOD Points'
-                    : 'Complete lesson · earn +5 points'}
+                      ? 'Completed · +' + earnedPoints + ' points ready to claim'
+                      : 'Completed · +' + earnedPoints + ' BUKLOD Points'
+                    : 'Complete lesson · earn +' + visiblePoints + ' points'}
             </Text>
           </Pressable>
 
@@ -1385,7 +1501,7 @@ BuklodAbcLessonDetailScreen() {
                   styles.claimButtonText
                 }
               >
-                Open BUKLOD Points · Claim 5 Points
+                {'Open BUKLOD Points · Claim ' + earnedPoints + ' Points'}
               </Text>
             </Pressable>
           ) : null}
