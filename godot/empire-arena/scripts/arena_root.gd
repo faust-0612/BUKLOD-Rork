@@ -14,7 +14,7 @@ const HEROSUIT := [Color("#7bf2cb"), Color("#75c9ff"), Color("#ffc68b"),
 
 @onready var camera: Camera2D = $Camera2D
 @onready var hud: Control = $CanvasLayer/Hud
-var sim: BuklodArenaSimulation
+var sim
 var running := false
 var paused := false
 var input_vector := Vector2.ZERO
@@ -57,6 +57,7 @@ func _ready() -> void:
 	hud.zoom_requested.connect(_zoom)
 	hud.pause_requested.connect(_pause)
 	hud.exit_requested.connect(_exit)
+	print("BUKLOD_GODOT_ARENA_SCENE_READY")
 	if not sim.available():
 		hud.notify("FAILED: canonical 13-hero / 300-pickup data not bundled")
 	set_process(true)
@@ -173,7 +174,7 @@ func _read_events() -> void:
 func _process(delta: float) -> void:
 	frames += minf(0.06, delta)
 	if running and not sim.state.is_empty():
-		var me := sim.actor("A0")
+		var me: Dictionary = sim.actor("A0")
 		if me.has("pos"):
 			camera.position = camera.position.lerp((me["pos"] as Vector2) * PX, clampf(delta * 8.0, 0.0, 1.0))
 	for f in flashes.duplicate():
