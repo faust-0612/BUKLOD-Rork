@@ -749,81 +749,8 @@ function BuklodConnectThreadInner({
       | null
     >(null);
 
-  /* PATCH_171H_PERSONAL_CALL_STATUS */
-  useEffect(
-    () => {
-      if (!directVideoClient) {
-        return;
-      }
-
-      return directVideoClient.on(
-        'call.rejected',
-        (event: any) => {
-          const scope =
-            String(
-              event?.call?.custom
-                ?.buklod_call_scope ??
-              ''
-            ).toUpperCase();
-
-          if (
-            scope !== 'PERSONAL'
-          ) {
-            return;
-          }
-
-          const myId =
-            directVideoClient
-              .state
-              .connectedUser
-              ?.id;
-
-          if (
-            !myId ||
-            event?.call
-              ?.created_by
-              ?.id !== myId
-          ) {
-            return;
-          }
-
-          const reason =
-            String(
-              event?.reason ?? ''
-            ).toLowerCase();
-
-          if (reason === 'busy') {
-            Alert.alert(
-              'Call unavailable',
-              'This person is currently on another call.'
-            );
-            return;
-          }
-
-          if (reason === 'timeout') {
-            Alert.alert(
-              'Call unavailable',
-              'This person is not available or offline.'
-            );
-            return;
-          }
-
-          if (
-            reason === 'decline' ||
-            reason === 'rejected'
-          ) {
-            Alert.alert(
-              'Call declined',
-              'This person declined the call.'
-            );
-          }
-        }
-      );
-    },
-    [
-      directVideoClient,
-    ]
-  );
+  // Caller outcome is reported once by the global Stream lifecycle handler.
+  // Duplicate local alerts used to mislabel unanswered calls as offline.
 
   const startDirectCall =
     useCallback(
