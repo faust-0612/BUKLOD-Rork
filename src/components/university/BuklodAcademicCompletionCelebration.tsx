@@ -152,7 +152,7 @@ export default function BuklodAcademicCompletionCelebration({
               <MaterialCommunityIcons name="check-decagram" size={17} color={preset.darkAccent} />
               <Text style={[styles.verified, { color: preset.darkAccent }]}>INTERNAL COMPLETION RECORDED</Text>
             </View>
-            <Text style={styles.help}>Your completion paper is ready in Academic Records.</Text>
+            <Text style={styles.help}>Your verified completion is recorded. Your paper can be prepared securely on download.</Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View verified academic completion paper"
@@ -160,7 +160,7 @@ export default function BuklodAcademicCompletionCelebration({
               style={({ pressed }) => [styles.primary, { backgroundColor: preset.darkAccent }, pressed && styles.pressed]}
             >
               <MaterialCommunityIcons name="file-certificate-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.primaryText}>VIEW ACADEMIC PAPER</Text>
+              <Text style={styles.primaryText}>PREPARE / VIEW COMPLETION PAPER</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={stop} style={styles.secondary}>
               <Text style={styles.secondaryText}>CONTINUE</Text>
