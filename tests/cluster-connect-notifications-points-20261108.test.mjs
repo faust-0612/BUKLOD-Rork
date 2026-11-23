@@ -90,7 +90,9 @@ test('fast scroll renders real content with a pre-render buffer and scoped conne
 test('Points claims use one canonical claim entry and preserve ad opportunity, rank data is not a points door',()=>{
  assert.match(points,/showBuklodAdOpportunity\('points_claim_success'\)/);
  assert.match(points,/claimBuklodRewardEvent\(/);
- assert.match(points,/__buklod_claim_all_eligible__/);
+ assert.match(points,/loadBuklodClaimCards/);
+ assert.match(points,/claimBuklodRewardEvent\(card\.event_id\)/);
+ assert.doesNotMatch(points,/__buklod_claim_all_eligible__|CLAIM ALL/);
  assert.doesNotMatch(economy,/claimBuklodRewardEvent\(/);
  assert.doesNotMatch(economy,/claimBuklodRewardGroup\(/);
  assert.match(rank,/pointsToNext/);
