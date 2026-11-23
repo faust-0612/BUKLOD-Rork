@@ -6,8 +6,8 @@ const read = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf
 test('formation AI upstream is bounded, uses two models, and never silently approves an outage', () => {
   const edge = read('supabase/functions/buklod-ai-validate-response/index.ts');
   assert.match(edge, /signal:AbortSignal\.timeout\(timeoutMs\)/);
-  assert.match(edge, /timeoutMs:40000/);
-  assert.match(edge, /timeoutMs:17000/);
+  assert.match(edge, /name:'gemini-3\.6-flash',timeoutMs:40000/);
+  assert.match(edge, /name:'gemini-3\.5-flash-lite',timeoutMs:17000/);
   assert.doesNotMatch(edge, /'gemini-3\.7-flash','gemini-3\.6-flash'/);
   assert.match(edge, /if\(!parsed\) throw new Error/);
   assert.match(edge, /AI_VALIDATION_TEMPORARILY_UNAVAILABLE/);

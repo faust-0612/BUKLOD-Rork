@@ -91,7 +91,7 @@ Deno.serve(async(req:Request)=>{
   let parsed:any=null; let modelUsed=''; const failures:string[]=[];
   // Bound both upstream attempts well below the Edge Function 150s idle timeout.
   // Never turn a timeout into approval: only a real Gemini result may be saved.
-  const modelAttempts=[{name:'gemini-3.8-flash',timeoutMs:40000},{name:'gemini-3.5-flash-lite',timeoutMs:17000}];
+  const modelAttempts=[{name:'gemini-3.6-flash',timeoutMs:40000},{name:'gemini-3.5-flash-lite',timeoutMs:17000}];
   for(const model of modelAttempts){try{parsed=await callGemini(geminiKey,model.name,validationPayload,model.timeoutMs);modelUsed=model.name;break;}catch(e){failures.push(`${model.name}: ${cleanError(e)}`);}}
   if(!parsed) throw new Error(`AI_UPSTREAM_UNAVAILABLE (${failures.map((x)=>x.slice(0,160)).join(' | ')})`);
   const scores={relevance:clamp(parsed?.scores?.relevance),depth:clamp(parsed?.scores?.depth),clarity:clamp(parsed?.scores?.clarity),effort:clamp(parsed?.scores?.effort),overall:clamp(parsed?.scores?.overall)};
