@@ -81,7 +81,10 @@ function verifiedRights(filename,sourceHash){
      !['CC0-1.0','CC-BY-4.0','BUKLOD-OWNED','COMMERCIAL-LICENSE'].includes(right.licenseId))return null;
   const proofPath=right.proofFile;
   assert.ok(typeof proofPath==='string'&&proofPath.length>3,'license evidence path missing');
-  const evidence=path.resolve(path.dirname(path.resolve(rightsPath)),proofPath);
+  const proofDir=path.dirname(path.resolve(rightsPath));
+  const evidence=path.resolve(proofDir,proofPath);
+  assert.ok(evidence.startsWith(proofDir+path.sep)&&/\.(txt|md|pdf)$/i.test(evidence),
+    'license proof must be a file in the private evidence directory');
   assert.ok(existsSync(evidence)&&statSync(evidence).isFile(),'license evidence not accessible');
   assert.ok(statSync(evidence).size>0&&statSync(evidence).size<3*1024*1024,'license evidence out of bounds');
   if(right.licenseId==='CC-BY-4.0')
@@ -101,6 +104,7 @@ function kindOf(name){
   return ['.glb','.gltf','.fbx','.blend','.wav','.png','.webp','.unity','.anim'].includes(ext)?ext.slice(1):'other';
 }
 const records=[],staged=[];
+if(stage)rmSync(path.join(outputDir,'manifest.json'),{force:true});
 let stagedBytes=0;
 const seenIds=new Set();
 function storeModel(id,bytes,originalFile,sha,rights,inner=''){
@@ -111,7 +115,11 @@ function storeModel(id,bytes,originalFile,sha,rights,inner=''){
   assert.ok(stagedBytes+bytes.length<=LIMIT_TOTAL,'Private game content exceeds Android OTA budget');
   const dest=path.join(outputDir,'approved',id+'.glb');
   mkdirSync(path.dirname(dest),{recursive:true});
-  writeFileSync(dest,bytes,{flag:'wx',mode:0o600});
+  if(existsSync(dest)) {
+    assert.equal(sha256(readFileSync(dest)),bytesHash,'Existing local approved file hash conflict');
+  } else {
+    writeFileSync(dest,bytes,{flag:'wx',mode:0o600});
+  }
   stagedBytes+=bytes.length; seenIds.add(id);
   staged.push({id,sha256:bytesHash,sourceArchiveSha256:sha,bytes:bytes.length,
     sourceFile:originalFile,sourceEntry:inner,rightsStatus:'verified',license:rights.license,
@@ -178,9 +186,16 @@ const report={schema:1,source:'PRIVATE_LIBRARY_LOCAL_ONLY',mode:stage?'STAGE':'I
     stagedModels:staged.length,stagedBytes}};
 writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n',{mode:0o600});
 if(stage){
+  const grants=localRights.assets.filter(g=>g.allowCommercialRedistribution===true);
+  for(const grant of grants){
+    const row=records.find(r=>r.file===grant.file&&r.sha256===grant.sha256);
+    assert.ok(row && row.rightsApproved && row.status!=='REJECTED_FORMAT_OR_INTEGRITY' &&
+      row.status!=='SOURCE_SIZE_MISMATCH','Approved private input missing/invalid: '+grant.file);
+  }
+  assert.ok(staged.length>0,'No rights-verified private models to stage: nothing to publish');
   const manifest={schema:1,source:'PRIVATE_LIBRARY_LOCAL_ONLY',rightsStatus:'verified',
     releaseAuthority:'DEV_PREVIEW_ONLY',models:staged,totalBytes:stagedBytes};
-  writeFileSync(path.join(outputDir,'manifest.json'),JSON.stringify(manifest,null,2)+'\n',{mode:0o600});
+  writeFileSync(path.join(outputDir,'manifest.json'),JSON.stringify(manifest,null,2)+'\n',
+    {flag:'wx',mode:0o600});
 }
 console.log('BUKLOD_PRIVATE_ASSET_INTAKE '+JSON.stringify(report.summary));
-if(stage&&staged.length===0)throw Error('No rights-verified private models to stage: nothing to publish');

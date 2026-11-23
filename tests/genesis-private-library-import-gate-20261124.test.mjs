@@ -50,8 +50,7 @@ test('No private Library assets in source: missing artifacts inspect cleanly but
   const blocked=spawnSync(process.execPath,[source,'--stage'],{cwd:root,env,encoding:'utf8'});
   assert.notEqual(blocked.status,0);
   assert.match(blocked.stderr,/No rights-verified private models to stage/);
-  const manifest=JSON.parse(readFileSync(path.join(stage,'manifest.json'),'utf8'));
-  assert.equal(manifest.models.length,0);
+  assert.equal(existsSync(path.join(stage,'manifest.json')),false);
  }finally{rmSync(temp,{recursive:true,force:true})}
 });
 test('Native 3D preview keeps public 22-model fallback when private license gate disabled',()=>{

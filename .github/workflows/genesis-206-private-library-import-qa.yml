@@ -41,6 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           node --check scripts/genesis-private-library-intake.mjs
+          echo "PRIVATE_LIBRARY_RIGHTS_REQUIRED_AND_NO_PRIVATE_BYTES_PUBLISHED"
           node --check scripts/genesis-import-verified-3d.mjs
           node --check scripts/build-empire-godot-pack.mjs
           node --check scripts/genesis-prepare-godot-ota-pack.mjs
