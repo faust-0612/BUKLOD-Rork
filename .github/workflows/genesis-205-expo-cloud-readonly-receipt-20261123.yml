@@ -27,6 +27,17 @@ jobs:
             const found=(d.workflow_runs||[]).find(x=>x.head_sha===process.env.EXPECTED_SOURCE &&
               String(x.path||'').includes('genesis-205-native-eas-cloud-build-20261123.yml'));
             if(!found){console.log('GENESIS_205_EXPO_CLOUD_BUILD_NOT_FOUND_FOR_PUSH_SHA');return}
+            const strict=(d.workflow_runs||[]).find(x=>String(x.path||'').includes('genesis-205-godot-strict-headless-qa-20261123.yml'));
+            if(strict){
+              const strictJobs=await query('/actions/runs/'+strict.id+'/jobs?per_page=100');
+              console.log('BUKLOD_GENESIS_205_GODOT_STRICT_QA_RECEIPT '+JSON.stringify({
+                sha:strict.head_sha,id:strict.id,url:strict.html_url,
+                status:strict.status,conclusion:strict.conclusion,
+                jobs:(strictJobs.jobs||[]).map(j=>({id:j.id,status:j.status,conclusion:j.conclusion,
+                  fail:(j.steps||[]).filter(s=>s.conclusion==='failure').map(s=>s.name),
+                  active:(j.steps||[]).filter(s=>s.status==='in_progress').map(s=>s.name)}))
+              }));
+            }
             const jobs=await query('/actions/runs/'+found.id+'/jobs?per_page=100');
             const arts=await query('/actions/runs/'+found.id+'/artifacts?per_page=100');
             console.log('BUKLOD_GENESIS_205_EXPO_CLOUD_BUILD_SOURCE_RECEIPT '+JSON.stringify({
