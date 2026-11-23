@@ -8,6 +8,7 @@ export type BuklodSoundCategory =
   | 'submissions'
   | 'community'
   | 'achievements'
+  | 'academics'
   | 'buttons'
   | 'games';
 
@@ -40,6 +41,7 @@ export const DEFAULT_BUKLOD_SOUND_SETTINGS: BuklodSoundSettings = {
   submissions: true,
   community: true,
   achievements: false,
+  academics: true,
   buttons: false,
   games: true,
   quietHours: false,
@@ -74,14 +76,14 @@ const categories: Record<BuklodSoundCue, BuklodSoundCategory> = {
   community: 'community',
   achievement: 'achievements',
   alert: 'community',
-  university_certificate: 'achievements',
-  university_diploma: 'achievements',
-  university_bachelors: 'achievements',
-  university_masters: 'achievements',
+  university_certificate: 'academics',
+  university_diploma: 'academics',
+  university_bachelors: 'academics',
+  university_masters: 'academics',
 };
 
 const categoriesByPreference:Record<BuklodSoundCategory,true>={
-  messages:true,calls:true,submissions:true,community:true,achievements:true,buttons:true,games:true
+  messages:true,calls:true,submissions:true,community:true,achievements:true,academics:true,buttons:true,games:true
 };
 // Keep different sound sources for different events.
 type BuklodSoundIdentity='message'|'community'|'achievement';
