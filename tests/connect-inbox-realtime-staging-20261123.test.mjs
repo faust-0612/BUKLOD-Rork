@@ -73,3 +73,10 @@ test('search filters authorized conversations and only shows people not in a kno
   assert.match(search, /item\.other_user_name, item\.scope_name, item\.last_message/);
   assert.match(inbox, /tab === 'requests'\s*\? \[\]/);
 });
+
+test('new message invalidates in-flight older snapshots before the 180ms reload', () => {
+  const staleInvalidations = inbox.match(/\+\+loadSequenceRef\.current;/g) ?? [];
+  assert.ok(staleInvalidations.length >= 2);
+  assert.match(inbox, /sequence !== loadSequenceRef\.current/);
+  assert.match(inbox, /refreshDebounceRef\.current = setTimeout/);
+});
