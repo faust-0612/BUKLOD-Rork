@@ -668,7 +668,7 @@ function LegacyScopeHome({
         <>
           <BuklodScopeFaithMonitoringSummary scope={scope} />
           <BuklodScopeBuklodLessonPanel scope={scope} />
-          <BuklodHomeFaithPanel scopeId={scope.scope_id} />
+          <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
         </>
       ) : <BuklodNonFaithEncouragementDoor />}
 
