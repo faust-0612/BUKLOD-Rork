@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-post-owner-e2e-genesis-20261123.json",
+  "objective": "Carry verified post-owner behavior corrections onto the newer BUKLOD Genesis integrated DEV source while preserving all Genesis-specific UI and native-game updates.",
+  "baseRef": "integration/genesis-all-updates-conso-staging-20261122",
+  "productionBaselineEvidence": "verified: exact Genesis integration branch source commit 190509158576254f646541fdd2861e61ed20f1c3 inspected on 2026-11-23; this is DEV baseline only, not live installed native/OTA verification.",
+  "chosenApproach": "Apply seven-file surgical parity with shared video-safe caption update and owner-only DB RPCs, a single Android modal with confirmations, and local scoped deletion; preserve the Genesis source branch changes.",
+  "selectionRationale": "Genesis inherited the same destructive video-caption editor and overlapping modal risk as MAIN; explicit parity avoids losing production fixes in Genesis.",
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "cluster-faith",
+    "navigation-scroll"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodContentOverflowMenu.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/lib/buklodCommunityPostOwnerActions.ts",
+    "tests/community-wall-post-owner-e2e.test.mjs",
+    "tests/community-wall-scope-privacy-navigation.test.mjs",
+    ".buklod/scopes/wall-post-owner-e2e-genesis-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/community-wall-post-owner-e2e.test.mjs",
+    "tests/community-wall-scope-privacy-navigation.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preserve Genesis runtime while correcting inherited Wall owner media and privacy contract involving app-runtime.",
+      "preservedBehaviors": [
+        "All existing Genesis-specific premium UI, game integration, native splash, ads and account permissions remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Preserve Genesis runtime while correcting inherited Wall owner media and privacy contract involving wall-media.",
+      "preservedBehaviors": [
+        "All existing Genesis-specific premium UI, game integration, native splash, ads and account permissions remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Preserve Genesis runtime while correcting inherited Wall owner media and privacy contract involving navigation-auth.",
+      "preservedBehaviors": [
+        "All existing Genesis-specific premium UI, game integration, native splash, ads and account permissions remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Preserve Genesis runtime while correcting inherited Wall owner media and privacy contract involving cluster-faith.",
+      "preservedBehaviors": [
+        "All existing Genesis-specific premium UI, game integration, native splash, ads and account permissions remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Genesis Godot and React Native integration, audio/video player, and external AWS files untouched.",
+    "No altered first-view AdMob lifecycle, tab navigation preload, consent or spacing tokens.",
+    "Scope managers retain scoped deletion, only owners can change privacy.",
+    "No production, staging OTA, database schema, native build or release workflow mutation."
+  ],
+  "acceptanceChecks": [
+    "Run V2 scope gate and focused Wall owner/privacy navigation regression tests.",
+    "Preserve existing Genesis compiled bundle and source parity; require targeted TS test on exact Genesis head.",
+    "Check Android device playback, menu transitions, privacy readback, network failure, ad/navigation regressions before verified staging RC.",
+    "Reconcile newest production changes before Genesis candidate; no authorization to publish OTA."
+  ],
+  "alternativeApproaches": [
+    "Replace all Genesis Wall files with MAIN versions (rejected: would lose newer Genesis UI work).",
+    "Always rewrite media on caption save (rejected: destructive to AWS video).",
+    "Disable governance gate or bypass secured RPC (rejected: unsafe)."
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseTarget": "Genesis staging integration only after RC",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
