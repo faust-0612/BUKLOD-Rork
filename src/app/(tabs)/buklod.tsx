@@ -6189,6 +6189,7 @@ const communityFeedRows =
       iconColor={colors.muted}
       style={{minWidth:32,minHeight:30,alignItems:'center',justifyContent:'center'}}
       allowPhotoEdit={!communityPostIsVideo(item)}
+      maxChars={12000}
       maxPhotos={COMMUNITY_MAX_PHOTOS}
       photos={communityPostEditPhotos(item)}
       onEdit={async (nextBody, nextPhotos) => {
@@ -6196,7 +6197,7 @@ const communityFeedRows =
         postId: item.id,
         userId: String(user?.id ?? ''),
         body: nextBody,
-        photos: nextPhotos ?? [],
+        photos: nextPhotos,
        });
        setPosts(current =>
         current.map(post =>

@@ -3,12 +3,6 @@ import { supabase } from '@/lib/supabase';
 import { attachCommunityPostMedia } from '@/lib/buklodCommunityPostMedia';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 
-function isMissingRpcError(message: string) {
-  return /could not find the function|function.*does not exist|schema cache/i.test(
-    message
-  );
-}
-
 export type CommunityEditPhoto = {
   id: string;
   uri: string;
@@ -42,8 +36,10 @@ function isVideoMime(value: string | null | undefined) {
 
 export function communityPostIsVideo(post: {
   media_mime_type?: string | null;
+  media_items?: Array<{ media_mime_type?: string | null }> | null;
 } | null | undefined) {
-  return isVideoMime(post?.media_mime_type);
+  return isVideoMime(post?.media_mime_type) ||
+    Boolean(post?.media_items?.some(item => isVideoMime(item?.media_mime_type)));
 }
 
 export function communityPostEditPhotos(post: {
@@ -132,14 +128,38 @@ async function signMediaPath(path: string | null | undefined) {
   return data?.signedUrl ?? null;
 }
 
-export async function saveCommunityPostEdit(input: {
+type CommunityPostEditInput = {
   postId: string;
   userId: string;
   body: string;
-  photos: CommunityEditPhoto[];
-}): Promise<CommunityPostMediaPatch> {
-  const body = String(input.body ?? '');
-  await updateCommunityPost(input.postId, body);
+  // Undefined means caption-only. [] explicitly removes every photo.
+  photos?: CommunityEditPhoto[];
+};
+
+export function saveCommunityPostEdit(
+  input: CommunityPostEditInput & { photos: CommunityEditPhoto[] }
+): Promise<CommunityPostMediaPatch>;
+export function saveCommunityPostEdit(
+  input: CommunityPostEditInput
+): Promise<Pick<CommunityPostMediaPatch, 'body'> & Partial<CommunityPostMediaPatch>>;
+export async function saveCommunityPostEdit(
+  input: CommunityPostEditInput
+): Promise<CommunityPostMediaPatch | Pick<CommunityPostMediaPatch, 'body'>> {
+  const body = String(input.body ?? '').trim();
+  if (!body || body.length > 12000) {
+    throw new Error('A post needs 1–12,000 characters of text.');
+  }
+
+  // A text-only edit MUST NOT touch either the legacy media columns or the
+  // canonical community_post_media rows (especially external/AWS videos).
+  if (input.photos === undefined) {
+    await updateCommunityPost(input.postId, body);
+    return { body };
+  }
+
+  if (!String(input.userId ?? '').trim()) {
+    throw new Error('Sign in to edit photos.');
+  }
 
   const photos = input.photos.slice(0, COMMUNITY_MAX_PHOTOS);
   const uploaded: Array<{
@@ -185,25 +205,36 @@ export async function saveCommunityPostEdit(input: {
     });
   }
 
-  await attachCommunityPostMedia(
-    input.postId,
-    uploaded.map(item => ({
-      media_path: item.media_path,
-      media_mime_type: item.media_mime_type,
-      media_size_bytes: item.media_size_bytes,
-    }))
-  );
+  if (uploaded.length) {
+    // The server media RPC replaces the rows AND updates legacy columns
+    // together. Never follow it with an unchecked direct table update.
+    await attachCommunityPostMedia(
+      input.postId,
+      uploaded.map(item => ({
+        media_path: item.media_path,
+        media_mime_type: item.media_mime_type,
+        media_size_bytes: item.media_size_bytes,
+      }))
+    );
+  } else {
+    // attachCommunityPostMedia intentionally ignores [] (publish safety).
+    // Editing away every photo is different: explicitly clear via the
+    // author-checked, transactional media RPC, not a client-side DELETE.
+    const { error } = await (supabase as any).rpc(
+      'set_buklod_post_media_v7',
+      { p_post_id: input.postId, p_media: [] }
+    );
+    if (error) {
+      // Fail closed rather than silently retaining deleted photos.
+      throw error;
+    }
+  }
+
+  // Commit the text only after media preparation succeeds. A failed upload
+  // must never publish a new caption while leaving incomplete media.
+  await updateCommunityPost(input.postId, body);
 
   const first = uploaded[0] ?? null;
-
-  await supabase
-    .from('community_posts')
-    .update({
-      media_path: first?.media_path ?? null,
-      media_mime_type: first?.media_mime_type ?? null,
-      media_size_bytes: first?.media_size_bytes ?? null,
-    })
-    .eq('id', input.postId);
 
   const mediaItems = await Promise.all(
     uploaded.map(async (item, index) => ({
@@ -229,34 +260,15 @@ export async function saveCommunityPostEdit(input: {
 }
 
 
-export async function updateCommunityPost(
-  postId: string,
-  body: string
-) {
+// These RPCs exist on the verified live backend and enforce auth.uid().
+// Never fall back to an unchecked direct update: RLS may affect zero rows
+// without an error, causing the Wall to falsely report a saved change.
+export async function updateCommunityPost(postId: string, body: string) {
   const { error } = await supabase.rpc(
     'update_buklod_community_post_v1',
-    {
-      p_post_id: postId,
-      p_body: body,
-    }
+    { p_post_id: postId, p_body: body }
   );
-
-  if (error) {
-    if (isMissingRpcError(String(error.message ?? ''))) {
-      const { error: directError } = await supabase
-        .from('community_posts')
-        .update({ body })
-        .eq('id', postId);
-
-      if (directError) {
-        throw directError;
-      }
-
-      return;
-    }
-
-    throw error;
-  }
+  if (error) throw error;
 }
 
 export async function deleteCommunityPost(postId: string) {
@@ -264,23 +276,7 @@ export async function deleteCommunityPost(postId: string) {
     'delete_buklod_community_post_v1',
     { p_post_id: postId }
   );
-
-  if (error) {
-    if (isMissingRpcError(String(error.message ?? ''))) {
-      const { error: directError } = await supabase
-        .from('community_posts')
-        .update({ is_hidden: true })
-        .eq('id', postId);
-
-      if (directError) {
-        throw directError;
-      }
-
-      return;
-    }
-
-    throw error;
-  }
+  if (error) throw error;
 }
 
 export async function setCommunityPostAuthorOnly(
@@ -289,26 +285,7 @@ export async function setCommunityPostAuthorOnly(
 ) {
   const { error } = await supabase.rpc(
     'set_buklod_community_post_author_only_v1',
-    {
-      p_post_id: postId,
-      p_author_only: authorOnly,
-    }
+    { p_post_id: postId, p_author_only: authorOnly }
   );
-
-  if (error) {
-    if (isMissingRpcError(String(error.message ?? ''))) {
-      const { error: directError } = await supabase
-        .from('community_posts')
-        .update({ author_only: authorOnly })
-        .eq('id', postId);
-
-      if (directError) {
-        throw directError;
-      }
-
-      return;
-    }
-
-    throw error;
-  }
+  if (error) throw error;
 }
