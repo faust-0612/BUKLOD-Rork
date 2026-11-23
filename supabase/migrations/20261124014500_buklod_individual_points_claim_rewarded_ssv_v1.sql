@@ -287,3 +287,20 @@ revoke all on function public.admin_configure_buklod_ad_points_bonus_v1(boolean,
   from public,anon;
 grant execute on function public.admin_configure_buklod_ad_points_bonus_v1(boolean,integer,integer)
   to authenticated;
+
+-- If the ad SDK reports no fill/close without an earned reward, free that
+-- reservation. This is never a grant and cannot alter a credited receipt.
+create or replace function public.cancel_my_buklod_ad_points_bonus_v1(p_nonce uuid)
+returns boolean language plpgsql security definer set search_path to ''
+as $$
+declare v_uid uuid := (select auth.uid());
+begin
+  if v_uid is null then raise exception 'Authentication required'; end if;
+  update private.buklod_ad_points_attempts a
+  set status='expired'
+  where a.nonce=p_nonce and a.user_id=v_uid and a.status='pending';
+  return found;
+end;
+$$;
+revoke all on function public.cancel_my_buklod_ad_points_bonus_v1(uuid) from public,anon;
+grant execute on function public.cancel_my_buklod_ad_points_bonus_v1(uuid) to authenticated;
