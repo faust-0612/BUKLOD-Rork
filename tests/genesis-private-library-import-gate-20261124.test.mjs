@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,readFileSync,existsSync,rmSync,mkdirSync,writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
@@ -110,4 +111,45 @@ test('Optional original Library VFX is license-and-hash gated and retains public
  assert.match(world,/PRIVATE_ARENA_FX/);
  assert.match(world,/FileAccess\.file_exists\(PRIVATE_ARENA_FX\)/);
  assert.match(world,/_model\("rig_knight"\)/);
+});
+test('Explicit rights-gated owner WAV and PNG stage with exact SHA into private build, not GitHub',()=>{
+ const source=path.join(root,'scripts/genesis-private-library-intake.mjs');
+ const temp=mkdtempSync(path.join(tmpdir(),'buklod-stage-fixtures-'));
+ const inputDir=path.join(temp,'Library');
+ const stageDir=path.join(temp,'PrivateBuild');
+ try{
+   mkdirSync(path.join(inputDir,'Sound'),{recursive:true});
+   const wav=Buffer.alloc(60);
+   wav.write('RIFF',0);wav.writeUInt32LE(52,4);wav.write('WAVE',8);
+   const png=Buffer.alloc(112);
+   Buffer.from([137,80,78,71,13,10,26,10]).copy(png);
+   const wfile='Sound/recording.wav',pfile='Sound/effect.png';
+   writeFileSync(path.join(inputDir,wfile),wav);
+   writeFileSync(path.join(inputDir,pfile),png);
+   writeFileSync(path.join(temp,'rights.txt'),'Synthetic fixture rights evidence for unit-test files only');
+   const sha=x=>createHash('sha256').update(x).digest('hex');
+   const grants=[{file:wfile,sha256:sha(wav),licenseId:'BUKLOD-OWNED',
+     allowCommercialRedistribution:true,proofFile:'rights.txt'},
+     {file:pfile,sha256:sha(png),licenseId:'BUKLOD-OWNED',
+     allowCommercialRedistribution:true,proofFile:'rights.txt'}];
+   const rightsFile=path.join(temp,'rights.json');
+   writeFileSync(rightsFile,JSON.stringify({schema:1,assets:grants}));
+   const env={...process.env,BUKLOD_GENESIS_PRIVATE_ASSET_DIR:inputDir,
+     BUKLOD_GENESIS_PRIVATE_STAGE_DIR:stageDir,
+     BUKLOD_GENESIS_PRIVATE_RIGHTS_FILE:rightsFile};
+   execFileSync(process.execPath,[source,'--stage'],{cwd:root,env});
+   const data=JSON.parse(readFileSync(path.join(stageDir,'manifest.json'),'utf8'));
+   assert.equal(data.source,'PRIVATE_LIBRARY_LOCAL_ONLY');
+   assert.equal(data.models.length,0);
+   assert.equal(data.audio.length,1);
+   assert.equal(data.visuals.length,1);
+   for(const it of [...data.audio,...data.visuals]){
+     assert.equal(it.rightsStatus,'verified');
+     assert.match(it.licenseEvidenceSha256,/^[a-f0-9]{64}$/);
+     const bytes=readFileSync(path.join(stageDir,'approved',it.id+it.ext));
+     assert.equal(bytes.length,it.bytes);
+     assert.equal(sha(bytes),it.sha256);
+   }
+   assert.equal(data.totalBytes,wav.length+png.length);
+ }finally{rmSync(temp,{recursive:true,force:true});}
 });
