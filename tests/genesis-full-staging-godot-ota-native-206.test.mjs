@@ -84,3 +84,12 @@ test('renderer stays offline and no client economy changes introduced',()=>{
  assert.doesNotMatch(s,/service_role|supabase|purchase_property|grant_bp|payout|HTTPRequest|HTTPClient/i);
  }
 });
+
+test('new staging preserves native-first Arena crash-loop guard and manual practice fallback',()=>{
+ const route=read('src/app/games/empire-arena.tsx');
+ assert.match(route,/NativeGodotArenaPrimary/);
+ assert.match(route,/GODOT_ARENA_PENDING_KEY/);
+ assert.match(route,/pending === 'pending' && !explicitRetry/);
+ assert.match(route,/setShowPractice\(true\)/);
+ assert.match(route,/EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205 === 'true'/);
+});

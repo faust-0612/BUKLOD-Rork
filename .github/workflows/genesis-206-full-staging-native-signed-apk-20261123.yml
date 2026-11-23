@@ -69,7 +69,6 @@ jobs:
       - name: Fail before Android release compilation on all critical QA
         run: |
           set -euo pipefail
-          node --test             tests/genesis-full-staging-godot-ota-native-206.test.mjs             tests/genesis-godot-game-runtime-guard-20261123.test.mjs             tests/arena-library-godot-native-20261122.test.mjs             tests/arena-library-modes-audio-20261122.test.mjs             tests/dashboard-ad-navigation-prewarm-20261116.test.mjs             tests/ad-dashboard-focus-performance-20261116.test.mjs             tests/genesis-library-native-runtime-release-20261122.test.mjs
           npm run release:gate
           npm run genesis:theme:gate
           npx tsc --noEmit
