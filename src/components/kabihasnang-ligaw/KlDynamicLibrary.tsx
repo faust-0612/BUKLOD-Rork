@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import {AppState,Pressable,Text,View} from 'react-native';
 import {Image} from 'expo-image';
 import {supabase} from '@/lib/supabase';
+import {useAuth} from '@/providers/AuthProvider';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
 import KlChapterAudio from './KlChapterAudio';
 import KlReadingQuiz from './KlReadingQuiz';
@@ -12,7 +13,8 @@ import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks
 import { warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 type Chapter={id:string;season_number:number;episode_number:number;title:string};
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
-export default function KlDynamicLibrary(){
+export default function KlDynamicLibrary({seasonNumber,onBackToDashboard}:{seasonNumber?:number;onBackToDashboard?:()=>void}={}){
+ const {user}=useAuth();
  const [chapters,setChapters]=useState<Chapter[]>([]);
  const [s2Access,setS2Access]=useState<Record<number,{enabled:boolean;next_chapter_number:number}>>({});
  const [reflectionRefreshToken,setReflectionRefreshToken]=useState(0);
@@ -27,6 +29,7 @@ export default function KlDynamicLibrary(){
  useFocusEffect(useCallback(()=>{setRouteFocused(true);return()=>setRouteFocused(false);},[]));
  useEffect(()=>{const sub=AppState.addEventListener('change',s=>setAppActive(s==='active'));return()=>sub.remove();},[]);
  const openSequence=useRef(0);
+ useEffect(()=>{openSequence.current+=1;setChapter(null);setText('');setMedia([]);setUrls({});setS2Access({});},[user?.id]);
  const refreshProgress=async(list:Chapter[])=>{
   const seasons=[...new Set(list.map(c=>c.season_number))];
   const results=await Promise.all(seasons.map(async n=>{
@@ -38,7 +41,7 @@ export default function KlDynamicLibrary(){
   setS2Access(Object.fromEntries(results.filter((x):x is NonNullable<typeof x>=>x!==null)
     .map(x=>[x.n,x.state])));
  };
- const refresh=async()=>{const {data,error}=await supabase.rpc('kl_list_library_v1');if(error){setMessage(error.message);return;}if(Array.isArray(data)){setChapters(data as Chapter[]);void refreshProgress(data as Chapter[]);}};
+ const refresh=async()=>{const {data,error}=await supabase.rpc('kl_list_library_v1');if(error){setMessage(error.message);return;}if(Array.isArray(data)){const visible=(data as Chapter[]).filter(c=>seasonNumber==null||c.season_number===seasonNumber);setChapters(visible);void refreshProgress(visible);}};
  useEffect(()=>{void refresh();},[]);
  const chapterLocked=(c:Chapter)=>c.episode_number>0 &&
    s2Access[c.season_number]?.enabled===true &&
@@ -102,7 +105,10 @@ export default function KlDynamicLibrary(){
  };
  const paragraphs=splitKlManuscriptBlocks(text);
  return <View style={{gap:12}}>
- <Pressable onPress={()=>void refresh()}><Text style={{color:'#f1d39b'}}>I-refresh ang mga kabanata</Text></Pressable>
+ {!chapter&&onBackToDashboard?<Pressable accessibilityRole="button" onPress={onBackToDashboard} style={{minHeight:44,justifyContent:'center'}}>
+  <Text style={{color:'#cfe8b4',fontWeight:'700'}}>‹ Bumalik sa KL Dashboard</Text>
+ </Pressable>:null}
+ <Pressable accessibilityRole="button" onPress={()=>void refresh()}><Text style={{color:'#f1d39b'}}>I-refresh ang mga kabanata</Text></Pressable>
  {chapter?<View style={{gap:12}}>
  <Pressable onPress={()=>{openSequence.current+=1;setChapter(null);setText('');setUrls({});}}><Text style={{color:'#f1d39b'}}>Bumalik sa mga kabanata</Text></Pressable>
  <Text style={{color:'#fff',fontSize:22}}>{chapter.title}</Text>
