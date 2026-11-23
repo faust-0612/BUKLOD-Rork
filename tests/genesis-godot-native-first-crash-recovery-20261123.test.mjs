@@ -86,3 +86,11 @@ test('Cloud EAS staging build inherits all native flags, canonical backend, orig
   assert.equal(eas.build['season2-genesis-unified-worlds-staging'].env[x],'true');
  }
 });
+
+test('Native startup cannot depend on missing Godot global script cache in raw embedded ZIP',()=>{
+ const root=read('godot/empire-arena/scripts/arena_root.gd');
+ assert.doesNotMatch(root,/var sim:\s*BuklodArenaSimulation/);
+ assert.match(root,/var sim\s*\n/);
+ assert.match(root,/var me: Dictionary = sim\.actor\("A0"\)/);
+ assert.match(root,/BUKLOD_GODOT_ARENA_SCENE_READY/);
+});
