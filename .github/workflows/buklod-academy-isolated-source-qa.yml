@@ -1,0 +1,25 @@
+name: BUKLOD Academy isolated source safety QA
+on:
+  push:
+    branches:
+      - dev/academy-staging-hardening-20261124
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  academy-source-qa:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: No production publish, no database modification
+        run: |
+          test "${GITHUB_REF}" = "refs/heads/dev/academy-staging-hardening-20261124"
+          node --test tests/buklod-academy-automated-oversight.test.mjs tests/buklod-academy-iso21001-evidence-gate.test.mjs tests/buklod-academy-iso21001-quality-pack.test.mjs tests/buklod-academy-owner-quality-overview.test.mjs tests/buklod-academy-staging-contract.test.mjs tests/buklod-academy-rework-pdf-recovery.test.mjs tests/buklod-university-completion-motion.test.mjs
+          node scripts/academy/iso21001-readiness-check.mjs

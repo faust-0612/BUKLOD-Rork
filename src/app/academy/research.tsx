@@ -66,7 +66,27 @@ export default function BuklodAcademySaliksik(){
   const pending=await (supabase as any).rpc('buklod_academy_my_research_v2',{p_limit:10});
   if(!pending.error){
    const latest=(pending.data||[]).find((r:any)=>r.status==='SUBMITTED'||r.status==='REVIEWING');
-   if(latest?.id){setPendingId(latest.id);void reviewSaved(latest.id);}
+   if(latest?.id){setPendingId(latest.id);void reviewSaved(latest.id);return;}
+  }
+  // A REWORK submission is the learner's own saved editable draft, not an admin queue.
+  // Restore its original idempotency key so revision updates the same private record.
+  const {data:drafts,error:draftError}=await (supabase as any)
+   .from('buklod_academy_research_submissions')
+   .select('research_key,research_type,title,method,bible_references,paper_text,feedback_json')
+   .eq('status','REWORK')
+   .order('updated_at',{ascending:false}).limit(1);
+  if(!draftError&&drafts?.[0]){
+   const draft=drafts[0];
+   if(OPTIONS.some(option=>option.type===draft.research_type)){
+    key.current=draft.research_key;
+    setType(draft.research_type as ResearchType);
+    setTitle(draft.title||'');
+    setMethod(draft.method||'');
+    setReferences(draft.bible_references||'');
+    setPaper(draft.paper_text||'');
+    setFeedback(draft.feedback_json||null);
+    setStatus('Your last research draft was restored. Revise it and submit for automatic rechecking.');
+   }
   }
  },[reviewSaved]);
  useEffect(()=>{void load();},[load]);

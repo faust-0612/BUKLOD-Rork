@@ -107,15 +107,21 @@ Deno.serve(async(req)=>{
   drawCentered('Internal non-formal religious-learning completion credential. Not a government-recognized academic degree.',61,8,regular,colors.muted);
 
   const bytes=await pdf.save();
-  const digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));
+  let digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));
   const put=await admin.storage.from('buklod-university-papers').upload(objectPath,bytes,{contentType:'application/pdf',upsert:false});
   if(put.error) {
-   if(/already exists|duplicate/i.test(put.error.message)) {
-    // Concurrent first-download requests must not register a hash of a different PDF.
-    // The request that created the immutable object completes registry update.
-    return respond(409,{error:'Another download is being prepared. Retry safely.'});
-   }
-   return respond(503,{error:'Unable to preserve issued document'});
+   if(!/already exists|duplicate|conflict/i.test(put.error.message))
+    return respond(503,{error:'Unable to preserve issued document'});
+   // A prior interrupted request may have uploaded the immutable PDF before
+   // registering the database receipt. Recover ONLY that existing private
+   // object; never overwrite it, and never register the new request's hash.
+   const existing=await admin.storage.from('buklod-university-papers').download(objectPath);
+   if(existing.error||!existing.data)return respond(503,{error:'Stored academic paper temporarily unavailable'});
+   const original=new Uint8Array(await existing.data.arrayBuffer());
+   if(original.byteLength<500||original.byteLength>10_000_000||
+      new TextDecoder().decode(original.subarray(0,5))!=='%PDF-')
+    return respond(503,{error:'Stored academic paper failed integrity checks'});
+   digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',original)));
   }
   const {error:updateError}=await admin.from('buklod_university_awards')
    .update({paper_status:'READY',paper_path:objectPath,paper_sha256:digest})

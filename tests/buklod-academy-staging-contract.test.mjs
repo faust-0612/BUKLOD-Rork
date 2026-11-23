@@ -57,16 +57,17 @@ test('no individual achievement paper, no points/QMP changes, and feature defaul
  assert.doesNotMatch(paper,/INDIVIDUAL ACHIEVEMENT/);
 });
 
-test('SALIKSIK research is submission, verification and human review, not automatic unverified UC',()=>{
- const sql=from('supabase/migrations/20261124021000_buklod_academy_saliksik_research_bridge.sql');
- assert.match(sql,/status='SUBMITTED'/);
- assert.match(sql,/public\.is_system_admin\(\)/);
- assert.match(sql,/Cannot review your own research/);
- assert.match(sql,/citations_verified/);
- assert.match(sql,/originality_checked/);
- assert.match(sql,/on conflict\(user_id,source_module,source_key\) do nothing/);
- const files=['src/app/academy/research.tsx','src/app/admin/academy-research-review.tsx'];
- for(const f of files) assert.match(from(f),/SALIKSIK|Research/);
+test('SALIKSIK research uses automatic verified faculty and idempotent UC, never admin learner approval',()=>{
+ const original=from('supabase/migrations/20261124021000_buklod_academy_saliksik_research_bridge.sql');
+ const automated=from('supabase/migrations/20261124033000_buklod_academy_automatic_research_faculty_v2.sql');
+ assert.match(original,/status='SUBMITTED'/);
+ assert.match(automated,/drop function if exists public\.buklod_academy_review_research_v1/);
+ assert.match(automated,/grant execute on function[\s\S]*to service_role/);
+ assert.match(automated,/on conflict\(user_id,source_module,source_key\) do nothing/);
+ const member=from('src/app/academy/research.tsx');
+ const monitor=from('src/app/admin/academy-research-review.tsx');
+ assert.match(member,/action:'review'/);
+ assert.doesNotMatch(monitor,/buklod_academy_review_research_v1|p_approved|Grant UC/);
 });
 
 test('recipients, learning entry and sound effects are connected without app-wide overlay loops',()=>{

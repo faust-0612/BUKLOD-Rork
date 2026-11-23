@@ -29,3 +29,9 @@
 ## Zero-manual-approval operating policy
 
 The Academy Founder/Director is the human facilitator, operator, standards author and institution-wide quality controller. All routine student evaluation and credentials are automatic based on real published, versioned source evidence, automated rubrics and audit logs. The admin research screen is a read-only monitor and **must not** call the retired `buklod_academy_review_research_v1` manual approval RPC. Failure returns actionable REWORK or retryable pending; no fabricated UC. This policy does not eliminate evidence-based independent auditing or management reviews for any future ISO conformity claim.
+
+## Source safety corrections (24 November 2026)
+
+- Learner REWORK drafts are resumed from the member-owned row and reuse the original research key, preserving feedback and enabling genuine correction without an admin approval queue.
+- Concurrent first PDF requests and interrupted post-upload receipts can recover the existing immutable private PDF, validating its format and recording that object's SHA-256, not the losing request's digest.
+- These are **DEV source corrections only**, not proof of deployed RLS, plagiarism screening, staging APK, or ISO conformity.
