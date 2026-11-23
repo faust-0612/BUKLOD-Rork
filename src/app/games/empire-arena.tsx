@@ -289,8 +289,10 @@ function EmpireArenaInApp() {
   const [mapId, setMapId] = useState<ArenaSceneId>('genesis_rift');
   const [phase, setPhase] = useState<'menu' | 'queued' | 'playing' | 'paused' | 'result'>('menu');
   const [godotOpening, setGodotOpening] = useState(false);
+  // New 2.0.5 uses native-first entry; old 2.0.4 keeps explicit opt-in.
   const godotNativeEnabled = Platform.OS === 'android' &&
-    process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED === 'true';
+    process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED === 'true' &&
+    process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205 !== 'true';
   const launchNativeGodot = useCallback(async () => {
     if (!godotNativeEnabled || godotOpening) return;
     setGodotOpening(true);
@@ -917,6 +919,86 @@ function EmpireArenaInApp() {
   </View>;
 }
 
+/**
+ * Native-first on newly signed 2.0.5 only. A stored pending marker prevents
+ * repeated auto-launch after process death or a fatal Android Godot exception.
+ * The JS practice scene remains an explicit safe fallback, never the default.
+ */
+const GODOT_ARENA_PENDING_KEY = '@buklod/genesis-godot-v205/launch-pending';
+function NativeGodotArenaPrimary() {
+  const [stage, setStage] = useState<'launching' | 'opened' | 'returned' | 'failed' | 'recovery'>('launching');
+  const [showPractice, setShowPractice] = useState(false);
+  const launching = useRef(false);
+  const wasBackgrounded = useRef(false);
+  const alive = useRef(true);
+  const launch = useCallback(async (explicitRetry = false) => {
+    if (launching.current) return;
+    launching.current = true;
+    if (alive.current) setStage('launching');
+    try {
+      const pending = await AsyncStorage.getItem(GODOT_ARENA_PENDING_KEY);
+      if (pending === 'pending' && !explicitRetry) {
+        if (alive.current) setStage('recovery');
+        return;
+      }
+      await AsyncStorage.setItem(GODOT_ARENA_PENDING_KEY, 'pending');
+      const started = await openBundledEmpireArena();
+      if (!started) {
+        await AsyncStorage.removeItem(GODOT_ARENA_PENDING_KEY);
+        if (alive.current) setStage('failed');
+      } else if (alive.current) {
+        setStage('opened');
+      }
+    } catch {
+      await AsyncStorage.removeItem(GODOT_ARENA_PENDING_KEY).catch(() => {});
+      if (alive.current) setStage('failed');
+    } finally {
+      launching.current = false;
+    }
+  }, []);
+  useEffect(() => {
+    alive.current = true;
+    void launch();
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') wasBackgrounded.current = true;
+      else if (wasBackgrounded.current) {
+        wasBackgrounded.current = false;
+        // Godot returned or its isolated Activity was destroyed.
+        void AsyncStorage.removeItem(GODOT_ARENA_PENDING_KEY);
+        if (alive.current) setStage(s =>
+          s === 'opened' || s === 'launching' ? 'returned' : s);
+      }
+    });
+    return () => { alive.current = false; sub.remove(); };
+  }, [launch]);
+  if (showPractice) return <EmpireArenaInApp/>;
+  return <View style={{flex:1,backgroundColor:'#071523',justifyContent:'center',
+    paddingHorizontal:24,gap:18}}>
+    <Text style={{fontSize:23,fontWeight:'900',color:'#FFE4AA'}}>BUKLOD EMPIRE • ARENA</Text>
+    <Text style={{color:'#CDE7E4',fontSize:15,lineHeight:22}}>
+      {stage === 'launching' ? 'Binubuksan ang native Godot Arena…'
+        : stage === 'opened' ? 'Native Godot Arena is running.'
+        : stage === 'returned' ? 'Bumalik mula sa Godot Arena.'
+        : stage === 'recovery' ? 'Natigil ang nakaraang Godot launch. Hindi ito awtomatikong uulitin para maiwasan ang crash loop.'
+        : 'Hindi nabuksan ang Godot Arena. Ligtas pa rin ang BUKLOD app.'}
+    </Text>
+    {stage !== 'launching' && stage !== 'opened' ?
+      <Pressable accessibilityRole="button" accessibilityLabel="Retry native Godot Arena"
+        onPress={() => void launch(true)} style={{padding:14,borderRadius:11,backgroundColor:'#37795F'}}>
+        <Text style={{color:'#FFF4C9',fontWeight:'900',textAlign:'center'}}>RETRY GODOT</Text>
+      </Pressable> : null}
+    {stage !== 'launching' ?
+      <Pressable accessibilityRole="button" accessibilityLabel="Open offline practice fallback"
+        onPress={() => setShowPractice(true)} style={{padding:14,borderRadius:11,backgroundColor:'#233F50'}}>
+        <Text style={{color:'#D9ECEC',fontWeight:'900',textAlign:'center'}}>OFFLINE PRACTICE (FALLBACK)</Text>
+      </Pressable> : null}
+    <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD Kingdom"
+      onPress={() => router.back()} style={{padding:14}}>
+      <Text style={{color:'#D4DEDF',textAlign:'center'}}>BACK TO KINGDOM</Text>
+    </Pressable>
+  </View>;
+}
+
 /** Fail-closed direct-link guard: Arena cannot bypass the canonical BUKLOD map's
  * auth, consent, maintenance, mandatory-update or onboarding boundaries.
  * Crucially, production clients never mount or orient-lock the Arena screen.
@@ -933,7 +1015,10 @@ export default function EmpireArenaRouteGuard() {
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access"/>;
   if (requiresAcceptance) return <Redirect href="/privacy/consent"/>;
   if (!profile) return <Redirect href="/onboarding"/>;
-  return <EmpireArenaInApp/>;
+  // Only 2.0.5's newly signed binary may use direct native-first launching.
+  return Platform.OS === 'android' &&
+    process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205 === 'true'
+    ? <NativeGodotArenaPrimary/> : <EmpireArenaInApp/>;
 }
 
 const styles = StyleSheet.create({
