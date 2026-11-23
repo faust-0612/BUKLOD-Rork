@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,readFileSync,existsSync,rmSync} from 'node:fs';
+import {mkdtempSync,readFileSync,existsSync,rmSync,mkdirSync,writeFileSync} from 'node:fs';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
@@ -49,7 +49,7 @@ test('No private Library assets in source: missing artifacts inspect cleanly but
   assert.equal(existsSync(path.join(stage,'manifest.json')),false);
   const blocked=spawnSync(process.execPath,[source,'--stage'],{cwd:root,env,encoding:'utf8'});
   assert.notEqual(blocked.status,0);
-  assert.match(blocked.stderr,/No rights-verified private models to stage/);
+  assert.match(blocked.stderr,/No rights-verified private assets to stage/);
   assert.equal(existsSync(path.join(stage,'manifest.json')),false);
  }finally{rmSync(temp,{recursive:true,force:true})}
 });
@@ -63,7 +63,37 @@ test('Native 3D preview keeps public 22-model fallback when private license gate
  assert.match(pack,/data\/private_3d_manifest\.json/);
  assert.match(prepare,/data\/private_3d_manifest\.json/);
  assert.match(scene,/PRIVATE_MODEL_IDS/);
- assert.match(scene,/FileAccess\.file_exists\("res:\/\/3d\/private\/private_t1_sentinel\.glb"\)/);
+ assert.match(scene,/FileAccess\.file_exists\("res:\/\/3d\/private\/" \+ private_avatar \+ "\.glb"\)/);
  assert.match(scene,/_model\("rig_knight"\)/);
  assert.match(scene,/server_settlement": false/);
+});
+
+test('Whole private Library scan finds nested archive/audio/VFX files without publishing bytes',()=>{
+ const source=path.join(root,'scripts/genesis-private-library-intake.mjs');
+ const temp=mkdtempSync(path.join(tmpdir(),'buklod-full-inventory-'));
+ const inputs=path.join(temp,'input');
+ const output=path.join(temp,'out');
+ try{
+  mkdirSync(path.join(inputs,'Animation'),{recursive:true});
+  mkdirSync(path.join(inputs,'Audio'),{recursive:true});
+  const wave=Buffer.alloc(60);
+  wave.write('RIFF',0);wave.writeUInt32LE(52,4);wave.write('WAVE',8);
+  writeFileSync(path.join(inputs,'Audio','original cue.wav'),wave);
+  const png=Buffer.alloc(112);
+  Buffer.from([137,80,78,71,13,10,26,10]).copy(png,0);
+  writeFileSync(path.join(inputs,'Animation','reveal.png'),png);
+  const env={...process.env,BUKLOD_GENESIS_PRIVATE_ASSET_DIR:inputs,
+   BUKLOD_GENESIS_PRIVATE_STAGE_DIR:output};
+  delete env.BUKLOD_GENESIS_PRIVATE_RIGHTS_FILE;
+  execFileSync(process.execPath,[source,'--inspect'],{cwd:root,env});
+  const report=JSON.parse(readFileSync(path.join(output,'inspection-report.json'),'utf8'));
+  assert.equal(report.summary.discovered,2);
+  assert.equal(report.summary.materialized,2);
+  assert.equal(report.summary.stagedAudio,0);
+  assert.equal(report.summary.stagedVisual,0);
+  const byName=new Map(report.files.map(x=>[x.file,x]));
+  assert.equal(byName.get('Audio/original cue.wav').status,'COMPATIBLE_WAV_RIGHTS_PENDING');
+  assert.equal(byName.get('Animation/reveal.png').status,'COMPATIBLE_PNG_RIGHTS_PENDING');
+  assert.equal(existsSync(path.join(output,'manifest.json')),false);
+ }finally{rmSync(temp,{recursive:true,force:true});}
 });
