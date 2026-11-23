@@ -35,6 +35,13 @@ var label: Label
 var worlds_title: Label
 var quality := false
 var animation_state := ""
+var private_fx_sprite: Sprite3D
+var private_fx_atlas: AtlasTexture
+var private_fx_elapsed := 0.0
+const PRIVATE_ARENA_FX := "res://private-fx/glacial_vortex_absolute_zero_frozen_abyss_vortex_south.png"
+const PRIVATE_ARENA_FX_FRAMES := 35
+const PRIVATE_ARENA_FX_FPS := 12.0
+const PRIVATE_ARENA_FX_SIZE := 256
 
 func _ready() -> void:
     world_id = _get_world()
@@ -175,8 +182,15 @@ func _build_avatar() -> void:
     player.name = "LocalExplorer"
     add_child(player)
     var avatar_model: Node3D = null
-    if FileAccess.file_exists("res://3d/private/private_t1_sentinel.glb"):
-        avatar_model = _model("private_t1_sentinel")
+    # World-specific private avatars are optional; missing/licensing-gated assets
+    # always fall back to the two SHA-verified public CC0 KayKit rigs.
+    var private_avatar := (
+        "private_azure_champion" if world_id == "kingdom" else
+        "private_hooded_blade" if world_id == "house" else
+        "private_t1_sentinel"
+    )
+    if FileAccess.file_exists("res://3d/private/" + private_avatar + ".glb"):
+        avatar_model = _model(private_avatar)
     if avatar_model == null:
         avatar_model = _model("rig_knight")
     if avatar_model == null:
@@ -199,6 +213,7 @@ func _build_avatar() -> void:
     highlight.position = Vector3(0, 0.03, 0)
     player.add_child(highlight)
     _play_avatar_animation("Idle")
+    _install_private_fx()
     reaction = MeshInstance3D.new()
     var sphere := SphereMesh.new()
     sphere.radius = 0.5
@@ -211,16 +226,49 @@ func _build_avatar() -> void:
     reaction.visible = false
     player.add_child(reaction)
 
-## Select a real imported KayKit animation, but retain still frame fallback.
-## AnimationPlayer is part of the GLB scene; no JSON/remote code execution.
+## Optional original 2D vortex is displayed as a world-space sprite only when
+## the separately reviewed finished-game animation pack is present.
+## It never controls combat, rewards, hit registration or progression.
+func _install_private_fx() -> void:
+    if world_id != "arena" or not FileAccess.file_exists(PRIVATE_ARENA_FX):
+        return
+    var bytes := FileAccess.get_file_as_bytes(PRIVATE_ARENA_FX)
+    if bytes.size() < 100 or bytes.size() > 4 * 1024 * 1024:
+        return
+    var img := Image.new()
+    if img.load_png_from_buffer(bytes) != OK:
+        return
+    if img.get_width() != 8 * PRIVATE_ARENA_FX_SIZE or img.get_height() != 5 * PRIVATE_ARENA_FX_SIZE:
+        return
+    private_fx_atlas = AtlasTexture.new()
+    private_fx_atlas.atlas = ImageTexture.create_from_image(img)
+    private_fx_atlas.region = Rect2(0, 0, PRIVATE_ARENA_FX_SIZE, PRIVATE_ARENA_FX_SIZE)
+    private_fx_sprite = Sprite3D.new()
+    private_fx_sprite.texture = private_fx_atlas
+    private_fx_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    private_fx_sprite.pixel_size = 0.012
+    private_fx_sprite.position = Vector3(0, 1.25, 0)
+    private_fx_sprite.visible = false
+    player.add_child(private_fx_sprite)
+
+## Select an actual embedded authored animation; preserve a still fallback.
 func _play_avatar_animation(desired: String) -> void:
     if player == null or desired == animation_state:
         return
     for node in player.find_children("*", "AnimationPlayer", true, false):
         if node is AnimationPlayer:
             var clips: PackedStringArray = node.get_animation_list()
+            # Exact semantic match first: avoid picking sword_idle before idle.
+            var want := desired.to_lower()
             for clip in clips:
-                if desired.to_lower() in str(clip).to_lower():
+                if str(clip).to_lower() == want:
+                    node.play(clip)
+                    animation_state = desired
+                    return
+            for clip in clips:
+                var name := str(clip).to_lower()
+                if want in name or (want == "attack" and
+                        ("sword_regular_a" in name or "punch_jab" in name or "kick" in name)):
                     node.play(clip)
                     animation_state = desired
                     return
@@ -268,6 +316,9 @@ func _back_to_2d() -> void:
 func _react() -> void:
     reaction_time = 0.6
     _play_avatar_animation("Attack")
+    if private_fx_sprite != null:
+        private_fx_elapsed = 0.0
+        private_fx_sprite.visible = true
     if reaction != null:
         reaction.visible = true
     if world_id == "house" and player.position.distance_to(Vector3(0, 0, -9)) <= 5.5:
@@ -316,6 +367,16 @@ func _process(delta: float) -> void:
             var target_pos: Vector3 = player.position + Vector3(0, 19, 22)
             camera.position = camera.position.lerp(target_pos, minf(1.0, dt * 3.2))
             camera.look_at(player.position, Vector3.UP)
+    if private_fx_sprite != null and private_fx_sprite.visible:
+        private_fx_elapsed += dt
+        var frame := int(private_fx_elapsed * PRIVATE_ARENA_FX_FPS)
+        if frame >= PRIVATE_ARENA_FX_FRAMES:
+            private_fx_sprite.visible = false
+        elif private_fx_atlas != null:
+            private_fx_atlas.region = Rect2(
+                (frame % 8) * PRIVATE_ARENA_FX_SIZE,
+                int(frame / 8) * PRIVATE_ARENA_FX_SIZE,
+                PRIVATE_ARENA_FX_SIZE, PRIVATE_ARENA_FX_SIZE)
     if reaction_time > 0:
         reaction_time = maxf(0.0, reaction_time - dt)
         if reaction != null:
@@ -325,7 +386,8 @@ func _process(delta: float) -> void:
 func get_dev_snapshot() -> Dictionary:
     return {
         "world": world_id, "models": visual_count, "imported": model_templates.size(), "rigged_available": model_templates.has("rig_knight") or model_templates.has("private_t1_sentinel"),
-        "private_library_loaded": model_templates.has("private_t1_sentinel"),
+        "private_library_loaded": model_templates.has("private_t1_sentinel") or model_templates.has("private_azure_champion") or model_templates.has("private_hooded_blade"),
+        "private_fx_available": private_fx_sprite != null,
         "offline": true, "server_settlement": false,
         "pos": player.position if player != null else Vector3.ZERO
     }
