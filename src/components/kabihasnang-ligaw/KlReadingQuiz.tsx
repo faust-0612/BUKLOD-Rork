@@ -45,8 +45,8 @@ function chapterRewardFeedback(completion: Completion): string {
 }
 
 export default function KlReadingQuiz({
-  episodeId, onVerified,
-}: { episodeId: string | null; onVerified?: () => void }) {
+  episodeId, onVerified, commentRequired = false,
+}: { episodeId: string | null; onVerified?: () => void; commentRequired?: boolean }) {
   const [attemptId, setAttemptId] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -63,7 +63,10 @@ export default function KlReadingQuiz({
       if (error) throw error;
       const result = data as BeginResponse | null;
       if (result?.already_completed) {
-        setDone(true); setQuestions([]); setMessage('Naitala na ang pagkumpleto sa kabanatang ito.');
+        setDone(true); setQuestions([]);
+          setMessage(commentRequired
+            ? 'Na-verify na ang quiz. Mag-iwan ng comment na 20+ karakter sa ibaba upang mabuksan ang susunod na kabanata.'
+            : 'Naitala na ang pagkumpleto sa kabanatang ito.');
         return;
       }
       if (!result?.ok || !result.attempt_id || !Array.isArray(result.questions) ||
@@ -130,7 +133,9 @@ export default function KlReadingQuiz({
       } else if (result.passed && result.completion?.completed === true) {
         setDone(true);
         setQuestions([]);
-        setMessage('Natapos ang kabanata!' +
+        setMessage((commentRequired
+            ? 'Auto-verified: 3/3 tama! Mag-iwan pa ng 20+ karakter na comment sa ibaba upang mabuksan ang susunod na kabanata.'
+            : 'Natapos ang kabanata!') +
           (result.completion.new_completion
             ? chapterRewardFeedback(result.completion)
             : ' Naitala na ang completion.'));
