@@ -27,33 +27,73 @@ export default function BuklodAcademySaliksik(){
  const [busy,setBusy]=useState(false);
  const [status,setStatus]=useState('');
  const key=useRef('research:'+Crypto.randomUUID());
+ const [pendingId,setPendingId]=useState<string|null>(null);
+ const [reviewing,setReviewing]=useState(false);
+ const [feedback,setFeedback]=useState<{headline?:string;improvements?:string[];next_steps?:string[]}|null>(null);
+ const reviewSaved=useCallback(async(id:string)=>{
+  setReviewing(true);
+  setStatus('Automatic research verification is checking the original Bible sources and your published rubric…');
+  try{
+   const {data,error}=await supabase.functions.invoke('buklod-academy-research-ai-v2',
+    {body:{action:'review',submission_id:id}});
+   if(error||data?.ok===false)throw Error(data?.error||'Automatic verification unavailable; your work is saved.');
+   setFeedback(data?.feedback||null);
+   if(data?.status==='VERIFIED'){
+    setStatus('Automatically verified'+(Number.isFinite(data.score)?(' • '+data.score+'%'):'')+
+     (data.new_uc?(' • +'+data.new_uc+' UC'):'')+'. No manual approval required.');
+    setPendingId(null);
+    key.current='research:'+Crypto.randomUUID();
+    setTitle('');setMethod('');setReferences('');setPaper('');
+   }else if(data?.status==='REWORK'){
+    setStatus('Revision needed. Use the automatic feedback below, edit and submit the improved version.');
+    setPendingId(null);
+    // Keep the same idempotency key and learner draft for server-side REWORK replacement.
+   }else{
+    setPendingId(id);
+    setStatus('Your research is saved and automatic verification is processing. Retry later or reopen this screen.');
+   }
+  }catch(e:any){
+   setPendingId(id);
+   setStatus(String(e?.message||'Connection interrupted. Your paper is saved for automatic retry.'));
+  }finally{setReviewing(false);}
+ },[]);
+
  const load=useCallback(async()=>{
   const {data}=await (supabase as any).from('buklod_university_config').select('enabled').eq('singleton',true).maybeSingle();
   setEnabled(data?.enabled===true);
- },[]);
+  if(data?.enabled!==true)return;
+  // Recover saved work on app reopen; never create another record or manual queue.
+  const pending=await (supabase as any).rpc('buklod_academy_my_research_v2',{p_limit:10});
+  if(!pending.error){
+   const latest=(pending.data||[]).find((r:any)=>r.status==='SUBMITTED'||r.status==='REVIEWING');
+   if(latest?.id){setPendingId(latest.id);void reviewSaved(latest.id);}
+  }
+ },[reviewSaved]);
  useEffect(()=>{void load();},[load]);
  const send=async()=>{
   if(!enabled){Alert.alert('SALIKSIK','Academic research is not yet enabled for members.');return;}
+  if(pendingId){void reviewSaved(pendingId);return;}
   if(title.trim().length<10||method.trim().length<10||references.trim().length<10||paper.trim().length<300){
    Alert.alert('Research requirements','Enter a title, research method, Bible references and at least 300 characters of original writing.');return;
   }
-  setBusy(true);setStatus('');
+  setBusy(true);setStatus('Saving research for automatic verification…');setFeedback(null);
   try{
-   const {error}=await (supabase as any).rpc('buklod_academy_submit_research_v1',{
+   const {data,error}=await (supabase as any).rpc('buklod_academy_submit_research_v1',{
     p_key:key.current,p_type:type,p_title:title.trim(),p_method:method.trim(),
     p_references:references.trim(),p_paper:paper.trim(),
    });
    if(error)throw error;
-   setStatus('Submitted for citation, originality and methodology verification. UC will be earned only after approval.');
-   key.current='research:'+Crypto.randomUUID();
-   setTitle('');setMethod('');setReferences('');setPaper('');
+   const id=String(data||'');
+   if(!/^[a-f0-9-]{36}$/i.test(id))throw Error('Saved research has no returned review ID. Reopen the Academy to resume.');
+   setPendingId(id);
+   await reviewSaved(id);
   }catch(e:any){setStatus(String(e?.message||'Research submission failed. You can retry without losing this draft.'));}
   finally{setBusy(false);}
  };
  return <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
   <Text style={s.eyebrow}>BUKLOD ACADEMY • SALIKSIK</Text>
   <Text style={s.title}>Biblical & Theological Research</Text>
-  <Text style={s.info}>Write an original research paper using existing verified Bible sources. This is a research workflow, not a new lesson or automatic exam.</Text>
+  <Text style={s.info}>Write original research using existing verified Bible sources. Every submission receives automatic source/rubric verification and feedback; no manual approval.</Text>
   <Text style={s.section}>Choose research output</Text>
   <View style={s.options}>{OPTIONS.map(x=><Pressable accessibilityRole="button" key={x.type} onPress={()=>setType(x.type)}
    style={[s.chip,type===x.type&&s.selected]}><Text style={[s.chipText,type===x.type&&s.chipSelected]}>{x.label} • +{x.uc} UC</Text></Pressable>)}</View>
@@ -65,12 +105,17 @@ export default function BuklodAcademySaliksik(){
   <TextInput style={[s.input,s.long]} multiline placeholder="Research design, question, approach and limitations" placeholderTextColor="#88968C" value={method} maxLength={1500} onChangeText={setMethod}/>
   <TextInput style={[s.input,s.long]} multiline placeholder="Biblical references and context (verify citations)" placeholderTextColor="#88968C" value={references} maxLength={1500} onChangeText={setReferences}/>
   <TextInput style={[s.input,s.paper]} multiline placeholder="Original research paper, argument, evidence and counterarguments" placeholderTextColor="#88968C" value={paper} maxLength={30000} onChangeText={setPaper}/>
-  <Text style={s.info}>{paper.length} characters • Passing review requires verified citations, originality and 80% rubric score.</Text>
+  <Text style={s.info}>{paper.length} characters • Published evidence-based rubrics determine whether research passes. Higher-level capstones receive a second automatic check.</Text>
   {!!status?<Text style={s.notice}>{status}</Text>:null}
-  <Pressable accessibilityRole="button" disabled={busy||!enabled} style={[s.button,(busy||!enabled)&&s.disabled]} onPress={()=>void send()}>
-   <Text style={s.buttonText}>{busy?'Submitting…':enabled?'SUBMIT ORIGINAL RESEARCH':'RESEARCH NOT YET ENABLED'}</Text>
+  {!!feedback?.headline?<View style={s.notice}>
+   <Text style={s.section}>{feedback.headline}</Text>
+   {(feedback.improvements||[]).map((x,i)=><Text style={s.info} key={'a'+i}>• {x}</Text>)}
+   {(feedback.next_steps||[]).map((x,i)=><Text style={s.info} key={'n'+i}>Next: {x}</Text>)}
+  </View>:null}
+  <Pressable accessibilityRole="button" disabled={busy||reviewing||!enabled} style={[s.button,(busy||reviewing||!enabled)&&s.disabled]} onPress={()=>void send()}>
+   <Text style={s.buttonText}>{busy?'Saving…':reviewing?'AUTO-VERIFYING…':pendingId?'RESUME AUTOMATIC REVIEW':enabled?'SAVE & AUTO-VERIFY':'RESEARCH NOT YET ENABLED'}</Text>
   </Pressable>
-  <Text style={s.info}>No uploaded manuscript is required. Scripture references are starting points, not automatic proof of an interpretation. Research reviews are handled within MZB Ministry Inc.'s internal non-formal program.</Text>
+  <Text style={s.info}>No uploaded manuscript is required. Scripture references are starting points, not automatic proof of an interpretation. All outcomes are checked by automated research faculty under the founder's published quality policy. Interrupted checks can resume without an approval queue.</Text>
  </ScrollView>;
 }
 const s=StyleSheet.create({
