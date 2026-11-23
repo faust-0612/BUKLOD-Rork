@@ -1,0 +1,48 @@
+name: Genesis Academy integrated typecheck and critical regression QA (no deploy)
+on:
+  push:
+    branches:
+      - integration/genesis-206-academy-conso-staging-20261124
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'docs/academy/**'
+      - '.github/workflows/genesis-206-academy-typecheck-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-android-source:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install frozen dependency tree (no native build)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck consolidated source
+        run: npx tsc --noEmit
+      - name: Protect ad rendering, navigation and Academy non-graduation safety
+        run: |
+          node --test tests/ad-dashboard-focus-performance-20261116.test.mjs tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs tests/buklod-connect-stable-inbox-render.test.mjs tests/appwide-compact-density-20261116.test.mjs tests/buklod-university-completion-motion.test.mjs
+      - name: Staging Android package only, NEVER production upload
+        run: |
+          node - <<'NODE'
+          const assert=require('node:assert/strict');
+          const app=require('./app.config.js')({config:{}});
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.notEqual(app.android.package,'org.mzbministry.buklod');
+          console.log('STAGING_PACKAGE_ISOLATION_SOURCE_ONLY');
+          NODE
