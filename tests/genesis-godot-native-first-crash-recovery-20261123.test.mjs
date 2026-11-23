@@ -105,3 +105,9 @@ test('Native 13-hero abilities and villager scripts never introduce cyclic globa
  for(const token of ['seed_villagers','advance_waves','advance_villager','advance_minion'])assert.ok(actors.includes('static func '+token));
  assert.ok(skills.includes('static func cast'));
 });
+
+test('Hero dashes preserve explicit result types when Library simulation is dynamically linked',()=>{
+ const source=read('godot/empire-arena/scripts/arena_library_skills.gd');
+ for(const value of ['moved','dashed']) assert.match(source,new RegExp('var '+value+': bool = sim\\._move\\('));
+ assert.doesNotMatch(source,/var (moved|dashed) := sim\._move/);
+});
