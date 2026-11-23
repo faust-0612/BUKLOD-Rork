@@ -33,7 +33,7 @@ func _atlas(hero_id: String) -> Texture2D:
     # Original offline Arena atlases are packed by build-empire-godot-pack.mjs.
     var filename := "res://art/fullbody/" + hero_id + "_idle.png"
     # Original PNG bytes are preserved inside the signed ZIP main pack.
-    # Image.load_from_file is editor-oriented and warns that export may lose art.
+    # Direct editor-only image loading can omit source art in exported packs.
     var original_png: PackedByteArray = FileAccess.get_file_as_bytes(filename)
     if original_png.is_empty():
         return null
