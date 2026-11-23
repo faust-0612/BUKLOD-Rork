@@ -1,4 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 [ext_resource type="Script" path="res://scripts/world_preview.gd" id="1_world"]
+[ext_resource type="Script" path="res://scripts/world_explore_controller.gd" id="2_explore"]
 [node name="BuklodNativeWorldPreview" type="Node2D"]
 script = ExtResource("1_world")
+[node name="InteractiveVisuals" type="Node2D" parent="."]
+script = ExtResource("2_explore")
