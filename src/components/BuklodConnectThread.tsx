@@ -1410,6 +1410,9 @@ const [
   // A touch/kinetic scroll owns the viewport; content reflow cannot steal it.
   const userDraggingRef = useRef(false);
   const userMomentumRef = useRef(false);
+  // Only an actual upward user gesture may request older pages. The list
+  // starts at offset zero before its first latest-message anchor on Android.
+  const userScrolledUpRef = useRef(false);
   // Focus opts into newest-message following, an actual user swipe opts out.
   const composerFollowsLatestRef = useRef(false);
   const followComposerToLatest = useCallback(() => {
@@ -1499,6 +1502,7 @@ const [
     suppressStickRef.current = false;
     userDraggingRef.current = false;
     userMomentumRef.current = false;
+    userScrolledUpRef.current = false;
     pendingOlderAnchorRef.current = null;
     initialLoadSettledRef.current = false;
     olderPagesLoadedRef.current = false;
@@ -1528,7 +1532,6 @@ const [
     }
 
     let active = true;
-    let anchorTimer: ReturnType<typeof setTimeout> | null = null;
 
     void getOfflineCache<{
       messages: Message[];
@@ -1565,15 +1568,9 @@ const [
           // Render locally saved messages immediately while the network
           // refresh and secondary user/reaction lookups continue.
           if (!initialLoadSettledRef.current) {
+            // Let the first measured FlatList layout anchor to newest.
+            // A fixed 64ms timer raced Android's layout and opened at top.
             initialLoadSettledRef.current = true;
-            anchorTimer = setTimeout(() => {
-              if (!active || !pinLatestOnOpenRef.current) return;
-              listRef.current?.scrollToEnd({ animated: false });
-              pinLatestOnOpenRef.current = false;
-              nearBottomRef.current = true;
-              listAnchoredRef.current = true;
-              setListAnchored(true);
-            }, 64);
           }
         }
 
@@ -1625,7 +1622,6 @@ const [
 
     return () => {
       active = false;
-      if (anchorTimer) clearTimeout(anchorTimer);
     };
   }, [
     connectThreadOfflineCacheKey,
@@ -4491,9 +4487,13 @@ const [
             layoutMeasurement,
           } = event.nativeEvent;
 
+          const previousOffset = connectScrollOffsetRef.current;
           connectScrollOffsetRef.current = contentOffset.y;
           if (userDraggingRef.current || userMomentumRef.current) {
             composerFollowsLatestRef.current = false;
+            if (contentOffset.y < previousOffset - 2) {
+              userScrolledUpRef.current = true;
+            }
           }
 
           const distanceFromBottom =
@@ -4517,6 +4517,9 @@ const [
           }
 
           if (nearBottom) {
+            if (!userDraggingRef.current && !userMomentumRef.current) {
+              userScrolledUpRef.current = false;
+            }
             if (awayFromLatest || newWhileAway > 0) {
               setAwayFromLatest(false);
               setNewWhileAway(0);
@@ -4528,8 +4531,14 @@ const [
           if (
             contentOffset.y <= CONNECT_LOAD_OLDER_PX &&
             hasOlder &&
-            !loadingOlderRef.current
+            !loadingOlderRef.current &&
+            listAnchoredRef.current &&
+            !pinLatestOnOpenRef.current &&
+            userScrolledUpRef.current
           ) {
+            // Do not prepend old history on the programmatic initial 0px
+            // position or while returning to latest after a room switch.
+            userScrolledUpRef.current = false;
             void loadOlder();
           }
         }}
