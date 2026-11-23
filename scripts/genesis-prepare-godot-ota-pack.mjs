@@ -47,6 +47,24 @@ if(process.env.BUKLOD_GENESIS_PRIVATE_ASSETS === 'true') {
   for(const model of approved.models)
     assert.ok(files.includes('3d/private/'+model.id+'.glb'));
 }
+if(process.env.BUKLOD_GENESIS_PRIVATE_FX === 'true') {
+  const fxText=execFileSync('unzip',['-p',dest,'data/private_fx_manifest.json'],
+    {encoding:'utf8',maxBuffer:4*1024*1024});
+  const fx=JSON.parse(fxText);
+  assert.equal(fx.schema,1);
+  assert.equal(fx.rightsStatus,'REVIEWED_IN_GAME_USE_ONLY');
+  assert.equal(fx.releaseAuthority,'DEV_PREVIEW_ONLY');
+  assert.ok(fx.assets.length>0&&fx.assets.length<=50);
+  const packed=files.filter(x=>/^private-fx\/[a-z0-9_]+\.png$/.test(x));
+  assert.equal(packed.length,fx.assets.length);
+  for(const item of fx.assets) {
+    assert.ok(files.includes(item.file));
+    const data=execFileSync('unzip',['-p',dest,item.file],{maxBuffer:3*1024*1024});
+    assert.equal(data.length,item.bytes);
+    assert.equal(createHash('sha256').update(data).digest('hex'),item.sha256);
+  }
+  for(const lic of fx.licenseProof) assert.ok(files.includes(lic.file));
+}
 const sha256 = createHash('sha256').update(readFileSync(dest)).digest('hex');
 writeFileSync(manifest, `/** GENERATED from exact reviewed Genesis Godot source; do not edit manually. */
 export const GENESIS_GODOT_OTA_PACK = {
