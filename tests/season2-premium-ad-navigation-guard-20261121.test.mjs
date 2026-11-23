@@ -55,20 +55,16 @@ test('Audio focus/first-view prewarm protection remains bounded when switching d
  }
 });
 
-test('Genesis Wall and Connect clear status bar without moving other dashboards',()=>{
+test('Genesis restored native top bar owns status clearance without duplicate context header',()=>{
  const tab=read('src/app/(tabs)/_layout.tsx');
  const home=read('src/app/(tabs)/hub.tsx');
- for(const piece of [
-   'const genesisDashboardTopInset =',
-   "Platform.OS !== 'web' &&",
-   'isGenesisPreviewBuild() &&',
-   "['/buklod', '/messages'].includes(normalizeBuklodPathname(pathname))",
-   'Math.max(0, insets.top) + 4',
-   'paddingTop: genesisDashboardTopInset,',
- ]) assert.ok(tab.includes(piece),'Missing Genesis clearance guard: '+piece);
- assert.ok(tab.includes('!desktopWebShell && !isGenesisPreviewBuild() ? <SwipeDashboardHeader /> : null'),
-   'Do not change production header behavior');
- assert.ok(home.includes('const genesisPreview = isGenesisPreviewBuild()'),
-   'Home remains independently controlled');
- assert.ok(!tab.includes("['/buklod', '/messages', '/hub'"),'Do not shift other dashboards');
+ assert.match(tab,/const headerTopInset = genesisPreview && Platform\.OS === 'android'/);
+ assert.match(tab,/paddingTop: headerTopInset/);
+ assert.match(tab,/!desktopWebShell \? <SwipeDashboardHeader \/> : null/);
+ assert.equal((tab.match(/<SwipeDashboardHeader \/>/g)??[]).length,1);
+ assert.match(tab,/!isGenesisPreviewBuild\(\) \? <BuklodDashboardContextBar \/> : null/);
+ assert.match(tab,/<BuklodDashboardAdWarmup \/>/);
+ assert.match(tab,/freezeOnBlur: true/);
+ assert.ok(home.includes('const genesisPreview = isGenesisPreviewBuild()'),'Home remains independently controlled');
+ assert.doesNotMatch(tab,/genesisDashboardTopInset/,'Do not restore duplicate route-level status padding');
 });
