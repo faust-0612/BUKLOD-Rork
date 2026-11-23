@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/mentor-mentee-entry-verified-link-20261123.json",
   "objective": "Repair BUKLOD MAIN mentoring reports so verified mentors can find existing mentees and request name-based linking when none appear, with protected admin verification before attendance or rewards.",
   "baseRef": "main",
-  "productionBaselineEvidence": "GitHub main mentoring report source blob 315a766d776ea88d7ea013fbbbf772cd34c4c65d inspected on 2026-11-23; zero-mentee screen contained no name-entry action. Live installed runtime, OTA fingerprint, and isolated test database were not verified.",
+  "productionBaselineEvidence": "verified: GitHub main source blob 315a766d776ea88d7ea013fbbbf772cd34c4c65d for src/app/faith/mentor-evidence.tsx inspected 2026-11-23, with no mentee name-entry request flow. This is GitHub source verification only, NOT verification of the installed Android build, production OTA or staging database.",
   "chosenApproach": "Add an assigned-mentee search and secure full-name link-request queue; a System Admin matches the requested name to a registered active account and creates the existing mentor assignment in an audited, atomic RPC. Reporting still counts only the existing canonical assigned roster.",
   "selectionRationale": "A name-only report would fabricate attendees and BP. A dead-end admin instruction is not a usable input. A bounded verification request gives a real field without weakening roster authorization.",
   "riskAreas": [
