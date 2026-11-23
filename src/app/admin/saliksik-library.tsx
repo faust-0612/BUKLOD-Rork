@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import {
  saliksikAdminList,saliksikAdminPreview,saliksikAdminPublish,
  saliksikGenerateDraft,saliksikSignedOriginalUrl,saliksikUploadOriginal,
+ saliksikAdminOriginalDownloadRights,saliksikAdminSetOriginalDownloadRights,
  saliksikAdminMasterQueue,saliksikAdminMasterReview,type SaliksikMasterQueueItem,
  type SaliksikSource,
 } from '@/lib/saliksikClient';
@@ -17,6 +18,7 @@ const green='#235F48';
 const textError=(e:unknown)=>e instanceof Error?e.message:String(e);
 export default function SaliksikLibraryScreen(){
  const [sources,setSources]=useState<SaliksikSource[]>([]);
+ const [originalRights,setOriginalRights]=useState<Record<string,boolean>>({});
  const [preview,setPreview]=useState<any>(null);
  const [masterQueue,setMasterQueue]=useState<SaliksikMasterQueueItem[]>([]);
  const [activeReview,setActiveReview]=useState<SaliksikMasterQueueItem|null>(null);
@@ -35,8 +37,8 @@ export default function SaliksikLibraryScreen(){
   if(loading.current)return;
   loading.current=true;
   try{
-   const [result,queue]=await Promise.all([saliksikAdminList(),saliksikAdminMasterQueue()]);
-   if(active.current){setSources(result);setMasterQueue(queue??[]);}
+   const [result,queue,rights]=await Promise.all([saliksikAdminList(),saliksikAdminMasterQueue(),saliksikAdminOriginalDownloadRights()]);
+   if(active.current){setSources(result);setMasterQueue(queue??[]);setOriginalRights(rights??{});}
   }catch(e){if(active.current)setError(textError(e));}
   finally{loading.current=false;}
  },[]);
@@ -113,6 +115,27 @@ export default function SaliksikLibraryScreen(){
   }catch(e){setError(textError(e));}
   finally{setBusy('');}
  };
+ const updateOriginalRights=async(source:SaliksikSource,allowed:boolean)=>{
+  if(busy)return;
+  setBusy('Updating original manuscript redistribution permission');setError('');
+  try{
+   await saliksikAdminSetOriginalDownloadRights(source.id,allowed);
+   setNotice(allowed
+    ? 'Original source licensed for download ONLY after each member completes the collection.'
+    : 'Original download restricted. Verified completers can still download the complete published study manuscript.');
+   await refresh();
+  }catch(e){setError(textError(e));}
+  finally{setBusy('');}
+ };
+ const confirmRights=(source:SaliksikSource)=>{
+  const currentlyAllowed=originalRights[source.id]===true;
+  Alert.alert(currentlyAllowed?'Restrict original manuscript?':'Confirm redistribution rights',
+   currentlyAllowed
+    ? 'Original download will be disabled for future links. Completed learners retain access to the compiled study manuscript.'
+    : 'Only confirm if MZB Ministry Inc. or the source owner holds rights to redistribute the COMPLETE original manuscript to every verified collection completer. No individual Admin approval will be required.',
+   [{text:'Cancel',style:'cancel'},{text:currentlyAllowed?'Restrict original':'I confirm redistribution rights',
+    onPress:()=>void updateOriginalRights(source,!currentlyAllowed)}]);
+ };
  const openOriginal=async(source:SaliksikSource)=>{
   if(!source.storage_path)return;
   try{
@@ -133,7 +156,7 @@ export default function SaliksikLibraryScreen(){
    <Text style={styles.sub}>Upload private manuscripts, generate evidence-based investigation drafts, review the questions and publish when verified.</Text>
    <View style={styles.note}>
     <MaterialCommunityIcons name="shield-lock-outline" color={green} size={21}/>
-    <Text style={styles.noteText}>Original files are private and not published. Automatic drafts use a configured external AI provider. Manuscripts and questions require source checking before approval.</Text>
+    <Text style={styles.noteText}>Originals remain private. Verified completers receive the complete published study manuscript automatically. Sharing the full original requires a one-time documented rights declaration; never automatic per-member approval.</Text>
    </View>
    <Pressable accessibilityRole="button" accessibilityLabel="Upload manuscripts"
     disabled={!!busy} onPress={()=>void upload()} style={[styles.primary,!!busy&&styles.disabled]}>
@@ -162,8 +185,12 @@ export default function SaliksikLibraryScreen(){
       </View>
      </View>
      {item.last_error?<Text style={styles.error}>Last attempt: {item.last_error}</Text>:null}
+     <Text style={styles.small}>Original member download: {originalRights[item.id]?'AUTHORIZED after verified completion':'RESTRICTED — full study manuscript only'}</Text>
      <View style={styles.actions}>
-      <Pressable onPress={()=>void openOriginal(item)} style={styles.action}><Text style={styles.actionText}>Original</Text></Pressable>
+      <Pressable onPress={()=>void openOriginal(item)} style={styles.action}><Text style={styles.actionText}>Admin original preview</Text></Pressable>
+      <Pressable disabled={!!busy} onPress={()=>confirmRights(item)} style={styles.action}>
+       <Text style={styles.actionText}>{originalRights[item.id]?'Restrict original sharing':'Authorize original sharing'}</Text>
+      </Pressable>
       {item.collection_id?<Pressable disabled={!!busy} onPress={()=>void showPreview(item)}
        style={styles.action}><Text style={styles.actionText}>Review draft</Text></Pressable>:null}
       {item.collection_status!=='published'&&(item.investigations??0)<8?<Pressable disabled={!!busy}
