@@ -96,6 +96,10 @@ import {
 import { HIBLA } from '@/lib/connectHibla';
 import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import { partitionConnectInboxThreads } from '@/lib/connectInboxClassification';
+import {
+  applyConnectInboxRealtimeActivity,
+  sortConnectInboxByActivity,
+} from '@/lib/connectInboxActivity';
 import { communityUnreadTabCounts } from '@/lib/connectInboxBadgeTotals';
 import { invalidateBuklodConnectUnreadCaches } from '@/lib/buklodR4RequestShield';
 
@@ -921,7 +925,24 @@ function ConnectScreenInner({
 
       const release = acquireSharedRealtimeSubscription(
         registryKey,
-        () => {
+        (payload: any) => {
+          // Reorder a known thread/room before the inbox RPC roundtrip. The
+          // authenticated RPC remains the source of truth for unread counts.
+          const incoming = payload?.new;
+          const activityId = String(
+            kind === 'direct' ? incoming?.thread_id ?? '' : incoming?.scope_id ?? ''
+          ).trim();
+          if (activityId) {
+            if (kind === 'direct') {
+              setPersonal(current => applyConnectInboxRealtimeActivity(
+                current, item => item.thread_id === activityId, incoming,
+              ));
+            } else {
+              setRooms(current => applyConnectInboxRealtimeActivity(
+                current, item => item.scope_id === activityId, incoming,
+              ));
+            }
+          }
           // Realtime inserts must bypass the 10s inbox snapshot TTL.
           invalidateBuklodConnectUnreadCaches(kind);
           void loadRef.current();
@@ -1202,18 +1223,22 @@ function ConnectScreenInner({
     } as any);
   };
 
-  const visibleRooms = forcedScopeId
-    ? rooms.filter(room => room.scope_id === forcedScopeId)
-    : rooms;
-
-  const filteredRooms = visibleRooms.filter(room =>
-    matchesCommunityFilter(room, communityFilter)
+  const filteredRooms = useMemo(
+    () => sortConnectInboxByActivity(rooms.filter(room =>
+      (!forcedScopeId || room.scope_id === forcedScopeId) &&
+      matchesCommunityFilter(room, communityFilter)
+    )),
+    [rooms, forcedScopeId, communityFilter],
   );
 
+  const sortedPersonal = useMemo(
+    () => sortConnectInboxByActivity(personal),
+    [personal],
+  );
   const isSearching = query.trim().length >= 2;
   const { requests: requestThreads, personal: regularThreads } =
-    partitionConnectInboxThreads(personal, requestThreadIds);
-  // A single chronological inbox avoids the duplicated unread priority card.
+    partitionConnectInboxThreads(sortedPersonal, requestThreadIds);
+  // A single newest-activity-first inbox avoids duplicate unread priority cards.
   const personalListData = (
     isSearching
       ? people
