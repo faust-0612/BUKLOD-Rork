@@ -139,6 +139,7 @@ test('Connect staging-only latest-activity scope enforces notification, chat and
     'tests/connect-inbox-realtime-staging-20261123.test.mjs',
     'tests/connect-inbox-notification-navigation-20261123.test.mjs',
     'tests/connect-inbox-ads-guard-20261123.test.mjs',
+    'tests/messenger-inbox-density-20261117.test.mjs',
     'tests/protected-feature-lock.test.mjs',
     '.github/workflows/engineering-accountability.yml',
     '.buklod/scopes/connect-inbox-staging-20261123.json',
