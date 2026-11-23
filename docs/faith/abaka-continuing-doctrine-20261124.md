@@ -27,3 +27,6 @@ Insert new original `public.buklod_abc_doctrinal_lessons` rows with a unique `do
 - Admin cannot unpublish a prerequisite while a dependent lesson remains published; downstream lessons must be unpublished first.
 
 - The BUKLOD Official System Admin can study and confirm lessons but receives 0 BP, consistent with the existing system-admin economy exclusion. Normal member tiers are unchanged.
+
+## Doctrinal approval gate
+The four starter lessons are **unpublished drafts**, not reader-visible content. Their Bible references, theological claims and answer keys must be reviewed and explicitly approved in Admin Doctrinal Studio. The staged SQL migration never auto-publishes newly generated doctrinal material.

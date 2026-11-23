@@ -77,7 +77,7 @@ $body$[
 {"kind":"body","text":"Sa Colosas 1:16–17, ang lahat ng bagay ay nilikha sa pamamagitan at para kay Kristo. Magkaugnay ang pananampalataya sa Manlilikha at ang pananagutan sa kapwa at kalikasan.","refs":[{"label":"Colosas 1:16-17","bookNo":51,"chapter":1,"verse":16,"endVerse":17}]},
 {"kind":"memory","text":"Ang lupa at lahat ng naririto ay sa Panginoon.","refs":[{"label":"Awit 24:1","bookNo":19,"chapter":24,"verse":1}]}
 ]$body$::jsonb,
-'Ayon sa Colosas 1:16, paano nauugnay si Kristo sa paglikha?',array['Walang kinalaman si Kristo','Sa pamamagitan at para sa Kanya nilikha ang lahat','Tao lamang ang lumikha','Nagkataon lamang ang paglikha'],true,now()),
+'Ayon sa Colosas 1:16, paano nauugnay si Kristo sa paglikha?',array['Walang kinalaman si Kristo','Sa pamamagitan at para sa Kanya nilikha ang lahat','Tao lamang ang lumikha','Nagkataon lamang ang paglikha'],false,null),
 ('doctrine-0002','god-and-creation','Pagkilala sa Diyos',2,'S2 · 2','Banal at Makatarungan ang Diyos','intermediate','doctrine-0001',
 $body$[
 {"kind":"heading","text":"Ang kabanalan at katarungan ng Diyos."},
@@ -85,7 +85,7 @@ $body$[
 {"kind":"body","text":"Ipinapakita ng Roma 3:25–26 ang katarungan at pagpapawalang-sala ng Diyos sa pamamagitan ni Hesukristo. Magkakaugnay ang kabanalan, biyaya, at ang krus.","refs":[{"label":"Roma 3:25-26","bookNo":45,"chapter":3,"verse":25,"endVerse":26}]},
 {"kind":"homework","text":"Pag-isipan kung paano magiging makatarungan at mahabagin sa isang mahirap na sitwasyon sa tahanan o komunidad."}
 ]$body$::jsonb,
-'Alin ang ipinapakita ng Roma 3:26 tungkol sa Diyos?',array['Hindi Niya pansin ang katarungan','Walang halaga ang pananampalataya','Siya ay matuwid at nagpapawalang-sala sa sumasampalataya kay Hesus','Nagliligtas ang mabuting gawa lamang'],true,now()),
+'Alin ang ipinapakita ng Roma 3:26 tungkol sa Diyos?',array['Hindi Niya pansin ang katarungan','Walang halaga ang pananampalataya','Siya ay matuwid at nagpapawalang-sala sa sumasampalataya kay Hesus','Nagliligtas ang mabuting gawa lamang'],false,null),
 ('doctrine-0003','christ-and-salvation','Si Kristo at Kaligtasan',1,'S3 · 1','Biyaya, Pananampalataya at Mabuting Gawa','advanced','doctrine-0002',
 $body$[
 {"kind":"heading","text":"Ang mabuting gawa ay bunga, hindi kabayaran ng kaligtasan."},
@@ -93,7 +93,7 @@ $body$[
 {"kind":"body","text":"Binibigyang-diin ng Santiago 2:17 ang pananampalatayang buhay at may bunga. Hindi kailangang pag-awayin ang biyaya at pagsunod: ang pagliligtas ay kay Kristo, ang pagbabago ay tugon ng taong tinubos.","refs":[{"label":"Santiago 2:17","bookNo":59,"chapter":2,"verse":17},{"label":"Tito 3:5","bookNo":56,"chapter":3,"verse":5}]},
 {"kind":"homework","text":"Ihambing ang dahilan ng kaligtasan at ang bunga nito; magbigay ng isang payak na halimbawa sa buhay."}
 ]$body$::jsonb,
-'Ano ang pinakaangkop na ugnayan ng Efeso 2:8–10 at Santiago 2:17?',array['Binibili ang kaligtasan ng gawa','Hindi mahalaga ang pagsunod','Taliwas ang Biblia sa sarili nito','Biyaya ang dahilan ng kaligtasan at ang buhay na pananampalataya ay may bunga'],true,now()),
+'Ano ang pinakaangkop na ugnayan ng Efeso 2:8–10 at Santiago 2:17?',array['Binibili ang kaligtasan ng gawa','Hindi mahalaga ang pagsunod','Taliwas ang Biblia sa sarili nito','Biyaya ang dahilan ng kaligtasan at ang buhay na pananampalataya ay may bunga'],false,null),
 ('doctrine-0004','biblical-interpretation','Pag-unawa sa Kasulatan',1,'S4 · 1','Konteksto at Pananagutan sa Pagbasa','deep','doctrine-0003',
 $body$[
 {"kind":"heading","text":"Basahin ang talata sa loob ng kabuuan."},
@@ -101,7 +101,7 @@ $body$[
 {"kind":"body","text":"Sinuri ng mga taga-Berea ang Kasulatan upang tingnan kung totoo ang narinig (Gawa 17:11). Sa Lucas 24:27, itinuro ni Hesus ang lugar ng Kanyang gawain sa malawak na salaysay ng Kasulatan.","refs":[{"label":"Gawa 17:11","bookNo":44,"chapter":17,"verse":11},{"label":"Lucas 24:27","bookNo":42,"chapter":24,"verse":27}]},
 {"kind":"homework","text":"Pumili ng isang talatang madalas sipiin. Ipaliwanag kung paano nagbabago ang pag-unawa kapag isinama ang buong kabanata."}
 ]$body$::jsonb,
-'Alin ang responsableng unang hakbang sa pagpapaliwanag ng isang mahirap na talata?',array['Suriin ang konteksto at ihambing sa Kasulatan','Pumili ng paboritong opinyon','Ihiwalay ang isang pangungusap','Huwag nang basahin ang kabuuan'],true,now())
+'Alin ang responsableng unang hakbang sa pagpapaliwanag ng isang mahirap na talata?',array['Suriin ang konteksto at ihambing sa Kasulatan','Pumili ng paboritong opinyon','Ihiwalay ang isang pangungusap','Huwag nang basahin ang kabuuan'],false,null)
 on conflict (lesson_id) do nothing;
 
 insert into private.buklod_abc_doctrinal_answers(lesson_id,correct_option)

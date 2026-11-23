@@ -37,8 +37,8 @@ begin
 
   select count(*) into v_ids from public.buklod_abc_doctrinal_lessons
     where lesson_id in ('doctrine-0001','doctrine-0002','doctrine-0003','doctrine-0004')
-      and published and prerequisite_id is not null;
-  if v_ids <> 4 then raise exception 'Doctrinal content/prerequisite seeds missing'; end if;
+      and not published and prerequisite_id is not null;
+  if v_ids <> 4 then raise exception 'Unreviewed doctrinal drafts/prerequisite seeds missing'; end if;
   select count(*) into v_ids from private.buklod_abc_doctrinal_answers
     where lesson_id in ('doctrine-0001','doctrine-0002','doctrine-0003','doctrine-0004');
   if v_ids <> 4 then raise exception 'Private correct-answer set is incomplete'; end if;

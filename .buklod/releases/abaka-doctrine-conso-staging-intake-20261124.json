@@ -15,10 +15,11 @@
     "genesisDirectoryPreserved": true
   },
   "content": {
-    "initialPublishedDoctrineLessons": 4,
+    "initialPublishedDoctrineLessons": 0,
     "continuing": true,
     "adminDraftApprovalRequired": true,
-    "offlineCachedReading": true
+    "offlineCachedReading": true,
+    "initialUnpublishedDrafts": 4
   },
   "rewardPolicy": {
     "foundation": 8,
