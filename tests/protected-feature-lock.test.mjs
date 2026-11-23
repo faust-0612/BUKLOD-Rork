@@ -131,6 +131,8 @@ test('Connect staging-only latest-activity scope enforces notification, chat and
     'src/providers/NotificationProvider.tsx',
     'src/lib/connectInboxActivity.ts',
     'src/lib/connectInboxSignal.ts',
+    'src/lib/connectInboxSearch.ts',
+    '__tests__/connectInboxSearch.test.ts',
     'src/hooks/useBuklodConnectUnread.ts',
     '__tests__/connectInboxActivity.test.ts',
     '__tests__/connectInboxSignal.test.ts',
