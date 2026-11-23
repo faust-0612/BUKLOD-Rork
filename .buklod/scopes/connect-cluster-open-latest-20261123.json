@@ -31,12 +31,14 @@
   "regressionTests": [
     "tests/connect-cluster-open-latest-20261123.test.mjs",
     "tests/connect-latest-scroll-rebound-20261117.test.mjs",
-    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs",
+    "tests/connect-cluster-ads-isolation-20261123.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodConnectThread.tsx",
     "tests/connect-cluster-open-latest-20261123.test.mjs",
-    ".buklod/scopes/connect-cluster-open-latest-20261123.json"
+    ".buklod/scopes/connect-cluster-open-latest-20261123.json",
+    "tests/connect-cluster-ads-isolation-20261123.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -66,7 +68,7 @@
         "Ad rendering and all money/points operations untouched"
       ],
       "tests": [
-        "tests/connect-cluster-open-latest-20261123.test.mjs"
+        "tests/connect-cluster-ads-isolation-20261123.test.mjs"
       ]
     }
   ]
