@@ -238,6 +238,22 @@
         "EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW": "true"
       },
       "autoIncrement": false
+    },
+    "season2-genesis-godot-ota-native-staging": {
+      "extends": "season2-genesis-launch-recovery-staging",
+      "channel": "season2-genesis-library-206-preview",
+      "distribution": "internal",
+      "environment": "preview",
+      "autoIncrement": false,
+      "android": {
+        "buildType": "apk",
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V206": "true",
+        "EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED": "false",
+        "EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW": "true"
+      }
     }
   },
   "submit": {

@@ -16,7 +16,7 @@ import java.security.MessageDigest
  * app sandbox, never remote URLs, arbitrary file providers or external intents.
  */
 class BuklodGenesisGodotModule : Module() {
-  private val maxPackBytes = 128L * 1024 * 1024
+  private val maxPackBytes = 256L * 1024 * 1024
   private val digestPattern = Regex("^[0-9a-f]{64}$")
   private fun stageApprovedPack(sourceUri: String, digest: String): File {
     val activity = appContext.currentActivity ?: error("No foreground Activity")
@@ -31,7 +31,7 @@ class BuklodGenesisGodotModule : Module() {
     if (input.length() <= 0L || input.length() > maxPackBytes) error("Pack size outside bounds")
     val targetDir = File(activity.filesDir, "buklod-genesis-approved-packs")
     if (!targetDir.exists() && !targetDir.mkdirs()) error("Could not create pack storage")
-    val final = File(targetDir, "$digest.pck")
+    val final = File(targetDir, "$digest.zip")
     if (final.isFile && final.length() <= maxPackBytes && hash(final) == digest) return final
     final.delete()
     val tmp = File.createTempFile("godot-", ".tmp", targetDir)
@@ -54,6 +54,12 @@ class BuklodGenesisGodotModule : Module() {
       }
       val actual = md.digest().joinToString("") { "%02x".format(it) }
       if (actual != digest || count <= 0L) error("Pack hash did not match approved manifest")
+      // Only accept bounded, canonical Godot ZIP project and the required entry scenes.
+      java.util.zip.ZipFile(tmp).use { zip ->
+        if (zip.size() > 5000 || zip.getEntry("project.godot") == null ||
+            zip.getEntry("scenes/Arena.tscn") == null ||
+            zip.getEntry("scenes/WorldPreview.tscn") == null) error("Invalid Godot scene ZIP")
+      }
       if (!tmp.renameTo(final)) error("Could not finalize approved pack")
       return final
     } finally {
@@ -105,6 +111,37 @@ class BuklodGenesisGodotModule : Module() {
           promise.resolve(false)
         }
       }
+    }
+    // App-private, hash-checked OTA main pack. Arena, Kingdom and House share
+    // the same native engine; content never gains server-side reward authority.
+    AsyncFunction("openApprovedWorldPack") { privateFileUri: String, expectedSha256: String,
+      world: String, promise: Promise ->
+      val activity = appContext.currentActivity
+      if (world !in setOf("arena", "kingdom", "community", "house") ||
+          activity == null || activity.isFinishing || activity.isDestroyed ||
+          activity.packageName != "org.mzbministry.buklod.staging") {
+        promise.resolve(false)
+      } else {
+        try {
+          val approved = stageApprovedPack(privateFileUri, expectedSha256)
+          activity.runOnUiThread {
+            try {
+              if (activity.isFinishing || activity.isDestroyed) {
+                promise.resolve(false)
+              } else {
+                activity.startActivity(Intent(activity, GenesisGodotActivity::class.java)
+                  .putExtra(GenesisGodotActivity.EXTRA_APPROVED_PACK, approved.absolutePath)
+                  .putExtra(GenesisGodotActivity.EXTRA_BUNDLED_WORLD, world))
+                promise.resolve(true)
+              }
+            } catch (_: Exception) { promise.resolve(false) }
+          }
+        } catch (_: Exception) { promise.resolve(false) }
+      }
+    }
+    AsyncFunction("getGodotCapabilities") { promise: Promise ->
+      promise.resolve(mapOf("engine" to "4.7.2", "format" to "zip",
+        "packUpdate" to true, "worlds" to listOf("arena", "kingdom", "community", "house")))
     }
     // Preview worlds are selected only through a fixed native enum. Any
     // untrusted scope/profile/ledger values stay outside this engine process.

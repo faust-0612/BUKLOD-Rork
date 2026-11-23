@@ -46,6 +46,8 @@ module.exports = ({ config }) => {
   // Native Godot Android changes cannot ship on the old 2.0.4 runtime via OTA.
   const godotLaunchRecoveryPreview = libraryArenaNativePreview &&
     process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205 === 'true';
+  const godotOtaNativePreview = godotLaunchRecoveryPreview &&
+    process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V206 === 'true';
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
@@ -72,6 +74,7 @@ module.exports = ({ config }) => {
     ...(unifiedGodotWorldsPreview ? { version: '2.0.3' } : {}),
     ...(libraryArenaNativePreview ? { version: '2.0.4' } : {}),
     ...(godotLaunchRecoveryPreview ? { version: '2.0.5' } : {}),
+    ...(godotOtaNativePreview ? { version: '2.0.6' } : {}),
 
     orientation: 'default',
     scheme,
@@ -108,7 +111,7 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? (godotLaunchRecoveryPreview ? 17 : undefined) : (isClassroom ? 28 : 30),
+      versionCode: isStaging ? (godotOtaNativePreview ? 18 : godotLaunchRecoveryPreview ? 17 : undefined) : (isClassroom ? 28 : 30),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
@@ -430,6 +433,7 @@ module.exports = ({ config }) => {
     ...(unifiedGodotWorldsPreview ? { runtimeVersion: '2.0.3-genesis-unified-godot' } : {}),
     ...(libraryArenaNativePreview ? { runtimeVersion: '2.0.4-genesis-library-godot' } : {}),
     ...(godotLaunchRecoveryPreview ? { runtimeVersion: '2.0.5-genesis-godot-launch' } : {}),
+    ...(godotOtaNativePreview ? { runtimeVersion: '2.0.6-genesis-godot-ota' } : {}),
   };
 };
 
