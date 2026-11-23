@@ -1210,7 +1210,7 @@ export async function publishMaritesStory(input: {
         async (uri, index) => {
           const path = `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
           try {
-            const result = await uploadCommunityPhotoFile({ path, uri });
+            const result = await uploadCommunityPhotoFile({ path, uri, profile: 'story' });
             completed += 1;
             input.onProgress?.(`Uploading photos ${completed}/${photoUris.length}`);
             return {
