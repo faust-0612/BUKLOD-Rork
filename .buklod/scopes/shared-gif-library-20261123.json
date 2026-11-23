@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/shared-gif-library-20261123.json",
   "objective": "Offer searchable online animated GIF reactions in Public Wall, scoped community wall and comments while keeping the existing Connect path and no manual GIF-by-GIF upload requirement.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Read-only GitHub production-main source baseline 7b224c39624827282c3cbf003060317045b0a73f inspected 2026-11-23. Current installed/live production OTA fingerprint and EAS GIPHY API key status have not been independently verified; this is DEV only.",
+  "productionBaselineEvidence": "verified: GitHub main SOURCE commit 7b224c39624827282c3cbf003060317045b0a73f was fetched and inspected 2026-11-23; this is the code baseline only, NOT independently confirmed live installed APK/OTA. EAS GIPHY API key state remains unverified; feature is DEV-only.",
   "chosenApproach": "Restore the existing community GIF picker as a shared G-rated GIPHY-backed browser, reuse the already established Connect catalog and secure post/comment flows, add view-local search/debounce/pagination/caching and graceful offline fallback. Do not change RLS, AdsProvider, Expo native modules, or product identity.",
   "selectionRationale": "Existing Connect GIPHY integration and post/comment GIF media attachments make reuse safer and smaller than another provider or native package; selecting a GIF must never auto-send a comment or publish a post.",
   "alternativeApproaches": [
