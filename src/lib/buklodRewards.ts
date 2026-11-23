@@ -71,6 +71,11 @@ async function invalidateMyPointsCache() {
   }
 }
 
+/** Force refetch after server-to-server AdMob reward credits. */
+export async function invalidateBuklodPointsAccountCache(): Promise<void> {
+  await invalidateMyPointsCache();
+}
+
 function toNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
