@@ -68,8 +68,9 @@ export default function ChildrenStoryReader() {
   // Reading start is recorded on the server, without child personal data.
   useEffect(()=>{
     if(!id||!user?.id)return;
-    void (supabase as any).rpc('begin_my_children_story_v4',{p_story_id:id})
-      .catch(()=>undefined); // Older runtimes/migrations retain normal reading.
+    void (async()=>{try{
+      await (supabase as any).rpc('begin_my_children_story_v4',{p_story_id:id});
+    }catch{/* On unverified backend, reading remains available. */}})();
   },[id,user?.id]);
   useEffect(()=>{stop()},[language,page,quiz,questionIndex,stop]);
   const lesson=getSundaySchoolLesson(story);
@@ -254,6 +255,11 @@ export default function ChildrenStoryReader() {
             <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF"/>
           </Pressable>}
       </View>
+      <Pressable accessibilityRole="button" onPress={()=>
+        router.push({pathname:'/children-stories/teach',params:{storyId:story.id}} as any)}
+        style={styles.mainButton}>
+        <Text style={styles.buttonText}>REPORT TEACHING SESSION · +10 BP</Text>
+      </Pressable>
       {rewardNotice?<Text accessibilityLiveRegion="polite" style={[styles.tip,bedtime&&styles.light]}>{rewardNotice}</Text>:null}
       {quiz&&finishQuiz&&lastQuestion&&complete&&rewardNotice&&!rewardNotice.includes('earned!')&&!rewardNotice.includes('Nakuha na')?
         <Pressable accessibilityRole="button" accessibilityState={{busy:rewardBusy}} disabled={rewardBusy}
