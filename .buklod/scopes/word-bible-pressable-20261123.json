@@ -11,7 +11,8 @@
     "Other validated Bible references including numbered books parse correctly; invalid references do not navigate to an incorrect chapter.",
     "Word paraphrase, reflection, offline cache, auth, ads and existing buttons remain intact.",
     "TypeScript, navigation, ads, compact spacing, and source QA must pass before any staging OTA.",
-    "No production release or OTA by merging this feature branch."
+    "No production release or OTA by merging this feature branch.",
+    "Bible navigation legacy regression assertions are aligned with their current extracted QuickLinks component and narration visibility while retaining all reader checks."
   ],
   "preserveBehaviors": [
     "Devotionals are read account-scoped from their existing authorized online/offline sources.",
@@ -34,7 +35,8 @@
   "regressionTests": [
     "tests/word-scripture-link-20261123.test.cjs",
     "tests/word-bible-navigation-20261123.test.cjs",
-    "tests/word-staging-ota-release-20261123.test.cjs"
+    "tests/word-staging-ota-release-20261123.test.cjs",
+    "tests/bible-navigation.test.cjs"
   ],
   "allowedPaths": [
     "src/app/devotional/[id].tsx",
@@ -43,7 +45,8 @@
     ".buklod/scopes/word-bible-pressable-20261123.json",
     "tests/word-bible-navigation-20261123.test.cjs",
     ".github/workflows/buklod-word-staging-ota-20261123.yml",
-    "tests/word-staging-ota-release-20261123.test.cjs"
+    "tests/word-staging-ota-release-20261123.test.cjs",
+    "tests/bible-navigation.test.cjs"
   ],
   "publicationStatus": "PENDING_VERIFIED_STAGING_OTA",
   "releaseMode": "staging-ota-candidate",
@@ -67,7 +70,8 @@
         "The existing Bible translations, passage highlight, personal study/notes, faith authorization, and Daily Reading completion remain intact."
       ],
       "tests": [
-        "tests/word-bible-navigation-20261123.test.cjs"
+        "tests/word-bible-navigation-20261123.test.cjs",
+        "tests/bible-navigation.test.cjs"
       ]
     },
     {

@@ -90,6 +90,7 @@ jobs:
               if(n===71)throw Error('Missing CI evidence; no OTA');
               await new Promise(resolve=>setTimeout(resolve,10000));
             }
+      # Existing Bible navigation tests now inspect the current extracted Wall quick-link component.
       - name: Focused faith/nav/AdMob tests and Android typecheck
         shell: bash
         run: |
