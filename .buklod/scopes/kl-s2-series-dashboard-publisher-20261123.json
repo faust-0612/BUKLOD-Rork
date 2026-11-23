@@ -1,5 +1,5 @@
 {
-  "contractVersion": 1,
+  "contractVersion": 2,
   "objective": "Season 2 KL reader-first dashboard and full admin-to-reader series preparation without changing live Season 1 or authorizing an OTA",
   "branch": "dev/kl-s2-series-dashboard-publisher-20261123",
   "baseRef": "9f19e21f7e85d59fa3204cb5be1e23c07d792c74",
@@ -16,7 +16,8 @@
     "supabase/migrations/20261123203000_kl_s2_series_dashboard_catalog.sql",
     "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs",
     ".github/workflows/buklod-kl-s2-sequential-source-qa-20261119.yml",
-    ".buklod/scopes/kl-s2-series-dashboard-publisher-20261123.json"
+    ".buklod/scopes/kl-s2-series-dashboard-publisher-20261123.json",
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs"
   ],
   "preserveBehaviors": [
     "Season 1 legacy reader and existing released chapter view remains available under Dashboard->Series 1",
@@ -44,6 +45,32 @@
   ],
   "regressionTests": [
     "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs",
-    "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs"
+    "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs",
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Change KL entry to reader dashboard, preserve existing Season 1, introduce series-filtered chapters and an admin publisher interface.",
+      "preservedBehaviors": [
+        "Current Season 1 released reader and original admin approval, quiz, media and audio flow remain available",
+        "No existing AdMob, Wall, Connect, native, or non-KL app screens are altered"
+      ],
+      "tests": [
+        "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add secure private editorial series metadata and a released-only public read catalog while preserving authorizations.",
+      "preservedBehaviors": [
+        "Drafts, unapproved series, unpublished manuscripts and private media never reach the public series catalog",
+        "Admin-only table/RPC access remains active-system-admin role checked",
+        "Existing Season 2 sequential server progression and migration hold remain unchanged"
+      ],
+      "tests": [
+        "tests/kl-s2-sequence-database-security-20261119.test.mjs"
+      ]
+    }
   ]
 }
