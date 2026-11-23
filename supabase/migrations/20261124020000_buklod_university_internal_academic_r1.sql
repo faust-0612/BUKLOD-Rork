@@ -247,13 +247,22 @@ $$;
 -- Hard gates: no award solely from sufficient UC; independently verified competency evidence is mandatory.
 create or replace function public.buklod_university_evaluate_my_awards_v1()
 returns integer language plpgsql security definer set search_path='' as $$
-declare actor uuid := (select auth.uid()); c record; total_uc integer; issued integer:=0; inserted uuid;
+declare actor uuid := (select auth.uid()); c record; total_uc integer; devotional_uc integer; research_uc integer; eligible_uc integer; issued integer:=0; inserted uuid;
 begin
  if actor is null then raise exception 'Authentication required' using errcode='42501';end if;
  if not exists(select 1 from public.buklod_university_config where singleton and enabled) then return 0;end if;
- select coalesce(sum(uc),0)::integer into total_uc from public.buklod_university_uc_ledger where user_id=actor;
+ select coalesce(sum(uc),0)::integer,
+  coalesce(sum(uc) filter(where source_module in ('daily_reading','word')),0)::integer,
+  coalesce(sum(uc) filter(where source_module='saliksik_research'),0)::integer
+ into total_uc,devotional_uc,research_uc
+ from public.buklod_university_uc_ledger where user_id=actor;
  for c in select * from public.buklod_university_credentials where active order by min_uc,code loop
-  if total_uc < c.min_uc then continue; end if;
+  eligible_uc:=total_uc;
+  if c.tier<>'certificate' then
+   eligible_uc:=total_uc-greatest(devotional_uc-floor(c.min_uc*0.20)::integer,0)
+    -greatest(research_uc-floor(c.min_uc*0.25)::integer,0);
+  end if;
+  if eligible_uc < c.min_uc then continue; end if;
   if not exists(select 1 from public.buklod_university_credential_evidence e
     where e.user_id=actor and e.credential_code=c.code and e.status='VERIFIED') then continue;end if;
   if exists(select 1 from unnest(c.prerequisites) required
@@ -261,7 +270,7 @@ begin
       where a.user_id=actor and a.credential_code=required and a.status='ISSUED')) then continue;end if;
   inserted:=null;
   insert into public.buklod_university_awards (user_id,credential_code,qualifying_uc)
-   values(actor,c.code,total_uc) on conflict(user_id,credential_code) do nothing returning id into inserted;
+   values(actor,c.code,eligible_uc) on conflict(user_id,credential_code) do nothing returning id into inserted;
   if inserted is not null then issued:=issued+1;end if;
  end loop;
  return issued;
