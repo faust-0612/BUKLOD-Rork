@@ -64,8 +64,7 @@
     "tests/connect-call-ads-safety-20261123.test.mjs",
     "tests/connect-call-feedback-20261123.test.mjs",
     "tests/genesis-205-conso-staging-20261123.test.mjs",
-    "tests/short-video-comment-navigation-scope.test.mjs",
-    "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+    "tests/short-video-comment-navigation-scope.test.mjs"
   ],
   "acceptanceChecks": [
     "Require exact-head TS, source/Node regression, Android JS Metro export, protected engineering and ads/tab navigation gates.",
