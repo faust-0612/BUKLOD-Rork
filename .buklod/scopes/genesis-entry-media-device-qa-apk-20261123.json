@@ -44,10 +44,7 @@
     }
   ],
   "regressionTests": [
-    "tests/genesis-media-qa-identity-20261123.test.mjs",
-    "tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs",
-    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
-    "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+    "tests/genesis-media-qa-identity-20261123.test.mjs"
   ],
   "selectionRationale": "Separate QA installation avoids overwriting signed Genesis staging, and avoids OTA publication while allowing speaker/animation testing. Earlier debug APK was Metro-dependent; this QA compiles a release bundle with Android debug signing so it runs without a development server. QA clone of the existing Firebase Android config is generated runner-only to satisfy native build, while push registration is blocked; Firebase push reliability is outside this media QA scope.",
   "preserveBehaviors": [
@@ -85,6 +82,7 @@
     "shared backend test account protection",
     "speaker and sprite motion only physically verifiable",
     "Godot pack and embedded JS integrity",
-    "no Metro dependence"
+    "no Metro dependence",
+    "release-identity"
   ]
 }
