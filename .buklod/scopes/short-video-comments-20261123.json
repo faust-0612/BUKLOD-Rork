@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/short-video-comments-20261123.json",
+  "objective": "Private 30s / 25MB videos in Public and scoped Community Wall comments and replies.",
+  "baseRef": "7b224c39624827282c3cbf003060317045b0a73f",
+  "productionBaselineEvidence": "GitHub main source baseline only; no verified live runtime.",
+  "chosenApproach": "Extend versioned comment attachment tag; reuse existing private Supabase upload/signed media, lazy Expo Video.",
+  "preserveBehaviors": [
+    "Existing text/photo/GIF comments, replies, moderation",
+    "Existing scoped RLS, private media and navigation",
+    "AdMob and other Wall video playback"
+  ],
+  "acceptanceChecks": [
+    "Duration/size validated before upload",
+    "Public/scoped upload paths remain private",
+    "Manual playback and signed URL retry",
+    "No new native modules or production OTA"
+  ],
+  "regressionTests": [
+    "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodCommentMediaBody.ts",
+    "src/lib/buklodCommentVideo.ts",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommentVideoAttachment.tsx",
+    "src/components/BuklodCommunityCommentPreview.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/lib/__tests__/buklodCommentShortVideo.test.ts",
+    ".buklod/scopes/short-video-comments-20261123.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "wall-media",
+      "reason": "Private short video comments",
+      "preservedBehaviors": [
+        "Video, ads, media URLs, moderation"
+      ],
+      "tests": [
+        "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV review only",
+  "publicationStatus": "SOURCE_ONLY_NO_OTA"
+}
