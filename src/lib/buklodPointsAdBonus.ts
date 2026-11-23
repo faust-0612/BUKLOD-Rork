@@ -68,3 +68,10 @@ export async function waitForBuklodAdBonus(nonce: string): Promise<boolean> {
   }
   return false;
 }
+
+/** Abandon a non-earned ad session. Safe to call more than once. */
+export async function cancelBuklodAdBonus(nonce: string): Promise<void> {
+  await (supabase as any).rpc(
+    'cancel_my_buklod_ad_points_bonus_v1', { p_nonce: nonce },
+  );
+}
