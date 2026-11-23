@@ -18,6 +18,7 @@ const referral=read('src/lib/buklodRewards.ts');
 const money=read('src/app/bayanihan/index.tsx');
 const language=read('src/app/preferences/language.tsx');
 const profile=read('src/app/(tabs)/me.tsx');
+const settings=read('src/app/settings/index.tsx');
 const ledger=read('src/lib/buklodEconomyLedger.ts');
 const points=read('src/components/points/BuklodPointsRewardsScreen.tsx');
 const klMigration=read('supabase/migrations/20261109040000_kl_reader_time_count_reconciliation.sql');
@@ -72,8 +73,8 @@ test('Sharing exposes canonical code with safely deduped historical invitations,
   assert.match(resolver,/canonical_referral_code/);
   assert.doesNotMatch(referralMigration,/insert into private\.buklod_pf_referrals/i);
 });
-test('Language is under Profile, not Economy, and only approved packs are selectable',()=>{
-  assert.match(profile,/title="App Language"/);
+test('Language is in Settings, not Economy, and only approved packs are selectable',()=>{
+  assert.match(settings,/route: '\/preferences\/language'/);
   assert.match(language,/availableLanguages\.map/);
   assert.match(language,/setPreference\(code\)/);
   assert.doesNotMatch(money,/router\.push\('\/preferences\/language'/);
