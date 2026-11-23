@@ -12,9 +12,9 @@ test('ad opportunities are server-success breaks, never required to claim or sub
   const chapter = source('src/components/kabihasnang-ligaw/KlReadingQuiz.tsx');
 
   const claimAt = points.indexOf('const result = await claimBuklodRewardGroup(group.group_key)');
-  const verifiedAt = points.indexOf('if (awarded <= 0)', claimAt);
-  const adAt = points.indexOf("await showBuklodAdOpportunity('points_claim_success')", verifiedAt);
-  assert.ok(claimAt >= 0 && verifiedAt > claimAt && adAt > verifiedAt,
+  const pointsVerifiedAt = points.indexOf('if (awarded <= 0)', claimAt);
+  const pointsAdAt = points.indexOf("await showBuklodAdOpportunity('points_claim_success')", pointsVerifiedAt);
+  assert.ok(claimAt >= 0 && pointsVerifiedAt > claimAt && pointsAdAt > pointsVerifiedAt,
     'interstitial must follow a positive authoritative group claim');
   assert.doesNotMatch(points, /CLAIM ALL|__buklod_claim_all_eligible__|claimAll\\s*=/i);
   assert.ok(devotional.indexOf("'complete_my_devotional_v2'") < devotional.indexOf("await showBuklodAdOpportunity('devotional_reflection_success')"));
