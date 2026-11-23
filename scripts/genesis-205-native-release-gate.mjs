@@ -20,9 +20,15 @@ assert.equal(profile.channel,'season2-genesis-library-205-preview');
 assert.equal(profile.autoIncrement,false);
 assert.equal(profile.android.credentialsSource,'remote');
 assert.equal(profile.android.buildType,'apk');
-assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_URL,'https://yhanxndaqbmuzbdqlblu.supabase.co');
-assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  eas.build['season2-genesis-preview'].env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+// Fail before expensive native builds if Genesis could touch MAIN data.
+const mainBackend='https://yhanxndaqbmuzbdqlblu.supabase.co';
+const genesisBackend=profile.env.EXPO_PUBLIC_SUPABASE_URL;
+assert.ok(/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(genesisBackend||''), 'BLOCK: isolated Genesis backend URL missing');
+assert.notEqual(genesisBackend,mainBackend,'BLOCK: Genesis points at MAIN production backend');
+assert.ok(profile.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,'BLOCK: isolated Genesis backend key missing');
+assert.notEqual(profile.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  eas.build['season2-genesis-preview'].env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  'BLOCK: Genesis reuses MAIN backend key');
 assert.equal(eas.cli.appVersionSource,'local');
 const saved=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
 let cfg;
@@ -34,7 +40,8 @@ try{
     if(value===undefined)delete process.env[key];else process.env[key]=value;
   }
 }
-assert.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+assert.notEqual(cfg.android.package,'org.mzbministry.buklod.staging','BLOCK: Genesis would replace existing staging');
+assert.notEqual(cfg.android.package,'org.mzbministry.buklod','BLOCK: Genesis would replace production');
 assert.equal(cfg.android.versionCode,17);
 assert.equal(cfg.runtimeVersion,'2.0.5-genesis-godot-launch');
 assert.equal(cfg.version,'2.0.5');
