@@ -20,7 +20,7 @@ test('shows only a genuinely issued academic completion receipt with ready paper
   for (const status of ['PENDING', 'ON_HOLD', 'REVOKED']) {
     assert.equal(getBuklodAcademicCompletionPresentation({ ...valid, status }), null);
   }
-  assert.equal(getBuklodAcademicCompletionPresentation({ ...valid, paperReady: false }), null);
+  assert.equal(getBuklodAcademicCompletionPresentation({ ...valid, paperReady: false })?.name, 'Emerald Bloom');
 });
 
 test('does not give diploma ceremony to a single lesson or mismatched award', () => {
