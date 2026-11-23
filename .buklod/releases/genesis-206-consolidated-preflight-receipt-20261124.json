@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "environment": "GENESIS_DEV_ONLY",
+  "outcome": "PARTIALLY_COMPLETE_WITH_EXPLICIT_BLOCKERS",
+  "stagingOtaPublished": false,
+  "productionChanged": false,
+  "androidApkBuilt": false,
+  "source": {
+    "branch": "dev/genesis-206-private-library-import-gate-20261124",
+    "headBeforeReceipt": "070216ceb09931439494f0a5a31fcf7d6ac7a0a4",
+    "mainIntegratedViaManualMerge": "fe3c4e5d19e2161531a980cfc1f51491ee19866a",
+    "mainHead": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+    "productionMainChangedPaths": 94,
+    "identicalBlobs": 86,
+    "reviewedNewerGenesisVariations": 8,
+    "reconciliationAudit": ".buklod/reconciliations/genesis-206-mainline-carryover-20261124.json",
+    "noExpoNativeHostIntegratedFrom": "ba971ed0a30cce0ddb43157c420940fbb4792456",
+    "nativeHostFilesImported": 26
+  },
+  "regressions": {
+    "githubActionsRun": 45235534758,
+    "sourceTestCases": 66,
+    "passed": 65,
+    "skipped": 1,
+    "failed": 0,
+    "assertion": "Source-only CI; no compiled Android and no device acceptance",
+    "legacyArenaWorkflowMalformedTailFixed": true,
+    "legacyGenesis204YamlColonLabelFixed": true,
+    "legacyWorkflowBuildNotRevalidated": true
+  },
+  "candidate": {
+    "title": "BUKLOD Genesis 2.0.6 original owner private FX + verified CC0 Godot content",
+    "file": "BUKLOD-Genesis-206-consolidated-private-FX-DEV-candidate-20261124.zip",
+    "sha256": "d690cbab55010a58273a478984ec5aa787310634bdee04a050bded13de4c7a32",
+    "bytes": 54631620,
+    "public3dModels": 22,
+    "riggedPublicActors": 2,
+    "recordingBasedSoundCues": 70,
+    "privateFxAtlases": 48,
+    "privateFxFrames": 925,
+    "privateGlbApprovedToDistribute": 0,
+    "fullPremiumGameplayVerified": false,
+    "engine": "Godot 4.7.2"
+  },
+  "native": {
+    "sourceFolder": "native-genesis/",
+    "applicationId": "org.mzbministry.buklod.genesis.nativeapp",
+    "isSeparateFromOriginalStaging": true,
+    "installedOriginalStagingPackage": "org.mzbministry.buklod.staging",
+    "fullExpoFreeBUKLODApp": false,
+    "sourceExists": true,
+    "compiledReleaseApk": false,
+    "backendIsolationValidated": false,
+    "requiredAsset": "assets/godot/empire-arena.pck",
+    "actualReviewedCandidate": "Godot ZIP, not exported or installed PCK"
+  },
+  "blockingGates": [
+    "Full app-native parity (auth, Wall, Connect/PTT, Cluster, Profile, Bible, ads, rewards, offline, 39 Kingdom games) not migrated and device tested",
+    "No locally compiled/signed 800 MB+ genuine Android APK; no padding/placeholder assets permitted",
+    "Private vendor 3D licenses/OTA redistribution permissions lack independent clearance; preserve local source only",
+    "Exact Godot 4.7.2 packed .pck export, Android load and relaunch recovery untested",
+    "Native/test backend isolation evidence unavailable; never connect new native build to live MAIN by default",
+    "AdMob first-view/navigation speed/content spacing and audio focus regression not verified on physical Android",
+    "No production OTA/Play publish, no staging OTA publish, no real app download/rollback proof"
+  ],
+  "releasePolicy": {
+    "gate": "scripts/genesis-206-unified-native-ota-gate.mjs",
+    "target": "local-native-NO_EXPO",
+    "result": "BLOCKED_BEFORE_RELEASE",
+    "ownerDeviceProofRequired": true,
+    "ownerVisualAcceptanceRequired": true,
+    "noNetworkBuild": true,
+    "noProductionAnnouncement": true
+  },
+  "manualCommands": [
+    "node --test tests/genesis-206-mainline-carryover-audit-20261124.test.mjs tests/genesis-206-unified-native-ota-gate-20261124.test.mjs",
+    "node scripts/genesis-206-unified-native-ota-gate.mjs",
+    "bash native-genesis/prepare-pack-local.sh   # only after real Godot 4.7.2 preset & approved assets exist",
+    "bash native-genesis/build-local.sh   # only after full parity, isolated backend, local Android toolchain and authorized signing"
+  ]
+}
