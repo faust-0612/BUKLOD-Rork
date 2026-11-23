@@ -29,6 +29,7 @@
   ],
   "allowedPaths": [
     ".buklod/scopes/genesis-205-conso-staging-20261123.json",
+    ".github/workflows/genesis-205-conso-source-qa-20261123.yml",
     "docs/releases/GENESIS_205_CONSO_STAGING_INTAKE_20261123.md",
     "src/app/(tabs)/buklod.tsx",
     "src/app/post/[id].tsx",
@@ -109,6 +110,17 @@
       ],
       "tests": [
         "tests/connect-call-ads-safety-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Shared Cluster/Scope Community route owner privacy and delete actions must preserve organization membership boundaries, audience and faith scope.",
+      "preservedBehaviors": [
+        "Cluster-only posts stay inside authorized Cluster membership; scoped privacy and Media RLS remain unchanged.",
+        "Faith lessons and member-specific content are unaffected by public Wall owner UI changes."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
       ]
     }
   ],
