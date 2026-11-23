@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
-          node --test tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs tests/genesis-godot-game-runtime-guard-20261123.test.mjs tests/genesis-library-native-runtime-release-20261122.test.mjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
+          node --test tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs tests/genesis-godot-game-runtime-guard-20261123.test.mjs tests/genesis-godot-game-release-identity-20261123.test.mjs tests/genesis-library-native-runtime-release-20261122.test.mjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/ad-dashboard-focus-performance-20261116.test.mjs
           npm run release:gate
           npm run genesis:theme:gate
           npx tsc --noEmit
