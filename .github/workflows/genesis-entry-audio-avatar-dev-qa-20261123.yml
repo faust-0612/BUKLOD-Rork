@@ -1,0 +1,35 @@
+name: Genesis Entry Music and Animated Avatar DEV QA (No OTA)
+on:
+  pull_request:
+    paths:
+      - 'src/features/season2/genesis/**'
+      - 'src/app/buklod-map.tsx'
+      - 'src/features/season2/world/BuklodMapGuideDock.tsx'
+      - 'assets/sounds/buklod-genesis-opening-20261120.wav'
+      - 'tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs'
+      - '.github/workflows/genesis-entry-audio-avatar-dev-qa-20261123.yml'
+permissions:
+  contents: read
+jobs:
+  source-and-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Real asset and focus-gated audio/avatar regressions
+        run: node --test tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs
+      - name: Existing dependency install for TypeScript proof
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Full TypeScript source validation
+        run: npx tsc --noEmit
+      - name: Explicit DEV-only release boundary
+        run: echo 'No Android APK, staging OTA, Play Store or production publication.'

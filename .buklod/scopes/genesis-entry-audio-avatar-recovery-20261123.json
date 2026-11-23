@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-entry-audio-avatar-recovery-20261123.json",
+  "objective": "Restore BUKLOD Genesis entry music playback and genuine framed character/guide motion in isolated DEV without weakening production boundaries.",
+  "baseRef": "dev/genesis-unified-arena-library-apk-20261122",
+  "chosenApproach": "Reuse original repo-vendored WAV and Godot 13x8-frame hero sprite art, retain Rive approval registry and verified auth/consent/audio-focus policy, release no OTA.",
+  "allowedPaths": [
+    "assets/sounds/buklod-genesis-opening-20261120.wav",
+    "src/app/buklod-map.tsx",
+    "src/features/season2/genesis/GenesisApprovedEntryMap.tsx",
+    "src/features/season2/genesis/GenesisCinematicStartup.tsx",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "src/features/season2/genesis/GenesisReliablePortraitImage.tsx",
+    "src/features/season2/genesis/GenesisRiveCharacter.native.tsx",
+    "src/features/season2/genesis/genesisStartupVisibility.ts",
+    "src/features/season2/genesis/useGenesisEntryAudio.ts",
+    "src/features/season2/world/BuklodMapGuideDock.tsx",
+    "tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs",
+    ".buklod/scopes/genesis-entry-audio-avatar-recovery-20261123.json",
+    ".github/workflows/genesis-entry-audio-avatar-dev-qa-20261123.yml"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Limit display and media repair to preview world and Kingdom surfaces while preserving complete native engine, network/auth protections and all operating feature routes.",
+      "preservedBehaviors": [
+        "BUKLOD production package, current app runtime and ads/navigation code untouched",
+        "No entry sound starts before authentication, consent and visual opening completion",
+        "PTT/call/video/ad audio focus wins and stops local opening music",
+        "No identity or character progression/reward writes; selected character art renders only while focused",
+        "Reduced Motion and Android foreground/background pause animations",
+        "Fallback approved portrait stays usable even when its JPEG decode fails"
+      ],
+      "tests": [
+        "tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs"
+  ],
+  "productionBaselineEvidence": "Existing live BUKLOD MAIN production runtime 1.3.2 and production package org.mzbministry.buklod remain unaffected. This is based on 2026-11-22 isolated Genesis staging source dev/genesis-unified-arena-library-apk-20261122; no signed device validation of this repair or current-main cumulative parity has been performed.",
+  "acceptanceChecks": [
+    "Run offline source and asset regression test against this branch exact HEAD",
+    "TypeScript compile and Android Metro visual bundling required for RC",
+    "Physical Infinix Android device confirms original entry cue, PTT interruption, quiet-hours policy and no intro/map sound overlap",
+    "Observe approved portrait + guide and 13 actual sprite animations without clipping, stutter or static substitution",
+    "Reconcile other approved DEV, mainline and PTT audio changes before consolidated staging RC",
+    "Verify AdMob first-view load, instant tab navigation and background media lifecycle",
+    "Device build/OTA runtime compatibility and signed RC required before any staging OTA"
+  ],
+  "releaseMode": "DEV_ONLY_NO_PRODUCTION_OR_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "otaPublished": false,
+  "productionOtaAuthorized": false,
+  "riskAreas": [
+    "entry/audio-focus",
+    "Android codec support",
+    "map visibility handoff",
+    "image decoder fallback",
+    "expo asset bundling",
+    "hero sprite frame budget"
+  ]
+}
