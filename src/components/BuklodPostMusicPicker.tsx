@@ -14,8 +14,8 @@ type Props={
  onSelect:(track:BuklodPostMusicTrack|null,startSeconds:number,durationSeconds:number)=>void;
  onPreview:(track:BuklodPostMusicTrack,startSeconds:number,durationSeconds:number)=>void;
  onScrub:(track:BuklodPostMusicTrack,startSeconds:number,durationSeconds:number)=>void;
- musicVolume:number;videoVolume:number;videoPreviewUri?:string|null;
- onVolumeChange:(musicVolume:number,videoVolume:number)=>void;
+ musicVolume?:number;videoVolume?:number;videoPreviewUri?:string|null;
+ onVolumeChange?:(musicVolume:number,videoVolume:number)=>void;
  onClose:()=>void;
 };
 function AudioMixSlider({label,value,onChange}:{label:string;value:number;onChange:(volume:number)=>void}){
@@ -56,7 +56,7 @@ function AudioMixSlider({label,value,onChange}:{label:string;value:number;onChan
 export default function BuklodPostMusicPicker({
  visible,selectedId,selectedTrack,previewId,previewPlaying,previewDurationSeconds,
  clipStartSeconds,clipDurationSeconds,onClipChange,onSelect,onPreview,onScrub,
- musicVolume,videoVolume,videoPreviewUri,onVolumeChange,onClose,
+ musicVolume=1,videoVolume=1,videoPreviewUri,onVolumeChange,onClose,
 }:Props){
  const insets=useSafeAreaInsets();
  const [search,setSearch]=useState('');
@@ -193,7 +193,7 @@ export default function BuklodPostMusicPicker({
            {previewId===currentTrack.id&&previewPlaying?'Pause preview':'▶ Preview selected 30s loop'}
          </Text>
        </Pressable>}
-       {!!currentTrack&&<View style={{borderWidth:1,borderColor:'#d5e7dc',borderRadius:10,
+       {!!currentTrack&&!!onVolumeChange&&<View style={{borderWidth:1,borderColor:'#d5e7dc',borderRadius:10,
          paddingHorizontal:9,paddingVertical:5,marginBottom:5}}>
          <Pressable accessibilityRole="button" accessibilityLabel="Adjust video and music volume"
            onPress={()=>setMixerOpen(v=>!v)} style={{flexDirection:'row',justifyContent:'space-between',minHeight:31,alignItems:'center'}}>
