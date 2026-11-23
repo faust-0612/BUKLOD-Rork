@@ -76,7 +76,7 @@ begin
  if p_photo_storage_path is null or
     pg_catalog.left(p_photo_storage_path,char_length(v_user::text)+1)<>v_user::text||'/' or
     p_photo_storage_path like '%..%' or
-    lower(p_photo_storage_path) !~ '\.(jpg|jpeg|png|webp) then
+    lower(p_photo_storage_path) !~ '\.(jpg|jpeg|png|webp)$' then
    raise exception 'Upload a private JPEG/PNG/WebP evidence photo first';
  end if;
  if not exists(select 1 from storage.objects o
