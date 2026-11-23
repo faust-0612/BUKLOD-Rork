@@ -36,7 +36,9 @@
   "regressionTests": [
     "tests/wall-music-mixer-scrub-20261123.test.mjs",
     "tests/wall-music-security-navigation-20261123.test.mjs",
-    "supabase/tests/buklod_post_audio_mix_v1.sql"
+    "supabase/tests/buklod_post_audio_mix_v1.sql",
+    "tests/wall-media-navigation-polish-20261108.test.mjs",
+    "tests/wall-post-music-motion-contract.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodPostMusicPicker.tsx",
@@ -50,7 +52,9 @@
     "tests/wall-music-mixer-scrub-20261123.test.mjs",
     "tests/wall-music-security-navigation-20261123.test.mjs",
     ".buklod/scopes/wall-music-live-mix-20261123.json",
-    "supabase/tests/buklod_post_audio_mix_v1.sql"
+    "supabase/tests/buklod_post_audio_mix_v1.sql",
+    "tests/wall-media-navigation-polish-20261108.test.mjs",
+    "tests/wall-post-music-motion-contract.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -72,7 +76,9 @@
       ],
       "tests": [
         "tests/wall-music-mixer-scrub-20261123.test.mjs",
-        "tests/wall-music-security-navigation-20261123.test.mjs"
+        "tests/wall-music-security-navigation-20261123.test.mjs",
+        "tests/wall-media-navigation-polish-20261108.test.mjs",
+        "tests/wall-post-music-motion-contract.test.mjs"
       ]
     },
     {
@@ -82,7 +88,8 @@
         "Tab navigation, authentication, post audience scope and on-blur resource cleanup preserved."
       ],
       "tests": [
-        "tests/wall-music-security-navigation-20261123.test.mjs"
+        "tests/wall-music-security-navigation-20261123.test.mjs",
+        "tests/wall-media-navigation-polish-20261108.test.mjs"
       ]
     },
     {
