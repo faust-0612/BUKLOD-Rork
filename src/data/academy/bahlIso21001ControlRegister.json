@@ -678,5 +678,17 @@
       "verified_until": null,
       "note": "An actual human-approved, traceable, current record is required; templates/source code alone are not conformity evidence."
     }
-  ]
+  ],
+  "human_oversight_policy": {
+    "institutional_role": "Academy Founder/Director, human facilitator, curriculum and rubric controller; MZB designation verification pending",
+    "per_learner_manual_approval": false,
+    "curriculum_publication": "Owner-controlled authenticated versioning; preserve published source evidence and change history",
+    "learner_evaluation": "Fully automated source/rubric checks for routine lessons and research, with no admin grade override",
+    "advanced_capstone": "Independent second automated AI invocation; disagreement -> REWORK, no UC",
+    "fallback": "Unverifiable assessment remains PENDING/REWORK, preserving draft and idempotency",
+    "operational_governance": "Read-only quality dashboard, aggregate KPI metrics, source quality alerts, policy control and management review",
+    "independent_iso_audit_still_required": true,
+    "no_false_human_signatures": true,
+    "deployment_scope": "DEV_ONLY_NO_MAIN_DB_OR_OTA"
+  }
 }

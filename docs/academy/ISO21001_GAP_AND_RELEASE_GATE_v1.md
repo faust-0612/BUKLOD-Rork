@@ -6,13 +6,13 @@ This simplified map uses general ISO 21001 EOMS themes and must be verified agai
 
 | EOMS area | Reusable BUKLOD evidence | Current gap / safe action | Status |
 |---|---|---|---|
-| Organization, scope and learner needs | Existing BUKLOD modules/organization, quality manual draft | Approve MZB scope, designate executive and learner/guardian stakeholder analysis | DRAFT |
-| Leadership, quality policy and competence | System Admin and curriculum control ideas | Written delegation and qualified independent academic reviewers, policy approval | MISSING_APPROVAL |
+| Organization, scope and learner needs | Existing BUKLOD modules/organization, quality manual draft | Approve MZB scope, document owner oversight authority and learner/guardian stakeholder analysis | DRAFT |
+| Leadership, quality policy and competence | System Admin and curriculum control ideas | Founder/Director policy and rubric authority; independent auditor only for actual quality audit | MISSING_APPROVAL |
 | Educational objectives / design | 53-code catalog, published source modules | Confirm all 53 profile-to-real-source IDs, learning outcomes, rubric versions and curriculum approval | PARTIAL |
 | Learner admission, progression and evaluation | Source events, formation gates, pilot UC backend | Test authenticated outcomes, exception handling, accommodations and accurate prerequisites | PARTIAL_DEV_ONLY |
 | Research and academic integrity | SALIKSIK separate DEV work | Integrate only when reviewed evidence, original writing and citation/defense controls work | NOT_LIVE |
 | Credential records and privacy | DEV Academy registrar/paper function and source RLS | Run RLS/IDOR testing; protected signature/QR verifier; retention/privacy review | NOT_VERIFIED |
-| Performance, satisfaction and feedback | Existing BUKLOD feedback infrastructure | Establish academy-specific feedback/appeals and real KPI baseline | UNIMPLEMENTED |
+| Performance, satisfaction and feedback | Existing BUKLOD feedback infrastructure | Establish academy-specific feedback/automated appeals/rework, source feedback and real KPI baseline | UNIMPLEMENTED |
 | Internal audit and management review | Blank forms in this pack | Assign impartial human auditor, perform actual operations audit, documented management review | NOT_PERFORMED |
 | Corrective actions / continual improvement | Existing issue/test engineering workflow | Operate CAPA register and prove effectiveness with real cases | NOT_PERFORMED |
 | Legal representation | MZB organization and proposed name | Verify corporate purposes, legal use of 'Academy of Higher Learning', privacy requirements, disclaimers | PENDING_COUNSEL |
@@ -21,7 +21,7 @@ This simplified map uses general ISO 21001 EOMS themes and must be verified agai
 
 **Gate 0 — Desktop DEV documentation (this pack):** draft policy, 53 pathway crosswalk, approved 16 competency taxonomy; no student UC, no DB or OTA. 
 
-**Gate 1 — Designation and mapping:** approve governance owner, human academic reviewer and data privacy contact; reconcile actual published source IDs and curriculum versions for three pilot courses C-S01, C-D01 and C-F01; approve their rubrics and outcome measures. Do not assert approval if not signed.
+**Gate 1 — Designation and mapping:** record Founder/Director control, automated assessment owner and privacy contact; reconcile actual published source IDs and curriculum versions for three pilot courses C-S01, C-D01 and C-F01; approve their rubrics and outcome measures. Do not assert approval if not signed.
 
 **Gate 2 — Isolated technical QA:** verify staging-only backend and first-party source adapters, RLS tests, duplicate/negative event cases, award prerequisite graph, private certificate generation, child-data protection, rollback and safe feature flag. No Supabase MAIN schema migration or live effect during this gate.
 
@@ -38,3 +38,5 @@ This simplified map uses general ISO 21001 EOMS themes and must be verified agai
 - No actual internal audit or management review evidence but a 'fully ISO-compliant' claim is proposed.
 
 **Verified as of this document authoring:** Existing DEV feature and JSON catalog were inspected. The live MAIN inventory did not list the new academy-specific tables. No course approval, ISO audit, external certification, production migration, runtime QA or OTA occurred as part of this work.
+
+**Approval-queue prohibition (owner directive):** This project must not add human approval for individual curriculum progression, research scoring, UC issuance or completion certificates. Human Founder oversight operates through rule design, source publication and systemic quality monitoring, while authentic independent audit is a separate future ISO-readiness requirement.

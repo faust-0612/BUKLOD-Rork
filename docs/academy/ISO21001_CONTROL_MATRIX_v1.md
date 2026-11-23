@@ -58,3 +58,7 @@ For **each required control**, mark `VERIFIED` only after adding an accepted evi
 
 - ISO 21001:2025 standard information: https://www.iso.org/standard/21001
 - ISO/PAS 25171:2026 guidance for audits: https://www.iso.org/standard/89230.html
+
+## Owner-controlled automation amendment (24 November 2026)
+
+Owner is the actual Academy human oversight/facilitator, educational designer, controller and author of rubrics, **not** the person who must approve each learner. Source validation, grading, research review, UC accounting, credential eligibility, feedback and safe retries are automatic. Academy admin only monitors status and controls versions/policy. Audit-log entries demonstrate genuine events; no AI or owner self-audit may be passed off as an independent ISO audit. Genuine management review remains institutional accountability and does not create a student approval queue.

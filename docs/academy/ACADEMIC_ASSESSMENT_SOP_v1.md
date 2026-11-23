@@ -1,21 +1,21 @@
 # BAHL-SOP-001 — Verified Assessment, UC, Awards and Learner Protection
 
-**Status:** Pilot procedure draft | **Version:** 1.0 | **Quality owner:** designated human Academic Quality Lead (appointment pending).
+**Status:** Pilot procedure draft | **Version:** 1.0 | **Quality owner:** Founder/Director acting as facilitator, curriculum designer and rubric controller; actual MZB designation to be documented.
 
 ## A. Approve curriculum and publish it safely
 
 1. Identify existing canonical source lesson ID; compare the intended doctrine/practice with the published BUKLOD curriculum. Never introduce new required lessons to satisfy the Academy's 53 tracks.
-2. Human reviewer records learning outcomes, prerequisites, assessment rubric and accessibility options in a dated versioned approval record. AI may draft but does not authorize curriculum versions or change church doctrine.
+2. Founder/Director publishes auditable versioned learning outcomes, prerequisites, rubrics and accessibility options. AI can draft but cannot secretly revise the founder's published policies or canonical doctrine.
 3. Check source ownership/licensing, data protection, originality and published status. Reject unlicensed or unverifiable quoted content.
-4. Academic Council designates effective version; archive superseded text with traceable source ID; block auto-award where material changes are unresolved.
+4. Owner-controlled authenticated publication selects an effective version, archives the superseded source IDs and automatically checks that curriculum changes cannot create unverified awards.
 
 ## B. Assess and record competence
 
 1. Trust authenticated, server-owned source IDs only. Enforce authorization/RLS and publication version at the source adapter, not a button press or client grade.
-2. Evidence: correct user; published lesson/chapter/story; source ID/version; assessment result and rubric; review identity/time when necessary; unique event key. Incomplete submissions remain **pending**, not approved.
+2. Evidence: correct user; published lesson/chapter/story; source ID/version; assessment result and rubric; review identity/time when necessary; unique event key. Incomplete submissions remain pending or return actionable REWORK feedback; no manual approval queue.
 3. A server event idempotently settles UC into a distinct nonmonetary ledger. Preserve original BP, individual manual claims, QMP, ads, Character XP and other awards unchanged. Replays must produce no second credit.
 4. Calculate eligibility recursively: UC threshold, all direct prerequisites and independent exact-source gates. Devotional+Word and SALIKSIK caps apply to qualifying UC under approved canonical policy where required. An unverified source or unpublished 105/106/107 gate blocks graduation regardless of total UC.
-5. High-stakes SALIKSIK: independently check citations and exact context, originality, analysis and limitations against a published rubric; record a second check/decision and defense for advanced programs. Inconsistent/ambiguous cases go to human Academic Governance. A model rating alone never approves an advanced paper.
+5. High-stakes SALIKSIK: independently check citations and exact context, originality, analysis and limitations against a published rubric; record a second check/decision and defense for advanced programs. Advanced research requires a second separately invoked automatic adversarial rubric check. If verification fails, return REWORK or retryable PENDING; no UC or manual grading queue. A model rating alone never bypasses independent source, competency, capstone/defense requirements.
 
 ## C. Issue and verify completion papers
 
@@ -29,8 +29,8 @@
 
 - Offer concise explanations of 'What counted', 'What's missing', accessibility assistance and a protected appeal form accessible from the academy record.
 - Complaint record: case number, member, category, date, disputed source/rubric, supporting evidence, responsible reviewer, acknowledgement, decision, learner notice and resolution timestamp. Prefer a reviewer independent from original decision.
-- Set a documented SLA after human approval; proposed pilot: acknowledgement within five working days. No automatic penalty for filing an appeal.
-- If an error is confirmed, make a signed/audited correction event to UC/credential history; no fabricated backfill. Follow-up must test whether similar historical learners are affected.
+- Set an owner-defined and automatically monitored SLA; proposed pilot: acknowledgement within five working days. No automatic penalty for filing an appeal.
+- If a source error is deterministically confirmed, make an authenticated audited correction event to UC/credential history; no fabricated backfill. Follow-up must test whether similar historical learners are affected.
 - Permit accessibility accommodations without bypassing the same learning outcome and core assessment requirements. Protect minors and sensitive research. Publish retention periods only after privacy/legal approval.
 
 ## E. Source-specific essential tests
@@ -46,3 +46,11 @@
 9. Old credentials remain verifiable after curriculum revision; revocations and corrected awards auditable.
 
 **Operational rule:** No new production database object, Edge deployment, public Academy route or OTA is authorized by this procedure. A separate verified staging release must pass privacy, RLS, functionality, ad/navigation and source-completeness gates.
+
+## F. Fully automatic academic operations
+
+- Learner submits published assessment evidence; server performs authenticated source/policy checks, uniqueness checks, rubrics, idempotent UC settlement, prerequisite evaluation and issue/hold decisions without a person clicking Approve.
+- SALIKSIK submission triggers `buklod-academy-research-ai-v2` automatically; a saved `SUBMITTED` or `REVIEWING` record resumes upon Academy reopen or explicit retry, not as a second submission. `REWORK` supplies precise AI feedback and allows revising the same research ID.
+- High-stakes capstones invoke **two** separate automated model evaluations over authenticated canonical source excerpts. The lowest score applies, and disagreements return REWORK. This is not human peer-review or third-party plagiarism certification. Any service failure preserves pending work and awards zero UC.
+- Admin research oversight screen is read-only. The removed manual review RPC must remain dropped/revoked; do not implement human per-learner points, grade or completion approval.
+- Owner controls published policies and academic risk responses; monthly evidence-based management review is not an approval of individual students. When a source or model cannot substantiate a decision, prefer temporary no-credit + learner feedback over fabricated academic certification.

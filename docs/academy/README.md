@@ -25,3 +25,7 @@
 - Do not create new mandatory lessons; do not award for views, taps, ads, points balances, streaks, unreviewed writing or unverifiable activity.
 - Individual achievements do **not** get a diploma; completion documents are for verified academic program completions only, with authorized member transcript access.
 - Production Supabase, production OTA, external accreditation and actual credentials are outside this documentation work. Keep existing academy `enabled=false` and require reconciliation, privacy, security, test and Android release gates before staging/production rollout.
+
+## Zero-manual-approval operating policy
+
+The Academy Founder/Director is the human facilitator, operator, standards author and institution-wide quality controller. All routine student evaluation and credentials are automatic based on real published, versioned source evidence, automated rubrics and audit logs. The admin research screen is a read-only monitor and **must not** call the retired `buklod_academy_review_research_v1` manual approval RPC. Failure returns actionable REWORK or retryable pending; no fabricated UC. This policy does not eliminate evidence-based independent auditing or management reviews for any future ISO conformity claim.

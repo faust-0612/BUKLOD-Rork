@@ -1,6 +1,6 @@
 # BAHL-QM-001 — Educational Quality Manual (minimum ISO-aligned draft)
 
-**Document owner:** Academy Academic Governance under MZB Ministry Inc. | **Version:** 1.0 (draft) | **Date:** 2026-11-24 | **Approval:** NOT YET AUTHORIZED | **Reference:** ISO 21001:2025 (not reproduced here; a licensed standard and formal gap assessment remain necessary).
+**Document owner:** Founder/Director as accountable academic oversight under MZB Ministry Inc. | **Version:** 1.0 (draft) | **Date:** 2026-11-24 | **Approval:** NOT YET AUTHORIZED | **Reference:** ISO 21001:2025 (not reproduced here; a licensed standard and formal gap assessment remain necessary).
 
 ## 1. Context, interested parties and documented scope
 
@@ -21,10 +21,10 @@ Public documents must clearly say **independent non-formal learning completion, 
 | Function | Minimum accountable role | Evidence of appointment / limitation |
 |---|---|---|
 | Institutional policy and quality approval | MZB Ministry Inc. authorized executive | Written designation and approved quality policy **pending** |
-| Curriculum and doctrinal source control | Human Academic Quality Lead with named reviewers | Published source register, version approval; automated AI cannot self-approve doctrine |
+| Curriculum and doctrinal source control | Founder/Director (human facilitator, curricular designer and rubric controller) | Versioned founder-controlled course and rubric publication; automated learner evaluation |
 | Learning assessment and registrar | Server-based academic faculty/registrar under human governance | Immutable source event/UC ledger, independently reviewable outcomes, protected issuer |
-| Appeals, minors' data, safeguarding | Designated human reviewer and privacy officer/contact | Consent/complaint handling and access controls; appointments **pending** |
-| Internal audit | Person independent of work being audited where practical | Audit assignment, evidence, findings, impartiality declaration |
+| Appeals, minors' data, safeguarding | Automated learner support with accountable Founder/Director | Logged consent, complaint handling, source reconciliation and safeguards without per-learner approval |
+| Internal audit | Independent auditor at quality-audit stage; no learner-level approval | Impartial audit assignment, real evidence and findings; owner self-check alone does not prove ISO compliance |
 | Management review | MZB appointed accountable leader | Signed management review with dated actions and follow-up |
 
 The printed signatory line supplied for documents is **Faustino Jr M Gabut, PhD — Authorized Signatory, MZB Ministry Inc.** This text is *not* evidence of an actual signed paper or of a recorded organizational appointment.
@@ -33,7 +33,7 @@ The printed signatory line supplied for documents is **Faustino Jr M Gabut, PhD 
 
 1. **Plan:** register a course/program profile, approved outcome, source-specific syllabus, learning needs and accommodations, verified prerequisite ladder, published rubric/version and privacy basis.
 2. **Do:** learner studies the already published BUKLOD lesson or canonical Biblical text; server receives an authentic assessment or research artifact, with valid identity, consent and relevant source reference.
-3. **Check:** server checks source publication and assessment result; human academic governance handles disputes, originality and high-stakes research exceptions; registrar calculates UC and eligible credentials using exactly one canonical event, no BP changes.
+3. **Check:** server checks source publication and assessment result; automated source/rubric validation and second-pass advanced research checks return feedback or a retryable REWORK state; registrar calculates UC and eligible credentials using exactly one canonical event, no BP changes.
 4. **Act:** record learner feedback, nonconformity, corrective action, effectiveness review and versioned improvement; re-evaluate relevant source/learner effects without rewriting historical awards silently.
 
 ## 5. Objectives and measurement
@@ -42,7 +42,7 @@ Initial **targets only**, not achieved statistics: zero unverified/duplicate UC;
 
 ## 6. Essential support controls
 
-- **People:** appoint a competent academic reviewer and trained backup; distinguish bounded AI grading from independent human academic decision; review bias and rubric consistency.
+- **People:** record Founder/Director competence, bounded automated graders, rubric validation, and independent auditor competence only when performing formal audit; review bias and rubric consistency.
 - **Infrastructure:** existing BUKLOD identity, protected academic ledger, private research storage, versioned curriculum, availability/retry behavior, secure award generator and monitoring; preserve live AdMob/navigation behavior.
 - **Accessibility:** compatible screen reader/large type, clear language, offline sync status, documented reasonable-accommodation route and appeal without disadvantage.
 - **Data/privacy:** learner access isolation, minimum disclosure on QR verification, no children's photos in public documents, controlled retention, logs for administrative access and safeguards on private research sources.
@@ -65,3 +65,11 @@ Initial **targets only**, not achieved statistics: zero unverified/duplicate UC;
 Pilot: monitor unique authentic learning events, source-verified outcomes, qualification holds, duplicates, instructor/rubric overrides, feedback, accessibility needs, source conflicts, denied access and credential verification. Review these at a monthly management meeting during the initial operating phase. Perform an independent internal audit after actual pilot operation and before requesting certification. Record corrective actions, accountable owners and re-test outcomes.
 
 **This manual alone does not demonstrate conformity.** Formal review against ISO 21001:2025 must confirm every applicable requirement and objective operational evidence; certification may only be claimed after a valid external certification process.
+
+## 9. Founder-led governance, no learner approval queue (owner instruction: 24 November 2026)
+
+The Founder/Director is the **human institutional oversight, facilitator, system controller, curriculum designer and rubric policy authority** for the independent non-formal academy, subject to actual MZB corporate authority and any legal obligations. This is not a fictional appointment or a declaration of external accreditation.
+
+**No manual learner approvals**: reading, Word, Bible, Children's Story, KL, ABaKa, Formation lessons, SALIKSIK and program completion are assessed automatically only from authentic approved source content, configured rubrics and canonical source evidence. The founder is **not** a per-student examiner. A failed or disputed rubric returns a detailed learner-visible REWORK or retryable state, not an approval queue. A genuine policy error is corrected through versioned owner-controlled rule changes and auditable recalculation, never untraceable individual grade overrides.
+
+Founder oversight is exercised via curriculum/rubric publication, read-only dashboards, aggregate KPIs, automated incident reports and quality policy changes. A written real-world management review remains accountable to MZB leadership. A future ISO conformity claim still requires an impartial internal audit and actual operational records; AI and founder self-checks do not impersonate independent auditors. **Neither activity approves individual students.**

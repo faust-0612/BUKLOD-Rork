@@ -61,3 +61,7 @@ Every operational record requires: `record_id`, `form_version`, creator, approve
 ## F-06 — KPI and source reconciliation register
 
 Each monthly row should include `period`, `module_id`, `source_verified_events`, `duplicate_events_denied`, `UC_settled`, `award_issues`, `award_holds`, `appeals_received`, `appeals_resolved`, `privacy_incidents`, `curriculum_versions_approved`, `coverage_limitations`, `reviewed_by`. Record actual values only; use `NOT_YET_MEASURED` rather than fabricated zeros.
+
+## F-07 — Founder-controlled system configuration change
+
+Record founder-controlled curriculum/rubric/source version, authenticated publication event, automated quality regression results, source-to-award impact analysis, affected eligibility cohorts (aggregate-only), effective time, rollback target, and security/privacy rechecks. The **manual learner approval count is permanently zero**; governance reviews policies and systemic risk, not individual papers.
