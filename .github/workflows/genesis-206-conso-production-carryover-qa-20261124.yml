@@ -40,5 +40,14 @@ jobs:
             tests/connect-cluster-ads-isolation-20261123.test.mjs \
             tests/formation-ai-timeout-recovery-20261123.test.mjs \
             tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
-            tests/ad-dashboard-focus-performance-20261116.test.mjs
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/genesis-206-mainline-carryover-audit-20261124.test.mjs \
+            tests/buklod-cluster-home-checkin-review.test.cjs \
+            tests/buklod-ptt-preferences-and-switching.test.mjs \
+            tests/buklod-mandatory-update-runtime.test.mjs \
+            tests/ota-restart-safe-area.test.cjs \
+            tests/genesis-native-local-only-gate-20261123.test.mjs \
+            tests/genesis-native-android-host-20261123.test.mjs \
+            tests/genesis-native-game-core-20261123.test.mjs \
+            tests/genesis-private-library-import-gate-20261124.test.mjs
           echo 'BUKLOD_GENESIS_206_MAIN_CARRYOVER_DEV_ONLY_TESTS_PASSED_NO_OTA'
