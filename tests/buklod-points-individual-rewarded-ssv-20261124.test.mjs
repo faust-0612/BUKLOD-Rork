@@ -35,6 +35,10 @@ test('verified optional ad never gates manual claim or fakes a client-side balan
   assert.match(native, /rewardInFlight = false/);
   assert.match(native, /AdEventType\.ERROR/);
   assert.match(native, /RewardedAdEventType\.EARNED_REWARD/);
+  assert.match(native, /recordBuklodAdEvent/);
+  assert.match(native, /placementId: 'rewarded_points_bonus'/);
+  assert.match(native, /AdEventType\.IMPRESSION/);
+  assert.match(native, /recordRewarded\('ad_impression'\)/);
   assert.match(web, /shown: false, earned: false/);
   assert.doesNotMatch(native, /buklod_points_ledger|awardPoints|creditPoints/);
   assert.doesNotMatch(points, /insert\(|upsert\(|update\(/);
