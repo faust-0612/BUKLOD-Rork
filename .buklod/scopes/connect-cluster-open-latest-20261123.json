@@ -20,7 +20,8 @@
     "Fast scope switch or offline cache hydration does not auto-fetch older history",
     "Drag upward can request one older page; prepend maintains visible offset",
     "Incoming message, send, keyboard resize, read receipt, ad first view, instant tab navigation retain existing behavior",
-    "Android exact-runtime RC and served production receipt are release blockers"
+    "Android exact-runtime RC and served production receipt are release blockers",
+    "Existing Connect rebound and read-cursor isolation suites remain independent wider-PR regression gates; scope's changed-test runner executes only the two new changed tests."
   ],
   "riskAreas": [
     "app-runtime",
@@ -30,8 +31,6 @@
   ],
   "regressionTests": [
     "tests/connect-cluster-open-latest-20261123.test.mjs",
-    "tests/connect-latest-scroll-rebound-20261117.test.mjs",
-    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs",
     "tests/connect-cluster-ads-isolation-20261123.test.mjs"
   ],
   "allowedPaths": [
