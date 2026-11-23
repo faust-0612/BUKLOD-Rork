@@ -77,4 +77,4 @@ for(const rig of manifest.rigs){
 assert.ok(bytesTotal<16*1024*1024,'oversized verified 3D collection');
 const out={schema:2,license:'CC0-1.0',source:manifest.source,animatedSource:manifest.animatedSource,kind:manifest.kind,models:meta};
 writeFileSync(path.join(outputRoot,'manifest.json'),JSON.stringify(out,null,2)+'\n');
-console.log('BUKLOD_206_CC0_GLB_20_IMPORTED_AND_HASHED '+JSON.stringify({models:models:20,animatedRigs:2,totalBytes:bytesTotal}));
+console.log('BUKLOD_206_CC0_GLB_20_IMPORTED_AND_HASHED '+JSON.stringify({models:20,animatedRigs:2,totalBytes:bytesTotal}));

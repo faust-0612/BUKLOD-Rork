@@ -39,6 +39,9 @@ jobs:
       - name: Import 20 Git-blob-pinned CC0 GLB binaries and build exact Godot OTA ZIP
         run: |
           set -euo pipefail
+          node --check scripts/genesis-import-verified-3d.mjs
+          node --check scripts/build-empire-godot-pack.mjs
+          node --check scripts/genesis-prepare-godot-ota-pack.mjs
           node scripts/genesis-import-verified-3d.mjs
           node scripts/genesis-prepare-godot-ota-pack.mjs
           python3 - <<'PY'
