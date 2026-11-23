@@ -55,11 +55,11 @@ export default function BuklodAcademyDashboard(){
    const known=new Set<string>((ackResult.data||[] as Acknowledged[]).map((row:Acknowledged)=>row.award_id));
    setAck(known);setAwards(next);setSummary(summaryResult.data);
    // Show only an already issued + ready paper and never replay an acknowledged ceremony.
-   const first=next.find(a=>a.status==='ISSUED'&&a.paper_status==='READY'&&!known.has(a.id));
+   const first=next.find(a=>a.status==='ISSUED'&&!known.has(a.id));
    const record=first&&typedCatalog.find(c=>c.code===first.credential_code);
    if(first&&record)setActiveAward({
     awardId:first.id,credentialCode:first.credential_code,title:record.title,
-    status:'ISSUED',paperReady:true,issuedAt:first.issued_at,tier:record.tier,
+    status:'ISSUED',paperReady:first.paper_status==='READY',issuedAt:first.issued_at,tier:record.tier,
    });
   }catch(e:any){if(ticket===epoch.current)setError(String(e?.message||'Unable to load Academy'));}
   finally{if(ticket===epoch.current){setBusy(false);setRefreshing(false);}}
@@ -121,8 +121,8 @@ export default function BuklodAcademyDashboard(){
      <Text style={s.details}>{item.existing_evidence_gate}</Text>
      <Text style={s.meta}>{item.prerequisite_credentials.length?'Prerequisites: '+item.prerequisite_credentials.join(', '):'Foundation pathway'}</Text>
      <View style={s.footer}><Text style={[s.status,done&&s.done]}>{done?'COMPLETED':'NOT YET COMPLETED'}</Text>
-     {done?<Pressable accessibilityRole="button" disabled={award?.paper_status!=='READY'} onPress={()=>void paper(award.id)}>
-      <Text style={[s.action,award?.paper_status!=='READY'&&s.disabled]}>{award?.paper_status==='READY'?'Download PDF':'Paper pending'}</Text>
+     {done?<Pressable accessibilityRole="button" disabled={false} onPress={()=>void paper(award.id)}>
+      <Text style={[s.action,award?.paper_status!=='READY'&&s.disabled]}>{award?.paper_status==='READY'?'Download PDF':'Prepare & Download'}</Text>
      </Pressable>:null}</View>
     </View>;
    })}
