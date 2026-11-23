@@ -131,6 +131,9 @@ begin
       and req.disciple_id=p_disciple_id then
       return pg_catalog.jsonb_build_object('assigned',true,'already_reviewed',true);
     end if;
+    if req.status='rejected' and p_approve=false then
+      return pg_catalog.jsonb_build_object('assigned',false,'already_reviewed',true);
+    end if;
     raise exception 'This request has already been reviewed';
   end if;
   if p_approve then
@@ -141,13 +144,19 @@ begin
     where p.id=req.mentor_id and p.role::text<>'system_admin';
     if not found or mentor_active is distinct from true
       or not public.has_capability(req.mentor_id,'mentor')
+      or exists(select 1 from public.user_roles ur
+                where ur.user_id=req.mentor_id and ur.role='system_admin' and ur.is_active=true)
       or exists(select 1 from public.buklod_foundation_protected_principals pp
                 where pp.user_id=req.mentor_id and pp.protected=true) then
       raise exception 'Mentor is not an active authorized mentor' using errcode='42501';
     end if;
     select * into candidate from public.profiles where id=p_disciple_id;
     if not found or candidate.is_active is distinct from true
-      or candidate.role::text='system_admin' then
+      or candidate.role::text='system_admin'
+      or exists(select 1 from public.user_roles ur
+                where ur.user_id=p_disciple_id and ur.role='system_admin' and ur.is_active=true)
+      or exists(select 1 from public.buklod_foundation_protected_principals pp
+                where pp.user_id=p_disciple_id and pp.protected=true) then
       raise exception 'Learner must be an active unprotected member';
     end if;
     insert into public.mentor_assignments(mentor_id,disciple_id,is_active)
