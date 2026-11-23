@@ -445,12 +445,12 @@ export function BuklodContentOverflowMenu({
           <View style={styles.menuBackdrop}>
             <View style={styles.menuSheet}>
               <Text style={styles.menuHeading}>
-                {confirmAction === 'delete' ? 'Delete this post?' : 'Make this post public?'}
+                {confirmAction === 'delete' ? 'Delete this post?' : 'Show this post again?'}
               </Text>
               <Text style={styles.confirmDescription}>
                 {confirmAction === 'delete'
                   ? 'This post will disappear from the Wall. Its photos and video will no longer be available through the post.'
-                  : 'Anyone permitted to view the Wall will be able to see and share this post again.'}
+                  : "People allowed by this post's original audience can see and share it again."}
               </Text>
               <View style={styles.actions}>
                 <Pressable
@@ -475,7 +475,7 @@ export function BuklodContentOverflowMenu({
                 >
                   {actionBusy ? <ActivityIndicator color="#FFFFFF" /> : (
                     <Text style={[styles.buttonText, styles.buttonTextPrimary]}>
-                      {confirmAction === 'delete' ? 'Delete' : 'Make public'}
+                      {confirmAction === 'delete' ? 'Delete' : 'Show post'}
                     </Text>
                   )}
                 </Pressable>
@@ -505,7 +505,7 @@ export function BuklodContentOverflowMenu({
             ) : null}
             {onToggleAuthorOnly ? (
               <Pressable accessibilityRole="button"
-                accessibilityLabel={authorOnly ? 'Make public' : 'Only me'}
+                accessibilityLabel={authorOnly ? 'Show to original audience' : 'Only me'}
                 disabled={actionBusy}
                 style={styles.menuRow}
                 onPress={() => {
@@ -516,7 +516,7 @@ export function BuklodContentOverflowMenu({
                   }
                 }}>
                 <MaterialCommunityIcons name={authorOnly ? 'earth' : 'lock-outline'} size={20} color={theme.textPrimary} />
-                <Text style={styles.menuRowText}>{authorOnly ? 'Make public' : 'Ako lang (only me)'}</Text>
+                <Text style={styles.menuRowText}>{authorOnly ? 'Show to original audience' : 'Ako lang (only me)'}</Text>
               </Pressable>
             ) : null}
             {onDelete ? (
