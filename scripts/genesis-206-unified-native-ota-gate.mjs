@@ -5,7 +5,7 @@
  * An approved native APK is a prerequisite, not an output of this script.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, openSync, readSync, closeSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +25,16 @@ export function evaluateGate(facts) {
     'READY_FOR_MANUAL_RC_REVIEW_NOT_PUBLISHED', blockers,
     published: false, backendMutated: false };
 }
-const digest = file => createHash('sha256').update(readFileSync(file)).digest('hex');
+// Stream large owner APKs rather than holding 800+ MB in Node heap.
+function digest(file) {
+  const hash=createHash('sha256'), fd=openSync(file,'r');
+  const buf=Buffer.allocUnsafe(1024*1024);
+  try {
+    let count;
+    while((count=readSync(fd,buf,0,buf.length,null))>0)hash.update(buf.subarray(0,count));
+    return hash.digest('hex');
+  } finally {closeSync(fd);}
+}
 function safeRead(file) {
   if (!file || !existsSync(file)) return null;
   try { return JSON.parse(readFileSync(file, 'utf8')); }
@@ -66,7 +75,9 @@ export function inspectLocal(env = process.env) {
     const main = release.source.productionMain;
     // Exact production history must be integrated; a matching file snapshot or
     // manifest marker is NOT proof of cumulative commit ancestry.
-    return command('git',['cat-file','-t',main])?.trim() === 'commit' &&
+    const localMain=command('git',['rev-parse','refs/remotes/origin/main'])?.trim();
+    return localMain === main && !!localMain &&
+      command('git',['cat-file','-t',main])?.trim() === 'commit' &&
       command('git',['merge-base','--is-ancestor',main,'HEAD']) !== null &&
       command('git',['branch','--show-current'])?.trim() !== 'main';
   });
@@ -99,10 +110,12 @@ export function inspectLocal(env = process.env) {
     Array.isArray(parity?.features) && parity.features.length >= 20 &&
     parity.features.every(f => f.implemented === true && f.verified === true &&
       typeof f.evidencePath === 'string' && f.evidencePath.length > 0 &&
+      !path.isAbsolute(f.evidencePath) && !f.evidencePath.split(/[\\/]/).includes('..') &&
       existsSync(path.resolve(nativeRoot,f.evidencePath))));
   const apk = env.GENESIS_NATIVE_SIGNED_APK;
   const qa = safeRead(env.GENESIS_NATIVE_QA_EVIDENCE);
-  const apkSha = checked(() => !!apk && existsSync(apk)) ? digest(apk) : null;
+  const apkSha = checked(() => !!apk && existsSync(apk)) ?
+    (()=>{try{return digest(apk)}catch{return null}})() : null;
   const apkFile = checked(() => !!apk && existsSync(apk) &&
     statSync(apk).size > 800000000);
   facts.localSignedApk = checked(() => {
