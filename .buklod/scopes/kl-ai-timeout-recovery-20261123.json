@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "objective": "Recover KL formation lesson AI validation from repeated Edge Function 504 idle timeouts, preserve learners' answers as authorized drafts and block false completion or points awards.",
+  "baseRef": "993fba1b405a4c1a50d1d377e223f024f46a076b",
+  "productionBaselineEvidence": "Read-only live MAIN Supabase function inspection and logs 2026-11-23 13:00–15:00 UTC: 3 HTTP 504 IDLE_TIMEOUT at ~150 seconds, 2 HTTP 503, 3 HTTP 200 from buklod-ai-validate-response v19. Live DB function checks strict account-bound gemini proof/answer hash/lesson hash. Main GitHub source 993fba1b is not an OTA production fingerprint. No actual device/RC runtime verified.",
+  "chosenApproach": "Restrict AI upstream to 40s primary and 17s secondary using per-request AbortSignal.timeout; return 503 rather than fail-open; show recoverable client messages; reuse only same-content accepted validation receipts; store an account-authorized unapproved draft only if failure occurs before starting canonical completion RPC.",
+  "selectionRationale": "Unbounded sequential Gemini attempts caused 150-second gateway idle timeouts. One primary bounded attempt plus one quick fallback caps response time while retaining authoritative model-scored proof. Existing idempotent draft endpoint preserves work without changing points, approval or chapter unlock.",
+  "alternativeApproaches": [
+    "Bypass AI checker and automatically credit lessons during outages — rejected: violates source-based scoring, creates fraudulent points and prematurely unlocks chapters.",
+    "Retry all five upstream models or repeat the full five-question check on every tap — rejected: repeats 504 timeouts, wasted credit, poor weak-network performance.",
+    "Move all lesson validation into new asynchronous queues — deferred: requires additional schema/worker/privacy and client status flows outside this incident's narrow DEV scope."
+  ],
+  "riskAreas": [
+    "education-learning",
+    "backend-security",
+    "ai-reliability",
+    "auth-privacy",
+    "ad-integrity"
+  ],
+  "preserveBehaviors": [
+    "Only actual source-grounded Gemini attempts can meet official lesson completion and earn points. Failed AI calls never approve a learner.",
+    "Existing enrollment/lesson authorization, server-only points, chapter locks, five-field checking and accepted-answer thresholds remain authoritative.",
+    "Input text stays on screen; authorized draft writes do not falsely claim completion and never occur after the completion RPC has been attempted.",
+    "Ads still appear only as a best-effort after the verified database completion and never block saving or checking.",
+    "No new Android native dependencies, OTA, Godot, web deployment, database migrations or production Edge Function writes."
+  ],
+  "allowedPaths": [
+    "supabase/functions/buklod-ai-validate-response/index.ts",
+    "src/lib/buklodAiResponseValidation.ts",
+    "src/components/LearningQuestionResponse.tsx",
+    "tests/formation-ai-timeout-recovery-20261123.test.mjs",
+    "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql",
+    ".buklod/scopes/kl-ai-timeout-recovery-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/formation-ai-timeout-recovery-20261123.test.mjs",
+    "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql"
+  ],
+  "acceptanceChecks": [
+    "Bounded primary/fallback Gemini calls terminate far below the previously observed 150-second idle timeout; non-2xx is reported as a retryable AI outage, not failed learner grade.",
+    "A verified accepted receipt reused for an unchanged lesson, question and answer; changed answer/lesson content requires fresh AI verification.",
+    "On upstream failure before completion, the authorized draft RPC saves answers without points, and the client never reports a completed lesson.",
+    "Offline/network/401/403/409 and duplicate tap cases do not bypass authorization; a confirmed server approval stays authoritative.",
+    "Supabase SQL guard validates live backend's account-bound, non-fail-open, model-scored source proof; mandatory engineering source CI and Android/ad/navigation gates are required before any RC.",
+    "No production backend deployment, OTA, web, Godot or Vercel publication from this isolated DEV PR."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "The KL lesson response screen and validation adapter need recovery from slow AI without changing existing reward or navigation behavior.",
+      "preservedBehaviors": [
+        "Local answers remain visible, previously verified source receipts are unchanged, and reward ads occur only after the canonical server completion returns approved."
+      ],
+      "tests": [
+        "tests/formation-ai-timeout-recovery-20261123.test.mjs",
+        "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Bound previously unbounded server-side AI validation requests without weakening account authorization, server-grounded scoring or lesson approval constraints.",
+      "preservedBehaviors": [
+        "Edge JWT validation, server-sourced authoritative lesson, content hash, accepted-score thresholds, and database-backed no-fail-open approval checks remain intact."
+      ],
+      "tests": [
+        "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql",
+        "tests/formation-ai-timeout-recovery-20261123.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_ONLY_NO_BACKEND_OR_OTA_PUBLICATION",
+  "verifiedScope": "PR source and live read-only backend semantics inspected; targeted Node/SQL and CI gate pending; no device, RC or production verification."
+}
