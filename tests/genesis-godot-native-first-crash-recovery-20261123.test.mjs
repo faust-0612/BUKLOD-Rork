@@ -94,3 +94,14 @@ test('Native startup cannot depend on missing Godot global script cache in raw e
  assert.match(root,/var me: Dictionary = sim\.actor\("A0"\)/);
  assert.match(root,/BUKLOD_GODOT_ARENA_SCENE_READY/);
 });
+
+test('Native 13-hero abilities and villager scripts never introduce cyclic global-class dependency',()=>{
+ const actors=read('godot/empire-arena/scripts/arena_library_actors.gd');
+ const skills=read('godot/empire-arena/scripts/arena_library_skills.gd');
+ const sim=read('godot/empire-arena/scripts/arena_simulation.gd');
+ assert.doesNotMatch(actors,/sim: BuklodArenaSimulation/);
+ assert.doesNotMatch(skills,/sim: BuklodArenaSimulation/);
+ assert.match(sim,/class_name BuklodArenaSimulation/);
+ for(const token of ['seed_villagers','advance_waves','advance_villager','advance_minion'])assert.ok(actors.includes('static func '+token));
+ assert.ok(skills.includes('static func cast'));
+});
