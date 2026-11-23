@@ -74,7 +74,11 @@ export async function loadBuklodClaimCards(
   }));
 }
 
+// Staging may share MAIN's backend in the existing installation. Never
+// initiate a new rewarded-credit write from staging, even if a preview env
+// accidentally inherits a production flag.
 const isVerifiedRewardBackendEnabled =
+  process.env.EXPO_PUBLIC_APP_ENV === 'production' &&
   process.env.EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED === 'true';
 
 export async function loadBuklodAdBonusStatus(): Promise<BuklodAdBonusStatus> {
