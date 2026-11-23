@@ -33,7 +33,7 @@ test('Connect preserves first-view native ad inventory without duplicate in-feed
   assert.equal((inbox.match(/<BuklodFirstViewAd\b/g) || []).length, 1);
   const banners = read('src/components/BuklodAdMobBanner.tsx');
   assert.match(banners, /reserveBuklodPassiveAdRequest/);
-  assert.match(banners, /if \(noFill && online\)/);
+  assert.match(banners, /if \(noFill && adNetworkAvailable\)/);
   assert.doesNotMatch(inbox, /setInterval\(.*Ad|requestAd\(/);
 });
 
