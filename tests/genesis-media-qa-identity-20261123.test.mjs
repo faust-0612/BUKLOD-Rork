@@ -14,7 +14,7 @@ const envKeys=[
 ];
 const saved=Object.fromEntries(envKeys.map(key=>[key,process.env[key]]));
 function restore(){for(const key of envKeys){if(saved[key]===undefined)delete process.env[key];else process.env[key]=saved[key];}}
-function generate(env){restore();for(const [k,v] of Object.entries(env))process.env[k]=v;return appConfig({config:{}});}
+function generate(env){restore();delete process.env.BUKLOD_GENESIS_MEDIA_QA;delete process.env.EXPO_PUBLIC_BUKLOD_MEDIA_QA;for(const [k,v] of Object.entries(env))process.env[k]=v;return appConfig({config:{}});}
 const enabled={
   APP_VARIANT:'staging',
   EXPO_PUBLIC_APP_ENV:'staging',
