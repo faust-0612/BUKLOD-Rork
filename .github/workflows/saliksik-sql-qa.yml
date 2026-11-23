@@ -1,0 +1,49 @@
+name: SALIKSIK Isolated Postgres Reward QA
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql"
+      - "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql"
+      - "supabase/tests/saliksik_written_master_r2.sql"
+      - "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql"
+      - "tests/fixtures/saliksik_pg_*.sql"
+      - ".github/workflows/saliksik-sql-qa.yml"
+  workflow_dispatch:
+jobs:
+  postgres-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: saliksik_qa
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: saliksik_qa
+    steps:
+      - uses: actions/checkout@v4
+      - name: Seed isolated BUKLOD contract
+        run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/saliksik_pg_seed.sql
+      - name: Apply unchanged SALIKSIK release migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql
+      - name: Verify private access, rollout off and schema
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/saliksik_private_vault_objective_mastery_r1.sql
+      - name: Apply auditable written Master R2 migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql
+      - name: Verify written Master schema, rewards and rollout guards
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/saliksik_written_master_r2.sql
+      - name: Execute real Postgres admin/member/ledger workflow
+        run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/saliksik_pg_integration.sql
