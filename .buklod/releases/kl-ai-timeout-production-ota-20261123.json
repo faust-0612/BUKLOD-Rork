@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "sourceBeforeMarker": "bf6c5e41eefa9ef7c91d4ff7a402fdf504c6c9aa",
+  "previousProductionSource": "993fba1b405a4c1a50d1d377e223f024f46a076b",
+  "lastSuccessfulPublisherRunId": 45155369633,
+  "klScopePr": 1149,
+  "klDevCommit": "7d3603fa770a3c428386587ef9f79af908692fff",
+  "mergedSourceCommit": "bf6c5e41eefa9ef7c91d4ff7a402fdf504c6c9aa",
+  "aiEdgeFunctionVersion": 20,
+  "ci": {
+    "engineeringAccountability": 45198506663,
+    "performanceR1": 45198506655,
+    "compactLayout": 45198507191,
+    "mainReport": 45198508167
+  },
+  "appPackage": "org.mzbministry.buklod",
+  "androidVersionName": "1.3.6",
+  "androidVersionCode": 30,
+  "runtimeVersion": "1.3.2",
+  "expoProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+  "targetChannel": "production",
+  "targetPlatform": "android",
+  "physicalDeviceVerification": "OWNER_WAIVED_NOT_PERFORMED",
+  "nativeBuild": false,
+  "season2Release": false,
+  "playRelease": false,
+  "webDeployment": false,
+  "desiredRelease": "JS_ONLY_EXISTING_MAIN_PRODUCTION_OTA",
+  "status": "PENDING_CANONICAL_PUBLISH_AND_LIVE_READBACK"
+}
