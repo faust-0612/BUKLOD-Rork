@@ -39,6 +39,7 @@ import { DEFAULT_CHARACTER } from '@/lib/buklodCharacter';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
   claimBuklodRewardEvent,
+  invalidateBuklodPointsAccountCache,
   loadBuklodClaimGroups,
   loadBuklodPointsDashboard,
   type BuklodClaimGroup,
@@ -535,7 +536,7 @@ function ClaimGroupCard({
                 {bonusEnabled && Date.now() - Date.parse(item.created_at) < 30 * 24 * 60 * 60 * 1000 ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Watch optional rewarded ad for 5 bonus Points"
+                    accessibilityLabel={`Watch optional rewarded ad for ${bonusPoints} bonus Points`}
                     disabled={adBusyLedger !== null || claimBusy}
                     onPress={() => onWatch(item.ledger_id)}
                     style={[styles.claimButton, { flex: 1, minWidth: 120, minHeight: 42, backgroundColor: '#245C9E' },
@@ -690,6 +691,11 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     let freshDashboard: BuklodPointsDashboard | null = null;
     let freshGroups: BuklodClaimGroup[] | null = null;
     let freshClaims: BuklodClaimCard[] | null = null;
+    // Issue independent reads together instead of stacking four network waits.
+    const dashboardRequest = loadBuklodPointsDashboard();
+    const groupsRequest = loadBuklodClaimGroups();
+    const claimsRequest = loadBuklodClaimCards();
+    const bonusRequest = loadBuklodAdBonusStatus();
     const [rankResult, historyResult, evaluationResult] = await Promise.all([
       supabase.rpc('get_my_buklod_rank_dashboard'),
       supabase
@@ -707,7 +713,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     try {
       setDashboardError('');
       setDashboardSupportCode(null);
-      const nextDashboard = await loadBuklodPointsDashboard();
+      const nextDashboard = await dashboardRequest;
       setDashboard(nextDashboard);
       freshDashboard = nextDashboard;
     } catch (error) {
@@ -737,7 +743,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     }
 
     try {
-      const groups = await loadBuklodClaimGroups();
+      const groups = await groupsRequest;
       setClaimGroups(groups);
       freshGroups = groups;
     } catch (error) {
@@ -748,7 +754,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     }
 
     try {
-      const cards = await loadBuklodClaimCards();
+      const cards = await claimsRequest;
       setClaimCards(cards);
       setHasMoreClaims(cards.length === 100);
       freshClaims = cards;
@@ -757,7 +763,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
       setClaimError('Could not load individual claim buttons. Refresh to try again.');
     }
     try {
-      setBonusStatus(await loadBuklodAdBonusStatus());
+      setBonusStatus(await bonusRequest);
     } catch {
       // Feature flag absent or SSV rollout not ready: never offer fake points.
       setBonusStatus(null);
@@ -921,6 +927,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
         setAdMessage('Verified bonus added to your BUKLOD Points. ⭐');
         setLastClaimedLedger(null);
         setLastClaimedAt(null);
+        await invalidateBuklodPointsAccountCache();
         await load(true);
       } else {
         setAdMessage(`Verification pending. Your +${session.points} Points will appear once Google confirms.`);
