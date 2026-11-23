@@ -21,7 +21,7 @@ test('Android modal privacy confirmation and cancel cannot disclose a post accid
   assert.match(menu, /confirmAction === 'delete'/);
   assert.match(menu, /setConfirmAction\('public'\)/);
   assert.match(menu, /setConfirmAction\(null\)/);
-  assert.match(menu, /Make this post public\?/);
+  assert.match(menu, /Show this post again\?/);
   assert.match(menu, /await action\(\)/);
   assert.match(menu, /actionInFlightRef\.current/);
   assert.equal((menu.match(/<Modal\b/g) || []).length, 1);
