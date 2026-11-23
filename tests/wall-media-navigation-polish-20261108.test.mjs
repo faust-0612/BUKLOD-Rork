@@ -31,8 +31,8 @@ test('GIF/photo snippets never expose encoded media payload, caption retains pla
 });
 test('selected licensed song section is bounded, previewed, and persisted without duplicating audio',()=>{
  assert.match(picker,/clipStartSeconds:number; clipDurationSeconds:number/);
- assert.match(picker,/onPreview\(item,start,duration\)/);
- assert.match(picker,/onSelect\(item,start,30\)/);
+ assert.match(picker,/onPreview\(item,start,30\)/);
+ assert.match(picker,/onSelect\(currentTrack,start,30\);onClose\(\)/);
  assert.match(picker,/fixedLength=\{30\}/);
  assert.match(picker,/Preview selected 30s loop/);
  assert.match(wall,/wallClipLoopingRef/);
