@@ -5,6 +5,12 @@ on:
       - dev/genesis-206-private-library-import-gate-20261124
     paths:
       - '.github/workflows/genesis-206-private-library-import-qa.yml'
+      - 'scripts/build-empire-godot-pack.mjs'
+      - 'scripts/genesis-private-library-intake.mjs'
+      - 'scripts/genesis-prepare-godot-ota-pack.mjs'
+      - 'godot/empire-arena/scripts/premium_world_3d.gd'
+      - 'godot/empire-arena/library/PRIVATE_ASSET_INTAKE.md'
+      - 'tests/genesis-private-library-import-gate-20261124.test.mjs'
 permissions:
   contents: read
 concurrency:
@@ -41,6 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           node --check scripts/genesis-private-library-intake.mjs
+          test "${BUKLOD_GENESIS_PRIVATE_ASSETS:-false}" != true
+          test "${BUKLOD_GENESIS_PRIVATE_FX:-false}" != true
           echo "PRIVATE_LIBRARY_RIGHTS_REQUIRED_AND_NO_PRIVATE_BYTES_PUBLISHED"
           node --check scripts/genesis-import-verified-3d.mjs
           node --check scripts/build-empire-godot-pack.mjs
