@@ -4,6 +4,8 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
+import BuklodEarnedStarsFeedback from '@/components/points/BuklodEarnedStarsFeedback';
 import StoryArt from '@/features/childrenStories/StoryArt';
 import { BUNDLED_CHILDREN_STORIES, ChildrenStory, StoryLanguage, findBundledStory, localize } from '@/features/childrenStories/catalog';
 import { fetchChildrenStoryLibrary, readStoryProgress, saveStoryProgress } from '@/features/childrenStories/service';
@@ -21,6 +23,13 @@ export default function ChildrenStoryReader() {
   const [questionIndex,setQuestionIndex]=useState(0);
   const [choice,setChoice]=useState<number|null>(null);
   const [complete,setComplete]=useState(false);
+  const [earned,setEarned]=useState<{points:number;sequence:number}|null>(null);
+  const [rewardNotice,setRewardNotice]=useState('');
+  const [rewardBusy,setRewardBusy]=useState(false);
+  const answersRef=useRef<number[]>([]);
+  const rewardInFlightRef=useRef(false);
+  const activeStoryIdRef=useRef(id);
+  activeStoryIdRef.current=id;
   const [favorite,setFavorite]=useState(false);
   const [audioState,setAudioState]=useState<StoryAudioState>({status:'idle'});
   const [bedtime,setBedtime]=useState(false);
@@ -43,6 +52,7 @@ export default function ChildrenStoryReader() {
     let live=true;
     const builtin=findBundledStory(id)??null;
     setStory(builtin);setPage(0);setQuiz(false);setQuestionIndex(0);setChoice(null);setComplete(false);setFavorite(false);
+    answersRef.current=[];setEarned(null);setRewardNotice('');
     void readStoryProgress(user?.id).then(all=>{
       if(!live)return;
       const p=all[id];
@@ -55,6 +65,12 @@ export default function ChildrenStoryReader() {
     });
     return()=>{live=false;stop();};
   },[id,user?.id,stop]);
+  // Reading start is recorded on the server, without child personal data.
+  useEffect(()=>{
+    if(!id||!user?.id)return;
+    void (supabase as any).rpc('begin_my_children_story_v4',{p_story_id:id})
+      .catch(()=>undefined); // Older runtimes/migrations retain normal reading.
+  },[id,user?.id]);
   useEffect(()=>{stop()},[language,page,quiz,questionIndex,stop]);
   const lesson=getSundaySchoolLesson(story);
   const questions=story?[{prompt:story.question,choices:story.choices,answer:story.answer},...(lesson?.questions??[])]:[];
@@ -84,12 +100,48 @@ export default function ChildrenStoryReader() {
       ? (language==='tl'?'Walang Filipino/Tagalog na boses sa phone. I-install o i-enable sa Android Settings → Text-to-speech output → Voice data, saka subukang muli.':'The selected language voice is not installed. Enable or download it in Android Text-to-speech settings, then retry.')
       : (language==='tl'?'Hindi masimulan ang pagbasa. Tingnan ang Text-to-speech engine, voice data at media volume ng phone, saka subukan muli.':'Speech could not start. Check your phone’s text-to-speech engine, voice data and media volume, then retry.')
   ) : null;
+  async function verifyChildrenReward(storyId:string,answers:number[]){
+    if(rewardInFlightRef.current||!user?.id)return;
+    rewardInFlightRef.current=true;setRewardBusy(true);
+    setRewardNotice('Sinusuri ang nabasang kuwento at mga sagot...');
+    try{
+      const {data,error}=await (supabase as any).rpc('complete_my_children_story_v4',{
+        p_story_id:storyId,p_answers:answers,
+      });
+      if(error)throw error;
+      if(activeStoryIdRef.current!==storyId)return;
+      const credited=Math.max(0,Math.trunc(Number(data?.awarded_points)||0));
+      if(credited>0){
+        setEarned(previous=>({points:credited,sequence:(previous?.sequence??0)+1}));
+        setRewardNotice('+'+credited+' BP earned! Pending claim sa BUKLOD Points.');
+      }else{
+        const notices:Record<string,string>={
+          already_credited:'Nakuha na ang +5 BP ng kuwentong ito. Walang doble sa replay.',
+          more_reading_needed:'Basahin o pakinggan pa ang kuwento bago i-verify ulit ang +5 BP.',
+          daily_reward_limit:'Naabot na ang daily limit. Maaari ka pa ring magbasa.',
+          quiz_not_verified:'Hindi tugma ang mga sagot. Sagutan muli ang quiz.',
+          not_in_verified_catalog:'Hindi pa rewardable ang bagong editorial story na ito.',
+          reading_not_started:'Buksan at basahin muna ang kuwento bago mag-verify.',
+          reward_rule_unavailable:'Hindi pa aktibo ang story points sa server.',
+        };
+        setRewardNotice(notices[String(data?.status)]??'Natapos ang kuwento; walang bagong BP.');
+      }
+    }catch{
+      if(activeStoryIdRef.current===storyId){
+        setRewardNotice('Hindi pa ma-verify ang points. Mananatili ang quiz completion; subukan muli.');
+      }
+    }finally{rewardInFlightRef.current=false;setRewardBusy(false)}
+  }
   function submit(index:number){
     if(!story||!activeQuestion||choice===activeQuestion.answer)return;
     setChoice(index);
-    if(index===activeQuestion.answer&&questionIndex===questions.length-1){
-      setComplete(true);
-      void saveStoryProgress(user?.id,story.id,{completed:true,page:story.pages.length-1});
+    if(index===activeQuestion.answer){
+      answersRef.current[questionIndex]=index;
+      if(questionIndex===questions.length-1){
+        setComplete(true);
+        void saveStoryProgress(user?.id,story.id,{completed:true,page:story.pages.length-1});
+        void verifyChildrenReward(story.id,answersRef.current.slice(0,questions.length));
+      }
     }
   }
   if(!story) return <View style={styles.notFound}>
@@ -102,6 +154,7 @@ export default function ChildrenStoryReader() {
   const lastQuestion=questionIndex===questions.length-1;
   return (
     <ScrollView style={[styles.screen,bedtime&&styles.dark]} contentContainerStyle={styles.content}>
+      <BuklodEarnedStarsFeedback award={earned}/>
       <View style={styles.top}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back to story library" onPress={()=>{stop();router.back()}} style={styles.iconButton}>
           <MaterialCommunityIcons name="arrow-left" size={23} color={bedtime?'#FFF':'#194C46'}/>
@@ -201,6 +254,13 @@ export default function ChildrenStoryReader() {
             <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF"/>
           </Pressable>}
       </View>
+      {rewardNotice?<Text accessibilityLiveRegion="polite" style={[styles.tip,bedtime&&styles.light]}>{rewardNotice}</Text>:null}
+      {quiz&&finishQuiz&&lastQuestion&&complete&&rewardNotice&&!rewardNotice.includes('earned!')&&!rewardNotice.includes('Nakuha na')?
+        <Pressable accessibilityRole="button" accessibilityState={{busy:rewardBusy}} disabled={rewardBusy}
+          onPress={()=>void verifyChildrenReward(story.id,answersRef.current.slice(0,questions.length))}
+          style={[styles.mainButton,rewardBusy&&styles.disabled]}>
+          <Text style={styles.buttonText}>{rewardBusy?'VERIFYING...':'VERIFY +5 BP'}</Text>
+        </Pressable>:null}
       {complete&&!quiz?<Text style={[styles.tip,bedtime&&styles.light]}>⭐ {language==='tl'?'Natapos mo na ang story check. Maaari mong basahin muli.':'Story check completed. You can read again.'}</Text>:null}
     </ScrollView>
   );
