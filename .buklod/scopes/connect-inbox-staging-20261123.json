@@ -28,7 +28,8 @@
     "Staging OTA only after isolated installed APK runtime, preview backend, EAS channel separation and device ad/nav/read tests are verified.",
     "Never announce a staging OTA or claim production publication.",
     "Missed foreground push is recovered using the existing unread-count fallback without raising polling frequency.",
-    "Search personal, Requests and accessible community rooms by name and message preview without duplicates or cross-tab request leakage."
+    "Search personal, Requests and accessible community rooms by name and message preview without duplicates or cross-tab request leakage.",
+    "Existing inbox density regression checks remain active and assert layout/behavior instead of obsolete source syntax."
   ],
   "riskAreas": [
     "connect",
@@ -45,7 +46,8 @@
     "tests/connect-inbox-notification-navigation-20261123.test.mjs",
     "tests/protected-feature-lock.test.mjs",
     "__tests__/connectInboxSearch.test.ts",
-    "tests/connect-inbox-ads-guard-20261123.test.mjs"
+    "tests/connect-inbox-ads-guard-20261123.test.mjs",
+    "tests/messenger-inbox-density-20261117.test.mjs"
   ],
   "allowedPaths": [
     "src/app/(tabs)/messages.tsx",
@@ -63,7 +65,8 @@
     "src/hooks/useBuklodConnectUnread.ts",
     "src/lib/connectInboxSearch.ts",
     "__tests__/connectInboxSearch.test.ts",
-    "tests/connect-inbox-ads-guard-20261123.test.mjs"
+    "tests/connect-inbox-ads-guard-20261123.test.mjs",
+    "tests/messenger-inbox-density-20261117.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
