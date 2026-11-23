@@ -34,5 +34,11 @@
   ],
   "releaseMode": "dev-only-no-ota",
   "publicationStatus": "GUARD_PROPOSAL",
-  "physicalDeviceVerification": "OWNER_OBSERVATION_ONLY"
+  "physicalDeviceVerification": "OWNER_OBSERVATION_ONLY",
+  "selectionRationale": "Retain the currently healthy NativeAd/BannerAd implementation untouched and require deterministic source contracts at existing PR, Genesis and production RC gates; actual on-device AdMob fill remains a separate mandatory release check.",
+  "alternativeApproaches": [
+    "Change ad SDK/lifecycle to force immediate loads: rejected because working live render behavior could regress or violate cooldown.",
+    "Add only a text policy: rejected because it cannot fail a future regression in CI.",
+    "Add test-only contracts to existing mandatory suites: selected because it protects behavior without mutating the live product."
+  ]
 }
