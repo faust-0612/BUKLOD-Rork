@@ -38,7 +38,7 @@ test('private originals require source-rights confirmation and are never public 
  assert.doesNotMatch(client,/SUPABASE_SERVICE_ROLE_KEY/);
 });
 test('every verified member gets complete derived nine-chapter downloadable DOCX when original restricted',()=>{
- assert.match(backend,/data\.chapters\.length!==9/);
+ assert.match(backend,/data\.chapters\?\.length!==9/);
  assert.match(backend,/for\(const chapter of data\.chapters\)/);
  assert.match(backend,/zipSync/);
  for(const entry of ['\'[Content_Types].xml\'','\'_rels/.rels\'','\'word/document.xml\'']){
