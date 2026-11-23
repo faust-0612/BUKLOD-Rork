@@ -83,12 +83,15 @@ func _start(mode: String, hero: String, map_id: String, solo: bool, foe: String)
 	audio_layer.stop_all()
 	camera.position = (sim.actor("A0")["pos"] as Vector2) * PX
 	_update_zoom()
-	hud.set_snapshot(sim.state)
+	hud.set_snapshot(sim.state, sim.cooldown_snapshot("A0"))
 	hud.notify("OFFLINE ONLY • no ranked rewards")
 
 func _pause() -> void:
 	paused = not paused
 	hud.paused = paused
+	if paused:
+		input_vector = Vector2.ZERO
+		hud.release_joystick()
 	hud.notify("PAUSED" if paused else "RESUMED")
 	if paused and audio_layer != null:
 		audio_layer.stop_all()
@@ -133,7 +136,7 @@ func _command(name: String) -> void:
 			var me: Dictionary = sim.actor("A0")
 			var kit: Dictionary = sim.config["starter"].get(me.get("hero", ""), {})
 			audio_layer.play_command(str(me.get("hero", "")), cmd, kit)
-		hud.set_snapshot(sim.state)
+		hud.set_snapshot(sim.state, sim.cooldown_snapshot("A0"))
 
 func _physics_process(delta: float) -> void:
 	if not running or paused or sim.state.get("status") != "active":
@@ -150,7 +153,7 @@ func _physics_process(delta: float) -> void:
 		if input_vector.length_squared() > 0.02:
 			sim.action("A0", "move", input_vector)
 	if sim.state["tick"] % 2 == 0:
-		hud.set_snapshot(sim.state)
+		hud.set_snapshot(sim.state, sim.cooldown_snapshot("A0"))
 	_read_events()
 
 func _read_events() -> void:

@@ -19,6 +19,7 @@ var offline_solo := true
 var playing := false
 var paused := false
 var status: Dictionary = {}
+var skill_cooldowns: Dictionary = {}
 var move_direction := Vector2.ZERO
 var active_joystick := -1
 var touch_origin := Vector2.ZERO
@@ -31,11 +32,15 @@ func _ready() -> void:
 	set_process_input(true)
 	set_process(true)
 
-func set_snapshot(s: Dictionary) -> void:
+func set_snapshot(s: Dictionary, cooldowns: Dictionary = {}) -> void:
 	status = s
-	if s.get("status", "active") != "active":
-		show_result = true
+	skill_cooldowns = cooldowns
+	show_result = s.get("status", "active") != "active"
 	queue_redraw()
+
+func release_joystick() -> void:
+	active_joystick = -1
+	_set_joystick(Vector2(103, size.y - 89))
 
 func notify(message: String) -> void:
 	event_messages.push_front(message)
@@ -55,6 +60,50 @@ func _button_at(x: float, y: float, label: String, radius: float = 29.0,
 	draw_circle(Vector2(x, y), radius, fill)
 	draw_arc(Vector2(x, y), radius, 0, TAU, 40, Color(0.5, 0.95, 0.8, 0.9), 2.0)
 	_text(Vector2(x - 23, y + 6), label, 15)
+
+func _cooldown_ring(at: Vector2, radius: float, slot: String) -> void:
+	var cd: Dictionary = skill_cooldowns.get(slot, {})
+	if bool(cd.get("locked", false)):
+		draw_circle(at, radius - 3.0, Color(0.02, 0.05, 0.08, 0.68))
+		_text(at + Vector2(-20, 5), "LV " + str(cd.get("level_requirement", 1)), 12, Color("#ffd88f"))
+		return
+	var remaining: float = maxf(0.0, float(cd.get("remaining", 0.0)))
+	if remaining <= 0.0:
+		return
+	var duration: float = maxf(0.05, float(cd.get("duration", 1.0)))
+	draw_circle(at, radius - 3.0, Color(0.02, 0.05, 0.08, 0.54))
+	draw_arc(at, radius - 3.0, -PI * 0.5,
+		-PI * 0.5 + TAU * (1.0 - remaining / duration), 40, Color("#ffe29b"), 4.0)
+	_text(at + Vector2(-11, 5), str(ceili(remaining)) + "s", 12, Color.WHITE)
+
+func _minimap_point(world_pos: Vector2, rect: Rect2) -> Vector2:
+	return rect.position + Vector2(
+		clampf(world_pos.x / maxf(1.0, float(status.get("w", 1))), 0.0, 1.0) * rect.size.x,
+		clampf(world_pos.y / maxf(1.0, float(status.get("h", 1))), 0.0, 1.0) * rect.size.y)
+
+func _draw_minimap() -> void:
+	if status.is_empty():
+		return
+	var rect := Rect2(Vector2(size.x - 188, 8), Vector2(175, 96))
+	draw_rect(rect, Color(0.02, 0.1, 0.17, 0.90), true)
+	draw_rect(rect, Color(0.5, 0.82, 0.83, 0.9), false, 1.0)
+	for frac in [0.24, 0.5, 0.76]:
+		draw_line(rect.position + Vector2(0, rect.size.y * frac),
+			rect.position + Vector2(rect.size.x, rect.size.y * frac),
+			Color(0.28, 0.58, 0.59, 0.5), 1.0)
+	for tower in status.get("towers", []):
+		if not tower.get("alive", false):
+			continue
+		var spot: Vector2 = _minimap_point(tower["pos"], rect)
+		draw_rect(Rect2(spot - Vector2(3, 3), Vector2(6, 6)),
+			Color("#6eebc0") if tower.get("team") == "A" else Color("#fb998e"))
+	for actor in status.get("players", {}).values():
+		if not actor.get("alive", false):
+			continue
+		var spot: Vector2 = _minimap_point(actor["pos"], rect)
+		var radius: float = 5.0 if actor.get("id") == "A0" else 2.8
+		draw_circle(spot, radius, Color("#fbe88e") if actor.get("id") == "A0" else
+			Color("#69e8bd") if actor.get("team") == "A" else Color("#f59b8e"))
 
 func _draw() -> void:
 	var w: float = size.x
@@ -83,7 +132,11 @@ func _draw() -> void:
 	draw_rect(Rect2(180, 10, 192 * clampf(hp / max_hp, 0, 1), 12), Color(0.34, 0.92, 0.58))
 	draw_rect(Rect2(180, 26, 192, 9), Color(0.16, 0.2, 0.3))
 	draw_rect(Rect2(180, 26, 192 * clampf(mana / max_mana, 0, 1), 9), Color(0.43, 0.73, 1.0))
-	_text(Vector2(384, 22), "HP " + str(ceili(hp)) + "  MP " + str(ceili(mana)) + "  LV " + str(p.get("level", 1)), 13)
+	var shield: float = maxf(0.0, float(p.get("shield", 0.0)))
+	if shield > 0.0:
+		draw_rect(Rect2(180, 19, 192 * clampf(shield / 105.0, 0, 1), 5), Color("#8cf4ef"))
+	_text(Vector2(384, 22), "HP " + str(ceili(hp)) + "  SH " + str(ceili(shield)) +
+		"  MP " + str(ceili(mana)) + "  LV " + str(p.get("level", 1)), 13)
 	if status.get("solo", false):
 		_text(Vector2(384, 37), "ROUND " + str(status.get("solo_round", 1)) + "   YOU " +
 			str(status.get("solo_wins", {}).get("A", 0)) + " : " +
@@ -99,6 +152,12 @@ func _draw() -> void:
 	_button_at(w - 194, h - 69, "S1", 29)
 	_button_at(w - 182, h - 143, "S2", 29)
 	_button_at(w - 92, h - 184, "ULT", 34, Color(0.54, 0.32, 0.68, 0.9))
+	_cooldown_ring(Vector2(w - 92, h - 92), 39, "attack")
+	_cooldown_ring(Vector2(w - 194, h - 69), 29, "primary")
+	_cooldown_ring(Vector2(w - 182, h - 143), 29, "secondary")
+	_cooldown_ring(Vector2(w - 92, h - 184), 34, "ultimate")
+	_draw_minimap()
+	_panel(Rect2(w - 105, 108, 92, 32), "ZOOM +")
 	_button_at(w - 292, h - 53, "GET", 27)
 	if not status.get("solo", false):
 		_button_at(w - 290, h - 118, "MINE", 27)
@@ -144,10 +203,18 @@ func _game_tap(at: Vector2) -> void:
 	if show_result:
 		playing = false
 		show_result = false
+		release_joystick()
 		queue_redraw()
 		return
 	if at.y < 45 and at.x < 87: exit_requested.emit(); return
 	if at.y < 45 and at.x < 174: pause_requested.emit(); return
+	if paused:
+		return
+	if Rect2(w - 105, 108, 92, 32).has_point(at):
+		zoom_requested.emit(1.2)
+		return
+	if Rect2(w - 188, 8, 175, 96).has_point(at):
+		return
 	for b in [
 		{"id": "attack", "p": Vector2(w - 92, h - 92), "r": 43.0},
 		{"id": "primary", "p": Vector2(w - 194, h - 69), "r": 34.0},
@@ -159,10 +226,10 @@ func _game_tap(at: Vector2) -> void:
 		{"id": "build", "p": Vector2(w - 357, h - 146), "r": 32.0}
 	]:
 		if at.distance_to(b["p"]) <= b["r"]:
+			if status.get("solo", false) and b["id"] in ["mine", "train", "build"]:
+				return
 			command_requested.emit(b["id"])
 			return
-	if at.y < 82 and at.x > w * 0.84:
-		zoom_requested.emit(1.2)
 	queue_redraw()
 
 func _set_joystick(at: Vector2) -> void:
@@ -175,7 +242,7 @@ func _gui_input(event: InputEvent) -> void:
 		if event.pressed:
 			if not playing:
 				_menu_tap(event.position)
-			elif event.position.x < 195 and event.position.y > size.y * 0.48:
+			elif not paused and active_joystick == -1 and event.position.x < 195 and event.position.y > size.y * 0.48:
 				active_joystick = event.index
 				_set_joystick(event.position)
 			else:
@@ -188,7 +255,7 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if not playing: _menu_tap(event.position)
-			elif event.position.x < 195 and event.position.y > size.y * 0.48:
+			elif not paused and active_joystick == -1 and event.position.x < 195 and event.position.y > size.y * 0.48:
 				active_joystick = 0
 				_set_joystick(event.position)
 			else: _game_tap(event.position)
