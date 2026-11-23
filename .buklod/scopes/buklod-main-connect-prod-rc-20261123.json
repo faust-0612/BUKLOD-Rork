@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "objective": "Prepare one NON-SEASON2 Android MAIN runtime 1.3.2 RC for Connect newest-message opening; release held until frozen RC and ad/navigation proof, without new native or Season2.",
+  "baseRef": "ae2decb85bda382644e369aa0affaa5a53096978",
+  "productionBaselineEvidence": "Reviewed historical main production marker 7b224c39624827282c3cbf003060317045b0a73f and source-only merged Connect main ae2decb85bda382644e369aa0affaa5a53096978. Previously recorded production OTA 01a201d9-3b7e-7881-b003-79452dd1a015 (2026-11-22 06:02Z) is not claimed current; live served manifest/Android runtime not independently verified in this turn.",
+  "chosenApproach": "Add reviewed release-source identity and exact native/season2 safety marker records; do not merge with production magic-prefix until independent RC and safety evidence is obtained.",
+  "alternativeApproaches": [
+    "Direct EAS update from chat (rejected: bypasses production freeze/readback and may target wrong app)",
+    "Merge Genesis/Season2 to current main (rejected: runtime 2.x incompatible and pre-Dec6 embargo)"
+  ],
+  "selectionRationale": "Canonical main only; source-merged tested Connect patch, no unpublished features, runtime/library drift or out-of-scope backend changes.",
+  "preserveBehaviors": [
+    "Existing production AdMob ad unit and first-view fill, tab navigation, offline Connect and chat read state",
+    "Existing Android package version 1.3.6/30 and Expo runtime 1.3.2",
+    "No Play, APK, Godot, Season2, web or Supabase deployment"
+  ],
+  "acceptanceChecks": [
+    "Exact production artifact and source/runtime compatibility prior to OTA",
+    "Release only from protected main magic-prefix publisher after QA",
+    "AdMob and nav release-critical checks mandatory and not marked passed by source-only QA",
+    "Live EAS update id and served launch asset hash required after publisher",
+    "No production announcement until verified published"
+  ],
+  "riskAreas": [
+    "production-release",
+    "app-runtime",
+    "connect-ptt-calls",
+    "ads-finance-points"
+  ],
+  "regressionTests": [
+    "tests/buklod-main-connect-prod-rc-20261123.test.cjs"
+  ],
+  "allowedPaths": [
+    ".buklod/releases/buklod-main-connect-latest-nonseason2-ota-20261123.json",
+    ".buklod/scopes/buklod-main-connect-prod-rc-20261123.json",
+    "tests/buklod-main-connect-prod-rc-20261123.test.cjs"
+  ],
+  "lockedFeatureChanges": []
+}
