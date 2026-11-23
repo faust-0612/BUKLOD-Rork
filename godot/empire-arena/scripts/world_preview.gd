@@ -22,6 +22,7 @@ var music_enabled: bool = true
 var max_quality: bool = false
 var audio: AudioStreamPlayer
 var hud_status: Label
+var interaction_notice := ""
 
 func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
@@ -31,6 +32,7 @@ func _ready() -> void:
 			if WORLD_ART.has(candidate):
 				world_id = candidate
 	Engine.max_fps = 30
+	# The 2D authored world art is source-grounded, not a substitute for 3D meshes.
 	_load_backdrop()
 	_create_controls()
 	set_process(true)
@@ -101,12 +103,21 @@ func _toggle_quality() -> void:
 func _play_audio(name: String) -> void:
 	if not music_enabled or not ["navigation", "build_start", "build_complete", "claim"].has(name):
 		return
-	var stream: AudioStreamWAV = AudioStreamWAV.load_from_file("res://world-audio/" + name + ".wav")
+	var sound_bytes: PackedByteArray = FileAccess.get_file_as_bytes("res://world-audio/" + name + ".wav")
+	if sound_bytes.is_empty():
+		return
+	var stream: AudioStreamWAV = AudioStreamWAV.load_from_buffer(sound_bytes)
 	if stream == null:
 		return
 	audio.stop()
 	audio.stream = stream
 	audio.play()
+
+func world_interaction(cue: String, message: String) -> void:
+	interaction_notice = message
+	_play_audio(cue)
+	_refresh_status()
+	queue_redraw()
 
 func change_preview_level(delta: int) -> void:
 	preview_level = clampi(preview_level + delta, 1, MAX_LEVEL)
@@ -123,16 +134,11 @@ func advance_preview_stage() -> void:
 
 func _refresh_status() -> void:
 	if hud_status != null:
-		hud_status.text = "VISUAL PREVIEW ONLY  |  Level %d / 10  |  Stage %d / 5 (%s)  |  No BP / inventory / property changes" % [preview_level, preview_stage + 1, STAGES[preview_stage]]
+		hud_status.text = ("VISUAL PREVIEW ONLY  |  Level %d / 10  |  Stage %d / 5 (%s)" % [preview_level, preview_stage + 1, STAGES[preview_stage]]) + ("  |  " + interaction_notice if not interaction_notice.is_empty() else "")
 
 func _process(delta: float) -> void:
 	elapsed += minf(delta, 0.05)
 	queue_redraw()
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.position.y > 130 and event.position.y < 600:
-			_play_audio("claim")
 
 func _draw_structure(center: Vector2, size: float, tint: Color) -> void:
 	var ground: Vector2 = Vector2(size * 0.75, size * 0.44)
@@ -153,6 +159,14 @@ func _draw_structure(center: Vector2, size: float, tint: Color) -> void:
 			center + Vector2(-ground.x * 1.1, -size),
 			center + Vector2(0, -size * 1.6),
 			center + Vector2(ground.x * 1.1, -size)]), tint.lightened(0.32))
+		# Stage-locked roof trim and windows; no fake ownership or permanent unlocks.
+		draw_line(center + Vector2(-ground.x * 1.08, -size),
+			center + Vector2(0, -size * 1.6), Color("#ffe4ad"), 5.0)
+		draw_line(center + Vector2(0, -size * 1.6),
+			center + Vector2(ground.x * 1.08, -size), Color("#ffe4ad"), 5.0)
+		for window_x in [-ground.x * 0.48, ground.x * 0.48]:
+			draw_rect(Rect2(center + Vector2(window_x - 12, -size * 0.66), Vector2(24, 29)),
+				Color("#ffe6ad"))
 		draw_circle(center + Vector2(0, -size * 1.4), 3.0 + 1.3 * sin(elapsed * 3.0), Color("#fff4bf"))
 
 func draw_ellipse_shadow(center: Vector2, size: float) -> void:
@@ -171,8 +185,10 @@ func _draw() -> void:
 			var row: int = i / 7
 			var pos: Vector2 = Vector2(154 + col * 160, 275 + row * 188)
 			draw_circle(pos, 28 + sin(elapsed * 2.0 + i) * 3.0, Color(0.36, 0.8, 0.95, 0.23))
-			draw_colored_polygon(PackedVector2Array([pos + Vector2(-20, 14), pos + Vector2(0, -35), pos + Vector2(20, 14)]), Color("#8ce0b2"))
-			draw_string(ThemeDB.fallback_font, pos + Vector2(-11, 46), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
+			# Actual animated 13-character sprites are rendered by WorldExploreController.
+			# These are subtle station shadows, not triangular stand-in characters.
+			draw_arc(pos + Vector2(0, 43), 39, 0, TAU, 36, Color(0.45, 0.94, 0.73, 0.54), 2.0)
+			draw_circle(pos + Vector2(0, 52), 25, Color(0.02, 0.08, 0.11, 0.28))
 	elif world_id == "community":
 		for i in range(6):
 			var pos: Vector2 = Vector2(188 + (i % 3) * 430, 300 + (i / 3) * 210)

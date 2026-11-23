@@ -195,18 +195,27 @@ func _draw_actor(p: Dictionary) -> void:
 	var pos: Vector2 = p["pos"] * PX
 	var team: String = p.get("team", "A")
 	var is_hero: bool = p.get("kind", "") == "hero"
-	var large := 11.5 if is_hero else 6.0
+	var large := 18.0 if is_hero else 7.0
 	var color: Color = _suit_color(p.get("hero", "phan")) if is_hero else \
 		Color("#7de8d0") if team == "A" else Color("#f39a92")
 	var breath: float = sin(frames * (3.0 if is_hero else 5.0) + float(pos.x) * 0.15)
 	var shift := Vector2(0, breath * 1.2)
-	draw_circle(pos + Vector2(0, 8), large * 1.1, Color(0, 0, 0, 0.35))
-	draw_circle(pos + shift, large, color.darkened(0.35))
-	draw_circle(pos + shift - Vector2(0, large * 0.33), large * 0.62, color)
-	draw_line(pos + shift + Vector2(-large, 2), pos + shift + Vector2(-large * 1.55, 5 + breath * 2), color, 3.0)
-	draw_line(pos + shift + Vector2(large, 2), pos + shift + Vector2(large * 1.55, 5 - breath * 2), color, 3.0)
-	draw_circle(pos + shift - Vector2(large * 0.18, large * 0.36), 1.25, Color("#0c1f2c"))
-	draw_circle(pos + shift + Vector2(large * 0.18, -large * 0.36), 1.25, Color("#0c1f2c"))
+	draw_circle(pos + Vector2(0, 9), large * 1.25, Color(0, 0, 0, 0.30))
+	if is_hero:
+		draw_arc(pos + Vector2(0, 5), large * 1.5 + sin(frames * 2.4) * 2, 0, TAU, 32,
+			Color(0.32, 0.98, 0.68, 0.6) if team == "A" else Color(1.0, 0.48, 0.41, 0.6), 2.5)
+	if not is_hero:
+		draw_circle(pos + shift, large, color.darkened(0.35))
+	if not is_hero:
+		draw_circle(pos + shift - Vector2(0, large * 0.33), large * 0.62, color)
+	if not is_hero:
+		draw_line(pos + shift + Vector2(-large, 2), pos + shift + Vector2(-large * 1.55, 5 + breath * 2), color, 3.0)
+	if not is_hero:
+		draw_line(pos + shift + Vector2(large, 2), pos + shift + Vector2(large * 1.55, 5 - breath * 2), color, 3.0)
+	if not is_hero:
+		draw_circle(pos + shift - Vector2(large * 0.18, large * 0.36), 1.25, Color("#0c1f2c"))
+	if not is_hero:
+		draw_circle(pos + shift + Vector2(large * 0.18, -large * 0.36), 1.25, Color("#0c1f2c"))
 	if is_hero:
 		var hero_id: String = str(p.get("hero", "phan"))
 		var portrait: Texture2D = _art("res://art/sprite/" + hero_id + ".png")
@@ -225,13 +234,13 @@ func _draw_actor(p: Dictionary) -> void:
 				var region := Rect2(Vector2(float(idx % 4) * cell.x,
 					float(idx / 4) * cell.y), cell)
 				draw_texture_rect_region(frame_texture, destination, region,
-					Color(1, 1, 1, 0.98))
+					Color(1, 1, 1, 1.0))
 			else:
 				draw_texture_rect(portrait, destination, false, Color(1, 1, 1, 0.98))
 		draw_arc(pos, large + 4.0, -PI, PI, 30,
-			Color("#6af7ca") if team == "A" else Color("#ff9b8c"), 2.0)
+			Color("#6af7ca") if team == "A" else Color("#ff9b8c"), 2.5)
 		draw_string(ThemeDB.fallback_font, pos + Vector2(-18, -large - 16),
-			str(p["hero"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+			str(p["hero"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
 	# Show the owner's distinct five minion identities and named village workers.
 	# Visual identity follows the same single simulation actor; no duplicate AI.
 	if p.get("library_minion", false):
@@ -262,11 +271,11 @@ func _draw_world() -> void:
 	var scenery: Texture2D = _art("res://art/scene/" + str(s["map"]) + ".png")
 	if scenery != null:
 		draw_texture_rect(scenery, Rect2(Vector2.ZERO, Vector2(w, h)), false,
-			Color(1.0, 1.0, 1.0, 0.82))
+			Color(1.0, 1.0, 1.0, 0.98))
 	draw_circle(Vector2(w * 0.5, h * 0.5), w * 0.35, lane * Color(1, 1, 1, 0.3))
 	for i in range(3):
 		var y: float = h * float(map["lanes"][i])
-		draw_line(Vector2(0, y), Vector2(w, y), lane.lightened(0.35), 25)
+		draw_line(Vector2(0, y), Vector2(w, y), lane.lightened(0.35) * Color(1, 1, 1, 0.35), 12)
 		draw_line(Vector2(0, y), Vector2(w, y), Color(0.51, 0.86, 0.83, 0.45), 2)
 	for i in range(80):
 		var x := fposmod(float(i * 157 + 17), w)
