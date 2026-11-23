@@ -146,6 +146,8 @@ import {
   buklodCommentHasSendableContent,
   encodeBuklodCommentMediaBody,
 } from '@/lib/buklodCommentMediaBody';
+import { uploadBuklodCommentVideo } from '@/lib/buklodCommentVideo';
+import { stopBuklodCommentVideos } from '@/lib/buklodCommentVideoPlaybackSignal';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -2745,7 +2747,16 @@ export default function BuklodExclusiveScopeCommunity({
         mediaForBody = { kind: 'gif', ref: path };
       }
 
-      finalBody = encodeBuklodCommentMediaBody(mediaForBody, finalBody);
+      if (originalMedia?.kind === 'video') {
+         if (!user?.id) throw new Error('Please sign in to post a short video.');
+         if (isLocalMediaUri(originalMedia.ref)) {
+           mediaForBody = await uploadBuklodCommentVideo(
+             originalMedia,
+             `scope/${scope.scope_id}/${user.id}/comment-video-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+           );
+         }
+       }
+       finalBody = encodeBuklodCommentMediaBody(mediaForBody, finalBody);
       const { error } = await withBuklodTimeout<ScopedRpcResponse<string>>(
         (supabase as any).rpc('buklod_scope_social_add_comment_v1', {
           p_scope_id: scope.scope_id,
@@ -4915,6 +4926,7 @@ return (
             <ScrollView
               ref={focusCommentScrollRef}
               style={styles.commentsScroll}
+              onScrollBeginDrag={stopBuklodCommentVideos}
               contentContainerStyle={styles.commentsContent}
               keyboardShouldPersistTaps="handled"
             >
