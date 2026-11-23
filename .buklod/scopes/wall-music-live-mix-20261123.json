@@ -35,7 +35,8 @@
   ],
   "regressionTests": [
     "tests/wall-music-mixer-scrub-20261123.test.mjs",
-    "tests/wall-music-security-navigation-20261123.test.mjs"
+    "tests/wall-music-security-navigation-20261123.test.mjs",
+    "supabase/tests/buklod_post_audio_mix_v1.sql"
   ],
   "allowedPaths": [
     "src/components/BuklodPostMusicPicker.tsx",
@@ -48,7 +49,8 @@
     "supabase/migrations/20261123133500_buklod_post_audio_mix_v1_20261123.sql",
     "tests/wall-music-mixer-scrub-20261123.test.mjs",
     "tests/wall-music-security-navigation-20261123.test.mjs",
-    ".buklod/scopes/wall-music-live-mix-20261123.json"
+    ".buklod/scopes/wall-music-live-mix-20261123.json",
+    "supabase/tests/buklod_post_audio_mix_v1.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -90,7 +92,8 @@
         "Existing RLS and ownership permissions stay unchanged, with numeric constraints and historical compatibility."
       ],
       "tests": [
-        "tests/wall-music-security-navigation-20261123.test.mjs"
+        "tests/wall-music-security-navigation-20261123.test.mjs",
+        "supabase/tests/buklod_post_audio_mix_v1.sql"
       ]
     }
   ]
