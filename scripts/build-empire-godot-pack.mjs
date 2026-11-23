@@ -155,6 +155,58 @@ if (process.env.BUKLOD_GENESIS_PRIVATE_ASSETS === 'true') {
     models:manifest.models.length,bytes:privateBytes}));
 }
 
+// Optional user Library 2D animation/VFX atlases. The local importer must
+// produce a hash-pinned manifest and retain original per-pack license proofs.
+// They may be embedded in a finished game, never shipped as raw asset packs.
+// Default CI builds exclude them: no private byte is ever fetched from GitHub.
+if (process.env.BUKLOD_GENESIS_PRIVATE_FX === 'true') {
+  const fxRoot=path.resolve(process.env.BUKLOD_GENESIS_PRIVATE_FX_DIR ||
+    path.join(root,'build/genesis-private-fx'));
+  const fxManifest=JSON.parse(readFileSync(path.join(fxRoot,'fx-manifest.json'),'utf8'));
+  assert.equal(fxManifest.schema,1);
+  assert.equal(fxManifest.origin,'OWNER_LIBRARY_PRIVATE_LOCAL');
+  assert.equal(fxManifest.rightsStatus,'REVIEWED_IN_GAME_USE_ONLY');
+  assert.equal(fxManifest.releaseAuthority,'DEV_PREVIEW_ONLY');
+  assert.ok(Array.isArray(fxManifest.assets)&&fxManifest.assets.length>0 &&
+    fxManifest.assets.length<=50,'Private FX count out of bounds');
+  assert.equal(fxManifest.licenseProof.length,3,'Expected three embedded license statements');
+  const checkHash=x=>assert.match(x,/^[a-f0-9]{64}$/);
+  for (const proof of fxManifest.licenseProof) {
+    assert.match(proof.file,/^licenses\/[a-z0-9_-]+\.txt$/);
+    checkHash(proof.sha256);
+    const bytes=readFileSync(path.join(fxRoot,proof.file));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'),proof.sha256);
+    assert.ok(bytes.length>25&&bytes.length<50000,'Missing license contents');
+    entries.push({name:proof.file,bytes});
+  }
+  const seen=new Set();
+  let totalFx=0;
+  for (const fx of fxManifest.assets) {
+    assert.match(fx.id,/^[a-z0-9_]{5,100}$/);
+    assert.equal(fx.file,'private-fx/'+fx.id+'.png');
+    assert.ok(!seen.has(fx.id),'Duplicate private animation');seen.add(fx.id);
+    checkHash(fx.sha256);
+    assert.ok(fx.bytes>100&&fx.bytes<3*1024*1024);
+    assert.ok(fx.frames>=1&&fx.frames<=64&&fx.fps>=4&&fx.fps<=24);
+    assert.ok(fx.frameWidth>=32&&fx.frameWidth<=512&&fx.frameHeight>=32&&fx.frameHeight<=512);
+    assert.ok(fx.columns>=1&&fx.columns<=8&&fx.rows>=1&&fx.rows<=8);
+    assert.ok(fx.columns*fx.rows>=fx.frames);
+    const bytes=readFileSync(path.join(fxRoot,fx.file));
+    assert.equal(bytes.length,fx.bytes);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'),fx.sha256);
+    assert.ok(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])));
+    assert.equal(bytes.readUInt32BE(16),fx.frameWidth*fx.columns);
+    assert.equal(bytes.readUInt32BE(20),fx.frameHeight*fx.rows);
+    totalFx+=bytes.length;
+    assert.ok(totalFx<48*1024*1024,'Private effects exceed OTA budget');
+    entries.push({name:fx.file,bytes});
+  }
+  entries.push({name:'data/private_fx_manifest.json',
+    bytes:Buffer.from(JSON.stringify(fxManifest))});
+  console.log('BUKLOD_206_PRIVATE_FX_LICENSED_ATLASES_EMBEDDED '+
+    JSON.stringify({atlases:fxManifest.assets.length,frames:fxManifest.assets.reduce((n,a)=>n+a.frames,0),bytes:totalFx}));
+}
+
 // Embed the already validated 70 recording-based Arena cues.
 // No procedural placeholder sound or unreviewed uploaded third-party file.
 const {cues:audioEntries,manifest:audioManifest} = arenaSfxEntries(root);
