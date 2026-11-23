@@ -240,3 +240,22 @@ grant execute on function public.confirm_buklod_ad_points_bonus_ssv_v1(uuid,uuid
 
 comment on function public.confirm_buklod_ad_points_bonus_ssv_v1(uuid,uuid,text) is
 'Service-only AdMob ECDSA verified reward; never writes Community QMP, cash or Bayanihan.';
+
+-- The client can confirm only its own nonce; it cannot claim or mutate a receipt.
+create or replace function public.get_my_buklod_ad_points_receipt_v1(p_nonce uuid)
+returns jsonb language plpgsql stable security definer set search_path to ''
+as $$
+declare v_uid uuid := (select auth.uid()); v_attempt private.buklod_ad_points_attempts%rowtype;
+begin
+  if v_uid is null then raise exception 'Authentication required'; end if;
+  select * into v_attempt from private.buklod_ad_points_attempts a
+  where a.nonce=p_nonce and a.user_id=v_uid;
+  if v_attempt.nonce is null then
+    return jsonb_build_object('found',false,'credited',false);
+  end if;
+  return jsonb_build_object('found',true,
+    'credited',v_attempt.status='credited','expires_at',v_attempt.expires_at);
+end;
+$$;
+revoke all on function public.get_my_buklod_ad_points_receipt_v1(uuid) from public,anon;
+grant execute on function public.get_my_buklod_ad_points_receipt_v1(uuid) to authenticated;
