@@ -1,3 +1,4 @@
+import './buklod-ads-rendering-baseline-20261123.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
