@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url'),'utf8');
+const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('Founder Academy quality snapshot is secured to System Admin and returns only aggregate counters',()=>{
  const sql=read('supabase/migrations/20261124034000_buklod_academy_quality_overview_v1.sql');

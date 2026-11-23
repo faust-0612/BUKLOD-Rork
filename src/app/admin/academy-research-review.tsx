@@ -53,7 +53,7 @@ export default function AcademyAutomatedResearchOversight(){
    {snapshot.research_stale_reviewing>0||snapshot.source_adapters_blocked>0?
     <Text style={s.notice}>Quality warning: source or automated review blockers need systemic correction; no student award may bypass evidence checks.</Text>:null}
   </View>:null}
-  <Text style={s.info}>This admin view contains aggregate statistics only, not private papers or children's evidence. It has no Approve, Reject, Edit Score or Grant UC buttons.</Text>
+  <Text style={s.info}>This admin view contains aggregate statistics only, not private papers or children's evidence. It provides no learner approval, scoring override, or credit-award actions.</Text>
   <Text style={s.info}>ISO quality conformity still requires real operational evidence, impartial internal auditing and an accountable management review. None are approvals of individual students.</Text>
  </ScrollView></AdminGate>;
 }

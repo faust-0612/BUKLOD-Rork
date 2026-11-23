@@ -1,6 +1,6 @@
 # BUKLOD Academy of Higher Learning — minimum educational quality system (DEV)
 
-**Owner organization:** MZB Ministry Inc.  
+**Owner organization:** MZB Ministry Inc. — independent non-formal education  
 **Document set version:** BAHL-EOMS-PILOT-1, drafted 2026-11-24  
 **Status:** DRAFT / source reconciliation / legal and human governance approval pending. **Not ISO-certified and not a degree-granting accreditation claim.**
 

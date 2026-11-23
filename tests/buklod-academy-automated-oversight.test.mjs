@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const source=(p)=>fs.readFileSync(new URL('../'+p,import.meta.url'),'utf8');
+const source=(p)=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('Founder is sole routine human oversight; academic results automatic',()=>{
  const q=JSON.parse(source('src/data/academy/bahlIso21001ControlRegister.json'));
  assert.equal(q.human_oversight_policy.per_learner_manual_approval,false);

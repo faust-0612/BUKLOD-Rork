@@ -11,7 +11,7 @@ const quality=JSON.parse(read('src/data/academy/bahlQualityCurriculumFramework.j
 test('36 ISO-aligned controls span clauses 4 to 10; no self-certification claims',()=>{
  assert.equal(register.standard,'ISO 21001:2025');
  assert.equal(register.controls.length,36);
- assert.deepEqual([...new Set(register.controls.map(x=>x.clause))].sort(),['4','5','6','7','8','9','10']);
+ assert.deepEqual([...new Set(register.controls.map(x=>x.clause))].sort((a,b)=>Number(a)-Number(b)),['4','5','6','7','8','9','10']);
  assert.equal(register.quality_claim_allowed,false);
  assert.equal(register.certification_claim_allowed,false);
  assert.equal(register.readiness_release_gate,'FAIL_CLOSED_UNTIL_VERIFIED');
