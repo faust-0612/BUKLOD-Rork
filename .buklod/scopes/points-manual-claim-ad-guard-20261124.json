@@ -1,0 +1,66 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/points-manual-claim-ad-guard-20261124.json",
+  "objective": "Retire member-facing Claim All and synthetic claim-all client compatibility; restore protected manual per-category claims after verified activities, with shared safe optional interstitial opportunities after each successful group settlement. Approved public rank-prestige experience and cosmetic rollouts remain separate future scopes.",
+  "baseRef": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "productionBaselineEvidence": "Read-only GitHub canonical MAIN SHA 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 on 2026-11-24; live MAIN database confirms public.claim_my_buklod_reward_group_v1 has authenticated user lock, idempotent pending-ledger transition, balance, rank history and pending counter; existing Points UI had Claim All as its sole action. Exact installed production OTA, RC APK and AdMob device fill were not verified. No production migration/release authorized. Protected-feature classifier recognized app-runtime only; ads-finance-points is covered by changed Points/AdMob regression tests without an unsupported protected-feature declaration.",
+  "chosenApproach": "Use the already deployed atomic per-group RPC for one manual claim per category; disable during in-flight request with ref guard; update only claimed group and account-scoped cache; server-confirmed points result before optional shared-controller interstitial; keep global consent/multi-action/cooldown/no-fill protections. Remove synthetic Claim All from client API only, preserving legacy server compatibility with installed clients.",
+  "selectionRationale": "Avoid a new database mutation or per-ledger RPC and its rollout risks; group claims create independent intentional claim opportunities without AdMob's disallowed ad-on-every-action implementation. Maintain existing reward events, balances, rank crossing, earned points, and noncash economy.",
+  "alternativeApproaches": [
+    "Force an interstitial after every claim: rejected by Google AdMob/Play ads policies; must honor existing cadence and user safety.",
+    "Revoke server Claim All immediately: rejected because older production clients still require compatibility; defer server deprecation until client uptake.",
+    "Auto-claim verified points: rejected by owner; all credits remain explicitly manually claimed.",
+    "Add new per-ledger RPC without schema review: rejected for this isolated release; reuse live validated group transaction."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-finance-points",
+    "ads-monetization",
+    "points-ledger",
+    "rank-progress",
+    "app-performance",
+    "user-experience"
+  ],
+  "preserveBehaviors": [
+    "No automatic earning into lifetime or available until explicit manual claim; pending ledger stays durable.",
+    "Keep server-verified, account-scoped atomic transactions, idempotent retries, rank history, month/weekly rankings, Character XP and current rewards.",
+    "Do not rewrite historical credits, old ledger rows, existing rules or payout/AdMob financial accounting.",
+    "Keep current native AdMob unit, placements, consent, remote kill switch, two-action minimum, full-screen cooldown, prewarm and no-fill recovery.",
+    "Preserve claims while ads unavailable or failed; a successful claim never depends on an ad view or reward video.",
+    "Preserve History deep links, profile/points navigation, Celebration animation, sound/haptics and dark mode/Reduce Motion.",
+    "No Android native dependency, runtime/version, staging, or production OTA changes."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/points-manual-claim-ad-guard-20261124.json",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/lib/buklodRewards.ts",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "tests/points-manual-group-claim-20261124.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/points-manual-group-claim-20261124.test.mjs",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "No Claim All button, event identifier or synthetic Claim All loading path in the new client.",
+    "Each category exposes one active manual Claim action; only that group's server-confirmed balance moves on success.",
+    "Rapid double taps create one RPC only, with no duplicate points or ads; zero-point idempotent replies refresh only.",
+    "Claim success triggers flying-stars sound/haptics, correct rank-up and optional ad after settlement; no-fill or ad errors do not block points.",
+    "Timed-out or uncertain network response does not automatically re-issue claim mutation; bounded refresh reconciles before another manual action.",
+    "All existing ad/nav release gates, tests and native/production verification remain mandatory; no direct production OTA."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Source UI change to Points claim controls and account-scoped refreshing",
+      "preservedBehaviors": [
+        "Preserve navigation, app runtime and rollback paths; no native changes"
+      ],
+      "tests": [
+        "tests/points-manual-group-claim-20261124.test.mjs"
+      ]
+    }
+  ]
+}
