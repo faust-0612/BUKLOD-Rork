@@ -23,7 +23,8 @@
     ".github/workflows/genesis-205-native-eas-cloud-build-20261123.yml",
     ".github/workflows/genesis-205-expo-cloud-readonly-receipt-20261123.yml",
     "tests/genesis-library-native-runtime-release-20261122.test.mjs",
-    "godot/empire-arena/scripts/arena_root.gd"
+    "godot/empire-arena/scripts/arena_root.gd",
+    ".github/workflows/genesis-205-godot-strict-headless-qa-20261123.yml"
   ],
   "regressionTests": [
     "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
@@ -109,14 +110,15 @@
     "Expo EAS Cloud Android internal build id is real and profile matches installed staging package with code17 and matching signer",
     "Staging EAS build artifact verified and shared only after build status FINISHED, no fake verified 100% assertion",
     "No guaranteed Godot launch or full game behavior asserted when owner elected to skip physical device verification",
-    "Strict Godot ZIP startup test must emit BUKLOD_GODOT_ARENA_SCENE_READY and reject ANY SCRIPT ERROR/Parse Error even if process exits 0"
+    "Strict Godot ZIP startup test must emit BUKLOD_GODOT_ARENA_SCENE_READY and reject ANY SCRIPT ERROR/Parse Error even if process exits 0",
+    "Fail-closed Godot 4.7.2 headless zip scene startup requires explicit scene-ready sentinel and no SCRIPT ERROR despite zero exit status, plus four gameplay/world smoke scripts must emit unique success sentinel"
   ],
   "alternativeApproaches": [
     "Rejected: publish direct-to-Godot JavaScript OTA to crashing 2.0.4 native engine; risk of immediate app crash loop",
     "Rejected: disable R8 globally; forfeits app hardening and release gates"
   ],
   "releaseMode": "DEV_ONLY_NATIVE_APK_CANDIDATE_NO_OTA",
-  "publicationStatus": "EXPO_205_CLOUD_PREBUILD_GATED_FAILED_45113931825_OLD_204_TEST_FLAG_LEAK;_FIXED_AND_RESUBMIT_REQUIRED;_NO_CLOUD_CREDIT_USED",
+  "publicationStatus": "EXPO_CLOUD_QUOTA_BLOCKED_UNTIL_DEC_01_2026;_LOCAL_EXPO_SIGNED_BUILD_PREP_PENDING_STRICT_GODOT_QA",
   "physicalDeviceVerification": "SKIP_USER_REQUEST;_CURRENT_2_0_4_GODOT_LAUNCH_REPORTED_CRASH;_NEW_2_0_5_UNTESTED",
   "productionBaselineEvidence": "Base is the exact published 2.0.4 Genesis consolidated source commit 63f97c4092c1214c8f0b0eb5558d1183c6f189d4 on release/genesis-library-204-conso-ota-20261122, corresponding to EAS 2.0.4 group 7411bd8d-5c80-47c5-b120-e52570768ce5. Previous native APK run 45031011586 passed signing/pack checks, but Godot launch crashed on owner device. This DEV branch makes no production or 2.0.4 channel change; verified physical device startup still missing."
 }
