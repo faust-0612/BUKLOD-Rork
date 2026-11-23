@@ -5,6 +5,8 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
+import BuklodImciTagalogGuide from '@/components/health/BuklodImciTagalogGuide';
+import BuklodAjaTagalogGuide from '@/components/health/BuklodAjaTagalogGuide';
 import {
   BUKLOD_HEALTH_CENTER_URL,
   BUKLOD_HEALTH_CONSULTATION_URL,
@@ -20,12 +22,20 @@ type Urgency = 'unanswered' | 'urgent' | 'none';
 type Door = 'consult' | 'standalone' | 'professional';
 
 const CONCERNS: { id: Concern; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
-  { id: 'symptoms', label: 'Symptoms', icon: 'heart-pulse' },
-  { id: 'medicines', label: 'Medicines', icon: 'pill' },
-  { id: 'laboratory', label: 'Lab results', icon: 'flask-outline' },
+  { id: 'symptoms', label: 'Mga sintomas', icon: 'heart-pulse' },
+  { id: 'medicines', label: 'Mga gamot', icon: 'pill' },
+  { id: 'laboratory', label: 'Resulta ng lab', icon: 'flask-outline' },
   { id: 'wellbeing', label: 'Mental health', icon: 'head-heart-outline' },
-  { id: 'general', label: 'General health', icon: 'medical-bag' },
+  { id: 'general', label: 'Pangkalahatan', icon: 'medical-bag' },
 ];
+
+const CONCERN_HELP: Record<Concern, { title: string; text: string }> = {
+  symptoms: { title: 'Kung may nararamdamang sintomas', text: 'Isulat sa sarili mong tala kung kailan nagsimula, gaano kadalas, at kung may pagbabago. Sa matinding sintomas o biglaang paglala, magpatingin agad.' },
+  medicines: { title: 'Kung tungkol sa gamot', text: 'Ihanda ang pangalan, label, at reseta ng gamot para sa pharmacist o doktor. Huwag magbago ng dosis o magbigay ng antibiotic nang walang propesyonal na payo.' },
+  laboratory: { title: 'Kung may resulta ng laboratoryo', text: 'Ipakita ang kumpletong resulta at reference range sa doktor na humiling ng test. Hindi sapat ang iisang numero para sa diagnosis.' },
+  wellbeing: { title: 'Kung tungkol sa mental health', text: 'Makipag-usap sa pinagkakatiwalaang tao o health professional. Kung may agarang panganib na saktan ang sarili o iba, tawag sa emergency services.' },
+  general: { title: 'Para sa pangkalahatang kalusugan', text: 'Tingnan ang bakuna, regular na checkup, nutrisyon, at mga tanong para sa barangay health center. Sa bata, gamitin ang IMCI guide sa itaas.' },
+};
 
 /**
  * Public patient-facing guide. No symptoms, flags, health IDs or BUKLOD auth
@@ -34,8 +44,8 @@ const CONCERNS: { id: Concern; label: string; icon: keyof typeof MaterialCommuni
  */
 export default function BuklodHealthPortal() {
   const [concern, setConcern] = useState<Concern>('general');
-  const [imciOpen,setImciOpen] = useState(false);
-  const [imciAge,setImciAge] = useState<'young_infant'|'child'|'older'>('child');
+  const [imciUrgent, setImciUrgent] = useState(false);
+  const [ajaUrgent, setAjaUrgent] = useState(false);
   const [urgency, setUrgency] = useState<Urgency>('unanswered');
   const [opening, setOpening] = useState<Door | null>(null);
   const [error, setError] = useState(false);
@@ -51,7 +61,7 @@ export default function BuklodHealthPortal() {
         await launchBuklodHealthCenter(url => Linking.openURL(url));
        } else if (door === 'professional' && BUKLOD_HEALTH_PROFESSIONALS_READY) {
         await launchBuklodHealthProfessionals(url => Linking.openURL(url));
-      } else if (urgency === 'none' && BUKLOD_HEALTH_CONSULTATION_READY) {
+      } else if (urgency === 'none' && !imciUrgent && !ajaUrgent && BUKLOD_HEALTH_CONSULTATION_READY) {
         await launchBuklodHealthConsultation(url => Linking.openURL(url));
       }
     } catch {
@@ -60,13 +70,13 @@ export default function BuklodHealthPortal() {
       openingRef.current = false;
       setOpening(null);
     }
-  }, [urgency]);
+  }, [urgency, imciUrgent, ajaUrgent]);
 
   const urgent = urgency === 'urgent';
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Online Health Consultation' }} />
+      <Stack.Screen options={{ title: 'Health Center · Gabay sa Kalusugan' }} />
       <BuklodPortalScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
@@ -79,18 +89,23 @@ export default function BuklodHealthPortal() {
             </View>
             <View style={styles.heroText}>
               <Text style={styles.eyebrow}>BUKLOD HEALTH CENTER</Text>
-              <Text style={styles.title}>Online Consultation</Text>
+              <Text style={styles.title}>Online Consultation · Kalusugan</Text>
             </View>
           </View>
           <Text style={styles.description}>
-            Start with a quick safety check, then open the private AI Health Guide.
-            This is AI-supported health information, not a human doctor, diagnosis, or prescription.
+            May gabay sa Tagalog para sa kalusugan ng bata at mga mahalagang warning signs.
+            Ang impormasyon dito ay hindi diagnosis, reseta, o kapalit ng doktor.
           </Text>
         </View>
 
+        <BuklodImciTagalogGuide onUrgencyChange={setImciUrgent} />
+        <BuklodAjaTagalogGuide onUrgencyChange={setAjaUrgent} />
+
+        {!imciUrgent && !ajaUrgent ? (
+          <>
         <View style={styles.guideCard}>
-          <Text style={styles.sectionHeading}>1. What can we help with?</Text>
-          <Text style={styles.hint}>Select a topic. Your selection stays on this screen and is not sent to BUKLOD or the Health Center.</Text>
+          <Text style={styles.sectionHeading}>Anong tulong ang kailangan mo?</Text>
+          <Text style={styles.hint}>Pumili ng paksa. Hindi ipinapadala ang pinili mo sa BUKLOD o sa ibang website.</Text>
           <View style={styles.chips}>
             {CONCERNS.map(item => (
               <Pressable
@@ -108,42 +123,46 @@ export default function BuklodHealthPortal() {
               </Pressable>
             ))}
           </View>
+          <View style={styles.topicTip}>
+            <Text style={styles.topicTitle}>{CONCERN_HELP[concern].title}</Text>
+            <Text style={styles.body}>{CONCERN_HELP[concern].text}</Text>
+          </View>
         </View>
 
         <View style={styles.guideCard}>
-          <Text style={styles.sectionHeading}>2. Check for urgent warning signs</Text>
+          <Text style={styles.sectionHeading}>Suriin muna ang emergency signs</Text>
           <Text style={styles.body}>
-            Are you experiencing severe chest pain, difficulty breathing, possible stroke symptoms,
-            uncontrolled bleeding, loss of consciousness, or an immediate risk of self-harm?
+            May matinding sakit sa dibdib, hirap sa paghinga, biglaang panghihina o sintomas ng stroke,
+            hindi mapigilang pagdurugo, pagkawala ng malay, o agarang panganib na saktan ang sarili?
           </Text>
           <View style={styles.choiceRow}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Yes or unsure, I may have an urgent warning sign"
+              accessibilityLabel="Oo o hindi sigurado, maaaring emergency ito"
               accessibilityState={{ selected: urgent }}
               onPress={() => setUrgency('urgent')}
               style={({ pressed }) => [styles.warningChoice, urgent && styles.warningChoiceSelected, pressed && styles.pressed]}
             >
-              <Text style={styles.warningChoiceText}>Yes / unsure</Text>
+              <Text style={styles.warningChoiceText}>Oo / hindi sigurado</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="No, none of these urgent warning signs"
+              accessibilityLabel="Wala sa mga nabanggit na emergency signs"
               accessibilityState={{ selected: urgency === 'none' }}
               onPress={() => setUrgency('none')}
               style={({ pressed }) => [styles.clearChoice, urgency === 'none' && styles.clearChoiceSelected, pressed && styles.pressed]}
             >
-              <Text style={styles.clearChoiceText}>None of these</Text>
+              <Text style={styles.clearChoiceText}>Wala sa mga ito</Text>
             </Pressable>
           </View>
           {urgent ? (
             <View accessibilityRole="alert" style={styles.urgentPanel}>
               <MaterialCommunityIcons name="alert-circle" size={23} color="#9E1B1B" />
               <View style={styles.urgentBody}>
-                <Text style={styles.urgentTitle}>Seek immediate medical help</Text>
+                <Text style={styles.urgentTitle}>Humingi agad ng medikal na tulong</Text>
                 <Text style={styles.urgentText}>
-                  Do not wait for an AI response. Call emergency services or go to the nearest emergency department.
-                  In the Philippines, you can dial 911.
+                  Huwag maghintay sa AI. Tumawag sa emergency services o pumunta sa pinakamalapit na emergency department.
+                  Sa Pilipinas, maaaring tumawag sa 911.
                 </Text>
                 <Pressable
                   accessibilityRole="button"
@@ -152,92 +171,53 @@ export default function BuklodHealthPortal() {
                   style={styles.emergencyCall}
                 >
                   <MaterialCommunityIcons name="phone" size={18} color="#FFFFFF" />
-                  <Text style={styles.emergencyCallText}>Call 911 (PH)</Text>
+                  <Text style={styles.emergencyCallText}>Tawag 911 (PH)</Text>
                 </Pressable>
               </View>
             </View>
           ) : null}
         </View>
+          </>
+        ) : null}
 
-        {!urgent ? (
+        {!urgent && !imciUrgent && !ajaUrgent ? (
           <View style={styles.guideCard}>
-            <Text style={styles.sectionHeading}>3. Open private AI Health Guide</Text>
+            <Text style={styles.sectionHeading}>Pribadong AI Health Guide</Text>
             <Text style={styles.body}>
-              General health education only. The standalone service controls AI availability and privacy consent.
-              If it is not active, no consultation will be submitted.
+              Pangkalahatang impormasyon lamang. Hindi pa aktibo ang AI consultation hangga't hindi
+              napapatunayan ang seguridad, consent, at hiwalay na Health Center service.
             </Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Continue to AI Health Guide"
-              accessibilityState={{ disabled: urgency !== 'none' || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null, busy: opening === 'consult' }}
-              disabled={urgency !== 'none' || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null}
+              accessibilityState={{ disabled: urgency !== 'none' || imciUrgent || ajaUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null, busy: opening === 'consult' }}
+              disabled={urgency !== 'none' || imciUrgent || ajaUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null}
               onPress={() => void openDoor('consult')}
               style={({ pressed }) => [
                 styles.primaryButton,
-                (urgency !== 'none' || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null) && styles.disabledButton,
+                (urgency !== 'none' || imciUrgent || ajaUrgent || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null) && styles.disabledButton,
                 pressed && styles.pressed,
               ]}
             >
               {opening === 'consult' ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="message-text" size={20} color="#FFFFFF" />}
               <Text style={styles.primaryButtonText}>
-                {opening === 'consult' ? 'Opening secure guide…' : BUKLOD_HEALTH_CONSULTATION_READY ? 'Continue to AI Health Guide' : 'AI Health Guide activation pending'}
+                {opening === 'consult' ? 'Binubuksan ang pribadong gabay…' : BUKLOD_HEALTH_CONSULTATION_READY ? 'Magpatuloy sa AI Health Guide' : 'Hindi pa aktibo ang AI consultation'}
               </Text>
             </Pressable>
             {urgency === 'unanswered' ? (
-              <Text style={styles.hint}>First confirm whether you have urgent warning signs.</Text>
+              <Text style={styles.hint}>Sagutin muna ang tanong tungkol sa emergency signs.</Text>
             ) : !BUKLOD_HEALTH_CONSULTATION_READY ? (
-              <Text style={styles.hint}>AI consultation is not yet active. This screening stays available, and you can still open the full Health Center below.</Text>
+              <Text style={styles.hint}>Hindi pa aktibo ang AI consultation. Maaari mo pa ring gamitin ang gabay na ito at buksan ang Health Center.</Text>
             ) : null}
           </View>
         ) : null}
 
-        <View style={styles.guideCard}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Show IMCI child-health assessment flow"
-            onPress={()=>setImciOpen(value=>!value)}
-            style={{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
-            <View style={{flex:1}}>
-              <Text style={styles.sectionHeading}>Child Health · IMCI assessment flow</Text>
-              <Text style={styles.hint}>Caregiver education and clinician handoff</Text>
-            </View>
-            <MaterialCommunityIcons name={imciOpen?'chevron-up':'chevron-down'} size={24} color="#126946"/>
-          </Pressable>
-          {imciOpen&&<View style={{gap:9,paddingTop:8}}>
-            <Text style={styles.hint}>This does not diagnose, classify an illness, or choose medicines. A trained professional must use a locally approved age-specific chart.</Text>
-            <View style={styles.chips}>
-              {([['young_infant','0–2 months'],['child','2 months–under 5 years'],['older','5 years and older']] as const).map(([age,label])=>(
-                <Pressable key={age} accessibilityRole="button" accessibilityState={{selected:imciAge===age}}
-                  onPress={()=>setImciAge(age)}
-                  style={[styles.chip,imciAge===age&&styles.selectedChip]}>
-                  <Text style={[styles.chipText,imciAge===age&&styles.selectedChipText]}>{label}</Text>
-                </Pressable>
-              ))}
-            </View>
-            {imciAge==='older'?<Text style={styles.body}>Standard IMCI under-five assessment does not cover this age. Obtain an age-appropriate pediatric assessment.</Text>:<>
-              <Text style={styles.body}>1. ASSESS — Check danger signs first, then feeding, breathing, fever, diarrhoea, dehydration, nutrition and immunization. Young infants need a separate pathway.</Text>
-              <Text style={styles.body}>2. CLASSIFY — A trained clinician interprets age-specific signs using locally adopted IMCI guidance; this app does not label severity.</Text>
-              <Text style={styles.body}>3. IDENTIFY CARE — Determine referral, clinical treatment or safe caregiver support after assessment.</Text>
-              <Text style={styles.body}>4. TREAT & REFER — Follow authorized local protocols. Seek emergency care promptly for warning signs; never wait for AI.</Text>
-              <Text style={styles.body}>5. COUNSEL — Explain feeding, hydration, immunization, medicines prescribed by a clinician and return precautions.</Text>
-              <Text style={styles.body}>6. FOLLOW UP — Arrange reassessment and return immediately if symptoms worsen.</Text>
-            </>}
-            <Text style={styles.hint}>
-              Sources: WHO IMCI chart (2014), WHO pneumonia/diarrhoea guideline (2024–25), and WHO 2026 respiratory guidance.
-              New recommendations are not automatically the locally approved Philippine IMCI chart.
-            </Text>
-            <Pressable accessibilityRole="link"
-              onPress={()=>void Linking.openURL('https://www.who.int/teams/maternal-newborn-child-adolescent-health-and-ageing/child-health/integrated-management-of-childhood-illness/').catch(()=>setError(true))}
-              style={{minHeight:48,justifyContent:'center'}}>
-              <Text style={[styles.hint,{color:'#126946',fontWeight:'900'}]}>WHO IMCI reference ↗</Text>
-            </Pressable>
-          </View>}
-        </View>
-
-        <View style={styles.standaloneCard}>
+        {!urgent && !imciUrgent && !ajaUrgent ? <View style={styles.standaloneCard}>
           <View style={styles.standaloneHeading}>
             <MaterialCommunityIcons name="hospital-building" size={27} color="#126946" />
             <View style={styles.standaloneText}>
-              <Text style={styles.sectionHeading}>Full Health Center</Text>
-              <Text style={styles.hint}>Medicines · vitals · appointments · health records · care plans</Text>
+              <Text style={styles.sectionHeading}>Full Health Center · Buong Serbisyo</Text>
+              <Text style={styles.hint}>Mga gamot · vital signs · appointment · health records</Text>
             </View>
           </View>
           <Pressable
@@ -249,18 +229,18 @@ export default function BuklodHealthPortal() {
             style={({ pressed }) => [styles.standaloneButton, pressed && styles.pressed]}
           >
             <MaterialCommunityIcons name="open-in-new" size={20} color="#126946" />
-            <Text style={styles.standaloneButtonText}>Open standalone Health Center</Text>
+            <Text style={styles.standaloneButtonText}>Buksan ang Health Center</Text>
           </Pressable>
           <Text selectable style={styles.url}>{BUKLOD_HEALTH_CENTER_URL}</Text>
-        </View>
+        </View> : null}
 
-        {!urgent ? (
+        {!urgent && !imciUrgent && !ajaUrgent ? (
           <View style={styles.professionalCard}>
             <MaterialCommunityIcons name="badge-account-outline" size={23} color="#416755" />
             <View style={styles.professionalBody}>
-              <Text style={styles.professionalTitle}>Licensed health professional?</Text>
+              <Text style={styles.professionalTitle}>Lisensiyadong health professional ka ba?</Text>
               <Text style={styles.hint}>
-                Learn about educational contributions. License verification, independent review and privacy controls are required before participation.
+                Para sa mga propesyonal na gustong mag-ambag ng edukasyong pangkalusugan. Kailangan munang ma-verify ang lisensiya, privacy controls, at independent review bago maging aktibo.
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -270,7 +250,7 @@ export default function BuklodHealthPortal() {
                 onPress={() => void openDoor('professional')}
                 style={styles.professionalLink}
               >
-                <Text style={styles.professionalLinkText}>{BUKLOD_HEALTH_PROFESSIONALS_READY ? 'Contributor information' : 'Contributor registration pending'}</Text>
+                <Text style={styles.professionalLinkText}>{BUKLOD_HEALTH_PROFESSIONALS_READY ? 'Impormasyon para sa professional' : 'Hindi pa aktibo ang rehistrasyon'}</Text>
                 <MaterialCommunityIcons name="arrow-right" size={16} color="#126946" />
               </Pressable>
             </View>
@@ -279,20 +259,18 @@ export default function BuklodHealthPortal() {
 
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>
-            Could not open the requested link. Check your connection, or open the standalone website directly.
-            AI and professional features may not yet be activated.
+            Hindi mabuksan ang link. Suriin ang internet connection o buksan nang direkta ang Health Center website. Maaaring hindi pa aktibo ang AI at professional services.
           </Text>
         ) : null}
 
         <View style={styles.notice}>
           <MaterialCommunityIcons name="shield-lock-outline" size={21} color="#126946" />
           <Text style={styles.noticeText}>
-            Privacy: This screen does not save your answers or share BUKLOD login tokens, concerns or medical records.
-            The full Health Center has separate access controls.
+            Pribado: Hindi iniimbak ng screen na ito ang mga sagot mo o ipinapadala ang BUKLOD login, sintomas, at medical records. May hiwalay na pahintulot at access controls ang buong Health Center.
           </Text>
         </View>
 
-        {urgency === 'none' ? (
+        {urgency === 'none' && !imciUrgent && !ajaUrgent ? (
           <View style={styles.adPlacement} accessibilityLabel="Advertisement placement">
             <BuklodAdMobBanner
               placement="focus"
@@ -304,12 +282,12 @@ export default function BuklodHealthPortal() {
             />
           </View>
         ) : null}
-        {urgency === 'none' ? (
+        {urgency === 'none' && !imciUrgent && !ajaUrgent ? (
           <Text style={styles.adNote}>
-            Advertisement is separate from health guidance and does not determine recommendations or emergency access.
+            Hiwalay ang patalastas sa gabay at hindi nito naaapektuhan ang emergency access o payong pangkalusugan.
           </Text>
         ) : null}
-        <Text selectable style={styles.assistiveUrl}>AI Guide URL: {BUKLOD_HEALTH_CONSULTATION_URL}</Text>
+        <Text selectable style={styles.assistiveUrl}>Link ng AI Guide: {BUKLOD_HEALTH_CONSULTATION_URL}</Text>
       </BuklodPortalScrollView>
     </>
   );
@@ -326,6 +304,8 @@ const styles = StyleSheet.create({
   title: { color: '#173D2C', fontSize: 22, lineHeight: 27, fontWeight: '900' },
   description: { color: '#315742', fontSize: 15, lineHeight: 22 },
   guideCard: { padding: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCE9E0', borderRadius: 13, gap: 10 },
+  topicTip: { padding: 11, borderRadius: 10, backgroundColor: '#F1F8F3', gap: 5 },
+  topicTitle: { color: '#193F30', fontSize: 14, fontWeight: '800' },
   sectionHeading: { color: '#193F30', fontSize: 16, fontWeight: '800' },
   hint: { color: '#4F6B5C', fontSize: 13, lineHeight: 19 },
   body: { color: '#385744', fontSize: 14, lineHeight: 21 },
