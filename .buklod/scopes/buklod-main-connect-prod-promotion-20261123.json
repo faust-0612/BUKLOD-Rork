@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-main-connect-prod-promotion-20261123.json",
+  "objective": "Promote only main-merged nonseason2 Connect newest-message scroll fix and previously verified cumulative BUKLOD MAIN JS-only source to existing Android production runtime 1.3.2 through canonical guarded publisher; no Genesis/Season2 or new native.",
+  "baseRef": "2297384f796eb62d0a316a102123090d92d9532f",
+  "productionBaselineEvidence": "GitHub source main 2297384f796eb62d0a316a102123090d92d9532f and PR #1144 four applicable CI success plus PR #1145 three applicable CI success independently inspected. Prior EAS update 01a201d9-3b7e-7881-b003-79452dd1a015 (Nov22) is HISTORICAL, not current; publisher must fetch fresh served baseline and verify frozen new Android asset. Physical Android AdMob/nav acceptance NOT performed and NOT claimed.",
+  "chosenApproach": "Single guarded Android-only production release marker on canonical main; source CI prior to merge, canonical workflow checks current environment AdMob, ABI, embargo, frozen Android RC and provider response before success.",
+  "alternativeApproaches": [
+    "Direct Expo CLI from chat bypasses frozen RC pipeline (rejected)",
+    "Merge draft nonseason2 PRs or Season2/Genesis into production (rejected: unverified and/or native incompatible)",
+    "Web/Vercel deployment (rejected: user requested existing Android-only native)"
+  ],
+  "selectionRationale": "Main source immutable between approved RC and marker aside from scope/release/test metadata. Canonical publish workflow fail-closed if baseline, native, AdMob or Expo credentials invalid.",
+  "riskAreas": [
+    "production-release",
+    "app-runtime",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "navigation"
+  ],
+  "allowedPaths": [
+    ".buklod/releases/buklod-main-connect-prod-promotion-20261123.json",
+    ".buklod/scopes/buklod-main-connect-prod-promotion-20261123.json",
+    "tests/buklod-main-connect-prod-promotion-marker-20261123.test.cjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-main-connect-prod-promotion-marker-20261123.test.cjs"
+  ],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "Existing live AdMob units, banner/interstitial lifecycle, fill and navigation performance cannot be altered by release marker",
+    "Existing runtime 1.3.2 Android app version 1.3.6/code30 retained",
+    "No Android/ios native, dependency, API/RLS, Supabase, Godot, Season2, backend or web changes",
+    "Keep last 2026-11-22 production service receipt historical; new provider readback required",
+    "Physical-device test not performed, not represented as passed"
+  ],
+  "acceptanceChecks": [
+    "Exact 2297384f796eb62d0a316a102123090d92d9532f source baseline and 3 metadata/test paths",
+    "Focused release marker QA and all mandatory prior source CI passed",
+    "Canonical main-only magic prefix for Android production workflow; never web",
+    "Publisher verifies Expo target project/runtime, V30 native compatibility, production AdMob env and mandatory source ad/navigation suites",
+    "Publisher freezes Android RC, verifies live baseline unchanged before publish, reads back update id and served bundle hash",
+    "Declare live only after exact release-run update ID/hash evidence; no false statement of device QA"
+  ],
+  "releaseMode": "one-source-android-existing-native",
+  "publicationStatus": "NOT_PUBLISHED_UNTIL_CANONICAL_EXPO_READBACK"
+}
