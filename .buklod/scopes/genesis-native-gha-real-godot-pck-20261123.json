@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-gha-real-godot-pck-20261123.json",
+  "objective": "Implement reproducible genuine Godot .pck export for isolated no-Expo native Android host from existing Arena four-world source and verify via bounded GitHub Actions.",
+  "baseRef": "5995860ef5e8b600e79c342ca06d59a86f76a412",
+  "productionBaselineEvidence": "Native DEV Android compiler run 45141648091 succeeded for SHA 5995860ef5e8b600e79c342ca06d59a86f76a412 (20 source tests, 15 Gradle tasks). Main source SHA 7b224c39624827282c3cbf003060317045b0a73f. Neither production runtime nor Android device has been verified; release remains blocked.",
+  "chosenApproach": "Use deterministic source ZIP -> isolated unpacked Godot project -> pinned Linux export preset -> native GDPC PCK -> headless main-scene/World smoke -> SHA manifest and app-private assets; one-shot GitHub Actions under 14 minutes, no artifact upload or APK.",
+  "selectionRationale": "Current native host requires a real engine .pck, but old prepare-pack-local requires missing export_presets.cfg. Godot docs mandate CLI --export-pack plus preset; ZIP renaming would be invalid. Generate preset from code and fail closed unless headless load/smoke passes.",
+  "allowedPaths": [
+    "native-genesis/prepare-pack-local.sh",
+    "native-genesis/godot-export-presets.cfg",
+    "native-genesis/README.md",
+    ".github/workflows/genesis-native-gha-godot-pack-20261123.yml",
+    "tests/genesis-native-godot-pack-export-20261123.test.mjs",
+    ".buklod/scopes/genesis-native-gha-real-godot-pck-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-godot-pack-export-20261123.test.mjs",
+    "tests/genesis-native-game-core-20261123.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "kingdom-character",
+      "reason": "Build native DEV Godot practice pack from canonical source; actual Kingdom progression and rewards remain disabled",
+      "preservedBehaviors": [
+        "No rank/points economy write",
+        "World previews remain clearly labeled DEV",
+        "No production/staging APK modification"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add CI-only bounded Godot pack export proof, still no APK release",
+      "preservedBehaviors": [
+        "No Expo/EAS/Vercel",
+        "No APK build, upload or OTA",
+        "No production credentials or backend"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "Godot Linux export preset may require templates, to confirm by actual run",
+    "PCK contains only current DEV assets; no 800MB or premium completion proof",
+    "Godot Android Activity still untested on device",
+    "GitHub runner consumes bounded minutes",
+    "Other CI workflows may report empty failures on branch pushes"
+  ],
+  "preserveBehaviors": [
+    "Production/staging and source main unchanged",
+    "No cloud build except narrowly approved GitHub Actions diagnostics",
+    "No asset padding or size inflation",
+    "Unsigned/dev pack cannot bypass release gate"
+  ],
+  "acceptanceChecks": [
+    "Source and shell syntax checks",
+    "Real Godot executable version 4.7.2 used",
+    "Real GDPC PCK generated and hashed",
+    "Packed Arena and world smoke emit required sentinels",
+    "No APK generated/published",
+    "CI run URL+commit checked before success"
+  ],
+  "alternativeApproaches": [
+    "Rejected: just rename deterministic .zip to .pck (invalid native pack)",
+    "Rejected: copy existing preview ZIP to Android assets and call it premium gameplay",
+    "Rejected: full signed APK before parity/assets approval"
+  ],
+  "releaseMode": "DEV_GODOT_PCK_DIAGNOSTIC_ONLY_NO_APK",
+  "publicationStatus": "GITHUB_QA_PENDING",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

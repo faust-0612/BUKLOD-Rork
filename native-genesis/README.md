@@ -59,8 +59,10 @@ Godot 4.7 documentation: https://docs.godotengine.org/en/4.7/tutorials/platform/
 The second command **must fail** until real app parity, approved local assets,
 backend isolation, real native build toolchain, signer and device evidence exist.
 Do not set `implemented` or `verified` true based on this new Android host.
-`native-genesis/prepare-pack-local.sh` exports a genuine local PCK only if a
-Godot export preset is already present; it does not certify gameplay quality.
+`native-genesis/prepare-pack-local.sh` now builds the existing deterministic Arena ZIP,
+imports it into a temporary Godot 4.7.2 project, uses the pinned export preset to
+create a genuine binary PCK, and verifies packed Arena/four-world smoke before copying
+it to native app assets. This remains an offline DEV practice pack, not complete premium gameplay.
 
 ### Verified vs unverified
 
@@ -85,3 +87,9 @@ integration is claimed. A temporary lab launcher is deliberately gated.
 - The run is intentionally **not evidence of full BUKLOD app parity** and cannot turn any `parity.json` entry verified. The existing release gate must remain red for incomplete backend, approved assets and game/application functionality.
 - GitHub allows manual `workflow_dispatch` from the Actions UI **only after a workflow file exists on the default branch**. This exception does not authorize adding anything to `main` solely to activate the manual button; this one-shot, exact DEV-branch push is the diagnostic trigger.
 - No GitHub hosted runner can prove real Android device compatibility, premium 39-game gameplay, 800+ MB asset quality or production safety merely by compiling Kotlin.
+
+## Real Godot PCK export via GitHub Actions (DEV only)
+
+- GitHub Actions one-shot pack workflow: `.github/workflows/genesis-native-gha-godot-pack-20261123.yml` on isolated `dev/genesis-native-gha-godot-pack-20261123`. It uses the official Godot 4.7.2 editor and a fixed safe export preset, never Expo/EAS/Vercel.
+- The local script `GODOT_BIN=/path/to/godot bash native-genesis/prepare-pack-local.sh` builds the deterministic source ZIP, converts through the actual Godot exporter into `GDPC` PCK, then tests packed Arena/four-world scenes. Files generated locally are ignored and are NOT uploaded from CI.
+- No local or GitHub job creates a signed APK, backend configuration, server award, upload artifact or production OTA. Passing smoke means **engine pack parse and scene load in headless Linux**, not Android launch nor the complete 39-game premium Kingdom.

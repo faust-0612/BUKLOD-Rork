@@ -1,0 +1,60 @@
+name: BUKLOD Genesis - real Godot PCK export and four-world smoke (DEV)
+# One-shot verified-source Godot pack only; never assemble or publish Android APK.
+on:
+  push:
+    branches:
+      - dev/genesis-native-gha-godot-pack-20261123
+    paths:
+      - '.github/workflows/genesis-native-gha-godot-pack-20261123.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-genesis-native-godot-pack-dev
+  cancel-in-progress: true
+
+jobs:
+  real-pck-smoke:
+    if: >-
+      github.repository == 'faust-0612/BUKLOD-Rork' &&
+      github.ref == 'refs/heads/dev/genesis-native-gha-godot-pack-20261123' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' &&
+        startsWith(github.event.head_commit.message,'GENESIS_NATIVE_GODOT_PACK_QA:')))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source regression without Expo and without APK build
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/genesis-native-godot-pack-export-20261123.test.mjs \
+            tests/genesis-native-game-core-20261123.test.mjs
+      - name: Download exact Godot 4.7.2 official editor binary once
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 180 \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            -o /tmp/buklod-godot472.zip
+          mkdir -p /tmp/buklod-godot472
+          unzip -q /tmp/buklod-godot472.zip -d /tmp/buklod-godot472
+          find /tmp/buklod-godot472 -type f -name 'Godot_*linux.x86_64' -exec chmod +x {} \;
+      - name: Export real PCK, test Arena and four worlds, validate SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT_PATH="$(find /tmp/buklod-godot472 -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          test -n "$GODOT_PATH"
+          GODOT_BIN="$GODOT_PATH" bash native-genesis/prepare-pack-local.sh
+          test -s native-genesis/android/app/src/main/assets/godot/empire-arena.pck
+          test -s native-genesis/android/app/src/main/assets/godot/empire-arena.sha256
+          echo 'REAL_PCK_EXPORTED_AND_SCENES_TESTED; NO_APK_NO_OTA'
