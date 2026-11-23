@@ -3,10 +3,12 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
   SafeAreaView,
@@ -39,6 +41,7 @@ import {
   ABC_SOURCE,
   type AbcLesson,
 } from '@/data/faith/abcLessons';
+import { DOCTRINE_CATALOG_PAGE_SIZE, DOCTRINE_LABELS, loadPublishedDoctrinalLessons } from '@/data/faith/abcDoctrinalCatalog';
 
 const COMPLETION_KEY =
   'buklod.faith.abc.completed.v1';
@@ -52,7 +55,7 @@ type AbcPointProgress = {
 };
 
 const ABC_POINTS_PER_LESSON =
-  5;
+  8;
 
 
 export default function
@@ -66,6 +69,84 @@ BuklodAbcLessonsScreen() {
     setQuery,
   ] =
     useState('');
+
+  const doctrineEpoch = useRef(0);
+  const doctrinePageInFlight = useRef(false);
+  const [doctrinalLessons, setDoctrinalLessons] = useState<AbcLesson[]>([]);
+  const [doctrineOffset, setDoctrineOffset] = useState(0);
+  const [doctrineHasMore, setDoctrineHasMore] = useState(true);
+  const [doctrineLoading, setDoctrineLoading] = useState(false);
+  const allLessons = useMemo(() => [...ABC_LESSONS, ...doctrinalLessons], [doctrinalLessons]);
+
+  useEffect(() => {
+    let active = true;
+    let freshApplied = false;
+    const epoch = ++doctrineEpoch.current;
+    doctrinePageInFlight.current = Boolean(online && accountId);
+    setDoctrinalLessons([]);
+    setDoctrineOffset(0);
+    setDoctrineHasMore(true);
+    setDoctrineLoading(Boolean(online && accountId));
+    if (!accountId) return () => { active = false; };
+
+    void getOfflineCache<AbcLesson[]>('faith-abc-doctrine-catalog:v1', {
+      userId: accountId, allowStale: true,
+    }).then(cached => {
+      if (active && !freshApplied && Array.isArray(cached?.data)) {
+        setDoctrinalLessons(cached.data);
+        setDoctrineOffset(cached.data.length);
+      }
+    }).catch(() => undefined);
+
+    if (online) {
+      void loadPublishedDoctrinalLessons(0).then(async rows => {
+        if (!active) return;
+        freshApplied = true;
+        setDoctrinalLessons(rows);
+        setDoctrineOffset(rows.length);
+        setDoctrineHasMore(rows.length === DOCTRINE_CATALOG_PAGE_SIZE);
+        void setOfflineCache('faith-abc-doctrine-catalog:v1', rows, {
+          userId: accountId, ttlMs: 30 * 60 * 1000,
+        }).catch(() => undefined);
+      }).catch(() => {
+        if (active) setDoctrineHasMore(false);
+        // Existing A-Z and cached catalog remain readable if this query fails.
+      }).finally(() => {
+        if (active && epoch === doctrineEpoch.current) {
+          doctrinePageInFlight.current = false;
+          setDoctrineLoading(false);
+        }
+      });
+    }
+    return () => { active = false; };
+  }, [accountId, online]);
+
+  const loadMoreDoctrine = useCallback(() => {
+    if (!online || !accountId || !doctrineHasMore || doctrineLoading || doctrinePageInFlight.current) return;
+    const epoch = doctrineEpoch.current;
+    doctrinePageInFlight.current = true;
+    setDoctrineLoading(true);
+    void loadPublishedDoctrinalLessons(doctrineOffset).then(rows => {
+      if (epoch !== doctrineEpoch.current) return;
+      setDoctrinalLessons(current => {
+        const known = new Set(current.map(item => item.id));
+        const next = [...current, ...rows.filter(item => !known.has(item.id))];
+        void setOfflineCache('faith-abc-doctrine-catalog:v1', next, {
+          userId: accountId, ttlMs: 30 * 60 * 1000,
+        }).catch(() => undefined);
+        return next;
+      });
+      setDoctrineOffset(doctrineOffset + rows.length);
+      setDoctrineHasMore(rows.length === DOCTRINE_CATALOG_PAGE_SIZE);
+    }).catch(() => {
+      if (epoch === doctrineEpoch.current) setDoctrineHasMore(false);
+    }).finally(() => {
+      if (epoch === doctrineEpoch.current) {
+        doctrinePageInFlight.current = false;
+        setDoctrineLoading(false);
+      }
+    });
+  }, [online, accountId, doctrineHasMore, doctrineLoading, doctrineOffset, doctrinalLessons]);
 
   const [
     completed,
@@ -176,10 +257,10 @@ BuklodAbcLessonsScreen() {
             .toLocaleLowerCase();
 
         if (!needle) {
-          return ABC_LESSONS;
+          return allLessons;
         }
 
-        return ABC_LESSONS
+        return allLessons
           .filter(
             lesson =>
               `${lesson.code} ${lesson.title}`
@@ -189,11 +270,11 @@ BuklodAbcLessonsScreen() {
                 )
           );
       },
-      [query]
+      [query, allLessons]
     );
 
   const studyLessons =
-    ABC_LESSONS.filter(
+    allLessons.filter(
       item =>
         item.id !==
         'intro'
@@ -316,7 +397,7 @@ BuklodAbcLessonsScreen() {
                     styles.subtitle
                   }
                 >
-                  Sunday school mula A hanggang Z. Bawat tanong ay may talata. Si Hesus ang sentro.
+                  A–Z foundation at mga patuloy na doctrinal series. Si Hesus ang sentro.
                 </Text>
               </View>
             </View>
@@ -402,7 +483,7 @@ BuklodAbcLessonsScreen() {
                     styles.pointsInfoTitle
                   }
                 >
-                  +5 BUKLOD Points bawat lesson
+                  Difficulty-based BUKLOD Points
                 </Text>
 
                 <Text
@@ -410,7 +491,7 @@ BuklodAbcLessonsScreen() {
                     styles.pointsInfoBody
                   }
                 >
-                  28 rewardable lessons · one reward per lesson · hanggang 140 points. Pag na-complete, lalabas muna bilang Ready to Claim sa BUKLOD Points.
+                  Foundation +8 · Intermediate +12 · Advanced +18 · Deep Study +25. Isang reward bawat verified lesson; hanggang 50 BP/araw mula sa continuing doctrine. Puwede pa ring magpatuloy sa pag-aaral kapag naabot ang cap.
                 </Text>
               </View>
             </View>
@@ -471,6 +552,11 @@ BuklodAbcLessonsScreen() {
           styles.listContent
         }
         keyboardShouldPersistTaps="handled"
+        onEndReached={loadMoreDoctrine}
+        onEndReachedThreshold={0.25}
+        ListFooterComponent={doctrineLoading
+          ? <ActivityIndicator style={{ marginVertical: 16 }} color="#2F7A4F" />
+          : null}
         renderItem={({
           item,
         }) => {
@@ -478,6 +564,10 @@ BuklodAbcLessonsScreen() {
             pointProgress[
               item.id
             ];
+
+          const isLocked = Boolean(
+            item.prerequisiteId && !pointProgress[item.prerequisiteId]
+          );
 
           const isDone =
             item.id ===
@@ -495,11 +585,8 @@ BuklodAbcLessonsScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Open ${item.code}: ${item.title}`}
-              onPress={() =>
-                openLesson(
-                  item
-                )
-              }
+              onPress={() => { if (!isLocked) openLesson(item); }}
+              accessibilityState={{ disabled: isLocked }}
               style={({
                 pressed,
               }) => [
@@ -515,7 +602,7 @@ BuklodAbcLessonsScreen() {
               >
                 <MaterialCommunityIcons
                   name={
-                    item.id ===
+                    isLocked ? 'lock-outline' : item.id ===
                     'intro'
                       ? 'information-outline'
                       : isDone
@@ -549,16 +636,11 @@ BuklodAbcLessonsScreen() {
                     {item.code}
                   </Text>
 
-                  <Text
-                    style={
-                      styles.pageLabel
-                    }
-                  >
-                    pp. {item.sourcePages[0]}
-                    {item.sourcePages[1] !==
-                    item.sourcePages[0]
-                      ? `–${item.sourcePages[1]}`
-                      : ''}
+                  <Text style={styles.pageLabel}>
+                    {item.difficulty
+                      ? DOCTRINE_LABELS[item.difficulty]
+                      : 'pp. ' + item.sourcePages[0] +
+                        (item.sourcePages[1] !== item.sourcePages[0] ? '–' + item.sourcePages[1] : '')}
                   </Text>
 
                   {item.id !==
@@ -578,11 +660,10 @@ BuklodAbcLessonsScreen() {
                         ]}
                       >
                         {reward
-                          ? reward.claim_state ===
-                            'pending'
-                            ? '5 PTS READY'
-                            : '5 PTS ✓'
-                          : '+5 PTS'}
+                          ? reward.claim_state === 'pending'
+                            ? String(reward.points) + ' PTS READY'
+                            : String(reward.points) + ' PTS ✓'
+                          : '+' + String(item.rewardPoints ?? ABC_POINTS_PER_LESSON) + ' PTS'}
                       </Text>
                     </View>
                   ) : null}
@@ -601,7 +682,10 @@ BuklodAbcLessonsScreen() {
                     styles.lessonMeta
                   }
                 >
-                  {item.blocks.length} study blocks · {item.references.length} linked Bible references
+                  {isLocked ? '🔒 Tapusin muna ang naunang lesson' :
+                    item.seriesTitle
+                      ? item.seriesTitle + ' · ' + item.references.length + ' Bible references'
+                      : item.blocks.length + ' study blocks · ' + item.references.length + ' linked Bible references'}
                 </Text>
               </View>
 

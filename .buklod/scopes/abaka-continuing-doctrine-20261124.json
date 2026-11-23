@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "objective": "Extend ABaKa after A–Z with a protected continuing doctrinal catalog, verified assessments and difficulty-scaled BP rewards without breaking current live paths.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: inspected GitHub main source 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 and read-only MAIN DB abc_growth_lesson baseline +8 on 2026-11-24. Neither source HEAD nor a read-only rule check proves actual live OTA. No migration, OTA, or production changes authorized in this DEV PR.",
+  "chosenApproach": "Keep existing bundled A–Z/legacy completion RPC; add published RLS catalog and separate verified doctrine completion RPC, paginate 80 per page, guard prerequisite and cap on server with ledger idempotency.",
+  "selectionRationale": "Protect existing A–Z history and offline sync, avoid code update for future doctrine content, and prevent clients overriding point tiers/quiz approvals.",
+  "alternativeApproaches": [
+    "Append thousands of hardcoded A–Z-style lessons and client-computed points (rejected: no administrative publish control, giant bundle, forgeable rewards).",
+    "Replace the existing ABC completion RPC and rewrite historical point entries (rejected: high risk to credits, offline sync, and compatibility)."
+  ],
+  "riskAreas": [
+    "backend-security",
+    "ABaKa",
+    "rewards",
+    "offline-learning",
+    "app-performance"
+  ],
+  "preserveBehaviors": [
+    "Existing Panimula, preliminary and 26 A–Z lessons retain stable IDs, local answer drafts, account-scoped cached progress, offline completion replay, and server-authoritative credited points.",
+    "Legacy point ledger unique keys and historical completed/claimed points are never recalculated or backfilled.",
+    "ABaKa detail navigation, Bible reference chips, adjustable font, and no duplicate ads for replayed completions remain supported.",
+    "New doctrine cannot mint points offline or bypass a locked prerequisite via direct navigation.",
+    "No modification to AdMob rendering, tab performance code, global navigation, or production release identity."
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261124005500_abaka_continuing_doctrine_rewards.sql",
+    "supabase/tests/abaka_doctrine_rewards_security_20261124.sql",
+    "src/data/faith/abcDoctrinalCatalog.ts",
+    "src/data/faith/abcLessons.ts",
+    "src/app/faith/abc/index.tsx",
+    "src/app/faith/abc/[lessonId].tsx",
+    "tests/abaka-doctrine-catalog.test.cjs",
+    "docs/faith/abaka-continuing-doctrine-20261124.md",
+    ".buklod/scopes/abaka-continuing-doctrine-20261124.json"
+  ],
+  "regressionTests": [
+    "tests/abaka-doctrine-catalog.test.cjs",
+    "supabase/tests/abaka_doctrine_rewards_security_20261124.sql"
+  ],
+  "acceptanceChecks": [
+    "Run Node focus test for published-only catalog, server-owned quiz/points, durable account progress, paginated learning and offline separation.",
+    "Run Supabase SQL regression test against isolated staging after applying pending migration; reject any anon catalog read or private answer access.",
+    "Verify wrong/correct quiz, reflection rubric, prerequisite, daily cap boundary, midnight rollover, repeat requests, concurrency and claim-state history against staging database.",
+    "Reconcile main and approved DEV changes, then run AdMob-first-view, instant dashboard navigation, spacing, source/RC and native-runtime release blockers before OTA.",
+    "Never auto-merge, directly mutate MAIN, or claim production release without verified exact deployed artifact and runtime."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "ABaKa app routes and bundled lesson metadata now support continuing published modules and dynamic reward messaging.",
+      "preservedBehaviors": [
+        "Legacy A–Z cards, answer drafts, account isolation, Bible links, offline replay, AdMob and navigation stay unchanged."
+      ],
+      "tests": [
+        "tests/abaka-doctrine-catalog.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add a public RLS-published catalog, private quiz answer keys, prerequisite-backed completion and bounded backend ledger awarding.",
+      "preservedBehaviors": [
+        "No direct client writes to catalog or private answer keys; existing reward RPC and all historical claim state remain intact."
+      ],
+      "tests": [
+        "supabase/tests/abaka_doctrine_rewards_security_20261124.sql"
+      ]
+    }
+  ]
+}
