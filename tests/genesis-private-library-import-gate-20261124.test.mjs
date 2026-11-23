@@ -97,3 +97,17 @@ test('Whole private Library scan finds nested archive/audio/VFX files without pu
   assert.equal(existsSync(path.join(output,'manifest.json')),false);
  }finally{rmSync(temp,{recursive:true,force:true});}
 });
+
+test('Optional original Library VFX is license-and-hash gated and retains public fallback',()=>{
+ const pack=read('scripts/build-empire-godot-pack.mjs');
+ const prep=read('scripts/genesis-prepare-godot-ota-pack.mjs');
+ const world=read('godot/empire-arena/scripts/premium_world_3d.gd');
+ assert.match(pack,/BUKLOD_GENESIS_PRIVATE_FX === 'true'/);
+ assert.match(pack,/REVIEWED_IN_GAME_USE_ONLY/);
+ assert.match(pack,/licenseProof/);
+ assert.match(pack,/fx\.sha256/);
+ assert.match(prep,/data\/private_fx_manifest\.json/);
+ assert.match(world,/PRIVATE_ARENA_FX/);
+ assert.match(world,/FileAccess\.file_exists\(PRIVATE_ARENA_FX\)/);
+ assert.match(world,/_model\("rig_knight"\)/);
+});
