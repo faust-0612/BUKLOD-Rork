@@ -13,7 +13,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {existsSync,readFileSync,statSync,mkdirSync,writeFileSync,copyFileSync,rmSync} from 'node:fs';
+import {existsSync,readFileSync,statSync,lstatSync,readdirSync,realpathSync,mkdirSync,writeFileSync,copyFileSync,rmSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -31,8 +31,9 @@ assert.ok(inputDir!==path.resolve(root),'Refusing repo root as private asset inp
 assert.ok(outputDir!==inputDir,'Output cannot overwrite input Library files');
 const LIMIT_TOTAL=130*1024*1024, LIMIT_GLB=40*1024*1024, LIMIT_ENTRY=40*1024*1024;
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
-const formatPath=s=>typeof s==='string'&&/^[A-Za-z0-9_. \/+\-()]+$/.test(s)&&
- !s.startsWith('/')&&!s.startsWith('\\')&&!s.split(/[\\/]/).includes('..')&&!s.includes('\\');
+const formatPath=s=>typeof s==='string'&&s.length>0&&s.length<280&&
+ !path.isAbsolute(s)&&!s.includes('\\')&&!/[\x00-\x1f]/.test(s)&&
+ s.split('/').every(part=>part!==''&&part!=='.'&&part!=='..');
 const safeId=s=>typeof s==='string'&&/^private_[a-z0-9_]{2,64}$/.test(s);
 function parseGlb(bytes){
   assert.ok(bytes.length>=32&&bytes.length<=LIMIT_GLB,'GLB outside mobile bounds');
@@ -103,10 +104,69 @@ function kindOf(name){
   const ext=path.extname(name).toLowerCase();
   return ['.glb','.gltf','.fbx','.blend','.wav','.png','.webp','.unity','.anim'].includes(ext)?ext.slice(1):'other';
 }
-const records=[],staged=[];
+
+const DISCOVER_EXTENSIONS=new Set([
+ '.zip','.unitypackage','.rar','.glb','.gltf','.fbx','.blend',
+ '.wav','.ogg','.mp3','.png','.webp'
+]);
+function discoverLocalCollection(directory, depth=0, prefix='', collected=[]){
+  if(!existsSync(directory))return collected;
+  assert.ok(depth<=5,'Private Library folder depth exceeds review limit');
+  const rootStat=lstatSync(directory);
+  assert.ok(rootStat.isDirectory()&&!rootStat.isSymbolicLink(),'Unsafe private Library directory');
+  for(const child of readdirSync(directory,{withFileTypes:true})){
+    if(child.isSymbolicLink())continue;
+    if(child.name.startsWith('.'))continue;
+    const rel=prefix?prefix+'/'+child.name:child.name;
+    if(!formatPath(rel))continue;
+    const file=path.join(directory,child.name);
+    if(child.isDirectory()){
+      discoverLocalCollection(file,depth+1,rel,collected);
+    }else if(child.isFile()&&DISCOVER_EXTENSIONS.has(path.extname(child.name).toLowerCase())){
+      const stats=lstatSync(file);
+      if(stats.size===0||stats.size>550*1024*1024)continue;
+      collected.push({file:rel,bytes:stats.size,
+        id:'private_'+createHash('sha256').update(rel).digest('hex').slice(0,24),
+        purpose:'Additional private owner Library source, not approved by name alone'});
+    }
+    assert.ok(collected.length<=1000,'Private Library collection exceeds bounded intake');
+  }
+  return collected;
+}
+const knownFiles=new Set([...template.directModels,...template.sourceArchives].map(x=>x.file));
+const allLibrarySources=[
+ ...template.directModels,...template.sourceArchives,
+ ...discoverLocalCollection(inputDir).filter(x=>!knownFiles.has(x.file))
+];
+assert.ok(allLibrarySources.length<=1014,'Private inventory exceeds hard cap');
+
+const records=[],staged=[],stagedAudio=[],stagedVisual=[];
 if(stage)rmSync(path.join(outputDir,'manifest.json'),{force:true});
 let stagedBytes=0;
 const seenIds=new Set();
+
+function storeVerifiedContent(id,ext,bytes,originalFile,sha,rights,inner=''){
+  assert.ok(safeId(id),'Unsafe private asset ID');
+  assert.ok(!seenIds.has(id),'Duplicate staged asset ID');
+  assert.ok(stagedBytes+bytes.length<=LIMIT_TOTAL,'Private OTA content budget exhausted');
+  const allowed=ext==='.wav'?{kind:'audio',target:stagedAudio,limit:12*1024*1024}:
+    ['.png','.webp'].includes(ext)?{kind:'visual',target:stagedVisual,limit:16*1024*1024}:null;
+  assert.ok(allowed,'Unsupported stage format');
+  assert.ok(bytes.length>100&&bytes.length<=allowed.limit,'Private asset outside mobile size bound');
+  if(ext==='.wav')validateWav(bytes);
+  else if(ext==='.png')assert.ok(bytes.subarray(0,8).equals(
+    Buffer.from([137,80,78,71,13,10,26,10])),'Invalid PNG signature');
+  else assert.equal(bytes.toString('ascii',0,4),'RIFF','Invalid WebP RIFF');
+  if(ext==='.webp')assert.equal(bytes.toString('ascii',8,12),'WEBP');
+  const dest=path.join(outputDir,'approved',id+ext);
+  mkdirSync(path.dirname(dest),{recursive:true});
+  writeFileSync(dest,bytes,{flag:'wx',mode:0o600});
+  allowed.target.push({id,ext,kind:allowed.kind,sha256:sha256(bytes),bytes:bytes.length,
+    sourceArchiveSha256:sha,sourceFile:originalFile,sourceEntry:inner,
+    rightsStatus:'verified',license:rights.license,
+    licenseEvidenceSha256:rights.licenseEvidenceSha256,attribution:rights.attribution});
+  seenIds.add(id);stagedBytes+=bytes.length;
+}
 function storeModel(id,bytes,originalFile,sha,rights,inner=''){
   assert.ok(safeId(id),'Unsafe private pack model ID');
   assert.ok(!seenIds.has(id),'Duplicate private model ID: '+id);
@@ -126,9 +186,19 @@ function storeModel(id,bytes,originalFile,sha,rights,inner=''){
     licenseEvidenceSha256:rights.licenseEvidenceSha256,
     attribution:rights.attribution,meshes:info.meshes,skins:info.skins,animations:info.animations});
 }
-for(const item of [...template.directModels,...template.sourceArchives]){
-  assert.ok(formatPath(item.file)&&!item.file.includes('/'),'Bad private Library basename');
-  const candidate=path.join(inputDir,item.file);
+for(const item of allLibrarySources){
+  assert.ok(formatPath(item.file),'Unsafe private Library source path');
+  const candidate=path.resolve(inputDir,item.file);
+  const relativeCandidate=path.relative(inputDir,candidate);
+  assert.ok(relativeCandidate&&!relativeCandidate.startsWith('..')&&!path.isAbsolute(relativeCandidate),
+    'Private source escapes selected Library root');
+  if(existsSync(candidate)){
+    const status=lstatSync(candidate);
+    if(status.isSymbolicLink()||!status.isFile()||realpathSync(candidate)!==candidate){
+      records.push({file:item.file,status:'REJECTED_LINK_OR_NONFILE'});
+      continue;
+    }
+  }
   const row={file:item.file,kind:path.extname(item.file).toLowerCase(),
     purpose:item.purpose,status:'NOT_MATERIALIZED',expectedBytes:item.bytes};
   records.push(row);
@@ -148,32 +218,44 @@ for(const item of [...template.directModels,...template.sourceArchives]){
       const parsed=parseGlb(bytes);
       row.model=parsed; row.status=approved?'RIGHTS_APPROVED_GLB':'COMPATIBLE_GLB_RIGHTS_PENDING';
       if(stage&&approved)storeModel(item.id,bytes,item.file,sourceHash,approved);
+    }else if(['.wav','.png','.webp'].includes(row.kind)){
+      if(row.kind==='.wav')validateWav(bytes);
+      else if(row.kind==='.png')assert.ok(bytes.subarray(0,8).equals(
+        Buffer.from([137,80,78,71,13,10,26,10])),'Invalid PNG image');
+      else assert.ok(bytes.toString('ascii',0,4)==='RIFF'&&
+        bytes.toString('ascii',8,12)==='WEBP','Invalid WebP image');
+      row.status=approved?'RIGHTS_APPROVED_'+row.kind.slice(1).toUpperCase():
+        'COMPATIBLE_'+row.kind.slice(1).toUpperCase()+'_RIGHTS_PENDING';
+      if(stage&&approved)storeVerifiedContent(item.id,row.kind,bytes,item.file,sourceHash,approved);
     }else if(row.kind==='.zip'){
       const names=listZip(candidate);
       row.formatCounts=names.reduce((acc,n)=>{const k=kindOf(n);acc[k]=(acc[k]||0)+1;return acc;},{});
       row.entries=names.length;
       row.status=approved?'ZIP_REVIEWED_RIGHTS_APPROVED':'ZIP_CONTENTS_INSPECTED_RIGHTS_PENDING';
       if(stage&&approved){
-        assert.ok(Array.isArray(approved.includeEntries)&&approved.includeEntries.length<=10,'too many explicit ZIP assets');
+        assert.ok(Array.isArray(approved.includeEntries)&&approved.includeEntries.length<=250,'too many explicitly approved ZIP assets');
         for(const request of approved.includeEntries){
           assert.ok(formatPath(request.entry)&&!request.entry.endsWith('/'),'unsafe ZIP selection');
           assert.ok(names.includes(request.entry),'Selected file not in ZIP');
-          assert.ok(['.glb','.wav'].includes(path.extname(request.entry).toLowerCase()),'format requires conversion');
+          assert.ok(['.glb','.wav','.png','.webp'].includes(path.extname(request.entry).toLowerCase()),
+            'format requires independent conversion');
           const extracted=execFileSync('unzip',['-p',candidate,request.entry],
             {timeout:45000,maxBuffer:LIMIT_ENTRY+2048});
           assert.ok(extracted.length<LIMIT_ENTRY,'ZIP entry too large');
           if(request.entry.toLowerCase().endsWith('.glb'))
             storeModel(request.id,extracted,item.file,sourceHash,approved,request.entry);
-          else{
-            validateWav(extracted);
-            row.audioCandidateVerified=true; // Audio is not auto-published.
-          }
+          else storeVerifiedContent(request.id,path.extname(request.entry).toLowerCase(),
+            extracted,item.file,sourceHash,approved,request.entry);
         }
       }
     }else if(row.kind==='.unitypackage'){
       row.status='NEEDS_UNITY_CONVERSION_AND_LICENSE_REVIEW';
     }else if(row.kind==='.rar'){
       row.status='NEEDS_RAR_EXTRACTOR_CONVERSION_AND_LICENSE_REVIEW';
+    }else if(['.gltf','.fbx','.blend'].includes(row.kind)){
+      row.status='NEEDS_SELF_CONTAINED_GLB_CONVERSION_AND_LICENSE_REVIEW';
+    }else if(['.ogg','.mp3'].includes(row.kind)){
+      row.status='NEEDS_AUDIO_DECODE_MASTERING_AND_LICENSE_REVIEW';
     }
   }catch(error){row.status='REJECTED_FORMAT_OR_INTEGRITY';row.problem=String(error.message).slice(0,170);}
 }
@@ -183,7 +265,8 @@ const report={schema:1,source:'PRIVATE_LIBRARY_LOCAL_ONLY',mode:stage?'STAGE':'I
     glbCompatible:records.filter(r=>/GLB_RIGHTS_PENDING|RIGHTS_APPROVED_GLB/.test(r.status)).length,
     zipInspected:records.filter(r=>/ZIP_/.test(r.status)).length,
     rightsApproved:records.filter(r=>r.rightsApproved).length,
-    stagedModels:staged.length,stagedBytes}};
+    stagedModels:staged.length,stagedAudio:stagedAudio.length,
+    stagedVisual:stagedVisual.length,discovered:allLibrarySources.length-14,stagedBytes}};
 writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n',{mode:0o600});
 if(stage){
   const grants=localRights.assets.filter(g=>g.allowCommercialRedistribution===true);
@@ -192,9 +275,11 @@ if(stage){
     assert.ok(row && row.rightsApproved && row.status!=='REJECTED_FORMAT_OR_INTEGRITY' &&
       row.status!=='SOURCE_SIZE_MISMATCH','Approved private input missing/invalid: '+grant.file);
   }
-  assert.ok(staged.length>0,'No rights-verified private models to stage: nothing to publish');
+  assert.ok(staged.length+stagedAudio.length+stagedVisual.length>0,
+    'No rights-verified private assets to stage: nothing to publish');
   const manifest={schema:1,source:'PRIVATE_LIBRARY_LOCAL_ONLY',rightsStatus:'verified',
-    releaseAuthority:'DEV_PREVIEW_ONLY',models:staged,totalBytes:stagedBytes};
+    releaseAuthority:'DEV_PREVIEW_ONLY',models:staged,audio:stagedAudio,
+    visuals:stagedVisual,totalBytes:stagedBytes};
   writeFileSync(path.join(outputDir,'manifest.json'),JSON.stringify(manifest,null,2)+'\n',
     {flag:'wx',mode:0o600});
 }
