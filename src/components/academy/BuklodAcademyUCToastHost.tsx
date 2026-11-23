@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 
 type Notice={id:string;uc:number;source:string};
-const HIDE_ON=/\/(buklod|marites|reels|video|messages|connect|call)(\/|$)/i;
+const SAFE_READING_ROUTE=/^\/(learn|academy|faith|bible|word|kl|children|devotional|kabihasnang-ligaw)(\/|$)/i;
 const LABELS:Record<string,string>={
  daily_reading:'Daily Reading',word:'Word',bible_reading:'Bible Reading',
  abaka:'ABaKa',children_story:"Children's Story",kl:'Kingdom Library',
@@ -60,7 +60,7 @@ export default function BuklodAcademyUCToastHost(){
   return()=>{disposed=true;if(channel)void supabase.removeChannel(channel);};
  },[user?.id]);
  useEffect(()=>{
-  if(!notice||!active||HIDE_ON.test(path))return;
+  if(!notice||!active||!SAFE_READING_ROUTE.test(path))return;
   opacity.stopAnimation();y.stopAnimation();
   opacity.setValue(1);y.setValue(reduceMotion?0:14);
   if(!reduceMotion)Animated.timing(y,{toValue:0,duration:240,easing:Easing.out(Easing.cubic),useNativeDriver:true}).start();
@@ -71,7 +71,7 @@ export default function BuklodAcademyUCToastHost(){
   },1900);
   return()=>clearTimeout(timer);
  },[notice,active,path,reduceMotion,opacity,y]);
- if(!notice||!active||HIDE_ON.test(path))return null;
+ if(!notice||!active||!SAFE_READING_ROUTE.test(path))return null;
  return <View pointerEvents="none" accessible={false}
    accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
    style={[styles.host,{top:insets.top+10}]}>
