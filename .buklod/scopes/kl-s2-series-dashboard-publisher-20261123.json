@@ -1,0 +1,49 @@
+{
+  "contractVersion": 1,
+  "objective": "Season 2 KL reader-first dashboard and full admin-to-reader series preparation without changing live Season 1 or authorizing an OTA",
+  "branch": "dev/kl-s2-series-dashboard-publisher-20261123",
+  "baseRef": "9f19e21f7e85d59fa3204cb5be1e23c07d792c74",
+  "environment": "DEV only — no Main merge, staging/backend deployment, production OTA or paid build",
+  "releaseTarget": "Reconcile into Season 2 DEV consolidation only after source/typecheck + isolated PostgreSQL role/progression tests. Do not activate before December 6, 2026 Manila time.",
+  "allowedPaths": [
+    "src/app/kabihasnang-ligaw.tsx",
+    "src/components/kabihasnang-ligaw/KlDashboardHome.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlSeriesAdminPanel.tsx",
+    "src/components/kabihasnang-ligaw/KlSeriesReleaseDesk.tsx",
+    "supabase/migrations/20261123203000_kl_s2_series_dashboard_catalog.sql",
+    "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs",
+    ".github/workflows/buklod-kl-s2-sequential-source-qa-20261119.yml",
+    ".buklod/scopes/kl-s2-series-dashboard-publisher-20261123.json"
+  ],
+  "preserveBehaviors": [
+    "Season 1 legacy reader and existing released chapter view remains available under Dashboard->Series 1",
+    "Current KL approval/rejection, private media, manuscript, 5-question readiness and server release RPC remain authoritative",
+    "Non-admins only see released chapters and released series metadata; private descriptions never exposed for draft-only series",
+    "Reader progress is per authenticated account; failed progress queries cannot grant locked chapter access",
+    "Season 2 chapter sequencing stays server-side; old clients cannot bypass chapter locks",
+    "Advertisements, navigation, Wall, Connect, economy, original native runtime and production credentials unchanged",
+    "Season 2 series release remains held until verified activation and independent backend QA"
+  ],
+  "requiredVerification": [
+    "Focused source contracts + full TypeScript on branch",
+    "Staging PostgreSQL migration/RLS and anon/other-member/admin RPC authorization checks",
+    "Draft-only series invisibility; first released chapter exposure; updates/rollback behavior",
+    "Series 1 reader parity, Series 2 server lock and quiz 3/3, offline/weak-network account switch",
+    "Exact runtime/RC fingerprints and ad/nav regression gates before any authorized publish"
+  ],
+  "productionChange": false,
+  "stagingServerVerified": false,
+  "prodSeason2Authorization": false,
+  "knownBlockers": [
+    "No isolated Supabase staging DB verified",
+    "No current staging migration installed",
+    "No Android device or real migration execution performed"
+  ],
+  "regressionTests": [
+    "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs",
+    "tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs"
+  ]
+}
