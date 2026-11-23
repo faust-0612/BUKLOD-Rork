@@ -565,6 +565,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="file-document-check-outline"
+                title="SALIKSIK Research Review"
+                subtitle="Evidence, Biblical citations, research methodology and internal UC approval"
+                path="/admin/academy-research-review"
+              />
+
+              <AdminRow
                 icon="clipboard-check-outline"
                 title="Learning Progress Approval"
                 subtitle="Final System Admin review after Pastor validation"
