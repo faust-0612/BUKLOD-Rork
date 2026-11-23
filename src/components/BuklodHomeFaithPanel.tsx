@@ -23,6 +23,7 @@ import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import {
   ActivityIndicator,
   AppState,
+  Platform,
   Animated as RNAnimated,
   Easing,
   Pressable,
@@ -142,6 +143,9 @@ function FaithAction({
     Prayer: '#E74F82', ABAKA: '#8B50E9', Hymns: '#09B8C6',
   };
   const compactColor = tileColor[label] ?? styleTone.accent;
+  // Web uses one readable door-card presentation across scope layouts.
+  // Preserve the existing small shortcuts on native Cluster dashboards.
+  const compactTile = compact && Platform.OS !== 'web';
 
   const pressTo = (
     value: number,
@@ -163,7 +167,7 @@ function FaithAction({
     <RNAnimated.View
       style={[
         styles.cardShell,
-        compact && styles.compactShell,
+        compactTile && styles.compactShell,
         {
           transform: [
             {
@@ -175,7 +179,7 @@ function FaithAction({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}. ${title}`}
+        accessibilityLabel={`${label}. ${title}${locked ? ". Locked" : ""}`}
         onPress={onPress}
         onPressIn={() =>
           pressTo(0.97, 70)
@@ -185,59 +189,59 @@ function FaithAction({
         }
         style={({pressed}) => [
           styles.card,
-          compact && styles.compactCard,
+          compactTile && styles.compactCard,
           {
-            backgroundColor: compact ? compactColor : styleTone.surface,
-            borderColor: compact ? compactColor : `${styleTone.accent}22`,
-            minHeight: compact ? 96 : 72,
+            backgroundColor: compactTile ? compactColor : styleTone.surface,
+            borderColor: compactTile ? compactColor : `${compactColor}44`,
+            minHeight: compactTile ? 96 : 90,
           },
           pressed && {
             opacity: 0.90,
           },
         ]}
       >
-        {!compact && <View
+        {!compactTile && <View
           style={[
             styles.accentRail,
             {
               backgroundColor:
-                styleTone.accent,
+                compactColor,
             },
           ]}
         />}
 
-        <View style={[styles.cardTop, compact && styles.compactCardTop]}>
+        <View style={[styles.cardTop, compactTile && styles.compactCardTop]}>
           <View
             style={[
               styles.iconBubble,
               {
-                backgroundColor: compact ? 'transparent' : styleTone.iconSurface,
+                backgroundColor: compactTile ? 'transparent' : `${compactColor}18`,
               },
             ]}
           >
             <MaterialCommunityIcons
               name={icon}
-              size={compact ? 26 : 19}
-              color={compact ? '#FFFFFF' : styleTone.accent}
+              size={compactTile ? 26 : 19}
+              color={compactTile ? '#FFFFFF' : compactColor}
             />
           </View>
 
-          {!compact && <MaterialCommunityIcons
+          {!compactTile && <MaterialCommunityIcons
             name={locked ? 'lock-outline' : 'arrow-top-right'}
             size={16}
-            color={`${styleTone.accent}99`}
+            color={`${compactColor}CC`}
           />}
-          {compact && locked ? <MaterialCommunityIcons name="lock-outline" size={12} color="#FFFFFF" /> : null}
+          {compactTile && locked ? <MaterialCommunityIcons name="lock-outline" size={12} color="#FFFFFF" /> : null}
         </View>
 
         <Text
-          numberOfLines={compact ? 2 : 1}
+          numberOfLines={compactTile ? 2 : 1}
           style={[
             styles.eyebrow,
             {
-              color: compact ? '#FFFFFF' : styleTone.accent,
+              color: compactTile ? '#FFFFFF' : compactColor,
             },
-            compact && styles.compactEyebrow,
+            compactTile && styles.compactEyebrow,
           ]}
         >
           {label.toUpperCase()}
@@ -247,7 +251,7 @@ function FaithAction({
           <View style={styles.loadingBox}>
             <ActivityIndicator
               size="small"
-              color={compact ? '#FFFFFF' : styleTone.accent}
+              color={compactTile ? '#FFFFFF' : compactColor}
             />
           </View>
         ) : (
@@ -256,7 +260,7 @@ function FaithAction({
               numberOfLines={2}
               style={[
                 styles.cardTitle,
-                compact && { display: 'none' },
+                compactTile && { display: 'none' },
                 { color: colors.text },
               ]}
             >
@@ -267,7 +271,7 @@ function FaithAction({
               numberOfLines={2}
               style={[
                 styles.meta,
-                compact && { display: 'none' },
+                compactTile && { display: 'none' },
                 { color: colors.muted },
               ]}
             >
@@ -715,7 +719,7 @@ export default function BuklodHomeFaithPanel({
           compact={compact}
           label="ABAKA"
           title="ABAKA ng Bagong Likha"
-          meta="Sunday school • A–Z • +8 BP per verified lesson"
+          meta="Sunday school • A–Z • +5 BP per verified lesson"
           icon="school-outline"
           tone="bible"
           onPress={() =>
@@ -872,21 +876,21 @@ const styles =
 
     eyebrow: {
       marginBottom: 4,
-      fontSize: 7.5,
+      fontSize: 10,
       fontWeight: '900',
       letterSpacing: 0.55,
     },
 
     cardTitle: {
-      fontSize: 11.5,
-      lineHeight: 15,
+      fontSize: 12,
+      lineHeight: 16,
       fontWeight: '900',
     },
 
     meta: {
       marginTop: 4,
-      fontSize: 8.5,
-      lineHeight: 12,
+      fontSize: 10,
+      lineHeight: 14,
       fontWeight: '600',
     },
 

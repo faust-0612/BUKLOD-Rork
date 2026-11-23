@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -8,7 +8,7 @@ import {
 import { router } from 'expo-router';
 
 import { Button, shared } from '@/components/UI';
-import { ReadableFaithCard as Card, ReadableFaithSectionTitle as SectionTitle } from '@/components/education/ReadableFaithSurface';
+import { ReadableFaithCard as Card } from '@/components/education/ReadableFaithSurface';
 import FormationAdvancedStageCatalog from '@/components/formation/FormationAdvancedStageCatalog';
 import {
   formationCopy,
@@ -43,6 +43,8 @@ export default function FormationJourneySection({
   advancedCatalogLoading = false,
   isFormationStageLocked,
 }: Props) {
+  const [catalogRequest, setCatalogRequest] = useState<{ stageCode: number; request: number } | null>(null);
+
   const trackByStage = useMemo(() => {
     const map = new Map<number, any>();
     tracks.forEach((track) => {
@@ -65,6 +67,10 @@ export default function FormationJourneySection({
 
   const openStage = (stageCode: number) => {
     if (stageCode === 106 || stageCode === 107) {
+      setCatalogRequest((previous) => ({
+        stageCode,
+        request: (previous?.request ?? 0) + 1,
+      }));
       return;
     }
 
@@ -99,13 +105,6 @@ export default function FormationJourneySection({
       return;
     }
 
-    if (
-      primaryStage.stage_code === 106 &&
-      (primaryStage.completion as any)?.curriculum_required_count === 0
-    ) {
-      return;
-    }
-
     openStage(primaryStage.stage_code);
   };
 
@@ -131,8 +130,6 @@ export default function FormationJourneySection({
         </Card>
       )}
 
-      <SectionTitle>{formationCopy.journeyTitle.toUpperCase()}</SectionTitle>
-
       {loading && (
         <Card>
           <Text style={shared.muted}>Loading your formation journey...</Text>
@@ -143,7 +140,10 @@ export default function FormationJourneySection({
         journey.stages.map((stage) => {
           const cardStatus = mapStageCardStatus(stage);
           const percent = stageProgressPercent(stage);
-          const locked = cardStatus === 'LOCKED';
+          const locked =
+            cardStatus === 'LOCKED' ||
+            cardStatus === 'HISTORICALLY_LOCKED' ||
+            isFormationStageLocked?.(stage.stage_code) === true;
           const pointsRequired = Number(stage.stage_points_required ?? 0);
           const bayanihanRequired = Number(
             stage.stage_bayanihan_required ?? 0,
@@ -153,13 +153,14 @@ export default function FormationJourneySection({
             : null;
 
           return (
-            <Pressable
-              key={stage.stage_code}
-              onPress={() => !locked && openStage(stage.stage_code)}
-              disabled={locked}
-              style={styles.stageWrap}
-            >
+            <View key={stage.stage_code} style={styles.stageWrap}>
               <Card style={locked ? styles.cardLocked : undefined}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open BUKLOD ${stage.stage_code} formation stage`}
+                  onPress={() => !locked && openStage(stage.stage_code)}
+                  disabled={locked}
+                >
                 <View style={styles.stageTop}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.stageCode}>
@@ -234,33 +235,30 @@ export default function FormationJourneySection({
                   </Text>
                 )}
 
+                {!locked && stage.stage_code <= 105 && (
+                  <Text style={styles.tapHint}>{formationCopy.continueLearning}</Text>
+                )}
+                </Pressable>
+
                 {(stage.stage_code === 106 ||
                   stage.stage_code === 107) && (
                   <View style={styles.advancedCatalogWrap}>
                     <FormationAdvancedStageCatalog
                       stageCode={stage.stage_code as 106 | 107}
+                      openRequest={catalogRequest?.stageCode === stage.stage_code ? catalogRequest.request : 0}
                       catalog={
                         advancedCatalogs[
                           stage.stage_code as 106 | 107
                         ] ?? null
                       }
-                      stageLocked={
-                        isFormationStageLocked
-                          ? isFormationStageLocked(stage.stage_code)
-                          : locked
-                      }
+                      stageLocked={locked}
                       loading={advancedCatalogLoading}
                     />
                   </View>
                 )}
 
-                {!locked && cardStatus !== 'HISTORICALLY_LOCKED' && (
-                  <Text style={styles.tapHint}>
-                    {formationCopy.continueLearning}
-                  </Text>
-                )}
               </Card>
-            </Pressable>
+            </View>
           );
         })}
     </>
