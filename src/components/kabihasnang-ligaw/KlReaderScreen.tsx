@@ -98,7 +98,7 @@ function cacheKey(userId: string | null): string {
   return `kl.reader.v1.${userId ?? 'device'}`;
 }
 
-export default function KlReaderScreen() {
+export default function KlReaderScreen({ onBackToDashboard }: { onBackToDashboard?: () => void } = {}) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // A content-only top inset scrolls away, leaving the text underneath
@@ -985,6 +985,12 @@ export default function KlReaderScreen() {
           </View>
         ) : (
           <View style={styles.list}>
+            {onBackToDashboard ? (
+              <Pressable accessibilityRole="button" onPress={onBackToDashboard}
+                style={{ minHeight: 44, justifyContent: 'center' }}>
+                <Text style={{ color: '#cfe8b4', fontWeight: '700' }}>‹ Bumalik sa KL Dashboard</Text>
+              </Pressable>
+            ) : null}
             <View style={{ marginHorizontal: compact ? -16 : -24 }}>
               <KlCoverImage variant="hero" lowBandwidth={false} />
             </View>
