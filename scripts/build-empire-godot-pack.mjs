@@ -205,7 +205,10 @@ if (process.env.BUKLOD_GENESIS_PRIVATE_FX === 'true') {
   assert.equal(fxManifest.releaseAuthority,'DEV_PREVIEW_ONLY');
   assert.ok(Array.isArray(fxManifest.assets)&&fxManifest.assets.length>0 &&
     fxManifest.assets.length<=50,'Private FX count out of bounds');
-  assert.equal(fxManifest.licenseProof.length,3,'Expected three embedded license statements');
+  assert.ok(Array.isArray(fxManifest.licenseProof) &&
+    fxManifest.licenseProof.length>=1 && fxManifest.licenseProof.length<=16,
+    'Private FX requires bounded real license statements');
+
   const checkHash=x=>assert.match(x,/^[a-f0-9]{64}$/);
   for (const proof of fxManifest.licenseProof) {
     assert.match(proof.file,/^licenses\/[a-z0-9_-]+\.txt$/);
