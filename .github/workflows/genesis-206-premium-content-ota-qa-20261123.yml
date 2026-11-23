@@ -86,6 +86,29 @@ jobs:
             unzip -Z1 assets/season2/genesis/ota/empire-arena.zip | grep -Fxq "world-audio/$track.wav"
           done
           echo 'BUKLOD_206_ORIGINAL_AUDIO_READY_NO_AUTO_PLAY'
+      - name: Verify consolidated staging OTA manifest, signer/runtime and no unreviewed vendor packs
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          const m=JSON.parse(fs.readFileSync('.buklod/releases/genesis-206-premium-arena-kingdom-house-conso-staging-ota-20261123.json','utf8'));
+          const eas=JSON.parse(fs.readFileSync('eas.json','utf8'));
+          const expected=eas.build['season2-genesis-godot-ota-native-staging'];
+          assert.equal(m.target.package,'org.mzbministry.buklod.staging');
+          assert.equal(m.target.runtime,'2.0.6-genesis-godot-ota');
+          assert.equal(m.target.godot,'4.7.2');
+          assert.equal(expected.channel,m.target.channel);
+          assert.equal(expected.android.credentialsSource,'remote');
+          assert.equal(m.content.arena.combatAudioCues,70);
+          assert.equal(m.content.kingdom.ownerAssetImages,42);
+          assert.equal(m.content.audio.sourceCount,17);
+          assert.ok(m.holdForAssetIntake.every(a=>a.why.length>10));
+          assert.ok(m.status.includes('STAGING_OTA_NOT_PUBLISHED'));
+          const bundle=fs.readFileSync('src/features/season2/genesis/godotPackManifest.generated.ts','utf8');
+          assert.ok(bundle.includes(m.verifiedCI.packSha256));
+          console.log('GENESIS_206_CONSOLIDATED_STAGING_OTA_MANIFEST_PASS_NO_PUBLISH');
+          NODE
       - name: Upload verified DEV game content and hash for staging QA, NOT an OTA
         uses: actions/upload-artifact@v4
         with:
@@ -93,5 +116,7 @@ jobs:
           path: |
             assets/season2/genesis/ota/empire-arena.zip
             src/features/season2/genesis/godotPackManifest.generated.ts
+            .buklod/releases/genesis-206-premium-arena-kingdom-house-conso-staging-ota-20261123.json
+            godot/empire-arena/AUDIO_PROVENANCE_AND_3D_ASSET_GATES.md
           if-no-files-found: error
           retention-days: 7
