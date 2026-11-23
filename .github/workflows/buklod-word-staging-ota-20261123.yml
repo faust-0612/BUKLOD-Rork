@@ -1,0 +1,200 @@
+name: BUKLOD Word Staging Android OTA Only
+on:
+  push:
+    branches: [dev/word-pressable-scripture-20261123]
+    paths: [.github/workflows/buklod-word-staging-ota-20261123.yml]
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+concurrency:
+  group: buklod-staging-user-android-ota
+  cancel-in-progress: false
+jobs:
+  staging-only:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/word-pressable-scripture-20261123' && startsWith(github.event.head_commit.message, 'BUKLOD_WORD_STAGING_20261123:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_MAX_WORKERS: '2'
+      APK_SOURCE: c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd
+      EVIDENCE_DIR: /tmp/buklod-word-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Strict reviewed source/native/production-main parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$(git ls-remote origin refs/heads/main | cut -f1)" "$GITHUB_SHA" || { echo 'BLOCK: latest main not integrated'; exit 1; }
+          git merge-base --is-ancestor "$APK_SOURCE" "$GITHUB_SHA"
+          git diff --exit-code "$APK_SOURCE" "$GITHUB_SHA" -- app.config.js eas.json package-lock.json android/ ios/ plugins/ google-services.staging.json babel.config.js
+          node <<'NODE'
+          const a=require('assert/strict'),fs=require('fs'),cp=require('child_process');
+          const scope=JSON.parse(fs.readFileSync('.buklod/scopes/word-bible-pressable-20261123.json'));
+          const actual=cp.execFileSync('git',['diff','--name-only','origin/main...HEAD'],{encoding:'utf8'}).trim().split('\n').filter(Boolean).sort();
+          a.deepEqual(actual,[...scope.allowedPaths].sort(),'Extra/unreviewed source changed');
+          const old=JSON.parse(cp.execFileSync('git',['show',process.env.APK_SOURCE+':package.json'],{encoding:'utf8'}));
+          const now=require('./package.json');
+          a.deepEqual(now.dependencies,old.dependencies);a.deepEqual(now.devDependencies,old.devDependencies);
+          const cfg=require('./app.config.js')({config:{}}),eas=require('./eas.json');
+          a.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          a.equal(cfg.runtimeVersion,'1.3.2');
+          a.equal(cfg.extra.appEnvironment,'staging');a.equal(cfg.extra.appTarget,'main');
+          a.equal(cfg.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.equal(eas.build['staging-user'].environment,'preview');
+          a.notEqual(eas.build.production.channel,'staging-user');
+          NODE
+      - name: Verify four required exact-source PR checks
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required=['Engineering Accountability','BUKLOD Compact Layout Source QA (No OTA)','BUKLOD Performance R1 QA','BUKLOD Main - Report Door and Legacy Integration PR QA'];
+            for(let n=0;n<72;n++){
+              const {data:pr}=await github.rest.pulls.get({...context.repo,pull_number:1143});
+              if(pr.state!=='open'||!pr.draft||pr.head.sha!==context.sha||pr.base.ref!=='main'||pr.head.ref!=='dev/word-pressable-scripture-20261123')
+                throw Error('Reviewed PR source no longer matches release');
+              const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:context.sha,per_page:100});
+              const checks=required.map(name=>data.workflow_runs.find(r=>r.name===name&&r.event==='pull_request'&&r.head_sha===context.sha));
+              if(checks.some(r=>r?.status==='completed'&&r.conclusion!=='success'))throw Error('Required CI failed; no OTA');
+              if(checks.every(r=>r?.conclusion==='success'))return;
+              if(n===71)throw Error('Missing CI evidence; no OTA');
+              await new Promise(resolve=>setTimeout(resolve,10000));
+            }
+      - name: Focused faith/nav/AdMob tests and Android typecheck
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test tests/word-scripture-link-20261123.test.cjs tests/word-bible-navigation-20261123.test.cjs tests/word-staging-ota-release-20261123.test.cjs tests/bible-navigation.test.cjs tests/dashboard-ad-navigation-prewarm-20261116.test.mjs tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs tests/buklod-ads-production-release-contract-20261111.test.mjs tests/connect-cluster-open-latest-20261123.test.mjs tests/connect-cluster-ads-isolation-20261123.test.mjs
+          npx tsc --noEmit
+          npm run compact:contract
+          npm run release:base-gate
+      - name: Signed staging APK and EAS existing-stage-parity preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN" || { echo 'BLOCK: No EAS credentials'; exit 1; }
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/stage.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/prod.json"
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$EVIDENCE_DIR/prior.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import {execFileSync} from 'node:child_process';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.EVIDENCE_DIR,r=n=>JSON.parse(fs.readFileSync(d+'/'+n,'utf8'));
+          verifyBuild(r('build.json'));
+          const branch=verifyChannels(r('stage.json'),r('prod.json'));
+          const prod=await manifest('production'),stage=await manifest('staging-user');
+          assert.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          const raw=r('prior.json'),rows=raw.currentPage??raw;
+          assert.ok(Array.isArray(rows)&&rows.length,'Unknown current stage');
+          const deployedSha=rows[0].gitCommitHash;
+          assert.match(deployedSha??'',/^[a-f0-9]{40}$/,'Missing staged SHA');
+          try{execFileSync('git',['merge-base','--is-ancestor',deployedSha,process.env.GITHUB_SHA]);}
+          catch{throw Error('BLOCK: staging source changes are not cumulatively reconciled');}
+          const existing=rows.find(x=>x.message==='BUKLOD_WORD_STAGING_20261123_'+process.env.GITHUB_SHA);
+          fs.writeFileSync(d+'/preflight.json',JSON.stringify({source:process.env.GITHUB_SHA,branch,prodId:prod.id,stageId:stage.id,stageSha:deployedSha,existingGroup:existing?.group??null,buildId:r('build.json').id,deviceTested:false},null,2));
+          NODE
+      - name: Compile exact preview Android Hermes bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-word-preview.env --non-interactive >/dev/null
+          set -a; . /tmp/buklod-word-preview.env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          npx expo config --json > "$EVIDENCE_DIR/config.json"
+          node <<'NODE'
+          const a=require('assert/strict'),fs=require('fs'),c=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/config.json'));
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appEnvironment,'staging');a.equal(c.extra.appTarget,'main');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          npx expo export --platform android --output-dir /tmp/buklod-word-android --clear
+          test -s /tmp/buklod-word-android/metadata.json
+          sha256sum /tmp/buklod-word-android/metadata.json > "$EVIDENCE_DIR/export.sha"
+          test "$(git ls-remote origin refs/heads/dev/word-pressable-scripture-20261123 | cut -f1)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$(git ls-remote origin refs/heads/main | cut -f1)" "$GITHUB_SHA"
+      - name: Idempotent stage-only EAS publication with before/after channel guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/stage2.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/prod2.json"
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$EVIDENCE_DIR/recent.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          import {verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.EVIDENCE_DIR,r=n=>JSON.parse(fs.readFileSync(d+'/'+n,'utf8'));
+          const p=r('preflight.json');assert.deepEqual(verifyChannels(r('stage2.json'),r('prod2.json')),p.branch);
+          assert.equal((await manifest('production')).id,p.prodId,'Production changed');
+          const raw=r('recent.json'),rows=raw.currentPage??raw;
+          assert.ok(Array.isArray(rows));
+          const existing=rows.find(x=>x.message==='BUKLOD_WORD_STAGING_20261123_'+process.env.GITHUB_SHA);
+          if(!existing)assert.equal((await manifest('staging-user')).id,p.stageId,'Concurrent stage update');
+          fs.writeFileSync(d+'/group',existing?.group??'');
+          NODE
+          if [ ! -s "$EVIDENCE_DIR/group" ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir /tmp/buklod-word-android --non-interactive --json --message "BUKLOD_WORD_STAGING_20261123_$GITHUB_SHA" > "$EVIDENCE_DIR/published.json"
+            node <<'NODE'
+          const fs=require('fs'),a=require('assert/strict'),d=process.env.EVIDENCE_DIR;
+          const j=JSON.parse(fs.readFileSync(d+'/published.json'));
+          a.ok(Array.isArray(j)&&j.length===1&&j[0].group,'Unexpected EAS publication receipt; no retry');
+          fs.writeFileSync(d+'/group',j[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$EVIDENCE_DIR/group")" --json > "$EVIDENCE_DIR/view.json"
+      - name: Verify exact live staging update and production unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/stage3.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/prod3.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          import {verifyChannels,verifyUpdate,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.EVIDENCE_DIR,r=n=>JSON.parse(fs.readFileSync(d+'/'+n,'utf8')),p=r('preflight.json');
+          assert.deepEqual(verifyChannels(r('stage3.json'),r('prod3.json')),p.branch);
+          const u=verifyUpdate(r('view.json'),process.env.GITHUB_SHA,p.branch.name);
+          const stage=await manifest('staging-user'),prod=await manifest('production');
+          assert.equal(stage.id.toLowerCase(),u.id.toLowerCase());
+          assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(stage.extra?.expoClient?.extra?.appEnvironment,'staging');
+          assert.equal(prod.id,p.prodId,'Production changed during staging OTA');
+          const proof={state:'VERIFIED SERVER-SIDE STAGING OTA',sha:p.source,updateId:u.id,groupId:u.group,buildId:p.buildId,
+            channel:'staging-user',package:'org.mzbministry.buklod.staging',runtime:u.runtimeVersion,productionIdUnchanged:prod.id,deviceVerified:false};
+          fs.writeFileSync(d+'/verification.json',JSON.stringify(proof,null,2));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(proof,null,2));
+          NODE
+      - name: Archive sanitized release proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-word-staging-${{ github.sha }}
+          path: |
+            /tmp/buklod-word-staging/build.json
+            /tmp/buklod-word-staging/preflight.json
+            /tmp/buklod-word-staging/view.json
+            /tmp/buklod-word-staging/verification.json
+            /tmp/buklod-word-staging/export.sha
+          retention-days: 14
+          if-no-files-found: ignore

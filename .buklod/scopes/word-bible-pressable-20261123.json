@@ -28,21 +28,25 @@
     "word-scripture-link",
     "bible-reader-navigation",
     "offline-reference-parsing",
-    "ads-navigation-regression"
+    "ads-navigation-regression",
+    "release-identity"
   ],
   "regressionTests": [
     "tests/word-scripture-link-20261123.test.cjs",
-    "tests/word-bible-navigation-20261123.test.cjs"
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-staging-ota-release-20261123.test.cjs"
   ],
   "allowedPaths": [
     "src/app/devotional/[id].tsx",
     "src/lib/buklodWordBibleReference.ts",
     "tests/word-scripture-link-20261123.test.cjs",
     ".buklod/scopes/word-bible-pressable-20261123.json",
-    "tests/word-bible-navigation-20261123.test.cjs"
+    "tests/word-bible-navigation-20261123.test.cjs",
+    ".github/workflows/buklod-word-staging-ota-20261123.yml",
+    "tests/word-staging-ota-release-20261123.test.cjs"
   ],
-  "publicationStatus": "DEV_ONLY_NO_OTA",
-  "releaseMode": "dev-staging-candidate-no-ota",
+  "publicationStatus": "PENDING_VERIFIED_STAGING_OTA",
+  "releaseMode": "staging-ota-candidate",
   "releaseTarget": "Android staging-user runtime 1.3.2 only after immutable RC and all gates",
   "physicalDeviceVerification": "NOT_PERFORMED",
   "lockedFeatureChanges": [
@@ -64,6 +68,16 @@
       ],
       "tests": [
         "tests/word-bible-navigation-20261123.test.cjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Guarded Android staging-only OTA keeps production unchanged and verifies native baseline, cumulative source parity, ads, navigation and served update.",
+      "preservedBehaviors": [
+        "Existing production package, production channel, backend and AdMob money remain untouched; staging current feature parity enforced."
+      ],
+      "tests": [
+        "tests/word-staging-ota-release-20261123.test.cjs"
       ]
     }
   ]
