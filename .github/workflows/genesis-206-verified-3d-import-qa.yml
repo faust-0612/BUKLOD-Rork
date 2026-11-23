@@ -57,8 +57,8 @@ jobs:
                   assert hashlib.sha256(b).hexdigest()==model['sha256']
               x=json.loads(z.read('data/audio_manifest.json'))
               assert x['count']==70 and x['prototype'] is False
-          assert sum(bool(x.get('rigged')) for x in m['models'])==2
-              assert all(x.get('animationCount',0)>0 for x in m['models'] if x.get('rigged'))
+              assert sum(bool(v.get('rigged')) for v in m['models'])==2
+              assert all(v.get('animationCount',0)>0 for v in m['models'] if v.get('rigged'))
           print('22_REAL_CC0_GLB_2_ANIMATED_RIGS_70_REAL_SFX_OTA_ZIP_READY')
           PY
           unzip -t assets/season2/genesis/ota/empire-arena.zip | tail -2
