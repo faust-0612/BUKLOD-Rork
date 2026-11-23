@@ -2,7 +2,7 @@
 -- Does not touch existing BP, QMP, ads or feature-locked source progress.
 create or replace function public.buklod_academy_auto_award_on_uc_v1()
 returns trigger language plpgsql security definer set search_path='' as $$
-declare user_ref uuid:=new.user_id; total integer; c record;
+declare user_ref uuid:=new.user_id; total integer; devotional_uc integer; research_uc integer; eligible_uc integer; c record;
 begin
  if not exists(select 1 from public.buklod_university_config where singleton and enabled) then return new;end if;
  -- Evidence is derived from authoritative, unique UC records only.
@@ -32,9 +32,18 @@ begin
   and (source_key in ('prelim-01','prelim-02') or source_key ~ '^lesson-(0[1-9]|1[0-9]|2[0-6])$')
  having count(distinct source_key)=28 on conflict(user_id,credential_code) do nothing;
 
- select coalesce(sum(uc),0)::integer into total from public.buklod_university_uc_ledger where user_id=user_ref;
+ select coalesce(sum(uc),0)::integer,
+ coalesce(sum(uc) filter(where source_module in ('daily_reading','word')),0)::integer,
+ coalesce(sum(uc) filter(where source_module='saliksik_research'),0)::integer
+ into total,devotional_uc,research_uc
+ from public.buklod_university_uc_ledger where user_id=user_ref;
  for c in select * from public.buklod_university_credentials where active order by min_uc,code loop
-  if total<c.min_uc then continue;end if;
+  eligible_uc:=total;
+  if c.tier<>'certificate' then
+   eligible_uc:=total-greatest(devotional_uc-floor(c.min_uc*0.20)::integer,0)
+    -greatest(research_uc-floor(c.min_uc*0.25)::integer,0);
+  end if;
+  if eligible_uc<c.min_uc then continue;end if;
   if not exists(select 1 from public.buklod_university_credential_evidence e
     where e.user_id=user_ref and e.credential_code=c.code and e.status='VERIFIED'
       and e.verified_by_source is not null and e.verified_at is not null) then continue;end if;
@@ -42,7 +51,7 @@ begin
     select 1 from public.buklod_university_awards a
     where a.user_id=user_ref and a.credential_code=pre and a.status='ISSUED')) then continue;end if;
   insert into public.buklod_university_awards(user_id,credential_code,qualifying_uc,policy_version)
-  values(user_ref,c.code,total,'BU-ACADEMY-5')
+  values(user_ref,c.code,eligible_uc,'BU-ACADEMY-5')
   on conflict(user_id,credential_code) do nothing;
  end loop;
  return new;
