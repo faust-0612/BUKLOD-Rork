@@ -20,12 +20,14 @@ import {getDevelopmentAsset,getDevelopmentStageAsset} from './developmentAssetMa
 import Season2CommunityFacilities from './Season2CommunityFacilities';
 import DevelopmentStructurePreview from './DevelopmentStructurePreview';
 import EstateConstructionConsole from './EstateConstructionConsole';
+import BuklodCrossWorldAchievements from '@/components/games/BuklodCrossWorldAchievements';
 import EstateMomentFX from './EstateMomentFX';
 import EstateCosmeticTile from './EstateCosmeticTile';
 import EstateGenesisAtmosphere from './EstateGenesisAtmosphere';
 import {useEstateFeedback,type EstateMoment} from './estateFeedback';
 import {type EstateCosmetics,type EstateSnapshot} from './estateProgressClient';
 import {constructionPlan, nextMilestone, safeCosmetics, safeMastery} from './constructionPlan.mjs';
+import {quoteKingdomMastery} from './crossWorldProgression.mjs';
 const VILLAGE_ART = require('../../../../assets/season2/genesis/world/buklod-community-village-stage1.webp');
 const HOME_ART = require('../../../../assets/season2/genesis/world/buklod-my-home-stage1.webp');
 
@@ -369,6 +371,25 @@ export default function Season2DevelopmentMap({world}:{world:World}) {
         {estateFeedback.voiceEnabled&&!estateFeedback.voiceAvailable?
           <Text style={styles.mapNote}>English voice fallback active. Install a Filipino system TTS voice for Filipino narration.</Text>:null}
         <Text style={styles.mapNote}>One-tap landmarks open existing household and community features. Construction comes from verified server progress. BLUEPRINT stages are optional visual samples.</Text>
+        {world==='home'?<View style={styles.quickActions}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open Character Kingdom games"
+            accessibilityHint="Enter the existing Kingdom game world. Does not award points."
+            onPress={()=>{estateFeedback.emit('navigation');router.push('/games' as any);}} style={styles.quickAction}>
+            <MaterialCommunityIcons name="castle" size={18} color="#FFEBBC"/><Text style={styles.quickActionText}>KINGDOM</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open Empire Arena"
+            accessibilityHint="Enter Empire Arena. House and Kingdom Mastery do not change ranked combat power."
+            onPress={()=>{estateFeedback.emit('navigation');router.push('/games/empire-arena' as any);}} style={styles.quickAction}>
+            <MaterialCommunityIcons name="sword-cross" size={18} color="#FFEBBC"/><Text style={styles.quickActionText}>EMPIRE ARENA</Text>
+          </Pressable>
+        </View>:null}
+        {world==='home'?<Text style={styles.mapNote}>
+          WORLD CONNECTION PREVIEW · Kingdom achievements may become House decor and Arena lobby cosmetics;
+          verified Arena trophies may decorate House. These are design ideas, not awarded inventory.
+          Sample Kingdom M10: {quoteKingdomMastery(10).requiredXp?.toLocaleString()} XP required.
+          BP, Diamonds, ranked power and House construction remain independently server-verified.
+        </Text>:null}
+        {world==='home'?<BuklodCrossWorldAchievements world="house"/>:null}
         <Season2CommunityFacilities world={world}/>
         <View style={styles.panel}>
           <View style={styles.levelRow}>
