@@ -8,6 +8,12 @@ test('Kenney GLB imports pinned to one 40-hex commit and exact per-model source 
  assert.equal(manifest.source.repository,'Hidencod/tge-assets');
  assert.match(manifest.source.commit,/^[a-f0-9]{40}$/);
  assert.equal(manifest.models.length,20);
+ assert.equal(manifest.rigs.length,2);
+ assert.equal(manifest.animatedSource.license,'CC0-1.0');
+ for(const rig of manifest.rigs){
+   assert.match(rig.gitBlob,/^[a-f0-9]{40}$/);
+   assert.ok(rig.bytes>100000&&rig.bytes<5000000);
+ }
  assert.equal(new Set(manifest.models.map(x=>x.id)).size,20);
  for(const a of manifest.models){
   assert.match(a.path,/^packs\/[a-z0-9-]+\/[a-z0-9-]+\.glb$/);
@@ -25,7 +31,7 @@ test('Strict binary glTF2 mesh validation and Git blob hashing precede verified 
  assert.match(pack,/3d\/kenney\/.*\.glb/);
  assert.match(pack,/data\/3d_manifest.json/);
  assert.match(pack,/crypto|sha256/);
- assert.match(pack,/assert.ok\(total>200000 && total<4\*1024\*1024/);
+ assert.match(pack,/assert.ok\(total>6\*1024\*1024 && total<16\*1024\*1024/);
 });
 test('3D preview is optional, preserves original 2D Arena control and Kingdom UI',()=>{
  const root=read('godot/empire-arena/scripts/arena_root.gd');
@@ -43,5 +49,7 @@ test('3D preview is optional, preserves original 2D Arena control and Kingdom UI
  assert.match(preview,/func move_to\(point: Vector3\) -> bool/);
  assert.match(preview,/func _unhandled_input\(event: InputEvent\)/);
  assert.match(preview,/server_settlement": false/);
+ assert.match(preview,/_play_avatar_animation\("Walk" if motion.length_squared/);
+ assert.match(preview,/model_templates.has\("rig_knight"\)/);
  assert.doesNotMatch(preview,/HttpRequest|Supabase|award_.*xp|grant_bp|ranked_reward|purchase_property/i);
 });

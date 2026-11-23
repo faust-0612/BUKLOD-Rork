@@ -10,13 +10,15 @@ func _run() -> void:
         quit(1)
         return
     var models: Array = manifest.get("models", [])
-    if models.size() != 20:
+    if models.size() != 22:
         push_error("Required 20 real GLBs missing")
         quit(2)
         return
     for record in models:
         var id: String = str(record.get("id", ""))
         var raw: PackedByteArray = FileAccess.get_file_as_bytes("res://3d/kenney/" + id + ".glb")
+        if id.begins_with("rig_"):
+            raw = FileAccess.get_file_as_bytes("res://3d/kaykit/" + id + ".glb")
         if raw.size() != int(record.get("bytes", -1)):
             push_error("Model missing or size mismatch: " + id)
             quit(3)
@@ -32,6 +34,11 @@ func _run() -> void:
             push_error("No usable 3D scene graph for " + id)
             quit(5)
             return
+        if id.begins_with("rig_"):
+            if scene.find_children("*", "AnimationPlayer", true, false).is_empty():
+                push_error("Animated KayKit rig has no AnimationPlayer: " + id)
+                quit(11)
+                return
     var scene_file = load("res://scenes/PremiumWorld3D.tscn")
     if scene_file == null:
         push_error("Godot premium 3D scene unavailable")
@@ -45,7 +52,7 @@ func _run() -> void:
         push_error("Unsafe 3D economy state")
         quit(7)
         return
-    if int(snap.get("models", 0)) < 8:
+    if int(snap.get("models", 0)) < 8 or not snap.get("rigged_available", false):
         push_error("3D props not integrated into live scene")
         quit(8)
         return
@@ -59,5 +66,5 @@ func _run() -> void:
         push_error("3D avatar did not approach target")
         quit(10)
         return
-    print("BUKLOD_206_IMPORTED_REAL_GLB_20_GODOT_3D_INTERACTION_PASS")
+    print("BUKLOD_206_IMPORTED_REAL_GLB_22_INCLUDING_2_ANIMATED_RIGS_PASS")
     quit(0)

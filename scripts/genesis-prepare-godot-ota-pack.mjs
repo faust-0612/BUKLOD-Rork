@@ -34,6 +34,7 @@ assert.equal(files.filter(x => /^audio\/sfx\/.*\.wav$/.test(x)).length, 70);
 assert.equal(files.filter(x => /^kingdom-items\/(badge|bond|book|chest|crystal|light|relic)-[1-6]\.webp$/.test(x)).length, 42);
 if(process.env.BUKLOD_GENESIS_PREMIUM_3D === 'true') {
   assert.equal(files.filter(x=>/^3d\/kenney\/[a-z0-9_]+\.glb$/.test(x)).length,20);
+  assert.equal(files.filter(x=>/^3d\/kaykit\/rig_[a-z0-9_]+\.glb$/.test(x)).length,2);
   assert.ok(files.includes('scenes/PremiumWorld3D.tscn'));
   assert.ok(files.includes('data/3d_manifest.json'));
 }

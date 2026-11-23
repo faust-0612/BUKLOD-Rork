@@ -9,7 +9,7 @@
     "mode": "DEV_QA_ONLY_NO_OTA_PUBLISH"
   },
   "assetPolicy": {
-    "supplementary3d": "20 Kenney CC0 GLB from pinned Hidencod/tge-assets Git commit, exact source Git blob hashes",
+    "supplementary3d": "20 Kenney CC0 static models + 2 rigged KayKit CC0 animated models, pinned Git blobs and bounded GLB source checks",
     "privateLibrary": "4 GLB models and 3D animation packs located in Library but raw bytes and individual license unverified; NOT imported",
     "audio": "70 licensed recording-based cues remain unchanged"
   },
@@ -17,13 +17,15 @@
     "3D scene with camera, real model meshes, player movement and harmless interaction",
     "Optional 3D preview buttons in Arena/Kingdom/House, preserve 2D fallback and existing controls",
     "Deterministic 20-model content import with GLB/Git SHA/size/mesh checks",
-    "No backend writes or ranking/points/property payouts"
+    "No backend writes or ranking/points/property payouts",
+    "2 KayKit CC0 rigged animated characters with idle/walk/attack clip selection, as anonymous practice preview stand-ins, not 13 official BUKLOD rigs"
   ],
   "tests": [
     "Node source/ad/navigation regressions",
     "20 GLB raw ZIP SHA256 and license manifest",
     "Godot 4.7.2 headless real GLTFDocument import, 3D scene instantiate and offline locomotion",
-    "2D Arena and WorldPreview regressions"
+    "2D Arena and WorldPreview regressions",
+    "Real Godot 4.7.2 AnimationPlayer discovered for 2 imported GLB rigs"
   ],
   "releaseGate": [
     "Staging runtime and pack downloader compatible",
