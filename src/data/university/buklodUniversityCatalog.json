@@ -506,7 +506,7 @@
     },
     {
       "code": "B01",
-      "title": "Bachelor of Biblical Studies",
+      "title": "Bachelor's-level Completion in Biblical Studies",
       "min_uc": 1500,
       "existing_evidence_gate": "multi-genre Scripture comprehension + one independently reviewed exegetical paper",
       "prerequisite_credentials": [
@@ -521,7 +521,7 @@
     },
     {
       "code": "B02",
-      "title": "Bachelor of Christian Education",
+      "title": "Bachelor's-level Completion in Christian Education",
       "min_uc": 1600,
       "existing_evidence_gate": "verified Children's Story teaching and Biblical teaching-design portfolio",
       "prerequisite_credentials": [
@@ -536,7 +536,7 @@
     },
     {
       "code": "B03",
-      "title": "Bachelor of Theology",
+      "title": "Bachelor's-level Completion in Theology",
       "min_uc": 1750,
       "existing_evidence_gate": "full doctrinal matrix + comparative theological paper",
       "prerequisite_credentials": [
@@ -552,7 +552,7 @@
     },
     {
       "code": "B04",
-      "title": "Bachelor of Discipleship and Christian Formation",
+      "title": "Bachelor's-level Completion in Discipleship and Christian Formation",
       "min_uc": 1650,
       "existing_evidence_gate": "formation 101-105 + practical application evidence",
       "prerequisite_credentials": [
@@ -566,7 +566,7 @@
     },
     {
       "code": "B05",
-      "title": "Bachelor of Christian Leadership",
+      "title": "Bachelor's-level Completion in Christian Leadership",
       "min_uc": 1850,
       "existing_evidence_gate": "complete 105 + leadership application and documented ministry involvement; verified 106 track where required by specialization",
       "prerequisite_credentials": [
@@ -579,7 +579,7 @@
     },
     {
       "code": "B06",
-      "title": "Bachelor of Biblical Research",
+      "title": "Bachelor's-level Completion in Biblical Research",
       "min_uc": 1850,
       "existing_evidence_gate": "two different SALIKSIK research designs + exegetical and comparative papers",
       "prerequisite_credentials": [
@@ -594,7 +594,7 @@
     },
     {
       "code": "B07",
-      "title": "Bachelor of Ministry and Mission Studies",
+      "title": "Bachelor's-level Completion in Ministry and Mission Studies",
       "min_uc": 1900,
       "existing_evidence_gate": "leadership and mission studies coverage with actual documented practice; 106 track must be verified",
       "prerequisite_credentials": [
@@ -608,7 +608,7 @@
     },
     {
       "code": "M01",
-      "title": "Master of Biblical Theology",
+      "title": "Master's-level Completion in Biblical Theology",
       "min_uc": 2400,
       "existing_evidence_gate": "biblical-theology synthesis, OT/NT evidence, substantial SALIKSIK exegetical capstone",
       "prerequisite_credentials": [
@@ -622,7 +622,7 @@
     },
     {
       "code": "M02",
-      "title": "Master of Christian Education",
+      "title": "Master's-level Completion in Christian Education",
       "min_uc": 2500,
       "existing_evidence_gate": "Children's Story/teaching record + educational-theology research and evidenced application",
       "prerequisite_credentials": [
@@ -636,7 +636,7 @@
     },
     {
       "code": "M03",
-      "title": "Master of Theology and Ministry",
+      "title": "Master's-level Completion in Theology and Ministry",
       "min_uc": 2700,
       "existing_evidence_gate": "105-107, 106 role practice + documented systematic/doctrinal and applied-theology paper",
       "prerequisite_credentials": [
@@ -650,7 +650,7 @@
     },
     {
       "code": "M04",
-      "title": "Master of Missiology and Christian Leadership",
+      "title": "Master's-level Completion in Missiology and Christian Leadership",
       "min_uc": 2700,
       "existing_evidence_gate": "107 mission readiness + SALIKSIK mission-practice research and leadership case portfolio",
       "prerequisite_credentials": [
@@ -664,7 +664,7 @@
     },
     {
       "code": "M05",
-      "title": "Master of Theological Research",
+      "title": "Master's-level Completion in Theological Research",
       "min_uc": 2900,
       "existing_evidence_gate": "comparative/methodological portfolio + complete source-verified thesis-style research and defense",
       "prerequisite_credentials": [
