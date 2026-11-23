@@ -5,7 +5,7 @@ extends RefCounted
 
 const MAX_TEMP_TOWERS := 3
 
-static func _now(sim: BuklodArenaSimulation) -> float:
+static func _now(sim) -> float:
 	return float(sim.state["time"])
 
 static func _buff(p: Dictionary, key: String, value: float, until: float) -> void:
@@ -15,7 +15,7 @@ static func _buff(p: Dictionary, key: String, value: float, until: float) -> voi
 		"until": maxf(until, float(previous.get("until", 0.0)))
 	}
 
-static func _control_resist(sim: BuklodArenaSimulation, target: Dictionary) -> float:
+static func _control_resist(sim, target: Dictionary) -> float:
 	# Niel's Shared Resolve aura lowers control duration for nearby allies.
 	for ally in sim.state["players"].values():
 		if ally.get("hero", "") == "niel" and ally["team"] == target["team"] \
@@ -23,7 +23,7 @@ static func _control_resist(sim: BuklodArenaSimulation, target: Dictionary) -> f
 			return 0.20
 	return 0.0
 
-static func _hit_nearest(sim: BuklodArenaSimulation, p: Dictionary, distance: float, damage: float,
+static func _hit_nearest(sim, p: Dictionary, distance: float, damage: float,
 		slow: float = 0.0) -> bool:
 	var enemies: Array = sim._enemies(p, distance)
 	if enemies.is_empty():
@@ -35,7 +35,7 @@ static func _hit_nearest(sim: BuklodArenaSimulation, p: Dictionary, distance: fl
 		_buff(target, "slow", clampf(slow, 0.0, 0.45), _now(sim) + 3.0)
 	return true
 
-static func _area_hit(sim: BuklodArenaSimulation, p: Dictionary, distance: float, damage: float,
+static func _area_hit(sim, p: Dictionary, distance: float, damage: float,
 		slow: float = 0.0) -> bool:
 	var hit_any := false
 	for target in sim._enemies(p, distance):
@@ -45,19 +45,19 @@ static func _area_hit(sim: BuklodArenaSimulation, p: Dictionary, distance: float
 				_buff(target, "slow", clampf(slow, 0.0, 0.45), _now(sim) + 3.0)
 	return hit_any
 
-static func _ally_buff(sim: BuklodArenaSimulation, p: Dictionary, distance: float,
+static func _ally_buff(sim, p: Dictionary, distance: float,
 		key: String, value: float, seconds: float) -> void:
 	for ally in sim._allies(p, distance):
 		_buff(ally, key, value, _now(sim) + seconds)
 
-static func _heal_allies(sim: BuklodArenaSimulation, p: Dictionary, distance: float,
+static func _heal_allies(sim, p: Dictionary, distance: float,
 		amount: float, shield: float = 0.0) -> void:
 	for ally in sim._allies(p, distance):
 		ally["hp"] = minf(float(ally["max_hp"]), float(ally["hp"]) + amount)
 		if shield > 0:
 			ally["shield"] = minf(105.0, float(ally["shield"]) + shield)
 
-static func _wall(sim: BuklodArenaSimulation, p: Dictionary, direction: Vector2) -> bool:
+static func _wall(sim, p: Dictionary, direction: Vector2) -> bool:
 	if sim.state["cover"].size() >= 20:
 		return false
 	var at: Vector2 = p["pos"] + direction * 4.0
@@ -68,7 +68,7 @@ static func _wall(sim: BuklodArenaSimulation, p: Dictionary, direction: Vector2)
 	sim._log("library_wall", {"actor": p["id"], "pos": at})
 	return true
 
-static func _turret(sim: BuklodArenaSimulation, p: Dictionary,
+static func _turret(sim, p: Dictionary,
 		direction: Vector2, hp: float, seconds: float, power: float) -> bool:
 	var count := 0
 	for tower in sim.state["towers"]:
@@ -89,7 +89,7 @@ static func _turret(sim: BuklodArenaSimulation, p: Dictionary,
 	sim._log("library_turret", {"actor": p["id"], "pos": at})
 	return true
 
-static func cast(sim: BuklodArenaSimulation, p: Dictionary,
+static func cast(sim, p: Dictionary,
 		identity: String, aim: Vector2) -> bool:
 	var direction := aim.normalized() if aim.length_squared() > 0.0025 else Vector2.RIGHT
 	match identity:
