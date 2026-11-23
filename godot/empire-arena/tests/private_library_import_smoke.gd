@@ -37,7 +37,11 @@ func _run() -> void:
             return
         var data := FileAccess.get_file_as_bytes("res://3d/private/" + id + ".glb")
         total += data.size()
-        if data.size() != int(model.get("bytes", -1)) or data.sha256_text() != str(model.get("sha256", "")):
+        var context := HashingContext.new()
+        context.start(HashingContext.HASH_SHA256)
+        context.update(data)
+        var digest: String = context.finish().hex_encode()
+        if data.size() != int(model.get("bytes", -1)) or digest != str(model.get("sha256", "")):
             push_error("Private GLB hash mismatch: " + id)
             quit(6)
             return
