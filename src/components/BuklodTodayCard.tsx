@@ -3,6 +3,7 @@ import {ActivityIndicator,AppState,Pressable,StyleSheet,Text,TextInput,View} fro
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
+import BuklodEarnedStarsFeedback from '@/components/points/BuklodEarnedStarsFeedback';
 
 type Reaction='helpful'|'heart'|'relate';
 type Visibility='public'|'private';
@@ -35,6 +36,7 @@ export default function BuklodTodayCard(){
  const [editing,setEditing]=useState(false);
  const [showComposer,setShowComposer]=useState(false);
  const [notice,setNotice]=useState('');
+ const [earned,setEarned]=useState<{points:number;sequence:number}|null>(null);
  const [error,setError]=useState('');
  const [showHistory,setShowHistory]=useState(false);
  const [history,setHistory]=useState<MyHistory[]>([]);
@@ -100,6 +102,7 @@ export default function BuklodTodayCard(){
    }:current);
    if(dugtong!==null){setEditing(false);setShowComposer(false);}
    const credited=Math.max(0,Math.trunc(Number(data.awarded_points)||0));
+   if(credited>0)setEarned(previous=>({points:credited,sequence:(previous?.sequence??0)+1}));
    setNotice(credited>0
     ?'+'+credited+' BP recorded. Claim your pending reward in BUKLOD Points.'
     :dugtong!==null?'Na-save ang Dugtong. Walang dobleng BP sa edit.'
@@ -159,6 +162,7 @@ export default function BuklodTodayCard(){
  const unchangedDugtong=hasSavedDugtong&&draft.trim()===tip.my_dugtong?.trim()&&visibility===tip.my_visibility;
  const feed=feedRows;
  return <View style={s.shell}>
+  <BuklodEarnedStarsFeedback award={earned}/>
   <View style={s.head}>
    <View style={{flex:1}}>
     <Text style={s.eyebrow}>BUKLOD TODAY</Text>
@@ -276,7 +280,7 @@ export default function BuklodTodayCard(){
     </View>):<Text style={s.help}>Wala pang dating Dugtong.</Text>}
   </View>}
   {!tip.authenticated&&<Text style={s.help}>Sign in to react or save your Dugtong.</Text>}
-  {tip.points_enabled&&<Text style={s.help}>Points: +1 BP reaction, +2 BP unang Dugtong kada linggo. Walang doble sa edit.</Text>}
+  {tip.points_enabled&&<Text style={s.help}>Points: +1 BP reaction, +3 BP unang Dugtong kada linggo. Walang doble sa edit.</Text>}
   {!!notice&&<Pressable onPress={()=>router.push('/points' as any)}><Text style={s.notice}>{notice}</Text></Pressable>}
   {!!error&&<Text accessibilityRole="alert" style={s.error}>{error}</Text>}
   {unavailable&&<Pressable accessibilityRole="button" onPress={()=>void load(true)}>
