@@ -1,6 +1,7 @@
 import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
 import BuklodGlobalEmergencyHost from '@/components/BuklodGlobalEmergencyHost';
 import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
+import BuklodAcademyUCToastHost from '@/components/academy/BuklodAcademyUCToastHost';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
@@ -278,6 +279,7 @@ function RootLayout() {
       <NotificationProvider>
             <StreamVideoProvider>
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
+              <BuklodAcademyUCToastHost />
               <OfflineBanner/>
               <BuklodPublishBanner />
               <BuklodOtaFreshnessHost />

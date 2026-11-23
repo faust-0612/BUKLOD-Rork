@@ -1,0 +1,28 @@
+name: Genesis 206 Academy consolidated staging source QA (no OTA)
+on:
+  push:
+    branches:
+      - integration/genesis-206-academy-conso-staging-20261124
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  conso-academy-source:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Academy source, existing Genesis manifest, and no live deploy
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF}" = "refs/heads/integration/genesis-206-academy-conso-staging-20261124"
+          test -f scripts/genesis-prepare-godot-ota-pack.mjs
+          test -f src/components/academy/BuklodAcademyUCToastHost.tsx
+          node --test tests/buklod-academy-automated-oversight.test.mjs tests/buklod-academy-iso21001-evidence-gate.test.mjs tests/buklod-academy-iso21001-quality-pack.test.mjs tests/buklod-academy-owner-quality-overview.test.mjs tests/buklod-academy-staging-contract.test.mjs tests/buklod-academy-rework-pdf-recovery.test.mjs tests/buklod-university-completion-motion.test.mjs
+          node scripts/academy/iso21001-readiness-check.mjs

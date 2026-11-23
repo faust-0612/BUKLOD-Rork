@@ -557,6 +557,12 @@ export default function AdminDashboard() {
                 path="/admin/learning"
               />
 
+              <AdminRow icon="certificate-outline" title="Academy Completion Recipients"
+                subtitle="Verified non-formal certificates, diplomas and advanced completion records"
+                path="/admin/academy-recipients" />
+              <AdminRow icon="file-document-check-outline" title="Academy Research & Quality"
+                subtitle="Automated assessment and quality oversight; no manual learner approvals"
+                path="/admin/academy-research-review" />
               <AdminRow
                 icon="clipboard-check-outline"
                 title="Learning Progress Approval"
