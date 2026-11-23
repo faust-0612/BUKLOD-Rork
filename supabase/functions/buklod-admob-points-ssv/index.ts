@@ -95,7 +95,7 @@ export async function verifyGoogleSsvUrl(url: URL): Promise<URLSearchParams> {
   const publicKey = await crypto.subtle.importKey(
     'spki', spki, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'],
   );
-  const signature = derSignatureToP1363(base64ToBytes(match[2]));
+  const signature = derSignatureToP1363(base64ToBytes(decodeURIComponent(match[2])));
   const verified = await crypto.subtle.verify(
     { name: 'ECDSA', hash: 'SHA-256' }, publicKey, signature,
     new TextEncoder().encode(match[1]),
