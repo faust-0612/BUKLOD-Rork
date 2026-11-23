@@ -33,17 +33,17 @@ export const BUKLOD_ACADEMIC_MOTION: Record<BuklodUniversityCredentialTier, Bukl
     icon: 'certificate', burstCount: 7, durationMs: 1350,
   },
   diploma: {
-    label: 'Diploma of Completion', name: 'Golden Unfold',
+    label: 'Non-formal Diploma Completion', name: 'Golden Unfold',
     accent: '#C69B41', darkAccent: '#73521E', glow: '#FFF0C7',
     icon: 'script-text-outline', burstCount: 9, durationMs: 1600,
   },
   bachelors: {
-    label: "Bachelor's Program Completion", name: 'Academic Ascension',
+    label: "Bachelor's-level Program Completion", name: 'Academic Ascension',
     accent: '#5184C7', darkAccent: '#1F497B', glow: '#DAE9FF',
     icon: 'school', burstCount: 11, durationMs: 1800,
   },
   masters: {
-    label: "Master's Program Completion", name: 'Grand Convocation',
+    label: "Master's-level Program Completion", name: 'Grand Convocation',
     accent: '#A27BD1', darkAccent: '#563585', glow: '#EEDFFF',
     icon: 'crown', burstCount: 13, durationMs: 2100,
   },
