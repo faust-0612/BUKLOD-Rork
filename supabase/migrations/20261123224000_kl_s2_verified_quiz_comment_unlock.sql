@@ -210,3 +210,74 @@ BEGIN
 END $fn$;
 -- CREATE OR REPLACE preserves the pre-existing RPC privileges and signature.
 -- Previously-installed trigger kl_s2_comment_reward_insert remains attached.
+
+
+-- Readers who completed a chapter under Season 1 may have a completed_at
+-- session but no quiz attempt. Under Season 2 they MUST be allowed to take
+-- the 3/3 quiz; marking that old session "completed" cannot skip the quiz.
+-- Once a valid quiz is verified, they can post a qualifying reflection.
+CREATE OR REPLACE FUNCTION public.kl_quiz_begin_v1(p_episode_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
+DECLARE
+  v_user uuid:=auth.uid();
+  v_hash text;
+  v_ids uuid[];
+  v_items jsonb;
+  v_attempt uuid;
+  v_count int;
+  v_s2 boolean:=private.kl_s2_rewards_enabled_v1();
+BEGIN
+  IF v_user IS NULL THEN RAISE EXCEPTION 'Sign in required'; END IF;
+  SELECT md5(manuscript) INTO v_hash
+    FROM public.kl_episodes
+    WHERE id=p_episode_id AND status='approved'
+      AND approved_at IS NOT NULL AND release_at<=now();
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok',false,'reason','chapter_unavailable');
+  END IF;
+  IF v_s2 AND NOT private.kl_s2_previous_chapter_complete_v1(v_user,p_episode_id) THEN
+    RETURN jsonb_build_object('ok',false,'reason','previous_chapter_required');
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.kl_reading_sessions s
+    WHERE s.episode_id=p_episode_id AND s.user_id=v_user
+      AND s.completed_at IS NOT NULL
+  ) AND (
+    NOT v_s2 OR EXISTS (
+      SELECT 1 FROM public.kl_quiz_attempts a
+      WHERE a.episode_id=p_episode_id AND a.user_id=v_user
+        AND a.manuscript_hash=v_hash AND a.verified_at IS NOT NULL
+    )
+  ) THEN
+    RETURN jsonb_build_object('ok',true,'already_completed',true);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.kl_quiz_sets q
+    WHERE q.episode_id=p_episode_id AND q.manuscript_hash=v_hash AND q.status='ready'
+  ) THEN
+    RETURN jsonb_build_object('ok',false,'reason','questions_preparing',
+      'allow_legacy',NOT v_s2 AND NOT coalesce(
+        (SELECT enforce_quiz FROM public.kl_quiz_rollout WHERE id=1),false));
+  END IF;
+  INSERT INTO public.kl_reading_sessions(user_id,episode_id)
+    VALUES(v_user,p_episode_id)
+    ON CONFLICT(user_id,episode_id) DO NOTHING;
+  SELECT count(*) INTO v_count FROM public.kl_quiz_attempts
+    WHERE user_id=v_user AND episode_id=p_episode_id
+      AND started_at>now()-interval '10 minutes';
+  IF v_count>=8 THEN RETURN jsonb_build_object('ok',false,'reason','retry_later'); END IF;
+  SELECT array_agg(id),jsonb_agg(jsonb_build_object(
+    'id',id,'question',question_text,'options',options))
+    INTO v_ids,v_items FROM (
+      SELECT id,question_text,options FROM public.kl_quiz_questions
+      WHERE episode_id=p_episode_id ORDER BY random() LIMIT 3
+    ) q;
+  IF coalesce(array_length(v_ids,1),0)<>3 THEN
+    RETURN jsonb_build_object('ok',false,'reason','questions_preparing');
+  END IF;
+  INSERT INTO public.kl_quiz_attempts(episode_id,user_id,manuscript_hash,question_ids)
+    VALUES(p_episode_id,v_user,v_hash,v_ids) RETURNING id INTO v_attempt;
+  RETURN jsonb_build_object('ok',true,'attempt_id',v_attempt,'questions',v_items);
+END $fn$;
+REVOKE ALL ON FUNCTION public.kl_quiz_begin_v1(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.kl_quiz_begin_v1(uuid) TO authenticated;
