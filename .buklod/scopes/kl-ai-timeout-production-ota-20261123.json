@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "objective": "Release only the merged BUKLOD MAIN KL formation lesson AI timeout and secure draft recovery to the existing Android production runtime via the canonical guarded publisher; no native, Genesis or Season2 intake.",
+  "baseRef": "bf6c5e41eefa9ef7c91d4ff7a402fdf504c6c9aa",
+  "productionBaselineEvidence": "Existing BUKLOD MAIN Android publisher workflow run 45155369633 succeeded for exact prior source 993fba1b405a4c1a50d1d377e223f024f46a076b; GitHub archived frozen RC and publication artifacts. This is verified historical workflow evidence, not proof of CURRENT served OTA. New MAIN diff from that SHA is exactly 6 KL-related paths, 1 commit bf6c5e41eefa9ef7c91d4ff7a402fdf504c6c9aa. MAIN Supabase Edge Function buklod-ai-validate-response v20 ACTIVE with JWT verification and exact bounded model config, and readonly DB check confirms strict user-bound source proof. Current live Expo manifest must be checked by the canonical publisher; physical device verification expressly waived by owner, not represented as completed.",
+  "chosenApproach": "Create a release-only manifest and focused regression test on top of merged KL MAIN source, promote via explicitly reviewed magic-prefix squash merge, and allow only the existing .github/workflows/production_android_ota.yml canonical protected workflow to fetch CURRENT production baseline, check native/season embargo, AdMob and navigation regressions, export/freeze exact RC, publish AND verify served Expo update hash. Do not use Vercel, local APK, Genesis or new native build.",
+  "selectionRationale": "The previous same-runtime canonical publisher succeeded and the only newer MAIN changes are narrowly scoped KL JS and backend source with no native dependencies. Automatic workflow contains release blockers and post-publish readback; bypassing it would risk wrong channel, unready AdMob and rollback failures.",
+  "alternativeApproaches": [
+    "Direct expo update from chat or bypass current baseline/hash checking (rejected: unauthorized publication path and no frozen RC).",
+    "Create new Play APK or merge Season2/Genesis (rejected: no native change required, premature and incompatible).",
+    "Declare MAIN merge and Edge v20 deployment as equivalent to a live Android client fix (rejected: Android JS OTA must still be published and read back)."
+  ],
+  "riskAreas": [
+    "production-release",
+    "app-runtime",
+    "ai-validation",
+    "ads-rendering",
+    "navigation",
+    "auth-privacy",
+    "backend-security"
+  ],
+  "preserveBehaviors": [
+    "Keep current native app org.mzbministry.buklod version 1.3.6 code 30 Expo runtime 1.3.2, same Expo project and production Android channel.",
+    "Strict Gemini source-grounded completion and points, chapter locking, anti-double-submit and learner-owned draft saving remain server-authoritative.",
+    "Keep AdMob first-view rendering, tab navigation, off-screen lifecycle, consent/cooldown policy and all current mainline fixes.",
+    "No Play binary, new native permissions, Godot, Season2 content, web/Vercel, database DDL or unrelated feature deployments.",
+    "No new production announcement until exact served update ID and bundle hash are verified by publisher."
+  ],
+  "regressionTests": [
+    "tests/kl-ai-timeout-production-ota-20261123.test.cjs"
+  ],
+  "allowedPaths": [
+    ".buklod/releases/kl-ai-timeout-production-ota-20261123.json",
+    ".buklod/scopes/kl-ai-timeout-production-ota-20261123.json",
+    "tests/kl-ai-timeout-production-ota-20261123.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Reconcile GitHub source and exact differential MAIN 993fba1 to bf6c5e4 (only KL changes).",
+    "Production workflow confirms season2 embargo, runtime 1.3.2, V30 app identity and no native drift.",
+    "Canonical workflow passes TypeScript, social, AdMob rendering/fill, navigation/faith and Kingdom safety regressions.",
+    "Canonical publisher reads current serving Expo baseline, frozen Android export and verifies served update ID and bundle hash match the built SHA.",
+    "Backend remains Edge v20 ACTIVE verify_jwt=true and no false fail-open approvals.",
+    "Physical Android device verification is WAIVED_NOT_PERFORMED by owner; this does not waive CI, native, financial, AdMob or actual server-side live OTA readback."
+  ],
+  "lockedFeatureChanges": [],
+  "releaseMode": "NON_SEASON2_JS_ONLY_MAIN_PRODUCTION_OTA_GATED",
+  "ownerDeviceVerification": "WAIVED_NOT_PERFORMED",
+  "backendDeployEvidence": {
+    "function": "buklod-ai-validate-response",
+    "project": "yhanxndaqbmuzbdqlblu",
+    "version": 20,
+    "status": "ACTIVE",
+    "verifyJwt": true,
+    "sourceSha": "bf6c5e41eefa9ef7c91d4ff7a402fdf504c6c9aa"
+  },
+  "target": {
+    "appId": "org.mzbministry.buklod",
+    "versionName": "1.3.6",
+    "versionCode": 30,
+    "expoRuntime": "1.3.2",
+    "expoProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "platform": "android",
+    "channel": "production"
+  },
+  "publishingWorkflow": ".github/workflows/production_android_ota.yml",
+  "publicationStatus": "NOT_PUBLISHED_WORKFLOW_MUST_VERIFY"
+}

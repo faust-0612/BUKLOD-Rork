@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "productionAuthorized": true,
+  "productionTarget": "BUKLOD_MAIN_ANDROID",
+  "releaseMode": "EXISTING_NATIVE_JS_OTA_ONLY",
+  "sourceCommitBeforeMarker": "27c8e51ed2d7237483107b6c1ded8fbe5a410ce5",
+  "sourceScopePR": 1096,
+  "sourceBranch": "release/buklod-main-conso-ota-only-20261122",
+  "expoProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+  "androidPackage": "org.mzbministry.buklod",
+  "nativeVersion": "1.3.6",
+  "nativeVersionCode": 30,
+  "expoRuntimeVersion": "1.3.2",
+  "channel": "production",
+  "nativeBuildAuthorized": false,
+  "playReleaseAuthorized": false,
+  "season2ProductionAuthorized": false,
+  "physicalDeviceQA": "WAIVED_BY_OWNER_NOT_PERFORMED",
+  "proof": {
+    "githubMainSourceReleaseCommit": "27c8e51ed2d7237483107b6c1ded8fbe5a410ce5",
+    "approvedMainRCWorkflows": [
+      "44991072468",
+      "44991072529",
+      "44991072438",
+      "44991072484"
+    ],
+    "androidJsAndSqlEarlierSourceRcWorkflow": "44974734890",
+    "readOnlyServedBaseline": {
+      "recordedAtUtc": "2026-11-22T02:51:58Z",
+      "id": "01a1fcb7-bee4-71cc-8c60-e732c0a255fa",
+      "runtimeVersion": "1.3.2",
+      "channel": "production",
+      "launchAssetHash": "3CTOmRqorDvy9IYEsCI7DWRwuOWGbe7GAKt2rBnJkwg",
+      "caveat": "Checked before promotion only; actual production publisher must capture fresh served baseline and independently verify the published exact bundle fingerprint."
+    },
+    "liveBackend": {
+      "project": "yhanxndaqbmuzbdqlblu",
+      "mentorCatalogMigration": "mentor_full_published_catalog_v1_20261122",
+      "clusterReviewMigration": "cluster_scoped_home_checkin_review_v1_20261122",
+      "freshRpcsAvailable": true,
+      "anonymousDenied": true,
+      "pendingCheckinsIntact": 15,
+      "historicalAttendanceCreditsIntact": 25,
+      "caveat": "No automatic member verification or BP credit granted. Runtime actor/physical-device verification waived; isolated PostgreSQL 17 actor test passed."
+    }
+  },
+  "publisherPolicy": "Only the existing protected .github/workflows/production_android_ota.yml on main, exact BUKLOD_ANDROID_ONLY_PROD_20261114: marker, Expo credential+AdMob env checks, baseline SHA/ABI, frozen Android bundle and readback may publish. Fail closed; publishing not inferred from PR merge.",
+  "publicationStatus": "NOT_YET_PUBLISHED"
+}

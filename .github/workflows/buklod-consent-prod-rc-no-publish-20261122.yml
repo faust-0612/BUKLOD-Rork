@@ -1,0 +1,63 @@
+name: BUKLOD Consent Production RC Focused QA - NO PUBLISH
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/app/privacy/consent.tsx'
+      - 'src/providers/ComplianceProvider.tsx'
+      - 'tests/auth-consent-boot-recovery.test.mjs'
+      - '.github/workflows/buklod-consent-prod-rc-no-publish-20261122.yml'
+permissions:
+  contents: read
+jobs:
+  consent-and-runtime-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Use locked Node 22 environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies, no native build
+        run: npm ci --ignore-scripts
+      - name: Auth and required-policy consent contract
+        run: node --experimental-strip-types --test tests/auth-consent-boot-recovery.test.mjs
+      - name: Android native config, runtime and package identity guard
+        run: node --test tests/native-expo-config-compat.test.cjs
+      - name: Permanent AdMob and first-view source regressions
+        run: |
+          node --test tests/production-ota-ads-regression.test.mjs
+          node --test tests/buklod-ads-production-release-contract-20261111.test.mjs
+      # The canonical --production embargo intentionally rejects non-main PRs.
+      # On a PR enforce an exact changed-path allowlist; the real production
+      # embargo executes later ONLY on the protected main-only publisher.
+      - name: Season 2 and native changed-path isolation for PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f scripts/buklod-season2-production-embargo.cjs
+          node - <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const allowed = new Set([
+            'src/app/privacy/consent.tsx',
+            'src/providers/ComplianceProvider.tsx',
+            'tests/auth-consent-boot-recovery.test.mjs',
+            '.buklod/scopes/consent-verification-contrast-20261122.json',
+            '.github/workflows/buklod-consent-prod-rc-no-publish-20261122.yml',
+          ]);
+          const changed = execFileSync('git', [
+            'diff', '--name-only', 'origin/main...HEAD'
+          ], {encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean);
+          if (!changed.length || changed.some(path => !allowed.has(path))) {
+            console.error('Blocked: unauthorized app/native/Season2 diff:',changed);
+            process.exit(1);
+          }
+          console.log('PASS: consent-only changed paths; full production embargo remains main-only');
+          NODE
+      - name: No OTA, no build and no release from this workflow
+        run: echo "PASS focused source QA only; reviewed main marker and canonical publisher still required."
