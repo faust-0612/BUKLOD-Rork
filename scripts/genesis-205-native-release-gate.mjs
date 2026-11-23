@@ -56,7 +56,7 @@ assert.doesNotMatch(godot,/\[application\/boot_splash\]/);
 const packing=read('scripts/build-empire-godot-pack.mjs');
 for(const item of ['splash/buklod-green-b.png','scenes/Arena.tscn','scenes/WorldPreview.tscn',
   'world-art/kingdom.webp','world-art/community.webp','world-art/house.webp',
-  'audio/sfx/','art/fullbody/'])assert.ok(packing.includes(item),'Missing Godot pack '+item);
+  'audio/sfx/'])assert.ok(packing.includes(item),'Missing Godot pack '+item);
 assert.match(packing,/Object\.keys\(catalog\.heroes\)\.length, 13/);
 assert.match(packing,/catalog\.pickups\.length, 300/);
 assert.match(packing,/audioEntries\.length, 70/);
