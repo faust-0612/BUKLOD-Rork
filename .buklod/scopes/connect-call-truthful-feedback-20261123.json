@@ -32,10 +32,12 @@
     "src/components/BuklodConnectThread.tsx",
     "src/lib/buklodCallLifecycle.ts",
     "src/lib/buklodCallFeedback.ts",
-    "tests/connect-call-feedback-20261123.test.mjs"
+    "tests/connect-call-feedback-20261123.test.mjs",
+    "tests/connect-call-ads-safety-20261123.test.mjs"
   ],
   "regressionTests": [
-    "tests/connect-call-feedback-20261123.test.mjs"
+    "tests/connect-call-feedback-20261123.test.mjs",
+    "tests/connect-call-ads-safety-20261123.test.mjs"
   ],
   "acceptanceChecks": [
     "Source / TypeScript and automated focused tests pass on exact PR head.",
@@ -43,7 +45,8 @@
     "Ringback starts only while RINGING and audio ready; disabled and not-playing states visible without claiming remote sound.",
     "A recipient accepting shows connected Stream call; rejected, busy and missed show one accurate caller alert without DB delay.",
     "Original call termination crash regression and PTT/native/Ads/fast-nav tests pass.",
-    "Two Android phones validate foreground, background, killed, denied notification, weak network, no answer and busy before production release."
+    "Two Android phones validate foreground, background, killed, denied notification, weak network, no answer and busy before production release.",
+    "Idle global calling surface does not cover Home/Wall/Ads; existing ads remain mounted while a call UI is active."
   ],
   "lockedFeatureChanges": [
     {
@@ -66,6 +69,17 @@
       ],
       "tests": [
         "tests/connect-call-feedback-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Protected gate also classifies the shared BuklodConnectThread path; caller overlay changes must preserve all existing ads and finance views.",
+      "preservedBehaviors": [
+        "Call status UI is mounted only for live Stream calls; it does not mount over Home, Wall or other screens while idle.",
+        "AdMob provider, fills, placements, finance and points logic remain entirely unchanged."
+      ],
+      "tests": [
+        "tests/connect-call-ads-safety-20261123.test.mjs"
       ]
     }
   ],
