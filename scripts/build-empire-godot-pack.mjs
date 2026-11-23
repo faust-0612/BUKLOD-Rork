@@ -96,23 +96,25 @@ if (process.env.BUKLOD_GENESIS_PREMIUM_3D === 'true') {
   const built = JSON.parse(readFileSync(path.join(root,
     'build/genesis-206-imported-3d/manifest.json'),'utf8'));
   assert.equal(modelManifest.models.length,20);
-  assert.equal(built.models.length,20);
+  assert.equal(modelManifest.rigs.length,2);
+  assert.equal(built.schema,2);
+  assert.equal(built.models.length,22);
   assert.equal(built.license,'CC0-1.0');
   let total = 0;
-  for(const item of modelManifest.models) {
+  for(const item of [...modelManifest.models,...modelManifest.rigs]) {
     const record = built.models.find(x=>x.id===item.id);
     assert.ok(record && record.sourceGitBlob===item.gitBlob,
       'Unapproved 3D mesh '+item.id);
     const bytes=readFileSync(path.join(root,'build/genesis-206-imported-3d',item.id+'.glb'));
     assert.equal(createHash('sha256').update(bytes).digest('hex'),record.sha256);
     assert.equal(bytes.length,item.bytes);
-    entries.push({name:'3d/kenney/'+item.id+'.glb',bytes});
+    entries.push({name:(item.id.startsWith('rig_')?'3d/kaykit/':'3d/kenney/')+item.id+'.glb',bytes});
     total += bytes.length;
   }
-  assert.ok(total>200000 && total<4*1024*1024,'Incorrect GLB source set');
+  assert.ok(total>6*1024*1024 && total<16*1024*1024,'Incorrect 3D+rigged source set');
   entries.push({name:'data/3d_manifest.json',
     bytes:Buffer.from(JSON.stringify(built))});
-  console.log('BUKLOD_206_3D_GLTF_REAL_MESHES_EMBEDDED '+JSON.stringify({count:20,bytes:total}));
+  console.log('BUKLOD_206_3D_GLTF_REAL_MESHES_EMBEDDED '+JSON.stringify({count:22,rigged:2,bytes:total}));
 }
 
 // Embed exactly the 70 character skill, ultimate and team-event audio cues

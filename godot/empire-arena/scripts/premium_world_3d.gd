@@ -8,9 +8,10 @@ const KENNEY_MODELS := [
   "arena_ground","arena_tower","arena_gate","arena_flag","arena_crystal",
   "arena_hero_a","arena_hero_b","kingdom_rocks","kingdom_tree","kingdom_wall",
   "house_building","house_building_2","house_tree","house_fence","house_path",
-  "house_bed","house_table","house_chair","house_bookcase","kingdom_chest"
+  "house_bed","house_table","house_chair","house_bookcase","kingdom_chest",
+  "rig_knight","rig_mage"
 ]
-const MAX_TEMPLATES := 20
+const MAX_TEMPLATES := 22
 const MAX_MESH_SCENES := 65
 const WALK_SPEED := 7.0
 const AREA_LIMIT := 24.0
@@ -29,6 +30,7 @@ var reaction_time := 0.0
 var label: Label
 var worlds_title: Label
 var quality := false
+var animation_state := ""
 
 func _ready() -> void:
     world_id = _get_world()
@@ -57,12 +59,13 @@ func _model(id: String) -> Node3D:
         return null
     if model_templates.has(id):
         return model_templates[id]
-    var bytes := FileAccess.get_file_as_bytes("res://3d/kenney/" + id + ".glb")
-    if bytes.size() < 2000 or bytes.size() > 512000:
+    var folder := "res://3d/kaykit/" if id.begins_with("rig_") else "res://3d/kenney/"
+    var bytes := FileAccess.get_file_as_bytes(folder + id + ".glb")
+    if bytes.size() < 2000 or bytes.size() > 5000000:
         return null
     var doc := GLTFDocument.new()
     var state := GLTFState.new()
-    if doc.append_from_buffer(bytes, "res://3d/kenney/", state) != OK:
+    if doc.append_from_buffer(bytes, folder, state) != OK:
         return null
     var scene: Node = doc.generate_scene(state)
     if not (scene is Node3D):
@@ -160,10 +163,12 @@ func _build_avatar() -> void:
     player = Node3D.new()
     player.name = "LocalExplorer"
     add_child(player)
-    var avatar_model := _model("arena_hero_a")
+    var avatar_model := _model("rig_knight")
+    if avatar_model == null:
+        avatar_model = _model("arena_hero_a")
     if avatar_model != null:
         var mesh: Node3D = avatar_model.duplicate()
-        mesh.scale = Vector3.ONE * 1.5
+        mesh.scale = Vector3.ONE * 1.3
         player.add_child(mesh)
         visual_count += 1
     var highlight := MeshInstance3D.new()
@@ -178,6 +183,7 @@ func _build_avatar() -> void:
     highlight.material_override = halo_material
     highlight.position = Vector3(0, 0.03, 0)
     player.add_child(highlight)
+    _play_avatar_animation("Idle")
     reaction = MeshInstance3D.new()
     var sphere := SphereMesh.new()
     sphere.radius = 0.5
@@ -189,6 +195,20 @@ func _build_avatar() -> void:
     reaction.material_override = glow
     reaction.visible = false
     player.add_child(reaction)
+
+## Select a real imported KayKit animation, but retain still frame fallback.
+## AnimationPlayer is part of the GLB scene; no JSON/remote code execution.
+func _play_avatar_animation(desired: String) -> void:
+    if player == null or desired == animation_state:
+        return
+    for node in player.find_children("*", "AnimationPlayer", true, false):
+        if node is AnimationPlayer:
+            var clips: PackedStringArray = node.get_animation_list()
+            for clip in clips:
+                if desired.to_lower() in str(clip).to_lower():
+                    node.play(clip)
+                    animation_state = desired
+                    return
 
 func _install_camera() -> void:
     camera = Camera3D.new()
@@ -232,6 +252,7 @@ func _back_to_2d() -> void:
 
 func _react() -> void:
     reaction_time = 0.6
+    _play_avatar_animation("Attack")
     if reaction != null:
         reaction.visible = true
     if world_id == "house" and player.position.distance_to(Vector3(0, 0, -9)) <= 5.5:
@@ -268,6 +289,8 @@ func _process(delta: float) -> void:
         var before := player.position
         player.position = player.position.move_toward(destination, WALK_SPEED * dt)
         var motion := player.position - before
+        if reaction_time <= 0.0:
+            _play_avatar_animation("Walk" if motion.length_squared() > 0.00001 else "Idle")
         if motion.length_squared() > 0.00001:
             player.rotation.y = atan2(motion.x, motion.z)
             if player.get_child_count() > 0:
@@ -286,7 +309,7 @@ func _process(delta: float) -> void:
 
 func get_dev_snapshot() -> Dictionary:
     return {
-        "world": world_id, "models": visual_count, "imported": model_templates.size(),
+        "world": world_id, "models": visual_count, "imported": model_templates.size(), "rigged_available": model_templates.has("rig_knight"),
         "offline": true, "server_settlement": false,
         "pos": player.position if player != null else Vector3.ZERO
     }

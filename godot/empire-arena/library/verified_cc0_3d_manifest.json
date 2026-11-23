@@ -130,5 +130,26 @@
       "gitBlob": "04c69e7cefec4a34ada418856174bbcafa93ed69",
       "bytes": 44768
     }
+  ],
+  "animatedSource": {
+    "repository": "KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0",
+    "commit": "672074b73ba276876a19e8816ecdc5241817ab47",
+    "license": "CC0-1.0",
+    "creator": "Kay Lousberg",
+    "licenseFile": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/blob/672074b73ba276876a19e8816ecdc5241817ab47/LICENSE.txt"
+  },
+  "rigs": [
+    {
+      "id": "rig_knight",
+      "path": "addons/kaykit_character_pack_adventures/Characters/gltf/Knight.glb",
+      "gitBlob": "717b56ca2b5ff5392679774725201ba03a3eefab",
+      "bytes": 3659532
+    },
+    {
+      "id": "rig_mage",
+      "path": "addons/kaykit_character_pack_adventures/Characters/gltf/Mage.glb",
+      "gitBlob": "c89f19f6e707f6e07e4632a08876bd6d0172b082",
+      "bytes": 3589240
+    }
   ]
 }
