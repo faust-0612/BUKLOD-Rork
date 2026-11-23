@@ -7,7 +7,7 @@ test('Wall GIF entry opens only the local picker; media remains governed by exis
   const wall = read('src/app/(tabs)/buklod.tsx');
   const picker = read('src/components/BuklodCommunityGifPicker.tsx');
   assert.match(wall, /accessibilityLabel="Browse GIF library for Community post"/);
-  assert.match(wall, /onPress=\{\(\)=>setCommunityGifPickerOpen\(true\)\}/);
+  assert.match(wall, /onPress=\{\(\)\s*=>\s*setCommunityGifPickerOpen\(true\)\}/);
   assert.match(wall, /onPick=\{file=>\{/);
   assert.match(wall, /setCommunityGif\(file\)/);
   assert.match(wall, /setPhotos\(\[\]\)/);
