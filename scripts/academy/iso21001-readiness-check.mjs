@@ -25,9 +25,9 @@ if(/buklod_academy_review_research_v1|Verify & grant UC|p_approved/.test(adminSo
  errors.push('Legacy manual academic approval returned to admin UI.');
 if(!/buklod-academy-research-ai-v2/.test(learnerSource)||!/buklod_academy_my_research_v2/.test(learnerSource))
  errors.push('Missing automatic learner review and saved-review recovery.');
-if(!/SECOND independent adversarial evaluator/.test(aiSource)||!/Math.min\\(total,secondary.score\\)/.test(aiSource))
+if(!aiSource.includes('SECOND independent adversarial evaluator')||!aiSource.includes('Math.min(total,secondary.score)'))
  errors.push('Missing advanced capstone independent automated cross-check.');
-if(!/public.is_system_admin\\(\\)/.test(snapshotSql)||!/revoke all on function/.test(snapshotSql))
+if(!snapshotSql.includes('public.is_system_admin()')||!snapshotSql.includes('revoke all on function'))
  errors.push('Founder quality metrics require restricted admin access.');
 
 const seen=new Set();
