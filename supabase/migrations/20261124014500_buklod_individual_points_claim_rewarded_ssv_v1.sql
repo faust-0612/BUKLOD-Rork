@@ -97,7 +97,7 @@ declare
 begin
   if v_uid is null then raise exception 'Authentication required'; end if;
   if public.buklod_is_official_system_admin(v_uid) then raise exception 'Not eligible'; end if;
-  select p.id from public.profiles p
+  perform p.id from public.profiles p
   where p.id=v_uid and p.is_active=true and p.user_deactivated_at is null for update;
   if not found then raise exception 'Member account not active'; end if;
   select * into v_cfg from private.buklod_ad_points_config where singleton=true;
