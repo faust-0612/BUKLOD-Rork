@@ -281,6 +281,31 @@ export const CONNECT_GIF_CATALOG: ConnectGifCatalogItem[] = [
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const DEFAULT_PAGE_SIZE = 24;
 const MAX_RUNTIME_GIFS = 360;
+const SEARCH_CACHE_TTL_MS = 2 * 60 * 1000;
+const SEARCH_CACHE_MAX_ENTRIES = 48;
+const gifSearchCache = new Map<string, { time: number; result: ConnectGifSearchResult }>();
+
+function cachedGifSearch(cacheKey: string): ConnectGifSearchResult | null {
+  const hit = gifSearchCache.get(cacheKey);
+  if (!hit) return null;
+  if (Date.now() - hit.time > SEARCH_CACHE_TTL_MS) {
+    gifSearchCache.delete(cacheKey);
+    return null;
+  }
+  // Keep this entry recent without persisting private search text to disk.
+  gifSearchCache.delete(cacheKey);
+  gifSearchCache.set(cacheKey, hit);
+  return { ...hit.result, items: [...hit.result.items] };
+}
+
+function rememberGifSearch(cacheKey: string, result: ConnectGifSearchResult) {
+  gifSearchCache.delete(cacheKey);
+  gifSearchCache.set(cacheKey, { time: Date.now(), result: { ...result, items: [...result.items] } });
+  if (gifSearchCache.size > SEARCH_CACHE_MAX_ENTRIES) {
+    const oldest = gifSearchCache.keys().next().value;
+    if (oldest) gifSearchCache.delete(oldest);
+  }
+}
 
 function giphyApiKey() {
   const generic =
@@ -476,14 +501,23 @@ export async function searchConnectGifs({
   const categorySearch =
     CATEGORY_SEARCH[normalizedCategory];
   const userQuery = query.trim();
-  const searchTerm =
+  // GIPHY rejects searches longer than 50 characters.
+  const searchTerm = (
     userQuery && categorySearch
       ? `${categorySearch} ${userQuery}`
-      : userQuery || categorySearch;
+      : userQuery || categorySearch
+  ).slice(0, 50);
 
   const endpoint = searchTerm
     ? 'search'
     : 'trending';
+  const cacheKey = [endpoint, searchTerm.toLowerCase(), normalizedCategory,
+    safeOffset, safeLimit].join('|');
+  const cached = cachedGifSearch(cacheKey);
+  if (cached) {
+    registerLiveItems(cached.items);
+    return cached;
+  }
   const params = new URLSearchParams({
     api_key: key,
     limit: String(safeLimit),
@@ -565,18 +599,16 @@ export async function searchConnectGifs({
     const nextOffset =
       safeOffset + Math.max(returnedCount, items.length);
 
-    return {
+    const result: ConnectGifSearchResult = {
       items,
       provider: 'giphy',
       nextOffset,
-      hasMore:
-        returnedCount > 0 &&
-        (
-          totalCount <= 0 ||
-          nextOffset < totalCount
-        ),
+      hasMore: returnedCount > 0 &&
+        (totalCount <= 0 || nextOffset < totalCount),
       warning: null,
     };
+    rememberGifSearch(cacheKey, result);
+    return result;
   }
   catch {
     return {
