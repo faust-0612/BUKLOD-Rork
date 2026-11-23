@@ -80,6 +80,7 @@ DECLARE
   v_commented integer[];
   v_next integer;
   v_awaiting_comment integer;
+  v_series_unlocked boolean:=true;
 BEGIN
   IF v_user IS NULL THEN RAISE EXCEPTION 'Sign in required'; END IF;
   IF p_season_number NOT BETWEEN 1 AND 12 THEN
@@ -110,8 +111,23 @@ BEGIN
     WHERE e.season_number=p_season_number AND e.episode_number=n
       AND private.kl_s2_verified_comment_v1(v_user,e.id)
   );
-  SELECT min(n) INTO v_next FROM pg_catalog.generate_series(1,30) n
-    WHERE NOT (n=ANY(v_commented));
+  IF p_season_number>1 THEN
+    SELECT NOT EXISTS (
+      SELECT 1 FROM pg_catalog.generate_series(1,30) prev(n)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.kl_episodes e
+        WHERE e.season_number=p_season_number-1
+          AND e.episode_number=prev.n
+          AND private.kl_s2_verified_comment_v1(v_user,e.id)
+      )
+    ) INTO v_series_unlocked;
+  END IF;
+  IF v_series_unlocked THEN
+    SELECT min(n) INTO v_next FROM pg_catalog.generate_series(1,30) n
+      WHERE NOT (n=ANY(v_commented));
+  ELSE
+    v_next:=0; -- all chapters AND panimula remain locked across series
+  END IF;
   IF v_next IS NOT NULL AND v_next=ANY(v_quiz_passed) THEN
     v_awaiting_comment:=v_next;
   END IF;
@@ -120,6 +136,7 @@ BEGIN
     'completed_numbers',to_jsonb(v_quiz_passed),
     'commented_numbers',to_jsonb(v_commented),
     'next_chapter_number',coalesce(v_next,31),
+    'series_unlocked',v_series_unlocked,
     'awaiting_comment_number',v_awaiting_comment,
     'comment_minimum_characters',20
   );
