@@ -1,6 +1,7 @@
 import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
 import BuklodGlobalEmergencyHost from '@/components/BuklodGlobalEmergencyHost';
 import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
+import BuklodMicroMotionHost from '@/components/motion/BuklodMicroMotionHost';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
@@ -481,6 +482,7 @@ function RootLayout() {
         </BuklodTrustedDeviceGate>
 </AuthProvider>
       </NetworkProvider>
+      <BuklodMicroMotionHost />
     </GestureHandlerRootView>
     </BuklodI18nProvider>
     </SafeAreaProvider>

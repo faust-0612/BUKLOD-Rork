@@ -6,6 +6,7 @@ import React, {
 } from 'react';
 import {
   Animated,
+  type GestureResponderEvent,
   Platform,
   Pressable,
   StyleSheet,
@@ -14,6 +15,8 @@ import {
 } from 'react-native';
 
 import BuklodPressable from '@/components/BuklodPressable';
+import { emitBuklodMicroMotion } from '@/lib/buklodMicroMotion';
+import { buklodTouchPagePoint } from '@/lib/buklodTouch';
 
 import {
   useBuklodTheme,
@@ -372,7 +375,7 @@ export function BuklodReactionAction({
     }).start();
   };
 
-  const apply = (key: string) => {
+  const apply = (key: string, event?: GestureResponderEvent) => {
     if (disabled || reactingRef.current) {
       return;
     }
@@ -383,13 +386,23 @@ export function BuklodReactionAction({
     clearHoverClose();
     setPickerOpen(false);
     onSelect(key);
+    if (event) {
+      const point = buklodTouchPagePoint(event);
+      const option = options.find(item => item.key === key);
+      emitBuklodMicroMotion({
+        kind: mine === key ? 'tap' : 'reaction',
+        pageX: point.x,
+        pageY: point.y,
+        emoji: option?.emoji,
+      });
+    }
 
     setTimeout(() => {
       reactingRef.current = false;
     }, 450);
   };
 
-  const onTap = () => {
+  const onTap = (event: GestureResponderEvent) => {
     if (pickerOpen && Platform.OS !== 'web') {
       setPickerOpen(false);
       return;
@@ -399,7 +412,7 @@ export function BuklodReactionAction({
     if (!key) {
       return;
     }
-    apply(key);
+    apply(key, event);
   };
 
   return (
@@ -416,6 +429,7 @@ export function BuklodReactionAction({
             disabled={disabled}
             nested
             compact
+            microMotion="none"
             delayLongPress={BUKLOD_LONG_PRESS_MS}
             onPress={onTap}
             onLongPress={() => setPickerOpen(true)}
@@ -501,7 +515,7 @@ export function BuklodReactionAction({
               accessibilityRole="button"
               accessibilityLabel={option.label}
               disabled={disabled}
-              onPressIn={() => apply(option.key)}
+              onPressIn={event => apply(option.key, event)}
               style={({ pressed }) => [
                 styles.option,
                 option.key === mine && styles.optionSelected,

@@ -8,6 +8,8 @@ import {
   type PressableProps,
 } from 'react-native';
 
+import { emitBuklodMicroMotion } from '@/lib/buklodMicroMotion';
+
 import {
   BUKLOD_HIT_SLOP,
   BUKLOD_LONG_PRESS_MS,
@@ -30,6 +32,9 @@ type Props = PressableProps & {
 
   /** Apply the standard compact icon hitSlop. Large controls should omit this. */
   compact?: boolean;
+
+  /** Tiny, bounded acknowledgement; never implies a server-side success. */
+  microMotion?: 'none' | 'tap' | 'success' | 'reward';
 };
 
 /**
@@ -43,6 +48,7 @@ export default function BuklodPressable({
   instant: _instant = false,
   nested = false,
   compact = false,
+  microMotion = 'tap',
   onPress,
   onPressIn,
   onPressOut,
@@ -183,6 +189,14 @@ export default function BuklodPressable({
         }
 
         fired.current = true;
+        if (onPress && microMotion !== 'none') {
+          const point = buklodTouchPagePoint(event);
+          emitBuklodMicroMotion({
+            kind: microMotion,
+            pageX: point.x,
+            pageY: point.y,
+          });
+        }
         onPress?.(event);
       }}
     />
