@@ -20,7 +20,11 @@ export type BuklodSoundCue =
   | 'error'
   | 'community'
   | 'achievement'
-  | 'alert';
+  | 'alert'
+  | 'university_certificate'
+  | 'university_diploma'
+  | 'university_bachelors'
+  | 'university_masters';
 
 export type BuklodSoundProfile='classic'|'gentle'|'celebration';
 export type BuklodSoundVolume='low'|'balanced'|'high';
@@ -54,6 +58,10 @@ const sounds: Record<BuklodSoundCue, number> = {
   community: require('../../assets/sounds/buklod_community.wav'),
   achievement: require('../../assets/sounds/buklod_achievement.wav'),
   alert: require('../../assets/sounds/buklod_alert.wav'),
+  university_certificate: require('../../assets/sounds/buklod_gentle_achievement_20261113.wav'),
+  university_diploma: require('../../assets/sounds/buklod_classic_achievement_20261113.wav'),
+  university_bachelors: require('../../assets/sounds/buklod_celebration_achievement_20261113.wav'),
+  university_masters: require('../../assets/sounds/buklod_achievement.wav'),
 };
 
 const categories: Record<BuklodSoundCue, BuklodSoundCategory> = {
@@ -66,6 +74,10 @@ const categories: Record<BuklodSoundCue, BuklodSoundCategory> = {
   community: 'community',
   achievement: 'achievements',
   alert: 'community',
+  university_certificate: 'achievements',
+  university_diploma: 'achievements',
+  university_bachelors: 'achievements',
+  university_masters: 'achievements',
 };
 
 const categoriesByPreference:Record<BuklodSoundCategory,true>={
@@ -91,7 +103,7 @@ const PROFILE_EARCONS:Record<BuklodSoundProfile,Record<BuklodSoundIdentity,numbe
   },
 };
 function getSoundSource(cue:BuklodSoundCue):number {
-  if(cue==='alert'||cue==='error')return sounds[cue];
+  if(cue==='alert'||cue==='error'||cue.startsWith('university_'))return sounds[cue];
   const identity:BuklodSoundIdentity =
     cue==='message'||cue==='message_sent'||cue==='button'?'message':
     cue==='achievement'?'achievement':'community';
@@ -111,6 +123,10 @@ const cooldownMs: Record<BuklodSoundCue, number> = {
   community: 5000,
   achievement: 1500,
   alert: 4000,
+  university_certificate: 3000,
+  university_diploma: 3000,
+  university_bachelors: 3000,
+  university_masters: 3000,
 };
 
 let settings = { ...DEFAULT_BUKLOD_SOUND_SETTINGS };
