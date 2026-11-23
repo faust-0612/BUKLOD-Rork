@@ -117,10 +117,46 @@ if (process.env.BUKLOD_GENESIS_PREMIUM_3D === 'true') {
   console.log('BUKLOD_206_3D_GLTF_REAL_MESHES_EMBEDDED '+JSON.stringify({count:22,rigged:2,bytes:total}));
 }
 
-// Embed exactly the 70 character skill, ultimate and team-event audio cues
-// from the Library's 2026-11-22 file inventory. Original uploaded audio
-// requires separate binary-art reconciliation; these procedural placeholders
-// preserve event identity without network downloads or a hidden subscription.
+// Private Library imports are opt-in ONLY after local SHA/format/license evidence.
+// Never silently include uploaded files into a public or production package.
+if (process.env.BUKLOD_GENESIS_PRIVATE_ASSETS === 'true') {
+  assert.equal(process.env.BUKLOD_GENESIS_PREMIUM_3D,'true','Private imports require verified 3D base');
+  const approvedRoot=path.join(root,'build/genesis-private-library');
+  const manifest=JSON.parse(readFileSync(path.join(approvedRoot,'manifest.json'),'utf8'));
+  assert.equal(manifest.schema,1);
+  assert.equal(manifest.source,'PRIVATE_LIBRARY_LOCAL_ONLY');
+  assert.equal(manifest.rightsStatus,'verified');
+  assert.equal(manifest.releaseAuthority,'DEV_PREVIEW_ONLY');
+  assert.ok(Array.isArray(manifest.models)&&manifest.models.length>0&&manifest.models.length<=16);
+  let privateBytes=0;
+  const ids=new Set();
+  for(const model of manifest.models) {
+    assert.match(model.id,/^private_[a-z0-9_]{2,64}$/);
+    assert.ok(!ids.has(model.id),'duplicate private model ID');
+    ids.add(model.id);
+    assert.equal(model.rightsStatus,'verified');
+    assert.ok(['CC0-1.0','CC-BY-4.0','BUKLOD-OWNED','COMMERCIAL-LICENSE'].includes(model.license));
+    assert.match(model.licenseEvidenceSha256,/^[a-f0-9]{64}$/);
+    assert.match(model.sha256,/^[a-f0-9]{64}$/);
+    assert.ok(model.meshes>=1&&model.meshes<=400);
+    const bytes=readFileSync(path.join(approvedRoot,'approved',model.id+'.glb'));
+    assert.equal(bytes.length,model.bytes);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'),model.sha256);
+    assert.equal(bytes.subarray(0,4).toString('ascii'),'glTF');
+    assert.equal(bytes.readUInt32LE(4),2);
+    assert.equal(bytes.readUInt32LE(8),bytes.length);
+    privateBytes+=bytes.length;
+    assert.ok(privateBytes<130*1024*1024,'private content exceeds OTA budget');
+    entries.push({name:'3d/private/'+model.id+'.glb',bytes});
+  }
+  entries.push({name:'data/private_3d_manifest.json',
+    bytes:Buffer.from(JSON.stringify(manifest))});
+  console.log('BUKLOD_206_PRIVATE_3D_LICENSED_GLB_IMPORTED '+JSON.stringify({
+    models:manifest.models.length,bytes:privateBytes}));
+}
+
+// Embed the already validated 70 recording-based Arena cues.
+// No procedural placeholder sound or unreviewed uploaded third-party file.
 const {cues:audioEntries,manifest:audioManifest} = arenaSfxEntries(root);
 assert.equal(audioEntries.length, 70);
 entries.push({name:'data/audio_manifest.json',

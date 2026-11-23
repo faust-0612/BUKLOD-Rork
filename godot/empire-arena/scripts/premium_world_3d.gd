@@ -11,6 +11,10 @@ const KENNEY_MODELS := [
   "house_bed","house_table","house_chair","house_bookcase","kingdom_chest",
   "rig_knight","rig_mage"
 ]
+const PRIVATE_MODEL_IDS := [
+  "private_t1_sentinel","private_azure_champion","private_hooded_blade",
+  "private_magic_scroll","private_desert_watchtower"
+]
 const MAX_TEMPLATES := 22
 const MAX_MESH_SCENES := 65
 const WALK_SPEED := 7.0
@@ -55,13 +59,16 @@ func _get_world() -> String:
     return "arena"
 
 func _model(id: String) -> Node3D:
-    if not id in KENNEY_MODELS or model_templates.size() > MAX_TEMPLATES:
+    if not id in KENNEY_MODELS and not id in PRIVATE_MODEL_IDS:
+        return null
+    if model_templates.size() >= MAX_TEMPLATES + PRIVATE_MODEL_IDS.size():
         return null
     if model_templates.has(id):
         return model_templates[id]
-    var folder := "res://3d/kaykit/" if id.begins_with("rig_") else "res://3d/kenney/"
+    var folder := ("res://3d/private/" if id.begins_with("private_") else
+        "res://3d/kaykit/" if id.begins_with("rig_") else "res://3d/kenney/")
     var bytes := FileAccess.get_file_as_bytes(folder + id + ".glb")
-    if bytes.size() < 2000 or bytes.size() > 5000000:
+    if bytes.size() < 2000 or bytes.size() > (40 * 1024 * 1024 if id.begins_with("private_") else 5000000):
         return null
     var doc := GLTFDocument.new()
     var state := GLTFState.new()
@@ -125,6 +132,8 @@ func _install_environment() -> void:
 func _build_props() -> void:
     if world_id == "arena":
         _place("arena_gate", Vector3(0, 0, -12), 2.3)
+        if FileAccess.file_exists("res://3d/private/private_desert_watchtower.glb"):
+            _place("private_desert_watchtower", Vector3(-17, 0, -13), 1.7)
         for x in [-13.0, 13.0]:
             for z in [-9.0, 9.0]:
                 _place("arena_tower", Vector3(x, 0, z), 2.0)
@@ -134,6 +143,8 @@ func _build_props() -> void:
         _place("arena_ground", Vector3(0, -0.01, 0), 5.0)
     elif world_id == "kingdom":
         _place("arena_gate", Vector3(0, 0, -13), 2.5)
+        if FileAccess.file_exists("res://3d/private/private_magic_scroll.glb"):
+            _place("private_magic_scroll", Vector3(6, 0.4, -6), 0.8)
         for x in [-15.0, 15.0]:
             for z in [-10.0, 10.0]:
                 _place("arena_tower", Vector3(x, 0, z), 2.3)
@@ -163,7 +174,11 @@ func _build_avatar() -> void:
     player = Node3D.new()
     player.name = "LocalExplorer"
     add_child(player)
-    var avatar_model := _model("rig_knight")
+    var avatar_model: Node3D = null
+    if FileAccess.file_exists("res://3d/private/private_t1_sentinel.glb"):
+        avatar_model = _model("private_t1_sentinel")
+    if avatar_model == null:
+        avatar_model = _model("rig_knight")
     if avatar_model == null:
         avatar_model = _model("arena_hero_a")
     if avatar_model != null:
@@ -309,7 +324,8 @@ func _process(delta: float) -> void:
 
 func get_dev_snapshot() -> Dictionary:
     return {
-        "world": world_id, "models": visual_count, "imported": model_templates.size(), "rigged_available": model_templates.has("rig_knight"),
+        "world": world_id, "models": visual_count, "imported": model_templates.size(), "rigged_available": model_templates.has("rig_knight") or model_templates.has("private_t1_sentinel"),
+        "private_library_loaded": model_templates.has("private_t1_sentinel"),
         "offline": true, "server_settlement": false,
         "pos": player.position if player != null else Vector3.ZERO
     }

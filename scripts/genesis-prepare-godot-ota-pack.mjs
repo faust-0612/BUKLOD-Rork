@@ -38,6 +38,15 @@ if(process.env.BUKLOD_GENESIS_PREMIUM_3D === 'true') {
   assert.ok(files.includes('scenes/PremiumWorld3D.tscn'));
   assert.ok(files.includes('data/3d_manifest.json'));
 }
+if(process.env.BUKLOD_GENESIS_PRIVATE_ASSETS === 'true') {
+  const manifestText=execFileSync('unzip',['-p',dest,'data/private_3d_manifest.json'],{encoding:'utf8',maxBuffer:1024*1024});
+  const approved=JSON.parse(manifestText);
+  assert.ok(approved.models.length>0&&approved.models.length<=16);
+  const imported=files.filter(x=>/^3d\/private\/private_[a-z0-9_]+\.glb$/.test(x));
+  assert.equal(imported.length,approved.models.length);
+  for(const model of approved.models)
+    assert.ok(files.includes('3d/private/'+model.id+'.glb'));
+}
 const sha256 = createHash('sha256').update(readFileSync(dest)).digest('hex');
 writeFileSync(manifest, `/** GENERATED from exact reviewed Genesis Godot source; do not edit manually. */
 export const GENESIS_GODOT_OTA_PACK = {
