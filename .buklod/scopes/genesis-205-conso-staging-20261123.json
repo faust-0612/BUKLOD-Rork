@@ -1,0 +1,118 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-205-conso-staging-20261123.json",
+  "objective": "Consolidated BUKLOD MAIN Genesis 2.0.5 staging OTA JS-only source candidate: truthful call receipt/ringback/outcome and Wall post owner edit/privacy/delete, without overwriting signed Godot native source.",
+  "baseRef": "dev/genesis-godot-launch-recovery-20261123",
+  "productionBaselineEvidence": "Production GitHub main 7b224c39624827282c3cbf003060317045b0a73f. Latest verified 2.0.4 published Android OTA group 7411bd8d-5c80-47c5-b120-e52570768ce5 from SHA 63f97c4092c1214c8f0b0eb5558d1183c6f189d4. Original-signed 2.0.5 APK from SHA 435e071da41c83071f545c9b209acb562863f7d2, GitHub run 45116010037 and artifact 14794360606, CI signed/native proof passed. Next parent f63018b15613908f70d21580d63fa4f2afe3c8e2 only changes read-only receipt workflow. No physical Godot launch or AdMob phone verification.",
+  "chosenApproach": "Inherit installed 2.0.4 OTA JS source plus signed 2.0.5 native fixes, apply owner E2E post changes from main PR 1138 through exact strict patch hunks (without overwriting Genesis-only regions), then port call PR 1140 with exact existing Stream/Ringing components and remove the duplicate direct-thread rejection handler. Other unverified items remain explicit release holds.",
+  "selectionRationale": "Reconcile only code with non-conflicting proven hunk matches; preserve original-signed app/native runtime and 2.0.4/production EAS separation. Direct full-branch merges would include incompatible native, conflicting Wall variants and undeployed backend migrations.",
+  "alternativeApproaches": [
+    "Publish mixed 2.0.4 JS code against 2.0.5 native runtime (rejected because runtimeVersion must match).",
+    "Merge all DEV branches and backend SQL immediately (rejected because conflict and live shared Supabase/RLS risks).",
+    "Force untested Android Godot or recipient push support as verified (rejected because source-only and signed-binary proofs are not device tests)."
+  ],
+  "riskAreas": [
+    "connect",
+    "navigation-scroll",
+    "wall-media",
+    "call-lifecycle",
+    "ads-monetization",
+    "release-safety"
+  ],
+  "preserveBehaviors": [
+    "Original signer, staging package org.mzbministry.buklod.staging, Android versionCode17, native runtime 2.0.5-genesis-godot-launch and EAS channel season2-genesis-library-205-preview unchanged.",
+    "Never alter app.config.js, eas.json, package-lock.json, Godot, plugins, modules, bundled native Arena audio/assets or Supabase for OTA.",
+    "Existing AdMob consent/first-view/fill, instant Home/Wall/Connect navigation, signed media URLs, privacy, PTT and dark mode remain protected.",
+    "Incoming call ringtone/FCM and call push are native owned; a server ring alone never claims delivery/recipient audible ringing.",
+    "Privacy and delete require existing server authorization, no media loss, and stable scroll positions; caller status and ringback stop safely on accept/cancel.",
+    "No production, Play, EAS OTA, database schema/function, security credential, ad placement or season2 embargo changes."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-205-conso-staging-20261123.json",
+    "docs/releases/GENESIS_205_CONSO_STAGING_INTAKE_20261123.md",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodContentOverflowMenu.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/RingingCalls.tsx",
+    "src/lib/buklodCallFeedback.ts",
+    "src/lib/buklodCallLifecycle.ts",
+    "src/lib/buklodCommunityPostOwnerActions.ts",
+    "tests/community-wall-post-owner-e2e.test.mjs",
+    "tests/community-wall-scope-privacy-navigation.test.mjs",
+    "tests/connect-call-ads-safety-20261123.test.mjs",
+    "tests/connect-call-feedback-20261123.test.mjs",
+    "tests/genesis-205-conso-staging-20261123.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/community-wall-post-owner-e2e.test.mjs",
+    "tests/community-wall-scope-privacy-navigation.test.mjs",
+    "tests/connect-call-ads-safety-20261123.test.mjs",
+    "tests/connect-call-feedback-20261123.test.mjs",
+    "tests/genesis-205-conso-staging-20261123.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Require exact-head TS, source/Node regression, Android JS Metro export, protected engineering and ads/tab navigation gates.",
+    "Before any staging OTA compare source to signed APK SHA 435e071da41c83071f545c9b209acb562863f7d2 and fail on native/config/dependency/Godot divergence.",
+    "Require exact remote channel map, 2.0.5 runtime, staging package, Android-only OTA ID/group/source receipt with production branch unchanged; no staging announcement.",
+    "Verify actual 2.0.5 Android Godot boot/exit, AdMob and two-device incoming/outgoing/ringtone/weak network/busy/decline/no-answer behavior; until then RC HOLD.",
+    "Reconcile backend-dependent/unresolved feature branches independently, don't enable missing RPCs or experimental ranked rewards."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Global calling overlay and central Wall feed need locked behavior because changes can affect unrelated UI and ad exposure.",
+      "preservedBehaviors": [
+        "App screens do not show call overlay while idle, and all previous navigation remains functional."
+      ],
+      "tests": [
+        "tests/connect-call-ads-safety-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Caller status now uses authenticated per-call receipt and reliable expo-audio readiness, requiring PTT and FCM preservation.",
+      "preservedBehaviors": [
+        "Existing Stream Android incoming channels, PTT floor audio and call error boundary retained."
+      ],
+      "tests": [
+        "tests/connect-call-feedback-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Wall/post routes and scoped owner actions now provide edit/privacy/delete without changing auth or navigation.",
+      "preservedBehaviors": [
+        "Keep account isolation, valid post routes and signed-in identity authorization."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Wall Marites and post-owner changes must preserve original media/video/thumbs and scroll continuity.",
+      "preservedBehaviors": [
+        "Do not delete or replace media when editing captions or toggling visibility."
+      ],
+      "tests": [
+        "tests/community-wall-post-owner-e2e.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "App-wide call overlays and Wall route are protected ad surfaces and must not interfere with placements/finance.",
+      "preservedBehaviors": [
+        "No AdMob configuration, request cadence, payment, BP balance or points mutation."
+      ],
+      "tests": [
+        "tests/connect-call-ads-safety-20261123.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_PREP_NO_OTA",
+  "releaseMode": "staging-js-only-rc-hold",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
