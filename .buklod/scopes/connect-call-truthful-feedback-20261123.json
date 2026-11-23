@@ -1,0 +1,75 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/connect-call-truthful-feedback-20261123.json",
+  "objective": "Make BUKLOD Connect caller status truthful, expose local ringback state, and report real remote foreground presentation without mistaking Stream server ring request for confirmed Android push delivery.",
+  "baseRef": "7b224c39624827282c3cbf003060317045b0a73f",
+  "productionBaselineEvidence": "Latest GitHub main baseline 7b224c39624827282c3cbf003060317045b0a73f inspected 2026-11-23. Prior source already included outgoing ringback, Stream call.ring, native FCM incoming channels and two separate rejection alerts. User screenshot showed indefinite Calling... without device-reach signal. No live APK/FCM device receipt or exact production OTA fingerprint verified.",
+  "chosenApproach": "Single global outcome reporter; remove duplicate ConnectThread listener that calls timeout offline without evidence. Require recipient foreground client to send authenticated Stream per-call custom presentation acknowledgement before the caller can show recipient display; otherwise show server sent/unverified. Gate ringback on expo-audio readiness and surface playing/disabled status; maintain Stream-native incoming UI.",
+  "selectionRationale": "The root defect is an observability gap, stale duplicate outcomes and one-shot audio playback before ready, not evidence of FCM failure. Separating server state from real recipient acknowledgement prevents false delivery claims and new native configuration risks.",
+  "alternativeApproaches": [
+    "Mark call.ring as device delivered (rejected: Stream sends this server event to all call members whether Android FCM displayed a call screen or not).",
+    "Modify Android notification channel or rebuild APK (rejected: no proof push transport failed; changing native runtime risks existing working ads and PTT).",
+    "Show Calling... forever and assume ringback plays (rejected: recreates missing status and audio observability)."
+  ],
+  "riskAreas": [
+    "connect",
+    "call-lifecycle",
+    "app-runtime",
+    "weak-network-recovery",
+    "ads-preservation"
+  ],
+  "preserveBehaviors": [
+    "Existing native Stream/Telecom/FCM incoming ringing and notification channels unchanged, including killed/background behavior.",
+    "Fresh per-attempt IDs, 45s outgoing auto-cancel and 30s incoming timeout remain intact.",
+    "Personal and scope calling, camera/mic controls, accepted-call HUD, minimized-call behavior and PTT isolation preserved.",
+    "No change to Auth/RLS, Supabase schema, native runtime, Android package, Ads or notifications.",
+    "Caller not shown delivered without foreground remote acknowledgement; missing receipt does not mean unreachable or offline.",
+    "Call audio stops on cancel, accept, background and normal terminal states without crashing disposed players."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/connect-call-truthful-feedback-20261123.json",
+    "src/components/RingingCalls.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/lib/buklodCallLifecycle.ts",
+    "src/lib/buklodCallFeedback.ts",
+    "tests/connect-call-feedback-20261123.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/connect-call-feedback-20261123.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Source / TypeScript and automated focused tests pass on exact PR head.",
+    "Caller shows request sent/unconfirmed until exact call CID recipient foreground ACK; old/untrusted/own receipts rejected.",
+    "Ringback starts only while RINGING and audio ready; disabled and not-playing states visible without claiming remote sound.",
+    "A recipient accepting shows connected Stream call; rejected, busy and missed show one accurate caller alert without DB delay.",
+    "Original call termination crash regression and PTT/native/Ads/fast-nav tests pass.",
+    "Two Android phones validate foreground, background, killed, denied notification, weak network, no answer and busy before production release."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "The global Stream call overlay and sound player are app-wide runtime UI elements; changing them must not disrupt other mounted screens or ads.",
+      "preservedBehaviors": [
+        "Global overlays remain error-isolated and accepted calls continue to use the existing Stream call surface.",
+        "No changes to AdMob, navigation, background audio policy or Expo runtime."
+      ],
+      "tests": [
+        "tests/connect-call-feedback-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Update existing personal/scope call display, remove duplicate outcome alert and add verified per-call presentation acknowledgement.",
+      "preservedBehaviors": [
+        "Existing personal and scoped calling, native incoming ringtone, fresh IDs, and PTT isolation remain unchanged.",
+        "No false offline, FCM delivered or actual ringing claim without remote evidence."
+      ],
+      "tests": [
+        "tests/connect-call-feedback-20261123.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "dev-only-candidate",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
