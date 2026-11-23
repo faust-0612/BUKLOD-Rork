@@ -21,6 +21,11 @@ const blockPatterns = [
 if (!config.resolver.assetExts.includes('wasm')) {
   config.resolver.assetExts.push('wasm');
 }
+// Raw signed Godot main-pack is an OTA asset, never evaluated as JavaScript.
+// The installed native 4.7.2 engine stages it privately after SHA-256 verification.
+if (!config.resolver.assetExts.includes('zip')) {
+  config.resolver.assetExts.push('zip');
+}
 // Expo defaults omit Ogg Vorbis in Metro; licensed offline Kingdom music must
 // be bundled as real assets instead of resolved as a JS module. Android audio
 // decoder supports Vorbis via its native media stack; no native dependency.
