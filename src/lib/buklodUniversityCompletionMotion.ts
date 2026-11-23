@@ -61,7 +61,7 @@ export function getBuklodAcademicCompletionPresentation(
   receipt: BuklodUniversityAwardReceipt | null | undefined,
   acknowledgedAwardIds: ReadonlySet<string> = new Set(),
 ): BuklodAcademicMotionPreset | null {
-  if (!receipt || receipt.status !== 'ISSUED' || !receipt.paperReady) return null;
+  if (!receipt || receipt.status !== 'ISSUED') return null;
   if (!/^[\w-]{8,128}$/.test(receipt.awardId)) return null;
   if (!receipt.title.trim() || receipt.title.length > 180) return null;
   if (!codeMatchesTier(receipt.credentialCode, receipt.tier)) return null;
