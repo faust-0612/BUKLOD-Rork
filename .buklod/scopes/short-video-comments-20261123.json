@@ -31,14 +31,36 @@
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "src/lib/__tests__/buklodCommentShortVideo.test.ts",
     ".buklod/scopes/short-video-comments-20261123.json",
-    "src/lib/buklodCommentVideoPlaybackSignal.ts"
+    "src/lib/buklodCommentVideoPlaybackSignal.ts",
+    "src/lib/buklodCommentVideoValidation.ts"
   ],
   "lockedFeatureChanges": [
     {
-      "id": "wall-media",
-      "reason": "Private short video comments",
+      "id": "app-runtime",
+      "reason": "Add short video attachment validation and lazy player using already-bundled native modules",
       "preservedBehaviors": [
-        "Video, ads, media URLs, moderation"
+        "Keep current Expo runtime and no new native dependencies",
+        "Preserve first-paint speed, AdMob and comment media compatibility"
+      ],
+      "tests": [
+        "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Enable private short video replies in public Wall composer without changing auth or navigation",
+      "preservedBehaviors": [
+        "Preserve account-bound comment sheet, existing routes and media signing"
+      ],
+      "tests": [
+        "src/lib/__tests__/buklodCommentShortVideo.test.ts"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Enable short video comments in scoped communities using existing scoped storage/RLS",
+      "preservedBehaviors": [
+        "Preserve Cluster/Org membership isolation, comment RPC and moderation"
       ],
       "tests": [
         "src/lib/__tests__/buklodCommentShortVideo.test.ts"

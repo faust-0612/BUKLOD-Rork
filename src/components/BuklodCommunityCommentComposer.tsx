@@ -40,7 +40,7 @@ import {
 import { colors } from '@/lib/theme';
 import { buklodComposerHeightLimits } from '@/lib/buklodAdaptiveInput';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
-import { inspectBuklodCommentVideoSelection } from '@/lib/buklodCommentVideo';
+import { inspectBuklodCommentVideoSelection } from '@/lib/buklodCommentVideoValidation';
 
 type Props = {
   value: string;

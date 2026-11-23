@@ -1,6 +1,6 @@
 import { encodeBuklodCommentMediaBody, parseBuklodCommentMediaBody, buklodCommentHasSendableContent } from '@/lib/buklodCommentMediaBody';
 import { BUKLOD_COMMENT_VIDEO_MAX_BYTES, inspectBuklodCommentVideoSelection,
-  validateBuklodCommentVideoMetadata, buklodCommentVideoFormat } from '@/lib/buklodCommentVideo';
+  validateBuklodCommentVideoMetadata, buklodCommentVideoFormat } from '@/lib/buklodCommentVideoValidation';
 
 import { subscribeBuklodCommentVideoStop, stopBuklodCommentVideos } from '@/lib/buklodCommentVideoPlaybackSignal';
 
