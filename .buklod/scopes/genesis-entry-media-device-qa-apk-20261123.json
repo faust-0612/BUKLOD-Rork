@@ -1,0 +1,77 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-entry-media-device-qa-apk-20261123.json",
+  "objective": "Produce an isolated side-by-side native Android QA APK for actual Genesis opening music and 13 animated avatar/guide QA, with no OTA or production/staging package replacement.",
+  "baseRef": "dev/genesis-entry-audio-avatar-recovery-20261123",
+  "chosenApproach": "Explicit QA-only app config, independent Android package and disabled updates, blocked push token writes, offline JS release APK with full signed-debug-key native assets, downloadable only from CI artifact.",
+  "allowedPaths": [
+    "app.config.js",
+    "src/lib/pushNotifications.ts",
+    "tests/genesis-media-qa-identity-20261123.test.mjs",
+    ".github/workflows/genesis-entry-media-device-qa-apk-20261123.yml",
+    ".buklod/scopes/genesis-entry-media-device-qa-apk-20261123.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "QA-only gated Android package and token isolation; production, signed staging and all shipping packages are unchanged.",
+      "preservedBehaviors": [
+        "Production default package/runtime/channel/signature unchanged",
+        "Staging default package/runtime/channel/signature unchanged",
+        "QA build explicitly opts in via two env flags and never registers Expo push tokens",
+        "No OTA URL in QA and no EAS or Google Play publication",
+        "Existing paid backend remains shared; only use test account for device QA",
+        "The app still includes real intro and 13 sprites plus existing approved Godot game files",
+        "AdMob uses test application ID in QA"
+      ],
+      "tests": [
+        "tests/genesis-media-qa-identity-20261123.test.mjs",
+        "tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/genesis-media-qa-identity-20261123.test.mjs",
+    "tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+  ],
+  "selectionRationale": "Separate QA installation avoids overwriting signed Genesis staging, and avoids OTA publication while allowing speaker/animation testing. Earlier debug APK was Metro-dependent; this QA compiles a release bundle with Android debug signing so it runs without a development server. QA clone of the existing Firebase Android config is generated runner-only to satisfy native build, while push registration is blocked; Firebase push reliability is outside this media QA scope.",
+  "preserveBehaviors": [
+    "Do not alter main or signed staging native app; independent QA identity is only activated via both CI flags",
+    "No backend writes from QA build pipeline and no production OTA or ad publishing",
+    "No Google Play access or original EAS keystore required",
+    "Retain latest Genesis entry music, portrait assets, 13 sprite frames and PTT audio focus fixes",
+    "Existing user profile and DB permissions remain authoritative; QA should use a test account",
+    "Staging/live regression gates stay mandatory before any consolidated release"
+  ],
+  "alternativeApproaches": [
+    "Overwrite existing staging with a debug APK: rejected because signature would not match and current staging install could be lost",
+    "Run plain assembleDebug: rejected because APK often requires an external Metro server",
+    "Use EAS signed staging APK: rejected as unnecessary signing/OTA identity and potential cloud build credits",
+    "Create new Firebase project or change production keys: rejected as unnecessary for offline media QA"
+  ],
+  "productionBaselineEvidence": "BUKLOD MAIN package org.mzbministry.buklod runtime 1.3.2; installed Genesis stage package org.mzbministry.buklod.staging runtime 2.0.4-genesis-library-godot. This QA branch forks only the b85fd504 DEV repair and adds a build-only package. Device audio QA not yet performed.",
+  "acceptanceChecks": [
+    "QA-only both env gates and no OTA URL",
+    "Can install separate package alongside signed staging on arm64 Android",
+    "Actual release embedded JS bundle, Godot pack and full music/character assets present",
+    "No server push-token claim from QA build",
+    "Android native build pass with real APK signed by isolated debug cert",
+    "Device speaker plays original entry cue after onboarding and consent; inspect PTT/quiet-hours and no overlapping soundtrack",
+    "Inspect avatar 13 frame motion and approved Guide portrait quality",
+    "Check first-view test ads, tab transition response, orientation and memory on device"
+  ],
+  "releaseMode": "BUILD_ONLY_SIDE_BY_SIDE_QA_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "otaPublished": false,
+  "productionOtaAuthorized": false,
+  "riskAreas": [
+    "local Android release build memory",
+    "Firebase QA package not registered for FCM",
+    "shared backend test account protection",
+    "speaker and sprite motion only physically verifiable",
+    "Godot pack and embedded JS integrity",
+    "no Metro dependence"
+  ]
+}

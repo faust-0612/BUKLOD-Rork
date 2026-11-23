@@ -21,6 +21,8 @@ Notifications.setNotificationHandler({
 
 /* PATCH_171C_TOKEN_CHANNEL_V2 */
 export async function registerPushToken(userId: string) {
+  // Standalone media QA must never claim or mutate a member device's production push token.
+  if (process.env.EXPO_PUBLIC_BUKLOD_MEDIA_QA === 'true') return null;
   if (Platform.OS === 'web') return null;
 
   // Dedicated SOS channel must exist BEFORE the token advertises capability.
