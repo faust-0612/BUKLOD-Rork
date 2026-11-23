@@ -698,7 +698,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     const groupsRequest = loadBuklodClaimGroups().then(
       value => ({ value, error: null }), error => ({ value: null, error }),
     );
-    const claimsRequest = loadBuklodClaimCards().then(
+    const claimsRequest = loadBuklodClaimCards(0, accountId).then(
       value => ({ value, error: null }), error => ({ value: null, error }),
     );
     const bonusRequest = loadBuklodAdBonusStatus().then(
@@ -844,7 +844,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     if (loadingMoreClaims || !hasMoreClaims) return;
     setLoadingMoreClaims(true);
     try {
-      const cards = await loadBuklodClaimCards(claimCards.length);
+      const cards = await loadBuklodClaimCards(claimCards.length, accountId);
       setClaimCards(current => [...current,
         ...cards.filter(card => !current.some(existing => existing.ledger_id === card.ledger_id))]);
       setHasMoreClaims(cards.length === 100);
@@ -853,7 +853,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     } finally {
       setLoadingMoreClaims(false);
     }
-  }, [claimCards.length, hasMoreClaims, loadingMoreClaims]);
+  }, [accountId, claimCards.length, hasMoreClaims, loadingMoreClaims]);
 
   const claimableCount = useMemo(
     () => claimGroups.reduce((sum, group) => sum + group.event_count, 0),
