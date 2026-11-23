@@ -145,7 +145,7 @@ export async function auditLocalNative(root=PROJECT_ROOT,{env=process.env,checkT
    if(listing.error||listing.status!==0)fail('APK_ARCHIVE_INVALID');
    else {
     const names=(listing.stdout||'').split(/\r?\n/);
-    for(const p of ['assets/godot/empire-arena.pck','lib/arm64-v8a/libgodot_android.so'])
+    for(const p of ['assets/godot/empire-arena.zip','lib/arm64-v8a/libgodot_android.so'])
      if(!names.includes(p))fail('GODOT_ENGINE_OR_PACK_MISSING_IN_APK: '+p);
    }
   }

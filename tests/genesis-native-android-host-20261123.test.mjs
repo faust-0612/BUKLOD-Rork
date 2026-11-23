@@ -24,7 +24,7 @@ test('Godot is embedded as app-private main-pack and not remotely downloaded or 
   const host=read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/NativeHomeActivity.kt');
   assert.match(game,/class GenesisGameActivity\s*:\s*GodotActivity/);
   assert.match(read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisNativeContract.kt'),/--main-pack/);
-  assert.match(read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisNativeContract.kt'),/res:\/\/godot\/empire-arena\.pck/);
+  assert.match(read('android/app/src/main/java/org/mzbministry/buklod/genesis/nativeapp/GenesisNativeContract.kt'),/res:\/\/godot\/empire-arena\.zip/);
   assert.doesNotMatch(game,/https?:\/\/|getExternalFilesDir/);
   assert.match(game,/GenesisNativeContract\.validWorld/);
   assert.match(host,/SHA-256/);

@@ -5,9 +5,9 @@ import java.security.MessageDigest
 
 /** Pure Android-independent engine contract. Tests run locally on a plain JVM. */
 internal object GenesisNativeContract {
-    const val PACK_ASSET = "godot/empire-arena.pck"
+    const val PACK_ASSET = "godot/empire-arena.zip"
     const val HASH_ASSET = "godot/empire-arena.sha256"
-    const val MAIN_PACK_ARG = "res://godot/empire-arena.pck"
+    const val MAIN_PACK_ARG = "res://godot/empire-arena.zip"
     const val WORLD_EXTRA = "org.mzbministry.buklod.genesis.WORLD"
     val worlds: Set<String> = setOf("arena", "kingdom", "community", "house")
     private const val MAX_PACK_BYTES = 2_000_000_000L

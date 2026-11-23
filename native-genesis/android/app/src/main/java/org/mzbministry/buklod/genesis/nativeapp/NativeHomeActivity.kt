@@ -72,9 +72,9 @@ class NativeHomeActivity : Activity() {
         panel.addView(status)
         val options = listOf(
             "arena" to "Offline Arena (DEV gameplay)",
-            "kingdom" to "Kingdom (visual preview ONLY)",
-            "community" to "Personal Community (visual preview ONLY)",
-            "house" to "Personal House/Lot (visual preview ONLY)"
+            "kingdom" to "Kingdom (interactive DEV world)",
+            "community" to "Personal Community (interactive DEV world)",
+            "house" to "Personal House/Lot (interactive DEV world)"
         )
         worldButtons = options.map { (id, title) ->
             Button(this).apply {
