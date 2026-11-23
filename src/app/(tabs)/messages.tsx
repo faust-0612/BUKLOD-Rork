@@ -102,6 +102,10 @@ import {
 } from '@/lib/connectInboxActivity';
 import { communityUnreadTabCounts } from '@/lib/connectInboxBadgeTotals';
 import { invalidateBuklodConnectUnreadCaches } from '@/lib/buklodR4RequestShield';
+import {
+  connectInboxRevision,
+  subscribeConnectInboxChanged,
+} from '@/lib/connectInboxSignal';
 
 type PersonalThread = {
   thread_id: string;
@@ -704,9 +708,13 @@ function ConnectScreenInner({
     '/connect/community/[scopeId]';
 
   const loadSequenceRef = useRef(0);
+  const inboxFocusedRef = useRef(false);
+  const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Focus changes within a warm inbox must not replay four network requests.
   // Realtime and periodic refreshes remain active independently.
-  const lastInboxSyncRef = useRef<{ context: string; at: number }>({ context: '', at: 0 });
+  const lastInboxSyncRef = useRef<{ context: string; at: number; revision: number }>({
+    context: '', at: 0, revision: -1,
+  });
   const load = useCallback(async () => {
     if (!profileId) {
       return;
@@ -719,6 +727,7 @@ function ConnectScreenInner({
     // A slower previous refresh must never restore an already-read badge.
     const sequence = ++loadSequenceRef.current;
     const requestedContext = connectContext;
+    const requestedRevision = connectInboxRevision(profileId);
     const [p, r, suggested, requests] = await Promise.all([
       withBuklodTimeout<any>(
         (supabase as any).rpc(
@@ -781,7 +790,7 @@ function ConnectScreenInner({
     if (connectContextRef.current !== requestedContext || sequence !== loadSequenceRef.current) return;
 
     if (!p.error && !r.error) {
-      lastInboxSyncRef.current = { context: requestedContext, at: Date.now() };
+      lastInboxSyncRef.current = { context: requestedContext, at: Date.now(), revision: requestedRevision };
     }
 
     if (!p.error) {
@@ -869,16 +878,47 @@ function ConnectScreenInner({
       .sort()
       .join(',');
 
-  // Reuse a warm authorized inbox during rapid tab changes. An actual
-  // stale snapshot, first entry, reconnect, polling or realtime still syncs.
+  // Notifications/sends received while this route was hidden are remembered
+  // with an account-scoped revision. Never render stale data on fast return.
   useFocusEffect(useCallback(() => {
-    if (!profileId || !connectOnline) return;
-    const synced = lastInboxSyncRef.current;
-    if (synced.context !== connectContext ||
-        Date.now() - synced.at >= 15_000) {
-      void loadRef.current();
+    inboxFocusedRef.current = true;
+    if (profileId && connectOnline) {
+      const synced = lastInboxSyncRef.current;
+      if (synced.context !== connectContext ||
+          synced.revision !== connectInboxRevision(profileId) ||
+          Date.now() - synced.at >= 15_000) {
+        void loadRef.current();
+      }
     }
+    return () => { inboxFocusedRef.current = false; };
   }, [profileId, connectContext, connectOnline]));
+
+  const refreshInboxOnSignal = useCallback(() => {
+    if (!inboxFocusedRef.current || !connectOnline || refreshDebounceRef.current) return;
+    refreshDebounceRef.current = setTimeout(() => {
+      refreshDebounceRef.current = null;
+      if (inboxFocusedRef.current) void loadRef.current();
+    }, 180);
+  }, [connectOnline]);
+
+  useEffect(() => () => {
+    if (refreshDebounceRef.current) {
+      clearTimeout(refreshDebounceRef.current);
+      refreshDebounceRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!profileId) return;
+    return subscribeConnectInboxChanged(changedProfile => {
+      if (changedProfile !== profileId) return;
+      // No global message subscription needed for a first-contact push.
+      // The authenticated RPC retrieves eligible threads and requests.
+      invalidateBuklodConnectUnreadCaches('both');
+      lastInboxSyncRef.current.at = 0;
+      refreshInboxOnSignal();
+    });
+  }, [profileId, refreshInboxOnSignal]);
 
   // Inbox polling is only useful while Connect is visible. Background
   // badges still arrive through the existing realtime/notification paths.
@@ -946,7 +986,8 @@ function ConnectScreenInner({
           }
           // Realtime inserts must bypass the 10s inbox snapshot TTL.
           invalidateBuklodConnectUnreadCaches(kind);
-          void loadRef.current();
+          lastInboxSyncRef.current.at = 0;
+          refreshInboxOnSignal();
         },
         emit => {
           const channelName =
@@ -994,6 +1035,7 @@ function ConnectScreenInner({
     profileId,
     personalRealtimeKey,
     scopeRealtimeKey,
+    refreshInboxOnSignal,
   ]);
 
   useEffect(() => {
