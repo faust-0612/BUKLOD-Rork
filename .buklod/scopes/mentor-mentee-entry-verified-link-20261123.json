@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/mentor-mentee-entry-verified-link-20261123.json",
+  "objective": "Repair BUKLOD MAIN mentoring reports so verified mentors can find existing mentees and request name-based linking when none appear, with protected admin verification before attendance or rewards.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "GitHub main mentoring report source blob 315a766d776ea88d7ea013fbbbf772cd34c4c65d inspected on 2026-11-23; zero-mentee screen contained no name-entry action. Live installed runtime, OTA fingerprint, and isolated test database were not verified.",
+  "chosenApproach": "Add an assigned-mentee search and secure full-name link-request queue; a System Admin matches the requested name to a registered active account and creates the existing mentor assignment in an audited, atomic RPC. Reporting still counts only the existing canonical assigned roster.",
+  "selectionRationale": "A name-only report would fabricate attendees and BP. A dead-end admin instruction is not a usable input. A bounded verification request gives a real field without weakening roster authorization.",
+  "riskAreas": [
+    "app-runtime",
+    "backend-security",
+    "mentoring",
+    "privacy"
+  ],
+  "allowedPaths": [
+    "src/app/faith/mentor-evidence.tsx",
+    "src/app/admin/learning/mentors.tsx",
+    "supabase/migrations/20261123190000_mentor_report_mentee_entry_requests_v1.sql",
+    "supabase/tests/mentor_mentee_link_security_20261123.sql",
+    "tests/mentor-mentee-entry-flow-20261123.test.mjs",
+    ".buklod/scopes/mentor-mentee-entry-verified-link-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/mentor-mentee-entry-flow-20261123.test.mjs",
+    "supabase/tests/mentor_mentee_link_security_20261123.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Make mentoring attendee selection usable while preserving report auth, photo, consent, and idempotent receipts.",
+      "preservedBehaviors": [
+        "Existing report submission, private photo evidence, selected linked attendee IDs, correction flow and duplicate request handling remain intact."
+      ],
+      "tests": [
+        "tests/mentor-mentee-entry-flow-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add private mentor-request and authorized System Admin linking RPCs without allowing arbitrary attendees or unaudited privilege grants.",
+      "preservedBehaviors": [
+        "Protected admin cannot be a rewarded mentor, unauthorized members cannot create assignments, rate limits and row-level security deny direct request table access."
+      ],
+      "tests": [
+        "supabase/tests/mentor_mentee_link_security_20261123.sql"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Existing production Supabase data and deployed OTA stay untouched until isolated DB migration and RC tests pass.",
+    "No direct creation of assigned learners by mentors; only linked active member IDs may be submitted.",
+    "Report lesson, location, 20-character notes, private photo, consent, reviewer and BP rules unchanged.",
+    "No new native module, app version, build metadata, routing, ads or navigation changes."
+  ],
+  "acceptanceChecks": [
+    "Assigned learner name search displays only existing authorized relationships, with tap selection and clear empty/search-miss guidance.",
+    "Request name persists once and shows pending state; missing backend RPC degrades safely without breaking existing reports.",
+    "Verified System Admin can approve/reject using a specific active account with review note; non-admin and unauthenticated attempts fail.",
+    "Replays, parallel requests, revoked mentor, protected identity, unknown member, rate limits and direct table access tested in isolated DB.",
+    "Focused Node and SQL tests pass; source type check plus ad/nav and compact spacing regression gates pass.",
+    "Manual Android weak-network, retry, photo upload and mentee reentry tests completed in isolated RC.",
+    "Release only through consolidated DEV to verified RC to production OTA with runtime and production evidence."
+  ],
+  "alternativeApproaches": [
+    "Free-text attendee stored directly in reports: rejected because it bypasses real member identity, assignment constraints and BP integrity.",
+    "Show only an instruction to contact administrator: rejected because there is no usable mentee-entry action or tracked review.",
+    "Expose unrestricted member directory to mentors: rejected because it leaks profile data and permits unverified enrollment."
+  ],
+  "releaseMode": "DEV_ONLY_PENDING_ISOLATED_DB_AND_RC",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
