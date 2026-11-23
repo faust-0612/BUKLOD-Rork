@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "source": "User-provided ChatGPT Library: /Sound and voice effects/Animation",
+  "packaging": "private local only; never fetch by public URL or push raw bytes to GitHub",
+  "directModels": [
+    {
+      "id": "private_t1_sentinel",
+      "file": "t1-sentinel.glb",
+      "bytes": 24319564,
+      "purpose": "arena animated hero candidate"
+    },
+    {
+      "id": "private_azure_champion",
+      "file": "azure-champion.glb",
+      "bytes": 24342800,
+      "purpose": "arena animated hero candidate"
+    },
+    {
+      "id": "private_hooded_blade",
+      "file": "hooded-blade.glb",
+      "bytes": 18408852,
+      "purpose": "arena hero candidate"
+    },
+    {
+      "id": "private_magic_scroll",
+      "file": "magic-scroll.glb",
+      "bytes": 12967236,
+      "purpose": "kingdom magic prop"
+    },
+    {
+      "id": "private_desert_watchtower",
+      "file": "desert-watchtower.glb",
+      "bytes": 3333772,
+      "purpose": "arena and kingdom tower"
+    }
+  ],
+  "sourceArchives": [
+    {
+      "file": "glacial-heart-VFX-FREE.zip",
+      "bytes": 1346276,
+      "purpose": "combat VFX extraction"
+    },
+    {
+      "file": "siege-construct-FREE.zip",
+      "bytes": 3880342,
+      "purpose": "tower/siege animation"
+    },
+    {
+      "file": "female-hero-NEW-ANIMATIONS-FREE.zip",
+      "bytes": 6253479,
+      "purpose": "character animation"
+    },
+    {
+      "file": "Building and drop loot.zip",
+      "bytes": 4596312,
+      "purpose": "kingdom/house props"
+    },
+    {
+      "file": "Mocap_Pack_07_Everyday_Actions_2.zip",
+      "bytes": 173679035,
+      "purpose": "human actions/mocap source"
+    },
+    {
+      "file": "Monster01_Pack_FreeTrial.unitypackage",
+      "bytes": 7334909,
+      "purpose": "Unity-only sample; converter required"
+    },
+    {
+      "file": "Monster01_Pack.unitypackage",
+      "bytes": 204160029,
+      "purpose": "Unity assets; converter required"
+    },
+    {
+      "file": "Voices_Sound_Effect_Library.zip",
+      "bytes": 101777165,
+      "purpose": "audio recordings for game SFX"
+    },
+    {
+      "file": "Monster02Shop.rar",
+      "bytes": 198469554,
+      "purpose": "RAR/Unity assets; converter required"
+    }
+  ],
+  "status": "candidate-only; no private file rights or binary content approved"
+}
