@@ -67,13 +67,13 @@ test('existing quiz attempts and old clients cannot bypass S2 progression or 2-h
 
 test('series metadata private RLS and public release-only catalog do not leak drafts',()=>{
  const sql=read('supabase/migrations/20261123203000_kl_s2_series_dashboard_catalog.sql');
- assert.match(sql,/ALTER TABLE private\\.kl_s2_series_metadata ENABLE ROW LEVEL SECURITY/);
- assert.match(sql,/REVOKE ALL ON TABLE private\\.kl_s2_series_metadata FROM PUBLIC, anon, authenticated/);
- assert.match(sql,/p\\.is_active IS TRUE AND p\\.role::text='system_admin'/);
- assert.match(sql,/REVOKE ALL ON FUNCTION public\\.kl_s2_admin_save_series_v1/);
+ assert.match(sql,/ALTER TABLE private\.kl_s2_series_metadata ENABLE ROW LEVEL SECURITY/);
+ assert.match(sql,/REVOKE ALL ON TABLE private\.kl_s2_series_metadata FROM PUBLIC, anon, authenticated/);
+ assert.match(sql,/p\.is_active IS TRUE AND p\.role::text='system_admin'/);
+ assert.match(sql,/REVOKE ALL ON FUNCTION public\.kl_s2_admin_save_series_v1/);
  const released=sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION public.kl_s2_reader_series_catalog_v1'));
- assert.match(released,/e\\.status='approved' AND e\\.approved_at IS NOT NULL/);
- assert.match(released,/e\\.release_at IS NOT NULL AND e\\.release_at<=now\\(\\)/);
+ assert.match(released,/e\.status='approved' AND e\.approved_at IS NOT NULL/);
+ assert.match(released,/e\.release_at IS NOT NULL AND e\.release_at<=now\(\)/);
  assert.doesNotMatch(released,/manuscript|storage_path|reflection_text|answer_key/);
  assert.match(released,/TO anon, authenticated/);
 });
