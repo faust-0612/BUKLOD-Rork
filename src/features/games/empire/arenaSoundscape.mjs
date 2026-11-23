@@ -31,6 +31,10 @@ export const ARENA_SOUND_CUE = Object.freeze({
   mining_stone:   {sound:'build_hit',rate:.88,volume:.21,priority:1,cooldown:530},
   mining_gold:    {sound:'coins',rate:1.03,volume:.22,priority:1,cooldown:530},
   deposit:        {sound:'coins',rate:.97,volume:.26,priority:2,cooldown:400},
+  village_work:   {sound:'build_hit',rate:1.16,volume:.13,priority:1,cooldown:2200},
+  village_supply: {sound:'coins',rate:1.06,volume:.18,priority:2,cooldown:1800},
+  village_heal:   {sound:'pickup',rate:1.0,volume:.2,priority:2,cooldown:3200},
+  village_tech:   {sound:'unlock',rate:1.12,volume:.32,priority:4,cooldown:9500},
   recruit:        {sound:'enter',rate:1.07,volume:.25,priority:2,cooldown:980},
   order:          {sound:'mission_go',rate:1.07,volume:.24,priority:2,cooldown:600},
   item_drop:      {sound:'pickup',rate:1.24,volume:.32,priority:4,cooldown:330},
@@ -113,6 +117,10 @@ function cueFor(e,ctx){
   if(type==='dash')return ownAction?'dash':null;
   if(type==='buff')return ownAction?key('buff_'+e.kind):null;
   if(type==='creature_respawn')return null; // No ambient audio spam far from player
+  if(type==='villager_mine'||type==='villager_repair'||type==='villager_guard')return ownsEvent?'village_work':null;
+  if(type==='villager_deposit')return ownsEvent?'village_supply':null;
+  if(type==='villager_heal')return ownsEvent?'village_heal':null;
+  if(type==='villager_research')return ownsEvent?'village_tech':null;
   if(type==='mine')return ownAction?key('mining_'+e.kind):null;
   if(type==='deposit')return ownAction?'deposit':null;
   if(type==='train_order'||type==='unit_spawn')return ownAction||ownsEvent?'recruit':null;
