@@ -45,7 +45,8 @@ test('Game pack is the same deterministic approved art and audio source used by 
  const ota=read('scripts/genesis-prepare-godot-ota-pack.mjs');
  assert.match(pack,/fullbody: 52, scene: 3, sprite: 13/);
  assert.match(pack,/audioEntries\.length, 70/);
- assert.match(pack,/prototype:true/);
+ assert.match(pack,/JSON\.stringify\(audioManifest\)/);
+ assert.doesNotMatch(pack,/prototype:true/);
  assert.match(pack,/world-art\/kingdom\.webp/);
  assert.match(pack,/world-art\/house\.webp/);
  assert.match(ota,/scripts\/build-empire-godot-pack\.mjs/);
