@@ -115,7 +115,12 @@ export default function MentorTeachingPhotoEvidence() {
       setTasks(Array.isArray(taskResponse.data) ? taskResponse.data : []);
       setLessons(Array.isArray(lessonResponse.data) ? lessonResponse.data : []);
       setMentorEligible(mentorResponse.data === true);
-      setDisciples(Array.isArray(menteeResponse.data) ? menteeResponse.data : []);
+      const liveDisciples: Disciple[] = Array.isArray(menteeResponse.data) ? menteeResponse.data : [];
+      const liveIds = new Set(liveDisciples.map(d => d.disciple_id));
+      setDisciples(liveDisciples);
+      // Avoid showing stale attendees after an assignment is revoked or moved.
+      setSelectedDisciples(current => current.filter(id => liveIds.has(id)));
+      setRevisionLearners(current => current.filter(id => liveIds.has(id)));
       setMenteeRequestAvailable(!linkRequestResponse.error);
       setMenteeRequests(!linkRequestResponse.error && Array.isArray(linkRequestResponse.data)
         ? linkRequestResponse.data : []);
@@ -278,6 +283,11 @@ export default function MentorTeachingPhotoEvidence() {
     const cleanName = newMenteeName.trim().replace(/\s+/g, ' ');
     if (cleanName.length < 3 || cleanName.length > 120) {
       Alert.alert('Enter mentee name', 'Enter the real mentee full name (3–120 characters).');
+      return;
+    }
+    if (disciples.some(d => d.disciple_name?.trim().toLocaleLowerCase() === cleanName.toLocaleLowerCase())) {
+      setMenteeSearch(cleanName);
+      Alert.alert('Mentee already linked', 'Select this mentee from your assigned attendance list above. No new request is needed.');
       return;
     }
     if (!beginAction('request-mentee')) return;
