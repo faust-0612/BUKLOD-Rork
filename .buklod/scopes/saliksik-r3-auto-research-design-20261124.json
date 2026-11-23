@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/saliksik-r3-auto-research-design-20261124.json",
+  "objective": "Record owner-approved removal of mandatory SALIKSIK Admin upload/review/publish and replacement with automatic verified-source research generation, independently checked written assessment, and fail-closed secure rewards.",
+  "baseRef": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "productionBaselineEvidence": "GitHub main source baseline 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 inspected. Live signed Android, Supabase SALIKSIK rollout, deployed backend and OTA not independently verified. Existing R2 draft/manual Admin path from PR #780 / #806 remains DEV only; this patch contains no implementation or deployment.",
+  "chosenApproach": "Owner policy amendment in a new standalone doc from current main. Require canonical-corpus sourced background generation, deterministic citation checks, independent verifier, zero routine human approvals, guarded ledger/UC, no extra first-paint network calls. Runtime implementation will require dedicated guarded backend/SQL/client/test work.",
+  "selectionRationale": "Documentation-only change cannot risk production AdMob/navigation or bypass R2's server-only reward and reviewer restrictions before necessary redesign and tests.",
+  "alternativeApproaches": [
+    "Auto publish any LLM output: rejected due hallucinated citations, unsupported doctrinal claims and point farming.",
+    "Require Admin review on every topic: rejected by owner because it blocks the user journey.",
+    "Patch old divergent SALIKSIK PR wholesale into current main: rejected due production and cumulative regression risk."
+  ],
+  "riskAreas": [
+    "source-fidelity",
+    "ai-publication",
+    "academic-integrity",
+    "points-integrity",
+    "privacy",
+    "release-boundary"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/saliksik-r3-auto-research-design-20261124.json",
+    "docs/saliksik/SALIKSIK_R3_AUTOMATED_RESEARCH_OWNER_POLICY_20261124.md"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": [],
+  "preserveBehaviors": [
+    "No runtime, UI, native, SQL, Edge or production changes.",
+    "No release, no production migration or SALIKSIK feature activation.",
+    "Existing points claim, QMP, ads, privacy, KL/Wall/Connect remain unchanged."
+  ],
+  "acceptanceChecks": [
+    "DEV design records zero mandatory Admin steps and protected citation quality.",
+    "Actual automated feature must not be reported shipped until dedicated implementation and exact-source verified RC + release gates."
+  ],
+  "releaseMode": "dev-only",
+  "releaseGate": "Design-only; runtime automation remains unimplemented. No staging-user OTA or production deployment authorization."
+}
