@@ -1,0 +1,34 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-arena-kingdom-house-native-apk-20261123.json",
+  "objective": "Implement genuine native Godot Arena + interactive Kingdom/House source and one isolated GitHub Actions Android debug build. Reuse original Nov22 827MB baseline art/game scripts but NOT claim full BUKLOD app parity.",
+  "existingBaseline": {
+    "original827MB": "BUKLOD Genesis 2.0.4 local EAS signed staging GitHub run 45031011586; v16; full app with Expo modules; cannot convert into Expo-free build by repackaging",
+    "nativeFoundation": "dev/genesis-native-four-world-runtime-20261123"
+  },
+  "allowedPaths": [
+    ".github/workflows/genesis-native-godot-arena-house-build-20261123.yml",
+    "tests/genesis-native-godot-apk-workflow-20261123.test.mjs",
+    ".buklod/scopes/genesis-arena-kingdom-house-native-apk-20261123.json",
+    "godot/empire-arena/scripts/world_explore_controller.gd",
+    "godot/empire-arena/scenes/WorldPreview.tscn",
+    "native-genesis/**",
+    "scripts/genesis-native-local-only-gate.mjs",
+    "tests/genesis-native-android-host-20261123.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-world-interactive-godot-20261123.test.mjs",
+    "tests/genesis-native-godot-apk-workflow-20261123.test.mjs",
+    "tests/genesis-native-android-host-20261123.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Production org.mzbministry.buklod unaffected",
+    "Existing staging org.mzbministry.buklod.staging unaffected",
+    "No payment/reward/property grants",
+    "No Expo/EAS/Vercel native debug APK build",
+    "No false 800MB pad or premium parity declaration"
+  ],
+  "releaseMode": "DEV_GODOT_GAME_ONLY_DEBUG_APK_NO_MAIN_APP_PARITY",
+  "publicationStatus": "SOURCE_SUBMITTED_GITHUB_RUN_PENDING",
+  "deviceVerification": "NOT_PERFORMED"
+}

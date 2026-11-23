@@ -1,0 +1,119 @@
+name: Genesis — native Godot Arena Kingdom House DEV APK (no Expo)
+
+on:
+  push:
+    branches:
+      - dev/genesis-arena-kingdom-house-native-apk-20261123
+    paths:
+      - '.github/workflows/genesis-native-godot-arena-house-build-20261123.yml'
+      - 'godot/empire-arena/**'
+      - 'native-genesis/android/**'
+      - 'native-genesis/prepare-pack-local.sh'
+      - 'scripts/build-empire-godot-pack.mjs'
+      - 'tests/genesis-world-interactive-godot-20261123.test.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: genesis-native-godot-android-one-dev-build
+  cancel-in-progress: false
+
+jobs:
+  native-godot-android-dev:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/genesis-arena-kingdom-house-native-apk-20261123' && startsWith(github.event.head_commit.message, 'GENESIS_NATIVE_DEV_APK:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      CI: '1'
+      BUKLOD_ARENA_RANKED_ENABLED: 'false'
+    steps:
+      - name: Exact isolated DEV checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Node for original Godot pack and focused source tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fail early on source regressions
+        run: |
+          set -euo pipefail
+          node --test tests/genesis-native-local-only-gate-20261123.test.mjs tests/genesis-native-android-host-20261123.test.mjs tests/genesis-world-interactive-godot-20261123.test.mjs
+          test "$(grep -c '    implementation("org.godotengine:godot:4.7.2.stable")' native-genesis/android/app/build.gradle.kts)" -eq 1
+      - name: Rebuild original Arena hero art / 70 audio and Kingdom House main pack
+        run: |
+          set -euo pipefail
+          bash native-genesis/prepare-pack-local.sh
+          APK_PACK=native-genesis/android/app/src/main/assets/godot/empire-arena.zip
+          test -s "$APK_PACK"
+          printf '%s  %s\n' "$(cat native-genesis/android/app/src/main/assets/godot/empire-arena.sha256)" "$APK_PACK" | sha256sum -c -
+          test "$(unzip -Z -1 "$APK_PACK" | grep -Ec '^art/(fullbody|sprite|scene)/')" -eq 68
+          test "$(unzip -Z -1 "$APK_PACK" | grep -Ec '^audio/sfx/.*\.wav$')" -eq 70
+          unzip -Z -1 "$APK_PACK" | grep -Fx 'scripts/world_explore_controller.gd'
+          mkdir -p /tmp/buklod-genesis-native-project
+          unzip -q "$APK_PACK" -d /tmp/buklod-genesis-native-project
+      - name: Validate real Godot 4.7.2 project and gameplay scenes before downloading Android SDK
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            -o /tmp/godot-official.zip
+          mkdir -p /tmp/godot-native
+          unzip -q /tmp/godot-official.zip -d /tmp/godot-native
+          GODOT=$(find /tmp/godot-native -type f -name 'Godot_*linux.x86_64' -print -quit)
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          "$GODOT" --version | grep -F '4.7.2'
+          "$GODOT" --headless --path /tmp/buklod-genesis-native-project --editor --quit 2>&1 | tee /tmp/godot-compile.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/godot-compile.log; then exit 1; fi
+          for script in smoke.gd art_smoke.gd premium_smoke.gd library_smoke.gd library_modes_audio_smoke.gd world_smoke.gd; do
+            "$GODOT" --headless --path /tmp/buklod-genesis-native-project --script "res://tests/$script" 2>&1 | tee "/tmp/$script.log"
+            if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' "/tmp/$script.log"; then exit 1; fi
+          done
+          "$GODOT" --headless --path /tmp/buklod-genesis-native-project --quit-after 45 res://scenes/WorldPreview.tscn 2>&1 | tee /tmp/interactive-world.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/interactive-world.log; then exit 1; fi
+          echo 'GENESIS_GODOT_ANDROID_GAME_SOURCE_QA_PASS'
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Gradle 8.14.3, without Expo or EAS
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Native Android debug compilation (standalone game DEV APK only)
+        run: |
+          set -euo pipefail
+          cd native-genesis/android
+          gradle :app:assembleDebug --no-daemon --max-workers=2
+          test -s app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify real APK, engine, main pack and isolated package
+        run: |
+          set -euo pipefail
+          APK=native-genesis/android/app/build/outputs/apk/debug/app-debug.apk
+          unzip -t "$APK" | tail -2
+          unzip -Z -1 "$APK" | grep -Fx 'assets/godot/empire-arena.zip'
+          unzip -Z -1 "$APK" | grep -E '^lib/arm64-v8a/.*\.so$' >/dev/null
+          unzip -p "$APK" assets/godot/empire-arena.zip | sha256sum | awk '{print $1}' > /tmp/apk-pack.sha256
+          cmp /tmp/apk-pack.sha256 native-genesis/android/app/src/main/assets/godot/empire-arena.sha256
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          "$BUILD_TOOLS/apksigner" verify "$APK"
+          "$BUILD_TOOLS/aapt" dump badging "$APK" | grep -F "package: name='org.mzbministry.buklod.genesis.nativeapp'"
+          sha256sum "$APK" > buklod-genesis-native-dev-apk.sha256
+          echo 'GENESIS_NATIVE_GODOT_DEV_APK_SIGNATURE_PACK_ID_PASS'
+          echo 'No BUKLOD MAIN app parity; Android device and premium experience still NOT verified.'
+      - name: Downloadable DEV-only binary; no OTA, Play or production release
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-genesis-native-arena-kingdom-house-dev-unsigned-release
+          path: |
+            native-genesis/android/app/build/outputs/apk/debug/app-debug.apk
+            buklod-genesis-native-dev-apk.sha256
+          if-no-files-found: error
+          retention-days: 2
