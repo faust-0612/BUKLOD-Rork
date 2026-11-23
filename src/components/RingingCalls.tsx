@@ -103,9 +103,9 @@ function BuklodOutgoingRingback() {
     player.volume = 0.42;
 
     const sync = (state: string) => {
-      if (disposed) return;
+      if (disposed || !enabled) return;
       try {
-        if (enabled && playerStatus.isLoaded && state === 'active') {
+        if (playerStatus.isLoaded && state === 'active') {
           player.play();
         } else {
           player.pause();

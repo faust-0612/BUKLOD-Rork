@@ -294,7 +294,7 @@ function maybeShowCallerOutcome(
       .toLowerCase();
 
   const key =
-    `${envelope.cid}:${reason || 'rejected'}`;
+    `${envelope.cid}:outcome`;
 
   if (reason === 'busy') {
     alertOnce(
@@ -361,8 +361,7 @@ export function installBuklodCallLifecycle(
             void persistEvent(
               eventName,
               event,
-            ).then(() => {
-            });
+            );
           }
         )
     );
