@@ -87,7 +87,8 @@ begin
   status=p_decision,review_token=null,review_started_at=null,reviewed_at=now(),
   reviewer_note=left(coalesce(p_feedback->>'headline',''),500),
   ai_model=p_model,
-  feedback_json=p_feedback,citations_verified=true,originality_checked=true,
+  feedback_json=p_feedback,citations_verified=(p_decision='VERIFIED'),
+  originality_checked=(p_decision='VERIFIED'),
   rubric_score=p_score,content_hash=p_evidence_hash,updated_at=now()
  where id=p_id and review_token=p_token and status='REVIEWING'
  returning user_id,research_key,research_type,review_attempts into rec;
