@@ -430,6 +430,7 @@ function ClaimGroupCard({
   claimBusy,
   adBusyLedger,
   bonusEnabled,
+  bonusPoints,
 }: {
   group: BuklodClaimGroup;
   rows: BuklodClaimCard[];
@@ -441,6 +442,7 @@ function ClaimGroupCard({
   claimBusy: boolean;
   adBusyLedger: string | null;
   bonusEnabled: boolean;
+  bonusPoints: number;
 }) {
   const meta = GROUP_META[group.group_key] ?? GROUP_META.other;
   const visibleRows = expanded ? rows : [];
@@ -529,7 +531,7 @@ function ClaimGroupCard({
                     {claimBusy ? 'Claiming…' : `CLAIM +${item.points}`}
                   </Text>
                 </Pressable>
-                {bonusEnabled ? (
+                {bonusEnabled && Date.now() - Date.parse(item.created_at) < 30 * 24 * 60 * 60 * 1000 ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Watch optional rewarded ad for 5 bonus Points"
@@ -538,7 +540,7 @@ function ClaimGroupCard({
                     style={[styles.claimButton, { flex: 1, minWidth: 120, minHeight: 42, backgroundColor: '#245C9E' },
                       (adBusyLedger !== null || claimBusy) && { opacity: 0.45 }]}>
                     <Text style={styles.claimButtonText}>
-                      {adBusyLedger === item.ledger_id ? 'VERIFYING…' : 'WATCH AD +5 ⭐'}
+                      {adBusyLedger === item.ledger_id ? 'VERIFYING…' : `WATCH AD +${bonusPoints} ⭐`}
                     </Text>
                   </Pressable>
                 ) : null}
@@ -618,6 +620,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
   const [adBusyLedger, setAdBusyLedger] = useState<string | null>(null);
   const [adMessage, setAdMessage] = useState<string | null>(null);
   const [lastClaimedLedger, setLastClaimedLedger] = useState<string | null>(null);
+  const [lastClaimedAt, setLastClaimedAt] = useState<string | null>(null);
   const [history, setHistory] = useState<PointRow[]>(initialCache?.history ?? []);
   const [historyOpen,setHistoryOpen] = useState(Boolean(exactLedgerId));
   useEffect(()=>{if(exactLedgerId)setHistoryOpen(true);},[exactLedgerId]);
@@ -676,6 +679,8 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     if (!force && cached && Date.now() - cached.loadedAt < 60_000) {
       setDashboard(cached.dashboard);setClaimGroups(cached.groups);
       setClaimCards(cached.claims ?? []);
+      setHasMoreClaims((cached.claims?.length ?? 0) === 100);
+      void loadBuklodAdBonusStatus().then(setBonusStatus).catch(() => setBonusStatus(null));
       setHistory(cached.history);setEvaluations(cached.evaluations);
       setRankDashboard(cached.rank);setLoading(false);
       return;
@@ -862,6 +867,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
       }
       const awarded = result.claimed_points;
       setLastClaimedLedger(card.ledger_id);
+      setLastClaimedAt(card.created_at);
       if (soundOn) playAudio(claimSound);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       setLastSuccess({ label: activityLabel(card.activity_type), points: awarded });
@@ -905,16 +911,17 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
         setAdMessage('Complete the ad to earn bonus points.');
         return;
       }
-      setAdMessage('Ad completed. Verifying the +5 bonus with Google…');
+      setAdMessage(`Ad completed. Verifying the +${session.points} bonus with Google…`);
       if (await waitForBuklodAdBonus(session.nonce)) {
         setLastSuccess({ label: 'Verified rewarded ad', points: session.points });
         setCelebrationActive(motionEnabled);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
         setAdMessage('Verified bonus added to your BUKLOD Points. ⭐');
         setLastClaimedLedger(null);
+        setLastClaimedAt(null);
         await load(true);
       } else {
-        setAdMessage('Verification pending. Your +5 Points will appear automatically once Google confirms.');
+        setAdMessage(`Verification pending. Your +${session.points} Points will appear once Google confirms.`);
       }
     } catch (error) {
       setAdMessage(friendlyClaimError(normalizeErrorMessage(error)));
@@ -1184,13 +1191,15 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
             <Text style={[styles.allCaughtSub, { flex: 1 }]}>{adMessage}</Text>
           </View>
         ) : null}
-        {lastClaimedLedger && bonusStatus?.enabled && bonusStatus.remaining > 0 ? (
+        {lastClaimedLedger && lastClaimedAt &&
+          Date.now() - Date.parse(lastClaimedAt) < 30 * 24 * 60 * 60 * 1000 &&
+          bonusStatus?.enabled && bonusStatus.remaining > 0 ? (
           <Pressable accessibilityRole="button"
-            accessibilityLabel="Optional watch ad to earn 5 more Points after claiming"
+            accessibilityLabel={`Optional watch ad to earn ${bonusStatus.points} more Points after claiming`}
             disabled={adBusyLedger !== null || claimingGroup !== null}
             onPress={() => void watchBonus(lastClaimedLedger)}
             style={[styles.claimButton, { backgroundColor: '#245C9E', marginVertical: 8 }]}>
-            <Text style={styles.claimButtonText}>WATCH AD +5 ⭐ (OPTIONAL)</Text>
+            <Text style={styles.claimButtonText}>{`WATCH AD +${bonusStatus.points} ⭐ (OPTIONAL)`}</Text>
           </Pressable>
         ) : null}
 
@@ -1211,6 +1220,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
               claimBusy={claimingGroup !== null}
               adBusyLedger={adBusyLedger}
               bonusEnabled={bonusStatus?.enabled === true && bonusStatus.remaining > 0}
+              bonusPoints={bonusStatus?.points ?? 5}
             />
           );
         })}
