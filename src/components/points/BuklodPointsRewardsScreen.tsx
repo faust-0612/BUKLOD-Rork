@@ -421,6 +421,10 @@ function FeedbackToggle({
   );
 }
 
+// Preview may read the live MAIN ledger but must not claim or credit Points.
+// This is baked into the OTA bundle; staging cannot opt in via remote flags.
+const POINTS_STAGING_READ_ONLY = process.env.EXPO_PUBLIC_APP_ENV !== 'production';
+
 function ClaimGroupCard({
   group,
   rows,
@@ -525,12 +529,12 @@ function ClaimGroupCard({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Claim ${item.points} BUKLOD Points for this activity`}
-                  disabled={claimBusy || adBusyLedger !== null}
-                  onPress={() => onClaim(item)}
+                  disabled={POINTS_STAGING_READ_ONLY || claimBusy || adBusyLedger !== null}
+                  onPress={() => { if (!POINTS_STAGING_READ_ONLY) onClaim(item); }}
                   style={[styles.claimButton, { flex: 1, minWidth: 120, minHeight: 42, backgroundColor: meta.accent },
-                    (claimBusy || adBusyLedger !== null) && { opacity: 0.45 }]}>
+                    (POINTS_STAGING_READ_ONLY || claimBusy || adBusyLedger !== null) && { opacity: 0.45 }]}>
                   <Text style={styles.claimButtonText}>
-                    {claimBusy ? 'Claiming…' : `CLAIM +${item.points}`}
+                    {POINTS_STAGING_READ_ONLY ? `PENDING +${item.points} · PREVIEW` : claimBusy ? 'Claiming…' : `CLAIM +${item.points}`}
                   </Text>
                 </Pressable>
                 {bonusEnabled && Date.now() - Date.parse(item.created_at) < 30 * 24 * 60 * 60 * 1000 ? (
@@ -879,6 +883,11 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
   );
 
   const claimOne = useCallback(async (card: BuklodClaimCard) => {
+    // Runtime defense in depth: disabled UI is not the security boundary.
+    if (POINTS_STAGING_READ_ONLY) {
+      setClaimError('Staging preview is read-only. Your Points remain pending on the live account.');
+      return;
+    }
     if (claimingGroup !== null || adBusyLedger !== null) return;
     setClaimingGroup(card.event_id);
     setClaimError(null); setClaimTechnicalError(null);
@@ -919,7 +928,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
   }, [claimingGroup, adBusyLedger, load, soundOn, claimSound, motionEnabled, characterEvents]);
 
   const watchBonus = useCallback(async (ledgerId: string) => {
-    if (adBusyLedger !== null || claimingGroup !== null ||
+    if (POINTS_STAGING_READ_ONLY || adBusyLedger !== null || claimingGroup !== null ||
       !accountId || !bonusStatus?.enabled || bonusStatus.remaining <= 0) return;
     setAdBusyLedger(ledgerId);
     setAdMessage('Preparing optional rewarded ad…');
@@ -1204,10 +1213,19 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
         ) : null}
 
         <BuklodAdLightRewardCard />
+        {POINTS_STAGING_READ_ONLY ? (
+          <View style={[styles.allCaughtUp, { marginTop: 8 }]}>
+            <MaterialCommunityIcons name="shield-lock-outline" size={21} color={COLORS.green} />
+            <Text style={[styles.allCaughtSub, { flex: 1 }]}>
+              STAGING PREVIEW · Pending rewards are view-only. This screen will not submit new Points claims or rewarded-ad credits to the live database.
+            </Text>
+          </View>
+        ) : null}
         {claimGroups.length > 0 ? (
           <Text style={styles.sectionSub}>
-            Manual claiming: open a category and claim each activity separately.
-            Watching an ad is optional and never required to claim.
+            {POINTS_STAGING_READ_ONLY
+              ? 'Browse each pending Points activity. Claiming is disabled in staging to protect live balances.'
+              : 'Manual claiming: open a category and claim each activity separately. Watching an ad is optional and never required to claim.'}
           </Text>
         ) : null}
         {adMessage ? (

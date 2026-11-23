@@ -1,0 +1,106 @@
+name: BUKLOD Points Staging Read-only Android RC QA (No OTA)
+on:
+  push:
+    branches:
+      - dev/points-readonly-staging-ota-prepared-20261124
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-points-staging-safe-rc-20261124
+  cancel-in-progress: false
+jobs:
+  staging-readonly-android-rc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED: 'false'
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Staging-only exact source and native parity guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const a=require('node:assert/strict'),cp=require('node:child_process');
+          const base='5b83062b4a0adffcf375aa1c1daed6f528c87563';
+          const git=(...args)=>cp.execFileSync('git',args,{encoding:'utf8'}).trim();
+          a.equal(git('rev-parse','HEAD^'),base);
+          const changed=git('diff','--name-only',base,'HEAD').split('\n').sort();
+          const allowed=[
+            '.github/workflows/buklod-points-staging-readonly-android-rc-qa.yml',
+            'docs/release/BUKLOD_POINTS_STAGING_READONLY_20261124.md',
+            'src/components/points/BuklodPointsRewardsScreen.tsx',
+            'tests/buklod-points-staging-preview-no-live-write-20261124.test.mjs'
+          ].sort();
+          a.deepEqual(changed,allowed,'Unreviewed staging delta');
+          const app=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          a.equal(app.android.package,'org.mzbministry.buklod.staging');
+          a.equal(app.runtimeVersion,'1.3.2');
+          a.equal(app.extra.appEnvironment,'staging');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.notEqual(eas.build['staging-user'].channel,eas.build.production.channel);
+          NODE
+      - name: Locked dependencies and claims plus ad/nav regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test \
+            tests/buklod-points-staging-preview-no-live-write-20261124.test.mjs \
+            tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs \
+            tests/buklod-ad-opportunities.test.cjs \
+            tests/cluster-connect-notifications-points-20261108.test.mjs \
+            tests/buklod-ad-restoration-locked-20261107.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+          npx tsc --noEmit
+      - name: Read-only EAS compatibility preflight and Hermes preview export
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'Missing EAS release credentials — RC is NOT ready'; exit 1; }
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > /tmp/points-safe-build.json
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/points-safe-channel.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/points-safe-production.json
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/points-safe-preview.env --non-interactive > /dev/null
+          set -a; . /tmp/points-safe-preview.env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging
+          export EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED=false BUKLOD_APP_TARGET=main
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const read=f=>JSON.parse(fs.readFileSync(f,'utf8'));
+          verifyBuild(read('/tmp/points-safe-build.json'));
+          verifyChannels(read('/tmp/points-safe-channel.json'),read('/tmp/points-safe-production.json'));
+          const prod=await manifest('production');
+          assert.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          const url=(process.env.EXPO_PUBLIC_SUPABASE_URL||'').toLowerCase();
+          assert.equal(url,'https://yhanxndaqbmuzbdqlblu.supabase.co','Unexpected backend; new review required');
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,'Missing publishable key');
+          assert.equal(process.env.EXPO_PUBLIC_APP_ENV,'staging');
+          assert.equal(process.env.EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED,'false');
+          console.log('EAS verified, shared backend accepted for read-only Points PREVIEW only');
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/points-safe-android --clear
+          test -s /tmp/points-safe-android/metadata.json
+      - name: Fail-safe — CI is never an OTA publisher
+        if: always()
+        run: echo 'RC QA/preflight only. No staged OTA, production, database or QMP writes.'
