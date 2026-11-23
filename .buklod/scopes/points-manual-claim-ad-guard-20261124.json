@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/points-manual-claim-ad-guard-20261124.json",
   "objective": "Retire member-facing Claim All and synthetic claim-all client compatibility; restore protected manual per-category claims after verified activities, with shared safe optional interstitial opportunities after each successful group settlement. Approved public rank-prestige experience and cosmetic rollouts remain separate future scopes.",
   "baseRef": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
-  "productionBaselineEvidence": "Read-only GitHub canonical MAIN SHA 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 on 2026-11-24; live MAIN database confirms public.claim_my_buklod_reward_group_v1 has authenticated user lock, idempotent pending-ledger transition, balance, rank history and pending counter; existing Points UI had Claim All as its sole action. Exact installed production OTA, RC APK and AdMob device fill were not verified. No production migration/release authorized.",
+  "productionBaselineEvidence": "Read-only GitHub canonical MAIN SHA 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 on 2026-11-24; live MAIN database confirms public.claim_my_buklod_reward_group_v1 has authenticated user lock, idempotent pending-ledger transition, balance, rank history and pending counter; existing Points UI had Claim All as its sole action. Exact installed production OTA, RC APK and AdMob device fill were not verified. No production migration/release authorized. Protected-feature classifier recognized app-runtime only; ads-finance-points is covered by changed Points/AdMob regression tests without an unsupported protected-feature declaration.",
   "chosenApproach": "Use the already deployed atomic per-group RPC for one manual claim per category; disable during in-flight request with ref guard; update only claimed group and account-scoped cache; server-confirmed points result before optional shared-controller interstitial; keep global consent/multi-action/cooldown/no-fill protections. Remove synthetic Claim All from client API only, preserving legacy server compatibility with installed clients.",
   "selectionRationale": "Avoid a new database mutation or per-ledger RPC and its rollout risks; group claims create independent intentional claim opportunities without AdMob's disallowed ad-on-every-action implementation. Maintain existing reward events, balances, rank crossing, earned points, and noncash economy.",
   "alternativeApproaches": [
@@ -60,17 +60,6 @@
       ],
       "tests": [
         "tests/points-manual-group-claim-20261124.test.mjs"
-      ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "Modify manual claiming cadence and post-confirmation interstitial opportunities without changing monetization or ledger authority",
-      "preservedBehaviors": [
-        "Existing ad global controller, ledger/RLS, reward ranking and cash isolation remain authoritative"
-      ],
-      "tests": [
-        "tests/points-manual-group-claim-20261124.test.mjs",
-        "tests/buklod-ad-opportunities.test.cjs"
       ]
     }
   ]
