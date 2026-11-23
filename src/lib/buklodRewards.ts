@@ -56,7 +56,6 @@ export type BuklodClaimGroupResult = {
 };
 
 const POINTS_CACHE_PREFIX = 'buklod:points:';
-const CLAIM_ALL_COMPAT_EVENT_ID = '__buklod_claim_all_eligible__';
 
 async function getAuthScopedPointsCacheKey(suffix: string) {
   const { data } = await supabase.auth.getSession();
@@ -166,50 +165,13 @@ export async function loadBuklodClaimGroups(): Promise<BuklodClaimGroup[]> {
   );
 }
 
-/**
- * Compatibility loader for screens that still render one reward card.
- *
- * When there are pending point-ledger rows, expose ONE synthetic Claim All
- * card representing only eligible completed activities. Its claim handler
- * below routes to the atomic server-side Claim All RPC. Rank/achievement
- * acknowledgement cards continue to use the legacy event endpoint after the
- * pending points are exhausted.
- */
+/** Legacy one-at-a-time reward event reader; never synthesize Claim All. */
 export async function loadPendingBuklodRewardEvent(): Promise<BuklodRewardEvent | null> {
   const cacheKey = await getAuthScopedPointsCacheKey('pending-reward');
 
   return cachedQuery(
     cacheKey,
     async () => {
-      const groups = await loadBuklodClaimGroups();
-
-      if (groups.length > 0) {
-        const totalPoints = groups.reduce(
-          (sum, group) => sum + group.total_points,
-          0,
-        );
-        const totalEvents = groups.reduce(
-          (sum, group) => sum + group.event_count,
-          0,
-        );
-
-        return {
-          id: CLAIM_ALL_COMPAT_EVENT_ID,
-          event_type: 'points',
-          points: totalPoints,
-          activity_type: 'claim_all',
-          rank_code: null,
-          rank_name: null,
-          title: 'BUKLOD Points Ready',
-          message:
-            `${totalEvents.toLocaleString('en-PH')} completed ${
-              totalEvents === 1 ? 'activity is' : 'activities are'
-            } ready to claim.`,
-          spoken_message: null,
-          created_at: new Date().toISOString(),
-        } satisfies BuklodRewardEvent;
-      }
-
       const { data, error } = await supabase.rpc(
         'get_my_pending_buklod_reward_event',
       );
@@ -227,19 +189,8 @@ export async function loadPendingBuklodRewardEvent(): Promise<BuklodRewardEvent 
 export async function claimBuklodRewardEvent(
   eventId: string,
 ): Promise<BuklodClaimResult> {
-  const rpcName =
-    eventId === CLAIM_ALL_COMPAT_EVENT_ID
-      ? 'claim_all_my_buklod_reward_events_v1'
-      : 'claim_my_buklod_reward_event';
-
-  const args =
-    eventId === CLAIM_ALL_COMPAT_EVENT_ID
-      ? undefined
-      : { p_event_id: eventId };
-
   const { data, error } = await (supabase as any).rpc(
-    rpcName,
-    args,
+    'claim_my_buklod_reward_event', { p_event_id: eventId },
   );
 
   if (error) {
