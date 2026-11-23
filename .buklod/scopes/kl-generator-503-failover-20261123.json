@@ -1,0 +1,57 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore KL question generation after manuscript edits when primary Gemini model returns 503.",
+  "baseRef": "main",
+  "sourceBranch": "fix/kl-ai-503-failover-20261123",
+  "chosenApproach": "Fail over to a second low-cost Gemini model on upstream 404/5xx without relaxing evidence checks or spending on repeated 503 retries.",
+  "selectionRationale": "Live logs report 43 generator HTTP 502s caused by Gemini 3.5 Flash-Lite 503; edited manuscript correctly invalidates old banks.",
+  "riskAreas": [
+    "KL manuscript",
+    "Supabase Edge security",
+    "Gemini provider costs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kl-generator-503-failover-20261123.json",
+    "supabase/functions/kl-generate-reading-quiz/index.ts",
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/kl-supabase-generator-503.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/kl-supabase-generator-503.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Admin-only auth enforced by current Supabase RPC.",
+    "Exactly 5 evidence-validated questions, answer keys private; 429 quota failures stop.",
+    "Reading progress and points unchanged; no chapter release, OTA or native change."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Restore existing KL app reader workflow after upstream provider model outage.",
+      "preservedBehaviors": [
+        "No changes to existing native runtime, ads, navigation, reader or release behavior."
+      ],
+      "tests": [
+        "tests/kl-approved-auto-reading-quiz.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Improve existing protected Edge Function model fallback, retaining confidentiality and auth.",
+      "preservedBehaviors": [
+        "Active System Admin auth remains mandatory; bank storage still checks exact manuscript evidence and hashes.",
+        "429 stops generation and no answer keys are disclosed to reader."
+      ],
+      "tests": [
+        "tests/kl-supabase-generator-503.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Run both changed Node tests and Engineering Accountability gate.",
+    "Review exact deployed function version before any production claim.",
+    "Re-run K11 as System Admin and confirm 5 validated questions; do not publish chapter without READY bank."
+  ],
+  "publicationStatus": "DEV_SOURCE_ONLY_NO_LIVE_BACKEND_DEPLOY"
+}
