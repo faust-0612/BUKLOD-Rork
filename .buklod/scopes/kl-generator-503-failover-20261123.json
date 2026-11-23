@@ -14,11 +14,13 @@
     ".buklod/scopes/kl-generator-503-failover-20261123.json",
     "supabase/functions/kl-generate-reading-quiz/index.ts",
     "tests/kl-approved-auto-reading-quiz.test.mjs",
-    "tests/kl-supabase-generator-503.test.mjs"
+    "tests/kl-supabase-generator-503.test.mjs",
+    "supabase/tests/kl_generate_reading_quiz_failover_security_v1.sql"
   ],
   "regressionTests": [
     "tests/kl-approved-auto-reading-quiz.test.mjs",
-    "tests/kl-supabase-generator-503.test.mjs"
+    "tests/kl-supabase-generator-503.test.mjs",
+    "supabase/tests/kl_generate_reading_quiz_failover_security_v1.sql"
   ],
   "preserveBehaviors": [
     "Admin-only auth enforced by current Supabase RPC.",
@@ -44,14 +46,22 @@
         "429 stops generation and no answer keys are disclosed to reader."
       ],
       "tests": [
-        "tests/kl-supabase-generator-503.test.mjs"
+        "tests/kl-supabase-generator-503.test.mjs",
+        "supabase/tests/kl_generate_reading_quiz_failover_security_v1.sql"
       ]
     }
   ],
   "acceptanceChecks": [
     "Run both changed Node tests and Engineering Accountability gate.",
     "Review exact deployed function version before any production claim.",
-    "Re-run K11 as System Admin and confirm 5 validated questions; do not publish chapter without READY bank."
+    "Re-run K11 as System Admin and confirm 5 validated questions; do not publish chapter without READY bank.",
+    "Read-only SQL regression confirms admin RPC privileges and manuscript-change approval trigger remain protected."
   ],
-  "publicationStatus": "DEV_SOURCE_ONLY_NO_LIVE_BACKEND_DEPLOY"
+  "publicationStatus": "DEV_SOURCE_ONLY_NO_LIVE_BACKEND_DEPLOY",
+  "productionBaselineEvidence": "Main source baseline 993fba1b405a4c1a50d1d377e223f024f46a076b; live Supabase yhanxndaqbmuzbdqlblu read-only checks Nov 23 2026 show K11 approved, quiz pending, manuscript hash current, five stored records with one invalid evidence; Edge upstream 503 recorded 43 times. No production runtime/OTA change verified.",
+  "alternativeApproaches": [
+    "Mark pending stale quiz READY (rejected: one stored evidence excerpt is not in current manuscript).",
+    "Repeat same overloaded 503 model multiple times (rejected: cost and latency).",
+    "Expand to alternate Flash-Lite on transient 5xx without weaker SQL validation (selected)."
+  ]
 }
