@@ -10,6 +10,8 @@ android {
     minSdkVersion 24
     versionCode 1
     versionName '1.0.0'
+    // Release R8 must keep the Godot JNI entry points without disabling app shrinking.
+    consumerProguardFiles 'consumer-rules.pro'
   }
 }
 dependencies {

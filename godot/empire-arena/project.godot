@@ -5,6 +5,9 @@ config_version=5
 config/name="BUKLOD Empire Arena"
 run/main_scene="res://scenes/Arena.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/show_image=true
+boot_splash/image="res://splash/buklod-green-b.png"
+boot_splash/bg_color=Color(0.019608, 0.039216, 0.098039, 1)
 
 [display]
 window/size/viewport_width=1280

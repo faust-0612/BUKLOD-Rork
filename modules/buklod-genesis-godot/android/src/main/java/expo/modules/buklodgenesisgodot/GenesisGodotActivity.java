@@ -14,6 +14,8 @@ public final class GenesisGodotActivity extends GodotActivity {
   static final String EXTRA_BUNDLED_ARENA = "buklod_native_arena";
   static final String EXTRA_BUNDLED_WORLD = "buklod_native_world";
   private static final String BUNDLED_ARENA_ASSET = "godot/empire-arena.zip";
+  // GodotHost uses a resource URL for main packs embedded in APK assets.
+  private static final String BUNDLED_MAIN_PACK = "res://" + BUNDLED_ARENA_ASSET;
 
   @Override
   public List<String> getCommandLine() {
@@ -24,7 +26,7 @@ public final class GenesisGodotActivity extends GodotActivity {
       try (java.io.InputStream resource = getAssets().open(BUNDLED_ARENA_ASSET)) {
         if (resource.read() < 0) return result;
         result.add("--main-pack");
-        result.add(BUNDLED_ARENA_ASSET);
+        result.add(BUNDLED_MAIN_PACK);
       } catch (java.io.IOException ignored) {
         // Fail closed. The Expo entrypoint checks asset presence before launch.
       }
@@ -38,7 +40,7 @@ public final class GenesisGodotActivity extends GodotActivity {
       try (java.io.InputStream resource = getAssets().open(BUNDLED_ARENA_ASSET)) {
         if (resource.read() < 0) return result;
         result.add("--main-pack");
-        result.add(BUNDLED_ARENA_ASSET);
+        result.add(BUNDLED_MAIN_PACK);
         result.add("--scene");
         result.add("res://scenes/WorldPreview.tscn");
         result.add("--");

@@ -222,6 +222,22 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "season2-genesis-launch-recovery-staging": {
+      "extends": "season2-genesis-library-staging",
+      "channel": "season2-genesis-library-205-preview",
+      "android": {
+        "buildType": "apk",
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205": "true",
+        "EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED": "false",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS",
+        "EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW": "true"
+      },
+      "autoIncrement": false
     }
   },
   "submit": {

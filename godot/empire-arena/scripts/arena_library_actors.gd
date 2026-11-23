@@ -8,7 +8,7 @@ const MAX_ALL_UNITS := 90
 const WAVE_SECONDS := 30.0
 const VILLAGER_RESPAWN := 60.0
 
-static func seed_villagers(sim: BuklodArenaSimulation, team: String) -> void:
+static func seed_villagers(sim, team: String) -> void:
 	var faction := "lux" if team == "A" else "tenebra"
 	var source: Dictionary = sim.config["library"]["villagers"][faction]
 	var jobs: Array = source["villagers"]
@@ -32,17 +32,17 @@ static func seed_villagers(sim: BuklodArenaSimulation, team: String) -> void:
 		sim.state["units"].append(actor)
 	sim._log("village_arrived", {"team": team, "faction": source["name"]})
 
-static func _count_active(sim: BuklodArenaSimulation) -> int:
+static func _count_active(sim) -> int:
 	var n := 0
 	for u in sim.state["units"]:
 		if u.get("library_minion", false) and sim._alive(u):
 			n += 1
 	return n
 
-static func _minion_definition(sim: BuklodArenaSimulation, kind: String) -> Dictionary:
+static func _minion_definition(sim, kind: String) -> Dictionary:
 	return sim.config["library"]["minions"].get(kind, {})
 
-static func _spawn_minion(sim: BuklodArenaSimulation, team: String, kind: String,
+static func _spawn_minion(sim, team: String, kind: String,
 		lane: int, power: float = 1.0) -> bool:
 	if _count_active(sim) >= MAX_ACTIVE_MINIONS or sim.state["units"].size() >= MAX_ALL_UNITS:
 		return false
@@ -69,7 +69,7 @@ static func _spawn_minion(sim: BuklodArenaSimulation, team: String, kind: String
 	sim.state["units"].append(unit)
 	return true
 
-static func advance_waves(sim: BuklodArenaSimulation) -> void:
+static func advance_waves(sim) -> void:
 	if sim.state.get("solo", false): return
 	var rules: Dictionary = sim.config.get("libraryModes", {}).get(sim.state["mode"], {})
 	var interval: float = clampf(float(rules.get("waveSeconds", WAVE_SECONDS)), 15.0, 60.0)
@@ -106,7 +106,7 @@ static func advance_waves(sim: BuklodArenaSimulation) -> void:
 	if total > 0:
 		sim._log("library_minion_wave", {"wave": index, "count": total})
 
-static func advance_minion(sim: BuklodArenaSimulation, u: Dictionary) -> void:
+static func advance_minion(sim, u: Dictionary) -> void:
 	if not sim._alive(u): return
 	var now: float = float(sim.state["time"])
 	var enemy_team: String = sim._other(u["team"])
@@ -143,7 +143,7 @@ static func advance_minion(sim: BuklodArenaSimulation, u: Dictionary) -> void:
 		float(sim.state["h"]) * float(lanes[int(u["library_lane"])]))
 	sim._move(u, goal - u["pos"], float(u["library_speed"]))
 
-static func advance_villager(sim: BuklodArenaSimulation, v: Dictionary) -> void:
+static func advance_villager(sim, v: Dictionary) -> void:
 	var now: float = float(sim.state["time"])
 	if not sim._alive(v):
 		if float(v["library_down_until"]) <= 0:

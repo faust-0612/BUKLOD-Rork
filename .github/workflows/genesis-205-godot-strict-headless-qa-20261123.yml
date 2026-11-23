@@ -1,0 +1,61 @@
+name: BUKLOD Genesis 2.0.5 Strict Godot ZIP Scene and Gameplay QA
+# Run #3: add explicit bool types on dynamic Library hero dash calls; cyclic types already removed.
+# Exact native source fix: replace cyclic typed BuklodArenaSimulation references in Library scripts.
+# No Android signing or Expo quota use in this smoke.
+on:
+  push:
+    branches:
+      - dev/genesis-godot-launch-recovery-20261123
+    paths:
+      - '.github/workflows/genesis-205-godot-strict-headless-qa-20261123.yml'
+permissions:
+  contents: read
+jobs:
+  strict-godot:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'GENESIS_GODOT_205_STRICT_GODOT_QA:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GODOT_PACK: /tmp/buklod-205-native-godot.zip
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preserve native manifest, 205 runtime, both splash screens, 13 heroes/70 cues
+        run: |
+          set -euo pipefail
+          node scripts/genesis-205-native-release-gate.mjs
+          node scripts/build-empire-godot-pack.mjs --out="$GODOT_PACK"
+          unzip -t "$GODOT_PACK" | tail -n 2
+      - name: Godot 4.7.2 STRICT packed Android main-scene and gameplay smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/buklod-godot472.zip
+          mkdir -p /tmp/buklod-godot472
+          unzip -q /tmp/buklod-godot472.zip -d /tmp/buklod-godot472
+          GODOT="$(find /tmp/buklod-godot472 -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          mkdir -p godot/empire-arena/splash
+          cp assets/season2/genesis/genesis-green-b-transparent.png godot/empire-arena/splash/buklod-green-b.png
+          timeout 120s "$GODOT" --headless --path godot/empire-arena --editor --import --quit > /tmp/godot-import.log 2>&1
+          cat /tmp/godot-import.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/godot-import.log; then echo 'BLOCK: Godot source parsing failed'; exit 1; fi
+          timeout 120s "$GODOT" --headless --main-pack "$GODOT_PACK" --quit-after 15 > /tmp/godot-main.log 2>&1
+          cat /tmp/godot-main.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/godot-main.log; then echo 'BLOCK: Godot packed scene runtime error'; exit 1; fi
+          grep -F 'BUKLOD_GODOT_ARENA_SCENE_READY' /tmp/godot-main.log ||
+            { echo 'BLOCK: Godot never entered the real Arena root scene'; exit 1; }
+          for entry in "smoke.gd|BUKLOD_GODOT_SMOKE_PASS" "library_smoke.gd|BUKLOD_GODOT_LIBRARY_SMOKE_PASS" "library_modes_audio_smoke.gd|BUKLOD_GODOT_LIBRARY_MODES_AUDIO_PASS" "world_smoke.gd|BUKLOD_GENESIS_GODOT_WORLDS_PASS"; do
+            IFS='|' read -r script expected <<< "$entry"
+            out="/tmp/buklod-strict-$script.log"
+            timeout 120s "$GODOT" --headless --main-pack "$GODOT_PACK" --script "res://tests/$script" > "$out" 2>&1
+            cat "$out"
+            if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' "$out"; then echo "BLOCK: $script emitted errors"; exit 1; fi
+            grep -F "$expected" "$out" || { echo "BLOCK: $script did not prove native gameplay"; exit 1; }
+          done
+          echo 'BUKLOD_GENESIS_205_STRICT_GODOT_RUNTIME_AND_GAMEPLAY_PASS'
