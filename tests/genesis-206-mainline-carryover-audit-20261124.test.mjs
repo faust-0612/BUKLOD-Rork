@@ -7,7 +7,7 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 function blob(ref,p){
   const out=execFileSync('git',['ls-tree','-r',ref,'--',p],{encoding:'utf8'}).trim();
   assert.ok(out.includes('\t'+p),'Source path missing '+p);
-  const sha=out.split(/\\s+/)[2];
+  const sha=out.slice(0,out.indexOf('\t')).split(' ')[2];
   assert.match(sha,/^[a-f0-9]{40}$/);
   return sha;
 }
