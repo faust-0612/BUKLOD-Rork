@@ -3,6 +3,14 @@ on:
   pull_request:
     paths:
       - 'src/components/kabihasnang-ligaw/KlReaderScreen.tsx'
+      - 'src/app/kabihasnang-ligaw.tsx'
+      - 'src/components/kabihasnang-ligaw/KlDashboardHome.tsx'
+      - 'src/components/kabihasnang-ligaw/KlPublishingStudio.tsx'
+      - 'src/components/kabihasnang-ligaw/KlSeriesAdminPanel.tsx'
+      - 'src/components/kabihasnang-ligaw/KlSeriesReleaseDesk.tsx'
+      - 'supabase/migrations/20261123203000_kl_s2_series_dashboard_catalog.sql'
+      - 'tests/kl-s2-series-dashboard-publisher-20261123.test.mjs'
+      - '.buklod/scopes/kl-s2-series-dashboard-publisher-20261123.json'
       - 'src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx'
       - 'src/components/kabihasnang-ligaw/KlSeriesReflection.tsx'
       - 'supabase/migrations/20261119221000_kl_s2_sequential_no_timer_series_reflection.sql'
@@ -37,6 +45,7 @@ jobs:
           npx tsc --noEmit
           node --experimental-strip-types --test \
             tests/kl-s2-sequential-quiz-reflection-20261119.test.mjs \
+            tests/kl-s2-series-dashboard-publisher-20261123.test.mjs \
             tests/kl-s2-sequence-database-security-20261119.test.mjs \
             tests/kl-s2-progressive-chapters-ads-20261119.test.mjs \
             tests/kl-s2-chapter-quiz-deferred-20261119.test.mjs \
