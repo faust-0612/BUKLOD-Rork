@@ -1,0 +1,9 @@
+<resources>
+  <style name="Theme.Genesis" parent="android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/brand_mark</item>
+    <item name="android:windowSplashScreenBackground">#050A19</item>
+    <item name="android:windowBackground">#050A19</item>
+    <item name="android:statusBarColor">#050A19</item>
+    <item name="android:navigationBarColor">#050A19</item>
+  </style>
+</resources>
