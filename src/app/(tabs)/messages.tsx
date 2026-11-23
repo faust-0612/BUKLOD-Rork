@@ -916,6 +916,9 @@ function ConnectScreenInner({
       // No global message subscription needed for a first-contact push.
       // The authenticated RPC retrieves eligible threads and requests.
       invalidateBuklodConnectUnreadCaches('both');
+      // Invalidate a snapshot already in flight; otherwise its older result
+      // can briefly undo the latest activity before the debounced reload.
+      ++loadSequenceRef.current;
       lastInboxSyncRef.current.at = 0;
       refreshInboxOnSignal();
     });
@@ -987,6 +990,7 @@ function ConnectScreenInner({
           }
           // Realtime inserts must bypass the 10s inbox snapshot TTL.
           invalidateBuklodConnectUnreadCaches(kind);
+          ++loadSequenceRef.current;
           lastInboxSyncRef.current.at = 0;
           refreshInboxOnSignal();
         },
