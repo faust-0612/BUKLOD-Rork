@@ -1,0 +1,108 @@
+name: BUKLOD Points Staging RC Backend and EAS Preflight (No OTA)
+on:
+  push:
+    branches:
+      - release/points-manual-claim-staging-rc-20261124
+    paths:
+      - .github/workflows/buklod-points-manual-claim-staging-rc-preflight.yml
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-points-staging-rc-preflight-20261124
+  cancel-in-progress: false
+jobs:
+  staging-read-only-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPO_NO_TELEMETRY: '1'
+      CI: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED: 'false'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact reviewed source and release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const a=require('node:assert/strict');
+          const cp=require('node:child_process');
+          const source='5b83062b4a0adffcf375aa1c1daed6f528c87563';
+          const git=(...args)=>cp.execFileSync('git',args,{encoding:'utf8'}).trim();
+          a.equal(git('rev-parse','HEAD^'),source,'RC must be built from exact verified QA commit');
+          a.equal(git('diff','--name-only',source,'HEAD'),'.github/workflows/buklod-points-manual-claim-staging-rc-preflight.yml');
+          const cfg=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          a.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          a.equal(cfg.runtimeVersion,'1.3.2');
+          a.equal(cfg.extra.appEnvironment,'staging');
+          a.equal(eas.build['staging-user'].environment,'preview');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.notEqual(eas.build.production.channel,eas.build['staging-user'].channel);
+          console.log('Reviewed staging source exactly preserved, native/build inputs unchanged.');
+          NODE
+      - name: Check exact-source successful GitHub QA
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha='5b83062b4a0adffcf375aa1c1daed6f528c87563';
+            const {data}=await github.rest.actions.listWorkflowRunsForRepo({
+              ...context.repo,head_sha:sha,per_page:100,
+            });
+            const run=data.workflow_runs.find(r=>
+              r.name==='BUKLOD Points Manual Claim Staging Source QA (No OTA)' &&
+              r.head_sha===sha && r.conclusion==='success'
+            );
+            if(!run) throw Error('Missing verified exact-source GitHub QA');
+            core.info('Exact source tests and TypeScript check previously passed: '+run.id);
+      - name: Install locked dependencies for EAS Expo configuration plugins
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Read-only EAS staging APK/channel and preview backend check
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'RELEASE BLOCKER: no Expo release token in GitHub secrets'; exit 1; }
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > /tmp/points-staging-build.json
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/points-staging-channel.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/points-production-channel.json
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/points-stage-preview.env --non-interactive > /dev/null
+          set -a
+          . /tmp/points-stage-preview.env
+          set +a
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          verifyBuild(read('/tmp/points-staging-build.json'));
+          verifyChannels(read('/tmp/points-staging-channel.json'),read('/tmp/points-production-channel.json'));
+          const prod=await manifest('production');
+          assert.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          const url=String(process.env.EXPO_PUBLIC_SUPABASE_URL??'').trim().toLowerCase();
+          assert.match(url,/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,'No publishable key');
+          const live=url==='https://yhanxndaqbmuzbdqlblu.supabase.co';
+          console.log('EAS channels distinct; signed staging APK/runtime and production manifest verified.');
+          console.log('PREVIEW_BACKEND_SHARED_WITH_LIVE='+live);
+          if(live) {
+            console.error('HOLD FOR OWNER POLICY: manual claim RPCs would modify real user balances from staging.');
+            console.error('No staging OTA published. Staging with shared live Supabase cannot be verified by claiming real rewards.');
+            process.exitCode=20;
+          } else {
+            console.log('Backend is not the known live MAIN ref; independent backend identity and permissions require verification.');
+          }
+          NODE
+      - name: No staging or production OTA from preflight
+        if: always()
+        run: echo 'READ-ONLY EAS/GitHub preflight only — no OTA, database or AdMob configuration changes.'
