@@ -154,9 +154,9 @@ export default function MentorAssignmentsAdmin() {
           <View style={styles.wrap}>{reviewLearners.map(x=>
             <Pressable key={x.id} onPress={()=>setReviewLearnerId(x.id)}
               style={[styles.chip,reviewLearnerId===x.id&&styles.chipOn]}>
-              <Text>{x.full_name||'Member'}</Text>
+              <Text>{x.full_name||'Member'} · ID …{x.id.slice(-6)}</Text>
             </Pressable>)}</View>
-          {!!reviewLearnerId&&<Text style={shared.muted}>Selected verified member: {members.find(x=>x.id===reviewLearnerId)?.full_name}</Text>}
+          {!!reviewLearnerId&&<Text style={shared.muted}>Selected verified member: {members.find(x=>x.id===reviewLearnerId)?.full_name} · ID …{reviewLearnerId.slice(-6)}. Verify their actual account before approving.</Text>}
           <TextInput style={styles.input} multiline maxLength={500}
             placeholder="Required review/audit note (12+ characters)"
             value={reviewNote} onChangeText={setReviewNote}/>
