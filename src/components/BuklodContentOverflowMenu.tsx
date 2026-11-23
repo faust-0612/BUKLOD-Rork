@@ -1,5 +1,6 @@
 import React, {
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -90,6 +91,10 @@ export function BuklodContentOverflowMenu({
     useState<CommunityEditPhoto[]>(photos);
   const [editBusy, setEditBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const actionInFlightRef = useRef(false);
+  const editInFlightRef = useRef(false);
+  const [confirmAction, setConfirmAction] = useState<'delete' | 'public' | null>(null);
 
   const canManage = Boolean(
     onEdit || onDelete || onToggleAuthorOnly
@@ -107,42 +112,38 @@ export function BuklodContentOverflowMenu({
     setEditOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (!onDelete) {
-      return;
-    }
-
-    Alert.alert(
-      title,
-      'Remove this permanently?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void Promise.resolve(onDelete()).catch(
-              (error: any) => {
-                Alert.alert(
-                  title,
-                  error?.message ||
-                    'Could not delete this.'
-                );
-              }
-            );
-          },
-        },
-      ]
-    );
+  // Confirmation stays in the SAME native Modal. Android can lose a new
+  // dialog when it opens while another native Modal is still closing.
+  const openMenu = () => {
+    if (actionBusy || editBusy) return;
+    setConfirmAction(null);
+    setMenuOpen(true);
   };
-
-  // Android Alert supports at most three visible buttons. The former
-  // four-action owner menu silently dropped Cancel; use a dismissible sheet.
-  const openMenu = () => setMenuOpen(true);
-  const closeMenu = () => setMenuOpen(false);
+  const closeMenu = () => {
+    if (actionBusy) return;
+    setConfirmAction(null);
+    setMenuOpen(false);
+  };
   const runMenuAction = (action: () => void) => {
+    if (actionBusy) return;
     setMenuOpen(false);
     action();
+  };
+
+  const completeOwnerAction = async (action: () => Promise<void> | void) => {
+    if (actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
+    setActionBusy(true);
+    try {
+      await action();
+      setConfirmAction(null);
+      setMenuOpen(false);
+    } catch (error: any) {
+      Alert.alert(title, error?.message || 'Could not update this post.');
+    } finally {
+      actionInFlightRef.current = false;
+      setActionBusy(false);
+    }
   };
 
   const addPhotos = async () => {
@@ -190,6 +191,13 @@ export function BuklodContentOverflowMenu({
 
     const next = editBody.trim();
 
+    if (!next) {
+      Alert.alert('Edit', 'Write something before saving this post.');
+      return;
+    }
+
+    if (editInFlightRef.current || photoBusy) return;
+
     if (typeof maxChars === 'number' && next.length > maxChars) {
       Alert.alert(
         'Edit',
@@ -198,13 +206,21 @@ export function BuklodContentOverflowMenu({
       return;
     }
 
+    editInFlightRef.current = true;
     setEditBusy(true);
 
     try {
-      await onEdit(
-        next,
-        allowPhotoEdit ? editPhotos : undefined
+      // Untouched photos must not be reattached on a caption edit. This
+      // avoids replacing signed URLs, media rows, previews, and video state.
+      const photosChanged = allowPhotoEdit && (
+        editPhotos.length !== photos.length ||
+        editPhotos.some((photo, index) =>
+          photo.id !== photos[index]?.id ||
+          photo.uri !== photos[index]?.uri ||
+          photo.mediaPath !== photos[index]?.mediaPath
+        )
       );
+      await onEdit(next, photosChanged ? editPhotos : undefined);
       setEditOpen(false);
     } catch (error: any) {
       Alert.alert(
@@ -212,6 +228,7 @@ export function BuklodContentOverflowMenu({
         error?.message || 'Could not save this.'
       );
     } finally {
+      editInFlightRef.current = false;
       setEditBusy(false);
     }
   };
@@ -226,6 +243,7 @@ export function BuklodContentOverflowMenu({
             : 'Report this post'
         }
         hitSlop={BUKLOD_HIT_SLOP}
+        disabled={actionBusy || editBusy}
         onPress={(event) => {
           event.stopPropagation?.();
           openMenu();
@@ -244,75 +262,16 @@ export function BuklodContentOverflowMenu({
       </Pressable>
 
       <Modal
-        visible={menuOpen}
+        visible={menuOpen || editOpen}
         transparent
         animationType="fade"
-        onRequestClose={closeMenu}
+        onRequestClose={() => {
+          if (editBusy || actionBusy || photoBusy) return;
+          if (editOpen) setEditOpen(false);
+          else closeMenu();
+        }}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss post options"
-          style={styles.menuBackdrop}
-          onPress={closeMenu}
-        >
-          <Pressable
-            accessibilityRole="menu"
-            accessibilityLabel={title}
-            style={styles.menuSheet}
-            onPress={event => event.stopPropagation()}
-          >
-            <Text style={styles.menuHeading}>{title}</Text>
-            {onEdit ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Edit post"
-                style={styles.menuRow} onPress={() => runMenuAction(openEdit)}>
-                <MaterialCommunityIcons name="pencil-outline" size={20} color={theme.textPrimary} />
-                <Text style={styles.menuRowText}>Edit</Text>
-              </Pressable>
-            ) : null}
-            {onToggleAuthorOnly ? (
-              <Pressable accessibilityRole="button"
-                accessibilityLabel={authorOnly ? 'Show to everyone' : 'Only me'}
-                style={styles.menuRow}
-                onPress={() => runMenuAction(() => {
-                  void Promise.resolve(onToggleAuthorOnly()).catch((error: any) =>
-                    Alert.alert(title, error?.message || 'Could not update visibility.'));
-                })}>
-                <MaterialCommunityIcons name={authorOnly ? 'earth' : 'lock-outline'} size={20} color={theme.textPrimary} />
-                <Text style={styles.menuRowText}>{authorOnly ? 'Show to everyone' : 'Ako lang (only me)'}</Text>
-              </Pressable>
-            ) : null}
-            {onDelete ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Delete post"
-                style={styles.menuRow}
-                onPress={() => runMenuAction(confirmDelete)}>
-                <MaterialCommunityIcons name="delete-outline" size={20} color="#B43D3D" />
-                <Text style={[styles.menuRowText, { color: '#B43D3D' }]}>Delete</Text>
-              </Pressable>
-            ) : null}
-            {onReport ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Report post"
-                style={styles.menuRow} onPress={() => runMenuAction(onReport)}>
-                <MaterialCommunityIcons name="flag-outline" size={20} color="#B43D3D" />
-                <Text style={[styles.menuRowText, { color: '#B43D3D' }]}>Report</Text>
-              </Pressable>
-            ) : null}
-            <Pressable accessibilityRole="button" accessibilityLabel="Cancel post options"
-              style={[styles.menuRow, styles.menuCancel]} onPress={closeMenu}>
-              <MaterialCommunityIcons name="close" size={20} color={theme.textMuted} />
-              <Text style={[styles.menuRowText, { color: theme.textMuted }]}>Cancel</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal
-        visible={editOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setEditOpen(false)
-        }
-      >
+        {editOpen ? (
         <KeyboardAvoidingView
           style={styles.backdrop}
           behavior={
@@ -447,7 +406,7 @@ export function BuklodContentOverflowMenu({
 
             <View style={styles.actions}>
               <Pressable
-                disabled={editBusy}
+                disabled={editBusy || photoBusy}
                 onPress={() => setEditOpen(false)}
                 style={styles.button}
               >
@@ -457,7 +416,7 @@ export function BuklodContentOverflowMenu({
               </Pressable>
 
               <Pressable
-                disabled={editBusy}
+                disabled={editBusy || photoBusy}
                 onPress={() => void saveEdit()}
                 style={[
                   styles.button,
@@ -482,6 +441,108 @@ export function BuklodContentOverflowMenu({
             </View>
           </View>
         </KeyboardAvoidingView>
+        ) : confirmAction ? (
+          <View style={styles.menuBackdrop}>
+            <View style={styles.menuSheet}>
+              <Text style={styles.menuHeading}>
+                {confirmAction === 'delete' ? 'Delete this post?' : 'Make this post public?'}
+              </Text>
+              <Text style={styles.confirmDescription}>
+                {confirmAction === 'delete'
+                  ? 'This post will disappear from the Wall. Its photos and video will no longer be available through the post.'
+                  : 'Anyone permitted to view the Wall will be able to see and share this post again.'}
+              </Text>
+              <View style={styles.actions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel confirmation"
+                  disabled={actionBusy}
+                  style={styles.button}
+                  onPress={() => setConfirmAction(null)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={confirmAction === 'delete' ? 'Confirm delete post' : 'Confirm make public'}
+                  disabled={actionBusy}
+                  style={[styles.button, confirmAction === 'delete'
+                    ? styles.buttonDestructive : styles.buttonPrimary]}
+                  onPress={() => {
+                    const action = confirmAction === 'delete' ? onDelete : onToggleAuthorOnly;
+                    if (action) void completeOwnerAction(action);
+                  }}
+                >
+                  {actionBusy ? <ActivityIndicator color="#FFFFFF" /> : (
+                    <Text style={[styles.buttonText, styles.buttonTextPrimary]}>
+                      {confirmAction === 'delete' ? 'Delete' : 'Make public'}
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss post options"
+          style={styles.menuBackdrop}
+          onPress={closeMenu}
+        >
+          <Pressable
+            accessibilityRole="menu"
+            accessibilityLabel={title}
+            style={styles.menuSheet}
+            onPress={event => event.stopPropagation()}
+          >
+            <Text style={styles.menuHeading}>{title}</Text>
+            {onEdit ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Edit post"
+                style={styles.menuRow} onPress={() => runMenuAction(openEdit)}>
+                <MaterialCommunityIcons name="pencil-outline" size={20} color={theme.textPrimary} />
+                <Text style={styles.menuRowText}>Edit</Text>
+              </Pressable>
+            ) : null}
+            {onToggleAuthorOnly ? (
+              <Pressable accessibilityRole="button"
+                accessibilityLabel={authorOnly ? 'Make public' : 'Only me'}
+                disabled={actionBusy}
+                style={styles.menuRow}
+                onPress={() => {
+                  if (authorOnly) {
+                    setConfirmAction('public');
+                  } else {
+                    void completeOwnerAction(onToggleAuthorOnly);
+                  }
+                }}>
+                <MaterialCommunityIcons name={authorOnly ? 'earth' : 'lock-outline'} size={20} color={theme.textPrimary} />
+                <Text style={styles.menuRowText}>{authorOnly ? 'Make public' : 'Ako lang (only me)'}</Text>
+              </Pressable>
+            ) : null}
+            {onDelete ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Delete post"
+                disabled={actionBusy}
+                style={styles.menuRow}
+                onPress={() => setConfirmAction('delete')}>
+                <MaterialCommunityIcons name="delete-outline" size={20} color="#B43D3D" />
+                <Text style={[styles.menuRowText, { color: '#B43D3D' }]}>Delete</Text>
+              </Pressable>
+            ) : null}
+            {onReport ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Report post"
+                style={styles.menuRow} onPress={() => runMenuAction(onReport)}>
+                <MaterialCommunityIcons name="flag-outline" size={20} color="#B43D3D" />
+                <Text style={[styles.menuRowText, { color: '#B43D3D' }]}>Report</Text>
+              </Pressable>
+            ) : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="Cancel post options"
+              style={[styles.menuRow, styles.menuCancel]} onPress={closeMenu}>
+              <MaterialCommunityIcons name="close" size={20} color={theme.textMuted} />
+              <Text style={[styles.menuRowText, { color: theme.textMuted }]}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+        )}
       </Modal>
     </>
   );
@@ -531,6 +592,16 @@ function createStyles(theme: BuklodThemeRoles) {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.border,
       borderRadius: 0,
+    },
+    confirmDescription: {
+      paddingHorizontal: 12,
+      paddingBottom: 18,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.textMuted,
+    },
+    buttonDestructive: {
+      backgroundColor: '#B43D3D',
     },
     backdrop: {
       flex: 1,

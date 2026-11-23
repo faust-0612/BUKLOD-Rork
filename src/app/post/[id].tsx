@@ -449,6 +449,7 @@ export default function PostDetail(){
       authorOnly={!!post.author_only}
       iconColor={theme.textMuted}
       allowPhotoEdit={!communityPostIsVideo(post)}
+      maxChars={12000}
       maxPhotos={COMMUNITY_MAX_PHOTOS}
       photos={communityPostEditPhotos(post)}
       onEdit={async (nextBody, nextPhotos) => {
@@ -456,7 +457,7 @@ export default function PostDetail(){
         postId: post.id,
         userId: String(user?.id ?? ''),
         body: nextBody,
-        photos: nextPhotos ?? [],
+        photos: nextPhotos,
        });
        setPost((current: any) =>
         current
