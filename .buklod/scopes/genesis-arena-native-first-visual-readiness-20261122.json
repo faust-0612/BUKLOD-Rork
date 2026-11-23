@@ -1,0 +1,87 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-arena-native-first-visual-readiness-20261122.json",
+  "objective": "Close observed older React Native preview landing on new Genesis Library APK, audit specific Library minion/drop/structure visual deficits without publishing an incomplete signed APK.",
+  "baseRef": "351bbad6eb138692fb3197aa42ecb395110d160c",
+  "selectionRationale": "Owner screenshots show React Native PRACTICE LIVE fallback despite existing Godot native runtime source, while exact original Library 300 drops/8 minions are not copied by the Godot pack. New-library-only native-first route fixes the obvious entry discrepancy; fail-closed source audit makes missing art explicit rather than falsely certifying AAA visuals.",
+  "alternativeApproaches": [
+    "Immediately replace all Arena RN routes with native Godot: rejected due older signed runtime/prod and auth fallbacks.",
+    "Wallpaper the Library infographic as a battlefield: rejected; concept is not collision-aligned playable tile art.",
+    "Treat 300 match ID catalog and prototype WAVs as proof of live icon/voice rendering: rejected.",
+    "Publish an updated signed APK without physical art/device verification: rejected."
+  ],
+  "allowedPaths": [
+    "src/app/games/empire-arena.tsx",
+    "scripts/genesis-arena-visual-readiness-20261122.mjs",
+    "tests/genesis-arena-visual-readiness-20261122.test.mjs",
+    "docs/empire-arena/GENESIS_LIBRARY_VISUAL_PARITY_AUDIT_20261122.md",
+    ".buklod/scopes/genesis-arena-native-first-visual-readiness-20261122.json",
+    ".github/workflows/arena-premium-godot-blender-dev-qa-20261122.yml",
+    ".github/workflows/genesis-library-eas-signed-apk-20261122.yml",
+    ".github/workflows/genesis-library-eas-local-signed-apk-20261122.yml",
+    "tests/genesis-arena-game-native-entry-20261122.test.mjs",
+    "godot/empire-arena/scripts/arena_root.gd",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/ingest-buklod-arena-library-art.py",
+    "tests/genesis-arena-library-art-contract-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preserve old BUKLOD runtime and route guards while enabling native Godot-first Arena only on the new staging library-native build; no old runtime or finance write.",
+      "preservedBehaviors": [
+        "Production and older staging/Expo-native runtimes are unmodified",
+        "Auth, consent, update, pilot and maintenance gates remain ahead of launching native game",
+        "Fallback to existing React Native preview when native Godot pack fails"
+      ],
+      "tests": [
+        "tests/genesis-arena-visual-readiness-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "The Arena screen is a game route, so protect Character/Game ownership, 13 canonical heroes, ranked-disabled and per-account progression while auto-entering the native offline library practice.",
+      "preservedBehaviors": [
+        "Character System owns verified rank/XP/items and Arena cannot mint BP, Diamond or QMP",
+        "All canonical 13 hero identities and old in-app practice remain accessible",
+        "The new library-native entry has bounded one-shot lifetime, no recursive launch"
+      ],
+      "tests": [
+        "tests/genesis-arena-game-native-entry-20261122.test.mjs",
+        "tests/genesis-arena-library-art-contract-20261122.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/genesis-arena-visual-readiness-20261122.test.mjs",
+    "tests/genesis-arena-game-native-entry-20261122.test.mjs",
+    "tests/genesis-arena-library-art-contract-20261122.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Older Genesis staging and production route/Expo runtime isolation",
+    "Auth, consent, pilot/update and private account gates",
+    "Existing React Native fallback when Godot unavailable and no release on this feature branch",
+    "Existing ranked-disabled state, no Diamond, BP, QMP or Character mutation",
+    "Existing all 13 hero and offline gameplay and audio/UI regression protections"
+  ],
+  "riskAreas": [
+    "Android activity auto-open on new signed 2.0.4 requires device orientation and audio/PTT testing",
+    "Native missing 300 icons/8 minions/structures remains a hard release blocker",
+    "No new signed artifact is generated; previously started signed build uses an older SHA and is not this visual source",
+    "Inherited premium Godot workflow malformed trailing duplication blocked reliable CI; adopt previously verified PR #1121 exact YAML normalization without removing any valid step.",
+    "Both signed build routes intentionally HOLD until new asset/pack/render art parity; must not merge while missing Library binaries unless deliberately holding new signed builds.",
+    "Renderer path and builder logic are staged but approved binary assets must be imported into GitHub source before any signed candidate; physical GPU visual evidence remains required"
+  ],
+  "productionBaselineEvidence": "No main edit. Main production runtime 1.3.2 and existing signed Play app are out of scope. New staging development based on PR #1100 exact 351bbad6eb138692fb3197aa42ecb395110d160c.",
+  "acceptanceChecks": [
+    "Static Node audit acknowledges current 52/13/3 present, reports missing Library 8/300/structure art",
+    "Strict visual release gate fails on missing runtime assets",
+    "Native-first route only when library 2.0.4 build and Godot flag both enabled",
+    "No activity reopening loop; RN fallback intact; unchanged production guard",
+    "Inherited premium Godot workflow has valid unique terminal no-release guard",
+    "Both future signed staging APK build routes fail closed before keystore/signing or paid EAS use if original art not rendered",
+    "All 300 canonical gameplay IDs exactly equal atlas item IDs and native pack copies 8 named faction PNGs when provided",
+    "Real native art renderer resolves 5 minion AI roles to original 4 visual archetypes per faction; no AI, wallet or rank changes"
+  ],
+  "chosenApproach": "Use existing BUKLOD main React Native-authenticated route and new library-only one-shot Godot entry, preserve old native runtimes and fallback; audit exact original assets and fail closed before any subsequent signed APK build until minion/drop/structure graphics are truly rendered. Prewire runtime minion role art and exact match-only pickup ID atlas, while retaining old practice fallbacks; signed APK remains blocked until actual approved Library binaries exist in the canonical source."
+}
