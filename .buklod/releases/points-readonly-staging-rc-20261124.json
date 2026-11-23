@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "BUKLOD_POINTS_READONLY_STAGING_20261124",
+  "status": "PREPARED_NOT_PUBLISHED",
+  "mainBaseline": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "frozenSource": "e7d20538957be67a84fd3e849d5783414e149a57",
+  "sourceQARun": 45238799173,
+  "sourceQA": {
+    "testsPassed": 46,
+    "typescript": "PASS",
+    "expoAndroidExport": "PASS",
+    "stagingSignedAPK": "PASS",
+    "easDistinctChannels": "PASS",
+    "backend": "existing live, READ-ONLY preview"
+  },
+  "signedAPKGitSource": "c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd",
+  "signedAPKBuildId": "bc4be208-bfb0-42f3-95cb-358353d0600f",
+  "target": {
+    "package": "org.mzbministry.buklod.staging",
+    "channel": "staging-user",
+    "runtime": "1.3.2",
+    "environment": "preview"
+  },
+  "releasePolicy": "staging Android only; owner marker gate; no production OTA",
+  "releaseMarker": "BUKLOD_OWNER_PUSH_POINTS_READONLY_STAGE_20261124:",
+  "sharedLiveSupabase": "yhanxndaqbmuzbdqlblu",
+  "newMutationPathsEnabled": false,
+  "rewardedBonusEnabled": false,
+  "deferred": [
+    "Points individual claim mutation",
+    "Rewarded +5 BP SSV",
+    "Points/QMP v4 schema",
+    "ABaKa doctrine migrations",
+    "Wall/Marites live storage upload changes",
+    "Genesis native"
+  ],
+  "caveats": [
+    "Existing unchanged staging routes may still write to shared live MAIN",
+    "Physical Android ad/nav acceptance not claimed; release only on exact preflight plus source QA"
+  ]
+}

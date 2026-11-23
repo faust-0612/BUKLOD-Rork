@@ -1,0 +1,205 @@
+# Deliberately inert until a FUTURE owner-authored, release-marker commit.
+# This workflow never deploys Supabase, updates MAIN, or writes to production OTA.
+name: BUKLOD Points Read-only Staging Android OTA — Owner-Gated
+on:
+  push:
+    branches:
+      - release/points-readonly-staging-rc-20261124
+    paths:
+      - .github/workflows/buklod-points-staging-readonly-publish-gated.yml
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-points-staging-user-ota-20261124
+  cancel-in-progress: false
+jobs:
+  release:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/points-readonly-staging-rc-20261124' && github.actor == 'faust-0612' && startsWith(github.event.head_commit.message, 'BUKLOD_OWNER_PUSH_POINTS_READONLY_STAGE_20261124:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED: 'false'
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      FROZEN_SOURCE: e7d20538957be67a84fd3e849d5783414e149a57
+      MAIN_BASE: 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04
+      SIGNED_APK_SOURCE: c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd
+      EVIDENCE_DIR: /tmp/buklod-points-readonly-stage-20261124
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify immutable source QA, MAIN parity, and native fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN_BASE"
+          git merge-base --is-ancestor "$MAIN_BASE" "$FROZEN_SOURCE"
+          git merge-base --is-ancestor "$FROZEN_SOURCE" "$GITHUB_SHA"
+          git diff --exit-code "$FROZEN_SOURCE" "$GITHUB_SHA" -- src/ supabase/ assets/ app.config.js eas.json package.json package-lock.json android/ ios/ plugins/ google-services.staging.json
+          git diff --exit-code "$SIGNED_APK_SOURCE" "$GITHUB_SHA" -- app.config.js eas.json package-lock.json android/ ios/ plugins/ google-services.staging.json
+          node <<'NODE'
+          const a=require('node:assert/strict'),cp=require('node:child_process'),fs=require('node:fs');
+          const git=(...args)=>cp.execFileSync('git',args,{encoding:'utf8'}).trim();
+          const changed=git('diff','--name-only',process.env.FROZEN_SOURCE,'HEAD').split('\n').filter(Boolean).sort();
+          a.deepEqual(changed,[
+            '.buklod/releases/points-readonly-staging-rc-20261124.json',
+            '.github/workflows/buklod-points-staging-readonly-publish-gated.yml',
+          ].sort());
+          const old=JSON.parse(git('show',process.env.SIGNED_APK_SOURCE+':package.json'));
+          const now=JSON.parse(fs.readFileSync('package.json','utf8'));
+          a.deepEqual(now.dependencies,old.dependencies,'Native dependency drift');
+          a.deepEqual(now.devDependencies,old.devDependencies,'Build dependency drift');
+          const c=require('./app.config.js')({config:{}}),e=require('./eas.json');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.appTarget,'main');
+          a.equal(e.build['staging-user'].channel,'staging-user');
+          a.equal(e.build['staging-user'].environment,'preview');
+          a.notEqual(e.build.production.channel,e.build['staging-user'].channel);
+          const ui=fs.readFileSync('src/components/points/BuklodPointsRewardsScreen.tsx','utf8');
+          a.match(ui,/const POINTS_STAGING_READ_ONLY = process.env.EXPO_PUBLIC_APP_ENV !== 'production'/);
+          const pos=ui.indexOf('const claimOne = useCallback');
+          a.ok(ui.indexOf('if (POINTS_STAGING_READ_ONLY)',pos) < ui.indexOf('await claimBuklodRewardEvent(card.event_id)',pos));
+          a.ok(!fs.existsSync('supabase/migrations/20261124014500_buklod_individual_points_claim_rewarded_ssv_v1.sql'));
+          console.log('Verified source/native parity and fail-closed read-only Points before release');
+          NODE
+      - name: Require exact-source 46/46 QA + signed Android export result
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha=process.env.FROZEN_SOURCE;
+            const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:sha,per_page:100});
+            const r=data.workflow_runs.find(x=>
+              x.name==='BUKLOD Points Staging Read-only Android RC QA (No OTA)' &&
+              x.head_sha===sha && x.conclusion==='success');
+            if(!r) throw Error('No successful exact-source read-only Points/AdMob/Hermes QA run');
+            core.info('Exact-source QA green, run ID '+r.id);
+      - name: Locked dependency check and source smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test tests/buklod-points-staging-preview-no-live-write-20261124.test.mjs tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs tests/buklod-ad-opportunities.test.cjs tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+          npx tsc --noEmit
+      - name: Verify EAS signed staging package, preview backend and production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN" || { echo 'Missing Expo token: NEVER publish'; exit 1; }
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-before.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-before.json"
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-points-preview.env --non-interactive > /dev/null
+          set -a; . /tmp/buklod-points-preview.env; set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          export EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED=false
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {verifyBuild,verifyChannels,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.EVIDENCE_DIR,read=p=>JSON.parse(fs.readFileSync(d+'/'+p,'utf8'));
+          verifyBuild(read('build.json'));
+          const stage=verifyChannels(read('staging-before.json'),read('production-before.json'));
+          assert.equal(stage.name,'staging-user');
+          assert.equal((process.env.EXPO_PUBLIC_SUPABASE_URL||'').toLowerCase(),
+            'https://yhanxndaqbmuzbdqlblu.supabase.co');
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          assert.equal(process.env.EXPO_PUBLIC_APP_ENV,'staging');
+          assert.equal(process.env.EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED,'false');
+          const prod=await manifest('production');
+          assert.equal(prod.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          fs.writeFileSync(d+'/prepublish.json',JSON.stringify({
+            sourceSha:process.env.GITHUB_SHA,
+            frozenSource:process.env.FROZEN_SOURCE,
+            productionUpdateId:prod.id,
+            stagingBranchId:stage.id,
+            stagingBranchName:stage.name,
+            androidPackage:'org.mzbministry.buklod.staging',
+            runtime:'1.3.2',
+            sharedLiveBackend:true,pointsClaimsStagingReadOnly:true,
+          },null,2));
+          NODE
+          npx expo config --json > "$EVIDENCE_DIR/expo-config.json"
+          node <<'NODE'
+          const a=require('node:assert/strict');
+          const c=require(process.env.EVIDENCE_DIR+'/expo-config.json');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.extra.appEnvironment,'staging');
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-points-readonly-android --clear
+          test -s /tmp/buklod-points-readonly-android/metadata.json
+      - name: Publish EXACTLY ONCE to staging-user ANDROID only (owner release marker)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$EVIDENCE_DIR/prior.json"
+          node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE_DIR;
+          const raw=JSON.parse(fs.readFileSync(d+'/prior.json','utf8'));
+          const rows=raw.currentPage??raw;
+          a.ok(Array.isArray(rows),'Cannot verify prior EAS update groups');
+          const prior=rows.find(x=>x.message==='BUKLOD_POINTS_READONLY_STAGE_'+process.env.GITHUB_SHA);
+          fs.writeFileSync(d+'/group',prior?.group||'');
+          NODE
+          if [ ! -s "$EVIDENCE_DIR/group" ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir /tmp/buklod-points-readonly-android --non-interactive --json --message "BUKLOD_POINTS_READONLY_STAGE_$GITHUB_SHA" > "$EVIDENCE_DIR/publish.json"
+            node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE_DIR;
+          const row=JSON.parse(fs.readFileSync(d+'/publish.json','utf8'));
+          a.ok(Array.isArray(row)&&row.length===1&&row[0].group);
+          fs.writeFileSync(d+'/group',row[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$EVIDENCE_DIR/group")" --json > "$EVIDENCE_DIR/update-view.json"
+      - name: Verify staged update receipt and EXACT production non-mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-after.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {verifyChannels,verifyUpdate,manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const d=process.env.EVIDENCE_DIR,read=p=>JSON.parse(fs.readFileSync(d+'/'+p,'utf8'));
+          const pre=read('prepublish.json');
+          const u=verifyUpdate(read('update-view.json'),process.env.GITHUB_SHA,'staging-user');
+          const branch=verifyChannels(read('staging-after.json'),read('production-after.json'));
+          assert.equal(branch.id,pre.stagingBranchId);
+          const stage=await manifest('staging-user');
+          assert.equal(stage.id.toLowerCase(),u.id.toLowerCase());
+          assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          const prod=await manifest('production');
+          assert.equal(prod.id,pre.productionUpdateId,'Production OTA changed during staged release');
+          const receipt={status:'VERIFIED STAGING-USER ANDROID OTA',sourceSha:pre.sourceSha,
+            frozenSource:pre.frozenSource,package:pre.androidPackage,runtime:pre.runtime,
+            updateId:u.id,groupId:u.group,channel:'staging-user',sharedLiveBackend:true,
+            pointsReadOnly:true,productionUpdateIdUnchanged:prod.id,physicalDeviceVerified:false};
+          fs.writeFileSync(d+'/verified-staging-update.json',JSON.stringify(receipt,null,2)+'\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,JSON.stringify(receipt,null,2)+'\n');
+          NODE
+      - name: Archive release evidence without exposing secret preview env
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-points-staging-readonly-${{ github.sha }}
+          path: /tmp/buklod-points-readonly-stage-20261124/*.json
+          retention-days: 14
+          if-no-files-found: ignore
