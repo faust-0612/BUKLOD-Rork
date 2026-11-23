@@ -145,6 +145,6 @@ test('Connect staging-only latest-activity scope enforces notification, chat and
   assert.deepEqual(result.impacted, ['app-runtime', 'navigation-auth', 'connect-ptt-calls', 'governance-lock']);
   assert.equal(scope.publicationStatus, 'DEV_ONLY_STAGING_RC_PENDING');
   const workflow = readFileSync(new URL('../.github/workflows/engineering-accountability.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /dev\\/connect-inbox-latest-activity-20261123/);
-  assert.match(workflow, /BUKLOD_SCOPE_MANIFEST=\\.buklod\\/scopes\\/connect-inbox-staging-20261123\\.json/);
+  assert.ok(workflow.includes('dev/connect-inbox-latest-activity-20261123'));
+  assert.ok(workflow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-inbox-staging-20261123.json'));
 });
