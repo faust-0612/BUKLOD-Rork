@@ -109,7 +109,14 @@ export function BuklodCommunityGifPicker({ visible, onClose, onPick, onPickRemot
     setSelecting(true);
     try {
       const file = await downloadConnectCatalogGif(item);
-      onPick(file);
+      // Convert Connect's generic attachment MIME type into this strictly
+      // GIF-only selector after the catalog's GIF download validation.
+      onPick({
+        uri: file.uri,
+        name: file.name,
+        mimeType: 'image/gif',
+        size: file.size,
+      });
       onClose();
     } catch (error: any) {
       Alert.alert('GIF', error?.message ?? 'Download failed. Please try another GIF.');
