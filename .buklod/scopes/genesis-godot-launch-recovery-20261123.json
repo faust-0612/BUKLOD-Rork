@@ -22,7 +22,8 @@
     "scripts/genesis-205-native-release-gate.mjs",
     ".github/workflows/genesis-205-native-eas-cloud-build-20261123.yml",
     ".github/workflows/genesis-205-expo-cloud-readonly-receipt-20261123.yml",
-    "tests/genesis-library-native-runtime-release-20261122.test.mjs"
+    "tests/genesis-library-native-runtime-release-20261122.test.mjs",
+    "godot/empire-arena/scripts/arena_root.gd"
   ],
   "regressionTests": [
     "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
@@ -44,7 +45,8 @@
     "app-runtime",
     "native-splash",
     "cloud-EAS-build",
-    "Android Godot pack integrity"
+    "Android Godot pack integrity",
+    "Native runtime GDScript dynamic class lookup and typed resolver"
   ],
   "lockedFeatureChanges": [
     {
@@ -106,7 +108,8 @@
     "Godot 4.7.2 headless pack main-scene smoke succeeds before requesting EAS credit",
     "Expo EAS Cloud Android internal build id is real and profile matches installed staging package with code17 and matching signer",
     "Staging EAS build artifact verified and shared only after build status FINISHED, no fake verified 100% assertion",
-    "No guaranteed Godot launch or full game behavior asserted when owner elected to skip physical device verification"
+    "No guaranteed Godot launch or full game behavior asserted when owner elected to skip physical device verification",
+    "Strict Godot ZIP startup test must emit BUKLOD_GODOT_ARENA_SCENE_READY and reject ANY SCRIPT ERROR/Parse Error even if process exits 0"
   ],
   "alternativeApproaches": [
     "Rejected: publish direct-to-Godot JavaScript OTA to crashing 2.0.4 native engine; risk of immediate app crash loop",
