@@ -1,4 +1,6 @@
 name: BUKLOD Genesis 2.0.5 FULL Native Expo EAS Cloud STAGING APK
+# Preflight retry after correcting 2.0.4 compatibility test process-env isolation.
+# The previous attempt failed before any EAS cloud request or paid build.
 on:
   push:
     branches:
