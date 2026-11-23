@@ -154,6 +154,11 @@ const GROUP_META: Record<
     tint: string;
   }
 > = {
+  todays_best: { icon: 'star-four-points', accent: '#1E7E60', tint: '#EFFAF2' },
+  connect: { icon: 'message-text-outline', accent: '#257C4C', tint: '#EFF9E9' },
+  children: { icon: 'book-open-variant', accent: '#416D9C', tint: '#EAF3FC' },
+  bible_personal: { icon: 'book-open-page-variant-outline', accent: COLORS.blue, tint: COLORS.blueSoft },
+  bayanihan: { icon: 'hand-heart-outline', accent: '#D07E12', tint: '#FFF3E2' },
   posting: {
     icon: 'file-document-outline',
     accent: COLORS.green,
@@ -265,6 +270,24 @@ function activityLabel(type: string) {
       return 'Verified Giving Participation';
     case 'admin_bonus':
       return 'Performance Bonus';
+    case 'connect_message':
+      return 'Verified Connect Message';
+    case 'child_story_complete':
+      return 'Story and Quiz Complete';
+    case 'child_teaching_session':
+      return 'Children Teaching Session';
+    case 'personal_bible_reflection':
+      return 'Verified Personal Bible Reflection';
+    case 'bayanihan_verified_action':
+      return 'Verified Bayanihan Action';
+    case 'todays_best_story':
+      return "Today's Best Story";
+    case 'todays_best_comment':
+      return "Today's Best Comment";
+    case 'todays_best_reaction':
+      return "Today's Best Reaction";
+    case 'todays_best_streak':
+      return "Today's Best 7-day Streak";
     default:
       return type
         .replace(/_/g, ' ')
@@ -273,6 +296,11 @@ function activityLabel(type: string) {
 }
 
 function claimGroupKeyForActivity(type: string) {
+  if (['todays_best_story','todays_best_comment','todays_best_reaction','todays_best_streak'].includes(type)) return 'todays_best';
+  if (type === 'connect_message') return 'connect';
+  if (['child_story_complete','child_teaching_session'].includes(type)) return 'children';
+  if (type === 'personal_bible_reflection') return 'bible_personal';
+  if (type === 'bayanihan_verified_action') return 'bayanihan';
   if (['community_post', 'r36_publish_wall'].includes(type)) return 'posting';
   if (
     [
