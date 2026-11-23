@@ -7,6 +7,7 @@ import {useAuth} from '@/providers/AuthProvider';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
 import KlChapterAudio from './KlChapterAudio';
 import KlReadingQuiz from './KlReadingQuiz';
+import KlLiveDiscussion from './KlLiveDiscussion';
 import KlSeriesReflection from './KlSeriesReflection';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
 import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks';
@@ -120,7 +121,11 @@ export default function KlDynamicLibrary({seasonNumber,onBackToDashboard}:{seaso
  {illustrationsAtParagraph(media,p,'after').map(image)}
  </View>)}
  <KlReadingQuiz key={chapter.id} episodeId={chapter.id}
+   commentRequired={s2Access[chapter.season_number]?.enabled===true}
    onVerified={()=>{setReflectionRefreshToken(n=>n+1);void refreshProgress(chapters);}}/>
+ <KlLiveDiscussion episodeId={chapter.id} live
+   commentRequired={s2Access[chapter.season_number]?.enabled===true}
+   onCommentPosted={()=>{setReflectionRefreshToken(n=>n+1);void refreshProgress(chapters);}}/>
  {chapter.episode_number===30?
    <KlSeriesReflection seasonNumber={chapter.season_number} refreshToken={reflectionRefreshToken}/>:null}
  </View>:chapters.map(c=><Pressable key={c.id} accessibilityRole="button"
@@ -128,7 +133,7 @@ export default function KlDynamicLibrary({seasonNumber,onBackToDashboard}:{seaso
  onPress={()=>void open(c)} style={{padding:10,backgroundColor:'#243849',
  opacity:chapterLocked(c)?0.65:1,borderRadius:8}}>
  <Text style={{color:'#fff'}}>{chapterLocked(c)?'🔒 ':'📖 '}S{c.season_number} · Kabanata {c.episode_number}: {c.title}</Text>
- {chapterLocked(c)?<Text style={{color:'#f1d39b'}}>Tapusin muna ang naunang kabanata</Text>:null}
+ {chapterLocked(c)?<Text style={{color:'#f1d39b'}}>Tapusin muna ang 3/3 quiz at mag-iwan ng 20+ karakter na comment sa naunang kabanata</Text>:null}
  </Pressable>)}
  {message?<Text accessibilityRole="alert" style={{color:'#fff'}}>{message}</Text>:null}
  </View>;
