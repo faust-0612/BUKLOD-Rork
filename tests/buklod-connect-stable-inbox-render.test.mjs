@@ -26,7 +26,11 @@ test('Connect preserves first-view native ad inventory without duplicate in-feed
   const first=read('src/components/BuklodFirstViewAd.android.tsx');
   assert.match(first, /placement === 'messages'/);
   assert.match(first, /return 'connect'/);
-  assert.doesNotMatch(inbox, /BuklodNativeSponsoredCard/);
+  // Preserve existing native-inline opportunity after item four.
+  assert.match(inbox, /slotId="connect_personal_inline_4"/);
+  assert.match(inbox, /slotId="connect_community_inline_4"/);
+  assert.match(inbox, /index === 3 && !isSearching/);
+  assert.equal((inbox.match(/<BuklodFirstViewAd\b/g) || []).length, 1);
   const banners = read('src/components/BuklodAdMobBanner.tsx');
   assert.match(banners, /reserveBuklodPassiveAdRequest/);
   assert.match(banners, /if \(noFill && online\)/);

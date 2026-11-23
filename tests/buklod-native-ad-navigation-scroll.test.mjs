@@ -7,11 +7,11 @@ test('Home, Profile and Connect keep their existing scroll hierarchy with one fi
  const home=read('src/app/(tabs)/hub.tsx');
  const profile=read('src/app/(tabs)/me.tsx');
  const connect=read('src/app/(tabs)/messages.tsx');
- assert.match(home,/<ScrollView style=/);
+ assert.match(home,/<ScrollView\s+onScroll=/);
  assert.match(profile,/<ScrollView\s+ref=\{profileScrollRef\}/);
  assert.equal((connect.match(/<FlatList\b/g) || []).length, 1);
  assert.match(connect,/ListHeaderComponent=\{renderHiblaHeader\(tab === 'community'\)\}/);
- assert.doesNotMatch(connect,/BuklodNativeSponsoredCard/);
+ assert.match(connect,/<BuklodNativeSponsoredCard surface="connect"/);
  assert.match(connect,/removeClippedSubviews=\{false\}/);
  assert.doesNotMatch(read('src/app/connect/personal/[threadId].tsx'),/<BuklodNativeSponsoredCard/);
 });

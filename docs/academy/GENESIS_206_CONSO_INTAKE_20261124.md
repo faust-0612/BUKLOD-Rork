@@ -9,3 +9,5 @@
 
 ## 24 Nov conso regression reconciliation
 The older Connect test asserted three in-feed native-media IDs, contradicting the newer approved single first-view native placement test. The stale assertion was replaced with an explicit no-duplicate native request gate. App media and ad production code was NOT modified; SDK rendering and fill still require Android device verification.
+
+**Final ad audit correction:** Connect has one independent native-inline slot at inbox item four per selected tab as well as its single first-view slot. The first amended test was too restrictive. Both tests now assert existing placements without altering ad code; Android fill/lifecycle needs device QA.
