@@ -1,5 +1,5 @@
 /** Word references open the existing My Bible reader; no content or completion is changed. */
-const BIBLE_BOOK_NUMBERS: Array<[string, number]> = [
+const BIBLE_BOOK_NUMBERS = ([
   /* PATCH_154V_BIBLE_REFERENCE_ALIASES */
   ['gen',1],['ge',1],
   ['exo',2],['exod',2],['ex',2],
@@ -141,7 +141,7 @@ const BIBLE_BOOK_NUMBERS: Array<[string, number]> = [
   ['revelation',66],
 
   ['awit',19],['mga awit',19],
-].sort((a,b)=>b[0].length-a[0].length);
+] as Array<[string, number]>).sort((a,b)=>b[0].length-a[0].length);
 
 export function getWordBibleReaderTarget(reference: string | null | undefined) {
   if (typeof reference !== 'string') return null;

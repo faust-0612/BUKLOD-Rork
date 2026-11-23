@@ -31,16 +31,40 @@
     "ads-navigation-regression"
   ],
   "regressionTests": [
-    "tests/word-scripture-link-20261123.test.cjs"
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/word-bible-navigation-20261123.test.cjs"
   ],
   "allowedPaths": [
     "src/app/devotional/[id].tsx",
     "src/lib/buklodWordBibleReference.ts",
     "tests/word-scripture-link-20261123.test.cjs",
-    ".buklod/scopes/word-bible-pressable-20261123.json"
+    ".buklod/scopes/word-bible-pressable-20261123.json",
+    "tests/word-bible-navigation-20261123.test.cjs"
   ],
   "publicationStatus": "DEV_ONLY_NO_OTA",
   "releaseMode": "dev-staging-candidate-no-ota",
   "releaseTarget": "Android staging-user runtime 1.3.2 only after immutable RC and all gates",
-  "physicalDeviceVerification": "NOT_PERFORMED"
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Use local parser and accessible Word Scripture links while preserving existing runtime, no native or backend operations.",
+      "preservedBehaviors": [
+        "All existing Word content, account-scoped offline retrieval, ad placement and reflection navigation remain unchanged."
+      ],
+      "tests": [
+        "tests/word-scripture-link-20261123.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Navigate from Word to full My Bible book, chapter, and verse without invoking Daily Reading assignment completion.",
+      "preservedBehaviors": [
+        "The existing Bible translations, passage highlight, personal study/notes, faith authorization, and Daily Reading completion remain intact."
+      ],
+      "tests": [
+        "tests/word-bible-navigation-20261123.test.cjs"
+      ]
+    }
+  ]
 }
