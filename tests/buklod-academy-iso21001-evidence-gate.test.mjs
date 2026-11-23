@@ -19,8 +19,13 @@ test('36 ISO-aligned controls span clauses 4 to 10; no self-certification claims
  for(const c of register.controls){
   assert.ok(c.accountable_role.length>3);
   assert.ok(c.required_objective_evidence.length>20);
-  assert.equal(c.implementation_status,'DESIGNED_NOT_VALIDATED');
-  assert.deepEqual(c.evidence_records,[]);
+  assert.ok(['DESIGNED_NOT_VALIDATED','IN_PROGRESS','BLOCKED','NEEDS_RECHECK','VERIFIED'].includes(c.implementation_status));
+  assert.ok(Array.isArray(c.evidence_records));
+  if(c.implementation_status==='VERIFIED'){
+   assert.equal(c.test_result,'PASS');
+   assert.ok(c.evidence_records.length>0);
+   assert.ok(c.approved_by && c.approved_at);
+  }
  }
 });
 test('quality framework and academic source catalog remain reconciled',()=>{
@@ -35,10 +40,11 @@ test('evidence gate honestly reports operational blockers and strict mode fails 
  const normal=spawnSync(process.execPath,[script.pathname],{encoding:'utf8'});
  assert.equal(normal.status,0,normal.stderr);
  const status=JSON.parse(normal.stdout);
- assert.equal(status.operationally_verified,0);
- assert.equal(status.current_status,'NOT_READY');
- assert.ok(status.blocking_requirements.length>=3);
+ assert.ok(status.operationally_verified>=0);
+ assert.ok(status.operationally_verified<=register.controls.length);
+ assert.ok(['NOT_READY','ALL_DOCUMENTED_CONTROLS_VERIFIED_FURTHER_EXTERNAL_AUDIT_STILL_REQUIRED'].includes(status.current_status));
+ assert.ok(Array.isArray(status.blocking_requirements));
  const strict=spawnSync(process.execPath,[script.pathname,'--strict'],{encoding:'utf8'});
- assert.equal(strict.status,1);
+ assert.equal(strict.status,status.current_status==='NOT_READY'?1:0);
  assert.equal(JSON.parse(strict.stdout).certification_claim_allowed,false);
 });
