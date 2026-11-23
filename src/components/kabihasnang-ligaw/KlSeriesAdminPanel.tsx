@@ -41,6 +41,8 @@ export default function KlSeriesAdminPanel({ selectedSeason, onChooseSeries, bus
         setRows((data as AdminSeries[]).filter(s =>
           Number.isInteger(s.season_number) && s.season_number >= 1 && s.season_number <= 12));
       }
+    } catch {
+      if (request === sequence.current) { setAvailable(false); setRows([]); }
     } finally {
       if (request === sequence.current) setLoading(false);
     }
@@ -48,7 +50,7 @@ export default function KlSeriesAdminPanel({ selectedSeason, onChooseSeries, bus
 
   useEffect(() => {
     void refresh();
-    return () => { sequence.current += 1; setRows([]); };
+    return () => { sequence.current += 1; };
   }, [refresh]);
 
   useEffect(() => {
