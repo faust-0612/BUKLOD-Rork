@@ -49,6 +49,7 @@ import {
   loadBuklodClaimCards,
   loadBuklodAdBonusStatus,
   prepareBuklodAdBonus,
+  cancelBuklodAdBonus,
   waitForBuklodAdBonus,
   type BuklodClaimCard,
   type BuklodAdBonusStatus,
@@ -903,12 +904,13 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     try {
       const session = await prepareBuklodAdBonus(ledgerId);
       const ad = await showBuklodPointsVerifiedAd(accountId, session.nonce);
-      if (!ad.shown) {
-        setAdMessage('Ad is not ready. No points were deducted; try again later.');
-        return;
-      }
       if (!ad.earned) {
-        setAdMessage('Complete the ad to earn bonus points.');
+        // Failed/no-fill attempts must not trap the user for an hour.
+        // A completed earned callback is handled below even if closing errored.
+        await cancelBuklodAdBonus(session.nonce).catch(() => undefined);
+        setAdMessage(ad.shown
+          ? 'Complete the ad to earn bonus points.'
+          : 'Ad is not ready. No points were deducted; try again later.');
         return;
       }
       setAdMessage(`Ad completed. Verifying the +${session.points} bonus with Google…`);
