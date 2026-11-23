@@ -1,0 +1,32 @@
+{
+  "contractVersion": 2,
+  "objective": "Implement private Library 3D models and archive format intake with license/metadata checks, preserving 22 approved CC0 fallback and no production changes",
+  "branch": "dev/genesis-206-private-library-import-gate-20261124",
+  "base": "0ddcad334a1facabb10aa9913a86e3dee0421224",
+  "privateAssets": {
+    "source": "ChatGPT Library /Sound and voice effects/Animation",
+    "standaloneGLB": 5,
+    "zips": 6,
+    "unitypackages": 2,
+    "rar": 1,
+    "rights": "not independently verified",
+    "fileService": "materialization verified; container binary execution currently unavailable",
+    "release": "private binary assets not yet in OTA pack"
+  },
+  "buildGuards": [
+    "Explicit BUKLOD_GENESIS_PRIVATE_ASSETS feature gate",
+    "Exact file size and source SHA-256",
+    "Embedded GLTF mesh/skins/animations validation",
+    "No external linked GLB textures",
+    "ZIP path traversal protection and explicit entry allowlists",
+    "Commercial redistribution evidence from local rights manifest",
+    "Godot 4.7.2 GLTFDocument real runtime import",
+    "APK pack hard size limit 256MB",
+    "No production/points/backend changes"
+  ],
+  "tests": [
+    "node --test tests/genesis-private-library-import-gate-20261124.test.mjs",
+    "Godot 4.7.2 existing 22 CC0 regressions and optional private pack smoke"
+  ],
+  "outcome": "DEV_ONLY_IMPORT_PIPELINE_NOT_FULL_PRIVATE_INGESTION"
+}
