@@ -32,11 +32,13 @@
     "tests/saliksik-manuscript-unlock-20261124.test.mjs",
     "src/lib/saliksikClient.ts",
     "src/app/scope/saliksik.tsx",
-    "src/app/admin/saliksik-library.tsx"
+    "src/app/admin/saliksik-library.tsx",
+    "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs"
   ],
   "regressionTests": [
     "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql",
-    "tests/saliksik-manuscript-unlock-20261124.test.mjs"
+    "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+    "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -68,8 +70,7 @@
         "Existing Bible/KL, ads and Cluster operations are unchanged."
       ],
       "tests": [
-        "tests/saliksik-manuscript-unlock-20261124.test.mjs",
-        "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql"
+        "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs"
       ]
     }
   ],
