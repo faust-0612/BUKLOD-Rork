@@ -142,8 +142,21 @@ BEGIN
     OR char_length(btrim(NEW.body)) NOT BETWEEN 20 AND 500
     OR btrim(NEW.body) !~ '[[:alnum:]]'
   THEN RETURN NEW; END IF;
-  -- The same private verification controls both chapter unlocking and reward.
-  IF NOT private.kl_s2_verified_comment_v1(v_uid,v_episode) THEN RETURN NEW; END IF;
+  -- An AFTER INSERT trigger cannot rely on a STABLE helper to see the
+  -- just-inserted row in its caller's statement snapshot. Inspect NEW directly
+  -- and verify the ALREADY-COMMITTED quiz/session instead.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.kl_episodes e
+    JOIN public.kl_reading_sessions s
+      ON s.episode_id=e.id AND s.user_id=v_uid AND s.completed_at IS NOT NULL
+    JOIN public.kl_quiz_sets q ON q.episode_id=e.id
+      AND q.manuscript_hash=md5(e.manuscript) AND q.status='ready'
+    JOIN public.kl_quiz_attempts a ON a.episode_id=e.id AND a.user_id=v_uid
+      AND a.manuscript_hash=q.manuscript_hash AND a.verified_at IS NOT NULL
+      AND NEW.created_at>=a.verified_at
+    WHERE e.id=v_episode AND e.status='approved'
+      AND e.approved_at IS NOT NULL AND e.release_at<=now()
+  ) THEN RETURN NEW; END IF;
   IF NOT EXISTS (
     SELECT 1 FROM public.profiles p WHERE p.id=v_uid AND p.is_active=true
   ) THEN RETURN NEW; END IF;
