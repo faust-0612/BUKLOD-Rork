@@ -1,5 +1,6 @@
 name: BUKLOD Genesis - isolated Android Kotlin compile diagnostic (DEV)
 # An owner-approved GitHub Actions exception to local-only work.
+# Root-cause recheck: GodotActivity FragmentActivity/splashscreen classpath (run 45141164945).
 # One-shot, source/compile only. No APK, signer, backend, release or OTA.
 on:
   push:
@@ -47,7 +48,8 @@ jobs:
             tests/genesis-native-local-only-gate-20261123.test.mjs \
             tests/genesis-native-android-host-20261123.test.mjs \
             tests/genesis-native-game-core-20261123.test.mjs \
-            tests/genesis-native-gha-diagnostic-20261123.test.mjs
+            tests/genesis-native-gha-diagnostic-20261123.test.mjs \
+            tests/genesis-native-godot-androidx-dependencies-20261123.test.mjs
           node --input-type=module <<'NODE'
           import {auditLocalNative} from './scripts/genesis-native-local-only-gate.mjs';
           const result = await auditLocalNative(process.cwd(), {env:{},checkTools:false});

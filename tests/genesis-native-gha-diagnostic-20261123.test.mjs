@@ -23,6 +23,8 @@ test('Android compile uses supported fixed Java, SDK, AGP-compatible Gradle; nev
   assert.match(module,/compileSdk = 36/);
   assert.match(module,/applicationId = "org\.mzbministry\.buklod\.genesis\.nativeapp"/);
   assert.match(module,/org\.godotengine:godot:4\.7\.2\.stable/);
+  assert.match(module,/androidx\.fragment:fragment:1\.9\.1/);
+  assert.match(module,/androidx\.core:core-splashscreen:1\.2\.0/);
   for(const token of ["java-version: '17'","gradle-version: '8.14.3'","platforms;android-36","build-tools;35.0.0",":app:compileDebugKotlin",":app:compileDebugJavaWithJavac",":app:processDebugMainManifest"])
     assert.ok(workflow.includes(token), token);
   assert.doesNotMatch(workflow,/\b(?:assembleRelease|assembleDebug|upload-artifact|download-artifact|expo\s+run|eas\s+build|vercel|gradlew\s+publish)\b/i);

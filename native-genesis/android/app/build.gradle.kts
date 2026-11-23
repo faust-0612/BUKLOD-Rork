@@ -44,5 +44,9 @@ android {
 
 dependencies {
     implementation("org.godotengine:godot:4.7.2.stable")
+    // GodotActivity extends FragmentActivity; Godot AAR does not supply these APIs
+    // to the independent host compilation. Required by Godot Android embedding.
+    implementation("androidx.fragment:fragment:1.9.1")
+    implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.core:core-ktx:1.17.0")
 }

@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-godot-androidx-dependencies-20261123.json",
+  "objective": "Fix actual GitHub Actions Android Kotlin compiler failure caused by GodotActivity->FragmentActivity missing explicit AndroidX Fragment dependency; preserve no-Expo isolated host and release hold.",
+  "baseRef": "d5cf2767ac6b4a9b42ef88069c85ecff3726a8e7",
+  "productionBaselineEvidence": "Production source main 7b224c39624827282c3cbf003060317045b0a73f, no verified installed runtime. Native DEV compile run 45141164945 failed on FragmentActivity missing in GodotActivity supertype; focused source tests and Android SDK/Gradle setup passed. No production release.",
+  "chosenApproach": "Use official Godot Android embedding requirements: add explicit AndroidX Fragment 1.9.1 and core-splashscreen 1.2.0 to independent native app, add a focused regression test and rerun the exact one-shot bounded DEV compile workflow. No signing, exports, APK or production changes.",
+  "selectionRationale": "Gradle source compilation reached Kotlin and identified missing FragmentActivity classpath; adding the library is the root-cause fix. Avoid modifying Godot Activity implementation or using a different engine/version. Official AndroidX and Godot documentation verifies dependencies.",
+  "allowedPaths": [
+    "native-genesis/android/app/build.gradle.kts",
+    "tests/genesis-native-godot-androidx-dependencies-20261123.test.mjs",
+    "tests/genesis-native-gha-diagnostic-20261123.test.mjs",
+    ".github/workflows/genesis-native-gha-diagnostic-20261123.yml",
+    ".buklod/scopes/genesis-native-godot-androidx-dependencies-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-godot-androidx-dependencies-20261123.test.mjs",
+    "tests/genesis-native-gha-diagnostic-20261123.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Correct independent DEV-only Godot Activity AndroidX dependency classpath, no Main runtime changes.",
+      "preservedBehaviors": [
+        "Existing Godot 4.7.2 AAR, native package, main/staging identity unchanged",
+        "No Expo/EAS/Vercel",
+        "No application permission or network backend changes"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-androidx-dependencies-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Recheck bounded CI compilation only, release remains fail closed",
+      "preservedBehaviors": [
+        "No APK output or upload, no signing credentials",
+        "No production or staging change"
+      ],
+      "tests": [
+        "tests/genesis-native-gha-diagnostic-20261123.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "Second GitHub Actions run consumes bounded CI minutes",
+    "AndroidX transitive version resolution may need further source reconciliation",
+    "Android device/Godot gameplay unverified"
+  ],
+  "preserveBehaviors": [
+    "All main/prod/staging behavior and data unchanged",
+    "Four-world native launcher remains DEV preview",
+    "No release-gate bypass"
+  ],
+  "acceptanceChecks": [
+    "Node source regressions pass",
+    "Gradle Android Kotlin compile progresses beyond FragmentActivity failure",
+    "No APK produced and release gate remains blocked",
+    "CI job outcome checked before declaring compilation successful"
+  ],
+  "alternativeApproaches": [
+    "Rejected: patching GodotActivity via inheritance hack - masks missing dependency",
+    "Rejected: rolling back Godot native integration - violates user objective"
+  ],
+  "releaseMode": "DEV_ONLY_GITHUB_ACTIONS_SOURCE_COMPILE_RECHECK",
+  "publicationStatus": "FIX_SUBMITTED_RUN_PENDING",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
