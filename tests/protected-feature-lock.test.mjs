@@ -138,13 +138,14 @@ test('Connect staging-only latest-activity scope enforces notification, chat and
     '__tests__/connectInboxSignal.test.ts',
     'tests/connect-inbox-realtime-staging-20261123.test.mjs',
     'tests/connect-inbox-notification-navigation-20261123.test.mjs',
+    'tests/connect-inbox-ads-guard-20261123.test.mjs',
     'tests/protected-feature-lock.test.mjs',
     '.github/workflows/engineering-accountability.yml',
     '.buklod/scopes/connect-inbox-staging-20261123.json',
   ];
   const result = assessProtectedFeatureLock(paths.map(path => ({ status: 'M', path })), scope);
   assert.deepEqual(result.failures, []);
-  assert.deepEqual(result.impacted, ['app-runtime', 'navigation-auth', 'connect-ptt-calls', 'governance-lock']);
+  assert.deepEqual(result.impacted, ['app-runtime', 'navigation-auth', 'connect-ptt-calls', 'ads-finance-points', 'governance-lock']);
   assert.equal(scope.publicationStatus, 'DEV_ONLY_STAGING_RC_PENDING');
   const workflow = readFileSync(new URL('../.github/workflows/engineering-accountability.yml', import.meta.url), 'utf8');
   assert.ok(workflow.includes('dev/connect-inbox-latest-activity-20261123'));
