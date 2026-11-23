@@ -1,0 +1,96 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-godot-launch-recovery-20261123.json",
+  "objective": "Correct the installed Genesis 2.0.4 native Godot launch crash and the unwanted double-entry React Native practice UX in a new isolated 2.0.5 staging native RC without touching production or live 2.0.4 channel.",
+  "baseRef": "release/genesis-library-204-conso-ota-20261122",
+  "chosenApproach": "Keep exact successful 2.0.4 consolidated OTA source as base. Add new Godot resource URL launch path, native-library-specific R8 JNI preservation, native-first protected route with persisted crash-loop guard, and isolated staging APK runtime/channel. No direct OTA of native code or production deployment.",
+  "selectionRationale": "Current 2.0.4 device button crashes; automatically entering the same crash on installed binary would create a loop. A separate signed 2.0.5 and a persisted recovery barrier are required before native-first becomes eligible.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-godot-launch-recovery-20261123.json",
+    ".github/workflows/genesis-godot-v205-crash-recovery-dev-qa-20261123.yml",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java",
+    "modules/buklod-genesis-godot/android/build.gradle",
+    "modules/buklod-genesis-godot/android/consumer-rules.pro",
+    "src/app/games/empire-arena.tsx",
+    "app.config.js",
+    "eas.json",
+    "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
+    "tests/genesis-godot-game-runtime-guard-20261123.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
+    "tests/genesis-godot-game-runtime-guard-20261123.test.mjs"
+  ],
+  "riskAreas": [
+    "Android Godot Activity crash on launch",
+    "Release R8 JNI shrinking",
+    "Godot ZIP resource path",
+    "Android Activity orientation/lifecycle",
+    "Native-only changes require replacement staging APK",
+    "AdMob/tab navigation regression",
+    "Application boot-loop and local state",
+    "Protected production and shared paid backend"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Replace old React Native default game view with gated native-first Android 2.0.5 launch, with a persistent crash-loop safeguard.",
+      "preservedBehaviors": [
+        "No BUKLOD production identity, signer, keys, backend security, AdMob placements, or paid rewards are changed.",
+        "No OTA or APK is published from this DEV review.",
+        "Preserve offline React Native practice as a manual fallback after native crash/re-entry."
+      ],
+      "tests": [
+        "tests/genesis-godot-game-runtime-guard-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Restore approved Godot engine as first Arena gameplay entry rather than an extra optional button; keep off-line practice rescue only.",
+      "preservedBehaviors": [
+        "No BUKLOD production identity, signer, keys, backend security, AdMob placements, or paid rewards are changed.",
+        "No OTA or APK is published from this DEV review.",
+        "Preserve offline React Native practice as a manual fallback after native crash/re-entry."
+      ],
+      "tests": [
+        "tests/genesis-godot-game-runtime-guard-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Create isolated 2.0.5 staging runtime, signed APK version code 17 and EAS preview channel; preserve immutable production and 2.0.4 OTA identities.",
+      "preservedBehaviors": [
+        "No BUKLOD production identity, signer, keys, backend security, AdMob placements, or paid rewards are changed.",
+        "No OTA or APK is published from this DEV review.",
+        "Preserve offline React Native practice as a manual fallback after native crash/re-entry."
+      ],
+      "tests": [
+        "tests/genesis-godot-game-runtime-guard-20261123.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Existing Genesis 2.0.4 installed OTA unchanged",
+    "Main staging package org.mzbministry.buklod.staging unchanged",
+    "Production org.mzbministry.buklod/runtime 1.3.2 unchanged",
+    "Ranked and server economy rewards remain disabled",
+    "AdMob test units and dashboard navigation remain unchanged",
+    "All four original embedded Godot scenes are retained"
+  ],
+  "acceptanceChecks": [
+    "Static and TypeScript tests pass on DEV",
+    "Native Godot Android Activity launches correctly under R8 release without JNI or path errors",
+    "Fresh new signed APK uses versionCode 17 same remote signing keystore and runtime 2.0.5",
+    "Emulator and real Infinix device verifies Arena first frame, control input, return and repeated entry",
+    "Crash-loop marker successfully blocks forced relaunch on simulated process death",
+    "Staging owner acceptance required before any OTA; verify native regression and production-fix parity",
+    "Never publish any 2.0.5 JS to 2.0.4 EAS channel"
+  ],
+  "alternativeApproaches": [
+    "Rejected: publish direct-to-Godot JavaScript OTA to crashing 2.0.4 native engine; risk of immediate app crash loop",
+    "Rejected: disable R8 globally; forfeits app hardening and release gates"
+  ],
+  "releaseMode": "DEV_ONLY_NATIVE_APK_CANDIDATE_NO_OTA",
+  "publicationStatus": "NOT_PUBLISHED",
+  "physicalDeviceVerification": "FAILED_ON_ORIGINAL_2_0_4_OWNER_DEVICE_GODOT_BUTTON;_NEW_2_0_5_NOT_BUILT_OR_TESTED"
+}
