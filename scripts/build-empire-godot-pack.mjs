@@ -164,6 +164,8 @@ const originalWorldMedia = [
   ['world-audio/build_start.wav', 'assets/sounds/estate-premium/build_start.wav', 'RIFF'],
   ['world-audio/build_complete.wav', 'assets/sounds/estate-premium/build_complete.wav', 'RIFF'],
   ['world-audio/claim.wav', 'assets/sounds/estate-premium/claim.wav', 'RIFF'],
+  ['world-audio/kingdom_ambience.wav', 'assets/sounds/buklod-kingdom-ambient-original.wav', 'RIFF'],
+  ['world-audio/house_ambience.wav', 'assets/sounds/buklod-kingdom-cinematic-ambient.wav', 'RIFF'],
 ];
 for (const [name, relative, magic] of originalWorldMedia) {
   const binary = readFileSync(path.join(root, relative));

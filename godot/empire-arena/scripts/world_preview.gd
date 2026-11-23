@@ -21,6 +21,9 @@ var elapsed: float = 0.0
 var image_texture: Texture2D
 var collection_cache: Dictionary = {}
 var music_enabled: bool = true
+var ambient_enabled: bool = false
+var ambient_player: AudioStreamPlayer
+var ambient_button: Button
 var max_quality: bool = false
 var audio: AudioStreamPlayer
 var hud_status: Label
@@ -113,7 +116,38 @@ func _create_controls() -> void:
 	audio = AudioStreamPlayer.new()
 	audio.volume_db = -10.0
 	add_child(audio)
+	ambient_player = AudioStreamPlayer.new()
+	ambient_player.volume_db = -24.0
+	add_child(ambient_player)
+	ambient_button = Button.new()
+	ambient_button.text = "MUSIC OFF"
+	ambient_button.position = Vector2(838, 630)
+	ambient_button.custom_minimum_size = Vector2(140, 54)
+	ambient_button.pressed.connect(_toggle_ambience)
+	layer.add_child(ambient_button)
 	_refresh_status()
+
+## Manual ambient control; never autoplay in a second Android game process.
+func _toggle_ambience() -> void:
+	if ambient_player == null:
+		return
+	ambient_enabled = not ambient_enabled
+	if not ambient_enabled:
+		ambient_player.stop()
+	else:
+		var track_name: String = "kingdom_ambience" if world_id == "kingdom" else "house_ambience"
+		var bytes: PackedByteArray = FileAccess.get_file_as_bytes("res://world-audio/" + track_name + ".wav")
+		if bytes.is_empty():
+			ambient_enabled = false
+		else:
+			var track: AudioStreamWAV = AudioStreamWAV.load_from_buffer(bytes)
+			if track == null:
+				ambient_enabled = false
+			else:
+				track.loop_mode = AudioStreamWAV.LOOP_FORWARD
+				ambient_player.stream = track
+				ambient_player.play()
+	ambient_button.text = "MUSIC ON" if ambient_enabled else "MUSIC OFF"
 
 func _toggle_quality() -> void:
 	max_quality = not max_quality

@@ -26,7 +26,8 @@ const files = execFileSync('unzip', ['-Z1', dest], { encoding: 'utf8', timeout: 
 for (const entry of [
   'project.godot', 'scenes/Arena.tscn', 'scenes/WorldPreview.tscn',
   'scripts/world_explore_controller.gd', 'scripts/arena_root.gd',
-  'world-art/kingdom.webp', 'world-art/house.webp', 'splash/buklod-green-b.png'
+  'world-art/kingdom.webp', 'world-art/house.webp', 'splash/buklod-green-b.png',
+  'world-audio/kingdom_ambience.wav', 'world-audio/house_ambience.wav'
 ]) assert.ok(files.includes(entry), 'Godot OTA pack missing ' + entry);
 assert.equal(files.filter(x => /^art\/(fullbody|sprite|scene)\/.*\.png$/.test(x)).length, 68);
 assert.equal(files.filter(x => /^audio\/sfx\/.*\.wav$/.test(x)).length, 70);

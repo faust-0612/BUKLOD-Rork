@@ -145,7 +145,7 @@ func _arrive() -> void:
         local_visits += 1
         get_parent().advance_preview_stage()
         interaction_label = "HOUSE BUILD STAGE PREVIEW COMPLETE"
-        get_parent().world_interaction("build_complete", interaction_label)
+        get_parent().world_interaction("", interaction_label)
     elif pending_community:
         pending_community = false
         local_visits += 1
