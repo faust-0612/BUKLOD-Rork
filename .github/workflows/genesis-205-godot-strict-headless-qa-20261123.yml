@@ -1,4 +1,5 @@
 name: BUKLOD Genesis 2.0.5 Strict Godot ZIP Scene and Gameplay QA
+# Run #3: add explicit bool types on dynamic Library hero dash calls; cyclic types already removed.
 # Exact native source fix: replace cyclic typed BuklodArenaSimulation references in Library scripts.
 # No Android signing or Expo quota use in this smoke.
 on:
