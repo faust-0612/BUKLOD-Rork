@@ -35,7 +35,8 @@
     "app-runtime",
     "navigation-auth",
     "connect-ptt-calls",
-    "governance-lock"
+    "governance-lock",
+    "ads-finance-points"
   ],
   "regressionTests": [
     "__tests__/connectInboxActivity.test.ts",
@@ -43,7 +44,8 @@
     "tests/connect-inbox-realtime-staging-20261123.test.mjs",
     "tests/connect-inbox-notification-navigation-20261123.test.mjs",
     "tests/protected-feature-lock.test.mjs",
-    "__tests__/connectInboxSearch.test.ts"
+    "__tests__/connectInboxSearch.test.ts",
+    "tests/connect-inbox-ads-guard-20261123.test.mjs"
   ],
   "allowedPaths": [
     "src/app/(tabs)/messages.tsx",
@@ -60,7 +62,8 @@
     ".buklod/scopes/connect-inbox-staging-20261123.json",
     "src/hooks/useBuklodConnectUnread.ts",
     "src/lib/connectInboxSearch.ts",
-    "__tests__/connectInboxSearch.test.ts"
+    "__tests__/connectInboxSearch.test.ts",
+    "tests/connect-inbox-ads-guard-20261123.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -91,6 +94,16 @@
       ],
       "tests": [
         "tests/connect-inbox-realtime-staging-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The shared BuklodConnectThread filename enters conservative ad/finance protection even though AdMob source is unchanged.",
+      "preservedBehaviors": [
+        "Existing native first-view AdMob, inline ads prefetch, dashboard navigation and all financial/points code are unchanged."
+      ],
+      "tests": [
+        "tests/connect-inbox-ads-guard-20261123.test.mjs"
       ]
     },
     {
