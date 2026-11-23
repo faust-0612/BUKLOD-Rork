@@ -1,5 +1,5 @@
 name: BUKLOD Genesis 2.0.5 Expo Cloud Native Build READ-ONLY Receipt
-# Read-only observer refresh for c4e5f5e37db3a66ac489fd921558795538003da6 strict Godot QA.
+# Read-only observer refresh for strict native scene QA source 4979302c0a0ffbf99b71858101e175a1846ba437.
 on:
   pull_request:
     paths:
