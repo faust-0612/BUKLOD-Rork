@@ -3,7 +3,11 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useAudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import {
+  isBuklodCallOriginator,
+  isBuklodRecipientPresentationReceipt,
+} from '@/lib/buklodCallFeedback';
 import {
   getBuklodSoundSettings,
   setBuklodCallSoundSuppressed,
@@ -28,6 +32,7 @@ import {
   useCall,
   useCallStateHooks,
   useCalls,
+  useStreamVideoClient,
 } from '@/lib/streamVideoSdk';
 
 import {
@@ -46,32 +51,81 @@ import {
  */
 function BuklodOutgoingRingback() {
   const call = useCall();
+  const client = useStreamVideoClient();
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
   const player = useAudioPlayer(require('../../assets/sounds/buklod_ringback.wav'));
+  const playerStatus = useAudioPlayerStatus(player);
+  const [soundAllowed, setSoundAllowed] = useState<boolean | null>(null);
+  const [remotePresented, setRemotePresented] = useState(false);
+
+  const currentUserId = client?.state?.connectedUser?.id;
+  const outgoing = isBuklodCallOriginator(call, currentUserId);
+  const ringing = callingState === CallingState.RINGING;
+
+  // An incoming call is acknowledged only after its BUKLOD UI mounts in
+  // the foreground. No receipt is sent for unseen background/FCM pushes.
+  useEffect(() => {
+    if (!call || outgoing || !ringing || AppState.currentState !== 'active') {
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (AppState.currentState !== 'active') return;
+      void call.sendCustomEvent({
+        type: 'buklod.call.presented',
+        call_cid: call.cid,
+      }).catch(() => {
+        // No positive receipt is shown to the caller on failure.
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [call, outgoing, ringing]);
+
+  // A server-side call.ring is not a device-delivery receipt. Only a
+  // remote authenticated member's acknowledgement can advance the label.
+  useEffect(() => {
+    if (!call || !outgoing || !ringing) return;
+    const unsubscribe = call.on('custom', (event: any) => {
+      if (isBuklodRecipientPresentationReceipt(call, event, currentUserId)) {
+        setRemotePresented(true);
+      }
+    });
+    return () => {
+      try { unsubscribe?.(); } catch { /* disposed call */ }
+    };
+  }, [call, outgoing, ringing, currentUserId]);
 
   useEffect(() => {
-    if (!call?.isCreatedByMe || callingState !== CallingState.RINGING) return;
+    if (!outgoing || !ringing) return;
     let disposed = false;
     let enabled = false;
     player.loop = true;
-    player.volume = 0.24;
+    player.volume = 0.42;
+
     const sync = (state: string) => {
-      if (disposed || !enabled) return;
+      if (disposed) return;
       try {
-        if (state === 'active') player.play();
-        else player.pause();
+        if (enabled && playerStatus.isLoaded && state === 'active') {
+          player.play();
+        } else {
+          player.pause();
+        }
       } catch {
-        // A disposed audio player can throw while a ringing call terminates.
-        // Audio cleanup must never crash the entire app.
+        // Native audio can be disposed during cancellation or SDK teardown.
+        // Visual delivery feedback must remain available even without audio.
       }
     };
+
     const subscription = AppState.addEventListener('change', sync);
     void getBuklodSoundSettings().then(settings => {
-      if (disposed || !settings.calls) return;
-      enabled = true;
+      if (disposed) return;
+      enabled = settings.calls;
+      setSoundAllowed(settings.calls);
       sync(AppState.currentState);
-    }).catch(() => undefined);
+    }).catch(() => {
+      if (!disposed) setSoundAllowed(false);
+    });
+
     return () => {
       disposed = true;
       subscription.remove();
@@ -79,11 +133,43 @@ function BuklodOutgoingRingback() {
         player.pause();
         void Promise.resolve(player.seekTo(0)).catch(() => undefined);
       } catch {
-        // Native audio may already be released after cancel/no-answer.
+        // Already released players must not crash the call surface.
       }
     };
-  }, [call?.isCreatedByMe, callingState, player]);
-  return null;
+  }, [outgoing, ringing, player, playerStatus.isLoaded]);
+
+  if (!outgoing || !ringing) return null;
+
+  const personal =
+    String(call?.state?.custom?.buklod_call_scope ?? '').toUpperCase() ===
+    'PERSONAL';
+
+  const headline = remotePresented
+    ? personal
+      ? 'Bumukas ang tawag sa kabilang BUKLOD app'
+      : 'May miyembrong nakakita ng tawag'
+    : 'Naipadala ang call request';
+
+  const explanation = remotePresented
+    ? 'Naghihintay ng sagot. Hindi pa ibig sabihin na narinig ang ringtone.'
+    : 'Hindi pa nakumpirma kung naabot ang kabilang phone.';
+
+  const audioLabel =
+    soundAllowed === false
+      ? 'Ringback: naka-off sa BUKLOD Sounds'
+      : playerStatus.playing
+        ? '♪ Ringback: tumutunog sa app'
+        : '♪ Ringback: hindi pa tumutunog';
+
+  return (
+    <View pointerEvents="none" style={s.callFeedback}>
+      <Text accessibilityLiveRegion="polite" style={s.callFeedbackTitle}>
+        {remotePresented ? '✓ ' : '◌ '}{headline}
+      </Text>
+      <Text style={s.callFeedbackHint}>{explanation}</Text>
+      <Text style={s.callFeedbackAudio}>{audioLabel}</Text>
+    </View>
+  );
 }
 
 import {
@@ -396,6 +482,36 @@ export function RingingCalls() {
 
 const s =
   StyleSheet.create({
+    callFeedback: {
+      position: 'absolute',
+      top: '42%',
+      left: 16,
+      right: 16,
+      alignItems: 'center',
+      zIndex: 50,
+      gap: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 14,
+      backgroundColor: 'rgba(0,0,0,0.50)',
+    },
+    callFeedbackTitle: {
+      color: '#FFFFFF',
+      textAlign: 'center',
+      fontWeight: '800',
+      fontSize: 14,
+    },
+    callFeedbackHint: {
+      color: '#F2F2F2',
+      textAlign: 'center',
+      fontSize: 11,
+    },
+    callFeedbackAudio: {
+      color: '#B3F4CF',
+      textAlign: 'center',
+      fontWeight: '700',
+      fontSize: 11,
+    },
     overlay: {
       ...StyleSheet.absoluteFill,
 

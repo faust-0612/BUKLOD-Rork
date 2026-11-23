@@ -270,7 +270,7 @@ function maybeShowCallerOutcome(
 ) {
   if (
     envelope.callKind !== 'PERSONAL' ||
-    eventName !== 'call.rejected'
+    !['call.rejected', 'call.missed'].includes(eventName)
   ) {
     return;
   }
@@ -306,13 +306,15 @@ function maybeShowCallerOutcome(
   }
 
   if (
+    eventName === 'call.missed' ||
     reason === 'timeout' ||
-    reason === 'no_answer'
+    reason === 'no_answer' ||
+    reason === 'missed'
   ) {
     alertOnce(
       key,
       'No answer',
-      'The call was not answered.'
+      'Walang sumagot. Hindi pa makumpirmang naabot o tumunog ang kabilang phone.'
     );
     return;
   }
@@ -348,16 +350,18 @@ export function installBuklodCallLifecycle(
         (client as any).on(
           eventName,
           (event: any) => {
+            // Do not wait for a slow database write before showing the result.
+            // Stream events are the immediate source of call outcome feedback.
+            maybeShowCallerOutcome(
+              client,
+              eventName,
+              event,
+              readCallEnvelope(event),
+            );
             void persistEvent(
               eventName,
               event,
-            ).then(envelope => {
-              maybeShowCallerOutcome(
-                client,
-                eventName,
-                event,
-                envelope,
-              );
+            ).then(() => {
             });
           }
         )
