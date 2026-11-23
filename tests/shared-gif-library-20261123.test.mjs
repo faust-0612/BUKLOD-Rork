@@ -1,33 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import vm from 'node:vm';
-import ts from 'typescript';
+import { stripTypeScriptTypes } from 'node:module';
 
-const require = createRequire(import.meta.url);
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const source = read('src/lib/buklodConnectGifCatalog.ts');
 
 function catalog({ env = {}, fetchFn = () => { throw new Error('Offline'); } } = {}) {
-  const js = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2021,
-    },
-  }).outputText;
+  // This focused CI job intentionally does not npm install. Use Node's
+  // built-in TypeScript stripper instead of a package/dev-dependency.
   const module = { exports: {} };
-  const mocks = {
-    'expo-file-system/legacy': { cacheDirectory: 'file:///cache/' },
-    'expo-file-system': { File: class { size = 1024; } },
-    'react-native': { Platform: { OS: 'android' } },
-  };
+  const stubbed = source
+    .replace("import * as FileSystem from 'expo-file-system/legacy';",
+      "const FileSystem = { cacheDirectory: 'file:///cache/' };")
+    .replace("import { File } from 'expo-file-system';",
+      "class File { size = 1024; }")
+    .replace("import { Platform } from 'react-native';",
+      "const Platform = { OS: 'android' };")
+    .replace(/import \{\s*type ConnectPickedFile,\s*\} from '@\/lib\/buklodConnect';/, '');
+  const js = stripTypeScriptTypes(stubbed, { mode: 'strip' })
+    .replace(/^export\s+(?=const|function|async function)/gm, '') +
+    '\\nmodule.exports = { CONNECT_GIF_CATEGORIES, searchConnectGifs, getConnectGifCatalogItem };';
   vm.runInNewContext(js, {
     module, exports: module.exports,
-    require: id => {
-      if (!(id in mocks)) throw new Error('Unexpected module ' + id);
-      return mocks[id];
-    },
     process: { env }, fetch: fetchFn,
     setTimeout, clearTimeout, AbortController, URLSearchParams,
   }, { filename: 'buklodConnectGifCatalog.js' });
