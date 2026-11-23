@@ -33,3 +33,19 @@ test('PCK exporter fails fast without an actual Godot binary instead of fabricat
  assert.notEqual(r.status,0);
  assert.match(r.stderr,/Godot 4\.7\.2 editor unavailable/);
 });
+
+test('All three backdrops and four audio cues survive genuine PCK export as imported resources',()=>{
+ const gd=readFileSync(new URL('../godot/empire-arena/scripts/world_preview.gd',import.meta.url),'utf8');
+ const smoke=readFileSync(new URL('../godot/empire-arena/tests/world_smoke.gd',import.meta.url),'utf8');
+ for(const name of ['kingdom','community','house']) {
+   assert.ok(gd.includes('preload("res://world-art/'+name+'.webp")'),name);
+ }
+ for(const name of ['navigation','build_start','build_complete','claim']) {
+   assert.ok(gd.includes('preload("res://world-audio/'+name+'.wav")'),name);
+ }
+ assert.match(gd,/image_texture = WORLD_ART\[world_id\] as Texture2D/);
+ assert.match(gd,/WORLD_AUDIO\[name\] as AudioStream/);
+ assert.match(smoke,/picture\.get_width\(\)/);
+ assert.match(smoke,/clip\.get_length\(\)/);
+ for(const c of [gd,smoke])assert.doesNotMatch(c,/Image\.load_from_file|AudioStreamWAV\.load_from_file/);
+});

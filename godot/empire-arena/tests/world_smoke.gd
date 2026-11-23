@@ -24,15 +24,17 @@ func _run() -> void:
 	if world.preview_stage != 1:
 		quit(5)
 		return
+	# Test actual imported resources inside the exported PCK, not raw source files.
+	# Every resource is directly preloaded by WorldPreview for export inclusion.
 	for name in ["kingdom", "community", "house"]:
-		var picture: Image = Image.load_from_file("res://world-art/" + name + ".webp")
-		if picture == null or picture.is_empty():
+		var picture: Texture2D = world.WORLD_ART[name] as Texture2D
+		if picture == null or picture.get_width() < 2 or picture.get_height() < 2:
 			push_error("BUKLOD_WORLD_ASSET_FAIL: " + name)
 			quit(6)
 			return
 	for name in ["navigation", "build_start", "build_complete", "claim"]:
-		var clip: AudioStreamWAV = AudioStreamWAV.load_from_file("res://world-audio/" + name + ".wav")
-		if clip == null:
+		var clip: AudioStream = world.WORLD_AUDIO[name] as AudioStream
+		if clip == null or clip.get_length() <= 0.0:
 			push_error("BUKLOD_WORLD_SOUND_FAIL: " + name)
 			quit(7)
 			return

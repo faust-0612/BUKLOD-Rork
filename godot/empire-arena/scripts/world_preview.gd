@@ -4,9 +4,15 @@
 extends Node2D
 
 const WORLD_ART := {
-	"kingdom": "res://world-art/kingdom.webp",
-	"community": "res://world-art/community.webp",
-	"house": "res://world-art/house.webp"
+	"kingdom": preload("res://world-art/kingdom.webp"),
+	"community": preload("res://world-art/community.webp"),
+	"house": preload("res://world-art/house.webp")
+}
+const WORLD_AUDIO := {
+	"navigation": preload("res://world-audio/navigation.wav"),
+	"build_start": preload("res://world-audio/build_start.wav"),
+	"build_complete": preload("res://world-audio/build_complete.wav"),
+	"claim": preload("res://world-audio/claim.wav")
 }
 const WORLD_TITLES := {"kingdom": "KINGDOM", "community": "PERSONAL COMMUNITY", "house": "PERSONAL HOUSE & LOT"}
 const STAGES := ["Markers", "Foundation", "Framework", "Structure", "Finishing"]
@@ -37,9 +43,9 @@ func _ready() -> void:
 	queue_redraw()
 
 func _load_backdrop() -> void:
-	var bitmap: Image = Image.load_from_file(str(WORLD_ART[world_id]))
-	if bitmap != null and not bitmap.is_empty():
-		image_texture = ImageTexture.create_from_image(bitmap)
+	# Exported PCKs retain imported Resource references, not raw source WebP bytes.
+	# Static preload prevents export pruning of the three approved backdrops.
+	image_texture = WORLD_ART[world_id] as Texture2D
 
 func _create_controls() -> void:
 	var layer := CanvasLayer.new()
@@ -96,7 +102,8 @@ func _toggle_quality() -> void:
 func _play_audio(name: String) -> void:
 	if not music_enabled or not ["navigation", "build_start", "build_complete", "claim"].has(name):
 		return
-	var stream: AudioStreamWAV = AudioStreamWAV.load_from_file("res://world-audio/" + name + ".wav")
+	# Use imported AudioStream resources in the export; raw WAV may be stripped.
+	var stream: AudioStream = WORLD_AUDIO[name] as AudioStream
 	if stream == null:
 		return
 	audio.stop()

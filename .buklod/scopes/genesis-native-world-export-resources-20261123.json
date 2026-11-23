@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-world-export-resources-20261123.json",
+  "objective": "Fix Godot 4.7.2 exported PCK world test failing due to raw WebP/WAV load paths not preserved in packed/imported resources; compile true three-world visuals/audio and keep offline practice boundaries.",
+  "baseRef": "96b21661e2bebf6d19c1ba58229a52e8109bb281",
+  "productionBaselineEvidence": "Headless DEV Godot export run 45142483035 produced a real 34,970,196-byte GDPC PCK and passed Arena startup plus Arena smoke, but world_smoke failed with res://world-art/kingdom.webp and res://world-audio/navigation.wav missing after export. Main remains source SHA 7b224c39624827282c3cbf003060317045b0a73f; no production runtime verification.",
+  "chosenApproach": "Replace file-system Image.load_from_file/AudioStreamWAV.load_from_file with static imported-resource preloads to guarantee PCK inclusion; update world smoke test to assert real Texture2D/AudioStream in PCK, not just source file existence. Re-run exact bounded GitHub world pack job, no APK.",
+  "selectionRationale": "The PCK exported successfully and worked for Arena; exported Godot resource importer does not preserve raw WebP/WAV paths. Using preload() is the canonical imported resource approach and ensures references are included. Do not bypass smoke error parsing or pad binaries.",
+  "allowedPaths": [
+    "godot/empire-arena/scripts/world_preview.gd",
+    "godot/empire-arena/tests/world_smoke.gd",
+    "tests/genesis-native-godot-pack-export-20261123.test.mjs",
+    ".github/workflows/genesis-native-gha-godot-pack-20261123.yml",
+    ".buklod/scopes/genesis-native-world-export-resources-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "kingdom-character",
+      "reason": "Recover exported DEV world backdrops and UI sound while maintaining non-authoritative previews",
+      "preservedBehaviors": [
+        "13 character preview stations and levels unchanged",
+        "World stage controls unchanged",
+        "No currency/BP/points or house ownership writes",
+        "Arena source, combat and ads unaffected"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Rerun read-only Godot export smoke with strict error rejection, no APK",
+      "preservedBehaviors": [
+        "No production/staging package or user data change",
+        "No signing, APK assembly or publishing"
+      ],
+      "tests": [
+        "tests/genesis-native-godot-pack-export-20261123.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "Godot PCK export may prune dynamically referenced resources",
+    "Original WAV/WebP file types must parse as imported resources",
+    "Source preload may fail unless export import stage runs",
+    "GitHub Actions minutes",
+    "Full game and mobile runtime still unverified"
+  ],
+  "preserveBehaviors": [
+    "Production/staging and source main unchanged",
+    "No new privileged or backend access",
+    "CI returns nonzero on Godot runtime errors"
+  ],
+  "acceptanceChecks": [
+    "Native scene source regressions and tests pass",
+    "Godot actual .pck has GDPC header",
+    "Packed Arena ready and smoke passes",
+    "World_smoke loads all 3 backdrops and 4 audio cues without ERROR",
+    "Hash output on verified pack only",
+    "No apk, upload or OTA"
+  ],
+  "alternativeApproaches": [
+    "Rejected: ignoring Godot World errors despite a successful PCK header",
+    "Rejected: forcing raw WebP/WAV export with fake file copies without proper import handling"
+  ],
+  "releaseMode": "DEV_GODOT_PCK_RESOURCE_FIX_QA_ONLY",
+  "publicationStatus": "SOURCE_FIX_SUBMITTED_REAL_PACK_CI_RECHECK_PENDING",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
