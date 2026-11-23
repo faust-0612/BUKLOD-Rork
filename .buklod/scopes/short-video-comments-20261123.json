@@ -18,7 +18,6 @@
     "Scroll pauses every comment video and only one player can run at a time."
   ],
   "regressionTests": [
-    "src/lib/__tests__/buklodCommentShortVideo.test.ts",
     "tests/short-video-comment-navigation-scope.test.mjs"
   ],
   "allowedPaths": [
@@ -70,5 +69,18 @@
     }
   ],
   "releaseTarget": "DEV review only",
-  "publicationStatus": "SOURCE_ONLY_NO_OTA"
+  "publicationStatus": "SOURCE_ONLY_NO_OTA",
+  "selectionRationale": "The app already has private community-media signed uploads, authenticated comment RPCs, and expo-video included in its native runtime. Extend the versioned comment attachment format and lazy playback to avoid new tables, runtime plugins, media exposure, or costly autoplay while retaining scope RLS and backward compatibility.",
+  "alternativeApproaches": [
+    "New comment_video database table and migration: rejected because it requires schema and RLS rollout and increases release risk; existing comment body media header supports backward-compatible attachments.",
+    "Host public MP4 links or use autoplaying Community Wall video player for every comment: rejected due to privacy exposure, excessive bandwidth and media initialization affecting scroll and AdMob.",
+    "Use inline base64 blob in comment body: rejected because it bypasses private storage, inflates RPC payload and breaks mobile network reliability."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "faith-cluster",
+    "video-playback",
+    "comment-privacy"
+  ]
 }
