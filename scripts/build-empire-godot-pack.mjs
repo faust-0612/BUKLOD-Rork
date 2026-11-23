@@ -215,7 +215,7 @@ if (process.env.BUKLOD_GENESIS_PRIVATE_FX === 'true') {
     'Private FX source provenance missing');
   const sourceMap=new Map();
   for(const source of fxManifest.sourceArchives){
-    assert.match(source.file,/^[A-Za-z0-9_.() -]+\\.zip$/);
+    assert.match(source.file,/^[A-Za-z0-9_.() -]+\.zip$/);
     checkHash(source.sha256);
     assert.ok(!sourceMap.has(source.file),'duplicate FX source archive');
     sourceMap.set(source.file,source.sha256);
