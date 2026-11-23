@@ -5,7 +5,7 @@ import {useEffect,useState} from 'react';
 import {AppState,Platform} from 'react-native';
 import {createAudioPlayer,type AudioPlayer} from 'expo-audio';
 import {getBuklodSoundSettings,isBuklodGameSoundEnabled,getBuklodGameSoundVolume} from '@/lib/buklodSounds';
-import {subscribeBuklodAudioFocus} from '@/lib/buklodAudioFocus';
+import {subscribeBuklodAudioFocus,isBuklodPttVoiceActive,subscribeBuklodPttVoiceActivity} from '@/lib/buklodAudioFocus';
 
 const GENESIS_ENTRY_CUE=require('../../../../assets/sounds/buklod-genesis-opening-20261120.wav');
 let playedInSession=false;
@@ -44,6 +44,9 @@ export function useGenesisEntryAudio(eligible:boolean):boolean{
       interrupted=true;
       finish();
     });
+    // Short entrance cue yields immediately; the subsequent map score keeps time
+    // and ducks during PTT rather than pause/restart looping.
+    const pttActivity=subscribeBuklodPttVoiceActivity(active=>{if(active)finish();});
     const background=AppState.addEventListener('change',state=>{
       if(state!=='active'){interrupted=true;finish();}
     });
@@ -56,7 +59,7 @@ export function useGenesisEntryAudio(eligible:boolean):boolean{
     void getBuklodSoundSettings().then(()=>{
       if(!live||finished)return;
       if(AppState.currentState!=='active'){interrupted=true;finish();return;}
-      if(!isBuklodGameSoundEnabled()){finish();return;}
+      if(!isBuklodGameSoundEnabled()||isBuklodPttVoiceActive()){finish();return;}
       try{
         const created=createAudioPlayer(GENESIS_ENTRY_CUE,{updateInterval:200});
         player=created;
@@ -74,6 +77,7 @@ export function useGenesisEntryAudio(eligible:boolean):boolean{
       live=false;
       cleanup();
       focus();
+      pttActivity();
       background.remove();
     };
   },[eligible]);

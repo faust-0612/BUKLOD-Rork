@@ -17,7 +17,10 @@
     "src/features/season2/world/BuklodMapGuideDock.tsx",
     "tests/genesis-entry-audio-avatar-recovery-20261123.test.mjs",
     ".buklod/scopes/genesis-entry-audio-avatar-recovery-20261123.json",
-    ".github/workflows/genesis-entry-audio-avatar-dev-qa-20261123.yml"
+    ".github/workflows/genesis-entry-audio-avatar-dev-qa-20261123.yml",
+    "src/features/games/runtime/rorkAudio.ts",
+    "src/lib/buklodAudioFocus.ts",
+    "src/ptt/buklodPttRuntime.ts"
   ],
   "lockedFeatureChanges": [
     {
@@ -47,7 +50,8 @@
     "Observe approved portrait + guide and 13 actual sprite animations without clipping, stutter or static substitution",
     "Reconcile other approved DEV, mainline and PTT audio changes before consolidated staging RC",
     "Verify AdMob first-view load, instant tab navigation and background media lifecycle",
-    "Device build/OTA runtime compatibility and signed RC required before any staging OTA"
+    "Device build/OTA runtime compatibility and signed RC required before any staging OTA",
+    "Reverify previously staged PTT voice/microphone signal and volume ducking without audio loop restart."
   ],
   "releaseMode": "DEV_ONLY_NO_PRODUCTION_OR_OTA",
   "physicalDeviceVerification": "NOT_PERFORMED",
@@ -61,14 +65,15 @@
     "expo asset bundling",
     "hero sprite frame budget"
   ],
-  "selectionRationale": "The repository already owns a short original opening WAV, 13 approved 8-frame Godot character sheets and three guide poses. Reusing these assets repairs missing visual and audio functionality without inventing a new identity, native SDK, reward authority or remote download.",
+  "selectionRationale": "The repository already owns a short original opening WAV, 13 approved 8-frame Godot character sheets and three guide poses. Reusing these assets repairs missing visual and audio functionality without inventing a new identity, native SDK, reward authority or remote download. Carry forward unchanged 2026-11-22 staged PTT transient-activity event and Android mix/duck audio fix, not an older version that would regress entry music.",
   "preserveBehaviors": [
     "Current production BUKLOD MAIN runtime, package, signing and verified Season 1 features are unaffected",
     "Existing authentication, consent, audio-focus, PTT, quiet-hours and opt-out policy remains authoritative",
     "Rive rigs still require separately approved local rig assets; real frame sprites are a controlled local fallback",
     "AdMob and navigation sources are unchanged and are mandatory RC regression gates",
     "All 13 character identities, progression and points remain owned by existing systems",
-    "The approved portrait map remains the first-choice source; offline recovery remains intact"
+    "The approved portrait map remains the first-choice source; offline recovery remains intact",
+    "Previous consolidated staging PTT behavior remains present: Android mix-with-others, transient voice ducking, lost PTT_END recovery timeout and cleanup."
   ],
   "alternativeApproaches": [
     "Enable unapproved remote Rive animations (rejected due provenance/privacy and new loading dependencies).",

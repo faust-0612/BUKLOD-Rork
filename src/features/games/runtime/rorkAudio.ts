@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {subscribeBuklodAudioFocus} from '@/lib/buklodAudioFocus';
-import { AppState } from 'react-native';
+import {
+  subscribeBuklodAudioFocus,
+  isBuklodPttVoiceActive,
+  subscribeBuklodPttVoiceActivity,
+} from '@/lib/buklodAudioFocus';
+import { AppState, Platform } from 'react-native';
 import { getBuklodSoundSettings, isBuklodGameSoundEnabled, getBuklodGameSoundVolume } from '@/lib/buklodSounds';
-import { createAudioPlayer } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
 import { getRorkGameMedia, RORK_AUDIO, type RorkAudioKey } from './rorkMedia';
@@ -285,6 +289,23 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
     // Genesis map music yields to any explicit ad, video, call or music focus
     // request. Never resume spontaneously while a competing source is active.
     let interruptedByOtherAudio = false;
+    let pttVoiceActive = isBuklodPttVoiceActive();
+    let androidMixMode: Promise<void> | null = null;
+    const updateVolume = () => {
+      const base = Math.min(0.16, getBuklodGameSoundVolume() * 0.55) *
+        (options?.arena && arenaVoiceDucking ? 0.23 : 1);
+      // Keep the Entry track playing at its position during PTT voice,
+      // avoiding pause/restart thrashing and protecting intelligibility.
+      audio.volume = isKingdomMap && pttVoiceActive ? base * 0.12 : base;
+    };
+    const releasePttActivity = isKingdomMap
+      ? subscribeBuklodPttVoiceActivity(voiceActive => {
+          pttVoiceActive = voiceActive;
+          if (active) {
+            try { updateVolume(); } catch { /* optional music */ }
+          }
+        })
+      : () => undefined;
     if (isKingdomMap || options?.arena) setMusicSuspended(false);
     // Keep the long-standing Genesis callback contract intact. Arena takes a
     // separate, focus-owned subscription so non-Arena screens are unchanged.
@@ -319,8 +340,19 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
           audio.pause();
           return;
         }
-        audio.volume = Math.min(0.16, getBuklodGameSoundVolume() * 0.55) * (options?.arena&&arenaVoiceDucking ? 0.23 : 1);
-        if (audio.isLoaded) audio.play();
+        // Ambient Genesis music must not request Android focus away from
+        // Stream PTT. Leave the microphone/call transport untouched.
+        if (isKingdomMap && Platform.OS === 'android') {
+          androidMixMode ??= setAudioModeAsync({
+            playsInSilentMode: true,
+            interruptionMode: 'mixWithOthers',
+          }).catch(() => undefined);
+          await androidMixMode;
+          if (!active || AppState.currentState !== 'active' ||
+              interruptedByOtherAudio) return;
+        }
+        updateVolume();
+        if (audio.isLoaded && !audio.playing) audio.play();
       } catch {
         // No impact to gameplay if sound assets, platform or autoplay fail.
       }
@@ -343,6 +375,7 @@ export function useRorkGameAmbience(gameId?: string | null, options?: { arena?: 
       if(options?.arena&&arenaAmbience===audio){arenaAmbience=null;setArenaVoiceDucking(false);}
       releaseAudioFocus();
       releaseArenaMusicFocus();
+      releasePttActivity();
       readyListener.remove();
       stateListener.remove();
       try { audio.pause(); } catch { /* already disposed or unavailable */ }

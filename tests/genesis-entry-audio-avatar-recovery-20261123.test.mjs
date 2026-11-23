@@ -47,3 +47,19 @@ test('welcome guide uses original portraits; no fake hand icon and no crop overl
  assert.match(portrait,/imageReady\?<GenesisOriginalGuideMotion/);
  assert.match(reliable,/onImageReadyChange/);
 });
+
+test('previously staged PTT fix stays cumulative: map music ducks without restarting',()=>{
+ const focus=read('src/lib/buklodAudioFocus.ts');
+ const runtime=read('src/ptt/buklodPttRuntime.ts');
+ const ambient=read('src/features/games/runtime/rorkAudio.ts');
+ const intro=read('src/features/season2/genesis/useGenesisEntryAudio.ts');
+ assert.match(focus,/subscribeBuklodPttVoiceActivity/);
+ assert.match(runtime,/setBuklodPttVoiceActive\\(Boolean\\(/);
+ assert.match(runtime,/normalReceivingTransmissionId/);
+ assert.match(runtime,/clearNormalReceiving\\(String\\(payload\\.transmission_id\\)\\)/);
+ assert.match(ambient,/interruptionMode: 'mixWithOthers'/);
+ assert.match(ambient,/audio\\.volume = isKingdomMap && pttVoiceActive \\? base \\* 0\\.12 : base/);
+ assert.match(ambient,/if \\(audio\\.isLoaded && !audio\\.playing\\) audio\\.play\\(\\)/);
+ assert.match(ambient,/releasePttActivity\\(\\)/);
+ assert.match(intro,/subscribeBuklodPttVoiceActivity/);
+});
