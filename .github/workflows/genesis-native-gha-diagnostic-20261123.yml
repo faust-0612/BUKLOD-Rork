@@ -1,0 +1,94 @@
+name: BUKLOD Genesis - isolated Android Kotlin compile diagnostic (DEV)
+# An owner-approved GitHub Actions exception to local-only work.
+# One-shot, source/compile only. No APK, signer, backend, release or OTA.
+on:
+  push:
+    branches:
+      - dev/genesis-native-gha-diagnostic-20261123
+    paths:
+      - '.github/workflows/genesis-native-gha-diagnostic-20261123.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-genesis-native-diagnostic-dev
+  cancel-in-progress: true
+
+jobs:
+  android-kotlin-compile:
+    if: >-
+      github.repository == 'faust-0612/BUKLOD-Rork' &&
+      github.ref == 'refs/heads/dev/genesis-native-gha-diagnostic-20261123' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' &&
+        startsWith(github.event.head_commit.message, 'GENESIS_NATIVE_GHA_DIAG:')))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    env:
+      CI: '1'
+    steps:
+      - name: Checkout exact isolated DEV source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Node 22 for dependency-free source regressions
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Native source regression and release-hold assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/genesis-native-local-only-gate-20261123.test.mjs \
+            tests/genesis-native-android-host-20261123.test.mjs \
+            tests/genesis-native-game-core-20261123.test.mjs \
+            tests/genesis-native-gha-diagnostic-20261123.test.mjs
+          node --input-type=module <<'NODE'
+          import {auditLocalNative} from './scripts/genesis-native-local-only-gate.mjs';
+          const result = await auditLocalNative(process.cwd(), {env:{},checkTools:false});
+          for(const code of ['BACKEND_NOT_ISOLATED','UNVERIFIED_APP_FEATURE','INSUFFICIENT_NATIVE_GAME_ASSETS']) {
+            if(!result.errors.some(error=>error.startsWith(code))) {
+              throw Error('Missing mandatory release blocker: '+code);
+            }
+          }
+          if(result.ok) throw Error('Incomplete native app unexpectedly passed release gate');
+          console.log('RELEASE_HOLD_CONFIRMED: incomplete native host cannot ship');
+          NODE
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK command line tools
+        uses: android-actions/setup-android@v4
+
+      - name: Install only required compile SDK and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --install "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Setup fixed Gradle version without wrapper or cache storage
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+          cache-disabled: true
+
+      - name: Compile Kotlin Java and manifest - NO APK produced
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --console=plain \
+            -p native-genesis/android \
+            :app:processDebugMainManifest \
+            :app:compileDebugKotlin \
+            :app:compileDebugJavaWithJavac
+          test ! -f native-genesis/android/app/build/outputs/apk/debug/app-debug.apk
+          echo 'GENESIS_NATIVE_ANDROID_SOURCE_COMPILES; NO_INSTALLABLE_APK'

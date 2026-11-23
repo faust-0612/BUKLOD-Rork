@@ -1,0 +1,66 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-gha-diagnostic-20261123.json",
+  "objective": "Owner authorized GitHub Actions as a narrow exception to local-only work: one bounded, isolated no-Expo Android Gradle/JVM compile diagnostic without signing, APK upload, deployment or release.",
+  "baseRef": "ba971ed0a30cce0ddb43157c420940fbb4792456",
+  "productionBaselineEvidence": "GitHub main baseline source 7b224c39624827282c3cbf003060317045b0a73f; main was 7 commits ahead of native DEV and has not been reconciled. Neither production runtime nor installed Android client has been verified; this change touches only separate DEV CI and docs.",
+  "chosenApproach": "One-shot branch/path/commit-message-gated push workflow, optional future dispatch after workflow is present in default branch; fixed Ubuntu/JDK/SDK/Gradle, focused source tests and compilation only. Full native release guard remains deliberately red; no APK build, signing or backend.",
+  "selectionRationale": "No SDK, Android runner or Gradle toolchain in current execution environment. GitHub hosted runner can compile the isolated source and expose actual JVM/Android failures at bounded cost, unlike repeated nonfunctional Godot-only APK builds. Existing main remains untouched.",
+  "allowedPaths": [
+    ".github/workflows/genesis-native-gha-diagnostic-20261123.yml",
+    ".buklod/scopes/genesis-native-gha-diagnostic-20261123.json",
+    "tests/genesis-native-gha-diagnostic-20261123.test.mjs",
+    "native-genesis/README.md"
+  ],
+  "regressionTests": [
+    "tests/genesis-native-gha-diagnostic-20261123.test.mjs",
+    "tests/genesis-native-local-only-gate-20261123.test.mjs",
+    "tests/genesis-native-android-host-20261123.test.mjs",
+    "tests/genesis-native-game-core-20261123.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Enables isolated DEV Android source compile only, not a release pipeline.",
+      "preservedBehaviors": [
+        "Production/main/staging untouched",
+        "No Expo/EAS/Vercel and no APK upload or OTA",
+        "No signing keys or isolated backend credentials injected",
+        "Release gate still rejects missing native full app parity"
+      ],
+      "tests": [
+        "tests/genesis-native-gha-diagnostic-20261123.test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "GitHub Actions minutes may be billed",
+    "Runner may lack compatible Android SDK or dependencies",
+    "Android compile is not device runtime evidence",
+    "Manual dispatch hidden until workflow exists on default branch",
+    "Unrelated old GH workflows may be queued or fail on pushes",
+    "No source parity or premium Godot assets in APK"
+  ],
+  "preserveBehaviors": [
+    "No changes to BUKLOD MAIN production or staging package",
+    "No cloud Expo/EAS/Vercel",
+    "No binaries or unsigned APK advertised as release",
+    "No disablement of AdMob/nav/security gates"
+  ],
+  "acceptanceChecks": [
+    "Focused Node source regression tests pass in CI",
+    "Exact independent Kotlin/Java/manifest Gradle tasks compile or provide actionable errors",
+    "No APK generated or uploaded",
+    "All release blockers remain active",
+    "No push/OTA/production deployment",
+    "Run identified by GitHub workflow job status and exact DEV SHA"
+  ],
+  "alternativeApproaches": [
+    "Rejected: pushing workflow to main merely to enable manual dispatch; main must remain protected",
+    "Rejected: immediate full APK despite absent app parity/backend/assets; would create another misleading build",
+    "Rejected: non-branch-scoped auto CI; wastes minutes and could execute on unrelated pushes"
+  ],
+  "releaseMode": "DEV_COMPILE_DIAGNOSTIC_ONLY_ONE_SHOT_GITHUB_ACTIONS_EXCEPTION",
+  "publicationStatus": "WORKFLOW_SOURCE_PENDING_GITHUB_RUN",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

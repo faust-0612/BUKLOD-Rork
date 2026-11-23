@@ -4,7 +4,7 @@
 
 ## Non-negotiable release contract
 
-- **No Expo, EAS, Vercel, cloud builds, OTA, or production deployment.** Android SDK, Gradle and Godot must be installed and run **locally**. This directory is a migration destination, not a current Android project.
+- **No Expo, EAS, Vercel, production OTA or release publishing.** An owner-approved exception allows **GitHub Actions Android compile diagnostics** on an isolated DEV branch. Local-only full signed release remains blocked on missing parity, assets, new backend, signer and real device proof.
 - Distinct application ID: `org.mzbministry.buklod.genesis.nativeapp`, **not** BUKLOD MAIN `org.mzbministry.buklod` or existing staging `org.mzbministry.buklod.staging`. A brand-new, separately scoped test backend is mandatory; use `GENESIS_NATIVE_STAGING_SUPABASE_URL` and `GENESIS_NATIVE_STAGING_SUPABASE_PUBLISHABLE_KEY` only through a secure local environment. Never reuse MAIN credentials.
 - Complete BUKLOD application parity must be migrated from the canonical current product, including protected AdMob first-view/lifecycle, navigation, accounts/RLS, Cluster, Wall, Connect/PTT, Profile, Bible/offline, character and rewards. `parity.json` is **not ready**. Every feature needs actual device evidence before `verified` is ever set.
 - Godot Arena **and** all Kingdom/community/house scenes, 13 animated heroes, progression, authoritative points, actual controls, NPC/combat, landscape audio focus and premium effects must run in this Android host, not just as screenshots/previews.
@@ -77,3 +77,11 @@ integration is claimed. A temporary lab launcher is deliberately gated.
 - `scripts/genesis-native-local-only-gate.mjs` now checks `assets/godot/empire-arena.pck` rather than the previous ZIP filename; this matches `prepare-pack-local.sh` and the Godot Activity. It still rejects the missing backend/asset parity and absent Android toolchain.
 - The essential launcher/pack policy is **actually compiled with `kotlinc` on JVM and executed** in `tests/native/GenesisNativeContractSmoke.kt`; that is not an Android compile, Godot runtime test, or proof of premium gameplay.
 - `MAIN_CARRYOVER_20261123.md` records outstanding MAIN features; no production release, OTA, or full BUKLOD replacement is authorized.
+
+## GitHub Actions narrow exception — 23 November 2026
+
+- Diagnostic workflow: `.github/workflows/genesis-native-gha-diagnostic-20261123.yml` on isolated `dev/genesis-native-gha-diagnostic-20261123`; only a matching workflow-file push and `GENESIS_NATIVE_GHA_DIAG:` commit is eligible. It runs focused source tests and `processDebugMainManifest/compileDebugKotlin/compileDebugJavaWithJavac` only.
+- Runner has read-only access, no credentials/secrets, no Expo/EAS/Vercel, no Godot game export, no APK assembly, no upload/publish, no backend access. Bounded to 16 minutes, concurrency-cancelled, Gradle cache disabled to avoid Actions cache storage costs.
+- The run is intentionally **not evidence of full BUKLOD app parity** and cannot turn any `parity.json` entry verified. The existing release gate must remain red for incomplete backend, approved assets and game/application functionality.
+- GitHub allows manual `workflow_dispatch` from the Actions UI **only after a workflow file exists on the default branch**. This exception does not authorize adding anything to `main` solely to activate the manual button; this one-shot, exact DEV-branch push is the diagnostic trigger.
+- No GitHub hosted runner can prove real Android device compatibility, premium 39-game gameplay, 800+ MB asset quality or production safety merely by compiling Kotlin.
