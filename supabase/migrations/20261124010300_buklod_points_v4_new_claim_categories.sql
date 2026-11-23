@@ -50,9 +50,9 @@ begin
     select
       p.group_key,
       case p.group_key
-        when 'todays_best' then 'Today\'s Best'
+        when 'todays_best' then 'Today''s Best'
         when 'connect' then 'Connect'
-        when 'children' then 'Children\'s Learning'
+        when 'children' then 'Children''s Learning'
         when 'bible_personal' then 'Personal Bible Reading'
         when 'bayanihan' then 'Bayanihan'
         when 'posting' then 'Posting'
