@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
-      EXPECTED_SOURCE: 834e39808b8d0fb040952d1df6f47e840c325e8b
+      EXPECTED_SOURCE: acbb93103568ddb749c0fcef2bf6e3e1ce3ff30e
     steps:
       - name: Fetch exact cloud build trigger and its actual CI step results without retry
         run: |
