@@ -3,7 +3,7 @@
   "objective": "Complete newest-message-first Connect inbox refresh for Personal, Requests, Cluster, Church, and Organization and preserve existing chat behavior for staging Android.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: GitHub canonical main inspected at SHA 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04, with authenticated personal/community inbox RPC definitions read from MAIN project. This is a source baseline only, not evidence of the currently served production OTA or installed staging artifact.",
-  "chosenApproach": "Stable activity timestamp sorting for every inbox segment, immediate known-room realtime promotion, account-scoped notification/send revision invalidation for first-contact threads, bounded focused refresh and existing chat latest-anchor preservation. No backend change or global message listener.",
+  "chosenApproach": "Stable activity timestamp sorting for every inbox segment, immediate known-room realtime promotion, account-scoped notification/send revision invalidation for first-contact threads, bounded focused refresh and existing chat latest-anchor preservation. No backend change or global message listener. Existing 90-second global unread fallback also signals the inbox on new unread activity or new known thread IDs, without adding another poll.",
   "selectionRationale": "Minimal JS-only modification aligned with existing runtime, RLS, first-view ads and scoped realtime listeners; avoid broad subscriptions and more frequent polling that would increase database load.",
   "alternativeApproaches": [
     "Poll all Connect conversations every few seconds (rejected: high egress, request load and battery use).",
@@ -26,7 +26,8 @@
     "Older-history reading does not rebound or force-scroll; composer focus and send still anchor to newest as intended.",
     "All source Jest/Node, TypeScript, Android JS export and ad/tab-nav CI checks PASS at exact RC SHA.",
     "Staging OTA only after isolated installed APK runtime, preview backend, EAS channel separation and device ad/nav/read tests are verified.",
-    "Never announce a staging OTA or claim production publication."
+    "Never announce a staging OTA or claim production publication.",
+    "Missed foreground push is recovered using the existing unread-count fallback without raising polling frequency."
   ],
   "riskAreas": [
     "connect",
@@ -54,7 +55,8 @@
     "tests/connect-inbox-notification-navigation-20261123.test.mjs",
     "tests/protected-feature-lock.test.mjs",
     ".github/workflows/engineering-accountability.yml",
-    ".buklod/scopes/connect-inbox-staging-20261123.json"
+    ".buklod/scopes/connect-inbox-staging-20261123.json",
+    "src/hooks/useBuklodConnectUnread.ts"
   ],
   "lockedFeatureChanges": [
     {
