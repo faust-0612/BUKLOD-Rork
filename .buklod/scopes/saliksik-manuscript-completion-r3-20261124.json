@@ -1,0 +1,78 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/saliksik-manuscript-completion-r3-20261124.json",
+  "objective": "Upon a member's server-verified completion of ALL nine SALIKSIK investigations, unlock repeated complete manuscript download without Points claim or per-user Admin approval; preserve private-original rights and offer full compiled authorized study manuscript.",
+  "baseRef": "d559e5edd596a66a22c2072af5bdffcd5a085bb2",
+  "productionBaselineEvidence": "Production Android/OTA and Supabase SALIKSIK rollout not independently verified; GitHub main source last inspected at 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04; this feature branch is based on the independently unreleased SALIKSIK R2 staging DEV PR #806 head d559e5e. Current main does not contain this branch. No DB migration, Edge deploy, OTA or live change performed.",
+  "chosenApproach": "Additive off-by-default verified-completion entitlement RPC; one-time owner source redistribution rights; service-role-only Edge short-expiry signed download and one-version cached derived full 9-chapter DOCX; minimal member download card and admin rights toggle, with isolated PostgreSQL and Node regressions.",
+  "selectionRationale": "Avoid making private originals public, manually approving learners, inventing points, adding native PDF libraries, or generating duplicates. Reuse R2 canonical series mastery and existing private storage.",
+  "alternativeApproaches": [
+    "Make original source bucket public: rejected due high-severity private intellectual-property leak.",
+    "Unlock on local 9/9 client state: rejected due spoofing and stale version.",
+    "Grant file on individual BP claim: rejected by owner and existing manual claiming policy.",
+    "Generate per-user text on every tap: rejected due storage and egress waste."
+  ],
+  "riskAreas": [
+    "backend-security",
+    "source-redistribution",
+    "storage",
+    "member-authorization",
+    "points-ledger",
+    "app-runtime",
+    "signed-url-sharing",
+    "ota-compatibility"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/saliksik-manuscript-completion-r3-20261124.json",
+    "docs/saliksik/SALIKSIK_R3_AUTOMATED_RESEARCH_OWNER_POLICY_20261124.md",
+    ".github/workflows/saliksik-sql-qa.yml",
+    "supabase/migrations/20261124035000_saliksik_complete_manuscript_unlock_r3.sql",
+    "supabase/functions/saliksik-manuscript-v1/index.ts",
+    "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql",
+    "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+    "src/lib/saliksikClient.ts",
+    "src/app/scope/saliksik.tsx",
+    "src/app/admin/saliksik-library.tsx"
+  ],
+  "regressionTests": [
+    "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql",
+    "tests/saliksik-manuscript-unlock-20261124.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "backend-security",
+      "reason": "Add private original rights/entitlement guarded download service without bypassing RLS.",
+      "preservedBehaviors": [
+        "Source originals stay private; anonymous/other-user reads denied; canonical Points/QMP unchanged."
+      ],
+      "tests": [
+        "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+        "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Show a SALIKSIK-only download card upon completed nine-part member catalog; no new native packages.",
+      "preservedBehaviors": [
+        "Home/Cluster first paint, Wall/video, AdMob, Connect, KL, release and app navigation unchanged."
+      ],
+      "tests": [
+        "tests/saliksik-manuscript-unlock-20261124.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No change to any live backend or production signed Android build.",
+    "Existing R2 Admin review and Master scoring remain unchanged in code; broader automated R3 research/grade transition is pending dedicated isolated implementation.",
+    "No change to BUKLOD Points claim settings, QMP, UC, AdMob, KL, Wall, Connect, messaging, security."
+  ],
+  "acceptanceChecks": [
+    "Complete nine-part member can obtain a short-lived link to full approved original or compiled nine-chapter study; even if BP not claimed.",
+    "Unqualified member/anon cannot invoke entitlement; cannot change source rights; no service-role secret exposed.",
+    "Original not licensed by owner remains private and no signed URL is issued; compiled version stays available.",
+    "Same member across devices can re-download without duplicate point/event; source version immutable and idempotent cache.",
+    "Isolated PostgreSQL tests and exact TypeScript/Android build + RC on safe environment required before activation."
+  ],
+  "releaseMode": "dev-only",
+  "releaseGate": "NO MERGE / SQL DEPLOY / EDGE DEPLOY / OTA until cumulative parity with current main, exact source CI, PostgreSQL regression, verified Android RC, distribution-rights governance, and explicit production authorization."
+}
