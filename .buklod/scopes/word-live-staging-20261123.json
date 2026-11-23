@@ -1,0 +1,80 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/word-live-staging-20261123.json",
+  "objective": "Add pressable Word Scripture and key verse to the exact currently served Season2 staging source without overwriting existing Season2 fixes or changing production.",
+  "baseRef": "cd8efbc8a7bf7deb8940764696a7f7d2412183a8",
+  "productionBaselineEvidence": "verified: Exact serving EAS staging-user Android update SHA cd8efbc8a7bf7deb8940764696a7f7d2412183a8 captured from EAS update:view and manifest on 2026-11-23; GitHub main is a separate divergent source and cannot replace this staging baseline. Production latest live fingerprint is checked read-only during release preflight.",
+  "chosenApproach": "Cherry-pick only Word pressable links and immutable local Bible book parser onto current Season2 staging code, retaining its UI Card and account-bound offline cache.",
+  "selectionRationale": "Prior main-based staging OTA was blocked because its source omitted 74 Season2 staged commits. The active staging Word screen and My Bible reader match the intended integration surface and use unchanged Expo runtime.",
+  "alternativeApproaches": [
+    "Publish from MAIN directly (rejected: would overwrite Season2 staging features).",
+    "Merge all divergent MAIN code into staging during this targeted Word fix (rejected: conflicting unreviewed multi-feature changes)."
+  ],
+  "preserveBehaviors": [
+    "Current Season2 staging Wall, Connect, Character, Kingdom, ads and navigation source remain byte-identical.",
+    "Word paraphrase, reflection, author/date, offline caching, user privacy and completion unchanged.",
+    "Production EAS channel, live backend and native APK unchanged."
+  ],
+  "acceptanceChecks": [
+    "Word Psalm 42:1–11 opens My Bible Psalm 42 verse 1; key verse Psalm 42:5 opens highlighted verse 5.",
+    "All November Word references parse validly and invalid references do not navigate.",
+    "Compile exact staging Android Hermes bundle with unchanged native dependencies, AdMob, and runtime 1.3.2.",
+    "Verify current staging EAS update git SHA exactly cd8efbc8a7bf7deb8940764696a7f7d2412183a8 and production manifest before release.",
+    "Publish staging-user Android only with idempotent marker and verify served manifest and production unchanged."
+  ],
+  "riskAreas": [
+    "cluster-faith",
+    "release-identity",
+    "ads-navigation-regression"
+  ],
+  "regressionTests": [
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-stage-ota-release-20261123.test.cjs"
+  ],
+  "allowedPaths": [
+    "src/app/devotional/[id].tsx",
+    "src/lib/buklodWordBibleReference.ts",
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    ".buklod/scopes/word-live-staging-20261123.json",
+    ".github/workflows/buklod-word-live-stage-ota-20261123.yml",
+    "tests/word-stage-ota-release-20261123.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add a local pressable Scripture route without altering auth, offline caching, ads or runtime.",
+      "preservedBehaviors": [
+        "Current Word content, offline cache and account isolation unchanged."
+      ],
+      "tests": [
+        "tests/word-scripture-link-20261123.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Open exact My Bible chapter and verse without invoking daily-plan completion.",
+      "preservedBehaviors": [
+        "Faith permission boundary, reader narration and reflection submission flow unchanged."
+      ],
+      "tests": [
+        "tests/word-bible-navigation-20261123.test.cjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Staging-only exact-source publication with signed APK and immutable EAS fingerprint verification.",
+      "preservedBehaviors": [
+        "No production OTA, native build, backend mutation, advertisement changes or unrelated Season2 features."
+      ],
+      "tests": [
+        "tests/word-stage-ota-release-20261123.test.cjs"
+      ]
+    }
+  ],
+  "releaseMode": "staging-only-word-rc",
+  "releaseTarget": "staging-user Android runtime 1.3.2 only",
+  "publicationStatus": "PENDING_RELEASE_GATES",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

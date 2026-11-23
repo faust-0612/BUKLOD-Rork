@@ -2,7 +2,7 @@ import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary'
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
@@ -10,6 +10,7 @@ import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { getWordBibleReaderTarget } from '@/lib/buklodWordBibleReference';
 
 function DevotionalScreenContent() {
   const { id } = useLocalSearchParams<{id:string}>();
@@ -81,6 +82,20 @@ function DevotionalScreenContent() {
       <Text style={shared.muted}>{errorText || 'No saved Word available.'}</Text>}
   </View>;
 
+  const passageTarget = getWordBibleReaderTarget(item.bible_passage);
+  const keyVerseTarget = getWordBibleReaderTarget(item.key_verse);
+  const openBibleAt = (target: NonNullable<typeof passageTarget>) => {
+    router.push({
+      pathname: '/bible/read',
+      params: {
+        book: String(target.bookNo),
+        chapter: String(target.chapterNo),
+        ...(target.verseNo ? { verse: String(target.verseNo) } : {}),
+        source: 'my_bible',
+      },
+    });
+  };
+
   const S = ({title, children}:{title:string;children?:string|null}) =>
     children ? <Card><Text style={shared.h2}>{title}</Text><Text style={[shared.body,{marginTop:7}]}>{children}</Text></Card> : null;
 
@@ -95,9 +110,46 @@ function DevotionalScreenContent() {
       <BuklodOccasionalAd placement="devotion" />
       {!!errorText && <Text style={shared.muted}>{errorText}</Text>}
       {/* BUKLOD_DAILY_DEVOTIONAL_R24_DETAIL */}
-      <Text style={[shared.muted,{fontWeight:'800'}]}>{item.bible_passage}</Text>
+      {passageTarget ? (
+        <Pressable
+          onPress={() => openBibleAt(passageTarget)}
+          accessibilityRole="button"
+          accessibilityLabel={`Basahin ang ${item.bible_passage} sa Biblia`}
+          accessibilityHint="Bubuksan ang kaukulang talata sa My Bible"
+          hitSlop={6}
+          style={({pressed}) => ({
+            alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center',
+            flexWrap: 'wrap', minHeight: 44, gap: 7, opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Text style={[shared.muted, {fontWeight:'800', color:colors.green, textDecorationLine:'underline'}]}>
+            {item.bible_passage}
+          </Text>
+          <Text style={{fontSize:12, color:colors.green, fontWeight:'800'}}>BASAHIN ›</Text>
+        </Pressable>
+      ) : <Text style={[shared.muted,{fontWeight:'800'}]}>{item.bible_passage}</Text>}
       <Text style={[shared.h1,{marginTop:4}]}>{item.title}</Text>
-      <S title="📖 SCRIPTURE">{item.scripture_text || item.key_verse}</S>
+      <Card>
+        <Text style={shared.h2}>📖 SCRIPTURE</Text>
+        <Text style={[shared.body,{marginTop:7}]}>{item.scripture_text || item.key_verse}</Text>
+        {(keyVerseTarget || passageTarget) ? (
+          <Pressable
+            onPress={() => openBibleAt(keyVerseTarget || passageTarget!)}
+            accessibilityRole="button"
+            accessibilityLabel={`Buksan ang ${keyVerseTarget ? item.key_verse : item.bible_passage} sa Biblia`}
+            accessibilityHint="Bubuksan ang buong kabanata at itatampok ang talata"
+            hitSlop={6}
+            style={({pressed}) => ({
+              alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44,
+              marginTop: 7, opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Text style={{color:colors.green,fontWeight:'800',fontSize:14,textDecorationLine:'underline'}}>
+              {keyVerseTarget ? `BASAHIN ANG SUSING TALATA: ${item.key_verse} ›` : 'BASAHIN ANG BUONG TALATA ›'}
+            </Text>
+          </Pressable>
+        ) : null}
+      </Card>
       <S title="✍️ REFLECTION">{item.reflection_text}</S>
       <S title="🌱 STORY / ILLUSTRATION">{item.illustration_text}</S>
       {item.quotation_text ? (
