@@ -2,6 +2,8 @@
 
 **Version:** 1.0 | **Date:** 2026-11-24 | **Authority:** MZB Ministry Inc., proposed Academy Academic Quality Lead | **Publication:** Draft until source and academic approval.
 
+This is a **non-formal** ministry curriculum. Completion records do not confer government-recognized degrees or academic equivalency.
+
 ## 1. Curriculum design principle
 
 The **53 existing academy credentials** (32 certificates, 9 diplomas, 7 bachelor's-level program completions, 5 master's-level program completions) remain in `src/data/university/buklodUniversityCatalog.json`. Its code, threshold, direct prerequisites, tier and evidence gate are canonical; the separate JSON framework crosswalks each code to outcomes. A learning pathway is **not** a newly created lesson or state-equivalent academic degree. No UC is granted by downloading a certificate. Every qualification requires (A) eligible verified cumulative UC, (B) recursive prerequisite eligibility, and (C) all published source-specific competencies and required research/practice evidence.
