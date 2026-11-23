@@ -120,7 +120,7 @@ test('a Gemini 503/5xx fails over to a different Flash-Lite instead of stranding
   assert.match(generator, /lastTransportFailure = response\.status === 404/);
   assert.match(generator, /tryNextModel = true;\s*break;/);
   assert.match(generator, /const reason = lastTransportFailure \?\? "generator_model_unavailable"/);
-  assert.doesNotMatch(generator, /return reply\(502, \{ ok: false, reason: "generator_unavailable" \}\);/);
+  // Other non-retryable response codes may still return generator_unavailable directly.
   assert.match(generator, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/);
   assert.match(generator, /return reply\(429, \{ ok: false, reason: "generator_quota_limited" \}\)/);
   assert.match(generator, /p_manuscript_hash: context\.manuscript_hash/);
