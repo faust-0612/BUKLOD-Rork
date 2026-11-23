@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "productionAuthorized": true,
+  "productionTarget": "BUKLOD_MAIN_ANDROID",
+  "releaseMode": "EXISTING_NATIVE_JS_OTA_ONLY",
+  "sourceCommitBeforeMarker": "2297384f796eb62d0a316a102123090d92d9532f",
+  "sourceScopePR": 1144,
+  "sourceRcPR": 1145,
+  "candidateSourceMergeSha": "ae2decb85bda382644e369aa0affaa5a53096978",
+  "appPlatform": "android",
+  "expoProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+  "androidPackage": "org.mzbministry.buklod",
+  "nativeVersion": "1.3.6",
+  "nativeVersionCode": 30,
+  "expoRuntimeVersion": "1.3.2",
+  "channel": "production",
+  "nativeBuildAuthorized": false,
+  "playReleaseAuthorized": false,
+  "season2ProductionAuthorized": false,
+  "webDeploymentAuthorized": false,
+  "physicalDeviceQA": "NOT_PERFORMED_NOT_PASSED",
+  "scope": "Non-Season2, existing-runtime production source cumulative through main 2297384; includes tested Connect Cluster latest-open fix. No additions from unmerged DEV/Genesis.",
+  "proof": {
+    "sourceQaRuns": [
+      45147559118,
+      45147559178,
+      45147559039,
+      45147559340
+    ],
+    "rcSourceQaRuns": [
+      45148531267,
+      45148530083,
+      45148530590
+    ],
+    "sourceDiffPaths": [
+      "src/components/BuklodConnectThread.tsx",
+      "tests/connect-cluster-open-latest-20261123.test.mjs",
+      "tests/connect-cluster-ads-isolation-20261123.test.mjs",
+      ".buklod/scopes/connect-cluster-open-latest-20261123.json"
+    ],
+    "rcInventoryDiffPaths": [
+      ".buklod/releases/buklod-main-connect-latest-nonseason2-ota-20261123.json",
+      ".buklod/scopes/buklod-main-connect-prod-rc-20261123.json",
+      "tests/buklod-main-connect-prod-rc-20261123.test.cjs"
+    ],
+    "previousProductionEvidence": {
+      "updateId": "01a201d9-3b7e-7881-b003-79452dd1a015",
+      "runtimeVersion": "1.3.2",
+      "recordedAtUtc": "2026-11-22T06:02:24Z",
+      "notCurrentBaseline": "MUST_REFRESH_IN_CANONICAL_PUBLISHER"
+    },
+    "approvalState": "OWNER_REQUESTED_PROCEED_NON_SEASON2",
+    "protectsAdsAndNavigation": "Existing mandatory source regression and runtime publisher baseline checks; no AdMob/source placement or navigation implementation changes; device QA not independently verified.",
+    "providerVerificationRequired": [
+      "canonical-main-only",
+      "season2-embargo",
+      "runtime-native-abi",
+      "admob-source-regressions",
+      "admob-prod-env",
+      "android-rc-export",
+      "freeze-and-verify",
+      "served-update-id",
+      "served-bundle-sha"
+    ]
+  },
+  "publisherPolicy": "Only one reviewed protected main merge with BUKLOD_ANDROID_ONLY_PROD_20261114: prefix; canonical .github/workflows/production_android_ota.yml must pass checks and verify exact Expo served ID/hash; never use direct CLI from this chat. External physical device evidence remains unverified, not claimed.",
+  "publicationStatus": "NOT_YET_PUBLISHED_PENDING_PROVIDER_VERIFICATION"
+}
