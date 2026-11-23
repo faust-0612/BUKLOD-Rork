@@ -39,7 +39,7 @@ jobs:
                   active:(j.steps||[]).filter(s=>s.status==='in_progress').map(s=>s.name)}))
               }));
             }
-            const local=(d.workflow_runs||[]).find(x=>x.head_sha==='c0cfdbda7c59c35eb42c79fddd277eb424b5b882' &&
+            const local=(d.workflow_runs||[]).find(x=>x.head_sha==='435e071da41c83071f545c9b209acb562863f7d2' &&
               String(x.path||'').includes('genesis-205-local-eas-signed-apk-20261123.yml'));
             if(!local) console.log('BUKLOD_GENESIS_205_EAS_LOCAL_SIGNED_NOT_FOUND_FOR_EXACT_SOURCE');
             else {
