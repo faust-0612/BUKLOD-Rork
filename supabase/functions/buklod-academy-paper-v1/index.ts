@@ -75,7 +75,8 @@ Deno.serve(async(req)=>{
   const drawCentered=(value:string,y:number,size:number,font=regular,color=colors.green)=>{
    const text=asText(value,160);
    const measured=font.widthOfTextAtSize(text,size);
-   page.drawText(text,{x:Math.max(44,(W-measured)/2),y,size,font,color});
+   const fitSize=measured>W-110?size*(W-110)/measured:size;
+   page.drawText(text,{x:Math.max(44,(W-font.widthOfTextAtSize(text,fitSize))/2),y,size:fitSize,font,color});
   };
   drawCentered('MZB MINISTRY INC.',525,14,bold);
   drawCentered('BUKLOD ACADEMY OF HIGHER LEARNING',492,22,bold);
@@ -108,7 +109,14 @@ Deno.serve(async(req)=>{
   const bytes=await pdf.save();
   const digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));
   const put=await admin.storage.from('buklod-university-papers').upload(objectPath,bytes,{contentType:'application/pdf',upsert:false});
-  if(put.error && !/already exists|duplicate/i.test(put.error.message))return respond(503,{error:'Unable to preserve issued document'});
+  if(put.error) {
+   if(/already exists|duplicate/i.test(put.error.message)) {
+    // Concurrent first-download requests must not register a hash of a different PDF.
+    // The request that created the immutable object completes registry update.
+    return respond(409,{error:'Another download is being prepared. Retry safely.'});
+   }
+   return respond(503,{error:'Unable to preserve issued document'});
+  }
   const {error:updateError}=await admin.from('buklod_university_awards')
    .update({paper_status:'READY',paper_path:objectPath,paper_sha256:digest})
    .eq('id',awardId).eq('user_id',auth.user.id).eq('status','ISSUED');
