@@ -2979,9 +2979,9 @@ export default function BuklodExclusiveScopeCommunity({
     return (
       <BuklodContentOverflowMenu
         title={
-          canManage
+          item.is_owner
             ? 'Your post'
-            : 'Post'
+            : canManage ? 'Manage post' : 'Post'
         }
         body={repairMojibakeText(item.body)}
         authorOnly={!!item.author_only}
@@ -2993,6 +2993,7 @@ export default function BuklodExclusiveScopeCommunity({
           !isScopedReelPost(item) &&
           !communityPostIsVideo(item)
         }
+        maxChars={12000}
         maxPhotos={COMMUNITY_MAX_PHOTOS}
         photos={communityPostEditPhotos(item)}
         onEdit={
@@ -3003,7 +3004,7 @@ export default function BuklodExclusiveScopeCommunity({
                     postId: item.id,
                     userId: String(user?.id ?? ''),
                     body: nextBody,
-                    photos: nextPhotos ?? [],
+                    photos: nextPhotos,
                   });
                 setPosts(current =>
                   current.map(post =>
@@ -3035,12 +3036,16 @@ export default function BuklodExclusiveScopeCommunity({
                   throw error;
                 }
 
-                await load();
+                // The backend has confirmed deletion. Avoid a full feed
+                // reload here: it can fail after success or jump scroll.
+                setPosts(current =>
+                  current.filter(post => post.id !== item.id)
+                );
               }
             : undefined
         }
         onToggleAuthorOnly={
-          canManage
+          item.is_owner
             ? async () => {
                 await setCommunityPostAuthorOnly(
                   item.id,
