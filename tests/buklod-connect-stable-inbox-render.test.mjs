@@ -15,14 +15,18 @@ test('Personal, Cluster, Org and Requests share one mounted Connect FlatList', (
   assert.match(inbox, /matchesCommunityFilter\(room, communityFilter\)/);
 });
 
-test('Connect keeps both types of authentic ad opportunity without adding request loops', () => {
+test('Connect preserves first-view native ad inventory without duplicate in-feed requests', () => {
   const inbox = read('src/app/(tabs)/messages.tsx');
   assert.match(inbox, /placement="messages"/);
   assert.match(inbox, /connect_personal_first_view/);
   assert.match(inbox, /connect_community_first_view/);
-  assert.match(inbox, /connect-personal-native-media/);
-  assert.match(inbox, /connect-community-native-media/);
-  assert.match(inbox, /connect-scope-native-media:/);
+  // Legacy in-feed cards were retired: the approved current policy uses a
+  // single first-view slot and avoids competing native ad SDK loads.
+  assert.doesNotMatch(inbox, /connect-personal-native-media|connect-community-native-media|connect-scope-native-media:/);
+  const first=read('src/components/BuklodFirstViewAd.android.tsx');
+  assert.match(first, /placement === 'messages'/);
+  assert.match(first, /return 'connect'/);
+  assert.doesNotMatch(inbox, /BuklodNativeSponsoredCard/);
   const banners = read('src/components/BuklodAdMobBanner.tsx');
   assert.match(banners, /reserveBuklodPassiveAdRequest/);
   assert.match(banners, /if \(noFill && online\)/);

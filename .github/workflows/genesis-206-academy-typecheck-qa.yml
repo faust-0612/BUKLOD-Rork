@@ -36,7 +36,7 @@ jobs:
         run: npx tsc --noEmit
       - name: Protect ad rendering, navigation and Academy non-graduation safety
         run: |
-          node --test tests/ad-dashboard-focus-performance-20261116.test.mjs tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs tests/buklod-connect-stable-inbox-render.test.mjs tests/appwide-compact-density-20261116.test.mjs tests/buklod-university-completion-motion.test.mjs
+          node --test tests/ad-dashboard-focus-performance-20261116.test.mjs tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs tests/buklod-connect-stable-inbox-render.test.mjs tests/buklod-native-ad-navigation-scroll.test.mjs tests/appwide-compact-density-20261116.test.mjs tests/buklod-university-completion-motion.test.mjs tests/buklod-academy-genesis-isolation.test.mjs
       - name: Staging Android package only, NEVER production upload
         run: |
           node - <<'NODE'
