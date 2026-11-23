@@ -15,7 +15,11 @@ export const CONNECT_GIF_CATEGORIES = [
   'Angry',
   'Celebrate',
   'Prayer',
+  'Amen',
+  'Worship',
   'Encourage',
+  'Thank You',
+  'Greetings',
 ] as const;
 
 export type ConnectGifCategory =
@@ -55,7 +59,11 @@ const CATEGORY_SEARCH: Record<
   Angry: 'angry mad reaction',
   Celebrate: 'celebration congratulations party reaction',
   Prayer: 'prayer amen blessed faith',
+  Amen: 'amen hallelujah praise god',
+  Worship: 'worship praise lord gospel music',
   Encourage: 'encouragement keep going you can do it',
+  'Thank You': 'thank you gratitude appreciation',
+  Greetings: 'hello good morning good evening greetings',
 };
 
 /**
@@ -334,10 +342,16 @@ function fallbackSearch(
       return false;
     }
 
-    if (
-      category !== 'All' &&
-      item.category !== category
-    ) {
+    // Neighboring reactions remain usable even without a live GIF API key.
+    const fallbackGroup: Partial<Record<ConnectGifCategory, readonly ConnectGifCategory[]>> = {
+      Amen: ['Prayer'],
+      Worship: ['Prayer'],
+      'Thank You': ['Encourage'],
+      Greetings: ['Happy', 'Love'],
+    };
+    if (category !== 'All' &&
+        item.category !== category &&
+        !(fallbackGroup[category]?.includes(item.category ?? 'All'))) {
       return false;
     }
 
@@ -482,9 +496,12 @@ export async function searchConnectGifs({
     params.set('q', searchTerm);
   }
 
+  const controller = new AbortController();
+  const watchdog = setTimeout(() => controller.abort(), 6500);
   try {
     const response = await fetch(
-      `https://api.giphy.com/v1/gifs/${endpoint}?${params.toString()}`
+      `https://api.giphy.com/v1/gifs/${endpoint}?${params.toString()}`,
+      { signal: controller.signal },
     );
 
     if (!response.ok) {
@@ -572,6 +589,8 @@ export async function searchConnectGifs({
       warning:
         'Live GIFs could not load. Showing available reactions instead.',
     };
+  } finally {
+    clearTimeout(watchdog);
   }
 }
 
