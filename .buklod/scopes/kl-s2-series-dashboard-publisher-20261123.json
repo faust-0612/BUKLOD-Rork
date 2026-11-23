@@ -1,0 +1,102 @@
+{
+  "contractVersion": 2,
+  "objective": "Season 2 KL reader-first dashboard and full admin-to-reader series preparation without changing live Season 1 or authorizing an OTA",
+  "branch": "dev/kl-s2-series-dashboard-publisher-20261123",
+  "baseRef": "9f19e21f7e85d59fa3204cb5be1e23c07d792c74",
+  "environment": "DEV only — no Main merge, staging/backend deployment, production OTA or paid build",
+  "releaseTarget": "Reconcile into Season 2 DEV consolidation only after source/typecheck + isolated PostgreSQL role/progression tests. Do not activate before December 6, 2026 Manila time.",
+  "allowedPaths": [
+    "src/app/kabihasnang-ligaw.tsx",
+    "src/components/kabihasnang-ligaw/KlDashboardHome.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlSeriesAdminPanel.tsx",
+    "src/components/kabihasnang-ligaw/KlSeriesReleaseDesk.tsx",
+    "supabase/migrations/20261123203000_kl_s2_series_dashboard_catalog.sql",
+    "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs",
+    ".github/workflows/buklod-kl-s2-sequential-source-qa-20261119.yml",
+    ".buklod/scopes/kl-s2-series-dashboard-publisher-20261123.json",
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+    "supabase/tests/kl_s2_series_dashboard_catalog_guard_20261123.sql"
+  ],
+  "preserveBehaviors": [
+    "Season 1 legacy reader and existing released chapter view remains available under Dashboard->Series 1",
+    "Current KL approval/rejection, private media, manuscript, 5-question readiness and server release RPC remain authoritative",
+    "Non-admins only see released chapters and released series metadata; private descriptions never exposed for draft-only series",
+    "Reader progress is per authenticated account; failed progress queries cannot grant locked chapter access",
+    "Season 2 chapter sequencing stays server-side; old clients cannot bypass chapter locks",
+    "Advertisements, navigation, Wall, Connect, economy, original native runtime and production credentials unchanged",
+    "Season 2 series release remains held until verified activation and independent backend QA"
+  ],
+  "requiredVerification": [
+    "Focused source contracts + full TypeScript on branch",
+    "Staging PostgreSQL migration/RLS and anon/other-member/admin RPC authorization checks",
+    "Draft-only series invisibility; first released chapter exposure; updates/rollback behavior",
+    "Series 1 reader parity, Series 2 server lock and quiz 3/3, offline/weak-network account switch",
+    "Exact runtime/RC fingerprints and ad/nav regression gates before any authorized publish"
+  ],
+  "productionChange": false,
+  "stagingServerVerified": false,
+  "prodSeason2Authorization": false,
+  "knownBlockers": [
+    "No isolated Supabase staging DB verified",
+    "No current staging migration installed",
+    "No Android device or real migration execution performed"
+  ],
+  "regressionTests": [
+    "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs",
+    "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+    "supabase/tests/kl_s2_series_dashboard_catalog_guard_20261123.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Change KL entry to reader dashboard, preserve existing Season 1, introduce series-filtered chapters and an admin publisher interface.",
+      "preservedBehaviors": [
+        "Current Season 1 released reader and original admin approval, quiz, media and audio flow remain available",
+        "No existing AdMob, Wall, Connect, native, or non-KL app screens are altered"
+      ],
+      "tests": [
+        "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add secure private editorial series metadata and a released-only public read catalog while preserving authorizations.",
+      "preservedBehaviors": [
+        "Drafts, unapproved series, unpublished manuscripts and private media never reach the public series catalog",
+        "Admin-only table/RPC access remains active-system-admin role checked",
+        "Existing Season 2 sequential server progression and migration hold remain unchanged"
+      ],
+      "tests": [
+        "tests/kl-s2-sequence-database-security-20261119.test.mjs",
+        "supabase/tests/kl_s2_series_dashboard_catalog_guard_20261123.sql"
+      ]
+    }
+  ],
+  "productionBaselineEvidence": "Read-only Supabase MAIN metadata inspection on 2026-11-23 confirmed kl_episodes uses season_number, chapter release gates and no Season 2 series metadata table; no staging branches were available. Production OTA remains unchanged.",
+  "chosenApproach": "Add private admin-owned series metadata, a released-only public series catalog, an accessible series-first KL home and a per-series publisher release preflight. Preserve legacy Season 1 reader, dynamic story reader, existing authoritative publish/quiz RPCs and all production gates.",
+  "selectionRationale": "Pure chapter-first navigation cannot show new series coherently; a client-maintained series catalog would leak draft descriptions or stale access. Server-verified published series with a protected admin metadata table avoids that risk.",
+  "acceptanceChecks": [
+    "KL opens the dashboard before chapter listings; a reader can choose Season 1 or future released seasons",
+    "Dashboard shows per-account progress, continue-reading and only already released series",
+    "Admin can create private series title/description, create chapters, review media/quiz and publish via existing server authority",
+    "New series never appears on public catalog until a released/approved chapter exists",
+    "Old APK and direct RPC cannot bypass Season 2 chapter progression or earlier chapter completion",
+    "Source TypeScript, focused tests and mandatory repository scope gates pass",
+    "Do not apply schema, staging OTA, prod OTA or Android build before independently verified staging backend QA"
+  ],
+  "alternativeApproaches": [
+    "Client-only series list metadata (rejected: drafts could leak; no server publication evidence)",
+    "Replace original Season 1 reader with a new runtime (rejected: unnecessary risk to released prose/media/audio)",
+    "Add a separate new-series reader without a common dashboard (rejected: confusing entry and no progress overview)"
+  ],
+  "riskAreas": [
+    "story",
+    "app-runtime",
+    "backend-security",
+    "account-privacy",
+    "season2-production-embargo"
+  ]
+}

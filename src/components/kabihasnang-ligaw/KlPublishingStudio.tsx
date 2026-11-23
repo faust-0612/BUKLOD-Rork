@@ -3,6 +3,8 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import KlAdminMediaUpload from './KlAdminMediaUpload';
 import KlAdminPreview from './KlAdminPreview';
+import KlSeriesAdminPanel from './KlSeriesAdminPanel';
+import KlSeriesReleaseDesk from './KlSeriesReleaseDesk';
 import { klPreviewReadyForEpisode } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -181,6 +183,17 @@ export default function KlPublishingStudio() {
     });
   };
 
+  const chooseSeries = (nextNumber: number) => {
+    if (dirty) {
+      setFeedback({ tone: 'error', text: 'I-save muna ang manuscript bago lumipat ng serye.' });
+      return;
+    }
+    if (!Number.isInteger(nextNumber) || nextNumber < 1 || nextNumber > 12) return;
+    setId(''); setTitle(''); setManuscript(''); setLastSaved(null);
+    setRecoveryDraft(null); setPreviewOpen(false); setConfirmedPreviewId('');
+    setPanel('manuscript'); setSeason(String(nextNumber)); setChapter('1');
+  };
+
   const create = () => {
     const seriesNumber = Number(season);
     const chapterNumber = Number(chapter);
@@ -291,17 +304,28 @@ export default function KlPublishingStudio() {
           color: '#fff',
         }}>{feedback.text}</Text>
       ) : null}
+      <KlSeriesAdminPanel selectedSeason={Number(season) || 1}
+        onChooseSeries={chooseSeries} busy={workspaceBusy} />
+      <Text style={{ color: '#f1d39b', fontWeight: '700' }}>Serye {season} · Mga kabanata</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {episodes.map((episode) => (
+        {episodes.filter(e => e.season_number === Number(season)).map((episode) => (
           <Pressable key={episode.id} accessibilityRole="button" disabled={workspaceBusy}
             onPress={() => void open(episode)}
             style={{ padding: 10, minHeight: 44, borderRadius: 8, backgroundColor: episode.id === id ? '#426b5c' : '#344a55' }}>
-            <Text style={{ color: '#fff' }}>S{episode.season_number} Ch{episode.episode_number} · {episode.title}</Text>
+            <Text style={{ color: '#fff' }}>Ch{episode.episode_number} · {episode.title} · {episode.status}</Text>
           </Pressable>
         ))}
       </View>
       <Text style={{ color: '#fff', fontWeight: '700' }}>Create / Open Chapter</Text>
-      <TextInput style={field} keyboardType="numeric" value={season} onChangeText={setSeason} placeholder="Series 1–12" placeholderTextColor="#aeb4bb" />
+      <TextInput style={field} keyboardType="numeric" value={season} onChangeText={value => {
+        if (value === season) return;
+        if (dirty) {
+          setFeedback({ tone: 'error', text: 'I-save muna ang manuscript bago palitan ang serye.' });
+          return;
+        }
+        setId(''); setTitle(''); setManuscript(''); setLastSaved(null);
+        setRecoveryDraft(null); setChapter('1'); setSeason(value);
+      }} placeholder="Series 1–12" placeholderTextColor="#aeb4bb" />
       <TextInput style={field} keyboardType="numeric" value={chapter} onChangeText={setChapter} placeholder="Chapter 1–30" placeholderTextColor="#aeb4bb" />
       <TextInput style={field} value={title} onChangeText={(text) => { setTitle(text); setRecoveryDraft(null); }} placeholder="Chapter title" placeholderTextColor="#aeb4bb" />
       <Action label={busyAction === 'Ginagawa ang chapter' ? 'Opening…' : 'Create / Open Chapter'} disabled={workspaceBusy} onPress={create} />
@@ -396,6 +420,13 @@ export default function KlPublishingStudio() {
           ) : null}
           </>
           )}
+          {saved ? <KlSeriesReleaseDesk key={id + ':' + approvalRefreshToken}
+            episodeId={id} seasonNumber={Number(season)}
+            episodeNumber={Number(chapter)}
+            onChanged={() => { void refresh().catch(() => undefined); }} /> :
+            <Text style={{ color: '#f1d39b' }}>
+              I-save muna ang manuscript bago mag-review, approve, at release.
+            </Text>}
         </>
       ) : null}
     </View>
