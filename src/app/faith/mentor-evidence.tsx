@@ -58,6 +58,7 @@ export default function MentorTeachingPhotoEvidence() {
   const [mentorEligible, setMentorEligible] = useState<boolean | null>(null);
   const [selectedLesson, setSelectedLesson] = useState('');
   const [lessonSearch, setLessonSearch] = useState('');
+  const [lessonPickerOpen, setLessonPickerOpen] = useState(false);
   const [disciples, setDisciples] = useState<Disciple[]>([]);
   const [selectedDisciples, setSelectedDisciples] = useState<string[]>([]);
   const [menteeSearch, setMenteeSearch] = useState('');
@@ -215,6 +216,7 @@ export default function MentorTeachingPhotoEvidence() {
     setSelectedLesson('');
     setSelectedDisciples([]);
     setLessonSearch('');
+    setLessonPickerOpen(false);
     setPhoto(null);
     setRetrySessionId(null);
     setConsent(false);
@@ -421,25 +423,40 @@ export default function MentorTeachingPhotoEvidence() {
 
       <View style={s.card}>
         <Text style={s.lesson}>New teaching report</Text>
-        <Text style={s.meta}>Choose the actual BUKLOD lesson taught.</Text>
-        <TextInput style={s.field} value={lessonSearch} onChangeText={setLessonSearch}
-          placeholder="Search BUKLOD / CCP / Discipleship lesson"
-          placeholderTextColor="#859688" />
-        {mentorEligible === true && !loading && <Text style={s.meta}>Showing {visibleLessons.length} of {lessons.length} reportable BUKLOD lessons. Search or scroll to select any available lesson.</Text>}
-        {visibleLessons.map(lesson => <Pressable key={lesson.id} accessibilityRole="button"
-          accessibilityState={{ selected: selectedLesson === lesson.id }}
-          style={[s.choice, selectedLesson === lesson.id && s.selected]}
-          onPress={() => setSelectedLesson(lesson.id)}>
-          <Text style={s.choiceText}>{lesson.title}</Text>
-        </Pressable>)}
+        <Text style={s.meta}>1. Choose the actual BUKLOD lesson taught.</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: lessonPickerOpen }}
+          disabled={loading || mentorEligible !== true}
+          onPress={() => setLessonPickerOpen(current => !current)}
+          style={[s.choice, !!selectedLesson && s.selected]}>
+          <Text style={s.choiceText}>
+            {selectedLesson
+              ? `Selected: ${lessons.find(l => l.id === selectedLesson)?.title || 'Lesson'} · Change`
+              : 'Choose / search lesson ▾'}
+          </Text>
+        </Pressable>
+        {lessonPickerOpen && <>
+          <TextInput style={s.field} value={lessonSearch} onChangeText={setLessonSearch}
+            placeholder="Search BUKLOD / CCP / Discipleship lesson"
+            placeholderTextColor="#859688" />
+          {mentorEligible === true && !loading && <Text style={s.meta}>Showing {visibleLessons.length} of {lessons.length} reportable BUKLOD lessons.</Text>}
+          {visibleLessons.map(lesson => <Pressable key={lesson.id} accessibilityRole="button"
+            accessibilityState={{ selected: selectedLesson === lesson.id }}
+            style={[s.choice, selectedLesson === lesson.id && s.selected]}
+            onPress={() => {
+              setSelectedLesson(lesson.id);
+              setLessonPickerOpen(false);
+              setLessonSearch('');
+            }}>
+            <Text style={s.choiceText}>{lesson.title}</Text>
+          </Pressable>)}
+          {mentorEligible === true && lessons.length > 0 && visibleLessons.length === 0 && !loading &&
+            <Text style={s.meta}>No matching lesson. Try searching by CCP number, track or lesson title.</Text>}
+        </>}
         {mentorEligible === false && !loading &&
           <Text style={s.meta}>Mentor permission is inactive. A learner assignment or a completed CCP lesson does not grant permission to submit a teaching report. Ask an authorized administrator to review your mentor access.</Text>}
         {mentorEligible === true && lessons.length === 0 && !loading &&
           <Text style={s.meta}>No reportable teaching lessons are available. Ask your administrator to check the published catalog.</Text>}
-        {mentorEligible === true && lessons.length > 0 && visibleLessons.length === 0 && !loading &&
-          <Text style={s.meta}>No matching lesson. Try searching by CCP number, track or lesson title.</Text>}
-        {!!selectedLesson && <Text style={s.hint}>Selected: {lessons.find(l => l.id === selectedLesson)?.title}</Text>}
-        <Text style={s.lesson}>Mentees who attended</Text>
+        <Text style={s.lesson}>2. Mentees who attended</Text>
         <Text style={s.meta}>Choose verified linked mentees who really attended ({selectedDisciples.length} selected; up to {MAX_LEARNERS}).</Text>
         <TextInput style={s.field} value={menteeSearch} onChangeText={setMenteeSearch}
           placeholder="Search your assigned mentees by name"
@@ -480,6 +497,7 @@ export default function MentorTeachingPhotoEvidence() {
             <Text style={s.reloadText}>Refresh assigned mentees</Text>
           </Pressable>
         </View>
+        <Text style={s.lesson}>3. Teaching details and photo</Text>
         <TextInput style={s.field} value={location} onChangeText={setLocation}
           placeholder="Place / venue of teaching (required)" placeholderTextColor="#859688"
           maxLength={180} />
