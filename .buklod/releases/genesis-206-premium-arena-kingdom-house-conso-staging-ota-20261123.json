@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "purpose": "Consolidated Godot content OTA candidate for existing original-signed BUKLOD Genesis 2.0.6 staging. Not a new APK or production update.",
+  "target": {
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "2.0.6-genesis-godot-ota",
+    "channel": "season2-genesis-library-206-preview",
+    "godot": "4.7.2",
+    "baseSignedBuildRun": 45168699649
+  },
+  "content": {
+    "arena": {
+      "heroIdentities": 13,
+      "poseAtlases": 52,
+      "heroSpriteImages": 13,
+      "mapBackgrounds": 3,
+      "practiceOnly": true,
+      "serverRewards": false,
+      "combatAudioCues": 70,
+      "audioType": "layered real recorded PCM; 70 distinct sound designs (not 70 separately studio-recorded performances)"
+    },
+    "kingdom": {
+      "animatedHeroSprites": 13,
+      "ownerAssetImages": 42,
+      "libraryClasses": [
+        "badge",
+        "bond",
+        "book",
+        "chest",
+        "crystal",
+        "light",
+        "relic"
+      ],
+      "walkToStationAndArrivalFeedback": true
+    },
+    "house": {
+      "tapToMoveAndArrivalGatedConstruction": true,
+      "decorativeArt": true,
+      "ambienceOptIn": true
+    },
+    "audio": {
+      "sourceCount": 17,
+      "kenneySourceCount": 9,
+      "preexistingBuklodSourceCount": 8,
+      "licenseEvidence": "assets/sounds/kingdom-premium/LICENSES.md",
+      "manifest": "data/audio_manifest.json",
+      "privacy": "No audio network calls, no voice clips, no playback before game event; world ambiance OFF until chosen"
+    },
+    "safety": {
+      "nativeBridgeUnchanged": true,
+      "adRenderingGated": true,
+      "dashboardNavigationGated": true,
+      "clientRewardsDisabled": true,
+      "propertyServerAuthorityUntouched": true
+    }
+  },
+  "holdForAssetIntake": [
+    {
+      "name": "Free RPG Pack.zip",
+      "sizeBytes": 85772548,
+      "why": "Contents, license, and compatible rigs not independently verified"
+    },
+    {
+      "name": "Mocap_Pack_07_Everyday_Actions_2.zip",
+      "sizeBytes": 173679035,
+      "why": "Animation skeleton and redistribution terms not independently verified"
+    },
+    {
+      "name": "Monster01_Pack.unitypackage",
+      "sizeBytes": 204160029,
+      "why": "Unity-only source conversion and license review required"
+    },
+    {
+      "name": "Fantasy Sound Pack - 15 Sounds.zip",
+      "sizeBytes": 6241152,
+      "why": "Individual tracks/license unknown; existing verified CC0 replacement is used instead"
+    },
+    {
+      "name": "magic-spells-sfx-lite-v21-rate-r2.zip",
+      "sizeBytes": 4880723,
+      "why": "Individual track licenses and format unknown"
+    },
+    {
+      "name": "t1-sentinel.glb",
+      "sizeBytes": 24319564,
+      "why": "Godot import, rig animation, textures and usage rights not inspected"
+    },
+    {
+      "name": "azure-champion.glb",
+      "sizeBytes": 24342800,
+      "why": "Godot import, rig animation, textures and usage rights not inspected"
+    },
+    {
+      "name": "desert-watchtower.glb",
+      "sizeBytes": 3333772,
+      "why": "Godot import, collisions and usage rights not inspected"
+    }
+  ],
+  "verifiedCI": {
+    "sourceAndAdsNavTestsPassed": 15,
+    "sourceAndAdsNavTestsFailed": 0,
+    "headlessGodot": true,
+    "all70WavPlayback": true,
+    "sha256Validated": true,
+    "run": 45211815689,
+    "sourceCommit": "01db455cf8f7d160b59c9db9b28fa2f9963f1c93",
+    "packSha256": "d0ef30f175e6e766d623567bd9062a69d88ef2f07d6b8b964b130dcb5813ef72",
+    "packBytes": 41470554
+  },
+  "requiredBeforeStagingOTA": [
+    "Expo OTA export from identical 2.0.6 runtime, correct preview channel and original-signed installed staging",
+    "AdMob first view, dashboard/tab navigation, no regression in spacing and playback",
+    "Production fix parity reconciliation of latest MAIN with staging before consolidated OTA",
+    "Pack downloaded, SHA-256 verified, and game launched from private staging on an actual Android phone",
+    "Rollback compatibility and no production announcements",
+    "Owner visual acceptance; still 2D, not Mobile Legends quality or premium 3D"
+  ],
+  "status": "DEV_VERIFIED_CONTENT_ARTIFACT; STAGING_OTA_NOT_PUBLISHED; PRODUCTION_UNCHANGED"
+}
