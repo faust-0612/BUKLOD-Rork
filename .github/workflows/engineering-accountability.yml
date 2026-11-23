@@ -95,6 +95,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-wall-auto-sharp-20261030.json" >> "$GITHUB_ENV";;
             dev/faith-monitoring-drilldown-merged-20261030)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/faith-monitoring-member-drilldown-20261030.json" >> "$GITHUB_ENV";;
+            dev/connect-inbox-latest-activity-20261123)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-inbox-staging-20261123.json" >> "$GITHUB_ENV";;
             dev/connect-read-count-sync-20261030)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-read-count-sync-20261030.json" >> "$GITHUB_ENV";;
             dev/kl-scene-anchor-persistence-20261030)
