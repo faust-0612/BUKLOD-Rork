@@ -39,6 +39,22 @@ jobs:
                   active:(j.steps||[]).filter(s=>s.status==='in_progress').map(s=>s.name)}))
               }));
             }
+            const local=(d.workflow_runs||[]).find(x=>x.head_sha==='c0cfdbda7c59c35eb42c79fddd277eb424b5b882' &&
+              String(x.path||'').includes('genesis-205-local-eas-signed-apk-20261123.yml'));
+            if(!local) console.log('BUKLOD_GENESIS_205_EAS_LOCAL_SIGNED_NOT_FOUND_FOR_EXACT_SOURCE');
+            else {
+              const localJobs=await query('/actions/runs/'+local.id+'/jobs?per_page=100');
+              const localArts=await query('/actions/runs/'+local.id+'/artifacts?per_page=100');
+              console.log('BUKLOD_GENESIS_205_EAS_LOCAL_ORIGINAL_SIGNED_RECEIPT '+JSON.stringify({
+                sourceSha:local.head_sha,runId:local.id,url:local.html_url,status:local.status,
+                conclusion:local.conclusion,
+                jobs:(localJobs.jobs||[]).map(j=>({id:j.id,status:j.status,conclusion:j.conclusion,
+                  running:(j.steps||[]).filter(s=>s.status==='in_progress').map(s=>s.name),
+                  failed:(j.steps||[]).filter(s=>s.conclusion==='failure').map(s=>s.name)})),
+                artifacts:(localArts.artifacts||[]).map(a=>({id:a.id,name:a.name,bytes:a.size_in_bytes,expired:a.expired})),
+                productionOta:false
+              }));
+            }
             const jobs=await query('/actions/runs/'+found.id+'/jobs?per_page=100');
             const arts=await query('/actions/runs/'+found.id+'/artifacts?per_page=100');
             console.log('BUKLOD_GENESIS_205_EXPO_CLOUD_BUILD_SOURCE_RECEIPT '+JSON.stringify({
