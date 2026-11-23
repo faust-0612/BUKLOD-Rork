@@ -24,6 +24,7 @@ const choices: Array<{
   { category: 'submissions', title: 'Submissions & approvals', details: 'Submitted, approved and failed actions', preview: 'submission' },
   { category: 'community', title: 'Cluster & organization', details: 'Community updates and mentions', preview: 'community' },
   { category: 'achievements', title: 'Points & achievements', details: 'Rewards and milestones', preview: 'achievement' },
+  { category: 'academics', title: 'Academy graduation ceremonies', details: 'Certificate, diploma, bachelor\'s-level and master\'s-level sounds. Honors silent mode and quiet hours.', preview: 'university_certificate' },
   { category: 'buttons', title: 'Button feedback', details: 'Optional subtle taps', preview: 'button' },
   { category: 'games', title: 'Kingdom & mini-game sounds', details: 'Movement, collecting, puzzles, victory, failure and unlocks', preview: 'achievement' },
 ];
