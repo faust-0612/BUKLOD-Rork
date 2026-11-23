@@ -1,0 +1,108 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kl-s2-auto-quiz-comment-unlock-20261123.json",
+  "objective": "KL Season 2: automatically grade each manuscript-backed 3/3 reading quiz with no required admin quiz review, and unlock the next chapter/series only after the reader posts a 20+ character own, nondeleted, top-level comment after the verified quiz.",
+  "baseRef": "976cd38a14d71cda8cc2dd1f0958eadfb1b2e526",
+  "branch": "dev/kl-s2-auto-quiz-comment-gate-20261123",
+  "environment": "DEV only; no migrations applied to MAIN, no live/RC OTA, no paid build, no production promotion.",
+  "productionBaselineEvidence": "On November 23, 2026, read-only MAIN Supabase schema inspection confirmed public.kl_episode_comments(author_id, parent_id, deleted_at, body, created_at) and unchanged admin/reader RPC contracts. MAIN lacks KL S2 rollout/progress migration. Latest parent DEV PR #1148 is draft, not merged.",
+  "chosenApproach": "Additive isolated S2 SQL migration: reuse existing auth-scoped 3/3 quiz verification, add nondeleted post-quiz 20+ character comment predicate to the shared server access gate, enforce cross-series completion, repair comment reward trigger author identity, allow legacy pre-S2 completed sessions to retake quiz, expose accurate server progress. Automatically generate/retry the question bank after manuscript approval and during release preflight; no human quiz review step.",
+  "selectionRationale": "Client-only locks or read-only completed_at are bypassable by old apps. Using an account-scoped SQL predicate shared by read, media, quiz, comments, session and progress preserves security while removing admin quiz review. The +5 BP reward must use real author_id not nonexistent user_id.",
+  "riskAreas": [
+    "story",
+    "classroom-quiz",
+    "app-runtime",
+    "quiz-classroom",
+    "backend-security",
+    "account-privacy",
+    "season2-production-embargo"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kl-s2-auto-quiz-comment-unlock-20261123.json",
+    "src/components/kabihasnang-ligaw/KlReadingQuiz.tsx",
+    "src/components/kabihasnang-ligaw/KlLiveDiscussion.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlDashboardHome.tsx",
+    "src/components/kabihasnang-ligaw/KlSeriesAdminPanel.tsx",
+    "src/components/kabihasnang-ligaw/KlSeriesReleaseDesk.tsx",
+    "supabase/migrations/20261123224000_kl_s2_verified_quiz_comment_unlock.sql",
+    "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs",
+    "tests/kl-s2-auto-quiz-comment-unlock-20261123.test.mjs",
+    "supabase/tests/kl_s2_verified_quiz_comment_unlock_guard_20261123.sql",
+    ".github/workflows/buklod-kl-s2-sequential-source-qa-20261119.yml"
+  ],
+  "preserveBehaviors": [
+    "Season 1 live quiz/timer, legacy reader, released manuscripts/media and current +10/+50 BP unchanged while S2 rollout flag is OFF.",
+    "Quiz passes only at server-graded 3 of 3 with current manuscript hash; client never sends correct answers or points.",
+    "Chapter N+1 requires a qualifying comment after quiz on every previous chapter, including the preceding entire 30-chapter series; drafts/unreleased chapters remain inaccessible.",
+    "Do not award extra points for repeated, deleted, reply, pre-quiz or non-meaningful comments; preserve existing +5 one-time credit and pending chapter-point rules.",
+    "Preserve Admin role, media preview and release controls; only remove mandatory human quiz answer review.",
+    "No production/staging data writes, Expo/EAS/Vercel deployment, ads/navigation changes or automatic Season 2 activation."
+  ],
+  "acceptanceChecks": [
+    "Admin manuscript approval immediately requests automatic question-bank preparation; publication re-attempts automatically when bank is pending; no admin review required.",
+    "Reader 3/3 quiz is auto verified; chapter remains locked until a server-accepted post-quiz 20+ character comment by same account.",
+    "Comment before quiz, other member, reply, deleted, short comment or mismatched manuscript never opens next chapter or awards +5.",
+    "Existing completed legacy session without verified attempt can retake quiz in S2; server never double-credits completion.",
+    "Cross-series Panimula and Chapter 1 remain locked until 30 preceding chapters each have verified quiz and comment.",
+    "Old app and direct RPC cannot read manuscript, media, start sessions, quiz or post comments out of order.",
+    "Focused source, SQL guard and TypeScript tests pass; live staging PostgreSQL behavioral tests remain separate release gates."
+  ],
+  "alternativeApproaches": [
+    "Admin manually reviews and approves each member quiz (rejected: user wants automatic verification; bottleneck).",
+    "Unlock immediately on quiz pass without comment (rejected: violates explicit engagement gate).",
+    "Client-only comment count and local unlock (rejected: easy bypass, cross-account, stale and deleted comments)."
+  ],
+  "regressionTests": [
+    "tests/kl-s2-series-dashboard-publisher-20261123.test.mjs",
+    "tests/kl-s2-auto-quiz-comment-unlock-20261123.test.mjs",
+    "supabase/tests/kl_s2_verified_quiz_comment_unlock_guard_20261123.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Wire KL quiz and comments UI to the actual server comment unlock, retain legacy S1 behavior and refresh per-account progress after verified actions.",
+      "preservedBehaviors": [
+        "Current Season 1 reader, comments, chapter media and AdMob placement remain available",
+        "A failed network request or account change must not locally unlock a guarded Season 2 chapter"
+      ],
+      "tests": [
+        "tests/kl-s2-auto-quiz-comment-unlock-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "quiz-classroom",
+      "reason": "Replace manual KL Season 2 quiz review with server auto-grading, automatic question-bank preparation, and explicit comment prerequisite.",
+      "preservedBehaviors": [
+        "Exactly three correctly answered manuscript-evidenced questions are required for verified reading",
+        "No client-side answer authority; normal classroom, grading and unrelated quiz systems untouched"
+      ],
+      "tests": [
+        "tests/kl-s2-auto-quiz-comment-unlock-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Update central previous-chapter authorization to require verified quiz plus post-quiz comment, repair author_id reward trigger and protect old clients.",
+      "preservedBehaviors": [
+        "Protected private SQL helper functions remain non-executable by public roles and keep auth.uid ownership",
+        "No anonymous access or premature Season 2 production activation",
+        "Server-side one-time reward ledger and previous verified reading sessions preserved"
+      ],
+      "tests": [
+        "supabase/tests/kl_s2_verified_quiz_comment_unlock_guard_20261123.sql"
+      ]
+    }
+  ],
+  "releaseTarget": "Merge only into Season 2 DEV consolidation after isolated database/RLS QA; no staging or production OTA authorization.",
+  "prodSeason2Authorization": false,
+  "stagingServerVerified": false,
+  "productionChange": false,
+  "knownBlockers": [
+    "No independently verified isolated Supabase staging database for SQL behavior tests.",
+    "No new SQL migration has been applied outside repository source.",
+    "No compiled Android/device verification or release fingerprint."
+  ],
+  "s2EffectiveAtManila": "2026-12-06T00:00:00+08:00"
+}
