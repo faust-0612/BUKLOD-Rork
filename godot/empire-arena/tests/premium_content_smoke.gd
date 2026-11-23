@@ -78,5 +78,26 @@ func _run() -> void:
         push_error("Native game ambience must start OFF to protect PTT/radio audio")
         quit(11)
         return
+    # The packed audio manifest is authoritative evidence, not synth-preview tags.
+    var manifest_bytes: PackedByteArray = FileAccess.get_file_as_bytes("res://data/audio_manifest.json")
+    var manifest = JSON.parse_string(manifest_bytes.get_string_from_utf8())
+    if not (manifest is Dictionary) or manifest.get("prototype", true) or manifest.get("kind", "") != "layered-real-recordings" or int(manifest.get("count", 0)) != 70:
+        push_error("Arena audio is still placeholder/invalid")
+        quit(12)
+        return
+    var audio_files: Array = manifest.get("recordings", [])
+    if audio_files.size() != 70:
+        push_error("Missing BUKLOD authored cue mapping")
+        quit(13)
+        return
+    for entry in audio_files:
+        var cue_name: String = str(entry.get("id", ""))
+        var path: String = "res://audio/sfx/" + cue_name + ".wav"
+        var sound: PackedByteArray = FileAccess.get_file_as_bytes(path)
+        if sound.size() <= 44 or AudioStreamWAV.load_from_buffer(sound) == null:
+            push_error("Unplayable recorded cue: " + cue_name)
+            quit(14)
+            return
+    print("BUKLOD_REAL_AUDIO_70_PASS: licensed recording-based sound, correct identity, 70 playable PCM cues")
     print("BUKLOD_GODOT_PREMIUM_WORLD_INTERACTION_PASS: Kingdom, House, 42 Library icons, original ambient tracks OFF by default")
     quit(0)

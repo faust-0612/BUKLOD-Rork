@@ -1,5 +1,5 @@
 ## BUKLOD Library character-event SFX for embedded Arena offline practice.
-## Exact 70 Library cue identities, procedural preview audio, no TTS/network.
+## Exact 70 cue identities from CC0 recordings and original BUKLOD SFX; no TTS/network.
 ## Holds a capped player pool and drops excess sounds during heavy combat.
 extends Node
 
@@ -30,7 +30,10 @@ func _stream(name: String) -> AudioStream:
   if _stream_cache.has(name):
     return _stream_cache[name]
   var path := "res://audio/sfx/" + name + ".wav"
-  var s: AudioStream = AudioStreamWAV.load_from_file(path)
+  var raw: PackedByteArray = FileAccess.get_file_as_bytes(path)
+  if raw.is_empty():
+    return null
+  var s: AudioStream = AudioStreamWAV.load_from_buffer(raw)
   if s == null:
     return null
   if _stream_cache.size() >= CACHE_CAP:

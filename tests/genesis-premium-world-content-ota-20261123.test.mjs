@@ -77,3 +77,19 @@ test('Original BUKLOD audio is bundled but ambient playback defaults OFF',()=>{
  assert.ok(preview.includes('ambient_button.text = "MUSIC ON" if ambient_enabled else "MUSIC OFF"'));
  assert.ok(explore.includes('get_parent().world_interaction("", interaction_label)'));
 });
+
+test('70 Arena cues are recorded CC0/original-based, not procedural sine placeholders',()=>{
+ const audio=read('scripts/arena-library-audio-pack.mjs');
+ const native=read('godot/empire-arena/scripts/arena_audio.gd');
+ const pack=read('scripts/build-empire-godot-pack.mjs');
+ assert.match(audio,/kind:'layered-real-recordings'/);
+ assert.match(audio,/prototype:false/);
+ assert.match(audio,/assets\/sounds\/kingdom-premium\/LICENSES\.md/);
+ assert.match(audio,/RECORDED_SOURCES/);
+ assert.match(audio,/riffPcm\(bytes,src\.id\)/);
+ assert.doesNotMatch(audio,/Math\.sin\(|Math\.cos\(|PLACEHOLDER_V1|procedural preview audio/);
+ assert.match(native,/AudioStreamWAV\.load_from_buffer\(raw\)/);
+ assert.doesNotMatch(native,/AudioStreamWAV\.load_from_file\(/);
+ assert.match(pack,/arenaSfxEntries\(root\)/);
+ assert.match(pack,/JSON\.stringify\(audioManifest\)/);
+});

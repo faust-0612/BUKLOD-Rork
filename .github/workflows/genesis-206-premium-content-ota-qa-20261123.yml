@@ -35,6 +35,21 @@ jobs:
           test -z "$(git diff --name-only f1bca8319113402caffe99bd78c7ed0e963f963f HEAD -- modules app.config.js eas.json package.json package-lock.json src plugins)"
           node --test tests/genesis-premium-world-content-ota-20261123.test.mjs
           node scripts/genesis-prepare-godot-ota-pack.mjs
+          python3 - <<'PY'
+          import json,zipfile,hashlib
+          archive='assets/season2/genesis/ota/empire-arena.zip'
+          with zipfile.ZipFile(archive) as f:
+              m=json.loads(f.read('data/audio_manifest.json'))
+              assert m['prototype'] is False and m['kind']=='layered-real-recordings'
+              assert m['count']==70 and len(m['recordings'])==70
+              assert m['sourceCount']>=9
+              assert len(set(c['sha256'] for c in m['recordings']))==70
+              for c in m['recordings']:
+                  data=f.read('audio/sfx/'+c['id']+'.wav')
+                  assert hashlib.sha256(data).hexdigest()==c['sha256']
+                  assert data[:4]==b'RIFF' and data[8:12]==b'WAVE'
+              print('BUKLOD_70_REAL_RECORDED_AUDIO_HASH_VERIFIED')
+          PY
           test -s assets/season2/genesis/ota/empire-arena.zip
           unzip -t assets/season2/genesis/ota/empire-arena.zip | tail -n 2
       - name: Godot 4.7.2 exact packed world, animation and interaction smoke

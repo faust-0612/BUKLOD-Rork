@@ -92,10 +92,10 @@ collect(project);
 // from the Library's 2026-11-22 file inventory. Original uploaded audio
 // requires separate binary-art reconciliation; these procedural placeholders
 // preserve event identity without network downloads or a hidden subscription.
-const audioEntries = arenaSfxEntries();
+const {cues:audioEntries,manifest:audioManifest} = arenaSfxEntries(root);
 assert.equal(audioEntries.length, 70);
 entries.push({name:'data/audio_manifest.json',
-  bytes:Buffer.from(JSON.stringify({schema:1,prototype:true,ids:ARENA_SFX_IDS}))});
+  bytes:Buffer.from(JSON.stringify(audioManifest))});
 for (const cue of audioEntries) {
   assert.ok(cue.bytes.length > 44 && cue.bytes.subarray(0,4).toString() === 'RIFF');
   assert.ok(!entries.some(x => x.name === cue.name), 'Duplicate Arena native audio cue');
