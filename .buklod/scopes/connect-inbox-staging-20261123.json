@@ -1,0 +1,102 @@
+{
+  "contractVersion": 2,
+  "objective": "Complete newest-message-first Connect inbox refresh for Personal, Requests, Cluster, Church, and Organization and preserve existing chat behavior for staging Android.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub canonical main inspected at SHA 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04, with authenticated personal/community inbox RPC definitions read from MAIN project. This is a source baseline only, not evidence of the currently served production OTA or installed staging artifact.",
+  "chosenApproach": "Stable activity timestamp sorting for every inbox segment, immediate known-room realtime promotion, account-scoped notification/send revision invalidation for first-contact threads, bounded focused refresh and existing chat latest-anchor preservation. No backend change or global message listener.",
+  "selectionRationale": "Minimal JS-only modification aligned with existing runtime, RLS, first-view ads and scoped realtime listeners; avoid broad subscriptions and more frequent polling that would increase database load.",
+  "alternativeApproaches": [
+    "Poll all Connect conversations every few seconds (rejected: high egress, request load and battery use).",
+    "Subscribe globally to unfiltered direct-message inserts (rejected: user privacy, fanout and RLS performance risk).",
+    "Publish directly to production before staging QA (rejected: violates release/runtime/ad-navigation gates)."
+  ],
+  "preserveBehaviors": [
+    "First-view and inline AdMob rendering/navigation remain unchanged.",
+    "Personal and scoped Connect authorization/RLS remain server authoritative.",
+    "Outgoing pending or failed sends are never shown as confirmed delivered.",
+    "Existing latest-on-open, manual history paging, keyboard and user-controlled scroll anchoring are retained.",
+    "PTT push, call handling, notification routing and account isolation remain unchanged.",
+    "No production, web or backend changes."
+  ],
+  "acceptanceChecks": [
+    "Incoming/outgoing Personal and Request conversation rises to top with latest preview, including after return from chat.",
+    "Active Cluster/Church/Organization room rises to top by actual last message time, not room category.",
+    "New first-contact push invalidates current user's inbox and revalidates on focus without unfiltered subscriptions.",
+    "Read badges remain backend authoritative; no false sent/seen check icons.",
+    "Older-history reading does not rebound or force-scroll; composer focus and send still anchor to newest as intended.",
+    "All source Jest/Node, TypeScript, Android JS export and ad/tab-nav CI checks PASS at exact RC SHA.",
+    "Staging OTA only after isolated installed APK runtime, preview backend, EAS channel separation and device ad/nav/read tests are verified.",
+    "Never announce a staging OTA or claim production publication."
+  ],
+  "riskAreas": [
+    "connect",
+    "app-runtime",
+    "navigation-auth",
+    "connect-ptt-calls",
+    "governance-lock"
+  ],
+  "regressionTests": [
+    "__tests__/connectInboxActivity.test.ts",
+    "__tests__/connectInboxSignal.test.ts",
+    "tests/connect-inbox-realtime-staging-20261123.test.mjs",
+    "tests/connect-inbox-notification-navigation-20261123.test.mjs",
+    "tests/protected-feature-lock.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/providers/NotificationProvider.tsx",
+    "src/lib/connectInboxActivity.ts",
+    "src/lib/connectInboxSignal.ts",
+    "__tests__/connectInboxActivity.test.ts",
+    "__tests__/connectInboxSignal.test.ts",
+    "tests/connect-inbox-realtime-staging-20261123.test.mjs",
+    "tests/connect-inbox-notification-navigation-20261123.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/connect-inbox-staging-20261123.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Conservative app-wide runtime classification for Connect inbox and shared chat renderer",
+      "preservedBehaviors": [
+        "Existing React runtime, navigation, offline cache, performance and AdMob lifecycle remain untouched"
+      ],
+      "tests": [
+        "tests/connect-inbox-realtime-staging-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Connect list routes and foreground push listener are touched without changing authorization or routes",
+      "preservedBehaviors": [
+        "Notification routing, first-message request classification and signed-in user context remain unchanged"
+      ],
+      "tests": [
+        "tests/connect-inbox-notification-navigation-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Connect activities and confirmed send feedback are extended without touching PTT or Stream calling",
+      "preservedBehaviors": [
+        "No PTT, ringtone, sender delivery, call listener or media playback policy changes"
+      ],
+      "tests": [
+        "tests/connect-inbox-realtime-staging-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Add exact branch scope-selection to existing engineering accountability workflow and regression proof",
+      "preservedBehaviors": [
+        "All protection gates and release scope allowlists stay enabled; no bypass, production selector or publisher change"
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_STAGING_RC_PENDING"
+}
