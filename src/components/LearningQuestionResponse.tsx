@@ -83,6 +83,13 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
   const [loadWarning, setLoadWarning] = useState('');
   // Guards the entire validation + submit RPC cycle against double tapping.
   const submissionLock = useRef(false);
+  // Reuse only real, accepted, same-answer receipts after a partial AI outage.
+  // Never cache a failed-open result or mark a lesson complete from this cache.
+  const acceptedChecks = useRef(new Map<string, AIAnswerValidationResult>());
+
+  useEffect(() => {
+    acceptedChecks.current.clear();
+  }, [lesson?.id, lesson?.content_hash]);
 
   useEffect(() => {
     warmBuklodAdOpportunity('formation_lesson_success');
@@ -160,37 +167,48 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       let allAnswersAcceptable = true;
 
       for (let index = 0; index < normalized.length; index += 1) {
-        const result = await validateBuklodResponse({
-          questionContext: buildGeneratedLessonQuestionContext({
-            lessonId: lesson.id,
-            trackId: lesson.track_id ?? null,
-            enrollmentId: enrollmentId ?? null,
-            questionIndex: index + 1,
-            questionText: questions[index] ?? '',
-            lessonTitle: lesson.title ?? null,
-            scriptureReference: lesson.scripture_reference ?? null,
-            aiValidationContext: lesson.ai_validation_context,
-          }),
-          response: normalized[index] ?? '',
+        const questionContext = buildGeneratedLessonQuestionContext({
+          lessonId: lesson.id,
+          trackId: lesson.track_id ?? null,
+          enrollmentId: enrollmentId ?? null,
+          questionIndex: index + 1,
+          questionText: questions[index] ?? '',
+          lessonTitle: lesson.title ?? null,
+          scriptureReference: lesson.scripture_reference ?? null,
+          aiValidationContext: lesson.ai_validation_context,
         });
-
+        const response = normalized[index] ?? '';
+        const cacheKey = JSON.stringify([lesson.id, lesson.content_hash, questionContext.questionId, questionContext.questionText, response]);
+        const cached = acceptedChecks.current.get(cacheKey);
+        const result = cached && isValidationAcceptable(cached) && !cached.failOpen && cached.attemptId && cached.answerHash
+          ? cached
+          : await validateBuklodResponse({ questionContext, response });
+        if (isValidationAcceptable(result) && !result.failOpen && result.attemptId && result.answerHash) {
+          acceptedChecks.current.set(cacheKey, result);
+        }
         nextAnswerValidations[index] = result;
+        setAnswerValidations([...nextAnswerValidations]);
         // Check every field before returning feedback; one imperfect answer is not a failed lesson.
         if (!isValidationAcceptable(result)) allAnswersAcceptable = false;
       }
 
-      const reflectionResult = await validateBuklodResponse({
-        questionContext: buildLessonReflectionContext({
-          lessonId: lesson.id,
-          trackId: lesson.track_id ?? null,
-          enrollmentId: enrollmentId ?? null,
-          questionText: lesson.reflection_question ?? 'Write your personal reflection.',
-          lessonTitle: lesson.title ?? null,
-          scriptureReference: lesson.scripture_reference ?? null,
-          aiValidationContext: lesson.ai_validation_context,
-        }),
-        response: reflectionText,
+      const reflectionContext = buildLessonReflectionContext({
+        lessonId: lesson.id,
+        trackId: lesson.track_id ?? null,
+        enrollmentId: enrollmentId ?? null,
+        questionText: lesson.reflection_question ?? 'Write your personal reflection.',
+        lessonTitle: lesson.title ?? null,
+        scriptureReference: lesson.scripture_reference ?? null,
+        aiValidationContext: lesson.ai_validation_context,
       });
+      const reflectionKey = JSON.stringify([lesson.id, lesson.content_hash, reflectionContext.questionId, reflectionContext.questionText, reflectionText]);
+      const cachedReflection = acceptedChecks.current.get(reflectionKey);
+      const reflectionResult = cachedReflection && isValidationAcceptable(cachedReflection) && !cachedReflection.failOpen && cachedReflection.attemptId && cachedReflection.answerHash
+        ? cachedReflection
+        : await validateBuklodResponse({ questionContext: reflectionContext, response: reflectionText });
+      if (isValidationAcceptable(reflectionResult) && !reflectionResult.failOpen && reflectionResult.attemptId && reflectionResult.answerHash) {
+        acceptedChecks.current.set(reflectionKey, reflectionResult);
+      }
 
       setAnswerValidations(nextAnswerValidations);
       setReflectionValidation(reflectionResult);
@@ -280,10 +298,9 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         }
       }
     } catch (error: any) {
-      Alert.alert(
-        'Could Not Complete Lesson',
-        error?.message ?? 'Unable to verify this response. Your text remains available; check your connection and retry.',
-      );
+      const message = error?.message ?? 'Unable to verify this response. Your text remains available; check your connection and retry.';
+      setLoadWarning(message);
+      Alert.alert('Could Not Complete Lesson', message);
     } finally {
       submissionLock.current = false;
       setBusy(false);
