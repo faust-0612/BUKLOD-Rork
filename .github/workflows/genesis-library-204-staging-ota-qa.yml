@@ -55,7 +55,7 @@ jobs:
           git merge-base --is-ancestor c413c1ec2e23f151af0123cefbd4209fbf612d1f HEAD
           test -z "$(git diff --name-only c413c1ec2e23f151af0123cefbd4209fbf612d1f HEAD -- app.config.js eas.json package.json package-lock.json godot modules plugins scripts/build-empire-godot-pack.mjs scripts/arena-library-audio-pack.mjs assets/season2/arena)"
           echo 'JS-only change parity against signed APK 2.0.4 verified'
-      - name: Offline bounded source QA: Wall, ads, nav, video, PTT, comments, consent, Godot and theme
+      - name: "Offline bounded source QA: Wall, ads, nav, video, PTT, comments, consent, Godot and theme"
         shell: bash
         run: |
           set -euo pipefail
