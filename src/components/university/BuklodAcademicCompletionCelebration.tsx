@@ -105,8 +105,8 @@ export default function BuklodAcademicCompletionCelebration({
       >
         <Animated.View style={[styles.card, { opacity }]}>
           <Text style={styles.issuer}>MZB MINISTRY INC.</Text>
-          <Text style={styles.school}>BUKLOD UNIVERSITY</Text>
-          <Text style={styles.eyebrow}>VERIFIED ACADEMIC COMPLETION</Text>
+          <Text style={styles.school}>BUKLOD ACADEMY OF HIGHER LEARNING</Text>
+          <Text style={styles.eyebrow}>VERIFIED FORMATION COMPLETION</Text>
 
           <View style={styles.ceremony}>
             <Animated.View style={[styles.glow, {
@@ -150,7 +150,7 @@ export default function BuklodAcademicCompletionCelebration({
             <Text style={styles.title}>{award.title.trim()}</Text>
             <View style={[styles.verifiedPill, { borderColor: preset.accent }]}>
               <MaterialCommunityIcons name="check-decagram" size={17} color={preset.darkAccent} />
-              <Text style={[styles.verified, { color: preset.darkAccent }]}>OFFICIALLY RECORDED</Text>
+              <Text style={[styles.verified, { color: preset.darkAccent }]}>INTERNAL COMPLETION RECORDED</Text>
             </View>
             <Text style={styles.help}>Your completion paper is ready in Academic Records.</Text>
             <Pressable
