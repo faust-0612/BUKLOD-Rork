@@ -75,7 +75,7 @@ export async function showBuklodPointsVerifiedAd(
       const finish = (shown: boolean) => {
         if (settled) return;
         settled = true;
-        clearTimeout(timer); onEarned(); onClosed(); onError(); onOpened(); onImpression();
+        clearTimeout(timer); onEarned(); onClosed(); onError(); onOpened();
         resolve({ shown, earned });
       };
       const onEarned = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
@@ -83,9 +83,6 @@ export async function showBuklodPointsVerifiedAd(
       });
       const onOpened = ad.addAdEventListener(AdEventType.OPENED, () => {
         recordRewarded('ad_opened');
-      });
-      const onImpression = ad.addAdEventListener(AdEventType.IMPRESSION, () => {
-        recordRewarded('ad_impression');
       });
       const onClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
         recordRewarded('ad_dismissed');
