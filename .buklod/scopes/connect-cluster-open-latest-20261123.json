@@ -1,0 +1,74 @@
+{
+  "contractVersion": 2,
+  "objective": "On open and reopen, Connect Cluster/Organization/Personal thread reveals latest messages without transient top-of-history auto-pagination, while preserving deliberate older-message reading.",
+  "baseRef": "7b224c39624827282c3cbf003060317045b0a73f",
+  "productionBaselineEvidence": "Read current GitHub main source at 7b224c39624827282c3cbf003060317045b0a73f (2026-11-23). Existing Android production runtime 1.3.2 is described in prior release marker PR #1105; current served OTA not independently verified. DEV-only source; no production publication.",
+  "chosenApproach": "Remove 64ms Android-offline-cache auto-anchor race, wait for measured FlatList layout, and require real upward drag/momentum before top-edge older-history fetch. Keep existing FlatList initial opacity gate, one latest anchor, explicit Load Earlier button and read/reaction/ads behavior.",
+  "alternativeApproaches": [
+    "Always scroll to end on every render (rejected: steals the user's reading position and causes rebound)",
+    "Flip list inversion (rejected: changes older paging, item order and read cursors)"
+  ],
+  "selectionRationale": "Small source-only fix in existing chat component with executable guard regression; no new native package, backend migration, PTT, AdMob placement or release channel changes.",
+  "preserveBehaviors": [
+    "Personal, Cluster and Organization share message-thread renderer",
+    "Only deliberate earlier-history reading or explicit button triggers pagination",
+    "Own-message and latest-content following, read cursor and offline cache",
+    "AdMob placement, call routing, notes, reactions and attachment viewing"
+  ],
+  "acceptanceChecks": [
+    "Open/reopen existing long Cluster room at newest message, no top flash or rebound",
+    "Fast scope switch or offline cache hydration does not auto-fetch older history",
+    "Drag upward can request one older page; prepend maintains visible offset",
+    "Incoming message, send, keyboard resize, read receipt, ad first view, instant tab navigation retain existing behavior",
+    "Android exact-runtime RC and served production receipt are release blockers"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "connect"
+  ],
+  "regressionTests": [
+    "tests/connect-cluster-open-latest-20261123.test.mjs",
+    "tests/connect-latest-scroll-rebound-20261117.test.mjs",
+    "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodConnectThread.tsx",
+    "tests/connect-cluster-open-latest-20261123.test.mjs",
+    ".buklod/scopes/connect-cluster-open-latest-20261123.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Single Android chat FlatList anchoring/paging correction without runtime changes",
+      "preservedBehaviors": [
+        "Navigation, UI theme, offline behavior and native identity untouched"
+      ],
+      "tests": [
+        "tests/connect-cluster-open-latest-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Prevent history pagination during initial latest anchor in scoped and direct chats",
+      "preservedBehaviors": [
+        "Call/PTT, read cursor, sender following and earlier-history offsets unchanged"
+      ],
+      "tests": [
+        "tests/connect-cluster-open-latest-20261123.test.mjs",
+        "tests/connect-latest-scroll-rebound-20261117.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Conservative protected area classification of Connect component; no ad or points logic changed",
+      "preservedBehaviors": [
+        "Ad rendering and all money/points operations untouched"
+      ],
+      "tests": [
+        "tests/connect-scroll-read-cursor-and-ads-isolation-20261117.test.mjs"
+      ]
+    }
+  ]
+}
