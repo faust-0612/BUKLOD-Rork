@@ -59,6 +59,18 @@
       "tests": [
         "tests/saliksik-manuscript-unlock-20261124.test.mjs"
       ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "The feature-only SALIKSIK page is accessible from faith-enabled Cluster Home and adds a completion-gated download card without changing Cluster doorway or member scopes.",
+      "preservedBehaviors": [
+        "Cluster Home door remains opt-in/off by default; no new first-paint fetch, cross-cluster information or extra tabs.",
+        "Existing Bible/KL, ads and Cluster operations are unchanged."
+      ],
+      "tests": [
+        "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+        "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql"
+      ]
     }
   ],
   "preserveBehaviors": [
