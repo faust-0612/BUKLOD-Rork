@@ -8,6 +8,10 @@ on:
       - "supabase/functions/saliksik-manuscript-v1/**"
       - "supabase/tests/saliksik_written_master_r2.sql"
       - "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql"
+      - "tests/saliksik-manuscript-unlock-20261124.test.mjs"
+      - "src/lib/saliksikClient.ts"
+      - "src/app/scope/saliksik.tsx"
+      - "src/app/admin/saliksik-library.tsx"
       - "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql"
       - "tests/fixtures/saliksik_pg_*.sql"
       - ".github/workflows/saliksik-sql-qa.yml"
@@ -38,6 +42,8 @@ jobs:
       PGDATABASE: saliksik_qa
     steps:
       - uses: actions/checkout@v4
+      - name: Verify member download source contracts
+        run: node --test tests/saliksik-manuscript-unlock-20261124.test.mjs
       - name: Seed isolated BUKLOD contract
         run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/saliksik_pg_seed.sql
       - name: Apply unchanged SALIKSIK release migration
