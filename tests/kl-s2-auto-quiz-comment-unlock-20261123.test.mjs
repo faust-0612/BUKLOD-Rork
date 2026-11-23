@@ -59,6 +59,13 @@ test('progress waits for submitted reflection, including all 30 previous-series 
   assert.match(home,/Tapusin muna ang naunang serye/);
 });
 
+test('pre-activation Season 1 progress remains based on legacy completed sessions',()=>{
+  assert.match(sql,/IF NOT private\\.kl_s2_rewards_enabled_v1\\(\\) THEN/);
+  assert.match(sql,/This branch never applies the new comment requirement prematurely/);
+  assert.match(sql,/'enabled',false/);
+  assert.match(sql,/s\\.completed_at IS NOT NULL/);
+});
+
 test('S2 existing completed legacy sessions may reverify quiz instead of getting permanently stuck',()=>{
   const begin=sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION public.kl_quiz_begin_v1'));
   assert.match(begin,/NOT v_s2 OR EXISTS/);
