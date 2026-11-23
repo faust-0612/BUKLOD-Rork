@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   ImageBackground, Pressable, ScrollView, StyleSheet,
   Text, View, useWindowDimensions,
@@ -18,6 +18,8 @@ import BuklodMapGuideDock from '@/features/season2/world/BuklodMapGuideDock';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
+import {isGenesisOpeningVisible,subscribeGenesisOpeningVisible} from '@/features/season2/genesis/genesisStartupVisibility';
+import {useGenesisEntryAudio} from '@/features/season2/genesis/useGenesisEntryAudio';
 
 /** A staging-only immersive gateway. Existing feature pages and permissions stay authoritative. */
 export default function BuklodMapScreen() {
@@ -37,7 +39,9 @@ export default function BuklodMapScreen() {
   const canPlayMusic = Boolean(isGenesisPreviewBuild() && !loading && !complianceLoading &&
     !runtimeLoading && session && profile && !requiresAcceptance && !config?.maintenance_mode && !config?.update_required &&
     (!config?.pilot_access_required || config?.pilot_access_granted));
-  useRorkGameAmbience('kingdom-map',{autoStart:canPlayMusic});
+  const introVisible=useSyncExternalStore(subscribeGenesisOpeningVisible,isGenesisOpeningVisible,isGenesisOpeningVisible);
+  const entryAudioReady=useGenesisEntryAudio(canPlayMusic && focused && !introVisible);
+  useRorkGameAmbience('kingdom-map',{autoStart:canPlayMusic && focused && entryAudioReady});
 
   useFocusEffect(useCallback(() => {
     setFocused(true);

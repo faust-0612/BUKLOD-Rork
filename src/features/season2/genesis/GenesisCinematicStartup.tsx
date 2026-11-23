@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import Svg, { Circle, Defs, Ellipse, LinearGradient as SvgLinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { GENESIS_IDENTITY, GENESIS_PALETTE } from './genesisContract';
 import { markBuklodStartupChromeReady, subscribeBuklodStartupChromeReady } from '@/lib/buklodStartupChrome';
+import {setGenesisOpeningVisible} from './genesisStartupVisibility';
 
 // This file is deliberately different from the full-square, opaque launcher
 // artwork. Only the original green B pixels remain; surrounding alpha is zero.
@@ -136,6 +137,11 @@ export default function GenesisCinematicStartup({ children }: { children: React.
   const markScale = useRef(new Animated.Value(.79)).current;
   const copyOpacity = useRef(new Animated.Value(0)).current;
   const fadeOut = useRef(new Animated.Value(1)).current;
+
+  useEffect(()=>{
+    setGenesisOpeningVisible(visible);
+    return()=>setGenesisOpeningVisible(false);
+  },[visible]);
 
   const hideNativeSplash = () => {
     if (hiddenSplash.current) return;
