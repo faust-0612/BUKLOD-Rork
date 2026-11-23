@@ -1,4 +1,6 @@
 name: BUKLOD Genesis 2.0.5 Strict Godot ZIP Scene and Gameplay QA
+# Exact native source fix: replace cyclic typed BuklodArenaSimulation references in Library scripts.
+# No Android signing or Expo quota use in this smoke.
 on:
   push:
     branches:
