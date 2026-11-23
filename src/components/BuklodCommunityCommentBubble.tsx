@@ -501,7 +501,7 @@ export function BuklodCommunityCommentBubble({
               />
             )}
           </View>
-        )
+        )}
 
         {!!parsedBody.caption.trim() && (
           <BuklodMentionText
