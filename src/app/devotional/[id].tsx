@@ -92,7 +92,7 @@ function DevotionalScreenContent() {
         book: String(target.bookNo),
         chapter: String(target.chapterNo),
         ...(target.verseNo ? { verse: String(target.verseNo) } : {}),
-        source: 'free_reading',
+        source: 'my_bible',
       },
     });
   };

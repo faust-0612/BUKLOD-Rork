@@ -30,6 +30,6 @@ test('Word retains paraphrase, reflection, and free-reading navigation', () => {
   assert.match(screen, /item\.reflection_text/);
   assert.match(screen, /accessibilityRole="button"/);
   assert.match(screen, /pathname: '\/bible\/read'/);
-  assert.match(screen, /source: 'free_reading'/);
+  assert.match(screen, /source: 'my_bible'/);
   assert.match(screen, /keyVerseTarget \|\| passageTarget/);
 });
