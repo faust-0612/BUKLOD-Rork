@@ -98,7 +98,7 @@ test('Public/Scoped Wall and comment sheets share the picker without auto-publis
   assert.doesNotMatch(picker, /COMMUNITY GIF RETIRED/);
   assert.match(comment, /<BuklodCommunityGifPicker/);
   assert.match(comment, /onPickRemote=\{pickGif\}/);
-  assert.match(comment, /onSend=\{onSend\}/);
+  assert.match(comment, /onPress=\{onSend\}/);
   assert.match(wall, /Browse GIF library for Community post/);
   assert.match(scope, /Browse GIF library for this community/);
   assert.match(connect, /searchConnectGifs/);
