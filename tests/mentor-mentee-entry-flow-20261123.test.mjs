@@ -35,6 +35,14 @@ test('typing a name never bypasses an actual verified attendee assignment', () =
   assert.match(screen, /await uploadPhoto\(confirmedSessionId, photo\)/);
 });
 
+test('collapsed lesson picker leaves mentee entry reachable without scrolling 68 lessons', () => {
+  assert.match(screen, /lessonPickerOpen && <>/);
+  assert.match(screen, /setLessonPickerOpen\(false\)/);
+  assert.match(screen, /2\. Mentees who attended/);
+  assert.match(screen, /3\. Teaching details and photo/);
+  assert.ok(screen.indexOf('2. Mentees who attended') > screen.indexOf('lessonPickerOpen && <>'));
+});
+
 test('new request RPCs are authenticated, private, bounded and nonrewarding', () => {
   assert.match(sql, /enable row level security/);
   assert.match(sql, /revoke all on table public\.buklod_mentor_mentee_link_requests_v1/);
