@@ -234,7 +234,7 @@ export default function KlDashboardHome({ onOpenSeries }: {
               {item.description ? <Text style={styles.description} numberOfLines={3}>{item.description}</Text> : null}
               {count !== undefined ? <>
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${Math.round(ratio * 100)}%` }]} />
+                  <View style={[styles.progressFill, { width: `${Math.round(ratio * 100)}%` as `${number}%` }]} />
                 </View>
                 <Text style={styles.secondary}>{count} / 30 verified na kabanata</Text>
               </> : null}
