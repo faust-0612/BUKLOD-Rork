@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "sourceNote": "Intentional NOT-READY matrix. Never mark verified before native Android runtime/device proof.",
+  "features": [
+    {
+      "id": "registration-auth",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "home-navigation",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "cluster-scopes",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "wall-comments-media",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "connect-ptt-calls",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "profile-character-ranks",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "admin-access",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "admob-lifecycle",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "notifications",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "bible-offline",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "gif-keyboard-send",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "native-splash",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "arena-godot-gameplay",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "kingdom-39-games",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "world-community-house",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "character-13-progression",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "server-reward-authority",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "offline-recovery",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "android-lifecycle",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    },
+    {
+      "id": "media-audio-focus",
+      "implemented": false,
+      "verified": false,
+      "evidencePath": null
+    }
+  ]
+}

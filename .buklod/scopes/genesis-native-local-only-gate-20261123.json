@@ -1,0 +1,30 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-native-local-only-gate-20261123.json",
+  "objective": "Protect full BUKLOD Genesis no-Expo local-only 800+ MB native staging build from Expo/cloud fallback, MAIN/staging replacement, fake assets and unverified game parity before allowing any binary release.",
+  "baseRef": "7df18d4bd06f8cd137609a193c3cf28f93919049",
+  "productionBaselineEvidence": "GitHub main observed 7b224c39624827282c3cbf003060317045b0a73f on 2026-11-23. This guard branch is intentionally DEV-only and behind main; this is NOT production-runtime verification. Reconcile the current mainline and the latest verified production fixes before an RC.",
+  "chosenApproach": "Separate native-only migration folder, read-only local validator and focused adversarial tests. No edits to existing Expo runtime, staging configuration, production backend or deployment workflow.",
+  "selectionRationale": "Building again from the existing Expo/Godot preview would repeat the previously reported wrong APK. A hard negative gate is cheaper and preserves the existing users while a real native migration remains unfinished.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-native-local-only-gate-20261123.json",
+    "scripts/genesis-native-local-only-gate.mjs",
+    "tests/genesis-native-local-only-gate-20261123.test.mjs",
+    "native-genesis/parity.json",
+    "native-genesis/approved-assets.json",
+    "native-genesis/README.md"
+  ],
+  "regressionTests": ["tests/genesis-native-local-only-gate-20261123.test.mjs"],
+  "lockedFeatureChanges": [{
+    "id": "production-release",
+    "reason": "Add fail-closed native APK source/artifact safety checks without changing the app or initiating release.",
+    "preservedBehaviors": ["Production package/runtime and staging package untouched", "AdMob, navigation and app code untouched", "No cloud or OTA action", "Backend isolation required before native build"],
+    "tests": ["tests/genesis-native-local-only-gate-20261123.test.mjs"]
+  }],
+  "riskAreas": ["release identity", "backend isolation", "Expo fallback", "gameplay parity", "copyright/license", "80+ native/media dependencies", "unverified APK size and signature", "production fix carryover"],
+  "preserveBehaviors": ["Production BUKLOD MAIN and existing staging binary untouched", "Original Godot source and existing DEV work untouched", "No false signed-APK/device verification"],
+  "acceptanceChecks": ["Run adversarial local node regression tests", "No live/staging package or Supabase backend reused", "Native source/Godot/asset evidence and runtime feature parity are all validated", "Exact signed 800+ MB local APK, installed test/device verification required separately", "No padded or placeholder releases"],
+  "releaseMode": "DEV_HOLD_NO_APK_NO_OTA_NO_CLOUD",
+  "publicationStatus": "NOT_READY_NATIVE_MIGRATION_NOT_COMPLETED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
