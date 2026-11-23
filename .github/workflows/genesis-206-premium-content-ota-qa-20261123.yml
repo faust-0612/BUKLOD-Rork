@@ -61,6 +61,13 @@ jobs:
           if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/buklod-premium-packed.log; then exit 1; fi
           echo 'BUKLOD_206_PREMIUM_CONTENT_DEV_QA_PASS_NO_OTA_PUBLISHED'
 
+      - name: Verify two original BUKLOD ambient WAVs and source-only package
+        run: |
+          set -euo pipefail
+          for track in kingdom_ambience house_ambience; do
+            unzip -Z1 assets/season2/genesis/ota/empire-arena.zip | grep -Fxq "world-audio/$track.wav"
+          done
+          echo 'BUKLOD_206_ORIGINAL_AUDIO_READY_NO_AUTO_PLAY'
       - name: Upload verified DEV game content and hash for staging QA, NOT an OTA
         uses: actions/upload-artifact@v4
         with:

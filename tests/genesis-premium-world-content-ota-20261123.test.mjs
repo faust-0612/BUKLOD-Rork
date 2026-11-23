@@ -63,3 +63,17 @@ test('Owner Library Kingdom collections are shipped as 42 real cosmetic WebP ite
  assert.match(preview,/var badge: Texture2D = _kingdom_item\(i\)/);
  assert.doesNotMatch(preview,/grant_bp|create_inventory|update_wallet|purchase_property/);
 });
+
+test('Original BUKLOD audio is bundled but ambient playback defaults OFF',()=>{
+ const pack=read('scripts/build-empire-godot-pack.mjs');
+ const preview=read('godot/empire-arena/scripts/world_preview.gd');
+ const explore=read('godot/empire-arena/scripts/world_explore_controller.gd');
+ for(const name of ['buklod-kingdom-ambient-original.wav','buklod-kingdom-cinematic-ambient.wav'])
+   assert.ok(pack.includes(name));
+ assert.ok(preview.includes('var ambient_enabled: bool = false'));
+ assert.ok(preview.includes('func _toggle_ambience() -> void:'));
+ assert.ok(preview.includes('track.loop_mode = AudioStreamWAV.LOOP_FORWARD'));
+ assert.ok(preview.includes('ambient_player.volume_db = -24.0'));
+ assert.ok(preview.includes('ambient_button.text = "MUSIC ON" if ambient_enabled else "MUSIC OFF"'));
+ assert.ok(explore.includes('get_parent().world_interaction("", interaction_label)'));
+});

@@ -42,13 +42,16 @@
     "tap-to-walk with arrival-gated station visits and House build stages",
     "unhandled input isolation from top-level UI",
     "buffer decoding of embedded WAV for offline native game",
-    "Seven reviewed Kingdom collectible image classes, 42 WebP variants, render as cosmetic station/House graphics"
+    "Seven reviewed Kingdom collectible image classes, 42 WebP variants, render as cosmetic station/House graphics",
+    "Include original BUKLOD Kingdom/House ambient WAVs; playback disabled until explicit user tap, protect radio/PTT",
+    "Avoid double House construction sound (stage + visit)"
   ],
   "tests": [
     "node --test tests/genesis-premium-world-content-ota-20261123.test.mjs",
     "godot --headless ...premium_content_smoke.gd",
     "canonical source pack hash/zip integrity",
-    "pack includes exactly 42 Kingdom WebP assets"
+    "pack includes exactly 42 Kingdom WebP assets",
+    "Real Godot 4.7.2 buffer-decoding of two BUKLOD ambient files; default OFF"
   ],
   "knownLimitations": [
     "2D upgrade only, NOT Mobile Legends grade 3D",

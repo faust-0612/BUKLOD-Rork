@@ -68,5 +68,15 @@ func _run() -> void:
                 push_error("Missing approved owner collectible art " + path)
                 quit(9)
                 return
-    print("BUKLOD_GODOT_PREMIUM_WORLD_INTERACTION_PASS: kingdom arrival, house construction, 42 item icons, no reward writes")
+    for name in ["kingdom_ambience", "house_ambience"]:
+        var raw: PackedByteArray = FileAccess.get_file_as_bytes("res://world-audio/" + name + ".wav")
+        if raw.is_empty() or AudioStreamWAV.load_from_buffer(raw) == null:
+            push_error("Missing original BUKLOD ambient WAV: " + name)
+            quit(10)
+            return
+    if preview.ambient_enabled:
+        push_error("Native game ambience must start OFF to protect PTT/radio audio")
+        quit(11)
+        return
+    print("BUKLOD_GODOT_PREMIUM_WORLD_INTERACTION_PASS: Kingdom, House, 42 Library icons, original ambient tracks OFF by default")
     quit(0)
