@@ -14,7 +14,6 @@ export const BUKLOD_FEATURE_LINKS: readonly BuklodFeatureLink[] = [
   { id: 'stories', title: "Children's Stories", route: '/children-stories', aliases: ['children', 'kids', 'storybook', 'story', 'stories', 'bedtime', 'children story', 'kwento', 'kuwento', 'pambata', 'bata', 'pabula', 'alamat', 'Sunday School', 'read to me', 'pakinggan', 'magbasa'] },
   { id: 'bible', title: 'Bible & Reading', route: '/bible', aliases: ['bible', 'basa', 'pagbasa', 'daily reading', 'salita ng dios', 'verses'] },
   { id: 'prayer', title: 'Prayer', route: '/prayer', aliases: ['panalangin', 'prayer', 'dasal', 'pray'] },
-  { id: 'kingdom', title: 'BUKLOD Kingdom', route: '/games', aliases: ['kingdom', 'game', 'laro', 'map', 'reward'] },
   { id: 'contribution', title: 'Community Contribution', route: '/community-contribution', aliases: ['kontribusyon', 'bayanihan', 'contribute', 'qmp', 'earnings', 'puntos','monetization','monetize','income','admob','revenue','withdrawal','payout','earnings summary','how to earn','paano kumita', 'monetization', 'monetisation', 'how to earn', 'paano kumita', 'income', 'revenue', 'admob', 'withdrawal', 'payout'] },
   { id: 'security', title: 'Password & Recovery', route: '/account/security', aliases: ['password', 'pass', 'reset', 'recover', 'security', 'palit password', 'how to change password', 'paano palitan ang password'] },
   { id: 'language', title: 'App Language', route: '/preferences/language', aliases: ['wika', 'tagalog', 'english', 'salita'] },

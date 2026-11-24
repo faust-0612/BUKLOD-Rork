@@ -12,7 +12,6 @@ const SECTIONS: readonly { title: string; hint: string; links: readonly MenuLink
   { title: 'LEARN & GROW', hint: 'Faith, service and personal growth', links: [
     { label: 'Bible & Reading', hint: 'Read and reflect', icon: 'book-open-variant', route: '/bible' },
     { label: 'Community Contribution', hint: 'Your progress and Bayanihan', icon: 'hand-heart-outline', route: '/community-contribution' },
-    { label: 'BUKLOD Kingdom', hint: 'Explore your game progress', icon: 'crown-outline', route: '/games' },
   ] },
   { title: 'YOUR PERSONAL TOOLS', hint: 'Useful features in one place', links: [
     { label: 'My Drawer', hint: 'Private notes and files', icon: 'folder-outline', route: '/drawer' },

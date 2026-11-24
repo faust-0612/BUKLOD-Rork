@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import { rememberBuklodRoute } from '@/lib/buklodRouteDiagnostics';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
-import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import {
   isBuklodScopedWorkspacePath,
   normalizeBuklodPathname,
@@ -88,7 +87,6 @@ export default function BuklodNavSafeShell({
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
   const immersiveConversation = isHiblaConversationPath(pathname);
-  const genesisWorld = isGenesisPreviewBuild();
   // Genesis retains the regular bottom navigation except inside immersive routes.
   const navOccupied = immersiveConversation ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
@@ -172,15 +170,6 @@ export default function BuklodNavSafeShell({
             ? Math.max(insets.bottom, 0)
             : 0;
 
-  // A single compact World portal replaces legacy persistent nav in staging.
-  // Never overlap an active conversation, immersive reel, keyboard or auth gate.
-  const mapReturnRoots = ['/buklod','/messages','/hub','/me','/learn','/clusters','/organizations',
-    '/games','/points','/bayanihan','/bible','/life','/notifications','/profile',
-    '/personal-home','/settings','/support','/community-contribution','/children-stories'];
-  const worldReturnEligible = genesisWorld && !immersiveConversation && !immersiveIgpat && !immersiveArena && !keyboardVisible &&
-    !normalizedPath.startsWith('/games') &&
-    normalizedPath !== '/buklod-map' && mapReturnRoots.some(route => normalizedPath === route || normalizedPath.startsWith(route + '/'));
-
   return (
     <View style={styles.root}>
       <View
@@ -207,14 +196,6 @@ export default function BuklodNavSafeShell({
         </View>
       ) : null}
 
-      {worldReturnEligible ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="Return to BUKLOD Map"
-          onPress={() => router.replace('/buklod-map' as any)}
-          hitSlop={8} style={[styles.worldReturn,{bottom:Math.max(navOccupied,0)+11}]}>
-          <MaterialCommunityIcons name="earth" size={20} color="#F7D8A2"/>
-          <MaterialCommunityIcons name="arrow-left" size={15} color="#F7D8A2"/>
-        </Pressable>
-      ) : null}
       {immersiveIgpat ? (
         <Pressable
           accessibilityRole="button"
@@ -239,13 +220,6 @@ export default function BuklodNavSafeShell({
 }
 
 const styles = StyleSheet.create({
-  worldReturn: {
-    position: 'absolute', right: 10, zIndex: 1000, minWidth: 44, minHeight: 44,
-    borderRadius: 22, backgroundColor: 'rgba(7,20,42,0.88)',
-    borderColor: 'rgba(239,211,158,0.6)', borderWidth: 1,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, elevation: 5,
-  },
   root: {
     flex: 1,
   },

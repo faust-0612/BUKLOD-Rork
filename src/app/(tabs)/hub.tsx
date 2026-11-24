@@ -73,7 +73,7 @@ export default function BuklodLightHome() {
         style={{ flex: 1, backgroundColor: genesisPreview ? '#050A19' : theme.surface }}
         contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
         {genesisPreview ? <GenesisCosmosBackground active={focused && foreground}/> : null}
-{genesisPreview ? <GenesisHomeHero active={focused && foreground} onExplore={() => router.push('/games' as any)}/> : (
+{genesisPreview ? <GenesisHomeHero active={focused && foreground}/> : (
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={{ minHeight: 86, borderRadius: buklodVisual.radius.card, padding: 14, justifyContent: 'center' }}>
@@ -138,7 +138,7 @@ export default function BuklodLightHome() {
     <ScrollView onScroll={event => {reportBuklodDashboardScroll('home',event.nativeEvent.contentOffset.y);noteBuklodVideoScroll();}} scrollEventThrottle={16} style={{ flex: 1, backgroundColor: genesisPreview ? '#050A19' : theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 9, paddingBottom: 16, gap: 9 }}>
       {genesisPreview ? <GenesisCosmosBackground active={focused && foreground}/> : null}
       <BuklodSystemAnnouncementBoard slot="public_home" />
-{genesisPreview ? <GenesisHomeHero active={focused && foreground} onExplore={() => router.push('/games' as any)}/> : (
+{genesisPreview ? <GenesisHomeHero active={focused && foreground}/> : (
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: 18, fontWeight: '900', color: theme.textPrimary }}>Your everyday space</Text>
         <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12, marginTop: 1 }}>Connect, learn and grow with BUKLOD.</Text></View>
