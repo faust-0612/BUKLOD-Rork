@@ -12,8 +12,20 @@ wait_marker() {
  local marker="$1" file="$2"
  for i in $(seq 1 30); do
   adb logcat -d > "$OUT/$file.log"
-  if grep -E 'Unable to setup the Godot engine|Unable to complete engine setup|FATAL EXCEPTION|SCRIPT ERROR|Parser Error|EMPIRE_SCENE_LOAD_FAILED|EMPIRE_WORLD_VISUAL_FAILED' "$OUT/$file.log"; then return 1; fi
-  if grep -F "$marker" "$OUT/$file.log"; then adb exec-out screencap -p > "$OUT/$file.png"; return 0; fi
+  if grep -E 'Unable to setup the Godot engine|Unable to complete engine setup|FATAL EXCEPTION|SCRIPT ERROR|Parser Error|Program linking failed|Fragment shader active uniforms exceed|shader failed to compile|EMPIRE_SCENE_LOAD_FAILED|EMPIRE_WORLD_VISUAL_FAILED' "$OUT/$file.log"; then return 1; fi
+  if grep -F "$marker" "$OUT/$file.log"; then
+   # Engine receipts alone can be green while the display is entirely gray.
+   for render_attempt in $(seq 1 6); do
+    adb exec-out screencap -p > "$OUT/$file.png"
+    if python3 scripts/verify-buklod-empire-frame.py "$OUT/$file.png"; then
+     adb logcat -d > "$OUT/$file.log"
+     if grep -E 'Program linking failed|Fragment shader active uniforms exceed|shader failed to compile|SCRIPT ERROR|FATAL EXCEPTION' "$OUT/$file.log"; then return 1; fi
+     return 0
+    fi
+    sleep 1
+   done
+   return 1
+  fi
   sleep 2
  done
  adb exec-out screencap -p > "$OUT/$file.png"

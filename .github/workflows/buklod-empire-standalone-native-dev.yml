@@ -8,6 +8,7 @@ on:
       - 'apps/buklod-empire/**'
       - 'scripts/build-buklod-empire-standalone.mjs'
       - 'scripts/verify-buklod-empire-android.sh'
+      - 'scripts/verify-buklod-empire-frame.py'
       - 'tests/buklod-empire-standalone-contract.test.mjs'
       - 'tests/buklod-empire-ota.test.mjs'
       - 'scripts/build-buklod-empire-ota.mjs'
@@ -82,8 +83,9 @@ jobs:
           if grep -E 'assets/index.android.bundle|lib/[^/]+/libhermes.so' build/buklod-empire/apk-entries.txt; then exit 1; fi
           sha256sum "$APK" > build/buklod-empire/apk-sha256.txt
           stat -c %s "$APK" > build/buklod-empire/apk-bytes.txt
-      - name: Enable KVM
+      - name: Enable KVM and visual proof dependency
         run: |
+          python3 -m pip install --disable-pip-version-check Pillow
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
@@ -95,7 +97,7 @@ jobs:
           target: google_apis
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -no-snapshot
           script: bash scripts/verify-buklod-empire-android.sh
       - name: Deliver only Android-tested DEV APK
         uses: actions/upload-artifact@v4

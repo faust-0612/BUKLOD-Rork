@@ -25,7 +25,8 @@
     "Real Android emulator render and battle",
     "No backend write or MAIN deploy",
     "Signed cumulative OTA delta, exact runtime/base/channel, immutable bootstrap, rollback and Android launch before release.",
-    "Real Godot engine validates signature and actual mounted resource, replay rejection, interrupted boot recovery and manual rollback."
+    "Real Godot engine validates signature and actual mounted resource, replay rejection, interrupted boot recovery and manual rollback.",
+    "Android screenshots must contain real nonblank colored scene pixels and no shader-linking failure; no log-only rendering claim."
   ],
   "allowedPaths": [
     ".buklod/releases/buklod-empire-standalone-dev-20261124.json",
@@ -51,6 +52,7 @@
     "scripts/build-buklod-empire-standalone.mjs",
     "scripts/prepare-buklod-empire-ota-fixture.mjs",
     "scripts/verify-buklod-empire-android.sh",
+    "scripts/verify-buklod-empire-frame.py",
     "scripts/verify-buklod-empire-ota-godot.sh",
     "tests/buklod-empire-ota.test.mjs",
     "tests/buklod-empire-standalone-contract.test.mjs"
