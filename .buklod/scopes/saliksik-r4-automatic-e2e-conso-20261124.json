@@ -42,7 +42,6 @@
   "regressionTests": [
     "tests/saliksik-auto-research-e2e-20261124.test.mjs",
     "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
-    "tests/fixtures/saliksik_r4_auto_pg_integration.sql",
     "supabase/tests/saliksik_auto_research_security_r4.sql"
   ],
   "lockedFeatureChanges": [
