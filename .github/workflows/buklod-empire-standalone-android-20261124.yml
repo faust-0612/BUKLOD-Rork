@@ -1,0 +1,117 @@
+name: BUKLOD Empire standalone Android APK (Godot local export)
+on:
+  push:
+    branches: ['dev/buklod-empire-standalone-android-20261124']
+    paths:
+      - '.github/workflows/buklod-empire-standalone-android-20261124.yml'
+permissions:
+  contents: read
+jobs:
+  empire-apk:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'BUKLOD_EMPIRE_STANDALONE:')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      BUKLOD_GENESIS_PREMIUM_3D: 'true'
+      GODOT_VERSION: '4.7.2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assemble audited native assets from exact consolidated source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = '7da090dfc73429ff7a1080d74249ae38c1067fbf'
+          node scripts/genesis-import-verified-3d.mjs
+          node scripts/genesis-prepare-godot-ota-pack.mjs
+          echo '4f05186a6ce4eb9955b02847a64cec4d595f39c9cb14700798fce26e22476d38  assets/season2/genesis/ota/empire-arena.zip' | sha256sum -c -
+          python3 scripts/prepare-buklod-empire-standalone.py --pack assets/season2/genesis/ota/empire-arena.zip --out /tmp/empire-project
+      - name: Install official Godot editor and matching Android export templates
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/empire-engine "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 300 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/empire-godot.zip
+          unzip -q /tmp/empire-godot.zip -d /tmp/empire-engine
+          godot="$(find /tmp/empire-engine -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          test -n "$godot"
+          chmod +x "$godot"
+          "$godot" --version | grep -F '4.7.2'
+          echo "GODOT=$godot" >> "$GITHUB_ENV"
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 480 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/empire-templates.tpz
+          unzip -j /tmp/empire-templates.tpz 'templates/android_debug.apk' 'templates/android_release.apk' 'templates/version.txt' -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          rm /tmp/empire-templates.tpz /tmp/empire-godot.zip
+      - name: Run actual standalone Godot scene and media smoke
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          "$GODOT" --headless --path /tmp/empire-project --editor --import --quit 2>&1 | tee evidence/import.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' evidence/import.log; then exit 1; fi
+          timeout 150s "$GODOT" --headless --path /tmp/empire-project -s res://tests/standalone_smoke.gd 2>&1 | tee evidence/standalone-smoke.log
+          grep -F 'BUKLOD_EMPIRE_STANDALONE_SMOKE_PASS' evidence/standalone-smoke.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' evidence/standalone-smoke.log; then exit 1; fi
+      - name: Export signed internal APK directly from Godot, no Expo or cloud build
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/godot" "$HOME/.android" output
+          java -version
+          test -d "$ANDROID_HOME/build-tools"
+          keytool -genkeypair -keystore "$HOME/.android/empire-debug.keystore" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 365 -dname 'CN=BUKLOD Empire Internal Preview,O=BUKLOD,C=PH'
+          cat > "$HOME/.config/godot/editor_settings-4.7.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$HOME/.android/empire-debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+          "$GODOT" --headless --path /tmp/empire-project --export-debug Android "$PWD/output/BUKLOD-Empire-0.1.0-internal.apk" 2>&1 | tee evidence/export.log
+          test -s output/BUKLOD-Empire-0.1.0-internal.apk
+      - name: Verify actual APK package, signatures, assets and offline permissions
+        run: |
+          set -euo pipefail
+          apk=output/BUKLOD-Empire-0.1.0-internal.apk
+          tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
+          "$tools/aapt" dump badging "$apk" > evidence/badging.txt
+          grep -E "^package: name='org.mzbministry.buklod.empire' versionCode='1' versionName='0.1.0'" evidence/badging.txt
+          "$tools/aapt" dump permissions "$apk" > evidence/permissions.txt
+          if grep -F android.permission.INTERNET evidence/permissions.txt; then echo "Unexpected network permission"; exit 1; fi
+          "$tools/apksigner" verify --verbose --print-certs "$apk" | tee evidence/signature.txt
+          unzip -t "$apk" > evidence/archive.txt
+          python3 - <<'PY'
+          import hashlib,json,zipfile,pathlib
+          p=pathlib.Path('output/BUKLOD-Empire-0.1.0-internal.apk')
+          with zipfile.ZipFile(p) as z:
+            names=set(z.namelist())
+            assert any(x.startswith('lib/arm64-v8a/') and 'godot' in x and x.endswith('.so') for x in names)
+            assert any(x.startswith('lib/x86_64/') and 'godot' in x and x.endswith('.so') for x in names)
+            m=json.loads(pathlib.Path('/tmp/empire-project/data/standalone_media_manifest.json').read_text())
+            # Standard Godot Android APK export writes individual res files under assets/.
+            for record in m['assets']:
+              key='assets/'+record['path']
+              assert key in names, 'Missing runtime raw file: '+key
+              assert hashlib.sha256(z.read(key)).hexdigest()==record['sha256'],key
+            assert 'assets/data/catalog.json' in names and 'assets/data/3d_manifest.json' in names
+            assert 'assets/index.android.bundle' not in names
+          receipt={'status':'STANDALONE_ANDROID_APK_BINARY_VERIFIED_DEVICE_QA_PENDING','package':'org.mzbministry.buklod.empire','version':'0.1.0','bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'rawAssets':len(m['assets']),'engine':'Godot 4.7.2','androidDeviceQA':'NOT_PERFORMED','backend':'none; shared BUKLOD reconciliation held until server-authoritative implementation','signing':'temporary debug preview; not production','productionMutation':False}
+          pathlib.Path('output/verification.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print('BUKLOD_EMPIRE_APK_BINARY_VERIFIED',json.dumps(receipt))
+          PY
+      - name: Deliver standalone APK only after binary gates
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Empire-0.1.0-internal-APK
+          path: output/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Empire-standalone-build-evidence
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 3
