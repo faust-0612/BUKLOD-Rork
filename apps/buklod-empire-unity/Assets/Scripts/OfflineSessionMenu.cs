@@ -108,7 +108,7 @@ namespace Buklod.Empire {
                 panelBackground.color=draw?Navy:won?new Color(.065f,.14f,.12f,.98f):new Color(.15f,.065f,.085f,.98f);
                 Label("Match result",body,new Vector2(.05f,.62f),new Vector2(.95f,.92f),draw?"BATTLE DRAWN":won?"LUX PREVAILS":"TENEBRA PREVAILS",42);
                 Label("Match stats",body,new Vector2(.05f,.30f),new Vector2(.95f,.61f),$"{b.Time/60:0.0} min  •  Damage dealt {p.DamageDealt:0}  •  Damage taken {p.DamageTaken:0}\nKills {p.Kills}  •  Deaths {p.Deaths}  •  Assists {p.Assists}",27);
-                Label("Offline scope",body,new Vector2(.05f,.07f),new Vector2(.95f,.28f),"Training result only — no persistent rewards",21);
+                Label("Offline scope",body,new Vector2(.05f,.07f),new Vector2(.95f,.28f),ArenaProgression.TrainingResult(true),21);
                 return;
             }
             title.color=Color.white;panelBackground.color=Navy;title.rectTransform.localScale=Vector3.one;
