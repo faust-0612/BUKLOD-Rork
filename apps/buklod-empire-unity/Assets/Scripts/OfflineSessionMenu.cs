@@ -71,7 +71,13 @@ namespace Buklod.Empire {
             }
             resume=ButtonAt("Resume",panel,new Vector2(.08f,.06f),new Vector2(.46f,.17f),"RESUME",Resume);
             start=ButtonAt("Start",panel,new Vector2(.54f,.06f),new Vector2(.92f,.17f),"START NEW MATCH",StartNew);
+            ButtonAt("Collection",panel,new Vector2(.76f,.85f),new Vector2(.98f,.95f),"COLLECTION",OpenCollection);
             Select(selected);Open();
+        }
+        private void OpenCollection(){
+            if(!shown)return;
+            var collection=GetComponent<ArenaCommercePanel>();if(!collection)collection=gameObject.AddComponent<ArenaCommercePanel>();
+            collection.Open(canvas,()=>Refresh());
         }
         private void Select(string hero){
             selected=HeroKitCatalog.Get(hero).Id;
