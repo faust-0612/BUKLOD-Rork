@@ -15,6 +15,11 @@ namespace Buklod.Empire {
             Assert.IsTrue(offers.All(o=>!o.PurchaseEnabled));
             Assert.IsTrue(offers.Where(o=>o.Kind==ArenaOfferKind.Stone).All(o=>o.BpCost==100));
         }
+        [Test] public void PremiumMotionIsTieredAndOriginalIsStill(){
+            Assert.AreEqual(0,ArenaPremiumPreviewMotion.TierStrength("original"));
+            Assert.AreEqual(0,ArenaPremiumPreviewMotion.TierStrength("access"));
+            Assert.Greater(ArenaPremiumPreviewMotion.TierStrength("mythical"),ArenaPremiumPreviewMotion.TierStrength("legendary"));
+        }
         [Test] public void AdsFailClosedAndNeverRewardStones(){
             Assert.IsFalse(ArenaCommercePreview.EligibleRewardedTrial(ArenaOfferKind.Stone));
             Assert.IsFalse(ArenaCommercePreview.CanShowAd(true,true,true,true));

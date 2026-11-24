@@ -57,6 +57,14 @@ create table empire_stones.api_rate (
  user_id uuid primary key references public.profiles(id) on delete cascade,
  bucket timestamptz not null, calls integer not null check(calls between 1 and 60)
 );
+-- One receipt for all client actions, independent of private operation namespaces.
+create table empire_stones.api_request (
+ user_id uuid not null references public.profiles(id), request_id uuid not null,
+ action text, args jsonb, state text not null check(state in ('completed','cancelled')),
+ created_at timestamptz not null default now(),
+ primary key(user_id,request_id)
+);
+alter table empire_stones.api_request enable row level security;
 alter table empire_stones.release_gate enable row level security;
 alter table empire_stones.kingdom_mastery_map enable row level security;
 alter table empire_stones.api_rate enable row level security;
@@ -151,11 +159,20 @@ end $$;
 create function public.act_my_empire_stones_v1(p_action text,p_args jsonb,p_request_id uuid) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare u uuid:=(select auth.uid()); peer uuid; h text; inputs text[]; wants text[];
+ receipt empire_stones.api_request%rowtype;
 begin
  if u is null or not empire_stones.eligible(u) then raise exception 'Stone account ineligible' using errcode='42501'; end if;
  if not exists(select 1 from empire_stones.release_gate where singleton and enabled) then raise exception 'Stones unavailable'; end if;
  if p_request_id is null or jsonb_typeof(p_args) is distinct from 'object' or pg_column_size(p_args)>8192 then raise exception 'Invalid request'; end if;
  perform empire_stones.check_rate(u);
+ insert into empire_stones.api_request(user_id,request_id,action,args,state)
+ values(u,p_request_id,p_action,p_args,'completed') on conflict do nothing;
+ if not found then
+  select * into strict receipt from empire_stones.api_request where user_id=u and request_id=p_request_id;
+  if receipt.state='cancelled' then raise exception 'Request cancelled'; end if;
+  if receipt.action is distinct from p_action or receipt.args is distinct from p_args then raise exception 'Request payload mismatch'; end if;
+  return empire_stones.snapshot(u);
+ end if;
  h:=p_args->>'hero_id';
  if p_action in ('gift','offer','request') then
   peer:=(p_args->>'peer')::uuid;
@@ -189,6 +206,20 @@ begin
  end case;
  return empire_stones.snapshot(u);
 end $$;
+-- Resolve ambiguous client transport outcome. If the prior transaction already
+-- committed, report completed; otherwise atomically tombstone its request ID.
+-- A delayed in-flight retry can no longer spend after cancellation.
+create function public.resolve_my_empire_stone_request_v1(p_request_id uuid) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare u uuid:=(select auth.uid()); result_state text;
+begin
+ if u is null or not empire_stones.eligible(u) or p_request_id is null then raise exception 'Invalid stone account/request' using errcode='42501'; end if;
+ if not exists(select 1 from empire_stones.release_gate where singleton and enabled) then raise exception 'Stones unavailable'; end if;
+ perform empire_stones.check_rate(u);
+ insert into empire_stones.api_request(user_id,request_id,state) values(u,p_request_id,'cancelled') on conflict do nothing;
+ select state into strict result_state from empire_stones.api_request where user_id=u and request_id=p_request_id;
+ return jsonb_build_object('version',1,'owner',u,'request_state',result_state,'snapshot',empire_stones.snapshot(u));
+end $$;
 revoke all on all tables in schema empire_stones from public,anon,authenticated;
 revoke all on all sequences in schema empire_stones from public,anon,authenticated;
 revoke all on all functions in schema empire_stones from public,anon,authenticated;
@@ -196,4 +227,6 @@ revoke all on function public.get_my_empire_stones_v1() from public,anon,authent
 revoke all on function public.act_my_empire_stones_v1(text,jsonb,uuid) from public,anon,authenticated;
 grant execute on function public.get_my_empire_stones_v1() to authenticated;
 grant execute on function public.act_my_empire_stones_v1(text,jsonb,uuid) to authenticated;
+revoke all on function public.resolve_my_empire_stone_request_v1(uuid) from public,anon,authenticated;
+grant execute on function public.resolve_my_empire_stone_request_v1(uuid) to authenticated;
 commit;

@@ -1,0 +1,45 @@
+{
+  "status": "REVIEW_ONLY",
+  "premiumVerified": false,
+  "heroStyles": [
+    "original",
+    "radiant",
+    "nightwatch",
+    "legendary",
+    "mythical"
+  ],
+  "heroCount": 13,
+  "heroVariantCount": 65,
+  "assets": [
+    {
+      "category": "HeroSkin",
+      "implementation": "PBR material variants; existing geometry and clips preserved",
+      "required": "approved individual 3D models, deformation and device screenshots"
+    },
+    {
+      "category": "Weapon",
+      "implementation": "catalog and animated emblem",
+      "required": "distinct meshes and attachment sockets"
+    },
+    {
+      "category": "Effect/Entrance/Victory/Recall",
+      "implementation": "catalog and animated emblem",
+      "required": "actual cinematic particles, audio and clips"
+    },
+    {
+      "category": "Villager/Minion/Building/Battlefield",
+      "implementation": "existing source review assets and catalog",
+      "required": "premium faction-specific variants, environment validation"
+    },
+    {
+      "category": "Voice",
+      "implementation": "catalog only",
+      "required": "original licensed recorded or generated voice lines"
+    },
+    {
+      "category": "Bundle",
+      "implementation": "catalog and animated emblem",
+      "required": "component entitlement mapping and approval"
+    }
+  ]
+}
