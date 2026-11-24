@@ -11,6 +11,8 @@ func _run() -> void:
 	var sim=SIM.new()
 	if not check(sim.start("phan","normal"),"start"):return
 	if not check(sim.state["players"].size()==10,"5v5 roster"):return
+	if not check(sim.config["maps"][sim.state["map"]]["lanes"].size()==3,"canonical map ID resolved"):return
+	if not check(sim.state["library_wave_index"]==0,"wave cursor initialized"):return
 	if not check(sim.state["towers"].size()==8,"6 towers and 2 cores"):return
 	var p: Dictionary=sim.actor("A0")
 	var enemy: Dictionary=sim.actor("B0")

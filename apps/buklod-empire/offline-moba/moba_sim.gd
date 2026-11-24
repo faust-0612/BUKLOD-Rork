@@ -15,6 +15,7 @@ func start(hero: String, difficulty: String = "normal", seed: int = 20261124) ->
 	state["nodes"].clear()
 	state["hard_deadline"] = MATCH_LIMIT + 10000.0
 	state["library_next_wave"] = 3.0
+	state["library_wave_index"] = 0
 	for team in ["A","B"]:
 		var core := {"id":team+"-core","team":team,"kind":"tower","core":true,
 			"pos":Vector2(14.0 if team=="A" else float(state["w"])-14.0,float(state["h"])*0.5),
@@ -36,6 +37,8 @@ func _enemies(p: Dictionary, r: float) -> Array:
 	return super._enemies(p,r).filter(func(t):return not t.get("core",false) or _core_open(str(t["team"])))
 
 func _hit(p: Dictionary, target: Dictionary, damage: float) -> bool:
+	if state["status"]!="active":
+		return false
 	if target.get("core",false) and not _core_open(str(target["team"])):
 		return false
 	var alive_before := _alive(target)
@@ -96,7 +99,7 @@ func _bots() -> void:
 		var target: Dictionary = enemies.front() if not enemies.is_empty() else {}
 		var enemy_team := _other(str(p["team"]))
 		var lane: int = int(p["lane"])
-		var lane_y: float = float(state["h"])*float(state["map"]["lanes"][lane])
+		var lane_y: float = float(state["h"])*float(config["maps"][state["map"]]["lanes"][lane])
 		var goal := Vector2(float(state["w"])-14.0 if p["team"]=="A" else 14.0,lane_y)
 		if absf(pos.y-lane_y)>4.0 and absf(pos.x-home.x)<24.0:
 			goal=Vector2(pos.x,lane_y)

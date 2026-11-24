@@ -99,7 +99,7 @@ func _build_map() -> void:
 	var w: float=sim.state["w"]*SCALE
 	var h: float=sim.state["h"]*SCALE
 	_box(floor_root,Vector3(0,-0.35,0),Vector3(w,0.5,h),Color("#355a47"))
-	for lane in sim.state["map"]["lanes"]:
+	for lane in sim.config["maps"][sim.state["map"]]["lanes"]:
 		var z: float=(float(lane)-0.5)*h
 		_box(floor_root,Vector3(0,-0.07,z),Vector3(w-1.0,0.12,3.7),Color("#b3a38a"))
 		for x in [-w*0.25,0.0,w*0.25]:
@@ -384,12 +384,18 @@ func _make_actor(p: Dictionary) -> Dictionary:
 	name_tag.position=Vector3(0,2.1 if kind=="hero" else 2.6 if kind=="tower" else 1.0,0)
 	node.add_child(name_tag)
 	node.position=_world(p["pos"])
-	var record: Dictionary={"node":node,"label":name_tag,"model":model,"animation":"","last":node.position}
+	var record: Dictionary={"node":node,"label":name_tag,"model":model,"animation":"","target":node.position,"attack_until":0}
 	_play(record,"Idle")
 	return record
 
 func _play(record: Dictionary, desired: String) -> void:
-	if record.is_empty() or record.get("animation")==desired:
+	if record.is_empty():
+		return
+	if desired=="Attack":
+		record["attack_until"]=Time.get_ticks_msec()+350
+	elif Time.get_ticks_msec()<int(record.get("attack_until",0)):
+		return
+	if record.get("animation")==desired:
 		return
 	for n in record["model"].find_children("*","AnimationPlayer",true,false):
 		var player: AnimationPlayer=n
@@ -416,7 +422,8 @@ func _sync_actors(weight: float) -> void:
 			var next:=_world(p["pos"])
 			var motion:=next-n.position
 			if motion.length_squared()>0.001:
-				n.position=n.position.lerp(next,weight)
+				a["target"]=next
+				if weight>=1.0:n.position=next
 				if p["kind"]=="hero":
 					a["model"].rotation.y=atan2(motion.x,motion.z)
 					_play(a,"Walk")
@@ -452,6 +459,10 @@ func _read_events() -> void:
 
 func _process(delta: float) -> void:
 	if not running:return
+	for record in actors.values():
+		var actor_node: Node3D=record["node"]
+		if actor_node.visible:
+			actor_node.position=actor_node.position.lerp(record["target"],minf(1.0,delta*14.0))
 	var p: Dictionary=sim.actor("A0")
 	var target:=_world(p["pos"])
 	camera.position=camera.position.lerp(target+Vector3(0,28,20),minf(1.0,delta*6.0))
@@ -487,7 +498,7 @@ func _update_hud() -> void:
 func _update_map() -> void:
 	var image:=Image.create(96,60,false,Image.FORMAT_RGB8)
 	image.fill(Color("#142e33"))
-	for lane in sim.state["map"]["lanes"]:
+	for lane in sim.config["maps"][sim.state["map"]]["lanes"]:
 		image.fill_rect(Rect2i(0,int(float(lane)*59.0),96,1),Color("#8b9683"))
 	for group in [sim.state["players"].values(),sim.state["towers"]]:
 		for p in group:
