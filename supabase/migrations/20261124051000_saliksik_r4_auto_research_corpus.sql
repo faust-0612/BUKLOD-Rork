@@ -267,7 +267,7 @@ BEGIN
  THEN RAISE EXCEPTION 'two_investigations_required'; END IF;
  SELECT id INTO c FROM public.saliksik_collections
   WHERE topic_key=r.topic_key AND status IN ('draft','published') FOR UPDATE;
- IF c IS NOT NULL AND c.status='published' THEN
+ IF c IS NOT NULL AND EXISTS(SELECT 1 FROM public.saliksik_collections published WHERE published.id=c AND published.status='published') THEN
    UPDATE public.saliksik_auto_requests SET status='ready',collection_id=c,
      lease_token=NULL,lease_expires_at=NULL,updated_at=now() WHERE id=r.id;
    RETURN jsonb_build_object('ok',true,'status','ready','collection_id',c,'progress',8);
