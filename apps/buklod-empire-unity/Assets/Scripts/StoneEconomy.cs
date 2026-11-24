@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Collections.ObjectModel;
 using UnityEngine;
 namespace Buklod.Empire {
@@ -38,6 +39,17 @@ namespace Buklod.Empire {
         public static bool CanBan(string heroId,IReadOnlyDictionary<string,long> balance,int usedTeamBans,bool draftOpen){
             return draftOpen&&usedTeamBans>=0&&usedTeamBans<MaxBansPerTeam&&
                 CanSelect(heroId,balance,false,false);
+        }
+        // A quote only: never mutates balance or mints inventory. Server must reserve/debit atomically.
+        public static bool TryQuoteCombination(IReadOnlyList<string> ingredients,string output,IReadOnlyDictionary<string,long> balance,out IReadOnlyDictionary<string,long> cost){
+            cost=null;if(ingredients==null||balance==null||!ArenaDraftRules.Known(output)||ingredients.Any(h=>!ArenaDraftRules.Known(h)||h==output))return false;
+            var required=ingredients.GroupBy(h=>h,StringComparer.Ordinal).ToDictionary(g=>g.Key,g=>(long)g.Count(),StringComparer.Ordinal);
+            if(!(ingredients.Count==2&&required.Count==1||ingredients.Count==3&&required.Count==3))return false;
+            foreach(var entry in required)if(!balance.TryGetValue(entry.Key,out long count)||count<entry.Value)return false;
+            cost=new ReadOnlyDictionary<string,long>(required);return true;
+        }
+        public static bool CanQuoteCounter(string player,string enemyHero,IReadOnlyList<ArenaDraftPick> draft,IReadOnlyDictionary<string,long> balance){
+            return ArenaDraftRules.IsEnemyCounter(player,enemyHero,draft)&&balance!=null&&balance.TryGetValue(enemyHero,out long n)&&n>=1;
         }
         public static long ExchangeCost(int quantity){
             if(quantity<1||quantity>1000)throw new ArgumentOutOfRangeException(nameof(quantity));

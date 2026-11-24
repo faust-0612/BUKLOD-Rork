@@ -40,7 +40,14 @@ namespace Buklod.Empire {
         internal void Respawn(){Health=MaxHealth;Mana=100;Shield=0;temporaryShield=temporaryShieldUntil=0;buffs.Clear();}
         public float Buff(string id,float now)=>buffs.TryGetValue(id,out var b)&&b.until>now?b.strength:0;
         public void Clear(string id)=>buffs.Remove(id);
+        private static readonly string[] Cleanseable={"stun","slow","root","silence","disarm","blind","fear"};
+        public bool CanMove(float now)=>Alive&&Buff("stun",now)<=0&&Buff("root",now)<=0&&Buff("suppression",now)<=0&&Buff("fear",now)<=0;
+        public bool CanCast(float now)=>Alive&&Buff("stun",now)<=0&&Buff("silence",now)<=0&&Buff("suppression",now)<=0&&Buff("fear",now)<=0;
+        public bool CanAttack(float now)=>Alive&&Buff("stun",now)<=0&&Buff("disarm",now)<=0&&Buff("suppression",now)<=0&&Buff("fear",now)<=0;
+        public bool Cleanse(float now){bool changed=false;foreach(string id in Cleanseable){if(Buff(id,now)>0)changed=true;Clear(id);}return changed;}
         public void Set(string id,float strength,float until,float now){
+            if(string.IsNullOrEmpty(id)||float.IsNaN(strength)||float.IsInfinity(strength)||float.IsNaN(until)||float.IsInfinity(until)||until<=now||strength<=0)return;
+            if(Buff("ccimmune",now)>0&&Array.IndexOf(Cleanseable,id)>=0)return;
             if(buffs.TryGetValue(id,out var b)&&b.until>now){strength=Mathf.Max(strength,b.strength);until=Mathf.Max(until,b.until);}
             buffs[id]=(strength,until);
         }
@@ -71,7 +78,7 @@ namespace Buklod.Empire {
         }
         public float Remaining(SkillSlot slot,float now)=>Mathf.Max(0,Cooldown(slot,now)-(now-last[(int)slot]));
         public bool TryCast(IHeroSkillWorld world,SkillSlot slot,Vector2 aim,float now,bool active){
-            if(!active||!Alive||Kit==null||world==null||float.IsNaN(now)||float.IsInfinity(now)||now<0||Buff("stun",now)>0)return false;
+            if(!active||!Alive||Kit==null||world==null||float.IsNaN(now)||float.IsInfinity(now)||now<0||!CanCast(now))return false;
             if(slot!=SkillSlot.Primary&&slot!=SkillSlot.Secondary&&slot!=SkillSlot.Ultimate)return false;
             if(float.IsNaN(aim.x)||float.IsInfinity(aim.x)||float.IsNaN(aim.y)||float.IsInfinity(aim.y))return false;
             if(slot==SkillSlot.Secondary&&Level<3||slot==SkillSlot.Ultimate&&Level<6)return false;

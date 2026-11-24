@@ -15,10 +15,15 @@ namespace Buklod.Empire.Tests {
             Assert.False(b.Hit(b.Player.State,enemy.State,300));Assert.AreEqual(1,ally.Assists);
             Assert.AreEqual(0,new OfflineBattle("phan").Player.Kills);
         }
+        [Test] public void TacticHasSeparateCooldownAndNoChargeForIneffectiveHeal(){
+            var b=new OfflineBattle("phan");Assert.False(b.UsePlayerTactic(Vector2.zero));Assert.AreEqual(0,b.Player.TacticReadyAt);
+            b.Player.State.Health=80;Assert.True(b.UsePlayerTactic(Vector2.zero));Assert.AreEqual(115,b.Player.State.Health);Assert.False(b.UsePlayerTactic(Vector2.zero));Assert.False(b.SelectPlayerTactic(ArenaTactic.Pursuit));
+        }
         [Test] public void EveryHeroCanBePickedWithoutDuplicatingTeammates(){
             foreach(var kit in HeroKitCatalog.All){
                 var b=new OfflineBattle(kit.Id);
                 Assert.AreEqual(kit.Id,b.Player.State.Kit.Id);
+                Assert.AreEqual(10,b.Units.Where(u=>u.Kind==BattleTargetKind.Hero).Select(u=>u.State.Kit.Id).Distinct().Count());
                 foreach(var team in new[]{ArenaTeam.Lux,ArenaTeam.Tenebra}){
                     var ids=b.Units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Hero).Select(u=>u.State.Kit.Id).ToArray();
                     Assert.AreEqual(5,ids.Length);
