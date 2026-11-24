@@ -1,0 +1,151 @@
+{
+  "date": "2026-11-24",
+  "status": "DEV_PARTIAL_INTAKE_NO_PUBLISH",
+  "stagingBase": "77a4599a20d1833c94d3a1837d9f1d350fe58bd9",
+  "mainObserved": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "nativeTarget": {
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "2.0.5-genesis-godot-launch",
+    "channel": "season2-genesis-library-205-preview",
+    "installedAttestation": "UNKNOWN",
+    "signedSource": "435e071da41c83071f545c9b209acb562863f7d2"
+  },
+  "noProduction": true,
+  "noNewSupabaseProject": true,
+  "noSharedBackendMutation": true,
+  "noPublisherWorkflowIntake": true,
+  "allowlistedSourceIntake": [
+    {
+      "pr": 1143,
+      "head": "fea85540730a6eb8d6afa832ea16226467dfee7f",
+      "paths": [
+        "src/app/devotional/[id].tsx",
+        "src/lib/buklodWordBibleReference.ts",
+        "tests/bible-navigation.test.cjs",
+        "tests/word-bible-navigation-20261123.test.cjs",
+        "tests/word-scripture-link-20261123.test.cjs"
+      ],
+      "evidence": "Existing modified source/test blobs identical to original base; new paths absent from both; reuse exact head blobs; no release workflows."
+    },
+    {
+      "pr": 1154,
+      "head": "26d847deb09b8d32e55fc94942786c00784aa10d",
+      "evidence": "5 exact UI hunks; adapted upload region preserves Genesis preview generation and preview metadata, provider-aware published URL recovery and post-commit preservation; shared uploader base blob identical. Focused tests copied; exact-head execution pending.",
+      "paths": [
+        "src/components/BuklodMaritesBoard.tsx",
+        "src/lib/buklodMaritesBoard.ts",
+        "src/lib/uploadCommunityVideoFile.ts",
+        "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+        "tests/marites-wall-upload-behavior-20261124.test.mjs"
+      ]
+    }
+  ],
+  "queue": [
+    {
+      "pr": 1153,
+      "status": "PORT_REQUIRED",
+      "reason": "Source CI pass on MAIN but reconcile Genesis thread, notifications and inbox."
+    },
+    {
+      "pr": 1134,
+      "status": "PORT_REQUIRED",
+      "reason": "Carry ad regression tests; no ad behavior changes."
+    },
+    {
+      "pr": 1141,
+      "status": "PORT_REQUIRED",
+      "reason": "Preserve Genesis GIF and media composer variants."
+    },
+    {
+      "pr": 1135,
+      "status": "HOLD",
+      "reason": "Music mixing backend/RLS and overlapping Wall changes."
+    },
+    {
+      "pr": 1156,
+      "status": "HOLD",
+      "reason": "Manual claims require shared backend compatibility; staging preview read-only; no test balance mutations."
+    },
+    {
+      "branch": "dev/points-readonly-staging-ota-prepared-20261124",
+      "status": "PORT_REQUIRED",
+      "reason": "Reconcile read-only preview without losing Genesis rewards; no server writes."
+    },
+    {
+      "branch": "dev/points-qmp-category-anti-farming-20261124",
+      "status": "HOLD",
+      "reason": "Ledger, group mapping, anti-farming, rewarded BP and reward verification; no shared production SQL."
+    },
+    {
+      "pr": 1157,
+      "status": "HOLD",
+      "reason": "ABaKa draft source prepared; SQL and activation disabled; do not apply migrations."
+    },
+    {
+      "pr": 1160,
+      "status": "HOLD",
+      "reason": "SALIKSIK R4 source prepared; SQL and Edge undeployed; feature flag off."
+    },
+    {
+      "branch": "dev/academy-staging-hardening-20261124",
+      "status": "HOLD",
+      "reason": "Verified credential issuance, UC evidence and private records depend on backend gates."
+    },
+    {
+      "pr": 1151,
+      "status": "HOLD",
+      "reason": "KL season 2 SQL, quiz/comment unlock, Dec 6 earliest activation."
+    },
+    {
+      "pr": 1148,
+      "status": "HOLD",
+      "reason": "KL series dashboard and publishing require backend and release checks."
+    },
+    {
+      "pr": 1147,
+      "status": "HOLD",
+      "reason": "Mentoring private link and RLS changes."
+    },
+    {
+      "pr": 1161,
+      "status": "HOLD",
+      "reason": "AI dedup scope only Home; incomplete appwide and backend proof."
+    },
+    {
+      "pr": 1074,
+      "status": "HOLD",
+      "reason": "Native SOS, Godot, Arena, Estate, multiplayer and server authority; do not mix with existing runtime."
+    }
+  ],
+  "productionParity": {
+    "status": "INCOMPLETE",
+    "comparison": {
+      "mainOnlyCommits": 12,
+      "mainChangedPaths": 94,
+      "mergeBase": "551e54602addd6f7bbe7bcdddd1589d35424c964"
+    },
+    "alreadyIdentical": [
+      "src/app/learn/[id].tsx",
+      "src/app/learn/lesson.tsx"
+    ],
+    "mustReconcile": [
+      "src/components/LearningQuestionResponse.tsx",
+      "src/lib/buklodAiResponseValidation.ts",
+      "Connect latest",
+      "consent",
+      "AdMob recovery",
+      "admin",
+      "PTT",
+      "remaining exact MAIN deltas"
+    ],
+    "doNotCopyProductionReleaseMarkers": true
+  },
+  "releaseGates": [
+    "All approved DEV and production deltas reconciled or explicitly disabled",
+    "Exact head TS/Metro and regression tests; protect ads and instant tab navigation",
+    "Verify signed installed native identity and remote staging channel/runtime",
+    "No native or shared DB changes",
+    "Do not publish if any gate is unknown",
+    "No production or staging announcement"
+  ]
+}

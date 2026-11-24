@@ -1,0 +1,91 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-205-safe-ota-hold-20261124.json",
+  "objective": "Intake compatible Word passage navigation and faster Marites media upload for Genesis 2.0.5 DEV only; retain all live-impact release holds.",
+  "baseRef": "77a4599a20d1833c94d3a1837d9f1d350fe58bd9",
+  "productionBaselineEvidence": "GitHub main source 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 inspected; 12 main-only commits and 94 paths still require reconciliation. Signed APK source 435e071da41c83071f545c9b209acb562863f7d2 is documented by PR 1142; installed/runtime provider receipt is not verified.",
+  "chosenApproach": "Reuse exact Word source and tests with matching base blobs. Port Marites upload code while retaining Genesis-specific generated video preview, metadata and recovery; no publisher or backend changes.",
+  "selectionRationale": "Existing native module set and private uploader support both changes. Isolate changed paths; reject wholesale MAIN merges and shared-backend writes.",
+  "alternativeApproaches": [
+    "Whole MAIN merge rejected due to Genesis-specific feature and native divergences.",
+    "New native compression rejected for existing APK ABI compatibility.",
+    "Shared backend migration or isolated paid project rejected by owner."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "cluster-faith",
+    "private-media",
+    "weak-network",
+    "ads-navigation"
+  ],
+  "preserveBehaviors": [
+    "Existing Word offline/cache, translation, and study navigation; no guided reading completion side effects.",
+    "Marites preview metadata, ordered private photo uploads, post-commit recovery, resumable video, regular Wall encoding and media authorization.",
+    "Existing AdMob rendering and first-view navigation; no native, package, SQL, Edge or production release changes."
+  ],
+  "acceptanceChecks": [
+    "Exact diff scope, focused regression and TypeScript/Metro gates must pass.",
+    "Retain generated video preview and provider-aware recovery; no post-commit cleanup regression.",
+    "No shared backend changes, publisher workflow, announcement or release before cumulative parity, signed runtime and verified staging channel."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-205-safe-ota-hold-20261124.json",
+    ".buklod/releases/genesis-205-safe-ota-hold-20261124.json",
+    "src/app/devotional/[id].tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/lib/buklodMaritesBoard.ts",
+    "src/lib/buklodWordBibleReference.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "tests/bible-navigation.test.cjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+    "tests/marites-wall-upload-behavior-20261124.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/bible-navigation.test.cjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+    "tests/marites-wall-upload-behavior-20261124.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Use existing native APIs for Word and media progress without altering native configuration or runtime.",
+      "preservedBehaviors": [
+        "Retain existing app navigation, runtime, ad placements and native dependencies."
+      ],
+      "tests": [
+        "tests/word-scripture-link-20261123.test.cjs",
+        "tests/marites-wall-upload-behavior-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Port the shared uploader improvements while preserving Genesis-specific previews and media recovery.",
+      "preservedBehaviors": [
+        "Preserve privacy, selected photo order, preview generation, post-commit recovery and regular Wall settings."
+      ],
+      "tests": [
+        "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+        "tests/marites-wall-upload-behavior-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Open validated Word references in My Bible without completing a guided assignment.",
+      "preservedBehaviors": [
+        "Preserve Bible translations, offline study, verse highlighting and existing faith navigation."
+      ],
+      "tests": [
+        "tests/word-bible-navigation-20261123.test.cjs",
+        "tests/bible-navigation.test.cjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_PARTIAL_INTAKE_NO_PUBLISH",
+  "releaseMode": "staging-js-only-rc-hold",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
