@@ -1,3 +1,4 @@
+import { singleFlightAi } from '../_shared/aiSingleFlight.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const cors = {
@@ -168,7 +169,7 @@ Deno.serve(async (req: Request) => {
         'Do not diagnose medical/legal conditions or present uncertain advice as fact. Preserve the practical lessons and different perspectives. Filipino, Taglish, or English is fine. JSON only.',
         JSON.stringify({ root: { title: meta?.title, topic: meta?.topic, kind: meta?.kind, text: String(post.body ?? '').slice(0, 5000) }, all_responses_for_private_summary: privateInput, public_or_anonymous_responses: publicInput }),
       ].join('\n');
-      const result = await withModels(geminiKey, prompt, takeawaySchema, null);
+      const result = await singleFlightAi(actor, JSON.stringify(['takeaway', prompt]), () => withModels(geminiKey, prompt, takeawaySchema, null));
       const privateSummary = String(result.parsed?.private_summary ?? '').trim().slice(0, 3000);
       const publicSummary = String(result.parsed?.public_summary ?? '').trim().slice(0, 3000);
       if (!privateSummary) throw new Error('AI returned no Takeaway.');
