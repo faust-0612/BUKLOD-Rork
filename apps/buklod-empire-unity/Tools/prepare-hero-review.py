@@ -5,6 +5,7 @@ from skill_motions import add_skill_motions
 from identity_detail import adjust_feature, sculpt_surface, replace_face_box, add_details
 from refine_surfaces import texture_glb
 from hd_surface import review_size
+from fidelity_geometry import add_fidelity_geometry
 root=pathlib.Path(__file__).resolve().parents[1]
 repo=root.parents[1]
 source=repo/"scripts/generate-buklod-empire-hero-glbs.py"
@@ -20,6 +21,7 @@ colors={"phan":("385c2a","c5a65b","253b22"),"quin":("27676f","a8d5d8","183d48"),
         "van":("234c8a","d2b36a","1e3054"),"christian":("943d3e","e9bf65","442632"),
         "lhen":("8051a8","e6a9dd","3f285c"),"ace":("b7c4c8","3bbfb3","364958")}
 class Candidate(original.Hero):
+    review_geometry_limits=(20000,4_000_000)
     def __init__(self,hero_id,profile):
         p=list(profile)
         if hero_id in colors:p[:3]=colors[hero_id]
@@ -71,6 +73,7 @@ class Candidate(original.Hero):
                 x,y,z=self.rest[shin]
                 self.plate(1,shin,(x,y-(.09+j*.075)*self.h,z+.082),[(-.055,0),(0,.023),(.055,0),(0,-.023)],.009)
         add_details(self,result)
+        add_fidelity_geometry(self,result)
         return result
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
@@ -90,6 +93,7 @@ def main():
         row['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
         row['bytes']=path.stat().st_size
         row['textureResolution']=review_size()
+        row['geometryRevision']='original-closeup-geometry-v6'
         row['surfaceRevision']='original-procedural-pbr-v5-hd' if review_size()>256 else 'original-procedural-pbr-v4-fidelity'
         assert h.stone_count==1 and len(row["clips"])==12 and row["bones"]>0
         row["stone"]=stone_by[hero_id]["stone"]
