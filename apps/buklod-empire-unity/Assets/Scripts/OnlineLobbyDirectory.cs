@@ -9,10 +9,12 @@ namespace Buklod.Empire {
     public sealed class DraftReservationRequest {
         public readonly Guid MatchId;
         public readonly OnlineMode Mode;
-        public readonly string Region,LuxBan,TenebraBan;
+        public readonly string Region,LuxBan,TenebraBan,LuxBanAccount,TenebraBanAccount;
         public readonly IReadOnlyList<ArenaDraftPick> Picks;
         internal DraftReservationRequest(Guid id,OnlineMode mode,string region,string luxBan,string tenebraBan,ArenaDraftPick[] picks){
             MatchId=id;Mode=mode;Region=region;LuxBan=luxBan;TenebraBan=tenebraBan;Picks=Array.AsReadOnly(picks);
+            LuxBanAccount=luxBan==null?null:picks.First(p=>p.Team==ArenaTeam.Lux).Player;
+            TenebraBanAccount=tenebraBan==null?null:picks.First(p=>p.Team==ArenaTeam.Tenebra).Player;
         }
     }
     public sealed class LobbyMemberSnapshot {
@@ -130,6 +132,7 @@ namespace Buklod.Empire {
             if(!durableSuccess){Remove(r);return true;}
             r.Phase=LobbyPhase.Reserved;return true;
         }
+        internal DraftReservationRequest InspectReserved(Guid id){Owner();var r=Find(id);return r!=null&&r.Phase==LobbyPhase.Reserved?r.Request:null;}
         internal DraftReservationRequest TakeReserved(Guid id){
             Owner();var r=Find(id);if(r==null||r.Phase!=LobbyPhase.Reserved)return null;
             r.Phase=LobbyPhase.HandedOff;return r.Request;

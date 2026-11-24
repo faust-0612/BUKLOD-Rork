@@ -52,6 +52,7 @@ namespace Buklod.Empire {
                             State=OnlineConnectionState.Waiting;
                             var receive=Receive(client,link.Token);var send=Send(client,link.Token);
                             await Task.WhenAny(receive,send);link.Cancel();
+                            if(Timeline.Current==null||!Timeline.Current.Finished){Timeline.Disconnect();State=OnlineConnectionState.Reconnecting;ClearIntent();}
                             try{await Task.WhenAll(receive,send);}catch(OperationCanceledException){}catch(System.IO.IOException){}catch(System.Net.WebSockets.WebSocketException){}catch(InvalidOperationException){}
                             if(Timeline.Current!=null&&Timeline.Current.Finished){State=OnlineConnectionState.Finished;ClearIntent();return;}
                         }catch(OperationCanceledException)when(!cancellation.IsCancellationRequested){}
