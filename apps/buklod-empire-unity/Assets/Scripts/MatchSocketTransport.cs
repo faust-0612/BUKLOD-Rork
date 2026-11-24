@@ -135,6 +135,10 @@ namespace Buklod.Empire {
                 return bytes;
             }
         }
+        public async Task<OnlineSnapshot> ReceiveDecoded(CancellationToken token){
+            var bytes=await ReceiveSnapshot(token);if(bytes==null)return null;
+            if(!MatchWire.TryDecodeSnapshot(bytes,out var snapshot))throw new InvalidDataException("Malformed snapshot.");return snapshot;
+        }
         public void Dispose(){socket.Abort();socket.Dispose();}
     }
 }

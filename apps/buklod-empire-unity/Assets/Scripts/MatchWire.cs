@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Buklod.Empire {
     // Explicit, bounded little-endian wire format. Only client intentions are decoded.
     // Header: version byte, opcode byte. No polymorphic/object deserialization.
-    public static class MatchWire {
+    public static partial class MatchWire {
         public const byte Version=1,Hello=1,Input=2,Ping=3,Snapshot=4;
         public const int MaxClientBytes=256,MaxSnapshotBytes=65536;
         static readonly UTF8Encoding Utf8=new UTF8Encoding(false,true);
