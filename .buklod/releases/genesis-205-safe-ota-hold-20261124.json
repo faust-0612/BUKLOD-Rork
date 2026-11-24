@@ -26,14 +26,21 @@
         "tests/word-scripture-link-20261123.test.cjs"
       ],
       "evidence": "Existing modified source/test blobs identical to original base; new paths absent from both; reuse exact head blobs; no release workflows."
+    },
+    {
+      "pr": 1154,
+      "head": "26d847deb09b8d32e55fc94942786c00784aa10d",
+      "evidence": "5 exact UI hunks; adapted upload region preserves Genesis preview generation and preview metadata, provider-aware published URL recovery and post-commit preservation; shared uploader base blob identical. Focused tests copied; exact-head execution pending.",
+      "paths": [
+        "src/components/BuklodMaritesBoard.tsx",
+        "src/lib/buklodMaritesBoard.ts",
+        "src/lib/uploadCommunityVideoFile.ts",
+        "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+        "tests/marites-wall-upload-behavior-20261124.test.mjs"
+      ]
     }
   ],
   "queue": [
-    {
-      "pr": 1154,
-      "status": "PORT_REQUIRED",
-      "reason": "MaritesBoard and lib differ; strict patch dry run failed on library hunk 3; do not split feature."
-    },
     {
       "pr": 1153,
       "status": "PORT_REQUIRED",

@@ -1065,6 +1065,7 @@ export default function BuklodMaritesBoard({
   const [viewerMusicEnabled, setViewerMusicEnabled] = useState(true);
   const [viewerMusicStatus, setViewerMusicStatus] = useState<MaritesMusicPlaybackState>({ playing: false, duration: 0, error: '' });
   const [posting, setPosting] = useState(false);
+  const [postingStatus, setPostingStatus] = useState('');
   const postingGuardRef = useRef(false);
   const [expiryTick, setExpiryTick] = useState(0);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -1849,6 +1850,7 @@ export default function BuklodMaritesBoard({
     }
 
     postingGuardRef.current = true;
+    setPostingStatus('Preparing story…');
     setPosting(true);
 
     try {
@@ -1863,6 +1865,7 @@ export default function BuklodMaritesBoard({
         video: quickVideo,
         musicTrack: composerMusicTrack,
         musicClipStartSeconds: composerMusicTrack ? composerMusicClipStart : null,
+        onProgress: setPostingStatus,
       });
 
       loadGenerationRef.current += 1;
@@ -1901,6 +1904,7 @@ export default function BuklodMaritesBoard({
       );
     } finally {
       postingGuardRef.current = false;
+      setPostingStatus('');
       setPosting(false);
     }
   }, [
@@ -2274,7 +2278,7 @@ export default function BuklodMaritesBoard({
               onPress={() => void submitStory()}
             >
               <Text style={styles.postBtnText}>
-                {posting ? 'Posting…' : 'Post story'}
+                {posting ? (postingStatus || 'Posting…') : 'Post story'}
               </Text>
             </Pressable>
 

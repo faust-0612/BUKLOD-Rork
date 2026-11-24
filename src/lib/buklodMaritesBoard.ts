@@ -1121,37 +1121,6 @@ export async function appendMaritesStory(
   return next;
 }
 
-async function encodeMaritesPhotoBase64(uri: string) {
-  const M = await import('expo-image-manipulator');
-  const { decode } = await import('base64-arraybuffer');
-
-  const context = M.ImageManipulator.manipulate(uri);
-  context.resize({ width: 1600 });
-
-  const rendered = await context.renderAsync();
-  const image = await rendered.saveAsync({
-    format: M.SaveFormat.JPEG,
-    compress: 0.86,
-    base64: true,
-  });
-
-  if (!image.base64) {
-    throw new Error('Could not prepare this photo.');
-  }
-
-  const sizeBytes = Math.ceil(image.base64.length * 0.75);
-
-  if (sizeBytes > 5 * 1024 * 1024) {
-    throw new Error('Photo is too large.');
-  }
-
-  return {
-    base64: image.base64,
-    sizeBytes,
-    decode,
-  };
-}
-
 /**
  * Publish a Marites story to the shared community wall so other
  * accounts can see it. Falls back to device-local storage if the
@@ -1166,6 +1135,7 @@ export async function publishMaritesStory(input: {
   video?: { uri: string; durationSeconds: number; mimeType: string } | null;
   musicTrack?: BuklodPostMusicTrack | null;
   musicClipStartSeconds?: number | null;
+  onProgress?: (status: string) => void;
 }): Promise<{
   story: MaritesStory;
   shared: boolean;
@@ -1217,39 +1187,68 @@ export async function publishMaritesStory(input: {
     if (input.video) {
       const { uploadCommunityVideoFile } = await import('@/lib/uploadCommunityVideoFile');
       videoPath = `${input.userId}/marites-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
+      let lastPercent = -1;
+      input.onProgress?.('Uploading video 0%');
       const preview = await uploadCommunityVideoFile({
-        path: videoPath, uri: input.video.uri,
-        contentType: input.video.mimeType, generateWallPreview: true,
+        path: videoPath,
+        uri: input.video.uri,
+        contentType: input.video.mimeType,
+        generateWallPreview: true,
+        onProgress: ({ ratio }) => {
+          // Avoid rerendering the composer for every network progress event.
+          const percent = Math.max(0, Math.min(100, Math.round(ratio * 20) * 5));
+          if (percent === lastPercent) return;
+          lastPercent = percent;
+          input.onProgress?.(`Uploading video ${percent}%`);
+        },
       });
       uploaded.push({
         media_path: videoPath, media_mime_type: input.video.mimeType,
         media_size_bytes: 0, ...preview,
       });
     }
-    for (let index = 0; index < photoUris.length; index += 1) {
-      const encoded = await encodeMaritesPhotoBase64(
-        photoUris[index]
+
+    if (photoUris.length) {
+      const { mapWithConcurrency, uploadCommunityPhotoFile } = await import('@/lib/uploadCommunityVideoFile');
+      let completed = 0;
+      input.onProgress?.(`Uploading photos 0/${photoUris.length}`);
+
+      // Use the same adaptive, direct-file uploader as the Community Wall.
+      // Catch per-item failures so in-flight uploads settle before cleanup.
+      const photoResults = await mapWithConcurrency(
+        photoUris,
+        Platform.OS === 'web' ? 2 : 3,
+        async (uri, index) => {
+          const path = `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
+          try {
+            const result = await uploadCommunityPhotoFile({ path, uri, profile: 'story' });
+            completed += 1;
+            input.onProgress?.(`Uploading photos ${completed}/${photoUris.length}`);
+            return {
+              media: {
+                media_path: result.path,
+                media_mime_type: 'image/jpeg',
+                media_size_bytes: result.sizeBytes,
+              },
+              error: null as Error | null,
+            };
+          } catch (error) {
+            return {
+              media: null,
+              error: error instanceof Error ? error : new Error('Photo upload failed. Please try again.'),
+            };
+          }
+        },
       );
-      const path =
-        `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('community-media')
-        .upload(path, encoded.decode(encoded.base64), {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw uploadError;
+      // Preserve the selected photo order in the published story.
+      for (const result of photoResults) {
+        if (result.media) uploaded.push(result.media);
       }
-
-      uploaded.push({
-        media_path: path,
-        media_mime_type: 'image/jpeg',
-        media_size_bytes: encoded.sizeBytes,
-      });
+      const failed = photoResults.find((result) => result.error);
+      if (failed?.error) throw failed.error;
     }
+
+    input.onProgress?.('Finishing story…');
 
     const first = uploaded[0] ?? null;
 
