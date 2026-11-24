@@ -25,9 +25,11 @@ namespace Buklod.Empire {
         bool TryGather(ArenaTeam team,string workerId,double wood,double stone,double crystal);
     }
     public interface IVillageConstruction { bool HasConstructionOrder(ArenaTeam team); }
-    public interface IVillageWorkGate { bool CanWork(ArenaTeam team,string workerId); }
+    public interface IVillageWorkGate { bool CanWork(ArenaTeam team,string workerId); bool IsVillageTick(ArenaTeam team); }
     public sealed class VillageMember {
         public readonly VillageJob Job;
+        public readonly bool Recruited;
+        public readonly string VisualId;
         public float Health { get; private set; }=200;
         public bool Alive => Health>0;
         public int Actions { get; private set; }
@@ -35,7 +37,7 @@ namespace Buklod.Empire {
         public float Power => 1+.10f*(Level-1);
         public string Stage => Level>=10?"Grand Village":Level>=5?"Village":"Hut";
         internal double Remaining, Respawn;
-        internal VillageMember(VillageJob job) { Job=job; Remaining=job.Interval; }
+        internal VillageMember(VillageJob job,bool recruited=false,string visualId=null) { Job=job; Recruited=recruited;VisualId=visualId??job.Id;Remaining=job.Interval; }
         public void Damage(float amount) {
             if(float.IsNaN(amount)||float.IsInfinity(amount)||amount<0) throw new ArgumentOutOfRangeException(nameof(amount));
             if(!Alive)return;
@@ -44,7 +46,7 @@ namespace Buklod.Empire {
         }
         internal void Tick(double dt,bool canRespawn) {
             if(Alive){Remaining-=dt;return;}
-            if(!canRespawn)return;
+            if(!canRespawn||Recruited)return;
             Respawn-=dt;if(Respawn<=0){Health=100;Respawn=0;}
         }
         internal void Complete(bool success) {
@@ -63,7 +65,9 @@ namespace Buklod.Empire {
             new VillageJob("zed",VillageEffect.Craft,50),new VillageJob("taro",VillageEffect.Scavenge,6)};
         private static readonly VillageItem[] Supply={VillageItem.Heal,VillageItem.Shield,VillageItem.Boost};
         private static readonly VillageItem[] Craft={VillageItem.Bomb,VillageItem.Rage,VillageItem.ArmorBreak,VillageItem.Poison};
-        private readonly VillageMember[] members;
+        private readonly List<VillageMember> members;
+        private int nextWorker;
+        internal VillageMember ActiveJob {get;private set;}
         private readonly MinionWaveDirector waves;
         private readonly IVillageBattle battle;
         private int lane,supply,craft;
@@ -112,9 +116,16 @@ namespace Buklod.Empire {
             Team=team;this.waves=waves??throw new ArgumentNullException(nameof(waves));
             this.battle=battle??throw new ArgumentNullException(nameof(battle));
             var jobs=team==ArenaTeam.Lux?Lux:Tenebra;
-            members=Array.ConvertAll(jobs,j=>new VillageMember(j)); Members=Array.AsReadOnly(members);
+            members=new List<VillageMember>(Array.ConvertAll(jobs,j=>new VillageMember(j))); Members=members.AsReadOnly();
         }
-        public VillageMember Find(string id) => Array.Find(members,m=>m.Job.Id==id);
+        public VillageMember Find(string id) => members.Find(m=>m.Job.Id==id);
+        internal bool CanRecruit=>CanPay(20,0,0)&&Food>=30;
+        internal VillageMember RecruitGatherer(){
+            if(!CanRecruit)return null;var visual=Team==ArenaTeam.Lux?"lira":"velin";
+            var m=new VillageMember(new VillageJob(visual+"-"+(++nextWorker),VillageEffect.Gather,5),true,visual);
+            Pay(20,0,0);Food-=30;members.Add(m);return m;
+        }
+        internal void RemoveLostWorker(VillageMember worker){if(worker!=null&&worker.Recruited&&!worker.Alive)members.Remove(worker);}
         public void EnemyDefeated(bool structure) {
             if(!waves.Finished&&Time<OfflineMatchRules.MatchLimit&&Find("taro")?.Alive==true)
                 scavenged+=structure?40:3;
@@ -122,7 +133,7 @@ namespace Buklod.Empire {
         // Fixed match-local steps: bounded by the 15-minute match; no reward settlement.
         public void Advance(double seconds) {
             if(double.IsNaN(seconds)||double.IsInfinity(seconds)||seconds<0)throw new ArgumentOutOfRangeException(nameof(seconds));
-            if(waves.Finished||Time>=OfflineMatchRules.MatchLimit)return;
+            if(waves.Finished||Time>=OfflineMatchRules.MatchLimit||(battle is IVillageWorkGate tickGate&&!tickGate.IsVillageTick(Team)))return;
             const double step=.25;
             accumulator=Math.Min(accumulator+seconds,OfflineMatchRules.MatchLimit-Time);
             while(accumulator+1e-9>=step&&Time+step<=OfflineMatchRules.MatchLimit) {
@@ -131,7 +142,9 @@ namespace Buklod.Empire {
                 foreach(var m in members) {
                     m.Tick(step,waves.CanReinforce(Team));
                     if(waves.Finished)break;
-                    if(m.Alive&&m.Remaining<=0&&(!(battle is IVillageWorkGate gate)||gate.CanWork(Team,m.Job.Id)))m.Complete(Run(m));
+                    if(m.Alive&&m.Remaining<=0&&(!(battle is IVillageWorkGate gate)||gate.CanWork(Team,m.Job.Id))){
+                        ActiveJob=m;try{m.Complete(Run(m));}finally{ActiveJob=null;}
+                    }
                 }
             }
         }

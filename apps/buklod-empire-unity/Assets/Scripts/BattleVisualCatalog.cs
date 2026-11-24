@@ -29,7 +29,7 @@ namespace Buklod.Empire {
 #endif
                     throw new InvalidOperationException("Missing approved structure prefab for unit "+unit.Id);
                 }
-                if(unit.Kind==BattleTargetKind.Villager){foreach(var v in f.villagers)if(v.id==unit.Villager.Job.Id)return v.prefab;break;}
+                if(unit.Kind==BattleTargetKind.Villager){foreach(var v in f.villagers)if(v.id==unit.Villager.VisualId)return v.prefab;break;}
                 return f.minions[(int)unit.Role];
             }
             throw new InvalidOperationException("Missing visual for unit "+unit.Id);
