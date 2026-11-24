@@ -7,7 +7,7 @@ namespace Buklod.Empire {
         const int VoiceLimit=4;
         BattleView view;OfflineBattle match;AudioSource music,ambient,stinger;
         AudioSource[] voices;int next;
-        bool entered,result;
+        bool entered,result,focused=true,appPaused;
         AudioSource Voice(string name,bool spatial){
             var go=new GameObject(name);go.transform.SetParent(transform,false);
             var source=go.AddComponent<AudioSource>();source.playOnAwake=false;source.spatialBlend=spatial?1:0;
@@ -25,7 +25,7 @@ namespace Buklod.Empire {
         }
         void StopSpatial(){if(voices!=null)foreach(var s in voices)s.Stop();}
         void Update(){
-            if(!view||view.Battle==null||!music)return;
+            if(!view||view.Battle==null||!music||!focused||appPaused)return;
             var b=view.Battle;
             if(match!=b){match=b;entered=false;result=false;stinger.Stop();StopSpatial();}
             if(b.Finished){
@@ -40,13 +40,16 @@ namespace Buklod.Empire {
             if(!entered){entered=true;if(entrance)stinger.PlayOneShot(entrance,.36f);}
         }
         public void Creature(WildernessKind kind,bool defeated,Vector3 position){
-            if(!isActiveAndEnabled||!view||!view.IsEditorReview||view.Paused||view.Battle==null||view.Battle.Finished||voices==null)return;
+            if(!isActiveAndEnabled||!focused||appPaused||!view||!view.IsEditorReview||view.Paused||view.Battle==null||view.Battle.Finished||voices==null)return;
             var clips=defeated?defeats:attacks;int i=(int)kind;
             if(clips==null||i<0||i>=clips.Length||!clips[i])return;
             if(Vector3.Distance(view.FieldPosition(view.Battle.Player.Position),position)>38)return;
             var s=voices[next];next=(next+1)%voices.Length;s.Stop();s.transform.position=position;
             s.clip=clips[i];s.volume=defeated?.43f:.30f;s.Play();
         }
-        void OnDisable(){if(music)music.Stop();if(ambient)ambient.Stop();if(stinger)stinger.Stop();StopSpatial();}
+        void StopAll(){if(music)music.Stop();if(ambient)ambient.Stop();if(stinger)stinger.Stop();StopSpatial();}
+        void OnApplicationFocus(bool value){focused=value;if(!value)StopAll();}
+        void OnApplicationPause(bool value){appPaused=value;if(value)StopAll();}
+        void OnDisable(){StopAll();}
     }
 }
