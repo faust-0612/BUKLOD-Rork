@@ -7,6 +7,16 @@ const SCALE := 0.27
 const TEAM_A := Color("#55e8cd")
 const TEAM_B := Color("#ff7779")
 const TICK := 0.1
+# Distinct presentation on shared, verified CC0 skeletal assets.
+const HERO_STYLE := {
+ "phan":["#b6cf72","hammer",1.02,0.88],"quin":["#76d8ff","compass",0.88,1.22],
+ "van":["#80e9bf","shield",1.03,0.96],"christian":["#edc57c","banner",1.10,0.91],
+ "lhen":["#dda7f5","orb",0.90,1.10],"ace":["#f0edf1","staff",0.96,1.05],
+ "ellusur":["#f8d787","staff",1.12,0.83],"jawo":["#f6a97a","blade",0.94,1.20],
+ "mitch":["#87addd","hammer",1.05,0.92],"niel":["#bc9aff","staff",0.98,1.04],
+ "angel":["#8ee2eb","orb",0.92,1.08],"vhen":["#a2de87","staff",0.90,1.12],
+ "trudice":["#f4a5bd","book",0.89,1.06]
+}
 var sim = SIM.new()
 var audio: Node
 var camera: Camera3D
@@ -32,7 +42,14 @@ var joystick_index := -1
 var joystick_origin := Vector2.ZERO
 var joystick: Control
 var knob: ColorRect
-var pending: Array[String] = []
+var pending: Array[Dictionary] = []
+var aim_touch := -1
+var aim_slot := ""
+var aim_origin := Vector2.ZERO
+var aim_vector := Vector2.ZERO
+var aim_indicator: MeshInstance3D
+var aim_hint: Label
+var terrain_count := 0
 var effect_nodes: Array[Dictionary] = []
 var map_display: Control
 var map_texture: ImageTexture
@@ -98,17 +115,32 @@ func _world(p: Vector2) -> Vector3:
 func _build_map() -> void:
 	var w: float=sim.state["w"]*SCALE
 	var h: float=sim.state["h"]*SCALE
-	_box(floor_root,Vector3(0,-0.35,0),Vector3(w,0.5,h),Color("#355a47"))
+	_box(floor_root,Vector3(0,-0.35,0),Vector3(w,0.5,h),Color("#284b42"))
+	for side in [-1.0,1.0]:
+		_box(floor_root,Vector3(0,-0.02,side*h*0.49),Vector3(w,0.6,0.6),Color("#52716c"))
+		for i in range(6):
+			var x: float=-w*0.44+float(i)*w*0.175
+			_prop("kingdom_tree",Vector3(x,0,side*h*0.45),0.85)
+			_prop("kingdom_rocks",Vector3(x+1.3,0,side*h*0.43),0.55)
+	for x in [-w*0.47,w*0.47]:
+		for z in [-h*0.38,h*0.38]:
+			_prop("kingdom_wall",Vector3(x,0,z),1.15,PI*0.5)
 	for lane in sim.config["maps"][sim.state["map"]]["lanes"]:
 		var z: float=(float(lane)-0.5)*h
 		_box(floor_root,Vector3(0,-0.07,z),Vector3(w-1.0,0.12,3.7),Color("#b3a38a"))
 		for x in [-w*0.25,0.0,w*0.25]:
 			_box(floor_root,Vector3(x,0.001,z),Vector3(0.13,0.025,3.7),Color("#dbc5a1"))
-	_box(floor_root,Vector3(0,-0.05,0),Vector3(3.0,0.13,h),Color("#39788a"))
+		for side in [-1.0,1.0]:
+			_box(floor_root,Vector3(0,0.0,z+side*1.8),Vector3(w-1.0,0.1,0.16),Color("#6a8273"))
+		_box(floor_root,Vector3(0,0.045,z),Vector3(3.8,0.11,4.2),Color("#9ca9ad"))
+	_box(floor_root,Vector3(0,-0.09,0),Vector3(3.0,0.10,h),Color("#39788a"))
 	for team in ["A","B"]:
 		var core: Dictionary=sim.actor(team+"-core")
 		var p:=_world(core["pos"])
 		_box(floor_root,p+Vector3(0,0.03,0),Vector3(5.0,0.2,10.0),TEAM_A.darkened(0.65) if team=="A" else TEAM_B.darkened(0.65))
+		_prop("arena_gate",p+Vector3(-3.0 if team=="A" else 3.0,0,0),1.3,PI*0.5)
+		for z in [-4.2,4.2]:
+			_prop("arena_flag",p+Vector3(0,0,z),1.1)
 	for c in sim.state["cover"]:
 		var p:=_world(c["pos"])
 		var radius: float=float(c["radius"])*SCALE
@@ -127,6 +159,17 @@ func _build_map() -> void:
 			floor_root.add_child(n)
 			n.position=p
 			n.scale=Vector3.ONE*1.3
+
+func _prop(id: String, at: Vector3, size_factor: float, angle: float=0.0) -> void:
+	if terrain_count>=42:return
+	var source:=_model(id)
+	if source==null:return
+	var node: Node3D=source.duplicate()
+	floor_root.add_child(node)
+	node.position=at
+	node.rotation.y=angle
+	node.scale=Vector3.ONE*size_factor
+	terrain_count+=1
 
 func _model(id: String) -> Node3D:
 	if templates.has(id):
@@ -224,7 +267,22 @@ func _make_controls() -> void:
 	var row:=HBoxContainer.new()
 	right.add_child(row)
 	for cmd in ["primary","secondary","ultimate"]:
-		skills[cmd]=_button(row,cmd.to_upper(),func():_queue(cmd),Vector2(100,70))
+		var b:=_button(row,cmd.to_upper(),func():_queue(cmd),Vector2(100,70))
+		skills[cmd]=b
+	aim_hint=_label(hud,"Tap: auto aim  •  Drag: manual direction  •  Drag far to cancel",16)
+	aim_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	aim_hint.offset_left=-515;aim_hint.offset_right=-15;aim_hint.offset_top=-260;aim_hint.offset_bottom=-235
+	aim_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	aim_indicator=MeshInstance3D.new()
+	var aim_mesh:=BoxMesh.new()
+	aim_mesh.size=Vector3(0.11,0.035,1.0)
+	aim_indicator.mesh=aim_mesh
+	var aim_mat:=StandardMaterial3D.new()
+	aim_mat.albedo_color=Color("#fff3a1")
+	aim_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+	aim_indicator.material_override=aim_mat
+	add_child(aim_indicator)
+	aim_indicator.hide()
 	_button(right,"ATTACK",func():_queue("attack"),Vector2(310,74))
 	var shop:=HBoxContainer.new()
 	right.add_child(shop)
@@ -234,7 +292,7 @@ func _make_controls() -> void:
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	top.offset_left=-260;top.offset_right=-16;top.offset_top=10
 	hud.add_child(top)
-	_button(top,"PAUSE",func():paused=not paused;input_dir=Vector2.ZERO;pending.clear();_notice("Paused" if paused else "Resumed"))
+	_button(top,"PAUSE",_toggle_pause)
 	_button(top,"EXIT",func():get_node("/root/EmpireSession").return_to_menu())
 	joystick=Control.new()
 	joystick.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -272,14 +330,60 @@ func _buy(item: String) -> void:
 	else:
 		_notice("Shop requires home base, gold and an unused item")
 
-func _queue(cmd: String) -> void:
-	if running and not paused and sim.state["status"]=="active" and pending.size()<4 and not cmd in pending:
-		pending.append(cmd)
+func _toggle_pause() -> void:
+	paused=not paused
+	input_dir=Vector2.ZERO
+	joystick_index=-1
+	pending.clear()
+	_reset_aim()
+	knob.position=Vector2(69,69)
+	_notice("Paused" if paused else "Resumed")
+
+func _queue(cmd: String, direction: Vector2=Vector2.ZERO, manual: bool=false) -> void:
+	if running and not paused and sim.state["status"]=="active" and pending.size()<4 and not pending.any(func(q):return q["cmd"]==cmd):
+		pending.append({"cmd":cmd,"direction":direction,"manual":manual})
+
+func _reset_aim() -> void:
+	aim_touch=-1
+	aim_slot=""
+	aim_vector=Vector2.ZERO
+	if is_instance_valid(aim_indicator):aim_indicator.hide()
+	if is_instance_valid(aim_hint):aim_hint.text="Tap: auto aim  •  Drag: manual direction  •  Drag far to cancel"
+
+func _update_aim(at: Vector2) -> void:
+	var offset:=at-aim_origin
+	aim_vector=offset.normalized() if offset.length()>18.0 else Vector2.ZERO
+	var cancel:=offset.length()>220.0
+	aim_hint.text="Release to cancel" if cancel else "Release to cast "+aim_slot.to_upper()
+	aim_indicator.visible=aim_vector.length_squared()>0.01 and not cancel
+	if aim_indicator.visible:
+		var origin:=_world(sim.actor("A0")["pos"])
+		var direction:=Vector3(aim_vector.x,0,aim_vector.y)
+		aim_indicator.position=origin+direction*1.65+Vector3(0,0.12,0)
+		aim_indicator.rotation.y=atan2(direction.x,direction.z)
+		aim_indicator.scale.z=3.3
 
 func _input(event: InputEvent) -> void:
 	if not running or paused or sim.state["status"]!="active" or joystick==null:
 		return
 	if event is InputEventScreenTouch:
+		if event.pressed and aim_touch==-1:
+			for cmd in skills:
+				var b: Button=skills[cmd]
+				if not b.disabled and b.get_global_rect().has_point(event.position):
+					aim_touch=event.index
+					aim_slot=cmd
+					aim_origin=event.position
+					_update_aim(event.position)
+					get_viewport().set_input_as_handled()
+					return
+		if not event.pressed and event.index==aim_touch:
+			var offset: Vector2=event.position-aim_origin
+			if offset.length()<=220.0:
+				_queue(aim_slot,offset.normalized() if offset.length()>18.0 else Vector2.ZERO,offset.length()>18.0)
+			_reset_aim()
+			get_viewport().set_input_as_handled()
+			return
 		if event.pressed and joystick_index==-1 and joystick.get_global_rect().has_point(event.position):
 			joystick_index=event.index
 			joystick_origin=joystick.get_global_rect().get_center()
@@ -290,6 +394,9 @@ func _input(event: InputEvent) -> void:
 			input_dir=Vector2.ZERO
 			knob.position=Vector2(69,69)
 			get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag and event.index==aim_touch:
+		_update_aim(event.position)
+		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag and event.index==joystick_index:
 		_joystick(event.position)
 		get_viewport().set_input_as_handled()
@@ -303,21 +410,23 @@ func _notification(what: int) -> void:
 		input_dir=Vector2.ZERO
 		joystick_index=-1
 		pending.clear()
+		_reset_aim()
 		if running:paused=true
 
-func _command(cmd: String) -> bool:
+func _command(cmd: String, manual_direction: Vector2=Vector2.ZERO, manual: bool=false) -> bool:
 	var p: Dictionary=sim.actor("A0")
 	if not sim._alive(p):
 		return false
-	var enemies: Array=sim._enemies(p,12.0)
-	var target: Dictionary=enemies.front() if not enemies.is_empty() else {}
-	var direction:=aim_dir
-	if not target.is_empty():
+	var basic: Dictionary=sim.config["starter"].get(p["hero"],{}).get("basic",{})
+	var radius: float=float(basic.get("range",5.5)) if cmd=="attack" else 13.0
+	var target: Dictionary=sim.aim_target(p,radius,manual_direction if manual else Vector2.ZERO)
+	var direction:=manual_direction if manual else aim_dir
+	if not manual and not target.is_empty():
 		direction=(target["pos"] as Vector2)-(p["pos"] as Vector2)
-	if sim.action("A0",cmd,direction,str(target.get("id",""))):
+	var accepted: bool=sim.action("A0",cmd,direction,str(target.get("id",""))) if cmd=="attack" else sim.cast_aimed("A0",cmd,direction,manual)
+	if accepted:
 		audio.play_command(str(p["hero"]),cmd,sim.config["starter"].get(p["hero"],{}))
-		_play(actors.get("A0",{}),"Attack")
-		_flash(_world(p["pos"]),TEAM_A,1.1 if cmd=="attack" else 2.0)
+		_play(actors.get("A0",{}),"Attack" if cmd=="attack" else "Skill")
 		print("BUKLOD_MOBA_COMMAND_ACCEPTED "+cmd)
 		return true
 	_notice("Out of range, cooldown, level or mana")
@@ -337,7 +446,8 @@ func _physics_process(delta: float) -> void:
 			aim_dir=direction.normalized()
 			sim.action("A0","move",direction)
 		if not pending.is_empty():
-			_command(pending.pop_front())
+			var request: Dictionary=pending.pop_front()
+			_command(str(request["cmd"]),request["direction"],bool(request["manual"]))
 		sim.advance()
 		_read_events()
 		if sim.state["status"]!="active":
@@ -352,6 +462,7 @@ func _make_actor(p: Dictionary) -> Dictionary:
 	var team_color:=TEAM_A if p["team"]=="A" else TEAM_B
 	var model: Node3D
 	var kind:=str(p["kind"])
+	var profile: Array=HERO_STYLE.get(str(p.get("hero","")),["#ffffff","staff",1.0,1.0])
 	if kind=="hero":
 		var identity:=str(p["hero"])
 		var role:=str(sim.config["heroes"][identity]["role"])
@@ -359,7 +470,7 @@ func _make_actor(p: Dictionary) -> Dictionary:
 		if rig!=null:
 			model=rig.duplicate()
 			node.add_child(model)
-			model.scale=Vector3.ONE*0.8
+			model.scale=Vector3.ONE*0.8*float(profile[2])
 	elif kind=="tower":
 		var tower:=_model("arena_crystal" if p.get("core",false) else "arena_tower")
 		if tower!=null:
@@ -368,6 +479,21 @@ func _make_actor(p: Dictionary) -> Dictionary:
 			model.scale=Vector3.ONE*(2.0 if p.get("core",false) else 1.4)
 	if model==null:
 		model=_box(node,Vector3(0,0.4,0),Vector3(0.55,0.8,0.55),team_color)
+	if kind=="hero":
+		var accent_color:=Color(str(profile[0]))
+		var accent:=Node3D.new()
+		model.add_child(accent)
+		accent.position=Vector3(0.55,0.78,0)
+		var style:=str(profile[1])
+		match style:
+			"shield","book","compass":_box(accent,Vector3.ZERO,Vector3(0.13,0.48,0.40),accent_color)
+			"orb":_box(accent,Vector3(0,0.22,0),Vector3(0.25,0.25,0.25),accent_color)
+			"hammer":
+				_box(accent,Vector3.ZERO,Vector3(0.10,0.64,0.10),accent_color)
+				_box(accent,Vector3(0,0.35,0),Vector3(0.36,0.18,0.22),accent_color)
+			_:
+				_box(accent,Vector3.ZERO,Vector3(0.09,0.83,0.09),accent_color)
+				if style=="banner":_box(accent,Vector3(0.17,0.32,0),Vector3(0.32,0.36,0.08),accent_color)
 	var ring:=MeshInstance3D.new()
 	var disk:=CylinderMesh.new()
 	disk.top_radius=0.65 if kind=="hero" else 0.4
@@ -384,26 +510,36 @@ func _make_actor(p: Dictionary) -> Dictionary:
 	name_tag.position=Vector3(0,2.1 if kind=="hero" else 2.6 if kind=="tower" else 1.0,0)
 	node.add_child(name_tag)
 	node.position=_world(p["pos"])
-	var record: Dictionary={"node":node,"label":name_tag,"model":model,"animation":"","target":node.position,"attack_until":0}
+	var record: Dictionary={"node":node,"label":name_tag,"model":model,"animation":"","target":node.position,"attack_until":0,"profile":profile,"motion":0.0,"base_scale":model.scale}
 	_play(record,"Idle")
 	return record
 
 func _play(record: Dictionary, desired: String) -> void:
 	if record.is_empty():
 		return
-	if desired=="Attack":
+	if desired in ["Attack","Skill","Hit"]:
 		record["attack_until"]=Time.get_ticks_msec()+350
+		record["motion"]=1.0
 	elif Time.get_ticks_msec()<int(record.get("attack_until",0)):
 		return
 	if record.get("animation")==desired:
 		return
+	var profile: Array=record["profile"]
+	var aliases: Array=[desired.to_lower()]
+	match desired:
+		"Attack","Skill":
+			aliases=["cast","spell","attack"] if profile[1] in ["staff","orb","book"] else ["attack","slash","melee"]
+		"Walk":aliases=["run","walk"] if profile[1] in ["blade","compass"] else ["walk","run"]
+		"Hit":aliases=["hit","damage","hurt"]
 	for n in record["model"].find_children("*","AnimationPlayer",true,false):
 		var player: AnimationPlayer=n
-		for clip in player.get_animation_list():
-			if desired.to_lower() in str(clip).to_lower():
-				player.play(clip,0.15)
-				record["animation"]=desired
-				return
+		for alias in aliases:
+			for clip in player.get_animation_list():
+				if str(alias) in str(clip).to_lower():
+					player.play(clip,0.10,float(profile[3]))
+					record["animation"]=desired
+					return
+	record["animation"]=desired
 
 func _sync_actors(weight: float) -> void:
 	var seen: Dictionary={}
@@ -430,23 +566,40 @@ func _sync_actors(weight: float) -> void:
 			elif p["kind"]=="hero":
 				_play(a,"Idle")
 			var name:=str(p.get("hero","CORE" if p.get("core",false) else p["kind"])).to_upper()
+			var hp_ratio:=clampf(float(p["hp"])/maxf(1.0,float(p.get("max_hp",p["hp"]))),0.0,1.0)
 			a["label"].text=name+"  "+str(int(p["hp"]))+"/"+str(int(p.get("max_hp",p["hp"])))
+			a["label"].modulate=(TEAM_A if p["team"]=="A" else TEAM_B).lerp(Color("#ffdf75"),1.0-hp_ratio)
 	for id in actors.keys():
 		if not seen.has(id) and sim.actor(str(id)).is_empty():
 			actors[id]["node"].queue_free()
 			actors.erase(id)
 
 func _flash(at: Vector3, c: Color, size: float) -> void:
-	if effect_nodes.size()>=20:return
+	if effect_nodes.size()>=28:return
 	var n:=MeshInstance3D.new()
 	var ring:=TorusMesh.new()
 	ring.inner_radius=size*0.65
 	ring.outer_radius=size
 	n.mesh=ring
-	n.material_override=_mat(c)
+	var glow:=StandardMaterial3D.new()
+	glow.albedo_color=c
+	glow.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+	n.material_override=glow
 	add_child(n)
 	n.position=at+Vector3(0,0.13,0)
-	effect_nodes.append({"node":n,"life":0.42})
+	effect_nodes.append({"node":n,"life":0.42,"kind":"ring"})
+
+func _damage_text(at: Vector3, amount: float) -> void:
+	if effect_nodes.size()>=28 or amount<=0.0:return
+	var label:=Label3D.new()
+	label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+	label.text=str(int(round(amount)))
+	label.font_size=42
+	label.outline_size=8
+	label.modulate=Color("#ffe7ab")
+	add_child(label)
+	label.position=at+Vector3(0,2.0,0)
+	effect_nodes.append({"node":label,"life":0.65,"kind":"text"})
 
 func _read_events() -> void:
 	for e in sim.state["events"]:
@@ -455,7 +608,18 @@ func _read_events() -> void:
 		audio.play_match_event(e)
 		if e["type"]=="damage" and e.has("pos"):
 			_flash(_world(e["pos"]),Color("#ffba73"),0.42)
+			_damage_text(_world(e["pos"]),float(e.get("amount",0.0)))
 			_play(actors.get(str(e.get("from","")),{}),"Attack")
+			_play(actors.get(str(e.get("to","")),{}),"Hit")
+		elif e["type"]=="skill" and e.has("pos"):
+			var source: Dictionary=sim.actor(str(e.get("actor","")))
+			var profile: Array=HERO_STYLE.get(str(source.get("hero","")),["#ffffff","staff",1.0,1.0])
+			_play(actors.get(str(e.get("actor","")),{}),"Skill")
+			_flash(_world(e["pos"]),Color(str(profile[0])),2.8 if e.get("slot")=="ultimate" else 1.7)
+		elif e["type"] in ["respawn","level_up"] and e.has("pos"):
+			_flash(_world(e["pos"]),Color("#f4e5a3"),1.25)
+		elif e["type"]=="defeat" and e.has("pos"):
+			_flash(_world(e["pos"]),Color("#ff8367"),1.35)
 
 func _process(delta: float) -> void:
 	if not running:return
@@ -463,6 +627,11 @@ func _process(delta: float) -> void:
 		var actor_node: Node3D=record["node"]
 		if actor_node.visible:
 			actor_node.position=actor_node.position.lerp(record["target"],minf(1.0,delta*14.0))
+			var model: Node3D=record["model"]
+			var base_scale: Vector3=record["base_scale"]
+			var motion: float=maxf(0.0,float(record["motion"])-delta*3.0)
+			record["motion"]=motion
+			model.scale=base_scale*Vector3(1.0+0.05*motion,1.0+0.11*motion,1.0+0.05*motion)
 	var p: Dictionary=sim.actor("A0")
 	var target:=_world(p["pos"])
 	camera.position=camera.position.lerp(target+Vector3(0,28,20),minf(1.0,delta*6.0))
@@ -472,6 +641,10 @@ func _process(delta: float) -> void:
 		if fx["life"]<=0.0:
 			fx["node"].queue_free()
 			effect_nodes.erase(fx)
+		elif fx["kind"]=="text":
+			var damage_label: Label3D=fx["node"]
+			damage_label.position.y+=delta*1.8
+			damage_label.modulate.a=clampf(float(fx["life"])/0.40,0.0,1.0)
 		else:
 			fx["node"].scale=Vector3.ONE*(1.0+(0.42-fx["life"])*2.0)
 	map_elapsed+=delta
@@ -491,7 +664,8 @@ func _update_hud() -> void:
 		var required:=6 if cmd=="ultimate" else 3 if cmd=="secondary" else 1
 		var seconds:=float(sim.config["starter"].get(p["hero"],{}).get(cmd,{}).get("cd",6000))/1000.0
 		var left:=maxf(0.0,seconds-(float(sim.state["time"])-float(p["cooldowns"][cmd])))
-		button.text=cmd.to_upper()+("\nL"+str(required) if int(p["level"])<required else "\n"+str(ceili(left))+"s" if left>0.0 else "")
+		var skill_name:=str(sim.config["starter"].get(p["hero"],{}).get(cmd,{}).get("id",cmd)).replace("_"," ").capitalize()
+		button.text=skill_name+("\nL"+str(required) if int(p["level"])<required else "\n"+str(ceili(left))+"s" if left>0.0 else "")
 		button.disabled=int(p["level"])<required or left>0.0 or not sim._alive(p)
 	if not sim._alive(p):status.text="Respawn in "+str(ceili(maxf(0.0,float(p["respawn_at"])-float(sim.state["time"]))))
 

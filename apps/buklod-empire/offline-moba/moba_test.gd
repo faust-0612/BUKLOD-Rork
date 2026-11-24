@@ -38,8 +38,28 @@ func _run() -> void:
 	if not check(sim.state["units"].size()>0,"minion waves"):return
 	for id in ["A1","A2","A3","A4","B1","B2","B3","B4"]:
 		if not check(sim.actor(id)["pos"]!=sim.actor(id)["spawn"],"bot leaves spawn "+id):return
-	for i in range(4):sim._hit(p,core,300.0)
-	if not check(sim.state["status"]=="finished" and sim.state["winner"]=="A","core victory"):return
+	var finish_sim=SIM.new()
+	if not check(finish_sim.start("phan","normal"),"fresh victory scenario"):return
+	var attacker: Dictionary=finish_sim.actor("A0")
+	var final_core: Dictionary=finish_sim.actor("B-core")
+	for i in range(2):
+		finish_sim._hit(attacker,finish_sim.actor("B-tower-0"),300.0)
+	for i in range(2):
+		if not check(finish_sim._hit(attacker,final_core,300.0),"valid core damage"):return
+	if not check(finish_sim.state["status"]=="finished" and finish_sim.state["winner"]=="A","core victory"):return
+	if not check(not finish_sim._hit(attacker,finish_sim.actor("B1"),20.0),"no damage after result"):return
+	var aim_sim=SIM.new()
+	if not check(aim_sim.start("niel"),"aim scenario"):return
+	var caster: Dictionary=aim_sim.actor("A0")
+	caster["pos"]=Vector2(100,100)
+	var east: Dictionary=aim_sim.actor("B0")
+	var west: Dictionary=aim_sim.actor("B1")
+	east["pos"]=Vector2(108,100)
+	west["pos"]=Vector2(96,100)
+	var old_east: float=east["hp"]
+	var old_west: float=west["hp"]
+	if not check(aim_sim.cast_aimed("A0","primary",Vector2.RIGHT,true),"directional cast"):return
+	if not check(east["hp"]<old_east and west["hp"]==old_west,"manual aim hits intended side"):return
 	var world: Node=load("res://scenes/Moba3D.tscn").instantiate()
 	root.add_child(world)
 	await process_frame
@@ -47,5 +67,8 @@ func _run() -> void:
 	for i in range(35):await process_frame
 	if not check(world.actors.size()>=18,"3D hero/tower nodes"):return
 	if not check(world.templates.has("rig_knight") and world.templates.has("rig_mage"),"both real rigs loaded"):return
+	if not check(world.terrain_count>=25,"dressed battlefield"):return
+	if not check(world.HERO_STYLE.size()==13,"distinct hero presentation profiles"):return
+	if not check(world.aim_indicator!=null,"aim indicator present"):return
 	print("BUKLOD_OFFLINE_MOBA_RUNTIME_PASS")
 	quit(0)
