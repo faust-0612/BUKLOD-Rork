@@ -1,0 +1,125 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-205-saliksik-r4-intake-20261124.json",
+  "objective": "Incorporate fully green R1-R4 no-required-Admin automatic SALIKSIK research, canonical evidence/RLS, two-verifier Master, pending BP and complete 9-part licensed manuscript into Genesis 2.0.5 consolidated staging source without overwriting existing Genesis Godot, AdMob, Wall, Cluster, navigation or academic authorization. DEV-only conso intake; NO live MAIN backend or OTA.",
+  "baseRef": "77a4599a20d1833c94d3a1837d9f1d350fe58bd9",
+  "productionBaselineEvidence": "Latest main source checked at 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04; actual installed production signed APK/runtime not inspected in this task. Consolidated Genesis source from PR #1142 exact head 77a4599a20d1833c94d3a1837d9f1d350fe58bd9. R4 source PR #1159 exact CI-green SHA fccf63398c12446d9a3e21332b9cad7372b507c5; prior R3 PR #1158 CI green. No deploy, migration, OTA, live Supabase mutation or remote source overwrite.",
+  "chosenApproach": "Add copy-identical SALIKSIK scoped client, Edge, migrations, R1-R4 regression tests and docs from verified R4 DEV to Genesis native conso base; only two overlapping Genesis source files modified with tiny additive SALIKSIK component/import and optional Admin Knowledge Vault link. Existing native ABI, Godot, home/Cluster layout and first-view ads preserved.",
+  "selectionRationale": "Source-level candidate in conso staging branch achieves cumulative parity without cherry-picking or merging older divergent app shells; retain off-by-default client/server flags, private manuscripts and no live migration. Separate safe Genesis staging intake for later verified RC.",
+  "alternativeApproaches": [
+    "Whole-merge divergent R2/R3/R4 branch over Genesis: rejected to avoid replacing Godot, ads, Wall and recently approved fixes.",
+    "Deploy SQL and Edge to live MAIN first to QA the feature: rejected because live prod must remain unchanged.",
+    "Ship OTA without isolated backend or signed Android runtime evidence: rejected; incomplete backend would show empty/error with feature off."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "cluster-faith",
+    "backend-security",
+    "app-runtime",
+    "points-ledger",
+    "release-governance",
+    "academic-integrity",
+    "admob-preservation",
+    "navigation-speed",
+    "source-fidelity"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-205-saliksik-r4-intake-20261124.json",
+    ".github/workflows/saliksik-sql-qa.yml",
+    "docs/saliksik/BUKLOD_SALIKSIK_AUTHORITATIVE_BLUEPRINT_20261112.md",
+    "docs/saliksik/BUKLOD_SALIKSIK_R4_CONSOLIDATED_STAGING_CONTRACT_20261124.md",
+    "docs/saliksik/SALIKSIK_R3_AUTOMATED_RESEARCH_OWNER_POLICY_20261124.md",
+    "src/app/admin/index.tsx",
+    "src/app/admin/saliksik-library.tsx",
+    "src/app/scope/saliksik.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodSaliksikDoor.tsx",
+    "src/components/BuklodSaliksikResearchLab.tsx",
+    "src/lib/saliksikClient.ts",
+    "src/lib/saliksikMastery.mjs",
+    "supabase/functions/saliksik-auto-v1/index.ts",
+    "supabase/functions/saliksik-generate-v1/index.ts",
+    "supabase/functions/saliksik-manuscript-v1/index.ts",
+    "supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql",
+    "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql",
+    "supabase/migrations/20261124035000_saliksik_complete_manuscript_unlock_r3.sql",
+    "supabase/migrations/20261124051000_saliksik_r4_auto_research_corpus.sql",
+    "supabase/migrations/20261124052000_saliksik_r4_independent_master_grade.sql",
+    "supabase/tests/saliksik_auto_research_security_r4.sql",
+    "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql",
+    "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
+    "supabase/tests/saliksik_written_master_r2.sql",
+    "tests/fixtures/saliksik_pg_integration.sql",
+    "tests/fixtures/saliksik_pg_seed.sql",
+    "tests/fixtures/saliksik_r4_auto_pg_integration.sql",
+    "tests/saliksik-adaptive-mastery-20261112.test.mjs",
+    "tests/saliksik-auto-research-e2e-20261124.test.mjs",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+    "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs",
+    "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "tests/saliksik-written-master-20261113.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/saliksik-cluster-faith-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+    "tests/saliksik-auto-research-e2e-20261124.test.mjs",
+    "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+    "supabase/tests/saliksik_auto_research_security_r4.sql",
+    "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add isolated learner research and optional Admin governance on existing Genesis runtime.",
+      "preservedBehaviors": [
+        "No native ABI change, new bottom nav, removed ad slot, Godot/Kingdom changes or automatic rollout.",
+        "Existing wall, media, Connect, Classroom, KL, Formation, BP claims and AdMob remain as in exact Genesis base."
+      ],
+      "tests": [
+        "tests/saliksik-auto-research-e2e-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Insert SALIKSIK door after Cluster learning widget only under existing personal Show Faith preference.",
+      "preservedBehaviors": [
+        "Nonfaith Cluster remains nonfaith; no network load on dashboard paint, native first view and midview Ads remain untouched."
+      ],
+      "tests": [
+        "tests/saliksik-cluster-faith-20261112.test.mjs",
+        "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add isolated private source vault, source-grounded AI generator, independent server-side Master/RLS, signed completion download, no unverified credit.",
+      "preservedBehaviors": [
+        "No live database/Edge change, service-role secret never exposed on clients, no user privilege escalation, claim/manual reward and QMP unchanged."
+      ],
+      "tests": [
+        "supabase/tests/saliksik_auto_research_security_r4.sql"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Genesis 2.0.5 conso HEAD 77a4599a20d1833c94d3a1837d9f1d350fe58bd9 is exact base; only SALIKSIK scoped files and additive two UI insertions.",
+    "Cluster Home existing FirstViewAd (first_view and mid_view), Wall/Marites/ad rendering, Godot native four worlds, Connect/PTT, calls and fast tab nav unchanged.",
+    "SALIKSIK client env EXPO_PUBLIC_SALIKSIK_ENABLED remains OFF and database saliksik_rollout.member_enabled default OFF.",
+    "Member fully verified 9/9 receives full published study manuscript and, where explicitly licensed, original; never leak private original to member otherwise.",
+    "No new classes, UC, QMP, fake degrees or automated BP claims; canonical 205 BP pending manual individual claim only.",
+    "Never apply R1-R4 SQL/Edge to live MAIN, no APK/OTA/web production deployment or announcements from this PR."
+  ],
+  "acceptanceChecks": [
+    "Exact manifest scope and protected feature gates approve only SALIKSIK scope and the two preserved Genesis UI insertions.",
+    "Existing R1–R4 isolated Postgres17 workflow end-to-end 9 investigations, independent Master fail-closed/rework, 205 pending BP, licensed original policy, nine-chapter DOCX entitlement.",
+    "New Genesis source TypeScript/web and source/nightly contract tests green with existing Godot/AdMob/navbar regressions unaffected.",
+    "Cumulative reconciliation to newer main and newly approved Genesis conso intakes required before final RC.",
+    "Real backend isolation and runtime/OTA target required; user requested to SKIP physical verification, so mark device acceptance unverified (not passed).",
+    "Production, live Supabase, remote staging and AdMob remain unchanged by this PR."
+  ],
+  "releaseMode": "dev-only",
+  "releaseGate": "Staging OTA/RC HOLD. Do not merge/deploy until verified conso parity, exact-source CI, isolated Supabase R1–R4 DB/Edge authorization, true staging runtime and release gates. No live changes."
+}
