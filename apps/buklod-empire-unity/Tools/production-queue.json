@@ -1,0 +1,341 @@
+{
+  "status": "blocked_pending_exact_references_and_unity_execution",
+  "parallel": [
+    {
+      "id": "hero",
+      "units": [
+        {
+          "id": "phan",
+          "reference": {
+            "id": "phan",
+            "portraits": [],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/phan_attack-3ea6ca4b36a5.webp",
+              "assets/season2/arena/generated/fullbody/phan_idle-7968c0b511d7.webp",
+              "assets/season2/arena/generated/fullbody/phan_skill-da2c799d50ce.webp",
+              "assets/season2/arena/generated/fullbody/phan_walk-a4e542d566e4.webp"
+            ]
+          },
+          "output": "phan.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "quin",
+          "reference": {
+            "id": "quin",
+            "portraits": [],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/quin_attack-de8f2bfa026c.webp",
+              "assets/season2/arena/generated/fullbody/quin_idle-1e0a54b3801e.webp",
+              "assets/season2/arena/generated/fullbody/quin_skill-ac87c0fa2a66.webp",
+              "assets/season2/arena/generated/fullbody/quin_walk-ed32c12bb66f.webp"
+            ]
+          },
+          "output": "quin.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "van",
+          "reference": {
+            "id": "van",
+            "portraits": [],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/van_attack-d4feff79d662.webp",
+              "assets/season2/arena/generated/fullbody/van_idle-be582800a369.webp",
+              "assets/season2/arena/generated/fullbody/van_skill-b71ee37e2fb8.webp",
+              "assets/season2/arena/generated/fullbody/van_walk-89aefbac3af1.webp"
+            ]
+          },
+          "output": "van.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "christian",
+          "reference": {
+            "id": "christian",
+            "portraits": [],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/christian_attack-db2198ff062c.webp",
+              "assets/season2/arena/generated/fullbody/christian_idle-70572b185452.webp",
+              "assets/season2/arena/generated/fullbody/christian_skill-74d6c5c9879c.webp",
+              "assets/season2/arena/generated/fullbody/christian_walk-244f03ac1f01.webp"
+            ]
+          },
+          "output": "christian.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "lhen",
+          "reference": {
+            "id": "lhen",
+            "portraits": [],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/lhen_attack-2378cf44d285.webp",
+              "assets/season2/arena/generated/fullbody/lhen_idle-73b9ec672c55.webp",
+              "assets/season2/arena/generated/fullbody/lhen_skill-1dee20da5fbb.webp",
+              "assets/season2/arena/generated/fullbody/lhen_walk-7dd120a65fb4.webp"
+            ]
+          },
+          "output": "lhen.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "ace",
+          "reference": {
+            "id": "ace",
+            "portraits": [
+              "assets/images/characters/special/batch1/ace_hero.jpg"
+            ],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/ace_attack-4dd4943de7ed.webp",
+              "assets/season2/arena/generated/fullbody/ace_idle-46bbf9e40ec2.webp",
+              "assets/season2/arena/generated/fullbody/ace_skill-d101d00e08b4.webp",
+              "assets/season2/arena/generated/fullbody/ace_walk-d6beb0fc06af.webp"
+            ]
+          },
+          "output": "ace.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "ellusur",
+          "reference": {
+            "id": "ellusur",
+            "portraits": [
+              "assets/images/characters/special/batch1/ellusur_hero.jpg"
+            ],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/ellusur_attack-6592845fac0d.webp",
+              "assets/season2/arena/generated/fullbody/ellusur_idle-c4ec26d59dd0.webp",
+              "assets/season2/arena/generated/fullbody/ellusur_skill-2700a468065f.webp",
+              "assets/season2/arena/generated/fullbody/ellusur_walk-ef66b5a7e9bf.webp"
+            ]
+          },
+          "output": "ellusur.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "jawo",
+          "reference": {
+            "id": "jawo",
+            "portraits": [
+              "assets/images/characters/special/batch1/jawo_hero.jpg"
+            ],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/jawo_attack-b92c62f615b9.webp",
+              "assets/season2/arena/generated/fullbody/jawo_idle-ef37cfc47f01.webp",
+              "assets/season2/arena/generated/fullbody/jawo_skill-86e67961b09e.webp",
+              "assets/season2/arena/generated/fullbody/jawo_walk-9b55b9ed5679.webp"
+            ]
+          },
+          "output": "jawo.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "mitch",
+          "reference": {
+            "id": "mitch",
+            "portraits": [
+              "assets/images/characters/special/batch1/mitch_hero.jpg"
+            ],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/mitch_attack-da094ca7f7ad.webp",
+              "assets/season2/arena/generated/fullbody/mitch_idle-f3a2193e7510.webp",
+              "assets/season2/arena/generated/fullbody/mitch_skill-e0eef5c843e0.webp",
+              "assets/season2/arena/generated/fullbody/mitch_walk-4bb65eabd7a0.webp"
+            ]
+          },
+          "output": "mitch.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "niel",
+          "reference": {
+            "id": "niel",
+            "portraits": [
+              "assets/images/characters/special/batch1/niel_hero.jpg"
+            ],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/niel_attack-dc88dbb769d9.webp",
+              "assets/season2/arena/generated/fullbody/niel_idle-4648b9cab6ef.webp",
+              "assets/season2/arena/generated/fullbody/niel_skill-b7046284387d.webp",
+              "assets/season2/arena/generated/fullbody/niel_walk-ec989bc4dad3.webp"
+            ]
+          },
+          "output": "niel.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "angel",
+          "reference": {
+            "id": "angel",
+            "portraits": [
+              "assets/images/characters/special/batch1/angel_hero.jpg"
+            ],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/angel_attack-dc5d24d927d1.webp",
+              "assets/season2/arena/generated/fullbody/angel_idle-d10432d7dcd6.webp",
+              "assets/season2/arena/generated/fullbody/angel_skill-bc28bc173612.webp",
+              "assets/season2/arena/generated/fullbody/angel_walk-3fda88fe6535.webp"
+            ]
+          },
+          "output": "angel.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "vhen",
+          "reference": {
+            "id": "vhen",
+            "portraits": [
+              "assets/images/characters/special/batch1/vhen_hero.jpg"
+            ],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/vhen_attack-f44284c2bc54.webp",
+              "assets/season2/arena/generated/fullbody/vhen_idle-c25e6c994dc0.webp",
+              "assets/season2/arena/generated/fullbody/vhen_skill-9113bcb9162e.webp",
+              "assets/season2/arena/generated/fullbody/vhen_walk-df85593f361b.webp"
+            ]
+          },
+          "output": "vhen.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        },
+        {
+          "id": "trudice",
+          "reference": {
+            "id": "trudice",
+            "portraits": [
+              "assets/images/characters/special/batch1/trudice_hero.jpg"
+            ],
+            "motion": [
+              "assets/season2/arena/generated/fullbody/trudice_attack-91088120f0fa.webp",
+              "assets/season2/arena/generated/fullbody/trudice_idle-78d87b343790.webp",
+              "assets/season2/arena/generated/fullbody/trudice_skill-8f6e4c56da3f.webp",
+              "assets/season2/arena/generated/fullbody/trudice_walk-84ab5fbf6d27.webp"
+            ]
+          },
+          "output": "trudice.glb",
+          "requirements": [
+            "individual mesh",
+            "PBR textures",
+            "rig",
+            "nine distinct motion clips",
+            "approved illustration comparison"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "minions",
+      "factions": [
+        "lux",
+        "tenebra"
+      ],
+      "roles": [
+        "infantry",
+        "mage",
+        "gunner",
+        "siege",
+        "healer"
+      ],
+      "requirements": [
+        "exact owner art mapping",
+        "rig and team silhouette"
+      ]
+    },
+    {
+      "id": "villagers",
+      "factions": [
+        "lux",
+        "tenebra"
+      ],
+      "requirements": [
+        "exact owner art mapping",
+        "individual behavior animation"
+      ]
+    },
+    {
+      "id": "worlds",
+      "requirements": [
+        "three-lane playable map",
+        "Kingdom",
+        "house and land",
+        "structures",
+        "collision",
+        "navigation",
+        "lighting"
+      ]
+    }
+  ],
+  "release": false
+}
