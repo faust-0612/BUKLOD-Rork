@@ -1,5 +1,5 @@
 {
-  "status": "blocked_pending_exact_references_and_unity_execution",
+  "status": "reference_intake_ready_final_3d_pending",
   "parallel": [
     {
       "id": "hero",
@@ -321,6 +321,11 @@
       "requirements": [
         "exact owner art mapping",
         "rig and team silhouette"
+      ],
+      "source": [
+        "ReferenceArt/Owner/minions-faction-designs.png",
+        "ReferenceArt/Owner/minions-visual-sheet.png",
+        "ReferenceArt/Derived/minion-row*-col*.png"
       ]
     },
     {
@@ -332,6 +337,9 @@
       "requirements": [
         "exact owner art mapping",
         "individual behavior animation"
+      ],
+      "source": [
+        "ReferenceArt/Owner/villagers-lux-tenebra.jpg"
       ]
     },
     {
@@ -344,8 +352,21 @@
         "collision",
         "navigation",
         "lighting"
+      ],
+      "source": [
+        "ReferenceArt/Owner/arena-map-and-rules.png"
       ]
     }
   ],
-  "release": false
+  "release": false,
+  "ownerArchive": {
+    "name": "BUKLOD-Unity-owner-asset-intake.zip",
+    "sha256": "a161d09937563e2dcfd93fffa0d9f9d4cea2ad0ee8f58fb59f4b5489903c556e",
+    "entries": 124,
+    "ownerReferences": 11,
+    "derivedMinionCrops": 8,
+    "audio": 70,
+    "gdScripts": 31,
+    "privateThirdPartyModelsIncluded": 0
+  }
 }
