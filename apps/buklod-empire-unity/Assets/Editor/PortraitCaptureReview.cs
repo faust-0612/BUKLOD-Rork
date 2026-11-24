@@ -39,6 +39,18 @@ namespace Buklod.Empire.Editor {
                     File.WriteAllBytes(Out+"/"+hero.Id+".tga",bytes);
                     rows.Add(new Row{id=hero.Id,sourceHash=SourceHash(hero.Id),sha256=Hash(bytes)});
                 }
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                foreach(var row in rows){
+                    string path=Out+"/"+row.id+".tga";
+                    var importer=AssetImporter.GetAtPath(path) as TextureImporter;
+                    if(importer==null)throw new InvalidOperationException("Portrait texture import unavailable: "+row.id);
+                    importer.textureType=TextureImporterType.Default;importer.npotScale=TextureImporterNPOTScale.None;
+                    importer.maxTextureSize=1024;importer.sRGBTexture=true;importer.mipmapEnabled=false;
+                    importer.textureCompression=TextureImporterCompression.Uncompressed;
+                    importer.SaveAndReimport();
+                    var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                    if(!tex||tex.width!=Width||tex.height!=Height)throw new InvalidOperationException("Portrait texture dimensions changed: "+row.id);
+                }
                 File.WriteAllText(receipt,JsonUtility.ToJson(new Receipt{status="REVIEW_ONLY",rows=rows.ToArray()},true));
                 AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             }finally{EditorSceneManager.RestoreSceneManagerSetup(setup);}
