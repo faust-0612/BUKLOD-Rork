@@ -33,8 +33,9 @@ namespace Buklod.Empire.Editor {
             foreach(var dir in new[]{"Models","Prefabs"})Directory.CreateDirectory(Out+"/"+dir);
             foreach(var row in doc.models)File.Copy(Source+"/"+row.file,Out+"/Models/economy_"+row.file,true);
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            bool environmentHd=EnvironmentMaterialReview.Prepare();
             var result=new Dictionary<string,GameObject>(StringComparer.Ordinal);
-            foreach(var row in doc.models)result.Add(row.id,CandidateReviewComposer.MakePrefab("economy_"+row.id,Array.Empty<string>()));
+            foreach(var row in doc.models)result.Add(row.id,CandidateReviewComposer.MakePrefab("economy_"+row.id,Array.Empty<string>(),environmentHd:environmentHd&&(row.team=="lux"||row.team=="tenebra")));
             return result;
         }
         internal static void Bind(BattleVisualCatalog catalog){
