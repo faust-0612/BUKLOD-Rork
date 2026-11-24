@@ -27,7 +27,8 @@
     "Physical builder orders, atomic completion cost, alternate depots and full-elimination inclusion",
     "Exact target lock, legal tactical AI and autonomous offline training",
     "Free match-local Covenant Paths with nonstacking pre-match selection",
-    "Typed finite mines/forest/quarry, renewable farm food, physical delivery, funded barracks production, per-faction caps and no client resource mint"
+    "Typed finite mines/forest/quarry, renewable farm food, physical delivery, funded barracks production, per-faction caps and no client resource mint",
+    "Native offline command bindings, pre-match setup, shop, treasury, HUD, fog-filtered rendering"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",
@@ -53,7 +54,10 @@
     "apps/buklod-empire-unity/Assets/Tests/Editor/VillageSystemTests.cs",
     "apps/buklod-empire-unity/Tools/ARENA_GAME_DESIGN_BLUEPRINT.md",
     "tests/arena-hybrid-unity-catalog.test.mjs",
-    "apps/buklod-empire-unity/Assets/Scripts/CovenantPaths.cs"
+    "apps/buklod-empire-unity/Assets/Scripts/CovenantPaths.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineSessionMenu.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleHud.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs"
   ],
   "regressionTests": [
     "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaDraftTests.cs",

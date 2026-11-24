@@ -9,12 +9,19 @@ namespace Buklod.Empire {
     [RequireComponent(typeof(BattleView))]
     public sealed class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;
-        private RectTransform canvas,panel,heroGrid;
+        private RectTransform canvas,panel,heroGrid,commands;
+        private Text treasury,commandFeedback,configuration;
+        private bool commandOpen;
+        private int shopPage;
+        private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
+        private ArenaTactic tactic=ArenaTactic.Renew;
+        private CovenantPath path=CovenantPath.Valor;
+        private CovenantTalent first=CovenantTalent.Fortitude,second=CovenantTalent.Resolve,third=CovenantTalent.Precision;
         private Text title,summary,choice;
         private Button resume,start;
         private Button[] shop;
         private Text shopStatus;
-        private static readonly string[] GearIds={"blade","armor","boots"};
+        private static readonly string[] GearIds={"blade","armor","boots","sealbreaker","withering_thorn","precision","fervor","renewal","wisdom","aegis","vitality","giantbane"};
         private GameObject ownedEventSystem;
         private string selected;
         private bool shown,lastFinished;
@@ -46,18 +53,23 @@ namespace Buklod.Empire {
             scaler.referenceResolution=new Vector2(1280,720);scaler.matchWidthOrHeight=.5f;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             ButtonAt("Menu",canvas,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
-            shop=new Button[GearIds.Length];
-            for(int i=0;i<GearIds.Length;i++){
-                string gear=GearIds[i];float y=.83f-i*.075f;
-                shop[i]=ButtonAt("Shop "+gear,canvas,new Vector2(.83f,y),new Vector2(.99f,y+.066f),gear.ToUpperInvariant()+" "+OfflineMatchRules.ShopPrice(gear),()=>Buy(gear));
+            shop=new Button[3];
+            for(int i=0;i<shop.Length;i++){
+                int slot=i;float y=.83f-i*.075f;
+                shop[i]=ButtonAt("Shop "+i,canvas,new Vector2(.83f,y),new Vector2(.99f,y+.066f),"",()=>TradeGear(GearIds[shopPage*3+slot]));
             }
-            shopStatus=Label("Shop status",canvas,new Vector2(.73f,.57f),new Vector2(.99f,.625f),"BASE SHOP",20);
+            shopStatus=Label("Shop status",canvas,new Vector2(.65f,.57f),new Vector2(.99f,.625f),"BASE SHOP",20);
+            ButtonAt("Shop page",canvas,new Vector2(.66f,.67f),new Vector2(.82f,.745f),"SHOP NEXT",()=>{shopPage=(shopPage+1)%4;RefreshShop();});
+            ButtonAt("Village",canvas,new Vector2(.66f,.75f),new Vector2(.82f,.825f),"VILLAGE",OpenCommands);
+            ButtonAt("Recall",canvas,new Vector2(.45f,.08f),new Vector2(.57f,.15f),"RECALL",()=>LiveAction(b=>b.RecallPlayer()));
+            ButtonAt("Tactic",canvas,new Vector2(.57f,.08f),new Vector2(.70f,.15f),"TACTIC",()=>LiveAction(b=>b.UsePlayerTactic(Vector2.zero)));
+            treasury=Label("Treasury",canvas,new Vector2(.23f,.86f),new Vector2(.81f,.91f),"",19);
             panel=Rect("Session panel",canvas,Vector2.zero,Vector2.one);
             panel.gameObject.AddComponent<Image>().color=Navy;
             title=Label("Title",panel,new Vector2(.1f,.84f),new Vector2(.9f,.96f),"OFFLINE TRAINING",44);
             summary=Label("Summary",panel,new Vector2(.12f,.72f),new Vector2(.88f,.84f),"5v5 • No internet or persistent rewards",26);
             choice=Label("Selected hero",panel,new Vector2(.1f,.64f),new Vector2(.9f,.72f),"",27);
-            heroGrid=Rect("Heroes",panel,new Vector2(.07f,.22f),new Vector2(.93f,.62f));
+            heroGrid=Rect("Heroes",panel,new Vector2(.07f,.31f),new Vector2(.93f,.62f));
             for(int i=0;i<HeroKitCatalog.All.Count;i++){
                 var kit=HeroKitCatalog.All[i];int col=i%5,row=i/5;
                 float x=col/5f,y=1-(row+1)/3f;
@@ -65,41 +77,88 @@ namespace Buklod.Empire {
             }
             resume=ButtonAt("Resume",panel,new Vector2(.08f,.06f),new Vector2(.46f,.17f),"RESUME",Resume);
             start=ButtonAt("Start",panel,new Vector2(.54f,.06f),new Vector2(.92f,.17f),"START NEW MATCH",StartNew);
-            Select(selected);Open();
+            configuration=Label("Setup",panel,new Vector2(.07f,.255f),new Vector2(.93f,.31f),"",22);
+            string[] setup={"DIFFICULTY","TACTIC","PATH","TALENT I","TALENT II","TALENT III"};
+            for(int i=0;i<setup.Length;i++){int index=i;float x=.07f+i*.145f;ButtonAt(setup[i],panel,new Vector2(x,.18f),new Vector2(x+.137f,.25f),setup[i],()=>CycleSetup(index));}
+            CreateCommands();RefreshConfiguration();Select(selected);Open();
         }
         private void Select(string hero){selected=HeroKitCatalog.Get(hero).Id;choice.text="Selected: "+HeroKitCatalog.Get(hero).Name;}
         private void Open(){
+            commandOpen=false;if(commands)commands.gameObject.SetActive(false);
             shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);
             Refresh();
         }
         private void Refresh(){
             var b=view.Battle;bool finished=b!=null&&b.Finished;
             title.text=finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):"OFFLINE TRAINING";
-            summary.text=finished?"Training complete • No permanent rewards":"5v5 • No internet or persistent rewards";
+            summary.text=finished?$"K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists} • Damage {b.Player.DamageDealt:0} • No permanent rewards":"5v5 • No internet or persistent rewards";
             resume.interactable=b!=null&&!finished&&b.Time>0;
         }
         private void Resume(){if(view.Battle==null||view.Battle.Finished)return;Close();}
-        private void StartNew(){view.StartMatch(selected);lastFinished=false;Close();}
+        private void StartNew(){view.StartConfiguredMatch(selected,difficulty,new CovenantLoadout(path,first,second,third),tactic);lastFinished=false;Close();}
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
-        private void Buy(string gear){
-            if(!shown&&!view.Paused&&view.Battle!=null&&!view.Battle.Finished)view.Battle.BuyPlayer(gear);
+        private void CycleSetup(int index){
+            switch(index){
+                case 0:difficulty=(ArenaDifficulty)(((int)difficulty+1)%5);break;
+                case 1:tactic=(ArenaTactic)(((int)tactic+1)%Enum.GetValues(typeof(ArenaTactic)).Length);break;
+                case 2:path=(CovenantPath)(((int)path+1)%7);break;
+                case 3:first=(CovenantTalent)(((int)first+1)%3);break;
+                case 4:second=(CovenantTalent)(3+((int)second-3+1)%3);break;
+                case 5:third=(CovenantTalent)(6+((int)third-6+1)%3);break;
+            }RefreshConfiguration();
+        }
+        private void RefreshConfiguration(){configuration.text=$"{difficulty} • {tactic} • {path} • {first} / {second} / {third}";}
+        private bool LiveAction(Func<OfflineBattle,bool> action)=>!shown&&!commandOpen&&!view.Paused&&view.Battle!=null&&!view.Battle.Finished&&action(view.Battle);
+        private void TradeGear(string gear){LiveAction(b=>b.Player.Gear.Contains(gear)?b.SellPlayer(gear):b.BuyPlayer(gear));}
+        private void CreateCommands(){
+            commands=Rect("Village command panel",canvas,new Vector2(.12f,.12f),new Vector2(.88f,.9f));commands.gameObject.AddComponent<Image>().color=Navy;
+            Label("Village title",commands,new Vector2(.02f,.88f),new Vector2(.8f,.98f),"VILLAGE COMMAND",32);
+            ButtonAt("Close village",commands,new Vector2(.81f,.89f),new Vector2(.98f,.98f),"CLOSE",CloseCommands);
+            commandFeedback=Label("Command feedback",commands,new Vector2(.03f,.75f),new Vector2(.97f,.87f),"",24);
+            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD"};
+            for(int i=0;i<labels.Length;i++){int action=i;int col=i%3,row=i/3;float x=.03f+col*.32f,y=.60f-row*.135f;ButtonAt(labels[i],commands,new Vector2(x,y),new Vector2(x+.30f,y+.12f),labels[i],()=>VillageCommand(action));}
+            commands.gameObject.SetActive(false);
+        }
+        private void OpenCommands(){if(shown||commandOpen||view.Battle==null||view.Battle.Finished||view.Paused)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);commandFeedback.text="Choose resource or build at your hero's current position.";}
+        private void CloseCommands(){commandOpen=false;commands.gameObject.SetActive(false);if(!shown&&view.Battle!=null&&!view.Battle.Finished)view.SetPaused(false);}
+        private void VillageCommand(int action){
+            var b=view.Battle;if(!commandOpen||b==null||b.Finished)return;
+            string worker=b.Player.Team==ArenaTeam.Lux?"lira":"velin";bool ok=false;
+            switch(action){
+                case 0:ok=b.OrderPlayerResource(worker,null);break;
+                case 1:ok=b.OrderPlayerResource(worker,VillageResourceKind.Wood);break;
+                case 2:ok=b.OrderPlayerResource(worker,VillageResourceKind.Stone);break;
+                case 3:ok=b.OrderPlayerResource(worker,VillageResourceKind.Food);break;
+                case 4:ok=b.OrderPlayerResource(worker,VillageResourceKind.Crystal);break;
+                case 5:ok=b.OrderPlayerResource(worker,VillageResourceKind.Gold);break;
+                case 6:ok=b.OrderPlayerWorker(worker,VillageWorkerOrder.Return);break;
+                case 7:ok=b.OrderPlayerWorker(worker,VillageWorkerOrder.Hold);break;
+                case 8:ok=b.OrderPlayerConstruction(VillageBuildOrder.Depot,b.Player.Position);break;
+                case 9:ok=b.OrderPlayerConstruction(VillageBuildOrder.GuardPost,b.Player.Position);break;
+                case 10:ok=b.OrderPlayerConstruction(VillageBuildOrder.Farm,b.Player.Position);break;
+                case 11:ok=b.OrderPlayerConstruction(VillageBuildOrder.Barracks,b.Player.Position);break;
+                case 12:ok=b.OrderPlayerRepairNearest();break;
+                case 13:ok=b.CancelPlayerConstruction();break;
+            }
+            commandFeedback.text=ok?"Order accepted. Resume to execute.":"Unavailable: check worker, resources, position, existing order or cutoff.";
         }
         private void RefreshShop(){
             var battle=view.Battle;
             if(battle==null)return;
             var p=battle.Player;
-            bool atBase=Vector2.Distance(p.Position,p.Spawn)<=12;
-            shopStatus.text=atBase?"BASE SHOP":"RETURN TO BASE";
+            bool atBase=battle.CanUsePlayerShop;
+            var bank=battle.GetVillage(p.Team);treasury.text=$"Wood {bank.Wood:0}  Stone {bank.Stone:0}  Food {bank.Food:0}  Crystal {bank.Crystal:0}  Gold {bank.Gold:0}";
+            shopStatus.text=atBase?$"BUY / SELL {shopPage+1}/4":"SHOP UNAVAILABLE";
             for(int i=0;i<shop.Length;i++){
-                string gear=GearIds[i];bool owned=p.Gear.Contains(gear);
-                shop[i].interactable=!shown&&!view.Paused&&!battle.Finished&&p.State.Alive&&atBase&&!owned&&p.Gold>=OfflineMatchRules.ShopPrice(gear);
-                shop[i].GetComponentInChildren<Text>().text=owned?gear.ToUpperInvariant()+" ✓":gear.ToUpperInvariant()+" "+OfflineMatchRules.ShopPrice(gear);
+                string gear=GearIds[shopPage*3+i];bool owned=p.Gear.Contains(gear);
+                shop[i].interactable=!shown&&!commandOpen&&!view.Paused&&atBase&&(owned||p.Gear.Count<6&&p.Gold>=OfflineMatchRules.ShopPrice(gear));
+                shop[i].GetComponentInChildren<Text>().text=owned?"SELL "+gear.ToUpperInvariant():gear.ToUpperInvariant()+" "+OfflineMatchRules.ShopPrice(gear);
             }
         }
         private void Update(){
             RefreshShop();
             bool finished=view.Battle!=null&&view.Battle.Finished;
-            if((finished&&!lastFinished)||(!shown&&view.Paused))Open();
+            if((finished&&!lastFinished)||(!shown&&!commandOpen&&view.Paused))Open();
             lastFinished=finished;
         }
         private void OnDestroy(){if(ownedEventSystem)Destroy(ownedEventSystem);}

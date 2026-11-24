@@ -26,6 +26,10 @@ namespace Buklod.Empire.Tests {
             Assert.False(b.OrderPlayerRepair(enemy.Id));Assert.False(b.CancelPlayerConstruction());
             Assert.AreEqual(15,b.RemainingUnits(ArenaTeam.Lux));
         }
+        [Test] public void ShopAndNearestRepairExposeValidState(){
+            var b=new OfflineBattle("phan");Assert.True(b.CanUsePlayerShop);Assert.False(b.OrderPlayerRepairNearest());
+            Assert.True(b.BuyPlayer("blade"));Assert.True(b.SellPlayer("blade"));Assert.AreEqual(72,b.Player.Gold);
+        }
         [Test] public void IneffectiveSupportAndPrematureProductionDoNotSucceed(){
             var b=new OfflineBattle("phan");
             Assert.False(b.GiveItem(ArenaTeam.Lux,VillageItem.Heal,1));

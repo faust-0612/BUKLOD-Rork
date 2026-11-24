@@ -173,6 +173,7 @@ namespace Buklod.Empire {
         }
         public bool OrderPlayerConstruction(VillageBuildOrder kind,Vector2 position)=>kind!=VillageBuildOrder.Repair&&QueueConstruction(Player.Team,kind,position);
         public bool OrderPlayerRepair(int structureId)=>QueueConstruction(Player.Team,VillageBuildOrder.Repair,Vector2.zero,structureId);
+        public bool OrderPlayerRepairNearest(){var target=units.Where(u=>u.Team==Player.Team&&u.Kind==BattleTargetKind.Structure&&!u.Temporary&&u.State.Alive&&u.State.Health<u.State.MaxHealth).OrderBy(u=>Dist(Player,u)).ThenBy(u=>u.Id).FirstOrDefault();return target!=null&&OrderPlayerRepair(target.Id);}
         public bool CancelPlayerConstruction(){var builder=Builder(Player.Team);if(Finished||builder?.Construction==null)return false;builder.Construction=null;return true;}
         private void AdvanceConstruction(){
             if(Time>=OfflineMatchRules.MatchLimit){foreach(var u in units)if(u.Construction!=null)u.Construction=null;return;}
@@ -537,6 +538,7 @@ namespace Buklod.Empire {
             }
             if(ok){u.TacticReadyAt=Time+cooldown;u.RecallEnds=0;}return ok;
         }
+        public bool CanUsePlayerShop=>!Finished&&Player.State.Alive&&CoreAlive(Player.Team)&&Vector2.Distance(Player.Position,Player.Spawn)<=12;
         public bool BuyPlayer(string item)=>Buy(Player,item);
         public bool SellPlayer(string item)=>Sell(Player,item);
         private void GearChanged(BattleUnit u,string item,bool purchased){
