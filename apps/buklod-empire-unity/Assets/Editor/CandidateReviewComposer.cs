@@ -156,6 +156,11 @@ namespace Buklod.Empire.Editor {
                 if(factionHd)FactionMaterialReview.Apply(instance,id);
                 if(wildlifeHd)WildlifeMaterialReview.Apply(instance,id);
                 if(environmentHd)EnvironmentMaterialReview.Apply(instance,id);
+                if(id=="economy_lux_farm"||id=="economy_tenebra_farm"){
+                    var crop=instance.GetComponentsInChildren<Transform>(true).Where(t=>t.name=="review_crop_canopy").ToArray();
+                    if(crop.Length!=1)throw new InvalidOperationException("Regenerate economy models: farm crop canopy missing or duplicated.");
+                    instance.AddComponent<ReviewFarmGrowth>().Configure(crop[0]);
+                }
                 if(HeroKitCatalog.All.Any(h=>h.Id==id))HeroLodReviewImporter.Attach(instance,id);
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);
