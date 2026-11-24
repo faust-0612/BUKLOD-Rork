@@ -1,0 +1,8 @@
+{
+  "status": "PUBLIC_SIGNED_CANARY_VERIFIED",
+  "base": "b0453ce77899346cd597aa293c2f74eb4145fcf1113b22a6d6272f8473ccb767",
+  "sequence": 1,
+  "sha256": "dd6be4ab018be44f812679954aa755dfd9795df85cc1fae9a8925b8892d3e597",
+  "bytes": 250,
+  "requestedAt": "2026-11-24T06:21:19.482Z"
+}
