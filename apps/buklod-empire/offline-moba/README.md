@@ -3,3 +3,6 @@ Uses exact existing Empire APK baseline b0453ce... and existing Godot hero kits/
 
 ## Offline presentation and tactics upgrade
 Deterministic battlefield dressing using existing CC0 props, thirteen differentiated color/equipment/tempo profiles, named skill controls, touch drag aiming with preview and cancellation, directional targeting, combat text and effects, role-aware bots, retreat hysteresis and tower regroup logic. Shared rigs remain; bespoke skeletal models and Android visual/touch QA are not yet complete. Online integration untouched. No APK or OTA publication.
+
+## Individual hero models
+The active offline MOBA candidate now generates and imports 13 independent original stylized GLBs (not generic knight/mage instances). Each contains separate geometry, proportional armor and hair, signature equipment, materials, a bound skeleton, and nine named animation clips. Generated from a reproducible Python source without paid APIs or external character assets. Existing illustrations and canonical hero rules are unchanged. This is a mobile-optimized original model pass, not a claim of hand-sculpted AAA likeness or verified Android visual fidelity. Full roster runtime import, hashes, bones, clip tracks and no shared rig are mandatory gates. No live OTA or APK baseline change.

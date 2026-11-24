@@ -50,6 +50,7 @@ var aim_vector := Vector2.ZERO
 var aim_indicator: MeshInstance3D
 var aim_hint: Label
 var terrain_count := 0
+var hero_models: Dictionary = {}
 var effect_nodes: Array[Dictionary] = []
 var map_display: Control
 var map_texture: ImageTexture
@@ -171,6 +172,22 @@ func _prop(id: String, at: Vector3, size_factor: float, angle: float=0.0) -> voi
 	node.scale=Vector3.ONE*size_factor
 	terrain_count+=1
 
+func _hero_model(id: String) -> Node3D:
+	if not HERO_STYLE.has(id):return null
+	if hero_models.has(id):return hero_models[id]
+	var folder: String="res://3d/buklod_heroes/"
+	var bytes:=FileAccess.get_file_as_bytes(folder+id+".glb")
+	if bytes.size()<10000 or bytes.size()>2000000:return null
+	var doc:=GLTFDocument.new()
+	var state:=GLTFState.new()
+	if doc.append_from_buffer(bytes,folder,state)!=OK:return null
+	var model: Node=doc.generate_scene(state)
+	if not model is Node3D:
+		if model!=null:model.free()
+		return null
+	hero_models[id]=model
+	return model
+
 func _model(id: String) -> Node3D:
 	if templates.has(id):
 		return templates[id]
@@ -218,7 +235,7 @@ func _setup_ui() -> void:
 	hud.add_child(menu)
 	_label(menu,"BUKLOD EMPIRE • GENESIS RIFT",34)
 	_label(menu,"5 vs 5 OFFLINE PRACTICE • 3 lanes",22)
-	_label(menu,"Original hero kits • shared prototype 3D rigs",18)
+	_label(menu,"13 original rigged 3D heroes • canonical BUKLOD skills",18)
 	choice=OptionButton.new()
 	menu.add_child(choice)
 	for id in sim.config.get("heroes",{}):
@@ -249,6 +266,11 @@ func _start_selected() -> void:
 func start_match(hero: String, level: String="normal") -> bool:
 	if running or not sim.start(hero,level):
 		return false
+	# Fail closed on missing custom assets rather than silently substituting rigs.
+	for p in sim.state["players"].values():
+		if _hero_model(str(p["hero"]))==null:
+			push_error("BUKLOD_HERO_MODEL_MISSING "+str(p["hero"]))
+			return false
 	_build_map()
 	menu.hide()
 	stats.show()
@@ -465,12 +487,13 @@ func _make_actor(p: Dictionary) -> Dictionary:
 	var profile: Array=HERO_STYLE.get(str(p.get("hero","")),["#ffffff","staff",1.0,1.0])
 	if kind=="hero":
 		var identity:=str(p["hero"])
-		var role:=str(sim.config["heroes"][identity]["role"])
-		var rig: Node3D=_model("rig_mage" if role in ["support","controller","disruptor","logistician","rally"] else "rig_knight")
+		var rig: Node3D=_hero_model(identity)
 		if rig!=null:
 			model=rig.duplicate()
 			node.add_child(model)
-			model.scale=Vector3.ONE*0.8*float(profile[2])
+			model.scale=Vector3.ONE*0.88
+		else:
+			push_error("BUKLOD_HERO_MODEL_MISSING "+identity)
 	elif kind=="tower":
 		var tower:=_model("arena_crystal" if p.get("core",false) else "arena_tower")
 		if tower!=null:
@@ -479,21 +502,6 @@ func _make_actor(p: Dictionary) -> Dictionary:
 			model.scale=Vector3.ONE*(2.0 if p.get("core",false) else 1.4)
 	if model==null:
 		model=_box(node,Vector3(0,0.4,0),Vector3(0.55,0.8,0.55),team_color)
-	if kind=="hero":
-		var accent_color:=Color(str(profile[0]))
-		var accent:=Node3D.new()
-		model.add_child(accent)
-		accent.position=Vector3(0.55,0.78,0)
-		var style:=str(profile[1])
-		match style:
-			"shield","book","compass":_box(accent,Vector3.ZERO,Vector3(0.13,0.48,0.40),accent_color)
-			"orb":_box(accent,Vector3(0,0.22,0),Vector3(0.25,0.25,0.25),accent_color)
-			"hammer":
-				_box(accent,Vector3.ZERO,Vector3(0.10,0.64,0.10),accent_color)
-				_box(accent,Vector3(0,0.35,0),Vector3(0.36,0.18,0.22),accent_color)
-			_:
-				_box(accent,Vector3.ZERO,Vector3(0.09,0.83,0.09),accent_color)
-				if style=="banner":_box(accent,Vector3(0.17,0.32,0),Vector3(0.32,0.36,0.08),accent_color)
 	var ring:=MeshInstance3D.new()
 	var disk:=CylinderMesh.new()
 	disk.top_radius=0.65 if kind=="hero" else 0.4
@@ -517,12 +525,12 @@ func _make_actor(p: Dictionary) -> Dictionary:
 func _play(record: Dictionary, desired: String) -> void:
 	if record.is_empty():
 		return
-	if desired in ["Attack","Skill","Hit"]:
-		record["attack_until"]=Time.get_ticks_msec()+350
+	if desired in ["Attack","Skill","Ultimate","Hit","Death","Victory"]:
+		record["attack_until"]=Time.get_ticks_msec()+(1000 if desired in ["Ultimate","Death","Victory"] else 500 if desired=="Skill" else 350)
 		record["motion"]=1.0
 	elif Time.get_ticks_msec()<int(record.get("attack_until",0)):
 		return
-	if record.get("animation")==desired:
+	if record.get("animation")==desired and desired in ["Idle","Walk","Run"]:
 		return
 	var profile: Array=record["profile"]
 	var aliases: Array=[desired.to_lower()]
@@ -533,6 +541,12 @@ func _play(record: Dictionary, desired: String) -> void:
 		"Hit":aliases=["hit","damage","hurt"]
 	for n in record["model"].find_children("*","AnimationPlayer",true,false):
 		var player: AnimationPlayer=n
+		if player.has_animation(desired):
+			var clip: Animation=player.get_animation(desired)
+			clip.loop_mode=Animation.LOOP_LINEAR if desired in ["Idle","Walk","Run"] else Animation.LOOP_NONE
+			player.play(desired,0.10)
+			record["animation"]=desired
+			return
 		for alias in aliases:
 			for clip in player.get_animation_list():
 				if str(alias) in str(clip).to_lower():
@@ -547,13 +561,22 @@ func _sync_actors(weight: float) -> void:
 		for p in group:
 			var id:=str(p["id"])
 			if not sim._alive(p):
-				if actors.has(id):actors[id]["node"].hide()
+				if actors.has(id):
+					var dead: Dictionary=actors[id]
+					if p["kind"]=="hero" and dead.get("animation")!="Death":
+						_play(dead,"Death")
+					if p["kind"]!="hero" or Time.get_ticks_msec()>int(dead.get("attack_until",0)):dead["node"].hide()
 				continue
 			seen[id]=true
 			if not actors.has(id):
 				actors[id]=_make_actor(p)
 			var a: Dictionary=actors[id]
 			var n: Node3D=a["node"]
+			if not n.visible:
+				a["attack_until"]=0
+				_play(a,"Idle")
+				n.position=_world(p["pos"])
+				a["target"]=n.position
 			n.show()
 			var next:=_world(p["pos"])
 			var motion:=next-n.position
@@ -614,7 +637,7 @@ func _read_events() -> void:
 		elif e["type"]=="skill" and e.has("pos"):
 			var source: Dictionary=sim.actor(str(e.get("actor","")))
 			var profile: Array=HERO_STYLE.get(str(source.get("hero","")),["#ffffff","staff",1.0,1.0])
-			_play(actors.get(str(e.get("actor","")),{}),"Skill")
+			_play(actors.get(str(e.get("actor","")),{}),"Ultimate" if e.get("slot")=="ultimate" else "Skill")
 			_flash(_world(e["pos"]),Color(str(profile[0])),2.8 if e.get("slot")=="ultimate" else 1.7)
 		elif e["type"] in ["respawn","level_up"] and e.has("pos"):
 			_flash(_world(e["pos"]),Color("#f4e5a3"),1.25)
@@ -695,5 +718,5 @@ func _show_result() -> void:
 	_button(panel,"RETURN TO EMPIRE",func():get_node("/root/EmpireSession").return_to_menu())
 
 func _exit_tree() -> void:
-	for n in templates.values():
+	for n in templates.values()+hero_models.values():
 		if is_instance_valid(n):n.free()

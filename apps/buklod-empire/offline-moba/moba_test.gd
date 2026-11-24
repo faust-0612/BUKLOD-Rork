@@ -66,7 +66,29 @@ func _run() -> void:
 	if not check(world.start_match("van","easy"),"3D scene start"):return
 	for i in range(35):await process_frame
 	if not check(world.actors.size()>=18,"3D hero/tower nodes"):return
-	if not check(world.templates.has("rig_knight") and world.templates.has("rig_mage"),"both real rigs loaded"):return
+	var manifest=JSON.parse_string(FileAccess.get_file_as_string("res://3d/buklod_heroes/manifest.json"))
+	if not check(manifest is Dictionary and manifest["heroes"].size()==13,"hero manifest"):return
+	var hashes: Dictionary={}
+	for record in manifest["heroes"]:
+		var id: String=record["id"]
+		var model: Node3D=world._hero_model(id)
+		if not check(model!=null,"load independent model "+id):return
+		var actual=model.find_children("*","Skeleton3D",true,false)
+		if not check(actual.size()==1 and actual[0].get_bone_count()>=16,"independent skeleton "+id):return
+		var players=model.find_children("*","AnimationPlayer",true,false)
+		if not check(players.size()>0,"animation player "+id):return
+		for clip in record["clips"]:
+			if not check(players[0].has_animation(clip),"clip "+id+" "+str(clip)):return
+			if not check(players[0].get_animation(clip).get_track_count()>=16,"animated skeletal tracks "+id+" "+str(clip)):return
+		hashes[record["meshHash"]]=true
+		var bytes=FileAccess.get_file_as_bytes("res://3d/buklod_heroes/"+id+".glb")
+		var hash:=HashingContext.new()
+		hash.start(HashingContext.HASH_SHA256)
+		hash.update(bytes)
+		if not check(hash.finish().hex_encode()==record["sha256"],"model hash "+id):return
+		print("BUKLOD_HERO_RUNTIME_VERIFIED "+id)
+	if not check(hashes.size()==13 and world.hero_models.size()==13,"13 unique model geometries"):return
+	if not check(not world.templates.has("rig_knight") and not world.templates.has("rig_mage"),"no generic shared hero rig loaded"):return
 	if not check(world.terrain_count>=25,"dressed battlefield"):return
 	if not check(world.HERO_STYLE.size()==13,"distinct hero presentation profiles"):return
 	if not check(world.aim_indicator!=null,"aim indicator present"):return

@@ -5,6 +5,7 @@ on:
     paths:
       - 'apps/buklod-empire/offline-moba/**'
       - 'scripts/prepare-buklod-empire-moba-overlay.mjs'
+      - 'scripts/generate-buklod-empire-hero-glbs.py'
       - '.github/workflows/buklod-empire-offline-moba-dev.yml'
 permissions:
   contents: read
@@ -48,6 +49,8 @@ jobs:
         if: always()
         with:
           name: empire-offline-moba-test-log
-          path: build/empire-moba-test.log
+          path: |
+            build/empire-moba-test.log
+            build/empire-moba-candidate/3d/buklod_heroes/
           if-no-files-found: ignore
           retention-days: 7
