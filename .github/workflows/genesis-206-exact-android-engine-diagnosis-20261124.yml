@@ -1,0 +1,75 @@
+name: Genesis 206 exact signed Android engine diagnosis (offline)
+on:
+  push:
+    branches: ['dev/genesis-206-android-engine-diagnosis-20261124']
+    paths:
+      - '.github/workflows/genesis-206-exact-android-engine-diagnosis-20261124.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  exact-apk-runtime:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'GENESIS_206_ANDROID_DIAGNOSIS:')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      BUKLOD_GENESIS_PREMIUM_3D: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: '7da090dfc73429ff7a1080d74249ae38c1067fbf'
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch exact original signed staging APK without rebuilding
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir exact-apk
+          gh api repos/faust-0612/BUKLOD-Rork/actions/artifacts/14817753566/zip > /tmp/genesis-exact.apk.zip
+          echo '0174f72bab0daa48bddf851f835f4fb96c1ee365d145f93f428265a42dfa3bde  /tmp/genesis-exact.apk.zip' | sha256sum -c -
+          unzip -q /tmp/genesis-exact.apk.zip -d exact-apk
+          apk="$(find exact-apk -type f -name '*.apk' -print -quit)"
+          test -s "$apk"
+          unzip -Z1 "$apk" | grep -E '^lib/x86_64/.*godot.*\.so$'
+          tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
+          "$tools/aapt" dump badging "$apk" | grep -E "^package: name='org.mzbministry.buklod.staging' versionCode='18' versionName='2.0.6'"
+          "$tools/apksigner" verify "$apk"
+          rm /tmp/genesis-exact.apk.zip
+      - name: Reproduce exact published public pack and refuse any hash mismatch
+        run: |
+          set -euo pipefail
+          node scripts/genesis-import-verified-3d.mjs
+          node scripts/genesis-prepare-godot-ota-pack.mjs
+          echo '4f05186a6ce4eb9955b02847a64cec4d595f39c9cb14700798fce26e22476d38  assets/season2/genesis/ota/empire-arena.zip' | sha256sum -c -
+      - name: Checkout diagnostic harness only
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: diagnostic-harness
+          persist-credentials: false
+      - name: Enable KVM for disposable emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -w /dev/kvm
+      - name: Native Android release runtime and exact OTA pack reproduction
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash diagnostic-harness/scripts/genesis-206-offline-android-engine-diagnosis.sh
+      - name: Preserve Android logcat and screenshots even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: genesis-206-exact-android-engine-evidence
+          path: android-godot-evidence/
+          if-no-files-found: warn
+          retention-days: 3
