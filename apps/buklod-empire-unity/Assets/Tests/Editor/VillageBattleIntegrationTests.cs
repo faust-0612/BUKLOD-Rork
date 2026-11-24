@@ -9,6 +9,14 @@ namespace Buklod.Empire.Tests {
             var enemy=villagers.First(u=>u.Team==ArenaTeam.Tenebra);
             Assert.True(b.Hit(b.Player.State,enemy.State,50));Assert.AreEqual(150,enemy.State.Health);Assert.AreEqual(150,enemy.Villager.Health);
         }
+        [Test] public void NaturalDepositsAreCapturableButFoodPlotsAreNot(){
+            var b=new OfflineBattle("phan");
+            Assert.AreEqual(8,b.ResourceNodes.Count(n=>n.Capturable));Assert.AreEqual(2,b.ResourceNodes.Count(n=>!n.Capturable));
+            Assert.True(b.ResourceNodes.All(n=>n.CaptureProgress==0));
+            for(int i=0;i<100;i++)b.Advance(.1f,Vector2.zero);
+            Assert.True(b.ResourceNodes.All(n=>n.Stock<=n.Capacity&&n.Stock>=0));
+            Assert.False(b.Finished);Assert.AreEqual("",b.EndReason);
+        }
         [Test] public void PopulationAndRecruitmentDoNotBypassHousingOrFunds(){
             var b=new OfflineBattle("phan");Assert.AreEqual(12,b.PopulationCapacity(ArenaTeam.Lux));Assert.AreEqual(6,b.PopulationUsed(ArenaTeam.Lux));
             Assert.False(b.RecruitPlayerGatherer());Assert.False(b.RecruitmentPending(ArenaTeam.Lux));Assert.False(b.CancelPlayerRecruitment());

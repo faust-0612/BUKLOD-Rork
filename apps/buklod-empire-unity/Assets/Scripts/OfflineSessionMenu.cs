@@ -86,7 +86,7 @@ namespace Buklod.Empire {
         private void Refresh(){
             var b=view.Battle;bool finished=b!=null&&b.Finished;
             title.text=finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):"OFFLINE TRAINING";
-            summary.text=finished?$"K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists} • Damage {b.Player.DamageDealt:0} • Taken {b.Player.DamageTaken:0} • No permanent rewards":"5v5 • Full faction elimination • No permanent rewards";
+            summary.text=finished?$"{b.EndReason} • K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists} • Damage {b.Player.DamageDealt:0} • Taken {b.Player.DamageTaken:0} • No permanent rewards":"5v5 • Full faction elimination • No permanent rewards";
             resume.interactable=b!=null&&!finished&&b.Time>0;
         }
         private void Resume(){if(view.Battle==null||view.Battle.Finished)return;Close();}

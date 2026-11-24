@@ -28,7 +28,8 @@
     "All village jobs require canonical active job and fixed match tick; no free adapter operations",
     "Visible world-object and target-lock binding; strict hybrid production asset/Android settings validation",
     "Funded match-local resource exchange at live storage, fixed spread and cooldown",
-    "Housing population limits, funded timed recruitment, no recruited respawn, paid troop/revival capacity"
+    "Housing population limits, funded timed recruitment, no recruited respawn, paid troop/revival capacity",
+    "Contested finite deposit capture conserves stock; overtime stall resolves draw not fabricated victory"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-unity-integrated-apk-20261124.json",
