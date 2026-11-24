@@ -17,7 +17,8 @@ namespace Buklod.Empire {
     }
     public sealed class SkillActor {
         public readonly HeroKit Kit;
-        public float Health=160, MaxHealth=160, Mana=100, Shield;
+        public float Health=160, MaxHealth=160, Mana=100, MaxMana=100, Shield;
+        internal float ShieldCapacity=105;
         internal float Clock,EquipmentCooldown;
         private float temporaryShield,temporaryShieldUntil;
         public int Level=3;
@@ -37,8 +38,17 @@ namespace Buklod.Empire {
         private readonly float[] last={float.NegativeInfinity,float.NegativeInfinity,float.NegativeInfinity};
         public SkillActor(string hero){Kit=HeroKitCatalog.Get(hero);castHistory=new SkillCastEvent[CastHistoryCapacity];}
         internal SkillActor(float health){Health=MaxHealth=health;Mana=0;Level=0;}
-        internal void Respawn(){Health=MaxHealth;Mana=100;Shield=0;temporaryShield=temporaryShieldUntil=0;buffs.Clear();}
-        public float Buff(string id,float now)=>buffs.TryGetValue(id,out var b)&&b.until>now?b.strength:0;
+        internal void Respawn(){Health=MaxHealth;Mana=MaxMana;Shield=0;temporaryShield=temporaryShieldUntil=0;buffs.Clear();}
+        public float Buff(string id,float now){
+            float basic=buffs.TryGetValue(id,out var b)&&b.until>now?b.strength:0;
+            return buffs.TryGetValue("field:"+id,out var f)&&f.until>now?Mathf.Max(basic,f.strength):basic;
+        }
+        internal bool ExtendPickupBuff(string id,float value,float duration,float now){
+            if(duration<=0||value<=0)return false;string key="field:"+id;
+            bool active=buffs.TryGetValue(key,out var old)&&old.until>now;
+            float end=Mathf.Min(now+60,(active?old.until:now)+duration),strength=active?Mathf.Max(old.strength,value):value;
+            if(active&&end<=old.until&&strength<=old.strength)return false;buffs[key]=(strength,end);return true;
+        }
         public void Clear(string id)=>buffs.Remove(id);
         private static readonly string[] Cleanseable={"stun","slow","root","silence","disarm","blind","fear"};
         public bool CanMove(float now)=>Alive&&Buff("stun",now)<=0&&Buff("root",now)<=0&&Buff("suppression",now)<=0&&Buff("fear",now)<=0;
@@ -52,10 +62,11 @@ namespace Buklod.Empire {
             buffs[id]=(strength,until);
         }
         public void Heal(float value){if(Alive&&!float.IsNaN(value)&&!float.IsInfinity(value))Health=Mathf.Min(MaxHealth,Health+Mathf.Max(0,value)*(1-Mathf.Clamp(Buff("antiheal",Clock),0,.5f)));}
-        public void AddShield(float value,float cap=105){if(Alive)Shield=Mathf.Min(cap,Shield+Mathf.Max(0,value));}
+        public void AddShield(float value,float cap=105){if(!Alive)return;if(temporaryShieldUntil<=Clock)temporaryShield=0;
+            float limit=Mathf.Min(ShieldCapacity,cap+ShieldCapacity-105);Shield+=Mathf.Max(0,Mathf.Min(value,limit-Shield-temporaryShield));}
         internal float AddTemporaryShield(float value,float until,float now){
             if(!Alive)return 0;if(temporaryShieldUntil<=now)temporaryShield=0;
-            float before=temporaryShield;temporaryShield=Mathf.Min(Mathf.Max(0,105-Shield),temporaryShield+Mathf.Max(0,value));
+            float before=temporaryShield;temporaryShield=Mathf.Min(Mathf.Max(0,ShieldCapacity-Shield),temporaryShield+Mathf.Max(0,value));
             if(temporaryShield>before)temporaryShieldUntil=Mathf.Max(temporaryShieldUntil,until);return Mathf.Max(0,temporaryShield-before);
         }
         internal float Absorb(float incoming,float now){
@@ -65,7 +76,7 @@ namespace Buklod.Empire {
         }
         internal float PickupShield(float value,float now){
             if(temporaryShieldUntil<=now)temporaryShield=0;
-            float gain=Mathf.Max(0,Mathf.Min(value,105-Shield-temporaryShield));if(Alive)Shield+=gain;else gain=0;return gain;
+            float gain=Mathf.Max(0,Mathf.Min(value,ShieldCapacity-Shield-temporaryShield));if(Alive)Shield+=gain;else gain=0;return gain;
         }
         internal float ReduceActiveCooldowns(float seconds,float now){
             if(!Alive||Kit==null||seconds<=0)return 0;float total=0;

@@ -24,8 +24,12 @@ namespace Buklod.Empire {
         public bool IsRecalling=>RecallEnds>0;
         internal bool Jungler;
         public readonly HashSet<string> Gear=new HashSet<string>();
+        internal readonly Dictionary<string,ArenaRelicDefinition> RelicSlots=new Dictionary<string,ArenaRelicDefinition>();
+        public IReadOnlyDictionary<string,ArenaRelicDefinition> Relics {get;}
+        internal ArenaRelicStats RelicStats;
+        internal readonly Dictionary<int,int> HeroKillHistory=new Dictionary<int,int>();
         internal BattleUnit(int id,ArenaTeam team,BattleTargetKind kind,SkillActor state,Vector2 pos,ArenaLane lane,bool core=false,bool temporary=false,MinionRole role=MinionRole.Infantry){
-            Id=id;Team=team;Kind=kind;State=state;Spawn=Position=pos;Lane=lane;Core=core;Temporary=temporary;Role=role;
+            Id=id;Team=team;Kind=kind;State=state;Spawn=Position=pos;Lane=lane;Core=core;Temporary=temporary;Role=role;Relics=new System.Collections.ObjectModel.ReadOnlyDictionary<string,ArenaRelicDefinition>(RelicSlots);
         }
     }
     // Match-local Unity C# simulation. Original Genesis Rift size and cover. Rendering,
@@ -53,15 +57,17 @@ namespace Buklod.Empire {
         public VillageSystem GetVillage(ArenaTeam team)=>villages[(int)team];
         private Vector2 Base(ArenaTeam team)=>new Vector2(team==ArenaTeam.Lux?14:Width-14,Height*.5f);
         private int nextId,tick; private double accumulator;
-        private int nextDropId;private readonly System.Random dropRandom,combatRandom;
+        private int nextDropId;private readonly System.Random dropRandom,combatRandom,relicRandom;
         private readonly List<ArenaFieldDrop> drops=new List<ArenaFieldDrop>();
         public IReadOnlyList<ArenaFieldDrop> Drops {get;}
+        private readonly List<ArenaRelicDrop> relicDrops=new List<ArenaRelicDrop>();
+        public IReadOnlyList<ArenaRelicDrop> RelicDrops {get;}
         public int RemainingUnits(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.State.Alive);
         private bool CoreAlive(ArenaTeam team)=>units.Any(u=>u.Team==team&&u.Core&&u.State.Alive);
         private bool CanRespawn(ArenaTeam team)=>Time<OfflineMatchRules.MatchLimit&&CoreAlive(team);
         private void CheckElimination(){
             if(Finished)return;int lux=RemainingUnits(ArenaTeam.Lux),ten=RemainingUnits(ArenaTeam.Tenebra);
-            if(lux==0||ten==0){Winner=lux==ten?(ArenaTeam?)null:lux==0?ArenaTeam.Tenebra:ArenaTeam.Lux;Finished=true;waves.EndMatch(Winner);drops.Clear();}
+            if(lux==0||ten==0){Winner=lux==ten?(ArenaTeam?)null:lux==0?ArenaTeam.Tenebra:ArenaTeam.Lux;Finished=true;waves.EndMatch(Winner);drops.Clear();relicDrops.Clear();}
         }
         private readonly IBattleNavigation navigation;
         public IReadOnlyList<BattleUnit> Units {get;}
@@ -70,7 +76,7 @@ namespace Buklod.Empire {
         public bool Finished {get;private set;}
         public ArenaTeam? Winner {get;private set;}
         public OfflineBattle(string hero,IBattleNavigation navigation=null,int seed=1){
-            this.navigation=navigation;dropRandom=new System.Random(seed);combatRandom=new System.Random(unchecked(seed*397+17));Drops=drops.AsReadOnly();
+            this.navigation=navigation;dropRandom=new System.Random(seed);combatRandom=new System.Random(unchecked(seed*397+17));relicRandom=new System.Random(unchecked(seed*7919+71));Drops=drops.AsReadOnly();RelicDrops=relicDrops.AsReadOnly();
             HeroKitCatalog.Get(hero);
             Units=units.AsReadOnly();
             foreach(var c in OriginalCover)cover.Add((new Vector2(c.x*Width,c.y*Height),c.z*Height,float.PositiveInfinity));
@@ -145,11 +151,12 @@ namespace Buklod.Empire {
             if(target.Buff("invulnerable",Time)>0)return false;
             if(basic&&actor.Buff("blind",Time)>0)return false;
             a.RecallEnds=0;t.RecallEnds=0;if(a.Kind==BattleTargetKind.Hero)actor.Set("revealed",1,Time+2,Time);
-            float n=OfflineMatchRules.Damage(Mathf.Clamp(damage,0,300),a.Gear.Contains("blade"),t.Gear.Contains("armor")&&!a.Gear.Contains("sealbreaker"));
+            float n=OfflineMatchRules.Damage(Mathf.Clamp(damage+a.RelicStats.Attack,0,300),a.Gear.Contains("blade"),t.Gear.Contains("armor")&&!a.Gear.Contains("sealbreaker"));
             if(t.Gear.Contains("armor")&&a.Gear.Contains("sealbreaker"))n*=.94f;
             if(basic&&a.Gear.Contains("precision")&&combatRandom.NextDouble()<.2)n*=1.5f;
             if(basic&&a.Gear.Contains("giantbane")&&t.Kind==BattleTargetKind.Hero)n+=Mathf.Min(20,t.State.MaxHealth*.035f);
             if(t.Gear.Contains("aegis")&&n>=50)n*=.8f;
+            n*=1-Mathf.Clamp(t.RelicStats.Block+t.RelicStats.Mitigation,0,.42f);
             n*=1-Mathf.Clamp(actor.Buff("weaken",Time),0,.3f);n*=1+Mathf.Clamp(actor.Buff("fury",Time),0,.3f);
             n*=1-Mathf.Clamp(target.Buff("guard",Time),0,.4f);n*=1+Mathf.Clamp(target.Buff("vulnerable",Time),0,.2f);
             if(t.Kind==BattleTargetKind.Minion)n*=1-Mathf.Clamp01(MinionCombatRules.Stats(t.Role).Defense-target.Buff("armor_break",Time));
@@ -191,13 +198,17 @@ namespace Buklod.Empire {
             return true;
         }
         private void RollDrop(BattleUnit killer,BattleUnit target){
-            double chance=target.Kind==BattleTargetKind.Hero?1:target.Kind==BattleTargetKind.Structure?.4:.15;
-            if(dropRandom.NextDouble()>=chance)return;
-            SpawnDrop(killer,target.Position,false);
+            string source=target.Kind==BattleTargetKind.Hero?"hero":target.Kind==BattleTargetKind.Structure?"tower":"unit";
+            double chance=source=="hero"?.43:source=="tower"?.65:.17;
+            if(source=="hero"){
+                killer.HeroKillHistory.TryGetValue(target.Id,out int repeat);killer.HeroKillHistory[target.Id]=repeat+1;
+                if(repeat<2)RollRelic(killer,target.Position,.45f,"hero");
+            }
+            if(dropRandom.NextDouble()<chance)SpawnDrop(killer,target.Position,false);
         }
         private void SpawnDrop(BattleUnit killer,Vector2 position,bool boss){
             var item=ArenaPickupCatalog.Roll(killer.State.Kit.Id,killer.State.Level,dropRandom.NextDouble,boss);
-            if(drops.Count>=ArenaPickupCatalog.Limit)drops.RemoveAt(0);
+            if(drops.Count>=ArenaPickupCatalog.Limit||drops.Count+relicDrops.Count>=36)return;
             drops.Add(new ArenaFieldDrop(++nextDropId,item,position,killer.Team,Time));
         }
         private WildernessCamp FindCamp(BattleUnit hero,Vector2 aim,float range)=>wilderness.Camps.Where(c=>c.Alive&&Vector2.Distance(hero.Position,c.Position)<=range&&ClearSight(hero.Position,c.Position)&&OfflineMatchRules.InAimCone(c.Position-hero.Position,aim)).OrderBy(c=>Vector2.Distance(hero.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
@@ -207,7 +218,7 @@ namespace Buklod.Empire {
             if(defeated){
                 var a=hero.State;hero.Gold=Mathf.Min(9999,hero.Gold+(camp.Boss?90:30));GainXp(hero,camp.Boss?90:35);
                 switch(camp.Kind){
-                    case WildernessKind.AzureStag:a.Mana=Mathf.Min(100,a.Mana+25);a.Set("cooldown",.15f,Time+45,Time);break;
+                    case WildernessKind.AzureStag:a.Mana=Mathf.Min(a.MaxMana,a.Mana+25);a.Set("cooldown",.15f,Time+45,Time);break;
                     case WildernessKind.CrimsonWolf:a.Set("fury",.12f,Time+45,Time);break;
                     case WildernessKind.EmeraldSerpent:a.Set("regen",1.5f,Time+40,Time);break;
                     case WildernessKind.GoldenScarab:hero.Gold=Mathf.Min(9999,hero.Gold+60);break;
@@ -218,7 +229,8 @@ namespace Buklod.Empire {
                         foreach(var ally in units.Where(u=>u.Team==hero.Team&&u.Kind==BattleTargetKind.Hero&&u.State.Alive)){ally.Gold=Mathf.Min(9999,ally.Gold+35);GainXp(ally,45);if(camp.Kind==WildernessKind.AncientSentinel)ally.State.AddTemporaryShield(20,Time+12,Time);}
                         if(camp.Kind==WildernessKind.ColossalGuardian)waves.EmpowerSiege(hero.Team,2);break;
                 }
-                if(camp.Boss||dropRandom.NextDouble()<.65)SpawnDrop(hero,camp.Position,camp.Boss);
+                RollRelic(hero,camp.Position,camp.Boss?.65f:.4f,camp.Boss?"boss":"buff");
+                if(dropRandom.NextDouble()<(camp.Boss?.92:.48))SpawnDrop(hero,camp.Position,camp.Boss);
             }return true;
         }
         private void AdvanceWilderness(){
@@ -233,7 +245,30 @@ namespace Buklod.Empire {
                 if(Finished)return;
             }
         }
-        public bool AttackNeutralPlayer(int campId)=>Basic(Player,Vector2.zero,null,campId);
+        public bool AttackNeutralPlayer(int campId)=>campId>0&&Basic(Player,Vector2.zero,null,campId);
+        private void RollRelic(BattleUnit hero,Vector2 position,float quality,string source){
+            if(relicDrops.Count>=ArenaRelicCatalog.GroundLimit||drops.Count+relicDrops.Count>=36)return;
+            var own=villages[(int)hero.Team];var foe=villages[1-(int)hero.Team];bool behind=own.Wood+own.Gold+own.Stone+80<foe.Wood+foe.Gold+foe.Stone;
+            bool hunt=!CoreAlive(ArenaTeam.Lux)||!CoreAlive(ArenaTeam.Tenebra)||Time>=OfflineMatchRules.MatchLimit;
+            var item=ArenaRelicCatalog.Roll(hero.State.Kit.Id,hero.State.Level,quality,source,hunt,behind,relicRandom.NextDouble);
+            if(item!=null)relicDrops.Add(new ArenaRelicDrop(++nextDropId,item,position,Time));
+        }
+        public bool CollectPlayerRelic(int id)=>CollectRelic(Player,id);
+        private bool CollectRelic(BattleUnit u,int id){
+            if(Finished||!u.State.Alive||u.State.Kit==null)return false;
+            var d=relicDrops.Find(x=>x.Id==id);if(d==null||Time-d.SpawnedAt>=ArenaRelicCatalog.Lifetime||d.Item.Hero!=u.State.Kit.Id||Vector2.Distance(u.Position,d.Position)>ArenaRelicCatalog.Radius)return false;
+            var a=u.State;var item=d.Item;
+            if(item.Consumable){float before=item.Slot=="health"?a.Health:a.Mana;if(item.Slot=="health")a.Heal(item.Amount);else a.Mana=Mathf.Min(a.MaxMana,a.Mana+item.Amount);if((item.Slot=="health"?a.Health:a.Mana)<=before)return false;}
+            else{
+                if(u.RelicSlots.TryGetValue(item.Slot,out var previous)&&previous.Tier>=item.Tier)return false;
+                var old=u.RelicStats;u.RelicSlots[item.Slot]=item;var current=new ArenaRelicStats();foreach(var entry in u.RelicSlots.Values)current.Add(entry.Stats);u.RelicStats=current;
+                a.MaxHealth+=current.Hp-old.Hp;a.Health=Mathf.Min(a.MaxHealth,a.Health+current.Hp-old.Hp);
+                a.MaxMana+=current.Mana-old.Mana;a.Mana=Mathf.Min(a.MaxMana,a.Mana+current.Mana-old.Mana);
+                a.ShieldCapacity=105+current.ShieldMax;a.PickupShield(Mathf.Max(0,current.ShieldMax-old.ShieldMax),Time);
+                a.EquipmentCooldown=(u.Gear.Contains("wisdom")?.12f:0)+current.Cooldown;
+            }
+            relicDrops.Remove(d);return true;
+        }
         public bool CollectPlayerPickup(int id)=>CollectPickup(Player,id);
         private bool CollectPickup(BattleUnit u,int id){
             if(Finished||!u.State.Alive||u.State.Kit==null)return false;
@@ -242,16 +277,16 @@ namespace Buklod.Empire {
             var item=d.Item;float v=item.Value,amount=0;
             switch(item.Effect){
                 case "health":float hp=s.Health;s.Heal(v);amount=s.Health-hp;break;
-                case "mana":amount=Mathf.Max(0,Mathf.Min(v,100-s.Mana));s.Mana+=amount;break;
+                case "mana":amount=Mathf.Max(0,Mathf.Min(v,s.MaxMana-s.Mana));s.Mana+=amount;break;
                 case "shield":amount=s.PickupShield(v,Time);break;
                 case "xp":if(s.Level<15){amount=Mathf.Round(v);GainXp(u,amount);}break;
                 case "wood":case "gold":case "stone":amount=(float)villages[(int)u.Team].CreditPickup(item.Effect,Mathf.Round(v));break;
                 case "cooldown":amount=s.ReduceActiveCooldowns(v/1000,Time);break;
-                case "haste":case "fury":case "guard":case "regen":s.Set(item.Effect,v,Time+item.Duration,Time);amount=v;break;
+                case "haste":case "fury":case "guard":case "regen":if(s.ExtendPickupBuff(item.Effect,v,item.Duration,Time))amount=v;break;
             }
             if(amount<=0)return false;drops.Remove(d);return true;
         }
-        private void CollectNearby(BattleUnit u){for(int i=drops.Count-1;i>=0;i--)if(CollectPickup(u,drops[i].Id))break;}
+        private void CollectNearby(BattleUnit u){for(int i=drops.Count-1;i>=0;i--)if(CollectPickup(u,drops[i].Id))break;for(int i=relicDrops.Count-1;i>=0;i--)if(CollectRelic(u,relicDrops[i].Id))break;}
         public bool Dash(SkillActor actor,Vector2 direction,float distance)=>Move(Find(actor),direction,distance);
         public bool Wall(SkillActor actor,Vector2 dir,float distance,float radius,float duration){
             var a=Find(actor);if(Finished||a==null||!actor.Alive||cover.Count>=20||!Finite(dir))return false;
@@ -293,7 +328,7 @@ namespace Buklod.Empire {
         public bool BuyPlayer(string item)=>Buy(Player,item);
         public bool SellPlayer(string item)=>Sell(Player,item);
         private void GearChanged(BattleUnit u,string item,bool purchased){
-            u.State.EquipmentCooldown=u.Gear.Contains("wisdom")?.12f:0;
+            u.State.EquipmentCooldown=(u.Gear.Contains("wisdom")?.12f:0)+u.RelicStats.Cooldown;
             if(item=="vitality"){u.State.MaxHealth+=purchased?45:-45;u.State.Health=Mathf.Min(u.State.MaxHealth,u.State.Health);}
         }
         private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,true);return ok;}
@@ -301,14 +336,14 @@ namespace Buklod.Empire {
         private bool Basic(BattleUnit u,Vector2 aim,BattleTargetKind? kind=null,int campId=0){
             var a=u.State;var k=a.Kit;float speed=1+(u.Gear.Contains("fervor")?.2f:0)+Mathf.Clamp(a.Buff("attack_speed",Time),0,.25f);
             if(Finished||!a.CanAttack(Time)||k==null||!Finite(aim)||Time-u.LastAttack<k.BasicCooldown/speed)return false;
-            if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
+            if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
             var target=Enemies(a,k.BasicRange,aim).FirstOrDefault(e=>!kind.HasValue||Find(e).Kind==kind.Value);
-            if(target==null){if(kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+(u.Gear.Contains("blade")?7:0)))return false;}
+            if(target==null){if(kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;}
             else if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.LastAttack=Time;return true;
         }
         private static void GainXp(BattleUnit u,float n){
             var a=u.State;if(a.Kit==null||!a.Alive)return;u.Xp+=n;
-            while(a.Level<15){float threshold=65*a.Level+18*a.Level*a.Level;if(u.Xp<threshold)break;u.Xp-=threshold;a.Level++;a.MaxHealth+=8;a.Heal(22);a.Mana=Mathf.Min(100,a.Mana+12);}
+            while(a.Level<15){float threshold=65*a.Level+18*a.Level*a.Level;if(u.Xp<threshold)break;u.Xp-=threshold;a.Level++;a.MaxHealth+=8;a.Heal(22);a.Mana=Mathf.Min(a.MaxMana,a.Mana+12);}
         }
         private bool Spawn(MinionSpawn m){
             if(units.Count(u=>u.Kind==BattleTargetKind.Minion&&u.State.Alive)>=240)return false;
@@ -323,7 +358,7 @@ namespace Buklod.Empire {
         }
         private void Tick(Vector2 move){
             tick++;cover.RemoveAll(c=>c.expires<=Time);fallen.RemoveAll(f=>Time-f.Time>25);
-            drops.RemoveAll(d=>Time-d.SpawnedAt>=ArenaPickupCatalog.Lifetime);
+            drops.RemoveAll(d=>Time-d.SpawnedAt>=ArenaPickupCatalog.Lifetime);relicDrops.RemoveAll(d=>Time-d.SpawnedAt>=ArenaRelicCatalog.Lifetime);
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
             foreach(var u in units)u.State.Clock=Time;
             AdvanceWilderness();if(Finished)return;
@@ -345,10 +380,10 @@ namespace Buklod.Empire {
                         else continue;
                     }
                     a.Heal(a.Buff("regen",Time)*Step);
-                    if(u.Gear.Contains("wisdom"))a.Mana=Mathf.Min(100,a.Mana+1.4f*Step);
+                    a.Mana=Mathf.Min(a.MaxMana,a.Mana+((u.Gear.Contains("wisdom")?1.4f:0)+u.RelicStats.Regen)*Step);
                     if(tick%10==0){u.Gold=Mathf.Min(9999,u.Gold+2);GainXp(u,3);}
-                    if(CanRespawn(u.Team)&&Vector2.Distance(u.Position,u.Spawn)<10){a.Heal(.8f);a.Mana=Mathf.Min(100,a.Mana+.8f);}
-                    float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
+                    if(CanRespawn(u.Team)&&Vector2.Distance(u.Position,u.Spawn)<10){a.Heal(.8f);a.Mana=Mathf.Min(a.MaxMana,a.Mana+.8f);}
+                    float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+u.RelicStats.Speed)*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
                     if(u==Player){Move(u,move,speed*move.magnitude*Step);CollectNearby(u);continue;}
                     Bot(u,speed);if(!Finished)CollectNearby(u);
                 }else if(u.Kind==BattleTargetKind.Minion)Minion(u);
@@ -357,7 +392,7 @@ namespace Buklod.Empire {
             for(int i=units.Count-1;i>=0;i--){var u=units[i];if(!u.State.Alive&&(u.Kind==BattleTargetKind.Minion||u.Temporary)){byState.Remove(u.State);units.RemoveAt(i);}}
             CheckElimination();
             // 15 minutes is reinforcement cutoff, not an arbitrary winner. If neither faction can move/attack, draw rather than award a false victory.
-            if(!Finished&&Time>=OfflineMatchRules.MatchLimit&&!units.Any(u=>u.State.Alive&&(u.Temporary||u.Kind==BattleTargetKind.Hero||u.Kind==BattleTargetKind.Minion&&u.Role!=MinionRole.Healer))&&!units.Any(u=>u.Kind==BattleTargetKind.Structure&&u.State.Alive&&units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&ClearSight(u.Position,v.Position)))){Finished=true;Winner=null;waves.EndMatch(null);drops.Clear();}
+            if(!Finished&&Time>=OfflineMatchRules.MatchLimit&&!units.Any(u=>u.State.Alive&&(u.Temporary||u.Kind==BattleTargetKind.Hero||u.Kind==BattleTargetKind.Minion&&u.Role!=MinionRole.Healer))&&!units.Any(u=>u.Kind==BattleTargetKind.Structure&&u.State.Alive&&units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&ClearSight(u.Position,v.Position)))){Finished=true;Winner=null;waves.EndMatch(null);drops.Clear();relicDrops.Clear();}
         }
         // Classic conquest: surviving towers before core health ratio; an exact tie stays a draw.
         public static ArenaTeam? ResolveTimeout(int luxTowers,int tenebraTowers,float luxCoreRatio,float tenebraCoreRatio){
