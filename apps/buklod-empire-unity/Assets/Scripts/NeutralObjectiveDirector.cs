@@ -10,6 +10,10 @@ namespace Buklod.Empire {
         public float Health {get;internal set;}public bool Alive {get;internal set;}
         public float RespawnAt {get;internal set;}public int LastAttackerId {get;internal set;}
         internal float LastHitAt,NextAttackAt;
+        public int HitSequence {get;internal set;}
+        public int AttackSequence {get;internal set;}
+        public int DefeatSequence {get;internal set;}
+        public Vector2 LastAttackPosition {get;internal set;}
         internal WildernessCamp(int id,WildernessKind kind,Vector2 p,float hp,float damage,float first,float respawn,bool boss=false){
             Id=id;Kind=kind;Position=p;MaxHealth=hp;Damage=damage;RespawnAt=first;RespawnSeconds=respawn;Boss=boss;
         }
@@ -45,14 +49,14 @@ namespace Buklod.Empire {
             defeated=false;var c=Find(campId);
             if(c==null||!c.Alive||attackerId<=0||!Finite(origin)||!Finite(range)||range<=0||!Finite(damage)||damage<=0||Vector2.Distance(origin,c.Position)>range)return false;
             if(c.LastAttackerId==0)c.NextAttackAt=Time+1.25f;
-            c.LastAttackerId=attackerId;c.LastHitAt=Time;c.Health=Mathf.Max(0,c.Health-Mathf.Min(400,damage));
-            if(c.Health<=0){defeated=true;c.Alive=false;c.LastAttackerId=0;c.RespawnAt=Time+c.RespawnSeconds;}
+            c.LastAttackerId=attackerId;c.LastHitAt=Time;c.Health=Mathf.Max(0,c.Health-Mathf.Min(400,damage));c.HitSequence++;
+            if(c.Health<=0){c.DefeatSequence++;defeated=true;c.Alive=false;c.LastAttackerId=0;c.RespawnAt=Time+c.RespawnSeconds;}
             return true;
         }
         public bool TryRetaliate(int campId,int attackerId,Vector2 position,out float damage){
             damage=0;var c=Find(campId);
             if(c==null||!c.Alive||c.LastAttackerId!=attackerId||attackerId<=0||!Finite(position)||Time<c.NextAttackAt||Vector2.Distance(position,c.Position)>15)return false;
-            c.NextAttackAt=Time+1.25f;damage=c.Damage;return true;
+            c.NextAttackAt=Time+1.25f;c.AttackSequence++;c.LastAttackPosition=position;damage=c.Damage;return true;
         }
     }
 }
