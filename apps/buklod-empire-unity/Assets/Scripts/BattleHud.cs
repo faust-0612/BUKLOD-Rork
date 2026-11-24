@@ -54,6 +54,8 @@ namespace Buklod.Empire {
             }
         }
         private void ReviewLayout(){
+            var st=status.rectTransform;st.anchorMin=st.anchorMax=new Vector2(.55f,.94f);st.sizeDelta=new Vector2(width*.63f,height*.065f);
+            status.horizontalOverflow=HorizontalWrapMode.Wrap;status.resizeTextForBestFit=true;status.resizeTextMinSize=10;status.resizeTextMaxSize=Mathf.Max(12,(int)(height*.03f));
             var map=minimap.rectTransform;map.anchorMin=new Vector2(.025f,.60f);map.anchorMax=new Vector2(.025f,.60f);map.pivot=Vector2.zero;
             map.anchoredPosition=Vector2.zero;
             float mapWidth=Mathf.Min(width*.18f,height*.31f);
