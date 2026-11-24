@@ -23,30 +23,37 @@
   "acceptanceChecks": [
     "Exact independent APK identity and native ABIs",
     "Real Android emulator render and battle",
-    "No backend write or MAIN deploy"
+    "No backend write or MAIN deploy",
+    "Signed cumulative OTA delta, exact runtime/base/channel, immutable bootstrap, rollback and Android launch before release."
   ],
   "allowedPaths": [
-    "apps/buklod-empire/settings.gradle",
-    "apps/buklod-empire/build.gradle",
-    "apps/buklod-empire/gradle.properties",
+    ".buklod/releases/buklod-empire-standalone-dev-20261124.json",
+    ".buklod/scopes/buklod-empire-standalone-native-20261124.json",
+    ".github/workflows/buklod-empire-standalone-native-dev.yml",
+    "apps/buklod-empire/README.md",
     "apps/buklod-empire/app/build.gradle",
     "apps/buklod-empire/app/proguard-rules.pro",
     "apps/buklod-empire/app/src/main/AndroidManifest.xml",
-    "apps/buklod-empire/app/src/main/java/org/mzbministry/buklod/empire/EmpireActivity.java",
     "apps/buklod-empire/app/src/main/assets/.gitkeep",
+    "apps/buklod-empire/app/src/main/java/org/mzbministry/buklod/empire/EmpireActivity.java",
+    "apps/buklod-empire/build.gradle",
+    "apps/buklod-empire/game/EmpireBoot.tscn",
     "apps/buklod-empire/game/EmpireMenu.tscn",
-    "apps/buklod-empire/game/empire_session.gd",
+    "apps/buklod-empire/game/empire_boot.gd",
     "apps/buklod-empire/game/empire_menu.gd",
+    "apps/buklod-empire/game/empire_ota.gd",
+    "apps/buklod-empire/game/empire_session.gd",
+    "apps/buklod-empire/gradle.properties",
+    "apps/buklod-empire/settings.gradle",
+    "scripts/build-buklod-empire-ota.mjs",
     "scripts/build-buklod-empire-standalone.mjs",
     "scripts/verify-buklod-empire-android.sh",
-    "tests/buklod-empire-standalone-contract.test.mjs",
-    "apps/buklod-empire/README.md",
-    ".github/workflows/buklod-empire-standalone-native-dev.yml",
-    ".buklod/releases/buklod-empire-standalone-dev-20261124.json",
-    ".buklod/scopes/buklod-empire-standalone-native-20261124.json"
+    "tests/buklod-empire-ota.test.mjs",
+    "tests/buklod-empire-standalone-contract.test.mjs"
   ],
   "regressionTests": [
-    "tests/buklod-empire-standalone-contract.test.mjs"
+    "tests/buklod-empire-standalone-contract.test.mjs",
+    "tests/buklod-empire-ota.test.mjs"
   ],
   "lockedFeatureChanges": [
     {

@@ -12,7 +12,7 @@ test('Empire independent native package, no MAIN overwrite or Expo',()=>{
  assert.match(host,/return new ArrayList<>\(\)/);
  assert.doesNotMatch(host,/getIntent\(|add\("--main-pack"\)|add\("--scene"\)/);
  const m=read('apps/buklod-empire/app/src/main/AndroidManifest.xml');
- assert.doesNotMatch(m,/android.permission.INTERNET/);
+ assert.match(m,/android.permission.INTERNET/);
  assert.match(m,/android:usesCleartextTraffic="false"/);
 });
 test('same game asset inventory and no local economic authority',()=>{

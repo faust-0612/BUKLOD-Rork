@@ -3,7 +3,7 @@
  * No MAIN bundle, Expo, Vercel, live backend calls or credential transfer. */
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {readFileSync,writeFileSync,copyFileSync,mkdirSync,rmSync,readdirSync} from 'node:fs';
+import {readFileSync,writeFileSync,copyFileSync,mkdirSync,rmSync,readdirSync,statSync} from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 const base=path.resolve('apps/buklod-empire');
@@ -23,15 +23,15 @@ const change=(file,from,to)=>{
  writeFileSync(p,data.replace(from,()=>to));
 };
 change('project.godot','config/name="BUKLOD Empire Arena"','config/name="BUKLOD Empire"');
-change('project.godot','run/main_scene="res://scenes/Arena.tscn"','run/main_scene="res://scenes/EmpireMenu.tscn"');
-change('project.godot','[display]','[autoload]\nEmpireSession="*res://scripts/empire_session.gd"\n\n[display]');
+change('project.godot','run/main_scene="res://scenes/Arena.tscn"','run/main_scene="res://scenes/EmpireBoot.tscn"');
+change('project.godot','[display]','[autoload]\nEmpireOta="*res://scripts/empire_ota.gd"\nEmpireSession="*res://scripts/empire_session.gd"\n\n[display]');
 change('project.godot','window/size/mode=3','window/size/mode=3\nwindow/handheld/orientation=0'.replace('\nwindow/handheld/orientation=0','')+'\nwindow/size/initial_position_type=0');
 change('scripts/arena_root.gd','\tget_tree().quit(0)','\tget_node("/root/EmpireSession").return_to_menu()');
 change('scripts/world_preview.gd','\tEngine.max_fps = 30','\tworld_id = get_node("/root/EmpireSession").world_id\n\tEngine.max_fps = 30');
 change('scripts/world_preview.gd','back.pressed.connect(func() -> void: get_tree().quit())','back.pressed.connect(func() -> void: get_node("/root/EmpireSession").return_to_menu())');
 change('scripts/premium_world_3d.gd','    world_id = _get_world()','    world_id = get_node("/root/EmpireSession").world_id');
 change('scripts/arena_root.gd','\trunning = true\n\tif preview3d_button','\trunning = true\n\tprint("BUKLOD_EMPIRE_OFFLINE_BATTLE_STARTED")\n\tif preview3d_button');
-for(const [source,dest] of [['EmpireMenu.tscn','scenes/EmpireMenu.tscn'],['empire_menu.gd','scripts/empire_menu.gd'],['empire_session.gd','scripts/empire_session.gd']])copyFileSync(path.join(base,'game',source),path.join(assets,dest));
+for(const [source,dest] of [['EmpireMenu.tscn','scenes/EmpireMenu.tscn'],['empire_menu.gd','scripts/empire_menu.gd'],['empire_session.gd','scripts/empire_session.gd'],['EmpireBoot.tscn','scenes/EmpireBoot.tscn'],['empire_boot.gd','scripts/empire_boot.gd'],['empire_ota.gd','scripts/empire_ota.gd']])copyFileSync(path.join(base,'game',source),path.join(assets,dest));
 rmSync(path.join(assets,'tests'),{recursive:true,force:true});
 const drawable=path.join(base,'app/src/main/res/drawable');
 mkdirSync(drawable,{recursive:true});
@@ -45,6 +45,26 @@ assert.equal(readdirSync(path.join(assets,'kingdom-items')).length,42);
 const catalog=JSON.parse(readFileSync(path.join(assets,'data/catalog.json'),'utf8'));
 assert.equal(Object.keys(catalog.heroes).length,13);
 assert.equal(catalog.pickups.length,300);
-const manifest={status:'OFFLINE_DEV',sourceSha:process.env.GITHUB_SHA??null,package:'org.mzbministry.buklod.empire',godot:'4.7.2',canonicalPackSha256:createHash('sha256').update(readFileSync(zip)).digest('hex'),worlds:['arena','kingdom','house','community'],heroes:13,models:22,rigged:2,kingdomItems:42,audioCues:70,liveRewards:false,backendProjectCreated:false};
+// Stable APK baseline fingerprint includes all shipped source resources.
+// Store the inventory separately as the immutable input for future cumulative deltas.
+const inventory={};
+function walk(dir){
+ for(const name of readdirSync(dir).sort()){
+  const p=path.join(dir,name);
+  if(statSync(p).isDirectory())walk(p);
+  else inventory[path.relative(assets,p).split(path.sep).join('/')]=createHash('sha256').update(readFileSync(p)).digest('hex');
+ }
+}
+walk(assets);
+const baseHash=createHash('sha256').update(JSON.stringify(inventory)).digest('hex');
+const channel=process.env.BUKLOD_EMPIRE_OTA_CHANNEL||'dev';
+assert.ok(['dev','staging','production'].includes(channel));
+const key=process.env.BUKLOD_EMPIRE_OTA_PUBLIC_KEY||'';
+if(key)assert.match(key,/^-----BEGIN PUBLIC KEY-----[\s\S]+-----END PUBLIC KEY-----\s*$/);
+if(channel!=='dev')assert.ok(key,'Release channel requires permanent public key');
+mkdirSync(path.join(assets,'empire-ota'),{recursive:true});
+writeFileSync(path.join(assets,'empire-ota/config.json'),JSON.stringify({schema:1,channel,runtime:'empire-godot-4.7.2-r1',base:baseHash,key}));
+writeFileSync(path.join(build,'ota-baseline.json'),JSON.stringify({schema:1,channel,runtime:'empire-godot-4.7.2-r1',base:baseHash,inventory},null,2)+'\n');
+const manifest={otaProtocol:1,otaChannel:channel,otaTrustConfigured:!!key,otaBaseline:baseHash,status:'OFFLINE_DEV',sourceSha:process.env.GITHUB_SHA??null,package:'org.mzbministry.buklod.empire',godot:'4.7.2',canonicalPackSha256:createHash('sha256').update(readFileSync(zip)).digest('hex'),worlds:['arena','kingdom','house','community'],heroes:13,models:22,rigged:2,kingdomItems:42,audioCues:70,liveRewards:false,backendProjectCreated:false};
 writeFileSync(path.join(build,'content-receipt.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log('BUKLOD_EMPIRE_ASSETS_READY '+JSON.stringify(manifest));

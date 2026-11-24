@@ -45,13 +45,35 @@ func _ready() -> void:
  footer.add_theme_font_size_override("font_size",16)
  footer.add_theme_color_override("font_color",Color("#C1D6D1"))
  content.add_child(footer)
+ var updates := HBoxContainer.new()
+ content.add_child(updates)
+ var ota := get_node("/root/EmpireOta")
+ var update_status := Label.new()
+ update_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ update_status.add_theme_font_size_override("font_size",15)
+ updates.add_child(update_status)
+ var check := Button.new()
+ check.text = "CHECK UPDATE"
+ check.pressed.connect(func() -> void: ota.check_update())
+ updates.add_child(check)
+ var rollback := Button.new()
+ rollback.text = "ROLLBACK"
+ rollback.pressed.connect(func() -> void: ota.rollback())
+ updates.add_child(rollback)
+ var refresh := func() -> void:
+  update_status.text = ota.status
+  check.disabled = ota.busy
+  rollback.disabled = ota.busy or ota.state.active.is_empty()
+ ota.status_changed.connect(refresh)
+ refresh.call()
+ ota.check_once()
  await get_tree().process_frame
  if DisplayServer.get_name() != "headless":
   await RenderingServer.frame_post_draw
  print("BUKLOD_EMPIRE_MENU_RENDERED")
 func _card(card: Array) -> Control:
  var button := Button.new()
- button.custom_minimum_size = Vector2(420,220)
+ button.custom_minimum_size = Vector2(420,190)
  button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  button.size_flags_vertical = Control.SIZE_EXPAND_FILL
  button.clip_contents = true

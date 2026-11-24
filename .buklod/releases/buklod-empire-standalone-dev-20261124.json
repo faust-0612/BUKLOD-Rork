@@ -1,7 +1,7 @@
 {
-  "status": "DEV_BUILD_REQUESTED",
+  "status": "DEV_OTA_PROTOCOL_IMPLEMENTED_QA_PENDING",
   "package": "org.mzbministry.buklod.empire",
-  "version": "0.1.0-dev",
+  "version": "0.1.1-dev",
   "base": "05ac6bce40f13d8a8e38887ce3d43cf411117635",
   "mainRemoval": false,
   "production": false,
@@ -12,5 +12,9 @@
     "Android actual launch four scenes and battle",
     "Stable separate release signing",
     "Same-project account, character and server rewards parity before MAIN removal"
-  ]
+  ],
+  "otaProtocol": 1,
+  "otaPublished": false,
+  "trustKey": "REQUIRES_DURABLE_OWNER_CONTROLLED_KEY",
+  "storage": "existing MAIN project; bucket not provisioned or verified"
 }

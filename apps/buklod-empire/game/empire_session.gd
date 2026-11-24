@@ -17,6 +17,7 @@ func enter_world(world: String) -> void:
  if result != OK:
   transitioning = false
   push_error("EMPIRE_SCENE_LOAD_FAILED: "+world)
+  get_node("/root/EmpireOta").fail_current("World readiness failed")
   return
  await get_tree().scene_changed
  await get_tree().process_frame
@@ -24,23 +25,27 @@ func enter_world(world: String) -> void:
  if scene == null:
   transitioning = false
   push_error("EMPIRE_SCENE_MISSING")
+  get_node("/root/EmpireOta").fail_current("World readiness failed")
   return
  if world == "arena":
   var sim: Variant = scene.get("sim")
   if sim == null or not sim.available():
    transitioning = false
    push_error("EMPIRE_ARENA_CATALOG_FAILED")
+   get_node("/root/EmpireOta").fail_current("World readiness failed")
    return
  else:
   var explorer := scene.get_node_or_null("InteractiveVisuals")
   if explorer == null or scene.get("image_texture") == null or str(scene.get("world_id")) != world:
    transitioning = false
    push_error("EMPIRE_WORLD_VISUAL_FAILED: "+world)
+   get_node("/root/EmpireOta").fail_current("World readiness failed")
    return
   var avatar: Variant = explorer.get("avatar")
   if avatar == null or avatar.texture == null:
    transitioning = false
    push_error("EMPIRE_WORLD_AVATAR_FAILED: "+world)
+   get_node("/root/EmpireOta").fail_current("World readiness failed")
    return
  if DisplayServer.get_name() != "headless":
   await RenderingServer.frame_post_draw
