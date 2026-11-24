@@ -26,6 +26,14 @@ namespace Buklod.Empire.Tests {
             Assert.False(b.OrderPlayerRepair(enemy.Id));Assert.False(b.CancelPlayerConstruction());
             Assert.AreEqual(15,b.RemainingUnits(ArenaTeam.Lux));
         }
+        [Test] public void IneffectiveSupportAndPrematureProductionDoNotSucceed(){
+            var b=new OfflineBattle("phan");
+            Assert.False(b.GiveItem(ArenaTeam.Lux,VillageItem.Heal,1));
+            Assert.False(b.HealNearBase(ArenaTeam.Lux,25,700));
+            Assert.False(b.CraftAtFront(ArenaTeam.Tenebra,VillageItem.Bomb));
+            Assert.False(b.Deploy(ArenaTeam.Tenebra,ArenaLane.Mid,1,1));
+            Assert.AreEqual(0,b.ReviveRecent(ArenaTeam.Tenebra,2,25,.6f));
+        }
         [Test] public void DistinctResourceNodesAreMirroredAndOnlyFoodRegrows(){
             var b=new OfflineBattle("phan");
             Assert.AreEqual(10,b.ResourceNodes.Count);

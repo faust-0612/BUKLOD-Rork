@@ -25,6 +25,7 @@ namespace Buklod.Empire {
         bool TryGather(ArenaTeam team,string workerId,double wood,double stone,double crystal);
     }
     public interface IVillageConstruction { bool HasConstructionOrder(ArenaTeam team); }
+    public interface IVillageWorkGate { bool CanWork(ArenaTeam team,string workerId); }
     public sealed class VillageMember {
         public readonly VillageJob Job;
         public float Health { get; private set; }=200;
@@ -120,7 +121,8 @@ namespace Buklod.Empire {
                 if(Time>=OfflineMatchRules.MatchLimit)break;
                 foreach(var m in members) {
                     m.Tick(step,waves.CanReinforce(Team));
-                    if(m.Alive&&m.Remaining<=0)m.Complete(Run(m));
+                    if(waves.Finished)break;
+                    if(m.Alive&&m.Remaining<=0&&(!(battle is IVillageWorkGate gate)||gate.CanWork(Team,m.Job.Id)))m.Complete(Run(m));
                 }
             }
         }
@@ -145,7 +147,7 @@ namespace Buklod.Empire {
                 case VillageEffect.Build:
                     if(battle is IVillageConstruction construction&&construction.HasConstructionOrder(Team))return false;
                     int level=battle.LowestTowerLevel(Team);
-                    if(level<1||!CanPay(40d*level,30d*level,0))return false;
+                    if(level<1||level>=5||!CanPay(40d*level,30d*level,0))return false;
                     if(!battle.UpgradeTower(Team,level,(lux ? .15f : .05f)*p,(lux ? .05f : .15f)*p))return false;
                     Pay(40d*level,30d*level,0);TowersUpgraded++;return true;
                 case VillageEffect.Train:
