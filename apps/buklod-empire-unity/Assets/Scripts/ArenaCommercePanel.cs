@@ -12,8 +12,8 @@ namespace Buklod.Empire {
         private ArenaOffer[] offers;
         private int selected;
         private Action closed;
-        private Texture2D texture;
-        private Sprite sprite;
+        private readonly System.Collections.Generic.Dictionary<ArenaOfferKind,Sprite> sprites=new System.Collections.Generic.Dictionary<ArenaOfferKind,Sprite>();
+        private readonly System.Collections.Generic.List<Texture2D> textures=new System.Collections.Generic.List<Texture2D>();
         private RectTransform Rect(string name,Transform parent,float x,float y,float w,float h){
             var g=new GameObject(name,typeof(RectTransform));var r=g.GetComponent<RectTransform>();
             r.SetParent(parent,false);r.anchorMin=new Vector2(x,y);r.anchorMax=new Vector2(x+w,y+h);r.offsetMin=r.offsetMax=Vector2.zero;return r;
@@ -38,16 +38,6 @@ namespace Buklod.Empire {
             index=Label("Index",root,.1f,.76f,.8f,.08f,"",22);
             swatch=Rect("Faceted visual swatch",root,.36f,.40f,.28f,.34f).gameObject.AddComponent<Image>();
             swatch.preserveAspect=true;swatch.raycastTarget=false;
-            texture=new Texture2D(128,128,TextureFormat.RGBA32,false);texture.name="Arena preview jewel";
-            var pixels=new Color[128*128];
-            for(int y=0;y<128;y++)for(int x=0;x<128;x++){
-                float a=(x-63.5f)/58f,b=(y-63.5f)/58f;
-                float d=Mathf.Abs(a)+Mathf.Abs(b)*.82f;
-                float shine=Mathf.Clamp01(.55f+a*.24f+b*.2f+(a*b>0?.17f:0));
-                pixels[y*128+x]=d>1?Color.clear:new Color(shine,shine,shine,d>.94f?.85f:1);
-            }
-            texture.SetPixels(pixels);texture.Apply(false,true);
-            sprite=Sprite.Create(texture,new Rect(0,0,128,128),new Vector2(.5f,.5f));swatch.sprite=sprite;
             heading=Label("Offer",root,.1f,.30f,.8f,.10f,"",32);
             detail=Label("Details",root,.1f,.22f,.8f,.08f,"",19);
             price=Label("Price",root,.1f,.14f,.8f,.08f,"",22);
@@ -65,13 +55,41 @@ namespace Buklod.Empire {
                 if(found>=0){selected=found;Refresh();return;}
             }
         }
+        // Procedural category emblems: not claims of actual skin/model availability.
+        private Sprite Emblem(ArenaOfferKind kind){
+            if(sprites.TryGetValue(kind,out var existing))return existing;
+            var tex=new Texture2D(192,192,TextureFormat.RGBA32,false);
+            var pixels=new Color[192*192];
+            for(int y=0;y<192;y++)for(int x=0;x<192;x++){
+                float a=(x-95.5f)/88f,b=(y-95.5f)/88f,r=Mathf.Sqrt(a*a+b*b);
+                bool ring=r>.83f&&r<.95f;
+                bool body;
+                switch(kind){
+                    case ArenaOfferKind.Stone:body=Mathf.Abs(a)+Mathf.Abs(b)*.82f<.67f;break;
+                    case ArenaOfferKind.HeroSkin:case ArenaOfferKind.Villager:case ArenaOfferKind.Minion:
+                        body=a*a+(b-.33f)*(b-.33f)<.20f*.20f||(b<.08f&&b>-.58f&&Mathf.Abs(a)<.55f-.22f*Mathf.Abs(b+.15f));break;
+                    case ArenaOfferKind.Weapon:body=Mathf.Abs(a-b)<.10f&&Mathf.Abs(a+b)<1.15f||Mathf.Abs(a+b+.38f)<.08f&&Mathf.Abs(a-b)<.43f;break;
+                    case ArenaOfferKind.Building:case ArenaOfferKind.Battlefield:
+                        body=Mathf.Abs(a)<.55f&&b<.12f&&b>-.58f||b>=.12f&&b<.66f&&Mathf.Abs(a)<.73f-b;break;
+                    case ArenaOfferKind.Voice:body=Mathf.Abs(a)<.55f&&Mathf.Abs(b)<(.20f+.32f*Mathf.Abs(Mathf.Sin(a*14f)));break;
+                    case ArenaOfferKind.Bundle:body=Mathf.Abs(a)<.55f&&Mathf.Abs(b)<.50f&&Mathf.Abs(a)>.055f&&Mathf.Abs(b-.13f)>.055f;break;
+                    case ArenaOfferKind.Replay:body=a>-.35f&&a<.55f&&Mathf.Abs(b)<(.55f-a)*.68f;break;
+                    case ArenaOfferKind.Marketplace:body=Mathf.Abs(b-.25f)<.09f&&Mathf.Abs(a)<.50f||Mathf.Abs(b+.25f)<.09f&&Mathf.Abs(a)<.50f||Mathf.Abs(a-.40f)+Mathf.Abs(b-.25f)<.24f||Mathf.Abs(a+.40f)+Mathf.Abs(b+.25f)<.24f;break;
+                    default:body=r<.60f&&r<.30f+.29f*Mathf.Abs(Mathf.Cos(Mathf.Atan2(b,a)*4f));break;
+                }
+                float light=Mathf.Clamp01(.70f+a*.19f+b*.18f+(a*b>0?.11f:0));
+                pixels[y*192+x]=body?new Color(light,light,light,1):ring?new Color(.62f,.62f,.62f,.85f):Color.clear;
+            }
+            tex.SetPixels(pixels);tex.Apply(false,true);
+            var sp=Sprite.Create(tex,new Rect(0,0,192,192),new Vector2(.5f,.5f));textures.Add(tex);sprites.Add(kind,sp);return sp;
+        }
         private void Refresh(){
-            var o=offers[selected];swatch.color=o.Accent;
+            var o=offers[selected];swatch.sprite=Emblem(o.Kind);swatch.color=o.Accent;
             heading.text=o.Name;index.text=o.Kind+" • "+(selected+1)+" / "+offers.Length;
-            detail.text=o.Kind==ArenaOfferKind.Stone?"100 BP • One per online match • Free training":"Cosmetic / service concept • No combat advantage";
-            price.text=(o.IndicativePhp==0?"Original / free":"Indicative PHP "+o.IndicativePhp)+" • Preview only";
+            detail.text=o.Kind==ArenaOfferKind.Stone?"100 BP • One per online match • Free training":o.Kind==ArenaOfferKind.Marketplace?"BP only • No cash-out • Preview only":o.IsBusinessInquiry?"Business inquiry • Not an in-app checkout":"Cosmetic / service concept • No combat advantage";
+            price.text=o.Kind==ArenaOfferKind.Marketplace?"Trading unavailable in preview":(o.IsBusinessInquiry?"From PHP "+o.IndicativePhp:o.IndicativePhp==0?"Original / free":"Indicative PHP "+o.IndicativePhp)+" • Preview only";
         }
         private void Close(){if(root)root.gameObject.SetActive(false);closed?.Invoke();}
-        private void OnDestroy(){if(root)Destroy(root.gameObject);if(sprite)Destroy(sprite);if(texture)Destroy(texture);}
+        private void OnDestroy(){if(root)Destroy(root.gameObject);foreach(var sp in sprites.Values)if(sp)Destroy(sp);foreach(var tex in textures)if(tex)Destroy(tex);}
     }
 }

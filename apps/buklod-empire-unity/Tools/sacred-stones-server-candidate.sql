@@ -109,6 +109,7 @@ begin
   insert into public.buklod_points_ledger(user_id,direction,points,activity_type,source_key,source_id,description)
     values(u,'debit',cost,'sacred_stone_exchange',k,request_id,'Sacred Stone exchange: '||h)
     returning id into debit_id;
+  if debit_id is null then raise exception 'Canonical BP debit was not inserted'; end if;
   perform empire_stones.change_balance(k,u,h,n);
 end $$;
 create function empire_stones.gift(sender uuid,recipient uuid,h text,n integer,request_id uuid) returns void
