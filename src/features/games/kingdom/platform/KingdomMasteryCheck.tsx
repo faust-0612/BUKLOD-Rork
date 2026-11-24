@@ -30,9 +30,10 @@ export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
   const {user}=useAuth();
   const uid=user?.id;
   const accountRef=useRef(uid);accountRef.current=uid;
+  const gameRef=useRef(gameId);gameRef.current=gameId;
   const [stoneNotice,setStoneNotice]=useState('');
   useEffect(()=>{setStoneNotice('');},[uid,gameId]);
-  const syncStones=async()=>{if(!uid)return;try{const snapshot=await getArenaStones(uid);if(!mounted.current||accountRef.current!==uid||!snapshot)return;const awarded=snapshot.stones.filter(x=>x.quest_awarded).length;setStoneNotice(t('Arena quest stones verified: '+awarded+'/13. Open Kingdom rewards to see your inventory.','Verified Arena quest stones: '+awarded+'/13. Buksan ang Kingdom rewards para sa inventory.'));}catch{/* Mastery and BP remain successful; inventory refresh reconciles. */}};
+  const syncStones=async()=>{if(!uid)return;try{const snapshot=await getArenaStones(uid);if(!mounted.current||accountRef.current!==uid||gameRef.current!==gameId||!snapshot)return;const awarded=snapshot.stones.filter(x=>x.quest_awarded).length;setStoneNotice(t('Arena quest stones verified: '+awarded+'/13. Open Kingdom rewards to see your inventory.','Verified Arena quest stones: '+awarded+'/13. Buksan ang Kingdom rewards para sa inventory.'));}catch{/* Mastery and BP remain successful; inventory refresh reconciles. */}};
   const [phase, setPhase] = useState<Phase>('ready');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [challengeId, setChallengeId] = useState('');

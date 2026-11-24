@@ -22,12 +22,26 @@ function normalize(raw:unknown,uid:string):StoneSnapshot|null {
  d.requests.some(t=>!t||typeof t.id!=='string'||(t.requester!==uid&&t.donor!==uid)||!validId(t.hero_id)))throw new Error('Invalid stone response');
  return d;
 }
+async function request(uid:string,name:string,args?:Record<string,unknown>){
+ await account(uid);
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),10000);
+ try{
+  const result=await (supabase as any).rpc(name,args).abortSignal(controller.signal);
+  if(result.error)throw new Error(result.error.message||'Stone service unavailable');
+  await account(uid);
+  return result.data;
+ }finally{clearTimeout(timer);}
+}
 async function rpc(uid:string,name:string,args?:Record<string,unknown>){
- await account(uid);
- const result=await (supabase as any).rpc(name,args).abortSignal(AbortSignal.timeout(10000));
- if(result.error)throw new Error(result.error.message||'Stone service unavailable');
- await account(uid);
- return normalize(result.data,uid);
+ return normalize(await request(uid,name,args),uid);
+}
+export async function resolveArenaStoneRequest(uid:string,requestId:string){
+ const result=await request(uid,'resolve_my_empire_stone_request_v1',{p_request_id:requestId});
+ if(!result||result.owner!==uid||result.version!==1||!['completed','cancelled'].includes(result.request_state))throw new Error('Invalid resolution');
+ const snapshot=normalize(result.snapshot,uid);
+ if(!snapshot)throw new Error('Unavailable inventory');
+ return {snapshot,state:result.request_state as 'completed'|'cancelled'};
 }
 // No local balance, no client mint. On ambiguous mutation result, retry the same request ID.
 export const getArenaStones=(uid:string)=>rpc(uid,'get_my_empire_stones_v1');
