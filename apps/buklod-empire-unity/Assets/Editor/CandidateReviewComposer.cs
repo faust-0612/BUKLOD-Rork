@@ -32,7 +32,7 @@ namespace Buklod.Empire.Editor {
                     specs.Add((team+"_"+id,$"{Source}/rigged-factions/{team}_{id}.glb",FactionClips));
             }
             var staticSpecs=new[]{"genesis_rift_candidate","lux_tower_candidate","lux_core_candidate","tenebra_tower_candidate","tenebra_core_candidate"};
-            foreach(var id in staticSpecs)specs.Add((id,$"{Candidate}/{id}.glb",Array.Empty<string>()));
+            foreach(var id in staticSpecs)specs.Add((id,$"{Candidate}/{(id=="genesis_rift_candidate"?"genesis_rift_detail_review":id)}.glb",Array.Empty<string>()));
             foreach(var spec in specs)if(!File.Exists(spec.path))
                 throw new FileNotFoundException("Run Tools/prepare-review-assets.py first.",spec.path);
             Directory.CreateDirectory(Out+"/Models");Directory.CreateDirectory(Out+"/Prefabs");Directory.CreateDirectory(Out+"/Controllers");Directory.CreateDirectory(Out+"/Clips");
