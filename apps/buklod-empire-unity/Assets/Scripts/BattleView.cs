@@ -44,7 +44,7 @@ namespace Buklod.Empire {
                 var c=path.corners[1];waypoint=new Vector2(c.x,c.z)/scale;return true;
             }
         }
-        public void StartMatch(string hero){
+        public void StartMatch(string hero,ArenaDifficulty difficulty=ArenaDifficulty.Normal,ArenaTactic tactic=ArenaTactic.Renew,CovenantLoadout? covenant=null,bool autonomous=false,int seed=1){
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
 #if UNITY_EDITOR
             if(editorReviewOnly)visuals.ValidateEditorReview();else
@@ -53,7 +53,8 @@ namespace Buklod.Empire {
             foreach(var v in active.Values)Return(v);active.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
-            Battle=new OfflineBattle(hero,new Navigation(worldScale));
+            Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
+            if(!Battle.SelectPlayerTactic(tactic)||covenant.HasValue&&!Battle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             selectedHero=hero;Paused=false;
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=true;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
@@ -71,9 +72,9 @@ namespace Buklod.Empire {
             return Vector2.ClampMagnitude(r*screen.x+f*screen.y,1);
         }
         public bool Cast(int button,Vector2 aim){
-            if(Battle==null||Paused||Battle.Finished||button<1||button>4)return false;
+            if(Battle==null||Paused||Battle.Finished||Battle.AutonomousTraining||button<1||button>8)return false;
             var direction=ToWorld(aim);
-            return button==1?Battle.PlayerAttack(direction):Battle.CastPlayer((SkillSlot)(button-2),direction);
+            switch(button){case 1:return Battle.PlayerAttack(direction);case 5:return Battle.UsePlayerTactic(direction);case 6:return Battle.RecallPlayer();case 7:return Battle.PlayerAttackTarget(BattleTargetKind.Minion,direction);case 8:return Battle.PlayerAttackTarget(BattleTargetKind.Structure,direction);default:return Battle.CastPlayer((SkillSlot)(button-2),direction);}
         }
         private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));Sync(false);}
         private void LateUpdate(){if(Battle!=null)Follow(false);}
@@ -119,7 +120,7 @@ namespace Buklod.Empire {
             GeometryUtility.CalculateFrustumPlanes(battleCamera,frustum);
             var playerPosition=Battle.Player.Position;
             foreach(var u in Battle.Units){
-                if(!u.State.Alive)continue;
+                if(!u.State.Alive||u.Team!=Battle.Player.Team&&!Battle.IsVisibleTo(Battle.Player.Team,u))continue;
                 bool player=u==Battle.Player,existing=active.TryGetValue(u.Id,out var v);
                 float distanceSquared=(u.Position-playerPosition).sqrMagnitude;
                 bool inView=IsInView(u);

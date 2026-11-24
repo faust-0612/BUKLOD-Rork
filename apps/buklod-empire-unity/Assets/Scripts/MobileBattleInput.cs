@@ -5,7 +5,7 @@ using Touch=UnityEngine.InputSystem.EnhancedTouch.Touch;
 namespace Buklod.Empire {
     // Independent fingers for movement and aimed skill; release-to-cast, cancel on focus loss.
     public sealed class MobileBattleInput:MonoBehaviour {
-        public static readonly Vector2[] Centers={new Vector2(.14f,.22f),new Vector2(.87f,.18f),new Vector2(.73f,.22f),new Vector2(.82f,.40f),new Vector2(.94f,.40f)};
+        public static readonly Vector2[] Centers={new Vector2(.14f,.22f),new Vector2(.87f,.18f),new Vector2(.73f,.22f),new Vector2(.82f,.40f),new Vector2(.94f,.40f),new Vector2(.69f,.40f),new Vector2(.56f,.23f),new Vector2(.78f,.075f),new Vector2(.95f,.075f)};
         public static float Radius(int index)=>Mathf.Min(Screen.width,Screen.height)*(index==0?.105f:index==1?.071f:.055f);
         public static Vector2 PixelCenter(int index)=>Vector2.Scale(Centers[index],new Vector2(Screen.width,Screen.height));
         public Vector2 Joystick {get;private set;}
@@ -47,7 +47,7 @@ namespace Buklod.Empire {
 #if UNITY_EDITOR
             var k=Keyboard.current;if(k==null||movement!=null||skill!=null)return;
             Joystick=Vector2.ClampMagnitude(new Vector2((k.dKey.isPressed?1:0)-(k.aKey.isPressed?1:0),(k.wKey.isPressed?1:0)-(k.sKey.isPressed?1:0)),1);
-            if(view){if(k.spaceKey.wasPressedThisFrame)view.Cast(1,Vector2.zero);if(k.digit1Key.wasPressedThisFrame)view.Cast(2,Vector2.zero);if(k.digit2Key.wasPressedThisFrame)view.Cast(3,Vector2.zero);if(k.digit3Key.wasPressedThisFrame)view.Cast(4,Vector2.zero);}
+            if(view){if(k.spaceKey.wasPressedThisFrame)view.Cast(1,Vector2.zero);if(k.digit1Key.wasPressedThisFrame)view.Cast(2,Vector2.zero);if(k.digit2Key.wasPressedThisFrame)view.Cast(3,Vector2.zero);if(k.digit3Key.wasPressedThisFrame)view.Cast(4,Vector2.zero);if(k.digit4Key.wasPressedThisFrame)view.Cast(5,Vector2.zero);if(k.rKey.wasPressedThisFrame)view.Cast(6,Vector2.zero);}
 #endif
         }
     }
