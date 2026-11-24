@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/arena-mechanics-blueprint-20261124.json",
+  "baseRef": "264a5b0f6c96b49c65ba9c2612b088aa65500301",
+  "productionBaselineEvidence": "No live runtime verified; isolated Unity DEV only. No production changes.",
+  "objective": "Consolidate all 50 approved Arena design sections and implement first missing offline combat rules.",
+  "chosenApproach": "Extend existing OfflineBattle/OfflineMatchRules rather than duplicate engine.",
+  "selectionRationale": "Preserve approved hero kits and existing offline gameplay; targeted rule changes with focused tests.",
+  "alternativeApproaches": [
+    "Replacing the entire simulation risks regression",
+    "Parallel unconnected engine would not change gameplay"
+  ],
+  "riskAreas": [
+    "offline-combat",
+    "tower-targeting",
+    "match-local-economy"
+  ],
+  "preserveBehaviors": [
+    "Existing hero IDs, skills, visuals, village system, core protection, shop and match timeout",
+    "No persistent economy, backend, MAIN or release mutation"
+  ],
+  "acceptanceChecks": [
+    "Tower priority and capped ramp",
+    "Hero kills/deaths and damage assists credited once",
+    "New match resets stats",
+    "Unity EditMode/PlayMode and Android verification pending"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineMatchRules.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineBattleTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineMatchRulesTests.cs",
+    "apps/buklod-empire-unity/Tools/ARENA_GAME_DESIGN_BLUEPRINT.md",
+    ".buklod/scopes/arena-mechanics-blueprint-20261124.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineBattleTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineMatchRulesTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

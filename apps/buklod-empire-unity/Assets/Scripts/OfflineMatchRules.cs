@@ -6,6 +6,11 @@ namespace Buklod.Empire {
     public static class OfflineMatchRules {
         public const float MatchLimit = 900f;
         public const float AimDot = .72f;
+        public const float AssistWindow=8f;
+        public const int AssistGold=20;
+        public static int TowerPriority(BattleTargetKind kind,bool retaliate) =>
+            retaliate&&kind==BattleTargetKind.Hero?0:kind==BattleTargetKind.Minion?1:2;
+        public static float TowerRamp(int previousHits) => 1f+.15f*Mathf.Clamp(previousHits,0,4);
         public static bool Retreat(float health, bool alreadyRetreating) =>
             health < .30f || (alreadyRetreating && health < .78f);
         public static bool CoreOpen(IEnumerable<bool> aliveNonTemporaryTowers) {

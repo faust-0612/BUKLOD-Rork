@@ -3,6 +3,18 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void HeroDeathAndAssistSettleOnce(){
+            var b=new OfflineBattle("phan");
+            var ally=b.Units.First(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Hero&&u!=b.Player);
+            var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            int gold=ally.Gold;
+            Assert.True(b.Hit(ally.State,enemy.State,10));
+            Assert.True(b.Hit(b.Player.State,enemy.State,300));
+            Assert.AreEqual(1,b.Player.Kills);Assert.AreEqual(1,enemy.Deaths);Assert.AreEqual(1,ally.Assists);
+            Assert.AreEqual(gold+OfflineMatchRules.AssistGold,ally.Gold);
+            Assert.False(b.Hit(b.Player.State,enemy.State,300));Assert.AreEqual(1,ally.Assists);
+            Assert.AreEqual(0,new OfflineBattle("phan").Player.Kills);
+        }
         [Test] public void EveryHeroCanBePickedWithoutDuplicatingTeammates(){
             foreach(var kit in HeroKitCatalog.All){
                 var b=new OfflineBattle(kit.Id);

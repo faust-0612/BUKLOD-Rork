@@ -10,6 +10,10 @@ namespace Buklod.Empire {
         public readonly Vector2 Spawn; public Vector2 Position {get;internal set;}
         public float Power=1, AttackDamage=18, Expires=float.PositiveInfinity, RespawnAt, Xp;
         public int Gold=120, TowerLevel=1;
+        public int Kills {get;internal set;} public int Deaths {get;internal set;} public int Assists {get;internal set;}
+        internal int AggressorId, LastTowerTarget, ConsecutiveTowerHits;
+        internal float AggroUntil;
+        internal readonly Dictionary<int,float> RecentHeroDamage=new Dictionary<int,float>();
         public float TowerDamageMultiplier=1;
         public VillageMember Villager {get;internal set;}
         public bool Retreat; public float LastAttack=float.NegativeInfinity;
@@ -111,13 +115,26 @@ namespace Buklod.Empire {
             n*=1-Mathf.Clamp(target.Buff("guard",Time),0,.4f);n*=1+Mathf.Clamp(target.Buff("vulnerable",Time),0,.2f);
             if(t.Kind==BattleTargetKind.Minion)n*=1-Mathf.Clamp01(MinionCombatRules.Stats(t.Role).Defense-target.Buff("armor_break",Time));
             float actual=target.Absorb(n,Time);
+            if(n>0&&a.Kind==BattleTargetKind.Hero&&t.Kind==BattleTargetKind.Hero){
+                t.RecentHeroDamage[a.Id]=Time;
+                foreach(var tower in ActiveTowers(t.Team))if(Dist(tower,t)<=10&&Dist(tower,a)<=10){tower.AggressorId=a.Id;tower.AggroUntil=Time+3;}
+            }
             if(t.Villager!=null){t.Villager.Damage(actual);target.Health=t.Villager.Health;}
             else target.Health=Mathf.Max(0,target.Health-actual);
             if(actor.Kit?.Id=="mitch")target.Set("vulnerable",.1f,Time+3,Time);
             if(target.Kit?.Id=="trudice"&&actual>0)actor.Health=Mathf.Max(1,actor.Health-actual*Mathf.Clamp(target.Buff("reflect",Time),0,.3f));
             if(!target.Alive){
                 if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager){a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?75:t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16);}
-                if(t.Kind==BattleTargetKind.Hero)t.RespawnAt=Time+7.5f;
+                if(t.Kind==BattleTargetKind.Hero){
+                    t.Deaths++;t.RespawnAt=Time+7.5f;
+                    if(a.Kind==BattleTargetKind.Hero)a.Kills++;
+                    foreach(var contribution in t.RecentHeroDamage){
+                        if(contribution.Key==a.Id||Time-contribution.Value>OfflineMatchRules.AssistWindow)continue;
+                        var helper=units.FirstOrDefault(v=>v.Id==contribution.Key&&v.Team==a.Team&&v.Kind==BattleTargetKind.Hero);
+                        if(helper!=null){helper.Assists++;helper.Gold=Mathf.Min(9999,helper.Gold+OfflineMatchRules.AssistGold);}
+                    }
+                    t.RecentHeroDamage.Clear();
+                }
                 if(t.Kind==BattleTargetKind.Minion){
                     if(fallen.Count>=240)fallen.RemoveAt(0);
                     fallen.Add(new Fallen{Team=t.Team,Lane=t.Lane,Role=t.Role,Position=t.Position,Power=t.Power,Health=t.State.MaxHealth,Time=Time});
@@ -302,8 +319,16 @@ namespace Buklod.Empire {
         }
         private void Structure(BattleUnit u){
             if(Time-u.LastAttack<1)return;
-            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10).OrderBy(v=>v.Kind==BattleTargetKind.Minion?0:1).ThenBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
-            if(t!=null&&Hit(u.State,t.State,u.AttackDamage*u.TowerDamageMultiplier))u.LastAttack=Time;
+            bool guardian=!u.Core&&!u.Temporary;
+            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10)
+                .OrderBy(v=>OfflineMatchRules.TowerPriority(v.Kind,guardian&&v.Id==u.AggressorId&&Time<u.AggroUntil))
+                .ThenBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
+            if(t==null){u.LastTowerTarget=0;u.ConsecutiveTowerHits=0;return;}
+            int hits=guardian&&t.Kind==BattleTargetKind.Hero&&u.LastTowerTarget==t.Id?u.ConsecutiveTowerHits:0;
+            float multiplier=guardian&&t.Kind==BattleTargetKind.Hero?OfflineMatchRules.TowerRamp(hits):1;
+            if(Hit(u.State,t.State,u.AttackDamage*u.TowerDamageMultiplier*multiplier)){
+                u.LastAttack=Time;u.LastTowerTarget=t.Id;u.ConsecutiveTowerHits=Math.Min(4,hits+1);
+            }
         }
     }
 }
