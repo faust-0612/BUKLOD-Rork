@@ -40,7 +40,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public BattleUnit unit;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence,villageActions;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public BattleUnit unit;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence,villageActions,repairSequence;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -144,7 +144,7 @@ namespace Buklod.Empire {
                 if(!existing){
                     v=Rent(visuals.Resolve(u,ReviewOnly));v.unit=u;active.Add(u.Id,v);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
-                    v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;v.villageActions=u.Villager?.Actions??0;
+                    v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;v.villageActions=u.Villager?.Actions??0;v.repairSequence=u.RepairSequence;
                 }
                 bool hero=u.Kind==BattleTargetKind.Hero;
                 int requestedLod=premiumVisuals?0:-1;
@@ -180,6 +180,14 @@ namespace Buklod.Empire {
                     if(castThisFrame&&v.animator&&u.State.TryGetCast(latest,out var last)){
                         foreach(var trigger in new[]{"Primary","Secondary","Ultimate","Attack","Hit"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
                         var name=last.Slot.ToString();if(v.parameters.Contains(name))v.animator.SetTrigger(name);
+                    }
+                }
+                if(u.RepairSequence>v.repairSequence){
+                    v.repairSequence=u.RepairSequence;
+                    if(ReviewOnly&&inView){
+                        var repairTint=new Color(.32f,.9f,.52f);
+                        if(worldEffects)worldEffects.Emit(t.position,WorldImpactKind.Work,unchecked(u.Id*397+u.RepairSequence),repairTint);
+                        if(effects)effects.EmitSkill(t.position,repairTint,new SkillCue("repair_review",SkillCueShape.Heal,1.8f,.55f,-1),t.forward);
                     }
                 }
                 bool tookHit=v.health>u.State.Health+.01f;
