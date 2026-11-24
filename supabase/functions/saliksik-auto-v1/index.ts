@@ -96,7 +96,7 @@ function validateResearchItem(data:any,tier:'discover'|'investigate',
  return {
   tier,title:clean(data.title,180),summary:clean(data.summary,600),
   lesson_text:clean(data.lesson_text,12000),source_excerpt:sourceText,
-  scripture_refs:scriptureRefs,questions,
+  scripture_refs:[...new Set([anchor,...scriptureRefs])],questions,
  };
 }
 const PROMPT_POLICY=[
