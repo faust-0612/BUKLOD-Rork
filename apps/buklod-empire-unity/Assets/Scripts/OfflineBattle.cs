@@ -216,7 +216,7 @@ namespace Buklod.Empire {
                     QueueRecruitment(team);
                     if(damaged!=null&&QueueConstruction(team,VillageBuildOrder.Repair,damaged.Position,damaged.Id))continue;
                     if(VillagePopulation(team)>=VillagePopulationCapacity(team)&&QueueConstruction(team,VillageBuildOrder.House,Base(team)+new Vector2(side*16,side*2)))continue;
-                    if(VillagePopulation(team)>=VillagePopulationCapacity(team)&&QueueConstruction(team,VillageBuildOrder.House,Base(team)+new Vector2(side*16,-side*2)))continue;
+                    if(VillagePopulation(team)>=VillagePopulationCapacity(team)&&QueueConstruction(team,VillageBuildOrder.House,Base(team)+new Vector2(side*16,-side*6)))continue;
                     if(villages[(int)team].Food<20&&!units.Any(u=>u.Team==team&&u.IsFarm&&u.State.Alive))QueueConstruction(team,VillageBuildOrder.Farm,Base(team)+new Vector2(side*5,-side*12));
                 }
             }
