@@ -12,6 +12,7 @@ on:
       - "tests/saliksik-auto-research-e2e-20261124.test.mjs"
       - "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs"
       - "tests/fixtures/saliksik_r4_auto_pg_integration.sql"
+      - "supabase/tests/saliksik_auto_research_security_r4.sql"
       - "supabase/functions/saliksik-manuscript-v1/**"
       - "supabase/tests/saliksik_written_master_r2.sql"
       - "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql"
@@ -72,5 +73,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261124051000_saliksik_r4_auto_research_corpus.sql
       - name: Apply R4 independent written Master / academic evidence migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261124052000_saliksik_r4_independent_master_grade.sql
+      - name: Assert R4 role grants and sensitive data RLS
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/saliksik_auto_research_security_r4.sql
       - name: Run member-to-research-to-automatic-Master-to-manuscript E2E
         run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/saliksik_r4_auto_pg_integration.sql
