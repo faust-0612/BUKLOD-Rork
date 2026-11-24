@@ -5,6 +5,8 @@ namespace Buklod.Empire {
     // Pure, match-local rules ported from offline-moba/moba_sim.gd.
     public static class OfflineMatchRules {
         public const float MatchLimit = 900f;
+        public const float MaximumMatchDuration=1800f;
+        public static bool OvertimeLimitReached(float now)=>!float.IsNaN(now)&&!float.IsInfinity(now)&&now>=MaximumMatchDuration;
         public const float AimDot = .72f;
         public const float AssistWindow=8f;
         public const int AssistGold=20;
@@ -25,6 +27,16 @@ namespace Buklod.Empire {
         public static float Damage(float value,bool blade,bool armor) =>
             Mathf.Max(0f,(value+(blade?7f:0f))*(armor?.88f:1f));
         public static float MoveSpeed(float speed,bool boots) => speed<10f&&boots?speed*1.18f:speed;
+        // Fixed spread, no arbitrage. Each lot is ten units; no hero wallet or permanent economy involved.
+        public const int MarketLot=10;
+        public static int MarketGold(VillageResourceKind kind,bool buy){
+            switch(kind){
+                case VillageResourceKind.Wood:case VillageResourceKind.Food:return buy?15:8;
+                case VillageResourceKind.Stone:return buy?20:12;
+                case VillageResourceKind.Crystal:return buy?28:17;
+                default:return 0;
+            }
+        }
         public static int ShopPrice(string item) {
             switch(item) {
                 case "blade":return 120;case "armor":return 110;case "boots":return 90;

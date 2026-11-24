@@ -26,6 +26,17 @@ namespace Buklod.Empire.Tests {
             Assert.False(b.OrderPlayerRepair(enemy.Id));Assert.False(b.CancelPlayerConstruction());
             Assert.AreEqual(15,b.RemainingUnits(ArenaTeam.Lux));
         }
+        [Test] public void TemporaryTurretKillDoesNotMintIncomeAndInvalidSpawnsFail(){
+            var b=new OfflineBattle("phan");var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            Assert.False(b.Turret(enemy.State,Vector2.left,3,float.NaN,8,11));
+            Assert.True(b.Turret(enemy.State,Vector2.left,3,55,8,11));
+            var summon=b.Units.Single(u=>u.Temporary);int gold=b.Player.Gold;float xp=b.Player.Xp;
+            Assert.True(b.Hit(b.Player.State,summon.State,300));Assert.AreEqual(gold,b.Player.Gold);Assert.AreEqual(xp,b.Player.Xp);
+            Assert.False(b.Dash(b.Player.State,Vector2.right,float.PositiveInfinity));
+        }
+        [Test] public void MarketRejectsUnfundedAndInvalidWithoutCooldown(){
+            var b=new OfflineBattle("phan");Assert.False(b.TradePlayerResource(VillageResourceKind.Wood,true));Assert.False(b.TradePlayerResource(VillageResourceKind.Gold,false));Assert.AreEqual(0,b.MarketReadyAt);
+        }
         [Test] public void ShopAndNearestRepairExposeValidState(){
             var b=new OfflineBattle("phan");Assert.True(b.CanUsePlayerShop);Assert.False(b.OrderPlayerRepairNearest());
             Assert.True(b.BuyPlayer("blade"));Assert.True(b.SellPlayer("blade"));Assert.AreEqual(72,b.Player.Gold);
@@ -151,7 +162,7 @@ namespace Buklod.Empire.Tests {
             foreach(var unit in b.Units.Where(u=>u.Team==ArenaTeam.Tenebra&&u.State.Alive).ToArray()){
                 for(int i=0;i<10&&unit.State.Alive;i++)Assert.True(b.Hit(b.Player.State,unit.State,300));
             }
-            Assert.True(b.Finished);Assert.AreEqual(ArenaTeam.Lux,b.Winner);Assert.AreEqual(0,b.RemainingUnits(ArenaTeam.Tenebra));
+            Assert.True(b.Finished);Assert.AreEqual(ArenaTeam.Lux,b.Winner);Assert.AreEqual(MatchEndReason.Elimination,b.EndReason);Assert.AreEqual(0,b.RemainingUnits(ArenaTeam.Tenebra));
             Assert.False(b.PlayerAttack(Vector2.right));
         }
         [Test] public void CoreLossStopsRespawnButNotRemainingEnemy(){

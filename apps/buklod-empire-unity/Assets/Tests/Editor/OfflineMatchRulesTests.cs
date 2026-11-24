@@ -17,6 +17,11 @@ var gear=new HashSet<string>();int gold=2000;foreach(var id in new[]{"blade","ar
 Assert.False(OfflineMatchRules.TryBuy("wisdom",gear,ref gold,0,true,true));int before=gold;Assert.True(OfflineMatchRules.TrySell("blade",gear,ref gold,0,true,true));Assert.AreEqual(before+72,gold);Assert.False(OfflineMatchRules.TrySell("blade",gear,ref gold,0,true,true));Assert.True(OfflineMatchRules.TryBuy("wisdom",gear,ref gold,0,true,true));
 }
 [Test] public void BountiesRewardShutdownAndLimitRepeatedDeath(){Assert.AreEqual(75,OfflineMatchRules.KillGold(0,0));Assert.AreEqual(25,OfflineMatchRules.KillGold(99,0));Assert.AreEqual(175,OfflineMatchRules.KillGold(0,99));Assert.AreEqual(7.5f,OfflineMatchRules.RespawnDelay(0));Assert.AreEqual(22.5f,OfflineMatchRules.RespawnDelay(9999));}
+[Test] public void MarketSpreadAndOvertimeLimitCannotAwardFalseVictory(){
+foreach(var kind in new[]{VillageResourceKind.Wood,VillageResourceKind.Food,VillageResourceKind.Stone,VillageResourceKind.Crystal})Assert.Greater(OfflineMatchRules.MarketGold(kind,true),OfflineMatchRules.MarketGold(kind,false));
+Assert.AreEqual(0,OfflineMatchRules.MarketGold(VillageResourceKind.Gold,true));
+Assert.False(OfflineMatchRules.OvertimeLimitReached(900));Assert.False(OfflineMatchRules.OvertimeLimitReached(1799));Assert.True(OfflineMatchRules.OvertimeLimitReached(1800));Assert.False(OfflineMatchRules.OvertimeLimitReached(float.NaN));
+}
 [Test] public void TimeLimitCanDraw(){Assert.AreEqual("",OfflineMatchRules.TimeLimitWinner(50,50));}
 }
 }

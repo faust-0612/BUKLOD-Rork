@@ -83,6 +83,20 @@ namespace Buklod.Empire {
             double added=Math.Max(0,Math.Min(amount,ResourceCap-ResourceBalance(kind)));
             switch(kind){case VillageResourceKind.Wood:Wood+=added;break;case VillageResourceKind.Stone:Stone+=added;break;case VillageResourceKind.Crystal:Crystal+=added;break;case VillageResourceKind.Food:Food+=added;break;case VillageResourceKind.Gold:Gold+=added;break;}return added;
         }
+        internal bool TryMarketTrade(VillageResourceKind kind,bool buy){
+            int price=OfflineMatchRules.MarketGold(kind,buy),lot=OfflineMatchRules.MarketLot;
+            if(price<=0)return false;
+            double from=buy?Gold:ResourceBalance(kind),to=buy?ResourceBalance(kind):Gold;
+            int cost=buy?price:lot,gain=buy?lot:price;
+            if(from<cost||to>ResourceCap-gain)return false;
+            // Both sides checked before either ledger change; one synchronous match-local mutation.
+            if(buy){Gold-=price;DepositResource(kind,lot);}
+            else{
+                switch(kind){case VillageResourceKind.Wood:Wood-=lot;break;case VillageResourceKind.Food:Food-=lot;break;case VillageResourceKind.Stone:Stone-=lot;break;case VillageResourceKind.Crystal:Crystal-=lot;break;default:return false;}
+                Gold+=price;
+            }
+            return true;
+        }
         internal double CreditPickup(string resource,double amount){
             if(double.IsNaN(amount)||double.IsInfinity(amount)||amount<=0)return 0;
             double current=resource=="wood"?Wood:resource=="stone"?Stone:resource=="gold"?Gold:-1;

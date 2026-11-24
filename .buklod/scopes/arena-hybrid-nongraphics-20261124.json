@@ -29,7 +29,8 @@
     "Free match-local Covenant Paths with nonstacking pre-match selection",
     "Typed finite mines/forest/quarry, renewable farm food, physical delivery, funded barracks production, per-faction caps and no client resource mint",
     "Native offline command bindings, pre-match setup, shop, treasury, HUD, fog-filtered rendering",
-    "Local-first Unity test preflight; no production or review bypass; original passive follow-up"
+    "Local-first Unity test preflight; no production or review bypass; original passive follow-up",
+    "Match-local market exchange, finite summon inputs, no summon reward farming, bounded overtime draw"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",

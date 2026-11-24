@@ -13,6 +13,8 @@ namespace Buklod.Empire {
         private Text treasury,commandFeedback,configuration;
         private bool commandOpen;
         private int shopPage;
+        private VillageResourceKind marketResource=VillageResourceKind.Wood;
+        private Text marketStatus;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -91,7 +93,7 @@ namespace Buklod.Empire {
         private void Refresh(){
             var b=view.Battle;bool finished=b!=null&&b.Finished;
             title.text=finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):"OFFLINE TRAINING";
-            summary.text=finished?$"K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists} • Damage {b.Player.DamageDealt:0} • No permanent rewards":"5v5 • No internet or persistent rewards";
+            summary.text=finished?$"{b.EndReason} • K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists} • Damage {b.Player.DamageDealt:0} • No permanent rewards":"5v5 • No internet or persistent rewards";
             resume.interactable=b!=null&&!finished&&b.Time>0;
         }
         private void Resume(){if(view.Battle==null||view.Battle.Finished)return;Close();}
@@ -115,12 +117,15 @@ namespace Buklod.Empire {
             Label("Village title",commands,new Vector2(.02f,.88f),new Vector2(.8f,.98f),"VILLAGE COMMAND",32);
             ButtonAt("Close village",commands,new Vector2(.81f,.89f),new Vector2(.98f,.98f),"CLOSE",CloseCommands);
             commandFeedback=Label("Command feedback",commands,new Vector2(.03f,.75f),new Vector2(.97f,.87f),"",24);
-            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD"};
-            for(int i=0;i<labels.Length;i++){int action=i;int col=i%3,row=i/3;float x=.03f+col*.32f,y=.60f-row*.135f;ButtonAt(labels[i],commands,new Vector2(x,y),new Vector2(x+.30f,y+.12f),labels[i],()=>VillageCommand(action));}
+            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD","MARKET TYPE","BUY LOT","SELL LOT"};
+            for(int i=0;i<labels.Length;i++){int action=i;int col=i%4,row=i/4;float x=.03f+col*.235f,y=.60f-row*.135f;ButtonAt(labels[i],commands,new Vector2(x,y),new Vector2(x+.22f,y+.115f),labels[i],()=>VillageCommand(action));}
+            marketStatus=Label("Market quote",commands,new Vector2(.27f,.01f),new Vector2(.97f,.06f),"",18);
+            RefreshMarketQuote();
             commands.gameObject.SetActive(false);
         }
         private void OpenCommands(){if(shown||commandOpen||view.Battle==null||view.Battle.Finished||view.Paused)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);commandFeedback.text="Choose resource or build at your hero's current position.";}
         private void CloseCommands(){commandOpen=false;commands.gameObject.SetActive(false);if(!shown&&view.Battle!=null&&!view.Battle.Finished)view.SetPaused(false);}
+        private void RefreshMarketQuote(){marketStatus.text=$"{marketResource} x10: buy {OfflineMatchRules.MarketGold(marketResource,true)} / sell {OfflineMatchRules.MarketGold(marketResource,false)} team gold";}
         private void VillageCommand(int action){
             var b=view.Battle;if(!commandOpen||b==null||b.Finished)return;
             string worker=b.Player.Team==ArenaTeam.Lux?"lira":"velin";bool ok=false;
@@ -139,6 +144,9 @@ namespace Buklod.Empire {
                 case 11:ok=b.OrderPlayerConstruction(VillageBuildOrder.Barracks,b.Player.Position);break;
                 case 12:ok=b.OrderPlayerRepairNearest();break;
                 case 13:ok=b.CancelPlayerConstruction();break;
+                case 14:marketResource=(VillageResourceKind)(((int)marketResource+1)%4);RefreshMarketQuote();return;
+                case 15:ok=b.TradePlayerResource(marketResource,true);break;
+                case 16:ok=b.TradePlayerResource(marketResource,false);break;
             }
             commandFeedback.text=ok?"Order accepted. Resume to execute.":"Unavailable: check worker, resources, position, existing order or cutoff.";
         }
