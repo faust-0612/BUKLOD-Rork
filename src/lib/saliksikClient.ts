@@ -230,7 +230,7 @@ export type SaliksikResearchMethod =
  |'exegetical'|'biblical_theology'|'systematic'|'historical'
  |'comparative'|'practical'|'education'|'mission_leadership';
 export type SaliksikAutoResearchReceipt = {
- ok:boolean;status:'queued'|'processing'|'ready'|'held';request_id?:string;
+ ok:boolean;status:'queued'|'processing'|'ready'|'held';ready?:boolean;busy?:boolean;retry_seconds?:number;request_id?:string;
  question?:string;scripture_anchor?:string;progress?:number;
  collection_id?:string|null;error?:string|null;created_at?:string;
 };
