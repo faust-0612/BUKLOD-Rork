@@ -1,0 +1,23 @@
+{
+  "status": "ACTUAL_SOURCE_GLB_GENERATION_VALIDATED_REVIEW_ONLY",
+  "sourceCommit": "063fb0a001a4416163d440e4025b062fdd24f694",
+  "sourceBlob": "ad5ad721b4cdfa9830e67720187946c3dde7eaee",
+  "rocks": 48,
+  "trees": 24,
+  "cascades": 2,
+  "triangles": 10232,
+  "sourceBinaryBytes": 915672,
+  "outputBytes": 1919464,
+  "checks": [
+    "deterministic byte regeneration",
+    "unchanged source binary prefix",
+    "unchanged source mesh/node/material/accessor/bufferView records",
+    "new vertex attributes and bounds validated",
+    "normalized normals",
+    "all new geometry in border zones"
+  ],
+  "unityImportVerified": false,
+  "unityRenderingVerified": false,
+  "paidGenerationRequests": 0,
+  "outputPersisted": false
+}

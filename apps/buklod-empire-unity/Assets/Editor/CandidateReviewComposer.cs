@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
@@ -27,20 +28,22 @@ namespace Buklod.Empire.Editor {
             var specs=new List<(string id,string path,string[] clips)>();
             foreach(var h in HeroKitCatalog.All)
                 specs.Add((h.Id,$"{Source}/heroes/{h.Id}.glb",HeroClips));
+            var factionPaths=FactionSources();
             foreach(var team in new[]{"lux","tenebra"}){
                 foreach(var id in Roles.Concat(team=="lux"?LuxVillagers:TenebraVillagers))
-                    specs.Add((team+"_"+id,$"{Source}/rigged-factions/{team}_{id}.glb",FactionClips));
+                    specs.Add((team+"_"+id,factionPaths[team+"_"+id],FactionClips));
             }
             var staticSpecs=new[]{"genesis_rift_candidate","lux_tower_candidate","lux_core_candidate","tenebra_tower_candidate","tenebra_core_candidate"};
-            foreach(var id in staticSpecs)specs.Add((id,$"{Candidate}/{(id=="genesis_rift_candidate"?"genesis_rift_environment_review":id.Replace("_candidate","_architecture_review"))}.glb",Array.Empty<string>()));
+            foreach(var id in staticSpecs)specs.Add((id,id=="genesis_rift_candidate"?EnvironmentSource():$"{Candidate}/{id.Replace("_candidate","_architecture_review")}.glb",Array.Empty<string>()));
             foreach(var spec in specs)if(!File.Exists(spec.path))
                 throw new FileNotFoundException("Run Tools/prepare-review-assets.py first.",spec.path);
             Directory.CreateDirectory(Out+"/Models");Directory.CreateDirectory(Out+"/Prefabs");Directory.CreateDirectory(Out+"/Controllers");Directory.CreateDirectory(Out+"/Clips");
+            bool factionHd=FactionMaterialReview.Prepare(factionPaths.Values.All(path=>path.StartsWith(Source+"/premium-factions/",StringComparison.Ordinal)));
             foreach(var spec in specs)File.Copy(spec.path,$"{Out}/Models/{spec.id}.glb",true);
             HeroLodReviewImporter.CopyModels();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             var prefabs=new Dictionary<string,GameObject>();
-            foreach(var spec in specs)prefabs.Add(spec.id,MakePrefab(spec.id,spec.clips));
+            foreach(var spec in specs)prefabs.Add(spec.id,MakePrefab(spec.id,spec.clips,factionHd&&factionPaths.ContainsKey(spec.id)));
 
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             var root=new GameObject("UNAPPROVED — ORIGINAL PROCEDURAL REVIEW");
@@ -59,7 +62,47 @@ namespace Buklod.Empire.Editor {
             AssetDatabase.SaveAssets();
             Debug.Log("35 candidate actor prefabs and 5 static prefabs imported; review scene saved outside production. Visual and deformation review remain required.");
         }
-        internal static GameObject MakePrefab(string id,string[] required){
+        [Serializable] private sealed class FactionReceipt {public string status;public FactionRow[] models;}
+        [Serializable] private sealed class FactionRow {public string id,file,sourceSha256,sha256;public int bytes,addedTriangles;}
+        static Dictionary<string,string> FactionSources(){
+            var map=new Dictionary<string,string>(StringComparer.Ordinal);
+            foreach(var team in new[]{"lux","tenebra"})foreach(var id in Roles.Concat(team=="lux"?LuxVillagers:TenebraVillagers))
+                map.Add(team+"_"+id,Source+"/rigged-factions/"+team+"_"+id+".glb");
+            string dir=Source+"/premium-factions",receipt=dir+"/manifest.json";
+            if(!Directory.Exists(dir))return map;
+            if(!File.Exists(receipt))throw new InvalidOperationException("Incomplete premium faction generation.");
+            var doc=JsonUtility.FromJson<FactionReceipt>(File.ReadAllText(receipt));
+            if(doc==null||doc.status!="REVIEW_ONLY"||doc.models==null||doc.models.Length!=map.Count)
+                throw new InvalidOperationException("Invalid premium faction manifest.");
+            var seen=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var row in doc.models){
+                if(row==null||string.IsNullOrEmpty(row.id)||!map.ContainsKey(row.id)||!seen.Add(row.id)||row.file!=row.id+".glb"||row.addedTriangles<200)
+                    throw new InvalidOperationException("Invalid faction identity.");
+                string path=dir+"/"+row.file;
+                if(!File.Exists(path)||!File.Exists(map[row.id])||new FileInfo(path).Length!=row.bytes||
+                   FileHash(path)!=row.sha256||FileHash(map[row.id])!=row.sourceSha256)
+                    throw new InvalidOperationException("Faction model hash mismatch: "+row.id);
+                map[row.id]=path;
+            }
+            return map;
+        }
+        [Serializable] private sealed class EnvironmentReceipt {public string status,sourceSha256,sha256;public int bytes;}
+        static string FileHash(string path){
+            using(var stream=File.OpenRead(path))using(var sha=SHA256.Create())
+                return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","").ToLowerInvariant();
+        }
+        static string EnvironmentSource(){
+            string original=Candidate+"/genesis_rift_environment_review.glb";
+            string premium=Source+"/environment/genesis_rift_premium_review.glb";
+            string receipt=Source+"/environment/manifest.json";
+            if(!File.Exists(premium)&&!File.Exists(receipt))return original;
+            if(!File.Exists(premium)||!File.Exists(receipt))throw new InvalidOperationException("Incomplete premium map. Regenerate premium-environment-review.mjs.");
+            var row=JsonUtility.FromJson<EnvironmentReceipt>(File.ReadAllText(receipt));
+            if(row==null||row.status!="REVIEW_ONLY"||row.bytes!=new FileInfo(premium).Length||FileHash(premium)!=row.sha256||FileHash(original)!=row.sourceSha256)
+                throw new InvalidOperationException("Premium map integrity mismatch. Regenerate from the current original map.");
+            return premium;
+        }
+        internal static GameObject MakePrefab(string id,string[] required,bool factionHd=false){
             string modelPath=$"{Out}/Models/{id}.glb";
             var model=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if(!model)throw new InvalidOperationException("glTFast GameObject import failed: "+id);
@@ -109,6 +152,7 @@ namespace Buklod.Empire.Editor {
                     var animator=instance.GetComponent<Animator>();if(!animator)animator=instance.AddComponent<Animator>();
                     animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
                 }
+                if(factionHd)FactionMaterialReview.Apply(instance,id);
                 if(HeroKitCatalog.All.Any(h=>h.Id==id))HeroLodReviewImporter.Attach(instance,id);
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);

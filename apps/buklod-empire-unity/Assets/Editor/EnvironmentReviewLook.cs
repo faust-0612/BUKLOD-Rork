@@ -26,18 +26,21 @@ namespace Buklod.Empire.Editor {
             leafA.SetColor("_BaseColor",new Color(.27f,.44f,.16f));
             leafB.SetColor("_BaseColor",new Color(.15f,.33f,.13f));
             EditorUtility.SetDirty(leafA);EditorUtility.SetDirty(leafB);
-            int water=0,leaves=0;
+            int water=0,leaves=0,cascades=0;
+            Material cascade=null;
             foreach(var renderer in map.GetComponentsInChildren<Renderer>(true)){
                 var materials=renderer.sharedMaterials;bool changed=false;
                 for(int i=0;i<materials.Length;i++){
                     var m=materials[i];if(!m)continue;
                     if(string.Equals(m.name,"water",StringComparison.OrdinalIgnoreCase)){materials[i]=river;water++;changed=true;}
+                    else if(m.name=="rift_cascade"){if(!cascade)cascade=GetMaterial("ReviewRiftCascade","BUKLOD/Review/RiftCascade");materials[i]=cascade;cascades++;changed=true;}
                     else if(m.name=="border_leaf_0"){materials[i]=leafA;leaves++;changed=true;}
                     else if(m.name=="border_leaf_1"){materials[i]=leafB;leaves++;changed=true;}
                 }
                 if(changed)renderer.sharedMaterials=materials;
             }
             if(water==0||leaves!=2)throw new InvalidOperationException("Expected river and both border foliage materials. Inspect imported material names.");
+            if(cascades>1)throw new InvalidOperationException("Unexpected duplicate cascade material group.");
             string path=Out+"/EnvironmentReviewVolume.asset";
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
             if(!profile){profile=ScriptableObject.CreateInstance<VolumeProfile>();AssetDatabase.CreateAsset(profile,path);}
