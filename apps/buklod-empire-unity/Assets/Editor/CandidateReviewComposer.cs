@@ -37,6 +37,7 @@ namespace Buklod.Empire.Editor {
                 throw new FileNotFoundException("Run Tools/prepare-review-assets.py first.",spec.path);
             Directory.CreateDirectory(Out+"/Models");Directory.CreateDirectory(Out+"/Prefabs");Directory.CreateDirectory(Out+"/Controllers");Directory.CreateDirectory(Out+"/Clips");
             foreach(var spec in specs)File.Copy(spec.path,$"{Out}/Models/{spec.id}.glb",true);
+            HeroLodReviewImporter.CopyModels();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             var prefabs=new Dictionary<string,GameObject>();
             foreach(var spec in specs)prefabs.Add(spec.id,MakePrefab(spec.id,spec.clips));
@@ -108,6 +109,7 @@ namespace Buklod.Empire.Editor {
                     var animator=instance.GetComponent<Animator>();if(!animator)animator=instance.AddComponent<Animator>();
                     animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
                 }
+                if(HeroKitCatalog.All.Any(h=>h.Id==id))HeroLodReviewImporter.Attach(instance,id);
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);
                 return saved;

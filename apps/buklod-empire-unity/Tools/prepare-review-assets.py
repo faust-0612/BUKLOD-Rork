@@ -33,6 +33,7 @@ def main():
     verified=validate_roster(OUTPUT/"heroes")
     (OUTPUT/"heroes/skill-motion-verification.json").write_text(json.dumps(verified,indent=2)+"\n")
     subprocess.run([sys.executable,str(TOOLS/"variant_review.py")],check=True)
+    subprocess.run([sys.executable,str(TOOLS/"prepare_hero_lod.py")],check=True)
     rig=json.loads((CANDIDATES/"Rigged/manifest.json").read_text())
     dest=OUTPUT/"rigged-factions";dest.mkdir(parents=True,exist_ok=True)
     count=0

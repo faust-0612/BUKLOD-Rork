@@ -43,6 +43,8 @@ class Candidate(original.Hero):
         # Smooth only rounded surfaces, leaving deliberately faceted armor and gems intact.
         if mat not in (0,1,7,self.stone_index) and not (self.nodes[joint]["name"]=="Head" and max(size)<.04):
             segments=max(segments,16);steps=max(steps,8)
+        if getattr(self,'mobile_lod',False):
+            segments=max(6,min(segments,8));steps=max(3,min(steps,4))
         g=self.geo[mat];start=len(g['p'])
         super().ell(mat,joint,center,size,segments,steps)
         if mat not in (0,1,7,self.stone_index):

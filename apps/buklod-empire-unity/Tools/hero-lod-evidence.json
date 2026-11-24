@@ -1,0 +1,24 @@
+{
+  "status": "OFFLINE_LOD_VALIDATED_REVIEW_ONLY",
+  "baseline": "b0ade4dc71781a1beb3880dcae703655c7f20f73",
+  "executedBlobs": {
+    "heroGenerator": "f3929f320e598991c2930b9c8c77620da7ff32fc",
+    "lodGenerator": "5d24c5961f3402c3d0be2364956e7ad10d7617db"
+  },
+  "heroCount": 13,
+  "fullTriangles": 96360,
+  "lodTriangles": 62332,
+  "minimumIndividualReduction": 0.3023777478689995,
+  "checks": [
+    "same node hierarchy",
+    "same joint order and inverse bind matrix bytes",
+    "same material descriptors",
+    "same all animation sampler bytes and channels",
+    "same 39 canonical motion signatures",
+    "finite positions and UVs",
+    "unit normals and skin weights",
+    "valid joint and index ranges",
+    "ZIP CRC integrity"
+  ],
+  "unityImportVerified": false
+}
