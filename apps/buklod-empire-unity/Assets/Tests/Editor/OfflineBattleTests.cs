@@ -34,6 +34,14 @@ namespace Buklod.Empire.Tests {
             Assert.True(b.Hit(b.Player.State,summon.State,300));Assert.AreEqual(gold,b.Player.Gold);Assert.AreEqual(xp,b.Player.Xp);
             Assert.False(b.Dash(b.Player.State,Vector2.right,float.PositiveInfinity));
         }
+        [Test] public void TechnologyStartsAtZeroAndRejectsUnfundedOrders(){
+            var b=new OfflineBattle("phan");var bank=b.GetVillage(ArenaTeam.Lux);
+            foreach(VillageTechnology tech in System.Enum.GetValues(typeof(VillageTechnology))){
+                Assert.AreEqual(0,bank.TechnologyTier(tech));Assert.False(b.ResearchPlayerTechnology(tech));
+            }
+            Assert.False(b.ResearchPlayerTechnology((VillageTechnology)999));Assert.IsNull(b.PendingTechnology(ArenaTeam.Lux));
+            Assert.AreEqual(36,b.CargoCapacity(ArenaTeam.Lux));Assert.False(b.CancelPlayerTechnology());
+        }
         [Test] public void NeutralTerritoryRequiresUncontestedHeroAndCannotGrantFreeResources(){
             var b=new OfflineBattle("phan");
             Assert.False(b.OrderPlayerTerritoryWorker("lira",1));

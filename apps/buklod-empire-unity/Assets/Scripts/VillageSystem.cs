@@ -112,6 +112,15 @@ namespace Buklod.Empire {
             if(Wood+wood>10000||Stone+stone>10000||Crystal+crystal>10000)return false;
             Wood+=wood;Stone+=stone;Crystal+=crystal;return true;
         }
+        private readonly int[] technology=new int[5];
+        public int TechnologyTier(VillageTechnology tech)=>Enum.IsDefined(typeof(VillageTechnology),tech)?technology[(int)tech]:0;
+        public bool TryTechnologyQuote(VillageTechnology tech,out TechnologyQuote q)=>VillageTechnologyRules.TryQuote(tech,TechnologyTier(tech),out q);
+        internal bool CanFundTechnology(VillageTechnology tech)=>!waves.Finished&&Time<OfflineMatchRules.MatchLimit&&TryTechnologyQuote(tech,out var q)&&Wood>=q.Wood&&Stone>=q.Stone&&Food>=q.Food&&Crystal>=q.Crystal&&Gold>=q.Gold;
+        internal bool CompleteTechnology(VillageTechnology tech,int tier){
+            if(!CanFundTechnology(tech)||!TryTechnologyQuote(tech,out var q)||q.Tier!=tier)return false;
+            Wood-=q.Wood;Stone-=q.Stone;Food-=q.Food;Crystal-=q.Crystal;Gold-=q.Gold;
+            technology[(int)tech]=tier;return true;
+        }
         public int ResearchTier {get;private set;}
         public int TowersUpgraded {get;private set;}
         public int ItemsCrafted {get;private set;}
@@ -179,7 +188,7 @@ namespace Buklod.Empire {
                 case VillageEffect.Train:
                     double foodCost=battle is IVillageLogistics?(lux?12:10):0;
                     if(!CanPay(25,0,0)||Food<foodCost)return false;
-                    if(!battle.Deploy(Team,(ArenaLane)(lane%3),lux?2:1,(lux?1:1.4f)*p*(1+.04f*ResearchTier)))return false;
+                    if(!battle.Deploy(Team,(ArenaLane)(lane%3),lux?2:1,(lux?1:1.4f)*p*(1+.04f*ResearchTier)*VillageTechnologyRules.MilitaryPower(TechnologyTier(VillageTechnology.Military))))return false;
                     Pay(25,0,0);Food-=foodCost;lane=(lane+1)%3;return true;
                 case VillageEffect.Heal:return battle.HealNearBase(Team,25*p,700);
                 case VillageEffect.Research:

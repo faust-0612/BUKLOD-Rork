@@ -104,6 +104,41 @@ namespace Buklod.Empire {
         private readonly List<VillageResourceNode> resourceNodes=new List<VillageResourceNode>();
         public IReadOnlyList<VillageResourceNode> ResourceNodes=>resourceNodes.AsReadOnly();
         public const double CargoLimit=36;
+        public double CargoCapacity(ArenaTeam team)=>ArenaDraftRules.ValidTeam(team)?VillageTechnologyRules.CargoCapacity(villages[(int)team].TechnologyTier(VillageTechnology.Logistics)):0;
+        private sealed class TechnologyOrder {public VillageTechnology Tech;public int Tier,SiteId;public float Progress,Seconds;}
+        private readonly TechnologyOrder[] researchOrders=new TechnologyOrder[2];
+        public VillageTechnology? PendingTechnology(ArenaTeam team)=>ArenaDraftRules.ValidTeam(team)?researchOrders[(int)team]?.Tech:null;
+        public float TechnologyProgress(ArenaTeam team){
+            if(!ArenaDraftRules.ValidTeam(team))return 0;var order=researchOrders[(int)team];return order==null?0:Mathf.Clamp01(order.Progress/order.Seconds);
+        }
+        private BattleUnit Researcher(ArenaTeam team)=>units.FirstOrDefault(u=>u.Team==team&&u.State.Alive&&u.Villager?.Alive==true&&u.Villager.Job.Id==(team==ArenaTeam.Lux?"kiel":"zed"));
+        private bool QueueTechnology(ArenaTeam team,VillageTechnology tech){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit||!ArenaDraftRules.ValidTeam(team)||researchOrders[(int)team]!=null)return false;
+            var worker=Researcher(team);if(worker==null||!worker.State.CanCast(Time))return false;
+            var site=Depot(worker);var bank=villages[(int)team];
+            if(site==null||!bank.CanFundTechnology(tech)||!bank.TryTechnologyQuote(tech,out var q))return false;
+            researchOrders[(int)team]=new TechnologyOrder{Tech=tech,Tier=q.Tier,SiteId=site.Id,Seconds=q.Seconds};return true;
+        }
+        public bool ResearchPlayerTechnology(VillageTechnology tech)=>QueueTechnology(Player.Team,tech);
+        public bool CancelPlayerTechnology(){if(Finished||researchOrders[(int)Player.Team]==null)return false;researchOrders[(int)Player.Team]=null;return true;}
+        private void AdvanceTechnology(){
+            for(int i=0;i<2;i++){
+                var team=(ArenaTeam)i;var bank=villages[i];var order=researchOrders[i];
+                if(Finished||Time>=OfflineMatchRules.MatchLimit){researchOrders[i]=null;continue;}
+                if(order==null&&tick%100==0&&(team!=Player.Team||AutonomousTraining)){
+                    foreach(var tech in new[]{VillageTechnology.Agriculture,VillageTechnology.Extraction,VillageTechnology.Logistics,VillageTechnology.Engineering,VillageTechnology.Military}.OrderBy(tech=>bank.TechnologyTier(tech)))
+                        if(QueueTechnology(team,tech))break;
+                    order=researchOrders[i];
+                }
+                if(order==null)continue;
+                var worker=Researcher(team);var site=units.FirstOrDefault(u=>u.Id==order.SiteId&&u.Team==team&&u.State.Alive&&(u.Core||u.IsDepot));
+                if(worker==null||site==null||!bank.CanFundTechnology(order.Tech)){researchOrders[i]=null;continue;}
+                if(!worker.State.CanCast(Time)||!worker.State.CanMove(Time))continue;
+                if(Dist(worker,site)>3){Steer(worker,site.Position-worker.Position,4);continue;}
+                order.Progress+=Step;if(order.Progress+.001f<order.Seconds)continue;
+                bank.CompleteTechnology(order.Tech,order.Tier);researchOrders[i]=null;
+            }
+        }
         public const int FactionMinionLimit=120;
         public const int OriginalVillagerSlots=6,HouseSlots=3,HouseLimit=2;
         public const float RecruitSeconds=8;
@@ -178,7 +213,7 @@ namespace Buklod.Empire {
         public bool OrderPlayerWorker(string id,VillageWorkerOrder order){
             if(Finished||Time>=OfflineMatchRules.MatchLimit||!Enum.IsDefined(typeof(VillageWorkerOrder),order))return false;
             var worker=PlayerGatherer(id);if(worker==null)return false;
-            worker.WorkerOrder=order==VillageWorkerOrder.Gather&&worker.Cargo>=CargoLimit-1e-6?VillageWorkerOrder.Return:order;
+            worker.WorkerOrder=order==VillageWorkerOrder.Gather&&worker.Cargo>=CargoCapacity(worker.Team)-1e-6?VillageWorkerOrder.Return:order;
             if(order==VillageWorkerOrder.Gather&&worker.Cargo<=1e-6)worker.ResourceNodeId=0;
             return true;
         }
@@ -195,21 +230,22 @@ namespace Buklod.Empire {
             var n=WorkerNode(u);if(n==null||Vector2.Distance(n.Position,u.Position)>2.5f)return false;
             // Ignore caller-supplied quantities; source of truth is the living worker's canonical rate.
             double rate=(team==ArenaTeam.Lux?1:1.4)*(u.Villager.Level>=5?1.2:1);
-            double amount=Math.Min(n.Stock,Math.Min(CargoLimit-u.Cargo,12*u.Villager.Power*rate));
+            var bank=villages[(int)team];int tier=bank.TechnologyTier(n.Renewable?VillageTechnology.Agriculture:VillageTechnology.Extraction);
+            double amount=Math.Min(n.Stock,Math.Min(CargoCapacity(team)-u.Cargo,12*u.Villager.Power*rate*VillageTechnologyRules.HarvestMultiplier(tier)));
             if(amount<=1e-6)return false;
             u.LastHarvestTick=tick;n.Stock-=amount;u.AddCargo(n.Kind,amount);
-            if(u.Cargo>=CargoLimit-1e-6||n.Stock<=1e-6)u.WorkerOrder=VillageWorkerOrder.Return;
+            if(u.Cargo>=CargoCapacity(team)-1e-6||n.Stock<=1e-6)u.WorkerOrder=VillageWorkerOrder.Return;
             return true;
         }
         private void AdvanceResourceNodes(){
             if(Time>=OfflineMatchRules.MatchLimit)return;
             resourceNodes.RemoveAll(n=>n.StructureId!=0&&!NodeOperational(n));
-            if(tick%100==0)foreach(var n in resourceNodes)if(n.Renewable)n.Stock=Math.Min(n.Capacity,n.Stock+12);
+            if(tick%100==0)foreach(var n in resourceNodes)if(n.Renewable&&n.Team.HasValue)n.Stock=Math.Min(n.Capacity,n.Stock+VillageTechnologyRules.FarmRegrowth(villages[(int)n.Team.Value].TechnologyTier(VillageTechnology.Agriculture)));
         }
         private BattleUnit Builder(ArenaTeam team)=>units.FirstOrDefault(u=>u.Team==team&&u.Villager?.Job.Effect==VillageEffect.Build&&u.State.Alive);
         private BattleUnit Depot(BattleUnit worker)=>units.Where(u=>u.Team==worker.Team&&u.State.Alive&&(u.Core||u.IsDepot)).OrderBy(u=>Dist(worker,u)).ThenBy(u=>u.Id).FirstOrDefault();
         public bool HasConstructionOrder(ArenaTeam team)=>Builder(team)?.Construction!=null;
-        bool IVillageWorkGate.CanWork(ArenaTeam team,string workerId)=>!Finished&&Time<OfflineMatchRules.MatchLimit&&units.Any(u=>u.Team==team&&u.Villager?.Job.Id==workerId&&u.Villager.Alive&&u.State.CanCast(Time));
+        bool IVillageWorkGate.CanWork(ArenaTeam team,string workerId)=>!Finished&&Time<OfflineMatchRules.MatchLimit&&!(researchOrders[(int)team]!=null&&workerId==(team==ArenaTeam.Lux?"kiel":"zed"))&&units.Any(u=>u.Team==team&&u.Villager?.Job.Id==workerId&&u.Villager.Alive&&u.State.CanCast(Time));
         private bool CanConstructAt(ArenaTeam team,VillageBuildOrder kind,Vector2 p){
             if(!Finite(p)||Blocked(p,2)||kind!=VillageBuildOrder.Depot&&kind!=VillageBuildOrder.GuardPost&&kind!=VillageBuildOrder.Farm&&kind!=VillageBuildOrder.Barracks&&kind!=VillageBuildOrder.House)return false;
             if(navigation!=null&&!navigation.CanTraverse(p,p))return false;
@@ -242,7 +278,7 @@ namespace Buklod.Empire {
                     float side=team==ArenaTeam.Lux?1:-1;
                     var damaged=units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Temporary&&u.State.Alive&&u.State.Health<u.State.MaxHealth*.75f).OrderBy(u=>u.State.Health/u.State.MaxHealth).ThenBy(u=>u.Id).FirstOrDefault();
                     if(!CoreAlive(team)&&Depot(bot)==null&&QueueConstruction(team,VillageBuildOrder.Depot,Base(team)+new Vector2(side*8,side*8)))continue;
-                    if(!CoreAlive(team)&&ProductionSite(team)==null&&QueueConstruction(team,VillageBuildOrder.Barracks,Base(team)+new Vector2(side*8,-side*8)))continue;
+                    if(!CoreAlive(team)&&ProductionSite(team)==null&&QueueConstruction(team,VillageBuildOrder.Barracks,Base(team)+new Vector2(side*24,side*4)))continue;
                     QueueRecruitment(team);
                     if(damaged!=null&&QueueConstruction(team,VillageBuildOrder.Repair,damaged.Position,damaged.Id))continue;
                     if(VillagePopulation(team)>=VillagePopulationCapacity(team)&&QueueConstruction(team,VillageBuildOrder.House,Base(team)+new Vector2(side*16,side*2)))continue;
@@ -262,7 +298,7 @@ namespace Buklod.Empire {
                 if(Vector2.Distance(builder.Position,order.Position)>2.5f){Steer(builder,order.Position-builder.Position,4);continue;}
                 order.Progress+=Step;
                 float duration=order.Kind==VillageBuildOrder.Repair?3:order.Kind==VillageBuildOrder.Depot?6:order.Kind==VillageBuildOrder.Farm?5:order.Kind==VillageBuildOrder.Barracks?9:order.Kind==VillageBuildOrder.House?7:8;
-                if(order.Progress+0.001f<duration)continue;
+                if(order.Progress+0.001f<duration/VillageTechnologyRules.BuildSpeed(villages[(int)builder.Team].TechnologyTier(VillageTechnology.Engineering)))continue;
                 if(villages[(int)builder.Team].SpendConstruction(order.Kind)){
                     if(target!=null)target.State.Health=Mathf.Min(target.State.MaxHealth,target.State.Health+35);
                     else {
@@ -281,7 +317,7 @@ namespace Buklod.Empire {
                 if(u.WorkerOrder==VillageWorkerOrder.Hold)continue;
                 if(u.WorkerOrder==VillageWorkerOrder.Return){
                     var depot=Depot(u);if(depot==null)continue;
-                    if(Dist(u,depot)>2.5f){Steer(u,depot.Position-u.Position,4);continue;}
+                    if(Dist(u,depot)>2.5f){Steer(u,depot.Position-u.Position,VillageTechnologyRules.WorkerSpeed(villages[(int)u.Team].TechnologyTier(VillageTechnology.Logistics)));continue;}
                     // Alternative depots store resources but never restore core respawns or wave production.
                     var bank=villages[(int)u.Team];
                     u.CargoWood-=bank.DepositResource(VillageResourceKind.Wood,u.CargoWood);
@@ -293,7 +329,7 @@ namespace Buklod.Empire {
                     continue;
                 }
                 var node=WorkerNode(u);if(node==null){if(u.Cargo>1e-6)u.WorkerOrder=VillageWorkerOrder.Return;continue;}
-                if(Vector2.Distance(u.Position,node.Position)>2.5f)Steer(u,node.Position-u.Position,4);
+                if(Vector2.Distance(u.Position,node.Position)>2.5f)Steer(u,node.Position-u.Position,VillageTechnologyRules.WorkerSpeed(villages[(int)u.Team].TechnologyTier(VillageTechnology.Logistics)));
             }
         }
         private readonly List<Fallen> fallen=new List<Fallen>();
@@ -314,7 +350,7 @@ namespace Buklod.Empire {
             Winner=winner;EndReason=reason;Finished=true;waves.EndMatch(winner);
             drops.Clear();relicDrops.Clear();fallen.Clear();
             foreach(var u in units){u.Construction=null;u.RecallEnds=0;}
-            Array.Clear(recruitment,0,recruitment.Length);
+            Array.Clear(recruitment,0,recruitment.Length);Array.Clear(researchOrders,0,researchOrders.Length);
         }
         private void CheckElimination(){
             if(Finished)return;int lux=RemainingUnits(ArenaTeam.Lux),ten=RemainingUnits(ArenaTeam.Tenebra);
@@ -656,7 +692,7 @@ namespace Buklod.Empire {
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
             foreach(var u in units)u.State.Clock=Time;
             AdvanceWilderness();if(Finished)return;
-            AdvanceTerritories();AdvanceResourceNodes();AdvanceWorkers();AdvanceConstruction();AdvanceRecruitment();
+            AdvanceTerritories();AdvanceResourceNodes();AdvanceWorkers();AdvanceConstruction();AdvanceRecruitment();AdvanceTechnology();
             foreach(var village in villages)village.Advance(Step);
             foreach(var u in units)if(u.Villager!=null){
                 if(!u.State.Alive&&u.Villager.Alive){u.Position=u.Spawn;u.ClearCargo();u.WorkerOrder=VillageWorkerOrder.Gather;}
