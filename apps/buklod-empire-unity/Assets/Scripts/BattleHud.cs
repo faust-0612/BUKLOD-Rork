@@ -7,6 +7,10 @@ namespace Buklod.Empire {
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
+        private Image healthTrack,manaTrack,xpTrack,xp;private Text objective;
+        private ReviewMinimap minimap;private readonly ReviewSkillGlyph[] glyphs=new ReviewSkillGlyph[3];
+        private OfflineBattle hudMatch;private int lastLevel;private float healthShown,manaShown,xpShown,announcementUntil,nextObjectiveAt;
+        private string announcement="";private bool review;
         private int width,height;
         private Image ImageAt(string name,Transform parent,Color tint){
             var go=new GameObject(name,typeof(RectTransform),typeof(CanvasRenderer),typeof(Image));go.transform.SetParent(parent,false);
@@ -17,7 +21,7 @@ namespace Buklod.Empire {
             var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.alignment=TextAnchor.MiddleCenter;t.color=Color.white;t.raycastTarget=false;t.horizontalOverflow=HorizontalWrapMode.Overflow;return t;
         }
         private void Awake(){
-            view=GetComponent<BattleView>();input=GetComponent<MobileBattleInput>();
+            view=GetComponent<BattleView>();input=GetComponent<MobileBattleInput>();review=view.IsEditorReview;
             var texture=new Texture2D(64,64,TextureFormat.RGBA32,false);
             for(int y=0;y<64;y++)for(int x=0;x<64;x++){float d=Vector2.Distance(new Vector2(x,y),new Vector2(31.5f,31.5f));texture.SetPixel(x,y,new Color(1,1,1,Mathf.Clamp01(31.5f-d)));}
             texture.Apply();circle=Sprite.Create(texture,new Rect(0,0,64,64),Vector2.one*.5f);
@@ -32,7 +36,63 @@ namespace Buklod.Empire {
             status=TextAt("Match status",canvas.transform);
             health=ImageAt("Health",canvas.transform,new Color(.2f,.85f,.38f));health.sprite=null;
             mana=ImageAt("Mana",canvas.transform,new Color(.2f,.55f,.95f));mana.sprite=null;
+            if(review)BuildReview();
             Layout();
+        }
+        private void BuildReview(){
+            healthTrack=ImageAt("Health track",canvas.transform,new Color(.08f,.13f,.13f,.85f));healthTrack.sprite=null;healthTrack.transform.SetAsFirstSibling();
+            manaTrack=ImageAt("Mana track",canvas.transform,new Color(.08f,.13f,.13f,.85f));manaTrack.sprite=null;manaTrack.transform.SetAsFirstSibling();
+            xpTrack=ImageAt("Experience track",canvas.transform,new Color(.08f,.13f,.13f,.85f));xpTrack.sprite=null;xpTrack.transform.SetAsFirstSibling();
+            xp=ImageAt("Experience",canvas.transform,new Color(.96f,.72f,.28f));xp.sprite=null;
+            var mapGo=new GameObject("Fog-safe minimap",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewMinimap));
+            mapGo.transform.SetParent(canvas.transform,false);minimap=mapGo.GetComponent<ReviewMinimap>();minimap.Bind(view);
+            objective=TextAt("Objective status",canvas.transform);objective.horizontalOverflow=HorizontalWrapMode.Wrap;
+            for(int i=0;i<3;i++){
+                var go=new GameObject("Skill glyph",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewSkillGlyph));
+                go.transform.SetParent(buttons[i+2].transform,false);go.transform.SetSiblingIndex(0);
+                glyphs[i]=go.GetComponent<ReviewSkillGlyph>();glyphs[i].raycastTarget=false;
+            }
+        }
+        private void ReviewLayout(){
+            var map=minimap.rectTransform;map.anchorMin=new Vector2(.025f,.60f);map.anchorMax=new Vector2(.025f,.60f);map.pivot=Vector2.zero;
+            map.anchoredPosition=Vector2.zero;
+            float mapWidth=Mathf.Min(width*.18f,height*.31f);
+            map.sizeDelta=new Vector2(mapWidth,mapWidth*OfflineBattle.Height/OfflineBattle.Width);
+            var o=objective.rectTransform;o.anchorMin=new Vector2(.22f,.84f);o.anchorMax=new Vector2(.78f,.91f);o.offsetMin=o.offsetMax=Vector2.zero;
+            objective.fontSize=Mathf.Max(12,(int)(height*.027f));
+            foreach(var bar in new[]{healthTrack,manaTrack,xpTrack,xp}){
+                var t=bar.rectTransform;t.anchorMin=t.anchorMax=new Vector2(.025f,bar==healthTrack?.94f:bar==manaTrack?.905f:.875f);
+                t.pivot=new Vector2(0,.5f);t.anchoredPosition=Vector2.zero;t.sizeDelta=new Vector2(width*.18f,height*(bar==healthTrack?.018f:bar==manaTrack?.013f:.009f));
+            }
+            for(int i=0;i<3;i++){
+                var r=glyphs[i].rectTransform;r.anchorMin=r.anchorMax=new Vector2(.5f,.57f);r.sizeDelta=buttons[i+2].rectTransform.sizeDelta*.72f;
+                labels[i+2].rectTransform.anchorMin=labels[i+2].rectTransform.anchorMax=new Vector2(.5f,.18f);
+                labels[i+2].rectTransform.sizeDelta=new Vector2(buttons[i+2].rectTransform.sizeDelta.x,buttons[i+2].rectTransform.sizeDelta.y*.32f);
+                labels[i+2].fontSize=Mathf.Max(10,(int)(height*.019f));
+            }
+        }
+        static float Fraction(float v,float max)=>Mathf.Clamp01(v/Mathf.Max(.01f,max));
+        private void ReviewUpdate(OfflineBattle b){
+            var p=b.Player;var s=p.State;bool fresh=hudMatch!=b;
+            float h=Fraction(s.Health,s.MaxHealth),m=Fraction(s.Mana,s.MaxMana),x=s.Level>=15?1:Fraction(p.Xp,OfflineBattle.ExperienceThreshold(s.Level));
+            if(fresh){hudMatch=b;lastLevel=s.Level;healthShown=h;manaShown=m;xpShown=x;announcement="";announcementUntil=0;nextObjectiveAt=0;for(int i=0;i<3;i++)if(SkillCueCatalog.TryGet(s.Kit.Skill((SkillSlot)i).Id,out var cue))glyphs[i].SetCue(cue,BattleEffects.Accent(s.Kit.Id));}
+            if(s.Level>lastLevel){lastLevel=s.Level;announcement="LEVEL "+s.Level+(s.Level==6?"  |  ULTIMATE UNLOCKED":"");announcementUntil=b.Time+2.5f;xpShown=x;nextObjectiveAt=0;}
+            float rate=1-Mathf.Exp(-12*Time.unscaledDeltaTime);
+            healthShown=Mathf.Lerp(healthShown,h,rate);manaShown=Mathf.Lerp(manaShown,m,rate);xpShown=Mathf.Lerp(xpShown,x,rate);
+            health.rectTransform.sizeDelta=new Vector2(width*.18f*healthShown,height*.018f);
+            mana.rectTransform.sizeDelta=new Vector2(width*.18f*manaShown,height*.013f);
+            xp.rectTransform.sizeDelta=new Vector2(width*.18f*xpShown,height*.009f);
+            for(int i=0;i<3;i++)if(cooldown[i+2].fillAmount<=.001f)labels[i+2].text=i==2?"ULT":i==0?"S1":"S2";
+            if(b.Time<nextObjectiveAt&&!fresh)return;
+            nextObjectiveAt=b.Time+.15f;
+            if(b.Time<announcementUntil){objective.text=announcement;objective.color=new Color(1,.82f,.40f);return;}
+            objective.color=new Color(.85f,.94f,.91f);
+            WildernessCamp nearest=null;float dist=float.PositiveInfinity;
+            foreach(var camp in b.Camps){
+                if(!camp.Boss||!camp.Alive||!b.IsPositionVisibleTo(p.Team,camp.Position))continue;
+                float d=(camp.Position-p.Position).sqrMagnitude;if(d<dist){nearest=camp;dist=d;}
+            }
+            objective.text=nearest!=null?$"{nearest.Kind}  |  HP {Mathf.CeilToInt(nearest.Health)}/{Mathf.CeilToInt(nearest.MaxHealth)}":$"GENESIS RIFT  |  Relics {p.Relics.Count}  |  Equipment {p.Gear.Count}/6";
         }
         private void Layout(){
             width=Screen.width;height=Screen.height;
@@ -41,6 +101,7 @@ namespace Buklod.Empire {
             }
             knob.rectTransform.sizeDelta=Vector2.one*MobileBattleInput.Radius(0)*.7f;
             var st=status.rectTransform;st.anchorMin=st.anchorMax=new Vector2(.5f,.94f);st.sizeDelta=new Vector2(width*.8f,height*.06f);status.fontSize=Mathf.Max(15,(int)(height*.033f));
+            if(review)ReviewLayout();
             foreach(var bar in new[]{health,mana}){var t=bar.rectTransform;t.anchorMin=t.anchorMax=new Vector2(.025f,bar==health?.94f:.905f);t.pivot=new Vector2(0,.5f);t.anchoredPosition=Vector2.zero;}
         }
         private void Update(){
@@ -55,6 +116,7 @@ namespace Buklod.Empire {
             int seconds=Mathf.FloorToInt(b.Time);status.text=b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):$"{seconds/60:00}:{seconds%60:00}  Lv {s.Level}  Gold {b.Player.Gold}  K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists}  Units {b.RemainingUnits(ArenaTeam.Lux)}:{b.RemainingUnits(ArenaTeam.Tenebra)}";
             health.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),height*.018f);
             mana.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),height*.013f);
+            if(review)ReviewUpdate(b);
         }
         private void OnDestroy(){if(circle){Destroy(circle.texture);Destroy(circle);}}
     }
