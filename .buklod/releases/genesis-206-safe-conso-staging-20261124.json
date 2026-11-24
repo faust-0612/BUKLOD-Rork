@@ -1,0 +1,48 @@
+{
+  "status": "DEV_CANDIDATE_NOT_PUBLISHED",
+  "target": {
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "2.0.6-genesis-godot-ota",
+    "channel": "season2-genesis-library-206-preview",
+    "signedSource": "f1bca8319113402caffe99bd78c7ed0e963f963f",
+    "signedArtifact": 14817753566,
+    "buildRun": 45168699649
+  },
+  "publicGameSource": "0ddcad334a1facabb10aa9913a86e3dee0421224",
+  "mainSource": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "mainAuditSource": "fe3c4e5d19e2161531a980cfc1f51491ee19866a",
+  "mainRuntimeDelta": "Three changed runtime paths from audit carried, ConnectThread global call ownership applied uniquely",
+  "source205": "850c4a50becaea556d4ea0ba20c48d7eaef77b5e",
+  "source205CI": [
+    45314226875,
+    45314226895
+  ],
+  "game": {
+    "arena": "13 heroes, 70 recorded-source cues, combat and map improvements; local practice only",
+    "kingdom": "42 collectible images, walk-to-station, opt-in ambience",
+    "house": "arrival-gated cosmetic construction",
+    "public3D": "22 reviewed public CC0 models including 2 rigged actors; exact export and Android compatibility gate required",
+    "privateAssets": "EXCLUDED; redistribution clearance missing"
+  },
+  "holds": [
+    "ABaKa/SALIKSIK/Academy/KL S2 backend activation",
+    "Points and rewarded ads writes/SSV",
+    "ranked multiplayer/live wallet/property",
+    "Expo-free native app and native GIF/splash changes",
+    "private vendor 3D/FX",
+    "additional pending Connect inbox, GIF, visual prestige, AI optimization ports and integrated CI"
+  ],
+  "noProduction": true,
+  "noSharedBackendMutation": true,
+  "noNewBackendProject": true,
+  "physicalDeviceVerification": "OWNER_WAIVED_NOT_PERFORMED",
+  "mustPass": [
+    "native and target parity",
+    "full cumulative intake",
+    "source/TypeScript/Metro",
+    "AdMob/instant navigation",
+    "Godot public pack hash and smoke",
+    "EAS remote staging/production branch separation",
+    "publish receipt/readback"
+  ]
+}

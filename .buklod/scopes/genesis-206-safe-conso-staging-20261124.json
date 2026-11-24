@@ -1,0 +1,165 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-safe-conso-staging-20261124.json",
+  "objective": "Consolidate owner-authorized existing-APK 2.0.6 Godot content and compatible source changes for Android staging; no production, new native APK or shared backend mutations.",
+  "baseRef": "0ddcad334a1facabb10aa9913a86e3dee0421224",
+  "productionBaselineEvidence": "MAIN 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 audited in fe3c4e5d19e2161531a980cfc1f51491ee19866a; compare from 206 public content shows only three runtime source paths differ; port all three, combining latest-message and global call ownership in ConnectThread by one exact hunk. No production release markers, migrations or Edge functions copied.",
+  "chosenApproach": "Use the existing signed 2.0.6 Android bridge f1bca8319113402caffe99bd78c7ed0e963f963f; base verified public 3D content branch 0ddcad334a1facabb10aa9913a86e3dee0421224; overlay nonoverlapping source/test changes from 205 safe intake; retain native identity and public licensed asset provenance.",
+  "selectionRationale": "Existing 2.0.6 native bridge enables Godot content OTA; original signed Android artifact is verified in GitHub build 45168699649. Distinct Expo-free app is not compatible and needs independent local native completion.",
+  "alternativeApproaches": [
+    "No full native migration via OTA.",
+    "No new isolated backend project or shared live database write.",
+    "No unlicensed private vendor assets or misleading premium gameplay claim.",
+    "No copying production release automation."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "connect-ptt-calls",
+    "cluster-faith",
+    "ads",
+    "godot-content"
+  ],
+  "preserveBehaviors": [
+    "Retain existing 2.0.6 signed native module, app identity, channel, package and Godot 4.7.2.",
+    "Keep existing privacy/media scope, video preview metadata, no false call delivery, measured latest scroll, existing ad/navigation gates and lesson checker validation.",
+    "Game remains local practice and cosmetic-only; never credit live BP, shards, rank or property."
+  ],
+  "acceptanceChecks": [
+    "Exact source and native diff, full TypeScript/Metro, focused Node and ad/navigation gates.",
+    "Build and verify public-only Godot ZIP, checksum/manifest and real headless Godot tests; private FX and raw assets excluded.",
+    "Verify remote staging channel/branch/runtime/project, signed build proof and production mapping unchanged before authorized OTA; no production publish.",
+    "Physical device checks waived, recorded as NOT_PERFORMED."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-safe-conso-staging-20261124.json",
+    ".buklod/releases/genesis-206-safe-conso-staging-20261124.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/devotional/[id].tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodCommentVideoAttachment.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodCommunityCommentPreview.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodContentOverflowMenu.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/RingingCalls.tsx",
+    "src/lib/__tests__/buklodCommentShortVideo.test.ts",
+    "src/lib/buklodCallFeedback.ts",
+    "src/lib/buklodCallLifecycle.ts",
+    "src/lib/buklodCommentMediaBody.ts",
+    "src/lib/buklodCommentVideo.ts",
+    "src/lib/buklodCommentVideoPlaybackSignal.ts",
+    "src/lib/buklodCommentVideoValidation.ts",
+    "src/lib/buklodCommunityPostOwnerActions.ts",
+    "src/lib/buklodMaritesBoard.ts",
+    "src/lib/buklodWordBibleReference.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "src/components/LearningQuestionResponse.tsx",
+    "src/lib/buklodAiResponseValidation.ts",
+    "tests/bible-navigation.test.cjs",
+    "tests/community-wall-post-owner-e2e.test.mjs",
+    "tests/community-wall-scope-privacy-navigation.test.mjs",
+    "tests/connect-call-ads-safety-20261123.test.mjs",
+    "tests/connect-call-feedback-20261123.test.mjs",
+    "tests/marites-wall-upload-behavior-20261124.test.mjs",
+    "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+    "tests/short-video-comment-navigation-scope.test.mjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/connect-cluster-ads-isolation-20261123.test.mjs",
+    "tests/connect-cluster-open-latest-20261123.test.mjs",
+    "tests/formation-ai-timeout-recovery-20261123.test.mjs",
+    "tests/admin-new-registration-inbox-20261119.test.cjs",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "tests/admin-registration-security-20261119.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/mentor-report-selector-access-20261121.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs"
+  ],
+  "regressionTests": [
+    "tests/bible-navigation.test.cjs",
+    "tests/community-wall-post-owner-e2e.test.mjs",
+    "tests/community-wall-scope-privacy-navigation.test.mjs",
+    "tests/connect-call-ads-safety-20261123.test.mjs",
+    "tests/connect-call-feedback-20261123.test.mjs",
+    "tests/marites-wall-upload-behavior-20261124.test.mjs",
+    "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+    "tests/short-video-comment-navigation-scope.test.mjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/connect-cluster-ads-isolation-20261123.test.mjs",
+    "tests/connect-cluster-open-latest-20261123.test.mjs",
+    "tests/formation-ai-timeout-recovery-20261123.test.mjs",
+    "tests/admin-new-registration-inbox-20261119.test.cjs",
+    "tests/admin-registration-navigation-scroll-20261119.test.cjs",
+    "tests/admin-registration-notification-route-20261119.test.cjs",
+    "tests/admin-registration-security-20261119.test.cjs",
+    "tests/buklod-cluster-home-checkin-review.test.cjs",
+    "tests/mentor-report-selector-access-20261121.test.mjs",
+    "tests/ota-restart-safe-area.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Intake existing compatible JS source without native or shared backend changes.",
+      "preservedBehaviors": [
+        "Preserve existing native identity, offline behavior and verified source guards."
+      ],
+      "tests": [
+        "tests/marites-wall-upload-behavior-20261124.test.mjs",
+        "tests/formation-ai-timeout-recovery-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Retain private upload and scope-safe ownership/comment/video logic with preview generation.",
+      "preservedBehaviors": [
+        "Preserve original photos/videos, privacy and post-commit recovery."
+      ],
+      "tests": [
+        "tests/community-wall-post-owner-e2e.test.mjs",
+        "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+        "tests/short-video-comment-navigation-scope.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Existing Wall tab behavior remains account-scoped and stable after owner/media interactions.",
+      "preservedBehaviors": [
+        "Preserve signed account identity, authorized navigation and feed scroll behavior."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Combine audited latest-message anchoring with global truthful call lifecycle.",
+      "preservedBehaviors": [
+        "Preserve existing Connect PTT audio ownership, latest scroll and call status."
+      ],
+      "tests": [
+        "tests/connect-cluster-open-latest-20261123.test.mjs",
+        "tests/connect-call-feedback-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Enable existing My Bible reference navigation and preserve scope privacy.",
+      "preservedBehaviors": [
+        "Retain offline Word, Bible reading and group privacy."
+      ],
+      "tests": [
+        "tests/word-bible-navigation-20261123.test.cjs",
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_CANDIDATE_NOT_PUBLISHED",
+  "physicalDeviceVerification": "OWNER_WAIVED_NOT_PERFORMED"
+}

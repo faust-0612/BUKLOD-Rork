@@ -750,81 +750,7 @@ function BuklodConnectThreadInner({
       | null
     >(null);
 
-  /* PATCH_171H_PERSONAL_CALL_STATUS */
-  useEffect(
-    () => {
-      if (!directVideoClient) {
-        return;
-      }
-
-      return directVideoClient.on(
-        'call.rejected',
-        (event: any) => {
-          const scope =
-            String(
-              event?.call?.custom
-                ?.buklod_call_scope ??
-              ''
-            ).toUpperCase();
-
-          if (
-            scope !== 'PERSONAL'
-          ) {
-            return;
-          }
-
-          const myId =
-            directVideoClient
-              .state
-              .connectedUser
-              ?.id;
-
-          if (
-            !myId ||
-            event?.call
-              ?.created_by
-              ?.id !== myId
-          ) {
-            return;
-          }
-
-          const reason =
-            String(
-              event?.reason ?? ''
-            ).toLowerCase();
-
-          if (reason === 'busy') {
-            Alert.alert(
-              'Call unavailable',
-              'This person is currently on another call.'
-            );
-            return;
-          }
-
-          if (reason === 'timeout') {
-            Alert.alert(
-              'Call unavailable',
-              'This person is not available or offline.'
-            );
-            return;
-          }
-
-          if (
-            reason === 'decline' ||
-            reason === 'rejected'
-          ) {
-            Alert.alert(
-              'Call declined',
-              'This person declined the call.'
-            );
-          }
-        }
-      );
-    },
-    [
-      directVideoClient,
-    ]
-  );
+  // Global call lifecycle owns the single truthful call outcome.
 
   const startDirectCall =
     useCallback(
@@ -1411,6 +1337,9 @@ const [
   // A touch/kinetic scroll owns the viewport; content reflow cannot steal it.
   const userDraggingRef = useRef(false);
   const userMomentumRef = useRef(false);
+  // Older pages are requested only after a real upward user gesture.
+  // Programmatic 0px during initial FlatList measurement is not scrolling.
+  const userScrolledUpRef = useRef(false);
   // Focus opts into newest-message following, an actual user swipe opts out.
   const composerFollowsLatestRef = useRef(false);
   // Keep an explicit Latest request through IME/list reflow until real scroll
@@ -1510,6 +1439,7 @@ const [
     suppressStickRef.current = false;
     userDraggingRef.current = false;
     userMomentumRef.current = false;
+    userScrolledUpRef.current = false;
     pendingOlderAnchorRef.current = null;
     initialLoadSettledRef.current = false;
     olderPagesLoadedRef.current = false;
@@ -1539,7 +1469,6 @@ const [
     }
 
     let active = true;
-    let anchorTimer: ReturnType<typeof setTimeout> | null = null;
 
     void getOfflineCache<{
       messages: Message[];
@@ -1576,16 +1505,9 @@ const [
           // Render locally saved messages immediately while the network
           // refresh and secondary user/reaction lookups continue.
           if (!initialLoadSettledRef.current) {
+            // Wait for the actual measured FlatList content resize to pin.
+            // The fixed 64ms timer raced Android layout and opened at top.
             initialLoadSettledRef.current = true;
-            anchorTimer = setTimeout(() => {
-              if (!active || !pinLatestOnOpenRef.current) return;
-              pendingLatestScrollRef.current = true;
-              listRef.current?.scrollToEnd({ animated: false });
-              pinLatestOnOpenRef.current = false;
-              nearBottomRef.current = true;
-              listAnchoredRef.current = true;
-              setListAnchored(true);
-            }, 64);
           }
         }
 
@@ -1637,7 +1559,6 @@ const [
 
     return () => {
       active = false;
-      if (anchorTimer) clearTimeout(anchorTimer);
     };
   }, [
     connectThreadOfflineCacheKey,
@@ -4507,8 +4428,12 @@ const [
             layoutMeasurement,
           } = event.nativeEvent;
 
+          const previousOffset = connectScrollOffsetRef.current;
           connectScrollOffsetRef.current = contentOffset.y;
           if (userDraggingRef.current || userMomentumRef.current) {
+            if (contentOffset.y < previousOffset - 2) {
+              userScrolledUpRef.current = true;
+            }
             composerFollowsLatestRef.current = false;
             pendingLatestScrollRef.current = false;
           }
@@ -4526,6 +4451,9 @@ const [
           nearBottomRef.current = nearBottom;
           if (nearBottom && listAnchoredRef.current) {
             pendingLatestScrollRef.current = false;
+            if (!userDraggingRef.current && !userMomentumRef.current) {
+              userScrolledUpRef.current = false;
+            }
           }
 
           if (
@@ -4548,8 +4476,12 @@ const [
           if (
             contentOffset.y <= CONNECT_LOAD_OLDER_PX &&
             hasOlder &&
-            !loadingOlderRef.current
+            !loadingOlderRef.current &&
+            listAnchoredRef.current &&
+            !pinLatestOnOpenRef.current &&
+            userScrolledUpRef.current
           ) {
+            userScrolledUpRef.current = false;
             void loadOlder();
           }
         }}

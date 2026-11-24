@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -38,6 +39,8 @@ import {
 } from '@/lib/buklodSafeArea';
 import { colors } from '@/lib/theme';
 import { buklodComposerHeightLimits } from '@/lib/buklodAdaptiveInput';
+import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
+import { inspectBuklodCommentVideoSelection } from '@/lib/buklodCommentVideoValidation';
 import { getGenesisNativeFoundation } from '@/features/season2/genesis/genesisNativeFoundation';
 import { pickGenesisCommunityMediaFromProvider } from '@/lib/genesisDocumentMediaPicker';
 
@@ -84,6 +87,7 @@ export default function BuklodCommunityCommentComposer({
   const [reactionOpen, setReactionOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
   const [pickingPhoto, setPickingPhoto] = useState(false);
+  const [pickingVideo, setPickingVideo] = useState(false);
   const inputFocusRef = useRef<TextInput | null>(null);
 
   useEffect(() => {
@@ -147,6 +151,42 @@ export default function BuklodCommunityCommentComposer({
     } finally { setPickingPhoto(false); }
   };
 
+  const pickVideo = async () => {
+    if (pickingPhoto || pickingVideo || busy) return;
+    setPickingVideo(true);
+    try {
+      const allowed = await ensureImagePickerLibraryAccess(
+        ImagePicker.requestMediaLibraryPermissionsAsync,
+      );
+      if (!allowed) {
+        Alert.alert('Video', 'Allow gallery access to attach a short video.');
+        return;
+      }
+      const picked = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsEditing: false,
+        allowsMultipleSelection: false,
+        videoMaxDuration: 30,
+      });
+      if (picked.canceled || !picked.assets?.[0]) return;
+      const asset = picked.assets[0];
+      const info = inspectBuklodCommentVideoSelection(asset);
+      onMediaChange({
+        kind: 'video',
+        ref: asset.uri,
+        mimeType: info.mimeType,
+        durationSeconds: info.durationSeconds,
+        sizeBytes: info.sizeBytes,
+      }, asset.uri);
+      setGifOpen(false);
+      setReactionOpen(false);
+    } catch (error: any) {
+      Alert.alert('Short video', error?.message ?? 'Could not select this video.');
+    } finally {
+      setPickingVideo(false);
+    }
+  };
+
   const pickGif = (gif: ConnectGifCatalogItem) => {
     const url = String(gif.url ?? '').trim();
     if (!url) return;
@@ -190,7 +230,7 @@ export default function BuklodCommunityCommentComposer({
     <>
         <Pressable
           accessibilityLabel="Add photo"
-          disabled={busy || pickingPhoto}
+          disabled={busy || pickingPhoto || pickingVideo}
           hitSlop={4}
           onPress={() => void pickPhoto()}
           style={styles.tool}
@@ -204,6 +244,18 @@ export default function BuklodCommunityCommentComposer({
               color={colors.green}
             />
           )}
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add short video comment"
+          accessibilityHint="Choose a video up to 30 seconds and 25 MB"
+          disabled={busy || pickingPhoto || pickingVideo}
+          onPress={() => void pickVideo()}
+          style={styles.tool}
+        >
+          {pickingVideo ? <ActivityIndicator size="small" color={colors.green} /> :
+            <MaterialCommunityIcons name="video-outline" size={22} color={colors.green} />}
         </Pressable>
 
         <Pressable
@@ -294,13 +346,20 @@ export default function BuklodCommunityCommentComposer({
         { paddingBottom: bottomPad },
       ]}
     >
-      {!!previewUri && (
-        <View style={styles.previewRow}>
-          <ExpoImage
-            source={{ uri: previewUri }}
-            style={styles.previewImage}
-            contentFit="cover"
-          />
+      {(!!previewUri || media?.kind === 'video') && (
+        <View style={[styles.previewRow, media?.kind === 'video' && styles.previewVideoRow]}>
+          {media?.kind === 'video' ? (
+            <View style={styles.previewVideoDetails}>
+              <MaterialCommunityIcons name="video-outline" size={23} color={colors.green} />
+              <Text style={styles.previewVideoText}>Short video · {Math.round(media.durationSeconds ?? 0)}s</Text>
+            </View>
+          ) : (
+            <ExpoImage
+              source={{ uri: previewUri! }}
+              style={styles.previewImage}
+              contentFit="cover"
+            />
+          )}
           <Pressable
             accessibilityLabel="Remove attachment"
             disabled={busy}
@@ -429,10 +488,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.background,
   },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
+  previewImage: { width: '100%', height: '100%' },
+  previewVideoRow: { width: 190, justifyContent: 'center', paddingHorizontal: 10 },
+  previewVideoDetails: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 14 },
+  previewVideoText: { color: colors.text, fontSize: 12, fontWeight: '700', flexShrink: 1 },
   previewRemove: {
     position: 'absolute',
     top: 4,
