@@ -77,7 +77,8 @@ export function generateWildlife(){
   function tri(m,j,a,b,c,na,nb,nc){
    let face=cross(sub(b,a),sub(c,a));if(Math.hypot(...face)<1e-9)return;
    if(face.reduce((s,x,k)=>s+x*na[k],0)<0){[b,c]=[c,b];[nb,nc]=[nc,nb]}
-   const g=geo[m];for(const [p,n] of [[a,na],[b,nb],[c,nc]]){if(p.some(x=>!Number.isFinite(x)))throw Error("Invalid vertex");g.p.push(...p.map(x=>x*scale));g.n.push(...unit(n));g.j.push(j,0,0,0);g.w.push(1,0,0,0);g.uv.push(p[0]*.75,p[2]*.75)}
+   const axis=face.map(Math.abs).indexOf(Math.max(...face.map(Math.abs))),axes=[0,1,2].filter(k=>k!==axis);
+   const g=geo[m];for(const [p,n] of [[a,na],[b,nb],[c,nc]]){if(p.some(x=>!Number.isFinite(x)))throw Error("Invalid vertex");g.p.push(...p.map(x=>x*scale));g.n.push(...unit(n));g.j.push(j,0,0,0);g.w.push(1,0,0,0);g.uv.push(p[axes[0]]*.75,p[axes[1]]*.75)}
   }
   function ell(m,j,c,r,N=18,M=10){
    const at=(u,v)=>{let a=u*2*Math.PI,b=(v-.5)*Math.PI,n=[Math.cos(a)*Math.cos(b),Math.sin(b),Math.sin(a)*Math.cos(b)];return [c.map((x,k)=>x+n[k]*r[k]),unit(n.map((x,k)=>x/r[k]))]};
