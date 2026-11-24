@@ -1,0 +1,333 @@
+name: BUKLOD Genesis 2.0.6 gated Android staging-only OTA
+on:
+  push:
+    branches:
+      - release/genesis-206-safe-conso-staging-20261124
+    paths:
+      - .github/workflows/genesis-206-safe-conso-staging-publish-20261124.yml
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-genesis-206-android-staging-ota
+  cancel-in-progress: false
+jobs:
+  staging-ota:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'BUKLOD_GENESIS_206_STAGING_OTA_PUBLISH:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW: 'true'
+      EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL: 'true'
+      EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V206: 'true'
+      EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW: 'true'
+      EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED: 'false'
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      BUKLOD_GENESIS_PREMIUM_3D: 'true'
+      BUKLOD_GENESIS_PRIVATE_ASSETS: 'false'
+      BUKLOD_GENESIS_PRIVATE_FX: 'false'
+      APK_SHA: f1bca8319113402caffe99bd78c7ed0e963f963f
+      APK_PROOF_RUN: '45168699649'
+      RC_SHA: 7da090dfc73429ff7a1080d74249ae38c1067fbf
+      MAIN_SHA: 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04
+      PUBLIC_CONTENT_SHA: 0ddcad334a1facabb10aa9913a86e3dee0421224
+      CHANNEL: season2-genesis-library-206-preview
+      RUNTIME: 2.0.6-genesis-godot-ota
+      PACKAGE_NAME: org.mzbministry.buklod.staging
+      EVIDENCE: /tmp/buklod-genesis-206-staging-ota-evidence
+      EXPORT: /tmp/buklod-genesis-206-staging-ota-export
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Freeze exact source, native ABI, public-only content, and MAIN source parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/release/genesis-206-safe-conso-staging-20261124'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git merge-base --is-ancestor "$APK_SHA" "$RC_SHA"
+          git merge-base --is-ancestor "$PUBLIC_CONTENT_SHA" "$RC_SHA"
+          git merge-base --is-ancestor "$RC_SHA" HEAD
+          test "$(git diff --name-only "$RC_SHA" HEAD)" = '.github/workflows/genesis-206-safe-conso-staging-publish-20261124.yml'
+          test -z "$(git diff --name-only "$APK_SHA" HEAD -- modules plugins android ios native-genesis app.config.js eas.json package.json package-lock.json)"
+          test -z "$(git diff --name-only "$PUBLIC_CONTENT_SHA" HEAD -- godot scripts/build-empire-godot-pack.mjs scripts/genesis-prepare-godot-ota-pack.mjs scripts/genesis-import-verified-3d.mjs)"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs'),cp=require('node:child_process');
+          const sh=(args)=>cp.execFileSync('git',args,{encoding:'utf8'}).trim();
+          const m=JSON.parse(fs.readFileSync('.buklod/scopes/genesis-206-safe-conso-staging-20261124.json','utf8'));
+          const release=JSON.parse(fs.readFileSync('.buklod/releases/genesis-206-safe-conso-staging-20261124.json','utf8'));
+          a.equal(m.contractVersion,2);
+          a.equal(release.noProduction,true);a.equal(release.noSharedBackendMutation,true);
+          const changed=sh(['diff','--name-only',process.env.PUBLIC_CONTENT_SHA,process.env.RC_SHA]).split('\n').filter(Boolean);
+          a.deepEqual(changed.sort(),[...m.allowedPaths].sort(),'Unexpected source changes');
+          const backend=sh(['diff','--name-only',process.env.APK_SHA,process.env.RC_SHA,'--','supabase']).split('\n').filter(Boolean);
+          a.deepEqual(backend.sort(),release.mainBackendSourceParity.map(x=>x.path).sort());
+          for(const path of backend){
+            a.equal(sh(['rev-parse',process.env.RC_SHA+':'+path]),sh(['rev-parse',process.env.MAIN_SHA+':'+path]),'Backend source not exact existing MAIN '+path);
+          }
+          const e=require('./eas.json');
+          a.equal(e.build['season2-genesis-godot-ota-native-staging'].channel,process.env.CHANNEL);
+          a.equal(e.build.production.channel,'production');
+          a.equal(process.env.EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED,'false');
+          a.equal(process.env.EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED,'false');
+          a.equal(process.env.BUKLOD_GENESIS_PRIVATE_ASSETS,'false');
+          a.equal(process.env.BUKLOD_GENESIS_PRIVATE_FX,'false');
+          console.log('EXACT_STAGING_SCOPE_AND_EXISTING_MAIN_SOURCE_ONLY',changed.length);
+          NODE
+      - name: Verify original signed APK proof and required exact-source CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const root='https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY;
+          const headers={Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json','User-Agent':'buklod-206-staging-proof'};
+          async function get(path){const r=await fetch(root+path,{headers,signal:AbortSignal.timeout(25000)});a.equal(r.status,200,path);return r.json();}
+          (async()=>{
+            const apk=await get('/actions/runs/'+process.env.APK_PROOF_RUN);
+            a.equal(apk.head_sha,process.env.APK_SHA);a.equal(apk.status,'completed');a.equal(apk.conclusion,'success');
+            const j=await get('/actions/runs/'+apk.id+'/jobs?per_page=100');
+            const passed=j.jobs.flatMap(x=>x.steps||[]).filter(x=>x.conclusion==='success').map(x=>x.name);
+            for(const name of ['Single original-keystore FULL staging APK compile — local runner, no cloud build','Verify original staging signing certificate, version code and actual Godot binary','Deliver installable staging APK and proof; NEVER release OTA or production'])a.ok(passed.includes(name),'Missing signed proof '+name);
+            const artifact=await get('/actions/runs/'+apk.id+'/artifacts?per_page=100');
+            const original=artifact.artifacts.find(x=>x.id===14817753566);
+            a.ok(original&&original.name==='buklod-genesis-206-full-staging-godot-ota-original-signed-apk'&&!original.expired&&original.size_in_bytes>100000000);
+            a.equal(original.digest,'sha256:0174f72bab0daa48bddf851f835f4fb96c1ee365d145f93f428265a42dfa3bde');
+            const required=[
+              [45317957734,'Engineering Accountability'],
+              [45317957885,'BUKLOD Main - Report Door and Legacy Integration PR QA'],
+              [45317957593,'BUKLOD Live Motion R1 QA']
+            ];
+            let rows=[];
+            for(let attempt=0;attempt<20;attempt++){
+              rows=await Promise.all(required.map(async ([id,name])=>{
+                const run=await get('/actions/runs/'+id);
+                a.equal(run.name,name);a.equal(run.head_sha,process.env.RC_SHA);
+                if(run.status==='completed')a.equal(run.conclusion,'success','Required CI failed: '+name);
+                return {id,name,status:run.status,conclusion:run.conclusion};
+              }));
+              if(rows.every(x=>x.status==='completed'&&x.conclusion==='success'))break;
+              if(attempt===19)throw Error('Exact source CI not completed; no publication');
+              await new Promise(r=>setTimeout(r,30000));
+            }
+            for(const row of rows){
+              const children=await get('/actions/runs/'+row.id+'/jobs?per_page=100');
+              a.ok(children.jobs.length>0);
+              a.ok(children.jobs.every(x=>x.conclusion==='success'||x.conclusion==='skipped'),'Failed required CI job '+row.name);
+            }
+            fs.writeFileSync(process.env.EVIDENCE+'/source-ci.json',JSON.stringify({rc:process.env.RC_SHA,apkRun:apk.id,apkArtifact:original.id,runs:rows},null,2));
+          })().catch(e=>{console.error('RELEASE_BLOCK',e.message);process.exitCode=1});
+          NODE
+      - name: Locked source, TypeScript, AdMob, navigation and feature regression gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test \
+            tests/genesis-premium-world-content-ota-20261123.test.mjs \
+            tests/genesis-206-3d-import.test.mjs \
+            tests/genesis-full-staging-godot-ota-native-206.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
+            tests/genesis-206-staging-points-readonly-20261124.test.mjs
+          npm run release:gate
+          npm run genesis:theme:gate
+          npx tsc --noEmit
+      - name: Build exact public CC0 Godot content and verify its runtime and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/genesis-import-verified-3d.mjs
+          node scripts/genesis-prepare-godot-ota-pack.mjs
+          python3 - <<'PY'
+          import json,zipfile,hashlib
+          archive='assets/season2/genesis/ota/empire-arena.zip'
+          with zipfile.ZipFile(archive) as z:
+              names=z.namelist()
+              assert not any(x.startswith(('private-fx/','3d/private/','audio/private/','vfx/private/','data/private_')) for x in names)
+              m=json.loads(z.read('data/3d_manifest.json'))
+              assert len(m['models'])==22 and m['license']=='CC0-1.0'
+              assert sum(bool(v.get('rigged')) for v in m['models'])==2
+              for model in m['models']:
+                  folder='3d/kaykit/' if model['id'].startswith('rig_') else '3d/kenney/'
+                  b=z.read(folder+model['id']+'.glb')
+                  assert b[:4]==b'glTF' and len(b)==model['bytes']
+                  assert hashlib.sha256(b).hexdigest()==model['sha256']
+              audio=json.loads(z.read('data/audio_manifest.json'))
+              assert audio['count']==70 and audio['prototype'] is False
+              assert len([x for x in names if x.startswith('kingdom-items/') and x.endswith('.webp')])==42
+          PY
+          unzip -t assets/season2/genesis/ota/empire-arena.zip | tail -2
+          sha256sum assets/season2/genesis/ota/empire-arena.zip > "$EVIDENCE/pack-sha256.txt"
+          mkdir -p /tmp/godot206 /tmp/godot206-project
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            -o /tmp/godot206.zip
+          unzip -q /tmp/godot206.zip -d /tmp/godot206
+          GODOT="$(find /tmp/godot206 -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          "$GODOT" --version | grep -F '4.7.2'
+          unzip -q assets/season2/genesis/ota/empire-arena.zip -d /tmp/godot206-project
+          "$GODOT" --headless --path /tmp/godot206-project --editor --import --quit 2>&1 | tee /tmp/godot206-import.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/godot206-import.log; then exit 1; fi
+          for test_script in art_smoke.gd premium_smoke.gd world_smoke.gd premium_content_smoke.gd premium_3d_import_smoke.gd; do
+            "$GODOT" --headless --path /tmp/godot206-project -s "res://tests/$test_script" 2>&1 | tee "/tmp/godot206-$test_script.log"
+            if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' "/tmp/godot206-$test_script.log"; then exit 1; fi
+          done
+          "$GODOT" --headless --main-pack "$PWD/assets/season2/genesis/ota/empire-arena.zip" --quit-after 12 2>&1 | tee /tmp/godot206-packed.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/godot206-packed.log; then exit 1; fi
+      - name: Verify Expo Preview environment, staging mapping, exact export and publish only to isolated 2.0.6 branch
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-206-preview.env --non-interactive >/dev/null
+          set -a
+          . /tmp/buklod-206-preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          export EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW=true EXPO_PUBLIC_BUKLOD_SOS_NATIVE_R3=true
+          export EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED=true EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_WORLDS=true
+          export EXPO_PUBLIC_BUKLOD_ARENA_LIBRARY_BUNDLE=true EXPO_PUBLIC_BUKLOD_ARENA_EXPERIMENTAL=true
+          export EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205=true EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V206=true
+          export EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED=false EXPO_PUBLIC_POINTS_REWARDED_BONUS_ENABLED=false
+          export EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW=true EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          export BUKLOD_GENESIS_PRIVATE_ASSETS=false BUKLOD_GENESIS_PRIVATE_FX=false BUKLOD_GENESIS_PREMIUM_3D=true
+          node <<'NODE'
+          const a=require('node:assert/strict'),e=require('./eas.json'),c=require('./app.config.js')({config:{}});
+          const original=e.build['season2-genesis-launch-recovery-staging'].env;
+          for(const k of ['EXPO_PUBLIC_SUPABASE_URL','EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY']){
+            a.ok(original[k]&&process.env[k]===original[k],'Preview backend differs from signed profile: '+k);
+          }
+          a.equal(c.android.package,process.env.PACKAGE_NAME);
+          a.equal(c.android.versionCode,18);
+          a.equal(c.runtimeVersion,process.env.RUNTIME);
+          a.equal(c.version,'2.0.6');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.appTarget,'main');
+          a.equal(e.build['season2-genesis-godot-ota-native-staging'].channel,process.env.CHANNEL);
+          NODE
+          npx --yes eas-cli@27.9.0 channel:view "$CHANNEL" --json --non-interactive > "$EVIDENCE/stage-before.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE/prod-before.json"
+          node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE;
+          const read=n=>JSON.parse(fs.readFileSync(d+'/'+n+'.json','utf8'));
+          function branch(raw,name){
+            const c=raw.currentPage??raw;a.equal(c.name,name);a.notEqual(c.isPaused,true);
+            const m=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
+            a.equal(m?.data?.length,1);
+            const b=c.updateBranches?.find(x=>x.id===m.data[0].branchId);
+            a.ok(b?.id&&b?.name,'Missing EAS branch '+name);return b;
+          }
+          const s=branch(read('stage-before'),process.env.CHANNEL),p=branch(read('prod-before'),'production');
+          a.equal(s.name,process.env.CHANNEL,'Staging must use its own dedicated 2.0.6 branch');
+          a.notEqual(s.id,p.id);a.notEqual(s.name,p.name);
+          fs.writeFileSync(d+'/targets.json',JSON.stringify({stageBranch:s.name,stageId:s.id,prodId:p.id,prodBranch:p.name}));
+          NODE
+          PROD_BRANCH="$(node -p "require(process.env.EVIDENCE+'/targets.json').prodBranch")"
+          npx --yes eas-cli@27.9.0 update:list --branch "$PROD_BRANCH" --limit 5 --json --non-interactive > "$EVIDENCE/prod-updates-before.json"
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir "$EXPORT" --clear
+          test -s "$EXPORT/metadata.json"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+          const archive='assets/season2/genesis/ota/empire-arena.zip',size=fs.statSync(archive).size;
+          const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+          const expected=hash(archive);
+          const manifest=fs.readFileSync('src/features/season2/genesis/godotPackManifest.generated.ts','utf8');
+          a.ok(manifest.includes(expected),'Compiled Godot manifest hash not bound');
+          function files(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(x=>x.isDirectory()?files(path.join(dir,x.name)):[path.join(dir,x.name)]);}
+          a.ok(files(process.env.EXPORT).some(p=>fs.statSync(p).size===size&&hash(p)===expected),'Exact Godot ZIP absent from exported OTA');
+          console.log('EXACT_PUBLIC_GODOT_PACK_IN_ANDROID_EXPORT',expected,size);
+          NODE
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          STAGE_BRANCH="$(node -p "require(process.env.EVIDENCE+'/targets.json').stageBranch")"
+          test "$STAGE_BRANCH" = "$CHANNEL"
+          npx --yes eas-cli@27.9.0 update:list --branch "$STAGE_BRANCH" --limit 30 --json --non-interactive > "$EVIDENCE/prior.json"
+          node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE;
+          const raw=JSON.parse(fs.readFileSync(d+'/prior.json','utf8')),rows=raw.currentPage??raw;
+          a.ok(Array.isArray(rows));
+          const hits=rows.filter(x=>x.message==='BUKLOD_GENESIS_206_CONSO_'+process.env.GITHUB_SHA);
+          a.ok(hits.length<=1,'Ambiguous earlier OTA');
+          fs.writeFileSync(d+'/group.txt',hits[0]?.group??'');
+          NODE
+          if [ ! -s "$EVIDENCE/group.txt" ]; then
+            npx --yes eas-cli@27.9.0 update --branch "$STAGE_BRANCH" --platform android --environment preview --skip-bundler --input-dir "$EXPORT" --non-interactive --json --message "BUKLOD_GENESIS_206_CONSO_$GITHUB_SHA" > "$EVIDENCE/published.json"
+            node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE;
+          const rows=JSON.parse(fs.readFileSync(d+'/published.json','utf8'));
+          a.ok(Array.isArray(rows)&&rows.length===1&&rows[0].group,'Missing exact Android update group; no write retry');
+          fs.writeFileSync(d+'/group.txt',rows[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat "$EVIDENCE/group.txt")" --json > "$EVIDENCE/update-view.json"
+          for attempt in 1 2 3; do
+            npx --yes eas-cli@27.9.0 channel:view "$CHANNEL" --json --non-interactive > "$EVIDENCE/stage-after.json"
+            npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE/prod-after.json"
+            if node <<'NODE'
+          const fs=require('node:fs'),d=process.env.EVIDENCE;
+          for(const name of ['stage-after','prod-after']){
+            const raw=JSON.parse(fs.readFileSync(d+'/'+name+'.json','utf8')),c=raw.currentPage??raw;
+            const m=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
+            if(m?.data?.length!==1||!m.data[0]?.branchId)process.exitCode=1;
+          }
+          NODE
+            then break; fi
+            test "$attempt" != 3
+            sleep 8
+          done
+          npx --yes eas-cli@27.9.0 update:list --branch "$PROD_BRANCH" --limit 5 --json --non-interactive > "$EVIDENCE/prod-updates-after.json"
+          node <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict'),d=process.env.EVIDENCE;
+          const read=n=>JSON.parse(fs.readFileSync(d+'/'+n+'.json','utf8'));
+          const target=read('targets'),updates=read('update-view');a.ok(Array.isArray(updates)&&updates.length===1);
+          const u=updates[0];
+          a.equal(u.platform,'android');a.equal(u.runtimeVersion,process.env.RUNTIME);
+          a.equal(u.branch,target.stageBranch);a.equal(u.gitCommitHash,process.env.GITHUB_SHA);
+          a.equal(u.group,fs.readFileSync(d+'/group.txt','utf8').trim());a.ok(u.id&&u.group&&!u.isRollBackToEmbedded);
+          for(const [key,id] of [['stage-after',target.stageId],['prod-after',target.prodId]]){
+            const raw=read(key),c=raw.currentPage??raw,m=typeof c.branchMapping==='string'?JSON.parse(c.branchMapping):c.branchMapping;
+            a.equal(m?.data?.length,1);a.equal(m.data[0].branchId,id);
+          }
+          const groups=n=>{const raw=read(n),rows=raw.currentPage??raw;a.ok(Array.isArray(rows));return rows.map(x=>x.group??x.id)};
+          a.deepEqual(groups('prod-updates-before'),groups('prod-updates-after'),'Production update list changed during release; investigate independently');
+          const result={status:'BUKLOD_GENESIS_206_STAGING_OTA_SERVER_VERIFIED',sourceSha:process.env.GITHUB_SHA,rcSha:process.env.RC_SHA,nativeSha:process.env.APK_SHA,package:process.env.PACKAGE_NAME,runtime:process.env.RUNTIME,channel:process.env.CHANNEL,branch:u.branch,platform:'android',groupId:u.group,updateId:u.id,createdAt:u.createdAt,productionMappingAndUpdatesUnchanged:true,backendMutation:false,physicalDeviceVerification:'OWNER_WAIVED_NOT_PERFORMED',stagingAnnouncement:'NONE'};
+          fs.writeFileSync(d+'/verification.json',JSON.stringify(result,null,2));
+          console.log('VERIFIED_GENESIS_206_STAGING_OTA',JSON.stringify(result));
+          NODE
+      - name: Preserve staging-only verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-genesis-206-staging-ota-proof
+          path: |
+            /tmp/buklod-genesis-206-staging-ota-evidence/*.json
+            /tmp/buklod-genesis-206-staging-ota-evidence/*.txt
+          if-no-files-found: ignore
+          retention-days: 14
