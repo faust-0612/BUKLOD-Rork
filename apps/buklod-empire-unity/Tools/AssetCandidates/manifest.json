@@ -1,0 +1,209 @@
+{
+  "schema": 1,
+  "status": "DEV_GEOMETRY_CANDIDATES_NOT_PREMIUM_APPROVED",
+  "reference": "Genesis Rift canonical lane and cover layout; original Lux/Tenebra reference sheets; independent procedural interpretation",
+  "generator": "Tools/generate-free-candidates.mjs",
+  "assets": [
+    {
+      "path": "Tools/AssetCandidates/genesis_rift_candidate.glb",
+      "gitBlob": "89a58d97b00b67ec1a96d31960fd97b81c7ae628",
+      "bytes": 444860,
+      "meshes": [
+        {
+          "id": "GenesisRift_terrain",
+          "triangles": 12,
+          "primitives": 1
+        },
+        {
+          "id": "GenesisRift_lanes",
+          "triangles": 1548,
+          "primitives": 4
+        },
+        {
+          "id": "GenesisRift_cover_and_vegetation",
+          "triangles": 4528,
+          "primitives": 4
+        }
+      ]
+    },
+    {
+      "path": "Tools/AssetCandidates/lux_tower_candidate.glb",
+      "gitBlob": "6fa4bab1a23f90e0e9507588aee78eb53312ab83",
+      "bytes": 44528,
+      "meshes": [
+        {
+          "id": "lux_tower",
+          "triangles": 560,
+          "primitives": 4
+        }
+      ]
+    },
+    {
+      "path": "Tools/AssetCandidates/lux_core_candidate.glb",
+      "gitBlob": "7c596e1a665fce51a9be57422f92011a67e1b76b",
+      "bytes": 52960,
+      "meshes": [
+        {
+          "id": "lux_core",
+          "triangles": 676,
+          "primitives": 4
+        }
+      ]
+    },
+    {
+      "path": "Tools/AssetCandidates/lux_faction_candidates.glb",
+      "gitBlob": "d94583a9a3c8234c86e9091ddcd0a50051ea00f9",
+      "bytes": 408308,
+      "meshes": [
+        {
+          "id": "lux_infantry",
+          "triangles": 536,
+          "primitives": 4
+        },
+        {
+          "id": "lux_mage",
+          "triangles": 552,
+          "primitives": 4
+        },
+        {
+          "id": "lux_gunner",
+          "triangles": 500,
+          "primitives": 4
+        },
+        {
+          "id": "lux_siege",
+          "triangles": 364,
+          "primitives": 4
+        },
+        {
+          "id": "lux_healer",
+          "triangles": 528,
+          "primitives": 4
+        },
+        {
+          "id": "lux_aron",
+          "triangles": 440,
+          "primitives": 6
+        },
+        {
+          "id": "lux_lira",
+          "triangles": 440,
+          "primitives": 6
+        },
+        {
+          "id": "lux_daren",
+          "triangles": 476,
+          "primitives": 7
+        },
+        {
+          "id": "lux_serah",
+          "triangles": 492,
+          "primitives": 7
+        },
+        {
+          "id": "lux_kiel",
+          "triangles": 476,
+          "primitives": 7
+        },
+        {
+          "id": "lux_miko",
+          "triangles": 476,
+          "primitives": 7
+        }
+      ]
+    },
+    {
+      "path": "Tools/AssetCandidates/tenebra_tower_candidate.glb",
+      "gitBlob": "f65f51222782827e9a4e607370d0ca8d6bcfca34",
+      "bytes": 44540,
+      "meshes": [
+        {
+          "id": "tenebra_tower",
+          "triangles": 560,
+          "primitives": 4
+        }
+      ]
+    },
+    {
+      "path": "Tools/AssetCandidates/tenebra_core_candidate.glb",
+      "gitBlob": "be4fc781385b9b6f51ac61959d3264f7edb60a99",
+      "bytes": 52972,
+      "meshes": [
+        {
+          "id": "tenebra_core",
+          "triangles": 676,
+          "primitives": 4
+        }
+      ]
+    },
+    {
+      "path": "Tools/AssetCandidates/tenebra_faction_candidates.glb",
+      "gitBlob": "39bc67e04a3583d21bf81b0e163a9575761b38f4",
+      "bytes": 403852,
+      "meshes": [
+        {
+          "id": "tenebra_infantry",
+          "triangles": 536,
+          "primitives": 3
+        },
+        {
+          "id": "tenebra_mage",
+          "triangles": 552,
+          "primitives": 3
+        },
+        {
+          "id": "tenebra_gunner",
+          "triangles": 500,
+          "primitives": 3
+        },
+        {
+          "id": "tenebra_siege",
+          "triangles": 364,
+          "primitives": 3
+        },
+        {
+          "id": "tenebra_healer",
+          "triangles": 528,
+          "primitives": 3
+        },
+        {
+          "id": "tenebra_rogar",
+          "triangles": 440,
+          "primitives": 5
+        },
+        {
+          "id": "tenebra_velin",
+          "triangles": 440,
+          "primitives": 5
+        },
+        {
+          "id": "tenebra_kael",
+          "triangles": 476,
+          "primitives": 6
+        },
+        {
+          "id": "tenebra_mora",
+          "triangles": 492,
+          "primitives": 6
+        },
+        {
+          "id": "tenebra_zed",
+          "triangles": 476,
+          "primitives": 6
+        },
+        {
+          "id": "tenebra_taro",
+          "triangles": 476,
+          "primitives": 6
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "No hero replacement; existing 13 hero baseline generator remains separate.",
+    "Faction candidates are static meshes; skinning and animation are pending.",
+    "Map requires Unity import, NavMesh, lighting, textures and device checks.",
+    "No approval or rights receipt for production; not in Assets."
+  ],
+  "paidGenerationRequests": 0
+}
