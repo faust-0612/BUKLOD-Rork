@@ -36,12 +36,13 @@ namespace Buklod.Empire {
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
         private readonly Dictionary<GameObject,Stack<GameObject>> pool=new Dictionary<GameObject,Stack<GameObject>>();
         private readonly HashSet<int> seen=new HashSet<int>();
+        private readonly Dictionary<int,VillageResourceNode> reviewFarmNodes=new Dictionary<int,VillageResourceNode>();
         private readonly List<int> removed=new List<int>();
         private readonly Plane[] frustum=new Plane[6];
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public BattleUnit unit;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence,villageActions,repairSequence;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence,villageActions,repairSequence;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -103,6 +104,7 @@ namespace Buklod.Empire {
             else go=Instantiate(prefab,transform);
             go.SetActive(true);
             var v=new Visual{instance=go,prefab=prefab,animator=go.GetComponentInChildren<Animator>(true)};
+            if(ReviewOnly)v.farmGrowth=go.GetComponent<ReviewFarmGrowth>();
             v.lodGroups=go.GetComponentsInChildren<LODGroup>(true);
             v.renderers=go.GetComponentsInChildren<Renderer>(true);v.originalShadows=new ShadowCastingMode[v.renderers.Length];
             for(int i=0;i<v.renderers.Length;i++){
@@ -135,6 +137,8 @@ namespace Buklod.Empire {
         private void Sync(bool immediate){
             seen.Clear();
             if(reviewShadows)reviewShadows.Begin();
+            reviewFarmNodes.Clear();
+            if(ReviewOnly)foreach(var node in Battle.ResourceNodes)if(node.StructureId!=0&&node.Kind==VillageResourceKind.Food)reviewFarmNodes[node.StructureId]=node;
             GeometryUtility.CalculateFrustumPlanes(battleCamera,frustum);
             var playerPosition=Battle.Player.Position;
             foreach(var u in Battle.Units){
@@ -149,6 +153,8 @@ namespace Buklod.Empire {
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;v.villageActions=u.Villager?.Actions??0;v.repairSequence=u.RepairSequence;
                 }
+                if(ReviewOnly&&u.IsFarm&&v.farmGrowth&&reviewFarmNodes.TryGetValue(u.Id,out var farmNode))
+                    v.farmGrowth.Apply(farmNode.Stock,farmNode.Capacity,immediate||!existing,Time.deltaTime);
                 bool hero=u.Kind==BattleTargetKind.Hero;
                 int requestedLod=premiumVisuals?0:-1;
                 if(hero&&v.lodGroups!=null&&v.forcedLod!=requestedLod){
