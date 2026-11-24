@@ -39,7 +39,7 @@ namespace Buklod.Empire {
                 var s=WorldImpactMotion.Evaluate(b.Kind,b.Seed,i,t);var rotation=Quaternion.Euler(s.Rotation);
                 Color c=Color.Lerp(b.Tint,Color.white,(i%4)*.12f);
                 for(int j=0;j<12;j+=3){
-                    var a=rotation*Corners[Faces[j]],d=rotation*Corners[Faces[j+1]],e=rotation*Corners[Faces[j+2]];
+                    Vector3 a=rotation*Corners[Faces[j]],d=rotation*Corners[Faces[j+1]],e=rotation*Corners[Faces[j+2]];
                     var n=Vector3.Cross(d-a,e-a).normalized;int k=i*12+j;
                     b.Positions[k]=s.Position+a*s.Size;b.Positions[k+1]=s.Position+d*s.Size;b.Positions[k+2]=s.Position+e*s.Size;
                     b.Normals[k]=b.Normals[k+1]=b.Normals[k+2]=n;b.Colors[k]=b.Colors[k+1]=b.Colors[k+2]=c;
