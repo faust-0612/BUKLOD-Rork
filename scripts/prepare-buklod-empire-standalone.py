@@ -46,6 +46,7 @@ def patch(relative,old,new):
     assert s.count(old)==1, relative+': canonical anchor changed'
     path.write_text(s.replace(old,new))
 patch('project.godot','config/name="BUKLOD Empire Arena"','config/name="BUKLOD Empire"')
+patch('project.godot','[rendering]\n','[rendering]\ntextures/vram_compression/import_etc2_astc=true\n')
 patch('project.godot','run/main_scene="res://scenes/Arena.tscn"','run/main_scene="res://scenes/EmpireHub.tscn"\nconfig/icon="res://splash/buklod-green-b.png"')
 patch('scripts/arena_root.gd','get_tree().quit(0)','get_tree().change_scene_to_file("res://scenes/EmpireHub.tscn")')
 patch('scripts/world_preview.gd','\tfor arg in OS.get_cmdline_user_args():','\tworld_id = str(get_tree().get_meta("buklod_empire_world", "kingdom"))\n\tif not WORLD_ART.has(world_id):\n\t\tworld_id = "kingdom"\n\tfor arg in OS.get_cmdline_user_args():')

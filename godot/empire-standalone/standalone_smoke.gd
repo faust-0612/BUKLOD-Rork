@@ -34,5 +34,8 @@ func _run() -> void:
 	var snap: Dictionary = current_scene.get_dev_snapshot()
 	if snap.get("world") != "kingdom" or int(snap.get("models", 0)) < 8 or not snap.get("rigged_available", false) or snap.get("server_settlement", true):
 		push_error("Kingdom 3D runtime failed"); quit(5); return
+	current_scene.queue_free()
+	await process_frame
+	await process_frame
 	print("BUKLOD_EMPIRE_STANDALONE_SMOKE_PASS: hub, canonical combat, Kingdom and raw 3D assets")
 	quit(0)
