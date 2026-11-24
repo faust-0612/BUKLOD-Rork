@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
 type MemberOption={id:string;full_name:string|null;role:string};
+type MenteeLinkRequest={id:string;mentor_id:string;mentor_name:string;mentee_name:string;created_at:string};
 const normalize=(value:string)=>value.toLocaleLowerCase().trim();
 export default function MentorAssignmentsAdmin() {
   const [members,setMembers]=useState<MemberOption[]>([]);
@@ -16,6 +17,12 @@ export default function MentorAssignmentsAdmin() {
   const [learnerSearch,setLearnerSearch]=useState('');
   const [reason,setReason]=useState('');
   const [busy,setBusy]=useState(false);
+  const [linkRequests,setLinkRequests]=useState<MenteeLinkRequest[]>([]);
+  const [linkQueueEnabled,setLinkQueueEnabled]=useState(false);
+  const [reviewRequestId,setReviewRequestId]=useState('');
+  const [reviewSearch,setReviewSearch]=useState('');
+  const [reviewLearnerId,setReviewLearnerId]=useState('');
+  const [reviewNote,setReviewNote]=useState('');
   useEffect(()=>{
     let live=true;
     void supabase.from('profiles').select('id,full_name,role').eq('is_active',true)
@@ -26,6 +33,43 @@ export default function MentorAssignmentsAdmin() {
       });
     return()=>{live=false};
   },[]);
+
+  const loadLinkRequests=async()=>{
+    const {data,error}=await (supabase as any).rpc('admin_pending_mentee_link_requests_v1');
+    if(error){setLinkQueueEnabled(false);setLinkRequests([]);return;}
+    setLinkQueueEnabled(true);
+    setLinkRequests(Array.isArray(data)?data:[]);
+  };
+  useEffect(()=>{void loadLinkRequests()},[]);
+
+  const reviewLearners=useMemo(()=>reviewSearch.trim().length>=2
+    ? members.filter(x=>x.id!==linkRequests.find(r=>r.id===reviewRequestId)?.mentor_id
+      && normalize(x.full_name??'').includes(normalize(reviewSearch))).slice(0,30)
+    :[],[members,reviewSearch,reviewRequestId,linkRequests]);
+  const selectedLink=linkRequests.find(x=>x.id===reviewRequestId);
+
+  const reviewLink=async(approve:boolean)=>{
+    if(busy||!selectedLink)return;
+    if(approve&&!reviewLearnerId)
+      return Alert.alert('Choose verified mentee','Search and select the actual registered BUKLOD member first.');
+    if(reviewNote.trim().length<12)
+      return Alert.alert('Review note required','Write at least 12 characters explaining how the member was verified or why the request was rejected.');
+    setBusy(true);
+    try{
+      const {error}=await (supabase as any).rpc('admin_review_mentee_link_request_v1',{
+        p_request_id:selectedLink.id,p_disciple_id:approve?reviewLearnerId:null,
+        p_approve:approve,p_review_note:reviewNote.trim()
+      });
+      if(error)throw error;
+      setReviewRequestId('');setReviewSearch('');setReviewLearnerId('');setReviewNote('');
+      await loadLinkRequests();
+      Alert.alert(approve?'Mentee linked':'Request declined',approve
+        ? 'The verified member is now in the mentor\'s assigned attendee list.'
+        : 'The request was reviewed without creating a mentor assignment.');
+    }catch(error){
+      Alert.alert('Review not saved',error instanceof Error?error.message:String(error));
+    }finally{setBusy(false);}
+  };
 
   const mentors=useMemo(()=>mentorSearch.trim().length>=2
     ? members.filter(x=>x.role!=='system_admin' && normalize(x.full_name??'').includes(normalize(mentorSearch))).slice(0,30)
@@ -90,6 +134,41 @@ export default function MentorAssignmentsAdmin() {
     <ScrollView style={shared.screen} contentContainerStyle={shared.content} keyboardShouldPersistTaps="handled">
       <Text style={shared.h1}>Mentor Assignments</Text>
       <Card>
+        <Text style={shared.h2}>Mentee linking requests</Text>
+        <Text style={shared.muted}>Mentors can enter a name in the teaching report, but only a verified account link adds a selectable attendee. Do not approve an unverified or similarly named account.</Text>
+        {!linkQueueEnabled && <Text style={shared.muted}>Link request queue is not enabled on this backend. Existing assignment controls below remain available.</Text>}
+        {linkQueueEnabled && linkRequests.length===0 &&
+          <Text style={shared.muted}>No pending mentee requests.</Text>}
+        {linkRequests.map(r=>
+          <Pressable key={r.id}
+            onPress={()=>{setReviewRequestId(r.id);setReviewSearch(r.mentee_name);setReviewLearnerId('');}}
+            style={[styles.requestCard,reviewRequestId===r.id&&styles.chipOn]}>
+            <Text style={styles.requestTitle}>{r.mentor_name||'Mentor'} requests: {r.mentee_name}</Text>
+            <Text style={shared.muted}>{new Date(r.created_at).toLocaleDateString()}</Text>
+          </Pressable>)}
+        {selectedLink&&<>
+          <Text style={shared.h2}>Verify this mentee's actual account</Text>
+          <Text style={shared.muted}>Requested name: {selectedLink.mentee_name}. Search the registered member list, confirm identity independently, then choose one account.</Text>
+          <TextInput style={styles.input} placeholder="Search verified member by name"
+            value={reviewSearch} onChangeText={v=>{setReviewSearch(v);setReviewLearnerId('');}}/>
+          <View style={styles.wrap}>{reviewLearners.map(x=>
+            <Pressable key={x.id} onPress={()=>setReviewLearnerId(x.id)}
+              style={[styles.chip,reviewLearnerId===x.id&&styles.chipOn]}>
+              <Text>{x.full_name||'Member'} · ID …{x.id.slice(-6)}</Text>
+            </Pressable>)}</View>
+          {!!reviewLearnerId&&<Text style={shared.muted}>Selected verified member: {members.find(x=>x.id===reviewLearnerId)?.full_name} · ID …{reviewLearnerId.slice(-6)}. Verify their actual account before approving.</Text>}
+          <TextInput style={styles.input} multiline maxLength={500}
+            placeholder="Required review/audit note (12+ characters)"
+            value={reviewNote} onChangeText={setReviewNote}/>
+          <Button title={busy?'WORKING...':'APPROVE VERIFIED MENTEE LINK'} onPress={()=>void reviewLink(true)}/>
+          <Button title="REJECT REQUEST" onPress={()=>Alert.alert(
+            'Reject mentee link request?', 'No attendee will be added.',
+            [{text:'Cancel',style:'cancel'},{text:'Reject',style:'destructive',onPress:()=>void reviewLink(false)}]
+          )}/>
+        </>}
+        <Button title="REFRESH LINK REQUESTS" onPress={()=>void loadLinkRequests()}/>
+      </Card>
+      <Card>
         <Text style={shared.h2}>Choose Mentor</Text>
         <Text style={shared.muted}>Search an active member. The protected System Admin cannot be a mentor.</Text>
         <TextInput style={styles.input} placeholder="Search mentor name (2+ letters)"
@@ -127,4 +206,6 @@ const styles=StyleSheet.create({
   wrap:{flexDirection:'row',flexWrap:'wrap',gap:7,marginVertical:9},
   chip:{borderWidth:1,borderColor:colors.line,borderRadius:18,paddingVertical:7,paddingHorizontal:9},
   chipOn:{backgroundColor:colors.greenSoft,borderColor:colors.green},
+  requestCard:{padding:10,marginVertical:5,borderWidth:1,borderColor:colors.line,borderRadius:10},
+  requestTitle:{fontWeight:'800',color:colors.text},
 });

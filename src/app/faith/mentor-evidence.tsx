@@ -27,6 +27,9 @@ type Task = {
 };
 type Lesson = { id: string; title: string };
 type Disciple = { disciple_id: string; disciple_name: string };
+type MenteeLinkRequest = {
+  id: string; mentee_name: string; status: 'pending' | 'assigned' | 'rejected'; created_at: string;
+};
 type Source = 'camera' | 'library';
 
 const PHOTO_BUCKET = 'buklod-mentoring-evidence';
@@ -55,8 +58,13 @@ export default function MentorTeachingPhotoEvidence() {
   const [mentorEligible, setMentorEligible] = useState<boolean | null>(null);
   const [selectedLesson, setSelectedLesson] = useState('');
   const [lessonSearch, setLessonSearch] = useState('');
+  const [lessonPickerOpen, setLessonPickerOpen] = useState(false);
   const [disciples, setDisciples] = useState<Disciple[]>([]);
   const [selectedDisciples, setSelectedDisciples] = useState<string[]>([]);
+  const [menteeSearch, setMenteeSearch] = useState('');
+  const [newMenteeName, setNewMenteeName] = useState('');
+  const [menteeRequests, setMenteeRequests] = useState<MenteeLinkRequest[]>([]);
+  const [menteeRequestAvailable, setMenteeRequestAvailable] = useState(false);
   const [requestKey, setRequestKey] = useState(() => Crypto.randomUUID());
   const [notes, setNotes] = useState('');
   const [location, setLocation] = useState('');
@@ -90,11 +98,14 @@ export default function MentorTeachingPhotoEvidence() {
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth?.user) throw authError || new Error('Sign in to load mentoring reports.');
-      const [taskResponse, lessonResponse, menteeResponse, mentorResponse] = await Promise.all([
+      const [taskResponse, lessonResponse, menteeResponse, mentorResponse, linkRequestResponse] = await Promise.all([
         (supabase as any).rpc('get_my_mentor_photo_tasks_r2'),
         (supabase as any).rpc('get_my_mentor_reportable_lessons_r2'),
         (supabase as any).rpc('mentor_disciple_progress'),
         (supabase as any).rpc('has_capability', { p_user_id: auth.user.id, p_capability: 'mentor' }),
+        // Optional until the matching isolated DB migration is installed.
+        // Failure of a new link-request RPC must not block existing report history.
+        (supabase as any).rpc('get_my_mentee_link_requests_v1'),
       ]);
       if (taskResponse.error) throw taskResponse.error;
       if (lessonResponse.error) throw lessonResponse.error;
@@ -105,7 +116,15 @@ export default function MentorTeachingPhotoEvidence() {
       setTasks(Array.isArray(taskResponse.data) ? taskResponse.data : []);
       setLessons(Array.isArray(lessonResponse.data) ? lessonResponse.data : []);
       setMentorEligible(mentorResponse.data === true);
-      setDisciples(Array.isArray(menteeResponse.data) ? menteeResponse.data : []);
+      const liveDisciples: Disciple[] = Array.isArray(menteeResponse.data) ? menteeResponse.data : [];
+      const liveIds = new Set(liveDisciples.map(d => d.disciple_id));
+      setDisciples(liveDisciples);
+      // Avoid showing stale attendees after an assignment is revoked or moved.
+      setSelectedDisciples(current => current.filter(id => liveIds.has(id)));
+      setRevisionLearners(current => current.filter(id => liveIds.has(id)));
+      setMenteeRequestAvailable(!linkRequestResponse.error);
+      setMenteeRequests(!linkRequestResponse.error && Array.isArray(linkRequestResponse.data)
+        ? linkRequestResponse.data : []);
       setPhotoUrls({});
     } catch (error) {
       if (sequence === requestSeq.current) {
@@ -113,6 +132,8 @@ export default function MentorTeachingPhotoEvidence() {
         setTasks([]);
         setLessons([]);
         setDisciples([]);
+        setMenteeRequestAvailable(false);
+        setMenteeRequests([]);
         setErr(`Unable to load mentoring reports: ${message(error)}`);
       }
     } finally {
@@ -195,6 +216,7 @@ export default function MentorTeachingPhotoEvidence() {
     setSelectedLesson('');
     setSelectedDisciples([]);
     setLessonSearch('');
+    setLessonPickerOpen(false);
     setPhoto(null);
     setRetrySessionId(null);
     setConsent(false);
@@ -253,6 +275,37 @@ export default function MentorTeachingPhotoEvidence() {
       } else {
         setErr(`Could not save report: ${message(error)}`);
       }
+    } finally {
+      endAction();
+    }
+  };
+
+  const requestMenteeLink = async () => {
+    if (busy || loading || mentorEligible !== true || !menteeRequestAvailable) return;
+    const cleanName = newMenteeName.trim().replace(/\s+/g, ' ');
+    if (cleanName.length < 3 || cleanName.length > 120) {
+      Alert.alert('Enter mentee name', 'Enter the real mentee full name (3–120 characters).');
+      return;
+    }
+    if (disciples.some(d => d.disciple_name?.trim().toLocaleLowerCase() === cleanName.toLocaleLowerCase())) {
+      setMenteeSearch(cleanName);
+      Alert.alert('Mentee already linked', 'Select this mentee from your assigned attendance list above. No new request is needed.');
+      return;
+    }
+    if (!beginAction('request-mentee')) return;
+    setErr('');
+    try {
+      const { data, error } = await (supabase as any).rpc('request_my_mentee_link_v1', {
+        p_mentee_name: cleanName,
+      });
+      if (error) throw error;
+      setNewMenteeName('');
+      Alert.alert('Mentee link requested', data?.already_requested
+        ? 'This mentee is already waiting for account verification. Only linked members can be added to a teaching report.'
+        : 'Your request was saved. An authorized administrator must match the name to a BUKLOD member before the mentee appears above.');
+      await load();
+    } catch (error) {
+      setErr(`Unable to request a mentee link: ${message(error)}`);
     } finally {
       endAction();
     }
@@ -351,6 +404,8 @@ export default function MentorTeachingPhotoEvidence() {
   // Show every matching, server-authorized lesson; never silently truncate at 20.
   const visibleLessons = lessons.filter(lesson =>
     searchKey(lesson.title).includes(searchKey(lessonSearch.trim())));
+  const visibleDisciples = disciples.filter(d =>
+    searchKey(d.disciple_name || '').includes(searchKey(menteeSearch.trim())));
 
   return <SafeAreaView style={s.root}>
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
@@ -368,26 +423,46 @@ export default function MentorTeachingPhotoEvidence() {
 
       <View style={s.card}>
         <Text style={s.lesson}>New teaching report</Text>
-        <Text style={s.meta}>Choose the actual BUKLOD lesson taught.</Text>
-        <TextInput style={s.field} value={lessonSearch} onChangeText={setLessonSearch}
-          placeholder="Search BUKLOD / CCP / Discipleship lesson"
-          placeholderTextColor="#859688" />
-        {mentorEligible === true && !loading && <Text style={s.meta}>Showing {visibleLessons.length} of {lessons.length} reportable BUKLOD lessons. Search or scroll to select any available lesson.</Text>}
-        {visibleLessons.map(lesson => <Pressable key={lesson.id} accessibilityRole="button"
-          accessibilityState={{ selected: selectedLesson === lesson.id }}
-          style={[s.choice, selectedLesson === lesson.id && s.selected]}
-          onPress={() => setSelectedLesson(lesson.id)}>
-          <Text style={s.choiceText}>{lesson.title}</Text>
-        </Pressable>)}
+        <Text style={s.meta}>1. Choose the actual BUKLOD lesson taught.</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: lessonPickerOpen }}
+          disabled={loading || mentorEligible !== true}
+          onPress={() => setLessonPickerOpen(current => !current)}
+          style={[s.choice, !!selectedLesson && s.selected]}>
+          <Text style={s.choiceText}>
+            {selectedLesson
+              ? `Selected: ${lessons.find(l => l.id === selectedLesson)?.title || 'Lesson'} · Change`
+              : 'Choose / search lesson ▾'}
+          </Text>
+        </Pressable>
+        {lessonPickerOpen && <>
+          <TextInput style={s.field} value={lessonSearch} onChangeText={setLessonSearch}
+            placeholder="Search BUKLOD / CCP / Discipleship lesson"
+            placeholderTextColor="#859688" />
+          {mentorEligible === true && !loading && <Text style={s.meta}>Showing {visibleLessons.length} of {lessons.length} reportable BUKLOD lessons.</Text>}
+          {visibleLessons.map(lesson => <Pressable key={lesson.id} accessibilityRole="button"
+            accessibilityState={{ selected: selectedLesson === lesson.id }}
+            style={[s.choice, selectedLesson === lesson.id && s.selected]}
+            onPress={() => {
+              setSelectedLesson(lesson.id);
+              setLessonPickerOpen(false);
+              setLessonSearch('');
+            }}>
+            <Text style={s.choiceText}>{lesson.title}</Text>
+          </Pressable>)}
+          {mentorEligible === true && lessons.length > 0 && visibleLessons.length === 0 && !loading &&
+            <Text style={s.meta}>No matching lesson. Try searching by CCP number, track or lesson title.</Text>}
+        </>}
         {mentorEligible === false && !loading &&
           <Text style={s.meta}>Mentor permission is inactive. A learner assignment or a completed CCP lesson does not grant permission to submit a teaching report. Ask an authorized administrator to review your mentor access.</Text>}
         {mentorEligible === true && lessons.length === 0 && !loading &&
           <Text style={s.meta}>No reportable teaching lessons are available. Ask your administrator to check the published catalog.</Text>}
-        {mentorEligible === true && lessons.length > 0 && visibleLessons.length === 0 && !loading &&
-          <Text style={s.meta}>No matching lesson. Try searching by CCP number, track or lesson title.</Text>}
-        {!!selectedLesson && <Text style={s.hint}>Selected: {lessons.find(l => l.id === selectedLesson)?.title}</Text>}
-        <Text style={s.meta}>Select only assigned learners who actually attended ({selectedDisciples.length} selected; up to {MAX_LEARNERS}).</Text>
-        {disciples.map(d => <Pressable key={d.disciple_id} accessibilityRole="checkbox"
+        <Text style={s.lesson}>2. Mentees who attended</Text>
+        <Text style={s.meta}>Choose verified linked mentees who really attended ({selectedDisciples.length} selected; up to {MAX_LEARNERS}).</Text>
+        <TextInput style={s.field} value={menteeSearch} onChangeText={setMenteeSearch}
+          placeholder="Search your assigned mentees by name"
+          accessibilityLabel="Search assigned mentees"
+          placeholderTextColor="#859688" />
+        {visibleDisciples.map(d => <Pressable key={d.disciple_id} accessibilityRole="checkbox"
           accessibilityState={{ checked: selectedDisciples.includes(d.disciple_id) }}
           style={[s.choice, selectedDisciples.includes(d.disciple_id) && s.selected]}
           onPress={() => setSelectedDisciples(current => current.includes(d.disciple_id)
@@ -395,8 +470,34 @@ export default function MentorTeachingPhotoEvidence() {
             : current.length < MAX_LEARNERS ? [...current, d.disciple_id] : current)}>
           <Text style={s.choiceText}>{selectedDisciples.includes(d.disciple_id) ? '☑' : '☐'} {d.disciple_name}</Text>
         </Pressable>)}
+        {disciples.length > 0 && visibleDisciples.length === 0 &&
+          <Text style={s.meta}>No assigned mentee matches that search. Check spelling or request a new link below.</Text>}
         {disciples.length === 0 && !loading &&
-          <Text style={s.meta}>No assigned learners. Ask your administrator to link your mentees first.</Text>}
+          <Text style={s.warning}>No assigned mentees yet. Enter a name below to request a verified link. A typed name alone cannot be counted as attendance.</Text>}
+        <View style={s.menteeEntry}>
+          <Text style={s.lesson}>Add a new mentee</Text>
+          <Text style={s.meta}>Enter their actual BUKLOD member name. This creates a link request, not a teaching report. An administrator verifies the account before you can select them above.</Text>
+          <TextInput style={s.field} value={newMenteeName} onChangeText={setNewMenteeName}
+            placeholder="Mentee full name (required)"
+            accessibilityLabel="Enter mentee full name"
+            autoCapitalize="words" maxLength={120} placeholderTextColor="#859688" />
+          <Pressable accessibilityRole="button"
+            accessibilityState={{ disabled: !!busy || loading || !menteeRequestAvailable || mentorEligible !== true }}
+            disabled={!!busy || loading || !menteeRequestAvailable || mentorEligible !== true}
+            style={[s.outline, (!!busy || loading || !menteeRequestAvailable || mentorEligible !== true) && s.disabled]}
+            onPress={() => void requestMenteeLink()}>
+            <Text style={s.outlineText}>{busy === 'request-mentee' ? 'Requesting...' : 'Request to add mentee'}</Text>
+          </Pressable>
+          {!loading && !menteeRequestAvailable &&
+            <Text style={s.warning}>Mentee linking is not enabled on this backend yet. Reporting for existing assigned mentees still works; ask an authorized administrator to assign a BUKLOD member.</Text>}
+          {menteeRequests.filter(r => r.status === 'pending').map(r =>
+            <Text key={r.id} style={s.meta}>Pending account link: {r.mentee_name}</Text>)}
+          <Pressable accessibilityRole="button" disabled={!!busy || loading}
+            onPress={() => void load()} style={s.reload}>
+            <Text style={s.reloadText}>Refresh assigned mentees</Text>
+          </Pressable>
+        </View>
+        <Text style={s.lesson}>3. Teaching details and photo</Text>
         <TextInput style={s.field} value={location} onChangeText={setLocation}
           placeholder="Place / venue of teaching (required)" placeholderTextColor="#859688"
           maxLength={180} />
@@ -485,8 +586,11 @@ export default function MentorTeachingPhotoEvidence() {
             <TextInput style={[s.field, s.multiline]} multiline textAlignVertical="top"
               value={revisionNotes} onChangeText={setRevisionNotes}
               placeholder="Correct teaching summary" placeholderTextColor="#859688" maxLength={2000} />
-            <Text style={s.meta}>Correct the assigned learners who actually attended ({revisionLearners.length} selected).</Text>
-            {disciples.map(d => <Pressable key={d.disciple_id} accessibilityRole="checkbox"
+            <Text style={s.meta}>Correct the assigned learners who actually attended ({revisionLearners.length} selected). Search or request a link above if one is missing.</Text>
+            <TextInput style={s.field} value={menteeSearch} onChangeText={setMenteeSearch}
+              placeholder="Find an assigned mentee for revision"
+              placeholderTextColor="#859688" />
+            {visibleDisciples.map(d => <Pressable key={d.disciple_id} accessibilityRole="checkbox"
               accessibilityState={{ checked: revisionLearners.includes(d.disciple_id) }}
               style={[s.choice, revisionLearners.includes(d.disciple_id) && s.selected]}
               onPress={() => setRevisionLearners(current => current.includes(d.disciple_id)
@@ -546,6 +650,7 @@ const s = StyleSheet.create({
   outlineText: { color: '#17643B', fontSize: 13, fontWeight: '800' },
   disabled: { opacity: 0.45 },
   consent: { padding: 11, backgroundColor: '#EDF7EF', borderRadius: 10 },
+  menteeEntry: { gap: 8, padding: 10, borderRadius: 11, backgroundColor: '#F6FAF6', borderWidth: 1, borderColor: '#DDEADB' },
   photoWrap: { gap: 4 },
   preview: { width: '100%', height: 180, borderRadius: 11, backgroundColor: '#EEF3F0' },
   status: { color: '#176A3B', fontSize: 14, fontWeight: '900' },
