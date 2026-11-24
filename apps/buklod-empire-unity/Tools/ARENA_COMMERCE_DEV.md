@@ -10,3 +10,5 @@ Five material styles per hero (65 variants). Legendary and Mythical add bounded 
 
 ## Relic and faction review
 13 standalone original glTF relics are committed under Tools/AssetCandidates/PremiumCommerce. Regenerate with node Tools/generate-premium-relics.mjs. In Unity first assemble base candidate prefabs, then BUKLOD Empire > Assemble premium relic and faction review. This imports all 13 relics and creates 26 faction palette variants from existing rigged/static prefabs. The relics are showcase assets, not attached to battle rigs; faction variants are material treatments, not approved replacement meshes. No changes to game colliders or authoritative gameplay. Actual device rendering and visual review remain mandatory.
+
+Run BUKLOD Empire > Assemble transformation and battlefield themes after base and 65-hero candidate imports. Creates 13 bone-anchored ornament candidate prefabs and two lighting-only battlefield review scenes. Not a complete artist-authored transformation or production-ready map. Clipping, silhouette, rendering, actual rig compatibility and competitive readability remain mandatory gates.

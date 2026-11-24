@@ -28,8 +28,8 @@
     },
     {
       "category": "Villager/Minion/Building/Battlefield",
-      "implementation": "26 faction material variants supported by isolated editor composer; original map assets retained",
-      "required": "rendered faction review, dedicated geometry variants, battlefield themes and gameplay safety"
+      "implementation": "26 faction palette candidates and two lighting-only battlefield review themes",
+      "required": "Unity rendering, actual dedicated geometry/theme assets and competitive readability"
     },
     {
       "category": "Voice",
@@ -38,8 +38,8 @@
     },
     {
       "category": "Bundle",
-      "implementation": "catalog and animated emblem",
-      "required": "component entitlement mapping and approval"
+      "implementation": "13 transformation candidate prefabs via bone-anchored geometry; bundle catalog",
+      "required": "deformation, clipping, likeness, entitlement mapping and approval"
     }
   ]
 }
