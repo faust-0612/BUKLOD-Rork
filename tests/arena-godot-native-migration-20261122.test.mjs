@@ -93,7 +93,8 @@ test('Android staging uses bundled pack, fails closed for all other app identiti
   assert.match(native, /AsyncFunction\("openBundledArena"\)/);
   assert.match(native, /activity.packageName != "org.mzbministry.buklod.staging"/);
   assert.match(native, /activity.assets.open\("godot\/empire-arena.zip"\)/);
-  assert.match(activity, /getBooleanExtra\(EXTRA_BUNDLED_ARENA, false\)/);
+  assert.match(activity, /isAllowedWorld\(world\)/);
+  assert.match(activity, /--buklod-world=/);
   assert.match(activity, /"--main-pack"/);
   assert.match(activity, /BUNDLED_ARENA_ASSET/);
   assert.match(bridge, /export async function openBundledEmpireArena/);

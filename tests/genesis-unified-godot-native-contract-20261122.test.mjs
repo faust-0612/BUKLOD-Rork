@@ -14,7 +14,7 @@ test('single locked Godot pack includes all native world entrypoints, no remote 
   for(const mode of ['kingdom','community','house'])assert.ok(godot.includes(mode));
   assert.match(godot,/MAX_LEVEL := 10/);
   assert.match(godot,/STAGES := \[/);
-  assert.match(godot,/AudioStreamWAV.load_from_file/);
+  assert.match(godot,/AudioStreamWAV\.load_from_buffer/);
   assert.doesNotMatch(godot,/supabase|service_role|fetch\(|https?:\/\//i);
 });
 test('native entrypoint is whitelisted and Android-only without a second app',()=>{
@@ -24,7 +24,8 @@ test('native entrypoint is whitelisted and Android-only without a second app',()
   for(const key of ['kingdom','community','house'])assert.ok(kt.includes('"'+key+'"'));
   assert.match(kt,/AsyncFunction\("openBundledWorld"\)/);
   assert.match(activity,/EXTRA_BUNDLED_WORLD/);
-  assert.match(activity,/WorldPreview\.tscn/);
+  assert.match(read('godot/empire-arena/scripts/native_bootstrap.gd'),/WorldPreview\.tscn/);
+  assert.doesNotMatch(activity,/result\.add\("--scene"\)/);
   assert.match(activity,/--main-pack/);
   assert.match(bridge,/openBundledBuklodWorld/);
   assert.match(bridge,/GENESIS_GODOT_WORLDS/);

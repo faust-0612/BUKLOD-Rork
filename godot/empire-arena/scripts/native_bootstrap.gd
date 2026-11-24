@@ -13,7 +13,7 @@ func _ready() -> void:
 	call_deferred("_boot")
 
 func _receipt(state: String, reason: String = "") -> void:
-	var record := {"token": token, "state": state, "world": world, "pack": pack, "reason": reason}
+	var record := {"token": token, "state": state, "world": world, "pack": pack, "reason": reason, "public3d": FileAccess.file_exists("res://data/3d_manifest.json")}
 	print("BUKLOD_NATIVE_BOOTSTRAP " + JSON.stringify(record))
 	if receipt_path.is_empty() or token.is_empty():
 		return
@@ -69,7 +69,7 @@ func _boot() -> void:
 		pack = filename.trim_suffix(".zip")
 	_receipt("mounted")
 	var scene_path := "res://scenes/Arena.tscn" if world == "arena" else "res://scenes/WorldPreview.tscn"
-	var scene: PackedScene = ResourceLoader.load(scene_path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE)
+	var scene: PackedScene = ResourceLoader.load(scene_path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE_DEEP)
 	if scene == null or get_tree().change_scene_to_packed(scene) != OK:
 		_fail("Scene load failed")
 		return

@@ -1,0 +1,24 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'expo.modules.buklodgenesisgodot'
+ compileSdk 35
+ defaultConfig {
+  applicationId 'org.mzbministry.buklod.godotqa'
+  minSdk 24
+  targetSdk 34
+  versionCode 1
+  versionName 'bootstrap-qa'
+  ndk { abiFilters 'x86_64' }
+ }
+ buildTypes {
+  release {
+   minifyEnabled true
+   signingConfig signingConfigs.debug
+   proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../../../../modules/buklod-genesis-godot/android/consumer-rules.pro'
+  }
+ }
+}
+dependencies {
+ implementation 'org.godotengine:godot:4.7.2.stable'
+ implementation 'androidx.fragment:fragment:1.8.9'
+}

@@ -18,6 +18,9 @@ module.exports = function withBuklodGodotArenaPack(config) {
           process.env.BUKLOD_APP_TARGET === 'classroom') {
         throw new Error('BUKLOD Godot Arena pack plugin is only allowed in isolated Genesis MAIN staging');
       }
+      if (process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V207 !== 'true') {
+        throw new Error('Native bootstrap ABI requires isolated Genesis 2.0.7 profile. Never rebuild old runtime from this branch.');
+      }
       const root = mod.modRequest.projectRoot;
       const output = path.resolve(mod.modRequest.platformProjectRoot,
         'app/src/main/assets/godot/empire-arena.zip');

@@ -24,6 +24,8 @@ export function isGenesisBootstrapEnabled(): boolean {
 }
 function nativeGodotEnabled(): boolean {
   return Platform.OS === 'android' &&
+    process.env.EXPO_PUBLIC_APP_ENV === 'staging' &&
+    process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V207 === 'true' &&
     process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW === 'true' &&
     process.env.EXPO_PUBLIC_BUKLOD_ARENA_GODOT_ENABLED === 'true';
 }

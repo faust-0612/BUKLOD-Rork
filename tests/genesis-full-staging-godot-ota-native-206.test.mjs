@@ -59,7 +59,9 @@ test('native Godot bridge accepts only app-private SHA verified ZIP of approved 
  assert.match(cls,/file:|scheme != "file"/);
  assert.match(activity,/approved\.getName\(\)\.matches\("\[0-9a-f\]\{64\}\\\\\.zip"\)/);
  assert.match(activity,/root\.equals\(approved\.getParentFile\(\)\)/);
- assert.match(activity,/selectWorld\(result, world\)/);
+ assert.match(activity,/--buklod-world=/);
+ assert.doesNotMatch(activity,/result\.add\(approved\.getAbsolutePath\(\)\)/);
+ assert.doesNotMatch(activity,/result\.add\("--scene"\)/);
  assert.match(activity,/BUNDLED_MAIN_PACK = "res:\/\/" \+ BUNDLED_ARENA_ASSET/);
  const manifest=read('modules/buklod-genesis-godot/android/src/main/AndroidManifest.xml');
  assert.match(manifest,/android:exported="false"/);

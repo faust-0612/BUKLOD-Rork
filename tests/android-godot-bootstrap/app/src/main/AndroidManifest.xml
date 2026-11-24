@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+ <application android:label="BUKLOD Godot QA" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false">
+  <activity android:name="expo.modules.buklodgenesisgodot.QaLaunchActivity" android:exported="true"/>
+  <activity android:name="expo.modules.buklodgenesisgodot.GenesisGodotActivity" android:exported="false" android:process=":genesis_godot" android:hardwareAccelerated="true" android:screenOrientation="landscape" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|uiMode"/>
+ </application>
+</manifest>

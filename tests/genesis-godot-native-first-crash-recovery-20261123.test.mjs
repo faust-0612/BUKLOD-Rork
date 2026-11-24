@@ -30,7 +30,9 @@ function configFor(variant){
 }
 test('Godot Android new launcher uses documented APK-asset resource URL, never external pack',()=>{
   assert.match(native,/BUNDLED_MAIN_PACK = "res:\/\/" \+ BUNDLED_ARENA_ASSET/);
-  assert.equal(native.split('result.add(BUNDLED_MAIN_PACK);').length-1,2);
+  assert.equal(native.split('result.add(BUNDLED_MAIN_PACK);').length-1,1);
+  assert.doesNotMatch(native,/result\.add\(approved\.getAbsolutePath\(\)\)/);
+  assert.doesNotMatch(native,/result\.add\("--scene"\)/);
   assert.match(native,/BUNDLED_ARENA_ASSET = "godot\/empire-arena.zip"/);
   assert.match(manifest,/android:exported="false"/);
   assert.match(manifest,/android:process=":genesis_godot"/);

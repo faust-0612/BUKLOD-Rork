@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-207-native-bootstrap-recovery-20261124.json",
+  "baseRef": "7da090dfc73429ff7a1080d74249ae38c1067fbf",
+  "objective": "Correct native Godot release startup restrictions without relaxing engine policy, preserve consolidated BUKLOD, verify on Android before any new full APK or OTA.",
+  "chosenApproach": "Trusted APK bootstrap + verified runtime pack loading + exact render receipts + small isolated release AAR emulator gate",
+  "selectionRationale": "User screenshots show Android engine setup failure; official Godot main.cpp rejects external startup pack and --scene in default release exports.",
+  "alternativeApproaches": [
+    "Do not recompile Godot with unrestricted startup arguments",
+    "No blind full APK builds",
+    "No production changes or shared backend mutations"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "godot-content",
+    "navigation-scroll",
+    "ads"
+  ],
+  "preserveBehaviors": [
+    "Existing production and staging 206 stay unchanged",
+    "Preserve original signer and new runtime isolation",
+    "No live economy authority",
+    "Retain legacy station access and current ads/navigation"
+  ],
+  "acceptanceChecks": [
+    "Source gates pass",
+    "Android release AAR actual rendered scene receipt for embedded and downloaded pack, four worlds, repeat, rejection",
+    "Full APK actual install and launch plus existing gates prior to release"
+  ],
+  "allowedPaths": [
+    "godot/empire-arena/scripts/native_bootstrap.gd",
+    "src/app/games/index.tsx",
+    "plugins/withBuklodGodotArenaPack.js",
+    "modules/buklod-genesis-godot/index.ts",
+    "tests/genesis-full-staging-godot-ota-native-206.test.mjs",
+    "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
+    "tests/arena-godot-native-migration-20261122.test.mjs",
+    "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
+    "tests/genesis-207-bootstrap-contract.test.mjs",
+    "tests/android-godot-bootstrap/settings.gradle",
+    "tests/android-godot-bootstrap/build.gradle",
+    "tests/android-godot-bootstrap/gradle.properties",
+    "tests/android-godot-bootstrap/app/build.gradle",
+    "tests/android-godot-bootstrap/app/src/main/AndroidManifest.xml",
+    "tests/android-godot-bootstrap/app/src/main/java/expo/modules/buklodgenesisgodot/QaLaunchActivity.java",
+    "scripts/genesis-207-android-bootstrap-qa.sh",
+    ".github/workflows/genesis-207-native-bootstrap-android-qa.yml",
+    ".buklod/releases/genesis-207-native-bootstrap-dev-20261124.json",
+    ".buklod/scopes/genesis-207-native-bootstrap-recovery-20261124.json",
+    "docs/GENESIS_207_NATIVE_BOOTSTRAP_RECOVERY.md",
+    "app.config.js",
+    "eas.json",
+    "src/app/games/empire-arena.tsx",
+    "godot/empire-arena/scenes/NativeBootstrap.tscn",
+    "scripts/build-empire-godot-pack.mjs",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/BuklodGenesisGodotModule.kt"
+  ],
+  "regressionTests": [
+    "tests/genesis-207-bootstrap-contract.test.mjs",
+    "tests/genesis-full-staging-godot-ota-native-206.test.mjs",
+    "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
+    "tests/arena-godot-native-migration-20261122.test.mjs",
+    "tests/genesis-unified-godot-native-contract-20261122.test.mjs"
+  ]
+}
