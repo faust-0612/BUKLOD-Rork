@@ -51,8 +51,10 @@ namespace Buklod.Empire {
         }
         bool Active(MatchSession s)=>s!=null&&leases.TryGetValue(s,out var l)&&now()-l.LastSeen<TimeSpan.FromSeconds(IdleSeconds);
         public bool Heartbeat(MatchSession s){if(!Active(s))return false;leases[s].LastSeen=now();return true;}
+        internal bool Started{get;private set;}
+        internal bool Start(){if(Started||match.Finished||ConnectedCount!=AuthoritativeMatch.ParticipantCount)return false;Started=true;return true;}
         public bool Submit(MatchSession s,MatchInput frame){
-            if(!Active(s)||!match.Submit(s,frame))return false;
+            if(!Started||!Active(s)||!match.Submit(s,frame))return false;
             leases[s].LastSeen=now();return true;
         }
         public MatchSnapshot Snapshot(MatchSession s)=>Active(s)?match.Snapshot(s):null;
@@ -72,6 +74,6 @@ namespace Buklod.Empire {
         public int ConnectedCount=>leases.Count;
         public int Tick=>match.Tick;
         public bool Finished=>match.Finished;
-        public bool AdvanceTick(){Sweep();return match.AdvanceTick();}
+        public bool AdvanceTick(){Sweep();return Started&&match.AdvanceTick();}
     }
 }

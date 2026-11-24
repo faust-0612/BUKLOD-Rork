@@ -89,11 +89,11 @@ namespace Buklod.Empire {
             }
         }
         async Task WriteSnapshots(WebSocket socket,MatchSession session,CancellationToken token){
-            int sentTick=-1;
+            int sentTick=-1;var lastSend=System.Diagnostics.Stopwatch.StartNew();
             while(!token.IsCancellationRequested){
                 var snapshot=await loop.Invoke(()=>grants.Snapshot(session),token);if(snapshot==null)return;
-                if(snapshot.Tick!=sentTick){
-                    await MatchSocketFrames.Send(socket,MatchWire.EncodeSnapshot(snapshot),token);sentTick=snapshot.Tick;
+                if(snapshot.Tick!=sentTick||lastSend.ElapsedMilliseconds>=2000){
+                    await MatchSocketFrames.Send(socket,MatchWire.EncodeSnapshot(snapshot),token);sentTick=snapshot.Tick;lastSend.Restart();
                     // Final result can be fetched after reconnect only when final-result retention is implemented.
                     if(snapshot.Finished){await Task.Delay(1000,token);return;}
                 }

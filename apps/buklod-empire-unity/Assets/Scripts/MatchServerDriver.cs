@@ -14,7 +14,7 @@ namespace Buklod.Empire {
         }
         public bool StartMatch(){
             if(stopped||running||Faulted||grants.Finished||grants.Tick!=0)return false;
-            grants.Sweep();if(grants.ConnectedCount!=AuthoritativeMatch.ParticipantCount)return false;
+            grants.Sweep();if(!grants.Start())return false;
             previous=clock.Elapsed.TotalSeconds;accumulator=0;running=true;return true;
         }
         public void Pump(){
