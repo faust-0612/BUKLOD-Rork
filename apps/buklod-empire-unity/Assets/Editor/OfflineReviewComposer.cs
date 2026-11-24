@@ -77,6 +77,7 @@ namespace Buklod.Empire.Editor {
             var sun=new GameObject("Review sunlight",typeof(Light)).GetComponent<Light>();
             sun.type=LightType.Directional;sun.color=new Color(1,.93f,.82f);sun.intensity=1.35f;sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(48,-35,0);
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.44f,.53f,.65f);RenderSettings.ambientEquatorColor=new Color(.34f,.38f,.4f);RenderSettings.ambientGroundColor=new Color(.21f,.24f,.19f);
+            EnvironmentReviewLook.Apply(map,camera);
             var root=new GameObject("UNAPPROVED EDITOR OFFLINE MATCH",typeof(BattleView),typeof(BattleEffects));
             var view=root.GetComponent<BattleView>();view.visuals=c;view.battleCamera=camera;view.ConfigureEditorReview();
             var shader=Shader.Find("BUKLOD/CombatPulse");if(!shader)throw new InvalidOperationException("Combat shader missing.");
