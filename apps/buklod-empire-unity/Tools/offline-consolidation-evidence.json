@@ -1,0 +1,18 @@
+{
+  "status": "VALIDATOR_FIXTURE_TESTED_REVIEW_ONLY",
+  "testedBlob": "bce372e2f0ed4d579ace153398f39a85b741ee7f",
+  "checks": {
+    "positive": true,
+    "missing": true,
+    "duplicate": true,
+    "traversal": true,
+    "wrongLength": true,
+    "wrongHash": true,
+    "invalidStatus": true,
+    "invalidHash": true
+  },
+  "fullPipelineExecuted": false,
+  "unityCompiled": false,
+  "unityRendered": false,
+  "productionApproved": false
+}
