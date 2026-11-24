@@ -14,6 +14,7 @@ namespace Buklod.Empire {
         private bool commandOpen;
         private int shopPage;
         private VillageResourceKind marketResource=VillageResourceKind.Wood;
+        private string selectedWorker;
         private Text marketStatus;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
@@ -117,18 +118,20 @@ namespace Buklod.Empire {
             Label("Village title",commands,new Vector2(.02f,.88f),new Vector2(.8f,.98f),"VILLAGE COMMAND",32);
             ButtonAt("Close village",commands,new Vector2(.81f,.89f),new Vector2(.98f,.98f),"CLOSE",CloseCommands);
             commandFeedback=Label("Command feedback",commands,new Vector2(.03f,.75f),new Vector2(.97f,.87f),"",24);
-            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD","MARKET TYPE","BUY LOT","SELL LOT"};
-            for(int i=0;i<labels.Length;i++){int action=i;int col=i%4,row=i/4;float x=.03f+col*.235f,y=.60f-row*.135f;ButtonAt(labels[i],commands,new Vector2(x,y),new Vector2(x+.22f,y+.115f),labels[i],()=>VillageCommand(action));}
+            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD","MARKET TYPE","BUY LOT","SELL LOT","HOUSE","RECRUIT","CANCEL RECRUIT","NEXT WORKER"};
+            for(int i=0;i<labels.Length;i++){int action=i;int col=i%4,row=i/4;float x=.03f+col*.235f,y=.63f-row*.105f;ButtonAt(labels[i],commands,new Vector2(x,y),new Vector2(x+.22f,y+.092f),labels[i],()=>VillageCommand(action));}
             marketStatus=Label("Market quote",commands,new Vector2(.27f,.01f),new Vector2(.97f,.06f),"",18);
             RefreshMarketQuote();
             commands.gameObject.SetActive(false);
         }
-        private void OpenCommands(){if(shown||commandOpen||view.Battle==null||view.Battle.Finished||view.Paused)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);commandFeedback.text="Choose resource or build at your hero's current position.";}
+        private void OpenCommands(){if(shown||commandOpen||view.Battle==null||view.Battle.Finished||view.Paused)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);commandFeedback.text="Select worker or build at hero position. Recruit: 30 food + 15 wood.";}
         private void CloseCommands(){commandOpen=false;commands.gameObject.SetActive(false);if(!shown&&view.Battle!=null&&!view.Battle.Finished)view.SetPaused(false);}
         private void RefreshMarketQuote(){marketStatus.text=$"{marketResource} x10: buy {OfflineMatchRules.MarketGold(marketResource,true)} / sell {OfflineMatchRules.MarketGold(marketResource,false)} team gold";}
         private void VillageCommand(int action){
             var b=view.Battle;if(!commandOpen||b==null||b.Finished)return;
-            string worker=b.Player.Team==ArenaTeam.Lux?"lira":"velin";bool ok=false;
+            var workers=System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(System.Linq.Enumerable.Where(b.Units,u=>u.Team==b.Player.Team&&u.State.Alive&&u.Villager?.Job.Effect==VillageEffect.Gather),u=>u.Villager.Job.Id));
+            if(Array.IndexOf(workers,selectedWorker)<0)selectedWorker=workers.Length>0?workers[0]:null;
+            string worker=selectedWorker;bool ok=false;
             switch(action){
                 case 0:ok=b.OrderPlayerResource(worker,null);break;
                 case 1:ok=b.OrderPlayerResource(worker,VillageResourceKind.Wood);break;
@@ -147,6 +150,10 @@ namespace Buklod.Empire {
                 case 14:marketResource=(VillageResourceKind)(((int)marketResource+1)%4);RefreshMarketQuote();return;
                 case 15:ok=b.TradePlayerResource(marketResource,true);break;
                 case 16:ok=b.TradePlayerResource(marketResource,false);break;
+                case 17:ok=b.OrderPlayerConstruction(VillageBuildOrder.House,b.Player.Position);break;
+                case 18:ok=b.RecruitPlayerVillager();break;
+                case 19:ok=b.CancelPlayerRecruitment();break;
+                case 20:if(workers.Length>0){selectedWorker=workers[(Array.IndexOf(workers,selectedWorker)+1)%workers.Length];commandFeedback.text="Selected worker: "+selectedWorker;}else commandFeedback.text="No living gatherers.";return;
             }
             commandFeedback.text=ok?"Order accepted. Resume to execute.":"Unavailable: check worker, resources, position, existing order or cutoff.";
         }
@@ -155,7 +162,7 @@ namespace Buklod.Empire {
             if(battle==null)return;
             var p=battle.Player;
             bool atBase=battle.CanUsePlayerShop;
-            var bank=battle.GetVillage(p.Team);treasury.text=$"Wood {bank.Wood:0}  Stone {bank.Stone:0}  Food {bank.Food:0}  Crystal {bank.Crystal:0}  Gold {bank.Gold:0}";
+            var bank=battle.GetVillage(p.Team);treasury.text=$"Wood {bank.Wood:0}  Stone {bank.Stone:0}  Food {bank.Food:0}  Crystal {bank.Crystal:0}  Gold {bank.Gold:0}  Pop {battle.VillagePopulation(p.Team)}/{battle.VillagePopulationCapacity(p.Team)}";
             shopStatus.text=atBase?$"BUY / SELL {shopPage+1}/4":"SHOP UNAVAILABLE";
             for(int i=0;i<shop.Length;i++){
                 string gear=GearIds[shopPage*3+i];bool owned=p.Gear.Contains(gear);

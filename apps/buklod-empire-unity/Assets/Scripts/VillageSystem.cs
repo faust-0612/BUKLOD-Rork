@@ -28,6 +28,8 @@ namespace Buklod.Empire {
     public interface IVillageWorkGate { bool CanWork(ArenaTeam team,string workerId); }
     public sealed class VillageMember {
         public readonly VillageJob Job;
+        public readonly bool Recruited;
+        public readonly string VisualId;
         public float Health { get; private set; }=200;
         public bool Alive => Health>0;
         public int Actions { get; private set; }
@@ -35,7 +37,7 @@ namespace Buklod.Empire {
         public float Power => 1+.10f*(Level-1);
         public string Stage => Level>=10?"Grand Village":Level>=5?"Village":"Hut";
         internal double Remaining, Respawn;
-        internal VillageMember(VillageJob job) { Job=job; Remaining=job.Interval; }
+        internal VillageMember(VillageJob job,bool recruited=false,string visualId=null) { Job=job;Recruited=recruited;VisualId=visualId??job.Id;Remaining=job.Interval; }
         public void Damage(float amount) {
             if(float.IsNaN(amount)||float.IsInfinity(amount)||amount<0) throw new ArgumentOutOfRangeException(nameof(amount));
             if(!Alive)return;
@@ -44,7 +46,7 @@ namespace Buklod.Empire {
         }
         internal void Tick(double dt,bool canRespawn) {
             if(Alive){Remaining-=dt;return;}
-            if(!canRespawn)return;
+            if(!canRespawn||Recruited)return;
             Respawn-=dt;if(Respawn<=0){Health=100;Respawn=0;}
         }
         internal void Complete(bool success) {
@@ -63,7 +65,9 @@ namespace Buklod.Empire {
             new VillageJob("zed",VillageEffect.Craft,50),new VillageJob("taro",VillageEffect.Scavenge,6)};
         private static readonly VillageItem[] Supply={VillageItem.Heal,VillageItem.Shield,VillageItem.Boost};
         private static readonly VillageItem[] Craft={VillageItem.Bomb,VillageItem.Rage,VillageItem.ArmorBreak,VillageItem.Poison};
-        private readonly VillageMember[] members;
+        private readonly List<VillageMember> members;
+        private int recruitSequence;
+        public const int RecruitFoodCost=30,RecruitWoodCost=15;
         private readonly MinionWaveDirector waves;
         private readonly IVillageBattle battle;
         private int lane,supply,craft;
@@ -117,9 +121,17 @@ namespace Buklod.Empire {
             Team=team;this.waves=waves??throw new ArgumentNullException(nameof(waves));
             this.battle=battle??throw new ArgumentNullException(nameof(battle));
             var jobs=team==ArenaTeam.Lux?Lux:Tenebra;
-            members=Array.ConvertAll(jobs,j=>new VillageMember(j)); Members=Array.AsReadOnly(members);
+            members=new List<VillageMember>(Array.ConvertAll(jobs,j=>new VillageMember(j))); Members=members.AsReadOnly();
         }
-        public VillageMember Find(string id) => Array.Find(members,m=>m.Job.Id==id);
+        public VillageMember Find(string id) => members.Find(m=>m.Job.Id==id);
+        internal bool CanFundRecruit()=>Food>=RecruitFoodCost&&Wood>=RecruitWoodCost;
+        internal VillageMember RecruitGatherer(){
+            if(waves.Finished||Time>=OfflineMatchRules.MatchLimit||!CanFundRecruit()||members.Count>=12)return null;
+            string template=Team==ArenaTeam.Lux?"lira":"velin";
+            var member=new VillageMember(new VillageJob(template+"-recruit-"+(++recruitSequence),VillageEffect.Gather,5),true,template);
+            Food-=RecruitFoodCost;Wood-=RecruitWoodCost;members.Add(member);return member;
+        }
+        internal void RemoveDeadRecruit(VillageMember member){if(member!=null&&member.Recruited&&!member.Alive)members.Remove(member);}
         public void EnemyDefeated(bool structure) {
             if(!waves.Finished&&Time<OfflineMatchRules.MatchLimit&&Find("taro")?.Alive==true)
                 scavenged+=structure?40:3;
@@ -142,7 +154,7 @@ namespace Buklod.Empire {
         }
         private bool CanPay(double w,double s,double c)=>Wood>=w&&Stone>=s&&Crystal>=c;
         private static bool ConstructionCost(VillageBuildOrder kind,out double wood,out double stone){
-            wood=stone=0;switch(kind){case VillageBuildOrder.Depot:wood=35;stone=20;return true;case VillageBuildOrder.GuardPost:wood=55;stone=40;return true;case VillageBuildOrder.Repair:wood=10;stone=5;return true;case VillageBuildOrder.Farm:wood=25;stone=5;return true;case VillageBuildOrder.Barracks:wood=60;stone=35;return true;default:return false;}
+            wood=stone=0;switch(kind){case VillageBuildOrder.Depot:wood=35;stone=20;return true;case VillageBuildOrder.GuardPost:wood=55;stone=40;return true;case VillageBuildOrder.Repair:wood=10;stone=5;return true;case VillageBuildOrder.Farm:wood=25;stone=5;return true;case VillageBuildOrder.Barracks:wood=60;stone=35;return true;case VillageBuildOrder.House:wood=35;stone=15;return true;default:return false;}
         }
         internal bool CanFundConstruction(VillageBuildOrder kind)=>ConstructionCost(kind,out double w,out double s)&&CanPay(w,s,0);
         internal bool SpendConstruction(VillageBuildOrder kind){if(!ConstructionCost(kind,out double w,out double s)||!CanPay(w,s,0))return false;Pay(w,s,0);return true;}

@@ -34,6 +34,15 @@ namespace Buklod.Empire.Tests {
             Assert.True(b.Hit(b.Player.State,summon.State,300));Assert.AreEqual(gold,b.Player.Gold);Assert.AreEqual(xp,b.Player.Xp);
             Assert.False(b.Dash(b.Player.State,Vector2.right,float.PositiveInfinity));
         }
+        [Test] public void CanonicalWorkerSlotsAreReservedAndRecruitmentRequiresHousing(){
+            var b=new OfflineBattle("phan");
+            Assert.AreEqual(6,b.VillagePopulation(ArenaTeam.Lux));Assert.AreEqual(6,b.VillagePopulationCapacity(ArenaTeam.Lux));
+            Assert.False(b.RecruitPlayerVillager());Assert.False(b.CancelPlayerRecruitment());Assert.False(b.RecruitmentPending(ArenaTeam.Lux));
+            Assert.False(b.OrderPlayerConstruction(VillageBuildOrder.House,new Vector2(22,100)));
+            var w=b.Units.Single(u=>u.Villager?.Job.Id=="lira");var foe=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            Assert.True(b.Hit(foe.State,w.State,300));Assert.AreEqual(6,b.VillagePopulation(ArenaTeam.Lux));
+            Assert.False(b.RecruitPlayerVillager());
+        }
         [Test] public void MarketRejectsUnfundedAndInvalidWithoutCooldown(){
             var b=new OfflineBattle("phan");Assert.False(b.TradePlayerResource(VillageResourceKind.Wood,true));Assert.False(b.TradePlayerResource(VillageResourceKind.Gold,false));Assert.AreEqual(0,b.MarketReadyAt);
         }
