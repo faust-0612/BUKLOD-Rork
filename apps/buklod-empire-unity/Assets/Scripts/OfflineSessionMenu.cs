@@ -11,7 +11,7 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private float resultRevealAt=-1;
+        private Image panelBackground;private float resultRevealAt=-1;private bool showResult;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -44,7 +44,7 @@ namespace Buklod.Empire {
             title=Label("Title",panel,new Vector2(.08f,.88f),new Vector2(.92f,.98f),"OFFLINE TRAINING",36);
             summary=Label("Summary",panel,new Vector2(.04f,.80f),new Vector2(.96f,.88f),"",21);
             string[] tabs={"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD"};
-            for(int i=0;i<tabs.Length;i++){int tab=i;ButtonAt(tabs[i],panel,new Vector2(.035f+i*.155f,.72f),new Vector2(.18f+i*.155f,.79f),tabs[i],()=>{page=tab;feedback.text="";Rebuild();});}
+            for(int i=0;i<tabs.Length;i++){int tab=i;ButtonAt(tabs[i],panel,new Vector2(.035f+i*.155f,.72f),new Vector2(.18f+i*.155f,.79f),tabs[i],()=>{showResult=false;page=tab;feedback.text="";Rebuild();});}
             body=Rect("Commands",panel,new Vector2(.035f,.18f),new Vector2(.965f,.71f));
             feedback=Label("Feedback",panel,new Vector2(.03f,.10f),new Vector2(.97f,.18f),"",20);
             ButtonAt("Resume",panel,new Vector2(.06f,.015f),new Vector2(.46f,.10f),"RESUME",Resume);
@@ -59,7 +59,7 @@ namespace Buklod.Empire {
             var b=view.Battle;var p=b?.Player;bool active=Active;
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):"OFFLINE TRAINING";
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
-            if(view.IsEditorReview&&b!=null&&b.Finished){
+            if(view.IsEditorReview&&showResult&&b!=null&&b.Finished){
                 bool won=b.Winner==p.Team,draw=!b.Winner.HasValue;
                 title.color=draw?new Color(.82f,.87f,.94f):won?new Color(1,.82f,.38f):new Color(1,.50f,.43f);
                 panelBackground.color=draw?Navy:won?new Color(.065f,.14f,.12f,.98f):new Color(.15f,.065f,.085f,.98f);
@@ -116,14 +116,14 @@ namespace Buklod.Empire {
         private void Resume(){if(Active)Close();}
         private void StartNew(){
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
-            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);lastFinished=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;Close();
+            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;Close();
         }
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void Update(){
             bool finished=view.Battle!=null&&view.Battle.Finished;
-            if(finished&&!lastFinished&&view.IsEditorReview)resultRevealAt=Time.unscaledTime;
+            if(finished&&!lastFinished&&view.IsEditorReview){showResult=true;resultRevealAt=Time.unscaledTime;}
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();lastFinished=finished;
-            if(shown&&finished&&resultRevealAt>=0){
+            if(shown&&finished&&showResult&&resultRevealAt>=0){
                 float t=Mathf.Clamp01((Time.unscaledTime-resultRevealAt)/.65f);
                 title.rectTransform.localScale=Vector3.one*Mathf.Lerp(.82f,1,1-Mathf.Pow(1-t,3));
                 if(t>=1)resultRevealAt=-1;
