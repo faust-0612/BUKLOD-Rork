@@ -17,6 +17,7 @@ namespace Buklod.Empire {
         [SerializeField, HideInInspector] private bool editorReviewOnly;
         public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
 #endif
+        internal bool IsEditorReview=>ReviewOnly;
         private bool ReviewOnly {
             get {
 #if UNITY_EDITOR
