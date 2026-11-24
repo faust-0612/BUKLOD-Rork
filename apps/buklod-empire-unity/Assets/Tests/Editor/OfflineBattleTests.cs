@@ -3,6 +3,30 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void EveryHeroCanBePickedWithoutDuplicatingTeammates(){
+            foreach(var kit in HeroKitCatalog.All){
+                var b=new OfflineBattle(kit.Id);
+                Assert.AreEqual(kit.Id,b.Player.State.Kit.Id);
+                foreach(var team in new[]{ArenaTeam.Lux,ArenaTeam.Tenebra}){
+                    var ids=b.Units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Hero).Select(u=>u.State.Kit.Id).ToArray();
+                    Assert.AreEqual(5,ids.Length);
+                    Assert.AreEqual(5,ids.Distinct().Count(),kit.Id+" / "+team);
+                }
+            }
+        }
+        [Test] public void TimeoutPrioritizesSurvivingTowersThenCoreRatio(){
+            Assert.AreEqual(ArenaTeam.Lux,OfflineBattle.ResolveTimeout(3,2,.1f,.9f));
+            Assert.AreEqual(ArenaTeam.Tenebra,OfflineBattle.ResolveTimeout(1,1,.4f,.8f));
+            Assert.IsNull(OfflineBattle.ResolveTimeout(2,2,.6f,.6f));
+        }
+        [Test] public void StartingNewBattleDoesNotCarryMatchLocalGoldOrGear(){
+            var b=new OfflineBattle("phan");
+            Assert.True(b.BuyPlayer("blade"));
+            var next=new OfflineBattle("quin");
+            Assert.AreEqual(120,next.Player.Gold);
+            Assert.IsEmpty(next.Player.Gear);
+            Assert.AreEqual(0,next.Time);
+        }
         [Test] public void StartsFiveVersusFiveAndProtectsCores(){
             var b=new OfflineBattle("phan");
             Assert.AreEqual(5,b.Units.Count(u=>u.Kind==BattleTargetKind.Hero&&u.Team==ArenaTeam.Lux));
