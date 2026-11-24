@@ -124,17 +124,19 @@ namespace Buklod.Empire {
                 .ThenBy(n=>n.Kind).ThenBy(n=>Vector2.Distance(n.Position,u.Position)).ThenBy(n=>n.Id).FirstOrDefault();
             u.ResourceNodeId=selected?.Id??0;return selected;
         }
-        private BattleUnit PlayerGatherer(string id)=>units.FirstOrDefault(u=>u.Team==Player.Team&&u.State.Alive&&u.Villager?.Alive==true&&u.Villager.Job.Id==id&&u.Villager.Job.Effect==VillageEffect.Gather);
-        public bool OrderPlayerWorker(string id,VillageWorkerOrder order){
+        private BattleUnit Gatherer(ArenaTeam team,string id)=>units.FirstOrDefault(u=>u.Team==team&&u.State.Alive&&u.Villager?.Alive==true&&u.Villager.Job.Id==id&&u.Villager.Job.Effect==VillageEffect.Gather);
+        public bool OrderPlayerWorker(string id,VillageWorkerOrder order)=>!IsAuthoritative&&OrderWorker(Player.Team,id,order);
+        private bool OrderWorker(ArenaTeam team,string id,VillageWorkerOrder order){
             if(Finished||Time>=OfflineMatchRules.MatchLimit||!Enum.IsDefined(typeof(VillageWorkerOrder),order))return false;
-            var worker=PlayerGatherer(id);if(worker==null)return false;
+            var worker=Gatherer(team,id);if(worker==null)return false;
             worker.WorkerOrder=order==VillageWorkerOrder.Gather&&worker.Cargo>=CargoLimit-1e-6?VillageWorkerOrder.Return:order;
             if(order==VillageWorkerOrder.Gather&&worker.Cargo<=1e-6)worker.ResourceNodeId=0;
             return true;
         }
-        public bool OrderPlayerResource(string id,VillageResourceKind? resource){
+        public bool OrderPlayerResource(string id,VillageResourceKind? resource)=>!IsAuthoritative&&OrderResource(Player.Team,id,resource);
+        private bool OrderResource(ArenaTeam team,string id,VillageResourceKind? resource){
             if(Finished||Time>=OfflineMatchRules.MatchLimit||resource.HasValue&&!Enum.IsDefined(typeof(VillageResourceKind),resource.Value))return false;
-            var worker=PlayerGatherer(id);if(worker==null)return false;worker.PreferredResource=resource;worker.ResourceNodeId=0;
+            var worker=Gatherer(team,id);if(worker==null)return false;worker.PreferredResource=resource;worker.ResourceNodeId=0;
             worker.WorkerOrder=worker.Cargo>1e-6?VillageWorkerOrder.Return:VillageWorkerOrder.Gather;return true;
         }
         // Adapter calls are only valid during the canonical worker job's due window.
@@ -223,7 +225,7 @@ namespace Buklod.Empire {
             foreach(var team in new[]{ArenaTeam.Lux,ArenaTeam.Tenebra}){
                 int i=(int)team;
                 if(Time>=OfflineMatchRules.MatchLimit||Finished){recruitmentEnd[i]=0;recruitmentSite[i]=0;continue;}
-                if(recruitmentEnd[i]<=0){if(tick%100==0&&(team!=Player.Team||AutonomousTraining))QueueRecruitment(team);continue;}
+                if(recruitmentEnd[i]<=0){if(tick%100==0&&!TeamHasHumanController(team))QueueRecruitment(team);continue;}
                 var site=units.FirstOrDefault(u=>u.Id==recruitmentSite[i]&&u.Team==team&&u.State.Alive&&(u.Core||u.IsBarracks));
                 if(site==null){recruitmentEnd[i]=0;recruitmentSite[i]=0;continue;}
                 if(Time<recruitmentEnd[i])continue;
@@ -239,7 +241,7 @@ namespace Buklod.Empire {
             // Defensive RTS bot: one queued job at a time; never spends without a completed action.
             if(tick%20==0){
                 foreach(var team in new[]{ArenaTeam.Lux,ArenaTeam.Tenebra}){
-                    if(team==Player.Team&&!AutonomousTraining)continue;
+                    if(TeamHasHumanController(team))continue;
                     var bot=Builder(team);if(bot==null||bot.Construction!=null)continue;
                     float side=team==ArenaTeam.Lux?1:-1;
                     var damaged=units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Temporary&&u.State.Alive&&u.State.Health<u.State.MaxHealth*.75f).OrderBy(u=>u.State.Health/u.State.MaxHealth).ThenBy(u=>u.Id).FirstOrDefault();
@@ -321,18 +323,27 @@ namespace Buklod.Empire {
         private readonly IBattleNavigation navigation;
         public IReadOnlyList<BattleUnit> Units {get;}
         public BattleUnit Player {get;}
+        internal bool IsAuthoritative {get;}
+        private readonly BattleUnit[] participants=new BattleUnit[10];
+        private bool TeamHasHumanController(ArenaTeam team)=>IsAuthoritative||team==Player.Team&&!AutonomousTraining;
+        private bool HumanControlled(BattleUnit unit)=>IsAuthoritative?unit.Kind==BattleTargetKind.Hero:unit==Player&&!AutonomousTraining;
+        internal BattleUnit Participant(int slot)=>IsAuthoritative&&slot>=0&&slot<participants.Length?participants[slot]:null;
         public ArenaDifficulty Difficulty {get;}
         public bool AutonomousTraining {get;}
         public float Time=>tick*Step;
         public bool Finished {get;private set;}
         public ArenaTeam? Winner {get;private set;}
-        public OfflineBattle(string hero,IBattleNavigation navigation=null,int seed=1,ArenaDifficulty difficulty=ArenaDifficulty.Normal,bool autonomousTraining=false){
+        public OfflineBattle(string hero,IBattleNavigation navigation=null,int seed=1,ArenaDifficulty difficulty=ArenaDifficulty.Normal,bool autonomousTraining=false)
+            :this(hero,navigation,seed,difficulty,autonomousTraining,null){}
+        internal OfflineBattle(string hero,IBattleNavigation navigation,int seed,ArenaDifficulty difficulty,bool autonomousTraining,ArenaDraftPick[] draft){
+            IsAuthoritative=draft!=null;
+            if(IsAuthoritative&&(autonomousTraining||!ArenaDraftRules.Valid(draft)))throw new ArgumentException("Invalid authoritative draft.");
             if(!Enum.IsDefined(typeof(ArenaDifficulty),difficulty))throw new ArgumentOutOfRangeException(nameof(difficulty));
             Difficulty=difficulty;AutonomousTraining=autonomousTraining;this.navigation=navigation;dropRandom=new System.Random(seed);combatRandom=new System.Random(unchecked(seed*397+17));relicRandom=new System.Random(unchecked(seed*7919+71));Drops=drops.AsReadOnly();RelicDrops=relicDrops.AsReadOnly();
             HeroKitCatalog.Get(hero);
             Units=units.AsReadOnly();
             foreach(var c in OriginalCover)cover.Add((new Vector2(c.x*Width,c.y*Height),c.z*Height,float.PositiveInfinity));
-            var roster=ArenaDraftRules.PracticeRoster(hero,seed);
+            var roster=IsAuthoritative?draft.Select(p=>p.Hero).ToArray():ArenaDraftRules.PracticeRoster(hero,seed);
             var lanes=new[]{ArenaLane.Top,ArenaLane.Mid,ArenaLane.Mid,ArenaLane.Bottom,ArenaLane.Bottom};
             foreach(ArenaTeam team in Enum.GetValues(typeof(ArenaTeam))){
                 bool lux=team==ArenaTeam.Lux;
@@ -340,7 +351,8 @@ namespace Buklod.Empire {
                     string id=roster[(lux?0:5)+i];
                     var u=Add(team,BattleTargetKind.Hero,new SkillActor(id),new Vector2(lux?17:Width-17,Height*.5f+(i-2)*5),lanes[i]);
                     if(lux&&i==0)Player=u;
-                    else if(i==2){u.Jungler=true;u.Tactic=ArenaTactic.WildernessMastery;}
+                    if(IsAuthoritative){participants[(lux?0:5)+i]=u;var loadout=CovenantPaths.DefaultFor(id);if(CovenantPaths.TryResolve(loadout,out var bonus))ApplyCovenant(u,loadout,bonus);}
+                    else if(!(lux&&i==0)&&i==2){u.Jungler=true;u.Tactic=ArenaTactic.WildernessMastery;}
                 }
                 foreach(ArenaLane lane in Enum.GetValues(typeof(ArenaLane)))Add(team,BattleTargetKind.Structure,new SkillActor(340),new Vector2(lux?35:Width-35,LaneY[(int)lane]),lane);
                 Add(team,BattleTargetKind.Structure,new SkillActor(600),new Vector2(lux?14:Width-14,Height*.5f),ArenaLane.Mid,true);
@@ -575,10 +587,10 @@ namespace Buklod.Empire {
         public BattleUnit ActivePracticeCounterTarget=>counterTarget!=null&&counterTarget.State.Alive&&counterTarget.State.Buff(ArenaStoneRules.CounterBuff,Time)>0?counterTarget:null;
         public float PracticeCounterRemaining=>ActivePracticeCounterTarget==null?0:Mathf.Max(0,counterUntil-Time);
         public bool PracticeCounterUsed=>practiceCounterUsed;
-        public BattleUnit PracticeCounterTarget=>Finished||AutonomousTraining||practiceCounterUsed||!Player.State.CanCast(Time)?null:units.Where(u=>u.Kind==BattleTargetKind.Hero&&u.Team!=Player.Team&&u.State.Alive&&IsVisibleTo(Player.Team,u)&&ClearSight(Player.Position,u.Position)&&Dist(Player,u)<=ArenaStoneRules.CounterRange).OrderBy(u=>Dist(Player,u)).ThenBy(u=>u.Id).FirstOrDefault();
+        public BattleUnit PracticeCounterTarget=>IsAuthoritative||Finished||AutonomousTraining||practiceCounterUsed||!Player.State.CanCast(Time)?null:units.Where(u=>u.Kind==BattleTargetKind.Hero&&u.Team!=Player.Team&&u.State.Alive&&IsVisibleTo(Player.Team,u)&&ClearSight(Player.Position,u.Position)&&Dist(Player,u)<=ArenaStoneRules.CounterRange).OrderBy(u=>Dist(Player,u)).ThenBy(u=>u.Id).FirstOrDefault();
         public bool TryPracticeCounter(string stoneHero,int enemyUnitId){
             var enemy=units.FirstOrDefault(u=>u.Id==enemyUnitId);
-            if(AutonomousTraining||enemy==null||enemy.Kind!=BattleTargetKind.Hero||!Player.State.CanCast(Time)||!IsVisibleTo(Player.Team,enemy)||!ClearSight(Player.Position,enemy.Position)||
+            if(IsAuthoritative||AutonomousTraining||enemy==null||enemy.Kind!=BattleTargetKind.Hero||!Player.State.CanCast(Time)||!IsVisibleTo(Player.Team,enemy)||!ClearSight(Player.Position,enemy.Position)||
                !ArenaStoneRules.CanCounter(stoneHero,enemy.State.Kit?.Id,enemy.Team!=Player.Team,
                   enemy.State.Alive,!Finished,false,practiceCounterUsed?1:0,Dist(Player,enemy),
                   enemy.State.Buff(ArenaStoneRules.CounterBuff,Time)>0))return false;
@@ -655,12 +667,59 @@ namespace Buklod.Empire {
             var u=Add(m.Team,BattleTargetKind.Minion,new SkillActor(stats.Health*m.Power),site??new Vector2(m.Team==ArenaTeam.Lux?19:Width-19,LaneY[(int)m.Lane]),m.Lane,role:m.Role);u.Power=m.Power;u.PaidMinion=paid;return true;
         }
         private int Towers(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&!u.IsVillageBuilding&&u.State.Alive);
+        // Trusted match-loop adapter. Slot identity is assigned by the server, never from a packet.
+        internal bool ConfigureParticipant(int slot,ArenaTactic tactic,CovenantLoadout covenant){
+            var u=Participant(slot);
+            if(u==null||Finished||tick!=0||ArenaTacticalRules.Cooldown(tactic)<0||!CovenantPaths.TryResolve(covenant,out var stats))return false;
+            u.Tactic=tactic;ApplyCovenant(u,covenant,stats);return true;
+        }
+        internal bool ApplyParticipantAction(int slot,MatchInput input){
+            var u=Participant(slot);
+            if(u==null||Finished)return false;
+            // Team economy orders are restricted to the first trusted slot per faction.
+            bool captain=slot==0||slot==5;
+            switch(input.Action){
+                case MatchAction.None:return true;
+                case MatchAction.Attack:return Basic(u,input.Aim);
+                case MatchAction.AttackUnit:return input.Target>0&&Basic(u,input.Aim,null,0,input.Target);
+                case MatchAction.AttackCamp:
+                    var camp=wilderness.Find(input.Target);
+                    return camp!=null&&IsPositionVisibleTo(u.Team,camp.Position)&&Basic(u,input.Aim,null,input.Target);
+                case MatchAction.Cast:
+                    bool cast=u.State.TryCast(this,(SkillSlot)input.Target,input.Aim,Time,!Finished);
+                    if(cast)u.RecallEnds=0;return cast;
+                case MatchAction.Recall:return BeginRecall(u);
+                case MatchAction.Tactic:return UseTactic(u,input.Aim);
+                case MatchAction.Buy:return Buy(u,input.Text);
+                case MatchAction.Sell:return Sell(u,input.Text);
+                case MatchAction.CollectPickup:return CollectPickup(u,input.Target);
+                case MatchAction.CollectRelic:return CollectRelic(u,input.Target);
+                case MatchAction.WorkerOrder:return captain&&OrderWorker(u.Team,input.Text,(VillageWorkerOrder)input.Target);
+                case MatchAction.WorkerResource:return captain&&OrderResource(u.Team,input.Text,input.Target==-1?(VillageResourceKind?)null:(VillageResourceKind)input.Target);
+                case MatchAction.Build:return captain&&BuildNearBase(u.Team,(VillageBuildOrder)input.Target);
+                case MatchAction.Repair:return captain&&QueueConstruction(u.Team,VillageBuildOrder.Repair,Vector2.zero,input.Target);
+                case MatchAction.CancelBuild:
+                    if(!captain)return false;var builder=Builder(u.Team);
+                    if(builder?.Construction==null)return false;builder.Construction=null;return true;
+                case MatchAction.TradeBuy:return captain&&Trade(u.Team,(VillageResourceKind)input.Target,true);
+                case MatchAction.TradeSell:return captain&&Trade(u.Team,(VillageResourceKind)input.Target,false);
+                case MatchAction.Recruit:return captain&&QueueRecruitment(u.Team);
+                case MatchAction.CancelRecruit:
+                    if(!captain||!RecruitmentPending(u.Team))return false;
+                    recruitmentEnd[(int)u.Team]=0;recruitmentSite[(int)u.Team]=0;return true;
+                default:return false;
+            }
+        }
+        internal void AdvanceAuthoritative(Vector2[] moves){
+            if(!IsAuthoritative||Finished||moves==null||moves.Length!=participants.Length)return;
+            Tick(Vector2.zero,moves);
+        }
         public void Advance(float seconds,Vector2 playerMove){
-            if(Finished||float.IsNaN(seconds)||float.IsInfinity(seconds)||seconds<0)return;
+            if(IsAuthoritative||Finished||float.IsNaN(seconds)||float.IsInfinity(seconds)||seconds<0)return;
             accumulator+=Math.Min(seconds,.5f);
             while(accumulator+1e-7>=Step&&!Finished){accumulator-=Step;Tick(Vector2.ClampMagnitude(Finite(playerMove)?playerMove:Vector2.zero,1));}
         }
-        private void Tick(Vector2 move){
+        private void Tick(Vector2 move,Vector2[] participantMoves=null){
             tick++;cover.RemoveAll(c=>c.expires<=Time);fallen.RemoveAll(f=>Time-f.Time>25);
             drops.RemoveAll(d=>Time-d.SpawnedAt>=ArenaPickupCatalog.Lifetime);relicDrops.RemoveAll(d=>Time-d.SpawnedAt>=ArenaRelicCatalog.Lifetime);
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
@@ -683,8 +742,10 @@ namespace Buklod.Empire {
                     continue;
                 }
                 if(u.Kind==BattleTargetKind.Hero){
+                    bool human=HumanControlled(u);
+                    Vector2 heroMove=IsAuthoritative?participantMoves[Array.IndexOf(participants,u)]:move;
                     if(u.IsRecalling){
-                        if(!CanRespawn(u.Team)||!a.CanMove(Time)||!a.CanCast(Time)||u==Player&&!AutonomousTraining&&move.sqrMagnitude>=.0025f)u.RecallEnds=0;
+                        if(!CanRespawn(u.Team)||!a.CanMove(Time)||!a.CanCast(Time)||human&&heroMove.sqrMagnitude>=.0025f)u.RecallEnds=0;
                         else if(Time>=u.RecallEnds){u.Position=u.Spawn;u.RecallEnds=0;u.Retreat=false;}
                         else continue;
                     }
@@ -695,7 +756,7 @@ namespace Buklod.Empire {
                     float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+u.RelicStats.Speed+u.CovenantBonus.Speed)*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
                     if(a.Kit.Id=="jawo"&&Time-u.RhythmAt<=4)speed*=1+.02f*u.RhythmStacks;
                     if(units.Any(v=>v.Team==u.Team&&v.State.Alive&&v.State.Kit?.Id=="ellusur"&&Dist(u,v)<=8.75f))speed*=1.1f;
-                    if(u==Player&&!AutonomousTraining){Move(u,move,speed*move.magnitude*Step);CollectNearby(u);continue;}
+                    if(human){Move(u,heroMove,speed*heroMove.magnitude*Step);CollectNearby(u);continue;}
                     Bot(u,speed);if(!Finished)CollectNearby(u);
                 }else if(u.Kind==BattleTargetKind.Minion)Minion(u);
                 else Structure(u);
