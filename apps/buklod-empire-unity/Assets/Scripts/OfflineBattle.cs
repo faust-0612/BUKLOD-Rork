@@ -501,7 +501,7 @@ namespace Buklod.Empire {
         public bool PlayerAttack(Vector2 aim)=>Basic(Player,aim);
         public bool PlayerAttackTarget(BattleTargetKind kind,Vector2 aim)=>Basic(Player,aim,kind);
         public bool PlayerAttackUnit(int unitId)=>unitId>0&&Basic(Player,Vector2.zero,null,0,unitId);
-        public bool RecallPlayer()=>BeginRecall(Player);
+        public bool RecallPlayer()=>!AutonomousTraining&&BeginRecall(Player);
         private bool BeginRecall(BattleUnit u){if(Finished||!u.State.CanMove(Time)||!u.State.CanCast(Time)||!CanRespawn(u.Team)||u.IsRecalling||Vector2.Distance(u.Position,u.Spawn)<10)return false;u.RecallEnds=Time+4;return true;}
         private void ApplyCovenant(BattleUnit u,CovenantLoadout loadout,CovenantStats bonus){
             var old=u.CovenantBonus;u.Covenant=loadout;u.CovenantBonus=bonus;var a=u.State;

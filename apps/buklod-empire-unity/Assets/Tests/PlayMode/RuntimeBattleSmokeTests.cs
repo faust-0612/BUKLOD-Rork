@@ -18,6 +18,19 @@ namespace Buklod.Empire.Tests {
                 yield return null;
             }
         }
+        [UnityTest] public IEnumerator AllSetupOptionsAndExactTargetRulesAreAvailableInTraining(){
+            var b=new OfflineBattle("phan",seed:19,difficulty:ArenaDifficulty.Advanced);
+            Assert.True(b.SelectPlayerCovenant(new CovenantLoadout(CovenantPath.Wisdom,CovenantTalent.Focus,CovenantTalent.QuickCast,CovenantTalent.Steward)));
+            Assert.True(b.SelectPlayerTactic(ArenaTactic.DivineRefuge));
+            Assert.True(b.UsePlayerTactic(Vector2.zero));Assert.False(b.UsePlayerTactic(Vector2.zero));
+            Assert.True(b.OrderPlayerResource("lira",VillageResourceKind.Food));
+            Assert.False(b.OrderPlayerResource("velin",VillageResourceKind.Food));
+            Assert.AreEqual(6,MobileBattleInput.Centers.Length);
+            b.Advance(.1f,Vector2.zero);
+            Assert.False(b.SelectPlayerTactic(ArenaTactic.Renew));
+            Assert.False(b.SelectPlayerCovenant(CovenantPaths.DefaultFor("phan")));
+            yield return null;
+        }
         [UnityTest] public IEnumerator RejectedSkillAndInvalidMovementStaySafe(){
             var battle=new OfflineBattle("phan");
             var before=battle.Player.Position;

@@ -1,7 +1,7 @@
 # Cloud-first Android development
 Only the isolated Unity project is in scope. The Unity Cloud target is manually configured by the owner; this repository does not contain tokens, signing credentials, or production backend secrets.
 
-- Branch: dev/buklod-empire-unity-migration-20261124
+- Integrated DEV branch: dev/empire-unity-integrated-apk-20261124 (not an approved build target yet)
 - Project path: apps/buklod-empire-unity
 - Android application ID: org.mzbministry.buklod.empire
 - Debug signing for development; APK; automatic builds off.
