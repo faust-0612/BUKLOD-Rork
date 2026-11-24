@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-unity-integrated-apk-20261124.json",
+  "baseRef": "b64f1a326d04b48ca87994e73842e90ffdc882c3",
+  "productionBaselineEvidence": "Standalone Empire DEV only; MAIN observed at 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04; production not runtime verified and is not changed.",
+  "objective": "Reconcile cumulative hybrid non-graphical mechanics with current Unity review assets and prepare isolated Android build candidate.",
+  "chosenApproach": "Three-way tree reconciliation from common ancestor, retain all hybrid and graphics changes; fail closed on conflicts.",
+  "selectionRationale": "No conflicting blobs; reuse current reviewed generators and gameplay, without promoting review-only assets.",
+  "alternativeApproaches": [
+    "Build either branch alone omits independent approved work",
+    "Merge into MAIN risks live product"
+  ],
+  "riskAreas": [
+    "Unity scene/visual integration",
+    "Offline hybrid gameplay",
+    "APK readiness"
+  ],
+  "preserveBehaviors": [
+    "Standalone org.mzbministry.buklod.empire identity",
+    "No production/backend/OTA changes",
+    "Review assets remain review-only until rights and original-art acceptance"
+  ],
+  "acceptanceChecks": [
+    "All 13 graphics-only changed blobs and 24 hybrid-only changed blobs retained",
+    "No conflicts or unrelated changes",
+    "Native compile/EditMode/PlayMode and actual approved assets before APK"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-unity-integrated-apk-20261124.json",
+    "apps/buklod-empire-unity/Assets/Editor/CandidateReviewComposer.cs",
+    "apps/buklod-empire-unity/Assets/Editor/EnvironmentReviewLook.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Tools/REVIEW_IMPORT.md",
+    "apps/buklod-empire-unity/Assets/Editor/FactionMaterialReview.cs",
+    "apps/buklod-empire-unity/Assets/Shaders/Review/RiftCascade.shader",
+    "apps/buklod-empire-unity/Tools/faction-material-evidence.json",
+    "apps/buklod-empire-unity/Tools/faction_materials.py",
+    "apps/buklod-empire-unity/Tools/premium-environment-evidence.json",
+    "apps/buklod-empire-unity/Tools/premium-environment-review.mjs",
+    "apps/buklod-empire-unity/Tools/premium-faction-evidence.json",
+    "apps/buklod-empire-unity/Tools/premium-faction-review.mjs",
+    "apps/buklod-empire-unity/Tools/test_faction_materials.py"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Tools/test_faction_materials.py"
+  ],
+  "lockedFeatureChanges": []
+}

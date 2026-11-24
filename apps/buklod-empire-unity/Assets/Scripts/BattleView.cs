@@ -28,7 +28,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence,villageActions;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -128,7 +128,7 @@ namespace Buklod.Empire {
                 if(!existing){
                     v=Rent(visuals.Resolve(u));active.Add(u.Id,v);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
-                    v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;
+                    v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;v.villageActions=u.Villager?.Actions??0;
                 }
                 bool hero=u.Kind==BattleTargetKind.Hero;
                 int requestedLod=premiumVisuals?0:-1;
@@ -166,7 +166,13 @@ namespace Buklod.Empire {
                         var name=last.Slot.ToString();if(v.parameters.Contains(name))v.animator.SetTrigger(name);
                     }
                 }
-                if(!castThisFrame&&v.health>u.State.Health+.01f&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");v.health=u.State.Health;
+                bool tookHit=v.health>u.State.Health+.01f;
+                if(u.Villager!=null&&u.Villager.Actions>v.villageActions){
+                    v.villageActions=u.Villager.Actions;
+                    if(!tookHit&&v.animator&&v.parameters.Contains("Work"))v.animator.SetTrigger("Work");
+                }
+                if(!castThisFrame&&tookHit&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");
+                v.health=u.State.Health;
             }
             removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){Return(pair.Value);removed.Add(pair.Key);}
             foreach(int id in removed)active.Remove(id);
