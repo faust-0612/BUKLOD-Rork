@@ -26,8 +26,10 @@ namespace Buklod.Empire {
             if(skill!=null)return;
             for(int i=1;i<Centers.Length;i++){
                 if(Vector2.Distance(at,PixelCenter(i))>Radius(i)*1.2f)continue;
-                skill=finger;ActiveSkill=i;Aim=Vector2.zero;break;
+                skill=finger;ActiveSkill=i;Aim=Vector2.zero;return;
             }
+            // Central battlefield tap selects a visible target; never overlaps menu or control regions.
+            if(view&&at.y>Screen.height*.46f&&at.y<Screen.height*.74f&&at.x>Screen.width*.12f&&at.x<Screen.width*.90f)view.SelectTargetAt(at);
         }
         private void UpdateMove(Vector2 at){Joystick=Vector2.ClampMagnitude((at-origin)/Mathf.Max(1,Radius(0)),1);if(Joystick.magnitude<.12f)Joystick=Vector2.zero;}
         private void Move(Finger finger){

@@ -18,6 +18,11 @@ namespace Buklod.Empire.Tests {
                 yield return null;
             }
         }
+        [UnityTest] public IEnumerator VisibilityAndTargetLockCannotExposeOpposingBase(){
+            var b=new OfflineBattle("phan");var foe=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            Assert.False(b.CanSeePosition(ArenaTeam.Lux,foe.Position));Assert.True(b.CanSeePosition(ArenaTeam.Tenebra,foe.Position));Assert.False(b.PlayerAttackUnit(foe.Id));
+            yield return null;
+        }
         [UnityTest] public IEnumerator AllSetupOptionsAndExactTargetRulesAreAvailableInTraining(){
             var b=new OfflineBattle("phan",seed:19,difficulty:ArenaDifficulty.Advanced);
             Assert.True(b.SelectPlayerCovenant(new CovenantLoadout(CovenantPath.Wisdom,CovenantTalent.Focus,CovenantTalent.QuickCast,CovenantTalent.Steward)));

@@ -6,7 +6,12 @@ namespace Buklod.Empire {
     public sealed class BattleVisualCatalog:ScriptableObject {
         [Serializable] public sealed class HeroVisual {public string id;public GameObject prefab;}
         [Serializable] public sealed class VillagerVisual {public string id;public GameObject prefab;}
-        [Serializable] public sealed class FactionVisual {public ArenaTeam team;public GameObject tower,core;public GameObject[] minions=new GameObject[5];public VillagerVisual[] villagers=new VillagerVisual[6];}
+        [Serializable] public sealed class FactionVisual {public ArenaTeam team;public GameObject tower,core,depot,guardPost,farm,barracks;public GameObject[] minions=new GameObject[5];public VillagerVisual[] villagers=new VillagerVisual[6];}
+        [Serializable] public sealed class ResourceVisual {public VillageResourceKind kind;public GameObject prefab;}
+        [Serializable] public sealed class WildernessVisual {public WildernessKind kind;public GameObject prefab;}
+        public ResourceVisual[] resources;
+        public WildernessVisual[] wilderness;
+        public GameObject fieldPickup,relicPickup;
         public GameObject genesisRift;
         public HeroVisual[] heroes;
         public FactionVisual[] factions;
@@ -15,17 +20,36 @@ namespace Buklod.Empire {
         public GameObject Resolve(BattleUnit unit){
             if(unit.Kind==BattleTargetKind.Hero){foreach(var h in heroes)if(h.id==unit.State.Kit.Id)return h.prefab;}
             else foreach(var f in factions)if(f.team==unit.Team){
-                if(unit.Kind==BattleTargetKind.Structure)return unit.Core?f.core:f.tower;
+                if(unit.Kind==BattleTargetKind.Structure){
+                    if(unit.Core)return f.core;
+                    if(unit.IsDepot&&f.depot)return f.depot;if(unit.IsGuardPost&&f.guardPost)return f.guardPost;
+                    if(unit.IsFarm&&f.farm)return f.farm;if(unit.IsBarracks&&f.barracks)return f.barracks;
+                    return f.tower; // review-only compatibility; production validation requires every building.
+                }
                 if(unit.Kind==BattleTargetKind.Villager){foreach(var v in f.villagers)if(v.id==unit.Villager.Job.Id)return v.prefab;break;}
                 return f.minions[(int)unit.Role];
             }
             throw new InvalidOperationException("Missing visual for unit "+unit.Id);
         }
+        public GameObject ResolveResource(VillageResourceKind kind){if(resources!=null)foreach(var item in resources)if(item!=null&&item.kind==kind)return item.prefab;return null;}
+        public GameObject ResolveWilderness(WildernessKind kind){if(wilderness!=null)foreach(var item in wilderness)if(item!=null&&item.kind==kind)return item.prefab;return null;}
+        private void ValidateHybridVisuals(){
+            foreach(var f in factions){var set=new HashSet<GameObject>{f.core,f.tower,f.depot,f.guardPost,f.farm,f.barracks};if(set.Contains(null)||set.Count!=6)throw new InvalidOperationException("Six distinct faction structure prefabs required: "+f.team);}
+            var resourceKinds=new HashSet<VillageResourceKind>();var resourceModels=new HashSet<GameObject>();
+            if(resources==null)throw new InvalidOperationException("Resource visuals are missing.");
+            foreach(var item in resources)if(item==null||!item.prefab||!Enum.IsDefined(typeof(VillageResourceKind),item.kind)||!resourceKinds.Add(item.kind)||!resourceModels.Add(item.prefab))throw new InvalidOperationException("Invalid or duplicate resource prefab.");
+            if(resourceKinds.Count!=Enum.GetValues(typeof(VillageResourceKind)).Length)throw new InvalidOperationException("All five resource types require visuals.");
+            var campKinds=new HashSet<WildernessKind>();var campModels=new HashSet<GameObject>();
+            if(wilderness==null)throw new InvalidOperationException("Wilderness visuals are missing.");
+            foreach(var item in wilderness)if(item==null||!item.prefab||!Enum.IsDefined(typeof(WildernessKind),item.kind)||!campKinds.Add(item.kind)||!campModels.Add(item.prefab))throw new InvalidOperationException("Invalid or duplicate wilderness prefab.");
+            if(campKinds.Count!=Enum.GetValues(typeof(WildernessKind)).Length)throw new InvalidOperationException("All nine wilderness creature types require visuals.");
+            if(!fieldPickup||!relicPickup||fieldPickup==relicPickup)throw new InvalidOperationException("Distinct field and relic pickup prefabs are required.");
+        }
         public void Validate(){
             if(!provenanceReceipt)throw new InvalidOperationException("Production provenance is mandatory.");
             var receipt=JsonUtility.FromJson<Provenance>(provenanceReceipt.text);
             if(receipt==null||!receipt.rightsVerified||!receipt.originalArtReviewed||string.IsNullOrWhiteSpace(receipt.evidence))throw new InvalidOperationException("Verified rights and original-art review evidence are required; do not mark pending assets as approved.");
-            ValidateStructure();
+            ValidateStructure();ValidateHybridVisuals();
         }
 #if UNITY_EDITOR
         // No provenance exemption exists in a player build.

@@ -319,6 +319,14 @@ namespace Buklod.Empire {
             return true;
         }
         private static int ConcealmentZone(Vector2 p){for(int i=0;i<Concealment.Length;i++){var c=Concealment[i];if(Vector2.Distance(p,new Vector2(c.x*Width,c.y*Height))<=c.z*Height)return i;}return -1;}
+        public bool CanSeePosition(ArenaTeam viewer,Vector2 position){
+            if(!ArenaDraftRules.ValidTeam(viewer)||!Finite(position))return false;
+            if(Time>=OfflineMatchRules.MatchLimit)return true;
+            foreach(var observer in units){if(observer.Team!=viewer||!observer.State.Alive)continue;
+                float radius=(observer.Kind==BattleTargetKind.Hero?20:observer.Kind==BattleTargetKind.Structure?12:9)+observer.State.Buff("vision",Time);
+                if(Vector2.Distance(observer.Position,position)<=radius&&ClearSight(observer.Position,position))return true;
+            }return false;
+        }
         public bool IsVisibleTo(ArenaTeam viewer,BattleUnit target){
             if(!ArenaDraftRules.ValidTeam(viewer)||target==null||Find(target.State)!=target||!target.State.Alive)return false;
             if(target.Team==viewer||Time>=OfflineMatchRules.MatchLimit||!CoreAlive(target.Team))return true;

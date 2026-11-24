@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
@@ -20,6 +21,9 @@ namespace Buklod.Empire {
         private MobileBattleInput input;
         private BattleEffects effects;
         private SkillAudio skillAudio;
+        private BattleWorldObjects worldObjects;
+        private int lockedUnit,lockedCamp;
+        public string TargetLabel {get;private set;}="";
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
         private readonly Dictionary<GameObject,Stack<GameObject>> pool=new Dictionary<GameObject,Stack<GameObject>>();
         private readonly HashSet<int> seen=new HashSet<int>();
@@ -54,6 +58,8 @@ namespace Buklod.Empire {
             foreach(var v in active.Values)Return(v);active.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
+            lockedUnit=lockedCamp=0;TargetLabel="";
+            if(!worldObjects)worldObjects=gameObject.AddComponent<BattleWorldObjects>();worldObjects.ResetObjects();
             Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
             if(loadout.HasValue&&!Battle.SelectPlayerCovenant(loadout.Value))throw new System.InvalidOperationException("Invalid pre-match Covenant.");
             if(!Battle.SelectPlayerTactic(tactic))throw new System.InvalidOperationException("Invalid pre-match tactic.");
@@ -76,11 +82,23 @@ namespace Buklod.Empire {
         public bool Cast(int button,Vector2 aim){
             if(Battle==null||Paused||Battle.Finished||Battle.AutonomousTraining||button<1||button>5)return false;
             var direction=ToWorld(aim);
+            if(button==1&&direction.sqrMagnitude<.0025f){if(lockedUnit>0)return Battle.PlayerAttackUnit(lockedUnit);if(lockedCamp>0)return Battle.AttackNeutralPlayer(lockedCamp);}
             return button==1?Battle.PlayerAttack(direction):button==5?Battle.UsePlayerTactic(direction):Battle.CastPlayer((SkillSlot)(button-2),direction);
         }
-        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));Sync(false);}
+        public void SelectTargetAt(Vector2 screen){
+            if(Battle==null||Paused||Battle.Finished||Battle.AutonomousTraining)return;
+            lockedUnit=lockedCamp=0;TargetLabel="";float best=Mathf.Min(Screen.width,Screen.height)*.075f;
+            foreach(var u in Battle.Units){if(u.Team==Battle.Player.Team||!u.State.Alive||!Battle.IsVisibleTo(Battle.Player.Team,u))continue;
+                var p=battleCamera.WorldToScreenPoint(Ground(u.Position)+Vector3.up*1.2f);if(p.z<=0)continue;float distance=Vector2.Distance(screen,new Vector2(p.x,p.y));if(distance>=best)continue;
+                best=distance;lockedUnit=u.Id;lockedCamp=0;TargetLabel=u.State.Kit?.Name??(u.IsFarm?"Farm":u.IsBarracks?"Barracks":u.IsDepot?"Depot":u.Kind.ToString());
+            }
+            foreach(var c in Battle.Camps){if(!c.Alive||!Battle.CanSeePosition(Battle.Player.Team,c.Position))continue;var p=battleCamera.WorldToScreenPoint(Ground(c.Position)+Vector3.up);if(p.z<=0)continue;float distance=Vector2.Distance(screen,new Vector2(p.x,p.y));if(distance>=best)continue;
+                best=distance;lockedUnit=0;lockedCamp=c.Id;TargetLabel=c.Kind.ToString();}
+        }
+        private void ValidateLock(){if(lockedUnit>0&&!Battle.Units.Any(u=>u.Id==lockedUnit&&u.State.Alive&&Battle.IsVisibleTo(Battle.Player.Team,u))||lockedCamp>0&&!Battle.Camps.Any(c=>c.Id==lockedCamp&&c.Alive&&Battle.CanSeePosition(Battle.Player.Team,c.Position))){lockedUnit=lockedCamp=0;TargetLabel="";}}
+        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));ValidateLock();Sync(false);}
         private void LateUpdate(){if(Battle!=null)Follow(false);}
-        private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}
+        internal Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}
         private Visual Rent(GameObject prefab){
             if(!pool.TryGetValue(prefab,out var stack)){stack=new Stack<GameObject>();pool[prefab]=stack;}
             GameObject go;
@@ -179,6 +197,7 @@ namespace Buklod.Empire {
             }
             removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){Return(pair.Value);removed.Add(pair.Key);}
             foreach(int id in removed)active.Remove(id);
+            if(worldObjects)worldObjects.Sync(this,immediate);
         }
         private void Follow(bool immediate){
             var at=Ground(Battle.Player.Position);var desired=at+new Vector3(0,cameraHeight,-cameraHeight*.72f);

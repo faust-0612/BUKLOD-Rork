@@ -6,7 +6,7 @@ namespace Buklod.Empire {
         private Canvas canvas;private Sprite circle;
         private readonly Image[] buttons=new Image[6],cooldown=new Image[6];
         private readonly Text[] labels=new Text[6];
-        private Image knob,health,mana;private Text status;
+        private Image knob,health,mana;private Text status,target;
         private int width,height;
         private Image ImageAt(string name,Transform parent,Color tint){
             var go=new GameObject(name,typeof(RectTransform),typeof(CanvasRenderer),typeof(Image));go.transform.SetParent(parent,false);
@@ -29,7 +29,7 @@ namespace Buklod.Empire {
                 labels[i]=TextAt("Label",buttons[i].transform);
             }
             knob=ImageAt("Stick",buttons[0].transform,new Color(.5f,.8f,.7f,.8f));
-            status=TextAt("Match status",canvas.transform);
+            status=TextAt("Match status",canvas.transform);target=TextAt("Target lock",canvas.transform);
             health=ImageAt("Health",canvas.transform,new Color(.2f,.85f,.38f));health.sprite=null;
             mana=ImageAt("Mana",canvas.transform,new Color(.2f,.55f,.95f));mana.sprite=null;
             Layout();
@@ -41,6 +41,7 @@ namespace Buklod.Empire {
             }
             knob.rectTransform.sizeDelta=Vector2.one*MobileBattleInput.Radius(0)*.7f;
             var st=status.rectTransform;st.anchorMin=st.anchorMax=new Vector2(.5f,.94f);st.sizeDelta=new Vector2(width*.8f,height*.06f);status.fontSize=Mathf.Max(15,(int)(height*.033f));
+            var lockRect=target.rectTransform;lockRect.anchorMin=lockRect.anchorMax=new Vector2(.5f,.84f);lockRect.sizeDelta=new Vector2(width*.4f,height*.05f);target.fontSize=Mathf.Max(12,(int)(height*.023f));
             foreach(var bar in new[]{health,mana}){var t=bar.rectTransform;t.anchorMin=t.anchorMax=new Vector2(.025f,bar==health?.94f:.905f);t.pivot=new Vector2(0,.5f);t.anchoredPosition=Vector2.zero;}
         }
         private void Update(){
@@ -51,6 +52,7 @@ namespace Buklod.Empire {
             for(int i=2;i<5;i++){var slot=(SkillSlot)(i-2);float remaining=s.Remaining(slot,b.Time);cooldown[i].fillAmount=slot==SkillSlot.Ultimate&&s.Level<6?1:Mathf.Clamp01(remaining/Mathf.Max(.01f,s.Cooldown(slot,b.Time)));labels[i].text=slot==SkillSlot.Ultimate&&s.Level<6?"LV 6":remaining>0?Mathf.CeilToInt(remaining).ToString():i==4?"ULT":"SKILL "+(i-1);}
             float tacticLeft=Mathf.Max(0,b.Player.TacticReadyAt-b.Time);cooldown[5].fillAmount=Mathf.Clamp01(tacticLeft/ArenaTacticalRules.Cooldown(b.Player.Tactic));labels[5].text=tacticLeft>0?Mathf.CeilToInt(tacticLeft).ToString():"TACTIC";
             int seconds=Mathf.FloorToInt(b.Time);status.text=b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):$"{seconds/60:00}:{seconds%60:00}   Lv {s.Level}   Gold {b.Player.Gold}   {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists}   L {b.RemainingUnits(ArenaTeam.Lux)} : T {b.RemainingUnits(ArenaTeam.Tenebra)}";
+            target.text=string.IsNullOrEmpty(view.TargetLabel)?"":"TARGET: "+view.TargetLabel;
             health.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),height*.018f);
             mana.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),height*.013f);
         }
