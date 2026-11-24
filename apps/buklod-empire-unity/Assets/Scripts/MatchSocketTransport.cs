@@ -37,13 +37,13 @@ namespace Buklod.Empire {
         }
         // HTTPS control-plane handler calls this with the Authorization bearer only.
         public async Task<string> RequestTicket(string bearer,CancellationToken cancellation){
-            if(string.IsNullOrEmpty(bearer)||bearer.Length>8192||!await authRequests.WaitAsync(0,cancellation))return null;
+            if(string.IsNullOrEmpty(bearer)||bearer.Length>8192||!await authRequests.WaitAsync(0,cancellation).ConfigureAwait(false))return null;
             try{
                 using(var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancellation)){
                     timeout.CancelAfter(TimeSpan.FromSeconds(5));
-                    string account=await identity.VerifyAccountAsync(bearer,timeout.Token);
+                    string account=await identity.VerifyAccountAsync(bearer,timeout.Token).ConfigureAwait(false);
                     if(string.IsNullOrWhiteSpace(account))return null;
-                    return await loop.Invoke(()=>grants.IssueVerified(account),timeout.Token);
+                    return await loop.Invoke(()=>grants.IssueVerified(account),timeout.Token).ConfigureAwait(false);
                 }
             }catch(OperationCanceledException){return null;}catch(System.Net.Http.HttpRequestException){return null;}catch(InvalidOperationException){return null;}
             finally{authRequests.Release();}
