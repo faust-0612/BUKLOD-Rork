@@ -1,3 +1,6 @@
-import React from 'react';
-import GuardedSeason2DevelopmentWorld from '@/features/season2/world/GuardedSeason2DevelopmentWorld';
-export default function MyWorld(){return <GuardedSeason2DevelopmentWorld world="home"/>;}
+import { Redirect } from 'expo-router';
+
+/** MAIN: retired virtual house/lot workshop. Family tools remain independent. */
+export default function MyWorld() {
+  return <Redirect href="/(tabs)/hub" />;
+}

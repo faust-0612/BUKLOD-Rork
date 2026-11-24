@@ -18,3 +18,12 @@ test('Home, menu, finder and shell have no retired shortcuts; Home ads remain',(
  for(const p of ['src/components/BuklodNavigationSideMenu.tsx','src/lib/buklodNavigationV2.ts','src/components/BuklodFeatureFinder.tsx']) assert.doesNotMatch(read(p),/BUKLOD Kingdom|'kingdom'|['"]\/games/);
  const shell=read('src/components/BuklodNavSafeShell.tsx');assert.doesNotMatch(shell,/worldReturnEligible|Return to BUKLOD Map|['"]\/buklod-map/);assert.ok(shell.includes('<BuklodPersistentBottomNav />'));assert.ok(shell.includes('<BuklodFocusAppAdStrip />'));
 });
+
+test('MAIN retires virtual home, land and community estate without mounting workshops',()=>{
+ for(const p of ['src/app/season2/my-world.tsx','src/app/season2/community-village.tsx','src/app/community-village.tsx','src/features/season2/world/GuardedSeason2DevelopmentWorld.tsx']){
+  const s=read(p);assert.match(s,/<Redirect href="\/\(tabs\)\/hub"/);assert.doesNotMatch(s,/import .*Season2DevelopmentMap|openBundledBuklodWorld|<GuardedSeason2DevelopmentWorld|require\(|useEstateFeedback/);
+ }
+ assert.ok(read('src/app/personal-home/index.tsx').includes('BuklodPersonalHomeE2E'));
+ assert.ok(read('src/components/home/BuklodPersonalHomeE2E.tsx').includes('BuklodBahayHome'));
+ assert.ok(read('src/app/profile/buklod-family.tsx').includes('/profile/buklod-family-workspace'));
+});
