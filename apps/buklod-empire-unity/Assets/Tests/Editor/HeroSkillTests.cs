@@ -36,6 +36,23 @@ namespace Buklod.Empire.Tests {
             Assert.False(p.TryCast(w,SkillSlot.Ultimate,Vector2.right,.5f,true));
             Assert.True(p.TryCast(w,SkillSlot.Ultimate,Vector2.right,1,true));Assert.AreEqual(45,p.Mana);
         }
+        [Test] public void SameTickSuccessfulCastsRemainDistinct(){
+            var p=new SkillActor("phan"){Level=6};var w=new World();
+            Assert.True(p.TryCast(w,SkillSlot.Primary,Vector2.right,0,true));
+            Assert.True(p.TryCast(w,SkillSlot.Secondary,Vector2.up,0,true));
+            Assert.True(p.TryCast(w,SkillSlot.Ultimate,Vector2.left,0,true));
+            Assert.AreEqual(3,p.CastSequence);Assert.AreEqual(13,p.Mana);
+            for(int i=1;i<=3;i++){Assert.True(p.TryGetCast(i,out var cast));Assert.AreEqual((SkillSlot)(i-1),cast.Slot);}
+            Assert.True(p.TryGetCast(2,out var second));Assert.AreEqual(Vector2.up,second.Aim);
+            Assert.False(p.TryCast(w,SkillSlot.Primary,Vector2.right,0,true));Assert.AreEqual(3,p.CastSequence);
+        }
+        [Test] public void CastHistoryIsBoundedAndRejectsStaleReads(){
+            var p=new SkillActor("phan");var w=new World();
+            for(int i=0;i<10;i++){p.Mana=100;Assert.True(p.TryCast(w,SkillSlot.Secondary,Vector2.right,i*20,true));}
+            Assert.AreEqual(10,p.CastSequence);
+            Assert.False(p.TryGetCast(1,out _));Assert.False(p.TryGetCast(2,out _));
+            Assert.True(p.TryGetCast(3,out _));Assert.True(p.TryGetCast(10,out _));Assert.False(p.TryGetCast(11,out _));
+        }
         [Test] public void CanonicalDamageAndCooldown(){
             var p=new SkillActor("jawo");var w=new World();
             Assert.True(p.TryCast(w,SkillSlot.Primary,Vector2.right,0,true));Assert.AreEqual(118,w.Enemy.Health);

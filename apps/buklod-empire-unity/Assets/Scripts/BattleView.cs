@@ -19,7 +19,7 @@ namespace Buklod.Empire {
         private readonly Dictionary<GameObject,Stack<GameObject>> pool=new Dictionary<GameObject,Stack<GameObject>>();
         private readonly HashSet<int> seen=new HashSet<int>();
         private readonly List<int> removed=new List<int>();
-        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,cast=float.NegativeInfinity,health;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -77,7 +77,7 @@ namespace Buklod.Empire {
             foreach(var u in Battle.Units){
                 if(!u.State.Alive)continue;
                 seen.Add(u.Id);
-                if(!active.TryGetValue(u.Id,out var v)){v=Rent(visuals.Resolve(u));active.Add(u.Id,v);v.instance.transform.position=Ground(u.Position);v.attack=u.LastAttack;v.cast=u.State.LastCastAt;v.health=u.State.Health;}
+                if(!active.TryGetValue(u.Id,out var v)){v=Rent(visuals.Resolve(u));active.Add(u.Id,v);v.instance.transform.position=Ground(u.Position);v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;}
                 var t=v.instance.transform;var goal=new Vector3(u.Position.x*worldScale,t.position.y,u.Position.y*worldScale);
                 if((goal-t.position).sqrMagnitude>.0001f)goal=Ground(u.Position);
                 var delta=goal-t.position;var flat=new Vector3(delta.x,0,delta.z);
@@ -85,12 +85,26 @@ namespace Buklod.Empire {
                 if(flat.sqrMagnitude>.0001f)t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
                 if(v.animator&&v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
                 if(u.LastAttack>v.attack){v.attack=u.LastAttack;if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");if(effects&&u.Kind==BattleTargetKind.Hero)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),0);}
-                if(u.State.LastCastAt>v.cast){v.cast=u.State.LastCastAt;var name=u.State.LastCastSlot.ToString();if(v.animator&&v.parameters.Contains(name))v.animator.SetTrigger(name);if(u.State.Kit!=null&&SkillCueCatalog.TryGet(u.State.Kit.Skill(u.State.LastCastSlot).Id,out var cue)){
-                    var aim=u.State.LastCastAim;var forward=aim.sqrMagnitude>.0025f?new Vector3(aim.x,0,aim.y):t.forward;
-                    if(effects)effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward);
-                    if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
-                }}
-                if(v.health>u.State.Health+.01f&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");v.health=u.State.Health;
+                bool castThisFrame=false;
+                int latest=u.State.CastSequence;
+                if(latest>v.castSequence){
+                    int first=Mathf.Max(v.castSequence+1,latest-SkillActor.CastHistoryCapacity+1);
+                    for(int seq=first;seq<=latest;seq++){
+                        if(!u.State.TryGetCast(seq,out var cast)||u.State.Kit==null||!SkillCueCatalog.TryGet(u.State.Kit.Skill(cast.Slot).Id,out var cue))continue;
+                        var aim=cast.Aim;var forward=aim.sqrMagnitude>.0025f?new Vector3(aim.x,0,aim.y):t.forward;
+                        if(effects)effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward);
+                        if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
+                        castThisFrame=true;
+                    }
+                    v.castSequence=latest;
+                    // One skeleton cannot play multiple full-body skills concurrently. Present every
+                    // retained cast cue, and prioritize the newest successful cast for the pose.
+                    if(castThisFrame&&v.animator&&u.State.TryGetCast(latest,out var last)){
+                        foreach(var trigger in new[]{"Primary","Secondary","Ultimate","Attack","Hit"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
+                        var name=last.Slot.ToString();if(v.parameters.Contains(name))v.animator.SetTrigger(name);
+                    }
+                }
+                if(!castThisFrame&&v.health>u.State.Health+.01f&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");v.health=u.State.Health;
             }
             removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){Return(pair.Value);removed.Add(pair.Key);}
             foreach(int id in removed)active.Remove(id);

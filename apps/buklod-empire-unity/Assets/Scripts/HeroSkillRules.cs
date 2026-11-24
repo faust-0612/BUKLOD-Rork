@@ -11,6 +11,10 @@ namespace Buklod.Empire {
         bool Wall(SkillActor actor,Vector2 direction,float distance,float radius,float duration);
         bool Turret(SkillActor actor,Vector2 direction,float distance,float health,float duration,float damage);
     }
+    public readonly struct SkillCastEvent {
+        public readonly int Sequence; public readonly SkillSlot Slot; public readonly Vector2 Aim;
+        public SkillCastEvent(int sequence,SkillSlot slot,Vector2 aim){Sequence=sequence;Slot=slot;Aim=aim;}
+    }
     public sealed class SkillActor {
         public readonly HeroKit Kit;
         public float Health=160, MaxHealth=160, Mana=100, Shield;
@@ -19,10 +23,18 @@ namespace Buklod.Empire {
         public float LastCastAt {get;private set;}=float.NegativeInfinity;
         public SkillSlot LastCastSlot {get;private set;}
         public Vector2 LastCastAim {get;private set;}
+        public const int CastHistoryCapacity=8;
+        private readonly SkillCastEvent[] castHistory;
+        public int CastSequence {get;private set;}
+        public bool TryGetCast(int sequence,out SkillCastEvent cast){
+            cast=default;
+            if(castHistory==null||sequence<=0||sequence>CastSequence||CastSequence-sequence>=CastHistoryCapacity)return false;
+            cast=castHistory[(sequence-1)%CastHistoryCapacity];return cast.Sequence==sequence;
+        }
         public bool Alive=>Health>0;
         private readonly Dictionary<string,(float strength,float until)> buffs=new Dictionary<string,(float,float)>();
         private readonly float[] last={float.NegativeInfinity,float.NegativeInfinity,float.NegativeInfinity};
-        public SkillActor(string hero){Kit=HeroKitCatalog.Get(hero);}
+        public SkillActor(string hero){Kit=HeroKitCatalog.Get(hero);castHistory=new SkillCastEvent[CastHistoryCapacity];}
         internal SkillActor(float health){Health=MaxHealth=health;Mana=0;Level=0;}
         internal void Respawn(){Health=MaxHealth;Mana=100;Shield=0;temporaryShield=temporaryShieldUntil=0;buffs.Clear();}
         public float Buff(string id,float now)=>buffs.TryGetValue(id,out var b)&&b.until>now?b.strength:0;
@@ -58,6 +70,7 @@ namespace Buklod.Empire {
             if(Mana<cost||Remaining(slot,now)>0)return false;
             if(!HeroSkillRules.Cast(world,this,Kit.Skill(slot).Id,aim,now))return false;
             Mana-=cost;last[(int)slot]=now;LastCastAt=now;LastCastSlot=slot;LastCastAim=aim;
+            CastSequence++;castHistory[(CastSequence-1)%CastHistoryCapacity]=new SkillCastEvent(CastSequence,slot,aim);
             foreach(var e in world.Enemies(this,17.5f,Vector2.zero)){
                 if(e.Kit?.Id!="trudice")continue;
                 e.Set("insight",Mathf.Min(3,e.Buff("insight",now)+1),now+6,now);Set("revealed",1,now+2,now);
