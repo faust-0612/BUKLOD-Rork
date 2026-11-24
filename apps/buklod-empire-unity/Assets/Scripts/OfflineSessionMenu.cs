@@ -26,7 +26,8 @@ namespace Buklod.Empire {
         private CovenantPath path=CovenantPath.Valor;
         private CovenantTalent first=CovenantTalent.Fortitude,second=CovenantTalent.Resolve,third=CovenantTalent.Precision;
         private Text title,summary,choice;
-        private Button resume,start;
+        private Button resume,start,counter;
+        private Text counterLabel,counterNotice;
         private Button[] shop;
         private Text shopStatus;
         private static readonly string[] GearIds={"blade","armor","boots","sealbreaker","withering_thorn","precision","fervor","renewal","wisdom","aegis","vitality","giantbane"};
@@ -61,6 +62,8 @@ namespace Buklod.Empire {
             scaler.referenceResolution=new Vector2(1280,720);scaler.matchWidthOrHeight=.5f;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             ButtonAt("Menu",canvas,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
+            counter=ButtonAt("Practice counter",canvas,new Vector2(.035f,.75f),new Vector2(.22f,.825f),"COUNTER",ActivatePracticeCounter);
+            counterLabel=counter.GetComponentInChildren<Text>();counterNotice=Label("Counter notice",canvas,new Vector2(.025f,.66f),new Vector2(.24f,.745f),"",18);
             shop=new Button[3];
             for(int i=0;i<shop.Length;i++){
                 int slot=i;float y=.83f-i*.075f;
@@ -82,7 +85,8 @@ namespace Buklod.Empire {
             for(int i=0;i<HeroKitCatalog.All.Count;i++){
                 var kit=HeroKitCatalog.All[i];int col=i%5,row=i/5;
                 float x=col/5f,y=1-(row+1)/3f;
-                ButtonAt(kit.Id,heroGrid,new Vector2(x+.008f,y+.02f),new Vector2(x+.192f,y+.31f),kit.Name,()=>Select(kit.Id));
+                SacredStoneCatalog.TryGet(kit.Id,out var identity);
+                ButtonAt(kit.Id,heroGrid,new Vector2(x+.008f,y+.02f),new Vector2(x+.192f,y+.31f),kit.Name+"\n"+(identity?.Name??""),()=>Select(kit.Id));
             }
             resume=ButtonAt("Resume",panel,new Vector2(.08f,.06f),new Vector2(.46f,.17f),"RESUME",Resume);
             start=ButtonAt("Start",panel,new Vector2(.54f,.06f),new Vector2(.92f,.17f),"START NEW MATCH",StartNew);
@@ -91,7 +95,10 @@ namespace Buklod.Empire {
             for(int i=0;i<setup.Length;i++){int index=i;float x=.07f+i*.145f;ButtonAt(setup[i],panel,new Vector2(x,.18f),new Vector2(x+.137f,.25f),setup[i],()=>CycleSetup(index));}
             CreateCommands();CreateArmy();RefreshConfiguration();Select(selected);Open();
         }
-        private void Select(string hero){selected=HeroKitCatalog.Get(hero).Id;choice.text="Selected: "+HeroKitCatalog.Get(hero).Name;}
+        private void Select(string hero){
+            selected=HeroKitCatalog.Get(hero).Id;SacredStoneCatalog.TryGet(selected,out var stone);choice.text=HeroKitCatalog.Get(hero).Name+" / "+(stone?.Name??"");
+            var ingredients=ArenaStoneRules.Ingredients(selected);if(ingredients.Length==2&&SacredStoneCatalog.TryGet(ingredients[0],out var first)&&SacredStoneCatalog.TryGet(ingredients[1],out var second))choice.text+="\n"+first.Name+" + "+second.Name+" → "+(stone?.Name??"")+" • Training free";
+        }
         private void Open(){
             commandOpen=false;if(commands)commands.gameObject.SetActive(false);if(armyPanel)armyPanel.gameObject.SetActive(false);
             shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);
@@ -204,8 +211,16 @@ namespace Buklod.Empire {
                 shop[i].GetComponentInChildren<Text>().text=owned?"SELL "+gear.ToUpperInvariant():gear.ToUpperInvariant()+" "+OfflineMatchRules.ShopPrice(gear);
             }
         }
+        private void ActivatePracticeCounter(){var b=view.Battle;var target=b?.PracticeCounterTarget;if(shown||commandOpen||view.Paused||target==null)return;b.TryPracticeCounter(target.State.Kit.Id,target.Id);}
+        private void RefreshCounter(){
+            var b=view.Battle;bool visible=!shown&&!commandOpen&&b!=null&&!b.Finished;counter.gameObject.SetActive(visible);counterNotice.gameObject.SetActive(visible);
+            var target=visible?b.PracticeCounterTarget:null;counter.interactable=visible&&!view.Paused&&target!=null;
+            if(!visible)return;string name=target==null?"":target.State.Kit.Name;if(target!=null&&SacredStoneCatalog.TryGet(target.State.Kit.Id,out var stone))name=stone.Name;
+            counterLabel.text=b.PracticeCounterUsed?"COUNTER USED":target==null?"NO COUNTER TARGET":"COUNTER "+name;var active=b.ActivePracticeCounterTarget;
+            counterNotice.text=active==null?"":active.State.Kit.Name+" • COUNTERED "+Mathf.CeilToInt(b.PracticeCounterRemaining)+"s";
+        }
         private void Update(){
-            RefreshShop();
+            RefreshShop();RefreshCounter();
             bool finished=view.Battle!=null&&view.Battle.Finished;
             if((finished&&!lastFinished)||(!shown&&!commandOpen&&view.Paused))Open();
             lastFinished=finished;

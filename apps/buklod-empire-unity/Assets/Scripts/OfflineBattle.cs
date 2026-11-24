@@ -648,6 +648,22 @@ namespace Buklod.Empire {
             Vector2 p=a.Position+dir.normalized*distance;if(Blocked(p,1.6f))return false;
             var t=Add(a.Team,BattleTargetKind.Structure,new SkillActor(health),p,a.Lane,temporary:true);t.Expires=Time+duration;t.AttackDamage=damage;return true;
         }
+        // Offline practice only: no account wallet, persistent reward, or paid advantage.
+        private bool practiceCounterUsed;
+        private BattleUnit counterTarget;
+        private float counterUntil;
+        public BattleUnit ActivePracticeCounterTarget=>!Finished&&counterTarget!=null&&counterTarget.State.Alive&&IsVisibleTo(Player.Team,counterTarget)&&counterTarget.State.Buff(ArenaStoneRules.CounterBuff,Time)>0?counterTarget:null;
+        public float PracticeCounterRemaining=>ActivePracticeCounterTarget==null?0:Mathf.Max(0,counterUntil-Time);
+        public bool PracticeCounterUsed=>practiceCounterUsed;
+        public BattleUnit PracticeCounterTarget=>Finished||practiceCounterUsed||!Player.State.CanCast(Time)?null:units.Where(u=>u.Kind==BattleTargetKind.Hero&&u.Team!=Player.Team&&u.State.Alive&&Attackable(u)&&IsVisibleTo(Player.Team,u)&&ClearSight(Player.Position,u.Position)&&Dist(Player,u)<=ArenaStoneRules.CounterRange).OrderBy(u=>Dist(Player,u)).ThenBy(u=>u.Id).FirstOrDefault();
+        public bool TryPracticeCounter(string stoneHero,int enemyUnitId){
+            var enemy=units.FirstOrDefault(u=>u.Id==enemyUnitId);
+            if(enemy==null||enemy.Kind!=BattleTargetKind.Hero||!Player.State.CanCast(Time)||!Attackable(enemy)||!IsVisibleTo(Player.Team,enemy)||!ClearSight(Player.Position,enemy.Position)||
+               !ArenaStoneRules.CanCounter(stoneHero,enemy.State.Kit?.Id,enemy.Team!=Player.Team,enemy.State.Alive,!Finished,false,practiceCounterUsed?1:0,Dist(Player,enemy),enemy.State.Buff(ArenaStoneRules.CounterBuff,Time)>0))return false;
+            enemy.State.Set(ArenaStoneRules.CounterBuff,1,Time+ArenaStoneRules.CounterDuration,Time);
+            if(enemy.State.Buff(ArenaStoneRules.CounterBuff,Time)<=0)return false;
+            counterTarget=enemy;counterUntil=Time+ArenaStoneRules.CounterDuration;practiceCounterUsed=true;return true;
+        }
         public bool CastPlayer(SkillSlot slot,Vector2 aim){bool ok=Player.State.TryCast(this,slot,aim,Time,!Finished);if(ok)Player.RecallEnds=0;return ok;}
         public bool PlayerAttack(Vector2 aim)=>Basic(Player,aim);
         public bool PlayerAttackTarget(BattleTargetKind kind,Vector2 aim)=>Basic(Player,aim,kind);

@@ -35,7 +35,8 @@
     "Neutral resource territory capture, contested access, no stock reset or free income, worker orders and AI",
     "Five symmetric technology branches, sequential paid tiers, exclusive live specialist, real bounded economy modifiers",
     "Physical caravan cargo transfer, interception, bounded capacity, escort AI and approved production visual gate",
-    "Bounded team orders, role-aware formations, visible threats, manual player control and elimination preserved"
+    "Bounded team orders, role-aware formations, visible threats, manual player control and elimination preserved",
+    "Reconcile parallel Sacred Stones/Kingdom DEV: preserve cumulative RTS and passive rules, fog-safe free counter practice; private candidate SQL and gated client only"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",
@@ -73,7 +74,27 @@
     "apps/buklod-empire-unity/Assets/Scripts/VillageTechnologyRules.cs",
     "apps/buklod-empire-unity/Assets/Tests/Editor/VillageTechnologyTests.cs",
     "apps/buklod-empire-unity/Assets/Scripts/ArmyStrategyRules.cs",
-    "apps/buklod-empire-unity/Assets/Tests/Editor/ArmyStrategyTests.cs"
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArmyStrategyTests.cs",
+    "apps/buklod-empire-unity/Assets/Resources/ArenaStoneExtensions.json",
+    "apps/buklod-empire-unity/Assets/Scripts/ArenaStoneRules.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaStoneIntegrationTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaStoneRulesTests.cs",
+    "apps/buklod-empire-unity/Tools/SACRED_STONES.md",
+    "apps/buklod-empire-unity/Tools/sacred-stones-discovery-candidate.sql",
+    "apps/buklod-empire-unity/Tools/sacred-stones-expedition-candidate.sql",
+    "apps/buklod-empire-unity/Tools/sacred-stones-kingdom-candidate.sql",
+    "apps/buklod-empire-unity/Tools/sacred-stones-server-candidate.sql",
+    "apps/buklod-empire-unity/Tools/test_sacred_stones_kingdom.sql",
+    "apps/buklod-empire-unity/Tools/test_sacred_stones_server.sql",
+    "src/app/games/rewards.tsx",
+    "src/features/games/kingdom/ArenaDiscoveryTrial.tsx",
+    "src/features/games/kingdom/ArenaKingdomExpedition.tsx",
+    "src/features/games/kingdom/ArenaStoneTreasury.tsx",
+    "src/features/games/kingdom/platform/KingdomMasteryCheck.tsx",
+    "src/lib/buklodArenaStoneCatalog.ts",
+    "src/lib/buklodArenaStones.ts",
+    "tests/arena-sacred-stones-expedition.test.mjs",
+    "tests/arena-sacred-stones-kingdom.test.mjs"
   ],
   "regressionTests": [
     "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaDraftTests.cs",

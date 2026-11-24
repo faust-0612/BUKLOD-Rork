@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { getArenaStones } from '@/lib/buklodArenaStones';
+import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { showBuklodAdOpportunity,warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
@@ -25,6 +27,13 @@ type Phase = 'ready' | 'loading' | 'answering' | 'submitting' | 'complete';
  */
 export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
   const { t } = useBuklodGameLanguage();
+  const {user}=useAuth();
+  const uid=user?.id;
+  const accountRef=useRef(uid);accountRef.current=uid;
+  const gameRef=useRef(gameId);gameRef.current=gameId;
+  const [stoneNotice,setStoneNotice]=useState('');
+  useEffect(()=>{setStoneNotice('');},[uid,gameId]);
+  const syncStones=async()=>{if(!uid)return;try{const snapshot=await getArenaStones(uid);if(!mounted.current||accountRef.current!==uid||gameRef.current!==gameId||!snapshot)return;const awarded=snapshot.stones.filter(x=>x.quest_awarded).length;setStoneNotice(t('Arena quest stones verified: '+awarded+'/13. Open Kingdom rewards to see your inventory.','Verified Arena quest stones: '+awarded+'/13. Buksan ang Kingdom rewards para sa inventory.'));}catch{/* Mastery and BP remain successful; inventory refresh reconciles. */}};
   const [phase, setPhase] = useState<Phase>('ready');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [challengeId, setChallengeId] = useState('');
@@ -54,6 +63,7 @@ export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
       if (result?.already_earned) {
         setHasCredit(true);
         setPhase('complete');
+        void syncStones();
         setNotice(t('Already earned for this game. Claim your available Points on the Points screen.',
           'Nakuha mo na ang mastery para rito. I-claim ang available Points sa Points screen.'));
         return;
@@ -95,6 +105,7 @@ export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
       const result = data as FinishData | null;
       if (result?.verified) {
         void playBuklodGameFeedback('success');
+        void syncStones();
         setHasCredit(true);
         setPhase('complete');
         if ((result.points_awarded ?? 0)>0) void showBuklodAdOpportunity('kingdom_mastery_verified');
@@ -153,6 +164,7 @@ export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
       <Text style={styles.primaryText}>{t('OPEN BUKLOD POINTS TO CLAIM', 'PUNTA SA BUKLOD POINTS PARA MAG-CLAIM')}</Text>
     </Pressable> : null}
     {!!notice ? <Text accessibilityRole="alert" style={styles.note}>{notice}</Text> : null}
+    {!!stoneNotice?<Text style={styles.note}>{stoneNotice}</Text>:null}
   </View>;
 }
 
