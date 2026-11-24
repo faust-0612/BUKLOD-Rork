@@ -73,6 +73,14 @@ namespace Buklod.Empire.Tests {
             Assert.Greater(b.Units.Count(u=>u.Kind==BattleTargetKind.Minion),0);
             Assert.AreEqual(6,b.Time,.001f);
         }
+        [Test] public void SoldEquipmentDoesNotSurviveAndLostCoreDisablesShop(){
+            var b=new OfflineBattle("phan");Assert.True(b.BuyPlayer("blade"));Assert.True(b.SellPlayer("blade"));Assert.AreEqual(72,b.Player.Gold);Assert.False(b.SellPlayer("blade"));
+            var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            var tower=b.Units.First(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Structure&&!u.Core);
+            var core=b.Units.Single(u=>u.Team==ArenaTeam.Lux&&u.Core);
+            foreach(var u in new[]{tower,core})while(u.State.Alive)Assert.True(b.Hit(enemy.State,u.State,300));
+            b.Player.Gold=1000;Assert.False(b.BuyPlayer("blade"));
+        }
         [Test] public void ShopAndRejectedSkillKeepMatchStateConsistent(){
             var b=new OfflineBattle("phan");
             Assert.True(b.BuyPlayer("blade"));Assert.AreEqual(0,b.Player.Gold);

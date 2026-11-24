@@ -11,7 +11,8 @@ namespace Buklod.Empire {
         public float Power=1, AttackDamage=18, Expires=float.PositiveInfinity, RespawnAt, Xp;
         public int Gold=120, TowerLevel=1;
         public int Kills {get;internal set;} public int Deaths {get;internal set;} public int Assists {get;internal set;}
-        internal int AggressorId, LastTowerTarget, ConsecutiveTowerHits;
+        internal int AggressorId, LastTowerTarget, ConsecutiveTowerHits,KillStreak,ConsecutiveDeaths;
+        public float DamageDealt {get;internal set;} public float DamageTaken {get;internal set;}
         internal float AggroUntil;
         internal readonly Dictionary<int,float> RecentHeroDamage=new Dictionary<int,float>();
         public float TowerDamageMultiplier=1;
@@ -44,7 +45,7 @@ namespace Buklod.Empire {
         public VillageSystem GetVillage(ArenaTeam team)=>villages[(int)team];
         private Vector2 Base(ArenaTeam team)=>new Vector2(team==ArenaTeam.Lux?14:Width-14,Height*.5f);
         private int nextId,tick; private double accumulator;
-        private int nextDropId;private readonly System.Random dropRandom;
+        private int nextDropId;private readonly System.Random dropRandom,combatRandom;
         private readonly List<ArenaFieldDrop> drops=new List<ArenaFieldDrop>();
         public IReadOnlyList<ArenaFieldDrop> Drops {get;}
         public int RemainingUnits(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.State.Alive);
@@ -61,7 +62,7 @@ namespace Buklod.Empire {
         public bool Finished {get;private set;}
         public ArenaTeam? Winner {get;private set;}
         public OfflineBattle(string hero,IBattleNavigation navigation=null,int seed=1){
-            this.navigation=navigation;dropRandom=new System.Random(seed);Drops=drops.AsReadOnly();
+            this.navigation=navigation;dropRandom=new System.Random(seed);combatRandom=new System.Random(unchecked(seed*397+17));Drops=drops.AsReadOnly();
             HeroKitCatalog.Get(hero);
             Units=units.AsReadOnly();
             foreach(var c in OriginalCover)cover.Add((new Vector2(c.x*Width,c.y*Height),c.z*Height,float.PositiveInfinity));
@@ -90,7 +91,7 @@ namespace Buklod.Empire {
             }
         }
         private BattleUnit Add(ArenaTeam team,BattleTargetKind kind,SkillActor state,Vector2 p,ArenaLane lane,bool core=false,bool temporary=false,MinionRole role=MinionRole.Infantry){
-            var u=new BattleUnit(++nextId,team,kind,state,p,lane,core,temporary,role);units.Add(u);byState.Add(state,u);return u;
+            state.Clock=Time;var u=new BattleUnit(++nextId,team,kind,state,p,lane,core,temporary,role);units.Add(u);byState.Add(state,u);return u;
         }
         private BattleUnit Find(SkillActor a)=>a!=null&&byState.TryGetValue(a,out var u)?u:null;
         private bool CoreOpen(ArenaTeam team)=>OfflineMatchRules.CoreOpen(units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary).Select(u=>u.State.Alive));
@@ -117,27 +118,35 @@ namespace Buklod.Empire {
             var a=Find(actor);if(a==null)return Array.Empty<SkillActor>();
             return units.Where(u=>u.Team==a.Team&&u.Kind==BattleTargetKind.Hero&&u.State.Alive&&Dist(a,u)<=radius).OrderBy(u=>u.Id).Select(u=>u.State).ToArray();
         }
-        public bool Hit(SkillActor actor,SkillActor target,float damage){
+        public bool Hit(SkillActor actor,SkillActor target,float damage)=>ResolveHit(actor,target,damage,false);
+        private bool ResolveHit(SkillActor actor,SkillActor target,float damage,bool basic){
             var a=Find(actor);var t=Find(target);
-            if(Finished||a==null||t==null||!actor.Alive||a.Team==t.Team||!Attackable(t)||float.IsNaN(damage)||float.IsInfinity(damage)||damage<0)return false;
-            float n=OfflineMatchRules.Damage(Mathf.Clamp(damage,0,300),a.Gear.Contains("blade"),t.Gear.Contains("armor"));
+            if(Finished||a==null||t==null||!actor.Alive||a.Team==t.Team||!Attackable(t)||float.IsNaN(damage)||float.IsInfinity(damage)||damage<=0)return false;
+            float n=OfflineMatchRules.Damage(Mathf.Clamp(damage,0,300),a.Gear.Contains("blade"),t.Gear.Contains("armor")&&!a.Gear.Contains("sealbreaker"));
+            if(t.Gear.Contains("armor")&&a.Gear.Contains("sealbreaker"))n*=.94f;
+            if(basic&&a.Gear.Contains("precision")&&combatRandom.NextDouble()<.2)n*=1.5f;
+            if(basic&&a.Gear.Contains("giantbane")&&t.Kind==BattleTargetKind.Hero)n+=Mathf.Min(20,t.State.MaxHealth*.035f);
+            if(t.Gear.Contains("aegis")&&n>=50)n*=.8f;
             n*=1-Mathf.Clamp(actor.Buff("weaken",Time),0,.3f);n*=1+Mathf.Clamp(actor.Buff("fury",Time),0,.3f);
             n*=1-Mathf.Clamp(target.Buff("guard",Time),0,.4f);n*=1+Mathf.Clamp(target.Buff("vulnerable",Time),0,.2f);
             if(t.Kind==BattleTargetKind.Minion)n*=1-Mathf.Clamp01(MinionCombatRules.Stats(t.Role).Defense-target.Buff("armor_break",Time));
-            float actual=target.Absorb(n,Time);
+            float actual=target.Absorb(n,Time);float priorHp=target.Health;
             if(n>0&&a.Kind==BattleTargetKind.Hero&&t.Kind==BattleTargetKind.Hero){
                 t.RecentHeroDamage[a.Id]=Time;
                 foreach(var tower in ActiveTowers(t.Team))if(Dist(tower,t)<=10&&Dist(tower,a)<=10){tower.AggressorId=a.Id;tower.AggroUntil=Time+3;}
             }
             if(t.Villager!=null){t.Villager.Damage(actual);target.Health=t.Villager.Health;}
             else target.Health=Mathf.Max(0,target.Health-actual);
+            float hpDamage=Mathf.Max(0,priorHp-target.Health);a.DamageDealt+=hpDamage;t.DamageTaken+=hpDamage;
+            if(hpDamage>0&&a.Gear.Contains("withering_thorn")&&t.Kind==BattleTargetKind.Hero)target.Set("antiheal",.35f,Time+4,Time);
+            if(basic&&a.Gear.Contains("renewal")&&t.Kind!=BattleTargetKind.Structure&&t.Kind!=BattleTargetKind.Villager)actor.Heal(hpDamage*.15f);
             if(actor.Kit?.Id=="mitch")target.Set("vulnerable",.1f,Time+3,Time);
             if(target.Kit?.Id=="trudice"&&actual>0)actor.Health=Mathf.Max(1,actor.Health-actual*Mathf.Clamp(target.Buff("reflect",Time),0,.3f));
             if(!target.Alive){
-                if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager){a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?75:t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16);}
+                if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager){a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?OfflineMatchRules.KillGold(t.ConsecutiveDeaths,t.KillStreak):t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16);}
                 if(t.Kind==BattleTargetKind.Hero){
-                    t.Deaths++;t.RespawnAt=Time+7.5f;
-                    if(a.Kind==BattleTargetKind.Hero)a.Kills++;
+                    t.Deaths++;t.ConsecutiveDeaths++;t.KillStreak=0;t.RespawnAt=Time+OfflineMatchRules.RespawnDelay(Time);
+                    if(a.Kind==BattleTargetKind.Hero){a.Kills++;a.KillStreak++;a.ConsecutiveDeaths=0;}
                     foreach(var contribution in t.RecentHeroDamage){
                         if(contribution.Key==a.Id||Time-contribution.Value>OfflineMatchRules.AssistWindow)continue;
                         var helper=units.FirstOrDefault(v=>v.Id==contribution.Key&&v.Team==a.Team&&v.Kind==BattleTargetKind.Hero);
@@ -197,11 +206,17 @@ namespace Buklod.Empire {
         public bool CastPlayer(SkillSlot slot,Vector2 aim)=>Player.State.TryCast(this,slot,aim,Time,!Finished);
         public bool PlayerAttack(Vector2 aim)=>Basic(Player,aim);
         public bool BuyPlayer(string item)=>Buy(Player,item);
-        private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished);u.Gold=gold;return ok;}
+        public bool SellPlayer(string item)=>Sell(Player,item);
+        private void GearChanged(BattleUnit u,string item,bool purchased){
+            u.State.EquipmentCooldown=u.Gear.Contains("wisdom")?.12f:0;
+            if(item=="vitality"){u.State.MaxHealth+=purchased?45:-45;u.State.Health=Mathf.Min(u.State.MaxHealth,u.State.Health);}
+        }
+        private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,true);return ok;}
+        private bool Sell(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TrySell(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,false);return ok;}
         private bool Basic(BattleUnit u,Vector2 aim){
-            var a=u.State;var k=a.Kit;if(Finished||!a.Alive||k==null||a.Buff("stun",Time)>0||Time-u.LastAttack<k.BasicCooldown)return false;
+            var a=u.State;var k=a.Kit;if(Finished||!a.Alive||k==null||a.Buff("stun",Time)>0||Time-u.LastAttack<k.BasicCooldown/(u.Gear.Contains("fervor")?1.2f:1f))return false;
             var targets=Enemies(a,k.BasicRange,aim);if(targets.Count==0)return false;
-            if(!Hit(a,targets[0],k.BasicDamage))return false;u.LastAttack=Time;return true;
+            if(!ResolveHit(a,targets[0],k.BasicDamage,true))return false;u.LastAttack=Time;return true;
         }
         private static void GainXp(BattleUnit u,float n){
             var a=u.State;if(a.Kit==null||!a.Alive)return;u.Xp+=n;
@@ -222,6 +237,7 @@ namespace Buklod.Empire {
             tick++;cover.RemoveAll(c=>c.expires<=Time);fallen.RemoveAll(f=>Time-f.Time>25);
             drops.RemoveAll(d=>Time-d.SpawnedAt>=ArenaPickupCatalog.Lifetime);
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
+            foreach(var u in units)u.State.Clock=Time;
             foreach(var village in villages)village.Advance(Step);
             foreach(var u in units)if(u.Villager!=null)u.State.Health=u.Villager.Health;
             if(tick%10==0)VillageAuras();
@@ -235,6 +251,7 @@ namespace Buklod.Empire {
                 }
                 if(u.Kind==BattleTargetKind.Hero){
                     a.Heal(a.Buff("regen",Time)*Step);
+                    if(u.Gear.Contains("wisdom"))a.Mana=Mathf.Min(100,a.Mana+1.4f*Step);
                     if(tick%10==0){u.Gold=Mathf.Min(9999,u.Gold+2);GainXp(u,3);}
                     if(CanRespawn(u.Team)&&Vector2.Distance(u.Position,u.Spawn)<10){a.Heal(.8f);a.Mana=Mathf.Min(100,a.Mana+.8f);}
                     float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
@@ -266,12 +283,15 @@ namespace Buklod.Empire {
         }
         private void Bot(BattleUnit u,float speed){
             var a=u.State;u.Retreat=CanRespawn(u.Team)&&OfflineMatchRules.Retreat(a.Health/a.MaxHealth,u.Retreat);
-            if(Vector2.Distance(u.Position,u.Spawn)<12)foreach(var item in new[]{"blade","armor","boots"})Buy(u,item);
+            if(Vector2.Distance(u.Position,u.Spawn)<12&&CoreAlive(u.Team)){
+                var order=a.Health/a.MaxHealth<.45f?new[]{"armor","vitality","boots","blade","aegis","wisdom"}:new[]{"blade","boots","armor","withering_thorn","sealbreaker","renewal"};
+                foreach(var item in order)Buy(u,item);
+            }
             if(u.Retreat){Steer(u,u.Spawn-u.Position,speed);return;}
             var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)).ThenBy(v=>v.Id).FirstOrDefault();
             if(t==null&&(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit))t=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
             var goal=t==null?LaneGoal(u):t.Position;
-            if(t!=null&&t.Kind==BattleTargetKind.Structure&&t.State.Health>80&&!units.Any(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Minion&&v.State.Alive&&Dist(v,t)<12)&&Dist(u,t)<11){Steer(u,u.Position-t.Position,speed);return;}
+            if(CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&t!=null&&t.Kind==BattleTargetKind.Structure&&t.State.Health>80&&!units.Any(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Minion&&v.State.Alive&&Dist(v,t)<12)&&Dist(u,t)<11){Steer(u,u.Position-t.Position,speed);return;}
             if(t==null||Dist(u,t)>Mathf.Max(1.5f,a.Kit.BasicRange*.82f))Steer(u,goal-u.Position,speed);
             if(t==null||tick%6!=0)return;
             var dir=t.Position-u.Position;Basic(u,dir);a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);

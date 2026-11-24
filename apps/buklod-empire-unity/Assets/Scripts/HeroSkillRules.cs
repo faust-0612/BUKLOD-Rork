@@ -18,6 +18,7 @@ namespace Buklod.Empire {
     public sealed class SkillActor {
         public readonly HeroKit Kit;
         public float Health=160, MaxHealth=160, Mana=100, Shield;
+        internal float Clock,EquipmentCooldown;
         private float temporaryShield,temporaryShieldUntil;
         public int Level=3;
         public float LastCastAt {get;private set;}=float.NegativeInfinity;
@@ -43,7 +44,7 @@ namespace Buklod.Empire {
             if(buffs.TryGetValue(id,out var b)&&b.until>now){strength=Mathf.Max(strength,b.strength);until=Mathf.Max(until,b.until);}
             buffs[id]=(strength,until);
         }
-        public void Heal(float value){if(Alive)Health=Mathf.Min(MaxHealth,Health+Mathf.Max(0,value));}
+        public void Heal(float value){if(Alive&&!float.IsNaN(value)&&!float.IsInfinity(value))Health=Mathf.Min(MaxHealth,Health+Mathf.Max(0,value)*(1-Mathf.Clamp(Buff("antiheal",Clock),0,.5f)));}
         public void AddShield(float value,float cap=105){if(Alive)Shield=Mathf.Min(cap,Shield+Mathf.Max(0,value));}
         internal void AddTemporaryShield(float value,float until,float now){
             if(!Alive)return;if(temporaryShieldUntil<=now)temporaryShield=0;
@@ -63,7 +64,7 @@ namespace Buklod.Empire {
             for(int i=0;i<3;i++){float n=Mathf.Min(seconds,Remaining((SkillSlot)i,now));if(n>0){last[i]-=n;total+=n;}}return total;
         }
         public float Cooldown(SkillSlot slot,float now){
-            var v=Kit.Skill(slot).Cooldown*(1-Mathf.Clamp(Buff("cooldown",now),0,.25f));
+            var v=Kit.Skill(slot).Cooldown*(1-Mathf.Clamp(Buff("cooldown",now)+EquipmentCooldown,0,.35f));
             if(Kit.Id=="angel")v*=.9f;
             if(Kit.Id=="trudice")v*=1-.05f*Mathf.Clamp(Buff("insight",now),0,3);
             return v;

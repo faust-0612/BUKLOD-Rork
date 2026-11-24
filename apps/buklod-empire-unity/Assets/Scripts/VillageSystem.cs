@@ -107,6 +107,10 @@ namespace Buklod.Empire {
         }
         private bool CanPay(double w,double s,double c)=>Wood>=w&&Stone>=s&&Crystal>=c;
         private void Pay(double w,double s,double c){Wood-=w;Stone-=s;Crystal-=c;}
+        private bool FundJob(double gold,double wood,double stone,double crystal,Func<bool> action){
+            bool useGold=Gold>=gold;if(!useGold&&!CanPay(wood,stone,crystal))return false;
+            if(!action())return false;if(useGold)Gold-=gold;else Pay(wood,stone,crystal);return true;
+        }
         private bool Run(VillageMember m) {
             float p=m.Power;bool lux=Team==ArenaTeam.Lux;
             switch(m.Job.Effect) {
@@ -128,12 +132,15 @@ namespace Buklod.Empire {
                     Pay(0,0,20*(ResearchTier+1));ResearchTier++;
                     waves.SetResearchBonus(Team,.04f*ResearchTier);return true;
                 case VillageEffect.Supply:
-                    var item=Supply[supply];supply=(supply+1)%Supply.Length;
-                    return battle.GiveItem(Team,item,p);
+                    var item=Supply[supply];if(!FundJob(12,8,0,4,()=>battle.GiveItem(Team,item,p)))return false;
+                    supply=(supply+1)%Supply.Length;return true;
                 case VillageEffect.Craft:
-                    if(!battle.CraftAtFront(Team,Craft[craft]))return false;
+                    if(!FundJob(18,12,6,0,()=>battle.CraftAtFront(Team,Craft[craft])))return false;
                     craft=(craft+1)%Craft.Length;ItemsCrafted++;return true;
-                case VillageEffect.Revive:return battle.ReviveRecent(Team,2,25,.6f)>0;
+                case VillageEffect.Revive:
+                    int affordable=Math.Min(2,(int)(Crystal/8));if(affordable<=0)return false;
+                    int revived=battle.ReviveRecent(Team,affordable,25,.6f);if(revived<=0)return false;
+                    Pay(0,0,8*Math.Min(affordable,revived));return true;
                 case VillageEffect.Scavenge:
                     if(scavenged<=0)return false;
                     Wood=Math.Min(10000,Wood+scavenged*.5);Stone=Math.Min(10000,Stone+scavenged*.3);Crystal=Math.Min(10000,Crystal+scavenged*.2);scavenged=0;return true;

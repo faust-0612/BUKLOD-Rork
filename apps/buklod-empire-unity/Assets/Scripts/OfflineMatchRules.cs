@@ -26,13 +26,24 @@ namespace Buklod.Empire {
             Mathf.Max(0f,(value+(blade?7f:0f))*(armor?.88f:1f));
         public static float MoveSpeed(float speed,bool boots) => speed<10f&&boots?speed*1.18f:speed;
         public static int ShopPrice(string item) {
-            switch(item) {case "blade":return 120;case "armor":return 110;case "boots":return 90;default:return -1;}
+            switch(item) {
+                case "blade":return 120;case "armor":return 110;case "boots":return 90;
+                case "sealbreaker":return 190;case "withering_thorn":return 175;case "precision":return 200;
+                case "fervor":return 170;case "renewal":return 180;case "wisdom":return 155;
+                case "aegis":return 220;case "vitality":return 190;case "giantbane":return 210;default:return -1;
+            }
         }
         public static bool TryBuy(string item, HashSet<string> owned, ref int gold, float distance, bool alive, bool active) {
             int price=ShopPrice(item);
-            if(!active||!alive||price<0||distance>12f||owned.Count>=3||owned.Contains(item)||gold<price) return false;
+            if(!active||!alive||price<0||owned==null||float.IsNaN(distance)||float.IsInfinity(distance)||distance<0||distance>12f||owned.Count>=6||owned.Contains(item)||gold<price) return false;
             owned.Add(item);gold-=price;return true;
         }
+        public static bool TrySell(string item,HashSet<string> owned,ref int gold,float distance,bool alive,bool active){
+            int price=ShopPrice(item);if(!alive||!active||owned==null||price<0||float.IsNaN(distance)||float.IsInfinity(distance)||distance<0||distance>12||!owned.Remove(item))return false;
+            gold=Math.Min(9999,Math.Max(0,gold)+(int)(price*.6f));return true;
+        }
+        public static int KillGold(int consecutiveDeaths,int enemyStreak)=>Math.Max(25,75-10*Math.Max(0,Math.Min(5,consecutiveDeaths)))+Math.Min(100,Math.Max(0,enemyStreak-2)*20);
+        public static float RespawnDelay(float now)=>Mathf.Clamp(7.5f+Mathf.Max(0,now)/60f,7.5f,22.5f);
         public static string TimeLimitWinner(float coreA,float coreB) => coreA>coreB?"A":coreB>coreA?"B":"";
     }
 }
