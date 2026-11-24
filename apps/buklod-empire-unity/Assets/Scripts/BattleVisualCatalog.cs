@@ -11,6 +11,7 @@ namespace Buklod.Empire {
         public HeroVisual[] heroes;
         public FactionVisual[] factions;
         public TextAsset provenanceReceipt;
+        [Serializable] private sealed class Provenance {public bool rightsVerified,originalArtReviewed;public string evidence;}
         public GameObject Resolve(BattleUnit unit){
             if(unit.Kind==BattleTargetKind.Hero){foreach(var h in heroes)if(h.id==unit.State.Kit.Id)return h.prefab;}
             else foreach(var f in factions)if(f.team==unit.Team){
@@ -22,6 +23,8 @@ namespace Buklod.Empire {
         }
         public void Validate(){
             if(!genesisRift||!provenanceReceipt||heroes==null||factions==null)throw new InvalidOperationException("Production map, hero/faction catalog and provenance are mandatory.");
+            var receipt=JsonUtility.FromJson<Provenance>(provenanceReceipt.text);
+            if(receipt==null||!receipt.rightsVerified||!receipt.originalArtReviewed||string.IsNullOrWhiteSpace(receipt.evidence))throw new InvalidOperationException("Verified rights and original-art review evidence are required; do not mark pending assets as approved.");
             var ids=new HashSet<string>();var meshes=new HashSet<Mesh>();
             foreach(var h in heroes){
                 if(h==null||!h.prefab||!ids.Add(h.id))throw new InvalidOperationException("Missing or duplicate hero prefab.");
@@ -29,6 +32,13 @@ namespace Buklod.Empire {
                 var rig=h.prefab.GetComponentInChildren<Animator>(true);
                 var skin=h.prefab.GetComponentInChildren<SkinnedMeshRenderer>(true);
                 if(!rig||!rig.runtimeAnimatorController||!skin||!skin.sharedMesh||!meshes.Add(skin.sharedMesh))throw new InvalidOperationException("Unique rigged hero mesh and Animator required: "+h.id);
+                var motions=new HashSet<AnimationClip>();
+                foreach(var clip in rig.runtimeAnimatorController.animationClips)if(clip&&clip.length>0)motions.Add(clip);
+                if(motions.Count<9)throw new InvalidOperationException("Nine distinct motion clips required: "+h.id);
+                var parameters=new Dictionary<string,AnimatorControllerParameterType>();
+                foreach(var parameter in rig.parameters)parameters[parameter.name]=parameter.type;
+                if(!parameters.TryGetValue("Speed",out var speed)||speed!=AnimatorControllerParameterType.Float)throw new InvalidOperationException("Missing Speed float: "+h.id);
+                foreach(var action in new[]{"Attack","Primary","Secondary","Ultimate"})if(!parameters.TryGetValue(action,out var type)||type!=AnimatorControllerParameterType.Trigger)throw new InvalidOperationException("Missing animation trigger "+action+": "+h.id);
             }
             if(ids.Count!=HeroKitCatalog.All.Count)throw new InvalidOperationException("All 13 original heroes are required.");
             var teams=new HashSet<ArenaTeam>();
