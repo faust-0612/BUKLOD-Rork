@@ -1,3 +1,4 @@
+import { singleFlightAi } from '../_shared/aiSingleFlight.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const cors = {
@@ -159,7 +160,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({ request: requestText, ingredients, servings }),
     ].join('\n');
 
-    const result = await generateRecipe(geminiKey, prompt);
+    const result = await singleFlightAi(authData.user.id, prompt, () => generateRecipe(geminiKey, prompt));
     return json({ recipe: result.recipe, model: result.model });
   } catch (error) {
     const message = cleanError(error);
