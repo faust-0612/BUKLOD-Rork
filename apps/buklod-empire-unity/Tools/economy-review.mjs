@@ -6,7 +6,8 @@ export function economyModels(){
  return list.map(([id,team,role])=>{
  const lux=team==="lux",neutral=team==="neutral";
  const colors=[lux?[.36,.47,.59]:[.25,.24,.31],lux?[.67,.43,.13]:[.52,.12,.16],lux?[.10,.34,.68]:[.31,.07,.15],[.29,.18,.10],[.21,.40,.13],[.65,.76,.91]];
- const materials=colors.map((c,i)=>({name:["masonry","trim","roof","timber","crop","crystal"][i],pbrMetallicRoughness:{baseColorFactor:[...c,1],metallicFactor:i===1?.65:i===5?.35:.03,roughnessFactor:i===5?.24:i===1?.35:.8},...(i===5?{emissiveFactor:[.12,.21,.32]}:{})}));
+ if(role==="farm")colors.push(lux?[.67,.43,.13]:[.52,.12,.16]);
+ const materials=colors.map((c,i)=>({name:["masonry","trim","roof","timber","crop","crystal","crop_head"][i],pbrMetallicRoughness:{baseColorFactor:[...c,1],metallicFactor:i===1||i===6?.65:i===5?.35:.03,roughnessFactor:i===5?.24:i===1||i===6?.35:.8},...(i===5?{emissiveFactor:[.12,.21,.32]}:{})}));
  const gs=colors.map(()=>({p:[],n:[],uv:[]}));let triangles=0;
  function tri(m,a,b,c){const u=b.map((x,i)=>x-a[i]),v=c.map((x,i)=>x-a[i]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n);if(l<1e-9)return;const q=gs[m],nn=n.map(x=>x/l),axis=nn.map(Math.abs).indexOf(Math.max(...nn.map(Math.abs))),axes=[0,1,2].filter(i=>i!==axis);for(const p of [a,b,c]){if(p.some(x=>!Number.isFinite(x))||Math.abs(p[0])>4||Math.abs(p[2])>4||p[1]<0||p[1]>7)throw Error("bounds "+id);q.p.push(...p);q.n.push(...nn);q.uv.push(p[axes[0]],p[axes[1]])}triangles++;}
  function quad(m,a,b,c,d){tri(m,a,b,c);tri(m,a,c,d)}
@@ -18,7 +19,7 @@ export function economyModels(){
  if(neutral){loft(1,0,0,0,[[0,.27,.27],[.09,.40,.40],[.16,.32,.32]],12);crystal(0,.16,0,role==="relic"?.31:.22,role==="relic"?.9:.56);if(role==="relic")for(let i=0;i<4;i++){let a=i*Math.PI/2;crystal(Math.cos(a)*.36,.06,Math.sin(a)*.36,.08,.32)}}
  else{
  box(0,0,0,0,4.6,.20,3.8);box(1,0,.18,0,4.3,.08,3.5);
- if(role==="farm"){for(let i=0;i<4;i++){box(3,(i-1.5)*.90,.26,0,.75,.12,2.9);for(let j=0;j<7;j++){const x=(i-1.5)*.90,z=(j-3)*.40;loft(4,x,.38,z,[[0,.07,.07],[.24,.15,.15],[.52,.02,.02]],6);loft(1,x,.62,z,[[0,.08,.08],[.13,.04,.04]],5)}}for(const x of [-2,2])for(const z of [-1.5,1.5])column(x,z,.72);}
+ if(role==="farm"){for(let i=0;i<4;i++){box(3,(i-1.5)*.90,.26,0,.75,.12,2.9);for(let j=0;j<7;j++){const x=(i-1.5)*.90,z=(j-3)*.40;loft(4,x,.38,z,[[0,.07,.07],[.24,.15,.15],[.52,.02,.02]],6);loft(6,x,.62,z,[[0,.08,.08],[.13,.04,.04]],5)}}for(const x of [-2,2])for(const z of [-1.5,1.5])column(x,z,.72);}
  else if(role==="guard_post"){loft(0,0,.26,0,[[0,1.25,1.25],[.35,1.1,1.1],[2.45,.85,.85],[2.7,1.3,1.3],[3.0,1.3,1.3]],lux?10:8);for(let i=0;i<8;i++){let a=i*Math.PI/4;box(1,Math.cos(a)*1.13,3.15,Math.sin(a)*1.13,.38,.44,.38)}for(const x of [-.85,.85])column(x,.8,2.4);crystal(0,3.18,0,.31,.90);}
  else {const w=role==="barracks"?3.6:role==="house"?2.7:3.2,d=role==="market"?2.4:2.8,h=role==="barracks"?2.3:role==="depot"?1.65:1.9;
   if(role!=="market"){box(0,0,.26,0,w,h,d);box(3,0,.28,d/2+.015,.86,1.26,.12);for(const x of [-w*.32,w*.32]){box(3,x,1.14,d/2+.04,.45,.48,.08);box(1,x,1.64,d/2+.07,.57,.10,.13)}}
@@ -33,8 +34,11 @@ export function economyModels(){
  }
  const buffers=[],views=[],accessors=[];let offset=0;
  function acc(arr,k){const bytes=new Uint8Array(arr.length*4),dv=new DataView(bytes.buffer);for(let i=0;i<arr.length;i++)dv.setFloat32(i*4,arr[i],true);views.push({buffer:0,byteOffset:offset,byteLength:bytes.length,target:34962});offset+=bytes.length;buffers.push(bytes);const a={bufferView:views.length-1,componentType:5126,count:arr.length/k,type:"VEC"+k};if(k===3){a.min=Array(3).fill(Infinity);a.max=Array(3).fill(-Infinity);for(let i=0;i<arr.length;i++){const x=dv.getFloat32(i*4,true);a.min[i%3]=Math.min(a.min[i%3],x);a.max[i%3]=Math.max(a.max[i%3],x)}}accessors.push(a);return accessors.length-1}
- const primitives=gs.flatMap((g,i)=>g.p.length?[{material:i,mode:4,attributes:{POSITION:acc(g.p,3),NORMAL:acc(g.n,3),TEXCOORD_0:acc(g.uv,2)}}]:[]);
- const doc={asset:{version:"2.0",generator:"BUKLOD original RTS economy review"},scene:0,scenes:[{nodes:[0]}],nodes:[{name:id,mesh:0}],meshes:[{name:id,primitives}],materials,accessors,bufferViews:views,buffers:[{byteLength:offset}],extras:{id,reviewOnly:true,gameplayCollider:false}};
+ const isFarm=role==="farm",cropGroups=new Set([4,6]);
+ const primitive=(g,i,crop)=>({material:i,mode:4,attributes:{POSITION:acc(crop?g.p.map((v,k)=>k%3===1?v-.38:v):g.p,3),NORMAL:acc(g.n,3),TEXCOORD_0:acc(g.uv,2)}});
+ const primitives=gs.flatMap((g,i)=>g.p.length&&(!isFarm||!cropGroups.has(i))?[primitive(g,i,false)]:[]);
+ const cropPrimitives=isFarm?gs.flatMap((g,i)=>g.p.length&&cropGroups.has(i)?[primitive(g,i,true)]:[]):[];
+ const doc={asset:{version:"2.0",generator:"BUKLOD original RTS economy review"},scene:0,scenes:[{nodes:[0]}],nodes:isFarm?[{name:id,mesh:0,children:[1]},{name:"review_crop_canopy",mesh:1,translation:[0,.38,0]}]:[{name:id,mesh:0}],meshes:isFarm?[{name:id,primitives},{name:"review_crop_canopy",primitives:cropPrimitives}]:[{name:id,primitives}],materials,accessors,bufferViews:views,buffers:[{byteLength:offset}],extras:{id,reviewOnly:true,gameplayCollider:false}};
  const j=JSON.stringify(doc),n=j.length+(4-j.length%4)%4,bytes=new Uint8Array(28+n+offset),v=new DataView(bytes.buffer);[0x46546c67,2,bytes.length,n,0x4e4f534a].forEach((x,i)=>v.setUint32(i*4,x,true));for(let i=0;i<n;i++)bytes[20+i]=i<j.length?j.charCodeAt(i):32;v.setUint32(20+n,offset,true);v.setUint32(24+n,0x004e4942,true);let at=28+n;for(const b of buffers){bytes.set(b,at);at+=b.length}return {id,team,role,triangles,bytes}
  });
 }
