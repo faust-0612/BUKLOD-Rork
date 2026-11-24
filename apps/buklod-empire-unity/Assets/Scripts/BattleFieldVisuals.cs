@@ -15,6 +15,7 @@ namespace Buklod.Empire {
         private readonly Dictionary<(int,int),Color> appliedTints=new Dictionary<(int,int),Color>();
         private bool review;
         private BattleEffects battleEffects;
+        private ReviewPresentationAudio presentationAudio;
         private WorldInteractionEffects worldEffects;
         private readonly Dictionary<int,(int hit,int attack,int defeat)> campHistory=new Dictionary<int,(int,int,int)>();
         private readonly Dictionary<int,Animator> campAnimators=new Dictionary<int,Animator>();
@@ -22,7 +23,7 @@ namespace Buklod.Empire {
         private int pooled;
         private const int PoolLimit=48;
         public int ActiveCount=>active.Count;
-        public void Bind(BattleView owner){Clear();view=owner;bound=owner.Battle;review=owner.IsEditorReview;battleEffects=owner.GetComponent<BattleEffects>();worldEffects=owner.GetComponent<WorldInteractionEffects>();}
+        public void Bind(BattleView owner){Clear();view=owner;bound=owner.Battle;review=owner.IsEditorReview;battleEffects=owner.GetComponent<BattleEffects>();presentationAudio=review?owner.GetComponent<ReviewPresentationAudio>():null;worldEffects=owner.GetComponent<WorldInteractionEffects>();}
         private GameObject Present(int type,int id,Vector2 position,GameObject prefab,out bool fresh){
             fresh=false;if(!prefab)return null;
             var key=(type,id);seen.Add(key);
@@ -106,6 +107,7 @@ namespace Buklod.Empire {
                 if(!review||!go)return;
                 if(fresh)campAnimators[c.Id]=go.GetComponentInChildren<Animator>(true);
                 if(!fresh&&wasSeen&&c.AttackSequence>prior.attack){
+                    if(presentationAudio)presentationAudio.Creature(c.Kind,false,go.transform.position);
                     Vector2 delta=c.LastAttackPosition-c.Position;
                     if(delta.sqrMagnitude>.001f)go.transform.rotation=Quaternion.LookRotation(new Vector3(delta.x,0,delta.y));
                     if(campAnimators.TryGetValue(c.Id,out var animator)&&animator)animator.SetTrigger("Attack");
@@ -119,6 +121,7 @@ namespace Buklod.Empire {
                 }
             }else if(review&&visible&&wasSeen&&c.DefeatSequence>prior.defeat&&active.TryGetValue(key,out var go)&&go){
                 // A real defeat, not a fog transition or the reinforcement cutoff.
+                if(presentationAudio)presentationAudio.Creature(c.Kind,true,go.transform.position);
                 campDeathUntil[c.Id]=bound.Time+1.2f;
                 var corpse=Present(6,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind),out var newCorpse);
                 if(corpse&&newCorpse){
