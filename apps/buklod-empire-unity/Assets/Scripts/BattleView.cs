@@ -31,6 +31,7 @@ namespace Buklod.Empire {
         private BattleFieldVisuals fieldVisuals;
         private WorldInteractionEffects worldEffects;
         private BattleEffects effects;
+        private ReviewContactShadows reviewShadows;
         private SkillAudio skillAudio;
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
         private readonly Dictionary<GameObject,Stack<GameObject>> pool=new Dictionary<GameObject,Stack<GameObject>>();
@@ -64,6 +65,7 @@ namespace Buklod.Empire {
             visuals.Validate();
             foreach(var v in active.Values)Return(v);active.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
+            reviewShadows=ReviewOnly?GetComponent<ReviewContactShadows>():null;if(reviewShadows)reviewShadows.Clear();
             worldEffects=GetComponent<WorldInteractionEffects>();if(worldEffects)worldEffects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
@@ -132,6 +134,7 @@ namespace Buklod.Empire {
         }
         private void Sync(bool immediate){
             seen.Clear();
+            if(reviewShadows)reviewShadows.Begin();
             GeometryUtility.CalculateFrustumPlanes(battleCamera,frustum);
             var playerPosition=Battle.Player.Position;
             foreach(var u in Battle.Units){
@@ -160,6 +163,7 @@ namespace Buklod.Empire {
                 var goal=new Vector3(u.Position.x*worldScale,v.groundY,u.Position.y*worldScale);
                 var delta=goal-t.position;var flat=new Vector3(delta.x,0,delta.z);
                 if(immediate)t.position=goal;else t.position=Vector3.Lerp(t.position,goal,1-Mathf.Exp(-18*Time.deltaTime));
+                if(reviewShadows&&inView)reviewShadows.Add(t.position,u.Kind,u.Core,worldScale);
                 if(flat.sqrMagnitude>.0001f)t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
                 if(v.animator&&v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
                 if(u.LastAttack>v.attack){v.attack=u.LastAttack;if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");if(effects&&u.Kind==BattleTargetKind.Hero)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),0);}
@@ -214,6 +218,7 @@ namespace Buklod.Empire {
                 Return(v);removed.Add(pair.Key);
             }
             foreach(int id in removed)active.Remove(id);
+            if(reviewShadows)reviewShadows.End();
         }
         private void Follow(bool immediate){
             var at=Ground(Battle.Player.Position);var desired=at+new Vector3(0,cameraHeight,-cameraHeight*.72f);
