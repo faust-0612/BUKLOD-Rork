@@ -304,7 +304,9 @@ class Hero:
   blob=struct.pack("<4sII",b"glTF",2,12+8+len(j)+8+len(self.b))+struct.pack("<I4s",len(j),b"JSON")+j+struct.pack("<I4s",len(self.b),b"BIN\0")+self.b
   path.write_bytes(blob)
   tris=sum(len(g["i"])//3 for g in self.geo.values())
-  assert 1000<tris<12000 and len(blob)<2_000_000
+  # Only the isolated Unity review subclass opts into a higher geometry budget.
+  max_triangles,max_bytes=getattr(self,"review_geometry_limits",(12000,2_000_000))
+  if not (1000<tris<max_triangles and len(blob)<max_bytes):raise ValueError("Hero geometry exceeds configured budget: "+self.id)
   return {"id":self.id,"file":path.name,"sha256":hashlib.sha256(blob).hexdigest(),"meshHash":hashlib.sha256(b"".join(struct.pack("<fff",*p) for g in self.geo.values() for p in g["p"])).hexdigest(),"triangles":tris,"bones":len(self.joints),"clips":list(CLIPS),"bytes":len(blob),"signatureEquipment":self.gear}
 def main():
  ap=argparse.ArgumentParser();ap.add_argument("--out",required=True);args=ap.parse_args()
