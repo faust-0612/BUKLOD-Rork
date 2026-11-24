@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Refine existing original procedural hero candidates, without modifying MAIN or approving them."""
-import copy, importlib.util, json, pathlib, hashlib
+import argparse, copy, importlib.util, json, pathlib, hashlib
 from skill_motions import add_skill_motions
 from identity_detail import adjust_feature, sculpt_surface, replace_face_box, add_details
 from refine_surfaces import texture_glb
@@ -73,10 +73,15 @@ class Candidate(original.Hero):
         add_details(self,result)
         return result
 def main():
-    out=root/"Tools/ReviewOutput/heroes"
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--hero",choices=tuple(original.HEROES),help="Isolated single-hero material/portrait review; does not overwrite roster.")
+    args=parser.parse_args()
+    resolution=review_size()
+    out=(root/"Tools/ReviewOutput/hd-portraits"/str(resolution)/args.hero) if args.hero else root/"Tools/ReviewOutput/heroes"
     out.mkdir(parents=True,exist_ok=True)
     rows=[]
-    for hero_id,profile in original.HEROES.items():
+    profiles=[(args.hero,original.HEROES[args.hero])] if args.hero else original.HEROES.items()
+    for hero_id,profile in profiles:
         h=Candidate(hero_id,profile)
         path=out/(hero_id+".glb")
         row=h.export(path)
@@ -90,7 +95,8 @@ def main():
         row["stone"]=stone_by[hero_id]["stone"]
         row["sourceGeneratorSha256"]=hashlib.sha256(source.read_bytes()).hexdigest()
         rows.append(row)
-    assert len(rows)==13 and len({r["meshHash"] for r in rows})==13
+    expected=1 if args.hero else 13
+    assert len(rows)==expected and len({r["meshHash"] for r in rows})==expected
     (out/"manifest.json").write_text(json.dumps({"status":"RIGGED_PROCEDURAL_REVIEW_ONLY","premiumVerified":False,"heroes":rows},indent=2)+"\n")
-    print("Prepared 13 independent rigged hero candidates; not likeness-approved.")
+    print(f"Prepared {expected} independent rigged hero candidate(s) at {resolution}px; not likeness-approved.")
 if __name__=="__main__":main()
