@@ -26,10 +26,35 @@ namespace Buklod.Empire.Tests {
             Assert.False(b.OrderPlayerRepair(enemy.Id));Assert.False(b.CancelPlayerConstruction());
             Assert.AreEqual(15,b.RemainingUnits(ArenaTeam.Lux));
         }
+        [Test] public void DistinctResourceNodesAreMirroredAndOnlyFoodRegrows(){
+            var b=new OfflineBattle("phan");
+            Assert.AreEqual(10,b.ResourceNodes.Count);
+            foreach(var kind in System.Enum.GetValues(typeof(VillageResourceKind)).Cast<VillageResourceKind>()){
+                var pair=b.ResourceNodes.Where(n=>n.Kind==kind).ToArray();Assert.AreEqual(2,pair.Length);
+                Assert.AreEqual(pair[0].Capacity,pair[1].Capacity);
+                Assert.AreEqual(OfflineBattle.Width,pair[0].Position.x+pair[1].Position.x,.001f);
+                Assert.AreEqual(OfflineBattle.Height,pair[0].Position.y+pair[1].Position.y,.001f);
+                Assert.AreEqual(kind==VillageResourceKind.Food,pair[0].Renewable);
+            }
+            Assert.False(b.OrderPlayerResource("velin",VillageResourceKind.Gold));
+            Assert.False(b.OrderPlayerResource("lira",(VillageResourceKind)999));
+            Assert.False(b.Deploy(ArenaTeam.Lux,ArenaLane.Mid,2,1));
+        }
+        [Test] public void FarmHarvestRequiresTravelAndDeliveryAndDoesNotMintOtherResources(){
+            var b=new OfflineBattle("phan");var w=b.Units.Single(u=>u.Villager?.Job.Id=="lira");
+            Assert.True(b.OrderPlayerResource("lira",VillageResourceKind.Food));
+            for(int i=0;i<65;i++)b.Advance(.1f,Vector2.zero);
+            Assert.Greater(w.CargoFood,0);Assert.AreEqual(0,w.CargoWood);Assert.AreEqual(0,b.GetVillage(w.Team).Food);
+            Assert.False(((IVillageLogistics)b).TryGather(w.Team,"lira",999999,999999,999999));
+            Assert.True(b.OrderPlayerWorker("lira",VillageWorkerOrder.Return));
+            for(int i=0;i<65;i++)b.Advance(.1f,Vector2.zero);
+            Assert.Greater(b.GetVillage(w.Team).Food,0);Assert.AreEqual(0,b.GetVillage(w.Team).Wood);
+        }
         [Test] public void WorkerMustReachNodeAndDeliverBeforeTeamCredit(){
             var battle=new OfflineBattle("phan");
             var worker=battle.Units.Single(u=>u.Villager?.Job.Id=="lira");
-            Assert.IsFalse(battle.TryGather(worker.Team,"lira",6,4,2));
+            Assert.IsFalse(((IVillageLogistics)battle).TryGather(worker.Team,"lira",6,4,2));
+            Assert.IsTrue(battle.OrderPlayerResource("lira",VillageResourceKind.Wood));
             Assert.IsFalse(battle.OrderPlayerWorker("velin",VillageWorkerOrder.Hold));
             Assert.IsTrue(battle.OrderPlayerWorker("lira",VillageWorkerOrder.Hold));
             for(int i=0;i<60;i++)battle.Advance(.1f,Vector2.zero);

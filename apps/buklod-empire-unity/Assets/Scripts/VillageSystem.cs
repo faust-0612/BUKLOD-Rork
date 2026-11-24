@@ -73,6 +73,15 @@ namespace Buklod.Empire {
         public double Stone {get;private set;}
         public double Crystal {get;private set;}
         public double Gold {get;private set;}
+        public double Food {get;private set;}
+        public const double ResourceCap=10000;
+        public double ResourceBalance(VillageResourceKind kind){switch(kind){case VillageResourceKind.Wood:return Wood;case VillageResourceKind.Stone:return Stone;case VillageResourceKind.Crystal:return Crystal;case VillageResourceKind.Food:return Food;case VillageResourceKind.Gold:return Gold;default:return 0;}}
+        public static double ResourceTarget(VillageResourceKind kind){switch(kind){case VillageResourceKind.Wood:return 65;case VillageResourceKind.Stone:return 40;case VillageResourceKind.Food:return 40;case VillageResourceKind.Crystal:return 30;case VillageResourceKind.Gold:return 25;default:return 1;}}
+        internal double DepositResource(VillageResourceKind kind,double amount){
+            if(!Enum.IsDefined(typeof(VillageResourceKind),kind)||double.IsNaN(amount)||double.IsInfinity(amount)||amount<=0)return 0;
+            double added=Math.Max(0,Math.Min(amount,ResourceCap-ResourceBalance(kind)));
+            switch(kind){case VillageResourceKind.Wood:Wood+=added;break;case VillageResourceKind.Stone:Stone+=added;break;case VillageResourceKind.Crystal:Crystal+=added;break;case VillageResourceKind.Food:Food+=added;break;case VillageResourceKind.Gold:Gold+=added;break;}return added;
+        }
         internal double CreditPickup(string resource,double amount){
             if(double.IsNaN(amount)||double.IsInfinity(amount)||amount<=0)return 0;
             double current=resource=="wood"?Wood:resource=="stone"?Stone:resource=="gold"?Gold:-1;
@@ -117,7 +126,7 @@ namespace Buklod.Empire {
         }
         private bool CanPay(double w,double s,double c)=>Wood>=w&&Stone>=s&&Crystal>=c;
         private static bool ConstructionCost(VillageBuildOrder kind,out double wood,out double stone){
-            wood=stone=0;switch(kind){case VillageBuildOrder.Depot:wood=35;stone=20;return true;case VillageBuildOrder.GuardPost:wood=55;stone=40;return true;case VillageBuildOrder.Repair:wood=10;stone=5;return true;default:return false;}
+            wood=stone=0;switch(kind){case VillageBuildOrder.Depot:wood=35;stone=20;return true;case VillageBuildOrder.GuardPost:wood=55;stone=40;return true;case VillageBuildOrder.Repair:wood=10;stone=5;return true;case VillageBuildOrder.Farm:wood=25;stone=5;return true;case VillageBuildOrder.Barracks:wood=60;stone=35;return true;default:return false;}
         }
         internal bool CanFundConstruction(VillageBuildOrder kind)=>ConstructionCost(kind,out double w,out double s)&&CanPay(w,s,0);
         internal bool SpendConstruction(VillageBuildOrder kind){if(!ConstructionCost(kind,out double w,out double s)||!CanPay(w,s,0))return false;Pay(w,s,0);return true;}
@@ -140,9 +149,10 @@ namespace Buklod.Empire {
                     if(!battle.UpgradeTower(Team,level,(lux ? .15f : .05f)*p,(lux ? .05f : .15f)*p))return false;
                     Pay(40d*level,30d*level,0);TowersUpgraded++;return true;
                 case VillageEffect.Train:
-                    if(!CanPay(25,0,0))return false;
+                    double foodCost=battle is IVillageLogistics?(lux?12:10):0;
+                    if(!CanPay(25,0,0)||Food<foodCost)return false;
                     if(!battle.Deploy(Team,(ArenaLane)(lane%3),lux?2:1,(lux?1:1.4f)*p*(1+.04f*ResearchTier)))return false;
-                    Pay(25,0,0);lane=(lane+1)%3;return true;
+                    Pay(25,0,0);Food-=foodCost;lane=(lane+1)%3;return true;
                 case VillageEffect.Heal:return battle.HealNearBase(Team,25*p,700);
                 case VillageEffect.Research:
                     if(ResearchTier>=5||!CanPay(0,0,20*(ResearchTier+1)))return false;

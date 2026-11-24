@@ -26,7 +26,8 @@
     "Unity compile, NUnit and Android runtime acceptance still required",
     "Physical builder orders, atomic completion cost, alternate depots and full-elimination inclusion",
     "Exact target lock, legal tactical AI and autonomous offline training",
-    "Free match-local Covenant Paths with nonstacking pre-match selection"
+    "Free match-local Covenant Paths with nonstacking pre-match selection",
+    "Typed finite mines/forest/quarry, renewable farm food, physical delivery, funded barracks production, per-faction caps and no client resource mint"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",
