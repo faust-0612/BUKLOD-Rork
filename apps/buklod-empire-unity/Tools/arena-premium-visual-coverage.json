@@ -18,8 +18,8 @@
     },
     {
       "category": "Weapon",
-      "implementation": "catalog and animated emblem",
-      "required": "distinct meshes and attachment sockets"
+      "implementation": "13 generated standalone glTF relic meshes committed; editor review importer",
+      "required": "Unity rendering, approved likeness and safe rig attachment"
     },
     {
       "category": "Effect/Entrance/Victory/Recall",
@@ -28,8 +28,8 @@
     },
     {
       "category": "Villager/Minion/Building/Battlefield",
-      "implementation": "existing source review assets and catalog",
-      "required": "premium faction-specific variants, environment validation"
+      "implementation": "26 faction material variants supported by isolated editor composer; original map assets retained",
+      "required": "rendered faction review, dedicated geometry variants, battlefield themes and gameplay safety"
     },
     {
       "category": "Voice",

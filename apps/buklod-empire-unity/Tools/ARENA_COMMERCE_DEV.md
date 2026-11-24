@@ -7,3 +7,6 @@ Higher tiers: mythical 999, transformation 1499, exclusive faction 1999, all-her
 
 ## Premium visual candidate pipeline
 Five material styles per hero (65 variants). Legendary and Mythical add bounded PBR metallic/roughness and trim emissive changes, retaining original textures, geometry, rig, animation and gem identity. Source and output hashes required by editor gallery. Generated animated menu emblems are not battle effects or purchase-ready models. See Tools/arena-premium-visual-coverage.json for outstanding asset work.
+
+## Relic and faction review
+13 standalone original glTF relics are committed under Tools/AssetCandidates/PremiumCommerce. Regenerate with node Tools/generate-premium-relics.mjs. In Unity first assemble base candidate prefabs, then BUKLOD Empire > Assemble premium relic and faction review. This imports all 13 relics and creates 26 faction palette variants from existing rigged/static prefabs. The relics are showcase assets, not attached to battle rigs; faction variants are material treatments, not approved replacement meshes. No changes to game colliders or authoritative gameplay. Actual device rendering and visual review remain mandatory.
