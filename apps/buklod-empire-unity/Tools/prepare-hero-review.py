@@ -4,6 +4,7 @@ import copy, importlib.util, json, pathlib, hashlib
 from skill_motions import add_skill_motions
 from identity_detail import adjust_feature, sculpt_surface, replace_face_box, add_details
 from refine_surfaces import texture_glb
+from hd_surface import review_size
 root=pathlib.Path(__file__).resolve().parents[1]
 repo=root.parents[1]
 source=repo/"scripts/generate-buklod-empire-hero-glbs.py"
@@ -83,7 +84,8 @@ def main():
         row['clips']=add_skill_motions(path,hero_id)
         row['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
         row['bytes']=path.stat().st_size
-        row['surfaceRevision']='original-procedural-pbr-v4-fidelity'
+        row['textureResolution']=review_size()
+        row['surfaceRevision']='original-procedural-pbr-v5-hd' if review_size()>256 else 'original-procedural-pbr-v4-fidelity'
         assert h.stone_count==1 and len(row["clips"])==12 and row["bones"]>0
         row["stone"]=stone_by[hero_id]["stone"]
         row["sourceGeneratorSha256"]=hashlib.sha256(source.read_bytes()).hexdigest()
