@@ -1,0 +1,129 @@
+{
+  "baseline": "18d35be73c045a8c39d4de844554a92976341490",
+  "sources": [
+    "experiments/empire-arena-v2/arena-starter-hero-kits.mjs",
+    "godot/empire-arena/library/arena_intake_20261122.json",
+    "godot/empire-arena/scripts/arena_simulation.gd",
+    "godot/empire-arena/scripts/arena_library_skills.gd"
+  ],
+  "heroes": [
+    {
+      "id": "phan",
+      "passive": "lands_resolve",
+      "skills": [
+        "groundbreaker",
+        "foundation_wall",
+        "bayanihan_bastion"
+      ]
+    },
+    {
+      "id": "quin",
+      "passive": "trail_sense",
+      "skills": [
+        "route_dash",
+        "beacon_mark",
+        "horizon_corridor"
+      ]
+    },
+    {
+      "id": "van",
+      "passive": "protective_link",
+      "skills": [
+        "signal_shield",
+        "intercept_rush",
+        "command_network"
+      ]
+    },
+    {
+      "id": "christian",
+      "passive": "command_presence",
+      "skills": [
+        "banner_rush",
+        "rally_formation",
+        "stand_united"
+      ]
+    },
+    {
+      "id": "lhen",
+      "passive": "harmony_weaver",
+      "skills": [
+        "resonance_wave",
+        "restorative_beat",
+        "symphony_of_buklod"
+      ]
+    },
+    {
+      "id": "ace",
+      "passive": "critical_care",
+      "skills": [
+        "field_patch",
+        "knight_step",
+        "checkmate_rescue"
+      ]
+    },
+    {
+      "id": "jawo",
+      "passive": "natural_rhythm",
+      "skills": [
+        "vine_riff",
+        "echo_skip",
+        "canopy_crescendo"
+      ]
+    },
+    {
+      "id": "mitch",
+      "passive": "color_theory",
+      "skills": [
+        "pigment_bolt",
+        "mosaic_wall",
+        "living_canvas"
+      ]
+    },
+    {
+      "id": "niel",
+      "passive": "shared_resolve",
+      "skills": [
+        "echo_lance",
+        "conviction_dash",
+        "call_of_the_dawn"
+      ]
+    },
+    {
+      "id": "trudice",
+      "passive": "lesson_learned",
+      "skills": [
+        "question_sigil",
+        "turning_page",
+        "grand_lesson"
+      ]
+    },
+    {
+      "id": "vhen",
+      "passive": "rooted_growth",
+      "skills": [
+        "seed_turret",
+        "irrigation_snare",
+        "harvest_engine"
+      ]
+    },
+    {
+      "id": "angel",
+      "passive": "fair_allocation",
+      "skills": [
+        "ledger_shield",
+        "balance_field",
+        "equal_measure"
+      ]
+    },
+    {
+      "id": "ellusur",
+      "passive": "teach_by_example",
+      "skills": [
+        "guiding_path",
+        "seed_sanctuary",
+        "beacon_of_service"
+      ]
+    }
+  ],
+  "scope": "Godot practice tuning; world adapter and complete passive/terrain/structure effect parity not yet verified. Not a release artifact."
+}
