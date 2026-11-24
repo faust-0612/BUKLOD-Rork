@@ -11,30 +11,94 @@ namespace Buklod.Empire {
         private readonly Dictionary<GameObject,Stack<GameObject>> pools=new Dictionary<GameObject,Stack<GameObject>>();
         private readonly HashSet<(int,int)> seen=new HashSet<(int,int)>();
         private readonly List<(int,int)> removed=new List<(int,int)>();
+        private readonly MaterialPropertyBlock block=new MaterialPropertyBlock();
         private int pooled;
         private const int PoolLimit=48;
         public int ActiveCount=>active.Count;
         public void Bind(BattleView owner){Clear();view=owner;bound=owner.Battle;}
-        private void Present(int type,int id,Vector2 position,GameObject prefab){
-            // Review-only catalogs can omit an object; production validation rejects them.
-            if(!prefab)return;
+        private GameObject Present(int type,int id,Vector2 position,GameObject prefab,out bool fresh){
+            fresh=false;if(!prefab)return null;
             var key=(type,id);seen.Add(key);
-            if(!active.TryGetValue(key,out var go)){
+            if(active.TryGetValue(key,out var go)&&prefabs[key]!=prefab){
+                Return(key,go);active.Remove(key);prefabs.Remove(key);go=null;
+            }
+            if(!go){
                 if(pools.TryGetValue(prefab,out var pool)&&pool.Count>0){go=pool.Pop();pooled--;}
                 else go=Instantiate(prefab,transform);
-                go.transform.position=view.FieldPosition(position);go.SetActive(true);active.Add(key,go);prefabs.Add(key,prefab);
+                go.transform.localScale=prefab.transform.localScale;
+                go.transform.localRotation=prefab.transform.localRotation;
+                // Rental state is never inherited by the next resource, construction or loot entity.
+                foreach(var renderer in go.GetComponentsInChildren<Renderer>(true)){
+                    renderer.SetPropertyBlock(null);
+                    for(int i=0;i<renderer.sharedMaterials.Length;i++)renderer.SetPropertyBlock(null,i);
+                }
+                go.transform.position=view.FieldPosition(position);go.SetActive(true);active.Add(key,go);prefabs.Add(key,prefab);fresh=true;
+                foreach(var animator in go.GetComponentsInChildren<Animator>(true))animator.Rebind();
             }
+            return go;
         }
         private bool Nearby(Vector2 position)=>Vector2.Distance(position,bound.Player.Position)<=42;
         private bool Visible(Vector2 position)=>Nearby(position)&&bound.IsPositionVisibleTo(bound.Player.Team,position);
+        public static float StockScale(double stock,double capacity)=>capacity<=0?.15f:Mathf.Lerp(.15f,1,Mathf.Sqrt(Mathf.Clamp01((float)(stock/capacity))));
+        public static Color TierColor(int tier)=>tier>=4?new Color(1,.68f,.16f):tier==3?new Color(.72f,.30f,1):tier==2?new Color(.20f,.70f,1):new Color(.76f,.88f,.79f);
+        public static Color ResourceColor(VillageResourceKind kind){
+            switch(kind){case VillageResourceKind.Wood:return new Color(.55f,.31f,.13f);case VillageResourceKind.Stone:return new Color(.55f,.59f,.64f);case VillageResourceKind.Crystal:return new Color(.24f,.73f,1);case VillageResourceKind.Gold:return new Color(1,.72f,.18f);default:return new Color(.38f,.79f,.24f);}
+        }
+        private void Tint(GameObject go,Color color){
+            foreach(var renderer in go.GetComponentsInChildren<Renderer>(true)){
+                var materials=renderer.sharedMaterials;
+                for(int i=0;i<materials.Length;i++){
+                    var mat=materials[i];if(!mat||!mat.name.StartsWith("crystal",StringComparison.OrdinalIgnoreCase))continue;
+                    renderer.GetPropertyBlock(block,i);
+                    if(mat.HasProperty("_BaseColor"))block.SetColor("_BaseColor",color);
+                    if(mat.HasProperty("_BaseColorFactor"))block.SetColor("_BaseColorFactor",color);
+                    if(mat.HasProperty("_EmissionColor"))block.SetColor("_EmissionColor",color*.45f);
+                    if(mat.HasProperty("_EmissiveFactor"))block.SetColor("_EmissiveFactor",color*.45f);
+                    renderer.SetPropertyBlock(block,i);block.Clear();
+                }
+            }
+        }
+        private void Loot(int type,int id,Vector2 position,GameObject prefab,int tier,float spawnedAt){
+            var go=Present(type,id,position,prefab,out var fresh);if(!go)return;
+            if(fresh)Tint(go,TierColor(tier));
+            float t=Mathf.Max(0,bound.Time-spawnedAt);
+            go.transform.position=view.FieldPosition(position)+Vector3.up*(.15f+.12f*Mathf.Sin(t*3+id));
+            go.transform.rotation=Quaternion.Euler(0,t*72,0)*prefab.transform.rotation;
+        }
+        private GameObject ConstructionPrefab(ArenaTeam team,VillageBuildOrder kind){
+            foreach(var f in view.visuals.factions)if(f.team==team){
+                switch(kind){case VillageBuildOrder.Depot:return f.depot;case VillageBuildOrder.GuardPost:return f.guardPost;case VillageBuildOrder.Farm:return f.farm;case VillageBuildOrder.Barracks:return f.barracks;case VillageBuildOrder.Market:return f.market;case VillageBuildOrder.House:return f.house;}
+            }
+            return null;
+        }
         public void Refresh(){
             if(!view||view.Battle==null)return;if(bound!=view.Battle){Clear();bound=view.Battle;}
             seen.Clear();
             if(!bound.Finished){
-                foreach(var n in bound.ResourceNodes)if(n.Stock>0&&Nearby(n.Position))Present(0,n.Id,n.Position,view.visuals.ResolveResource(n.Kind));
-                foreach(var c in bound.Camps)if(c.Alive&&Visible(c.Position))Present(1,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind));
-                foreach(var d in bound.Drops)if(Visible(d.Position))Present(2,d.Id,d.Position,view.visuals.fieldPickup);
-                foreach(var d in bound.RelicDrops)if(Visible(d.Position))Present(3,d.Id,d.Position,view.visuals.relicPickup);
+                foreach(var n in bound.ResourceNodes)if(n.StructureId==0&&(n.Stock>0||n.Renewable)&&Nearby(n.Position)&&(n.Team==bound.Player.Team||Visible(n.Position))){
+                    var prefab=view.visuals.ResolveResource(n.Kind);var go=Present(0,n.Id,n.Position,prefab,out _);
+                    if(go){var scale=prefab.transform.localScale;scale.y*=StockScale(n.Stock,n.Capacity);go.transform.localScale=scale;}
+                }
+                foreach(var c in bound.Camps)if(c.Alive&&Visible(c.Position))Present(1,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind),out _);
+                foreach(var d in bound.Drops)if(Visible(d.Position))Loot(2,d.Id,d.Position,view.visuals.fieldPickup,d.Item.Tier,d.SpawnedAt);
+                foreach(var d in bound.RelicDrops)if(Visible(d.Position))Loot(3,d.Id,d.Position,view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt);
+                foreach(var u in bound.Units){
+                    if(!u.State.Alive||!Nearby(u.Position)||(u.Team!=bound.Player.Team&&!bound.IsVisibleTo(bound.Player.Team,u)))continue;
+                    if(u.Villager!=null&&u.Cargo>1e-6){
+                        var kind=u.CargoWood>0?VillageResourceKind.Wood:u.CargoStone>0?VillageResourceKind.Stone:u.CargoCrystal>0?VillageResourceKind.Crystal:u.CargoGold>0?VillageResourceKind.Gold:VillageResourceKind.Food;
+                        var prefab=view.visuals.fieldPickup;var go=Present(4,u.Id,u.Position,prefab,out var fresh);
+                        if(go){
+                            if(fresh)Tint(go,ResourceColor(kind));
+                            go.transform.position=view.FieldPosition(u.Position)+Vector3.up*2.1f;
+                            go.transform.localScale=prefab.transform.localScale*Mathf.Lerp(.35f,.65f,Mathf.Clamp01((float)(u.Cargo/OfflineBattle.CargoLimit)));
+                        }
+                    }
+                    var order=u.Construction;
+                    if(order!=null&&order.Kind!=VillageBuildOrder.Repair&&order.Progress>0&&Nearby(order.Position)&&(u.Team==bound.Player.Team||Visible(order.Position))){
+                        var prefab=ConstructionPrefab(u.Team,order.Kind);var go=Present(5,u.Id,order.Position,prefab,out _);
+                        if(go){var scale=prefab.transform.localScale;scale.y*=Mathf.Lerp(.10f,1,order.Completion);go.transform.localScale=scale;go.transform.position=view.FieldPosition(order.Position);}
+                    }
+                }
             }
             removed.Clear();foreach(var e in active)if(!seen.Contains(e.Key)){Return(e.Key,e.Value);removed.Add(e.Key);}
             foreach(var key in removed){active.Remove(key);prefabs.Remove(key);}
