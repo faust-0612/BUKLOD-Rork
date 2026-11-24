@@ -1,0 +1,53 @@
+name: BUKLOD Empire offline MOBA — engine and overlay QA
+on:
+  push:
+    branches: [dev/buklod-empire-offline-moba-20261124]
+    paths:
+      - 'apps/buklod-empire/offline-moba/**'
+      - 'scripts/prepare-buklod-empire-moba-overlay.mjs'
+      - '.github/workflows/buklod-empire-offline-moba-dev.yml'
+permissions:
+  contents: read
+concurrency:
+  group: empire-offline-moba-dev
+  cancel-in-progress: true
+jobs:
+  offline-moba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUKLOD_GENESIS_PREMIUM_3D: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build canonical baseline and isolated offline overlay
+        run: |
+          set -euo pipefail
+          node scripts/genesis-import-verified-3d.mjs
+          node scripts/build-buklod-empire-standalone.mjs
+          node -e "const a=require('./build/buklod-empire/ota-baseline.json');if(a.base!=='b0453ce77899346cd597aa293c2f74eb4145fcf1113b22a6d6272f8473ccb767')throw Error('Existing APK baseline changed')"
+          node scripts/prepare-buklod-empire-moba-overlay.mjs build/buklod-empire/ota-baseline.json apps/buklod-empire/app/src/main/assets build/empire-moba-candidate
+          cp apps/buklod-empire/offline-moba/moba_test.gd build/empire-moba-candidate/scripts/moba_test.gd
+      - name: Actual Godot simulation and 3D resource smoke
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/empire-godot
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/empire-godot.zip
+          unzip -q /tmp/empire-godot.zip -d /tmp/empire-godot
+          GODOT="$(find /tmp/empire-godot -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          chmod +x "$GODOT"
+          timeout 90s "$GODOT" --headless --path build/empire-moba-candidate --script res://scripts/moba_test.gd 2>&1 | tee build/empire-moba-test.log
+          grep -F BUKLOD_OFFLINE_MOBA_RUNTIME_PASS build/empire-moba-test.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|MOBA_TEST_FAILED' build/empire-moba-test.log; then exit 1; fi
+          rm build/empire-moba-candidate/scripts/moba_test.gd
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: empire-offline-moba-test-log
+          path: build/empire-moba-test.log
+          if-no-files-found: ignore
+          retention-days: 7
