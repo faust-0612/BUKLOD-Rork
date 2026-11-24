@@ -8,6 +8,12 @@ namespace Buklod.Empire {
         private RectTransform root;
         private Text heading,detail,price,index;
         private Image swatch;
+        private RawImage modelPreview;
+        private Text visualStatus;
+#if UNITY_EDITOR
+        public static Func<ArenaOffer,Texture> EditorReviewPreview;
+        private float nextPreviewCheck;
+#endif
         private ArenaPremiumPreviewMotion motion;
         private Font font;
         private ArenaOffer[] offers;
@@ -30,7 +36,7 @@ namespace Buklod.Empire {
             Label("Label",r,0,0,1,1,name,24);
         }
         public void Open(Transform parent,Action onClose){
-            if(root){root.gameObject.SetActive(true);closed=onClose;root.SetAsLastSibling();return;}
+            if(root){root.gameObject.SetActive(true);closed=onClose;root.SetAsLastSibling();Refresh();return;}
             closed=onClose;font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             offers=ArenaCommercePreview.Build().ToArray();
             root=Rect("Arena collection preview",parent,0,0,1,1);
@@ -40,6 +46,9 @@ namespace Buklod.Empire {
             swatch=Rect("Faceted visual swatch",root,.36f,.40f,.28f,.34f).gameObject.AddComponent<Image>();
             swatch.preserveAspect=true;swatch.raycastTarget=false;
             motion=swatch.gameObject.AddComponent<ArenaPremiumPreviewMotion>();
+            modelPreview=Rect("Reviewed model thumbnail",root,.29f,.40f,.42f,.34f).gameObject.AddComponent<RawImage>();
+            modelPreview.raycastTarget=false;modelPreview.gameObject.SetActive(false);
+            visualStatus=Label("Visual status",root,.28f,.735f,.44f,.035f,"",16);
             heading=Label("Offer",root,.1f,.30f,.8f,.10f,"",32);
             detail=Label("Details",root,.1f,.22f,.8f,.08f,"",19);
             price=Label("Price",root,.1f,.14f,.8f,.08f,"",22);
@@ -86,11 +95,26 @@ namespace Buklod.Empire {
             var sp=Sprite.Create(tex,new Rect(0,0,192,192),new Vector2(.5f,.5f));textures.Add(tex);sprites.Add(kind,sp);return sp;
         }
         private void Refresh(){
-            var o=offers[selected];swatch.sprite=Emblem(o.Kind);swatch.color=o.Accent;motion.Configure(o);
+            var o=offers[selected];swatch.sprite=Emblem(o.Kind);swatch.color=o.Accent;motion.Configure(o);RefreshPreview();
             heading.text=o.Name;index.text=o.Kind+" • "+(selected+1)+" / "+offers.Length;
             detail.text=o.Kind==ArenaOfferKind.Stone?"100 BP • One per online match • Free training":o.Kind==ArenaOfferKind.Marketplace?"BP only • No cash-out • Preview only":o.IsBusinessInquiry?"Business inquiry • Not an in-app checkout":"Cosmetic / service concept • No combat advantage";
             price.text=o.Kind==ArenaOfferKind.Marketplace?"Trading unavailable in preview":(o.IsBusinessInquiry?"From PHP "+o.IndicativePhp:o.IndicativePhp==0?"Original / free":"Indicative PHP "+o.IndicativePhp)+" • Preview only";
         }
+        private void RefreshPreview(){
+            Texture preview=null;
+#if UNITY_EDITOR
+            if(EditorReviewPreview!=null)preview=EditorReviewPreview(offers[selected]);
+#endif
+            bool available=preview!=null;
+            modelPreview.texture=preview;modelPreview.gameObject.SetActive(available);swatch.gameObject.SetActive(!available);
+            visualStatus.text=available?"3D MODEL THUMBNAIL • REVIEW ONLY":"CONCEPT EMBLEM • MODEL NOT DISPLAYED";
+        }
+#if UNITY_EDITOR
+        private void Update(){
+            if(!root||!root.gameObject.activeInHierarchy||modelPreview.gameObject.activeSelf||Time.unscaledTime<nextPreviewCheck)return;
+            nextPreviewCheck=Time.unscaledTime+1f;RefreshPreview();
+        }
+#endif
         private void Close(){if(root)root.gameObject.SetActive(false);closed?.Invoke();}
         private void OnDestroy(){if(root)Destroy(root.gameObject);foreach(var sp in sprites.Values)if(sp)Destroy(sp);foreach(var tex in textures)if(tex)Destroy(tex);}
     }

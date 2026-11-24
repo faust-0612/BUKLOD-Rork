@@ -1,4 +1,5 @@
 import {mkdirSync,writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 function generate(){
@@ -40,4 +41,9 @@ function generate(){
  }
  return output;
 }
-const out=fileURLToPath(new URL('./AssetCandidates/PremiumCommerce/',import.meta.url));mkdirSync(out,{recursive:true});for(const [name,data] of Object.entries(generate()))writeFileSync(join(out,name),data+'\n');
+const out=fileURLToPath(new URL('./AssetCandidates/PremiumCommerce/',import.meta.url));mkdirSync(out,{recursive:true});const rows=[];for(const [name,data] of Object.entries(generate())){
+ const file=data+'\n';writeFileSync(join(out,name),file);
+ const d=JSON.parse(data),bytes=Buffer.from(file,'utf8');
+ rows.push({file:name,hero:d.extras.hero,gear:d.extras.gear,triangles:d.extras.triangles,bufferBytes:d.buffers[0].byteLength,gitBlob:createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex')});
+}
+writeFileSync(join(out,'manifest.json'),JSON.stringify({status:'REVIEW_ONLY',premiumVerified:false,models:rows},null,2)+'\n');

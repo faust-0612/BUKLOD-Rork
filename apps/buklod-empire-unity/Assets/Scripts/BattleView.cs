@@ -45,7 +45,8 @@ namespace Buklod.Empire {
                 var c=path.corners[1];waypoint=new Vector2(c.x,c.z)/scale;return true;
             }
         }
-        public void StartMatch(string hero){
+        public void StartMatch(string hero)=>StartConfiguredMatch(hero,ArenaDifficulty.Normal,null,ArenaTactic.Renew);
+        public void StartConfiguredMatch(string hero,ArenaDifficulty difficulty,CovenantLoadout? covenant,ArenaTactic tactic){
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
 #if UNITY_EDITOR
             if(editorReviewOnly)visuals.ValidateEditorReview();else
@@ -55,7 +56,9 @@ namespace Buklod.Empire {
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
             worldEffects=GetComponent<WorldInteractionEffects>();if(worldEffects)worldEffects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
-            Battle=new OfflineBattle(hero,new Navigation(worldScale));
+            Battle=new OfflineBattle(hero,new Navigation(worldScale),difficulty:difficulty);
+            if(covenant.HasValue&&!Battle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid Covenant loadout.");
+            if(!Battle.SelectPlayerTactic(tactic))throw new System.InvalidOperationException("Invalid tactic.");
             selectedHero=hero;Paused=false;
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=true;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
@@ -121,7 +124,7 @@ namespace Buklod.Empire {
             GeometryUtility.CalculateFrustumPlanes(battleCamera,frustum);
             var playerPosition=Battle.Player.Position;
             foreach(var u in Battle.Units){
-                if(!u.State.Alive)continue;
+                if(!u.State.Alive||!Battle.IsVisibleTo(Battle.Player.Team,u))continue;
                 bool player=u==Battle.Player,existing=active.TryGetValue(u.Id,out var v);
                 float distanceSquared=(u.Position-playerPosition).sqrMagnitude;
                 bool inView=IsInView(u);
@@ -183,7 +186,7 @@ namespace Buklod.Empire {
                 var v=pair.Value;var u=v.unit;
                 // Retain the unit reference even if the simulation removed a dead minion this tick.
                 // Culling an alive unit or expiring a temporary structure never emits a death effect.
-                if(!immediate&&worldEffects&&u!=null&&!u.State.Alive&&!u.Temporary&&IsInView(u)){
+                if(!immediate&&worldEffects&&u!=null&&!u.State.Alive&&!u.Temporary&&!u.CaravanDelivered&&IsInView(u)){
                     var kind=u.Core?WorldImpactKind.Core:u.Kind==BattleTargetKind.Structure?WorldImpactKind.Structure:WorldImpactKind.Unit;
                     var tint=u.Team==ArenaTeam.Lux?new Color(.55f,.69f,.82f):new Color(.48f,.25f,.28f);
                     worldEffects.Emit(Ground(u.Position),kind,unchecked(u.Id*397+(int)(Battle.Time*10)),tint);

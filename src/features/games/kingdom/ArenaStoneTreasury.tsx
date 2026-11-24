@@ -3,6 +3,7 @@ import {View,Text,Pressable,StyleSheet,TextInput,Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import ArenaDiscoveryTrial from './ArenaDiscoveryTrial';
+import ArenaKingdomExpedition from './ArenaKingdomExpedition';
 import {ARENA_STONES,stoneRecipe,type ArenaStoneId} from '@/lib/buklodArenaStoneCatalog';
 import {getArenaStones,actArenaStones,resolveArenaStoneRequest,type StoneSnapshot,type StoneAction} from '@/lib/buklodArenaStones';
 type Pending={action:StoneAction;args:Record<string,unknown>;id:string};
@@ -100,6 +101,7 @@ export default function ArenaStoneTreasury({uid}:{uid:string|null}){
    {ARENA_STONES.map(g=><Pressable key={g.heroId} accessibilityRole="button" accessibilityState={{selected:selected===g.heroId}} onPress={()=>{setSelected(g.heroId);setInput([]);}} style={[s.row,selected===g.heroId&&s.selected]}>
     <View style={[s.dot,{backgroundColor:g.color}]}/><View style={{flex:1}}><Text style={s.name}>{g.stone} · {g.displayName}</Text><Text style={s.copy}>{g.mission} · {row(g.heroId)?.mastery_count??0}/3 mastery {row(g.heroId)?.quest_awarded?'• quest rewarded':''}</Text></View><Text style={s.name}>{count(g.heroId)}</Text>
    </Pressable>)}
+   {wallet.expedition_enabled?<ArenaKingdomExpedition key={'expedition:'+uid} uid={uid} hero={selected} onSettled={()=>void reload()}/>:null}
    {wallet.discovery_enabled?<ArenaDiscoveryTrial key={uid} uid={uid} hero={selected} onSettled={()=>void reload()}/>:null}
    {btn('Exchange 100 BP',()=>action('exchange',{hero_id:selected}),!wallet.bp_exchange_enabled||wallet.spendable_bp<100)}
    <Text style={s.copy}>{names(recipe)} → {names([selected])}</Text>

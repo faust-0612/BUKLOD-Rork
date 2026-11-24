@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
+using System.Security.Cryptography;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -12,7 +14,7 @@ namespace Buklod.Empire.Editor {
         const string Source="Tools/AssetCandidates/PremiumCommerce";
         const string Out=CandidateReviewComposer.Out+"/PremiumCommerce";
         [Serializable] private sealed class Manifest {public string status;public bool premiumVerified;public Row[] models;}
-        [Serializable] private sealed class Row {public string file,hero,gear;public int triangles,bufferBytes;}
+        [Serializable] private sealed class Row {public string file,hero,gear,gitBlob;public int triangles,bufferBytes;}
         static readonly string[] Teams={"lux","tenebra"};
         static GameObject BasePrefab(string name){
             var p=AssetDatabase.LoadAssetAtPath<GameObject>(CandidateReviewComposer.Out+"/Prefabs/"+name+".prefab");
@@ -32,8 +34,11 @@ namespace Buklod.Empire.Editor {
             if(property!=null)mat.SetColor(property,Color.Lerp(mat.GetColor(property),color,.38f));
             if(mat.HasProperty("_Metallic")&&(n.Contains("armor")||n.Contains("trim")||n.Contains("metal")))mat.SetFloat("_Metallic",.78f);
             if(mat.HasProperty("_Smoothness")&&(n.Contains("armor")||n.Contains("trim")||n.Contains("metal")))mat.SetFloat("_Smoothness",.72f);
-            string asset=AssetDatabase.GenerateUniqueAssetPath(Out+"/Materials/"+team+"_"+cache.Count+".mat");
-            AssetDatabase.CreateAsset(mat,asset);cache.Add(original,mat);return mat;
+            string asset=Out+"/Materials/"+team+"_"+cache.Count+".mat";
+            var saved=AssetDatabase.LoadAssetAtPath<Material>(asset);
+            if(saved){EditorUtility.CopySerialized(mat,saved);UnityEngine.Object.DestroyImmediate(mat);mat=saved;EditorUtility.SetDirty(mat);}
+            else AssetDatabase.CreateAsset(mat,asset);
+            cache.Add(original,mat);return mat;
         }
         static GameObject FactionVariant(string id,string team,Dictionary<Material,Material> cache){
             var instance=(GameObject)PrefabUtility.InstantiatePrefab(BasePrefab(id));
@@ -59,6 +64,12 @@ namespace Buklod.Empire.Editor {
             foreach(var row in m.models){
                 if(row==null||!HeroKitCatalog.All.Any(h=>h.Id==row.hero)||!seen.Add(row.hero)||row.file!=row.hero+"_relic.gltf"||row.triangles<100||row.bufferBytes<=0)throw new InvalidOperationException("Invalid relic identity");
                 if(!File.Exists(Source+"/"+row.file))throw new FileNotFoundException(row.file);
+                var data=File.ReadAllBytes(Source+"/"+row.file);
+                var header=Encoding.ASCII.GetBytes("blob "+data.Length+"\0");
+                using(var sha=SHA1.Create()){
+                    string actual=BitConverter.ToString(sha.ComputeHash(header.Concat(data).ToArray())).Replace("-","").ToLowerInvariant();
+                    if(actual!=row.gitBlob)throw new InvalidOperationException("Relic source integrity mismatch: "+row.hero);
+                }
             }
             // Check all base assets before changing generated outputs.
             foreach(var team in Teams){

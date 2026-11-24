@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const root='apps/buklod-empire-unity/Tools/';
+test('expedition validates server-owned state and all five sources',()=>{
+ const sql=read(root+'sacred-stones-expedition-candidate.sql');
+ for(const k of ['rare_pick','monster_drop','treasure_discovery','village_reward','quest_reward'])assert.ok(sql.includes("'"+k+"'"));
+ assert.match(sql,/unique\(user_id,day\)/);
+ assert.match(sql,/where id=p_id and user_id=u for update/);
+ assert.match(sql,/e\.version<>p_version/);
+ assert.match(sql,/e\.successful=4/);
+ assert.match(sql,/record_world_discovery\(e\.id,'expedition-stage-'/);
+ assert.match(sql,/\(e\.puzzles->\(e\.stage::text\)\)-'answer'/);
+ assert.match(sql,/c:=least\(c,a\*b\)/);
+ assert.match(sql,/revoke all on all functions in schema empire_stones/);
+ assert.equal((sql.match(/\$\$/g)||[]).length,2*(sql.match(/^create function /gm)||[]).length);
+});
+test('UI uses server-authoritative route and shared feature gates',()=>{
+ const gate=read(root+'sacred-stones-kingdom-candidate.sql');
+ const ui=read('src/features/games/kingdom/ArenaKingdomExpedition.tsx');
+ const treasury=read('src/features/games/kingdom/ArenaStoneTreasury.tsx');
+ assert.match(gate,/expedition_enabled boolean not null default false/);
+ assert.match(gate,/world_discovery_enabled boolean not null default false/);
+ assert.match(treasury,/wallet\.expedition_enabled\?<ArenaKingdomExpedition/);
+ assert.match(ui,/stepArenaExpedition\(uid,route\.id,req\.version,req\.action,req\.answer,req\.id\)/);
+ assert.match(ui,/Date\.parse\(d\.next_action_at\)-Date\.parse\(d\.server_now\)/);
+ assert.match(ui,/newReward\)onSettled/);
+ assert.doesNotMatch(ui,/grant_verified|record_world_discovery/);
+});

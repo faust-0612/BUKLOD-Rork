@@ -7,91 +7,104 @@
       "hero": "phan",
       "gear": "mallet",
       "triangles": 348,
-      "bufferBytes": 25056
+      "bufferBytes": 25056,
+      "gitBlob": "948b67e8192104f29c912c57627b3dfcc68616e0"
     },
     {
       "file": "quin_relic.gltf",
       "hero": "quin",
       "gear": "compass",
       "triangles": 1328,
-      "bufferBytes": 95616
+      "bufferBytes": 95616,
+      "gitBlob": "fccdaf371fbb1049b67eb0c3f28925af5c4a6ede"
     },
     {
       "file": "van_relic.gltf",
       "hero": "van",
       "gear": "shield",
       "triangles": 2016,
-      "bufferBytes": 145152
+      "bufferBytes": 145152,
+      "gitBlob": "6e977734875e5d06e3dbfc52b7eef80faac80f74"
     },
     {
       "file": "christian_relic.gltf",
       "hero": "christian",
       "gear": "banner",
       "triangles": 348,
-      "bufferBytes": 25056
+      "bufferBytes": 25056,
+      "gitBlob": "a9cef0137a69c53a90379dc8bc9b353a08b0d86f"
     },
     {
       "file": "lhen_relic.gltf",
       "hero": "lhen",
       "gear": "tambourine",
       "triangles": 2272,
-      "bufferBytes": 163584
+      "bufferBytes": 163584,
+      "gitBlob": "d37ea3862698e9eecd221591481bbccdb537aad6"
     },
     {
       "file": "ace_relic.gltf",
       "hero": "ace",
       "gear": "cuff",
       "triangles": 260,
-      "bufferBytes": 18720
+      "bufferBytes": 18720,
+      "gitBlob": "a17e205d2fe3b2ba0dc3acbcb63bd97f67d3a159"
     },
     {
       "file": "ellusur_relic.gltf",
       "hero": "ellusur",
       "gear": "crook",
       "triangles": 1032,
-      "bufferBytes": 74304
+      "bufferBytes": 74304,
+      "gitBlob": "971b73bd0b97d6816d06403a02d40fbcafe78afe"
     },
     {
       "file": "jawo_relic.gltf",
       "hero": "jawo",
       "gear": "radio",
       "triangles": 140,
-      "bufferBytes": 10080
+      "bufferBytes": 10080,
+      "gitBlob": "74c85ff8c919065c384ed5db8040473b5e2dfb2b"
     },
     {
       "file": "mitch_relic.gltf",
       "hero": "mitch",
       "gear": "caddy",
       "triangles": 224,
-      "bufferBytes": 16128
+      "bufferBytes": 16128,
+      "gitBlob": "88eba234ed45d61e5397ad50933bd36ef4b63101"
     },
     {
       "file": "niel_relic.gltf",
       "hero": "niel",
       "gear": "loudhailer",
       "triangles": 1084,
-      "bufferBytes": 78048
+      "bufferBytes": 78048,
+      "gitBlob": "9959651e12bf896b0961cba0378a8fe938dc45cf"
     },
     {
       "file": "angel_relic.gltf",
       "hero": "angel",
       "gear": "ledger",
       "triangles": 128,
-      "bufferBytes": 9216
+      "bufferBytes": 9216,
+      "gitBlob": "4acff8ccbb7e12b5347eb3330a9c5173c439c985"
     },
     {
       "file": "vhen_relic.gltf",
       "hero": "vhen",
       "gear": "trowel",
       "triangles": 344,
-      "bufferBytes": 24768
+      "bufferBytes": 24768,
+      "gitBlob": "937a5f2985443775a864636308756e1f1bff1498"
     },
     {
       "file": "trudice_relic.gltf",
       "hero": "trudice",
       "gear": "puppet",
       "triangles": 208,
-      "bufferBytes": 14976
+      "bufferBytes": 14976,
+      "gitBlob": "2236d6bc2022705be6a82a8bfa06e83c31f42479"
     }
   ]
 }
