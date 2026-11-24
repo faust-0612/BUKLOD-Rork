@@ -12,6 +12,9 @@ namespace Buklod.Empire {
         private RectTransform canvas,panel,heroGrid;
         private Text title,summary,choice;
         private Button resume,start;
+        private Button[] shop;
+        private Text shopStatus;
+        private static readonly string[] GearIds={"blade","armor","boots"};
         private GameObject ownedEventSystem;
         private string selected;
         private bool shown,lastFinished;
@@ -43,6 +46,12 @@ namespace Buklod.Empire {
             scaler.referenceResolution=new Vector2(1280,720);scaler.matchWidthOrHeight=.5f;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             ButtonAt("Menu",canvas,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
+            shop=new Button[GearIds.Length];
+            for(int i=0;i<GearIds.Length;i++){
+                string gear=GearIds[i];float y=.83f-i*.075f;
+                shop[i]=ButtonAt("Shop "+gear,canvas,new Vector2(.83f,y),new Vector2(.99f,y+.066f),gear.ToUpperInvariant()+" "+OfflineMatchRules.ShopPrice(gear),()=>Buy(gear));
+            }
+            shopStatus=Label("Shop status",canvas,new Vector2(.73f,.57f),new Vector2(.99f,.625f),"BASE SHOP",20);
             panel=Rect("Session panel",canvas,Vector2.zero,Vector2.one);
             panel.gameObject.AddComponent<Image>().color=Navy;
             title=Label("Title",panel,new Vector2(.1f,.84f),new Vector2(.9f,.96f),"OFFLINE TRAINING",44);
@@ -72,7 +81,23 @@ namespace Buklod.Empire {
         private void Resume(){if(view.Battle==null||view.Battle.Finished)return;Close();}
         private void StartNew(){view.StartMatch(selected);lastFinished=false;Close();}
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
+        private void Buy(string gear){
+            if(!shown&&!view.Paused&&view.Battle!=null&&!view.Battle.Finished)view.Battle.BuyPlayer(gear);
+        }
+        private void RefreshShop(){
+            var battle=view.Battle;
+            if(battle==null)return;
+            var p=battle.Player;
+            bool atBase=Vector2.Distance(p.Position,p.Spawn)<=12;
+            shopStatus.text=atBase?"BASE SHOP":"RETURN TO BASE";
+            for(int i=0;i<shop.Length;i++){
+                string gear=GearIds[i];bool owned=p.Gear.Contains(gear);
+                shop[i].interactable=!shown&&!view.Paused&&!battle.Finished&&p.State.Alive&&atBase&&!owned&&p.Gold>=OfflineMatchRules.ShopPrice(gear);
+                shop[i].GetComponentInChildren<Text>().text=owned?gear.ToUpperInvariant()+" ✓":gear.ToUpperInvariant()+" "+OfflineMatchRules.ShopPrice(gear);
+            }
+        }
         private void Update(){
+            RefreshShop();
             bool finished=view.Battle!=null&&view.Battle.Finished;
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();
             lastFinished=finished;
