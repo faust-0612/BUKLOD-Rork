@@ -1,9 +1,10 @@
 -- ONLY for ephemeral Postgres CI. Never apply to live BUKLOD.
 CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE anon NOLOGIN;
+CREATE ROLE service_role NOLOGIN;
 CREATE SCHEMA auth;
 CREATE SCHEMA storage;
-GRANT USAGE ON SCHEMA auth,storage,public TO authenticated,anon;
+GRANT USAGE ON SCHEMA auth,storage,public TO authenticated,anon,service_role;
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $q$
  SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $q$;
@@ -78,3 +79,28 @@ INSERT INTO public.buklod_scopes(id,scope_type,status)
 VALUES ('11111111-1111-1111-1111-111111111111','CLUSTER','ACTIVE');
 INSERT INTO public.buklod_scope_memberships(scope_id,user_id,membership_status)
 VALUES ('11111111-1111-1111-1111-111111111111','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','ACTIVE');
+
+-- R4-only canonical-source fixture. Real MAIN has these Bible tables already;
+-- this isolated minimal fixture does not change live BUKLOD.
+CREATE TABLE public.bible_canon_books(book_no smallint PRIMARY KEY,book_name text NOT NULL);
+CREATE TABLE public.bible_verses(
+ book_no smallint NOT NULL,chapter_no smallint NOT NULL,verse_no int NOT NULL,
+ translation_code text NOT NULL,verse_text text NOT NULL,
+ PRIMARY KEY(book_no,chapter_no,verse_no,translation_code)
+);
+INSERT INTO public.bible_canon_books(book_no,book_name) VALUES(43,'John');
+INSERT INTO public.bible_verses(book_no,chapter_no,verse_no,translation_code,verse_text)
+SELECT 43,1,n,'KJV',
+ 'Canonical source fixture describes the Word, its context, a witness, and the need to evaluate evidence carefully at verse '||n||'.'
+FROM generate_series(1,14) n;
+-- Real function has a wide signature; this minimal equivalent returns only
+-- the fields referenced by source-limited SALIKSIK gates in isolated tests.
+CREATE FUNCTION public.buklod_my_scopes_p0_v2()
+RETURNS TABLE(scope_id uuid,show_faith_content boolean)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $fn$
+ SELECT m.scope_id,true FROM public.buklod_scope_memberships m
+ JOIN public.buklod_scopes s ON s.id=m.scope_id
+ WHERE m.user_id=auth.uid() AND m.membership_status='ACTIVE'
+ AND s.scope_type='CLUSTER' AND s.status='ACTIVE';
+$fn$;
+GRANT EXECUTE ON FUNCTION public.buklod_my_scopes_p0_v2() TO authenticated,service_role;
