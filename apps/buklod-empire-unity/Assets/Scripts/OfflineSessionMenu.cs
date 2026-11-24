@@ -9,7 +9,10 @@ namespace Buklod.Empire {
     [RequireComponent(typeof(BattleView))]
     public sealed class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;
-        private RectTransform canvas,panel,heroGrid,commands;
+        private RectTransform canvas,panel,heroGrid,commands,armyPanel;
+        private Text armyFeedback;
+        private ArmyFormation armyFormation;
+        private ArenaLane armyLane=ArenaLane.Mid;
         private Text treasury,commandFeedback,configuration;
         private bool commandOpen;
         private int shopPage;
@@ -66,6 +69,7 @@ namespace Buklod.Empire {
             shopStatus=Label("Shop status",canvas,new Vector2(.65f,.57f),new Vector2(.99f,.625f),"BASE SHOP",20);
             ButtonAt("Shop page",canvas,new Vector2(.66f,.67f),new Vector2(.82f,.745f),"SHOP NEXT",()=>{shopPage=(shopPage+1)%4;RefreshShop();});
             ButtonAt("Village",canvas,new Vector2(.66f,.75f),new Vector2(.82f,.825f),"VILLAGE",OpenCommands);
+            ButtonAt("Army",canvas,new Vector2(.48f,.75f),new Vector2(.65f,.825f),"ARMY",OpenArmy);
             ButtonAt("Recall",canvas,new Vector2(.45f,.08f),new Vector2(.57f,.15f),"RECALL",()=>LiveAction(b=>b.RecallPlayer()));
             ButtonAt("Tactic",canvas,new Vector2(.57f,.08f),new Vector2(.70f,.15f),"TACTIC",()=>LiveAction(b=>b.UsePlayerTactic(Vector2.zero)));
             treasury=Label("Treasury",canvas,new Vector2(.23f,.86f),new Vector2(.81f,.91f),"",19);
@@ -85,11 +89,11 @@ namespace Buklod.Empire {
             configuration=Label("Setup",panel,new Vector2(.07f,.255f),new Vector2(.93f,.31f),"",22);
             string[] setup={"DIFFICULTY","TACTIC","PATH","TALENT I","TALENT II","TALENT III"};
             for(int i=0;i<setup.Length;i++){int index=i;float x=.07f+i*.145f;ButtonAt(setup[i],panel,new Vector2(x,.18f),new Vector2(x+.137f,.25f),setup[i],()=>CycleSetup(index));}
-            CreateCommands();RefreshConfiguration();Select(selected);Open();
+            CreateCommands();CreateArmy();RefreshConfiguration();Select(selected);Open();
         }
         private void Select(string hero){selected=HeroKitCatalog.Get(hero).Id;choice.text="Selected: "+HeroKitCatalog.Get(hero).Name;}
         private void Open(){
-            commandOpen=false;if(commands)commands.gameObject.SetActive(false);
+            commandOpen=false;if(commands)commands.gameObject.SetActive(false);if(armyPanel)armyPanel.gameObject.SetActive(false);
             shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);
             Refresh();
         }
@@ -126,8 +130,23 @@ namespace Buklod.Empire {
             RefreshMarketQuote();
             commands.gameObject.SetActive(false);
         }
+        private void CreateArmy(){
+            armyPanel=Rect("Army command panel",canvas,new Vector2(.12f,.12f),new Vector2(.88f,.9f));armyPanel.gameObject.AddComponent<Image>().color=Navy;
+            Label("Army title",armyPanel,new Vector2(.02f,.88f),new Vector2(.8f,.98f),"ARMY COMMAND",32);
+            ButtonAt("Close army",armyPanel,new Vector2(.81f,.89f),new Vector2(.98f,.98f),"CLOSE",CloseCommands);
+            armyFeedback=Label("Army order status",armyPanel,new Vector2(.03f,.67f),new Vector2(.97f,.85f),"",24);
+            var orders=new[]{ArmyOrder.Automatic,ArmyOrder.Rally,ArmyOrder.PushLane,ArmyOrder.Defend,ArmyOrder.Capture,ArmyOrder.Escort};
+            for(int i=0;i<orders.Length;i++){var order=orders[i];float x=.04f+(i%3)*.31f,y=.48f-(i/3)*.18f;ButtonAt(order.ToString(),armyPanel,new Vector2(x,y),new Vector2(x+.29f,y+.15f),order.ToString().ToUpperInvariant(),()=>ApplyArmy(order));}
+            ButtonAt("Formation",armyPanel,new Vector2(.04f,.08f),new Vector2(.33f,.23f),"FORMATION",()=>{armyFormation=(ArmyFormation)(((int)armyFormation+1)%4);ShowArmy();});
+            ButtonAt("Lane",armyPanel,new Vector2(.35f,.08f),new Vector2(.64f,.23f),"LANE",()=>{armyLane=(ArenaLane)(((int)armyLane+1)%3);ShowArmy();});
+            ButtonAt("Target site",armyPanel,new Vector2(.66f,.08f),new Vector2(.95f,.23f),"TERRITORY",()=>{selectedTerritory=selectedTerritory%view.Battle.Territories.Count+1;ShowArmy();});
+            armyPanel.gameObject.SetActive(false);
+        }
+        private void OpenArmy(){if(shown||commandOpen||view.Paused||view.Battle==null||view.Battle.Finished)return;commandOpen=true;view.SetPaused(true);armyPanel.gameObject.SetActive(true);ShowArmy();}
+        private void ShowArmy(){var b=view.Battle;var active=b.GetArmyCommand(b.Player.Team);armyFeedback.text=$"{armyFormation} • {armyLane} • {b.Territories[selectedTerritory-1].Name} | Active: {active.Order} ({Mathf.Max(0,active.ExpiresAt-b.Time):0}s)";}
+        private void ApplyArmy(ArmyOrder order){var b=view.Battle;if(!commandOpen||b==null||b.Finished)return;bool accepted=b.OrderPlayerArmy(order,armyFormation,armyLane,selectedTerritory);ShowArmy();armyFeedback.text+=" | "+(accepted?"Accepted":"Unavailable: check cooldown, hero or convoy.");}
         private void OpenCommands(){if(shown||commandOpen||view.Battle==null||view.Battle.Finished||view.Paused)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);ShowTerritory(view.Battle);}
-        private void CloseCommands(){commandOpen=false;commands.gameObject.SetActive(false);if(!shown&&view.Battle!=null&&!view.Battle.Finished)view.SetPaused(false);}
+        private void CloseCommands(){commandOpen=false;commands.gameObject.SetActive(false);armyPanel.gameObject.SetActive(false);if(!shown&&view.Battle!=null&&!view.Battle.Finished)view.SetPaused(false);}
         private void RefreshMarketQuote(){marketStatus.text=$"{marketResource} x10: buy {OfflineMatchRules.MarketGold(marketResource,true)} / sell {OfflineMatchRules.MarketGold(marketResource,false)} team gold";}
         private void ShowTerritory(OfflineBattle b){var site=b.Territories[selectedTerritory-1];var delta=site.Position-b.Player.Position;commandFeedback.text=$"{site.Name} • {site.Owner?.ToString()??"Neutral"} • {(site.Contested?"Contested":site.Progress.ToString("0.0")+"/8s")} • delta {delta.x:0}, {delta.y:0}";}
         private void ShowTechnology(OfflineBattle b){

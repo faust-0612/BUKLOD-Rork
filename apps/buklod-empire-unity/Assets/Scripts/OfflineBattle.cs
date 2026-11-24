@@ -385,7 +385,7 @@ namespace Buklod.Empire {
             Winner=winner;EndReason=reason;Finished=true;waves.EndMatch(winner);
             drops.Clear();relicDrops.Clear();fallen.Clear();
             foreach(var u in units){u.Construction=null;u.RecallEnds=0;}
-            Array.Clear(recruitment,0,recruitment.Length);Array.Clear(researchOrders,0,researchOrders.Length);
+            Array.Clear(recruitment,0,recruitment.Length);Array.Clear(researchOrders,0,researchOrders.Length);Array.Clear(armyOrders,0,armyOrders.Length);
         }
         private void CheckElimination(){
             if(Finished)return;int lux=RemainingUnits(ArenaTeam.Lux),ten=RemainingUnits(ArenaTeam.Tenebra);
@@ -728,7 +728,7 @@ namespace Buklod.Empire {
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
             foreach(var u in units)u.State.Clock=Time;
             AdvanceWilderness();if(Finished)return;
-            AdvanceTerritories();AdvanceResourceNodes();AdvanceWorkers();AdvanceCaravans();AdvanceConstruction();AdvanceRecruitment();AdvanceTechnology();
+            AdvanceTerritories();AdvanceResourceNodes();AdvanceWorkers();AdvanceCaravans();AdvanceConstruction();AdvanceRecruitment();AdvanceTechnology();AdvanceArmyStrategy();
             foreach(var village in villages)village.Advance(Step);
             foreach(var u in units)if(u.Villager!=null){
                 if(!u.State.Alive&&u.Villager.Alive){u.Position=u.Spawn;u.ClearCargo();u.WorkerOrder=VillageWorkerOrder.Gather;}
@@ -799,16 +799,71 @@ namespace Buklod.Empire {
                 switch(a.Kit.Id){case "van":case "ace":case "lhen":case "ellusur":case "christian":case "phan":case "angel":return a.TryCast(this,SkillSlot.Ultimate,Vector2.zero,Time,!Finished);}
             }return false;
         }
+        private readonly ArmyCommand[] armyOrders=new ArmyCommand[2];
+        private readonly float[] armyReady=new float[2];
+        public ArmyCommand GetArmyCommand(ArenaTeam team)=>ArenaDraftRules.ValidTeam(team)&&armyOrders[(int)team].Active(Time)?armyOrders[(int)team]:default;
+        public float ArmyOrderReadyAt(ArenaTeam team)=>ArenaDraftRules.ValidTeam(team)?armyReady[(int)team]:0;
+        private bool SetArmyOrder(ArenaTeam team,ArmyOrder order,ArmyFormation formation,ArenaLane lane,int territoryId,Vector2 anchor){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit||!ArenaDraftRules.ValidTeam(team)||!ArmyStrategyRules.Valid(order,formation,lane)||!Finite(anchor))return false;
+            int i=(int)team;
+            if(order==ArmyOrder.Automatic){armyOrders[i]=default;return true;}
+            if(Time<armyReady[i]||order==ArmyOrder.Capture&&!territories.Any(t=>t.Id==territoryId)||order==ArmyOrder.Escort&&!units.Any(u=>u.Team==team&&u.IsCaravan&&u.State.Alive))return false;
+            armyOrders[i]=new ArmyCommand(order,formation,lane,territoryId,anchor,Time+ArmyStrategyRules.Duration);armyReady[i]=Time+ArmyStrategyRules.OrderCooldown;return true;
+        }
+        public bool OrderPlayerArmy(ArmyOrder order,ArmyFormation formation,ArenaLane lane=ArenaLane.Mid,int territoryId=0){
+            if(!Player.State.Alive&&order!=ArmyOrder.Automatic)return false;
+            return SetArmyOrder(Player.Team,order,formation,lane,territoryId,Player.Position);
+        }
+        private void AdvanceArmyStrategy(){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit){Array.Clear(armyOrders,0,armyOrders.Length);return;}
+            if(tick%100!=0||(int)Difficulty<(int)ArenaDifficulty.Advanced)return;
+            foreach(var team in new[]{ArenaTeam.Lux,ArenaTeam.Tenebra}){
+                if(team==Player.Team&&!AutonomousTraining||GetArmyCommand(team).Active(Time))continue;
+                var home=Base(team);
+                var threat=units.Where(u=>u.Team!=team&&u.State.Alive&&Vector2.Distance(u.Position,home)<45&&IsVisibleTo(team,u)).OrderBy(u=>Vector2.Distance(u.Position,home)).FirstOrDefault();
+                if(threat!=null){SetArmyOrder(team,ArmyOrder.Defend,ArmyFormation.Screen,ArenaLane.Mid,0,home);continue;}
+                if(units.Any(u=>u.Team==team&&u.IsCaravan&&u.State.Alive)){SetArmyOrder(team,ArmyOrder.Escort,ArmyFormation.Screen,ArenaLane.Mid,0,home);continue;}
+                var site=territories.Where(t=>t.Owner!=team&&!t.Contested&&resourceNodes.Any(n=>n.Territory==t&&n.Stock>0)).OrderBy(t=>Vector2.Distance(home,t.Position)).FirstOrDefault();
+                if(Time>=90&&site!=null){SetArmyOrder(team,ArmyOrder.Capture,ArmyFormation.Wedge,ArenaLane.Mid,site.Id,site.Position);continue;}
+                if(Time>=60){var lane=units.Where(u=>u.Team!=team&&u.Kind==BattleTargetKind.Structure&&!u.IsVillageBuilding&&!u.Core&&!u.Temporary&&u.State.Alive&&IsVisibleTo(team,u)).OrderBy(u=>u.State.Health/u.State.MaxHealth).ThenBy(u=>u.Id).FirstOrDefault()?.Lane??ArenaLane.Mid;SetArmyOrder(team,ArmyOrder.PushLane,ArmyFormation.Line,lane,0,home);}
+            }
+        }
+        private bool TryArmyGoal(BattleUnit u,out Vector2 goal){
+            goal=default;var cmd=GetArmyCommand(u.Team);
+            if(!cmd.Active(Time)||Time>=OfflineMatchRules.MatchLimit||!CoreAlive((ArenaTeam)(1-(int)u.Team)))return false;
+            bool hero=u.Kind==BattleTargetKind.Hero;
+            if(!hero&&u.Kind!=BattleTargetKind.Minion)return false;
+            // Minions keep a lane except when their own lane is ordered to push/defend.
+            if(!hero&&(cmd.Order!=ArmyOrder.PushLane&&cmd.Order!=ArmyOrder.Defend||u.Lane!=cmd.Lane))return false;
+            Vector2 anchor=cmd.Anchor;
+            switch(cmd.Order){
+                case ArmyOrder.PushLane:anchor=new Vector2(u.Team==ArenaTeam.Lux?Width-22:22,LaneY[(int)cmd.Lane]);break;
+                case ArmyOrder.Defend:var depot=Depot(u);if(depot!=null)anchor=depot.Position+new Vector2(u.Team==ArenaTeam.Lux?8:-8,0);break;
+                case ArmyOrder.Capture:var site=territories.FirstOrDefault(t=>t.Id==cmd.TerritoryId);if(site==null||site.Owner==u.Team)return false;anchor=site.Position;break;
+                case ArmyOrder.Escort:var wagon=units.Where(v=>v.Team==u.Team&&v.IsCaravan&&v.State.Alive).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();if(wagon==null)return false;anchor=wagon.Position;break;
+            }
+            int slot=hero?units.Count(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.Id<u.Id):u.Id%5;
+            bool rear=hero?u.State.Kit.BasicRange>=8:u.Role==MinionRole.Healer||u.Role==MinionRole.Mage||u.Role==MinionRole.Gunner;
+            var offset=ArmyStrategyRules.Offset(cmd.Formation,slot,rear,u.Team==ArenaTeam.Lux);
+            if(cmd.Order==ArmyOrder.Capture)offset=Vector2.ClampMagnitude(offset,ResourceTerritory.Radius-2);
+            goal=anchor+offset;goal=new Vector2(Mathf.Clamp(goal.x,3,Width-3),Mathf.Clamp(goal.y,3,Height-3));
+            if(Blocked(goal)||(navigation!=null&&!navigation.CanTraverse(goal,goal)))goal=anchor;
+            return !Blocked(goal);
+        }
         private void Bot(BattleUnit u,float speed){
             var a=u.State;u.Retreat=CanRespawn(u.Team)&&OfflineMatchRules.Retreat(a.Health/a.MaxHealth,u.Retreat);
             if(Vector2.Distance(u.Position,u.Spawn)<12&&CoreAlive(u.Team)){
                 var order=a.Health/a.MaxHealth<.45f?new[]{"armor","vitality","boots","blade","aegis","wisdom"}:new[]{"blade","boots","armor","withering_thorn","sealbreaker","renewal"};
                 foreach(var item in order)Buy(u,item);
             }
-            if(u.Retreat){if(a.Health/a.MaxHealth<.45f)UseTactic(u,Vector2.zero);if(!units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<15)&&BeginRecall(u))return;Steer(u,u.Spawn-u.Position,speed);return;}
+            if(u.Retreat){if(a.Health/a.MaxHealth<.45f)UseTactic(u,Vector2.zero);if(!units.Any(v=>v.Team!=u.Team&&Attackable(v)&&IsVisibleTo(u.Team,v)&&Dist(u,v)<15)&&BeginRecall(u))return;Steer(u,u.Spawn-u.Position,speed);return;}
             int decisionTicks=Difficulty==ArenaDifficulty.Beginner?10:Difficulty==ArenaDifficulty.Normal?6:Difficulty==ArenaDifficulty.Advanced?4:Difficulty==ArenaDifficulty.Expert?3:2;
             if(tick%decisionTicks==0)TrySupport(u);
             var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&(v.IsCaravan||v.Villager?.Job.Effect==VillageEffect.Gather)?(v.IsCaravan?6:4):0)+(ClearSight(u.Position,v.Position)?3:0)).ThenBy(v=>v.Id).FirstOrDefault();
+            if(TryArmyGoal(u,out var armyGoal)&&(t==null||Dist(u,t)>Mathf.Max(8,a.Kit.BasicRange)&&Vector2.Distance(t.Position,armyGoal)>18)){
+                if(Vector2.Distance(u.Position,armyGoal)>2)Steer(u,armyGoal-u.Position,speed);
+                return;
+            }
             if(t==null&&!u.Jungler&&Time<OfflineMatchRules.MatchLimit&&(int)Difficulty>=(int)ArenaDifficulty.Advanced){
                 var wagon=units.Where(v=>v.Team==u.Team&&v.IsCaravan&&v.State.Alive&&Dist(u,v)<24).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
                 if(wagon!=null&&units.Where(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&!v.Jungler&&!v.Retreat&&(v!=Player||AutonomousTraining)).OrderBy(v=>Dist(v,wagon)).ThenBy(v=>v.Id).FirstOrDefault()==u){
@@ -844,11 +899,11 @@ namespace Buklod.Empire {
                 if(u.Role==MinionRole.Healer)t.State.Heal(s.HealAmount*u.Power);
                 else{
                     Hit(u.State,t.State,MinionCombatRules.HitDamage(u.Role,u.Power,t.Kind,0));
-                    if(s.SplashRadiusSourceUnits>0)foreach(var v in units.ToArray())if(v!=t&&v.Kind!=BattleTargetKind.Villager&&v.Team!=u.Team&&Attackable(v)&&Dist(t,v)*40<=s.SplashRadiusSourceUnits)Hit(u.State,v.State,MinionCombatRules.HitDamage(u.Role,u.Power,v.Kind,0));
+                    if(s.SplashRadiusSourceUnits>0)foreach(var v in units.ToArray())if(v!=t&&v.Kind!=BattleTargetKind.Villager&&v.Team!=u.Team&&Attackable(v)&&IsVisibleTo(u.Team,v)&&ClearSight(t.Position,v.Position)&&Dist(t,v)*40<=s.SplashRadiusSourceUnits)Hit(u.State,v.State,MinionCombatRules.HitDamage(u.Role,u.Power,v.Kind,0));
                 }
                 u.LastAttack=Time;return;
             }
-            var goal=LaneGoal(u);
+            var goal=TryArmyGoal(u,out var armyGoal)?armyGoal:LaneGoal(u);
             if(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit){var enemy=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();if(enemy!=null)goal=enemy.Position;}
             Steer(u,goal-u.Position,s.SpeedSourceUnits/40*(1+u.State.Buff("haste",Time))*(1-Mathf.Clamp(u.State.Buff("slow",Time),0,.45f)));
         }

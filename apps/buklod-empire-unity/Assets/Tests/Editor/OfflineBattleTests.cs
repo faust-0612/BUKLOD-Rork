@@ -34,6 +34,15 @@ namespace Buklod.Empire.Tests {
             Assert.True(b.Hit(b.Player.State,summon.State,300));Assert.AreEqual(gold,b.Player.Gold);Assert.AreEqual(xp,b.Player.Xp);
             Assert.False(b.Dash(b.Player.State,Vector2.right,float.PositiveInfinity));
         }
+        [Test] public void ArmyOrdersAreMatchLocalBoundedAndValidateTargets(){
+            var b=new OfflineBattle("phan");Assert.AreEqual(ArmyOrder.Automatic,b.GetArmyCommand(ArenaTeam.Lux).Order);
+            Assert.False(b.OrderPlayerArmy(ArmyOrder.Capture,ArmyFormation.Wedge,ArenaLane.Mid,999));
+            Assert.False(b.OrderPlayerArmy(ArmyOrder.Escort,ArmyFormation.Screen));
+            Assert.True(b.OrderPlayerArmy(ArmyOrder.Rally,ArmyFormation.Wedge));Assert.AreEqual(ArmyOrder.Rally,b.GetArmyCommand(ArenaTeam.Lux).Order);
+            Assert.AreEqual(35,b.GetArmyCommand(ArenaTeam.Lux).ExpiresAt);Assert.False(b.OrderPlayerArmy(ArmyOrder.Defend,ArmyFormation.Line));
+            Assert.True(b.OrderPlayerArmy(ArmyOrder.Automatic,ArmyFormation.Line));Assert.AreEqual(ArmyOrder.Automatic,b.GetArmyCommand(ArenaTeam.Lux).Order);
+            Assert.AreEqual(ArmyOrder.Automatic,new OfflineBattle("phan").GetArmyCommand(ArenaTeam.Lux).Order);
+        }
         [Test] public void CaravanModeIsOwnedWorkerOnlyAndDoesNotCreateCargo(){
             var b=new OfflineBattle("phan");var worker=b.Units.Single(u=>u.Villager?.Job.Id=="lira");
             Assert.True(worker.CaravanEnabled);Assert.False(b.TogglePlayerCaravan("velin"));Assert.False(b.TogglePlayerCaravan("unknown"));
