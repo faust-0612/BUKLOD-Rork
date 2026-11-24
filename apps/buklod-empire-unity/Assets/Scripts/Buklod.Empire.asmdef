@@ -3,6 +3,6 @@
   "rootNamespace": "Buklod.Empire",
   "references": [
     "Unity.InputSystem",
-    "Unity.ugui"
+    "UnityEngine.UI"
   ]
 }

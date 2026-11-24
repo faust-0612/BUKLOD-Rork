@@ -17,6 +17,11 @@ namespace Buklod.Empire.Editor
             if (report.summary.platform != BuildTarget.Android)
                 return;
 
+            if(Application.unityVersion!="6000.0.86f1")
+                throw new BuildFailedException("Use the pinned, security-patched Unity 6000.0.86f1 Editor.");
+            var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(ArenaSceneComposer.CatalogPath);
+            if(!catalog)throw new BuildFailedException("Production asset catalog is missing.");
+            try{catalog.Validate();}catch(System.Exception ex){throw new BuildFailedException(ex.Message);}
             var applicationId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
             if (applicationId != ExpectedApplicationId)
                 throw new BuildFailedException("BUKLOD Empire requires its isolated Android application ID: " + ExpectedApplicationId);

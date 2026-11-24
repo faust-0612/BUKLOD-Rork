@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 namespace Buklod.Empire {
-    public enum BattleTargetKind { Minion, Structure, Hero }
+    public enum BattleTargetKind { Minion, Structure, Hero, Villager }
     public readonly struct MinionStats {
         public readonly float Health, Damage, SpeedSourceUnits, RangeSourceUnits, Cooldown, Defense, SplashRadiusSourceUnits, StructureMultiplier, HealAmount;
         public MinionStats(float hp,float dmg,float speed,float range,float cooldown,float defense,float splash=0,float structureMultiplier=1,float heal=0) {

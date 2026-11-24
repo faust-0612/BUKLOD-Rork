@@ -5,7 +5,8 @@ namespace Buklod.Empire {
     [CreateAssetMenu(menuName="BUKLOD Empire/Visual Catalog")]
     public sealed class BattleVisualCatalog:ScriptableObject {
         [Serializable] public sealed class HeroVisual {public string id;public GameObject prefab;}
-        [Serializable] public sealed class FactionVisual {public ArenaTeam team;public GameObject tower,core;public GameObject[] minions=new GameObject[5];}
+        [Serializable] public sealed class VillagerVisual {public string id;public GameObject prefab;}
+        [Serializable] public sealed class FactionVisual {public ArenaTeam team;public GameObject tower,core;public GameObject[] minions=new GameObject[5];public VillagerVisual[] villagers=new VillagerVisual[6];}
         public GameObject genesisRift;
         public HeroVisual[] heroes;
         public FactionVisual[] factions;
@@ -14,6 +15,7 @@ namespace Buklod.Empire {
             if(unit.Kind==BattleTargetKind.Hero){foreach(var h in heroes)if(h.id==unit.State.Kit.Id)return h.prefab;}
             else foreach(var f in factions)if(f.team==unit.Team){
                 if(unit.Kind==BattleTargetKind.Structure)return unit.Core?f.core:f.tower;
+                if(unit.Kind==BattleTargetKind.Villager){foreach(var v in f.villagers)if(v.id==unit.Villager.Job.Id)return v.prefab;break;}
                 return f.minions[(int)unit.Role];
             }
             throw new InvalidOperationException("Missing visual for unit "+unit.Id);
@@ -33,6 +35,10 @@ namespace Buklod.Empire {
             foreach(var f in factions){
                 if(f==null||!teams.Add(f.team)||!f.tower||!f.core||f.minions==null||f.minions.Length!=5)throw new InvalidOperationException("Incomplete faction visual catalog.");
                 foreach(var minion in f.minions)if(!minion)throw new InvalidOperationException("Missing faction minion prefab.");
+                if(f.villagers==null||f.villagers.Length!=6)throw new InvalidOperationException("Six villagers per faction are required.");
+                var expected=new HashSet<string>(f.team==ArenaTeam.Lux?new[]{"aron","lira","daren","serah","kiel","miko"}:new[]{"rogar","velin","kael","mora","zed","taro"});
+                foreach(var v in f.villagers)if(v==null||!v.prefab||!expected.Remove(v.id))throw new InvalidOperationException("Missing or duplicate villager visual.");
+                if(expected.Count!=0)throw new InvalidOperationException("Villager roster incomplete.");
             }
             if(!teams.Contains(ArenaTeam.Lux)||!teams.Contains(ArenaTeam.Tenebra)||teams.Count!=2)throw new InvalidOperationException("Both factions are required.");
         }

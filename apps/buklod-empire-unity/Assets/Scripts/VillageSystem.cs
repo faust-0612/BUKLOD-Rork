@@ -103,7 +103,7 @@ namespace Buklod.Empire {
             float p=m.Power;bool lux=Team==ArenaTeam.Lux;
             switch(m.Job.Effect) {
                 case VillageEffect.Gather:
-                    double rate=lux?1:1.4;
+                    double rate=(lux?1:1.4)*(m.Level>=5?1.2:1);
                     Wood+=6*p*rate;Stone+=4*p*rate;Crystal+=2*p*rate;return true;
                 case VillageEffect.Build:
                     int level=battle.LowestTowerLevel(Team);

@@ -14,6 +14,7 @@ namespace Buklod.Empire {
     public sealed class SkillActor {
         public readonly HeroKit Kit;
         public float Health=160, MaxHealth=160, Mana=100, Shield;
+        private float temporaryShield,temporaryShieldUntil;
         public int Level=3;
         public float LastCastAt {get;private set;}=float.NegativeInfinity;
         public SkillSlot LastCastSlot {get;private set;}
@@ -22,7 +23,7 @@ namespace Buklod.Empire {
         private readonly float[] last={float.NegativeInfinity,float.NegativeInfinity,float.NegativeInfinity};
         public SkillActor(string hero){Kit=HeroKitCatalog.Get(hero);}
         internal SkillActor(float health){Health=MaxHealth=health;Mana=0;Level=0;}
-        internal void Respawn(){Health=MaxHealth;Mana=100;Shield=0;buffs.Clear();}
+        internal void Respawn(){Health=MaxHealth;Mana=100;Shield=0;temporaryShield=temporaryShieldUntil=0;buffs.Clear();}
         public float Buff(string id,float now)=>buffs.TryGetValue(id,out var b)&&b.until>now?b.strength:0;
         public void Clear(string id)=>buffs.Remove(id);
         public void Set(string id,float strength,float until,float now){
@@ -31,6 +32,15 @@ namespace Buklod.Empire {
         }
         public void Heal(float value){if(Alive)Health=Mathf.Min(MaxHealth,Health+Mathf.Max(0,value));}
         public void AddShield(float value,float cap=105){if(Alive)Shield=Mathf.Min(cap,Shield+Mathf.Max(0,value));}
+        internal void AddTemporaryShield(float value,float until,float now){
+            if(!Alive)return;if(temporaryShieldUntil<=now)temporaryShield=0;
+            temporaryShield=Mathf.Min(Mathf.Max(0,105-Shield),temporaryShield+Mathf.Max(0,value));temporaryShieldUntil=Mathf.Max(temporaryShieldUntil,until);
+        }
+        internal float Absorb(float incoming,float now){
+            if(temporaryShieldUntil<=now)temporaryShield=0;
+            float t=Mathf.Min(temporaryShield,incoming);temporaryShield-=t;incoming-=t;
+            float s=Mathf.Min(Shield,incoming);Shield-=s;return incoming-s;
+        }
         public float Cooldown(SkillSlot slot,float now){
             var v=Kit.Skill(slot).Cooldown*(1-Mathf.Clamp(Buff("cooldown",now),0,.25f));
             if(Kit.Id=="angel")v*=.9f;

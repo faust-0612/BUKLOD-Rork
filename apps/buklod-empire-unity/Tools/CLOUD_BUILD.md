@@ -5,7 +5,7 @@ Only the isolated Unity project is in scope. The Unity Cloud target is manually 
 - Project path: apps/buklod-empire-unity
 - Android application ID: org.mzbministry.buklod.empire
 - Debug signing for development; APK; automatic builds off.
-- Use a supported, security-patched Unity 6.0 LTS version pinned in ProjectVersion.txt before the first build. Verify availability in the cloud target; do not silently choose the closest version.
+- Unity 6000.0.86f1 is pinned in ProjectVersion.txt before the first build (the October 2026 Brotli and certificate advisories identify 6000.0.85f2 as the first fixed release). Verify availability in the cloud target; do not silently choose the closest version.
 - Use the account's available free machine and verify allowance before compiling. No paid upgrade, automatic overage, or Boost Disk without explicit approval.
 
 The AndroidBuildGuard automatically rejects the wrong application ID and missing/invalid enabled scenes. This is a minimal source safety gate, not a release approval. No additional dashboard script hook is required for this guard.
