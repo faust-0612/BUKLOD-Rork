@@ -15,6 +15,12 @@ namespace Buklod.Empire.Tests {
             public bool Wall(SkillActor a,Vector2 d,float n,float r,float t)=>Allow;
             public bool Turret(SkillActor a,Vector2 d,float n,float h,float t,float damage)=>Allow;
         }
+        [Test] public void AngelInnateCooldownAndNielResistanceAreBounded(){
+            var angel=new SkillActor("angel");Assert.AreEqual(7.2f,angel.Cooldown(SkillSlot.Primary,0),.001f);
+            var a=new SkillActor("phan");a.Set("resist",.2f,5,0);a.Set("stun",1,1,0);
+            Assert.False(a.CanCast(.79f));Assert.True(a.CanCast(.81f));
+            a.Set("suppression",1,2,1);Assert.False(a.CanCast(1.9f));
+        }
         [Test] public void AllCanonicalIdentitiesDispatch(){
             Assert.That(HeroKitCatalog.All.Count,Is.EqualTo(13));
             Assert.That(HeroKitCatalog.All.SelectMany(h=>new[]{h.Primary.Id,h.Secondary.Id,h.Ultimate.Id}).Distinct().Count(),Is.EqualTo(39));

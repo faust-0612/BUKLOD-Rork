@@ -369,7 +369,7 @@ namespace Buklod.Empire {
             if(hpDamage>0&&a.Gear.Contains("withering_thorn")&&t.Kind==BattleTargetKind.Hero)target.Set("antiheal",.35f,Time+4,Time);
             if(basic&&t.Kind!=BattleTargetKind.Structure&&t.Kind!=BattleTargetKind.Villager)actor.Heal(hpDamage*((a.Gear.Contains("renewal")?.15f:0)+a.CovenantBonus.Lifesteal));
             if(actor.Kit?.Id=="mitch")target.Set("vulnerable",.1f,Time+3,Time);
-            if(actor.Kit?.Id=="quin"&&Time>=a.TrailReady&&n>0){target.Set("revealed",1,Time+6,Time);a.TrailReady=Time+8;}
+            if(actor.Kit?.Id=="quin"&&Time>=a.TrailReady&&n>0){target.Set("revealed",1,Time+6,Time);foreach(var nearby in units)if(nearby.Team!=a.Team&&nearby.State.Alive&&Dist(a,nearby)<=12.5f)nearby.State.Set("revealed",1,Time+6,Time);a.TrailReady=Time+8;}
             if(actor.Kit?.Id=="jawo"&&n>0&&Time-a.RhythmAt>=.39f){a.RhythmStacks=Time-a.RhythmAt>4?1:Math.Min(5,a.RhythmStacks+1);a.RhythmAt=Time;}
             if(target.Kit?.Id=="trudice"&&hpDamage>0)actor.Health=Mathf.Max(1,actor.Health-hpDamage*Mathf.Clamp(target.Buff("reflect",Time),0,.3f));
             if(!target.Alive){
@@ -413,7 +413,7 @@ namespace Buklod.Empire {
         }
         private WildernessCamp FindCamp(BattleUnit hero,Vector2 aim,float range)=>wilderness.Camps.Where(c=>c.Alive&&Vector2.Distance(hero.Position,c.Position)<=range&&ClearSight(hero.Position,c.Position)&&OfflineMatchRules.InAimCone(c.Position-hero.Position,aim)).OrderBy(c=>Vector2.Distance(hero.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
         private bool HitCamp(BattleUnit hero,WildernessCamp camp,float range,float damage){
-            if(Finished||hero==null||!hero.State.Alive||hero.State.Kit==null||camp==null||!ClearSight(hero.Position,camp.Position)||!wilderness.TryHit(camp.Id,hero.Id,hero.Position,range,damage,out bool defeated))return false;
+            if(Finished||hero==null||!hero.State.Alive||hero.State.Kit==null||camp==null||!ClearSight(hero.Position,camp.Position)||!wilderness.TryHit(camp.Id,hero.Id,hero.Position,range,damage*(1+Mathf.Clamp(hero.State.Buff("objective",Time),0,.5f)),out bool defeated))return false;
             hero.RecallEnds=0;hero.State.Set("revealed",1,Time+2,Time);
             if(defeated){
                 var a=hero.State;hero.Gold=Mathf.Min(9999,hero.Gold+Mathf.RoundToInt((camp.Boss?90:30)*(1+hero.CovenantBonus.NeutralReward)));GainXp(hero,(camp.Boss?90:35)*(1+hero.CovenantBonus.NeutralReward));
@@ -765,7 +765,9 @@ namespace Buklod.Empire {
                     if(friends.Length>0){a.Set("guard",.12f,Time+.2f,Time);a.Heal(.4f*Step);}
                     foreach(var friend in friends){friend.State.Set("guard",.12f,Time+.2f,Time);friend.State.Heal(.4f*Step);}
                 }else if(id=="christian"){
-                    foreach(var friend in heroes)if(friend!=u&&friend.Team==u.Team&&Dist(u,friend)<=8.75f)friend.State.Heal(friend.State.MaxHealth*.01f*Step);
+                    foreach(var friend in heroes)if(friend.Team==u.Team&&Dist(u,friend)<=8.75f){friend.State.Heal(friend.State.MaxHealth*.01f*Step);friend.State.Set("objective",.25f,Time+.6f,Time);}
+                }else if(id=="niel"){
+                    foreach(var friend in heroes)if(friend.Team==u.Team&&Dist(u,friend)<=8.75f)friend.State.Set("resist",.20f,Time+.6f,Time);
                 }else if(id=="lhen"){
                     if(Time>=u.HarmonyAt&&heroes.Any(v=>v!=u&&v.Team==u.Team&&Dist(u,v)<=8)){a.HarmonyStacks=Math.Min(5,a.HarmonyStacks+1);u.HarmonyAt=Time+2;}
                 }else if(id=="ace"){
