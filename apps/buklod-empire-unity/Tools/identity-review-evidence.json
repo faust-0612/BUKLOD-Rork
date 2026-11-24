@@ -1,0 +1,29 @@
+{
+  "status": "OFFLINE_GEOMETRY_VALIDATED_REVIEW_ONLY",
+  "baseline": "d711fd6314608a84f8660e26cdbbff2668528d94",
+  "executedBlobs": {
+    "identityDetail": "474319798fac1d70d98fdc340ae7a64f78ee6eb5",
+    "generator": "10ff3a2f1bafb9ffac8d03f799dc47c9ef2f9f12"
+  },
+  "heroes": 13,
+  "variants": 39,
+  "triangles": 96360,
+  "previousTriangles": 87084,
+  "maxTrianglesPerHero": 8916,
+  "clips": 156,
+  "canonicalSkillMotions": 39,
+  "checks": [
+    "all 13 GLBs generated",
+    "all 39 cosmetic GLBs regenerated",
+    "ZIP CRC integrity",
+    "finite UVs and positions",
+    "unit normals and skin weights",
+    "joint and index ranges",
+    "unchanged node hierarchy and bind matrix values",
+    "all animation sampler values and channels unchanged from previous GLBs",
+    "Sacred Stone materials unchanged"
+  ],
+  "referenceScope": "Six hero art sheets reviewed; seven existing canonical profiles. No portrait likeness approval.",
+  "unityEditorExecuted": false,
+  "paidGenerationRequests": 0
+}
