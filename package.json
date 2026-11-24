@@ -13,7 +13,7 @@
     "doctor": "npx expo-doctor@latest",
     "character:contract": "node scripts/character-release-contract.mjs && node scripts/character-active-renderer-gate.mjs",
     "character:contract:dist": "node scripts/character-release-contract.mjs --dist dist && node scripts/character-active-renderer-gate.mjs",
-    "game:contract": "node scripts/game-kingdom-release-contract.mjs",
+    "game:contract": "node scripts/game-kingdom-release-contract.mjs && node --test tests/kingdom-casual-arcade.test.cjs",
     "game:contract:dist": "node scripts/game-kingdom-release-contract.mjs --dist dist",
     "compact:contract": "node scripts/compact-layout-gate.mjs",
     "release:base-gate": "node scripts/release-gate.mjs",

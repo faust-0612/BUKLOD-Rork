@@ -1,0 +1,119 @@
+{
+  "contractVersion": 2,
+  "objective": "BUKLOD MAIN Character Kingdom casual arcade overhaul: 26 playable quick-play games, two per each of 13 characters, alongside unmodified original 39 catalog.",
+  "baseRef": "7b224c39624827282c3cbf003060317045b0a73f",
+  "target": "DEV_ONLY_PREVIEW",
+  "releaseAuthorized": false,
+  "nativeBuildAuthorized": false,
+  "productionOTA": false,
+  "backendMutation": false,
+  "characterPointMinting": false,
+  "newDependencies": false,
+  "featureFlags": "New arcade layer at character station entry, not a replacement for game catalog or routes",
+  "gameModes": [
+    "catch",
+    "lane",
+    "runner",
+    "rhythm",
+    "defend",
+    "tap",
+    "search",
+    "stack"
+  ],
+  "newGames": 26,
+  "existingGamesPreserved": 39,
+  "newFeatures": [
+    "account-bound local arcade mastery",
+    "simple tap/swipe controls with accessible buttons",
+    "pause/resume and offline deterministic rules",
+    "stage-by-stage progression without fixed final stage",
+    "reactive sounds and existing approved native character cinematics",
+    "expert/original games retained behind arcade options",
+    "Global EN/TL guide always matches selected arcade game, with beginner instructions for each control mode",
+    "Persistent account-isolated arcade level unlocks, with one-time local game-only mastery point bonuses and checkpoint deduplication",
+    "Procedural wave layouts prevent close repeats across eight rotating challenge modifiers with increasingly demanding but achievable goals",
+    "Stage score multipliers and first-clear bonuses, combo milestones and recoverable interrupted local saves",
+    "Offline premium vector scenery, native-driver collectible easing and bounded animated particles",
+    "Existing premium Kingdom sound pack / signature SFX used; obeys audio preferences and screen lifecycle"
+  ],
+  "allowedPaths": [
+    "src/features/games/kingdom/arcade/arcadeCatalog.ts",
+    "src/features/games/kingdom/arcade/arcadeCore.js",
+    "src/features/games/kingdom/arcade/arcadeCore.d.ts",
+    "src/features/games/kingdom/arcade/ArcadeGameV1.tsx",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "src/features/games/kingdom/platform/KingdomCinematicScenes.ts",
+    "package.json",
+    "tests/kingdom-casual-arcade.test.cjs",
+    ".buklod/scopes/kingdom-casual-arcade-20261122.json",
+    "src/features/games/runtime/BuklodGameLanguage.tsx",
+    "src/features/games/kingdom/arcade/arcadeProgressCore.js",
+    "src/features/games/kingdom/arcade/arcadeProgressCore.d.ts",
+    "src/features/games/kingdom/arcade/arcadeProgressStore.ts",
+    "src/features/games/kingdom/arcade/ArcadePremiumFX.tsx"
+  ],
+  "criticalGates": [
+    "node --test tests/kingdom-casual-arcade.test.cjs",
+    "npm run game:contract",
+    "TypeScript build/typecheck",
+    "native preview QA and AdMob/tab responsiveness regression before OTA"
+  ],
+  "constraints": [
+    "No new native modules or external assets; use existing character rigs, game feedback and React Native components",
+    "No new BP, XP, cash, collectible or rank rewards",
+    "No new backend or metadata migrations",
+    "No production, OTA or native release from DEV branch",
+    "Do not silently replace old 39 game definitions or protected primary maps"
+  ],
+  "productionBaselineEvidence": "GitHub protected main source 7b224c39624827282c3cbf003060317045b0a73f; active 39-game catalog and existing original Kingdom stations inspected. DEV-only branch is not an authorized production or staging OTA.",
+  "chosenApproach": "Preserve all 39 original/expert game IDs and 13 in-app Kingdom routes; add a guarded arcade-first layer with 26 themed games and a shared, offline gameplay state machine. New per-account stage checkpoints complement existing preview scores; stage awards are idempotent and sound/graphics reuse already-bundled premium assets.",
+  "selectionRationale": "A shared eight-mode engine allows real playable controls, scalable difficulty and consistent account isolation without any new native dependencies or destructive changes to Kingdom, reward authority or home navigation. Randomized geometry and eight rotating mission modifiers reduce short-term repetition; finite devices cannot guarantee literally unique layouts forever, so only nearby patterns are explicitly excluded.",
+  "acceptanceChecks": [
+    "Confirm exactly two new playable arcade games per each of 13 existing character stations; previous original 39 remain selectable",
+    "Pass node --test tests/kingdom-casual-arcade.test.cjs and npm run game:contract",
+    "Pass TypeScript check, regression checks, and Android staging runtime UI/ad/nav QA before any release",
+    "Never mint BP, XP, cash or collectibles from client arcade results",
+    "Opening GUIDE on any arcade displays the selected title and correct English/Tagalog controls",
+    "Complete increasing procedural challenge tiers and avoid short-range duplicate spawn patterns across all eight modes",
+    "Persist stage unlocks when finishing an arcade stage; replay does not duplicate local mastery points",
+    "Block lost local stage saves before unlocking the next stage; do not leak in-flight runs across account switches",
+    "Keep premium vector animations bounded and test no native dependency or reward server changes"
+  ],
+  "preserveBehaviors": [
+    "Original game route IDs, map doors, previous 39 games and existing progression remain unchanged",
+    "Server-verified real Points and mastery logic remains authoritative and inaccessible from new arcade local previews",
+    "Approved Android character visuals, user auth, local record account isolation, AdMob placement and app navigation remain intact",
+    "Current production BUKLOD MAIN Expo channel and runtime stay unchanged",
+    "Arcade game-only mastery points remain separate from BUKLOD BP, Character Points, cash, referral and rank authority"
+  ],
+  "alternativeApproaches": [
+    "Delete old 39 games and fully replace with only casual titles: rejected because it destroys expert progress and existing game routes",
+    "Build new standalone native/Godot arcade APK: rejected because Kingdom belongs inside BUKLOD MAIN and would require unauthorized native release",
+    "Add 26 themed configurations on the shared eight-mode client arcade engine while keeping expert catalog: selected to reduce incompatibility and allow focused QA"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "kingdom-character",
+    "gameplay",
+    "local-preview",
+    "offline-data-integrity",
+    "animation-performance",
+    "audio-lifecycle"
+  ],
+  "regressionTests": [
+    "tests/kingdom-casual-arcade.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New opt-in playable arcade runtime integrated at all existing Kingdom character stations without changing the protected Android native package or money issuance.",
+      "preservedBehaviors": [
+        "Retains existing BUKLOD app runtime and 13 original Kingdom map destinations",
+        "All BP, financial rewards and masteries remain server-authoritative and cannot be minted from arcade preview scores"
+      ],
+      "tests": [
+        "tests/kingdom-casual-arcade.test.cjs"
+      ]
+    }
+  ]
+}

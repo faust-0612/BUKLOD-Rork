@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
@@ -12,6 +12,8 @@ import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLangua
 import { KingdomMasteryCheck } from './KingdomMasteryCheck';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import KingdomCinematicScene from './KingdomCinematicScene';
+import { arcadeGamesForCharacter } from '../arcade/arcadeCatalog';
+import { ArcadeGameV1 } from '../arcade/ArcadeGameV1';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -19,7 +21,7 @@ export type KingdomInteriorOption = {
   title: string;
   descriptionEn: string;
   descriptionTl: string;
-  kind: 'existing' | 'pilot';
+  kind: 'existing' | 'pilot' | 'arcade';
   // Original games retain their own legacy preview-map completion behavior.
   render: (onMiniFinish: MiniGameFinish, onOriginalFinish: (result: BuklodGameResult) => void) => React.ReactNode;
 };
@@ -41,8 +43,16 @@ export function KingdomInteriorCenter({
   character, subtitleEn, subtitleTl, options, compactGameId, onActiveGameChange,
 }: KingdomInteriorProps) {
   const { user } = useAuth();
-  const { t } = useBuklodGameLanguage();
-  const [activeId, setActiveId] = useState(options[0]?.id ?? '');
+  const { t, setGuideGameId } = useBuklodGameLanguage();
+  const arcadeOptions = useMemo<KingdomInteriorOption[]>(() =>
+    arcadeGamesForCharacter(character).map(game => ({
+      id: game.id, title: '🎮 ' + game.title,
+      descriptionEn: game.descriptionEn, descriptionTl: game.descriptionTl,
+      kind: 'arcade' as const,
+      render: (onMiniFinish: MiniGameFinish) => <ArcadeGameV1 game={game} onFinish={onMiniFinish} />,
+    })), [character]);
+  const availableOptions = useMemo(() => [...arcadeOptions, ...options], [arcadeOptions, options]);
+  const [activeId, setActiveId] = useState(availableOptions[0]?.id ?? '');
   const [record, setRecord] = useState<KingdomPreviewRecord | null>(null);
   const [notice, setNotice] = useState('');
   const [masteryEligibility, setMasteryEligibility] = useState<{ owner: string; gameId: string } | null>(null);
@@ -50,13 +60,20 @@ export function KingdomInteriorCenter({
   const gameRef = useRef(activeId);
   ownerRef.current = user?.id ?? null;
   gameRef.current = activeId;
-  const active = options.find(option => option.id === activeId) ?? options[0];
+  const active = availableOptions.find(option => option.id === activeId) ?? availableOptions[0];
+  useEffect(() => {
+    // Keep the global EN/TL guide matched to arcade selections. Existing
+    // expert/original guides retain the prior station behavior.
+    setGuideGameId(active?.kind === 'arcade' ? active.id : undefined);
+    return () => setGuideGameId(undefined);
+  }, [active?.id, active?.kind, setGuideGameId]);
+
 
   useEffect(() => {
     let mounted = true;
     setRecord(null);
     setNotice('');
-    if (active?.kind === 'pilot' && user?.id) {
+    if (active?.kind !== 'existing' && user?.id) {
       void readKingdomPreviewRecord(user.id, active.id)
         .then(value => { if (mounted) setRecord(value); })
         .catch(() => { if (mounted) setNotice(t('Local preview unavailable.', 'Hindi mabasa ang local preview.')); });
@@ -76,8 +93,10 @@ export function KingdomInteriorCenter({
       .then(value => {
         if (ownerRef.current !== owner || gameRef.current !== result.gameId) return;
         setRecord(value);
-        setNotice(t('Game saved locally. You may verify a separate Mastery Check below for real Points.', 'Na-save ang laro sa device. Puwedeng mag-Mastery Check sa ibaba para sa totoong Points.'));
-        if (result.status === 'won') setMasteryEligibility({ owner, gameId: result.gameId });
+        setNotice(active.kind === 'arcade'
+          ? t('Arcade mastery saved locally. No real BUKLOD Points were issued.', 'Na-save ang arcade mastery sa device. Walang totoong BUKLOD Points na ibinigay.')
+          : t('Game saved locally. You may verify a separate Mastery Check below for real Points.', 'Na-save ang laro sa device. Puwedeng mag-Mastery Check sa ibaba para sa totoong Points.'));
+        if (result.status === 'won' && active.kind !== 'arcade') setMasteryEligibility({ owner, gameId: result.gameId });
       })
       .catch(() => {
         if (ownerRef.current === owner && gameRef.current === result.gameId) {
@@ -89,7 +108,7 @@ export function KingdomInteriorCenter({
   if (!active) return null;
   const compact = active.id === compactGameId;
   return (
-    <ScrollView contentContainerStyle={[styles.page, !!compactGameId && styles.pageBelowGameControls]} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.page, compact && styles.pageBelowGameControls]} keyboardShouldPersistTaps="handled">
       <View style={styles.shell}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Back to Kingdom map', 'Bumalik sa mapa ng Kingdom')}
           onPress={() => router.replace('/games' as any)} style={styles.mapBack}>
@@ -105,7 +124,10 @@ export function KingdomInteriorCenter({
           </>
         )}
         <View style={[styles.chooser, compact && styles.chooserCompact]}>
-          {options.map(option => <Pressable
+          {availableOptions.map((option, index) => <React.Fragment key={option.id}>
+            {index === 0 ? <Text style={styles.groupLabel}>{t('QUICK-PLAY ARCADE • EASY TO START', 'ARCADE • MADALING LARUIN')}</Text> : null}
+            {index === arcadeOptions.length ? <Text style={styles.groupLabel}>{t('EXPERT & ORIGINAL GAMES', 'EXPERT AT ORIGINAL NA LARO')}</Text> : null}
+            <Pressable
             key={option.id} accessibilityRole="button"
             accessibilityState={{ selected: option.id === active.id }}
             style={[styles.option, compact && styles.optionCompact, option.id === active.id && styles.optionSelected]}
@@ -113,9 +135,9 @@ export function KingdomInteriorCenter({
           >
             <Text numberOfLines={compact ? 1 : undefined} style={[styles.optionTitle, compact && styles.optionTitleCompact]}>{option.title}</Text>
             {!compact ? <Text style={styles.optionDescription}>{t(option.descriptionEn, option.descriptionTl)}</Text> : null}
-          </Pressable>)}
+          </Pressable></React.Fragment>)}
         </View>
-        {active.kind === 'pilot' ? (
+        {active.kind !== 'existing' ? (
           <>
             <Text style={styles.record}>{t('Local best', 'Pinakamataas na local score')}: {record?.bestScore.toLocaleString() ?? '—'}
               {'   •   '}{t('Clears', 'Panalo')}: {record?.clears ?? 0}</Text>
@@ -137,14 +159,14 @@ export function KingdomInteriorCenter({
               }
             }).catch(() => undefined);
         })}</View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Play next Kingdom level offline"
+        {active.kind !== 'arcade' ? <Pressable accessibilityRole="button" accessibilityLabel="Play next Kingdom level offline"
           onPress={() => router.push({pathname:'/games/practice',params:{gameId:active.id}} as any)}
           style={styles.practiceLink}>
           <Text style={styles.practiceText}>{active.id === 'trudice-playground-memory'
             ? t('OPTIONAL OFFLINE MATH PRACTICE • NO REAL POINTS', 'OPTIONAL NA MATH PRACTICE • WALANG TOTOONG POINTS')
             : 'NEXT ADVENTURE LEVEL • OFFLINE PRACTICE'}</Text>
-        </Pressable>
-        {masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
+        </Pressable> : null}
+        {active.kind !== 'arcade' && masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
           <>
             <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
             <BuklodKingdomAdSlot placementId="kingdom_game_center_completed" kind="banner" />
@@ -170,7 +192,9 @@ const styles = StyleSheet.create({
   compactHeading: { color: '#f6e6bd', fontSize: 13, fontWeight: '900', letterSpacing: 1 },
   help: { color: '#cfdcf2', fontSize: 12, lineHeight: 19 },
   chooser: { flexDirection: 'row', gap: 9, flexWrap: 'wrap' },
-  chooserCompact: { gap: 5, flexWrap: 'nowrap' },
+  chooserCompact: { gap: 5, flexWrap: 'wrap' },
+  groupLabel: { width: '100%', color: '#f1d69b', fontSize: 11, fontWeight: '900', letterSpacing: .6,
+    marginTop: 4 },
   option: { minWidth: 142, flex: 1, borderWidth: 1, borderColor: '#5c708e', borderRadius: 13, backgroundColor: '#243b59', padding: 13 },
   optionSelected: { borderWidth: 2, borderColor: '#eac884', backgroundColor: '#394f71' },
   optionCompact: { minWidth: 0, paddingVertical: 10, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
