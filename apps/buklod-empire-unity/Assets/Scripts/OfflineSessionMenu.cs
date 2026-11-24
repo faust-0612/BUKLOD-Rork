@@ -11,7 +11,8 @@ namespace Buklod.Empire {
         private BattleView view;
         private RectTransform canvas,panel,heroGrid;
         private Text title,summary,choice;
-        private Button resume,start;
+        private Button resume,start,counter;
+        private Text counterLabel,stoneDetail,counterNotice;
         private Button[] shop;
         private Text shopStatus;
         private static readonly string[] GearIds={"blade","armor","boots"};
@@ -46,6 +47,9 @@ namespace Buklod.Empire {
             scaler.referenceResolution=new Vector2(1280,720);scaler.matchWidthOrHeight=.5f;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             ButtonAt("Menu",canvas,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
+            counter=ButtonAt("Practice counter",canvas,new Vector2(.70f,.91f),new Vector2(.88f,.99f),"COUNTER",ActivatePracticeCounter);
+            counterLabel=counter.GetComponentInChildren<Text>();
+            counterNotice=Label("Counter notice",canvas,new Vector2(.31f,.84f),new Vector2(.69f,.89f),"",20);
             shop=new Button[GearIds.Length];
             for(int i=0;i<GearIds.Length;i++){
                 string gear=GearIds[i];float y=.83f-i*.075f;
@@ -57,17 +61,27 @@ namespace Buklod.Empire {
             title=Label("Title",panel,new Vector2(.1f,.84f),new Vector2(.9f,.96f),"OFFLINE TRAINING",44);
             summary=Label("Summary",panel,new Vector2(.12f,.72f),new Vector2(.88f,.84f),"5v5 • No internet or persistent rewards",26);
             choice=Label("Selected hero",panel,new Vector2(.1f,.64f),new Vector2(.9f,.72f),"",27);
+            stoneDetail=Label("Sacred stone details",panel,new Vector2(.07f,.175f),new Vector2(.93f,.22f),"",19);
             heroGrid=Rect("Heroes",panel,new Vector2(.07f,.22f),new Vector2(.93f,.62f));
             for(int i=0;i<HeroKitCatalog.All.Count;i++){
                 var kit=HeroKitCatalog.All[i];int col=i%5,row=i/5;
                 float x=col/5f,y=1-(row+1)/3f;
-                ButtonAt(kit.Id,heroGrid,new Vector2(x+.008f,y+.02f),new Vector2(x+.192f,y+.31f),kit.Name,()=>Select(kit.Id));
+                SacredStoneCatalog.TryGet(kit.Id,out var identity);
+                ButtonAt(kit.Id,heroGrid,new Vector2(x+.008f,y+.02f),new Vector2(x+.192f,y+.31f),kit.Name+"\n"+(identity?.Name??""),()=>Select(kit.Id));
             }
             resume=ButtonAt("Resume",panel,new Vector2(.08f,.06f),new Vector2(.46f,.17f),"RESUME",Resume);
             start=ButtonAt("Start",panel,new Vector2(.54f,.06f),new Vector2(.92f,.17f),"START NEW MATCH",StartNew);
             Select(selected);Open();
         }
-        private void Select(string hero){selected=HeroKitCatalog.Get(hero).Id;choice.text="Selected: "+HeroKitCatalog.Get(hero).Name;}
+        private void Select(string hero){
+            selected=HeroKitCatalog.Get(hero).Id;
+            SacredStoneCatalog.TryGet(selected,out var stone);
+            choice.text="Selected: "+HeroKitCatalog.Get(hero).Name+" / "+(stone?.Name??"");
+            var ingredients=ArenaStoneRules.Ingredients(selected);
+            if(ingredients.Length==2&&SacredStoneCatalog.TryGet(ingredients[0],out var first)&&SacredStoneCatalog.TryGet(ingredients[1],out var second))
+                stoneDetail.text=first.Name+" + "+second.Name+" = "+stone.Name+" • Online: 100 BP / stone • Training: free";
+            else stoneDetail.text="Training is free; no persistent stones.";
+        }
         private void Open(){
             shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);
             Refresh();
@@ -96,8 +110,27 @@ namespace Buklod.Empire {
                 shop[i].GetComponentInChildren<Text>().text=owned?gear.ToUpperInvariant()+" ✓":gear.ToUpperInvariant()+" "+OfflineMatchRules.ShopPrice(gear);
             }
         }
+        private void ActivatePracticeCounter(){
+            var b=view.Battle;var target=b?.PracticeCounterTarget;
+            if(shown||view.Paused||target==null)return;
+            b.TryPracticeCounter(target.State.Kit.Id,target.Id);
+        }
+        private void RefreshCounter(){
+            var b=view.Battle;var target=b?.PracticeCounterTarget;
+            bool visible=!shown&&b!=null&&!b.Finished;
+            counter.gameObject.SetActive(visible);
+            counterNotice.gameObject.SetActive(visible);
+            counter.interactable=visible&&!view.Paused&&target!=null;
+            if(b==null){counterLabel.text="COUNTER";counterNotice.text="";return;}
+            string name=target==null?"":target.State.Kit.Name;
+            if(target!=null&&SacredStoneCatalog.TryGet(target.State.Kit.Id,out var stone))name=stone.Name;
+            counterLabel.text=b.PracticeCounterUsed?"COUNTER USED":target==null?"COUNTER: NO TARGET":"COUNTER "+name;
+            var active=b.ActivePracticeCounterTarget;
+            counterNotice.text=active!=null?active.State.Kit.Name+" • COUNTERED "+Mathf.CeilToInt(b.PracticeCounterRemaining)+"s":"";
+        }
         private void Update(){
             RefreshShop();
+            RefreshCounter();
             bool finished=view.Battle!=null&&view.Battle.Finished;
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();
             lastFinished=finished;
