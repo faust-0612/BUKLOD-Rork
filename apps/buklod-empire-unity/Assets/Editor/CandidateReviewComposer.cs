@@ -14,7 +14,7 @@ namespace Buklod.Empire.Editor {
         internal const string Out="Assets/Generated/ReviewOnly";
         const string Source="Tools/ReviewOutput";
         const string Candidate="Tools/AssetCandidates";
-        static readonly string[] HeroClips={"Idle","Walk","Run","Attack","Skill","Primary","Secondary","Ultimate","LegacyUltimate","Hit","Death","Victory"};
+        internal static readonly string[] HeroClips={"Idle","Walk","Run","Attack","Skill","Primary","Secondary","Ultimate","LegacyUltimate","Hit","Death","Victory"};
         static readonly string[] FactionClips={"Idle","Walk","Attack","Work","Hit","Death"};
         internal static readonly string[] Roles={"infantry","siege","gunner","mage","healer"};
         internal static readonly string[] LuxVillagers={"aron","lira","daren","serah","kiel","miko"};
@@ -58,7 +58,7 @@ namespace Buklod.Empire.Editor {
             AssetDatabase.SaveAssets();
             Debug.Log("35 candidate actor prefabs and 5 static prefabs imported; review scene saved outside production. Visual and deformation review remain required.");
         }
-        static GameObject MakePrefab(string id,string[] required){
+        internal static GameObject MakePrefab(string id,string[] required){
             string modelPath=$"{Out}/Models/{id}.glb";
             var model=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if(!model)throw new InvalidOperationException("glTFast GameObject import failed: "+id);
