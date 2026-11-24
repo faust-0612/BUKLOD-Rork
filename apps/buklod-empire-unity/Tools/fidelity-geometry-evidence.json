@@ -1,0 +1,21 @@
+{
+  "status": "FIXTURE_GEOMETRY_VALIDATED_REVIEW_ONLY",
+  "sourceGitBlob": "89ab9e39666befd09884f4d2a3598c8a5a0ce49b",
+  "testGitBlob": "f66a61b10624658baa8f306418fbb8f9a4b2b8ff",
+  "fixtureTestsPassed": 4,
+  "hairStyleFixtures": 7,
+  "checks": [
+    "finite geometry",
+    "unit normals",
+    "normalized skin weights",
+    "valid 16-bit indices",
+    "nondegenerate triangles",
+    "mantle replacement and two-joint blend",
+    "fallback unchanged",
+    "deterministic geometry"
+  ],
+  "canonicalRosterExportVerified": false,
+  "unityImportVerified": false,
+  "unityVisualVerified": false,
+  "paidGenerationRequests": 0
+}
