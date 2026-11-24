@@ -6,23 +6,26 @@ import {startArenaExpedition,stepArenaExpedition,type Expedition,type Expedition
 const STAGES=['Rare discovery','Monster encounter','Treasure lock','Village supplies','Quest completion'];
 type Pending={id:string;version:number;action:ExpeditionAction;answer:number|null};
 export default function ArenaKingdomExpedition({uid,hero,onSettled}:{uid:string;hero:ArenaStoneId;onSettled:()=>void}){
- const [route,setRoute]=useState<Expedition|null>(null),[answer,setAnswer]=useState(''),[pending,setPending]=useState<Pending|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[clock,setClock]=useState(Date.now());
+ const [route,setRoute]=useState<Expedition|null>(null),[answer,setAnswer]=useState(''),[pending,setPending]=useState<Pending|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[clock,setClock]=useState(Date.now()),[cooldownUntil,setCooldownUntil]=useState(0);
  const lock=useRef(false),alive=useRef(true);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
  useEffect(()=>{if(!route||route.state!=='active')return;const id=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(id);},[route?.state,route?.id]);
+ function accept(d:Expedition|null){
+  const now=Date.now();setClock(now);setCooldownUntil(d?now+Math.max(0,Date.parse(d.next_action_at)-Date.parse(d.server_now)):0);setRoute(d);
+ }
  async function start(){
   if(lock.current)return;lock.current=true;setBusy(true);setNotice('');
-  try{const d=await startArenaExpedition(uid,hero);if(!alive.current)return;setRoute(d);setPending(null);setAnswer('');onSettled();}
+  try{const d=await startArenaExpedition(uid,hero);if(!alive.current)return;accept(d);setPending(null);setAnswer('');onSettled();}
   catch{if(alive.current)setNotice('Could not load expedition. Resume the same route when online.');}
   finally{lock.current=false;if(alive.current)setBusy(false);}
  }
  async function step(req:Pending){
   if(!route||lock.current)return;lock.current=true;setBusy(true);setPending(req);setNotice('');
-  try{const d=await stepArenaExpedition(uid,route.id,req.version,req.action,req.answer,req.id);if(!alive.current)return;setRoute(d);setPending(null);setAnswer('');onSettled();}
+  try{const d=await stepArenaExpedition(uid,route.id,req.version,req.action,req.answer,req.id);if(!alive.current)return;const newReward=d.results.slice(route.results.length).some(x=>x.outcome==='awarded');accept(d);setPending(null);setAnswer('');if(newReward)onSettled();}
   catch{if(alive.current)setNotice('Turn not confirmed. Retry the same turn or resume the route.');}
   finally{lock.current=false;if(alive.current)setBusy(false);}
  }
- const wait=route?Math.max(0,Math.ceil((Date.parse(route.next_action_at)-clock)/1000)):0;
+ const wait=route?Math.max(0,Math.ceil((cooldownUntil-clock)/1000)):0;
  const action=(a:ExpeditionAction,n:number|null=null)=>{if(!route||pending||wait>0||busy)return;void step({id:Crypto.randomUUID(),version:route.version,action:a,answer:n});};
  const button=(label:string,run:()=>void,disabled=false)=><Pressable accessibilityRole="button" disabled={busy||disabled} onPress={run} style={[s.button,(busy||disabled)&&{opacity:.45}]}><Text style={s.buttonText}>{label}</Text></Pressable>;
  const active=ARENA_STONES.find(g=>g.heroId===(route?.hero_id??hero)),q=route?.question;

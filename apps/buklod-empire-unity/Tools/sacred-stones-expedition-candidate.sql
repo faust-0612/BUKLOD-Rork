@@ -29,8 +29,8 @@ language sql stable set search_path='' as $$
  select jsonb_build_object('enabled',true,'id',e.id,'hero_id',e.hero_id,'version',e.version,
  'stage',e.stage,'state',e.state,'health',e.health,'monster_hp',e.monster_hp,
  'monster_intent',case when e.stage=1 then case when e.monster_turn%2=1 then 'heavy' else 'recovering' end else null end,
- 'question',case when e.stage in (0,2,3) and e.state='active' then e.puzzles->e.stage::text-'answer' else null end,
- 'results',e.results,'next_action_at',e.next_action_at,'expires_at',e.expires_at)
+ 'question',case when e.stage in (0,2,3) and e.state='active' then (e.puzzles->(e.stage::text))-'answer' else null end,
+ 'results',e.results,'next_action_at',e.next_action_at,'server_now',now(),'expires_at',e.expires_at)
 $$;
 -- Every stage is derived from server-owned state. No client event kind, object
 -- key, hero override, HP or reward amount is accepted by the step endpoint.
@@ -46,12 +46,16 @@ begin
  perform empire_stones.check_rate(u);
  perform empire_stones.lock_users(array[u]);
  -- A previously unfinished route cannot create another daily route or reroll.
- update empire_stones.expedition set state='expired' where user_id=u and state='active' and expires_at<=now();
+ for sid in select id from empire_stones.expedition where user_id=u and state='active' and expires_at<=now() loop
+  update empire_stones.expedition set state='expired' where id=sid;
+  perform empire_stones.close_world_discovery(sid);
+ end loop;
  select * into e from empire_stones.expedition where user_id=u and (day=today or state='active') order by (state='active') desc,day desc limit 1;
  if found then return empire_stones.expedition_view(e); end if;
  sid:=gen_random_uuid();
  foreach i in array array[0,2,3] loop
   a:=2+floor(random()*9)::integer;b:=2+floor(random()*9)::integer;c:=1+floor(random()*5)::integer;
+  if i=3 then c:=least(c,a*b);end if;
   correct:=case when i=0 then a+b+c when i=2 then a*b+c else a*b-c end;
   puzzles:=puzzles||jsonb_build_object(i::text,jsonb_build_object('a',a,'b',b,'c',c,'answer',correct));
  end loop;
@@ -85,7 +89,7 @@ begin
  if e.next_action_at>now() then raise exception 'Wait for next expedition turn'; end if;
  if e.stage in (0,2,3) then
   if p_action<>'solve' or p_answer is null or p_answer not between 0 and 200 then raise exception 'Solve the current objective'; end if;
-  success:=p_answer=(e.puzzles->e.stage::text->>'answer')::integer;
+  success:=p_answer=(e.puzzles->(e.stage::text)->>'answer')::integer;
   kind:=case e.stage when 0 then 'rare_pick' when 2 then 'treasure_discovery' else 'village_reward' end;
   advance_stage:=true;
  elsif e.stage=1 then

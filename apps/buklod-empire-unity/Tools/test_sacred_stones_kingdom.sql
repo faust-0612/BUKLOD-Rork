@@ -156,7 +156,7 @@ begin
   if result->>'stage'<>'2' or result->>'health'<>'5' then raise exception 'Monster encounter progression failed';end if;
   for i in 2..3 loop
    update empire_stones.expedition set next_action_at=now()-interval '1 second' where id=exid;
-   select (puzzles->i::text->>'answer')::integer into answer from empire_stones.expedition where id=exid;
+   select (puzzles->(i::text)->>'answer')::integer into answer from empire_stones.expedition where id=exid;
    result:=public.step_my_empire_expedition_v1(exid,(result->>'version')::integer,'solve',answer,gen_random_uuid());
   end loop;
   update empire_stones.expedition set next_action_at=now()-interval '1 second' where id=exid;

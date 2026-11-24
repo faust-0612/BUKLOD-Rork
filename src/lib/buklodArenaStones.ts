@@ -65,10 +65,10 @@ export async function finishArenaDiscovery(uid:string,id:string,answers:number[]
 }
 
 export type ExpeditionAction='solve'|'strike'|'guard'|'finish';
-export type Expedition={enabled:boolean;id:string;hero_id:ArenaStoneId;version:number;stage:number;state:'active'|'complete'|'failed'|'expired';health:number;monster_hp:number;monster_intent:'heavy'|'recovering'|null;question:{a:number;b:number;c:number}|null;results:{source:string;outcome:string}[];next_action_at:string;expires_at:string};
+export type Expedition={enabled:boolean;id:string;hero_id:ArenaStoneId;version:number;stage:number;state:'active'|'complete'|'failed'|'expired';health:number;monster_hp:number;monster_intent:'heavy'|'recovering'|null;question:{a:number;b:number;c:number}|null;results:{source:string;outcome:string}[];next_action_at:string;server_now:string;expires_at:string};
 function normalizeExpedition(d:any):Expedition|null{
  if(d?.enabled===false)return null;
- if(d?.enabled!==true||typeof d.id!=='string'||!validId(d.hero_id)||!validNumber(d.version)||d.version>24||!validNumber(d.stage)||d.stage>5||!validNumber(d.health)||d.health>5||!validNumber(d.monster_hp)||d.monster_hp>3||!['active','complete','failed','expired'].includes(d.state)||!Array.isArray(d.results)||d.results.length>5||typeof d.next_action_at!=='string')throw new Error('Invalid expedition state');
+ if(d?.enabled!==true||typeof d.id!=='string'||!validId(d.hero_id)||!validNumber(d.version)||d.version>24||!validNumber(d.stage)||d.stage>5||!validNumber(d.health)||d.health>5||!validNumber(d.monster_hp)||d.monster_hp>3||!['active','complete','failed','expired'].includes(d.state)||!Array.isArray(d.results)||d.results.length>5||typeof d.next_action_at!=='string'||typeof d.server_now!=='string'||!Number.isFinite(Date.parse(d.next_action_at))||!Number.isFinite(Date.parse(d.server_now)))throw new Error('Invalid expedition state');
  if(d.state==='active'&&[0,2,3].includes(d.stage)&&(!d.question||![d.question.a,d.question.b,d.question.c].every(n=>validNumber(n)&&n>0&&n<=20)))throw new Error('Invalid expedition question');
  return d;
 }
