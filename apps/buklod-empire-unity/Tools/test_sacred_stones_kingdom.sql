@@ -66,6 +66,7 @@ insert into private.buklod_kingdom_mastery_catalog_v1(game_id,character_id) valu
 create table private.buklod_kingdom_mastery_attempts_v1(id uuid primary key default gen_random_uuid(),user_id uuid not null,game_id text not null,status text not null,completed_at timestamptz);
 \ir sacred-stones-server-candidate.sql
 \ir sacred-stones-kingdom-candidate.sql
+\ir sacred-stones-discovery-candidate.sql
 begin;
 do $$
 declare
@@ -112,6 +113,25 @@ begin
  begin perform public.act_my_empire_stones_v1('exchange','{"hero_id":"phan"}',cancelled);
  exception when others then rejected:=true; end;
  if not rejected or (select available_points from public.buklod_user_points_balances where user_id=a)<>400 then raise exception 'Cancelled request was spent'; end if;
+ -- Force deterministic fixture probability, never production tuning.
+ update empire_stones.release_gate set discovery_enabled=true,world_discovery_enabled=true;
+ update empire_stones.discovery_policy set chance_bps=10000;
+ result:=public.start_my_empire_discovery_v1('quin');
+ if result->>'status'<>'pending' or (result->'questions'->0) ? 'answer' then raise exception 'Invalid trial exposure'; end if;
+ if public.start_my_empire_discovery_v1('phan')->>'id'<>result->>'id' then raise exception 'Pending trial rerolled'; end if;
+ -- Read fixture-only private answers; move clock to satisfy minimum age.
+ update empire_stones.discovery_challenge set created_at=now()-interval '6 seconds' where id=(result->>'id')::uuid;
+ declare answers integer[]; trial_id uuid:=(result->>'id')::uuid;
+ begin
+  select array_agg((q->>'answer')::integer order by ordinality) into answers from empire_stones.discovery_challenge c cross join lateral jsonb_array_elements(c.questions) with ordinality as t(q,ordinality) where c.id=trial_id;
+  result:=public.finish_my_empire_discovery_v1(trial_id,answers);
+  if result->>'outcome'<>'awarded' then raise exception 'Trial grant failed'; end if;
+  if public.finish_my_empire_discovery_v1(trial_id,answers)->>'outcome'<>'awarded' or (select balance from empire_stones.wallet where user_id=a and hero_id='quin') is distinct from 1::bigint then raise exception 'Trial replay duplicated'; end if;
+ end;
+ perform empire_stones.open_world_discovery('30000000-0000-0000-0000-000000000001',a,'quin');
+ if empire_stones.record_world_discovery('30000000-0000-0000-0000-000000000001','treasure-1','treasure_discovery')<>'daily_cap' then raise exception 'Shared cap failed'; end if;
+ if empire_stones.record_world_discovery('30000000-0000-0000-0000-000000000001','treasure-1','treasure_discovery')<>'daily_cap' then raise exception 'World event replay failed'; end if;
+ if has_function_privilege('authenticated','empire_stones.record_world_discovery(uuid,text,text)','EXECUTE') then raise exception 'World hook exposed'; end if;
  if has_function_privilege('authenticated','empire_stones.grant_verified(uuid,text,integer,text,text,text)','EXECUTE') or
  has_function_privilege('anon','public.get_my_empire_stones_v1()','EXECUTE') or
  has_table_privilege('authenticated','empire_stones.wallet','SELECT') then raise exception 'Private economy leaked'; end if;

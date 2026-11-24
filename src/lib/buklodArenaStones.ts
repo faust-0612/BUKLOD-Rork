@@ -3,7 +3,7 @@ import { ARENA_STONE_IDS, type ArenaStoneId } from './buklodArenaStoneCatalog';
 export type StoneRow = {hero_id:ArenaStoneId;balance:number;mastery_count:number;quest_awarded:boolean};
 export type StoneTrade = {id:string;sender:string;recipient:string;offered:ArenaStoneId[];wanted:ArenaStoneId[]};
 export type StoneRequest = {id:string;requester:string;donor:string;hero_id:ArenaStoneId};
-export type StoneSnapshot = {version:1;enabled:true;owner:string;bp_exchange_enabled:boolean;spendable_bp:number;stones:StoneRow[];trades:StoneTrade[];requests:StoneRequest[]};
+export type StoneSnapshot = {version:1;enabled:true;owner:string;bp_exchange_enabled:boolean;discovery_enabled?:boolean;spendable_bp:number;stones:StoneRow[];trades:StoneTrade[];requests:StoneRequest[]};
 export type StoneAction = 'exchange'|'combine'|'convert'|'gift'|'offer'|'accept_trade'|'cancel_trade'|'request'|'accept_request'|'decline_request';
 const validNumber=(n:unknown):n is number=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
 const validId=(n:unknown):n is ArenaStoneId=>typeof n==='string'&&ARENA_STONE_IDS.has(n);
@@ -47,3 +47,19 @@ export async function resolveArenaStoneRequest(uid:string,requestId:string){
 export const getArenaStones=(uid:string)=>rpc(uid,'get_my_empire_stones_v1');
 export const actArenaStones=(uid:string,action:StoneAction,args:Record<string,unknown>,requestId:string)=>
  rpc(uid,'act_my_empire_stones_v1',{p_action:action,p_args:args,p_request_id:requestId});
+
+export type DiscoveryTrial={enabled:boolean;status:'pending'|'daily_cap'|'attempt_cap'|'failed'|'expired'|'verified';id?:string;hero_id?:ArenaStoneId;expires_at?:string;questions?:{a:number;b:number;c:number}[];outcome?:'awarded'|'no_drop'|'daily_cap'|'roll_cap'};
+export async function startArenaDiscovery(uid:string,hero:ArenaStoneId):Promise<DiscoveryTrial>{
+ const d=await request(uid,'start_my_empire_discovery_v1',{p_hero_id:hero});
+ if(d?.enabled===false)return d;
+ if(d?.enabled!==true||!['pending','daily_cap','attempt_cap'].includes(d.status))throw new Error('Invalid trial');
+ if(d.status==='pending'&&(!validId(d.hero_id)||typeof d.id!=='string'||!Array.isArray(d.questions)||d.questions.length!==3||
+ d.questions.some((q:any)=>!q||![q.a,q.b,q.c].every(n=>validNumber(n)&&n>0&&n<=20))))throw new Error('Invalid trial questions');
+ return d;
+}
+export async function finishArenaDiscovery(uid:string,id:string,answers:number[]):Promise<DiscoveryTrial>{
+ const d=await request(uid,'finish_my_empire_discovery_v1',{p_id:id,p_answers:answers});
+ if(d?.enabled!==true||d.id!==id||!validId(d.hero_id)||!['failed','expired','verified'].includes(d.status)||
+ (d.status==='verified'&&!['awarded','no_drop','daily_cap','roll_cap'].includes(d.outcome)))throw new Error('Invalid trial result');
+ return d;
+}
