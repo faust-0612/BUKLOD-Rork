@@ -55,8 +55,14 @@ namespace Buklod.Empire {
             var lanes=new[]{ArenaLane.Top,ArenaLane.Mid,ArenaLane.Mid,ArenaLane.Bottom,ArenaLane.Bottom};
             foreach(ArenaTeam team in Enum.GetValues(typeof(ArenaTeam))){
                 bool lux=team==ArenaTeam.Lux;
+                var picks=new List<string>();
+                if(lux)picks.Add(hero);
+                for(int j=0;picks.Count<5&&j<roster.Count;j++){
+                    string candidate=roster[(j+(lux?5:8))%roster.Count].Id;
+                    if(!picks.Contains(candidate))picks.Add(candidate);
+                }
                 for(int i=0;i<5;i++){
-                    string id=lux&&i==0?hero:roster[(i+(lux?4:8))%roster.Count].Id;
+                    string id=picks[i];
                     var u=Add(team,BattleTargetKind.Hero,new SkillActor(id),new Vector2(lux?17:Width-17,Height*.5f+(i-2)*5),lanes[i]);
                     if(lux&&i==0)Player=u;
                 }
@@ -184,9 +190,17 @@ namespace Buklod.Empire {
             }
             for(int i=units.Count-1;i>=0;i--){var u=units[i];if(!u.State.Alive&&(u.Kind==BattleTargetKind.Minion||u.Temporary)){byState.Remove(u.State);units.RemoveAt(i);}}
             if(!Finished&&Time>=OfflineMatchRules.MatchLimit){
-                var a=units.First(u=>u.Core&&u.Team==ArenaTeam.Lux).State.Health;var b=units.First(u=>u.Core&&u.Team==ArenaTeam.Tenebra).State.Health;
-                string w=OfflineMatchRules.TimeLimitWinner(a,b);Winner=w=="A"?ArenaTeam.Lux:w=="B"?ArenaTeam.Tenebra:(ArenaTeam?)null;Finished=true;
+                var a=units.First(u=>u.Core&&u.Team==ArenaTeam.Lux).State;
+                var b=units.First(u=>u.Core&&u.Team==ArenaTeam.Tenebra).State;
+                Winner=ResolveTimeout(Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra),a.Health/a.MaxHealth,b.Health/b.MaxHealth);
+                Finished=true;
             }
+        }
+        // Classic conquest: surviving towers before core health ratio; an exact tie stays a draw.
+        public static ArenaTeam? ResolveTimeout(int luxTowers,int tenebraTowers,float luxCoreRatio,float tenebraCoreRatio){
+            if(luxTowers!=tenebraTowers)return luxTowers>tenebraTowers?ArenaTeam.Lux:ArenaTeam.Tenebra;
+            string w=OfflineMatchRules.TimeLimitWinner(luxCoreRatio,tenebraCoreRatio);
+            return w=="A"?ArenaTeam.Lux:w=="B"?ArenaTeam.Tenebra:(ArenaTeam?)null;
         }
         private Vector2 LaneGoal(BattleUnit u){
             float y=LaneY[(int)u.Lane];if(Mathf.Abs(u.Position.y-y)>4&&Mathf.Abs(u.Position.x-u.Spawn.x)<24)return new Vector2(u.Position.x,y);
