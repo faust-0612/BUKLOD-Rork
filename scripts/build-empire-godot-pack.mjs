@@ -83,6 +83,7 @@ function collect(dir, prefix = '') {
       continue;
     }
     if (!/\.gd$|\.gdshader$|\.tscn$|^project\.godot$/.test(name)) continue;
+    if (!process.argv.includes('--native-bootstrap') && ['scripts/native_bootstrap.gd','scenes/NativeBootstrap.tscn'].includes(prefix+name)) continue;
     entries.push({ name: prefix + name, bytes: readFileSync(full) });
   }
 }

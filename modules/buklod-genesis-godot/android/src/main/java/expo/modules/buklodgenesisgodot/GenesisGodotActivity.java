@@ -39,7 +39,7 @@ public final class GenesisGodotActivity extends GodotActivity {
         .putExtra(EXTRA_LAUNCH_TOKEN, token);
     if (approved != null) intent.putExtra(EXTRA_APPROVED_PACK, approved.getAbsolutePath());
     if (!context.getSharedPreferences("buklod-genesis-launch", Context.MODE_PRIVATE)
-        .edit().putString("latest", token).commit()) throw new IllegalStateException("Receipt token unavailable");
+        .edit().putString("latest", token).putString("world", world).commit()) throw new IllegalStateException("Receipt token unavailable");
     return intent;
   }
 

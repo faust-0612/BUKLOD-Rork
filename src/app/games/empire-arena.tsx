@@ -924,13 +924,15 @@ function EmpireArenaInApp() {
  * repeated auto-launch after process death or a fatal Android Godot exception.
  * The JS practice scene remains an explicit safe fallback, never the default.
  */
-const GODOT_ARENA_PENDING_KEY = '@buklod/genesis-godot-v205/launch-pending';
+const GODOT_ARENA_PENDING_KEY = '@buklod/genesis-godot-v207/launch-pending';
 function NativeGodotArenaPrimary() {
   const [stage, setStage] = useState<'launching' | 'opened' | 'returned' | 'failed' | 'recovery'>('launching');
   const [showPractice, setShowPractice] = useState(false);
   const [nativeReceipt,setNativeReceipt]=useState('');
   const launching = useRef(false);
   const wasBackgrounded = useRef(false);
+  const previousToken=useRef<string|undefined>(undefined);
+  const attemptStarted=useRef(false);
   const alive = useRef(true);
   const launch = useCallback(async (explicitRetry = false) => {
     if (launching.current) return;
@@ -942,6 +944,8 @@ function NativeGodotArenaPrimary() {
         if (alive.current) setStage('recovery');
         return;
       }
+      previousToken.current=(await getGenesisLaunchStatus()).token;
+      attemptStarted.current=true;
       await AsyncStorage.setItem(GODOT_ARENA_PENDING_KEY, 'pending');
       const started = await openBundledEmpireArena();
       if (!started) {
@@ -966,6 +970,7 @@ function NativeGodotArenaPrimary() {
         wasBackgrounded.current = false;
         // Activity acceptance is not engine readiness. Keep crash marker on unknown/failed launch.
         void getGenesisLaunchStatus().then(receipt=>{
+          if(!attemptStarted.current||!receipt.token||receipt.token===previousToken.current||receipt.world!=='arena')return;
           if(alive.current)setNativeReceipt(receipt.state+(receipt.pack?' • '+receipt.pack.slice(0,12):'')+(receipt.reason?' • '+receipt.reason:''));
           if(receipt.state==='ready')void AsyncStorage.removeItem(GODOT_ARENA_PENDING_KEY);
         });

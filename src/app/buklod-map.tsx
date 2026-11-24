@@ -18,6 +18,7 @@ import BuklodMapGuideDock from '@/features/season2/world/BuklodMapGuideDock';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { BUKLOD_MAP_DISTRICTS, getBuklodMapDistrict, visibleBuklodMapDestinations } from '@/features/season2/genesis/genesisMapDistricts';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
+import GenesisReleaseDiagnostics from '@/features/season2/genesis/GenesisReleaseDiagnostics';
 
 /** A staging-only immersive gateway. Existing feature pages and permissions stay authoritative. */
 export default function BuklodMapScreen() {
@@ -84,6 +85,7 @@ export default function BuklodMapScreen() {
       </ImageBackground>
       <GenesisCosmicSky active={focused} transparent />
       <BuklodMapHeader />
+      {process.env.EXPO_PUBLIC_APP_ENV==='staging'&&process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V207==='true'?<GenesisReleaseDiagnostics/>:null}
       <ScrollView
         style={styles.scroll}
         keyboardShouldPersistTaps="handled"

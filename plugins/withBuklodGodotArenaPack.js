@@ -21,6 +21,9 @@ module.exports = function withBuklodGodotArenaPack(config) {
       if (process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V207 !== 'true') {
         throw new Error('Native bootstrap ABI requires isolated Genesis 2.0.7 profile. Never rebuild old runtime from this branch.');
       }
+      if (process.env.BUKLOD_GENESIS_PREMIUM_3D !== 'true') {
+        throw new Error('Genesis 207 signed staging must bundle verified public 3D assets for offline fallback.');
+      }
       const root = mod.modRequest.projectRoot;
       const output = path.resolve(mod.modRequest.platformProjectRoot,
         'app/src/main/assets/godot/empire-arena.zip');

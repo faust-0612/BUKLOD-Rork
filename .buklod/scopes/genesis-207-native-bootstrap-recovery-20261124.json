@@ -29,33 +29,38 @@
     "Full APK actual install and launch plus existing gates prior to release"
   ],
   "allowedPaths": [
+    ".buklod/releases/genesis-207-native-bootstrap-dev-20261124.json",
+    ".buklod/scopes/genesis-207-native-bootstrap-recovery-20261124.json",
+    ".github/workflows/genesis-207-native-bootstrap-android-qa.yml",
+    "app.config.js",
+    "docs/GENESIS_207_NATIVE_BOOTSTRAP_RECOVERY.md",
+    "eas.json",
+    "godot/empire-arena/scenes/NativeBootstrap.tscn",
     "godot/empire-arena/scripts/native_bootstrap.gd",
-    "src/app/games/index.tsx",
-    "plugins/withBuklodGodotArenaPack.js",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/BuklodGenesisGodotModule.kt",
+    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java",
     "modules/buklod-genesis-godot/index.ts",
-    "tests/genesis-full-staging-godot-ota-native-206.test.mjs",
-    "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
-    "tests/arena-godot-native-migration-20261122.test.mjs",
-    "tests/genesis-unified-godot-native-contract-20261122.test.mjs",
-    "tests/genesis-207-bootstrap-contract.test.mjs",
-    "tests/android-godot-bootstrap/settings.gradle",
-    "tests/android-godot-bootstrap/build.gradle",
-    "tests/android-godot-bootstrap/gradle.properties",
+    "plugins/withBuklodGodotArenaPack.js",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/genesis-207-android-bootstrap-qa.sh",
+    "src/app/buklod-map.tsx",
+    "src/app/games/empire-arena.tsx",
+    "src/app/games/index.tsx",
+    "src/features/season2/genesis/GenesisNativeWorldEntry.tsx",
+    "src/features/season2/genesis/GenesisReleaseDiagnostics.native.tsx",
+    "src/features/season2/genesis/GenesisReleaseDiagnostics.tsx",
+    "src/features/season2/world/GuardedSeason2DevelopmentWorld.tsx",
     "tests/android-godot-bootstrap/app/build.gradle",
     "tests/android-godot-bootstrap/app/src/main/AndroidManifest.xml",
     "tests/android-godot-bootstrap/app/src/main/java/expo/modules/buklodgenesisgodot/QaLaunchActivity.java",
-    "scripts/genesis-207-android-bootstrap-qa.sh",
-    ".github/workflows/genesis-207-native-bootstrap-android-qa.yml",
-    ".buklod/releases/genesis-207-native-bootstrap-dev-20261124.json",
-    ".buklod/scopes/genesis-207-native-bootstrap-recovery-20261124.json",
-    "docs/GENESIS_207_NATIVE_BOOTSTRAP_RECOVERY.md",
-    "app.config.js",
-    "eas.json",
-    "src/app/games/empire-arena.tsx",
-    "godot/empire-arena/scenes/NativeBootstrap.tscn",
-    "scripts/build-empire-godot-pack.mjs",
-    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java",
-    "modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/BuklodGenesisGodotModule.kt"
+    "tests/android-godot-bootstrap/build.gradle",
+    "tests/android-godot-bootstrap/gradle.properties",
+    "tests/android-godot-bootstrap/settings.gradle",
+    "tests/arena-godot-native-migration-20261122.test.mjs",
+    "tests/genesis-207-bootstrap-contract.test.mjs",
+    "tests/genesis-full-staging-godot-ota-native-206.test.mjs",
+    "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
+    "tests/genesis-unified-godot-native-contract-20261122.test.mjs"
   ],
   "regressionTests": [
     "tests/genesis-207-bootstrap-contract.test.mjs",
@@ -63,5 +68,39 @@
     "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
     "tests/arena-godot-native-migration-20261122.test.mjs",
     "tests/genesis-unified-godot-native-contract-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New isolated Android native runtime with immutable bootstrap and passive staging OTA diagnostics.",
+      "preservedBehaviors": [
+        "Production runtime unchanged, no reload during calls or drafts."
+      ],
+      "tests": [
+        "tests/genesis-207-bootstrap-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "World portals open native scenes only after auth, consent and runtime gates.",
+      "preservedBehaviors": [
+        "Old authoritative tools remain accessible, no rewards change."
+      ],
+      "tests": [
+        "tests/genesis-207-bootstrap-contract.test.mjs",
+        "tests/genesis-unified-godot-native-contract-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "godot-content",
+      "reason": "Mount verified content after engine initialization and require rendered Android receipt.",
+      "preservedBehaviors": [
+        "Official engine restrictions, local-only gameplay, existing public asset provenance."
+      ],
+      "tests": [
+        "tests/genesis-207-bootstrap-contract.test.mjs",
+        "tests/genesis-full-staging-godot-ota-native-206.test.mjs"
+      ]
+    }
   ]
 }

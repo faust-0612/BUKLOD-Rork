@@ -145,13 +145,14 @@ class BuklodGenesisGodotModule : Module() {
         promise.resolve(mapOf("state" to "unavailable"))
       } else {
         try {
-          val token = activity.getSharedPreferences("buklod-genesis-launch", android.content.Context.MODE_PRIVATE).getString("latest", null)
+          val prefs = activity.getSharedPreferences("buklod-genesis-launch", android.content.Context.MODE_PRIVATE)
+          val token = prefs.getString("latest", null)
           if (token == null || !Regex("^[0-9a-f-]{36}$").matches(token)) {
             promise.resolve(mapOf("state" to "not_started"))
           } else {
             val file = File(File(activity.filesDir, GenesisGodotActivity.RECEIPT_DIR), "$token.json")
             if (!file.isFile || file.length() !in 1L..4096L) {
-              promise.resolve(mapOf("state" to "requested"))
+              promise.resolve(mapOf("state" to "requested", "token" to token, "world" to (prefs.getString("world", "") ?: "")))
             } else {
               val receipt = org.json.JSONObject(file.readText())
               if (receipt.optString("token") != token) error("Stale receipt")

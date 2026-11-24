@@ -37,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/genesis-207-bootstrap-contract.test.mjs
+          node --test tests/genesis-full-staging-godot-ota-native-206.test.mjs tests/genesis-unified-godot-native-contract-20261122.test.mjs
           node scripts/genesis-import-verified-3d.mjs
           ASSETS=tests/android-godot-bootstrap/app/src/main/assets
           mkdir -p "$ASSETS/godot"
@@ -44,6 +45,35 @@ jobs:
           BUKLOD_GENESIS_PREMIUM_3D=true node scripts/build-empire-godot-pack.mjs --out="$ASSETS/qa-content.zip"
           unzip -p "$ASSETS/godot/empire-arena.zip" project.godot | grep -F 'run/main_scene="res://scenes/NativeBootstrap.tscn"'
           unzip -p "$ASSETS/qa-content.zip" project.godot | grep -F 'run/main_scene="res://scenes/Arena.tscn"'
+          if unzip -Z1 "$ASSETS/qa-content.zip" | grep -E '^(scripts/native_bootstrap.gd|scenes/NativeBootstrap.tscn)
+          unzip -t "$ASSETS/qa-content.zip" | tail -2
+          cp modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java tests/android-godot-bootstrap/app/src/main/java/expo/modules/buklodgenesisgodot/
+          echo 'No production data, Expo, signing secrets, or full application build'
+      - name: Compile isolated release AAR test host
+        run: gradle -p tests/android-godot-bootstrap :app:assembleRelease --no-daemon
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Actual Android render — embedded, downloaded, all worlds, repeat and rejection
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: bash scripts/genesis-207-android-bootstrap-qa.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: genesis-207-android-scene-receipts
+          path: build/genesis-207-android-qa/
+          if-no-files-found: ignore
+          retention-days: 7
+; then echo 'Trusted bootstrap leaked into OTA'; exit 1; fi
           unzip -t "$ASSETS/qa-content.zip" | tail -2
           cp modules/buklod-genesis-godot/android/src/main/java/expo/modules/buklodgenesisgodot/GenesisGodotActivity.java tests/android-godot-bootstrap/app/src/main/java/expo/modules/buklodgenesisgodot/
           echo 'No production data, Expo, signing secrets, or full application build'

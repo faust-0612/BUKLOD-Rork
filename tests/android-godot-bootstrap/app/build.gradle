@@ -14,7 +14,7 @@ android {
   release {
    minifyEnabled true
    signingConfig signingConfigs.debug
-   proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../../../../modules/buklod-genesis-godot/android/consumer-rules.pro'
+   proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), rootProject.file('../../modules/buklod-genesis-godot/android/consumer-rules.pro')
   }
  }
 }
