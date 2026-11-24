@@ -27,9 +27,14 @@ namespace Buklod.Empire.Editor
                 throw new BuildFailedException("BUKLOD Empire requires its isolated Android application ID: " + ExpectedApplicationId);
 
             var scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).ToArray();
-            if (scenes.Length == 0 || scenes.Any(scene => AssetDatabase.LoadAssetAtPath<SceneAsset>(scene.path) == null))
+            if (scenes.Length != 1 || scenes[0].path != ArenaSceneComposer.ScenePath || scenes.Any(scene => AssetDatabase.LoadAssetAtPath<SceneAsset>(scene.path) == null))
                 throw new BuildFailedException("BUKLOD Empire requires valid enabled Unity scenes before Android compilation.");
 
+            if(!AssetDatabase.LoadAssetAtPath<UnityEngine.AI.NavMeshData>("Assets/Scenes/GenesisRiftNavMesh.asset"))throw new BuildFailedException("Production NavMesh missing.");
+            if(!(UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline is UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset))throw new BuildFailedException("Production URP settings missing.");
+            var catalogDeps=AssetDatabase.GetDependencies(ArenaSceneComposer.CatalogPath,true);
+            if(catalogDeps.Any(path=>path.StartsWith("Assets/Generated/",System.StringComparison.OrdinalIgnoreCase)))throw new BuildFailedException("Generated review assets cannot be used by the production catalog.");
+            if(!AssetDatabase.GetDependencies(scenes[0].path,true).Contains(ArenaSceneComposer.CatalogPath))throw new BuildFailedException("Enabled scene must use the approved production catalog.");
             foreach(var scene in scenes){
                 if(scene.path.StartsWith("Assets/Generated/",System.StringComparison.OrdinalIgnoreCase)||
                    AssetDatabase.GetDependencies(scene.path,true).Any(path=>path.StartsWith("Assets/Generated/ReviewOnly/",System.StringComparison.OrdinalIgnoreCase)))

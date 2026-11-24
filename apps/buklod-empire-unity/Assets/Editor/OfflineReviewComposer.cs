@@ -29,6 +29,12 @@ namespace Buklod.Empire.Editor {
             c.genesisRift=Prefab("genesis_rift_candidate");
             c.heroes=HeroKitCatalog.All.Select(h=>new BattleVisualCatalog.HeroVisual{id=h.Id,prefab=Prefab(h.Id)}).ToArray();
             c.factions=new[]{Faction(ArenaTeam.Lux),Faction(ArenaTeam.Tenebra)};
+            // Only import these generated models into the isolated review catalog, never a production receipt.
+            var wildlife=WildlifeReviewComposer.ImportReviewPrefabs();
+            string[] ids={"azure_stag","crimson_wolf","emerald_serpent","golden_scarab","stone_golem","river_spirit","wind_falcon","ancient_sentinel","colossal_guardian"};
+            var kinds=new[]{WildernessKind.AzureStag,WildernessKind.CrimsonWolf,WildernessKind.EmeraldSerpent,WildernessKind.GoldenScarab,WildernessKind.StoneGolem,WildernessKind.RiverSpirit,WildernessKind.WindFalcon,WildernessKind.AncientSentinel,WildernessKind.ColossalGuardian};
+            c.wilderness=kinds.Select((kind,i)=>new BattleVisualCatalog.WildernessVisual{kind=kind,prefab=wildlife[ids[i]]}).ToArray();
+            c.resources=Enum.GetValues(typeof(VillageResourceKind)).Cast<VillageResourceKind>().Select(kind=>new BattleVisualCatalog.ResourceVisual{kind=kind,prefab=wildlife[kind.ToString().ToLowerInvariant()]}).ToArray();
             c.ValidateEditorReview(); // deliberately no production receipt
             var catalogPath=Out+"/OfflineReviewCatalog.asset";
             var old=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(catalogPath);

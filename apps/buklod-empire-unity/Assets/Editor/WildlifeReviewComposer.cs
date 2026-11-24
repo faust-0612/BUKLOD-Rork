@@ -20,9 +20,7 @@ namespace Buklod.Empire.Editor {
             using(var f=File.OpenRead(path))using(var h=SHA256.Create())
                 return BitConverter.ToString(h.ComputeHash(f)).Replace("-","").ToLowerInvariant();
         }
-        [MenuItem("BUKLOD Empire/Assemble wildlife and resource review")]
-        public static void Prepare(){
-            if(EditorSceneManager.GetActiveScene().isDirty)throw new InvalidOperationException("Save the open scene first.");
+        internal static Dictionary<string,GameObject> ImportReviewPrefabs(){
             string path=Source+"/manifest.json";
             if(!File.Exists(path))throw new InvalidOperationException("Run node Tools/wildlife-review.mjs first.");
             var manifest=JsonUtility.FromJson<Receipt>(File.ReadAllText(path));
@@ -45,6 +43,12 @@ namespace Buklod.Empire.Editor {
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             var prefabs=new Dictionary<string,GameObject>();
             foreach(var row in manifest.models)prefabs.Add(row.id,CandidateReviewComposer.MakePrefab("wildlife_"+row.id,Creatures.Contains(row.id)?Clips:Array.Empty<string>()));
+            AssetDatabase.SaveAssets();return prefabs;
+        }
+        [MenuItem("BUKLOD Empire/Assemble wildlife and resource review")]
+        public static void Prepare(){
+            if(EditorSceneManager.GetActiveScene().isDirty)throw new InvalidOperationException("Save the open scene first.");
+            var prefabs=ImportReviewPrefabs();
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             var root=new GameObject("UNAPPROVED wildlife and resource candidates");
             for(int i=0;i<Creatures.Length;i++){

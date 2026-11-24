@@ -342,12 +342,17 @@ namespace Buklod.Empire {
         public bool IsVisibleTo(ArenaTeam viewer,BattleUnit target){
             if(!ArenaDraftRules.ValidTeam(viewer)||target==null||Find(target.State)!=target||!target.State.Alive)return false;
             if(target.Team==viewer||Time>=OfflineMatchRules.MatchLimit||!CoreAlive(target.Team))return true;
-            int zone=ConcealmentZone(target.Position);bool revealed=target.State.Buff("revealed",Time)>0;
+            return IsPositionVisibleTo(viewer,target.Position,target.State.Buff("revealed",Time)>0);
+        }
+        public bool IsPositionVisibleTo(ArenaTeam viewer,Vector2 position,bool revealed=false){
+            if(!ArenaDraftRules.ValidTeam(viewer)||!Finite(position)||position.x<0||position.x>Width||position.y<0||position.y>Height)return false;
+            if(Time>=OfflineMatchRules.MatchLimit)return true;
+            int zone=ConcealmentZone(position);
             foreach(var observer in units){if(observer.Team!=viewer||!observer.State.Alive)continue;
                 float radius=(observer.Kind==BattleTargetKind.Hero?20:observer.Kind==BattleTargetKind.Structure?12:9)+observer.State.Buff("vision",Time);
-                float distance=Dist(observer,target);if(distance>radius)continue;
+                float distance=Vector2.Distance(observer.Position,position);if(distance>radius)continue;
                 if(zone>=0&&!revealed&&distance>2.5f&&ConcealmentZone(observer.Position)!=zone)continue;
-                if(ClearSight(observer.Position,target.Position))return true;
+                if(ClearSight(observer.Position,position))return true;
             }return false;
         }
         public IReadOnlyList<SkillActor> Enemies(SkillActor actor,float radius,Vector2 aim){

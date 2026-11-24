@@ -26,14 +26,15 @@ namespace Buklod.Empire {
             }
         }
         private bool Nearby(Vector2 position)=>Vector2.Distance(position,bound.Player.Position)<=42;
+        private bool Visible(Vector2 position)=>Nearby(position)&&bound.IsPositionVisibleTo(bound.Player.Team,position);
         public void Refresh(){
             if(!view||view.Battle==null)return;if(bound!=view.Battle){Clear();bound=view.Battle;}
             seen.Clear();
             if(!bound.Finished){
                 foreach(var n in bound.ResourceNodes)if(n.Stock>0&&Nearby(n.Position))Present(0,n.Id,n.Position,view.visuals.ResolveResource(n.Kind));
-                foreach(var c in bound.Camps)if(c.Alive&&Nearby(c.Position))Present(1,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind));
-                foreach(var d in bound.Drops)if(Nearby(d.Position))Present(2,d.Id,d.Position,view.visuals.fieldPickup);
-                foreach(var d in bound.RelicDrops)if(Nearby(d.Position))Present(3,d.Id,d.Position,view.visuals.relicPickup);
+                foreach(var c in bound.Camps)if(c.Alive&&Visible(c.Position))Present(1,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind));
+                foreach(var d in bound.Drops)if(Visible(d.Position))Present(2,d.Id,d.Position,view.visuals.fieldPickup);
+                foreach(var d in bound.RelicDrops)if(Visible(d.Position))Present(3,d.Id,d.Position,view.visuals.relicPickup);
             }
             removed.Clear();foreach(var e in active)if(!seen.Contains(e.Key)){Return(e.Key,e.Value);removed.Add(e.Key);}
             foreach(var key in removed){active.Remove(key);prefabs.Remove(key);}

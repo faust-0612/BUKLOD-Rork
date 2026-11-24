@@ -17,3 +17,6 @@ Use the integrated branch, not the separate historical graphics or gameplay bran
 
 ### Local read-only audit
 From this project directory run `node Tools/apk-readiness.mjs`. It checks the committed project inputs without invoking Unity, npm install, cloud builds, or deployment. A missing production catalog, URP settings, scene or generated NavMesh is a hard blocker. Even a passing file check is not Unity compilation, asset-rights verification, EditMode/PlayMode acceptance, or an approved APK. The actual Android build guard remains authoritative for editor-side catalog and scene validation.
+
+## Integrated editor-only rehearsal
+Run `node Tools/wildlife-review.mjs` before `BUKLOD Empire/Assemble offline gameplay review` (after the existing hero/faction candidate import and URP configuration). The offline review composer now imports hash-checked wildlife/resource candidate prefabs directly and binds them to match simulation. This is still editor-only. No catalog receipt, production scene or APK is created by review assembly. The Android guard requires the exact production scene and its genuine catalog dependency, not a substitute review scene.

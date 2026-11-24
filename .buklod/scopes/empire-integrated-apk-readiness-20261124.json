@@ -26,11 +26,13 @@
     "Exact cumulative integration and source tests",
     "Resource, trade, housing, loadout and target command validation",
     "Production art and actual Unity EditMode/PlayMode, full-match and Android gates required",
-    "Preserve newer cinematic and world destruction effects with hidden enemy filtering"
+    "Preserve newer cinematic and world destruction effects with hidden enemy filtering",
+    "Hash-checked review wildlife mapping; positional fog for field objects; exact production scene/catalog and NavMesh gate"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",
     ".buklod/scopes/empire-integrated-apk-readiness-20261124.json",
+    "apps/buklod-empire-unity/Assets/Editor/AndroidBuildGuard.cs",
     "apps/buklod-empire-unity/Assets/Editor/OfflineReviewComposer.cs",
     "apps/buklod-empire-unity/Assets/Editor/WildlifeReviewComposer.cs",
     "apps/buklod-empire-unity/Assets/Scripts/ArenaDraftRules.cs",

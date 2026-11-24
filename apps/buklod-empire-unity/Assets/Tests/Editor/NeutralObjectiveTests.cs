@@ -15,6 +15,11 @@ namespace Buklod.Empire.Tests {
             d.Advance(27);Assert.AreEqual(c.MaxHealth,c.Health);Assert.True(d.TryHit(c.Id,1,c.Position,3,400,out defeated));Assert.True(defeated);
             Assert.False(d.TryHit(c.Id,2,c.Position,3,400,out _));d.Advance(86);Assert.False(c.Alive);d.Advance(87);Assert.True(c.Alive);
         }
+        [Test] public void FieldVisibilityUsesTeamVisionAndRejectsInvalidCoordinates(){
+            var b=new OfflineBattle("phan");var foe=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            Assert.True(b.IsPositionVisibleTo(ArenaTeam.Lux,b.Player.Position));Assert.False(b.IsPositionVisibleTo(ArenaTeam.Lux,foe.Position));
+            Assert.False(b.IsPositionVisibleTo(ArenaTeam.Lux,new Vector2(float.NaN,0)));Assert.False(b.IsPositionVisibleTo((ArenaTeam)999,b.Player.Position));
+        }
         [Test] public void OppositeBaseIsHiddenAtMatchStartAndCampsNotFactionUnits(){
             var b=new OfflineBattle("phan");var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
             Assert.False(b.IsVisibleTo(ArenaTeam.Lux,enemy));Assert.True(b.IsVisibleTo(ArenaTeam.Tenebra,enemy));
